@@ -16,6 +16,7 @@ on:
       - 'packages/transcript/**'
       - 'packages/gateway-client/**'
       - 'packages/fake-gateway/**'
+      - 'scripts/i18n/**'
       - '.github/workflows/native.yml'
   pull_request:
     # The same list. Written out rather than as an alias, so the file parses
@@ -26,6 +27,7 @@ on:
       - 'packages/transcript/**'
       - 'packages/gateway-client/**'
       - 'packages/fake-gateway/**'
+      - 'scripts/i18n/**'
       - '.github/workflows/native.yml'
   workflow_dispatch:
 
@@ -86,6 +88,14 @@ jobs:
       - name: Install the workspace for the fake gateway
         if: hashFiles('native/apple/HermieKit/Tests/HermieIntegrationTests/**') != ''
         run: npm ci
+
+      # HermieUI ships `.lproj` files that `npm run i18n` compiles from its String
+      # Catalogs (scripts/i18n/compile-xcstrings.ts). Here, where Xcode is, the
+      # test that holds them byte for byte to `xcrun xcstringstool compile` runs
+      # instead of being skipped.
+      - name: The compiled strings match Xcode's own catalog compiler
+        if: hashFiles('native/apple/HermieKit/Tests/HermieIntegrationTests/**') != ''
+        run: npx vitest run scripts/i18n
 
       - name: HermieKit tests (swift test, fake gateway included)
         run: native/apple/scripts/test.sh --integration

@@ -1,0 +1,2864 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+	<key>app.activity.counters.deliveries</key>
+	<string>Deliveries out</string>
+	<key>app.activity.counters.subagents</key>
+	<string>Sub-agents</string>
+	<key>app.activity.counters.working</key>
+	<string>Bots working</string>
+	<key>app.activity.empty</key>
+	<string>Your bots have not talked to each other yet. When one messages another or delegates a task, it shows up here.</string>
+	<key>app.activity.emptyOffline</key>
+	<string>Nothing to show while the gateway is out of reach.</string>
+	<key>app.activity.failed</key>
+	<string>The timeline could not be loaded: %@</string>
+	<key>app.activity.groupStatus.dispatched</key>
+	<string>dispatched</string>
+	<key>app.activity.groupStatus.done</key>
+	<string>done</string>
+	<key>app.activity.groupStatus.failed</key>
+	<string>failed</string>
+	<key>app.activity.groupStatus.running</key>
+	<string>running</string>
+	<key>app.activity.loading</key>
+	<string>Reading every conversation…</string>
+	<key>app.activity.openChat</key>
+	<string>Open the chat with %@</string>
+	<key>app.activity.reply</key>
+	<string>%1$@ ↩︎ %2$@</string>
+	<key>app.activity.subtitle</key>
+	<string>Messages between your bots, and the agents they put to work.</string>
+	<key>app.activity.title</key>
+	<string>Activity</string>
+	<key>app.activity.to</key>
+	<string>%1$@ → %2$@</string>
+	<key>app.activity.today</key>
+	<string>Today</string>
+	<key>app.activity.yesterday</key>
+	<string>Yesterday</string>
+	<key>app.app.loading</key>
+	<string>Starting…</string>
+	<key>app.app.name</key>
+	<string>Hermie</string>
+	<key>app.auth.noRefreshToken</key>
+	<string>This sign-in cannot be refreshed — it ends when its access token expires. The gateway’s provider needs the offline_access scope.</string>
+	<key>app.auth.noRefreshTokenLink</key>
+	<string>How to fix this</string>
+	<key>app.botProfile.about</key>
+	<string>ABOUT THIS BOT</string>
+	<key>app.botProfile.colour</key>
+	<string>COLOUR</string>
+	<key>app.botProfile.colourHint</key>
+	<string>This chat only. It tints the bubbles, the avatar ring and the row in the list.</string>
+	<key>app.botProfile.description</key>
+	<string>DESCRIPTION</string>
+	<key>app.botProfile.descriptionPlaceholder</key>
+	<string>What this bot is for</string>
+	<key>app.botProfile.gatewayVersion</key>
+	<string>Gateway</string>
+	<key>app.botProfile.menuItem</key>
+	<string>Edit profile</string>
+	<key>app.botProfile.model</key>
+	<string>Model</string>
+	<key>app.botProfile.open</key>
+	<string>Edit %@'s profile</string>
+	<key>app.botProfile.photo</key>
+	<string>PHOTO</string>
+	<key>app.botProfile.photoChange</key>
+	<string>Choose a photo</string>
+	<key>app.botProfile.photoFailed</key>
+	<string>That photo could not be uploaded.</string>
+	<key>app.botProfile.photoHint</key>
+	<string>Shown on the chat list, the header and every message this bot sends.</string>
+	<key>app.botProfile.photoRemove</key>
+	<string>Remove photo</string>
+	<key>app.botProfile.photoReplace</key>
+	<string>Change photo</string>
+	<key>app.botProfile.provider</key>
+	<string>Provider</string>
+	<key>app.botProfile.save</key>
+	<string>Save</string>
+	<key>app.botProfile.saveFailed</key>
+	<string>The gateway would not save that.</string>
+	<key>app.botProfile.saving</key>
+	<string>Saving…</string>
+	<key>app.botProfile.session</key>
+	<string>Session</string>
+	<key>app.botProfile.title</key>
+	<string>Profile</string>
+	<key>app.botProfile.unknown</key>
+	<string>—</string>
+	<key>app.bots.defaultBot</key>
+	<string>Default</string>
+	<key>app.bots.empty</key>
+	<string>This gateway has no bot profiles yet. Create one with `hermes profile create`.</string>
+	<key>app.bots.failed</key>
+	<string>The bot list could not be loaded: %@</string>
+	<key>app.bots.footnote</key>
+	<string>Your conversations stay with your gateway.</string>
+	<key>app.bots.loading</key>
+	<string>Reading the roster…</string>
+	<key>app.bots.messageOpen</key>
+	<string>Open %@’s chat at this message</string>
+	<key>app.bots.messagesHeader</key>
+	<string>IN MESSAGES</string>
+	<key>app.bots.messagesHint</key>
+	<string>Only the best match per chat is shown.</string>
+	<key>app.bots.messagesNone</key>
+	<string>No messages match.</string>
+	<key>app.bots.messagesSearching</key>
+	<string>Searching messages…</string>
+	<key>app.bots.moreActions</key>
+	<string>More</string>
+	<key>app.bots.needsInput</key>
+	<string>Needs your input</string>
+	<key>app.bots.noMatches</key>
+	<string>No conversation matches “%@”.</string>
+	<key>app.bots.noPreview</key>
+	<string>No messages yet</string>
+	<key>app.bots.offline</key>
+	<string>Offline — showing the last saved list.</string>
+	<key>app.bots.running</key>
+	<string>working</string>
+	<key>app.bots.search</key>
+	<string>Search chats</string>
+	<key>app.bots.section</key>
+	<string>MESSAGES</string>
+	<key>app.bots.sidebarHeader</key>
+	<string>CHATS</string>
+	<key>app.bots.switchGateway</key>
+	<string>Gateway: %@</string>
+	<key>app.bots.switchGatewayHint</key>
+	<string>Choose which gateway this list belongs to</string>
+	<key>app.bots.title</key>
+	<string>Chats</string>
+	<key>app.bots.unread</key>
+	<string>New</string>
+	<key>app.chat.answered</key>
+	<string>Answered: %@</string>
+	<key>app.chat.approvalTitle</key>
+	<string>Approval requested</string>
+	<key>app.chat.attach.cancel</key>
+	<string>Cancel</string>
+	<key>app.chat.attach.chipFailed</key>
+	<string>Upload failed</string>
+	<key>app.chat.attach.chipNoWorkspace</key>
+	<string>No workspace to upload into</string>
+	<key>app.chat.attach.chipRefused</key>
+	<string>The gateway refused it</string>
+	<key>app.chat.attach.chipTooLarge</key>
+	<string>Too large · %lld MB max</string>
+	<key>app.chat.attach.failed</key>
+	<string>The attachment could not be added: %@</string>
+	<key>app.chat.attach.file</key>
+	<string>File</string>
+	<key>app.chat.attach.openSettings</key>
+	<string>Open Settings</string>
+	<key>app.chat.attach.permission</key>
+	<string>Hermie needs access to your photo library to attach an image. Allow it in Settings.</string>
+	<key>app.chat.attach.photo</key>
+	<string>Photo library</string>
+	<key>app.chat.attach.title</key>
+	<string>Add an attachment</string>
+	<key>app.chat.attach.uploadFailed</key>
+	<string>The file was not sent. %@</string>
+	<key>app.chat.cancelled</key>
+	<string>Withdrawn</string>
+	<key>app.chat.clarifyTitle</key>
+	<string>The bot has a question</string>
+	<key>app.chat.connection.connecting</key>
+	<string>Connecting to your gateway…</string>
+	<key>app.chat.connection.offline</key>
+	<string>Offline</string>
+	<key>app.chat.connection.reconnecting</key>
+	<string>Reconnecting…</string>
+	<key>app.chat.connection.retry</key>
+	<string>Try now</string>
+	<key>app.chat.empty</key>
+	<string>Nothing has been said in this chat yet.</string>
+	<key>app.chat.expensiveModel#message-empty</key>
+	<string>This model costs more than the current one.</string>
+	<key>app.chat.expensiveModel#message-nonempty</key>
+	<string>%@</string>
+	<key>app.chat.failed</key>
+	<string>This conversation could not be opened: %@</string>
+	<key>app.chat.findExhausted</key>
+	<string>“%@” was matched by the gateway, but it is not in the visible text of this chat.</string>
+	<key>app.chat.findMissed</key>
+	<string>“%@” is in this chat, further back than it has loaded.</string>
+	<key>app.chat.hydrating</key>
+	<string>Loading the conversation…</string>
+	<key>app.chat.offlineCopy</key>
+	<string>Showing the last saved copy of this conversation.</string>
+	<key>app.chat.pickBot</key>
+	<string>Pick a conversation to start reading.</string>
+	<key>app.chat.retry</key>
+	<string>Try again</string>
+	<key>app.chat.send</key>
+	<string>Send</string>
+	<key>app.chat.settingRefused</key>
+	<string>Setting not changed: %@</string>
+	<key>app.chat.stale</key>
+	<string>This conversation lost its connection to the gateway. It reattaches on the next open.</string>
+	<key>app.chat.stop</key>
+	<string>Stop</string>
+	<key>app.chat.subtitle.connecting</key>
+	<string>Connecting…</string>
+	<key>app.chat.subtitle.delegating</key>
+	<string>Delegating…</string>
+	<key>app.chat.subtitle.idle</key>
+	<string>Online</string>
+	<key>app.chat.subtitle.offline</key>
+	<string>Offline</string>
+	<key>app.chat.subtitle.queued</key>
+	<string>Queued</string>
+	<key>app.chat.subtitle.reconnecting</key>
+	<string>Reconnecting…</string>
+	<key>app.chat.subtitle.running</key>
+	<string>Running %@…</string>
+	<key>app.chat.subtitle.signedOut</key>
+	<string>Signed out</string>
+	<key>app.chat.subtitle.thinking</key>
+	<string>Thinking…</string>
+	<key>app.chat.subtitle.typing</key>
+	<string>Typing…</string>
+	<key>app.chat.subtitle.waiting</key>
+	<string>Waiting for you</string>
+	<key>app.chat.subtitle.working</key>
+	<string>Working…</string>
+	<key>app.chat.thinking</key>
+	<string>Thinking</string>
+	<key>app.chat.toolRunning</key>
+	<string>running</string>
+	<key>app.chat.unknownAuthor</key>
+	<string>Someone else started a turn…</string>
+	<key>app.common.add</key>
+	<string>Add</string>
+	<key>app.common.back</key>
+	<string>Back</string>
+	<key>app.common.cancel</key>
+	<string>Cancel</string>
+	<key>app.common.continue</key>
+	<string>Continue</string>
+	<key>app.common.dismiss</key>
+	<string>Dismiss</string>
+	<key>app.common.done</key>
+	<string>Done</string>
+	<key>app.common.noMatches</key>
+	<string>Nothing matches that.</string>
+	<key>app.common.nothingToPick</key>
+	<string>Nothing to choose from.</string>
+	<key>app.common.openInBrowser</key>
+	<string>Open in browser instead</string>
+	<key>app.common.remove</key>
+	<string>Remove</string>
+	<key>app.common.retry</key>
+	<string>Try again</string>
+	<key>app.common.search</key>
+	<string>Search</string>
+	<key>app.common.signIn</key>
+	<string>Sign in</string>
+	<key>app.connection.reauth.action</key>
+	<string>Sign in</string>
+	<key>app.connection.reauth.message</key>
+	<string>Your session on this gateway has expired.</string>
+	<key>app.connection.reauth.saving</key>
+	<string>Signing in…</string>
+	<key>app.connection.reauth.tokenAction</key>
+	<string>Update token</string>
+	<key>app.connection.status.authenticating</key>
+	<string>Authenticating…</string>
+	<key>app.connection.status.connecting</key>
+	<string>Connecting…</string>
+	<key>app.connection.status.disconnected</key>
+	<string>Disconnected</string>
+	<key>app.connection.status.incompatible</key>
+	<string>Not supported</string>
+	<key>app.connection.status.needs_signin</key>
+	<string>Signed out</string>
+	<key>app.connection.status.offline</key>
+	<string>Offline</string>
+	<key>app.connection.status.paused</key>
+	<string>Paused</string>
+	<key>app.connection.status.probing</key>
+	<string>Checking the gateway…</string>
+	<key>app.connection.status.ready</key>
+	<string>Connected</string>
+	<key>app.connection.status.reconnecting</key>
+	<string>Reconnecting…</string>
+	<key>app.errors.authProxy</key>
+	<string>An access proxy answered HTTP %lld before the gateway did. Add its headers under Advanced, or exempt /api/status, /auth/* and /login from it.</string>
+	<key>app.errors.closeAbnormal</key>
+	<string>The WebSocket closed without a reason. A proxy in front of the gateway usually has to be configured to pass WebSocket upgrades through.</string>
+	<key>app.errors.closeAuth</key>
+	<string>The gateway rejected the credentials when the WebSocket opened. Sign in again.</string>
+	<key>app.errors.closeChatOff</key>
+	<string>Chat is switched off on this gateway.</string>
+	<key>app.errors.closeHost</key>
+	<string>The gateway does not trust this address. Set its `dashboard.public_url` to the address you entered and restart it.</string>
+	<key>app.errors.closeTakenOver</key>
+	<string>Another client took this connection over. Close the other client and test again.</string>
+	<key>app.errors.incompatible</key>
+	<string>This gateway is too old for Hermie. Update Hermes on the gateway.</string>
+	<key>app.errors.landingPage</key>
+	<string>This looks like a web page, not a gateway.</string>
+	<key>app.errors.network</key>
+	<string>Could not reach %@. Check the address, and that the gateway is running and reachable from this device.</string>
+	<key>app.errors.networkOverHttps</key>
+	<string>Could not reach %@ over https://. It is either not answering there, or serving a certificate this device does not trust. Leave the https:// off and Hermie will try http:// as well.</string>
+	<key>app.errors.notHermes</key>
+	<string>%@ answered, but not like a Hermes gateway. Check the address and any path prefix.</string>
+	<key>app.errors.openFrontDoor</key>
+	<string>Add the proxy’s credentials</string>
+	<key>app.errors.privateNetworkOnly</key>
+	<string>This address only answers on a private network — is this device on the VPN/tailnet?</string>
+	<key>app.errors.providersUnavailable</key>
+	<string>The gateway requires a sign-in but reports no identity providers. Configure one on the gateway and try again.</string>
+	<key>app.errors.redirected</key>
+	<string>%1$@ redirected to %2$@, which is a different host. Nothing was read from it.</string>
+	<key>app.errors.server</key>
+	<string>The gateway answered HTTP %lld. It is running but unhealthy; check its logs.</string>
+	<key>app.errors.signedOut</key>
+	<string>The gateway rejected the credentials. Sign in again.</string>
+	<key>app.errors.timeout</key>
+	<string>%@ did not answer in time. It may be starting up or behind a slow link.</string>
+	<key>app.errors.tls</key>
+	<string>The secure connection to %@ failed. A self-signed certificate has to be trusted by this device first — or, if the gateway serves plain http there, leave the https:// off and let Hermie find it.</string>
+	<key>app.errors.unknown</key>
+	<string>Something went wrong.</string>
+	<key>app.errors.useRedirectTarget</key>
+	<string>Use %@ instead</string>
+	<key>app.gateway.connectionSettings</key>
+	<string>Connection settings</string>
+	<key>app.gateway.latency</key>
+	<string>%lld ms</string>
+	<key>app.gateway.noHost</key>
+	<string>No gateway</string>
+	<key>app.layout.accents.default</key>
+	<string>Default</string>
+	<key>app.layout.accents.graphite</key>
+	<string>Graphite</string>
+	<key>app.layout.accents.green</key>
+	<string>Green</string>
+	<key>app.layout.accents.indigo</key>
+	<string>Indigo</string>
+	<key>app.layout.accents.lime</key>
+	<string>Lime</string>
+	<key>app.layout.accents.magenta</key>
+	<string>Magenta</string>
+	<key>app.layout.accents.orange</key>
+	<string>Orange</string>
+	<key>app.layout.accents.red</key>
+	<string>Red</string>
+	<key>app.layout.accents.slate</key>
+	<string>Slate</string>
+	<key>app.layout.accents.teal</key>
+	<string>Teal</string>
+	<key>app.layout.accents.violet</key>
+	<string>Violet</string>
+	<key>app.layout.archive</key>
+	<string>Archive</string>
+	<key>app.layout.archived</key>
+	<string>Archived (%lld)</string>
+	<key>app.layout.archivedPreview</key>
+	<string>Archived · excluded from filters and counts</string>
+	<key>app.layout.close</key>
+	<string>Close</string>
+	<key>app.layout.collapseFolder#name-empty</key>
+	<string>Hide the chats in this folder</string>
+	<key>app.layout.collapseFolder#name-nonempty</key>
+	<string>Hide the chats in %@</string>
+	<key>app.layout.colour</key>
+	<string>Colour</string>
+	<key>app.layout.colourOf</key>
+	<string>Colour for %@</string>
+	<key>app.layout.deleteFolder</key>
+	<string>Delete folder</string>
+	<key>app.layout.dragging</key>
+	<string>Moving %@</string>
+	<key>app.layout.expandFolder#name-empty</key>
+	<string>Show the chats in this folder</string>
+	<key>app.layout.expandFolder#name-nonempty</key>
+	<string>Show the chats in %@</string>
+	<key>app.layout.folderActions#name-empty</key>
+	<string>Actions for the untitled folder</string>
+	<key>app.layout.folderActions#name-nonempty</key>
+	<string>Actions for the %@ folder</string>
+	<key>app.layout.folderColour</key>
+	<string>Folder colour</string>
+	<key>app.layout.folderEmpty</key>
+	<string>No chats in this folder</string>
+	<key>app.layout.folderName</key>
+	<string>Folder name</string>
+	<key>app.layout.folderNeedsInput</key>
+	<string>Waiting for you</string>
+	<key>app.layout.folderUnread</key>
+	<string>%lld unread</string>
+	<key>app.layout.markRead</key>
+	<string>Mark as read</string>
+	<key>app.layout.moveDown</key>
+	<string>Move down</string>
+	<key>app.layout.moveToFolder</key>
+	<string>Move to %@</string>
+	<key>app.layout.moveToFolderMenu</key>
+	<string>Move to folder</string>
+	<key>app.layout.moveUp</key>
+	<string>Move up</string>
+	<key>app.layout.mute</key>
+	<string>Mute</string>
+	<key>app.layout.muteFolder</key>
+	<string>Mute folder</string>
+	<key>app.layout.muteFor.1h</key>
+	<string>For 1 hour</string>
+	<key>app.layout.muteFor.1w</key>
+	<string>For 1 week</string>
+	<key>app.layout.muteFor.8h</key>
+	<string>For 8 hours</string>
+	<key>app.layout.muteFor.forever</key>
+	<string>Until I turn it back on</string>
+	<key>app.layout.muteWeekdays[0]</key>
+	<string>Sun</string>
+	<key>app.layout.muteWeekdays[1]</key>
+	<string>Mon</string>
+	<key>app.layout.muteWeekdays[2]</key>
+	<string>Tue</string>
+	<key>app.layout.muteWeekdays[3]</key>
+	<string>Wed</string>
+	<key>app.layout.muteWeekdays[4]</key>
+	<string>Thu</string>
+	<key>app.layout.muteWeekdays[5]</key>
+	<string>Fri</string>
+	<key>app.layout.muteWeekdays[6]</key>
+	<string>Sat</string>
+	<key>app.layout.muted</key>
+	<string>Muted</string>
+	<key>app.layout.mutedRow</key>
+	<string>Muted</string>
+	<key>app.layout.mutedUntil</key>
+	<string>Muted until %@</string>
+	<key>app.layout.nameFolderHint</key>
+	<string>Type to rename this folder.</string>
+	<key>app.layout.newFolder</key>
+	<string>New folder</string>
+	<key>app.layout.openChat</key>
+	<string>Open</string>
+	<key>app.layout.pin</key>
+	<string>Pin</string>
+	<key>app.layout.pinnedRow</key>
+	<string>Pinned</string>
+	<key>app.layout.remove</key>
+	<string>Remove</string>
+	<key>app.layout.removeFolder#name-empty</key>
+	<string>Delete the untitled folder</string>
+	<key>app.layout.removeFolder#name-nonempty</key>
+	<string>Delete the %@ folder</string>
+	<key>app.layout.rename</key>
+	<string>Rename</string>
+	<key>app.layout.rowActions</key>
+	<string>Actions for %@</string>
+	<key>app.layout.showSidebar</key>
+	<string>Show sidebar</string>
+	<key>app.layout.sidebarRail</key>
+	<string>Sidebar, hidden</string>
+	<key>app.layout.topGroup</key>
+	<string>No folder</string>
+	<key>app.layout.unarchive</key>
+	<string>Unarchive</string>
+	<key>app.layout.unmute</key>
+	<string>Unmute</string>
+	<key>app.layout.unmuteFolder</key>
+	<string>Unmute folder</string>
+	<key>app.layout.unnamedFolder</key>
+	<string>Untitled folder</string>
+	<key>app.layout.unpin</key>
+	<string>Unpin</string>
+	<key>app.lock.plateBody</key>
+	<string>Hermie is locked.</string>
+	<key>app.lock.prompt</key>
+	<string>Unlock Hermie</string>
+	<key>app.lock.stranded</key>
+	<string>Hermie is locked, and this device has no passcode or biometric set up to unlock it. Add one in your device settings.</string>
+	<key>app.lock.unlock</key>
+	<string>Unlock</string>
+	<key>app.menuBar.chats</key>
+	<string>Chats</string>
+	<key>app.menuBar.close</key>
+	<string>Close</string>
+	<key>app.menuBar.hideSidebar</key>
+	<string>Hide Sidebar</string>
+	<key>app.menuBar.newConversation</key>
+	<string>New Conversation</string>
+	<key>app.menuBar.search</key>
+	<string>Search…</string>
+	<key>app.menuBar.settings</key>
+	<string>Settings…</string>
+	<key>app.menuBar.showSidebar</key>
+	<string>Show Sidebar</string>
+	<key>app.onboarding.address.addHeader</key>
+	<string>Add a header</string>
+	<key>app.onboarding.address.advanced</key>
+	<string>Advanced</string>
+	<key>app.onboarding.address.advancedHint</key>
+	<string>Extra request headers are sent with every call and with the sign-in page. A reverse proxy that wants a shared secret needs it here.</string>
+	<key>app.onboarding.address.frontDoor.clientId</key>
+	<string>Client ID</string>
+	<key>app.onboarding.address.frontDoor.clientIdPlaceholder</key>
+	<string>abc123.access</string>
+	<key>app.onboarding.address.frontDoor.clientSecret</key>
+	<string>Client Secret</string>
+	<key>app.onboarding.address.frontDoor.cloudflare</key>
+	<string>Cloudflare Access</string>
+	<key>app.onboarding.address.frontDoor.cloudflareHint</key>
+	<string>A service token from your Access application. Hermie sends it with every request, the WebSocket and the sign-in page. Exempt /auth/* and /login from the Access policy: a service token cannot carry a redirect-based sign-in through the edge.</string>
+	<key>app.onboarding.address.frontDoor.custom</key>
+	<string>Custom headers</string>
+	<key>app.onboarding.address.frontDoor.hint</key>
+	<string>Pick how the proxy in front of your gateway lets Hermie through. Nothing here is sent anywhere but the gateway’s own address.</string>
+	<key>app.onboarding.address.frontDoor.insecure</key>
+	<string>This gateway is reached over http://, so the service token is not being sent — it is a long-lived credential for your whole Access tenant. Use https:// for the address the Access application covers.</string>
+	<key>app.onboarding.address.frontDoor.label</key>
+	<string>IN FRONT OF THE GATEWAY</string>
+	<key>app.onboarding.address.headerName</key>
+	<string>Header</string>
+	<key>app.onboarding.address.headerValue</key>
+	<string>Value</string>
+	<key>app.onboarding.address.hideValue</key>
+	<string>Hide value</string>
+	<key>app.onboarding.address.hint</key>
+	<string>Leave the scheme out and Hermie tries https:// first, then http://. Type a scheme yourself to pin it.</string>
+	<key>app.onboarding.address.label</key>
+	<string>ADDRESS</string>
+	<key>app.onboarding.address.placeholder</key>
+	<string>hermes.example.com</string>
+	<key>app.onboarding.address.probing</key>
+	<string>Checking…</string>
+	<key>app.onboarding.address.probingBoth</key>
+	<string>Checking https://, then http://…</string>
+	<key>app.onboarding.address.probingScheme</key>
+	<string>Checking %@…</string>
+	<key>app.onboarding.address.removeHeader#name-empty</key>
+	<string>Remove the empty header</string>
+	<key>app.onboarding.address.removeHeader#name-nonempty</key>
+	<string>Remove the %@ header</string>
+	<key>app.onboarding.address.sessionTokenRequired#version-empty</key>
+	<string>Hermes gateway · session token required</string>
+	<key>app.onboarding.address.sessionTokenRequired#version-nonempty</key>
+	<string>Hermes %@ · session token required</string>
+	<key>app.onboarding.address.showValue</key>
+	<string>Show value</string>
+	<key>app.onboarding.address.signInRequired#providers.last</key>
+	<string> or </string>
+	<key>app.onboarding.address.signInRequired#providers.separator</key>
+	<string>, </string>
+	<key>app.onboarding.address.signInRequired#version-empty</key>
+	<string>Hermes gateway · sign-in required via %@</string>
+	<key>app.onboarding.address.signInRequired#version-nonempty</key>
+	<string>Hermes %1$@ · sign-in required via %2$@</string>
+	<key>app.onboarding.address.signInRequiredNoProviders#version-empty</key>
+	<string>Hermes gateway · sign-in required, but this gateway lists no identity providers. Configure one on the gateway.</string>
+	<key>app.onboarding.address.signInRequiredNoProviders#version-nonempty</key>
+	<string>Hermes %@ · sign-in required, but this gateway lists no identity providers. Configure one on the gateway.</string>
+	<key>app.onboarding.address.subtitle</key>
+	<string>The address you would open in a browser to reach the gateway dashboard.</string>
+	<key>app.onboarding.address.title</key>
+	<string>Gateway address</string>
+	<key>app.onboarding.done.credentialsNotStored</key>
+	<string>Hermie could not store the credentials securely on this device: %@</string>
+	<key>app.onboarding.done.finish</key>
+	<string>Start chatting</string>
+	<key>app.onboarding.done.gateway</key>
+	<string>Gateway</string>
+	<key>app.onboarding.done.retry</key>
+	<string>Try again</string>
+	<key>app.onboarding.done.saveFailed</key>
+	<string>The settings could not be saved: %@</string>
+	<key>app.onboarding.done.saving</key>
+	<string>Saving…</string>
+	<key>app.onboarding.done.subtitle</key>
+	<string>Hermie will store the gateway address on this device and the credentials in the system secret store.</string>
+	<key>app.onboarding.done.subtitleCookie</key>
+	<string>Hermie will remember this gateway in this browser. The session itself stays where the gateway put it — in a cookie Hermie cannot read.</string>
+	<key>app.onboarding.done.title</key>
+	<string>Ready</string>
+	<key>app.onboarding.notifications.copied</key>
+	<string>Copied</string>
+	<key>app.onboarding.notifications.copy</key>
+	<string>Copy</string>
+	<key>app.onboarding.notifications.denied</key>
+	<string>Permission was refused. You can turn it on later in your device settings.</string>
+	<key>app.onboarding.notifications.enable</key>
+	<string>Turn on notifications</string>
+	<key>app.onboarding.notifications.enabled</key>
+	<string>Notifications are on for this device.</string>
+	<key>app.onboarding.notifications.enabling</key>
+	<string>Asking…</string>
+	<key>app.onboarding.notifications.fallback</key>
+	<string>Already running Hermie Web with --push? That keeps working, and you can turn notifications on now. Do not run both — they would notify this device twice.</string>
+	<key>app.onboarding.notifications.guide</key>
+	<string>Open guide</string>
+	<key>app.onboarding.notifications.install</key>
+	<string>ON THE GATEWAY</string>
+	<key>app.onboarding.notifications.missingHint</key>
+	<string>Hermie never talks to the plugin. It reads what your gateway already knows, so there is no second address and nothing new to expose.</string>
+	<key>app.onboarding.notifications.missingSubtitle</key>
+	<string>This gateway has no Hermie plugin, so nothing there can send a notification. It installs with two commands on the machine running `hermes serve`.</string>
+	<key>app.onboarding.notifications.missingTitle</key>
+	<string>Get push notifications</string>
+	<key>app.onboarding.notifications.skip</key>
+	<string>You can turn this on later in Settings.</string>
+	<key>app.onboarding.notifications.subtitle</key>
+	<string>Your gateway can tell this device when a bot answers, asks for something, or finishes a long task.</string>
+	<key>app.onboarding.notifications.title</key>
+	<string>Notifications</string>
+	<key>app.onboarding.signIn.blockedBody</key>
+	<string>It requires a sign-in but does not advertise the native_pkce flow, which is the only one a mobile app can complete. Update Hermes on the gateway.</string>
+	<key>app.onboarding.signIn.blockedTitle</key>
+	<string>This gateway is too old for native sign-in</string>
+	<key>app.onboarding.signIn.checkingSession</key>
+	<string>Checking whether you are already signed in…</string>
+	<key>app.onboarding.signIn.chooseProvider</key>
+	<string>Provider</string>
+	<key>app.onboarding.signIn.cookieBlockedBody</key>
+	<string>It requires a sign-in but does not advertise the cookie flow, which is the only one a browser tab can complete. Update Hermes on the gateway.</string>
+	<key>app.onboarding.signIn.cookieBlockedTitle</key>
+	<string>This gateway is too old for browser sign-in</string>
+	<key>app.onboarding.signIn.hidePassword</key>
+	<string>Hide password</string>
+	<key>app.onboarding.signIn.hideToken</key>
+	<string>Hide token</string>
+	<key>app.onboarding.signIn.leavingForProvider</key>
+	<string>Taking you to the sign-in page…</string>
+	<key>app.onboarding.signIn.passwordSecret</key>
+	<string>PASSWORD</string>
+	<key>app.onboarding.signIn.passwordSecretLabel</key>
+	<string>Password</string>
+	<key>app.onboarding.signIn.passwordSubmit</key>
+	<string>Sign in</string>
+	<key>app.onboarding.signIn.passwordUser</key>
+	<string>USER NAME</string>
+	<key>app.onboarding.signIn.passwordUserLabel</key>
+	<string>User name</string>
+	<key>app.onboarding.signIn.probingGateway</key>
+	<string>Reading the gateway…</string>
+	<key>app.onboarding.signIn.servedFrom</key>
+	<string>Served by Hermie Web, talking to %@.</string>
+	<key>app.onboarding.signIn.servedFromUnknown</key>
+	<string>Served by Hermie Web.</string>
+	<key>app.onboarding.signIn.showPassword</key>
+	<string>Show password</string>
+	<key>app.onboarding.signIn.showToken</key>
+	<string>Show token</string>
+	<key>app.onboarding.signIn.signInWith</key>
+	<string>Sign in with %@</string>
+	<key>app.onboarding.signIn.signOutAndRetry</key>
+	<string>Sign in again</string>
+	<key>app.onboarding.signIn.signOutOfSession</key>
+	<string>Sign out</string>
+	<key>app.onboarding.signIn.signedIn</key>
+	<string>Signed in</string>
+	<key>app.onboarding.signIn.signedInAs</key>
+	<string>Signed in as %@</string>
+	<key>app.onboarding.signIn.ssoOff</key>
+	<string>Sign-in with SSO is turned off on this Hermie Web. Ask whoever runs it to sign you in another way.</string>
+	<key>app.onboarding.signIn.subtitleCookie</key>
+	<string>The gateway hosts the sign-in page. Your browser keeps the session it hands back; Hermie never sees it.</string>
+	<key>app.onboarding.signIn.subtitleNative</key>
+	<string>The gateway hosts the sign-in page. Hermie opens it, reads the result and keeps the tokens on this device.</string>
+	<key>app.onboarding.signIn.subtitleToken</key>
+	<string>This gateway is not gated by an identity provider; it authenticates with the session token it prints at startup.</string>
+	<key>app.onboarding.signIn.title</key>
+	<string>Sign in</string>
+	<key>app.onboarding.signIn.tokenBlockedBody</key>
+	<string>It authenticates with a session token, and a browser tab has nowhere safe to keep one — anything running in the page could read it. Use the Hermie app, or put the gateway behind an identity provider so it can issue a browser session.</string>
+	<key>app.onboarding.signIn.tokenBlockedTitle</key>
+	<string>This gateway cannot be used from a browser</string>
+	<key>app.onboarding.signIn.tokenHelp</key>
+	<string>Paste the session token printed by `hermes serve`.</string>
+	<key>app.onboarding.signIn.tokenLabel</key>
+	<string>SESSION TOKEN</string>
+	<key>app.onboarding.signIn.tokenPlaceholder</key>
+	<string>Session token</string>
+	<key>app.onboarding.signIn.webview.cancelled</key>
+	<string>Sign-in was cancelled.</string>
+	<key>app.onboarding.signIn.webview.chosen</key>
+	<string>Open the sign-in page in your browser, then paste the address it fails to open back here. You can go back and use the in-app page instead.</string>
+	<key>app.onboarding.signIn.webview.exchanging</key>
+	<string>Completing sign-in…</string>
+	<key>app.onboarding.signIn.webview.fallbackHelp</key>
+	<string>The browser will fail to load a 127.0.0.1 address — that is expected. Copy it out of the address bar and paste it here.</string>
+	<key>app.onboarding.signIn.webview.fallbackLabel</key>
+	<string>Failed address</string>
+	<key>app.onboarding.signIn.webview.fallbackPlaceholder</key>
+	<string>http://127.0.0.1:38007/callback?code=…</string>
+	<key>app.onboarding.signIn.webview.fallbackSubmit</key>
+	<string>Use this address</string>
+	<key>app.onboarding.signIn.webview.headersWithheld</key>
+	<string>This gateway needs extra headers, and Android’s in-app browser would forward them to your identity provider. Sign in in your browser instead, then paste the address it fails to open back here.</string>
+	<key>app.onboarding.signIn.webview.httpError</key>
+	<string>The sign-in page answered HTTP %lld. Check the gateway's public address.</string>
+	<key>app.onboarding.signIn.webview.loadError</key>
+	<string>The sign-in page could not be loaded: %@</string>
+	<key>app.onboarding.signIn.webview.loading</key>
+	<string>Opening the sign-in page…</string>
+	<key>app.onboarding.signIn.webview.noCode</key>
+	<string>The sign-in finished without an authorization code. Start the sign-in again.</string>
+	<key>app.onboarding.signIn.webview.providerError#description-empty</key>
+	<string>The gateway refused the sign-in: %@</string>
+	<key>app.onboarding.signIn.webview.providerError#description-nonempty</key>
+	<string>The gateway refused the sign-in: %2$@ (%1$@)</string>
+	<key>app.onboarding.signIn.webview.stateMismatch</key>
+	<string>The sign-in response did not belong to this attempt and was discarded. Start the sign-in again.</string>
+	<key>app.onboarding.signIn.webview.timeout</key>
+	<string>The sign-in page was open for ten minutes without finishing. Start again when you are ready.</string>
+	<key>app.onboarding.signIn.webview.title</key>
+	<string>Sign in</string>
+	<key>app.onboarding.signIn.webview.unavailable</key>
+	<string>The in-app browser is not available on this platform. Open the sign-in page in your browser, then paste the address it fails to open back here.</string>
+	<key>app.onboarding.stepCounter</key>
+	<string>Step %1$lld of %2$lld</string>
+	<key>app.onboarding.test.checklist.profiles</key>
+	<string>Profiles</string>
+	<key>app.onboarding.test.checklist.rest</key>
+	<string>REST</string>
+	<key>app.onboarding.test.checklist.socket</key>
+	<string>WebSocket</string>
+	<key>app.onboarding.test.invalidated</key>
+	<string>Something changed since the last test, so it is running again.</string>
+	<key>app.onboarding.test.noBots</key>
+	<string>The connection works, but this gateway has no bot profiles yet.</string>
+	<key>app.onboarding.test.required</key>
+	<string>The connection has not been tested yet.</string>
+	<key>app.onboarding.test.retry</key>
+	<string>Try again</string>
+	<key>app.onboarding.test.running</key>
+	<string>Testing…</string>
+	<key>app.onboarding.test.subtitle</key>
+	<string>Hermie checks the REST surface and then opens the WebSocket, exactly as it will during use.</string>
+	<key>app.onboarding.test.title</key>
+	<string>Test connection</string>
+	<key>app.onboarding.welcome.action</key>
+	<string>Set up a gateway</string>
+	<key>app.onboarding.welcome.body</key>
+	<string>Hermie is a client for Hermes Agent. It talks to one gateway at a time — the machine running `hermes serve` — and chats with the bots that live there.</string>
+	<key>app.onboarding.welcome.note</key>
+	<string>Nothing is stored until the connection has been tested.</string>
+	<key>app.onboarding.welcome.title</key>
+	<string>Welcome to Hermie</string>
+	<key>app.presence.needsInput</key>
+	<string>Needs input</string>
+	<key>app.presence.offline</key>
+	<string>Offline</string>
+	<key>app.presence.offlineSince</key>
+	<string>Offline · last seen %@</string>
+	<key>app.presence.online</key>
+	<string>Online</string>
+	<key>app.presence.working</key>
+	<string>Working…</string>
+	<key>app.settings.about</key>
+	<string>About</string>
+	<key>app.settings.account</key>
+	<string>Account</string>
+	<key>app.settings.address</key>
+	<string>Address</string>
+	<key>app.settings.appearance</key>
+	<string>Appearance</string>
+	<key>app.settings.authModeToken</key>
+	<string>Session token</string>
+	<key>app.settings.botNameOptions.display</key>
+	<string>Display name</string>
+	<key>app.settings.botNameOptions.profile</key>
+	<string>Profile name</string>
+	<key>app.settings.botNames</key>
+	<string>Bot names</string>
+	<key>app.settings.botNamesHint</key>
+	<string>Which name is the large one. The profile name is what the rest of the app addresses a bot by; the display name is the label set on the gateway. A bot with only one of them shows one line. Only used while Hide profile name, below, is off.</string>
+	<key>app.settings.capabilityReach</key>
+	<string>What your bots can reach</string>
+	<key>app.settings.categories.about</key>
+	<string>About</string>
+	<key>app.settings.categories.account</key>
+	<string>Account</string>
+	<key>app.settings.categories.advanced</key>
+	<string>Advanced</string>
+	<key>app.settings.categories.appearance</key>
+	<string>Appearance</string>
+	<key>app.settings.categories.blurb.about</key>
+	<string>Which Hermie this is, and the licences it ships under.</string>
+	<key>app.settings.categories.blurb.account</key>
+	<string>Who this device is signed in as, and the ways of leaving.</string>
+	<key>app.settings.categories.blurb.advanced</key>
+	<string>Hermie Web’s own updates, and the tools for building the app.</string>
+	<key>app.settings.categories.blurb.appearance</key>
+	<string>Light or dark, the language, the text size and the theme.</string>
+	<key>app.settings.categories.blurb.capabilities</key>
+	<string>The skills, servers and boards your bots can reach.</string>
+	<key>app.settings.categories.blurb.chats</key>
+	<string>What a new conversation shows, and how a bot is addressed.</string>
+	<key>app.settings.categories.blurb.gateway</key>
+	<string>Which gateway this is, and how it is doing.</string>
+	<key>app.settings.categories.blurb.gateways</key>
+	<string>The gateway this device talks to, and the others it knows about.</string>
+	<key>app.settings.categories.blurb.memory</key>
+	<string>What each bot remembers between conversations.</string>
+	<key>app.settings.categories.blurb.notifications</key>
+	<string>When a bot may reach you, and how much a notification says.</string>
+	<key>app.settings.categories.blurb.privacy</key>
+	<string>The lock on this device, and what it takes to open it.</string>
+	<key>app.settings.categories.blurb.voice</key>
+	<string>How Hermie reads a reply out, and how it hears you.</string>
+	<key>app.settings.categories.capabilities</key>
+	<string>Bots &amp; capabilities</string>
+	<key>app.settings.categories.chats</key>
+	<string>Chats &amp; messages</string>
+	<key>app.settings.categories.gateway</key>
+	<string>Gateway</string>
+	<key>app.settings.categories.gateways</key>
+	<string>Gateways</string>
+	<key>app.settings.categories.memory</key>
+	<string>Memory</string>
+	<key>app.settings.categories.notifications</key>
+	<string>Notifications</string>
+	<key>app.settings.categories.privacy</key>
+	<string>Privacy &amp; security</string>
+	<key>app.settings.categories.summary.capabilities</key>
+	<string>Skills · MCP · Connectors</string>
+	<key>app.settings.categories.summary.developer</key>
+	<string>Developer</string>
+	<key>app.settings.categories.summary.gateway</key>
+	<string>%@</string>
+	<key>app.settings.categories.summary.lockBrowser</key>
+	<string>Not in a browser</string>
+	<key>app.settings.categories.summary.off</key>
+	<string>Off</string>
+	<key>app.settings.categories.summary.on</key>
+	<string>On</string>
+	<key>app.settings.categories.summary.signedOut</key>
+	<string>Not signed in</string>
+	<key>app.settings.categories.summary.version</key>
+	<string>Version %@</string>
+	<key>app.settings.categories.voice</key>
+	<string>Voice</string>
+	<key>app.settings.changeGateway</key>
+	<string>Change gateway</string>
+	<key>app.settings.changeGatewayConfirm</key>
+	<string>Forget this gateway and everything stored for it?</string>
+	<key>app.settings.changeGatewayHint</key>
+	<string>Reopens setup with this address filled in. Nothing stored is dropped until a different gateway is applied.</string>
+	<key>app.settings.chat</key>
+	<string>Chat</string>
+	<key>app.settings.chatTextSize</key>
+	<string>Chat text size</string>
+	<key>app.settings.chatTextSizeHint</key>
+	<string>Applies to the words in a conversation, on top of the device’s own text size. The rest of the app follows the device.</string>
+	<key>app.settings.confirm</key>
+	<string>Forget it</string>
+	<key>app.settings.connectionTest</key>
+	<string>Connection test</string>
+	<key>app.settings.defaultVerbosity</key>
+	<string>Default verbosity</string>
+	<key>app.settings.defaultVerbosityHint</key>
+	<string>How much of a bot’s working-out a new conversation shows. A conversation with its own setting keeps it.</string>
+	<key>app.settings.developer</key>
+	<string>Developer</string>
+	<key>app.settings.email</key>
+	<string>Email</string>
+	<key>app.settings.forgetGateway</key>
+	<string>Forget this gateway</string>
+	<key>app.settings.forgetGatewayHint</key>
+	<string>Deletes the address and the credentials from this device and starts setup empty.</string>
+	<key>app.settings.gateway</key>
+	<string>Gateway</string>
+	<key>app.settings.gateways.active</key>
+	<string>Connected</string>
+	<key>app.settings.gateways.add</key>
+	<string>Add gateway</string>
+	<key>app.settings.gateways.addHint</key>
+	<string>Runs setup for another machine. The gateway you are on now stays connected until you switch.</string>
+	<key>app.settings.gateways.authModeToken</key>
+	<string>Session token</string>
+	<key>app.settings.gateways.back</key>
+	<string>Gateways</string>
+	<key>app.settings.gateways.connect</key>
+	<string>Connect to this gateway</string>
+	<key>app.settings.gateways.connectHint</key>
+	<string>Hermie disconnects from the gateway it is on and dials this one.</string>
+	<key>app.settings.gateways.detailTitle</key>
+	<string>Gateway</string>
+	<key>app.settings.gateways.header</key>
+	<string>Gateways</string>
+	<key>app.settings.gateways.hint</key>
+	<string>Tap a gateway to connect to it. Hermie talks to one at a time; the others keep their conversations and their notifications.</string>
+	<key>app.settings.gateways.keepIt</key>
+	<string>Keep it</string>
+	<key>app.settings.gateways.manage</key>
+	<string>Manage</string>
+	<key>app.settings.gateways.name</key>
+	<string>Name</string>
+	<key>app.settings.gateways.nameHint</key>
+	<string>What this gateway is called on this device. It is not sent anywhere.</string>
+	<key>app.settings.gateways.remove</key>
+	<string>Remove this gateway</string>
+	<key>app.settings.gateways.removeConfirm</key>
+	<string>Remove this gateway and everything stored for it on this device?</string>
+	<key>app.settings.gateways.removeConfirmAction</key>
+	<string>Remove it</string>
+	<key>app.settings.gateways.removeHint</key>
+	<string>Forgets its address, its credentials, its conversations and its settings on this device.</string>
+	<key>app.settings.gateways.removeNotifyNote</key>
+	<string>If this gateway is not the one Hermie is connected to, its notifications stop when it next tries to reach this device rather than straight away.</string>
+	<key>app.settings.gateways.row</key>
+	<string>Gateways</string>
+	<key>app.settings.gateways.save</key>
+	<string>Save</string>
+	<key>app.settings.gateways.signOut</key>
+	<string>Sign out of this gateway</string>
+	<key>app.settings.gateways.signOutHint</key>
+	<string>Clears its stored credentials and keeps its address.</string>
+	<key>app.settings.gateways.signedInAs</key>
+	<string>Signed in as %@</string>
+	<key>app.settings.gateways.signedOut</key>
+	<string>Signed out</string>
+	<key>app.settings.gateways.title</key>
+	<string>Gateways</string>
+	<key>app.settings.gateways.use</key>
+	<string>Use this gateway</string>
+	<key>app.settings.hideHandle</key>
+	<string>Hide profile name</string>
+	<key>app.settings.hideHandleHint</key>
+	<string>When a bot has a display name, show only that — the profile name it is otherwise shown with drops off the second line. A bot with no display name keeps its one name either way.</string>
+	<key>app.settings.host</key>
+	<string>Host</string>
+	<key>app.settings.keepIt</key>
+	<string>Keep it</string>
+	<key>app.settings.language</key>
+	<string>Language</string>
+	<key>app.settings.languageFollowDevice</key>
+	<string>Follow device</string>
+	<key>app.settings.languageHint</key>
+	<string>Hermie is written in English. Dutch and German are translations of it, and anything not yet translated stays in English.</string>
+	<key>app.settings.licences</key>
+	<string>Licences</string>
+	<key>app.settings.licencesBack</key>
+	<string>Back to settings</string>
+	<key>app.settings.licencesFailed</key>
+	<string>The licence list could not be loaded: %@</string>
+	<key>app.settings.licencesGeneratedBy</key>
+	<string>Generated by %@, alongside THIRD_PARTY_LICENSES.md.</string>
+	<key>app.settings.licencesHint</key>
+	<string>The open-source packages Hermie is built from, and what each one asks for.</string>
+	<key>app.settings.licencesLoading</key>
+	<string>Loading the licences…</string>
+	<key>app.settings.licencesNoText</key>
+	<string>This package ships no licence file. The identifier above is everything it declares.</string>
+	<key>app.settings.licencesRetry</key>
+	<string>Try again</string>
+	<key>app.settings.licencesScope</key>
+	<string>Production dependencies only; development tooling and Hermie's own %lld workspace packages are not in the list.</string>
+	<key>app.settings.licencesUndeclared</key>
+	<string>no licence declared</string>
+	<key>app.settings.lock.hint</key>
+	<string>Ask for Face ID, Touch ID or this device’s passcode before Hermie can be read. This setting stays on this device.</string>
+	<key>app.settings.lock.hintOn</key>
+	<string>Hermie asks again after it has been away for this long, and always after it has been started fresh. This setting stays on this device.</string>
+	<key>app.settings.lock.label</key>
+	<string>Require unlock</string>
+	<key>app.settings.lock.noEnrolment</key>
+	<string>Set up a passcode, Face ID or a fingerprint in your device settings first — otherwise Hermie would lock with no way to open it.</string>
+	<key>app.settings.lock.options.15m</key>
+	<string>15 min</string>
+	<key>app.settings.lock.options.1m</key>
+	<string>1 min</string>
+	<key>app.settings.lock.options.5m</key>
+	<string>5 min</string>
+	<key>app.settings.lock.options.immediately</key>
+	<string>Now</string>
+	<key>app.settings.lock.options.off</key>
+	<string>Off</string>
+	<key>app.settings.lock.passcodeOnly</key>
+	<string>No biometrics are enrolled, so Hermie will ask for this device’s passcode.</string>
+	<key>app.settings.lock.refused</key>
+	<string>Hermie could not confirm it was you, so nothing changed. Choose the option again to try once more.</string>
+	<key>app.settings.lock.unavailable</key>
+	<string>This device has no unlock method Hermie can ask for.</string>
+	<key>app.settings.lock.web</key>
+	<string>Hermie cannot lock itself in a browser: the page and anything enforcing a lock are the same code. Lock the screen or close the tab.</string>
+	<key>app.settings.notifications.denied</key>
+	<string>Notifications are turned off for Hermie in your device settings. Turn them on there first.</string>
+	<key>app.settings.notifications.enabled</key>
+	<string>Notifications</string>
+	<key>app.settings.notifications.enabledHint</key>
+	<string>The Hermie plugin runs inside your gateway and sends a notification when a bot has news. Hermie Web with --push does the same job from outside, if a plugin cannot be installed.</string>
+	<key>app.settings.notifications.header</key>
+	<string>Notifications</string>
+	<key>app.settings.notifications.openSystemSettings</key>
+	<string>Open Notifications settings</string>
+	<key>app.settings.notifications.openSystemSettingsHint</key>
+	<string>Hermie stays switched on here and registers as soon as macOS allows it.</string>
+	<key>app.settings.notifications.preview</key>
+	<string>Show a preview</string>
+	<key>app.settings.notifications.previewHint</key>
+	<string>Off, a notification says which bot and what happened. On, it carries the message as well — and a lock screen is where it will be read.</string>
+	<key>app.settings.notifications.retry</key>
+	<string>Retry</string>
+	<key>app.settings.notifications.retryHint</key>
+	<string>Asks for permission again and re-requests a push token.</string>
+	<key>app.settings.notifications.status</key>
+	<string>Registration</string>
+	<key>app.settings.notifications.statusDenied</key>
+	<string>Permission denied. Turn notifications on for Hermie in your device settings.</string>
+	<key>app.settings.notifications.statusFailed</key>
+	<string>Token request failed: %@</string>
+	<key>app.settings.notifications.statusNoProject</key>
+	<string>This build has no EAS project id, so it cannot be given a push token. It needs rebuilding.</string>
+	<key>app.settings.notifications.statusOff</key>
+	<string>Off. This device is not registered.</string>
+	<key>app.settings.notifications.statusPending</key>
+	<string>Asking the platform for an address…</string>
+	<key>app.settings.notifications.statusRegistered</key>
+	<string>Registered · …%@</string>
+	<key>app.settings.notifications.statusSystemSettings</key>
+	<string>Turn on notifications for Hermie in System Settings → Notifications</string>
+	<key>app.settings.notifications.statusUnsupported</key>
+	<string>This device cannot register: %@</string>
+	<key>app.settings.notifications.typeCron</key>
+	<string>Routines</string>
+	<key>app.settings.notifications.typeCronDone</key>
+	<string>A routine finished</string>
+	<key>app.settings.notifications.typeCronFailed</key>
+	<string>A routine failed</string>
+	<key>app.settings.notifications.typeMessage</key>
+	<string>New message</string>
+	<key>app.settings.notifications.typeRequest</key>
+	<string>Needs input</string>
+	<key>app.settings.notifications.typeTurnDone</key>
+	<string>Finished working</string>
+	<key>app.settings.notifications.typeTurnFailed</key>
+	<string>Something went wrong</string>
+	<key>app.settings.notifications.types</key>
+	<string>Tell me about</string>
+	<key>app.settings.notifications.typesHint</key>
+	<string>A bot answering, a bot asking permission, a routine’s delivery, how a scheduled run ended, and a long task reaching its end either way. A turn you stopped yourself is never one of these.</string>
+	<key>app.settings.notifications.unavailable</key>
+	<string>This device cannot register for notifications. Nothing has been sent.</string>
+	<key>app.settings.notifications.webInsecure</key>
+	<string>The browser only offers notifications when Hermie Web is served over https.</string>
+	<key>app.settings.plugin</key>
+	<string>Plugin</string>
+	<key>app.settings.pluginAbsent</key>
+	<string>Not installed</string>
+	<key>app.settings.pluginInstalled#version-empty</key>
+	<string>Hermie plugin</string>
+	<key>app.settings.pluginInstalled#version-nonempty</key>
+	<string>Hermie plugin %@</string>
+	<key>app.settings.pluginUnknown</key>
+	<string>Checking…</string>
+	<key>app.settings.port</key>
+	<string>Port</string>
+	<key>app.settings.preset</key>
+	<string>THEME</string>
+	<key>app.settings.presetHint</key>
+	<string>Each theme has a light and a dark face; the setting above picks which one is showing.</string>
+	<key>app.settings.presetOptions.blue</key>
+	<string>Blue</string>
+	<key>app.settings.presetOptions.graphite</key>
+	<string>Graphite</string>
+	<key>app.settings.presetOptions.lime</key>
+	<string>Lime</string>
+	<key>app.settings.privacy</key>
+	<string>PRIVACY &amp; SECURITY</string>
+	<key>app.settings.provider</key>
+	<string>Provider</string>
+	<key>app.settings.scheme</key>
+	<string>Scheme</string>
+	<key>app.settings.search.label</key>
+	<string>Search settings</string>
+	<key>app.settings.search.noMatches</key>
+	<string>No setting matches that.</string>
+	<key>app.settings.showBotToBot</key>
+	<string>Show bot-to-bot</string>
+	<key>app.settings.showThinking</key>
+	<string>Show thinking</string>
+	<key>app.settings.signOut</key>
+	<string>Sign out</string>
+	<key>app.settings.signOutHint</key>
+	<string>Clears the stored credentials and keeps the gateway address.</string>
+	<key>app.settings.status</key>
+	<string>Status</string>
+	<key>app.settings.theme</key>
+	<string>Theme</string>
+	<key>app.settings.themeHint</key>
+	<string>System follows the device; Light and Dark pin the app either way.</string>
+	<key>app.settings.themeOptions.dark</key>
+	<string>Dark</string>
+	<key>app.settings.themeOptions.light</key>
+	<string>Light</string>
+	<key>app.settings.themeOptions.system</key>
+	<string>System</string>
+	<key>app.settings.themes.accentBubble</key>
+	<string>Your bubbles</string>
+	<key>app.settings.themes.accentFill</key>
+	<string>Accent</string>
+	<key>app.settings.themes.back</key>
+	<string>Back to settings</string>
+	<key>app.settings.themes.background</key>
+	<string>Background</string>
+	<key>app.settings.themes.colourPlaceholder</key>
+	<string>#RRGGBB</string>
+	<key>app.settings.themes.create</key>
+	<string>New theme</string>
+	<key>app.settings.themes.createFrom</key>
+	<string>From %@</string>
+	<key>app.settings.themes.delete</key>
+	<string>Delete</string>
+	<key>app.settings.themes.deleteConfirm#name-empty</key>
+	<string>Delete “Untitled theme”?</string>
+	<key>app.settings.themes.deleteConfirm#name-nonempty</key>
+	<string>Delete “%@”?</string>
+	<key>app.settings.themes.deleteHint</key>
+	<string>The theme is removed everywhere this gateway is signed in.</string>
+	<key>app.settings.themes.editPageTitle</key>
+	<string>Edit theme</string>
+	<key>app.settings.themes.editing</key>
+	<string>Editing the %@ face</string>
+	<key>app.settings.themes.editingHint</key>
+	<string>Switch the setting above to edit the other face.</string>
+	<key>app.settings.themes.empty</key>
+	<string>No themes of your own yet. Start one from a preset and edit its colours.</string>
+	<key>app.settings.themes.followPreset</key>
+	<string>Follow the preset</string>
+	<key>app.settings.themes.header</key>
+	<string>YOUR THEMES</string>
+	<key>app.settings.themes.keepIt</key>
+	<string>Keep it</string>
+	<key>app.settings.themes.name</key>
+	<string>Name</string>
+	<key>app.settings.themes.namePlaceholder</key>
+	<string>Theme name</string>
+	<key>app.settings.themes.reasonAccentFill</key>
+	<string>it measures %@ : 1 against the surface behind it, and a mark needs 3 : 1.</string>
+	<key>app.settings.themes.reasonBackground</key>
+	<string>the app’s text on it measures %@ : 1, and needs 4.5 : 1.</string>
+	<key>app.settings.themes.reasonBubble</key>
+	<string>white text on it measures %@ : 1, and needs 4.5 : 1.</string>
+	<key>app.settings.themes.reasonMalformed</key>
+	<string>a colour is six hex digits after a #.</string>
+	<key>app.settings.themes.rejected</key>
+	<string>That colour is not used: %@</string>
+	<key>app.settings.themes.rename</key>
+	<string>Rename</string>
+	<key>app.settings.themes.title</key>
+	<string>Themes</string>
+	<key>app.settings.themes.untitled</key>
+	<string>Untitled theme</string>
+	<key>app.settings.title</key>
+	<string>Settings</string>
+	<key>app.settings.unknown</key>
+	<string>Unknown</string>
+	<key>app.settings.user</key>
+	<string>Signed in as</string>
+	<key>app.settings.version</key>
+	<string>Version</string>
+	<key>app.settings.viaHermieWeb</key>
+	<string>via Hermie Web</string>
+	<key>app.settings.webUpdate.apply</key>
+	<string>Update</string>
+	<key>app.settings.webUpdate.available</key>
+	<string>%@ available</string>
+	<key>app.settings.webUpdate.checking</key>
+	<string>Checking…</string>
+	<key>app.settings.webUpdate.failed</key>
+	<string>The update failed: %@</string>
+	<key>app.settings.webUpdate.header</key>
+	<string>Hermie Web</string>
+	<key>app.settings.webUpdate.needsSignIn</key>
+	<string>Sign in to the gateway before updating Hermie Web.</string>
+	<key>app.settings.webUpdate.restartTimedOut</key>
+	<string>Hermie Web did not come back within a minute. Check its logs.</string>
+	<key>app.settings.webUpdate.restarting</key>
+	<string>Restarting…</string>
+	<key>app.settings.webUpdate.running</key>
+	<string>Running</string>
+	<key>app.settings.webUpdate.state</key>
+	<string>Update</string>
+	<key>app.settings.webUpdate.upToDate</key>
+	<string>Up to date</string>
+	<key>app.settings.webUpdate.updating</key>
+	<string>Downloading and installing…</string>
+	<key>app.share.maybeSent#bot-empty</key>
+	<string>This may already have been sent. Send it again, or discard it.</string>
+	<key>app.share.maybeSent#bot-nonempty</key>
+	<string>This may already have been sent to %@. Send it again, or discard it.</string>
+	<key>app.share.noBots</key>
+	<string>This gateway has no bots to send to yet.</string>
+	<key>app.share.noteLabel</key>
+	<string>Note</string>
+	<key>app.share.notePlaceholder</key>
+	<string>Add a note (optional)</string>
+	<key>app.share.send</key>
+	<string>Send</string>
+	<key>app.share.sendAgain</key>
+	<string>Send again</string>
+	<key>app.share.sending</key>
+	<string>Sending…</string>
+	<key>app.share.sentTo</key>
+	<string>Sent to %@</string>
+	<key>app.share.sheetTitle</key>
+	<string>Send to a chat</string>
+	<key>app.share.willSendLater</key>
+	<string>Will send when Hermie opens</string>
+	<key>app.sidebar.hermieWeb</key>
+	<string>Hermie Web %@</string>
+	<key>app.signedOut.body</key>
+	<string>Your session on %@ has expired, so Hermie cannot reach your bots until you sign in.</string>
+	<key>app.signedOut.bodyNoHost</key>
+	<string>Your session has expired, so Hermie cannot reach your bots until you sign in.</string>
+	<key>app.signedOut.changeGateway</key>
+	<string>Change gateway</string>
+	<key>app.signedOut.listNote</key>
+	<string>Showing the last saved list.</string>
+	<key>app.signedOut.reason.noRefreshToken</key>
+	<string>There was nothing saved to renew the session with.</string>
+	<key>app.signedOut.reason.refreshFailed</key>
+	<string>Renewing the session did not complete, so Hermie could not stay signed in.</string>
+	<key>app.signedOut.reason.refreshRejected</key>
+	<string>The gateway rejected the saved sign-in, so the session could not be renewed.</string>
+	<key>app.signedOut.reason.rejectedAfterRefresh</key>
+	<string>The gateway rejected the sign-in Hermie had just renewed.</string>
+	<key>app.signedOut.reason.tokenUnreadable</key>
+	<string>Hermie could not read the saved sign-in from the keychain.</string>
+	<key>app.signedOut.signIn</key>
+	<string>Sign in</string>
+	<key>app.signedOut.stopped.changeGatewayHint</key>
+	<string>Opens setup with this address filled in. Your sign-in is kept until a different gateway is applied.</string>
+	<key>app.signedOut.stopped.fixedByServer</key>
+	<string>This page is served by Hermie Web, which decides the gateway. Change it where that server is configured.</string>
+	<key>app.signedOut.stopped.gateway</key>
+	<string>Gateway</string>
+	<key>app.signedOut.stopped.hints.config</key>
+	<string>If the gateway moved, change the address stored here to the one it publishes as its public URL.</string>
+	<key>app.signedOut.stopped.hints.takenOver</key>
+	<string>Re-check reclaims the connection once the other client has let go.</string>
+	<key>app.signedOut.stopped.notSignedIn</key>
+	<string>Not signed in</string>
+	<key>app.signedOut.stopped.onGateway</key>
+	<string>%@</string>
+	<key>app.signedOut.stopped.others</key>
+	<string>OTHER GATEWAYS</string>
+	<key>app.signedOut.stopped.othersHint</key>
+	<string>Hermie talks to one gateway at a time. This one keeps its conversations.</string>
+	<key>app.signedOut.stopped.recheck</key>
+	<string>Re-check</string>
+	<key>app.signedOut.stopped.rechecking</key>
+	<string>Checking…</string>
+	<key>app.signedOut.stopped.signOut</key>
+	<string>Sign out</string>
+	<key>app.signedOut.stopped.switchTo</key>
+	<string>Connect to %@</string>
+	<key>app.signedOut.stopped.titles.auth</key>
+	<string>Signed out</string>
+	<key>app.signedOut.stopped.titles.chatOff</key>
+	<string>Chat is switched off on this gateway</string>
+	<key>app.signedOut.stopped.titles.config</key>
+	<string>This gateway refused the connection</string>
+	<key>app.signedOut.stopped.titles.incompatible</key>
+	<string>This gateway is too old</string>
+	<key>app.signedOut.stopped.titles.not_hermes</key>
+	<string>This address is not a Hermes gateway</string>
+	<key>app.signedOut.stopped.titles.protocol</key>
+	<string>This gateway answered in a way Hermie cannot read</string>
+	<key>app.signedOut.stopped.titles.redirect</key>
+	<string>This address leads somewhere else</string>
+	<key>app.signedOut.stopped.titles.takenOver</key>
+	<string>Another client took this connection over</string>
+	<key>app.signedOut.stopped.titles.tls</key>
+	<string>This gateway’s certificate was rejected</string>
+	<key>app.signedOut.title</key>
+	<string>Signed out</string>
+	<key>app.tabs.activity</key>
+	<string>Activity</string>
+	<key>app.tabs.chats</key>
+	<string>Chats</string>
+	<key>app.tabs.routines</key>
+	<string>Crons</string>
+	<key>app.tabs.settings</key>
+	<string>Settings</string>
+	<key>app.transport.foundOverHttp</key>
+	<string>Found over http://</string>
+	<key>app.transport.foundOverHttps</key>
+	<string>Found over https://</string>
+	<key>app.transport.httpExposed</key>
+	<string>Plain http:// to a public address. Anyone on the path can read your messages and your sign-in. Use https://, or reach the gateway over a private network such as Tailscale.</string>
+	<key>app.transport.httpLocalNetwork</key>
+	<string>Plain http://, to an address on a local network. It is not reachable from outside that network.</string>
+	<key>app.transport.httpLoopback</key>
+	<string>Plain http://, and this connection never leaves this machine.</string>
+	<key>app.transport.httpTailnet</key>
+	<string>Plain http://, over a tailnet address. WireGuard has already encrypted the path between this device and the gateway.</string>
+	<key>app.transport.useHttps</key>
+	<string>Use https instead</string>
+	<key>botRename.clearHint</key>
+	<string>Leave it empty to fall back to the name the gateway reports.</string>
+	<key>botRename.clearRefused</key>
+	<string>The default profile needs a name.</string>
+	<key>botRename.displayAppOnly</key>
+	<string>Stored in Hermie only; the gateway plugin is too old to save it on the gateway.</string>
+	<key>botRename.displayForbidden</key>
+	<string>This gateway account may not change profile names.</string>
+	<key>botRename.displayHint</key>
+	<string>What Hermie calls this bot in your list. The gateway keeps the profile’s own name.</string>
+	<key>botRename.displayLabel</key>
+	<string>Display name</string>
+	<key>botRename.failed</key>
+	<string>That name could not be saved.</string>
+	<key>botRename.missing</key>
+	<string>The gateway has no profile called %@.</string>
+	<key>botRename.partial</key>
+	<string>The gateway renamed this bot, but %@ could not be moved across. Reconnect to pick it up.</string>
+	<key>botRename.partial#parts.last</key>
+	<string> and </string>
+	<key>botRename.partial#parts.separator</key>
+	<string> and </string>
+	<key>botRename.partialCache</key>
+	<string>the cached transcript</string>
+	<key>botRename.partialStores</key>
+	<string>the open chats</string>
+	<key>botRename.placeholder</key>
+	<string>Not set</string>
+	<key>botRename.profileHint</key>
+	<string>The name the rest of the app addresses this bot by.</string>
+	<key>botRename.profileLabel</key>
+	<string>Profile name</string>
+	<key>botRename.profileWarning</key>
+	<string>Renaming changes the profile name other tools use</string>
+	<key>botRename.refused</key>
+	<string>The gateway would not take that name.</string>
+	<key>botRename.renameAction</key>
+	<string>Rename profile</string>
+	<key>botRename.renameBusy</key>
+	<string>Renaming…</string>
+	<key>botRename.renameCancel</key>
+	<string>Keep it as it is</string>
+	<key>botRename.renameDefault</key>
+	<string>The default profile keeps its name. Its home is the gateway’s own directory.</string>
+	<key>botRename.renameField</key>
+	<string>New profile name</string>
+	<key>botRename.renameHint</key>
+	<string>Changes the profile on the gateway itself, not what Hermie shows.</string>
+	<key>botRename.renameRow</key>
+	<string>Rename profile…</string>
+	<key>chat.approval.answered</key>
+	<string>Answered: %@</string>
+	<key>chat.approval.answeredElsewhere</key>
+	<string>Answered elsewhere</string>
+	<key>chat.approval.choices.always</key>
+	<string>Always allow</string>
+	<key>chat.approval.choices.deny</key>
+	<string>Deny</string>
+	<key>chat.approval.choices.once</key>
+	<string>Allow once</string>
+	<key>chat.approval.choices.session</key>
+	<string>Allow for this session</string>
+	<key>chat.approval.eyebrow</key>
+	<string>PERMISSION REQUEST · @%@</string>
+	<key>chat.approval.fine</key>
+	<string>Always allow applies to this exact command on this gateway. Change it later in Settings.</string>
+	<key>chat.approval.lead#directory-empty</key>
+	<string>@%@ wants to run one command on your gateway host.</string>
+	<key>chat.approval.lead#directory-nonempty</key>
+	<string>@%1$@ wants to run one command on your gateway host, in %2$@.</string>
+	<key>chat.approval.outcomes.always</key>
+	<string>Always allowed</string>
+	<key>chat.approval.outcomes.deny</key>
+	<string>Denied</string>
+	<key>chat.approval.outcomes.once</key>
+	<string>Allowed once</string>
+	<key>chat.approval.outcomes.session</key>
+	<string>Allowed for the session</string>
+	<key>chat.approval.runsOn</key>
+	<string>Runs on your gateway</string>
+	<key>chat.approval.timedOut</key>
+	<string>Timed out</string>
+	<key>chat.approval.title</key>
+	<string>Allow this command?</string>
+	<key>chat.assistant.errorTitle</key>
+	<string>Something went wrong</string>
+	<key>chat.assistant.footer</key>
+	<string>%@</string>
+	<key>chat.assistant.footer#parts.last</key>
+	<string> · </string>
+	<key>chat.assistant.footer#parts.separator</key>
+	<string> · </string>
+	<key>chat.assistant.interim</key>
+	<string>Interim note</string>
+	<key>chat.assistant.reconnecting</key>
+	<string>Reconnecting…</string>
+	<key>chat.assistant.replyTo</key>
+	<string>Reply to @%@</string>
+	<key>chat.assistant.retry</key>
+	<string>Retry</string>
+	<key>chat.assistant.thinking</key>
+	<string>Thinking</string>
+	<key>chat.assistant.thoughtFor</key>
+	<string>Thought for %llds</string>
+	<key>chat.assistant.tokens</key>
+	<string>%1$@ in · %2$@ out</string>
+	<key>chat.botDm.ambiguous</key>
+	<string>Ambiguous target</string>
+	<key>chat.botDm.answered</key>
+	<string>↩︎ answered</string>
+	<key>chat.botDm.asideFrom</key>
+	<string>From @%@</string>
+	<key>chat.botDm.asideTo</key>
+	<string>To @%@</string>
+	<key>chat.botDm.chip</key>
+	<string>Message to %@</string>
+	<key>chat.botDm.delivered</key>
+	<string>Delivered ✓</string>
+	<key>chat.botDm.failed</key>
+	<string>Failed</string>
+	<key>chat.botDm.inChip</key>
+	<string>Message from %@</string>
+	<key>chat.botDm.marker.failed</key>
+	<string>Failed</string>
+	<key>chat.botDm.marker.replied</key>
+	<string>↩︎ replied</string>
+	<key>chat.botDm.marker.waiting</key>
+	<string>Delivered · waiting for reply</string>
+	<key>chat.botDm.openChat</key>
+	<string>Open @%@’s chat</string>
+	<key>chat.botDm.openSender</key>
+	<string>Opens the chat with %@</string>
+	<key>chat.botDm.openTarget</key>
+	<string>Opens the chat with %@</string>
+	<key>chat.botDm.queued</key>
+	<string>Queued · waiting for the current task</string>
+	<key>chat.botDm.replied</key>
+	<string>%@ replied</string>
+	<key>chat.botDm.reply</key>
+	<string>Reply</string>
+	<key>chat.botDm.sending</key>
+	<string>Sending…</string>
+	<key>chat.botDm.showLess</key>
+	<string>Show less</string>
+	<key>chat.botDm.showMore</key>
+	<string>Show more</string>
+	<key>chat.botDm.targetTyping</key>
+	<string>@%@ is writing…</string>
+	<key>chat.botDm.to</key>
+	<string>→ %@</string>
+	<key>chat.botDm.unknown</key>
+	<string>Sent</string>
+	<key>chat.clarify.eyebrow</key>
+	<string>A QUESTION FOR YOU</string>
+	<key>chat.clarify.freeText</key>
+	<string>Or answer in your own words</string>
+	<key>chat.clarify.freeTextPlaceholder</key>
+	<string>Type an answer…</string>
+	<key>chat.clarify.later</key>
+	<string>Later</string>
+	<key>chat.clarify.lock</key>
+	<string>Lock answer</string>
+	<key>chat.clarify.locked</key>
+	<string>Locked</string>
+	<key>chat.clarify.multiSelectHint</key>
+	<string>Choose as many as apply</string>
+	<key>chat.clarify.next</key>
+	<string>Next</string>
+	<key>chat.clarify.outcome#answered-lt-total</key>
+	<string>Answered %1$lld of %2$lld</string>
+	<key>chat.clarify.previous</key>
+	<string>Back</string>
+	<key>chat.clarify.step</key>
+	<string>Question %1$lld of %2$lld</string>
+	<key>chat.clarify.submit</key>
+	<string>Submit</string>
+	<key>chat.clarify.title</key>
+	<string>Before I continue</string>
+	<key>chat.composer.attach</key>
+	<string>Add attachment</string>
+	<key>chat.composer.chooseFile</key>
+	<string>Choose file</string>
+	<key>chat.composer.dismissAttach</key>
+	<string>Dismiss attachment menu</string>
+	<key>chat.composer.keyHint</key>
+	<string>Enter to send · Shift+Enter for a new line</string>
+	<key>chat.composer.messageTo</key>
+	<string>Message %@</string>
+	<key>chat.composer.notSentYet</key>
+	<string>Not sent yet</string>
+	<key>chat.composer.photoLibrary</key>
+	<string>Photo library</string>
+	<key>chat.composer.placeholder</key>
+	<string>Message</string>
+	<key>chat.composer.queued</key>
+	<string>↳ 1 message queued · “%@”</string>
+	<key>chat.composer.removeAttachment</key>
+	<string>Remove attachment</string>
+	<key>chat.composer.send</key>
+	<string>Send message</string>
+	<key>chat.composer.slashHint</key>
+	<string>Commands</string>
+	<key>chat.composer.slashLoading</key>
+	<string>Loading…</string>
+	<key>chat.composer.slashUnavailable</key>
+	<string>Commands unavailable — %@</string>
+	<key>chat.composer.stop</key>
+	<string>Stop response</string>
+	<key>chat.context.counts</key>
+	<string>%1$@ / %2$@</string>
+	<key>chat.context.estimated</key>
+	<string>(estimated)</string>
+	<key>chat.context.hint</key>
+	<string>How much of this session’s context window the conversation fills.</string>
+	<key>chat.context.label</key>
+	<string>Context used</string>
+	<key>chat.context.percent</key>
+	<string>%lld%%</string>
+	<key>chat.conversations.allConversations</key>
+	<string>All conversations</string>
+	<key>chat.conversations.columnTitle</key>
+	<string>Conversations</string>
+	<key>chat.conversations.firstChat</key>
+	<string>My chat</string>
+	<key>chat.conversations.groupChat</key>
+	<string>Group chat</string>
+	<key>chat.conversations.hideColumn</key>
+	<string>Hide conversations</string>
+	<key>chat.conversations.newChat</key>
+	<string>New chat</string>
+	<key>chat.conversations.newChatFailed</key>
+	<string>The gateway would not start a new chat.</string>
+	<key>chat.conversations.openFailed</key>
+	<string>This conversation could not be opened.</string>
+	<key>chat.conversations.renameLabel</key>
+	<string>Chat name</string>
+	<key>chat.conversations.showColumn</key>
+	<string>Show conversations</string>
+	<key>chat.conversations.yourChats</key>
+	<string>Your chats</string>
+	<key>chat.conversations.yoursEmpty</key>
+	<string>Start a chat of your own to see it here.</string>
+	<key>chat.cron.delivered</key>
+	<string>delivered to this chat</string>
+	<key>chat.cron.emptyBody</key>
+	<string>The job delivered nothing to show.</string>
+	<key>chat.cron.eyebrow</key>
+	<string>CRON</string>
+	<key>chat.cron.open</key>
+	<string>Open cron</string>
+	<key>chat.cron.ranAt</key>
+	<string>ran %@ · delivered to this chat</string>
+	<key>chat.cron.runNow</key>
+	<string>Run now</string>
+	<key>chat.cron.unnamed</key>
+	<string>Scheduled job</string>
+	<key>chat.drop.invitation</key>
+	<string>Drop file to attach</string>
+	<key>chat.drop.region</key>
+	<string>Drop files here to attach them</string>
+	<key>chat.export.downloadMarkdown</key>
+	<string>Download as Markdown</string>
+	<key>chat.export.downloadText</key>
+	<string>Download as plain text</string>
+	<key>chat.export.failed</key>
+	<string>The conversation could not be exported.</string>
+	<key>chat.export.header</key>
+	<string>Export</string>
+	<key>chat.export.hint</key>
+	<string>The conversation as it is on screen, with whatever this chat’s view settings hide left out.</string>
+	<key>chat.export.self</key>
+	<string>You</string>
+	<key>chat.export.shareMarkdown</key>
+	<string>Share as Markdown</string>
+	<key>chat.export.shareText</key>
+	<string>Share as plain text</string>
+	<key>chat.fold.less</key>
+	<string>Show less</string>
+	<key>chat.fold.more</key>
+	<string>Show more</string>
+	<key>chat.header.back</key>
+	<string>Back to chats</string>
+	<key>chat.header.hideSidebar</key>
+	<string>Hide sidebar</string>
+	<key>chat.header.idle</key>
+	<string>Online</string>
+	<key>chat.header.needsInput</key>
+	<string>Waiting for you</string>
+	<key>chat.header.offline</key>
+	<string>Offline</string>
+	<key>chat.header.offlineAt</key>
+	<string>Offline · last seen %@</string>
+	<key>chat.header.options</key>
+	<string>Chat options</string>
+	<key>chat.header.profile</key>
+	<string>%@ — profile</string>
+	<key>chat.header.running</key>
+	<string>Running</string>
+	<key>chat.menu.copyLink</key>
+	<string>Copy link</string>
+	<key>chat.menu.copyMarkdown</key>
+	<string>Copy as Markdown</string>
+	<key>chat.menu.copyText</key>
+	<string>Copy text</string>
+	<key>chat.menu.editResend</key>
+	<string>Edit and resend</string>
+	<key>chat.menu.hideDetails</key>
+	<string>Hide details</string>
+	<key>chat.menu.message</key>
+	<string>Message actions</string>
+	<key>chat.menu.nothingToRegenerate</key>
+	<string>There is no message here to send again.</string>
+	<key>chat.menu.openBotChat</key>
+	<string>Open @%@’s chat</string>
+	<key>chat.menu.readAloud</key>
+	<string>Read aloud</string>
+	<key>chat.menu.regenerate</key>
+	<string>Regenerate</string>
+	<key>chat.menu.selectText</key>
+	<string>Select text</string>
+	<key>chat.menu.showDetails</key>
+	<string>Show details</string>
+	<key>chat.menu.stopReading</key>
+	<string>Stop reading</string>
+	<key>chat.menu.turnRunning</key>
+	<string>Wait for the current turn to finish.</string>
+	<key>chat.notifications.following</key>
+	<string>Following the types set in Settings.</string>
+	<key>chat.notifications.hint</key>
+	<string>These override the global types in Settings for this chat only.</string>
+	<key>chat.notifications.label</key>
+	<string>Notifications</string>
+	<key>chat.notifications.overridden</key>
+	<string>This chat has its own types.</string>
+	<key>chat.notifications.subtitle</key>
+	<string>What %@ may notify you about</string>
+	<key>chat.notifications.title</key>
+	<string>Notifications</string>
+	<key>chat.notifications.types.cron</key>
+	<string>Scheduled runs</string>
+	<key>chat.notifications.types.cronDone</key>
+	<string>A scheduled run finished</string>
+	<key>chat.notifications.types.cronFailed</key>
+	<string>A scheduled run failed</string>
+	<key>chat.notifications.types.needsInput</key>
+	<string>Needs your answer</string>
+	<key>chat.notifications.types.turnDone</key>
+	<string>Finished a turn</string>
+	<key>chat.notifications.types.turnFailed</key>
+	<string>A turn failed</string>
+	<key>chat.notifications.useDefault</key>
+	<string>Use the global types</string>
+	<key>chat.options.cancel</key>
+	<string>Cancel</string>
+	<key>chat.options.colourHint</key>
+	<string>Tints this chat’s avatar ring, its row in the list and the messages you send.</string>
+	<key>chat.options.done</key>
+	<string>Done</string>
+	<key>chat.options.expensiveConfirm</key>
+	<string>Use it anyway</string>
+	<key>chat.options.expensiveTitle</key>
+	<string>This model costs more</string>
+	<key>chat.options.eyebrow</key>
+	<string>This chat</string>
+	<key>chat.options.fast</key>
+	<string>Fast mode</string>
+	<key>chat.options.fastHint</key>
+	<string>Prioritize response speed</string>
+	<key>chat.options.howHeader</key>
+	<string>How it answers</string>
+	<key>chat.options.model</key>
+	<string>Model</string>
+	<key>chat.options.modelSearch</key>
+	<string>Search models</string>
+	<key>chat.options.notMuted</key>
+	<string>Off</string>
+	<key>chat.options.reasoning</key>
+	<string>Reasoning effort</string>
+	<key>chat.options.showBotToBot</key>
+	<string>Show bot-to-bot</string>
+	<key>chat.options.showThinking</key>
+	<string>Show thinking</string>
+	<key>chat.options.subtitle</key>
+	<string>For this conversation with %@</string>
+	<key>chat.options.textSize</key>
+	<string>Chat text size</string>
+	<key>chat.options.textSizes.default</key>
+	<string>Default</string>
+	<key>chat.options.textSizes.large</key>
+	<string>Large</string>
+	<key>chat.options.textSizes.small</key>
+	<string>Small</string>
+	<key>chat.options.textSizes.xlarge</key>
+	<string>Extra large</string>
+	<key>chat.options.thisChatHeader</key>
+	<string>This conversation</string>
+	<key>chat.options.title</key>
+	<string>Chat options</string>
+	<key>chat.options.useDefault</key>
+	<string>Reset this conversation's view</string>
+	<key>chat.options.useDefaultHint</key>
+	<string>Clears this conversation's own verbosity and visibility settings and follows the default from Settings again.</string>
+	<key>chat.options.usingDefault</key>
+	<string>Following the default set in Settings.</string>
+	<key>chat.options.usingOverride</key>
+	<string>This conversation has its own view.</string>
+	<key>chat.options.verbosity</key>
+	<string>Verbosity</string>
+	<key>chat.options.verbosityOptions.normal</key>
+	<string>Normal</string>
+	<key>chat.options.verbosityOptions.quiet</key>
+	<string>Quiet</string>
+	<key>chat.options.verbosityOptions.verbose</key>
+	<string>Verbose</string>
+	<key>chat.options.viewHeader</key>
+	<string>What this conversation shows</string>
+	<key>chat.options.yolo</key>
+	<string>YOLO mode</string>
+	<key>chat.options.yoloHint</key>
+	<string>Skip approval requests</string>
+	<key>chat.queue.delete</key>
+	<string>Delete</string>
+	<key>chat.queue.edit</key>
+	<string>Edit</string>
+	<key>chat.queue.label</key>
+	<string>Queued</string>
+	<key>chat.queue.more</key>
+	<string>+%lld more</string>
+	<key>chat.queue.steer</key>
+	<string>Steer</string>
+	<key>chat.queue.steerRejected</key>
+	<string>Too late to steer — the turn was already finishing. It is back in the queue.</string>
+	<key>chat.queue.steered</key>
+	<string>Handed to the running turn</string>
+	<key>chat.queue.steeredMarker</key>
+	<string>Steered</string>
+	<key>chat.receipt.delivered</key>
+	<string>Delivered</string>
+	<key>chat.receipt.read</key>
+	<string>Read</string>
+	<key>chat.receipt.sending</key>
+	<string>Sending…</string>
+	<key>chat.receipt.sent</key>
+	<string>Sent</string>
+	<key>chat.replying</key>
+	<string>Replying</string>
+	<key>chat.selectText.copyAll</key>
+	<string>Copy all</string>
+	<key>chat.selectText.done</key>
+	<string>Done</string>
+	<key>chat.selectText.hint</key>
+	<string>Drag to select · ⌘A all · ⌘C copy · Esc to close</string>
+	<key>chat.selectText.panel</key>
+	<string>Message as selectable text</string>
+	<key>chat.selectText.title</key>
+	<string>Select text</string>
+	<key>chat.sessions.adopt</key>
+	<string>Make this the Bot Chat</string>
+	<key>chat.sessions.adoptFailed</key>
+	<string>The gateway would not make this the Bot Chat.</string>
+	<key>chat.sessions.backToMain</key>
+	<string>back to main chat</string>
+	<key>chat.sessions.branch</key>
+	<string>Branch from here…</string>
+	<key>chat.sessions.branchFailed</key>
+	<string>This conversation could not be branched.</string>
+	<key>chat.sessions.branchMade</key>
+	<string>Branched into %@.</string>
+	<key>chat.sessions.branchOf</key>
+	<string>Branch of %@</string>
+	<key>chat.sessions.branchTitle</key>
+	<string>Branch</string>
+	<key>chat.sessions.branches</key>
+	<string>Branches</string>
+	<key>chat.sessions.busy</key>
+	<string>Wait until the reply is finished or clear the queue first.</string>
+	<key>chat.sessions.cancel</key>
+	<string>Cancel</string>
+	<key>chat.sessions.canonical</key>
+	<string>Current conversation</string>
+	<key>chat.sessions.conversations</key>
+	<string>Conversations</string>
+	<key>chat.sessions.delete</key>
+	<string>Delete</string>
+	<key>chat.sessions.deleteBody</key>
+	<string>%@ will be removed from the gateway. This cannot be undone.</string>
+	<key>chat.sessions.deleteConfirm</key>
+	<string>Delete</string>
+	<key>chat.sessions.deleteFailed</key>
+	<string>This conversation could not be deleted.</string>
+	<key>chat.sessions.deleteTitle</key>
+	<string>Delete this conversation?</string>
+	<key>chat.sessions.loadFailed</key>
+	<string>This bot’s conversations could not be read.</string>
+	<key>chat.sessions.loading</key>
+	<string>Reading this bot’s conversations…</string>
+	<key>chat.sessions.mine</key>
+	<string>My chat</string>
+	<key>chat.sessions.mineGroup</key>
+	<string>My chat</string>
+	<key>chat.sessions.mineNote</key>
+	<string>Only you see this conversation. The bot keeps its own memory.</string>
+	<key>chat.sessions.open</key>
+	<string>Open</string>
+	<key>chat.sessions.openNow</key>
+	<string>Open now</string>
+	<key>chat.sessions.past</key>
+	<string>Past conversations</string>
+	<key>chat.sessions.pastEmpty</key>
+	<string>Nothing but the current conversation.</string>
+	<key>chat.sessions.pin</key>
+	<string>Pin</string>
+	<key>chat.sessions.refresh</key>
+	<string>Refresh</string>
+	<key>chat.sessions.refreshFailed</key>
+	<string>This chat could not be refreshed.</string>
+	<key>chat.sessions.rename</key>
+	<string>Rename</string>
+	<key>chat.sessions.renameFailed</key>
+	<string>This conversation could not be renamed.</string>
+	<key>chat.sessions.renameTitle</key>
+	<string>Rename conversation</string>
+	<key>chat.sessions.retired</key>
+	<string>Retired</string>
+	<key>chat.sessions.shared</key>
+	<string>Shared Bot Chat</string>
+	<key>chat.sessions.sharedNote</key>
+	<string>Everyone on this gateway shares this conversation.</string>
+	<key>chat.sessions.switchFailed</key>
+	<string>This chat could not be switched.</string>
+	<key>chat.sessions.unpin</key>
+	<string>Unpin</string>
+	<key>chat.sessions.whose</key>
+	<string>This conversation</string>
+	<key>chat.sheet.close</key>
+	<string>Close</string>
+	<key>chat.subagents.barOpen</key>
+	<string>Show</string>
+	<key>chat.subagents.groupStatus.dispatched</key>
+	<string>Dispatched</string>
+	<key>chat.subagents.groupStatus.done</key>
+	<string>Done</string>
+	<key>chat.subagents.groupStatus.failed</key>
+	<string>Failed</string>
+	<key>chat.subagents.groupStatus.running</key>
+	<string>Running</string>
+	<key>chat.subagents.idle</key>
+	<string>No agents running</string>
+	<key>chat.subagents.openTranscript</key>
+	<string>Open transcript</string>
+	<key>chat.subagents.status.completed</key>
+	<string>Done</string>
+	<key>chat.subagents.status.failed</key>
+	<string>Failed</string>
+	<key>chat.subagents.status.interrupted</key>
+	<string>Stopped</string>
+	<key>chat.subagents.status.queued</key>
+	<string>Queued</string>
+	<key>chat.subagents.status.running</key>
+	<string>Running</string>
+	<key>chat.subagents.steer</key>
+	<string>Steer</string>
+	<key>chat.subagents.steerPlaceholder</key>
+	<string>Send a correction…</string>
+	<key>chat.subagents.steerQueued</key>
+	<string>Steer queued</string>
+	<key>chat.subagents.steerRejected</key>
+	<string>Too late to steer — the agent had already finished its last batch.</string>
+	<key>chat.subagents.stop</key>
+	<string>Stop</string>
+	<key>chat.subagents.stopped</key>
+	<string>Stopping…</string>
+	<key>chat.subagents.title</key>
+	<string>Agents</string>
+	<key>chat.subagents.transcriptBack</key>
+	<string>Back to the agents</string>
+	<key>chat.subagents.transcriptEmpty</key>
+	<string>This agent has not written anything readable yet.</string>
+	<key>chat.subagents.transcriptLive</key>
+	<string>Live tail · refreshing every few seconds</string>
+	<key>chat.subagents.transcriptStored</key>
+	<string>The child’s own transcript, read-only.</string>
+	<key>chat.subagents.transcriptTitle</key>
+	<string>Transcript · %@</string>
+	<key>chat.tool.arguments</key>
+	<string>Arguments</string>
+	<key>chat.tool.collapse</key>
+	<string>Collapse tool call</string>
+	<key>chat.tool.expand</key>
+	<string>Expand tool call</string>
+	<key>chat.tool.failed</key>
+	<string>Failed</string>
+	<key>chat.tool.generating</key>
+	<string>Preparing…</string>
+	<key>chat.tool.noResult</key>
+	<string>No result recorded</string>
+	<key>chat.tool.rawArguments</key>
+	<string>Arguments (raw)</string>
+	<key>chat.tool.rawResult</key>
+	<string>Result (raw)</string>
+	<key>chat.tool.redacted</key>
+	<string>Redacted before it reached the model</string>
+	<key>chat.tool.result</key>
+	<string>Result</string>
+	<key>chat.tool.riskTitle</key>
+	<string>Untrusted output</string>
+	<key>chat.tool.running</key>
+	<string>Running…</string>
+	<key>chat.tool.showLess</key>
+	<string>Show less</string>
+	<key>chat.tool.showMore</key>
+	<string>Show more</string>
+	<key>chat.transcript.answer</key>
+	<string>Answer</string>
+	<key>chat.transcript.answered</key>
+	<string>answered</string>
+	<key>chat.transcript.empty</key>
+	<string>No messages yet</string>
+	<key>chat.transcript.jumpToLatest</key>
+	<string>Jump to latest</string>
+	<key>chat.transcript.loadingEarlier</key>
+	<string>Loading earlier…</string>
+	<key>chat.transcript.newMessages</key>
+	<string>%lld new</string>
+	<key>chat.viewer.close</key>
+	<string>Close image</string>
+	<key>chat.viewer.download</key>
+	<string>Download image</string>
+	<key>chat.viewer.openHint</key>
+	<string>Opens the full-screen view</string>
+	<key>chat.viewer.share</key>
+	<string>Share image</string>
+	<key>chat.voice.autoRead</key>
+	<string>Read replies aloud</string>
+	<key>chat.voice.autoReadHint</key>
+	<string>Each finished reply in this chat, without being asked.</string>
+	<key>chat.voice.confirmBeforeSending</key>
+	<string>Confirm before sending</string>
+	<key>chat.voice.confirmBeforeSendingHint</key>
+	<string>Voice mode shows what it heard for a moment first.</string>
+	<key>chat.voice.dictate</key>
+	<string>Dictate</string>
+	<key>chat.voice.dictateStop</key>
+	<string>Stop dictating</string>
+	<key>chat.voice.dictationAuto</key>
+	<string>Device language</string>
+	<key>chat.voice.dictationLanguage</key>
+	<string>Dictation language</string>
+	<key>chat.voice.failed</key>
+	<string>Dictation stopped unexpectedly.</string>
+	<key>chat.voice.header</key>
+	<string>VOICE</string>
+	<key>chat.voice.listening</key>
+	<string>Listening…</string>
+	<key>chat.voice.mode</key>
+	<string>Voice mode</string>
+	<key>chat.voice.modeCancel</key>
+	<string>Cancel</string>
+	<key>chat.voice.modeDismiss</key>
+	<string>Swipe down to leave</string>
+	<key>chat.voice.modeInterrupt</key>
+	<string>Tap to interrupt</string>
+	<key>chat.voice.modeLeave</key>
+	<string>Leave voice mode</string>
+	<key>chat.voice.modeListening</key>
+	<string>Listening</string>
+	<key>chat.voice.modeSending</key>
+	<string>Sending</string>
+	<key>chat.voice.modeSpeaking</key>
+	<string>Speaking</string>
+	<key>chat.voice.modeStart</key>
+	<string>Start voice mode</string>
+	<key>chat.voice.modeThinking</key>
+	<string>Waiting for a reply</string>
+	<key>chat.voice.noSpeech</key>
+	<string>Nothing was heard.</string>
+	<key>chat.voice.openSettings</key>
+	<string>Open Settings</string>
+	<key>chat.voice.permissionDenied</key>
+	<string>Hermie needs the microphone to take dictation.</string>
+	<key>chat.voice.rate</key>
+	<string>Speaking rate</string>
+	<key>chat.voice.rateOptions.fast</key>
+	<string>Fast</string>
+	<key>chat.voice.rateOptions.fastest</key>
+	<string>Fastest</string>
+	<key>chat.voice.rateOptions.normal</key>
+	<string>Normal</string>
+	<key>chat.voice.rateOptions.slow</key>
+	<string>Slow</string>
+	<key>chat.voice.rateOptions.slowest</key>
+	<string>Slowest</string>
+	<key>chat.voice.stopOnBackground</key>
+	<string>Stop when the app closes</string>
+	<key>chat.voice.unavailable</key>
+	<string>Dictation is not available on this device.</string>
+	<key>connectors.back</key>
+	<string>Settings</string>
+	<key>connectors.connect</key>
+	<string>Connect…</string>
+	<key>connectors.connectExpired</key>
+	<string>The authorisation expired before it finished.</string>
+	<key>connectors.connectFailed</key>
+	<string>Could not connect: %@</string>
+	<key>connectors.connectHint</key>
+	<string>Opens your browser. Come back here when you have finished signing in.</string>
+	<key>connectors.connectNoUrl</key>
+	<string>The gateway opened an authorisation but did not say where to send you.</string>
+	<key>connectors.connectOk</key>
+	<string>%@ is connected.</string>
+	<key>connectors.connectSkipped</key>
+	<string>The authorisation was not completed.</string>
+	<key>connectors.connecting</key>
+	<string>Waiting for the browser…</string>
+	<key>connectors.detail.back</key>
+	<string>Connectors</string>
+	<key>connectors.detail.enabled</key>
+	<string>Enabled</string>
+	<key>connectors.detail.no</key>
+	<string>No</string>
+	<key>connectors.detail.slug</key>
+	<string>Identifier</string>
+	<key>connectors.detail.status</key>
+	<string>Status</string>
+	<key>connectors.detail.title</key>
+	<string>Connector</string>
+	<key>connectors.detail.yes</key>
+	<string>Yes</string>
+	<key>connectors.disconnect</key>
+	<string>Signing out of a connector is done where you manage the account, not from Hermes.</string>
+	<key>connectors.empty</key>
+	<string>This gateway offers no connectors.</string>
+	<key>connectors.failed</key>
+	<string>Could not read the connectors: %@</string>
+	<key>connectors.loading</key>
+	<string>Reading the connectors…</string>
+	<key>connectors.reason</key>
+	<string>Reason: %@</string>
+	<key>connectors.reconnect</key>
+	<string>Reconnect…</string>
+	<key>connectors.refresh</key>
+	<string>Refresh</string>
+	<key>connectors.scope.header</key>
+	<string>CHAT</string>
+	<key>connectors.scope.hint</key>
+	<string>Connectors belong to a chat. This page reads the one you pick.</string>
+	<key>connectors.scope.none</key>
+	<string>No chat is open.</string>
+	<key>connectors.scope.noneHint</key>
+	<string>Open a chat first — a connector list only exists for a running conversation.</string>
+	<key>connectors.settings.hint</key>
+	<string>Apps a bot can reach on your behalf</string>
+	<key>connectors.settings.row</key>
+	<string>Connectors</string>
+	<key>connectors.state.connected</key>
+	<string>Connected</string>
+	<key>connectors.state.disabled</key>
+	<string>Switched off</string>
+	<key>connectors.state.notConnected</key>
+	<string>Not connected</string>
+	<key>connectors.state.unknown</key>
+	<string>Unknown</string>
+	<key>connectors.subtitle</key>
+	<string>Apps your bots sign in to.</string>
+	<key>connectors.title</key>
+	<string>Connectors</string>
+	<key>connectors.unavailable</key>
+	<string>Connectors are switched off for this bot.</string>
+	<key>connectors.unavailableHint</key>
+	<string>Turn on the Connections toolset in the bot’s Capabilities, then come back.</string>
+	<key>cron.confirmDelete.body</key>
+	<string>The schedule is removed from the gateway. Run transcripts already recorded stay where they are.</string>
+	<key>cron.confirmDelete.cancel</key>
+	<string>Keep it</string>
+	<key>cron.confirmDelete.confirm</key>
+	<string>Delete</string>
+	<key>cron.confirmDelete.eyebrow</key>
+	<string>DELETE CRON</string>
+	<key>cron.confirmDelete.title</key>
+	<string>Delete “%@”?</string>
+	<key>cron.confirmRun.body</key>
+	<string>The cron runs once, immediately, and delivers wherever it normally delivers. Its schedule is unchanged.</string>
+	<key>cron.confirmRun.cancel</key>
+	<string>Cancel</string>
+	<key>cron.confirmRun.confirm</key>
+	<string>Run now</string>
+	<key>cron.confirmRun.eyebrow</key>
+	<string>RUN CRON</string>
+	<key>cron.confirmRun.title</key>
+	<string>Run “%@” now?</string>
+	<key>cron.detail.actions</key>
+	<string>ACTIONS</string>
+	<key>cron.detail.back</key>
+	<string>Crons</string>
+	<key>cron.detail.delete</key>
+	<string>Delete cron</string>
+	<key>cron.detail.deliverLabel</key>
+	<string>Delivers to</string>
+	<key>cron.detail.details</key>
+	<string>DETAILS</string>
+	<key>cron.detail.edit</key>
+	<string>Edit</string>
+	<key>cron.detail.errorLabel</key>
+	<string>Last error</string>
+	<key>cron.detail.instructions</key>
+	<string>Instructions</string>
+	<key>cron.detail.lastRunLabel</key>
+	<string>Last run</string>
+	<key>cron.detail.lastStatusLabel</key>
+	<string>Last status</string>
+	<key>cron.detail.loading</key>
+	<string>Loading…</string>
+	<key>cron.detail.loadingRuns</key>
+	<string>Loading runs…</string>
+	<key>cron.detail.modelLabel</key>
+	<string>Model</string>
+	<key>cron.detail.nextRun</key>
+	<string>NEXT RUN</string>
+	<key>cron.detail.noPrompt</key>
+	<string>This cron runs a script and has no prompt.</string>
+	<key>cron.detail.noRuns</key>
+	<string>This cron has not run yet.</string>
+	<key>cron.detail.pause</key>
+	<string>Pause</string>
+	<key>cron.detail.pausedReasonLabel</key>
+	<string>Paused because</string>
+	<key>cron.detail.repeatForever</key>
+	<string>Until removed</string>
+	<key>cron.detail.repeatLabel</key>
+	<string>Repeat</string>
+	<key>cron.detail.resume</key>
+	<string>Resume</string>
+	<key>cron.detail.runHistory</key>
+	<string>RUN HISTORY</string>
+	<key>cron.detail.runNow</key>
+	<string>Run now</string>
+	<key>cron.detail.running</key>
+	<string>Starting…</string>
+	<key>cron.detail.runsFailed</key>
+	<string>Could not load the run history: %@</string>
+	<key>cron.detail.schedule</key>
+	<string>Schedule</string>
+	<key>cron.detail.scheduleLabel</key>
+	<string>Schedule</string>
+	<key>cron.detail.skillsLabel</key>
+	<string>Skills</string>
+	<key>cron.detail.stateLabel</key>
+	<string>State</string>
+	<key>cron.detail.unknown</key>
+	<string>—</string>
+	<key>cron.editor.cancel</key>
+	<string>Cancel</string>
+	<key>cron.editor.createTitle</key>
+	<string>New cron</string>
+	<key>cron.editor.deliver</key>
+	<string>Delivers to</string>
+	<key>cron.editor.deliverLocal</key>
+	<string>Local (save only)</string>
+	<key>cron.editor.editTitle</key>
+	<string>Edit cron</string>
+	<key>cron.editor.name</key>
+	<string>Name</string>
+	<key>cron.editor.namePlaceholder</key>
+	<string>Morning briefing</string>
+	<key>cron.editor.nameRequired</key>
+	<string>Give the cron a name.</string>
+	<key>cron.editor.nextRunHint</key>
+	<string>The gateway decides the next run; it appears here once saved.</string>
+	<key>cron.editor.preview</key>
+	<string>Sends to the gateway as: %@</string>
+	<key>cron.editor.profile</key>
+	<string>Profile</string>
+	<key>cron.editor.profileDefault</key>
+	<string>This gateway</string>
+	<key>cron.editor.profileHint</key>
+	<string>Whose cron store the job is written to. It runs as that bot.</string>
+	<key>cron.editor.profileLocked</key>
+	<string>A cron cannot be moved to another profile after it is created.</string>
+	<key>cron.editor.prompt</key>
+	<string>Instructions</string>
+	<key>cron.editor.promptPlaceholder</key>
+	<string>Summarize overnight updates and list three takeaways.</string>
+	<key>cron.editor.promptRequired</key>
+	<string>Write the instructions the bot should follow.</string>
+	<key>cron.editor.save</key>
+	<string>Save cron</string>
+	<key>cron.editor.saveFailed</key>
+	<string>The gateway refused the cron: %@</string>
+	<key>cron.editor.saving</key>
+	<string>Saving…</string>
+	<key>cron.editor.schedule</key>
+	<string>Schedule</string>
+	<key>cron.editor.what</key>
+	<string>What it does</string>
+	<key>cron.editor.where</key>
+	<string>Where it goes</string>
+	<key>cron.gatewayBanner</key>
+	<string>Crons will not run: the Hermes gateway process is not running</string>
+	<key>cron.list.add</key>
+	<string>New cron</string>
+	<key>cron.list.empty</key>
+	<string>No crons yet. Create one to have a bot work while you are away.</string>
+	<key>cron.list.failed</key>
+	<string>Could not load the crons: %@</string>
+	<key>cron.list.lastLabel</key>
+	<string>last</string>
+	<key>cron.list.lastRun</key>
+	<string>Last run %@</string>
+	<key>cron.list.loading</key>
+	<string>Loading crons…</string>
+	<key>cron.list.neverRun</key>
+	<string>Never run</string>
+	<key>cron.list.nextLabel</key>
+	<string>next</string>
+	<key>cron.list.nextRun</key>
+	<string>Next: %@</string>
+	<key>cron.list.noNextRun</key>
+	<string>Not scheduled</string>
+	<key>cron.list.overdue</key>
+	<string>Overdue</string>
+	<key>cron.list.profile</key>
+	<string>Profile: %@</string>
+	<key>cron.list.refreshedAt</key>
+	<string>Refreshed %@</string>
+	<key>cron.list.refreshedNever</key>
+	<string>Not refreshed yet</string>
+	<key>cron.relative.daysAgo</key>
+	<string>%lldd ago</string>
+	<key>cron.relative.hoursAgo</key>
+	<string>%lldh ago</string>
+	<key>cron.relative.inDays</key>
+	<string>in %lldd</string>
+	<key>cron.relative.inHours</key>
+	<string>in %lldh</string>
+	<key>cron.relative.inMinutes</key>
+	<string>in %lld min</string>
+	<key>cron.relative.inSeconds</key>
+	<string>in %llds</string>
+	<key>cron.relative.minutesAgo</key>
+	<string>%lld min ago</string>
+	<key>cron.relative.now</key>
+	<string>now</string>
+	<key>cron.relative.secondsAgo</key>
+	<string>%llds ago</string>
+	<key>cron.run.back</key>
+	<string>Cron</string>
+	<key>cron.run.empty</key>
+	<string>This run recorded no messages.</string>
+	<key>cron.run.failed</key>
+	<string>Could not load this run: %@</string>
+	<key>cron.run.loading</key>
+	<string>Loading the run…</string>
+	<key>cron.run.readOnly</key>
+	<string>Read-only: a cron run cannot be continued from here.</string>
+	<key>cron.run.title</key>
+	<string>Run</string>
+	<key>cron.schedule.cronExpression</key>
+	<string>Cron expression</string>
+	<key>cron.schedule.cronHint</key>
+	<string>Five fields: minute, hour, day of month, month, day of week.</string>
+	<key>cron.schedule.cronPlaceholder</key>
+	<string>0 9 * * 1-5</string>
+	<key>cron.schedule.days</key>
+	<string>Days</string>
+	<key>cron.schedule.daysHint</key>
+	<string>No day selected means every day.</string>
+	<key>cron.schedule.errors.cronField</key>
+	<string>The %1$@ field does not accept “%2$@”.</string>
+	<key>cron.schedule.errors.cronFieldCount</key>
+	<string>A cron expression has five fields, for example 0 9 * * 1-5.</string>
+	<key>cron.schedule.errors.interval</key>
+	<string>Enter how many minutes, hours or days between runs.</string>
+	<key>cron.schedule.errors.once</key>
+	<string>Enter a delay such as “in 2h”, or a date and time such as 2026-09-20T09:00.</string>
+	<key>cron.schedule.errors.time</key>
+	<string>Enter a time as HH:MM, for example 09:00.</string>
+	<key>cron.schedule.everyLabel</key>
+	<string>Every</string>
+	<key>cron.schedule.mode</key>
+	<string>Repeat</string>
+	<key>cron.schedule.modes.cron</key>
+	<string>Cron</string>
+	<key>cron.schedule.modes.daily</key>
+	<string>Daily</string>
+	<key>cron.schedule.modes.interval</key>
+	<string>Interval</string>
+	<key>cron.schedule.modes.once</key>
+	<string>Once</string>
+	<key>cron.schedule.once</key>
+	<string>When</string>
+	<key>cron.schedule.onceHint</key>
+	<string>A delay such as “in 2h”, or a date and time such as 2026-09-20T09:00.</string>
+	<key>cron.schedule.oncePlaceholder</key>
+	<string>in 2h</string>
+	<key>cron.schedule.time</key>
+	<string>Time</string>
+	<key>cron.schedule.timePlaceholder</key>
+	<string>09:00</string>
+	<key>cron.schedule.units.days</key>
+	<string>days</string>
+	<key>cron.schedule.units.hours</key>
+	<string>hours</string>
+	<key>cron.schedule.units.minutes</key>
+	<string>minutes</string>
+	<key>cron.schedule.weekdayInitials[0]</key>
+	<string>S</string>
+	<key>cron.schedule.weekdayInitials[1]</key>
+	<string>M</string>
+	<key>cron.schedule.weekdayInitials[2]</key>
+	<string>T</string>
+	<key>cron.schedule.weekdayInitials[3]</key>
+	<string>W</string>
+	<key>cron.schedule.weekdayInitials[4]</key>
+	<string>T</string>
+	<key>cron.schedule.weekdayInitials[5]</key>
+	<string>F</string>
+	<key>cron.schedule.weekdayInitials[6]</key>
+	<string>S</string>
+	<key>cron.schedule.weekdayNames[0]</key>
+	<string>Sunday</string>
+	<key>cron.schedule.weekdayNames[1]</key>
+	<string>Monday</string>
+	<key>cron.schedule.weekdayNames[2]</key>
+	<string>Tuesday</string>
+	<key>cron.schedule.weekdayNames[3]</key>
+	<string>Wednesday</string>
+	<key>cron.schedule.weekdayNames[4]</key>
+	<string>Thursday</string>
+	<key>cron.schedule.weekdayNames[5]</key>
+	<string>Friday</string>
+	<key>cron.schedule.weekdayNames[6]</key>
+	<string>Saturday</string>
+	<key>cron.sections.active</key>
+	<string>ACTIVE</string>
+	<key>cron.sections.paused</key>
+	<string>PAUSED</string>
+	<key>cron.status.failed</key>
+	<string>Failed</string>
+	<key>cron.status.ok</key>
+	<string>Success</string>
+	<key>cron.status.paused</key>
+	<string>Paused</string>
+	<key>cron.status.pending</key>
+	<string>Waiting</string>
+	<key>cron.status.running</key>
+	<string>Running</string>
+	<key>cron.subtitle</key>
+	<string>A little progress, on repeat.</string>
+	<key>cron.title</key>
+	<string>Crons</string>
+	<key>kanban.absent</key>
+	<string>This gateway has no Kanban plugin.</string>
+	<key>kanban.absentCommand</key>
+	<string>hermes plugins install kanban</string>
+	<key>kanban.absentHint</key>
+	<string>Install it on the machine that runs the gateway:</string>
+	<key>kanban.back</key>
+	<string>Settings</string>
+	<key>kanban.board.back</key>
+	<string>Boards</string>
+	<key>kanban.board.columnEmpty</key>
+	<string>Nothing here.</string>
+	<key>kanban.board.empty</key>
+	<string>Nothing on this board yet.</string>
+	<key>kanban.board.hideArchived</key>
+	<string>Hide archived</string>
+	<key>kanban.board.loading</key>
+	<string>Reading the board…</string>
+	<key>kanban.board.newCard</key>
+	<string>New card</string>
+	<key>kanban.board.showArchived</key>
+	<string>Show archived</string>
+	<key>kanban.card.archive</key>
+	<string>Archive</string>
+	<key>kanban.card.archiveHint</key>
+	<string>Archiving keeps the card and its history. It is not a delete.</string>
+	<key>kanban.card.archived</key>
+	<string>Archived.</string>
+	<key>kanban.card.archiving</key>
+	<string>Archiving…</string>
+	<key>kanban.card.assignee</key>
+	<string>Assignee</string>
+	<key>kanban.card.back</key>
+	<string>Board</string>
+	<key>kanban.card.body</key>
+	<string>Notes</string>
+	<key>kanban.card.column</key>
+	<string>Column</string>
+	<key>kanban.card.created</key>
+	<string>Created</string>
+	<key>kanban.card.priority</key>
+	<string>Priority</string>
+	<key>kanban.card.save</key>
+	<string>Save</string>
+	<key>kanban.card.saved</key>
+	<string>Saved.</string>
+	<key>kanban.card.saving</key>
+	<string>Saving…</string>
+	<key>kanban.card.summary</key>
+	<string>LATEST SUMMARY</string>
+	<key>kanban.card.title</key>
+	<string>Title</string>
+	<key>kanban.columns.archived</key>
+	<string>Archived</string>
+	<key>kanban.columns.blocked</key>
+	<string>Blocked</string>
+	<key>kanban.columns.done</key>
+	<string>Done</string>
+	<key>kanban.columns.ready</key>
+	<string>Ready</string>
+	<key>kanban.columns.review</key>
+	<string>Review</string>
+	<key>kanban.columns.running</key>
+	<string>Running</string>
+	<key>kanban.columns.scheduled</key>
+	<string>Scheduled</string>
+	<key>kanban.columns.todo</key>
+	<string>To do</string>
+	<key>kanban.columns.triage</key>
+	<string>Triage</string>
+	<key>kanban.comments.add</key>
+	<string>Comment</string>
+	<key>kanban.comments.adding</key>
+	<string>Posting…</string>
+	<key>kanban.comments.header</key>
+	<string>COMMENTS</string>
+	<key>kanban.comments.none</key>
+	<string>No comments yet.</string>
+	<key>kanban.comments.placeholder</key>
+	<string>Add a comment</string>
+	<key>kanban.create.bodyField</key>
+	<string>Notes</string>
+	<key>kanban.create.column</key>
+	<string>COLUMN</string>
+	<key>kanban.create.needsTitle</key>
+	<string>A card needs a title.</string>
+	<key>kanban.create.submit</key>
+	<string>Make the card</string>
+	<key>kanban.create.submitting</key>
+	<string>Making it…</string>
+	<key>kanban.create.title</key>
+	<string>New card</string>
+	<key>kanban.create.titleField</key>
+	<string>Title</string>
+	<key>kanban.create.titlePlaceholder</key>
+	<string>What needs doing</string>
+	<key>kanban.dragHint</key>
+	<string>Hold a card to pick it up, then drop it on a column.</string>
+	<key>kanban.dragLabel</key>
+	<string>Hold to pick this card up, or use Move to…</string>
+	<key>kanban.empty</key>
+	<string>This gateway has no boards yet.</string>
+	<key>kanban.emptyHint</key>
+	<string>Make one with `hermes kanban board create`, or from the Hermes desktop app.</string>
+	<key>kanban.failed</key>
+	<string>Could not read the boards: %@</string>
+	<key>kanban.loading</key>
+	<string>Reading the boards…</string>
+	<key>kanban.locked</key>
+	<string>Running, Review and Scheduled are the dispatcher’s. A card can leave them but not be put into them.</string>
+	<key>kanban.lockedTarget</key>
+	<string>%@ is the dispatcher’s. A card cannot be put there.</string>
+	<key>kanban.menu</key>
+	<string>Boards</string>
+	<key>kanban.move</key>
+	<string>Move to…</string>
+	<key>kanban.moveRefused</key>
+	<string>%@</string>
+	<key>kanban.moved</key>
+	<string>Moved to %@.</string>
+	<key>kanban.movedElsewhere</key>
+	<string>Asked for %1$@; the board put it in %2$@.</string>
+	<key>kanban.noOrder</key>
+	<string>Cards are ordered by priority and age, so there is no order to drag within a column.</string>
+	<key>kanban.settings.hint</key>
+	<string>The Kanban boards this gateway keeps</string>
+	<key>kanban.settings.row</key>
+	<string>Boards</string>
+	<key>kanban.subtitle</key>
+	<string>Work your bots pick up.</string>
+	<key>kanban.title</key>
+	<string>Boards</string>
+	<key>mcp.authorise</key>
+	<string>Authorise…</string>
+	<key>mcp.authoriseFailed</key>
+	<string>Authorisation did not finish: %@</string>
+	<key>mcp.authoriseHint</key>
+	<string>Opens your browser. Come back here when you have finished signing in.</string>
+	<key>mcp.authoriseOk</key>
+	<string>Authorised.</string>
+	<key>mcp.authorising</key>
+	<string>Waiting for the browser…</string>
+	<key>mcp.back</key>
+	<string>Settings</string>
+	<key>mcp.detail.address</key>
+	<string>Address</string>
+	<key>mcp.detail.auth</key>
+	<string>Authentication</string>
+	<key>mcp.detail.authNone</key>
+	<string>None</string>
+	<key>mcp.detail.back</key>
+	<string>MCP servers</string>
+	<key>mcp.detail.env</key>
+	<string>ENVIRONMENT KEYS</string>
+	<key>mcp.detail.envHint</key>
+	<string>The gateway never sends their values — only which keys this server expects.</string>
+	<key>mcp.detail.title</key>
+	<string>MCP server</string>
+	<key>mcp.detail.tools</key>
+	<string>TOOLS</string>
+	<key>mcp.detail.toolsEmpty</key>
+	<string>This server offered no tools.</string>
+	<key>mcp.detail.toolsUnknown</key>
+	<string>Test the connection to see what this server offers.</string>
+	<key>mcp.detail.transport</key>
+	<string>Transport</string>
+	<key>mcp.empty</key>
+	<string>No MCP servers are configured on this gateway.</string>
+	<key>mcp.emptyHint</key>
+	<string>Add one with `hermes mcp add`, or from the Hermes desktop app.</string>
+	<key>mcp.failed</key>
+	<string>Could not read the servers: %@</string>
+	<key>mcp.loading</key>
+	<string>Reading the server list…</string>
+	<key>mcp.needsAuth</key>
+	<string>Needs authorising</string>
+	<key>mcp.reload</key>
+	<string>Reload servers</string>
+	<key>mcp.reloadHint</key>
+	<string>Applies configuration changes to chats that are already running.</string>
+	<key>mcp.runtime.configured</key>
+	<string>Configured</string>
+	<key>mcp.runtime.connected</key>
+	<string>Connected</string>
+	<key>mcp.runtime.connecting</key>
+	<string>Connecting…</string>
+	<key>mcp.runtime.disabled</key>
+	<string>Switched off</string>
+	<key>mcp.runtime.failed</key>
+	<string>Not connected</string>
+	<key>mcp.runtime.lazy</key>
+	<string>Starts when needed</string>
+	<key>mcp.runtime.unknown</key>
+	<string>Not started yet</string>
+	<key>mcp.settings.hint</key>
+	<string>Tools your bots reach over the Model Context Protocol</string>
+	<key>mcp.settings.row</key>
+	<string>MCP servers</string>
+	<key>mcp.subtitle</key>
+	<string>Tools your bots can reach.</string>
+	<key>mcp.test</key>
+	<string>Test connection</string>
+	<key>mcp.testFailed</key>
+	<string>Could not connect: %@</string>
+	<key>mcp.testing</key>
+	<string>Connecting…</string>
+	<key>mcp.title</key>
+	<string>MCP servers</string>
+	<key>memory.add.action</key>
+	<string>Add</string>
+	<key>memory.add.label</key>
+	<string>Add to %@</string>
+	<key>memory.add.placeholder</key>
+	<string>Write something down</string>
+	<key>memory.botsEmpty</key>
+	<string>No bots yet.</string>
+	<key>memory.botsHint</key>
+	<string>Read and edit what each bot remembers.</string>
+	<key>memory.botsTitle</key>
+	<string>Memory</string>
+	<key>memory.edit.action</key>
+	<string>Edit</string>
+	<key>memory.edit.cancel</key>
+	<string>Cancel</string>
+	<key>memory.edit.label</key>
+	<string>Edit entry %lld</string>
+	<key>memory.edit.save</key>
+	<string>Replace</string>
+	<key>memory.empty.memory</key>
+	<string>Nothing written down yet.</string>
+	<key>memory.empty.user</key>
+	<string>Nothing written down about you yet.</string>
+	<key>memory.failed</key>
+	<string>Could not read this memory: %@</string>
+	<key>memory.forBot</key>
+	<string>%@'s memory</string>
+	<key>memory.graph.detail.close</key>
+	<string>Close</string>
+	<key>memory.graph.detail.entry</key>
+	<string>Entry</string>
+	<key>memory.graph.detail.noTopics</key>
+	<string>No topics in this entry.</string>
+	<key>memory.graph.detail.open</key>
+	<string>Show in the list</string>
+	<key>memory.graph.detail.profile</key>
+	<string>This bot</string>
+	<key>memory.graph.detail.topic</key>
+	<string>Topic</string>
+	<key>memory.graph.detail.topics</key>
+	<string>MENTIONS</string>
+	<key>memory.graph.dropped</key>
+	<string>%lld more nodes were left out of the drawing.</string>
+	<key>memory.graph.empty</key>
+	<string>Nothing to draw yet.</string>
+	<key>memory.graph.full.close</key>
+	<string>Close</string>
+	<key>memory.graph.full.dismiss</key>
+	<string>Close the graph</string>
+	<key>memory.graph.full.open</key>
+	<string>Open full screen</string>
+	<key>memory.graph.full.title</key>
+	<string>Memory graph</string>
+	<key>memory.graph.label</key>
+	<string>A map of this memory: the bot, its entries and the topics they share</string>
+	<key>memory.graph.loading</key>
+	<string>Drawing…</string>
+	<key>memory.graph.reset</key>
+	<string>Reset</string>
+	<key>memory.graph.truncated</key>
+	<string>Showing %1$lld of %2$lld entries. The rest are not on this page of the map.</string>
+	<key>memory.graph.zoomIn</key>
+	<string>Zoom in</string>
+	<key>memory.graph.zoomOut</key>
+	<string>Zoom out</string>
+	<key>memory.loading</key>
+	<string>Reading memory…</string>
+	<key>memory.missing.body</key>
+	<string>Reading a bot’s memory needs the hermie plugin, version 0.5.0 or newer, installed on the gateway and enabled for this profile.</string>
+	<key>memory.missing.guide</key>
+	<string>Read the guide</string>
+	<key>memory.missing.install</key>
+	<string>ON THE GATEWAY</string>
+	<key>memory.missing.title</key>
+	<string>The Hermie plugin has no memory browser</string>
+	<key>memory.missing.unknown</key>
+	<string>Waiting for the gateway to say what is installed…</string>
+	<key>memory.providers.header</key>
+	<string>PROVIDERS</string>
+	<key>memory.providers.hint</key>
+	<string>An external memory provider answers a bot with text for one turn. It offers no call that lists what it holds, so there is nothing here to show.</string>
+	<key>memory.providers.notBrowsable</key>
+	<string>Not browsable</string>
+	<key>memory.raw.emptyDocument</key>
+	<string>This one is empty.</string>
+	<key>memory.raw.loading</key>
+	<string>Reading what each backend holds…</string>
+	<key>memory.raw.missing</key>
+	<string>This gateway’s Hermie plugin does not serve raw memory.</string>
+	<key>memory.raw.missingCommand</key>
+	<string>hermes plugins install hermie</string>
+	<key>memory.raw.missingHint</key>
+	<string>Update the plugin on the machine that runs the gateway:</string>
+	<key>memory.raw.none</key>
+	<string>This gateway named no memory backends.</string>
+	<key>memory.raw.notListable</key>
+	<string>This backend cannot say what it holds.</string>
+	<key>memory.raw.readOnly</key>
+	<string>Read-only. Entries are edited on the Entries tab.</string>
+	<key>memory.raw.truncated</key>
+	<string>The gateway sent only the beginning of this one.</string>
+	<key>memory.raw.unavailable</key>
+	<string>This backend is not available on this gateway.</string>
+	<key>memory.readOnly</key>
+	<string>This gateway lets memory be read and not written. Switch on the plugin’s memory.edit for this profile to change that.</string>
+	<key>memory.remove.action</key>
+	<string>Remove</string>
+	<key>memory.remove.cancel</key>
+	<string>Keep it</string>
+	<key>memory.remove.confirm</key>
+	<string>Remove</string>
+	<key>memory.remove.confirmBody</key>
+	<string>The bot stops being told this. Hermes keeps no history of a memory file.</string>
+	<key>memory.remove.confirmTitle</key>
+	<string>Remove this entry?</string>
+	<key>memory.remove.label</key>
+	<string>Remove entry %lld</string>
+	<key>memory.retry</key>
+	<string>Try again</string>
+	<key>memory.rowHint</key>
+	<string>What this bot remembers about its work, and about you.</string>
+	<key>memory.rowTitle</key>
+	<string>Memory</string>
+	<key>memory.search.clear</key>
+	<string>Clear</string>
+	<key>memory.search.hint</key>
+	<string>Every word has to appear somewhere in the entry. Order does not matter.</string>
+	<key>memory.search.none</key>
+	<string>Nothing matches “%@”.</string>
+	<key>memory.search.placeholder</key>
+	<string>Search this memory</string>
+	<key>memory.search.searching</key>
+	<string>Searching…</string>
+	<key>memory.sectionHint.memory</key>
+	<string>What the bot has written down about its work. Hermes' own MEMORY.md.</string>
+	<key>memory.sectionHint.user</key>
+	<string>What the bot has written down about you. USER.md.</string>
+	<key>memory.sections.memory</key>
+	<string>MEMORY</string>
+	<key>memory.sections.user</key>
+	<string>USER</string>
+	<key>memory.tabs.entries</key>
+	<string>Entries</string>
+	<key>memory.tabs.graph</key>
+	<string>Graph</string>
+	<key>memory.tabs.raw</key>
+	<string>Raw</string>
+	<key>memory.title</key>
+	<string>Memory</string>
+	<key>memory.usage</key>
+	<string>%1$lld of %2$lld characters</string>
+	<key>memory.usageLabel</key>
+	<string>%1$@ is %2$lld%% full</string>
+	<key>memory.usageUnbounded</key>
+	<string>%lld characters</string>
+	<key>profiles.capabilities.failed</key>
+	<string>Could not read the configuration: %@</string>
+	<key>profiles.capabilities.loading</key>
+	<string>Reading this bot’s configuration…</string>
+	<key>profiles.capabilities.manageMcp</key>
+	<string>Manage servers…</string>
+	<key>profiles.capabilities.mcp</key>
+	<string>MCP SERVERS</string>
+	<key>profiles.capabilities.mcpEmpty</key>
+	<string>No MCP servers configured on this gateway.</string>
+	<key>profiles.capabilities.mcpFooter</key>
+	<string>Switching a server on here makes its tools available to this bot.</string>
+	<key>profiles.capabilities.reload.always</key>
+	<string>Reload, and stop asking</string>
+	<key>profiles.capabilities.reload.alwaysHint</key>
+	<string>Stops the gateway asking again — in the CLI and the desktop app too.</string>
+	<key>profiles.capabilities.reload.body</key>
+	<string>MCP servers reload for every live chat. The next message in each one re-sends its full input.</string>
+	<key>profiles.capabilities.reload.done</key>
+	<string>MCP servers reloaded.</string>
+	<key>profiles.capabilities.reload.eyebrow</key>
+	<string>MCP reload</string>
+	<key>profiles.capabilities.reload.failed</key>
+	<string>Could not reload: %@</string>
+	<key>profiles.capabilities.reload.later</key>
+	<string>Not now</string>
+	<key>profiles.capabilities.reload.now</key>
+	<string>Reload now</string>
+	<key>profiles.capabilities.reload.title</key>
+	<string>Apply to running chats?</string>
+	<key>profiles.capabilities.row</key>
+	<string>Capabilities</string>
+	<key>profiles.capabilities.rowDetail</key>
+	<string>Skills, tools and MCP servers for this bot</string>
+	<key>profiles.capabilities.saveFailed</key>
+	<string>The gateway refused the change: %@</string>
+	<key>profiles.capabilities.skills</key>
+	<string>SKILLS</string>
+	<key>profiles.capabilities.skillsEmpty</key>
+	<string>No skills installed for this bot.</string>
+	<key>profiles.capabilities.skillsFooter</key>
+	<string>Skills are folders of instructions the bot can open when it needs them.</string>
+	<key>profiles.capabilities.title</key>
+	<string>Capabilities</string>
+	<key>profiles.capabilities.toolsets</key>
+	<string>TOOLSETS</string>
+	<key>profiles.capabilities.toolsetsPinned</key>
+	<string>Pinned for this bot.</string>
+	<key>profiles.capabilities.toolsetsUnpinned</key>
+	<string>This bot follows the gateway’s defaults. Changing a switch pins the whole list.</string>
+	<key>profiles.new.cancel</key>
+	<string>Cancel</string>
+	<key>profiles.new.cloneFrom</key>
+	<string>Clone settings from</string>
+	<key>profiles.new.cloneHint</key>
+	<string>A clone copies the source bot’s skills, tools and MCP switches. Its messaging accounts are never copied — two bots cannot hold one Telegram token.</string>
+	<key>profiles.new.cloneNone</key>
+	<string>Start fresh</string>
+	<key>profiles.new.create</key>
+	<string>Create bot</string>
+	<key>profiles.new.creating</key>
+	<string>Making the bot…</string>
+	<key>profiles.new.description</key>
+	<string>Description</string>
+	<key>profiles.new.descriptionPlaceholder</key>
+	<string>Looks things up before anyone asks.</string>
+	<key>profiles.new.displayName</key>
+	<string>Display name</string>
+	<key>profiles.new.displayNameHint</key>
+	<string>What Hermie shows in the list. Leave it blank to use the handle.</string>
+	<key>profiles.new.displayNamePlaceholder</key>
+	<string>Scout</string>
+	<key>profiles.new.eyebrow</key>
+	<string>A bot of your own</string>
+	<key>profiles.new.failed</key>
+	<string>Could not make the bot: %@</string>
+	<key>profiles.new.handle</key>
+	<string>Handle</string>
+	<key>profiles.new.handleHint</key>
+	<string>Lower case, no spaces. This is the name the gateway knows it by, and it cannot be changed later.</string>
+	<key>profiles.new.handlePlaceholder</key>
+	<string>scout</string>
+	<key>profiles.new.model</key>
+	<string>Model</string>
+	<key>profiles.new.modelHint</key>
+	<string>A new bot inherits the gateway’s own model unless you pin one here.</string>
+	<key>profiles.new.modelInherit</key>
+	<string>Inherit from the launch bot</string>
+	<key>profiles.new.title</key>
+	<string>New bot</string>
+	<key>profiles.new.withoutModel</key>
+	<string>This bot has no model yet. Pick one in its profile before you write to it.</string>
+	<key>profiles.settings.group</key>
+	<string>Bots</string>
+	<key>profiles.settings.newBot</key>
+	<string>New bot…</string>
+	<key>profiles.settings.newBotHint</key>
+	<string>Make another bot on this gateway</string>
+	<key>skills.alreadyInstalled</key>
+	<string>Installed</string>
+	<key>skills.back</key>
+	<string>Settings</string>
+	<key>skills.botPicker</key>
+	<string>Bot</string>
+	<key>skills.catalogue</key>
+	<string>CATALOGUE</string>
+	<key>skills.catalogueEmpty</key>
+	<string>Nothing matched.</string>
+	<key>skills.cliOnly</key>
+	<string>This gateway cannot install skills over its socket. Run this on the machine that hosts it:</string>
+	<key>skills.failed</key>
+	<string>Could not read the skills: %@</string>
+	<key>skills.forBot</key>
+	<string>Switches are for %@.</string>
+	<key>skills.install</key>
+	<string>Install</string>
+	<key>skills.installFailed</key>
+	<string>Could not install: %@</string>
+	<key>skills.installed</key>
+	<string>INSTALLED</string>
+	<key>skills.installedEmpty</key>
+	<string>No skills installed yet.</string>
+	<key>skills.installedFooter</key>
+	<string>A skill is a folder of instructions a bot opens when it needs them.</string>
+	<key>skills.installed_</key>
+	<string>Installed %@.</string>
+	<key>skills.installing</key>
+	<string>Installing…</string>
+	<key>skills.loading</key>
+	<string>Reading the skills…</string>
+	<key>skills.noBot</key>
+	<string>Pick a bot to switch skills on and off for it.</string>
+	<key>skills.search</key>
+	<string>Search the hub</string>
+	<key>skills.searchPlaceholder</key>
+	<string>pdf, spreadsheets, video…</string>
+	<key>skills.searching</key>
+	<string>Searching…</string>
+	<key>skills.settings.hint</key>
+	<string>What your bots know how to do</string>
+	<key>skills.settings.row</key>
+	<string>Skills</string>
+	<key>skills.subtitle</key>
+	<string>Instructions your bots can open.</string>
+	<key>skills.title</key>
+	<string>Skills</string>
+	<key>skills.toggleFailed</key>
+	<string>Could not change that: %@</string>
+</dict>
+</plist>

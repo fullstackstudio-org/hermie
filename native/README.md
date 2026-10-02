@@ -93,6 +93,11 @@ The app transport security setting is a single `NSAllowsArbitraryLoads`, on purp
   with `String(localized: "…", table: "Native", bundle: .module)`. A string both apps show belongs in
   the TypeScript catalogues instead, so the two cannot drift apart.
 
+Neither catalog is bundled as it is. `npm run i18n` compiles both into `Resources/<lang>.lproj/`
+(`Localizable.strings(dict)`, `Native.strings(dict)`), and those are what the package ships:
+SwiftPM's native build system, the default up to Swift 6.3, copies an `.xcstrings` file without
+compiling it. So after editing `Native.xcstrings`, run `npm run i18n` and commit the `.lproj` files too.
+
 The apps follow the system's per-app language and have no picker of their own.
 [docs/i18n.md](../docs/i18n.md#native-apps) has the details: plurals, the hand-written overrides, and
 how the export is checked against the TypeScript.

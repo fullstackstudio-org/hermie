@@ -1,0 +1,2864 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+	<key>app.activity.counters.deliveries</key>
+	<string>Leveringen</string>
+	<key>app.activity.counters.subagents</key>
+	<string>Sub-agents</string>
+	<key>app.activity.counters.working</key>
+	<string>Bots aan het werk</string>
+	<key>app.activity.empty</key>
+	<string>Je bots hebben nog niet met elkaar gepraat. Zodra de een de ander een bericht stuurt of een taak uitbesteedt, verschijnt het hier.</string>
+	<key>app.activity.emptyOffline</key>
+	<string>Niets te tonen zolang de gateway onbereikbaar is.</string>
+	<key>app.activity.failed</key>
+	<string>De tijdlijn kon niet worden geladen: %@</string>
+	<key>app.activity.groupStatus.dispatched</key>
+	<string>verstuurd</string>
+	<key>app.activity.groupStatus.done</key>
+	<string>klaar</string>
+	<key>app.activity.groupStatus.failed</key>
+	<string>mislukt</string>
+	<key>app.activity.groupStatus.running</key>
+	<string>bezig</string>
+	<key>app.activity.loading</key>
+	<string>Alle gesprekken lezen…</string>
+	<key>app.activity.openChat</key>
+	<string>Open de chat met %@</string>
+	<key>app.activity.reply</key>
+	<string>%1$@ ↩︎ %2$@</string>
+	<key>app.activity.subtitle</key>
+	<string>Berichten tussen je bots, en de agents die ze aan het werk zetten.</string>
+	<key>app.activity.title</key>
+	<string>Activiteit</string>
+	<key>app.activity.to</key>
+	<string>%1$@ → %2$@</string>
+	<key>app.activity.today</key>
+	<string>Vandaag</string>
+	<key>app.activity.yesterday</key>
+	<string>Gisteren</string>
+	<key>app.app.loading</key>
+	<string>Starten…</string>
+	<key>app.app.name</key>
+	<string>Hermie</string>
+	<key>app.auth.noRefreshToken</key>
+	<string>Deze inlog kan niet worden vernieuwd — hij eindigt zodra zijn access token verloopt. De provider van de gateway heeft de offline_access-scope nodig.</string>
+	<key>app.auth.noRefreshTokenLink</key>
+	<string>Hoe je dit oplost</string>
+	<key>app.botProfile.about</key>
+	<string>OVER DEZE BOT</string>
+	<key>app.botProfile.colour</key>
+	<string>KLEUR</string>
+	<key>app.botProfile.colourHint</key>
+	<string>Alleen deze chat. Het kleurt de bubbels, de ring om de avatar en de rij in de lijst.</string>
+	<key>app.botProfile.description</key>
+	<string>BESCHRIJVING</string>
+	<key>app.botProfile.descriptionPlaceholder</key>
+	<string>Waar deze bot voor is</string>
+	<key>app.botProfile.gatewayVersion</key>
+	<string>Gateway</string>
+	<key>app.botProfile.menuItem</key>
+	<string>Profiel bewerken</string>
+	<key>app.botProfile.model</key>
+	<string>Model</string>
+	<key>app.botProfile.open</key>
+	<string>Het profiel van %@ bewerken</string>
+	<key>app.botProfile.photo</key>
+	<string>FOTO</string>
+	<key>app.botProfile.photoChange</key>
+	<string>Kies een foto</string>
+	<key>app.botProfile.photoFailed</key>
+	<string>Die foto kon niet worden geüpload.</string>
+	<key>app.botProfile.photoHint</key>
+	<string>Te zien in de chatlijst, in de koptekst en bij elk bericht dat deze bot stuurt.</string>
+	<key>app.botProfile.photoRemove</key>
+	<string>Foto verwijderen</string>
+	<key>app.botProfile.photoReplace</key>
+	<string>Foto wijzigen</string>
+	<key>app.botProfile.provider</key>
+	<string>Provider</string>
+	<key>app.botProfile.save</key>
+	<string>Opslaan</string>
+	<key>app.botProfile.saveFailed</key>
+	<string>De gateway wilde dat niet opslaan.</string>
+	<key>app.botProfile.saving</key>
+	<string>Opslaan…</string>
+	<key>app.botProfile.session</key>
+	<string>Sessie</string>
+	<key>app.botProfile.title</key>
+	<string>Profiel</string>
+	<key>app.botProfile.unknown</key>
+	<string>—</string>
+	<key>app.bots.defaultBot</key>
+	<string>Standaard</string>
+	<key>app.bots.empty</key>
+	<string>Deze gateway heeft nog geen bot-profielen. Maak er een met `hermes profile create`.</string>
+	<key>app.bots.failed</key>
+	<string>De lijst met bots kon niet worden geladen: %@</string>
+	<key>app.bots.footnote</key>
+	<string>Je gesprekken blijven bij je gateway.</string>
+	<key>app.bots.loading</key>
+	<string>De lijst met bots lezen…</string>
+	<key>app.bots.messageOpen</key>
+	<string>Open de chat van %@ bij dit bericht</string>
+	<key>app.bots.messagesHeader</key>
+	<string>IN BERICHTEN</string>
+	<key>app.bots.messagesHint</key>
+	<string>Alleen de beste treffer per chat wordt getoond.</string>
+	<key>app.bots.messagesNone</key>
+	<string>Geen bericht komt overeen.</string>
+	<key>app.bots.messagesSearching</key>
+	<string>Berichten doorzoeken…</string>
+	<key>app.bots.moreActions</key>
+	<string>Meer</string>
+	<key>app.bots.needsInput</key>
+	<string>Wacht op jou</string>
+	<key>app.bots.noMatches</key>
+	<string>Geen gesprek komt overeen met “%@”.</string>
+	<key>app.bots.noPreview</key>
+	<string>Nog geen berichten</string>
+	<key>app.bots.offline</key>
+	<string>Offline — de laatst bewaarde lijst wordt getoond.</string>
+	<key>app.bots.running</key>
+	<string>werkt</string>
+	<key>app.bots.search</key>
+	<string>Chats zoeken</string>
+	<key>app.bots.section</key>
+	<string>BERICHTEN</string>
+	<key>app.bots.sidebarHeader</key>
+	<string>CHATS</string>
+	<key>app.bots.switchGateway</key>
+	<string>Gateway: %@</string>
+	<key>app.bots.switchGatewayHint</key>
+	<string>Kies bij welke gateway deze lijst hoort</string>
+	<key>app.bots.title</key>
+	<string>Chats</string>
+	<key>app.bots.unread</key>
+	<string>Nieuw</string>
+	<key>app.chat.answered</key>
+	<string>Beantwoord: %@</string>
+	<key>app.chat.approvalTitle</key>
+	<string>Toestemming gevraagd</string>
+	<key>app.chat.attach.cancel</key>
+	<string>Annuleren</string>
+	<key>app.chat.attach.chipFailed</key>
+	<string>Upload mislukt</string>
+	<key>app.chat.attach.chipNoWorkspace</key>
+	<string>Geen workspace om naartoe te uploaden</string>
+	<key>app.chat.attach.chipRefused</key>
+	<string>De gateway weigerde het</string>
+	<key>app.chat.attach.chipTooLarge</key>
+	<string>Te groot · max. %lld MB</string>
+	<key>app.chat.attach.failed</key>
+	<string>De bijlage kon niet worden toegevoegd: %@</string>
+	<key>app.chat.attach.file</key>
+	<string>Bestand</string>
+	<key>app.chat.attach.openSettings</key>
+	<string>Instellingen openen</string>
+	<key>app.chat.attach.permission</key>
+	<string>Hermie heeft toegang tot je fotobibliotheek nodig om een afbeelding mee te sturen. Sta dat toe bij Instellingen.</string>
+	<key>app.chat.attach.photo</key>
+	<string>Fotobibliotheek</string>
+	<key>app.chat.attach.title</key>
+	<string>Een bijlage toevoegen</string>
+	<key>app.chat.attach.uploadFailed</key>
+	<string>Het bestand is niet verstuurd. %@</string>
+	<key>app.chat.cancelled</key>
+	<string>Ingetrokken</string>
+	<key>app.chat.clarifyTitle</key>
+	<string>De bot heeft een vraag</string>
+	<key>app.chat.connection.connecting</key>
+	<string>Verbinden met je gateway…</string>
+	<key>app.chat.connection.offline</key>
+	<string>Offline</string>
+	<key>app.chat.connection.reconnecting</key>
+	<string>Opnieuw verbinden…</string>
+	<key>app.chat.connection.retry</key>
+	<string>Nu proberen</string>
+	<key>app.chat.empty</key>
+	<string>Er is nog niets gezegd in deze chat.</string>
+	<key>app.chat.expensiveModel#message-empty</key>
+	<string>Dit model kost meer dan het huidige.</string>
+	<key>app.chat.expensiveModel#message-nonempty</key>
+	<string>%@</string>
+	<key>app.chat.failed</key>
+	<string>Dit gesprek kon niet worden geopend: %@</string>
+	<key>app.chat.findExhausted</key>
+	<string>“%@” is door de gateway gevonden, maar staat niet in de zichtbare tekst van deze chat.</string>
+	<key>app.chat.findMissed</key>
+	<string>“%@” staat in deze chat, verder terug dan wat er geladen is.</string>
+	<key>app.chat.hydrating</key>
+	<string>Het gesprek laden…</string>
+	<key>app.chat.offlineCopy</key>
+	<string>De laatst bewaarde kopie van dit gesprek wordt getoond.</string>
+	<key>app.chat.pickBot</key>
+	<string>Kies een gesprek om te gaan lezen.</string>
+	<key>app.chat.retry</key>
+	<string>Opnieuw proberen</string>
+	<key>app.chat.send</key>
+	<string>Sturen</string>
+	<key>app.chat.settingRefused</key>
+	<string>Instelling niet gewijzigd: %@</string>
+	<key>app.chat.stale</key>
+	<string>Dit gesprek is zijn verbinding met de gateway kwijtgeraakt. Het koppelt weer aan bij het volgende openen.</string>
+	<key>app.chat.stop</key>
+	<string>Stop</string>
+	<key>app.chat.subtitle.connecting</key>
+	<string>Verbinden…</string>
+	<key>app.chat.subtitle.delegating</key>
+	<string>Delegeren…</string>
+	<key>app.chat.subtitle.idle</key>
+	<string>Online</string>
+	<key>app.chat.subtitle.offline</key>
+	<string>Offline</string>
+	<key>app.chat.subtitle.queued</key>
+	<string>In de wachtrij</string>
+	<key>app.chat.subtitle.reconnecting</key>
+	<string>Opnieuw verbinden…</string>
+	<key>app.chat.subtitle.running</key>
+	<string>Voert %@ uit…</string>
+	<key>app.chat.subtitle.signedOut</key>
+	<string>Uitgelogd</string>
+	<key>app.chat.subtitle.thinking</key>
+	<string>Denkt na…</string>
+	<key>app.chat.subtitle.typing</key>
+	<string>Typt…</string>
+	<key>app.chat.subtitle.waiting</key>
+	<string>Wacht op jou</string>
+	<key>app.chat.subtitle.working</key>
+	<string>Werkt…</string>
+	<key>app.chat.thinking</key>
+	<string>Denkt na</string>
+	<key>app.chat.toolRunning</key>
+	<string>bezig</string>
+	<key>app.chat.unknownAuthor</key>
+	<string>Iemand anders begon een beurt…</string>
+	<key>app.common.add</key>
+	<string>Toevoegen</string>
+	<key>app.common.back</key>
+	<string>Terug</string>
+	<key>app.common.cancel</key>
+	<string>Annuleren</string>
+	<key>app.common.continue</key>
+	<string>Doorgaan</string>
+	<key>app.common.dismiss</key>
+	<string>Sluiten</string>
+	<key>app.common.done</key>
+	<string>Klaar</string>
+	<key>app.common.noMatches</key>
+	<string>Daar past niets bij.</string>
+	<key>app.common.nothingToPick</key>
+	<string>Er is niets om uit te kiezen.</string>
+	<key>app.common.openInBrowser</key>
+	<string>Toch in de browser openen</string>
+	<key>app.common.remove</key>
+	<string>Verwijderen</string>
+	<key>app.common.retry</key>
+	<string>Opnieuw proberen</string>
+	<key>app.common.search</key>
+	<string>Zoeken</string>
+	<key>app.common.signIn</key>
+	<string>Inloggen</string>
+	<key>app.connection.reauth.action</key>
+	<string>Inloggen</string>
+	<key>app.connection.reauth.message</key>
+	<string>Je sessie op deze gateway is verlopen.</string>
+	<key>app.connection.reauth.saving</key>
+	<string>Inloggen…</string>
+	<key>app.connection.reauth.tokenAction</key>
+	<string>Token bijwerken</string>
+	<key>app.connection.status.authenticating</key>
+	<string>Authenticeren…</string>
+	<key>app.connection.status.connecting</key>
+	<string>Verbinden…</string>
+	<key>app.connection.status.disconnected</key>
+	<string>Niet verbonden</string>
+	<key>app.connection.status.incompatible</key>
+	<string>Niet ondersteund</string>
+	<key>app.connection.status.needs_signin</key>
+	<string>Uitgelogd</string>
+	<key>app.connection.status.offline</key>
+	<string>Offline</string>
+	<key>app.connection.status.paused</key>
+	<string>Gepauzeerd</string>
+	<key>app.connection.status.probing</key>
+	<string>De gateway controleren…</string>
+	<key>app.connection.status.ready</key>
+	<string>Verbonden</string>
+	<key>app.connection.status.reconnecting</key>
+	<string>Opnieuw verbinden…</string>
+	<key>app.errors.authProxy</key>
+	<string>Een access proxy antwoordde met HTTP %lld vóór de gateway. Voeg zijn headers toe onder Geavanceerd, of sluit /api/status, /auth/* en /login ervan uit.</string>
+	<key>app.errors.closeAbnormal</key>
+	<string>De WebSocket ging dicht zonder reden. Een proxy vóór de gateway moet meestal worden ingesteld om WebSocket-upgrades door te laten.</string>
+	<key>app.errors.closeAuth</key>
+	<string>De gateway wees de credentials af toen de WebSocket openging. Log opnieuw in.</string>
+	<key>app.errors.closeChatOff</key>
+	<string>Chat staat uit op deze gateway.</string>
+	<key>app.errors.closeHost</key>
+	<string>De gateway vertrouwt dit adres niet. Zet zijn `dashboard.public_url` op het adres dat je hebt ingevuld en start hem opnieuw.</string>
+	<key>app.errors.closeTakenOver</key>
+	<string>Een andere client heeft deze verbinding overgenomen. Sluit die client en test opnieuw.</string>
+	<key>app.errors.incompatible</key>
+	<string>Deze gateway is te oud voor Hermie. Werk Hermes op de gateway bij.</string>
+	<key>app.errors.landingPage</key>
+	<string>Dit lijkt een webpagina, geen gateway.</string>
+	<key>app.errors.network</key>
+	<string>%@ kon niet worden bereikt. Controleer het adres, en of de gateway draait en vanaf dit apparaat bereikbaar is.</string>
+	<key>app.errors.networkOverHttps</key>
+	<string>%@ kon niet via https:// worden bereikt. Hij antwoordt daar niet, of hij levert een certificaat dat dit apparaat niet vertrouwt. Laat de https:// weg en Hermie probeert ook http://.</string>
+	<key>app.errors.notHermes</key>
+	<string>%@ antwoordde, maar niet als een Hermes-gateway. Controleer het adres en een eventueel pad-voorvoegsel.</string>
+	<key>app.errors.openFrontDoor</key>
+	<string>Voeg de credentials van de proxy toe</string>
+	<key>app.errors.privateNetworkOnly</key>
+	<string>Dit adres antwoordt alleen op een privénetwerk — zit dit apparaat op de VPN of het tailnet?</string>
+	<key>app.errors.providersUnavailable</key>
+	<string>De gateway vereist een inlog maar meldt geen identity providers. Stel er een in op de gateway en probeer het opnieuw.</string>
+	<key>app.errors.redirected</key>
+	<string>%1$@ verwees door naar %2$@, en dat is een andere host. Er is niets van gelezen.</string>
+	<key>app.errors.server</key>
+	<string>De gateway antwoordde met HTTP %lld. Hij draait maar is niet gezond; bekijk zijn logs.</string>
+	<key>app.errors.signedOut</key>
+	<string>De gateway wees de credentials af. Log opnieuw in.</string>
+	<key>app.errors.timeout</key>
+	<string>%@ antwoordde niet op tijd. Hij start misschien nog op of zit achter een trage lijn.</string>
+	<key>app.errors.tls</key>
+	<string>De beveiligde verbinding met %@ is mislukt. Een zelfondertekend certificaat moet eerst door dit apparaat vertrouwd worden — of, als de gateway daar gewoon http levert, laat de https:// weg en laat Hermie hem vinden.</string>
+	<key>app.errors.unknown</key>
+	<string>Er ging iets mis.</string>
+	<key>app.errors.useRedirectTarget</key>
+	<string>Gebruik %@ in plaats daarvan</string>
+	<key>app.gateway.connectionSettings</key>
+	<string>Verbindingsinstellingen</string>
+	<key>app.gateway.latency</key>
+	<string>%lld ms</string>
+	<key>app.gateway.noHost</key>
+	<string>Geen gateway</string>
+	<key>app.layout.accents.default</key>
+	<string>Standaard</string>
+	<key>app.layout.accents.graphite</key>
+	<string>Grafiet</string>
+	<key>app.layout.accents.green</key>
+	<string>Groen</string>
+	<key>app.layout.accents.indigo</key>
+	<string>Indigo</string>
+	<key>app.layout.accents.lime</key>
+	<string>Limoen</string>
+	<key>app.layout.accents.magenta</key>
+	<string>Magenta</string>
+	<key>app.layout.accents.orange</key>
+	<string>Oranje</string>
+	<key>app.layout.accents.red</key>
+	<string>Rood</string>
+	<key>app.layout.accents.slate</key>
+	<string>Leigrijs</string>
+	<key>app.layout.accents.teal</key>
+	<string>Teal</string>
+	<key>app.layout.accents.violet</key>
+	<string>Violet</string>
+	<key>app.layout.archive</key>
+	<string>Archiveren</string>
+	<key>app.layout.archived</key>
+	<string>Gearchiveerd (%lld)</string>
+	<key>app.layout.archivedPreview</key>
+	<string>Gearchiveerd · telt niet mee in filters en aantallen</string>
+	<key>app.layout.close</key>
+	<string>Sluiten</string>
+	<key>app.layout.collapseFolder#name-empty</key>
+	<string>Verberg de chats in deze map</string>
+	<key>app.layout.collapseFolder#name-nonempty</key>
+	<string>Verberg de chats in %@</string>
+	<key>app.layout.colour</key>
+	<string>Kleur</string>
+	<key>app.layout.colourOf</key>
+	<string>Kleur voor %@</string>
+	<key>app.layout.deleteFolder</key>
+	<string>Map verwijderen</string>
+	<key>app.layout.dragging</key>
+	<string>%@ verplaatsen</string>
+	<key>app.layout.expandFolder#name-empty</key>
+	<string>Toon de chats in deze map</string>
+	<key>app.layout.expandFolder#name-nonempty</key>
+	<string>Toon de chats in %@</string>
+	<key>app.layout.folderActions#name-empty</key>
+	<string>Acties voor de map zonder naam</string>
+	<key>app.layout.folderActions#name-nonempty</key>
+	<string>Acties voor de map %@</string>
+	<key>app.layout.folderColour</key>
+	<string>Mapkleur</string>
+	<key>app.layout.folderEmpty</key>
+	<string>Geen chats in deze map</string>
+	<key>app.layout.folderName</key>
+	<string>Mapnaam</string>
+	<key>app.layout.folderNeedsInput</key>
+	<string>Wacht op jou</string>
+	<key>app.layout.folderUnread</key>
+	<string>%lld ongelezen</string>
+	<key>app.layout.markRead</key>
+	<string>Markeren als gelezen</string>
+	<key>app.layout.moveDown</key>
+	<string>Omlaag</string>
+	<key>app.layout.moveToFolder</key>
+	<string>Verplaats naar %@</string>
+	<key>app.layout.moveToFolderMenu</key>
+	<string>Verplaats naar map</string>
+	<key>app.layout.moveUp</key>
+	<string>Omhoog</string>
+	<key>app.layout.mute</key>
+	<string>Dempen</string>
+	<key>app.layout.muteFolder</key>
+	<string>Map dempen</string>
+	<key>app.layout.muteFor.1h</key>
+	<string>Voor 1 uur</string>
+	<key>app.layout.muteFor.1w</key>
+	<string>Voor 1 week</string>
+	<key>app.layout.muteFor.8h</key>
+	<string>Voor 8 uur</string>
+	<key>app.layout.muteFor.forever</key>
+	<string>Tot ik het weer aanzet</string>
+	<key>app.layout.muteWeekdays[0]</key>
+	<string>zo</string>
+	<key>app.layout.muteWeekdays[1]</key>
+	<string>ma</string>
+	<key>app.layout.muteWeekdays[2]</key>
+	<string>di</string>
+	<key>app.layout.muteWeekdays[3]</key>
+	<string>wo</string>
+	<key>app.layout.muteWeekdays[4]</key>
+	<string>do</string>
+	<key>app.layout.muteWeekdays[5]</key>
+	<string>vr</string>
+	<key>app.layout.muteWeekdays[6]</key>
+	<string>za</string>
+	<key>app.layout.muted</key>
+	<string>Gedempt</string>
+	<key>app.layout.mutedRow</key>
+	<string>Gedempt</string>
+	<key>app.layout.mutedUntil</key>
+	<string>Gedempt tot %@</string>
+	<key>app.layout.nameFolderHint</key>
+	<string>Typ om deze map te hernoemen.</string>
+	<key>app.layout.newFolder</key>
+	<string>Nieuwe map</string>
+	<key>app.layout.openChat</key>
+	<string>Openen</string>
+	<key>app.layout.pin</key>
+	<string>Vastzetten</string>
+	<key>app.layout.pinnedRow</key>
+	<string>Vastgezet</string>
+	<key>app.layout.remove</key>
+	<string>Verwijderen</string>
+	<key>app.layout.removeFolder#name-empty</key>
+	<string>De map zonder naam verwijderen</string>
+	<key>app.layout.removeFolder#name-nonempty</key>
+	<string>De map %@ verwijderen</string>
+	<key>app.layout.rename</key>
+	<string>Hernoemen</string>
+	<key>app.layout.rowActions</key>
+	<string>Acties voor %@</string>
+	<key>app.layout.showSidebar</key>
+	<string>Zijbalk tonen</string>
+	<key>app.layout.sidebarRail</key>
+	<string>Zijbalk, verborgen</string>
+	<key>app.layout.topGroup</key>
+	<string>Geen map</string>
+	<key>app.layout.unarchive</key>
+	<string>Uit archief halen</string>
+	<key>app.layout.unmute</key>
+	<string>Niet meer dempen</string>
+	<key>app.layout.unmuteFolder</key>
+	<string>Map niet meer dempen</string>
+	<key>app.layout.unnamedFolder</key>
+	<string>Naamloze map</string>
+	<key>app.layout.unpin</key>
+	<string>Losmaken</string>
+	<key>app.lock.plateBody</key>
+	<string>Hermie is vergrendeld.</string>
+	<key>app.lock.prompt</key>
+	<string>Hermie ontgrendelen</string>
+	<key>app.lock.stranded</key>
+	<string>Hermie is vergrendeld en op dit apparaat is geen toegangscode of biometrie ingesteld om het te ontgrendelen. Stel er een in bij je apparaatinstellingen.</string>
+	<key>app.lock.unlock</key>
+	<string>Ontgrendelen</string>
+	<key>app.menuBar.chats</key>
+	<string>Chats</string>
+	<key>app.menuBar.close</key>
+	<string>Sluiten</string>
+	<key>app.menuBar.hideSidebar</key>
+	<string>Verberg zijbalk</string>
+	<key>app.menuBar.newConversation</key>
+	<string>Nieuw gesprek</string>
+	<key>app.menuBar.search</key>
+	<string>Zoeken…</string>
+	<key>app.menuBar.settings</key>
+	<string>Instellingen…</string>
+	<key>app.menuBar.showSidebar</key>
+	<string>Toon zijbalk</string>
+	<key>app.onboarding.address.addHeader</key>
+	<string>Een header toevoegen</string>
+	<key>app.onboarding.address.advanced</key>
+	<string>Geavanceerd</string>
+	<key>app.onboarding.address.advancedHint</key>
+	<string>Extra request headers gaan mee met elke aanroep en met de inlogpagina. Een reverse proxy die een gedeeld geheim wil, heeft dat hier nodig.</string>
+	<key>app.onboarding.address.frontDoor.clientId</key>
+	<string>Client ID</string>
+	<key>app.onboarding.address.frontDoor.clientIdPlaceholder</key>
+	<string>abc123.access</string>
+	<key>app.onboarding.address.frontDoor.clientSecret</key>
+	<string>Client Secret</string>
+	<key>app.onboarding.address.frontDoor.cloudflare</key>
+	<string>Cloudflare Access</string>
+	<key>app.onboarding.address.frontDoor.cloudflareHint</key>
+	<string>Een service token uit je Access-applicatie. Hermie stuurt hem mee met elke request, met de WebSocket en met de inlogpagina. Sluit /auth/* en /login uit van het Access-beleid: een service token kan een inlog met redirects niet door de edge heen dragen.</string>
+	<key>app.onboarding.address.frontDoor.custom</key>
+	<string>Eigen headers</string>
+	<key>app.onboarding.address.frontDoor.hint</key>
+	<string>Kies hoe de proxy vóór je gateway Hermie doorlaat. Niets hiervan gaat ergens anders heen dan naar het adres van de gateway zelf.</string>
+	<key>app.onboarding.address.frontDoor.insecure</key>
+	<string>Deze gateway wordt via http:// bereikt, dus het service token wordt niet meegestuurd — het is een langlevende credential voor je hele Access-tenant. Gebruik https:// voor het adres dat de Access-applicatie dekt.</string>
+	<key>app.onboarding.address.frontDoor.label</key>
+	<string>VOOR DE GATEWAY</string>
+	<key>app.onboarding.address.headerName</key>
+	<string>Header</string>
+	<key>app.onboarding.address.headerValue</key>
+	<string>Waarde</string>
+	<key>app.onboarding.address.hideValue</key>
+	<string>Waarde verbergen</string>
+	<key>app.onboarding.address.hint</key>
+	<string>Laat het schema weg en Hermie probeert eerst https://, daarna http://. Typ zelf een schema om het vast te zetten.</string>
+	<key>app.onboarding.address.label</key>
+	<string>ADRES</string>
+	<key>app.onboarding.address.placeholder</key>
+	<string>hermes.example.com</string>
+	<key>app.onboarding.address.probing</key>
+	<string>Controleren…</string>
+	<key>app.onboarding.address.probingBoth</key>
+	<string>https:// controleren, daarna http://…</string>
+	<key>app.onboarding.address.probingScheme</key>
+	<string>%@ controleren…</string>
+	<key>app.onboarding.address.removeHeader#name-empty</key>
+	<string>De lege header verwijderen</string>
+	<key>app.onboarding.address.removeHeader#name-nonempty</key>
+	<string>De %@ header verwijderen</string>
+	<key>app.onboarding.address.sessionTokenRequired#version-empty</key>
+	<string>Hermes gateway · session token vereist</string>
+	<key>app.onboarding.address.sessionTokenRequired#version-nonempty</key>
+	<string>Hermes %@ · session token vereist</string>
+	<key>app.onboarding.address.showValue</key>
+	<string>Waarde tonen</string>
+	<key>app.onboarding.address.signInRequired#providers.last</key>
+	<string> of </string>
+	<key>app.onboarding.address.signInRequired#providers.separator</key>
+	<string>, </string>
+	<key>app.onboarding.address.signInRequired#version-empty</key>
+	<string>Hermes gateway · inloggen vereist via %@</string>
+	<key>app.onboarding.address.signInRequired#version-nonempty</key>
+	<string>Hermes %1$@ · inloggen vereist via %2$@</string>
+	<key>app.onboarding.address.signInRequiredNoProviders#version-empty</key>
+	<string>Hermes gateway · inloggen vereist, maar deze gateway noemt geen identity providers. Stel er een in op de gateway.</string>
+	<key>app.onboarding.address.signInRequiredNoProviders#version-nonempty</key>
+	<string>Hermes %@ · inloggen vereist, maar deze gateway noemt geen identity providers. Stel er een in op de gateway.</string>
+	<key>app.onboarding.address.subtitle</key>
+	<string>Het adres dat je in een browser zou openen om het dashboard van de gateway te bereiken.</string>
+	<key>app.onboarding.address.title</key>
+	<string>Gateway-adres</string>
+	<key>app.onboarding.done.credentialsNotStored</key>
+	<string>Hermie kon de credentials niet veilig op dit apparaat bewaren: %@</string>
+	<key>app.onboarding.done.finish</key>
+	<string>Beginnen met chatten</string>
+	<key>app.onboarding.done.gateway</key>
+	<string>Gateway</string>
+	<key>app.onboarding.done.retry</key>
+	<string>Opnieuw proberen</string>
+	<key>app.onboarding.done.saveFailed</key>
+	<string>De instellingen konden niet worden opgeslagen: %@</string>
+	<key>app.onboarding.done.saving</key>
+	<string>Opslaan…</string>
+	<key>app.onboarding.done.subtitle</key>
+	<string>Hermie bewaart het gateway-adres op dit apparaat en de credentials in de secret store van het systeem.</string>
+	<key>app.onboarding.done.subtitleCookie</key>
+	<string>Hermie onthoudt deze gateway in deze browser. De sessie zelf blijft waar de gateway hem neerzette — in een cookie die Hermie niet kan lezen.</string>
+	<key>app.onboarding.done.title</key>
+	<string>Klaar</string>
+	<key>app.onboarding.notifications.copied</key>
+	<string>Gekopieerd</string>
+	<key>app.onboarding.notifications.copy</key>
+	<string>Kopiëren</string>
+	<key>app.onboarding.notifications.denied</key>
+	<string>De toestemming is geweigerd. Je kunt het later aanzetten bij je apparaatinstellingen.</string>
+	<key>app.onboarding.notifications.enable</key>
+	<string>Meldingen aanzetten</string>
+	<key>app.onboarding.notifications.enabled</key>
+	<string>Meldingen staan aan voor dit apparaat.</string>
+	<key>app.onboarding.notifications.enabling</key>
+	<string>Vragen…</string>
+	<key>app.onboarding.notifications.fallback</key>
+	<string>Draait Hermie Web al met --push? Dat blijft werken en je kunt meldingen nu aanzetten. Draai ze niet allebei — dan krijgt dit apparaat elke melding twee keer.</string>
+	<key>app.onboarding.notifications.guide</key>
+	<string>Handleiding openen</string>
+	<key>app.onboarding.notifications.install</key>
+	<string>OP DE GATEWAY</string>
+	<key>app.onboarding.notifications.missingHint</key>
+	<string>Hermie praat nooit met de plugin. Het leest wat je gateway al weet, dus er is geen tweede adres en niets nieuws om bloot te stellen.</string>
+	<key>app.onboarding.notifications.missingSubtitle</key>
+	<string>Deze gateway heeft geen Hermie-plugin, dus daar kan niets een melding sturen. Hij installeert met twee commando’s op de machine waarop `hermes serve` draait.</string>
+	<key>app.onboarding.notifications.missingTitle</key>
+	<string>Push-meldingen krijgen</string>
+	<key>app.onboarding.notifications.skip</key>
+	<string>Je kunt dit later aanzetten bij Instellingen.</string>
+	<key>app.onboarding.notifications.subtitle</key>
+	<string>Je gateway kan dit apparaat laten weten wanneer een bot antwoordt, iets vraagt of een lange taak afrondt.</string>
+	<key>app.onboarding.notifications.title</key>
+	<string>Meldingen</string>
+	<key>app.onboarding.signIn.blockedBody</key>
+	<string>Hij vereist een inlog maar meldt de native_pkce-flow niet, en dat is de enige die een mobiele app kan afronden. Werk Hermes op de gateway bij.</string>
+	<key>app.onboarding.signIn.blockedTitle</key>
+	<string>Deze gateway is te oud om native in te loggen</string>
+	<key>app.onboarding.signIn.checkingSession</key>
+	<string>Controleren of je al ingelogd bent…</string>
+	<key>app.onboarding.signIn.chooseProvider</key>
+	<string>Provider</string>
+	<key>app.onboarding.signIn.cookieBlockedBody</key>
+	<string>Hij vereist een inlog maar meldt de cookie-flow niet, en dat is de enige die een browsertab kan afronden. Werk Hermes op de gateway bij.</string>
+	<key>app.onboarding.signIn.cookieBlockedTitle</key>
+	<string>Deze gateway is te oud om in een browser in te loggen</string>
+	<key>app.onboarding.signIn.hidePassword</key>
+	<string>Wachtwoord verbergen</string>
+	<key>app.onboarding.signIn.hideToken</key>
+	<string>Token verbergen</string>
+	<key>app.onboarding.signIn.leavingForProvider</key>
+	<string>Je gaat naar de inlogpagina…</string>
+	<key>app.onboarding.signIn.passwordSecret</key>
+	<string>WACHTWOORD</string>
+	<key>app.onboarding.signIn.passwordSecretLabel</key>
+	<string>Wachtwoord</string>
+	<key>app.onboarding.signIn.passwordSubmit</key>
+	<string>Inloggen</string>
+	<key>app.onboarding.signIn.passwordUser</key>
+	<string>GEBRUIKERSNAAM</string>
+	<key>app.onboarding.signIn.passwordUserLabel</key>
+	<string>Gebruikersnaam</string>
+	<key>app.onboarding.signIn.probingGateway</key>
+	<string>De gateway lezen…</string>
+	<key>app.onboarding.signIn.servedFrom</key>
+	<string>Geleverd door Hermie Web, verbonden met %@.</string>
+	<key>app.onboarding.signIn.servedFromUnknown</key>
+	<string>Geleverd door Hermie Web.</string>
+	<key>app.onboarding.signIn.showPassword</key>
+	<string>Wachtwoord tonen</string>
+	<key>app.onboarding.signIn.showToken</key>
+	<string>Token tonen</string>
+	<key>app.onboarding.signIn.signInWith</key>
+	<string>Inloggen met %@</string>
+	<key>app.onboarding.signIn.signOutAndRetry</key>
+	<string>Opnieuw inloggen</string>
+	<key>app.onboarding.signIn.signOutOfSession</key>
+	<string>Uitloggen</string>
+	<key>app.onboarding.signIn.signedIn</key>
+	<string>Ingelogd</string>
+	<key>app.onboarding.signIn.signedInAs</key>
+	<string>Ingelogd als %@</string>
+	<key>app.onboarding.signIn.ssoOff</key>
+	<string>Inloggen via SSO staat uit op deze Hermie Web. Vraag degene die hem beheert om je op een andere manier in te loggen.</string>
+	<key>app.onboarding.signIn.subtitleCookie</key>
+	<string>De gateway host de inlogpagina. Je browser bewaart de sessie die hij teruggeeft; Hermie ziet die nooit.</string>
+	<key>app.onboarding.signIn.subtitleNative</key>
+	<string>De gateway host de inlogpagina. Hermie opent die, leest het resultaat en bewaart de tokens op dit apparaat.</string>
+	<key>app.onboarding.signIn.subtitleToken</key>
+	<string>Deze gateway zit niet achter een identity provider; hij authenticeert met het session token dat hij bij het starten afdrukt.</string>
+	<key>app.onboarding.signIn.title</key>
+	<string>Inloggen</string>
+	<key>app.onboarding.signIn.tokenBlockedBody</key>
+	<string>Hij authenticeert met een session token, en een browsertab heeft geen veilige plek om er een te bewaren — alles wat in de pagina draait zou het kunnen lezen. Gebruik de Hermie-app, of zet de gateway achter een identity provider zodat hij een browsersessie kan uitgeven.</string>
+	<key>app.onboarding.signIn.tokenBlockedTitle</key>
+	<string>Deze gateway is niet vanuit een browser te gebruiken</string>
+	<key>app.onboarding.signIn.tokenHelp</key>
+	<string>Plak het session token dat `hermes serve` afdrukt.</string>
+	<key>app.onboarding.signIn.tokenLabel</key>
+	<string>SESSION TOKEN</string>
+	<key>app.onboarding.signIn.tokenPlaceholder</key>
+	<string>Session token</string>
+	<key>app.onboarding.signIn.webview.cancelled</key>
+	<string>Het inloggen is geannuleerd.</string>
+	<key>app.onboarding.signIn.webview.chosen</key>
+	<string>Open de inlogpagina in je browser en plak het adres dat hij niet kan openen hier terug. Je kunt ook terug en alsnog de in-app pagina gebruiken.</string>
+	<key>app.onboarding.signIn.webview.exchanging</key>
+	<string>Inloggen afronden…</string>
+	<key>app.onboarding.signIn.webview.fallbackHelp</key>
+	<string>De browser zal een 127.0.0.1-adres niet kunnen laden — dat hoort zo. Kopieer het uit de adresbalk en plak het hier.</string>
+	<key>app.onboarding.signIn.webview.fallbackLabel</key>
+	<string>Mislukt adres</string>
+	<key>app.onboarding.signIn.webview.fallbackPlaceholder</key>
+	<string>http://127.0.0.1:38007/callback?code=…</string>
+	<key>app.onboarding.signIn.webview.fallbackSubmit</key>
+	<string>Dit adres gebruiken</string>
+	<key>app.onboarding.signIn.webview.headersWithheld</key>
+	<string>Deze gateway heeft extra headers nodig, en de in-app browser van Android zou die doorsturen naar je identity provider. Log in je browser in en plak het adres dat hij niet kan openen hier terug.</string>
+	<key>app.onboarding.signIn.webview.httpError</key>
+	<string>De inlogpagina antwoordde met HTTP %lld. Controleer het publieke adres van de gateway.</string>
+	<key>app.onboarding.signIn.webview.loadError</key>
+	<string>De inlogpagina kon niet worden geladen: %@</string>
+	<key>app.onboarding.signIn.webview.loading</key>
+	<string>De inlogpagina openen…</string>
+	<key>app.onboarding.signIn.webview.noCode</key>
+	<string>Het inloggen eindigde zonder authorization code. Begin opnieuw met inloggen.</string>
+	<key>app.onboarding.signIn.webview.providerError#description-empty</key>
+	<string>De gateway weigerde de inlog: %@</string>
+	<key>app.onboarding.signIn.webview.providerError#description-nonempty</key>
+	<string>De gateway weigerde de inlog: %2$@ (%1$@)</string>
+	<key>app.onboarding.signIn.webview.stateMismatch</key>
+	<string>Het antwoord op de inlog hoorde niet bij deze poging en is weggegooid. Begin opnieuw met inloggen.</string>
+	<key>app.onboarding.signIn.webview.timeout</key>
+	<string>De inlogpagina stond tien minuten open zonder af te ronden. Begin opnieuw wanneer je zover bent.</string>
+	<key>app.onboarding.signIn.webview.title</key>
+	<string>Inloggen</string>
+	<key>app.onboarding.signIn.webview.unavailable</key>
+	<string>De in-app browser is niet beschikbaar op dit platform. Open de inlogpagina in je browser en plak het adres dat hij niet kan openen hier terug.</string>
+	<key>app.onboarding.stepCounter</key>
+	<string>Stap %1$lld van %2$lld</string>
+	<key>app.onboarding.test.checklist.profiles</key>
+	<string>Profielen</string>
+	<key>app.onboarding.test.checklist.rest</key>
+	<string>REST</string>
+	<key>app.onboarding.test.checklist.socket</key>
+	<string>WebSocket</string>
+	<key>app.onboarding.test.invalidated</key>
+	<string>Er is iets veranderd sinds de vorige test, dus hij draait opnieuw.</string>
+	<key>app.onboarding.test.noBots</key>
+	<string>De verbinding werkt, maar deze gateway heeft nog geen bot-profielen.</string>
+	<key>app.onboarding.test.required</key>
+	<string>De verbinding is nog niet getest.</string>
+	<key>app.onboarding.test.retry</key>
+	<string>Opnieuw proberen</string>
+	<key>app.onboarding.test.running</key>
+	<string>Testen…</string>
+	<key>app.onboarding.test.subtitle</key>
+	<string>Hermie controleert het REST-oppervlak en opent daarna de WebSocket, precies zoals tijdens het gebruik.</string>
+	<key>app.onboarding.test.title</key>
+	<string>Verbinding testen</string>
+	<key>app.onboarding.welcome.action</key>
+	<string>Een gateway instellen</string>
+	<key>app.onboarding.welcome.body</key>
+	<string>Hermie is een client voor Hermes Agent. Het praat met één gateway tegelijk — de machine waarop `hermes serve` draait — en chat met de bots die daar staan.</string>
+	<key>app.onboarding.welcome.note</key>
+	<string>Er wordt niets opgeslagen voordat de verbinding is getest.</string>
+	<key>app.onboarding.welcome.title</key>
+	<string>Welkom bij Hermie</string>
+	<key>app.presence.needsInput</key>
+	<string>Wacht op jou</string>
+	<key>app.presence.offline</key>
+	<string>Offline</string>
+	<key>app.presence.offlineSince</key>
+	<string>Offline · laatst gezien %@</string>
+	<key>app.presence.online</key>
+	<string>Online</string>
+	<key>app.presence.working</key>
+	<string>Werkt…</string>
+	<key>app.settings.about</key>
+	<string>Over</string>
+	<key>app.settings.account</key>
+	<string>Account</string>
+	<key>app.settings.address</key>
+	<string>Adres</string>
+	<key>app.settings.appearance</key>
+	<string>Weergave</string>
+	<key>app.settings.authModeToken</key>
+	<string>Session token</string>
+	<key>app.settings.botNameOptions.display</key>
+	<string>Weergavenaam</string>
+	<key>app.settings.botNameOptions.profile</key>
+	<string>Profielnaam</string>
+	<key>app.settings.botNames</key>
+	<string>Botnamen</string>
+	<key>app.settings.botNamesHint</key>
+	<string>Welke naam de grote is. De profielnaam is waarmee de rest van de app een bot aanspreekt; de weergavenaam is het label dat op de gateway is ingesteld. Een bot met maar één daarvan toont één regel. Wordt alleen gebruikt terwijl Profielnaam verbergen, hieronder, uit staat.</string>
+	<key>app.settings.capabilityReach</key>
+	<string>Waar je bots bij kunnen</string>
+	<key>app.settings.categories.about</key>
+	<string>Over</string>
+	<key>app.settings.categories.account</key>
+	<string>Account</string>
+	<key>app.settings.categories.advanced</key>
+	<string>Geavanceerd</string>
+	<key>app.settings.categories.appearance</key>
+	<string>Weergave</string>
+	<key>app.settings.categories.blurb.about</key>
+	<string>Welke Hermie dit is, en onder welke licenties hij wordt geleverd.</string>
+	<key>app.settings.categories.blurb.account</key>
+	<string>Met welk account dit apparaat is ingelogd, en hoe je eruit stapt.</string>
+	<key>app.settings.categories.blurb.advanced</key>
+	<string>De updates van Hermie Web zelf, en het gereedschap om de app te bouwen.</string>
+	<key>app.settings.categories.blurb.appearance</key>
+	<string>Licht of donker, de taal, de tekstgrootte en het thema.</string>
+	<key>app.settings.categories.blurb.capabilities</key>
+	<string>De skills, servers en borden waar je bots bij kunnen.</string>
+	<key>app.settings.categories.blurb.chats</key>
+	<string>Wat een nieuw gesprek laat zien, en hoe een bot wordt aangesproken.</string>
+	<key>app.settings.categories.blurb.gateway</key>
+	<string>Welke gateway dit is, en hoe het daarmee gaat.</string>
+	<key>app.settings.categories.blurb.gateways</key>
+	<string>De gateway waarmee dit apparaat praat, en de andere die het kent.</string>
+	<key>app.settings.categories.blurb.memory</key>
+	<string>Wat elke bot tussen gesprekken onthoudt.</string>
+	<key>app.settings.categories.blurb.notifications</key>
+	<string>Wanneer een bot je mag bereiken, en hoeveel een melding zegt.</string>
+	<key>app.settings.categories.blurb.privacy</key>
+	<string>De vergrendeling op dit apparaat, en wat nodig is om hem te openen.</string>
+	<key>app.settings.categories.blurb.voice</key>
+	<string>Hoe Hermie een antwoord voorleest, en hoe hij jou hoort.</string>
+	<key>app.settings.categories.capabilities</key>
+	<string>Bots en mogelijkheden</string>
+	<key>app.settings.categories.chats</key>
+	<string>Chats en berichten</string>
+	<key>app.settings.categories.gateway</key>
+	<string>Gateway</string>
+	<key>app.settings.categories.gateways</key>
+	<string>Gateways</string>
+	<key>app.settings.categories.memory</key>
+	<string>Geheugen</string>
+	<key>app.settings.categories.notifications</key>
+	<string>Meldingen</string>
+	<key>app.settings.categories.privacy</key>
+	<string>Privacy en beveiliging</string>
+	<key>app.settings.categories.summary.capabilities</key>
+	<string>Skills · MCP · Connectors</string>
+	<key>app.settings.categories.summary.developer</key>
+	<string>Ontwikkelaar</string>
+	<key>app.settings.categories.summary.gateway</key>
+	<string>%@</string>
+	<key>app.settings.categories.summary.lockBrowser</key>
+	<string>Niet in een browser</string>
+	<key>app.settings.categories.summary.off</key>
+	<string>Uit</string>
+	<key>app.settings.categories.summary.on</key>
+	<string>Aan</string>
+	<key>app.settings.categories.summary.signedOut</key>
+	<string>Niet ingelogd</string>
+	<key>app.settings.categories.summary.version</key>
+	<string>Versie %@</string>
+	<key>app.settings.categories.voice</key>
+	<string>Spraak</string>
+	<key>app.settings.changeGateway</key>
+	<string>Gateway wijzigen</string>
+	<key>app.settings.changeGatewayConfirm</key>
+	<string>Deze gateway en alles wat ervoor bewaard is vergeten?</string>
+	<key>app.settings.changeGatewayHint</key>
+	<string>Heropent de instelwizard met dit adres ingevuld. Er wordt niets weggegooid tot er een andere gateway wordt toegepast.</string>
+	<key>app.settings.chat</key>
+	<string>Chat</string>
+	<key>app.settings.chatTextSize</key>
+	<string>Tekstgrootte chat</string>
+	<key>app.settings.chatTextSizeHint</key>
+	<string>Geldt voor de woorden in een gesprek, bovenop de eigen tekstgrootte van het apparaat. De rest van de app volgt het apparaat.</string>
+	<key>app.settings.confirm</key>
+	<string>Vergeten</string>
+	<key>app.settings.connectionTest</key>
+	<string>Verbindingstest</string>
+	<key>app.settings.defaultVerbosity</key>
+	<string>Standaard detailniveau</string>
+	<key>app.settings.defaultVerbosityHint</key>
+	<string>Hoeveel van het denkwerk van een bot een nieuw gesprek toont. Een gesprek met een eigen instelling houdt die.</string>
+	<key>app.settings.developer</key>
+	<string>Ontwikkelaar</string>
+	<key>app.settings.email</key>
+	<string>E-mail</string>
+	<key>app.settings.forgetGateway</key>
+	<string>Deze gateway vergeten</string>
+	<key>app.settings.forgetGatewayHint</key>
+	<string>Verwijdert het adres en de credentials van dit apparaat en start de instelwizard leeg.</string>
+	<key>app.settings.gateway</key>
+	<string>Gateway</string>
+	<key>app.settings.gateways.active</key>
+	<string>Verbonden</string>
+	<key>app.settings.gateways.add</key>
+	<string>Gateway toevoegen</string>
+	<key>app.settings.gateways.addHint</key>
+	<string>Start de instelwizard voor een andere machine. De gateway waar je nu op zit blijft verbonden tot je overstapt.</string>
+	<key>app.settings.gateways.authModeToken</key>
+	<string>Session token</string>
+	<key>app.settings.gateways.back</key>
+	<string>Gateways</string>
+	<key>app.settings.gateways.connect</key>
+	<string>Verbinden met deze gateway</string>
+	<key>app.settings.gateways.connectHint</key>
+	<string>Hermie verbreekt de verbinding met de gateway waar hij op zit en verbindt met deze.</string>
+	<key>app.settings.gateways.detailTitle</key>
+	<string>Gateway</string>
+	<key>app.settings.gateways.header</key>
+	<string>Gateways</string>
+	<key>app.settings.gateways.hint</key>
+	<string>Tik op een gateway om ermee te verbinden. Hermie praat met één tegelijk; de andere houden hun gesprekken en hun meldingen.</string>
+	<key>app.settings.gateways.keepIt</key>
+	<string>Behouden</string>
+	<key>app.settings.gateways.manage</key>
+	<string>Beheren</string>
+	<key>app.settings.gateways.name</key>
+	<string>Naam</string>
+	<key>app.settings.gateways.nameHint</key>
+	<string>Hoe deze gateway op dit apparaat heet. Het wordt nergens heen gestuurd.</string>
+	<key>app.settings.gateways.remove</key>
+	<string>Deze gateway verwijderen</string>
+	<key>app.settings.gateways.removeConfirm</key>
+	<string>Deze gateway en alles wat er op dit apparaat voor bewaard is verwijderen?</string>
+	<key>app.settings.gateways.removeConfirmAction</key>
+	<string>Verwijderen</string>
+	<key>app.settings.gateways.removeHint</key>
+	<string>Vergeet het adres, de credentials, de gesprekken en de instellingen op dit apparaat.</string>
+	<key>app.settings.gateways.removeNotifyNote</key>
+	<string>Is dit niet de gateway waar Hermie mee verbonden is, dan stoppen zijn meldingen pas de volgende keer dat hij dit apparaat probeert te bereiken, en niet meteen.</string>
+	<key>app.settings.gateways.row</key>
+	<string>Gateways</string>
+	<key>app.settings.gateways.save</key>
+	<string>Opslaan</string>
+	<key>app.settings.gateways.signOut</key>
+	<string>Uitloggen bij deze gateway</string>
+	<key>app.settings.gateways.signOutHint</key>
+	<string>Wist de bewaarde credentials en houdt het adres.</string>
+	<key>app.settings.gateways.signedInAs</key>
+	<string>Ingelogd als %@</string>
+	<key>app.settings.gateways.signedOut</key>
+	<string>Uitgelogd</string>
+	<key>app.settings.gateways.title</key>
+	<string>Gateways</string>
+	<key>app.settings.gateways.use</key>
+	<string>Gebruik deze gateway</string>
+	<key>app.settings.hideHandle</key>
+	<string>Profielnaam verbergen</string>
+	<key>app.settings.hideHandleHint</key>
+	<string>Toon voor een bot met een weergavenaam alleen die naam — de profielnaam waar hij anders mee wordt getoond vervalt op de tweede regel. Een bot zonder weergavenaam behoudt hoe dan ook zijn ene naam.</string>
+	<key>app.settings.host</key>
+	<string>Host</string>
+	<key>app.settings.keepIt</key>
+	<string>Behouden</string>
+	<key>app.settings.language</key>
+	<string>Taal</string>
+	<key>app.settings.languageFollowDevice</key>
+	<string>Volg apparaat</string>
+	<key>app.settings.languageHint</key>
+	<string>Hermie is in het Engels geschreven. Nederlands en Duits zijn vertalingen daarvan; wat nog niet vertaald is blijft Engels.</string>
+	<key>app.settings.licences</key>
+	<string>Licenties</string>
+	<key>app.settings.licencesBack</key>
+	<string>Terug naar instellingen</string>
+	<key>app.settings.licencesFailed</key>
+	<string>De licentielijst kon niet worden geladen: %@</string>
+	<key>app.settings.licencesGeneratedBy</key>
+	<string>Gegenereerd door %@, samen met THIRD_PARTY_LICENSES.md.</string>
+	<key>app.settings.licencesHint</key>
+	<string>De open source-pakketten waaruit Hermie is opgebouwd, en wat elk daarvan vraagt.</string>
+	<key>app.settings.licencesLoading</key>
+	<string>De licenties laden…</string>
+	<key>app.settings.licencesNoText</key>
+	<string>Dit pakket levert geen licentiebestand mee. De identifier hierboven is alles wat het opgeeft.</string>
+	<key>app.settings.licencesRetry</key>
+	<string>Opnieuw proberen</string>
+	<key>app.settings.licencesScope</key>
+	<string>Alleen productie-dependencies; ontwikkeltooling en Hermie’s eigen %lld workspace-pakketten staan niet in de lijst.</string>
+	<key>app.settings.licencesUndeclared</key>
+	<string>geen licentie opgegeven</string>
+	<key>app.settings.lock.hint</key>
+	<string>Vraag om Face ID, Touch ID of de toegangscode van dit apparaat voordat Hermie gelezen kan worden. Deze instelling blijft op dit apparaat.</string>
+	<key>app.settings.lock.hintOn</key>
+	<string>Hermie vraagt het opnieuw als hij zo lang weg is geweest, en altijd na een verse start. Deze instelling blijft op dit apparaat.</string>
+	<key>app.settings.lock.label</key>
+	<string>Ontgrendelen vereist</string>
+	<key>app.settings.lock.noEnrolment</key>
+	<string>Stel eerst een toegangscode, Face ID of een vingerafdruk in bij je apparaatinstellingen — anders vergrendelt Hermie zonder dat er een manier is om hem te openen.</string>
+	<key>app.settings.lock.options.15m</key>
+	<string>15 min</string>
+	<key>app.settings.lock.options.1m</key>
+	<string>1 min</string>
+	<key>app.settings.lock.options.5m</key>
+	<string>5 min</string>
+	<key>app.settings.lock.options.immediately</key>
+	<string>Nu</string>
+	<key>app.settings.lock.options.off</key>
+	<string>Uit</string>
+	<key>app.settings.lock.passcodeOnly</key>
+	<string>Er is geen biometrie ingesteld, dus Hermie vraagt om de toegangscode van dit apparaat.</string>
+	<key>app.settings.lock.refused</key>
+	<string>Hermie kon niet bevestigen dat jij het was, dus is er niets gewijzigd. Kies de optie opnieuw om het nog eens te proberen.</string>
+	<key>app.settings.lock.unavailable</key>
+	<string>Dit apparaat heeft geen ontgrendelmethode die Hermie kan vragen.</string>
+	<key>app.settings.lock.web</key>
+	<string>Hermie kan zichzelf niet vergrendelen in een browser: de pagina en alles wat een vergrendeling afdwingt zijn dezelfde code. Vergrendel het scherm of sluit de tab.</string>
+	<key>app.settings.notifications.denied</key>
+	<string>Meldingen staan uit voor Hermie bij je apparaatinstellingen. Zet ze daar eerst aan.</string>
+	<key>app.settings.notifications.enabled</key>
+	<string>Meldingen</string>
+	<key>app.settings.notifications.enabledHint</key>
+	<string>De Hermie-plugin draait in je gateway en stuurt een melding zodra een bot nieuws heeft. Hermie Web met --push doet hetzelfde van buitenaf, als er geen plugin geïnstalleerd kan worden.</string>
+	<key>app.settings.notifications.header</key>
+	<string>Meldingen</string>
+	<key>app.settings.notifications.openSystemSettings</key>
+	<string>Berichtgeving-instellingen openen</string>
+	<key>app.settings.notifications.openSystemSettingsHint</key>
+	<string>Hermie blijft hier aan staan en registreert zich zodra macOS het toestaat.</string>
+	<key>app.settings.notifications.preview</key>
+	<string>Voorbeeld tonen</string>
+	<key>app.settings.notifications.previewHint</key>
+	<string>Uit zegt een melding welke bot het is en wat er gebeurde. Aan draagt hij het bericht ook mee — en een vergrendelscherm is waar dat gelezen wordt.</string>
+	<key>app.settings.notifications.retry</key>
+	<string>Opnieuw</string>
+	<key>app.settings.notifications.retryHint</key>
+	<string>Vraagt opnieuw om toestemming en vraagt opnieuw een push token aan.</string>
+	<key>app.settings.notifications.status</key>
+	<string>Registratie</string>
+	<key>app.settings.notifications.statusDenied</key>
+	<string>Toestemming geweigerd. Zet meldingen voor Hermie aan bij je apparaatinstellingen.</string>
+	<key>app.settings.notifications.statusFailed</key>
+	<string>Tokenaanvraag mislukt: %@</string>
+	<key>app.settings.notifications.statusNoProject</key>
+	<string>Deze build heeft geen EAS project id, dus er kan geen push token aan worden gegeven. Hij moet opnieuw gebouwd worden.</string>
+	<key>app.settings.notifications.statusOff</key>
+	<string>Uit. Dit apparaat is niet geregistreerd.</string>
+	<key>app.settings.notifications.statusPending</key>
+	<string>Het platform om een adres vragen…</string>
+	<key>app.settings.notifications.statusRegistered</key>
+	<string>Geregistreerd · …%@</string>
+	<key>app.settings.notifications.statusSystemSettings</key>
+	<string>Zet meldingen voor Hermie aan bij Systeeminstellingen → Berichtgeving</string>
+	<key>app.settings.notifications.statusUnsupported</key>
+	<string>Dit apparaat kan zich niet registreren: %@</string>
+	<key>app.settings.notifications.typeCron</key>
+	<string>Routines</string>
+	<key>app.settings.notifications.typeCronDone</key>
+	<string>Een routine is klaar</string>
+	<key>app.settings.notifications.typeCronFailed</key>
+	<string>Een routine is mislukt</string>
+	<key>app.settings.notifications.typeMessage</key>
+	<string>Nieuw bericht</string>
+	<key>app.settings.notifications.typeRequest</key>
+	<string>Wacht op jou</string>
+	<key>app.settings.notifications.typeTurnDone</key>
+	<string>Klaar met werken</string>
+	<key>app.settings.notifications.typeTurnFailed</key>
+	<string>Er ging iets mis</string>
+	<key>app.settings.notifications.types</key>
+	<string>Vertel me over</string>
+	<key>app.settings.notifications.typesHint</key>
+	<string>Een bot die antwoordt, een bot die toestemming vraagt, de levering van een routine, hoe een geplande run afliep, en een lange taak die hoe dan ook aan zijn eind komt. Een beurt die je zelf hebt gestopt hoort daar nooit bij.</string>
+	<key>app.settings.notifications.unavailable</key>
+	<string>Dit apparaat kan zich niet registreren voor meldingen. Er is niets verstuurd.</string>
+	<key>app.settings.notifications.webInsecure</key>
+	<string>De browser biedt alleen meldingen aan als Hermie Web via https wordt geleverd.</string>
+	<key>app.settings.plugin</key>
+	<string>Plugin</string>
+	<key>app.settings.pluginAbsent</key>
+	<string>Niet geïnstalleerd</string>
+	<key>app.settings.pluginInstalled#version-empty</key>
+	<string>Hermie-plugin</string>
+	<key>app.settings.pluginInstalled#version-nonempty</key>
+	<string>Hermie-plugin %@</string>
+	<key>app.settings.pluginUnknown</key>
+	<string>Controleren…</string>
+	<key>app.settings.port</key>
+	<string>Poort</string>
+	<key>app.settings.preset</key>
+	<string>THEMA</string>
+	<key>app.settings.presetHint</key>
+	<string>Elk thema heeft een licht en een donker gezicht; de instelling hierboven kiest welke te zien is.</string>
+	<key>app.settings.presetOptions.blue</key>
+	<string>Blauw</string>
+	<key>app.settings.presetOptions.graphite</key>
+	<string>Grafiet</string>
+	<key>app.settings.presetOptions.lime</key>
+	<string>Limoen</string>
+	<key>app.settings.privacy</key>
+	<string>PRIVACY &amp; BEVEILIGING</string>
+	<key>app.settings.provider</key>
+	<string>Provider</string>
+	<key>app.settings.scheme</key>
+	<string>Schema</string>
+	<key>app.settings.search.label</key>
+	<string>Zoek in instellingen</string>
+	<key>app.settings.search.noMatches</key>
+	<string>Geen instelling komt daarmee overeen.</string>
+	<key>app.settings.showBotToBot</key>
+	<string>Toon bot-naar-bot</string>
+	<key>app.settings.showThinking</key>
+	<string>Toon denkwerk</string>
+	<key>app.settings.signOut</key>
+	<string>Uitloggen</string>
+	<key>app.settings.signOutHint</key>
+	<string>Wist de bewaarde credentials en houdt het gateway-adres.</string>
+	<key>app.settings.status</key>
+	<string>Status</string>
+	<key>app.settings.theme</key>
+	<string>Thema</string>
+	<key>app.settings.themeHint</key>
+	<string>Systeem volgt het apparaat; Licht en Donker zetten de app hoe dan ook vast.</string>
+	<key>app.settings.themeOptions.dark</key>
+	<string>Donker</string>
+	<key>app.settings.themeOptions.light</key>
+	<string>Licht</string>
+	<key>app.settings.themeOptions.system</key>
+	<string>Systeem</string>
+	<key>app.settings.themes.accentBubble</key>
+	<string>Jouw bubbels</string>
+	<key>app.settings.themes.accentFill</key>
+	<string>Accent</string>
+	<key>app.settings.themes.back</key>
+	<string>Terug naar instellingen</string>
+	<key>app.settings.themes.background</key>
+	<string>Achtergrond</string>
+	<key>app.settings.themes.colourPlaceholder</key>
+	<string>#RRGGBB</string>
+	<key>app.settings.themes.create</key>
+	<string>Nieuw thema</string>
+	<key>app.settings.themes.createFrom</key>
+	<string>Vanaf %@</string>
+	<key>app.settings.themes.delete</key>
+	<string>Verwijderen</string>
+	<key>app.settings.themes.deleteConfirm#name-empty</key>
+	<string>“Naamloos thema” verwijderen?</string>
+	<key>app.settings.themes.deleteConfirm#name-nonempty</key>
+	<string>“%@” verwijderen?</string>
+	<key>app.settings.themes.deleteHint</key>
+	<string>Het thema verdwijnt overal waar op deze gateway is ingelogd.</string>
+	<key>app.settings.themes.editPageTitle</key>
+	<string>Thema bewerken</string>
+	<key>app.settings.themes.editing</key>
+	<string>Het %@-gezicht bewerken</string>
+	<key>app.settings.themes.editingHint</key>
+	<string>Zet de instelling hierboven om om het andere gezicht te bewerken.</string>
+	<key>app.settings.themes.empty</key>
+	<string>Nog geen eigen thema’s. Begin er een vanaf een voorinstelling en pas de kleuren aan.</string>
+	<key>app.settings.themes.followPreset</key>
+	<string>Volg de voorinstelling</string>
+	<key>app.settings.themes.header</key>
+	<string>JOUW THEMA’S</string>
+	<key>app.settings.themes.keepIt</key>
+	<string>Behouden</string>
+	<key>app.settings.themes.name</key>
+	<string>Naam</string>
+	<key>app.settings.themes.namePlaceholder</key>
+	<string>Themanaam</string>
+	<key>app.settings.themes.reasonAccentFill</key>
+	<string>hij meet %@ : 1 tegen het oppervlak erachter, en een markering heeft 3 : 1 nodig.</string>
+	<key>app.settings.themes.reasonBackground</key>
+	<string>de tekst van de app erop meet %@ : 1, en heeft 4.5 : 1 nodig.</string>
+	<key>app.settings.themes.reasonBubble</key>
+	<string>witte tekst erop meet %@ : 1, en heeft 4.5 : 1 nodig.</string>
+	<key>app.settings.themes.reasonMalformed</key>
+	<string>een kleur is zes hex-tekens na een #.</string>
+	<key>app.settings.themes.rejected</key>
+	<string>Die kleur wordt niet gebruikt: %@</string>
+	<key>app.settings.themes.rename</key>
+	<string>Hernoemen</string>
+	<key>app.settings.themes.title</key>
+	<string>Thema’s</string>
+	<key>app.settings.themes.untitled</key>
+	<string>Naamloos thema</string>
+	<key>app.settings.title</key>
+	<string>Instellingen</string>
+	<key>app.settings.unknown</key>
+	<string>Onbekend</string>
+	<key>app.settings.user</key>
+	<string>Ingelogd als</string>
+	<key>app.settings.version</key>
+	<string>Versie</string>
+	<key>app.settings.viaHermieWeb</key>
+	<string>via Hermie Web</string>
+	<key>app.settings.webUpdate.apply</key>
+	<string>Bijwerken</string>
+	<key>app.settings.webUpdate.available</key>
+	<string>%@ beschikbaar</string>
+	<key>app.settings.webUpdate.checking</key>
+	<string>Controleren…</string>
+	<key>app.settings.webUpdate.failed</key>
+	<string>De update is mislukt: %@</string>
+	<key>app.settings.webUpdate.header</key>
+	<string>Hermie Web</string>
+	<key>app.settings.webUpdate.needsSignIn</key>
+	<string>Log in op de gateway voordat je Hermie Web bijwerkt.</string>
+	<key>app.settings.webUpdate.restartTimedOut</key>
+	<string>Hermie Web kwam niet binnen een minuut terug. Bekijk de logs.</string>
+	<key>app.settings.webUpdate.restarting</key>
+	<string>Opnieuw starten…</string>
+	<key>app.settings.webUpdate.running</key>
+	<string>Draait</string>
+	<key>app.settings.webUpdate.state</key>
+	<string>Update</string>
+	<key>app.settings.webUpdate.upToDate</key>
+	<string>Bijgewerkt</string>
+	<key>app.settings.webUpdate.updating</key>
+	<string>Downloaden en installeren…</string>
+	<key>app.share.maybeSent#bot-empty</key>
+	<string>Dit is misschien al verstuurd. Stuur het opnieuw, of gooi het weg.</string>
+	<key>app.share.maybeSent#bot-nonempty</key>
+	<string>Dit is misschien al naar %@ verstuurd. Stuur het opnieuw, of gooi het weg.</string>
+	<key>app.share.noBots</key>
+	<string>Deze gateway heeft nog geen bots om naartoe te sturen.</string>
+	<key>app.share.noteLabel</key>
+	<string>Notitie</string>
+	<key>app.share.notePlaceholder</key>
+	<string>Voeg een notitie toe (optioneel)</string>
+	<key>app.share.send</key>
+	<string>Sturen</string>
+	<key>app.share.sendAgain</key>
+	<string>Opnieuw sturen</string>
+	<key>app.share.sending</key>
+	<string>Versturen…</string>
+	<key>app.share.sentTo</key>
+	<string>Verstuurd naar %@</string>
+	<key>app.share.sheetTitle</key>
+	<string>Naar een chat sturen</string>
+	<key>app.share.willSendLater</key>
+	<string>Wordt verstuurd zodra Hermie opengaat</string>
+	<key>app.sidebar.hermieWeb</key>
+	<string>Hermie Web %@</string>
+	<key>app.signedOut.body</key>
+	<string>Je sessie op %@ is verlopen, dus Hermie kan je bots niet bereiken tot je weer inlogt.</string>
+	<key>app.signedOut.bodyNoHost</key>
+	<string>Je sessie is verlopen, dus Hermie kan je bots niet bereiken tot je weer inlogt.</string>
+	<key>app.signedOut.changeGateway</key>
+	<string>Gateway wijzigen</string>
+	<key>app.signedOut.listNote</key>
+	<string>De laatst bewaarde lijst wordt getoond.</string>
+	<key>app.signedOut.reason.noRefreshToken</key>
+	<string>Er was niets bewaard om de sessie mee te vernieuwen.</string>
+	<key>app.signedOut.reason.refreshFailed</key>
+	<string>Het vernieuwen van de sessie is niet afgerond, dus Hermie kon niet ingelogd blijven.</string>
+	<key>app.signedOut.reason.refreshRejected</key>
+	<string>De gateway wees de bewaarde inlog af, dus de sessie kon niet worden vernieuwd.</string>
+	<key>app.signedOut.reason.rejectedAfterRefresh</key>
+	<string>De gateway wees de inlog af die Hermie net had vernieuwd.</string>
+	<key>app.signedOut.reason.tokenUnreadable</key>
+	<string>Hermie kon de bewaarde inlog niet uit de keychain lezen.</string>
+	<key>app.signedOut.signIn</key>
+	<string>Inloggen</string>
+	<key>app.signedOut.stopped.changeGatewayHint</key>
+	<string>Opent de instelwizard met dit adres ingevuld. Je inlog blijft bewaard tot er een andere gateway wordt toegepast.</string>
+	<key>app.signedOut.stopped.fixedByServer</key>
+	<string>Deze pagina wordt geleverd door Hermie Web, en die bepaalt de gateway. Wijzig hem daar waar die server is geconfigureerd.</string>
+	<key>app.signedOut.stopped.gateway</key>
+	<string>Gateway</string>
+	<key>app.signedOut.stopped.hints.config</key>
+	<string>Is de gateway verhuisd, verander dan het adres dat hier bewaard is in het adres dat hij als publieke URL publiceert.</string>
+	<key>app.signedOut.stopped.hints.takenOver</key>
+	<string>Opnieuw controleren pakt de verbinding terug zodra de andere client heeft losgelaten.</string>
+	<key>app.signedOut.stopped.notSignedIn</key>
+	<string>Niet ingelogd</string>
+	<key>app.signedOut.stopped.onGateway</key>
+	<string>%@</string>
+	<key>app.signedOut.stopped.others</key>
+	<string>ANDERE GATEWAYS</string>
+	<key>app.signedOut.stopped.othersHint</key>
+	<string>Hermie praat met één gateway tegelijk. Deze houdt zijn gesprekken.</string>
+	<key>app.signedOut.stopped.recheck</key>
+	<string>Opnieuw controleren</string>
+	<key>app.signedOut.stopped.rechecking</key>
+	<string>Controleren…</string>
+	<key>app.signedOut.stopped.signOut</key>
+	<string>Uitloggen</string>
+	<key>app.signedOut.stopped.switchTo</key>
+	<string>Verbinden met %@</string>
+	<key>app.signedOut.stopped.titles.auth</key>
+	<string>Uitgelogd</string>
+	<key>app.signedOut.stopped.titles.chatOff</key>
+	<string>Chat staat uit op deze gateway</string>
+	<key>app.signedOut.stopped.titles.config</key>
+	<string>Deze gateway weigerde de verbinding</string>
+	<key>app.signedOut.stopped.titles.incompatible</key>
+	<string>Deze gateway is te oud</string>
+	<key>app.signedOut.stopped.titles.not_hermes</key>
+	<string>Dit adres is geen Hermes-gateway</string>
+	<key>app.signedOut.stopped.titles.protocol</key>
+	<string>Deze gateway antwoordde op een manier die Hermie niet kan lezen</string>
+	<key>app.signedOut.stopped.titles.redirect</key>
+	<string>Dit adres leidt ergens anders heen</string>
+	<key>app.signedOut.stopped.titles.takenOver</key>
+	<string>Een andere client heeft deze verbinding overgenomen</string>
+	<key>app.signedOut.stopped.titles.tls</key>
+	<string>Het certificaat van deze gateway is afgewezen</string>
+	<key>app.signedOut.title</key>
+	<string>Uitgelogd</string>
+	<key>app.tabs.activity</key>
+	<string>Activiteit</string>
+	<key>app.tabs.chats</key>
+	<string>Chats</string>
+	<key>app.tabs.routines</key>
+	<string>Crons</string>
+	<key>app.tabs.settings</key>
+	<string>Instellingen</string>
+	<key>app.transport.foundOverHttp</key>
+	<string>Gevonden via http://</string>
+	<key>app.transport.foundOverHttps</key>
+	<string>Gevonden via https://</string>
+	<key>app.transport.httpExposed</key>
+	<string>Gewoon http:// naar een publiek adres. Iedereen op het pad kan je berichten en je inlog lezen. Gebruik https://, of bereik de gateway via een privénetwerk zoals Tailscale.</string>
+	<key>app.transport.httpLocalNetwork</key>
+	<string>Gewoon http://, naar een adres op een lokaal netwerk. Het is van buiten dat netwerk niet bereikbaar.</string>
+	<key>app.transport.httpLoopback</key>
+	<string>Gewoon http://, en deze verbinding verlaat deze machine nooit.</string>
+	<key>app.transport.httpTailnet</key>
+	<string>Gewoon http://, over een tailnet-adres. WireGuard heeft het pad tussen dit apparaat en de gateway al versleuteld.</string>
+	<key>app.transport.useHttps</key>
+	<string>Toch https gebruiken</string>
+	<key>botRename.clearHint</key>
+	<string>Laat het leeg om terug te vallen op de naam die de gateway doorgeeft.</string>
+	<key>botRename.clearRefused</key>
+	<string>Het standaardprofiel heeft een naam nodig.</string>
+	<key>botRename.displayAppOnly</key>
+	<string>Alleen in Hermie bewaard; de plug-in op de gateway is te oud om het daar op te slaan.</string>
+	<key>botRename.displayForbidden</key>
+	<string>Dit gateway-account mag profielnamen niet wijzigen.</string>
+	<key>botRename.displayHint</key>
+	<string>Hoe deze bot in jouw lijst heet. De gateway houdt de eigen naam van het profiel.</string>
+	<key>botRename.displayLabel</key>
+	<string>Weergavenaam</string>
+	<key>botRename.failed</key>
+	<string>Die naam kon niet worden opgeslagen.</string>
+	<key>botRename.missing</key>
+	<string>De gateway heeft geen profiel dat %@ heet.</string>
+	<key>botRename.partial</key>
+	<string>De gateway heeft deze bot hernoemd, maar dit kon niet mee: %@. Verbind opnieuw om het op te halen.</string>
+	<key>botRename.partial#parts.last</key>
+	<string> en </string>
+	<key>botRename.partial#parts.separator</key>
+	<string> en </string>
+	<key>botRename.partialCache</key>
+	<string>het bewaarde transcript</string>
+	<key>botRename.partialStores</key>
+	<string>de open chats</string>
+	<key>botRename.placeholder</key>
+	<string>Niet ingesteld</string>
+	<key>botRename.profileHint</key>
+	<string>De naam waarmee de rest van de app deze bot aanspreekt.</string>
+	<key>botRename.profileLabel</key>
+	<string>Profielnaam</string>
+	<key>botRename.profileWarning</key>
+	<string>Hernoemen verandert de profielnaam die andere tools gebruiken</string>
+	<key>botRename.refused</key>
+	<string>De gateway accepteerde die naam niet.</string>
+	<key>botRename.renameAction</key>
+	<string>Profiel hernoemen</string>
+	<key>botRename.renameBusy</key>
+	<string>Hernoemen…</string>
+	<key>botRename.renameCancel</key>
+	<string>Laat het zoals het is</string>
+	<key>botRename.renameDefault</key>
+	<string>Het standaardprofiel houdt zijn naam. Zijn thuis is de eigen map van de gateway.</string>
+	<key>botRename.renameField</key>
+	<string>Nieuwe profielnaam</string>
+	<key>botRename.renameHint</key>
+	<string>Verandert het profiel op de gateway zelf, niet wat Hermie laat zien.</string>
+	<key>botRename.renameRow</key>
+	<string>Profiel hernoemen…</string>
+	<key>chat.approval.answered</key>
+	<string>Beantwoord: %@</string>
+	<key>chat.approval.answeredElsewhere</key>
+	<string>Elders beantwoord</string>
+	<key>chat.approval.choices.always</key>
+	<string>Altijd toestaan</string>
+	<key>chat.approval.choices.deny</key>
+	<string>Weigeren</string>
+	<key>chat.approval.choices.once</key>
+	<string>Eenmalig toestaan</string>
+	<key>chat.approval.choices.session</key>
+	<string>Voor deze sessie toestaan</string>
+	<key>chat.approval.eyebrow</key>
+	<string>TOESTEMMING GEVRAAGD · @%@</string>
+	<key>chat.approval.fine</key>
+	<string>Altijd toestaan geldt voor precies dit commando op deze gateway. Je past het later aan in Instellingen.</string>
+	<key>chat.approval.lead#directory-empty</key>
+	<string>@%@ wil één commando op je gateway-host uitvoeren.</string>
+	<key>chat.approval.lead#directory-nonempty</key>
+	<string>@%1$@ wil één commando op je gateway-host uitvoeren, in %2$@.</string>
+	<key>chat.approval.outcomes.always</key>
+	<string>Altijd toegestaan</string>
+	<key>chat.approval.outcomes.deny</key>
+	<string>Geweigerd</string>
+	<key>chat.approval.outcomes.once</key>
+	<string>Eenmalig toegestaan</string>
+	<key>chat.approval.outcomes.session</key>
+	<string>Toegestaan voor deze sessie</string>
+	<key>chat.approval.runsOn</key>
+	<string>Draait op je gateway</string>
+	<key>chat.approval.timedOut</key>
+	<string>Verlopen</string>
+	<key>chat.approval.title</key>
+	<string>Dit commando toestaan?</string>
+	<key>chat.assistant.errorTitle</key>
+	<string>Er ging iets mis</string>
+	<key>chat.assistant.footer</key>
+	<string>%@</string>
+	<key>chat.assistant.footer#parts.last</key>
+	<string> · </string>
+	<key>chat.assistant.footer#parts.separator</key>
+	<string> · </string>
+	<key>chat.assistant.interim</key>
+	<string>Tussenbericht</string>
+	<key>chat.assistant.reconnecting</key>
+	<string>Opnieuw verbinden…</string>
+	<key>chat.assistant.replyTo</key>
+	<string>Antwoord aan @%@</string>
+	<key>chat.assistant.retry</key>
+	<string>Opnieuw</string>
+	<key>chat.assistant.thinking</key>
+	<string>Denkt na</string>
+	<key>chat.assistant.thoughtFor</key>
+	<string>Dacht %llds na</string>
+	<key>chat.assistant.tokens</key>
+	<string>%1$@ in · %2$@ uit</string>
+	<key>chat.botDm.ambiguous</key>
+	<string>Onduidelijke ontvanger</string>
+	<key>chat.botDm.answered</key>
+	<string>↩︎ beantwoord</string>
+	<key>chat.botDm.asideFrom</key>
+	<string>Van @%@</string>
+	<key>chat.botDm.asideTo</key>
+	<string>Aan @%@</string>
+	<key>chat.botDm.chip</key>
+	<string>Bericht aan %@</string>
+	<key>chat.botDm.delivered</key>
+	<string>Bezorgd ✓</string>
+	<key>chat.botDm.failed</key>
+	<string>Mislukt</string>
+	<key>chat.botDm.inChip</key>
+	<string>Bericht van %@</string>
+	<key>chat.botDm.marker.failed</key>
+	<string>Mislukt</string>
+	<key>chat.botDm.marker.replied</key>
+	<string>↩︎ antwoordde</string>
+	<key>chat.botDm.marker.waiting</key>
+	<string>Bezorgd · wacht op antwoord</string>
+	<key>chat.botDm.openChat</key>
+	<string>Open de chat van @%@</string>
+	<key>chat.botDm.openSender</key>
+	<string>Opent de chat met %@</string>
+	<key>chat.botDm.openTarget</key>
+	<string>Opent de chat met %@</string>
+	<key>chat.botDm.queued</key>
+	<string>In de wachtrij · wacht op de huidige taak</string>
+	<key>chat.botDm.replied</key>
+	<string>%@ antwoordde</string>
+	<key>chat.botDm.reply</key>
+	<string>Antwoord</string>
+	<key>chat.botDm.sending</key>
+	<string>Versturen…</string>
+	<key>chat.botDm.showLess</key>
+	<string>Minder</string>
+	<key>chat.botDm.showMore</key>
+	<string>Meer</string>
+	<key>chat.botDm.targetTyping</key>
+	<string>@%@ schrijft…</string>
+	<key>chat.botDm.to</key>
+	<string>→ %@</string>
+	<key>chat.botDm.unknown</key>
+	<string>Verzonden</string>
+	<key>chat.clarify.eyebrow</key>
+	<string>EEN VRAAG VOOR JOU</string>
+	<key>chat.clarify.freeText</key>
+	<string>Of antwoord in je eigen woorden</string>
+	<key>chat.clarify.freeTextPlaceholder</key>
+	<string>Typ een antwoord…</string>
+	<key>chat.clarify.later</key>
+	<string>Later</string>
+	<key>chat.clarify.lock</key>
+	<string>Antwoord vastzetten</string>
+	<key>chat.clarify.locked</key>
+	<string>Vastgezet</string>
+	<key>chat.clarify.multiSelectHint</key>
+	<string>Kies alles wat van toepassing is</string>
+	<key>chat.clarify.next</key>
+	<string>Volgende</string>
+	<key>chat.clarify.outcome#answered-lt-total</key>
+	<string>%1$lld van %2$lld beantwoord</string>
+	<key>chat.clarify.previous</key>
+	<string>Terug</string>
+	<key>chat.clarify.step</key>
+	<string>Vraag %1$lld van %2$lld</string>
+	<key>chat.clarify.submit</key>
+	<string>Versturen</string>
+	<key>chat.clarify.title</key>
+	<string>Voordat ik verderga</string>
+	<key>chat.composer.attach</key>
+	<string>Bijlage toevoegen</string>
+	<key>chat.composer.chooseFile</key>
+	<string>Bestand kiezen</string>
+	<key>chat.composer.dismissAttach</key>
+	<string>Bijlagemenu sluiten</string>
+	<key>chat.composer.keyHint</key>
+	<string>Enter om te versturen · Shift+Enter voor een nieuwe regel</string>
+	<key>chat.composer.messageTo</key>
+	<string>Bericht aan %@</string>
+	<key>chat.composer.notSentYet</key>
+	<string>Nog niet verstuurd</string>
+	<key>chat.composer.photoLibrary</key>
+	<string>Fotobibliotheek</string>
+	<key>chat.composer.placeholder</key>
+	<string>Bericht</string>
+	<key>chat.composer.queued</key>
+	<string>↳ 1 bericht in de wachtrij · “%@”</string>
+	<key>chat.composer.removeAttachment</key>
+	<string>Bijlage verwijderen</string>
+	<key>chat.composer.send</key>
+	<string>Bericht versturen</string>
+	<key>chat.composer.slashHint</key>
+	<string>Commando’s</string>
+	<key>chat.composer.slashLoading</key>
+	<string>Laden…</string>
+	<key>chat.composer.slashUnavailable</key>
+	<string>Commando’s niet beschikbaar — %@</string>
+	<key>chat.composer.stop</key>
+	<string>Antwoord stoppen</string>
+	<key>chat.context.counts</key>
+	<string>%1$@ / %2$@</string>
+	<key>chat.context.estimated</key>
+	<string>(geschat)</string>
+	<key>chat.context.hint</key>
+	<string>Hoeveel van het contextvenster van deze sessie het gesprek vult.</string>
+	<key>chat.context.label</key>
+	<string>Gebruikte context</string>
+	<key>chat.context.percent</key>
+	<string>%lld%%</string>
+	<key>chat.conversations.allConversations</key>
+	<string>Alle gesprekken</string>
+	<key>chat.conversations.columnTitle</key>
+	<string>Gesprekken</string>
+	<key>chat.conversations.firstChat</key>
+	<string>Mijn chat</string>
+	<key>chat.conversations.groupChat</key>
+	<string>Groepschat</string>
+	<key>chat.conversations.hideColumn</key>
+	<string>Gesprekken verbergen</string>
+	<key>chat.conversations.newChat</key>
+	<string>Nieuwe chat</string>
+	<key>chat.conversations.newChatFailed</key>
+	<string>De gateway wilde geen nieuwe chat starten.</string>
+	<key>chat.conversations.openFailed</key>
+	<string>Dit gesprek kon niet geopend worden.</string>
+	<key>chat.conversations.renameLabel</key>
+	<string>Naam van de chat</string>
+	<key>chat.conversations.showColumn</key>
+	<string>Gesprekken tonen</string>
+	<key>chat.conversations.yourChats</key>
+	<string>Jouw chats</string>
+	<key>chat.conversations.yoursEmpty</key>
+	<string>Begin een eigen chat om hem hier te zien.</string>
+	<key>chat.cron.delivered</key>
+	<string>bezorgd in deze chat</string>
+	<key>chat.cron.emptyBody</key>
+	<string>De taak leverde niets op om te tonen.</string>
+	<key>chat.cron.eyebrow</key>
+	<string>CRON</string>
+	<key>chat.cron.open</key>
+	<string>Cron openen</string>
+	<key>chat.cron.ranAt</key>
+	<string>uitgevoerd %@ · bezorgd in deze chat</string>
+	<key>chat.cron.runNow</key>
+	<string>Nu uitvoeren</string>
+	<key>chat.cron.unnamed</key>
+	<string>Geplande taak</string>
+	<key>chat.drop.invitation</key>
+	<string>Loslaten om bij te voegen</string>
+	<key>chat.drop.region</key>
+	<string>Laat bestanden hier los om ze bij te voegen</string>
+	<key>chat.export.downloadMarkdown</key>
+	<string>Downloaden als Markdown</string>
+	<key>chat.export.downloadText</key>
+	<string>Downloaden als platte tekst</string>
+	<key>chat.export.failed</key>
+	<string>Het gesprek kon niet geëxporteerd worden.</string>
+	<key>chat.export.header</key>
+	<string>Exporteren</string>
+	<key>chat.export.hint</key>
+	<string>Het gesprek zoals het op het scherm staat, zonder wat de weergave-instellingen van deze chat verbergen.</string>
+	<key>chat.export.self</key>
+	<string>Jij</string>
+	<key>chat.export.shareMarkdown</key>
+	<string>Delen als Markdown</string>
+	<key>chat.export.shareText</key>
+	<string>Delen als platte tekst</string>
+	<key>chat.fold.less</key>
+	<string>Minder</string>
+	<key>chat.fold.more</key>
+	<string>Meer</string>
+	<key>chat.header.back</key>
+	<string>Terug naar chats</string>
+	<key>chat.header.hideSidebar</key>
+	<string>Zijbalk verbergen</string>
+	<key>chat.header.idle</key>
+	<string>Online</string>
+	<key>chat.header.needsInput</key>
+	<string>Wacht op jou</string>
+	<key>chat.header.offline</key>
+	<string>Offline</string>
+	<key>chat.header.offlineAt</key>
+	<string>Offline · laatst gezien %@</string>
+	<key>chat.header.options</key>
+	<string>Chatopties</string>
+	<key>chat.header.profile</key>
+	<string>%@ — profiel</string>
+	<key>chat.header.running</key>
+	<string>Bezig</string>
+	<key>chat.menu.copyLink</key>
+	<string>Link kopiëren</string>
+	<key>chat.menu.copyMarkdown</key>
+	<string>Kopiëren als Markdown</string>
+	<key>chat.menu.copyText</key>
+	<string>Tekst kopiëren</string>
+	<key>chat.menu.editResend</key>
+	<string>Bewerken en opnieuw sturen</string>
+	<key>chat.menu.hideDetails</key>
+	<string>Details verbergen</string>
+	<key>chat.menu.message</key>
+	<string>Berichtacties</string>
+	<key>chat.menu.nothingToRegenerate</key>
+	<string>Er is hier geen bericht om opnieuw te sturen.</string>
+	<key>chat.menu.openBotChat</key>
+	<string>Open de chat van @%@</string>
+	<key>chat.menu.readAloud</key>
+	<string>Voorlezen</string>
+	<key>chat.menu.regenerate</key>
+	<string>Opnieuw genereren</string>
+	<key>chat.menu.selectText</key>
+	<string>Tekst selecteren</string>
+	<key>chat.menu.showDetails</key>
+	<string>Details tonen</string>
+	<key>chat.menu.stopReading</key>
+	<string>Stoppen met voorlezen</string>
+	<key>chat.menu.turnRunning</key>
+	<string>Wacht tot de huidige beurt klaar is.</string>
+	<key>chat.notifications.following</key>
+	<string>Volgt de typen uit Instellingen.</string>
+	<key>chat.notifications.hint</key>
+	<string>Deze vervangen de algemene typen uit Instellingen, alleen voor deze chat.</string>
+	<key>chat.notifications.label</key>
+	<string>Meldingen</string>
+	<key>chat.notifications.overridden</key>
+	<string>Deze chat heeft eigen typen.</string>
+	<key>chat.notifications.subtitle</key>
+	<string>Waarover %@ je een melding mag sturen</string>
+	<key>chat.notifications.title</key>
+	<string>Meldingen</string>
+	<key>chat.notifications.types.cron</key>
+	<string>Geplande uitvoeringen</string>
+	<key>chat.notifications.types.cronDone</key>
+	<string>Geplande uitvoering afgerond</string>
+	<key>chat.notifications.types.cronFailed</key>
+	<string>Geplande uitvoering mislukt</string>
+	<key>chat.notifications.types.needsInput</key>
+	<string>Heeft je antwoord nodig</string>
+	<key>chat.notifications.types.turnDone</key>
+	<string>Beurt afgerond</string>
+	<key>chat.notifications.types.turnFailed</key>
+	<string>Beurt mislukt</string>
+	<key>chat.notifications.useDefault</key>
+	<string>Gebruik de algemene typen</string>
+	<key>chat.options.cancel</key>
+	<string>Annuleren</string>
+	<key>chat.options.colourHint</key>
+	<string>Kleurt de avatarring van deze chat, de rij in de lijst en de berichten die je verstuurt.</string>
+	<key>chat.options.done</key>
+	<string>Klaar</string>
+	<key>chat.options.expensiveConfirm</key>
+	<string>Toch gebruiken</string>
+	<key>chat.options.expensiveTitle</key>
+	<string>Dit model kost meer</string>
+	<key>chat.options.eyebrow</key>
+	<string>Deze chat</string>
+	<key>chat.options.fast</key>
+	<string>Snelle modus</string>
+	<key>chat.options.fastHint</key>
+	<string>Geef voorrang aan snelheid</string>
+	<key>chat.options.howHeader</key>
+	<string>Hoe het antwoordt</string>
+	<key>chat.options.model</key>
+	<string>Model</string>
+	<key>chat.options.modelSearch</key>
+	<string>Modellen zoeken</string>
+	<key>chat.options.notMuted</key>
+	<string>Uit</string>
+	<key>chat.options.reasoning</key>
+	<string>Redeneerniveau</string>
+	<key>chat.options.showBotToBot</key>
+	<string>Bot-to-bot tonen</string>
+	<key>chat.options.showThinking</key>
+	<string>Denkwerk tonen</string>
+	<key>chat.options.subtitle</key>
+	<string>Voor dit gesprek met %@</string>
+	<key>chat.options.textSize</key>
+	<string>Tekstgrootte in chat</string>
+	<key>chat.options.textSizes.default</key>
+	<string>Standaard</string>
+	<key>chat.options.textSizes.large</key>
+	<string>Groot</string>
+	<key>chat.options.textSizes.small</key>
+	<string>Klein</string>
+	<key>chat.options.textSizes.xlarge</key>
+	<string>Extra groot</string>
+	<key>chat.options.thisChatHeader</key>
+	<string>Dit gesprek</string>
+	<key>chat.options.title</key>
+	<string>Chatopties</string>
+	<key>chat.options.useDefault</key>
+	<string>Weergave van dit gesprek resetten</string>
+	<key>chat.options.useDefaultHint</key>
+	<string>Wist het eigen detailniveau en de zichtbaarheidsinstellingen van dit gesprek en volgt weer de standaard uit Instellingen.</string>
+	<key>chat.options.usingDefault</key>
+	<string>Volgt de standaard uit Instellingen.</string>
+	<key>chat.options.usingOverride</key>
+	<string>Dit gesprek heeft een eigen weergave.</string>
+	<key>chat.options.verbosity</key>
+	<string>Detailniveau</string>
+	<key>chat.options.verbosityOptions.normal</key>
+	<string>Normaal</string>
+	<key>chat.options.verbosityOptions.quiet</key>
+	<string>Kort</string>
+	<key>chat.options.verbosityOptions.verbose</key>
+	<string>Lang</string>
+	<key>chat.options.viewHeader</key>
+	<string>Wat dit gesprek laat zien</string>
+	<key>chat.options.yolo</key>
+	<string>YOLO-modus</string>
+	<key>chat.options.yoloHint</key>
+	<string>Sla toestemmingsverzoeken over</string>
+	<key>chat.queue.delete</key>
+	<string>Verwijderen</string>
+	<key>chat.queue.edit</key>
+	<string>Bewerken</string>
+	<key>chat.queue.label</key>
+	<string>In wachtrij</string>
+	<key>chat.queue.more</key>
+	<string>+%lld meer</string>
+	<key>chat.queue.steer</key>
+	<string>Bijsturen</string>
+	<key>chat.queue.steerRejected</key>
+	<string>Te laat om bij te sturen — de beurt was al aan het afronden. Het staat weer in de wachtrij.</string>
+	<key>chat.queue.steered</key>
+	<string>Doorgegeven aan de lopende beurt</string>
+	<key>chat.queue.steeredMarker</key>
+	<string>Bijgestuurd</string>
+	<key>chat.receipt.delivered</key>
+	<string>Bezorgd</string>
+	<key>chat.receipt.read</key>
+	<string>Gelezen</string>
+	<key>chat.receipt.sending</key>
+	<string>Versturen…</string>
+	<key>chat.receipt.sent</key>
+	<string>Verzonden</string>
+	<key>chat.replying</key>
+	<string>Antwoordt</string>
+	<key>chat.selectText.copyAll</key>
+	<string>Alles kopiëren</string>
+	<key>chat.selectText.done</key>
+	<string>Klaar</string>
+	<key>chat.selectText.hint</key>
+	<string>Sleep om te selecteren · ⌘A alles · ⌘C kopiëren · Esc om te sluiten</string>
+	<key>chat.selectText.panel</key>
+	<string>Bericht als selecteerbare tekst</string>
+	<key>chat.selectText.title</key>
+	<string>Tekst selecteren</string>
+	<key>chat.sessions.adopt</key>
+	<string>Maak dit de Bot Chat</string>
+	<key>chat.sessions.adoptFailed</key>
+	<string>De gateway wilde dit niet de Bot Chat maken.</string>
+	<key>chat.sessions.backToMain</key>
+	<string>terug naar de hoofdchat</string>
+	<key>chat.sessions.branch</key>
+	<string>Vertak vanaf hier…</string>
+	<key>chat.sessions.branchFailed</key>
+	<string>Dit gesprek kon niet vertakt worden.</string>
+	<key>chat.sessions.branchMade</key>
+	<string>Vertakt naar %@.</string>
+	<key>chat.sessions.branchOf</key>
+	<string>Vertakking van %@</string>
+	<key>chat.sessions.branchTitle</key>
+	<string>Vertakking</string>
+	<key>chat.sessions.branches</key>
+	<string>Vertakkingen</string>
+	<key>chat.sessions.busy</key>
+	<string>Wacht tot het antwoord klaar is of maak eerst de wachtrij leeg.</string>
+	<key>chat.sessions.cancel</key>
+	<string>Annuleren</string>
+	<key>chat.sessions.canonical</key>
+	<string>Huidige gesprek</string>
+	<key>chat.sessions.conversations</key>
+	<string>Gesprekken</string>
+	<key>chat.sessions.delete</key>
+	<string>Verwijderen</string>
+	<key>chat.sessions.deleteBody</key>
+	<string>%@ wordt van de gateway verwijderd. Dit kan niet ongedaan worden gemaakt.</string>
+	<key>chat.sessions.deleteConfirm</key>
+	<string>Verwijderen</string>
+	<key>chat.sessions.deleteFailed</key>
+	<string>Dit gesprek kon niet verwijderd worden.</string>
+	<key>chat.sessions.deleteTitle</key>
+	<string>Dit gesprek verwijderen?</string>
+	<key>chat.sessions.loadFailed</key>
+	<string>De gesprekken van deze bot konden niet gelezen worden.</string>
+	<key>chat.sessions.loading</key>
+	<string>Gesprekken van deze bot lezen…</string>
+	<key>chat.sessions.mine</key>
+	<string>Mijn chat</string>
+	<key>chat.sessions.mineGroup</key>
+	<string>Mijn chat</string>
+	<key>chat.sessions.mineNote</key>
+	<string>Alleen jij ziet dit gesprek. De bot houdt zijn eigen geheugen bij.</string>
+	<key>chat.sessions.open</key>
+	<string>Openen</string>
+	<key>chat.sessions.openNow</key>
+	<string>Nu openen</string>
+	<key>chat.sessions.past</key>
+	<string>Eerdere gesprekken</string>
+	<key>chat.sessions.pastEmpty</key>
+	<string>Alleen het huidige gesprek.</string>
+	<key>chat.sessions.pin</key>
+	<string>Vastzetten</string>
+	<key>chat.sessions.refresh</key>
+	<string>Verversen</string>
+	<key>chat.sessions.refreshFailed</key>
+	<string>Deze chat kon niet ververst worden.</string>
+	<key>chat.sessions.rename</key>
+	<string>Hernoemen</string>
+	<key>chat.sessions.renameFailed</key>
+	<string>Dit gesprek kon niet hernoemd worden.</string>
+	<key>chat.sessions.renameTitle</key>
+	<string>Gesprek hernoemen</string>
+	<key>chat.sessions.retired</key>
+	<string>Afgesloten</string>
+	<key>chat.sessions.shared</key>
+	<string>Gedeelde Bot Chat</string>
+	<key>chat.sessions.sharedNote</key>
+	<string>Iedereen op deze gateway deelt dit gesprek.</string>
+	<key>chat.sessions.switchFailed</key>
+	<string>Er kon niet naar de andere chat geschakeld worden.</string>
+	<key>chat.sessions.unpin</key>
+	<string>Losmaken</string>
+	<key>chat.sessions.whose</key>
+	<string>Dit gesprek</string>
+	<key>chat.sheet.close</key>
+	<string>Sluiten</string>
+	<key>chat.subagents.barOpen</key>
+	<string>Tonen</string>
+	<key>chat.subagents.groupStatus.dispatched</key>
+	<string>Verstuurd</string>
+	<key>chat.subagents.groupStatus.done</key>
+	<string>Klaar</string>
+	<key>chat.subagents.groupStatus.failed</key>
+	<string>Mislukt</string>
+	<key>chat.subagents.groupStatus.running</key>
+	<string>Bezig</string>
+	<key>chat.subagents.idle</key>
+	<string>Geen agents actief</string>
+	<key>chat.subagents.openTranscript</key>
+	<string>Transcript openen</string>
+	<key>chat.subagents.status.completed</key>
+	<string>Klaar</string>
+	<key>chat.subagents.status.failed</key>
+	<string>Mislukt</string>
+	<key>chat.subagents.status.interrupted</key>
+	<string>Gestopt</string>
+	<key>chat.subagents.status.queued</key>
+	<string>In wachtrij</string>
+	<key>chat.subagents.status.running</key>
+	<string>Bezig</string>
+	<key>chat.subagents.steer</key>
+	<string>Bijsturen</string>
+	<key>chat.subagents.steerPlaceholder</key>
+	<string>Stuur een correctie…</string>
+	<key>chat.subagents.steerQueued</key>
+	<string>Bijsturing in de wachtrij</string>
+	<key>chat.subagents.steerRejected</key>
+	<string>Te laat om bij te sturen — de agent was al klaar met zijn laatste batch.</string>
+	<key>chat.subagents.stop</key>
+	<string>Stop</string>
+	<key>chat.subagents.stopped</key>
+	<string>Stoppen…</string>
+	<key>chat.subagents.title</key>
+	<string>Agents</string>
+	<key>chat.subagents.transcriptBack</key>
+	<string>Terug naar de agents</string>
+	<key>chat.subagents.transcriptEmpty</key>
+	<string>Deze agent heeft nog niets leesbaars geschreven.</string>
+	<key>chat.subagents.transcriptLive</key>
+	<string>Live · ververst elke paar seconden</string>
+	<key>chat.subagents.transcriptStored</key>
+	<string>Het eigen transcript van de subagent, alleen-lezen.</string>
+	<key>chat.subagents.transcriptTitle</key>
+	<string>Transcript · %@</string>
+	<key>chat.tool.arguments</key>
+	<string>Argumenten</string>
+	<key>chat.tool.collapse</key>
+	<string>Tool-aanroep inklappen</string>
+	<key>chat.tool.expand</key>
+	<string>Tool-aanroep uitklappen</string>
+	<key>chat.tool.failed</key>
+	<string>Mislukt</string>
+	<key>chat.tool.generating</key>
+	<string>Opstellen…</string>
+	<key>chat.tool.noResult</key>
+	<string>Geen resultaat vastgelegd</string>
+	<key>chat.tool.rawArguments</key>
+	<string>Argumenten (ruw)</string>
+	<key>chat.tool.rawResult</key>
+	<string>Resultaat (ruw)</string>
+	<key>chat.tool.redacted</key>
+	<string>Weggelakt voordat het bij het model kwam</string>
+	<key>chat.tool.result</key>
+	<string>Resultaat</string>
+	<key>chat.tool.riskTitle</key>
+	<string>Niet-vertrouwde uitvoer</string>
+	<key>chat.tool.running</key>
+	<string>Bezig…</string>
+	<key>chat.tool.showLess</key>
+	<string>Minder</string>
+	<key>chat.tool.showMore</key>
+	<string>Meer</string>
+	<key>chat.transcript.answer</key>
+	<string>Beantwoorden</string>
+	<key>chat.transcript.answered</key>
+	<string>beantwoord</string>
+	<key>chat.transcript.empty</key>
+	<string>Nog geen berichten</string>
+	<key>chat.transcript.jumpToLatest</key>
+	<string>Naar nieuwste</string>
+	<key>chat.transcript.loadingEarlier</key>
+	<string>Eerdere berichten laden…</string>
+	<key>chat.transcript.newMessages</key>
+	<string>%lld nieuw</string>
+	<key>chat.viewer.close</key>
+	<string>Afbeelding sluiten</string>
+	<key>chat.viewer.download</key>
+	<string>Afbeelding downloaden</string>
+	<key>chat.viewer.openHint</key>
+	<string>Opent de schermvullende weergave</string>
+	<key>chat.viewer.share</key>
+	<string>Afbeelding delen</string>
+	<key>chat.voice.autoRead</key>
+	<string>Antwoorden voorlezen</string>
+	<key>chat.voice.autoReadHint</key>
+	<string>Elk afgerond antwoord in deze chat, zonder dat je erom vraagt.</string>
+	<key>chat.voice.confirmBeforeSending</key>
+	<string>Bevestig voor versturen</string>
+	<key>chat.voice.confirmBeforeSendingHint</key>
+	<string>Stemmodus laat eerst even zien wat er verstaan is.</string>
+	<key>chat.voice.dictate</key>
+	<string>Dicteren</string>
+	<key>chat.voice.dictateStop</key>
+	<string>Stoppen met dicteren</string>
+	<key>chat.voice.dictationAuto</key>
+	<string>Taal van apparaat</string>
+	<key>chat.voice.dictationLanguage</key>
+	<string>Dicteertaal</string>
+	<key>chat.voice.failed</key>
+	<string>Dicteren stopte onverwacht.</string>
+	<key>chat.voice.header</key>
+	<string>STEM</string>
+	<key>chat.voice.listening</key>
+	<string>Luisteren…</string>
+	<key>chat.voice.mode</key>
+	<string>Stemmodus</string>
+	<key>chat.voice.modeCancel</key>
+	<string>Annuleren</string>
+	<key>chat.voice.modeDismiss</key>
+	<string>Veeg omlaag om te verlaten</string>
+	<key>chat.voice.modeInterrupt</key>
+	<string>Tik om te onderbreken</string>
+	<key>chat.voice.modeLeave</key>
+	<string>Stemmodus verlaten</string>
+	<key>chat.voice.modeListening</key>
+	<string>Luisteren</string>
+	<key>chat.voice.modeSending</key>
+	<string>Versturen</string>
+	<key>chat.voice.modeSpeaking</key>
+	<string>Spreken</string>
+	<key>chat.voice.modeStart</key>
+	<string>Stemmodus starten</string>
+	<key>chat.voice.modeThinking</key>
+	<string>Wacht op antwoord</string>
+	<key>chat.voice.noSpeech</key>
+	<string>Er is niets gehoord.</string>
+	<key>chat.voice.openSettings</key>
+	<string>Instellingen openen</string>
+	<key>chat.voice.permissionDenied</key>
+	<string>Hermie heeft de microfoon nodig om te dicteren.</string>
+	<key>chat.voice.rate</key>
+	<string>Spreeksnelheid</string>
+	<key>chat.voice.rateOptions.fast</key>
+	<string>Snel</string>
+	<key>chat.voice.rateOptions.fastest</key>
+	<string>Snelst</string>
+	<key>chat.voice.rateOptions.normal</key>
+	<string>Normaal</string>
+	<key>chat.voice.rateOptions.slow</key>
+	<string>Traag</string>
+	<key>chat.voice.rateOptions.slowest</key>
+	<string>Traagst</string>
+	<key>chat.voice.stopOnBackground</key>
+	<string>Stoppen als de app sluit</string>
+	<key>chat.voice.unavailable</key>
+	<string>Dicteren is niet beschikbaar op dit apparaat.</string>
+	<key>connectors.back</key>
+	<string>Instellingen</string>
+	<key>connectors.connect</key>
+	<string>Verbinden…</string>
+	<key>connectors.connectExpired</key>
+	<string>De autorisatie verliep voordat hij af was.</string>
+	<key>connectors.connectFailed</key>
+	<string>Verbinden mislukt: %@</string>
+	<key>connectors.connectHint</key>
+	<string>Opent je browser. Kom hier terug als je klaar bent met inloggen.</string>
+	<key>connectors.connectNoUrl</key>
+	<string>De gateway opende een autorisatie, maar zei niet waar je heen moest.</string>
+	<key>connectors.connectOk</key>
+	<string>%@ is verbonden.</string>
+	<key>connectors.connectSkipped</key>
+	<string>De autorisatie is niet afgerond.</string>
+	<key>connectors.connecting</key>
+	<string>Wachten op de browser…</string>
+	<key>connectors.detail.back</key>
+	<string>Connectors</string>
+	<key>connectors.detail.enabled</key>
+	<string>Ingeschakeld</string>
+	<key>connectors.detail.no</key>
+	<string>Nee</string>
+	<key>connectors.detail.slug</key>
+	<string>Identifier</string>
+	<key>connectors.detail.status</key>
+	<string>Status</string>
+	<key>connectors.detail.title</key>
+	<string>Connector</string>
+	<key>connectors.detail.yes</key>
+	<string>Ja</string>
+	<key>connectors.disconnect</key>
+	<string>Uitloggen bij een connector doe je waar je het account beheert, niet vanuit Hermes.</string>
+	<key>connectors.empty</key>
+	<string>Deze gateway biedt geen connectors.</string>
+	<key>connectors.failed</key>
+	<string>Kon de connectors niet lezen: %@</string>
+	<key>connectors.loading</key>
+	<string>De connectors lezen…</string>
+	<key>connectors.reason</key>
+	<string>Reden: %@</string>
+	<key>connectors.reconnect</key>
+	<string>Opnieuw verbinden…</string>
+	<key>connectors.refresh</key>
+	<string>Vernieuwen</string>
+	<key>connectors.scope.header</key>
+	<string>CHAT</string>
+	<key>connectors.scope.hint</key>
+	<string>Connectors horen bij een chat. Deze pagina leest die van de chat die je kiest.</string>
+	<key>connectors.scope.none</key>
+	<string>Er is geen chat open.</string>
+	<key>connectors.scope.noneHint</key>
+	<string>Open eerst een chat — een connectorlijst bestaat alleen voor een lopend gesprek.</string>
+	<key>connectors.settings.hint</key>
+	<string>Apps die een bot namens jou kan bereiken</string>
+	<key>connectors.settings.row</key>
+	<string>Connectors</string>
+	<key>connectors.state.connected</key>
+	<string>Verbonden</string>
+	<key>connectors.state.disabled</key>
+	<string>Uitgeschakeld</string>
+	<key>connectors.state.notConnected</key>
+	<string>Niet verbonden</string>
+	<key>connectors.state.unknown</key>
+	<string>Onbekend</string>
+	<key>connectors.subtitle</key>
+	<string>Apps waar je bots op inloggen.</string>
+	<key>connectors.title</key>
+	<string>Connectors</string>
+	<key>connectors.unavailable</key>
+	<string>Connectors staan uit voor deze bot.</string>
+	<key>connectors.unavailableHint</key>
+	<string>Zet de toolset Connections aan bij Mogelijkheden van deze bot en kom dan terug.</string>
+	<key>cron.confirmDelete.body</key>
+	<string>Het schema wordt van de gateway verwijderd. Al opgenomen transcripten blijven staan.</string>
+	<key>cron.confirmDelete.cancel</key>
+	<string>Behouden</string>
+	<key>cron.confirmDelete.confirm</key>
+	<string>Verwijderen</string>
+	<key>cron.confirmDelete.eyebrow</key>
+	<string>VERWIJDEREN</string>
+	<key>cron.confirmDelete.title</key>
+	<string>“%@” verwijderen?</string>
+	<key>cron.confirmRun.body</key>
+	<string>De cron draait één keer, meteen, en levert af waar hij normaal aflevert. Zijn schema verandert niet.</string>
+	<key>cron.confirmRun.cancel</key>
+	<string>Annuleren</string>
+	<key>cron.confirmRun.confirm</key>
+	<string>Start nu</string>
+	<key>cron.confirmRun.eyebrow</key>
+	<string>CRON STARTEN</string>
+	<key>cron.confirmRun.title</key>
+	<string>“%@” nu uitvoeren?</string>
+	<key>cron.detail.actions</key>
+	<string>ACTIES</string>
+	<key>cron.detail.back</key>
+	<string>Crons</string>
+	<key>cron.detail.delete</key>
+	<string>Verwijderen</string>
+	<key>cron.detail.deliverLabel</key>
+	<string>Gaat naar</string>
+	<key>cron.detail.details</key>
+	<string>DETAILS</string>
+	<key>cron.detail.edit</key>
+	<string>Bewerken</string>
+	<key>cron.detail.errorLabel</key>
+	<string>Laatste fout</string>
+	<key>cron.detail.instructions</key>
+	<string>Instructies</string>
+	<key>cron.detail.lastRunLabel</key>
+	<string>Laatst uitgevoerd</string>
+	<key>cron.detail.lastStatusLabel</key>
+	<string>Laatste status</string>
+	<key>cron.detail.loading</key>
+	<string>Laden…</string>
+	<key>cron.detail.loadingRuns</key>
+	<string>Uitvoeringen laden…</string>
+	<key>cron.detail.modelLabel</key>
+	<string>Model</string>
+	<key>cron.detail.nextRun</key>
+	<string>VOLGENDE</string>
+	<key>cron.detail.noPrompt</key>
+	<string>Deze cron draait een script en heeft geen prompt.</string>
+	<key>cron.detail.noRuns</key>
+	<string>Deze cron is nog niet uitgevoerd.</string>
+	<key>cron.detail.pause</key>
+	<string>Pauze</string>
+	<key>cron.detail.pausedReasonLabel</key>
+	<string>Gepauzeerd omdat</string>
+	<key>cron.detail.repeatForever</key>
+	<string>Tot je hem verwijdert</string>
+	<key>cron.detail.repeatLabel</key>
+	<string>Herhaling</string>
+	<key>cron.detail.resume</key>
+	<string>Hervatten</string>
+	<key>cron.detail.runHistory</key>
+	<string>HISTORIE</string>
+	<key>cron.detail.runNow</key>
+	<string>Start nu</string>
+	<key>cron.detail.running</key>
+	<string>Starten…</string>
+	<key>cron.detail.runsFailed</key>
+	<string>Kon de historie niet laden: %@</string>
+	<key>cron.detail.schedule</key>
+	<string>Schema</string>
+	<key>cron.detail.scheduleLabel</key>
+	<string>Schema</string>
+	<key>cron.detail.skillsLabel</key>
+	<string>Skills</string>
+	<key>cron.detail.stateLabel</key>
+	<string>Status</string>
+	<key>cron.detail.unknown</key>
+	<string>—</string>
+	<key>cron.editor.cancel</key>
+	<string>Annuleren</string>
+	<key>cron.editor.createTitle</key>
+	<string>Nieuwe cron</string>
+	<key>cron.editor.deliver</key>
+	<string>Gaat naar</string>
+	<key>cron.editor.deliverLocal</key>
+	<string>Lokaal (alleen opslaan)</string>
+	<key>cron.editor.editTitle</key>
+	<string>Cron bewerken</string>
+	<key>cron.editor.name</key>
+	<string>Naam</string>
+	<key>cron.editor.namePlaceholder</key>
+	<string>Ochtendbriefing</string>
+	<key>cron.editor.nameRequired</key>
+	<string>Geef de cron een naam.</string>
+	<key>cron.editor.nextRunHint</key>
+	<string>De gateway bepaalt de volgende uitvoering; die verschijnt hier zodra je hebt opgeslagen.</string>
+	<key>cron.editor.preview</key>
+	<string>Gaat zo naar de gateway: %@</string>
+	<key>cron.editor.profile</key>
+	<string>Profiel</string>
+	<key>cron.editor.profileDefault</key>
+	<string>Deze gateway</string>
+	<key>cron.editor.profileHint</key>
+	<string>Bij welke bot de cron wordt opgeslagen. Hij draait ook als die bot.</string>
+	<key>cron.editor.profileLocked</key>
+	<string>Een cron kan na het aanmaken niet naar een ander profiel worden verplaatst.</string>
+	<key>cron.editor.prompt</key>
+	<string>Instructies</string>
+	<key>cron.editor.promptPlaceholder</key>
+	<string>Vat de updates van vannacht samen en noem drie conclusies.</string>
+	<key>cron.editor.promptRequired</key>
+	<string>Schrijf op welke instructies de bot moet volgen.</string>
+	<key>cron.editor.save</key>
+	<string>Opslaan</string>
+	<key>cron.editor.saveFailed</key>
+	<string>De gateway weigerde de cron: %@</string>
+	<key>cron.editor.saving</key>
+	<string>Opslaan…</string>
+	<key>cron.editor.schedule</key>
+	<string>Schema</string>
+	<key>cron.editor.what</key>
+	<string>Wat hij doet</string>
+	<key>cron.editor.where</key>
+	<string>Waar het heen gaat</string>
+	<key>cron.gatewayBanner</key>
+	<string>Crons draaien niet: het gatewayproces van Hermes draait niet</string>
+	<key>cron.list.add</key>
+	<string>Nieuw</string>
+	<key>cron.list.empty</key>
+	<string>Nog geen crons. Maak er een om een bot te laten werken terwijl je weg bent.</string>
+	<key>cron.list.failed</key>
+	<string>Kon de crons niet laden: %@</string>
+	<key>cron.list.lastLabel</key>
+	<string>laatste</string>
+	<key>cron.list.lastRun</key>
+	<string>Laatst uitgevoerd %@</string>
+	<key>cron.list.loading</key>
+	<string>Crons laden…</string>
+	<key>cron.list.neverRun</key>
+	<string>Nooit uitgevoerd</string>
+	<key>cron.list.nextLabel</key>
+	<string>volgende</string>
+	<key>cron.list.nextRun</key>
+	<string>Volgende: %@</string>
+	<key>cron.list.noNextRun</key>
+	<string>Niet ingepland</string>
+	<key>cron.list.overdue</key>
+	<string>Te laat</string>
+	<key>cron.list.profile</key>
+	<string>Profiel: %@</string>
+	<key>cron.list.refreshedAt</key>
+	<string>Ververst %@</string>
+	<key>cron.list.refreshedNever</key>
+	<string>Nog niet ververst</string>
+	<key>cron.relative.daysAgo</key>
+	<string>%lldd geleden</string>
+	<key>cron.relative.hoursAgo</key>
+	<string>%lldu geleden</string>
+	<key>cron.relative.inDays</key>
+	<string>over %lldd</string>
+	<key>cron.relative.inHours</key>
+	<string>over %lldu</string>
+	<key>cron.relative.inMinutes</key>
+	<string>over %lld min</string>
+	<key>cron.relative.inSeconds</key>
+	<string>over %llds</string>
+	<key>cron.relative.minutesAgo</key>
+	<string>%lld min geleden</string>
+	<key>cron.relative.now</key>
+	<string>nu</string>
+	<key>cron.relative.secondsAgo</key>
+	<string>%llds geleden</string>
+	<key>cron.run.back</key>
+	<string>Cron</string>
+	<key>cron.run.empty</key>
+	<string>Deze uitvoering heeft geen berichten opgeleverd.</string>
+	<key>cron.run.failed</key>
+	<string>Kon deze uitvoering niet laden: %@</string>
+	<key>cron.run.loading</key>
+	<string>De uitvoering laden…</string>
+	<key>cron.run.readOnly</key>
+	<string>Alleen-lezen: een cron-uitvoering kan hiervandaan niet worden voortgezet.</string>
+	<key>cron.run.title</key>
+	<string>Uitvoering</string>
+	<key>cron.schedule.cronExpression</key>
+	<string>Cron-expressie</string>
+	<key>cron.schedule.cronHint</key>
+	<string>Vijf velden: minuut, uur, dag van de maand, maand, dag van de week.</string>
+	<key>cron.schedule.cronPlaceholder</key>
+	<string>0 9 * * 1-5</string>
+	<key>cron.schedule.days</key>
+	<string>Dagen</string>
+	<key>cron.schedule.daysHint</key>
+	<string>Geen dag gekozen betekent elke dag.</string>
+	<key>cron.schedule.errors.cronField</key>
+	<string>Het veld %1$@ accepteert “%2$@” niet.</string>
+	<key>cron.schedule.errors.cronFieldCount</key>
+	<string>Een cron-expressie heeft vijf velden, bijvoorbeeld 0 9 * * 1-5.</string>
+	<key>cron.schedule.errors.interval</key>
+	<string>Vul in hoeveel minuten, uren of dagen er tussen twee uitvoeringen zitten.</string>
+	<key>cron.schedule.errors.once</key>
+	<string>Vul een vertraging in zoals “in 2h”, of een datum en tijd zoals 2026-09-20T09:00.</string>
+	<key>cron.schedule.errors.time</key>
+	<string>Vul een tijd in als HH:MM, bijvoorbeeld 09:00.</string>
+	<key>cron.schedule.everyLabel</key>
+	<string>Elke</string>
+	<key>cron.schedule.mode</key>
+	<string>Herhaling</string>
+	<key>cron.schedule.modes.cron</key>
+	<string>Cron</string>
+	<key>cron.schedule.modes.daily</key>
+	<string>Dagelijks</string>
+	<key>cron.schedule.modes.interval</key>
+	<string>Interval</string>
+	<key>cron.schedule.modes.once</key>
+	<string>Eenmalig</string>
+	<key>cron.schedule.once</key>
+	<string>Wanneer</string>
+	<key>cron.schedule.onceHint</key>
+	<string>Een vertraging zoals “in 2h”, of een datum en tijd zoals 2026-09-20T09:00.</string>
+	<key>cron.schedule.oncePlaceholder</key>
+	<string>in 2h</string>
+	<key>cron.schedule.time</key>
+	<string>Tijd</string>
+	<key>cron.schedule.timePlaceholder</key>
+	<string>09:00</string>
+	<key>cron.schedule.units.days</key>
+	<string>dagen</string>
+	<key>cron.schedule.units.hours</key>
+	<string>uur</string>
+	<key>cron.schedule.units.minutes</key>
+	<string>minuten</string>
+	<key>cron.schedule.weekdayInitials[0]</key>
+	<string>Z</string>
+	<key>cron.schedule.weekdayInitials[1]</key>
+	<string>M</string>
+	<key>cron.schedule.weekdayInitials[2]</key>
+	<string>D</string>
+	<key>cron.schedule.weekdayInitials[3]</key>
+	<string>W</string>
+	<key>cron.schedule.weekdayInitials[4]</key>
+	<string>D</string>
+	<key>cron.schedule.weekdayInitials[5]</key>
+	<string>V</string>
+	<key>cron.schedule.weekdayInitials[6]</key>
+	<string>Z</string>
+	<key>cron.schedule.weekdayNames[0]</key>
+	<string>Zondag</string>
+	<key>cron.schedule.weekdayNames[1]</key>
+	<string>Maandag</string>
+	<key>cron.schedule.weekdayNames[2]</key>
+	<string>Dinsdag</string>
+	<key>cron.schedule.weekdayNames[3]</key>
+	<string>Woensdag</string>
+	<key>cron.schedule.weekdayNames[4]</key>
+	<string>Donderdag</string>
+	<key>cron.schedule.weekdayNames[5]</key>
+	<string>Vrijdag</string>
+	<key>cron.schedule.weekdayNames[6]</key>
+	<string>Zaterdag</string>
+	<key>cron.sections.active</key>
+	<string>ACTIEF</string>
+	<key>cron.sections.paused</key>
+	<string>PAUZE</string>
+	<key>cron.status.failed</key>
+	<string>Mislukt</string>
+	<key>cron.status.ok</key>
+	<string>Gelukt</string>
+	<key>cron.status.paused</key>
+	<string>Gepauzeerd</string>
+	<key>cron.status.pending</key>
+	<string>Wachten</string>
+	<key>cron.status.running</key>
+	<string>Bezig</string>
+	<key>cron.subtitle</key>
+	<string>Een beetje vooruitgang, op herhaling.</string>
+	<key>cron.title</key>
+	<string>Crons</string>
+	<key>kanban.absent</key>
+	<string>Deze gateway heeft geen Kanban-plugin.</string>
+	<key>kanban.absentCommand</key>
+	<string>hermes plugins install kanban</string>
+	<key>kanban.absentHint</key>
+	<string>Installeer hem op de machine die de gateway draait:</string>
+	<key>kanban.back</key>
+	<string>Instellingen</string>
+	<key>kanban.board.back</key>
+	<string>Boards</string>
+	<key>kanban.board.columnEmpty</key>
+	<string>Niets hier.</string>
+	<key>kanban.board.empty</key>
+	<string>Nog niets op dit board.</string>
+	<key>kanban.board.hideArchived</key>
+	<string>Verberg archief</string>
+	<key>kanban.board.loading</key>
+	<string>Het board lezen…</string>
+	<key>kanban.board.newCard</key>
+	<string>Nieuw</string>
+	<key>kanban.board.showArchived</key>
+	<string>Toon archief</string>
+	<key>kanban.card.archive</key>
+	<string>Archiveren</string>
+	<key>kanban.card.archiveHint</key>
+	<string>Archiveren bewaart de kaart en zijn geschiedenis. Het is geen verwijdering.</string>
+	<key>kanban.card.archived</key>
+	<string>Gearchiveerd.</string>
+	<key>kanban.card.archiving</key>
+	<string>Archiveren…</string>
+	<key>kanban.card.assignee</key>
+	<string>Toegewezen aan</string>
+	<key>kanban.card.back</key>
+	<string>Board</string>
+	<key>kanban.card.body</key>
+	<string>Notities</string>
+	<key>kanban.card.column</key>
+	<string>Kolom</string>
+	<key>kanban.card.created</key>
+	<string>Aangemaakt</string>
+	<key>kanban.card.priority</key>
+	<string>Prioriteit</string>
+	<key>kanban.card.save</key>
+	<string>Opslaan</string>
+	<key>kanban.card.saved</key>
+	<string>Opgeslagen.</string>
+	<key>kanban.card.saving</key>
+	<string>Opslaan…</string>
+	<key>kanban.card.summary</key>
+	<string>SAMENVATTING</string>
+	<key>kanban.card.title</key>
+	<string>Titel</string>
+	<key>kanban.columns.archived</key>
+	<string>Gearchiveerd</string>
+	<key>kanban.columns.blocked</key>
+	<string>Geblokkeerd</string>
+	<key>kanban.columns.done</key>
+	<string>Klaar</string>
+	<key>kanban.columns.ready</key>
+	<string>Gereed</string>
+	<key>kanban.columns.review</key>
+	<string>Review</string>
+	<key>kanban.columns.running</key>
+	<string>Bezig</string>
+	<key>kanban.columns.scheduled</key>
+	<string>Ingepland</string>
+	<key>kanban.columns.todo</key>
+	<string>Te doen</string>
+	<key>kanban.columns.triage</key>
+	<string>Triage</string>
+	<key>kanban.comments.add</key>
+	<string>Reageren</string>
+	<key>kanban.comments.adding</key>
+	<string>Plaatsen…</string>
+	<key>kanban.comments.header</key>
+	<string>REACTIES</string>
+	<key>kanban.comments.none</key>
+	<string>Nog geen reacties.</string>
+	<key>kanban.comments.placeholder</key>
+	<string>Een reactie toevoegen</string>
+	<key>kanban.create.bodyField</key>
+	<string>Notities</string>
+	<key>kanban.create.column</key>
+	<string>KOLOM</string>
+	<key>kanban.create.needsTitle</key>
+	<string>Een kaart heeft een titel nodig.</string>
+	<key>kanban.create.submit</key>
+	<string>Kaart maken</string>
+	<key>kanban.create.submitting</key>
+	<string>Maken…</string>
+	<key>kanban.create.title</key>
+	<string>Nieuwe kaart</string>
+	<key>kanban.create.titleField</key>
+	<string>Titel</string>
+	<key>kanban.create.titlePlaceholder</key>
+	<string>Wat er moet gebeuren</string>
+	<key>kanban.dragHint</key>
+	<string>Houd een kaart vast om hem op te pakken en laat hem los op een kolom.</string>
+	<key>kanban.dragLabel</key>
+	<string>Houd vast om deze kaart op te pakken, of gebruik Verplaats naar…</string>
+	<key>kanban.empty</key>
+	<string>Deze gateway heeft nog geen boards.</string>
+	<key>kanban.emptyHint</key>
+	<string>Maak er een met `hermes kanban board create`, of vanuit de Hermes-desktopapp.</string>
+	<key>kanban.failed</key>
+	<string>Kon de boards niet lezen: %@</string>
+	<key>kanban.loading</key>
+	<string>De boards lezen…</string>
+	<key>kanban.locked</key>
+	<string>Bezig, Review en Ingepland zijn van de dispatcher. Een kaart kan eruit, maar kan er niet in worden gezet.</string>
+	<key>kanban.lockedTarget</key>
+	<string>%@ is van de dispatcher. Daar kan geen kaart in.</string>
+	<key>kanban.menu</key>
+	<string>Boards</string>
+	<key>kanban.move</key>
+	<string>Verplaats naar…</string>
+	<key>kanban.moveRefused</key>
+	<string>%@</string>
+	<key>kanban.moved</key>
+	<string>Verplaatst naar %@.</string>
+	<key>kanban.movedElsewhere</key>
+	<string>Gevraagd om %1$@; het board zette hem in %2$@.</string>
+	<key>kanban.noOrder</key>
+	<string>Kaarten staan op volgorde van prioriteit en ouderdom, dus binnen een kolom valt er niets te slepen.</string>
+	<key>kanban.settings.hint</key>
+	<string>De Kanban-boards die deze gateway bijhoudt</string>
+	<key>kanban.settings.row</key>
+	<string>Boards</string>
+	<key>kanban.subtitle</key>
+	<string>Werk dat je bots oppakken.</string>
+	<key>kanban.title</key>
+	<string>Boards</string>
+	<key>mcp.authorise</key>
+	<string>Autoriseren…</string>
+	<key>mcp.authoriseFailed</key>
+	<string>Autorisatie niet afgerond: %@</string>
+	<key>mcp.authoriseHint</key>
+	<string>Opent je browser. Kom hier terug als je klaar bent met inloggen.</string>
+	<key>mcp.authoriseOk</key>
+	<string>Geautoriseerd.</string>
+	<key>mcp.authorising</key>
+	<string>Wachten op de browser…</string>
+	<key>mcp.back</key>
+	<string>Instellingen</string>
+	<key>mcp.detail.address</key>
+	<string>Adres</string>
+	<key>mcp.detail.auth</key>
+	<string>Authenticatie</string>
+	<key>mcp.detail.authNone</key>
+	<string>Geen</string>
+	<key>mcp.detail.back</key>
+	<string>MCP servers</string>
+	<key>mcp.detail.env</key>
+	<string>OMGEVINGSSLEUTELS</string>
+	<key>mcp.detail.envHint</key>
+	<string>De gateway stuurt hun waarden nooit mee — alleen welke sleutels deze server verwacht.</string>
+	<key>mcp.detail.title</key>
+	<string>MCP-server</string>
+	<key>mcp.detail.tools</key>
+	<string>TOOLS</string>
+	<key>mcp.detail.toolsEmpty</key>
+	<string>Deze server bood geen tools aan.</string>
+	<key>mcp.detail.toolsUnknown</key>
+	<string>Test de verbinding om te zien wat deze server te bieden heeft.</string>
+	<key>mcp.detail.transport</key>
+	<string>Transport</string>
+	<key>mcp.empty</key>
+	<string>Op deze gateway zijn geen MCP-servers ingesteld.</string>
+	<key>mcp.emptyHint</key>
+	<string>Voeg er een toe met `hermes mcp add`, of vanuit de Hermes-desktopapp.</string>
+	<key>mcp.failed</key>
+	<string>Kon de servers niet lezen: %@</string>
+	<key>mcp.loading</key>
+	<string>De serverlijst lezen…</string>
+	<key>mcp.needsAuth</key>
+	<string>Autorisatie nodig</string>
+	<key>mcp.reload</key>
+	<string>Servers herladen</string>
+	<key>mcp.reloadHint</key>
+	<string>Voert configuratiewijzigingen door in chats die al lopen.</string>
+	<key>mcp.runtime.configured</key>
+	<string>Ingesteld</string>
+	<key>mcp.runtime.connected</key>
+	<string>Verbonden</string>
+	<key>mcp.runtime.connecting</key>
+	<string>Verbinden…</string>
+	<key>mcp.runtime.disabled</key>
+	<string>Uitgeschakeld</string>
+	<key>mcp.runtime.failed</key>
+	<string>Niet verbonden</string>
+	<key>mcp.runtime.lazy</key>
+	<string>Start wanneer nodig</string>
+	<key>mcp.runtime.unknown</key>
+	<string>Nog niet gestart</string>
+	<key>mcp.settings.hint</key>
+	<string>Tools die je bots bereiken via het Model Context Protocol</string>
+	<key>mcp.settings.row</key>
+	<string>MCP servers</string>
+	<key>mcp.subtitle</key>
+	<string>Tools die je bots kunnen bereiken.</string>
+	<key>mcp.test</key>
+	<string>Verbinding testen</string>
+	<key>mcp.testFailed</key>
+	<string>Kon niet verbinden: %@</string>
+	<key>mcp.testing</key>
+	<string>Verbinden…</string>
+	<key>mcp.title</key>
+	<string>MCP servers</string>
+	<key>memory.add.action</key>
+	<string>Toevoegen</string>
+	<key>memory.add.label</key>
+	<string>Toevoegen aan %@</string>
+	<key>memory.add.placeholder</key>
+	<string>Schrijf iets op</string>
+	<key>memory.botsEmpty</key>
+	<string>Nog geen bots.</string>
+	<key>memory.botsHint</key>
+	<string>Lees en bewerk wat elke bot onthoudt.</string>
+	<key>memory.botsTitle</key>
+	<string>Geheugen</string>
+	<key>memory.edit.action</key>
+	<string>Bewerken</string>
+	<key>memory.edit.cancel</key>
+	<string>Annuleren</string>
+	<key>memory.edit.label</key>
+	<string>Notitie %lld bewerken</string>
+	<key>memory.edit.save</key>
+	<string>Vervangen</string>
+	<key>memory.empty.memory</key>
+	<string>Nog niets opgeschreven.</string>
+	<key>memory.empty.user</key>
+	<string>Nog niets over jou opgeschreven.</string>
+	<key>memory.failed</key>
+	<string>Kon dit geheugen niet lezen: %@</string>
+	<key>memory.forBot</key>
+	<string>Geheugen van %@</string>
+	<key>memory.graph.detail.close</key>
+	<string>Sluiten</string>
+	<key>memory.graph.detail.entry</key>
+	<string>Notitie</string>
+	<key>memory.graph.detail.noTopics</key>
+	<string>Geen onderwerpen in deze notitie.</string>
+	<key>memory.graph.detail.open</key>
+	<string>Toon in de lijst</string>
+	<key>memory.graph.detail.profile</key>
+	<string>Deze bot</string>
+	<key>memory.graph.detail.topic</key>
+	<string>Onderwerp</string>
+	<key>memory.graph.detail.topics</key>
+	<string>NOEMT</string>
+	<key>memory.graph.dropped</key>
+	<string>Er zijn nog %lld knooppunten weggelaten uit de tekening.</string>
+	<key>memory.graph.empty</key>
+	<string>Nog niets om te tekenen.</string>
+	<key>memory.graph.full.close</key>
+	<string>Sluiten</string>
+	<key>memory.graph.full.dismiss</key>
+	<string>De kaart sluiten</string>
+	<key>memory.graph.full.open</key>
+	<string>Schermvullend openen</string>
+	<key>memory.graph.full.title</key>
+	<string>Geheugenkaart</string>
+	<key>memory.graph.label</key>
+	<string>Een kaart van dit geheugen: de bot, zijn notities en de onderwerpen die ze delen</string>
+	<key>memory.graph.loading</key>
+	<string>Tekenen…</string>
+	<key>memory.graph.reset</key>
+	<string>Reset</string>
+	<key>memory.graph.truncated</key>
+	<string>%1$lld van %2$lld notities te zien. De rest staat niet op deze pagina van de kaart.</string>
+	<key>memory.graph.zoomIn</key>
+	<string>Inzoomen</string>
+	<key>memory.graph.zoomOut</key>
+	<string>Uitzoomen</string>
+	<key>memory.loading</key>
+	<string>Geheugen lezen…</string>
+	<key>memory.missing.body</key>
+	<string>Het geheugen van een bot lezen vraagt om de hermie-plugin, versie 0.5.0 of nieuwer, geïnstalleerd op de gateway en ingeschakeld voor dit profiel.</string>
+	<key>memory.missing.guide</key>
+	<string>Lees de handleiding</string>
+	<key>memory.missing.install</key>
+	<string>OP DE GATEWAY</string>
+	<key>memory.missing.title</key>
+	<string>De Hermie-plugin heeft geen geheugenbrowser</string>
+	<key>memory.missing.unknown</key>
+	<string>Wachten tot de gateway zegt wat er geïnstalleerd is…</string>
+	<key>memory.providers.header</key>
+	<string>PROVIDERS</string>
+	<key>memory.providers.hint</key>
+	<string>Een externe geheugenprovider geeft een bot tekst voor één beurt. Er is geen aanroep die opsomt wat hij bewaart, dus valt hier niets te tonen.</string>
+	<key>memory.providers.notBrowsable</key>
+	<string>Niet in te zien</string>
+	<key>memory.raw.emptyDocument</key>
+	<string>Deze is leeg.</string>
+	<key>memory.raw.loading</key>
+	<string>Lezen wat elke backend bewaart…</string>
+	<key>memory.raw.missing</key>
+	<string>De Hermie-plugin van deze gateway serveert geen ruw geheugen.</string>
+	<key>memory.raw.missingCommand</key>
+	<string>hermes plugins install hermie</string>
+	<key>memory.raw.missingHint</key>
+	<string>Werk de plugin bij op de machine die de gateway draait:</string>
+	<key>memory.raw.none</key>
+	<string>Deze gateway noemde geen enkele geheugenbackend.</string>
+	<key>memory.raw.notListable</key>
+	<string>Deze backend kan niet zeggen wat hij bewaart.</string>
+	<key>memory.raw.readOnly</key>
+	<string>Alleen lezen. Notities pas je aan op het tabblad Notities.</string>
+	<key>memory.raw.truncated</key>
+	<string>De gateway stuurde alleen het begin hiervan.</string>
+	<key>memory.raw.unavailable</key>
+	<string>Deze backend is niet beschikbaar op deze gateway.</string>
+	<key>memory.readOnly</key>
+	<string>Deze gateway laat geheugen lezen en niet schrijven. Zet memory.edit van de plugin aan voor dit profiel om dat te veranderen.</string>
+	<key>memory.remove.action</key>
+	<string>Verwijderen</string>
+	<key>memory.remove.cancel</key>
+	<string>Behouden</string>
+	<key>memory.remove.confirm</key>
+	<string>Verwijderen</string>
+	<key>memory.remove.confirmBody</key>
+	<string>De bot krijgt dit niet meer te horen. Hermes bewaart geen geschiedenis van een geheugenbestand.</string>
+	<key>memory.remove.confirmTitle</key>
+	<string>Deze notitie verwijderen?</string>
+	<key>memory.remove.label</key>
+	<string>Notitie %lld verwijderen</string>
+	<key>memory.retry</key>
+	<string>Opnieuw proberen</string>
+	<key>memory.rowHint</key>
+	<string>Wat deze bot onthoudt over zijn werk, en over jou.</string>
+	<key>memory.rowTitle</key>
+	<string>Geheugen</string>
+	<key>memory.search.clear</key>
+	<string>Wissen</string>
+	<key>memory.search.hint</key>
+	<string>Elk woord moet ergens in de notitie voorkomen. De volgorde maakt niet uit.</string>
+	<key>memory.search.none</key>
+	<string>Niets komt overeen met “%@”.</string>
+	<key>memory.search.placeholder</key>
+	<string>Zoek in dit geheugen</string>
+	<key>memory.search.searching</key>
+	<string>Zoeken…</string>
+	<key>memory.sectionHint.memory</key>
+	<string>Wat de bot over zijn werk heeft opgeschreven. De MEMORY.md van Hermes zelf.</string>
+	<key>memory.sectionHint.user</key>
+	<string>Wat de bot over jou heeft opgeschreven. USER.md.</string>
+	<key>memory.sections.memory</key>
+	<string>GEHEUGEN</string>
+	<key>memory.sections.user</key>
+	<string>GEBRUIKER</string>
+	<key>memory.tabs.entries</key>
+	<string>Notities</string>
+	<key>memory.tabs.graph</key>
+	<string>Kaart</string>
+	<key>memory.tabs.raw</key>
+	<string>Ruw</string>
+	<key>memory.title</key>
+	<string>Geheugen</string>
+	<key>memory.usage</key>
+	<string>%1$lld van %2$lld tekens</string>
+	<key>memory.usageLabel</key>
+	<string>%1$@ is %2$lld%% vol</string>
+	<key>memory.usageUnbounded</key>
+	<string>%lld tekens</string>
+	<key>profiles.capabilities.failed</key>
+	<string>Kon de configuratie niet lezen: %@</string>
+	<key>profiles.capabilities.loading</key>
+	<string>De configuratie van deze bot lezen…</string>
+	<key>profiles.capabilities.manageMcp</key>
+	<string>Servers beheren…</string>
+	<key>profiles.capabilities.mcp</key>
+	<string>MCP SERVERS</string>
+	<key>profiles.capabilities.mcpEmpty</key>
+	<string>Geen MCP-servers ingesteld op deze gateway.</string>
+	<key>profiles.capabilities.mcpFooter</key>
+	<string>Een server hier aanzetten maakt zijn tools beschikbaar voor deze bot.</string>
+	<key>profiles.capabilities.reload.always</key>
+	<string>Herladen, en niet meer vragen</string>
+	<key>profiles.capabilities.reload.alwaysHint</key>
+	<string>Zorgt dat de gateway het niet meer vraagt — ook niet in de CLI en de desktopapp.</string>
+	<key>profiles.capabilities.reload.body</key>
+	<string>MCP-servers herladen voor elke lopende chat. Het volgende bericht in elke chat stuurt zijn volledige invoer opnieuw.</string>
+	<key>profiles.capabilities.reload.done</key>
+	<string>MCP-servers zijn herladen.</string>
+	<key>profiles.capabilities.reload.eyebrow</key>
+	<string>MCP herladen</string>
+	<key>profiles.capabilities.reload.failed</key>
+	<string>Kon niet herladen: %@</string>
+	<key>profiles.capabilities.reload.later</key>
+	<string>Nu niet</string>
+	<key>profiles.capabilities.reload.now</key>
+	<string>Nu herladen</string>
+	<key>profiles.capabilities.reload.title</key>
+	<string>Toepassen op lopende chats?</string>
+	<key>profiles.capabilities.row</key>
+	<string>Mogelijkheden</string>
+	<key>profiles.capabilities.rowDetail</key>
+	<string>Skills, tools en MCP-servers voor deze bot</string>
+	<key>profiles.capabilities.saveFailed</key>
+	<string>De gateway weigerde de wijziging: %@</string>
+	<key>profiles.capabilities.skills</key>
+	<string>SKILLS</string>
+	<key>profiles.capabilities.skillsEmpty</key>
+	<string>Geen skills geïnstalleerd voor deze bot.</string>
+	<key>profiles.capabilities.skillsFooter</key>
+	<string>Skills zijn mappen met instructies die de bot kan openen wanneer hij ze nodig heeft.</string>
+	<key>profiles.capabilities.title</key>
+	<string>Mogelijkheden</string>
+	<key>profiles.capabilities.toolsets</key>
+	<string>TOOLSETS</string>
+	<key>profiles.capabilities.toolsetsPinned</key>
+	<string>Vastgezet voor deze bot.</string>
+	<key>profiles.capabilities.toolsetsUnpinned</key>
+	<string>Deze bot volgt de standaard van de gateway. Eén schakelaar omzetten zet de hele lijst vast.</string>
+	<key>profiles.new.cancel</key>
+	<string>Annuleren</string>
+	<key>profiles.new.cloneFrom</key>
+	<string>Instellingen kopiëren van</string>
+	<key>profiles.new.cloneHint</key>
+	<string>Een kloon neemt de skills, tools en MCP-schakelaars van de bronbot over. Zijn berichtenaccounts gaan nooit mee — twee bots kunnen niet één Telegram-token vasthouden.</string>
+	<key>profiles.new.cloneNone</key>
+	<string>Blanco beginnen</string>
+	<key>profiles.new.create</key>
+	<string>Bot maken</string>
+	<key>profiles.new.creating</key>
+	<string>De bot maken…</string>
+	<key>profiles.new.description</key>
+	<string>Beschrijving</string>
+	<key>profiles.new.descriptionPlaceholder</key>
+	<string>Zoekt dingen op voordat iemand erom vraagt.</string>
+	<key>profiles.new.displayName</key>
+	<string>Weergavenaam</string>
+	<key>profiles.new.displayNameHint</key>
+	<string>Wat Hermie in de lijst laat zien. Laat het leeg om de handle te gebruiken.</string>
+	<key>profiles.new.displayNamePlaceholder</key>
+	<string>Scout</string>
+	<key>profiles.new.eyebrow</key>
+	<string>Een bot van jezelf</string>
+	<key>profiles.new.failed</key>
+	<string>Kon de bot niet maken: %@</string>
+	<key>profiles.new.handle</key>
+	<string>Handle</string>
+	<key>profiles.new.handleHint</key>
+	<string>Kleine letters, geen spaties. Dit is de naam waaronder de gateway hem kent, en die kan later niet veranderen.</string>
+	<key>profiles.new.handlePlaceholder</key>
+	<string>scout</string>
+	<key>profiles.new.model</key>
+	<string>Model</string>
+	<key>profiles.new.modelHint</key>
+	<string>Een nieuwe bot neemt het model van de gateway over, tenzij je hier een model vastzet.</string>
+	<key>profiles.new.modelInherit</key>
+	<string>Overnemen van de start-bot</string>
+	<key>profiles.new.title</key>
+	<string>Nieuwe bot</string>
+	<key>profiles.new.withoutModel</key>
+	<string>Deze bot heeft nog geen model. Kies er een in zijn profiel voordat je hem schrijft.</string>
+	<key>profiles.settings.group</key>
+	<string>Bots</string>
+	<key>profiles.settings.newBot</key>
+	<string>Nieuwe bot…</string>
+	<key>profiles.settings.newBotHint</key>
+	<string>Maak nog een bot op deze gateway</string>
+	<key>skills.alreadyInstalled</key>
+	<string>Geïnstalleerd</string>
+	<key>skills.back</key>
+	<string>Instellingen</string>
+	<key>skills.botPicker</key>
+	<string>Bot</string>
+	<key>skills.catalogue</key>
+	<string>CATALOGUS</string>
+	<key>skills.catalogueEmpty</key>
+	<string>Niets gevonden.</string>
+	<key>skills.cliOnly</key>
+	<string>Deze gateway kan geen skills installeren via zijn socket. Voer dit uit op de machine die hem host:</string>
+	<key>skills.failed</key>
+	<string>Kon de skills niet lezen: %@</string>
+	<key>skills.forBot</key>
+	<string>De schakelaars zijn voor %@.</string>
+	<key>skills.install</key>
+	<string>Installeren</string>
+	<key>skills.installFailed</key>
+	<string>Installeren mislukt: %@</string>
+	<key>skills.installed</key>
+	<string>GEÏNSTALLEERD</string>
+	<key>skills.installedEmpty</key>
+	<string>Nog geen skills geïnstalleerd.</string>
+	<key>skills.installedFooter</key>
+	<string>Een skill is een map met instructies die een bot opent wanneer hij ze nodig heeft.</string>
+	<key>skills.installed_</key>
+	<string>%@ geïnstalleerd.</string>
+	<key>skills.installing</key>
+	<string>Installeren…</string>
+	<key>skills.loading</key>
+	<string>De skills lezen…</string>
+	<key>skills.noBot</key>
+	<string>Kies een bot om skills voor aan en uit te zetten.</string>
+	<key>skills.search</key>
+	<string>Zoek in de hub</string>
+	<key>skills.searchPlaceholder</key>
+	<string>pdf, spreadsheets, video…</string>
+	<key>skills.searching</key>
+	<string>Zoeken…</string>
+	<key>skills.settings.hint</key>
+	<string>Wat je bots kunnen</string>
+	<key>skills.settings.row</key>
+	<string>Skills</string>
+	<key>skills.subtitle</key>
+	<string>Instructies die je bots kunnen openen.</string>
+	<key>skills.title</key>
+	<string>Skills</string>
+	<key>skills.toggleFailed</key>
+	<string>Kon dat niet wijzigen: %@</string>
+</dict>
+</plist>

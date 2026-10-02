@@ -60,9 +60,16 @@ let package = Package(
       swiftSettings: settings
     ),
     // The views, per feature, and the router.
+    //
+    // The String Catalogs are for Xcode's editor only. The bundle gets the
+    // `.lproj/*.strings(dict)` that `npm run i18n` compiles from them, because
+    // SwiftPM's native build system (the default up to Swift 6.3) copies an
+    // `.xcstrings` resource without compiling it. Excluding the catalogs keeps a
+    // second, compiled copy out of the bundle on toolchains that would compile it.
     .target(
       name: "HermieUI",
       dependencies: ["HermieCore", "HermieMarkdown"],
+      exclude: ["Resources/Localizable.xcstrings", "Resources/Native.xcstrings"],
       resources: [.process("Resources")],
       swiftSettings: settings
     ),

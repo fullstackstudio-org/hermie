@@ -56,6 +56,18 @@ private func reading<T>(_ language: String, _ body: () throws -> T) throws -> T 
   }
 }
 
+@Test func theBundleShipsOnlyTheCompiledFormsNotTheCatalogs() {
+  // The `.lproj` files `npm run i18n` compiles are the one source of text at run time. A
+  // catalog copied in as well (SwiftPM's native build system copies rather than compiles
+  // it) would be dead weight; one compiled by the toolchain would be a second answer.
+  #expect((moduleBundle.urls(forResourcesWithExtension: "xcstrings", subdirectory: nil) ?? []).isEmpty)
+  for language in ["en", "nl", "de"] {
+    let localized = moduleBundle.urls(
+      forResourcesWithExtension: "xcstrings", subdirectory: nil, localization: language)
+    #expect((localized ?? []).isEmpty)
+  }
+}
+
 @Test func theDefaultLookupResolvesThroughTheModuleBundle() {
   // No language bound: whatever the system picks, a key resolves to text, never to itself.
   #expect(Strings.App.Common.cancel != "app.common.cancel")

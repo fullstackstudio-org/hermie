@@ -1,0 +1,454 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+	<key>app.activity.spawned</key>
+	<dict>
+		<key>NSStringLocalizedFormatKey</key>
+		<string>%2$#@count@</string>
+		<key>count</key>
+		<dict>
+			<key>NSStringFormatSpecTypeKey</key>
+			<string>NSStringPluralRuleType</string>
+			<key>NSStringFormatValueTypeKey</key>
+			<string>lld</string>
+			<key>one</key>
+			<string>%1$@ startte 1 agent</string>
+			<key>other</key>
+			<string>%1$@ startte %2$lld agents</string>
+		</dict>
+	</dict>
+	<key>app.bots.conversations</key>
+	<dict>
+		<key>NSStringLocalizedFormatKey</key>
+		<string>%1$#@count@</string>
+		<key>count</key>
+		<dict>
+			<key>NSStringFormatSpecTypeKey</key>
+			<string>NSStringPluralRuleType</string>
+			<key>NSStringFormatValueTypeKey</key>
+			<string>lld</string>
+			<key>one</key>
+			<string>1 gesprek</string>
+			<key>other</key>
+			<string>%1$lld gesprekken</string>
+		</dict>
+	</dict>
+	<key>app.bots.sharePending</key>
+	<dict>
+		<key>NSStringLocalizedFormatKey</key>
+		<string>%1$#@count@</string>
+		<key>count</key>
+		<dict>
+			<key>NSStringFormatSpecTypeKey</key>
+			<string>NSStringPluralRuleType</string>
+			<key>NSStringFormatValueTypeKey</key>
+			<string>lld</string>
+			<key>one</key>
+			<string>1 gedeeld item wacht op verzending</string>
+			<key>other</key>
+			<string>%1$lld gedeelde items wachten op verzending</string>
+		</dict>
+	</dict>
+	<key>app.bots.unreadLabel</key>
+	<dict>
+		<key>NSStringLocalizedFormatKey</key>
+		<string>%1$#@count@</string>
+		<key>count</key>
+		<dict>
+			<key>NSStringFormatSpecTypeKey</key>
+			<string>NSStringPluralRuleType</string>
+			<key>NSStringFormatValueTypeKey</key>
+			<string>lld</string>
+			<key>one</key>
+			<string>1 ongelezen bericht</string>
+			<key>other</key>
+			<string>%1$lld ongelezen berichten</string>
+		</dict>
+	</dict>
+	<key>app.chat.subagents</key>
+	<dict>
+		<key>NSStringLocalizedFormatKey</key>
+		<string>%1$#@count@</string>
+		<key>count</key>
+		<dict>
+			<key>NSStringFormatSpecTypeKey</key>
+			<string>NSStringPluralRuleType</string>
+			<key>NSStringFormatValueTypeKey</key>
+			<string>lld</string>
+			<key>one</key>
+			<string>1 subagent bezig</string>
+			<key>other</key>
+			<string>%1$lld subagents bezig</string>
+		</dict>
+	</dict>
+	<key>app.onboarding.test.connected</key>
+	<dict>
+		<key>NSStringLocalizedFormatKey</key>
+		<string>%1$#@bots@</string>
+		<key>bots</key>
+		<dict>
+			<key>NSStringFormatSpecTypeKey</key>
+			<string>NSStringPluralRuleType</string>
+			<key>NSStringFormatValueTypeKey</key>
+			<string>lld</string>
+			<key>one</key>
+			<string>Verbonden · 1 bot</string>
+			<key>other</key>
+			<string>Verbonden · %1$lld bots</string>
+		</dict>
+	</dict>
+	<key>app.onboarding.test.connectedAs</key>
+	<dict>
+		<key>NSStringLocalizedFormatKey</key>
+		<string>%2$#@bots@</string>
+		<key>bots</key>
+		<dict>
+			<key>NSStringFormatSpecTypeKey</key>
+			<string>NSStringPluralRuleType</string>
+			<key>NSStringFormatValueTypeKey</key>
+			<string>lld</string>
+			<key>one</key>
+			<string>Verbonden als %1$@ · 1 bot</string>
+			<key>other</key>
+			<string>Verbonden als %1$@ · %2$lld bots</string>
+		</dict>
+	</dict>
+	<key>app.settings.categories.summary.bots</key>
+	<dict>
+		<key>NSStringLocalizedFormatKey</key>
+		<string>%1$#@count@</string>
+		<key>count</key>
+		<dict>
+			<key>NSStringFormatSpecTypeKey</key>
+			<string>NSStringPluralRuleType</string>
+			<key>NSStringFormatValueTypeKey</key>
+			<string>lld</string>
+			<key>one</key>
+			<string>1 bot</string>
+			<key>other</key>
+			<string>%1$lld bots</string>
+		</dict>
+	</dict>
+	<key>app.settings.categories.summary.gateways</key>
+	<dict>
+		<key>NSStringLocalizedFormatKey</key>
+		<string>%2$#@count@</string>
+		<key>count</key>
+		<dict>
+			<key>NSStringFormatSpecTypeKey</key>
+			<string>NSStringPluralRuleType</string>
+			<key>NSStringFormatValueTypeKey</key>
+			<string>lld</string>
+			<key>one</key>
+			<string>%1$@ · 1 gateway</string>
+			<key>other</key>
+			<string>%1$@ · %2$lld gateways</string>
+		</dict>
+	</dict>
+	<key>app.settings.categories.summary.notificationKinds</key>
+	<dict>
+		<key>NSStringLocalizedFormatKey</key>
+		<string>%1$#@count@</string>
+		<key>count</key>
+		<dict>
+			<key>NSStringFormatSpecTypeKey</key>
+			<string>NSStringPluralRuleType</string>
+			<key>NSStringFormatValueTypeKey</key>
+			<string>lld</string>
+			<key>one</key>
+			<string>Aan · 1 soort</string>
+			<key>other</key>
+			<string>Aan · %1$lld soorten</string>
+		</dict>
+	</dict>
+	<key>app.settings.gateways.rowHint</key>
+	<dict>
+		<key>NSStringLocalizedFormatKey</key>
+		<string>%1$#@count@</string>
+		<key>count</key>
+		<dict>
+			<key>NSStringFormatSpecTypeKey</key>
+			<string>NSStringPluralRuleType</string>
+			<key>NSStringFormatValueTypeKey</key>
+			<string>lld</string>
+			<key>one</key>
+			<string>Eén gateway</string>
+			<key>other</key>
+			<string>%1$lld gateways</string>
+		</dict>
+	</dict>
+	<key>app.settings.licencesSummary</key>
+	<dict>
+		<key>NSStringLocalizedFormatKey</key>
+		<string>%1$#@count@</string>
+		<key>count</key>
+		<dict>
+			<key>NSStringFormatSpecTypeKey</key>
+			<string>NSStringPluralRuleType</string>
+			<key>NSStringFormatValueTypeKey</key>
+			<string>lld</string>
+			<key>one</key>
+			<string>Er zit 1 pakket in Hermie.</string>
+			<key>other</key>
+			<string>Er zitten %1$lld pakketten in Hermie. Tik er een aan om de licentie te lezen.</string>
+		</dict>
+	</dict>
+	<key>chat.botDm.rollup</key>
+	<dict>
+		<key>NSStringLocalizedFormatKey</key>
+		<string>%3$#@replies@</string>
+		<key>replies</key>
+		<dict>
+			<key>NSStringFormatSpecTypeKey</key>
+			<string>NSStringPluralRuleType</string>
+			<key>NSStringFormatValueTypeKey</key>
+			<string>lld</string>
+			<key>one</key>
+			<string>%1$lld berichten met @%2$@ · 1 antwoord</string>
+			<key>other</key>
+			<string>%1$lld berichten met @%2$@ · %3$lld antwoorden</string>
+		</dict>
+	</dict>
+	<key>chat.botDm.rollupMixed</key>
+	<dict>
+		<key>NSStringLocalizedFormatKey</key>
+		<string>%2$#@replies@</string>
+		<key>replies</key>
+		<dict>
+			<key>NSStringFormatSpecTypeKey</key>
+			<string>NSStringPluralRuleType</string>
+			<key>NSStringFormatValueTypeKey</key>
+			<string>lld</string>
+			<key>one</key>
+			<string>%1$lld berichten · 1 antwoord</string>
+			<key>other</key>
+			<string>%1$lld berichten · %2$lld antwoorden</string>
+		</dict>
+	</dict>
+	<key>chat.clarify.outcome#answered-gte-total</key>
+	<dict>
+		<key>NSStringLocalizedFormatKey</key>
+		<string>%1$#@total@</string>
+		<key>total</key>
+		<dict>
+			<key>NSStringFormatSpecTypeKey</key>
+			<string>NSStringPluralRuleType</string>
+			<key>NSStringFormatValueTypeKey</key>
+			<string>lld</string>
+			<key>one</key>
+			<string>Beantwoord</string>
+			<key>other</key>
+			<string>Alle %1$lld beantwoord</string>
+		</dict>
+	</dict>
+	<key>chat.composer.pendingCount</key>
+	<dict>
+		<key>NSStringLocalizedFormatKey</key>
+		<string>%1$#@count@</string>
+		<key>count</key>
+		<dict>
+			<key>NSStringFormatSpecTypeKey</key>
+			<string>NSStringPluralRuleType</string>
+			<key>NSStringFormatValueTypeKey</key>
+			<string>lld</string>
+			<key>one</key>
+			<string>1 bestand</string>
+			<key>other</key>
+			<string>%1$lld bestanden</string>
+		</dict>
+	</dict>
+	<key>chat.composer.sendWithAttachments</key>
+	<dict>
+		<key>NSStringLocalizedFormatKey</key>
+		<string>%1$#@count@</string>
+		<key>count</key>
+		<dict>
+			<key>NSStringFormatSpecTypeKey</key>
+			<string>NSStringPluralRuleType</string>
+			<key>NSStringFormatValueTypeKey</key>
+			<string>lld</string>
+			<key>one</key>
+			<string>Bericht met 1 bijlage versturen</string>
+			<key>other</key>
+			<string>Bericht met %1$lld bijlagen versturen</string>
+		</dict>
+	</dict>
+	<key>chat.sessions.messages</key>
+	<dict>
+		<key>NSStringLocalizedFormatKey</key>
+		<string>%1$#@count@</string>
+		<key>count</key>
+		<dict>
+			<key>NSStringFormatSpecTypeKey</key>
+			<string>NSStringPluralRuleType</string>
+			<key>NSStringFormatValueTypeKey</key>
+			<string>lld</string>
+			<key>one</key>
+			<string>1 bericht</string>
+			<key>other</key>
+			<string>%1$lld berichten</string>
+		</dict>
+	</dict>
+	<key>chat.subagents.barCount</key>
+	<dict>
+		<key>NSStringLocalizedFormatKey</key>
+		<string>%1$#@count@</string>
+		<key>count</key>
+		<dict>
+			<key>NSStringFormatSpecTypeKey</key>
+			<string>NSStringPluralRuleType</string>
+			<key>NSStringFormatValueTypeKey</key>
+			<string>lld</string>
+			<key>one</key>
+			<string>1 agent bezig</string>
+			<key>other</key>
+			<string>%1$lld agents bezig</string>
+		</dict>
+	</dict>
+	<key>chat.subagents.goals</key>
+	<dict>
+		<key>NSStringLocalizedFormatKey</key>
+		<string>%1$#@count@</string>
+		<key>count</key>
+		<dict>
+			<key>NSStringFormatSpecTypeKey</key>
+			<string>NSStringPluralRuleType</string>
+			<key>NSStringFormatValueTypeKey</key>
+			<string>lld</string>
+			<key>one</key>
+			<string>1 doel</string>
+			<key>other</key>
+			<string>%1$lld doelen</string>
+		</dict>
+	</dict>
+	<key>chat.subagents.working</key>
+	<dict>
+		<key>NSStringLocalizedFormatKey</key>
+		<string>%1$#@count@</string>
+		<key>count</key>
+		<dict>
+			<key>NSStringFormatSpecTypeKey</key>
+			<string>NSStringPluralRuleType</string>
+			<key>NSStringFormatValueTypeKey</key>
+			<string>lld</string>
+			<key>one</key>
+			<string>1 agent bezig · %2$@</string>
+			<key>other</key>
+			<string>%1$lld agents bezig · %2$@</string>
+		</dict>
+	</dict>
+	<key>chat.voice.codeBlock</key>
+	<dict>
+		<key>NSStringLocalizedFormatKey</key>
+		<string>%1$#@lines@</string>
+		<key>lines</key>
+		<dict>
+			<key>NSStringFormatSpecTypeKey</key>
+			<string>NSStringPluralRuleType</string>
+			<key>NSStringFormatValueTypeKey</key>
+			<string>lld</string>
+			<key>one</key>
+			<string>Codeblok, 1 regel</string>
+			<key>other</key>
+			<string>Codeblok, %1$lld regels</string>
+		</dict>
+	</dict>
+	<key>kanban.boardCards</key>
+	<dict>
+		<key>NSStringLocalizedFormatKey</key>
+		<string>%1$#@count@</string>
+		<key>count</key>
+		<dict>
+			<key>NSStringFormatSpecTypeKey</key>
+			<string>NSStringPluralRuleType</string>
+			<key>NSStringFormatValueTypeKey</key>
+			<string>lld</string>
+			<key>one</key>
+			<string>1 kaart</string>
+			<key>other</key>
+			<string>%1$lld kaarten</string>
+		</dict>
+	</dict>
+	<key>mcp.testOk</key>
+	<dict>
+		<key>NSStringLocalizedFormatKey</key>
+		<string>%1$#@count@</string>
+		<key>count</key>
+		<dict>
+			<key>NSStringFormatSpecTypeKey</key>
+			<string>NSStringPluralRuleType</string>
+			<key>NSStringFormatValueTypeKey</key>
+			<string>lld</string>
+			<key>one</key>
+			<string>Verbonden. 1 tool beschikbaar.</string>
+			<key>other</key>
+			<string>Verbonden. %1$lld tools beschikbaar.</string>
+		</dict>
+	</dict>
+	<key>mcp.toolCount</key>
+	<dict>
+		<key>NSStringLocalizedFormatKey</key>
+		<string>%1$#@count@</string>
+		<key>count</key>
+		<dict>
+			<key>NSStringFormatSpecTypeKey</key>
+			<string>NSStringPluralRuleType</string>
+			<key>NSStringFormatValueTypeKey</key>
+			<string>lld</string>
+			<key>one</key>
+			<string>1 tool</string>
+			<key>other</key>
+			<string>%1$lld tools</string>
+		</dict>
+	</dict>
+	<key>memory.raw.chars</key>
+	<dict>
+		<key>NSStringLocalizedFormatKey</key>
+		<string>%1$#@chars@</string>
+		<key>chars</key>
+		<dict>
+			<key>NSStringFormatSpecTypeKey</key>
+			<string>NSStringPluralRuleType</string>
+			<key>NSStringFormatValueTypeKey</key>
+			<string>lld</string>
+			<key>one</key>
+			<string>1 teken</string>
+			<key>other</key>
+			<string>%1$lld tekens</string>
+		</dict>
+	</dict>
+	<key>memory.search.count</key>
+	<dict>
+		<key>NSStringLocalizedFormatKey</key>
+		<string>%1$#@found@</string>
+		<key>found</key>
+		<dict>
+			<key>NSStringFormatSpecTypeKey</key>
+			<string>NSStringPluralRuleType</string>
+			<key>NSStringFormatValueTypeKey</key>
+			<string>lld</string>
+			<key>one</key>
+			<string>1 notitie</string>
+			<key>other</key>
+			<string>%1$lld notities</string>
+		</dict>
+	</dict>
+	<key>profiles.capabilities.toolCount</key>
+	<dict>
+		<key>NSStringLocalizedFormatKey</key>
+		<string>%1$#@count@</string>
+		<key>count</key>
+		<dict>
+			<key>NSStringFormatSpecTypeKey</key>
+			<string>NSStringPluralRuleType</string>
+			<key>NSStringFormatValueTypeKey</key>
+			<string>lld</string>
+			<key>one</key>
+			<string>1 tool</string>
+			<key>other</key>
+			<string>%1$lld tools</string>
+		</dict>
+	</dict>
+</dict>
+</plist>
