@@ -75,8 +75,21 @@ import Testing
   }
 
   @Test func appendingDeltasInPlaceIsLinear() {
-    let (small, smallLength) = Self.appendInPlace(deltas: 10_000, filler: 500)
-    let (large, largeLength) = Self.appendInPlace(deltas: 20_000, filler: 500)
+    // The two sizes take turns and the fastest round of each counts: the other
+    // suites run alongside, and one timing of each let a burst of load land on
+    // the large size alone.
+    var small = Double.infinity
+    var large = Double.infinity
+    var smallLength = 0
+    var largeLength = 0
+    for _ in 0..<5 {
+      let (smallTime, smallBytes) = Self.appendInPlace(deltas: 10_000, filler: 500)
+      let (largeTime, largeBytes) = Self.appendInPlace(deltas: 20_000, filler: 500)
+      small = min(small, smallTime)
+      large = min(large, largeTime)
+      smallLength = smallBytes
+      largeLength = largeBytes
+    }
     print(
       String(
         format: "in-place append: 10,000 deltas %.3f s, 20,000 deltas %.3f s (ratio %.2f), text %d → %d bytes",
