@@ -462,6 +462,18 @@ public actor GatewayConnection {
       return
     }
 
+    // Re-check after the suspension: the socket may have closed between
+    // `gateway.ready` resolving the waiter and this dial resuming. That close
+    // found no waiter and a phase that was not `ready` yet, so nothing handled
+    // it; publishing `ready` now would sit on a dead socket for good. The close
+    // code it recorded is classified as any other (4401, 4403/4404/4408).
+    // JavaScript resumes the dial in the same tick, so the reference cannot
+    // see this window.
+    guard clientState == .open, socket?.channel != nil else {
+      handleFailure(GatewayError(.network, "The gateway connection dropped.", closeCode: lastCloseCode))
+      return
+    }
+
     attempt = 0
     consecutiveAuthFailures = 0
     consecutiveTicketRejections = 0

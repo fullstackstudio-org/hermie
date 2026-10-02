@@ -42,6 +42,8 @@ final class FakeGateway: WebSocketTransport {
     var redirectUpgrade: GatewayError?
     /// Open, but no `gateway.ready` is ever sent.
     var silent = false
+    /// Sent right after `gateway.ready`, in the same breath: the socket closes.
+    var closeAfterReady: WebSocketClosed?
     /// `gateway.ready` advertises the heartbeat.
     var advertiseHeartbeat = true
     /// `gateway.ping` is answered.
@@ -145,7 +147,9 @@ final class FakeGateway: WebSocketTransport {
       return socket
     }
 
-    let (silent, epoch, heartbeat) = with { ($0.silent, $0.replayEpoch, $0.advertiseHeartbeat) }
+    let (silent, epoch, heartbeat, closeAfterReady) = with {
+      ($0.silent, $0.replayEpoch, $0.advertiseHeartbeat, $0.closeAfterReady)
+    }
 
     if !silent {
       socket.serverSend([
@@ -158,6 +162,10 @@ final class FakeGateway: WebSocketTransport {
           ]
         ]
       ])
+    }
+
+    if let closeAfterReady {
+      socket.serverClose(code: closeAfterReady.code, reason: closeAfterReady.reason)
     }
 
     return socket
