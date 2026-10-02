@@ -43,3 +43,16 @@ body {
 .placeholder p {
   color: var(--hermie-secondary);
 }
+
+/* The boot screens (`main.tsx`) and the frame refusal (`boot/frame-guard.ts`). */
+.boot,
+.frame-refused {
+  box-sizing: border-box;
+  max-width: 32rem;
+  margin: 0 auto;
+  padding: 2rem 1.5rem;
+}
+
+.boot p {
+  color: var(--hermie-secondary);
+}
