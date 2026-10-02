@@ -3,7 +3,7 @@
 import PackageDescription
 
 // Everything the Apple apps and their extensions share, as one package with one
-// target per layer. The dependency graph is the one in the native rewrite plan
+// target per layer. The dependency graph is the one in docs/native.md
 // and is part of the design: the engine, the protocol and the stores know
 // nothing about SwiftUI, extensions link `HermieShared` (and `HermieStore` for
 // the keychain) and nothing else, and only `HermieUI` draws.

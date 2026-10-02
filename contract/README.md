@@ -219,7 +219,7 @@ need the network) and why.
 
 ## `push/contract.json`
 
-Hand-written, per plan decision D31: the notification category
+Hand-written: the notification category
 `hermie.request` with actions `hermie.request.allow` / `hermie.request.deny`,
 the data key `requestId`, the seven types, Android channel ids equal to the type
 names, and the data payload's field list with types. It is the target every

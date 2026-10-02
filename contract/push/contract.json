@@ -1,5 +1,5 @@
 {
-  "$comment": "Hand-written, not generated. The one push contract every sender (gateway plugin, Hermie Web, the relay) and both app generations conform to. See contract/README.md and the native-rewrite plan, decision D31.",
+  "$comment": "Hand-written, not generated. The one push contract every sender (gateway plugin, Hermie Web, the relay) and both app generations conform to. See contract/README.md.",
   "version": 1,
   "types": ["message", "request", "cron", "cron_done", "cron_failed", "turn_done", "turn_failed"],
   "legacyTypes": {
