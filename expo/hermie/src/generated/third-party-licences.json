@@ -1,7 +1,7 @@
 {
   "generatedBy": "scripts/generate-third-party-licenses.mjs",
   "scope": "production dependencies of expo/hermie",
-  "excludesWorkspacePackages": ["@hermes/shared", "@hermie/gateway-client", "@hermie/transcript"],
+  "excludesWorkspacePackages": ["@hermes/shared", "@hermie/gateway-client", "@hermie/markdown", "@hermie/transcript"],
   "packages": [
     {
       "name": "@0no-co/graphql.web",

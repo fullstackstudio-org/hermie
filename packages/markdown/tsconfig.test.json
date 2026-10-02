@@ -1,0 +1,21 @@
+{
+  // The tests, which the package's own tsconfig cannot check.
+  //
+  // `tsconfig.json` keeps `types` empty so nothing in `src/` can reach for Node,
+  // the DOM or React, and so it excludes the tests; the replay of
+  // `contract/markdown` reads files and needs Node's types. This project checks
+  // the tests with them and emits nothing. It is not composite and not
+  // referenced from the root `tsconfig.json`; the root `typecheck` script runs
+  // it as a separate pass, as it does for `packages/hermie-web`.
+  "extends": "./tsconfig.json",
+  "compilerOptions": {
+    "composite": false,
+    "declaration": false,
+    "declarationMap": false,
+    "emitDeclarationOnly": false,
+    "noEmit": true,
+    "types": ["node"]
+  },
+  "include": ["src/**/*.ts"],
+  "exclude": []
+}

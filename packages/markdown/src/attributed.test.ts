@@ -15,7 +15,9 @@
  *  - **Adjacent runs of one style are merged.** Each run crosses the bridge as
  *    its own dictionary, and marked splits a sentence at every escape.
  */
-import { runsToPlainText, selectableRuns } from '../src/markdown/attributed'
+import { describe, expect, it } from 'vitest'
+
+import { runsToPlainText, selectableRuns } from './attributed'
 
 const blocksOf = (markdown: string) => selectableRuns(markdown).map(run => run.block)
 const textOf = (markdown: string) => runsToPlainText(selectableRuns(markdown))

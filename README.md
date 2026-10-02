@@ -641,6 +641,7 @@ apps/desktop             the desktop shell: a window onto a Hermie Web
 packages/hermes-shared   protocol sources vendored from Hermes Agent
 packages/gateway-client  connection state machine, credentials, PKCE — no React
 packages/transcript      the chat engine: item model, reducer, reconciliation, selectors
+packages/markdown        the Markdown core: lexer setup, block model, highlighting, math and Mermaid layout — no React
 packages/hermie-web      Hermie Web: the server that serves the browser build and proxies the gateway
 packages/fake-gateway    a gateway stand-in for tests and offline development
 deploy/web               how to run Hermie Web on your own server

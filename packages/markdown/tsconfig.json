@@ -1,0 +1,14 @@
+{
+  "extends": "../../tsconfig.base.json",
+  "compilerOptions": {
+    // Text in, data out: no DOM, no Node, no React. Keeping the lib this narrow
+    // is what stops a browser-only or Node-only API sneaking in. The tests are
+    // checked by `tsconfig.test.json`, which adds Node's types for them.
+    "lib": ["ES2023"],
+    "types": [],
+    "outDir": "./dist",
+    "rootDir": "./src"
+  },
+  "include": ["src/**/*.ts"],
+  "exclude": ["src/**/*.test.ts"]
+}

@@ -228,11 +228,12 @@ Four files of cases, each an array of `{ "name", "input", "preprocessed",
 "blocks" }`: `blocks` (every block kind), `inline` (emphasis, code, links,
 tildes, mathematics), `preprocess` (the Hermes-specific rewrites) and
 `streaming` (every prefix of three replies, cut at each line end and halfway
-through each line). The inputs live in `scripts/golden/markdown-corpus.ts`.
+through each line). The inputs live in `scripts/golden/markdown-corpus.ts`;
+`packages/markdown/src/contract.test.ts` replays the recorded files against the package.
 
 `preprocessed` is `preprocessMarkdown(input)`, and a port compares it as a
-string. `blocks` is what the Expo renderer draws from it (`splitBlocks`, then
-`marked.lexer` per block), in a neutral shape that does not mention marked:
+string. `blocks` is what a renderer draws from it (`blockModelOf` in `packages/markdown`:
+`splitBlocks`, then `marked.lexer` per block), in a neutral shape that does not mention marked:
 `paragraph`/`heading` carry `inline`, a list its `ordered`, `start` (ordered
 only) and `items` with `checked` (task items only) and `blocks`, a table its
 `align`, `header` and `rows`, `code` its `language` and `text`, and `mermaid`

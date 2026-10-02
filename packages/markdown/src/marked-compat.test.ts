@@ -16,8 +16,9 @@
  * where the rewrite stopped selecting the pattern.
  */
 import { Lexer } from 'marked'
+import { describe, expect, it } from 'vitest'
 
-import { withoutAmbiguousCodeRuns, withoutSingleTildeStrikethrough } from '../src/markdown/marked-compat'
+import { withoutAmbiguousCodeRuns, withoutSingleTildeStrikethrough } from './marked-compat'
 
 /** marked's own rule, as published, before this app touches it. */
 const ORIGINAL =

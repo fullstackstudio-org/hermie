@@ -16,7 +16,7 @@ installs only the ones a given machine can run, so a list that included them wou
 machine that generated it and could not be checked on another.
 
 Nor are this repository's own workspace packages in it —
-`@hermes/shared`, `@hermie/gateway-client`, `@hermie/transcript` — because they are Hermie source code under
+`@hermes/shared`, `@hermie/gateway-client`, `@hermie/markdown`, `@hermie/transcript` — because they are Hermie source code under
 the licence in [LICENSE](LICENSE). Their own dependencies _are_ in the list, because those ship.
 
 Code copied or ported into this repository is a different obligation and is listed in
