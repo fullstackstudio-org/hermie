@@ -1,6 +1,6 @@
 import { type AuthTimelineSink, NULL_AUTH_TIMELINE } from './auth-timeline'
 import { type FetchLike, type JsonResponse, parseJsonObject, requestText } from './fetch-json'
-import { type TokenCoordinator } from './native-auth'
+import { revokeNativeGrant, type TokenCoordinator } from './native-auth'
 import { notHermesHint } from './probe'
 import { apiUrl, normalizeHeaders } from './url'
 import { type DialPlan, type GatewayAuthMode, GatewayError } from './types'
@@ -55,6 +55,8 @@ export interface NativePkceCredentialsOptions {
   fetchImpl?: FetchLike
   /** Where the mint record goes, so a 4401 can be read next to the ticket it refused. */
   timeline?: AuthTimelineSink
+  /** How long `signOut` may wait on the gateway. Defaults to `NATIVE_REVOKE_TIMEOUT_MS`. */
+  revokeTimeoutMs?: number
 }
 
 /**
@@ -105,8 +107,29 @@ export class NativePkceCredentials implements CredentialProvider {
     return refreshed ? 'retry' : 'reauth'
   }
 
+  /**
+   * End the grant at the gateway where it can, then forget it here.
+   *
+   * The refresh token and provider are read BEFORE the wipe, because the wipe is
+   * what deletes them. The revoke is best effort and bounded by
+   * `NATIVE_REVOKE_TIMEOUT_MS` (see `revokeNativeGrant`): a gateway that is down,
+   * slow or too old to have the route costs at most that long, and the local
+   * wipe happens whatever it answered.
+   */
   async signOut(): Promise<void> {
-    await this.options.coordinator.clear()
+    try {
+      const tokens = await this.options.coordinator.current().catch(() => null)
+
+      if (tokens) {
+        await revokeNativeGrant(this.options.baseUrl, tokens, {
+          extraHeaders: this.options.extraHeaders ?? {},
+          ...(this.options.fetchImpl ? { fetchImpl: this.options.fetchImpl } : {}),
+          ...(this.options.revokeTimeoutMs === undefined ? {} : { timeoutMs: this.options.revokeTimeoutMs })
+        })
+      }
+    } finally {
+      await this.options.coordinator.clear()
+    }
   }
 }
 

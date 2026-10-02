@@ -1,5 +1,6 @@
 import { type AuthEventRecorder, type AuthTimelineSink, NULL_AUTH_TIMELINE } from './auth-timeline'
 import { type FetchLike, parseJsonObject, requestText } from './fetch-json'
+import { NATIVE_REVOKE_FLOW } from './probe'
 import { apiUrl, normalizeHeaders } from './url'
 import { GatewayError, type GatewayErrorKind, isGatewayError } from './types'
 
@@ -162,6 +163,97 @@ export async function refreshTokens(
   }
 
   return toTokenSet(parseJsonObject(response.text, url, 'protocol'), url)
+}
+
+/**
+ * How long a sign-out waits for the gateway to hear about it, in total.
+ *
+ * Short, because the wipe that follows is the part the reader asked for and it
+ * must not sit behind a gateway that is down, or a network that swallows
+ * packets. Both requests below share this one budget.
+ */
+export const NATIVE_REVOKE_TIMEOUT_MS = 3_000
+
+/**
+ * Ask the gateway to end this grant at the identity provider. Best effort, and
+ * it never throws.
+ *
+ * Without this a sign-out only deleted the tokens on this device: the refresh
+ * token stayed valid at the provider until it expired by itself, so a copy of
+ * it taken from a backup or a lost device kept working.
+ *
+ * **Only where the route exists.** A gateway that has `POST /auth/native/revoke`
+ * says so with `native_revoke` in the `auth_flows` of `/api/status`. That list
+ * is read here, at sign-out, rather than carried from the probe: it is one
+ * request on an action somebody takes rarely, it costs nothing on every start,
+ * and it answers for the gateway as it is now rather than as it was when the
+ * address was set up. Without the flow nothing is sent.
+ *
+ * **What goes out.** `{refresh_token, provider}` and the extra headers a front
+ * door needs to pass the edge — no `Authorization`: the route is public, and
+ * the refresh token in the body is the whole of the proof. Both requests refuse
+ * to follow a redirect (`requestText`'s default), because the body is a
+ * credential and a 30x must not hand it to the host it names.
+ *
+ * **How long.** Both requests share `timeoutMs` (default
+ * `NATIVE_REVOKE_TIMEOUT_MS`), and this resolves when the budget is spent even
+ * if the platform's `fetch` ignores the abort.
+ */
+export async function revokeNativeGrant(
+  baseUrl: string,
+  tokens: Pick<TokenSet, 'refreshToken' | 'provider'>,
+  options: NativeAuthOptions = {}
+): Promise<void> {
+  // The gateway answers 400 to either one missing; there is nothing to send.
+  if (!tokens.refreshToken || !tokens.provider) {
+    return
+  }
+
+  const budget = options.timeoutMs ?? NATIVE_REVOKE_TIMEOUT_MS
+  const controller = new AbortController()
+  const request = {
+    headers: normalizeHeaders(options.extraHeaders),
+    fetchImpl: options.fetchImpl,
+    timeoutMs: budget,
+    signal: controller.signal
+  }
+
+  const attempt = (async () => {
+    const statusUrl = apiUrl(baseUrl, '/api/status')
+    const status = await requestText(statusUrl, request)
+
+    if (!status.ok) {
+      return
+    }
+
+    const flows = parseJsonObject(status.text, statusUrl, 'protocol').auth_flows
+
+    if (!Array.isArray(flows) || !flows.includes(NATIVE_REVOKE_FLOW)) {
+      return
+    }
+
+    await requestText(apiUrl(baseUrl, '/auth/native/revoke'), {
+      ...request,
+      method: 'POST',
+      body: { refresh_token: tokens.refreshToken, provider: tokens.provider }
+    })
+  })().catch(() => {
+    // Best effort: whatever the gateway said, the device still signs out.
+  })
+
+  let timer: ReturnType<typeof setTimeout> | undefined
+  const deadline = new Promise<void>(resolve => {
+    timer = setTimeout(() => {
+      controller.abort()
+      resolve()
+    }, budget)
+  })
+
+  try {
+    await Promise.race([attempt, deadline])
+  } finally {
+    clearTimeout(timer)
+  }
 }
 
 /** True once the access token is inside the proactive-refresh window. */

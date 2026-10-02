@@ -244,6 +244,16 @@ export interface FakeGatewayOptions {
    */
   redirectTo?: string
   /**
+   * Whether the gateway has `POST /auth/native/revoke`.
+   *
+   * Default true, as a gated gateway of our fork answers: `native_revoke` in
+   * `auth_flows` and a public route that ends a native grant. `false` stages a
+   * gateway that predates the route: not advertised, and a POST there falls
+   * through to the auth gate like any path this gateway does not serve. That is
+   * the gateway a sign-out must leave alone.
+   */
+  nativeRevoke?: boolean
+  /**
    * Whether an accepted `session.steer` writes a `display_kind: "steer"` row.
    *
    * Default true, because that is the harder case for a client: it has its own
@@ -682,6 +692,12 @@ export interface FakeGatewayState {
   spentRefreshTokens: Set<string>
   /** Refresh calls that presented an already-rotated token. */
   refreshReuseAttempts: number
+  /**
+   * Every `POST /auth/native/revoke` this gateway answered, oldest first: what
+   * the body named and whether an `Authorization` header came with it (the
+   * route is public, so a client has no reason to send one).
+   */
+  revokeCalls: { refreshToken: string; provider: string; authorization: boolean }[]
   /** `session.events.since` calls, newest last. */
   eventsSinceCalls: { session_id: string; last_seen: number }[]
   /** Every JSON-RPC method the server handled, in order. */
@@ -2327,6 +2343,7 @@ function initialState(options: FakeGatewayOptions): FakeGatewayState {
     ticketMintsFailed: 0,
     spentRefreshTokens: new Set<string>(),
     refreshReuseAttempts: 0,
+    revokeCalls: [],
     eventsSinceCalls: [],
     methodLog: [],
     truncateNextReplay: false,
@@ -2693,6 +2710,8 @@ export async function startFakeGateway(options: FakeGatewayOptions = {}): Promis
   }
 
   const gated = () => state.auth === 'native' || state.auth === 'cookie'
+  /** `native_revoke` is advertised, and its route answers, on a gated gateway that has it. */
+  const revokes = () => gated() && options.nativeRevoke !== false
   const publicHost = options.publicHost ?? ''
   const passwordAccount = options.password ?? { username: 'tester', password: 'hunter2' }
   /**
@@ -3196,7 +3215,11 @@ export async function startFakeGateway(options: FakeGatewayOptions = {}): Promis
         active_sessions: state.sessions.size,
         auth_required: gated(),
         auth_providers: gated() ? ['self-hosted'] : [],
-        auth_flows: state.auth === 'cookie' ? ['cookie'] : gated() ? ['cookie', 'native_pkce'] : [],
+        auth_flows: [
+          ...(state.auth === 'cookie' ? ['cookie'] : gated() ? ['cookie', 'native_pkce'] : []),
+          // Upstream appends it in every gated mode, after the other two.
+          ...(revokes() ? ['native_revoke'] : [])
+        ],
         // `status.py` puts the TOPOLOGY rows here, not a list of names. Nothing
         // in the app reads them, which is exactly why the fake could get away
         // with a different type for as long as it did.
@@ -3309,6 +3332,39 @@ export async function startFakeGateway(options: FakeGatewayOptions = {}): Promis
       refreshTokens.delete(token)
       state.spentRefreshTokens.add(token)
       json(res, 200, issueTokens(known.provider, known.userId))
+
+      return
+    }
+
+    if (path === '/auth/native/revoke' && method === 'POST' && revokes()) {
+      /*
+        `dashboard_auth/routes.py` `auth_native_revoke`: public, no bearer read,
+        and `200 {"ok": true}` for every well-formed request whatever the token
+        was — the answer must not tell a caller whether a token was live. A
+        missing token or provider is the one 400.
+      */
+      const body = await readBody(req)
+      const token = typeof body.refresh_token === 'string' ? body.refresh_token : ''
+      const provider = typeof body.provider === 'string' ? body.provider : ''
+
+      state.revokeCalls.push({ refreshToken: token, provider, authorization: req.headers.authorization !== undefined })
+
+      if (!token) {
+        json(res, 400, { detail: 'refresh_token required' })
+
+        return
+      }
+
+      if (!provider) {
+        json(res, 400, { detail: 'provider required: send the provider name returned with the token' })
+
+        return
+      }
+
+      // The grant is over: the refresh token stops rotating, as it would at an
+      // identity provider that revoked it.
+      refreshTokens.delete(token)
+      json(res, 200, { ok: true })
 
       return
     }

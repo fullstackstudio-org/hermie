@@ -55,6 +55,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   sends everything regardless, for a gateway whose plugin is gone but whose advert was left behind.
 - **Hermie Web's Expo notifications name an Android channel per type.** Expo app 0.1.9 has no such
   channels, so on Android it shows them on the system's fallback channel until it is updated.
+- **The gateway client's native sign-out ends the sign-in at the gateway too.**
+  `NativePkceCredentials.signOut` used to delete the tokens only, and the sign-in stayed valid at
+  the identity provider until it expired. On a gateway that advertises `native_revoke`, it now
+  first sends the refresh token to `POST /auth/native/revoke`. That call is best effort and waits
+  at most three seconds; the tokens are deleted whatever it answers. The fake gateway serves the
+  route (`--no-native-revoke` stages a gateway without it).
 
 ### Fixed
 

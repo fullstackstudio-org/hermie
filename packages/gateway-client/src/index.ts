@@ -94,8 +94,10 @@ export {
   type AccessTokenOptions,
   exchangeCode,
   type NativeAuthOptions,
+  NATIVE_REVOKE_TIMEOUT_MS,
   REFRESH_SKEW_SECONDS,
   refreshTokens,
+  revokeNativeGrant,
   TokenCoordinator,
   type TokenCoordinatorOptions,
   type TokenSet,
@@ -126,6 +128,7 @@ export {
 export {
   type AuthProvider,
   NATIVE_PKCE_FLOW,
+  NATIVE_REVOKE_FLOW,
   PROBE_TIMEOUT_MS,
   probeGateway,
   type ProbeResult,

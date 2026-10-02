@@ -18,6 +18,7 @@ const { values } = parseArgs({
     'profile-display-name': { type: 'string' },
     'no-turn-claim': { type: 'boolean', default: false },
     'no-push-relay': { type: 'boolean', default: false },
+    'no-native-revoke': { type: 'boolean', default: false },
     host: { type: 'string', default: '127.0.0.1' },
     help: { type: 'boolean', default: false }
   }
@@ -47,6 +48,8 @@ if (values.help) {
       '                          route, staging a plugin older than turn claims',
       '  --no-push-relay         drop the `push.relay` capability, staging a notifier that',
       '                          cannot deliver to a relay registration',
+      '  --no-native-revoke      drop `native_revoke` from auth_flows and stop serving',
+      '                          /auth/native/revoke, staging a gateway older than the route',
       '',
       'Prompts steer the built-in scenario: "approve" raises an approval request,',
       '"delegate" fans out subagent events, anything else streams a reply with a tool call.',
@@ -97,7 +100,8 @@ const gateway = await startFakeGateway({
   ...(values['no-plugin'] ? { plugin: false as const } : {}),
   ...(displayName ? { profileDisplayName: displayName } : {}),
   ...(values['no-turn-claim'] ? { turnClaim: false as const } : {}),
-  ...(values['no-push-relay'] ? { pushRelay: false as const } : {})
+  ...(values['no-push-relay'] ? { pushRelay: false as const } : {}),
+  ...(values['no-native-revoke'] ? { nativeRevoke: false as const } : {})
 })
 
 console.log(`fake gateway listening on ${gateway.url} (auth: ${auth})`)
