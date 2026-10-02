@@ -10,8 +10,9 @@ layout and the parity rule). [native/README.md](../native/README.md) has the dir
 milestones.
 
 **Where things stand.** The transcript engine, the gateway client (connection, sign-in, REST), the
-stores and the session runtime (`GatewaySession`, `TranscriptStore`, `BotRoster`) are written and
-tested; the app shell, the settings and the chat screens are being built.
+stores, the session runtime (`GatewaySession`, `TranscriptStore`, `BotRoster`), the sync engine,
+setup and sign-in, the app shell, the chat list, the chat screen with its composer and the answers
+to what a bot asks are written and tested.
 Anything below that says "will" describes a rule for code that has not been written yet.
 
 ## What you need
@@ -313,6 +314,17 @@ which still hands it to the center so the chat can say the bot asked for somethi
 show. The chat screen mounts it with `.secureInput(SecureInputModel(session:bot:))`; the chat list
 reads `session.secureInput.needsInput(bot)` for its marker.
 
+`LiveGateway` (`HermieCore/LiveGateway.swift`) is the app's one live session (ADR-0024). The app
+shell builds it next to `GatewayAccounts`; it follows the registry's active gateway once
+`AppLaunch.start()` has finished (`AppLaunch.ready`), shuts the old session down before it builds
+the next, and never writes the registry or a credential. It loads credentials only through
+`GatewayAccounts.access(for:)` (the sync engine's `storedCredentials(of:)`) and takes a native
+gateway's token coordinator from `GatewayAccounts.coordinator(for:)`, the one per gateway. A
+gateway with nothing to sign in with, or whose credentials still belong to an origin it moved away
+from, is `signedOut`. It rebuilds the session when the gateway's `credentialsRevision` moves (a
+sign-in, a sign-out, a removal) and sets `GatewayAccounts.endSession`, so a sign-out or a removal
+ends the socket first.
+
 ### Known divergences
 
 The port answers like the TypeScript on every input the TypeScript tests use. On malformed or
@@ -356,7 +368,10 @@ under [What is still open](#what-is-still-open).
 - **A delta re-renders one row.** `TranscriptListRow` is `Equatable` on its item, and
   `TranscriptRow` compares in O(1) on a stamp taken when it is built: the id, the item's `version`, the
   presentation, and whether the selectors took the thought away. This relies on the engine's rule
-  that every mutation of an item bumps its `version`.
+  that every mutation of an item bumps its `version`, which `VersionContractTests` holds the port
+  to: it replays every recorded engine call and every stream scenario and fails when a visible item
+  changes between two states without a new version. `seq` alone may change (a tail reconcile
+  renumbers it); no row draws it.
 - **Nothing walks the rows on the main actor.** SwiftUI compares every stored `Equatable` property
   of a view it updates, field by field into structs, and the setter of an `@Observable` property
   compares old and new with `==`. A `[TranscriptRow]` held in either place is walked in full on every
@@ -431,6 +446,44 @@ How much to trust them:
   and it does not change when the reply is drawn as plain `Text` instead of Markdown. It comes from
   how SwiftUI renders a tall view that changes 30 times a second. Splitting a long reply into several
   rows would bound it.
+
+### The chat screens
+
+`ChatListScreen` (`HermieUI/ChatList`) and `ChatScreen` (`HermieUI/Chat`) fill the shell's `chatList`
+and `chat` seams. Both read the session from `LiveGateway` in the environment.
+
+- **Per delta, the main actor assigns two references.** The session publishes one `ChatSnapshot`
+  per frame into `ChatModel`, whose `snapshot` is observed by hand so the `@Observable` setter does
+  not compare two transcripts. `ChatFeed` watches the snapshot's `revision`, builds rows in a
+  `ChatRowPipeline` actor (`TranscriptRowBuilder`, Markdown included) and assigns them as one
+  `TranscriptListItems`. Only `ChatTranscript` reads the rows; the title, the banners and the
+  composer do not change with a delta.
+- **Opening.** `GatewaySession.open` hydrates in full, so the feed calls it only when the chat is
+  cold, cached or failed and the socket is ready; a failed open is tried again once per return of
+  the connection and by "Try again". The banner over both screens comes from the session's status,
+  never from a chat's `stale`, and waits a moment before it shows.
+- **History** loads through `TranscriptListState.onNearTop` and `ChatModel.loadOlder`, one page at a
+  time, until the answer is not `grew`.
+- **Read marks** move while the newest row is on screen and the window is in front, and once more
+  when the screen goes away.
+- **The composer and the answers.** One `ComposerModel`, `RequestsModel` and `SecureInputModel` per
+  open chat screen (`ChatFeed`). `ChatScreen(chat:)` places `StandardComposer` (`ComposerView` with
+  the request and secure-prompt notices above it) with `safeAreaInset`; `ChatScreen(chat:actions:
+composer:)` takes another, handed a `ChatComposerContext`. The transcript answers through
+  `.answeringRequests(with:actions:)` and `.secureInput(_:)`; a bot-to-bot row opens the other
+  bot's chat through the router. `ComposerPlaceholder`, a disabled field, stands in only while
+  there is no session.
+- **The session's facts.** The user bubbles know the reader by `GatewaySession.ownAuthorID`. The
+  gateway's notices are dismissible lines (the account's over the list, a chat's own over it),
+  a connector authorisation is a card with Open, Skip and Cancel, and the list says when this
+  client is anonymous on the gateway.
+
+`ChatScreenUITests` (in `HermieShellUITests`) runs the first build's path against a fake gateway
+that `test.sh --ui` starts on the Mac (`HERMIE_CHAT_GATEWAY`): set the gateway up in the wizard
+with its token, see the bots, open a chat, send, watch the reply stream (failing if any row that was
+on screen before was drawn again), stop it, and answer an approval raised through
+`/__fake/request`. It reads the render counts through `ChatTestProbe`, which exists only in a debug
+build launched by a UI test.
 
 ### The lab
 
@@ -509,8 +562,8 @@ session token, native PKCE sign-in without a web view through rotation and revoc
 ticket minting, redirect refusal between the gateway and a second local listener, and the plugin
 routes, the WebSocket connection, and the session runtime (`SessionRuntimeIntegrationTests`: a cold
 start from the cache, a streamed turn, an approval, a socket dropped mid-turn, history paging). UI
-smoke tests on the simulator will use a fake gateway started by
-the test script on the host.
+smoke tests on the simulator use a fake gateway that `test.sh --ui` starts on the host
+(`ChatScreenUITests`).
 
 To try the fake gateway by hand:
 
