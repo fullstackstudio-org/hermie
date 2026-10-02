@@ -1651,6 +1651,7 @@ export async function startHermieWeb(input: StartOptions = {}): Promise<HermieWe
           vapidSubject: options.vapidSubject,
           version: options.version,
           serverRequests: options.pushServerRequests,
+          relays: options.pushRelays,
           cache,
           /*
             The operator's per-person rules, read at send time (ADR-0025 part

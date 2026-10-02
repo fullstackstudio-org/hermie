@@ -63,8 +63,25 @@ describe('one advert', () => {
   it('survives an advert with every optional field missing', () => {
     const advert = pluginAdvertOf({ v: 1 })
 
-    expect(advert).toEqual({ version: '', capabilities: [], modules: {}, limits: {}, updatedAt: 0 })
+    expect(advert).toEqual({ version: '', capabilities: [], modules: {}, limits: {}, relayOrigins: [], updatedAt: 0 })
     expect(hasPluginCapability(advert, PLUGIN_CAPABILITIES.pushExpo)).toBe(false)
+  })
+
+  it('reads the relay origins the plugin posts to, normalised, https only, once each', () => {
+    const advert = pluginAdvertOf({
+      ...PLUGIN_ADVERT,
+      relayOrigins: [
+        'https://push.hermie.dev/',
+        'http://relay.example.org',
+        'https://relay.example.org',
+        'https://PUSH.hermie.dev',
+        'https://relay.example.org/v1/send',
+        42
+      ]
+    })
+
+    expect(advert?.relayOrigins).toEqual(['https://push.hermie.dev', 'https://relay.example.org'])
+    expect(pluginAdvertOf({ v: 1, relayOrigins: 'https://push.hermie.dev' })?.relayOrigins).toEqual([])
   })
 
   it('tells a module that is switched off from one that is merely planned', () => {

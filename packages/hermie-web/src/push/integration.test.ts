@@ -108,6 +108,9 @@ const start = async (
   gateway = await startFakeGateway({
     port: 0,
     streamDelayMs: 1,
+    // No `hermie` plugin: the gateway this daemon is the notifier for. With
+    // one, the daemon stands down (see `plugin-standdown.test.ts`).
+    plugin: false,
     pushRegistrations: options.registrations ?? { phone: expoRegistration() },
     ...(options.seen ? { pushSeen: options.seen } : {})
   })
@@ -222,8 +225,9 @@ describe('a registration, an event, one push', () => {
     const body = expoBody(outgoing[0] as OutgoingPush)
 
     expect(body.body).toBe('is waiting for your approval')
-    expect(body.categoryId).toBe('hermie.approval')
-    expect((body.data as Record<string, string>).request).toBeTruthy()
+    expect(body.categoryId).toBe('hermie.request')
+    expect((body.data as Record<string, string>).requestId).toBeTruthy()
+    expect(body.channelId).toBe('request')
     // The command is in the request, not in the notification.
     expect(JSON.stringify(body)).not.toContain('rm -rf')
   })
@@ -326,6 +330,7 @@ describe('the safe default for open questions', () => {
     gateway = await startFakeGateway({
       port: 0,
       streamDelayMs: 1,
+      plugin: false,
       pushRegistrations: { phone: expoRegistration() }
     })
     await gateway.raiseApprovalOn({ queueOnly: true })
@@ -398,6 +403,7 @@ describe('classifying a finished turn', () => {
     gateway = await startFakeGateway({
       port: 0,
       streamDelayMs: 1,
+      plugin: false,
       pushRegistrations: { phone: expoRegistration() }
     })
     daemon = await startPushDaemon({

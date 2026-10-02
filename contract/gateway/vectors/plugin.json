@@ -25,6 +25,7 @@
       "pushExpo": "push.expo",
       "pushMute": "push.mute",
       "pushPreview": "push.preview",
+      "pushRelay": "push.relay",
       "pushSeenPerChat": "push.seen.per_chat",
       "pushTurnDone": "push.type.turn_done",
       "pushTurnFailed": "push.type.turn_failed",
@@ -55,7 +56,7 @@
       }
     ],
     "fn": "pluginAdvertOf",
-    "note": "result is null or {version, capabilities, modules, limits, updatedAt}. v must be a JSON integer 1..PLUGIN_CONTRACT_VERSION (1.5 and \"1\" are refused). capabilities: strings only, de-duplicated, sorted by UTF-16 code unit (so uppercase before lowercase, and non-ASCII after ASCII); a non-array gives []. modules: only string values. limits: a shallow copy of an object, [] otherwise. updatedAt: floor of a finite number, else 0",
+    "note": "result is null or {version, capabilities, modules, limits, relayOrigins, updatedAt}. relayOrigins: pushRelayOriginOf of each entry of an array, empty results dropped, de-duplicated in first-seen order; a non-array gives []. v must be a JSON integer 1..PLUGIN_CONTRACT_VERSION (1.5 and \"1\" are refused). capabilities: strings only, de-duplicated, sorted by UTF-16 code unit (so uppercase before lowercase, and non-ASCII after ASCII); a non-array gives []. modules: only string values. limits: a shallow copy of an object, [] otherwise. updatedAt: floor of a finite number, else 0",
     "result": {
       "capabilities": [
         "context.system_prompt",
@@ -71,6 +72,105 @@
         "presence": "planned",
         "push": "on"
       },
+      "relayOrigins": [],
+      "updatedAt": 1790001453,
+      "version": "0.2.0"
+    }
+  },
+  {
+    "args": [
+      {
+        "capabilities": [
+          "push.expo",
+          "push.type.turn_done",
+          "context.system_prompt"
+        ],
+        "limits": {
+          "contextChars": 1200,
+          "payloadBytes": 3500
+        },
+        "modules": {
+          "context": "on",
+          "presence": "planned",
+          "push": "on"
+        },
+        "relayOrigins": [
+          "https://push.hermie.dev/",
+          "http://relay.example.org",
+          "https://relay.example.org",
+          "https://PUSH.hermie.dev",
+          "https://relay.example.org/v1/send",
+          42
+        ],
+        "updatedAt": 1790001453,
+        "v": 1,
+        "version": "0.2.0"
+      }
+    ],
+    "fn": "pluginAdvertOf",
+    "result": {
+      "capabilities": [
+        "context.system_prompt",
+        "push.expo",
+        "push.type.turn_done"
+      ],
+      "limits": {
+        "contextChars": 1200,
+        "payloadBytes": 3500
+      },
+      "modules": {
+        "context": "on",
+        "presence": "planned",
+        "push": "on"
+      },
+      "relayOrigins": [
+        "https://push.hermie.dev",
+        "https://relay.example.org"
+      ],
+      "updatedAt": 1790001453,
+      "version": "0.2.0"
+    }
+  },
+  {
+    "args": [
+      {
+        "capabilities": [
+          "push.expo",
+          "push.type.turn_done",
+          "context.system_prompt"
+        ],
+        "limits": {
+          "contextChars": 1200,
+          "payloadBytes": 3500
+        },
+        "modules": {
+          "context": "on",
+          "presence": "planned",
+          "push": "on"
+        },
+        "relayOrigins": "https://push.hermie.dev",
+        "updatedAt": 1790001453,
+        "v": 1,
+        "version": "0.2.0"
+      }
+    ],
+    "fn": "pluginAdvertOf",
+    "result": {
+      "capabilities": [
+        "context.system_prompt",
+        "push.expo",
+        "push.type.turn_done"
+      ],
+      "limits": {
+        "contextChars": 1200,
+        "payloadBytes": 3500
+      },
+      "modules": {
+        "context": "on",
+        "presence": "planned",
+        "push": "on"
+      },
+      "relayOrigins": [],
       "updatedAt": 1790001453,
       "version": "0.2.0"
     }
@@ -332,6 +432,7 @@
       "capabilities": [],
       "limits": {},
       "modules": {},
+      "relayOrigins": [],
       "updatedAt": 0,
       "version": ""
     }
@@ -348,6 +449,7 @@
       "capabilities": [],
       "limits": {},
       "modules": {},
+      "relayOrigins": [],
       "updatedAt": 0,
       "version": ""
     }
@@ -364,6 +466,7 @@
       "capabilities": [],
       "limits": {},
       "modules": {},
+      "relayOrigins": [],
       "updatedAt": 0,
       "version": ""
     }
@@ -402,6 +505,7 @@
         "presence": "planned",
         "push": "on"
       },
+      "relayOrigins": [],
       "updatedAt": 1790001453,
       "version": "0.2.0"
     }
@@ -446,6 +550,7 @@
         "presence": "planned",
         "push": "on"
       },
+      "relayOrigins": [],
       "updatedAt": 1790001453,
       "version": "0.2.0"
     }
@@ -498,6 +603,7 @@
         "presence": "planned",
         "push": "on"
       },
+      "relayOrigins": [],
       "updatedAt": 1790001453,
       "version": "0.2.0"
     }
@@ -547,6 +653,7 @@
         "presence": "planned",
         "push": "on"
       },
+      "relayOrigins": [],
       "updatedAt": 1790001453,
       "version": "0.2.0"
     }
@@ -581,6 +688,7 @@
         "presence": "planned",
         "push": "on"
       },
+      "relayOrigins": [],
       "updatedAt": 1790001453,
       "version": "0.2.0"
     }
@@ -615,6 +723,7 @@
         "presence": "planned",
         "push": "on"
       },
+      "relayOrigins": [],
       "updatedAt": 1790001453,
       "version": "0.2.0"
     }
@@ -651,6 +760,7 @@
         "presence": "planned",
         "push": "on"
       },
+      "relayOrigins": [],
       "updatedAt": 1790001453,
       "version": "0.2.0"
     }
@@ -685,6 +795,7 @@
         "presence": "planned",
         "push": "on"
       },
+      "relayOrigins": [],
       "updatedAt": 1790001453,
       "version": "0.2.0"
     }
@@ -725,6 +836,7 @@
         "presence": "planned",
         "push": "off"
       },
+      "relayOrigins": [],
       "updatedAt": 1790001453,
       "version": "0.2.0"
     }
@@ -772,6 +884,7 @@
       "modules": {
         "push": "on"
       },
+      "relayOrigins": [],
       "updatedAt": 1790001453,
       "version": "0.2.0"
     }
@@ -806,6 +919,7 @@
         "payloadBytes": 3500
       },
       "modules": {},
+      "relayOrigins": [],
       "updatedAt": 1790001453,
       "version": "0.2.0"
     }
@@ -842,6 +956,7 @@
         "payloadBytes": 3500
       },
       "modules": {},
+      "relayOrigins": [],
       "updatedAt": 1790001453,
       "version": "0.2.0"
     }
@@ -876,6 +991,7 @@
         "payloadBytes": 3500
       },
       "modules": {},
+      "relayOrigins": [],
       "updatedAt": 1790001453,
       "version": "0.2.0"
     }
@@ -910,6 +1026,7 @@
         "payloadBytes": 3500
       },
       "modules": {},
+      "relayOrigins": [],
       "updatedAt": 1790001453,
       "version": "0.2.0"
     }
@@ -964,6 +1081,7 @@
         "presence": "planned",
         "push": "on"
       },
+      "relayOrigins": [],
       "updatedAt": 1790001453,
       "version": "0.2.0"
     }
@@ -1000,6 +1118,7 @@
         "presence": "planned",
         "push": "on"
       },
+      "relayOrigins": [],
       "updatedAt": 1790001453,
       "version": "0.2.0"
     }
@@ -1038,6 +1157,7 @@
         "presence": "planned",
         "push": "on"
       },
+      "relayOrigins": [],
       "updatedAt": 1790001453,
       "version": "0.2.0"
     }
@@ -1074,6 +1194,7 @@
         "presence": "planned",
         "push": "on"
       },
+      "relayOrigins": [],
       "updatedAt": 1790001453,
       "version": "0.2.0"
     }
@@ -1110,6 +1231,7 @@
         "presence": "planned",
         "push": "on"
       },
+      "relayOrigins": [],
       "updatedAt": 1790001453,
       "version": "0.2.0"
     }
@@ -1152,6 +1274,7 @@
         "presence": "planned",
         "push": "on"
       },
+      "relayOrigins": [],
       "updatedAt": 1790001453,
       "version": "0.2.0"
     }
@@ -1194,6 +1317,7 @@
         "presence": "planned",
         "push": "on"
       },
+      "relayOrigins": [],
       "updatedAt": 0,
       "version": "0.2.0"
     }
@@ -1236,6 +1360,7 @@
         "presence": "planned",
         "push": "on"
       },
+      "relayOrigins": [],
       "updatedAt": -2,
       "version": "0.2.0"
     }
@@ -1278,6 +1403,7 @@
         "presence": "planned",
         "push": "on"
       },
+      "relayOrigins": [],
       "updatedAt": 0,
       "version": "0.2.0"
     }
@@ -1320,6 +1446,7 @@
         "presence": "planned",
         "push": "on"
       },
+      "relayOrigins": [],
       "updatedAt": 0,
       "version": "0.2.0"
     }
@@ -1362,6 +1489,7 @@
         "presence": "planned",
         "push": "on"
       },
+      "relayOrigins": [],
       "updatedAt": 0,
       "version": "0.2.0"
     }
@@ -1405,6 +1533,7 @@
         "presence": "planned",
         "push": "on"
       },
+      "relayOrigins": [],
       "updatedAt": 1790001453,
       "version": "0.2.0"
     }
@@ -1435,6 +1564,7 @@
       "modules": {
         "push": "on"
       },
+      "relayOrigins": [],
       "updatedAt": 1,
       "version": "1.0.0"
     }
@@ -1493,6 +1623,7 @@
         "presence": "planned",
         "push": "on"
       },
+      "relayOrigins": [],
       "updatedAt": 1790001453,
       "version": "0.2.0"
     }
@@ -1549,6 +1680,7 @@
         "presence": "planned",
         "push": "on"
       },
+      "relayOrigins": [],
       "updatedAt": 1790001453,
       "version": "0.2.0"
     }
@@ -1623,6 +1755,7 @@
         "presence": "planned",
         "push": "on"
       },
+      "relayOrigins": [],
       "updatedAt": 1790001453,
       "version": "0.2.0"
     }
@@ -1698,6 +1831,7 @@
         "presence": "planned",
         "push": "on"
       },
+      "relayOrigins": [],
       "updatedAt": 1790001453,
       "version": "0.0.1"
     }
@@ -1773,6 +1907,7 @@
         "presence": "planned",
         "push": "on"
       },
+      "relayOrigins": [],
       "updatedAt": 1790001453,
       "version": "0.2.0"
     }
@@ -1846,6 +1981,7 @@
         "presence": "planned",
         "push": "on"
       },
+      "relayOrigins": [],
       "updatedAt": 1790001453,
       "version": "0.0.1"
     }
@@ -1935,6 +2071,7 @@
         "presence": "planned",
         "push": "on"
       },
+      "relayOrigins": [],
       "updatedAt": 1790001453,
       "version": "0.2.0"
     }
@@ -1991,6 +2128,7 @@
         "presence": "planned",
         "push": "on"
       },
+      "relayOrigins": [],
       "updatedAt": 1790001453,
       "version": "0.2.0"
     }
@@ -2045,6 +2183,7 @@
         "presence": "planned",
         "push": "on"
       },
+      "relayOrigins": [],
       "updatedAt": 1790001453,
       "version": "0.2.0"
     }
@@ -2099,6 +2238,7 @@
         "presence": "planned",
         "push": "on"
       },
+      "relayOrigins": [],
       "updatedAt": 1790001453,
       "version": "0.2.0"
     }
@@ -2149,6 +2289,7 @@
         "presence": "planned",
         "push": "on"
       },
+      "relayOrigins": [],
       "updatedAt": 1790001453,
       "version": "0.2.0"
     }
@@ -2224,6 +2365,7 @@
         "presence": "planned",
         "push": "on"
       },
+      "relayOrigins": [],
       "updatedAt": 1790001453,
       "version": "0.0.1"
     }
@@ -2276,6 +2418,7 @@
         "presence": "planned",
         "push": "on"
       },
+      "relayOrigins": [],
       "updatedAt": 1790001453,
       "version": "0.2.0"
     }
@@ -2326,6 +2469,7 @@
         "presence": "planned",
         "push": "on"
       },
+      "relayOrigins": [],
       "updatedAt": 1790001453,
       "version": "0.2.0"
     }
@@ -2413,6 +2557,7 @@
         "presence": "planned",
         "push": "on"
       },
+      "relayOrigins": [],
       "updatedAt": 1790001453,
       "version": "0.2.0"
     }
@@ -2464,6 +2609,7 @@
         "presence": "planned",
         "push": "on"
       },
+      "relayOrigins": [],
       "updatedAt": 1790001453,
       "version": "0.2.0"
     }
@@ -2540,6 +2686,7 @@
         "presence": "planned",
         "push": "on"
       },
+      "relayOrigins": [],
       "updatedAt": 1790001453,
       "version": "0.2.0"
     }
@@ -2683,6 +2830,55 @@
     ],
     "fn": "hasPluginCapability",
     "result": false
+  },
+  {
+    "args": [
+      {
+        "capabilities": [
+          "context.system_prompt",
+          "push.expo",
+          "push.type.turn_done"
+        ],
+        "limits": {
+          "contextChars": 1200,
+          "payloadBytes": 3500
+        },
+        "modules": {
+          "context": "on",
+          "presence": "planned",
+          "push": "on"
+        },
+        "updatedAt": 1790001453,
+        "version": "0.2.0"
+      },
+      "push.relay"
+    ],
+    "fn": "hasPluginCapability",
+    "result": false
+  },
+  {
+    "args": [
+      {
+        "capabilities": [
+          "push.expo",
+          "push.relay"
+        ],
+        "limits": {
+          "contextChars": 1200,
+          "payloadBytes": 3500
+        },
+        "modules": {
+          "context": "on",
+          "presence": "planned",
+          "push": "on"
+        },
+        "updatedAt": 1790001453,
+        "version": "0.2.0"
+      },
+      "push.relay"
+    ],
+    "fn": "hasPluginCapability",
+    "result": true
   },
   {
     "args": [

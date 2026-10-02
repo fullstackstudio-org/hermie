@@ -130,11 +130,16 @@ import {
   noPushTypes,
   noTypeWanted,
   PUSH_PER_BOT_KEY,
+  PUSH_RELAY_ORIGIN,
+  PUSH_RELAY_PLATFORMS,
   PUSH_SECTION_KEY,
   PUSH_SECTION_VERSION,
   PUSH_SEEN_TTL_SECONDS,
   PUSH_TYPES,
+  pushAddressOf,
   pushPerBotOf,
+  pushRelayAllowed,
+  pushRelayOriginOf,
   pushRowFor,
   pushSeenOf,
   pushSectionFor,
@@ -1844,6 +1849,12 @@ push.constant('PUSH_SECTION_VERSION', PUSH_SECTION_VERSION)
 push.constant('PUSH_SECTION_KEY', PUSH_SECTION_KEY)
 push.constant('PUSH_PER_BOT_KEY', PUSH_PER_BOT_KEY)
 push.constant('PUSH_SEEN_TTL_SECONDS', PUSH_SEEN_TTL_SECONDS)
+push.constant(
+  'PUSH_RELAY_ORIGIN',
+  PUSH_RELAY_ORIGIN,
+  'constant; the default and initial content of every sender allow-list'
+)
+push.constant('PUSH_RELAY_PLATFORMS', [...PUSH_RELAY_PLATFORMS])
 
 push.each(
   'effectivePushTypes',
@@ -2008,9 +2019,163 @@ push.each(
   {}
 )
 
+const RELAY = {
+  transport: 'relay',
+  relay: 'https://push.hermie.dev',
+  handle: 'h_test-handle-0001',
+  secret: 'test-send-secret-0001'
+}
+
+push.each(
+  'pushRowFor',
+  pushRowFor,
+  single([
+    registration({ address: RELAY }),
+    registration({ address: RELAY, platform: 'macos', gatewayKey: '' }),
+    registration({ address: { ...RELAY, enc: { alg: 'chacha20-poly1305', key: 'k', kid: 1, future: [1] } } }),
+    registration({ address: { ...RELAY, enc: null } })
+  ]),
+  {}
+)
+
 push.noteFor(
   'pushRowFor',
-  'installationId is not part of the row. gatewayKey is omitted when empty or absent. An expo address gives token; a webpush address gives endpoint + keys{p256dh,auth}, never both'
+  'installationId is not part of the row. gatewayKey is omitted when empty or absent. An expo address gives token; a webpush address gives endpoint + keys{p256dh,auth}; a relay address gives relay + handle + secret, plus enc exactly as given when it is not undefined (null is carried); never two of them'
+)
+
+const relayRow = (overrides: Record<string, unknown> = {}): Record<string, unknown> => ({
+  v: 1,
+  transport: 'relay',
+  relay: 'https://push.hermie.dev',
+  handle: 'h_test-handle-0001',
+  secret: 'test-send-secret-0001',
+  platform: 'ios',
+  types: { message: true },
+  preview: false,
+  updatedAt: NOW,
+  ...overrides
+})
+
+push.each(
+  'pushAddressOf',
+  pushAddressOf,
+  single([
+    relayRow(),
+    relayRow({ platform: 'macos' }),
+    relayRow({ enc: { alg: 'chacha20-poly1305', key: 'k', kid: 1 } }),
+    relayRow({ relay: 'https://push.hermie.dev/' }),
+    relayRow({ relay: 'https://PUSH.hermie.dev' }),
+    relayRow({ v: 2 }),
+    relayRow({ v: '1' }),
+    relayRow({ relay: 'http://push.hermie.dev' }),
+    relayRow({ relay: 'https://push.hermie.dev/v1/send' }),
+    relayRow({ relay: 'https://push.hermie.dev:443' }),
+    relayRow({ relay: 'https://user:pass@push.hermie.dev' }),
+    relayRow({ relay: 'https://push.hermie.dev?x=1' }),
+    relayRow({ relay: '' }),
+    relayRow({ relay: undefined }),
+    relayRow({ handle: '' }),
+    relayRow({ handle: 7 }),
+    relayRow({ handle: 'h', secret: 'A-_z09' }),
+    relayRow({ handle: 'h'.repeat(200), secret: 's'.repeat(200) }),
+    relayRow({ handle: 'h'.repeat(201) }),
+    relayRow({ secret: 's'.repeat(201) }),
+    relayRow({ handle: 'h_with space' }),
+    relayRow({ handle: 'h_plus+' }),
+    relayRow({ secret: 'pad=' }),
+    relayRow({ secret: 'slash/' }),
+    relayRow({ handle: 'h_\u00e9' }),
+    relayRow({ secret: '' }),
+    relayRow({ secret: undefined }),
+    relayRow({ platform: 'android' }),
+    relayRow({ platform: undefined }),
+    relayRow({ token: 'ExponentPushToken[test-0001]' }),
+    relayRow({ token: '' }),
+    relayRow({ endpoint: 'https://push.example.com/send/abc123' }),
+    { v: 1, transport: 'expo', token: 'ExponentPushToken[test-0001]' },
+    { v: 1, transport: 'expo', token: 'ExponentPushToken[test-0001]', endpoint: '' },
+    { v: 1, transport: 'expo', token: 'ExponentPushToken[test-0001]', endpoint: 'https://push.example.com/x' },
+    { v: 1, transport: 'expo', token: 'ExponentPushToken[test-0001]', handle: 'h_x', secret: 's' },
+    { v: 1, transport: 'expo', token: 'ExponentPushToken[test-0001]', handle: '' },
+    { v: 1, transport: 'expo', token: '' },
+    { v: 1, ...WEBPUSH },
+    { v: 1, ...WEBPUSH, token: '' },
+    { v: 1, ...WEBPUSH, token: 'ExponentPushToken[test-0001]' },
+    { v: 1, ...WEBPUSH, handle: 'h_x' },
+    { v: 1, ...WEBPUSH, keys: { p256dh: 'p' } },
+    { v: 1, transport: 'fcm', token: 'x' },
+    { v: 1 },
+    null,
+    [],
+    'relay'
+  ]),
+  {}
+)
+
+push.noteFor(
+  'pushAddressOf',
+  'the reader every sender applies to a row before using it. v must be 1. expo: non-empty token, no non-empty endpoint, no handle key at all. webpush: non-empty endpoint, p256dh and auth, no non-empty token, no handle key. relay: pushRelayOriginOf(relay) non-empty, handle and secret each matching ^[A-Za-z0-9_-]{1,200}$, platform ios or macos, and NO token or endpoint key at all (even empty); enc is carried as-is when present. Anything else is null. The allow-list is not applied here'
+)
+
+push.each(
+  'pushRelayOriginOf',
+  pushRelayOriginOf,
+  single([
+    'https://push.hermie.dev',
+    'https://push.hermie.dev/',
+    'https://PUSH.Hermie.DEV',
+    'HTTPS://push.hermie.dev',
+    'https://relay.example.org:8443',
+    'https://relay.example.org:8443/',
+    'https://push.hermie.dev:443',
+    'https://push.hermie.dev//',
+    'https://push.hermie.dev/.',
+    'https://push.hermie.dev/v1/send',
+    'https://push.hermie.dev?',
+    'https://push.hermie.dev/?x=1',
+    'https://push.hermie.dev#x',
+    'https://user@push.hermie.dev',
+    'https://user:pass@push.hermie.dev',
+    'http://push.hermie.dev',
+    'wss://push.hermie.dev',
+    'push.hermie.dev',
+    ' https://push.hermie.dev',
+    'https://push.hermie.dev ',
+    'https://127.0.0.1',
+    'https://[::1]',
+    '',
+    null,
+    42
+  ]),
+  {}
+)
+
+push.noteFor(
+  'pushRelayOriginOf',
+  'the WHATWG URL origin when the input is https, has no credentials, and its lowercased spelling is exactly that origin or that origin plus one "/"; otherwise "". So a default port, a path, a query or fragment marker, surrounding space or any other rewrite the parser would make is refused'
+)
+
+push.each(
+  'pushRelayAllowed',
+  pushRelayAllowed,
+  [
+    ['https://push.hermie.dev', ['https://push.hermie.dev']],
+    ['https://push.hermie.dev/', ['https://push.hermie.dev']],
+    ['https://push.hermie.dev', ['https://PUSH.hermie.dev/']],
+    ['https://relay.example.org', ['https://push.hermie.dev', 'https://relay.example.org']],
+    ['https://push.hermie.dev.evil.example', ['https://push.hermie.dev']],
+    ['https://evil.example', ['https://push.hermie.dev']],
+    ['http://push.hermie.dev', ['http://push.hermie.dev']],
+    ['https://push.hermie.dev', []],
+    ['https://push.hermie.dev', ['not a url']],
+    ['', ['https://push.hermie.dev']]
+  ],
+  {}
+)
+
+push.noteFor(
+  'pushRelayAllowed',
+  'true when pushRelayOriginOf(args[0]) is non-empty and equals pushRelayOriginOf of some entry of the allow-list args[1]'
 )
 
 const SECTION_WITH_ROWS = {
@@ -2049,7 +2214,20 @@ push.each(
     [{ push: { registrations: { 'install-aaaa': { v: 1 } } } }, 'install-aaaa'],
     [{ push: { registrations: { 'install-bbbb': { v: 1 } } } }, 'install-aaaa'],
     [{ other: { registrations: { 'install-bbbb': { v: 1 } } } }, 'install-aaaa'],
-    [{ push: { registrations: { 'install-bbbb': 0, 'install-cccc': false, 'install-dddd': '' } } }, 'install-aaaa']
+    [{ push: { registrations: { 'install-bbbb': 0, 'install-cccc': false, 'install-dddd': '' } } }, 'install-aaaa'],
+    [
+      {
+        push: {
+          registrations: {
+            'install-mac': relayRow({
+              enc: { alg: 'chacha20-poly1305', key: 'k', kid: 1 },
+              futureField: { kept: true }
+            })
+          }
+        }
+      },
+      'install-aaaa'
+    ]
   ],
   {}
 )
@@ -2165,6 +2343,12 @@ push.each(
     { others: { 'install-aaaa': { v: 1, stale: true } }, own: ownRegistration, seen: {}, now: NOW },
     { others: { 'install-aaaa': { v: 1, stale: true } }, own: registration({ types: ALL_OFF }), seen: {}, now: NOW },
     { others: { 'install-cccc': { v: 7, someFutureField: true } }, own: null, seen: {}, now: NOW },
+    {
+      others: { 'install-mac': relayRow({ enc: { kid: 1 }, futureField: true }) },
+      own: registration({ address: RELAY }),
+      seen: {},
+      now: NOW
+    },
     { others: {}, own: null, seen: { 'install-aaaa': { bot: 'researcher', at: NOW } }, now: NOW },
     { others: {}, own: null, seen: { 'install-aaaa': { bot: 'researcher', at: NOW } }, now: NOW, perChat: true },
     { others: {}, own: null, seen: { 'install-aaaa': { bot: 'researcher', at: NOW } }, now: NOW, perChat: false },
@@ -2573,6 +2757,18 @@ plugin.each(
   pluginAdvertOf,
   single([
     ADVERT,
+    {
+      ...ADVERT,
+      relayOrigins: [
+        'https://push.hermie.dev/',
+        'http://relay.example.org',
+        'https://relay.example.org',
+        'https://PUSH.hermie.dev',
+        'https://relay.example.org/v1/send',
+        42
+      ]
+    },
+    { ...ADVERT, relayOrigins: 'https://push.hermie.dev' },
     { ...ADVERT, v: 2 },
     { ...ADVERT, v: '1' },
     { ...ADVERT, v: true },
@@ -2630,7 +2826,7 @@ plugin.each(
 
 plugin.noteFor(
   'pluginAdvertOf',
-  'result is null or {version, capabilities, modules, limits, updatedAt}. v must be a JSON integer 1..PLUGIN_CONTRACT_VERSION (1.5 and "1" are refused). capabilities: strings only, de-duplicated, sorted by UTF-16 code unit (so uppercase before lowercase, and non-ASCII after ASCII); a non-array gives []. modules: only string values. limits: a shallow copy of an object, [] otherwise. updatedAt: floor of a finite number, else 0'
+  'result is null or {version, capabilities, modules, limits, relayOrigins, updatedAt}. relayOrigins: pushRelayOriginOf of each entry of an array, empty results dropped, de-duplicated in first-seen order; a non-array gives []. v must be a JSON integer 1..PLUGIN_CONTRACT_VERSION (1.5 and "1" are refused). capabilities: strings only, de-duplicated, sorted by UTF-16 code unit (so uppercase before lowercase, and non-ASCII after ASCII); a non-array gives []. modules: only string values. limits: a shallow copy of an object, [] otherwise. updatedAt: floor of a finite number, else 0'
 )
 
 const row = (name: string, meta: unknown, isDefault?: unknown): Record<string, unknown> => ({
@@ -2708,6 +2904,8 @@ plugin.each(
     [ADVERTS_PARSED.full, 'push.expo'],
     [ADVERTS_PARSED.full, 'push.type.turn_done'],
     [ADVERTS_PARSED.full, 'push.webpush'],
+    [ADVERTS_PARSED.full, 'push.relay'],
+    [{ ...ADVERTS_PARSED.full, capabilities: ['push.expo', 'push.relay'] }, 'push.relay'],
     [ADVERTS_PARSED.full, 'PUSH.EXPO'],
     [ADVERTS_PARSED.full, 'push.expo '],
     [ADVERTS_PARSED.full, 'push'],

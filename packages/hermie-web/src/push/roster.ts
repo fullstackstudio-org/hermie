@@ -50,6 +50,36 @@ export interface Roster {
   /** The revision of `hermie-app` on the default profile; 0 when it has never been written. */
   appRevision: number
   push: PushSection
+  /**
+   * The gateway's own `hermie` plugin says it delivers push.
+   *
+   * ADR-0017's amendment: the plugin is the notifier, `hermie-web --push` the
+   * fallback for a gateway that cannot run it, and the two must not both send —
+   * every registered device would be told everything twice. So while this is
+   * true the daemon sends nothing at all, on any transport. Optional so a
+   * roster written by hand (a test) reads as "no plugin".
+   */
+  pluginPush?: boolean
+}
+
+/** The gateway plugin's advert key. Read-only from here, as from the app. */
+export const HERMIE_PLUGIN_KEY = 'hermie-plugin'
+
+/**
+ * Does this advert say the plugin's push module is on?
+ *
+ * The same reading as `pluginAdvert` + `pluginModuleOn` in
+ * `@hermie/gateway-client/plugin` (which this package cannot import): `v` must
+ * be 1, the version this build understands — an advert from the future is read
+ * as no advert, as the app reads it — and `modules.push` must be `on`. A module
+ * that is `off` or `planned` delivers nothing, so the daemon keeps sending.
+ */
+function pluginPushOn(advert: unknown): boolean | null {
+  if (!isObject(advert) || advert.v !== 1) {
+    return null
+  }
+
+  return isObject(advert.modules) && advert.modules.push === 'on'
 }
 
 /** Every app-wide key on one profile: the per-person ones, then the legacy one. */
@@ -120,12 +150,26 @@ export function readRoster(result: unknown): Roster {
   let appSection: Record<string, unknown> | null = null
   let appRevision = 0
   let push: PushSection = { registrations: [], seen: {} }
+  // The default profile's advert wins, else the first valid one: the plugin
+  // writes it on the profile it is loaded under, and the app reads it this way.
+  let pluginOnDefault: boolean | null = null
+  let pluginOnAny: boolean | null = null
 
   for (const row of rows) {
     const name = str(row?.name)
 
     if (!name) {
       continue
+    }
+
+    const advert = pluginPushOn(isObject(row.ui_meta) ? row.ui_meta[HERMIE_PLUGIN_KEY] : null)
+
+    if (advert !== null) {
+      pluginOnAny = pluginOnAny ?? advert
+
+      if (row.is_default === true) {
+        pluginOnDefault = advert
+      }
     }
 
     const canonical = isObject(row.canonical_session) ? row.canonical_session : null
@@ -157,5 +201,5 @@ export function readRoster(result: unknown): Roster {
   // wire is not a promise anybody made.
   bots.sort((a, b) => a.name.localeCompare(b.name))
 
-  return { bots, defaultProfile, appSection, appRevision, push }
+  return { bots, defaultProfile, appSection, appRevision, push, pluginPush: (pluginOnDefault ?? pluginOnAny) === true }
 }

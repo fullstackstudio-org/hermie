@@ -461,8 +461,8 @@ describe('a request opening', () => {
     await f.watcher.settle()
 
     expect(f.sent[0]?.message.body).toBe('is waiting for your approval')
-    expect(f.sent[0]?.message.data.request).toBe('srq-1')
-    expect(f.sent[0]?.message.categoryId).toBe('hermie.approval')
+    expect(f.sent[0]?.message.data.requestId).toBe('srq-1')
+    expect(f.sent[0]?.message.categoryId).toBe('hermie.request')
   })
 
   it('does not buzz again when a reconnect re-delivers the same open request', async () => {
@@ -554,7 +554,7 @@ describe('open questions, without asking to receive them', () => {
 
     expect(resumed.sent).toHaveLength(1)
     expect(resumed.sent[0]?.message.body).toBe('is waiting for your approval')
-    expect(resumed.sent[0]?.message.data.request).toBe('appr-7')
+    expect(resumed.sent[0]?.message.data.requestId).toBe('appr-7')
   })
 
   it('takes one the poll finds', async () => {
@@ -563,7 +563,7 @@ describe('open questions, without asking to receive them', () => {
     await f.watcher.settle()
 
     expect(f.sent).toHaveLength(1)
-    expect(f.sent[0]?.message.data.request).toBe('appr-9')
+    expect(f.sent[0]?.message.data.requestId).toBe('appr-9')
   })
 
   it('buzzes once however many routes carry the same question', async () => {

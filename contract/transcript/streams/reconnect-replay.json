@@ -1781,6 +1781,7 @@
                     "push.expo",
                     "push.mute",
                     "push.preview",
+                    "push.relay",
                     "push.seen.per_chat",
                     "push.type.turn_done",
                     "memory.browse",
@@ -1806,6 +1807,9 @@
                     "transcripts": "planned",
                     "usage": "planned"
                   },
+                  "relayOrigins": [
+                    "https://push.hermie.dev"
+                  ],
                   "updatedAt": 1790001453,
                   "v": 1,
                   "version": "0.2.0"
@@ -2208,6 +2212,7 @@
                     "push.expo",
                     "push.mute",
                     "push.preview",
+                    "push.relay",
                     "push.seen.per_chat",
                     "push.type.turn_done",
                     "memory.browse",
@@ -2233,6 +2238,9 @@
                     "transcripts": "planned",
                     "usage": "planned"
                   },
+                  "relayOrigins": [
+                    "https://push.hermie.dev"
+                  ],
                   "updatedAt": 1790001453,
                   "v": 1,
                   "version": "0.2.0"

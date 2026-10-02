@@ -222,6 +222,17 @@ export interface FakeGatewayOptions {
    */
   turnClaim?: boolean
   /**
+   * Whether the plugin advertises `push.relay`.
+   *
+   * Default true: the plugin can deliver to a `transport: "relay"` row. `false`
+   * drops the capability from whichever advert is in play, staging a notifier
+   * that predates the relay — the gateway a native Apple build must leave its
+   * Expo row alone on. The rows themselves are stored either way: `ui_meta`
+   * holds whatever a client writes, and the fake's `/__fake/push` reads them
+   * back unvalidated.
+   */
+  pushRelay?: boolean
+  /**
    * Answer every request with a 301 to this origin instead of serving it.
    *
    * Staged because of a cache, not because a gateway does this. The iOS URL
@@ -1175,6 +1186,7 @@ export const PLUGIN_ADVERT: Record<string, unknown> = {
     'push.expo',
     'push.mute',
     'push.preview',
+    'push.relay',
     'push.seen.per_chat',
     'push.type.turn_done',
     'memory.browse',
@@ -1197,6 +1209,7 @@ export const PLUGIN_ADVERT: Record<string, unknown> = {
     usage: 'planned'
   },
   limits: { payloadBytes: 3500, contextChars: 1200 },
+  relayOrigins: ['https://push.hermie.dev'],
   updatedAt: 1_790_001_453
 }
 
@@ -1206,13 +1219,16 @@ const DISPLAY_NAME_CAPABILITY = 'profiles.display_name'
 /** `context.turn_claim`, which `turnClaim: false` takes away. */
 const TURN_CLAIM_CAPABILITY = 'context.turn_claim'
 
+/** `push.relay`, which `pushRelay: false` takes away. */
+const PUSH_RELAY_CAPABILITY = 'push.relay'
+
 /**
  * The advert this gateway serves, or `null` when it has no plugin.
  *
  * One reader for the `ui_meta` key and for the plugin's own routes, so a
  * capability a route refuses to honour cannot also be advertised by accident —
  * which is the one inconsistency a fake can have that a real gateway cannot.
- * `profileDisplayName: 'absent'` and `turnClaim: false` each filter their own
+ * `profileDisplayName: 'absent'`, `turnClaim: false` and `pushRelay: false` each filter their own
  * string out of whichever advert is in play, including one a test passed in
  * itself: a plugin that does not have a route does not advertise it, whoever
  * wrote the rest of the advert.
@@ -1231,6 +1247,10 @@ function advertOf(options: FakeGatewayOptions): Record<string, unknown> | null {
 
   if (options.turnClaim === false) {
     drop.add(TURN_CLAIM_CAPABILITY)
+  }
+
+  if (options.pushRelay === false) {
+    drop.add(PUSH_RELAY_CAPABILITY)
   }
 
   if (drop.size === 0) {

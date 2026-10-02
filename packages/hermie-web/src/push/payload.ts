@@ -12,12 +12,24 @@
  * the app answers only if that request is still open and still says what the
  * notification said it did.
  */
+import { createHash } from 'node:crypto'
+
 import type { PushMessage } from './expo'
 import type { InboundKind } from './inbound'
 import type { PushType } from './registrations'
 
-/** The notification category the app registers its Allow / Deny actions under. */
-export const APPROVAL_CATEGORY = 'hermie.approval'
+/**
+ * The notification category the app registers its Allow / Deny actions under,
+ * as `contract/push/contract.json` names it.
+ *
+ * This daemon sent `hermie.approval` until the contract was written down, and
+ * no build of the app ever registered a category of that name, so approvals
+ * from here arrived without buttons. `hermie.request` is the one the Expo app
+ * 0.1.9 already registers, so switching needs nothing from the app. An updated
+ * Expo app also registers `hermie.approval` and the plugin's old `request` as
+ * aliases for one release window (see `expo/hermie/src/features/push`).
+ */
+export const REQUEST_CATEGORY = 'hermie.request'
 
 export interface NotifiableEvent {
   type: PushType
@@ -98,6 +110,48 @@ export interface NotifiableEvent {
    * did: open that chat on the gateway that is live.
    */
   gatewayKey?: string
+  /**
+   * A stable id for this one fact, from `eventIdOf`. Carried in the payload as
+   * `eventId` and used as the relay's collapse id, so a notification sent twice
+   * for the same fact replaces itself instead of stacking.
+   */
+  eventId?: string
+}
+
+/**
+ * Python's `json.dumps` spelling of one string: `ensure_ascii`, so every code
+ * unit outside printable ASCII becomes `\uXXXX` in lowercase hex. JSON's own
+ * escapes for quotes, backslashes and control characters are the same in both.
+ */
+function pythonJsonString(value: string): string {
+  // Per UTF-16 code unit, as Python escapes them: an astral character is
+  // written as its surrogate pair. A lone surrogate is already escaped by
+  // `JSON.stringify` (lowercase, like Python's), so it never reaches here.
+  return JSON.stringify(value).replace(/[\u007f-\u{10ffff}]/gu, char =>
+    Array.from(
+      { length: char.length },
+      (_unit, index) => `\\u${char.charCodeAt(index).toString(16).padStart(4, '0')}`
+    ).join('')
+  )
+}
+
+/**
+ * A stable id for one fact: `<kind>:` and the first 32 hex digits of the
+ * SHA-256 of the parts as Python's `json.dumps` writes them.
+ *
+ * The gateway plugin's `push/events.py::event_id`, restated byte for byte, so
+ * that where the two notifiers describe the same fact from the same ids — an
+ * approval's request id in one session — they arrive at the same string, and a
+ * device that somehow hears from both collapses the two into one notification.
+ * Built from the event's identity, never from a counter.
+ */
+export function eventIdOf(kind: string, ...parts: readonly (string | number | null)[]): string {
+  const json = `[${parts
+    .map(part => (part === null ? 'null' : typeof part === 'number' ? String(part) : pythonJsonString(part)))
+    .join(', ')}]`
+  const digest = createHash('sha256').update(json, 'utf8').digest('hex')
+
+  return `${kind}:${digest.slice(0, 32)}`
 }
 
 /** A short, safe line. Long enough to be useful, short enough not to be a transcript. */
@@ -172,8 +226,7 @@ export function pushMessageFor(event: NotifiableEvent, preview: boolean): PushMe
         them would break a pairing that works today in whichever direction was
         chosen, and the field is a short string.
       */
-      session: event.sessionId,
-      sessionId: event.sessionId,
+      ...(event.sessionId ? { session: event.sessionId, sessionId: event.sessionId } : {}),
       ...(event.sessionKind ? { sessionKind: event.sessionKind } : {}),
       /*
         The plugin's three cron fields, under the plugin's own names, so the app
@@ -185,15 +238,26 @@ export function pushMessageFor(event: NotifiableEvent, preview: boolean): PushMe
       ...(event.cron ? { cron: true } : {}),
       ...(typeof event.cronCertain === 'boolean' ? { cronCertain: event.cronCertain } : {}),
       ...(event.jobId ? { jobId: event.jobId } : {}),
-      ...(event.requestId ? { request: event.requestId } : {}),
+      /*
+        `requestId`, the contract's key and the only one any build of the app
+        reads. This daemon wrote `request` before the contract existed, which
+        is why an Allow on one of its notifications could never answer
+        anything; nothing reads `request`, so it is not written alongside.
+      */
+      ...(event.requestId ? { requestId: event.requestId } : {}),
       ...(event.requestMethod ? { method: event.requestMethod } : {}),
       // Omitted rather than empty, so a reader checks for absence rather than
       // for a falsy value it would then have to decide about.
-      ...(event.gatewayKey ? { gatewayKey: event.gatewayKey } : {})
+      ...(event.gatewayKey ? { gatewayKey: event.gatewayKey } : {}),
+      ...(event.eventId ? { eventId: event.eventId } : {})
     },
     // Only an approval has anything to act on from the notification itself, and
     // even then the action is a hint: the app re-reads the open requests first.
-    ...(event.type === 'request' && event.requestMethod === 'approval' ? { categoryId: APPROVAL_CATEGORY } : {})
+    ...(event.type === 'request' && event.requestMethod === 'approval' ? { categoryId: REQUEST_CATEGORY } : {}),
+    // `dm` is a legacy type with no channel of its own; it is a message.
+    channelId: event.type === 'dm' ? 'message' : event.type,
+    summary,
+    ...(event.eventId ? { eventId: event.eventId } : {})
   }
 }
 

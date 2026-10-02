@@ -38,6 +38,21 @@
     "result": 86400
   },
   {
+    "args": [],
+    "fn": "PUSH_RELAY_ORIGIN",
+    "note": "constant; the default and initial content of every sender allow-list",
+    "result": "https://push.hermie.dev"
+  },
+  {
+    "args": [],
+    "fn": "PUSH_RELAY_PLATFORMS",
+    "note": "constant",
+    "result": [
+      "ios",
+      "macos"
+    ]
+  },
+  {
     "args": [
       {
         "cron": true,
@@ -1256,7 +1271,7 @@
       }
     ],
     "fn": "pushRowFor",
-    "note": "installationId is not part of the row. gatewayKey is omitted when empty or absent. An expo address gives token; a webpush address gives endpoint + keys{p256dh,auth}, never both",
+    "note": "installationId is not part of the row. gatewayKey is omitted when empty or absent. An expo address gives token; a webpush address gives endpoint + keys{p256dh,auth}; a relay address gives relay + handle + secret, plus enc exactly as given when it is not undefined (null is carried); never two of them",
     "result": {
       "gatewayKey": "bf796761db84e312",
       "platform": "ios",
@@ -1723,6 +1738,1350 @@
   {
     "args": [
       {
+        "address": {
+          "handle": "h_test-handle-0001",
+          "relay": "https://push.hermie.dev",
+          "secret": "test-send-secret-0001",
+          "transport": "relay"
+        },
+        "gatewayKey": "bf796761db84e312",
+        "installationId": "install-aaaa",
+        "platform": "ios",
+        "preview": false,
+        "types": {
+          "cron": false,
+          "cron_done": false,
+          "cron_failed": false,
+          "message": true,
+          "request": true,
+          "turn_done": true,
+          "turn_failed": false
+        },
+        "updatedAt": 1790001453
+      }
+    ],
+    "fn": "pushRowFor",
+    "result": {
+      "gatewayKey": "bf796761db84e312",
+      "handle": "h_test-handle-0001",
+      "platform": "ios",
+      "preview": false,
+      "relay": "https://push.hermie.dev",
+      "secret": "test-send-secret-0001",
+      "transport": "relay",
+      "types": {
+        "cron": false,
+        "cron_done": false,
+        "cron_failed": false,
+        "message": true,
+        "request": true,
+        "turn_done": true,
+        "turn_failed": false
+      },
+      "updatedAt": 1790001453,
+      "v": 1
+    }
+  },
+  {
+    "args": [
+      {
+        "address": {
+          "handle": "h_test-handle-0001",
+          "relay": "https://push.hermie.dev",
+          "secret": "test-send-secret-0001",
+          "transport": "relay"
+        },
+        "gatewayKey": "",
+        "installationId": "install-aaaa",
+        "platform": "macos",
+        "preview": false,
+        "types": {
+          "cron": false,
+          "cron_done": false,
+          "cron_failed": false,
+          "message": true,
+          "request": true,
+          "turn_done": true,
+          "turn_failed": false
+        },
+        "updatedAt": 1790001453
+      }
+    ],
+    "fn": "pushRowFor",
+    "result": {
+      "handle": "h_test-handle-0001",
+      "platform": "macos",
+      "preview": false,
+      "relay": "https://push.hermie.dev",
+      "secret": "test-send-secret-0001",
+      "transport": "relay",
+      "types": {
+        "cron": false,
+        "cron_done": false,
+        "cron_failed": false,
+        "message": true,
+        "request": true,
+        "turn_done": true,
+        "turn_failed": false
+      },
+      "updatedAt": 1790001453,
+      "v": 1
+    }
+  },
+  {
+    "args": [
+      {
+        "address": {
+          "enc": {
+            "alg": "chacha20-poly1305",
+            "future": [
+              1
+            ],
+            "key": "k",
+            "kid": 1
+          },
+          "handle": "h_test-handle-0001",
+          "relay": "https://push.hermie.dev",
+          "secret": "test-send-secret-0001",
+          "transport": "relay"
+        },
+        "gatewayKey": "bf796761db84e312",
+        "installationId": "install-aaaa",
+        "platform": "ios",
+        "preview": false,
+        "types": {
+          "cron": false,
+          "cron_done": false,
+          "cron_failed": false,
+          "message": true,
+          "request": true,
+          "turn_done": true,
+          "turn_failed": false
+        },
+        "updatedAt": 1790001453
+      }
+    ],
+    "fn": "pushRowFor",
+    "result": {
+      "enc": {
+        "alg": "chacha20-poly1305",
+        "future": [
+          1
+        ],
+        "key": "k",
+        "kid": 1
+      },
+      "gatewayKey": "bf796761db84e312",
+      "handle": "h_test-handle-0001",
+      "platform": "ios",
+      "preview": false,
+      "relay": "https://push.hermie.dev",
+      "secret": "test-send-secret-0001",
+      "transport": "relay",
+      "types": {
+        "cron": false,
+        "cron_done": false,
+        "cron_failed": false,
+        "message": true,
+        "request": true,
+        "turn_done": true,
+        "turn_failed": false
+      },
+      "updatedAt": 1790001453,
+      "v": 1
+    }
+  },
+  {
+    "args": [
+      {
+        "address": {
+          "enc": null,
+          "handle": "h_test-handle-0001",
+          "relay": "https://push.hermie.dev",
+          "secret": "test-send-secret-0001",
+          "transport": "relay"
+        },
+        "gatewayKey": "bf796761db84e312",
+        "installationId": "install-aaaa",
+        "platform": "ios",
+        "preview": false,
+        "types": {
+          "cron": false,
+          "cron_done": false,
+          "cron_failed": false,
+          "message": true,
+          "request": true,
+          "turn_done": true,
+          "turn_failed": false
+        },
+        "updatedAt": 1790001453
+      }
+    ],
+    "fn": "pushRowFor",
+    "result": {
+      "enc": null,
+      "gatewayKey": "bf796761db84e312",
+      "handle": "h_test-handle-0001",
+      "platform": "ios",
+      "preview": false,
+      "relay": "https://push.hermie.dev",
+      "secret": "test-send-secret-0001",
+      "transport": "relay",
+      "types": {
+        "cron": false,
+        "cron_done": false,
+        "cron_failed": false,
+        "message": true,
+        "request": true,
+        "turn_done": true,
+        "turn_failed": false
+      },
+      "updatedAt": 1790001453,
+      "v": 1
+    }
+  },
+  {
+    "args": [
+      {
+        "handle": "h_test-handle-0001",
+        "platform": "ios",
+        "preview": false,
+        "relay": "https://push.hermie.dev",
+        "secret": "test-send-secret-0001",
+        "transport": "relay",
+        "types": {
+          "message": true
+        },
+        "updatedAt": 1790001453,
+        "v": 1
+      }
+    ],
+    "fn": "pushAddressOf",
+    "note": "the reader every sender applies to a row before using it. v must be 1. expo: non-empty token, no non-empty endpoint, no handle key at all. webpush: non-empty endpoint, p256dh and auth, no non-empty token, no handle key. relay: pushRelayOriginOf(relay) non-empty, handle and secret each matching ^[A-Za-z0-9_-]{1,200}$, platform ios or macos, and NO token or endpoint key at all (even empty); enc is carried as-is when present. Anything else is null. The allow-list is not applied here",
+    "result": {
+      "handle": "h_test-handle-0001",
+      "relay": "https://push.hermie.dev",
+      "secret": "test-send-secret-0001",
+      "transport": "relay"
+    }
+  },
+  {
+    "args": [
+      {
+        "handle": "h_test-handle-0001",
+        "platform": "macos",
+        "preview": false,
+        "relay": "https://push.hermie.dev",
+        "secret": "test-send-secret-0001",
+        "transport": "relay",
+        "types": {
+          "message": true
+        },
+        "updatedAt": 1790001453,
+        "v": 1
+      }
+    ],
+    "fn": "pushAddressOf",
+    "result": {
+      "handle": "h_test-handle-0001",
+      "relay": "https://push.hermie.dev",
+      "secret": "test-send-secret-0001",
+      "transport": "relay"
+    }
+  },
+  {
+    "args": [
+      {
+        "enc": {
+          "alg": "chacha20-poly1305",
+          "key": "k",
+          "kid": 1
+        },
+        "handle": "h_test-handle-0001",
+        "platform": "ios",
+        "preview": false,
+        "relay": "https://push.hermie.dev",
+        "secret": "test-send-secret-0001",
+        "transport": "relay",
+        "types": {
+          "message": true
+        },
+        "updatedAt": 1790001453,
+        "v": 1
+      }
+    ],
+    "fn": "pushAddressOf",
+    "result": {
+      "enc": {
+        "alg": "chacha20-poly1305",
+        "key": "k",
+        "kid": 1
+      },
+      "handle": "h_test-handle-0001",
+      "relay": "https://push.hermie.dev",
+      "secret": "test-send-secret-0001",
+      "transport": "relay"
+    }
+  },
+  {
+    "args": [
+      {
+        "handle": "h_test-handle-0001",
+        "platform": "ios",
+        "preview": false,
+        "relay": "https://push.hermie.dev/",
+        "secret": "test-send-secret-0001",
+        "transport": "relay",
+        "types": {
+          "message": true
+        },
+        "updatedAt": 1790001453,
+        "v": 1
+      }
+    ],
+    "fn": "pushAddressOf",
+    "result": {
+      "handle": "h_test-handle-0001",
+      "relay": "https://push.hermie.dev",
+      "secret": "test-send-secret-0001",
+      "transport": "relay"
+    }
+  },
+  {
+    "args": [
+      {
+        "handle": "h_test-handle-0001",
+        "platform": "ios",
+        "preview": false,
+        "relay": "https://PUSH.hermie.dev",
+        "secret": "test-send-secret-0001",
+        "transport": "relay",
+        "types": {
+          "message": true
+        },
+        "updatedAt": 1790001453,
+        "v": 1
+      }
+    ],
+    "fn": "pushAddressOf",
+    "result": {
+      "handle": "h_test-handle-0001",
+      "relay": "https://push.hermie.dev",
+      "secret": "test-send-secret-0001",
+      "transport": "relay"
+    }
+  },
+  {
+    "args": [
+      {
+        "handle": "h_test-handle-0001",
+        "platform": "ios",
+        "preview": false,
+        "relay": "https://push.hermie.dev",
+        "secret": "test-send-secret-0001",
+        "transport": "relay",
+        "types": {
+          "message": true
+        },
+        "updatedAt": 1790001453,
+        "v": 2
+      }
+    ],
+    "fn": "pushAddressOf",
+    "result": null
+  },
+  {
+    "args": [
+      {
+        "handle": "h_test-handle-0001",
+        "platform": "ios",
+        "preview": false,
+        "relay": "https://push.hermie.dev",
+        "secret": "test-send-secret-0001",
+        "transport": "relay",
+        "types": {
+          "message": true
+        },
+        "updatedAt": 1790001453,
+        "v": "1"
+      }
+    ],
+    "fn": "pushAddressOf",
+    "result": null
+  },
+  {
+    "args": [
+      {
+        "handle": "h_test-handle-0001",
+        "platform": "ios",
+        "preview": false,
+        "relay": "http://push.hermie.dev",
+        "secret": "test-send-secret-0001",
+        "transport": "relay",
+        "types": {
+          "message": true
+        },
+        "updatedAt": 1790001453,
+        "v": 1
+      }
+    ],
+    "fn": "pushAddressOf",
+    "result": null
+  },
+  {
+    "args": [
+      {
+        "handle": "h_test-handle-0001",
+        "platform": "ios",
+        "preview": false,
+        "relay": "https://push.hermie.dev/v1/send",
+        "secret": "test-send-secret-0001",
+        "transport": "relay",
+        "types": {
+          "message": true
+        },
+        "updatedAt": 1790001453,
+        "v": 1
+      }
+    ],
+    "fn": "pushAddressOf",
+    "result": null
+  },
+  {
+    "args": [
+      {
+        "handle": "h_test-handle-0001",
+        "platform": "ios",
+        "preview": false,
+        "relay": "https://push.hermie.dev:443",
+        "secret": "test-send-secret-0001",
+        "transport": "relay",
+        "types": {
+          "message": true
+        },
+        "updatedAt": 1790001453,
+        "v": 1
+      }
+    ],
+    "fn": "pushAddressOf",
+    "result": null
+  },
+  {
+    "args": [
+      {
+        "handle": "h_test-handle-0001",
+        "platform": "ios",
+        "preview": false,
+        "relay": "https://user:pass@push.hermie.dev",
+        "secret": "test-send-secret-0001",
+        "transport": "relay",
+        "types": {
+          "message": true
+        },
+        "updatedAt": 1790001453,
+        "v": 1
+      }
+    ],
+    "fn": "pushAddressOf",
+    "result": null
+  },
+  {
+    "args": [
+      {
+        "handle": "h_test-handle-0001",
+        "platform": "ios",
+        "preview": false,
+        "relay": "https://push.hermie.dev?x=1",
+        "secret": "test-send-secret-0001",
+        "transport": "relay",
+        "types": {
+          "message": true
+        },
+        "updatedAt": 1790001453,
+        "v": 1
+      }
+    ],
+    "fn": "pushAddressOf",
+    "result": null
+  },
+  {
+    "args": [
+      {
+        "handle": "h_test-handle-0001",
+        "platform": "ios",
+        "preview": false,
+        "relay": "",
+        "secret": "test-send-secret-0001",
+        "transport": "relay",
+        "types": {
+          "message": true
+        },
+        "updatedAt": 1790001453,
+        "v": 1
+      }
+    ],
+    "fn": "pushAddressOf",
+    "result": null
+  },
+  {
+    "args": [
+      {
+        "handle": "h_test-handle-0001",
+        "platform": "ios",
+        "preview": false,
+        "secret": "test-send-secret-0001",
+        "transport": "relay",
+        "types": {
+          "message": true
+        },
+        "updatedAt": 1790001453,
+        "v": 1
+      }
+    ],
+    "fn": "pushAddressOf",
+    "result": null
+  },
+  {
+    "args": [
+      {
+        "handle": "",
+        "platform": "ios",
+        "preview": false,
+        "relay": "https://push.hermie.dev",
+        "secret": "test-send-secret-0001",
+        "transport": "relay",
+        "types": {
+          "message": true
+        },
+        "updatedAt": 1790001453,
+        "v": 1
+      }
+    ],
+    "fn": "pushAddressOf",
+    "result": null
+  },
+  {
+    "args": [
+      {
+        "handle": 7,
+        "platform": "ios",
+        "preview": false,
+        "relay": "https://push.hermie.dev",
+        "secret": "test-send-secret-0001",
+        "transport": "relay",
+        "types": {
+          "message": true
+        },
+        "updatedAt": 1790001453,
+        "v": 1
+      }
+    ],
+    "fn": "pushAddressOf",
+    "result": null
+  },
+  {
+    "args": [
+      {
+        "handle": "h",
+        "platform": "ios",
+        "preview": false,
+        "relay": "https://push.hermie.dev",
+        "secret": "A-_z09",
+        "transport": "relay",
+        "types": {
+          "message": true
+        },
+        "updatedAt": 1790001453,
+        "v": 1
+      }
+    ],
+    "fn": "pushAddressOf",
+    "result": {
+      "handle": "h",
+      "relay": "https://push.hermie.dev",
+      "secret": "A-_z09",
+      "transport": "relay"
+    }
+  },
+  {
+    "args": [
+      {
+        "handle": "hhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhh",
+        "platform": "ios",
+        "preview": false,
+        "relay": "https://push.hermie.dev",
+        "secret": "ssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssss",
+        "transport": "relay",
+        "types": {
+          "message": true
+        },
+        "updatedAt": 1790001453,
+        "v": 1
+      }
+    ],
+    "fn": "pushAddressOf",
+    "result": {
+      "handle": "hhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhh",
+      "relay": "https://push.hermie.dev",
+      "secret": "ssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssss",
+      "transport": "relay"
+    }
+  },
+  {
+    "args": [
+      {
+        "handle": "hhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhh",
+        "platform": "ios",
+        "preview": false,
+        "relay": "https://push.hermie.dev",
+        "secret": "test-send-secret-0001",
+        "transport": "relay",
+        "types": {
+          "message": true
+        },
+        "updatedAt": 1790001453,
+        "v": 1
+      }
+    ],
+    "fn": "pushAddressOf",
+    "result": null
+  },
+  {
+    "args": [
+      {
+        "handle": "h_test-handle-0001",
+        "platform": "ios",
+        "preview": false,
+        "relay": "https://push.hermie.dev",
+        "secret": "sssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssss",
+        "transport": "relay",
+        "types": {
+          "message": true
+        },
+        "updatedAt": 1790001453,
+        "v": 1
+      }
+    ],
+    "fn": "pushAddressOf",
+    "result": null
+  },
+  {
+    "args": [
+      {
+        "handle": "h_with space",
+        "platform": "ios",
+        "preview": false,
+        "relay": "https://push.hermie.dev",
+        "secret": "test-send-secret-0001",
+        "transport": "relay",
+        "types": {
+          "message": true
+        },
+        "updatedAt": 1790001453,
+        "v": 1
+      }
+    ],
+    "fn": "pushAddressOf",
+    "result": null
+  },
+  {
+    "args": [
+      {
+        "handle": "h_plus+",
+        "platform": "ios",
+        "preview": false,
+        "relay": "https://push.hermie.dev",
+        "secret": "test-send-secret-0001",
+        "transport": "relay",
+        "types": {
+          "message": true
+        },
+        "updatedAt": 1790001453,
+        "v": 1
+      }
+    ],
+    "fn": "pushAddressOf",
+    "result": null
+  },
+  {
+    "args": [
+      {
+        "handle": "h_test-handle-0001",
+        "platform": "ios",
+        "preview": false,
+        "relay": "https://push.hermie.dev",
+        "secret": "pad=",
+        "transport": "relay",
+        "types": {
+          "message": true
+        },
+        "updatedAt": 1790001453,
+        "v": 1
+      }
+    ],
+    "fn": "pushAddressOf",
+    "result": null
+  },
+  {
+    "args": [
+      {
+        "handle": "h_test-handle-0001",
+        "platform": "ios",
+        "preview": false,
+        "relay": "https://push.hermie.dev",
+        "secret": "slash/",
+        "transport": "relay",
+        "types": {
+          "message": true
+        },
+        "updatedAt": 1790001453,
+        "v": 1
+      }
+    ],
+    "fn": "pushAddressOf",
+    "result": null
+  },
+  {
+    "args": [
+      {
+        "handle": "h_é",
+        "platform": "ios",
+        "preview": false,
+        "relay": "https://push.hermie.dev",
+        "secret": "test-send-secret-0001",
+        "transport": "relay",
+        "types": {
+          "message": true
+        },
+        "updatedAt": 1790001453,
+        "v": 1
+      }
+    ],
+    "fn": "pushAddressOf",
+    "result": null
+  },
+  {
+    "args": [
+      {
+        "handle": "h_test-handle-0001",
+        "platform": "ios",
+        "preview": false,
+        "relay": "https://push.hermie.dev",
+        "secret": "",
+        "transport": "relay",
+        "types": {
+          "message": true
+        },
+        "updatedAt": 1790001453,
+        "v": 1
+      }
+    ],
+    "fn": "pushAddressOf",
+    "result": null
+  },
+  {
+    "args": [
+      {
+        "handle": "h_test-handle-0001",
+        "platform": "ios",
+        "preview": false,
+        "relay": "https://push.hermie.dev",
+        "transport": "relay",
+        "types": {
+          "message": true
+        },
+        "updatedAt": 1790001453,
+        "v": 1
+      }
+    ],
+    "fn": "pushAddressOf",
+    "result": null
+  },
+  {
+    "args": [
+      {
+        "handle": "h_test-handle-0001",
+        "platform": "android",
+        "preview": false,
+        "relay": "https://push.hermie.dev",
+        "secret": "test-send-secret-0001",
+        "transport": "relay",
+        "types": {
+          "message": true
+        },
+        "updatedAt": 1790001453,
+        "v": 1
+      }
+    ],
+    "fn": "pushAddressOf",
+    "result": null
+  },
+  {
+    "args": [
+      {
+        "handle": "h_test-handle-0001",
+        "preview": false,
+        "relay": "https://push.hermie.dev",
+        "secret": "test-send-secret-0001",
+        "transport": "relay",
+        "types": {
+          "message": true
+        },
+        "updatedAt": 1790001453,
+        "v": 1
+      }
+    ],
+    "fn": "pushAddressOf",
+    "result": null
+  },
+  {
+    "args": [
+      {
+        "handle": "h_test-handle-0001",
+        "platform": "ios",
+        "preview": false,
+        "relay": "https://push.hermie.dev",
+        "secret": "test-send-secret-0001",
+        "token": "ExponentPushToken[test-0001]",
+        "transport": "relay",
+        "types": {
+          "message": true
+        },
+        "updatedAt": 1790001453,
+        "v": 1
+      }
+    ],
+    "fn": "pushAddressOf",
+    "result": null
+  },
+  {
+    "args": [
+      {
+        "handle": "h_test-handle-0001",
+        "platform": "ios",
+        "preview": false,
+        "relay": "https://push.hermie.dev",
+        "secret": "test-send-secret-0001",
+        "token": "",
+        "transport": "relay",
+        "types": {
+          "message": true
+        },
+        "updatedAt": 1790001453,
+        "v": 1
+      }
+    ],
+    "fn": "pushAddressOf",
+    "result": null
+  },
+  {
+    "args": [
+      {
+        "endpoint": "https://push.example.com/send/abc123",
+        "handle": "h_test-handle-0001",
+        "platform": "ios",
+        "preview": false,
+        "relay": "https://push.hermie.dev",
+        "secret": "test-send-secret-0001",
+        "transport": "relay",
+        "types": {
+          "message": true
+        },
+        "updatedAt": 1790001453,
+        "v": 1
+      }
+    ],
+    "fn": "pushAddressOf",
+    "result": null
+  },
+  {
+    "args": [
+      {
+        "token": "ExponentPushToken[test-0001]",
+        "transport": "expo",
+        "v": 1
+      }
+    ],
+    "fn": "pushAddressOf",
+    "result": {
+      "token": "ExponentPushToken[test-0001]",
+      "transport": "expo"
+    }
+  },
+  {
+    "args": [
+      {
+        "endpoint": "",
+        "token": "ExponentPushToken[test-0001]",
+        "transport": "expo",
+        "v": 1
+      }
+    ],
+    "fn": "pushAddressOf",
+    "result": {
+      "token": "ExponentPushToken[test-0001]",
+      "transport": "expo"
+    }
+  },
+  {
+    "args": [
+      {
+        "endpoint": "https://push.example.com/x",
+        "token": "ExponentPushToken[test-0001]",
+        "transport": "expo",
+        "v": 1
+      }
+    ],
+    "fn": "pushAddressOf",
+    "result": null
+  },
+  {
+    "args": [
+      {
+        "handle": "h_x",
+        "secret": "s",
+        "token": "ExponentPushToken[test-0001]",
+        "transport": "expo",
+        "v": 1
+      }
+    ],
+    "fn": "pushAddressOf",
+    "result": null
+  },
+  {
+    "args": [
+      {
+        "handle": "",
+        "token": "ExponentPushToken[test-0001]",
+        "transport": "expo",
+        "v": 1
+      }
+    ],
+    "fn": "pushAddressOf",
+    "result": null
+  },
+  {
+    "args": [
+      {
+        "token": "",
+        "transport": "expo",
+        "v": 1
+      }
+    ],
+    "fn": "pushAddressOf",
+    "result": null
+  },
+  {
+    "args": [
+      {
+        "endpoint": "https://push.example.com/send/abc123",
+        "keys": {
+          "auth": "test-auth-secret",
+          "p256dh": "BP-test-p256dh-key"
+        },
+        "transport": "webpush",
+        "v": 1
+      }
+    ],
+    "fn": "pushAddressOf",
+    "result": {
+      "endpoint": "https://push.example.com/send/abc123",
+      "keys": {
+        "auth": "test-auth-secret",
+        "p256dh": "BP-test-p256dh-key"
+      },
+      "transport": "webpush"
+    }
+  },
+  {
+    "args": [
+      {
+        "endpoint": "https://push.example.com/send/abc123",
+        "keys": {
+          "auth": "test-auth-secret",
+          "p256dh": "BP-test-p256dh-key"
+        },
+        "token": "",
+        "transport": "webpush",
+        "v": 1
+      }
+    ],
+    "fn": "pushAddressOf",
+    "result": {
+      "endpoint": "https://push.example.com/send/abc123",
+      "keys": {
+        "auth": "test-auth-secret",
+        "p256dh": "BP-test-p256dh-key"
+      },
+      "transport": "webpush"
+    }
+  },
+  {
+    "args": [
+      {
+        "endpoint": "https://push.example.com/send/abc123",
+        "keys": {
+          "auth": "test-auth-secret",
+          "p256dh": "BP-test-p256dh-key"
+        },
+        "token": "ExponentPushToken[test-0001]",
+        "transport": "webpush",
+        "v": 1
+      }
+    ],
+    "fn": "pushAddressOf",
+    "result": null
+  },
+  {
+    "args": [
+      {
+        "endpoint": "https://push.example.com/send/abc123",
+        "handle": "h_x",
+        "keys": {
+          "auth": "test-auth-secret",
+          "p256dh": "BP-test-p256dh-key"
+        },
+        "transport": "webpush",
+        "v": 1
+      }
+    ],
+    "fn": "pushAddressOf",
+    "result": null
+  },
+  {
+    "args": [
+      {
+        "endpoint": "https://push.example.com/send/abc123",
+        "keys": {
+          "p256dh": "p"
+        },
+        "transport": "webpush",
+        "v": 1
+      }
+    ],
+    "fn": "pushAddressOf",
+    "result": null
+  },
+  {
+    "args": [
+      {
+        "token": "x",
+        "transport": "fcm",
+        "v": 1
+      }
+    ],
+    "fn": "pushAddressOf",
+    "result": null
+  },
+  {
+    "args": [
+      {
+        "v": 1
+      }
+    ],
+    "fn": "pushAddressOf",
+    "result": null
+  },
+  {
+    "args": [
+      null
+    ],
+    "fn": "pushAddressOf",
+    "result": null
+  },
+  {
+    "args": [
+      []
+    ],
+    "fn": "pushAddressOf",
+    "result": null
+  },
+  {
+    "args": [
+      "relay"
+    ],
+    "fn": "pushAddressOf",
+    "result": null
+  },
+  {
+    "args": [
+      "https://push.hermie.dev"
+    ],
+    "fn": "pushRelayOriginOf",
+    "note": "the WHATWG URL origin when the input is https, has no credentials, and its lowercased spelling is exactly that origin or that origin plus one \"/\"; otherwise \"\". So a default port, a path, a query or fragment marker, surrounding space or any other rewrite the parser would make is refused",
+    "result": "https://push.hermie.dev"
+  },
+  {
+    "args": [
+      "https://push.hermie.dev/"
+    ],
+    "fn": "pushRelayOriginOf",
+    "result": "https://push.hermie.dev"
+  },
+  {
+    "args": [
+      "https://PUSH.Hermie.DEV"
+    ],
+    "fn": "pushRelayOriginOf",
+    "result": "https://push.hermie.dev"
+  },
+  {
+    "args": [
+      "HTTPS://push.hermie.dev"
+    ],
+    "fn": "pushRelayOriginOf",
+    "result": "https://push.hermie.dev"
+  },
+  {
+    "args": [
+      "https://relay.example.org:8443"
+    ],
+    "fn": "pushRelayOriginOf",
+    "result": "https://relay.example.org:8443"
+  },
+  {
+    "args": [
+      "https://relay.example.org:8443/"
+    ],
+    "fn": "pushRelayOriginOf",
+    "result": "https://relay.example.org:8443"
+  },
+  {
+    "args": [
+      "https://push.hermie.dev:443"
+    ],
+    "fn": "pushRelayOriginOf",
+    "result": ""
+  },
+  {
+    "args": [
+      "https://push.hermie.dev//"
+    ],
+    "fn": "pushRelayOriginOf",
+    "result": ""
+  },
+  {
+    "args": [
+      "https://push.hermie.dev/."
+    ],
+    "fn": "pushRelayOriginOf",
+    "result": ""
+  },
+  {
+    "args": [
+      "https://push.hermie.dev/v1/send"
+    ],
+    "fn": "pushRelayOriginOf",
+    "result": ""
+  },
+  {
+    "args": [
+      "https://push.hermie.dev?"
+    ],
+    "fn": "pushRelayOriginOf",
+    "result": ""
+  },
+  {
+    "args": [
+      "https://push.hermie.dev/?x=1"
+    ],
+    "fn": "pushRelayOriginOf",
+    "result": ""
+  },
+  {
+    "args": [
+      "https://push.hermie.dev#x"
+    ],
+    "fn": "pushRelayOriginOf",
+    "result": ""
+  },
+  {
+    "args": [
+      "https://user@push.hermie.dev"
+    ],
+    "fn": "pushRelayOriginOf",
+    "result": ""
+  },
+  {
+    "args": [
+      "https://user:pass@push.hermie.dev"
+    ],
+    "fn": "pushRelayOriginOf",
+    "result": ""
+  },
+  {
+    "args": [
+      "http://push.hermie.dev"
+    ],
+    "fn": "pushRelayOriginOf",
+    "result": ""
+  },
+  {
+    "args": [
+      "wss://push.hermie.dev"
+    ],
+    "fn": "pushRelayOriginOf",
+    "result": ""
+  },
+  {
+    "args": [
+      "push.hermie.dev"
+    ],
+    "fn": "pushRelayOriginOf",
+    "result": ""
+  },
+  {
+    "args": [
+      " https://push.hermie.dev"
+    ],
+    "fn": "pushRelayOriginOf",
+    "result": ""
+  },
+  {
+    "args": [
+      "https://push.hermie.dev "
+    ],
+    "fn": "pushRelayOriginOf",
+    "result": ""
+  },
+  {
+    "args": [
+      "https://127.0.0.1"
+    ],
+    "fn": "pushRelayOriginOf",
+    "result": "https://127.0.0.1"
+  },
+  {
+    "args": [
+      "https://[::1]"
+    ],
+    "fn": "pushRelayOriginOf",
+    "result": "https://[::1]"
+  },
+  {
+    "args": [
+      ""
+    ],
+    "fn": "pushRelayOriginOf",
+    "result": ""
+  },
+  {
+    "args": [
+      null
+    ],
+    "fn": "pushRelayOriginOf",
+    "result": ""
+  },
+  {
+    "args": [
+      42
+    ],
+    "fn": "pushRelayOriginOf",
+    "result": ""
+  },
+  {
+    "args": [
+      "https://push.hermie.dev",
+      [
+        "https://push.hermie.dev"
+      ]
+    ],
+    "fn": "pushRelayAllowed",
+    "note": "true when pushRelayOriginOf(args[0]) is non-empty and equals pushRelayOriginOf of some entry of the allow-list args[1]",
+    "result": true
+  },
+  {
+    "args": [
+      "https://push.hermie.dev/",
+      [
+        "https://push.hermie.dev"
+      ]
+    ],
+    "fn": "pushRelayAllowed",
+    "result": true
+  },
+  {
+    "args": [
+      "https://push.hermie.dev",
+      [
+        "https://PUSH.hermie.dev/"
+      ]
+    ],
+    "fn": "pushRelayAllowed",
+    "result": true
+  },
+  {
+    "args": [
+      "https://relay.example.org",
+      [
+        "https://push.hermie.dev",
+        "https://relay.example.org"
+      ]
+    ],
+    "fn": "pushRelayAllowed",
+    "result": true
+  },
+  {
+    "args": [
+      "https://push.hermie.dev.evil.example",
+      [
+        "https://push.hermie.dev"
+      ]
+    ],
+    "fn": "pushRelayAllowed",
+    "result": false
+  },
+  {
+    "args": [
+      "https://evil.example",
+      [
+        "https://push.hermie.dev"
+      ]
+    ],
+    "fn": "pushRelayAllowed",
+    "result": false
+  },
+  {
+    "args": [
+      "http://push.hermie.dev",
+      [
+        "http://push.hermie.dev"
+      ]
+    ],
+    "fn": "pushRelayAllowed",
+    "result": false
+  },
+  {
+    "args": [
+      "https://push.hermie.dev",
+      []
+    ],
+    "fn": "pushRelayAllowed",
+    "result": false
+  },
+  {
+    "args": [
+      "https://push.hermie.dev",
+      [
+        "not a url"
+      ]
+    ],
+    "fn": "pushRelayAllowed",
+    "result": false
+  },
+  {
+    "args": [
+      "",
+      [
+        "https://push.hermie.dev"
+      ]
+    ],
+    "fn": "pushRelayAllowed",
+    "result": false
+  },
+  {
+    "args": [
+      {
         "push": {
           "registrations": {
             "": {
@@ -2067,6 +3426,62 @@
       "install-bbbb": 0,
       "install-cccc": false,
       "install-dddd": ""
+    }
+  },
+  {
+    "args": [
+      {
+        "push": {
+          "registrations": {
+            "install-mac": {
+              "enc": {
+                "alg": "chacha20-poly1305",
+                "key": "k",
+                "kid": 1
+              },
+              "futureField": {
+                "kept": true
+              },
+              "handle": "h_test-handle-0001",
+              "platform": "ios",
+              "preview": false,
+              "relay": "https://push.hermie.dev",
+              "secret": "test-send-secret-0001",
+              "transport": "relay",
+              "types": {
+                "message": true
+              },
+              "updatedAt": 1790001453,
+              "v": 1
+            }
+          }
+        }
+      },
+      "install-aaaa"
+    ],
+    "fn": "foreignPushRows",
+    "result": {
+      "install-mac": {
+        "enc": {
+          "alg": "chacha20-poly1305",
+          "key": "k",
+          "kid": 1
+        },
+        "futureField": {
+          "kept": true
+        },
+        "handle": "h_test-handle-0001",
+        "platform": "ios",
+        "preview": false,
+        "relay": "https://push.hermie.dev",
+        "secret": "test-send-secret-0001",
+        "transport": "relay",
+        "types": {
+          "message": true
+        },
+        "updatedAt": 1790001453,
+        "v": 1
+      }
     }
   },
   {
@@ -3111,6 +4526,98 @@
         "install-cccc": {
           "someFutureField": true,
           "v": 7
+        }
+      },
+      "seen": {}
+    }
+  },
+  {
+    "args": [
+      {
+        "now": 1790001453,
+        "others": {
+          "install-mac": {
+            "enc": {
+              "kid": 1
+            },
+            "futureField": true,
+            "handle": "h_test-handle-0001",
+            "platform": "ios",
+            "preview": false,
+            "relay": "https://push.hermie.dev",
+            "secret": "test-send-secret-0001",
+            "transport": "relay",
+            "types": {
+              "message": true
+            },
+            "updatedAt": 1790001453,
+            "v": 1
+          }
+        },
+        "own": {
+          "address": {
+            "handle": "h_test-handle-0001",
+            "relay": "https://push.hermie.dev",
+            "secret": "test-send-secret-0001",
+            "transport": "relay"
+          },
+          "gatewayKey": "bf796761db84e312",
+          "installationId": "install-aaaa",
+          "platform": "ios",
+          "preview": false,
+          "types": {
+            "cron": false,
+            "cron_done": false,
+            "cron_failed": false,
+            "message": true,
+            "request": true,
+            "turn_done": true,
+            "turn_failed": false
+          },
+          "updatedAt": 1790001453
+        },
+        "seen": {}
+      }
+    ],
+    "fn": "pushSectionFor",
+    "result": {
+      "registrations": {
+        "install-aaaa": {
+          "gatewayKey": "bf796761db84e312",
+          "handle": "h_test-handle-0001",
+          "platform": "ios",
+          "preview": false,
+          "relay": "https://push.hermie.dev",
+          "secret": "test-send-secret-0001",
+          "transport": "relay",
+          "types": {
+            "cron": false,
+            "cron_done": false,
+            "cron_failed": false,
+            "message": true,
+            "request": true,
+            "turn_done": true,
+            "turn_failed": false
+          },
+          "updatedAt": 1790001453,
+          "v": 1
+        },
+        "install-mac": {
+          "enc": {
+            "kid": 1
+          },
+          "futureField": true,
+          "handle": "h_test-handle-0001",
+          "platform": "ios",
+          "preview": false,
+          "relay": "https://push.hermie.dev",
+          "secret": "test-send-secret-0001",
+          "transport": "relay",
+          "types": {
+            "message": true
+          },
+          "updatedAt": 1790001453,
+          "v": 1
         }
       },
       "seen": {}

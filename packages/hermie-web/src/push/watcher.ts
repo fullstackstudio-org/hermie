@@ -36,7 +36,7 @@ import type { PushMessage } from './expo'
 import { lastInboundRow } from './inbound'
 import type { LinkEvent, LinkServerRequest } from './link'
 import { gatewayKeyOf } from './gateway-key'
-import { type NotifiableEvent, pushMessageFor, typeForTurn } from './payload'
+import { eventIdOf, type NotifiableEvent, pushMessageFor, typeForTurn } from './payload'
 import { type PushRegistration, type PushType, registrationsForAny, someoneAttached } from './registrations'
 import { readRoster, type Roster, type WatchedBot } from './roster'
 import type { PushState } from './state'
@@ -290,7 +290,8 @@ export class PushWatcher {
     }
 
     this.log(
-      `push: watching ${String(roster.bots.length)} chat(s), ${String(roster.push.registrations.length)} registration(s)`
+      `push: watching ${String(roster.bots.length)} chat(s), ${String(roster.push.registrations.length)} registration(s)` +
+        (roster.pluginPush ? '; the gateway’s hermie plugin delivers push, so this daemon sends nothing' : '')
     )
     await this.announce()
   }
@@ -309,7 +310,17 @@ export class PushWatcher {
       return
     }
 
-    const availability: PushAvailability = { ...describe(), at: this.now }
+    /*
+      While the gateway's plugin is the notifier this daemon delivers nothing,
+      so its stamp claims nothing either. Above all not `push.relay`: an app
+      that read it would replace its Expo row with a relay row, and a plugin
+      too old to deliver one would leave that device with no notifier at all.
+    */
+    const availability: PushAvailability = {
+      ...describe(),
+      ...(this.roster.pluginPush ? { capabilities: [], relayOrigins: [] } : {}),
+      at: this.now
+    }
     const ttl = this.options.availabilityTtlSeconds ?? AVAILABILITY_TTL_SECONDS
 
     if (availabilityIsCurrent(this.roster.appSection, availability, ttl)) {
@@ -418,7 +429,14 @@ export class PushWatcher {
           sessionKind: 'canonical',
           requestId: queueId || request.id,
           requestMethod: request.method,
-          preview: previewOfRequest(request.params)
+          preview: previewOfRequest(request.params),
+          // The plugin's derivation and the plugin's parts, so the two
+          // notifiers name the same question the same way.
+          eventId: eventIdOf(
+            request.method === 'clarify' ? 'clarify' : 'request',
+            session.sessionId,
+            queueId || request.id
+          )
         },
         `${session.sessionId}:req:${queueId || request.id}`,
         { suppressWhenAttached: false }
@@ -485,7 +503,7 @@ export class PushWatcher {
    * envelope arrived first.
    */
   async pollApprovals(): Promise<void> {
-    if (!this.roster.push.registrations.length) {
+    if (!this.roster.push.registrations.length || this.roster.pluginPush) {
       return
     }
 
@@ -526,8 +544,9 @@ export class PushWatcher {
 
     // Nothing to classify for, so nothing to fetch. The history read below is
     // the daemon's one expensive call and it is worth skipping when it would
-    // only decide which of several empty audiences to address.
-    if (!this.roster.push.registrations.length) {
+    // only decide which of several empty audiences to address. The same goes
+    // for a gateway whose plugin is the notifier: nothing here will be sent.
+    if (!this.roster.push.registrations.length || this.roster.pluginPush) {
       return
     }
 
@@ -556,7 +575,8 @@ export class PushWatcher {
       */
       ...(cron ? { cron: true, cronCertain: true } : {}),
       ...(cron && failed ? { failed: true } : {}),
-      preview: typeof payload.text === 'string' ? payload.text : ''
+      preview: typeof payload.text === 'string' ? payload.text : '',
+      eventId: eventIdOf(type, session.sessionId, String(seq))
     }
 
     await this.notify(notifiable, `${session.sessionId}:${type}:${String(seq)}`, {
@@ -656,6 +676,20 @@ export class PushWatcher {
       }
     } else {
       await this.refreshRegistrations()
+    }
+
+    /*
+      The gateway's plugin delivers push, so this daemon does not — on any
+      transport. Checked after the roster refresh, so a plugin installed or
+      switched off while the daemon runs is noticed within one TTL; the claim on
+      the dedupe key above stays, so the same event does not go out later if the
+      plugin disappears in between.
+    */
+    if (this.roster.pluginPush) {
+      this.log(`push: ${event.bot} — the gateway’s hermie plugin delivers push; not notifying`)
+      await this.options.save()
+
+      return
     }
 
     const policy = this.options.policy?.()

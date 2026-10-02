@@ -30,6 +30,7 @@ describe('--help', () => {
     ['--state-dir', 'HERMIE_STATE_DIR'],
     ['--vapid-subject', 'HERMIE_VAPID_SUBJECT'],
     ['--push-server-requests', 'HERMIE_PUSH_SERVER_REQUESTS'],
+    ['--push-relays', 'HERMIE_PUSH_RELAYS'],
     ['--allow-insecure-oidc', 'HERMIE_ALLOW_INSECURE_OIDC'],
     ['--no-oidc', 'HERMIE_OIDC'],
     ['--admins', 'HERMIE_ADMINS']

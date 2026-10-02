@@ -17,6 +17,7 @@ import { CACHE_ROW_LIMIT, type TranscriptCacheSink } from '../cache'
 import { PUSH_PUBLIC_KEY_PATH } from '../options'
 import { type PushCredentials, resolveCredentials } from './credentials'
 import { GatewayLink, type LinkEvent, type LinkServerRequest } from './link'
+import { RELAY_DEFAULT_ORIGIN, relayAllowList } from './relay'
 import { createSender, pollExpoReceipts, RECEIPT_POLL_INTERVAL_MS } from './senders'
 import type { PushType } from './registrations'
 import { loadPushState, prunePushState, type PushState, savePushState } from './state'
@@ -76,6 +77,11 @@ export interface PushDaemonOptions {
    * holding a question open has taken it from the owner.
    */
   serverRequests?: boolean
+  /**
+   * The relay allow-list (`--push-relays`). Absent means the project's own
+   * relay only; see `options.ts`.
+   */
+  relays?: readonly string[]
   /**
    * Replace the transports. The default sends through Expo and Web Push; the
    * tests hand in a recorder.
@@ -145,6 +151,7 @@ export async function startPushDaemon(options: PushDaemonOptions): Promise<PushD
   }
 
   let link: GatewayLink | null = null
+  const relays = relayAllowList(options.relays ?? [RELAY_DEFAULT_ORIGIN])
 
   const save = async (): Promise<void> => {
     // The link is the authority on how far each session has been read; the file
@@ -310,7 +317,13 @@ export async function startPushDaemon(options: PushDaemonOptions): Promise<PushD
 
   const sender =
     options.sender ??
-    createSender({ state, vapid, log, ...(options.fetchImpl ? { fetchImpl: options.fetchImpl } : {}) })
+    createSender({
+      state,
+      vapid,
+      log,
+      relays,
+      ...(options.fetchImpl ? { fetchImpl: options.fetchImpl } : {})
+    })
 
   if (options.watch !== false) {
     watcher = new PushWatcher({
@@ -327,7 +340,16 @@ export async function startPushDaemon(options: PushDaemonOptions): Promise<PushD
       availability: () => ({
         endpoint: PUSH_PUBLIC_KEY_PATH,
         vapidPublicKey: vapid.keys.publicKey,
-        version: options.version ?? '0.0.0'
+        version: options.version ?? '0.0.0',
+        /*
+          What this notifier can deliver to, as the plugin's capability
+          strings, and the relays it will post to, as the plugin publishes its
+          own. `push.relay` only while the project's relay is on the list: the
+          native app registers there, so a daemon that may not post there would
+          be inviting a row it will never deliver.
+        */
+        capabilities: ['push.expo', 'push.webpush', ...(relays.includes(RELAY_DEFAULT_ORIGIN) ? ['push.relay'] : [])],
+        relayOrigins: relays
       }),
       fetchTail,
       ...(options.allowedTo ? { allowedTo: options.allowedTo } : {}),

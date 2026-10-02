@@ -34,6 +34,17 @@ export interface PushAvailability {
   vapidPublicKey: string
   /** Hermie Web's own version, so Settings can say what is running. */
   version: string
+  /**
+   * What this notifier can deliver to, in the plugin's capability strings
+   * (`push.expo`, `push.webpush`, `push.relay`). Optional and additive: a
+   * reader that predates it ignores it, and an absent list says nothing.
+   */
+  capabilities?: readonly string[]
+  /**
+   * The relay origins this daemon posts to (`--push-relays`), the same
+   * additive field the plugin's advert carries. Optional; absent says nothing.
+   */
+  relayOrigins?: readonly string[]
   /** Unix seconds. A stamp that has stopped moving is a daemon that has stopped. */
   at: number
 }
@@ -56,6 +67,11 @@ export function withAvailability(
   const bag = isObject(section) ? { ...section } : {}
   const push = isObject(bag.push) ? { ...bag.push } : {}
 
+  // Ours to replace whole: a list a newer daemon left must not outlive the
+  // daemon that is running now.
+  delete push.capabilities
+  delete push.relayOrigins
+
   return {
     // A bag that has never been written still has to carry the section version
     // the app's own reader checks.
@@ -67,12 +83,23 @@ export function withAvailability(
       endpoint: availability.endpoint,
       vapidPublicKey: availability.vapidPublicKey,
       version: availability.version,
+      ...(availability.capabilities ? { capabilities: [...availability.capabilities] } : {}),
+      ...(availability.relayOrigins ? { relayOrigins: [...availability.relayOrigins] } : {}),
       at: availability.at
     }
   }
 }
 
 /** True when the bag already says exactly this, down to the stamp's minute. */
+/** Two capability lists say the same, an absent one matching only an absent one. */
+function sameList(stored: unknown, wanted: readonly string[] | undefined): boolean {
+  if (wanted === undefined) {
+    return stored === undefined
+  }
+
+  return Array.isArray(stored) && stored.length === wanted.length && wanted.every((entry, i) => stored[i] === entry)
+}
+
 export function availabilityIsCurrent(
   section: Record<string, unknown> | null,
   availability: PushAvailability,
@@ -90,6 +117,8 @@ export function availabilityIsCurrent(
     push.endpoint === availability.endpoint &&
     push.vapidPublicKey === availability.vapidPublicKey &&
     push.version === availability.version &&
+    sameList(push.capabilities, availability.capabilities) &&
+    sameList(push.relayOrigins, availability.relayOrigins) &&
     availability.at - at < staleAfterSeconds
   )
 }

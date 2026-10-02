@@ -36,6 +36,29 @@ export interface PushMessage {
   data: Record<string, string | boolean>
   /** Notification category, for the Allow / Deny actions on a request. */
   categoryId?: string
+  /**
+   * The Android notification channel: the event's type, one channel per type
+   * (`contract/push/contract.json`). Expo only; the other transports have no
+   * channels.
+   */
+  channelId?: string
+  /**
+   * The body this notification has WITHOUT a preview: the event-type phrase.
+   *
+   * Equal to `body` unless a preview was put in it. It travels beside the body
+   * so that a transport which must never carry message text — the relay, see
+   * `relay.ts` — can say the safe line without having to trust that the caller
+   * partitioned the devices correctly.
+   */
+  summary?: string
+  /**
+   * The event this notification is about, as the watcher dedupes it.
+   *
+   * Not part of the payload a device reads. The relay uses it as the APNs
+   * collapse id, so a message the relay already delivered and is then sent
+   * again on a retry replaces itself instead of buzzing twice.
+   */
+  eventId?: string
 }
 
 export interface ExpoTicket {
@@ -98,6 +121,15 @@ export async function sendExpo(
       body: message.body,
       data: message.data,
       ...(message.categoryId ? { categoryId: message.categoryId } : {}),
+      /*
+        One channel per type, named after the type, as the push contract says
+        and as the gateway plugin has always sent. The Expo app 0.1.9 created
+        only `default` and `needs-input`; on that build expo-notifications
+        posts a notification whose channel does not exist on the fallback
+        channel instead of dropping it, so it still arrives there. An updated
+        app creates the seven type channels.
+      */
+      ...(message.channelId ? { channelId: message.channelId } : {}),
       // A notification about the same chat replaces the previous one rather
       // than stacking four identical rows on a lock screen.
       ...(message.data.bot ? { collapseId: message.data.bot } : {})

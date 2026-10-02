@@ -433,6 +433,45 @@ describe('HERMIE_ADMINS', () => {
   })
 })
 
+/**
+ * The relay allow-list. It is the only thing that decides where a relay
+ * request goes, so its default and its refusals are pinned rather than assumed.
+ */
+describe('HERMIE_PUSH_RELAYS', () => {
+  it('defaults to the project’s own relay and nothing else', () => {
+    expect(resolveOptions({ env: {} }).pushRelays).toEqual(['https://push.hermie.dev'])
+  })
+
+  it('replaces the default rather than adding to it', () => {
+    expect(
+      resolveOptions({ env: { HERMIE_PUSH_RELAYS: ' https://relay.example.org/ , https://RELAY.example.org' } })
+        .pushRelays
+    ).toEqual(['https://relay.example.org'])
+  })
+
+  it('reads an empty value as an empty list, which turns relay delivery off', () => {
+    expect(resolveOptions({ env: { HERMIE_PUSH_RELAYS: '' } }).pushRelays).toEqual([])
+  })
+
+  it('lets a flag beat the environment', () => {
+    expect(
+      resolveOptions({ env: { HERMIE_PUSH_RELAYS: 'https://a.example.org' }, pushRelays: 'https://b.example.org' })
+        .pushRelays
+    ).toEqual(['https://b.example.org'])
+  })
+
+  it('refuses anything that is not an https origin, naming the flag and the variable', () => {
+    for (const bad of [
+      'http://push.hermie.dev',
+      'https://push.hermie.dev/v1/send',
+      'push.hermie.dev',
+      'https://user@push.hermie.dev'
+    ]) {
+      expect(() => resolveOptions({ env: { HERMIE_PUSH_RELAYS: bad } })).toThrow(/--push-relays.*HERMIE_PUSH_RELAYS/)
+    }
+  })
+})
+
 describe('HERMIE_LOCAL_ADMIN_PASSWORD_HASH', () => {
   it('is unset by default', () => {
     expect(resolveOptions({ env: {} }).localAdminPasswordHash).toBeNull()

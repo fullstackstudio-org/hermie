@@ -1,5 +1,5 @@
 /**
- * The two transports, behind one door.
+ * The transports, behind one door.
  *
  * ADR-0017: "Two transports, two failure modes, one code path. Expo handles
  * APNs and FCM and gives receipts; Web Push is VAPID and gives an HTTP status.
@@ -12,9 +12,14 @@
  * parks its tickets in the state file and `pollExpoReceipts` reads them back
  * later — a sender that only read tickets would push to uninstalled apps for
  * ever, which is how a push integration ends up rate limited.
+ *
+ * The relay (`relay.ts`) is the third transport, for the native Apple apps. Its
+ * answer is synchronous like Web Push's: the relay has already asked APNs, and
+ * `gone` is final.
  */
 import { type ExpoSendResult, readExpoReceipts, sendExpo, type PushMessage } from './expo'
 import type { PushRegistration } from './registrations'
+import { createRelayBackoff, RELAY_DEFAULT_ORIGIN, sendRelay } from './relay'
 import type { PendingTicket, PushState } from './state'
 import type { PushSender } from './watcher'
 import { sendWebPush, type VapidOptions } from './web-push'
@@ -37,20 +42,31 @@ export const MAX_PENDING_TICKETS = 2000
 export interface SenderOptions {
   state: PushState
   vapid: VapidOptions
+  /**
+   * The relay origins a `relay` registration may be sent through. Absent means
+   * the project's own relay only; empty means relay rows are never sent.
+   */
+  relays?: readonly string[]
   fetchImpl?: typeof fetch
   now?: () => number
   log?: (line: string) => void
+  /** The pause before a relay retry. Injected by the tests. */
+  sleep?: (ms: number) => Promise<void>
 }
 
-/** One sender over both transports. A registration carries exactly one address. */
+/** One sender over every transport. A registration carries exactly one address. */
 export function createSender(options: SenderOptions): PushSender {
   const now = (): number => options.now?.() ?? Math.floor(Date.now() / 1000)
+  // Kept for the life of the sender: a relay that is backing off, or a device
+  // it rate-limited, is skipped by every send until the time has passed.
+  const relayBackoff = createRelayBackoff()
 
   return {
     async send(registrations: readonly PushRegistration[], message: PushMessage) {
       const dead: string[] = []
       const expoTargets = registrations.filter(registration => registration.transport === 'expo')
       const webTargets = registrations.filter(registration => registration.transport === 'webpush')
+      const relayTargets = registrations.filter(registration => registration.transport === 'relay')
 
       if (expoTargets.length) {
         const result: ExpoSendResult = await sendExpo(expoTargets, message, {
@@ -64,6 +80,20 @@ export function createSender(options: SenderOptions): PushSender {
         const result = await sendWebPush(webTargets, message, {
           vapid: options.vapid,
           ...(options.fetchImpl ? { fetchImpl: options.fetchImpl } : {})
+        })
+        dead.push(...result.dead)
+      }
+
+      if (relayTargets.length) {
+        // `gone` answers come back as dead installations, and the watcher
+        // retires them exactly as it retires a `DeviceNotRegistered` token.
+        const result = await sendRelay(relayTargets, message, {
+          allowList: options.relays ?? [RELAY_DEFAULT_ORIGIN],
+          backoff: relayBackoff,
+          ...(options.now ? { now: () => now() * 1000 } : {}),
+          ...(options.fetchImpl ? { fetchImpl: options.fetchImpl } : {}),
+          ...(options.log ? { log: options.log } : {}),
+          ...(options.sleep ? { sleep: options.sleep } : {})
         })
         dead.push(...result.dead)
       }

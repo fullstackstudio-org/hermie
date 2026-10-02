@@ -20,9 +20,16 @@
  *    forward needs no schema, and dropping a future build's row because it is
  *    unreadable here would turn a version skew into a phone that goes quiet.
  *  - **The address decides the shape.** `token` for `expo`, `endpoint` + `keys`
- *    for `webpush`, never both — the reader drops an entry that carries the
- *    fields of both transports rather than guessing which one was meant, so a
- *    writer that emitted both would be writing an entry that is ignored.
+ *    for `webpush`, `relay` + `handle` + `secret` for `relay`, never two of
+ *    them — the reader drops an entry that carries the fields of two transports
+ *    rather than guessing which one was meant, so a writer that emitted both
+ *    would be writing an entry that is ignored.
+ *
+ * The `relay` transport was added without bumping `v`. A reader that predates
+ * it already drops a row whose transport it does not know, and every writer
+ * already carries rows it did not write, so an older notifier simply does not
+ * send to a relay row and an older app does not delete one. Bumping `v` would
+ * have bought nothing and cost the same drop.
  *
  * Nothing here talks to a gateway. The section this builds is handed to
  * `UiMetaSync` as part of the app-wide snapshot, which is what gives it the
@@ -73,11 +80,44 @@ export const PUSH_TYPES = [
 
 export type PushType = (typeof PUSH_TYPES)[number]
 
-export type PushTransport = 'expo' | 'webpush'
+export type PushTransport = 'expo' | 'webpush' | 'relay'
 
 export interface WebPushKeys {
   p256dh: string
   auth: string
+}
+
+/**
+ * The push relay the project operates, and the one origin every sender's
+ * allow-list starts with.
+ *
+ * A relay row NAMES its relay, but a sender never posts to whatever a row
+ * names: it posts only to an origin on its own allow-list, and this is the
+ * default content of that list. A row is data written by anybody who can write
+ * `ui_meta`, and an address in it that a sender followed blindly would be a
+ * request forgery with the gateway's network position behind it.
+ */
+export const PUSH_RELAY_ORIGIN = 'https://push.hermie.dev'
+
+/** The platforms a relay registration can be for. The relay speaks APNs only, for now. */
+export const PUSH_RELAY_PLATFORMS = ['ios', 'macos'] as const
+
+export type PushRelayPlatform = (typeof PUSH_RELAY_PLATFORMS)[number]
+
+/**
+ * A relay address: the relay's origin, the device's public handle there, and
+ * the send secret that authorises one message to that one device.
+ *
+ * `enc` is the device's end-to-end key (step 2 of the relay design). This build
+ * neither produces nor reads it; it is carried untouched so that a writer
+ * which does not understand it cannot strip it from a row that has one.
+ */
+export interface PushRelayAddress {
+  transport: 'relay'
+  relay: string
+  handle: string
+  secret: string
+  enc?: unknown
 }
 
 /**
@@ -87,7 +127,9 @@ export interface WebPushKeys {
  * the daemon refuses and a type that can express it is a type that will.
  */
 export type PushAddress =
-  { transport: 'expo'; token: string } | { transport: 'webpush'; endpoint: string; keys: WebPushKeys }
+  | { transport: 'expo'; token: string }
+  | { transport: 'webpush'; endpoint: string; keys: WebPushKeys }
+  | PushRelayAddress
 
 /** This device's registration, before it becomes a row. */
 export interface PushRegistrationInput {
@@ -104,7 +146,10 @@ export interface PushRegistrationInput {
    */
   gatewayKey?: string
   address: PushAddress
-  /** `ios`, `android` or `web`. Informational; the daemon does not route on it. */
+  /**
+   * `ios`, `macos`, `android` or `web`. Informational for `expo` and `webpush`;
+   * a `relay` row must say `ios` or `macos`, the platforms the relay reaches.
+   */
   platform: string
   types: Record<PushType, boolean>
   /** Whether this device wants the message text as well as the bot's name. */
@@ -285,14 +330,162 @@ export function pushRowFor(input: PushRegistrationInput): Record<string, unknown
     updatedAt: input.updatedAt
   }
 
-  return input.address.transport === 'expo'
-    ? { ...common, transport: 'expo', token: input.address.token }
-    : {
+  const address = input.address
+
+  switch (address.transport) {
+    case 'expo':
+      return { ...common, transport: 'expo', token: address.token }
+
+    case 'webpush':
+      return {
         ...common,
         transport: 'webpush',
-        endpoint: input.address.endpoint,
-        keys: { p256dh: input.address.keys.p256dh, auth: input.address.keys.auth }
+        endpoint: address.endpoint,
+        keys: { p256dh: address.keys.p256dh, auth: address.keys.auth }
       }
+
+    case 'relay':
+      return {
+        ...common,
+        transport: 'relay',
+        relay: address.relay,
+        handle: address.handle,
+        secret: address.secret,
+        // Carried as it came, never rebuilt: this build does not know the
+        // shape, and a writer that only kept the fields it understood would
+        // strip a newer device's key the first time it touched the row.
+        ...(address.enc !== undefined ? { enc: address.enc } : {})
+      }
+  }
+}
+
+/**
+ * A relay origin, normalised, or `''` when the value is not one.
+ *
+ * `https:` only, no credentials, and nothing after the host and port but an
+ * optional single `/`. A relay is an origin, and a value carrying a path, a
+ * query, a fragment or anything the URL parser would quietly rewrite
+ * (`/./`, `//`, a trailing `?`, an explicit default port) is either a mistake
+ * or an attempt to make a sender post somewhere else on a host it trusts, so it
+ * is refused rather than repaired. Only case is forgiven, because the parser
+ * lowercases the host and the scheme and nothing else differs.
+ */
+export function pushRelayOriginOf(value: unknown): string {
+  if (typeof value !== 'string' || !value) {
+    return ''
+  }
+
+  let url: URL
+
+  try {
+    url = new URL(value)
+  } catch {
+    return ''
+  }
+
+  if (url.protocol !== 'https:' || url.username || url.password || !url.hostname) {
+    return ''
+  }
+
+  const spelled = value.toLowerCase()
+
+  return spelled === url.origin || spelled === `${url.origin}/` ? url.origin : ''
+}
+
+/** True when `origin` is on `allowList`, both compared as normalised origins. */
+export function pushRelayAllowed(origin: unknown, allowList: readonly string[]): boolean {
+  const wanted = pushRelayOriginOf(origin)
+
+  return Boolean(wanted) && allowList.some(entry => pushRelayOriginOf(entry) === wanted)
+}
+
+const nonEmptyString = (value: unknown): value is string => typeof value === 'string' && value.length > 0
+
+/**
+ * What a relay `handle` and `secret` may look like: base64url characters, 1 to
+ * 200 of them. The relay mints `h_` plus 22 characters and 43-character
+ * secrets and refuses anything over 200, so a row outside this is either
+ * corrupt or not the relay's, and a sender that posted it would only learn
+ * that from a refused request.
+ */
+export const PUSH_RELAY_CREDENTIAL = /^[A-Za-z0-9_-]{1,200}$/
+
+const relayCredential = (value: unknown): value is string =>
+  typeof value === 'string' && PUSH_RELAY_CREDENTIAL.test(value)
+
+/**
+ * The address a row names, or `null` when a sender must not use it.
+ *
+ * The reader's rules, stated once in the package both sides import and
+ * restated in the daemon (which cannot import it): `v` must be this version;
+ * an `expo` row needs a token, a `webpush` row an endpoint and both keys, a
+ * `relay` row an https relay origin, a handle and a secret of 1 to 200
+ * base64url characters each, and a platform it can reach. A row carrying the address fields of two transports is a confusion and
+ * is refused rather than resolved in favour of one, and an unknown transport is
+ * refused rather than guessed at. Validity says nothing about the allow-list:
+ * whether a sender will post to a valid relay row is the sender's decision.
+ */
+export function pushAddressOf(value: unknown): PushAddress | null {
+  if (!isObject(value) || value.v !== PUSH_SECTION_VERSION) {
+    return null
+  }
+
+  /*
+    Two strengths of "carries another transport's field", on purpose. The
+    `expo` and `webpush` rules are the daemon's since before the relay, which
+    looks for a NON-EMPTY token or endpoint, and they are kept exactly so that
+    no Expo or Web Push row changes meaning. The relay's own rules are new and
+    strict: any token, endpoint or handle that is present at all is a second
+    address, empty or not.
+  */
+  const hasToken = value.token !== undefined
+  const hasEndpoint = value.endpoint !== undefined
+  const hasHandle = value.handle !== undefined
+
+  switch (value.transport) {
+    case 'expo':
+      return nonEmptyString(value.token) && !nonEmptyString(value.endpoint) && !hasHandle
+        ? { transport: 'expo', token: value.token }
+        : null
+
+    case 'webpush': {
+      const keys = isObject(value.keys) ? value.keys : {}
+
+      return nonEmptyString(value.endpoint) &&
+        nonEmptyString(keys.p256dh) &&
+        nonEmptyString(keys.auth) &&
+        !nonEmptyString(value.token) &&
+        !hasHandle
+        ? { transport: 'webpush', endpoint: value.endpoint, keys: { p256dh: keys.p256dh, auth: keys.auth } }
+        : null
+    }
+
+    case 'relay': {
+      const relay = pushRelayOriginOf(value.relay)
+
+      if (
+        !relay ||
+        !relayCredential(value.handle) ||
+        !relayCredential(value.secret) ||
+        hasToken ||
+        hasEndpoint ||
+        !(PUSH_RELAY_PLATFORMS as readonly unknown[]).includes(value.platform)
+      ) {
+        return null
+      }
+
+      return {
+        transport: 'relay',
+        relay,
+        handle: value.handle,
+        secret: value.secret,
+        ...(value.enc !== undefined ? { enc: value.enc } : {})
+      }
+    }
+
+    default:
+      return null
+  }
 }
 
 /**

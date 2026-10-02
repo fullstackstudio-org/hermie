@@ -44,6 +44,7 @@ async function main(): Promise<void> {
       'cache-max-mb': { type: 'string' },
       'vapid-subject': { type: 'string' },
       'push-server-requests': { type: 'boolean', default: false },
+      'push-relays': { type: 'string' },
       'allow-insecure-oidc': { type: 'boolean', default: false },
       'no-oidc': { type: 'boolean', default: false },
       admins: { type: 'string' },
@@ -105,6 +106,7 @@ async function main(): Promise<void> {
     vapidSubject: values['vapid-subject'],
     ...(values.push ? { push: true } : {}),
     ...(values['push-server-requests'] ? { pushServerRequests: true } : {}),
+    ...(values['push-relays'] !== undefined ? { pushRelays: values['push-relays'] } : {}),
     ...(values['allow-insecure-oidc'] ? { allowInsecureOidc: true } : {}),
     ...(values['no-self-update'] ? { selfUpdate: false } : {}),
     ...(values['no-oidc'] ? { oidc: false } : {}),
@@ -154,6 +156,7 @@ async function main(): Promise<void> {
     cacheMaxMb: options.cacheMaxMb,
     vapidSubject: options.vapidSubject,
     pushServerRequests: options.pushServerRequests,
+    pushRelays: options.pushRelays,
     allowInsecureOidc: options.allowInsecureOidc,
     oidc: options.oidc,
     admins: options.admins,
@@ -196,6 +199,11 @@ async function main(): Promise<void> {
       options.pushServerRequests
         ? '             server requests routed here (--push-server-requests)'
         : '             open questions read from resume snapshots and approval.pending'
+    )
+    console.warn(
+      options.pushRelays.length
+        ? `             relay ${options.pushRelays.join(', ')} (--push-relays)`
+        : '             relay off (--push-relays is empty)'
     )
   }
 

@@ -17,6 +17,7 @@ const { values } = parseArgs({
     'no-plugin': { type: 'boolean', default: false },
     'profile-display-name': { type: 'string' },
     'no-turn-claim': { type: 'boolean', default: false },
+    'no-push-relay': { type: 'boolean', default: false },
     host: { type: 'string', default: '127.0.0.1' },
     help: { type: 'boolean', default: false }
   }
@@ -44,6 +45,8 @@ if (values.help) {
       '                          plugin older than the route; `forbidden` answers 403',
       '  --no-turn-claim         drop the `context.turn_claim` capability and answer 404 on its',
       '                          route, staging a plugin older than turn claims',
+      '  --no-push-relay         drop the `push.relay` capability, staging a notifier that',
+      '                          cannot deliver to a relay registration',
       '',
       'Prompts steer the built-in scenario: "approve" raises an approval request,',
       '"delegate" fans out subagent events, anything else streams a reply with a tool call.',
@@ -93,7 +96,8 @@ const gateway = await startFakeGateway({
   ...(scenario ? { scenario } : {}),
   ...(values['no-plugin'] ? { plugin: false as const } : {}),
   ...(displayName ? { profileDisplayName: displayName } : {}),
-  ...(values['no-turn-claim'] ? { turnClaim: false as const } : {})
+  ...(values['no-turn-claim'] ? { turnClaim: false as const } : {}),
+  ...(values['no-push-relay'] ? { pushRelay: false as const } : {})
 })
 
 console.log(`fake gateway listening on ${gateway.url} (auth: ${auth})`)

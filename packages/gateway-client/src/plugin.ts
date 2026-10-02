@@ -34,6 +34,8 @@
  */
 import type { ProfileRow, ProfilesListResult } from '@hermes/shared/gateway-contract'
 
+import { pushRelayOriginOf } from './push'
+
 /** The `ui_meta` key the plugin publishes under. Read-only from here. */
 export const HERMIE_PLUGIN_KEY = 'hermie-plugin'
 
@@ -50,6 +52,15 @@ export const PLUGIN_CONTRACT_VERSION = 1
 export const PLUGIN_CAPABILITIES = {
   pushExpo: 'push.expo',
   pushWebPush: 'push.webpush',
+  /**
+   * The notifier can deliver to a `transport: "relay"` registration.
+   *
+   * What a native Apple build checks before it replaces its Expo row with a
+   * relay row: a notifier without it drops the relay row as unreadable, so
+   * writing one there would be a phone that silently stops buzzing. Without
+   * it the existing Expo row stays and keeps working.
+   */
+  pushRelay: 'push.relay',
   pushPreview: 'push.preview',
   pushTurnDone: 'push.type.turn_done',
   pushTurnFailed: 'push.type.turn_failed',
@@ -119,6 +130,14 @@ export interface PluginAdvert {
   modules: Record<string, string>
   /** Whatever the plugin chose to state, e.g. `payloadBytes`, `contextChars`. */
   limits: Record<string, unknown>
+  /**
+   * The relay origins the plugin's sender will post to: its allow-list, as it
+   * publishes it (an additive field; an older plugin has none, read as `[]`).
+   * Normalised, https only, duplicates dropped, in the plugin's order. A
+   * native app registers with a relay on this list, because a relay row naming
+   * any other origin is one the plugin will never send to.
+   */
+  relayOrigins: string[]
   /** Epoch seconds. A gateway killed rather than unloaded leaves a stale one. */
   updatedAt: number
 }
@@ -155,6 +174,9 @@ export function pluginAdvertOf(value: unknown): PluginAdvert | null {
     capabilities,
     modules,
     limits: isObject(value.limits) ? { ...value.limits } : {},
+    relayOrigins: Array.isArray(value.relayOrigins)
+      ? [...new Set(value.relayOrigins.map(pushRelayOriginOf).filter(Boolean))]
+      : [],
     updatedAt: typeof value.updatedAt === 'number' && Number.isFinite(value.updatedAt) ? Math.floor(value.updatedAt) : 0
   }
 }

@@ -393,6 +393,57 @@ build simply does not offer it.
 The payload itself is encrypted end to end to the key pair the browser generated (RFC 8291); the push
 service forwards ciphertext it cannot read.
 
+### The push relay, for the native Apple apps
+
+Only an app's publisher can talk to Apple's push service, so the native iPhone, iPad and Mac apps
+register with a relay the project operates, `https://push.hermie.dev`, and write a registration with
+`transport: "relay"` into the same `ui_meta` section: the relay's address, a public `handle` for the
+device, and a `secret` that authorises sending to that one device. The daemon delivers to such a
+registration by posting to the relay's `POST /v1/send`, at most twenty messages and 7.5 KB per
+request, each with its own handle and secret; the relay turns each into an APNs notification. Two
+registrations naming the same relay, handle and secret are one device and get one message, and one
+handle never appears twice in a request. Expo and Web Push registrations are delivered as before.
+
+**The allow-list decides where a request goes, not the registration.** A registration names its relay,
+but anybody who can write the gateway's `ui_meta` can write one, so the daemon posts only to an origin
+on its own list and skips (without removing) a registration that names any other.
+
+| Setting                                              | Default                   | Meaning                                                                                                                                              |
+| ---------------------------------------------------- | ------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `--push-relays <origins>` (env `HERMIE_PUSH_RELAYS`) | `https://push.hermie.dev` | Comma-separated https origins, no path. The whole list, not an addition to the default. Empty turns relay delivery off. A bad entry stops the start. |
+
+Requests are https only, never follow a redirect, and time out after ten seconds. A device the relay
+answers `gone` for is retired exactly as an Expo token that Expo calls `DeviceNotRegistered`; a
+`rejected` message is logged and dropped; `retry`, `limited` and a network failure get one more try
+after the relay's `retryAfter` (up to ten seconds; a longer wait drops the notification instead). A
+request the relay refuses whole (400 or 413) is sent again one message at a time, once, so one bad
+registration costs only itself. Sending never waits on a struggling relay: after a whole request
+failed (no answer, 429 or 5xx) the relay is left alone for the time it asked for (30 seconds when it
+named none), and a device it rate-limited is skipped the same way. Log lines name a device by the first
+characters of its handle and never print a secret.
+
+**No message text goes through the relay.** A relay registration gets the bot's name and the event
+type, whatever its preview setting says: the relay could read anything sent through it in plain text,
+so previews wait until the app and the daemon can encrypt them end to end.
+
+The daemon says it can deliver to relay registrations by listing `push.relay` in the `capabilities` of
+the availability stamp it leaves in `hermie-app.push` (next to `push.expo` and `push.webpush`), and
+only while `https://push.hermie.dev` is on the allow-list; the stamp's `relayOrigins` lists the whole
+allow-list, as the plugin's advert does. A native app that does not see the capability keeps its Expo
+registration, so a gateway whose notifier predates the relay goes on notifying it through Expo.
+
+### When the gateway has the `hermie` plugin
+
+The gateway plugin is the notifier and this daemon the fallback
+([ADR-0017's amendment](adr/0017-push-through-hermie-web.md)), and the two must not both send: every
+device would be told everything twice. So while the plugin's advert (`hermie-plugin` in `ui_meta`) says
+its push module is `on`, the daemon sends nothing at all, on any transport, and says so in its log.
+Its availability stamp then lists no capabilities, so a native app goes by what the plugin says it can
+deliver.
+It keeps watching, and picks up again within thirty seconds when the plugin is removed or its push
+module is switched off. An advert from a newer contract version than this build reads counts as no
+advert, which is how the app reads it too.
+
 ### The cost, said out loud
 
 A watcher that resumes every Bot Chat keeps every Bot Chat resident on the gateway, because upstream

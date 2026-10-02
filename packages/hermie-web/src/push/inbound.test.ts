@@ -9,7 +9,7 @@
 import { describe, expect, it } from 'vitest'
 
 import { classifyInbound, lastInboundRow } from './inbound'
-import { APPROVAL_CATEGORY, pushMessageFor, trimPreview, typeForInbound } from './payload'
+import { pushMessageFor, REQUEST_CATEGORY, trimPreview, typeForInbound } from './payload'
 
 const BOT_CHAT =
   '[Cronjob "Morning digest" output — scheduled job, not the user. Review it, act on anything that needs action, and summarize for the chat.]'
@@ -84,8 +84,11 @@ describe('the notification', () => {
   it('gives an approval its actions category and its request id', () => {
     const message = pushMessageFor({ ...base, type: 'request', requestMethod: 'approval', requestId: 'srq-1' }, false)
 
-    expect(message.categoryId).toBe(APPROVAL_CATEGORY)
-    expect(message.data.request).toBe('srq-1')
+    expect(message.categoryId).toBe('hermie.request')
+    expect(message.categoryId).toBe(REQUEST_CATEGORY)
+    // The contract's key, which is the one every build of the app reads.
+    expect(message.data.requestId).toBe('srq-1')
+    expect(message.data).not.toHaveProperty('request')
   })
 
   it('does not give a clarify the Allow / Deny actions', () => {

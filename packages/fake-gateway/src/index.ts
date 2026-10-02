@@ -1,4 +1,14 @@
 export {
+  createFakeRelay,
+  type FakeRelay,
+  type FakeRelayDelivery,
+  type FakeRelayFailure,
+  type FakeRelayOptions,
+  type FakeRelayRequest,
+  type FakeRelayResult,
+  type FakeRelayStatus
+} from './fake-relay'
+export {
   type FakeAccount,
   type FakeAuthMode,
   type FakeGateway,

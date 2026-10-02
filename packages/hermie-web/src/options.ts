@@ -13,6 +13,8 @@ import path from 'node:path'
 
 import { decodeLocalSecret, type LocalSecretHash } from './admin/access'
 import { DEFAULT_CACHE_MAX_MB } from './cache'
+import { RELAY_DEFAULT_ORIGIN } from './push/relay'
+import { relayOriginOf } from './push/registrations'
 import { defaultStateDir } from './push/state'
 
 export interface HermieWebOptions {
@@ -140,6 +142,19 @@ export interface HermieWebOptions {
    * app does too.
    */
   pushServerRequests: boolean
+  /**
+   * The push relays a native Apple app's registration may be delivered
+   * through, as https origins.
+   *
+   * An ALLOW-LIST, and the only thing that decides where a relay request goes:
+   * a registration names its relay, and a registration naming an origin that is
+   * not here is not sent to at all. Anybody who can write the gateway's
+   * `ui_meta` can write a registration, so following the row would let them
+   * point this process at any https address it can reach. Default: the
+   * project's own relay, `https://push.hermie.dev`, and nothing else. Empty
+   * means relay registrations are never sent.
+   */
+  pushRelays: string[]
   /**
    * Let the built-in OIDC provider be enabled on an origin that is not https.
    *
@@ -628,6 +643,8 @@ export interface ResolveOptionsInput {
   cacheMaxMb?: string | number | undefined
   vapidSubject?: string | undefined
   pushServerRequests?: boolean | undefined
+  /** Comma-separated, or already split. `''` is an empty allow-list. */
+  pushRelays?: string | string[] | undefined
   allowInsecureOidc?: boolean | undefined
   oidc?: boolean | undefined
   /** Already split and trimmed; `resolveOptions` validates it either way. */
@@ -703,6 +720,7 @@ export function resolveOptions(input: ResolveOptionsInput = {}): HermieWebOption
       input.pushServerRequests ??
       readBooleanEnv(env.HERMIE_PUSH_SERVER_REQUESTS, 'HERMIE_PUSH_SERVER_REQUESTS') ??
       false,
+    pushRelays: readRelayOrigins(input.pushRelays ?? env.HERMIE_PUSH_RELAYS),
     allowInsecureOidc:
       input.allowInsecureOidc ?? readBooleanEnv(env.HERMIE_ALLOW_INSECURE_OIDC, 'HERMIE_ALLOW_INSECURE_OIDC') ?? false,
     oidc: input.oidc ?? readBooleanEnv(env.HERMIE_OIDC, 'HERMIE_OIDC') ?? true,
@@ -770,6 +788,41 @@ function readAdminIds(raw: string | string[] | undefined, flagName: string, envN
   }
 
   return ids
+}
+
+/**
+ * `--push-relays` (or `HERMIE_PUSH_RELAYS`), checked.
+ *
+ * Absent is the project's own relay. Present is the WHOLE list — not an
+ * addition to the default — so an operator who runs their own relay and wants
+ * nothing to go anywhere else can say exactly that, and `''` turns relay
+ * delivery off. Every entry must be an https origin with nothing after it; a
+ * typo is a startup failure rather than a list that silently allows nothing.
+ */
+function readRelayOrigins(raw: string | string[] | undefined): string[] {
+  if (raw === undefined) {
+    return [RELAY_DEFAULT_ORIGIN]
+  }
+
+  const entries = (typeof raw === 'string' ? raw.split(',') : raw).map(entry => entry.trim()).filter(Boolean)
+  const origins: string[] = []
+
+  for (const entry of entries) {
+    const origin = relayOriginOf(entry)
+
+    if (!origin) {
+      throw new Error(
+        `--push-relays (or HERMIE_PUSH_RELAYS) must be https origins such as ${RELAY_DEFAULT_ORIGIN}, ` +
+          `with no path (got ${JSON.stringify(entry)}).`
+      )
+    }
+
+    if (!origins.includes(origin)) {
+      origins.push(origin)
+    }
+  }
+
+  return origins
 }
 
 /**

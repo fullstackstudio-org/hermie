@@ -70,7 +70,9 @@ export interface PushStatusInput {
  * registrations in one `ui_meta` section apart.
  */
 export function pushAddressTail(address: PushAddress): string {
-  const raw = (address.transport === 'expo' ? address.token : address.endpoint).replace(/\]$/u, '')
+  const raw = (
+    address.transport === 'expo' ? address.token : address.transport === 'relay' ? address.handle : address.endpoint
+  ).replace(/\]$/u, '')
 
   return raw.slice(-PUSH_ADDRESS_TAIL)
 }

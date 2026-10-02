@@ -32,6 +32,20 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   read `http://public.example\@10.0.0.1` as `10.0.0.1`, while the request went to `public.example`.
   It now reads addresses the way the request does.
 
+### Added
+
+- **Hermie Web delivers to the native Apple apps through the push relay.** A registration with
+  `transport: "relay"` is sent through `POST /v1/send` on the project's relay, with the bot's name and
+  the event type only. The daemon posts only to relays on its own allow-list (`--push-relays`, env
+  `HERMIE_PUSH_RELAYS`, default `https://push.hermie.dev`), and lists `push.relay` among the
+  capabilities in its availability stamp.
+
+### Changed
+
+- **Hermie Web stands down where the gateway's plugin delivers push.** With the `hermie` plugin's
+  push module on, `hermie-web --push` no longer sends anything, so a device is not told everything
+  twice. Gateways without the plugin are notified as before.
+
 ### Fixed
 
 - **Malformed gateway addresses no longer get a gateway key or front-door credentials.** An address
@@ -39,6 +53,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   its kind; it now gives none, as an unparseable one already did. An address with a secure scheme
   and no host, such as `wss://`, no longer receives the Cloudflare Access headers, and the sign-in
   callback check accepts only port numbers up to 65535.
+- **Allow and Deny on Hermie Web's approval notifications.** Hermie Web sent the category
+  `hermie.approval`, which no app build registers, and the request id under `request`, which no app
+  build reads. It now sends `hermie.request` and `requestId`, as the push contract says, and an
+  Android channel per notification type.
+- **The Expo app reads both spellings for one release.** It registers the contract's
+  `hermie.request` category with `hermie.request.allow` and `hermie.request.deny`, keeps the older
+  `request` and `hermie.approval` categories and `allow` / `deny` actions working, reads `requestId`
+  and the older `request`, and declares one Android channel per notification type.
 
 ## [0.1.9] - 2026-09-24
 

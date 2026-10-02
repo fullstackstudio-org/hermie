@@ -247,7 +247,8 @@ Hand-written: the notification category
 `hermie.request` with actions `hermie.request.allow` / `hermie.request.deny`,
 the data key `requestId`, the seven types, Android channel ids equal to the type
 names, and the data payload's field list with types. It is the target every
-sender and both app generations conform to; nothing consumes it yet.
+sender and both app generations conform to; Hermie Web's and the Expo app's
+tests check their payloads and ids against it.
 
 ## Counts
 

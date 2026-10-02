@@ -43,7 +43,12 @@
         "required": true,
         "description": "One of `types`."
       },
-      { "key": "sessionId", "type": "string", "required": true, "description": "The canonical (stored) session id." },
+      {
+        "key": "sessionId",
+        "type": "string",
+        "required": false,
+        "description": "The session the event happened in. Present whenever the event has a session; omitted otherwise."
+      },
       {
         "key": "session",
         "type": "string",
@@ -61,8 +66,8 @@
         "key": "requestId",
         "type": "string",
         "required": false,
-        "requiredWhen": { "type": "request" },
-        "description": "The server request the notification was raised for."
+        "requiredWhen": { "type": "request", "method": "approval" },
+        "description": "The server request the notification was raised for. Required for an approval, which the Allow and Deny actions answer; a clarify carries it when the sender knows it."
       },
       {
         "key": "method",
@@ -87,7 +92,7 @@
         "key": "jobId",
         "type": "string",
         "required": false,
-        "description": "The scheduler's job id. Carried, never shown."
+        "description": "The scheduler's job id. Carried, never shown: no title or body contains it."
       },
       {
         "key": "gatewayKey",
@@ -95,6 +100,26 @@
         "pattern": "^[0-9a-f]{16}$",
         "required": false,
         "description": "gatewayKeyOf(the gateway origin): FNV-1a 64 of the origin; see contract/gateway/vectors/gateway-key.json."
+      },
+      {
+        "key": "eventId",
+        "type": "string",
+        "pattern": "^[a-z_]+:[0-9a-f]{32}$",
+        "required": false,
+        "description": "A stable id for the one fact the notification is about: '<kind>:' plus the first 32 hex digits of SHA-256 over the UTF-8 of Python's json.dumps(parts) (ensure_ascii, ', ' separators), where parts are the event's identity (for an approval: session id, request id). Two senders describing the same fact from the same ids arrive at the same string. A relay sender uses it as the collapse id."
+      },
+      {
+        "key": "v",
+        "type": "number",
+        "const": 1,
+        "required": false,
+        "description": "The payload version. Written by the gateway plugin; readers do not require it."
+      },
+      {
+        "key": "at",
+        "type": "number",
+        "required": false,
+        "description": "Unix seconds when the event happened. Written by the gateway plugin; informational."
       }
     ]
   }

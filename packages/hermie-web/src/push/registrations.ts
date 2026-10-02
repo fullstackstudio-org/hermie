@@ -49,7 +49,13 @@ export const PUSH_TYPES = ['message', 'request', 'dm', 'cron', 'cron_done', 'cro
 
 export type PushType = (typeof PUSH_TYPES)[number]
 
-export type PushTransport = 'expo' | 'webpush'
+export type PushTransport = 'expo' | 'webpush' | 'relay'
+
+/** The platforms a relay row can be for: the relay speaks APNs only. */
+const RELAY_PLATFORMS: readonly string[] = ['ios', 'macos']
+
+/** A relay handle or secret: 1 to 200 base64url characters, as `@hermie/gateway-client` says. */
+const RELAY_CREDENTIAL = /^[A-Za-z0-9_-]{1,200}$/
 
 export interface WebPushKeys {
   p256dh: string
@@ -76,9 +82,28 @@ export interface PushRegistration {
   /** Web Push only: the subscription endpoint and its keys. */
   endpoint?: string
   keys?: WebPushKeys
+  /**
+   * Relay only: the relay's origin as the ROW names it (normalised), the
+   * device's handle there and the send secret. The origin is a claim, not an
+   * instruction: `relay.ts` posts only to an origin on its own allow-list.
+   */
+  relay?: string
+  handle?: string
+  secret?: string
+  /** Relay only: the device's end-to-end key, carried and never interpreted. */
+  enc?: unknown
   platform: string
   types: Record<PushType, boolean>
-  /** Whether this device wants the message text as well as the bot's name. */
+  /**
+   * Whether this device gets the message text as well as the bot's name.
+   *
+   * The EFFECTIVE value, not the row's: a relay row reads as `false` whatever
+   * it says. The relay design's privacy rule is that message text never crosses
+   * the relay in plaintext, and this build cannot encrypt for a row's `enc`, so
+   * every relay registration is sent the bot name and the event type only.
+   * Deciding it here, where the row is read, puts the relay rows in the
+   * no-preview pass of the one send loop every transport shares.
+   */
   preview: boolean
   updatedAt: number
 }
@@ -110,12 +135,47 @@ function typesOf(value: unknown): Record<PushType, boolean> {
 }
 
 /**
+ * A relay origin, normalised, or `''`.
+ *
+ * The second copy of `pushRelayOriginOf` in `@hermie/gateway-client` — this
+ * package cannot import it, for the reason `./gateway-key.ts` gives. The rule
+ * is short enough to restate and the shared vectors in
+ * `contract/gateway/vectors/push.json` are how the two prove they agree:
+ * `https:` only, no credentials, nothing after the host and port but an
+ * optional `/`, and nothing the URL parser would have to rewrite.
+ */
+export function relayOriginOf(value: unknown): string {
+  if (typeof value !== 'string' || !value) {
+    return ''
+  }
+
+  let url: URL
+
+  try {
+    url = new URL(value)
+  } catch {
+    return ''
+  }
+
+  if (url.protocol !== 'https:' || url.username || url.password || !url.hostname) {
+    return ''
+  }
+
+  const spelled = value.toLowerCase()
+
+  return spelled === url.origin || spelled === `${url.origin}/` ? url.origin : ''
+}
+
+/**
  * Read one registration, or nothing.
  *
- * The address is what decides: an `expo` entry is useless without its token and
- * a `webpush` one without its endpoint AND both keys, and an entry that carries
- * the fields of both transports is a confusion rather than a choice — it is
- * dropped rather than resolved in favour of one.
+ * The address is what decides: an `expo` entry is useless without its token, a
+ * `webpush` one without its endpoint AND both keys, and a `relay` one without
+ * an https relay origin, a handle and a secret of 1 to 200 base64url
+ * characters each, and an Apple platform. An entry
+ * that carries the fields of two transports is a confusion rather than a choice
+ * — it is dropped rather than resolved in favour of one. The same rules as
+ * `pushAddressOf` in `@hermie/gateway-client`.
  */
 export function pushRegistrationOf(installationId: string, value: unknown, owner = ''): PushRegistration | null {
   if (!installationId || !value || typeof value !== 'object') {
@@ -134,6 +194,11 @@ export function pushRegistrationOf(installationId: string, value: unknown, owner
   const keys = (row.keys ?? {}) as Record<string, unknown>
   const p256dh = str(keys.p256dh)
   const auth = str(keys.auth)
+  // Presence, not truthiness, for the fields of ANOTHER transport: an empty
+  // handle beside a token is still a row that names two addresses.
+  const hasToken = row.token !== undefined
+  const hasEndpoint = row.endpoint !== undefined
+  const hasHandle = row.handle !== undefined
 
   const common = {
     installationId,
@@ -145,13 +210,41 @@ export function pushRegistrationOf(installationId: string, value: unknown, owner
   }
 
   if (transport === 'expo') {
-    return token && !endpoint ? { ...common, transport: 'expo', token } : null
+    return token && !endpoint && !hasHandle ? { ...common, transport: 'expo', token } : null
   }
 
   if (transport === 'webpush') {
-    return endpoint && p256dh && auth && !token
+    return endpoint && p256dh && auth && !token && !hasHandle
       ? { ...common, transport: 'webpush', endpoint, keys: { auth, p256dh } }
       : null
+  }
+
+  if (transport === 'relay') {
+    const relay = relayOriginOf(row.relay)
+    const handle = str(row.handle)
+    const secret = str(row.secret)
+
+    if (
+      !relay ||
+      !RELAY_CREDENTIAL.test(handle) ||
+      !RELAY_CREDENTIAL.test(secret) ||
+      hasToken ||
+      hasEndpoint ||
+      !RELAY_PLATFORMS.includes(str(row.platform))
+    ) {
+      return null
+    }
+
+    return {
+      ...common,
+      // The relay design's privacy rule — see `PushRegistration.preview`.
+      preview: false,
+      transport: 'relay',
+      relay,
+      handle,
+      secret,
+      ...(row.enc !== undefined ? { enc: row.enc } : {})
+    }
   }
 
   return null
