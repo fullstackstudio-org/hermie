@@ -51,6 +51,8 @@
 	<!-- Hermie uses the platform's TLS and HTTP stacks and no cryptography of its own. -->
 	<key>ITSAppUsesNonExemptEncryption</key>
 	<false/>
+	<key>LSApplicationCategoryType</key>
+	<string>public.app-category.productivity</string>
 	<key>LSMinimumSystemVersion</key>
 	<string>$(MACOSX_DEPLOYMENT_TARGET)</string>
 	<!--
