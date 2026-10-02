@@ -115,6 +115,23 @@ guard against a name it will only ever see if Hermie Web rewrote the headers. Th
 development loop exercises the same guard a real `hermes serve` applies, so a broken proxy fails here
 rather than looking healthy until somebody deploys it.
 
+### The web client
+
+The new browser client lives in `native/web` (see its [README](native/web/README.md)); it is a scaffold
+for now and Hermie Web above still serves the browser build. It has its own commands and one CI job:
+
+```sh
+npm run client:dev                  # Vite, at http://localhost:5173/dashboard-plugins/hermie/app/index.html
+npm run client:build                # dist/ with build.json; source maps go to dist-maps/
+npm run client:test                 # vitest + jsdom
+npm run client:check-bundle         # extension, size, ASCII and build.json gates on dist/
+npm run client:check-reproducible   # the same commit must build to the same bytes
+```
+
+`client:check-reproducible -- --fresh-checkout` additionally builds `git archive HEAD` in another directory
+with its own `npm ci`, and needs everything committed. If you add a dependency or a Vite plugin and the check
+goes red, the output names the files that differ.
+
 ## The fake gateway
 
 `packages/fake-gateway` stands in for `hermes serve`. It speaks the public status endpoints, both

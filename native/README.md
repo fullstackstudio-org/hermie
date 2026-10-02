@@ -18,7 +18,7 @@ native/
   ios/             project.yml and App/: the iPhone and iPad app
   macos/           project.yml and App/: the Mac app
   android/         reserved, see its README
-  web/             reserved, see its README
+  web/             the browser client (React and Vite); only its scaffold exists, see its README
 ```
 
 `HermieKit` is split into one target per layer, and the split is the design: the transcript engine, the
@@ -122,4 +122,5 @@ how the export is checked against the TypeScript.
 - **M5**: polish, encrypted notifications, the public release, and retiring the Expo build on Apple
   platforms.
 
-Android and the web build come after that; see [android](android/README.md) and [web](web/README.md).
+Android comes after that, see [android](android/README.md). The web client is a separate line of work;
+see [web](web/README.md).

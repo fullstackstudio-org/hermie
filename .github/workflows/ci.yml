@@ -82,6 +82,60 @@ jobs:
         if: github.event_name == 'pull_request'
         run: node scripts/check-no-trailers.mjs origin/${{ github.base_ref }}..HEAD
 
+  # The browser client in `native/web` (React + Vite, served by the hermie
+  # plugin). Types, lint and format run in `check` like every other workspace;
+  # this job owns what only a build can prove: that the bundle fits what the
+  # gateway's static route and the plugin scanner accept, and that the same
+  # commit always builds to the same bytes, because the plugin's own CI rebuilds
+  # the commit named in `build.json` somewhere else and compares every file.
+  # A sibling job rather than steps of `check`, so a bundle problem is not
+  # buried under the app's tests and the two run side by side.
+  web-client:
+    name: Web client (build, bundle gate, reproducibility)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version-file: .nvmrc
+          cache: npm
+
+      - name: Install
+        run: npm ci
+
+      - name: Unit tests
+        run: npm run client:test
+
+      - name: Build
+        run: npm run client:build
+
+      # Extension allow-list, 900 kB per file, 3 MB and 80 files in all, ASCII
+      # only, 700 kB / 230 kB gzip of initial JavaScript, and build.json matching
+      # every file. `--commit` also requires it to name the commit under test.
+      - name: Bundle gate
+        run: npm run client:check-bundle -- --commit "$(git rev-parse HEAD)"
+
+      # Two clean builds with different time zones and locales, plus one from
+      # `git archive HEAD` unpacked into another directory with its own `npm ci`.
+      # Every file must be identical, not only build.json.
+      - name: The same commit builds to the same bytes
+        run: npm run client:check-reproducible -- --fresh-checkout
+
+      # What would be imported into the plugin, and the source maps that must
+      # not go with it.
+      - uses: actions/upload-artifact@v4
+        with:
+          name: hermie-web-client-dist
+          path: native/web/dist
+          if-no-files-found: error
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: hermie-web-client-maps
+          path: native/web/dist-maps
+          if-no-files-found: error
+
   # `check` above runs the JavaScript/TypeScript suites; it has no `cargo test`
   # anywhere, so the desktop bridge's ACL guarantees (`src/acl.rs`,
   # `src/gateways.rs`) were until now proven only on a developer's own machine.
