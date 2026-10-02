@@ -1,8 +1,14 @@
 # 0011. The Mac version is the iPad build
 
-- Status: Accepted
+- Status: Superseded on Apple platforms by [0028](0028-native-apps-on-apple-platforms.md); still how
+  the Expo build reaches the Mac until the native Mac app replaces it
 - Date: 2026-09-19
 - Supersedes: [0002](0002-macos-via-react-native-macos.md)
+
+> Note, 2026-10-02: the Mac is getting a native SwiftUI app of its own, built from the same Swift
+> package as the iPhone and iPad app ([0028](0028-native-apps-on-apple-platforms.md)). Until it ships,
+> the Mac version is still the Expo iPad build described here, and `npm run mac` still builds it.
+> Nothing in this record applies to Android or the browser.
 
 ## Context
 

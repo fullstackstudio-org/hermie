@@ -2,6 +2,8 @@
 
 - Status: Accepted
 - Date: 2026-09-22
+- See also: [0029](0029-expo-native-and-the-contract-directory.md), which keeps the shell and plans to drop its macOS build once
+  the native Mac app is public
 
 ## Context
 

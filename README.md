@@ -33,7 +33,9 @@ without a terminal and without a tunnel to open first.
 One Expo and React Native codebase runs in **five places — iPhone, iPad, Android,
 the Mac and a browser**. The Mac is not a port: it is the iPad build, which Apple
 runs on Apple Silicon unmodified. The browser is not a hosted service: it is the
-same app, served by one small process you run next to your own gateway.
+same app, served by one small process you run next to your own gateway. The
+iPhone, iPad and Mac apps are being rebuilt natively; see
+[Native apps](#native-apps).
 
 What it is not: there is no Hermie server, no account to create, no analytics and
 no third-party network call. The only address Hermie knows is the one you typed.
@@ -598,6 +600,28 @@ hardware — the emulator pass is done and written up in
 [docs/platform-notes.md](docs/platform-notes.md), but no physical device has run
 this yet.
 
+## Native apps
+
+The Apple apps are being rebuilt natively, in SwiftUI: one app for iPhone and
+iPad and one for the Mac, sharing one Swift package, under the same bundle id as
+today's app so that a native build arrives as an update. They are a skeleton
+for now. Until they reach parity and ship, the Expo app above is what runs on
+every platform, Apple's included.
+
+Android and the browser are not part of the rebuild. They keep building from
+`expo/hermie`, exactly as described above.
+
+- `native/` holds the native apps; [native/README.md](native/README.md) has the
+  layout and the milestones.
+- `contract/` holds the data both generations are tested against, recorded from
+  the TypeScript test suites; [contract/README.md](contract/README.md) is its
+  specification.
+- [docs/native.md](docs/native.md) is the contributor guide: the targets, the
+  concurrency rules, building and testing, and keeping the port in step.
+- [ADR-0028](docs/adr/0028-native-apps-on-apple-platforms.md) and
+  [ADR-0029](docs/adr/0029-expo-native-and-the-contract-directory.md) are the
+  decisions and the alternatives they rejected.
+
 ## Contributing
 
 Issues and pull requests are welcome. [CONTRIBUTING.md](CONTRIBUTING.md) covers
@@ -607,10 +631,13 @@ get wrong — the vendored protocol sources in particular. [CODE_OF_CONDUCT.md](
 Security issues go privately to the address in [SECURITY.md](SECURITY.md), not
 into an issue.
 
-The repository is an npm workspace:
+The repository is an npm workspace, with the native apps beside it:
 
 ```
 expo/hermie              the Expo app, and the local Expo modules under modules/
+native/                  the native Apple apps, being rebuilt in SwiftUI; see docs/native.md
+contract/                generated data the TypeScript packages and the native port are both tested against
+apps/desktop             the desktop shell: a window onto a Hermie Web
 packages/hermes-shared   protocol sources vendored from Hermes Agent
 packages/gateway-client  connection state machine, credentials, PKCE — no React
 packages/transcript      the chat engine: item model, reducer, reconciliation, selectors

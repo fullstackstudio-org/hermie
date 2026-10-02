@@ -14,6 +14,9 @@ the conventions that are easy to get wrong.
 | JDK         | 17                                      | Android builds     |
 | Android SDK | platform 36, build-tools 36, NDK 27.1   | Android builds     |
 
+The native Apple apps under `native/` need **Xcode 26** or newer and
+[XcodeGen](https://github.com/yonaskolb/XcodeGen) instead; see [The native Apple apps](#the-native-apple-apps).
+
 A Mac build needs one more thing: an **Apple Developer team**. It is the iOS app
 built for the "Designed for iPad" destination, and that configuration runs App
 Store validation, so it cannot be built unsigned. Set `HERMIE_APPLE_TEAM_ID` to
@@ -53,6 +56,7 @@ npm run format                 # prettier --check
 npm test                       # vitest: the workspace packages
 npm run test:app               # jest-expo: the app
 npm run sync:hermes-shared:check   # drift check on the vendored protocol sources
+npm run golden:check           # contract/ still matches the TypeScript reference
 npm run contrast:check         # every ink clears AA on every composited surface
 ```
 
@@ -298,6 +302,23 @@ not absent.
   was invisible on every other surface: 26.5 simulators only warn, and the Mac build never checks.
   And a `simctl launch` that prints a pid proves nothing — that crash printed one too. Follow it with
   `xcrun simctl spawn <udid> launchctl list | grep hermie` a few seconds later.
+
+## The native Apple apps
+
+The iPhone, iPad and Mac apps are being rebuilt natively in SwiftUI under `native/`, next to the Expo
+app, which keeps shipping until they replace it. Android and the browser still build from
+`expo/hermie` and are not part of the rebuild.
+
+[docs/native.md](docs/native.md) is the guide: the package targets and what may import what, the
+concurrency rules, the `native/apple/scripts/` that generate, build and test, and how the port is kept
+in step with the TypeScript packages through `contract/`. Two things to know before touching either
+side:
+
+- **A change to `packages/transcript`, to the gateway client's pure functions or to
+  `packages/fake-gateway` can change `contract/`.** Run `npm run golden` and commit what it rewrites in
+  the same pull request; `npm run golden:check` fails CI otherwise.
+- **The Xcode projects are generated.** Change `native/ios/project.yml`, `native/macos/project.yml`
+  or `native/apple/xcodegen/base.yml`, never a `.xcodeproj`.
 
 ## Vendored protocol sources
 

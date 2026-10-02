@@ -2,6 +2,7 @@
 
 - Status: Accepted
 - Date: 2026-09-19
+- See also: [0028](0028-native-apps-on-apple-platforms.md), whose native apps keep this sign-in unchanged
 
 ## Context
 

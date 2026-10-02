@@ -451,7 +451,8 @@ nothing here is Mac-specific.
 The native iOS and macOS apps (`native/`) are archived by one script in the
 repository, `native/apple/scripts/archive.sh`, on a Mac with Xcode 26 or newer and
 XcodeGen. It generates the project, archives, exports for App Store Connect and
-prints the version and build it made:
+prints the version and build it made (building and testing them day to day is in
+[native.md](native.md)):
 
 ```sh
 native/apple/scripts/archive.sh ios   "$OUT"             # $OUT/export-ios/Hermie.ipa

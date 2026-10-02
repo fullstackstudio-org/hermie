@@ -1,7 +1,12 @@
 # 0002. macOS through react-native-macos, in the same app package
 
-- Status: Superseded by [0011](0011-mac-via-the-ipad-build.md)
+- Status: Superseded by [0011](0011-mac-via-the-ipad-build.md), and on Apple platforms by
+  [0028](0028-native-apps-on-apple-platforms.md)
 - Date: 2026-09-18
+
+> Note, 2026-10-02: the real Mac app this record wanted is now being built natively, in SwiftUI, from
+> the same Swift package as the iPhone and iPad app — the third option below, which this record set
+> aside as a second codebase. [0028](0028-native-apps-on-apple-platforms.md) explains why.
 
 > Superseded on 2026-09-19. The Mac version is the iOS app running as "Designed for iPad" on Apple
 > Silicon, and the native macOS target is deleted. The text below is kept as written:
