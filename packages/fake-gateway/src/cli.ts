@@ -64,7 +64,8 @@ if (values.help) {
       '                                                   e.g. method "clarify"',
       '  GET  /__fake/state                   counters and logs: connections, open sockets,',
       '                                       tickets, refreshes, replays, the method log and',
-      '                                       the answers given to server requests',
+      '                                       the answers given to server requests, and',
+      '                                       the sessions with a turn still streaming',
       '  POST /__fake/drop-sockets {code?, reason?}  close every live socket; without a code',
       '                                       abruptly (the client sees 1006)',
       '  POST /__fake/reject-upgrades {count}  fail the next count upgrades with --close-code'

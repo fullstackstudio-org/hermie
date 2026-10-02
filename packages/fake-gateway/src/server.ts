@@ -3530,7 +3530,10 @@ export async function startFakeGateway(options: FakeGatewayOptions = {}): Promis
         eventsSinceCalls: state.eventsSinceCalls,
         methodLog: state.methodLog,
         openServerRequests: [...state.openServerRequests.keys()],
-        serverRequestAnswers: state.serverRequestAnswers
+        serverRequestAnswers: state.serverRequestAnswers,
+        // Stored ids of the sessions with a turn still streaming: how a client
+        // that is away can tell the turn it missed has finished.
+        runningSessions: [...state.runningSessions]
       })
 
       return

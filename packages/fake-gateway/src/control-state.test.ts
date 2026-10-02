@@ -79,6 +79,7 @@ describe('GET /__fake/state', () => {
       expect(body).toMatchObject({ connections: 1, openSockets: 1, rejectedUpgrades: 0, ticketsMinted: 0 })
       expect(body.methodLog).toEqual(['profiles.list'])
       expect(body.openServerRequests).toEqual([])
+      expect(body.runningSessions).toEqual([])
       expect(body.serverRequestAnswers).toEqual([{ id: clarify?.id, method: 'clarify', result: { answer: 'main' } }])
     } finally {
       socket.terminate()
