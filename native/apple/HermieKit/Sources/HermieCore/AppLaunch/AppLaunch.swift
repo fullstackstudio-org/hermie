@@ -1,0 +1,202 @@
+import Foundation
+import HermieStore
+import Observation
+
+/// Something about this launch the person should be told once.
+public enum LaunchNotice: Sendable, Hashable, Identifiable {
+  /// The database was corrupt and has been recreated; what could be read was kept.
+  case recovered
+  /// The lock setting could not be restored (or read) and may need switching back on.
+  case lockSettingNotRestored
+  /// The database could not be opened; this launch runs on memory and keeps nothing.
+  case runningInMemory
+
+  public var id: Self { self }
+}
+
+/**
+ Where a launch keeps its files and who it asks to unlock. `live()` is the app's; tests build one.
+ */
+public struct LaunchEnvironment: Sendable {
+  /// The directory `hermie.sqlite` and the lock mirror live in. nil runs on memory (tests, previews).
+  public var dataDirectory: URL?
+  /// The App Group container, which the database must never be inside.
+  public var appGroupContainer: URL?
+  public var authenticator: any DeviceAuthenticator
+  public var clock: @Sendable () -> Double
+  #if DEBUG
+    /// Debug builds only: state written before anything reads it, and switches for the UI tests.
+    public var testHooks: LaunchTestHooks?
+  #endif
+
+  public init(
+    dataDirectory: URL?,
+    appGroupContainer: URL? = nil,
+    authenticator: any DeviceAuthenticator,
+    clock: @escaping @Sendable () -> Double = AppLock.monotonicMilliseconds
+  ) {
+    self.dataDirectory = dataDirectory
+    self.appGroupContainer = appGroupContainer
+    self.authenticator = authenticator
+    self.clock = clock
+  }
+
+  /**
+   The app's own environment: Application Support (in a folder named after the bundle on the Mac,
+   where an unsandboxed build would otherwise share the user's top-level folder), the App Group
+   container and the system authenticator. A debug build reads the UI tests' launch arguments
+   here and nowhere else (`LaunchTestHooks`).
+   */
+  public static func live(bundle: Bundle = .main, arguments: [String] = ProcessInfo.processInfo.arguments)
+    -> LaunchEnvironment
+  {
+    #if DEBUG
+      if let hooks = LaunchTestHooks(arguments: arguments) {
+        var environment = LaunchEnvironment(
+          dataDirectory: hooks.dataDirectory,
+          appGroupContainer: nil,
+          authenticator: hooks.authenticator
+        )
+
+        environment.testHooks = hooks
+
+        return environment
+      }
+    #endif
+
+    return LaunchEnvironment(
+      dataDirectory: defaultDataDirectory(bundle: bundle),
+      appGroupContainer: AppGroupContainer.system()?.url,
+      authenticator: SystemAuthenticator()
+    )
+  }
+
+  static func defaultDataDirectory(bundle: Bundle) -> URL? {
+    guard let support = FileManager.default.urls(for: .applicationSupportDirectory, in: .userDomainMask).first else {
+      return nil
+    }
+
+    #if os(macOS)
+      return support.appendingPathComponent(bundle.bundleIdentifier ?? "dev.hermie.app", isDirectory: true)
+    #else
+      return support
+    #endif
+  }
+}
+
+/**
+ The launch: the local store opened (or recovered) before the first frame, the lock decided from
+ what that found, and the gateway list read.
+
+ `init` runs `StoreLaunch.run` synchronously, so the app shell constructs this in its `App` init and
+ the first frame already knows whether the launch had to start locked. Anything asynchronous (the
+ lock preference, the registry) is read by `start()`, and the lock gate draws nothing until the
+ preference is known.
+
+ When the database cannot be opened, or `run` refuses the location, the app runs on an in-memory
+ store for this launch and says so (`LaunchNotice.runningInMemory`).
+ */
+@MainActor
+@Observable
+public final class AppLaunch {
+  public let environment: LaunchEnvironment
+  public let store: SQLiteStore
+  public let keyValues: KeyValueStore
+  /// What opening the store found; nil when the launch could not even try.
+  public let report: StoreLaunch.Report?
+  public let lock: AppLock
+  public let gateways: GatewayDirectory
+  /// Told once each, in this order, until dismissed.
+  public private(set) var notices: [LaunchNotice]
+
+  private var started = false
+
+  public init(environment: LaunchEnvironment) {
+    self.environment = environment
+
+    let authenticator = environment.authenticator
+    let canAuthenticate: @Sendable () -> Bool = { authenticator.canAuthenticate() }
+
+    var report: StoreLaunch.Report?
+    var store: SQLiteStore
+
+    do {
+      let result: StoreLaunch.Result
+
+      if let directory = environment.dataDirectory {
+        result = try StoreLaunch.run(
+          applicationSupport: directory,
+          appGroupContainer: environment.appGroupContainer,
+          deviceCanAuthenticate: canAuthenticate
+        )
+      } else {
+        result = try StoreLaunch.run(database: .inMemory, lockMirror: nil, deviceCanAuthenticate: canAuthenticate)
+      }
+
+      store = result.store
+      report = result.report
+    } catch {
+      // Only a location inside the App Group lands here. Run on memory, locked like any other
+      // launch that could not read its lock setting. An in-memory database that cannot open
+      // leaves nothing to run on at all.
+      store = try! SQLiteStore(.inMemory)
+      report = nil
+    }
+
+    let unknownLock = report?.requiresLockThisLaunch ?? canAuthenticate()
+
+    self.store = store
+    self.report = report
+    self.keyValues = KeyValueStore(store: store)
+    self.lock = AppLock(
+      settings: KeyValueStore(store: store),
+      authenticator: authenticator,
+      forcedLock: unknownLock,
+      clock: environment.clock
+    )
+    self.gateways = GatewayDirectory(store: GatewayRegistryStore(store: store), changes: KeyValueStore(store: store))
+
+    var notices: [LaunchNotice] = []
+
+    if report?.recovered == true {
+      notices.append(.recovered)
+    }
+
+    if report?.lockSettingNotRestored ?? true {
+      notices.append(.lockSettingNotRestored)
+    }
+
+    if report == nil || report?.openFailure != nil {
+      notices.append(.runningInMemory)
+    }
+
+    self.notices = notices
+  }
+
+  /// Read the lock preference, then the gateways. Idempotent; the first window calls it.
+  public func start() async {
+    guard !started else {
+      return
+    }
+
+    started = true
+
+    #if DEBUG
+      if let hooks = environment.testHooks {
+        await hooks.seed(keyValues)
+      }
+    #endif
+
+    await lock.hydrate()
+
+    if lock.settingNeedsAttention, !notices.contains(.lockSettingNotRestored) {
+      notices.append(.lockSettingNotRestored)
+    }
+
+    await gateways.load()
+  }
+
+  public func dismiss(_ notice: LaunchNotice) {
+    notices.removeAll { $0 == notice }
+  }
+}
