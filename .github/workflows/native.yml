@@ -73,10 +73,10 @@ jobs:
       - name: Install XcodeGen
         run: brew install xcodegen
 
-      # Integration tests against the fake gateway (packages/fake-gateway) need
-      # Node and the workspace installed. None exist yet, so both steps are
-      # skipped, at no cost, until the integration test target appears; the task
-      # that adds it points this guard at the real path.
+      # The black-box tests (Tests/HermieIntegrationTests) start the fake
+      # gateway (packages/fake-gateway) through its CLI, so they need Node and
+      # the workspace installed. test.sh runs them by default in CI and fails
+      # if either is missing. The guard keeps both steps tied to the target.
       - uses: actions/setup-node@v4
         if: hashFiles('native/apple/HermieKit/Tests/HermieIntegrationTests/**') != ''
         with:
@@ -87,8 +87,8 @@ jobs:
         if: hashFiles('native/apple/HermieKit/Tests/HermieIntegrationTests/**') != ''
         run: npm ci
 
-      - name: HermieKit tests (swift test)
-        run: native/apple/scripts/test.sh
+      - name: HermieKit tests (swift test, fake gateway included)
+        run: native/apple/scripts/test.sh --integration
 
       - name: Generate both Xcode projects
         run: native/apple/scripts/generate.sh
@@ -112,6 +112,7 @@ jobs:
       # KeychainStore against the real keychain, hosted in the iOS app on a
       # throwaway simulator that test.sh creates and deletes. Signed ad hoc, so
       # no Apple account is involved. The filter keeps test.sh's own swift test
-      # pass to one small suite: the step above already ran all of them.
+      # pass to one small suite, and --no-integration leaves the fake gateway
+      # out: the step above already ran all of them.
       - name: Keychain tests (iOS Simulator)
-        run: native/apple/scripts/test.sh --keychain --filter HermieStoreTests.KeychainStoreQueryTests
+        run: native/apple/scripts/test.sh --keychain --no-integration --filter HermieStoreTests.KeychainStoreQueryTests

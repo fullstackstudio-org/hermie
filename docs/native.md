@@ -134,26 +134,47 @@ Two things are not covered by recorded data, and need Swift tests of their own:
 - **Calls that cannot be recorded**, such as those taking a callback or a non-finite number. They are
   skipped and counted in `contract/README.md`.
 - **Stateful code that runs on a clock**: the connection state machine and the token coordinator.
-  These will be ported by hand with a test clock and a fake transport, using the TypeScript tests as
-  the list of cases.
+  These are ported by hand with a test clock and a fake transport, using the TypeScript tests as the
+  list of cases.
 
-At the time of writing the corpus is generated and checked in CI, but the Swift replay does not exist
-yet: it arrives with the engine port, and from then on the native job enforces the second direction.
+The Swift side replays the corpus in `swift test`: the transcript golden files in
+`HermieTranscriptTests` (with a coverage report and minimum coverage per suite), the gateway vectors
+in `HermieGatewayTests`, and the wire fixtures in `HermieProtocolTests`. So the native job enforces
+the second direction.
 
 ## Black-box tests against the fake gateway
 
-_Planned; nothing below exists yet._
+`HermieIntegrationTests` runs the Swift client against `packages/fake-gateway`, the same stand-in
+the Expo tests use (see [the fake gateway in CONTRIBUTING.md](../CONTRIBUTING.md#the-fake-gateway)),
+over real sockets. The target is macOS only and runs only when `HERMIE_INTEGRATION=1`:
 
-Integration tests will run against `packages/fake-gateway`, the same stand-in the Expo tests use (see
-[the fake gateway in CONTRIBUTING.md](../CONTRIBUTING.md#the-fake-gateway)). A macOS-only Swift test
-helper will start it through its CLI on a free port, in the authentication mode a test needs, and
-stop it afterwards, so the real WebSocket, the real HTTP client and the real sign-in round trip are
-exercised end to end. UI smoke tests on the simulator will use a fake gateway started by the test
-script on the host.
+```sh
+native/apple/scripts/test.sh --integration   # needs node and npm ci at the repository root
+```
 
-Those tests need Node and the installed workspace. The native workflow already has the steps for
-that, guarded so they are skipped until a `HermieIntegrationTests` target exists. To try the fake
-gateway by hand today:
+`test.sh` runs them by default when `CI` is set (and fails there if Node or the workspace is
+missing); locally they are opt-in, and skipped with a message when `node` or `node_modules` is
+missing. `--no-integration` leaves them out. The whole target takes a few seconds.
+
+The helper is `FakeGateway` (`Tests/HermieIntegrationTests/Support`). It starts the CLI
+(`node --import tsx packages/fake-gateway/src/cli.ts --port 0 …`) from the repository root, reads
+the bound port from the listening line, and keeps everything the gateway prints for failure
+messages. `FakeGateway.with(options) { gateway in … }` stops the gateway whatever the body does,
+cancellation included: SIGTERM to its PID, then SIGKILL to the same PID after a grace period. A
+watchdog loaded before the CLI exits when its stdin closes, so not even a crashed test run leaves a
+gateway behind, and `test.sh` checks for leftovers after every run. A suite that only reads shares
+one gateway (`@Suite(.fakeGateway(options))`); a test that signs in, rotates or injects starts its
+own. The `/__fake/inject`, `/__fake/request` and `/__fake/push` control endpoints have typed helpers
+on `FakeGateway`, sent outside the client under test.
+
+What is covered: the probe of each authentication mode, address resolution (ADR-0014), REST with a
+session token, native PKCE sign-in without a web view through rotation and revocation on sign-out,
+ticket minting, redirect refusal between the gateway and a second local listener, and the plugin
+routes. The WebSocket connection (streaming, server requests, reconnect and replay, close codes)
+follows with the connection actor. UI smoke tests on the simulator will use a fake gateway started by
+the test script on the host.
+
+To try the fake gateway by hand:
 
 ```sh
 npm run fake-gateway -- --auth token --token demo

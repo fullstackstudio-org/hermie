@@ -5,6 +5,14 @@
 #   native/apple/scripts/test.sh --filter Core   anything after the options goes to swift test
 #   native/apple/scripts/test.sh --apps          also generate both projects and build both apps
 #                                                unsigned (iOS Simulator and macOS)
+#   native/apple/scripts/test.sh --integration   also run the black-box tests against the fake gateway
+#                                                (Tests/HermieIntegrationTests, macOS only). They need
+#                                                node and the workspace installed (npm ci at the
+#                                                repository root); without either they are skipped
+#                                                with a message, except in CI, where that is an
+#                                                error. On by default when CI is set.
+#   native/apple/scripts/test.sh --no-integration
+#                                                leave them out, in CI too.
 #   native/apple/scripts/test.sh --keychain      also run KeychainStore against the real keychain:
 #                                                the hosted HermieKeychainTests in the iOS app, on
 #                                                a throwaway simulator created for the run and
@@ -23,19 +31,76 @@ set -euo pipefail
 
 apple_dir="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 native_dir="$(cd "$apple_dir/.." && pwd)"
+repo_dir="$(cd "$native_dir/.." && pwd)"
 
 build_apps=false
 keychain=false
+integration=false
+if [[ -n "${CI:-}" ]]; then
+  integration=true
+fi
 while [[ $# -gt 0 ]]; do
   case "$1" in
     --apps) build_apps=true ;;
     --keychain) keychain=true ;;
+    --integration) integration=true ;;
+    --no-integration) integration=false ;;
     *) break ;;
   esac
   shift
 done
 
-swift test --package-path "$apple_dir/HermieKit" "$@"
+if [[ "$integration" == true ]]; then
+  missing=""
+  if ! command -v node >/dev/null 2>&1; then
+    missing="node is not on PATH"
+  elif [[ ! -f "$repo_dir/node_modules/tsx/package.json" ]]; then
+    missing="the workspace is not installed (run npm ci in $repo_dir)"
+  fi
+
+  if [[ -n "$missing" ]]; then
+    if [[ -n "${CI:-}" ]]; then
+      echo "The fake-gateway integration tests cannot run: $missing." >&2
+      exit 1
+    fi
+
+    echo "Skipping the fake-gateway integration tests: $missing." >&2
+    integration=false
+  fi
+fi
+
+if [[ "$integration" == true ]]; then
+  # The tests tag every fake gateway they start with this run's id (in the
+  # node command line), so the check below finds this run's children and
+  # nobody else's.
+  export HERMIE_INTEGRATION=1
+  export HERMIE_INTEGRATION_RUN="run-$$-$RANDOM"
+else
+  export HERMIE_INTEGRATION=0
+fi
+
+status=0
+swift test --package-path "$apple_dir/HermieKit" "$@" || status=$?
+
+if [[ "$integration" == true ]]; then
+  # Every fake gateway must be gone. Each one exits when its stdin closes, so
+  # one left over from a crashed run goes within moments; give it five seconds.
+  tag="hermie-integration-$HERMIE_INTEGRATION_RUN"
+  deadline=$((SECONDS + 5))
+  while pgrep -f "$tag" >/dev/null 2>&1 && ((SECONDS < deadline)); do
+    sleep 0.1
+  done
+
+  if pgrep -f "$tag" >/dev/null 2>&1; then
+    echo "Fake gateways outlived the test run:" >&2
+    pgrep -fl "$tag" >&2 || true
+    exit 1
+  fi
+fi
+
+if [[ "$status" -ne 0 ]]; then
+  exit "$status"
+fi
 
 derived="$apple_dir/DerivedData"
 
