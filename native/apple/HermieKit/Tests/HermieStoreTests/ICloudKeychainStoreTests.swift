@@ -278,6 +278,46 @@ final class RecordingKeychain: SyncedKeychain {
     try store.delete(account: Self.account)
   }
 
+  /// A put the keychain refused returns normally, so the store remembers the
+  /// refusal: `availability()` says `unavailable` from then on, even when a
+  /// later read would pass, and every copy of the store agrees.
+  enum RefusedCall: CaseIterable, Sendable {
+    case add, update, delete, list
+  }
+
+  @Test(arguments: RefusedCall.allCases)
+  func aRefusalIsRemembered(refused: RefusedCall) throws {
+    let keychain: RecordingKeychain
+    switch refused {
+    case .add: keychain = RecordingKeychain(.init(add: [errSecMissingEntitlement]))
+    case .update:
+      keychain = RecordingKeychain(.init(add: [errSecDuplicateItem], update: [errSecMissingEntitlement]))
+    case .delete: keychain = RecordingKeychain(.init(delete: [errSecMissingEntitlement]))
+    case .list: keychain = RecordingKeychain(.init(copyMatching: [(errSecMissingEntitlement, nil)]))
+    }
+    let store = Self.store(keychain)
+    let copy = store
+
+    switch refused {
+    case .add, .update: try store.put(SyncedItem(account: Self.account, value: "dropped"))
+    case .delete: try store.delete(account: Self.account)
+    case .list: #expect(try store.all() == [])
+    }
+
+    // A probe would now pass (the script answers "not found"), and still:
+    let calls = keychain.recorded.count
+    #expect(store.availability() == .unavailable)
+    #expect(copy.availability() == .unavailable)
+    #expect(keychain.recorded.count == calls)  // decided without asking again
+  }
+
+  @Test func availabilityStaysAvailableWithoutARefusal() throws {
+    let keychain = RecordingKeychain(.init(add: [errSecIO]))
+    let store = Self.store(keychain)
+    #expect(throws: SecretStoreError.self) { try store.put(SyncedItem(account: Self.account, value: "v")) }
+    #expect(store.availability() == .available)
+  }
+
   /// Without an entitlement, nothing reaches the keychain at all: this is
   /// what an unsigned macOS process (`swift test`, CI) gets.
   @Test func anUnentitledProcessNeverCallsTheKeychain() throws {
@@ -399,5 +439,40 @@ final class RecordingKeychain: SyncedKeychain {
     }
     // Exactly one place builds a real store, and it checks the service.
     #expect(constructions == 1)
+  }
+
+  /// A hosted file that can write a synchronizable item refuses to compile
+  /// for anything but the simulator: on a device the item would sync.
+  @Test func hostedSyncedWritesCompileForTheSimulatorOnly() throws {
+    let hosted = KeychainCompatibilitySourceTests.repo.appending(path: "native/apple/HostedTests")
+    let files = try FileManager.default.contentsOfDirectory(at: hosted, includingPropertiesForKeys: nil)
+      .filter { $0.pathExtension == "swift" }
+    var guarded = 0
+    for file in files {
+      let source = try String(contentsOf: file, encoding: .utf8)
+      guard source.contains("ICloudKeychainStore(") || source.contains("kSecAttrSynchronizable as String: true")
+      else { continue }
+      guarded += 1
+      let lines = source.components(separatedBy: "\n")
+      let firstGuard = lines.firstIndex { $0.hasPrefix("#if !targetEnvironment(simulator)") }
+      let firstDeclaration = lines.firstIndex { $0.hasPrefix("@Suite") || $0.hasPrefix("struct") }
+      #expect(firstGuard != nil && lines[firstGuard! + 1].contains("#error("), "\(file.lastPathComponent)")
+      #expect((firstGuard ?? .max) < (firstDeclaration ?? 0), "\(file.lastPathComponent)")
+    }
+    #expect(guarded >= 1)
+  }
+
+  /// `accessGroup: nil` reads every declared group; that is one place only
+  /// while each app declares exactly one keychain group.
+  @Test func eachAppDeclaresExactlyOneKeychainGroup() throws {
+    var apps = 0
+    for file in KeychainCompatibilitySourceTests.entitlementsFiles() where file.path.contains("/native/") {
+      let data = try Data(contentsOf: file)
+      let plist = try PropertyListSerialization.propertyList(from: data, format: nil) as? [String: Any]
+      guard let groups = plist?["keychain-access-groups"] as? [String] else { continue }
+      apps += 1
+      #expect(groups == ["$(AppIdentifierPrefix)dev.hermie.app"], "\(file.path)")
+    }
+    #expect(apps >= 2)
   }
 }

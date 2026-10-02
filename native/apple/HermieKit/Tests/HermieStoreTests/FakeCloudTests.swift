@@ -231,48 +231,318 @@ import Testing
     }
   }
 
+  static let policies: [FakeCloud.Conflict] = [.newestWrite, .cloudWins]
+
+  /// Takes a random device offline or brings it back.
+  static func randomHoldOrRelease(_ cloud: FakeCloud, held: inout Set<String>, using generator: inout SplitMix64) {
+    let device = devices.randomElement(using: &generator)!
+    if held.remove(device) != nil {
+      cloud.release(device)
+    } else {
+      held.insert(device)
+      cloud.hold(device)
+    }
+  }
+
   /// Random writes and deletes on three devices, with random deliveries in
-  /// random order between them: once everything is delivered, in a random
-  /// interleaving, every replica holds what the cloud holds.
-  @Test(arguments: 0..<50)
-  func everyInterleavingConverges(seed: UInt64) throws {
+  /// random order and devices going offline and back between them: once every
+  /// device is back and everything is delivered, in a random interleaving,
+  /// every replica holds what the cloud holds. Under both policies.
+  @Test(arguments: policies, 0..<50)
+  func everyInterleavingConverges(conflict: FakeCloud.Conflict, seed: UInt64) throws {
     var edits = SplitMix64(seed: seed)
     var delivery = SplitMix64(seed: ~seed)
-    let cloud = FakeCloud()
+    let cloud = FakeCloud(conflict: conflict)
     let stores = Self.devices.map(cloud.replica)
+    var held = Set<String>()
 
     for step in 0..<40 {
       try Self.randomEdit(stores, step: step, using: &edits)
+      if Int.random(in: 0..<5, using: &delivery) == 0 {
+        Self.randomHoldOrRelease(cloud, held: &held, using: &delivery)
+      }
       if Bool.random(using: &delivery) {
         let device = Self.devices.randomElement(using: &delivery)!
         let count = cloud.pending(to: device).count
         if count > 0 { cloud.deliver(at: Int.random(in: 0..<count, using: &delivery), to: device) }
       }
     }
+    for device in held.sorted() { cloud.release(device) }
     cloud.deliverAll(using: &delivery)
 
     #expect(cloud.pendingCount == 0)
-    for store in stores { #expect(try store.all() == cloud.cloudItems(), "seed \(seed)") }
+    for store in stores { #expect(try store.all() == cloud.cloudItems(), "\(conflict) seed \(seed)") }
   }
 
-  /// The same edits made offline, then delivered in different random orders:
-  /// the same outcome every time.
-  @Test(arguments: 0..<50)
-  func theDeliveryOrderDoesNotChangeTheOutcome(seed: UInt64) throws {
+  /// The random edits above do reach the refusal path under `.cloudWins`, so
+  /// the convergence tests exercise it.
+  @Test func randomEditsProduceRefusals() throws {
+    var refusals = 0
+    for seed in UInt64(0)..<20 {
+      var edits = SplitMix64(seed: seed)
+      var offline = SplitMix64(seed: ~seed)
+      let cloud = FakeCloud(conflict: .cloudWins)
+      let stores = Self.devices.map(cloud.replica)
+      var held = Set<String>()
+      for step in 0..<40 {
+        try Self.randomEdit(stores, step: step, using: &edits)
+        if Int.random(in: 0..<4, using: &offline) == 0 {
+          Self.randomHoldOrRelease(cloud, held: &held, using: &offline)
+        }
+      }
+      for device in held.sorted() { cloud.release(device) }
+      refusals += cloud.refused().count
+    }
+    #expect(refusals > 20)
+  }
+
+  /// The same edits, made with devices going offline and back, then every
+  /// device released in a random order and everything delivered in a random
+  /// order. Every replica ends with what the cloud holds, under both
+  /// policies. Under `.newestWrite` that is the same outcome every time; under
+  /// `.cloudWins` it may depend on which device reached the cloud first, so no
+  /// single outcome is asserted.
+  @Test(arguments: policies, 0..<50)
+  func theDeliveryOrder(conflict: FakeCloud.Conflict, seed: UInt64) throws {
     var outcomes = Set<[String]>()
     for order in 0..<4 {
       var edits = SplitMix64(seed: seed)
+      var offline = SplitMix64(seed: seed &+ 7)
       var delivery = SplitMix64(seed: seed &* 31 &+ UInt64(order))
-      let cloud = FakeCloud()
+      let cloud = FakeCloud(conflict: conflict)
       let stores = Self.devices.map(cloud.replica)
+      var held = Set<String>()
 
-      for step in 0..<20 { try Self.randomEdit(stores, step: step, using: &edits) }
+      for step in 0..<20 {
+        try Self.randomEdit(stores, step: step, using: &edits)
+        if Int.random(in: 0..<4, using: &offline) == 0 {
+          Self.randomHoldOrRelease(cloud, held: &held, using: &offline)
+        }
+      }
+      for device in held.shuffled(using: &delivery) { cloud.release(device) }
       cloud.deliverAll(using: &delivery)
 
-      for store in stores { #expect(try store.all() == cloud.cloudItems(), "seed \(seed) order \(order)") }
+      #expect(cloud.pendingCount == 0)
+      for store in stores {
+        #expect(try store.all() == cloud.cloudItems(), "\(conflict) seed \(seed) order \(order)")
+      }
       outcomes.insert(cloud.cloudItems().map { "\($0.account)=\($0.value)" })
     }
-    #expect(outcomes.count == 1, "seed \(seed)")
+    if conflict == .newestWrite {
+      #expect(outcomes.count == 1, "seed \(seed)")
+    }
+  }
+
+  // MARK: - Conflict policies
+
+  /// Both devices hold the item; B goes offline and edits it, A edits it
+  /// online, later in time; then B comes back.
+  @Test(arguments: policies)
+  func anOfflineEditMeetsAnOnlineEdit(conflict: FakeCloud.Conflict) throws {
+    let cloud = FakeCloud(conflict: conflict)
+    let phone = cloud.replica("A")
+    let mac = cloud.replica("B")
+    try phone.put(Self.item("gw.1", "v0"))
+    cloud.deliverAll()
+
+    cloud.hold("B")
+    try mac.put(Self.item("gw.1", "offline B"))  // based on v0, made first
+    try phone.put(Self.item("gw.1", "online A"))  // reaches the cloud first, written later
+    cloud.release("B")
+    cloud.deliverAll()
+
+    // The later write and the first to reach the cloud are the same here.
+    for store in [phone, mac] { #expect(try store.all() == [Self.item("gw.1", "online A")], "\(conflict)") }
+    #expect(cloud.cloudItems() == [Self.item("gw.1", "online A")])
+    if conflict == .cloudWins {
+      #expect(cloud.refused() == [FakeCloud.Write(device: "B", account: "gw.1", kind: .put)])
+    } else {
+      #expect(cloud.refused() == [])
+    }
+  }
+
+  /// The same, but the offline edit is the later one: newest write keeps it;
+  /// the cloud refuses it, because it was made from a stale copy, and B gets
+  /// A's copy back.
+  @Test(arguments: policies)
+  func aLaterOfflineEditMadeFromAStaleCopy(conflict: FakeCloud.Conflict) throws {
+    let cloud = FakeCloud(conflict: conflict)
+    let phone = cloud.replica("A")
+    let mac = cloud.replica("B")
+    try phone.put(Self.item("gw.1", "v0"))
+    cloud.deliverAll()
+
+    cloud.hold("B")
+    try phone.put(Self.item("gw.1", "online A"))
+    try mac.put(Self.item("gw.1", "offline B"))  // later, but based on v0
+    cloud.release("B")
+    #expect(try mac.all() == [Self.item("gw.1", "offline B")])  // until the cloud's answer arrives
+    cloud.deliverAll()
+
+    let winner = conflict == .newestWrite ? "offline B" : "online A"
+    for store in [phone, mac] { #expect(try store.all() == [Self.item("gw.1", winner)], "\(conflict)") }
+    #expect(cloud.cloudItems() == [Self.item("gw.1", winner)])
+    #expect(cloud.refused().count == (conflict == .cloudWins ? 1 : 0))
+  }
+
+  /// B deletes offline; A edits online; B comes back. Newest write: the
+  /// later delete wins. Cloud wins: the stale delete is refused and the item
+  /// comes back on B.
+  @Test(arguments: policies)
+  func aStaleDeleteCanLose(conflict: FakeCloud.Conflict) throws {
+    let cloud = FakeCloud(conflict: conflict)
+    let phone = cloud.replica("A")
+    let mac = cloud.replica("B")
+    try phone.put(Self.item("gw.1", "v0"))
+    cloud.deliverAll()
+
+    cloud.hold("B")
+    try phone.put(Self.item("gw.1", "renamed"))
+    try mac.delete(account: "gw.1")
+    cloud.release("B")
+    cloud.deliverAll()
+
+    let expected = conflict == .newestWrite ? [] : [Self.item("gw.1", "renamed")]
+    for store in [phone, mac] { #expect(try store.all() == expected, "\(conflict)") }
+    #expect(cloud.cloudItems() == expected)
+    if conflict == .cloudWins {
+      #expect(cloud.refused() == [FakeCloud.Write(device: "B", account: "gw.1", kind: .delete)])
+    }
+  }
+
+  /// A refused change is not passed on: a third device never sees it, not
+  /// even briefly.
+  @Test func aRefusedChangeIsNotPassedOn() throws {
+    let cloud = FakeCloud(conflict: .cloudWins)
+    let phone = cloud.replica("A")
+    let mac = cloud.replica("B")
+    let ipad = cloud.replica("C")
+    try phone.put(Self.item("gw.1", "v0"))
+    cloud.deliverAll()
+
+    cloud.hold("B")
+    try phone.put(Self.item("gw.1", "online A"))
+    try mac.put(Self.item("gw.1", "offline B"))
+    try mac.put(Self.item("gw.1", "offline B again"))  // based on its own refused write: refused too
+    cloud.release("B")
+
+    #expect(cloud.pending(to: "C") == ["gw.1"])  // A's edit only
+    #expect(cloud.pending(to: "B") == ["gw.1", "gw.1", "gw.1"])  // A's edit, and the cloud's copy twice
+    cloud.deliverNext(to: "C")
+    #expect(try ipad.all() == [Self.item("gw.1", "online A")])
+    cloud.deliverAll()
+    #expect(try mac.all() == [Self.item("gw.1", "online A")])
+    #expect(cloud.refused().count == 2)
+  }
+
+  /// Under cloud wins, an offline chain of edits on an item nobody else
+  /// touched is accepted in full.
+  @Test func anOfflineChainOnAnUntouchedItemIsAccepted() throws {
+    let cloud = FakeCloud(conflict: .cloudWins)
+    let phone = cloud.replica("A")
+    let mac = cloud.replica("B")
+    try phone.put(Self.item("gw.1", "v0"))
+    cloud.deliverAll()
+
+    cloud.hold("B")
+    try mac.put(Self.item("gw.1", "v1"))
+    try mac.put(Self.item("gw.1", "v2"))
+    try mac.delete(account: "gw.1")
+    try mac.put(Self.item("gw.1", "v3"))
+    cloud.release("B")
+    cloud.deliverAll()
+
+    #expect(cloud.refused() == [])
+    for store in [phone, mac] { #expect(try store.all() == [Self.item("gw.1", "v3")]) }
+  }
+
+  // MARK: - Wipe and rejoin
+
+  @Test(arguments: policies)
+  func aWipedDeviceLosesItsItemsAndSendsNothing(conflict: FakeCloud.Conflict) throws {
+    let cloud = FakeCloud(conflict: conflict)
+    let phone = cloud.replica("A")
+    let mac = cloud.replica("B")
+    try phone.put(Self.item("gw.1", "one"))
+    try phone.put(Self.item("gw.2", "two"))
+    cloud.deliverAll()
+
+    cloud.hold("B")
+    try mac.put(Self.item("gw.3", "never uploaded"))
+    try phone.put(Self.item("gw.4", "waiting for B"))
+    let writesBefore = cloud.writes()
+
+    cloud.wipeLocal("B")
+    #expect(try mac.all() == [])
+    #expect(cloud.pending(to: "B") == [])
+    #expect(cloud.writes() == writesBefore)
+
+    cloud.release("B")
+    cloud.deliverAll()
+    // Nothing travelled: A keeps everything, the never-uploaded write is gone.
+    #expect(try phone.all().map(\.account) == ["gw.1", "gw.2", "gw.4"])
+    #expect(cloud.pending(to: "A") == [])
+    #expect(try mac.all() == [])
+
+    // A change made afterwards still reaches it.
+    try phone.put(Self.item("gw.5", "later"))
+    cloud.deliverAll()
+    #expect(try mac.all() == [Self.item("gw.5", "later")])
+  }
+
+  @Test(arguments: policies)
+  func rejoinDownloadsEverythingTheCloudHolds(conflict: FakeCloud.Conflict) throws {
+    let cloud = FakeCloud(conflict: conflict)
+    let phone = cloud.replica("A")
+    let mac = cloud.replica("B")
+    try phone.put(Self.item("gw.1", "one"))
+    try phone.put(Self.item("gw.2", "two"))
+    try phone.delete(account: "gw.2")
+    try phone.put(Self.item("gw.3", "three"))
+    cloud.deliverAll()
+
+    cloud.wipeLocal("B")
+    #expect(try mac.all() == [])
+    cloud.rejoin("B")
+    #expect(cloud.pending(to: "B") == ["gw.1", "gw.3"])
+    cloud.deliverAll()
+    #expect(try mac.all() == cloud.cloudItems())
+
+    // And the rejoined device's edits are accepted again.
+    try mac.put(Self.item("gw.1", "edited on B"))
+    cloud.deliverAll()
+    #expect(try phone.all() == [Self.item("gw.1", "edited on B"), Self.item("gw.3", "three")])
+    #expect(cloud.refused() == [])
+  }
+
+  /// A wiped device that writes an account the cloud already holds, before
+  /// it has downloaded anything: the cloud refuses the blind write and sends
+  /// its own copy, the only way that device learns it.
+  @Test(arguments: policies)
+  func aBlindWriteAfterAWipe(conflict: FakeCloud.Conflict) throws {
+    let cloud = FakeCloud(conflict: conflict)
+    let phone = cloud.replica("A")
+    let mac = cloud.replica("B")
+    try phone.put(Self.item("gw.1", "from A"))
+    cloud.deliverAll()
+
+    cloud.wipeLocal("B")
+    try mac.put(Self.item("gw.1", "blind B"))
+    cloud.deliverAll()
+
+    let winner = conflict == .newestWrite ? "blind B" : "from A"
+    for store in [phone, mac] { #expect(try store.all() == [Self.item("gw.1", winner)], "\(conflict)") }
+  }
+
+  @Test func rejoinUnderImmediateDeliveryArrivesAtOnce() throws {
+    let cloud = FakeCloud(delivery: .immediate)
+    let phone = cloud.replica("A")
+    let mac = cloud.replica("B")
+    try phone.put(Self.item("gw.1", "one"))
+    cloud.wipeLocal("B")
+    #expect(try mac.all() == [])
+    cloud.rejoin("B")
+    #expect(try mac.all() == [Self.item("gw.1", "one")])
   }
 
   // MARK: - Faults

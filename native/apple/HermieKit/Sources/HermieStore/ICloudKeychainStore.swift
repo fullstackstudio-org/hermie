@@ -1,5 +1,6 @@
 import Foundation
 import Security
+import Synchronization
 
 /// The synced set in iCloud Keychain (decision I1 of the iCloud addendum,
 /// `.claude/plans/native-rewrite-icloud.md`, "Synced keychain item").
@@ -40,12 +41,28 @@ import Security
 /// other writer left without it is still updated or deleted instead of
 /// blocking the account.
 ///
+/// ## Access groups
+///
+/// With `accessGroup` nil (the apps' case) writes land in the binary's first
+/// keychain group, but reads, updates and deletes search EVERY group the
+/// binary declares, as the keychain does for a query without a group. Both
+/// apps declare exactly one group, `$(AppIdentifierPrefix)dev.hermie.app`
+/// (`KeychainCompatibilitySourceTests` checks that it comes first), so there
+/// is only one place an item can be. A binary that declares several, or adds
+/// a second group later, must pass the group writes land in:
+/// then every query, `all()` included, names it and nothing else is seen.
+/// Without that, an account present in two groups is listed once, from the
+/// group first in name order, which need not be the one writes land in.
+///
 /// ## When the keychain refuses the process
 ///
 /// `errSecMissingEntitlement` from any call means the process has no keychain
-/// access group. Then `availability()` is `unavailable`, `all()` is empty, and
-/// `put` and `delete` do nothing: no call throws for that reason, and the sync
-/// switch is disabled by the caller.
+/// access group (or not the one named). Then `all()` is empty, and `put` and
+/// `delete` do nothing: no call throws for that reason, and the sync switch is
+/// disabled by the caller. The refusal is remembered: once any call has seen
+/// it, `availability()` answers `unavailable` from then on, whatever a later
+/// read says, so a put that was silently dropped cannot sit behind an
+/// `available`.
 ///
 /// On macOS the data protection keychain needs a signed binary with an
 /// application identifier, and an unsigned process is not always told so (on
@@ -76,6 +93,8 @@ public struct ICloudKeychainStore: SyncedItemStore {
 
   let keychain: any SyncedKeychain
   let isEntitled: @Sendable () -> Bool
+  /// Set once any call sees `errSecMissingEntitlement`; shared by copies.
+  let refusal = Refusal()
 
   public init(service: String = Self.productionService, accessGroup: String? = nil) {
     self.init(service: service, accessGroup: accessGroup, keychain: SystemKeychain()) {
@@ -101,11 +120,11 @@ public struct ICloudKeychainStore: SyncedItemStore {
   // MARK: - SyncedItemStore
 
   public func availability() -> SyncedStoreAvailability {
-    guard isEntitled() else { return .unavailable }
+    guard isEntitled(), !refusal.wasRefused else { return .unavailable }
     var query = baseQuery()
     query[kSecMatchLimit as String] = kSecMatchLimitOne
     query[kSecReturnAttributes as String] = true
-    let status = keychain.copyMatching(query).status
+    let status = observe(keychain.copyMatching(query).status)
     return status == errSecMissingEntitlement ? .unavailable : .available
   }
 
@@ -116,7 +135,8 @@ public struct ICloudKeychainStore: SyncedItemStore {
     query[kSecReturnAttributes as String] = true
     query[kSecReturnData as String] = true
 
-    let (status, result) = keychain.copyMatching(query)
+    let (listStatus, result) = keychain.copyMatching(query)
+    let status = observe(listStatus)
     switch status {
     case errSecSuccess:
       return Self.items(from: result)
@@ -136,7 +156,7 @@ public struct ICloudKeychainStore: SyncedItemStore {
   public func delete(account: String) throws {
     try Self.validate(account)
     guard isEntitled() else { return }
-    let status = keychain.delete(itemQuery(account))
+    let status = observe(keychain.delete(itemQuery(account)))
     switch status {
     case errSecSuccess, errSecItemNotFound, errSecMissingEntitlement:
       return
@@ -158,7 +178,7 @@ public struct ICloudKeychainStore: SyncedItemStore {
     add[kSecValueData as String] = value
     add[kSecAttrAccessible as String] = kSecAttrAccessibleAfterFirstUnlock
 
-    let status = keychain.add(add)
+    let status = observe(keychain.add(add))
     switch status {
     case errSecSuccess, errSecMissingEntitlement:
       return
@@ -168,7 +188,7 @@ public struct ICloudKeychainStore: SyncedItemStore {
         kSecAttrGeneric as String: account,
         kSecAttrAccessible as String: kSecAttrAccessibleAfterFirstUnlock
       ]
-      let updateStatus = keychain.update(itemQuery(item.account), attributes)
+      let updateStatus = observe(keychain.update(itemQuery(item.account), attributes))
       switch updateStatus {
       case errSecSuccess, errSecMissingEntitlement:
         return
@@ -180,6 +200,12 @@ public struct ICloudKeychainStore: SyncedItemStore {
     default:
       throw KeychainStore.error(status, .add)
     }
+  }
+
+  /// Remembers a refusal, and passes the status on.
+  private func observe(_ status: OSStatus) -> OSStatus {
+    if status == errSecMissingEntitlement { refusal.record() }
+    return status
   }
 
   // MARK: - Queries
@@ -255,6 +281,16 @@ public struct ICloudKeychainStore: SyncedItemStore {
       return true
     #endif
   }()
+}
+
+/// Whether the keychain has refused this store with `errSecMissingEntitlement`.
+/// A class so every copy of the store shares it.
+final class Refusal: Sendable {
+  private let refused = Mutex(false)
+
+  var wasRefused: Bool { refused.withLock { $0 } }
+
+  func record() { refused.withLock { $0 = true } }
 }
 
 /// The four keychain calls the synced store makes, so a unit test can record

@@ -33,7 +33,13 @@ public protocol SyncedItemStore: Sendable {
   func all() throws -> [SyncedItem]
 
   /// Adds the item, or replaces the value of the item with that account.
-  /// Does nothing when the store is unavailable.
+  /// Does nothing when the store is unavailable, without an error; the store
+  /// then reports `unavailable` from that call on.
+  ///
+  /// So returning normally does not prove the item was stored: a put counts as
+  /// published only once a later `all()` on this store shows it. Even then,
+  /// whether and when it reaches another device cannot be known (see
+  /// `FakeCloud`, "What it does not model").
   func put(_ item: SyncedItem) throws
 
   /// Deletes the item with that account. Succeeds when there is none, and does

@@ -3,6 +3,13 @@ import HermieStore
 import Security
 import Testing
 
+// On a real device these tests would write synchronizable items, and iCloud
+// Keychain would upload them to the owner's Apple Account. The target is
+// already simulator-only in project.yml; this makes any other build fail.
+#if !targetEnvironment(simulator)
+  #error("SyncedKeychainHostedTests run on the iOS Simulator only: on a device they would sync to iCloud.")
+#endif
+
 /// `ICloudKeychainStore` against the real keychain, hosted in the Hermie app so
 /// the process carries the app's keychain access group. Run with
 /// `native/apple/scripts/test.sh --keychain`, on a throwaway iOS Simulator. A
@@ -97,6 +104,9 @@ import Testing
     SecretStoreContract.requireTestKey(account)
     defer { try? store.delete(account: account) }
 
+    #if !targetEnvironment(simulator)
+      #error("A raw synchronizable SecItemAdd outside the simulator would sync to iCloud.")
+    #endif
     let foreign: [String: Any] = [
       kSecClass as String: kSecClassGenericPassword,
       kSecAttrService as String: service,
