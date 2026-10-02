@@ -41,7 +41,7 @@
 
     @Test("a refused upgrade is the reference's one connect error")
     func refusedUpgrade() async throws {
-      let server = try await LoopbackHTTPServer.start(
+      let server = try await UpgradeLoopbackServer.start(
         answering: "HTTP/1.1 403 Forbidden\r\nContent-Length: 0\r\nConnection: close\r\n\r\n"
       )
       defer { server.stop() }
@@ -56,7 +56,7 @@
     func redirectIsNotFollowed() async throws {
       let target = try await LoopbackWebSocketServer.start()
       defer { target.stop() }
-      let redirecting = try await LoopbackHTTPServer.start(
+      let redirecting = try await UpgradeLoopbackServer.start(
         answering: "HTTP/1.1 301 Moved Permanently\r\nLocation: ws://127.0.0.1:\(target.port)/api/ws?token=secret\r\n"
           + "Content-Length: 0\r\nConnection: close\r\n\r\n"
       )
@@ -253,7 +253,7 @@
 
   /// A plain HTTP server on 127.0.0.1 that answers every request with one
   /// canned response (a 403, a 301), never an upgrade.
-  final class LoopbackHTTPServer: Sendable {
+  final class UpgradeLoopbackServer: Sendable {
     private let listener: NWListener
     private let queue = DispatchQueue(label: "loopback-http")
 
@@ -274,8 +274,8 @@
       }
     }
 
-    static func start(answering text: String) async throws -> LoopbackHTTPServer {
-      let server = try LoopbackHTTPServer(answering: text)
+    static func start(answering text: String) async throws -> UpgradeLoopbackServer {
+      let server = try UpgradeLoopbackServer(answering: text)
       try await server.listener.ready(on: server.queue)
       return server
     }

@@ -22,9 +22,9 @@ final class FakeCredentials: CredentialProvider {
   /// What a test can make the provider wait on, or fail with.
   struct Holds {
     /// `dialPlan` waits here before minting.
-    var dialPlan: Gate?
+    var dialPlan: ConnectionGate?
     /// `onRejected` waits here before answering.
-    var rejection: Gate?
+    var rejection: ConnectionGate?
     /// `onRejected` throws this once it is let through.
     var rejectionFailure: GatewayError?
   }
@@ -148,7 +148,7 @@ enum GatewayWebSocketProtocol {
 }
 
 /// Something a fake can wait on until a test lets it through.
-final class Gate: Sendable {
+final class ConnectionGate: Sendable {
   private let state = Mutex((open: false, waiters: [CheckedContinuation<Void, Never>]()))
 
   func wait() async {

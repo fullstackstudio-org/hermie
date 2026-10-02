@@ -16,7 +16,7 @@ struct ConnectionEdgeTests {
   @Test("a refresh that fails after the dial it served was replaced does not tear down the new socket")
   func aSupersededRefreshFailureIsIgnored() async throws {
     try await withHarness(HarnessOptions(auth: .native)) { h in
-      let gate = Gate()
+      let gate = ConnectionGate()
       h.credentials.hold { holds in
         holds.rejection = gate
         holds.rejectionFailure = GatewayError(.network, "Refreshing the credentials failed.")
@@ -47,7 +47,7 @@ struct ConnectionEdgeTests {
   @Test("a refresh that succeeds after the dial it served was replaced starts no second dial")
   func aSupersededRefreshSuccessIsIgnored() async throws {
     try await withHarness(HarnessOptions(auth: .native)) { h in
-      let gate = Gate()
+      let gate = ConnectionGate()
       h.credentials.hold { $0.rejection = gate }
       h.gateway.with { $0.rejectNextUpgrades = 2 }
 
@@ -81,7 +81,7 @@ struct ConnectionEdgeTests {
       first.reportOnClientClose(code: 4403)
 
       // Hold the next dial at its credential until the old socket's close is in.
-      let gate = Gate()
+      let gate = ConnectionGate()
       h.credentials.hold { $0.dialPlan = gate }
       h.gateway.with { $0.down = true }
 
@@ -108,7 +108,7 @@ struct ConnectionEdgeTests {
   @Test("a new reason for the same phase is published")
   func errorOnlyChangesArePublished() async throws {
     try await withHarness(HarnessOptions(auth: .native)) { h in
-      let gate = Gate()
+      let gate = ConnectionGate()
       h.credentials.hold { $0.dialPlan = gate }
       h.gateway.with { $0.failNextTicketMints = 1 }
 
@@ -128,7 +128,7 @@ struct ConnectionEdgeTests {
   @Test("stop while the credential is being minted: nothing happens when the mint returns")
   func stopDuringDialPlan() async throws {
     try await withHarness(HarnessOptions(auth: .native)) { h in
-      let gate = Gate()
+      let gate = ConnectionGate()
       h.credentials.hold { $0.dialPlan = gate }
 
       await h.connection.start()
@@ -152,7 +152,7 @@ struct ConnectionEdgeTests {
   @Test("stop while the credential is being refreshed: nothing happens when the refresh returns")
   func stopDuringOnRejected() async throws {
     try await withHarness(HarnessOptions(auth: .native)) { h in
-      let gate = Gate()
+      let gate = ConnectionGate()
       h.credentials.hold { $0.rejection = gate }
       h.gateway.with { $0.rejectNextUpgrades = 2 }
 
