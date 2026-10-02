@@ -121,7 +121,16 @@ public actor TranscriptStore {
   /// Approval request ids already acknowledged (`acknowledged`).
   var acknowledged: Set<String> = []
   /// One hydration per chat at a time (`opening`).
-  var opening: [String: Task<Void, any Error>] = [:]
+  var opening: [String: Opening] = [:]
+  /// Chats with a `/new` in progress: nothing is sent or steered into them
+  /// until the successor is open.
+  var retiring: Set<String> = []
+  /// Steers whose `session.steer` has not answered yet, per chat.
+  var steering: [String: Int] = [:]
+  /// Told after every desktop contract check of a resume, numbered so a late
+  /// report never overrides a newer one: `nil` when it passed.
+  var contractSink: (@MainActor @Sendable (UInt64, GatewayError?) -> Void)?
+  var contractChecks: UInt64 = 0
   /// The desktop contract this gateway last reported (`knownContract`).
   var knownContract: Double?
   var sawReady = false
@@ -253,7 +262,7 @@ public actor TranscriptStore {
     consumers.removeAll()
     clearTimers()
 
-    let hydrations = Array(opening.values)
+    let hydrations = opening.values.map(\.task)
 
     for task in hydrations {
       task.cancel()
@@ -900,7 +909,13 @@ public actor TranscriptStore {
     markDirty(key)
   }
 
-  func setHydration(_ key: String, _ hydration: HydrationState) {
+  /// Move a chat along the ladder. With `generation`, only if the chat under
+  /// the key is still the one the caller worked for.
+  func setHydration(_ key: String, _ hydration: HydrationState, generation ticket: UInt64? = nil) {
+    if let ticket, generation(of: key) != ticket {
+      return
+    }
+
     guard let current = chats[key]?.state.hydration, current != hydration else {
       return
     }
@@ -1091,6 +1106,12 @@ struct ChatRecord {
 struct HistoryWindow: Equatable {
   var rows: Int
   var reachedStart: Bool
+}
+
+/// A hydration in flight, and the conversation it opens.
+struct Opening {
+  var task: Task<Void, any Error>
+  var storedID: String?
 }
 
 /// Somebody waiting for a session's events to be taken in up to `seq`.

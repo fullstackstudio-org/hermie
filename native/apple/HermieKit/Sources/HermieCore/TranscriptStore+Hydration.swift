@@ -24,8 +24,10 @@ extension TranscriptStore {
   /// a teammate bot writing into a chat nobody is looking at is exactly the
   /// traffic this app exists to show. Never two hydrations of one chat at once.
   public func open(_ bot: Bot) async throws {
-    if let existing = opening[bot.name] {
-      return try await existing.value
+    // Joined only if it opens the same conversation: a `/new` may have put
+    // another one under the key while the old hydration is still winding down.
+    if let existing = opening[bot.name], existing.storedID == bot.canonical?.id {
+      return try await existing.task.value
     }
 
     // Already live on a bound session: the socket is delivering the truth, and
@@ -37,13 +39,55 @@ extension TranscriptStore {
     }
 
     let task = Task { try await self.hydrate(bot) }
-    opening[bot.name] = task
+    opening[bot.name] = Opening(task: task, storedID: bot.canonical?.id)
 
     defer {
-      opening[bot.name] = nil
+      if opening[bot.name]?.task == task {
+        opening[bot.name] = nil
+      }
     }
 
     try await task.value
+  }
+
+  /// Wait for a hydration of this chat in flight, whatever it ends in.
+  func waitForOpening(_ key: String) async {
+    while let existing = opening[key] {
+      _ = await existing.task.result
+
+      if opening[key]?.task == existing.task {
+        return
+      }
+    }
+  }
+
+  /// Where the session hears the outcome of each desktop contract check.
+  public func setContractSink(_ sink: @escaping @MainActor @Sendable (UInt64, GatewayError?) -> Void) {
+    contractSink = sink
+  }
+
+  /// Report a contract check: `nil` when the resume passed it.
+  func reportContract(_ error: GatewayError?) {
+    guard let contractSink else {
+      return
+    }
+
+    contractChecks += 1
+    let number = contractChecks
+    spawn { _ in await contractSink(number, error) }
+  }
+
+  /// `assertDesktopContract` on one resume's `info`, remembered and reported.
+  func checkContract(_ info: JSONValue?) throws {
+    rememberContract(contractIn(info))
+
+    do {
+      _ = try DesktopContract.check(desktopContractInfo(info), known: knownContract)
+      reportContract(nil)
+    } catch {
+      reportContract(error)
+      throw error
+    }
   }
 
   /// `hydrate`: cache, resume, history, the in-flight tail, the replay.
@@ -75,8 +119,11 @@ extension TranscriptStore {
       }
     } catch let error as GatewayError where error.kind == .incompatible {
       throw error
+    } catch is CancellationError {
+      // The chat was replaced while this was in the air: its successor's ladder is not ours.
+      throw CancellationError()
     } catch {
-      setHydration(key, .error)
+      setHydration(key, .error, generation: ticket)
       throw error
     }
 
@@ -110,7 +157,7 @@ extension TranscriptStore {
       throw CancellationError()
     }
 
-    setHydration(key, .live)
+    setHydration(key, .live, generation: ticket)
     persistSoon(key)
     syncApprovalPoll()
 
@@ -144,8 +191,7 @@ extension TranscriptStore {
     let result = SessionResumeResult(json: reply.result.objectValue ?? [:])
     let info = reply.result["info"]
 
-    rememberContract(contractIn(info))
-    _ = try DesktopContract.check(desktopContractInfo(info), known: knownContract)
+    try checkContract(info)
 
     let runtimeID = result.sessionID ?? ""
 
@@ -634,6 +680,9 @@ extension TranscriptStore {
         reply in
         let result = SessionResumeResult(json: reply.result.objectValue ?? [:])
 
+        // A gateway downgraded while the socket was down is refused here too.
+        try self.checkContract(reply.result["info"])
+
         guard let runtimeID = result.sessionID, !runtimeID.isEmpty else {
           throw ChatRuntimeError(message: "The gateway resumed \(key)'s chat without a session id.")
         }
@@ -657,9 +706,13 @@ extension TranscriptStore {
         await reconcileTail(key)
       }
 
-      setHydration(key, .live)
+      setHydration(key, .live, generation: ticket)
+    } catch is CancellationError {
+      // Thrown by the generation check itself: the chat under the key is
+      // another one now, and its ladder is not this recovery's to move.
+      return
     } catch {
-      setHydration(key, .stale)
+      setHydration(key, .stale, generation: ticket)
     }
   }
 
@@ -810,8 +863,15 @@ extension TranscriptStore {
 
     let params: JSONValue = ["session_id": .string(runtimeID), "profile": .string(key)]
 
-    _ = try? await ordered(key, { [link] in try await link.requestReply(RPC.SessionHistory.name, params: params) }) {
+    // A snapshot read: the full history may be large, and the chat's frames
+    // keep flowing while it downloads. Stale by the time it lands, it is
+    // dropped, and the next sweep reads the tail again.
+    _ = try? await snapshotRead(key, { [link] in try await link.requestReply(RPC.SessionHistory.name, params: params) }) {
       reply in
+      guard self.chats[key]?.state.resolvedSessionID == resolvedID else {
+        return
+      }
+
       let rows = (reply.result["messages"]?.arrayValue ?? []).suffix(ChatRuntimeLimits.tailRowLimit)
         .map { TranscriptRow(json: $0.objectValue ?? [:]) }
 
@@ -1101,6 +1161,10 @@ extension TranscriptStore {
     }
 
     generations[key, default: 0] += 1
+    // A hydration of the forgotten chat no longer stands for the key: `open`
+    // starts a fresh one for whatever comes next.
+    opening[key] = nil
+    steering[key] = nil
 
     // Its calls in flight no longer hold anything: a binding call left behind
     // would keep every unbound frame waiting for good.
@@ -1146,6 +1210,14 @@ public struct ChatRuntimeError: Error, Sendable, Equatable, CustomStringConverti
   /// `requireRuntime`'s refusal.
   public static func notAttached(_ key: String) -> ChatRuntimeError {
     var error = ChatRuntimeError(message: "\(key)'s chat is not attached to the gateway yet.")
+    error.isNotAttached = true
+    return error
+  }
+
+  /// A `/new` is putting this chat's conversation away: nothing was painted or
+  /// sent, and the words can go to the successor once it is open.
+  public static func startingNewConversation(_ key: String) -> ChatRuntimeError {
+    var error = ChatRuntimeError(message: "\(key) is starting a new conversation. Send again in a moment.")
     error.isNotAttached = true
     return error
   }

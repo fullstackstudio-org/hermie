@@ -44,9 +44,11 @@ public protocol GatewayLink: Sendable {
   func seqWatermarks() async -> [String: Double]
 
   /// `claimTurn` (`turn-claim.ts`): tell the plugin which runtime session the
-  /// next `prompt.submit` names. `POST /api/plugins/hermie/context/turn`, at
-  /// most `turnClaimTimeout`, and never throws: a refusal, a timeout or a
-  /// network failure sends the turn unclaimed rather than late.
+  /// next `prompt.submit` names. `POST /api/plugins/hermie/context/turn`; the
+  /// whole claim, auth headers included, takes at most
+  /// `ChatRuntimeLimits.turnClaimTimeoutMs`. Never throws, and a refusal (a 401
+  /// included) is never handed to the credential provider: the turn goes out
+  /// unclaimed rather than late, and never at the cost of a sign-in.
   func claimTurn(_ runtimeSessionID: String) async
 
   func start() async

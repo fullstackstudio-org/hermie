@@ -62,6 +62,8 @@ public final class GatewaySession {
   @ObservationIgnored private var connectionStatus = ConnectionStatus(.disconnected)
   /// The roster read started by the last transition to `ready`.
   @ObservationIgnored private var readyRefresh: Task<Void, Never>?
+  /// The number of the last contract check heard (`contractChecked`).
+  @ObservationIgnored private var lastContractCheck: UInt64 = 0
   /// What the views ask of the store (observe, stop, which bots remain),
   /// forwarded by one task so it arrives in order.
   @ObservationIgnored private let commands: AsyncStream<StoreCommand>
@@ -155,6 +157,7 @@ public final class GatewaySession {
     // Weak: the roster outlives nothing, but a strong store here would be a
     // cycle (store → roster → this closure → store) that leaks every gateway.
     await roster.setSessionIDSource { [weak store] in await store?.sessionIDs() ?? [:] }
+    await store.setContractSink { [weak self] number, error in self?.contractChecked(number, error) }
     await store.attach()
 
     let commands = self.commands
@@ -310,12 +313,6 @@ public final class GatewaySession {
       throw error
     }
 
-    // A resume this gateway passed: whatever refused it before is history.
-    if incompatibility != nil {
-      incompatibility = nil
-      status = connectionStatus
-    }
-
     await markRead(name)
   }
 
@@ -380,6 +377,25 @@ public final class GatewaySession {
     commandSink.yield(.retain(names))
   }
 
+  /// The outcome of one resume's desktop contract check, in the order the
+  /// checks ran. Only a resume clears an incompatibility: a chat that was
+  /// already live, and so opened without one, proves nothing.
+  private func contractChecked(_ number: UInt64, _ error: GatewayError?) {
+    guard number > lastContractCheck else {
+      return
+    }
+
+    lastContractCheck = number
+
+    if let error {
+      incompatibility = error
+      status = ConnectionStatus(.incompatible, error: error)
+    } else if incompatibility != nil {
+      incompatibility = nil
+      status = connectionStatus
+    }
+  }
+
   private func connectionChanged(_ status: ConnectionStatus) {
     let wasReady = connectionStatus.phase == .ready
     connectionStatus = status
@@ -430,6 +446,9 @@ extension TranscriptStore {
 public struct ConnectionLink: GatewayLink {
   public let connection: GatewayConnection
   public let http: HTTPClient
+  let credentials: any CredentialProvider
+  let extraHeaders: [String: String]
+  let clock: any ConnectionClock
 
   public init(
     baseURL: String,
@@ -448,6 +467,9 @@ public struct ConnectionLink: GatewayLink {
       options: options
     )
     http = try HTTPClient(baseURL: baseURL, credentials: credentials, extraHeaders: extraHeaders ?? [:])
+    self.credentials = credentials
+    self.extraHeaders = extraHeaders ?? [:]
+    self.clock = clock
   }
 
   public var events: AsyncStream<WireEvent> { connection.events }
@@ -481,12 +503,56 @@ public struct ConnectionLink: GatewayLink {
   public func seqWatermarks() async -> [String: Double] { await connection.seqWatermarks }
 
   public func claimTurn(_ runtimeSessionID: String) async {
-    // A courtesy, never a dependency: whatever goes wrong, the turn goes out.
-    _ = try? await http.post(
-      RESTPath.pluginContextTurn,
-      body: ["session_id": .string(runtimeSessionID)],
-      timeoutMs: ChatRuntimeLimits.turnClaimTimeoutMs
-    )
+    let baseURL = http.baseURL
+    let credentials = self.credentials
+    let extraHeaders = self.extraHeaders
+    let limit = ChatRuntimeLimits.turnClaimTimeoutMs
+
+    // A courtesy, never a dependency: the whole claim, the auth headers
+    // included, gets `limit`, and whatever it answers is ignored. It goes out
+    // without `HTTPClient`'s 401 retry on purpose: a refused claim is never a
+    // reason to ask the credential provider for a new token, let alone to
+    // push the session towards signing in again.
+    await Self.bounded(.milliseconds(limit), clock: clock) {
+      guard let url = try? GatewayAddress.apiURL(baseURL, path: RESTPath.pluginContextTurn),
+        let auth = try? await credentials.httpAuthHeaders(AuthHeaderOptions())
+      else {
+        return
+      }
+
+      let request = JSONRequest(
+        method: "POST",
+        headers: extraHeaders.merging(auth) { _, auth in auth },
+        body: ["session_id": .string(runtimeSessionID)],
+        timeoutMs: limit
+      )
+      _ = try? await HTTPTransport().requestText(url, request)
+    }
+  }
+
+  /// Run `operation`, and return once it finishes or `limit` has passed on
+  /// `clock`, whichever comes first; a late operation is cancelled.
+  static func bounded(
+    _ limit: Duration,
+    clock: any ConnectionClock,
+    _ operation: @escaping @Sendable () async -> Void
+  ) async {
+    let (done, finish) = AsyncStream<Void>.makeStream()
+    let work = Task {
+      await operation()
+      finish.yield()
+    }
+    let timer = clock.schedule(after: limit) {
+      finish.yield()
+    }
+
+    for await _ in done {
+      break
+    }
+
+    work.cancel()
+    timer.cancel()
+    finish.finish()
   }
 
   public func start() async { await connection.start() }

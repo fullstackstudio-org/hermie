@@ -281,6 +281,55 @@ extension Integration {
         await session.shutdown()
       }
     }
+
+    @Test("a refused turn claim never asks the credential provider for anything new")
+    func refusedTurnClaim() async throws {
+      try await withGateway(FakeGateway.Options(auth: .token, token: "right-token")) { gateway in
+        let credentials = SessionCountingCredentials(SessionTokenCredentials(token: "wrong-token"))
+        let link = try ConnectionLink(
+          baseURL: gateway.baseURL,
+          credentials: credentials,
+          transport: URLSessionTransport()
+        )
+
+        await link.claimTurn("rt-any")
+        #expect(credentials.rejections == 0, "a 401 from the plugin's route is not a reason to sign in again")
+        #expect(credentials.headerReads == 1, "one claim, no retry")
+        await link.shutdown()
+      }
+    }
+  }
+}
+
+/// A credential provider that counts what it is asked for.
+final class SessionCountingCredentials: CredentialProvider {
+  private let base: SessionTokenCredentials
+  private let counts = Mutex((headers: 0, rejections: 0))
+
+  init(_ base: SessionTokenCredentials) {
+    self.base = base
+  }
+
+  var headerReads: Int { counts.withLock { $0.headers } }
+  var rejections: Int { counts.withLock { $0.rejections } }
+  var mode: GatewayAuthMode { base.mode }
+
+  func httpAuthHeaders(_ options: AuthHeaderOptions) async throws -> [String: String] {
+    counts.withLock { $0.headers += 1 }
+    return try await base.httpAuthHeaders(options)
+  }
+
+  func dialPlan(wsURL: String, extraHeaders: [String: String]) async throws -> DialPlan {
+    try await base.dialPlan(wsURL: wsURL, extraHeaders: extraHeaders)
+  }
+
+  func onRejected(rejectedToken: String?) async throws -> RejectionVerdict {
+    counts.withLock { $0.rejections += 1 }
+    return try await base.onRejected(rejectedToken: rejectedToken)
+  }
+
+  func signOut() async throws {
+    try await base.signOut()
   }
 }
 #endif

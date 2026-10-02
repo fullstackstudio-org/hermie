@@ -41,9 +41,17 @@ extension TranscriptStore {
     let author = options.ownAuthor()
     let ticket = generation(of: key)
 
+    guard !retiring.contains(key) else {
+      throw ChatRuntimeError.startingNewConversation(key)
+    }
+
     // The decision and the paint in one step: nothing may land between reading
     // `turn.active` and claiming the turn.
-    let start = try await local(key) { () throws -> SendStart in
+    let start = try await local(key, generation: ticket) { () throws -> SendStart in
+      guard !self.retiring.contains(key) else {
+        throw ChatRuntimeError.startingNewConversation(key)
+      }
+
       guard let state = self.chats[key]?.state, let runtimeID = state.runtimeSessionID, !runtimeID.isEmpty else {
         throw ChatRuntimeError.notAttached(key)
       }
@@ -92,11 +100,15 @@ extension TranscriptStore {
 
       return painted
     } catch {
-      doneSending(key)
+      // Only the conversation this was sent in counts it: a successor under the
+      // key started its own count at zero.
+      if generation(of: key) == ticket {
+        doneSending(key)
+      }
 
       // The optimistic bubble stays — the text is the reader's — but the turn
       // is not running, so the composer comes back.
-      _ = try? await local(key) {
+      _ = try? await local(key, generation: ticket) {
         guard self.chats[key]?.state.runtimeSessionID == runtimeID else {
           return
         }
@@ -182,7 +194,17 @@ extension TranscriptStore {
   ///
   /// Painted before the round trip (taking it out of the strip alone reads as
   /// the message being deleted); a refusal un-paints it and parks it again.
+  ///
+  /// A steer in the air counts as work in progress: `/new` waits for nothing
+  /// and refuses while one is out. It belongs to the conversation it started
+  /// in; a refusal that comes back after `/new` replaced it is put back nowhere.
   public func steerQueued(_ key: String, _ id: String) async throws -> CorrectionStatus {
+    let ticket = generation(of: key)
+
+    guard !retiring.contains(key) else {
+      throw ChatRuntimeError.startingNewConversation(key)
+    }
+
     guard let runtimeID = chats[key]?.state.runtimeSessionID, !runtimeID.isEmpty else {
       throw ChatRuntimeError.notAttached(key)
     }
@@ -191,7 +213,15 @@ extension TranscriptStore {
       return .rejected
     }
 
-    try await local(key) {
+    steering[key, default: 0] += 1
+
+    defer {
+      if generation(of: key) == ticket, let count = steering[key] {
+        steering[key] = count > 1 ? count - 1 : nil
+      }
+    }
+
+    try await local(key, generation: ticket) {
       let now = self.now()
       self.mutateState(key) { beginSteer(into: &$0, taken.text, taken.attachments, now) }
     }
@@ -199,8 +229,9 @@ extension TranscriptStore {
     let params: JSONValue = ["session_id": .string(runtimeID), "profile": .string(key), "text": .string(taken.text)]
 
     do {
-      return try await ordered(key, { [link] in try await link.requestReply(RPC.SessionSteer.name, params: params) }) {
-        reply in
+      return try await ordered(key, generation: ticket, { [link] in
+        try await link.requestReply(RPC.SessionSteer.name, params: params)
+      }) { reply in
         let status = reply.result["status"]?.stringValue.map(CorrectionStatus.init(rawValue:)) ?? .queued
 
         if status == .rejected {
@@ -210,9 +241,15 @@ extension TranscriptStore {
         return status
       }
     } catch {
-      _ = try? await local(key) { self.unwindSteer(key, taken) }
+      _ = try? await local(key, generation: ticket) { self.unwindSteer(key, taken) }
       throw error
     }
+  }
+
+  /// `assertIdle`: nothing under this key would be lost by moving it — no send
+  /// waiting for its answer, no steer in the air, nothing in the queue.
+  func isIdle(_ key: String) -> Bool {
+    (chats[key]?.sending ?? 0) == 0 && (steering[key] ?? 0) == 0 && (chats[key]?.queue.isEmpty ?? true)
   }
 
   /// `unwindSteer`: a steer the gateway did not take comes off and goes back in the strip.
@@ -223,6 +260,12 @@ extension TranscriptStore {
   }
 
   // MARK: - Answering
+
+  /// The card is still open and no answer to it is on its way: an answer that
+  /// came back `false` did not go out (not a second tap on one that did).
+  func answerDidNotGoOut(_ key: String, _ requestID: String) -> Bool {
+    isOpenCard(key, requestID) && !answering.contains(requestID)
+  }
 
   /// Whether the card for this request is up and still waiting for an answer.
   func isOpenCard(_ key: String, _ requestID: String) -> Bool {
@@ -490,7 +533,18 @@ extension TranscriptStore {
   /// once so it exists before the first prompt, close the old one, and switch.
   /// Every step that can fail rolls back towards "nothing happened". The
   /// outcome lands as a command row in the transcript the reader is left in.
+  ///
+  /// While it runs, nothing is sent or steered into the chat (those calls throw
+  /// `ChatRuntimeError` with `isNotAttached`, so the draft stays): a message
+  /// written now would otherwise go to the session being put away.
   public func startNewConversation(_ key: String, argument: String = "", command: String = "/new") async throws {
+    // A hydration in flight first: its answers belong to the conversation it opens.
+    await waitForOpening(key)
+
+    guard !retiring.contains(key) else {
+      throw ConversationBusyError(botName: key)
+    }
+
     guard let state = chats[key]?.state, let runtimeID = state.runtimeSessionID, !runtimeID.isEmpty,
       !state.storedSessionID.isEmpty, let bot = await roster.bot(named: key)
     else {
@@ -511,8 +565,16 @@ extension TranscriptStore {
 
     // `assertIdle`: a send not yet at the gateway, or messages waiting in the
     // queue, would be lost with the conversation they belong to.
-    if (chats[key]?.sending ?? 0) > 0 || !(chats[key]?.queue.isEmpty ?? true) {
+    guard isIdle(key) else {
       throw ConversationBusyError(botName: key)
+    }
+
+    // From here until the successor is open nothing new starts under the key,
+    // so it stays as idle as it is now.
+    retiring.insert(key)
+
+    defer {
+      retiring.remove(key)
     }
 
     let storedID = state.storedSessionID

@@ -100,7 +100,7 @@ private func roster(_ rows: [JSONValue]) -> JSONValue {
 
   @Test func openingALiveChatAgainDoesNotHydrateIt() async throws {
     let harness = try await opened()
-    try await harness.store.open(Fixture.bot())
+    try await within("the second open") { try await harness.store.open(Fixture.bot()) }
     #expect(harness.link.calls(RPC.SessionResume.name).count == 1)
     await harness.shutdown()
   }
@@ -187,7 +187,9 @@ private func roster(_ rows: [JSONValue]) -> JSONValue {
     let call = try await harness.link.pendingCall(RPC.ApprovalRespond.name)
     #expect(await harness.state().orderedItems.compactMap(\.asApproval).first?.state == .open)
 
-    let second = try await harness.store.respondApproval(bot, requestID: "pending:appr-9", choice: "once")
+    let second = try await within("the second tap") {
+      try await harness.store.respondApproval(bot, requestID: "pending:appr-9", choice: "once")
+    }
     #expect(second == false, "a double tap sends nothing")
 
     harness.link.fail(call, GatewayRPCError(.closed, "WebSocket closed"))
@@ -205,6 +207,8 @@ private func roster(_ rows: [JSONValue]) -> JSONValue {
   @Test func aDoubleTapOnALiveCardAnswersOnce() async throws {
     let harness = try await opened()
     harness.link.raise(id: "srq-1", method: "approval", params: approvalParams(Fixture.runtime, "appr-1"))
+    // Answered at once, so a second tap that wrongly goes out is counted, not waited for.
+    harness.link.respond(to: RPC.ApprovalRespond.name, with: ["resolved": true])
     await harness.settle()
 
     async let first = harness.store.respondApproval(bot, requestID: "srq-1", choice: "once")
@@ -334,7 +338,9 @@ private func roster(_ rows: [JSONValue]) -> JSONValue {
     try await harness.store.stopTurn(bot)
     await harness.settle()
 
-    await #expect(throws: ConversationBusyError.self) { try await harness.store.startNewConversation(bot) }
+    await #expect(throws: ConversationBusyError.self) {
+      try await within("/new") { try await harness.store.startNewConversation(bot) }
+    }
     #expect(harness.link.calls(RPC.SessionSetHidden.name).isEmpty)
     await harness.shutdown()
   }
@@ -499,7 +505,7 @@ private func roster(_ rows: [JSONValue]) -> JSONValue {
     try await eventually("the socket to go") { await !model.canSend }
 
     model.draft = "hello"
-    await model.send()
+    try await within("the send") { await model.send() }
     #expect(model.draft == "hello")
     #expect(model.lastError != nil)
     #expect(harness.link.calls(RPC.PromptSubmit.name).isEmpty)

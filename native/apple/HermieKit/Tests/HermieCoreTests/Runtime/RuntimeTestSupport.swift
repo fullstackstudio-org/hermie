@@ -21,6 +21,45 @@ struct TimedOut: Error, CustomStringConvertible {
 }
 
 /// Poll `condition` (yielding between looks) until it holds.
+/// How long a step that should take a few actor hops may take before the
+/// test names it as the step that never finished.
+let shortBound: Duration = .seconds(10)
+
+/// Run `operation` and fail with `what` if it has not finished in `limit`:
+/// a regression that would otherwise wait for good names the step instead.
+func within<T: Sendable>(
+  _ what: String,
+  _ limit: Duration = shortBound,
+  _ operation: @escaping @Sendable () async throws -> T
+) async throws -> T {
+  let task = Task { try await operation() }
+  let (outcomes, sink) = AsyncStream<Result<T, any Error>?>.makeStream()
+  let watcher = Task {
+    sink.yield(await task.result)
+  }
+  let timer = Task {
+    try? await Task.sleep(for: limit)
+    sink.yield(nil)
+  }
+
+  defer {
+    watcher.cancel()
+    timer.cancel()
+    sink.finish()
+  }
+
+  for await outcome in outcomes {
+    guard let outcome else {
+      task.cancel()
+      throw TimedOut(what: what)
+    }
+
+    return try outcome.get()
+  }
+
+  throw TimedOut(what: what)
+}
+
 func eventually(
   _ what: String,
   _ condition: @escaping @Sendable () async -> Bool
@@ -392,12 +431,16 @@ final class ScriptedLink: GatewayLink, Sendable {
   }
 
   /// Wait until the store has made a call to `method` that is still unanswered.
-  func pendingCall(_ method: String) async throws -> Call {
-    let deadline = ContinuousClock.now + generousWait
+  func pendingCall(
+    _ method: String,
+    within limit: Duration = generousWait,
+    where matches: @escaping @Sendable (Call) -> Bool = { _ in true }
+  ) async throws -> Call {
+    let deadline = ContinuousClock.now + limit
 
     while true {
       let found = state.withLock { state in
-        state.calls.first { $0.method == method && state.waiting[$0.id] != nil }
+        state.calls.first { $0.method == method && state.waiting[$0.id] != nil && matches($0) }
       }
 
       if let found {

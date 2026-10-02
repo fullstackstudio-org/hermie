@@ -176,6 +176,14 @@ public final class ChatModel {
 
   /// The last thing an action could not do, for a banner.
   public private(set) var lastError: String?
+  /// A short word for a card whose answer did not go out, by request id: the
+  /// socket that delivered the question is gone, and the card stays open until
+  /// the gateway asks again after the reconnect. Gone once the card closes.
+  public private(set) var cardNotices: [String: String] = [:]
+
+  /// What a card says when its answer could not go out.
+  public static let unsentAnswerNotice =
+    "Not sent: the connection dropped. The question comes back when it reconnects; answer it then."
 
   @ObservationIgnored let store: TranscriptStore
   /// Hands an observation change to the store, in order (`GatewaySession`).
@@ -216,6 +224,15 @@ public final class ChatModel {
 
   func apply(_ snapshot: ChatSnapshot) {
     self.snapshot = snapshot
+
+    if !cardNotices.isEmpty {
+      let open = Set(snapshot.openRequests.compactMap { $0.asApproval?.requestID ?? $0.asClarify?.requestID })
+      let kept = cardNotices.filter { open.contains($0.key) }
+
+      if kept.count != cardNotices.count {
+        cardNotices = kept
+      }
+    }
   }
 
   // MARK: Actions
@@ -279,11 +296,28 @@ public final class ChatModel {
   }
 
   public func respondApproval(_ requestID: String, choice: String, all: Bool = false) async {
-    await perform { _ = try await $0.respondApproval($1, requestID: requestID, choice: choice, all: all) }
+    await answer(requestID) { try await $0.respondApproval($1, requestID: requestID, choice: choice, all: all) }
   }
 
   public func respondClarify(_ requestID: String, answers: JSRecord<String>) async {
-    await perform { _ = try await $0.respondClarify($1, requestID: requestID, answers: answers) }
+    await answer(requestID) { try await $0.respondClarify($1, requestID: requestID, answers: answers) }
+  }
+
+  /// An answer that did not go out while its card is still open gets a notice
+  /// on the card, rather than nothing at all.
+  private func answer(_ requestID: String, _ action: @Sendable (TranscriptStore, String) async throws -> Bool) async {
+    do {
+      let sent = try await action(store, key)
+      lastError = nil
+
+      if sent {
+        cardNotices[requestID] = nil
+      } else if await store.answerDidNotGoOut(key, requestID) {
+        cardNotices[requestID] = Self.unsentAnswerNotice
+      }
+    } catch {
+      lastError = ChatResolver.describe(error)
+    }
   }
 
   public func lockClarify(_ requestID: String, questionID: String, answer: String) async {

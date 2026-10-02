@@ -44,17 +44,17 @@ struct SessionHarness {
     ]
   ]
 
-  func start() async throws {
+  func start(roster: JSONValue = Self.roster) async throws {
     await session.start()
     // The roster is read when the connection becomes usable.
     link.status(.ready)
-    try await link.answerNext(RPC.ProfilesList.name, Self.roster)
+    try await link.answerNext(RPC.ProfilesList.name, roster)
     try await eventually("the roster") { await self.session.roster.bot(named: bot) != nil }
   }
 
-  func open(resume: JSONValue = Fixture.resume()) async throws {
+  func open(_ name: String = bot, resume: JSONValue = Fixture.resume()) async throws {
     let session = self.session
-    let opening = Task { @MainActor in try await session.open(bot) }
+    let opening = Task { @MainActor in try await session.open(name) }
     try await link.answerNext(RPC.SessionResume.name, resume)
     try await link.answerNext(RPC.SessionHistory.name, ["count": 2, "messages": .array(Fixture.rows(2))])
     try await link.answerNext(RPC.SessionEventsSince.name, Fixture.since(latest: 0))
