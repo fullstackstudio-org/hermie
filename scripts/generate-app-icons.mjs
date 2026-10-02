@@ -1,6 +1,7 @@
 #!/usr/bin/env node
 /**
- * Rasterises design/icon.svg into every icon the app ships.
+ * Rasterises design/icon.svg into every icon the app ships: the Expo app, the
+ * browser build, the desktop shell, and the native iOS and macOS asset catalogs.
  *
  *   node scripts/generate-app-icons.mjs
  *   node scripts/generate-app-icons.mjs --check    # fail if anything is stale
@@ -193,5 +194,87 @@ emit(
 // icon.ico — the shaped PNGs Windows will actually show, packed by our own
 // container writer (see encodeIco).
 emit(resolve(desktopIconsDir, 'icon.ico'), encodeIco([16, 32, 48, 256].map(size => ({ size, png: flatPng(size) }))))
+
+/**
+ * The native Apple apps' asset catalogs (`native/ios`, `native/macos`).
+ *
+ * Both are written in full, `Contents.json` included, so the catalog and its
+ * images cannot disagree and `--check` covers the pair. The JSON is written the
+ * way Prettier formats it, so the format check and this one agree too.
+ */
+const nativeIosIconSet = resolve(repoRoot, 'native/ios/App/Assets.xcassets/AppIcon.appiconset')
+const nativeMacIconSet = resolve(repoRoot, 'native/macos/App/Assets.xcassets/AppIcon.appiconset')
+const XCODE_INFO = { author: 'xcode', version: 1 }
+const contentsJson = value => Buffer.from(`${JSON.stringify(value, null, 2)}\n`)
+
+/**
+ * A render turned to grey by luminance, alpha kept. The tinted iOS icon is a
+ * greyscale image the system colours itself; white stays the brightest part of
+ * the tint and the monogram's blue a darker step of it.
+ */
+function greyscale(image) {
+  const { pixels, channels } = image
+  const grey = Buffer.from(pixels)
+  for (let offset = 0; offset < grey.length; offset += channels) {
+    const luminance = Math.round(0.2126 * pixels[offset] + 0.7152 * pixels[offset + 1] + 0.0722 * pixels[offset + 2])
+    grey[offset] = luminance
+    grey[offset + 1] = luminance
+    grey[offset + 2] = luminance
+  }
+  return { ...image, pixels: grey }
+}
+
+// iOS and iPadOS: one 1024 image per appearance, which Xcode scales for every
+// size. The light one is the App Store icon, so it is opaque and square-cornered
+// like `assets/icon.png`. The dark and tinted ones are the mark alone, where it
+// sits on the full icon, on a transparent canvas: the system draws its own dark
+// backdrop under the first and tints the second.
+const iosIcons = [
+  { file: 'AppIcon.png', image: render(allShapes, { ...fullBleed(1024, true), opaque: true }) },
+  { file: 'AppIcon-Dark.png', appearance: 'dark', image: render(markShapes, fullBleed(1024, true)) },
+  { file: 'AppIcon-Tinted.png', appearance: 'tinted', image: greyscale(render(markShapes, fullBleed(1024, true))) }
+]
+for (const { file, image } of iosIcons) {
+  emit(resolve(nativeIosIconSet, file), encodePng(image))
+}
+emit(
+  resolve(nativeIosIconSet, 'Contents.json'),
+  contentsJson({
+    images: iosIcons.map(({ file, appearance }) => ({
+      ...(appearance ? { appearances: [{ appearance: 'luminosity', value: appearance }] } : {}),
+      filename: file,
+      idiom: 'universal',
+      platform: 'ios',
+      size: '1024x1024'
+    })),
+    info: XCODE_INFO
+  })
+)
+
+// macOS: the 16 to 512 points set at 1x and 2x, rendered the way `icon.icns`
+// above is, opaque and square-cornered, because the Mac applies its own shape
+// and shadow to an app icon and a rounded corner under that mask is a seam.
+const macIcons = [16, 32, 128, 256, 512].flatMap(points =>
+  [1, 2].map(scale => ({
+    file: `icon_${points}x${points}${scale === 2 ? '@2x' : ''}.png`,
+    points,
+    scale
+  }))
+)
+for (const { file, points, scale } of macIcons) {
+  emit(resolve(nativeMacIconSet, file), squaredPng(points * scale))
+}
+emit(
+  resolve(nativeMacIconSet, 'Contents.json'),
+  contentsJson({
+    images: macIcons.map(({ file, points, scale }) => ({
+      filename: file,
+      idiom: 'mac',
+      scale: `${scale}x`,
+      size: `${points}x${points}`
+    })),
+    info: XCODE_INFO
+  })
+)
 
 finish({ subject: 'Icons', source: 'design/icon.svg', command: 'node scripts/generate-app-icons.mjs' })
