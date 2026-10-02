@@ -268,12 +268,14 @@ import Testing
     #expect(untrusted.requests.map(\.scheme) == ["https"])
   }
 
-  /// A -1200 whose stream error is a TLS alert came from a real TLS server (a
-  /// protocol version or cipher it will not take); one whose stream error is a
-  /// closed connection is the plain-http peer the fallback exists for.
+  /// The codes measured on real sockets (the table on `HTTPTransport.peerAlertCodes`):
+  /// -9836 is what an http-only server's 400 (Node, uvicorn) produces, and also a TLS
+  /// server refusing the version, so it falls back as the reference does; -9816 is a
+  /// peer that hung up; -9824 only ever comes from a well-formed handshake_failure
+  /// alert, so it is an https server and does not fall back.
   @Test(
-    "reads a TLS alert under a -1200 as an https server, and anything else as no TLS at all",
-    arguments: [(-9836, false), (-9824, false), (-9819, false), (-9840, false), (-9806, true), (-9847, true), (0, true)]
+    "falls back on every -1200 except one only a TLS server produces",
+    arguments: [(-9836, true), (-9816, true), (-9824, false), (-9819, true), (-9840, true), (-9806, true), (0, true)]
   )
   func alertUnderSecureConnectionFailed(_ streamCode: Int, _ fallsBack: Bool) async throws {
     var info: [String: any Sendable] = [NSLocalizedDescriptionKey: "An SSL error has occurred."]
@@ -295,10 +297,12 @@ import Testing
 
   @Test("finds the alert on an underlying OSStatus error too")
   func alertOnUnderlyingError() {
-    let underlying = NSError(domain: NSOSStatusErrorDomain, code: -9836)
+    let underlying = NSError(domain: NSOSStatusErrorDomain, code: -9824)
     let error = NSError(domain: NSURLErrorDomain, code: -1200, userInfo: [NSUnderlyingErrorKey: underlying])
+    let plainHTTP = NSError(domain: NSURLErrorDomain, code: -1200, userInfo: [NSUnderlyingErrorKey: NSError(domain: NSOSStatusErrorDomain, code: -9836)])
 
     #expect(HTTPTransport.peerSentAlert(error))
+    #expect(!HTTPTransport.peerSentAlert(plainHTTP))
     #expect(!HTTPTransport.peerSentAlert(NSError(domain: NSURLErrorDomain, code: -1200)))
   }
 

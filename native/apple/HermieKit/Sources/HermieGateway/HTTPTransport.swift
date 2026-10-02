@@ -303,16 +303,43 @@ public struct HTTPTransport: Sendable {
     return TransportFailure(error: GatewayError(.network, "Could not reach \(url): \(message)"), certificate: false)
   }
 
-  /// SecureTransport's received-alert codes, `errSSLPeerUnexpectedMsg` (-9819)
-  /// through `errSSLPeerNoRenegotiation` (-9840): only a TLS peer sends an alert.
-  static let peerAlertCodes = (-9840)...(-9819)
+  /// The stream errors that prove a TLS server answered, so the scheme
+  /// fallback must not run. Only codes MEASURED to come from nothing but a
+  /// well-formed TLS alert record are here.
+  ///
+  /// What URLSession reports for `https://127.0.0.1:<port>/` (macOS 27 SDK,
+  /// 2026-10-02; every row is NSURLErrorDomain with `_kCFStreamErrorDomainKey`
+  /// 3 and the same code on the underlying CFNetwork error):
+  ///
+  /// | Peer on that port                                         | URLError | stream |
+  /// | --------------------------------------------------------- | -------- | ------ |
+  /// | Node `http.createServer` (answers the ClientHello: 400)   | -1200    | -9836  |
+  /// | uvicorn 0.41 (the real gateway's server)                  | -1200    | -9836  |
+  /// | raw socket answering `HTTP/1.1 400`                       | -1200    | -9836  |
+  /// | raw socket sending an SSH banner, or arbitrary bytes      | -1200    | -9836  |
+  /// | raw socket closing at once, after reading, or resetting   | -1200    | -9816  |
+  /// | `openssl s_server -tls1_1` (protocol_version alert)        | -1200    | -9836  |
+  /// | `openssl s_server`, no shared cipher (handshake_failure)  | -1200    | -9824  |
+  /// | raw socket sending a bare handshake_failure alert record  | -1200    | -9824  |
+  /// | `openssl s_server`, self-signed certificate, TLS 1.2/1.3  | -1202    | -9807  |
+  ///
+  /// So -9836 (`errSSLPeerProtocolVersion`) is what CFNetwork reports for ANY
+  /// reply that is not TLS, and also for a real TLS server that refuses the
+  /// version: the code cannot tell the two apart, and the reference's
+  /// behaviour (fall back) wins. ADR-0014 only allows the fallback for an
+  /// address typed without a scheme, never with a front door, and the result
+  /// says "found over http" out loud. -9816 (closed without notify) is a peer
+  /// that hung up, which is the plain-http shape too. A certificate failure
+  /// (-1202 and its neighbours) is already read from the URLError code.
+  ///
+  /// Not measured, so not listed: the other received-alert codes
+  /// (-9819…-9840). Without proof they come only from a TLS peer, an unknown
+  /// code falls back, as the reference does.
+  static let peerAlertCodes: Set<Int> = [-9824]
 
-  /// Did the handshake fail on an alert the peer sent? Read from the stream
-  /// error CFNetwork attaches to a -1200 (`_kCFStreamErrorCodeKey`, or an
-  /// underlying error in `NSOSStatusErrorDomain` or `kCFStreamErrorDomainSSL`).
-  /// Anything else — a peer that closed the connection or answered with bytes
-  /// that are not TLS — leaves the reading as it was, so the scheme fallback
-  /// still reaches a plain-http gateway.
+  /// Did the handshake fail on an alert only a TLS server sends? Read from the
+  /// stream error CFNetwork attaches to a -1200 (`_kCFStreamErrorCodeKey`, or
+  /// an underlying error in `NSOSStatusErrorDomain` or `kCFStreamErrorDomainSSL`).
   static func peerSentAlert(_ error: any Error) -> Bool {
     let nsError = error as NSError
     var codes: [Int] = []

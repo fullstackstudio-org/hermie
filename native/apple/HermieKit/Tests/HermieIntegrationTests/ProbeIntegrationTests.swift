@@ -1,4 +1,5 @@
 #if os(macOS)
+import Foundation
 import HermieGateway
 import Testing
 
@@ -92,25 +93,68 @@ extension Integration {
     /// and, when https gets no answer at all, over http.
     @Suite("Resolve: scheme-less addresses", .fakeGateway())
     struct Resolve {
-      /// Known issue: an http-only server answers the TLS ClientHello with an
-      /// HTTP 400, which the TLS stack reports as -1200 with stream error
-      /// -9836 (errSSLPeerProtocolVersion). `HTTPTransport.peerSentAlert`
-      /// reads every code in -9840…-9819 as an alert from a real TLS server,
-      /// so the probe stops at https and never tries http. The stubbed unit
-      /// test in `ProbeTests` pins -9836 as "no fallback"; this real socket
-      /// says otherwise. When the transport is fixed, `withKnownIssue` fails
-      /// here and the wrapper comes off.
+      /// An http-only server answers the TLS ClientHello with an HTTP 400,
+      /// which the TLS stack reports as -1200 with stream error -9836, the
+      /// same code a TLS server refusing the version produces. The transport
+      /// cannot tell them apart and falls back, as the reference does (see the
+      /// table on `HTTPTransport.peerAlertCodes`).
       @Test("a scheme-less loopback address finds an http-only gateway, and says so")
       func cleartextFallback() async throws {
         let gateway = try FakeGateway.shared
+        let resolved = try await Probe.resolveGatewayAddress("127.0.0.1:\(gateway.port)")
 
-        await withKnownIssue("an http-only gateway's 400 reads as a TLS alert (-9836), so there is no http fallback") {
-          let resolved = try await Probe.resolveGatewayAddress("127.0.0.1:\(gateway.port)")
+        #expect(resolved.baseURL == gateway.baseURL)
+        #expect(resolved.foundOverHTTP)
+        #expect(resolved.probe.version == ProbeIntegrationTests.fakeVersion)
+      }
 
-          #expect(resolved.baseURL == gateway.baseURL)
-          #expect(resolved.foundOverHTTP)
-          #expect(resolved.probe.version == ProbeIntegrationTests.fakeVersion)
+      /// The stream errors the fallback rule is built on, read off real
+      /// sockets, so an OS release that changes them fails here first.
+      @Test("the TLS stack reports what the fallback rule assumes")
+      func measuredStreamErrors() async throws {
+        let gateway = try FakeGateway.shared
+        let hangUp = try LoopbackListener(onTLS: .hangUp) { _ in LoopbackListener.reply("200 OK") }
+        let alert = try LoopbackListener(onTLS: .handshakeFailureAlert) { _ in LoopbackListener.reply("200 OK") }
+        let hangUpPort = try await hangUp.start()
+        let alertPort = try await alert.start()
+        defer {
+          hangUp.stop()
+          alert.stop()
         }
+
+        func streamError(_ port: Int) async -> (Int, Int?) {
+          do {
+            _ = try await URLSession(configuration: .ephemeral).data(from: URL(string: "https://127.0.0.1:\(port)/")!)
+            return (0, nil)
+          } catch {
+            let error = error as NSError
+            return (error.code, error.userInfo["_kCFStreamErrorCodeKey"] as? Int)
+          }
+        }
+
+        let plain = await streamError(gateway.port)
+        let closed = await streamError(Int(hangUpPort))
+        let alerted = await streamError(Int(alertPort))
+
+        #expect(plain == (-1200, -9836))
+        #expect(closed == (-1200, -9816))
+        #expect(alerted == (-1200, -9824))
+      }
+
+      @Test("a server that answers the ClientHello with a TLS alert is an https server: no http fallback")
+      func noFallbackAfterAlert() async throws {
+        let tls = try LoopbackListener(onTLS: .handshakeFailureAlert) { _ in
+          LoopbackListener.reply("200 OK", headers: ["Content-Type: application/json"], body: "{\"auth_required\":false}")
+        }
+        let port = try await tls.start()
+        defer { tls.stop() }
+
+        let error = await #expect(throws: GatewayError.self) {
+          try await Probe.resolveGatewayAddress("127.0.0.1:\(port)")
+        }
+
+        #expect(error?.kind == .tls)
+        #expect(tls.requests.isEmpty)
       }
 
       @Test("the fallback itself works on real sockets: a plain server that hangs up on TLS is found over http")

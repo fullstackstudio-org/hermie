@@ -25,9 +25,27 @@ final class LoopbackListener: Sendable {
   var port: UInt16 { started.withLock { $0 } }
   var origin: String { "http://127.0.0.1:\(port)" }
 
+  /// What to do with a connection whose first byte opens a TLS handshake record.
+  enum TLSAnswer: Sendable {
+    /// Read on as if it were HTTP (and answer it when a head ever arrives).
+    case read
+    /// Close without answering: a plain server that does not speak TLS.
+    case hangUp
+    /// Send a fatal handshake_failure alert record and close: what a TLS
+    /// server with no cipher in common sends.
+    case handshakeFailureAlert
+  }
+
+  /// The alert record: content type 21, TLS 1.2, length 2, fatal (2), handshake_failure (40).
+  static let handshakeFailureAlert = Data([0x15, 0x03, 0x03, 0x00, 0x02, 0x02, 0x28])
+
   /// - Parameter hangUpOnTLS: close a connection whose first byte opens a TLS
   ///   handshake record, without answering: a plain server that does not speak TLS.
-  init(hangUpOnTLS: Bool = false, _ respond: @escaping Responder) throws {
+  convenience init(hangUpOnTLS: Bool = false, _ respond: @escaping Responder) throws {
+    try self.init(onTLS: hangUpOnTLS ? .hangUp : .read, respond)
+  }
+
+  init(onTLS: TLSAnswer, _ respond: @escaping Responder) throws {
     let parameters = NWParameters.tcp
     parameters.requiredLocalEndpoint = NWEndpoint.hostPort(host: "127.0.0.1", port: .any)
     listener = try NWListener(using: parameters)
@@ -38,7 +56,7 @@ final class LoopbackListener: Sendable {
 
     listener.newConnectionHandler = { connection in
       connection.start(queue: queue)
-      Self.receive(connection, buffer: Data(), hangUpOnTLS: hangUpOnTLS, record: record, respond: respond)
+      Self.receive(connection, buffer: Data(), onTLS: onTLS, record: record, respond: respond)
     }
   }
 
@@ -90,7 +108,7 @@ final class LoopbackListener: Sendable {
   private static func receive(
     _ connection: NWConnection,
     buffer: Data,
-    hangUpOnTLS: Bool,
+    onTLS: TLSAnswer,
     record: @escaping @Sendable (String) -> Void,
     respond: @escaping Responder
   ) {
@@ -102,9 +120,17 @@ final class LoopbackListener: Sendable {
       }
 
       // 0x16: a TLS handshake record, which a ClientHello always is.
-      if hangUpOnTLS, buffer.first == 0x16 {
-        connection.cancel()
-        return
+      if buffer.first == 0x16 {
+        switch onTLS {
+        case .read:
+          break
+        case .hangUp:
+          connection.cancel()
+          return
+        case .handshakeFailureAlert:
+          connection.send(content: handshakeFailureAlert, completion: .contentProcessed { _ in connection.cancel() })
+          return
+        }
       }
 
       if let end = buffer.range(of: Data("\r\n\r\n".utf8)) {
@@ -119,7 +145,7 @@ final class LoopbackListener: Sendable {
         return
       }
 
-      receive(connection, buffer: buffer, hangUpOnTLS: hangUpOnTLS, record: record, respond: respond)
+      receive(connection, buffer: buffer, onTLS: onTLS, record: record, respond: respond)
     }
   }
 }
