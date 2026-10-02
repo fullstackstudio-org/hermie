@@ -73,6 +73,28 @@ describe('DialPlanSocketFactory', () => {
     expect(factory.armed).toBe(false)
   })
 
+  /**
+   * The connection reads the last close code as the verdict on the dial in
+   * flight. A socket it closed or replaced can report its close late, and a
+   * 4403 from it used to be taken as the answer to the next dial.
+   */
+  it('forwards a close only from the socket it built last, and not once released', () => {
+    RecordingSocket.built = []
+    const onClose = vi.fn()
+    const factory = new DialPlanSocketFactory(Impl, onClose)
+    factory.arm({ url: 'ws://a/api/ws' })
+    const first = factory.create('ws://a/api/ws') as unknown as RecordingSocket
+    factory.arm({ url: 'ws://a/api/ws' })
+    const second = factory.create('ws://a/api/ws') as unknown as RecordingSocket
+
+    first.dispatchEvent(Object.assign(new Event('close'), { code: 4403, reason: 'stale' }))
+    expect(onClose).not.toHaveBeenCalled()
+
+    factory.release()
+    second.dispatchEvent(Object.assign(new Event('close'), { code: 1005, reason: '' }))
+    expect(onClose).not.toHaveBeenCalled()
+  })
+
   it('forwards the close code and reason', () => {
     RecordingSocket.built = []
     const onClose = vi.fn()

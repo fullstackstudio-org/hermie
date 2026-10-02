@@ -678,6 +678,16 @@ struct ReconnectLadderTests {
     #expect(rung == ReconnectBackoff.protocolLadderFloor)
   }
 
+  /// (both) A redirect, from the ticket mint or the upgrade, will not change in
+  /// 300 ms either: it climbs from the same floor.
+  @Test("starts a redirect part-way up as well")
+  func startsARedirectPartWayUp() async throws {
+    let rung = try await firstRung(
+      GatewayError(.redirect, "ws://gateway.test redirected to https://elsewhere.test. Nothing was read from it.")
+    )
+    #expect(rung == ReconnectBackoff.protocolLadderFloor)
+  }
+
   @Test("keeps the fast first retries for a failure to reach anything at all")
   func keepsTheFastRetriesForANetworkFailure() async throws {
     #expect(try await firstRung(GatewayError(.network, "Could not reach the gateway.")) == 0)

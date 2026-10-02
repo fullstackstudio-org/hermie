@@ -26,6 +26,8 @@ export interface SocketCloseInfo {
  */
 export class DialPlanSocketFactory {
   private plan: DialPlan | null = null
+  /** The socket whose close is the connection's verdict; see `release`. */
+  private current: WebSocket | null = null
   private onClose: ((info: SocketCloseInfo) => void) | undefined
 
   constructor(
@@ -47,6 +49,15 @@ export class DialPlanSocketFactory {
 
   get armed(): boolean {
     return this.plan !== null
+  }
+
+  /**
+   * The socket built last is no longer the connection's: it closed it itself.
+   * A close it reports later is not forwarded, because the connection reads the
+   * last close code as the verdict on the dial in flight.
+   */
+  release(): void {
+    this.current = null
   }
 
   /** Replace the close callback (the connection sets this once at construction). */
@@ -77,7 +88,16 @@ export class DialPlanSocketFactory {
       plan.headers && Object.keys(plan.headers).length > 0 ? { headers: plan.headers } : undefined
     )
 
+    this.current = socket
+
     socket.addEventListener('close', event => {
+      // Only the current socket's close is a verdict. One that was replaced or
+      // released can report late, and a 4403 from it used to be read as the
+      // answer to the next dial.
+      if (socket !== this.current) {
+        return
+      }
+
       const closeEvent = event as CloseEvent
       this.onClose?.({ code: closeEvent.code ?? 0, reason: closeEvent.reason ?? '' })
     })

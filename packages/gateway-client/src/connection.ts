@@ -717,17 +717,26 @@ export class GatewayConnection {
       return
     }
 
+    // The dial this refresh serves. A pause and a resume, or anything else that
+    // starts a newer dial while the refresh runs, makes its outcome stale: a
+    // failure used to tear down the newer dial's socket, and a success started
+    // a second dial beside it.
+    const token = this.dialToken
     let verdict: 'retry' | 'reauth'
 
     try {
       verdict = await this.credentials.onRejected()
     } catch (refreshError) {
+      if (token !== this.dialToken) {
+        return
+      }
+
       this.scheduleReconnect(asGatewayError(refreshError, 'network', 'Refreshing the credentials failed.'))
 
       return
     }
 
-    if (!this.running || this.paused) {
+    if (!this.running || this.paused || token !== this.dialToken) {
       return
     }
 
@@ -771,7 +780,10 @@ export class GatewayConnection {
 
     // An answer that is not a gateway starts part-way up: see
     // `PROTOCOL_LADDER_FLOOR`. Everything else climbs from wherever it was.
-    const rung = error.kind === 'protocol' ? Math.max(this.attempt, PROTOCOL_LADDER_FLOOR) : this.attempt
+    // A redirect (from the ticket mint, or the upgrade on a native client) will
+    // not change in 300 ms either, so it starts from the same floor.
+    const floored = error.kind === 'protocol' || error.kind === 'redirect'
+    const rung = floored ? Math.max(this.attempt, PROTOCOL_LADDER_FLOOR) : this.attempt
     const delay = this.backoff(rung)
     this.attempt = rung + 1
     // The ladder climbs either way; `offline` is only the word for it while the
@@ -794,6 +806,9 @@ export class GatewayConnection {
 
   private teardownSocket(): void {
     this.rejectReadyWaiter(new GatewayError('network', 'The gateway connection was closed.'))
+    // A socket closed from this side has no verdict to give on the next dial;
+    // its close code, whenever it arrives, is not forwarded.
+    this.factory.release()
     this.client.close()
   }
 
@@ -811,12 +826,20 @@ export class GatewayConnection {
     }
   }
 
+  /**
+   * A change of status, or of the error that explains it, reaches the handlers.
+   * A new reason for the same status (a mint that failed while the device was
+   * offline) is news to a header that shows the reason.
+   */
   private setStatus(status: ConnectionStatus, error: GatewayError | null | undefined = undefined): void {
+    let errorChanged = false
+
     if (error !== undefined) {
+      errorChanged = !sameError(error, this.currentError)
       this.currentError = error
     }
 
-    if (this.currentStatus === status) {
+    if (this.currentStatus === status && !errorChanged) {
       return
     }
 
@@ -826,6 +849,28 @@ export class GatewayConnection {
       handler(status, this.currentError)
     }
   }
+}
+
+/** The same failure as far as a reader can tell: every field a screen reads. */
+function sameError(a: GatewayError | null, b: GatewayError | null): boolean {
+  if (a === b) {
+    return true
+  }
+
+  if (!a || !b) {
+    return false
+  }
+
+  return (
+    a.kind === b.kind &&
+    a.message === b.message &&
+    a.status === b.status &&
+    a.closeCode === b.closeCode &&
+    a.redirectedTo === b.redirectedTo &&
+    a.redirectedOrigin === b.redirectedOrigin &&
+    a.hint === b.hint &&
+    a.sawLandingPage === b.sawLandingPage
+  )
 }
 
 /**

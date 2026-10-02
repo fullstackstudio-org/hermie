@@ -686,18 +686,28 @@ public actor GatewayConnection {
   /// The awaiting half of `handleAuthFailure`. Never cancelled: a refresh that
   /// rotated a token has to reach the store whatever the connection does next.
   private func askForFreshCredential(after error: GatewayError) async {
+    // The dial this refresh serves. A pause and a resume, or anything else that
+    // starts a newer dial while the refresh runs, makes its outcome stale.
+    let token = dialToken
     let verdict: RejectionVerdict
 
     do {
       verdict = try await credentials.onRejected(rejectedToken: nil)
     } catch {
+      // Re-check after the suspension: a failure for a dial that has been
+      // replaced must not tear down the socket of the one that replaced it.
+      guard token == dialToken else {
+        return
+      }
+
       scheduleReconnect(Self.gatewayError(error, .network, "Refreshing the credentials failed."))
       return
     }
 
     // Re-check after the suspension: the app may have stopped or paused the
-    // connection while the credential was being refreshed.
-    if !running || paused {
+    // connection while the credential was being refreshed, or a newer dial is
+    // already running and needs no second one beside it.
+    if !running || paused || token != dialToken {
       return
     }
 
@@ -729,9 +739,13 @@ public actor GatewayConnection {
       return
     }
 
-    // An answer that is not a gateway starts part-way up the ladder;
-    // everything else climbs from wherever it was.
-    let rung = ReconnectBackoff.rung(attempt: attempt, failure: error.kind)
+    // An answer that is not a gateway, or a redirect (from the ticket mint or
+    // the upgrade), starts part-way up the ladder: neither changes in 300 ms.
+    // Everything else climbs from wherever it was.
+    let rung =
+      error.kind == .redirect
+      ? max(attempt, ReconnectBackoff.protocolLadderFloor)
+      : ReconnectBackoff.rung(attempt: attempt, failure: error.kind)
     let delay = backoff(rung)
     attempt = rung + 1
     // The ladder climbs either way; `offline` is only the word for it while
@@ -779,14 +793,18 @@ public actor GatewayConnection {
     case set(GatewayError?)
   }
 
-  /// The error is updated even when the phase does not change, but only a
-  /// change of phase is published, exactly as the reference's `setStatus`.
+  /// A change of phase, or of the error that explains it, is published. A new
+  /// reason for the same phase (a dial that failed while the device was
+  /// offline) is news to a header that shows the reason.
   func setStatus(_ phase: ConnectionPhase, _ error: ErrorUpdate = .keep) {
+    var errorChanged = false
+
     if case .set(let error) = error {
+      errorChanged = error != currentError
       currentError = error
     }
 
-    if currentPhase == phase {
+    if currentPhase == phase && !errorChanged {
       return
     }
 

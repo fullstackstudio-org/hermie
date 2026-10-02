@@ -243,16 +243,17 @@ extension GatewayConnection {
     handleFrame(text, index: wireIndex)
   }
 
-  /// The `close` event: recorded for any socket, as the reference's socket
-  /// factory records every close code, and acted on for the current one.
+  /// The `close` event of the current socket: its code is the verdict the
+  /// dial loop reads. A socket already dropped (closed by this side, replaced)
+  /// may report its close late; its code says nothing about the next dial.
   private func channelClosed(_ generation: UInt64, _ closed: WebSocketClosed) {
-    lastCloseCode = closed.code
-
     // Re-check after the suspension: a generation that was already dropped
-    // (closed by this side, replaced) has nothing left to tear down.
+    // has nothing left to tear down, and no verdict to give.
     guard socket?.id == generation else {
       return
     }
+
+    lastCloseCode = closed.code
 
     dropSocket(GatewayRPCError(.closed, GatewayRPCError.closedMessage))
   }

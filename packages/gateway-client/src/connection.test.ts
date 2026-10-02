@@ -103,6 +103,8 @@ async function harness(options: {
   offlineGraceMs?: number
   readyTimeoutMs?: number
   backoffDelayMs?: (attempt: number) => number
+  /** Replace the credential provider (a `token` gateway's token is passed in). */
+  credentials?: (gateway: FakeGateway) => CredentialProvider
 }): Promise<Harness> {
   const auth = options.auth ?? 'none'
   const gateway = await startFakeGateway({
@@ -113,10 +115,12 @@ async function harness(options: {
   const entry: { gateway: FakeGateway; connection?: GatewayConnection } = { gateway }
   live.push(entry)
 
-  let credentials
+  let credentials: CredentialProvider
   let coordinator: TokenCoordinator | undefined
 
-  if (auth === 'native') {
+  if (options.credentials) {
+    credentials = options.credentials(gateway)
+  } else if (auth === 'native') {
     const store = memoryStore(await signIn(gateway))
     coordinator = new TokenCoordinator({
       store,
@@ -858,6 +862,126 @@ describe('the offline grace and a real drop', () => {
 })
 
 /**
+ * Outcomes that arrive for a dial the loop has already moved past, and a status
+ * whose reason changes without its phase.
+ */
+describe('edges of the dial loop', () => {
+  /** A token provider whose `onRejected` waits until the test settles it. */
+  function heldRefresh(holder: { settle?: (outcome: 'retry' | Error) => void }) {
+    return (gateway: FakeGateway): CredentialProvider => {
+      const base = new SessionTokenCredentials({ token: gateway.state.token })
+
+      return {
+        mode: base.mode,
+        httpAuthHeaders: () => base.httpAuthHeaders(),
+        dialPlan: (wsUrl, extraHeaders) => base.dialPlan(wsUrl, extraHeaders),
+        onRejected: () =>
+          new Promise<'retry' | 'reauth'>((resolve, reject) => {
+            holder.settle = outcome => (outcome === 'retry' ? resolve('retry') : reject(outcome))
+          }),
+        signOut: () => base.signOut()
+      }
+    }
+  }
+
+  /**
+   * The refresh was asked for by a dial that a pause and a resume have since
+   * replaced. When it fails, the failure is no longer the loop's to act on: it
+   * used to schedule a reconnect that tore down the resumed, healthy socket.
+   */
+  it('a refresh that fails after the dial it served was replaced does not tear down the new socket', async () => {
+    const holder: { settle?: (outcome: 'retry' | Error) => void } = {}
+    const { connection, gateway, statuses, waitFor, waitUntil } = await harness({
+      auth: 'token',
+      credentials: heldRefresh(holder)
+    })
+
+    gateway.state.rejectNextUpgrades = 2
+    connection.start()
+    await waitUntil('the refresh to be asked for', () => holder.settle !== undefined)
+
+    connection.pause()
+    connection.resume()
+    await waitFor('ready')
+    const seen = statuses.length
+
+    holder.settle?.(new Error('Refreshing the credentials failed.'))
+    await settle(100)
+
+    expect(connection.status).toBe('ready')
+    expect(gateway.state.connections).toBe(1)
+    expect(statuses.length).toBe(seen)
+  })
+
+  it('a refresh that succeeds after the dial it served was replaced starts no second dial', async () => {
+    const holder: { settle?: (outcome: 'retry' | Error) => void } = {}
+    const { connection, gateway, statuses, waitFor, waitUntil } = await harness({
+      auth: 'token',
+      credentials: heldRefresh(holder),
+      readyTimeoutMs: 100
+    })
+
+    gateway.state.rejectNextUpgrades = 2
+    connection.start()
+    await waitUntil('the refresh to be asked for', () => holder.settle !== undefined)
+
+    connection.pause()
+    connection.resume()
+    await waitFor('ready')
+    const seen = statuses.length
+
+    holder.settle?.('retry')
+    // Past the ready timeout a second dial would have waited out.
+    await settle(300)
+
+    expect(connection.status).toBe('ready')
+    expect(gateway.state.connections).toBe(1)
+    expect(statuses.length).toBe(seen)
+  })
+
+  /**
+   * The device went offline while the credential was being resolved, so the
+   * phase already reads `offline` when that fails. The failure is the reason,
+   * and a header that shows it has to hear about it although the phase did
+   * not change.
+   */
+  it('a new reason for the same phase is published', async () => {
+    const holder: { fail?: () => void } = {}
+    const seen: Array<[ConnectionStatus, number | undefined]> = []
+    const { connection, waitFor, waitUntil } = await harness({
+      auth: 'token',
+      backoffDelayMs: () => 30_000,
+      credentials: () => ({
+        mode: 'session_token',
+        httpAuthHeaders: async () => ({}),
+        dialPlan: () =>
+          new Promise<never>((_, reject) => {
+            holder.fail = () =>
+              reject(
+                new GatewayError('server', 'The gateway answered HTTP 503 while minting a ticket.', { status: 503 })
+              )
+          }),
+        onRejected: async () => 'reauth',
+        signOut: async () => undefined
+      })
+    })
+
+    connection.onStatus((status, error) => seen.push([status, error?.status]))
+    connection.start()
+    await waitUntil('the dial to start', () => holder.fail !== undefined)
+    connection.setOnline(false)
+    await waitFor('offline')
+    expect(seen.at(-1)).toEqual(['offline', undefined])
+
+    holder.fail?.()
+    await waitUntil('the reason to be published', () => seen.at(-1)?.[1] === 503)
+
+    expect(seen.at(-1)).toEqual(['offline', 503])
+    expect(connection.status).toBe('offline')
+  })
+})
+
+/**
  * How far up the ladder a failure starts, and how far down a wait may fall.
  *
  * The reported defect was 18 dials in 24 seconds against an address that was
@@ -926,6 +1050,16 @@ describe('the reconnect ladder', () => {
   it('starts an answer that is not a gateway part-way up, because a 405 will not change in 300 ms', async () => {
     expect(
       await firstRung(new GatewayError('protocol', 'The address answered HTTP 405, but not as a Hermes gateway.'))
+    ).toBe(PROTOCOL_LADDER_FLOOR)
+  })
+
+  // A redirect, from the ticket mint or the upgrade, will not change in 300 ms
+  // either: it climbs from the same floor.
+  it('starts a redirect part-way up as well', async () => {
+    expect(
+      await firstRung(
+        new GatewayError('redirect', 'gateway.test redirected to elsewhere.test, which is a different host.')
+      )
     ).toBe(PROTOCOL_LADDER_FLOOR)
   })
 

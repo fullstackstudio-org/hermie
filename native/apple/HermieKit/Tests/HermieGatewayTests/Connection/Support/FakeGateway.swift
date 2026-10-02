@@ -434,7 +434,13 @@ final class FakeSocket: WebSocketChannel {
   let frames: AsyncThrowingStream<String, any Error>
   private let continuation: AsyncThrowingStream<String, any Error>.Continuation
   private let gateway: FakeGateway
-  private let state = Mutex((open: true, sent: [String]()))
+  private let state = Mutex((open: true, sent: [String](), closeCodeOnClientClose: Int?.none))
+
+  /// The code this socket's close reports when the client closes it, as a
+  /// server answering the client's close frame with its own code would.
+  func reportOnClientClose(code: Int) {
+    state.withLock { $0.closeCodeOnClientClose = code }
+  }
 
   init(gateway: FakeGateway) {
     self.gateway = gateway
@@ -469,7 +475,8 @@ final class FakeSocket: WebSocketChannel {
   }
 
   func close(code: Int, reason: String?) async {
-    serverClose(code: code, reason: reason ?? "")
+    let reported = state.withLock { $0.closeCodeOnClientClose } ?? code
+    serverClose(code: reported, reason: reason ?? "")
   }
 
   /// A frame from the gateway.
