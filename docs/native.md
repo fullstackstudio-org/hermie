@@ -142,6 +142,115 @@ The Swift side replays the corpus in `swift test`: the transcript golden files i
 in `HermieGatewayTests`, and the wire fixtures in `HermieProtocolTests`. So the native job enforces
 the second direction.
 
+## Transcript engine
+
+`HermieKit/Sources/HermieTranscript` is a transliteration of `packages/transcript/src`: one Swift file
+per TypeScript module, the same function names, and the comments that explain a rule carried over.
+Read the header of `ChatState.swift` before changing the model and the header of `Reducer.swift`
+before changing the reducer.
+
+- **The representation is native.** A `ChatState` is an id-keyed `items` dictionary, an `order`
+  array and the `by…` indices, as in the TypeScript. Each item kind is a struct, and `TranscriptItem`
+  is an `indirect` enum over them, so an item is one pointer and copying a state costs a dozen
+  retains. Vocabularies are open enums. Every type keeps the keys it does not know in `extra` and
+  writes them back, so a state written by the TypeScript engine, or by a newer Swift one, survives a
+  round trip. `subagents` is a `JSRecord` because the TypeScript walks it in insertion order.
+- **The core is `inout`, the TypeScript signature is a wrapper.** Every reducer function has an
+  in-place form, `applyEvent(into: &state, event, now)`, and the pure form
+  `applyEvent(state, event, now) -> ChatState` is a thin wrapper over it. The transcript store
+  owns its state and calls the in-place form, so a `message.delta` appends to one string without
+  copying anything. The corpus replays the pure forms, and `ReducerBranchTests` checks that the two
+  agree. `now` is always an argument; nothing in the engine reads a clock.
+- **JavaScript semantics are spelled out.** Strings are compared, measured and sliced as UTF-16 code
+  units, and regular expressions are rewritten for ICU. The helpers live once, in
+  `Support/JSText.swift` (`JS.trim`, `JS.same`, `JS.nonEmpty`, `JS.truthy`, `JS.localeCompare`,
+  `jsStableSorted`, …) and `Support/JSRegExp.swift` (`JSRegExp`, `JSPattern`). Use them rather than
+  Swift's `==`, `count` or `trimmingCharacters`, which answer differently.
+
+### The parity gates
+
+`Tests/HermieTranscriptTests/ParityGates.swift` holds the engine to the corpus. It fails the build
+unless every suite in `contract/transcript/golden` passes in full, every operation that
+`golden-summary.json` records is registered and passes in full, the replay covers exactly
+`ParityGates.corpusCalls` calls, no call passes only because `null` and an absent key were treated
+alike, and every stream scenario passes with no checkpoint pending. `GoldenReplayTests` prints the
+coverage table and writes `.build/golden-coverage.json`.
+
+```sh
+native/apple/scripts/test.sh --filter 'ParityGates|GoldenReplay|GoldenStream'
+HERMIE_GOLDEN_FILTER='reducer,*/visibleItems' native/apple/scripts/test.sh --filter GoldenReplay
+```
+
+**Adding an operation.** When the TypeScript engine exports a new function and its tests call it,
+`npm run golden` records the calls and the parity gates fail until the port follows:
+
+1. Port the function under its TypeScript name, in the file of its module.
+2. Register it in the golden table of its area,
+   `Tests/HermieTranscriptTests/Golden/GoldenOps+<Area>.swift`. The entry decodes the recorded
+   arguments with `GoldenArgs`, calls the Swift function and returns its `jsonValue`.
+3. Name its owner in `GoldenRegistry.owners`, which groups the coverage report.
+4. If the corpus grew, set `ParityGates.corpusCalls` (and `streamCount`, for a new scenario) to the
+   new totals in the same commit as the regenerated corpus.
+
+**Branches the corpus does not reach.** The corpus only holds the calls the TypeScript tests make.
+`HistoryBranchCases.swift` and the fixture in `ReducerBranchTests.swift` add cases for the branches
+the corpus does not reach. Each case keeps its inputs next to the result the TypeScript engine gives
+for them. Do not write an expectation by hand. Write the inputs, give the expectation a placeholder
+(`"result":null`, or `"expected": null` for a reducer scenario), and let the TypeScript engine fill
+it in:
+
+```sh
+npm run golden:branch-cases         # rewrite every expectation from the TypeScript engine
+npm run golden:branch-cases:check   # fail if any expectation is stale
+```
+
+Run it again after a deliberate TypeScript change, and read the diff: a changed expectation is a
+behaviour change the Swift side has to follow.
+
+### Rules for the code that drives the engine
+
+The transcript store owns a `ChatState` per chat and feeds it events. The engine is only correct if
+the store keeps to these rules:
+
+- **Everything is a value.** Every type in the engine is a `Sendable` value, safe to build, read and
+  reduce off the main actor.
+- **Copies are cheap and writes after a copy are not free.** Copying a `ChatState` is O(1). The first
+  write after a copy was published copies `items` once (a retain per item), and every later write is
+  O(1) again. Do not keep `let before = state` across a mutation to compare with, and do not compare
+  states with `==`, which walks both. Publish on a dirty flag that the store sets when it applies
+  something.
+- **One ordered stream.** Gateway events and server requests go through one serial stream into the
+  reducer, in the order the gateway sent them. Nothing may `await` between taking an event off the
+  stream and applying it.
+- **Sessions are the store's job.** The reducer ignores an event's `session_id`, so the store routes
+  each event to the chat of its session. The reducer also does not reset the `seq` watermark
+  (`lastSeq`) when the runtime session changes. The store has to reset it, or every event of the new
+  session up to the old high-water mark is dropped as a replay.
+- **Order of the calls.** Apply `session.info` before `applyResumeSnapshot`. Keep `beginLocalTurn`
+  or `beginSteer`, then `confirmSubmit`, in sequence for one prompt. Apply `applyProcessCompletion`
+  only after the `tool.complete` of the dispatch it completes.
+- **`now` is wall-clock milliseconds** (`Date.now()` in the TypeScript), passed in on every call.
+- **Persist through `JSONValue`, never `Codable`.** Write a state with `state.jsonValue`
+  and `canonicalData()`, and read it with `JSONValue(parsing:)` and `ChatState(decoding:)`. Do not use
+  `JSONEncoder` or `JSONDecoder`: they recurse, and a tool result nested 250 levels deep crashes
+  Foundation's encoder.
+
+### Known divergences
+
+The port answers like the TypeScript on every input the TypeScript tests use. On malformed or
+hostile input it deliberately does not:
+
+- **Dictionary keys** (`items`, the `by…` indices) are Swift `String`s, so two keys that are
+  canonically equivalent Unicode but different code units are the same key. In JavaScript they are
+  two keys.
+- **A fractional `seq`** on an event cannot be stored: `lastSeq` is an `Int`.
+- **A clarify's answers** are kept sorted by question id, not in the order the wire listed them.
+- **A numeric request id** is stored as its string form. The TypeScript keeps the number.
+- **`subagentTree` is at most `subagentTreeMaxDepth` (32) levels deep.** A deeper subagent is listed
+  as a root of its own, so a long chain of parent links cannot crash the app through recursion.
+- **Counters wrap.** `seq` and `version` are `Int`, and stepping one past `Int.max` wraps around
+  instead of trapping. The TypeScript's numbers lose precision there instead.
+
 ## Black-box tests against the fake gateway
 
 `HermieIntegrationTests` runs the Swift client against `packages/fake-gateway`, the same stand-in
