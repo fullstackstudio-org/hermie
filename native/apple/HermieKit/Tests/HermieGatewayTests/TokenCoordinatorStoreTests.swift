@@ -86,7 +86,7 @@ final class SlowSecretStorage: GatewaySecretStorage {
     try await coordinator.clear()
 
     // The rotation finished first or was fenced; either way it did not outlive the sign-out.
-    let outcome = await Result { try await rotation.value }
+    let outcome = await rotation.result
     try await Task.sleep(for: .milliseconds(100))
     await waitUntil { storage.isIdle }
     if case .failure(let error) = outcome {
@@ -108,7 +108,7 @@ final class SlowSecretStorage: GatewaySecretStorage {
     await gate.open()
     await waitUntil { storage.writesStarted >= 1 }
     try await coordinator.save(other)
-    _ = await Result { try await rotation.value }
+    _ = await rotation.result
     try await Task.sleep(for: .milliseconds(100))
     await waitUntil { storage.isIdle }
 
