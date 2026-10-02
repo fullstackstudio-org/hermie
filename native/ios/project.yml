@@ -25,15 +25,16 @@ targets:
         SUPPORTS_MAC_DESIGNED_FOR_IPHONE_IPAD: NO
         SUPPORTS_XR_DESIGNED_FOR_IPHONE_IPAD: NO
 
-  # KeychainStore against the real keychain, hosted in the app so it runs with
-  # the app's keychain access group. Run with `scripts/test.sh --keychain`,
-  # which uses a throwaway simulator.
+  # KeychainStore and ICloudKeychainStore against the real keychain, hosted in
+  # the app so they run with the app's keychain access group. Run with
+  # `scripts/test.sh --keychain`, which uses a throwaway simulator.
   HermieKeychainTests:
     type: bundle.unit-test
     platform: iOS
     sources:
       - path: ../apple/HostedTests
       - path: ../apple/HermieKit/Tests/HermieStoreTests/SecretStoreContract.swift
+      - path: ../apple/HermieKit/Tests/HermieStoreTests/SyncedItemStoreContract.swift
     dependencies:
       - target: Hermie
       - package: HermieKit
