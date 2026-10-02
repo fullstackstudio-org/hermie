@@ -122,7 +122,9 @@ extension Integration {
 
     @Test("a streamed turn reaches the chat screen as snapshots that only grow")
     func streamedTurn() async throws {
-      try await withGateway(FakeGateway.Options(streamDelayMs: 15)) { gateway in
+      // 60 ms between chunks: at 15 ms a busy runner drew the whole reply in one
+      // frame, and "several frames" below is the point of the test.
+      try await withGateway(FakeGateway.Options(streamDelayMs: 60)) { gateway in
         let session = try makeSession(gateway)
         let model = session.chat(researcher)
         let lengths = Mutex<[(id: String, length: Int)]>([])
