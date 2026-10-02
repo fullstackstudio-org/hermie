@@ -73,6 +73,24 @@ describe('an address that redirects somewhere else', () => {
     }
   })
 
+  it('is refused when the new address names the old host after an `@` in its path', async () => {
+    const real = await startFakeGateway({ port: 0 })
+    const asked = new URL(real.url).hostname
+    // A different host whose PATH ends in `@<the host that was asked>`. Only
+    // the authority can carry credentials, so this lands on `localhost`.
+    const elsewhere = `${real.url.replace('127.0.0.1', 'localhost').replace(/\/$/u, '')}/@${asked}`
+    const moved = await startFakeGateway({ port: 0, redirectTo: elsewhere })
+
+    try {
+      const error = await probeGateway(moved.url).catch((thrown: unknown) => thrown)
+
+      expect(isGatewayError(error) && error.kind).toBe('redirect')
+      expect(isGatewayError(error) && error.redirectedTo).toBe('localhost')
+    } finally {
+      await Promise.all([real.close(), moved.close()])
+    }
+  })
+
   it('follows a redirect that stays on the same host without comment', async () => {
     const gateway = await startFakeGateway({ port: 0 })
 

@@ -70,17 +70,19 @@ export function hostOfAddress(address: string): string {
     rest = rest.slice(schemeEnd + 3)
   }
 
-  // Credentials, then everything from the first path, query or fragment.
-  const at = rest.lastIndexOf('@')
-
-  if (at >= 0) {
-    rest = rest.slice(at + 1)
-  }
-
+  // The authority ends at the first path, query or fragment, and only an `@`
+  // inside it separates credentials from the host. Cutting at the last `@`
+  // first would read `http://example.com/x@10.0.0.1` as host `10.0.0.1`.
   const end = rest.search(/[/?#]/)
 
   if (end >= 0) {
     rest = rest.slice(0, end)
+  }
+
+  const at = rest.lastIndexOf('@')
+
+  if (at >= 0) {
+    rest = rest.slice(at + 1)
   }
 
   if (rest.startsWith('[')) {

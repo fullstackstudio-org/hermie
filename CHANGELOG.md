@@ -7,6 +7,22 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Security
+
+- **An `@` in a gateway address's path no longer decides which host it names.** The check that
+  tells a private network from the open internet read `http://public.example/@10.0.0.1` as the host
+  `10.0.0.1`, so a public gateway over plain http got the calm private-network wording instead of
+  the warning, and the onboarding probe could miss a redirect to a different host whose path ended
+  in the original host's name. Only the part before the path now counts.
+
+### Fixed
+
+- **Malformed gateway addresses no longer get a gateway key or front-door credentials.** An address
+  such as `example.com:9119` (no scheme) gave the same notification key as every other address of
+  its kind; it now gives none, as an unparseable one already did. An address with a secure scheme
+  and no host, such as `wss://`, no longer receives the Cloudflare Access headers, and the sign-in
+  callback check accepts only port numbers up to 65535.
+
 ## [0.1.9] - 2026-09-24
 
 ### Added

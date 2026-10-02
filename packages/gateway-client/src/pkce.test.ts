@@ -64,6 +64,17 @@ describe('loopback redirects', () => {
     expect(isLoopbackRedirect('https://example.test/auth/callback')).toBe(false)
   })
 
+  it('takes a port only as a URL can carry one: one to five digits, at most 65535', () => {
+    expect(isLoopbackRedirect('http://127.0.0.1:0/callback')).toBe(true)
+    expect(isLoopbackRedirect('http://127.0.0.1:65535/callback')).toBe(true)
+    expect(isLoopbackRedirect('http://[::1]:65535/callback')).toBe(true)
+    expect(isLoopbackRedirect('http://127.0.0.1:65536/callback')).toBe(false)
+    expect(isLoopbackRedirect('http://127.0.0.1:99999/callback')).toBe(false)
+    expect(isLoopbackRedirect('http://127.0.0.1:380070/callback')).toBe(false)
+    expect(isLoopbackRedirect('http://[::1]:000038007/callback')).toBe(false)
+    expect(isLoopbackRedirect('http://127.0.0.1:/callback')).toBe(false)
+  })
+
   it('reads code and state', () => {
     expect(parseLoopbackRedirect('http://127.0.0.1:38007/callback?code=abc&state=xyz')).toEqual({
       code: 'abc',

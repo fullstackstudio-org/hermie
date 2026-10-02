@@ -48,7 +48,8 @@
  *
  * Behaviour that depends on the WHATWG URL parser (`new URL`) in these vectors:
  * `normalizeBaseUrl`, `wsUrlFor`, `apiUrl`, `originOf`, `gatewayKeyOf`,
- * `accessUserScript` (via `originOf`), `buildAuthorizeUrl` and
+ * `accessUserScript`, `frontDoorHeaders` and `frontDoorWithheld` (via
+ * `originOf`: a secure scheme still needs an address it can read), `buildAuthorizeUrl` and
  * `parseLoopbackRedirect`. Entries whose note starts with "WHATWG quirk" depend
  * on a parser detail (default-port stripping, IPv4 shorthand, punycode, path
  * dot-segments, tab/newline stripping, opaque origins).
@@ -567,9 +568,12 @@ const hostPrivacy = new Vectors('host-privacy')
 
 const HOST_QUIRKS: Record<string, string> = {
   'http://example.com/path@foo':
-    'the credentials cut is lastIndexOf("@") over the whole remainder, path included, so this reads host "foo"',
-  'http://example.com#frag@x': 'lastIndexOf("@") runs before the path/query/fragment cut, so this reads host "x"',
-  'http://user@host@example.com/': 'the LAST "@" wins',
+    'the authority ends at the first "/", "?" or "#"; an "@" after it is path, not credentials, so this reads host "example.com"',
+  'http://example.com#frag@x':
+    'the path/query/fragment cut runs before the credentials cut, so this reads host "example.com"',
+  'http://public.example/@10.0.0.1': 'an "@" in the path cannot name the host: public, not private',
+  'http://user@host@example.com/': 'the LAST "@" within the authority wins',
+  'http://user@host@example.com/x@y': 'the LAST "@" within the authority wins; the one in the path is ignored',
   'http://host:99:88': 'two or more colons and no brackets: the whole authority is the host, no port cut',
   'İSTANBUL.example': 'toLowerCase is Unicode-aware: İ (U+0130) lowercases to "i" + U+0307',
   'ÉXAMPLE.COM': 'toLowerCase is Unicode-aware',
@@ -611,6 +615,9 @@ hostPrivacy.each(
     'http://user@host@example.com/',
     'http://example.com/path@foo',
     'http://example.com#frag@x',
+    'http://public.example/@10.0.0.1',
+    'http://public.example?next=@127.0.0.1',
+    'http://user@host@example.com/x@y',
     'example.com.',
     'example.com..',
     'a.ts.net.',
@@ -677,6 +684,8 @@ const CLASSIFY_INPUTS = [
   '127.0.0.1.',
   'http://user:pass@192.168.1.4:9119',
   'http://10.0.0.5:9119/hermes',
+  'http://public.example/@10.0.0.1',
+  'http://public.example/x@127.0.0.1:9119',
   // IPv6
   'http://[::1]:9119',
   '0:0:0:0:0:0:0:1',
@@ -737,10 +746,11 @@ const CLASSIFY_INPUTS = [
   'http://hermes:9119',
   'a_b',
   'hermes.lab.internal',
-  'http://Hermes.FSS.Internal:9119/',
+  'http://Hermes.Lab.Internal:9119/',
   'internal',
   'a.internal',
   'hermes.notinternal',
+  'http://public.example/@hermes.ts.net',
   'hermes.example.com',
   'hermes.tailnet.example.org',
   'example.com',
@@ -786,7 +796,8 @@ hostPrivacy.each(
     'http://100.63.0.1',
     'http://hermes',
     'httpx://example.com',
-    'http:/example.com'
+    'http:/example.com',
+    'http://public.example/@10.0.0.1'
   ]),
   { '  http://example.com': 'trim() before the scheme test, and the scheme test is case-insensitive' }
 )
@@ -866,7 +877,9 @@ gatewayKey.each('gatewayKeyOf', gatewayKeyOf, single(ORIGIN_INPUTS), {
   'https://gateway.example.com:8443':
     'the published vector: FNV-1a 64-bit over the UTF-8 bytes of the origin, 16 lowercase hex digits',
   'gateway.example.com': 'no scheme: not a URL, so the key is the empty string',
-  'mailto:a@b.example': `${WHATWG}the origin is the string "null", which is non-empty, so the key is FNV-1a("null")`
+  'mailto:a@b.example': `${WHATWG}an opaque origin, serialised "null": it names no gateway, so the key is the empty string`,
+  'example.com:9119': `${WHATWG}parses as the scheme "example.com:", whose origin is opaque ("null"), so the key is the empty string`,
+  'localhost:3000': `${WHATWG}parses as the scheme "localhost:", whose origin is opaque ("null"), so the key is the empty string`
 })
 
 gatewayKey.each(
@@ -943,6 +956,8 @@ const ADDRESSES = [
   'https',
   'https:gateway.example.com',
   'wss://',
+  'https://',
+  'https://:443/',
   '',
   '   ',
   'ftp://gateway.example.com',
@@ -1358,6 +1373,11 @@ pkce.each(
     ' http://127.0.0.1:38007/callback',
     '',
     'http://127.0.0.1:99999999999/x',
+    'http://127.0.0.1:0/x',
+    'http://127.0.0.1:65535/x',
+    'http://127.0.0.1:65536/x',
+    'http://[::1]:99999/x',
+    'http://127.0.0.1:000038007/x',
     'http://0.0.0.0:38007/callback',
     'http://[::2]:38007/callback',
     'http://127.0.0.1:38007/callback#frag',
@@ -1366,7 +1386,10 @@ pkce.each(
   ]),
   {
     'http://127.0.0.1:38007': 'no path: the pattern needs a "/" right after the host and optional port',
-    'http://127.0.0.1:99999999999/x': 'the pattern only checks digits, not a valid port'
+    'http://127.0.0.1:99999999999/x': 'a port is one to five digits and at most 65535, as the URL parser takes it',
+    'http://127.0.0.1:65536/x': 'one above the highest port',
+    'http://127.0.0.1:000038007/x':
+      'more than five digits is refused even when the value is a valid port; the URL parser would accept the leading zeros'
   }
 )
 

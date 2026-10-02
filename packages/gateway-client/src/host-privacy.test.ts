@@ -26,6 +26,16 @@ describe('hostOfAddress', () => {
   it('drops credentials', () => {
     expect(hostOfAddress('http://user:pass@192.168.1.4:9119')).toBe('192.168.1.4')
   })
+
+  it('reads credentials only inside the authority, never in a path, query or fragment', () => {
+    // An `@` after the first `/`, `?` or `#` is part of the path, query or
+    // fragment. Cutting at it would let any public host name itself private.
+    expect(hostOfAddress('http://example.com/path@foo')).toBe('example.com')
+    expect(hostOfAddress('http://public.example/@10.0.0.1')).toBe('public.example')
+    expect(hostOfAddress('http://public.example?next=@127.0.0.1')).toBe('public.example')
+    expect(hostOfAddress('http://example.com#frag@x')).toBe('example.com')
+    expect(hostOfAddress('http://user@host@example.com/x@y')).toBe('example.com')
+  })
 })
 
 describe('classifyHost: IPv4', () => {
@@ -123,8 +133,8 @@ describe('classifyHost: names', () => {
   })
 
   it('reads a .internal name, which the public root will never answer for', () => {
-    expect(privacyOf('hermes.fss.internal')).toBe('local_name')
-    expect(privacyOf('http://Hermes.FSS.Internal:9119/')).toBe('local_name')
+    expect(privacyOf('hermes.lab.internal')).toBe('local_name')
+    expect(privacyOf('http://Hermes.Lab.Internal:9119/')).toBe('local_name')
     // The label alone, with nothing in front of it.
     expect(privacyOf('internal')).toBe('local_name')
   })
@@ -139,6 +149,16 @@ describe('classifyHost: names', () => {
     expect(privacyOf('hermes.notinternal')).toBe('public')
   })
 
+  it('cannot be talked into a calmer verdict by an `@` in the path', () => {
+    expect(classifyHost('http://public.example/@10.0.0.1')).toEqual({
+      host: 'public.example',
+      privacy: 'public',
+      isPrivate: false
+    })
+    expect(privacyOf('http://public.example/x@127.0.0.1:9119')).toBe('public')
+    expect(privacyOf('http://public.example/@hermes.ts.net')).toBe('public')
+  })
+
   it('answers something for an empty host rather than throwing', () => {
     expect(classifyHost('')).toEqual({ host: '', privacy: 'public', isPrivate: false })
   })
@@ -151,7 +171,11 @@ describe('isExposedCleartext', () => {
     expect(isExposedCleartext('https://hermes.example.com')).toBe(false)
     expect(isExposedCleartext('http://100.101.102.103:9119')).toBe(false)
     expect(isExposedCleartext('http://hermes.tail9f3c.ts.net')).toBe(false)
-    expect(isExposedCleartext('http://hermes.fss.internal')).toBe(false)
+    expect(isExposedCleartext('http://hermes.lab.internal')).toBe(false)
     expect(isExposedCleartext('http://127.0.0.1:9119')).toBe(false)
+  })
+
+  it('still warns about a public host whose path names a private one', () => {
+    expect(isExposedCleartext('http://public.example/@10.0.0.1')).toBe(true)
   })
 })

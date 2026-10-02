@@ -34,12 +34,14 @@ function originOf(address: string): string {
  *
  * The ORIGIN and not the address: a path prefix in somebody's configuration is
  * the same gateway reached a different way, and a device should not stop
- * recognising its own notifications because of one.
+ * recognising its own notifications because of one. An opaque origin
+ * (`localhost:9119` parses as the scheme `localhost:`) serialises as `"null"`
+ * for every such address, so it names no gateway either.
  */
 export function gatewayKeyOf(address: string): string {
   const origin = originOf(address)
 
-  if (!origin) {
+  if (!origin || origin === 'null') {
     return ''
   }
 

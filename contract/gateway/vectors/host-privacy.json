@@ -144,7 +144,7 @@
       "http://user@host@example.com/"
     ],
     "fn": "hostOfAddress",
-    "note": "the LAST \"@\" wins",
+    "note": "the LAST \"@\" within the authority wins",
     "result": "example.com"
   },
   {
@@ -152,16 +152,39 @@
       "http://example.com/path@foo"
     ],
     "fn": "hostOfAddress",
-    "note": "the credentials cut is lastIndexOf(\"@\") over the whole remainder, path included, so this reads host \"foo\"",
-    "result": "foo"
+    "note": "the authority ends at the first \"/\", \"?\" or \"#\"; an \"@\" after it is path, not credentials, so this reads host \"example.com\"",
+    "result": "example.com"
   },
   {
     "args": [
       "http://example.com#frag@x"
     ],
     "fn": "hostOfAddress",
-    "note": "lastIndexOf(\"@\") runs before the path/query/fragment cut, so this reads host \"x\"",
-    "result": "x"
+    "note": "the path/query/fragment cut runs before the credentials cut, so this reads host \"example.com\"",
+    "result": "example.com"
+  },
+  {
+    "args": [
+      "http://public.example/@10.0.0.1"
+    ],
+    "fn": "hostOfAddress",
+    "note": "an \"@\" in the path cannot name the host: public, not private",
+    "result": "public.example"
+  },
+  {
+    "args": [
+      "http://public.example?next=@127.0.0.1"
+    ],
+    "fn": "hostOfAddress",
+    "result": "public.example"
+  },
+  {
+    "args": [
+      "http://user@host@example.com/x@y"
+    ],
+    "fn": "hostOfAddress",
+    "note": "the LAST \"@\" within the authority wins; the one in the path is ignored",
+    "result": "example.com"
   },
   {
     "args": [
@@ -731,6 +754,29 @@
       "host": "10.0.0.5",
       "isPrivate": true,
       "privacy": "private"
+    }
+  },
+  {
+    "args": [
+      "http://public.example/@10.0.0.1"
+    ],
+    "fn": "classifyHost",
+    "note": "an \"@\" in the path cannot name the host: public, not private",
+    "result": {
+      "host": "public.example",
+      "isPrivate": false,
+      "privacy": "public"
+    }
+  },
+  {
+    "args": [
+      "http://public.example/x@127.0.0.1:9119"
+    ],
+    "fn": "classifyHost",
+    "result": {
+      "host": "public.example",
+      "isPrivate": false,
+      "privacy": "public"
     }
   },
   {
@@ -1379,11 +1425,11 @@
   },
   {
     "args": [
-      "http://Hermes.FSS.Internal:9119/"
+      "http://Hermes.Lab.Internal:9119/"
     ],
     "fn": "classifyHost",
     "result": {
-      "host": "hermes.fss.internal",
+      "host": "hermes.lab.internal",
       "isPrivate": true,
       "privacy": "local_name"
     }
@@ -1417,6 +1463,17 @@
     "fn": "classifyHost",
     "result": {
       "host": "hermes.notinternal",
+      "isPrivate": false,
+      "privacy": "public"
+    }
+  },
+  {
+    "args": [
+      "http://public.example/@hermes.ts.net"
+    ],
+    "fn": "classifyHost",
+    "result": {
+      "host": "public.example",
       "isPrivate": false,
       "privacy": "public"
     }
@@ -1723,5 +1780,12 @@
     ],
     "fn": "isExposedCleartext",
     "result": false
+  },
+  {
+    "args": [
+      "http://public.example/@10.0.0.1"
+    ],
+    "fn": "isExposedCleartext",
+    "result": true
   }
 ]

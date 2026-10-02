@@ -47,6 +47,21 @@ describe('the key for one gateway', () => {
     expect(isGatewayKey('NOTHEX0000000000')).toBe(false)
   })
 
+  it('answers nothing for an address whose origin is opaque', () => {
+    // These parse, but as a scheme the URL standard gives no host to, and all
+    // of them serialise their origin as the same string "null". Keyed, they
+    // would all name the same gateway.
+    for (const address of [
+      'example.com:9119',
+      'localhost:3000',
+      'mailto:a@b.example',
+      'file:///tmp/x',
+      'about:blank'
+    ]) {
+      expect(gatewayKeyOf(address)).toBe('')
+    }
+  })
+
   /**
    * FNV-1a, 64-bit, over the UTF-8 bytes of the origin.
    *

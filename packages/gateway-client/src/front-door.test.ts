@@ -70,6 +70,13 @@ describe('the https-only rule', () => {
     expect(frontDoorWithheld(ACCESS, address)).toBe(false)
   })
 
+  it.each(['wss://', 'https://', 'https://:443/'])('withholds it from %s, which names no host', address => {
+    // A secure scheme with nowhere to send the credentials to is not a gateway.
+    expect(frontDoorHeaders(ACCESS, address)).toEqual({})
+    expect(frontDoorWithheld(ACCESS, address)).toBe(true)
+    expect(accessUserScript(ACCESS, address)).toBe('')
+  })
+
   it('has nothing to withhold when no front door is configured', () => {
     expect(frontDoorWithheld(NO_FRONT_DOOR, 'http://gateway.example.com')).toBe(false)
   })

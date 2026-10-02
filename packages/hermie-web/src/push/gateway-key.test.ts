@@ -26,4 +26,11 @@ describe('the daemon’s copy of the gateway key', () => {
     expect(gatewayKeyOf('gateway.example.com')).toBe('')
     expect(gatewayKeyOf('')).toBe('')
   })
+
+  it('answers nothing for an address whose origin is opaque, as the app’s copy does', () => {
+    // `localhost:9119` parses as the scheme `localhost:`; its origin, like every
+    // other opaque one, serialises as "null" and names no gateway.
+    expect(gatewayKeyOf('localhost:9119')).toBe('')
+    expect(gatewayKeyOf('mailto:a@b.example')).toBe('')
+  })
 })

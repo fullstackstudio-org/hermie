@@ -47,10 +47,12 @@ public enum FrontDoor: Sendable, Equatable {
     return access
   }
 
-  /// Read off the string, not parsed: only an explicit `https://` or `wss://` counts.
+  /// Only an explicit `https://` or `wss://` counts, and only on an address
+  /// with a host: `wss://` alone says nothing about where the credentials go.
   private static func isSecure(_ address: String) -> Bool {
     let lowered = JSText.trim(address).lowercased()
-    return JSText.hasPrefix(lowered, "https://") || JSText.hasPrefix(lowered, "wss://")
+    let secureScheme = JSText.hasPrefix(lowered, "https://") || JSText.hasPrefix(lowered, "wss://")
+    return secureScheme && !GatewayAddress.origin(of: lowered).isEmpty
   }
 
   /// The headers this front door adds for a gateway at `baseURL`; empty for a cleartext one.

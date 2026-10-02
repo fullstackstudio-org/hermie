@@ -586,8 +586,45 @@
       "http://127.0.0.1:99999999999/x"
     ],
     "fn": "isLoopbackRedirect",
-    "note": "the pattern only checks digits, not a valid port",
+    "note": "a port is one to five digits and at most 65535, as the URL parser takes it",
+    "result": false
+  },
+  {
+    "args": [
+      "http://127.0.0.1:0/x"
+    ],
+    "fn": "isLoopbackRedirect",
     "result": true
+  },
+  {
+    "args": [
+      "http://127.0.0.1:65535/x"
+    ],
+    "fn": "isLoopbackRedirect",
+    "result": true
+  },
+  {
+    "args": [
+      "http://127.0.0.1:65536/x"
+    ],
+    "fn": "isLoopbackRedirect",
+    "note": "one above the highest port",
+    "result": false
+  },
+  {
+    "args": [
+      "http://[::1]:99999/x"
+    ],
+    "fn": "isLoopbackRedirect",
+    "result": false
+  },
+  {
+    "args": [
+      "http://127.0.0.1:000038007/x"
+    ],
+    "fn": "isLoopbackRedirect",
+    "note": "more than five digits is refused even when the value is a valid port; the URL parser would accept the leading zeros",
+    "result": false
   },
   {
     "args": [

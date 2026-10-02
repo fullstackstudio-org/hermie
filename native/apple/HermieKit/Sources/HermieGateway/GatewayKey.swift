@@ -23,11 +23,11 @@ public enum GatewayKey {
   /// The key for one gateway address, or `""` when it is not an address.
   ///
   /// An address with an opaque origin (`mailto:`, `file:`, `example.com:9119`
-  /// read as scheme `example.com`) has the origin `"null"`, which is not empty,
-  /// so it keys as FNV-1a(`"null"`) — the reference does the same.
+  /// read as scheme `example.com`) has the origin `"null"`, shared by every
+  /// such address, so it names no gateway and keys as `""` too.
   public static func of(_ address: String) -> String {
     let origin = GatewayAddress.origin(of: address)
-    return origin.isEmpty ? "" : fnv1a64(origin)
+    return origin.isEmpty || origin == "null" ? "" : fnv1a64(origin)
   }
 
   /// True for a string `of` could have produced (`/^[0-9a-f]{16}$/u`). Keys arrive from the wire.

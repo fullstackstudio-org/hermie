@@ -11,7 +11,10 @@ import { GatewayError } from './types'
  */
 export const REDIRECT_URI = 'http://127.0.0.1:38007/callback'
 
-const LOOPBACK_RE = /^http:\/\/(127\.0\.0\.1|\[::1\])(:\d+)?\//
+const LOOPBACK_RE = /^http:\/\/(?:127\.0\.0\.1|\[::1\])(?::(\d{1,5}))?\//
+
+/** The highest port number; `parseLoopbackRedirect`'s URL parser refuses anything above it. */
+const MAX_PORT = 65535
 
 export type RandomBytes = (length: number) => Uint8Array
 
@@ -90,7 +93,9 @@ export function buildAuthorizeUrl(baseUrl: string, params: AuthorizeParams): str
 
 /** True for the loopback callback the WebView must intercept instead of loading. */
 export function isLoopbackRedirect(url: string): boolean {
-  return LOOPBACK_RE.test(url)
+  const match = LOOPBACK_RE.exec(url)
+
+  return match !== null && (match[1] === undefined || Number(match[1]) <= MAX_PORT)
 }
 
 /**

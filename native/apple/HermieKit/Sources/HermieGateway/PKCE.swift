@@ -95,7 +95,7 @@ extension PKCE {
   }
 
   /// True for the loopback callback the web view must intercept instead of loading:
-  /// `/^http:\/\/(127\.0\.0\.1|\[::1\])(:\d+)?\//`, case-sensitive.
+  /// `/^http:\/\/(127\.0\.0\.1|\[::1\])(:\d{1,5})?\//`, case-sensitive, with a port of at most 65535.
   public static func isLoopbackRedirect(_ url: String) -> Bool {
     let scalars = Array(url.unicodeScalars)
     var index = 0
@@ -123,8 +123,13 @@ extension PKCE {
         end += 1
       }
 
-      // `(:\d+)?` is optional, so a bare `:` (or `:` without digits) can only fail on the `/` that follows.
+      // `(:\d{1,5})?` is optional, so a bare `:` (or `:` without digits) can only fail on the `/` that
+      // follows. Six digits or more, or a value above 65535, is not a port and the URL is not ours.
       if end > start {
+        guard end - start <= 5, Int(JSText.string(scalars[start..<end]))! <= 65535 else {
+          return false
+        }
+
         index = end
       }
     }

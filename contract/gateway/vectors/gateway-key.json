@@ -153,8 +153,8 @@
       "mailto:a@b.example"
     ],
     "fn": "gatewayKeyOf",
-    "note": "WHATWG quirk: the origin is the string \"null\", which is non-empty, so the key is FNV-1a(\"null\")",
-    "result": "5b9bc4ba528108e4"
+    "note": "WHATWG quirk: an opaque origin, serialised \"null\": it names no gateway, so the key is the empty string",
+    "result": ""
   },
   {
     "args": [
@@ -162,7 +162,7 @@
     ],
     "fn": "gatewayKeyOf",
     "note": "WHATWG quirk: a file: URL has an opaque origin, serialised \"null\"",
-    "result": "5b9bc4ba528108e4"
+    "result": ""
   },
   {
     "args": [
@@ -170,7 +170,7 @@
     ],
     "fn": "gatewayKeyOf",
     "note": "WHATWG quirk: an opaque origin, serialised \"null\"",
-    "result": "5b9bc4ba528108e4"
+    "result": ""
   },
   {
     "args": [
@@ -257,14 +257,16 @@
       "example.com:9119"
     ],
     "fn": "gatewayKeyOf",
-    "result": "5b9bc4ba528108e4"
+    "note": "WHATWG quirk: parses as the scheme \"example.com:\", whose origin is opaque (\"null\"), so the key is the empty string",
+    "result": ""
   },
   {
     "args": [
       "localhost:3000"
     ],
     "fn": "gatewayKeyOf",
-    "result": "5b9bc4ba528108e4"
+    "note": "WHATWG quirk: parses as the scheme \"localhost:\", whose origin is opaque (\"null\"), so the key is the empty string",
+    "result": ""
   },
   {
     "args": [

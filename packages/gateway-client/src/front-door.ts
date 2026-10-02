@@ -74,12 +74,13 @@ export function originOf(address: string): string {
  * Read off the string rather than through `new URL`, because a WebSocket URL is
  * also asked and both schemes have to be named explicitly — the point is that
  * an address with NO scheme, or one this package does not recognise, answers
- * false and the credentials stay home.
+ * false and the credentials stay home. So does one with no host (`wss://`):
+ * the scheme alone says nothing about where the credentials would go.
  */
 function isSecure(address: string): boolean {
   const trimmed = address.trim().toLowerCase()
 
-  return trimmed.startsWith('https://') || trimmed.startsWith('wss://')
+  return (trimmed.startsWith('https://') || trimmed.startsWith('wss://')) && originOf(trimmed) !== ''
 }
 
 /**

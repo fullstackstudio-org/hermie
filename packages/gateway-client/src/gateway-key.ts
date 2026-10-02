@@ -56,17 +56,24 @@ function fnv1a64(input: string): string {
 }
 
 /**
+ * What `URL.origin` serialises an opaque origin as: `mailto:`, `file:`, and
+ * `example.com:9119`, which parses as the scheme `example.com:`.
+ */
+const OPAQUE_ORIGIN = 'null'
+
+/**
  * The key for one gateway address, or `''` when it is not an address.
  *
  * An empty answer is deliberate and is what every caller checks: a payload
  * carrying no key, or a configuration whose address will not parse, must read
  * as "this does not name a gateway" rather than as a key that happens to match
- * every other unparseable one.
+ * every other unparseable one. An opaque origin is the same case: it parses,
+ * but every such address shares the origin `"null"`, so it names no gateway.
  */
 export function gatewayKeyOf(address: string): string {
   const origin = originOf(address)
 
-  return origin ? fnv1a64(origin) : ''
+  return origin && origin !== OPAQUE_ORIGIN ? fnv1a64(origin) : ''
 }
 
 /** True for a string this function could have produced. Keys arrive from the wire. */

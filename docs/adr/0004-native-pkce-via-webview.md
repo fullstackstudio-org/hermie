@@ -76,7 +76,7 @@ value to read, not a request to serve.
 The client generates its own verifier (32 random bytes, base64url, 43 characters), challenge
 (base64url of SHA-256 over the verifier) and `state` (24 random bytes, 32 characters), opens
 `/auth/native/authorize`, and uses the web view's `onShouldStartLoadWithRequest` to match
-`^http://(127\.0\.0\.1|\[::1\])(:\d+)?/`. On a match it reads `code`/`state` (or
+`^http://(127\.0\.0\.1|\[::1\])(:\d{1,5})?/` with a port of at most 65535. On a match it reads `code`/`state` (or
 `error`/`error_description`), returns `false` so the navigation never happens, and exchanges the code
 over HTTPS.
 

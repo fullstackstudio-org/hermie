@@ -50,9 +50,10 @@ public struct HostClassification: Sendable, Equatable {
   /// Split a host out of a URL, an authority, or a bare host.
   ///
   /// Deliberately the reference's string surgery, not a URL parse: the
-  /// credentials cut is the LAST `@` of everything after `://` (path included),
-  /// two colons or more without brackets mean the whole string is an IPv6
-  /// literal, and lowercasing is Unicode-aware (`İ` becomes `i` + U+0307).
+  /// authority ends at the first `/`, `?` or `#`, the credentials cut is the
+  /// LAST `@` inside it (an `@` in the path never names the host), two colons
+  /// or more without brackets mean the whole string is an IPv6 literal, and
+  /// lowercasing is Unicode-aware (`İ` becomes `i` + U+0307).
   public static func host(ofAddress address: String) -> String {
     var rest = Array(JSText.trim(address).unicodeScalars)
 
@@ -60,12 +61,12 @@ public struct HostClassification: Sendable, Equatable {
       rest = Array(rest[(schemeEnd + 3)...])
     }
 
-    if let at = rest.lastIndex(of: "@") {
-      rest = Array(rest[(at + 1)...])
-    }
-
     if let end = rest.firstIndex(where: { $0 == "/" || $0 == "?" || $0 == "#" }) {
       rest = Array(rest[..<end])
+    }
+
+    if let at = rest.lastIndex(of: "@") {
+      rest = Array(rest[(at + 1)...])
     }
 
     if rest.first == "[" {
