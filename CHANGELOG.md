@@ -31,6 +31,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **A backslash or a tab in a gateway address no longer hides its host.** The private-network check
   read `http://public.example\@10.0.0.1` as `10.0.0.1`, while the request went to `public.example`.
   It now reads addresses the way the request does.
+- **The Cloudflare Access token is no longer sent over plain http while setting up a gateway.** An
+  address typed without `https://` is tried over https first and, when nothing answers there, over
+  http. That second try reused the headers of the first, so on a network that blocks https a
+  configured Access token went out unencrypted. Each try now gets its own headers and the Access
+  pair is never on an http one. With a front door configured, setup no longer tries http at all and
+  reports why https failed instead.
 
 ### Added
 

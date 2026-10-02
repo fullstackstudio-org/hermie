@@ -217,11 +217,15 @@ describe('the address step', () => {
     fireEvent.changeText(screen.getByTestId('cf-access-client-id'), ID)
     fireEvent.changeText(screen.getByTestId('cf-access-client-secret'), SECRET)
 
+    // The preset itself, not headers folded in against an earlier answer: the
+    // resolver decides per attempt which address may carry the pair.
     await waitFor(() =>
-      expect(resolveGatewayAddress).toHaveBeenLastCalledWith('https://gateway.example.com', {
-        'CF-Access-Client-Id': ID,
-        'CF-Access-Client-Secret': SECRET
-      })
+      expect(resolveGatewayAddress).toHaveBeenLastCalledWith(
+        'https://gateway.example.com',
+        {},
+        undefined,
+        expect.objectContaining({ kind: 'cloudflare_access', clientId: ID, clientSecret: SECRET })
+      )
     )
   })
 

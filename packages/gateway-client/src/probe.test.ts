@@ -1,7 +1,15 @@
 import { describe, expect, it, vi } from 'vitest'
 
+import { type FrontDoor, NO_FRONT_DOOR } from './front-door'
 import { PROBE_TIMEOUT_MS, probeGateway, resolveGatewayAddress } from './probe'
 import { GatewayError } from './types'
+
+const ACCESS: FrontDoor = {
+  kind: 'cloudflare_access',
+  clientId: 'abc',
+  clientSecret: 'shh',
+  origin: 'https://gw.example.test'
+}
 
 type Route = { status?: number; body?: unknown; text?: string; throws?: Error }
 
@@ -309,12 +317,12 @@ describe('resolveGatewayAddress', () => {
     })
   })
 
-  it('sends the extra headers on both attempts', async () => {
+  it('sends an ordinary extra header on both attempts', async () => {
     const seen: { protocol: string; header: string | undefined }[] = []
     const fetchImpl = (async (input: RequestInfo | URL, init?: RequestInit) => {
       const url = new URL(String(input))
       const headers = (init?.headers ?? {}) as Record<string, string>
-      seen.push({ protocol: url.protocol, header: headers['CF-Access-Client-Id'] })
+      seen.push({ protocol: url.protocol, header: headers['X-Proxy-Key'] })
 
       if (url.protocol === 'https:') {
         throw new Error('connect ECONNREFUSED')
@@ -323,11 +331,50 @@ describe('resolveGatewayAddress', () => {
       return new Response(JSON.stringify(ungated), { status: 200 })
     }) as typeof fetch
 
-    await resolveGatewayAddress('192.168.2.250:9119', { 'CF-Access-Client-Id': 'abc' }, fetchImpl)
+    await resolveGatewayAddress('192.168.2.250:9119', { 'X-Proxy-Key': 'abc' }, fetchImpl)
 
     expect(seen).toEqual([
       { protocol: 'https:', header: 'abc' },
       { protocol: 'http:', header: 'abc' }
     ])
+  })
+
+  it.each([
+    ['the preset', {}, ACCESS],
+    ['hand-typed rows', { 'CF-Access-Client-Id': 'abc', 'CF-Access-Client-Secret': 'shh' }, NO_FRONT_DOOR],
+    ['one hand-typed half', { 'cf-access-client-secret': 'shh' }, NO_FRONT_DOOR]
+  ])('puts a front door from %s on https and never falls back to http', async (_label, headers, frontDoor) => {
+    const seen: { protocol: string; secret: string | undefined }[] = []
+    const fetchImpl = (async (input: RequestInfo | URL, init?: RequestInit) => {
+      const url = new URL(String(input))
+      const sent = new Headers(init?.headers)
+      seen.push({ protocol: url.protocol, secret: sent.get('CF-Access-Client-Secret') ?? undefined })
+
+      throw new Error('connect ECONNREFUSED')
+    }) as typeof fetch
+
+    await expect(resolveGatewayAddress('gw.example.test', headers, fetchImpl, frontDoor)).rejects.toMatchObject({
+      kind: 'network',
+      message: expect.stringContaining('https://gw.example.test')
+    })
+    expect(seen).toEqual([{ protocol: 'https:', secret: 'shh' }])
+  })
+
+  it('takes the pair off an http:// address the reader typed, and keeps everything else', async () => {
+    const seen: Record<string, string>[] = []
+    const fetchImpl = (async (_input: RequestInfo | URL, init?: RequestInit) => {
+      seen.push(Object.fromEntries(new Headers(init?.headers)))
+
+      return new Response(JSON.stringify(ungated), { status: 200 })
+    }) as typeof fetch
+
+    await resolveGatewayAddress(
+      'http://192.168.2.250:9119',
+      { 'CF-Access-Client-Id': 'abc', 'X-Proxy-Key': 'kept' },
+      fetchImpl,
+      ACCESS
+    )
+
+    expect(seen).toEqual([{ accept: 'application/json', 'x-proxy-key': 'kept' }])
   })
 })

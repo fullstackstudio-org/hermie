@@ -1,4 +1,12 @@
 import { type FetchLike, looksLikeCertificateFailure, parseJsonObject, requestText } from './fetch-json'
+import {
+  CF_ACCESS_CLIENT_ID,
+  CF_ACCESS_CLIENT_SECRET,
+  describeFrontDoor,
+  type FrontDoor,
+  frontDoorHeaders,
+  NO_FRONT_DOOR
+} from './front-door'
 import { classifyHost } from './host-privacy'
 import { apiUrl, hasExplicitScheme, normalizeBaseUrl, normalizeHeaders } from './url'
 import { GatewayError, isGatewayError } from './types'
@@ -8,6 +16,12 @@ export const PROBE_TIMEOUT_MS = 10_000
 
 /** The native PKCE flow id as advertised on `/api/status`. */
 export const NATIVE_PKCE_FLOW = 'native_pkce'
+
+/**
+ * Advertised on `/api/status` by a gateway that has `POST /auth/native/revoke`,
+ * so a native client can end its own grant at the identity provider on sign-out.
+ */
+export const NATIVE_REVOKE_FLOW = 'native_revoke'
 
 export interface AuthProvider {
   name: string
@@ -255,6 +269,31 @@ function isTransportFailure(error: unknown): boolean {
   return false
 }
 
+const FRONT_DOOR_NAMES = new Set([CF_ACCESS_CLIENT_ID.toLowerCase(), CF_ACCESS_CLIENT_SECRET.toLowerCase()])
+
+/**
+ * The headers one probe attempt may carry, computed for THAT attempt's address.
+ *
+ * The front door's pair is added only where `frontDoorHeaders` allows it, which
+ * is https, and a pair that arrived among the typed headers is taken off a
+ * cleartext attempt for the same reason. Built per attempt rather than once,
+ * because the one place a single map was reused — the http fallback — is
+ * exactly where it must not be: a service token is a credential for the whole
+ * Access tenant, and the fallback is the request that goes out in the clear.
+ */
+function attemptHeaders(
+  extraHeaders: Record<string, string>,
+  frontDoor: FrontDoor,
+  address: string
+): Record<string, string> {
+  // `address` is always a normalized base URL here, so its scheme is its prefix.
+  if (address.toLowerCase().startsWith('https://')) {
+    return { ...extraHeaders, ...frontDoorHeaders(frontDoor, address) }
+  }
+
+  return Object.fromEntries(Object.entries(extraHeaders).filter(([name]) => !FRONT_DOOR_NAMES.has(name.toLowerCase())))
+}
+
 /**
  * Probe what the user typed, trying `http://` when they named no scheme and
  * `https://` did not answer.
@@ -263,22 +302,39 @@ function isTransportFailure(error: unknown): boolean {
  * already encrypted the path — so "https or nothing" would make the ordinary
  * private setup fail with a network error and no hint. Typing `https://`
  * explicitly still means https and nothing else.
+ *
+ * **A front door turns the fallback off.** Someone who configured Cloudflare
+ * Access — as the preset, or as `CF-Access-*` rows among the typed headers —
+ * asked for a gateway behind an edge, and that edge only exists on https. A
+ * network that blocks 443 is then reported as the https failure it is, rather
+ * than answered by a cleartext probe of the same name. The front-door headers
+ * never go on an http attempt in any case: the wire headers are computed per
+ * attempt, for that attempt's address (see `attemptHeaders`).
  */
 export async function resolveGatewayAddress(
   raw: string,
   extraHeaders: Record<string, string> = {},
-  fetchImpl: FetchLike = fetch
+  fetchImpl: FetchLike = fetch,
+  frontDoor: FrontDoor = NO_FRONT_DOOR
 ): Promise<ResolvedAddress> {
   const baseUrl = normalizeBaseUrl(raw)
+  const headers = normalizeHeaders(extraHeaders)
+  const probeAt = (address: string) => probeGateway(address, attemptHeaders(headers, frontDoor, address), fetchImpl)
 
   if (hasExplicitScheme(raw)) {
-    return { ...(await probeGateway(baseUrl, extraHeaders, fetchImpl)), baseUrl, foundOverHttp: false }
+    return { ...(await probeAt(baseUrl)), baseUrl, foundOverHttp: false }
   }
 
   try {
-    return { ...(await probeGateway(baseUrl, extraHeaders, fetchImpl)), baseUrl, foundOverHttp: false }
+    return { ...(await probeAt(baseUrl)), baseUrl, foundOverHttp: false }
   } catch (httpsError) {
     if (!isTransportFailure(httpsError)) {
+      throw httpsError
+    }
+
+    // The preset chosen, even half filled in, or either half of the pair typed
+    // by hand: both say the gateway was meant to be behind an edge.
+    if (frontDoor.kind !== 'none' || describeFrontDoor(headers) !== '') {
       throw httpsError
     }
 
@@ -286,7 +342,7 @@ export async function resolveGatewayAddress(
 
     try {
       return {
-        ...(await probeGateway(cleartextUrl, extraHeaders, fetchImpl)),
+        ...(await probeAt(cleartextUrl)),
         baseUrl: cleartextUrl,
         foundOverHttp: true
       }

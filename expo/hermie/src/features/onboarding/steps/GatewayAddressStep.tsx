@@ -1,5 +1,6 @@
 import {
   classifyProbeFailure,
+  type FrontDoor,
   type FrontDoorKind,
   frontDoorWithheld,
   hasExplicitScheme,
@@ -19,7 +20,7 @@ import { strings } from '../../../i18n/strings'
 import { InsetButtonRow, InsetGroup, InsetRow, SecretField, Text, TextField } from '../../../ui/primitives'
 import { SegmentedRow } from '../../../ui/sheets'
 import { useTheme } from '../../../ui/theme'
-import { effectiveHeaders, headerError, newHeaderRow, type OnboardingDraft } from '../draft'
+import { headerError, headerRecord, newHeaderRow, type OnboardingDraft } from '../draft'
 import { StatusLine } from '../StatusLine'
 
 /**
@@ -102,10 +103,17 @@ export function GatewayAddressStep({ draft, update, debounceMs = PROBE_DEBOUNCE_
   updateRef.current = update
 
   const raw = draft.rawAddress.trim()
-  // The FRONT DOOR is in here too, so editing a service token re-probes. On a
-  // gated edge that is the only way to find out whether the pair is right:
-  // `/api/status` is the first thing Access refuses.
-  const headersKey = JSON.stringify(effectiveHeaders(draft))
+  /*
+    The FRONT DOOR is in here too, so editing a service token re-probes. On a
+    gated edge that is the only way to find out whether the pair is right:
+    `/api/status` is the first thing Access refuses.
+
+    Handed over as the preset rather than folded into the headers. The resolver
+    may try two addresses, and which of them may carry the pair is decided per
+    attempt — never on http — and a front door means it tries https only. A map
+    built here once, against whatever address answered last, cannot say either.
+  */
+  const headersKey = JSON.stringify({ headers: headerRecord(draft.headers), frontDoor: draft.frontDoor })
   // The resolver tries https first and falls back to http only when the reader
   // left the scheme out, so which of the two is in flight is knowable here
   // without instrumenting the resolver.
@@ -159,8 +167,13 @@ export function GatewayAddressStep({ draft, update, debounceMs = PROBE_DEBOUNCE_
     */
     setActions([])
 
+    const { headers, frontDoor } = JSON.parse(headersKey) as {
+      headers: Record<string, string>
+      frontDoor: FrontDoor
+    }
+
     const timer = setTimeout(() => {
-      resolveGatewayAddress(raw, JSON.parse(headersKey) as Record<string, string>)
+      resolveGatewayAddress(raw, headers, undefined, frontDoor)
         .then(({ baseUrl, foundOverHttp: overHttp, ...result }) => {
           if (cancelled || ticket !== sequence.current) {
             return

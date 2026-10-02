@@ -1,4 +1,4 @@
-import { GatewayError, type ProbeResult, type ResolvedAddress } from '@hermie/gateway-client'
+import { GatewayError, NO_FRONT_DOOR, type ProbeResult, type ResolvedAddress } from '@hermie/gateway-client'
 import { fireEvent, screen, waitFor } from '@testing-library/react-native'
 import { useState } from 'react'
 
@@ -158,7 +158,7 @@ describe('the gateway address step', () => {
     type('hermes.example.com/')
 
     await waitFor(() => expect(latest.baseUrl).toBe('https://hermes.example.com'))
-    expect(resolveGatewayAddress).toHaveBeenCalledWith('hermes.example.com/', {})
+    expect(resolveGatewayAddress).toHaveBeenCalledWith('hermes.example.com/', {}, undefined, NO_FRONT_DOOR)
   })
 
   it.each([
@@ -284,9 +284,14 @@ describe('the gateway address step', () => {
     fireEvent.changeText(screen.getAllByLabelText('Value')[0]!, 'client-id')
 
     await waitFor(() =>
-      expect(resolveGatewayAddress).toHaveBeenLastCalledWith('hermes.example.com', {
-        'CF-Access-Client-Id': 'client-id'
-      })
+      expect(resolveGatewayAddress).toHaveBeenLastCalledWith(
+        'hermes.example.com',
+        {
+          'CF-Access-Client-Id': 'client-id'
+        },
+        undefined,
+        NO_FRONT_DOOR
+      )
     )
   })
 
@@ -301,7 +306,7 @@ describe('the gateway address step', () => {
     fireEvent.changeText(screen.getAllByLabelText('Header')[0]!, 'Authorization')
 
     await waitFor(() => expect(screen.getByText(/cannot be an extra header/)).toBeTruthy())
-    expect(resolveGatewayAddress).toHaveBeenLastCalledWith('hermes.example.com', {})
+    expect(resolveGatewayAddress).toHaveBeenLastCalledWith('hermes.example.com', {}, undefined, NO_FRONT_DOOR)
   })
 })
 
@@ -384,7 +389,12 @@ describe('the gateway address step: a cleartext gateway', () => {
     fireEvent.press(screen.getByText('Use https instead'))
 
     await waitFor(() =>
-      expect(resolveGatewayAddress).toHaveBeenLastCalledWith('https://hermes.example.com:9119/prefix', {})
+      expect(resolveGatewayAddress).toHaveBeenLastCalledWith(
+        'https://hermes.example.com:9119/prefix',
+        {},
+        undefined,
+        NO_FRONT_DOOR
+      )
     )
     await waitFor(() => expect(screen.queryByTestId('transport-notice')).toBeNull())
   })
