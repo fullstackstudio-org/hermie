@@ -79,6 +79,12 @@ public struct SyncEntry: Sendable, Equatable {
   /// Prints of credentials a move to another origin left behind, kept until they are really gone
   /// here, so moving back to that origin cannot revive one and send it out as if entered here.
   public var leftBehind: Set<String>
+  /// Set by switching "Sync this gateway" on and by `SyncState.resync(gatewayId:)`: the next attach
+  /// publishes the address register under a fresh stamp (its value unchanged), so a device whose
+  /// "stop syncing" delete is still repeating sees a new publish, not the item it deleted. Never set
+  /// over a removal on all devices: a gateway that is not live is not published. Consumed once
+  /// published.
+  public var republish: Bool
 
   var extra: JSONObject = [:]
 
@@ -92,7 +98,8 @@ public struct SyncEntry: Sendable, Equatable {
     clearing: Set<SyncField> = [],
     stamps: [String: SyncStamp] = [:],
     prints: [String: String] = [:],
-    leftBehind: Set<String> = []
+    leftBehind: Set<String> = [],
+    republish: Bool = false
   ) {
     self.key = key
     self.seen = seen
@@ -104,6 +111,7 @@ public struct SyncEntry: Sendable, Equatable {
     self.stamps = stamps
     self.prints = prints
     self.leftBehind = leftBehind
+    self.republish = republish
   }
 
   public func stamp(_ field: SyncField) -> SyncStamp? { stamps[field.rawValue] }
@@ -123,7 +131,8 @@ public struct SyncEntry: Sendable, Equatable {
   }
 
   private static let knownKeys: Set<String> = [
-    "key", "seen", "detached", "signedOut", "removal", "addedHere", "clearing", "stamps", "prints", "leftBehind"
+    "key", "seen", "detached", "signedOut", "removal", "addedHere", "clearing", "stamps", "prints", "leftBehind",
+    "republish"
   ]
 
   var json: JSONValue {
@@ -139,6 +148,7 @@ public struct SyncEntry: Sendable, Equatable {
     object["stamps"] = .object(stamps.mapValues(\.json))
     object["prints"] = .object(prints.mapValues(JSONValue.string))
     object["leftBehind"] = leftBehind.isEmpty ? Optional<JSONValue>.none : .array(leftBehind.sorted().map(JSONValue.string))
+    object["republish"] = republish ? .bool(true) : Optional<JSONValue>.none
     return .object(object)
   }
 
@@ -157,6 +167,7 @@ public struct SyncEntry: Sendable, Equatable {
     stamps = (object["stamps"]?.objectValue ?? [:]).compactMapValues { SyncStamp(json: $0) }
     prints = (object["prints"]?.objectValue ?? [:]).compactMapValues(\.stringValue)
     leftBehind = Set((object["leftBehind"]?.arrayValue ?? []).compactMap(\.stringValue))
+    republish = object["republish"]?.boolValue ?? false
     extra = object.filter { !Self.knownKeys.contains($0.key) }
   }
 }
@@ -166,7 +177,7 @@ extension SyncEntry: CustomStringConvertible, CustomDebugStringConvertible, Cust
     let fields = stamps.keys.sorted().map { "\($0)@\(stamps[$0]!)" }.joined(separator: ", ")
     let detachedText = detached.map { ", detached: \($0.rawValue)" } ?? ""
     let removalText = removal.map { ", removal: \($0.rawValue)" } ?? ""
-    let addedText = addedHere ? ", addedHere" : ""
+    let addedText = (addedHere ? ", addedHere" : "") + (republish ? ", republish" : "")
     let clearingText = clearing.isEmpty ? "" : ", clearing: \(clearing.sorted().map(\.rawValue))"
     return "SyncEntry(\(key), seen: \(seen)\(detachedText), signedOut: \(signedOut)\(removalText)\(addedText)"
       + "\(clearingText), [\(fields)])"
@@ -246,7 +257,14 @@ public struct SyncState: Sendable, Equatable {
   public static let printCheckText = "hermie.sync.print-check"
 
   public var device: String
-  public var enabled: Bool
+  /// "Sync with iCloud Keychain" on this device. Switching it off drops every intent not yet acted
+  /// on (see `dropIntents()`): nothing recorded before or while sync is off goes out when it is
+  /// switched on again, possibly months later, over what other devices did in between.
+  public var enabled: Bool {
+    didSet {
+      if !enabled { dropIntents() }
+    }
+  }
   public var disclosed: Bool
   public var hidden: Set<String>
   public var tombstones: [String: SyncTombstoneMemory]
@@ -284,6 +302,18 @@ public struct SyncState: Sendable, Equatable {
 
   // MARK: Engine helpers (each records an intent and bumps `generation`)
 
+  /// Forget the intents that would reach other devices: clears are dropped, and a removal on all
+  /// devices becomes one from this device only (the key is hidden here, the item stays in iCloud).
+  /// Done whenever sync is switched off for the whole device, and by a reconcile while it is off.
+  mutating func dropIntents() {
+    for id in entries.keys {
+      entries[id]!.clearing = []
+      if entries[id]!.removal == .allDevices {
+        entries[id]!.removal = .thisDevice
+      }
+    }
+  }
+
   private mutating func intent(_ gatewayId: String, key: String, _ change: (inout SyncEntry) -> Void) {
     change(&entries[gatewayId, default: SyncEntry(key: key)])
     // Only compared for equality, so wrapping is harmless; trapping would not be.
@@ -291,8 +321,10 @@ public struct SyncState: Sendable, Equatable {
   }
 
   /// The person removed a gateway: remember the scope, so the reconcile after the purge knows
-  /// whether to hide the key here or write a tombstone for every device.
+  /// whether to hide the key here or write a tombstone for every device. With sync off on this
+  /// device, a removal can only be from this device.
   public mutating func markRemoved(gatewayId: String, key: String, scope: RemovalScope) {
+    let scope = enabled ? scope : .thisDevice
     intent(gatewayId, key: key) { $0.removal = scope }
   }
 
@@ -302,8 +334,10 @@ public struct SyncState: Sendable, Equatable {
   }
 
   /// The person cleared a credential on purpose and it should be cleared on every device:
-  /// "Sign Out on All Devices" (`.sessionToken`), removing the front door or the headers.
+  /// "Sign Out on All Devices" (`.sessionToken`), removing the front door or the headers. Not
+  /// recorded while sync is off on this device: the clear stays here.
   public mutating func markClearing(_ field: SyncField, gatewayId: String, key: String) {
+    guard enabled else { return }
     intent(gatewayId, key: key) { $0.clearing.insert(field) }
   }
 
@@ -312,30 +346,35 @@ public struct SyncState: Sendable, Equatable {
     intent(gatewayId, key: key) { $0.signedOut = signedOut }
   }
 
-  /// "Sync this gateway". Switching it off deletes the item at the next reconcile (and again, while
-  /// the item is still the one this device knew); switching it on merges the gateway again, from
-  /// the stamps it kept.
+  /// "Sync this gateway". Switching it off deletes the item at the next reconcile, and again while
+  /// a read shows the item with the address register this device last knew (whether or not it had
+  /// read its own write back). Switching it on merges the gateway again, from the stamps it kept,
+  /// and publishes its address register under a fresh stamp (`SyncEntry.republish`), so no other
+  /// device's repeated delete takes it for the item it deleted.
   public mutating func setGatewaySynced(_ synced: Bool, gatewayId: String, key: String) {
     intent(gatewayId, key: key) { entry in
       if synced {
         if entry.detached == .user {
           entry.detached = nil
-          // Attached again as on first sight; a delete still pending is no longer wanted.
           entry.seen = false
+          entry.republish = true
         }
       } else {
         entry.detached = .user
+        entry.republish = false
       }
     }
   }
 
   /// Publish this gateway again at the next reconcile: an `absent` one is attached again and,
-  /// with nothing in iCloud, written there.
+  /// with nothing in iCloud, written there, its address register under a fresh stamp. A gateway
+  /// removed on all devices is not brought back by this.
   public mutating func resync(gatewayId: String) {
     guard entries[gatewayId] != nil else { return }
     intent(gatewayId, key: entries[gatewayId]!.key) { entry in
       if entry.detached == .absent { entry.detached = nil }
       entry.seen = false
+      if entry.detached == nil { entry.republish = true }
     }
   }
 

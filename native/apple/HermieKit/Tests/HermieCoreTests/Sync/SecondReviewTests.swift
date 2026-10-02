@@ -285,6 +285,14 @@ import Testing
     world.cloud.rejoin(1)
     world.settle()
 
+    // Device 1 read an empty store, which since the third review means "everything was deleted":
+    // its moved gateway stays device-only until the person resyncs it. The old key's tombstone
+    // went out all the same, so no copy is left at the old origin.
+    #expect(world.devices[0].gateways.isEmpty)
+    #expect(world.devices[1].state.entries[ids[1]]?.detached == .absent)
+    world.devices[1].state.resync(gatewayId: ids[1])
+    world.settle()
+
     for device in world.devices {
       #expect(device.gateways.map(\.address) == [alpha])
     }

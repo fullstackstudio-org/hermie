@@ -57,6 +57,14 @@ enum SyncTrace: String, Sendable, Hashable {
   case tombstoneRewrittenOverMissing
   /// "Stop syncing" deleted the item again because a read still showed it.
   case stopSyncingDeleteRepeated
+  /// "Stop syncing" deleted an item this device had not read back as seen (its own publish).
+  case stopSyncingDeletedUnread
+  /// A switched-off gateway left alone an item published again since under a fresh address stamp.
+  case stopSyncingLeftRepublished
+  /// A gateway switched on again or resynced published its address register under a fresh stamp.
+  case republishedWithFreshStamp
+  /// The store showed no items at all after holding some: "Delete everything from iCloud Keychain".
+  case deletedEverything
   /// The print key changed: every print was void and gateways were attached as on first sight.
   case printsReset
   /// A record went out without its headers (I16).
@@ -79,10 +87,20 @@ enum SyncTrace: String, Sendable, Hashable {
 
  Apply it in this order, each step safe to repeat after a crash:
 
- 1. One SQLite transaction: the registry and config changes of `localOps`, and `provisionalState`.
+ 1. One SQLite transaction: the registry and config changes of `localOps`, and `provisionalState`,
+    under a check that the stored state is still the one the plan was made from (an intent the
+    person recorded meanwhile would otherwise be lost). When it is not, nothing of the plan is
+    applied; reconcile again.
  2. The credentials of `localOps` in the device-only keychain (and the purge of a purged gateway's).
  3. `remotePuts` and `remoteDeletes`.
- 4. `state`.
+ 4. `state`, under the same check: when the stored state has moved since step 1 (an intent arrived
+    while steps 2 and 3 ran), step 4 is skipped. The stored state then keeps the pending marks of
+    `provisionalState` plus the new intent, and the next reconcile settles the marks against the
+    values steps 2 and 3 left.
+
+ Each gateway has at most one op in `localOps`: an `.update` carries every field the plan writes to
+ that gateway (credentials a move left behind and values from the record, resolved field by field),
+ and a `.purge` is never accompanied by an update.
 
  `provisionalState` is what makes a crash between the steps harmless. It is `state` with every
  field this plan writes locally marked pending (`SyncEntry.pendingPrint(from:to:)`: the print of

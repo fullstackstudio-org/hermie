@@ -67,6 +67,8 @@ struct TestCloud {
   private(set) var pending: [Message] = []
   /// Uploads the cloud refused (`.cloudWins` only).
   private(set) var refused = 0
+  /// The accounts those uploads were for.
+  private(set) var refusedAccounts: Set<String> = []
   private var version = 0
 
   init(replicas: Int, conflict: ConflictPolicy) {
@@ -125,6 +127,7 @@ struct TestCloud {
         }
       } else {
         refused += 1
+        refusedAccounts.insert(account)
         pending.append(.download(to: from, account: account, item: current ?? Item(value: nil, version: 0)))
       }
     case let .download(to, account, item):
@@ -201,12 +204,31 @@ struct TestDevice {
   var nextId = 0
   /// The key prints are made under; a new one models a print key lost while SQLite stayed.
   var printKey = ""
-  /// Credential values the person entered on this device, as `field|canonical value`.
-  var entered: Set<String> = []
+  /// Per gateway and credential field (`id|field`), the value the person entered here, as long as
+  /// it is still this device's own: forgotten once a plan writes that field here (the device then
+  /// holds a value it received), so publishing an older entry over a newer one is caught.
+  var own: [String: String] = [:]
 
-  mutating func enter(_ field: SyncField, _ value: JSONValue?) {
-    guard let value else { return }
-    entered.insert("\(field.rawValue)|\(canonical(value))")
+  mutating func enter(_ field: SyncField, _ value: JSONValue?, gateway id: String) {
+    own["\(id)|\(field.rawValue)"] = value.map { canonical($0) }
+  }
+
+  func ownValue(_ field: SyncField, gateway id: String) -> String? {
+    own["\(id)|\(field.rawValue)"]
+  }
+
+  /// What a plan does to the own values: a field it writes is no longer one the person entered.
+  mutating func forgetOwn(_ ops: [SyncLocalOp]) {
+    for op in ops {
+      switch op {
+      case let .update(gateway, fields):
+        for field in fields { own["\(gateway.id)|\(field.rawValue)"] = nil }
+      case let .purge(gatewayId):
+        for field in [SyncField.frontDoor, .headers, .sessionToken] { own["\(gatewayId)|\(field.rawValue)"] = nil }
+      case .add:
+        break
+      }
+    }
   }
   let index: Int
 
@@ -293,6 +315,7 @@ struct SyncWorld {
 
     // Ids handed out in the snapshot are spent whether or not they were used.
     target.nextId += 4
+    target.forgetOwn(plan.localOps)
     target.state = plan.state
     target.events += plan.events
     devices[device] = target
@@ -352,6 +375,7 @@ struct SyncWorld {
     }
 
     target.nextId += 4
+    target.forgetOwn(plan.localOps)
     target.state = plan.provisionalState
     devices[device] = target
 
@@ -404,8 +428,8 @@ struct SyncWorld {
       sessionToken: token.map { SyncSessionToken(origin: origin, token: $0) })
     devices[device].gateways.append(gateway)
     devices[device].state.markAddedHere(gatewayId: id, key: gateway.key)
-    devices[device].enter(.sessionToken, gateway.sessionToken?.json)
-    devices[device].enter(.frontDoor, gateway.frontDoor?.json)
+    devices[device].enter(.sessionToken, gateway.sessionToken?.json, gateway: id)
+    devices[device].enter(.frontDoor, gateway.frontDoor?.json, gateway: id)
     return id
   }
 
@@ -420,7 +444,7 @@ struct SyncWorld {
       LocalGateway(
         id: id, name: name, address: address, authKind: "session_token", addedAt: now + devices[device].clockOffset,
         sessionToken: sessionToken))
-    devices[device].enter(.sessionToken, sessionToken?.json)
+    devices[device].enter(.sessionToken, sessionToken?.json, gateway: id)
     return id
   }
 
@@ -444,8 +468,8 @@ struct SyncWorld {
     edit(device, id) { gateway in
       gateway.sessionToken = token.map { SyncSessionToken(origin: GatewayAddress.origin(of: gateway.address), token: $0) }
     }
+    devices[device].enter(.sessionToken, devices[device].gateway(id)?.sessionToken?.json, gateway: id)
     if token != nil {
-      devices[device].enter(.sessionToken, devices[device].gateway(id)?.sessionToken?.json)
       devices[device].state.setSignedOut(false, gatewayId: id, key: gateway.key)
     } else {
       devices[device].state.markClearing(.sessionToken, gatewayId: id, key: gateway.key)
@@ -461,9 +485,8 @@ struct SyncWorld {
     }
     if secret == nil {
       devices[device].state.markClearing(.frontDoor, gatewayId: id, key: current.key)
-    } else {
-      devices[device].enter(.frontDoor, devices[device].gateway(id)?.frontDoor?.json)
     }
+    devices[device].enter(.frontDoor, devices[device].gateway(id)?.frontDoor?.json, gateway: id)
   }
 
   mutating func setHeaders(_ device: Int, _ id: String, _ headers: [String: String]?) {
@@ -473,9 +496,8 @@ struct SyncWorld {
     }
     if headers == nil {
       devices[device].state.markClearing(.headers, gatewayId: id, key: current.key)
-    } else {
-      devices[device].enter(.headers, devices[device].gateway(id)?.headers?.json)
     }
+    devices[device].enter(.headers, devices[device].gateway(id)?.headers?.json, gateway: id)
   }
 
   /// Credentials gone from this device with nobody asking: a keychain read before the first
@@ -485,6 +507,9 @@ struct SyncWorld {
       gateway.sessionToken = nil
       gateway.frontDoor = nil
       gateway.headers = nil
+    }
+    for field in [SyncField.frontDoor, .headers, .sessionToken] {
+      devices[device].enter(field, nil, gateway: id)
     }
   }
 
@@ -503,6 +528,7 @@ struct SyncWorld {
   mutating func signOut(_ device: Int, _ id: String) {
     guard let gateway = devices[device].gateway(id) else { return }
     edit(device, id) { $0.sessionToken = nil }
+    devices[device].enter(.sessionToken, nil, gateway: id)
     devices[device].state.setSignedOut(true, gatewayId: id, key: gateway.key)
   }
 
@@ -511,6 +537,7 @@ struct SyncWorld {
   mutating func signOutEverywhere(_ device: Int, _ id: String) {
     guard let gateway = devices[device].gateway(id) else { return }
     edit(device, id) { $0.sessionToken = nil }
+    devices[device].enter(.sessionToken, nil, gateway: id)
     devices[device].state.setSignedOut(true, gatewayId: id, key: gateway.key)
     devices[device].state.markClearing(.sessionToken, gatewayId: id, key: gateway.key)
   }
@@ -522,6 +549,18 @@ struct SyncWorld {
 
   mutating func setEnabled(_ device: Int, _ enabled: Bool) {
     devices[device].state.enabled = enabled
+  }
+
+  /// "Publish this gateway again" (`SyncState.resync`).
+  mutating func resync(_ device: Int, _ id: String) {
+    devices[device].state.resync(gatewayId: id)
+  }
+
+  /// "Delete everything from iCloud Keychain", done from one device: every item it holds goes.
+  mutating func deleteEverything(_ device: Int) {
+    for account in cloud.items(device).keys.sorted() {
+      cloud.delete(device, account: account)
+    }
   }
 }
 
