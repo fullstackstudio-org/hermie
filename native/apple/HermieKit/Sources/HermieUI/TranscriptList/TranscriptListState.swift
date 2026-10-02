@@ -1,0 +1,79 @@
+import SwiftUI
+
+/// What a transcript list knows about its own scrolling, and the commands a
+/// screen can give it.
+///
+/// The chat screen owns one per open chat and hands it to `TranscriptList`. It
+/// is the whole contract between the two, so the list's implementation can
+/// change (see "Transcript list" in docs/native.md) without the screen noticing.
+///
+/// Only `isAtBottom` is observed by views: it changes when the reader crosses
+/// the threshold, not on every scrolled point, so the jump pill reading it does
+/// not re-render while the list scrolls. Everything else is
+/// `@ObservationIgnored` on purpose.
+@MainActor
+@Observable
+public final class TranscriptListState {
+  /// The reader is within `bottomThreshold` of the newest row. While this is
+  /// true the list follows a reply as it grows; while it is false the pill
+  /// shows and nothing moves under the reader.
+  public internal(set) var isAtBottom = true
+
+  /// How close to the bottom still counts as "at the bottom", in points. 32 is
+  /// what the Expo app's pill uses.
+  @ObservationIgnored public var bottomThreshold: CGFloat = 32
+
+  /// How close to the top, in points, asks for older history.
+  @ObservationIgnored public var nearTopThreshold: CGFloat = 800
+
+  /// Called once each time the reader comes within `nearTopThreshold` of the
+  /// top, to load older history. Prepending rows keeps the reader's place.
+  @ObservationIgnored public var onNearTop: (@MainActor () -> Void)?
+
+  /// The id of the row at the top of the viewport, as the list last reported
+  /// it. Not observed: read it when you need it.
+  @ObservationIgnored public internal(set) var topVisibleID: AnyHashable?
+
+  /// A command waiting for the list to carry it out.
+  enum Command: Equatable {
+    case bottom(animated: Bool)
+    case item(AnyHashable, anchor: UnitPoint, animated: Bool)
+    /// Moves the content by this many points, unanimated: the lab's stand-in
+    /// for a reader's continuous scrolling.
+    case pan(CGFloat)
+  }
+
+  /// The content offset as the list last reported it. Debug use only.
+  @ObservationIgnored var contentOffset: CGFloat = 0
+
+  /// Scrolls by `delta` points (positive: towards newer rows), as a finger
+  /// would. For the transcript lab's hands-off measurements.
+  func pan(by delta: CGFloat) {
+    command = .pan(delta)
+    commandSerial &+= 1
+  }
+
+  @ObservationIgnored var command: Command?
+  /// Bumped with every command; the list watches it.
+  var commandSerial = 0
+  @ObservationIgnored var nearTopArmed = true
+
+  public init() {}
+
+  /// Scrolls to the newest row, and resumes following it.
+  public func scrollToBottom(animated: Bool = true) {
+    command = .bottom(animated: animated)
+    commandSerial &+= 1
+  }
+
+  /// Scrolls so the row with `id` sits at `anchor` of the viewport.
+  public func scroll(to id: some Hashable & Sendable, anchor: UnitPoint = .top, animated: Bool = true) {
+    command = .item(AnyHashable(id), anchor: anchor, animated: animated)
+    commandSerial &+= 1
+  }
+
+  func take() -> Command? {
+    defer { command = nil }
+    return command
+  }
+}

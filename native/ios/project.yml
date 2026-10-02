@@ -76,7 +76,61 @@ targets:
         SWIFT_TREAT_WARNINGS_AS_ERRORS: YES
         TEST_TARGET_NAME: Hermie
 
+  # A debug-only host for the transcript UI tests: HermieUI's debug screens
+  # and nothing else, under its own bundle id, so the tests never install over
+  # the real app or meet its keychain group. Run with `scripts/test.sh --ui`.
+  HermieLab:
+    type: application
+    platform: iOS
+    sources:
+      - path: ../apple/Lab
+    dependencies:
+      - package: HermieKit
+        product: HermieUI
+    settings:
+      base:
+        PRODUCT_NAME: HermieLab
+        PRODUCT_BUNDLE_IDENTIFIER: dev.hermie.lab
+        GENERATE_INFOPLIST_FILE: YES
+        INFOPLIST_KEY_UILaunchScreen_Generation: YES
+        INFOPLIST_KEY_UIApplicationSceneManifest_Generation: YES
+        INFOPLIST_KEY_UISupportedInterfaceOrientations: UIInterfaceOrientationPortrait UIInterfaceOrientationLandscapeLeft UIInterfaceOrientationLandscapeRight
+        TARGETED_DEVICE_FAMILY: '1,2'
+        SUPPORTED_PLATFORMS: iphonesimulator
+        SWIFT_VERSION: '6.0'
+        SWIFT_STRICT_CONCURRENCY: complete
+        SWIFT_TREAT_WARNINGS_AS_ERRORS: YES
+
+  HermieLabUITests:
+    type: bundle.ui-testing
+    platform: iOS
+    sources:
+      - path: ../apple/UITests
+    dependencies:
+      - target: HermieLab
+    settings:
+      base:
+        GENERATE_INFOPLIST_FILE: YES
+        PRODUCT_BUNDLE_IDENTIFIER: dev.hermie.lab.ui-tests
+        TEST_TARGET_NAME: HermieLab
+        SUPPORTED_PLATFORMS: iphonesimulator
+        TARGETED_DEVICE_FAMILY: '1,2'
+        SWIFT_VERSION: '6.0'
+        SWIFT_STRICT_CONCURRENCY: complete
+        SWIFT_TREAT_WARNINGS_AS_ERRORS: YES
+
 schemes:
+  HermieLab:
+    build:
+      targets:
+        HermieLab: all
+        HermieLabUITests: [test]
+    run:
+      config: Debug
+    test:
+      config: Debug
+      targets:
+        - HermieLabUITests
   HermieShellUITests:
     build:
       targets:

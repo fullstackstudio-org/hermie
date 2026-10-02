@@ -251,6 +251,150 @@ hostile input it deliberately does not:
 - **Counters wrap.** `seq` and `version` are `Int`, and stepping one past `Int.max` wraps around
   instead of trapping. The TypeScript's numbers lose precision there instead.
 
+## Transcript list
+
+The chat transcript scrolls in `TranscriptList` (`HermieUI/TranscriptList`). It draws one row per
+`TranscriptRow`, and the rows come from `TranscriptItemView` (`HermieUI/Items`). The list is a
+boundary (D14 in the native plan). Its public surface is the rows, a `TranscriptListState` (at the
+bottom or not, scroll to the bottom or to a row, a callback near the top) and an overlay slot for the
+jump pill. None of that says how the list is drawn, so the implementation can be replaced without
+touching the item views or the chat screen.
+
+**Decision: the SwiftUI list stays (implementation A).** It is a `ScrollView` over a `LazyVStack`,
+bottom-anchored with the iOS 18 scroll APIs. The collection-view representable (implementation B) was
+not built: A keeps the anchored row in place on a history prepend and re-renders only the streaming
+row on a delta. The one Apple hitch metric it could be measured with passed. One risk is still open,
+under [What is still open](#what-is-still-open).
+
+### How it meets the bar
+
+- **Opens at the bottom and follows a growing reply** while the reader is at the bottom, with
+  `defaultScrollAnchor(.bottom)`, and with `.bottom` for `.sizeChanges` while `isAtBottom`. Once the
+  reader has scrolled away, the size-change anchor is `nil`, so a reply growing below them moves
+  nothing.
+- **Prepends without a jump.** A `ScrollPosition` bound with `anchor: .top` over a
+  `scrollTargetLayout` keeps the row at the top of the viewport where it is when rows are inserted
+  above it.
+- **A delta re-renders one row.** `TranscriptListRow` is `Equatable` on its item, and
+  `TranscriptRow` compares in O(1) on a stamp taken when it is built: the id, the item's `version`, the
+  presentation, and whether the selectors took the thought away. This relies on the engine's rule
+  that every mutation of an item bumps its `version`.
+- **Nothing walks the rows on the main actor.** SwiftUI compares every stored `Equatable` property
+  of a view it updates, field by field into structs, and the setter of an `@Observable` property
+  compares old and new with `==`. A `[TranscriptRow]` held in either place is walked in full on every
+  delta. `TranscriptListItems` puts the array behind one class reference, so both compare a pointer.
+  **Hold rows as `TranscriptListItems` in models and views, never as an array.**
+- **Rows and their Markdown are built off the main actor.** `TranscriptRowBuilder` runs where
+  snapshots are made. It turns `visibleItems` into rows, rolls up runs of more than three bot-to-bot
+  rows as `dm-rollup.ts` does, and keeps one `MarkdownDocument` per item. A changed item's document is
+  updated incrementally, so a streaming reply re-parses its tail (at most two slices a delta) and
+  nothing else. The main actor only assigns the snapshot.
+- **Commands go through the same `ScrollPosition`.** After a programmatic `scroll(to:)`, the list
+  does not call `onNearTop` until the reader has scrolled; why is under
+  [What is still open](#what-is-still-open).
+
+The spike tripped over three things that the code now avoids:
+
+- **Equality.** A deep `VisibleItem ==` in the row's equality, reached through SwiftUI's array
+  comparison, cost 5.7 s of a 7.4 s main-thread profile while streaming.
+- **A plain array.** With O(1) row equality, an array of rows still cost 0.8 s of 2.4 s through the
+  view and `@Observable` comparisons.
+- **The lab's own layout.** A report line in the lab wrapped differently after a prepend, changed
+  the inset above the list and moved every row by 13 pt. That looked like a SwiftUI bug until it was
+  found.
+
+### Numbers
+
+Measured on 2 October 2026 on an M5 Max (18 cores) with Xcode 27.0. The iPhone figures come from an
+iPhone 17 simulator (iOS 27.0, 60 Hz), the Mac figures from the Mac's own 120 Hz display. The machine
+was running other heavy jobs throughout: the load average was between 2 and 98 over the session, and
+each figure below gives the load average it was taken at. The transcript is 2,000 synthetic items
+(1,935 rows after the selectors), and a reply streams at 30 deltas per second.
+
+| Measure                                                                   | iPhone 17 simulator                                                  | Mac                                                                                                            |
+| ------------------------------------------------------------------------- | -------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------- |
+| Row bodies re-evaluated during 600 deltas, other than the streaming row's | 0 of the 24 rows on screen (streaming row: 599)                      | not run on the Mac (same views)                                                                                |
+| History prepend of 200 rows after the reader scrolled: Δy of every row    | 0.0 pt (UI test, asserted ≤ 1 pt)                                    | not run on the Mac                                                                                             |
+| `XCTHitchMetric` while streaming and scrolling (UI test, 3 iterations)    | no data: the metric records nothing on the simulator                 | 0.000 ms/s, 0 hitches (XCUITest scroll-wheel events; load 10–33)                                               |
+| Display-link meter, hands-off bench, 15 s per phase                       | idle 0.00, stream 0.00, pan 2.50, stream + pan 0.00 ms/s (load 4–8)  | idle 1.97, stream 5.00, pan 142, stream + pan 91 ms/s (`-O` build, load 6–10)                                  |
+| Display-link meter during the UI test's swipes                            | 75–79 ms/s over two runs (XCUITest snapshots running; load 5–30)     | none                                                                                                           |
+| Memory footprint                                                          | 36.5 MB after loading (+19.4 MB for the rows), 60 MB after the bench | 37 MB after loading (+17 MB); 250–275 MB while a long streamed reply is on screen; 60 MB after it scrolls away |
+
+How much to trust them:
+
+- **Simulator numbers.** The simulator renders on the Mac's CPU and GPU at 60 Hz and never reports
+  `XCTHitchMetric`. Under load its display-link figures inflate badly: the same build measured
+  337 ms/s at a load average of 90, before the fixes, and 0 at a load of 4. Treat them as a smoke
+  test only.
+- **The display-link meter** (`HitchMeter` in `HermieUI/Debug`) counts frames the main thread
+  delivered late. It does not see a frame the render server dropped. The idle phase is its control
+  for the machine's own load.
+- **The pan** moves the list by setting its `ScrollPosition` every 8 ms, so each step is a full
+  SwiftUI transaction. A finger or trackpad moves the scroll view directly and does far less work, so
+  the pan is a pessimistic driver. On the Mac at 120 Hz, the main thread misses about one frame in six
+  by one refresh (the longest frame is 29 ms). The profile puts that time in SwiftUI's own
+  `LazyVStack` placement and display-list update, not in the rows.
+- **The Mac's `XCTHitchMetric` run** used XCUITest's discrete 600 pt scroll-wheel steps, which
+  animate little, so it is the optimistic bound.
+
+### What is still open
+
+- **Smooth scrolling at 120 Hz is not proven.** Measure on a ProMotion iPhone and on the Mac with
+  Instruments, scrolling by hand while a reply streams, before the chat screen ships on this list.
+  If it misses 5 ms/s, build the collection-view representable behind the same boundary. Nothing
+  outside `TranscriptList` would change.
+- **A prepend straight after a programmatic jump.** A `ScrollPosition` that was told
+  `scrollTo(id:)` keeps that target and resolves it again on the next content change. A prepend
+  forced in that state moved the rows off the screen in the spike. The list avoids the state: it
+  holds `onNearTop` back after a command until the reader scrolls. Code that prepends on its own
+  initiative must do the same.
+- **A long reply streaming on screen holds about 200 MB of GPU memory on the Mac** ("owned unmapped
+  (graphics)" in `vmmap`, not the malloc heap). The memory goes with the row once it scrolls away,
+  and it does not change when the reply is drawn as plain `Text` instead of Markdown. It comes from
+  how SwiftUI renders a tall view that changes 30 times a second. Splitting a long reply into several
+  rows would bound it.
+
+### The lab
+
+`TranscriptLabView` (`HermieUI/Debug`, debug builds only) is the spike as a screen. It shows the
+synthetic transcript, with buttons to stream, prepend, jump to the middle, run the meter, pan, and
+run the render-count test, and a report line under them. `TranscriptItemGallery` shows every item
+kind in every presentation, with switches for the colour scheme, AX5 and the width of an iPhone, an
+iPad or a Mac window. `DebugScreens.registerTranscriptScreens()` lists both under Settings →
+Advanced when the app calls it at launch, and `TranscriptDebugMenu` links both on its own.
+
+The UI tests run against `HermieLab`, a debug-only host app in `native/apple/Lab` with its own
+bundle id (`dev.hermie.lab`). It never meets the real app, its keychain group or a gateway.
+
+The accessibility audit runs over the whole gallery, a screenful at a time, at the default size and
+at AX5. It fails on any issue except three, which it records instead:
+
+- **Contrast on an element that the scroll view's edge cuts off.** The audit measures it against
+  the clip, so the same row failed on one page and passed on the next. A screenful is 0.8 of a page,
+  so every element is audited whole on one page or another.
+
+- **The Dynamic Type check.** On Xcode 27 it reports "partially unsupported" for every text,
+  including a system `Toggle`'s own label. `TranscriptItemViewTests` covers AX5 instead: it renders
+  every sample in every presentation at AX5.
+- **"Contrast nearly passed".** This is the system `.secondary` label colour (above 3:1, under 4.5:1),
+  which the timestamps and other metadata use. "Contrast failed" still fails the test.
+
+```sh
+native/apple/scripts/test.sh --ui        # HermieLabUITests on a throwaway iPhone simulator
+native/apple/scripts/test.sh --ui-mac    # the same on this Mac; it drives the pointer while it runs
+# the hands-off bench, printed to stderr; the app quits at the end
+HermieLab.app/Contents/MacOS/HermieLab -HermieLabScreen lab -HermieLabBench YES \
+  -HermieLabBenchSeconds 15 -HermieLabBenchQuit YES
+```
+
+The lab reads these launch arguments:
+
+- `-HermieLabItems <n>` sets the transcript size.
+- `-HermieLabStream YES` starts streaming at launch.
+- `-HermieLabAutoScroll YES` starts panning at launch.
+- `-HermieLabAutoPrepend YES` prepends history when the list asks for it.
+- `-HermieGallerySample <title>` shows only the gallery samples whose title starts with this.
+
 ## Black-box tests against the fake gateway
 
 `HermieIntegrationTests` runs the Swift client against `packages/fake-gateway`, the same stand-in

@@ -391,6 +391,30 @@
           }
         }
       }
+    },
+    "native.transcript.unsupportedItem" : {
+      "comment" : "A transcript row of a kind this version of the app cannot draw. The argument is the kind's name as the gateway sent it. The Expo app draws nothing for such a row.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Diese Nachricht (%@) braucht eine neuere Version von Hermie."
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "This message (%@) needs a newer version of Hermie."
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Dit bericht (%@) heeft een nieuwere versie van Hermie nodig."
+          }
+        }
+      }
     }
   },
   "version" : "1.0"

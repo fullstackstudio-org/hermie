@@ -21,11 +21,16 @@
 #                                                (default iPhone 17) and the runtime (default
 #                                                the newest iOS runtime installed).
 #   native/apple/scripts/test.sh --ui            also run the iOS UI test schemes in ui_schemes
-#                                                (the app shell's HermieShellUITests) on a
-#                                                throwaway iPhone and a throwaway iPad, created
-#                                                for the run and deleted after it.
-#                                                HERMIE_SIM_PAD_TYPE overrides the iPad type
-#                                                (default iPad Pro 11-inch (M5)).
+#                                                (the app shell's HermieShellUITests and the
+#                                                transcript lab's HermieLab) on a throwaway
+#                                                iPhone and a throwaway iPad, created for the
+#                                                run and deleted after it. HERMIE_SIM_PAD_TYPE
+#                                                overrides the iPad type (default iPad Pro
+#                                                11-inch (M5)).
+#   native/apple/scripts/test.sh --ui-mac        also run the transcript lab's UI tests (HermieLab)
+#                                                on this Mac. They drive the real pointer and
+#                                                keyboard while they run, and the test runner
+#                                                needs the Accessibility permission.
 #
 # The options can be combined, in any order, before the swift test arguments.
 #
@@ -46,6 +51,7 @@ if [[ -n "${CI:-}" ]]; then
   integration=true
 fi
 ui=false
+ui_mac=false
 while [[ $# -gt 0 ]]; do
   case "$1" in
     --apps) build_apps=true ;;
@@ -53,6 +59,7 @@ while [[ $# -gt 0 ]]; do
     --integration) integration=true ;;
     --no-integration) integration=false ;;
     --ui) ui=true ;;
+    --ui-mac) ui_mac=true ;;
     *) break ;;
   esac
   shift
@@ -162,7 +169,7 @@ if [[ "$ui" == true ]]; then
   "$apple_dir/scripts/generate.sh" ios
 
   # One entry per UI test scheme in native/ios/project.yml; add yours here.
-  ui_schemes=(HermieShellUITests)
+  ui_schemes=(HermieShellUITests HermieLab)
 
   phone_type="${HERMIE_SIM_DEVICE_TYPE:-com.apple.CoreSimulator.SimDeviceType.iPhone-17}"
   pad_type="${HERMIE_SIM_PAD_TYPE:-com.apple.CoreSimulator.SimDeviceType.iPad-Pro-11-inch-M5-12GB}"
@@ -201,4 +208,14 @@ if [[ "$ui" == true ]]; then
     done
   done
   echo "UI tests passed"
+fi
+
+if [[ "$ui_mac" == true ]]; then
+  "$apple_dir/scripts/generate.sh" macos
+  echo "HermieLab UI tests on this Mac; they drive the pointer until they finish"
+  xcodebuild test -quiet \
+    -project "$native_dir/macos/Hermie.xcodeproj" -scheme HermieLab \
+    -destination 'platform=macOS' \
+    -derivedDataPath "$derived"
+  echo "HermieLab UI tests passed on the Mac"
 fi

@@ -36,5 +36,7 @@
 	<string>Die lokalen Daten von Hermie waren beschädigt und wurden neu angelegt. Alles, was noch lesbar war, wurde behalten.</string>
 	<key>native.notice.runningInMemory</key>
 	<string>Hermie konnte seinen Speicher nicht öffnen. Was du jetzt änderst, geht verloren, sobald Hermie beendet wird.</string>
+	<key>native.transcript.unsupportedItem</key>
+	<string>Diese Nachricht (%@) braucht eine neuere Version von Hermie.</string>
 </dict>
 </plist>

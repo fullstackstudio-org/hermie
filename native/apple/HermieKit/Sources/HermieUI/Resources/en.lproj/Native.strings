@@ -36,5 +36,7 @@
 	<string>Hermie’s local data was damaged and has been rebuilt. Everything that could still be read was kept.</string>
 	<key>native.notice.runningInMemory</key>
 	<string>Hermie could not open its storage. Nothing you change now is kept after Hermie quits.</string>
+	<key>native.transcript.unsupportedItem</key>
+	<string>This message (%@) needs a newer version of Hermie.</string>
 </dict>
 </plist>

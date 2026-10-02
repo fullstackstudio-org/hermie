@@ -23,3 +23,59 @@ targets:
         # entitlements file alone, so there is one place to audit them.
         CODE_SIGN_ENTITLEMENTS: App/Hermie.entitlements
         COMBINE_HIDPI_IMAGES: YES
+
+  # A debug-only host for the transcript UI tests: HermieUI's debug screens
+  # and nothing else, under its own bundle id. Signed ad hoc, unsandboxed, and
+  # never shipped. Run with `scripts/test.sh --ui-mac`, which drives the real
+  # pointer for as long as it runs.
+  HermieLab:
+    type: application
+    platform: macOS
+    sources:
+      - path: ../apple/Lab
+    dependencies:
+      - package: HermieKit
+        product: HermieUI
+    settings:
+      base:
+        PRODUCT_NAME: HermieLab
+        PRODUCT_BUNDLE_IDENTIFIER: dev.hermie.lab
+        GENERATE_INFOPLIST_FILE: YES
+        CODE_SIGN_STYLE: Manual
+        CODE_SIGN_IDENTITY: '-'
+        DEVELOPMENT_TEAM: ''
+        SWIFT_VERSION: '6.0'
+        SWIFT_STRICT_CONCURRENCY: complete
+        SWIFT_TREAT_WARNINGS_AS_ERRORS: YES
+
+  HermieLabUITests:
+    type: bundle.ui-testing
+    platform: macOS
+    sources:
+      - path: ../apple/UITests
+    dependencies:
+      - target: HermieLab
+    settings:
+      base:
+        GENERATE_INFOPLIST_FILE: YES
+        PRODUCT_BUNDLE_IDENTIFIER: dev.hermie.lab.ui-tests
+        TEST_TARGET_NAME: HermieLab
+        CODE_SIGN_STYLE: Manual
+        CODE_SIGN_IDENTITY: '-'
+        DEVELOPMENT_TEAM: ''
+        SWIFT_VERSION: '6.0'
+        SWIFT_STRICT_CONCURRENCY: complete
+        SWIFT_TREAT_WARNINGS_AS_ERRORS: YES
+
+schemes:
+  HermieLab:
+    build:
+      targets:
+        HermieLab: all
+        HermieLabUITests: [test]
+    run:
+      config: Debug
+    test:
+      config: Debug
+      targets:
+        - HermieLabUITests
