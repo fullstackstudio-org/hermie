@@ -153,6 +153,7 @@ struct UserBubbleView: View {
 /// The files and pictures a turn carries, by name. Opening one is the screen's
 /// business.
 struct AttachmentSummary: View {
+  @Environment(\.dynamicTypeSize) private var dynamicTypeSize
   let references: [String]
   let onOpen: @MainActor @Sendable (String) -> Void
 
@@ -164,7 +165,7 @@ struct AttachmentSummary: View {
         } label: {
           Label {
             Text(ItemFormat.attachmentName(reference))
-              .lineLimit(1)
+              .lineLimit(dynamicTypeSize.isAccessibilitySize ? nil : 1)
               .truncationMode(.middle)
           } icon: {
             Image(systemName: ItemFormat.isImageAttachment(reference) ? "photo" : "doc")

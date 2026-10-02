@@ -105,6 +105,7 @@ struct BotDmAside: View {
   let model: BotDmModel
   @Bindable var box: TranscriptExpansion.Box
 
+  @Environment(\.dynamicTypeSize) private var dynamicTypeSize
   @Environment(\.transcriptItemActions) private var actions
 
   var body: some View {
@@ -129,7 +130,7 @@ struct BotDmAside: View {
           if !box.isExpanded {
             Text(ItemFormat.preview(model.text, limit: 60))
               .font(.footnote)
-              .lineLimit(1)
+              .lineLimit(dynamicTypeSize.isAccessibilitySize ? nil : 1)
           }
         }
         .foregroundStyle(.secondary)

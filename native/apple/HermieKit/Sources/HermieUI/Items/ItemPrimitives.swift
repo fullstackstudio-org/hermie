@@ -96,6 +96,8 @@ struct DisclosureHeader<Label: View>: View {
           .rotationEffect(.degrees(box.isExpanded ? 90 : 0))
           .accessibilityHidden(true)
       }
+      // A one-line footnote is far under the hit area a control needs.
+      .frame(minHeight: 44)
       .contentShape(.rect)
     }
     .buttonStyle(.plain)

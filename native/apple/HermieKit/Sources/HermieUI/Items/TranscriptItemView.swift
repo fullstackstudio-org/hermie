@@ -27,6 +27,9 @@ public struct TranscriptItemView: View, Equatable {
     content
       .frame(maxWidth: .infinity, alignment: .leading)
       .accessibilityIdentifier("row.\(row.id)")
+      #if DEBUG
+        .onAppear { RenderCounter.appeared(row.id) }
+      #endif
   }
 
   @ViewBuilder private var content: some View {

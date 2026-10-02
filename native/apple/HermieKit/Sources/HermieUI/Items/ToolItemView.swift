@@ -41,6 +41,7 @@ struct ToolCard: View {
   let running: Bool
 
   @Environment(\.transcriptItemActions) private var actions
+  @Environment(\.dynamicTypeSize) private var dynamicTypeSize
 
   var body: some View {
     VStack(alignment: .leading, spacing: 10) {
@@ -62,6 +63,9 @@ struct ToolCard: View {
     }
   }
 
+  /// One line, except at the accessibility text sizes, where a cut line would hide most of it.
+  private var oneLine: Int? { dynamicTypeSize.isAccessibilitySize ? nil : 1 }
+
   private var header: some View {
     HStack(spacing: 8) {
       Image(systemName: failed ? "exclamationmark.triangle.fill" : ToolFamily(name: item.name).symbol)
@@ -71,13 +75,13 @@ struct ToolCard: View {
       VStack(alignment: .leading, spacing: 1) {
         Text(item.name)
           .font(.subheadline.weight(.medium).monospaced())
-          .lineLimit(1)
+          .lineLimit(oneLine)
           .truncationMode(.middle)
         if let summary = summaryLine {
           Text(summary)
             .font(.footnote)
             .foregroundStyle(.secondary)
-            .lineLimit(1)
+            .lineLimit(oneLine)
         }
       }
       .frame(maxWidth: .infinity, alignment: .leading)

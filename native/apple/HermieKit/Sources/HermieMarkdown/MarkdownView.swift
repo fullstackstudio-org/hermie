@@ -175,9 +175,11 @@ struct MarkdownListView: View {
         .foregroundStyle(checked ? AnyShapeStyle(.tint) : AnyShapeStyle(.secondary))
         .accessibilityLabel(checked ? MarkdownStrings.taskDone : MarkdownStrings.taskOpen)
     } else if list.ordered {
+      // The text's own style, not a level below it: inside a reply drawn `.secondary` (an interim
+      // one), `.secondary` here was two levels down and failed the contrast audit.
       Text(verbatim: "\(list.start + offset).")
         .monospacedDigit()
-        .foregroundStyle(.secondary)
+        .foregroundStyle(.primary)
     } else {
       Text(verbatim: "•")
         .foregroundStyle(.secondary)

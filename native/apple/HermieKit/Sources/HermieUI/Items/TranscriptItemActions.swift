@@ -113,8 +113,17 @@ extension EnvironmentValues {
       counts[id, default: 0] += 1
     }
 
+    /// How often each row's view appeared: a row the lazy list let go of and built again appears
+    /// again, and runs its `body` again for that reason alone.
+    public private(set) static var appearances: [String: Int] = [:]
+
+    public static func appeared(_ id: String) {
+      appearances[id, default: 0] += 1
+    }
+
     public static func reset() {
       counts = [:]
+      appearances = [:]
     }
   }
 #endif

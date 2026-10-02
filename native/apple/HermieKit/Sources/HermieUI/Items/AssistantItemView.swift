@@ -32,6 +32,20 @@ struct AssistantItemView: View {
 
   private var reply: some View {
     VStack(alignment: .leading, spacing: 8) {
+      content
+      // Outside the container that carries Copy: a custom action makes a line interactive, and
+      // a one-line caption is far under the hit area the accessibility audit asks of one.
+      if let footer = footerText {
+        Text(footer)
+          .font(.caption)
+          .foregroundStyle(.secondary)
+      }
+    }
+    .padding(.trailing, 24)
+  }
+
+  private var content: some View {
+    VStack(alignment: .leading, spacing: 8) {
       if let handle = item.replyToBotHandle {
         Text(Strings.Chat.Assistant.replyTo(handle: handle))
           .font(.caption.weight(.semibold))
@@ -61,13 +75,7 @@ struct AssistantItemView: View {
       if let error = item.error {
         AssistantErrorCard(error: error) { actions.retry(item) }
       }
-      if let footer = footerText {
-        Text(footer)
-          .font(.caption)
-          .foregroundStyle(.secondary)
-      }
     }
-    .padding(.trailing, 24)
     .accessibilityElement(children: .contain)
     .accessibilityActions {
       if hasBody {
