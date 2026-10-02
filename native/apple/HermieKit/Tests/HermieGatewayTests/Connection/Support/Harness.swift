@@ -179,9 +179,15 @@ enum HarnessError: Error, CustomStringConvertible {
 
 /// Poll `condition` until it holds, for at most `timeout` of real time. A
 /// condition, never a fixed wait: it returns the moment the work has happened.
+///
+/// The bound is only there to turn a hang into a failure. It is generous on
+/// purpose: on a machine running many builds at once a task can wait seconds
+/// for a thread, and a test must not fail for that. No test may depend on the
+/// bound being short, and none may advance the test clock while work it is
+/// waiting for is still queued (see `anyInboundLiveness`).
 func eventually(
   _ label: String,
-  timeout: Duration = .seconds(5),
+  timeout: Duration = .seconds(60),
   _ condition: () async -> Bool
 ) async throws {
   let deadline = ContinuousClock.now + timeout

@@ -110,11 +110,15 @@ struct ChannelTests {
       let socket = try #require(h.gateway.lastSocket)
 
       // The harness deadline is five seconds; frames keep arriving, pings go
-      // unanswered, and the socket stays up well past it.
+      // unanswered, and the socket stays up well past it. Each frame is read
+      // by the actor before the clock moves on: liveness is the time the actor
+      // READ a frame, so a clock that ran ahead of a starved reader would see a
+      // silent socket that was not.
       for _ in 0..<60 {
         await h.clock.advance(by: .milliseconds(100))
+        let read = await h.connection.wireIndex
         socket.serverSend(["jsonrpc": "2.0", "method": "event", "params": ["type": "status.update"]])
-        _ = await h.connection.phase
+        try await eventually("the frame to be read") { await h.connection.wireIndex > read }
       }
 
       try await eventually("the pings") {

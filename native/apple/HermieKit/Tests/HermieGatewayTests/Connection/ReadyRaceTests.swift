@@ -21,11 +21,13 @@ struct ReadyRaceTests {
       h.gateway.with { $0.closeAfterReady = closed }
       await h.connection.start()
 
-      try await eventually("the dial to settle") {
+      // Wait for where the loop comes to rest, not for a fixed while: under load
+      // the close can still be queued when a dial has just published `ready`.
+      // With the defect it never leaves `ready`, and this times out.
+      try await eventually("the loop to come to rest") {
         let current = await h.connection.phase
-        return current != .authenticating && current != .connecting
+        return current == .reconnecting || current == .disconnected || current == .needsSignin
       }
-      await h.settle()
 
       phase = await h.connection.phase
       error = await h.connection.lastError

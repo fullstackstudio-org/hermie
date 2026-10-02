@@ -17,7 +17,10 @@ struct LifecycleTests {
       h.gateway.with { $0.silent = true }
       await h.connection.start()
       try await h.waitFor(.connecting)
-      try await eventually("the socket to open") { h.gateway.connections == 1 }
+      // Open on the actor's side, not only the fake's: the connect timeout falls
+      // due at the same moment, and a socket the actor has not seen open yet
+      // would fail that way instead.
+      try await eventually("the socket to open") { (await h.connection.clientState) == .open }
 
       await h.clock.advance(by: .milliseconds(1999))
       #expect(await h.connection.phase == .connecting)
