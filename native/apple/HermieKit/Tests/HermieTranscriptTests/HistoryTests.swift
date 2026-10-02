@@ -4,47 +4,10 @@ import Testing
 
 @testable import HermieTranscript
 
-/// Task 12's acceptance and what the golden corpus cannot show about the history
-/// side of the engine (`rowsToItems`, `reconcile`, `prependHistory`,
-/// `reconcileTail`, the cache).
+/// What the golden corpus cannot show about the history side of the engine
+/// (`rowsToItems`, `reconcile`, `prependHistory`, `reconcileTail`, the cache).
+/// The corpus itself is pinned in `ParityGates.swift`.
 @Suite struct HistoryTests {
-  static let historyOperations = GoldenRegistry.owners.filter { $0.value.hasPrefix("task 12") }.map(\.key).sorted()
-
-  /// Every recorded history call passes, and the suites that are only history and
-  /// helpers pass in full.
-  ///
-  /// `reconcile` and `cache` also record reducer calls (`applyEvent`,
-  /// `beginLocalTurn`, …) that Task 11 ports, so until those are registered they
-  /// are pinned on their history calls and on having no failure at all; once the
-  /// reducer lands they can be pinned at 100 % like the others.
-  @Test func historySuitesPassInFull() throws {
-    let report = GoldenReport.shared
-
-    for op in Self.historyOperations {
-      report.expectCoverage(op: op, atLeast: 1.0)
-    }
-
-    for suite in ["rows-to-items", "cron-delivery", "bot-dm"] {
-      report.expectCoverage(suite: suite, atLeast: 1.0)
-    }
-
-    for name in ["reconcile", "cache"] where report.filter.includes(suite: name) {
-      let suite = try #require(report.suites[name])
-      #expect(suite.failures.isEmpty, "suite \(name): \(suite.failures.count) calls fail")
-      for op in Self.historyOperations {
-        guard let stats = suite.ops[op] else { continue }
-        #expect(stats.passed == stats.calls, "suite \(name), \(op): \(stats.passed)/\(stats.calls) pass")
-      }
-    }
-
-    if !report.filter.isActive {
-      let calls = Self.historyOperations.compactMap { report.operations[$0] }.reduce(OpStats(), +)
-      print("history operations: \(calls.passed)/\(calls.calls) recorded calls pass")
-      #expect(calls.calls == 1_237, "the corpus records 1,237 history calls")
-      #expect(calls.passed == calls.calls)
-    }
-  }
-
   /// The branches the corpus never reaches, against results the TypeScript engine
   /// produced for the same inputs (`HistoryBranchCases`).
   @Test func unrecordedBranchesMatchTheReference() throws {

@@ -4,30 +4,6 @@ import Testing
 
 @testable import HermieTranscript
 
-@Suite struct SelectorsGoldenTests {
-  /// Task 13's acceptance: every recorded call of the selector and derived-view
-  /// operations passes. The suites they live in also hold reducer and history
-  /// calls (other tasks'), so they are pinned per operation; `export` holds only
-  /// this task's and is pinned whole.
-  @Test func selectorOperationsPassInFull() {
-    let report = GoldenReport.shared
-    for (op, owner) in GoldenRegistry.owners where owner.hasPrefix("task 13") {
-      report.expectCoverage(op: op, atLeast: 1.0)
-    }
-    report.expectCoverage(suite: "export", atLeast: 1.0)
-  }
-
-  /// No selector call passes only because `null` and an absent key were treated
-  /// alike: the views write exactly the keys the TypeScript writes.
-  @Test func noSelectorCallPassesModuloNull() {
-    let report = GoldenReport.shared
-    for (op, owner) in GoldenRegistry.owners where owner.hasPrefix("task 13") {
-      guard let stats = report.operations[op] else { continue }
-      #expect(stats.passedModuloNull == 0, "\(op): \(stats.passedModuloNull) calls matched only modulo null")
-    }
-  }
-}
-
 /// The JavaScript behaviours the views lean on that the corpus does not pin.
 @Suite struct SelectorsSupportTests {
   @Test func localeCompareIsTheRootCollation() {

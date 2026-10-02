@@ -8,17 +8,20 @@ import Testing
 // made into the engine, replayed against the Swift port and compared as canonical
 // JSON.
 //
-// - Each suite file is one test case below. An operation with no Swift function yet
-//   is PENDING: counted and printed, never a failure. An implemented operation that
-//   answers differently fails with the test name from the corpus and a diff.
+// - Each suite file is one test case below. An operation with no Swift function
+//   is PENDING: counted and printed here, and failed by `ParityGates`. An
+//   implemented operation that answers differently fails with the test name from
+//   the corpus and a diff.
 // - `coverage` prints the table and writes the JSON summary.
 // - `HERMIE_GOLDEN_FILTER` narrows the run (see `GoldenFilter`):
 //     HERMIE_GOLDEN_FILTER=bot-dm native/apple/scripts/test.sh --filter GoldenReplay
 //     HERMIE_GOLDEN_FILTER='*/applyEvent' native/apple/scripts/test.sh --filter GoldenReplay
 //
-// Adding an operation (Tasks 11–13): put an entry in your table
-// (`Golden/GoldenOps+Reducer.swift`, `+History`, `+Selectors`), then pin your suites
-// with an `expectCoverage` test like `helperSuitesPassInFull` below.
+// Adding an operation: put an entry in the table of its area
+// (`Golden/GoldenOps+Reducer.swift`, `+History`, `+Selectors`, `+Helpers`) and an
+// owner in `GoldenRegistry.owners`. `ParityGates.swift` pins every suite, every
+// operation and every stream at 100 %, so an operation the corpus records and no
+// table registers fails the build.
 
 @Suite struct GoldenReplayTests {
   @Test(arguments: GoldenCorpus.suiteNames)
@@ -61,17 +64,6 @@ import Testing
     print("golden coverage written to \(url.path)")
 
     #expect(report.totals.calls > 0 || report.filter.isActive, "the corpus replayed no calls")
-  }
-
-  /// Task 10's acceptance: the operations of the helper modules pass in full.
-  @Test func helperSuitesPassInFull() {
-    let report = GoldenReport.shared
-    for (op, owner) in GoldenRegistry.owners where owner.hasPrefix("task 10") {
-      report.expectCoverage(op: op, atLeast: 1.0)
-    }
-    for suite in ["bot-dm", "cron-delivery", "injected", "model-name", "context-usage"] {
-      report.expectCoverage(suite: suite, atLeast: 1.0)
-    }
   }
 
   /// Every operation the corpus records belongs to a task, so none can be
