@@ -101,7 +101,7 @@ extension TranscriptReducer {
     // one the client only ever saw as a snapshot entry.
     let cancelID = str(payload["id"])
 
-    if let id = nonEmpty(next.byRequestID[cancelID] ?? next.byApprovalID[cancelID]) {
+    if let id = JS.nonEmpty(next.byRequestID[cancelID] ?? next.byApprovalID[cancelID]) {
       patchRequest(&next, id, state: .cancelled, cancelReason: str(payload["reason"]))
     }
   }
@@ -136,7 +136,7 @@ public func applyServerRequest(into next: inout ChatState, _ request: ServerRequ
   let params = R.rec(request.json["params"])
   let method = request.json["method"]?.stringValue
 
-  if method == "approval" && R.openApprovalIDOf(next, R.nonEmpty(R.str(params["request_id"])) ?? requestID) != nil {
+  if method == "approval" && R.openApprovalIDOf(next, JS.nonEmpty(R.str(params["request_id"])) ?? requestID) != nil {
     // The same queue entry under a second transport id. One question, one card.
     return
   }
@@ -151,10 +151,10 @@ public func applyServerRequest(into next: inout ChatState, _ request: ServerRequ
         ApprovalItem(
           base: base,
           requestID: requestID,
-          approvalID: R.nonEmpty(R.str(params["request_id"])) ?? requestID,
+          approvalID: JS.nonEmpty(R.str(params["request_id"])) ?? requestID,
           command: R.str(params["command"]),
-          description: R.nonEmpty(description),
-          toolName: R.nonEmpty(toolName),
+          description: JS.nonEmpty(description),
+          toolName: JS.nonEmpty(toolName),
           choices: choices.isEmpty ? R.defaultApprovalChoices : choices,
           allowPermanent: R.isFalse(params["allow_permanent"]) ? false : true,
           allowSession: R.isFalse(params["allow_session"]) ? false : true,
@@ -187,7 +187,7 @@ public func applyServerRequest(into next: inout ChatState, _ request: ServerRequ
         let question = R.rec(raw)
 
         return ClarifyQuestionItem(
-          qid: R.nonEmpty(R.str(question["qid"])) ?? "q\(index + 1)",
+          qid: JS.nonEmpty(R.str(question["qid"])) ?? "q\(index + 1)",
           question: R.str(question["question"]),
           choices: R.stringChoices(question["choices"]),
           multiSelect: R.isTrue(question["multi_select"])
@@ -197,7 +197,7 @@ public func applyServerRequest(into next: inout ChatState, _ request: ServerRequ
       batch = false
       questions = [
         ClarifyQuestionItem(
-          qid: R.nonEmpty(R.str(params["request_id"])) ?? "q1",
+          qid: JS.nonEmpty(R.str(params["request_id"])) ?? "q1",
           question: R.str(params["question"]),
           choices: R.stringChoices(params["choices"]),
           multiSelect: R.isTrue(params["multi_select"])
@@ -236,7 +236,7 @@ public func answerRequest(_ state: ChatState, _ requestID: String, _ answer: Req
 public func answerRequest(into next: inout ChatState, _ requestID: String, _ answer: RequestAnswer) {
   typealias R = TranscriptReducer
 
-  guard let id = R.nonEmpty(next.byRequestID[requestID]) else { return }
+  guard let id = JS.nonEmpty(next.byRequestID[requestID]) else { return }
 
   switch next.items[id] {
   case .approval?:

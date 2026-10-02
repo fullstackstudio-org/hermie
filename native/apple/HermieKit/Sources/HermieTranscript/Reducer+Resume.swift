@@ -67,7 +67,7 @@ extension TranscriptReducer {
       let item = state.items[id]
 
       if case .assistant(let assistant)? = item, assistant.rowID != nil, settledReply == nil {
-        settledReply = ReducerRowText.normalizedItemText(.assistant(assistant))
+        settledReply = normalizedItemText(.assistant(assistant))
         settledReplyTs = assistant.ts
 
         continue
@@ -85,7 +85,7 @@ extension TranscriptReducer {
       // stamp can never come back one without the other.
       if let item, isInjectedNotice(item) {
         return ShownTurn(
-          authored: ReducerRowText.normalizedItemText(item),
+          authored: normalizedItemText(item),
           carried: "",
           settledReply: settledReply,
           settledReplyTs: settledReply == nil ? nil : settledReplyTs
@@ -95,14 +95,14 @@ extension TranscriptReducer {
       switch item {
       case .user(let user)?:
         return ShownTurn(
-          authored: ReducerRowText.normalizedItemText(.user(user)),
-          carried: ReducerRowText.attachmentsMatchKey(user.attachments),
+          authored: normalizedItemText(.user(user)),
+          carried: attachmentsMatchKey(user.attachments),
           settledReply: settledReply,
           settledReplyTs: settledReply == nil ? nil : settledReplyTs
         )
       case .botDmIn?, .cronDelivery?:
         return ShownTurn(
-          authored: ReducerRowText.normalizedItemText(item!),
+          authored: normalizedItemText(item!),
           carried: "",
           settledReply: settledReply,
           settledReplyTs: settledReply == nil ? nil : settledReplyTs
@@ -181,11 +181,11 @@ extension TranscriptReducer {
   ///
   /// `readInflightPrompt`.
   static func readInflightPrompt(_ userText: String) -> InflightPrompt {
-    switch ReducerRowText.classifyUserRow(userText) {
+    switch classifyUserRow(userText) {
     case .cronDelivery(let cron):
       return InflightPrompt(
         raw: userText,
-        key: ReducerRowText.normalizeMatchText("\(cron.jobName)\n\(cron.body)"),
+        key: normalizeMatchText("\(cron.jobName)\n\(cron.body)"),
         carried: "",
         kind: .cronDelivery(cron)
       )
@@ -193,7 +193,7 @@ extension TranscriptReducer {
     case .botDmIn(let incoming):
       return InflightPrompt(
         raw: userText,
-        key: ReducerRowText.normalizeMatchText(incoming.body),
+        key: normalizeMatchText(incoming.body),
         carried: "",
         kind: .botDmIn(incoming)
       )
@@ -203,7 +203,7 @@ extension TranscriptReducer {
       // report projects no item at all, so there is nothing for it to pair with.
       return InflightPrompt(
         raw: userText,
-        key: ReducerRowText.normalizeMatchText(userText),
+        key: normalizeMatchText(userText),
         carried: "",
         kind: .botDmReply
       )
@@ -211,7 +211,7 @@ extension TranscriptReducer {
     case .notice(let injected):
       return InflightPrompt(
         raw: userText,
-        key: ReducerRowText.normalizeMatchText(injected.body),
+        key: normalizeMatchText(injected.body),
         carried: "",
         kind: .notice(injected)
       )
@@ -219,8 +219,8 @@ extension TranscriptReducer {
     case .user(let text, let attachments, _):
       return InflightPrompt(
         raw: userText,
-        key: ReducerRowText.normalizeMatchText(text),
-        carried: ReducerRowText.attachmentsMatchKey(attachments),
+        key: normalizeMatchText(text),
+        carried: attachmentsMatchKey(attachments),
         kind: .user(speech: text, refs: attachments)
       )
     }
@@ -300,7 +300,7 @@ extension TranscriptReducer {
       return (true, false)
     }
 
-    if JS.same(settledReply, ReducerRowText.normalizeMatchText(assistantText)) {
+    if JS.same(settledReply, normalizeMatchText(assistantText)) {
       return (true, true)
     }
 
@@ -340,7 +340,12 @@ extension TranscriptReducer {
 
     case .botDmIn(let incoming):
       return .botDmIn(
-        BotDmInItem(base: base, senderName: incoming.senderName, senderHandle: nonEmpty(incoming.senderHandle), text: incoming.body)
+        BotDmInItem(
+          base: base,
+          senderName: incoming.senderName,
+          senderHandle: JS.nonEmpty(incoming.senderHandle),
+          text: incoming.body
+        )
       )
 
     case .notice(let injected):
@@ -532,7 +537,7 @@ public func applyResumeSnapshot(into next: inout ChatState, _ snapshot: SessionR
   if !R.str(pending["request_id"]).isEmpty || !R.str(pending["command"]).isEmpty {
     // `pending_approval` is a queue entry, not a live server request: synthesize
     // a request id from it so the sheet can be rebuilt and later cancelled.
-    let requestID = "pending:\(R.nonEmpty(R.str(pending["request_id"])) ?? "approval")"
+    let requestID = "pending:\(JS.nonEmpty(R.str(pending["request_id"])) ?? "approval")"
 
     applyServerRequest(
       into: &next,

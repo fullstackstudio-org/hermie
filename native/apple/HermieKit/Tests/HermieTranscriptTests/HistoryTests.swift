@@ -172,8 +172,9 @@ import Testing
 
   /// JavaScript truthiness, which decides whether a tool row keeps odd `args`.
   @Test func truthinessIsJavaScripts() {
-    #expect(!jsTruthy(nil) && !jsTruthy(.null) && !jsTruthy(false) && !jsTruthy(0) && !jsTruthy(""))
-    #expect(jsTruthy(true) && jsTruthy(-1) && jsTruthy("0") && jsTruthy([]) && jsTruthy([:]))
+    func truthy(_ value: JSONValue?) -> Bool { JS.truthy(value) }
+    #expect(!truthy(nil) && !truthy(.null) && !truthy(false) && !truthy(0) && !truthy(""))
+    #expect(truthy(true) && truthy(-1) && truthy("0") && truthy([]) && truthy([:]))
   }
 }
 

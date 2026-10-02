@@ -158,4 +158,75 @@ enum JS {
   static func parseJSON(_ text: String) -> JSONValue? {
     try? JSONValue(parsing: text)
   }
+
+  /// `!value.trim()`: empty or only `String.prototype.trim` whitespace. Stops at
+  /// the first code unit that is not.
+  static func trimsToEmpty(_ value: String) -> Bool {
+    value.utf16.allSatisfy(isWhitespace)
+  }
+
+  /// `haystack.includes(needle)`, code unit for code unit.
+  static func includes(_ haystack: String, _ needle: String) -> Bool {
+    if needle.isEmpty { return true }
+    return (haystack as NSString).range(of: needle, options: .literal).location != NSNotFound
+  }
+
+  /// `[...new Set(values)]`: the first of each string, in order, compared code unit
+  /// for code unit as `Set` does (Swift's `Set<String>` would merge canonically
+  /// equivalent spellings).
+  static func unique(_ values: [String]) -> [String] {
+    var seen = Set<[UInt16]>()
+    return values.filter { seen.insert(Array($0.utf16)).inserted }
+  }
+
+  /// The CLDR root collation, which is what `String.prototype.localeCompare` with
+  /// no arguments used when the corpus was recorded (an `en-US` Node; English adds
+  /// no tailoring to the root order). Pinned here rather than read from the
+  /// device, so a Swedish phone sorts the activity timeline the way every other
+  /// phone does.
+  static let collationLocale = Locale(identifier: "")
+
+  /// `a.localeCompare(b)` as `-1`, `0` or `1`.
+  static func localeCompare(_ lhs: String, _ rhs: String) -> Int {
+    switch lhs.compare(rhs, options: [], range: nil, locale: collationLocale) {
+    case .orderedAscending: -1
+    case .orderedSame: 0
+    case .orderedDescending: 1
+    }
+  }
+
+  // MARK: Truthiness
+
+  /// `a || b` and `a ? … : …` on a string: an empty string is as good as none, so
+  /// it reads as `nil`. (Where the TypeScript used `??`, an empty string is kept,
+  /// and this is not the reading.)
+  static func nonEmpty(_ value: String?) -> String? {
+    guard let value, !value.isEmpty else { return nil }
+    return value
+  }
+
+  /// `Boolean(value)` on a JSON value; an absent value is `undefined`, which is falsy.
+  static func truthy(_ value: JSONValue?) -> Bool {
+    value?.isTruthy ?? false
+  }
+
+  /// `value ? …` on a number: `undefined`, `0` and `NaN` are falsy.
+  static func truthy(_ value: Double?) -> Bool {
+    guard let value else { return false }
+    return value != 0 && !value.isNaN
+  }
+}
+
+extension Array {
+  /// `Array.prototype.sort(compare)`: stable, which Swift's `sort` does not
+  /// promise. `compare` answers like a JavaScript comparator (negative, zero,
+  /// positive); ties keep their original order.
+  func jsStableSorted(by compare: (Element, Element) -> Int) -> [Element] {
+    enumerated()
+      .sorted { lhs, rhs in
+        let order = compare(lhs.element, rhs.element)
+        return order != 0 ? order < 0 : lhs.offset < rhs.offset
+      }
+      .map(\.element)
+  }
 }

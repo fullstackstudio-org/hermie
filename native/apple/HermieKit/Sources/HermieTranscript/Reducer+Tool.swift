@@ -8,8 +8,8 @@ extension TranscriptReducer {
     sealAssistantForTool(&next)
     next.turn.draftingTool = nil
 
-    let toolID = nonEmpty(str(payload["tool_id"])) ?? "gen-\(next.turn.nextSeq)"
-    let name = nonEmpty(str(payload["name"])) ?? "tool"
+    let toolID = JS.nonEmpty(str(payload["tool_id"])) ?? "gen-\(next.turn.nextSeq)"
+    let name = JS.nonEmpty(str(payload["name"])) ?? "tool"
     let args = rec(payload["args"])
     let ts = now / 1000
 
@@ -51,12 +51,12 @@ extension TranscriptReducer {
           base: base,
           toolID: toolID,
           name: name,
-          context: nonEmpty(context),
+          context: JS.nonEmpty(context),
           args: args.isEmpty ? nil : args,
-          argsText: nonEmpty(argsText),
+          argsText: JS.nonEmpty(argsText),
           status: .running,
           resultKnown: false,
-          summary: nonEmpty(context)
+          summary: JS.nonEmpty(context)
         )
       )
     }
@@ -65,13 +65,13 @@ extension TranscriptReducer {
   /// `case 'tool.complete'`.
   static func toolComplete(_ next: inout ChatState, _ payload: JSONObject, _ now: Double) {
     let toolID = str(payload["tool_id"])
-    let name = nonEmpty(str(payload["name"])) ?? "tool"
+    let name = JS.nonEmpty(str(payload["name"])) ?? "tool"
     var id = toolID.isEmpty ? nil : next.byToolID[toolID]
 
-    if nonEmpty(id) == nil {
+    if JS.nonEmpty(id) == nil {
       // A tool whose start we missed (late attach, replay gap): materialise it
       // now so the result is never dropped.
-      let lateID = nonEmpty(toolID) ?? "late-\(next.turn.nextSeq)"
+      let lateID = JS.nonEmpty(toolID) ?? "late-\(next.turn.nextSeq)"
 
       id = addItem(&next, id: "t:\(lateID)", ts: now / 1000) { base in
         .tool(ToolItem(base: base, toolID: lateID, name: name, status: .running, resultKnown: false))
@@ -83,7 +83,7 @@ extension TranscriptReducer {
     let summary = str(payload["summary"])
     let resultText = str(payload["result_text"])
     let inlineDiff = str(payload["inline_diff"])
-    let failed = truthy(payload["error"])
+    let failed = JS.truthy(payload["error"])
 
     switch next.items[itemID] {
     case .botDmOut?:
@@ -95,7 +95,7 @@ extension TranscriptReducer {
         draft.dispatch = dispatch
       }
 
-      if let processID = nonEmpty(dispatch.processID) {
+      if let processID = JS.nonEmpty(dispatch.processID) {
         next.byProcessID[processID] = itemID
       }
 
@@ -111,7 +111,7 @@ extension TranscriptReducer {
 
         draft.status = failed ? .failed : active ? .running : .done
 
-        if let completion = nonEmpty(summary) ?? nonEmpty(resultText) {
+        if let completion = JS.nonEmpty(summary) ?? JS.nonEmpty(resultText) {
           draft.completion = completion
         }
       }
@@ -153,7 +153,7 @@ extension TranscriptReducer {
   /// dispatch or a group would carry an `outputRisk` too. Those kinds have no such
   /// field here; it is written into their `extra`, which encodes to the same JSON.
   static func toolOutputRisk(_ next: inout ChatState, _ payload: JSONObject) {
-    guard let id = nonEmpty(next.byToolID[str(payload["tool_id"])]) else { return }
+    guard let id = JS.nonEmpty(next.byToolID[str(payload["tool_id"])]) else { return }
 
     let findings: [String] =
       if case .array(let values)? = payload["findings"] { values.compactMap(\.stringValue) } else { [] }

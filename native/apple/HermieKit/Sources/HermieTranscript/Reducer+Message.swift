@@ -16,7 +16,7 @@ extension TranscriptReducer {
       // parked burst used to start as a foreign turn and put an empty
       // placeholder in front of the user's own message. A bubble still marked
       // `pending` is a prompt of ours waiting for exactly this frame.
-      if let parked = nonEmpty(firstParkedPromptID(next)) {
+      if let parked = JS.nonEmpty(firstParkedPromptID(next)) {
         patchUser(&next, parked) { draft in
           draft.pending = false
         }
@@ -85,7 +85,7 @@ extension TranscriptReducer {
   static func messageInterim(_ next: inout ChatState, _ payload: JSONObject, _ now: Double) {
     let text = str(payload["text"])
 
-    if let id = nonEmpty(next.turn.assistantID), case .assistant? = next.items[id] {
+    if let id = JS.nonEmpty(next.turn.assistantID), case .assistant? = next.items[id] {
       patchAssistant(&next, id) { draft in
         if !text.isEmpty {
           draft.text = text
@@ -150,19 +150,20 @@ extension TranscriptReducer {
 
   /// `case 'message.complete'`.
   static func messageComplete(_ next: inout ChatState, _ payload: JSONObject, _ now: Double) {
-    let finalText = nonEmpty(str(payload["text"])) ?? str(payload["rendered"])
+    let finalText = JS.nonEmpty(str(payload["text"])) ?? str(payload["rendered"])
     let wasInterrupted = next.turn.interrupted == true
     let rawStatus = str(payload["status"])
     let status: AssistantStatus =
       rawStatus == "error" ? .error : rawStatus == "interrupted" || wasInterrupted ? .interrupted : .complete
-    let durationS = truthy(next.turn.startedAt) ? (now - next.turn.startedAt!) / 1000 : nil
+    let durationS = JS.truthy(next.turn.startedAt) ? (now - next.turn.startedAt!) / 1000 : nil
     let failure: AssistantFailure? =
       rawStatus == "error"
       ? AssistantFailure(
-        message: nonEmpty(JS.trim(str(payload["error"]))) ?? nonEmpty(finalText) ?? "The gateway reported an error",
+        message: JS.nonEmpty(JS.trim(str(payload["error"]))) ?? JS.nonEmpty(finalText)
+          ?? "The gateway reported an error",
         partial: isTrue(payload["partial"]),
         recoverable: isTrue(payload["recoverable"]) ? true : nil,
-        surface: truthy(payload["error_surface"]) ? ErrorSurface(json: rec(payload["error_surface"])) : nil
+        surface: JS.truthy(payload["error_surface"]) ? ErrorSurface(json: rec(payload["error_surface"])) : nil
       )
       : nil
     let previewedFlag = isTrue(payload["response_previewed"])
@@ -172,16 +173,16 @@ extension TranscriptReducer {
     let previewed = previewedFlag ? lastAssistantID(next) : nil
     // Without that flag, a tool call in the middle of the turn has the same
     // effect: it sealed the bubble, so this completion has nowhere to land.
-    let continued = nonEmpty(next.turn.assistantID) != nil ? nil : interimContinuedBy(next, finalText)
+    let continued = JS.nonEmpty(next.turn.assistantID) != nil ? nil : interimContinuedBy(next, finalText)
     var id = next.turn.assistantID ?? previewed ?? continued
 
     if id == nil && (!finalText.isEmpty || failure != nil) {
       id = currentAssistantID(&next, now)
     }
 
-    let usage = truthy(payload["usage"]) ? Usage(json: rec(payload["usage"])) : nil
+    let usage = JS.truthy(payload["usage"]) ? Usage(json: rec(payload["usage"])) : nil
 
-    if let id = nonEmpty(id) {
+    if let id = JS.nonEmpty(id) {
       patchAssistant(&next, id) { draft in
         if !finalText.isEmpty && !previewedFlag {
           draft.text = finalText
@@ -217,7 +218,7 @@ extension TranscriptReducer {
   static func sessionInfo(_ next: inout ChatState, _ payload: JSONObject) {
     next.info = SessionLiveInfo(json: payload)
 
-    if let stored = nonEmpty(str(payload["stored_session_id"])) {
+    if let stored = JS.nonEmpty(str(payload["stored_session_id"])) {
       next.storedSessionID = stored
     }
 
@@ -228,7 +229,7 @@ extension TranscriptReducer {
 
   /// `case 'error'`.
   static func errorEvent(_ next: inout ChatState, _ payload: JSONObject, _ now: Double) {
-    let message = nonEmpty(str(payload["message"])) ?? "The gateway reported an error"
+    let message = JS.nonEmpty(str(payload["message"])) ?? "The gateway reported an error"
     var id = next.turn.assistantID
 
     if id == nil {
@@ -275,7 +276,7 @@ extension TranscriptReducer {
     let rowID = num(payload["row_id"])
     let id = rowID.flatMap { next.byRowID[JS.string($0)] }
 
-    if let id = nonEmpty(id), case .array(let entries)? = payload["reactions"] {
+    if let id = JS.nonEmpty(id), case .array(let entries)? = payload["reactions"] {
       let reactions = asReactions(entries)
 
       patchAnyItem(&next, id) { draft in

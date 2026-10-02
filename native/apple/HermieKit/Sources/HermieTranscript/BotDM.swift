@@ -359,6 +359,12 @@ private func stripDeliveryPrefix(_ text: String) -> String {
 /// nearest earlier human turn or at an inbound row from the same sender, so one
 /// dispatch exempts only the answer that follows it.
 public func dispatchedTo(_ earlier: [TranscriptItem], _ sender: [String?]) -> Bool {
+  dispatchedTo(earlier[...], sender)
+}
+
+/// `dispatchedTo(items.slice(0, index), sender)` over a slice, so a caller that
+/// scans every prefix of a transcript (`attributeBotReplies`) copies none of them.
+func dispatchedTo(_ earlier: ArraySlice<TranscriptItem>, _ sender: [String?]) -> Bool {
   let keys = Set(sender.map(normalizeAgentTarget).filter { !$0.isEmpty })
 
   if keys.isEmpty {

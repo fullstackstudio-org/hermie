@@ -198,24 +198,24 @@ public func toSubagent(_ payload: JSONObject, _ prev: Subagent?, _ eventType: St
   let stream = streamFromPayload(payload, status, eventType, at).reduce(prev?.stream ?? [], appendStream)
   let filesRead = strList(payload["files_read"])
   let filesWritten = strList(payload["files_written"])
-  let childSessionID = nonEmpty(str(payload["child_session_id"])) ?? prev?.childSessionID
-  let delegationID = nonEmpty(str(payload["delegation_id"])) ?? prev?.delegationID
-  let model = nonEmpty(str(payload["model"])) ?? prev?.model
+  let childSessionID = JS.nonEmpty(str(payload["child_session_id"])) ?? prev?.childSessionID
+  let delegationID = JS.nonEmpty(str(payload["delegation_id"])) ?? prev?.delegationID
+  let model = JS.nonEmpty(str(payload["model"])) ?? prev?.model
   let depth = num(payload["depth"]) ?? prev?.depth
   let durationSeconds = num(payload["duration_seconds"]) ?? prev?.durationSeconds
   let toolCount = num(payload["tool_count"]) ?? prev?.toolCount
   let inputTokens = num(payload["input_tokens"]) ?? prev?.inputTokens
   let outputTokens = num(payload["output_tokens"]) ?? prev?.outputTokens
-  let summary = nonEmpty(str(payload["summary"])) ?? nonEmpty(timeoutSummary(payload)) ?? prev?.summary
-  let currentTool = terminalSubagentStatus.contains(status) ? nil : nonEmpty(tool) ?? prev?.currentTool
+  let summary = JS.nonEmpty(str(payload["summary"])) ?? JS.nonEmpty(timeoutSummary(payload)) ?? prev?.summary
+  let currentTool = terminalSubagentStatus.contains(status) ? nil : JS.nonEmpty(tool) ?? prev?.currentTool
 
   return Subagent(
     id: prev?.id ?? subagentIDOf(payload),
-    parentID: nonEmpty(str(payload["parent_id"])) ?? nonEmpty(prev?.parentID),
-    delegationID: nonEmpty(delegationID),
-    childSessionID: nonEmpty(childSessionID),
-    goal: nonEmpty(str(payload["goal"])) ?? nonEmpty(prev?.goal) ?? "Subagent",
-    model: nonEmpty(model),
+    parentID: JS.nonEmpty(str(payload["parent_id"])) ?? JS.nonEmpty(prev?.parentID),
+    delegationID: JS.nonEmpty(delegationID),
+    childSessionID: JS.nonEmpty(childSessionID),
+    goal: JS.nonEmpty(str(payload["goal"])) ?? JS.nonEmpty(prev?.goal) ?? "Subagent",
+    model: JS.nonEmpty(model),
     depth: depth,
     taskIndex: num(payload["task_index"]) ?? prev?.taskIndex ?? 0,
     taskCount: num(payload["task_count"]) ?? prev?.taskCount ?? 1,
@@ -229,14 +229,8 @@ public func toSubagent(_ payload: JSONObject, _ prev: Subagent?, _ eventType: St
     filesRead: filesRead.isEmpty ? (prev?.filesRead ?? []) : filesRead,
     filesWritten: filesWritten.isEmpty ? (prev?.filesWritten ?? []) : filesWritten,
     stream: stream,
-    summary: nonEmpty(summary),
-    currentTool: nonEmpty(currentTool),
+    summary: JS.nonEmpty(summary),
+    currentTool: JS.nonEmpty(currentTool),
     acceptingSteer: prev?.acceptingSteer
   )
-}
-
-/// JavaScript's `a || b` for strings: an empty string is as good as none.
-private func nonEmpty(_ value: String?) -> String? {
-  guard let value, !value.isEmpty else { return nil }
-  return value
 }

@@ -21,7 +21,7 @@ extension TranscriptReducer {
     var refs: [String] = []
 
     for ref in (projected ?? []) + (supplied ?? []) {
-      let key = ReducerRowText.attachmentsMatchKey([ref])
+      let key = attachmentsMatchKey([ref])
 
       if !keys.contains(where: { JS.same($0, key) }) {
         keys.append(key)
@@ -91,7 +91,7 @@ public func beginLocalTurn(
 ) {
   typealias R = TranscriptReducer
 
-  let projected = ReducerRowText.stripUserText(text)
+  let projected = stripUserText(text)
   let refs = R.mergeAttachmentRefs(projected.attachments, attachments)
 
   R.addItem(&next, id: "o:\(next.turn.nextSeq)", ts: now / 1000, origin: .optimistic) { base in
@@ -135,7 +135,7 @@ public func beginSteer(_ state: ChatState, _ text: String, _ attachments: [Strin
 public func beginSteer(into next: inout ChatState, _ text: String, _ attachments: [String]?, _ now: Double) {
   typealias R = TranscriptReducer
 
-  let projected = ReducerRowText.stripUserText(text)
+  let projected = stripUserText(text)
   let refs = R.mergeAttachmentRefs(projected.attachments, attachments)
 
   R.addItem(&next, id: "o:\(next.turn.nextSeq)", ts: now / 1000, origin: .optimistic) { base in
@@ -163,7 +163,7 @@ public func dropSteer(_ state: ChatState, _ text: String) -> ChatState {
 
 /// `dropSteer`, in place.
 public func dropSteer(into next: inout ChatState, _ text: String) {
-  let wanted = ReducerRowText.stripUserText(text).text
+  let wanted = stripUserText(text).text
 
   for id in next.order.reversed() where !id.isEmpty {
     if case .user(let item)? = next.items[id], item.origin == .optimistic, item.displayKind == .steer,
@@ -189,7 +189,7 @@ public func confirmSubmit(_ state: ChatState, _ result: PromptSubmitResult, _ no
 public func confirmSubmit(into next: inout ChatState, _ result: PromptSubmitResult, _ now: Double) {
   typealias R = TranscriptReducer
 
-  guard let id = R.nonEmpty(R.lastOptimisticUserID(next)) else { return }
+  guard let id = JS.nonEmpty(R.lastOptimisticUserID(next)) else { return }
 
   let status = R.str(result.json["status"])
 
@@ -226,14 +226,14 @@ public func markInterrupted(_ state: ChatState, _ now: Double) -> ChatState {
 public func markInterrupted(into next: inout ChatState, _ now: Double) {
   typealias R = TranscriptReducer
 
-  if let id = R.nonEmpty(next.turn.assistantID), case .assistant? = next.items[id] {
+  if let id = JS.nonEmpty(next.turn.assistantID), case .assistant? = next.items[id] {
     let startedAt = next.turn.startedAt
 
     R.patchAssistant(&next, id) { draft in
       draft.streaming = false
       draft.status = .interrupted
 
-      if R.truthy(startedAt) {
+      if JS.truthy(startedAt) {
         draft.durationS = (now - startedAt!) / 1000
       }
     }
@@ -273,7 +273,7 @@ public func applyProcessCompletion(into next: inout ChatState, _ text: String, _
   typealias R = TranscriptReducer
 
   for block in parseProcessCompleteText(text) {
-    guard let id = R.nonEmpty(next.byProcessID[block.sid]) else {
+    guard let id = JS.nonEmpty(next.byProcessID[block.sid]) else {
       continue
     }
 
@@ -283,11 +283,11 @@ public func applyProcessCompletion(into next: inout ChatState, _ text: String, _
       draft.reply = BotDmReply(
         text: outcome.text ?? "",
         ts: now / 1000,
-        error: R.nonEmpty(outcome.error),
-        reason: R.nonEmpty(outcome.reason)
+        error: JS.nonEmpty(outcome.error),
+        reason: JS.nonEmpty(outcome.reason)
       )
 
-      if let error = R.nonEmpty(outcome.error) {
+      if let error = JS.nonEmpty(outcome.error) {
         draft.dispatch.status = .failed
         draft.dispatch.error = error
       }

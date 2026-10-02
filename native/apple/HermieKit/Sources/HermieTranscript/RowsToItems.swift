@@ -72,21 +72,6 @@ enum RowPatterns {
   static let pathSeparator = JSRegExp(#"[/\\]"#)
 }
 
-extension JSRegExp {
-  /// `[...value.matchAll(re)].map(match => match[0])` for a global pattern that never
-  /// matches empty and has no anchor or look-behind, so searching the rest of the
-  /// text after each match is the same search `matchAll` makes.
-  func allMatches(in value: String) -> [String] {
-    var out: [String] = []
-    var rest = value
-    while let match = exec(rest), let text = match[0], match.length > 0 {
-      out.append(text)
-      rest = JS.substring(rest, match.index + match.length)
-    }
-    return out
-  }
-}
-
 // MARK: - Reading a row's raw values
 
 /// `a ?? b ?? c` over raw JSON: the first value that is neither absent nor `null`.
@@ -95,17 +80,6 @@ private func coalesce(_ values: JSONValue?...) -> JSONValue? {
     if let value, value != .null { return value }
   }
   return nil
-}
-
-/// JavaScript truthiness of a JSON value.
-func jsTruthy(_ value: JSONValue?) -> Bool {
-  switch value {
-  case nil, .null?: false
-  case .bool(let flag)?: flag
-  case .number(let number)?: number != 0 && !number.isNaN
-  case .string(let text)?: !text.isEmpty
-  case .array?, .object?: true
-  }
 }
 
 /// `asText`: a string as itself, an array of content parts joined by newlines,
@@ -202,20 +176,6 @@ private func codexMessageItemText(_ value: JSONValue?) -> String {
   return texts.joined()
 }
 
-/// `[...new Set(values)]`: the first of each string, in order, compared code unit
-/// for code unit as `Set` does (Swift's `Set<String>` would merge canonically
-/// equivalent spellings).
-func uniqueByCodeUnits(_ values: [String]) -> [String] {
-  var seen = Set<[UInt16]>()
-  return values.filter { seen.insert(Array($0.utf16)).inserted }
-}
-
-/// `haystack.includes(needle)`, code unit for code unit.
-func jsIncludes(_ haystack: String, _ needle: String) -> Bool {
-  if needle.isEmpty { return true }
-  return (haystack as NSString).range(of: needle, options: .literal).location != NSNotFound
-}
-
 // MARK: - stripUserText
 
 /// `StrippedUserText`.
@@ -260,10 +220,10 @@ public func stripUserText(_ raw: String) -> StrippedUserText {
     )
 
     let attachedContext = JS.substring(textContent, marker.index + marker.length)
-    let refs = uniqueByCodeUnits(RowPatterns.contextRef.allMatches(in: attachedContext))
+    let refs = JS.unique(RowPatterns.contextRef.allMatches(in: attachedContext))
     // The prose keeps the `@file:` token the user typed, so it already chips in
     // place. Only hoist a ref the prose is missing.
-    let missing = refs.filter { !jsIncludes(visible, $0) }
+    let missing = refs.filter { !JS.includes(visible, $0) }
 
     let joined = [missing.joined(separator: "\n"), visible].filter { !$0.isEmpty }.joined(separator: "\n\n")
     visible = joined.isEmpty ? visible : joined
@@ -271,7 +231,7 @@ public func stripUserText(_ raw: String) -> StrippedUserText {
     visible = JS.trim(RowPatterns.contextWarningsMarker.replaceFirst(in: textContent, with: ""))
   }
 
-  let attachments = uniqueByCodeUnits(RowPatterns.attachmentRef.allMatches(in: visible))
+  let attachments = JS.unique(RowPatterns.attachmentRef.allMatches(in: visible))
 
   if attachments.isEmpty {
     return StrippedUserText(text: visible)
@@ -624,7 +584,7 @@ private struct RowProjection {
     )
     // `...(args ? { args } : {})`: truthy `args` that is not an object has no typed
     // home, so it rides in `extra` and is written back as it came.
-    if argsObject == nil, let args, jsTruthy(args) {
+    if argsObject == nil, let args, JS.truthy(args) {
       tool.extra["args"] = args
     }
     items.append(.tool(tool))
@@ -924,33 +884,4 @@ public func attributeBotReplies(_ items: inout [TranscriptItem]) {
       break probing
     }
   }
-}
-
-/// `dispatchedTo(items.slice(0, index), sender)` without copying the prefix: the
-/// same backward scan as `dispatchedTo` in `BotDM.swift`, over a slice.
-private func dispatchedTo(_ earlier: ArraySlice<TranscriptItem>, _ sender: [String?]) -> Bool {
-  let keys = Set(sender.map(normalizeAgentTarget).filter { !$0.isEmpty })
-
-  if keys.isEmpty {
-    return false
-  }
-
-  for item in earlier.reversed() {
-    switch item {
-    case .user:
-      return false
-    case .botDmIn(let inbound):
-      if [inbound.senderName, inbound.senderHandle].contains(where: { keys.contains(normalizeAgentTarget($0)) }) {
-        return false
-      }
-    case .botDmOut(let outbound):
-      if keys.contains(outbound.targetHandle) {
-        return true
-      }
-    default:
-      continue
-    }
-  }
-
-  return false
 }

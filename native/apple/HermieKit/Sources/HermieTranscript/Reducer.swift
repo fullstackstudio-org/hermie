@@ -22,8 +22,12 @@ import HermieProtocol
 // - `Reducer+Resume.swift` — `applyResumeSnapshot`;
 // - `Reducer+Turn.swift` — the client's own actions: `beginLocalTurn`,
 //   `beginSteer`, `dropSteer`, `confirmSubmit`, `markInterrupted`,
-//   `applyProcessCompletion`;
-// - `Reducer+RowText.swift` — the few `rows-to-items.ts` helpers the reducer calls.
+//   `applyProcessCompletion`.
+//
+// The `rows-to-items.ts` helpers the reducer reads prompts through
+// (`stripUserText`, `classifyUserRow`, `normalizeMatchText`,
+// `attachmentsMatchKey`, `normalizedItemText`) are the public ones in
+// `RowsToItems.swift` and `RowsToItemsMatching.swift`, as in the TypeScript.
 //
 // In place, not copied
 // --------------------
@@ -48,8 +52,8 @@ import HermieProtocol
 //   but not identical (`num` refuses a non-finite number; a view's `Int` refuses a
 //   fraction).
 // - JavaScript's `a ? … : …` on a string is "non-empty": an empty id is as good as
-//   none wherever the TypeScript tested an id for truthiness, and `nonEmpty` says so.
-//   Where the TypeScript used `??` instead, an empty string is kept.
+//   none wherever the TypeScript tested an id for truthiness, and `JS.nonEmpty`
+//   says so. Where the TypeScript used `??` instead, an empty string is kept.
 // - The TypeScript's patch is unchecked (`patchItem<AssistantItem>` is a cast), so a
 //   patch of an item of another kind still bumps its `version` and re-indexes it.
 //   Every patch site here reaches only the kind it names (each is guarded by a kind
@@ -79,11 +83,6 @@ extension TranscriptReducer {
     return number
   }
 
-  /// `Boolean(value)`; an absent value is `undefined`, which is falsy.
-  static func truthy(_ value: JSONValue?) -> Bool {
-    value?.isTruthy ?? false
-  }
-
   /// `value === true`.
   static func isTrue(_ value: JSONValue?) -> Bool {
     value == .bool(true)
@@ -94,21 +93,9 @@ extension TranscriptReducer {
     value == .bool(false)
   }
 
-  /// A string as JavaScript's truthiness reads it: `nil` when absent or empty.
-  static func nonEmpty(_ value: String?) -> String? {
-    guard let value, !value.isEmpty else { return nil }
-    return value
-  }
-
-  /// `value ? …` on a number: `0` and `NaN` are falsy.
-  static func truthy(_ value: Double?) -> Bool {
-    guard let value else { return false }
-    return value != 0 && !value.isNaN
-  }
-
   /// `id ? state.items[id] : undefined`.
   static func itemAt(_ state: ChatState, _ id: String?) -> TranscriptItem? {
-    guard let id = nonEmpty(id) else { return nil }
+    guard let id = JS.nonEmpty(id) else { return nil }
     return state.items[id]
   }
 }
@@ -129,16 +116,16 @@ extension TranscriptReducer {
     case .botDmOut(let dispatch):
       next.byToolID[dispatch.toolID] = dispatch.id
 
-      if let processID = nonEmpty(dispatch.dispatch.processID) {
+      if let processID = JS.nonEmpty(dispatch.dispatch.processID) {
         next.byProcessID[processID] = dispatch.id
       }
 
     case .subagentGroup(let group):
-      if let toolID = nonEmpty(group.toolID) {
+      if let toolID = JS.nonEmpty(group.toolID) {
         next.byToolID[toolID] = group.id
       }
 
-      if let delegationID = nonEmpty(group.delegationID) {
+      if let delegationID = JS.nonEmpty(group.delegationID) {
         next.byDelegationID[delegationID] = group.id
       }
 
@@ -472,7 +459,7 @@ extension TranscriptReducer {
   ///
   /// `sealAssistantForTool`.
   static func sealAssistantForTool(_ next: inout ChatState) {
-    guard let id = nonEmpty(next.turn.assistantID) else { return }
+    guard let id = JS.nonEmpty(next.turn.assistantID) else { return }
 
     let item = next.items[id]
 

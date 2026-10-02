@@ -158,7 +158,7 @@ public func transcriptDiagnostics(_ state: ChatState) -> TranscriptDiagnostics {
       }
     }
 
-    let text = DiagnosticsPort.normalizedItemText(item)
+    let text = normalizedItemText(item)
 
     if text.isEmpty {
       continue
@@ -219,54 +219,4 @@ public func formatTranscriptDiagnostics(_ botName: String, _ state: ChatState) -
   }
 
   return lines
-}
-
-/// Ported from `rows-to-items.ts`, which the history task owns: the one helper
-/// the diagnostics read. Namespaced so it cannot collide with that task's
-/// public `normalizedItemText`; once that lands, this can call it instead.
-enum DiagnosticsPort {
-  /// `/\s+/gu`
-  private static let whitespaceRun = JSRegExp(JSPattern.s + "+")
-
-  /// `normalizeMatchText`: `text.replace(/\s+/gu, ' ').trim().normalize('NFC')`.
-  static func normalizeMatchText(_ text: String) -> String {
-    JS.trim(whitespaceRun.replaceAll(in: text, with: " ")).precomposedStringWithCanonicalMapping
-  }
-
-  /// `normalizedItemText`: a row matcher used by reconciliation, the text two
-  /// transports agree on.
-  static func normalizedItemText(_ item: TranscriptItem) -> String {
-    let text: String
-    switch item {
-    case .user(let user): text = user.text
-    case .assistant(let assistant): text = assistant.text
-    case .botDmIn(let dm): text = dm.text
-    case .notice(let notice):
-      // The BODY, and the title only when there is no body.
-      //
-      // A notice's title is whatever the surface decided to call it, and the
-      // two descriptions of one row do not have to agree on that: the gateway
-      // ships its own (`display_metadata.display_text`) on the persisted row,
-      // and a live projection reading the same text off `inflight` cannot know
-      // it. What they always agree on is what the notice SAYS, so that is the
-      // key. A notice with no body keeps the title as its only identity.
-      if let body = notice.body, !JS.trimsToEmpty(body) {
-        text = body
-      } else {
-        text = notice.title
-      }
-    case .status(let status): text = status.text
-    case .cronDelivery(let cron):
-      // Both transports parse the same header into the same name and body, so
-      // this is the key that pairs a live cron card with its persisted row.
-      text = "\(cron.jobName)\n\(cron.body)"
-    case .botDmOut(let dm):
-      // The message that was dispatched; the target is in `itemMatchKey`.
-      text = dm.message
-    default:
-      text = ""
-    }
-
-    return normalizeMatchText(text)
-  }
 }

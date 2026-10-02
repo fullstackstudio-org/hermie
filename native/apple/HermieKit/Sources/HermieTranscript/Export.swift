@@ -97,15 +97,9 @@ public struct TranscriptExport: Sendable, Hashable {
   }
 }
 
-/// `a || b` on strings.
-private func nonEmpty(_ value: String?) -> String? {
-  guard let value, !value.isEmpty else { return nil }
-  return value
-}
-
 /// The label a tool row carries, which is the call preview when there is one.
 private func toolLine(_ item: ToolItem) -> String {
-  let detail = nonEmpty(item.context) ?? nonEmpty(item.summary) ?? ""
+  let detail = JS.nonEmpty(item.context) ?? JS.nonEmpty(item.summary) ?? ""
   let status = item.isError == true ? " — failed" : item.status == .running ? " — running" : ""
 
   return detail.isEmpty ? "\(item.name)\(status)" : "\(item.name): \(detail)\(status)"
@@ -114,12 +108,12 @@ private func toolLine(_ item: ToolItem) -> String {
 /// One request's outcome in a line, which is all a file can carry of a sheet.
 private func requestLine(_ approval: ApprovalItem) -> String {
   let answered: String
-  if approval.state == .answered, let answer = nonEmpty(approval.answer) {
+  if approval.state == .answered, let answer = JS.nonEmpty(approval.answer) {
     answered = "answered \(answer)"
   } else {
     answered = approval.state.rawValue
   }
-  let subject = nonEmpty(approval.command) ?? nonEmpty(approval.toolName) ?? "a permission request"
+  let subject = JS.nonEmpty(approval.command) ?? JS.nonEmpty(approval.toolName) ?? "a permission request"
 
   return "Permission request — \(subject) (\(answered))"
 }
@@ -139,7 +133,7 @@ private func requestLine(_ clarify: ClarifyItem) -> String {
     return "Question — \(answered.joined(separator: "; "))"
   }
 
-  return "Question — \(nonEmpty(questions.joined(separator: "; ")) ?? clarify.state.rawValue)"
+  return "Question — \(JS.nonEmpty(questions.joined(separator: "; ")) ?? clarify.state.rawValue)"
 }
 
 /// The name a `user` row is exported under, when it is somebody else's
@@ -149,7 +143,7 @@ private func requestLine(_ clarify: ClarifyItem) -> String {
 /// anywhere the caller has not said is the group chat, or a caller with no
 /// resolver — every one of those keeps today's `selfName`.
 private func foreignSenderWho(_ author: MessageAuthor?, _ options: TranscriptExportOptions) -> String? {
-  guard options.groupChat == true, let ownAuthorID = nonEmpty(options.ownAuthorID),
+  guard options.groupChat == true, let ownAuthorID = JS.nonEmpty(options.ownAuthorID),
     let resolveSenderName = options.resolveSenderName, let author
   else {
     return nil
@@ -159,7 +153,7 @@ private func foreignSenderWho(_ author: MessageAuthor?, _ options: TranscriptExp
     return nil
   }
 
-  return nonEmpty(resolveSenderName(author))
+  return JS.nonEmpty(resolveSenderName(author))
 }
 
 /// `/\s+/gu`
@@ -202,8 +196,8 @@ private struct Entry {
 }
 
 private func entryFor(_ item: TranscriptItem, _ options: TranscriptExportOptions) -> Entry? {
-  let selfLabel = nonEmpty(JS.trim(options.selfName ?? "")) ?? "You"
-  let bot = nonEmpty(JS.trim(options.botName)) ?? "Bot"
+  let selfLabel = JS.nonEmpty(JS.trim(options.selfName ?? "")) ?? "You"
+  let bot = JS.nonEmpty(JS.trim(options.botName)) ?? "Bot"
   let ts = item.ts
 
   switch item {
@@ -229,7 +223,8 @@ private func entryFor(_ item: TranscriptItem, _ options: TranscriptExportOptions
   case .botDmIn(let dm):
     let text = JS.trim(dm.text)
     guard !text.isEmpty else { return nil }
-    return Entry(who: nonEmpty(dm.senderName) ?? nonEmpty(dm.senderHandle) ?? "another bot", body: text, ts: ts, aside: false)
+    let who = JS.nonEmpty(dm.senderName) ?? JS.nonEmpty(dm.senderHandle) ?? "another bot"
+    return Entry(who: who, body: text, ts: ts, aside: false)
 
   case .botDmOut(let dm):
     let reply = dm.reply.map { JS.trim($0.text) } ?? ""
@@ -288,7 +283,7 @@ private func stamp(_ entry: Entry, _ options: TranscriptExportOptions) -> String
 /// Both always end with a newline, so appending to the file or piping it into
 /// anything behaves.
 public func exportTranscript(_ items: [TranscriptItem], _ options: TranscriptExportOptions) -> TranscriptExport {
-  let bot = nonEmpty(JS.trim(options.botName)) ?? "Bot"
+  let bot = JS.nonEmpty(JS.trim(options.botName)) ?? "Bot"
   var taken = ""
   if let exportedAt = options.exportedAt, let formatTime = options.formatTime {
     taken = JS.trim(formatTime(exportedAt))
@@ -370,7 +365,7 @@ private let edgeHyphens = JSRegExp(#"\A-+|-+\z"#)
 public func transcriptFileName(_ botName: String, _ fileExtension: TranscriptFileExtension, _ isoDay: String) -> String {
   let replaced = edgeHyphens.replaceAll(in: unsafeFileNameRun.replaceAll(in: JS.trim(botName), with: "-"), with: "")
   // Only `[A-Za-z0-9-]` is left, so code units and characters are the same here.
-  let slug = nonEmpty(JS.slice(replaced, 0, 40)) ?? "chat"
+  let slug = JS.nonEmpty(JS.slice(replaced, 0, 40)) ?? "chat"
 
   return "\(slug)-\(isoDay).\(fileExtension.rawValue)"
 }

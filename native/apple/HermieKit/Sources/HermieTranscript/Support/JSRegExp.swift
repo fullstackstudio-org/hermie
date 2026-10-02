@@ -86,6 +86,19 @@ struct JSRegExp: @unchecked Sendable {
       withTemplate: NSRegularExpression.escapedTemplate(for: literal)
     )
   }
+
+  /// `[...value.matchAll(re)].map(match => match[0])` for a global pattern that never
+  /// matches empty and has no anchor or look-behind, so searching the rest of the
+  /// text after each match is the same search `matchAll` makes.
+  func allMatches(in value: String) -> [String] {
+    var out: [String] = []
+    var rest = value
+    while let match = exec(rest), let text = match[0], match.length > 0 {
+      out.append(text)
+      rest = JS.substring(rest, match.index + match.length)
+    }
+    return out
+  }
 }
 
 /// One `exec` result: offsets in UTF-16 code units, `groups[0]` the whole match, a

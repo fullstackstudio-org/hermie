@@ -34,7 +34,7 @@ public struct SubagentSnapshotRow: JSONObjectBacked {
 extension TranscriptReducer {
   /// `groupForSubagent`.
   static func groupForSubagent(_ next: inout ChatState, _ delegationID: String?, _ goal: String, _ now: Double) -> String {
-    if let delegationID = nonEmpty(delegationID), let group = nonEmpty(next.byDelegationID[delegationID]) {
+    if let delegationID = JS.nonEmpty(delegationID), let group = JS.nonEmpty(next.byDelegationID[delegationID]) {
       return group
     }
 
@@ -47,7 +47,7 @@ extension TranscriptReducer {
         break
       }
 
-      if let own = nonEmpty(item.delegationID), let wanted = nonEmpty(delegationID), !JS.same(own, wanted) {
+      if let own = JS.nonEmpty(item.delegationID), let wanted = JS.nonEmpty(delegationID), !JS.same(own, wanted) {
         continue
       }
 
@@ -58,7 +58,7 @@ extension TranscriptReducer {
       .subagentGroup(
         SubagentGroupItem(
           base: base,
-          delegationID: nonEmpty(delegationID),
+          delegationID: JS.nonEmpty(delegationID),
           goals: goal.isEmpty ? [] : [goal],
           rootIDs: [],
           status: .dispatched
@@ -100,7 +100,7 @@ extension TranscriptReducer {
         draft.goals.append(child.goal)
       }
 
-      if let delegationID = nonEmpty(child.delegationID), nonEmpty(draft.delegationID) == nil {
+      if let delegationID = JS.nonEmpty(child.delegationID), JS.nonEmpty(draft.delegationID) == nil {
         draft.delegationID = delegationID
       }
     }
@@ -198,11 +198,11 @@ public func applySubagentSnapshot(into next: inout ChatState, _ rows: [SubagentS
       payload["tool_count"] = toolCount
     }
 
-    if R.truthy(raw["last_tool"]) {
+    if JS.truthy(raw["last_tool"]) {
       payload["tool_name"] = raw["last_tool"]
     }
 
-    if R.truthy(raw["child_session_id"]) {
+    if JS.truthy(raw["child_session_id"]) {
       payload["child_session_id"] = raw["child_session_id"]
     }
 
@@ -216,7 +216,7 @@ public func applySubagentSnapshot(into next: inout ChatState, _ rows: [SubagentS
 
     // `subagent.list` is a roster, not a progress frame: it carries no stream
     // line to append, so it is applied as a plain `start`-shaped update.
-    let at = R.truthy(prev?.startedAt) ? prev!.updatedAt : now
+    let at = JS.truthy(prev?.startedAt) ? prev!.updatedAt : now
     var child = R.carryRawAcceptingSteer(prev, toSubagent(payload, prev, "subagent.start", at))
 
     child.startedAt = prev?.startedAt ?? R.millisecondsOf(raw["started_at"]) ?? child.startedAt

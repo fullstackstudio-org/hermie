@@ -83,7 +83,7 @@ public func attachmentsMatchKey(_ references: [String]?) -> String {
     return ""
   }
 
-  let keys = uniqueByCodeUnits(references.map { "\(attachmentRefKind($0)):\(attachmentRefName($0))" })
+  let keys = JS.unique(references.map { "\(attachmentRefKind($0)):\(attachmentRefName($0))" })
 
   // A unit separator rather than a comma: a file name may contain one.
   // `.sort()` with no comparator orders by UTF-16 code unit.

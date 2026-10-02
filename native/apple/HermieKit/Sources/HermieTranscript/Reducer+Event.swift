@@ -78,7 +78,7 @@ public func applyEvent(into state: inout ChatState, _ event: GatewayEvent, _ now
     R.sessionInfo(&state, payload)
 
   case "session.usage":
-    if R.truthy(payload["usage"]) {
+    if JS.truthy(payload["usage"]) {
       state.usage = Usage(json: R.rec(payload["usage"]))
     }
 
