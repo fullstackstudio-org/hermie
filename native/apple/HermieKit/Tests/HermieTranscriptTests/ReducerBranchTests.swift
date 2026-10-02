@@ -15,9 +15,11 @@ import Testing
 // port's reading of it. Steps use the corpus conventions: a `null` argument is
 // "not supplied", `patchState` is the stream scenarios' `{ ...state, ...fields }`.
 //
-// Re-recording after a deliberate TypeScript change: run each scenario's steps
-// through the TypeScript functions of the same names, starting from
-// `createChatState('bot', 'stored', 'resolved')`, and paste the final state.
+// Re-recording after a deliberate TypeScript change, or after adding a scenario
+// (its `expected` may start as `null`): `npm run golden:branch-cases` runs every
+// scenario's steps through the TypeScript functions of the same names, starting
+// from `createChatState('bot', 'stored', 'resolved')`, and rewrites each
+// `expected` line in place (`scripts/golden/record-branch-cases.ts`).
 
 @Suite(.serialized) struct ReducerBranchTests {
   static let scenarios: [JSONValue] = {
