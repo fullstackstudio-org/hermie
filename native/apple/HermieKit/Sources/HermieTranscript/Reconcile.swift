@@ -154,7 +154,7 @@ private func isAuthoredRow(_ item: TranscriptItem) -> Bool {
 private func mergeWithLive(_ fresh: TranscriptItem, _ current: TranscriptItem) -> TranscriptItem {
   var merged = fresh
   merged.id = current.id
-  merged.version = current.version + 1
+  merged.version = current.version &+ 1
 
   switch (merged, current) {
   case (.tool(var carried), .tool(let current)):
@@ -594,7 +594,7 @@ public func reconcileTail(_ state: ChatState, _ tailItems: [TranscriptItem]) -> 
       if !placeholderID.isEmpty, let placeholder = byID[placeholderID] {
         var filled = fresh
         filled.id = placeholderID
-        filled.version = placeholder.version + 1
+        filled.version = placeholder.version &+ 1
         byID[placeholderID] = filled
 
         continue
@@ -668,7 +668,7 @@ private func joinDeliveries(
     let outcome = replyFromDeliveryOutput(block.output)
     let error = outcome.error.flatMap { $0.isEmpty ? nil : $0 }
 
-    dispatch.version += 1
+    dispatch.version &+= 1
     dispatch.reply = BotDmReply(
       text: outcome.text ?? "",
       ts: notice.ts,

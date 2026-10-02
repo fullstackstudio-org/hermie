@@ -81,7 +81,7 @@ public struct VisibilityOptions: Sendable, Hashable {
 public func itemsVersion(_ state: ChatState) -> Int {
   var sum = state.order.count
   for id in state.order {
-    sum += state.items[id]?.version ?? 0
+    sum &+= state.items[id]?.version ?? 0
   }
   return sum
 }
@@ -347,7 +347,20 @@ public struct SubagentNode: Sendable, Hashable {
   }
 }
 
+/// How many ancestors a node of `subagentTree` may have. A node deeper than this
+/// is listed as a root of its own, its subtree under it.
+///
+/// Not in the TypeScript, whose tree nests as deep as the parent links go. Here
+/// a value that deep would be freed, hashed and encoded by recursion, and the
+/// subagents are restored from the cache on launch, so a long chain of parent
+/// links (a runaway delegation, a corrupt cache) would crash the app every time
+/// it opened the chat. Real fan-outs are a few levels deep, so no tree the
+/// TypeScript draws differently is one a person can read anyway.
+public let subagentTreeMaxDepth = 32
+
 /// Parent/child tree of this chat's subagents, ported from `buildSubagentTree`.
+///
+/// Built without recursion, and no deeper than `subagentTreeMaxDepth`.
 public func subagentTree(_ state: ChatState) -> [SubagentNode] {
   // A JavaScript `Map` keyed by id: insertion order, and a later child with the
   // same id replaces the value but keeps the first one's place.
@@ -379,13 +392,46 @@ public func subagentTree(_ state: ChatState) -> [SubagentNode] {
     }
   }
 
-  // Built from the roots down, which is everything the TypeScript's walk reaches:
-  // children on a cycle of parents hang under no root and are dropped by both.
-  func build(_ id: String) -> SubagentNode {
-    SubagentNode(subagent: nodes[id]!, children: ordered(children[id] ?? []).map(build))
+  // Walked from the roots down, breadth first, which is everything the
+  // TypeScript's walk reaches: children on a cycle of parents hang under no root
+  // and are dropped by both. Each node has one parent, so the walk meets each
+  // node once. A node past the depth limit is promoted to a root and its subtree
+  // counted from there.
+  var walk: [String] = []
+  var depth: [String: Int] = [:]
+  walk.reserveCapacity(ids.count)
+  for id in roots {
+    depth[id] = 0
+    walk.append(id)
   }
 
-  return ordered(roots).map(build)
+  var next = 0
+  while next < walk.count {
+    let id = walk[next]
+    next += 1
+
+    var kept: [String] = []
+    for child in children[id] ?? [] {
+      if depth[id]! < subagentTreeMaxDepth {
+        depth[child] = depth[id]! + 1
+        kept.append(child)
+      } else {
+        depth[child] = 0
+        roots.append(child)
+      }
+      walk.append(child)
+    }
+    children[id] = kept
+  }
+
+  // Children before parents: every node's children are built when it is.
+  var built: [String: SubagentNode] = [:]
+  for id in walk.reversed() {
+    let kids = ordered(children[id] ?? []).map { built.removeValue(forKey: $0)! }
+    built[id] = SubagentNode(subagent: nodes[id]!, children: kids)
+  }
+
+  return ordered(roots).map { built.removeValue(forKey: $0)! }
 }
 
 public func latestStatus(_ state: ChatState) -> StatusItem? {

@@ -59,6 +59,10 @@ import HermieProtocol
 //   Every patch site here reaches only the kind it names (each is guarded by a kind
 //   check or an index that holds only that kind), with one exception kept
 //   faithfully: `tool.output_risk` (see `Reducer+Tool.swift`).
+// - `seq` and `version` are JavaScript numbers in the TypeScript and `Int` here, so
+//   the counters that step them (`nextSeq`, every `version` bump, `itemsVersion`)
+//   use wrapping arithmetic: a decoded state holding a value near `Int.max` must
+//   not trap. No real state comes within reach of it.
 
 /// The reducer's internals, namespaced so they cannot collide with another
 /// module-level helper of the same name.
@@ -170,7 +174,7 @@ extension TranscriptReducer {
     let id = freeItemID(next.items, draftID)
     let item = make(ItemBase(id: id, seq: seq, ts: ts, origin: origin, version: 0))
 
-    next.turn.nextSeq = seq + seqStep
+    next.turn.nextSeq = seq &+ seqStep
     next.items[item.id] = item
     next.order.append(item.id)
     indexItem(&next, item)
@@ -191,11 +195,11 @@ extension TranscriptReducer {
 
     let applied = Item.update(&next.items[id]!) { item in
       body(&item)
-      item.version += 1
+      item.version &+= 1
     }
 
     if !applied {
-      next.items[id]!.version += 1
+      next.items[id]!.version &+= 1
     }
 
     indexItem(&next, id: id)
@@ -250,7 +254,7 @@ extension TranscriptReducer {
         draft.cancelReason = cancelReason
       }
     default:
-      next.items[id]!.version += 1
+      next.items[id]!.version &+= 1
       indexItem(&next, id: id)
     }
   }
@@ -261,7 +265,7 @@ extension TranscriptReducer {
 
     let version = next.items[id]!.version
     body(&next.items[id]!)
-    next.items[id]!.version = version + 1
+    next.items[id]!.version = version &+ 1
     indexItem(&next, id: id)
   }
 
@@ -283,7 +287,7 @@ extension TranscriptReducer {
   ) {
     guard let current = next.items[id] else { return }
 
-    let item = make(ItemBase(id: id, seq: current.seq, ts: ts, origin: origin, version: current.version + 1))
+    let item = make(ItemBase(id: id, seq: current.seq, ts: ts, origin: origin, version: current.version &+ 1))
 
     next.items[id] = item
     indexItem(&next, item)

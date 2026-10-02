@@ -109,11 +109,16 @@ enum JS {
     return out
   }
 
-  /// `toLowerCase()`. Foundation's root-locale lowering is the same full Unicode
-  /// mapping JavaScript applies (final sigma included).
+  /// `toLowerCase()`: the full Unicode mapping, final sigma included (`"ΟΔΟΣ"` →
+  /// `"οδος"`). That needs Foundation's lowering in the root locale; the standard
+  /// library's `lowercased()` maps each scalar on its own and writes `"οδοσ"`.
   static func lower(_ value: String) -> String {
-    value.lowercased()
+    value.lowercased(with: rootLocale)
   }
+
+  /// The root locale: no language's tailoring, which is what JavaScript's
+  /// locale-independent `toLowerCase` and the recorded `localeCompare` use.
+  static let rootLocale = Locale(identifier: "")
 
   /// `toUpperCase()`.
   static func upper(_ value: String) -> String {
@@ -179,16 +184,13 @@ enum JS {
     return values.filter { seen.insert(Array($0.utf16)).inserted }
   }
 
-  /// The CLDR root collation, which is what `String.prototype.localeCompare` with
-  /// no arguments used when the corpus was recorded (an `en-US` Node; English adds
-  /// no tailoring to the root order). Pinned here rather than read from the
-  /// device, so a Swedish phone sorts the activity timeline the way every other
-  /// phone does.
-  static let collationLocale = Locale(identifier: "")
-
-  /// `a.localeCompare(b)` as `-1`, `0` or `1`.
+  /// `a.localeCompare(b)` as `-1`, `0` or `1`, in the CLDR root collation, which is
+  /// what `localeCompare` with no arguments used when the corpus was recorded (an
+  /// `en-US` Node; English adds no tailoring to the root order). Pinned to the
+  /// root locale rather than read from the device, so a Swedish phone sorts the
+  /// activity timeline the way every other phone does.
   static func localeCompare(_ lhs: String, _ rhs: String) -> Int {
-    switch lhs.compare(rhs, options: [], range: nil, locale: collationLocale) {
+    switch lhs.compare(rhs, options: [], range: nil, locale: rootLocale) {
     case .orderedAscending: -1
     case .orderedSame: 0
     case .orderedDescending: 1

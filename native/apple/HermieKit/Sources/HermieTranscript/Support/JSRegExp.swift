@@ -88,16 +88,17 @@ struct JSRegExp: @unchecked Sendable {
   }
 
   /// `[...value.matchAll(re)].map(match => match[0])` for a global pattern that never
-  /// matches empty and has no anchor or look-behind, so searching the rest of the
-  /// text after each match is the same search `matchAll` makes.
+  /// matches empty.
+  ///
+  /// One pass over the whole string: each search resumes where the last match
+  /// ended, as a global expression's `lastIndex` does, and sees the text before it
+  /// as `matchAll` does. Searching a copy of the rest after every match would cost
+  /// the length of the text per match.
   func allMatches(in value: String) -> [String] {
-    var out: [String] = []
-    var rest = value
-    while let match = exec(rest), let text = match[0], match.length > 0 {
-      out.append(text)
-      rest = JS.substring(rest, match.index + match.length)
-    }
-    return out
+    let text = value as NSString
+    return regex.matches(in: value, options: [], range: NSRange(location: 0, length: text.length))
+      .prefix { $0.range.length > 0 }
+      .map { text.substring(with: $0.range) }
   }
 }
 
