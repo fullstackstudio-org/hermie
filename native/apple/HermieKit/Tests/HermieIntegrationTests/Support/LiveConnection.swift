@@ -62,9 +62,17 @@ final class LiveConnection: Sendable {
     }
   }
 
-  /// Until the connection is in `phase`.
+  /// Until the connection has moved to `phase`.
+  ///
+  /// The first entry of the log is the status `statuses` replays to a new
+  /// subscriber, taken before `start()`: `disconnected`. It never counts.
+  /// Otherwise a wait for `disconnected` right after `start()` could return on
+  /// that entry while the collector had not yet recorded `authenticating`, and
+  /// read `lastError` in the middle of the dial.
   func waitFor(_ phase: ConnectionPhase) async throws {
-    try await statuses.wait("the connection to be \(phase.rawValue)") { $0.last?.phase == phase }
+    try await statuses.wait("the connection to be \(phase.rawValue)") { log in
+      log.count > 1 && log.last?.phase == phase
+    }
   }
 
   /// The first event after `index` (exclusive) matching `predicate`.
@@ -249,6 +257,8 @@ struct FakeState: Sendable {
   var methodLog: [String] { json["methodLog"]?.arrayValue?.compactMap(\.stringValue) ?? [] }
   var eventsSinceCalls: [JSONValue] { json["eventsSinceCalls"]?.arrayValue ?? [] }
   var serverRequestAnswers: [JSONValue] { json["serverRequestAnswers"]?.arrayValue ?? [] }
+  /// Stored ids of the sessions with a turn still streaming.
+  var runningSessions: [String] { json["runningSessions"]?.arrayValue?.compactMap(\.stringValue) ?? [] }
 }
 
 extension FakeGateway {

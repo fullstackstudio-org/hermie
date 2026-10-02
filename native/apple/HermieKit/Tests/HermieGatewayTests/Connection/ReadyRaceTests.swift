@@ -49,6 +49,37 @@ struct ReadyRaceTests {
     }
   }
 
+  /// The other order: the gateway accepts the upgrade and closes with 4403
+  /// before any `gateway.ready`, so the close finds the ready waiter still set.
+  @Test("a 4403 at the upgrade, before any gateway.ready, stops the loop as a configuration problem")
+  func configCloseAtTheUpgrade() async throws {
+    for _ in 0..<100 {
+      var outcome: (ConnectionPhase, GatewayError?) = (.disconnected, nil)
+
+      try await withHarness(HarnessOptions(backoff: { _ in .seconds(30) })) { h in
+        h.gateway.with { state in
+          state.closeCode = 4403
+          state.rejectNextUpgrades = 1
+        }
+        await h.connection.start()
+        try await eventually("the loop to come to rest") {
+          let current = await h.connection.phase
+          return current == .reconnecting || current == .disconnected || current == .needsSignin
+        }
+        try await h.waitFor(await h.connection.phase)
+        outcome = (await h.connection.phase, await h.connection.lastError)
+      }
+
+      #expect(outcome.0 == .disconnected)
+      #expect(outcome.1?.kind == .config)
+      #expect(outcome.1?.closeCode == 4403)
+
+      if outcome.0 != .disconnected {
+        return
+      }
+    }
+  }
+
   @Test("a 4403 right after ready still stops the loop as a configuration problem")
   func configCloseRightAfterReady() async throws {
     for _ in 0..<100 {
