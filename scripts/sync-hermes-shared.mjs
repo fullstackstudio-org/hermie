@@ -116,13 +116,25 @@ function rewriteFile(file, raw, manifest) {
 
 async function fetchFile(file, manifest) {
   const url = `${manifest.rawBaseUrl}/${manifest.repo}/${manifest.commit}/${manifest.sourceDir}/${file}`
-  const response = await fetch(url)
+  // The raw host rate-limits shared CI runners now and then; a 429 or a 5xx
+  // says nothing about the pin, so wait and ask again before failing the check.
+  const waits = [2_000, 5_000, 15_000, 30_000]
 
-  if (!response.ok) {
-    throw new SyncError(`${file}: ${response.status} ${response.statusText} from ${url}`)
+  for (let attempt = 0; ; attempt += 1) {
+    const response = await fetch(url)
+
+    if (response.ok) {
+      return response.text()
+    }
+
+    const retryable = response.status === 429 || response.status >= 500
+
+    if (!retryable || attempt >= waits.length) {
+      throw new SyncError(`${file}: ${response.status} ${response.statusText} from ${url}`)
+    }
+
+    await new Promise(resolve => setTimeout(resolve, waits[attempt]))
   }
-
-  return response.text()
 }
 
 async function readManifest() {
