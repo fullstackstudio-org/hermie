@@ -5,6 +5,8 @@ import { URL } from 'node:url'
 
 import { WebSocket, WebSocketServer } from 'ws'
 
+import { LOGIN_PAGE, loginUrlFor, PLUGIN_ASSET_CACHE_CONTROL, readPluginAsset, tokenIndexHtml } from './plugin-assets'
+
 /**
  * A stand-in for `hermes serve` that speaks enough of the gateway contract to
  * drive the real client: the public status endpoints, both auth flows, the
@@ -253,6 +255,40 @@ export interface FakeGatewayOptions {
    * the gateway a sign-out must leave alone.
    */
   nativeRevoke?: boolean
+  /**
+   * A directory served as the plugin's dashboard files, at
+   * `GET /dashboard-plugins/hermie/<path>`.
+   *
+   * It stages the dashboard's static route for a plugin
+   * (`hermes_cli/web_routers/dashboard_ui.py::serve_plugin_asset`), so a built
+   * web client can be served the way a real gateway serves it: `<dir>/app/index.html`
+   * is the client. The route's semantics are copied, not improved: a suffix
+   * allow-list, 404 for a directory or a missing file, 403 for a traversal, and
+   * `Cache-Control: no-store` on every answer. Files are read on every request, so
+   * a test can replace one between two loads.
+   *
+   * Absent: the plugin has no dashboard directory here and every
+   * `/dashboard-plugins/...` request answers 404.
+   */
+  pluginAssets?: string
+  /**
+   * Whether the plugin advertises the web client: `web.client`, the `web`
+   * block and `modules.web`.
+   *
+   * Default true. `false` stages a plugin older than the bundled client, from
+   * whichever advert is in play: the three are withdrawn together, which is what
+   * the real plugin does when its bundle fails its integrity check. It does not
+   * touch the static route, because the real route serves the files either way.
+   */
+  webClient?: boolean
+  /**
+   * Whether the plugin publishes its Web Push key: `webPush` and
+   * `push.webpush.key`.
+   *
+   * Default true. `false` stages a plugin that still holds the key to itself,
+   * which is what every plugin was until it learned to publish it.
+   */
+  webPushKey?: boolean
   /**
    * Whether an accepted `session.steer` writes a `display_kind: "steer"` row.
    *
@@ -705,6 +741,13 @@ export interface FakeGatewayState {
    * request's id and method, and the result or the error frame it sent back.
    */
   serverRequestAnswers: { id: string; method: string; result?: unknown; error?: unknown }[]
+  /**
+   * Every `client.capabilities` call, oldest first: what the client said it
+   * handles. `confirm` is the list of `confirm` levels it offered, empty when it
+   * sent none. Recorded as sent, whatever the level is called, because the fake
+   * is there to be told things the real gateway would filter.
+   */
+  clientCapabilities: { server_requests: boolean; confirm: string[] }[]
   /** Every JSON-RPC method the server handled, in order. */
   methodLog: string[]
   /** Mark the next replay answer as truncated. */
@@ -1185,6 +1228,9 @@ function memoryMatches(text: string, query: string): boolean {
   return words.length > 0 && words.every(word => haystack.includes(word))
 }
 
+const FAKE_WEB_PUSH_PUBLIC_KEY =
+  'BB4V0uA3Mhr24OQdSBvpiQbXxekA10YihCyW0_L4zE616vb3_kTg5WvgJ_rP5L6QUdFKymkHRs2SDtj8M9czWIw'
+
 /**
  * The `hermie-plugin` advert, as the gateway-side plugin publishes it.
  *
@@ -1214,8 +1260,10 @@ export const PLUGIN_ADVERT: Record<string, unknown> = {
     'memory.edit',
     'push.type.turn_failed',
     'push.webpush',
+    'push.webpush.key',
     'profiles.display_name',
-    'ui_meta.per_user'
+    'ui_meta.per_user',
+    'web.client'
   ],
   modules: {
     attachments: 'planned',
@@ -1227,10 +1275,29 @@ export const PLUGIN_ADVERT: Record<string, unknown> = {
     search: 'planned',
     sessions: 'planned',
     transcripts: 'planned',
-    usage: 'planned'
+    usage: 'planned',
+    web: 'on'
   },
   limits: { payloadBytes: 3500, contextChars: 1200 },
   relayOrigins: ['https://push.hermie.dev'],
+  /*
+    The bundled web client, as the plugin describes it once its files match
+    their manifest. The numbers are a fixture, not a measurement of any
+    directory handed to `pluginAssets`.
+  */
+  web: {
+    path: '/dashboard-plugins/hermie/app/index.html',
+    version: '0.2.0',
+    commit: '0123456789ab',
+    files: 37,
+    bytes: 1_432_211
+  },
+  /*
+    The plugin's VAPID public key: the uncompressed P-256 point, 87 base64url
+    characters. A fixed key whose private half does not exist anywhere, so a
+    test can tell it from any real one.
+  */
+  webPush: { publicKey: FAKE_WEB_PUSH_PUBLIC_KEY },
   updatedAt: 1_790_001_453
 }
 
@@ -1243,13 +1310,20 @@ const TURN_CLAIM_CAPABILITY = 'context.turn_claim'
 /** `push.relay`, which `pushRelay: false` takes away. */
 const PUSH_RELAY_CAPABILITY = 'push.relay'
 
+/** `web.client`, which `webClient: false` takes away together with the `web` block. */
+const WEB_CLIENT_CAPABILITY = 'web.client'
+
+/** `push.webpush.key`, which `webPushKey: false` takes away together with the `webPush` block. */
+const WEB_PUSH_KEY_CAPABILITY = 'push.webpush.key'
+
 /**
  * The advert this gateway serves, or `null` when it has no plugin.
  *
  * One reader for the `ui_meta` key and for the plugin's own routes, so a
  * capability a route refuses to honour cannot also be advertised by accident —
  * which is the one inconsistency a fake can have that a real gateway cannot.
- * `profileDisplayName: 'absent'`, `turnClaim: false` and `pushRelay: false` each filter their own
+ * `profileDisplayName: 'absent'`, `turnClaim: false`, `pushRelay: false`, `webClient: false` and
+ * `webPushKey: false` each filter their own
  * string out of whichever advert is in play, including one a test passed in
  * itself: a plugin that does not have a route does not advertise it, whoever
  * wrote the rest of the advert.
@@ -1274,16 +1348,39 @@ function advertOf(options: FakeGatewayOptions): Record<string, unknown> | null {
     drop.add(PUSH_RELAY_CAPABILITY)
   }
 
+  if (options.webClient === false) {
+    drop.add(WEB_CLIENT_CAPABILITY)
+  }
+
+  if (options.webPushKey === false) {
+    drop.add(WEB_PUSH_KEY_CAPABILITY)
+  }
+
   if (drop.size === 0) {
     return advert
   }
 
-  return {
+  const filtered: Record<string, unknown> = {
     ...advert,
     capabilities: (Array.isArray(advert.capabilities) ? advert.capabilities : []).filter(
       entry => typeof entry !== 'string' || !drop.has(entry)
     )
   }
+
+  if (options.webClient === false) {
+    delete filtered.web
+
+    if (advert.modules && typeof advert.modules === 'object') {
+      const { web: _web, ...modules } = advert.modules as Record<string, unknown>
+      filtered.modules = modules
+    }
+  }
+
+  if (options.webPushKey === false) {
+    delete filtered.webPush
+  }
+
+  return filtered
 }
 
 /**
@@ -2351,6 +2448,7 @@ function initialState(options: FakeGatewayOptions): FakeGatewayState {
     revokeCalls: [],
     eventsSinceCalls: [],
     serverRequestAnswers: [],
+    clientCapabilities: [],
     methodLog: [],
     truncateNextReplay: false,
     hangMethods: new Set<string>(),
@@ -2702,6 +2800,8 @@ export async function startFakeGateway(options: FakeGatewayOptions = {}): Promis
   const codes = new Map<string, { challenge: string; provider: string }>()
   const refreshTokens = new Map<string, { provider: string; userId: string }>()
   const sockets = new Set<WebSocket>()
+  /** The `confirm` levels each live socket offered in `client.capabilities`. */
+  const confirmLevels = new Map<WebSocket, string[]>()
   const pendingServerRequests = new Map<string, { resolve: (value: unknown) => void; reject: (error: Error) => void }>()
   const timers = new Set<ReturnType<typeof setTimeout>>()
   let serverRequestSequence = 0
@@ -3128,6 +3228,112 @@ export async function startFakeGateway(options: FakeGatewayOptions = {}): Promis
 
   // ---------------------------------------------------------------- HTTP ---
 
+  /**
+   * `GET /dashboard-plugins/{plugin_name}/{file_path:path}`, from `options.pluginAssets`.
+   *
+   * Only `hermie` is a plugin here, and only when the plugin is there at all
+   * (`plugin: false` is a gateway without it) and a directory was given; any
+   * other name is the route's own 404, `Plugin not found`.
+   */
+  function servePluginAsset(req: IncomingMessage, res: ServerResponse, pathname: string): void {
+    const match = /^\/dashboard-plugins\/([^/]+)\/(.*)$/su.exec(pathname)
+
+    if (!match) {
+      json(res, 404, { detail: 'Not Found' })
+
+      return
+    }
+
+    if (req.method !== 'GET') {
+      // FastAPI registers the route for GET alone, HEAD included.
+      res.writeHead(405, { 'content-type': 'application/json', allow: 'GET' })
+      res.end(JSON.stringify({ detail: 'Method Not Allowed' }))
+
+      return
+    }
+
+    let name: string
+    let filePath: string
+
+    try {
+      name = decodeURIComponent(match[1] as string)
+      filePath = decodeURIComponent(match[2] as string)
+    } catch {
+      json(res, 404, { detail: 'File not found' })
+
+      return
+    }
+
+    if (name !== 'hermie' || !options.pluginAssets || options.plugin === false) {
+      json(res, 404, { detail: 'Plugin not found' })
+
+      return
+    }
+
+    const answer = readPluginAsset(options.pluginAssets, filePath)
+
+    if (answer.status !== 200) {
+      json(res, answer.status, { detail: answer.detail })
+
+      return
+    }
+
+    res.writeHead(200, {
+      'content-type': answer.contentType,
+      'content-length': answer.body.length,
+      'cache-control': PLUGIN_ASSET_CACHE_CONTROL
+    })
+    res.end(answer.body)
+  }
+
+  /**
+   * What the gate answers a cookie-mode request that has no session
+   * (`middleware._unauth_response`): for `/api` a JSON 401 that names where to
+   * sign in, because a `fetch` follows a redirect opaquely, and for a page a 302
+   * to the sign-in page.
+   *
+   * The pages are the ones this fake serves: `/` and the plugin's files. The real
+   * gate redirects every path that is not `/api`, but a path nothing here serves
+   * keeps the plain JSON 401 it has always had, because a probe of a wrong
+   * address (the access-proxy check in Hermie Web's setup) tells "a gate answered
+   * for it" from "a gateway answered" by exactly that.
+   *
+   * A cookie that is present and no longer good is the other reason, with its own
+   * `error`, and is cleared on the way out. Which is which is the one thing a
+   * client can act on: "sign in" and "your session ended" read differently.
+   */
+  function rejectUnauthenticated(req: IncomingMessage, res: ServerResponse, url: URL): void {
+    const expired = cookieOf(req, SESSION_COOKIE).length > 0
+    const loginUrl = loginUrlFor(url.pathname, url.search)
+    const clearing = expired ? { 'set-cookie': `${SESSION_COOKIE}=; Max-Age=0; HttpOnly; SameSite=Lax; Path=/` } : {}
+
+    if (url.pathname.startsWith('/api/')) {
+      const text = JSON.stringify({
+        error: expired ? 'session_expired' : 'unauthenticated',
+        detail: 'Unauthorized',
+        reason: expired ? 'invalid_or_expired_session' : 'no_cookie',
+        login_url: loginUrl
+      })
+      res.writeHead(401, {
+        'content-type': 'application/json',
+        'content-length': Buffer.byteLength(text),
+        ...clearing
+      })
+      res.end(text)
+
+      return
+    }
+
+    if (url.pathname === '/' || url.pathname.startsWith('/dashboard-plugins/')) {
+      res.writeHead(302, { location: loginUrl, ...clearing })
+      res.end()
+
+      return
+    }
+
+    json(res, 401, { detail: 'Unauthorized' })
+  }
+
   const httpServer = createServer((req, res) => {
     void handleHttp(req, res).catch(error => {
       json(res, 500, { error: String(error) })
@@ -3165,11 +3371,9 @@ export async function startFakeGateway(options: FakeGatewayOptions = {}): Promis
       // The gateway's own sign-in page. A form rather than JSON, because that is
       // what a browser lands on when `/auth/login` redirects a password
       // provider — and because the proxy has to carry HTML as happily as JSON.
-      html(
-        res,
-        200,
-        `<!doctype html><meta charset="utf-8"><title>Sign in</title><form id="f"><input name="username"><input name="password" type="password"><button>Sign in</button></form>`
-      )
+      // It signs in and then follows `next`, which is what a client's sign-in
+      // bounce relies on to come back.
+      html(res, 200, LOGIN_PAGE)
 
       return
     }
@@ -3535,6 +3739,7 @@ export async function startFakeGateway(options: FakeGatewayOptions = {}): Promis
         refreshReuseAttempts: state.refreshReuseAttempts,
         eventsSinceCalls: state.eventsSinceCalls,
         methodLog: state.methodLog,
+        clientCapabilities: state.clientCapabilities,
         openServerRequests: [...state.openServerRequests.keys()],
         serverRequestAnswers: state.serverRequestAnswers,
         // Stored ids of the sessions with a turn still streaming: how a client
@@ -3614,6 +3819,22 @@ export async function startFakeGateway(options: FakeGatewayOptions = {}): Promis
       return
     }
 
+    if (path === '/__fake/expire-sessions' && method === 'POST') {
+      /*
+        Every cookie session ends at once, as when the identity provider revokes
+        them or the gateway restarts: the next request that carries one of those
+        cookies is answered as an expired session, not as a visitor who never
+        signed in. A browser test that wants the lapse without reaching into the
+        browser's cookie jar uses this. Tokens and tickets already handed out are
+        left alone — a live socket keeps its session until it is dropped.
+      */
+      const expired = sessionCookies.size
+      sessionCookies.clear()
+      json(res, 200, { expired })
+
+      return
+    }
+
     if (path === '/__fake/request' && method === 'POST') {
       /*
         The same control surface for a server→client REQUEST, and it exists for
@@ -3641,6 +3862,21 @@ export async function startFakeGateway(options: FakeGatewayOptions = {}): Promis
 
       const requestMethod = String(body.method ?? 'clarify')
       const params = (body.params ?? {}) as Record<string, unknown>
+
+      /*
+        A `confirm` is gated on the level, as on the real gateway: it goes only to
+        a connection that offered it in `client.capabilities`. Raising one nobody
+        offered would leave a question open that no client was ever sent, so the
+        control call says so instead — with nothing raised.
+      */
+      if (requestMethod === 'confirm' && socketsOfferingConfirm(confirmLevelOf(params)).length === 0) {
+        json(res, 409, {
+          detail: `No connected client offered the "${confirmLevelOf(params)}" confirm level in client.capabilities; nothing was sent`
+        })
+
+        return
+      }
+
       // An approval with a queue id is a queue entry, as the real gateway's
       // always is: `approval.pending` lists it until it is answered or withdrawn,
       // so a client that re-validates before answering finds it there.
@@ -3666,7 +3902,42 @@ export async function startFakeGateway(options: FakeGatewayOptions = {}): Promis
       return
     }
 
+    /*
+      The dashboard's static route for a plugin. On a gated gateway it sits behind
+      the same gate as everything that is not public (the next block); on a
+      gateway with a session token, or none, the files are public — the same
+      exposure as the dashboard's own bundle, with every `/api/*` call still
+      needing the token.
+    */
+    if (path.startsWith('/dashboard-plugins/') && (!gated() || httpAuthorized(req))) {
+      servePluginAsset(req, res, path)
+
+      return
+    }
+
+    /*
+      `GET /` on a gateway with a session token: the dashboard's own `index.html`,
+      which is where the token is handed to a page the gateway serves. It is not
+      served on a gated gateway (there the page itself is behind the gate) and a
+      gateway with no auth has no token to hand out.
+    */
+    if (state.auth === 'token' && path === '/' && method === 'GET') {
+      res.writeHead(200, {
+        'content-type': 'text/html; charset=utf-8',
+        'cache-control': PLUGIN_ASSET_CACHE_CONTROL
+      })
+      res.end(tokenIndexHtml(state.token))
+
+      return
+    }
+
     if (!httpAuthorized(req)) {
+      if (state.auth === 'cookie') {
+        rejectUnauthenticated(req, res, url)
+
+        return
+      }
+
       json(res, 401, { detail: 'Unauthorized' })
 
       return
@@ -5063,7 +5334,10 @@ export async function startFakeGateway(options: FakeGatewayOptions = {}): Promis
     state.connections += 1
     sockets.add(socket)
 
-    socket.on('close', () => sockets.delete(socket))
+    socket.on('close', () => {
+      sockets.delete(socket)
+      confirmLevels.delete(socket)
+    })
     socket.on('message', data => {
       for (const line of String(data).split('\n')) {
         if (line.trim()) {
@@ -5165,6 +5439,10 @@ export async function startFakeGateway(options: FakeGatewayOptions = {}): Promis
     const params = (frame.params ?? {}) as Record<string, unknown>
     state.methodLog.push(method)
 
+    if (method === 'client.capabilities') {
+      recordClientCapabilities(socket, params)
+    }
+
     try {
       const result = await dispatch(method, params)
 
@@ -5195,8 +5473,30 @@ export async function startFakeGateway(options: FakeGatewayOptions = {}): Promis
     }
 
     switch (method) {
-      case 'client.capabilities':
-        return { server_requests: ['approval', 'clarify', 'sudo', 'secret'] }
+      case 'client.capabilities': {
+        /*
+          Every kind of request this gateway can raise, plus `confirm` once a
+          client has offered a level for it. A client that sent no `confirm` gets
+          the answer it always got, with the three vault requests the contract
+          has since added, and no `confirm` member in the result.
+        */
+        const offered = Array.isArray(params.confirm)
+        const levels = offered ? confirmLevelsOf(params) : []
+
+        return {
+          server_requests: [
+            'approval',
+            'clarify',
+            'secret',
+            'sudo',
+            'vault.code',
+            'vault.save_login',
+            'vault.unlock_prompt',
+            ...(levels.length ? ['confirm'] : [])
+          ],
+          ...(offered ? { confirm: levels } : {})
+        }
+      }
 
       case 'gateway.capabilities':
         return { per_session_exclusive_submit: true }
@@ -7718,14 +8018,60 @@ export async function startFakeGateway(options: FakeGatewayOptions = {}): Promis
     state.openServerRequests.set(id, { session_id: runtimeId, method, params })
 
     return new Promise<unknown>((resolve, reject) => {
+      // A gated request reaches only the connections that offered its level, and
+      // a request nobody can answer is `unavailable` at once rather than open.
+      const targets = method === 'confirm' ? socketsOfferingConfirm(confirmLevelOf(params)) : [...sockets]
+
+      if (method === 'confirm' && targets.length === 0) {
+        reject(new Error(`unavailable: no connected client offered the ${confirmLevelOf(params)} confirm level`))
+
+        return
+      }
+
       pendingServerRequests.set(id, { resolve, reject })
 
-      for (const socket of sockets) {
+      for (const socket of targets) {
         send(socket, { jsonrpc: '2.0', id, method, params: { session_id: runtimeId, ...params } })
       }
     }).finally(() => {
       state.openServerRequests.delete(id)
     })
+  }
+
+  /** The `confirm` levels a `client.capabilities` call offered: the strings in its list, de-duplicated. */
+  function confirmLevelsOf(params: Record<string, unknown>): string[] {
+    const list = Array.isArray(params.confirm) ? params.confirm : []
+
+    return [...new Set(list.filter((level): level is string => typeof level === 'string' && level.length > 0))]
+  }
+
+  /**
+   * Remember what one connection says it handles.
+   *
+   * The levels belong to the socket, not to the gateway: a `confirm` is sent only
+   * to the connections that offered its level, as `server_requests.send_gated`
+   * does, so two clients on one gateway can differ.
+   */
+  function recordClientCapabilities(socket: WebSocket, params: Record<string, unknown>): void {
+    const levels = params.server_requests === true ? confirmLevelsOf(params) : []
+
+    state.clientCapabilities.push({ server_requests: params.server_requests === true, confirm: levels })
+
+    if (levels.length) {
+      confirmLevels.set(socket, levels)
+    } else {
+      confirmLevels.delete(socket)
+    }
+  }
+
+  /** The live sockets that offered `level`: who a `confirm` of that level may reach. */
+  function socketsOfferingConfirm(level: string): WebSocket[] {
+    return [...sockets].filter(socket => confirmLevels.get(socket)?.includes(level))
+  }
+
+  /** The level a `confirm` request names; the contract's default is `plain`. */
+  function confirmLevelOf(params: Record<string, unknown>): string {
+    return typeof params.level === 'string' && params.level ? params.level : 'plain'
   }
 
   /** Push one server→client request and resolve with whatever the client answers. */

@@ -713,7 +713,21 @@ function outDir(): string {
 async function record(scenario: Scenario): Promise<unknown> {
   uuidCounter = 0
 
-  const gateway = await startFakeGateway({ auth: 'token', token: TOKEN, streamDelayMs: 4, subagentStepMs: 4 })
+  /*
+    The recorded streams carry the roster, and the roster carries the plugin's
+    advert. The web client's members of it (`web`, `webPush`) were added after
+    these corpora were recorded and mean nothing to a transcript replay, so they
+    are held back here: the corpus stays what it was, and a change to the fake's
+    default advert for a client of its own does not turn the native CI red.
+  */
+  const gateway = await startFakeGateway({
+    auth: 'token',
+    token: TOKEN,
+    streamDelayMs: 4,
+    subagentStepMs: 4,
+    webClient: false,
+    webPushKey: false
+  })
 
   try {
     const client = new Client(gateway, scenario.profile, scenario.answers)
