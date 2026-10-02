@@ -165,13 +165,14 @@ struct AppLaunchTests {
     @Test("the UI test switches exist only with -HermieUITest, and seed before anything is read")
     func testHooks() async throws {
       #expect(LaunchTestHooks(arguments: ["Hermie"]) == nil)
+      #expect(LaunchTestHooks(arguments: ["Hermie", "-HermieUITest", "NO"]) == nil)
 
       let scratch = Scratch()
       defer { scratch.cleanUp() }
 
       let hooks = try #require(
         LaunchTestHooks(arguments: [
-          "Hermie", "-HermieUITest",
+          "Hermie", "-HermieUITest", "YES",
           "-HermieDataDirectory", scratch.url.path,
           "-HermieFakeAuth", "fail,ok",
           "-HermieSeedLock", #"{"threshold":"1m"}"#,
@@ -182,7 +183,7 @@ struct AppLaunchTests {
       #expect(hooks.dataDirectory.path == scratch.url.path)
 
       let environment = LaunchEnvironment.live(arguments: [
-        "Hermie", "-HermieUITest",
+        "Hermie", "-HermieUITest", "YES",
         "-HermieDataDirectory", scratch.url.path,
         "-HermieFakeAuth", "fail,ok",
         "-HermieSeedLock", #"{"threshold":"1m"}"#,

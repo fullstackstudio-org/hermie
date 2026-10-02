@@ -20,6 +20,12 @@
 #                                                HERMIE_SIM_RUNTIME override the device type
 #                                                (default iPhone 17) and the runtime (default
 #                                                the newest iOS runtime installed).
+#   native/apple/scripts/test.sh --ui            also run the iOS UI test schemes in ui_schemes
+#                                                (the app shell's HermieShellUITests) on a
+#                                                throwaway iPhone and a throwaway iPad, created
+#                                                for the run and deleted after it.
+#                                                HERMIE_SIM_PAD_TYPE overrides the iPad type
+#                                                (default iPad Pro 11-inch (M5)).
 #
 # The options can be combined, in any order, before the swift test arguments.
 #
@@ -39,12 +45,14 @@ integration=false
 if [[ -n "${CI:-}" ]]; then
   integration=true
 fi
+ui=false
 while [[ $# -gt 0 ]]; do
   case "$1" in
     --apps) build_apps=true ;;
     --keychain) keychain=true ;;
     --integration) integration=true ;;
     --no-integration) integration=false ;;
+    --ui) ui=true ;;
     *) break ;;
   esac
   shift
@@ -148,4 +156,49 @@ if [[ "$keychain" == true ]]; then
     -derivedDataPath "$derived" \
     CODE_SIGN_STYLE=Manual CODE_SIGN_IDENTITY=- DEVELOPMENT_TEAM=
   echo "Keychain tests passed"
+fi
+
+if [[ "$ui" == true ]]; then
+  "$apple_dir/scripts/generate.sh" ios
+
+  # One entry per UI test scheme in native/ios/project.yml; add yours here.
+  ui_schemes=(HermieShellUITests)
+
+  phone_type="${HERMIE_SIM_DEVICE_TYPE:-com.apple.CoreSimulator.SimDeviceType.iPhone-17}"
+  pad_type="${HERMIE_SIM_PAD_TYPE:-com.apple.CoreSimulator.SimDeviceType.iPad-Pro-11-inch-M5-12GB}"
+  ui_runtime="${HERMIE_SIM_RUNTIME:-$(xcrun simctl list runtimes iOS available | awk '/^iOS / { id = $NF } END { print id }')}"
+  if [[ -z "$ui_runtime" ]]; then
+    echo "No iOS Simulator runtime is installed." >&2
+    exit 1
+  fi
+
+  # Devices of their own, deleted on the way out whatever happens.
+  ui_devices=()
+  ui_cleanup() {
+    for device in "${ui_devices[@]}"; do
+      xcrun simctl shutdown "$device" >/dev/null 2>&1 || true
+      xcrun simctl delete "$device" >/dev/null 2>&1 || true
+    done
+    # The keychain run's device, when both ran: this trap replaces that one.
+    if declare -F cleanup >/dev/null; then
+      cleanup
+    fi
+  }
+  trap ui_cleanup EXIT
+
+  ui_devices+=("$(xcrun simctl create "Hermie UI tests iPhone $$" "$phone_type" "$ui_runtime")")
+  ui_devices+=("$(xcrun simctl create "Hermie UI tests iPad $$" "$pad_type" "$ui_runtime")")
+
+  for device in "${ui_devices[@]}"; do
+    for scheme in "${ui_schemes[@]}"; do
+      echo "$scheme on a throwaway simulator ($device, $ui_runtime)"
+      # Signed ad hoc, as the keychain tests are: no team, profile or certificate.
+      xcodebuild test -quiet \
+        -project "$native_dir/ios/Hermie.xcodeproj" -scheme "$scheme" \
+        -destination "platform=iOS Simulator,id=$device" \
+        -derivedDataPath "$derived" \
+        CODE_SIGN_STYLE=Manual CODE_SIGN_IDENTITY=- DEVELOPMENT_TEAM=
+    done
+  done
+  echo "UI tests passed"
 fi

@@ -7,15 +7,19 @@
    compiled into a release build, so no launch argument can replace the authenticator, seed a lock
    or point the app at another directory there.
 
-   Active only with `-HermieUITest`. Every run gets a fresh data directory of its own (or the one
-   named by `-HermieDataDirectory`), so a test never meets the store of a real install.
+   Active only with `-HermieUITest YES`. Every run gets a fresh data directory of its own (or the
+   one named by `-HermieDataDirectory`), so a test never meets the store of a real install.
+
+   Every switch takes a value, the switches included (`YES`): AppKit reads launch arguments as
+   `-key value` pairs, and a bare switch followed by a path leaves the path on its own, where the
+   Mac takes it for a document to open and launches without a window.
 
    - `-HermieFakeAuth fail,ok` the scripted prompt's answers, in order, the last one repeating
    - `-HermieFakeEnrolment biometric|passcode|none|unavailable`
    - `-HermieSeedLock '{"threshold":"5m"}'` the raw text written to `hermie.lock`
    - `-HermieSeedGateway 'Name|http://host:port'` repeatable; the first becomes active
-   - `-HermieLaunchTrace` record what the lock gate drew, in order, for the first-frame test
-   - `-HermieOpenSettings` open the Settings window at launch (Mac)
+   - `-HermieLaunchTrace YES` record what the lock gate drew, in order, for the first-frame test
+   - `-HermieOpenSettings YES` open the Settings window at launch (Mac)
    - `-HermieOpenURL 'hermie://…'` handle a link as if the system had delivered it
    */
   public struct LaunchTestHooks: Sendable {
@@ -28,14 +32,18 @@
     public var openURL: String?
 
     public init?(arguments: [String]) {
-      guard arguments.contains("-HermieUITest") else {
-        return nil
-      }
-
       func values(_ flag: String) -> [String] {
         arguments.indices.compactMap { index in
           arguments[index] == flag && arguments.indices.contains(index + 1) ? arguments[index + 1] : nil
         }
+      }
+
+      func isOn(_ flag: String) -> Bool {
+        values(flag).last.map { ["YES", "1", "true"].contains($0) } ?? false
+      }
+
+      guard isOn("-HermieUITest") else {
+        return nil
       }
 
       let verdicts: [AuthenticationVerdict] = (values("-HermieFakeAuth").last ?? "ok")
@@ -70,8 +78,8 @@
 
         return parts.count == 2 ? (parts[0], parts[1]) : nil
       }
-      traceLaunch = arguments.contains("-HermieLaunchTrace")
-      openSettings = arguments.contains("-HermieOpenSettings")
+      traceLaunch = isOn("-HermieLaunchTrace")
+      openSettings = isOn("-HermieOpenSettings")
       openURL = values("-HermieOpenURL").last
     }
 

@@ -52,7 +52,39 @@ targets:
         TEST_HOST: $(BUILT_PRODUCTS_DIR)/Hermie.app/$(BUNDLE_EXECUTABLE_FOLDER_PATH)/Hermie
         BUNDLE_LOADER: $(TEST_HOST)
 
+  # The app shell on a simulator: first frame, lock, deep links, split view and
+  # the accessibility audits. Run with `scripts/test.sh --ui`, which uses a
+  # throwaway iPhone and iPad. The app runs on its own data directory with a
+  # scripted authenticator (`-HermieUITest`, debug builds only).
+  HermieShellUITests:
+    type: bundle.ui-testing
+    platform: iOS
+    sources:
+      - path: ../apple/ShellUITests
+    dependencies:
+      - target: Hermie
+      - package: HermieKit
+        product: HermieGateway
+    settings:
+      base:
+        GENERATE_INFOPLIST_FILE: YES
+        PRODUCT_BUNDLE_IDENTIFIER: dev.hermie.app.shell-ui-tests
+        SUPPORTED_PLATFORMS: iphonesimulator
+        TARGETED_DEVICE_FAMILY: '1,2'
+        SWIFT_VERSION: '6.0'
+        SWIFT_STRICT_CONCURRENCY: complete
+        SWIFT_TREAT_WARNINGS_AS_ERRORS: YES
+        TEST_TARGET_NAME: Hermie
+
 schemes:
+  HermieShellUITests:
+    build:
+      targets:
+        Hermie: all
+        HermieShellUITests: [test]
+    test:
+      targets:
+        - HermieShellUITests
   HermieKeychainTests:
     build:
       targets:
