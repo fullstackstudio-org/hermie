@@ -437,6 +437,70 @@ private let fixture = #"""
       ["applyEvent",{"type":"session.reclaimed","payload":{"reason":"idle"}},1790000009000]
     ],
     "expected": {"botName":"bot","byApprovalId":{},"byDelegationId":{},"byProcessId":{},"byRequestId":{},"byRowId":{"42":"f:1000"},"byToolId":{},"compacting":false,"draft":"","hydration":"stale","info":{"running":false,"stored_session_id":"stored-2","turn_started_at":1},"items":{"f:1000":{"id":"f:1000","kind":"user","origin":"foreign","reactions":[{"count":2,"emoji":"👍"}],"seq":1000,"text":"","ts":1790000001,"unknownAuthor":true,"version":1},"n:2000":{"body":"answer","id":"n:2000","kind":"notice","noticeKind":"notice","origin":"live","seq":2000,"title":"Side question: why?","ts":1790000005,"version":0},"n:3000":{"body":"bg done","id":"n:3000","kind":"notice","noticeKind":"notice","origin":"live","seq":3000,"title":"Background task finished","ts":1790000006,"version":0},"n:4000":{"body":"line 1\nline 2","id":"n:4000","kind":"notice","noticeKind":"command","origin":"live","seq":4000,"title":"/status","ts":1790000007,"version":0},"n:5000":{"id":"n:5000","kind":"notice","noticeKind":"notice","origin":"live","seq":5000,"title":"hey","ts":1790000008,"version":0},"n:6000":{"body":"idle","id":"n:6000","kind":"notice","noticeKind":"reclaimed","origin":"live","seq":6000,"title":"Session reclaimed by the gateway","ts":1790000009,"version":0}},"lastSeq":5,"order":["f:1000","n:2000","n:3000","n:4000","n:5000","n:6000"],"resolvedSessionId":"resolved","storedSessionId":"stored-2","subagents":{},"turn":{"active":false,"foreignReconcilePending":true,"interrupted":false,"local":false,"nextSeq":7000,"startedAt":1790000001000},"unreadCount":0,"usage":{"input":1}}
+  },
+  {
+    "name": "tool-start-after-reasoning-only",
+    "covers": "a bubble holding only reasoning when a tool starts is sealed, not dropped; the reply after the tool opens a new bubble",
+    "steps": [
+      ["applyEvent",{"type":"message.start","payload":{}},1790000001000],
+      ["applyEvent",{"type":"reasoning.delta","payload":{"text":"weighing the options"}},1790000002000],
+      ["applyEvent",{"type":"tool.start","payload":{"tool_id":"c1","name":"terminal","args":{"command":"ls"}}},1790000003000],
+      ["applyEvent",{"type":"tool.complete","payload":{"tool_id":"c1","result_text":"a.txt"}},1790000004000],
+      ["applyEvent",{"type":"message.delta","payload":{"text":"Found it."}},1790000005000],
+      ["applyEvent",{"type":"message.complete","payload":{"text":"Found it."}},1790000006000]
+    ],
+    "expected": {"botName":"bot","byApprovalId":{},"byDelegationId":{},"byProcessId":{},"byRequestId":{},"byRowId":{},"byToolId":{"c1":"t:c1"},"compacting":false,"draft":"","hydration":"cold","items":{"a:2000":{"id":"a:2000","interim":true,"kind":"assistant","origin":"live","reasoning":"weighing the options","seq":2000,"streaming":false,"text":"","ts":1790000002,"version":2},"a:4000":{"durationS":5,"id":"a:4000","interim":false,"kind":"assistant","origin":"live","seq":4000,"status":"complete","streaming":false,"text":"Found it.","ts":1790000005,"version":2},"f:1000":{"id":"f:1000","kind":"user","origin":"foreign","seq":1000,"text":"","ts":1790000001,"unknownAuthor":true,"version":0},"t:c1":{"args":{"command":"ls"},"id":"t:c1","isError":false,"kind":"tool","name":"terminal","origin":"live","resultKnown":true,"resultText":"a.txt","seq":3000,"status":"complete","toolId":"c1","ts":1790000003,"version":1}},"lastSeq":0,"order":["f:1000","a:2000","t:c1","a:4000"],"resolvedSessionId":"resolved","storedSessionId":"stored","subagents":{},"turn":{"active":false,"foreignReconcilePending":true,"interrupted":false,"local":false,"nextSeq":5000},"unreadCount":0}
+  },
+  {
+    "name": "resume-new-inflight-interrupted",
+    "covers": "applyResumeSnapshot with no live bubble adds an inflight reply marked `interrupted`",
+    "steps": [
+      ["applyResumeSnapshot",{"inflight":{"user":"go on","assistant":"half of it","status":"interrupted","streaming":false},"running":false},1790000001000]
+    ],
+    "expected": {"botName":"bot","byApprovalId":{},"byDelegationId":{},"byProcessId":{},"byRequestId":{},"byRowId":{},"byToolId":{},"draft":"","hydration":"live","items":{"i:1000":{"id":"i:1000","kind":"user","origin":"inflight","seq":1000,"text":"go on","ts":1790000001,"version":0},"i:2000":{"id":"i:2000","interim":false,"kind":"assistant","origin":"inflight","seq":2000,"status":"interrupted","streaming":false,"text":"half of it","ts":1790000001,"version":0}},"lastSeq":0,"order":["i:1000","i:2000"],"resolvedSessionId":"resolved","storedSessionId":"stored","subagents":{},"turn":{"active":false,"local":false,"nextSeq":3000},"unreadCount":0}
+  },
+  {
+    "name": "resume-new-inflight-recoverable-failure",
+    "covers": "applyResumeSnapshot with no live bubble adds a streaming inflight reply carrying a recoverable failure",
+    "steps": [
+      ["applyResumeSnapshot",{"inflight":{"user":"try again","assistant":"partial","error":"  provider down  ","recoverable":true,"streaming":true},"running":true,"turn_started_at":1790000000},1790000001000]
+    ],
+    "expected": {"botName":"bot","byApprovalId":{},"byDelegationId":{},"byProcessId":{},"byRequestId":{},"byRowId":{},"byToolId":{},"draft":"","hydration":"live","items":{"i:1000":{"id":"i:1000","kind":"user","origin":"inflight","seq":1000,"text":"try again","ts":1790000001,"version":0},"i:2000":{"error":{"message":"provider down","partial":true,"recoverable":true},"id":"i:2000","interim":false,"kind":"assistant","origin":"inflight","seq":2000,"status":"error","streaming":true,"text":"partial","ts":1790000001,"version":0}},"lastSeq":0,"order":["i:1000","i:2000"],"resolvedSessionId":"resolved","storedSessionId":"stored","subagents":{},"turn":{"active":true,"assistantId":"i:2000","local":false,"nextSeq":3000,"startedAt":1790000001000},"unreadCount":0}
+  },
+  {
+    "name": "clarify-redelivered-open",
+    "covers": "an open clarify re-delivered under its own request id is not added twice, even with different words",
+    "steps": [
+      ["applyServerRequest",{"id":"srq-5","method":"clarify","params":{"question":"Which branch?","choices":["main","next"]}},1790000001000],
+      ["applyServerRequest",{"id":"srq-5","method":"clarify","params":{"question":"Which branch, again?","choices":["main"]}},1790000002000]
+    ],
+    "expected": {"botName":"bot","byApprovalId":{},"byDelegationId":{},"byProcessId":{},"byRequestId":{"srq-5":"req:srq-5"},"byRowId":{},"byToolId":{},"draft":"","hydration":"cold","items":{"req:srq-5":{"answers":{},"id":"req:srq-5","kind":"clarify","locked":[],"origin":"live","questions":[{"choices":["main","next"],"multiSelect":false,"qid":"q1","question":"Which branch?"}],"requestId":"srq-5","seq":1000,"state":"open","ts":1790000001,"version":0}},"lastSeq":0,"order":["req:srq-5"],"resolvedSessionId":"resolved","storedSessionId":"stored","subagents":{},"turn":{"active":false,"local":false,"nextSeq":2000},"unreadCount":0}
+  },
+  {
+    "name": "complete-with-only-an-error",
+    "covers": "message.complete with an error and no text, and no bubble at all, creates a failed reply",
+    "steps": [
+      ["applyEvent",{"type":"message.complete","payload":{"status":"error","error":"provider down","recoverable":true}},1790000001000]
+    ],
+    "expected": {"botName":"bot","byApprovalId":{},"byDelegationId":{},"byProcessId":{},"byRequestId":{},"byRowId":{},"byToolId":{},"compacting":false,"draft":"","hydration":"cold","items":{"a:1000":{"error":{"message":"provider down","partial":false,"recoverable":true},"id":"a:1000","interim":false,"kind":"assistant","origin":"live","seq":1000,"status":"error","streaming":false,"text":"","ts":1790000001,"version":1}},"lastSeq":0,"order":["a:1000"],"resolvedSessionId":"resolved","storedSessionId":"stored","subagents":{},"turn":{"active":false,"interrupted":false,"local":false,"nextSeq":2000},"unreadCount":0}
+  },
+  {
+    "name": "tool-events-without-ids",
+    "covers": "tool.start without a tool_id gets a `gen-` id; tool.complete without one and no running tool lands as a `late-` card",
+    "steps": [
+      ["applyEvent",{"type":"message.start","payload":{}},1790000001000],
+      ["applyEvent",{"type":"tool.start","payload":{"name":"terminal","args":{"command":"pwd"}}},1790000002000],
+      ["applyEvent",{"type":"tool.complete","payload":{"name":"read_file","result_text":"ok"}},1790000003000]
+    ],
+    "expected": {"botName":"bot","byApprovalId":{},"byDelegationId":{},"byProcessId":{},"byRequestId":{},"byRowId":{},"byToolId":{"gen-2000":"t:gen-2000","late-3000":"t:late-3000"},"compacting":false,"draft":"","hydration":"cold","items":{"f:1000":{"id":"f:1000","kind":"user","origin":"foreign","seq":1000,"text":"","ts":1790000001,"unknownAuthor":true,"version":0},"t:gen-2000":{"args":{"command":"pwd"},"id":"t:gen-2000","kind":"tool","name":"terminal","origin":"live","resultKnown":false,"seq":2000,"status":"running","toolId":"gen-2000","ts":1790000002,"version":0},"t:late-3000":{"id":"t:late-3000","isError":false,"kind":"tool","name":"read_file","origin":"live","resultKnown":true,"resultText":"ok","seq":3000,"status":"complete","toolId":"late-3000","ts":1790000003,"version":1}},"lastSeq":0,"order":["f:1000","t:gen-2000","t:late-3000"],"resolvedSessionId":"resolved","storedSessionId":"stored","subagents":{},"turn":{"active":true,"foreignReconcilePending":true,"interrupted":false,"local":false,"nextSeq":4000,"startedAt":1790000001000},"unreadCount":0}
+  },
+  {
+    "name": "pending-approval-command-only",
+    "covers": "a resume whose pending_approval carries only a command rebuilds the sheet under `pending:approval`",
+    "steps": [
+      ["applyResumeSnapshot",{"pending_approval":{"command":"rm -rf build"},"running":true},1790000001000]
+    ],
+    "expected": {"botName":"bot","byApprovalId":{"pending:approval":"req:pending:approval"},"byDelegationId":{},"byProcessId":{},"byRequestId":{"pending:approval":"req:pending:approval"},"byRowId":{},"byToolId":{},"draft":"","hydration":"live","items":{"req:pending:approval":{"allowPermanent":true,"allowSession":true,"approvalId":"pending:approval","choices":["once","session","always","deny"],"command":"rm -rf build","id":"req:pending:approval","kind":"approval","origin":"live","requestId":"pending:approval","seq":1000,"state":"open","ts":1790000001,"version":0}},"lastSeq":0,"order":["req:pending:approval"],"resolvedSessionId":"resolved","storedSessionId":"stored","subagents":{},"turn":{"active":true,"local":false,"nextSeq":2000,"startedAt":1790000001000},"unreadCount":0}
   }
 ]
 """#
