@@ -6,10 +6,12 @@ served by the gateway itself through the `hermie` plugin, on the gateway's own o
 the threat model that follows from it are in
 [ADR-0030](../../docs/adr/0030-the-web-client-is-served-by-the-gateway-plugin.md).
 
-**Status: scaffold.** What exists is the build, its checks and one page that prints the build it came
-from. There is no sign-in, no chat and no gateway call yet, and the plugin does not serve this build. Until
-that changes, the browser keeps running the Expo app's web export through Hermie Web
-([docs/web.md](../../docs/web.md)); nothing here replaces it.
+**Status: boot only.** What exists is the build, its checks, and the boot: the client refuses to run in a
+frame, finds its gateway from its own address, probes it, and reads who is signed in on the gateway's own
+session. Signed in, it shows the build it came from and who you are, with a way to sign out. There is no
+connection and no chat yet, and the plugin does not serve this build. Until that changes, the browser keeps
+running the Expo app's web export through Hermie Web ([docs/web.md](../../docs/web.md)); nothing here
+replaces it.
 
 ## Running it
 
@@ -55,7 +57,7 @@ compress. The build is shaped around that:
 - **Nothing inlined as a `data:` URI**; the document's policy allows `data:` for images only.
 - **The policy travels with the document** (`index.html`): the route sets no security headers. No inline
   script, no inline style, nothing but this origin, Trusted Types required. `frame-ancestors` cannot be set
-  from a meta element, so refusing to render in a frame is the entry module's job, and is not done yet.
+  from a meta element, so refusing to render in a frame is the entry module's job (see "Boot").
 
 ### `build.json`
 
@@ -112,6 +114,61 @@ Node 26.
 If a change makes the build non-reproducible, the check names the files that differ; a new Vite plugin or an
 environment variable read at build time is the usual cause.
 
+## Boot
+
+`src/main.tsx` runs, in this order:
+
+1. **Frame guard** (`boot/frame-guard.ts`). In a frame the body is replaced by one sentence, in the browser's
+   language, and nothing else runs: no locale chunk, no storage, no request, no React.
+2. **Language** (`initLocale`), so every screen after this is in the reader's language from its first frame.
+3. **Base path** (`boot/base-path.ts`). The page must be at `<prefix>/dashboard-plugins/hermie/app/index.html`
+   (or that directory, for an alias); the gateway is the origin plus the prefix. Anywhere else is an error
+   screen that names the expected path. A route stashed before a sign-in is put back once.
+4. **Probe** (`boot/auth-mode.ts`): `GET /api/status`. `auth_required: false` is a session-token gateway,
+   which the client does not handle yet; it says so and stops.
+5. **Identity**: `GET /api/auth/me` on the gateway's `HttpOnly` cookie session, sent `same-origin` and never
+   anywhere else. A 401 or 403 is "Sign in again", which stashes the route and goes to
+   `<prefix>/login?next=<this page>`; any other failure says what failed, with "Try again".
+6. **Signed in**: if the stored state was written for somebody else, it is cleared first
+   (`claimForOwner`). Sign-out is `POST /auth/logout`, then the transcript cache and every identity-bound
+   setting are cleared, then `/login`.
+
+`boot/boot.ts` is that sequence as one function with a typed outcome (`unreachable`, `token_mode`,
+`needs_signin`, `signed_in`); `main.tsx` only renders it. `boot/boot.integration.test.ts` runs it against the
+fake gateway in cookie mode.
+
+### Browser storage
+
+Nothing in it is a credential: the session is the gateway's `HttpOnly` cookie, which the client cannot read.
+
+| Where                                               | Key or name                          | What                                                                  | On sign-out |
+| --------------------------------------------------- | ------------------------------------ | --------------------------------------------------------------------- | ----------- |
+| `localStorage` (`platform/key-value-store.ts`)      | `hermie:<base path>:device.*`        | device settings (scheme, tint, text size, installation id)            | kept        |
+| `localStorage`                                      | `hermie:<base path>:<anything else>` | identity-bound state (watermarks, layout, the owner's author id)      | cleared     |
+| IndexedDB `hermie-cache` (`platform/chat-cache.ts`) | rows keyed `<base path>:<bot>`       | transcript snapshots and the roster, in the Expo cache's record shape | cleared     |
+| `sessionStorage`                                    | `hermie:<base path>:route`           | the route, across one sign-in                                         | cleared     |
+
+`<base path>` is the prefix, or `/` at the root, so two gateways behind different prefixes on one host keep
+apart. A key is identity-bound unless it starts with `device.`, so a key nobody classified is cleared rather
+than left for the next person. The language choice is still stored by `src/i18n/locale.ts` under its own
+key, `hermie.language` (docs/i18n.md). A browser that refuses a store gets a page that works and forgets:
+values are kept in memory, and the cache falls back to memory on its first failure.
+
+### Seams
+
+Nothing outside `src/platform/` and `src/boot/` touches `window`, `localStorage`, `sessionStorage`,
+`indexedDB`, `navigator`, `location` or `history` (lint). Each seam takes its browser object as an argument, so
+the tests hand in their own:
+
+| Seam                                                  | What                                                                        |
+| ----------------------------------------------------- | --------------------------------------------------------------------------- |
+| `platform/key-value-store.ts`                         | `createKeyValueStore({ namespace })`: the Expo store's contract, namespaced |
+| `platform/chat-cache.ts`                              | `chatCacheFor(namespace)`: IndexedDB, falling back to memory                |
+| `platform/net-info.ts`                                | `networkWatcher`: `online` / `offline`                                      |
+| `platform/visibility.ts`                              | `visibilityWatcher`: `visibilitychange`, `pagehide`, `pageshow`             |
+| `platform/socket.ts`                                  | `createSocketFactory()`: the page's `WebSocket` for `GatewayConnection`     |
+| `platform/clipboard.ts`, `page-title.ts`, `random.ts` | copy, the tab's title, `crypto.getRandomValues`                             |
+
 ## Layout
 
 ```
@@ -123,8 +180,11 @@ scripts/
   write-build-manifest.mjs  dist/build.json
   source-commit.mjs         which commit this build is of (shared by the config and the manifest)
 src/
-  main.tsx                  mounts the page
-  Placeholder.tsx           the smoke page: heading and build label; touches no gateway
+  main.tsx                  the boot sequence and its screens (the only React outside features/)
+  boot/                     frame guard, base path, auth mode and cookie session, sign-in bounce, boot
+  platform/                 the browser seams (above)
+  test-support/             test doubles: an IndexedDB, a fetch, a fetch with a cookie jar
+  Placeholder.tsx           what a signed-in reader sees for now: heading and build label
   build-info.ts             version and commit injected by the build
   ui/base.css               page ground for both colour schemes (the policy forbids inline styles)
 ```
@@ -142,17 +202,18 @@ turn text into markup at all.
 
 Every third-party package, and why it is here. Anything beyond this list needs a decision first.
 
-| Package                                                            | Kind    | Why                                                                                                                                                                                                       |
-| ------------------------------------------------------------------ | ------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `react`, `react-dom` (19.1.0)                                      | runtime | the UI; the same version as the Expo app, so the ported logic runs on the React it was written against                                                                                                    |
-| `zustand` (5.0.15)                                                 | runtime | the stores the ported controllers already use; about 1 kB, no dependencies. Declared for the work that follows: the smoke page does not import it, so it is not in the bundle yet                         |
-| `@hermes/shared`, `@hermie/gateway-client`, `@hermie/transcript`   | runtime | this repository's own packages (wire contract, gateway connection, transcript engine); used as they are. `@noble/hashes` comes in through `@hermie/gateway-client`. Not imported by the smoke page either |
-| `vite` (7.3.6)                                                     | dev     | the bundler and dev server                                                                                                                                                                                |
-| `@vitejs/plugin-react` (5.1.4)                                     | dev     | the JSX transform and fast refresh                                                                                                                                                                        |
-| `vitest` (3.2.7), `jsdom` (26.1.0)                                 | dev     | unit and component tests in a simulated browser; `vitest` is also what the rest of the repository tests with                                                                                              |
-| `@testing-library/react` (16.3.3), `@testing-library/dom` (10.4.2) | dev     | component tests that query by role and text rather than by implementation; `@testing-library/dom` is a required peer of the React package                                                                 |
-| `@types/react`, `@types/react-dom`                                 | dev     | type definitions for React                                                                                                                                                                                |
-| `typescript`, `eslint`, `prettier`                                 | dev     | from the repository root, shared with every workspace                                                                                                                                                     |
+| Package                                                            | Kind    | Why                                                                                                                                                                                                                                          |
+| ------------------------------------------------------------------ | ------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `react`, `react-dom` (19.1.0)                                      | runtime | the UI; the same version as the Expo app, so the ported logic runs on the React it was written against                                                                                                                                       |
+| `zustand` (5.0.15)                                                 | runtime | the stores the ported controllers already use; about 1 kB, no dependencies. Declared for the work that follows: the smoke page does not import it, so it is not in the bundle yet                                                            |
+| `@hermes/shared`, `@hermie/gateway-client`, `@hermie/transcript`   | runtime | this repository's own packages (wire contract, gateway connection, transcript engine); used as they are. `@noble/hashes` comes in through `@hermie/gateway-client`. The boot uses `@hermie/gateway-client` (probe, cookie session, identity) |
+| `@hermie/fake-gateway`                                             | dev     | this repository's stand-in gateway; the boot's integration test runs it in process                                                                                                                                                           |
+| `vite` (7.3.6)                                                     | dev     | the bundler and dev server                                                                                                                                                                                                                   |
+| `@vitejs/plugin-react` (5.1.4)                                     | dev     | the JSX transform and fast refresh                                                                                                                                                                                                           |
+| `vitest` (3.2.7), `jsdom` (26.1.0)                                 | dev     | unit and component tests in a simulated browser; `vitest` is also what the rest of the repository tests with                                                                                                                                 |
+| `@testing-library/react` (16.3.3), `@testing-library/dom` (10.4.2) | dev     | component tests that query by role and text rather than by implementation; `@testing-library/dom` is a required peer of the React package                                                                                                    |
+| `@types/react`, `@types/react-dom`                                 | dev     | type definitions for React                                                                                                                                                                                                                   |
+| `typescript`, `eslint`, `prettier`                                 | dev     | from the repository root, shared with every workspace                                                                                                                                                                                        |
 
 Not added yet, because nothing uses them: `@playwright/test` and `@axe-core/playwright` for the end-to-end
 and accessibility suites, and `@hermie/markdown` (a package that does not exist yet). The licence text of every
