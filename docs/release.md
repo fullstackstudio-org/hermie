@@ -12,12 +12,13 @@ offers an iPhone/iPad app on Apple Silicon Macs from the same App Store listing
 unless it is opted out under **App Store Connect → the app → Pricing and
 Availability**. A TestFlight tester on a Mac installs the same build the same way.
 So there is nothing Mac-specific to build, sign, notarise or upload; `npm run mac`
-exists for developing, not for releasing.
+exists for developing, not for releasing. That is the Expo line. The native apps
+that replace it have a Mac app of their own; see **Native apps** below.
 
 ## Version numbers
 
 One number, written down in seven places, plus the matching entries in
-`package-lock.json`:
+`package-lock.json` and the desktop crate's own entry in `Cargo.lock`:
 
 - the root `package.json`;
 - the app's `package.json`;
@@ -25,12 +26,22 @@ One number, written down in seven places, plus the matching entries in
 - Hermie Web's `package.json`, which `/hermie/update` and the container image report;
 - the desktop shell's `package.json`, `tauri.conf.json` and `Cargo.toml`.
 
+`Cargo.lock` matters more than it looks: CI runs `cargo test --locked`, and a
+lock entry that still names the previous version fails that job with "cannot
+update the lock file".
+
+The native apps carry a second number, `MARKETING_VERSION` in
+`native/apple/Config/Version.xcconfig`, with its own rule; see **Native apps →
+Versions** below.
+
 Setting them by hand is how some of them end up stale; a test in `packages/hermie-web`
 fails when they disagree. So:
 
 ```sh
-npm run set-version -- 0.2.0            # the marketing version
-npm run set-version -- 0.2.0 --check    # report, change nothing
+npm run set-version -- 0.2.0                    # the marketing version
+npm run set-version -- 0.2.0 --check            # report, change nothing
+npm run set-version -- --native 0.2.1           # the native line only
+npm run set-version -- 0.1.10 --native 0.2.1    # both
 ```
 
 The script fails if a pattern stops matching rather than skipping the file. Read
@@ -435,6 +446,121 @@ Availability and leave "Make this app available on Mac" on; a TestFlight tester 
 an Apple Silicon Mac then installs the same build. Nothing else is needed, and
 nothing here is Mac-specific.
 
+## Native apps
+
+The native iOS and macOS apps (`native/`) are archived by one script in the
+repository, `native/apple/scripts/archive.sh`, on a Mac with Xcode 26 or newer and
+XcodeGen. It generates the project, archives, exports for App Store Connect and
+prints the version and build it made:
+
+```sh
+native/apple/scripts/archive.sh ios   "$OUT"             # $OUT/export-ios/Hermie.ipa
+native/apple/scripts/archive.sh macos "$OUT"             # $OUT/export-macos/Hermie.pkg
+native/apple/scripts/archive.sh ios   "$OUT" --upload    # then altool --validate-app and --upload-app
+```
+
+The archive, the `ExportOptions` file and the export all land in `$OUT`. Both apps
+are bundle id `dev.hermie.app` and go to the **same App Store Connect record** as
+the Expo build: a native build arrives as an update to the Expo one, on the iPhone
+and on the Mac alike.
+
+### Variables
+
+Nothing in the repository names an account. The script reads the environment and
+fails before building anything when something it needs is missing.
+
+| Variable                     | Needed for    | What it is                                                                                    |
+| ---------------------------- | ------------- | --------------------------------------------------------------------------------------------- |
+| `HERMIE_TEAM_ID`             | every archive | The Apple Developer team id that signs                                                        |
+| `HERMIE_ASC_KEY_ID`          | `--upload`    | An App Store Connect API key id                                                               |
+| `HERMIE_ASC_ISSUER_ID`       | `--upload`    | That key's issuer id; set both or neither                                                     |
+| `HERMIE_ASC_KEY_PATH`        | optional      | The `.p8`; defaults to `~/.appstoreconnect/private_keys/AuthKey_<id>.p8`, and keeps that name |
+| `HERMIE_ASC_SIGN_WITH_KEY=1` | optional      | Sign with the API key instead of the account signed in to Xcode                               |
+
+Signing is automatic, with `-allowProvisioningUpdates`, so missing profiles and
+certificates are created by whoever is authenticated, and **by default that is the
+account signed in to Xcode, not the API key**. The export signs with Apple's
+cloud-managed distribution certificates, and only an Account Holder or Admin may
+use those: a key with the **App Manager** role, which is all an upload needs,
+archives without complaint and then fails the export with "Cloud signing
+permission error". `HERMIE_ASC_SIGN_WITH_KEY=1` is for a Mac with no Xcode account,
+and it needs a key with the **Admin** role.
+
+A release script that keeps the team id and the key ids in variables of its own
+maps them one to one: team id to `HERMIE_TEAM_ID`, key id to `HERMIE_ASC_KEY_ID`,
+issuer id to `HERMIE_ASC_ISSUER_ID`.
+
+The macOS export signs the package with a Mac installer identity, which automatic
+signing provides through the same cloud-managed route as long as the Xcode account
+may use it. The archive itself is signed for development first, so a Mac that has
+never built the app is added to the team's devices on its first archive
+(`-allowProvisioningDeviceRegistration`), the same as `npm run mac` does.
+
+### Build numbers
+
+The build number is the commit count, the same rule as the Expo app, so it is
+monotonic above every Expo build already uploaded. `generate.sh` writes it, with
+the short commit hash, into the ignored
+`native/apple/Config/Build.generated.xcconfig`, and `archive.sh` runs `generate.sh`
+first, so an archive always carries the count of the commit it was made from.
+Archive from a committed tree: the script warns when the tree is dirty, because
+the number then names `HEAD` and not what was built. And from a full clone, never
+a shallow one, which counts one commit.
+
+### Versions
+
+The native apps have their own line: `MARKETING_VERSION` in
+`native/apple/Config/Version.xcconfig`, which both apps read. It starts at
+**0.2.0** while the Expo line is still 0.1.x, and the two are allowed to differ
+until the native apps replace the Expo app on Apple platforms. The rule while
+they coexist:
+
+- `set-version <version>` moves the Expo line and leaves the xcconfig alone;
+  `set-version --native <version>` moves the native line alone; both together move
+  both.
+- **The native line is never behind the Expo line.** Both upload to the same App
+  Store Connect record, where a version cannot go backwards. `set-version` refuses
+  a run that would break this before it writes anything, and the version-sync test
+  in `packages/hermie-web` fails a tree that does.
+- `--check` lists the native line on a line of its own, `separate`, and the rule
+  on another, `rule`.
+
+When the Expo build is retired on Apple platforms, the two lines become one again
+and this section shrinks to a sentence.
+
+### CI
+
+`.github/workflows/native.yml` runs on every push to `main` and every pull request
+that touches `native/`, `contract/`, the `transcript`, `gateway-client` or
+`fake-gateway` packages, or the workflow itself. It selects the newest Xcode
+release on the macOS image, runs `swift test` for HermieKit, and builds both apps
+unsigned (iOS Simulator and macOS). It signs nothing, and the Expo `ios` job in
+`ci.yml` is unchanged.
+
+### What the external release script needs
+
+The owner's release script lives outside the repository and only calls into it.
+Before it releases a native build it needs these changes; nothing in this
+repository depends on them:
+
+- **`HERMIE_IOS_LINE=native|expo`**, defaulting to `native` from 0.2.0. `native`
+  replaces the Expo prebuild, archive and export with
+  `native/apple/scripts/archive.sh ios "$BUILD"` and validates and uploads
+  `$BUILD/export-ios/Hermie.ipa`; `expo` keeps today's path. The already-released
+  guard compares `MARKETING_VERSION` from `native/apple/Config/Version.xcconfig`
+  for `native` and the root `package.json` for `expo`; the tag stays the Expo
+  version.
+- **A `--mac-only` mode** that runs `native/apple/scripts/archive.sh macos "$BUILD"`
+  and validates and uploads `$BUILD/export-macos/Hermie.pkg` with `altool -t macos`,
+  with no web deploy and no iOS build. The full run archives the Mac app as well
+  when the iOS line is `native`.
+- **`mac_build=`** in the `last` record, next to `ios_build=`, read from the Mac
+  archive's `CFBundleVersion` and carried over from the previous record when a run
+  did not build the Mac app.
+- It exports `HERMIE_TEAM_ID`, `HERMIE_ASC_KEY_ID` and `HERMIE_ASC_ISSUER_ID` from
+  the values it already holds, and either passes `--upload` or keeps its own
+  validate-then-upload step on the exported file.
+
 ## Android: the upload key
 
 There are two keys in an Android release and conflating them is the usual
@@ -639,8 +765,9 @@ Android needs no note. `usesCleartextTraffic` is set through
 ## The icons
 
 `design/icon.svg` is the source. Everything the app ships — the iOS and Android
-icons, the adaptive foreground, the splash image and the favicon — is rasterised
-from it:
+icons, the adaptive foreground, the splash image and the favicon, the desktop
+shell's icons, and both native asset catalogs (the iOS icon with its dark and
+tinted variants, the Mac's 16 to 1024 set) — is rasterised from it:
 
 ```sh
 npm run icons          # rewrite them
