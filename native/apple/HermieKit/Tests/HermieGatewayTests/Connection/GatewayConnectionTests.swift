@@ -559,6 +559,87 @@ struct OfflineGraceTests {
   }
 }
 
+/// The grace belongs to the socket that was live when the report came. These
+/// are not in the TypeScript suite as it was ported; they were added to both.
+@Suite("the offline grace and a real drop")
+struct OfflineGraceDropTests {
+  @Test("a socket that dies inside the grace ends it, so the redialled socket is not torn down later")
+  func theGraceEndsWithTheSocket() async throws {
+    try await withHarness(HarnessOptions(auth: .token, offlineGrace: .milliseconds(400))) { h in
+      await h.connection.start()
+      try await h.waitFor(.ready)
+
+      await h.connection.setOnline(false)
+      await h.clock.advance(by: .milliseconds(20))
+      h.gateway.dropSockets()
+      try await h.waitFor(.offline)
+      try await h.advanceUntil(phase: .ready)
+      let readyAt = h.statuses.values.count
+
+      // Well past where the grace would have ended.
+      while h.clock.now < .milliseconds(450) {
+        await h.clock.advance(by: .milliseconds(10))
+        await h.settle()
+      }
+
+      #expect(h.gateway.connections == 2)
+      #expect(await h.connection.phase == .ready)
+      #expect(h.statuses.values.count == readyAt)
+    }
+  }
+
+  @Test("the end of the grace schedules one reconnect, with the no-network reason")
+  func theGraceSchedulesOnce() async throws {
+    let rungs = Recorded<Int>()
+    let options = HarnessOptions(
+      auth: .token,
+      offlineGrace: .milliseconds(50),
+      backoff: { attempt in
+        rungs.append(attempt)
+        return .seconds(30)
+      }
+    )
+
+    try await withHarness(options) { h in
+      await h.connection.start()
+      try await h.waitFor(.ready)
+
+      await h.connection.setOnline(false)
+      await h.clock.advance(by: .milliseconds(50))
+      try await h.waitFor(.offline)
+
+      #expect(rungs.values == [0])
+      #expect(await h.connection.lastError == GatewayError(.network, "This device reports no network connection."))
+    }
+  }
+
+  /// `withinGrace` in `setOnline` read "the grace timer is pending" as "the
+  /// socket is still up". Once a drop ends the grace, a pending timer only ever
+  /// exists while the connection is `ready`, which `setOnline` checks anyway,
+  /// so the check was removed from both clients. What remains to pin is the
+  /// case it used to get wrong: back online after a real drop is not a flap.
+  @Test("coming back online after a drop inside the grace keeps the earned backoff and says so")
+  func onlineAfterADropInsideTheGrace() async throws {
+    try await withHarness(
+      HarnessOptions(auth: .token, offlineGrace: .milliseconds(400), backoff: { _ in .seconds(30) })
+    ) { h in
+      await h.connection.start()
+      try await h.waitFor(.ready)
+
+      await h.connection.setOnline(false)
+      h.gateway.dropSockets()
+      try await h.waitFor(.offline)
+      let dials = h.gateway.with { $0.dials.count }
+
+      await h.connection.setOnline(true)
+      await h.settle()
+
+      #expect(await h.connection.phase == .reconnecting)
+      #expect(h.gateway.with { $0.dials.count } == dials)
+    }
+  }
+}
+
 /// How far up the ladder a failure starts, and how far down a wait may fall.
 /// No gateway or socket is needed: a credential provider that throws is the
 /// whole of the dial.

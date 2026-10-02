@@ -366,12 +366,14 @@ export class GatewayConnection {
    * teardown of a live socket by `offlineGraceMs` so a handover does not rebuild
    * every session. Online collapses the pending backoff when the last dial did
    * not fail — a socket that was healthy a moment ago should come straight back.
+   *
+   * The grace belongs to the socket that was live when the report came: any
+   * failure ends it (`handleFailure`, `scheduleReconnect`), so a grace timer
+   * never outlives its socket to tear down the one the ladder dialled next.
+   * That is also why a pending grace needs no check of its own here: it only
+   * exists while the connection is `ready`.
    */
   setOnline(online: boolean): void {
-    // True while the grace is still running, which means the socket is still up
-    // and coming back online is a no-op rather than a redial.
-    const withinGrace = this.offlineTimer !== undefined
-
     if (online) {
       this.clearOfflineTimer()
     }
@@ -395,14 +397,18 @@ export class GatewayConnection {
 
       this.offlineTimer = setTimeout(() => {
         this.offlineTimer = undefined
-        this.teardownSocket()
-        this.scheduleReconnect(new GatewayError('network', 'This device reports no network connection.'))
+        // The status first: tearing the socket down while it still says `ready`
+        // would have the close handled as a drop too, scheduling the reconnect
+        // twice and climbing two rungs for one gap.
+        const error = new GatewayError('network', 'This device reports no network connection.')
+        this.setStatus('offline', error)
+        this.scheduleReconnect(error)
       }, this.offlineGraceMs)
 
       return
     }
 
-    if (withinGrace || !this.running || this.paused || this.currentStatus === 'ready') {
+    if (!this.running || this.paused || this.currentStatus === 'ready') {
       // The flap ended before the socket came down; there is nothing to redial.
       return
     }
@@ -609,6 +615,8 @@ export class GatewayConnection {
     const error = asGatewayError(raw, 'network', 'The gateway connection failed.')
     const closeCode = error.closeCode ?? this.lastCloseCode
     this.lastDialFailureAt = this.now()
+    // Whatever happens next, the socket an offline grace was protecting is gone.
+    this.clearOfflineTimer()
 
     if (closeCode !== null && closeCode !== undefined && CONFIG_CLOSE_CODES[closeCode]) {
       this.running = false
@@ -745,6 +753,7 @@ export class GatewayConnection {
   }
 
   private scheduleReconnect(error: GatewayError): void {
+    this.clearOfflineTimer()
     this.teardownSocket()
 
     // "Consecutive" has to mean it. Both tallies used to be reset only by a dial

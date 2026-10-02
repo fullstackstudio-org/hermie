@@ -288,11 +288,13 @@ public actor GatewayConnection {
   /// delays the teardown of a live socket by `offlineGrace`, so a handover does
   /// not rebuild every session. Online collapses the pending backoff when the
   /// last dial did not fail recently.
+  ///
+  /// The grace belongs to the socket that was live when the report came: any
+  /// failure ends it (`handleFailure`, `scheduleReconnect`), so a grace timer
+  /// never outlives its socket to tear down the one the ladder dialled next.
+  /// That is also why a pending grace needs no check of its own here: it only
+  /// exists while the connection is `ready`.
   public func setOnline(_ online: Bool) {
-    // True while the grace is still running: the socket is still up, and coming
-    // back online is a no-op rather than a redial.
-    let withinGrace = offlineTimer != nil
-
     if online {
       clearOfflineTimer()
     }
@@ -321,7 +323,7 @@ public actor GatewayConnection {
       return
     }
 
-    if withinGrace || !running || paused || currentPhase == .ready {
+    if !running || paused || currentPhase == .ready {
       // The flap ended before the socket came down; there is nothing to redial.
       return
     }
@@ -344,8 +346,12 @@ public actor GatewayConnection {
     }
 
     offlineTimer = nil
-    teardownSocket()
-    scheduleReconnect(GatewayError(.network, "This device reports no network connection."))
+    // The status first: tearing the socket down while it still says `ready`
+    // would have the close handled as a drop too, scheduling the reconnect
+    // twice and climbing two rungs for one gap.
+    let error = GatewayError(.network, "This device reports no network connection.")
+    setStatus(.offline, .set(error))
+    scheduleReconnect(error)
   }
 
   // MARK: - Calls
@@ -570,6 +576,8 @@ public actor GatewayConnection {
     let error = Self.gatewayError(raw, .network, "The gateway connection failed.")
     let closeCode = error.closeCode ?? lastCloseCode
     lastDialFailureAt = clock.now
+    // Whatever happens next, the socket an offline grace was protecting is gone.
+    clearOfflineTimer()
 
     if let configError = CloseCodeVerdict.configError(for: closeCode) {
       running = false
@@ -682,6 +690,7 @@ public actor GatewayConnection {
   }
 
   func scheduleReconnect(_ error: GatewayError) {
+    clearOfflineTimer()
     teardownSocket()
 
     // "Consecutive" has to mean it: an outcome that is not an auth failure

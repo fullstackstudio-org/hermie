@@ -779,6 +779,85 @@ describe('the offline grace period', () => {
 })
 
 /**
+ * The grace belongs to the socket that was live when the report came. A drop
+ * inside it used to leave the timer running, so it fired later and tore down
+ * the socket the ladder had dialled since; and the end of the grace scheduled
+ * the reconnect twice, once for the teardown it caused and once for itself.
+ */
+describe('the offline grace and a real drop', () => {
+  it('a socket that dies inside the grace ends it, so the redialled socket is not torn down later', async () => {
+    const { connection, gateway, statuses, waitFor, waitUntil } = await harness({ auth: 'token', offlineGraceMs: 400 })
+
+    connection.start()
+    await waitFor('ready')
+
+    connection.setOnline(false)
+    await settle(20)
+    gateway.dropSockets()
+    await waitUntil('the redial', () => gateway.state.connections === 2 && connection.status === 'ready')
+    const seen = statuses.length
+
+    // Well past where the grace would have ended.
+    await settle(450)
+
+    expect(gateway.state.connections).toBe(2)
+    expect(connection.status).toBe('ready')
+    expect(statuses.length).toBe(seen)
+  })
+
+  it('the end of the grace schedules one reconnect, with the no-network reason', async () => {
+    const attempts: number[] = []
+    const { connection, waitFor } = await harness({
+      auth: 'token',
+      offlineGraceMs: 20,
+      backoffDelayMs: attempt => {
+        attempts.push(attempt)
+
+        return 30_000
+      }
+    })
+
+    connection.start()
+    await waitFor('ready')
+
+    connection.setOnline(false)
+    await waitFor('offline')
+    await settle(30)
+
+    expect(attempts).toEqual([0])
+    expect(connection.lastError?.message).toBe('This device reports no network connection.')
+  })
+
+  /**
+   * `withinGrace` in `setOnline` read "the grace timer is pending" as "the
+   * socket is still up". Now that a drop ends the grace, a pending timer only
+   * exists while the connection is `ready`, which `setOnline` checks anyway, so
+   * the check is gone. What is left to pin is the case it used to get wrong.
+   */
+  it('coming back online after a drop inside the grace keeps the earned backoff and says so', async () => {
+    const { connection, gateway, waitFor } = await harness({
+      auth: 'token',
+      offlineGraceMs: 400,
+      backoffDelayMs: () => 30_000
+    })
+
+    connection.start()
+    await waitFor('ready')
+
+    connection.setOnline(false)
+    gateway.dropSockets()
+    await waitFor('offline')
+    const connections = gateway.state.connections
+
+    connection.setOnline(true)
+    await settle(60)
+
+    expect(connection.status).toBe('reconnecting')
+    expect(gateway.state.connections).toBe(connections)
+  })
+})
+
+/**
  * How far up the ladder a failure starts, and how far down a wait may fall.
  *
  * The reported defect was 18 dials in 24 seconds against an address that was
