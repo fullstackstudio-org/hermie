@@ -106,8 +106,13 @@ struct ChatListPlaceholder: View {
   var body: some View {
     List(selection: context.selection) {
       if let chat = context.selection.wrappedValue {
-        Label(chat.bot, systemImage: "bubble.left")
-          .tag(chat)
+        Label {
+          Text(chat.bot)
+            .fixedSize(horizontal: false, vertical: true)
+        } icon: {
+          Image(systemName: "bubble.left")
+        }
+        .tag(chat)
           .accessibilityIdentifier("hermie.chatList.row")
       }
 

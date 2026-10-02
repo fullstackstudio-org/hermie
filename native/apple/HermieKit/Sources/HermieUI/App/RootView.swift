@@ -208,6 +208,8 @@ struct ShellSheet: View {
     switch sheet {
     case .settings:
       SettingsView(onAddGateway: { router.present(.onboarding(.additionalGateway)) })
+        // The full page on iPad, so every category fits without a row under the sheet's edge.
+        .presentationSizing(.page)
     case let .onboarding(mode):
       components.onboarding(OnboardingContext(mode: mode, finish: { _ in router.dismissSheet() }))
     case let .signIn(gatewayId):
