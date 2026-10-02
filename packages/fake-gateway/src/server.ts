@@ -2714,6 +2714,12 @@ export async function startFakeGateway(options: FakeGatewayOptions = {}): Promis
     timers.add(timer)
     timer.unref?.()
   }
+  /** `later`, under the name a reply's own guarded `later` delegates to. */
+  const laterAll = later
+  /** Per stored session: moved on by `session.interrupt`, which drops the rest of the running reply. */
+  const streamEpochs = new Map<string, number>()
+  /** Per stored session: the running reply's text so far, which an interrupt keeps. */
+  const interruptedReplies = new Map<string, () => string>()
 
   const gated = () => state.auth === 'native' || state.auth === 'cookie'
   /** `native_revoke` is advertised, and its route answers, on a gated gateway that has it. */
@@ -6389,6 +6395,25 @@ export async function startFakeGateway(options: FakeGatewayOptions = {}): Promis
         const session = resolveSession(String(params.session_id ?? ''))
 
         if (session) {
+          // The agent stops: nothing more of this reply is sent, its own
+          // completion included. Before the `message.complete` below, so the
+          // interrupted turn's completion is the last frame it produces.
+          streamEpochs.set(session.storedId, (streamEpochs.get(session.storedId) ?? 0) + 1)
+
+          // What was said stays said: the partial reply is in the history.
+          const partial = state.runningSessions.has(session.storedId)
+            ? (interruptedReplies.get(session.storedId)?.() ?? '')
+            : ''
+
+          if (partial) {
+            session.messages.push({
+              role: 'assistant',
+              text: partial,
+              row_id: session.messages.length + 1,
+              timestamp: nowSeconds()
+            })
+          }
+
           state.runningSessions.delete(session.storedId)
           publish('message.complete', session.storedId, { text: '', status: 'interrupted' })
         }
@@ -7148,6 +7173,19 @@ export async function startFakeGateway(options: FakeGatewayOptions = {}): Promis
     const text = received.length ? deltas.join('') : (reply.text ?? deltas.join(''))
     const sid = session.storedId
     let at = streamDelayMs
+    // Every frame of this reply is scheduled now; an interrupt moves the
+    // session's epoch on, and what this turn has not sent yet is dropped, as a
+    // real agent stops talking when it is interrupted.
+    const epoch = streamEpochs.get(sid) ?? 0
+    // What the reader has seen so far: an interrupt keeps it in the history.
+    let spoken = ''
+    interruptedReplies.set(sid, () => spoken)
+    const later = (fn: () => void, ms: number) =>
+      laterAll(() => {
+        if ((streamEpochs.get(sid) ?? 0) === epoch) {
+          fn()
+        }
+      }, ms)
 
     state.runningSessions.add(sid)
     session.messages.push({
@@ -7179,7 +7217,10 @@ export async function startFakeGateway(options: FakeGatewayOptions = {}): Promis
     const emitDeltas = (from: number, to: number) => {
       for (const delta of deltas.slice(from, to)) {
         at += streamDelayMs
-        later(() => publish('message.delta', sid, { text: delta }), at)
+        later(() => {
+          spoken += delta
+          publish('message.delta', sid, { text: delta })
+        }, at)
       }
     }
 

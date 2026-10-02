@@ -94,18 +94,28 @@ extension Integration {
         #expect(composer.lastEvent?.event == .sent)
         #expect(composer.draft.isEmpty)
 
+        // One snapshot: the streaming reply's id and what it said so far.
         try await composerWait("the reply to stream") {
           (composer.chat.items.last?.item.asAssistant?.text.count ?? 0) > 40 && composer.running
         }
-        let streamed = composer.chat.items.last?.item.asAssistant?.text.count ?? 0
+        let streaming = try #require(composer.chat.items.last?.item.asAssistant)
 
         await composer.stop()
         #expect(composer.lastEvent?.event == .stopped)
         #expect(composer.notice == nil)
+        // The interrupted completion is the last frame of the turn: the gateway
+        // sends nothing of the reply after it (`interrupt.test.ts` in the fake).
         try await composerWait("the turn to end") { !composer.turnActive }
 
-        let reply = try #require(composer.chat.items.last { $0.item.asAssistant != nil }?.item.asAssistant)
-        #expect(reply.text.count >= streamed, "the partial reply is kept")
+        // The same item, with at least the words seen before Stop.
+        let kept = try #require(
+          composer.chat.items.lazy.compactMap(\.item.asAssistant).first { $0.id == streaming.id },
+          "the reply that was streaming is still there")
+        #expect(kept.text.hasPrefix(streaming.text), "the partial reply is kept: \(kept.text.count) of \(streaming.text.count)")
+        #expect(!kept.streaming)
+        // Nothing of the stopped reply arrives as a reply of its own afterwards.
+        let last = try #require(composer.chat.items.last { $0.item.asAssistant != nil }?.item.asAssistant)
+        #expect(last.status == .interrupted, "the turn ends on the stopped reply, not on a later one (\(last.id))")
         #expect(composer.chat.items.count > before)
         await chat.session.shutdown()
       }
