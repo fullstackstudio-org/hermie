@@ -3596,6 +3596,18 @@ export async function startFakeGateway(options: FakeGatewayOptions = {}): Promis
       return
     }
 
+    if (path === '/__fake/truncate-next-replay' && method === 'POST') {
+      /*
+        The next `session.events.since` answers `truncated: true`, as the real
+        ring does once it has evicted an event newer than the watermark asked
+        about: `truncateNextReplay`, for a client in another process.
+      */
+      state.truncateNextReplay = true
+      json(res, 200, { truncateNextReplay: true })
+
+      return
+    }
+
     if (path === '/__fake/request' && method === 'POST') {
       /*
         The same control surface for a server→client REQUEST, and it exists for

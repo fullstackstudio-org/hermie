@@ -1,5 +1,34 @@
 import HermieProtocol
 
+/// A session whose reconnect replay could not be trusted to be whole: the events between the
+/// watermark and what the replay delivered are gone, so whoever holds that session's state must
+/// read it again (resume and history) instead of building on the replay.
+///
+/// - `truncated`: `session.events.since` answered `truncated: true`. The gateway's replay ring
+///   (512 events and 4 MiB per session, 64 MiB and 64 sessions per process) evicted, or never
+///   kept (one oversized frame), an event newer than the watermark asked about. The events it
+///   did return are the ring's tail, already dispatched; the hole is before them.
+/// - `epochChanged`: the answer came from another gateway process (`epoch` differs), which
+///   numbers every session from 1 again. Nothing of this replay was dispatched.
+public struct ReplayGap: Sendable, Equatable {
+  public enum Reason: String, Sendable, Equatable {
+    case truncated
+    case epochChanged
+  }
+
+  /// The runtime session id the replay was asked about.
+  public let sessionID: String
+  public let reason: Reason
+  /// The wire index of the answer that reported it.
+  public let index: UInt64
+
+  public init(sessionID: String, reason: Reason, index: UInt64) {
+    self.sessionID = sessionID
+    self.reason = reason
+    self.index = index
+  }
+}
+
 /// The lossless-reconnect bookkeeping of the vendored `JsonRpcGatewayClient`:
 /// the last event `seq` seen per session, the server's replay epoch, and the
 /// frames parked while a replay is in flight.

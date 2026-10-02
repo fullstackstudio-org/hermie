@@ -24,6 +24,11 @@ public enum ChatRuntimeLimits {
   public static let subagentPoll: Duration = .seconds(5)
   /// `ACTIVE_LIST_POLL_MS`: how often the roster re-reads running state while it is watched.
   public static let activeListPoll: Duration = .seconds(10)
+  /// Session-layer signals (notices, connection cards, progress) the store keeps for a session
+  /// that has not read them yet; older ones are dropped first.
+  public static let maxBufferedSignals = 512
+  /// Distinct unknown event names counted for the developer detail.
+  public static let maxUnknownEventNames = 64
 }
 
 /// `BotCanonicalSession`: one conversation a bot can be reached by.

@@ -311,16 +311,16 @@ extension GatewayConnection {
       return
     }
 
-    var calls: [Result<Promise<RPCReply<JSONValue>>, GatewayRPCError>] = []
+    var calls: [(session: String, call: Result<Promise<RPCReply<JSONValue>>, GatewayRPCError>)] = []
 
     for (session, lastSeen) in entries {
       let params: JSONValue = ["session_id": .string(session), "last_seen": .number(lastSeen)]
 
       do {
         let call = try clientCall(RPC.SessionEventsSince.name, params: params, timeout: ReplayState.requestTimeout)
-        calls.append(.success(call.promise))
+        calls.append((session, .success(call.promise)))
       } catch {
-        calls.append(.failure(error))
+        calls.append((session, .failure(error)))
       }
     }
 
@@ -330,16 +330,16 @@ extension GatewayConnection {
 
   private func completeReplay(
     _ generation: Int,
-    _ calls: [Result<Promise<RPCReply<JSONValue>>, GatewayRPCError>]
+    _ calls: [(session: String, call: Result<Promise<RPCReply<JSONValue>>, GatewayRPCError>)]
   ) async {
-    var results: [RPCReply<JSONValue>?] = []
+    var results: [(session: String, reply: RPCReply<JSONValue>?)] = []
 
-    for call in calls {
+    for (session, call) in calls {
       switch call {
       case .success(let promise):
-        results.append(try? await promise.value())
+        results.append((session, try? await promise.value()))
       case .failure:
-        results.append(nil)
+        results.append((session, nil))
       }
     }
 
@@ -350,7 +350,9 @@ extension GatewayConnection {
       return
     }
 
-    for reply in results {
+    var gaps: [ReplayGap] = []
+
+    for (session, reply) in results {
       guard let reply, let events = reply.result["events"]?.arrayValue else {
         continue
       }
@@ -363,7 +365,15 @@ extension GatewayConnection {
         // The backend restarted: its seq numbering reset, so the watermarks and
         // this replay window are meaningless. Start fresh under the new epoch.
         replay.adopt(epoch: epoch)
+        gaps.append(ReplayGap(sessionID: session, reason: .epochChanged, index: reply.index))
         continue
+      }
+
+      if result["truncated"] == .bool(true) {
+        // The ring no longer holds everything after the watermark. What it does
+        // hold is dispatched below; the hole before it is reported once the
+        // replay is over, so a subscriber reads the session again after it.
+        gaps.append(ReplayGap(sessionID: session, reason: .truncated, index: reply.index))
       }
 
       if let epoch, replay.epoch == nil {
@@ -387,5 +397,9 @@ extension GatewayConnection {
     }
 
     replay.inFlight = false
+
+    for gap in gaps {
+      gapHub.publish(gap)
+    }
   }
 }

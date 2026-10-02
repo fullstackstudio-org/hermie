@@ -177,6 +177,18 @@ public actor TranscriptStore {
   /// The `replay_epoch` of the last `gateway.ready`.
   var replayEpoch: String?
 
+  // MARK: Beside the transcript
+
+  /// What the session layer handles beside the transcript (`SessionSignal`), in
+  /// the order it happened: notices at ingest, chat events at their place in the lane.
+  let signals: AsyncStream<SessionSignal>
+  let signalSink: AsyncStream<SessionSignal>.Continuation
+  /// Chats with a full re-fetch running, and those asked for again while it ran.
+  var refetching: Set<String> = []
+  var refetchAgain: Set<String> = []
+  /// Event types this build has no typed case for, counted per name (debug builds only).
+  var unknownEvents: [String: Int] = [:]
+
   // MARK: Publishing
 
   var sink: (@MainActor @Sendable (FrameBatch) -> Void)?
@@ -209,6 +221,7 @@ public actor TranscriptStore {
     self.roster = roster
     self.cache = cache
     self.options = options
+    (signals, signalSink) = AsyncStream.makeStream(bufferingPolicy: .bufferingNewest(ChatRuntimeLimits.maxBufferedSignals))
   }
 
   // MARK: - Lifecycle
@@ -222,6 +235,7 @@ public actor TranscriptStore {
 
     let events = link.events
     let requests = link.serverRequests
+    let gaps = link.replayGaps
 
     consumers.append(
       Task {
@@ -234,6 +248,13 @@ public actor TranscriptStore {
       Task {
         for await request in requests {
           self.ingest(request)
+        }
+      }
+    )
+    consumers.append(
+      Task {
+        for await gap in gaps {
+          self.noteGap(gap)
         }
       }
     )
@@ -261,6 +282,7 @@ public actor TranscriptStore {
 
     consumers.removeAll()
     clearTimers()
+    signalSink.finish()
 
     let hydrations = opening.values.map(\.task)
 
@@ -377,6 +399,8 @@ public actor TranscriptStore {
     if let sessionID = event.sessionID, !sessionID.isEmpty, let seq = event.json["seq"]?.doubleValue {
       noteIngested(sessionID, seq)
     }
+
+    noteBeside(event)
 
     if event.type == GatewayEventType.gatewayReady {
       noteReady(event)

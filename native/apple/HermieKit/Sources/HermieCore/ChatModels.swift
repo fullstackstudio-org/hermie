@@ -219,6 +219,9 @@ public final class ChatModel {
   public var hydration: HydrationState { snapshot?.hydration ?? .cold }
   /// The gateway socket is `ready` (kept by the session).
   public internal(set) var connectionReady = false
+  /// A deferred resume loading this chat's transcript on the gateway
+  /// (`session.resume_progress`), kept by the session; `nil` when none was reported.
+  public internal(set) var resumeProgress: ResumeProgress?
   /// The chat is bound to a runtime session and the socket is up.
   public var canSend: Bool { (snapshot?.attached ?? false) && connectionReady }
 

@@ -250,6 +250,27 @@ is placed, the store waits until it has taken in up to the connection's `seq` wa
 that preceded the answer cannot arrive after it. Snapshots reach the main actor at most once per
 frame. `Tests/HermieCoreTests/Runtime` replays the `contract/transcript/streams` scenarios through it.
 
+A reconnect replay is trusted only when it can vouch for itself. When the connection's own replay
+answers `truncated: true` or comes from another gateway process, `GatewayConnection.replayGaps`
+reports the session, and when the store's replay in a recovery answers `truncated`, another epoch,
+or a cold watermark against a session with numbered events (or the chat came back on another
+runtime session), the store reads the chat again: resume and history through the hydration path
+(`load`), on the chat's lane with its generation checks, the in-flight turn and open requests
+re-applied, the history reconciled onto what is there. The queue and the draft are untouched. A
+replay right after a history read needs nothing more. The gateway's ring holds 512 events and 4 MiB
+per session (64 MiB and 64 sessions per process).
+
+Beside the transcript the store hands the session a stream of signals the reducer does not read:
+`notification.show`/`.clear` go to `GatewayNoticesModel` (keyed, expiring on the session's clock,
+bounded, plain text), `connection.request`/`.update` and a resume's `pending_connection` go to
+`ConnectionRequestsModel` (one card per chat with its deadline, `https` links only, answered with
+`connection.respond`), `session.resume_progress` to `ChatModel.resumeProgress`, and
+`background.complete` to `GatewaySession.onBackgroundTaskFinished`. After every connect the session
+reads `gateway.capabilities` and asks `/api/auth/me` who it is (`identityState`): a session-token
+gateway is anonymous without asking, a signed-in one names `<provider>:<user_id>`, which becomes the
+store's own author. `ownAuthorID` is that id only when the gateway advertises `per_message_author`.
+Debug builds count the event types this build cannot read (`unknownEventCounts()`).
+
 ### The composer and answering requests
 
 `ComposerModel` and `RequestsModel` (`HermieCore`) sit on a chat's `ChatModel` and add nothing to

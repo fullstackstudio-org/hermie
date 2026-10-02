@@ -74,18 +74,33 @@ public enum GatewayEventType {
   public static let gatewayReady = "gateway.ready"
   public static let sessionsChanged = "sessions.changed"
   public static let cronChanged = "cron.changed"
+  public static let notificationShow = "notification.show"
+  public static let notificationClear = "notification.clear"
+  public static let connectionRequest = "connection.request"
+  public static let connectionUpdate = "connection.update"
+  public static let sessionResumeProgress = "session.resume_progress"
+  public static let sessionControlUpdate = "session.control.update"
 
   public static let all: [String] = [
     messageStart, messageDelta, messageInterim, messageComplete, messageReaction, reasoningAvailable,
     reasoningDelta, thinkingDelta, toolGenerating, toolStart, toolComplete, toolOutputRisk,
     subagentSpawnRequested, subagentStart, subagentProgress, subagentThinking, subagentTool, subagentComplete,
     statusUpdate, todoUpdated, sessionInfo, sessionTitle, sessionUsage, sessionReclaimed, requestCancel,
-    backgroundComplete, btwComplete, notice, error, gatewayReady, sessionsChanged, cronChanged
+    backgroundComplete, btwComplete, notice, error, gatewayReady, sessionsChanged, cronChanged,
+    notificationShow, notificationClear, connectionRequest, connectionUpdate, sessionResumeProgress,
+    sessionControlUpdate
   ]
+
+  /// `all`, for a membership test.
+  public static let known: Set<String> = Set(all)
 }
 
 /// Every event type the app consumes, with its typed payload, and `unknown` for the rest
 /// (`moa.*`, `voice.*`, `preview.*`, a type added tomorrow), which keeps the raw payload.
+///
+/// The transcript engine reads events by their type name, not through this enum: the
+/// session-layer cases (`notification.*`, `connection.*`, `session.resume_progress`,
+/// `session.control.update`) are handled beside it and change nothing in a transcript.
 ///
 /// `bot_dm_in`, `bot_dm_reply` and `cron_delivery` are not here on purpose: they never
 /// travel on the wire. The transcript engine derives them from the text of `user` rows.
@@ -126,6 +141,16 @@ public enum GatewayEventBody: Sendable, Hashable {
   case sessionsChanged(EmptyPayload)
   /// The cron list moved; refetch it. Upstream sends `{}`.
   case cronChanged(EmptyPayload)
+  /// An out-of-band notice; the session's notices, not the transcript.
+  case notificationShow(NotificationShowPayload)
+  case notificationClear(NotificationClearPayload)
+  /// A connector authorisation card opened; the session's connection requests, not the transcript.
+  case connectionRequest(ConnectionRequestPayload)
+  case connectionUpdate(ConnectionUpdatePayload)
+  /// A deferred resume loading its transcript.
+  case sessionResumeProgress(SessionResumeProgressPayload)
+  /// The goal / loop / heartbeat state changed.
+  case sessionControlUpdate(SessionControlUpdatePayload)
   case unknown(type: String, payload: JSONValue?)
 
   public init(type: String, payload: JSONValue?) {
@@ -164,6 +189,12 @@ public enum GatewayEventBody: Sendable, Hashable {
     case T.gatewayReady: self = .gatewayReady(GatewayReadyPayload(json: object))
     case T.sessionsChanged: self = .sessionsChanged(EmptyPayload(json: object))
     case T.cronChanged: self = .cronChanged(EmptyPayload(json: object))
+    case T.notificationShow: self = .notificationShow(NotificationShowPayload(json: object))
+    case T.notificationClear: self = .notificationClear(NotificationClearPayload(json: object))
+    case T.connectionRequest: self = .connectionRequest(ConnectionRequestPayload(json: object))
+    case T.connectionUpdate: self = .connectionUpdate(ConnectionUpdatePayload(json: object))
+    case T.sessionResumeProgress: self = .sessionResumeProgress(SessionResumeProgressPayload(json: object))
+    case T.sessionControlUpdate: self = .sessionControlUpdate(SessionControlUpdatePayload(json: object))
     default: self = .unknown(type: type, payload: payload)
     }
   }
@@ -203,6 +234,12 @@ public enum GatewayEventBody: Sendable, Hashable {
     case .gatewayReady: return T.gatewayReady
     case .sessionsChanged: return T.sessionsChanged
     case .cronChanged: return T.cronChanged
+    case .notificationShow: return T.notificationShow
+    case .notificationClear: return T.notificationClear
+    case .connectionRequest: return T.connectionRequest
+    case .connectionUpdate: return T.connectionUpdate
+    case .sessionResumeProgress: return T.sessionResumeProgress
+    case .sessionControlUpdate: return T.sessionControlUpdate
     case .unknown(let type, _): return type
     }
   }
@@ -233,6 +270,12 @@ public enum GatewayEventBody: Sendable, Hashable {
     case .notice(let p): p.jsonValue
     case .error(let p): p.jsonValue
     case .gatewayReady(let p): p.jsonValue
+    case .notificationShow(let p): p.jsonValue
+    case .notificationClear(let p): p.jsonValue
+    case .connectionRequest(let p): p.jsonValue
+    case .connectionUpdate(let p): p.jsonValue
+    case .sessionResumeProgress(let p): p.jsonValue
+    case .sessionControlUpdate(let p): p.jsonValue
     case .unknown(_, let payload): payload
     }
   }

@@ -200,9 +200,22 @@ public final class GatewayAccounts {
     )
   }
 
-  /// `/api/auth/me` on a stored gateway.
+  /// `/api/auth/me` on a stored gateway, as the gateway answers it (the account
+  /// details a settings page shows). Who this client IS on that gateway is
+  /// `probeIdentity(for:)`, the same read the live session makes.
   public func identity(for id: String) async throws -> AuthIdentity {
     try await client(for: id).authMe()
+  }
+
+  /// Who a stored gateway says this client is, by the session's rule
+  /// (`IdentityProbe.read`): a session token is anonymous without asking. Feed it
+  /// to `GatewayIdentityState.after(_:)`.
+  public func probeIdentity(for id: String) async -> IdentityProbe {
+    do {
+      return await IdentityProbe.read(try await client(for: id))
+    } catch {
+      return .failed(ChatResolver.describe(error))
+    }
   }
 
   // MARK: - Changing

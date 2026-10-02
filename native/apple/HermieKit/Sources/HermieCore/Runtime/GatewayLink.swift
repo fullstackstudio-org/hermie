@@ -52,6 +52,15 @@ public protocol GatewayLink: Sendable {
   /// unclaimed rather than late, and never at the cost of a sign-in.
   func claimTurn(_ runtimeSessionID: String) async
 
+  /// Every session a reconnect replay could not make whole
+  /// (`GatewayConnection.replayGaps`). Subscribed before `start()`, like `events`.
+  /// A link without a replay of its own has none (the default).
+  var replayGaps: AsyncStream<ReplayGap> { get }
+
+  /// Who the gateway thinks this client is, read through the link's own
+  /// credentials (`IdentityProbe`). Never throws: a failure is an answer.
+  func probeIdentity() async -> IdentityProbe
+
   func start() async
   func stop() async
   func pause() async
@@ -149,7 +158,55 @@ public struct InboundRequest: Sendable {
   public var body: ServerRequestBody { request.body }
 }
 
+/// What asking a gateway "who am I" came back with.
+///
+/// What each auth mode gets from the gateway (`hermes_cli/dashboard_auth/routes.py`,
+/// `tui_gateway/server.py::_transport_auth_user`):
+///
+/// - `sessionToken` (an ungated gateway, also behind a header front door): the
+///   shared token names no login. `/api/auth/me` answers 401 for it (no verified
+///   session), and the socket's turns are stamped by nobody. Not asked: there is
+///   nobody to ask about, and a 401 would read as a rejected token.
+/// - `nativePKCE`: the bearer is a verified session; `/api/auth/me` answers it.
+/// - `cookie`: only a page served by the gateway holds that session; the native
+///   credential provider refuses every call, so the read fails.
+public enum IdentityProbe: Sendable, Equatable {
+  /// The link authenticates with an ungated gateway's shared token: no user.
+  case sessionToken
+  /// `/api/auth/me` answered.
+  case answered(AuthIdentity)
+  /// The read failed (refused, unreachable, not a gateway); the reason, for the developer detail.
+  case failed(String)
+}
+
+extension IdentityProbe {
+  /// The one way this app asks a gateway who it is: a session token is not asked
+  /// about, anything else reads `/api/auth/me` through `client` (its credentials
+  /// and front-door headers included). Turning the answer into an identity is
+  /// `GatewayIdentityState.after(_:)`.
+  public static func read(_ client: HTTPClient) async -> IdentityProbe {
+    guard client.credentials.mode != .sessionToken else {
+      return .sessionToken
+    }
+
+    do {
+      return .answered(try await client.authMe())
+    } catch {
+      return .failed(ChatResolver.describe(error))
+    }
+  }
+}
+
 extension GatewayLink {
+  public var replayGaps: AsyncStream<ReplayGap> {
+    AsyncStream { $0.finish() }
+  }
+
+  /// A link that cannot read who it is answers that it could not.
+  public func probeIdentity() async -> IdentityProbe {
+    .failed("This connection cannot ask the gateway who you are.")
+  }
+
   /// A typed call: the method's own params and result types.
   func call<M: RPCMethod>(_ method: M.Type, _ params: M.Params) async throws -> RPCReply<M.Result> {
     let reply = try await requestReply(M.name, params: params.jsonValue)

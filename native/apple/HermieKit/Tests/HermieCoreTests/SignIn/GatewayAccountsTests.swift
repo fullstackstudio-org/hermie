@@ -58,6 +58,21 @@ struct GatewayAccountsTests {
     #expect(request.header("x-proxy-key") == "proxy-secret")
   }
 
+  @Test("who this client is on a stored gateway follows the live session's rule")
+  func probeIdentity() async throws {
+    let harness = try await Self.seeded(GatewayStub.gated())
+    guard case .answered(let me) = await harness.accounts.probeIdentity(for: Self.id) else {
+      Issue.record("a signed-in gateway was not asked")
+      return
+    }
+
+    #expect(me.displayName == "Tester")
+    guard case .failed = await harness.accounts.probeIdentity(for: "g-nobody") else {
+      Issue.record("an unknown gateway answered an identity")
+      return
+    }
+  }
+
   @Test("sign-out revokes when the gateway advertises it, then the engine deletes the sign-in items")
   func signOutRevokes() async throws {
     let server = GatewayStub.gated()

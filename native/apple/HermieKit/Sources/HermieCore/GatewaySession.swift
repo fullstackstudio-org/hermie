@@ -53,16 +53,33 @@ public final class GatewaySession {
   /// The one-string prompts (`secret`, `sudo`, `vault.*`): a consumer of the
   /// server requests of its own, so a typed secret never reaches the store.
   @ObservationIgnored public let secureInput: SecureInputCenter
+  /// The gateway's out-of-band notices (`notification.show` / `.clear`).
+  public let notices: GatewayNoticesModel
+  /// The connector authorisation cards the chats' agents are waiting on.
+  public let connectionRequests: ConnectionRequestsModel
+  /// Who the gateway says this client is. Read after every connect and on
+  /// `refreshIdentity()`; see `GatewayIdentityState`.
+  public internal(set) var identityState = GatewayIdentityState.unknownYet
+  /// Why the last identity read failed, while an identity is still held from
+  /// before (or `nil`). For the developer detail.
+  public internal(set) var identityFailure: String?
+  /// `gateway.capabilities`, read after every connect; `nil` until it answers,
+  /// and on a gateway that does not have the method.
+  public internal(set) var capabilities: GatewayCapabilitiesResult?
+  /// Told once per finished `/background` task, with the chat it ran in. The
+  /// transcript shows the result as well; this is the seam for a local
+  /// notification.
+  @ObservationIgnored public var onBackgroundTaskFinished: (@MainActor (BackgroundTaskFinished) -> Void)?
 
   @ObservationIgnored public let store: TranscriptStore
   @ObservationIgnored public let roster: BotRoster
   @ObservationIgnored let link: any GatewayLink
   @ObservationIgnored let reachability: (any Reachability)?
   @ObservationIgnored let defaultVisibility: VisibilityOptions
-  @ObservationIgnored private var models: [String: ChatModel] = [:]
+  @ObservationIgnored var models: [String: ChatModel] = [:]
   @ObservationIgnored private var tasks: [Task<Void, Never>] = []
   @ObservationIgnored private var started = false
-  @ObservationIgnored private var isShutDown = false
+  @ObservationIgnored var isShutDown = false
   @ObservationIgnored private var connectionStatus = ConnectionStatus(.disconnected)
   /// The roster read started by the last transition to `ready`.
   @ObservationIgnored private var readyRefresh: Task<Void, Never>?
@@ -72,6 +89,18 @@ public final class GatewaySession {
   /// forwarded by one task so it arrives in order.
   @ObservationIgnored private let commands: AsyncStream<StoreCommand>
   @ObservationIgnored private let commandSink: AsyncStream<StoreCommand>.Continuation
+  /// The reads of who this is and what the gateway can do, started by the last
+  /// transition to `ready` (apart from the roster's, so neither waits on the other).
+  @ObservationIgnored private var factsRefresh: Task<Void, Never>?
+  /// The own author the store stamps a turn with, kept by `adopt(_:)`.
+  @ObservationIgnored let ownAuthorCell: OwnAuthorCell
+  @ObservationIgnored let keyValues: KeyValueStore?
+  /// Numbers the identity reads, so a late answer never replaces a newer one.
+  @ObservationIgnored var identityReads: UInt64 = 0
+  /// The latest `session.resume_progress` per chat, for a model made later.
+  @ObservationIgnored var resumeProgress: [String: ResumeProgress] = [:]
+  /// Background tasks already reported, oldest first, bounded.
+  @ObservationIgnored var reportedBackgroundTasks: [String] = []
 
   private enum StoreCommand: Sendable {
     case observe(String, VisibilityOptions)
@@ -131,6 +160,7 @@ public final class GatewaySession {
     self.gatewayID = gatewayID
     self.link = link
     self.reachability = reachability
+    self.keyValues = keyValues
     self.defaultVisibility = options.defaultVisibility
     self.roster = BotRoster(
       link: link,
@@ -139,7 +169,19 @@ public final class GatewaySession {
       keyValues: keyValues,
       clock: options.store.clock
     )
-    self.store = TranscriptStore(link: link, roster: roster, cache: cache, options: options.store)
+
+    // The identity the gateway confirms comes first; the caller's own answer
+    // (a test's, or nobody's) only while there is none.
+    let cell = OwnAuthorCell()
+    var storeOptions = options.store
+    let fallback = storeOptions.ownAuthor
+    storeOptions.ownAuthor = { cell.get() ?? fallback() }
+    self.ownAuthorCell = cell
+    self.store = TranscriptStore(link: link, roster: roster, cache: cache, options: storeOptions)
+    self.notices = GatewayNoticesModel(clock: options.store.clock)
+    self.connectionRequests = ConnectionRequestsModel(clock: options.store.clock) { method, params in
+      try await link.requestReply(method, params: params)
+    }
     self.secureInput = SecureInputCenter(
       link: link,
       store: store,
@@ -187,6 +229,15 @@ public final class GatewaySession {
       }
     )
 
+    let signals = store.signals
+    tasks.append(
+      Task { [weak self] in
+        for await signal in signals {
+          self?.receive(signal)
+        }
+      }
+    )
+
     let statuses = link.statuses
     tasks.append(
       Task { [weak self, weak store] in
@@ -214,6 +265,7 @@ public final class GatewaySession {
     await store.seedSeen(await roster.current.lastSeen)
     await roster.paintFromCache()
     await store.restoreFromCache(await roster.bots)
+    await loadRememberedIdentity()
     await link.start()
   }
 
@@ -260,7 +312,7 @@ public final class GatewaySession {
     await store.persistAll()
     await link.shutdown()
 
-    let running = tasks + [readyRefresh].compactMap { $0 }
+    let running = tasks + [readyRefresh, factsRefresh].compactMap { $0 }
 
     for task in running {
       task.cancel()
@@ -272,6 +324,9 @@ public final class GatewaySession {
 
     tasks.removeAll()
     readyRefresh = nil
+    factsRefresh = nil
+    notices.removeAll()
+    connectionRequests.removeAll()
     await store.shutdown()
     await roster.shutdown()
   }
@@ -282,7 +337,8 @@ public final class GatewaySession {
     let storeAttached = await store.isAttached
     let rosterTasks = await roster.liveTaskCount
 
-    return tasks.isEmpty && readyRefresh == nil && storeTasks == 0 && !storeAttached && rosterTasks == 0
+    return tasks.isEmpty && readyRefresh == nil && factsRefresh == nil && storeTasks == 0 && !storeAttached
+      && rosterTasks == 0
   }
 
   // MARK: - Chats
@@ -298,6 +354,7 @@ public final class GatewaySession {
       sink.yield(.observe(key, visibility))
     }
     model.connectionReady = connectionStatus.phase == .ready
+    model.resumeProgress = resumeProgress[name]
     models[name] = model
     sink.yield(.observe(name, model.visibility))
 
@@ -429,6 +486,22 @@ public final class GatewaySession {
         await previous?.value
         _ = try? await roster.refresh()
       }
+
+      // Who this is and what the gateway can do, after every connect: a
+      // reconnect can be another gateway process, and a sign-in another person.
+      let facts = factsRefresh
+      factsRefresh = Task { [weak self] in
+        await facts?.value
+
+        guard let self else {
+          return
+        }
+
+        // Neither waits on the other: an old gateway may never answer the capabilities.
+        async let capabilities: Void = self.readCapabilities()
+        await self.refreshIdentity()
+        await capabilities
+      }
     }
 
     for model in models.values {
@@ -520,6 +593,13 @@ public struct ConnectionLink: GatewayLink {
   }
 
   public func seqWatermarks() async -> [String: Double] { await connection.seqWatermarks }
+
+  public var replayGaps: AsyncStream<ReplayGap> { connection.replayGaps }
+
+  /// Through this link's HTTP client, the one place its credentials are loaded (`IdentityProbe.read`).
+  public func probeIdentity() async -> IdentityProbe {
+    await IdentityProbe.read(http)
+  }
 
   public func claimTurn(_ runtimeSessionID: String) async {
     let baseURL = http.baseURL

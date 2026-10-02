@@ -11,6 +11,24 @@ public struct AuthIdentity: Sendable, Equatable {
   public var expiresAt: Double
   /// Relative, including the query (`/api/auth/picture?id=…`); empty when the gateway holds none.
   public var pictureURL: String
+
+  public init(
+    userID: String,
+    email: String = "",
+    displayName: String = "",
+    orgID: String = "",
+    provider: String,
+    expiresAt: Double = 0,
+    pictureURL: String = ""
+  ) {
+    self.userID = userID
+    self.email = email
+    self.displayName = displayName
+    self.orgID = orgID
+    self.provider = provider
+    self.expiresAt = expiresAt
+    self.pictureURL = pictureURL
+  }
 }
 
 /// `POST /api/auth/ws-ticket`'s answer (`WsTicket`).

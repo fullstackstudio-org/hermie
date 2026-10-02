@@ -222,6 +222,8 @@ final class ScriptedLink: GatewayLink, Sendable {
     var eventSubscribed = false
     var requestSubscribed = false
     var declines: [(id: String, code: Int, message: String)] = []
+    var identity: IdentityProbe = .sessionToken
+    var identityReads = 0
   }
 
   private let state = Mutex(State())
@@ -231,11 +233,35 @@ final class ScriptedLink: GatewayLink, Sendable {
   let requestSink: AsyncStream<InboundRequest>.Continuation
   let statusStream: AsyncStream<ConnectionStatus>
   let statusSink: AsyncStream<ConnectionStatus>.Continuation
+  let gapStream: AsyncStream<ReplayGap>
+  let gapSink: AsyncStream<ReplayGap>.Continuation
 
   init() {
     (eventStream, eventSink) = AsyncStream.makeStream()
     (requestStream, requestSink) = AsyncStream.makeStream()
     (statusStream, statusSink) = AsyncStream.makeStream()
+    (gapStream, gapSink) = AsyncStream.makeStream()
+  }
+
+  var replayGaps: AsyncStream<ReplayGap> { gapStream }
+
+  /// Report a hole in a session's reconnect replay, as the connection does.
+  func gap(_ session: String, _ reason: ReplayGap.Reason = .truncated, index: UInt64? = nil) {
+    gapSink.yield(ReplayGap(sessionID: session, reason: reason, index: index ?? nextIndex()))
+  }
+
+  /// What `probeIdentity` answers from now on.
+  func setIdentity(_ probe: IdentityProbe) {
+    state.withLock { $0.identity = probe }
+  }
+
+  var identityReads: Int { state.withLock { $0.identityReads } }
+
+  func probeIdentity() async -> IdentityProbe {
+    state.withLock { state in
+      state.identityReads += 1
+      return state.identity
+    }
   }
 
   /// The first subscriber gets the stream made at `init`; every later one a
@@ -591,6 +617,7 @@ final class ScriptedLink: GatewayLink, Sendable {
     eventSink.finish()
     requestSink.finish()
     statusSink.finish()
+    gapSink.finish()
 
     for sink in state.withLock({ $0.eventSubscribers }) {
       sink.finish()

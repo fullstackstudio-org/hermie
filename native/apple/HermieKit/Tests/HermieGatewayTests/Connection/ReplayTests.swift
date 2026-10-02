@@ -305,4 +305,95 @@ struct ReplayTests {
       try await eventually("a fresh watermark") { await h.connection.seqWatermarks == ["s1": 3] }
     }
   }
+
+  @Test("reports a truncated replay as a gap, after dispatching what the ring still held")
+  func reportsATruncatedReplay() async throws {
+    try await withHarness { h in
+      let events = Recorder(h.connection.events)
+      let gaps = Recorder(h.connection.replayGaps)
+      defer {
+        events.cancel()
+        gaps.cancel()
+      }
+
+      try await connected(h)
+      try push(h, event("message.delta", session: "s1", seq: 3), event("message.delta", session: "s2", seq: 4))
+      try await eventually("the watermarks") { await h.connection.seqWatermarks == ["s1": 3, "s2": 4] }
+
+      let socket = try await reconnect(h)
+      var requests: [JSONValue] = []
+      try await eventually("both replay requests") {
+        requests = socket.sent.filter { $0["method"]?.stringValue == "session.events.since" }
+        return requests.count == 2
+      }
+
+      for request in requests {
+        let truncated = request["params"]?["session_id"] == "s1"
+        answer(
+          request,
+          on: socket,
+          [
+            "events": truncated ? [["type": "message.delta", "session_id": "s1", "seq": 900]] : [],
+            "latest_seq": truncated ? 900 : 4, "truncated": .bool(truncated), "count": truncated ? 1 : 0
+          ]
+        )
+      }
+
+      try await eventually("the gap") { gaps.values.count == 1 }
+      let gap = try #require(gaps.values.first)
+      #expect(gap.sessionID == "s1")
+      #expect(gap.reason == .truncated)
+      #expect(seqs(events, "message.delta").contains(900), "the ring's tail is dispatched before the gap is reported")
+      #expect(await h.connection.seqWatermarks["s1"] == 900)
+    }
+  }
+
+  @Test("reports a replay from another gateway process as a gap")
+  func reportsAnEpochChange() async throws {
+    try await withHarness { h in
+      let gaps = Recorder(h.connection.replayGaps)
+      defer { gaps.cancel() }
+
+      h.gateway.with { $0.replayEpoch = "epoch-A" }
+      try await connected(h)
+      try push(h, event("message.delta", session: "s1", seq: 97))
+      try await eventually("the watermark") { await h.connection.seqWatermarks == ["s1": 97] }
+
+      let socket = try await reconnect(h)
+      let request = try await replayRequest(on: socket)
+      answer(request, on: socket, ["events": [], "latest_seq": 0, "truncated": false, "count": 0, "epoch": "epoch-B"])
+
+      try await eventually("the gap") { gaps.values.count == 1 }
+      #expect(gaps.values.first == ReplayGap(sessionID: "s1", reason: .epochChanged, index: gaps.values[0].index))
+    }
+  }
+
+  @Test("a whole replay reports no gap")
+  func aWholeReplayReportsNothing() async throws {
+    try await withHarness { h in
+      let events = Recorder(h.connection.events)
+      let gaps = Recorder(h.connection.replayGaps)
+      defer {
+        events.cancel()
+        gaps.cancel()
+      }
+
+      try await connected(h)
+      try push(h, event("message.delta", session: "s1", seq: 3))
+      try await eventually("the watermark") { await h.connection.seqWatermarks["s1"] == 3 }
+
+      let socket = try await reconnect(h)
+      let request = try await replayRequest(on: socket)
+      answer(
+        request,
+        on: socket,
+        ["events": [["type": "message.delta", "session_id": "s1", "seq": 4]], "latest_seq": 4, "truncated": false, "count": 1]
+      )
+
+      try await eventually("the replayed event") { seqs(events, "message.delta") == [3, 4] }
+      // A gap would have been published in the same actor turn as the last replayed event.
+      await h.settle()
+      #expect(gaps.values.isEmpty)
+    }
+  }
 }

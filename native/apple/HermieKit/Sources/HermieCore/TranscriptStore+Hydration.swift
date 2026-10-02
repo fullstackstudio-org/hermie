@@ -109,7 +109,15 @@ extension TranscriptStore {
     }
 
     setHydration(key, .hydrating)
+    try await load(key, canonical, generation: ticket, failure: .error)
+  }
 
+  /// Steps 2 to 5 of `hydrate`: resume, history, the in-flight tail and open
+  /// requests, the replay; then live. Also the whole of a re-fetch (`refetch`),
+  /// which is why a resume that fails leaves the chat at `failure`.
+  func load(_ key: String, _ canonical: CanonicalSession, generation ticket: UInt64, failure: HydrationState)
+    async throws
+  {
     let resume: ResumeOutcome
 
     do {
@@ -123,7 +131,7 @@ extension TranscriptStore {
       // The chat was replaced while this was in the air: its successor's ladder is not ours.
       throw CancellationError()
     } catch {
-      setHydration(key, .error, generation: ticket)
+      setHydration(key, failure, generation: ticket)
       throw error
     }
 
@@ -150,7 +158,9 @@ extension TranscriptStore {
       }
     }
 
-    // 5. Anything that happened between the history read and now.
+    // 5. Anything that happened between the history read and now. A replay
+    //    that cannot vouch for itself here needs nothing more: the history and
+    //    the resume's snapshot were read a moment ago.
     await replaySince(key, runtimeID: resume.runtimeID, generation: ticket)
 
     guard generation(of: key) == ticket else {
@@ -208,6 +218,7 @@ extension TranscriptStore {
     ensure(key, stored: canonical.id, resolved: resolvedID)
     bindRuntime(key, runtimeID, at: reply.index)
     chats[key]?.live = true
+    signalConnectionSnapshot(key, runtimeID: runtimeID, reply.result)
 
     if let info, case .object = info {
       let event = GatewayEvent(json: ["type": "session.info", "session_id": .string(runtimeID), "payload": info])
@@ -333,10 +344,15 @@ extension TranscriptStore {
   /// A cold chat (no watermark, or another epoch) adopts `latest_seq` without
   /// applying: the history read already describes it. A warm one applies them.
   /// A failure costs the events of the last few seconds, which the socket
-  /// delivers anyway.
-  func replaySince(_ key: String, runtimeID: String, generation ticket: UInt64? = nil) async {
+  /// delivers anyway, and answers `nil`.
+  ///
+  /// The answer says whether the replay vouches for the chat (`ReplayContinuity`):
+  /// right after a history read nothing more is needed, but a recovery that read
+  /// no history must read it when the replay cannot vouch (`recover`).
+  @discardableResult
+  func replaySince(_ key: String, runtimeID: String, generation ticket: UInt64? = nil) async -> ReplayContinuity? {
     guard let chat = chats[key]?.state else {
-      return
+      return nil
     }
 
     // Read before the call, as the reference reads them.
@@ -344,7 +360,7 @@ extension TranscriptStore {
     let lastSeq = chat.lastSeq
     let params: JSONValue = ["session_id": .string(runtimeID), "last_seen": .number(Double(lastSeq))]
 
-    _ = try? await ordered(key, generation: ticket, { [link] in
+    return try? await ordered(key, generation: ticket, { [link] in
       try await link.requestReply(RPC.SessionEventsSince.name, params: params)
     }) {
       reply in
@@ -352,14 +368,18 @@ extension TranscriptStore {
     }
   }
 
-  func applyReplay(_ key: String, runtimeID: String, knownEpoch: String?, lastSeq: Int, _ result: JSONValue) {
+  @discardableResult
+  func applyReplay(_ key: String, runtimeID: String, knownEpoch: String?, lastSeq: Int, _ result: JSONValue)
+    -> ReplayContinuity
+  {
     let epoch = result["epoch"]?.stringValue
     let latest = result["latest_seq"]?.doubleValue.flatMap { Int(exactly: $0) } ?? 0
     // The epoch names the process that did the numbering; another one began at 1.
     let epochChanged = knownEpoch != nil && knownEpoch != epoch
     let cold = lastSeq == 0 || epochChanged
+    let truncated = result["truncated"] == .bool(true)
 
-    if cold || result["truncated"] == .bool(true) {
+    if cold || truncated {
       mutateState(key) { state in
         state.lastSeq = epochChanged ? latest : max(state.lastSeq, latest)
         state.lastSeqSessionID = runtimeID
@@ -369,6 +389,10 @@ extension TranscriptStore {
       for raw in result["events"]?.arrayValue ?? [] {
         guard let event = transcriptEvent(of: raw) else {
           continue
+        }
+
+        if Self.chatSignalTypes.contains(event.type) {
+          signalChatEvent(event, in: key, fresh: isNew(event, in: key))
         }
 
         let now = now()
@@ -381,6 +405,18 @@ extension TranscriptStore {
     }
 
     registerOpenRequests(key, result["open_requests"]?.arrayValue)
+
+    if truncated {
+      return .truncated
+    }
+
+    if epochChanged {
+      return .epochChanged
+    }
+
+    // A watermark of 0 against a session that has numbered events: they happened,
+    // and this client never saw them.
+    return lastSeq == 0 && latest > 0 ? .unseen : .continuous
   }
 
   /// `transcriptEventOf`: one replayed frame, narrowed to what the reducer needs.
@@ -442,6 +478,10 @@ extension TranscriptStore {
     }
 
     let type = event.type
+
+    if Self.chatSignalTypes.contains(type) {
+      signalChatEvent(event, in: key, fresh: isNew(event, in: key))
+    }
 
     if type == GatewayEventType.requestCancel, let id = event.payload?["id"]?.stringValue, !id.isEmpty {
       // Remembered even with no card yet: the request it withdraws may come in after it.
@@ -674,6 +714,7 @@ extension TranscriptStore {
     }
 
     let ticket = generation(of: key)
+    let previousRuntime = chats[key]?.state.runtimeSessionID
 
     do {
       let runtimeID = try await ordered(key, binding: true, generation: ticket, resumeCall(key, storedID: stored)) {
@@ -693,12 +734,22 @@ extension TranscriptStore {
         let snapshot = self.resumeSnapshot(of: result)
         self.mutateState(key) { applyResumeSnapshot(into: &$0, snapshot, now) }
         self.registerOpenRequests(key, reply.result["open_requests"]?.arrayValue)
+        self.signalConnectionSnapshot(key, runtimeID: runtimeID, reply.result)
         return runtimeID
       }
 
-      await replaySince(key, runtimeID: runtimeID, generation: ticket)
+      let continuity = await replaySince(key, runtimeID: runtimeID, generation: ticket)
 
       guard generation(of: key) == ticket else {
+        return
+      }
+
+      // The replay cannot vouch for what happened while the socket was down (the
+      // ring lost events, another gateway process numbered them, a session this
+      // client never saw counted them), or the chat is on another runtime session
+      // now: read it again instead of building on it.
+      if previousRuntime != runtimeID || (continuity.map { $0 != .continuous } ?? false) {
+        scheduleRefetch(key)
         return
       }
 
@@ -1193,6 +1244,7 @@ extension TranscriptStore {
     cacheDirty.remove(key)
     dirty.remove(key)
     removedSinceFrame.insert(key)
+    signalSink.yield(.chatForgotten(chat: key))
     requestFrame()
   }
 }

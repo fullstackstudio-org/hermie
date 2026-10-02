@@ -103,6 +103,13 @@ public enum RPC {
     public typealias Result = JSONValue
   }
 
+  /// The TUI's `/status` report for one session, as text.
+  public enum SessionStatus: RPCMethod {
+    public static let name = "session.status"
+    public typealias Params = SessionParams
+    public typealias Result = SessionStatusResult
+  }
+
   // MARK: Prompts
 
   public enum PromptSubmit: RPCMethod {
@@ -156,6 +163,13 @@ public enum RPC {
     public static let name = "gateway.ping"
     public typealias Params = JSONValue
     public typealias Result = PingResult
+  }
+
+  /// What this gateway build enforces, asked with `{}` after every `ready`.
+  public enum GatewayCapabilities: RPCMethod {
+    public static let name = "gateway.capabilities"
+    public typealias Params = JSONValue
+    public typealias Result = GatewayCapabilitiesResult
   }
 
   /// Sent once per connection after `gateway.ready` with `{server_requests: true}`.
@@ -353,6 +367,13 @@ public enum RPC {
     public typealias Result = JSONValue
   }
 
+  /// The connector authorisation card's answer: per-target outcomes and an optional Continue.
+  public enum ConnectionRespond: RPCMethod {
+    public static let name = "connection.respond"
+    public typealias Params = ConnectionRespondParams
+    public typealias Result = ConnectionRespondResult
+  }
+
   /// Not in the vendored upstream contract; the fake gateway implements it.
   public enum ConnectorsOperationWake: RPCMethod {
     public static let name = "connectors.operation.wake"
@@ -371,9 +392,9 @@ public enum RPC {
     SessionCreate.name, SessionResume.name, SessionList.name, SessionHistory.name,
     SessionEventsSince.name, SessionInterrupt.name, SessionSteer.name, SessionClose.name,
     SessionDelete.name, SessionTitle.name, SessionSetHidden.name, SessionBranch.name,
-    SessionUsage.name, SessionActiveList.name, PromptSubmit.name, ImageAttachBytes.name,
+    SessionUsage.name, SessionActiveList.name, SessionStatus.name, PromptSubmit.name, ImageAttachBytes.name,
     ApprovalRespond.name, ApprovalPending.name, ApprovalReceived.name, ClarifyLock.name,
-    RequestAnswer.name, GatewayPing.name, ClientCapabilities.name, ProfilesList.name,
+    RequestAnswer.name, GatewayPing.name, GatewayCapabilities.name, ClientCapabilities.name, ProfilesList.name,
     ProfilesGetAsset.name, ProfilesConfigure.name, ProfilesSetAsset.name, ProfilesCreate.name,
     ProfilesDescribe.name, CommandsCatalog.name, CompleteSlash.name, SlashExec.name,
     CommandDispatch.name, ConfigGet.name, ConfigSet.name, ModelOptions.name,
@@ -381,6 +402,6 @@ public enum RPC {
     SubagentSteer.name, SubagentInterrupt.name, SkillsManage.name, McpServersList.name,
     McpServersStatus.name, McpServersTest.name, McpServersOauthStart.name, McpServersOauthPoll.name,
     McpServersOauthCancel.name, ReloadMcp.name, ConnectorsList.name, ConnectorsConnect.name,
-    ConnectorsOperationStatus.name, ConnectorsOperationWake.name, CronManage.name
+    ConnectorsOperationStatus.name, ConnectionRespond.name, ConnectorsOperationWake.name, CronManage.name
   ]
 }

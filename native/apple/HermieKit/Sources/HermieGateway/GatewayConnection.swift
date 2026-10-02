@@ -88,6 +88,7 @@ public actor GatewayConnection {
   let statusHub = Broadcast<ConnectionStatus>(latest: ConnectionStatus(.disconnected), replaysLatest: true)
   let eventHub = Broadcast<WireEvent>()
   let requestHub = Broadcast<ServerRequestDelivery>()
+  let gapHub = Broadcast<ReplayGap>()
 
   // MARK: State of the dial loop (connection.ts)
 
@@ -173,6 +174,7 @@ public actor GatewayConnection {
     statusHub.finish()
     eventHub.finish()
     requestHub.finish()
+    gapHub.finish()
   }
 
   /// `defaultBackoffDelayMs`: the reconnect ladder with bounded jitter, so a
@@ -214,6 +216,10 @@ public actor GatewayConnection {
   /// first resume re-delivers in its `open_requests` reach it.
   public nonisolated var serverRequests: AsyncStream<ServerRequestDelivery> { requestHub.subscribe() }
 
+  /// Every session a reconnect replay could not make whole (`ReplayGap`), reported after the
+  /// replay's own events were dispatched. Subscribe before `start()`.
+  public nonisolated var replayGaps: AsyncStream<ReplayGap> { gapHub.subscribe() }
+
   // MARK: - Driving
 
   /// Begin dialling and keep the connection up until `stop()`.
@@ -253,6 +259,7 @@ public actor GatewayConnection {
     statusHub.finish()
     eventHub.finish()
     requestHub.finish()
+    gapHub.finish()
   }
 
   /// Close the socket cleanly and stop every timer: the app went to the background.

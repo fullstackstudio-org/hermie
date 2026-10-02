@@ -74,7 +74,109 @@ enum TypedCopy {
           $0.replayEpoch = p.replayEpoch
           $0.heartbeat = p.heartbeat
         })
+    case .notificationShow(let p):
+      .notificationShow(
+        with(NotificationShowPayload()) {
+          $0.text = p.text
+          $0.level = p.level
+          $0.kind = p.kind
+          $0.ttlMs = p.ttlMs
+          $0.key = p.key
+          $0.id = p.id
+        })
+    case .notificationClear(let p): .notificationClear(with(NotificationClearPayload()) { $0.key = p.key })
+    case .connectionRequest(let p): .connectionRequest(connectionRequest(p))
+    case .connectionUpdate(let p): .connectionUpdate(connectionUpdate(p))
+    case .sessionResumeProgress(let p):
+      .sessionResumeProgress(
+        with(SessionResumeProgressPayload()) {
+          $0.phase = p.phase
+          $0.status = p.status
+          $0.messageCount = p.messageCount
+          $0.message = p.message
+        })
+    case .sessionControlUpdate(let p):
+      .sessionControlUpdate(
+        with(SessionControlUpdatePayload()) {
+          $0.control = p.control.map { control in
+            with(SessionControlSnapshot()) {
+              $0.goal = control.goal
+              $0.loop = control.loop
+              $0.heartbeat = control.heartbeat
+              $0.revision = control.revision
+              $0.updatedAt = control.updatedAt
+            }
+          }
+        })
     case .unknown: body
+    }
+  }
+
+  static func connectionTarget(_ p: ConnectionOperationTarget) -> ConnectionOperationTarget {
+    with(ConnectionOperationTarget()) {
+      $0.name = p.name
+      $0.kind = p.kind
+      $0.action = p.action
+      $0.state = p.state
+      $0.detail = p.detail
+      $0.instructions = p.instructions
+      $0.discoveryError = p.discoveryError
+      $0.connectURL = p.connectURL
+      $0.connectionID = p.connectionID
+      $0.attempt = p.attempt
+      $0.requiredEnv = p.requiredEnv?.map { field in
+        with(ConnectionTargetEnvField()) {
+          $0.name = field.name
+          $0.required = field.required
+          $0.secret = field.secret
+          $0.defaultValue = field.defaultValue
+          $0.prompt = field.prompt
+        }
+      }
+      $0.tools = p.tools
+      $0.hint = p.hint
+      $0.display = p.display
+      $0.targetDescription = p.targetDescription
+      $0.tier = p.tier
+      $0.platforms = p.platforms
+      $0.repo = p.repo
+      $0.sha = p.sha
+      $0.subdir = p.subdir
+      $0.scan = p.scan.map { scan in with(CatalogScan()) { $0.status = scan.status; $0.summary = scan.summary } }
+      $0.requirements = p.requirements
+      $0.hasDesktopHalf = p.hasDesktopHalf
+      $0.targetProfile = p.targetProfile
+      $0.appState = p.appState
+      $0.skill = p.skill
+    }
+  }
+
+  static func connectionRequest(_ p: ConnectionRequestPayload) -> ConnectionRequestPayload {
+    with(ConnectionRequestPayload()) {
+      $0.opID = p.opID
+      $0.seq = p.seq
+      $0.deadlineAt = p.deadlineAt
+      $0.timeoutSeconds = p.timeoutSeconds
+      $0.targets = p.targets?.map(connectionTarget)
+      $0.toolCallID = p.toolCallID
+    }
+  }
+
+  static func connectionUpdate(_ p: ConnectionUpdatePayload) -> ConnectionUpdatePayload {
+    with(ConnectionUpdatePayload()) {
+      $0.opID = p.opID
+      $0.seq = p.seq
+      $0.deadlineAt = p.deadlineAt
+      $0.settled = p.settled
+      $0.settledAt = p.settledAt
+      $0.settledBy = p.settledBy
+      $0.targets = p.targets?.map(connectionTarget)
+      $0.owner = p.owner.map { owner in with(ConnectorOwner()) { $0.type = owner.type; $0.sessionID = owner.sessionID } }
+      $0.target = p.target
+      $0.fromState = p.fromState
+      $0.to = p.to
+      $0.actor = p.actor
+      $0.detail = p.detail
     }
   }
 

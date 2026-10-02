@@ -291,6 +291,11 @@ private func openedByHand(
     #expect(since.params["last_seen"] == 0, "a watermark from rt-1 is a number from another counter")
     harness.link.answer(since, Fixture.since(latest: 0))
 
+    // Whatever rt-1 did while the socket was down is in no replay: the chat is read again.
+    try await harness.link.answerNext(RPC.SessionResume.name, Fixture.resume(runtime: "rt-2"))
+    try await harness.link.answerNext(RPC.SessionHistory.name, ["count": 2, "messages": .array(Fixture.rows(2))])
+    try await harness.link.answerNext(RPC.SessionEventsSince.name, Fixture.since(latest: 0))
+
     try await eventually("the recovery") {
       let tasks = await harness.store.liveTaskCount
       return tasks == 0
