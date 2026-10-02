@@ -69,7 +69,7 @@ public struct SQLiteRow: Sendable {
 }
 
 /// A failure from SQLite, with the primary result code kept so corruption can be told apart.
-public struct SQLiteError: Error, Sendable, CustomStringConvertible {
+public struct SQLiteError: Error, Sendable, Equatable, CustomStringConvertible {
   public let code: Int32
   public let message: String
 
@@ -117,24 +117,48 @@ public struct SQLiteOpenReport: Sendable, Equatable {
   public var versionAfter: Int = 0
   /// Set when a newer build wrote the file. It is used as it is; nothing is migrated down.
   public var newerThanThisBuild = false
-  /// Set when the file was corrupt: where the unreadable copy was moved, and why.
+  /// Set when the file was corrupt and a new one was created in its place.
   public var corruption: Corruption?
 
   public struct Corruption: Sendable, Equatable {
-    /// The moved-aside database file, kept for diagnosis. Its `-wal` and `-shm` sit beside it.
-    public let movedTo: URL
+    /// What SQLite said about the old file.
     public let reason: String
+    /// What could be read back out of the old file's `kv` table.
+    public let rescue: KeyValueRescue
+    /// The old file, when it was kept for diagnosis because the rescue was incomplete. Its `-wal`
+    /// and `-shm` sit beside it; all three are excluded from backup and replaced by the next one.
+    public let keptCopy: URL?
   }
+}
+
+/// The `kv` rows copied out of a corrupt database file into its replacement.
+public struct KeyValueRescue: Sendable, Equatable {
+  /// The keys that were copied.
+  public var keys: [String] = []
+  /// True when the whole table was read without an error, so `keys` is everything there was.
+  public var complete = false
+}
+
+/// What the background integrity check found and did.
+public enum CacheIntegrityReport: Sendable, Equatable {
+  case ok
+  /// The check failed; `bots` and `transcripts` were dropped and recreated empty, and the database
+  /// passed the check afterwards. The chats are rebuilt from the gateway.
+  case rebuiltCache(reason: String)
+  /// The check still fails with the cache rebuilt: the damage is in `kv`, which is never dropped
+  /// here. The next launch that trips over it moves the file aside and rescues what it can.
+  case keyValueDamaged(reason: String)
+  /// The cache tables could not be rebuilt.
+  case repairFailed(reason: String)
 }
 
 /**
  One connection to SQLite through the system library.
 
  Not `Sendable` and not thread-safe on purpose: it is owned by exactly one `SQLiteStore` actor,
- which serialises every use. It is a class of its own, rather than the actor's private state, for
- one reason — the launch needs it SYNCHRONOUSLY. The Expo import and the lock setting have to be on
- disk before the first frame is drawn, and a launch step that awaits an actor cannot promise that.
- So the launch opens a database, runs the import on it, and only then hands it to the actor.
+ which serialises every use. It is a class of its own, rather than the actor's private state,
+ because the launch needs it synchronously: the database is opened, recovered if it has to be, and
+ checked for the lock setting before the first frame, and only then handed to the actor.
 
  Statements are prepared once per SQL string and reused. Transactions nest through savepoints, and
  key-value changes made inside one are announced only after the outermost commit, so an observer
@@ -145,6 +169,10 @@ public final class SQLiteDatabase {
   private var statements: [String: OpaquePointer] = [:]
   private var transactionDepth = 0
   private var pendingChanges: [String: String?] = [:]
+  private var mirrors: [String: (String?) -> Void] = [:]
+  /// Set when SQLite rolled the outer transaction back on its own inside a savepoint; nothing more
+  /// runs until the outermost `transaction` call unwinds.
+  private var transactionLost = false
 
   /// Where key-value changes are announced. Shared with the actor that ends up owning this.
   public let observers: KeyValueObservers
@@ -180,31 +208,59 @@ public final class SQLiteDatabase {
   // MARK: Opening
 
   /**
-   Open (creating when needed), switch on WAL, check the file and migrate it.
+   Open (creating when needed), switch on WAL and migrate.
 
-   A file SQLite calls corrupt or not a database is moved aside with its `-wal` and `-shm`, and a
-   fresh one is created in its place; the report says so. What that costs is everything in it:
-   every cached roster and transcript (rebuilt from the gateway) and every key-value setting,
-   including the gateway list. The Expo import flag lives in the same table, so on a device that
-   still has the Expo app's storage the import runs again and brings back what was there when the
-   native app took over. Anything changed since is gone, which is why the launch also fails the
-   app lock closed after a recovery (see `StoreLaunch`).
+   There is no integrity check here: a full check reads the whole file, and this runs before the
+   first frame. Corruption shows itself instead in the first real statements — the header read by
+   `journal_mode`, the schema read by the migration, and a count over `kv` — as `SQLITE_NOTADB` or
+   `SQLITE_CORRUPT`. Damage further in, in the chat cache, is the business of `checkCacheIntegrity`,
+   which the app runs in the background.
+
+   A file that fails that way is moved aside with its `-wal` and `-shm`, and a fresh one is created.
+   Then every `kv` row that can still be read from the old file is copied across: settings and the
+   gateway list survive whatever part of the file is intact. The cached chats are not rescued; they
+   come back from the gateway. When the rescue read the whole table the old file is deleted;
+   otherwise one copy is kept for diagnosis (see `SQLiteOpenReport.Corruption.keptCopy`).
+
+   Any other failure (a file that cannot be opened before the first unlock, a full disk) throws.
    */
   public static func open(
     _ location: SQLiteLocation,
     migrations: [SQLiteMigration] = SQLiteSchema.migrations
   ) throws -> (database: SQLiteDatabase, report: SQLiteOpenReport) {
+    try open(location, migrations: migrations, probe: launchProbe)
+  }
+
+  /// The statements that surface corruption at launch: the schema, then every `kv` page.
+  static func launchProbe(_ database: SQLiteDatabase) throws {
+    _ = try database.query("SELECT count(*) FROM sqlite_master")
+    _ = try database.query("SELECT count(*) FROM kv")
+  }
+
+  /// `open`, with the corruption probe replaceable for tests.
+  static func open(
+    _ location: SQLiteLocation,
+    migrations: [SQLiteMigration],
+    probe: @Sendable (SQLiteDatabase) throws -> Void
+  ) throws -> (database: SQLiteDatabase, report: SQLiteOpenReport) {
     do {
-      return try attemptOpen(location, migrations: migrations)
+      return try attemptOpen(location, migrations: migrations, probe: probe)
     } catch let error as SQLiteError where error.isCorruption {
       guard case let .file(url) = location else {
         throw error
       }
 
       let moved = try moveAside(url)
-      var (database, report) = try attemptOpen(location, migrations: migrations)
+      var (database, report) = try attemptOpen(location, migrations: migrations, probe: probe)
+      let rescue = database.rescueKeyValues(from: moved)
 
-      report.corruption = .init(movedTo: moved, reason: error.message)
+      if rescue.complete {
+        removeFileSet(moved)
+      } else {
+        excludeFromBackup(moved)
+      }
+
+      report.corruption = .init(reason: error.message, rescue: rescue, keptCopy: rescue.complete ? nil : moved)
 
       return (database, report)
     }
@@ -212,9 +268,9 @@ public final class SQLiteDatabase {
 
   private static func attemptOpen(
     _ location: SQLiteLocation,
-    migrations: [SQLiteMigration]
+    migrations: [SQLiteMigration],
+    probe: @Sendable (SQLiteDatabase) throws -> Void
   ) throws -> (database: SQLiteDatabase, report: SQLiteOpenReport) {
-    var flags = SQLITE_OPEN_READWRITE | SQLITE_OPEN_CREATE | SQLITE_OPEN_NOMUTEX
     let path: String
     var fileURL: URL?
 
@@ -226,14 +282,44 @@ public final class SQLiteDatabase {
       )
       path = url.path
       fileURL = url
-      #if os(iOS)
-        // Readable after the first unlock since boot, so a launch in the background (a push, a
-        // widget refresh) can still read settings. The flag also covers the -wal and -shm files.
-        flags |= SQLITE_OPEN_FILEPROTECTION_COMPLETEUNTILFIRSTUSERAUTHENTICATION
-      #endif
     case .inMemory:
       path = ":memory:"
     }
+
+    let raw = try openHandle(path)
+    let database = SQLiteDatabase(handle: raw, fileURL: fileURL, observers: KeyValueObservers())
+
+    do {
+      sqlite3_busy_timeout(raw, 2_000)
+
+      if fileURL != nil {
+        _ = try database.query("PRAGMA journal_mode = WAL")
+        try database.execute("PRAGMA synchronous = NORMAL")
+      }
+
+      let report = try database.migrate(migrations)
+
+      try probe(database)
+
+      return (database, report)
+    } catch {
+      database.close()
+
+      throw error
+    }
+  }
+
+  /// One read-write connection, creating the file when needed.
+  private static func openHandle(_ path: String) throws -> OpaquePointer {
+    var flags = SQLITE_OPEN_READWRITE | SQLITE_OPEN_CREATE | SQLITE_OPEN_NOMUTEX
+
+    #if os(iOS)
+      // Readable after the first unlock since boot, so a launch in the background (a push, a
+      // widget refresh) can still read settings. The flag also covers the -wal and -shm files.
+      if path != ":memory:" {
+        flags |= SQLITE_OPEN_FILEPROTECTION_COMPLETEUNTILFIRSTUSERAUTHENTICATION
+      }
+    #endif
 
     var raw: OpaquePointer?
     let status = sqlite3_open_v2(path, &raw, flags, nil)
@@ -246,42 +332,25 @@ public final class SQLiteDatabase {
       throw SQLiteError(code: status & 0xFF, message: message)
     }
 
-    let database = SQLiteDatabase(handle: raw, fileURL: fileURL, observers: KeyValueObservers())
-
-    do {
-      sqlite3_busy_timeout(raw, 2_000)
-      // The first statement that reads the header: a file that is not a database fails here.
-      if fileURL != nil {
-        _ = try database.query("PRAGMA journal_mode = WAL")
-        try database.execute("PRAGMA synchronous = NORMAL")
-      }
-
-      let check = try database.query("PRAGMA quick_check").first?.values.first?.text
-
-      if check != "ok" {
-        throw SQLiteError(code: SQLITE_CORRUPT, message: "quick_check: \(check ?? "no answer")")
-      }
-
-      let report = try database.migrate(migrations)
-
-      return (database, report)
-    } catch {
-      database.close()
-
-      throw error
-    }
+    return raw
   }
 
-  /// Rename the file and its companions to `<name>.corrupt`, replacing an older such copy.
+  /// The companions SQLite keeps beside a database file.
+  static let companionSuffixes = ["-wal", "-shm"]
+
+  /// Rename the file to `<name>.corrupt`, its `-wal` and `-shm` first, replacing an older copy.
+  ///
+  /// Companions before the main file: a crash between the renames then leaves at worst a database
+  /// without its log, never a log beside a different database that SQLite would try to replay.
   private static func moveAside(_ url: URL) throws -> URL {
     let manager = FileManager.default
     let target = url.appendingPathExtension("corrupt")
 
-    for suffix in ["", "-wal", "-shm"] {
+    removeFileSet(target)
+
+    for suffix in companionSuffixes + [""] {
       let source = URL(fileURLWithPath: url.path + suffix)
       let destination = URL(fileURLWithPath: target.path + suffix)
-
-      try? manager.removeItem(at: destination)
 
       if manager.fileExists(atPath: source.path) {
         try manager.moveItem(at: source, to: destination)
@@ -289,6 +358,209 @@ public final class SQLiteDatabase {
     }
 
     return target
+  }
+
+  /// Delete a database file and its companions; missing files are fine.
+  static func removeFileSet(_ url: URL) {
+    for suffix in companionSuffixes + [""] {
+      try? FileManager.default.removeItem(at: URL(fileURLWithPath: url.path + suffix))
+    }
+  }
+
+  /**
+   Keep a database file and its companions out of iCloud and device backups.
+
+   The gateway list in `kv` is useless without the keychain items it points at, and those are
+   this-device-only: a backup restored to another phone would bring gateways it cannot sign in to.
+   React Native excluded its AsyncStorage directory for the same reason. SQLite deletes and
+   recreates `-wal` and `-shm` as connections come and go, so this runs on every launch.
+   */
+  public static func excludeFromBackup(_ url: URL) {
+    for suffix in [""] + companionSuffixes {
+      var file = URL(fileURLWithPath: url.path + suffix)
+      var values = URLResourceValues()
+
+      values.isExcludedFromBackup = true
+
+      if FileManager.default.fileExists(atPath: file.path) {
+        try? file.setResourceValues(values)
+      }
+    }
+  }
+
+  // MARK: Rescue
+
+  /**
+   Copy every `kv` row that can still be read from `source` into this database.
+
+   Read-only, row by row, stopping at the first error, so the rows before a damaged page are kept.
+   A row already here is replaced: the rescued value is the person's, a fresh database has nothing
+   of its own yet.
+   */
+  func rescueKeyValues(from source: URL) -> KeyValueRescue {
+    var rescue = KeyValueRescue()
+    var rows: [(String, String, Int64)] = []
+
+    for options in ["mode=ro", "immutable=1"] {
+      rows = []
+      rescue.complete = Self.readKeyValues(source, options: options) { rows.append(($0, $1, $2)) }
+
+      if rescue.complete || !rows.isEmpty {
+        break
+      }
+    }
+
+    do {
+      try transaction {
+        for (key, value, updatedAt) in rows {
+          try execute(
+            "INSERT OR REPLACE INTO kv (key, value, updated_at) VALUES (?, ?, ?)",
+            [.text(key), .text(value), .integer(updatedAt)]
+          )
+          rescue.keys.append(key)
+        }
+      }
+    } catch {
+      rescue = KeyValueRescue()
+    }
+
+    return rescue
+  }
+
+  /// Read `kv` from a file read-only; answers whether the whole table was read.
+  private static func readKeyValues(
+    _ source: URL,
+    options: String,
+    row: (String, String, Int64) -> Void
+  ) -> Bool {
+    var raw: OpaquePointer?
+    let uri = source.standardizedFileURL.absoluteString + "?" + options
+
+    defer { sqlite3_close_v2(raw) }
+
+    guard sqlite3_open_v2(uri, &raw, SQLITE_OPEN_READONLY | SQLITE_OPEN_URI, nil) == SQLITE_OK, let raw else {
+      return false
+    }
+
+    var statement: OpaquePointer?
+
+    defer { sqlite3_finalize(statement) }
+
+    guard sqlite3_prepare_v2(raw, "SELECT key, value, updated_at FROM kv", -1, &statement, nil) == SQLITE_OK,
+      let statement else {
+      return false
+    }
+
+    while true {
+      switch sqlite3_step(statement) {
+      case SQLITE_ROW:
+        if sqlite3_column_type(statement, 0) == SQLITE_TEXT, sqlite3_column_type(statement, 1) == SQLITE_TEXT {
+          row(columnText(statement, 0), columnText(statement, 1), sqlite3_column_int64(statement, 2))
+        }
+      case SQLITE_DONE:
+        return true
+      default:
+        return false
+      }
+    }
+  }
+
+  // MARK: Integrity
+
+  /**
+   The full check, for the background: `PRAGMA quick_check`, and when it fails, the chat cache
+   dropped and recreated empty. `kv` is never dropped.
+
+   When a damaged cache table cannot even be dropped (dropping walks its pages), the file is
+   rebuilt instead: a new one holding only `kv` is written beside it and swapped in.
+   */
+  public func checkCacheIntegrity() -> CacheIntegrityReport {
+    let first: String
+
+    do {
+      first = try quickCheck()
+    } catch {
+      first = String(describing: error)
+    }
+
+    guard first != "ok" else {
+      return .ok
+    }
+
+    do {
+      do {
+        try transaction {
+          try executeScript("DROP TABLE IF EXISTS bots; DROP TABLE IF EXISTS transcripts;")
+          try executeScript(SQLiteSchema.cacheTables)
+        }
+      } catch {
+        try rebuildKeepingKeyValues()
+      }
+    } catch {
+      return .repairFailed(reason: String(describing: error))
+    }
+
+    let second = (try? quickCheck()) ?? "no answer"
+
+    return second == "ok" ? .rebuiltCache(reason: first) : .keyValueDamaged(reason: second)
+  }
+
+  /**
+   The fallback when a damaged cache table cannot even be dropped (dropping walks its pages): a new
+   file holding only `kv`, swapped in under this connection.
+
+   The rows are read first, so a `kv` that cannot be read fails here with the old file untouched.
+   The new file is written completely beside the old one before anything is renamed.
+   */
+  private func rebuildKeepingKeyValues() throws {
+    guard let fileURL else {
+      throw SQLiteError(code: SQLITE_MISUSE, message: "an in-memory database is not rebuilt")
+    }
+
+    let rows = try query("SELECT key, value, updated_at FROM kv")
+    let target = URL(fileURLWithPath: fileURL.path + ".rebuild")
+
+    Self.removeFileSet(target)
+
+    do {
+      let (fresh, _) = try Self.attemptOpen(.file(target), migrations: SQLiteSchema.migrations, probe: Self.launchProbe)
+
+      try fresh.transaction {
+        for row in rows {
+          try fresh.execute(
+            "INSERT OR REPLACE INTO kv (key, value, updated_at) VALUES (?, ?, ?)",
+            [row["key"], row["value"], row["updated_at"]]
+          )
+        }
+      }
+
+      try fresh.execute("PRAGMA wal_checkpoint(TRUNCATE)")
+      fresh.close()
+    } catch {
+      Self.removeFileSet(target)
+
+      throw error
+    }
+
+    close()
+    Self.removeFileSet(fileURL)
+
+    for suffix in Self.companionSuffixes + [""] {
+      let source = URL(fileURLWithPath: target.path + suffix)
+
+      if FileManager.default.fileExists(atPath: source.path) {
+        try FileManager.default.moveItem(at: source, to: URL(fileURLWithPath: fileURL.path + suffix))
+      }
+    }
+
+    handle = try Self.openHandle(fileURL.path)
+    sqlite3_busy_timeout(handle, 2_000)
+    _ = try query("PRAGMA journal_mode = WAL")
+    Self.excludeFromBackup(fileURL)
+  }
+
+  private func quickCheck() throws -> String {
+    try query("PRAGMA quick_check").map { $0.values.first?.text ?? "" }.joined(separator: "; ")
   }
 
   // MARK: Migrations
@@ -332,6 +604,8 @@ public final class SQLiteDatabase {
 
   /// Run a script of one or more statements with no parameters (schema changes).
   public func executeScript(_ sql: String) throws {
+    try refuseIfTransactionLost()
+
     var error: UnsafeMutablePointer<CChar>?
     let status = sqlite3_exec(try connection(), sql, nil, nil, &error)
 
@@ -339,6 +613,7 @@ public final class SQLiteDatabase {
       let message = error.map { String(cString: $0) } ?? lastMessage
 
       sqlite3_free(error)
+      noteFailure()
 
       throw SQLiteError(code: status & 0xFF, message: message)
     }
@@ -372,7 +647,25 @@ public final class SQLiteDatabase {
   }
 
   private func error(_ status: Int32) -> SQLiteError {
-    SQLiteError(code: status & 0xFF, message: lastMessage)
+    noteFailure()
+
+    return SQLiteError(code: status & 0xFF, message: lastMessage)
+  }
+
+  /// After a failed statement: did SQLite roll the whole transaction back on its own?
+  private func noteFailure() {
+    if transactionDepth > 0, let handle, sqlite3_get_autocommit(handle) != 0 {
+      transactionLost = true
+    }
+  }
+
+  private func refuseIfTransactionLost() throws {
+    if transactionLost {
+      throw SQLiteError(
+        code: SQLITE_ABORT,
+        message: "the enclosing transaction was rolled back; nothing runs until it unwinds"
+      )
+    }
   }
 
   private func prepared(_ sql: String) throws -> OpaquePointer {
@@ -395,6 +688,8 @@ public final class SQLiteDatabase {
   private static let transient = unsafeBitCast(-1, to: sqlite3_destructor_type.self)
 
   private func run(_ sql: String, _ arguments: [SQLiteValue], collect: Bool) throws -> [SQLiteRow] {
+    try refuseIfTransactionLost()
+
     let statement = try prepared(sql)
 
     defer {
@@ -414,7 +709,16 @@ public final class SQLiteDatabase {
       case let .real(value):
         status = sqlite3_bind_double(statement, index, value)
       case let .text(value):
-        status = sqlite3_bind_text(statement, index, value, -1, Self.transient)
+        // With the byte count, so a NUL inside the string is stored rather than ending it.
+        // `utf8CString` is never empty (it carries a terminator), so the pointer is never nil.
+        let bytes = value.utf8CString
+
+        status = bytes.withUnsafeBufferPointer { buffer in
+          sqlite3_bind_text64(
+            statement, index, buffer.baseAddress, sqlite3_uint64(buffer.count - 1), Self.transient,
+            UInt8(SQLITE_UTF8)
+          )
+        }
       case let .blob(value):
         status = value.withUnsafeBytes { bytes in
           sqlite3_bind_blob64(statement, index, bytes.baseAddress, sqlite3_uint64(value.count), Self.transient)
@@ -461,7 +765,7 @@ public final class SQLiteDatabase {
     case SQLITE_FLOAT:
       return .real(sqlite3_column_double(statement, index))
     case SQLITE_TEXT:
-      return .text(String(cString: sqlite3_column_text(statement, index)))
+      return .text(Self.columnText(statement, index))
     case SQLITE_BLOB:
       let count = Int(sqlite3_column_bytes(statement, index))
 
@@ -475,6 +779,17 @@ public final class SQLiteDatabase {
     }
   }
 
+  /// Text by its byte count rather than up to the first NUL.
+  private static func columnText(_ statement: OpaquePointer, _ index: Int32) -> String {
+    guard let text = sqlite3_column_text(statement, index) else {
+      return ""
+    }
+
+    let count = Int(sqlite3_column_bytes(statement, index))
+
+    return String(decoding: UnsafeBufferPointer(start: text, count: count), as: UTF8.self)
+  }
+
   // MARK: Transactions
 
   /**
@@ -483,6 +798,12 @@ public final class SQLiteDatabase {
    `BEGIN IMMEDIATE` takes the write lock up front, so a transaction never fails halfway with a
    busy error after doing work. Key-value changes recorded inside are announced after the outermost
    commit, and dropped on rollback.
+
+   Some failures (a full disk, an I/O error) make SQLite roll the WHOLE transaction back, not just
+   the statement. Inside a savepoint that would otherwise go unnoticed: the savepoint's rollback
+   fails quietly and later statements run in autocommit mode, outside any transaction. So after a
+   failure the connection is checked, and when the outer transaction is gone every further
+   statement is refused until the outermost call unwinds and reports the failure.
    */
   public func transaction<T>(_ body: () throws -> T) throws -> T {
     let depth = transactionDepth
@@ -496,6 +817,7 @@ public final class SQLiteDatabase {
     do {
       let result = try body()
 
+      try refuseIfTransactionLost()
       transactionDepth -= 1
       try execute(depth == 0 ? "COMMIT" : "RELEASE \(savepoint)")
 
@@ -505,14 +827,18 @@ public final class SQLiteDatabase {
 
       return result
     } catch {
-      if transactionDepth > depth {
-        transactionDepth = depth
-      }
+      transactionDepth = depth
 
       if depth == 0 {
-        try? execute("ROLLBACK")
+        transactionLost = false
         pendingChanges = [:]
-      } else {
+
+        if let handle, sqlite3_get_autocommit(handle) == 0 {
+          try? execute("ROLLBACK")
+        }
+      } else if let handle, sqlite3_get_autocommit(handle) != 0 {
+        transactionLost = true
+      } else if !transactionLost {
         try? execute("ROLLBACK TO \(savepoint)")
         try? execute("RELEASE \(savepoint)")
         pendingChanges = snapshot
@@ -525,6 +851,14 @@ public final class SQLiteDatabase {
   /// True inside `transaction`.
   public var isInTransaction: Bool {
     transactionDepth > 0
+  }
+
+  /// Call `write` with a key's new value (nil when removed) after every commit that changes it.
+  ///
+  /// Synchronous and before the observers, so a copy kept outside the database (the lock mirror)
+  /// is never behind a change somebody has already seen.
+  public func mirror(key: String, to write: @escaping (String?) -> Void) {
+    mirrors[key] = write
   }
 
   /// Record a key-value change, announced at commit (or now, outside a transaction).
@@ -540,6 +874,10 @@ public final class SQLiteDatabase {
     let changes = pendingChanges
 
     pendingChanges = [:]
+
+    for (key, value) in changes {
+      mirrors[key]?(value)
+    }
 
     if !changes.isEmpty {
       observers.publish(changes)

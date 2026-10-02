@@ -118,7 +118,7 @@ struct SQLiteStoreTests {
     #expect(try database.kvValue(forKey: "hermie.test") == "still here")
   }
 
-  @Test("a corrupt file is moved aside with its companions and a new one is created")
+  @Test("a file that is not a database is replaced; with nothing to rescue, one copy is kept, out of backup")
   func corruptFile() throws {
     let temporary = try TemporaryDirectory()
     defer { temporary.cleanUp() }
@@ -131,10 +131,15 @@ struct SQLiteStoreTests {
 
     let (database, report) = try SQLiteDatabase.open(.file(url))
     let corruption = try #require(report.corruption)
+    let kept = try #require(corruption.keptCopy)
 
-    #expect(corruption.movedTo.lastPathComponent == "hermie.sqlite.corrupt")
-    #expect(try Data(contentsOf: corruption.movedTo) == garbage)
-    #expect(FileManager.default.fileExists(atPath: corruption.movedTo.path + "-wal"))
+    #expect(kept.lastPathComponent == "hermie.sqlite.corrupt")
+    #expect(try Data(contentsOf: kept) == garbage)
+    #expect(FileManager.default.fileExists(atPath: kept.path + "-wal"))
+    #expect(isExcludedFromBackup(kept))
+    #expect(isExcludedFromBackup(URL(fileURLWithPath: kept.path + "-wal")))
+    #expect(!corruption.rescue.complete)
+    #expect(corruption.rescue.keys.isEmpty)
     #expect(report.versionAfter == 1)
     #expect(try database.kvKeys().isEmpty)
 
@@ -142,26 +147,45 @@ struct SQLiteStoreTests {
     #expect(try database.kvValue(forKey: "hermie.test") == "works")
   }
 
-  @Test("a database whose pages are damaged is caught by the quick check")
+  @Test("a readable kv table is rescued into the new file, and the old copy is deleted")
+  func rescueComplete() throws {
+    let temporary = try TemporaryDirectory()
+    defer { temporary.cleanUp() }
+
+    let url = temporary.url.appendingPathComponent("hermie.sqlite")
+    let rows = [StoreKeys.lock: #"{"threshold":"5m"}"#, StoreKeys.gateways: #"{"v":1}"#, "hermie.nul": "a\u{0}b"]
+
+    try makeDatabaseFile(at: url, rows: rows)
+
+    let corruptOnce = CorruptOnce()
+    let (database, report) = try SQLiteDatabase.open(
+      .file(url),
+      migrations: SQLiteSchema.migrations,
+      probe: corruptOnce.probe
+    )
+    let corruption = try #require(report.corruption)
+
+    #expect(corruption.rescue.complete)
+    #expect(Set(corruption.rescue.keys) == Set(rows.keys))
+    #expect(corruption.keptCopy == nil)
+    #expect(!FileManager.default.fileExists(atPath: url.path + ".corrupt"))
+
+    for (key, value) in rows {
+      #expect(try database.kvValue(forKey: key) == value)
+    }
+  }
+
+  @Test("damaged pages are caught by the first real statements, without an integrity check")
   func damagedPages() throws {
     let temporary = try TemporaryDirectory()
     defer { temporary.cleanUp() }
 
     let url = temporary.url.appendingPathComponent("hermie.sqlite")
 
-    do {
-      let (database, _) = try SQLiteDatabase.open(.file(url))
-
-      try database.transaction {
-        for index in 0..<400 {
-          try database.kvSet(String(repeating: "x", count: 200), forKey: "hermie.k\(index)")
-        }
-      }
-
-      try database.execute("PRAGMA wal_checkpoint(TRUNCATE)")
-      try database.execute("PRAGMA journal_mode = DELETE")
-      database.close()
-    }
+    try makeDatabaseFile(
+      at: url,
+      rows: Dictionary(uniqueKeysWithValues: (0..<400).map { ("hermie.k\($0)", String(repeating: "x", count: 200)) })
+    )
 
     // Keep the header (first page) intact and overwrite pages further in.
     let handle = try FileHandle(forWritingTo: url)
@@ -170,10 +194,131 @@ struct SQLiteStoreTests {
     handle.write(Data(repeating: 0xFF, count: 16_384))
     try handle.close()
 
-    let (_, report) = try SQLiteDatabase.open(.file(url))
+    let (database, report) = try SQLiteDatabase.open(.file(url))
+    let corruption = try #require(report.corruption)
 
-    #expect(report.corruption != nil)
+    // Which pages the damage hit decides how much comes back: an index alone loses nothing, a
+    // table page loses the rows on it. Either way the copy is kept exactly when rows were lost.
+    #expect(try database.kvKeys().count == corruption.rescue.keys.count)
+    #expect(corruption.rescue.complete == (corruption.keptCopy == nil))
+    #expect(corruption.rescue.complete == (corruption.rescue.keys.count == 400))
   }
+
+  @Test("the background check rebuilds a damaged cache and never touches kv")
+  func cacheIntegrity() throws {
+    let temporary = try TemporaryDirectory()
+    defer { temporary.cleanUp() }
+
+    let url = temporary.url.appendingPathComponent("hermie.sqlite")
+    var pageSize: Int64 = 4_096
+    var botsRoot: Int64 = 0
+
+    do {
+      let (database, _) = try SQLiteDatabase.open(.file(url))
+
+      #expect(database.checkCacheIntegrity() == .ok)
+
+      try database.transaction {
+        try database.kvSet(#"{"threshold":"1m"}"#, forKey: StoreKeys.lock)
+
+        for index in 0..<300 {
+          try database.execute(
+            "INSERT INTO bots (ns, name, json, avatar_rev, updated_at) VALUES ('g01', ?, ?, 0, 0)",
+            [.text("bot\(index)"), .text(String(repeating: "j", count: 300))]
+          )
+        }
+      }
+
+      pageSize = try database.query("PRAGMA page_size").first?.values.first?.integer ?? 4_096
+      botsRoot =
+        try database.query("SELECT rootpage FROM sqlite_master WHERE name = 'bots'").first?["rootpage"].integer ?? 0
+      try database.execute("PRAGMA wal_checkpoint(TRUNCATE)")
+      database.close()
+    }
+
+    // Wreck the bots table's root page; the launch path does not look at it.
+    let handle = try FileHandle(forWritingTo: url)
+
+    try handle.seek(toOffset: UInt64((botsRoot - 1) * pageSize))
+    handle.write(Data(repeating: 0xFF, count: Int(pageSize)))
+    try handle.close()
+
+    let (database, report) = try SQLiteDatabase.open(.file(url))
+
+    #expect(report.corruption == nil)
+
+    let result = database.checkCacheIntegrity()
+
+    guard case .rebuiltCache = result else {
+      Issue.record("expected the cache to be rebuilt, got \(result)")
+      return
+    }
+
+    #expect(try database.kvValue(forKey: StoreKeys.lock) == #"{"threshold":"1m"}"#)
+    #expect(try database.query("SELECT count(*) AS n FROM bots").first?["n"].integer == 0)
+    #expect(database.checkCacheIntegrity() == .ok)
+
+    try database.execute("INSERT INTO bots (ns, name, json, updated_at) VALUES ('g01', 'again', '{}', 0)")
+  }
+
+  @Test("the database file and its companions are excluded from backup")
+  func backupExclusion() throws {
+    let temporary = try TemporaryDirectory()
+    defer { temporary.cleanUp() }
+
+    let url = temporary.url.appendingPathComponent("hermie.sqlite")
+    let (database, _) = try SQLiteDatabase.open(.file(url))
+
+    try database.kvSet("1", forKey: "hermie.a")
+    SQLiteDatabase.excludeFromBackup(url)
+
+    #expect(isExcludedFromBackup(url))
+    #expect(isExcludedFromBackup(URL(fileURLWithPath: url.path + "-wal")))
+  }
+
+  @Test("text with a NUL inside is stored and read back whole")
+  func embeddedNul() throws {
+    let database = try memoryDatabase()
+    let value = "before\u{0}after ✓"
+
+    try database.kvSet(value, forKey: "hermie.nul")
+    try database.kvSet("", forKey: "hermie.empty")
+
+    #expect(try database.kvValue(forKey: "hermie.nul") == value)
+    #expect(try database.kvValue(forKey: "hermie.empty") == "")
+    let stored = try database.query("SELECT length(CAST(value AS BLOB)) AS n FROM kv WHERE key = 'hermie.nul'")
+
+    #expect(stored.first?["n"].integer == 16)
+  }
+
+  @Test("when the outer transaction disappears inside a savepoint, nothing more runs outside it")
+  func lostOuterTransaction() throws {
+    let database = try memoryDatabase()
+
+    #expect(throws: SQLiteError.self) {
+      try database.transaction {
+        try database.kvSet("before", forKey: "hermie.before")
+
+        _ = try? database.transaction {
+          // What SQLite does on its own after some I/O and full-disk errors.
+          try database.execute("ROLLBACK")
+          throw CancellationError()
+        }
+
+        // Without the check this would run in autocommit mode and stick.
+        try database.kvSet("after", forKey: "hermie.after")
+      }
+    }
+
+    #expect(try database.kvValue(forKey: "hermie.before") == nil)
+    #expect(try database.kvValue(forKey: "hermie.after") == nil)
+    #expect(!database.isInTransaction)
+
+    // And the connection is usable again once the outer call has unwound.
+    try database.transaction { try database.kvSet("ok", forKey: "hermie.ok") }
+    #expect(try database.kvValue(forKey: "hermie.ok") == "ok")
+  }
+
 
   @Test("a transaction that throws leaves nothing behind; a nested one rolls back alone")
   func transactions() throws {

@@ -40,6 +40,33 @@ public enum SQLiteSchema {
     )
   ]
 
+  /**
+   The cache tables in their CURRENT shape, for `checkCacheIntegrity` to recreate them empty.
+
+   Version 1 spells the same thing out on its own, because a migration is history and must not
+   change; a later migration that changes `bots` or `transcripts` updates this as well.
+   */
+  public static let cacheTables = """
+    CREATE TABLE IF NOT EXISTS bots (
+      ns TEXT NOT NULL,
+      name TEXT NOT NULL,
+      json TEXT NOT NULL,
+      avatar_rev INTEGER NOT NULL DEFAULT 0,
+      updated_at INTEGER NOT NULL,
+      PRIMARY KEY (ns, name)
+    );
+    CREATE TABLE IF NOT EXISTS transcripts (
+      ns TEXT NOT NULL,
+      bot TEXT NOT NULL,
+      items_json TEXT NOT NULL,
+      last_row_id INTEGER,
+      last_seq INTEGER,
+      epoch TEXT,
+      updated_at INTEGER NOT NULL,
+      PRIMARY KEY (ns, bot)
+    );
+    """
+
   /// The version this build writes.
   public static var latestVersion: Int {
     migrations.map(\.version).max() ?? 0
@@ -92,6 +119,12 @@ public actor SQLiteStore {
     try database.transaction {
       try body(database)
     }
+  }
+
+  /// The full integrity check, off the launch path: run it from a background task after launch.
+  /// A failure rebuilds the chat cache only; see `SQLiteDatabase.checkCacheIntegrity`.
+  public func checkCacheIntegrity() -> CacheIntegrityReport {
+    database.checkCacheIntegrity()
   }
 }
 

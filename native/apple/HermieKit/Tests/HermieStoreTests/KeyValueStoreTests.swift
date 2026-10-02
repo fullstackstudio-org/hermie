@@ -26,7 +26,7 @@ struct KeyValueStoreTests {
     let view = try await kv.value(ChatView.self, forKey: "hermie.chat.view@g01")
 
     #expect(view == ChatView(showThinking: true, level: "normal"))
-    // Written the way JSON.stringify writes it, so the Expo app could read it back.
+    // Written the way JSON.stringify writes it: compact, slashes unescaped.
     #expect(try await kv.string(forKey: "hermie.b") == #"{"url":"https://gateway.test/x"}"#)
     #expect(try await kv.string(forKey: "hermie.missing") == nil)
 
@@ -50,11 +50,12 @@ struct KeyValueStoreTests {
   }
 
   @Test("namespaced keys use the TypeScript suffixes and split back at the first @")
-  func namespacing() {
+  func namespacing() throws {
     let ns = GatewayNamespace("g0123456789abcdef")
 
     #expect(ns.key(StoreKeys.chatView) == "hermie.chat.view@g0123456789abcdef")
-    #expect(ns.secretKey("hermie.auth.access_token") == "hermie.auth.access_token-g0123456789abcdef")
+    // The keychain names for the same gateway come from `SecretKeys`, with its own separator.
+    #expect(try SecretKeys.gateway(ns.id).accessToken == "hermie.auth.access_token-g0123456789abcdef")
 
     let split = GatewayNamespace.split("hermie.gateway.config@g0123456789abcdef")
 

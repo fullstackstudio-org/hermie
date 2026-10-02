@@ -70,8 +70,7 @@ let package = Package(
     .testTarget(name: "HermieProtocolTests", dependencies: ["HermieProtocol"], swiftSettings: settings),
     .testTarget(name: "HermieTranscriptTests", dependencies: ["HermieTranscript"], swiftSettings: settings),
     .testTarget(name: "HermieGatewayTests", dependencies: ["HermieGateway"], swiftSettings: settings),
-    .testTarget(
-      name: "HermieStoreTests", dependencies: ["HermieStore"], exclude: ["Fixtures"], swiftSettings: settings),
+    .testTarget(name: "HermieStoreTests", dependencies: ["HermieStore"], swiftSettings: settings),
     .testTarget(
       name: "HermieSharedTests", dependencies: ["HermieShared"], exclude: ["Fixtures"], swiftSettings: settings),
     .testTarget(name: "HermieMarkdownTests", dependencies: ["HermieMarkdown"], swiftSettings: settings),

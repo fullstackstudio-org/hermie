@@ -3,19 +3,17 @@ import Foundation
 /**
  One gateway's corner of the key-value store: `<base>@<gateway id>`.
 
- The same convention as `expo/hermie/src/gateway/namespace.ts`, character for character, because
- the native app reads keys the Expo app wrote. Every base key is dotted, every gateway id is `g`
- followed by hex, so a namespaced key splits one way only — at the first `@`.
+ The convention of `expo/hermie/src/gateway/namespace.ts` (ADR-0024), kept so both apps name
+ things the same way. Every base key is dotted, every gateway id is `g` followed by hex, so a
+ namespaced key splits one way only — at the first `@`.
 
  Not namespaced, as in the TypeScript: the registry itself, the app lock, the push installation id,
  the appearance and the context switches. See `StoreKeys`.
  */
 public struct GatewayNamespace: Sendable, Hashable {
-  /// Between the base key and the id, in the key-value store.
+  /// Between the base key and the id, in the key-value store. Keychain names use `SecretKeys`,
+  /// whose separator is `-` because the keychain keys allow no `@`.
   public static let separator = "@"
-
-  /// The same, for keychain account names, which `expo-secure-store` limited to `[\w.-]`.
-  public static let secretSeparator = "-"
 
   public let id: String
 
@@ -28,11 +26,6 @@ public struct GatewayNamespace: Sendable, Hashable {
     "\(base)\(Self.separator)\(id)"
   }
 
-  /// One keychain account name, scoped to this gateway.
-  public func secretKey(_ base: String) -> String {
-    "\(base)\(Self.secretSeparator)\(id)"
-  }
-
   /// A namespaced key split back into its halves, or nil when it has no `@`.
   public static func split(_ key: String) -> (base: String, id: String)? {
     guard let at = key.range(of: separator) else {
@@ -43,7 +36,7 @@ public struct GatewayNamespace: Sendable, Hashable {
   }
 }
 
-/// The key-value keys the Expo app writes, spelled once on this side.
+/// The key-value keys, spelled once. The names are the Expo app's, so both apps read alike.
 public enum StoreKeys {
   /// The gateway list. Device-wide.
   public static let gateways = "hermie.gateways"
@@ -167,7 +160,7 @@ extension SQLiteDatabase {
  `getJson` removes what it cannot parse, which for the app lock would be a lock that switches itself
  off.
 
- Values are JSON text, so what the Expo app wrote is readable here unchanged.
+ Values are JSON text, written the way `JSON.stringify` writes them.
  */
 public struct KeyValueStore: Sendable {
   public let store: SQLiteStore

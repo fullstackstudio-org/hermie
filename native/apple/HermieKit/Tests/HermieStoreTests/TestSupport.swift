@@ -13,79 +13,44 @@ struct TemporaryDirectory {
   }
 
   func cleanUp() {
+    try? FileManager.default.setAttributes([.posixPermissions: 0o755], ofItemAtPath: url.path)
     try? FileManager.default.removeItem(at: url)
   }
 }
 
-enum Fixtures {
-  /// `Tests/HermieStoreTests/Fixtures`, read from the source tree.
-  static let root = URL(fileURLWithPath: #filePath)
-    .deletingLastPathComponent()
-    .appendingPathComponent("Fixtures", isDirectory: true)
-
-  /// The recorded AsyncStorage directory: `<Application Support>` of a synthetic Expo install.
-  static let expoApplicationSupport = root.appendingPathComponent("ExpoAsyncStorage", isDirectory: true)
-
-  static let expoStorage = ExpoImport.storageDirectory(
-    applicationSupport: expoApplicationSupport,
-    bundleIdentifier: "dev.hermie.app"
-  )
-
-  static let gatewayOne = "g0123456789abcdef"
-  static let gatewayTwo = "gfedcba9876543210"
-}
-
-/// Builds an AsyncStorage directory the way `RNCAsyncStorage.mm` lays one out.
-struct AsyncStorageWriter {
-  let directory: URL
-  private(set) var manifest: [String: Any] = [:]
-
-  init(directory: URL) throws {
-    self.directory = directory
-    try FileManager.default.createDirectory(at: directory, withIntermediateDirectories: true)
-  }
-
-  /// Inline up to 1024 UTF-16 code units, otherwise a file named by the key's MD5.
-  mutating func set(_ key: String, _ value: String) throws {
-    if value.utf16.count <= 1024 {
-      manifest[key] = value
-    } else {
-      manifest[key] = NSNull()
-      try Data(value.utf8).write(to: directory.appendingPathComponent(ExpoImport.overflowFileName(forKey: key)))
-    }
-  }
-
-  /// A manifest entry pointing at an overflow file that does not exist.
-  mutating func setDangling(_ key: String) {
-    manifest[key] = NSNull()
-  }
-
-  func writeManifest() throws {
-    let data = try JSONSerialization.data(withJSONObject: manifest, options: [.sortedKeys])
-
-    try data.write(to: directory.appendingPathComponent(ExpoImport.manifestFileName))
-  }
-}
-
-/// Every file under a directory with its bytes, for proving a directory was left untouched.
-func snapshotTree(_ root: URL) throws -> [String: Data] {
-  var result: [String: Data] = [:]
-  let enumerator = FileManager.default.enumerator(at: root, includingPropertiesForKeys: [.isRegularFileKey])
-
-  while let url = enumerator?.nextObject() as? URL {
-    guard (try url.resourceValues(forKeys: [.isRegularFileKey])).isRegularFile == true else {
-      continue
-    }
-
-    let attributes = try FileManager.default.attributesOfItem(atPath: url.path)
-    let modified = (attributes[.modificationDate] as? Date)?.timeIntervalSince1970 ?? 0
-
-    result["\(url.path)@\(modified)"] = try Data(contentsOf: url)
-  }
-
-  return result
-}
-
 func memoryDatabase() throws -> SQLiteDatabase {
   try SQLiteDatabase.open(.inMemory).database
+}
+
+/// A database file holding `rows` in `kv`, closed and checkpointed.
+func makeDatabaseFile(at url: URL, rows: [String: String]) throws {
+  let (database, _) = try SQLiteDatabase.open(.file(url))
+
+  try database.transaction {
+    for (key, value) in rows {
+      try database.kvSet(value, forKey: key)
+    }
+  }
+
+  try database.execute("PRAGMA wal_checkpoint(TRUNCATE)")
+  database.close()
+}
+
+/// A probe that reports corruption the first time it runs and passes after that, so a test can
+/// send a perfectly readable file down the recovery path.
+final class CorruptOnce: @unchecked Sendable {
+  private var fired = false
+
+  func probe(_ database: SQLiteDatabase) throws {
+    if !fired {
+      fired = true
+      throw SQLiteError(code: 11, message: "database disk image is malformed (test)")
+    }
+
+    try SQLiteDatabase.launchProbe(database)
+  }
+}
+
+func isExcludedFromBackup(_ url: URL) -> Bool {
+  (try? url.resourceValues(forKeys: [.isExcludedFromBackupKey]))?.isExcludedFromBackup == true
 }

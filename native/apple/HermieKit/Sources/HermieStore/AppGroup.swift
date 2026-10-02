@@ -5,8 +5,8 @@ import Foundation
 
  The app, the widgets, the share extension and the Shortcuts actions meet here, and nothing else
  does — a widget has no gateway, a share extension has three seconds. The names are the ones the
- Expo modules and `src/features/{widgets,share,intents}` already use, so files the Expo build left
- behind are read unchanged.
+ Expo modules and `src/features/{widgets,share,intents}` use, so the extensions and their formats
+ stay the same.
 
  The database is never in here. It holds settings and cached chats that only the app needs, and a
  container other processes write to is the wrong place for them.
