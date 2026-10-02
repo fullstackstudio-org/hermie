@@ -50,7 +50,7 @@ private func sessionWait(
 @MainActor
 private func makeSession(
   _ gateway: FakeGateway,
-  cache: (any ChatCaching)? = nil,
+  database: SQLiteStore? = nil,
   transport: any WebSocketTransport = URLSessionTransport()
 ) throws -> GatewaySession {
   var options = GatewaySession.Options()
@@ -62,7 +62,7 @@ private func makeSession(
     record: record,
     credentials: SessionTokenCredentials(token: ""),
     transport: transport,
-    cache: cache,
+    database: database,
     options: options
   )
 }
@@ -97,14 +97,14 @@ extension Integration {
     @Test("a cold start paints the cached chat before the socket, then goes live without doubling it")
     func coldStartFromCache() async throws {
       try await withGateway { gateway in
-        let cache = MemoryChatCache()
-        let first = try makeSession(gateway, cache: cache)
+        let database = try SQLiteStore(.inMemory)
+        let first = try makeSession(gateway, database: database)
         try await startAndOpen(first)
         let painted = await items(first).map(\.id)
         #expect(!painted.isEmpty)
         await first.shutdown()
 
-        let second = try makeSession(gateway, cache: cache)
+        let second = try makeSession(gateway, database: database)
         await second.start()
         let cached = try #require(await second.store.state(of: researcher))
         #expect(cached.hydration == .cached)
@@ -137,6 +137,8 @@ extension Integration {
         }
 
         try await startAndOpen(session)
+        // The screen sends once its snapshot says the chat is attached and the socket is up.
+        try await sessionWait("the chat to accept a message") { model.canSend }
         let before = model.items.count
         await model.send("explain the math behind the retry budget")
         try await sessionWait("the reply to finish") {
@@ -161,6 +163,10 @@ extension Integration {
         let session = try makeSession(gateway)
         let model = session.chat(researcher)
         try await startAndOpen(session)
+
+        // The screen sends once its snapshot says the chat is attached and the socket is up.
+
+        try await sessionWait("the chat to accept a message") { model.canSend }
 
         await model.send("please approve this cleanup")
         try await sessionWait("the approval card") { !model.openRequests.isEmpty }
@@ -196,6 +202,10 @@ extension Integration {
         let session = try makeSession(gateway, transport: transport)
         let model = session.chat(researcher)
         try await startAndOpen(session)
+
+        // The screen sends once its snapshot says the chat is attached and the socket is up.
+
+        try await sessionWait("the chat to accept a message") { model.canSend }
 
         await model.send(prompt)
         try await sessionWait("the reply to start streaming") {

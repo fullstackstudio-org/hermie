@@ -32,6 +32,17 @@ import HermieTranscript
 ///   resume's are applied after it, the ones below are contained in its
 ///   snapshot and dropped. With no resume in flight it is dropped, as the
 ///   reference drops it, and a request is parked (`park`).
+/// - A *snapshot read* (`subagent.list`, `approval.pending`) holds nothing: its
+///   answer is placed at its wire index and dropped if the chat has applied a
+///   newer frame meanwhile (`appliedThrough`); the next read fixes it.
+/// - A server request is never held: its card goes up at once. One that comes
+///   in after its own end (a `request.cancel` that overtook it, the
+///   `message.complete` of its turn, or the answer that bound its session) draws
+///   no card.
+/// - A frame for a bound session below the answer that bound it (`boundAt`) is
+///   contained in that answer and dropped, also when it turns up late.
+/// - Work for a chat carries the chat's generation; `forget` bumps it, so an
+///   answer meant for a replaced conversation is never applied to its successor.
 /// - Every engine call happens inside `flush()` or a step it runs, with no
 ///   `await` between taking an item and applying it.
 ///
@@ -84,6 +95,9 @@ public actor TranscriptStore {
     public var ownAuthor: @Sendable () -> MessageAuthor? = { nil }
     /// The longest a result waits for the events dispatched before it (`catchUp`).
     public var catchUpLimit: Duration = .seconds(2)
+    /// How often the chat list's summaries are recomputed at most: the list
+    /// does not need every frame a streaming chat screen does.
+    public var summaryInterval: Duration = .milliseconds(250)
 
     public init() {}
   }
@@ -132,8 +146,27 @@ public actor TranscriptStore {
   /// Bumped whenever a chat is forgotten, so an answer meant for the chat that
   /// was there is not applied to the one that replaced it.
   var generations: [String: UInt64] = [:]
+
+  /// Which chat is under a key: bumped by `forget`.
+  func generation(of key: String) -> UInt64 {
+    generations[key] ?? 0
+  }
   /// Frames taken in from the two streams, for tests that know how many they sent.
   var ingestedFrames = 0
+  /// The highest wire index applied to each chat. A snapshot read older than it is stale.
+  var appliedThrough: [String: UInt64] = [:]
+  /// The wire index of the answer that bound each chat's runtime session: a frame
+  /// for that session below it is contained in that answer.
+  var boundAt: [String: UInt64] = [:]
+  /// Request ids the gateway already closed for each chat (cancelled, or ended by
+  /// the turn), so a request that comes in after its own end draws no card.
+  var closedRequests: [String: Set<String>] = [:]
+  /// The wire index of the last frame that ended a turn in each chat.
+  var turnEndedAt: [String: UInt64] = [:]
+  /// Request ids with an answer on its way, so a second tap sends nothing.
+  var answering: Set<String> = []
+  /// The `replay_epoch` of the last `gateway.ready`.
+  var replayEpoch: String?
 
   // MARK: Publishing
 
@@ -146,6 +179,10 @@ public actor TranscriptStore {
   var revisions: [String: Int] = [:]
   /// Read watermarks (unix seconds) the list's unread counts are measured from.
   var seenAt: [String: Double] = [:]
+  /// Chats whose list summary is due, and when summaries last went out.
+  var summaryDirty: Set<String> = []
+  var lastSummaryAt: Duration?
+  var summaryTimer: ScheduledTimer?
 
   // MARK: Timers and tasks
 
@@ -216,11 +253,11 @@ public actor TranscriptStore {
     consumers.removeAll()
     clearTimers()
 
-    for task in opening.values {
+    let hydrations = Array(opening.values)
+
+    for task in hydrations {
       task.cancel()
     }
-
-    opening.removeAll()
 
     for item in lanes.values.flatMap(\.pending) + unbound {
       if case .step(let step) = item.payload {
@@ -250,6 +287,13 @@ public actor TranscriptStore {
       await task.value
     }
 
+    // A hydration in flight sees its calls fail and its steps abandoned; it is
+    // awaited so nothing it does outlives the store.
+    for task in hydrations {
+      _ = await task.result
+    }
+
+    opening.removeAll()
     tasks.removeAll()
   }
 
@@ -266,10 +310,11 @@ public actor TranscriptStore {
   public var isAttached: Bool { !consumers.isEmpty }
 
   func clearTimers() {
-    for timer in [cacheTimer, sessionsChangedTimer, approvalPollTimer, subagentPollTimer] {
+    for timer in [cacheTimer, sessionsChangedTimer, approvalPollTimer, subagentPollTimer, summaryTimer] {
       timer?.cancel()
     }
 
+    summaryTimer = nil
     cacheTimer = nil
     sessionsChangedTimer = nil
     approvalPollTimer = nil
@@ -322,6 +367,11 @@ public actor TranscriptStore {
 
     if let sessionID = event.sessionID, !sessionID.isEmpty, let seq = event.json["seq"]?.doubleValue {
       noteIngested(sessionID, seq)
+    }
+
+    if event.type == GatewayEventType.gatewayReady {
+      noteReady(event)
+      return
     }
 
     // `onEvent`: two broadcasts are not about a transcript at all.
@@ -401,6 +451,9 @@ public actor TranscriptStore {
     lanes[key, default: Lane()].insert(item)
   }
 
+  /// Frames waiting for a resume to claim their session (for tests).
+  var unboundCount: Int { unbound.count }
+
   var hasBindingInFlight: Bool {
     outstanding.values.contains { $0.binding }
   }
@@ -446,19 +499,33 @@ public actor TranscriptStore {
   func drain(_ key: String) {
     while let first = lanes[key]?.first, first.index <= bound(of: key) {
       lanes[key]?.removeFirst()
+      apply(first, in: key)
+    }
 
-      switch first.payload {
-      case .event(let event):
-        applyLive(event, in: key)
-      case .request(let inbound):
-        deliver(inbound, to: key)
-      case .step(let step):
-        step.run()
-      }
+    // A question is never held behind a call in flight: its card goes up now.
+    // (Cards are keyed by request id, so its place among the deltas does not
+    // change what it shows; a withdrawal that overtook it is in `closedRequests`.)
+    for request in lanes[key]?.takeRequests() ?? [] {
+      apply(request, in: key)
     }
 
     if lanes[key]?.isEmpty == true {
       lanes[key] = nil
+    }
+  }
+
+  func apply(_ item: LaneItem, in key: String) {
+    if item.rank != .local {
+      appliedThrough[key] = max(appliedThrough[key] ?? 0, item.index)
+    }
+
+    switch item.payload {
+    case .event(let event):
+      applyLive(event, at: item.index, in: key)
+    case .request(let inbound):
+      deliver(inbound, to: key, at: item.index)
+    case .step(let step):
+      step.run()
     }
   }
 
@@ -485,6 +552,21 @@ public actor TranscriptStore {
   }
 
   // MARK: - Catching up
+
+  /// A `gateway.ready` with another `replay_epoch` is another gateway process,
+  /// which numbers every session from 1 again; the seqs taken in so far mean
+  /// nothing against its watermarks.
+  func noteReady(_ event: GatewayEvent) {
+    guard let epoch = event.payload?["replay_epoch"]?.stringValue, !epoch.isEmpty else {
+      return
+    }
+
+    if let replayEpoch, replayEpoch != epoch {
+      ingestedSeq.removeAll()
+    }
+
+    replayEpoch = epoch
+  }
 
   func noteIngested(_ sessionID: String, _ seq: Double) {
     guard seq > (ingestedSeq[sessionID] ?? 0) else {
@@ -557,15 +639,20 @@ public actor TranscriptStore {
   /// frames, with no suspension between taking the result and applying it.
   /// `binding` marks a call that may bind a runtime session (a resume): frames
   /// for sessions nobody holds wait for it.
+  ///
+  /// `generation` names the chat the work belongs to, when it started before
+  /// this call (a hydration): the answer is not applied to a chat that has
+  /// replaced it.
   func ordered<T>(
     _ key: String,
     binding: Bool = false,
+    generation expected: UInt64? = nil,
     _ perform: @escaping @Sendable () async throws -> RPCReply<JSONValue>,
     apply: @escaping (RPCReply<JSONValue>) throws -> T
   ) async throws -> T {
     let id = nextCallID
     nextCallID += 1
-    let generation = generations[key]
+    let ticket = expected ?? generation(of: key)
     outstanding[id] = OrderedCall(lane: key, binding: binding, issueIndex: highestIngested)
 
     let reply: RPCReply<JSONValue>
@@ -595,8 +682,56 @@ public actor TranscriptStore {
           self.outstanding[id] = nil
 
           // The chat was forgotten (and maybe opened again) while this was in the air.
-          guard self.generations[key] == generation else {
+          guard self.generation(of: key) == ticket else {
             continuation.resume(throwing: CancellationError())
+            return
+          }
+
+          do {
+            continuation.resume(returning: try apply(reply))
+          } catch {
+            continuation.resume(throwing: error)
+          }
+        },
+        abandon: {
+          self.outstanding[id] = nil
+          continuation.resume(throwing: CancellationError())
+        }
+      )
+
+      insert(LaneItem(index: reply.index, rank: .result, arrival: arrival(), payload: .step(step)), into: key)
+      scheduleFlush()
+    }
+  }
+
+  /// A read whose answer is a snapshot (`subagent.list`, `approval.pending`):
+  /// it holds nothing while it is in the air. Its answer is placed at its wire
+  /// index and applied there if nothing newer has been applied to the chat;
+  /// otherwise it is stale and dropped (`nil`), and the next read fixes it.
+  func snapshotRead<T: Sendable>(
+    _ key: String,
+    _ perform: @escaping @Sendable () async throws -> RPCReply<JSONValue>,
+    apply: @escaping (RPCReply<JSONValue>) throws -> T
+  ) async throws -> T? {
+    let ticket = generation(of: key)
+    let reply = try await perform()
+
+    guard !isShutDown else {
+      throw CancellationError()
+    }
+
+    highestIngested = max(highestIngested, reply.index)
+
+    return try await withCheckedThrowingContinuation { (continuation: CheckedContinuation<T?, any Error>) in
+      let step = Step(
+        run: {
+          guard self.generation(of: key) == ticket else {
+            continuation.resume(throwing: CancellationError())
+            return
+          }
+
+          guard reply.index >= (self.appliedThrough[key] ?? 0) else {
+            continuation.resume(returning: nil)
             return
           }
 
@@ -619,10 +754,20 @@ public actor TranscriptStore {
   /// A mutation that is not a wire frame (a REST answer, the reader's own
   /// send): applied after everything this chat has taken in so far, and before
   /// anything that comes in later.
-  func local<T>(_ key: String, _ apply: @escaping () throws -> T) async throws -> T {
+  ///
+  /// Bound to the chat that is there when it is asked for (or, with
+  /// `generation`, when the caller started the work it applies, such as a
+  /// fetch): if that chat is forgotten (a `/new`, a switch) before it runs, it
+  /// throws `CancellationError`.
+  func local<T>(
+    _ key: String,
+    generation expected: UInt64? = nil,
+    _ apply: @escaping () throws -> T
+  ) async throws -> T {
+    let ticket = expected ?? generation(of: key)
     await catchUp([chats[key]?.state.runtimeSessionID])
 
-    guard !isShutDown else {
+    guard !isShutDown, generation(of: key) == ticket else {
       throw CancellationError()
     }
 
@@ -635,6 +780,11 @@ public actor TranscriptStore {
     return try await withCheckedThrowingContinuation { (continuation: CheckedContinuation<T, any Error>) in
       let step = Step(
         run: {
+          guard self.generation(of: key) == ticket else {
+            continuation.resume(throwing: CancellationError())
+            return
+          }
+
           do {
             continuation.resume(returning: try apply())
           } catch {
@@ -668,13 +818,22 @@ public actor TranscriptStore {
 
     if let previous, previous != runtimeID {
       parked[previous] = nil
+      // A new session numbers its requests afresh.
+      closedRequests[key] = nil
     }
 
     for (id, owner) in routes where owner == key && id != runtimeID {
       routes[id] = nil
+      parked[id] = nil
+    }
+
+    // One runtime session belongs to one chat: another chat that held it lets go.
+    if let other = routes[runtimeID], other != key {
+      dropRuntime(other)
     }
 
     routes[runtimeID] = key
+    boundAt[key] = index
 
     mutateState(key) { state in
       // The gateway numbers events per runtime session and starts each one at 1,
@@ -710,7 +869,7 @@ public actor TranscriptStore {
             into: key
           )
         } else {
-          deliver(inbound, to: key)
+          deliver(inbound, to: key, at: nil)
         }
       }
     }
@@ -766,6 +925,14 @@ public actor TranscriptStore {
     observed[key] = nil
   }
 
+  /// Seed the read watermarks the roster loaded, so a cached chat counts unread
+  /// from where the reader left it rather than from the beginning.
+  public func seedSeen(_ watermarks: [String: Double]) {
+    for (key, seconds) in watermarks {
+      markSeen(key, at: seconds)
+    }
+  }
+
   /// Move a chat's read watermark (unix seconds); never backwards.
   public func markSeen(_ key: String, at seconds: Double) {
     guard seconds > (seenAt[key] ?? 0) else {
@@ -778,11 +945,14 @@ public actor TranscriptStore {
 
   func markDirty(_ key: String) {
     dirty.insert(key)
+    summaryDirty.insert(key)
     requestFrame()
   }
 
   func requestFrame() {
-    guard sink != nil, !frameRequested, !publishing, !isShutDown, !(dirty.isEmpty && removedSinceFrame.isEmpty) else {
+    let pending = !dirty.isEmpty || !removedSinceFrame.isEmpty || (!summaryDirty.isEmpty && summaryTimer == nil)
+
+    guard sink != nil, !frameRequested, !publishing, !isShutDown, pending else {
       return
     }
 
@@ -818,22 +988,46 @@ public actor TranscriptStore {
     var batch = FrameBatch()
 
     for key in dirty {
-      guard let record = chats[key] else {
+      guard let record = chats[key], let visibility = observed[key] else {
         continue
       }
 
-      batch.summaries[key] = summary(of: key, record)
+      batch.chats[key] = snapshot(of: key, record, visibility)
+    }
 
-      if let visibility = observed[key] {
-        batch.chats[key] = snapshot(of: key, record, visibility)
+    dirty.removeAll()
+
+    // The list's summaries at most every `summaryInterval`; what is due later
+    // goes out when the interval has passed, even if nothing else changes.
+    if !summaryDirty.isEmpty {
+      let now = options.clock.now
+      let elapsed = lastSummaryAt.map { now - $0 } ?? options.summaryInterval
+
+      if elapsed >= options.summaryInterval {
+        for key in summaryDirty {
+          if let record = chats[key] {
+            batch.summaries[key] = summary(of: key, record)
+          }
+        }
+
+        summaryDirty.removeAll()
+        lastSummaryAt = now
+      } else if summaryTimer == nil {
+        summaryTimer = options.clock.schedule(after: options.summaryInterval - elapsed) { [weak self] in
+          await self?.summaryTimerFired()
+        }
       }
     }
 
     batch.removed = Array(removedSinceFrame)
-    dirty.removeAll()
     removedSinceFrame.removeAll()
 
     return batch
+  }
+
+  func summaryTimerFired() {
+    summaryTimer = nil
+    requestFrame()
   }
 
   func summary(of key: String, _ record: ChatRecord) -> ChatSummary {
@@ -974,6 +1168,18 @@ struct Lane {
     }
 
     items.insert(item, at: position)
+  }
+
+  /// Take every request still waiting, wherever it stands.
+  mutating func takeRequests() -> [LaneItem] {
+    guard items[head...].contains(where: { $0.rank == .request }) else {
+      return []
+    }
+
+    let requests = items[head...].filter { $0.rank == .request }
+    items = items[head...].filter { $0.rank != .request }
+    head = 0
+    return requests
   }
 
   /// O(1); the consumed prefix is dropped once it is most of the storage.

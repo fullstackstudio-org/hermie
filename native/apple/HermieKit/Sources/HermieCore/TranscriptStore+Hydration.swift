@@ -28,6 +28,14 @@ extension TranscriptStore {
       return try await existing.value
     }
 
+    // Already live on a bound session: the socket is delivering the truth, and
+    // a second hydration would only hold the chat for four round trips.
+    if let record = chats[bot.name], record.live, record.state.hydration == .live,
+      !(record.state.runtimeSessionID ?? "").isEmpty
+    {
+      return
+    }
+
     let task = Task { try await self.hydrate(bot) }
     opening[bot.name] = task
 
@@ -45,15 +53,24 @@ extension TranscriptStore {
 
     ensure(key, stored: canonical.id, resolved: canonical.resolvedID)
 
+    // Every step below belongs to this chat; one that replaced it gets none of them.
+    let ticket = generation(of: key)
+
     // 1. The cache paints first, so the thread is on screen before the socket
     //    has answered. The reconcile below keeps the item ids it painted.
-    await paintFromCache(key, canonical)
+    await paintFromCache(key, canonical, generation: ticket)
+
+    guard generation(of: key) == ticket else {
+      throw CancellationError()
+    }
+
     setHydration(key, .hydrating)
 
     let resume: ResumeOutcome
 
     do {
-      resume = try await ordered(key, binding: true, resumeCall(key, storedID: canonical.id)) { reply in
+      resume = try await ordered(key, binding: true, generation: ticket, resumeCall(key, storedID: canonical.id)) {
+        reply in
         try self.applyResume(key, reply, canonical)
       }
     } catch let error as GatewayError where error.kind == .incompatible {
@@ -72,21 +89,26 @@ extension TranscriptStore {
     if messageCount > ChatRuntimeLimits.restHistoryThreshold,
       let rows = await link.fetchMessages(resume.resolvedID, MessageWindow(limit: ChatRuntimeLimits.restHistoryLimit))
     {
-      try await local(key) {
+      try await local(key, generation: ticket) {
         self.applyHistory(key, rows, .rest, snapshot: snapshot, openRequests: openRequests)
       }
     } else {
       let params: JSONValue = ["session_id": .string(resume.runtimeID), "profile": .string(key)]
 
-      try await ordered(key, { [link] in try await link.requestReply(RPC.SessionHistory.name, params: params) }) {
-        reply in
+      try await ordered(key, generation: ticket, { [link] in
+        try await link.requestReply(RPC.SessionHistory.name, params: params)
+      }) { reply in
         let rows = (reply.result["messages"]?.arrayValue ?? []).map { TranscriptRow(json: $0.objectValue ?? [:]) }
         self.applyHistory(key, rows, .rpc, snapshot: snapshot, openRequests: openRequests)
       }
     }
 
     // 5. Anything that happened between the history read and now.
-    await replaySince(key, runtimeID: resume.runtimeID)
+    await replaySince(key, runtimeID: resume.runtimeID, generation: ticket)
+
+    guard generation(of: key) == ticket else {
+      throw CancellationError()
+    }
 
     setHydration(key, .live)
     persistSoon(key)
@@ -213,7 +235,9 @@ extension TranscriptStore {
   }
 
   /// `paintFromCache`: a chat with nothing on screen yet gets what was on disk.
-  func paintFromCache(_ key: String, _ canonical: CanonicalSession) async {
+  func paintFromCache(_ key: String, _ canonical: CanonicalSession, generation ticket: UInt64? = nil) async {
+    let ticket = ticket ?? generation(of: key)
+
     guard let cache, chats[key]?.state.order.isEmpty == true else {
       return
     }
@@ -233,7 +257,7 @@ extension TranscriptStore {
 
     let ids = SessionIDs(storedSessionID: canonical.id, resolvedSessionID: canonical.resolvedID)
 
-    _ = try? await local(key) {
+    _ = try? await local(key, generation: ticket) {
       // Re-check after the suspension: the socket may have filled the chat meanwhile.
       guard self.chats[key]?.state.order.isEmpty == true else {
         return
@@ -264,7 +288,7 @@ extension TranscriptStore {
   /// applying: the history read already describes it. A warm one applies them.
   /// A failure costs the events of the last few seconds, which the socket
   /// delivers anyway.
-  func replaySince(_ key: String, runtimeID: String) async {
+  func replaySince(_ key: String, runtimeID: String, generation ticket: UInt64? = nil) async {
     guard let chat = chats[key]?.state else {
       return
     }
@@ -274,7 +298,9 @@ extension TranscriptStore {
     let lastSeq = chat.lastSeq
     let params: JSONValue = ["session_id": .string(runtimeID), "last_seen": .number(Double(lastSeq))]
 
-    _ = try? await ordered(key, { [link] in try await link.requestReply(RPC.SessionEventsSince.name, params: params) }) {
+    _ = try? await ordered(key, generation: ticket, { [link] in
+      try await link.requestReply(RPC.SessionEventsSince.name, params: params)
+    }) {
       reply in
       self.applyReplay(key, runtimeID: runtimeID, knownEpoch: knownEpoch, lastSeq: lastSeq, reply.result)
     }
@@ -356,14 +382,31 @@ extension TranscriptStore {
   // MARK: - Live frames
 
   /// `onEvent`, for a frame at its place in the chat's lane.
-  func applyLive(_ event: GatewayEvent, in key: String) {
+  func applyLive(_ event: GatewayEvent, at index: UInt64, in key: String) {
     // Routed when it is applied, not when it came in: a resume in between may
     // have moved the chat to another runtime session.
     guard let sessionID = event.sessionID, routes[sessionID] == key, chats[key] != nil else {
       return
     }
 
+    // Below the answer that bound this session: contained in that answer's
+    // snapshot (it came in late, after `catchUp` gave up waiting for it).
+    if index < (boundAt[key] ?? 0) {
+      return
+    }
+
     let type = event.type
+
+    if type == GatewayEventType.requestCancel, let id = event.payload?["id"]?.stringValue, !id.isEmpty {
+      // Remembered even with no card yet: the request it withdraws may come in after it.
+      closedRequests[key, default: []].insert(id)
+    }
+
+    if type == GatewayEventType.messageComplete || type == GatewayEventType.error {
+      // A request the turn raised before it ended and that comes in after the
+      // end has nobody waiting for its answer.
+      turnEndedAt[key] = max(turnEndedAt[key] ?? 0, index)
+    }
 
     if type == GatewayEventType.sessionInfo {
       rememberContract(contractIn(event.payload))
@@ -410,7 +453,10 @@ extension TranscriptStore {
   /// `deliverServerRequest`: put one request on screen and file its reply handle
   /// under the card that shows it (a replayed snapshot and the live request are
   /// one question under two transport ids).
-  func deliver(_ inbound: InboundRequest, to key: String) {
+  ///
+  /// `index` is its place in the lane; `nil` for a request handed over at the
+  /// bind of its session, which is never late.
+  func deliver(_ inbound: InboundRequest, to key: String, at index: UInt64?) {
     guard chats[key] != nil else {
       return
     }
@@ -424,6 +470,10 @@ extension TranscriptStore {
         park(sessionID, inbound)
       }
 
+      return
+    }
+
+    if isClosed(inbound, in: key, at: index) {
       return
     }
 
@@ -458,6 +508,26 @@ extension TranscriptStore {
     }
 
     syncApprovalPoll()
+  }
+
+  /// Whether the gateway already ended this request: withdrawn by a
+  /// `request.cancel` that overtook it, raised by a turn that has ended, or
+  /// older than the answer that bound its session (that answer re-delivers
+  /// what is still open). A request whose card is already up is not closed by
+  /// this: it is the same question, re-delivered.
+  func isClosed(_ inbound: InboundRequest, in key: String, at index: UInt64?) -> Bool {
+    let closed = closedRequests[key] ?? []
+    let queueID = inbound.params["request_id"]?.stringValue ?? ""
+
+    if closed.contains(inbound.id) || (!queueID.isEmpty && closed.contains(queueID)) {
+      return true
+    }
+
+    guard let index, chats[key]?.state.byRequestID[inbound.id] == nil else {
+      return false
+    }
+
+    return index < (boundAt[key] ?? 0) || index < (turnEndedAt[key] ?? 0)
   }
 
   /// `approvalCardIdFor`: the open approval card already showing this queue entry.
@@ -505,7 +575,7 @@ extension TranscriptStore {
   public func connectionChanged(_ status: ConnectionStatus) {
     guard status.phase == .ready else {
       switch status.phase {
-      case .disconnected, .reconnecting, .paused, .offline:
+      case .disconnected, .reconnecting, .paused, .offline, .needsSignin:
         stopApprovalPoll()
         stopSubagentPoll()
 
@@ -557,8 +627,11 @@ extension TranscriptStore {
       return
     }
 
+    let ticket = generation(of: key)
+
     do {
-      let runtimeID = try await ordered(key, binding: true, resumeCall(key, storedID: stored)) { reply in
+      let runtimeID = try await ordered(key, binding: true, generation: ticket, resumeCall(key, storedID: stored)) {
+        reply in
         let result = SessionResumeResult(json: reply.result.objectValue ?? [:])
 
         guard let runtimeID = result.sessionID, !runtimeID.isEmpty else {
@@ -574,7 +647,11 @@ extension TranscriptStore {
         return runtimeID
       }
 
-      await replaySince(key, runtimeID: runtimeID)
+      await replaySince(key, runtimeID: runtimeID, generation: ticket)
+
+      guard generation(of: key) == ticket else {
+        return
+      }
 
       if let state = chats[key]?.state, expected > countPersistedRows(state) {
         await reconcileTail(key)
@@ -599,9 +676,10 @@ extension TranscriptStore {
     }
   }
 
-  func sessionsChangedElapsed() async {
+  /// Timer work runs as a tracked task, so `shutdown` waits for it.
+  func sessionsChangedElapsed() {
     sessionsChangedTimer = nil
-    await sweep()
+    spawn { await $0.sweep() }
   }
 
   /// One `sessions.changed` sweep: refresh the roster, and tail-reconcile every
@@ -651,8 +729,17 @@ extension TranscriptStore {
     let held = record.window?.rows ?? 0
     let offset = record.window?.rows ?? record.state.order.count
     let window = MessageWindow(limit: ChatRuntimeLimits.restHistoryLimit, offset: offset)
+    // The conversation this page belongs to; a `/new` while it is fetched puts
+    // another one under the key, and the page must not land there.
+    let ticket = generation(of: key)
+    let resolvedID = record.state.resolvedSessionID
+    let rows = await link.fetchMessages(resolvedID, window)
 
-    guard let rows = await link.fetchMessages(record.state.resolvedSessionID, window) else {
+    guard generation(of: key) == ticket, chats[key]?.state.resolvedSessionID == resolvedID else {
+      return .unavailable
+    }
+
+    guard let rows else {
       chats[key]?.window = HistoryWindow(rows: held, reachedStart: true)
       markDirty(key)
       return .unavailable
@@ -671,7 +758,11 @@ extension TranscriptStore {
 
     let items = rowsToItems(rows, .rest)
     let grew =
-      (try? await local(key) { () -> Bool in
+      (try? await local(key, generation: ticket) { () -> Bool in
+        guard self.chats[key]?.state.resolvedSessionID == resolvedID else {
+          return false
+        }
+
         let before = self.chats[key]?.state.order.count ?? 0
         self.mutateState(key) { $0 = prependHistory($0, items) }
         return (self.chats[key]?.state.order.count ?? 0) > before
@@ -689,14 +780,27 @@ extension TranscriptStore {
     }
 
     let window = MessageWindow(limit: ChatRuntimeLimits.tailRowLimit)
+    let ticket = generation(of: key)
+    let resolvedID = state.resolvedSessionID
 
-    if let rows = await link.fetchMessages(state.resolvedSessionID, window) {
+    if let rows = await link.fetchMessages(resolvedID, window) {
       guard !rows.isEmpty else {
         return
       }
 
       let items = rowsToItems(rows, .rest)
-      _ = try? await local(key) { self.mutateState(key) { $0 = HermieTranscript.reconcileTail($0, items) } }
+      _ = try? await local(key, generation: ticket) {
+        // Rows of the conversation that was asked about, onto that conversation only.
+        guard self.chats[key]?.state.resolvedSessionID == resolvedID else {
+          return
+        }
+
+        self.mutateState(key) { $0 = HermieTranscript.reconcileTail($0, items) }
+      }
+      return
+    }
+
+    guard generation(of: key) == ticket else {
       return
     }
 
@@ -731,7 +835,7 @@ extension TranscriptStore {
 
     let params: JSONValue = ["session_id": .string(runtimeID), "profile": .string(key)]
 
-    _ = try? await ordered(key, { [link] in try await link.requestReply(RPC.SubagentList.name, params: params) }) {
+    _ = try? await snapshotRead(key, { [link] in try await link.requestReply(RPC.SubagentList.name, params: params) }) {
       reply in
       let rows = (reply.result["subagents"]?.arrayValue ?? []).compactMap { value -> SubagentSnapshotRow? in
         value.objectValue.map(SubagentSnapshotRow.init(json:))
@@ -772,7 +876,7 @@ extension TranscriptStore {
     }
   }
 
-  func subagentPollFired() async {
+  func subagentPollFired() {
     guard subagentPollTimer != nil else {
       return
     }
@@ -812,7 +916,7 @@ extension TranscriptStore {
     }
   }
 
-  func approvalPollFired() async {
+  func approvalPollFired() {
     guard approvalPollTimer != nil else {
       return
     }
@@ -838,7 +942,7 @@ extension TranscriptStore {
 
     let params: JSONValue = ["session_id": .string(runtimeID), "profile": .string(key)]
 
-    _ = try? await ordered(key, { [link] in try await link.requestReply(RPC.ApprovalPending.name, params: params) }) {
+    _ = try? await snapshotRead(key, { [link] in try await link.requestReply(RPC.ApprovalPending.name, params: params) }) {
       reply in
       for approval in reply.result["approvals"]?.arrayValue ?? [] {
         let approvalID = approval["request_id"]?.stringValue ?? ""
@@ -895,13 +999,13 @@ extension TranscriptStore {
     }
   }
 
-  func cacheTimerFired() async {
+  func cacheTimerFired() {
     guard cacheTimer != nil else {
       return
     }
 
     cacheTimer = nil
-    await writePendingCache()
+    spawn { await $0.writePendingCache() }
   }
 
   func writePendingCache() async {
@@ -983,12 +1087,28 @@ extension TranscriptStore {
 
   /// Drop a chat: its transcript, its routes, its queue. The bot left the roster
   /// or its canonical chat was replaced.
+  /// Forget every chat whose bot is not among `names`: the gateway's roster no
+  /// longer lists it.
+  public func retain(only names: Set<String>) {
+    for key in chats.keys where !names.contains(key) {
+      forget(key)
+    }
+  }
+
   public func forget(_ key: String) {
     guard chats.removeValue(forKey: key) != nil else {
       return
     }
 
     generations[key, default: 0] += 1
+
+    // Its calls in flight no longer hold anything: a binding call left behind
+    // would keep every unbound frame waiting for good.
+    outstanding = outstanding.filter { $0.value.lane != key }
+    appliedThrough[key] = nil
+    boundAt[key] = nil
+    closedRequests[key] = nil
+    turnEndedAt[key] = nil
 
     for (id, owner) in routes where owner == key {
       routes[id] = nil
@@ -1016,9 +1136,18 @@ extension TranscriptStore {
 /// A runtime failure in the reference's words.
 public struct ChatRuntimeError: Error, Sendable, Equatable, CustomStringConvertible {
   public var message: String
+  /// The chat has no runtime session to send to: nothing was painted or sent.
+  public var isNotAttached = false
 
   public init(message: String) {
     self.message = message
+  }
+
+  /// `requireRuntime`'s refusal.
+  public static func notAttached(_ key: String) -> ChatRuntimeError {
+    var error = ChatRuntimeError(message: "\(key)'s chat is not attached to the gateway yet.")
+    error.isNotAttached = true
+    return error
   }
 
   public var description: String { message }

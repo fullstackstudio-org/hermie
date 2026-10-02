@@ -175,6 +175,8 @@ final class ScriptedLink: GatewayLink, Sendable {
     var isShutDown = false
     var emitted = 0
     var watermarks: [String: Double] = [:]
+    var restHeld = false
+    var restWaiting: [CheckedContinuation<Void, Never>] = []
   }
 
   private let state = Mutex(State())
@@ -233,6 +235,15 @@ final class ScriptedLink: GatewayLink, Sendable {
 
   func seqWatermarks() async -> [String: Double] {
     state.withLock { $0.watermarks }
+  }
+
+  /// Report a watermark the stream never reaches, as a connection might.
+  func overstateWatermark(_ session: String, _ seq: Double) {
+    state.withLock { $0.watermarks[session] = seq }
+  }
+
+  func claimTurn(_ runtimeSessionID: String) async {
+    record("claimTurn \(runtimeSessionID)")
   }
 
   @discardableResult
@@ -319,6 +330,28 @@ final class ScriptedLink: GatewayLink, Sendable {
     respond(to: method) { _ in result }
   }
 
+  /// Stop answering `method` by itself: its calls wait for the test again.
+  func unrespond(_ method: String) {
+    state.withLock { $0.responders[method] = nil }
+  }
+
+  /// REST reads wait until `releaseREST()`.
+  func holdREST() {
+    state.withLock { $0.restHeld = true }
+  }
+
+  func releaseREST() {
+    let waiting = state.withLock { state in
+      state.restHeld = false
+      defer { state.restWaiting.removeAll() }
+      return state.restWaiting
+    }
+
+    for continuation in waiting {
+      continuation.resume()
+    }
+  }
+
   func setREST(_ rows: (@Sendable (String, MessageWindow) -> [TranscriptRow]?)?) {
     state.withLock { $0.restRows = rows }
   }
@@ -344,6 +377,13 @@ final class ScriptedLink: GatewayLink, Sendable {
 
     if let responder {
       return RPCReply(index: nextIndex(), result: responder(params))
+    }
+
+    // Like the real connection, a call nobody answers times out, so a test that
+    // regresses into waiting on one fails instead of hanging the run.
+    Task { [weak self] in
+      try? await Task.sleep(for: generousWait)
+      self?.timeOut(id, method)
     }
 
     return try await withCheckedThrowingContinuation { continuation in
@@ -382,6 +422,11 @@ final class ScriptedLink: GatewayLink, Sendable {
     return index
   }
 
+  private func timeOut(_ id: Int, _ method: String) {
+    let continuation = state.withLock { $0.waiting.removeValue(forKey: id) }
+    continuation?.resume(throwing: GatewayRPCError(.timeout, "request timed out: \(method)"))
+  }
+
   func fail(_ call: Call, _ error: any Error) {
     let continuation = state.withLock { $0.waiting.removeValue(forKey: call.id) }
     continuation?.resume(throwing: error)
@@ -395,10 +440,25 @@ final class ScriptedLink: GatewayLink, Sendable {
   }
 
   func fetchMessages(_ resolvedSessionID: String, _ window: MessageWindow) async -> [TranscriptRow]? {
-    let rows = state.withLock { state in
-      state.restCalls.append((resolvedSessionID, window))
-      return state.restRows
+    state.withLock { $0.restCalls.append((resolvedSessionID, window)) }
+
+    if state.withLock({ $0.restHeld }) {
+      await withCheckedContinuation { continuation in
+        let held = state.withLock { state in
+          if state.restHeld {
+            state.restWaiting.append(continuation)
+          }
+
+          return state.restHeld
+        }
+
+        if !held {
+          continuation.resume()
+        }
+      }
     }
+
+    let rows = state.withLock { $0.restRows }
 
     return rows?(resolvedSessionID, window)
   }
@@ -464,12 +524,13 @@ enum Fixture {
   static func resume(runtime: String = runtime, stored: String = stored, messageCount: Int = 2, extra: JSONObject = [:])
     -> JSONValue
   {
+    let info: JSONObject = ["desktop_contract": .number(7), "model": .string("example-model")]
     var object: JSONObject = [
       "session_id": .string(runtime),
       "stored_session_id": .string(stored),
       "message_count": .number(Double(messageCount)),
-      "info": ["desktop_contract": 7, "model": "example-model"],
-      "open_requests": []
+      "info": .object(info),
+      "open_requests": .array([])
     ]
 
     for (key, value) in extra {
@@ -480,7 +541,13 @@ enum Fixture {
   }
 
   static func since(latest: Int, epoch: String = "epoch-1", events: [JSONValue] = []) -> JSONValue {
-    ["events": .array(events), "latest_seq": .number(Double(latest)), "epoch": .string(epoch), "open_requests": []]
+    let object: JSONObject = [
+      "events": .array(events),
+      "latest_seq": .number(Double(latest)),
+      "epoch": .string(epoch),
+      "open_requests": .array([])
+    ]
+    return .object(object)
   }
 }
 
@@ -492,6 +559,14 @@ struct StoreHarness {
   let roster: BotRoster
   let store: TranscriptStore
 
+  init(link: ScriptedLink, clock: ManualClock, frames: ManualFrameScheduler, roster: BotRoster, store: TranscriptStore) {
+    self.link = link
+    self.clock = clock
+    self.frames = frames
+    self.roster = roster
+    self.store = store
+  }
+
   init(cache: (any ChatCaching)? = nil, now: @escaping @Sendable () -> Double = { 1_790_000_000_000 }) {
     link = ScriptedLink()
     clock = ManualClock()
@@ -502,6 +577,7 @@ struct StoreHarness {
     options.now = now
     options.clock = clock
     options.frames = frames
+    options.summaryInterval = .zero
     store = TranscriptStore(link: link, roster: roster, cache: cache, options: options)
   }
 

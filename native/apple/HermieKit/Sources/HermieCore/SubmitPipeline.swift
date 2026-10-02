@@ -39,12 +39,13 @@ extension TranscriptStore {
   @discardableResult
   public func send(_ key: String, text: String, attachments: [String]? = nil) async throws -> String? {
     let author = options.ownAuthor()
+    let ticket = generation(of: key)
 
     // The decision and the paint in one step: nothing may land between reading
     // `turn.active` and claiming the turn.
     let start = try await local(key) { () throws -> SendStart in
       guard let state = self.chats[key]?.state, let runtimeID = state.runtimeSessionID, !runtimeID.isEmpty else {
-        throw ChatRuntimeError(message: "\(key)'s chat is not attached to the gateway yet.")
+        throw ChatRuntimeError.notAttached(key)
       }
 
       if state.turn.active {
@@ -65,9 +66,17 @@ extension TranscriptStore {
 
     let params: JSONValue = ["session_id": .string(runtimeID), "profile": .string(key), "text": .string(text)]
 
+    // `claimTurn`: when the plugin reads claims, tell it whose turn this is,
+    // right before the submit that names the same runtime session. A courtesy
+    // that never fails the send (`GatewayLink.claimTurn`).
+    if await roster.offers(PluginCapabilities.contextTurnClaim) {
+      await link.claimTurn(runtimeID)
+    }
+
     do {
-      try await ordered(key, { [link] in try await link.requestReply(RPC.PromptSubmit.name, params: params) }) {
-        reply in
+      try await ordered(key, generation: ticket, { [link] in
+        try await link.requestReply(RPC.PromptSubmit.name, params: params)
+      }) { reply in
         self.doneSending(key)
 
         // Only on the conversation it was sent in.
@@ -175,7 +184,7 @@ extension TranscriptStore {
   /// the message being deleted); a refusal un-paints it and parks it again.
   public func steerQueued(_ key: String, _ id: String) async throws -> CorrectionStatus {
     guard let runtimeID = chats[key]?.state.runtimeSessionID, !runtimeID.isEmpty else {
-      throw ChatRuntimeError(message: "\(key)'s chat is not attached to the gateway yet.")
+      throw ChatRuntimeError.notAttached(key)
     }
 
     guard let taken = takeQueued(key, id) else {
@@ -215,21 +224,43 @@ extension TranscriptStore {
 
   // MARK: - Answering
 
-  /// `respondApproval`. Answers whether the answer went out; `false` means the
-  /// socket that delivered the request is gone and the card is still open.
+  /// Whether the card for this request is up and still waiting for an answer.
+  func isOpenCard(_ key: String, _ requestID: String) -> Bool {
+    guard let state = chats[key]?.state, let itemID = state.byRequestID[requestID] else {
+      return false
+    }
+
+    switch state.items[itemID] {
+    case .approval(let item)?: return item.state == .open
+    case .clarify(let item)?: return item.state == .open
+    default: return false
+    }
+  }
+
+  /// `respondApproval`. Answers whether an answer went out: `false` when the
+  /// card is no longer open or an answer to it is already on its way (a second
+  /// tap), or when the socket that delivered it is gone (the card then stays
+  /// open for its re-delivered copy). The card is marked answered only once
+  /// the answer went out; a call that fails leaves it open and throws.
   @discardableResult
   public func respondApproval(_ key: String, requestID: String, choice: String, all: Bool = false) async throws -> Bool {
-    let state = chats[key]?.state
-    let item = state?.byRequestID[requestID].flatMap { state?.items[$0] }
+    guard isOpenCard(key, requestID), !answering.contains(requestID), let state = chats[key]?.state else {
+      return false
+    }
+
+    answering.insert(requestID)
+
+    defer {
+      answering.remove(requestID)
+      syncApprovalPoll()
+    }
+
+    let item = state.byRequestID[requestID].flatMap { state.items[$0] }
     let approvalID = item?.asApproval.map(\.approvalID) ?? requestID
     var result: JSONObject = ["choice": .string(choice)]
 
     if all {
       result["all"] = true
-    }
-
-    defer {
-      syncApprovalPoll()
     }
 
     if let live = deliveries[requestID] {
@@ -238,10 +269,9 @@ extension TranscriptStore {
       return try await answerLive(key, live, requestID: requestID, answer: .text(choice), result: result)
     }
 
-    try await local(key) { self.mutateState(key) { answerRequest(into: &$0, requestID, .text(choice)) } }
     acknowledged.remove(requestID)
 
-    if let runtimeID = state?.runtimeSessionID, !runtimeID.isEmpty, !approvalID.isEmpty {
+    if let runtimeID = state.runtimeSessionID, !runtimeID.isEmpty, !approvalID.isEmpty {
       var params: JSONObject = [
         "session_id": .string(runtimeID),
         "profile": .string(key),
@@ -253,14 +283,12 @@ extension TranscriptStore {
         params["all"] = true
       }
 
-      _ = try await link.requestReply(RPC.ApprovalRespond.name, params: .object(params))
+      try await answerByCall(key, requestID: requestID, answer: .text(choice), RPC.ApprovalRespond.name, .object(params))
     } else {
       // No queue id and no reply frame: `request.answer` settles the open
       // request by its own id with the result the reply would have carried.
-      _ = try await link.requestReply(
-        RPC.RequestAnswer.name,
-        params: ["id": .string(requestID), "result": .object(result), "profile": .string(key)]
-      )
+      let params: JSONObject = ["id": .string(requestID), "result": .object(result), "profile": .string(key)]
+      try await answerByCall(key, requestID: requestID, answer: .text(choice), RPC.RequestAnswer.name, .object(params))
     }
 
     return true
@@ -268,15 +296,24 @@ extension TranscriptStore {
 
   /// `respondClarify`: a batch answers `answers` by qid, a single question the
   /// bare `answer`. A partial batch with a live handle locks each answer.
+  /// Answers whether an answer went out, as `respondApproval` does.
   @discardableResult
   public func respondClarify(_ key: String, requestID: String, answers: JSRecord<String>) async throws -> Bool {
-    let state = chats[key]?.state
-    let clarify = state?.byRequestID[requestID].flatMap { state?.items[$0] }?.asClarify
+    guard isOpenCard(key, requestID), !answering.contains(requestID), let state = chats[key]?.state else {
+      return false
+    }
+
+    answering.insert(requestID)
+
+    defer {
+      answering.remove(requestID)
+    }
+
+    let clarify = state.byRequestID[requestID].flatMap { state.items[$0] }?.asClarify
     let complete = clarify.map { item in item.questions.allSatisfy { answers[$0.qid] != nil } } ?? true
+    let answerValues: JSONObject = answers.dictionary.mapValues { JSONValue.string($0) }
     let result: JSONObject =
-      clarify?.batch == true
-      ? ["answers": .object(answers.dictionary.mapValues(JSONValue.string))]
-      : ["answer": .string(answers.values.first ?? "")]
+      clarify?.batch == true ? ["answers": .object(answerValues)] : ["answer": .string(answers.values.first ?? "")]
     let answer = RequestAnswer.byQuestion(answers)
     let live = deliveries[requestID]
 
@@ -286,13 +323,9 @@ extension TranscriptStore {
       return try await answerLive(key, live, requestID: requestID, answer: answer, result: result)
     }
 
-    try await local(key) { self.mutateState(key) { answerRequest(into: &$0, requestID, answer) } }
-
     if live == nil, complete || clarify?.batch != true {
-      _ = try await link.requestReply(
-        RPC.RequestAnswer.name,
-        params: ["id": .string(requestID), "result": .object(result), "profile": .string(key)]
-      )
+      let params: JSONObject = ["id": .string(requestID), "result": .object(result), "profile": .string(key)]
+      try await answerByCall(key, requestID: requestID, answer: answer, RPC.RequestAnswer.name, .object(params))
       return true
     }
 
@@ -304,20 +337,32 @@ extension TranscriptStore {
   }
 
   /// `lockClarify`: lock one answer of a batch without resolving the request.
+  /// The answer shows once the lock went through.
   public func lockClarify(_ key: String, requestID: String, questionID: String, answer: String) async throws {
-    try await local(key) {
-      self.mutateState(key) { answerRequest(into: &$0, requestID, .byQuestion([questionID: answer])) }
-    }
+    let params: JSONObject = [
+      "request_id": .string(requestID),
+      "question_id": .string(questionID),
+      "answer": .string(answer),
+      "profile": .string(key)
+    ]
 
-    _ = try await link.requestReply(
-      RPC.ClarifyLock.name,
-      params: [
-        "request_id": .string(requestID),
-        "question_id": .string(questionID),
-        "answer": .string(answer),
-        "profile": .string(key)
-      ]
-    )
+    try await answerByCall(key, requestID: requestID, answer: .byQuestion([questionID: answer]), RPC.ClarifyLock.name, .object(params))
+  }
+
+  /// Answer through a call (no live reply to answer on) and mark the card only
+  /// once the call succeeded, at the place the answer went out.
+  func answerByCall(
+    _ key: String,
+    requestID: String,
+    answer: RequestAnswer,
+    _ method: String,
+    _ params: JSONValue
+  ) async throws {
+    let link = self.link
+
+    try await afterSending(key, { try await link.requestReply(method, params: params) }) { _ in
+      self.mutateState(key) { answerRequest(into: &$0, requestID, answer) }
+    }
   }
 
   /// Answer on the live reply; mark the card answered at the place the answer
@@ -342,11 +387,15 @@ extension TranscriptStore {
 
   /// Hold the chat's lane while `perform` sends something, then apply `apply`
   /// after every frame taken in before the send and before any taken in after.
+  /// A `perform` that throws applies nothing; neither does one whose chat was
+  /// forgotten meanwhile.
   func afterSending<R: Sendable, T: Sendable>(
     _ key: String,
-    _ perform: @escaping @Sendable () async -> R,
+    _ perform: @escaping @Sendable () async throws -> R,
     apply: @escaping (R) -> T
   ) async throws -> T {
+    let ticket = generation(of: key)
+
     // What came in before the send is placed before the answer.
     await catchUp([chats[key]?.state.runtimeSessionID])
 
@@ -355,7 +404,15 @@ extension TranscriptStore {
     let issue = highestIngested
     outstanding[id] = OrderedCall(lane: key, binding: false, issueIndex: issue)
 
-    let value = await perform()
+    let value: R
+
+    do {
+      value = try await perform()
+    } catch {
+      outstanding[id] = nil
+      scheduleFlush()
+      throw error
+    }
 
     guard !isShutDown else {
       outstanding[id] = nil
@@ -368,9 +425,16 @@ extension TranscriptStore {
       let step = Step(
         run: {
           self.outstanding[id] = nil
+
+          guard self.generation(of: key) == ticket else {
+            continuation.resume(throwing: CancellationError())
+            return
+          }
+
           continuation.resume(returning: apply(value))
         },
         abandon: {
+          self.outstanding[id] = nil
           continuation.resume(throwing: CancellationError())
         }
       )
@@ -430,7 +494,7 @@ extension TranscriptStore {
     guard let state = chats[key]?.state, let runtimeID = state.runtimeSessionID, !runtimeID.isEmpty,
       !state.storedSessionID.isEmpty, let bot = await roster.bot(named: key)
     else {
-      throw ChatRuntimeError(message: "\(key)'s chat is not attached to the gateway yet.")
+      throw ChatRuntimeError.notAttached(key)
     }
 
     let resolver = roster.resolver
@@ -443,6 +507,12 @@ extension TranscriptStore {
         "This bot is still working on the last turn. Let it finish, or stop it, and run this again — a conversation cannot be put away mid-answer."
       )
       return
+    }
+
+    // `assertIdle`: a send not yet at the gateway, or messages waiting in the
+    // queue, would be lost with the conversation they belong to.
+    if (chats[key]?.sending ?? 0) > 0 || !(chats[key]?.queue.isEmpty ?? true) {
+      throw ConversationBusyError(botName: key)
     }
 
     let storedID = state.storedSessionID
@@ -577,5 +647,20 @@ extension TranscriptStore {
     }
 
     return kept
+  }
+}
+
+/// Moving a bot's chat to another conversation was refused because it would
+/// lose something: a send not yet at the gateway, or messages waiting in the
+/// queue (`ConversationBusyError`).
+public struct ConversationBusyError: Error, Sendable, Equatable, CustomStringConvertible {
+  public var botName: String
+
+  public init(botName: String) {
+    self.botName = botName
+  }
+
+  public var description: String {
+    "\(botName) is still replying or has messages queued. Wait until the reply is finished or clear the queue first."
   }
 }

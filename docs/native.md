@@ -9,10 +9,10 @@ they are built) and [ADR-0029](adr/0029-expo-native-and-the-contract-directory.m
 layout and the parity rule). [native/README.md](../native/README.md) has the directory map and the
 milestones.
 
-**Where things stand.** The native tree is a skeleton: both apps build and show a placeholder,
-every package target exists with a smoke test, and CI builds both apps. The engine, the gateway
-client, the stores and the screens are still to come. Anything below that says "will" describes a
-rule for code that has not been written yet.
+**Where things stand.** The transcript engine, the gateway client (connection, sign-in, REST), the
+stores and the session runtime (`GatewaySession`, `TranscriptStore`, `BotRoster`) are written and
+tested; the app shell, the settings and the chat screens are being built.
+Anything below that says "will" describes a rule for code that has not been written yet.
 
 ## What you need
 
@@ -235,6 +235,19 @@ the store keeps to these rules:
   `JSONEncoder` or `JSONDecoder`: they recurse, and a tool result nested 250 levels deep crashes
   Foundation's encoder.
 
+### The session runtime
+
+`HermieCore` turns one gateway into chats a view can observe. `GatewaySession` (`@MainActor`) owns
+the connection, the roster and the `TranscriptStore` actor, and forwards their frames to the
+`@Observable` models (`ChatListModel`, `ChatModel`). The store keeps the rules above with one queue
+per chat: events in the order the connection dispatched them, server requests and RPC results
+placed among them by wire index. A call whose result must follow the chat's frames (resume, replay,
+submit) holds that chat's later frames until it answers; a snapshot read (`subagent.list`,
+`approval.pending`) holds nothing and is dropped if newer frames were applied first. Before a result
+is placed, the store waits until it has taken in up to the connection's `seq` watermarks, so an event
+that preceded the answer cannot arrive after it. Snapshots reach the main actor at most once per
+frame. `Tests/HermieCoreTests/Runtime` replays the `contract/transcript/streams` scenarios through it.
+
 ### Known divergences
 
 The port answers like the TypeScript on every input the TypeScript tests use. On malformed or
@@ -423,8 +436,9 @@ on `FakeGateway`, sent outside the client under test.
 What is covered: the probe of each authentication mode, address resolution (ADR-0014), REST with a
 session token, native PKCE sign-in without a web view through rotation and revocation on sign-out,
 ticket minting, redirect refusal between the gateway and a second local listener, and the plugin
-routes. The WebSocket connection (streaming, server requests, reconnect and replay, close codes)
-follows with the connection actor. UI smoke tests on the simulator will use a fake gateway started by
+routes, the WebSocket connection, and the session runtime (`SessionRuntimeIntegrationTests`: a cold
+start from the cache, a streamed turn, an approval, a socket dropped mid-turn, history paging). UI
+smoke tests on the simulator will use a fake gateway started by
 the test script on the host.
 
 To try the fake gateway by hand:

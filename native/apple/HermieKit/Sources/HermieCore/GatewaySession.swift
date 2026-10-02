@@ -60,25 +60,37 @@ public final class GatewaySession {
   @ObservationIgnored private var started = false
   @ObservationIgnored private var isShutDown = false
   @ObservationIgnored private var connectionStatus = ConnectionStatus(.disconnected)
-  /// Observation changes, forwarded to the store by one task so they arrive in order.
-  @ObservationIgnored private let observations: AsyncStream<(String, VisibilityOptions)>
-  @ObservationIgnored private let observationSink: AsyncStream<(String, VisibilityOptions)>.Continuation
+  /// The roster read started by the last transition to `ready`.
+  @ObservationIgnored private var readyRefresh: Task<Void, Never>?
+  /// What the views ask of the store (observe, stop, which bots remain),
+  /// forwarded by one task so it arrives in order.
+  @ObservationIgnored private let commands: AsyncStream<StoreCommand>
+  @ObservationIgnored private let commandSink: AsyncStream<StoreCommand>.Continuation
+
+  private enum StoreCommand: Sendable {
+    case observe(String, VisibilityOptions)
+    case stopObserving(String)
+    case retain(Set<String>)
+  }
 
   /// A session over a real connection to one registry entry.
   ///
   /// The credential provider is built by the caller from the secret store
   /// (`GatewayCredentials.provider` with the session token or the token
-  /// coordinator); signing in is another screen's business.
+  /// coordinator); signing in is another screen's business. The chat cache
+  /// and the read watermarks are built here from `database`, scoped to the
+  /// record's id (ADR-0024), so one gateway can never read another's chats.
   public convenience init(
     record: GatewayRecord,
     credentials: any CredentialProvider,
     extraHeaders: [String: String]? = nil,
     transport: any WebSocketTransport = URLSessionTransport(),
-    cache: (any ChatCaching)? = nil,
-    keyValues: KeyValueStore? = nil,
+    database: SQLiteStore? = nil,
     reachability: (any Reachability)? = nil,
     options: Options = Options()
   ) throws {
+    let cache = database.map { SQLiteChatCache(store: $0, gatewayId: record.id) }
+    let keyValues = database.map { KeyValueStore(store: $0) }
     let link = try ConnectionLink(
       baseURL: record.address,
       extraHeaders: extraHeaders,
@@ -120,7 +132,7 @@ public final class GatewaySession {
       clock: options.store.clock
     )
     self.store = TranscriptStore(link: link, roster: roster, cache: cache, options: options.store)
-    (observations, observationSink) = AsyncStream.makeStream()
+    (commands, commandSink) = AsyncStream.makeStream()
   }
 
   // MARK: - Lifecycle
@@ -140,23 +152,29 @@ public final class GatewaySession {
 
     await store.setSink { [weak self] batch in self?.receive(batch) }
     await roster.setSink { [weak self] snapshot in self?.receive(snapshot) }
-    await roster.setSessionIDSource { await store.sessionIDs() }
+    // Weak: the roster outlives nothing, but a strong store here would be a
+    // cycle (store → roster → this closure → store) that leaks every gateway.
+    await roster.setSessionIDSource { [weak store] in await store?.sessionIDs() ?? [:] }
     await store.attach()
 
-    let observations = self.observations
+    let commands = self.commands
     tasks.append(
-      Task {
-        for await (key, visibility) in observations {
-          await store.observe(key, options: visibility)
+      Task { [weak store] in
+        for await command in commands {
+          switch command {
+          case .observe(let key, let visibility): await store?.observe(key, options: visibility)
+          case .stopObserving(let key): await store?.stopObserving(key)
+          case .retain(let names): await store?.retain(only: names)
+          }
         }
       }
     )
 
     let statuses = link.statuses
     tasks.append(
-      Task { [weak self] in
+      Task { [weak self, weak store] in
         for await status in statuses {
-          await store.connectionChanged(status)
+          await store?.connectionChanged(status)
           self?.connectionChanged(status)
         }
       }
@@ -175,6 +193,8 @@ public final class GatewaySession {
     }
 
     await roster.loadWatermarks()
+    // Unread counts start where the reader left each chat, not at the beginning.
+    await store.seedSeen(await roster.current.lastSeen)
     await roster.paintFromCache()
     await store.restoreFromCache(await roster.bots)
     await link.start()
@@ -216,20 +236,23 @@ public final class GatewaySession {
     }
 
     isShutDown = true
-    observationSink.finish()
+    commandSink.finish()
 
     await store.persistAll()
     await link.shutdown()
 
-    for task in tasks {
+    let running = tasks + [readyRefresh].compactMap { $0 }
+
+    for task in running {
       task.cancel()
     }
 
-    for task in tasks {
+    for task in running {
       await task.value
     }
 
     tasks.removeAll()
+    readyRefresh = nil
     await store.shutdown()
     await roster.shutdown()
   }
@@ -240,7 +263,7 @@ public final class GatewaySession {
     let storeAttached = await store.isAttached
     let rosterTasks = await roster.liveTaskCount
 
-    return tasks.isEmpty && storeTasks == 0 && !storeAttached && rosterTasks == 0
+    return tasks.isEmpty && readyRefresh == nil && storeTasks == 0 && !storeAttached && rosterTasks == 0
   }
 
   // MARK: - Chats
@@ -251,14 +274,25 @@ public final class GatewaySession {
       return model
     }
 
-    let sink = observationSink
+    let sink = commandSink
     let model = ChatModel(key: name, store: store, visibility: defaultVisibility) { key, visibility in
-      sink.yield((key, visibility))
+      sink.yield(.observe(key, visibility))
     }
+    model.connectionReady = connectionStatus.phase == .ready
     models[name] = model
-    sink.yield((name, model.visibility))
+    sink.yield(.observe(name, model.visibility))
 
     return model
+  }
+
+  /// The screen is gone for good: the chat stays live, but its transcript is no
+  /// longer projected every frame. `chat(_:)` makes a fresh model.
+  public func release(_ name: String) {
+    guard models.removeValue(forKey: name) != nil else {
+      return
+    }
+
+    commandSink.yield(.stopObserving(name))
   }
 
   /// Open a bot's chat (ADR-0007 resolution, resume, history, replay) and mark
@@ -274,6 +308,12 @@ public final class GatewaySession {
       incompatibility = error
       status = ConnectionStatus(.incompatible, error: error)
       throw error
+    }
+
+    // A resume this gateway passed: whatever refused it before is history.
+    if incompatibility != nil {
+      incompatibility = nil
+      status = connectionStatus
     }
 
     await markRead(name)
@@ -324,6 +364,20 @@ public final class GatewaySession {
 
   private func receive(_ snapshot: BotRoster.Snapshot) {
     chatList.apply(snapshot)
+
+    // A bot the gateway no longer lists takes its chat with it: its transcript,
+    // its routes, its model. Only an answer from the gateway says so, never the cache.
+    guard snapshot.refreshed, !snapshot.loading else {
+      return
+    }
+
+    let names = Set(snapshot.bots.map(\.name))
+
+    for name in models.keys where !names.contains(name) {
+      release(name)
+    }
+
+    commandSink.yield(.retain(names))
   }
 
   private func connectionChanged(_ status: ConnectionStatus) {
@@ -335,7 +389,15 @@ public final class GatewaySession {
     // "gateway not connected", and nothing would ask again.
     if status.phase == .ready, !wasReady, !isShutDown {
       let roster = self.roster
-      tasks.append(Task { _ = try? await roster.refresh() })
+      let previous = readyRefresh
+      readyRefresh = Task {
+        await previous?.value
+        _ = try? await roster.refresh()
+      }
+    }
+
+    for model in models.values {
+      model.connectionReady = status.phase == .ready
     }
 
     // An incompatible gateway stays reported as such until a resume succeeds.
@@ -417,6 +479,15 @@ public struct ConnectionLink: GatewayLink {
   }
 
   public func seqWatermarks() async -> [String: Double] { await connection.seqWatermarks }
+
+  public func claimTurn(_ runtimeSessionID: String) async {
+    // A courtesy, never a dependency: whatever goes wrong, the turn goes out.
+    _ = try? await http.post(
+      RESTPath.pluginContextTurn,
+      body: ["session_id": .string(runtimeSessionID)],
+      timeoutMs: ChatRuntimeLimits.turnClaimTimeoutMs
+    )
+  }
 
   public func start() async { await connection.start() }
   public func stop() async { await connection.stop() }

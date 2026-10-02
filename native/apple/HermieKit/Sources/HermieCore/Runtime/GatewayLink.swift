@@ -43,6 +43,12 @@ public protocol GatewayLink: Sendable {
   /// that far before it places a result among the frames it follows.
   func seqWatermarks() async -> [String: Double]
 
+  /// `claimTurn` (`turn-claim.ts`): tell the plugin which runtime session the
+  /// next `prompt.submit` names. `POST /api/plugins/hermie/context/turn`, at
+  /// most `turnClaimTimeout`, and never throws: a refusal, a timeout or a
+  /// network failure sends the turn unclaimed rather than late.
+  func claimTurn(_ runtimeSessionID: String) async
+
   func start() async
   func stop() async
   func pause() async

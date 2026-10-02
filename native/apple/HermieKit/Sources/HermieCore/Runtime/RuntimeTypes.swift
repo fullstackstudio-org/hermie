@@ -4,6 +4,8 @@ import HermieTranscript
 
 /// The numbers the chat runtime runs on, spelled once, with the reference's names.
 public enum ChatRuntimeLimits {
+  /// `TURN_CLAIM_TIMEOUT_MS`: short enough that a wedged plugin is never felt on send.
+  public static let turnClaimTimeoutMs = 1_500
   /// `REST_HISTORY_THRESHOLD`: above this many rows, `session.history` is a download; the REST tail is not.
   public static let restHistoryThreshold = 400
   /// `REST_HISTORY_LIMIT`: rows the REST transcript hands back for a full load, and one page of older history.
@@ -270,4 +272,46 @@ public enum OlderHistory: Sendable, Equatable {
   case start
   /// This gateway cannot page (no REST transcript); everything it has is already here.
   case unavailable
+}
+
+/// What the gateway's Hermie plugin says it can do (`plugin.ts`), reduced to
+/// the capability strings the runtime asks about.
+public enum PluginCapabilities {
+  /// The `ui_meta` key the plugin publishes its advert under.
+  public static let advertKey = "hermie-plugin"
+  /// The advert shape this build understands; anything newer is ignored whole.
+  public static let contractVersion = 1
+  /// `context.turn_claim`: the plugin reads a claim on the next turn.
+  public static let contextTurnClaim = "context.turn_claim"
+
+  /// `pluginAdvert` + `hasPluginCapability`: the capabilities off a
+  /// `profiles.list` answer, the default profile's advert winning, else the
+  /// first. No advert, or one newer than this build reads, offers nothing.
+  public static func of(_ rows: [JSONValue]) -> Set<String> {
+    var found: Set<String>?
+
+    for row in rows {
+      guard let capabilities = capabilities(of: row["ui_meta"]?[advertKey]) else {
+        continue
+      }
+
+      if row["is_default"] == .bool(true) {
+        return capabilities
+      }
+
+      found = found ?? capabilities
+    }
+
+    return found ?? []
+  }
+
+  static func capabilities(of advert: JSONValue?) -> Set<String>? {
+    guard case .object(let object)? = advert, case .number(let version)? = object["v"],
+      version.rounded() == version, version >= 1, version <= Double(contractVersion)
+    else {
+      return nil
+    }
+
+    return Set((object["capabilities"]?.arrayValue ?? []).compactMap(\.stringValue))
+  }
 }

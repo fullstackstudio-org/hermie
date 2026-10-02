@@ -27,6 +27,8 @@ public actor BotRoster {
     public var error: String?
     /// False while only the cache is painted.
     public var refreshed = false
+    /// What the gateway's plugin offers (`PluginCapabilities`), from the last roster read.
+    public var pluginCapabilities: Set<String> = []
 
     public init() {}
 
@@ -103,6 +105,11 @@ public actor BotRoster {
 
   public func bot(named name: String) -> Bot? {
     snapshot.bots.first { $0.name == name }
+  }
+
+  /// `hasPluginCapability`.
+  public func offers(_ capability: String) -> Bool {
+    snapshot.pluginCapabilities.contains(capability)
   }
 
   /// Where snapshots go: one main-actor call per change.
@@ -208,6 +215,7 @@ public actor BotRoster {
     // The name is the bot's identity everywhere; a row without one is not a bot.
     let bots = rows.compactMap { $0.objectValue }.map { Bot(row: ProfileRow(json: $0)) }.filter { !$0.name.isEmpty }
 
+    snapshot.pluginCapabilities = PluginCapabilities.of(rows)
     setBots(bots, fromCache: false)
 
     // What the roster settled on, pins included, not what the wire said.
@@ -518,6 +526,10 @@ public actor BotRoster {
   /// `dispose`: stop every timer and wait for every task.
   public func shutdown() async {
     isShutDown = true
+    // The closures the session handed in hold the store and the session; a
+    // roster that kept them would keep the whole previous gateway alive.
+    sink = nil
+    sessionIDs = { [:] }
     pollTimer?.cancel()
     pollTimer = nil
     watchers = 0

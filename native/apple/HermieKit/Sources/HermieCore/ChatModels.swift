@@ -209,7 +209,10 @@ public final class ChatModel {
   public var openRequests: [TranscriptItem] { snapshot?.openRequests ?? [] }
   public var queue: [QueuedMessage] { snapshot?.queue ?? [] }
   public var hydration: HydrationState { snapshot?.hydration ?? .cold }
-  public var canSend: Bool { snapshot?.attached ?? false }
+  /// The gateway socket is `ready` (kept by the session).
+  public internal(set) var connectionReady = false
+  /// The chat is bound to a runtime session and the socket is up.
+  public var canSend: Bool { (snapshot?.attached ?? false) && connectionReady }
 
   func apply(_ snapshot: ChatSnapshot) {
     self.snapshot = snapshot
@@ -217,12 +220,23 @@ public final class ChatModel {
 
   // MARK: Actions
 
-  /// Send the draft (or `text`), clearing the draft first; it comes back on failure.
+  /// Send the draft (or `text`).
+  ///
+  /// One failure form per outcome, never both: when nothing could be sent (no
+  /// socket, no session) the draft is left where it is and nothing is painted;
+  /// once the message is painted, the draft is cleared and a failure keeps the
+  /// bubble, marked interrupted, as the reference does — the words are the
+  /// reader's, and they are on screen to send again.
   public func send(_ text: String? = nil) async {
     let body = text ?? draft
     let trimmed = body.trimmingCharacters(in: .whitespacesAndNewlines)
 
     guard !trimmed.isEmpty else {
+      return
+    }
+
+    guard canSend else {
+      lastError = ChatRuntimeError.notAttached(key).message
       return
     }
 
@@ -233,11 +247,14 @@ public final class ChatModel {
     do {
       try await store.send(key, text: body)
       lastError = nil
-    } catch {
+    } catch let error as ChatRuntimeError where error.isNotAttached {
+      // Refused before anything was painted: the words go back where they were.
       if text == nil, draft.isEmpty {
         draft = body
       }
 
+      lastError = error.message
+    } catch {
       lastError = ChatResolver.describe(error)
     }
   }
