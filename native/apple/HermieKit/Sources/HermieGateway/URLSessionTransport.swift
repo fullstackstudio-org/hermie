@@ -20,6 +20,12 @@ import Synchronization
 /// - The close code and reason the socket ended with finish `frames` as a
 ///   `WebSocketClosed`; 1006 when there was no close frame.
 public struct URLSessionTransport: WebSocketTransport {
+  /// The largest inbound frame accepted. URLSession's default is 1 MiB, and a
+  /// frame past it kills the socket: a long `session.resume` or a replay of a
+  /// busy session is bigger than that, and the redial would ask for the same
+  /// frame again, for ever.
+  public static let maximumMessageSize = 64 * 1024 * 1024
+
   private let configuration: URLSessionConfiguration
 
   public init(configuration: URLSessionConfiguration = .default) {
@@ -36,6 +42,7 @@ public struct URLSessionTransport: WebSocketTransport {
     let delegate = SocketDelegate(asked: request.url?.absoluteString ?? "")
     let session = URLSession(configuration: configuration, delegate: delegate, delegateQueue: nil)
     let task = session.webSocketTask(with: request)
+    task.maximumMessageSize = Self.maximumMessageSize
 
     do {
       try await withTaskCancellationHandler {

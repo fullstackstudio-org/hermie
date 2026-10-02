@@ -76,6 +76,21 @@
       #expect(target.connectionCount == 0)
     }
 
+    @Test("carries a frame larger than URLSession's 1 MiB default")
+    func carriesALargeFrame() async throws {
+      let server = try await LoopbackWebSocketServer.start()
+      defer { server.stop() }
+
+      let request = URLRequest(url: URL(string: "ws://127.0.0.1:\(server.port)/api/ws")!)
+      let channel = try await URLSessionTransport().connect(request, subprotocols: [])
+      var frames = channel.frames.makeAsyncIterator()
+      #expect(try await frames.next() == "hello")
+
+      try await channel.send(text: "big")
+      let big = try await frames.next()
+      #expect(big?.utf8.count == LoopbackWebSocketServer.bigFrameBytes)
+    }
+
     @Test("closing from the client ends the frames")
     func clientClose() async throws {
       let server = try await LoopbackWebSocketServer.start()
@@ -106,6 +121,9 @@
       let state = Mutex(State())
     }
 
+    /// A frame past URLSession's 1 MiB default, as a large `session.resume` is.
+    static let bigFrameBytes = 2 * 1024 * 1024 + 1
+
     private let listener: NWListener
     private let queue = DispatchQueue(label: "loopback-websocket")
     private let storage = Storage()
@@ -117,6 +135,7 @@
 
     private init() throws {
       let websocket = NWProtocolWebSocket.Options()
+      websocket.maximumMessageSize = 16 * 1024 * 1024
 
       let storage = self.storage
       websocket.setClientRequestHandler(queue) { subprotocols, headers in
@@ -182,6 +201,12 @@
         }
 
         let text = String(decoding: data, as: UTF8.self)
+
+        if text == "big" {
+          send(text: String(repeating: "x", count: bigFrameBytes), on: connection)
+          receive(on: connection)
+          return
+        }
 
         if text == "close-4401" {
           let close = NWProtocolWebSocket.Metadata(opcode: .close)
