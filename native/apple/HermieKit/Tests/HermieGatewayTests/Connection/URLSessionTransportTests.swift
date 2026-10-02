@@ -65,10 +65,11 @@
       let request = URLRequest(url: URL(string: "ws://127.0.0.1:\(redirecting.port)/api/ws?token=t")!)
       let expected = GatewayError(
         .redirect,
-        "ws://127.0.0.1:\(redirecting.port) redirected to ws://127.0.0.1:\(target.port). Nothing was read from it. "
-          + "Change the gateway address to the one you meant.",
+        "ws://127.0.0.1:\(redirecting.port) redirected to ws://127.0.0.1:\(target.port), which is a different address. "
+          + "Nothing was read from it. Change the gateway address to the one you meant.",
         status: 301,
-        redirectedTo: "ws://127.0.0.1:\(target.port)"
+        redirectedTo: "127.0.0.1",
+        redirectedOrigin: "ws://127.0.0.1:\(target.port)"
       )
       await #expect(throws: expected) {
         _ = try await URLSessionTransport().connect(request, subprotocols: [])
@@ -89,6 +90,29 @@
       try await channel.send(text: "big")
       let big = try await frames.next()
       #expect(big?.utf8.count == LoopbackWebSocketServer.bigFrameBytes)
+    }
+
+    @Test("the redirect error names what changed and never a query")
+    func redirectWording() {
+      let advice = "Nothing was read from it. Change the gateway address to the one you meant."
+      let other = SocketDelegate.redirectError(
+        asked: "wss://gateway.test/api/ws?token=secret", landed: "wss://elsewhere.test/api/ws?token=secret", status: 302)
+      #expect(other.message == "gateway.test redirected to elsewhere.test, which is a different host. \(advice)")
+      #expect(other.redirectedTo == "elsewhere.test")
+      #expect(other.redirectedOrigin == "wss://elsewhere.test")
+
+      let downgrade = SocketDelegate.redirectError(
+        asked: "wss://gateway.test/api/ws", landed: "ws://gateway.test/api/ws", status: 301)
+      #expect(downgrade.message == "wss://gateway.test redirected to ws://gateway.test, which is not https. \(advice)")
+
+      let nowhere = SocketDelegate.redirectError(
+        asked: "ws://gateway.test/api/ws?token=secret", landed: nil, status: 307)
+      #expect(nowhere.message == "ws://gateway.test answered with a redirect that was not followed. \(advice)")
+      #expect(nowhere.redirectedOrigin == nil)
+
+      for error in [other, downgrade, nowhere] {
+        #expect(!error.message.contains("secret"))
+      }
     }
 
     @Test("closing from the client ends the frames")

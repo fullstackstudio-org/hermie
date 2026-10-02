@@ -57,10 +57,11 @@ struct LifecycleTests {
     try await withHarness { h in
       let redirect = GatewayError(
         .redirect,
-        "ws://gateway.test redirected to https://elsewhere.test. Nothing was read from it. "
-          + "Change the gateway address to the one you meant.",
+        "gateway.test redirected to elsewhere.test, which is a different host. "
+          + "Nothing was read from it. Change the gateway address to the one you meant.",
         status: 301,
-        redirectedTo: "https://elsewhere.test"
+        redirectedTo: "elsewhere.test",
+        redirectedOrigin: "ws://elsewhere.test"
       )
       h.gateway.with { $0.redirectUpgrade = redirect }
 

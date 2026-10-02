@@ -186,16 +186,60 @@ final class SocketDelegate: NSObject, URLSessionWebSocketDelegate, Sendable {
       return GatewayError(.network, GatewayConnection.connectErrorMessage)
     }
 
-    let asked = Self.origin(asked) ?? "The gateway address"
-    // Only ever an origin: a redirect's path and query may carry anything.
-    let landed = redirect.location.flatMap { Self.origin($0.absoluteString) }
+    return Self.redirectError(
+      asked: asked,
+      landed: redirect.location?.absoluteString,
+      status: redirect.status
+    )
+  }
+
+  /// `redirectError` of `fetch-json.ts`, worded the same, naming only origins
+  /// and hosts: a WebSocket URL can carry a session token in its query, and a
+  /// redirect's path and query may carry anything.
+  static func redirectError(asked: String, landed: String?, status: Int) -> GatewayError {
+    let askedOrigin = origin(asked)
+    let landedOrigin = landed.flatMap(origin)
+    let askedHost = askedOrigin.map(host) ?? ""
+    let landedHost = landedOrigin.map(host) ?? ""
+    let advice = "Nothing was read from it. Change the gateway address to the one you meant."
+    let message: String
+
+    if let landedOrigin, let askedOrigin {
+      if landedHost != askedHost {
+        message = "\(askedHost) redirected to \(landedHost), which is a different host. \(advice)"
+      } else if isSecure(askedOrigin) && !isSecure(landedOrigin) {
+        message = "\(askedOrigin) redirected to \(landedOrigin), which is not https. \(advice)"
+      } else if landedOrigin != askedOrigin {
+        message = "\(askedOrigin) redirected to \(landedOrigin), which is a different address. \(advice)"
+      } else {
+        message = "\(askedOrigin) redirected to itself, which was not followed. \(advice)"
+      }
+    } else {
+      message = "\(askedOrigin ?? "The gateway address") answered with a redirect that was not followed. \(advice)"
+    }
+
     return GatewayError(
       .redirect,
-      "\(asked) redirected to \(landed ?? "an address without a web origin"). Nothing was read from it. "
-        + "Change the gateway address to the one you meant.",
-      status: redirect.status,
-      redirectedTo: landed
+      message,
+      status: status,
+      redirectedTo: landedHost.isEmpty ? nil : landedHost,
+      redirectedOrigin: landedOrigin
     )
+  }
+
+  private static func isSecure(_ origin: String) -> Bool {
+    origin.hasPrefix("https:") || origin.hasPrefix("wss:")
+  }
+
+  /// The hostname of an origin, IPv6 without its brackets.
+  private static func host(_ origin: String) -> String {
+    var host = WHATWGURL.parse(origin)?.host ?? ""
+
+    if host.hasPrefix("[") && host.hasSuffix("]") {
+      host = String(host.dropFirst().dropLast())
+    }
+
+    return host
   }
 
   private static func origin(_ url: String) -> String? {
