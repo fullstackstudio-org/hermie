@@ -1,5 +1,5 @@
-/// Marks the `HermieProtocol` module until it holds the wire types, so the
-/// target compiles and its place in the dependency graph can be tested.
+/// Names the `HermieProtocol` module, so the layers above can test their place in the
+/// dependency graph against it.
 public enum HermieProtocolModule {
   public static let name = "HermieProtocol"
 }
