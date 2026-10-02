@@ -2,7 +2,7 @@ import Foundation
 import Synchronization
 import Testing
 
-@testable import HermieGateway
+@_spi(GatewaySync) @testable import HermieGateway
 
 /// A secret store that takes real time over every write, as a keychain IPC
 /// does, and can be told to refuse writes.

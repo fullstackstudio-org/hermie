@@ -1,6 +1,6 @@
 import Foundation
-import HermieGateway
-import HermieStore
+@_spi(GatewaySync) import HermieGateway
+@_spi(GatewaySync) import HermieStore
 import Testing
 
 @testable import HermieCore
@@ -22,7 +22,7 @@ struct AppLaunchTests {
     let scratch = Scratch()
     defer { scratch.cleanUp() }
 
-    let launch = AppLaunch(environment: LaunchEnvironment(dataDirectory: scratch.url, authenticator: ScriptedAuthenticator()))
+    let launch = AppLaunch(environment: LaunchEnvironment.inMemory(dataDirectory: scratch.url, authenticator: ScriptedAuthenticator()))
 
     #expect(launch.notices.isEmpty)
     #expect(launch.report?.openFailure == nil)
@@ -44,7 +44,7 @@ struct AppLaunchTests {
     // A file where the directory should be: nothing can be created inside it.
     try Data("not a directory".utf8).write(to: scratch.url)
 
-    let launch = AppLaunch(environment: LaunchEnvironment(dataDirectory: scratch.url, authenticator: ScriptedAuthenticator()))
+    let launch = AppLaunch(environment: LaunchEnvironment.inMemory(dataDirectory: scratch.url, authenticator: ScriptedAuthenticator()))
 
     #expect(launch.report?.openFailure != nil)
     #expect(launch.notices.contains(.runningInMemory))
@@ -64,7 +64,7 @@ struct AppLaunchTests {
     defer { scratch.cleanUp() }
 
     do {
-      let first = AppLaunch(environment: LaunchEnvironment(dataDirectory: scratch.url, authenticator: ScriptedAuthenticator()))
+      let first = AppLaunch(environment: LaunchEnvironment.inMemory(dataDirectory: scratch.url, authenticator: ScriptedAuthenticator()))
       try await first.keyValues.setString(#"{"threshold":"5m"}"#, forKey: StoreKeys.lock)
     }
 
@@ -74,7 +74,7 @@ struct AppLaunchTests {
     try? FileManager.default.removeItem(at: URL(fileURLWithPath: url.path + "-wal"))
     try? FileManager.default.removeItem(at: URL(fileURLWithPath: url.path + "-shm"))
 
-    let second = AppLaunch(environment: LaunchEnvironment(dataDirectory: scratch.url, authenticator: ScriptedAuthenticator()))
+    let second = AppLaunch(environment: LaunchEnvironment.inMemory(dataDirectory: scratch.url, authenticator: ScriptedAuthenticator()))
 
     #expect(second.notices == [.recovered])
 
@@ -89,7 +89,7 @@ struct AppLaunchTests {
     defer { scratch.cleanUp() }
 
     do {
-      let first = AppLaunch(environment: LaunchEnvironment(dataDirectory: scratch.url, authenticator: ScriptedAuthenticator()))
+      let first = AppLaunch(environment: LaunchEnvironment.inMemory(dataDirectory: scratch.url, authenticator: ScriptedAuthenticator()))
       try await first.keyValues.setString(#"{"threshold":"5m"}"#, forKey: StoreKeys.lock)
     }
 
@@ -100,7 +100,7 @@ struct AppLaunchTests {
     try? FileManager.default.removeItem(at: URL(fileURLWithPath: url.path + "-shm"))
     try FileManager.default.removeItem(at: LockMirror(applicationSupport: scratch.url).url)
 
-    let second = AppLaunch(environment: LaunchEnvironment(dataDirectory: scratch.url, authenticator: ScriptedAuthenticator()))
+    let second = AppLaunch(environment: LaunchEnvironment.inMemory(dataDirectory: scratch.url, authenticator: ScriptedAuthenticator()))
 
     #expect(second.notices == [.recovered, .lockSettingNotRestored])
     #expect(second.lock.machine.locked)
@@ -114,7 +114,7 @@ struct AppLaunchTests {
   @Test("an unreadable lock on a device that cannot authenticate opens with a notice")
   func unreadableLockNoticed() async throws {
     let launch = AppLaunch(
-      environment: LaunchEnvironment(dataDirectory: nil, authenticator: ScriptedAuthenticator(enrolment: .none))
+      environment: LaunchEnvironment.inMemory(dataDirectory: nil, authenticator: ScriptedAuthenticator(enrolment: .none))
     )
 
     try await launch.keyValues.setString("garbage", forKey: StoreKeys.lock)
@@ -129,7 +129,7 @@ struct AppLaunchTests {
 
   @Test("the directory follows the registry and resolves link keys")
   func directory() async throws {
-    let launch = AppLaunch(environment: LaunchEnvironment(dataDirectory: nil, authenticator: ScriptedAuthenticator()))
+    let launch = AppLaunch(environment: LaunchEnvironment.inMemory(dataDirectory: nil, authenticator: ScriptedAuthenticator()))
 
     await launch.start()
 

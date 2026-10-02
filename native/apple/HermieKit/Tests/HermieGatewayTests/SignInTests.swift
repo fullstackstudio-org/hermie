@@ -4,7 +4,7 @@ import HermieProtocol
 import Synchronization
 import Testing
 
-@testable import HermieGateway
+@_spi(GatewaySync) @testable import HermieGateway
 
 /// A wall clock a test sets.
 final class TestWallClock: Sendable {

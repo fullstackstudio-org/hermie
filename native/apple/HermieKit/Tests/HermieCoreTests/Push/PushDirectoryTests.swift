@@ -1,5 +1,5 @@
 import Foundation
-import HermieStore
+@_spi(GatewaySync) import HermieStore
 import Synchronization
 import Testing
 
@@ -60,7 +60,9 @@ struct PushDirectoryTests {
           GatewayRecord(id: id, name: id, address: "https://\(id).example.test", authKind: .nativePKCE, addedAt: n))
       }
 
-      directory = GatewayDirectory(store: registry, changes: KeyValueStore(store: database))
+      directory = GatewayDirectory(
+        store: registry, changes: KeyValueStore(store: database),
+        remover: GatewaySyncEngine(database: database, secrets: secrets, synced: InMemorySyncedItemStore()))
 
       let system = FakePushSystem()
       system.current = .granted

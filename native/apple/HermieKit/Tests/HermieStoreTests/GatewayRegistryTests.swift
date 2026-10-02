@@ -1,7 +1,7 @@
 import Foundation
 import Testing
 
-@testable import HermieStore
+@_spi(GatewaySync) @testable import HermieStore
 
 private let one = "g0123456789abcdef"
 private let two = "gfedcba9876543210"

@@ -2,7 +2,7 @@ import Foundation
 import Synchronization
 import Testing
 
-@testable import HermieGateway
+@_spi(GatewaySync) @testable import HermieGateway
 
 /// A secret store that logs every operation and can refuse one key.
 final class RecordingSecretStorage: GatewaySecretStorage {

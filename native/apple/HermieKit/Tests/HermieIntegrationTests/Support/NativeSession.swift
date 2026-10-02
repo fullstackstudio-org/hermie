@@ -1,6 +1,6 @@
 #if os(macOS)
 import Foundation
-import HermieGateway
+@_spi(GatewaySync) import HermieGateway
 import HermieProtocol
 import Synchronization
 import Testing

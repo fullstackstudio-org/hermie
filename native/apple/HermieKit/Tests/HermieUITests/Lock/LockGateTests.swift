@@ -9,7 +9,7 @@ import Testing
 private func launch(lock text: String? = nil, authenticator: ScriptedAuthenticator = ScriptedAuthenticator()) async throws
   -> AppLaunch
 {
-  let launch = AppLaunch(environment: LaunchEnvironment(dataDirectory: nil, authenticator: authenticator))
+  let launch = AppLaunch(environment: LaunchEnvironment.inMemory(dataDirectory: nil, authenticator: authenticator))
 
   if let text {
     try await launch.keyValues.setString(text, forKey: StoreKeys.lock)
