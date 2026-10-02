@@ -32,7 +32,76 @@ targetTemplates:
         PRODUCT_NAME: Hermie
         PRODUCT_BUNDLE_IDENTIFIER: dev.hermie.app
         GENERATE_INFOPLIST_FILE: NO
+    # The App Intents and the App Shortcuts live in the APP target, as they did in
+    # the Expo build: an `AppShortcutsProvider` is only found in the app, and the
+    # intents metadata is extracted from the sources the target itself compiles.
+    sources:
+      - path: ../Extensions/Intents
+        excludes:
+          - '**/*.xcstrings'
     dependencies:
       - package: HermieKit
         product: HermieUI
+      - package: HermieKit
+        product: HermieShared
+      - target: HermieWidgetsExtension
+      - target: HermieShareExtension
     scheme: {}
+
+  # The widgets: one chat, three chats or one folder, and "N need input". They
+  # read the snapshot the app writes into the App Group and nothing else.
+  # The bundle id is the Expo build's, so its App ID and profiles carry over.
+  HermieWidgets:
+    type: app-extension
+    configFiles:
+      Debug: ../Config/Shared.xcconfig
+      Release: ../Config/Shared.xcconfig
+    sources:
+      - path: ../Extensions/Widgets
+        excludes:
+          - Info.plist
+          - '*.entitlements'
+          - '**/*.xcstrings'
+      - path: ../Extensions/Common
+    settings:
+      base:
+        PRODUCT_NAME: HermieWidgetsExtension
+        PRODUCT_BUNDLE_IDENTIFIER: dev.hermie.app.widgets
+        INFOPLIST_FILE: $(SRCROOT)/../apple/Extensions/Widgets/Info.plist
+        GENERATE_INFOPLIST_FILE: NO
+        APPLICATION_EXTENSION_API_ONLY: YES
+        SKIP_INSTALL: YES
+    dependencies:
+      - package: HermieKit
+        product: HermieShared
+
+  # The share extension: pick a chat, add a note, and either send it directly
+  # (ADR-0026) or leave it in the outbox for the app. Links HermieStore for the
+  # one keychain item it may read. The bundle id is the Expo build's.
+  HermieShare:
+    type: app-extension
+    configFiles:
+      Debug: ../Config/Shared.xcconfig
+      Release: ../Config/Shared.xcconfig
+    sources:
+      - path: ../Extensions/Share
+        excludes:
+          - Info.plist
+          - '*.entitlements'
+          - iOS
+          - macOS
+          - '**/*.xcstrings'
+      - path: ../Extensions/Common
+    settings:
+      base:
+        PRODUCT_NAME: HermieShareExtension
+        PRODUCT_BUNDLE_IDENTIFIER: dev.hermie.app.share
+        INFOPLIST_FILE: $(SRCROOT)/../apple/Extensions/Share/Info.plist
+        GENERATE_INFOPLIST_FILE: NO
+        APPLICATION_EXTENSION_API_ONLY: YES
+        SKIP_INSTALL: YES
+    dependencies:
+      - package: HermieKit
+        product: HermieShared
+      - package: HermieKit
+        product: HermieStore

@@ -20,6 +20,15 @@ import { compileXcstrings, type XcstringsFile } from './compile-xcstrings'
 const repoRoot = resolve(dirname(fileURLToPath(import.meta.url)), '../..')
 const resources = join(repoRoot, 'native/apple/HermieKit/Sources/HermieUI/Resources')
 
+/** The extensions' and the App Intents' hand-written catalogs, as `[path, table]`. */
+const extensionCatalogs = ['Widgets', 'Share', 'Intents'].flatMap(name => {
+  const directory = join(repoRoot, 'native/apple/Extensions', name, 'Resources')
+
+  return readdirSync(directory)
+    .filter(file => file.endsWith('.xcstrings'))
+    .map(file => [join(directory, file), file.slice(0, -'.xcstrings'.length)] as const)
+})
+
 const hasXcstringstool =
   process.platform === 'darwin' && spawnSync('xcrun', ['--find', 'xcstringstool'], { encoding: 'utf8' }).status === 0
 
@@ -110,6 +119,14 @@ describe.skipIf(!hasXcstringstool)('compiled like xcstringstool', () => {
     expect(new Map(ours)).toEqual(xcodeCompiles(path, 'Localizable'))
   })
 
+  it("compiles the extensions' catalogs to the same bytes", () => {
+    for (const [path, table] of extensionCatalogs) {
+      const ours = compileXcstrings(JSON.parse(readFileSync(path, 'utf8')) as XcstringsFile, table)
+
+      expect(new Map(ours), relative(repoRoot, path)).toEqual(xcodeCompiles(path, table))
+    }
+  })
+
   it('compiles every accepted shape to the same bytes', () => {
     const ours = compileXcstrings(SHAPES, 'Native')
 
@@ -152,5 +169,39 @@ describe('what the compiler refuses', () => {
     const native = JSON.parse(readFileSync(join(resources, 'Native.xcstrings'), 'utf8')) as XcstringsFile
 
     expect(() => compileXcstrings(native, 'Native')).not.toThrow()
+  })
+
+  it("reads the extensions' catalogs, in all three languages", () => {
+    expect(extensionCatalogs.map(([, table]) => table).sort()).toEqual([
+      'AppShortcuts',
+      'Localizable',
+      'Localizable',
+      'Localizable'
+    ])
+
+    for (const [path, table] of extensionCatalogs) {
+      const compiled = compileXcstrings(JSON.parse(readFileSync(path, 'utf8')) as XcstringsFile, table)
+
+      for (const locale of ['en', 'nl', 'de']) {
+        expect(
+          [...compiled.keys()].some(file => file.startsWith(`${locale}.lproj/`)),
+          `${path} ${locale}`
+        ).toBe(true)
+      }
+    }
+  })
+
+  it('keeps the app name in every Shortcuts phrase, in every language', () => {
+    for (const [path, table] of extensionCatalogs.filter(([, name]) => name === 'AppShortcuts')) {
+      const catalog = JSON.parse(readFileSync(path, 'utf8')) as XcstringsFile
+
+      for (const [key, entry] of Object.entries(catalog.strings)) {
+        expect(key, `${table}: ${key}`).toContain('${applicationName}')
+
+        for (const [locale, localization] of Object.entries(entry.localizations ?? {})) {
+          expect(localization.stringUnit?.value, `${key} [${locale}]`).toContain('${applicationName}')
+        }
+      }
+    }
   })
 })

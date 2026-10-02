@@ -1,0 +1,56 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+	<key>%@ are waiting on you.</key>
+	<string>%@ wachten op jou.</string>
+	<key>%@ is waiting on you.</key>
+	<string>%@ wacht op jou.</string>
+	<key>Ask ${bot} ${prompt}</key>
+	<string>Vraag ${bot} ${prompt}</string>
+	<key>Ask a bot</key>
+	<string>Vraag een bot</string>
+	<key>Bot</key>
+	<string>Bot</string>
+	<key>Bots needing input</key>
+	<string>Bots die op jou wachten</string>
+	<key>Chats</key>
+	<string>Chats</string>
+	<key>Get the bots needing input</key>
+	<string>Haal de bots op die op jou wachten</string>
+	<key>Hermie could not do that.</key>
+	<string>Dat lukte Hermie niet.</string>
+	<key>Hermie could not reach its shared storage. Open Hermie once, then try again.</key>
+	<string>Hermie kon zijn gedeelde opslag niet bereiken. Open Hermie één keer en probeer het opnieuw.</string>
+	<key>Hermie did not answer in time. The message may still have been sent — open Hermie to check.</key>
+	<string>Hermie antwoordde niet op tijd. Het bericht is misschien toch verstuurd — open Hermie om het te controleren.</string>
+	<key>List the bots that are waiting for an answer, without opening Hermie.</key>
+	<string>Toon de bots die op een antwoord wachten, zonder Hermie te openen.</string>
+	<key>Message</key>
+	<string>Bericht</string>
+	<key>Nothing is waiting on you.</key>
+	<string>Er wacht niets op jou.</string>
+	<key>Open a chat</key>
+	<string>Open een chat</string>
+	<key>Open one of your bots' chats in Hermie.</key>
+	<string>Open de chat met een van je bots in Hermie.</string>
+	<key>Open the chat with ${bot}</key>
+	<string>Open de chat met ${bot}</string>
+	<key>Send ${prompt} to ${bot}</key>
+	<string>Stuur ${prompt} naar ${bot}</string>
+	<key>Send a message to one of your bots and wait for its reply.</key>
+	<string>Stuur een bericht naar een van je bots en wacht op het antwoord.</string>
+	<key>Send a message to one of your bots without waiting for a reply.</key>
+	<string>Stuur een bericht naar een van je bots zonder op een antwoord te wachten.</string>
+	<key>Send to a bot</key>
+	<string>Stuur naar een bot</string>
+	<key>That chat could not be opened.</key>
+	<string>Die chat kon niet worden geopend.</string>
+	<key>There was nothing to send.</key>
+	<string>Er was niets om te versturen.</string>
+	<key>What should I ask?</key>
+	<string>Wat moet ik vragen?</string>
+	<key>What should I send?</key>
+	<string>Wat moet ik versturen?</string>
+</dict>
+</plist>

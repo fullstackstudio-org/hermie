@@ -24,6 +24,27 @@ targets:
         CODE_SIGN_ENTITLEMENTS: App/Hermie.entitlements
         COMBINE_HIDPI_IMAGES: YES
 
+  # Embedded in the app (see the HermieApp template in base.yml for the shared
+  # half of both extensions). Every Mac extension is sandboxed; the
+  # entitlements files say what each is opened for.
+  HermieWidgetsExtension:
+    templates:
+      - HermieWidgets
+    platform: macOS
+    settings:
+      base:
+        CODE_SIGN_ENTITLEMENTS: ../apple/Extensions/Widgets/HermieWidgets-macOS.entitlements
+
+  HermieShareExtension:
+    templates:
+      - HermieShare
+    platform: macOS
+    sources:
+      - path: ../apple/Extensions/Share/macOS
+    settings:
+      base:
+        CODE_SIGN_ENTITLEMENTS: ../apple/Extensions/Share/HermieShare-macOS.entitlements
+
   # A debug-only host for the transcript UI tests: HermieUI's debug screens
   # and nothing else, under its own bundle id. Signed ad hoc, unsandboxed, and
   # never shipped. Run with `scripts/test.sh --ui-mac`, which drives the real

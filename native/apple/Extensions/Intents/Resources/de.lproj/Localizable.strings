@@ -1,0 +1,56 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+	<key>%@ are waiting on you.</key>
+	<string>%@ warten auf dich.</string>
+	<key>%@ is waiting on you.</key>
+	<string>%@ wartet auf dich.</string>
+	<key>Ask ${bot} ${prompt}</key>
+	<string>Frage ${bot} ${prompt}</string>
+	<key>Ask a bot</key>
+	<string>Einen Bot fragen</string>
+	<key>Bot</key>
+	<string>Bot</string>
+	<key>Bots needing input</key>
+	<string>Bots, die auf dich warten</string>
+	<key>Chats</key>
+	<string>Chats</string>
+	<key>Get the bots needing input</key>
+	<string>Die Bots abrufen, die auf dich warten</string>
+	<key>Hermie could not do that.</key>
+	<string>Das konnte Hermie nicht.</string>
+	<key>Hermie could not reach its shared storage. Open Hermie once, then try again.</key>
+	<string>Hermie konnte seinen gemeinsamen Speicher nicht erreichen. Öffne Hermie einmal und versuche es erneut.</string>
+	<key>Hermie did not answer in time. The message may still have been sent — open Hermie to check.</key>
+	<string>Hermie hat nicht rechtzeitig geantwortet. Die Nachricht wurde vielleicht trotzdem gesendet – öffne Hermie, um es zu prüfen.</string>
+	<key>List the bots that are waiting for an answer, without opening Hermie.</key>
+	<string>Die Bots auflisten, die auf eine Antwort warten, ohne Hermie zu öffnen.</string>
+	<key>Message</key>
+	<string>Nachricht</string>
+	<key>Nothing is waiting on you.</key>
+	<string>Nichts wartet auf dich.</string>
+	<key>Open a chat</key>
+	<string>Einen Chat öffnen</string>
+	<key>Open one of your bots' chats in Hermie.</key>
+	<string>Den Chat mit einem deiner Bots in Hermie öffnen.</string>
+	<key>Open the chat with ${bot}</key>
+	<string>Den Chat mit ${bot} öffnen</string>
+	<key>Send ${prompt} to ${bot}</key>
+	<string>Sende ${prompt} an ${bot}</string>
+	<key>Send a message to one of your bots and wait for its reply.</key>
+	<string>Sende einem deiner Bots eine Nachricht und warte auf die Antwort.</string>
+	<key>Send a message to one of your bots without waiting for a reply.</key>
+	<string>Sende einem deiner Bots eine Nachricht, ohne auf eine Antwort zu warten.</string>
+	<key>Send to a bot</key>
+	<string>An einen Bot senden</string>
+	<key>That chat could not be opened.</key>
+	<string>Dieser Chat konnte nicht geöffnet werden.</string>
+	<key>There was nothing to send.</key>
+	<string>Es gab nichts zu senden.</string>
+	<key>What should I ask?</key>
+	<string>Was soll ich fragen?</string>
+	<key>What should I send?</key>
+	<string>Was soll ich senden?</string>
+</dict>
+</plist>

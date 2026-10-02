@@ -1,0 +1,24 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+	<key>${applicationName} ask ${bot}</key>
+	<string>${applicationName} ask ${bot}</string>
+	<key>${applicationName} bots needing input</key>
+	<string>${applicationName} bots needing input</string>
+	<key>Ask ${bot} in ${applicationName}</key>
+	<string>Ask ${bot} in ${applicationName}</string>
+	<key>Ask my ${applicationName} bot</key>
+	<string>Ask my ${applicationName} bot</string>
+	<key>Open ${bot} in ${applicationName}</key>
+	<string>Open ${bot} in ${applicationName}</string>
+	<key>Open a chat in ${applicationName}</key>
+	<string>Open a chat in ${applicationName}</string>
+	<key>Send a message with ${applicationName}</key>
+	<string>Send a message with ${applicationName}</string>
+	<key>Send to ${bot} in ${applicationName}</key>
+	<string>Send to ${bot} in ${applicationName}</string>
+	<key>What is waiting in ${applicationName}</key>
+	<string>What is waiting in ${applicationName}</string>
+</dict>
+</plist>

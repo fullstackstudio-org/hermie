@@ -10,6 +10,8 @@ yet.
 native/
   apple/
     HermieKit/     one Swift package with everything the Apple apps share
+    Extensions/    Widgets/, Share/ (iOS/ and macOS/ hold the two view controllers), Intents/ (compiled
+                   into the apps), Common/; sources only, referenced by both project.yml files
     Config/        Version.xcconfig, Shared.xcconfig, Signing.xcconfig.example
     xcodegen/      base.yml: the settings and target template both projects include
     scripts/       generate.sh, test.sh, archive.sh
@@ -97,6 +99,12 @@ Neither catalog is bundled as it is. `npm run i18n` compiles both into `Resource
 (`Localizable.strings(dict)`, `Native.strings(dict)`), and those are what the package ships:
 SwiftPM's native build system, the default up to Swift 6.3, copies an `.xcstrings` file without
 compiling it. So after editing `Native.xcstrings`, run `npm run i18n` and commit the `.lproj` files too.
+
+The extensions and the App Intents are other binaries with their own bundles, so their strings are in
+their own hand-written catalogs: `Extensions/<Widgets|Share|Intents>/Resources/Localizable.xcstrings`,
+keyed by the English text (what SwiftUI and App Intents look up), and the Shortcuts phrases in
+`Extensions/Intents/Resources/AppShortcuts.xcstrings`, every one of which keeps `${applicationName}`.
+`npm run i18n` compiles them next to themselves the same way, and the targets ship only the `.lproj`.
 
 The apps follow the system's per-app language and have no picker of their own.
 [docs/i18n.md](../docs/i18n.md#native-apps) has the details: plurals, the hand-written overrides, and

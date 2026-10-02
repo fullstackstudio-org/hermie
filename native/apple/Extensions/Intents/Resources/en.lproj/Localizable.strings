@@ -1,0 +1,56 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+	<key>%@ are waiting on you.</key>
+	<string>%@ are waiting on you.</string>
+	<key>%@ is waiting on you.</key>
+	<string>%@ is waiting on you.</string>
+	<key>Ask ${bot} ${prompt}</key>
+	<string>Ask ${bot} ${prompt}</string>
+	<key>Ask a bot</key>
+	<string>Ask a bot</string>
+	<key>Bot</key>
+	<string>Bot</string>
+	<key>Bots needing input</key>
+	<string>Bots needing input</string>
+	<key>Chats</key>
+	<string>Chats</string>
+	<key>Get the bots needing input</key>
+	<string>Get the bots needing input</string>
+	<key>Hermie could not do that.</key>
+	<string>Hermie could not do that.</string>
+	<key>Hermie could not reach its shared storage. Open Hermie once, then try again.</key>
+	<string>Hermie could not reach its shared storage. Open Hermie once, then try again.</string>
+	<key>Hermie did not answer in time. The message may still have been sent — open Hermie to check.</key>
+	<string>Hermie did not answer in time. The message may still have been sent — open Hermie to check.</string>
+	<key>List the bots that are waiting for an answer, without opening Hermie.</key>
+	<string>List the bots that are waiting for an answer, without opening Hermie.</string>
+	<key>Message</key>
+	<string>Message</string>
+	<key>Nothing is waiting on you.</key>
+	<string>Nothing is waiting on you.</string>
+	<key>Open a chat</key>
+	<string>Open a chat</string>
+	<key>Open one of your bots' chats in Hermie.</key>
+	<string>Open one of your bots' chats in Hermie.</string>
+	<key>Open the chat with ${bot}</key>
+	<string>Open the chat with ${bot}</string>
+	<key>Send ${prompt} to ${bot}</key>
+	<string>Send ${prompt} to ${bot}</string>
+	<key>Send a message to one of your bots and wait for its reply.</key>
+	<string>Send a message to one of your bots and wait for its reply.</string>
+	<key>Send a message to one of your bots without waiting for a reply.</key>
+	<string>Send a message to one of your bots without waiting for a reply.</string>
+	<key>Send to a bot</key>
+	<string>Send to a bot</string>
+	<key>That chat could not be opened.</key>
+	<string>That chat could not be opened.</string>
+	<key>There was nothing to send.</key>
+	<string>There was nothing to send.</string>
+	<key>What should I ask?</key>
+	<string>What should I ask?</string>
+	<key>What should I send?</key>
+	<string>What should I send?</string>
+</dict>
+</plist>

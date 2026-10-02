@@ -1,0 +1,17 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+	<!--
+		Every Mac app extension is sandboxed. The widget reads one file and the avatars out of the App
+		Group and nothing else: no network, no user files.
+	-->
+	<key>com.apple.security.app-sandbox</key>
+	<true/>
+	<!-- The same group as native/macos/App/Hermie.entitlements. Change both sides, or neither. -->
+	<key>com.apple.security.application-groups</key>
+	<array>
+		<string>group.dev.hermie.app</string>
+	</array>
+</dict>
+</plist>

@@ -125,6 +125,41 @@ xcodebuild archive -quiet \
   DEVELOPMENT_TEAM="$HERMIE_TEAM_ID"
 [[ -d "$archive" ]] || fail "xcodebuild archive finished without writing $archive."
 
+# The app embeds its extensions (the widgets and the share extension), which the
+# archive signs along with it: the scheme builds them as the app's dependencies,
+# and DEVELOPMENT_TEAM above applies to every target. They take MARKETING_VERSION
+# and the build number from the same Config/Shared.xcconfig as the app, and App
+# Store Connect rejects a build whose extension disagrees with its app, so check
+# both here rather than after an upload.
+case "$platform" in
+  ios)
+    app_bundle="$archive/Products/Applications/Hermie.app"
+    plugins="$app_bundle/PlugIns"
+    app_info="$app_bundle/Info.plist"
+    ;;
+  macos)
+    app_bundle="$archive/Products/Applications/Hermie.app"
+    plugins="$app_bundle/Contents/PlugIns"
+    app_info="$app_bundle/Contents/Info.plist"
+    ;;
+esac
+app_version="$(/usr/libexec/PlistBuddy -c 'Print :CFBundleShortVersionString' "$app_info")"
+app_build="$(/usr/libexec/PlistBuddy -c 'Print :CFBundleVersion' "$app_info")"
+for extension in HermieWidgetsExtension HermieShareExtension; do
+  appex="$plugins/$extension.appex"
+  [[ -d "$appex" ]] || fail "the archive has no $extension.appex in $plugins."
+  if [[ "$platform" == macos ]]; then
+    appex_info="$appex/Contents/Info.plist"
+  else
+    appex_info="$appex/Info.plist"
+  fi
+  appex_version="$(/usr/libexec/PlistBuddy -c 'Print :CFBundleShortVersionString' "$appex_info")"
+  appex_build="$(/usr/libexec/PlistBuddy -c 'Print :CFBundleVersion' "$appex_info")"
+  [[ "$appex_version" == "$app_version" && "$appex_build" == "$app_build" ]] ||
+    fail "$extension is $appex_version ($appex_build) but the app is $app_version ($app_build)."
+  codesign --verify --strict "$appex" || fail "$extension.appex is not signed."
+done
+
 # manageAppVersionAndBuildNumber is false: left to itself the export renumbers
 # the build, and the commit count is the build number on purpose.
 cat >"$options" <<PLIST

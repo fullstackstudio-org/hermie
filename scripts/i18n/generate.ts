@@ -15,6 +15,14 @@
  * next to the catalog (Native.xcstrings) — which is read, and compiled into the
  * same `.lproj` directories as `Native.strings(dict)`.
  *
+ * Also hand-written, and compiled the same way next to themselves: the catalogs
+ * of the widget and share extensions and of the App Intents
+ * (native/apple/Extensions/<Widgets|Share|Intents>/Resources/<Table>.xcstrings →
+ * <lang>.lproj/<Table>.strings(dict)). Each is its own binary's table, so they
+ * cannot live in HermieUI's bundle; the keys are the English text, which is what
+ * SwiftUI and App Intents look up in a bundle's `Localizable` table, and the
+ * Shortcuts phrases are in `AppShortcuts`, the table the system reads them from.
+ *
  * The `.xcstrings` files are what Xcode shows; the package ships the compiled
  * `.lproj` files instead (see compile-xcstrings.ts for why).
  *
@@ -35,6 +43,11 @@ const check = process.argv.includes('--check')
 
 const resources = join(repoRoot, 'native/apple/HermieKit/Sources/HermieUI/Resources')
 
+/** The extensions' and the App Intents' resource directories (see the header). */
+const EXTENSION_RESOURCES = ['Widgets', 'Share', 'Intents'].map(name =>
+  join(repoRoot, 'native/apple/Extensions', name, 'Resources')
+)
+
 const OUTPUTS = {
   catalogue: join(repoRoot, 'contract/i18n/catalogue.json'),
   xcstrings: join(resources, 'Localizable.xcstrings'),
@@ -44,10 +57,31 @@ const OUTPUTS = {
 
 /** The compiled `.lproj` files that are in the source tree now, as absolute paths. */
 function compiledOnDisk(): string[] {
-  return readdirSync(resources, { withFileTypes: true })
-    .filter(entry => entry.isDirectory() && entry.name.endsWith('.lproj'))
-    .flatMap(entry => readdirSync(join(resources, entry.name)).map(file => join(resources, entry.name, file)))
+  return [resources, ...EXTENSION_RESOURCES]
+    .filter(directory => existsSync(directory))
+    .flatMap(directory =>
+      readdirSync(directory, { withFileTypes: true })
+        .filter(entry => entry.isDirectory() && entry.name.endsWith('.lproj'))
+        .flatMap(entry => readdirSync(join(directory, entry.name)).map(file => join(directory, entry.name, file)))
+    )
     .sort()
+}
+
+/** Every catalog in the extensions' resource directories, compiled next to itself. */
+function compileExtensionCatalogs(): (readonly [string, string])[] {
+  return EXTENSION_RESOURCES.filter(directory => existsSync(directory)).flatMap(directory =>
+    readdirSync(directory)
+      .filter(name => name.endsWith('.xcstrings'))
+      .sort()
+      .flatMap(name =>
+        [
+          ...compileXcstrings(
+            JSON.parse(readFileSync(join(directory, name), 'utf8')) as XcstringsFile,
+            name.slice(0, -'.xcstrings'.length)
+          )
+        ].map(([path, text]) => [join(directory, path), text] as const)
+      )
+  )
 }
 
 function main(): void {
@@ -65,7 +99,9 @@ function main(): void {
       JSON.parse(readFileSync(join(resources, 'Native.xcstrings'), 'utf8')) as XcstringsFile,
       'Native'
     )
-  ].map(([path, text]) => [join(resources, path), text] as const)
+  ]
+    .map(([path, text]) => [join(resources, path), text] as const)
+    .concat(compileExtensionCatalogs())
 
   for (const [path, text] of compiled) {
     files.set(path, text)

@@ -1,0 +1,34 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+	<key>%@ needs input</key>
+	<string>%@ wartet auf dich</string>
+	<key>Chat</key>
+	<string>Chat</string>
+	<key>Chats</key>
+	<string>Chats</string>
+	<key>Folder</key>
+	<string>Ordner</string>
+	<key>How many conversations have stopped and are waiting on you.</key>
+	<string>Wie viele Unterhaltungen stehen und auf dich warten.</string>
+	<key>Needs input</key>
+	<string>Wartet auf dich</string>
+	<key>No messages yet.</key>
+	<string>Noch keine Nachrichten.</string>
+	<key>Nothing waiting</key>
+	<string>Nichts wartet</string>
+	<key>One conversation: who it is, what they last said, and whether they need you.</key>
+	<string>Eine Unterhaltung: wer es ist, was zuletzt gesagt wurde und ob auf dich gewartet wird.</string>
+	<key>Open Hermie to fill this in.</key>
+	<string>Öffne Hermie, um das zu füllen.</string>
+	<key>The three most recent conversations, or one folder's, with what is unread and what needs you.</key>
+	<string>Die drei neuesten Unterhaltungen oder die eines Ordners, mit dem Ungelesenen und dem, was auf dich wartet.</string>
+	<key>Which conversation this widget shows.</key>
+	<string>Welche Unterhaltung dieses Widget zeigt.</string>
+	<key>Which part of your chat list this widget shows.</key>
+	<string>Welchen Teil deiner Chatliste dieses Widget zeigt.</string>
+	<key>need</key>
+	<string>warten</string>
+</dict>
+</plist>

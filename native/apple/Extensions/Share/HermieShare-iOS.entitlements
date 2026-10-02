@@ -1,0 +1,29 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+	<!--
+		The same group the app and the widget extension name, and the ONLY reason this extension can
+		hand anything over: a share extension is its own sandboxed process that is killed the moment
+		its sheet closes, so a file it writes into its own container is a file nothing will ever read.
+	-->
+	<key>com.apple.security.application-groups</key>
+	<array>
+		<string>group.dev.hermie.app</string>
+	</array>
+	<!--
+		And the keychain group the app writes its delivery credential into (ADR-0026): the container
+		carries what a bot is called, and a bearer token has no business in a plain directory every
+		binary in the group can read.
+
+		`$(AppIdentifierPrefix)dev.hermie.app` is the app's FIRST group, where its writes land. A read
+		searches every declared group, so naming the app's here is enough and nothing names a group on
+		the write side. This is the only group this extension declares: it can read the app's
+		credentials item by item, as the app can, and reads exactly one.
+	-->
+	<key>keychain-access-groups</key>
+	<array>
+		<string>$(AppIdentifierPrefix)dev.hermie.app</string>
+	</array>
+</dict>
+</plist>

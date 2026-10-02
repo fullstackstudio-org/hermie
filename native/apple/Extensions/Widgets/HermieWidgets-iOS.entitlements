@@ -1,0 +1,15 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+	<!--
+		The extension's half of the App Group; the app's half is in native/ios/App/Hermie.entitlements.
+		Two sandboxes that disagree about the group share nothing, and the failure is a widget that is
+		permanently empty rather than an error anybody sees. Change both sides, or neither.
+	-->
+	<key>com.apple.security.application-groups</key>
+	<array>
+		<string>group.dev.hermie.app</string>
+	</array>
+</dict>
+</plist>

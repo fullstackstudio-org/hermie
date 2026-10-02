@@ -1,0 +1,30 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+	<key>A link or some text</key>
+	<string>A link or some text</string>
+	<key>Add a note (optional)</key>
+	<string>Add a note (optional)</string>
+	<key>Cancel</key>
+	<string>Cancel</string>
+	<key>No chats yet</key>
+	<string>No chats yet</string>
+	<key>Nothing to send</key>
+	<string>Nothing to send</string>
+	<key>Open Hermie once so it can tell this sheet which bots your gateway has.</key>
+	<string>Open Hermie once so it can tell this sheet which bots your gateway has.</string>
+	<key>Preparing…</key>
+	<string>Preparing…</string>
+	<key>Send</key>
+	<string>Send</string>
+	<key>Send to Hermie</key>
+	<string>Send to Hermie</string>
+	<key>Sending…</key>
+	<string>Sending…</string>
+	<key>Sent to %@</key>
+	<string>Sent to %@</string>
+	<key>Will send when Hermie opens</key>
+	<string>Will send when Hermie opens</string>
+</dict>
+</plist>
