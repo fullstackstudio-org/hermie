@@ -77,6 +77,9 @@ public final class GatewayAccounts {
   public private(set) var statuses: [String: Status] = [:]
   /// Per gateway id: bumped whenever its stored credentials changed (signed in, out, or removed).
   public private(set) var credentialsRevision: [String: Int] = [:]
+  /// Gateways signed out of whose push registration could not be retired, kept so a
+  /// screen can say so; the next sign-out or removal asks the relay again.
+  public private(set) var pushStillRegistered: Set<String> = []
 
   @ObservationIgnored private var coordinators: [String: (baseURL: String, coordinator: TokenCoordinator)] = [:]
   @ObservationIgnored private var following = false
@@ -215,7 +218,14 @@ public final class GatewayAccounts {
     await endSession?(id)
     await revokeIfAdvertised(id)
     try? await sync.signOut(id: id, scope: .thisDevice)
-    await push?.retire(gatewayId: id)
+    do {
+      try await push?.retire(gatewayId: id)
+      pushStillRegistered.remove(id)
+    } catch {
+      // The retire stores its mark first and changes nothing when it cannot: the
+      // sign-out stands, but this gateway can still send notifications here.
+      pushStillRegistered.insert(id)
+    }
     _ = share?.drop(gatewayId: id)
     credentialsChanged(id, signedIn: false)
   }
