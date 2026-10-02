@@ -11,6 +11,7 @@ import SwiftUI
  */
 struct NotificationsSettingsPage: View {
   @Environment(AppLaunch.self) private var launch
+  @State private var confirmingReset = false
 
   var body: some View {
     let push = launch.push
@@ -30,6 +31,11 @@ struct NotificationsSettingsPage: View {
             .accessibilityIdentifier("hermie.settings.notifications.status")
         }
 
+        if push.switchWriteFailed {
+          Text(NativeStrings.Push.switchWriteFailed)
+            .accessibilityIdentifier("hermie.settings.notifications.switchWriteFailed")
+        }
+
         if push.enabled, push.permission == .denied {
           Button(Strings.App.Settings.Notifications.openSystemSettings) {
             push.system.openSettings()
@@ -38,6 +44,22 @@ struct NotificationsSettingsPage: View {
         }
       } footer: {
         SettingsNote(Strings.App.Settings.Notifications.enabledHint)
+      }
+
+      if let trouble = push.trouble {
+        Section {
+          Text(trouble == .settingsUnreadable ? NativeStrings.Push.troubleSettings : NativeStrings.Push.troubleRegistrations)
+          Button(NativeStrings.Push.reset, role: .destructive) {
+            confirmingReset = true
+          }
+          .accessibilityIdentifier("hermie.settings.notifications.reset")
+        } footer: {
+          SettingsNote(NativeStrings.Push.resetHint)
+        }
+      }
+
+      if !push.resetLeftovers.isEmpty {
+        Text(NativeStrings.Push.resetLeftovers)
       }
 
       if push.enabled, !launch.gateways.entries.isEmpty {
@@ -59,6 +81,14 @@ struct NotificationsSettingsPage: View {
       #endif
     }
     .formStyle(.grouped)
+    .confirmationDialog(NativeStrings.Push.reset, isPresented: $confirmingReset, titleVisibility: .visible) {
+      Button(NativeStrings.Push.reset, role: .destructive) {
+        Task { await push.resetDevice() }
+      }
+      Button(Strings.App.Common.cancel, role: .cancel) {}
+    } message: {
+      Text(NativeStrings.Push.resetHint)
+    }
   }
 
   /// One sentence about the device as a whole, or nil when the gateway rows say enough.
@@ -80,6 +110,7 @@ struct NotificationsSettingsPage: View {
   private func stateLabel(_ state: PushGatewayState) -> String {
     switch state {
     case .off: NativeStrings.Push.notRegistered
+    case .signedOut: NativeStrings.Push.signedOut
     case .waiting: NativeStrings.Push.waiting
     case .registered: NativeStrings.Push.registered
     case .limited: NativeStrings.Push.limited
@@ -114,6 +145,12 @@ struct NotificationsSettingsPage: View {
               }
             }
             .accessibilityElement(children: .combine)
+          }
+
+          if push.undecodable.contains(entry.id) {
+            LabeledContent(entry.name) {
+              Text(verbatim: "stored registration unreadable")
+            }
           }
 
           if case .failed(let failure) = push.state(for: entry.id) {

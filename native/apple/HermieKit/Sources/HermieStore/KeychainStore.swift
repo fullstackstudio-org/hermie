@@ -72,7 +72,7 @@ import Security
 /// Every key must satisfy `SecretKeys.isValidKey(_:)` (`^[\w.-]+$`, ASCII), the
 /// rule `expo-secure-store` enforces in JavaScript before its native code runs;
 /// anything else throws `invalidKey` before the keychain is touched.
-public struct KeychainStore: SecretStore {
+public struct KeychainStore: ListableSecretStore {
   /// The service of every item Hermie writes.
   static let service = "app:no-auth"
   /// Written by `expo-secure-store` versions before the auth suffix; read and
@@ -214,6 +214,17 @@ public struct KeychainStore: SecretStore {
   /// delete `SecretKeys.gateway(id).all` for that.
   @discardableResult
   public func removeAll(prefix: String) throws -> Int {
+    var removed = 0
+    for key in try keys(prefix: prefix) {
+      if try deleteReportingRemoval(key) { removed += 1 }
+    }
+
+    return removed
+  }
+
+  /// Every key under Hermie's services that starts with `prefix`, sorted, by the
+  /// same rule `removeAll(prefix:)` deletes by. Lists attributes only, never data.
+  public func keys(prefix: String) throws -> [String] {
     guard SecretKeys.isValidOwnedPrefix(prefix) else { throw SecretStoreError.invalidPrefix }
 
     var matching = Set<String>()
@@ -241,12 +252,7 @@ public struct KeychainStore: SecretStore {
       }
     }
 
-    var removed = 0
-    for key in matching.sorted() {
-      if try deleteReportingRemoval(key) { removed += 1 }
-    }
-
-    return removed
+    return matching.sorted()
   }
 
   // MARK: - Queries

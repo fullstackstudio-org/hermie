@@ -814,6 +814,167 @@
         }
       }
     },
+    "native.push.reset" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Mitteilungen auf diesem Gerät zurücksetzen"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Reset notifications on this device"
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Meldingen op dit apparaat opnieuw instellen"
+          }
+        }
+      }
+    },
+    "native.push.resetHint" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Zieht die Registrierungen dieses Geräts bei jedem noch erreichbaren Gateway zurück, vergisst sie und schaltet Mitteilungen hier aus. Schalte sie danach wieder ein."
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Takes this device’s registrations back from every gateway it can still reach, forgets them and turns notifications off here. Turn them on again afterwards."
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Trekt de registraties van dit apparaat in bij elke gateway die nog bereikbaar is, vergeet ze en zet meldingen hier uit. Zet ze daarna weer aan."
+          }
+        }
+      }
+    },
+    "native.push.resetLeftovers" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Einige Registrierungen konnten noch nicht zurückgezogen werden. Setze erneut zurück, sobald das Gerät online ist."
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Some registrations could not be taken back yet. Reset again when the device is online."
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Sommige registraties konden nog niet worden ingetrokken. Stel opnieuw in zodra het apparaat online is."
+          }
+        }
+      }
+    },
+    "native.push.signedOut" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Abgemeldet"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Signed out"
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Afgemeld"
+          }
+        }
+      }
+    },
+    "native.push.switchWriteFailed" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Der Mitteilungsschalter konnte nicht gespeichert werden. Versuche es erneut."
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "The notification switch could not be saved. Try again."
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "De meldingsschakelaar kon niet worden opgeslagen. Probeer het opnieuw."
+          }
+        }
+      }
+    },
+    "native.push.troubleRegistrations" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Hermie kann die Mitteilungsregistrierungen dieses Geräts nicht lesen, daher sind Mitteilungen hier pausiert."
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Hermie cannot read this device’s notification registrations, so notifications are paused here."
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Hermie kan de meldingsregistraties van dit apparaat niet lezen, dus meldingen staan hier stil."
+          }
+        }
+      }
+    },
+    "native.push.troubleSettings" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Hermie kann die Mitteilungseinstellungen dieses Geräts nicht lesen, daher sind Mitteilungen hier pausiert."
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Hermie cannot read this device’s notification settings, so notifications are paused here."
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Hermie kan de meldingsinstellingen van dit apparaat niet lezen, dus meldingen staan hier stil."
+          }
+        }
+      }
+    },
     "native.push.waiting" : {
       "extractionState" : "manual",
       "localizations" : {

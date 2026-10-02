@@ -132,6 +132,32 @@ public struct UIMetaDocuments: Sendable, Hashable, Codable {
     return copy
   }
 
+  /// Put this device's own `seen` entries into the app section (`nil` removes one), and, when
+  /// `sweep` is given, sweep every other stale entry and write each in the shape the gateway
+  /// reads (`pushSectionFor`). Every other field stays exactly as it is.
+  public mutating func fold(pushSeen: [String: JSONValue?], sweep: (now: Double, perChat: Bool)? = nil) {
+    guard !pushSeen.isEmpty, app != nil || pushSeen.values.contains(where: { $0 != nil }) else {
+      return
+    }
+
+    var section = app ?? ["v": .number(Double(UIMeta.appSectionVersion))]
+    var push = section[UIMeta.pushField]?.objectValue ?? [:]
+    var seen = push[PushRows.seenKey]?.objectValue ?? [:]
+
+    if let sweep {
+      let readable = PushRows.seenOf(.object([UIMeta.pushField: .object(push)]))
+      seen = PushRows.sweptSeen(readable, now: sweep.now, perChat: sweep.perChat)
+    }
+
+    for (installation, entry) in pushSeen {
+      seen[installation] = entry
+    }
+
+    push[PushRows.seenKey] = .object(seen)
+    section[UIMeta.pushField] = .object(push)
+    app = section
+  }
+
   /// Put this device's own push rows into the app section: `nil` removes a row.
   /// Every other row, and every other field, stays exactly as it is.
   public mutating func fold(pushRows: [String: JSONObject?]) {
@@ -231,8 +257,9 @@ public struct UIMetaDocuments: Sendable, Hashable, Codable {
 public struct UIMetaPushRow: Sendable, Hashable {
   /// The map the rows live in, inside `push`.
   public static let registrations = "registrations"
-  /// The keys this type writes itself; `carried` cannot override them.
-  public static let knownKeys: Set<String> = ["v", "transport", "relay", "handle", "sendSecret"]
+  /// The keys this type writes itself; `carried` cannot override them. The send secret is the
+  /// row's `secret`, the name every sender reads (`pushAddressOf` in `packages/gateway-client`).
+  public static let knownKeys: Set<String> = ["v", "transport", "relay", "handle", "secret"]
 
   public var transport: String
   public var relay: String?
@@ -259,7 +286,7 @@ public struct UIMetaPushRow: Sendable, Hashable {
       transport: transport,
       relay: json["relay"]?.stringValue,
       handle: json["handle"]?.stringValue,
-      sendSecret: json["sendSecret"]?.stringValue,
+      sendSecret: json["secret"]?.stringValue,
       carried: json
     )
   }
@@ -272,7 +299,7 @@ public struct UIMetaPushRow: Sendable, Hashable {
 
     if let relay { row["relay"] = .string(relay) }
     if let handle { row["handle"] = .string(handle) }
-    if let sendSecret { row["sendSecret"] = .string(sendSecret) }
+    if let sendSecret { row["secret"] = .string(sendSecret) }
 
     return row
   }

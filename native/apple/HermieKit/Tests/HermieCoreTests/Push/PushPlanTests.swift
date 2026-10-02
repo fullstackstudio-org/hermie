@@ -169,6 +169,32 @@ struct PushPlanTests {
     #expect(PushPlan.steps(Self.input(gateways: ids, stored: stored)) == [.delete(gatewayId: "g9", reason: .overLimit)])
   }
 
+  @Test("the selection is sticky: a held slot is kept whatever the order, free slots fill in list order")
+  func stickySelection() {
+    let ids = (1...9).map { "g\($0)" }
+    let holding = Set(ids.prefix(8))
+
+    #expect(PushPlan.selection(ids, holding: holding).limited == ["g9"])
+    #expect(PushPlan.selection(["g9"] + ids.prefix(8), holding: holding).limited == ["g9"])
+    #expect(PushPlan.selection(ids.filter { $0 != "g3" }, holding: holding).limited.isEmpty)
+
+    let stored = ids.prefix(8).map { Self.record(F.registration($0, refreshedAt: Self.start)) }
+    #expect(PushPlan.steps(Self.input(gateways: ["g9"] + ids.prefix(8), stored: stored)) == [])
+  }
+
+  @Test("a frozen gateway gets no step and keeps its slot")
+  func frozen() {
+    let ids = (1...9).map { "g\($0)" }
+    let stored = ids.prefix(8).filter { $0 != "g3" }.map { Self.record(F.registration($0, refreshedAt: Self.start)) }
+    var input = Self.input(gateways: ids, stored: stored)
+    input.frozen = ["g3"]
+
+    #expect(PushPlan.steps(input) == [])
+
+    input.wanted = false
+    #expect(!PushPlan.steps(input).contains { $0.gatewayId == "g3" })
+  }
+
   @Test("a gateway backed off after a failed store is not registered again in this pass")
   func backedOff() {
     #expect(PushPlan.steps(Self.input(gateways: ["g1", "g2"], backedOff: ["g1"])) == [.register(gatewayId: "g2")])

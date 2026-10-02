@@ -72,6 +72,20 @@
 	<string>Registriert</string>
 	<key>native.push.relay</key>
 	<string>Relay</string>
+	<key>native.push.reset</key>
+	<string>Mitteilungen auf diesem Gerät zurücksetzen</string>
+	<key>native.push.resetHint</key>
+	<string>Zieht die Registrierungen dieses Geräts bei jedem noch erreichbaren Gateway zurück, vergisst sie und schaltet Mitteilungen hier aus. Schalte sie danach wieder ein.</string>
+	<key>native.push.resetLeftovers</key>
+	<string>Einige Registrierungen konnten noch nicht zurückgezogen werden. Setze erneut zurück, sobald das Gerät online ist.</string>
+	<key>native.push.signedOut</key>
+	<string>Abgemeldet</string>
+	<key>native.push.switchWriteFailed</key>
+	<string>Der Mitteilungsschalter konnte nicht gespeichert werden. Versuche es erneut.</string>
+	<key>native.push.troubleRegistrations</key>
+	<string>Hermie kann die Mitteilungsregistrierungen dieses Geräts nicht lesen, daher sind Mitteilungen hier pausiert.</string>
+	<key>native.push.troubleSettings</key>
+	<string>Hermie kann die Mitteilungseinstellungen dieses Geräts nicht lesen, daher sind Mitteilungen hier pausiert.</string>
 	<key>native.push.waiting</key>
 	<string>Wartet auf die Push-Adresse dieses Geräts…</string>
 	<key>native.requests.answered</key>

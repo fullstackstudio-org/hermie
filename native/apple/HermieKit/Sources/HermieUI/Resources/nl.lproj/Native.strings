@@ -72,6 +72,20 @@
 	<string>Geregistreerd</string>
 	<key>native.push.relay</key>
 	<string>Relay</string>
+	<key>native.push.reset</key>
+	<string>Meldingen op dit apparaat opnieuw instellen</string>
+	<key>native.push.resetHint</key>
+	<string>Trekt de registraties van dit apparaat in bij elke gateway die nog bereikbaar is, vergeet ze en zet meldingen hier uit. Zet ze daarna weer aan.</string>
+	<key>native.push.resetLeftovers</key>
+	<string>Sommige registraties konden nog niet worden ingetrokken. Stel opnieuw in zodra het apparaat online is.</string>
+	<key>native.push.signedOut</key>
+	<string>Afgemeld</string>
+	<key>native.push.switchWriteFailed</key>
+	<string>De meldingsschakelaar kon niet worden opgeslagen. Probeer het opnieuw.</string>
+	<key>native.push.troubleRegistrations</key>
+	<string>Hermie kan de meldingsregistraties van dit apparaat niet lezen, dus meldingen staan hier stil.</string>
+	<key>native.push.troubleSettings</key>
+	<string>Hermie kan de meldingsinstellingen van dit apparaat niet lezen, dus meldingen staan hier stil.</string>
 	<key>native.push.waiting</key>
 	<string>Wacht op het pushadres van dit apparaat…</string>
 	<key>native.requests.answered</key>

@@ -49,7 +49,7 @@ enum PushFixtures {
 
 /// A relay client that records every call and answers from a script, per call kind.
 final class ScriptedRelay: PushRelayClient {
-  enum Call: Equatable {
+  enum Call: Hashable {
     case register(token: String, environment: APNsEnvironment, topic: String)
     case update(handle: String, manageSecret: String, token: String, environment: APNsEnvironment)
     case delete(handle: String, manageSecret: String)
@@ -151,9 +151,17 @@ final class PushClock: Sendable {
 }
 
 /// A secret store that can be made to fail reads, as a keychain does before the first unlock.
-final class LockableSecretStore: SecretStore {
+final class LockableSecretStore: ListableSecretStore {
   let inner = InMemorySecretStore()
   private let locked = Mutex(false)
+
+  func keys(prefix: String) throws -> [String] {
+    if locked.withLock({ $0 }) {
+      throw SecretStoreError.interactionNotAllowed
+    }
+
+    return try inner.keys(prefix: prefix)
+  }
 
   func lock(_ value: Bool) {
     locked.withLock { $0 = value }

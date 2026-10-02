@@ -64,6 +64,8 @@ public final class UIMetaSync: Sendable {
     var owner: String?
     /// This device's own push rows, folded into every copy taken in.
     var pushRows: [String: JSONObject?] = [:]
+    /// This device's own `seen` entries, likewise.
+    var pushSeen: [String: JSONValue?] = [:]
     var contributors: [Contributor] = []
     var flushing: Task<Void, Never>?
     var debounced: Task<Void, Never>?
@@ -207,6 +209,7 @@ public final class UIMetaSync: Sendable {
     }
 
     core.documents.fold(pushRows: core.pushRows)
+    core.documents.fold(pushSeen: core.pushSeen)
     core.claim()
   }
 
@@ -242,6 +245,7 @@ public final class UIMetaSync: Sendable {
       core.documents.app = nil
       core.owner = nil
       core.pushRows = [:]
+      core.pushSeen = [:]
       core.documentsVersion += 1
       core.debounceGeneration += 1
 
@@ -312,6 +316,30 @@ public final class UIMetaSync: Sendable {
 
       let before = core.documents.app
       core.documents.fold(pushRows: [installation: row?.json])
+
+      guard core.documents.app != before else {
+        return false
+      }
+
+      core.documentsVersion += 1
+      core.state.markApp()
+      return true
+    }
+
+    afterEdit(changed: changed, edit: .chore)
+  }
+
+  /// This installation's `seen` heartbeat in the app section, or `nil` to remove it: which chat it
+  /// is reading, so the notifier holds back a notification for it. Every stale entry is swept
+  /// and every entry written in the shape the gateway reads (`perChat`), as `pushSectionFor` does.
+  /// Like the rows, kept across every copy taken in, never dated, never stored on disk.
+  public func setPushSeen(_ entry: PushSeenEntry?, installation: String, now: Double, perChat: Bool) {
+    let json = entry?.json(perChat: perChat)
+    let changed = core.withLock { core -> Bool in
+      core.pushSeen[installation] = .some(json)
+
+      let before = core.documents.app
+      core.documents.fold(pushSeen: [installation: json], sweep: (now, perChat))
 
       guard core.documents.app != before else {
         return false
@@ -526,6 +554,7 @@ public final class UIMetaSync: Sendable {
   private static func take(_ snapshot: UIMetaSnapshot, into core: inout Core) {
     core.documents.take(snapshot)
     core.documents.fold(pushRows: core.pushRows)
+    core.documents.fold(pushSeen: core.pushSeen)
 
     let contributors = core.live
 

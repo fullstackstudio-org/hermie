@@ -222,21 +222,60 @@ public struct PushTap: Sendable, Equatable {
   }
 }
 
-/// One row of `approval.pending`, as far as an action needs to read it.
+/// One row of `approval.pending`, as far as an action needs to read it: which bot's session it is
+/// open in, and what it offers.
 public struct PushOpenApproval: Sendable, Equatable {
+  /// The bot (profile) whose session asked.
+  public var bot: String
+  /// The session it is open in: what `approval.respond` needs as `session_id`.
+  public var sessionId: String
   public var requestId: String
   public var choices: [String]
 
-  public init(requestId: String, choices: [String]) {
+  public init(bot: String, sessionId: String, requestId: String, choices: [String]) {
+    self.bot = bot
+    self.sessionId = sessionId
     self.requestId = requestId
     self.choices = choices
+  }
+}
+
+/// What to read the open requests of: one bot's session on one gateway. `sessionId` is the one the
+/// notification named, or `""` for the bot's own chat.
+public struct PushApprovalScope: Sendable, Hashable {
+  public var gatewayId: String
+  public var bot: String
+  public var sessionId: String
+
+  public init(gatewayId: String, bot: String, sessionId: String) {
+    self.gatewayId = gatewayId
+    self.bot = bot
+    self.sessionId = sessionId
+  }
+}
+
+/// One answer to send: `approval.respond` for one request of one bot's session on one gateway.
+public struct PushApprovalAnswer: Sendable, Hashable {
+  public var gatewayId: String
+  public var bot: String
+  public var sessionId: String
+  public var requestId: String
+  public var choice: String
+
+  public init(gatewayId: String, bot: String, sessionId: String, requestId: String, choice: String) {
+    self.gatewayId = gatewayId
+    self.bot = bot
+    self.sessionId = sessionId
+    self.requestId = requestId
+    self.choice = choice
   }
 }
 
 /// What the app should do about a tap once it has asked the gateway.
 public enum PushIntent: Sendable, Equatable {
   case openChat(bot: String)
-  case respond(bot: String, requestId: String, choice: String)
+  /// Answer this request of this session.
+  case respond(bot: String, sessionId: String, requestId: String, choice: String)
 }
 
 /// Where a tap lands.
@@ -252,19 +291,40 @@ public enum PushTapRules {
    The tap, decided against what the gateway currently lists as open (`resolvePushTap`). Every path
    that is not an exact match on a still-open request opens the chat, which is the safe answer and
    the useful one. Allow sends `once` and Deny sends `deny`, and only when the gateway offers them.
+
+   An exact match is the request id AND the bot AND the session: a notification that names bot A
+   and the id of a request open in bot B's session answers nothing (anyone who can send to this
+   device chooses what the payload says). A notification about a branch or another conversation
+   answers nothing either, as in the Expo app: the reader lands there and answers it in place.
    */
   public static func resolve(_ tap: PushTap, pending: [PushOpenApproval]) -> PushIntent {
     let open = PushIntent.openChat(bot: tap.bot)
 
-    guard tap.action != .open, !tap.requestId.isEmpty,
-      let match = pending.first(where: { $0.requestId.trimmingCharacters(in: .whitespacesAndNewlines) == tap.requestId })
-    else {
+    guard tap.action != .open, !tap.requestId.isEmpty, answersInPlace(tap) else {
+      return open
+    }
+
+    let match = pending.first { approval in
+      approval.requestId.trimmingCharacters(in: .whitespacesAndNewlines) == tap.requestId
+        && approval.bot == tap.bot
+        && !approval.sessionId.isEmpty
+        && (tap.sessionId.isEmpty || approval.sessionId == tap.sessionId)
+    }
+
+    guard let match else {
       return open
     }
 
     let wanted = tap.action == .allow ? "once" : "deny"
 
-    return match.choices.contains(wanted) ? .respond(bot: tap.bot, requestId: tap.requestId, choice: wanted) : open
+    return match.choices.contains(wanted)
+      ? .respond(bot: tap.bot, sessionId: match.sessionId, requestId: tap.requestId, choice: wanted) : open
+  }
+
+  /// Whether an action on this tap may be answered without opening anything: only for the bot's own
+  /// chat, never for a branch or another conversation.
+  public static func answersInPlace(_ tap: PushTap) -> Bool {
+    tap.sessionKind != .branch && tap.sessionKind != .other
   }
 
   /**

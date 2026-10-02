@@ -60,6 +60,9 @@ public enum StoreKeys {
    (`SecretKeys.Gateway.push`), which a gateway removal does not touch either.
    */
   public static let pushRegistrations = "hermie.push.registrations"
+  /// The gateways signed out of on this device, which push keeps unregistered until the next
+  /// sign-in there: a JSON array of gateway ids. Device-wide, like the registrations.
+  public static let pushRetired = "hermie.push.retired"
   /// One map for every gateway's chat arrangement, keyed by gateway id. Not suffixed.
   public static let chatsLayout = "hermie.chats.layout"
 

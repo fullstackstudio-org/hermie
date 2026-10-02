@@ -171,30 +171,74 @@ struct PushPayloadTests {
 
   static let tap = PushTap(bot: "ops", requestId: "r-1", action: .allow)
 
+  static func approval(
+    _ requestId: String = "r-1",
+    bot: String = "ops",
+    session: String = "s-ops",
+    choices: [String] = ["once", "session", "always", "deny"]
+  ) -> PushOpenApproval {
+    PushOpenApproval(bot: bot, sessionId: session, requestId: requestId, choices: choices)
+  }
+
   @Test("an action answers only a request that is still open, with the narrowest choice offered")
   func resolve() {
-    let open = [PushOpenApproval(requestId: "r-1", choices: ["once", "session", "always", "deny"])]
+    let open = [Self.approval()]
 
-    #expect(PushTapRules.resolve(Self.tap, pending: open) == .respond(bot: "ops", requestId: "r-1", choice: "once"))
+    #expect(
+      PushTapRules.resolve(Self.tap, pending: open)
+        == .respond(bot: "ops", sessionId: "s-ops", requestId: "r-1", choice: "once"))
 
     var deny = Self.tap
     deny.action = .deny
-    #expect(PushTapRules.resolve(deny, pending: open) == .respond(bot: "ops", requestId: "r-1", choice: "deny"))
+    #expect(
+      PushTapRules.resolve(deny, pending: open) == .respond(bot: "ops", sessionId: "s-ops", requestId: "r-1", choice: "deny"))
 
     // Answered elsewhere, or never real.
     #expect(PushTapRules.resolve(Self.tap, pending: []) == .openChat(bot: "ops"))
-    #expect(
-      PushTapRules.resolve(Self.tap, pending: [PushOpenApproval(requestId: "r-2", choices: ["once"])])
-        == .openChat(bot: "ops"))
+    #expect(PushTapRules.resolve(Self.tap, pending: [Self.approval("r-2")]) == .openChat(bot: "ops"))
 
     // Only `session` or `always` offered: never widened.
-    #expect(
-      PushTapRules.resolve(Self.tap, pending: [PushOpenApproval(requestId: "r-1", choices: ["session", "always"])])
-        == .openChat(bot: "ops"))
+    #expect(PushTapRules.resolve(Self.tap, pending: [Self.approval(choices: ["session", "always"])]) == .openChat(bot: "ops"))
 
     var plain = Self.tap
     plain.action = .open
     #expect(PushTapRules.resolve(plain, pending: open) == .openChat(bot: "ops"))
+  }
+
+  @Test("a request id borrowed from another bot's session answers nothing")
+  func anotherBotsRequest() {
+    // The notification says `researcher`; the open request with that id is `ops`'s dangerous one.
+    let tap = PushTap(bot: "researcher", requestId: "appr-a2fedc71", action: .allow)
+    let pending = [Self.approval("appr-a2fedc71", bot: "ops", session: "s-ops")]
+
+    #expect(PushTapRules.resolve(tap, pending: pending) == .openChat(bot: "researcher"))
+  }
+
+  @Test("the session must match when the notification names one; a row with no session never answers")
+  func sessionMatch() {
+    var tap = Self.tap
+    tap.sessionId = "s-other"
+    #expect(PushTapRules.resolve(tap, pending: [Self.approval()]) == .openChat(bot: "ops"))
+
+    tap.sessionId = "s-ops"
+    tap.sessionKind = .canonical
+    #expect(
+      PushTapRules.resolve(tap, pending: [Self.approval()])
+        == .respond(bot: "ops", sessionId: "s-ops", requestId: "r-1", choice: "once"))
+
+    #expect(PushTapRules.resolve(Self.tap, pending: [Self.approval(session: "")]) == .openChat(bot: "ops"))
+  }
+
+  @Test("a branch or another conversation is only opened, never answered", arguments: [
+    PushSessionKind.branch, .other
+  ])
+  func conversationsOnlyOpen(kind: PushSessionKind) {
+    var tap = Self.tap
+    tap.sessionId = "s-ops"
+    tap.sessionKind = kind
+
+    #expect(!PushTapRules.answersInPlace(tap))
+    #expect(PushTapRules.resolve(tap, pending: [Self.approval()]) == .openChat(bot: "ops"))
   }
 
   @Test("where a tap lands: the notifier's kind first, then the canonical ids, else the chat")

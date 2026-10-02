@@ -18,6 +18,14 @@ public protocol SecretStore: Sendable {
   func delete(_ key: String) throws
 }
 
+/// A secret store that can say which keys it holds under one of Hermie's prefixes
+/// (`SecretKeys.isValidOwnedPrefix`), by the rule `removeAll(prefix:)` deletes by.
+/// Lists keys only, never values. What lets the push registrar find relay
+/// secrets whose record was lost (a reinstall keeps the keychain, not the database).
+public protocol ListableSecretStore: SecretStore {
+  func keys(prefix: String) throws -> [String]
+}
+
 /// Why a secret store call failed.
 ///
 /// No case carries a secret, a key or a value, and the descriptions are written
@@ -179,7 +187,7 @@ public enum SecretKeys {
 /// A `SecretStore` in memory, for tests and previews. Thread-safe; enforces the
 /// same key rule as `KeychainStore`. Its descriptions show a count, never a key
 /// or a value.
-public final class InMemorySecretStore: SecretStore {
+public final class InMemorySecretStore: ListableSecretStore {
   private let items: Mutex<[String: String]>
 
   public init(_ items: [String: String] = [:]) {
@@ -211,6 +219,11 @@ public final class InMemorySecretStore: SecretStore {
       for key in matching { items.removeValue(forKey: key) }
       return matching.count
     }
+  }
+
+  public func keys(prefix: String) throws -> [String] {
+    guard SecretKeys.isValidOwnedPrefix(prefix) else { throw SecretStoreError.invalidPrefix }
+    return items.withLock { items in items.keys.filter { SecretKeys.key($0, matchesOwnedPrefix: prefix) }.sorted() }
   }
 
   /// The number of items held.

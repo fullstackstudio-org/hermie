@@ -28,6 +28,16 @@ public enum PushPassFailure: Error, Sendable, Equatable {
   case storage
 }
 
+/// What a gateway's push row should say, as far as this device can tell.
+public enum PushAddressState: Sendable, Equatable {
+  /// Registered: write this.
+  case registered(PushRelayAddress)
+  /// Nothing registered (off, removed, never made): remove the row.
+  case none
+  /// The registration or its secrets cannot be read right now: leave the row as it is.
+  case unknown
+}
+
 /// What one pass ended with.
 public struct PushPassReport: Sendable, Equatable {
   /// The registrations held after the pass, by gateway id. Meaningless when `skipped`.
@@ -41,6 +51,10 @@ public struct PushPassReport: Sendable, Equatable {
   public var steps: [PushStep]
   /// The stored registrations could not be read, so nothing was planned or done.
   public var skipped: Bool
+  /// Registrations whose record was lost (a reinstall) that this pass revoked at the relay.
+  public var orphansRevoked: Int = 0
+  /// Gateways whose map entry this build cannot decode; kept, skipped, never written over.
+  public var undecodable: [String] = []
 
   public init(
     registrations: [String: PushRegistration] = [:],
@@ -81,6 +95,8 @@ public actor PushRegistrar {
   private var tail: Task<Void, Never>?
   /// When storing a gateway's new registration last failed, in Unix seconds. Memory only.
   private var storeFailedAt: [String: Double] = [:]
+  /// Whether this launch has looked for manage secrets whose record is gone.
+  private var orphansSwept = false
 
   /// How long a gateway whose registration could not be stored is left alone.
   public static let storeFailureBackoff: Double = 86_400
@@ -115,27 +131,71 @@ public actor PushRegistrar {
     await serialized { registrar in await registrar.retireNow(gatewayId) }
   }
 
-  /// The address a gateway's push row is written from, or nil when there is no usable registration.
+  /// The address a gateway's push row is written from, or nil when there is no usable registration
+  /// (or it cannot be read; `addressState` tells the two apart).
   public func address(gatewayId: String) async -> PushRelayAddress? {
-    guard let registration = try? await store.registrations().first(where: { $0.gatewayId == gatewayId }),
-      registration.relay == client.origin,
-      let sendSecret = try? await store.secrets(gatewayId: gatewayId).sendSecret
-    else {
-      return nil
+    if case .registered(let address) = await addressState(gatewayId: gatewayId) { address } else { nil }
+  }
+
+  /// What a gateway's push row should say: registered, none, or unknown (unreadable right now).
+  public func addressState(gatewayId: String) async -> PushAddressState {
+    let stored: [PushRegistration]
+    let undecodable: [String]
+
+    do {
+      stored = try await store.registrations()
+      undecodable = try await store.undecodable()
+    } catch {
+      return .unknown
     }
 
-    return PushRelayAddress(
-      relay: registration.relay,
-      handle: registration.handle,
-      sendSecret: sendSecret,
-      platform: PushRelayAddress.currentPlatform,
-      updatedAt: registration.refreshedAt
+    if undecodable.contains(gatewayId) {
+      return .unknown
+    }
+
+    guard let registration = stored.first(where: { $0.gatewayId == gatewayId }), registration.relay == client.origin
+    else {
+      return .none
+    }
+
+    let secrets: PushRegistrationSecrets
+
+    do {
+      secrets = try await store.secrets(gatewayId: gatewayId)
+    } catch {
+      return .unknown
+    }
+
+    guard let sendSecret = secrets.sendSecret else {
+      // The next pass revokes it and registers again; until then there is nothing to send with.
+      return .none
+    }
+
+    return .registered(
+      PushRelayAddress(
+        relay: registration.relay,
+        handle: registration.handle,
+        sendSecret: sendSecret,
+        platform: PushRelayAddress.currentPlatform,
+        updatedAt: registration.refreshedAt
+      )
     )
   }
 
   /// The stored registrations, without their secrets; nil when they cannot be read.
   public func registrations() async -> [PushRegistration]? {
     try? await store.registrations()
+  }
+
+  /**
+   Start over on this device: revoke every registration a manage secret in the keychain still
+   names (record or not), drop the stored map even when it cannot be read, and forget the
+   back-offs. For Settings' "Reset notifications on this device". Returns the gateways whose
+   registration could not be revoked (their secrets are kept, so a later reset can try again).
+   */
+  @discardableResult
+  public func resetDevice() async -> [String] {
+    await serialized { registrar in await registrar.resetNow() }
   }
 
   // MARK: Ordering
@@ -173,8 +233,15 @@ public actor PushRegistrar {
 
     var records: [PushPlanRecord] = []
     // A keychain that cannot be read right now (before the first unlock, say) is not one that has
-    // lost the secrets: such a gateway is left exactly as it is until a pass can read them.
-    var unreadable = Set<String>()
+    // lost the secrets, and an entry this build cannot decode is not an absent one: such a gateway
+    // is left exactly as it is, slot included, until a pass can read it.
+    var unreadable = Set((try? await store.undecodable()) ?? [])
+
+    report.undecodable = unreadable.sorted()
+
+    if !orphansSwept {
+      report.orphansRevoked = await sweepOrphans(known: Set(stored.map(\.gatewayId)).union(unreadable))
+    }
 
     for registration in stored {
       do {
@@ -207,9 +274,10 @@ public actor PushRegistrar {
       topic: context.topic,
       relay: client.origin,
       wanted: context.wanted,
-      gatewayIds: context.gatewayIds.filter { !unreadable.contains($0) },
+      gatewayIds: context.gatewayIds,
       stored: records,
-      backedOff: backedOff
+      backedOff: backedOff,
+      frozen: unreadable
     )
 
     let steps = PushPlan.steps(input)
@@ -290,6 +358,72 @@ public actor PushRegistrar {
     return report
   }
 
+  /// Revoke what a manage secret names when no record does (a reinstall keeps the keychain and
+  /// loses the database), then delete its secrets. Returns how many were revoked. Stays due until a
+  /// sweep had nothing it could not finish.
+  private func sweepOrphans(known: Set<String>) async -> Int {
+    guard let held = try? await store.heldCapabilities() else {
+      return 0
+    }
+
+    var revoked = 0
+    var unfinished = false
+
+    for capability in held where !known.contains(capability.gatewayId) {
+      switch await revokeHeld(capability) {
+      case .revoked: revoked += 1
+      case .dropped: break
+      case .failed: unfinished = true
+      }
+    }
+
+    orphansSwept = !unfinished
+    return revoked
+  }
+
+  private enum HeldOutcome {
+    case revoked
+    /// Nothing that could be revoked from here (no handle, another relay); the secrets are gone.
+    case dropped
+    case failed
+  }
+
+  private func revokeHeld(_ capability: PushHeldCapability) async -> HeldOutcome {
+    let id = capability.gatewayId
+
+    guard let handle = capability.handle, capability.relay == client.origin else {
+      return (try? await store.removeSecrets(gatewayId: id)) != nil ? .dropped : .failed
+    }
+
+    do {
+      try await client.delete(handle: handle, manageSecret: capability.manageSecret)
+    } catch where error.capabilityLost {
+      // Already gone at the relay.
+    } catch {
+      PushLog.logger.notice("push: orphan delete failed for \(id, privacy: .public): \(error.description, privacy: .public)")
+      return .failed
+    }
+
+    PushLog.logger.info("push: revoked an orphaned registration for \(id, privacy: .public)")
+    return (try? await store.removeSecrets(gatewayId: id)) != nil ? .revoked : .failed
+  }
+
+  private func resetNow() async -> [String] {
+    var failed: [String] = []
+
+    for capability in (try? await store.heldCapabilities()) ?? [] {
+      if case .failed = await revokeHeld(capability) {
+        failed.append(capability.gatewayId)
+      }
+    }
+
+    try? await store.clearRecords()
+    storeFailedAt = [:]
+    orphansSwept = true
+
+    return failed.sorted()
+  }
+
   private func retireNow(_ gatewayId: String) async -> Bool {
     let stored: [PushRegistration]
 
@@ -339,7 +473,9 @@ public actor PushRegistrar {
     }
 
     guard let manageSecret else {
-      // Nothing to revoke with: the relay's own sweep retires it.
+      // Nothing to revoke with, and the relay only sweeps a registration that went 180 days with
+      // no send and no refresh: if a gateway keeps sending to it, it lives on. Nothing here can
+      // change that; the record goes so it is not retried for ever.
       return await forget(id) ? .success(()) : .failure(.storage)
     }
 

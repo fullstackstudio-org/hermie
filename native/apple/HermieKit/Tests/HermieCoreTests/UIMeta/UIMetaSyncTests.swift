@@ -920,7 +920,7 @@ import Testing
     #expect(after?["push"]?["seen"] == ["x": 1])
     #expect(after?["push"]?["registrations"]?["other"] == foreign)
     #expect(after?["push"]?["registrations"]?["mine"] == [
-      "v": 1, "transport": "relay", "relay": "https://relay.example", "handle": "h-1", "sendSecret": "s-1", "enc": ["k": "pub"]
+      "v": 1, "transport": "relay", "relay": "https://relay.example", "handle": "h-1", "secret": "s-1", "enc": ["k": "pub"]
     ])
 
     // Kept across a copy taken in that does not have it yet, and sent.

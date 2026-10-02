@@ -7,6 +7,8 @@ import Observation
 public enum PushGatewayState: Sendable, Equatable {
   /// Notifications are off, or not permitted.
   case off
+  /// Signed out of on this device: not registered until the next sign-in there.
+  case signedOut
   /// On and permitted, and nothing is registered yet: no token, or the first pass has not run.
   case waiting
   case registered(handlePrefix: String, refreshedAt: Double)
@@ -16,14 +18,17 @@ public enum PushGatewayState: Sendable, Equatable {
   case failed(PushPassFailure)
 }
 
-/// A configured gateway as push needs it: its id, and the link key a notification names it by.
+/// A configured gateway as push needs it: its id, the link key a notification names it by, and
+/// whether it is the one the app is connected to.
 public struct PushGatewayRef: Sendable, Hashable {
   public var id: String
   public var key: String
+  public var active: Bool
 
-  public init(id: String, key: String) {
+  public init(id: String, key: String, active: Bool = false) {
     self.id = id
     self.key = key
+    self.active = active
   }
 }
 
@@ -40,28 +45,34 @@ public struct PushSessionUnavailable: Error, Sendable, Equatable {
   public init() {}
 }
 
-/// The open requests of one gateway, read from it just now (`approval.pending`).
-public typealias PushPendingReader = @MainActor (_ gatewayId: String) async throws -> [PushOpenApproval]
+/// Why push is not running on this device, when it should be and cannot.
+public enum PushTrouble: Sendable, Equatable {
+  /// The stored switch or the signed-out list cannot be read.
+  case settingsUnreadable
+  /// The stored registrations cannot be read.
+  case registrationsUnreadable
+}
 
-/// Answer one request on one gateway.
-public typealias PushResponder = @MainActor (_ gatewayId: String, _ requestId: String, _ choice: String) async throws
-  -> Void
+/// The open requests of one bot's session on one gateway, read from it just now (`approval.pending`
+/// for that session). Every row names its bot and session.
+public typealias PushPendingReader = @MainActor (PushApprovalScope) async throws -> [PushOpenApproval]
+
+/// Answer one request (`approval.respond` with the row's `session_id`).
+public typealias PushResponder = @MainActor (PushApprovalAnswer) async throws -> Void
 
 extension GatewayDirectory {
   /**
-   The gateways push should know about, the live one first and then the registry's order, or nil
-   while that is unknown: not read yet, unreadable, or stored by a newer build. Nil is never "no
-   gateways": push neither starts nor revokes anything on it.
+   The gateways push should know about, in the registry's order (stable, so the registration limit
+   never moves between gateways when another becomes live), the live one marked; or nil while that
+   is unknown: not read yet, unreadable, or stored by a newer build. Nil is never "no gateways":
+   push neither starts nor revokes anything on it.
    */
   public var pushGateways: [PushGatewayRef]? {
     guard loaded, !loadFailed, unsupportedVersion == nil else {
       return nil
     }
 
-    let refs = entries.map { PushGatewayRef(id: $0.id, key: $0.key) }
-    let active = refs.filter { $0.id == activeId }
-
-    return active + refs.filter { $0.id != activeId }
+    return entries.map { PushGatewayRef(id: $0.id, key: $0.key, active: $0.id == activeId) }
   }
 }
 
@@ -74,19 +85,24 @@ extension GatewayDirectory {
  fakes.
 
  - Nothing runs before `start()`, and `start()` runs only once the gateway list is known
-   (`setGateways`) and the switch could be read. Unknown is never read as off or as empty.
+   (`setGateways`) and the switch and the signed-out list could be read. Unknown is never read as
+   off or as empty.
  - Permission is asked for only from `setEnabled(true)`, which only an explicit action calls.
  - The token is asked for only when the switch is on and the system allows notifications.
  - Every change of switch, permission, token or gateway list runs a registrar pass.
+ - A gateway signed out of (`retire`) stays unregistered across list changes and launches, until
+   the sign-in path calls `resume`.
 
  Taps (ADR-0017: a notification is a hint, never an instruction): the payload's gateway key must
- name a configured gateway, or the tap opens the chat list. A plain tap opens the chat. Allow and
- Deny re-read that gateway's open requests through `pendingApprovals`, decide with
- `PushTapRules.resolve`, and answer through `respond` only a request still in that fresh list;
- anything else, and any failure, opens the chat.
+ name a configured gateway and its bot name must be valid, or the tap opens the chat list. A plain
+ tap opens the chat. Allow and Deny answer only on the gateway the app is connected to and only for
+ the bot's own chat (a branch or another conversation just opens); they re-read that bot's session
+ through `pendingApprovals`, decide with `PushTapRules.resolve` (request id, bot and session must
+ all match), answer through `respond`, once per request even if the tap arrives twice, and open the
+ chat either way.
 
- Seams for later tasks: `address(for:)` and `onAddressesChanged` for the ui_meta push row writer;
- `pendingApprovals`, `respond`, `retire(gatewayId:)` and `setGateways(_:)` for the session layer.
+ Seams for later tasks: `addressState(for:)` and `onAddressesChanged` for the ui_meta push row
+ writer; `pendingApprovals`, `respond`, `retire`, `resume` and `setGateways` for the session layer.
  */
 @MainActor
 @Observable
@@ -102,45 +118,59 @@ public final class PushController {
   public private(set) var registrations: [String: PushRegistration] = [:]
   /// The last pass's failures, by gateway id.
   public private(set) var failures: [String: PushPassFailure] = [:]
-  /// The configured gateways, most important first.
+  /// Gateways whose stored registration this build cannot decode (kept and skipped).
+  public private(set) var undecodable: [String] = []
+  /// Every configured gateway, in the registry's order.
   public private(set) var gateways: [PushGatewayRef] = []
+  /// Gateways signed out of on this device: never registered until `resume`.
+  public private(set) var retired: Set<String> = []
   /// Becomes true when `start()` has read the stored switch and the permission.
   public private(set) var started = false
-  /// The stored switch could not be read, so push has not started.
-  public private(set) var switchUnreadable = false
+  /// Why push cannot run, when it cannot. Settings offers `resetDevice()` for it.
+  public private(set) var trouble: PushTrouble?
+  /// The last change of the switch could not be stored; the switch stayed where it was.
+  public private(set) var switchWriteFailed = false
+  /// Gateways a reset could not revoke at the relay (their secrets are kept for another try).
+  public private(set) var resetLeftovers: [String] = []
 
   public let environment: APNsEnvironment
   public let environmentSource: APNsEnvironmentDetection.Source
   public let topic: String
 
   /// Called with the gateways whose relay address changed, after the pass that changed it: the
-  /// ui_meta push row writer rewrites (or removes) those rows, reading `address(for:)`.
+  /// ui_meta push row writer rewrites (or removes) those rows, reading `addressState(for:)`.
   @ObservationIgnored public var onAddressesChanged: (@MainActor (Set<String>) -> Void)?
 
-  /// The session seam for reading a gateway's open requests. Until it is set, reading fails and
-  /// an action opens the chat.
+  /// The session seam for reading one bot's open requests. Until it is set, reading fails and an
+  /// action opens the chat.
   @ObservationIgnored public var pendingApprovals: PushPendingReader = { _ in throw PushSessionUnavailable() }
 
   /// The session seam for answering one. Until it is set, answering fails and the chat opens.
-  @ObservationIgnored public var respond: PushResponder = { _, _, _ in throw PushSessionUnavailable() }
+  @ObservationIgnored public var respond: PushResponder = { _ in throw PushSessionUnavailable() }
 
   @ObservationIgnored private var token: APNsDeviceToken?
   @ObservationIgnored private var gatewaysKnown = false
   @ObservationIgnored private var linkHandlers: [(id: UUID, handler: @MainActor (PushRoute) -> Void)] = []
   @ObservationIgnored private var pendingRoutes: [PushRoute] = []
   @ObservationIgnored private var pendingResponses: [(action: String, payload: PushPayload)] = []
+  @ObservationIgnored private var heldFallback: Task<Void, Never>?
+  @ObservationIgnored private var answering: Set<String> = []
+  @ObservationIgnored private let heldTapTimeout: Duration
 
   @ObservationIgnored public let system: any PushSystem
   @ObservationIgnored public let registrar: PushRegistrar
   @ObservationIgnored private let settings: KeyValueStore
 
+  /// - Parameter heldTapTimeout: how long a tap from a cold start waits for the gateway list
+  ///   before it opens the chat list instead.
   public init(
     system: any PushSystem,
     registrar: PushRegistrar,
     settings: KeyValueStore,
     topic: String,
     environment: APNsEnvironment,
-    environmentSource: APNsEnvironmentDetection.Source
+    environmentSource: APNsEnvironmentDetection.Source,
+    heldTapTimeout: Duration = .seconds(10)
   ) {
     self.system = system
     self.registrar = registrar
@@ -148,6 +178,7 @@ public final class PushController {
     self.topic = topic
     self.environment = environment
     self.environmentSource = environmentSource
+    self.heldTapTimeout = heldTapTimeout
   }
 
   /// Switched on and permitted.
@@ -155,14 +186,14 @@ public final class PushController {
     enabled && permission == .granted
   }
 
-  /// The gateway ids, most important first.
+  /// The gateways that should be registered: configured, not signed out of, in registry order.
   public var gatewayIds: [String] {
-    gateways.map(\.id)
+    gateways.map(\.id).filter { !retired.contains($0) }
   }
 
   /// The gateways past the relay's per-device limit, which are not registered.
   public var limited: Set<String> {
-    Set(PushPlan.selection(gatewayIds).limited)
+    Set(PushPlan.selection(gatewayIds, holding: Set(registrations.keys).union(undecodable)).limited)
   }
 
   /// The relay origin registrations are made at.
@@ -173,10 +204,10 @@ public final class PushController {
   // MARK: Lifecycle
 
   /**
-   Read the switch and the permission, declare the categories, ask for a token if wanted, and run a
-   first pass (which revokes registrations that are no longer wanted). Idempotent. Does nothing
-   until the gateway list is known, and nothing when the switch cannot be read: a later call tries
-   again.
+   Read the switch, the signed-out list and the permission, declare the categories, ask for a token
+   if wanted, and run a first pass (which revokes registrations that are no longer wanted).
+   Idempotent. Does nothing until the gateway list is known, and nothing when the stored settings
+   cannot be read (`trouble`): a later call tries again, and Settings offers a reset.
    */
   public func start() async {
     guard !started, gatewaysKnown else {
@@ -184,17 +215,20 @@ public final class PushController {
     }
 
     let stored: Bool?
+    let signedOut: [String]?
 
     do {
       stored = try await settings.value(Bool.self, forKey: StoreKeys.pushEnabled)
+      signedOut = try await settings.value([String].self, forKey: StoreKeys.pushRetired)
     } catch {
-      switchUnreadable = true
+      trouble = .settingsUnreadable
       return
     }
 
-    switchUnreadable = false
+    trouble = nil
     system.setCategories(PushCategoryDescriptor.all(title: \.contractTitle))
     enabled = stored ?? false
+    retired = Set(signedOut ?? [])
     permission = await system.permission()
 
     if let held = await registrar.registrations() {
@@ -235,15 +269,25 @@ public final class PushController {
     await reconcile()
   }
 
-  /// The reader's switch. Turning it on asks for permission when it has never been asked; this is
-  /// the only place that question is put. Ignored before `start()`.
+  /**
+   The reader's switch. Turning it on asks for permission when it has never been asked; this is
+   the only place that question is put. Ignored before `start()`. The switch moves only once it is
+   stored: a switch that says on and comes back off at the next launch would be a lie.
+   */
   public func setEnabled(_ on: Bool) async {
     guard started else {
       return
     }
 
+    do {
+      try await settings.set(on, forKey: StoreKeys.pushEnabled)
+    } catch {
+      switchWriteFailed = true
+      return
+    }
+
+    switchWriteFailed = false
     enabled = on
-    try? await settings.set(on, forKey: StoreKeys.pushEnabled)
 
     if on {
       if permission == .undetermined {
@@ -258,8 +302,8 @@ public final class PushController {
     await reconcile()
   }
 
-  /// The configured gateways, most important first (`GatewayDirectory.pushGateways`). The session
-  /// layer leaves out one it signed out of. Only ever a known list.
+  /// Every configured gateway, in the registry's order (`GatewayDirectory.pushGateways`). Only ever
+  /// a known list. Signed-out gateways stay in it; `retire` keeps them unregistered.
   public func setGateways(_ next: [PushGatewayRef]) async {
     let first = !gatewaysKnown
 
@@ -270,6 +314,8 @@ public final class PushController {
     }
 
     gateways = next
+    heldFallback?.cancel()
+    heldFallback = nil
 
     let held = pendingResponses
     pendingResponses = []
@@ -278,14 +324,27 @@ public final class PushController {
       await handleResponse(actionIdentifier: response.action, payload: response.payload)
     }
 
+    let configured = Set(next.map(\.id))
+
+    if started, !retired.isSubset(of: configured) {
+      // A gateway that is gone has nothing left to resume.
+      retired.formIntersection(configured)
+      try? await settings.set(retired.sorted(), forKey: StoreKeys.pushRetired)
+    }
+
     if started {
       await reconcile()
     }
   }
 
-  /// Revoke one gateway's registration now (sign-out). Also stop listing it in `setGateways`.
+  /**
+   Sign-out: revoke one gateway's registration now and keep it unregistered, across list changes
+   and launches, until `resume(gatewayId:)`. The retired mark is stored before the relay is asked,
+   so a crash in between cannot bring the registration back.
+   */
   public func retire(gatewayId: String) async {
-    gateways.removeAll { $0.id == gatewayId }
+    retired.insert(gatewayId)
+    try? await settings.set(retired.sorted(), forKey: StoreKeys.pushRetired)
 
     let had = registrations[gatewayId] != nil
 
@@ -300,9 +359,50 @@ public final class PushController {
     }
   }
 
+  /// Sign-in: the gateway may be registered again. The sign-in path calls this.
+  public func resume(gatewayId: String) async {
+    guard retired.remove(gatewayId) != nil else {
+      return
+    }
+
+    try? await settings.set(retired.sorted(), forKey: StoreKeys.pushRetired)
+    await reconcile()
+  }
+
+  /**
+   "Reset notifications on this device": revoke every registration a keychain secret still names,
+   drop the stored registrations, the switch and the signed-out list, then start again from off.
+   For a device whose stored push state cannot be read.
+   */
+  public func resetDevice() async {
+    resetLeftovers = await registrar.resetDevice()
+
+    try? await settings.removeValue(forKey: StoreKeys.pushEnabled)
+    try? await settings.removeValue(forKey: StoreKeys.pushRetired)
+
+    let rows = Set(gateways.map(\.id)).union(registrations.keys)
+
+    enabled = false
+    retired = []
+    registrations = [:]
+    failures = [:]
+    undecodable = []
+    trouble = nil
+    switchWriteFailed = false
+    started = false
+
+    onAddressesChanged?(rows)
+    await start()
+  }
+
   /// What a gateway's push row is written from, or nil.
   public func address(for gatewayId: String) async -> PushRelayAddress? {
     await registrar.address(gatewayId: gatewayId)
+  }
+
+  /// What a gateway's push row should say: registered, none or unknown.
+  public func addressState(for gatewayId: String) async -> PushAddressState {
+    await registrar.addressState(gatewayId: gatewayId)
   }
 
   // MARK: System callbacks
@@ -352,8 +452,15 @@ public final class PushController {
 
     let report = await registrar.reconcile(context)
 
-    if !report.skipped {
+    if report.skipped {
+      trouble = .registrationsUnreadable
+    } else {
       registrations = report.registrations
+      undecodable = report.undecodable
+
+      if trouble == .registrationsUnreadable {
+        trouble = nil
+      }
     }
 
     failures = report.failures
@@ -369,6 +476,10 @@ public final class PushController {
   public func state(for gatewayId: String) -> PushGatewayState {
     guard wanted else {
       return .off
+    }
+
+    if retired.contains(gatewayId) {
+      return .signedOut
     }
 
     if limited.contains(gatewayId) {
@@ -399,9 +510,10 @@ public final class PushController {
       return
     }
 
-    // A cold start from a notification: the tap waits for the gateway list instead of guessing.
+    // A cold start from a notification: the tap waits for the gateway list instead of guessing,
+    // and opens the chat list if the list does not come.
     guard gatewaysKnown else {
-      pendingResponses.append((actionIdentifier, payload))
+      hold(actionIdentifier, payload)
       return
     }
 
@@ -415,28 +527,58 @@ public final class PushController {
 
     let chat = PushRoute.chat(tap.link)
 
-    guard tap.action != .open else {
+    // A plain tap; an action on a gateway the app is not connected to (its requests cannot be
+    // re-read there); an action about a branch or another conversation: open, answer nothing.
+    guard tap.action != .open, gateway.active, PushTapRules.answersInPlace(tap) else {
       open(chat)
       return
     }
 
-    let pending: [PushOpenApproval]
+    let flight = "\(gateway.id)\u{1F}\(tap.requestId)"
 
-    do {
-      pending = try await pendingApprovals(gateway.id)
-    } catch {
-      open(chat)
+    guard answering.insert(flight).inserted else {
+      // The same tap delivered twice: the first is already answering it.
       return
     }
 
-    switch PushTapRules.resolve(tap, pending: pending) {
-    case .openChat:
-      open(chat)
-    case .respond(_, let requestId, let choice):
-      do {
-        try await respond(gateway.id, requestId, choice)
-      } catch {
-        open(chat)
+    defer { answering.remove(flight) }
+
+    let scope = PushApprovalScope(gatewayId: gateway.id, bot: tap.bot, sessionId: tap.sessionId)
+
+    if let pending = try? await pendingApprovals(scope),
+      case .respond(let bot, let sessionId, let requestId, let choice) = PushTapRules.resolve(tap, pending: pending)
+    {
+      try? await respond(
+        PushApprovalAnswer(gatewayId: gateway.id, bot: bot, sessionId: sessionId, requestId: requestId, choice: choice)
+      )
+    }
+
+    // Answered or not, the reader lands in the chat, where what is actually true is shown.
+    open(chat)
+  }
+
+  private func hold(_ action: String, _ payload: PushPayload) {
+    pendingResponses.append((action, payload))
+
+    guard heldFallback == nil else {
+      return
+    }
+
+    let timeout = heldTapTimeout
+
+    heldFallback = Task { [weak self] in
+      try? await Task.sleep(for: timeout)
+
+      guard !Task.isCancelled, let self, !self.gatewaysKnown else {
+        return
+      }
+
+      let held = self.pendingResponses
+      self.pendingResponses = []
+      self.heldFallback = nil
+
+      for _ in held {
+        self.open(.chatList)
       }
     }
   }

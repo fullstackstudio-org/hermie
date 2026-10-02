@@ -155,7 +155,7 @@ struct PushDirectoryTests {
     #expect(rig.push.registrations.count == 2)
   }
 
-  @Test("the live gateway comes first in the push order")
+  @Test("the push order is the registry's, the live gateway marked")
   func activeFirst() async throws {
     let relay = try Self.relay()
     defer { relay.stop() }
@@ -164,6 +164,7 @@ struct PushDirectoryTests {
     await rig.directory.load()
     try await rig.directory.activate(id: Self.two)
 
-    #expect(rig.directory.pushGateways?.map(\.id) == [Self.two, Self.one])
+    #expect(rig.directory.pushGateways?.map(\.id) == [Self.one, Self.two])
+    #expect(rig.directory.pushGateways?.map(\.active) == [false, true])
   }
 }

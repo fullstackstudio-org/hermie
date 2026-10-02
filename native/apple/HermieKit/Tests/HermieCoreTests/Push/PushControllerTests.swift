@@ -30,10 +30,15 @@ final class FakePushSystem: PushSystem {
   func openSettings() {}
 }
 
-/// Two configured gateways, with their link keys.
+/// Two configured gateways, with their link keys; the first is the live one.
 enum PushGateways {
-  static let one = PushGatewayRef(id: "g1", key: "1111111111111111")
+  static let one = PushGatewayRef(id: "g1", key: "1111111111111111", active: true)
   static let two = PushGatewayRef(id: "g2", key: "2222222222222222")
+
+  /// `n` gateways in registry order, `active` the live one.
+  static func many(_ n: Int, active: Int = 1) -> [PushGatewayRef] {
+    (1...n).map { PushGatewayRef(id: "g\($0)", key: String(format: "%016x", $0), active: $0 == active) }
+  }
 }
 
 @MainActor
@@ -46,25 +51,43 @@ struct PushControllerTests {
   struct Rig {
     let system = FakePushSystem()
     let relay: ScriptedRelay
+    let database: SQLiteStore
+    let secrets: InMemorySecretStore
     let settings: KeyValueStore
     let controller: PushController
 
-    init() throws {
-      let database = try SQLiteStore(.inMemory)
-      let relay = ScriptedRelay()
-      self.relay = relay
+    init(heldTapTimeout: Duration = .seconds(10)) throws {
+      database = try SQLiteStore(.inMemory)
+      secrets = InMemorySecretStore()
+      relay = ScriptedRelay()
       settings = KeyValueStore(store: database)
-      controller = PushController(
+      controller = Self.controller(database, secrets, relay, system, heldTapTimeout: heldTapTimeout)
+    }
+
+    static func controller(
+      _ database: SQLiteStore,
+      _ secrets: InMemorySecretStore,
+      _ relay: ScriptedRelay,
+      _ system: FakePushSystem,
+      heldTapTimeout: Duration = .seconds(10)
+    ) -> PushController {
+      PushController(
         system: system,
         registrar: PushRegistrar(
           client: relay,
-          store: PushRegistrationStore(keyValues: KeyValueStore(store: database), secrets: InMemorySecretStore())
+          store: PushRegistrationStore(keyValues: KeyValueStore(store: database), secrets: secrets)
         ),
-        settings: settings,
+        settings: KeyValueStore(store: database),
         topic: F.topic,
         environment: .sandbox,
-        environmentSource: .fallback
+        environmentSource: .fallback,
+        heldTapTimeout: heldTapTimeout
       )
+    }
+
+    /// The next launch: a new controller and registrar over the same database, keychain and relay.
+    func relaunch() -> PushController {
+      Self.controller(database, secrets, relay, system)
     }
 
     static func tokenData(_ token: APNsDeviceToken = F.tokenA) -> Data {
@@ -81,15 +104,24 @@ struct PushControllerTests {
     }
 
     /// Started, switched on, permitted and registered for `gateways`.
-    func registered(_ gateways: [PushGatewayRef] = [G.one, G.two]) async throws {
+    func registered(
+      _ gateways: [PushGatewayRef] = [G.one, G.two],
+      on controller: PushController? = nil,
+      expecting: Int? = nil
+    ) async throws {
+      let controller = controller ?? self.controller
       system.current = .granted
       await controller.setGateways(gateways)
       await controller.start()
       await controller.setEnabled(true)
       controller.didRegister(deviceToken: Self.tokenData())
 
-      let controller = controller
-      try await eventually("registered") { await controller.registrations.count == gateways.count }
+      let expected = expecting ?? min(gateways.count, PushPlan.maxRegistrations)
+      try await eventually("registered") { await controller.registrations.count == expected }
+    }
+
+    var registers: Int {
+      relay.calls.filter { if case .register = $0 { true } else { false } }.count
     }
   }
 
@@ -137,29 +169,20 @@ struct PushControllerTests {
     #expect(try await rig.settings.string(forKey: StoreKeys.pushEnabled) == nil)
   }
 
-  @Test("an unreadable switch is not 'off': push does not start and revokes nothing")
+  @Test("an unreadable switch is not 'off': push does not start, revokes nothing, and says so")
   func unreadableSwitch() async throws {
     let rig = try Rig()
     try await rig.registered([G.one])
-
     try await rig.settings.setString("not a boolean", forKey: StoreKeys.pushEnabled)
 
-    // A fresh controller on the same database, as on the next launch.
-    let next = PushController(
-      system: rig.system,
-      registrar: rig.controller.registrar,
-      settings: rig.settings,
-      topic: F.topic,
-      environment: .sandbox,
-      environmentSource: .fallback
-    )
+    let next = rig.relaunch()
     let before = rig.relay.calls.count
 
     await next.setGateways([G.one])
     await next.start()
 
     #expect(!next.started)
-    #expect(next.switchUnreadable)
+    #expect(next.trouble == .settingsUnreadable)
     #expect(rig.relay.calls.count == before)
   }
 
@@ -190,11 +213,15 @@ struct PushControllerTests {
     let refreshedAt = try #require(rig.controller.registrations["g1"]).refreshedAt
     #expect(rig.controller.state(for: "g1") == .registered(handlePrefix: "h_1111", refreshedAt: refreshedAt))
 
-    let address = await rig.controller.address(for: "g1")
-    #expect(address?.handle == F.handle(1))
-    #expect(address?.sendSecret == F.secret("send", 1))
-    #expect(address?.pushRow.transport == "relay")
-    #expect(address?.pushRow.sendSecret == F.secret("send", 1))
+    guard case .registered(let address) = await rig.controller.addressState(for: "g1") else {
+      Issue.record("g1 is not registered")
+      return
+    }
+
+    #expect(address.handle == F.handle(1))
+    #expect(address.sendSecret == F.secret("send", 1))
+    #expect(address.pushRow.json["secret"] == .string(F.secret("send", 1)))
+    #expect(address.pushRow.json["sendSecret"] == nil)
   }
 
   @Test("a refusal keeps the switch on, registers nothing, and is not asked again")
@@ -224,6 +251,7 @@ struct PushControllerTests {
     #expect(rig.relay.calls.last == .delete(handle: F.handle(1), manageSecret: F.secret("manage", 1)))
     #expect(rig.controller.registrations.isEmpty)
     #expect(rig.controller.state(for: "g1") == .off)
+    #expect(await rig.controller.addressState(for: "g1") == PushAddressState.none)
   }
 
   @Test("permission revoked in the system's settings is noticed on return, and revokes")
@@ -237,8 +265,10 @@ struct PushControllerTests {
     #expect(rig.relay.calls.last == .delete(handle: F.handle(1), manageSecret: F.secret("manage", 1)))
   }
 
-  @Test("sign-out retires one gateway now and reports its address gone")
-  func retire() async throws {
+  // MARK: Sign-out
+
+  @Test("sign-out lasts: retire, a list change, a relaunch, then sign-in again resumes")
+  func retireLasts() async throws {
     let rig = try Rig()
     var changed: [Set<String>] = []
     rig.controller.onAddressesChanged = { changed.append($0) }
@@ -248,19 +278,91 @@ struct PushControllerTests {
 
     #expect(rig.controller.gatewayIds == ["g2"])
     #expect(rig.controller.registrations.keys.sorted() == ["g2"])
+    #expect(rig.controller.state(for: "g1") == .signedOut)
     #expect(changed.last == ["g1"])
+
+    // The directory changes (a rename, another gateway added): g1 is still in the list.
+    let three = PushGatewayRef(id: "g3", key: "3333333333333333")
+    await rig.controller.setGateways([G.one, G.two, three])
+    #expect(rig.controller.registrations.keys.sorted() == ["g2", "g3"])
+
+    // The next launch.
+    let next = rig.relaunch()
+    try await rig.registered([G.one, G.two, three], on: next, expecting: 2)
+    #expect(next.registrations.keys.sorted() == ["g2", "g3"])
+    #expect(next.retired == ["g1"])
+
+    // Signing in again.
+    await next.resume(gatewayId: "g1")
+    #expect(next.registrations.keys.sorted() == ["g1", "g2", "g3"])
+    #expect(next.retired.isEmpty)
   }
 
-  @Test("past eight gateways the rest are shown as limited")
-  func limited() async throws {
-    let rig = try Rig()
-    let gateways = (1...9).map { PushGatewayRef(id: "g\($0)", key: String(repeating: "\($0)", count: 16)) }
-    try await rig.registered(Array(gateways.prefix(8)))
+  // MARK: The limit
 
-    await rig.controller.setGateways(gateways)
+  @Test("past eight gateways the rest are limited, and switching the live gateway moves no registration")
+  func stickyLimit() async throws {
+    let rig = try Rig()
+    try await rig.registered(G.many(9))
 
     #expect(rig.controller.state(for: "g9") == .limited)
-    #expect(rig.relay.calls.filter { if case .register = $0 { true } else { false } }.count == 8)
+    #expect(rig.registers == 8)
+
+    let before = rig.relay.calls.count
+
+    for active in [9, 1, 9, 5, 9] {
+      // A list ordered with the live gateway first, as a caller might hand it over.
+      var gateways = G.many(9, active: active)
+      gateways.sort { $0.active && !$1.active }
+      await rig.controller.setGateways(gateways)
+    }
+
+    #expect(rig.relay.calls.count == before)
+    #expect(rig.controller.state(for: "g9") == .limited)
+  }
+
+  @Test("removing a registered gateway frees its slot for the next one in registry order")
+  func freedSlot() async throws {
+    let rig = try Rig()
+    try await rig.registered(G.many(9))
+
+    await rig.controller.setGateways(G.many(9).filter { $0.id != "g3" })
+
+    #expect(rig.controller.registrations["g3"] == nil)
+    #expect(rig.controller.registrations["g9"] != nil)
+  }
+
+  // MARK: Reset
+
+  @Test("a corrupt registration map pauses push and says so; a reset revokes by the keychain and starts over")
+  func reset() async throws {
+    let rig = try Rig()
+    try await rig.registered()
+    try await rig.settings.setString("{broken", forKey: StoreKeys.pushRegistrations)
+
+    await rig.controller.reconcile()
+    #expect(rig.controller.trouble == .registrationsUnreadable)
+
+    var changed: [Set<String>] = []
+    rig.controller.onAddressesChanged = { changed.append($0) }
+
+    await rig.controller.resetDevice()
+
+    let deletes = rig.relay.calls.filter { if case .delete = $0 { true } else { false } }
+    #expect(
+      Set(deletes)
+        == [
+          .delete(handle: F.handle(1), manageSecret: F.secret("manage", 1)),
+          .delete(handle: F.handle(2), manageSecret: F.secret("manage", 2))
+        ]
+    )
+    #expect(rig.controller.trouble == nil)
+    #expect(rig.controller.started)
+    #expect(!rig.controller.enabled)
+    #expect(rig.controller.resetLeftovers.isEmpty)
+    #expect(try await rig.settings.string(forKey: StoreKeys.pushRegistrations) == nil)
+    #expect(try rig.secrets.keys(prefix: "hermie.push.").isEmpty)
+    #expect(changed.last == ["g1", "g2"])
   }
 
   // MARK: Taps
@@ -269,7 +371,13 @@ struct PushControllerTests {
     PushPayload(shape: .relay, data: data.mapValues { .string($0) })
   }
 
-  static let approval = payload(["bot": "ops", "type": "request", "requestId": "r-1", "gatewayKey": G.two.key])
+  /// An approval for `ops` on gateway one (the live one).
+  static let approval = payload(["bot": "ops", "type": "request", "requestId": "r-1", "gatewayKey": G.one.key])
+  static let chat = PushRoute.chat(.chat(bot: "ops", gatewayKey: G.one.key))
+
+  static func open(_ requestId: String = "r-1", bot: String = "ops", session: String = "s-ops") -> PushOpenApproval {
+    PushOpenApproval(bot: bot, sessionId: session, requestId: requestId, choices: ["once", "always", "deny"])
+  }
 
   @Test("a tap before the gateway list and before any window is held, then opens the chat")
   func coldStartTap() async throws {
@@ -283,7 +391,19 @@ struct PushControllerTests {
     await rig.controller.setGateways([G.one])
     rig.controller.attachLinkHandler(UUID()) { opened.append($0) }
 
-    #expect(opened == [.chat(.chat(bot: "ops", gatewayKey: G.one.key))])
+    #expect(opened == [Self.chat])
+  }
+
+  @Test("a held tap whose gateway list never comes opens the chat list instead of nothing")
+  func heldTapFallsBack() async throws {
+    let rig = try Rig(heldTapTimeout: .milliseconds(20))
+    let opened = Recorder<PushRoute>()
+    rig.controller.attachLinkHandler(UUID()) { opened.items.append($0) }
+
+    await rig.controller.handleResponse(actionIdentifier: "", payload: Self.payload(["bot": "ops", "gatewayKey": G.one.key]))
+    #expect(opened.items.isEmpty)
+
+    try await eventually("the fallback") { await opened.items == [.chatList] }
   }
 
   @Test("no usable gateway key or bot: the chat list, never a chat on whichever gateway is live", arguments: [
@@ -308,71 +428,131 @@ struct PushControllerTests {
     #expect(opened == [.chatList, .chatList])
   }
 
-  @Test("Allow answers only a request in the freshly read list of the notification's own gateway")
+  @Test("Allow reads that bot's session, answers with its session id, and then opens the chat")
   func allowAnswers() async throws {
     let rig = try Rig()
-    var read: [String] = []
-    var answered: [String] = []
+    var scopes: [PushApprovalScope] = []
+    var answers: [PushApprovalAnswer] = []
     var opened: [PushRoute] = []
 
     rig.controller.attachLinkHandler(UUID()) { opened.append($0) }
-    rig.controller.pendingApprovals = { gateway in
-      read.append(gateway)
-      return [PushOpenApproval(requestId: "r-1", choices: ["once", "always", "deny"])]
+    rig.controller.pendingApprovals = { scope in
+      scopes.append(scope)
+      return [Self.open()]
     }
-    rig.controller.respond = { gateway, request, choice in answered.append("\(gateway) \(request) \(choice)") }
+    rig.controller.respond = { answers.append($0) }
     await rig.controller.setGateways([G.one, G.two])
 
     await rig.controller.handleResponse(actionIdentifier: "hermie.request.allow", payload: Self.approval)
     await rig.controller.handleResponse(actionIdentifier: "deny", payload: Self.approval)
 
-    // Gateway two named the request, so gateway two is asked, even though one is listed first.
-    #expect(read == ["g2", "g2"])
-    #expect(answered == ["g2 r-1 once", "g2 r-1 deny"])
-    #expect(opened.isEmpty)
+    #expect(scopes == [PushApprovalScope(gatewayId: "g1", bot: "ops", sessionId: "")].repeated(2))
+    #expect(
+      answers
+        == [
+          PushApprovalAnswer(gatewayId: "g1", bot: "ops", sessionId: "s-ops", requestId: "r-1", choice: "once"),
+          PushApprovalAnswer(gatewayId: "g1", bot: "ops", sessionId: "s-ops", requestId: "r-1", choice: "deny")
+        ]
+    )
+    #expect(opened == [Self.chat, Self.chat])
   }
 
-  @Test("a stale request, a request of another gateway, or a failed read: nothing answered, the chat opens")
+  @Test("a notification naming another bot with that bot's request id answers nothing")
+  func borrowedRequestId() async throws {
+    let rig = try Rig()
+    var answered = 0
+    var opened: [PushRoute] = []
+
+    rig.controller.attachLinkHandler(UUID()) { opened.append($0) }
+    // `ops` has the dangerous request open; the notification claims it is `researcher`'s.
+    rig.controller.pendingApprovals = { scope in
+      [Self.open("appr-a2fedc71", bot: "ops")].filter { _ in scope.bot == "ops" || scope.bot == "researcher" }
+    }
+    rig.controller.respond = { _ in answered += 1 }
+    await rig.controller.setGateways([G.one])
+
+    let forged = Self.payload(["bot": "researcher", "type": "request", "requestId": "appr-a2fedc71", "gatewayKey": G.one.key])
+    await rig.controller.handleResponse(actionIdentifier: "hermie.request.allow", payload: forged)
+
+    #expect(answered == 0)
+    #expect(opened == [.chat(.chat(bot: "researcher", gatewayKey: G.one.key))])
+  }
+
+  @Test("only open, never answered: a gateway that is not live, a branch, another conversation", arguments: [
+    ["bot": "ops", "type": "request", "requestId": "r-1", "gatewayKey": PushGateways.two.key],
+    ["bot": "ops", "type": "request", "requestId": "r-1", "gatewayKey": PushGateways.one.key, "sessionId": "s-b",
+     "sessionKind": "branch"],
+    ["bot": "ops", "type": "request", "requestId": "r-1", "gatewayKey": PushGateways.one.key, "sessionId": "s-o",
+     "sessionKind": "other"]
+  ])
+  func onlyOpen(data: [String: String]) async throws {
+    let rig = try Rig()
+    var read = 0
+    var answered = 0
+    var opened: [PushRoute] = []
+
+    rig.controller.attachLinkHandler(UUID()) { opened.append($0) }
+    rig.controller.pendingApprovals = { _ in
+      read += 1
+      return [Self.open(session: data["sessionId"] ?? "s-ops")]
+    }
+    rig.controller.respond = { _ in answered += 1 }
+    await rig.controller.setGateways([G.one, G.two])
+
+    await rig.controller.handleResponse(actionIdentifier: "hermie.request.allow", payload: Self.payload(data))
+
+    #expect(read == 0)
+    #expect(answered == 0)
+    #expect(opened.count == 1)
+  }
+
+  @Test("a stale request, a failed read or a failed answer: nothing (more) sent, the chat opens")
   func allowRefused() async throws {
     let rig = try Rig()
     var answered = 0
     var opened: [PushRoute] = []
-    let chat = PushRoute.chat(.chat(bot: "ops", gatewayKey: G.two.key))
 
     rig.controller.attachLinkHandler(UUID()) { opened.append($0) }
-    rig.controller.respond = { _, _, _ in answered += 1 }
-    await rig.controller.setGateways([G.one, G.two])
+    rig.controller.respond = { _ in answered += 1 }
+    await rig.controller.setGateways([G.one])
 
-    // Stale: answered elsewhere already.
     rig.controller.pendingApprovals = { _ in [] }
     await rig.controller.handleResponse(actionIdentifier: "hermie.request.allow", payload: Self.approval)
 
-    // Another gateway's request: open on gateway one, the notification says gateway two.
-    rig.controller.pendingApprovals = { gateway in
-      gateway == "g1" ? [PushOpenApproval(requestId: "r-1", choices: ["once"])] : []
-    }
-    await rig.controller.handleResponse(actionIdentifier: "hermie.request.allow", payload: Self.approval)
-
-    // The read fails, which is also the default before the session layer is wired.
     rig.controller.pendingApprovals = { _ in throw PushSessionUnavailable() }
     await rig.controller.handleResponse(actionIdentifier: "hermie.request.allow", payload: Self.approval)
 
-    #expect(answered == 0)
-    #expect(opened == [chat, chat, chat])
-  }
-
-  @Test("an answer that fails to send opens the chat")
-  func respondFails() async throws {
-    let rig = try Rig()
-    var opened: [PushRoute] = []
-
-    rig.controller.attachLinkHandler(UUID()) { opened.append($0) }
-    rig.controller.pendingApprovals = { _ in [PushOpenApproval(requestId: "r-1", choices: ["once"])] }
-    await rig.controller.setGateways([G.two])
-
+    rig.controller.pendingApprovals = { _ in [Self.open()] }
+    rig.controller.respond = { _ in throw PushSessionUnavailable() }
     await rig.controller.handleResponse(actionIdentifier: "hermie.request.allow", payload: Self.approval)
 
-    #expect(opened == [.chat(.chat(bot: "ops", gatewayKey: G.two.key))])
+    #expect(answered == 0)
+    #expect(opened == [Self.chat, Self.chat, Self.chat])
+  }
+
+  @Test("the same Allow delivered twice while the first is in flight sends one answer")
+  func oneAnswerPerRequest() async throws {
+    let rig = try Rig()
+    var answers = 0
+    let gate = Recorder<CheckedContinuation<Void, Never>>()
+
+    rig.controller.attachLinkHandler(UUID()) { _ in }
+    rig.controller.pendingApprovals = { _ in
+      await withCheckedContinuation { gate.items.append($0) }
+      return [Self.open()]
+    }
+    rig.controller.respond = { _ in answers += 1 }
+    await rig.controller.setGateways([G.one])
+
+    let controller = rig.controller
+    let first = Task { await controller.handleResponse(actionIdentifier: "hermie.request.allow", payload: Self.approval) }
+    try await eventually("the first read") { await !gate.items.isEmpty }
+
+    await controller.handleResponse(actionIdentifier: "hermie.request.allow", payload: Self.approval)
+    gate.items.first?.resume()
+    await first.value
+
+    #expect(answers == 1)
   }
 
   // MARK: Windows
@@ -425,5 +605,17 @@ struct PushControllerTests {
 
     #expect(rig.controller.tokenFailure?.count == 200)
     #expect(rig.controller.tokenFailure?.contains("\n") == false)
+  }
+}
+
+/// A main-actor list a test and a closure both reach.
+@MainActor
+final class Recorder<Item> {
+  var items: [Item] = []
+}
+
+extension Array {
+  fileprivate func repeated(_ times: Int) -> [Element] {
+    (0..<times).flatMap { _ in self }
   }
 }

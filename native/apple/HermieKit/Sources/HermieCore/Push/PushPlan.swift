@@ -28,12 +28,15 @@ public struct PushPlanInput: Sendable, Equatable {
   public var relay: String
   /// The reader switched notifications on AND the system lets this app show them.
   public var wanted: Bool
-  /// The gateways that should have a registration, most important first (the live one, then the
-  /// registry's order). Only the first `PushPlan.maxRegistrations` are registered.
+  /// The gateways that should have a registration, in the registry's stable order. At most
+  /// `PushPlan.maxRegistrations` get one (`PushPlan.selection`).
   public var gatewayIds: [String]
   public var stored: [PushPlanRecord]
   /// Gateways not to register in this pass, because storing their last registration failed.
   public var backedOff: Set<String>
+  /// Gateways whose registration cannot be read right now (keychain locked, an entry this build
+  /// cannot decode). They keep their slot and get no step at all, as if this pass had not seen them.
+  public var frozen: Set<String>
 
   public init(
     now: Double,
@@ -44,7 +47,8 @@ public struct PushPlanInput: Sendable, Equatable {
     wanted: Bool,
     gatewayIds: [String],
     stored: [PushPlanRecord],
-    backedOff: Set<String> = []
+    backedOff: Set<String> = [],
+    frozen: Set<String> = []
   ) {
     self.now = now
     self.token = token
@@ -55,6 +59,7 @@ public struct PushPlanInput: Sendable, Equatable {
     self.gatewayIds = gatewayIds
     self.stored = stored
     self.backedOff = backedOff
+    self.frozen = frozen
   }
 }
 
@@ -97,7 +102,9 @@ public enum PushStep: Sendable, Equatable {
 
   public enum ForgetReason: String, Sendable, Equatable {
     /// The keychain has no manage secret for it (a backup restored onto another device, a reset):
-    /// it cannot be revoked from here, and the old one expires on the relay by itself.
+    /// it cannot be revoked from here. The relay only sweeps a registration nobody has sent to or
+    /// refreshed for 180 days, so a gateway that keeps sending keeps it alive; what can be revoked
+    /// is, through the handle the keychain keeps with every manage secret.
     case manageSecretMissing
     /// The registration was made at another relay origin. Its manage secret is not sent to the
     /// relay this build talks to, and the old origin is not contacted.
@@ -115,8 +122,8 @@ public enum PushStep: Sendable, Equatable {
  Decides, from a snapshot, what to do about each gateway's relay registration. Pure: the same input
  always gives the same steps, so the rules are a table in a test (`PushPlanTests`).
 
- The gateways that get a registration are the first `maxRegistrations` of `gatewayIds` when
- `wanted`, and none otherwise. Then, per gateway:
+ The gateways that get a registration are `selection(gatewayIds, holding:)` when `wanted` (at most
+ `maxRegistrations`, sticky), and none otherwise. A `frozen` gateway gets no step. Then, per gateway:
 
  - **Not selected** (switched off, permission gone, gateway gone, past the limit): its stored
    registration is deleted at the relay, or only forgotten when it cannot be (no manage secret,
@@ -142,26 +149,37 @@ public enum PushPlan {
   /// recently used, so a ninth would evict another on every daily refresh.
   public static let maxRegistrations = 8
 
-  /// The gateways that get a registration and the ones past the limit, duplicates removed.
-  public static func selection(_ gatewayIds: [String]) -> (selected: [String], limited: [String]) {
+  /**
+   The gateways that get a registration and the ones past the limit, duplicates removed. Sticky: a
+   gateway that already holds a slot (`holding`: registered, or unreadable this pass) keeps it, and
+   only the free slots are filled, in `gatewayIds` order. So a change of order (another live
+   gateway) or one unreadable pass never moves a registration from one gateway to another; a
+   gateway gives its slot up only by leaving the list (removed, signed out) or with push off.
+   */
+  public static func selection(_ gatewayIds: [String], holding: Set<String> = []) -> (selected: [String], limited: [String]) {
     var seen = Set<String>()
     let unique = gatewayIds.filter { seen.insert($0).inserted }
+    let kept = Set(unique.filter { holding.contains($0) }.prefix(maxRegistrations))
+    let free = maxRegistrations - kept.count
+    let filled = Set(unique.filter { !kept.contains($0) }.prefix(free))
+    let chosen = kept.union(filled)
 
-    return (Array(unique.prefix(maxRegistrations)), Array(unique.dropFirst(maxRegistrations)))
+    return (unique.filter { chosen.contains($0) }, unique.filter { !chosen.contains($0) })
   }
 
   public static func steps(_ input: PushPlanInput) -> [PushStep] {
     var removals: [PushStep] = []
     var work: [PushStep] = []
 
-    let selection = selection(input.gatewayIds)
-    let selected = input.wanted ? selection.selected : []
+    let holding = Set(input.stored.map(\.registration.gatewayId)).union(input.frozen)
+    let selection = selection(input.gatewayIds, holding: holding)
+    let selected = input.wanted ? selection.selected.filter { !input.frozen.contains($0) } : []
     let selectedSet = Set(selected)
     let limited = Set(selection.limited)
     let records = Dictionary(input.stored.map { ($0.registration.gatewayId, $0) }, uniquingKeysWith: { first, _ in first })
 
     for record in input.stored.sorted(by: { $0.registration.gatewayId < $1.registration.gatewayId })
-    where !selectedSet.contains(record.registration.gatewayId) {
+    where !selectedSet.contains(record.registration.gatewayId) && !input.frozen.contains(record.registration.gatewayId) {
       let id = record.registration.gatewayId
 
       if record.registration.relay != input.relay {

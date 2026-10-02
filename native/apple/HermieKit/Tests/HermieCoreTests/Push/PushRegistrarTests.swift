@@ -46,7 +46,12 @@ struct PushRegistrarTests {
     #expect(stored == [F.registration("g1", handle: F.handle(1), refreshedAt: rig.clock.now)])
 
     let keys = try SecretKeys.gateway("g1")
-    #expect(try rig.secrets.inner.get(keys.pushManage) == F.secret("manage", 1))
+    // The manage secret's item names what it manages, so it alone can revoke the registration.
+    let held = try #require(try rig.secrets.inner.get(keys.pushManage))
+    #expect(
+      PushHeldCapability(gatewayId: "g1", stored: held)
+        == PushHeldCapability(gatewayId: "g1", handle: F.handle(1), relay: F.relay, manageSecret: F.secret("manage", 1))
+    )
     #expect(try rig.secrets.inner.get(keys.pushSend) == F.secret("send", 1))
 
     let address = await rig.registrar.address(gatewayId: "g1")
@@ -335,5 +340,131 @@ struct PushRegistrarTests {
       #expect(try rig.secrets.inner.get(key) == nil)
     }
     #expect(try gateway.push.allSatisfy { try rig.secrets.inner.get($0) != nil })
+  }
+
+  // MARK: Orphans, unknowns, undecodable entries
+
+  @Test("a reinstall (empty database, keychain kept): each orphan is revoked, then registration goes on as usual")
+  func reinstallRevokesOrphans() async throws {
+    let first = try Rig()
+    await first.registrar.reconcile(first.context(gateways: ["g1", "g2"]))
+
+    // The database is gone; the keychain and the relay are not.
+    let store = try makePushStore(secrets: first.secrets)
+    let registrar = PushRegistrar(client: first.relay, store: store, clock: first.clock.read)
+    let report = await registrar.reconcile(first.context(gateways: ["g1"]))
+
+    #expect(report.orphansRevoked == 2)
+    #expect(
+      Set(first.relay.calls.dropFirst(2).prefix(2))
+        == [
+          .delete(handle: F.handle(1), manageSecret: F.secret("manage", 1)),
+          .delete(handle: F.handle(2), manageSecret: F.secret("manage", 2))
+        ]
+    )
+    #expect(first.relay.calls.last == .register(token: F.tokenA.hex, environment: .sandbox, topic: F.topic))
+    #expect(try await store.registrations().map(\.handle) == [F.handle(3)])
+    #expect(try first.secrets.inner.keys(prefix: "hermie.push.").sorted() == ["hermie.push.manage-g1", "hermie.push.send-g1"])
+
+    // Once per launch.
+    await registrar.reconcile(first.context(gateways: ["g1"]))
+    #expect(first.relay.calls.count == 5)
+  }
+
+  @Test("an orphan the relay cannot be reached for is tried again on the next pass")
+  func orphanRetried() async throws {
+    let first = try Rig()
+    await first.registrar.reconcile(first.context(gateways: ["g1"]))
+
+    let registrar = PushRegistrar(client: first.relay, store: try makePushStore(secrets: first.secrets), clock: first.clock.read)
+    first.relay.failDelete(.network)
+    let failed = await registrar.reconcile(first.context(wanted: false, gateways: []))
+    #expect(failed.orphansRevoked == 0)
+
+    let done = await registrar.reconcile(first.context(wanted: false, gateways: []))
+    #expect(done.orphansRevoked == 1)
+  }
+
+  @Test("an orphan from an older build (a bare secret, no handle) cannot be revoked: its secrets are dropped")
+  func legacyOrphanDropped() async throws {
+    let rig = try Rig()
+    let keys = try SecretKeys.gateway("g7")
+    try rig.secrets.set(keys.pushManage, F.secret("manage", 7))
+    try rig.secrets.set(keys.pushSend, F.secret("send", 7))
+
+    let report = await rig.registrar.reconcile(rig.context(wanted: false, gateways: []))
+
+    #expect(report.orphansRevoked == 0)
+    #expect(rig.relay.calls.isEmpty)
+    #expect(try rig.secrets.inner.keys(prefix: "hermie.push.").isEmpty)
+  }
+
+  @Test("the address is registered, none, or unknown, and unknown is never none")
+  func addressStates() async throws {
+    let rig = try Rig()
+    #expect(await rig.registrar.addressState(gatewayId: "g1") == PushAddressState.none)
+
+    await rig.registrar.reconcile(rig.context())
+    guard case .registered(let address) = await rig.registrar.addressState(gatewayId: "g1") else {
+      Issue.record("not registered")
+      return
+    }
+    #expect(address.handle == F.handle(1))
+
+    rig.secrets.lock(true)
+    #expect(await rig.registrar.addressState(gatewayId: "g1") == .unknown)
+    rig.secrets.lock(false)
+
+    try await rig.store.keyValues.setString("{broken", forKey: StoreKeys.pushRegistrations)
+    #expect(await rig.registrar.addressState(gatewayId: "g1") == .unknown)
+  }
+
+  @Test("an entry this build cannot decode is kept through every write, skipped, reported, and never registered over")
+  func undecodableEntry() async throws {
+    let rig = try Rig()
+    await rig.registrar.reconcile(rig.context(gateways: ["g1"]))
+
+    // A newer build wrote g2's entry in a shape this one cannot read.
+    let text = try #require(try await rig.store.keyValues.string(forKey: StoreKeys.pushRegistrations))
+    var map = try #require(try JSONSerialization.jsonObject(with: Data(text.utf8)) as? [String: Any])
+    map["g2"] = ["gatewayId": "g2", "shape": 2]
+    let data = try JSONSerialization.data(withJSONObject: map, options: [.sortedKeys])
+    try await rig.store.keyValues.setString(String(decoding: data, as: UTF8.self), forKey: StoreKeys.pushRegistrations)
+
+    let report = await rig.registrar.reconcile(rig.context(gateways: ["g1", "g2"]))
+
+    #expect(report.undecodable == ["g2"])
+    #expect(rig.relay.calls.count == 1)
+    #expect(await rig.registrar.addressState(gatewayId: "g2") == .unknown)
+
+    // Another write (a refresh of g1) carries it.
+    rig.clock.advance(PushPlan.refreshInterval)
+    await rig.registrar.reconcile(rig.context(gateways: ["g1", "g2"]))
+    #expect(try await rig.store.undecodable() == ["g2"])
+  }
+
+  @Test("a gateway unreadable for one pass keeps its slot: the ninth is not registered in its place")
+  func frozenKeepsItsSlot() async throws {
+    let rig = try Rig()
+    let ids = (1...9).map { "g\($0)" }
+    await rig.registrar.reconcile(rig.context(gateways: ids))
+    #expect(rig.relay.calls.count == 8)
+
+    // g3's entry becomes unreadable for a pass.
+    let text = try #require(try await rig.store.keyValues.string(forKey: StoreKeys.pushRegistrations))
+    var map = try #require(try JSONSerialization.jsonObject(with: Data(text.utf8)) as? [String: Any])
+    let g3 = map["g3"]
+    map["g3"] = ["broken": true]
+    try await rig.store.keyValues.setString(
+      String(decoding: try JSONSerialization.data(withJSONObject: map), as: UTF8.self), forKey: StoreKeys.pushRegistrations)
+
+    await rig.registrar.reconcile(rig.context(gateways: ids))
+    #expect(rig.relay.calls.count == 8)
+
+    map["g3"] = g3
+    try await rig.store.keyValues.setString(
+      String(decoding: try JSONSerialization.data(withJSONObject: map), as: UTF8.self), forKey: StoreKeys.pushRegistrations)
+    await rig.registrar.reconcile(rig.context(gateways: ids))
+    #expect(rig.relay.calls.count == 8)
   }
 }

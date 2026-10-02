@@ -93,6 +93,28 @@ enum NativeStrings {
     }
     /// Registered
     static var registered: String { String(localized: "native.push.registered", table: "Native", bundle: .module) }
+    /// Reset notifications on this device
+    static var reset: String { String(localized: "native.push.reset", table: "Native", bundle: .module) }
+    /// Takes this device's registrations back from every gateway it can still reach, forgets them and turns notifications off here. Turn them on again afterwards.
+    static var resetHint: String { String(localized: "native.push.resetHint", table: "Native", bundle: .module) }
+    /// Some registrations could not be taken back yet. Reset again when the device is online.
+    static var resetLeftovers: String {
+      String(localized: "native.push.resetLeftovers", table: "Native", bundle: .module)
+    }
+    /// Signed out
+    static var signedOut: String { String(localized: "native.push.signedOut", table: "Native", bundle: .module) }
+    /// The notification switch could not be saved. Try again.
+    static var switchWriteFailed: String {
+      String(localized: "native.push.switchWriteFailed", table: "Native", bundle: .module)
+    }
+    /// Hermie cannot read this device’s notification settings, so notifications are paused here.
+    static var troubleSettings: String {
+      String(localized: "native.push.troubleSettings", table: "Native", bundle: .module)
+    }
+    /// Hermie cannot read this device’s notification registrations, so notifications are paused here.
+    static var troubleRegistrations: String {
+      String(localized: "native.push.troubleRegistrations", table: "Native", bundle: .module)
+    }
     /// Relay
     static var relay: String { String(localized: "native.push.relay", table: "Native", bundle: .module) }
     /// Waiting for this device’s push address…

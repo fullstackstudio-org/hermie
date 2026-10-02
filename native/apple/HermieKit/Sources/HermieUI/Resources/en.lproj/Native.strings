@@ -72,6 +72,20 @@
 	<string>Registered</string>
 	<key>native.push.relay</key>
 	<string>Relay</string>
+	<key>native.push.reset</key>
+	<string>Reset notifications on this device</string>
+	<key>native.push.resetHint</key>
+	<string>Takes this device’s registrations back from every gateway it can still reach, forgets them and turns notifications off here. Turn them on again afterwards.</string>
+	<key>native.push.resetLeftovers</key>
+	<string>Some registrations could not be taken back yet. Reset again when the device is online.</string>
+	<key>native.push.signedOut</key>
+	<string>Signed out</string>
+	<key>native.push.switchWriteFailed</key>
+	<string>The notification switch could not be saved. Try again.</string>
+	<key>native.push.troubleRegistrations</key>
+	<string>Hermie cannot read this device’s notification registrations, so notifications are paused here.</string>
+	<key>native.push.troubleSettings</key>
+	<string>Hermie cannot read this device’s notification settings, so notifications are paused here.</string>
 	<key>native.push.waiting</key>
 	<string>Waiting for this device’s push address…</string>
 	<key>native.requests.answered</key>
