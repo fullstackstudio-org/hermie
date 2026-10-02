@@ -156,35 +156,52 @@ extension Integration {
 
     @Test("redials after a drop mid-turn and replays what it missed exactly once")
     func reconnectAndReplay() async throws {
-      // The fake's long reply (dozens of frames) 20 ms apart, and a redial
-      // 300 ms after the drop: part of the turn happens while the client is
-      // away and has to come back through the replay, and the rest arrives live
-      // around it, some of it racing the replay.
+      // Nothing here races a timer against the stream. The client is kept away
+      // (its ladder is half a minute) from the drop until the gateway says the
+      // turn is over, and only then told to redial, so everything after the
+      // drop can only come back through the replay, however fast or slow the
+      // machine. The stream is slowed so the drop lands mid-turn.
       var options = Auth.token.options
-      options.streamDelayMs = 20
+      options.streamDelayMs = 25
 
       try await FakeGateway.with(options) { gateway in
         try await LiveConnection.with(
           gateway,
           credentials: SessionTokenCredentials(token: connectionToken),
-          configure: { $0.backoff = { _ in .milliseconds(300) } }
+          configure: { $0.backoff = { _ in .seconds(30) } }
         ) { live in
           await live.connection.start()
           try await live.waitFor(.ready)
-          let (sessionID, _) = try await resumeCanonicalChat(live)
+          let (sessionID, resumed) = try await resumeCanonicalChat(live)
+          let storedID = try #require(resumed.result["stored_session_id"]?.stringValue)
 
           _ = try await live.connection.request(
             "prompt.submit",
             params: ["session_id": .string(sessionID), "text": "Give me the long version"]
           )
-          let start = try await live.waitForEvent("the turn to start") {
+          try await live.waitForEvent("the turn to start") {
             $0.type == "message.start" && $0.sessionID == sessionID
           }
 
           try await gateway.dropSockets()
           try await live.waitFor(.reconnecting)
+          // What the client had when its socket went: frames can still land
+          // between seeing message.start and the drop taking effect.
+          let before = events(of: sessionID, in: live)
+          let lastSeen = try #require(before.compactMap(\.event.seq).max())
+          #expect(!before.contains { $0.event.type == "message.complete" })
+
+          try await within(LiveConnection.deadline, "the turn to finish on the gateway") {
+            while try await gateway.state().runningSessions.contains(storedID) {
+              // The gateway is in another process; asking again is the only
+              // way to hear from it. Not a wait for time to pass.
+              try await Task.sleep(for: .milliseconds(20))
+            }
+          }
+
+          await live.connection.retryNow()
           try await live.waitFor(.ready)
-          try await live.waitForEvent("the turn to finish", after: start.index) {
+          try await live.waitForEvent("the turn's end, through the replay") {
             $0.type == "message.complete" && $0.sessionID == sessionID
           }
 
@@ -196,16 +213,18 @@ extension Integration {
           #expect(turn.first?.event.type == "message.start")
           #expect(turn.last?.event.type == "message.complete")
 
-          // What was missed came back as one batch: several events carrying the
-          // wire index of the replay's answer.
-          let batches = Dictionary(grouping: turn, by: \.index).values.filter { $0.count > 1 }
-          #expect(batches.count == 1, "\(turn.map(\.index))")
+          // Everything after what the client had came back as one batch,
+          // carrying the wire index of the replay's answer.
+          let replayed = turn.filter { ($0.event.seq ?? 0) > lastSeen }
+          #expect(replayed.count >= 2)
+          #expect(Set(replayed.map(\.index)).count == 1, "\(turn.map(\.index))")
+          #expect(replayed.first?.event.seq == lastSeen + 1)
 
           let state = try await gateway.state()
           #expect(state.connections == 2)
           let replay = try #require(state.eventsSinceCalls.first)
           #expect(replay["session_id"] == .string(sessionID))
-          #expect(replay["last_seen"]?.doubleValue == start.event.json["seq"]?.doubleValue)
+          #expect(replay["last_seen"]?.doubleValue == Double(lastSeen))
         }
       }
     }
@@ -339,22 +358,24 @@ extension Integration {
           gateway,
           credentials: SessionTokenCredentials(token: connectionToken),
           configure: { options in
-            options.heartbeatInterval = .milliseconds(100)
-            options.heartbeatDeadline = .milliseconds(300)
+            // A deadline forty intervals long: a pause of nearly two seconds
+            // between two answers (a slow or loaded runner) is not a dead
+            // socket, and forty-five intervals still outlast it, so only the
+            // gateway's answers can have kept the socket up.
+            options.heartbeatInterval = .milliseconds(50)
+            options.heartbeatDeadline = .seconds(2)
           }
         ) { live in
           await live.connection.start()
           try await live.waitFor(.ready)
           let firedAtReady = live.clock.fired.values.count
 
-          // Six intervals: twice the deadline, so only the gateway's answers
-          // can have kept the socket alive.
-          try await live.clock.fired.wait("six heartbeat intervals") { $0.count >= firedAtReady + 6 }
+          try await live.clock.fired.wait("forty-five heartbeat intervals") { $0.count >= firedAtReady + 45 }
           #expect(await live.connection.phase == .ready)
 
           _ = try await live.connection.request("profiles.list")
           let pings = try await gateway.state().methodLog.filter { $0 == "gateway.ping" }.count
-          #expect(pings >= 6)
+          #expect(pings >= 45)
           #expect(!live.statuses.values.contains { $0.phase == .reconnecting })
         }
       }
