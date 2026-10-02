@@ -23,7 +23,7 @@ import {
 } from '../src/features/chats/sheet-host'
 import { approvalItem, clarifyItem, subagentTree } from '../src/chat-ui/fixtures'
 import { type Bot, useBotsStore } from '../src/store/bots'
-import { renderScreen, withProviders } from './support/render'
+import { renderScreen, waitForGone, withProviders } from './support/render'
 
 let mockController: {
   listBotConversations: jest.Mock
@@ -216,7 +216,10 @@ describe('the conversations sheet', () => {
     fireEvent.press(screen.getByTestId('conversation-sheet-list-row-stored-group'))
 
     await waitFor(() => expect(mockController.selectConversation).toHaveBeenCalledWith(BOT, null))
-    await waitFor(() => expect(screen.queryByTestId('conversation-sheet')).toBeNull())
+    // `waitForGone`, not `waitFor(...toBeNull())`: every poll that still found the
+    // sheet pretty-printed its whole subtree into a failure message, and that,
+    // not the slide-out, is what ran this test past five seconds on CI.
+    await waitForGone(() => screen.queryByTestId('conversation-sheet'), 'the conversations sheet')
   })
 
   it('draws nothing when the caller gave no entry point to conversations at all', () => {
