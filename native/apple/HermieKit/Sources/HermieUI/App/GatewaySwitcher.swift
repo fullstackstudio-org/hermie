@@ -99,10 +99,9 @@ struct GatewayRowLabel: View {
     HStack {
       VStack(alignment: .leading, spacing: 2) {
         Text(entry.name)
-          .foregroundStyle(.primary)
+          .font(.body.weight(.semibold))
         Text(entry.address)
           .font(.footnote)
-          .foregroundStyle(.secondary)
       }
 
       Spacer()
@@ -110,7 +109,6 @@ struct GatewayRowLabel: View {
       if active {
         Text(Strings.App.Settings.Gateways.active)
           .font(.footnote)
-          .foregroundStyle(.secondary)
         Image(systemName: "checkmark")
           .foregroundStyle(.tint)
           .accessibilityHidden(true)

@@ -119,8 +119,9 @@ public struct SettingsView: View {
           SettingsPage(category: category, onAddGateway: onAddGateway)
         }
         .toolbar {
-          ToolbarItem(placement: .confirmationAction) {
-            Button(Strings.App.Common.done) { dismiss() }
+          ToolbarItem(placement: .cancellationAction) {
+            // The system's own close button: a symbol with the platform's label.
+            Button(role: .close) { dismiss() }
               .accessibilityIdentifier("hermie.settings.done")
           }
         }
@@ -175,9 +176,8 @@ struct PlaceholderSettingsPage: View {
     Form {
       Section {
         Text(NativeStrings.later)
-          .foregroundStyle(.secondary)
       } footer: {
-        Text(category.blurb)
+        SettingsNote(category.blurb)
       }
     }
     .formStyle(.grouped)
@@ -191,9 +191,8 @@ struct AdvancedSettingsPage: View {
     Form {
       Section {
         Text(NativeStrings.later)
-          .foregroundStyle(.secondary)
       } footer: {
-        Text(SettingsCategory.advanced.blurb)
+        SettingsNote(SettingsCategory.advanced.blurb)
       }
 
       #if DEBUG
@@ -210,5 +209,23 @@ struct AdvancedSettingsPage: View {
       #endif
     }
     .formStyle(.grouped)
+  }
+}
+
+/**
+ A section's header or footer. Drawn in the primary colour rather than the system's grey, which
+ fails the contrast audit at footnote size.
+ */
+struct SettingsNote: View {
+  let text: String
+
+  init(_ text: String) {
+    self.text = text
+  }
+
+  var body: some View {
+    // `Color.primary`, the label colour: `.primary` alone is the footer's own (grey) level.
+    Text(text)
+      .foregroundStyle(Color.primary)
   }
 }

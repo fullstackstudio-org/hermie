@@ -45,18 +45,18 @@ struct WelcomeView: View {
   @Environment(AppRouter.self) private var router
 
   var body: some View {
-    ContentUnavailableView {
-      Label(Strings.App.Onboarding.Welcome.title, systemImage: "bubble.left.and.bubble.right.fill")
-    } description: {
-      Text(Self.body)
-    } actions: {
+    EmptyState(
+      Strings.App.Onboarding.Welcome.title,
+      systemImage: "bubble.left.and.bubble.right.fill",
+      message: Text(Self.body)
+    ) {
       Button(Strings.App.Onboarding.Welcome.action) {
         router.present(.onboarding(.firstGateway))
       }
       .buttonStyle(.borderedProminent)
-      .controlSize(.large)
       .accessibilityIdentifier("hermie.welcome.setUp")
     }
+    .accessibilityElement(children: .contain)
     .accessibilityIdentifier("hermie.welcome")
   }
 
@@ -129,9 +129,9 @@ struct Sidebar: View {
           )
         )
       case .activity:
-        ContentUnavailableView(Strings.App.Tabs.activity, systemImage: "waveform.path.ecg", description: Text(NativeStrings.later))
+        EmptyState(Strings.App.Tabs.activity, systemImage: "waveform.path.ecg", message: Text(NativeStrings.later))
       case .routines:
-        ContentUnavailableView(Strings.App.Tabs.routines, systemImage: "clock.arrow.circlepath", description: Text(NativeStrings.later))
+        EmptyState(Strings.App.Tabs.routines, systemImage: "clock.arrow.circlepath", message: Text(NativeStrings.later))
       }
     }
     .safeAreaInset(edge: .top, spacing: 0) {
@@ -178,10 +178,10 @@ struct DetailRoot: View {
       components.chat(chat)
         .id(chat)
     } else {
-      ContentUnavailableView(
+      EmptyState(
         NativeStrings.Detail.NoChat.title,
         systemImage: "bubble.left.and.bubble.right",
-        description: Text(NativeStrings.Detail.NoChat.body)
+        message: Text(NativeStrings.Detail.NoChat.body)
       )
       .accessibilityIdentifier("hermie.detail.empty")
     }
@@ -193,7 +193,7 @@ struct DetailRoutePlaceholder: View {
   let route: DetailRoute
 
   var body: some View {
-    ContentUnavailableView(NativeStrings.later, systemImage: "hammer")
+    EmptyState(NativeStrings.later, systemImage: "hammer")
   }
 }
 

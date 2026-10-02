@@ -16,7 +16,7 @@ struct AboutSettingsPage: View {
             .textSelection(.enabled)
         }
       } footer: {
-        Text(SettingsCategory.about.blurb)
+        SettingsNote(SettingsCategory.about.blurb)
       }
 
       Section {
@@ -24,9 +24,8 @@ struct AboutSettingsPage: View {
           Form {
             Section {
               Text(NativeStrings.later)
-                .foregroundStyle(.secondary)
             } footer: {
-              Text(Strings.App.Settings.licencesHint)
+              SettingsNote(Strings.App.Settings.licencesHint)
             }
           }
           .formStyle(.grouped)

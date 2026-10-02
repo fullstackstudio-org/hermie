@@ -104,7 +104,6 @@ struct LockPlate: View {
 
       Text(lock.enrolment == DeviceEnrolment.none ? Strings.App.Lock.stranded : Strings.App.Lock.plateBody)
         .multilineTextAlignment(.center)
-        .foregroundStyle(.secondary)
         .fixedSize(horizontal: false, vertical: true)
 
       Button {

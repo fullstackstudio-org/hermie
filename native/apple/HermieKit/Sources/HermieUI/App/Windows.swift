@@ -109,10 +109,10 @@ public struct ChatWindow: View {
         if let chat {
           components.chat(chat)
         } else {
-          ContentUnavailableView(
+          EmptyState(
             NativeStrings.Detail.NoChat.title,
             systemImage: "bubble.left.and.bubble.right",
-            description: Text(NativeStrings.Detail.NoChat.body)
+            message: Text(NativeStrings.Detail.NoChat.body)
           )
         }
       }

@@ -31,7 +31,7 @@ struct PrivacySettingsPage: View {
         }
         .accessibilityIdentifier("hermie.settings.lock")
       } footer: {
-        Text(SettingsCategory.privacy.blurb)
+        SettingsNote(SettingsCategory.privacy.blurb)
       }
     }
     .formStyle(.grouped)
@@ -85,7 +85,7 @@ struct LockThresholdPage: View {
           .accessibilityIdentifier("hermie.lock.option.\(threshold.rawValue)")
         }
       } footer: {
-        Text(Self.footer(refusal: refusal, lock: lock))
+        SettingsNote(Self.footer(refusal: refusal, lock: lock))
           .accessibilityIdentifier("hermie.lock.footer")
       }
     }

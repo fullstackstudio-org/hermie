@@ -37,9 +37,9 @@ struct GatewaysSettingsPage: View {
           .accessibilityActions { actions(for: entry) }
         }
       } header: {
-        Text(Strings.App.Settings.Gateways.header)
+        SettingsNote(Strings.App.Settings.Gateways.header)
       } footer: {
-        Text(Strings.App.Settings.Gateways.hint)
+        SettingsNote(Strings.App.Settings.Gateways.hint)
       }
 
       Section {
@@ -48,7 +48,7 @@ struct GatewaysSettingsPage: View {
         }
         .accessibilityIdentifier("hermie.settings.gateways.add")
       } footer: {
-        Text(Strings.App.Settings.Gateways.addHint)
+        SettingsNote(Strings.App.Settings.Gateways.addHint)
       }
     }
     .formStyle(.grouped)

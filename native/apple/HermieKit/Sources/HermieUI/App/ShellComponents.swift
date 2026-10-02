@@ -71,11 +71,7 @@ struct OnboardingPlaceholder: View {
 
   var body: some View {
     NavigationStack {
-      ContentUnavailableView {
-        Label(Strings.App.Onboarding.Welcome.title, systemImage: "server.rack")
-      } description: {
-        Text(NativeStrings.later)
-      }
+      EmptyState(Strings.App.Onboarding.Welcome.title, systemImage: "server.rack", message: Text(NativeStrings.later))
       .toolbar {
         ToolbarItem(placement: .cancellationAction) {
           Button(Strings.App.Common.cancel) { context.finish(nil) }
@@ -92,7 +88,7 @@ struct SignInPlaceholder: View {
 
   var body: some View {
     NavigationStack {
-      ContentUnavailableView(Strings.App.Common.signIn, systemImage: "person.badge.key", description: Text(NativeStrings.later))
+      EmptyState(Strings.App.Common.signIn, systemImage: "person.badge.key", message: Text(NativeStrings.later))
         .toolbar {
           ToolbarItem(placement: .cancellationAction) {
             Button(Strings.App.Common.cancel) { context.finish() }
@@ -117,7 +113,6 @@ struct ChatListPlaceholder: View {
 
       Section {
         Text(NativeStrings.later)
-          .foregroundStyle(.secondary)
       }
     }
     .accessibilityIdentifier("hermie.chatList.placeholder")
@@ -129,11 +124,7 @@ struct ChatPlaceholder: View {
   let chat: ChatRef
 
   var body: some View {
-    ContentUnavailableView {
-      Label(chat.bot, systemImage: "bubble.left.and.bubble.right")
-    } description: {
-      Text(NativeStrings.later)
-    }
+    EmptyState(chat.bot, systemImage: "bubble.left.and.bubble.right", message: Text(NativeStrings.later))
     .navigationTitle(chat.bot)
     .accessibilityElement(children: .contain)
     .accessibilityIdentifier("hermie.chat.placeholder")
