@@ -61,7 +61,13 @@ if (values.help) {
       '                       session_id (stored or runtime id) targets one exact conversation',
       "                       instead of the profile's canonical Bot Chat — a sub-chat, once one exists",
       '  POST /__fake/request {profile, method, params}   raise a server→client request,',
-      '                                                   e.g. method "clarify"'
+      '                                                   e.g. method "clarify"',
+      '  GET  /__fake/state                   counters and logs: connections, open sockets,',
+      '                                       tickets, refreshes, replays, the method log and',
+      '                                       the answers given to server requests',
+      '  POST /__fake/drop-sockets {code?, reason?}  close every live socket; without a code',
+      '                                       abruptly (the client sees 1006)',
+      '  POST /__fake/reject-upgrades {count}  fail the next count upgrades with --close-code'
     ].join('\n')
   )
   process.exit(0)

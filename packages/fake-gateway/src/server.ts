@@ -700,6 +700,11 @@ export interface FakeGatewayState {
   revokeCalls: { refreshToken: string; provider: string; authorization: boolean }[]
   /** `session.events.since` calls, newest last. */
   eventsSinceCalls: { session_id: string; last_seen: number }[]
+  /**
+   * Every answer a client gave to a server→client request, oldest first: the
+   * request's id and method, and the result or the error frame it sent back.
+   */
+  serverRequestAnswers: { id: string; method: string; result?: unknown; error?: unknown }[]
   /** Every JSON-RPC method the server handled, in order. */
   methodLog: string[]
   /** Mark the next replay answer as truncated. */
@@ -2345,6 +2350,7 @@ function initialState(options: FakeGatewayOptions): FakeGatewayState {
     refreshReuseAttempts: 0,
     revokeCalls: [],
     eventsSinceCalls: [],
+    serverRequestAnswers: [],
     methodLog: [],
     truncateNextReplay: false,
     hangMethods: new Set<string>(),
@@ -3502,6 +3508,64 @@ export async function startFakeGateway(options: FakeGatewayOptions = {}): Promis
       })
 
       json(res, 200, { injected: true, session_id: session.id, stored_session_id: session.storedId })
+
+      return
+    }
+
+    if (path === '/__fake/state' && method === 'GET') {
+      /*
+        A read-back for black-box clients (the native integration tests), which
+        cannot hold the gateway object the TypeScript tests read `state` from.
+        Counters and logs only; nothing a test could use to sign in.
+      */
+      json(res, 200, {
+        connections: state.connections,
+        openSockets: sockets.size,
+        rejectedUpgrades: state.rejectedUpgrades,
+        rejectNextUpgrades: state.rejectNextUpgrades,
+        ticketsMinted: state.ticketsMinted,
+        ticketsConsumed: state.ticketsConsumed,
+        refreshCalls: state.refreshCalls,
+        refreshReuseAttempts: state.refreshReuseAttempts,
+        eventsSinceCalls: state.eventsSinceCalls,
+        methodLog: state.methodLog,
+        openServerRequests: [...state.openServerRequests.keys()],
+        serverRequestAnswers: state.serverRequestAnswers
+      })
+
+      return
+    }
+
+    if (path === '/__fake/drop-sockets' && method === 'POST') {
+      /*
+        Every live socket goes. Without a `code` it is the abrupt kind (no close
+        frame, the client sees 1006), what a proxy restart or a lost route looks
+        like; with one it is a deliberate close, 4403 and friends included.
+      */
+      const body = await readBody(req)
+      const code = typeof body.code === 'number' ? body.code : undefined
+      const dropped = sockets.size
+
+      for (const socket of [...sockets]) {
+        if (code === undefined) {
+          socket.terminate()
+        } else {
+          socket.close(code, typeof body.reason === 'string' ? body.reason : '')
+        }
+      }
+
+      json(res, 200, { dropped })
+
+      return
+    }
+
+    if (path === '/__fake/reject-upgrades' && method === 'POST') {
+      // The next `count` upgrades fail auth with `--close-code` even with a
+      // valid credential: `rejectNextUpgrades`, for a client in another process.
+      const body = await readBody(req)
+      const count = typeof body.count === 'number' && body.count >= 0 ? Math.floor(body.count) : 1
+      state.rejectNextUpgrades = count
+      json(res, 200, { rejectNextUpgrades: count })
 
       return
     }
@@ -5023,6 +5087,11 @@ export async function startFakeGateway(options: FakeGatewayOptions = {}): Promis
 
       if (pending) {
         pendingServerRequests.delete(id)
+        state.serverRequestAnswers.push({
+          id,
+          method: state.openServerRequests.get(id)?.method ?? '',
+          ...(frame.error ? { error: frame.error } : { result: frame.result })
+        })
 
         if (frame.error) {
           pending.reject(new Error(JSON.stringify(frame.error)))
