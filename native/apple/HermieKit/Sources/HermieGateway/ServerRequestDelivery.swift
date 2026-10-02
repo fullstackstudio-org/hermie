@@ -6,9 +6,17 @@ import HermieProtocol
 ///
 /// Answering is idempotent: the first `respond` or `fail` goes out, later ones
 /// are dropped, as `JsonRpcRequestChannel.deliverRequest` guards its `send`.
-/// The answer travels over whatever socket is current when it is given, which
-/// after a reconnect is a newer one than the request arrived on; the backend
-/// keys the answer on the request id, so that is what it expects.
+///
+/// A delivery belongs to the socket it arrived on. When that socket goes, so
+/// does the delivery: answering it returns `false` and sends nothing. The
+/// gateway re-delivers every request still waiting, with the same `id` and
+/// `replayed: true`, in the `open_requests` of the resume or replay that
+/// follows the reconnect, and that delivery is the one to answer. (The
+/// TypeScript client sends a late answer over the new socket instead, which the
+/// gateway accepts while the request is still open; here the app answers the
+/// re-delivered copy, and is told when an answer did not go out.)
+///
+/// It holds the connection weakly, so a card left on screen keeps nothing alive.
 public struct ServerRequestDelivery: Sendable {
   /// The request as it arrived: `id`, `method`, `params`, and `body`, its typed reading.
   public let request: ServerRequest
@@ -21,27 +29,31 @@ public struct ServerRequestDelivery: Sendable {
   public let index: UInt64
 
   let token: UInt64
-  let connection: GatewayConnection
+  weak let connection: GatewayConnection?
 
   /// The typed reading: `.approval` or `.clarify`.
   public var body: ServerRequestBody { request.body }
 
-  /// Answer with a result object.
-  public func respond(_ result: JSONObject) async {
-    guard let frame = request.respond(.object(result)) else {
-      return
+  /// Answer with a result object. Returns whether the answer went out: `false`
+  /// when this delivery was already answered or its socket is gone.
+  @discardableResult
+  public func respond(_ result: JSONObject) async -> Bool {
+    guard let frame = request.respond(.object(result)), let connection else {
+      return false
     }
 
-    await connection.answer(token, with: frame)
+    return await connection.answer(token, with: frame)
   }
 
   /// Answer with a JSON-RPC error; the backend treats the request as unanswered.
-  public func fail(code: Int, message: String) async {
-    guard let frame = request.fail(code: code, message: message) else {
-      return
+  /// Returns whether the answer went out, as `respond` does.
+  @discardableResult
+  public func fail(code: Int, message: String) async -> Bool {
+    guard let frame = request.fail(code: code, message: message), let connection else {
+      return false
     }
 
-    await connection.answer(token, with: frame)
+    return await connection.answer(token, with: frame)
   }
 }
 

@@ -243,14 +243,15 @@ extension GatewayConnection {
     )
   }
 
-  /// The app's answer to one delivery. The first answer goes out; later ones
-  /// are dropped. It travels over the socket that is current now.
-  func answer(_ token: UInt64, with frame: JSONRPCResponse) {
+  /// The app's answer to one delivery. The first answer goes out, over the
+  /// socket the request arrived on; later ones, and any for a socket that has
+  /// gone (`dropSocket` forgets its deliveries), are dropped.
+  func answer(_ token: UInt64, with frame: JSONRPCResponse) -> Bool {
     guard openDeliveries.remove(token) != nil else {
-      return
+      return false
     }
 
-    send(frame.jsonValue)
+    return send(frame.jsonValue)
   }
 
   // MARK: Heartbeat

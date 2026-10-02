@@ -180,6 +180,9 @@ extension GatewayConnection {
     // A replay belongs to the socket that started it; the next open may start
     // its own straight away.
     replay.abandon()
+    // Its unanswered server requests go with it; the gateway re-delivers those
+    // still waiting once a new socket resumes.
+    openDeliveries.removeAll()
     socket = nil
     detach(error)
     setClientState(.closed)

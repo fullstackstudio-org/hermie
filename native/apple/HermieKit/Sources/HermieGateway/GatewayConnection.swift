@@ -33,9 +33,12 @@ import HermieProtocol
 /// **Streams.** `statuses`, `events` and `serverRequests` hand out a new,
 /// unbounded subscription on every access, and any number may be live at once.
 /// `statuses` starts with the current status, as `onStatus` calls a new handler
-/// once. `serverRequests` is meant for one consumer (the session); with none
-/// subscribed, `approval` and `clarify` are answered `-32601` like every other
-/// server request, as the reference does when no handler is registered.
+/// once. Subscribe to `events` and `serverRequests` before `start()`: nothing
+/// is buffered for a subscriber that comes later. `serverRequests` is meant for
+/// one long-lived consumer (the session); with none subscribed, `approval` and
+/// `clarify` are answered `-32601` like every other server request, as the
+/// reference does when no handler is registered. The streams end on
+/// `shutdown()` (and when the connection is released), not on `stop()`.
 ///
 /// **Order.** The three streams and the awaiting callers of `request` run on
 /// different tasks, so the order a consumer drains them in is not the wire's.
@@ -92,6 +95,8 @@ public actor GatewayConnection {
   var currentError: GatewayError?
   var running = false
   var paused = false
+  /// `shutdown()` was called: the streams are finished and nothing dials again.
+  var isShutDown = false
   var online = true
   var attempt = 0
   var consecutiveAuthFailures = 0
@@ -204,14 +209,16 @@ public actor GatewayConnection {
   /// `WireOrder.swift`).
   public nonisolated var events: AsyncStream<WireEvent> { eventHub.subscribe() }
 
-  /// The `approval` and `clarify` requests the app is asked to answer.
+  /// The `approval` and `clarify` requests the app is asked to answer. One
+  /// long-lived consumer, subscribed before `start()`, so that the requests a
+  /// first resume re-delivers in its `open_requests` reach it.
   public nonisolated var serverRequests: AsyncStream<ServerRequestDelivery> { requestHub.subscribe() }
 
   // MARK: - Driving
 
   /// Begin dialling and keep the connection up until `stop()`.
   public func start() {
-    if running {
+    if running || isShutDown {
       return
     }
 
@@ -227,11 +234,25 @@ public actor GatewayConnection {
   }
 
   /// Tear the connection down for good (sign-out, gateway change, app shutdown).
+  ///
+  /// The streams stay open: a stopped connection is started again after a new
+  /// sign-in (`resume()`), and its consumers keep listening through that.
   public func stop() {
     running = false
     paused = false
     teardown()
     setStatus(.disconnected, .set(nil))
+  }
+
+  /// Stop, and end `statuses`, `events` and `serverRequests` for every
+  /// subscriber: the connection is being discarded (its gateway was removed,
+  /// the session that owned it is gone). Nothing starts it again afterwards.
+  public func shutdown() {
+    stop()
+    isShutDown = true
+    statusHub.finish()
+    eventHub.finish()
+    requestHub.finish()
   }
 
   /// Close the socket cleanly and stop every timer: the app went to the background.
@@ -252,7 +273,7 @@ public actor GatewayConnection {
 
   /// Come back from the background: dial straight away, no backoff.
   public func resume() {
-    if !paused && running {
+    if (!paused && running) || isShutDown {
       return
     }
 
@@ -458,6 +479,11 @@ public actor GatewayConnection {
     do {
       plan = try await credentials.dialPlan(wsURL: wsURL, extraHeaders: extraHeaders)
     } catch {
+      // A provider error that is not a `GatewayError` becomes a `network`
+      // failure with a fixed sentence (`gatewayError`): its own description is
+      // not known to be free of credentials, so it never reaches a status. A
+      // provider that wants another kind (an `auth` refusal at the mint, a
+      // `redirect`) throws a `GatewayError`.
       // Re-check after the suspension: a stop, a pause or a newer dial may have
       // happened while the credential was being minted.
       guard isAlive(token) else {
