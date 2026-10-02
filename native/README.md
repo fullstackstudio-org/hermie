@@ -12,7 +12,7 @@ native/
     HermieKit/     one Swift package with everything the Apple apps share
     Config/        Version.xcconfig, Shared.xcconfig, Signing.xcconfig.example
     xcodegen/      base.yml: the settings and target template both projects include
-    scripts/       generate.sh, test.sh
+    scripts/       generate.sh, test.sh, archive.sh
   ios/             project.yml and App/: the iPhone and iPad app
   macos/           project.yml and App/: the Mac app
   android/         reserved, see its README
@@ -70,6 +70,10 @@ To sign, give the build your team id: export `HERMIE_TEAM_ID`, or copy
 `apple/Config/Signing.xcconfig.example` to `Signing.xcconfig` and fill it in. Neither ever goes into the
 repository. An unsigned Mac build runs without its sandbox and entitlements, because those are only
 granted to a signed app.
+
+To archive for App Store Connect, `apple/scripts/archive.sh ios|macos <outdir>` generates, archives
+and exports an `.ipa` or a `.pkg`; `--upload` sends it on. Its variables, the build number and the
+native version rule are in [docs/release.md](../docs/release.md#native-apps).
 
 The app transport security setting is a single `NSAllowsArbitraryLoads`, on purpose; see
 [ADR-0014](../docs/adr/0014-plain-http-on-private-networks.md) before adding anything beside it.

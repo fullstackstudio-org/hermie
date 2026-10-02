@@ -1,0 +1,110 @@
+name: Native
+
+# The native Apple apps: HermieKit's tests and an unsigned build of both apps.
+# It runs when something they are built from changes: the native tree, the
+# shared contract, the TypeScript packages the golden corpus and the fake
+# gateway come from, or this file. Nothing here signs anything; archiving and
+# uploading need an Apple account and are native/apple/scripts/archive.sh's job
+# on the owner's Mac (docs/release.md).
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'native/**'
+      - 'contract/**'
+      - 'packages/transcript/**'
+      - 'packages/gateway-client/**'
+      - 'packages/fake-gateway/**'
+      - '.github/workflows/native.yml'
+  pull_request:
+    # The same list. Written out rather than as an alias, so the file parses
+    # the same in every YAML reader that touches it.
+    paths:
+      - 'native/**'
+      - 'contract/**'
+      - 'packages/transcript/**'
+      - 'packages/gateway-client/**'
+      - 'packages/fake-gateway/**'
+      - '.github/workflows/native.yml'
+  workflow_dispatch:
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+jobs:
+  apple:
+    name: HermieKit tests and app builds
+    runs-on: macos-26
+    timeout-minutes: 45
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          # The build number is the commit count (generate.sh), and a shallow
+          # clone counts one commit.
+          fetch-depth: 0
+
+      # The package needs Swift tools 6.2 and the iOS and macOS 26 SDKs. The
+      # image's default Xcode is not necessarily its newest, so pick the newest
+      # release (no betas or release candidates) explicitly and refuse anything
+      # older than 26.
+      - name: Select the newest Xcode
+        run: |
+          xcode="$(find /Applications -maxdepth 1 -name 'Xcode_*.app' \
+            | grep -v -i -E 'beta|release_candidate|_rc' \
+            | sed -E 's|^/Applications/Xcode_(.*)\.app$|\1|' \
+            | sort -V | tail -n 1)"
+          if [ -z "$xcode" ]; then
+            echo "No Xcode_*.app found in /Applications" >&2
+            exit 1
+          fi
+          if [ "${xcode%%.*}" -lt 26 ]; then
+            echo "The newest Xcode on this image is $xcode; HermieKit needs 26 or newer" >&2
+            exit 1
+          fi
+          sudo xcode-select --switch "/Applications/Xcode_$xcode.app"
+          xcodebuild -version
+          swift --version
+
+      - name: Install XcodeGen
+        run: brew install xcodegen
+
+      # Integration tests against the fake gateway (packages/fake-gateway) need
+      # Node and the workspace installed. None exist yet, so both steps are
+      # skipped, at no cost, until the integration test target appears; the task
+      # that adds it points this guard at the real path.
+      - uses: actions/setup-node@v4
+        if: hashFiles('native/apple/HermieKit/Tests/HermieIntegrationTests/**') != ''
+        with:
+          node-version-file: .nvmrc
+          cache: npm
+
+      - name: Install the workspace for the fake gateway
+        if: hashFiles('native/apple/HermieKit/Tests/HermieIntegrationTests/**') != ''
+        run: npm ci
+
+      - name: HermieKit tests (swift test)
+        run: native/apple/scripts/test.sh
+
+      - name: Generate both Xcode projects
+        run: native/apple/scripts/generate.sh
+
+      - name: Build the iOS app (simulator, unsigned)
+        run: |
+          xcodebuild build -quiet \
+            -project native/ios/Hermie.xcodeproj -scheme Hermie \
+            -destination 'generic/platform=iOS Simulator' \
+            -derivedDataPath native/apple/DerivedData \
+            CODE_SIGNING_ALLOWED=NO
+
+      - name: Build the Mac app (unsigned)
+        run: |
+          xcodebuild build -quiet \
+            -project native/macos/Hermie.xcodeproj -scheme Hermie \
+            -destination 'generic/platform=macOS' \
+            -derivedDataPath native/apple/DerivedData \
+            CODE_SIGNING_ALLOWED=NO
