@@ -1,0 +1,6 @@
+// The version people see, on both apps. A release commit bumps it here and
+// nowhere else. The build number is not in this file: it is the git commit
+// count, computed by scripts/generate.sh, so it can never go backwards or be
+// forgotten.
+
+MARKETING_VERSION = 0.2.0

@@ -1,0 +1,61 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+	<key>CFBundleDevelopmentRegion</key>
+	<string>$(DEVELOPMENT_LANGUAGE)</string>
+	<key>CFBundleDisplayName</key>
+	<string>Hermie</string>
+	<key>CFBundleExecutable</key>
+	<string>$(EXECUTABLE_NAME)</string>
+	<key>CFBundleIdentifier</key>
+	<string>$(PRODUCT_BUNDLE_IDENTIFIER)</string>
+	<key>CFBundleInfoDictionaryVersion</key>
+	<string>6.0</string>
+	<key>CFBundleName</key>
+	<string>$(PRODUCT_NAME)</string>
+	<key>CFBundlePackageType</key>
+	<string>$(PRODUCT_BUNDLE_PACKAGE_TYPE)</string>
+	<key>CFBundleShortVersionString</key>
+	<string>$(MARKETING_VERSION)</string>
+	<key>CFBundleVersion</key>
+	<string>$(CURRENT_PROJECT_VERSION)</string>
+	<!-- The short commit hash, for the About line. Written by scripts/generate.sh. -->
+	<key>HermieCommit</key>
+	<string>$(HERMIE_COMMIT)</string>
+	<key>CFBundleURLTypes</key>
+	<array>
+		<dict>
+			<key>CFBundleURLName</key>
+			<string>$(PRODUCT_BUNDLE_IDENTIFIER)</string>
+			<key>CFBundleURLSchemes</key>
+			<array>
+				<string>hermie</string>
+			</array>
+		</dict>
+	</array>
+	<!-- Hermie uses the platform's TLS and HTTP stacks and no cryptography of its own. -->
+	<key>ITSAppUsesNonExemptEncryption</key>
+	<false/>
+	<key>LSMinimumSystemVersion</key>
+	<string>$(MACOSX_DEPLOYMENT_TARGET)</string>
+	<!--
+		The gateway's address is typed by the user, and a gateway on a tailnet is
+		normally served in the clear. This key is ALONE on purpose: any of
+		NSAllowsLocalNetworking, NSAllowsArbitraryLoadsInWebContent or
+		NSAllowsArbitraryLoadsForMedia beside it makes the system ignore it.
+		See docs/adr/0014-plain-http-on-private-networks.md.
+	-->
+	<key>NSAppTransportSecurity</key>
+	<dict>
+		<key>NSAllowsArbitraryLoads</key>
+		<true/>
+	</dict>
+	<key>NSLocalNetworkUsageDescription</key>
+	<string>Hermie connects to the gateway at the address you enter, which can be a computer on your local network.</string>
+	<key>NSMicrophoneUsageDescription</key>
+	<string>Hermie uses the microphone so you can dictate a message instead of typing it. Audio is transcribed on this device and never sent anywhere.</string>
+	<key>NSSpeechRecognitionUsageDescription</key>
+	<string>Hermie uses on-device speech recognition to turn what you say into the text of a message. Nothing is sent to Apple or to any other service.</string>
+</dict>
+</plist>

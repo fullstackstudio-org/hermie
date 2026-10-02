@@ -1,0 +1,19 @@
+// Local signing, for building to a device or archiving.
+//
+// Copy this file to Signing.xcconfig in the same directory and fill in your
+// own Apple Developer team id (ten characters, shown under Membership on
+// developer.apple.com). Signing.xcconfig is ignored by git; a team id never
+// belongs in the repository.
+//
+// The alternative is the environment: export HERMIE_TEAM_ID before running
+// xcodebuild and leave this file alone. A value set here wins over the
+// environment.
+//
+// Neither is needed for the simulator or for an unsigned Mac build
+// (CODE_SIGNING_ALLOWED=NO).
+//
+// A fork ships under its own bundle id as well: override
+// PRODUCT_BUNDLE_IDENTIFIER here, and change the App Group and keychain group
+// in both App/*.entitlements to match.
+
+DEVELOPMENT_TEAM = REPLACE_WITH_YOUR_TEAM_ID

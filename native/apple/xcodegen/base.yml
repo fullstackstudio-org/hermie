@@ -1,0 +1,38 @@
+# Shared by native/ios/project.yml and native/macos/project.yml, which include
+# this file. Paths here are relative to this file.
+#
+# The generated .xcodeproj is never committed: change a spec, then run
+# native/apple/scripts/generate.sh.
+
+options:
+  createIntermediateGroups: true
+  developmentLanguage: en
+  groupSortPosition: top
+  deploymentTarget:
+    iOS: '26.0'
+    macOS: '26.0'
+
+packages:
+  HermieKit:
+    path: ../HermieKit
+
+targetTemplates:
+  # One app target. Everything that is not platform-specific comes from
+  # Config/Shared.xcconfig, so a setting has one home whichever project builds
+  # it; the platform spec adds sources, Info.plist and entitlements.
+  HermieApp:
+    type: application
+    configFiles:
+      Debug: ../Config/Shared.xcconfig
+      Release: ../Config/Shared.xcconfig
+    settings:
+      base:
+        # XcodeGen's presets would otherwise derive these at the target level,
+        # where they win over the xcconfig.
+        PRODUCT_NAME: Hermie
+        PRODUCT_BUNDLE_IDENTIFIER: dev.hermie.app
+        GENERATE_INFOPLIST_FILE: NO
+    dependencies:
+      - package: HermieKit
+        product: HermieUI
+    scheme: {}

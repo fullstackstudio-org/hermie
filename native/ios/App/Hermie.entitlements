@@ -1,0 +1,23 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+	<!-- Push. Distribution signing replaces "development" with the profile's value. -->
+	<key>aps-environment</key>
+	<string>development</string>
+	<!-- Shared with the widgets, the share extension and the intents. -->
+	<key>com.apple.security.application-groups</key>
+	<array>
+		<string>group.dev.hermie.app</string>
+	</array>
+	<!--
+		The group the Expo build already writes its credentials to, named first so
+		every write lands there and existing items stay readable. Changing it signs
+		everybody out.
+	-->
+	<key>keychain-access-groups</key>
+	<array>
+		<string>$(AppIdentifierPrefix)dev.hermie.app</string>
+	</array>
+</dict>
+</plist>

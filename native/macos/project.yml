@@ -1,0 +1,25 @@
+# Hermie for the Mac: a native SwiftUI app on AppKit, with its own scenes,
+# entitlements and sandbox. Generate with native/apple/scripts/generate.sh.
+
+name: Hermie
+
+include:
+  - ../apple/xcodegen/base.yml
+
+targets:
+  Hermie:
+    templates:
+      - HermieApp
+    platform: macOS
+    sources:
+      - path: App
+        excludes:
+          - Info.plist
+          - Hermie.entitlements
+    settings:
+      base:
+        INFOPLIST_FILE: App/Info.plist
+        # The sandbox and everything it is opened for are declared in the
+        # entitlements file alone, so there is one place to audit them.
+        CODE_SIGN_ENTITLEMENTS: App/Hermie.entitlements
+        COMBINE_HIDPI_IMAGES: YES

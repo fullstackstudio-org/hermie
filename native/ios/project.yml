@@ -1,0 +1,26 @@
+# Hermie for iPhone and iPad. Generate with native/apple/scripts/generate.sh.
+
+name: Hermie
+
+include:
+  - ../apple/xcodegen/base.yml
+
+targets:
+  Hermie:
+    templates:
+      - HermieApp
+    platform: iOS
+    sources:
+      - path: App
+        excludes:
+          - Info.plist
+          - Hermie.entitlements
+    settings:
+      base:
+        INFOPLIST_FILE: App/Info.plist
+        CODE_SIGN_ENTITLEMENTS: App/Hermie.entitlements
+        # iPhone and iPad.
+        TARGETED_DEVICE_FAMILY: '1,2'
+        SUPPORTS_MACCATALYST: NO
+        SUPPORTS_MAC_DESIGNED_FOR_IPHONE_IPAD: NO
+        SUPPORTS_XR_DESIGNED_FOR_IPHONE_IPAD: NO
