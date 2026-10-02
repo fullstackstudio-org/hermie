@@ -107,6 +107,24 @@ describe('a redirect', () => {
     ).toEqual({ hint: 'none', landingPage: false, actions: [{ kind: 'use_host', host: 'hermes.other.example' }] })
   })
 
+  it('carries the origin beside the host, so the port and the brackets survive', () => {
+    expect(
+      verdict(
+        new GatewayError('redirect', 'moved', {
+          redirectedTo: 'other.example',
+          redirectedOrigin: 'https://other.example:8443'
+        }),
+        'https://a.example'
+      ).actions
+    ).toEqual([{ kind: 'use_host', host: 'other.example', origin: 'https://other.example:8443' }])
+    expect(
+      verdict(
+        new GatewayError('redirect', 'moved', { redirectedTo: 'fd00::1', redirectedOrigin: 'http://[fd00::1]:9119' }),
+        'https://a.example'
+      ).actions
+    ).toEqual([{ kind: 'use_host', host: 'fd00::1', origin: 'http://[fd00::1]:9119' }])
+  })
+
   it('offers nothing when the platform did not say where it landed', () => {
     expect(verdict(new GatewayError('redirect', 'moved'), 'https://a.example').actions).toEqual([])
   })

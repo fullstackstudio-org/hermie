@@ -6,9 +6,42 @@ import {
   buildAuthorizeUrl,
   createPkce,
   isLoopbackRedirect,
+  isLoopbackUrl,
   parseLoopbackRedirect,
   REDIRECT_URI
 } from './pkce'
+
+describe('isLoopbackUrl', () => {
+  it('reads the host the way a web view will, not the way the callback is spelled', () => {
+    for (const url of [
+      REDIRECT_URI,
+      'http://127.0.0.1:000038007/callback?code=a&state=b',
+      'http://127.1:38007/callback',
+      'http://0x7f.0.0.1/',
+      'http://2130706433/',
+      'http://localhost:38007/',
+      'http://[::ffff:127.0.0.1]/',
+      'http://0.0.0.0:38007/',
+      'https://127.0.0.1/'
+    ]) {
+      expect([url, isLoopbackUrl(url)]).toEqual([url, true])
+      expect(isLoopbackRedirect(url)).toBe(url === REDIRECT_URI)
+    }
+  })
+
+  it('is false for anything that does not reach this device', () => {
+    for (const url of [
+      'http://127.0.0.1.example.com/',
+      'http://127.0.0.1@evil.example.com/',
+      'http://127.0.0.1:65536/',
+      'ws://127.0.0.1/',
+      'https://idp.example.com/login?next=http://127.0.0.1:38007/',
+      'not a url'
+    ]) {
+      expect([url, isLoopbackUrl(url)]).toEqual([url, false])
+    }
+  })
+})
 
 const fixedBytes = (length: number) => new Uint8Array(length).map((_value, index) => (index * 7 + 3) % 256)
 

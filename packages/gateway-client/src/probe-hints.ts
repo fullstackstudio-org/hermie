@@ -51,8 +51,16 @@ export type ProbeHintCode =
  * behaviour the cached 301 in `probe.ts` produced.
  */
 export type ProbeAction =
-  /** A redirect landed on this host. Point the wizard at it. */
-  | { kind: 'use_host'; host: string }
+  /**
+   * A redirect landed on this host. Point the wizard at it.
+   *
+   * `host` names it; `origin`, when the redirect's target was readable, is
+   * where to GO — scheme and port included, IPv6 in brackets. A bare host
+   * loses the port (a redirect to `other.example:8443` would be probed on 443)
+   * and cannot carry an IPv6 literal at all, so a wizard taking the offer uses
+   * `origin` when it is there.
+   */
+  | { kind: 'use_host'; host: string; origin?: string }
   /** An access proxy answered before the gateway did. Open the Advanced preset. */
   | { kind: 'front_door' }
 
@@ -126,7 +134,20 @@ export function classifyProbeFailure(error: unknown, options: ProbeVerdictOption
   if (error.kind === 'redirect') {
     // Where the answer came from decides what all of it means, so this comes
     // before anything about the address that was typed.
-    return error.redirectedTo ? { ...empty, actions: [{ kind: 'use_host', host: error.redirectedTo }] } : empty
+    if (!error.redirectedTo) {
+      return empty
+    }
+
+    return {
+      ...empty,
+      actions: [
+        {
+          kind: 'use_host',
+          host: error.redirectedTo,
+          ...(error.redirectedOrigin ? { origin: error.redirectedOrigin } : {})
+        }
+      ]
+    }
   }
 
   if (error.kind === 'auth' && (error.status === 401 || error.status === 403)) {

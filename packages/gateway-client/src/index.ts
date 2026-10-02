@@ -66,6 +66,9 @@ export {
   looksLikeTlsFailure,
   parseJsonBody,
   parseJsonObject,
+  redirectError,
+  redirectSeen,
+  REFUSED_LOCATION_HEADER,
   requestText
 } from './fetch-json'
 export {
@@ -105,6 +108,7 @@ export {
   buildAuthorizeUrl,
   createPkce,
   isLoopbackRedirect,
+  isLoopbackUrl,
   type LoopbackRedirect,
   parseLoopbackRedirect,
   type Pkce,

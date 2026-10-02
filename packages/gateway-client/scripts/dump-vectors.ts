@@ -49,8 +49,9 @@
  * Behaviour that depends on the WHATWG URL parser (`new URL`) in these vectors:
  * `normalizeBaseUrl`, `wsUrlFor`, `apiUrl`, `originOf`, `gatewayKeyOf`,
  * `accessUserScript`, `frontDoorHeaders` and `frontDoorWithheld` (via
- * `originOf`: a secure scheme still needs an address it can read), `buildAuthorizeUrl` and
- * `parseLoopbackRedirect`. Entries whose note starts with "WHATWG quirk" depend
+ * `originOf`: a secure scheme still needs an address it can read), `buildAuthorizeUrl`,
+ * `parseLoopbackRedirect`, `isLoopbackUrl`, `redirectSeen` and `redirectError`. Entries
+ * whose note starts with "WHATWG quirk" depend
  * on a parser detail (default-port stripping, IPv4 shorthand, punycode, path
  * dot-segments, tab/newline stripping, opaque origins).
  */
@@ -81,7 +82,10 @@ import {
   looksLikeCertificateFailure,
   looksLikeTlsFailure,
   parseJsonBody,
-  parseJsonObject
+  parseJsonObject,
+  redirectError,
+  redirectSeen,
+  REFUSED_LOCATION_HEADER
 } from '../src/fetch-json'
 import {
   accessUserScript,
@@ -105,6 +109,7 @@ import {
   buildAuthorizeUrl,
   createPkce,
   isLoopbackRedirect,
+  isLoopbackUrl,
   parseLoopbackRedirect,
   REDIRECT_URI
 } from '../src/pkce'
@@ -572,6 +577,14 @@ const HOST_QUIRKS: Record<string, string> = {
   'http://example.com#frag@x':
     'the path/query/fragment cut runs before the credentials cut, so this reads host "example.com"',
   'http://public.example/@10.0.0.1': 'an "@" in the path cannot name the host: public, not private',
+  'http://public.example\\@10.0.0.1':
+    'a "\\" ends the authority like "/" (the URL standard reads it as "/" for http, https, ws and wss), so the "@" after it is path: public.example',
+  'public.example\\@127.0.0.1:9119': 'a "\\" ends the authority even without a scheme',
+  'http://10.0.0.1\n.example.com':
+    'every ASCII tab, LF and CR is removed first, as the URL parser does: the host is 10.0.0.1.example.com, a name',
+  'http://pub\tlic.example/': 'every ASCII tab, LF and CR is removed first, as the URL parser does',
+  'http://public.example\t@10.0.0.1':
+    'the tab is removed, and what is left has its "@" inside the authority: credentials, so the host is 10.0.0.1, which is what the URL parser reads too',
   'http://user@host@example.com/': 'the LAST "@" within the authority wins',
   'http://user@host@example.com/x@y': 'the LAST "@" within the authority wins; the one in the path is ignored',
   'http://host:99:88': 'two or more colons and no brackets: the whole authority is the host, no port cut',
@@ -641,7 +654,15 @@ hostPrivacy.each(
     'http://my-box.local:9119',
     'http://127.0.0.1',
     'localhost',
-    'LOCALHOST:3000'
+    'LOCALHOST:3000',
+    'http://public.example\\@10.0.0.1',
+    'http://public.example\\path',
+    'public.example\\@127.0.0.1:9119',
+    'http://10.0.0.1\n.example.com',
+    'http://pub\tlic.example/',
+    'http://public.example\t@10.0.0.1',
+    'http://exa\r\nmple.com:9119/x',
+    ' \thttp://example.com \n'
   ]),
   HOST_QUIRKS
 )
@@ -686,6 +707,10 @@ const CLASSIFY_INPUTS = [
   'http://10.0.0.5:9119/hermes',
   'http://public.example/@10.0.0.1',
   'http://public.example/x@127.0.0.1:9119',
+  'http://public.example\\@10.0.0.1',
+  'http://public.example\\x@127.0.0.1:9119',
+  'http://10.0.0.1\n.example.com',
+  'http://127.0.0.1\t.example.com',
   // IPv6
   'http://[::1]:9119',
   '0:0:0:0:0:0:0:1',
@@ -1394,6 +1419,82 @@ pkce.each(
 )
 
 pkce.each(
+  'isLoopbackUrl',
+  isLoopbackUrl,
+  single([
+    REDIRECT_URI,
+    'http://127.0.0.1:38007/callback?code=a&state=b',
+    'http://127.0.0.1:000038007/callback?code=a&state=b',
+    'http://127.0.0.1:0038007/callback',
+    'http://127.0.0.1:65536/callback',
+    'http://127.0.0.1:99999999999/callback',
+    'http://127.0.0.1:/callback',
+    'http://127.0.0.1',
+    'http://127.0.0.2:38007/callback',
+    'http://127.255.255.255/',
+    'http://126.255.255.255/',
+    'http://128.0.0.1/',
+    'http://127.1:38007/callback',
+    'http://0x7f.0.0.1/',
+    'http://0177.0.0.1/',
+    'http://2130706433/',
+    'http://0.0.0.0:38007/callback',
+    'http://0/',
+    'http://localhost:38007/callback',
+    'http://LOCALHOST./',
+    'http://sub.localhost/',
+    'http://localhost.example.com/',
+    'http://[::1]:38007/callback',
+    'http://[0:0:0:0:0:0:0:1]/',
+    'http://[::ffff:127.0.0.1]/',
+    'http://[::ffff:7f00:1]/',
+    'http://[::ffff:0.0.0.0]/',
+    'http://[::]/',
+    'http://[::2]/',
+    'http://[fe80::1]/',
+    'https://127.0.0.1:38007/callback',
+    'HTTP://127.0.0.1:38007/callback',
+    'ws://127.0.0.1:38007/',
+    'ftp://127.0.0.1/',
+    'file:///etc/hosts',
+    'hermie://127.0.0.1/callback',
+    'http://127.0.0.1.example.com/',
+    'http://127.0.0.1@evil.example.com/',
+    'http://evil.example.com@127.0.0.1/',
+    'http://127.0.0.1\\@evil.example.com/',
+    'http://127.0.0.1\t:38007/callback',
+    'http://127.0.0.1%2e1/',
+    ' http://127.0.0.1:38007/callback ',
+    'https://idp.example.com/login?next=http://127.0.0.1:38007/',
+    'https://hermes.example.com/auth/native/authorize',
+    'http://10.0.0.1/',
+    'not a url',
+    ''
+  ]),
+  {
+    'http://127.0.0.1:000038007/callback?code=a&state=b':
+      'the URL parser reads leading zeros away: port 38007, and isLoopbackRedirect does not recognise it as the callback',
+    'http://127.0.0.1:65536/callback': 'not a URL (port above 65535), so not a place to load',
+    'http://127.1:38007/callback': 'WHATWG quirk: IPv4 shorthand, 127.0.0.1',
+    'http://0x7f.0.0.1/': 'WHATWG quirk: a hex part, 127.0.0.1',
+    'http://0177.0.0.1/': 'WHATWG quirk: an octal part, 127.0.0.1',
+    'http://2130706433/': 'WHATWG quirk: one number is a whole IPv4 address, 127.0.0.1',
+    'http://0.0.0.0:38007/callback': 'the unspecified address: a connect to it lands on loopback on Linux and Android',
+    'http://0/': 'WHATWG quirk: 0.0.0.0',
+    'http://[::ffff:127.0.0.1]/': 'WHATWG quirk: serialised [::ffff:7f00:1], IPv4-mapped loopback',
+    'http://[::ffff:0.0.0.0]/': 'WHATWG quirk: serialised [::ffff:0:0], IPv4-mapped unspecified',
+    'http://[::]/': 'the unspecified IPv6 address',
+    'http://evil.example.com@127.0.0.1/': 'the userinfo is dropped: the host is 127.0.0.1',
+    'http://127.0.0.1\\@evil.example.com/': 'WHATWG quirk: "\\" is "/" for http, so the host is 127.0.0.1',
+    'http://127.0.0.1\t:38007/callback': 'WHATWG quirk: tab removed before parsing',
+    'http://127.0.0.1%2e1/':
+      'WHATWG quirk: the host is percent-decoded first, so it reads 127.0.0.1.1, which is not an address and fails to parse',
+    'https://127.0.0.1:38007/callback': 'https counts too: a page there would be on this device just the same',
+    'ws://127.0.0.1:38007/': 'only http and https are places a web view loads'
+  }
+)
+
+pkce.each(
   'parseLoopbackRedirect',
   parseLoopbackRedirect,
   single([
@@ -1423,6 +1524,9 @@ pkce.each(
     'http://127.0.0.1:1234/callback?code=abc&state=xyz',
     'hermie://auth/callback?code=abc&state=xyz',
     'http://127.0.0.1:38007/callback?code=abc&state=xyz&extra=1',
+    'http://127.0.0.1:000038007/callback?code=abc&state=xyz',
+    'http://127.0.0.1:65536/callback?code=abc&state=xyz',
+    'http://127.0.0.1:99999999999/callback?code=abc&state=xyz',
     'http://127.0.0.1:38007/callback?&&code=abc&&state=xyz&&',
     'http://127.0.0.1:38007/callback?CODE=abc&STATE=xyz',
     'not a url',
@@ -1440,6 +1544,10 @@ pkce.each(
     'https://example.com/auth/callback?code=abc&state=xyz':
       'parse does not check host, scheme or path; isLoopbackRedirect does',
     'hermie://auth/callback?code=abc&state=xyz': 'a non-special scheme still parses and still has a query',
+    'http://127.0.0.1:000038007/callback?code=abc&state=xyz':
+      'the URL parser accepts leading zeros in a port, so this parses; isLoopbackRedirect refuses it and isLoopbackUrl does not',
+    'http://127.0.0.1:65536/callback?code=abc&state=xyz': 'a port above 65535 is not a URL: throws',
+    'http://127.0.0.1:99999999999/callback?code=abc&state=xyz': 'a port above 65535 is not a URL: throws',
     'not a url': 'throws a protocol GatewayError whose message embeds the input'
   }
 )
@@ -1455,6 +1563,7 @@ interface ErrorDescriptor {
   status?: number
   closeCode?: number
   redirectedTo?: string
+  redirectedOrigin?: string
   hint?: string
   sawLandingPage?: boolean
 }
@@ -1475,6 +1584,7 @@ function errorFrom(value: unknown): unknown {
     ...(descriptor.status === undefined ? {} : { status: descriptor.status }),
     ...(descriptor.closeCode === undefined ? {} : { closeCode: descriptor.closeCode }),
     ...(descriptor.redirectedTo === undefined ? {} : { redirectedTo: descriptor.redirectedTo }),
+    ...(descriptor.redirectedOrigin === undefined ? {} : { redirectedOrigin: descriptor.redirectedOrigin }),
     ...(descriptor.hint === undefined ? {} : { hint: descriptor.hint }),
     ...(descriptor.sawLandingPage === undefined ? {} : { sawLandingPage: descriptor.sawLandingPage })
   })
@@ -1553,6 +1663,26 @@ probeCases.push([
   gatewayError('redirect', { redirectedTo: 'x.example' }),
   { address: 'https://10.0.0.4', network: 'cellular' }
 ])
+probeCases.push([
+  gatewayError('redirect', { redirectedTo: 'other.example', redirectedOrigin: 'https://other.example:8443' }),
+  { address: 'https://a.example' }
+])
+probeCases.push([
+  gatewayError('redirect', { redirectedTo: 'fd00::1', redirectedOrigin: 'http://[fd00::1]:9119' }),
+  { address: 'https://a.example' }
+])
+probeCases.push([
+  gatewayError('redirect', { redirectedTo: 'a.example', redirectedOrigin: 'http://a.example' }),
+  { address: 'https://a.example' }
+])
+probeCases.push([
+  gatewayError('redirect', { redirectedTo: 'other.example', redirectedOrigin: '' }),
+  { address: 'https://a.example' }
+])
+probeCases.push([
+  gatewayError('redirect', { redirectedOrigin: 'https://other.example' }),
+  { address: 'https://a.example' }
+])
 
 for (const status of [401, 403]) {
   probeCases.push([gatewayError('auth', { status }), { address: 'https://hermes.example.com' }])
@@ -1585,7 +1715,7 @@ probeCases.forEach(([descriptor, options], index) => {
     {
       note:
         index === 0
-          ? 'args[0] is a descriptor of the error, built into the real class by the script: {"class":"GatewayError","kind":<GatewayErrorKind>,"message":...,"status"?,"closeCode"?,"redirectedTo"?,"hint"?,"sawLandingPage"?}, {"class":"Error","message":...} for a plain Error, or a bare JSON value (null, a string) passed through unchanged. args[1] is the options object as is; options.network is absent when unreported. A field absent from the descriptor is undefined on the error'
+          ? 'args[0] is a descriptor of the error, built into the real class by the script: {"class":"GatewayError","kind":<GatewayErrorKind>,"message":...,"status"?,"closeCode"?,"redirectedTo"?,"redirectedOrigin"?,"hint"?,"sawLandingPage"?}, {"class":"Error","message":...} for a plain Error, or a bare JSON value (null, a string) passed through unchanged. args[1] is the options object as is; options.network is absent when unreported. A field absent from the descriptor is undefined on the error'
           : undefined
     }
   )
@@ -2803,6 +2933,127 @@ fetchJson.call('parseJsonObject', parseJsonObject, ['[1]', '', 'protocol'], {
   note: 'empty url: the message starts with a space'
 })
 fetchJson.call('parseJsonBody', parseJsonBody, ['x', 'https://[::1]:9119/api/status?x=1', 'not_hermes'])
+
+fetchJson.constant('REFUSED_LOCATION_HEADER', REFUSED_LOCATION_HEADER)
+
+interface ResponseDescriptor {
+  status: number
+  type?: string
+  url?: string
+  headers?: Record<string, string>
+}
+
+/** A response a descriptor stands for: `headers.get` is a case-insensitive lookup in the map. */
+function responseFrom(descriptor: ResponseDescriptor) {
+  const headers = descriptor.headers
+
+  return {
+    status: descriptor.status,
+    ...(descriptor.type === undefined ? {} : { type: descriptor.type }),
+    ...(descriptor.url === undefined ? {} : { url: descriptor.url }),
+    ...(headers === undefined
+      ? {}
+      : {
+          headers: {
+            get: (name: string) =>
+              Object.entries(headers).find(([key]) => key.toLowerCase() === name.toLowerCase())?.[1] ?? null
+          }
+        })
+  }
+}
+
+const REDIRECT_SEEN_CASES: [ResponseDescriptor, string][] = [
+  [{ status: 200, url: 'https://gw.example/api/x' }, 'https://gw.example/api/x'],
+  [{ status: 200, url: '' }, 'https://gw.example/api/x'],
+  [{ status: 200 }, 'https://gw.example/api/x'],
+  [{ status: 200, url: 'https://gw.example:443/api/y' }, 'https://gw.example/api/x'],
+  [{ status: 200, url: 'https://GW.example/api/x/' }, 'https://gw.example/api/x'],
+  [{ status: 200, url: 'https://other.example/api/x' }, 'https://gw.example/api/x'],
+  [{ status: 200, url: 'http://gw.example/api/x' }, 'https://gw.example/api/x'],
+  [{ status: 200, url: 'https://gw.example:8443/api/x' }, 'https://gw.example/api/x'],
+  [{ status: 200, url: 'https://gw.example/api/x' }, 'http://gw.example/api/x'],
+  [{ status: 200, url: 'not a url' }, 'https://gw.example/api/x'],
+  [{ status: 200, url: 'https://other.example/' }, 'not a url'],
+  [{ status: 0, type: 'opaqueredirect', url: '' }, 'https://gw.example/api/x'],
+  [{ status: 0, type: 'opaqueredirect', url: 'https://gw.example/api/x' }, 'https://gw.example/api/x'],
+  [{ status: 301, headers: { Location: 'https://other.example/api/x' } }, 'https://gw.example/api/x'],
+  [{ status: 302, headers: { location: '/api/y' } }, 'https://gw.example/api/x'],
+  [{ status: 303, headers: { location: '//other.example:8443/z' } }, 'https://gw.example/api/x'],
+  [{ status: 307, headers: { location: 'http://[fd00::1]:9119/api/x' } }, 'https://gw.example/api/x'],
+  [{ status: 308, headers: {} }, 'https://gw.example/api/x'],
+  [{ status: 308 }, 'https://gw.example/api/x'],
+  [{ status: 302, headers: { location: 'http://exa mple.com/' } }, 'https://gw.example/api/x'],
+  [
+    {
+      status: 302,
+      url: 'https://gw.example/api/x',
+      headers: { 'X-Hermie-Refused-Location': 'https://other.example/a' }
+    },
+    'https://gw.example/api/x'
+  ],
+  [
+    {
+      status: 302,
+      headers: { location: 'https://first.example/', 'x-hermie-refused-location': 'https://second.example/' }
+    },
+    'https://gw.example/api/x'
+  ],
+  [{ status: 304, headers: { location: 'https://other.example/' } }, 'https://gw.example/api/x'],
+  [{ status: 300, headers: { location: 'https://other.example/' } }, 'https://gw.example/api/x'],
+  [{ status: 305, headers: { location: 'https://other.example/' } }, 'https://gw.example/api/x']
+]
+
+for (const [descriptor, requested] of REDIRECT_SEEN_CASES) {
+  fetchJson.call(
+    'redirectSeen',
+    (response: ResponseDescriptor, url: string) => redirectSeen(responseFrom(response), url),
+    [descriptor, requested]
+  )
+}
+
+fetchJson.noteFor(
+  'redirectSeen',
+  'args[0] describes the response: {status, type?, url?, headers?}; headers is a map read case-insensitively, as Headers.get reads it, and an absent field is absent on the response. args[1] is the URL that was requested. The result is {target} (the redirect target resolved against the requested URL, "" when hidden or unparseable) or null. Order: an opaque redirect, then a 301/302/303/307/308 (Location, else the refused-location header), then an origin that differs from the requested one; an empty url, or an unparseable requested URL, claims nothing, while a url with no readable origin is a redirect with target ""'
+)
+
+const REDIRECT_ERROR_CASES: [string, string, number | null][] = [
+  ['https://gw.example/api/status', 'https://other.example/api/status', 200],
+  ['https://gw.example/api/status', 'https://other.example:8443/api/status', 301],
+  ['https://gw.example/api/status', 'http://gw.example/api/status', 200],
+  ['https://gw.example/api/status', 'https://gw.example:8443/api/status', 302],
+  ['http://gw.example/api/status', 'https://gw.example/api/status', 301],
+  ['http://127.0.0.1:9119/api/x', 'http://127.0.0.1:9120/api/x', 307],
+  ['https://gw.example/api/x', 'http://[fd00::1]:9119/api/x', 308],
+  ['https://[fd00::1]/api/x', 'https://[fd00::2]/api/x', 302],
+  ['https://gw.example/api/x', 'https://gw.example/api/y', 302],
+  ['https://gw.example/api/x', '', 0],
+  ['https://gw.example/api/x', '', 302],
+  ['https://gw.example/api/x', 'not a url', 302],
+  ['https://GW.Example./api/x', 'https://gw.example/api/x', null]
+]
+
+for (const [requested, target, status] of REDIRECT_ERROR_CASES) {
+  fetchJson.call(
+    'redirectError',
+    (url: string, to: string, code: number | null) => {
+      const error = redirectError(url, to, code ?? undefined)
+
+      return {
+        kind: error.kind,
+        message: error.message,
+        ...(error.status === undefined ? {} : { status: error.status }),
+        ...(error.redirectedTo === undefined ? {} : { redirectedTo: error.redirectedTo }),
+        ...(error.redirectedOrigin === undefined ? {} : { redirectedOrigin: error.redirectedOrigin })
+      }
+    },
+    [requested, target, status]
+  )
+}
+
+fetchJson.noteFor(
+  'redirectError',
+  'args: [requested URL, target ("" when unknown), status (null for undefined)]. The function RETURNS a GatewayError; the result here is its fields, a field absent when undefined. status is omitted when 0 or absent. redirectedTo is the WHATWG hostname without IPv6 brackets; redirectedOrigin is the WHATWG origin. The sentence depends on what changed: no readable target, another host, https to http on the same host, another scheme or port, or nothing about the origin at all'
+)
 
 // ---------------------------------------------------------------------------
 // Output

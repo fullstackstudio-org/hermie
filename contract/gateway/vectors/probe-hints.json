@@ -12,7 +12,7 @@
       }
     ],
     "fn": "classifyProbeFailure",
-    "note": "args[0] is a descriptor of the error, built into the real class by the script: {\"class\":\"GatewayError\",\"kind\":<GatewayErrorKind>,\"message\":...,\"status\"?,\"closeCode\"?,\"redirectedTo\"?,\"hint\"?,\"sawLandingPage\"?}, {\"class\":\"Error\",\"message\":...} for a plain Error, or a bare JSON value (null, a string) passed through unchanged. args[1] is the options object as is; options.network is absent when unreported. A field absent from the descriptor is undefined on the error",
+    "note": "args[0] is a descriptor of the error, built into the real class by the script: {\"class\":\"GatewayError\",\"kind\":<GatewayErrorKind>,\"message\":...,\"status\"?,\"closeCode\"?,\"redirectedTo\"?,\"redirectedOrigin\"?,\"hint\"?,\"sawLandingPage\"?}, {\"class\":\"Error\",\"message\":...} for a plain Error, or a bare JSON value (null, a string) passed through unchanged. args[1] is the options object as is; options.network is absent when unreported. A field absent from the descriptor is undefined on the error",
     "result": {
       "actions": [],
       "hint": "private_network",
@@ -1357,6 +1357,128 @@
           "kind": "use_host"
         }
       ],
+      "hint": "none",
+      "landingPage": false
+    }
+  },
+  {
+    "args": [
+      {
+        "class": "GatewayError",
+        "kind": "redirect",
+        "message": "a redirect failure",
+        "redirectedOrigin": "https://other.example:8443",
+        "redirectedTo": "other.example"
+      },
+      {
+        "address": "https://a.example"
+      }
+    ],
+    "fn": "classifyProbeFailure",
+    "result": {
+      "actions": [
+        {
+          "host": "other.example",
+          "kind": "use_host",
+          "origin": "https://other.example:8443"
+        }
+      ],
+      "hint": "none",
+      "landingPage": false
+    }
+  },
+  {
+    "args": [
+      {
+        "class": "GatewayError",
+        "kind": "redirect",
+        "message": "a redirect failure",
+        "redirectedOrigin": "http://[fd00::1]:9119",
+        "redirectedTo": "fd00::1"
+      },
+      {
+        "address": "https://a.example"
+      }
+    ],
+    "fn": "classifyProbeFailure",
+    "result": {
+      "actions": [
+        {
+          "host": "fd00::1",
+          "kind": "use_host",
+          "origin": "http://[fd00::1]:9119"
+        }
+      ],
+      "hint": "none",
+      "landingPage": false
+    }
+  },
+  {
+    "args": [
+      {
+        "class": "GatewayError",
+        "kind": "redirect",
+        "message": "a redirect failure",
+        "redirectedOrigin": "http://a.example",
+        "redirectedTo": "a.example"
+      },
+      {
+        "address": "https://a.example"
+      }
+    ],
+    "fn": "classifyProbeFailure",
+    "result": {
+      "actions": [
+        {
+          "host": "a.example",
+          "kind": "use_host",
+          "origin": "http://a.example"
+        }
+      ],
+      "hint": "none",
+      "landingPage": false
+    }
+  },
+  {
+    "args": [
+      {
+        "class": "GatewayError",
+        "kind": "redirect",
+        "message": "a redirect failure",
+        "redirectedOrigin": "",
+        "redirectedTo": "other.example"
+      },
+      {
+        "address": "https://a.example"
+      }
+    ],
+    "fn": "classifyProbeFailure",
+    "result": {
+      "actions": [
+        {
+          "host": "other.example",
+          "kind": "use_host"
+        }
+      ],
+      "hint": "none",
+      "landingPage": false
+    }
+  },
+  {
+    "args": [
+      {
+        "class": "GatewayError",
+        "kind": "redirect",
+        "message": "a redirect failure",
+        "redirectedOrigin": "https://other.example"
+      },
+      {
+        "address": "https://a.example"
+      }
+    ],
+    "fn": "classifyProbeFailure",
+    "result": {
+      "actions": [],
       "hint": "none",
       "landingPage": false
     }

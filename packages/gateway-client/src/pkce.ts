@@ -1,5 +1,6 @@
 import { sha256 } from '@noble/hashes/sha2.js'
 
+import { classifyHost } from './host-privacy'
 import { apiUrl } from './url'
 import { GatewayError } from './types'
 
@@ -96,6 +97,46 @@ export function isLoopbackRedirect(url: string): boolean {
   const match = LOOPBACK_RE.exec(url)
 
   return match !== null && (match[1] === undefined || Number(match[1]) <= MAX_PORT)
+}
+
+/**
+ * Would loading this URL reach a server on this device?
+ *
+ * The other half of `isLoopbackRedirect`, and the half a sign-in web view
+ * fails OPEN without. `isLoopbackRedirect` answers "is this OUR callback",
+ * deliberately narrowly — one spelling of the host, a port of one to five
+ * digits — and anything it refuses used to be loaded. But the web view reads
+ * the address the way the URL parser does, so `http://127.0.0.1:000038007/…`
+ * (leading zeros), `http://127.1/…`, `http://0x7f.0.0.1/…` and
+ * `http://localhost/…` all reach this device, where any app — on Android, any
+ * app at all — may be listening for the authorization code in the query.
+ *
+ * So this reads the URL with the URL parser and answers for the HOST that
+ * would be connected to: http or https, and 127.0.0.0/8, `localhost` or a name
+ * under it, `::1`, an IPv4-mapped loopback, or the unspecified address
+ * (`0.0.0.0`, `::`), which a connect on Linux and Android also lands on
+ * loopback. Anything that is not a URL is not a place to load, so `false`.
+ */
+export function isLoopbackUrl(url: string): boolean {
+  let parsed: URL
+
+  try {
+    parsed = new URL(url)
+  } catch {
+    return false
+  }
+
+  if (parsed.protocol !== 'http:' && parsed.protocol !== 'https:') {
+    return false
+  }
+
+  // The parser has already turned every IPv4 spelling into a dotted quad and
+  // every IPv6 one into its compressed form, so these are the only spellings.
+  if (parsed.hostname === '0.0.0.0' || parsed.hostname === '[::]' || parsed.hostname === '[::ffff:0:0]') {
+    return true
+  }
+
+  return classifyHost(parsed.hostname).privacy === 'loopback'
 }
 
 /**

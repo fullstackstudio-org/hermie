@@ -95,8 +95,9 @@ describe('an address that redirects somewhere else', () => {
     const gateway = await startFakeGateway({ port: 0 })
 
     try {
-      // `/api/status/` → `/api/status` and http → https on one name are
-      // ordinary. Only a change of HOST is a different server answering.
+      // A redirect within one origin (`/api/status/` → `/api/status`) is
+      // ordinary. A change of host, scheme or port is not: see
+      // `redirect-credentials.test.ts`.
       const probe = await probeGateway(gateway.url)
 
       expect(typeof probe.authRequired).toBe('boolean')

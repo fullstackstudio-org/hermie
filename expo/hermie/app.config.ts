@@ -295,6 +295,10 @@ const config: ExpoConfig = {
     // owner's upload key when the four HERMIE_UPLOAD_* values are configured, and leaves the debug
     // signing in place when they are not, so a fork still builds. No secret enters the repository.
     './plugins/with-android-release-signing',
+    // React Native's fetch on Android follows a redirect to any host with every header but
+    // Authorization, https to http included. This stops OkHttp following one that changes the
+    // origin, so a gateway credential never reaches the host a redirect names.
+    './plugins/with-android-redirect-guard',
     // iOS 27 refuses to launch an app built against its SDK that has not adopted the UIKit scene
     // life cycle, and SDK 54's template has not. The plugin writes the manifest; the scene delegate
     // it names lives in modules/hermie-scene.

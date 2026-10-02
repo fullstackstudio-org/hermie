@@ -36,6 +36,17 @@ describe('hostOfAddress', () => {
     expect(hostOfAddress('http://example.com#frag@x')).toBe('example.com')
     expect(hostOfAddress('http://user@host@example.com/x@y')).toBe('example.com')
   })
+
+  it('reads a backslash and a stray tab or newline the way the URL parser does', () => {
+    // `\` is `/` for http, so the `@` after it is path and the request goes to
+    // public.example. Reading 10.0.0.1 here called a public host private.
+    expect(hostOfAddress('http://public.example\\@10.0.0.1')).toBe('public.example')
+    expect(privacyOf('http://public.example\\@10.0.0.1')).toBe('public')
+    // Tabs and newlines are removed before anything is read.
+    expect(hostOfAddress('http://10.0.0.1\n.example.com')).toBe('10.0.0.1.example.com')
+    expect(privacyOf('http://10.0.0.1\n.example.com')).toBe('public')
+    expect(hostOfAddress('http://pub\tlic.example/')).toBe('public.example')
+  })
 })
 
 describe('classifyHost: IPv4', () => {

@@ -154,6 +154,45 @@ describe('the actions under the failure', () => {
     await waitFor(() => expect(latest.rawAddress).toBe('hermes.moved.example'))
   })
 
+  /**
+   * A bare host loses the port and cannot hold an IPv6 literal: "Use
+   * other.example" for a redirect to other.example:8443 probed 443, and
+   * `fd00::1` was not an address at all. The origin goes instead.
+   */
+  it.each([
+    ['other.example', 'https://other.example:8443'],
+    ['fd00::1', 'http://[fd00::1]:9119'],
+    ['hermes.old.example', 'http://hermes.old.example']
+  ])('takes the wizard to the whole origin a redirect to %s landed on', async (host, origin) => {
+    resolveGatewayAddress.mockRejectedValue(
+      new GatewayError('redirect', 'moved', { redirectedTo: host, redirectedOrigin: origin })
+    )
+    renderScreen(<Harness />)
+    type('hermes.old.example')
+
+    await waitFor(() => expect(screen.getByTestId('probe-use-redirect')).toHaveTextContent(`Use ${origin} instead`))
+
+    resolveGatewayAddress.mockResolvedValue(at(origin))
+    fireEvent.press(screen.getByTestId('probe-use-redirect'))
+
+    await waitFor(() => expect(latest.rawAddress).toBe(origin))
+  })
+
+  it('names a plain https origin by its host, as it always did', async () => {
+    resolveGatewayAddress.mockRejectedValue(
+      new GatewayError('redirect', 'moved', {
+        redirectedTo: 'hermes.moved.example',
+        redirectedOrigin: 'https://hermes.moved.example'
+      })
+    )
+    renderScreen(<Harness />)
+    type('hermes.old.example')
+
+    await waitFor(() =>
+      expect(screen.getByTestId('probe-use-redirect')).toHaveTextContent('Use hermes.moved.example instead')
+    )
+  })
+
   it('offers the way to fill in a proxy credential when one refused before the gateway', async () => {
     resolveGatewayAddress.mockRejectedValue(new GatewayError('auth', 'refused', { status: 403 }))
     renderScreen(<Harness />)

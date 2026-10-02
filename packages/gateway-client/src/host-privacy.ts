@@ -62,7 +62,11 @@ export interface HostClassification {
  * string is the address.
  */
 export function hostOfAddress(address: string): string {
-  let rest = address.trim()
+  // The URL parser removes every ASCII tab and newline before it reads
+  // anything, so `http://10.0.0.1\n.example.com` is the host
+  // `10.0.0.1.example.com` to whatever loads it. Reading it any other way
+  // here would classify a host nobody will ever connect to.
+  let rest = address.trim().replace(/[\t\n\r]/g, '')
 
   const schemeEnd = rest.indexOf('://')
 
@@ -73,7 +77,12 @@ export function hostOfAddress(address: string): string {
   // The authority ends at the first path, query or fragment, and only an `@`
   // inside it separates credentials from the host. Cutting at the last `@`
   // first would read `http://example.com/x@10.0.0.1` as host `10.0.0.1`.
-  const end = rest.search(/[/?#]/)
+  //
+  // `\` ends it too: the URL standard reads it as `/` for http, https, ws and
+  // wss, which is every address this module is ever given. Without it,
+  // `http://public.example\@10.0.0.1` read as `10.0.0.1` here — a private
+  // address, stated calmly — while the request went to `public.example`.
+  const end = rest.search(/[/?#\\]/)
 
   if (end >= 0) {
     rest = rest.slice(0, end)

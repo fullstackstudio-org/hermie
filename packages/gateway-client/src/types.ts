@@ -33,11 +33,14 @@ export type ConnectionStatus =
  * - `protocol`  a well-formed HTTP answer that broke the JSON-RPC contract.
  * - `not_hermes` something answered, but it is not a Hermes gateway.
  * - `incompatible` it is a Hermes gateway, but too old for this client.
- * - `redirect`  the address sent us to a DIFFERENT host, and we did not follow
- *               it silently. See `probe.ts`: an old 301 cached by the platform
- *               outlived an install and pointed the wizard at a host the owner
- *               had moved away from, which then failed as "not a gateway" and
- *               named the address they had typed.
+ * - `redirect`  the address sent us to a different origin (host, scheme or
+ *               port), or answered a call that carries credentials with any
+ *               redirect, and we did not follow it. See `probe.ts`: an old 301
+ *               cached by the platform outlived an install and pointed the
+ *               wizard at a host the owner had moved away from, which then
+ *               failed as "not a gateway" and named the address they had
+ *               typed. See `fetch-json.ts` for why a credential never rides a
+ *               redirect.
  */
 export type GatewayErrorKind =
   'network' | 'tls' | 'timeout' | 'auth' | 'config' | 'server' | 'protocol' | 'not_hermes' | 'incompatible' | 'redirect'
@@ -50,6 +53,15 @@ export interface GatewayErrorOptions {
   closeCode?: number
   /** For `redirect`: the host the address actually led to. */
   redirectedTo?: string
+  /**
+   * For `redirect`: the origin the address actually led to, scheme and port
+   * included — `https://other.example:8443`, `http://[fd00::1]:9119`.
+   *
+   * `redirectedTo` is a bare host, which is enough to NAME where an address
+   * went and not enough to GO there: a port is lost, and an IPv6 literal has
+   * no brackets to put one after. Absent when the platform hid the target.
+   */
+  redirectedOrigin?: string
   /**
    * One extra sentence, when the classification alone is not enough to act on.
    *
@@ -81,6 +93,8 @@ export class GatewayError extends Error {
   readonly closeCode?: number
   /** The host a `redirect` failure actually reached, for the offer to use it. */
   readonly redirectedTo?: string
+  /** The origin a `redirect` failure actually reached; see `GatewayErrorOptions`. */
+  readonly redirectedOrigin?: string
   /** An extra sentence a screen may show beside its own wording for the kind. */
   readonly hint?: string
   /** For `not_hermes`: a web page came back where JSON was expected. */
@@ -93,6 +107,7 @@ export class GatewayError extends Error {
     this.status = options.status
     this.closeCode = options.closeCode
     this.redirectedTo = options.redirectedTo
+    this.redirectedOrigin = options.redirectedOrigin
     this.hint = options.hint
     this.sawLandingPage = options.sawLandingPage
   }

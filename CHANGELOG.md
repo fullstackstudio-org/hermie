@@ -14,6 +14,23 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   `10.0.0.1`, so a public gateway over plain http got the calm private-network wording instead of
   the warning, and the onboarding probe could miss a redirect to a different host whose path ended
   in the original host's name. Only the part before the path now counts.
+- **Gateway credentials no longer follow a redirect.** When a gateway, or something in front of it,
+  answered a call with a redirect to another address, the app followed it and sent the Cloudflare
+  Access headers and the session token along, on Android even from https to plain http. Calls that
+  carry credentials now stop at a redirect and report it, and the Android app no longer follows a
+  redirect to a different address at all. On iOS the platform already dropped the headers, and the
+  answer from the other address is now refused as well.
+- **A gateway address that redirects from https to http, or to another port, is caught during
+  setup.** The address check only compared host names, so `https://gateway` redirecting to
+  `http://gateway` was accepted and every later call was downgraded. Setup now refuses it and offers
+  the address the redirect pointed to, port and IPv6 brackets included.
+- **The sign-in page can no longer be sent to another address on the device.** The in-app sign-in
+  only caught its own callback address spelled exactly one way, so `http://127.0.0.1:000038007/…`
+  and other spellings of this device were really loaded, where another app could be listening for
+  the sign-in code. Any address on the device other than the gateway itself now ends the sign-in.
+- **A backslash or a tab in a gateway address no longer hides its host.** The private-network check
+  read `http://public.example\@10.0.0.1` as `10.0.0.1`, while the request went to `public.example`.
+  It now reads addresses the way the request does.
 
 ### Fixed
 

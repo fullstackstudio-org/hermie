@@ -137,6 +137,28 @@ extension PKCE {
     return index < scalars.count && scalars[index] == "/"
   }
 
+  /// Would loading this URL reach a server on this device? The other half of
+  /// `isLoopbackRedirect`: a sign-in web view must never load one of these
+  /// unless it is the gateway's own origin, since any app may be listening.
+  ///
+  /// Read with the URL parser, as the web view reads it: http or https, and a
+  /// host in 127.0.0.0/8, `localhost` or a name under it, `::1`, an IPv4-mapped
+  /// loopback, or the unspecified address (`0.0.0.0`, `::`).
+  public static func isLoopbackURL(_ url: String) -> Bool {
+    guard let parsed = WHATWGURL.parse(url), parsed.scheme == "http" || parsed.scheme == "https",
+      let host = parsed.host
+    else {
+      return false
+    }
+
+    // The parser has already canonicalised every IPv4 and IPv6 spelling.
+    if host == "0.0.0.0" || host == "[::]" || host == "[::ffff:0:0]" {
+      return true
+    }
+
+    return HostClassification.of(host).privacy == .loopback
+  }
+
   /// Read `code`/`state` (or `error`/`error_description`) off an intercepted
   /// redirect. Only parses: the caller still compares `state`. Any scheme that
   /// `new URL` accepts parses; host and path are not checked here.

@@ -1,11 +1,5 @@
-import {
-  type FetchLike,
-  looksLikeCertificateFailure,
-  parseJsonObject,
-  requestText,
-  type JsonResponse
-} from './fetch-json'
-import { classifyHost, hostOfAddress } from './host-privacy'
+import { type FetchLike, looksLikeCertificateFailure, parseJsonObject, requestText } from './fetch-json'
+import { classifyHost } from './host-privacy'
 import { apiUrl, hasExplicitScheme, normalizeBaseUrl, normalizeHeaders } from './url'
 import { GatewayError, isGatewayError } from './types'
 
@@ -19,33 +13,6 @@ export interface AuthProvider {
   name: string
   displayName: string
   supportsPassword: boolean
-}
-
-/**
- * Did this answer come from a different host than the one we asked?
- *
- * A redirect within one host is ordinary — a trailing slash, http to https on
- * the same name — and is followed without comment. A redirect to ANOTHER host
- * is a different server answering for an address the owner typed, and this
- * package will not follow one silently.
- *
- * The reason is a measured one. The iOS URL cache keeps a 301 keyed by bundle
- * id, and it survives deleting the app: a gateway that had moved from one
- * domain to another left a 301 behind, and months later a fresh install's very
- * first probe was answered out of that cache, reached the old host, and failed
- * as "that is not a Hermes gateway" — naming the address the owner had typed,
- * which was correct, rather than the one it had actually reached.
- */
-function redirectedHost(response: JsonResponse, requested: string): string {
-  if (!response.url) {
-    // A platform that does not report the final URL. Nothing is claimed.
-    return ''
-  }
-
-  const landed = hostOfAddress(response.url)
-  const asked = hostOfAddress(requested)
-
-  return landed && asked && landed !== asked ? landed : ''
 }
 
 /**
@@ -119,27 +86,45 @@ const asStringArray = (value: unknown): string[] =>
  * Read a gateway's public `/api/status` and, when it is gated, its provider
  * list. Everything here is unauthenticated: this is what the onboarding wizard
  * runs while the user is still typing an address.
+ *
+ * `rawBaseUrl` may be raw text — the debug screen passes what was typed — so it
+ * is normalized here, once, and everything below reads the normalized form.
+ *
+ * **Redirects.** Where an answer came from decides what any of it means, so
+ * `requestText` checks it before every other verdict, including a 404 or a 200
+ * that parses. The reason is a measured one: the iOS URL cache keeps a 301
+ * keyed by bundle id and it survives deleting the app, so a gateway that had
+ * moved left a 301 behind, and months later a fresh install's first probe
+ * reached the old host and failed as "that is not a Hermes gateway" — naming
+ * the address the owner had typed rather than the one it had reached.
+ *
+ * A redirect within one origin (a trailing slash) is followed without comment.
+ * One that changes the origin — another host, https to http on the same name,
+ * another port — is refused as `redirect`, naming where it went. The stored
+ * address would otherwise stay the one that was typed while every call after
+ * sign-in was sent somewhere else, and each of those calls refuses a redirect
+ * anyway (see `JsonRequest.followRedirects`). The port counts for the reason
+ * the scheme does: another port is another server as far as an origin, a
+ * cookie or a credential is concerned. That makes http to https on one name a
+ * refusal too, with the https address offered, rather than an address saved
+ * that only works by being redirected — and whose first request of every call
+ * would have gone out in the clear with its credentials.
+ *
+ * The platform may follow at all only while no header beyond the defaults goes
+ * out. With front-door headers attached — a Cloudflare Access service token is
+ * a credential — a redirect is refused unfollowed, like every authenticated
+ * call.
  */
 export async function probeGateway(
-  baseUrl: string,
+  rawBaseUrl: string,
   extraHeaders: Record<string, string> = {},
   fetchImpl: FetchLike = fetch
 ): Promise<ProbeResult> {
+  const baseUrl = normalizeBaseUrl(rawBaseUrl)
   const headers = normalizeHeaders(extraHeaders)
+  const followRedirects = Object.keys(headers).length === 0
   const statusUrl = apiUrl(baseUrl, '/api/status')
-  const status = await requestText(statusUrl, { headers, fetchImpl, timeoutMs: PROBE_TIMEOUT_MS })
-  const landedOn = redirectedHost(status, statusUrl)
-
-  if (landedOn) {
-    // Before every other verdict, including a 404 or a 200 that parses: WHERE
-    // the answer came from decides what any of it means.
-    throw new GatewayError(
-      'redirect',
-      `${hostOfAddress(statusUrl)} redirected to ${landedOn}, which is a different host. ` +
-        'Nothing was read from it. Change the gateway address to the one you meant.',
-      { status: status.status, redirectedTo: landedOn }
-    )
-  }
+  const status = await requestText(statusUrl, { headers, fetchImpl, timeoutMs: PROBE_TIMEOUT_MS, followRedirects })
 
   if (status.status === 404) {
     throw new GatewayError('not_hermes', `${statusUrl} does not exist — that address is not a Hermes gateway.`, {
@@ -216,7 +201,7 @@ export async function probeGateway(
     authRequired,
     authFlows,
     supportsNativePkce,
-    providers: await probeProviders(baseUrl, headers, fetchImpl)
+    providers: await probeProviders(baseUrl, headers, fetchImpl, followRedirects)
   }
 }
 
@@ -331,10 +316,11 @@ export async function resolveGatewayAddress(
 async function probeProviders(
   baseUrl: string,
   headers: Record<string, string>,
-  fetchImpl: FetchLike
+  fetchImpl: FetchLike,
+  followRedirects: boolean
 ): Promise<AuthProvider[]> {
   const url = apiUrl(baseUrl, '/api/auth/providers')
-  const response = await requestText(url, { headers, fetchImpl, timeoutMs: PROBE_TIMEOUT_MS })
+  const response = await requestText(url, { headers, fetchImpl, timeoutMs: PROBE_TIMEOUT_MS, followRedirects })
 
   // The gateway answers 503 when its provider scan finds nothing usable. That
   // is a configuration story for the wizard, not a transport failure.

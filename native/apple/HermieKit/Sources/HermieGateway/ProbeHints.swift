@@ -18,8 +18,10 @@ public enum ProbeHintCode: String, Sendable, Equatable {
 
 /// Something the reader can press. Offered, never performed.
 public enum ProbeAction: Sendable, Equatable {
-  /// A redirect landed on this host. Point the wizard at it.
-  case useHost(String)
+  /// A redirect landed on this host. Point the wizard at it: at `origin` when
+  /// the target was readable, since a bare host loses the port and cannot
+  /// carry an IPv6 literal.
+  case useHost(String, origin: String? = nil)
   /// An access proxy answered before the gateway did. Open the front-door preset.
   case frontDoor
 }
@@ -63,7 +65,8 @@ public struct ProbeVerdict: Sendable, Equatable {
         return empty
       }
 
-      return ProbeVerdict(actions: [.useHost(host)])
+      let origin = error.redirectedOrigin.flatMap { $0.isEmpty ? nil : $0 }
+      return ProbeVerdict(actions: [.useHost(host, origin: origin)])
     case .auth where error.status == 401 || error.status == 403:
       return ProbeVerdict(actions: [.frontDoor])
     case .notHermes:

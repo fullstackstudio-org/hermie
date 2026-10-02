@@ -29,6 +29,161 @@ export interface JsonRequest {
    * is absent and the platform default applies.
    */
   credentials?: RequestCredentials
+  /**
+   * Let the platform follow a redirect, as long as the answer still comes from
+   * the origin that was asked.
+   *
+   * Off by default, and off is the only safe setting for a request that carries
+   * anything worth stealing. A platform that follows a redirect takes the
+   * request's headers with it: Node forwards everything but `Authorization`,
+   * OkHttp on Android does the same and will also go from https to http, so a
+   * front-door secret or a session token reached whatever host the redirect
+   * named, possibly in the clear. With this off the request goes out with
+   * `redirect: 'manual'` and any redirect is a `redirect` failure; see
+   * `redirectSeen` for how each platform reports one.
+   *
+   * Only the onboarding probe turns it on, and only while it sends no header of
+   * its own: then there is nothing to carry, and following is how it learns
+   * where an address that moved now lives. Even then, an answer from a
+   * different origin is refused rather than read.
+   */
+  followRedirects?: boolean
+}
+
+/** The statuses that send a client somewhere else. 304 is a 3xx and is not one. */
+const REDIRECT_STATUSES: ReadonlySet<number> = new Set([301, 302, 303, 307, 308])
+
+/**
+ * Where the Android build's redirect guard puts a `Location` it refused to
+ * follow. See `expo/hermie/plugins/with-android-redirect-guard.js`: OkHttp only
+ * stops following when the header is gone, and the target is still worth
+ * naming to the person who typed the address.
+ */
+export const REFUSED_LOCATION_HEADER = 'x-hermie-refused-location'
+
+/** The parts of a `Response` the redirect check reads. Test doubles may omit any of them. */
+interface ResponseLike {
+  status: number
+  type?: string
+  url?: string
+  headers?: { get(name: string): string | null } | null
+}
+
+function originOfUrl(url: string): string {
+  try {
+    const origin = new URL(url).origin
+
+    return origin === 'null' ? '' : origin
+  } catch {
+    return ''
+  }
+}
+
+/**
+ * Did this answer come from a redirect, followed or not? Returns where it led
+ * (`''` when the platform hides that), or `null` for an ordinary answer.
+ *
+ * Three platforms, three ways of saying so:
+ *
+ *  - **A browser** honours `redirect: 'manual'` with an opaque response:
+ *    `type === 'opaqueredirect'`, status 0, no headers. The target is hidden.
+ *  - **Node** (undici) honours it with the real 3xx and its `Location`. So does
+ *    the Android build once its guard has refused an origin change, except that
+ *    the guard has moved `Location` to `REFUSED_LOCATION_HEADER`.
+ *  - **React Native** ignores `redirect` altogether and the platform follows.
+ *    On iOS the follow-up carries none of the original headers; on Android the
+ *    guard refuses an origin change. Either way `response.url` is where the
+ *    answer came from, so an origin that differs from the one asked is the
+ *    redirect, noticed after the fact and before the body is used.
+ *
+ * Only an ORIGIN change is caught after the fact. A redirect within one origin
+ * that a platform followed by itself took nothing anywhere it was not already
+ * going, and comparing whole URLs would trip over each platform's own way of
+ * serialising one.
+ */
+export function redirectSeen(response: ResponseLike, requestedUrl: string): { target: string } | null {
+  const resolve = (location: string | null | undefined): string => {
+    if (!location) {
+      return ''
+    }
+
+    try {
+      return new URL(location, requestedUrl).toString()
+    } catch {
+      return ''
+    }
+  }
+
+  if (response.type === 'opaqueredirect') {
+    return { target: '' }
+  }
+
+  if (REDIRECT_STATUSES.has(response.status)) {
+    return {
+      target: resolve(response.headers?.get('location') ?? response.headers?.get(REFUSED_LOCATION_HEADER))
+    }
+  }
+
+  const landed = typeof response.url === 'string' ? response.url : ''
+  const asked = originOfUrl(requestedUrl)
+
+  if (!landed || !asked) {
+    // Nothing reported, or nothing to compare with: nothing is claimed.
+    return null
+  }
+
+  const landedOrigin = originOfUrl(landed)
+
+  // A URL the platform reports and nobody can read is not proof of the same
+  // origin, so it fails closed, naming nothing.
+  return landedOrigin === asked ? null : { target: landedOrigin ? landed : '' }
+}
+
+/**
+ * The `redirect` failure for a request that was sent somewhere else.
+ *
+ * The sentence names what changed. A different host is the story the cached
+ * 301 told (see `probe.ts`); the same host on another scheme or port is a
+ * different server as far as credentials are concerned, and https to http on
+ * the same name is the one worth spelling out, because it is the downgrade the
+ * stored address would otherwise hide.
+ */
+export function redirectError(requestedUrl: string, target: string, status?: number): GatewayError {
+  const askedOrigin = originOfUrl(requestedUrl)
+  const landedOrigin = originOfUrl(target)
+  const askedHost = askedOrigin ? new URL(askedOrigin).hostname.replace(/^\[|\]$/g, '') : ''
+  const landedHost = landedOrigin ? new URL(landedOrigin).hostname.replace(/^\[|\]$/g, '') : ''
+  const advice = 'Nothing was read from it. Change the gateway address to the one you meant.'
+  let message: string
+
+  if (!landedOrigin) {
+    message = `${requestedUrl} answered with a redirect that was not followed. ${advice}`
+  } else if (landedHost !== askedHost) {
+    message = `${askedHost} redirected to ${landedHost}, which is a different host. ${advice}`
+  } else if (askedOrigin.startsWith('https:') && landedOrigin.startsWith('http:')) {
+    message = `${askedOrigin} redirected to ${landedOrigin}, which is not https. ${advice}`
+  } else if (landedOrigin !== askedOrigin) {
+    message = `${askedOrigin} redirected to ${landedOrigin}, which is a different address. ${advice}`
+  } else {
+    message = `${requestedUrl} redirected to ${target}, which was not followed. ${advice}`
+  }
+
+  return new GatewayError('redirect', message, {
+    ...(status ? { status } : {}),
+    ...(landedHost ? { redirectedTo: landedHost } : {}),
+    ...(landedOrigin ? { redirectedOrigin: landedOrigin } : {})
+  })
+}
+
+/** Let go of a body nobody is going to read. Best effort: a test double may have none. */
+function discardBody(response: { body?: unknown }): void {
+  try {
+    const body = response.body as { cancel?: () => Promise<unknown> } | null | undefined
+
+    void body?.cancel?.().catch(() => undefined)
+  } catch {
+    // Nothing to release.
+  }
 }
 
 export interface JsonResponse {
@@ -46,6 +201,10 @@ export interface JsonResponse {
    *
    * Empty where the platform does not report it; a caller must treat that as
    * "no redirect was observed" rather than as a redirect to nowhere.
+   *
+   * `requestText` no longer returns an answer from another origin at all (see
+   * `JsonRequest.followRedirects`), so this differs from the requested URL only
+   * by a redirect within the same origin.
    */
   url: string
   /**
@@ -163,10 +322,22 @@ export async function requestText(url: string, request: JsonRequest = {}): Promi
       // `NSURLRequest.reloadIgnoringLocalCacheData`; a browser passes it to the
       // Fetch standard's own cache mode. See the note on `JsonRequest.cache`.
       cache: request.cache ?? 'no-store',
+      // See `JsonRequest.followRedirects`. React Native ignores this; the check
+      // below is what holds there.
+      redirect: request.followRedirects === true ? 'follow' : 'manual',
       ...(body === undefined ? {} : { body }),
       ...(request.credentials === undefined ? {} : { credentials: request.credentials }),
       signal: controller.signal
     })
+
+    // Before the body is touched: an answer from somewhere else is not read.
+    const redirected = redirectSeen(response, url)
+
+    if (redirected) {
+      discardBody(response)
+
+      throw redirectError(url, redirected.target, response.status)
+    }
 
     return {
       status: response.status,
@@ -178,6 +349,10 @@ export async function requestText(url: string, request: JsonRequest = {}): Promi
       server: response.headers?.get('server') ?? ''
     }
   } catch (error) {
+    if (error instanceof GatewayError && error.kind === 'redirect') {
+      throw error
+    }
+
     if (timedOut) {
       throw new GatewayError('timeout', `${url} did not answer within ${Math.round(timeoutMs / 1000)} seconds.`, {
         cause: error

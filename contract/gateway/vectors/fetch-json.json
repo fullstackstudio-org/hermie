@@ -2543,5 +2543,529 @@
     },
     "fn": "parseJsonBody",
     "throws": true
+  },
+  {
+    "args": [],
+    "fn": "REFUSED_LOCATION_HEADER",
+    "note": "constant",
+    "result": "x-hermie-refused-location"
+  },
+  {
+    "args": [
+      {
+        "status": 200,
+        "url": "https://gw.example/api/x"
+      },
+      "https://gw.example/api/x"
+    ],
+    "fn": "redirectSeen",
+    "note": "args[0] describes the response: {status, type?, url?, headers?}; headers is a map read case-insensitively, as Headers.get reads it, and an absent field is absent on the response. args[1] is the URL that was requested. The result is {target} (the redirect target resolved against the requested URL, \"\" when hidden or unparseable) or null. Order: an opaque redirect, then a 301/302/303/307/308 (Location, else the refused-location header), then an origin that differs from the requested one; an empty url, or an unparseable requested URL, claims nothing, while a url with no readable origin is a redirect with target \"\"",
+    "result": null
+  },
+  {
+    "args": [
+      {
+        "status": 200,
+        "url": ""
+      },
+      "https://gw.example/api/x"
+    ],
+    "fn": "redirectSeen",
+    "result": null
+  },
+  {
+    "args": [
+      {
+        "status": 200
+      },
+      "https://gw.example/api/x"
+    ],
+    "fn": "redirectSeen",
+    "result": null
+  },
+  {
+    "args": [
+      {
+        "status": 200,
+        "url": "https://gw.example:443/api/y"
+      },
+      "https://gw.example/api/x"
+    ],
+    "fn": "redirectSeen",
+    "result": null
+  },
+  {
+    "args": [
+      {
+        "status": 200,
+        "url": "https://GW.example/api/x/"
+      },
+      "https://gw.example/api/x"
+    ],
+    "fn": "redirectSeen",
+    "result": null
+  },
+  {
+    "args": [
+      {
+        "status": 200,
+        "url": "https://other.example/api/x"
+      },
+      "https://gw.example/api/x"
+    ],
+    "fn": "redirectSeen",
+    "result": {
+      "target": "https://other.example/api/x"
+    }
+  },
+  {
+    "args": [
+      {
+        "status": 200,
+        "url": "http://gw.example/api/x"
+      },
+      "https://gw.example/api/x"
+    ],
+    "fn": "redirectSeen",
+    "result": {
+      "target": "http://gw.example/api/x"
+    }
+  },
+  {
+    "args": [
+      {
+        "status": 200,
+        "url": "https://gw.example:8443/api/x"
+      },
+      "https://gw.example/api/x"
+    ],
+    "fn": "redirectSeen",
+    "result": {
+      "target": "https://gw.example:8443/api/x"
+    }
+  },
+  {
+    "args": [
+      {
+        "status": 200,
+        "url": "https://gw.example/api/x"
+      },
+      "http://gw.example/api/x"
+    ],
+    "fn": "redirectSeen",
+    "result": {
+      "target": "https://gw.example/api/x"
+    }
+  },
+  {
+    "args": [
+      {
+        "status": 200,
+        "url": "not a url"
+      },
+      "https://gw.example/api/x"
+    ],
+    "fn": "redirectSeen",
+    "result": {
+      "target": ""
+    }
+  },
+  {
+    "args": [
+      {
+        "status": 200,
+        "url": "https://other.example/"
+      },
+      "not a url"
+    ],
+    "fn": "redirectSeen",
+    "result": null
+  },
+  {
+    "args": [
+      {
+        "status": 0,
+        "type": "opaqueredirect",
+        "url": ""
+      },
+      "https://gw.example/api/x"
+    ],
+    "fn": "redirectSeen",
+    "result": {
+      "target": ""
+    }
+  },
+  {
+    "args": [
+      {
+        "status": 0,
+        "type": "opaqueredirect",
+        "url": "https://gw.example/api/x"
+      },
+      "https://gw.example/api/x"
+    ],
+    "fn": "redirectSeen",
+    "result": {
+      "target": ""
+    }
+  },
+  {
+    "args": [
+      {
+        "headers": {
+          "Location": "https://other.example/api/x"
+        },
+        "status": 301
+      },
+      "https://gw.example/api/x"
+    ],
+    "fn": "redirectSeen",
+    "result": {
+      "target": "https://other.example/api/x"
+    }
+  },
+  {
+    "args": [
+      {
+        "headers": {
+          "location": "/api/y"
+        },
+        "status": 302
+      },
+      "https://gw.example/api/x"
+    ],
+    "fn": "redirectSeen",
+    "result": {
+      "target": "https://gw.example/api/y"
+    }
+  },
+  {
+    "args": [
+      {
+        "headers": {
+          "location": "//other.example:8443/z"
+        },
+        "status": 303
+      },
+      "https://gw.example/api/x"
+    ],
+    "fn": "redirectSeen",
+    "result": {
+      "target": "https://other.example:8443/z"
+    }
+  },
+  {
+    "args": [
+      {
+        "headers": {
+          "location": "http://[fd00::1]:9119/api/x"
+        },
+        "status": 307
+      },
+      "https://gw.example/api/x"
+    ],
+    "fn": "redirectSeen",
+    "result": {
+      "target": "http://[fd00::1]:9119/api/x"
+    }
+  },
+  {
+    "args": [
+      {
+        "headers": {},
+        "status": 308
+      },
+      "https://gw.example/api/x"
+    ],
+    "fn": "redirectSeen",
+    "result": {
+      "target": ""
+    }
+  },
+  {
+    "args": [
+      {
+        "status": 308
+      },
+      "https://gw.example/api/x"
+    ],
+    "fn": "redirectSeen",
+    "result": {
+      "target": ""
+    }
+  },
+  {
+    "args": [
+      {
+        "headers": {
+          "location": "http://exa mple.com/"
+        },
+        "status": 302
+      },
+      "https://gw.example/api/x"
+    ],
+    "fn": "redirectSeen",
+    "result": {
+      "target": ""
+    }
+  },
+  {
+    "args": [
+      {
+        "headers": {
+          "X-Hermie-Refused-Location": "https://other.example/a"
+        },
+        "status": 302,
+        "url": "https://gw.example/api/x"
+      },
+      "https://gw.example/api/x"
+    ],
+    "fn": "redirectSeen",
+    "result": {
+      "target": "https://other.example/a"
+    }
+  },
+  {
+    "args": [
+      {
+        "headers": {
+          "location": "https://first.example/",
+          "x-hermie-refused-location": "https://second.example/"
+        },
+        "status": 302
+      },
+      "https://gw.example/api/x"
+    ],
+    "fn": "redirectSeen",
+    "result": {
+      "target": "https://first.example/"
+    }
+  },
+  {
+    "args": [
+      {
+        "headers": {
+          "location": "https://other.example/"
+        },
+        "status": 304
+      },
+      "https://gw.example/api/x"
+    ],
+    "fn": "redirectSeen",
+    "result": null
+  },
+  {
+    "args": [
+      {
+        "headers": {
+          "location": "https://other.example/"
+        },
+        "status": 300
+      },
+      "https://gw.example/api/x"
+    ],
+    "fn": "redirectSeen",
+    "result": null
+  },
+  {
+    "args": [
+      {
+        "headers": {
+          "location": "https://other.example/"
+        },
+        "status": 305
+      },
+      "https://gw.example/api/x"
+    ],
+    "fn": "redirectSeen",
+    "result": null
+  },
+  {
+    "args": [
+      "https://gw.example/api/status",
+      "https://other.example/api/status",
+      200
+    ],
+    "fn": "redirectError",
+    "note": "args: [requested URL, target (\"\" when unknown), status (null for undefined)]. The function RETURNS a GatewayError; the result here is its fields, a field absent when undefined. status is omitted when 0 or absent. redirectedTo is the WHATWG hostname without IPv6 brackets; redirectedOrigin is the WHATWG origin. The sentence depends on what changed: no readable target, another host, https to http on the same host, another scheme or port, or nothing about the origin at all",
+    "result": {
+      "kind": "redirect",
+      "message": "gw.example redirected to other.example, which is a different host. Nothing was read from it. Change the gateway address to the one you meant.",
+      "redirectedOrigin": "https://other.example",
+      "redirectedTo": "other.example",
+      "status": 200
+    }
+  },
+  {
+    "args": [
+      "https://gw.example/api/status",
+      "https://other.example:8443/api/status",
+      301
+    ],
+    "fn": "redirectError",
+    "result": {
+      "kind": "redirect",
+      "message": "gw.example redirected to other.example, which is a different host. Nothing was read from it. Change the gateway address to the one you meant.",
+      "redirectedOrigin": "https://other.example:8443",
+      "redirectedTo": "other.example",
+      "status": 301
+    }
+  },
+  {
+    "args": [
+      "https://gw.example/api/status",
+      "http://gw.example/api/status",
+      200
+    ],
+    "fn": "redirectError",
+    "result": {
+      "kind": "redirect",
+      "message": "https://gw.example redirected to http://gw.example, which is not https. Nothing was read from it. Change the gateway address to the one you meant.",
+      "redirectedOrigin": "http://gw.example",
+      "redirectedTo": "gw.example",
+      "status": 200
+    }
+  },
+  {
+    "args": [
+      "https://gw.example/api/status",
+      "https://gw.example:8443/api/status",
+      302
+    ],
+    "fn": "redirectError",
+    "result": {
+      "kind": "redirect",
+      "message": "https://gw.example redirected to https://gw.example:8443, which is a different address. Nothing was read from it. Change the gateway address to the one you meant.",
+      "redirectedOrigin": "https://gw.example:8443",
+      "redirectedTo": "gw.example",
+      "status": 302
+    }
+  },
+  {
+    "args": [
+      "http://gw.example/api/status",
+      "https://gw.example/api/status",
+      301
+    ],
+    "fn": "redirectError",
+    "result": {
+      "kind": "redirect",
+      "message": "http://gw.example redirected to https://gw.example, which is a different address. Nothing was read from it. Change the gateway address to the one you meant.",
+      "redirectedOrigin": "https://gw.example",
+      "redirectedTo": "gw.example",
+      "status": 301
+    }
+  },
+  {
+    "args": [
+      "http://127.0.0.1:9119/api/x",
+      "http://127.0.0.1:9120/api/x",
+      307
+    ],
+    "fn": "redirectError",
+    "result": {
+      "kind": "redirect",
+      "message": "http://127.0.0.1:9119 redirected to http://127.0.0.1:9120, which is a different address. Nothing was read from it. Change the gateway address to the one you meant.",
+      "redirectedOrigin": "http://127.0.0.1:9120",
+      "redirectedTo": "127.0.0.1",
+      "status": 307
+    }
+  },
+  {
+    "args": [
+      "https://gw.example/api/x",
+      "http://[fd00::1]:9119/api/x",
+      308
+    ],
+    "fn": "redirectError",
+    "result": {
+      "kind": "redirect",
+      "message": "gw.example redirected to fd00::1, which is a different host. Nothing was read from it. Change the gateway address to the one you meant.",
+      "redirectedOrigin": "http://[fd00::1]:9119",
+      "redirectedTo": "fd00::1",
+      "status": 308
+    }
+  },
+  {
+    "args": [
+      "https://[fd00::1]/api/x",
+      "https://[fd00::2]/api/x",
+      302
+    ],
+    "fn": "redirectError",
+    "result": {
+      "kind": "redirect",
+      "message": "fd00::1 redirected to fd00::2, which is a different host. Nothing was read from it. Change the gateway address to the one you meant.",
+      "redirectedOrigin": "https://[fd00::2]",
+      "redirectedTo": "fd00::2",
+      "status": 302
+    }
+  },
+  {
+    "args": [
+      "https://gw.example/api/x",
+      "https://gw.example/api/y",
+      302
+    ],
+    "fn": "redirectError",
+    "result": {
+      "kind": "redirect",
+      "message": "https://gw.example/api/x redirected to https://gw.example/api/y, which was not followed. Nothing was read from it. Change the gateway address to the one you meant.",
+      "redirectedOrigin": "https://gw.example",
+      "redirectedTo": "gw.example",
+      "status": 302
+    }
+  },
+  {
+    "args": [
+      "https://gw.example/api/x",
+      "",
+      0
+    ],
+    "fn": "redirectError",
+    "result": {
+      "kind": "redirect",
+      "message": "https://gw.example/api/x answered with a redirect that was not followed. Nothing was read from it. Change the gateway address to the one you meant."
+    }
+  },
+  {
+    "args": [
+      "https://gw.example/api/x",
+      "",
+      302
+    ],
+    "fn": "redirectError",
+    "result": {
+      "kind": "redirect",
+      "message": "https://gw.example/api/x answered with a redirect that was not followed. Nothing was read from it. Change the gateway address to the one you meant.",
+      "status": 302
+    }
+  },
+  {
+    "args": [
+      "https://gw.example/api/x",
+      "not a url",
+      302
+    ],
+    "fn": "redirectError",
+    "result": {
+      "kind": "redirect",
+      "message": "https://gw.example/api/x answered with a redirect that was not followed. Nothing was read from it. Change the gateway address to the one you meant.",
+      "status": 302
+    }
+  },
+  {
+    "args": [
+      "https://GW.Example./api/x",
+      "https://gw.example/api/x",
+      null
+    ],
+    "fn": "redirectError",
+    "result": {
+      "kind": "redirect",
+      "message": "gw.example. redirected to gw.example, which is a different host. Nothing was read from it. Change the gateway address to the one you meant.",
+      "redirectedOrigin": "https://gw.example",
+      "redirectedTo": "gw.example"
+    }
   }
 ]

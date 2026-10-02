@@ -38,6 +38,8 @@ public struct GatewayError: Error, Sendable, Equatable {
   public var closeCode: Int?
   /// For `redirect`: the host the address actually led to.
   public var redirectedTo: String?
+  /// For `redirect`: the origin it led to, scheme and port included, IPv6 in brackets.
+  public var redirectedOrigin: String?
   /// One extra sentence a screen may show beside its own wording for the kind.
   public var hint: String?
   /// For `notHermes`: a web page came back where JSON was expected.
@@ -49,6 +51,7 @@ public struct GatewayError: Error, Sendable, Equatable {
     status: Int? = nil,
     closeCode: Int? = nil,
     redirectedTo: String? = nil,
+    redirectedOrigin: String? = nil,
     hint: String? = nil,
     sawLandingPage: Bool? = nil
   ) {
@@ -57,6 +60,7 @@ public struct GatewayError: Error, Sendable, Equatable {
     self.status = status
     self.closeCode = closeCode
     self.redirectedTo = redirectedTo
+    self.redirectedOrigin = redirectedOrigin
     self.hint = hint
     self.sawLandingPage = sawLandingPage
   }

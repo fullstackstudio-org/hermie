@@ -55,13 +55,15 @@ public struct HostClassification: Sendable, Equatable {
   /// or more without brackets mean the whole string is an IPv6 literal, and
   /// lowercasing is Unicode-aware (`İ` becomes `i` + U+0307).
   public static func host(ofAddress address: String) -> String {
-    var rest = Array(JSText.trim(address).unicodeScalars)
+    // Every ASCII tab and newline goes first, as the URL parser removes them before it reads anything.
+    var rest = Array(JSText.trim(address).unicodeScalars.filter { $0 != "\t" && $0 != "\n" && $0 != "\r" })
 
     if let schemeEnd = firstIndex(of: Array("://".unicodeScalars), in: rest) {
       rest = Array(rest[(schemeEnd + 3)...])
     }
 
-    if let end = rest.firstIndex(where: { $0 == "/" || $0 == "?" || $0 == "#" }) {
+    // `\` ends the authority like `/`: the URL standard reads it as `/` for http, https, ws and wss.
+    if let end = rest.firstIndex(where: { $0 == "/" || $0 == "?" || $0 == "#" || $0 == "\\" }) {
       rest = Array(rest[..<end])
     }
 

@@ -84,6 +84,7 @@ enum VectorDispatch {
       status: object["status"]?.number.map { Int($0) },
       closeCode: object["closeCode"]?.number.map { Int($0) },
       redirectedTo: object["redirectedTo"]?.string,
+      redirectedOrigin: object["redirectedOrigin"]?.string,
       hint: object["hint"]?.string,
       sawLandingPage: object["sawLandingPage"]?.bool
     )
@@ -96,7 +97,13 @@ enum VectorDispatch {
       "actions": .array(
         verdict.actions.map { action in
           switch action {
-          case .useHost(let host): .object(["kind": .string("use_host"), "host": .string(host)])
+          case .useHost(let host, let origin):
+            .object(
+              ["kind": .string("use_host"), "host": .string(host)].merging(
+                origin.map { ["origin": VectorValue.string($0)] } ?? [:],
+                uniquingKeysWith: { first, _ in first }
+              )
+            )
           case .frontDoor: .object(["kind": .string("front_door")])
           }
         }
@@ -257,6 +264,8 @@ enum VectorDispatch {
       )
     case ("pkce", "isLoopbackRedirect"):
       return VectorValue(PKCE.isLoopbackRedirect(arg(0).string!))
+    case ("pkce", "isLoopbackUrl"):
+      return VectorValue(PKCE.isLoopbackURL(arg(0).string!))
     case ("pkce", "parseLoopbackRedirect"):
       switch try PKCE.parseLoopbackRedirect(arg(0).string!) {
       case .code(let code, let state):

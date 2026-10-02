@@ -210,7 +210,7 @@ export function NativeSignInWebView({
 
   const handleNavigation = useCallback(
     (url: string): boolean => {
-      const verdict = inspectSignInNavigation(url, attempt?.pkce.state ?? '')
+      const verdict = inspectSignInNavigation(url, attempt?.pkce.state ?? '', baseUrl)
 
       if (verdict.kind === 'continue') {
         return true
@@ -227,7 +227,7 @@ export function NativeSignInWebView({
 
       return false
     },
-    [attempt, exchange]
+    [attempt, baseUrl, exchange]
   )
 
   const openInBrowser = useCallback(() => {

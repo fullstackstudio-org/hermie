@@ -187,6 +187,24 @@ describe('uploading', () => {
     })
   })
 
+  it('does not follow a redirect with the file and the credentials', async () => {
+    const fetcher = fakeFetch({ status: 307 })
+
+    await expect(run({}, fetcher.impl)).rejects.toMatchObject({ reason: 'refused' })
+    expect(fetcher.calls[0]?.init.redirect).toBe('manual')
+
+    // React Native follows by itself; an answer from another origin is refused all the same.
+    const followed = (async () =>
+      ({
+        ok: true,
+        status: 200,
+        url: 'https://other.example/api/files/upload-stream',
+        json: async () => ({})
+      }) as unknown as Response) as unknown as typeof fetch
+
+    await expect(run({}, followed)).rejects.toMatchObject({ reason: 'refused' })
+  })
+
   it('maps a 413 back onto too-large, whatever the client thought the size was', async () => {
     const fetcher = fakeFetch({ status: 413, body: { detail: 'File is too large' } })
 

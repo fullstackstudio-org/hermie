@@ -155,6 +155,11 @@ function notAGateway(baseUrl: string, response: JsonResponse): GatewayError {
  * WebSocket upgrade verifies no credential at all and can only ever refuse the
  * ticket. The two must stay distinguishable, which is why the mint's status is
  * recorded.
+ *
+ * The mint carries the bearer token and any front-door headers, so a redirect
+ * here is refused unfollowed (`requestText`'s default) and recorded as a
+ * `redirect` failure: a 302 from the gateway's edge must not hand them to the
+ * host it names.
  */
 export async function mintWsTicket(options: MintWsTicketOptions): Promise<string> {
   const timeline = options.timeline ?? NULL_AUTH_TIMELINE
@@ -275,7 +280,9 @@ export interface CookieSessionCredentialsOptions {
  *
  * `signOut` is a plain `POST /auth/logout`; the gateway answers with a 302 and
  * the `Max-Age=0` cookie deletions, which the browser applies whether or not the
- * redirect is followed.
+ * redirect is followed. It is not: like every call here it goes out with
+ * `redirect: 'manual'`, so the 302 surfaces as a `redirect` failure that
+ * `signOut` swallows with the rest.
  */
 export class CookieSessionCredentials implements CredentialProvider {
   readonly mode: GatewayAuthMode = 'cookie'

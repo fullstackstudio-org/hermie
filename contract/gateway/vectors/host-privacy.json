@@ -360,6 +360,67 @@
   },
   {
     "args": [
+      "http://public.example\\@10.0.0.1"
+    ],
+    "fn": "hostOfAddress",
+    "note": "a \"\\\" ends the authority like \"/\" (the URL standard reads it as \"/\" for http, https, ws and wss), so the \"@\" after it is path: public.example",
+    "result": "public.example"
+  },
+  {
+    "args": [
+      "http://public.example\\path"
+    ],
+    "fn": "hostOfAddress",
+    "result": "public.example"
+  },
+  {
+    "args": [
+      "public.example\\@127.0.0.1:9119"
+    ],
+    "fn": "hostOfAddress",
+    "note": "a \"\\\" ends the authority even without a scheme",
+    "result": "public.example"
+  },
+  {
+    "args": [
+      "http://10.0.0.1\n.example.com"
+    ],
+    "fn": "hostOfAddress",
+    "note": "every ASCII tab, LF and CR is removed first, as the URL parser does: the host is 10.0.0.1.example.com, a name",
+    "result": "10.0.0.1.example.com"
+  },
+  {
+    "args": [
+      "http://pub\tlic.example/"
+    ],
+    "fn": "hostOfAddress",
+    "note": "every ASCII tab, LF and CR is removed first, as the URL parser does",
+    "result": "public.example"
+  },
+  {
+    "args": [
+      "http://public.example\t@10.0.0.1"
+    ],
+    "fn": "hostOfAddress",
+    "note": "the tab is removed, and what is left has its \"@\" inside the authority: credentials, so the host is 10.0.0.1, which is what the URL parser reads too",
+    "result": "10.0.0.1"
+  },
+  {
+    "args": [
+      "http://exa\r\nmple.com:9119/x"
+    ],
+    "fn": "hostOfAddress",
+    "result": "example.com"
+  },
+  {
+    "args": [
+      " \thttp://example.com \n"
+    ],
+    "fn": "hostOfAddress",
+    "result": "example.com"
+  },
+  {
+    "args": [
       "http://127.0.0.1:9119"
     ],
     "fn": "classifyHost",
@@ -775,6 +836,52 @@
     "fn": "classifyHost",
     "result": {
       "host": "public.example",
+      "isPrivate": false,
+      "privacy": "public"
+    }
+  },
+  {
+    "args": [
+      "http://public.example\\@10.0.0.1"
+    ],
+    "fn": "classifyHost",
+    "note": "a \"\\\" ends the authority like \"/\" (the URL standard reads it as \"/\" for http, https, ws and wss), so the \"@\" after it is path: public.example",
+    "result": {
+      "host": "public.example",
+      "isPrivate": false,
+      "privacy": "public"
+    }
+  },
+  {
+    "args": [
+      "http://public.example\\x@127.0.0.1:9119"
+    ],
+    "fn": "classifyHost",
+    "result": {
+      "host": "public.example",
+      "isPrivate": false,
+      "privacy": "public"
+    }
+  },
+  {
+    "args": [
+      "http://10.0.0.1\n.example.com"
+    ],
+    "fn": "classifyHost",
+    "note": "every ASCII tab, LF and CR is removed first, as the URL parser does: the host is 10.0.0.1.example.com, a name",
+    "result": {
+      "host": "10.0.0.1.example.com",
+      "isPrivate": false,
+      "privacy": "public"
+    }
+  },
+  {
+    "args": [
+      "http://127.0.0.1\t.example.com"
+    ],
+    "fn": "classifyHost",
+    "result": {
+      "host": "127.0.0.1.example.com",
       "isPrivate": false,
       "privacy": "public"
     }

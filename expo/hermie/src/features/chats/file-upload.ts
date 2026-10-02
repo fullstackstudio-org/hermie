@@ -36,7 +36,7 @@
  * plausible-looking wrong directory produces an upload that succeeds and a
  * reference the agent will not read, which is the worst of the options.
  */
-import type { GatewayHttp } from '@hermie/gateway-client'
+import { type GatewayHttp, redirectSeen } from '@hermie/gateway-client'
 
 /** `_MANAGED_FILE_MAX_BYTES` in `hermes_cli/web_server.py`. */
 export const MAX_UPLOAD_BYTES = 100 * 1024 * 1024
@@ -279,17 +279,26 @@ export async function uploadFile(options: UploadFileOptions): Promise<UploadedFi
   options.onProgress?.(0)
 
   let response: Response
+  const url = `${trimSlash(http.baseUrl)}/api/files/upload-stream`
 
   try {
-    response = await doFetch(`${trimSlash(http.baseUrl)}/api/files/upload-stream`, {
+    response = await doFetch(url, {
       method: 'POST',
       // No `content-type`: the runtime has to set it, because only it knows the
       // multipart boundary it generated.
       headers,
-      body
+      body,
+      // The credentials and the file both stay with the gateway: a 307 or 308
+      // would otherwise replay them to whatever host it named. See
+      // `JsonRequest.followRedirects` in the gateway client.
+      redirect: 'manual'
     })
   } catch (cause) {
     throw new FileUploadError('failed', `${file.name} could not be uploaded: ${messageOf(cause)}`)
+  }
+
+  if (redirectSeen(response, url)) {
+    throw new FileUploadError('refused', `The gateway redirected the upload of ${file.name}, and it was not followed.`)
   }
 
   if (!response.ok) {

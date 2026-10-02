@@ -1,4 +1,10 @@
-import { classifyProbeFailure, isGatewayError, type NetworkKind, type ProbeVerdict } from '@hermie/gateway-client'
+import {
+  classifyProbeFailure,
+  type GatewayError,
+  isGatewayError,
+  type NetworkKind,
+  type ProbeVerdict
+} from '@hermie/gateway-client'
 
 import { strings } from '../i18n/strings'
 
@@ -18,6 +24,31 @@ export function hostOf(baseUrl: string): string {
   } catch {
     return baseUrl.trim() || strings.settings.unknown
   }
+}
+
+/**
+ * Where a redirect went, as the sentence names it.
+ *
+ * The host, as it always was — unless the host did not change, which is now
+ * a redirect too (https to http, or another port, on the same name). "x
+ * redirected to x" would say nothing, so then it is the whole origin.
+ */
+function redirectedDestination(error: GatewayError, baseUrl: string): string {
+  const to = error.redirectedTo
+
+  if (!to) {
+    return strings.settings.unknown
+  }
+
+  let asked = ''
+
+  try {
+    asked = new URL(baseUrl).hostname.replace(/^\[|\]$/g, '')
+  } catch {
+    // Not a URL: nothing to compare with, so the host is said as it is.
+  }
+
+  return to === asked && error.redirectedOrigin ? error.redirectedOrigin : to
 }
 
 function fallbackMessage(error: unknown): string {
@@ -86,7 +117,7 @@ export function describeProbeError(
     case 'not_hermes':
       return withHints(strings.errors.notHermes(host))
     case 'redirect':
-      return strings.errors.redirected(host, error.redirectedTo ?? strings.settings.unknown)
+      return strings.errors.redirected(host, redirectedDestination(error, baseUrl))
     case 'auth':
       return strings.errors.authProxy(error.status ?? 401)
     case 'server':
@@ -137,7 +168,7 @@ export function describeConnectionError(error: unknown, baseUrl: string): string
     case 'not_hermes':
       return strings.errors.notHermes(hostOf(baseUrl))
     case 'redirect':
-      return strings.errors.redirected(hostOf(baseUrl), error.redirectedTo ?? strings.settings.unknown)
+      return strings.errors.redirected(hostOf(baseUrl), redirectedDestination(error, baseUrl))
     case 'server':
       return strings.errors.server(error.status ?? 500)
     case 'incompatible':

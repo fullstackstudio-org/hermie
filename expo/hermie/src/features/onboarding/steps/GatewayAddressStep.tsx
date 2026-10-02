@@ -47,6 +47,21 @@ const presets = (): { value: FrontDoorKind; label: string }[] => [
 /** Long enough that typing an address does not fire a probe per keystroke. */
 export const PROBE_DEBOUNCE_MS = 500
 
+/**
+ * What the "Use … instead" offer names: the bare host when the origin is the
+ * plain `https://<host>` a reader would assume, and the whole origin when the
+ * scheme or the port is part of where the redirect went.
+ */
+export function redirectTargetLabel(action: Extract<ProbeAction, { kind: 'use_host' }>): string {
+  if (!action.origin) {
+    return action.host
+  }
+
+  const bracketed = action.host.includes(':') ? `[${action.host}]` : action.host
+
+  return action.origin === `https://${bracketed}` ? action.host : action.origin
+}
+
 export interface GatewayAddressStepProps {
   draft: OnboardingDraft
   update: (patch: Partial<OnboardingDraft>) => void
@@ -189,11 +204,18 @@ export function GatewayAddressStep({ draft, update, debounceMs = PROBE_DEBOUNCE_
   // Re-typing the address with the scheme spelled out is exactly what stops the
   // fallback from running again: an explicit `https://` is never downgraded.
   // The port and any path prefix come along — they are not the scheme's.
-  /** Point the wizard at the host that actually answered, scheme and all. */
+  /**
+   * Point the wizard at the address that actually answered, scheme and all.
+   *
+   * The origin, not the bare host, whenever the redirect's target was
+   * readable: a host alone loses the port (a redirect to `other.example:8443`
+   * would be probed on 443) and an IPv6 literal without its brackets is not an
+   * address at all.
+   */
   const takeRedirectTarget = useCallback(
-    (host: string) => {
+    (target: string) => {
       setActions([])
-      update({ rawAddress: host, probe: null, baseUrl: null })
+      update({ rawAddress: target, probe: null, baseUrl: null })
     },
     [update]
   )
@@ -311,9 +333,9 @@ export function GatewayAddressStep({ draft, update, debounceMs = PROBE_DEBOUNCE_
               action.kind === 'use_host' ? (
                 <InsetButtonRow
                   key="use-host"
-                  onPress={() => takeRedirectTarget(action.host)}
+                  onPress={() => takeRedirectTarget(action.origin ?? action.host)}
                   testID="probe-use-redirect"
-                  title={strings.errors.useRedirectTarget(action.host)}
+                  title={strings.errors.useRedirectTarget(redirectTargetLabel(action))}
                 />
               ) : (
                 <InsetButtonRow

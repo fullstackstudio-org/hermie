@@ -1,7 +1,7 @@
 import { type AuthTimelineSink, NULL_AUTH_TIMELINE } from './auth-timeline'
 import { bytesToBase64 } from './base64'
 import { bearerFrom, type CredentialProvider } from './credentials'
-import { type FetchLike, parseJsonBody, requestText } from './fetch-json'
+import { type FetchLike, parseJsonBody, redirectSeen, requestText } from './fetch-json'
 import { apiUrl, normalizeHeaders } from './url'
 import { GatewayError } from './types'
 
@@ -221,7 +221,10 @@ export class GatewayHttp {
 
     const usedToken = bearerFrom(auth)
 
-    return { ...response, url, ...(usedToken === undefined ? {} : { usedToken }) }
+    // The URL the answer came from, not the one asked: `requestText` has
+    // already refused one from another origin, and what is left is worth
+    // naming as it is.
+    return { ...response, url: response.url || url, ...(usedToken === undefined ? {} : { usedToken }) }
   }
 
   /**
@@ -255,11 +258,25 @@ export class GatewayHttp {
         method: 'GET',
         headers: { ...this.extraHeaders, ...auth },
         cache: 'no-store',
+        // The same rule as every other credentialed call: see
+        // `JsonRequest.followRedirects`.
+        redirect: 'manual',
         ...(this.options.credentials.fetchCredentials === undefined
           ? {}
           : { credentials: this.options.credentials.fetchCredentials }),
         signal: controller.signal
       })
+
+      if (redirectSeen(response, url)) {
+        // A picture from somewhere else is not this gateway's picture.
+        return {
+          status: 0,
+          ok: false,
+          buffer: null,
+          contentType: '',
+          ...(usedToken === undefined ? {} : { usedToken })
+        }
+      }
 
       if (!response.ok) {
         return {
