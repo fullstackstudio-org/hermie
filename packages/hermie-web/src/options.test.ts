@@ -472,6 +472,18 @@ describe('HERMIE_PUSH_RELAYS', () => {
   })
 })
 
+describe('HERMIE_PUSH_IGNORE_PLUGIN', () => {
+  it('defaults to deferring to the gateway plugin', () => {
+    expect(resolveOptions({ env: {} }).pushIgnorePlugin).toBe(false)
+  })
+
+  it('is read from the environment and from the flag', () => {
+    expect(resolveOptions({ env: { HERMIE_PUSH_IGNORE_PLUGIN: '1' } }).pushIgnorePlugin).toBe(true)
+    expect(resolveOptions({ env: {}, pushIgnorePlugin: true }).pushIgnorePlugin).toBe(true)
+    expect(() => resolveOptions({ env: { HERMIE_PUSH_IGNORE_PLUGIN: 'maybe' } })).toThrow(/HERMIE_PUSH_IGNORE_PLUGIN/)
+  })
+})
+
 describe('HERMIE_LOCAL_ADMIN_PASSWORD_HASH', () => {
   it('is unset by default', () => {
     expect(resolveOptions({ env: {} }).localAdminPasswordHash).toBeNull()

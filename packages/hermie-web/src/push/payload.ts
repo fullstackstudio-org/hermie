@@ -165,14 +165,24 @@ export function trimPreview(text: string, limit = PREVIEW_LIMIT): string {
 
 const titleOf = (event: NotifiableEvent): string => event.botLabel || event.bot
 
-/** The line a device that asked for no preview sees. */
-function summaryOf(event: NotifiableEvent): string {
+/**
+ * The line a device that asked for no preview sees.
+ *
+ * `named` decides whether the line may name a cron job or a sending bot. It may
+ * on Expo and Web Push, as it always has. It may not through the relay: the
+ * relay is to see the bot and the kind of event and nothing a person wrote, and
+ * a job's name is something a person wrote — so the relay gets the name-free
+ * phrase, as the gateway plugin sends it.
+ */
+function summaryOf(event: NotifiableEvent, named = true): string {
+  const name = named ? event.name : ''
+
   switch (event.type) {
     case 'message':
       return 'sent you a message'
 
     case 'dm':
-      return event.name ? `heard from ${event.name}` : 'heard from another bot'
+      return name ? `heard from ${name}` : 'heard from another bot'
 
     case 'cron':
     case 'cron_done':
@@ -188,14 +198,14 @@ function summaryOf(event: NotifiableEvent): string {
         chat, which is exactly what a tap will show.
       */
       if (event.cronCertain === false) {
-        return summaryOf({ ...event, type: 'message' })
+        return summaryOf({ ...event, type: 'message' }, named)
       }
 
       if (event.failed || event.type === 'cron_failed') {
-        return event.name ? `cron “${event.name}” failed` : 'a cron run failed'
+        return name ? `cron “${name}” failed` : 'a cron run failed'
       }
 
-      return event.name ? `cron “${event.name}” reported` : 'a cron job reported'
+      return name ? `cron “${name}” reported` : 'a cron job reported'
 
     case 'request':
       return event.requestMethod === 'clarify' ? 'has a question for you' : 'is waiting for your approval'
@@ -210,8 +220,7 @@ function summaryOf(event: NotifiableEvent): string {
  * the decision belongs to the registration, not to what happened.
  */
 export function pushMessageFor(event: NotifiableEvent, preview: boolean): PushMessage {
-  const summary = summaryOf(event)
-  const body = preview && event.preview ? trimPreview(event.preview) : summary
+  const body = preview && event.preview ? trimPreview(event.preview) : summaryOf(event)
 
   return {
     title: titleOf(event),
@@ -256,7 +265,8 @@ export function pushMessageFor(event: NotifiableEvent, preview: boolean): PushMe
     ...(event.type === 'request' && event.requestMethod === 'approval' ? { categoryId: REQUEST_CATEGORY } : {}),
     // `dm` is a legacy type with no channel of its own; it is a message.
     channelId: event.type === 'dm' ? 'message' : event.type,
-    summary,
+    // The relay's line: no preview, and no name of a job or a sender.
+    summary: summaryOf(event, false),
     ...(event.eventId ? { eventId: event.eventId } : {})
   }
 }

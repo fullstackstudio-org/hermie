@@ -169,4 +169,54 @@ describe('the fake relay', () => {
     expect((await send(relay, [message('h_a')], 'https://elsewhere.example/v1/send')).status).toBe(404)
     expect(relay.requests.map(request => request.url).at(-1)).toBe('https://elsewhere.example/v1/send')
   })
+
+  it('holds every message to the relay’s own schema, and answers rejected for the one that fails it', async () => {
+    const relay = createFakeRelay()
+    const entry = (handle: string, message: unknown) => ({ handle, secret: 's', message })
+    const cases: [string, unknown, string][] = [
+      [
+        'h_ok',
+        {
+          title: 't',
+          body: 'b',
+          category: 'hermie.request',
+          thread: 'k:bot',
+          collapseId: 'request:ab',
+          priority: 'normal',
+          ttl: 0,
+          data: { v: 1 }
+        },
+        'sent'
+      ],
+      ['h_key', { title: 't', body: 'b', aps: {} }, 'invalid_message'],
+      ['h_title', { title: '', body: 'b' }, 'invalid_message'],
+      ['h_cat', { title: 't', body: 'b', category: 'has space' }, 'invalid_message'],
+      ['h_collapse', { title: 't', body: 'b', collapseId: 'tab\there' }, 'invalid_message'],
+      ['h_long_collapse', { title: 't', body: 'b', collapseId: 'x'.repeat(65) }, 'invalid_message'],
+      ['h_thread', { title: 't', body: 'b', thread: 'x'.repeat(257) }, 'invalid_message'],
+      ['h_empty_thread', { title: 't', body: 'b', thread: '' }, 'invalid_message'],
+      ['h_ttl', { title: 't', body: 'b', ttl: 1.5 }, 'invalid_message'],
+      ['h_big', { title: 't', body: 'x'.repeat(3_600) }, 'payload_too_large']
+    ]
+    const response = await send(
+      relay,
+      cases.map(([handle, message]) => entry(handle, message))
+    )
+    const results = ((await response.json()) as { results: { handle: string; status: string; reason?: string }[] })
+      .results
+
+    expect(results.map(result => result.reason ?? result.status)).toEqual(cases.map(([, , expected]) => expected))
+  })
+
+  it('refuses a body that is not JSON by its content type, and a handle or secret over 200 characters', async () => {
+    const relay = createFakeRelay()
+    const plain = await relay.fetch(`${relay.origin}/v1/send`, {
+      method: 'POST',
+      headers: { 'content-type': 'text/plain' },
+      body: JSON.stringify({ v: 1, messages: [message('h_a')] })
+    })
+
+    expect(plain.status).toBe(415)
+    expect((await send(relay, [message('h'.repeat(201))])).status).toBe(400)
+  })
 })

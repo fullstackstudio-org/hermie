@@ -68,8 +68,61 @@ export interface FakeRelayOptions {
 }
 
 const SEND_PATH = '/v1/send'
-const REQUEST_LIMIT_BYTES = 8 * 1024
+/**
+ * The send route's request cap. The relay began at 8 KB for every route and
+ * raises `/v1/send` to 96 KB; a sender must not rely on more than its own
+ * 7.5 KB, so the fake takes the larger number and the sender's own tests pin
+ * the smaller.
+ */
+const REQUEST_LIMIT_BYTES = 96 * 1024
 const MAX_MESSAGES = 20
+/** `protocol.ts`: the serialised `message` object, at most 3.5 KB. */
+const MAX_MESSAGE_BYTES = 3_584
+const MAX_TTL_SECONDS = 28 * 86_400
+const MESSAGE_KEYS = new Set(['title', 'body', 'category', 'thread', 'collapseId', 'priority', 'ttl', 'data'])
+const CATEGORY = /^[A-Za-z0-9._-]{1,64}$/u
+const COLLAPSE_ID = /^[\x21-\x7E]{1,64}$/u
+
+const isObject = (value: unknown): value is Record<string, unknown> =>
+  Boolean(value) && typeof value === 'object' && !Array.isArray(value)
+
+/**
+ * The relay's message schema (`src/server/push/protocol.ts`, strict): unknown
+ * members refused, `title` not empty, `category` and `collapseId` by their
+ * patterns, `thread` 1 to 256 characters, `priority` high or normal, `ttl` an
+ * integer up to 28 days, `data` an object; and the compact re-serialisation of
+ * the whole message at most 3,584 bytes. `null` when it passes, the relay's
+ * `rejected` reason when it does not.
+ */
+function messageProblem(message: unknown): 'invalid_message' | 'payload_too_large' | null {
+  if (!isObject(message)) {
+    return 'invalid_message'
+  }
+
+  if (Buffer.byteLength(JSON.stringify(message), 'utf8') > MAX_MESSAGE_BYTES) {
+    return 'payload_too_large'
+  }
+
+  const valid =
+    Object.keys(message).every(key => MESSAGE_KEYS.has(key)) &&
+    typeof message.title === 'string' &&
+    message.title.length > 0 &&
+    typeof message.body === 'string' &&
+    (message.category === undefined || (typeof message.category === 'string' && CATEGORY.test(message.category))) &&
+    (message.thread === undefined ||
+      (typeof message.thread === 'string' && message.thread.length >= 1 && message.thread.length <= 256)) &&
+    (message.collapseId === undefined ||
+      (typeof message.collapseId === 'string' && COLLAPSE_ID.test(message.collapseId))) &&
+    (message.priority === undefined || message.priority === 'high' || message.priority === 'normal') &&
+    (message.ttl === undefined ||
+      (typeof message.ttl === 'number' &&
+        Number.isInteger(message.ttl) &&
+        message.ttl >= 0 &&
+        message.ttl <= MAX_TTL_SECONDS)) &&
+    (message.data === undefined || isObject(message.data))
+
+  return valid ? null : 'invalid_message'
+}
 
 const jsonResponse = (status: number, body: unknown, headers: Record<string, string> = {}): Response =>
   new Response(JSON.stringify(body), { status, headers: { 'content-type': 'application/json', ...headers } })
@@ -135,18 +188,41 @@ export function createFakeRelay(options: FakeRelayOptions = {}): FakeRelay {
       return jsonResponse(404, { error: 'not_found' })
     }
 
+    if (!(new Headers(init.headers).get('content-type') ?? '').startsWith('application/json')) {
+      return jsonResponse(415, { error: 'unsupported_media_type' })
+    }
+
     if (Buffer.byteLength(rawBody, 'utf8') > REQUEST_LIMIT_BYTES) {
-      return jsonResponse(413, { error: 'payload_too_large' })
+      return jsonResponse(413, { error: 'request_too_large' })
     }
 
     const envelope = body as { v?: unknown; messages?: unknown } | null
     const messages = Array.isArray(envelope?.messages) ? (envelope.messages as Record<string, unknown>[]) : null
 
-    if (envelope?.v !== 1 || !messages || messages.length < 1 || messages.length > MAX_MESSAGES) {
+    if (
+      envelope?.v !== 1 ||
+      !messages ||
+      messages.length < 1 ||
+      messages.length > MAX_MESSAGES ||
+      !messages.every(
+        entry =>
+          isObject(entry) &&
+          typeof entry.handle === 'string' &&
+          entry.handle.length <= 200 &&
+          typeof entry.secret === 'string' &&
+          entry.secret.length <= 200
+      )
+    ) {
       return jsonResponse(400, { error: 'invalid_request' })
     }
 
     const results = messages.map(entry => {
+      const problem = messageProblem(entry.message)
+
+      if (problem) {
+        return { handle: String(entry.handle), status: 'rejected' as const, reason: problem }
+      }
+
       const result = answerFor(entry ?? {})
 
       if (result.status === 'sent') {

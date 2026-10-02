@@ -42,9 +42,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 
-- **Hermie Web stands down where the gateway's plugin delivers push.** With the `hermie` plugin's
-  push module on, `hermie-web --push` no longer sends anything, so a device is not told everything
-  twice. Gateways without the plugin are notified as before.
+- **Hermie Web leaves to the gateway's plugin what the plugin delivers.** With the `hermie` plugin's
+  push module on, `hermie-web --push` no longer sends the Expo notifications (and relay ones on the
+  plugin's relays) that the plugin sends too, so a device is not told everything twice. Web Push and
+  bot-to-bot DMs are still sent by Hermie Web. `--push-ignore-plugin` (`HERMIE_PUSH_IGNORE_PLUGIN`)
+  sends everything regardless, for a gateway whose plugin is gone but whose advert was left behind.
+- **Hermie Web's Expo notifications name an Android channel per type.** Expo app 0.1.9 has no such
+  channels, so on Android it shows them on the system's fallback channel until it is updated.
 
 ### Fixed
 

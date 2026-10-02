@@ -45,6 +45,7 @@ async function main(): Promise<void> {
       'vapid-subject': { type: 'string' },
       'push-server-requests': { type: 'boolean', default: false },
       'push-relays': { type: 'string' },
+      'push-ignore-plugin': { type: 'boolean', default: false },
       'allow-insecure-oidc': { type: 'boolean', default: false },
       'no-oidc': { type: 'boolean', default: false },
       admins: { type: 'string' },
@@ -107,6 +108,7 @@ async function main(): Promise<void> {
     ...(values.push ? { push: true } : {}),
     ...(values['push-server-requests'] ? { pushServerRequests: true } : {}),
     ...(values['push-relays'] !== undefined ? { pushRelays: values['push-relays'] } : {}),
+    ...(values['push-ignore-plugin'] ? { pushIgnorePlugin: true } : {}),
     ...(values['allow-insecure-oidc'] ? { allowInsecureOidc: true } : {}),
     ...(values['no-self-update'] ? { selfUpdate: false } : {}),
     ...(values['no-oidc'] ? { oidc: false } : {}),
@@ -157,6 +159,7 @@ async function main(): Promise<void> {
     vapidSubject: options.vapidSubject,
     pushServerRequests: options.pushServerRequests,
     pushRelays: options.pushRelays,
+    pushIgnorePlugin: options.pushIgnorePlugin,
     allowInsecureOidc: options.allowInsecureOidc,
     oidc: options.oidc,
     admins: options.admins,
@@ -205,6 +208,10 @@ async function main(): Promise<void> {
         ? `             relay ${options.pushRelays.join(', ')} (--push-relays)`
         : '             relay off (--push-relays is empty)'
     )
+
+    if (options.pushIgnorePlugin) {
+      console.warn('             delivering everything, whatever the gateway plugin says (--push-ignore-plugin)')
+    }
   }
 
   const stop = () => {

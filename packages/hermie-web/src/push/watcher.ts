@@ -37,9 +37,20 @@ import { lastInboundRow } from './inbound'
 import type { LinkEvent, LinkServerRequest } from './link'
 import { gatewayKeyOf } from './gateway-key'
 import { eventIdOf, type NotifiableEvent, pushMessageFor, typeForTurn } from './payload'
-import { type PushRegistration, type PushType, registrationsForAny, someoneAttached } from './registrations'
-import { readRoster, type Roster, type WatchedBot } from './roster'
+import { PUSH_TYPES, type PushRegistration, type PushType, registrationsForAny, someoneAttached } from './registrations'
+import { RELAY_DEFAULT_ORIGIN } from './relay'
+import {
+  pluginDelivers,
+  pluginPushLive,
+  type PluginPushAdvert,
+  readRoster,
+  type Roster,
+  type WatchedBot
+} from './roster'
 import type { PushState } from './state'
+
+/** How often the "left to the plugin" warning repeats while it applies: an hour. */
+export const STAND_DOWN_WARNING_SECONDS = 3600
 
 /** How fresh a `seen` stamp has to be to keep a message notification quiet. */
 export const ATTACHED_WINDOW_SECONDS = 90
@@ -150,6 +161,15 @@ export interface WatcherOptions {
    * the page and every test.
    */
   policy?: () => { types: Record<PushType, boolean>; preview: 'device' | 'never' }
+  /**
+   * Ignore the gateway plugin's advert and deliver everything
+   * (`--push-ignore-plugin`). For a gateway whose plugin is gone but whose
+   * advert was left behind, which this daemon cannot tell from a live one
+   * until the plugin carries a heartbeat.
+   */
+  ignorePlugin?: boolean
+  /** How often the stand-down warning is repeated, in seconds. */
+  standDownWarningSeconds?: number
 }
 
 interface WatchedSession extends WatchedBot {
@@ -166,6 +186,8 @@ export class PushWatcher {
     push: { registrations: [], seen: {} }
   }
   private rosterReadAt = 0
+  /** When the stand-down warning was last logged, epoch seconds. */
+  private standDownWarnedAt = 0
   /** Every id the gateway might stamp on an event → the session it belongs to. */
   private readonly byId = new Map<string, WatchedSession>()
   private readonly rateLimit = new Map<string, number[]>()
@@ -290,10 +312,72 @@ export class PushWatcher {
     }
 
     this.log(
-      `push: watching ${String(roster.bots.length)} chat(s), ${String(roster.push.registrations.length)} registration(s)` +
-        (roster.pluginPush ? '; the gateway’s hermie plugin delivers push, so this daemon sends nothing' : '')
+      `push: watching ${String(roster.bots.length)} chat(s), ${String(roster.push.registrations.length)} registration(s)`
     )
+    this.warnStandDown()
     await this.announce()
+  }
+
+  /** The plugin advert this daemon defers to, or `null` (none, or `--push-ignore-plugin`). */
+  private get plugin(): PluginPushAdvert | null {
+    return this.options.ignorePlugin ? null : (this.roster.plugin ?? null)
+  }
+
+  /** Does the plugin deliver this type to this registration, so this daemon must not? */
+  private leftToPlugin(registration: PushRegistration, type: PushType): boolean {
+    return pluginDelivers(this.plugin, registration, type, this.now)
+  }
+
+  /**
+   * Is there anybody this daemon would still notify about any of these types?
+   *
+   * The early exits below used to be "nobody is registered". With the plugin
+   * delivering some transports they are "nobody is left once the plugin has
+   * taken its share" — which, because Web Push and `dm` are never the
+   * plugin's, is only true when every registration is one the plugin serves.
+   */
+  private audienceLeft(types: readonly PushType[]): boolean {
+    return this.roster.push.registrations.some(registration =>
+      types.some(type => registration.types[type] && !this.leftToPlugin(registration, type))
+    )
+  }
+
+  /**
+   * Say, now and then, that the plugin's advert is being believed.
+   *
+   * The plugin withdraws its advert only on a clean unload, so an advert left
+   * behind by a gateway that was killed reads exactly like a live one. The line
+   * prints the advert's `updatedAt` so an operator can see how old the claim
+   * is, and names the switch that overrides it.
+   */
+  private warnStandDown(): void {
+    const plugin = this.plugin
+
+    if (!pluginPushLive(plugin, this.now)) {
+      return
+    }
+
+    const every = this.options.standDownWarningSeconds ?? STAND_DOWN_WARNING_SECONDS
+
+    if (this.standDownWarnedAt && this.now - this.standDownWarnedAt < every) {
+      return
+    }
+
+    this.standDownWarnedAt = this.now
+
+    const transports = [
+      ...(plugin?.capabilities.includes('push.expo') ? ['expo'] : []),
+      ...(plugin?.capabilities.includes('push.relay')
+        ? [`relay (${plugin.relayOrigins.join(', ') || 'no origin'})`]
+        : [])
+    ]
+    const updated = plugin?.updatedAt ? new Date(plugin.updatedAt * 1000).toISOString() : 'never'
+
+    this.log(
+      `push: the gateway’s hermie plugin says it delivers ${transports.join(' and ') || 'nothing this daemon sends'}` +
+        ` (advert updated ${updated}); those are left to it. Web Push and bot-to-bot DMs are still sent here.` +
+        ' If the plugin is gone, start with --push-ignore-plugin (HERMIE_PUSH_IGNORE_PLUGIN=1).'
+    )
   }
 
   /**
@@ -311,14 +395,25 @@ export class PushWatcher {
     }
 
     /*
-      While the gateway's plugin is the notifier this daemon delivers nothing,
-      so its stamp claims nothing either. Above all not `push.relay`: an app
-      that read it would replace its Expo row with a relay row, and a plugin
-      too old to deliver one would leave that device with no notifier at all.
+      What this daemon still delivers once the plugin has taken its share.
+      `push.webpush` always: only this daemon holds the key a browser
+      subscribed with. A transport the plugin serves is not claimed, so an app
+      goes by what the plugin says about it.
     */
+    const described = describe()
+    const plugin = pluginPushLive(this.plugin, this.now) ? this.plugin : null
+    const relayOrigins = (described.relayOrigins ?? []).filter(
+      origin => !(plugin?.capabilities.includes('push.relay') && plugin.relayOrigins.includes(origin))
+    )
+    const capabilities = (described.capabilities ?? []).filter(
+      capability =>
+        !(capability === 'push.expo' && plugin?.capabilities.includes('push.expo')) &&
+        !(capability === 'push.relay' && !relayOrigins.includes(RELAY_DEFAULT_ORIGIN))
+    )
     const availability: PushAvailability = {
-      ...describe(),
-      ...(this.roster.pluginPush ? { capabilities: [], relayOrigins: [] } : {}),
+      ...described,
+      ...(described.capabilities ? { capabilities } : {}),
+      ...(described.relayOrigins ? { relayOrigins } : {}),
       at: this.now
     }
     const ttl = this.options.availabilityTtlSeconds ?? AVAILABILITY_TTL_SECONDS
@@ -430,8 +525,10 @@ export class PushWatcher {
           requestId: queueId || request.id,
           requestMethod: request.method,
           preview: previewOfRequest(request.params),
-          // The plugin's derivation and the plugin's parts, so the two
-          // notifiers name the same question the same way.
+          // The plugin's derivation. For an approval the parts are the
+          // plugin's too (session, request id); for a clarify the plugin uses
+          // the tool call id, which this daemon never sees, so the two ids
+          // differ there and only the derivation is shared.
           eventId: eventIdOf(
             request.method === 'clarify' ? 'clarify' : 'request',
             session.sessionId,
@@ -503,7 +600,7 @@ export class PushWatcher {
    * envelope arrived first.
    */
   async pollApprovals(): Promise<void> {
-    if (!this.roster.push.registrations.length || this.roster.pluginPush) {
+    if (!this.audienceLeft(['request'])) {
       return
     }
 
@@ -546,7 +643,7 @@ export class PushWatcher {
     // the daemon's one expensive call and it is worth skipping when it would
     // only decide which of several empty audiences to address. The same goes
     // for a gateway whose plugin is the notifier: nothing here will be sent.
-    if (!this.roster.push.registrations.length || this.roster.pluginPush) {
+    if (!this.audienceLeft(PUSH_TYPES)) {
       return
     }
 
@@ -678,20 +775,6 @@ export class PushWatcher {
       await this.refreshRegistrations()
     }
 
-    /*
-      The gateway's plugin delivers push, so this daemon does not — on any
-      transport. Checked after the roster refresh, so a plugin installed or
-      switched off while the daemon runs is noticed within one TTL; the claim on
-      the dedupe key above stays, so the same event does not go out later if the
-      plugin disappears in between.
-    */
-    if (this.roster.pluginPush) {
-      this.log(`push: ${event.bot} — the gateway’s hermie plugin delivers push; not notifying`)
-      await this.options.save()
-
-      return
-    }
-
     const policy = this.options.policy?.()
 
     if (policy && policy.types[event.type] === false) {
@@ -701,12 +784,30 @@ export class PushWatcher {
       return
     }
 
-    const audience = registrationsForAny(this.roster.push, options.audience ?? [event.type]).filter(
+    /*
+      The plugin's share comes off first: a registration it will deliver this
+      notification to is not this daemon's (see `pluginDelivers`). Read after
+      the roster refresh, so a plugin installed or switched off while the daemon
+      runs is noticed within one TTL.
+
+      A finished address stays retired only until its row is written again: a
+      device that re-registers keeps its installation id and moves `updatedAt`
+      past the retirement, exactly as the plugin reads its own state.
+    */
+    const wanted = registrationsForAny(this.roster.push, options.audience ?? [event.type])
+    const handedOver = wanted.filter(registration => this.leftToPlugin(registration, event.type))
+    const audience = wanted.filter(
       registration =>
-        !state.invalid[registration.installationId] &&
+        !handedOver.includes(registration) &&
+        !retired(state, registration) &&
         this.allow(registration.installationId) &&
         (this.options.allowedTo?.(registration.owner, event.bot) ?? true)
     )
+
+    if (handedOver.length) {
+      this.log(`push: ${event.bot} — ${String(handedOver.length)} device(s) left to the gateway’s hermie plugin`)
+      this.warnStandDown()
+    }
 
     if (!audience.length) {
       await this.options.save()
@@ -767,6 +868,19 @@ export class PushWatcher {
 
     return true
   }
+}
+
+/**
+ * Was this registration's address declared finished after it was last written?
+ *
+ * The stamp is when a transport said the address is dead; a row written later
+ * is a device that registered again (same installation id, new token or new
+ * relay handle), and it is served again.
+ */
+function retired(state: PushState, registration: PushRegistration): boolean {
+  const at = state.invalid[registration.installationId]
+
+  return typeof at === 'number' && at >= registration.updatedAt
 }
 
 /** The one line a request carries that a device with `preview` on may see. */

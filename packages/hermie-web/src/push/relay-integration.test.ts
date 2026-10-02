@@ -152,6 +152,37 @@ describe('a relay registration on a gateway', () => {
     expect(relay.requests).toHaveLength(1)
   })
 
+  it('serves the same device again once it registers again, under the same installation id', async () => {
+    relay.answer('h_test-handle-0001', 'gone')
+    await start({ mac: relayRow() })
+    await turn()
+    await waitFor(() => Boolean(daemon.state.invalid.mac), 'the row to be retired')
+
+    // The device registers with the relay again and rewrites its row: same
+    // installation id, a new handle and secret, a newer `updatedAt`.
+    const rewritten = relayRow({
+      handle: 'h_test-handle-0002',
+      secret: 'test-send-secret-0002',
+      updatedAt: Math.floor(Date.now() / 1000) + 60
+    })
+    const set = await fetch(`${gateway.url}/__fake/push`, {
+      method: 'POST',
+      headers: { 'content-type': 'application/json' },
+      body: JSON.stringify({ action: 'registrations', registrations: { mac: rewritten } })
+    })
+
+    expect(set.status).toBe(200)
+
+    await fetch(`${gateway.url}/__fake/inject`, {
+      method: 'POST',
+      headers: { 'content-type': 'application/json' },
+      body: JSON.stringify({ profile: 'writer', user: 'and now?', assistant: 'done' })
+    })
+    await waitFor(() => relay.delivered.length > 0, 'the delivery to the new registration')
+
+    expect(relay.delivered.map(entry => entry.handle)).toEqual(['h_test-handle-0002'])
+  })
+
   it('is not sent to when it names a relay outside the allow-list', async () => {
     await start({ mac: relayRow({ relay: 'https://collector.example.net' }), phone: expoRow() })
     await turn()
@@ -161,7 +192,7 @@ describe('a relay registration on a gateway', () => {
 
     expect(relay.requests).toEqual([])
     expect(daemon.state.invalid.mac).toBeUndefined()
-    expect(lines.join('\n')).toMatch(/not on the allow-list/)
+    expect(lines.join('\n')).toMatch(/not_allowed ×1/)
   })
 
   it('says push.relay in the availability stamp, and only with a relay to send to', async () => {

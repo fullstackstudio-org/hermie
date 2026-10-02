@@ -15,27 +15,28 @@
  *    written by anybody who can write `ui_meta`, so the relay it names is a
  *    claim. A row naming an origin that is not on this sender's own list is
  *    skipped (and not retired: it may be valid for some other sender).
- *  - **https only, redirects not followed, every request times out.** A relay
- *    that answers with a redirect is treated as a failed request; following it
- *    would undo the allow-list.
- *  - **No message text crosses the relay.** The body is always the event-type
- *    phrase (`PushMessage.summary`), whatever the device asked for, until the
- *    sender can encrypt for the row's `enc` key — and the registration reader
- *    already reads every relay row as `preview: false`. Two locks, one rule.
+ *  - **https only, redirects not followed, every request times out, every
+ *    answer is read to a cap.** A relay that answers with a redirect is treated
+ *    as a failed request; following it would undo the allow-list.
+ *  - **Nothing a person wrote crosses the relay.** The body is always the
+ *    name-free event-type phrase (`PushMessage.summary`), whatever the device
+ *    asked for, until the sender can encrypt for the row's `enc` key — and the
+ *    registration reader already reads every relay row as `preview: false`.
  *  - **Never log a secret or a whole handle.** A log line names a handle by its
  *    first few characters and nothing else.
  *
- * And one rule about time: **a send never waits long.** It runs inside the
- * watcher's notification path, so a relay that is shedding load must cost the
- * notification, not the daemon. One retry, after at most
- * `RELAY_MAX_RETRY_WAIT_SECONDS`; a relay that answered a whole request with a
- * failure is not asked again until its back-off has passed, and neither is a
- * device the relay rate-limited.
+ * And the rules about pacing, ported from the gateway plugin's `push/relay.py`
+ * so the two senders treat the relay alike. A send never waits long — one
+ * retry, after at most `RELAY_MAX_RETRY_WAIT_SECONDS`. A relay that failed a
+ * whole request, or rate-limited this sender's address, is left alone for the
+ * time it asked (at most an hour); a device it rate-limited, likewise (at most
+ * a day). A `(relay, handle, secret)` the relay called `gone` is not sent to
+ * again, and a person whose rows keep coming back `gone` has their unproven
+ * rows held for an hour, so one co-user writing made-up handles cannot spend
+ * the relay's per-address `gone` allowance for everybody.
  *
- * Each message in a batch carries its own handle and secret and the relay
- * authorises each on its own, so one device's stale secret costs that device
- * and nothing else in the batch. A request the relay refused WHOLE (400 or
- * 413) is sent again one entry at a time, so one bad row costs only itself.
+ * A request the relay refused WHOLE (400 or 413) is sent again one entry at a
+ * time, so one bad row costs only itself.
  */
 import { createHash } from 'node:crypto'
 
@@ -53,37 +54,65 @@ export const RELAY_BATCH_SIZE = 20
 /**
  * The most this sender puts in one request body, encoded.
  *
- * Under the relay's 8 KB cap on purpose: the cap is the relay's to change and
- * a sender that filled it exactly would start failing the day it moved down.
+ * Under every cap the relay has had, on purpose: the cap is the relay's to
+ * change and it does not advertise it. The plugin's number.
  */
 export const RELAY_REQUEST_LIMIT_BYTES = 7_680
 
-/** The relay refuses one message (its `message` object, as JSON) larger than this. */
-export const RELAY_MESSAGE_LIMIT_BYTES = 3_584
+/** One message (its `message` object, as JSON): the relay's cap is 3,584; this side keeps a margin. */
+export const RELAY_MESSAGE_LIMIT_BYTES = 3_500
 
 /** How long one request may take before it counts as a network failure. */
 export const RELAY_TIMEOUT_MS = 10_000
 
+/** How much of an answer is read. An answer to twenty messages is a couple of kilobytes. */
+export const RELAY_MAX_RESPONSE_BYTES = 64 * 1024
+
 /**
  * The longest `retryAfter` this sender will wait out before its one retry.
  *
- * A relay that asks for longer is shedding load, and the honest answer to that
- * is to drop this notification rather than to retry early or to hold the
- * watcher for minutes.
+ * A send runs inside the watcher's notification path, so this is how long a
+ * notification can be held. A relay that asks for longer is not waited for:
+ * the message is dropped and the relay, or the device, is left alone instead.
  */
 export const RELAY_MAX_RETRY_WAIT_SECONDS = 10
 
 /** The pause before the one retry when the relay named none, or did not answer. */
-export const RELAY_DEFAULT_RETRY_SECONDS = 1
+export const RELAY_DEFAULT_RETRY_SECONDS = 2
 
-/** How long a relay that failed a whole request (twice) is left alone when it named no time. */
-export const RELAY_ORIGIN_BACKOFF_SECONDS = 30
+/** How long a relay that failed again on the retry is left alone when it named no time. */
+export const RELAY_BACKOFF_SECONDS = 60
 
 /** How long a rate-limited device is left alone when the relay named no time. */
 export const RELAY_HANDLE_BACKOFF_SECONDS = 60
 
-/** APNs caps `apns-collapse-id` at 64 bytes. */
+/**
+ * The longest a relay, or one handle on it, is left alone, whatever it asked.
+ *
+ * The relay is trusted for pacing, not for silence: a mistaken or hostile
+ * `Retry-After: 1000000000` costs an hour for a whole relay and a day (the
+ * relay's own daily limit) for one handle, not every notification until the
+ * daemon restarts.
+ */
+export const RELAY_MAX_ORIGIN_HOLD_SECONDS = 3_600
+export const RELAY_MAX_HANDLE_HOLD_SECONDS = 86_400
+
+/** The most handles, and `(relay, handle, secret)` pairs, remembered. */
+export const RELAY_MAX_REMEMBERED = 1_024
+
+/** After this many `gone` answers in `RELAY_GONE_WINDOW_SECONDS`, a person's unproven rows are held. */
+export const RELAY_GONE_BUDGET = 3
+export const RELAY_GONE_WINDOW_SECONDS = 3_600
+
+/** How long a pair the relay called `gone`, or delivered to, is remembered. */
+export const RELAY_PAIR_MEMORY_SECONDS = 30 * 86_400
+
+/** The relay's own rule for a collapse id: 1 to 64 printable ASCII characters. */
 export const RELAY_COLLAPSE_ID_LIMIT = 64
+const COLLAPSE_ID = /^[\x21-\x7e]{1,64}$/u
+
+/** The relay's cap on a thread id, in characters. */
+const MAX_THREAD_CHARS = 256
 
 /** How long the relay may hold a notification for an unreachable device. */
 export const RELAY_TTL_SECONDS = 3600
@@ -91,19 +120,26 @@ export const RELAY_TTL_SECONDS = 3600
 export type RelayStatus = 'sent' | 'gone' | 'rejected' | 'retry' | 'limited'
 
 /**
- * "Not before" times, epoch milliseconds, kept across sends by whoever owns
- * the sender. In memory only: a restart forgetting a back-off costs at most one
- * request the relay refuses again.
+ * What the relay has said that outlives one send, kept by whoever owns the
+ * sender and in memory only: a restart forgetting it costs at most a request
+ * the relay answers the same way again. Times are milliseconds on the
+ * sender's (monotonic) clock.
  */
 export interface RelayBackoff {
-  /** origin → not before. Set after a whole request failed. */
+  /** origin → not before. */
   origins: Map<string, number>
-  /** `origin handle` → not before. Set after the relay said `limited`. */
+  /** `origin handle` → not before. */
   handles: Map<string, number>
+  /** `origin handle secret` → until when it is remembered as gone. */
+  gone: Map<string, number>
+  /** `origin handle secret` → until when it is remembered as delivered to. */
+  proven: Map<string, number>
+  /** owner → when their rows came back gone. */
+  failures: Map<string, number[]>
 }
 
 export function createRelayBackoff(): RelayBackoff {
-  return { origins: new Map(), handles: new Map() }
+  return { origins: new Map(), handles: new Map(), gone: new Map(), proven: new Map(), failures: new Map() }
 }
 
 export interface RelayOptions {
@@ -116,7 +152,7 @@ export interface RelayOptions {
   backoff?: RelayBackoff
   fetchImpl?: typeof fetch
   sleep?: (ms: number) => Promise<void>
-  /** Epoch milliseconds. */
+  /** Milliseconds on a monotonic clock. Default `performance.now()`. */
   now?: () => number
   log?: (line: string) => void
   timeoutMs?: number
@@ -138,7 +174,10 @@ export interface RelaySendResult {
 /** One `messages[]` entry, and every installation whose row it stands for. */
 interface Attempt {
   installationIds: string[]
+  owners: string[]
   handle: string
+  /** `origin handle secret`, the key of the pair memories. */
+  pair: string
   /** Built once and sent unchanged on the retry. */
   entry: Record<string, unknown>
   bytes: number
@@ -162,20 +201,13 @@ export function relayAllowList(entries: readonly string[]): string[] {
   return [...new Set(entries.map(relayOriginOf).filter(Boolean))]
 }
 
-/** `priority` per type: what somebody is waiting on goes now, a routine report may be batched by APNs. */
-function priorityOf(type: unknown): 'high' | 'normal' {
-  return type === 'cron' || type === 'cron_done' || type === 'turn_done' ? 'normal' : 'high'
-}
-
-/** At most 64 bytes, and the same string for the same event every time. */
+/** The relay's collapse id: the event id when it is one the relay takes, its SHA-256 hex otherwise. */
 function collapseIdOf(eventId: string | undefined): string {
   if (!eventId) {
     return ''
   }
 
-  return Buffer.byteLength(eventId, 'utf8') <= RELAY_COLLAPSE_ID_LIMIT
-    ? eventId
-    : createHash('sha256').update(eventId, 'utf8').digest('hex')
+  return COLLAPSE_ID.test(eventId) ? eventId : createHash('sha256').update(eventId, 'utf8').digest('hex')
 }
 
 /**
@@ -184,13 +216,15 @@ function collapseIdOf(eventId: string | undefined): string {
  * Exported so the payload can be checked against `contract/push/contract.json`
  * without a network. The body is the summary and never the preview: see the
  * note at the top of this file. Optional members are left out rather than sent
- * empty, which is also what the relay requires of them.
+ * empty, which is also what the relay requires of them. Priority is always
+ * `high`, as the plugin sends it: everything here is something a person asked
+ * to be told about.
  */
 export function relayMessageFor(message: PushMessage): Record<string, unknown> {
   const bot = typeof message.data.bot === 'string' ? message.data.bot : ''
   const gatewayKey = typeof message.data.gatewayKey === 'string' ? message.data.gatewayKey : ''
   const collapseId = collapseIdOf(message.eventId)
-  const thread = gatewayKey ? `${gatewayKey}:${bot}` : bot
+  const thread = (gatewayKey ? `${gatewayKey}:${bot}` : bot).slice(0, MAX_THREAD_CHARS)
 
   return {
     title: message.title,
@@ -198,9 +232,9 @@ export function relayMessageFor(message: PushMessage): Record<string, unknown> {
     ...(message.categoryId ? { category: message.categoryId } : {}),
     // One thread per chat per gateway, so two gateways' `researcher` do not
     // stack into one group on a lock screen.
-    ...(thread ? { thread: thread.slice(0, 256) } : {}),
+    ...(thread ? { thread } : {}),
     ...(collapseId ? { collapseId } : {}),
-    priority: priorityOf(message.data.type),
+    priority: 'high',
     ttl: RELAY_TTL_SECONDS,
     data: { ...message.data }
   }
@@ -215,8 +249,8 @@ const ENVELOPE_BYTES = bytesOf({ v: 1, messages: [] })
  * Batches of at most 20 entries whose request body stays under
  * `RELAY_REQUEST_LIMIT_BYTES`, with no handle twice in one batch.
  *
- * The relay answers by handle as well as by position, so one handle twice in
- * one request — the same device under two rows with different secrets, one of
+ * The relay's answers are matched by handle, so one handle twice in one
+ * request — the same device under two rows with different secrets, one of
  * them stale — would make two answers indistinguishable. First fit, so the
  * order of the input is kept as far as the rules allow.
  */
@@ -243,12 +277,53 @@ function batchesOf(attempts: readonly Attempt[]): Attempt[][] {
   return batches.map(batch => batch.items)
 }
 
-/** `Retry-After` in seconds, or `undefined` for a missing or unreadable header. */
+/** `Retry-After` in seconds, 0 to a day, or `undefined` for a missing or unreadable header. */
 function retryAfterHeader(response: Response): number | undefined {
   const raw = response.headers.get('retry-after')
   const seconds = raw === null ? Number.NaN : Number(raw)
 
-  return Number.isFinite(seconds) && seconds >= 0 ? seconds : undefined
+  return Number.isFinite(seconds) && seconds >= 0 ? Math.min(seconds, RELAY_MAX_HANDLE_HOLD_SECONDS) : undefined
+}
+
+/** Read at most `RELAY_MAX_RESPONSE_BYTES` of a body; `null` when it is longer or the read fails. */
+async function readCapped(response: Response): Promise<string | null> {
+  const reader = response.body?.getReader()
+
+  if (!reader) {
+    return ''
+  }
+
+  const chunks: Uint8Array[] = []
+  let size = 0
+
+  try {
+    for (;;) {
+      const { done, value } = await reader.read()
+
+      if (done) {
+        break
+      }
+
+      size += value.byteLength
+
+      if (size > RELAY_MAX_RESPONSE_BYTES) {
+        await reader.cancel().catch(() => undefined)
+
+        return null
+      }
+
+      chunks.push(value)
+    }
+  } catch {
+    return null
+  }
+
+  return Buffer.concat(chunks).toString('utf8')
+}
+
+/** Let go of a body nobody will read, so the connection is not held open by it. */
+function drain(response: Response): void {
+  void response.body?.cancel().catch(() => undefined)
 }
 
 const STATUSES: readonly string[] = ['sent', 'gone', 'rejected', 'retry', 'limited']
@@ -277,26 +352,19 @@ async function post(origin: string, batch: readonly Attempt[], options: RelayOpt
     return all({ status: 'retry', whole: true, reason: name === 'TimeoutError' ? 'timeout' : 'network' })
   }
 
+  if (response.status !== 200) {
+    drain(response)
+  }
+
   if (response.type === 'opaqueredirect' || (response.status >= 300 && response.status < 400)) {
     return all({ status: 'rejected', reason: 'redirect' })
   }
 
-  if (response.status === 429) {
+  if (response.status === 429 || response.status >= 500) {
     const retryAfter = retryAfterHeader(response)
 
     return all({
-      status: 'limited',
-      whole: true,
-      reason: 'http_429',
-      ...(retryAfter === undefined ? {} : { retryAfter })
-    })
-  }
-
-  if (response.status >= 500) {
-    const retryAfter = retryAfterHeader(response)
-
-    return all({
-      status: 'retry',
+      status: response.status === 429 ? 'limited' : 'retry',
       whole: true,
       reason: `http_${String(response.status)}`,
       ...(retryAfter === undefined ? {} : { retryAfter })
@@ -315,7 +383,13 @@ async function post(origin: string, batch: readonly Attempt[], options: RelayOpt
   let results: unknown[]
 
   try {
-    const parsed = (await response.json()) as { results?: unknown }
+    const text = await readCapped(response)
+
+    if (text === null) {
+      throw new Error('unreadable')
+    }
+
+    const parsed = JSON.parse(text) as { results?: unknown }
 
     results = Array.isArray(parsed?.results) ? parsed.results : []
   } catch {
@@ -323,25 +397,21 @@ async function post(origin: string, batch: readonly Attempt[], options: RelayOpt
   }
 
   return {
-    answers: batch.map((attempt, index) => {
-      // By position, checked against the handle; a relay that reordered its
-      // answers is matched by handle instead rather than misattributed. A
-      // batch never holds one handle twice, so the handle is unambiguous.
-      const positional = results[index] as Record<string, unknown> | undefined
-      const row =
-        positional && positional.handle === attempt.handle
-          ? positional
-          : (results.find(item => (item as Record<string, unknown> | null)?.handle === attempt.handle) as
-              Record<string, unknown> | undefined)
+    answers: batch.map(attempt => {
+      // Matched by handle, never by position: a relay that answered in another
+      // order, or skipped one, must not have one device's `gone` retire
+      // another. A batch never holds one handle twice.
+      const row = results.find(item => (item as Record<string, unknown> | null)?.handle === attempt.handle) as
+        Record<string, unknown> | undefined
       const status = typeof row?.status === 'string' && STATUSES.includes(row.status) ? (row.status as RelayStatus) : ''
 
       if (!status) {
-        return { status: 'retry', reason: 'no_result' }
+        return { status: 'rejected', reason: 'no_result' }
       }
 
       const retryAfter =
         typeof row?.retryAfter === 'number' && Number.isFinite(row.retryAfter) && row.retryAfter >= 0
-          ? row.retryAfter
+          ? Math.min(row.retryAfter, RELAY_MAX_HANDLE_HOLD_SECONDS)
           : undefined
       const reason = typeof row?.reason === 'string' ? row.reason.slice(0, 64) : undefined
 
@@ -354,23 +424,173 @@ async function post(origin: string, batch: readonly Attempt[], options: RelayOpt
   }
 }
 
+/** Keep a not-before map at `RELAY_MAX_REMEMBERED`: the lapsed go first, then the soonest to lapse. */
+function bounded(store: Map<string, number>, now: number): void {
+  if (store.size <= RELAY_MAX_REMEMBERED) {
+    return
+  }
+
+  for (const [key, until] of store) {
+    if (until <= now) {
+      store.delete(key)
+    }
+  }
+
+  while (store.size > RELAY_MAX_REMEMBERED) {
+    let soonest = ''
+    let at = Number.POSITIVE_INFINITY
+
+    for (const [key, until] of store) {
+      if (until < at) {
+        soonest = key
+        at = until
+      }
+    }
+
+    store.delete(soonest)
+  }
+}
+
+/** The pacing half: when a relay, or a handle on it, may be asked again. */
+class Pacing {
+  constructor(
+    private readonly backoff: RelayBackoff,
+    private readonly now: () => number,
+    private readonly log: (line: string) => void
+  ) {}
+
+  originWait(origin: string): number {
+    return Math.max(0, (this.backoff.origins.get(origin) ?? 0) - this.now())
+  }
+
+  handleWait(origin: string, handle: string): number {
+    return Math.max(0, (this.backoff.handles.get(`${origin} ${handle}`) ?? 0) - this.now())
+  }
+
+  /** Leave `origin` alone for `seconds`, at most an hour. Never shortens a hold. */
+  holdOrigin(origin: string, seconds: number): void {
+    const held = Math.min(Math.max(0, seconds), RELAY_MAX_ORIGIN_HOLD_SECONDS)
+    const until = this.now() + held * 1000
+
+    if (until <= (this.backoff.origins.get(origin) ?? 0)) {
+      return
+    }
+
+    this.backoff.origins.set(origin, until)
+
+    if (held > RELAY_BACKOFF_SECONDS) {
+      // Said once per hold, never per notification it then drops.
+      this.log(`push: WARNING relay ${origin} is left alone for ${String(Math.round(held))} s, as it asked`)
+    }
+  }
+
+  /** Leave one handle alone for `seconds`, at most a day. Never shortens a hold. */
+  holdHandle(origin: string, handle: string, seconds: number): void {
+    const key = `${origin} ${handle}`
+    const held = Math.min(Math.max(0, seconds), RELAY_MAX_HANDLE_HOLD_SECONDS)
+    const until = this.now() + held * 1000
+
+    if (until <= (this.backoff.handles.get(key) ?? 0)) {
+      return
+    }
+
+    this.backoff.handles.set(key, until)
+
+    if (held > RELAY_BACKOFF_SECONDS) {
+      this.log(
+        `push: WARNING relay ${origin} limited ${handleHint(handle)}; leaving it alone for ${String(Math.round(held))} s`
+      )
+    }
+
+    bounded(this.backoff.handles, this.now())
+  }
+}
+
+/** The trust half: which pairs the relay called gone or delivered to, and whose rows keep coming back gone. */
+class Trust {
+  constructor(
+    private readonly backoff: RelayBackoff,
+    private readonly now: () => number
+  ) {}
+
+  isGone(pair: string): boolean {
+    return (this.backoff.gone.get(pair) ?? 0) > this.now()
+  }
+
+  isProven(pair: string): boolean {
+    return (this.backoff.proven.get(pair) ?? 0) > this.now()
+  }
+
+  overBudget(owner: string): boolean {
+    const now = this.now()
+    const recent = (this.backoff.failures.get(owner) ?? []).filter(at => now - at < RELAY_GONE_WINDOW_SECONDS * 1000)
+
+    if (recent.length) {
+      this.backoff.failures.set(owner, recent)
+    } else {
+      this.backoff.failures.delete(owner)
+    }
+
+    return recent.length >= RELAY_GONE_BUDGET
+  }
+
+  record(attempt: Attempt, status: RelayStatus): void {
+    const now = this.now()
+    const until = now + RELAY_PAIR_MEMORY_SECONDS * 1000
+
+    if (status === 'sent') {
+      this.backoff.proven.set(attempt.pair, until)
+      this.backoff.gone.delete(attempt.pair)
+      bounded(this.backoff.proven, now)
+    } else if (status === 'gone') {
+      this.backoff.gone.set(attempt.pair, until)
+      this.backoff.proven.delete(attempt.pair)
+      bounded(this.backoff.gone, now)
+
+      for (const owner of new Set(attempt.owners)) {
+        const failures = [...(this.backoff.failures.get(owner) ?? []), now].slice(-RELAY_GONE_BUDGET)
+
+        this.backoff.failures.set(owner, failures)
+      }
+
+      while (this.backoff.failures.size > RELAY_MAX_REMEMBERED) {
+        const oldest = [...this.backoff.failures].sort((a, b) => Math.max(...a[1]) - Math.max(...b[1]))[0]
+
+        this.backoff.failures.delete(oldest?.[0] ?? '')
+      }
+    }
+  }
+}
+
 /**
- * Send every attempt for one origin, in batches, and answer for each.
+ * Send every attempt for one origin, in batches, once, and answer for each.
  *
- * A batch the relay refused whole (400, 413) is sent again one entry at a time,
- * once; what those answer is final. Once a request has failed whole — no
- * answer, 429, 5xx — the rest of this round's batches are not sent at all: they
- * get the same answer, because asking a relay that is down or shedding load
- * again within the same second is the one thing guaranteed not to help.
+ * A batch the relay refused whole (400, 413) is sent again one entry at a time;
+ * if every one of those is refused whole as well, no entry was the cause and
+ * the relay is left alone. Once a request has failed whole — no answer, 429,
+ * 5xx — nothing more is sent to that relay this round: the rest get the same
+ * answer and the relay is held, because asking a relay that is down or
+ * shedding load again within the same second is the one thing that cannot help.
  */
-async function postAll(origin: string, attempts: readonly Attempt[], options: RelayOptions): Promise<Answer[]> {
+async function round(
+  origin: string,
+  attempts: readonly Attempt[],
+  options: RelayOptions,
+  pacing: Pacing,
+  backoffSeconds: number
+): Promise<Map<Attempt, Answer>> {
   const answers = new Map<Attempt, Answer>()
   let failed: Answer | null = null
+
+  const hold = (answer: Answer): void => {
+    failed = answer
+    pacing.holdOrigin(origin, Math.max(answer.retryAfter ?? 0, backoffSeconds))
+  }
 
   for (const batch of batchesOf(attempts)) {
     if (failed) {
       for (const attempt of batch) {
-        answers.set(attempt, { ...failed })
+        answers.set(attempt, { ...(failed as Answer) })
       }
 
       continue
@@ -380,7 +600,12 @@ async function postAll(origin: string, attempts: readonly Attempt[], options: Re
 
     if ('answers' in posted) {
       batch.forEach((attempt, index) => answers.set(attempt, posted.answers[index] as Answer))
-      failed = posted.answers.find(answer => answer.whole) ?? null
+
+      const whole = posted.answers.find(answer => answer.whole)
+
+      if (whole) {
+        hold(whole)
+      }
 
       continue
     }
@@ -391,16 +616,44 @@ async function postAll(origin: string, attempts: readonly Attempt[], options: Re
       continue
     }
 
+    let refusedAlone = 0
+
     for (const attempt of batch) {
+      if (failed) {
+        answers.set(attempt, { ...(failed as Answer) })
+
+        continue
+      }
+
       const alone = await post(origin, [attempt], options)
-      const answer: Answer =
-        'answers' in alone ? (alone.answers[0] as Answer) : { status: 'rejected', reason: alone.split }
+
+      if ('split' in alone) {
+        refusedAlone += 1
+        answers.set(attempt, { status: 'rejected', reason: alone.split })
+
+        continue
+      }
+
+      const answer = alone.answers[0] as Answer
 
       answers.set(attempt, answer)
+
+      if (answer.whole) {
+        hold(answer)
+      }
+    }
+
+    if (refusedAlone === batch.length) {
+      // Every entry was refused on its own as well, so none of them was the
+      // cause: the relay refuses this sender's requests as such (a changed
+      // protocol, a smaller cap). Asking it 1 + N times per notification
+      // changes nothing; it is left alone for a while.
+      options.log?.(`push: WARNING relay ${origin} refused every message on its own as well; leaving it alone`)
+      pacing.holdOrigin(origin, RELAY_BACKOFF_SECONDS)
     }
   }
 
-  return attempts.map(attempt => answers.get(attempt) as Answer)
+  return answers
 }
 
 /**
@@ -412,9 +665,8 @@ async function postAll(origin: string, attempts: readonly Attempt[], options: Re
  * `limited` and a network failure get ONE more attempt, after the relay's
  * `retryAfter` — unless that is longer than `RELAY_MAX_RETRY_WAIT_SECONDS`, in
  * which case the notification is dropped instead — and are dropped if that
- * fails too, leaving a back-off behind for the origin or the device. Rows that
- * name the same relay, handle and secret are one device and are sent to once.
- * Nothing here throws.
+ * fails too. Rows that name the same relay, handle and secret are one device
+ * and are sent to once. Nothing here throws.
  */
 export async function sendRelay(
   registrations: readonly PushRegistration[],
@@ -423,18 +675,27 @@ export async function sendRelay(
 ): Promise<RelaySendResult> {
   const log = options.log ?? (() => undefined)
   const sleep = options.sleep ?? ((ms: number) => new Promise<void>(resolve => setTimeout(resolve, ms).unref()))
-  const now = options.now ?? (() => Date.now())
+  const now = options.now ?? (() => performance.now())
   const backoff = options.backoff ?? createRelayBackoff()
+  const pacing = new Pacing(backoff, now, log)
+  const trust = new Trust(backoff, now)
   const allowed = new Set(relayAllowList(options.allowList))
   const outcomes: RelayOutcome[] = []
   const dead: string[] = []
   const relayMessage = relayMessageFor(message)
   const tooLarge = bytesOf(relayMessage) > RELAY_MESSAGE_LIMIT_BYTES
   const byOrigin = new Map<string, Map<string, Attempt>>()
-  const skipped = { foreign: 0, origin: 0, handle: 0 }
+  const skipped = new Map<string, number>()
+  const rejected = new Map<string, number>()
+  const dropped = new Map<string, number>()
+
+  const count = (store: Map<string, number>, reason: string): void => {
+    store.set(reason, (store.get(reason) ?? 0) + 1)
+  }
 
   const skip = (installationId: string, reason: string): void => {
     outcomes.push({ installationId, status: 'skipped', reason })
+    count(skipped, reason)
   }
 
   for (const registration of registrations) {
@@ -447,22 +708,37 @@ export async function sendRelay(
     const origin = relayOriginOf(registration.relay)
 
     if (!origin || !allowed.has(origin)) {
-      skipped.foreign += 1
       skip(installationId, 'not_allowed')
 
       continue
     }
 
-    if ((backoff.origins.get(origin) ?? 0) > now()) {
-      skipped.origin += 1
+    const pair = `${origin} ${handle} ${secret}`
+
+    if (pacing.originWait(origin) > 0) {
       skip(installationId, 'relay_backoff')
 
       continue
     }
 
-    if ((backoff.handles.get(`${origin} ${handle}`) ?? 0) > now()) {
-      skipped.handle += 1
+    if (pacing.handleWait(origin, handle) > 0) {
       skip(installationId, 'handle_backoff')
+
+      continue
+    }
+
+    if (trust.isGone(pair)) {
+      // The relay already said this pair is gone and it never hands a handle
+      // out twice, so a row written again with it will not be answered
+      // differently. Retired again, so the row stays out until it changes.
+      skip(installationId, 'known_gone')
+      dead.push(installationId)
+
+      continue
+    }
+
+    if (!trust.isProven(pair) && trust.overBudget(registration.owner)) {
+      skip(installationId, 'owner_gone_budget')
 
       continue
     }
@@ -470,8 +746,8 @@ export async function sendRelay(
     if (tooLarge) {
       // Refused here rather than by the relay: the answer would be the same
       // `rejected`, after a round trip that carried the secret for nothing.
-      log(`push: relay message for ${handleHint(handle)} is too large; not sent`)
       outcomes.push({ installationId, status: 'rejected', reason: 'payload_too_large' })
+      count(rejected, 'payload_too_large')
 
       continue
     }
@@ -479,41 +755,34 @@ export async function sendRelay(
     // One device under two rows — a copied row, a reinstall that kept its
     // registration — is one message, and its answer is every row's answer.
     const attempts = byOrigin.get(origin) ?? new Map<string, Attempt>()
-    const key = `${handle}\n${secret}`
-    const held = attempts.get(key)
+    const held = attempts.get(pair)
 
     if (held) {
       held.installationIds.push(installationId)
+      held.owners.push(registration.owner)
     } else {
       const entry = { handle, secret, message: relayMessage }
 
-      attempts.set(key, { installationIds: [installationId], handle, entry, bytes: bytesOf(entry) })
+      attempts.set(pair, {
+        installationIds: [installationId],
+        owners: [registration.owner],
+        handle,
+        pair,
+        entry,
+        bytes: bytesOf(entry)
+      })
     }
 
     byOrigin.set(origin, attempts)
   }
 
-  // Counted, never named: the origin a row claims is not this log's to print
-  // and the handle beside it is half a credential.
-  if (skipped.foreign) {
-    log(`push: ${String(skipped.foreign)} relay registration(s) name a relay that is not on the allow-list; not sent`)
-  }
-
-  if (skipped.origin) {
-    log(`push: ${String(skipped.origin)} relay registration(s) skipped; the relay is backing off`)
-  }
-
-  if (skipped.handle) {
-    log(`push: ${String(skipped.handle)} relay registration(s) skipped; the relay rate-limited the device`)
-  }
-
   const settle = (attempt: Attempt, answer: Answer): void => {
+    trust.record(attempt, answer.status)
+
     if (answer.status === 'gone') {
       dead.push(...attempt.installationIds)
     } else if (answer.status === 'rejected') {
-      log(
-        `push: relay rejected the message for ${handleHint(attempt.handle)}${answer.reason ? ` (${answer.reason})` : ''}`
-      )
+      count(rejected, answer.reason ?? 'rejected')
     }
 
     for (const installationId of attempt.installationIds) {
@@ -521,19 +790,19 @@ export async function sendRelay(
     }
   }
 
-  /** A final `retry` or `limited`: dropped, with the back-off it leaves behind. */
-  const drop = (origin: string, attempt: Attempt, answer: Answer, why: string): void => {
-    const seconds = answer.retryAfter ?? (answer.whole ? RELAY_ORIGIN_BACKOFF_SECONDS : RELAY_HANDLE_BACKOFF_SECONDS)
-
+  /** A final `retry` or `limited`: dropped, with the hold it leaves behind. */
+  const drop = (origin: string, attempt: Attempt, answer: Answer): void => {
     if (answer.whole) {
-      backoff.origins.set(origin, Math.max(backoff.origins.get(origin) ?? 0, now() + seconds * 1000))
+      pacing.holdOrigin(origin, answer.retryAfter ?? RELAY_BACKOFF_SECONDS)
+    } else if (answer.status === 'limited' && answer.reason === 'ip_rate_limited') {
+      // The relay is limiting this sender's address, not the device: every
+      // other message would get the same answer, so the relay is held.
+      pacing.holdOrigin(origin, answer.retryAfter ?? RELAY_BACKOFF_SECONDS)
     } else if (answer.status === 'limited') {
-      backoff.handles.set(`${origin} ${attempt.handle}`, now() + seconds * 1000)
+      pacing.holdHandle(origin, attempt.handle, answer.retryAfter ?? RELAY_HANDLE_BACKOFF_SECONDS)
     }
 
-    log(
-      `push: relay ${answer.status} for ${handleHint(attempt.handle)}${answer.reason ? ` (${answer.reason})` : ''}, ${why}; dropped`
-    )
+    count(dropped, `${answer.status}${answer.reason ? ` ${answer.reason}` : ''}`)
 
     for (const installationId of attempt.installationIds) {
       outcomes.push({ installationId, status: answer.status, reason: 'dropped' })
@@ -542,50 +811,67 @@ export async function sendRelay(
 
   for (const [origin, keyed] of byOrigin) {
     const attempts = [...keyed.values()]
-    const first = await postAll(origin, attempts, options)
+    const first = await round(origin, attempts, options, pacing, RELAY_DEFAULT_RETRY_SECONDS)
     const again: Attempt[] = []
     let wait = 0
 
-    attempts.forEach((attempt, index) => {
-      const answer = first[index] as Answer
+    for (const attempt of attempts) {
+      const answer = first.get(attempt) as Answer
 
       if (answer.status !== 'retry' && answer.status !== 'limited') {
         settle(attempt, answer)
 
-        return
+        continue
       }
 
       const after = answer.retryAfter ?? RELAY_DEFAULT_RETRY_SECONDS
 
       if (after > RELAY_MAX_RETRY_WAIT_SECONDS) {
-        drop(origin, attempt, answer, `retry after ${String(after)} s is too long`)
+        drop(origin, attempt, answer)
 
-        return
+        continue
       }
 
       wait = Math.max(wait, after)
       again.push(attempt)
-    })
+    }
 
     if (!again.length) {
       continue
     }
 
-    await sleep(wait * 1000)
+    await sleep(Math.max(wait * 1000, pacing.originWait(origin)))
 
-    const second = await postAll(origin, again, options)
+    // The second round is the last: a relay still failing after it is left
+    // alone for a while rather than asked by every notification that follows.
+    const second = await round(origin, again, options, pacing, RELAY_BACKOFF_SECONDS)
 
-    again.forEach((attempt, index) => {
-      const answer = second[index] as Answer
+    for (const attempt of again) {
+      const answer = second.get(attempt) as Answer
 
       if (answer.status === 'retry' || answer.status === 'limited') {
-        drop(origin, attempt, answer, 'after one retry')
-
-        return
+        drop(origin, attempt, answer)
+      } else {
+        settle(attempt, answer)
       }
+    }
+  }
 
-      settle(attempt, answer)
-    })
+  // One line per kind of trouble per send, counted and never naming a handle,
+  // so an outage does not become a line per device per notification.
+  const summary = (store: Map<string, number>): string =>
+    [...store].map(([reason, times]) => `${reason} ×${String(times)}`).join(', ')
+
+  if (skipped.size) {
+    log(`push: relay messages not sent: ${summary(skipped)}`)
+  }
+
+  if (rejected.size) {
+    log(`push: relay rejected messages: ${summary(rejected)}`)
+  }
+
+  if (dropped.size) {
+    log(`push: relay messages dropped after one retry or a long wait: ${summary(dropped)}`)
   }
 
   return { dead, outcomes }

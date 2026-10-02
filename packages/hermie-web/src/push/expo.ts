@@ -43,12 +43,13 @@ export interface PushMessage {
    */
   channelId?: string
   /**
-   * The body this notification has WITHOUT a preview: the event-type phrase.
+   * The event-type phrase with nothing a person wrote in it: no preview, and no
+   * cron job or sender name.
    *
-   * Equal to `body` unless a preview was put in it. It travels beside the body
-   * so that a transport which must never carry message text — the relay, see
-   * `relay.ts` — can say the safe line without having to trust that the caller
-   * partitioned the devices correctly.
+   * It travels beside the body so that a transport which must carry nothing
+   * but the bot and the kind of event — the relay, see `relay.ts` — can say
+   * the safe line without having to trust that the caller partitioned the
+   * devices correctly.
    */
   summary?: string
   /**

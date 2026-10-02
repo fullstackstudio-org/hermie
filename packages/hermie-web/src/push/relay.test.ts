@@ -20,8 +20,13 @@ import {
   RELAY_BATCH_SIZE,
   RELAY_COLLAPSE_ID_LIMIT,
   RELAY_DEFAULT_ORIGIN,
+  RELAY_GONE_BUDGET,
+  RELAY_GONE_WINDOW_SECONDS,
+  RELAY_MAX_HANDLE_HOLD_SECONDS,
+  RELAY_MAX_ORIGIN_HOLD_SECONDS,
+  RELAY_MAX_REMEMBERED,
   RELAY_MAX_RETRY_WAIT_SECONDS,
-  RELAY_ORIGIN_BACKOFF_SECONDS,
+  RELAY_BACKOFF_SECONDS,
   RELAY_REQUEST_LIMIT_BYTES,
   relayMessageFor,
   sendRelay,
@@ -182,7 +187,7 @@ describe('the allow-list decides, not the row', () => {
 
     expect(h.relay.requests).toEqual([])
     expect(result.dead).toEqual([])
-    expect(h.lines.join('\n')).toMatch(/not on the allow-list/)
+    expect(h.lines.join('\n')).toMatch(/not_allowed ×1/)
     expect(h.lines.join('\n')).not.toContain('collector.example.net')
   })
 
@@ -374,7 +379,7 @@ describe('never blocking the sender', () => {
     expect(h.relay.requests).toHaveLength(2)
     expect(during.outcomes).toEqual([{ installationId: 'mac', status: 'skipped', reason: 'relay_backoff' }])
 
-    advance(RELAY_ORIGIN_BACKOFF_SECONDS + 1)
+    advance(RELAY_BACKOFF_SECONDS + 1)
     await sendRelay([relayRow('mac')], MESSAGE, h.options)
 
     expect(h.relay.requests).toHaveLength(3)
@@ -595,6 +600,234 @@ describe('what the relay answers', () => {
     expect(hanging).toHaveBeenCalledTimes(2)
     expect(result.outcomes).toEqual([{ installationId: 'mac', status: 'retry', reason: 'dropped' }])
     expect(lines.join('\n')).toMatch(/timeout/)
+  })
+})
+
+describe('the plugin’s bounds', () => {
+  const clocked = () => {
+    let at = 5_000_000
+    const backoff = createRelayBackoff()
+    const h = harness({ backoff, now: () => at })
+
+    return { h, backoff, advance: (seconds: number) => (at += seconds * 1000), at: () => at }
+  }
+
+  it('holds a whole relay for at most an hour, whatever Retry-After says, and warns once', async () => {
+    const { h, backoff, at } = clocked()
+
+    h.relay.failNext({ status: 429, headers: { 'retry-after': '1000000000' } })
+    await sendRelay([relayRow('mac')], MESSAGE, h.options)
+    await sendRelay([relayRow('mac')], MESSAGE, h.options)
+
+    expect(backoff.origins.get(RELAY_DEFAULT_ORIGIN)).toBe(at() + RELAY_MAX_ORIGIN_HOLD_SECONDS * 1000)
+    expect(h.lines.filter(line => line.includes('WARNING relay https://push.hermie.dev is left alone'))).toHaveLength(1)
+  })
+
+  it('holds one device for at most a day', async () => {
+    const { h, backoff, at } = clocked()
+
+    h.relay.answer('h_handle-for-mac', { status: 'limited', retryAfter: 10 ** 9, reason: 'handle_rate_limited' })
+    await sendRelay([relayRow('mac')], MESSAGE, h.options)
+
+    expect(backoff.handles.get(`${RELAY_DEFAULT_ORIGIN} h_handle-for-mac`)).toBe(
+      at() + RELAY_MAX_HANDLE_HOLD_SECONDS * 1000
+    )
+  })
+
+  it('holds the relay, not the device, when the limit is on this sender’s address', async () => {
+    const { h, backoff } = clocked()
+
+    h.relay.answer('h_handle-for-a', { status: 'limited', retryAfter: 120, reason: 'ip_rate_limited' })
+
+    const first = await sendRelay([relayRow('a')], MESSAGE, h.options)
+    const second = await sendRelay([relayRow('b')], MESSAGE, h.options)
+
+    expect(first.outcomes).toEqual([{ installationId: 'a', status: 'limited', reason: 'dropped' }])
+    expect(backoff.origins.get(RELAY_DEFAULT_ORIGIN)).toBeGreaterThan(0)
+    expect(backoff.handles.size).toBe(0)
+    expect(second.outcomes).toEqual([{ installationId: 'b', status: 'skipped', reason: 'relay_backoff' }])
+  })
+
+  it('remembers at most 1,024 held devices, forgetting the soonest to lapse', async () => {
+    const { h, backoff } = clocked()
+    const rows = Array.from({ length: RELAY_MAX_REMEMBERED + 3 }, (_value, index) =>
+      relayRow(`d${String(index)}`, { handle: `h_${String(index).padStart(5, '0')}` })
+    )
+
+    rows.forEach((row, index) =>
+      h.relay.answer(row.handle ?? '', { status: 'limited', retryAfter: 100 + index, reason: 'handle_rate_limited' })
+    )
+
+    await sendRelay(rows, MESSAGE, h.options)
+
+    expect(backoff.handles.size).toBe(RELAY_MAX_REMEMBERED)
+    // The three shortest holds went; the longest are kept.
+    expect(backoff.handles.has(`${RELAY_DEFAULT_ORIGIN} h_00000`)).toBe(false)
+    expect(backoff.handles.has(`${RELAY_DEFAULT_ORIGIN} h_${String(RELAY_MAX_REMEMBERED + 2).padStart(5, '0')}`)).toBe(
+      true
+    )
+  })
+
+  it('does not send again to a relay, handle and secret it called gone', async () => {
+    const { h } = clocked()
+
+    h.relay.answer('h_handle-for-mac', 'gone')
+    await sendRelay([relayRow('mac')], MESSAGE, h.options)
+
+    const again = await sendRelay([relayRow('mac', { updatedAt: 99 })], MESSAGE, h.options)
+
+    expect(h.relay.requests).toHaveLength(1)
+    expect(again).toEqual({
+      dead: ['mac'],
+      outcomes: [{ installationId: 'mac', status: 'skipped', reason: 'known_gone' }]
+    })
+
+    // A new secret is a new claim and is asked about.
+    await sendRelay([relayRow('mac', { secret: 'a-new-secret' })], MESSAGE, h.options)
+    expect(h.relay.requests).toHaveLength(2)
+  })
+
+  it('after three gone answers in an hour, holds that person’s unproven rows, and only theirs', async () => {
+    const { h, advance } = clocked()
+    const mine = (index: number, over: Partial<PushRegistration> = {}) =>
+      relayRow(`m${String(index)}`, { owner: 'co-user', handle: `h_made-up-${String(index)}`, ...over })
+
+    for (let index = 0; index < RELAY_GONE_BUDGET; index += 1) {
+      h.relay.answer(`h_made-up-${String(index)}`, 'gone')
+    }
+
+    // A row of theirs that has been delivered to before stays proven.
+    await sendRelay([mine(9, { handle: 'h_proven' })], MESSAGE, h.options)
+    await sendRelay(
+      [0, 1, 2].map(index => mine(index)),
+      MESSAGE,
+      h.options
+    )
+
+    const held = await sendRelay(
+      [mine(3), mine(9, { handle: 'h_proven' }), relayRow('other', { owner: 'someone-else' })],
+      MESSAGE,
+      h.options
+    )
+
+    expect(held.outcomes).toContainEqual({ installationId: 'm3', status: 'skipped', reason: 'owner_gone_budget' })
+    expect(held.outcomes).toContainEqual({ installationId: 'm9', status: 'sent' })
+    expect(held.outcomes).toContainEqual({ installationId: 'other', status: 'sent' })
+
+    advance(RELAY_GONE_WINDOW_SECONDS + 1)
+
+    const later = await sendRelay([mine(3)], MESSAGE, h.options)
+
+    expect(later.outcomes).toEqual([{ installationId: 'm3', status: 'sent' }])
+  })
+
+  it('holds a relay that refuses every message on its own as well', async () => {
+    const { h, backoff } = clocked()
+
+    for (let index = 0; index < 4; index += 1) {
+      h.relay.failNext({ status: 400, body: { error: 'invalid_request' } })
+    }
+
+    await sendRelay([relayRow('a'), relayRow('b'), relayRow('c')], MESSAGE, h.options)
+
+    expect(h.relay.requests).toHaveLength(4)
+    expect(backoff.origins.get(RELAY_DEFAULT_ORIGIN)).toBeGreaterThan(0)
+    expect(h.lines.join('\n')).toMatch(/refused every message on its own/)
+  })
+
+  it('stops resending one by one as soon as one of those requests fails whole', async () => {
+    const { h } = clocked()
+    const rows = Array.from({ length: 20 }, (_value, index) => relayRow(`d${String(index)}`))
+
+    h.relay.failNext({ status: 413 })
+    h.relay.failNext({ status: 503, headers: { 'retry-after': '600' } })
+
+    const result = await sendRelay(rows, MESSAGE, h.options)
+
+    // The whole request, then one entry alone that found the relay down: no
+    // nineteen more, and no wait.
+    expect(h.relay.requests).toHaveLength(2)
+    expect(h.sleeps).toEqual([])
+    expect(result.outcomes.every(outcome => outcome.status === 'retry')).toBe(true)
+  })
+
+  it('reads at most 64 KB of an answer and treats a longer one as no answer', async () => {
+    let calls = 0
+    const huge = (async () => {
+      calls += 1
+
+      return new Response(`{"results":[${'"x",'.repeat(20_000)}"x"]}`, { status: 200 })
+    }) as unknown as typeof fetch
+    const result = await sendRelay([relayRow('mac')], MESSAGE, {
+      allowList: [RELAY_DEFAULT_ORIGIN],
+      fetchImpl: huge,
+      sleep: async () => undefined
+    })
+
+    expect(calls).toBe(2)
+    expect(result.outcomes).toEqual([{ installationId: 'mac', status: 'retry', reason: 'dropped' }])
+  })
+
+  it('says a send’s trouble in one line per kind, counted, never per device', async () => {
+    const h = harness()
+    const rows = Array.from({ length: 5 }, (_value, index) => relayRow(`d${String(index)}`))
+
+    rows.forEach(row => h.relay.answer(row.handle ?? '', { status: 'rejected', reason: 'apns_rejected' }))
+    await sendRelay(rows, MESSAGE, h.options)
+
+    expect(h.lines).toEqual(['push: relay rejected messages: apns_rejected ×5'])
+  })
+})
+
+describe('the message the relay is handed', () => {
+  it('asks for high priority whatever the type, as the plugin does', () => {
+    for (const type of ['message', 'cron', 'cron_done', 'request'] as const) {
+      expect(relayMessageFor(pushMessageFor({ ...EVENT, type }, false)).priority).toBe('high')
+    }
+  })
+
+  it('never names a cron job or a sending bot, though the other transports do', () => {
+    const cron = pushMessageFor(
+      { ...EVENT, type: 'cron_done', cron: true, cronCertain: true, name: 'Payroll export' },
+      false
+    )
+    const failed = pushMessageFor(
+      { ...EVENT, type: 'cron_failed', cron: true, cronCertain: true, failed: true, name: 'Payroll export' },
+      false
+    )
+    const dm = pushMessageFor({ ...EVENT, type: 'dm', name: 'Writer' }, false)
+
+    expect(cron.body).toBe('cron “Payroll export” reported')
+    expect(relayMessageFor(cron).body).toBe('a cron job reported')
+    expect(relayMessageFor(failed).body).toBe('a cron run failed')
+    expect(relayMessageFor(dm).body).toBe('heard from another bot')
+    expect(JSON.stringify([relayMessageFor(cron), relayMessageFor(failed)])).not.toContain('Payroll')
+  })
+
+  it('keeps an event id the relay takes as the collapse id, and hashes anything else', () => {
+    expect(relayMessageFor({ ...MESSAGE, eventId: 'request:e79a31a5f5e83a0039f266e520e055fa' }).collapseId).toBe(
+      'request:e79a31a5f5e83a0039f266e520e055fa'
+    )
+
+    for (const odd of ['has space', 'tab\there', 'é', 'x'.repeat(65)]) {
+      expect(relayMessageFor({ ...MESSAGE, eventId: odd }).collapseId).toMatch(/^[0-9a-f]{64}$/u)
+    }
+  })
+
+  it('is a message the relay’s own schema accepts, for every kind of event', async () => {
+    const h = harness()
+    const events: NotifiableEvent[] = [
+      { ...EVENT, type: 'message', eventId: 'tab\there' },
+      { ...EVENT, type: 'request', requestMethod: 'approval', requestId: 'a', eventId: eventIdOf('request', 's', 'a') },
+      { ...EVENT, type: 'cron_failed', cron: true, failed: true, name: 'Job', jobId: 'j' },
+      { ...EVENT, type: 'message', gatewayKey: undefined, bot: 'b'.repeat(400) }
+    ]
+
+    for (const event of events) {
+      await sendRelay([relayRow('mac')], pushMessageFor(event, true), h.options)
+    }
+
+    expect(h.relay.delivered).toHaveLength(events.length)
   })
 })
 

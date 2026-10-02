@@ -412,15 +412,22 @@ on its own list and skips (without removing) a registration that names any other
 | ---------------------------------------------------- | ------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------- |
 | `--push-relays <origins>` (env `HERMIE_PUSH_RELAYS`) | `https://push.hermie.dev` | Comma-separated https origins, no path. The whole list, not an addition to the default. Empty turns relay delivery off. A bad entry stops the start. |
 
-Requests are https only, never follow a redirect, and time out after ten seconds. A device the relay
-answers `gone` for is retired exactly as an Expo token that Expo calls `DeviceNotRegistered`; a
-`rejected` message is logged and dropped; `retry`, `limited` and a network failure get one more try
-after the relay's `retryAfter` (up to ten seconds; a longer wait drops the notification instead). A
-request the relay refuses whole (400 or 413) is sent again one message at a time, once, so one bad
-registration costs only itself. Sending never waits on a struggling relay: after a whole request
-failed (no answer, 429 or 5xx) the relay is left alone for the time it asked for (30 seconds when it
-named none), and a device it rate-limited is skipped the same way. Log lines name a device by the first
-characters of its handle and never print a secret.
+Requests are https only, never follow a redirect, time out after ten seconds, and read at most 64 KB
+of an answer. A device the relay answers `gone` for is retired as an Expo token that Expo calls
+`DeviceNotRegistered` is: until the device writes its row again (a newer `updatedAt`), and the same
+relay, handle and secret are never sent to again. A `rejected` message is logged and dropped; `retry`,
+`limited` and a network failure get one more try after the relay's `retryAfter` (up to ten seconds; a
+longer wait drops the notification instead). A request the relay refuses whole (400 or 413) is sent
+again one message at a time, once, so one bad registration costs only itself; if every one is refused
+on its own too, the relay is left alone for a minute.
+
+Sending never waits on a struggling relay. After a whole request failed (no answer, 429 or 5xx), or
+the relay rate-limited this server's address, the relay is left alone for the time it asked for, and a
+device it rate-limited is skipped the same way — but never longer than an hour for a relay and a day
+for a device, whatever it asked. The relay counts `gone` answers against the sender, so one person
+whose rows keep coming back `gone` (three in an hour) has their rows that were never delivered to held
+for that hour, and nobody else's. Problems are logged as one counted line per send; log lines never
+print a secret or a whole handle.
 
 **No message text goes through the relay.** A relay registration gets the bot's name and the event
 type, whatever its preview setting says: the relay could read anything sent through it in plain text,
@@ -435,14 +442,29 @@ registration, so a gateway whose notifier predates the relay goes on notifying i
 ### When the gateway has the `hermie` plugin
 
 The gateway plugin is the notifier and this daemon the fallback
-([ADR-0017's amendment](adr/0017-push-through-hermie-web.md)), and the two must not both send: every
-device would be told everything twice. So while the plugin's advert (`hermie-plugin` in `ui_meta`) says
-its push module is `on`, the daemon sends nothing at all, on any transport, and says so in its log.
-Its availability stamp then lists no capabilities, so a native app goes by what the plugin says it can
-deliver.
-It keeps watching, and picks up again within thirty seconds when the plugin is removed or its push
-module is switched off. An advert from a newer contract version than this build reads counts as no
-advert, which is how the app reads it too.
+([ADR-0017's amendment](adr/0017-push-through-hermie-web.md)), and the two must not deliver one
+notification to one device twice. So the daemon leaves to the plugin what the plugin's advert
+(`hermie-plugin` in the default profile's `ui_meta`, with its push module `on`) says it delivers, and
+nothing else:
+
+| Registration | Left to the plugin when                                                              |
+| ------------ | ------------------------------------------------------------------------------------ |
+| Web Push     | never: a browser subscribed with this daemon's VAPID key, which only this daemon has |
+| Expo         | the advert lists `push.expo`                                                         |
+| relay        | the advert lists `push.relay` and the row's relay is in the advert's `relayOrigins`  |
+
+A bot-to-bot DM is never left to the plugin, on any transport: the plugin has no hook that produces
+one. The availability stamp keeps `push.webpush` and drops what is left to the plugin, so a native app
+goes by what the plugin says about those.
+
+**A stale advert.** The plugin writes its advert when it loads and withdraws it only when it is
+unloaded cleanly, so a gateway that was killed and then had the plugin removed keeps an advert that
+says `push: "on"`, and the daemon goes on leaving Expo and relay notifications to a plugin that is not
+there. While it does, the daemon logs once an hour which transports it leaves to the plugin and when
+the advert was last written. `--push-ignore-plugin` (env `HERMIE_PUSH_IGNORE_PLUGIN=1`) makes it
+deliver everything regardless. An advert that carries a `heartbeat` (seconds) is believed only while
+it was rewritten within three heartbeats; an advert without one is believed as it stands. An advert
+from a newer contract version than this build reads counts as no advert, as the app reads it.
 
 ### The cost, said out loud
 

@@ -156,6 +156,17 @@ export interface HermieWebOptions {
    */
   pushRelays: string[]
   /**
+   * Deliver everything, whatever the gateway's `hermie` plugin advertises.
+   *
+   * By default the daemon leaves to the plugin the notifications the plugin
+   * says it delivers (Expo, and relay rows on its relays), so no device hears
+   * about one event twice. The plugin withdraws that advert only on a clean
+   * unload, so a gateway that was killed and then had the plugin removed keeps
+   * claiming it — and this switch is how an operator who knows the plugin is
+   * gone says so. Off by default.
+   */
+  pushIgnorePlugin: boolean
+  /**
    * Let the built-in OIDC provider be enabled on an origin that is not https.
    *
    * It exists to be REFUSED by default rather than to be used. The gateway's
@@ -645,6 +656,7 @@ export interface ResolveOptionsInput {
   pushServerRequests?: boolean | undefined
   /** Comma-separated, or already split. `''` is an empty allow-list. */
   pushRelays?: string | string[] | undefined
+  pushIgnorePlugin?: boolean | undefined
   allowInsecureOidc?: boolean | undefined
   oidc?: boolean | undefined
   /** Already split and trimmed; `resolveOptions` validates it either way. */
@@ -721,6 +733,8 @@ export function resolveOptions(input: ResolveOptionsInput = {}): HermieWebOption
       readBooleanEnv(env.HERMIE_PUSH_SERVER_REQUESTS, 'HERMIE_PUSH_SERVER_REQUESTS') ??
       false,
     pushRelays: readRelayOrigins(input.pushRelays ?? env.HERMIE_PUSH_RELAYS),
+    pushIgnorePlugin:
+      input.pushIgnorePlugin ?? readBooleanEnv(env.HERMIE_PUSH_IGNORE_PLUGIN, 'HERMIE_PUSH_IGNORE_PLUGIN') ?? false,
     allowInsecureOidc:
       input.allowInsecureOidc ?? readBooleanEnv(env.HERMIE_ALLOW_INSECURE_OIDC, 'HERMIE_ALLOW_INSECURE_OIDC') ?? false,
     oidc: input.oidc ?? readBooleanEnv(env.HERMIE_OIDC, 'HERMIE_OIDC') ?? true,

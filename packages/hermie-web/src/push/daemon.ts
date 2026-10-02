@@ -82,6 +82,8 @@ export interface PushDaemonOptions {
    * relay only; see `options.ts`.
    */
   relays?: readonly string[]
+  /** Deliver everything, whatever the gateway plugin advertises (`--push-ignore-plugin`). */
+  ignorePlugin?: boolean
   /**
    * Replace the transports. The default sends through Expo and Web Push; the
    * tests hand in a recorder.
@@ -352,6 +354,7 @@ export async function startPushDaemon(options: PushDaemonOptions): Promise<PushD
         relayOrigins: relays
       }),
       fetchTail,
+      ...(options.ignorePlugin ? { ignorePlugin: true } : {}),
       ...(options.allowedTo ? { allowedTo: options.allowedTo } : {}),
       ...(options.policy ? { policy: options.policy } : {}),
       ...(options.tuning ?? {})
