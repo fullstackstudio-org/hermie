@@ -101,6 +101,7 @@ async function harness(options: {
   heartbeatIntervalMs?: number
   streamDelayMs?: number
   offlineGraceMs?: number
+  readyTimeoutMs?: number
   backoffDelayMs?: (attempt: number) => number
 }): Promise<Harness> {
   const auth = options.auth ?? 'none'
@@ -136,7 +137,7 @@ async function harness(options: {
     credentials,
     socketFactory: factory,
     backoffDelayMs: options.backoffDelayMs ?? (() => 10),
-    readyTimeoutMs: 2000,
+    readyTimeoutMs: options.readyTimeoutMs ?? 2000,
     connectTimeoutMs: 2000,
     heartbeatIntervalMs: options.heartbeatIntervalMs ?? 0,
     heartbeatDeadlineMs: options.heartbeatIntervalMs ? 5000 : 0,
@@ -530,6 +531,40 @@ describe('GatewayConnection against the fake gateway', () => {
     connection.retryNow()
     await settle(60)
     expect(connection.status).toBe('disconnected')
+  })
+
+  /**
+   * "Try now" and a connectivity report both call `retryNow`, and neither knows
+   * whether a dial is already running. A second dial beside a live socket finds
+   * the socket open, waits for a `gateway.ready` that already came, and tears
+   * the good socket down when that wait times out.
+   */
+  it('retryNow() leaves a live connection alone', async () => {
+    const { connection, gateway, statuses, waitFor } = await harness({ auth: 'native', readyTimeoutMs: 100 })
+
+    connection.start()
+    await waitFor('ready')
+
+    connection.retryNow()
+    // Past the ready timeout a second dial would have waited out.
+    await settle(300)
+
+    expect(connection.status).toBe('ready')
+    expect(gateway.state.connections).toBe(1)
+    expect(gateway.state.ticketsMinted).toBe(1)
+    expect(statuses).toEqual(['disconnected', 'authenticating', 'connecting', 'ready'])
+  })
+
+  it('retryNow() while a dial is in flight does not start a second one', async () => {
+    const { connection, gateway, waitFor } = await harness({ auth: 'native' })
+
+    connection.start()
+    connection.retryNow()
+    await waitFor('ready')
+    await settle(60)
+
+    expect(gateway.state.ticketsMinted).toBe(1)
+    expect(gateway.state.connections).toBe(1)
   })
 
   it('keeps a terminal status when the app goes to the background', async () => {

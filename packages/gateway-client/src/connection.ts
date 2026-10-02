@@ -320,9 +320,19 @@ export class GatewayConnection {
    * stopped for a reason it can explain (`needs_signin`, a refused certificate,
    * a gateway that rejects this address) is not restarted by it, because
    * redialling those fails the same way and erases the explanation.
+   *
+   * Nor is one that is live or already dialling. A second dial beside a live
+   * socket found the socket open, waited for a `gateway.ready` that had already
+   * come, and tore the good socket down when that wait timed out; a connectivity
+   * report during the first dial did the same to the socket it was opening.
+   * Only a pending backoff, or a ladder labelled as climbing, is cut short.
    */
   retryNow(): void {
     if (!this.running || this.paused) {
+      return
+    }
+
+    if (this.retryTimer === undefined && this.currentStatus !== 'reconnecting' && this.currentStatus !== 'offline') {
       return
     }
 

@@ -72,6 +72,39 @@ struct LifecycleTests {
     }
   }
 
+  @Test("retryNow on a live connection leaves the socket alone")
+  func retryNowWhileLive() async throws {
+    try await withHarness(HarnessOptions(auth: .native)) { h in
+      await h.connection.start()
+      try await h.waitFor(.ready)
+
+      await h.connection.retryNow()
+      await h.settle()
+      // Past the ready timeout a second dial would have waited out.
+      await h.clock.advance(by: .seconds(3))
+      await h.settle()
+
+      #expect(await h.connection.phase == .ready)
+      #expect(h.gateway.connections == 1)
+      #expect(h.credentials.dialPlans == 1)
+      #expect(h.phases == [.disconnected, .authenticating, .connecting, .ready])
+    }
+  }
+
+  @Test("retryNow while a dial is in flight does not start a second one")
+  func retryNowWhileDialling() async throws {
+    try await withHarness(HarnessOptions(auth: .native)) { h in
+      await h.connection.start()
+      await h.connection.retryNow()
+      try await h.waitFor(.ready)
+      await h.settle()
+
+      #expect(h.credentials.dialPlans == 1)
+      #expect(h.gateway.with { $0.ticketsMinted } == 1)
+      #expect(h.gateway.connections == 1)
+    }
+  }
+
   @Test("4404 and 4408 stop the loop with their own sentence")
   func otherConfigCloseCodes() async throws {
     for (code, message) in [

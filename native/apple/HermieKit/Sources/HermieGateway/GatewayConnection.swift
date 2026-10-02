@@ -261,9 +261,15 @@ public actor GatewayConnection {
   /// Dial now, skipping whatever backoff is pending: the "Try now" button, and
   /// the one thing a connectivity report may do to the loop. Harmless at any
   /// time: a connection that has stopped for a reason it can explain is not
-  /// restarted by it.
+  /// restarted by it, and one that is live or already dialling is left alone.
+  /// A second dial beside a live socket would wait for a `gateway.ready` that
+  /// already came, and tear the good socket down when the wait timed out.
   public func retryNow() {
     if !running || paused {
+      return
+    }
+
+    if retryTimer == nil, currentPhase != .reconnecting, currentPhase != .offline {
       return
     }
 
