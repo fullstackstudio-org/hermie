@@ -94,9 +94,18 @@ struct JSRegExp: @unchecked Sendable {
   /// ended, as a global expression's `lastIndex` does, and sees the text before it
   /// as `matchAll` does. Searching a copy of the rest after every match would cost
   /// the length of the text per match.
+  ///
+  /// Most texts hold no match at all, and `firstMatch` answers that more cheaply
+  /// than `matches`, so the full scan starts at the first match. Transparent,
+  /// non-anchoring bounds let that scan see the text before its start, as a search
+  /// of the whole string would.
   func allMatches(in value: String) -> [String] {
     let text = value as NSString
-    return regex.matches(in: value, options: [], range: NSRange(location: 0, length: text.length))
+    guard let first = regex.firstMatch(in: value, options: [], range: NSRange(location: 0, length: text.length)) else {
+      return []
+    }
+    let rest = NSRange(location: first.range.location, length: text.length - first.range.location)
+    return regex.matches(in: value, options: [.withTransparentBounds, .withoutAnchoringBounds], range: rest)
       .prefix { $0.range.length > 0 }
       .map { text.substring(with: $0.range) }
   }
