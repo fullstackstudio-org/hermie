@@ -9,6 +9,15 @@ differently, and how the self-update works. It is not the runbook. Installing, c
 operating it is [deploy/web/README.md](../deploy/web/README.md); the decision and the options that
 were rejected are [ADR-0015](adr/0015-web-variant-on-its-own-port.md).
 
+## What comes next
+
+Hermie Web is being replaced by a web client that the `hermie` gateway plugin serves from the
+gateway's own origin: no second process, no proxy, no service login. It is built in `native/web`,
+not started yet in code, and everything on this page stays true until it ships and the cut-over is
+done. [ADR-0030](adr/0030-web-client-served-by-the-plugin.md) records the decision, what moves into the
+plugin, what is dropped (the admin area, the built-in OIDC provider, the message cache, the
+self-update) and the staged removal of Hermie Web; this page is rewritten at the end of it.
+
 ## The problem: a cookie belongs to an origin
 
 The native clients sign in with the gateway's native PKCE flow and carry a bearer token. A page

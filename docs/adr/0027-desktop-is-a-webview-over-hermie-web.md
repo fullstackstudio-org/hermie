@@ -1,6 +1,6 @@
 # 0027. The desktop shell loads a remote Hermie Web URL, not a bundled export
 
-- Status: Accepted
+- Status: Accepted, amended 2026-10-03 by [0030](0030-web-client-served-by-the-plugin.md) (the shell loads the gateway's client URL instead of a Hermie Web address)
 - Date: 2026-09-22
 - See also: [0029](0029-expo-native-and-the-contract-directory.md), which keeps the shell and plans to drop its macOS build once
   the native Mac app is public

@@ -1,6 +1,6 @@
 # 0025. Hermie Web is a service layer, not only a proxy
 
-- Status: Accepted
+- Status: Superseded by [0030](0030-web-client-served-by-the-plugin.md), which leaves this record in force until its cut-over
 - Date: 2026-09-22
 
 ## Context

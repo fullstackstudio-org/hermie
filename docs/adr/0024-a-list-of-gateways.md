@@ -3,6 +3,7 @@
 - Status: Accepted
 - Date: 2026-09-22
 - Amends: [0006](0006-single-gateway-no-relay.md)
+- See also: [0030](0030-web-client-served-by-the-plugin.md), where a web page has exactly one gateway, its own origin, and the registry does not apply
 - Touches: [0012](0012-local-chat-list-layout.md), [0016](0016-ui-meta-sync.md),
   [0017](0017-push-through-hermie-web.md)
 

@@ -1,6 +1,6 @@
 # 0015. The web variant is one small server on its own port, and the gateway is same-origin through it
 
-- Status: Accepted
+- Status: Superseded by [0030](0030-web-client-served-by-the-plugin.md), which leaves this record in force until its cut-over
 - Date: 2026-09-20
 
 ## Context

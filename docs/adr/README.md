@@ -25,21 +25,22 @@ new record supersedes it, and the old one gets a line at the top pointing forwar
 | [0012](0012-local-chat-list-layout.md)                 | The chat list's arrangement and colours are client-local                     | Amended by 0016            |
 | [0013](0013-cron-deliveries-in-the-transcript.md)      | A cron delivery is its own item kind, detected from its header               | Accepted, amended          |
 | [0014](0014-plain-http-on-private-networks.md)         | Plain http is supported on a private network                                 | Accepted                   |
-| [0015](0015-web-variant-on-its-own-port.md)            | The web variant is one server on its own port, same-origin                   | Accepted                   |
+| [0015](0015-web-variant-on-its-own-port.md)            | The web variant is one server on its own port, same-origin                   | Superseded by 0030         |
 | [0016](0016-ui-meta-sync.md)                           | Per-client settings live in `ui_meta`, one key per person                    | Accepted, amended          |
-| [0017](0017-push-through-hermie-web.md)                | Push comes from the `hermie` gateway plugin; a device registers in `ui_meta` | Accepted, amended          |
+| [0017](0017-push-through-hermie-web.md)                | Push comes from the `hermie` gateway plugin; a device registers in `ui_meta` | Partly superseded by 0030  |
 | [0018](0018-injected-rows-are-notices.md)              | A row the gateway injected is a notice, recognised by its shape              | Accepted                   |
 | [0019](0019-folders-in-the-chat-list.md)               | The chat list groups into folders, and a bot is in exactly one               | Accepted                   |
 | [0020](0020-diagrams-and-math-without-a-webview.md)    | Diagrams and mathematics are drawn in the bundle, not in a web view          | Accepted                   |
 | [0021](0021-header-based-front-doors.md)               | Header-based front doors: Cloudflare Access                                  | Accepted                   |
 | [0022](0022-voice-on-the-device.md)                    | Speech happens on the device; the gateway's voice RPCs are not used          | Accepted                   |
 | [0023](0023-the-shared-container-is-the-seam.md)       | The shared container is the seam for every system surface                    | Amended by 0026            |
-| [0024](0024-a-list-of-gateways.md)                     | A list of gateways, one live at a time, storage keyed by which               | Accepted                   |
-| [0025](0025-hermie-web-is-a-service-layer.md)          | Hermie Web is a service layer, not only a proxy                              | Accepted                   |
+| [0024](0024-a-list-of-gateways.md)                     | A list of gateways, one live at a time, storage keyed by which               | Accepted, see 0030         |
+| [0025](0025-hermie-web-is-a-service-layer.md)          | Hermie Web is a service layer, not only a proxy                              | Superseded by 0030         |
 | [0026](0026-the-share-sheet-may-deliver.md)            | The share sheet may deliver, once, with the app's own answers                | Accepted                   |
-| [0027](0027-desktop-is-a-webview-over-hermie-web.md)   | The desktop shell loads a remote Hermie Web URL, not a bundled export        | Accepted                   |
+| [0027](0027-desktop-is-a-webview-over-hermie-web.md)   | The desktop shell loads a remote Hermie Web URL, not a bundled export        | Amended by 0030            |
 | [0028](0028-native-apps-on-apple-platforms.md)         | Native SwiftUI apps on Apple platforms, sharing one Swift package            | Accepted                   |
-| [0029](0029-expo-native-and-the-contract-directory.md) | `expo/`, `native/` and a `contract/` both are tested against                 | Accepted                   |
+| [0029](0029-expo-native-and-the-contract-directory.md) | `expo/`, `native/` and a `contract/` both are tested against                 | Accepted, see 0030         |
+| [0030](0030-web-client-served-by-the-plugin.md)        | The web client is served by the `hermie` plugin, on the gateway's origin     | Accepted                   |
 
 ## Template
 

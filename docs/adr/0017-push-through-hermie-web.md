@@ -1,6 +1,6 @@
 # 0017. Push notifications come from Hermie Web, and a device registers itself in `ui_meta`
 
-- Status: Accepted, amended 2026-09-21 (push comes from the `hermie` gateway plugin; Hermie Web's `--push` is the fallback; the heartbeat names the chat and a mute is obeyed)
+- Status: Accepted, amended 2026-09-21 (push comes from the `hermie` gateway plugin; Hermie Web's `--push` is the fallback; the heartbeat names the chat and a mute is obeyed); partly superseded 2026-10-03 by [0030](0030-web-client-served-by-the-plugin.md) (the `--push` fallback is retired in that record's staged removal and the plugin's key becomes the only VAPID key; the registration, heartbeat, payload and validation rules stand)
 - Date: 2026-09-21
 - Builds on: [0015](0015-web-variant-on-its-own-port.md), [0016](0016-ui-meta-sync.md)
 

@@ -3,6 +3,7 @@
 - Status: Accepted
 - Date: 2026-10-02
 - Amends: [0001](0001-expo-sdk-54-rn-081.md)
+- See also: [0030](0030-web-client-served-by-the-plugin.md), which fills `native/web` and replaces the server this record expects to serve its export
 
 ## Context
 
