@@ -24,3 +24,36 @@ targets:
         SUPPORTS_MACCATALYST: NO
         SUPPORTS_MAC_DESIGNED_FOR_IPHONE_IPAD: NO
         SUPPORTS_XR_DESIGNED_FOR_IPHONE_IPAD: NO
+
+  # KeychainStore against the real keychain, hosted in the app so it runs with
+  # the app's keychain access group. Run with `scripts/test.sh --keychain`,
+  # which uses a throwaway simulator.
+  HermieKeychainTests:
+    type: bundle.unit-test
+    platform: iOS
+    sources:
+      - path: ../apple/HostedTests
+      - path: ../apple/HermieKit/Tests/HermieStoreTests/SecretStoreContract.swift
+    dependencies:
+      - target: Hermie
+      - package: HermieKit
+        product: HermieStore
+    settings:
+      base:
+        GENERATE_INFOPLIST_FILE: YES
+        PRODUCT_BUNDLE_IDENTIFIER: dev.hermie.app.keychain-tests
+        SWIFT_VERSION: '6.0'
+        SWIFT_STRICT_CONCURRENCY: complete
+        SWIFT_TREAT_WARNINGS_AS_ERRORS: YES
+        TEST_HOST: $(BUILT_PRODUCTS_DIR)/Hermie.app/$(BUNDLE_EXECUTABLE_FOLDER_PATH)/Hermie
+        BUNDLE_LOADER: $(TEST_HOST)
+
+schemes:
+  HermieKeychainTests:
+    build:
+      targets:
+        Hermie: all
+        HermieKeychainTests: [test]
+    test:
+      targets:
+        - HermieKeychainTests
