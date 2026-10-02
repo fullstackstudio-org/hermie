@@ -1,0 +1,40 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+	<key>native.about.build</key>
+	<string>Build</string>
+	<key>native.about.commit</key>
+	<string>Commit</string>
+	<key>native.commands.find</key>
+	<string>Find…</string>
+	<key>native.commands.newChatWindow</key>
+	<string>New Chat Window</string>
+	<key>native.commands.switchGateway</key>
+	<string>Switch Gateway…</string>
+	<key>native.debug.title</key>
+	<string>Debug screens</string>
+	<key>native.detail.noChat.body</key>
+	<string>Choose a bot from the list.</string>
+	<key>native.detail.noChat.title</key>
+	<string>No chat selected</string>
+	<key>native.gateways.rename</key>
+	<string>Rename</string>
+	<key>native.later</key>
+	<string>Coming in a later build.</string>
+	<key>native.lock.coverLabel</key>
+	<string>Hermie is hidden while it is not in front.</string>
+	<key>native.lock.settingUnknown</key>
+	<string>The lock setting could not be read, so Hermie locks every time you leave it. Choose a setting to keep.</string>
+	<key>native.notice.gatewayNotConfigured</key>
+	<string>That link is for a gateway this device does not know. Add the gateway first.</string>
+	<key>native.notice.lockSettingNotRestored</key>
+	<string>The app lock setting could not be restored. Check it under Privacy &amp; security.</string>
+	<key>native.notice.noGateway</key>
+	<string>Set up a gateway first, then open the link again.</string>
+	<key>native.notice.recovered</key>
+	<string>Hermie’s local data was damaged and has been rebuilt. Everything that could still be read was kept.</string>
+	<key>native.notice.runningInMemory</key>
+	<string>Hermie could not open its storage. Nothing you change now is kept after Hermie quits.</string>
+</dict>
+</plist>

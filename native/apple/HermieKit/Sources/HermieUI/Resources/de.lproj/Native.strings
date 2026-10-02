@@ -1,0 +1,40 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+	<key>native.about.build</key>
+	<string>Build</string>
+	<key>native.about.commit</key>
+	<string>Commit</string>
+	<key>native.commands.find</key>
+	<string>Suchen…</string>
+	<key>native.commands.newChatWindow</key>
+	<string>Neues Chatfenster</string>
+	<key>native.commands.switchGateway</key>
+	<string>Gateway wechseln…</string>
+	<key>native.debug.title</key>
+	<string>Debug-Ansichten</string>
+	<key>native.detail.noChat.body</key>
+	<string>Wähle einen Bot aus der Liste.</string>
+	<key>native.detail.noChat.title</key>
+	<string>Kein Chat ausgewählt</string>
+	<key>native.gateways.rename</key>
+	<string>Umbenennen</string>
+	<key>native.later</key>
+	<string>Kommt in einem späteren Build.</string>
+	<key>native.lock.coverLabel</key>
+	<string>Hermie ist ausgeblendet, solange die App nicht im Vordergrund ist.</string>
+	<key>native.lock.settingUnknown</key>
+	<string>Die Sperreinstellung konnte nicht gelesen werden, daher sperrt sich Hermie jedes Mal, wenn du die App verlässt. Wähle eine Einstellung, die bleiben soll.</string>
+	<key>native.notice.gatewayNotConfigured</key>
+	<string>Dieser Link gehört zu einem Gateway, das dieses Gerät nicht kennt. Füge das Gateway zuerst hinzu.</string>
+	<key>native.notice.lockSettingNotRestored</key>
+	<string>Die Einstellung der App-Sperre konnte nicht wiederhergestellt werden. Prüfe sie unter Datenschutz und Sicherheit.</string>
+	<key>native.notice.noGateway</key>
+	<string>Richte zuerst ein Gateway ein und öffne den Link dann erneut.</string>
+	<key>native.notice.recovered</key>
+	<string>Die lokalen Daten von Hermie waren beschädigt und wurden neu angelegt. Alles, was noch lesbar war, wurde behalten.</string>
+	<key>native.notice.runningInMemory</key>
+	<string>Hermie konnte seinen Speicher nicht öffnen. Was du jetzt änderst, geht verloren, sobald Hermie beendet wird.</string>
+</dict>
+</plist>

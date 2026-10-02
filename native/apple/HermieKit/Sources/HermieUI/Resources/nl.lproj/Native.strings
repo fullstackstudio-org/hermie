@@ -1,0 +1,40 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+	<key>native.about.build</key>
+	<string>Build</string>
+	<key>native.about.commit</key>
+	<string>Commit</string>
+	<key>native.commands.find</key>
+	<string>Zoek…</string>
+	<key>native.commands.newChatWindow</key>
+	<string>Nieuw chatvenster</string>
+	<key>native.commands.switchGateway</key>
+	<string>Wissel van gateway…</string>
+	<key>native.debug.title</key>
+	<string>Debugschermen</string>
+	<key>native.detail.noChat.body</key>
+	<string>Kies een bot uit de lijst.</string>
+	<key>native.detail.noChat.title</key>
+	<string>Geen chat gekozen</string>
+	<key>native.gateways.rename</key>
+	<string>Hernoem</string>
+	<key>native.later</key>
+	<string>Komt in een latere build.</string>
+	<key>native.lock.coverLabel</key>
+	<string>Hermie is verborgen zolang de app niet vooraan staat.</string>
+	<key>native.lock.settingUnknown</key>
+	<string>De vergrendelinstelling kon niet worden gelezen, dus Hermie vergrendelt elke keer dat je de app verlaat. Kies een instelling om te bewaren.</string>
+	<key>native.notice.gatewayNotConfigured</key>
+	<string>Die link hoort bij een gateway die dit apparaat niet kent. Voeg de gateway eerst toe.</string>
+	<key>native.notice.lockSettingNotRestored</key>
+	<string>De instelling van de app-vergrendeling kon niet worden hersteld. Controleer haar onder Privacy en beveiliging.</string>
+	<key>native.notice.noGateway</key>
+	<string>Stel eerst een gateway in en open de link daarna opnieuw.</string>
+	<key>native.notice.recovered</key>
+	<string>De lokale gegevens van Hermie waren beschadigd en zijn opnieuw opgebouwd. Alles wat nog leesbaar was, is bewaard.</string>
+	<key>native.notice.runningInMemory</key>
+	<string>Hermie kon zijn opslag niet openen. Wat je nu verandert, is weg zodra Hermie stopt.</string>
+</dict>
+</plist>
