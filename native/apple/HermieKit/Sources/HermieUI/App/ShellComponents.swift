@@ -26,13 +26,14 @@ public struct ChatListContext {
 }
 
 /**
- The seams the later tasks fill: the onboarding flow, the sign-in sheet, the chat list and the chat.
- The shell draws a placeholder for each until a task replaces it, by setting the environment value
- at the app's root:
+ The shell's seams: the onboarding flow, the sign-in sheet, the chat list and the chat. The chat
+ list and the chat default to `ChatListScreen` and `ChatScreen` (with the standard composer); setup
+ and sign-in default to placeholders, which the app replaces with the real flows
+ (`ShellComponents.gatewaySetup(accounts:)`). A replacement is set at the app's root:
 
  ```swift
  MainWindow()
-   .environment(\.shellComponents, ShellComponents(onboarding: { OnboardingFlow(context: $0) }))
+   .environment(\.shellComponents, .gatewaySetup(accounts: accounts))
  ```
 
  The closures build views; they hold no state of their own. `AnyView` here is the price of a seam
@@ -52,15 +53,16 @@ public struct ShellComponents {
   ) {
     self.onboarding = onboarding ?? { AnyView(OnboardingPlaceholder(context: $0)) }
     self.signIn = signIn ?? { AnyView(SignInPlaceholder(context: $0)) }
-    self.chatList = chatList ?? { AnyView(ChatListPlaceholder(context: $0)) }
-    self.chat = chat ?? { AnyView(ChatPlaceholder(chat: $0)) }
+    self.chatList = chatList ?? { AnyView(ChatListScreen(context: $0)) }
+    self.chat = chat ?? { AnyView(ChatScreen(chat: $0)) }
   }
 
-  public static var placeholders: ShellComponents { ShellComponents() }
+  /// What the shell draws when nobody replaced anything.
+  public static var standard: ShellComponents { ShellComponents() }
 }
 
 extension EnvironmentValues {
-  @Entry public var shellComponents: ShellComponents = .placeholders
+  @Entry public var shellComponents: ShellComponents = .standard
 }
 
 // MARK: - Placeholders
@@ -95,44 +97,5 @@ struct SignInPlaceholder: View {
           }
         }
     }
-  }
-}
-
-/// The chat list, until the chat list task lands: the selected chat, if any, so selection and the
-/// iPhone push already behave as they will.
-struct ChatListPlaceholder: View {
-  let context: ChatListContext
-
-  var body: some View {
-    List(selection: context.selection) {
-      if let chat = context.selection.wrappedValue {
-        Label {
-          Text(chat.bot)
-            .fixedSize(horizontal: false, vertical: true)
-        } icon: {
-          Image(systemName: "bubble.left")
-        }
-        .tag(chat)
-          .accessibilityIdentifier("hermie.chatList.row")
-      }
-
-      Section {
-        Text(NativeStrings.later)
-      }
-    }
-    .accessibilityIdentifier("hermie.chatList.placeholder")
-  }
-}
-
-/// The chat, until the chat task lands.
-struct ChatPlaceholder: View {
-  let chat: ChatRef
-
-  var body: some View {
-    EmptyState(chat.bot, systemImage: "bubble.left.and.bubble.right", message: Text(NativeStrings.later))
-    .navigationTitle(chat.bot)
-    .accessibilityElement(children: .contain)
-    .accessibilityIdentifier("hermie.chat.placeholder")
-    .accessibilityValue(chat.bot)
   }
 }

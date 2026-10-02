@@ -16,6 +16,8 @@
 	<string>Von diesem Gateway abmelden? Die Adresse bleibt erhalten, und du kannst dich jederzeit wieder anmelden.</string>
 	<key>native.account.userId</key>
 	<string>Benutzer-ID</string>
+	<key>native.chatList.signedOut</key>
+	<string>Melde dich bei diesem Gateway an, um seine Chats zu sehen.</string>
 	<key>native.commands.find</key>
 	<string>Suchen…</string>
 	<key>native.commands.newChatWindow</key>
@@ -38,6 +40,12 @@
 	<string>Stoppen</string>
 	<key>native.composer.stopped</key>
 	<string>Antwort gestoppt</string>
+	<key>native.connectionRequest.open</key>
+	<string>Öffnen</string>
+	<key>native.connectionRequest.skip</key>
+	<string>Überspringen</string>
+	<key>native.connectionRequest.title</key>
+	<string>Verbinde ein Konto, um fortzufahren</string>
 	<key>native.debug.title</key>
 	<string>Debug-Ansichten</string>
 	<key>native.detail.noChat.body</key>
@@ -46,6 +54,8 @@
 	<string>Kein Chat ausgewählt</string>
 	<key>native.gateways.rename</key>
 	<string>Umbenennen</string>
+	<key>native.identity.anonymous</key>
+	<string>Du bist auf diesem Gateway anonym: Deine Nachrichten tragen keinen Namen.</string>
 	<key>native.intents.expired</key>
 	<string>Hermie hat zu lange zum Öffnen gebraucht, deshalb wurde nichts gesendet.</string>
 	<key>native.intents.gatewayGone</key>

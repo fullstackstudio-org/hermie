@@ -13,6 +13,29 @@ enum NativeStrings {
     static var commit: String { String(localized: "native.about.commit", table: "Native", bundle: .module) }
   }
 
+  enum ConnectionRequest {
+    /// Connect an account to continue
+    static var title: String { String(localized: "native.connectionRequest.title", table: "Native", bundle: .module) }
+    /// Open
+    static var open: String { String(localized: "native.connectionRequest.open", table: "Native", bundle: .module) }
+    /// Skip
+    static var skip: String { String(localized: "native.connectionRequest.skip", table: "Native", bundle: .module) }
+  }
+
+  enum Identity {
+    /// You are anonymous on this gateway: your messages carry no name.
+    static var anonymous: String {
+      String(localized: "native.identity.anonymous", table: "Native", bundle: .module)
+    }
+  }
+
+  enum ChatList {
+    /// Sign in to this gateway to see its chats.
+    static var signedOut: String {
+      String(localized: "native.chatList.signedOut", table: "Native", bundle: .module)
+    }
+  }
+
   enum Commands {
     /// Find…
     static var find: String { String(localized: "native.commands.find", table: "Native", bundle: .module) }

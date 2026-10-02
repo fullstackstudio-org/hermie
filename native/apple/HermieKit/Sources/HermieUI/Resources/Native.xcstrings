@@ -162,6 +162,29 @@
         }
       }
     },
+    "native.chatList.signedOut" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Melde dich bei diesem Gateway an, um seine Chats zu sehen."
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Sign in to this gateway to see its chats."
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Meld je aan bij deze gateway om de chats te zien."
+          }
+        }
+      }
+    },
     "native.commands.find" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -423,6 +446,75 @@
         }
       }
     },
+    "native.connectionRequest.open" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Öffnen"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Open"
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Openen"
+          }
+        }
+      }
+    },
+    "native.connectionRequest.skip" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Überspringen"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Skip"
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Overslaan"
+          }
+        }
+      }
+    },
+    "native.connectionRequest.title" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Verbinde ein Konto, um fortzufahren"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Connect an account to continue"
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Koppel een account om verder te gaan"
+          }
+        }
+      }
+    },
     "native.debug.title" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -511,6 +603,29 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Hernoem"
+          }
+        }
+      }
+    },
+    "native.identity.anonymous" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Du bist auf diesem Gateway anonym: Deine Nachrichten tragen keinen Namen."
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "You are anonymous on this gateway: your messages carry no name."
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Je bent anoniem op deze gateway: je berichten dragen geen naam."
           }
         }
       }

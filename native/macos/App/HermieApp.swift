@@ -15,12 +15,21 @@ struct HermieApp: App {
   @State private var launch: AppLaunch
   /// Who is signed in where; fills the setup and sign-in seams and forgets a removed gateway's secrets.
   @State private var accounts: GatewayAccounts
+  /// The session of the active gateway, which the chat list and the chats read.
+  @State private var live: LiveGateway
 
   init() {
     let launch = AppLaunch(environment: .live(), pushSystem: SystemPushBridge())
     _launch = State(initialValue: launch)
-    _accounts = State(initialValue: .app(launch))
+    let accounts = GatewayAccounts.app(launch)
+    _accounts = State(initialValue: accounts)
+    _live = State(initialValue: LiveGateway(launch: launch, accounts: accounts))
     PushInbox.shared.attach(launch.push)
+
+    #if DEBUG
+      // The transcript lab and the item gallery, under Settings → Advanced.
+      DebugScreens.registerTranscriptScreens()
+    #endif
   }
 
   var body: some Scene {
@@ -28,6 +37,7 @@ struct HermieApp: App {
       MainWindow()
         .environment(launch)
         .environment(accounts)
+        .environment(live)
         .environment(\.shellComponents, .gatewaySetup(accounts: accounts))
         .frame(minWidth: 640, minHeight: 420)
     }
@@ -41,6 +51,7 @@ struct HermieApp: App {
       ChatWindow(chat: $chat)
         .environment(launch)
         .environment(accounts)
+        .environment(live)
         .environment(\.shellComponents, .gatewaySetup(accounts: accounts))
         .frame(minWidth: 420, minHeight: 360)
     }
@@ -50,6 +61,7 @@ struct HermieApp: App {
       SettingsWindow()
         .environment(launch)
         .environment(accounts)
+        .environment(live)
         .environment(\.shellComponents, .gatewaySetup(accounts: accounts))
     }
   }

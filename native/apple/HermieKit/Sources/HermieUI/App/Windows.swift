@@ -29,6 +29,9 @@ public enum ShellScene {
  */
 public struct MainWindow: View {
   @Environment(AppLaunch.self) private var launch
+  /// The live session, which the app shell puts in the environment beside the launch. It reads
+  /// nothing before the launch is ready, so following it from the first window is safe.
+  @Environment(LiveGateway.self) private var live: LiveGateway?
   @State private var router = AppRouter()
   @SceneStorage("hermie.router") private var saved: Data?
   #if DEBUG && os(macOS)
@@ -42,6 +45,7 @@ public struct MainWindow: View {
       RootView()
     }
     .environment(router)
+    .modifier(TestProbes(launch: launch))
     .focusedSceneValue(\.appRouter, router)
     .privacyCover(launch.lock)
     .onOpenURL { url in
@@ -53,6 +57,11 @@ public struct MainWindow: View {
       }
 
       ApplicationActivity.follow(launch.lock)
+
+      if let live {
+        LiveGatewayActivity.follow(live)
+        live.start()
+      }
 
       #if DEBUG
         if let link = launch.environment.testHooks?.openURL, let url = URL(string: link) {
@@ -98,6 +107,7 @@ public struct MainWindow: View {
  */
 public struct ChatWindow: View {
   @Environment(AppLaunch.self) private var launch
+  @Environment(LiveGateway.self) private var live: LiveGateway?
   @Environment(\.shellComponents) private var components
   @Binding private var chat: ChatRef?
 
@@ -119,11 +129,31 @@ public struct ChatWindow: View {
         }
       }
     }
+    .modifier(TestProbes(launch: launch))
     .privacyCover(launch.lock)
     .task {
       ApplicationActivity.follow(launch.lock)
+
+      if let live {
+        LiveGatewayActivity.follow(live)
+        live.start()
+      }
+
       await launch.start()
     }
+  }
+}
+
+/// Debug builds launched by a UI test: the chat screen's probe on. Nothing in any other build.
+private struct TestProbes: ViewModifier {
+  let launch: AppLaunch
+
+  func body(content: Content) -> some View {
+    #if DEBUG
+      content.environment(\.chatTestProbe, launch.environment.testHooks != nil)
+    #else
+      content
+    #endif
   }
 }
 
