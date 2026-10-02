@@ -1,0 +1,45 @@
+/*
+ * The page's ground. The policy forbids inline styles, so even the body
+ * background lives in a file. Both schemes are set here so there is no flash of
+ * the wrong one before a stylesheet that depends on a script arrives.
+ */
+
+:root {
+  color-scheme: light dark;
+  --hermie-background: #ffffff;
+  --hermie-foreground: #1d1d1f;
+  --hermie-secondary: #52525b;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root {
+    --hermie-background: #000000;
+    --hermie-foreground: #f5f5f7;
+    --hermie-secondary: #a1a1aa;
+  }
+}
+
+html,
+body {
+  margin: 0;
+  min-height: 100%;
+  background: var(--hermie-background);
+  color: var(--hermie-foreground);
+  font:
+    16px/1.5 system-ui,
+    -apple-system,
+    'Segoe UI',
+    Roboto,
+    sans-serif;
+}
+
+.placeholder {
+  box-sizing: border-box;
+  max-width: 32rem;
+  margin: 0 auto;
+  padding: 4rem 1.5rem;
+}
+
+.placeholder p {
+  color: var(--hermie-secondary);
+}

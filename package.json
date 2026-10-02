@@ -8,13 +8,14 @@
   "workspaces": [
     "apps/*",
     "expo/*",
+    "native/web",
     "packages/*"
   ],
   "engines": {
     "node": ">=22"
   },
   "scripts": {
-    "typecheck": "tsc -b && tsc -p packages/hermie-web/tsconfig.test.json && tsc -p scripts/golden/tsconfig.json && tsc -p scripts/i18n/tsconfig.json",
+    "typecheck": "tsc -b && tsc -p packages/hermie-web/tsconfig.test.json && tsc -p scripts/golden/tsconfig.json && tsc -p scripts/i18n/tsconfig.json && tsc -p scripts/web/tsconfig.json",
     "typecheck:clean": "tsc -b --clean",
     "lint": "eslint .",
     "lint:fix": "eslint . --fix",
@@ -38,6 +39,12 @@
     "licences:check": "node scripts/generate-third-party-licenses.mjs --check",
     "set-version": "node scripts/set-version.mjs",
     "fake-gateway": "tsx packages/fake-gateway/src/cli.ts",
+    "client:dev": "npm run dev --workspace @hermie/web-client",
+    "client:build": "npm run build --workspace @hermie/web-client",
+    "client:test": "npm run test --workspace @hermie/web-client",
+    "client:e2e": "npm run e2e --workspace @hermie/web-client",
+    "client:check-bundle": "node scripts/web/check-bundle.mjs",
+    "client:check-reproducible": "node scripts/web/check-reproducible.mjs",
     "web:build": "npm run build --workspace @hermie/web && npm run export:web --workspace @hermie/app",
     "web": "npm run web:build && node scripts/dev-web.mjs",
     "ios": "npm run ios --workspace @hermie/app",

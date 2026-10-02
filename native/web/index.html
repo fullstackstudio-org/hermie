@@ -1,0 +1,24 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <!--
+      The gateway's static route sets no security headers, so the policy travels
+      with the document. No inline script, no inline style, nothing but this
+      origin. `frame-ancestors` cannot be set from a meta element.
+    -->
+    <meta
+      http-equiv="Content-Security-Policy"
+      content="default-src 'none'; script-src 'self'; style-src 'self'; img-src 'self' data: blob:; font-src 'self'; connect-src 'self'; worker-src 'self'; manifest-src 'self'; media-src 'self' blob:; base-uri 'none'; form-action 'none'; object-src 'none'; frame-src 'none'; require-trusted-types-for 'script'"
+    />
+    <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+    <meta name="color-scheme" content="light dark" />
+    <title>Hermie</title>
+    <link rel="icon" href="data:," />
+    <script type="module" src="/src/main.tsx"></script>
+  </head>
+  <body>
+    <noscript>Hermie needs JavaScript.</noscript>
+    <div id="root"></div>
+  </body>
+</html>

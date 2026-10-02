@@ -14,6 +14,8 @@ export default config(
       // happened to be mid-change on.
       '.*/worktrees/**',
       '**/dist/**',
+      '**/dist-maps/**',
+      'native/web/.tsbuild/**',
       '**/coverage/**',
       '**/.expo/**',
       'expo/hermie/ios/**',
@@ -58,10 +60,84 @@ export default config(
     }
   },
   {
+    // The browser client (`native/web`) is served as static files on the
+    // gateway's own origin, next to the dashboard. A script-injection bug in it
+    // would act with the signed-in person's session, so the ways of turning
+    // text into markup are not available at all; the document's policy
+    // (`index.html`) enforces the same thing at run time.
+    files: ['native/web/src/**/*.{ts,tsx}'],
+    languageOptions: {
+      globals: globals.browser
+    },
+    rules: {
+      'no-eval': 'error',
+      'no-implied-eval': 'error',
+      'no-new-func': 'error',
+      'no-restricted-syntax': [
+        'error',
+        {
+          selector: "JSXAttribute[name.name='dangerouslySetInnerHTML']",
+          message: 'The web client never injects HTML. Render elements instead.'
+        },
+        {
+          selector: "Property[key.name='dangerouslySetInnerHTML']",
+          message: 'The web client never injects HTML. Render elements instead.'
+        },
+        {
+          selector: "AssignmentExpression[left.type='MemberExpression'][left.property.name=/^(innerHTML|outerHTML)$/]",
+          message: 'The web client never assigns innerHTML or outerHTML. Create elements instead.'
+        },
+        {
+          selector:
+            "AssignmentExpression[left.type='MemberExpression'][left.computed=true][left.property.value=/^(innerHTML|outerHTML)$/]",
+          message: 'The web client never assigns innerHTML or outerHTML. Create elements instead.'
+        },
+        {
+          selector: "CallExpression[callee.property.name='insertAdjacentHTML']",
+          message: 'The web client never injects HTML. Create elements instead.'
+        },
+        {
+          selector: "CallExpression[callee.object.name='document'][callee.property.name=/^write(ln)?$/]",
+          message: 'The web client never writes markup into the document.'
+        }
+      ]
+    }
+  },
+  {
+    // The state, platform and core layers of the web client are React-free:
+    // they are ported controllers and browser seams, and `features/` is the only
+    // place a component reads them through a hook.
+    files: ['native/web/src/{core,state,platform}/**/*.{ts,tsx}'],
+    rules: {
+      'no-restricted-imports': [
+        'error',
+        {
+          paths: [
+            {
+              name: 'react',
+              message: 'core, state and platform are React-free; read state through a hook in features/.'
+            },
+            {
+              name: 'react-dom',
+              message: 'core, state and platform are React-free; read state through a hook in features/.'
+            }
+          ],
+          patterns: [
+            {
+              group: ['react/*', 'react-dom/*'],
+              message: 'core, state and platform are React-free; read state through a hook in features/.'
+            }
+          ]
+        }
+      ]
+    }
+  },
+  {
     // Build tooling and repo scripts run in Node, not in the app runtime.
     files: [
       'scripts/**/*.mjs',
       '{apps,expo}/*/scripts/**/*.mjs',
+      'native/web/scripts/**/*.mjs',
       '{apps,expo}/*/plugins/**/*.js',
       // A config plugin that lives inside the local module it installs, rather
       // than in expo/hermie/plugins/ with the three that only patch the app's

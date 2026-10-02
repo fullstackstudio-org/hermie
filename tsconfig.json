@@ -7,6 +7,8 @@
     { "path": "./packages/transcript" },
     { "path": "./packages/hermie-web" },
     { "path": "./expo/hermie" },
-    { "path": "./apps/desktop" }
+    { "path": "./apps/desktop" },
+    { "path": "./native/web" },
+    { "path": "./native/web/tsconfig.node.json" }
   ]
 }

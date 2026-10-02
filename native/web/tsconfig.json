@@ -1,0 +1,19 @@
+{
+  // The client's own code. It runs in a browser: DOM types, no Node. The config
+  // files beside it are a second project (tsconfig.node.json) because they run
+  // in Node and the two must not see each other's globals.
+  "extends": "../../tsconfig.base.json",
+  "compilerOptions": {
+    "lib": ["ES2023", "DOM", "DOM.Iterable"],
+    "types": ["vite/client"],
+    // Not `dist`: that is Vite's output directory and is emptied on every build.
+    "outDir": "./.tsbuild/src",
+    "rootDir": "./src"
+  },
+  "include": ["src/**/*.ts", "src/**/*.tsx"],
+  "references": [
+    { "path": "../../packages/hermes-shared" },
+    { "path": "../../packages/gateway-client" },
+    { "path": "../../packages/transcript" }
+  ]
+}

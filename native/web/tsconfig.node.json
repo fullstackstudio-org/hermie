@@ -1,0 +1,11 @@
+{
+  // The build and test configuration: Node, not a browser.
+  "extends": "../../tsconfig.base.json",
+  "compilerOptions": {
+    "lib": ["ES2023"],
+    "types": ["node"],
+    "outDir": "./.tsbuild/node",
+    "rootDir": "."
+  },
+  "include": ["vite.config.ts", "vitest.config.ts", "scripts/*.d.mts"]
+}

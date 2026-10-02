@@ -6,6 +6,8 @@ node_modules
 # on. `eslint.config.mjs` ignores them for the same reason.
 .*/worktrees/
 dist
+dist-maps
+native/web/.tsbuild
 coverage
 .expo
 expo/hermie/ios

@@ -4,6 +4,10 @@ node_modules/
 # Build output
 dist/
 coverage/
+# The web client's source maps (written beside `dist/`, never into it) and the
+# declaration output of its type-check.
+dist-maps/
+native/web/.tsbuild/
 *.tsbuildinfo
 
 # Expo / continuous native generation — regenerate with `npx expo prebuild`
