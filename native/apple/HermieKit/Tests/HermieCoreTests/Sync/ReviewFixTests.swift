@@ -423,7 +423,7 @@ import Testing
     world.remove(0, first, scope: .allDevices)
     world.settle()
     world.devices[0].gateways.removeAll { $0.id == second }
-    world.devices[0].state.markRemoved(gatewayId: second, key: Self.key, scope: .thisDevice)
+    world.devices[0].state.markRemoved(gatewayId: second, key: Self.key, scope: .thisDevice, at: world.now)
     world.reconcile(0)
 
     #expect(world.devices[0].state.hidden == [Self.key])
@@ -473,7 +473,7 @@ import Testing
     state.markClearing(.sessionToken, gatewayId: "g01", key: Self.key)
     state.setSignedOut(true, gatewayId: "g01", key: Self.key)
     state.setGatewaySynced(false, gatewayId: "g01", key: Self.key)
-    state.markRemoved(gatewayId: "g01", key: Self.key, scope: .thisDevice)
+    state.markRemoved(gatewayId: "g01", key: Self.key, scope: .thisDevice, at: startOfTime)
     #expect(state.generation == 5)
 
     let plan = GatewaySync.reconcile(

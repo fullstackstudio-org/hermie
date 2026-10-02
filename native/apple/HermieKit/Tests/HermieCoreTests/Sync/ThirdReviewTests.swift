@@ -203,7 +203,7 @@ import Testing
     var (world, ids) = Self.shared()
     var state = world.devices[1].state
     state.markClearing(.sessionToken, gatewayId: ids[1], key: Self.key)
-    state.markRemoved(gatewayId: ids[1], key: Self.key, scope: .allDevices)
+    state.markRemoved(gatewayId: ids[1], key: Self.key, scope: .allDevices, at: world.now)
     let encoded = (try? state.encoded())!.replacingOccurrences(of: #""enabled":true"#, with: #""enabled":false"#)
     world.devices[1].state = SyncState.decode(encoded)!
     #expect(world.devices[1].state.entries[ids[1]]?.clearing == [.sessionToken])

@@ -64,6 +64,15 @@ public struct SyncEntry: Sendable, Equatable {
   /// Set by the engine, in the same transaction as the purge, when the person removes this
   /// gateway; acted on once the gateway is gone from the local list.
   public var removal: RemovalScope?
+  /// When the person removed it (`markRemoved(gatewayId:key:scope:at:)`), by this device's clock: a
+  /// gateway added here again after that time is published over this device's own removal, even
+  /// when both reach the same reconcile.
+  public var removedAt: Double?
+  /// The key the person moved the address to, and when (`markMoved(gatewayId:toKey:at:)`), by this
+  /// device's clock. A move is an add at the new key as of that time; without it, as of the
+  /// reconcile that sees the move.
+  public var movedToKey: String?
+  public var movedAt: Double?
   /// Set by the engine when the person added this gateway here (the add wizard completed, or the
   /// address moved to a new origin). Only such a gateway is published over a removal on all
   /// devices, and only over one older than the add (`addedHereAt`); one that merely existed here,
@@ -98,19 +107,23 @@ public struct SyncEntry: Sendable, Equatable {
     detached: SyncDetachment? = nil,
     signedOut: Bool = false,
     removal: RemovalScope? = nil,
+    removedAt: Double? = nil,
     addedHere: Bool = false,
     addedHereAt: Double? = nil,
     clearing: Set<SyncField> = [],
     stamps: [String: SyncStamp] = [:],
     prints: [String: String] = [:],
     leftBehind: Set<String> = [],
-    republish: Bool = false
+    republish: Bool = false,
+    movedToKey: String? = nil,
+    movedAt: Double? = nil
   ) {
     self.key = key
     self.seen = seen
     self.detached = detached
     self.signedOut = signedOut
     self.removal = removal
+    self.removedAt = removedAt
     self.addedHere = addedHere
     self.addedHereAt = addedHereAt
     self.clearing = clearing
@@ -118,6 +131,8 @@ public struct SyncEntry: Sendable, Equatable {
     self.prints = prints
     self.leftBehind = leftBehind
     self.republish = republish
+    self.movedToKey = movedToKey
+    self.movedAt = movedAt
   }
 
   public func stamp(_ field: SyncField) -> SyncStamp? { stamps[field.rawValue] }
@@ -137,7 +152,8 @@ public struct SyncEntry: Sendable, Equatable {
   }
 
   private static let knownKeys: Set<String> = [
-    "key", "seen", "detached", "signedOut", "removal", "addedHere", "addedHereAt", "clearing", "stamps", "prints", "leftBehind",
+    "key", "seen", "detached", "signedOut", "removal", "removedAt", "addedHere", "addedHereAt", "movedToKey",
+    "movedAt", "clearing", "stamps", "prints", "leftBehind",
     "republish"
   ]
 
@@ -148,6 +164,9 @@ public struct SyncEntry: Sendable, Equatable {
     object["detached"] = detached.map { .string($0.rawValue) } ?? .null
     object["signedOut"] = .bool(signedOut)
     object["removal"] = removal.map { .string($0.rawValue) }
+    object["removedAt"] = removedAt.map(JSONValue.number)
+    object["movedToKey"] = movedToKey.map(JSONValue.string)
+    object["movedAt"] = movedAt.map(JSONValue.number)
     object["addedHere"] = addedHere ? .bool(true) : Optional<JSONValue>.none
     object["addedHereAt"] = addedHere ? addedHereAt.map(JSONValue.number) : Optional<JSONValue>.none
     object["clearing"] =
@@ -169,6 +188,9 @@ public struct SyncEntry: Sendable, Equatable {
     detached = object["detached"]?.stringValue.map(SyncDetachment.init(rawValue:))
     signedOut = object["signedOut"]?.boolValue ?? false
     removal = object["removal"]?.stringValue.flatMap(RemovalScope.init(rawValue:))
+    removedAt = object["removedAt"]?.doubleValue.flatMap { $0.isFinite ? $0 : nil }
+    movedToKey = object["movedToKey"]?.stringValue
+    movedAt = object["movedAt"]?.doubleValue.flatMap { $0.isFinite ? $0 : nil }
     addedHere = object["addedHere"]?.boolValue ?? false
     addedHereAt = object["addedHereAt"]?.doubleValue.flatMap { $0.isFinite ? $0 : nil }
     clearing = Set((object["clearing"]?.arrayValue ?? []).compactMap { $0.stringValue.flatMap(SyncField.init(rawValue:)) })
@@ -331,9 +353,24 @@ public struct SyncState: Sendable, Equatable {
   /// The person removed a gateway: remember the scope, so the reconcile after the purge knows
   /// whether to hide the key here or write a tombstone for every device. With sync off on this
   /// device, a removal can only be from this device.
-  public mutating func markRemoved(gatewayId: String, key: String, scope: RemovalScope) {
+  public mutating func markRemoved(gatewayId: String, key: String, scope: RemovalScope, at now: Double) {
     let scope = enabled ? scope : .thisDevice
-    intent(gatewayId, key: key) { $0.removal = scope }
+    intent(gatewayId, key: key) { entry in
+      entry.removal = scope
+      entry.removedAt = now.isFinite ? now : nil
+    }
+  }
+
+  /// The person changed the gateway's address to one whose key is `toKey`, at `now` by this
+  /// device's clock (the engine's `changeAddress`). Recorded whether or not sync is on: at the new
+  /// key the move is an add as of `now`, so a removal there made after it still wins when sync
+  /// comes back.
+  public mutating func markMoved(gatewayId: String, toKey: String, at now: Double) {
+    guard entries[gatewayId] != nil else { return }
+    intent(gatewayId, key: entries[gatewayId]!.key) { entry in
+      entry.movedToKey = toKey
+      entry.movedAt = now.isFinite ? now : nil
+    }
   }
 
   /// The person added this gateway here (the add wizard completed), at `now` by this device's

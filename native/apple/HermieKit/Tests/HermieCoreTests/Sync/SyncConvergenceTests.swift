@@ -76,6 +76,7 @@ import Testing
     atLeast(coverage.traces[.existingKeptAbsent, default: 0], 35, "existing gateway kept absent by a removal")
     atLeast(coverage.traces[.addedBeforeRemovalKeptAbsent, default: 0], 90, "added before a removal, kept absent")
     atLeast(coverage.storeEmptiedEvents, 400, "gateways detached by an empty store announced")
+    atLeast(coverage.keptAfterRemovalEvents, 60, "kept device-only after a newer removal, announced")
     atLeast(coverage.traces[.absentPurged, default: 0], 55, "absent gateway purged by a tombstone")
     atLeast(coverage.traces[.earlierLifeDropped, default: 0], 6, "credential from an earlier life dropped")
     atLeast(coverage.traces[.tombstoneRewritten, default: 0], 350, "remembered tombstone merged back in")
@@ -118,6 +119,7 @@ import Testing
     var storeEmptiedEvents = 0
     var unstampedPublishDeleted = 0
     var skewedReadds = 0
+    var keptAfterRemovalEvents = 0
     var pendingUnresolved = 0
     var traces: [SyncTrace: Int] = [:]
 
@@ -139,6 +141,7 @@ import Testing
       storeEmptiedEvents += other.storeEmptiedEvents
       unstampedPublishDeleted += other.unstampedPublishDeleted
       skewedReadds += other.skewedReadds
+      keptAfterRemovalEvents += other.keptAfterRemovalEvents
       pendingUnresolved += other.pendingUnresolved
       traces.merge(other.traces, uniquingKeysWith: +)
     }
@@ -217,6 +220,8 @@ import Testing
     /// Per `device|key`, the newest tombstone that device has seen there and when it first saw it,
     /// by its own clock.
     var tombstoneSeen: [String: (stamp: SyncStamp, at: Double)] = [:]
+    /// When each device last removed a gateway at a key on all devices (`device|key`), by its clock.
+    var ownRemovalTimes: [String: Double] = [:]
     /// The step at which each tombstone was written (`key|stamp`).
     var tombstoneSteps: [String: Int] = [:]
     /// The step at which each gateway was added on its device (`device|gatewayId`).
@@ -555,6 +560,27 @@ import Testing
         violation = "d\(device) announced \(announced) as detached by an empty store, not \(detached)"
       }
       if !detached.isEmpty { coverage.storeEmptiedEvents += 1 }
+
+      // A gateway announced as kept device-only (a removal elsewhere newer than its add) was not
+      // added after a removal this very plan writes for this device, nor after the removals the
+      // device knew at the key.
+      for event in plan.events {
+        guard case let .removedElsewhereKeptHere(ids) = event else { continue }
+        coverage.keptAfterRemovalEvents += 1
+        for id in ids {
+          guard let gateway = before.gateway(id), let added = world.devices[device].addedTimes[id] else { continue }
+          let key = gateway.key
+          let ownWritten = plan.remotePuts.contains { record in
+            record.key == key && record.deleted?.d == before.state.device && seen(key)?.deleted != record.deleted
+          }
+          guard ownWritten, let removedAt = ledger.ownRemovalTimes["\(device)|\(key)"], added > removedAt else { continue }
+          let other = [seen(key)?.deleted, before.state.tombstones[key]?.stamp].compactMap { $0 }.max()
+          let seenAt = ledger.tombstoneSeen["\(device)|\(key)"].flatMap { entry in other.map { entry.stamp >= $0 } == true ? entry.at : nil }
+          if other.map({ added > $0.t || seenAt.map { added > $0 } == true }) ?? true {
+            violation = "d\(device) kept \(id) device-only, added after its own removal at \(key)"
+          }
+        }
+      }
     }
 
     @discardableResult
@@ -579,9 +605,10 @@ import Testing
         world.apply(plan, to: device)
       }
 
-      // A move to a new key is an add there, as of the reconcile that first sees it.
+      // A move to a new key the engine did not record (no entry yet) is an add there as of the
+      // reconcile that first sees it.
       for gateway in before.gateways {
-        if let entry = before.state.entries[gateway.id], entry.key != gateway.key {
+        if let entry = before.state.entries[gateway.id], entry.key != gateway.key, entry.movedToKey != gateway.key {
           world.devices[device].addedTimes[gateway.id] = (world.now + before.clockOffset).rounded(.down)
           ledger.addSteps["\(device)|\(gateway.id)"] = step
         }
@@ -599,8 +626,17 @@ import Testing
       for record in view.map({ $0.normalized() }) + plan.remotePuts where record.isTombstone {
         guard let deleted = record.deleted else { continue }
         let slot = "\(device)|\(record.key)"
+        // A tombstone this device wrote for the person's own removal there, covering nothing known
+        // before, was "seen" when the person removed the gateway.
+        let shown = view.first { $0.key == record.key && $0.isSupported }?.normalized().deleted
+        let ownRemoval = deleted.d == before.state.device && shown != deleted && shown == nil
+          && before.state.tombstones[record.key] == nil
+          && before.state.entries.contains { id, entry in
+            entry.key == record.key && entry.removal == .allDevices && before.gateway(id) == nil
+          }
+        let seenAt = ownRemoval ? ledger.ownRemovalTimes[slot].map { min($0, seenNow) } ?? seenNow : seenNow
         if ledger.tombstoneSeen[slot].map({ $0.stamp < deleted }) ?? true {
-          ledger.tombstoneSeen[slot] = (deleted, seenNow)
+          ledger.tombstoneSeen[slot] = (deleted, seenAt)
         }
       }
       log.append("d\(device) reconcile\(crash ? " (crash)" : loseWrites ? " (writes lost)" : "") \(plan)")
@@ -679,6 +715,9 @@ import Testing
       // The tombstone goes to the key sync knows the gateway under, which an unreconciled move
       // may have left different from its address.
       let known = world.devices[device].state.entries[gateway.id]?.key ?? gateway.key
+      let removedAt = (world.now + world.devices[device].clockOffset).rounded(.down)
+      ledger.ownRemovalTimes["\(device)|\(gateway.key)"] = removedAt
+      ledger.ownRemovalTimes["\(device)|\(known)"] = removedAt
       ledger.removed.insert(gateway.key)
       ledger.removed.insert(known)
       if enabled(device) {
@@ -764,7 +803,50 @@ import Testing
     switch seed % 8 {
     case 0:
       let address = addresses.randomElement(using: &rng)!
-      switch (seed / 8) % 4 {
+      switch (seed / 8) % 6 {
+      case 4:
+        // The person removes a gateway from all devices, the reconcile never runs (iCloud Keychain
+        // unavailable, the app killed), the person adds it again, and only then a reconcile runs.
+        addGateway(0, address: address, name: "Scripted", token: "tok-s")
+        reconcile(0)
+        world.cloud.deliverAll()
+        reconcile(1)
+        world.advance(1_000)
+        step += 1
+        if let gateway = copy(0, at: address) {
+          removeEverywhere(0, gateway)
+        }
+        world.advance(50_000)
+        step += 1
+        addGateway(0, address: address, name: "Again", token: "tok-again")
+        world.advance(10_000)
+        reconcile(0)
+        world.cloud.deliverAll()
+        log.append("scripted: d0 removed everywhere, re-added before the reconcile")
+      case 5:
+        // A Mac with sync off moves a gateway to origin B (day 5); a phone removes B on all devices
+        // (day 10); the Mac switches sync on (day 40). Its move is older than the removal.
+        let other = addresses.first { GatewayKey.of($0) != GatewayKey.of(address) } ?? address
+        addGateway(0, address: other, name: "Scripted", token: "tok-s")
+        reconcile(0)
+        world.cloud.deliverAll()
+        setEnabled(2, false)
+        let mac = addGateway(2, address: address, name: "Mac", token: "tok-mac", frontDoorSecret: "door-mac")
+        world.advance(5 * day)
+        step += 1
+        world.setAddress(2, mac, to: other)
+        world.advance(5 * day)
+        step += 1
+        if let gateway = copy(0, at: other) {
+          removeEverywhere(0, gateway)
+        }
+        reconcile(0)
+        world.cloud.deliverAll()
+        world.advance(30 * day)
+        step += 1
+        setEnabled(2, true)
+        reconcile(2)
+        log.append("scripted: d2 moved with sync off before d0 removed the new origin everywhere")
       case 3:
         // A Mac with sync off adds a gateway; days later a phone removes it from all devices; a
         // month later the Mac switches sync on. Its add is older than the removal: device-only.

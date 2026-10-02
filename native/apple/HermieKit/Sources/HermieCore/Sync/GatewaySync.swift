@@ -21,9 +21,16 @@
 // - Only a gateway the person added here (`SyncEntry.addedHere`) is published over a removal on all
 //   devices, and only when the add is newer than the removal: newer than the tombstone's stamp,
 //   or made after this device had seen the tombstone (`SyncEntry.addedHereAt` against the
-//   tombstone memory's `firstSeen`). One that merely existed here, or was added before the removal
-//   (with sync off, say), becomes `absent`, device-only. The same holds once the tombstone itself is
-//   pruned and only this device's memory of it is left; a re-add is stamped above that memory.
+//   tombstone memory's `firstSeen`). This device's own removal counts as seen when the person made
+//   it (`SyncEntry.removedAt`), so a re-add after it that reaches the same reconcile is published,
+//   unless it is older than another removal that tombstone covers. The tombstone a move leaves at
+//   the old key is no removal of it: a gateway still here at that key takes it over, whenever it
+//   was added. A move is an add at its new key
+//   as of the move (`SyncState.markMoved`), else of the reconcile that sees it. One that merely
+//   existed here, or was added before the removal (with sync off, say), becomes `absent`,
+//   device-only, announced (`SyncEvent.removedElsewhereKeptHere`). The same holds once the
+//   tombstone itself is pruned and only this device's memory of it is left; a re-add is stamped
+//   above that memory.
 // - A removal on all devices always writes a fresh tombstone, even over an existing one, so its
 //   age starts when the person removed the gateway. It is stamped above everything this device
 //   knows at the key, a synced sibling at the same origin included.
@@ -241,8 +248,15 @@ extension LocalSyncSnapshot: CustomStringConvertible, CustomDebugStringConvertib
    received) nor cleared (nobody asked), until the record has a value for the field again. The
    same holds after a lost print key.
  - "Added after the removal" compares this device's clock with the remover's when this device
-   had not seen the removal before the add: with the remover's clock far behind, an add made
-   before the removal (with sync off here) still counts as newer and publishes over it.
+   had not seen the removal before the add. With the remover's clock far behind, an add made
+   before the removal (with sync off here) still counts as newer and publishes over it. With the
+   remover's clock far ahead, and the tombstone first seen here in the same reconcile as the add
+   (a new device or a reinstall, the store unavailable during the first reconcile), an add made
+   after the removal counts as older: it stays device-only, announced by
+   `SyncEvent.removedElsewhereKeptHere`, until the tombstone is pruned.
+ - A move the engine did not record with `SyncState.markMoved` (a state from before it) counts as
+   an add at the new key as of the reconcile that sees it, so a move made with sync off before a
+   removal of the new origin elsewhere still publishes over it.
  */
 public enum GatewaySync {
   /// How long a device remembers a removal on all devices, by its own clock.
@@ -352,6 +366,15 @@ private struct Reconciler {
   var deletedEverything = false
   /// The gateways that went device-only in this run because the store read empty.
   var detachedByEmptyStore: [String] = []
+  /// The gateways kept device-only in this run because a removal on all devices is newer than
+  /// their add here.
+  var keptAfterRemoval: [String] = []
+  /// Tombstones this run writes for this device's own removals and moves: the stamp, when the
+  /// person removed or moved the gateway (this device has "seen" that removal since then), and the
+  /// newest removal already known at the key, which the new tombstone covers.
+  /// A move writes one too (`move`): it is no removal of the key, so a sibling still here at that
+  /// key takes it over whenever it was added.
+  var ownTombstones: [String: (stamp: SyncStamp, at: Double, prior: SyncStamp?, move: Bool)] = [:]
 
   init(local: LocalSyncSnapshot, state: SyncState, now: Double, keyOf: @escaping (String) -> String) {
     self.keyOf = keyOf
@@ -380,6 +403,9 @@ private struct Reconciler {
 
     if !detachedByEmptyStore.isEmpty {
       events.append(.storeEmptied(gatewayIds: detachedByEmptyStore.sorted()))
+    }
+    if !keptAfterRemoval.isEmpty {
+      events.append(.removedElsewhereKeptHere(gatewayIds: keptAfterRemoval.sorted()))
     }
 
     // What the engine saves with the registry changes, before the keychain is touched: the final
@@ -504,13 +530,15 @@ private struct Reconciler {
     }
   }
 
-  /// Remember a tombstone, with the time this device first saw it (a newer one starts over).
+  /// Remember a tombstone, with the time this device first saw it (a newer one starts over). One
+  /// this device wrote for its own removal was "seen" when the person removed the gateway.
   mutating func note(_ deleted: SyncStamp, key: String) {
     if let memory = state.tombstones[key], memory.stamp >= deleted {
       return
     }
 
-    state.tombstones[key] = SyncTombstoneMemory(stamp: deleted, firstSeen: now)
+    let own = ownTombstones[key].flatMap { $0.stamp == deleted && $0.prior == nil && !$0.move ? min($0.at, now) : nil }
+    state.tombstones[key] = SyncTombstoneMemory(stamp: deleted, firstSeen: own ?? now)
   }
 
   /// A tombstone this device knows of but the store has lost (a concurrent whole-item write won
@@ -625,7 +653,8 @@ private struct Reconciler {
   }
 
   /// Write a tombstone for a key: "removed from all devices". `false` when it cannot be written.
-  mutating func writeTombstone(_ key: String, _ entry: SyncEntry) -> Bool {
+  /// `at`: when the person removed (or moved) the gateway, by this device's clock.
+  mutating func writeTombstone(_ key: String, _ entry: SyncEntry, at: Double, move: Bool = false) -> Bool {
     guard !blocked.contains(key) else {
       return false
     }
@@ -646,8 +675,22 @@ private struct Reconciler {
     tombstone.deleted = siblings.map { known in
       known >= stamp.t ? SyncStamp(t: SyncStamp.clamped(known + 1), d: state.device) : stamp
     } ?? stamp
-    // A gateway added again at this key in the same run must stamp above the tombstone.
+    // A gateway the person added again after this removal (`removedAt`), reaching the same run, is
+    // published over it (see `addedAfter`) and must stamp above it.
     stampCache[key] = nil
+    // What it covers is a removal in effect before this run's own tombstones: a tombstone in the
+    // store or remembered here (a live record's `deleted` was overridden already). Of two own
+    // removals reaching one run, an add must follow the later.
+    let earlier = ownTombstones[key]
+    let shown = current.flatMap { $0.isTombstone ? $0.deleted : nil }
+    let prior = [earlier.map { $0.prior } ?? shown, state.tombstones[key]?.stamp].compactMap { $0 }.max()
+    let removedAt: Double
+    switch (earlier, move) {
+    case (nil, _): removedAt = at
+    case let (some?, true): removedAt = some.move ? max(some.at, at) : some.at
+    case let (some?, false): removedAt = some.move ? at : max(some.at, at)
+    }
+    ownTombstones[key] = (tombstone.deleted!, removedAt, prior, move && earlier.map(\.move) != false)
 
     schedule(current.map { .join($0, tombstone) } ?? tombstone.normalized())
     return true
@@ -676,7 +719,7 @@ private struct Reconciler {
         continue
       }
 
-      if entry.removal == .allDevices, entry.detached == nil, writeTombstone(entry.key, entry) {
+      if entry.removal == .allDevices, entry.detached == nil, writeTombstone(entry.key, entry, at: entry.removedAt ?? now) {
         continue
       }
 
@@ -712,9 +755,11 @@ private struct Reconciler {
 
       if let entry = state.entries[gateway.id] {
         if entry.key != key {
-          moveAway(from: entry, presentKeys: presentKeys)
+          // When the person moved it, if the engine recorded that move; else as of this reconcile.
+          let movedAt = (entry.movedToKey == key ? entry.movedAt : nil) ?? now
+          moveAway(from: entry, presentKeys: presentKeys, at: movedAt)
           state.entries[gateway.id] = SyncEntry(
-            key: key, detached: entry.detached == .user ? .user : nil, addedHere: true, addedHereAt: now)
+            key: key, detached: entry.detached == .user ? .user : nil, addedHere: true, addedHereAt: movedAt)
           if !key.isEmpty { state.hidden.remove(key) }
         } else if entry.addedHere, !key.isEmpty {
           state.hidden.remove(key)
@@ -744,7 +789,7 @@ private struct Reconciler {
   /// removed everywhere if it was synced from here, unless a tombstone already covers what this
   /// device knew; when that cannot be written, or the gateway was device-only, the old key is
   /// hidden here, so its record is not adopted back as a copy.
-  mutating func moveAway(from entry: SyncEntry, presentKeys: Set<String>) {
+  mutating func moveAway(from entry: SyncEntry, presentKeys: Set<String>, at: Double) {
     guard GatewayKey.isValid(entry.key) else {
       return
     }
@@ -756,7 +801,7 @@ private struct Reconciler {
       let known = entry.stamps.values.map(\.t).max() ?? -Double.infinity
       let covered = records[entry.key].map { $0.isTombstone && ($0.deleted?.t ?? -Double.infinity) >= known } ?? false
 
-      if !covered, !writeTombstone(entry.key, entry), hideable {
+      if !covered, !writeTombstone(entry.key, entry, at: at, move: true), hideable {
         state.hidden.insert(entry.key)
       }
     } else if hideable {
@@ -944,6 +989,7 @@ private struct Reconciler {
         // it knew is older, and the gateway was not added here since. Do not publish it again.
         if entry.stamps.isEmpty {
           traces.insert(entry.addedHere ? .addedBeforeRemovalKeptAbsent : .existingKeptAbsent)
+          if entry.addedHere { keptAfterRemoval.append(gateway.id) }
           entry.detached = .absent
           store(gateway.id, entry)
         } else {
@@ -972,6 +1018,7 @@ private struct Reconciler {
         // It existed here before, or was added here before the removal on all devices (with sync
         // off, say): the removal is newer news. Keep it, device-only.
         traces.insert(entry.addedHere ? .addedBeforeRemovalKeptAbsent : .existingKeptAbsent)
+        if entry.addedHere { keptAfterRemoval.append(gateway.id) }
         entry.detached = .absent
         store(gateway.id, entry)
       }
@@ -991,6 +1038,17 @@ private struct Reconciler {
       return false
     }
 
+    // This device's own removal, written in this run: seen since the person removed it. The add
+    // must come after it, and after any removal it covers that was already known at the key.
+    if let own = ownTombstones[key], own.stamp >= deleted {
+      return (own.move || at > own.at) && (own.prior.map { added(at, after: $0, key: key) } ?? true)
+    }
+
+    return added(at, after: deleted, key: key)
+  }
+
+  /// An add at `at` (this device's clock) is newer than the removal stamped `deleted`.
+  func added(_ at: Double, after deleted: SyncStamp, key: String) -> Bool {
     if at > deleted.t {
       return true
     }

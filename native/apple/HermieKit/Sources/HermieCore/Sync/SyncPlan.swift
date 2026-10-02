@@ -35,6 +35,10 @@ public enum SyncEvent: Sendable, Equatable {
   /// Keychain", or this device's copy was lost): these gateways stay here but are no longer synced
   /// ("Sync again" is `SyncState.resync(gatewayId:)`). Ids only.
   case storeEmptied(gatewayIds: [String])
+  /// These gateways were added here before a removal on all devices made elsewhere (with sync off
+  /// here, say): they stay here but are no longer synced ("Sync again" is
+  /// `SyncState.resync(gatewayId:)`, which does not outrank the removal). Ids only.
+  case removedElsewhereKeptHere(gatewayIds: [String])
 }
 
 /// Which rule of the merge a reconcile used, for tests and diagnostics. Carries nothing else.
@@ -189,6 +193,7 @@ extension SyncEvent: CustomStringConvertible {
     case let .headersNotSynced(gatewayId): "headersNotSynced(\(gatewayId))"
     case let .credentialRestored(gatewayId, fields): "credentialRestored(\(gatewayId), \(fields.sorted().map(\.rawValue)))"
     case let .storeEmptied(gatewayIds): "storeEmptied(\(gatewayIds))"
+    case let .removedElsewhereKeptHere(gatewayIds): "removedElsewhereKeptHere(\(gatewayIds))"
     }
   }
 }

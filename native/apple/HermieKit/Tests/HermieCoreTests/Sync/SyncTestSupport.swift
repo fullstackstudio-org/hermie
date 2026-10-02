@@ -462,8 +462,15 @@ struct SyncWorld {
     edit(device, id) { $0.name = name }
   }
 
+  /// The engine's `changeAddress`: a move to another key is recorded with its time (an add there).
   mutating func setAddress(_ device: Int, _ id: String, to address: String) {
+    guard let gateway = devices[device].gateway(id) else { return }
     edit(device, id) { $0.address = address }
+    if GatewayKey.of(address) != gateway.key, devices[device].state.entries[id] != nil {
+      let movedAt = (now + devices[device].clockOffset).rounded(.down)
+      devices[device].state.markMoved(gatewayId: id, toKey: GatewayKey.of(address), at: movedAt)
+      devices[device].addedTimes[id] = movedAt
+    }
   }
 
   /// Signing in with a token (or entering a new one) also ends a sign-out on this device; the
@@ -525,7 +532,8 @@ struct SyncWorld {
 
   mutating func remove(_ device: Int, _ id: String, scope: RemovalScope) {
     guard let gateway = devices[device].gateway(id) else { return }
-    devices[device].state.markRemoved(gatewayId: id, key: gateway.key, scope: scope)
+    devices[device].state.markRemoved(
+      gatewayId: id, key: gateway.key, scope: scope, at: (now + devices[device].clockOffset).rounded(.down))
     devices[device].gateways.removeAll { $0.id == id }
   }
 
