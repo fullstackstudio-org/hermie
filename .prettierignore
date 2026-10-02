@@ -13,6 +13,11 @@ expo/hermie/android
 expo/hermie/modules/*/android/build
 # Rust build output; not JS/TS/JSON/CSS at all.
 apps/desktop/src-tauri/target
+# SwiftPM and Xcode build output, and the projects XcodeGen writes.
+native/**/.build
+native/**/.swiftpm
+native/**/DerivedData
+native/**/*.xcodeproj
 CHANGELOG.md
 packages/hermes-shared/src
 design/*.html
