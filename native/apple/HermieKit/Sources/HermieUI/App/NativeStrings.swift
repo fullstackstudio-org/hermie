@@ -1,0 +1,78 @@
+import Foundation
+
+/**
+ The strings only the native shell has, read from `Resources/Native.xcstrings` (written by hand, in
+ English, Dutch and German). A sentence the Expo app also shows belongs in the TypeScript catalogues
+ and is read through `Strings` instead.
+ */
+enum NativeStrings {
+  enum About {
+    /// Build
+    static var build: String { String(localized: "native.about.build", table: "Native", bundle: .module) }
+    /// Commit
+    static var commit: String { String(localized: "native.about.commit", table: "Native", bundle: .module) }
+  }
+
+  enum Commands {
+    /// Find…
+    static var find: String { String(localized: "native.commands.find", table: "Native", bundle: .module) }
+    /// New Chat Window
+    static var newChatWindow: String {
+      String(localized: "native.commands.newChatWindow", table: "Native", bundle: .module)
+    }
+    /// Switch Gateway…
+    static var switchGateway: String {
+      String(localized: "native.commands.switchGateway", table: "Native", bundle: .module)
+    }
+  }
+
+  enum Debug {
+    /// Debug screens
+    static var title: String { String(localized: "native.debug.title", table: "Native", bundle: .module) }
+  }
+
+  enum Detail {
+    enum NoChat {
+      /// Choose a bot from the list.
+      static var body: String { String(localized: "native.detail.noChat.body", table: "Native", bundle: .module) }
+      /// No chat selected
+      static var title: String { String(localized: "native.detail.noChat.title", table: "Native", bundle: .module) }
+    }
+  }
+
+  enum Gateways {
+    /// Rename
+    static var rename: String { String(localized: "native.gateways.rename", table: "Native", bundle: .module) }
+  }
+
+  /// Coming in a later build.
+  static var later: String { String(localized: "native.later", table: "Native", bundle: .module) }
+
+  enum Lock {
+    /// Hermie is hidden while it is not in front.
+    static var coverLabel: String { String(localized: "native.lock.coverLabel", table: "Native", bundle: .module) }
+    /// The lock setting could not be read, so Hermie locks every time you leave it. Choose a setting to keep.
+    static var settingUnknown: String {
+      String(localized: "native.lock.settingUnknown", table: "Native", bundle: .module)
+    }
+  }
+
+  enum Notice {
+    /// That link is for a gateway this device does not know. Add the gateway first.
+    static var gatewayNotConfigured: String {
+      String(localized: "native.notice.gatewayNotConfigured", table: "Native", bundle: .module)
+    }
+    /// The app lock setting could not be restored. Check it under Privacy & security.
+    static var lockSettingNotRestored: String {
+      String(localized: "native.notice.lockSettingNotRestored", table: "Native", bundle: .module)
+    }
+    /// Set up a gateway first, then open the link again.
+    static var noGateway: String { String(localized: "native.notice.noGateway", table: "Native", bundle: .module) }
+    /// Hermie’s local data was damaged and has been rebuilt. Everything that could still be read was kept.
+    static var recovered: String { String(localized: "native.notice.recovered", table: "Native", bundle: .module) }
+    /// Hermie could not open its storage. Nothing you change now is kept after Hermie quits.
+    static var runningInMemory: String {
+      String(localized: "native.notice.runningInMemory", table: "Native", bundle: .module)
+    }
+  }
+}

@@ -130,8 +130,8 @@ func everyKeyRendersWhatTheTypeScriptRenders(language: String) throws {
   }
 }
 
-@Test func theNativeTableIsThereAndEmpty() {
-  // `Native.xcstrings` holds strings only the native apps have; it starts empty, so a
-  // lookup falls through to its key.
+@Test func aKeyNotInTheNativeTableFallsThroughToItself() {
+  // `Native.xcstrings` holds strings only the native apps have; a key it does not hold
+  // falls through to the key itself.
   #expect(String(localized: "native.placeholder", table: "Native", bundle: moduleBundle) == "native.placeholder")
 }
