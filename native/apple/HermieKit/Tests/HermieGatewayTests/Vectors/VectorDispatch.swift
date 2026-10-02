@@ -1,5 +1,6 @@
 import Foundation
 import HermieGateway
+import HermieProtocol
 
 /// What running one vector through the port produced.
 enum VectorOutcome {
@@ -88,6 +89,17 @@ enum VectorDispatch {
       hint: object["hint"]?.string,
       sawLandingPage: object["sawLandingPage"]?.bool
     )
+  }
+
+  private static func vectorValue(_ value: JSONValue) -> VectorValue {
+    switch value {
+    case .null: .null
+    case .bool(let flag): .bool(flag)
+    case .number(let number): .number(number)
+    case .string(let text): .string(text)
+    case .array(let values): .array(values.map(vectorValue))
+    case .object(let object): .object(object.mapValues(vectorValue))
+    }
   }
 
   private static func verdictValue(_ verdict: ProbeVerdict) -> VectorValue {
@@ -304,6 +316,20 @@ enum VectorDispatch {
     // base64.json
     case ("base64", "bytesToBase64"):
       return VectorValue(Base64.encode(hexBytes(arg(0))))
+
+    // fetch-json.json
+    case ("fetch-json", "DEFAULT_HTTP_TIMEOUT_MS"):
+      return VectorValue(FetchJSON.defaultTimeoutMs)
+    case ("fetch-json", "looksLikeTlsFailure"):
+      return VectorValue(FetchJSON.looksLikeTLSFailure(arg(0).string!))
+    case ("fetch-json", "looksLikeCertificateFailure"):
+      return VectorValue(FetchJSON.looksLikeCertificateFailure(arg(0).string!))
+    case ("fetch-json", "parseJsonBody"):
+      guard let kind = arg(2).string.flatMap(GatewayErrorKind.init(rawValue:)) else { return nil }
+      return vectorValue(try FetchJSON.parseJSONBody(arg(0).string!, url: arg(1).string!, kind: kind))
+    case ("fetch-json", "parseJsonObject"):
+      guard let kind = arg(2).string.flatMap(GatewayErrorKind.init(rawValue:)) else { return nil }
+      return vectorValue(.object(try FetchJSON.parseJSONObject(arg(0).string!, url: arg(1).string!, kind: kind)))
 
     default:
       return nil

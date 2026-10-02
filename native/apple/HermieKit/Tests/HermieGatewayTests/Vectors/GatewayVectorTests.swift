@@ -3,7 +3,7 @@ import Testing
 
 @testable import HermieGateway
 
-/// Every vector in the nine `contract/gateway/vectors` files this target ports,
+/// Every vector in the ten `contract/gateway/vectors` files this target ports,
 /// replayed against the Swift functions. A failure names the file, the entry
 /// index, the function and both answers.
 @Suite struct GatewayVectorTests {
@@ -63,7 +63,7 @@ import Testing
       .map { String($0.dropLast(5)) }
     let later = Set(present).subtracting(VectorLoader.files)
 
-    // fetch-json, plugin, push, session-search, ui-meta: replayed by the tasks that port them.
-    #expect(later == ["fetch-json", "plugin", "push", "session-search", "ui-meta"])
+    // plugin, push, session-search, ui-meta: replayed by the tasks that port them.
+    #expect(later == ["plugin", "push", "session-search", "ui-meta"])
   }
 }

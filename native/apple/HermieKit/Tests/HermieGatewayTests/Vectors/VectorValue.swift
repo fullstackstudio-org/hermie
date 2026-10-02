@@ -141,9 +141,10 @@ struct Vector {
 }
 
 enum VectorLoader {
-  /// The nine files this target ports.
+  /// The ten files this target ports.
   static let files = [
-    "url", "host-privacy", "gateway-key", "front-door", "backoff", "pkce", "probe-hints", "author-id", "base64"
+    "url", "host-privacy", "gateway-key", "front-door", "backoff", "pkce", "probe-hints", "author-id", "base64",
+    "fetch-json"
   ]
 
   /// `contract/gateway/vectors`, found by walking up from this source file.
