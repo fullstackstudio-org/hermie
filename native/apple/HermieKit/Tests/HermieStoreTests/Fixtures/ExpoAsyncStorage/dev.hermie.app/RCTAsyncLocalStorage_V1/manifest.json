@@ -1,0 +1,19 @@
+{
+  "hermie.gateways": "{\"v\":1,\"gateways\":[{\"id\":\"g0123456789abcdef\",\"name\":\"Home\",\"address\":\"https://gateway.test\",\"authKind\":\"session_token\",\"signedInUser\":\"Test Person\",\"addedAt\":1769000000000,\"pinnedColour\":\"teal\"},{\"id\":\"gfedcba9876543210\",\"name\":\"gateway.test\",\"address\":\"http://gateway.test:8642\",\"authKind\":\"native_pkce\",\"addedAt\":1769000500000}],\"activeGatewayId\":\"g0123456789abcdef\",\"futureField\":{\"kept\":true}}",
+  "hermie.gateway.config@g0123456789abcdef": "{\"baseUrl\":\"https://gateway.test\",\"authMode\":\"session_token\",\"userDisplayName\":\"Test Person\"}",
+  "hermie.gateway.config@gfedcba9876543210": "{\"baseUrl\":\"http://gateway.test:8642\",\"authMode\":\"native_pkce\"}",
+  "hermie.chat.view@g0123456789abcdef": "{\"showThinking\":true,\"level\":\"normal\"}",
+  "hermie.push@g0123456789abcdef": "{\"enabled\":true,\"perBot\":{\"researcher\":\"all\"}}",
+  "hermie.bots.last_seen@g0123456789abcdef": "{\"researcher\":1769000100,\"writer\":1769000200}",
+  "hermie.lock": "{\"threshold\":\"5m\"}",
+  "hermie.installation": "{\"id\":\"i00112233445566778899aabbccddeeff\"}",
+  "hermie.language": "{\"choice\":\"nl\"}",
+  "hermie.appearance": "{\"scheme\":\"dark\"}",
+  "hermie.voice": "{\"voice\":\"default\",\"rate\":1.0,\"autoSend\":false}",
+  "hermie.chats.layout": null,
+  "hermie.gateway.auth_timeline@g0123456789abcdef": null,
+  "expo.modules.example.flag": "1",
+  "@RNC_example": "x",
+  "hermie.auth.access_token-g0123456789abcdef": "not-a-real-token",
+  "hermie.bots.seen_counts@g0123456789abcdef": null
+}
