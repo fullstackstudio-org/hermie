@@ -27,6 +27,36 @@ public enum SyncEvent: Sendable, Equatable {
   case removedElsewhere(gatewayId: String, name: String)
   /// The gateway is here but has no credential this device can use: "Sign in to continue".
   case needsSignIn(gatewayId: String)
+  /// The record would be over 8 KB with its headers, so they stay on this device only (I16).
+  case headersNotSynced(gatewayId: String)
+}
+
+/// Which rule of the merge a reconcile used, for tests and diagnostics. Carries nothing else.
+enum SyncTrace: String, Sendable, Hashable {
+  /// A gateway added here was published over a removal on all devices.
+  case readded
+  /// A gateway that already existed here met a removal on all devices and stayed, device-only.
+  case existingKeptAbsent
+  /// An `absent` gateway met a newer tombstone and was purged.
+  case absentPurged
+  /// A credential from before a removal on all devices was dropped.
+  case earlierLifeDropped
+  /// A remembered tombstone was merged back into its record.
+  case tombstoneRewritten
+  /// A credential missing here without an intent was put back from iCloud.
+  case credentialRestored
+  /// A credential missing here while signed out was left missing.
+  case credentialLeftSignedOut
+  /// The print key changed: every print was void and gateways were attached as on first sight.
+  case printsReset
+  /// A record went out without its headers (I16).
+  case headersOverLimit
+  /// A foreign record (newer build, unreadable, invalid) was in the store.
+  case foreignRecord
+  /// A record whose address hashes to a key but names another origin (a hash collision) was left alone.
+  case originCollision
+  /// A gateway the sync had purged before its state was saved was not hidden.
+  case crashedPurgeRecovered
 }
 
 /**
@@ -47,6 +77,8 @@ public struct SyncPlan: Sendable, Equatable {
   public var events: [SyncEvent]
   /// Whether `state` differs from the state the plan was computed from.
   public var stateChanged: Bool
+  /// The rules this reconcile used. Not part of the plan's meaning; `isEmpty` ignores it.
+  var traces: Set<SyncTrace> = []
 
   public init(
     localOps: [SyncLocalOp] = [],
@@ -97,6 +129,7 @@ extension SyncEvent: CustomStringConvertible {
     case let .adopted(gatewayId): "adopted(\(gatewayId))"
     case let .removedElsewhere(gatewayId, _): "removedElsewhere(\(gatewayId))"
     case let .needsSignIn(gatewayId): "needsSignIn(\(gatewayId))"
+    case let .headersNotSynced(gatewayId): "headersNotSynced(\(gatewayId))"
     }
   }
 }

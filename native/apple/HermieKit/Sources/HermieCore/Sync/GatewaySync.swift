@@ -1,3 +1,28 @@
+// Amendments after review (they change rules of the first version of this merge):
+//
+// - A credential (front door, headers, session token) that goes missing on one device is never
+//   published as cleared. Only a clear the person asked for (`SyncEntry.clearing`) goes out; any
+//   other missing credential is put back from iCloud, or left missing while signed out here.
+// - When the print key changes (`SyncState.printCheck`), every stored print is void and each
+//   gateway is attached as on first sight: local credentials win, nothing is cleared anywhere.
+// - A tombstone is pruned only when its stamp is older than 180 days by this device's clock AND
+//   this device first saw it at least 180 days ago, by its own clock.
+// - A remembered tombstone is kept for three years of this device's own time, so a stale copy of a
+//   removed gateway that turns up later is cut again instead of coming back.
+// - Only a gateway the person added here (`SyncEntry.addedHere`) is published over a removal on all
+//   devices; one that merely existed here becomes `absent`, device-only. The same holds once the
+//   tombstone itself is pruned and only this device's memory of it is left.
+// - A removal on all devices always writes a fresh tombstone, even over an existing one, so its
+//   age starts when the person removed the gateway.
+// - A gateway the sync purged before its state was saved is not hidden by the next run.
+// - A record is applied only when its address names the same origin as the local gateway (the
+//   key is FNV-1a, which is not collision resistant).
+// - Stamps outside `[0, 2^53 − 2^20]` are invalid; new stamps are clamped into that range.
+// - Removing the last duplicate at a key, or moving an `absent` or switched-off gateway to another
+//   origin, hides the old key.
+// - Headers kept on the device by the size limit are announced (`SyncEvent.headersNotSynced`).
+// - Header names and values, and front-door kinds and ids, are validated as the wizard does.
+
 import Foundation
 import HermieGateway
 import HermieProtocol
@@ -76,6 +101,11 @@ public struct SyncPrinter: Sendable {
   func print(_ value: JSONValue) -> String {
     body(canonical(value))
   }
+
+  /// The print of `SyncState.printCheckText`: equal to the stored one exactly when the key is.
+  var check: String {
+    body(SyncState.printCheckText)
+  }
 }
 
 /// Everything local that one reconcile reads.
@@ -105,38 +135,47 @@ extension LocalSyncSnapshot: CustomStringConvertible, CustomDebugStringConvertib
  The merge, as one pure function every device runs: its own gateways and sync state plus the
  records in the store in, a plan out. No clock (`now` is a parameter), no keychain, no SQLite.
 
- The rules, in the order they are applied (`.claude/plans/native-rewrite-icloud.md`, I3, I4, I9,
- I13, I16 and "Data model"):
+ The rules, in the order they are applied:
 
  1. Nothing happens unless sync is on, the person has been told (`disclosed`), the state is one
     this build can write, and the device has a tag.
- 2. Records are normalised; foreign ones (newer `v`, unreadable, address not hashing to the key)
+ 2. When the print key changed, every print is void and each gateway attaches as on first sight.
+ 3. Records are normalised; foreign ones (newer `v`, unreadable, address not hashing to the key)
     block their key: nothing is applied to or written over them.
- 3. Tombstones this device remembers (`SyncState.tombstones`) are merged into their record; one the
+ 4. Every tombstone in the store is remembered with the time this device first saw it, and every
+    remembered one (kept three years of this device's time) is merged into its record; one the
     keychain lost to a concurrent whole-item write is written again.
- 4. Tombstones older than 180 days are deleted.
- 5. A gateway that left the local list: removed on all devices → tombstone; otherwise its key is
-    hidden on this device, so it is not adopted again.
- 6. A gateway whose origin changed: tombstone for the old key (when it was synced), and it starts
-    over under the new key; no credential is carried to the new origin.
- 7. Per key, one local gateway is the synced one (an already attached one, else the oldest); the
+ 5. A tombstone goes once its stamp is 180 days old by this clock and this device saw it 180 days
+    ago.
+ 6. A gateway that left the local list: removed on all devices → tombstone; purged by an earlier
+    sync whose state was never saved → forgotten; otherwise its key is hidden on this device, so
+    it is not adopted again.
+ 7. A gateway whose origin changed: tombstone for the old key (when it was synced; the old key is
+    hidden when it was device-only), and it starts over under the new key as one added here; no
+    credential is carried to the new origin.
+ 8. Per key, one local gateway is the synced one (an already attached one, else the oldest); the
     others are `duplicateOrigin`. "Sync this gateway" switched off deletes the item once.
- 8. The synced gateway meets the record for its key: missing (seen before → `absent`; never seen
-    → publish), a tombstone (newer than what this device knows →
-    purge, also when `absent`; a gateway new on this device → added again, outranking it), or
-    live (first attach by the table, or a merge field by field). Local changes are found by
-    comparing each value's print with the stored one and are stamped
-    `max(now, highest t in the record + 1)`. A local value whose register was written before the
-    record's tombstone belongs to an earlier life of the gateway and is removed.
- 9. Live records with no local gateway and a key that is not hidden are adopted.
+ 9. The synced gateway meets the record for its key, when that names the same origin: missing
+    (seen before → `absent`; a removal remembered here and not added here → kept `absent`, or
+    purged if it was synced; otherwise → publish), a tombstone (newer than what this device
+    knows → purge, also when `absent`; added here → added again above it; otherwise kept here as
+    `absent`), or live (first attach by the table, or a merge field by field). Local changes are
+    found by comparing each value's print with the stored one and are stamped
+    `max(now, highest t in the record + 1)`. A credential missing here is cleared everywhere only
+    when the person cleared it; otherwise it is put back from iCloud. A local value whose register
+    was written before the record's tombstone belongs to an earlier life of the gateway and goes.
+ 10. Live records with no local gateway and a key that is not hidden are adopted.
 
  A device's own write is never taken as published: `seen` is set by a later read of the store,
  not by the write, and every register and tombstone this device knows of is merged in again
  whenever the store has lost it. (A read can still show this device's own copy before iCloud has
  accepted it; if iCloud then refuses it, the entry ends `absent`, device-only, until a device
- publishes the gateway again.)
+ publishes the gateway again; `SyncState.resync(gatewayId:)` is the way back.)
  */
 public enum GatewaySync {
+  /// How long a device remembers a removal on all devices, by its own clock.
+  public static let tombstoneMemory: Double = 3 * 365 * 24 * 60 * 60 * 1000
+
   public static func reconcile(
     local: LocalSyncSnapshot,
     remote: [SyncedGatewayRecord],
@@ -165,13 +204,17 @@ public enum GatewaySync {
 
 private struct Reconciler {
   enum Mode {
-    /// The entry has stamps: field by field, by stamp, with local edits stamped now.
+    /// The entry has stamps: field by field, by stamp, with local edits stamped now. A field
+    /// without a stored print follows the first-attach table.
     case merge
     /// The entry has never been attached and the record is live: the first-attach table.
     case firstAttach
-    /// The record is a tombstone and the gateway is new here: every local value stamped above it.
+    /// The record is a tombstone and the gateway was added here: every local value stamped above it.
     case readd
   }
+
+  /// The credentials only an explicit clear may clear everywhere.
+  static let credentials: Set<SyncField> = [.frontDoor, .headers, .sessionToken]
 
   let gateways: [LocalGateway]
   let printer: SyncPrinter
@@ -194,6 +237,7 @@ private struct Reconciler {
   var deletes: Set<String> = []
   var ops: [SyncLocalOp] = []
   var events: [SyncEvent] = []
+  var traces: Set<SyncTrace> = []
   var stampCache: [String: SyncStamp] = [:]
 
   init(local: LocalSyncSnapshot, state: SyncState, now: Double) {
@@ -207,6 +251,7 @@ private struct Reconciler {
   }
 
   mutating func run(remote: [SyncedGatewayRecord]) -> SyncPlan {
+    checkPrints()
     index(remote)
     applyRememberedTombstones()
     prune()
@@ -218,7 +263,7 @@ private struct Reconciler {
     adopt(skipping: Set(groups.keys))
     rememberTombstones()
 
-    return SyncPlan(
+    var plan = SyncPlan(
       localOps: ops,
       remotePuts: puts.keys.sorted().map { puts[$0]! },
       remoteDeletes: deletes.sorted().map(SyncedGatewayRecord.account(forKey:)),
@@ -226,6 +271,29 @@ private struct Reconciler {
       events: events,
       stateChanged: state != input
     )
+    plan.traces = traces
+    return plan
+  }
+
+  // MARK: Prints
+
+  /// A print key that changed voids every stored print: without them, each gateway is attached
+  /// as on first sight, where local credentials win and nothing is cleared.
+  mutating func checkPrints() {
+    let check = printer.check
+
+    guard state.printCheck != check else {
+      return
+    }
+
+    if state.entries.values.contains(where: { !$0.prints.isEmpty }) {
+      for id in state.entries.keys {
+        state.entries[id]!.prints = [:]
+      }
+      traces.insert(.printsReset)
+    }
+
+    state.printCheck = check
   }
 
   // MARK: Store side
@@ -236,13 +304,13 @@ private struct Reconciler {
 
       if record.foreign != nil {
         blocked.insert(record.key)
+        traces.insert(.foreignRecord)
         continue
       }
 
       let normalized = record.normalized()
 
       if let existing = records[record.key] {
-        // Two items for one key cannot come from one store; merge them and rewrite.
         records[record.key] = .join(existing, normalized)
         stored[record.key] = nil
       } else {
@@ -254,17 +322,35 @@ private struct Reconciler {
     for key in blocked {
       records[key] = nil
     }
+
+    // Two items for one key cannot come from one store; write the merged one back as one.
+    for key in records.keys.sorted() where stored[key] == nil {
+      schedule(records[key]!)
+    }
+
+    for key in records.keys.sorted() {
+      if let record = records[key], record.isTombstone, let deleted = record.deleted {
+        note(deleted, key: key)
+      }
+    }
+  }
+
+  /// Remember a tombstone, with the time this device first saw it (a newer one starts over).
+  mutating func note(_ deleted: SyncStamp, key: String) {
+    if let memory = state.tombstones[key], memory.stamp >= deleted {
+      return
+    }
+
+    state.tombstones[key] = SyncTombstoneMemory(stamp: deleted, firstSeen: now)
   }
 
   /// A tombstone this device knows of but the store has lost (a concurrent whole-item write won
-  /// over it) is merged back in and written again, as a register would be.
+  /// over it, or a stale copy came back) is merged back in and written again, as a register is.
   mutating func applyRememberedTombstones() {
-    let cutoff = now - SyncedGatewayRecord.tombstoneLifetime
-
     for key in state.tombstones.keys.sorted() {
-      let stamp = state.tombstones[key]!
+      let memory = state.tombstones[key]!
 
-      guard stamp.t >= cutoff else {
+      guard now - memory.firstSeen < GatewaySync.tombstoneMemory else {
         state.tombstones[key] = nil
         continue
       }
@@ -274,35 +360,38 @@ private struct Reconciler {
       }
 
       var tombstone = SyncedGatewayRecord(key: key)
-      tombstone.deleted = stamp
+      tombstone.deleted = memory.stamp
 
       let joined = SyncedGatewayRecord.join(record, tombstone)
       if joined != record {
         schedule(joined)
+        traces.insert(.tombstoneRewritten)
       }
     }
   }
 
-  /// Remember every tombstone in the store (and the ones written now); forget one once its
-  /// gateway has been added again.
+  /// Remember the tombstones written in this run; forget one once its gateway has been added again.
   mutating func rememberTombstones() {
     for key in records.keys.sorted() where !blocked.contains(key) {
       let record = records[key]!
 
       if record.isTombstone, let deleted = record.deleted {
-        state.tombstones[key] = max(state.tombstones[key] ?? deleted, deleted)
+        note(deleted, key: key)
       } else if record.isLive {
         state.tombstones[key] = nil
       }
     }
   }
 
-  /// I16: tombstones older than 180 days go.
+  /// I16: tombstones older than 180 days go, measured twice by this device's own clock: by the
+  /// stamp, and since this device first saw it. A wrong clock elsewhere cannot shorten either.
   mutating func prune() {
-    let cutoff = now - SyncedGatewayRecord.tombstoneLifetime
+    let lifetime = SyncedGatewayRecord.tombstoneLifetime
 
     for key in records.keys.sorted() {
-      guard let record = records[key], record.isTombstone, let deleted = record.deleted, deleted.t < cutoff else {
+      guard let record = records[key], record.isTombstone, let deleted = record.deleted,
+        deleted.t < now - lifetime, let memory = state.tombstones[key], now - memory.firstSeen >= lifetime
+      else {
         continue
       }
 
@@ -328,15 +417,15 @@ private struct Reconciler {
     itemKeys.remove(key)
   }
 
-  /// `max(now, highest t in the record or in this device's stamps for it + 1)`, one per key per
-  /// reconcile so the fields edited together share it.
+  /// `max(now, highest t in the record or in this device's stamps for it + 1)`, clamped into the
+  /// valid range, one per key per reconcile so the fields edited together share it.
   mutating func newStamp(_ key: String, _ entry: SyncEntry) -> SyncStamp {
     if let cached = stampCache[key] {
       return cached
     }
 
     let highest = ([records[key]?.highestT] + entry.stamps.values.map { Optional($0.t) }).compactMap { $0 }.max()
-    let stamp = SyncStamp(t: highest.map { max(now, $0 + 1) } ?? now, d: state.device)
+    let stamp = SyncStamp(t: SyncStamp.clamped(highest.map { max(now, $0 + 1) } ?? now), d: state.device)
 
     stampCache[key] = stamp
     return stamp
@@ -348,11 +437,9 @@ private struct Reconciler {
       return false
     }
 
+    // Written even over an existing tombstone: the person removed it now, so its age starts now,
+    // and an old one about to be pruned cannot carry this removal away with it.
     let current = records[key]
-
-    if let current, current.isTombstone {
-      return true
-    }
 
     guard current != nil || canAddItem(key) else {
       return false
@@ -372,16 +459,34 @@ private struct Reconciler {
   /// Gateways that are gone from the local list since the last reconcile.
   mutating func removeVanished() {
     let present = Set(gateways.map(\.id))
+    let presentKeys = Set(gateways.map(\.key))
 
     for id in state.entries.keys.sorted() where !present.contains(id) {
       let entry = state.entries[id]!
       state.entries[id] = nil
 
-      guard GatewayKey.isValid(entry.key), entry.detached != .duplicateOrigin else {
+      guard GatewayKey.isValid(entry.key) else {
+        continue
+      }
+
+      if entry.detached == .duplicateOrigin {
+        // The last copy at this key is gone: do not adopt it back.
+        if !presentKeys.contains(entry.key) {
+          state.hidden.insert(entry.key)
+        }
         continue
       }
 
       if entry.removal == .allDevices, entry.detached == nil, writeTombstone(entry.key, entry) {
+        continue
+      }
+
+      // Purged by a sync whose state was not saved: the tombstone is newer than what this entry
+      // knew, so it was the removal everywhere, not the person removing it here.
+      if entry.removal == nil, let address = entry.stamp(.address),
+        let deleted = records[entry.key]?.deleted ?? state.tombstones[entry.key]?.stamp,
+        records[entry.key]?.isLive != true, deleted.t >= address.t {
+        traces.insert(.crashedPurgeRecovered)
         continue
       }
 
@@ -394,6 +499,7 @@ private struct Reconciler {
   mutating func group() -> [String: [LocalGateway]] {
     var groups: [String: [LocalGateway]] = [:]
     var ids = Set<String>()
+    let presentKeys = Set(gateways.map(\.key))
 
     for gateway in gateways.sorted(by: Self.oldestFirst) where ids.insert(gateway.id).inserted {
       let key = gateway.key
@@ -404,13 +510,21 @@ private struct Reconciler {
 
       if let entry = state.entries[gateway.id] {
         if entry.key != key {
-          // I13: a new origin is a new record; the old one is removed everywhere if it was ours.
-          if entry.detached == nil, entry.seen || !entry.stamps.isEmpty, GatewayKey.isValid(entry.key),
-            records[entry.key]?.isLive == true {
-            _ = writeTombstone(entry.key, entry)
+          // I13: a new origin is a new record; the old one is removed everywhere if it was ours,
+          // and hidden here if it was device-only.
+          if GatewayKey.isValid(entry.key) {
+            if entry.detached == nil, entry.seen || !entry.stamps.isEmpty, records[entry.key]?.isLive == true {
+              _ = writeTombstone(entry.key, entry)
+            } else if entry.detached == .absent || entry.detached == .user, !presentKeys.contains(entry.key) {
+              state.hidden.insert(entry.key)
+            }
           }
 
-          state.entries[gateway.id] = SyncEntry(key: key, detached: entry.detached == .user ? .user : nil)
+          state.entries[gateway.id] = SyncEntry(
+            key: key, detached: entry.detached == .user ? .user : nil, addedHere: true)
+          state.hidden.remove(key)
+        } else if entry.addedHere {
+          state.hidden.remove(key)
         }
       } else {
         // Added (again) on this device.
@@ -457,11 +571,24 @@ private struct Reconciler {
     var entry = entryIn
 
     guard !blocked.contains(key) else {
+      // A foreign item is never touched; switching sync off still forgets what was synced.
+      if entry.detached == .user {
+        entry.seen = false
+        entry.stamps = [:]
+        entry.prints = [:]
+      }
       state.entries[gateway.id] = entry
       return
     }
 
     let record = records[key]
+
+    // The key is a 64-bit FNV-1a hash: a record for another origin can share it. Never apply one.
+    if let origin = record?.origin, origin != GatewayAddress.origin(of: gateway.address) {
+      traces.insert(.originCollision)
+      state.entries[gateway.id] = entry
+      return
+    }
 
     switch entry.detached {
     case .user?:
@@ -487,6 +614,7 @@ private struct Reconciler {
         // gateway was removed everywhere, and that reaches a device-only copy too.
         if let deleted = record?.deleted, !entry.stamps.isEmpty,
           !(entry.stamp(.address).map { $0.t > deleted.t } ?? false) {
+          traces.insert(.absentPurged)
           purge(gateway)
         } else {
           state.entries[gateway.id] = entry
@@ -500,10 +628,24 @@ private struct Reconciler {
     }
 
     guard let record else {
+      let remembered = state.tombstones[key].map { memory in
+        !(entry.stamp(.address).map { $0.t > memory.stamp.t } ?? false)
+      } ?? false
+
       if entry.seen {
         // I4: absence is never deletion. Keep it here, device-only, and do not republish it.
         entry.detached = .absent
         state.entries[gateway.id] = entry
+      } else if remembered, !entry.addedHere {
+        // The item is gone (pruned), but this device remembers the removal on all devices: what
+        // it knew is older, and the gateway was not added here. Do not publish it again.
+        if entry.stamps.isEmpty {
+          traces.insert(.existingKeptAbsent)
+          entry.detached = .absent
+          state.entries[gateway.id] = entry
+        } else {
+          purge(gateway)
+        }
       } else {
         attach(gateway, entry, key: key, base: nil, mode: .merge)
       }
@@ -518,10 +660,16 @@ private struct Reconciler {
       if knownLive {
         // The store holds an older tombstone than this device knows about.
         attach(gateway, entry, key: key, base: record, mode: .merge)
-      } else if entry.stamps.isEmpty {
+      } else if !entry.stamps.isEmpty {
+        purge(gateway)
+      } else if entry.addedHere {
+        traces.insert(.readded)
         attach(gateway, entry, key: key, base: record, mode: .readd)
       } else {
-        purge(gateway)
+        // It existed here before; the removal on all devices is newer news. Keep it, device-only.
+        traces.insert(.existingKeptAbsent)
+        entry.detached = .absent
+        state.entries[gateway.id] = entry
       }
       return
     }
@@ -541,6 +689,29 @@ private struct Reconciler {
     [.address, .name, .authKind, .provider, .frontDoor, .headers] + (entry.signedOut ? [] : [.user, .sessionToken])
   }
 
+  /// The first-attach table for one field: the record wins where it has a value, except for a
+  /// credential, where a local value wins; the value only one side has is kept; a null in the
+  /// record never clears a local value.
+  mutating func firstAttachCandidate(
+    _ field: SyncField,
+    local: JSONValue,
+    remote: SyncRegister?,
+    remoteValue: JSONValue?,
+    key: String,
+    entry: SyncEntry
+  ) -> SyncRegister? {
+    guard !local.isNull else {
+      return nil
+    }
+
+    if field.isSecret {
+      return remoteValue != local ? Self.register(local, newStamp(key, entry), field: field, previous: remote) : nil
+    }
+
+    return remoteValue == nil || remoteValue == .null
+      ? Self.register(local, newStamp(key, entry), field: field, previous: remote) : nil
+  }
+
   mutating func attach(
     _ gateway: LocalGateway,
     _ entryIn: SyncEntry,
@@ -553,6 +724,10 @@ private struct Reconciler {
     let fields = Self.participating(entry)
     var merged = base ?? SyncedGatewayRecord(key: key)
     var locals: [SyncField: JSONValue] = [:]
+    /// Credentials missing here while signed out: left as they are, and as they were in the state.
+    var frozen: Set<SyncField> = []
+    /// Credentials missing here without a clear: put back from the record.
+    var restoring: Set<SyncField> = []
 
     for field in fields {
       let local = Self.localValue(gateway, field, key: key, origin: origin)
@@ -568,26 +743,30 @@ private struct Reconciler {
           candidate = Self.register(local, newStamp(key, entry), field: field, previous: nil)
         }
       case .firstAttach:
-        if field == .address {
-          break
-        } else if field.isSecret {
-          // Local wins; a null in the record never deletes an unstamped local secret.
-          if !local.isNull, remoteValue != local {
-            candidate = Self.register(local, newStamp(key, entry), field: field, previous: remote)
-          }
-        } else if remoteValue == nil || remoteValue == .null, !local.isNull {
-          // Record wins when it has a value; otherwise the value that exists is kept and stamped.
-          candidate = Self.register(local, newStamp(key, entry), field: field, previous: remote)
-        }
+        candidate = firstAttachCandidate(
+          field, local: local, remote: remote, remoteValue: remoteValue, key: key, entry: entry)
       case .merge:
+        guard let print = entry.prints[field.rawValue] else {
+          candidate = firstAttachCandidate(
+            field, local: local, remote: remote, remoteValue: remoteValue, key: key, entry: entry)
+          break
+        }
+
         let stamp = entry.stamp(field)
-        var edited = entry.prints[field.rawValue].map { $0 != printer.print(local) } ?? !local.isNull
+        var edited = print != printer.print(local)
 
         if !edited, stamp == nil, remote == nil, !local.isNull {
           edited = true
         }
 
-        if edited {
+        if edited, local.isNull, Self.credentials.contains(field), !entry.clearing.contains(field) {
+          // Missing here, and nobody asked for it to go: never publish the gap.
+          if entry.signedOut {
+            frozen.insert(field)
+          } else {
+            restoring.insert(field)
+          }
+        } else if edited {
           if let remoteValue, remoteValue == local {
             // The same value is already there: keep its register.
           } else if remote == nil, stamp == nil, local.isNull {
@@ -619,11 +798,14 @@ private struct Reconciler {
 
     // I16: a record over the size limit keeps its headers on this device.
     var form = merged
+    var headersKept = false
     if form.encodedSize > SyncedGatewayRecord.maximumBytes {
       form.registers[.headers] = base?.registers[.headers]
       if form.encodedSize > SyncedGatewayRecord.maximumBytes {
         form.registers[.headers] = nil
       }
+      headersKept = form.registers[.headers] != merged.registers[.headers]
+      traces.insert(.headersOverLimit)
     }
 
     if base == nil, !canAddItem(key) {
@@ -638,10 +820,15 @@ private struct Reconciler {
       records[key] = form
     }
 
+    // Said once per headers value that cannot travel, not at every reconcile.
+    if headersKept, entry.stamp(.headers) != merged.registers[.headers]?.stamp {
+      events.append(.headersNotSynced(gatewayId: gateway.id))
+    }
+
     var updated = gateway
     var changed = Set<SyncField>()
 
-    for field in fields {
+    for field in fields where !frozen.contains(field) {
       let local = locals[field]!
 
       guard let register = merged.registers[field],
@@ -655,6 +842,7 @@ private struct Reconciler {
           Self.apply(.null, field, to: &updated)
           changed.insert(field)
           entry.prints[field.rawValue] = printer.print(.null)
+          traces.insert(.earlierLifeDropped)
         } else {
           entry.prints[field.rawValue] = printer.print(local)
         }
@@ -666,10 +854,17 @@ private struct Reconciler {
       if value != local {
         Self.apply(value, field, to: &updated)
         changed.insert(field)
+        if restoring.contains(field), !value.isNull {
+          traces.insert(.credentialRestored)
+        }
       }
 
       entry.stamps[field.rawValue] = register.stamp
       entry.prints[field.rawValue] = printer.print(value)
+    }
+
+    if !frozen.isEmpty {
+      traces.insert(.credentialLeftSignedOut)
     }
 
     if let addedAt = merged.addedAt, !(gateway.addedAt <= addedAt) {
@@ -686,6 +881,8 @@ private struct Reconciler {
       }
     }
 
+    entry.clearing.subtract(Set(fields).subtracting(frozen))
+    entry.addedHere = false
     state.entries[gateway.id] = entry
   }
 

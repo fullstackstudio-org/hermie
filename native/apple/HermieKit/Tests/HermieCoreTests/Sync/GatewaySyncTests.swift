@@ -107,7 +107,7 @@ import Testing
 
     world.advance(1_000)
     world.remove(0, world.devices[0].gateways[0].id, scope: .allDevices)
-    #expect(world.reconcile(0).state.tombstones[Self.key]?.t == startOfTime + 1_000)
+    #expect(world.reconcile(0).state.tombstones[Self.key]?.stamp.t == startOfTime + 1_000)
 
     // Device 2 adds the gateway again without having seen the removal; its whole item lands last.
     let reborn = #"""

@@ -9,7 +9,12 @@ import HermieProtocol
 // `wipeLocal`, `rejoin`), so a later task can swap one for the other.
 
 /// Deterministic, and not the identity, so a test can tell a print from a value.
-let testPrinter = SyncPrinter { "p:" + GatewayKey.fnv1a64($0) }
+let testPrinter = printer(key: "")
+
+/// A printer under a key: a device that loses its print key gets a printer under another.
+func printer(key: String) -> SyncPrinter {
+  SyncPrinter { "p:" + GatewayKey.fnv1a64(key + "|" + $0) }
+}
 
 let startOfTime: Double = 1_790_000_000_000
 let day: Double = 24 * 60 * 60 * 1000
@@ -136,6 +141,21 @@ struct TestCloud {
     }
   }
 
+  /// Deliver everything except what goes to or comes from one device, which stays as it was: an
+  /// offline device that keeps its stale copies.
+  mutating func deliverAll(except replica: Int) {
+    func involves(_ message: Message) -> Bool {
+      switch message {
+      case let .upload(from, _, _, _): from == replica
+      case let .download(to, _, _): to == replica
+      }
+    }
+
+    while let index = pending.firstIndex(where: { !involves($0) }) {
+      deliver(at: index)
+    }
+  }
+
   /// The device loses every item without a delete travelling (iCloud Keychain switched off with
   /// "delete from this device", Apple Account signed out, keychain reset), and stops syncing.
   mutating func wipeLocal(_ replica: Int) {
@@ -179,6 +199,8 @@ struct TestDevice {
   var clockOffset: Double = 0
   var events: [SyncEvent] = []
   var nextId = 0
+  /// The key prints are made under; a new one models a print key lost while SQLite stayed.
+  var printKey = ""
   let index: Int
 
   init(index: Int) {
@@ -229,7 +251,7 @@ struct SyncWorld {
   func snapshot(_ device: Int) -> LocalSyncSnapshot {
     var copy = devices[device]
     let ids = (0..<4).map { _ in copy.mintId() }
-    return LocalSyncSnapshot(gateways: devices[device].gateways, newIds: ids, printer: testPrinter)
+    return LocalSyncSnapshot(gateways: devices[device].gateways, newIds: ids, printer: printer(key: devices[device].printKey))
   }
 
   /// The plan for one device, without applying it.
@@ -279,6 +301,7 @@ struct SyncWorld {
   /// Reconcile each device in turn, delivering everything after each, until nothing is written.
   mutating func settle(maxRounds: Int = 20) {
     for _ in 0..<maxRounds {
+      cloud.deliverAll()
       var wrote = false
       for device in devices.indices {
         let plan = reconcile(device)
@@ -313,6 +336,20 @@ struct SyncWorld {
       frontDoor: frontDoorSecret.map { SyncFrontDoor(origin: origin, clientId: "client.access", clientSecret: $0) },
       sessionToken: token.map { SyncSessionToken(origin: origin, token: $0) })
     devices[device].gateways.append(gateway)
+    devices[device].state.markAddedHere(gatewayId: id, key: gateway.key)
+    return id
+  }
+
+  /// A gateway that was already on the device before sync knew of it (set up by hand earlier, or
+  /// by a build without sync): no "added here" intent.
+  @discardableResult
+  mutating func existing(_ device: Int, address: String, name: String = "Home", token: String? = nil) -> String {
+    let id = devices[device].mintId()
+    let origin = GatewayAddress.origin(of: address)
+    devices[device].gateways.append(
+      LocalGateway(
+        id: id, name: name, address: address, authKind: "session_token", addedAt: now + devices[device].clockOffset,
+        sessionToken: token.map { SyncSessionToken(origin: origin, token: $0) }))
     return id
   }
 
@@ -329,7 +366,8 @@ struct SyncWorld {
     edit(device, id) { $0.address = address }
   }
 
-  /// Signing in with a token (or entering a new one) also ends a sign-out on this device.
+  /// Signing in with a token (or entering a new one) also ends a sign-out on this device; the
+  /// person removing the token clears it on every device.
   mutating func setToken(_ device: Int, _ id: String, to token: String?) {
     guard let gateway = devices[device].gateway(id) else { return }
     edit(device, id) { gateway in
@@ -337,15 +375,46 @@ struct SyncWorld {
     }
     if token != nil {
       devices[device].state.setSignedOut(false, gatewayId: id, key: gateway.key)
+    } else {
+      devices[device].state.markClearing(.sessionToken, gatewayId: id, key: gateway.key)
     }
   }
 
   mutating func setFrontDoor(_ device: Int, _ id: String, secret: String?) {
+    guard let current = devices[device].gateway(id) else { return }
     edit(device, id) { gateway in
       gateway.frontDoor = secret.map {
         SyncFrontDoor(origin: GatewayAddress.origin(of: gateway.address), clientId: "client.access", clientSecret: $0)
       }
     }
+    if secret == nil {
+      devices[device].state.markClearing(.frontDoor, gatewayId: id, key: current.key)
+    }
+  }
+
+  mutating func setHeaders(_ device: Int, _ id: String, _ headers: [String: String]?) {
+    guard let current = devices[device].gateway(id) else { return }
+    edit(device, id) { gateway in
+      gateway.headers = headers.map { SyncHeaders(origin: GatewayAddress.origin(of: gateway.address), headers: $0) }
+    }
+    if headers == nil {
+      devices[device].state.markClearing(.headers, gatewayId: id, key: current.key)
+    }
+  }
+
+  /// Credentials gone from this device with nobody asking: a keychain read before the first
+  /// unlock, a code path that dropped one. No intent is recorded.
+  mutating func loseCredentials(_ device: Int, _ id: String) {
+    edit(device, id) { gateway in
+      gateway.sessionToken = nil
+      gateway.frontDoor = nil
+      gateway.headers = nil
+    }
+  }
+
+  /// The device-only print key is gone and minted again, while SQLite kept the old prints.
+  mutating func losePrintKey(_ device: Int) {
+    devices[device].printKey += "x"
   }
 
   mutating func remove(_ device: Int, _ id: String, scope: RemovalScope) {
@@ -363,7 +432,9 @@ struct SyncWorld {
 
   /// Sign out on all devices (session token): the local token goes and the cleared value syncs.
   mutating func signOutEverywhere(_ device: Int, _ id: String) {
+    guard let gateway = devices[device].gateway(id) else { return }
     edit(device, id) { $0.sessionToken = nil }
+    devices[device].state.markClearing(.sessionToken, gatewayId: id, key: gateway.key)
   }
 
   mutating func setGatewaySynced(_ device: Int, _ id: String, _ synced: Bool) {

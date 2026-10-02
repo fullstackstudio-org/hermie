@@ -22,6 +22,15 @@ public struct SyncStamp: Sendable, Hashable, Comparable {
     self.d = d
   }
 
+  /// The largest `t` a stamp may carry: 2^53 − 2^20, so `t + 1` stays an exact integer and a
+  /// clock gone wild cannot write a stamp nobody can ever beat.
+  public static let maximumT: Double = 9_007_199_254_740_992 - 1_048_576
+
+  /// `t` clamped into `[0, maximumT]`.
+  static func clamped(_ t: Double) -> Double {
+    min(max(t, 0), maximumT)
+  }
+
   public static func < (left: SyncStamp, right: SyncStamp) -> Bool {
     left.t != right.t ? left.t < right.t : left.d.utf8.lexicographicallyPrecedes(right.d.utf8)
   }
@@ -31,8 +40,8 @@ public struct SyncStamp: Sendable, Hashable, Comparable {
   }
 
   init?(json: JSONValue?) {
-    guard let object = json?.objectValue, let t = object["t"]?.doubleValue, t.isFinite,
-      let d = object["d"]?.stringValue
+    guard let object = json?.objectValue, let t = object["t"]?.doubleValue, t.isFinite, t >= 0,
+      t <= Self.maximumT, let d = object["d"]?.stringValue
     else {
       return nil
     }
@@ -189,10 +198,16 @@ public struct SyncFrontDoor: Sendable, Hashable {
     ])
   }
 
+  /// The kinds this build knows how to present.
+  public static let knownKinds: Set<String> = [cloudflareAccess]
+
+  /// A known kind, a non-blank id and a non-empty secret, as `FrontDoor` requires to send one.
   init?(json: JSONValue) {
     guard let object = json.objectValue, let origin = object["origin"]?.stringValue,
-      let kind = object["kind"]?.stringValue, let clientId = object["clientId"]?.stringValue,
-      let clientSecret = object["clientSecret"]?.stringValue
+      let kind = object["kind"]?.stringValue, Self.knownKinds.contains(kind),
+      let clientId = object["clientId"]?.stringValue,
+      !clientId.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty,
+      let clientSecret = object["clientSecret"]?.stringValue, !clientSecret.isEmpty
     else {
       return nil
     }
@@ -224,7 +239,14 @@ public struct SyncHeaders: Sendable, Hashable {
 
     var headers: [String: String] = [:]
     for (name, value) in raw {
-      guard let text = value.stringValue else { return nil }
+      // Only what the wizard itself accepts: a token name the transport does not own, and a value
+      // already free of CR, LF and surrounding blanks.
+      guard let text = value.stringValue,
+        let normalized = try? GatewayAddress.normalizeHeader(name: name, value: text),
+        normalized.name == name, normalized.value == text
+      else {
+        return nil
+      }
       headers[name] = text
     }
 
@@ -312,7 +334,9 @@ public enum SyncCodingError: Error, Sendable, Equatable, CustomStringConvertible
  A record value read from the store is **normalised** before it takes part in a merge: registers
  that are malformed, secrets bound to another origin (or a front door on a cleartext origin), and
  anything written at or before `deleted.t` are dropped, and a record that is not live is reduced
- to its tombstone. Unknown top-level fields, unknown fields of a register and unknown fields inside
+ to its tombstone. A front door of an unknown kind or with a blank id, headers the wizard itself
+ would refuse (a name the transport owns, CR or LF in a value), and stamps outside
+ `[0, SyncStamp.maximumT]` count as malformed. Unknown top-level fields, unknown fields of a register and unknown fields inside
  a value are carried through every rewrite.
 
  A record this build must not touch (a `v` other than 1, text that is not a record object, a `key`

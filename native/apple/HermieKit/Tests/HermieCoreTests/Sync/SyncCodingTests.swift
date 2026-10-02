@@ -220,19 +220,24 @@ import Testing
 
   @Test func theStateRoundTripsWithEveryFieldItDoesNotKnow() throws {
     let text = #"""
-      {"device":"a1b2c3d4","disclosed":true,"enabled":true,"entries":{"g0123456789abcdef":{"detached":"absent",\#
+      {"device":"a1b2c3d4","disclosed":true,"enabled":true,"entries":{"g0123456789abcdef":{"addedHere":true,\#
+      "clearing":["frontDoor","sessionToken"],"detached":"absent",\#
       "key":"\#(Self.key)","later":true,"prints":{"name":"p:1"},"removal":"allDevices","seen":true,"signedOut":false,\#
-      "stamps":{"name":{"d":"a1b2c3d4","t":5}}}},"future":{"x":1},"hidden":["9f3ab0c2d4e5f601"],\#
-      "tombstones":{"9f3ab0c2d4e5f602":{"d":"a1b2c3d4","t":7}},"v":1}
+      "stamps":{"name":{"d":"a1b2c3d4","t":5}}}},"future":{"x":1},"generation":4,"hidden":["9f3ab0c2d4e5f601"],\#
+      "printCheck":"p:check","tombstones":{"9f3ab0c2d4e5f602":{"deleted":{"d":"a1b2c3d4","t":7},"firstSeen":9}},"v":1}
       """#
     let state = try #require(SyncState.decode(text))
 
     #expect(state.device == "a1b2c3d4")
     #expect(state.hidden == ["9f3ab0c2d4e5f601"])
-    #expect(state.tombstones["9f3ab0c2d4e5f602"] == SyncStamp(t: 7, d: "a1b2c3d4"))
+    #expect(state.tombstones["9f3ab0c2d4e5f602"] == SyncTombstoneMemory(stamp: SyncStamp(t: 7, d: "a1b2c3d4"), firstSeen: 9))
+    #expect(state.generation == 4)
+    #expect(state.printCheck == "p:check")
     let entry = try #require(state.entries["g0123456789abcdef"])
     #expect(entry.detached == .absent)
     #expect(entry.removal == .allDevices)
+    #expect(entry.addedHere)
+    #expect(entry.clearing == [.frontDoor, .sessionToken])
     #expect(entry.stamp(.name) == SyncStamp(t: 5, d: "a1b2c3d4"))
     #expect(try state.encoded() == text)
   }
