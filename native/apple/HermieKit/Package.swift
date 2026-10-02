@@ -75,7 +75,10 @@ let package = Package(
       name: "HermieSharedTests", dependencies: ["HermieShared"], exclude: ["Fixtures"], swiftSettings: settings),
     .testTarget(name: "HermieMarkdownTests", dependencies: ["HermieMarkdown"], swiftSettings: settings),
     .testTarget(name: "HermieCoreTests", dependencies: ["HermieCore"], swiftSettings: settings),
-    .testTarget(name: "HermieUITests", dependencies: ["HermieUI"], swiftSettings: settings)
+    .testTarget(name: "HermieUITests", dependencies: ["HermieUI"], swiftSettings: settings),
+    // Black-box tests against packages/fake-gateway, macOS only; skipped unless HERMIE_INTEGRATION=1.
+    .testTarget(
+      name: "HermieIntegrationTests", dependencies: ["HermieGateway", "HermieProtocol"], swiftSettings: settings)
   ],
   swiftLanguageModes: [.v6]
 )
