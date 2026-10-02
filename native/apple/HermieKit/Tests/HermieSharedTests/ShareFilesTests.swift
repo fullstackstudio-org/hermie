@@ -20,13 +20,68 @@ struct ShareFilesTests {
       ]
     ]
     let data = try JSONSerialization.data(withJSONObject: written)
-    let manifest = try JSONDecoder().decode(ShareManifest.self, from: data)
+    let manifest = try #require(ShareManifest.parse(data))
 
     #expect(manifest.bot == "researcher")
     #expect(manifest.items.map(\.kind) == [.image, .url])
     #expect(manifest.items[0].size == 1_024)
     #expect(manifest.items[1].text == "https://example.test/a")
     #expect(Identifiers.isSafeShareId(manifest.id))
+  }
+
+  /// The cases of `parseShareManifest`: one bad field costs that field or that item, never the share.
+  @Test("a manifest is repaired towards defaults rather than rejected")
+  func tolerantManifest() throws {
+    let json = """
+      {"version":1,"id":"abc","createdAt":true,"note":42,"items":[
+        {"kind":"video","path":"clip.mov"},
+        {"kind":"image","path":"../escape.png"},
+        {"kind":"file","path":"report.pdf","filename":"bad/name","size":"big"},
+        {"kind":"text","text":"   "},
+        {"kind":"url","text":"  https://example.test  "},
+        "nonsense"
+      ]}
+      """
+    let manifest = try #require(ShareManifest.parse(Data(json.utf8)))
+
+    #expect(manifest.note == "")
+    #expect(manifest.bot == nil)
+    #expect(manifest.createdAt == 0)
+    #expect(manifest.items == [
+      ShareItem(kind: .file, path: "report.pdf", filename: "report.pdf", size: 0),
+      ShareItem(kind: .url, text: "https://example.test")
+    ])
+  }
+
+  @Test(
+    "the three refusals: version, id, and nothing left",
+    arguments: [
+      #"{"version":2,"id":"abc","note":"hi","items":[]}"#,
+      #"{"version":true,"id":"abc","note":"hi","items":[]}"#,
+      #"{"version":1,"id":"../x","note":"hi","items":[]}"#,
+      #"{"version":1,"id":"abc","note":"  ","items":[{"kind":"video"}]}"#,
+      "not json"
+    ]
+  )
+  func manifestRefusals(json: String) {
+    #expect(ShareManifest.parse(Data(json.utf8)) == nil)
+  }
+
+  @Test("a note alone is a message, and a long note is cut at the limit")
+  func noteOnly() throws {
+    let long = String(repeating: "é", count: 2_500)
+    let manifest = try #require(ShareManifest.parse(Data(#"{"version":1,"id":"abc","note":"\#(long)"}"#.utf8)))
+
+    #expect(manifest.items.isEmpty)
+    #expect(manifest.note.utf16.count == ShareManifest.noteLimit)
+  }
+
+  @Test("an unreadable claim is still a claim; an empty file is none")
+  func claims() {
+    #expect(ShareClaim.parse(Data()) == nil)
+    #expect(ShareClaim.parse(Data("  ".utf8)) == nil)
+    #expect(ShareClaim.parse(Data("{torn".utf8)) == ShareClaim(bot: "", at: 0))
+    #expect(ShareClaim.parse(Data(#"{"bot":"writer","at":5}"#.utf8)) == ShareClaim(bot: "writer", at: 5))
   }
 
   @Test("claims, targets and intent files round trip in the TypeScript shapes")

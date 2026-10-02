@@ -14,12 +14,12 @@ import Foundation
  - `share-targets.json`: which session each bot is, and the extension's three sentences
    (`ShareTargets`).
  */
-public struct ShareManifest: Codable, Sendable, Equatable {
+public struct ShareManifest: Encodable, Sendable, Equatable {
   /// `SHARE_MANIFEST_VERSION`.
   public static let supportedVersion = 1
   /// `SHARE_ITEM_LIMIT`.
   public static let itemLimit = 12
-  /// `SHARE_NOTE_LIMIT`.
+  /// `SHARE_NOTE_LIMIT`, in UTF-16 code units as JavaScript counts.
   public static let noteLimit = 2_000
 
   public var version: Int
@@ -47,9 +47,51 @@ public struct ShareManifest: Codable, Sendable, Equatable {
     self.createdAt = createdAt
     self.items = items
   }
+
+  /**
+   Read one manifest, or nil — as tolerantly as `parseShareManifest` in `outbox.ts`.
+
+   Three refusals, and they are the whole contract: a version this build does not understand, an id
+   that is not a name, and an entry with nothing left once the items are checked. Everything else
+   is repaired towards a default: an item of an unknown kind or with an unsafe file name is dropped
+   on its own, a note that is not a string is empty, a missing time is zero. A note alone, with no
+   items, is a message and is kept.
+
+   There is deliberately no `Decodable` conformance: a synthesised decoder would reject the whole
+   share over one item of a kind a newer extension wrote.
+   */
+  public static func parse(_ data: Data) -> ShareManifest? {
+    guard let raw = (try? JSONSerialization.jsonObject(with: data)) as? [String: Any],
+      ShareJSON.number(raw["version"]) == Double(supportedVersion) else {
+      return nil
+    }
+
+    let id = ShareJSON.string(raw["id"])
+
+    guard Identifiers.isSafeShareId(id) else {
+      return nil
+    }
+
+    let items = ((raw["items"] as? [Any]) ?? []).compactMap(ShareItem.parse).prefix(itemLimit)
+    let note = String(decoding: Array(ShareJSON.string(raw["note"]).utf16.prefix(noteLimit)), as: UTF16.self)
+
+    guard !items.isEmpty || !note.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty else {
+      return nil
+    }
+
+    let bot = ShareJSON.string(raw["bot"])
+
+    return ShareManifest(
+      id: id,
+      bot: bot.isEmpty ? nil : bot,
+      note: note,
+      createdAt: ShareJSON.number(raw["createdAt"]),
+      items: Array(items)
+    )
+  }
 }
 
-public struct ShareItem: Codable, Sendable, Equatable {
+public struct ShareItem: Encodable, Sendable, Equatable {
   public enum Kind: String, Codable, Sendable {
     case image, file, url, text
   }
@@ -80,6 +122,65 @@ public struct ShareItem: Codable, Sendable, Equatable {
     self.mimeType = mimeType
     self.text = text
   }
+
+  /// One item as `parseItem` reads it, or nil to drop just this item.
+  static func parse(_ value: Any) -> ShareItem? {
+    guard let raw = value as? [String: Any], let kind = Kind(rawValue: ShareJSON.string(raw["kind"])) else {
+      return nil
+    }
+
+    switch kind {
+    case .url, .text:
+      let text = ShareJSON.string(raw["text"]).trimmingCharacters(in: .whitespacesAndNewlines)
+
+      return text.isEmpty ? nil : ShareItem(kind: kind, text: text)
+    case .image, .file:
+      let path = ShareJSON.string(raw["path"])
+
+      guard isSafeFileName(path) else {
+        return nil
+      }
+
+      let filename = ShareJSON.string(raw["filename"])
+      let mimeType = ShareJSON.string(raw["mimeType"])
+
+      return ShareItem(
+        kind: kind,
+        path: path,
+        filename: isSafeFileName(filename) ? filename : path,
+        size: Int(exactly: ShareJSON.number(raw["size"]).rounded(.towardZero)) ?? 0,
+        mimeType: mimeType.isEmpty ? nil : mimeType
+      )
+    }
+  }
+
+  /// `isSafeShareFileName`: one segment of at most 200 UTF-16 units, no leading dot, no separator
+  /// of either kind, no control character.
+  public static func isSafeFileName(_ name: String) -> Bool {
+    guard !name.isEmpty, name.utf16.count <= 200, !name.hasPrefix(".") else {
+      return false
+    }
+
+    return !name.unicodeScalars.contains { $0 == "/" || $0 == "\\" || $0.value < 0x20 || $0.value == 0x7F }
+  }
+}
+
+/// The two coercions `outbox.ts` reads every field through: `str` and `num`.
+enum ShareJSON {
+  static func string(_ value: Any?) -> String {
+    value as? String ?? ""
+  }
+
+  /// A finite number, never a boolean (JSONSerialization hands both back as `NSNumber`).
+  static func number(_ value: Any?) -> Double {
+    guard let number = value as? NSNumber, CFGetTypeID(number) != CFBooleanGetTypeID() else {
+      return 0
+    }
+
+    let double = number.doubleValue
+
+    return double.isFinite ? double : 0
+  }
 }
 
 public struct ShareClaim: Codable, Sendable, Equatable {
@@ -96,7 +197,32 @@ public struct ShareClaim: Codable, Sendable, Equatable {
     self.bot = bot
     self.at = at
   }
+
+  /**
+   Read a claim as `parseShareClaim` does: nil only for an empty file. A claim that cannot be read
+   is STILL a claim — its existence is the load-bearing fact — so it comes back with no bot.
+   */
+  public static func parse(_ data: Data) -> ShareClaim? {
+    let text = String(decoding: data, as: UTF8.self)
+
+    guard !text.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty else {
+      return nil
+    }
+
+    guard let raw = (try? JSONSerialization.jsonObject(with: data)) as? [String: Any] else {
+      return ShareClaim(bot: "", at: 0)
+    }
+
+    let version = Int(ShareJSON.number(raw["version"]))
+
+    return ShareClaim(
+      version: version == 0 ? supportedVersion : version,
+      bot: ShareJSON.string(raw["bot"]),
+      at: ShareJSON.number(raw["at"])
+    )
+  }
 }
+
 
 public struct ShareTargets: Codable, Sendable, Equatable {
   /// `SHARE_TARGETS_VERSION`.
