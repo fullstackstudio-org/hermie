@@ -75,4 +75,27 @@ enum NativeStrings {
       String(localized: "native.notice.runningInMemory", table: "Native", bundle: .module)
     }
   }
+
+  enum Push {
+    /// Developer details
+    static var developer: String { String(localized: "native.push.developer", table: "Native", bundle: .module) }
+    /// APNs environment
+    static var environment: String {
+      String(localized: "native.push.environment", table: "Native", bundle: .module)
+    }
+    /// Could not register. Hermie tries again later.
+    static var failed: String { String(localized: "native.push.failed", table: "Native", bundle: .module) }
+    /// Not registered: one device can register with at most eight gateways.
+    static var limited: String { String(localized: "native.push.limited", table: "Native", bundle: .module) }
+    /// Not registered
+    static var notRegistered: String {
+      String(localized: "native.push.notRegistered", table: "Native", bundle: .module)
+    }
+    /// Registered
+    static var registered: String { String(localized: "native.push.registered", table: "Native", bundle: .module) }
+    /// Relay
+    static var relay: String { String(localized: "native.push.relay", table: "Native", bundle: .module) }
+    /// Waiting for this device’s push address…
+    static var waiting: String { String(localized: "native.push.waiting", table: "Native", bundle: .module) }
+  }
 }

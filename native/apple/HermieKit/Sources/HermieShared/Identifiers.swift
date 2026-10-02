@@ -1,3 +1,5 @@
+import Foundation
+
 /**
  The small checks every surface that reads a file or a link applies to an id before using it.
 
@@ -26,6 +28,27 @@ public enum Identifiers {
     let scalars = Array(value.unicodeScalars)
 
     return scalars.count == 16 && scalars.allSatisfy { ("0"..."9").contains($0) || ("a"..."f").contains($0) }
+  }
+
+  /// The longest bot name a link or a notification may name, in Unicode scalars.
+  public static let maxBotNameLength = 128
+
+  /**
+   A bot name a link or a notification may select a chat by: non-empty, at most
+   `maxBotNameLength` scalars, no `/`, no control or format character, and not `.` or `..`.
+
+   The name only ever selects a chat on the roster, but it arrives from outside the app (any app
+   can open a `hermie://` link; anyone who can send to this device can put one in a
+   notification), so what can reach a `ChatRef` is bounded here, once, for both.
+   */
+  public static func isBotName(_ value: String) -> Bool {
+    let scalars = value.unicodeScalars
+
+    guard !scalars.isEmpty, scalars.count <= maxBotNameLength, value != ".", value != ".." else {
+      return false
+    }
+
+    return !scalars.contains { $0 == "/" || CharacterSet.controlCharacters.contains($0) }
   }
 
   private static func isSegment(_ value: String, allowingDots: Bool) -> Bool {

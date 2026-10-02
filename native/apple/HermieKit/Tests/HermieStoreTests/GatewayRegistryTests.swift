@@ -47,7 +47,13 @@ struct GatewayRegistryTests {
     #expect(registry.gateways[1].signedInUser == nil)
     #expect(registry.activeGatewayId == "g0123456789abcdef")
     #expect(GatewayRegistry.decode(nil) == .empty)
-    #expect(GatewayRegistry.decode("[]") == .empty)
+    #expect(!GatewayRegistry.decode(nil).unreadable)
+
+    // Text that is not a registry reads as empty, and says so: unknown is not "no gateways".
+    let garbage = GatewayRegistry.decode("[]")
+    #expect(garbage.gateways.isEmpty)
+    #expect(garbage.unreadable)
+    #expect(GatewayRegistry.decode("{not json").unreadable)
   }
 
   @Test("fields this build does not know survive a read-modify-write")

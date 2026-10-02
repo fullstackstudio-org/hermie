@@ -50,6 +50,16 @@ public enum StoreKeys {
   public static let voice = "hermie.voice"
   /// The reader's context switches. Device-wide.
   public static let context = "hermie.context"
+  /// Whether the reader switched notifications on for this device: `true` or `false`. Device-wide.
+  public static let pushEnabled = "hermie.push.enabled"
+  /**
+   This device's push relay registrations, one map keyed by gateway id: handle, environment, token
+   fingerprint and last refresh. Device-wide ON PURPOSE, not namespaced: removing a gateway (here or
+   through sync) purges its namespace, and the registration must outlive that until the push
+   registrar has revoked it at the relay. The relay secrets are in the keychain
+   (`SecretKeys.Gateway.push`), which a gateway removal does not touch either.
+   */
+  public static let pushRegistrations = "hermie.push.registrations"
   /// One map for every gateway's chat arrangement, keyed by gateway id. Not suffixed.
   public static let chatsLayout = "hermie.chats.layout"
 

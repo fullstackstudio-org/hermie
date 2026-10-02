@@ -36,6 +36,22 @@
 	<string>De lokale gegevens van Hermie waren beschadigd en zijn opnieuw opgebouwd. Alles wat nog leesbaar was, is bewaard.</string>
 	<key>native.notice.runningInMemory</key>
 	<string>Hermie kon zijn opslag niet openen. Wat je nu verandert, is weg zodra Hermie stopt.</string>
+	<key>native.push.developer</key>
+	<string>Details voor ontwikkelaars</string>
+	<key>native.push.environment</key>
+	<string>APNs-omgeving</string>
+	<key>native.push.failed</key>
+	<string>Registreren lukte niet. Hermie probeert het later opnieuw.</string>
+	<key>native.push.limited</key>
+	<string>Niet geregistreerd: één apparaat kan zich bij hoogstens acht gateways registreren.</string>
+	<key>native.push.notRegistered</key>
+	<string>Niet geregistreerd</string>
+	<key>native.push.registered</key>
+	<string>Geregistreerd</string>
+	<key>native.push.relay</key>
+	<string>Relay</string>
+	<key>native.push.waiting</key>
+	<string>Wacht op het pushadres van dit apparaat…</string>
 	<key>native.transcript.unsupportedItem</key>
 	<string>Dit bericht (%@) heeft een nieuwere versie van Hermie nodig.</string>
 </dict>

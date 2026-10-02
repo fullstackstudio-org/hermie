@@ -47,14 +47,17 @@ public struct JSONResponse: Sendable, Equatable {
   public var url: String
   /// The `server` header, verbatim; empty when absent.
   public var server: String
+  /// The `retry-after` header, verbatim; empty when absent.
+  public var retryAfter: String
 
   public var ok: Bool { (200...299).contains(status) }
 
-  public init(status: Int, text: String, url: String, server: String) {
+  public init(status: Int, text: String, url: String, server: String, retryAfter: String = "") {
     self.status = status
     self.text = text
     self.url = url
     self.server = server
+    self.retryAfter = retryAfter
   }
 }
 
@@ -158,7 +161,13 @@ public struct HTTPTransport: Sendable {
       redirects: request.redirects
     )
 
-    return JSONResponse(status: raw.status, text: Self.decodeText(raw.data), url: raw.url, server: raw.server)
+    return JSONResponse(
+      status: raw.status,
+      text: Self.decodeText(raw.data),
+      url: raw.url,
+      server: raw.server,
+      retryAfter: raw.retryAfter
+    )
   }
 
   /// What `send` hands back: the status, the bytes and the headers anyone reads.
@@ -168,6 +177,7 @@ public struct HTTPTransport: Sendable {
     var url: String
     var server: String
     var contentType: String
+    var retryAfter: String = ""
   }
 
   private enum Race: Sendable {
@@ -255,7 +265,8 @@ public struct HTTPTransport: Sendable {
         data: data,
         url: response.url?.absoluteString ?? "",
         server: http?.value(forHTTPHeaderField: "server") ?? "",
-        contentType: http?.value(forHTTPHeaderField: "content-type") ?? ""
+        contentType: http?.value(forHTTPHeaderField: "content-type") ?? "",
+        retryAfter: http?.value(forHTTPHeaderField: "retry-after") ?? ""
       )
     }
   }

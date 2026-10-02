@@ -79,7 +79,7 @@ public enum SettingsCategory: String, CaseIterable, Hashable, Sendable, Identifi
  Settings: the category list and one page per category. A sheet with a stack on iPhone and iPad,
  the `Settings` window with a sidebar on the Mac.
 
- Implemented: Privacy (the app lock), Gateways and About. Every other category is a placeholder
+ Implemented: Privacy (the app lock), Gateways, Notifications and About. Every other category is a placeholder
  page until its task lands.
  */
 public struct SettingsView: View {
@@ -156,6 +156,8 @@ struct SettingsPage: View {
         PrivacySettingsPage()
       case .gateways:
         GatewaysSettingsPage(onAddGateway: onAddGateway)
+      case .notifications:
+        NotificationsSettingsPage()
       case .about:
         AboutSettingsPage()
       case .advanced:

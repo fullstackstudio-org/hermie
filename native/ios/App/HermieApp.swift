@@ -6,11 +6,18 @@ import SwiftUI
 /// only declares the scenes.
 ///
 /// The launch runs here, in `init`, so the local store is open and the lock
-/// decided before the first frame. An app delegate adaptor is added with push
-/// (APNs registration), which is a later task.
+/// decided before the first frame. Push is attached here too, before the system
+/// can deliver a token or a notification response to the delegate.
 @main
 struct HermieApp: App {
-  @State private var launch = AppLaunch(environment: .live())
+  @UIApplicationDelegateAdaptor(PushAppDelegate.self) private var pushDelegate
+  @State private var launch: AppLaunch
+
+  init() {
+    let launch = AppLaunch(environment: .live(), pushSystem: SystemPushBridge())
+    _launch = State(initialValue: launch)
+    PushInbox.shared.attach(launch.push)
+  }
 
   var body: some Scene {
     WindowGroup(id: ShellScene.main) {

@@ -49,6 +49,12 @@ public final class GatewayDirectory {
   public private(set) var loaded = false
   /// The stored list is from a newer build; it is shown read-only and never written over.
   public private(set) var unsupportedVersion: String?
+  /**
+   The list could not be read (a database error) or is not a list at all. `entries` is then empty,
+   which is NOT the same as "no gateways": whatever acts on a gateway having gone (push revoking
+   its registration) waits until a read succeeds.
+   */
+  public private(set) var loadFailed = false
 
   /**
    Called after a gateway was removed from the registry and its cached state purged. The sign-in
@@ -105,6 +111,7 @@ public final class GatewayDirectory {
       apply(try await store.load())
     } catch {
       apply(.empty)
+      loadFailed = true
     }
   }
 
@@ -120,6 +127,7 @@ public final class GatewayDirectory {
     }
 
     unsupportedVersion = registry.unsupportedVersion?.description
+    loadFailed = registry.unreadable
     loaded = true
   }
 

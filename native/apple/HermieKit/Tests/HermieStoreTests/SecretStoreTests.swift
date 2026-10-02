@@ -127,8 +127,12 @@ import Testing
     #expect(gateway.extraHeaders == "hermie.auth.extra_headers-g0123456789abcdef")
     #expect(gateway.frontDoor == "hermie.auth.front_door-g0123456789abcdef")
     #expect(gateway.pushManage == "hermie.push.manage-g0123456789abcdef")
+    #expect(gateway.pushSend == "hermie.push.send-g0123456789abcdef")
     #expect(gateway.credentials.count == 6)
-    #expect(gateway.all == gateway.credentials + [gateway.pushManage])
+    // The push secrets are the push registrar's: removing a gateway must not take them.
+    #expect(gateway.all == gateway.credentials)
+    #expect(gateway.push == [gateway.pushManage, gateway.pushSend])
+    #expect(gateway.push.allSatisfy(SecretKeys.isValidKey))
     #expect(gateway.all.allSatisfy(SecretKeys.isValidKey))
     #expect(Set(gateway.all).count == gateway.all.count)
     #expect(SecretKeys.shareDelivery == "hermie.share.delivery")

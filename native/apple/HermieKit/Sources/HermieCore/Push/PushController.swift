@@ -1,0 +1,481 @@
+import Foundation
+import HermieShared
+import HermieStore
+import Observation
+
+/// One gateway's registration as Settings shows it.
+public enum PushGatewayState: Sendable, Equatable {
+  /// Notifications are off, or not permitted.
+  case off
+  /// On and permitted, and nothing is registered yet: no token, or the first pass has not run.
+  case waiting
+  case registered(handlePrefix: String, refreshedAt: Double)
+  /// Past the relay's limit of registrations per device (`PushPlan.maxRegistrations`).
+  case limited
+  /// The last pass could not register or refresh it. It is tried again on a later one.
+  case failed(PushPassFailure)
+}
+
+/// A configured gateway as push needs it: its id, and the link key a notification names it by.
+public struct PushGatewayRef: Sendable, Hashable {
+  public var id: String
+  public var key: String
+
+  public init(id: String, key: String) {
+    self.id = id
+    self.key = key
+  }
+}
+
+/// Where a tap sends the reader.
+public enum PushRoute: Sendable, Equatable {
+  /// A chat, by a link whose gateway key names a configured gateway.
+  case chat(DeepLink)
+  /// The chat list: the notification could not be tied to a configured gateway or a usable bot.
+  case chatList
+}
+
+/// The session layer is not there to ask. The default of both session seams.
+public struct PushSessionUnavailable: Error, Sendable, Equatable {
+  public init() {}
+}
+
+/// The open requests of one gateway, read from it just now (`approval.pending`).
+public typealias PushPendingReader = @MainActor (_ gatewayId: String) async throws -> [PushOpenApproval]
+
+/// Answer one request on one gateway.
+public typealias PushResponder = @MainActor (_ gatewayId: String, _ requestId: String, _ choice: String) async throws
+  -> Void
+
+extension GatewayDirectory {
+  /**
+   The gateways push should know about, the live one first and then the registry's order, or nil
+   while that is unknown: not read yet, unreadable, or stored by a newer build. Nil is never "no
+   gateways": push neither starts nor revokes anything on it.
+   */
+  public var pushGateways: [PushGatewayRef]? {
+    guard loaded, !loadFailed, unsupportedVersion == nil else {
+      return nil
+    }
+
+    let refs = entries.map { PushGatewayRef(id: $0.id, key: $0.key) }
+    let active = refs.filter { $0.id == activeId }
+
+    return active + refs.filter { $0.id != activeId }
+  }
+}
+
+/**
+ Push on this device: the reader's switch, the system permission, the APNs token and the relay
+ registrations, plus what a tap on a notification does.
+
+ Owned by `AppLaunch`. It reaches the system only through `PushSystem`, the relay only through
+ `PushRegistrar` and the gateways only through the two session seams, so all of it is tested with
+ fakes.
+
+ - Nothing runs before `start()`, and `start()` runs only once the gateway list is known
+   (`setGateways`) and the switch could be read. Unknown is never read as off or as empty.
+ - Permission is asked for only from `setEnabled(true)`, which only an explicit action calls.
+ - The token is asked for only when the switch is on and the system allows notifications.
+ - Every change of switch, permission, token or gateway list runs a registrar pass.
+
+ Taps (ADR-0017: a notification is a hint, never an instruction): the payload's gateway key must
+ name a configured gateway, or the tap opens the chat list. A plain tap opens the chat. Allow and
+ Deny re-read that gateway's open requests through `pendingApprovals`, decide with
+ `PushTapRules.resolve`, and answer through `respond` only a request still in that fresh list;
+ anything else, and any failure, opens the chat.
+
+ Seams for later tasks: `address(for:)` and `onAddressesChanged` for the ui_meta push row writer;
+ `pendingApprovals`, `respond`, `retire(gatewayId:)` and `setGateways(_:)` for the session layer.
+ */
+@MainActor
+@Observable
+public final class PushController {
+  public private(set) var permission: PushPermission = .undetermined
+  /// The reader's switch. Independent of the permission and the token.
+  public private(set) var enabled = false
+  /// APNs has handed this launch a token.
+  public private(set) var hasToken = false
+  /// The system's reason it could not give a token, verbatim and shortened.
+  public private(set) var tokenFailure: String?
+  /// The registrations held, by gateway id. No secrets.
+  public private(set) var registrations: [String: PushRegistration] = [:]
+  /// The last pass's failures, by gateway id.
+  public private(set) var failures: [String: PushPassFailure] = [:]
+  /// The configured gateways, most important first.
+  public private(set) var gateways: [PushGatewayRef] = []
+  /// Becomes true when `start()` has read the stored switch and the permission.
+  public private(set) var started = false
+  /// The stored switch could not be read, so push has not started.
+  public private(set) var switchUnreadable = false
+
+  public let environment: APNsEnvironment
+  public let environmentSource: APNsEnvironmentDetection.Source
+  public let topic: String
+
+  /// Called with the gateways whose relay address changed, after the pass that changed it: the
+  /// ui_meta push row writer rewrites (or removes) those rows, reading `address(for:)`.
+  @ObservationIgnored public var onAddressesChanged: (@MainActor (Set<String>) -> Void)?
+
+  /// The session seam for reading a gateway's open requests. Until it is set, reading fails and
+  /// an action opens the chat.
+  @ObservationIgnored public var pendingApprovals: PushPendingReader = { _ in throw PushSessionUnavailable() }
+
+  /// The session seam for answering one. Until it is set, answering fails and the chat opens.
+  @ObservationIgnored public var respond: PushResponder = { _, _, _ in throw PushSessionUnavailable() }
+
+  @ObservationIgnored private var token: APNsDeviceToken?
+  @ObservationIgnored private var gatewaysKnown = false
+  @ObservationIgnored private var linkHandlers: [(id: UUID, handler: @MainActor (PushRoute) -> Void)] = []
+  @ObservationIgnored private var pendingRoutes: [PushRoute] = []
+  @ObservationIgnored private var pendingResponses: [(action: String, payload: PushPayload)] = []
+
+  @ObservationIgnored public let system: any PushSystem
+  @ObservationIgnored public let registrar: PushRegistrar
+  @ObservationIgnored private let settings: KeyValueStore
+
+  public init(
+    system: any PushSystem,
+    registrar: PushRegistrar,
+    settings: KeyValueStore,
+    topic: String,
+    environment: APNsEnvironment,
+    environmentSource: APNsEnvironmentDetection.Source
+  ) {
+    self.system = system
+    self.registrar = registrar
+    self.settings = settings
+    self.topic = topic
+    self.environment = environment
+    self.environmentSource = environmentSource
+  }
+
+  /// Switched on and permitted.
+  public var wanted: Bool {
+    enabled && permission == .granted
+  }
+
+  /// The gateway ids, most important first.
+  public var gatewayIds: [String] {
+    gateways.map(\.id)
+  }
+
+  /// The gateways past the relay's per-device limit, which are not registered.
+  public var limited: Set<String> {
+    Set(PushPlan.selection(gatewayIds).limited)
+  }
+
+  /// The relay origin registrations are made at.
+  public nonisolated var relay: String {
+    registrar.client.origin
+  }
+
+  // MARK: Lifecycle
+
+  /**
+   Read the switch and the permission, declare the categories, ask for a token if wanted, and run a
+   first pass (which revokes registrations that are no longer wanted). Idempotent. Does nothing
+   until the gateway list is known, and nothing when the switch cannot be read: a later call tries
+   again.
+   */
+  public func start() async {
+    guard !started, gatewaysKnown else {
+      return
+    }
+
+    let stored: Bool?
+
+    do {
+      stored = try await settings.value(Bool.self, forKey: StoreKeys.pushEnabled)
+    } catch {
+      switchUnreadable = true
+      return
+    }
+
+    switchUnreadable = false
+    system.setCategories(PushCategoryDescriptor.all(title: \.contractTitle))
+    enabled = stored ?? false
+    permission = await system.permission()
+
+    if let held = await registrar.registrations() {
+      registrations = Dictionary(held.map { ($0.gatewayId, $0) }, uniquingKeysWith: { first, _ in first })
+    }
+
+    started = true
+
+    if wanted {
+      system.registerForRemoteNotifications()
+    }
+
+    await reconcile()
+    await system.setBadgeCount(0)
+  }
+
+  /// The app came to the front: the permission may have changed in the system's settings.
+  public func becameActive() async {
+    guard started else {
+      await start()
+      return
+    }
+
+    await system.setBadgeCount(0)
+
+    let next = await system.permission()
+
+    guard next != permission else {
+      return
+    }
+
+    permission = next
+
+    if wanted {
+      system.registerForRemoteNotifications()
+    }
+
+    await reconcile()
+  }
+
+  /// The reader's switch. Turning it on asks for permission when it has never been asked; this is
+  /// the only place that question is put. Ignored before `start()`.
+  public func setEnabled(_ on: Bool) async {
+    guard started else {
+      return
+    }
+
+    enabled = on
+    try? await settings.set(on, forKey: StoreKeys.pushEnabled)
+
+    if on {
+      if permission == .undetermined {
+        permission = await system.requestPermission()
+      }
+
+      if permission == .granted {
+        system.registerForRemoteNotifications()
+      }
+    }
+
+    await reconcile()
+  }
+
+  /// The configured gateways, most important first (`GatewayDirectory.pushGateways`). The session
+  /// layer leaves out one it signed out of. Only ever a known list.
+  public func setGateways(_ next: [PushGatewayRef]) async {
+    let first = !gatewaysKnown
+
+    gatewaysKnown = true
+
+    guard first || next != gateways else {
+      return
+    }
+
+    gateways = next
+
+    let held = pendingResponses
+    pendingResponses = []
+
+    for response in held {
+      await handleResponse(actionIdentifier: response.action, payload: response.payload)
+    }
+
+    if started {
+      await reconcile()
+    }
+  }
+
+  /// Revoke one gateway's registration now (sign-out). Also stop listing it in `setGateways`.
+  public func retire(gatewayId: String) async {
+    gateways.removeAll { $0.id == gatewayId }
+
+    let had = registrations[gatewayId] != nil
+
+    await registrar.retire(gatewayId: gatewayId)
+
+    if let held = await registrar.registrations() {
+      registrations = Dictionary(held.map { ($0.gatewayId, $0) }, uniquingKeysWith: { first, _ in first })
+    }
+
+    if had, registrations[gatewayId] == nil {
+      onAddressesChanged?([gatewayId])
+    }
+  }
+
+  /// What a gateway's push row is written from, or nil.
+  public func address(for gatewayId: String) async -> PushRelayAddress? {
+    await registrar.address(gatewayId: gatewayId)
+  }
+
+  // MARK: System callbacks
+
+  public func didRegister(deviceToken: Data) {
+    guard let next = APNsDeviceToken(data: deviceToken) else {
+      tokenFailure = "invalid token"
+      return
+    }
+
+    tokenFailure = nil
+    hasToken = true
+
+    guard next != token else {
+      return
+    }
+
+    token = next
+
+    if started {
+      Task { await reconcile() }
+    }
+  }
+
+  public func didFailToRegister(message: String) {
+    let trimmed = message.split(whereSeparator: \.isNewline).joined(separator: " ")
+    tokenFailure = String(trimmed.prefix(200))
+  }
+
+  // MARK: Passes
+
+  /// Run one registrar pass with the current state and publish what it ended with. Nil, and
+  /// nothing done, before `start()`.
+  @discardableResult
+  public func reconcile() async -> PushPassReport? {
+    guard started else {
+      return nil
+    }
+
+    let context = PushContext(
+      token: token,
+      environment: environment,
+      topic: topic,
+      wanted: wanted,
+      gatewayIds: gatewayIds
+    )
+
+    let report = await registrar.reconcile(context)
+
+    if !report.skipped {
+      registrations = report.registrations
+    }
+
+    failures = report.failures
+
+    if !report.addressChanged.isEmpty {
+      onAddressesChanged?(report.addressChanged)
+    }
+
+    return report
+  }
+
+  /// One gateway's state, for Settings.
+  public func state(for gatewayId: String) -> PushGatewayState {
+    guard wanted else {
+      return .off
+    }
+
+    if limited.contains(gatewayId) {
+      return .limited
+    }
+
+    if let failure = failures[gatewayId] {
+      return .failed(failure)
+    }
+
+    if let registration = registrations[gatewayId] {
+      return .registered(handlePrefix: PushRelay.handlePrefix(registration.handle), refreshedAt: registration.refreshedAt)
+    }
+
+    return .waiting
+  }
+
+  // MARK: Notifications
+
+  /// How a notification is shown while the app is in front.
+  public func presentation(for payload: PushPayload?) -> PushPresentation {
+    .foreground
+  }
+
+  /// A tap on a notification, or on one of its actions. See the type's documentation for the rules.
+  public func handleResponse(actionIdentifier: String, payload: PushPayload?) async {
+    guard let payload else {
+      return
+    }
+
+    // A cold start from a notification: the tap waits for the gateway list instead of guessing.
+    guard gatewaysKnown else {
+      pendingResponses.append((actionIdentifier, payload))
+      return
+    }
+
+    guard let tap = PushTap(actionIdentifier: actionIdentifier, payload: payload),
+      !tap.gatewayKey.isEmpty,
+      let gateway = gateways.first(where: { $0.key == tap.gatewayKey })
+    else {
+      open(.chatList)
+      return
+    }
+
+    let chat = PushRoute.chat(tap.link)
+
+    guard tap.action != .open else {
+      open(chat)
+      return
+    }
+
+    let pending: [PushOpenApproval]
+
+    do {
+      pending = try await pendingApprovals(gateway.id)
+    } catch {
+      open(chat)
+      return
+    }
+
+    switch PushTapRules.resolve(tap, pending: pending) {
+    case .openChat:
+      open(chat)
+    case .respond(_, let requestId, let choice):
+      do {
+        try await respond(gateway.id, requestId, choice)
+      } catch {
+        open(chat)
+      }
+    }
+  }
+
+  // MARK: Routing
+
+  /// A window's router, attached while the window is up. Routes that arrived while no window was
+  /// attached are delivered to it, in order.
+  public func attachLinkHandler(_ id: UUID, _ handler: @escaping @MainActor (PushRoute) -> Void) {
+    linkHandlers.removeAll { $0.id == id }
+    linkHandlers.append((id, handler))
+
+    let waiting = pendingRoutes
+    pendingRoutes = []
+
+    for route in waiting {
+      handler(route)
+    }
+  }
+
+  /// The window became the one in front: its router receives the next taps.
+  public func activateLinkHandler(_ id: UUID) {
+    guard let index = linkHandlers.firstIndex(where: { $0.id == id }) else {
+      return
+    }
+
+    linkHandlers.append(linkHandlers.remove(at: index))
+  }
+
+  /// The window closed. Only its own handler is removed; with none left, taps are held again.
+  public func detachLinkHandler(_ id: UUID) {
+    linkHandlers.removeAll { $0.id == id }
+  }
+
+  private func open(_ route: PushRoute) {
+    if let current = linkHandlers.last {
+      current.handler(route)
+    } else {
+      pendingRoutes.append(route)
+    }
+  }
+}

@@ -6,11 +6,19 @@ import SwiftUI
 /// lives in HermieKit; this file only declares the scenes.
 ///
 /// The launch runs here, in `init`, so the local store is open and the lock
-/// decided before the first frame. A `MenuBarExtra` and the app delegate
-/// adaptor for push are later tasks; both go beside the scenes below.
+/// decided before the first frame. Push is attached here too, before the system
+/// can deliver a token or a notification response to the delegate. A
+/// `MenuBarExtra` is a later task; it goes beside the scenes below.
 @main
 struct HermieApp: App {
-  @State private var launch = AppLaunch(environment: .live())
+  @NSApplicationDelegateAdaptor(PushAppDelegate.self) private var pushDelegate
+  @State private var launch: AppLaunch
+
+  init() {
+    let launch = AppLaunch(environment: .live(), pushSystem: SystemPushBridge())
+    _launch = State(initialValue: launch)
+    PushInbox.shared.attach(launch.push)
+  }
 
   var body: some Scene {
     WindowGroup(id: ShellScene.main) {

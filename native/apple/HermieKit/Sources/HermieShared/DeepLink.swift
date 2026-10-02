@@ -9,9 +9,10 @@ import Foundation
  already made — a chat on the roster, a share or a Shortcut request this device wrote, a folder in
  the owner's list — and never carries an address, a token or content.
 
- - `hermie://chat/<bot>?gateway=<key>`: the bot name is percent-decoded and refused when empty or
-   when it contains a slash; `gateway` is kept only when it is sixteen lowercase hex digits, and
-   every other parameter is ignored.
+ - `hermie://chat/<bot>?gateway=<key>`: the bot name is percent-decoded and refused unless it
+   passes `Identifiers.isBotName` (non-empty, bounded, no slash, no control character), the same
+   rule a notification's bot name is held to; `gateway` is kept only when it is sixteen lowercase
+   hex digits, and every other parameter is ignored.
  - `hermie://share/<id>`, `hermie://intent/<id>`, `hermie://folder/<id>`: the id is NOT decoded and
    must already be in its alphabet (`Identifiers`).
  - `exp+hermie://` is accepted too, the scheme a development client registers.
@@ -132,7 +133,7 @@ public enum DeepLink: Sendable, Hashable {
     case "folder":
       return Identifiers.isSafeFolderId(segment) ? .folder(id: segment) : nil
     case "chat":
-      guard let bot = segment.removingPercentEncoding, !bot.isEmpty, !bot.contains("/") else {
+      guard let bot = segment.removingPercentEncoding, Identifiers.isBotName(bot) else {
         return nil
       }
 

@@ -89,6 +89,10 @@ public struct GatewayRegistry: Sendable, Equatable {
   /// The stored `v`, when it was not one this build understands.
   public private(set) var unsupportedVersion: StoredVersion?
 
+  /// Text was stored, but it is not a registry at all. Read as empty, and NOT the same as an empty
+  /// list: nothing that acts on "this gateway is gone" may act on it.
+  public private(set) var unreadable = false
+
   var extra: [String: StoredJSON] = [:]
 
   public struct StoredVersion: Sendable, Equatable {
@@ -225,8 +229,14 @@ public struct GatewayRegistry: Sendable, Equatable {
 
   /// Read the stored text. Anything that is not a registry reads as empty.
   public static func decode(_ text: String?) -> GatewayRegistry {
-    guard let text, let root = StoredJSON.parse(text)?.object else {
+    guard let text else {
       return .empty
+    }
+
+    guard let root = StoredJSON.parse(text)?.object else {
+      var unreadable = GatewayRegistry.empty
+      unreadable.unreadable = true
+      return unreadable
     }
 
     guard root["v"]?.number == Double(version) else {

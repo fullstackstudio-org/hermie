@@ -1,0 +1,339 @@
+import Foundation
+import HermieStore
+import Testing
+
+@testable import HermieCore
+
+/// The effectful shell: `PushPlan` carried out against a scripted relay and a real registration
+/// store (in-memory database, in-memory keychain), with a hand-moved clock.
+@Suite("Push registrar")
+struct PushRegistrarTests {
+  typealias F = PushFixtures
+
+  struct Rig {
+    let relay = ScriptedRelay()
+    let clock = PushClock()
+    let secrets: LockableSecretStore
+    let store: PushRegistrationStore
+    let registrar: PushRegistrar
+
+    init() throws {
+      secrets = LockableSecretStore()
+      store = try makePushStore(secrets: secrets)
+      registrar = PushRegistrar(client: relay, store: store, clock: clock.read)
+    }
+
+    func context(
+      token: APNsDeviceToken? = F.tokenA,
+      environment: APNsEnvironment = .sandbox,
+      wanted: Bool = true,
+      gateways: [String] = ["g1"]
+    ) -> PushContext {
+      PushContext(token: token, environment: environment, topic: F.topic, wanted: wanted, gatewayIds: gateways)
+    }
+  }
+
+  @Test("first launch registers, keeps the secrets in the keychain and the rest in the store")
+  func registers() async throws {
+    let rig = try Rig()
+    let report = await rig.registrar.reconcile(rig.context())
+
+    #expect(rig.relay.calls == [.register(token: F.tokenA.hex, environment: .sandbox, topic: F.topic)])
+    #expect(report.addressChanged == ["g1"])
+    #expect(report.failures.isEmpty)
+
+    let stored = try await rig.store.registrations()
+    #expect(stored == [F.registration("g1", handle: F.handle(1), refreshedAt: rig.clock.now)])
+
+    let keys = try SecretKeys.gateway("g1")
+    #expect(try rig.secrets.inner.get(keys.pushManage) == F.secret("manage", 1))
+    #expect(try rig.secrets.inner.get(keys.pushSend) == F.secret("send", 1))
+
+    let address = await rig.registrar.address(gatewayId: "g1")
+    #expect(
+      address
+        == PushRelayAddress(
+          relay: F.relay, handle: F.handle(1), sendSecret: F.secret("send", 1),
+          platform: PushRelayAddress.currentPlatform, updatedAt: rig.clock.now)
+    )
+  }
+
+  @Test("a second launch the same day sends nothing; a day later it refreshes once")
+  func dailyRefresh() async throws {
+    let rig = try Rig()
+    await rig.registrar.reconcile(rig.context())
+
+    rig.clock.advance(3_600)
+    await rig.registrar.reconcile(rig.context())
+    #expect(rig.relay.calls.count == 1)
+
+    rig.clock.advance(PushPlan.refreshInterval)
+    let report = await rig.registrar.reconcile(rig.context())
+
+    #expect(
+      rig.relay.calls.last
+        == .update(handle: F.handle(1), manageSecret: F.secret("manage", 1), token: F.tokenA.hex, environment: .sandbox)
+    )
+    #expect(report.addressChanged.isEmpty)
+    #expect(try await rig.store.registrations().first?.refreshedAt == rig.clock.now)
+
+    await rig.registrar.reconcile(rig.context())
+    #expect(rig.relay.calls.count == 2)
+  }
+
+  @Test("a new token is sent with a PUT and remembered by fingerprint")
+  func tokenChange() async throws {
+    let rig = try Rig()
+    await rig.registrar.reconcile(rig.context())
+    await rig.registrar.reconcile(rig.context(token: F.tokenB, environment: .production))
+
+    #expect(
+      rig.relay.calls.last
+        == .update(handle: F.handle(1), manageSecret: F.secret("manage", 1), token: F.tokenB.hex, environment: .production)
+    )
+
+    let stored = try #require(try await rig.store.registrations().first)
+    #expect(stored.tokenFingerprint == F.tokenB.fingerprint)
+    #expect(stored.environment == .production)
+  }
+
+  @Test("a 404 on refresh registers again for a new capability, and says the address changed")
+  func notFoundReregisters() async throws {
+    let rig = try Rig()
+    await rig.registrar.reconcile(rig.context())
+
+    rig.relay.failUpdate(.notFound)
+    let report = await rig.registrar.reconcile(rig.context(token: F.tokenB))
+
+    #expect(
+      Array(rig.relay.calls.suffix(2))
+        == [
+          .update(handle: F.handle(1), manageSecret: F.secret("manage", 1), token: F.tokenB.hex, environment: .sandbox),
+          .register(token: F.tokenB.hex, environment: .sandbox, topic: F.topic)
+        ]
+    )
+    #expect(report.addressChanged == ["g1"])
+    #expect(try await rig.store.registrations().first?.handle == F.handle(2))
+    #expect(try await rig.store.secrets(gatewayId: "g1").manageSecret == F.secret("manage", 2))
+  }
+
+  @Test("a refresh that fails on the network keeps the registration and is tried again next pass")
+  func refreshFailureKept() async throws {
+    let rig = try Rig()
+    await rig.registrar.reconcile(rig.context())
+
+    rig.relay.failUpdate(.network)
+    let report = await rig.registrar.reconcile(rig.context(token: F.tokenB))
+
+    #expect(report.failures == ["g1": .relay(.network)])
+    #expect(try await rig.store.registrations().first?.tokenFingerprint == F.tokenA.fingerprint)
+
+    await rig.registrar.reconcile(rig.context(token: F.tokenB))
+    #expect(try await rig.store.registrations().first?.tokenFingerprint == F.tokenB.fingerprint)
+  }
+
+  @Test("switching off deletes at the relay and forgets the secrets")
+  func disableDeletes() async throws {
+    let rig = try Rig()
+    await rig.registrar.reconcile(rig.context(gateways: ["g1", "g2"]))
+    let report = await rig.registrar.reconcile(rig.context(token: nil, wanted: false, gateways: ["g1", "g2"]))
+
+    #expect(
+      Array(rig.relay.calls.suffix(2))
+        == [
+          .delete(handle: F.handle(1), manageSecret: F.secret("manage", 1)),
+          .delete(handle: F.handle(2), manageSecret: F.secret("manage", 2))
+        ]
+    )
+    #expect(report.addressChanged == ["g1", "g2"])
+    #expect(try await rig.store.registrations().isEmpty)
+    #expect(rig.secrets.inner.count == 0)
+  }
+
+  @Test("a delete that fails is kept and retried; a 404 on delete counts as deleted")
+  func deleteRetried() async throws {
+    let rig = try Rig()
+    await rig.registrar.reconcile(rig.context(gateways: ["g1"]))
+
+    rig.relay.failDelete(.timeout)
+    let failed = await rig.registrar.reconcile(rig.context(gateways: []))
+    #expect(failed.failures == ["g1": .relay(.timeout)])
+    #expect(try await rig.store.registrations().count == 1)
+
+    rig.relay.failDelete(.notFound)
+    let done = await rig.registrar.reconcile(rig.context(gateways: []))
+    #expect(done.failures.isEmpty)
+    #expect(try await rig.store.registrations().isEmpty)
+  }
+
+  @Test("a rate limit stops every further relay call in the same pass")
+  func rateLimitHalts() async throws {
+    let rig = try Rig()
+    rig.relay.failRegister(.rateLimited(retryAfterSeconds: 60))
+
+    let report = await rig.registrar.reconcile(rig.context(gateways: ["g1", "g2", "g3"]))
+
+    #expect(rig.relay.calls.count == 1)
+    #expect(
+      report.failures
+        == [
+          "g1": .relay(.rateLimited(retryAfterSeconds: 60)),
+          "g2": .relay(.rateLimited(retryAfterSeconds: 60)),
+          "g3": .relay(.rateLimited(retryAfterSeconds: 60))
+        ]
+    )
+  }
+
+  @Test("a keychain that cannot be read leaves the registration alone instead of re-registering")
+  func lockedKeychain() async throws {
+    let rig = try Rig()
+    await rig.registrar.reconcile(rig.context())
+
+    rig.secrets.lock(true)
+    rig.clock.advance(2 * PushPlan.refreshInterval)
+    let report = await rig.registrar.reconcile(rig.context(token: F.tokenB))
+
+    #expect(rig.relay.calls.count == 1)
+    #expect(report.failures == ["g1": .storage])
+    #expect(try await rig.store.registrations().count == 1)
+
+    rig.secrets.lock(false)
+    await rig.registrar.reconcile(rig.context(token: F.tokenB))
+    #expect(rig.relay.calls.count == 2)
+  }
+
+  @Test("a capability that cannot be stored is revoked at once, while the secret is still in hand")
+  func unstorableRevoked() async throws {
+    let rig = try Rig()
+    rig.secrets.lock(true)
+
+    let report = await rig.registrar.reconcile(rig.context())
+
+    #expect(
+      rig.relay.calls
+        == [
+          .register(token: F.tokenA.hex, environment: .sandbox, topic: F.topic),
+          .delete(handle: F.handle(1), manageSecret: F.secret("manage", 1))
+        ]
+    )
+    #expect(report.failures == ["g1": .storage])
+  }
+
+  @Test("secrets lost (a restore onto another device): forget and register, the old one is not contacted")
+  func secretsLost() async throws {
+    let rig = try Rig()
+    await rig.registrar.reconcile(rig.context())
+
+    let keys = try SecretKeys.gateway("g1")
+    try rig.secrets.delete(keys.pushManage)
+
+    let report = await rig.registrar.reconcile(rig.context())
+
+    #expect(rig.relay.calls.last == .register(token: F.tokenA.hex, environment: .sandbox, topic: F.topic))
+    #expect(!rig.relay.calls.contains { if case .delete = $0 { true } else { false } })
+    #expect(report.addressChanged == ["g1"])
+    #expect(try await rig.store.registrations().first?.handle == F.handle(2))
+  }
+
+  @Test("retire (sign-out) deletes now; a gateway never registered is nothing to retire")
+  func retire() async throws {
+    let rig = try Rig()
+    await rig.registrar.reconcile(rig.context())
+
+    #expect(await rig.registrar.retire(gatewayId: "g1"))
+    #expect(rig.relay.calls.last == .delete(handle: F.handle(1), manageSecret: F.secret("manage", 1)))
+    #expect(await rig.registrar.address(gatewayId: "g1") == nil)
+    #expect(await rig.registrar.retire(gatewayId: "g9"))
+  }
+
+  @Test("concurrent passes run one after another and converge on the last context")
+  func serialised() async throws {
+    let rig = try Rig()
+
+    async let first = rig.registrar.reconcile(rig.context(gateways: ["g1"]))
+    async let second = rig.registrar.reconcile(rig.context(gateways: ["g1"]))
+    _ = await (first, second)
+
+    // Two passes over the same gateway: one registration, never two.
+    #expect(rig.relay.calls.count == 1)
+  }
+
+  @Test("the clock going backwards is corrected by one refresh, then the daily rhythm resumes")
+  func clockBackwards() async throws {
+    let rig = try Rig()
+    await rig.registrar.reconcile(rig.context())
+
+    rig.clock.advance(-10 * PushPlan.refreshInterval)
+    await rig.registrar.reconcile(rig.context())
+    #expect(rig.relay.calls.count == 2)
+    #expect(try await rig.store.registrations().first?.refreshedAt == rig.clock.now)
+
+    rig.clock.advance(60)
+    await rig.registrar.reconcile(rig.context())
+    #expect(rig.relay.calls.count == 2)
+  }
+
+  @Test("after a failed store the gateway is left alone for a day, not re-registered every pass")
+  func storeFailureBacksOff() async throws {
+    let rig = try Rig()
+    rig.secrets.lock(true)
+    await rig.registrar.reconcile(rig.context())
+    rig.secrets.lock(false)
+
+    let again = await rig.registrar.reconcile(rig.context())
+    #expect(rig.relay.calls.count == 2)
+    #expect(again.failures == ["g1": .storage])
+
+    rig.clock.advance(PushRegistrar.storeFailureBackoff)
+    await rig.registrar.reconcile(rig.context())
+    #expect(rig.relay.calls.last == .register(token: F.tokenA.hex, environment: .sandbox, topic: F.topic))
+    #expect(try await rig.store.registrations().count == 1)
+  }
+
+  @Test("send secret lost, manage secret still here: the old registration is revoked before a new one")
+  func sendSecretLost() async throws {
+    let rig = try Rig()
+    await rig.registrar.reconcile(rig.context())
+
+    try rig.secrets.delete(try SecretKeys.gateway("g1").pushSend)
+    await rig.registrar.reconcile(rig.context())
+
+    #expect(
+      Array(rig.relay.calls.suffix(2))
+        == [
+          .delete(handle: F.handle(1), manageSecret: F.secret("manage", 1)),
+          .register(token: F.tokenA.hex, environment: .sandbox, topic: F.topic)
+        ]
+    )
+  }
+
+  @Test("registrations that cannot be read: the pass is skipped and nothing is revoked or registered")
+  func unreadableRegistrations() async throws {
+    let rig = try Rig()
+    await rig.registrar.reconcile(rig.context())
+    try await rig.store.keyValues.setString("{broken", forKey: StoreKeys.pushRegistrations)
+
+    let report = await rig.registrar.reconcile(rig.context(wanted: false, gateways: []))
+
+    #expect(report.skipped)
+    #expect(rig.relay.calls.count == 1)
+    #expect(await rig.registrar.registrations() == nil)
+    #expect(await rig.registrar.retire(gatewayId: "g1") == false)
+  }
+
+  @Test("registrations live outside the gateway's namespace and secrets outside its own secrets")
+  func ownedByTheRegistrar() async throws {
+    let rig = try Rig()
+    await rig.registrar.reconcile(rig.context())
+
+    let keys = try await rig.store.keyValues.keys()
+    #expect(keys.contains(StoreKeys.pushRegistrations))
+    #expect(!keys.contains { GatewayNamespace.split($0)?.id == "g1" })
+
+    let gateway = try SecretKeys.gateway("g1")
+    for key in gateway.all {
+      #expect(try rig.secrets.inner.get(key) == nil)
+    }
+    #expect(try gateway.push.allSatisfy { try rig.secrets.inner.get($0) != nil })
+  }
+}

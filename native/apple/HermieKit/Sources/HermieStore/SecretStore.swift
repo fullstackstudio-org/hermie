@@ -113,8 +113,11 @@ public enum SecretKeys {
     public var sessionToken: String { key("hermie.auth.session_token") }
     public var extraHeaders: String { key("hermie.auth.extra_headers") }
     public var frontDoor: String { key("hermie.auth.front_door") }
-    /// The push relay's management secret for this gateway's registration.
+    /// The push relay's management secret for this gateway's registration. Never leaves the device.
     public var pushManage: String { key("hermie.push.manage") }
+    /// The push relay's send secret for this gateway's registration: what the gateway is handed to
+    /// send with, kept here so the registration can be written to the gateway again.
+    public var pushSend: String { key("hermie.push.send") }
 
     /// The six sign-in secrets, the set the Expo build clears on sign-out
     /// (`clearCredentials` in `config.ts`).
@@ -122,8 +125,14 @@ public enum SecretKeys {
       [accessToken, refreshToken, tokenMeta, sessionToken, extraHeaders, frontDoor]
     }
 
-    /// Everything stored for this gateway: what removing it deletes, key by key.
-    public var all: [String] { credentials + [pushManage] }
+    /// The push relay's two secrets. Owned by the push registrar alone, which deletes them only
+    /// after the relay has revoked the registration (or no longer knows it).
+    public var push: [String] { [pushManage, pushSend] }
+
+    /// What removing or signing out of this gateway deletes, key by key. The push secrets are NOT
+    /// here: deleting them with the gateway would leave a registration nobody can revoke, while the
+    /// removed gateway could still send to this device (see `push`).
+    public var all: [String] { credentials }
 
     private func key(_ base: String) -> String { base + SecretKeys.gatewaySeparator + id }
   }

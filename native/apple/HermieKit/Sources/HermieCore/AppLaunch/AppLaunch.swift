@@ -24,6 +24,10 @@ public struct LaunchEnvironment: Sendable {
   public var appGroupContainer: URL?
   public var authenticator: any DeviceAuthenticator
   public var clock: @Sendable () -> Double
+  /// Where secrets live: the keychain in the app, memory in tests.
+  public var secrets: any SecretStore
+  /// Push: the relay, the topic and the APNs environment.
+  public var push: PushLaunchConfiguration
   #if DEBUG
     /// Debug builds only: state written before anything reads it, and switches for the UI tests.
     public var testHooks: LaunchTestHooks?
@@ -33,12 +37,16 @@ public struct LaunchEnvironment: Sendable {
     dataDirectory: URL?,
     appGroupContainer: URL? = nil,
     authenticator: any DeviceAuthenticator,
-    clock: @escaping @Sendable () -> Double = AppLock.monotonicMilliseconds
+    clock: @escaping @Sendable () -> Double = AppLock.monotonicMilliseconds,
+    secrets: any SecretStore = InMemorySecretStore(),
+    push: PushLaunchConfiguration = .disabled
   ) {
     self.dataDirectory = dataDirectory
     self.appGroupContainer = appGroupContainer
     self.authenticator = authenticator
     self.clock = clock
+    self.secrets = secrets
+    self.push = push
   }
 
   /**
@@ -67,7 +75,9 @@ public struct LaunchEnvironment: Sendable {
     return LaunchEnvironment(
       dataDirectory: defaultDataDirectory(bundle: bundle),
       appGroupContainer: AppGroupContainer.system()?.url,
-      authenticator: SystemAuthenticator()
+      authenticator: SystemAuthenticator(),
+      secrets: KeychainStore(),
+      push: .live(bundle: bundle)
     )
   }
 
@@ -106,12 +116,16 @@ public final class AppLaunch {
   public let report: StoreLaunch.Report?
   public let lock: AppLock
   public let gateways: GatewayDirectory
+  /// Push notifications: the switch, the permission and the relay registrations.
+  public let push: PushController
   /// Told once each, in this order, until dismissed.
   public private(set) var notices: [LaunchNotice]
 
   private var started = false
 
-  public init(environment: LaunchEnvironment) {
+  /// - Parameter pushSystem: the platform's notification machinery (the app shell passes the real
+  ///   one from HermieUI); nil is a system with no notifications.
+  public init(environment: LaunchEnvironment, pushSystem: (any PushSystem)? = nil) {
     self.environment = environment
 
     let authenticator = environment.authenticator
@@ -155,6 +169,17 @@ public final class AppLaunch {
       clock: environment.clock
     )
     self.gateways = GatewayDirectory(store: GatewayRegistryStore(store: store), changes: KeyValueStore(store: store))
+    self.push = PushController(
+      system: pushSystem ?? InertPushSystem(),
+      registrar: PushRegistrar(
+        client: environment.push.client(),
+        store: PushRegistrationStore(keyValues: KeyValueStore(store: store), secrets: environment.secrets)
+      ),
+      settings: KeyValueStore(store: store),
+      topic: environment.push.topic,
+      environment: environment.push.environment,
+      environmentSource: environment.push.environmentSource
+    )
 
     var notices: [LaunchNotice] = []
 
