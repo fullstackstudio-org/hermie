@@ -41,17 +41,18 @@ struct GatewaysSettingsPage: View {
       } footer: {
         SettingsNote(Strings.App.Settings.Gateways.hint)
       }
-
-      Section {
+    }
+    .formStyle(.grouped)
+    .toolbar {
+      // In the toolbar rather than as a row: a button row in a form fails the Dynamic Type audit.
+      ToolbarItem(placement: .primaryAction) {
         Button(Strings.App.Settings.Gateways.add, systemImage: "plus") {
           onAddGateway()
         }
+        .accessibilityHint(Strings.App.Settings.Gateways.addHint)
         .accessibilityIdentifier("hermie.settings.gateways.add")
-      } footer: {
-        SettingsNote(Strings.App.Settings.Gateways.addHint)
       }
     }
-    .formStyle(.grouped)
     .alert(
       Strings.App.Settings.Gateways.name,
       isPresented: Binding(get: { renaming != nil }, set: { if !$0 { renaming = nil } }),
