@@ -11,6 +11,7 @@
  *   native/apple/HermieKit/Sources/HermieUI/Resources/<lang>.lproj/*   (compile-xcstrings.ts)
  *   native/apple/HermieKit/Sources/HermieUI/Generated/Strings.generated.swift
  *   native/apple/HermieKit/Tests/HermieUITests/Generated/StringSamples.generated.swift
+ *   native/web/src/generated/strings.ts and locales/<lang>.json   (web.ts)
  * Hand-written, never touched: scripts/i18n/overrides.ts, and the second table
  * next to the catalog (Native.xcstrings) — which is read, and compiled into the
  * same `.lproj` directories as `Native.strings(dict)`.
@@ -37,6 +38,7 @@ import { prettyJson } from '../golden/canonical-json'
 import { generateApple } from './apple'
 import { compileXcstrings, type XcstringsFile } from './compile-xcstrings'
 import { buildCatalogue } from './export'
+import { generateWeb, WEB_LOCALES_DIR } from './web'
 
 const repoRoot = resolve(dirname(fileURLToPath(import.meta.url)), '../..')
 const check = process.argv.includes('--check')
@@ -47,6 +49,9 @@ const resources = join(repoRoot, 'native/apple/HermieKit/Sources/HermieUI/Resour
 const EXTENSION_RESOURCES = ['Widgets', 'Share', 'Intents'].map(name =>
   join(repoRoot, 'native/apple/Extensions', name, 'Resources')
 )
+
+/** The web client's generated files (`web.ts`), next to the code that reads them. */
+const webGenerated = join(repoRoot, 'native/web/src/generated')
 
 const OUTPUTS = {
   catalogue: join(repoRoot, 'contract/i18n/catalogue.json'),
@@ -65,6 +70,17 @@ function compiledOnDisk(): string[] {
         .flatMap(entry => readdirSync(join(directory, entry.name)).map(file => join(directory, entry.name, file)))
     )
     .sort()
+}
+
+/** The locale files of the web client that are in the source tree now, as absolute paths. */
+function webLocalesOnDisk(): string[] {
+  const directory = join(webGenerated, WEB_LOCALES_DIR)
+
+  return existsSync(directory)
+    ? readdirSync(directory)
+        .map(name => join(directory, name))
+        .sort()
+    : []
 }
 
 /** Every catalog in the extensions' resource directories, compiled next to itself. */
@@ -93,6 +109,12 @@ function main(): void {
     [OUTPUTS.swift, apple.swift],
     [OUTPUTS.samples, apple.samples]
   ])
+  const web = generateWeb(catalogue)
+
+  for (const [path, text] of web) {
+    files.set(join(webGenerated, path), text)
+  }
+
   const compiled = [
     ...compileXcstrings(JSON.parse(apple.xcstrings) as XcstringsFile, 'Localizable'),
     ...compileXcstrings(
@@ -113,16 +135,16 @@ function main(): void {
 
   process.stdout.write(
     `i18n: ${stats.keys} keys per language (${stats.text} strings, ${stats.lists} lists, ${stats.functions} functions: ${perLocale}); ` +
-      `${apple.catalogKeys} String Catalog keys in ${compiled.length} compiled files; ${apple.sampleCount} Swift samples.\n`
+      `${apple.catalogKeys} String Catalog keys in ${compiled.length} compiled files; ${apple.sampleCount} Swift samples; ${web.size} web files.\n`
   )
 
   if (check) {
     const stale = [...files.keys()].filter(path => !existsSync(path) || readFileSync(path, 'utf8') !== files.get(path))
-    const extra = compiledOnDisk().filter(path => !files.has(path))
+    const extra = [...compiledOnDisk(), ...webLocalesOnDisk()].filter(path => !files.has(path))
 
     if (stale.length || extra.length) {
       process.stderr.write(
-        `The native string export is out of date with the TypeScript catalogues:\n  ${[
+        `The string export is out of date with the TypeScript catalogues:\n  ${[
           ...stale.map(path => `stale: ${relative(repoRoot, path)}`),
           ...extra.map(path => `extra: ${relative(repoRoot, path)}`)
         ].join('\n  ')}\nRun \`npm run i18n\` and commit the result.\n`
@@ -130,12 +152,12 @@ function main(): void {
       process.exit(1)
     }
 
-    process.stdout.write('i18n: the native string export is current.\n')
+    process.stdout.write('i18n: the native and web string exports are current.\n')
 
     return
   }
 
-  for (const path of compiledOnDisk()) {
+  for (const path of [...compiledOnDisk(), ...webLocalesOnDisk()]) {
     if (!files.has(path)) {
       rmSync(path)
     }
@@ -147,7 +169,7 @@ function main(): void {
   }
 
   process.stdout.write(
-    'i18n: wrote the catalogue, the String Catalog and its compiled forms, the Swift accessors and their test fixture.\n'
+    'i18n: wrote the catalogue, the String Catalog and its compiled forms, the Swift accessors and their test fixture, and the web client strings.\n'
   )
 }
 

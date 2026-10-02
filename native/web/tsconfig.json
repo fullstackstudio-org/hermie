@@ -10,7 +10,8 @@
     "outDir": "./.tsbuild/src",
     "rootDir": "./src"
   },
-  "include": ["src/**/*.ts", "src/**/*.tsx"],
+  // The locale files (src/generated/locales) are imported as modules, so they are part of the project.
+  "include": ["src/**/*.ts", "src/**/*.tsx", "src/generated/locales/*.json"],
   "references": [
     { "path": "../../packages/hermes-shared" },
     { "path": "../../packages/gateway-client" },

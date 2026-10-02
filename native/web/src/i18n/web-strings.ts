@@ -1,0 +1,95 @@
+/**
+ * Strings only the web client has, in all three languages.
+ *
+ * Anything both the Apple apps and the web client say lives in the Expo
+ * catalogue and arrives through `npm run i18n` (`src/generated/strings.ts`);
+ * this table is for what a browser alone needs: refusing to run in a frame, a
+ * wrong base path, the language row that follows the browser instead of the
+ * device. Same glossary and the same register as the catalogue (docs/i18n.md):
+ * informal `je` and `du`, product words left in English.
+ *
+ * A leaf is written once with its three languages, so a missing translation is a
+ * compile error, and `web-strings.test.ts` adds what the type cannot say (no
+ * empty text, no silent copy of the English, placeholders that agree).
+ *
+ *   webStrings.frameGuard.refused                   a string
+ *   webStrings.basePath.misconfigured({ expected }) a function
+ *
+ * Reads resolve when they are made, in the active language, exactly like the
+ * generated tree.
+ */
+import { activeLocale, type Locale } from './active-locale'
+
+/** One string in every language. */
+export interface Leaf<V> {
+  readonly en: V
+  readonly nl: V
+  readonly de: V
+}
+
+// `never` as the argument type lets every function leaf be stored; the typed
+// call comes from `Translated` below, which reads the real parameter type.
+type AnyLeaf = Leaf<string> | Leaf<(args: never) => string>
+
+interface Branch {
+  readonly [key: string]: AnyLeaf | Branch
+}
+
+/** The strings, as written: every leaf in en, nl and de. */
+export const WEB_STRINGS_SOURCE = {
+  frameGuard: {
+    /** Shown instead of the client when it finds itself inside a frame. */
+    refused: {
+      en: 'Hermie does not run inside a frame. Open it in a tab of its own.',
+      nl: 'Hermie draait niet in een frame. Open het in een eigen tabblad.',
+      de: 'Hermie läuft nicht in einem Frame. Öffne es in einem eigenen Tab.'
+    }
+  },
+  basePath: {
+    /** Shown when the page is not served from the path the client derives its gateway from. */
+    misconfigured: {
+      en: ({ expected }: { expected: string }) =>
+        `This page is not served from the path Hermie expects. Open it at ${expected}.`,
+      nl: ({ expected }: { expected: string }) =>
+        `Deze pagina wordt niet geserveerd op het pad dat Hermie verwacht. Open hem op ${expected}.`,
+      de: ({ expected }: { expected: string }) =>
+        `Diese Seite wird nicht unter dem Pfad ausgeliefert, den Hermie erwartet. Öffne sie unter ${expected}.`
+    }
+  },
+  language: {
+    /** The first row of the language picker: a browser has a language list, not one device language. */
+    followBrowser: {
+      en: 'Follow browser',
+      nl: 'Volg browser',
+      de: 'Browser folgen'
+    }
+  }
+} as const satisfies Branch
+
+type Translated<T> = T extends { readonly en: infer V } ? V : { readonly [K in keyof T]: Translated<T[K]> }
+
+export type WebStrings = Translated<typeof WEB_STRINGS_SOURCE>
+
+const LEAF_LANGUAGES: readonly Locale[] = ['en', 'nl', 'de']
+
+const isLeaf = (node: unknown): node is Leaf<string | ((args: never) => string)> =>
+  typeof node === 'object' && node !== null && LEAF_LANGUAGES.every(locale => locale in node)
+
+function localise(source: Branch): Record<string, unknown> {
+  const out: Record<string, unknown> = Object.create(null) as Record<string, unknown>
+
+  for (const [name, node] of Object.entries(source)) {
+    if (!isLeaf(node)) {
+      out[name] = localise(node as Branch)
+    } else if (typeof node.en === 'function') {
+      out[name] = (args: unknown): string => (node[activeLocale()] as (args: unknown) => string)(args)
+    } else {
+      Object.defineProperty(out, name, { enumerable: true, get: () => node[activeLocale()] as string })
+    }
+  }
+
+  return out
+}
+
+/** The web-only strings in the language the reader is using. */
+export const webStrings = localise(WEB_STRINGS_SOURCE) as unknown as WebStrings
