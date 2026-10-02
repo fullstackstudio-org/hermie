@@ -134,6 +134,25 @@ extension Integration {
       }
     }
 
+    @Test("a prompt still open at shutdown is answered '' before the socket closes")
+    func shutdownAnswersBeforeClosing() async throws {
+      try await withSecureGateway { gateway in
+        let chat = try await SecureChat.open(gateway)
+
+        let id = try await chat.raise(gateway, "secret", ["env_var": "K", "prompt": "p"])
+        await chat.session.shutdown()
+
+        // The fake logs what it read; give its socket a moment to drain.
+        let deadline = ContinuousClock.now + .seconds(5)
+        var answer: String?
+        while answer == nil, ContinuousClock.now < deadline {
+          answer = try await SecureChat.answers(gateway).first { $0.id == id }?.result
+          try await Task.sleep(for: .milliseconds(20))
+        }
+        #expect(answer == #"{"value":""}"#)
+      }
+    }
+
     @Test("a withdrawn prompt closes the sheet's prompt with a notice, and nothing is sent")
     func withdrawn() async throws {
       try await withSecureGateway { gateway in

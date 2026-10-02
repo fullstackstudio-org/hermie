@@ -21,7 +21,7 @@ struct SocketGeneration {
   /// Set once the upgrade completed; `nil` while handshaking or after a failed one.
   var channel: (any WebSocketChannel)?
   /// The frames waiting to be written, in order.
-  var outbox: AsyncStream<String>.Continuation?
+  var outbox: AsyncStream<OutgoingFrame>.Continuation?
   /// The task running `transport.connect`, cancelled if the socket is dropped first.
   var connectTask: UInt64?
 }
@@ -95,7 +95,7 @@ extension GatewayConnection {
     self.handshake = nil
     handshake.timer?.timer.cancel()
 
-    let (frames, outbox) = AsyncStream<String>.makeStream(bufferingPolicy: .unbounded)
+    let (frames, outbox) = AsyncStream<OutgoingFrame>.makeStream(bufferingPolicy: .unbounded)
     socket?.channel = channel
     socket?.outbox = outbox
     startWriting(frames, to: channel)
@@ -227,10 +227,16 @@ extension GatewayConnection {
   /// closing, and the reader reports that with the close code the dial loop
   /// needs (a 4401 read as a write failure would be misfiled). The reference's
   /// sockets drop a send on a closing socket silently too.
-  private func startWriting(_ frames: AsyncStream<String>, to channel: any WebSocketChannel) {
+  ///
+  /// A barrier is run once every frame queued before it has been handed to the
+  /// socket (`flushWrites`).
+  private func startWriting(_ frames: AsyncStream<OutgoingFrame>, to channel: any WebSocketChannel) {
     spawn {
-      for await text in frames {
-        try? await channel.send(text: text)
+      for await frame in frames {
+        switch frame {
+        case .text(let text): try? await channel.send(text: text)
+        case .barrier(let reached): reached()
+        }
       }
     }
   }

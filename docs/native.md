@@ -294,13 +294,20 @@ cards' status (`transcriptRequests`) and the sheet for a pending request.
 The one-string prompts (`secret`, `sudo`, `vault.unlock_prompt`, `vault.code`, `vault.save_login`)
 never enter the transcript: what a person types for them must not reach the engine, the chat cache
 or a draft. `SecureInputCenter` (one per `GatewaySession`, `session.secureInput`) subscribes to the
-server requests itself, routes each prompt to the chat whose runtime session it names (waiting at
-most 15 s for a resume to bind one), and answers on the request's own reply: the value, or `''` for
-Skip. A prompt whose chat lets go of its session, and every prompt still open at shutdown, is
-answered `''` once; one the gateway stops waiting for (its deadline, known when the prompt arrives
-live: 120 s for `sudo` and `vault.unlock_prompt`, 180 s for `vault.code` and `vault.save_login`,
-300 s for `secret`; or its `request.cancel`) is closed with a notice and never answered. The typed
-value lives in the sheet's state as a `SecretValue`, whose description and mirror are redacted.
+server requests itself (off the main actor, where the request's texts are cleaned and bounded by
+scalars), routes each prompt to the chat whose runtime session it names (waiting at most 15 s for a
+resume to bind one; a prompt follows its session to another chat), and answers on the request's own
+reply: the value, or `''` for Skip. A prompt whose session no chat holds any more is answered `''`
+with a "withdrawn" notice; every prompt still open at shutdown is answered `''`, and the shutdown
+waits up to 1 s for those frames to reach the socket. One the gateway stops waiting for (its
+deadline: 120 s for `sudo` and `vault.unlock_prompt`, 180 s for `vault.code` and
+`vault.save_login`, 300 s for `secret`, counted from the arrival; or its `request.cancel`) is
+closed with a notice and never answered. An answer is "sent" once its frame is queued, so a socket
+that dies before the gateway read it loses it; the gateway's re-delivery of a request already
+closed here (for any reason but its `request.cancel`) is the proof, and the prompt opens again
+saying the earlier answer did not arrive. The typed value lives in the sheet's state as a
+`SecretValue`, whose description and mirror are redacted, and goes out as a `ValueResult`. The
+sheet never takes the keyboard by itself: a field is focused by the person, after a 400 ms guard.
 Every other server request is refused `-32601` ("not supported by this client") by the connection,
 which still hands it to the center so the chat can say the bot asked for something the app cannot
 show. The chat screen mounts it with `.secureInput(SecureInputModel(session:bot:))`; the chat list

@@ -61,6 +61,10 @@ public protocol GatewayLink: Sendable {
   /// credentials (`IdentityProbe`). Never throws: a failure is an answer.
   func probeIdentity() async -> IdentityProbe
 
+  /// Wait until every frame queued so far has been handed to the socket, or
+  /// `limit` has passed: the last answers before a shutdown.
+  func flushWrites(within limit: Duration) async
+
   func start() async
   func stop() async
   func pause() async
@@ -207,6 +211,19 @@ extension GatewayLink {
     .failed("This connection cannot ask the gateway who you are.")
   }
 
+  /// A link with no writer of its own has nothing to wait for.
+  public func flushWrites(within limit: Duration) async {}
+}
+
+extension ConnectionLink {
+  /// The connection's writer (`GatewayConnection.flushWrites`). Here rather
+  /// than beside the rest of `ConnectionLink` in `GatewaySession.swift`.
+  public func flushWrites(within limit: Duration) async {
+    await connection.flushWrites(within: limit)
+  }
+}
+
+extension GatewayLink {
   /// A typed call: the method's own params and result types.
   func call<M: RPCMethod>(_ method: M.Type, _ params: M.Params) async throws -> RPCReply<M.Result> {
     let reply = try await requestReply(M.name, params: params.jsonValue)

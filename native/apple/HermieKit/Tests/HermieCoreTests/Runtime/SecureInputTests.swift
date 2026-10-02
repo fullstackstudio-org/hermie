@@ -14,7 +14,7 @@ private let typed = "pw-7f3a-never-anywhere"
 /// A session over the scripted link with the researcher's chat open on
 /// `Fixture.runtime`, and its secure input center.
 @MainActor
-private struct SecureHarness {
+struct SecureHarness {
   let harness: SessionHarness
   var link: ScriptedLink { harness.link }
   var clock: ManualClock { harness.clock }
@@ -101,7 +101,7 @@ struct SecureInputTests {
   @Test("the request's texts are cleaned and bounded for display")
   func cleansTexts() {
     let spoof = "Paste\u{202E}gnp.exe\u{0007} the key\n\n\n\nnow\tplease"
-    #expect(SecurePrompt.displayText(spoof, limit: 100) == "Pastegnp.exe the key\n\nnow please")
+    #expect(SecurePrompt.displayText(spoof, limit: 100) == "Pastegnp.exe the key\nnow please")
     let long = String(repeating: "a", count: 700)
     #expect(SecurePrompt.displayText(long, limit: SecurePrompt.textLimit).count == SecurePrompt.textLimit + 1)
     #expect(SecurePrompt.displayText(nil, limit: 10).isEmpty)
@@ -352,6 +352,7 @@ struct SecureInputTests {
     try await h.harness.frame()
     try await Task.sleep(for: .milliseconds(20))
     #expect(h.answers("srq-rb") == [["value": ""]])
+    #expect(center.notices[bot]?.notice == .withdrawn, "the chat says so")
   }
 
   @Test("when the bot's chat is forgotten, its prompt is answered ''")

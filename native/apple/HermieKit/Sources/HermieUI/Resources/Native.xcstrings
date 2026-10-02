@@ -1696,6 +1696,30 @@
         }
       }
     },
+    "native.secureInput.earlierAnswerLost" : {
+      "comment" : "The gateway asks again because an answer sent earlier never reached it.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Deine frühere Antwort hat das Gateway nicht erreicht. Gib sie erneut ein."
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Your earlier answer did not reach the gateway. Enter it again."
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Je eerdere antwoord heeft de gateway niet bereikt. Voer het opnieuw in."
+          }
+        }
+      }
+    },
     "native.secureInput.expired" : {
       "comment" : "The request ended because the gateway stopped waiting.",
       "extractionState" : "manual",
@@ -1888,6 +1912,30 @@
         }
       }
     },
+    "native.secureInput.mayNotHaveArrived" : {
+      "comment" : "The bot stopped waiting while the answer was being sent.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Der Bot hat aufgehört zu warten, während deine Antwort unterwegs war. Sie ist vielleicht nicht rechtzeitig angekommen."
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "The bot stopped waiting while your answer was on its way. It may not have arrived in time."
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "De bot stopte met wachten terwijl je antwoord onderweg was. Het is misschien niet op tijd aangekomen."
+          }
+        }
+      }
+    },
     "native.secureInput.receiver.login" : {
       "comment" : "Says who receives a login to save and what happens to it.",
       "extractionState" : "manual",
@@ -2004,6 +2052,54 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Versturen"
+          }
+        }
+      }
+    },
+    "native.secureInput.showLess" : {
+      "comment" : "Button that shortens a long request text again.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Weniger anzeigen"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Show less"
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Minder tonen"
+          }
+        }
+      }
+    },
+    "native.secureInput.showMore" : {
+      "comment" : "Button that shows the rest of a long request text.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Mehr anzeigen"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Show more"
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Meer tonen"
           }
         }
       }

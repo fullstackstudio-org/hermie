@@ -605,6 +605,7 @@ final class ScriptedLink: GatewayLink, Sendable {
     state.withLock { $0.lifecycle.append(name) }
   }
 
+  func flushWrites(within limit: Duration) async { record("flush") }
   func start() async { record("start") }
   func stop() async { record("stop") }
   func pause() async { record("pause") }

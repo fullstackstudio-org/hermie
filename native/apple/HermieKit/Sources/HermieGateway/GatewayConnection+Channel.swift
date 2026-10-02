@@ -6,6 +6,13 @@ import HermieProtocol
 // map with per-call timeouts, inbound frame routing, server→client requests,
 // the capability announcement and the `gateway.ping` heartbeat.
 
+/// One item on a socket generation's writer: a frame to send, or a barrier to
+/// run once every frame before it has been handed to the socket.
+enum OutgoingFrame: Sendable {
+  case text(String)
+  case barrier(@Sendable () -> Void)
+}
+
 /// One call waiting for its answer.
 struct PendingCall {
   let promise: Promise<RPCReply<JSONValue>>
@@ -16,7 +23,7 @@ extension GatewayConnection {
   // MARK: Attaching a socket generation
 
   /// `attach`: bind a new generation. Its heartbeat starts only on `gateway.ready`.
-  func attach(_ generation: UInt64, _ outbox: AsyncStream<String>.Continuation) {
+  func attach(_ generation: UInt64, _ outbox: AsyncStream<OutgoingFrame>.Continuation) {
     stopHeartbeat()
     attachedGeneration = generation
     attachedOutbox = outbox
@@ -47,8 +54,22 @@ extension GatewayConnection {
       return false
     }
 
-    outbox.yield(String(decoding: data, as: UTF8.self))
+    outbox.yield(.text(String(decoding: data, as: UTF8.self)))
     return true
+  }
+
+  /// A barrier on the attached generation's writer: `reached` runs once every
+  /// frame queued before it has been handed to the socket, or at once when no
+  /// generation is attached (there is nothing to wait for).
+  func queueBarrier(_ reached: @escaping @Sendable () -> Void) {
+    guard let outbox = attachedOutbox else {
+      reached()
+      return
+    }
+
+    if case .terminated = outbox.yield(.barrier(reached)) {
+      reached()
+    }
   }
 
   // MARK: Calls
@@ -89,7 +110,7 @@ extension GatewayConnection {
     }
 
     pending[id] = call
-    outbox.yield(String(decoding: data, as: UTF8.self))
+    outbox.yield(.text(String(decoding: data, as: UTF8.self)))
     return (id, promise)
   }
 

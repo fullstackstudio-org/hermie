@@ -148,6 +148,8 @@
 	<string>Deine Antwort wird gesendet…</string>
 	<key>native.secureInput.close</key>
 	<string>Schließen</string>
+	<key>native.secureInput.earlierAnswerLost</key>
+	<string>Deine frühere Antwort hat das Gateway nicht erreicht. Gib sie erneut ein.</string>
 	<key>native.secureInput.expired</key>
 	<string>Die Anfrage ist abgelaufen. Es wurde nichts gesendet.</string>
 	<key>native.secureInput.expiresIn</key>
@@ -164,6 +166,8 @@
 	<string>Wert</string>
 	<key>native.secureInput.gateway</key>
 	<string>Auf Gateway %@</string>
+	<key>native.secureInput.mayNotHaveArrived</key>
+	<string>Der Bot hat aufgehört zu warten, während deine Antwort unterwegs war. Sie ist vielleicht nicht rechtzeitig angekommen.</string>
 	<key>native.secureInput.receiver.login</key>
 	<string>Hermie sendet dies an das Gateway, das es im Passworttresor des Bots speichert. Hermie speichert es nicht.</string>
 	<key>native.secureInput.receiver.stored</key>
@@ -174,6 +178,10 @@
 	<string>Speichern</string>
 	<key>native.secureInput.send</key>
 	<string>Senden</string>
+	<key>native.secureInput.showLess</key>
+	<string>Weniger anzeigen</string>
+	<key>native.secureInput.showMore</key>
+	<string>Mehr anzeigen</string>
 	<key>native.secureInput.skip</key>
 	<string>Überspringen</string>
 	<key>native.secureInput.sudo.lead</key>

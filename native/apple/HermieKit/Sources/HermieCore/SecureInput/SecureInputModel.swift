@@ -34,6 +34,10 @@ public final class SecureInputModel {
 
   public var gatewayName: String { center.gatewayName }
 
+  /// The bot's name for display: cleaned and bounded like the request's own
+  /// texts, since the gateway names its bots.
+  public var botName: String { SecurePrompt.displayText(bot, limit: SecurePrompt.nameLimit) }
+
   /// The prompts still waiting, oldest first.
   public var openPrompts: [SecurePrompt] { center.prompts(for: bot) }
 

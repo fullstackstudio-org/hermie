@@ -30,8 +30,9 @@ final class SecureInputUITests: XCTestCase {
     XCTAssertTrue(app.staticTexts["secureInput.envVar"].exists)
     let send = app.buttons["secureInput.send"]
     XCTAssertFalse(send.isEnabled, "nothing typed, nothing to send")
+    XCTAssertFalse(hasKeyboardFocus(field), "the sheet never takes the keyboard by itself")
 
-    tapWhenHittable(field)
+    engage(field)
     field.typeText("ui-secret-42")
     let shown = field.value as? String ?? ""
     XCTAssertFalse(shown.contains("ui-secret-42"), "typing is masked: \(shown.count) characters shown")
@@ -40,6 +41,20 @@ final class SecureInputUITests: XCTestCase {
 
     try waitForAnswer(#"{"value":"ui-secret-42"}"#)
     XCTAssertTrue(field.waitForNonExistence(timeout: 10), "the sheet goes once the answer went out")
+  }
+
+  func testALongPromptLeavesTheChromeAndTheReceiverInView() throws {
+    let app = launchLab()
+    let filler = String(repeating: ".\n\n", count: 200)
+    try raise("sudo", ["command": filler + "rm -rf / # looks harmless"])
+
+    let field = app.secureTextFields["secureInput.field"]
+    XCTAssertTrue(field.waitForExistence(timeout: 15))
+    engage(field)
+    XCTAssertTrue(app.staticTexts["secureInput.title"].isHittable, "who asks stays in view")
+    XCTAssertTrue(app.staticTexts["secureInput.gateway"].isHittable, "and on which gateway")
+    XCTAssertTrue(app.staticTexts["secureInput.receiver"].isHittable, "and who receives it")
+    XCTAssertTrue(app.buttons["secureInput.command.more"].exists, "the rest is behind Show more")
   }
 
   func testSudoIsSkipped() throws {
@@ -59,13 +74,13 @@ final class SecureInputUITests: XCTestCase {
   func testTheSheetPassesTheAccessibilityAudit() throws {
     let app = launchLab()
     try raise("secret", ["env_var": "EXAMPLE_API_KEY", "prompt": "Paste the key"])
-    try auditSheet(app, "default size")
+    try auditSheet(app, "default size", pages: 1)
   }
 
   func testTheSheetPassesTheAccessibilityAuditAtTheLargestSize() throws {
     let app = launchLab(["-UIPreferredContentSizeCategoryName", "UICTContentSizeCategoryAccessibilityXXXL"])
     try raise("sudo", ["command": "apt-get install example"])
-    try auditSheet(app, "AX5")
+    try auditSheet(app, "AX5", pages: 3)
   }
 
   // MARK: Helpers
@@ -83,11 +98,13 @@ final class SecureInputUITests: XCTestCase {
     return app
   }
 
-  private func auditSheet(_ app: XCUIApplication, _ label: String) throws {
+  /// Audit the sheet a scroll area's page at a time (at the default size the
+  /// whole sheet is one page).
+  private func auditSheet(_ app: XCUIApplication, _ label: String, pages: Int) throws {
     let field = app.secureTextFields["secureInput.field"]
     XCTAssertTrue(field.waitForExistence(timeout: 15))
     // The sheet as it is about to be answered: something typed, Send on.
-    tapWhenHittable(field)
+    engage(field)
     field.typeText("x")
     waitUntilEnabled(app.buttons["secureInput.send"])
     // The keyboard away (the sheet's scroll view lets it go on a drag), so the
@@ -98,7 +115,7 @@ final class SecureInputUITests: XCTestCase {
 
     // A screenful, then the rest (the sheet is taller than the screen at AX5).
     var issues: [String] = []
-    for page in 0..<2 {
+    for page in 0..<pages {
       let visible = sheet.frame
       try app.performAccessibilityAudit { issue in
         let element = issue.element.map { "'\($0.identifier)' '\($0.label)'" } ?? "-"
@@ -123,6 +140,22 @@ final class SecureInputUITests: XCTestCase {
     }
     issues.forEach { print("[secure-input-ui] audit \($0)") }
     XCTAssertEqual(issues, [], "the accessibility audit found issues")
+  }
+
+  /// Put the keyboard in a field the way a person does, once the sheet's
+  /// guard (400 ms after it appears) is over.
+  private func engage(_ field: XCUIElement) {
+    _ = XCTWaiter.wait(for: [XCTestExpectation(description: "guard")], timeout: 0.8)
+    // At the largest sizes the field may be below the fold of the scroll area.
+    let sheet = field.firstMatch
+    for _ in 0..<6 where !sheet.isHittable {
+      XCUIApplication().scrollViews.firstMatch.swipeUp()
+    }
+    tapWhenHittable(field)
+  }
+
+  private func hasKeyboardFocus(_ element: XCUIElement) -> Bool {
+    (element.value(forKey: "hasKeyboardFocus") as? Bool) ?? false
   }
 
   private func tapWhenHittable(_ element: XCUIElement) {

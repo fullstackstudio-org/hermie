@@ -131,7 +131,7 @@ public actor GatewayConnection {
   var requestIDs = RequestIDSequence()
   var pending: [JSONRPCID: PendingCall] = [:]
   var attachedGeneration: UInt64?
-  var attachedOutbox: AsyncStream<String>.Continuation?
+  var attachedOutbox: AsyncStream<OutgoingFrame>.Continuation?
   var heartbeat = HeartbeatState()
   var heartbeatTimer: TimerSlot?
   var openDeliveries: Set<UInt64> = []
@@ -260,6 +260,35 @@ public actor GatewayConnection {
     eventHub.finish()
     requestHub.finish()
     gapHub.finish()
+  }
+
+  /// Wait until every frame queued so far has been handed to the socket, or
+  /// `limit` has passed, whichever comes first. With no socket attached it
+  /// returns at once. Answers whether the writer got there in time.
+  ///
+  /// For the last answers before a shutdown: `respond` only queues a frame,
+  /// and a socket closed straight after would drop it.
+  @discardableResult
+  public func flushWrites(within limit: Duration) async -> Bool {
+    let (done, finish) = AsyncStream<Bool>.makeStream()
+    let timer = clock.schedule(after: limit) {
+      finish.yield(false)
+    }
+
+    queueBarrier {
+      finish.yield(true)
+    }
+
+    var reached = false
+
+    for await outcome in done {
+      reached = outcome
+      break
+    }
+
+    timer.cancel()
+    finish.finish()
+    return reached
   }
 
   /// Close the socket cleanly and stop every timer: the app went to the background.

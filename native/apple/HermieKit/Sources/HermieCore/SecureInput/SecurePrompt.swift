@@ -71,21 +71,33 @@ public struct SecurePrompt: Sendable, Equatable, Identifiable {
   public let method: String
   public let kind: SecurePromptKind
   /// The chat it belongs to (the bot's name).
-  public let chatKey: String
+  public var chatKey: String
   /// The runtime session the request names.
   public let sessionID: String
-  /// When the gateway stops waiting, on the session's clock; nil when this
-  /// client cannot know (the request was first seen re-delivered after a
-  /// reconnect, so it may have been waiting for a while already).
-  public let deadline: Duration?
+  /// When the gateway stops waiting, on the session's clock, for the
+  /// countdown; nil when this client cannot know (the request was first seen
+  /// re-delivered after a reconnect, so it may have been waiting a while).
+  public var deadline: Duration?
+  /// The gateway asks again because an answer sent from here never reached it
+  /// (it re-delivered the request after a reconnect): the sheet says so.
+  public var earlierAnswerLost: Bool
 
-  public init(id: String, method: String, kind: SecurePromptKind, chatKey: String, sessionID: String, deadline: Duration?) {
+  public init(
+    id: String,
+    method: String,
+    kind: SecurePromptKind,
+    chatKey: String,
+    sessionID: String,
+    deadline: Duration?,
+    earlierAnswerLost: Bool = false
+  ) {
     self.id = id
     self.method = method
     self.kind = kind
     self.chatKey = chatKey
     self.sessionID = sessionID
     self.deadline = deadline
+    self.earlierAnswerLost = earlierAnswerLost
   }
 
   /// The longest name shown (a variable, a site, a password manager).
@@ -95,47 +107,101 @@ public struct SecurePrompt: Sendable, Equatable, Identifiable {
   /// The longest command shown.
   public static let commandLimit = 1_000
 
-  /// `raw` for display: control and format characters out (newlines and tabs
-  /// stay as spaces and line breaks), runs of blank lines folded, trimmed, and
-  /// cut at `limit` characters with an ellipsis.
+  /// The most combining marks kept on one base character: enough for any
+  /// script, too few to paint over the lines above and below.
+  public static let marksPerCharacter = 4
+
+  /// `raw` for display, in one bounded pass over its scalars:
+  ///
+  /// - control, format (the direction overrides among them), separator,
+  ///   private-use and unassigned scalars are dropped;
+  /// - a tab is a space, runs of spaces are one, and every run of line breaks
+  ///   (blank lines included) is one line break;
+  /// - at most `marksPerCharacter` combining marks stay on one character;
+  /// - the result is trimmed and holds at most `limit` scalars, with an
+  ///   ellipsis when anything was cut.
+  ///
+  /// At most `limit * 8 + 64` scalars of `raw` are read, so a request of any
+  /// size costs the same.
   public static func displayText(_ raw: String?, limit: Int) -> String {
-    guard let raw, !raw.isEmpty else {
+    guard let raw, !raw.isEmpty, limit > 0 else {
       return ""
     }
 
-    var scalars = String.UnicodeScalarView()
+    var out = String.UnicodeScalarView()
+    var count = 0
+    var marks = 0
+    var pendingSpace = false
+    var pendingBreak = false
+    var cut = false
+    var read = 0
+    let readLimit = limit * 8 + 64
 
     for scalar in raw.unicodeScalars {
-      switch scalar {
-      case "\n":
-        scalars.append(scalar)
-      case "\t":
-        scalars.append(" ")
-      default:
-        switch scalar.properties.generalCategory {
-        // Cc: controls. Cf: format characters, the direction overrides among them.
-        // Zl, Zp: line and paragraph separators. Co, Cn: private use, unassigned.
-        case .control, .format, .lineSeparator, .paragraphSeparator, .privateUse, .unassigned, .surrogate:
-          continue
-        default:
-          scalars.append(scalar)
-        }
+      read += 1
+
+      if read > readLimit {
+        cut = true
+        break
       }
+
+      let category = scalar.properties.generalCategory
+
+      switch scalar {
+      case "\n", "\r":
+        pendingBreak = true
+        pendingSpace = false
+        continue
+      case "\t", " ":
+        pendingSpace = true
+        continue
+      default:
+        break
+      }
+
+      switch category {
+      case .control, .format, .lineSeparator, .paragraphSeparator, .privateUse, .unassigned, .surrogate:
+        continue
+      case .spaceSeparator:
+        pendingSpace = true
+        continue
+      case .nonspacingMark, .spacingMark, .enclosingMark:
+        marks += 1
+
+        // On no character (the start, or after a blank), or one too many.
+        if marks > marksPerCharacter || count == 0 || pendingSpace || pendingBreak {
+          continue
+        }
+      default:
+        marks = 0
+      }
+
+      // The separator a run of blanks stands for, never at the start.
+      if count > 0, pendingBreak || pendingSpace {
+        out.append(pendingBreak ? "\n" : " ")
+        count += 1
+      }
+
+      pendingBreak = false
+      pendingSpace = false
+
+      if count >= limit {
+        cut = true
+        break
+      }
+
+      out.append(scalar)
+      count += 1
     }
 
-    var text = String(scalars)
+    // A trailing separator was never written; one written just before the cut is dropped.
+    var text = String(out)
 
-    while text.contains("\n\n\n") {
-      text = text.replacingOccurrences(of: "\n\n\n", with: "\n\n")
+    while let last = text.unicodeScalars.last, last == " " || last == "\n" {
+      text.unicodeScalars.removeLast()
     }
 
-    text = text.trimmingCharacters(in: .whitespacesAndNewlines)
-
-    guard text.count > limit else {
-      return text
-    }
-
-    return String(text.prefix(limit)) + "…"
+    return cut ? text + "…" : text
   }
 
   /// The text that answers this prompt with `value`, or nil when `value`

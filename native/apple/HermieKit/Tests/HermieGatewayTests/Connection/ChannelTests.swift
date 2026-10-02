@@ -236,6 +236,20 @@ struct ChannelTests {
     }
   }
 
+  @Test("flushWrites returns at once without a socket, and once the writer has caught up with one")
+  func flushesWrites() async throws {
+    try await withHarness { h in
+      #expect(await h.connection.flushWrites(within: .seconds(5)))
+
+      await h.connection.start()
+      try await h.waitFor(.ready)
+      let socket = try #require(h.gateway.lastSocket)
+      let before = socket.sent.count
+      #expect(await h.connection.flushWrites(within: .seconds(5)))
+      #expect(socket.sent.count >= before)
+    }
+  }
+
   @Test("hands the one-string prompts to the app and declines them when nobody listens")
   func deliversSecureInputPrompts() async throws {
     try await withHarness { h in

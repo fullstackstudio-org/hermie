@@ -60,7 +60,7 @@ struct SecureInputModifier: ViewModifier {
       }
       .onChange(of: model.presentedID == nil || model.presented != nil || model.presentedOutcome != nil) { _, showing in
         // The shown prompt ended with nothing to say (answered elsewhere on
-        // this device, or its chat let go of it): the sheet goes.
+        // this device): the sheet goes.
         if !showing {
           model.dismiss()
         }
@@ -72,7 +72,7 @@ struct SecureInputModifier: ViewModifier {
       }
       .onChange(of: model.presentedOutcome) { _, outcome in
         if let outcome {
-          AccessibilityNotification.Announcement(SecureInputNoticeView.text(outcome, bot: model.bot)).post()
+          AccessibilityNotification.Announcement(SecureInputNoticeView.sheetText(outcome)).post()
         }
       }
   }
@@ -90,23 +90,41 @@ struct SecureInputModifier: ViewModifier {
   }
 }
 
-/// The sheet for one prompt. Its chrome is the app's own and the same every
-/// time: who asks (the bot, by the name this app knows it under), on which
-/// gateway, and for what kind of thing. What the request says is shown as plain
-/// text, bounded, never as Markdown or links. Nothing is ever filled in for the
-/// person, and the field is cleared when the sheet goes.
+/// The sheet for one prompt.
+///
+/// Its chrome is the app's own, the same every time, and always in view: who
+/// asks (the bot, by the name this app knows it under), on which gateway, for
+/// what kind of thing (pinned at the top), and who receives the value (pinned at
+/// the bottom, next to Send). What the request says is shown as plain text in
+/// a bounded, clipped box, never as Markdown or links; only that box and the
+/// fields scroll.
+///
+/// Nothing is ever filled in, and nothing takes the keyboard by itself: the
+/// field gets focus only from the person (a tap, a click, Tab), so typing that
+/// was meant for the chat never lands in it. For 400 ms after the sheet comes up
+/// nothing can be typed or sent; the field is cleared when that guard ends,
+/// after sending, and when the sheet goes.
 struct SecureInputSheetView: View {
   let model: SecureInputModel
 
-  /// How long after the sheet appears Send stays off, so a sheet that comes up
-  /// under a moving finger cannot send.
+  /// How long after the sheet appears nothing is accepted, so a sheet that
+  /// comes up under a moving finger or running keystrokes cannot take them.
   static let tapGuard: Duration = .milliseconds(400)
+  /// The most of a pinned area's text size: the chrome and the actions must
+  /// leave room for the fields, with the keyboard up, at the largest sizes.
+  /// The scroll area between them follows the person's size in full.
+  static let pinnedTextSize: DynamicTypeSize = .xxxLarge
 
   @State private var value = SecretValue()
   @State private var identifier = ""
+  /// The guard is over.
   @State private var armed = false
+  /// The person put the keyboard in a field after the guard: only then can a
+  /// Return or Send go out.
+  @State private var engaged = false
   @FocusState private var focus: Field?
-  @AccessibilityFocusState private var voiceOverFocus: Field?
+  @AccessibilityFocusState private var titleFocused: Bool
+  @Environment(\.scenePhase) private var phase
 
   enum Field: Hashable {
     case identifier
@@ -114,44 +132,97 @@ struct SecureInputSheetView: View {
   }
 
   var body: some View {
-    ScrollView {
-      VStack(alignment: .leading, spacing: 16) {
-        if let prompt = model.presentedPrompt {
-          SecureInputChrome(model: model, prompt: prompt)
+    VStack(spacing: 0) {
+      if let prompt = model.presentedPrompt {
+        SecureInputChrome(model: model, prompt: prompt, titleFocused: $titleFocused)
+          .padding(.horizontal, 20)
+          .padding(.top, 20)
+          .padding(.bottom, 12)
+          .dynamicTypeSize(...Self.pinnedTextSize)
+          .clipped()
+        Divider()
 
+        ScrollView {
+          VStack(alignment: .leading, spacing: 16) {
+            if model.presented != nil {
+              if prompt.earlierAnswerLost {
+                Label(NativeStrings.SecureInput.earlierAnswerLost, systemImage: "exclamationmark.triangle")
+                  .fixedSize(horizontal: false, vertical: true)
+                  .accessibilityIdentifier("secureInput.earlierAnswerLost")
+              }
+              SecureInputDetails(kind: prompt.kind)
+              fields(prompt)
+              status
+            } else {
+              outcome
+            }
+          }
+          .padding(20)
+          .frame(maxWidth: .infinity, alignment: .leading)
+        }
+        .scrollDismissesKeyboard(.interactively)
+        // The request's words are read sharp to the edge, never faded under
+        // the pinned chrome.
+        .scrollEdgeEffectHidden(true, for: .vertical)
+
+        Divider()
+        VStack(alignment: .leading, spacing: 10) {
           if model.presented != nil {
-            SecureInputDetails(kind: prompt.kind)
-            fields(prompt)
-            // Who receives it is part of the decision: full contrast.
+            // Who receives it is part of the decision: in view, full contrast.
             Text(Self.receiver(prompt.kind))
               .font(.footnote)
               .fixedSize(horizontal: false, vertical: true)
               .accessibilityIdentifier("secureInput.receiver")
-            status
-          } else {
-            outcome
           }
+          actions
         }
-      }
-      .padding(20)
-      .frame(maxWidth: .infinity, alignment: .leading)
-    }
-    .scrollDismissesKeyboard(.interactively)
-    // Send and Skip (or Close) stay pinned under the content, above the
-    // keyboard, at every text size.
-    .safeAreaInset(edge: .bottom, spacing: 0) {
-      actions
         .padding(.horizontal, 20)
         .padding(.vertical, 12)
-        .background(.background)
+        .dynamicTypeSize(...Self.pinnedTextSize)
+      }
+    }
+    .background(.background)
+    // Not in front: nothing of the request or the fields shows, in the app
+    // switcher, behind another window, or on a shared screen.
+    .overlay {
+      if phase != .active {
+        PrivacyCoverView()
+      }
     }
     .task(id: model.presentedID) {
       armed = false
-      let first: Field = model.presentedPrompt.map(Self.isLogin) == true ? .identifier : .value
-      focus = first
-      voiceOverFocus = first
+      engaged = false
+      titleFocused = true
       try? await Task.sleep(for: Self.tapGuard)
+
+      guard !Task.isCancelled else {
+        return
+      }
+
+      // Whatever reached a field during the guard is dropped, and a focus the
+      // system gave it is taken back.
+      clear()
+      focus = nil
       armed = true
+    }
+    .onChange(of: focus) { _, field in
+      if !armed {
+        if field != nil {
+          focus = nil
+        }
+      } else if field != nil {
+        engaged = true
+      }
+    }
+    .onChange(of: value.revealed) {
+      if !armed, !value.isEmpty {
+        value.clear()
+      }
+    }
+    .onChange(of: identifier) {
+      if !armed, !identifier.isEmpty {
+        identifier = ""
+      }
     }
     .onChange(of: model.presentedID) {
       clear()
@@ -164,6 +235,12 @@ struct SecureInputSheetView: View {
     .onDisappear {
       clear()
     }
+  }
+
+  /// Send is on: the guard is over, the person chose a field, and what is in
+  /// it answers the prompt.
+  private var canSend: Bool {
+    armed && engaged && model.canSend(value, identifier: identifier)
   }
 
   // MARK: Fields
@@ -187,7 +264,6 @@ struct SecureInputSheetView: View {
           #endif
           .modifier(PlainEntry())
           .focused($focus, equals: .value)
-          .accessibilityFocused($voiceOverFocus, equals: .value)
           .onSubmit { submit(prompt) }
           .accessibilityIdentifier("secureInput.field")
       }
@@ -199,7 +275,6 @@ struct SecureInputSheetView: View {
           .textContentType(.username)
           .modifier(PlainEntry())
           .focused($focus, equals: .identifier)
-          .accessibilityFocused($voiceOverFocus, equals: .identifier)
           .onSubmit { focus = .value }
           .accessibilityIdentifier("secureInput.identifier")
       }
@@ -208,7 +283,6 @@ struct SecureInputSheetView: View {
           .textContentType(.password)
           .modifier(PlainEntry())
           .focused($focus, equals: .value)
-          .accessibilityFocused($voiceOverFocus, equals: .value)
           .onSubmit { submit(prompt) }
           .accessibilityIdentifier("secureInput.field")
       }
@@ -223,7 +297,6 @@ struct SecureInputSheetView: View {
       SecureField(label, text: $value.revealed)
         .modifier(PlainEntry())
         .focused($focus, equals: .value)
-        .accessibilityFocused($voiceOverFocus, equals: .value)
         .onSubmit { submit(prompt) }
         .accessibilityIdentifier("secureInput.field")
     }
@@ -273,38 +346,16 @@ struct SecureInputSheetView: View {
   /// Send and Skip while the prompt is open; Close once it ended.
   @ViewBuilder private var actions: some View {
     if let prompt = model.presentedPrompt, model.presented != nil {
-      VStack(spacing: 10) {
-        Button {
-          submit(prompt)
-        } label: {
-          Text(sendTitle(prompt))
-            .font(.title3.weight(.semibold))
-            .frame(maxWidth: .infinity)
+      // Side by side when they fit, so the pinned bottom stays short.
+      ViewThatFits(in: .horizontal) {
+        HStack(spacing: 10) {
+          skipButton
+          sendButton(prompt)
         }
-        .buttonStyle(.borderedProminent)
-        .controlSize(.large)
-        .keyboardShortcut(.defaultAction)
-        .disabled(!(armed && model.canSend(value, identifier: identifier)))
-        .accessibilityIdentifier(model.hasFailed ? "secureInput.retry" : "secureInput.send")
-
-        Button {
-          Task {
-            if await model.skip() {
-              clear()
-            }
-          }
-        } label: {
-          Text(NativeStrings.SecureInput.skip)
-            .font(.title3.weight(.semibold))
-            .frame(maxWidth: .infinity)
+        VStack(spacing: 10) {
+          sendButton(prompt)
+          skipButton
         }
-        .buttonStyle(.bordered)
-        .tint(.primary)
-        .controlSize(.large)
-        // Esc answers '' as Skip does.
-        .keyboardShortcut(.cancelAction)
-        .disabled(model.isSending)
-        .accessibilityIdentifier("secureInput.skip")
       }
     } else {
       Button {
@@ -322,6 +373,46 @@ struct SecureInputSheetView: View {
     }
   }
 
+  private func sendButton(_ prompt: SecurePrompt) -> some View {
+    Button {
+      submit(prompt)
+    } label: {
+      Text(sendTitle(prompt))
+        .font(.title3.weight(.semibold))
+        .frame(maxWidth: .infinity)
+    }
+    .buttonStyle(.borderedProminent)
+    .controlSize(.large)
+    .keyboardShortcut(.defaultAction)
+    .disabled(!canSend)
+    .accessibilityIdentifier(model.hasFailed ? "secureInput.retry" : "secureInput.send")
+  }
+
+  private var skipButton: some View {
+    Button {
+      guard armed else {
+        return
+      }
+
+      Task {
+        if await model.skip() {
+          clear()
+        }
+      }
+    } label: {
+      Text(NativeStrings.SecureInput.skip)
+        .font(.title3.weight(.semibold))
+        .frame(maxWidth: .infinity)
+    }
+    .buttonStyle(.bordered)
+    .tint(.primary)
+    .controlSize(.large)
+    // Esc answers '' as Skip does.
+    .keyboardShortcut(.cancelAction)
+    .disabled(model.isSending)
+    .accessibilityIdentifier("secureInput.skip")
+  }
+
   private func sendTitle(_ prompt: SecurePrompt) -> String {
     if model.hasFailed {
       return NativeStrings.Requests.retry
@@ -332,7 +423,7 @@ struct SecureInputSheetView: View {
 
   @ViewBuilder private var outcome: some View {
     if let outcome = model.presentedOutcome {
-      Label(SecureInputNoticeView.sheetText(outcome), systemImage: "clock.badge.xmark")
+      Label(SecureInputNoticeView.sheetText(outcome), systemImage: SecureInputNoticeView.icon(outcome))
         .font(.headline)
         .fixedSize(horizontal: false, vertical: true)
         .accessibilityIdentifier("secureInput.outcome")
@@ -344,7 +435,7 @@ struct SecureInputSheetView: View {
   /// Send what is in the field (Send, Return, Retry): the value still in the
   /// field is what goes, and the field is cleared once it went out.
   private func submit(_ prompt: SecurePrompt) {
-    guard armed, model.canSend(value, identifier: identifier) else {
+    guard canSend else {
       return
     }
 
@@ -394,28 +485,35 @@ private struct PlainEntry: ViewModifier {
 }
 
 /// The sheet's constant top: the app's own icon and words for who asks, for
-/// what kind of thing, and on which gateway.
+/// what kind of thing, and on which gateway. VoiceOver starts here.
 struct SecureInputChrome: View {
   let model: SecureInputModel
   let prompt: SecurePrompt
+  var titleFocused: AccessibilityFocusState<Bool>.Binding
 
   var body: some View {
     VStack(alignment: .leading, spacing: 6) {
-      Image(systemName: "lock.shield.fill")
-        .font(.title)
-        .foregroundStyle(.tint)
-        .accessibilityHidden(true)
-      Text(Self.title(prompt.kind, bot: model.bot))
-        .font(.title2.bold())
-        .fixedSize(horizontal: false, vertical: true)
-        .accessibilityAddTraits(.isHeader)
-        .accessibilityIdentifier("secureInput.title")
+      Label {
+        Text(Self.title(prompt.kind, bot: model.botName))
+      } icon: {
+        Image(systemName: "lock.shield.fill")
+          .foregroundStyle(.tint)
+          .accessibilityHidden(true)
+      }
+      .font(.title2.bold())
+      .lineLimit(3)
+      .fixedSize(horizontal: false, vertical: true)
+      .accessibilityAddTraits(.isHeader)
+      .accessibilityFocused(titleFocused)
+      .accessibilityIdentifier("secureInput.title")
       Text(NativeStrings.SecureInput.gateway(model.gatewayName))
         .font(.subheadline)
         .foregroundStyle(.secondary)
-        .fixedSize(horizontal: false, vertical: true)
+        .lineLimit(1)
+        .truncationMode(.middle)
         .accessibilityIdentifier("secureInput.gateway")
     }
+    .frame(maxWidth: .infinity, alignment: .leading)
   }
 
   static func title(_ kind: SecurePromptKind, bot: String) -> String {
@@ -438,7 +536,7 @@ struct SecureInputDetails: View {
     switch kind {
     case .secret(let envVar, let prompt):
       if !prompt.isEmpty {
-        quoted(prompt)
+        RequestTextBox(text: prompt, identifier: "secureInput.prompt")
       }
       if !envVar.isEmpty {
         HStack(alignment: .firstTextBaseline, spacing: 6) {
@@ -446,8 +544,10 @@ struct SecureInputDetails: View {
             .foregroundStyle(.secondary)
           Text(verbatim: envVar)
             .font(.body.monospaced())
+            .fixedSize(horizontal: false, vertical: true)
             .accessibilityIdentifier("secureInput.envVar")
         }
+        .clipped()
         .accessibilityElement(children: .combine)
       }
     case .sudo(let command):
@@ -457,44 +557,84 @@ struct SecureInputDetails: View {
         Text(NativeStrings.SecureInput.sudoNoCommand)
           .foregroundStyle(.secondary)
       } else {
-        Text(verbatim: command)
-          .font(.body.monospaced())
-          .padding(12)
-          .frame(maxWidth: .infinity, alignment: .leading)
-          .background(.background.secondary, in: .rect(cornerRadius: 10))
-          .accessibilityIdentifier("secureInput.command")
+        RequestTextBox(text: command, identifier: "secureInput.command", monospaced: true)
       }
     case .vaultUnlock(let name):
       Text(NativeStrings.SecureInput.vaultUnlockLead(name))
+        .lineLimit(4)
         .fixedSize(horizontal: false, vertical: true)
+        .clipped()
     case .vaultCode(let site, let hint):
       Text(site.isEmpty ? NativeStrings.SecureInput.vaultCodeLeadNoSite : NativeStrings.SecureInput.vaultCodeLead(site))
+        .lineLimit(4)
         .fixedSize(horizontal: false, vertical: true)
+        .clipped()
       if !hint.isEmpty {
-        quoted(hint)
+        RequestTextBox(text: hint, identifier: "secureInput.prompt")
       }
     case .vaultSaveLogin(let site, let origin):
       Text(verbatim: site)
         .font(.title3.weight(.semibold).monospaced())
+        .lineLimit(3)
         .fixedSize(horizontal: false, vertical: true)
+        .clipped()
         .accessibilityIdentifier("secureInput.site")
       Text(NativeStrings.SecureInput.vaultSaveLoginLead(site))
+        .lineLimit(4)
         .fixedSize(horizontal: false, vertical: true)
+        .clipped()
       if !origin.isEmpty, origin != site {
         Text(verbatim: origin)
           .font(.footnote.monospaced())
           .foregroundStyle(.secondary)
+          .lineLimit(2)
+          .clipped()
       }
     }
   }
+}
 
-  private func quoted(_ text: String) -> some View {
-    Text(verbatim: text)
-      .padding(12)
-      .frame(maxWidth: .infinity, alignment: .leading)
-      .background(.background.secondary, in: .rect(cornerRadius: 10))
-      .fixedSize(horizontal: false, vertical: true)
-      .accessibilityIdentifier("secureInput.prompt")
+/// The request's own words, in a box: a few lines, clipped, with Show more to
+/// read the rest in place (it grows inside the scroll area, never over the
+/// sheet's chrome).
+struct RequestTextBox: View {
+  let text: String
+  let identifier: String
+  var monospaced = false
+
+  /// Lines shown before Show more.
+  static let collapsedLines = 6
+
+  @State private var expanded = false
+
+  var body: some View {
+    VStack(alignment: .leading, spacing: 8) {
+      Text(verbatim: text)
+        .font(monospaced ? .body.monospaced() : .body)
+        .lineLimit(expanded ? nil : Self.collapsedLines)
+        .fixedSize(horizontal: false, vertical: true)
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .clipped()
+        .accessibilityIdentifier(identifier)
+
+      if Self.mayBeLong(text) {
+        Button(expanded ? NativeStrings.SecureInput.showLess : NativeStrings.SecureInput.showMore) {
+          expanded.toggle()
+        }
+        .buttonStyle(.borderless)
+        .accessibilityIdentifier("\(identifier).more")
+      }
+    }
+    .padding(12)
+    .background(.background.secondary, in: .rect(cornerRadius: 10))
+    .clipShape(.rect(cornerRadius: 10))
+  }
+
+  /// Whether the text may run past the collapsed lines: more lines than that,
+  /// or more than they hold at a narrow width.
+  static func mayBeLong(_ text: String) -> Bool {
+    let lines = text.unicodeScalars.reduce(1) { $1 == "\n" ? $0 + 1 : $0 }
+    return lines > collapsedLines || text.unicodeScalars.count > collapsedLines * 30
   }
 }
 
@@ -510,8 +650,9 @@ public struct SecureInputNoticeView: View {
   public var body: some View {
     if let entry = model.notice {
       HStack(alignment: .firstTextBaseline, spacing: 8) {
-        Label(Self.text(entry.notice, bot: model.bot), systemImage: Self.icon(entry.notice))
+        Label(Self.text(entry.notice, bot: model.botName), systemImage: Self.icon(entry.notice))
           .font(.footnote)
+          .lineLimit(4)
           .fixedSize(horizontal: false, vertical: true)
         Spacer(minLength: 0)
         Button {
@@ -526,6 +667,7 @@ public struct SecureInputNoticeView: View {
       .padding(.horizontal, 16)
       .padding(.vertical, 8)
       .background(.bar)
+      .clipped()
       .accessibilityElement(children: .contain)
       .accessibilityIdentifier("secureInput.notice")
     }
@@ -535,16 +677,16 @@ public struct SecureInputNoticeView: View {
     switch notice {
     case .expired: "clock.badge.xmark"
     case .withdrawn: "xmark.circle"
+    case .mayNotHaveArrived: "exclamationmark.triangle"
     case .unsupported: "exclamationmark.bubble"
     }
   }
 
-  /// On the chat, where the bot has to be named.
+  /// On the chat, where the bot has to be named (`bot` already cleaned).
   static func text(_ notice: SecureInputNotice, bot: String) -> String {
     switch notice {
-    case .expired: NativeStrings.SecureInput.expired
-    case .withdrawn: NativeStrings.SecureInput.withdrawn
     case .unsupported(let method): NativeStrings.SecureInput.unsupported(bot: bot, method: method)
+    default: sheetText(notice)
     }
   }
 
@@ -552,6 +694,7 @@ public struct SecureInputNoticeView: View {
   static func sheetText(_ notice: SecureInputNotice) -> String {
     switch notice {
     case .expired: NativeStrings.SecureInput.expired
+    case .mayNotHaveArrived: NativeStrings.SecureInput.mayNotHaveArrived
     case .withdrawn, .unsupported: NativeStrings.SecureInput.withdrawn
     }
   }
@@ -659,6 +802,14 @@ extension NativeStrings {
     static var expired: String { string("native.secureInput.expired") }
     /// The bot no longer asks for this. Nothing was sent.
     static var withdrawn: String { string("native.secureInput.withdrawn") }
+    /// The bot stopped waiting while your answer was on its way…
+    static var mayNotHaveArrived: String { string("native.secureInput.mayNotHaveArrived") }
+    /// Your earlier answer did not reach the gateway. Enter it again.
+    static var earlierAnswerLost: String { string("native.secureInput.earlierAnswerLost") }
+    /// Show more
+    static var showMore: String { string("native.secureInput.showMore") }
+    /// Show less
+    static var showLess: String { string("native.secureInput.showLess") }
     /// {bot} asked for something this app cannot show: {method}
     static func unsupported(bot: String, method: String) -> String {
       String(

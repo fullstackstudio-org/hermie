@@ -148,6 +148,8 @@
 	<string>Sending your answer…</string>
 	<key>native.secureInput.close</key>
 	<string>Close</string>
+	<key>native.secureInput.earlierAnswerLost</key>
+	<string>Your earlier answer did not reach the gateway. Enter it again.</string>
 	<key>native.secureInput.expired</key>
 	<string>The request expired. Nothing was sent.</string>
 	<key>native.secureInput.expiresIn</key>
@@ -164,6 +166,8 @@
 	<string>Value</string>
 	<key>native.secureInput.gateway</key>
 	<string>On gateway %@</string>
+	<key>native.secureInput.mayNotHaveArrived</key>
+	<string>The bot stopped waiting while your answer was on its way. It may not have arrived in time.</string>
 	<key>native.secureInput.receiver.login</key>
 	<string>Hermie sends this to the gateway, which saves it in the bot's password vault. Hermie does not keep it.</string>
 	<key>native.secureInput.receiver.stored</key>
@@ -174,6 +178,10 @@
 	<string>Save</string>
 	<key>native.secureInput.send</key>
 	<string>Send</string>
+	<key>native.secureInput.showLess</key>
+	<string>Show less</string>
+	<key>native.secureInput.showMore</key>
+	<string>Show more</string>
 	<key>native.secureInput.skip</key>
 	<string>Skip</string>
 	<key>native.secureInput.sudo.lead</key>

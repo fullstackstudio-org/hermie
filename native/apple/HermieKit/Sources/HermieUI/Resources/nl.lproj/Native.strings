@@ -148,6 +148,8 @@
 	<string>Je antwoord wordt verstuurd…</string>
 	<key>native.secureInput.close</key>
 	<string>Sluiten</string>
+	<key>native.secureInput.earlierAnswerLost</key>
+	<string>Je eerdere antwoord heeft de gateway niet bereikt. Voer het opnieuw in.</string>
 	<key>native.secureInput.expired</key>
 	<string>Het verzoek is verlopen. Er is niets verstuurd.</string>
 	<key>native.secureInput.expiresIn</key>
@@ -164,6 +166,8 @@
 	<string>Waarde</string>
 	<key>native.secureInput.gateway</key>
 	<string>Op gateway %@</string>
+	<key>native.secureInput.mayNotHaveArrived</key>
+	<string>De bot stopte met wachten terwijl je antwoord onderweg was. Het is misschien niet op tijd aangekomen.</string>
 	<key>native.secureInput.receiver.login</key>
 	<string>Hermie stuurt dit naar de gateway, die het in de wachtwoordkluis van de bot bewaart. Hermie bewaart het niet.</string>
 	<key>native.secureInput.receiver.stored</key>
@@ -174,6 +178,10 @@
 	<string>Bewaren</string>
 	<key>native.secureInput.send</key>
 	<string>Versturen</string>
+	<key>native.secureInput.showLess</key>
+	<string>Minder tonen</string>
+	<key>native.secureInput.showMore</key>
+	<string>Meer tonen</string>
 	<key>native.secureInput.skip</key>
 	<string>Overslaan</string>
 	<key>native.secureInput.sudo.lead</key>
