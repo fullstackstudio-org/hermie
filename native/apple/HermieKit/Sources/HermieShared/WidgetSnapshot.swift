@@ -98,13 +98,9 @@ public struct WidgetSnapshot: Codable, Sendable, Equatable {
     return snapshot.stampingGatewayKey()
   }
 
-  /// The file's bytes, compact, slashes unescaped.
+  /// The file's bytes, exactly as `JSON.stringify` wrote them for the same snapshot.
   public func encoded() throws -> Data {
-    let encoder = JSONEncoder()
-
-    encoder.outputFormatting = [.withoutEscapingSlashes]
-
-    return try encoder.encode(self)
+    jsonText.data
   }
 
   private enum CodingKeys: String, CodingKey {

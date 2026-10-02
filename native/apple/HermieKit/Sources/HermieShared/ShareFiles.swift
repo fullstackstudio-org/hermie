@@ -231,7 +231,7 @@ public struct ShareTargets: Codable, Sendable, Equatable {
   public static let botPlaceholder = "{bot}"
 
   public var version: Int
-  /// Unix milliseconds.
+  /// Unix seconds (`buildShareTargets` floors the clock to seconds).
   public var generatedAt: Double
   /// The gateway these sessions belong to; compared with the credential's before sending.
   public var gatewayKey: String?
