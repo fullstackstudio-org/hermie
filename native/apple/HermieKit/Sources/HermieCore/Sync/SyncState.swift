@@ -76,6 +76,9 @@ public struct SyncEntry: Sendable, Equatable {
   public var stamps: [String: SyncStamp]
   /// Per field: the print of the local value as of the last reconcile.
   public var prints: [String: String]
+  /// Prints of credentials a move to another origin left behind, kept until they are really gone
+  /// here, so moving back to that origin cannot revive one and send it out as if entered here.
+  public var leftBehind: Set<String>
 
   var extra: JSONObject = [:]
 
@@ -88,7 +91,8 @@ public struct SyncEntry: Sendable, Equatable {
     addedHere: Bool = false,
     clearing: Set<SyncField> = [],
     stamps: [String: SyncStamp] = [:],
-    prints: [String: String] = [:]
+    prints: [String: String] = [:],
+    leftBehind: Set<String> = []
   ) {
     self.key = key
     self.seen = seen
@@ -99,12 +103,27 @@ public struct SyncEntry: Sendable, Equatable {
     self.clearing = clearing
     self.stamps = stamps
     self.prints = prints
+    self.leftBehind = leftBehind
   }
 
   public func stamp(_ field: SyncField) -> SyncStamp? { stamps[field.rawValue] }
 
+  /// The print of a field a plan is writing here, saved before the write (see
+  /// `SyncPlan.provisionalState`): the print of the value before and after.
+  public static func pendingPrint(from old: String, to new: String) -> String {
+    "pending|\(old)|\(new)"
+  }
+
+  /// The two prints of a pending mark, or `nil` for an ordinary print.
+  public static func pending(_ print: String?) -> (old: String, new: String)? {
+    guard let print, print.hasPrefix("pending|") else { return nil }
+    let parts = print.split(separator: "|", omittingEmptySubsequences: false)
+    guard parts.count == 3 else { return nil }
+    return (String(parts[1]), String(parts[2]))
+  }
+
   private static let knownKeys: Set<String> = [
-    "key", "seen", "detached", "signedOut", "removal", "addedHere", "clearing", "stamps", "prints"
+    "key", "seen", "detached", "signedOut", "removal", "addedHere", "clearing", "stamps", "prints", "leftBehind"
   ]
 
   var json: JSONValue {
@@ -119,6 +138,7 @@ public struct SyncEntry: Sendable, Equatable {
       clearing.isEmpty ? Optional<JSONValue>.none : .array(clearing.sorted().map { .string($0.rawValue) })
     object["stamps"] = .object(stamps.mapValues(\.json))
     object["prints"] = .object(prints.mapValues(JSONValue.string))
+    object["leftBehind"] = leftBehind.isEmpty ? Optional<JSONValue>.none : .array(leftBehind.sorted().map(JSONValue.string))
     return .object(object)
   }
 
@@ -136,6 +156,7 @@ public struct SyncEntry: Sendable, Equatable {
     clearing = Set((object["clearing"]?.arrayValue ?? []).compactMap { $0.stringValue.flatMap(SyncField.init(rawValue:)) })
     stamps = (object["stamps"]?.objectValue ?? [:]).compactMapValues { SyncStamp(json: $0) }
     prints = (object["prints"]?.objectValue ?? [:]).compactMapValues(\.stringValue)
+    leftBehind = Set((object["leftBehind"]?.arrayValue ?? []).compactMap(\.stringValue))
     extra = object.filter { !Self.knownKeys.contains($0.key) }
   }
 }
@@ -172,14 +193,21 @@ extension SyncEntry: CustomStringConvertible, CustomDebugStringConvertible, Cust
 public struct SyncTombstoneMemory: Sendable, Equatable {
   public var stamp: SyncStamp
   public var firstSeen: Double
+  /// How often this device wrote the tombstone back over a vanished item. Capped, so a refused or
+  /// lost write is made again, but a device whose clock calls the removal young cannot keep taking
+  /// turns with one that prunes it.
+  public var rewrites: Int
 
-  public init(stamp: SyncStamp, firstSeen: Double) {
+  public init(stamp: SyncStamp, firstSeen: Double, rewrites: Int = 0) {
     self.stamp = stamp
     self.firstSeen = firstSeen
+    self.rewrites = rewrites
   }
 
   var json: JSONValue {
-    .object(["deleted": stamp.json, "firstSeen": .number(firstSeen)])
+    var object: JSONObject = ["deleted": stamp.json, "firstSeen": .number(firstSeen)]
+    if rewrites > 0 { object["rewrites"] = .number(Double(rewrites)) }
+    return .object(object)
   }
 
   init?(json: JSONValue) {
@@ -189,7 +217,8 @@ public struct SyncTombstoneMemory: Sendable, Equatable {
       return nil
     }
 
-    self.init(stamp: stamp, firstSeen: firstSeen)
+    let rewrites = object["rewrites"]?.doubleValue.flatMap { $0 >= 0 && $0 <= 1_000 ? Int($0) : nil } ?? 0
+    self.init(stamp: stamp, firstSeen: firstSeen, rewrites: rewrites)
   }
 }
 
@@ -257,7 +286,8 @@ public struct SyncState: Sendable, Equatable {
 
   private mutating func intent(_ gatewayId: String, key: String, _ change: (inout SyncEntry) -> Void) {
     change(&entries[gatewayId, default: SyncEntry(key: key)])
-    generation += 1
+    // Only compared for equality, so wrapping is harmless; trapping would not be.
+    generation &+= 1
   }
 
   /// The person removed a gateway: remember the scope, so the reconcile after the purge knows
@@ -282,12 +312,17 @@ public struct SyncState: Sendable, Equatable {
     intent(gatewayId, key: key) { $0.signedOut = signedOut }
   }
 
-  /// "Sync this gateway". Switching it off deletes the item at the next reconcile and forgets the
-  /// stamps; switching it on attaches the gateway again as on first sight.
+  /// "Sync this gateway". Switching it off deletes the item at the next reconcile (and again, while
+  /// the item is still the one this device knew); switching it on merges the gateway again, from
+  /// the stamps it kept.
   public mutating func setGatewaySynced(_ synced: Bool, gatewayId: String, key: String) {
     intent(gatewayId, key: key) { entry in
       if synced {
-        if entry.detached == .user { entry.detached = nil }
+        if entry.detached == .user {
+          entry.detached = nil
+          // Attached again as on first sight; a delete still pending is no longer wanted.
+          entry.seen = false
+        }
       } else {
         entry.detached = .user
       }
@@ -328,7 +363,11 @@ public struct SyncState: Sendable, Equatable {
       disclosed: root["disclosed"]?.boolValue ?? false
     )
 
-    state.generation = root["generation"]?.intValue ?? 0
+    // An absurd stored value (above 2^53, negative, fractional) is ignored, never trusted to fit.
+    if let stored = root["generation"]?.doubleValue, stored >= 0, stored <= 9_007_199_254_740_992,
+      stored.rounded() == stored {
+      state.generation = Int(stored)
+    }
     state.printCheck = root["printCheck"]?.stringValue
     state.hidden = Set((root["hidden"]?.arrayValue ?? []).compactMap(\.stringValue).filter(GatewayKey.isValid))
     state.tombstones = (root["tombstones"]?.objectValue ?? [:]).filter { GatewayKey.isValid($0.key) }

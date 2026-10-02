@@ -144,7 +144,8 @@ import Testing
       published: Self.gateway("g00000000000000a1", authKind: "session_token", token: "tok-a"),
       local: Self.gateway("g00000000000000b1", authKind: "session_token", token: "tok-b", door: "door-b"))
 
-    // Device 0 signs out on all devices and removes its front door: both registers are null now.
+    // Device 0 signs out on all devices: the token register is null now, and device 0 stays
+    // signed out.
     world.signOutEverywhere(0, "g00000000000000a1")
     world.settle()
     #expect(world.cloudRecord(key: Self.key)?.registers[.sessionToken]?.value == .null)
@@ -154,6 +155,7 @@ import Testing
 
     #expect(world.devices[1].gateways.first?.sessionToken?.token == "tok-b")
     #expect(world.devices[1].gateways.first?.frontDoor?.clientSecret == "door-b")
-    #expect(world.devices[0].gateways.first?.sessionToken?.token == "tok-b")
+    #expect(world.devices[0].gateways.first?.sessionToken == nil)
+    #expect(world.cloudRecord(key: Self.key)?.sessionToken?.token == "tok-b")
   }
 }

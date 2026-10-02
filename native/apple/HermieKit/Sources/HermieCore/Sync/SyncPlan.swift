@@ -29,6 +29,8 @@ public enum SyncEvent: Sendable, Equatable {
   case needsSignIn(gatewayId: String)
   /// The record would be over 8 KB with its headers, so they stay on this device only (I16).
   case headersNotSynced(gatewayId: String)
+  /// Credentials that went missing here without anyone clearing them were put back from iCloud.
+  case credentialRestored(gatewayId: String, fields: Set<SyncField>)
 }
 
 /// Which rule of the merge a reconcile used, for tests and diagnostics. Carries nothing else.
@@ -47,6 +49,14 @@ enum SyncTrace: String, Sendable, Hashable {
   case credentialRestored
   /// A credential missing here while signed out was left missing.
   case credentialLeftSignedOut
+  /// "Sign Out on All Devices" went out while signed out here.
+  case clearedWhileSignedOut
+  /// Without a print, a local credential went back at its old stamp and a newer one from elsewhere won.
+  case printRebuildYielded
+  /// A young remembered tombstone whose item had vanished was written again.
+  case tombstoneRewrittenOverMissing
+  /// "Stop syncing" deleted the item again because a read still showed it.
+  case stopSyncingDeleteRepeated
   /// The print key changed: every print was void and gateways were attached as on first sight.
   case printsReset
   /// A record went out without its headers (I16).
@@ -57,15 +67,30 @@ enum SyncTrace: String, Sendable, Hashable {
   case originCollision
   /// A gateway the sync had purged before its state was saved was not hidden.
   case crashedPurgeRecovered
+  /// A local write a plan saved as pending had not landed, and was made again.
+  case pendingWriteRedone
+  /// Credentials bound to an origin the gateway no longer has were deleted here.
+  case credentialsLeftBehind
 }
 
 /**
  What one reconcile decided: the local changes, the items to write and delete, the sync state to
  store afterwards, and the events to announce.
 
- Apply it in this order, each step safe to repeat: `localOps` (registry and config in one
- transaction, then the credentials), `remotePuts` and `remoteDeletes`, then `state`. A plan that
- `isEmpty` needs nothing done.
+ Apply it in this order, each step safe to repeat after a crash:
+
+ 1. One SQLite transaction: the registry and config changes of `localOps`, and `provisionalState`.
+ 2. The credentials of `localOps` in the device-only keychain (and the purge of a purged gateway's).
+ 3. `remotePuts` and `remoteDeletes`.
+ 4. `state`.
+
+ `provisionalState` is what makes a crash between the steps harmless. It is `state` with every
+ field this plan writes locally marked pending (`SyncEntry.pendingPrint(from:to:)`: the print of
+ the value before and after). After a crash, the next reconcile compares the local value with
+ both: the write landed, or it did not and the record's value is written again, or the person
+ changed it since. So a credential this device received never passes for one entered here, and an
+ adopted gateway is never in the registry without its entry. A plan that `isEmpty` needs nothing
+ done.
  */
 public struct SyncPlan: Sendable, Equatable {
   public var localOps: [SyncLocalOp]
@@ -77,6 +102,8 @@ public struct SyncPlan: Sendable, Equatable {
   public var events: [SyncEvent]
   /// Whether `state` differs from the state the plan was computed from.
   public var stateChanged: Bool
+  /// What to save with the registry changes, before anything else (see above).
+  public var provisionalState: SyncState
   /// The rules this reconcile used. Not part of the plan's meaning; `isEmpty` ignores it.
   var traces: Set<SyncTrace> = []
 
@@ -94,6 +121,7 @@ public struct SyncPlan: Sendable, Equatable {
     self.state = state
     self.events = events
     self.stateChanged = stateChanged
+    self.provisionalState = state
   }
 
   /// Nothing to write anywhere and nothing to announce.
@@ -130,6 +158,7 @@ extension SyncEvent: CustomStringConvertible {
     case let .removedElsewhere(gatewayId, _): "removedElsewhere(\(gatewayId))"
     case let .needsSignIn(gatewayId): "needsSignIn(\(gatewayId))"
     case let .headersNotSynced(gatewayId): "headersNotSynced(\(gatewayId))"
+    case let .credentialRestored(gatewayId, fields): "credentialRestored(\(gatewayId), \(fields.sorted().map(\.rawValue)))"
     }
   }
 }

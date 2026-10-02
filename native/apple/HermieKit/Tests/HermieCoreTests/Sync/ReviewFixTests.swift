@@ -36,6 +36,7 @@ import Testing
     #expect(!plan.hasRemoteWrites)
     #expect(plan.localOps.map(\.description) == ["update(\(ids[1]), [\"frontDoor\", \"headers\", \"sessionToken\"])"])
     #expect(plan.traces.contains(.credentialRestored))
+    #expect(plan.events == [.credentialRestored(gatewayId: ids[1], fields: [.frontDoor, .headers, .sessionToken])])
 
     world.cloud.deliverAll()
     world.settle()
@@ -91,15 +92,16 @@ import Testing
     #expect(world.devices.map { $0.gateways.first?.sessionToken?.token } == ["tok-2", "tok-2"])
   }
 
-  /// (c) A lost print key: every gateway attaches as on first sight; local credentials win and
-  /// nothing is cleared anywhere.
-  @Test func aLostPrintKeyAttachesAsOnFirstSightAndClearsNothing() throws {
+  /// (c) A lost print key: each field is rebuilt from its stamp. Here the record still holds what
+  /// was last synced, so the rename and the new token made meanwhile are local edits and go out,
+  /// and the missing front door is put back; nothing is cleared anywhere.
+  @Test func aLostPrintKeyRebuildsFromStampsAndClearsNothing() throws {
     var (world, ids) = Self.shared()
 
     world.losePrintKey(1)
     world.edit(1, ids[1]) { gateway in
-      gateway.name = "Renamed while the key was lost"
-      gateway.sessionToken = SyncSessionToken(origin: Self.origin, token: "tok-local")
+      gateway.name = "Aardvark, renamed while the key was lost"
+      gateway.sessionToken = SyncSessionToken(origin: Self.origin, token: "tok-0")
       gateway.frontDoor = nil
     }
     world.advance(1_000)
@@ -108,15 +110,15 @@ import Testing
     #expect(plan.traces.contains(.printsReset))
     #expect(plan.state.printCheck == printer(key: "x").check)
     let put = try #require(plan.remotePuts.first)
-    #expect(put.sessionToken?.token == "tok-local")
+    #expect(put.sessionToken?.token == "tok-0")
     #expect(put.frontDoor?.clientSecret == "door-1")
-    #expect(put.name == "Home")
+    #expect(put.name == "Aardvark, renamed while the key was lost")
     #expect(world.devices[1].gateways.first?.frontDoor?.clientSecret == "door-1")
     #expect(world.reconcile(1).isEmpty)
 
     world.cloud.deliverAll()
     world.settle()
-    #expect(world.devices[0].gateways.first?.sessionToken?.token == "tok-local")
+    #expect(world.devices[0].gateways.first?.sessionToken?.token == "tok-0")
     #expect(world.devices[0].gateways.first?.frontDoor?.clientSecret == "door-1")
   }
 

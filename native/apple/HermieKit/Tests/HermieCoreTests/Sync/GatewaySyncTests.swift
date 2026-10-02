@@ -138,7 +138,7 @@ import Testing
 
   // MARK: Detaching
 
-  @Test func stoppingSyncForOneGatewayDeletesItsItemOnce() {
+  @Test func stoppingSyncForOneGatewayDeletesItsItemUntilAReadShowsItGone() {
     var (world, ids) = Self.shared()
 
     world.setGatewaySynced(0, ids[0], false)
@@ -146,8 +146,11 @@ import Testing
     let second = world.reconcile(0)
 
     #expect(first.remoteDeletes == [Self.account])
-    #expect(first.state.entries[ids[0]]?.stamps.isEmpty == true)
-    #expect(second.isEmpty)
+    #expect(first.state.entries[ids[0]]?.stamps.isEmpty == false)
+    #expect(first.state.entries[ids[0]]?.seen == true)
+    #expect(!second.hasRemoteWrites)
+    #expect(second.state.entries[ids[0]]?.seen == false)
+    #expect(world.reconcile(0).isEmpty)
 
     world.cloud.deliverAll()
     world.reconcile(1)

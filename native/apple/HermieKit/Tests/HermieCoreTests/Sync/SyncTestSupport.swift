@@ -201,6 +201,13 @@ struct TestDevice {
   var nextId = 0
   /// The key prints are made under; a new one models a print key lost while SQLite stayed.
   var printKey = ""
+  /// Credential values the person entered on this device, as `field|canonical value`.
+  var entered: Set<String> = []
+
+  mutating func enter(_ field: SyncField, _ value: JSONValue?) {
+    guard let value else { return }
+    entered.insert("\(field.rawValue)|\(canonical(value))")
+  }
   let index: Int
 
   init(index: Int) {
@@ -298,6 +305,66 @@ struct SyncWorld {
     }
   }
 
+  /// Where the engine died while applying a plan (`SyncPlan`'s order): after the SQLite
+  /// transaction (registry rows and `provisionalState`), after the keychain, or after the iCloud
+  /// writes. The final state is never saved.
+  enum CrashPoint: CaseIterable {
+    case afterRegistry
+    case afterKeychain
+    case afterICloud
+  }
+
+  mutating func applyCrash(_ plan: SyncPlan, to device: Int, at point: CrashPoint) {
+    var target = devices[device]
+    let credentials: Set<SyncField> = [.frontDoor, .headers, .sessionToken]
+
+    for op in plan.localOps {
+      switch op {
+      case let .add(gateway):
+        var row = gateway
+        if point == .afterRegistry {
+          row.frontDoor = nil
+          row.headers = nil
+          row.sessionToken = nil
+        }
+        target.gateways.append(row)
+      case let .update(gateway, fields):
+        guard let index = target.gateways.firstIndex(where: { $0.id == gateway.id }) else { continue }
+        var row = target.gateways[index]
+        for field in fields where point != .afterRegistry || !credentials.contains(field) {
+          switch field {
+          case .address: row.address = gateway.address
+          case .name: row.name = gateway.name
+          case .authKind: row.authKind = gateway.authKind
+          case .provider: row.provider = gateway.provider
+          case .user: row.user = gateway.user
+          case .addedAt: row.addedAt = gateway.addedAt
+          case .frontDoor: row.frontDoor = gateway.frontDoor
+          case .headers: row.headers = gateway.headers
+          case .sessionToken: row.sessionToken = gateway.sessionToken
+          case .signIn: break
+          }
+        }
+        target.gateways[index] = row
+      case let .purge(gatewayId):
+        target.gateways.removeAll { $0.id == gatewayId }
+      }
+    }
+
+    target.nextId += 4
+    target.state = plan.provisionalState
+    devices[device] = target
+
+    if point == .afterICloud {
+      for record in plan.remotePuts {
+        cloud.put(device, account: record.account, value: try! record.encoded())
+      }
+      for account in plan.remoteDeletes {
+        cloud.delete(device, account: account)
+      }
+    }
+  }
+
   /// Reconcile each device in turn, delivering everything after each, until nothing is written.
   mutating func settle(maxRounds: Int = 20) {
     for _ in 0..<maxRounds {
@@ -337,6 +404,8 @@ struct SyncWorld {
       sessionToken: token.map { SyncSessionToken(origin: origin, token: $0) })
     devices[device].gateways.append(gateway)
     devices[device].state.markAddedHere(gatewayId: id, key: gateway.key)
+    devices[device].enter(.sessionToken, gateway.sessionToken?.json)
+    devices[device].enter(.frontDoor, gateway.frontDoor?.json)
     return id
   }
 
@@ -346,10 +415,12 @@ struct SyncWorld {
   mutating func existing(_ device: Int, address: String, name: String = "Home", token: String? = nil) -> String {
     let id = devices[device].mintId()
     let origin = GatewayAddress.origin(of: address)
+    let sessionToken = token.map { SyncSessionToken(origin: origin, token: $0) }
     devices[device].gateways.append(
       LocalGateway(
         id: id, name: name, address: address, authKind: "session_token", addedAt: now + devices[device].clockOffset,
-        sessionToken: token.map { SyncSessionToken(origin: origin, token: $0) }))
+        sessionToken: sessionToken))
+    devices[device].enter(.sessionToken, sessionToken?.json)
     return id
   }
 
@@ -374,6 +445,7 @@ struct SyncWorld {
       gateway.sessionToken = token.map { SyncSessionToken(origin: GatewayAddress.origin(of: gateway.address), token: $0) }
     }
     if token != nil {
+      devices[device].enter(.sessionToken, devices[device].gateway(id)?.sessionToken?.json)
       devices[device].state.setSignedOut(false, gatewayId: id, key: gateway.key)
     } else {
       devices[device].state.markClearing(.sessionToken, gatewayId: id, key: gateway.key)
@@ -389,6 +461,8 @@ struct SyncWorld {
     }
     if secret == nil {
       devices[device].state.markClearing(.frontDoor, gatewayId: id, key: current.key)
+    } else {
+      devices[device].enter(.frontDoor, devices[device].gateway(id)?.frontDoor?.json)
     }
   }
 
@@ -399,6 +473,8 @@ struct SyncWorld {
     }
     if headers == nil {
       devices[device].state.markClearing(.headers, gatewayId: id, key: current.key)
+    } else {
+      devices[device].enter(.headers, devices[device].gateway(id)?.headers?.json)
     }
   }
 
@@ -430,10 +506,12 @@ struct SyncWorld {
     devices[device].state.setSignedOut(true, gatewayId: id, key: gateway.key)
   }
 
-  /// Sign out on all devices (session token): the local token goes and the cleared value syncs.
+  /// Sign out on all devices (session token), as the design has it: signed out here like any
+  /// sign-out, and the token cleared on every device.
   mutating func signOutEverywhere(_ device: Int, _ id: String) {
     guard let gateway = devices[device].gateway(id) else { return }
     edit(device, id) { $0.sessionToken = nil }
+    devices[device].state.setSignedOut(true, gatewayId: id, key: gateway.key)
     devices[device].state.markClearing(.sessionToken, gatewayId: id, key: gateway.key)
   }
 
