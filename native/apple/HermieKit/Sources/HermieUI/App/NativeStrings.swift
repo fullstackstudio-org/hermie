@@ -77,6 +77,14 @@ enum NativeStrings {
   }
 
   enum Push {
+    /// This gateway cannot deliver to this device yet: its Hermie plugin is too old. Update the plugin on the gateway.
+    static var cannotDeliverPlugin: String {
+      String(localized: "native.push.cannotDeliverPlugin", table: "Native", bundle: .module)
+    }
+    /// This gateway cannot deliver to this device yet: its Hermie plugin does not allow this device’s push relay.
+    static var cannotDeliverRelay: String {
+      String(localized: "native.push.cannotDeliverRelay", table: "Native", bundle: .module)
+    }
     /// Developer details
     static var developer: String { String(localized: "native.push.developer", table: "Native", bundle: .module) }
     /// APNs environment

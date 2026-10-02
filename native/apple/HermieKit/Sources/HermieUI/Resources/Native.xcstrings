@@ -653,6 +653,52 @@
         }
       }
     },
+    "native.push.cannotDeliverPlugin" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Dieses Gateway kann noch nicht an dieses Gerät zustellen: Das Hermie-Plugin ist zu alt. Aktualisiere das Plugin auf dem Gateway."
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "This gateway cannot deliver to this device yet: its Hermie plugin is too old. Update the plugin on the gateway."
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Deze gateway kan nog niet bij dit apparaat afleveren: de Hermie-plugin is te oud. Werk de plugin op de gateway bij."
+          }
+        }
+      }
+    },
+    "native.push.cannotDeliverRelay" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Dieses Gateway kann noch nicht an dieses Gerät zustellen: Das Hermie-Plugin erlaubt das Push-Relay dieses Geräts nicht."
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "This gateway cannot deliver to this device yet: its Hermie plugin does not allow this device’s push relay."
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Deze gateway kan nog niet bij dit apparaat afleveren: de Hermie-plugin staat de pushrelay van dit apparaat niet toe."
+          }
+        }
+      }
+    },
     "native.push.developer" : {
       "extractionState" : "manual",
       "localizations" : {

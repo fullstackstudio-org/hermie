@@ -58,6 +58,10 @@
 	<string>De lokale gegevens van Hermie waren beschadigd en zijn opnieuw opgebouwd. Alles wat nog leesbaar was, is bewaard.</string>
 	<key>native.notice.runningInMemory</key>
 	<string>Hermie kon zijn opslag niet openen. Wat je nu verandert, is weg zodra Hermie stopt.</string>
+	<key>native.push.cannotDeliverPlugin</key>
+	<string>Deze gateway kan nog niet bij dit apparaat afleveren: de Hermie-plugin is te oud. Werk de plugin op de gateway bij.</string>
+	<key>native.push.cannotDeliverRelay</key>
+	<string>Deze gateway kan nog niet bij dit apparaat afleveren: de Hermie-plugin staat de pushrelay van dit apparaat niet toe.</string>
 	<key>native.push.developer</key>
 	<string>Details voor ontwikkelaars</string>
 	<key>native.push.environment</key>

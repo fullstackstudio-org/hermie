@@ -467,4 +467,66 @@ struct PushRegistrarTests {
     await rig.registrar.reconcile(rig.context(gateways: ids))
     #expect(rig.relay.calls.count == 8)
   }
+
+  @Test("a reinstall whose orphan DELETE fails once: the gateway waits, no manage secret is lost, then it registers")
+  func orphanDeleteFailsOnce() async throws {
+    let first = try Rig()
+    await first.registrar.reconcile(first.context(gateways: ["g1"]))
+    let keys = try SecretKeys.gateway("g1")
+    let old = try #require(try first.secrets.inner.get(keys.pushManage))
+
+    // The database is gone; the keychain is not.
+    let store = try makePushStore(secrets: first.secrets)
+    let registrar = PushRegistrar(client: first.relay, store: store, clock: first.clock.read)
+
+    first.relay.failDelete(.timeout)
+    let waiting = await registrar.reconcile(first.context(gateways: ["g1"]))
+
+    #expect(waiting.failures["g1"] == .storage)
+    #expect(first.relay.calls.count == 2)
+    #expect(!first.relay.calls.dropFirst().contains { if case .register = $0 { true } else { false } })
+    #expect(try first.secrets.inner.get(keys.pushManage) == old)
+
+    await registrar.reconcile(first.context(gateways: ["g1"]))
+
+    #expect(
+      Array(first.relay.calls.suffix(2))
+        == [
+          .delete(handle: F.handle(1), manageSecret: F.secret("manage", 1)),
+          .register(token: F.tokenA.hex, environment: .sandbox, topic: F.topic)
+        ]
+    )
+    #expect(try await store.registrations().map(\.handle) == [F.handle(2)])
+  }
+
+  @Test("a registration never overwrites an unrevoked manage secret: it is kept for revoking, then revoked")
+  func unrevokedSecretKept() async throws {
+    let rig = try Rig()
+    let keys = try SecretKeys.gateway("g1")
+    let old = PushHeldCapability(gatewayId: "g1", handle: F.handle(9), relay: F.relay, manageSecret: F.secret("manage", 9))
+    try rig.secrets.set(keys.pushManage, old.stored)
+
+    // Save a new registration over it, as a pass that could not list the keychain would.
+    try await rig.store.save(
+      F.registration("g1", handle: F.handle(1)),
+      secrets: PushCapability(handle: F.handle(1), sendSecret: F.secret("send", 1), manageSecret: F.secret("manage", 1))
+    )
+
+    let held = try await rig.store.heldCapabilities()
+    #expect(held.contains { $0.pendingRevoke && $0.handle == F.handle(9) && $0.manageSecret == F.secret("manage", 9) })
+    #expect(held.contains { !$0.pendingRevoke && $0.handle == F.handle(1) })
+
+    // A third over a pending one is refused rather than losing it.
+    await #expect(throws: PushRegistrationStoreError.unrevokedCapability) {
+      try await rig.store.save(
+        F.registration("g1", handle: F.handle(5)),
+        secrets: PushCapability(handle: F.handle(5), sendSecret: F.secret("send", 5), manageSecret: F.secret("manage", 5))
+      )
+    }
+
+    // The next pass revokes the pending one and keeps the current one.
+    await rig.registrar.reconcile(rig.context(gateways: ["g1"]))
+    #expect(rig.relay.calls.contains(.delete(handle: F.handle(9), manageSecret: F.secret("manage", 9))))
+    #expect(try await rig.store.heldCapabilities().map(\.pendingRevoke) == [false])
+  }
 }

@@ -132,6 +132,24 @@ public struct UIMetaDocuments: Sendable, Hashable, Codable {
     return copy
   }
 
+  /// Whether a gateway's push section (`home`) holds anything other than this device's own rows
+  /// and stamps as the device last set them.
+  public static func ownPushDiffers(home: JSONObject?, rows: [String: JSONObject?], seen: [String: JSONValue?]) -> Bool {
+    let push = home?[UIMeta.pushField]?.objectValue
+    let theirRows = push?[UIMetaPushRow.registrations]?.objectValue ?? [:]
+    let theirSeen = push?[PushRows.seenKey]?.objectValue ?? [:]
+
+    for (installation, row) in rows where theirRows[installation]?.objectValue != row {
+      return true
+    }
+
+    for (installation, entry) in seen where theirSeen[installation] != entry {
+      return true
+    }
+
+    return false
+  }
+
   /// Put this device's own `seen` entries into the app section (`nil` removes one), and, when
   /// `sweep` is given, sweep every other stale entry and write each in the shape the gateway
   /// reads (`pushSectionFor`). Every other field stays exactly as it is.

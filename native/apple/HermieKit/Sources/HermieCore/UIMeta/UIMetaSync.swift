@@ -556,6 +556,17 @@ public final class UIMetaSync: Sendable {
     core.documents.fold(pushRows: core.pushRows)
     core.documents.fold(pushSeen: core.pushSeen)
 
+    // The gateway's copy lacks (or holds a different) row or stamp of this device's: the section
+    // goes out again, or the copy is never repaired (a plugin that moved the rows to the
+    // per-person key, a row removed here before the first copy of a launch arrived).
+    if UIMetaDocuments.ownPushDiffers(
+      home: snapshot.pushHome ?? snapshot.remote,
+      rows: core.pushRows,
+      seen: core.pushSeen
+    ) {
+      core.state.markApp()
+    }
+
     let contributors = core.live
 
     if !contributors.isEmpty {

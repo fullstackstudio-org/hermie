@@ -33,6 +33,10 @@ struct PushLifecycle: ViewModifier {
           switch route {
           case .chat(let link):
             perform(router.handle(link), on: launch)
+          case .conversation(let link, _):
+            // Seam: the router has no conversation route yet. Until the conversation viewer lands,
+            // the bot's chat opens; the session id the notification named is dropped here.
+            perform(router.handle(link), on: launch)
           case .chatList:
             router.closeChat()
             router.section = .chats

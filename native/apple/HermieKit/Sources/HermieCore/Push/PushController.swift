@@ -1,4 +1,5 @@
 import Foundation
+import HermieProtocol
 import HermieShared
 import HermieStore
 import Observation
@@ -36,8 +37,49 @@ public struct PushGatewayRef: Sendable, Hashable {
 public enum PushRoute: Sendable, Equatable {
   /// A chat, by a link whose gateway key names a configured gateway.
   case chat(DeepLink)
+  /**
+   One conversation of that bot (a branch, an older session) that the notification named. The
+   router cannot open a conversation by id yet: until the conversation viewer lands, the shell
+   opens `link`'s chat and hands `sessionId` to that seam (`AppRouter` has none yet).
+   */
+  case conversation(DeepLink, sessionId: String)
   /// The chat list: the notification could not be tied to a configured gateway or a usable bot.
   case chatList
+}
+
+/// Why a gateway cannot deliver to this device's relay row yet, read from its plugin advert.
+public enum PushDeliveryProblem: Sendable, Equatable {
+  /// No Hermie plugin, or one that predates the relay sender (`push.relay` not advertised).
+  case pluginTooOld
+  /// The plugin's sender posts only to the relay origins it lists, and this relay is not one.
+  case relayNotAllowed
+}
+
+/// Whether a gateway's notifier will deliver to this device's relay row.
+public enum PushDelivery: Sendable, Equatable {
+  /// Not read yet.
+  case unknown
+  case ready
+  /// The row is written anyway, and starts working when the plugin does.
+  case cannotDeliver(PushDeliveryProblem)
+
+  /// From a plugin advert (`nil` is no plugin at all), as `pluginAdvertOf` in
+  /// `packages/gateway-client` reads it: `relayOrigins` absent is an empty list.
+  public static func of(advert: JSONObject?, relay: String) -> PushDelivery {
+    guard let advert, UIMetaPlugin.hasCapability(advert, PushRows.relayCapability) else {
+      return .cannotDeliver(.pluginTooOld)
+    }
+
+    let origins = (advert["relayOrigins"]?.arrayValue ?? []).map { PushRows.relayOriginOf($0) }.filter { !$0.isEmpty }
+    let ours = PushRows.relayOriginOf(.string(relay))
+
+    return !ours.isEmpty && origins.contains(ours) ? .ready : .cannotDeliver(.relayNotAllowed)
+  }
+}
+
+/// The signed-out mark could not be stored, so the sign-out did not happen for push.
+public struct PushRetireError: Error, Sendable, Equatable {
+  public init() {}
 }
 
 /// The session layer is not there to ask. The default of both session seams.
@@ -132,6 +174,8 @@ public final class PushController {
   public private(set) var switchWriteFailed = false
   /// Gateways a reset could not revoke at the relay (their secrets are kept for another try).
   public private(set) var resetLeftovers: [String] = []
+  /// Whether each gateway's notifier will deliver to this device, as its row writer read it.
+  public private(set) var deliveries: [String: PushDelivery] = [:]
 
   public let environment: APNsEnvironment
   public let environmentSource: APNsEnvironmentDetection.Source
@@ -147,6 +191,13 @@ public final class PushController {
 
   /// The session seam for answering one. Until it is set, answering fails and the chat opens.
   @ObservationIgnored public var respond: PushResponder = { _ in throw PushSessionUnavailable() }
+
+  /// The session seam for telling a bot's own chat from its other conversations: every id the
+  /// roster knows the bot's canonical chat by (the stored and the resolved one). Empty until the
+  /// roster has been read, which sends a session the notifier did not classify to the chat.
+  @ObservationIgnored public var canonicalSessionIds: @MainActor (_ gatewayId: String, _ bot: String) -> [String] = {
+    _, _ in []
+  }
 
   @ObservationIgnored private var token: APNsDeviceToken?
   @ObservationIgnored private var gatewaysKnown = false
@@ -340,11 +391,21 @@ public final class PushController {
   /**
    Sign-out: revoke one gateway's registration now and keep it unregistered, across list changes
    and launches, until `resume(gatewayId:)`. The retired mark is stored before the relay is asked,
-   so a crash in between cannot bring the registration back.
+   so a crash in between cannot bring the registration back; a mark that cannot be stored fails
+   the retire (`PushRetireError`) with nothing changed, since a sign-out the next launch forgets
+   is not one.
    */
-  public func retire(gatewayId: String) async {
-    retired.insert(gatewayId)
-    try? await settings.set(retired.sorted(), forKey: StoreKeys.pushRetired)
+  public func retire(gatewayId: String) async throws {
+    var next = retired
+    next.insert(gatewayId)
+
+    do {
+      try await settings.set(next.sorted(), forKey: StoreKeys.pushRetired)
+    } catch {
+      throw PushRetireError()
+    }
+
+    retired = next
 
     let had = registrations[gatewayId] != nil
 
@@ -472,6 +533,13 @@ public final class PushController {
     return report
   }
 
+  /// What a gateway's row writer read from its plugin advert. Settings says when it cannot deliver.
+  public func setDelivery(_ delivery: PushDelivery, for gatewayId: String) {
+    if deliveries[gatewayId] != delivery {
+      deliveries[gatewayId] = delivery
+    }
+  }
+
   /// One gateway's state, for Settings.
   public func state(for gatewayId: String) -> PushGatewayState {
     guard wanted else {
@@ -525,11 +593,16 @@ public final class PushController {
       return
     }
 
-    let chat = PushRoute.chat(tap.link)
+    // Where it lands: the bot's chat, or the conversation the notification named.
+    let chat: PushRoute =
+      switch PushTapRules.destination(tap, canonicalIds: canonicalSessionIds(gateway.id, tap.bot)) {
+      case .chat: .chat(tap.link)
+      case .conversation(let sessionId): .conversation(tap.link, sessionId: sessionId)
+      }
 
     // A plain tap; an action on a gateway the app is not connected to (its requests cannot be
     // re-read there); an action about a branch or another conversation: open, answer nothing.
-    guard tap.action != .open, gateway.active, PushTapRules.answersInPlace(tap) else {
+    guard tap.action != .open, gateway.active, PushTapRules.answersInPlace(tap), case .chat = chat else {
       open(chat)
       return
     }

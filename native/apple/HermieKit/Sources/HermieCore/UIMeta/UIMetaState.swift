@@ -71,14 +71,19 @@ public struct UIMetaState: Sendable, Hashable {
   // MARK: - Local changes
 
   /// A different person is a different key and a different arrangement, so the
-  /// pending app write is dropped rather than published under the new name.
+  /// pending app write is dropped rather than published under the new name. Naming
+  /// the person for the first time (after `load()` brought back an unsent edit) is
+  /// not a change of person, and keeps it.
   public mutating func setUser(_ userID: String) {
     guard userID != self.userID else {
       return
     }
 
+    if !self.userID.isEmpty {
+      dirtyApp = false
+    }
+
     self.userID = userID
-    dirtyApp = false
     epoch += 1
   }
 
@@ -97,15 +102,21 @@ public struct UIMetaState: Sendable, Hashable {
     dirtyApp = true
   }
 
-  /// Forget the revisions, the dirty sections and the person (a sign-out). The
-  /// epoch moves on, so a write still out cannot touch what comes next.
+  /// Forget the revisions, the app section's dirty mark and the person (a
+  /// sign-out). Pending BOT edits are kept: bot sections outlive the sign-out, and
+  /// an archive made just before it must not be reverted. The epoch moves on, so a
+  /// write still out cannot touch what comes next.
   public mutating func reset() {
     let epoch = self.epoch + 1
     let markCount = self.markCount
+    let dirtyBots = self.dirtyBots
+    let botMarks = self.botMarks
 
     self = UIMetaState()
     self.epoch = epoch
     self.markCount = markCount
+    self.dirtyBots = dirtyBots
+    self.botMarks = botMarks
   }
 
   // MARK: - Reading the roster

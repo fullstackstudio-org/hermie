@@ -534,3 +534,8 @@ UI smoke test.
 ## Notifications
 
 Push on the native apps is not decided here. A separate ADR will cover notifications.
+
+Moving from the Expo app to a native build: the native app registers under a new installation id
+and does not retire the Expo app's row for the same device, because removing it automatically could
+cut off a device that still runs the Expo app. Remove those Expo rows by hand from each gateway's
+push section as part of the cut-over.

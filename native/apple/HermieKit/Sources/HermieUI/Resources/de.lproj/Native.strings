@@ -58,6 +58,10 @@
 	<string>Die lokalen Daten von Hermie waren beschädigt und wurden neu angelegt. Alles, was noch lesbar war, wurde behalten.</string>
 	<key>native.notice.runningInMemory</key>
 	<string>Hermie konnte seinen Speicher nicht öffnen. Was du jetzt änderst, geht verloren, sobald Hermie beendet wird.</string>
+	<key>native.push.cannotDeliverPlugin</key>
+	<string>Dieses Gateway kann noch nicht an dieses Gerät zustellen: Das Hermie-Plugin ist zu alt. Aktualisiere das Plugin auf dem Gateway.</string>
+	<key>native.push.cannotDeliverRelay</key>
+	<string>Dieses Gateway kann noch nicht an dieses Gerät zustellen: Das Hermie-Plugin erlaubt das Push-Relay dieses Geräts nicht.</string>
 	<key>native.push.developer</key>
 	<string>Details für Entwickler</string>
 	<key>native.push.environment</key>

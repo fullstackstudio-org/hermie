@@ -240,7 +240,15 @@ public actor PushRegistrar {
     report.undecodable = unreadable.sorted()
 
     if !orphansSwept {
-      report.orphansRevoked = await sweepOrphans(known: Set(stored.map(\.gatewayId)).union(unreadable))
+      let sweep = await sweepOrphans(known: Set(stored.map(\.gatewayId)).union(unreadable))
+      report.orphansRevoked = sweep.revoked
+
+      // A gateway whose old registration could not be revoked is left alone this pass: registering
+      // it now would put a new manage secret where the only copy of the old one is.
+      for id in sweep.unfinished {
+        unreadable.insert(id)
+        report.failures[id] = .storage
+      }
     }
 
     for registration in stored {
@@ -359,26 +367,35 @@ public actor PushRegistrar {
   }
 
   /// Revoke what a manage secret names when no record does (a reinstall keeps the keychain and
-  /// loses the database), then delete its secrets. Returns how many were revoked. Stays due until a
-  /// sweep had nothing it could not finish.
-  private func sweepOrphans(known: Set<String>) async -> Int {
+  /// loses the database), and every registration kept for revoking; then delete the item. Returns
+  /// how many were revoked and the gateways whose orphan (not a pending one) is still held. Stays
+  /// due until a sweep had nothing it could not finish.
+  private func sweepOrphans(known: Set<String>) async -> (revoked: Int, unfinished: Set<String>) {
     guard let held = try? await store.heldCapabilities() else {
-      return 0
+      return (0, [])
     }
 
     var revoked = 0
-    var unfinished = false
+    var unfinished = Set<String>()
+    var failed = false
 
-    for capability in held where !known.contains(capability.gatewayId) {
+    for capability in held where capability.pendingRevoke || !known.contains(capability.gatewayId) {
       switch await revokeHeld(capability) {
-      case .revoked: revoked += 1
-      case .dropped: break
-      case .failed: unfinished = true
+      case .revoked:
+        revoked += 1
+      case .dropped:
+        break
+      case .failed:
+        failed = true
+
+        if !capability.pendingRevoke {
+          unfinished.insert(capability.gatewayId)
+        }
       }
     }
 
-    orphansSwept = !unfinished
-    return revoked
+    orphansSwept = !failed
+    return (revoked, unfinished)
   }
 
   private enum HeldOutcome {
@@ -392,7 +409,7 @@ public actor PushRegistrar {
     let id = capability.gatewayId
 
     guard let handle = capability.handle, capability.relay == client.origin else {
-      return (try? await store.removeSecrets(gatewayId: id)) != nil ? .dropped : .failed
+      return (try? await store.removeHeld(capability)) != nil ? .dropped : .failed
     }
 
     do {
@@ -405,7 +422,7 @@ public actor PushRegistrar {
     }
 
     PushLog.logger.info("push: revoked an orphaned registration for \(id, privacy: .public)")
-    return (try? await store.removeSecrets(gatewayId: id)) != nil ? .revoked : .failed
+    return (try? await store.removeHeld(capability)) != nil ? .revoked : .failed
   }
 
   private func resetNow() async -> [String] {

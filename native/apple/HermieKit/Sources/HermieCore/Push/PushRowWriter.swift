@@ -12,17 +12,28 @@ import HermieProtocol
    key and `updatedAt` — plus every key of this installation's existing row that this build does not
    write (`enc` from a newer build, say), carried as it came. No row when no type is wanted, which
    is how every reader treats one.
- - **none**: the row is removed.
+ - **none**: the row is removed, and stays removed: the sync remembers it, so a gateway copy that
+   still holds the row (one taken in before this launch said so) is written back without it.
  - **unknown**: nothing is touched; a keychain that cannot be read right now is not a reason to
    take this device off a gateway.
+
+ The row is re-checked after every copy taken in and whenever the app comes to the front, so a
+ gateway copy that lost it (the plugin moved the rows to the per-person key) is repaired; and the
+ sync itself sends the section again when the gateway's copy differs from this device's own row.
+ Checks run one at a time, so an older address never lands after a newer one.
 
  It reaches its own row and nothing else (`UIMetaSync.setPushRow`), never writes the manage secret
  (`PushRelayAddress` does not hold it), and writes only when the row would change.
 
+ It also reads the plugin advert: a gateway whose plugin does not advertise `push.relay`, or whose
+ `relayOrigins` leave this relay out, will not deliver to the row (`delivery`). The row is written
+ anyway and starts working when the plugin does; Settings says why nothing arrives meanwhile.
+
  The heartbeat follows the Expo app (`push-sync.ts`): while a chat is open and the app is in front,
  `seen[<installation id>]` is stamped at once and then every `heartbeat` (a minute), as `{bot, at}`
  where the plugin advertises `push.seen.per_chat` and as a bare stamp otherwise; stale entries are
- swept on every stamp.
+ swept on every stamp. Nothing is stamped until the gateway's capabilities have been read: a bare
+ stamp where the plugin reads `{bot, at}` would hold back notifications for every chat.
  */
 @MainActor
 public final class PushRowWriter: UIMetaContributor {
@@ -38,25 +49,36 @@ public final class PushRowWriter: UIMetaContributor {
   /// carries an encryption key (D29); written so the row says what the reader chose.
   public var preview = false
 
-  /// The plugin reads `{bot, at}` in `seen`. Learnt from every copy taken in; false until then.
+  /// The plugin reads `{bot, at}` in `seen`. Meaningful once `capabilitiesKnown`.
   public private(set) var perChat = false
+  /// A copy of the gateway's sections, plugin advert included, has been taken in.
+  public private(set) var capabilitiesKnown = false
+  /// Whether the gateway's notifier will deliver to this row.
+  public private(set) var delivery: PushDelivery = .unknown
 
   private let addressState: @MainActor (String) async -> PushAddressState
+  private let relayOrigin: String
+  private let onDelivery: (@MainActor (PushDelivery) -> Void)?
   private let heartbeat: Duration
   private let now: @Sendable () -> Double
   private var openBot: String?
   private var foreground = true
   private var timer: Task<Void, Never>?
+  private var refreshing: Task<Bool, Never>?
 
   /// - Parameters:
   ///   - addressState: `PushController.addressState(for:)`, or a stand-in in a test.
+  ///   - relayOrigin: the relay this build registers with, checked against the plugin's list.
+  ///   - onDelivery: told every time the delivery verdict changes (the controller, for Settings).
   ///   - now: Unix seconds, for `seen`.
   public init(
     sync: UIMetaSync,
     gatewayId: String,
     gatewayKey: String,
     installation: String,
+    relayOrigin: String = PushRelay.defaultOrigin,
     addressState: @escaping @MainActor (String) async -> PushAddressState,
+    onDelivery: (@MainActor (PushDelivery) -> Void)? = nil,
     heartbeat: Duration = .seconds(60),
     now: @escaping @Sendable () -> Double = { Date().timeIntervalSince1970 }
   ) {
@@ -64,16 +86,24 @@ public final class PushRowWriter: UIMetaContributor {
     self.gatewayId = gatewayId
     self.gatewayKey = gatewayKey
     self.installation = installation
+    self.relayOrigin = relayOrigin
     self.addressState = addressState
+    self.onDelivery = onDelivery
     self.heartbeat = heartbeat
     self.now = now
   }
 
-  /// Over the launch's push controller.
+  /// Over the launch's push controller, which also hears the delivery verdict.
   public convenience init(sync: UIMetaSync, gatewayId: String, gatewayKey: String, installation: String, push: PushController) {
-    self.init(sync: sync, gatewayId: gatewayId, gatewayKey: gatewayKey, installation: installation) { [weak push] id in
-      await push?.addressState(for: id) ?? .unknown
-    }
+    self.init(
+      sync: sync,
+      gatewayId: gatewayId,
+      gatewayKey: gatewayKey,
+      installation: installation,
+      relayOrigin: push.relay,
+      addressState: { [weak push] id in await push?.addressState(for: id) ?? .unknown },
+      onDelivery: { [weak push] delivery in push?.setDelivery(delivery, for: gatewayId) }
+    )
   }
 
   // MARK: The row
@@ -85,43 +115,46 @@ public final class PushRowWriter: UIMetaContributor {
     }
   }
 
-  /// Make the row match the address now. Returns whether anything was written.
+  /// Make the row match the address now. Returns whether the device's copy changed. Calls run one
+  /// after another, each reading the address afresh, so the last one always wins.
   @discardableResult
   public func refresh() async -> Bool {
+    let previous = refreshing
+    let task = Task { [weak self] () -> Bool in
+      _ = await previous?.value
+      return await self?.check() ?? false
+    }
+
+    refreshing = task
+    return await task.value
+  }
+
+  private func check() async -> Bool {
     let state = await addressState(gatewayId)
-    let existing = ownRow
+    let before = sync.app
 
     switch state {
     case .unknown:
       return false
 
     case .none:
-      guard existing != nil else {
-        return false
-      }
-
+      // Always said, row or not: the sync then keeps it out of every copy taken in, and sends the
+      // section again when the gateway still holds it.
       sync.setPushRow(nil, installation: installation)
-      return true
 
     case .registered(let address):
-      guard !PushRows.noTypeWanted(types) else {
-        guard existing != nil else {
-          return false
-        }
-
+      if PushRows.noTypeWanted(types) {
         sync.setPushRow(nil, installation: installation)
-        return true
+      } else {
+        let row = row(for: address, existing: ownRow)
+
+        if row.json != ownRow {
+          sync.setPushRow(row, installation: installation)
+        }
       }
-
-      let row = row(for: address, existing: existing)
-
-      guard row.json != existing else {
-        return false
-      }
-
-      sync.setPushRow(row, installation: installation)
-      return true
     }
+
+    return sync.app != before
   }
 
   /// This installation's row as the sync holds it now, or nil.
@@ -174,6 +207,7 @@ public final class PushRowWriter: UIMetaContributor {
     syncHeartbeat()
   }
 
+  /// The app came to the front or left it. Coming to the front also re-checks the row.
   public func setForeground(_ foreground: Bool) {
     guard self.foreground != foreground else {
       return
@@ -181,10 +215,19 @@ public final class PushRowWriter: UIMetaContributor {
 
     self.foreground = foreground
     syncHeartbeat()
+
+    if foreground {
+      Task { await refresh() }
+    }
   }
 
-  /// Stamp now. Public so a test can drive the cadence without a clock.
+  /// Stamp now, once the gateway's capabilities are known. Public so a test can drive the cadence
+  /// without a clock.
   public func beat() {
+    guard capabilitiesKnown else {
+      return
+    }
+
     sync.setPushSeen(
       PushSeenEntry(bot: openBot ?? "", at: now().rounded(.down)),
       installation: installation,
@@ -230,14 +273,36 @@ public final class PushRowWriter: UIMetaContributor {
 
   // MARK: UIMetaContributor
 
+  /// A copy was taken in: learn the plugin's capabilities and verdict, stamp if a chat was waiting
+  /// for them, and re-check the row (not awaited: the sync waits for this before it sends).
   public func didApply(_ documents: UIMetaDocuments, snapshot: UIMetaSnapshot) async {
+    let advert: JSONObject?
+
     switch snapshot.plugin {
-    case .advert(let advert):
-      perChat = UIMetaPlugin.hasCapability(advert, PushRows.perChatCapability)
+    case .advert(let read):
+      advert = read
     case .absent:
-      perChat = false
+      advert = nil
     case .unread:
-      break
+      return
     }
+
+    let wasKnown = capabilitiesKnown
+
+    perChat = UIMetaPlugin.hasCapability(advert, PushRows.perChatCapability)
+    capabilitiesKnown = true
+
+    let verdict = PushDelivery.of(advert: advert, relay: relayOrigin)
+
+    if verdict != delivery {
+      delivery = verdict
+      onDelivery?(verdict)
+    }
+
+    if !wasKnown, foreground, openBot != nil {
+      beat()
+    }
+
+    Task { await refresh() }
   }
 }

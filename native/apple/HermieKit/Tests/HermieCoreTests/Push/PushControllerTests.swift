@@ -274,7 +274,7 @@ struct PushControllerTests {
     rig.controller.onAddressesChanged = { changed.append($0) }
     try await rig.registered()
 
-    await rig.controller.retire(gatewayId: "g1")
+    try await rig.controller.retire(gatewayId: "g1")
 
     #expect(rig.controller.gatewayIds == ["g2"])
     #expect(rig.controller.registrations.keys.sorted() == ["g2"])
@@ -553,6 +553,43 @@ struct PushControllerTests {
     await first.value
 
     #expect(answers == 1)
+  }
+
+  @Test("a tap about a branch or another conversation opens that conversation, not the bot's chat")
+  func conversationRoute() async throws {
+    let rig = try Rig()
+    let opened = Recorder<PushRoute>()
+    var answered = 0
+
+    rig.controller.attachLinkHandler(UUID()) { opened.items.append($0) }
+    rig.controller.canonicalSessionIds = { gateway, bot in gateway == "g1" && bot == "ops" ? ["s-main", "s-main-resolved"] : [] }
+    rig.controller.pendingApprovals = { _ in [Self.open(session: "s-b")] }
+    rig.controller.respond = { _ in answered += 1 }
+    await rig.controller.setGateways([G.one])
+
+    let link = DeepLink.chat(bot: "ops", gatewayKey: G.one.key)
+
+    await rig.controller.handleResponse(
+      actionIdentifier: "", payload: Self.payload(["bot": "ops", "gatewayKey": G.one.key, "sessionId": "s-b", "sessionKind": "branch"]))
+    // No kind, an id that is not the bot's chat: that conversation.
+    await rig.controller.handleResponse(
+      actionIdentifier: "", payload: Self.payload(["bot": "ops", "gatewayKey": G.one.key, "sessionId": "s-old"]))
+    // No kind, the chat's own id under its other name: the chat.
+    await rig.controller.handleResponse(
+      actionIdentifier: "", payload: Self.payload(["bot": "ops", "gatewayKey": G.one.key, "sessionId": "s-main-resolved"]))
+    // An Allow about a conversation opens it and answers nothing.
+    await rig.controller.handleResponse(
+      actionIdentifier: "hermie.request.allow",
+      payload: Self.payload(["bot": "ops", "type": "request", "requestId": "r-1", "gatewayKey": G.one.key, "sessionId": "s-b"]))
+
+    #expect(
+      opened.items
+        == [
+          .conversation(link, sessionId: "s-b"), .conversation(link, sessionId: "s-old"), .chat(link),
+          .conversation(link, sessionId: "s-b")
+        ]
+    )
+    #expect(answered == 0)
   }
 
   // MARK: Windows

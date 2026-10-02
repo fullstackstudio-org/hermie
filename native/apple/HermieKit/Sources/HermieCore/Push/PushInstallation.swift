@@ -6,26 +6,33 @@ import HermieStore
  gateway's push section. Minted once (`i` and sixteen random hex digits, the Expo app's shape),
  stored device-wide under `hermie.installation` as `{"installationId": "…"}`, and never changed:
  a device that re-minted it would leave a dead row behind on every gateway each time.
+
+ The read and the mint are one store transaction, so two first-launch callers cannot mint two ids:
+ the second reads what the first wrote. (No process-wide cache: a store's identity is not stable
+ enough to key one by, and the read is one row.)
  */
 public enum PushInstallation {
   private struct Stored: Codable, Sendable {
     var installationId: String
   }
 
-  /// The stored id, or a new one written before it is returned. Throws when the store cannot be
+  /// The stored id, or a new one written in the same transaction. Throws when the store cannot be
   /// read or written: an id that is not stored is not stable, and a row must not be keyed by one.
   public static func id(in keyValues: KeyValueStore) async throws -> String {
-    // A database that cannot be read throws here; only a value that is absent or not an id is
-    // replaced.
-    let text = try await keyValues.string(forKey: StoreKeys.installation)
-
-    if let text, let stored = try? JSONDecoder().decode(Stored.self, from: Data(text.utf8)), isValid(stored.installationId) {
-      return stored.installationId
-    }
-
     let minted = mint()
-    try await keyValues.set(Stored(installationId: minted), forKey: StoreKeys.installation)
-    return minted
+
+    return try await keyValues.store.write { database -> String in
+      // A database that cannot be read throws here; only a value that is absent or not an id is
+      // replaced.
+      if let text = try database.kvValue(forKey: StoreKeys.installation),
+        let stored = try? JSONDecoder().decode(Stored.self, from: Data(text.utf8)), isValid(stored.installationId)
+      {
+        return stored.installationId
+      }
+
+      try database.kvSet(#"{"installationId":"\#(minted)"}"#, forKey: StoreKeys.installation, now: Date())
+      return minted
+    }
   }
 
   /// `i` and sixteen lowercase hex digits from the system's random source.

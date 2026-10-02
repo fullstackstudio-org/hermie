@@ -86,12 +86,16 @@ public struct PushHeldCapability: Sendable, Equatable {
   public var handle: String?
   public var relay: String?
   public var manageSecret: String
+  /// Kept under the "pending revoke" key: a registration replaced before it could be revoked.
+  /// Never the gateway's current one, so always revoked when found.
+  public var pendingRevoke: Bool
 
-  public init(gatewayId: String, handle: String?, relay: String?, manageSecret: String) {
+  public init(gatewayId: String, handle: String?, relay: String?, manageSecret: String, pendingRevoke: Bool = false) {
     self.gatewayId = gatewayId
     self.handle = handle
     self.relay = relay
     self.manageSecret = manageSecret
+    self.pendingRevoke = pendingRevoke
   }
 
   /// The keychain item's value: JSON, so it can never be mistaken for a bare secret.
@@ -103,13 +107,13 @@ public struct PushHeldCapability: Sendable, Equatable {
   }
 
   /// Read an item's value: the JSON this build writes, or a bare secret from an older one.
-  init?(gatewayId: String, stored: String) {
+  init?(gatewayId: String, stored: String, pendingRevoke: Bool = false) {
     guard !stored.isEmpty else {
       return nil
     }
 
     guard stored.hasPrefix("{") else {
-      self.init(gatewayId: gatewayId, handle: nil, relay: nil, manageSecret: stored)
+      self.init(gatewayId: gatewayId, handle: nil, relay: nil, manageSecret: stored, pendingRevoke: pendingRevoke)
       return
     }
 
@@ -123,7 +127,8 @@ public struct PushHeldCapability: Sendable, Equatable {
       gatewayId: gatewayId,
       handle: object["handle"]?.stringValue,
       relay: object["relay"]?.stringValue,
-      manageSecret: secret
+      manageSecret: secret,
+      pendingRevoke: pendingRevoke
     )
   }
 }
@@ -142,6 +147,8 @@ extension PushHeldCapability: CustomStringConvertible, CustomDebugStringConverti
 public enum PushRegistrationStoreError: Error, Sendable, Equatable {
   /// The stored map is not one this build can read. Unknown, which is never the same as empty.
   case unreadable
+  /// Two registrations of one gateway are already waiting to be revoked; a third is not made.
+  case unrevokedCapability
 }
 
 /// Where registrations are kept. `PushRegistrationStore` is the app's; tests use it over an
@@ -162,6 +169,8 @@ public protocol PushRegistrationStoring: Sendable {
   func remove(gatewayId: String) async throws
   /// Delete one gateway's secrets only (an orphan whose record is gone).
   func removeSecrets(gatewayId: String) async throws
+  /// Delete the item one held capability came from: the gateway's secrets, or its pending-revoke item.
+  func removeHeld(_ capability: PushHeldCapability) async throws
   /// Drop the whole map, readable or not. The secrets stay, for `heldCapabilities`.
   func clearRecords() async throws
 }
@@ -190,6 +199,18 @@ public struct PushRegistrationStore: PushRegistrationStoring {
   /// The keychain prefix every push secret is under.
   static let secretPrefix = "hermie.push."
   static let managePrefix = "hermie.push.manage" + SecretKeys.gatewaySeparator
+  /// A manage secret whose registration was replaced before it could be revoked.
+  static let revokePrefix = "hermie.push.revoke" + SecretKeys.gatewaySeparator
+
+  static func revokeKey(_ gatewayId: String) throws -> String {
+    let key = revokePrefix + gatewayId
+
+    guard SecretKeys.isValidKey(key) else {
+      throw SecretStoreError.invalidGatewayId
+    }
+
+    return key
+  }
 
   public init(keyValues: KeyValueStore, secrets: any SecretStore) {
     self.keyValues = keyValues
@@ -225,10 +246,18 @@ public struct PushRegistrationStore: PushRegistrationStoring {
 
     var held: [PushHeldCapability] = []
 
-    for key in try listable.keys(prefix: Self.secretPrefix) where key.hasPrefix(Self.managePrefix) {
-      let gatewayId = String(key.dropFirst(Self.managePrefix.count))
+    for key in try listable.keys(prefix: Self.secretPrefix) {
+      let pending = key.hasPrefix(Self.revokePrefix)
 
-      if let value = try secretStore.get(key), let capability = PushHeldCapability(gatewayId: gatewayId, stored: value) {
+      guard pending || key.hasPrefix(Self.managePrefix) else {
+        continue
+      }
+
+      let gatewayId = String(key.dropFirst(pending ? Self.revokePrefix.count : Self.managePrefix.count))
+
+      if let value = try secretStore.get(key),
+        let capability = PushHeldCapability(gatewayId: gatewayId, stored: value, pendingRevoke: pending)
+      {
         held.append(capability)
       }
     }
@@ -242,6 +271,22 @@ public struct PushRegistrationStore: PushRegistrationStoring {
     // Secrets first: a record whose secrets were never written would be one this device can
     // neither refresh nor revoke. A secret whose record is never written is still revocable.
     if let secrets {
+      // A manage secret already here that names another registration has not been revoked (the
+      // record was lost, its DELETE did not get through): it is kept under the pending-revoke key
+      // until it is, never overwritten. A second one with no room is a refusal to register.
+      if let current = try secretStore.get(keys.pushManage),
+        let old = PushHeldCapability(gatewayId: registration.gatewayId, stored: current), old.handle != nil,
+        old.handle != registration.handle
+      {
+        let revokeKey = try Self.revokeKey(registration.gatewayId)
+
+        guard try secretStore.get(revokeKey) == nil else {
+          throw PushRegistrationStoreError.unrevokedCapability
+        }
+
+        try secretStore.set(revokeKey, current)
+      }
+
       let held = PushHeldCapability(
         gatewayId: registration.gatewayId,
         handle: registration.handle,
@@ -286,6 +331,14 @@ public struct PushRegistrationStore: PushRegistrationStoring {
 
     try secretStore.delete(keys.pushManage)
     try secretStore.delete(keys.pushSend)
+  }
+
+  public func removeHeld(_ capability: PushHeldCapability) async throws {
+    if capability.pendingRevoke {
+      try secretStore.delete(try Self.revokeKey(capability.gatewayId))
+    } else {
+      try await removeSecrets(gatewayId: capability.gatewayId)
+    }
   }
 
   public func clearRecords() async throws {

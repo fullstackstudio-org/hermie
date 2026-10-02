@@ -65,8 +65,16 @@ struct NotificationsSettingsPage: View {
       if push.enabled, !launch.gateways.entries.isEmpty {
         Section {
           ForEach(launch.gateways.entries) { entry in
-            LabeledContent(entry.name) {
-              Text(stateLabel(push.state(for: entry.id)))
+            VStack(alignment: .leading, spacing: 4) {
+              LabeledContent(entry.name) {
+                Text(stateLabel(push.state(for: entry.id)))
+              }
+
+              if case .cannotDeliver(let problem) = push.deliveries[entry.id] {
+                Text(problem == .pluginTooOld ? NativeStrings.Push.cannotDeliverPlugin : NativeStrings.Push.cannotDeliverRelay)
+                  .font(.footnote)
+                  .accessibilityIdentifier("hermie.settings.notifications.cannotDeliver")
+              }
             }
             .accessibilityElement(children: .combine)
             .accessibilityIdentifier("hermie.settings.notifications.gateway")
