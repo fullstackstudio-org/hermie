@@ -42,11 +42,13 @@ import Testing
     #expect(KeychainStore.allServices == ["app", "app:auth", "app:no-auth"])
   }
 
-  @Test func accountsReadBackAsDataOrString() {
-    #expect(KeychainStore.key(ofAccount: Data("hermie.a".utf8)) == "hermie.a")
-    #expect(KeychainStore.key(ofAccount: "hermie.b") == "hermie.b")
-    #expect(KeychainStore.key(ofAccount: 42) == nil)
-    #expect(KeychainStore.key(ofAccount: nil) == nil)
+  /// Only data accounts are ours: a string account was written by something
+  /// else, and a delete by key could not reach it anyway.
+  @Test func onlyDataAccountsAreKeys() {
+    #expect(KeychainStore.key(ofDataAccount: Data("hermie.a".utf8)) == "hermie.a")
+    #expect(KeychainStore.key(ofDataAccount: "hermie.b") == nil)
+    #expect(KeychainStore.key(ofDataAccount: 42) == nil)
+    #expect(KeychainStore.key(ofDataAccount: nil) == nil)
   }
 
   @Test func statusesMapToTypedErrors() {
@@ -55,11 +57,42 @@ import Testing
     #expect(KeychainStore.error(errSecAuthFailed, .add) == .keychain(operation: .add, status: errSecAuthFailed))
   }
 
+  /// A failure under a legacy service must not keep the real `app:no-auth`
+  /// item, tried last, alive: every service is tried, then the first failure
+  /// is thrown.
+  @Test func deleteTriesEveryServiceEvenAfterAFailure() {
+    let store = KeychainStore()
+    let queries = KeychainStore.allServices.map { store.itemQuery("hermie.test.delete", service: $0) }
+    var tried: [String] = []
+
+    #expect(throws: SecretStoreError.keychain(operation: .delete, status: errSecAuthFailed)) {
+      _ = try KeychainStore.deleteEach(queries) { query in
+        let service = query[kSecAttrService as String] as? String ?? ""
+        tried.append(service)
+        switch service {
+        case "app": return errSecAuthFailed
+        case "app:auth": return errSecIO
+        default: return errSecSuccess
+        }
+      }
+    }
+    #expect(tried == ["app", "app:auth", "app:no-auth"])
+  }
+
+  @Test func deleteReportsWhetherAnythingWasRemoved() throws {
+    let queries = KeychainStore.allServices.map { KeychainStore().itemQuery("hermie.test.x", service: $0) }
+    #expect(try KeychainStore.deleteEach(queries) { _ in errSecItemNotFound } == false)
+    #expect(
+      try KeychainStore.deleteEach(queries) { query in
+        query[kSecAttrService as String] as? String == "app:no-auth" ? errSecSuccess : errSecItemNotFound
+      } == true)
+  }
+
   @Test func invalidKeysNeverReachTheKeychain() {
     SecretStoreContract.checkInvalidKeys(KeychainStore())
   }
 
-  @Test(arguments: ["", "hermie.", "other.", "hermie.a b"])
+  @Test(arguments: ["", "hermie.", "hermie.s", "other.", "hermie.a b."])
   func removeAllRefusesPrefixesOutsideHermieBeforeTheKeychain(prefix: String) {
     #expect(throws: SecretStoreError.invalidPrefix) { try KeychainStore().removeAll(prefix: prefix) }
   }
@@ -151,17 +184,41 @@ import Testing
         .contains("SHARE_DELIVERY_KEY = '\(SecretKeys.shareDelivery)'"))
   }
 
-  /// `accessGroup: nil` relies on the shared group being FIRST in every app's
-  /// entitlements, the same group the Expo app names first.
-  @Test(arguments: [
-    "native/ios/App/Hermie.entitlements", "native/macos/App/Hermie.entitlements",
-    "expo/hermie/modules/hermie-share/share/HermieShareExtension.entitlements"
-  ])
-  func sharedGroupIsFirst(path: String) throws {
-    let data = try Data(contentsOf: Self.repo.appending(path: path))
-    let plist = try PropertyListSerialization.propertyList(from: data, format: nil) as? [String: Any]
-    let groups = plist?["keychain-access-groups"] as? [String]
-    #expect(groups?.first == "$(AppIdentifierPrefix)dev.hermie.app")
+  /// Every entitlements file under `native/`, found rather than listed, so a
+  /// new extension cannot be added without passing here, plus the Expo share
+  /// extension, whose reader must keep finding what the native app writes.
+  static func entitlementsFiles() -> [URL] {
+    let skipped: Set<String> = [".build", ".swiftpm", "DerivedData"]
+    var found: [URL] = []
+    let walker = FileManager.default.enumerator(at: repo.appending(path: "native"), includingPropertiesForKeys: nil)
+    while let url = walker?.nextObject() as? URL {
+      if skipped.contains(url.lastPathComponent) || url.pathExtension == "xcodeproj" {
+        walker?.skipDescendants()
+      } else if url.pathExtension == "entitlements" {
+        found.append(url)
+      }
+    }
+    return found.sorted { $0.path < $1.path }
+      + [repo.appending(path: "expo/hermie/modules/hermie-share/share/HermieShareExtension.entitlements")]
+  }
+
+  /// `accessGroup: nil` relies on the shared group being FIRST in every
+  /// binary's entitlements, the group the Expo app names first. A binary that
+  /// declares no keychain group cannot reach the credentials at all.
+  @Test func sharedGroupIsFirstInEveryEntitlementsFile() throws {
+    let files = Self.entitlementsFiles()
+    var withGroups = 0
+
+    for file in files {
+      let data = try Data(contentsOf: file)
+      let plist = try PropertyListSerialization.propertyList(from: data, format: nil) as? [String: Any]
+      guard let groups = plist?["keychain-access-groups"] as? [String] else { continue }
+      withGroups += 1
+      #expect(groups.first == "$(AppIdentifierPrefix)dev.hermie.app", "\(file.path)")
+    }
+
+    // The two apps and the Expo share extension, at least.
+    #expect(withGroups >= 3)
   }
 
   /// The library's own query builder, when `npm ci` has installed it.

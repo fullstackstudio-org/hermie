@@ -108,3 +108,10 @@ jobs:
             -destination 'generic/platform=macOS' \
             -derivedDataPath native/apple/DerivedData \
             CODE_SIGNING_ALLOWED=NO
+
+      # KeychainStore against the real keychain, hosted in the iOS app on a
+      # throwaway simulator that test.sh creates and deletes. Signed ad hoc, so
+      # no Apple account is involved. The filter keeps test.sh's own swift test
+      # pass to one small suite: the step above already ran all of them.
+      - name: Keychain tests (iOS Simulator)
+        run: native/apple/scripts/test.sh --keychain --filter HermieStoreTests.KeychainStoreQueryTests

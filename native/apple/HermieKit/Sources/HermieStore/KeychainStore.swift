@@ -33,9 +33,11 @@ import Security
 /// place and never duplicated: `set` adds; on success it deletes any copy under
 /// the legacy `app` service and the biometric `app:auth` service (so a stale
 /// copy cannot win a later read); on `errSecDuplicateItem` it updates the value
-/// of the existing `app:no-auth` item, leaving its other attributes alone.
-/// `delete` removes the key under all three services and succeeds when there
-/// was nothing to delete. `get` reads `app:no-auth`, then the legacy `app`.
+/// of the existing `app:no-auth` item, leaving its other attributes alone
+/// (accessibility included). If that item vanished between the two calls, the
+/// add is tried once more. `delete` removes the key under all three services,
+/// always trying every one of them, and succeeds when there was nothing to
+/// delete. `get` reads `app:no-auth`, then the legacy `app`.
 ///
 /// One deliberate difference: `get` does not read `app:auth`. Hermie has never
 /// written one (it never passes `requireAuthentication`), and reading one would
@@ -56,9 +58,14 @@ import Security
 ///
 /// Every query carries `kSecUseDataProtectionKeychain`, so the Mac app uses the
 /// same iOS-style keychain as the iPad app on a Mac and the Expo build's
-/// "Designed for iPad" binary, and never the file-based login keychain. A
-/// process without a keychain entitlement gets `missingEntitlement` instead of
-/// a fallback.
+/// "Designed for iPad" binary, and never the file-based login keychain.
+///
+/// A process without a keychain access group is not necessarily refused: on
+/// macOS 27 its read answers "not found" (`nil`), and only some releases answer
+/// `missingEntitlement`. So a `nil` from `get` means "no credential readable
+/// here", never "the user has no credential": it must never be taken as
+/// permission to clean up other state (drop a gateway, clear a share record,
+/// unregister push).
 ///
 /// ## Keys
 ///
@@ -113,9 +120,15 @@ public struct KeychainStore: SecretStore {
 
   public func set(_ key: String, _ value: String) throws {
     try Self.validate(key)
+    try set(key, Data(value.utf8), addAttempts: 2)
+  }
 
+  /// Add, or update on a duplicate. An update that finds nothing means the item
+  /// was deleted between the add and the update (another process, the share
+  /// extension's owner signing out), so the add is tried again, once.
+  private func set(_ key: String, _ data: Data, addAttempts: Int) throws {
     var addQuery = itemQuery(key, service: Self.service)
-    addQuery[kSecValueData as String] = Data(value.utf8)
+    addQuery[kSecValueData as String] = data
     addQuery[kSecAttrAccessible as String] = kSecAttrAccessibleAfterFirstUnlockThisDeviceOnly
 
     let status = SecItemAdd(addQuery as CFDictionary, nil)
@@ -128,11 +141,15 @@ public struct KeychainStore: SecretStore {
         SecItemDelete(itemQuery(key, service: service) as CFDictionary)
       }
     case errSecDuplicateItem:
-      let attributes: [String: Any] = [kSecValueData as String: Data(value.utf8)]
+      let attributes: [String: Any] = [kSecValueData as String: data]
       let updateStatus = SecItemUpdate(
         itemQuery(key, service: Self.service) as CFDictionary,
         attributes as CFDictionary
       )
+      if updateStatus == errSecItemNotFound, addAttempts > 1 {
+        try set(key, data, addAttempts: addAttempts - 1)
+        return
+      }
       guard updateStatus == errSecSuccess else { throw Self.error(updateStatus, .update) }
     default:
       throw Self.error(status, .add)
@@ -141,24 +158,57 @@ public struct KeychainStore: SecretStore {
 
   public func delete(_ key: String) throws {
     try Self.validate(key)
+    _ = try deleteReportingRemoval(key)
+  }
 
-    for service in Self.allServices {
-      let status = SecItemDelete(itemQuery(key, service: service) as CFDictionary)
-      guard status == errSecSuccess || status == errSecItemNotFound else {
-        throw Self.error(status, .delete)
-      }
+  /// Deletes the key under every service and says whether anything was there.
+  ///
+  /// Every service is tried even when one fails, so an odd leftover under a
+  /// legacy service can never keep the real `app:no-auth` item (tried last, in
+  /// `expo-secure-store`'s order) alive: a sign-out that throws has still
+  /// removed everything it could. The first real failure is thrown afterwards.
+  private func deleteReportingRemoval(_ key: String) throws -> Bool {
+    try Self.deleteEach(Self.allServices.map { itemQuery(key, service: $0) }) { query in
+      SecItemDelete(query as CFDictionary)
     }
   }
 
+  /// The loop behind `delete`, with the keychain call passed in so a test can
+  /// make one service fail.
+  static func deleteEach(
+    _ queries: [[String: Any]],
+    using secItemDelete: ([String: Any]) -> OSStatus
+  ) throws -> Bool {
+    var removed = false
+    var firstError: SecretStoreError?
+
+    for query in queries {
+      let status = secItemDelete(query)
+      switch status {
+      case errSecSuccess:
+        removed = true
+      case errSecItemNotFound:
+        break
+      default:
+        if firstError == nil { firstError = Self.error(status, .delete) }
+      }
+    }
+
+    if let firstError { throw firstError }
+    return removed
+  }
+
   /// Deletes every item whose key starts with `prefix`, under all three
-  /// services, and returns how many keys it deleted.
+  /// services, and returns how many keys it actually removed.
   ///
-  /// The prefix must start with `hermie.` and name something inside it
-  /// (`hermie.auth.`, say), so this can only ever touch Hermie's own items. The
-  /// keychain cannot match an account by prefix, so this lists the attributes
-  /// (never the data) of the items under Hermie's services, keeps the accounts
-  /// for which `SecretKeys.key(_:matchesOwnedPrefix:)` holds, and deletes each
-  /// by its exact key through `delete(_:)`.
+  /// The prefix must start with `hermie.`, name something inside it and end in
+  /// a dot (`hermie.auth.`, say), so this can only ever touch Hermie's own
+  /// items, a whole dotted segment at a time. The keychain cannot match an
+  /// account by prefix, so this lists the attributes (never the data) of the
+  /// items under Hermie's services, keeps the DATA accounts (the only kind
+  /// `expo-secure-store` and this store write, and the only kind a delete by key
+  /// can reach) for which `SecretKeys.key(_:matchesOwnedPrefix:)` holds, and
+  /// deletes each by its exact key.
   ///
   /// Gateway ids are a key's SUFFIX, so this does not remove one gateway:
   /// delete `SecretKeys.gateway(id).all` for that.
@@ -179,7 +229,7 @@ public struct KeychainStore: SecretStore {
       switch status {
       case errSecSuccess:
         for attributes in (result as? [[String: Any]]) ?? [] {
-          if let key = Self.key(ofAccount: attributes[kSecAttrAccount as String]),
+          if let key = Self.key(ofDataAccount: attributes[kSecAttrAccount as String]),
             SecretKeys.key(key, matchesOwnedPrefix: prefix) {
             matching.insert(key)
           }
@@ -191,11 +241,12 @@ public struct KeychainStore: SecretStore {
       }
     }
 
+    var removed = 0
     for key in matching.sorted() {
-      try delete(key)
+      if try deleteReportingRemoval(key) { removed += 1 }
     }
 
-    return matching.count
+    return removed
   }
 
   // MARK: - Queries
@@ -225,14 +276,12 @@ public struct KeychainStore: SecretStore {
     return query
   }
 
-  /// An account read back from the keychain: data when `expo-secure-store` or
-  /// this store wrote it, a string when something else did.
-  static func key(ofAccount account: Any?) -> String? {
-    switch account {
-    case let data as Data: String(data: data, encoding: .utf8)
-    case let string as String: string
-    default: nil
-    }
+  /// The key behind an account read back from the keychain, when the account
+  /// is data, as `expo-secure-store` and this store write it. A string account
+  /// was written by something else and is never ours to delete.
+  static func key(ofDataAccount account: Any?) -> String? {
+    guard let data = account as? Data else { return nil }
+    return String(data: data, encoding: .utf8)
   }
 
   private static func validate(_ key: String) throws {

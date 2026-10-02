@@ -42,6 +42,9 @@ targets:
       base:
         GENERATE_INFOPLIST_FILE: YES
         PRODUCT_BUNDLE_IDENTIFIER: dev.hermie.app.keychain-tests
+        # Simulator only: the test host is the app itself, and on a device it
+        # would install over a real Hermie and run in its keychain group.
+        SUPPORTED_PLATFORMS: iphonesimulator
         SWIFT_VERSION: '6.0'
         SWIFT_STRICT_CONCURRENCY: complete
         SWIFT_TREAT_WARNINGS_AS_ERRORS: YES

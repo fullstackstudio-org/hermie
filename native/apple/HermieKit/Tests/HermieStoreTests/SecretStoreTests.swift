@@ -59,7 +59,10 @@ import Testing
     #expect(try store.get(String(run.dropLast()) + "x") == "4")
   }
 
-  @Test(arguments: ["", "h", "hermie", "hermie.", "other.auth.", "Hermie.auth.", "hermie.auth/", " hermie.auth."])
+  @Test(arguments: [
+    "", "h", "hermie", "hermie.", "hermie..", "hermie.s", "hermie.auth", "hermie.share.delivery", "other.auth.",
+    "Hermie.auth.", "hermie.auth/", " hermie.auth."
+  ])
   func removeAllRefusesPrefixesOutsideHermie(prefix: String) {
     let store = InMemorySecretStore(["hermie.auth.access_token-g00": "token"])
     #expect(throws: SecretStoreError.invalidPrefix) { try store.removeAll(prefix: prefix) }
@@ -142,6 +145,10 @@ import Testing
     #expect(!SecretKeys.key("other.auth.x", matchesOwnedPrefix: "hermie.auth."))
     #expect(!SecretKeys.key("hermie.auth.x", matchesOwnedPrefix: "hermie."))
     #expect(!SecretKeys.key("hermie.auth.x", matchesOwnedPrefix: ""))
+    // Whole dotted segments only: a prefix must end in a dot.
+    #expect(!SecretKeys.key("hermie.share.delivery", matchesOwnedPrefix: "hermie.s"))
+    #expect(!SecretKeys.key("hermie.auth.access_token-g00", matchesOwnedPrefix: "hermie.auth"))
+    #expect(SecretKeys.key("hermie.share.delivery", matchesOwnedPrefix: "hermie.share."))
     // A key that is not itself valid never matches, whatever a keychain returns.
     #expect(!SecretKeys.key("hermie.auth.a b", matchesOwnedPrefix: "hermie.auth."))
   }

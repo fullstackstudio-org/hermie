@@ -49,6 +49,7 @@ xcodegen`). Both apps need iOS, iPadOS or macOS 26.
 ```sh
 native/apple/scripts/test.sh            # swift test for HermieKit
 native/apple/scripts/test.sh --apps     # the same, then generate and build both apps unsigned
+native/apple/scripts/test.sh --keychain # the same, then KeychainStore against the real keychain on a throwaway simulator
 native/apple/scripts/generate.sh        # write native/ios/Hermie.xcodeproj and native/macos/Hermie.xcodeproj
 ```
 

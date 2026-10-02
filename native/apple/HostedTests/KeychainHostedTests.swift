@@ -66,10 +66,57 @@ import Testing
     #expect(expoSecureStoreSet(key, "written-by-expo") == errSecSuccess)
     #expect(try store.get(key) == "written-by-expo")
 
-    // And a native write updates that item instead of adding a second one.
+    // And a native write updates that item instead of adding a second one,
+    // changing its value and nothing else.
     try store.set(key, "written-by-native")
     #expect(try store.get(key) == "written-by-native")
     #expect(try itemCount(account: key) == 1)
+    let attributes = try #require(try self.attributes(account: key))
+    #expect(
+      attributes[kSecAttrAccessible as String] as? String
+        == kSecAttrAccessibleAfterFirstUnlockThisDeviceOnly as String)
+  }
+
+  /// The sign-out case: the token exists only under `app:no-auth`, the service
+  /// `delete` tries last.
+  @Test func deleteRemovesAKeyThatExistsOnlyUnderNoAuth() throws {
+    let key = SecretStoreContract.testKey("only_no_auth")
+    SecretStoreContract.requireTestKey(key)
+    defer { try? store.delete(key) }
+
+    #expect(expoSecureStoreSet(key, "token") == errSecSuccess)
+    #expect(try itemCount(account: key) == 1)
+    #expect(try self.attributes(account: key) != nil)
+
+    try store.delete(key)
+    #expect(try itemCount(account: key) == 0)
+    #expect(try store.get(key) == nil)
+  }
+
+  /// A successful add drops a copy under `app:auth`, as `expo-secure-store`
+  /// does. The copy is made without an access control, so no prompt is needed
+  /// to create or delete it.
+  @Test func aSuccessfulAddRemovesAnAuthServiceCopy() throws {
+    let key = SecretStoreContract.testKey("auth_copy")
+    SecretStoreContract.requireTestKey(key)
+    defer { try? store.delete(key) }
+
+    let encodedKey = Data(key.utf8)
+    let authCopy: [String: Any] = [
+      kSecClass as String: kSecClassGenericPassword,
+      kSecAttrService as String: "app:auth",
+      kSecAttrGeneric as String: encodedKey,
+      kSecAttrAccount as String: encodedKey,
+      kSecValueData as String: Data("stale".utf8),
+      kSecAttrAccessible as String: kSecAttrAccessibleAfterFirstUnlockThisDeviceOnly
+    ]
+    #expect(SecItemAdd(authCopy as CFDictionary, nil) == errSecSuccess)
+    #expect(try itemCount(account: key) == 1)
+
+    try store.set(key, "current")
+    #expect(try itemCount(account: key) == 1)
+    #expect(try self.attributes(account: key) != nil)  // the one left is app:no-auth
+    #expect(try store.get(key) == "current")
   }
 
   @Test func aLegacyServiceItemIsReadThenReplaced() throws {

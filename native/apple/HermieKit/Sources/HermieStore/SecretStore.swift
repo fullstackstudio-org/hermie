@@ -29,13 +29,16 @@ public enum SecretStoreError: Error, Equatable, Sendable {
   /// The key is empty or has a character outside `[A-Za-z0-9_.-]`.
   case invalidKey
   /// A `removeAll(prefix:)` prefix that does not start inside Hermie's own
-  /// namespace (`hermie.`), or is not a valid key fragment.
+  /// namespace (`hermie.`), does not end in a dot, or is not a valid key
+  /// fragment.
   case invalidPrefix
   /// A gateway id that cannot be a key suffix: empty, or a character outside
   /// `[A-Za-z0-9_]`.
   case invalidGatewayId
-  /// The process has no keychain access group (or, on macOS, no data protection
-  /// keychain): an unsigned binary, or a signing without the entitlement.
+  /// The keychain refused the process for lack of a keychain access group.
+  /// Not every release says so: on macOS 27 a read from a process without the
+  /// entitlement answers "not found" instead, so `get` returns `nil`. A `nil`
+  /// token is therefore never permission to clean up other state.
   case missingEntitlement
   /// The item exists but cannot be read yet, typically before the first unlock
   /// after a restart.
@@ -142,9 +145,12 @@ public enum SecretKeys {
   }
 
   /// A prefix `removeAll(prefix:)` accepts: a valid key fragment that starts
-  /// with `hermie.` and names something inside it.
+  /// with `hermie.`, names something inside it, and ends in a dot, so it
+  /// selects whole dotted segments (`hermie.s` cannot reach
+  /// `hermie.share.delivery`).
   static func isValidOwnedPrefix(_ prefix: String) -> Bool {
-    prefix.count > ownedPrefix.count && prefix.hasPrefix(ownedPrefix) && isValidKey(prefix)
+    prefix.count > ownedPrefix.count + 1 && prefix.hasPrefix(ownedPrefix) && prefix.hasSuffix(".")
+      && isValidKey(prefix)
   }
 
   /// The one predicate `removeAll(prefix:)` deletes by, in both stores. A key

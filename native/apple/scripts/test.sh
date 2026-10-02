@@ -73,12 +73,14 @@ if [[ "$keychain" == true ]]; then
   trap cleanup EXIT
 
   echo "Keychain tests on a throwaway simulator ($device_type, $runtime)"
-  # Signed to run locally: the simulator honours the entitlements Xcode embeds
-  # in the binary, so the test host has the app's keychain access group without
-  # a provisioning profile or a certificate.
+  # Signed ad hoc, to run locally: the simulator honours the entitlements Xcode
+  # embeds in the binary, so the test host has the app's keychain access group
+  # without a team, a provisioning profile or a certificate, on a CI runner as
+  # on a developer's Mac.
   xcodebuild test -quiet \
     -project "$native_dir/ios/Hermie.xcodeproj" -scheme HermieKeychainTests \
     -destination "platform=iOS Simulator,id=$udid" \
-    -derivedDataPath "$derived"
+    -derivedDataPath "$derived" \
+    CODE_SIGN_STYLE=Manual CODE_SIGN_IDENTITY=- DEVELOPMENT_TEAM=
   echo "Keychain tests passed"
 fi
