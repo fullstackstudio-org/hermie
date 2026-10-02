@@ -12,12 +12,14 @@
  * name. That is why it is written into `ui_meta` rather than the secret store,
  * and why nothing here treats losing it as an error worth surfacing.
  *
- * **Two Android channels, not four.** ADR-0017 notifies on four things, but a
- * channel is the unit the OWNER tunes in system settings, and the distinction
- * they actually care about is "a bot is waiting on me" versus everything else.
- * A question with a countdown on it gets `MAX`; a message, a DM and a cron
- * delivery share `default`. Splitting further would give somebody four sliders
- * to discover and three of them would always be set the same way.
+ * **One Android channel per type.** The push contract names the channel after
+ * the type (`contract/push/contract.json`), which is what the gateway plugin has
+ * always sent; this build used to declare two channels the plugin never
+ * addressed, so its notifications landed on the system's fallback channel. A
+ * question with a countdown on it gets `MAX`; everything else `DEFAULT`. The
+ * old `default` channel is still declared for the compatibility window that
+ * `platform-contract.ts` describes, because an older Hermie Web sends no
+ * channel id at all.
  */
 import Constants from 'expo-constants'
 import * as Notifications from 'expo-notifications'
@@ -29,8 +31,9 @@ import {
   MAC_NOTIFICATION_SETTINGS_URL,
   PUSH_ACTION_ALLOW,
   PUSH_ACTION_DENY,
+  LEGACY_PUSH_REQUEST_CATEGORIES,
   PUSH_CHANNEL_DEFAULT,
-  PUSH_CHANNEL_NEEDS_INPUT,
+  PUSH_CHANNELS,
   PUSH_REQUEST_CATEGORY,
   pushDataOf,
   pushFailureMessageOf,
@@ -113,25 +116,31 @@ export const pushPlatform: PushPlatform = {
 
     prepared = true
 
-    try {
-      await Notifications.setNotificationCategoryAsync(PUSH_REQUEST_CATEGORY, [
-        {
-          identifier: PUSH_ACTION_ALLOW,
-          buttonTitle: 'Allow',
-          // Neither action answers anything by itself — see `actions.ts` — so
-          // both bring the app to the front, where the request can be re-read
-          // against the gateway before anything is sent.
-          options: { opensAppToForeground: true }
-        },
-        {
-          identifier: PUSH_ACTION_DENY,
-          buttonTitle: 'Deny',
-          options: { opensAppToForeground: true, isDestructive: true }
-        }
-      ])
-    } catch {
-      // A category that could not be registered costs the two buttons and
-      // nothing else: the notification still arrives and still opens the chat.
+    const actions: Notifications.NotificationAction[] = [
+      {
+        identifier: PUSH_ACTION_ALLOW,
+        buttonTitle: 'Allow',
+        // Neither action answers anything by itself — see `actions.ts` — so
+        // both bring the app to the front, where the request can be re-read
+        // against the gateway before anything is sent.
+        options: { opensAppToForeground: true }
+      },
+      {
+        identifier: PUSH_ACTION_DENY,
+        buttonTitle: 'Deny',
+        options: { opensAppToForeground: true, isDestructive: true }
+      }
+    ]
+
+    // The contract's category, then the older senders' names for it, all with
+    // the same two actions (see `platform-contract.ts` for the window).
+    for (const category of [PUSH_REQUEST_CATEGORY, ...LEGACY_PUSH_REQUEST_CATEGORIES]) {
+      try {
+        await Notifications.setNotificationCategoryAsync(category, actions)
+      } catch {
+        // A category that could not be registered costs the two buttons and
+        // nothing else: the notification still arrives and still opens the chat.
+      }
     }
 
     if (Platform.OS !== 'android') {
@@ -139,13 +148,17 @@ export const pushPlatform: PushPlatform = {
     }
 
     try {
+      for (const channel of PUSH_CHANNELS) {
+        await Notifications.setNotificationChannelAsync(channel.id, {
+          name: channel.name,
+          importance: channel.urgent ? Notifications.AndroidImportance.MAX : Notifications.AndroidImportance.DEFAULT
+        })
+      }
+
+      // Compatibility window: where a sender names no channel.
       await Notifications.setNotificationChannelAsync(PUSH_CHANNEL_DEFAULT, {
-        name: 'Messages',
+        name: 'Other notifications',
         importance: Notifications.AndroidImportance.DEFAULT
-      })
-      await Notifications.setNotificationChannelAsync(PUSH_CHANNEL_NEEDS_INPUT, {
-        name: 'Needs your input',
-        importance: Notifications.AndroidImportance.MAX
       })
     } catch {
       // Same: a channel that failed to register leaves the platform's own

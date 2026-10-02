@@ -10,10 +10,14 @@
 export { allowChoiceOf, denyChoiceOf, pushTapOf, resolvePushTap, wantsActions } from './actions'
 export type { OpenApproval, PushIntent, PushTap } from './actions'
 export {
+  LEGACY_PUSH_ACTION_ALLOW,
+  LEGACY_PUSH_ACTION_DENY,
+  LEGACY_PUSH_REQUEST_CATEGORIES,
   PUSH_ACTION_ALLOW,
   PUSH_ACTION_DENY,
   PUSH_CHANNEL_DEFAULT,
   PUSH_CHANNEL_NEEDS_INPUT,
+  PUSH_CHANNELS,
   PUSH_REQUEST_CATEGORY,
   PUSH_TYPES_WITH_ACTIONS,
   pushDataOf,

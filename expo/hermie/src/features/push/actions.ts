@@ -20,7 +20,14 @@
  */
 import { isGatewayKey } from '@hermie/gateway-client'
 
-import { PUSH_ACTION_ALLOW, PUSH_ACTION_DENY, PUSH_TYPES_WITH_ACTIONS, type PushResponse } from './platform-contract'
+import {
+  LEGACY_PUSH_ACTION_ALLOW,
+  LEGACY_PUSH_ACTION_DENY,
+  PUSH_ACTION_ALLOW,
+  PUSH_ACTION_DENY,
+  PUSH_TYPES_WITH_ACTIONS,
+  type PushResponse
+} from './platform-contract'
 
 /** One row of `approval.pending`, as far as this needs to read it. */
 export interface OpenApproval {
@@ -163,17 +170,25 @@ export function pushTapOf(response: PushResponse): PushTap | null {
     return null
   }
 
+  /*
+    Both spellings of each action and of the request id, for the compatibility
+    window `platform-contract.ts` describes: the contract's `hermie.request.*`
+    and `requestId`, and the `allow` / `deny` and `request` that came before.
+    Either way the id is only a lookup — `resolvePushTap` answers nothing that
+    the gateway does not still list as open.
+  */
+  const id = response.actionIdentifier
   const action =
-    response.actionIdentifier === PUSH_ACTION_ALLOW
+    id === PUSH_ACTION_ALLOW || id === LEGACY_PUSH_ACTION_ALLOW
       ? 'allow'
-      : response.actionIdentifier === PUSH_ACTION_DENY
+      : id === PUSH_ACTION_DENY || id === LEGACY_PUSH_ACTION_DENY
         ? 'deny'
         : 'open'
 
   // An Allow or Deny that names no request is a button with nothing to press.
   // It degrades to opening the chat rather than answering the oldest question,
   // which is the kind of guess that answers the wrong one.
-  const requestId = stringOf(response.data.requestId)
+  const requestId = stringOf(response.data.requestId) || stringOf(response.data.request)
   const key = stringOf(response.data.gatewayKey)
   const kind = stringOf(response.data.sessionKind)
 

@@ -95,10 +95,13 @@ self.addEventListener('push', event => {
       // A question with a countdown on it stays on screen until it is dealt
       // with; everything else behaves like an ordinary message notification.
       requireInteraction: needsInput,
+      // The push contract's action ids. The page reads these and the older
+      // `allow` / `deny` alike, so a worker and a page of different builds
+      // still agree for the compatibility window `platform-contract.ts` names.
       actions: needsInput
         ? [
-            { action: 'allow', title: 'Allow' },
-            { action: 'deny', title: 'Deny' }
+            { action: 'hermie.request.allow', title: 'Allow' },
+            { action: 'hermie.request.deny', title: 'Deny' }
           ]
         : []
     })

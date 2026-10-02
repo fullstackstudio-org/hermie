@@ -23,6 +23,8 @@ export interface PushPayloadData {
   type?: unknown
   /** The approval or clarify this notification was raised for. */
   requestId?: unknown
+  /** Hermie Web's spelling of `requestId` before the push contract; read as a fallback. */
+  request?: unknown
   /** The session it happened in. `session` is Hermie Web's older spelling of it. */
   sessionId?: unknown
   session?: unknown
@@ -98,16 +100,75 @@ export function pushFailureMessageOf(error: unknown): string {
   return raw.replace(/\s+/gu, ' ').trim().slice(0, MAX_PUSH_FAILURE_MESSAGE) || 'no message'
 }
 
+/*
+  The push contract (`contract/push/contract.json`) and the ids that came
+  before it.
+
+  Compatibility window, one release: the senders are fixed in the same change
+  (Hermie Web here, the gateway plugin in its own repository) but neither the
+  senders nor this app update in lockstep, so this build reads both spellings:
+
+    what                 contract (new)          before the contract (old)
+    category id          hermie.request          request (plugin), hermie.approval (Hermie Web)
+    action ids           hermie.request.allow    allow
+                         hermie.request.deny     deny
+    request id key       requestId               request (Hermie Web)
+    Android channels     one per type, id=type   default, needs-input
+
+  An updated sender emits only the contract's ids; the Expo app 0.1.9 already
+  registers `hermie.request` and reads `requestId`, and posts a notification
+  whose channel it never created on its fallback channel, so it keeps working
+  with one. The legacy entries below can be removed once no supported sender
+  predates the contract: the plugin and Hermie Web releases that carry it are
+  the floor, which is the release after this one.
+*/
+
 /** The category an approval notification is posted under, so it grows buttons. */
 export const PUSH_REQUEST_CATEGORY = 'hermie.request'
 
-/** Android's two channels: ADR-0017's four types collapse onto exactly these. */
+/**
+ * Categories older senders used for the same notification, registered with the
+ * same two actions for the compatibility window. `request` is the plugin's
+ * (it sent the type as the category, so a clarify carries it too — its buttons
+ * find no open approval and open the chat, which is the safe answer).
+ * `hermie.approval` is Hermie Web's.
+ */
+export const LEGACY_PUSH_REQUEST_CATEGORIES: readonly string[] = ['request', 'hermie.approval']
+
+/**
+ * Android's channels: one per type, the id equal to the type name, as the
+ * contract says and as the plugin has always addressed them.
+ */
+export const PUSH_CHANNELS: readonly { id: string; type: string; name: string; urgent: boolean }[] = [
+  { id: 'message', type: 'message', name: 'Messages', urgent: false },
+  { id: 'request', type: 'request', name: 'Needs your input', urgent: true },
+  { id: 'cron', type: 'cron', name: 'Scheduled reports', urgent: false },
+  { id: 'cron_done', type: 'cron_done', name: 'Scheduled runs finished', urgent: false },
+  { id: 'cron_failed', type: 'cron_failed', name: 'Scheduled runs failed', urgent: false },
+  { id: 'turn_done', type: 'turn_done', name: 'Replies finished', urgent: false },
+  { id: 'turn_failed', type: 'turn_failed', name: 'Replies failed', urgent: false }
+]
+
+/**
+ * The channel a notification with NO channel id lands on, which is what Hermie
+ * Web sent before the contract. Kept for the compatibility window above.
+ */
 export const PUSH_CHANNEL_DEFAULT = 'default'
+
+/**
+ * The 0.1.9 channel for questions. No sender ever addressed it (the plugin used
+ * the type names, Hermie Web no channel at all), so this build no longer
+ * creates it; an upgraded device keeps the one it has.
+ */
 export const PUSH_CHANNEL_NEEDS_INPUT = 'needs-input'
 
-/** The two actions an approval notification offers. */
-export const PUSH_ACTION_ALLOW = 'allow'
-export const PUSH_ACTION_DENY = 'deny'
+/** The two actions an approval notification offers, as the contract names them. */
+export const PUSH_ACTION_ALLOW = 'hermie.request.allow'
+export const PUSH_ACTION_DENY = 'hermie.request.deny'
+
+/** The same two actions as the Expo app 0.1.9 and its web worker registered them. */
+export const LEGACY_PUSH_ACTION_ALLOW = 'allow'
+export const LEGACY_PUSH_ACTION_DENY = 'deny'
 
 /**
  * The payload types that carry those two buttons.
