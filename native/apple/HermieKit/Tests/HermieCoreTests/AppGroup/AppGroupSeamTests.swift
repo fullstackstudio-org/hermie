@@ -37,6 +37,10 @@ private final class Container {
   }
 }
 
+/// The gateway every test item belongs to, and the scope with it as the only one.
+let key = "50696704682b12da"
+let onlyGateway = GatewayScope(active: key, known: [key])
+
 private let snapshot = WidgetSnapshot(
   generatedAt: 1_770_000_000_000,
   gatewayKey: "50696704682b12da",
@@ -73,7 +77,7 @@ struct AppGroupSeamTests {
     let reloads = Mutex(0)
     let writer = WidgetSnapshotWriter(container: container.group) { reloads.withLock { $0 += 1 } }
 
-    #expect(writer.write(snapshot))
+    #expect(writer.write(snapshot, hidePreviews: false))
     #expect(reloads.withLock { $0 } == 1)
     #expect(container.text("widget-snapshot.json") == String(decoding: try snapshot.encoded(), as: UTF8.self))
 
@@ -83,14 +87,14 @@ struct AppGroupSeamTests {
     #expect(read.bots.first?.chatURL?.absoluteString == "hermie://chat/researcher?gateway=50696704682b12da")
 
     // The same bytes again: nothing written, nothing reloaded.
-    #expect(writer.write(snapshot))
+    #expect(writer.write(snapshot, hidePreviews: false))
     #expect(reloads.withLock { $0 } == 1)
 
     var changed = snapshot
 
     changed.generatedAt += 1
 
-    #expect(writer.write(changed))
+    #expect(writer.write(changed, hidePreviews: false))
     #expect(reloads.withLock { $0 } == 2)
   }
 
@@ -104,7 +108,7 @@ struct AppGroupSeamTests {
     let decoded = try JSONDecoder().decode(WidgetSnapshot.self, from: pretty)
     let writer = WidgetSnapshotWriter(container: container.group) {}
 
-    #expect(writer.write(decoded))
+    #expect(writer.write(decoded, hidePreviews: false))
 
     let written = try #require(container.text("widget-snapshot.json"))
 
@@ -137,7 +141,7 @@ struct AppGroupSeamTests {
   @Test("the outbox hands over readable shares oldest first and removes only what was done")
   func shareOutbox() async throws {
     let container = try Container()
-    let outbox = AppGroupShareOutbox(container: container.group)
+    let outbox = AppGroupShareOutbox(container: container.group) { false }
 
     try container.write(
       #"{"version":1,"id":"newer","bot":"researcher","note":"hello","createdAt":20,"items":[{"kind":"file","path":"a.pdf","filename":"a.pdf","size":3}]}"#,
@@ -151,7 +155,7 @@ struct AppGroupSeamTests {
       #"{"version":1,"id":"kept","note":"later","createdAt":30,"items":[]}"#, to: "share-outbox/kept/manifest.json")
     // Still being written by the extension: a directory with no manifest yet.
     try container.write("partial", to: "share-outbox/writing/photo.jpg")
-    // A newer build's entry: skipped, not deleted.
+    // A manifest this build cannot read: reported and removed, never skipped for ever.
     try container.write(#"{"version":9,"id":"future","note":"x"}"#, to: "share-outbox/future/manifest.json")
 
     let pending = outbox.pending()
@@ -167,7 +171,8 @@ struct AppGroupSeamTests {
       ])
 
     let seen = Mutex<[String]>([])
-    let decisions = await outbox.drain { share in
+    // Entries without a gateway key are delivered because exactly one gateway is configured.
+    let decisions = await outbox.drain(gateways: onlyGateway) { share in
       seen.withLock { $0.append(share.id) }
 
       switch share.id {
@@ -178,12 +183,15 @@ struct AppGroupSeamTests {
     }
 
     #expect(seen.withLock { $0 } == ["older", "newer", "kept"])
-    #expect(decisions == ["older": .keep, "newer": .delivered, "kept": .discard])
+    #expect(
+      decisions == [
+        "older": .handled(.keep), "newer": .handled(.delivered), "kept": .handled(.discard), "future": .unreadable
+      ])
     #expect(container.exists("share-outbox/older/claim.json"))
     #expect(!container.exists("share-outbox/newer"))
     #expect(!container.exists("share-outbox/kept"))
     #expect(container.exists("share-outbox/writing/photo.jpg"))
-    #expect(container.exists("share-outbox/future/manifest.json"))
+    #expect(!container.exists("share-outbox/future"))
     #expect(!outbox.remove(id: ".."))
     #expect(!outbox.remove(id: "missing"))
     #expect(outbox.remove(id: "older"))
@@ -192,10 +200,10 @@ struct AppGroupSeamTests {
   @Test("an empty outbox, or none at all, hands over nothing")
   func emptyOutbox() async throws {
     let container = try Container()
-    let outbox = AppGroupShareOutbox(container: container.group)
+    let outbox = AppGroupShareOutbox(container: container.group) { false }
 
     #expect(outbox.pending().isEmpty)
-    #expect(await outbox.drain { _ in .delivered }.isEmpty)
+    #expect(await outbox.drain(gateways: onlyGateway) { _ in .delivered }.isEmpty)
   }
 
   @Test("share targets are written where the extension reads them")
@@ -217,7 +225,7 @@ struct AppGroupSeamTests {
   @Test("the queue answers every request: run, expired or unreadable, and leaves the ones not ready")
   func intentQueue() async throws {
     let container = try Container()
-    let queue = AppGroupIntentQueue(container: container.group)
+    let queue = AppGroupIntentQueue(container: container.group) { false }
     let now = Date(timeIntervalSince1970: 1_770_000_100)
 
     try container.write(
@@ -246,7 +254,8 @@ struct AppGroupSeamTests {
 
     await queue.drain(
       now: now,
-      failures: IntentQueueFailures(unreadable: "Cannot read", expired: "Too late")
+      gateways: onlyGateway,
+      failures: IntentQueueFailures(unreadable: "Cannot read", expired: "Too late", gatewayGone: "Gone")
     ) { intent in
       asked.withLock { $0.append(intent.id) }
 
@@ -282,7 +291,7 @@ struct AppGroupSeamTests {
   @Test("the delivery record is published, refreshed and dropped per gateway")
   func deliveryRecord() throws {
     let store = InMemorySecretStore()
-    let publisher = ShareDeliveryPublisher(store: store)
+    let publisher = ShareDeliveryPublisher(store: store, legacyStore: nil)
     let record = { (gateway: String, token: String) in
       ShareDeliveryRecord.build(
         gatewayId: gateway, gatewayKey: "50696704682b12da", baseUrl: "https://gateway.example",
@@ -319,7 +328,7 @@ struct AppGroupSeamTests {
 
   @Test("a store that refuses is reported, never thrown")
   func refusingStore() {
-    let publisher = ShareDeliveryPublisher(store: RefusingStore())
+    let publisher = ShareDeliveryPublisher(store: RefusingStore(), legacyStore: RefusingStore())
 
     #expect(!publisher.publish(nil))
     #expect(publisher.publishedGatewayId() == nil)
@@ -328,24 +337,29 @@ struct AppGroupSeamTests {
 
   // MARK: Spotlight
 
-  @Test("Spotlight rows are the chat links, with the handle as a keyword")
+  @Test("Spotlight rows are the chat links on their gateway, with the handle as a keyword")
   func spotlight() {
-    let entries = BotSpotlightIndex.entries(for: snapshot.bots + [
-      WidgetSnapshot.Bot(
-        name: "code reviewer", displayName: "", initials: "C", colour: "", presence: "", lastLine: "", lastAt: 0,
-        unread: 0, needsInput: false)
-    ])
+    let bots =
+      snapshot.bots + [
+        WidgetSnapshot.Bot(
+          name: "code reviewer", displayName: "", initials: "C", colour: "", presence: "", lastLine: "", lastAt: 0,
+          unread: 0, needsInput: false)
+      ]
+    let entries = BotSpotlightIndex.entries(for: bots, gatewayKey: key, hidePreviews: false)
 
     #expect(
       entries == [
         .init(
-          identifier: "hermie://chat/researcher", title: "Research", subtitle: "Done",
+          identifier: "hermie://chat/researcher?gateway=\(key)", title: "Research", subtitle: "Done",
           keywords: ["researcher", "Research"]),
         .init(
-          identifier: "hermie://chat/code%20reviewer", title: "code reviewer", subtitle: "",
+          identifier: "hermie://chat/code%20reviewer?gateway=\(key)", title: "code reviewer", subtitle: "",
           keywords: ["code reviewer", "code reviewer"])
       ])
     #expect(entries.allSatisfy { DeepLink($0.identifier) != nil })
+    #expect(
+      BotSpotlightIndex.entries(for: bots, gatewayKey: key, hidePreviews: true).allSatisfy { $0.subtitle.isEmpty })
+    #expect(BotSpotlightIndex.domain(for: key) == "dev.hermie.app.bots.\(key)")
   }
 }
 

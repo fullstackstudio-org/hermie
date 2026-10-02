@@ -1,5 +1,6 @@
 import AppIntents
 import Foundation
+import HermieCore
 import HermieShared
 
 #if os(iOS)
@@ -30,6 +31,14 @@ import HermieShared
  continues in the app's own process, where it can write a request into the
  shared container and wait for the answer to appear beside it
  (`IntentQueueDrainer` answers it).
+
+ ## The app lock
+
+ Every action asks for an unlocked device (`.requiresAuthentication`), and none of them does
+ anything the app lock has not allowed: the app answers a queued request only while it is unlocked
+ (`IntentQueueDrainer` with `SystemSurfaceLock`), so "Send to" and "Ask" wait while it is locked,
+ and "Bots needing input" names nobody. Siri must not read a bot's name or reply past a lock the
+ owner turned on.
 
  ## The budget
 
@@ -129,6 +138,10 @@ struct HermieIntentError: Error, CustomLocalizedStringResourceConvertible {
     case .timedOut:
       message = String(
         localized: "Hermie did not answer in time. The message may still have been sent — open Hermie to check.")
+    case .tooLong:
+      message = String(localized: "That message is too long for a Shortcut. Send it from Hermie instead.")
+    case .cancelled:
+      message = String(localized: "The Shortcut was stopped before Hermie answered.")
     case let .refused(reason):
       message = reason
     }
@@ -160,6 +173,7 @@ struct HermieAskIntent: AppIntent {
    in the app. See the note at the top of this file.
    */
   static let supportedModes: IntentModes = .foreground
+  static let authenticationPolicy: IntentAuthenticationPolicy = .requiresAuthentication
 
   @Parameter(title: "Bot")
   var bot: HermieBotAppEntity
@@ -199,6 +213,7 @@ struct HermieSendIntent: AppIntent {
   )
 
   static let supportedModes: IntentModes = .foreground
+  static let authenticationPolicy: IntentAuthenticationPolicy = .requiresAuthentication
 
   @Parameter(title: "Bot")
   var bot: HermieBotAppEntity
@@ -230,6 +245,7 @@ struct HermieOpenChatIntent: AppIntent {
   static let description = IntentDescription("Open one of your bots' chats in Hermie.", categoryName: "Chats")
 
   static let supportedModes: IntentModes = .foreground
+  static let authenticationPolicy: IntentAuthenticationPolicy = .requiresAuthentication
 
   @Parameter(title: "Bot")
   var bot: HermieBotAppEntity
@@ -240,7 +256,7 @@ struct HermieOpenChatIntent: AppIntent {
 
   @MainActor
   func perform() async throws -> some AppIntents.IntentResult {
-    guard let url = DeepLink.chat(bot: bot.id, gatewayKey: "").url else {
+    guard let url = DeepLink.chat(bot: bot.id, gatewayKey: HermieIntentRoster.snapshot().gatewayKey ?? "").url else {
       throw HermieIntentError(message: String(localized: "That chat could not be opened."))
     }
 
@@ -265,11 +281,20 @@ struct HermieNeedsInputIntent: AppIntent {
     categoryName: "Chats"
   )
 
+  /// It answers without opening the app, so it is the one Siri could run on a locked device.
+  static let authenticationPolicy: IntentAuthenticationPolicy = .requiresAuthentication
+
   static var parameterSummary: some ParameterSummary {
     Summary("Get the bots needing input")
   }
 
+  @MainActor
   func perform() async throws -> some AppIntents.IntentResult & ReturnsValue<[HermieBotAppEntity]> & ProvidesDialog {
+    // Behind the app lock, nobody is named: not to Siri, not to the next step of a Shortcut.
+    guard !SystemSurfaceLock.isLocked else {
+      return .result(value: [], dialog: "\(String(localized: "Unlock Hermie to see which bots are waiting."))")
+    }
+
     let waiting = HermieIntentRoster.load().filter(\.needsInput).map(HermieBotAppEntity.init)
 
     return .result(value: waiting, dialog: "\(HermieNeedsInputIntent.sentence(for: waiting))")
@@ -315,7 +340,8 @@ enum HermieIntentRunner {
     let identifier: String
 
     do {
-      identifier = try HermieIntentQueue.enqueue(kind: kind, bot: bot, text: trimmed)
+      identifier = try HermieIntentQueue.enqueue(
+        kind: kind, bot: bot, gatewayKey: HermieIntentRoster.snapshot().gatewayKey, text: trimmed)
     } catch {
       throw HermieIntentError(error)
     }

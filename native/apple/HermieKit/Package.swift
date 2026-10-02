@@ -29,6 +29,7 @@ let package = Package(
     .library(name: "HermieGateway", targets: ["HermieGateway"]),
     .library(name: "HermieStore", targets: ["HermieStore"]),
     .library(name: "HermieShared", targets: ["HermieShared"]),
+    .library(name: "HermieShareKit", targets: ["HermieShareKit"]),
     .library(name: "HermieMarkdown", targets: ["HermieMarkdown"]),
     .library(name: "HermieCore", targets: ["HermieCore"]),
     .library(name: "HermieUI", targets: ["HermieUI"])
@@ -44,6 +45,8 @@ let package = Package(
     .target(name: "HermieStore", swiftSettings: settings),
     // Types that are safe inside an app extension. Foundation only.
     .target(name: "HermieShared", swiftSettings: settings),
+    // The share extension's outbox writer and direct send, here so they are unit-tested. Foundation only.
+    .target(name: "HermieShareKit", dependencies: ["HermieShared"], swiftSettings: settings),
     // Markdown block model and its SwiftUI views.
     .target(name: "HermieMarkdown", swiftSettings: settings),
     // Sessions, stores and the observable feature models the views read.
@@ -80,6 +83,7 @@ let package = Package(
     .testTarget(name: "HermieStoreTests", dependencies: ["HermieStore"], swiftSettings: settings),
     .testTarget(
       name: "HermieSharedTests", dependencies: ["HermieShared"], exclude: ["Fixtures"], swiftSettings: settings),
+    .testTarget(name: "HermieShareKitTests", dependencies: ["HermieShareKit"], swiftSettings: settings),
     .testTarget(name: "HermieMarkdownTests", dependencies: ["HermieMarkdown"], swiftSettings: settings),
     .testTarget(name: "HermieCoreTests", dependencies: ["HermieCore"], swiftSettings: settings),
     .testTarget(name: "HermieUITests", dependencies: ["HermieUI"], swiftSettings: settings),

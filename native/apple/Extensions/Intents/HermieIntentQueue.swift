@@ -36,6 +36,10 @@ enum HermieIntentQueue {
   enum Failure: Error, Sendable {
     /** No App Group container — the entitlement did not reach the signed app. */
     case unavailable
+    /** The prompt is longer than `PendingIntent.textLimit`. */
+    case tooLong
+    /** The Shortcut was cancelled while it waited. */
+    case cancelled
     /** The budget ran out with no result file. */
     case timedOut
     /** The app answered, and said no. The string is meant to be shown. */
@@ -54,7 +58,12 @@ enum HermieIntentQueue {
    through a write parses as nothing — which the app would answer with "could not read that
    request", for a request that was perfectly fine a millisecond later.
    */
-  static func enqueue(kind: Kind, bot: String, text: String) throws(Failure) -> String {
+  static func enqueue(kind: Kind, bot: String, gatewayKey: String?, text: String) throws(Failure) -> String {
+    // Refused here, with a sentence, rather than written and then refused by the app's reader.
+    guard text.utf16.count <= PendingIntent.textLimit else {
+      throw .tooLong
+    }
+
     guard let pending = directory(SharedContainer.intentsPendingDirectory) else {
       throw .unavailable
     }
@@ -62,8 +71,11 @@ enum HermieIntentQueue {
     let identifier = UUID().uuidString.replacingOccurrences(of: "-", with: "").lowercased()
     // MILLISECONDS, because that is what the app compares against the budget directly. The share
     // manifest uses seconds; the two are different formats and neither is the other's default.
+    // The gateway of the roster the bot was picked from: the app runs the request only on that
+    // gateway, never on another one's bot of the same name.
     let request = PendingIntent(
-      id: identifier, kind: kind, bot: bot, text: text, createdAt: (Date().timeIntervalSince1970 * 1000).rounded(.down)
+      id: identifier, kind: kind, bot: bot, text: text, createdAt: (Date().timeIntervalSince1970 * 1000).rounded(.down),
+      gatewayKey: gatewayKey
     )
 
     do {
@@ -94,6 +106,10 @@ enum HermieIntentQueue {
     let deadline = ContinuousClock.now + PendingIntent.budget
 
     while ContinuousClock.now < deadline {
+      if Task.isCancelled {
+        throw .cancelled
+      }
+
       if let data = try? Data(contentsOf: file),
         let root = (try? JSONSerialization.jsonObject(with: data)) as? [String: Any] {
         try? FileManager.default.removeItem(at: file)

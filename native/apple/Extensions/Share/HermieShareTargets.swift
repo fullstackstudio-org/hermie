@@ -36,6 +36,9 @@ import HermieShared
  is a sheet that still works.
  */
 struct HermieShareTargets: Sendable {
+  /** The file as the app wrote it, for the direct send; nil when there is none. */
+  let file: ShareTargets?
+
   /** `bot` → the DURABLE session id to resume. Never a runtime id. */
   let sessions: [String: String]
 
@@ -81,7 +84,8 @@ struct HermieShareTargets: Sendable {
       let data = try? Data(contentsOf: container.appendingPathComponent(SharedContainer.shareTargetsFile)),
       let file = ShareTargets.parse(data) else {
       return HermieShareTargets(
-        sessions: [:], gatewayKey: nil, sent: fallbackSent, queued: fallbackQueued, sending: fallbackSending)
+        file: nil, sessions: [:], gatewayKey: nil, sent: fallbackSent, queued: fallbackQueued,
+        sending: fallbackSending)
     }
 
     var sessions: [String: String] = [:]
@@ -95,6 +99,7 @@ struct HermieShareTargets: Sendable {
     // line and an extension that has not been reinstalled is an ordinary pairing,
     // and it must not cost the lines that were already there.
     return HermieShareTargets(
+      file: file,
       sessions: sessions,
       gatewayKey: file.gatewayKey,
       sent: file.copy.sent.isEmpty ? fallbackSent : file.copy.sent,

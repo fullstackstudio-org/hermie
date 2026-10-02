@@ -12,18 +12,14 @@
 		<string>group.dev.hermie.app</string>
 	</array>
 	<!--
-		And the keychain group the app writes its delivery credential into (ADR-0026): the container
-		carries what a bot is called, and a bearer token has no business in a plain directory every
-		binary in the group can read.
-
-		`$(AppIdentifierPrefix)dev.hermie.app` is the app's FIRST group, where its writes land. A read
-		searches every declared group, so naming the app's here is enough and nothing names a group on
-		the write side. This is the only group this extension declares: it can read the app's
-		credentials item by item, as the app can, and reads exactly one.
+		The keychain group of the one delivery credential (ADR-0026), and ONLY that group. The app
+		writes the record into it by name; the app's own group, with every gateway's refresh and
+		session tokens, is not declared here, so this process (which parses whatever another app
+		shares and talks to the network) cannot read any of them.
 	-->
 	<key>keychain-access-groups</key>
 	<array>
-		<string>$(AppIdentifierPrefix)dev.hermie.app</string>
+		<string>$(AppIdentifierPrefix)dev.hermie.app.share</string>
 	</array>
 </dict>
 </plist>

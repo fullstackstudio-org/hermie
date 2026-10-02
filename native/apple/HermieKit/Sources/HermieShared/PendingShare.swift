@@ -15,12 +15,16 @@ public struct PendingShare: Sendable, Equatable, Identifiable {
   public var id: String
   /// The handle of the chat it goes to, or nil when the app has to ask.
   public var bot: String?
+  /// The gateway the sheet's roster belonged to, or nil from an extension that predates it.
+  public var gatewayKey: String?
   public var note: String
   /// Unix seconds.
   public var createdAt: Double
   public var items: [Item]
   /// "Handed to the gateway, answer not seen": never sent again without asking.
   public var claim: ShareClaim?
+  /// "The share extension is delivering this now": not the app's to send while it is fresh.
+  public var lease: ShareLease?
 
   public enum Item: Sendable, Equatable {
     /// An image or a file, at a URL inside the entry's directory.
@@ -32,13 +36,24 @@ public struct PendingShare: Sendable, Equatable, Identifiable {
   /// `FALLBACK_MIME_TYPE`.
   public static let fallbackMimeType = "application/octet-stream"
 
-  public init(id: String, bot: String?, note: String, createdAt: Double, items: [Item], claim: ShareClaim?) {
+  public init(
+    id: String,
+    bot: String?,
+    gatewayKey: String? = nil,
+    note: String,
+    createdAt: Double,
+    items: [Item],
+    claim: ShareClaim?,
+    lease: ShareLease? = nil
+  ) {
     self.id = id
     self.bot = bot
+    self.gatewayKey = gatewayKey
     self.note = note
     self.createdAt = createdAt
     self.items = items
     self.claim = claim
+    self.lease = lease
   }
 
   /**
@@ -47,8 +62,16 @@ public struct PendingShare: Sendable, Equatable, Identifiable {
    - `id`: the directory's name, which the manifest must repeat.
    - `files`: the names in the directory (manifest and claim excluded) and their URLs.
    - `claim`: the claim file's bytes when one exists, empty when it exists and cannot be read.
+   - `lease`: the lease file's bytes, likewise.
    */
-  public static func parse(id: String, manifest: Data, claim: Data?, files: [String: URL]) -> PendingShare? {
+  public static func parse(
+    id: String,
+    manifest: Data,
+    claim: Data?,
+    lease: Data? = nil,
+    files: [String: URL],
+    now: Date = Date()
+  ) -> PendingShare? {
     guard let manifest = ShareManifest.parse(manifest), manifest.id == id else {
       return nil
     }
@@ -78,13 +101,15 @@ public struct PendingShare: Sendable, Equatable, Identifiable {
     return PendingShare(
       id: manifest.id,
       bot: manifest.bot,
+      gatewayKey: manifest.gatewayKey,
       note: manifest.note,
       createdAt: manifest.createdAt,
       items: items,
       // An empty or unreadable claim file is still a claim. `parseShareEntry` turns an empty one
       // into no claim at all, which is the opposite of what its own comment asks for; this side
       // fails towards asking.
-      claim: claim.map { ShareClaim.parse($0) ?? ShareClaim(bot: "", at: 0) }
+      claim: claim.map { ShareClaim.parse($0) ?? ShareClaim(bot: "", at: 0) },
+      lease: lease.map { ShareLease.parse($0, now: now) }
     )
   }
 

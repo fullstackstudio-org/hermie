@@ -90,6 +90,8 @@ struct HermieBotWidgetView: View {
           }
           .font(.system(size: 12))
           .foregroundStyle(colors.muted)
+          // A message preview: redacted on a locked screen and wherever the system hides private data.
+          .privacySensitive()
           // Three lines is what fits under the name on the smallest square this
           // family is drawn at, measured on an iPhone 17 Pro.
           .lineLimit(3)

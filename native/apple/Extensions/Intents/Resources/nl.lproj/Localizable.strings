@@ -46,8 +46,14 @@
 	<string>Stuur naar een bot</string>
 	<key>That chat could not be opened.</key>
 	<string>Die chat kon niet worden geopend.</string>
+	<key>That message is too long for a Shortcut. Send it from Hermie instead.</key>
+	<string>Dat bericht is te lang voor een opdracht. Verstuur het in plaats daarvan vanuit Hermie.</string>
+	<key>The Shortcut was stopped before Hermie answered.</key>
+	<string>De opdracht is gestopt voordat Hermie antwoordde.</string>
 	<key>There was nothing to send.</key>
 	<string>Er was niets om te versturen.</string>
+	<key>Unlock Hermie to see which bots are waiting.</key>
+	<string>Ontgrendel Hermie om te zien welke bots wachten.</string>
 	<key>What should I ask?</key>
 	<string>Wat moet ik vragen?</string>
 	<key>What should I send?</key>

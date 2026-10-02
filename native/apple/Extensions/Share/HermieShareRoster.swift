@@ -50,13 +50,22 @@ enum HermieShareRoster {
    not know.
    */
   static func load() -> [HermieShareBot] {
+    snapshot().bots
+  }
+
+  /**
+   The roster and the gateway it belongs to. The key goes into every entry the sheet writes, so the
+   app delivers it to this gateway's bot and to no other gateway's bot of the same name.
+   */
+  static func snapshot() -> (bots: [HermieShareBot], gatewayKey: String?) {
     guard let container = SharedContainer.url(),
       let data = try? Data(contentsOf: container.appendingPathComponent(SharedContainer.widgetSnapshotFile)),
       let snapshot = WidgetSnapshot.decodeUsable(data) else {
-      return []
+      return ([], nil)
     }
 
-    return snapshot.bots.compactMap { bot in
+    let key = snapshot.gatewayKey.flatMap { Identifiers.isGatewayKey($0) ? $0 : nil }
+    let bots = snapshot.bots.compactMap { bot -> HermieShareBot? in
       guard !bot.name.isEmpty else {
         return nil
       }
@@ -69,5 +78,7 @@ enum HermieShareRoster {
         colour: bot.colour
       )
     }
+
+    return (bots, key)
   }
 }

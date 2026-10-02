@@ -29,6 +29,11 @@
 	<key>keychain-access-groups</key>
 	<array>
 		<string>$(AppIdentifierPrefix)dev.hermie.app</string>
+		<!--
+			Second, so no write lands here by default: the share extension's delivery record only,
+			written by name (ShareDeliveryPublisher). The extension declares this group alone.
+		-->
+		<string>$(AppIdentifierPrefix)dev.hermie.app.share</string>
 	</array>
 </dict>
 </plist>

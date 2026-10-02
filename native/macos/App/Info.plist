@@ -29,6 +29,14 @@
 	<!-- The short commit hash, for the About line. Written by scripts/generate.sh. -->
 	<key>HermieCommit</key>
 	<string>$(HERMIE_COMMIT)</string>
+	<!--
+		The two keychain groups, team prefix included, for the share extension's delivery record:
+		written into the share group, and deleted from the app group where earlier builds wrote it.
+	-->
+	<key>HermieKeychainGroup</key>
+	<string>$(AppIdentifierPrefix)dev.hermie.app</string>
+	<key>HermieShareKeychainGroup</key>
+	<string>$(AppIdentifierPrefix)dev.hermie.app.share</string>
 	<key>CFBundleURLTypes</key>
 	<array>
 		<dict>

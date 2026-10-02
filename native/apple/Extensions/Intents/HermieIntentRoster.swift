@@ -40,13 +40,19 @@ enum HermieIntentRoster {
    and a snapshot version this build does not know.
    */
   static func load() -> [HermieRosterBot] {
+    snapshot().bots
+  }
+
+  /// The roster and the gateway it belongs to, which every request records.
+  static func snapshot() -> (bots: [HermieRosterBot], gatewayKey: String?) {
     guard let container = SharedContainer.url(),
       let data = try? Data(contentsOf: container.appendingPathComponent(SharedContainer.widgetSnapshotFile)),
       let snapshot = WidgetSnapshot.decodeUsable(data) else {
-      return []
+      return ([], nil)
     }
 
-    return snapshot.bots.compactMap { bot in
+    let key = snapshot.gatewayKey.flatMap { Identifiers.isGatewayKey($0) ? $0 : nil }
+    let bots = snapshot.bots.compactMap { bot -> HermieRosterBot? in
       guard !bot.name.isEmpty else {
         return nil
       }
@@ -58,6 +64,8 @@ enum HermieIntentRoster {
         lastLine: bot.lastLine
       )
     }
+
+    return (bots, key)
   }
 
   /**

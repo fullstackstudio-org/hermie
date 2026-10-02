@@ -22,6 +22,8 @@ public enum SharedContainer {
   public static let shareManifestFile = "manifest.json"
   /// `SHARE_CLAIM_FILE`.
   public static let shareClaimFile = "claim.json"
+  /// The share extension's "delivering this now" marker (`ShareLease`).
+  public static let shareLeaseFile = "lease.json"
   /// `INTENT_QUEUE_DIRECTORY`, with `pending/` and `results/` inside.
   public static let intentsDirectory = "intents"
   public static let intentsPendingDirectory = "pending"

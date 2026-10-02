@@ -28,6 +28,7 @@ public struct AppGroupContainer: Sendable {
   public static let shareOutboxDirectory = "share-outbox"
   public static let shareManifestFile = "manifest.json"
   public static let shareClaimFile = "claim.json"
+  public static let shareLeaseFile = "lease.json"
   /// `INTENT_QUEUE_DIRECTORY`, with `pending/<id>.json` and `results/<id>.json`.
   public static let intentsDirectory = "intents"
   public static let intentsPendingDirectory = "pending"

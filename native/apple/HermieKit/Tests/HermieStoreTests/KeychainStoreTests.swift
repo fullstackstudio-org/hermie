@@ -203,8 +203,10 @@ import Testing
   }
 
   /// `accessGroup: nil` relies on the shared group being FIRST in every
-  /// binary's entitlements, the group the Expo app names first. A binary that
-  /// declares no keychain group cannot reach the credentials at all.
+  /// binary's entitlements that declares it, the group the Expo app names
+  /// first, so every unnamed write lands there. The native share extension is
+  /// the exception on purpose: it declares only its own group
+  /// (`dev.hermie.app.share`) and cannot reach the credentials at all.
   @Test func sharedGroupIsFirstInEveryEntitlementsFile() throws {
     let files = Self.entitlementsFiles()
     var withGroups = 0
@@ -214,11 +216,15 @@ import Testing
       let plist = try PropertyListSerialization.propertyList(from: data, format: nil) as? [String: Any]
       guard let groups = plist?["keychain-access-groups"] as? [String] else { continue }
       withGroups += 1
-      #expect(groups.first == "$(AppIdentifierPrefix)dev.hermie.app", "\(file.path)")
+      if file.path.contains("/native/") && file.lastPathComponent.hasPrefix("HermieShare-") {
+        #expect(groups == ["$(AppIdentifierPrefix)dev.hermie.app.share"], "\(file.path)")
+      } else {
+        #expect(groups.first == "$(AppIdentifierPrefix)dev.hermie.app", "\(file.path)")
+      }
     }
 
-    // The two apps and the Expo share extension, at least.
-    #expect(withGroups >= 3)
+    // The two apps, the two share extensions and the Expo share extension.
+    #expect(withGroups >= 5)
   }
 
   /// The library's own query builder, when `npm ci` has installed it.

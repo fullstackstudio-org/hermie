@@ -21,12 +21,30 @@ public struct ShareManifest: Encodable, Sendable, Equatable {
   public static let itemLimit = 12
   /// `SHARE_NOTE_LIMIT`, in UTF-16 code units as JavaScript counts.
   public static let noteLimit = 2_000
+  /**
+   The largest manifest the app reads, and the ceiling the writer stays under. One constant for
+   both sides: a manifest the writer could produce and the reader would refuse is a share that is
+   never delivered.
+   */
+  public static let maxBytes = 256 * 1024
+  /**
+   The longest shared text or URL kept inline, in UTF-8 bytes. Anything longer is written into the
+   entry as a text file instead, so twelve items and a note can never push the manifest past
+   `maxBytes`.
+   */
+  public static let inlineTextLimit = 8 * 1024
 
   public var version: Int
   /// Also the directory name and the deep link's path.
   public var id: String
   /// The handle of the chat it goes to, or nil when the app has to ask.
   public var bot: String?
+  /**
+   The gateway the roster the sheet showed belonged to (`gatewayKeyOf` its origin). Nil in an entry
+   written before the key was recorded; the app then delivers it only when exactly one gateway is
+   configured, because a bot name means nothing without its gateway.
+   */
+  public var gatewayKey: String?
   public var note: String
   /// Unix seconds.
   public var createdAt: Double
@@ -36,6 +54,7 @@ public struct ShareManifest: Encodable, Sendable, Equatable {
     version: Int = ShareManifest.supportedVersion,
     id: String,
     bot: String?,
+    gatewayKey: String? = nil,
     note: String,
     createdAt: Double,
     items: [ShareItem]
@@ -43,6 +62,7 @@ public struct ShareManifest: Encodable, Sendable, Equatable {
     self.version = version
     self.id = id
     self.bot = bot
+    self.gatewayKey = gatewayKey
     self.note = note
     self.createdAt = createdAt
     self.items = items
@@ -80,10 +100,12 @@ public struct ShareManifest: Encodable, Sendable, Equatable {
     }
 
     let bot = ShareJSON.string(raw["bot"])
+    let gatewayKey = ShareJSON.string(raw["gatewayKey"])
 
     return ShareManifest(
       id: id,
       bot: bot.isEmpty ? nil : bot,
+      gatewayKey: Identifiers.isGatewayKey(gatewayKey) ? gatewayKey : nil,
       note: note,
       createdAt: ShareJSON.number(raw["createdAt"]),
       items: Array(items)
@@ -302,6 +324,13 @@ public struct PendingIntent: Codable, Sendable, Equatable {
   public var text: String
   /// Unix milliseconds.
   public var createdAt: Double
+  /// The gateway of the roster the bot was picked from; nil from a writer that predates it.
+  public var gatewayKey: String?
+
+  /// The longest prompt a Shortcut may queue, in UTF-16 code units; the writer refuses more.
+  public static let textLimit = 16_000
+  /// The largest request file the app reads. A request at `textLimit` stays well under it.
+  public static let maxFileBytes = 64 * 1024
 
   public init(
     version: Int = PendingIntent.supportedVersion,
@@ -309,7 +338,8 @@ public struct PendingIntent: Codable, Sendable, Equatable {
     kind: Kind,
     bot: String,
     text: String,
-    createdAt: Double
+    createdAt: Double,
+    gatewayKey: String? = nil
   ) {
     self.version = version
     self.id = id
@@ -317,6 +347,7 @@ public struct PendingIntent: Codable, Sendable, Equatable {
     self.bot = bot
     self.text = text
     self.createdAt = createdAt
+    self.gatewayKey = gatewayKey
   }
 }
 

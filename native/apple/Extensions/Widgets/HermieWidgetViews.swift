@@ -114,6 +114,8 @@ struct HermieRow: View {
           .font(.system(size: 12))
           .foregroundStyle(colors.muted)
           .lineLimit(1)
+          // A message preview: redacted on a locked screen and wherever the system hides private data.
+          .privacySensitive()
       }
 
       Spacer(minLength: 4)

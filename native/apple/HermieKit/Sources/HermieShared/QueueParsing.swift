@@ -104,7 +104,12 @@ extension PendingIntent {
       return nil
     }
 
-    return PendingIntent(id: id, kind: kind, bot: bot, text: text, createdAt: ShareJSON.number(raw["createdAt"]))
+    let gatewayKey = ShareJSON.string(raw["gatewayKey"])
+
+    return PendingIntent(
+      id: id, kind: kind, bot: bot, text: text, createdAt: ShareJSON.number(raw["createdAt"]),
+      gatewayKey: Identifiers.isGatewayKey(gatewayKey) ? gatewayKey : nil
+    )
   }
 
   /// `isExpired`: older than the budget by `now`.

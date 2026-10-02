@@ -96,17 +96,62 @@ enum JSONText: Sendable, Equatable {
     out += "\""
   }
 
-  /// A JavaScript number as `String(n)`: whole numbers without a fraction, `null` for what JSON cannot say.
-  private static func number(_ value: Double) -> String {
+  /**
+   A number as JavaScript's `Number.prototype.toString` writes it (ECMA-262, Number::toString),
+   and `null` for what JSON cannot say.
+
+   Both languages print the shortest digits that round-trip; they differ only in where the decimal
+   point goes and when an exponent is used. So the digits and the point's position are read off
+   Swift's `description`, and laid out by JavaScript's rules: plain notation from 1e-6 up to (not
+   including) 1e21, an exponent outside that, `-0` as `0`.
+   */
+  static func number(_ value: Double) -> String {
     guard value.isFinite else {
       return "null"
     }
 
-    if value == value.rounded(), abs(value) < 9.0e15 {
-      return String(Int64(value))
+    if value == 0 {
+      return "0"
     }
 
-    return value.description
+    let negative = value < 0
+    let text = abs(value).description
+    let parts = text.split(separator: "e", maxSplits: 1)
+    let mantissa = parts[0]
+    let exponent = parts.count > 1 ? Int(parts[1]) ?? 0 : 0
+    let pieces = mantissa.split(separator: ".", omittingEmptySubsequences: false)
+    let whole = String(pieces[0])
+    let fraction = pieces.count > 1 ? String(pieces[1]) : ""
+    var digits = whole + fraction
+    // n: the value is 0.d1d2…dk × 10^n.
+    var point = whole.count + exponent
+
+    while digits.hasPrefix("0"), digits.count > 1 {
+      digits.removeFirst()
+      point -= 1
+    }
+
+    while digits.hasSuffix("0"), digits.count > 1 {
+      digits.removeLast()
+    }
+
+    let count = digits.count
+    let body: String
+
+    if count <= point, point <= 21 {
+      body = digits + String(repeating: "0", count: point - count)
+    } else if 0 < point, point <= 21 {
+      body = String(digits.prefix(point)) + "." + String(digits.dropFirst(point))
+    } else if -6 < point, point <= 0 {
+      body = "0." + String(repeating: "0", count: -point) + digits
+    } else {
+      let shown = point - 1
+      let lead = String(digits.prefix(1)) + (count > 1 ? "." + String(digits.dropFirst()) : "")
+
+      body = lead + "e" + (shown < 0 ? "-" : "+") + String(abs(shown))
+    }
+
+    return negative ? "-" + body : body
   }
 }
 
@@ -212,7 +257,7 @@ extension PendingIntent {
       ("bot", .string(bot)),
       ("text", .string(text)),
       ("createdAt", .number(createdAt))
-    ])
+    ] + (gatewayKey.map { [("gatewayKey", JSONText.string($0))] } ?? []))
   }
 }
 
@@ -233,6 +278,56 @@ extension IntentResult {
     }
 
     return .object(members)
+  }
+}
+
+extension ShareManifest {
+  /// The manifest as the share extension writes it, keys in the TypeScript order.
+  public func encoded() -> Data {
+    var members: [(String, JSONText)] = [
+      ("version", .number(Double(version))),
+      ("id", .string(id))
+    ]
+
+    if let bot {
+      members.append(("bot", .string(bot)))
+    }
+
+    if let gatewayKey {
+      members.append(("gatewayKey", .string(gatewayKey)))
+    }
+
+    members += [
+      ("note", .string(note)),
+      ("createdAt", .number(createdAt)),
+      ("items", .array(items.map(\.jsonText)))
+    ]
+
+    return JSONText.object(members).data
+  }
+}
+
+extension ShareItem {
+  var jsonText: JSONText {
+    var members: [(String, JSONText)] = [("kind", .string(kind.rawValue))]
+
+    for (name, value) in [("path", path), ("filename", filename), ("mimeType", mimeType), ("text", text)] {
+      if let value {
+        members.append((name, .string(value)))
+      }
+    }
+
+    if let size {
+      members.append(("size", .number(Double(size))))
+    }
+
+    return .object(members)
+  }
+}
+
+extension ShareClaim {
+  public func encoded() -> Data {
+    JSONText.object([("version", .number(Double(version))), ("bot", .string(bot)), ("at", .number(at))]).data
   }
 }
 

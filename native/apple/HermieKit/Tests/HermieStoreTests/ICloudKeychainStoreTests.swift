@@ -462,17 +462,28 @@ final class RecordingKeychain: SyncedKeychain {
     #expect(guarded >= 1)
   }
 
-  /// `accessGroup: nil` reads every declared group; that is one place only
-  /// while each app declares exactly one keychain group.
-  @Test func eachAppDeclaresExactlyOneKeychainGroup() throws {
+  /// `accessGroup: nil` reads every declared group. Each app declares its own
+  /// group and, second, the share extension's, which holds the one delivery
+  /// record and nothing else; the share extension declares only that one, so
+  /// it can never read the app's secrets.
+  @Test func eachBinaryDeclaresOnlyTheGroupsItNeeds() throws {
     var apps = 0
+    var shares = 0
     for file in KeychainCompatibilitySourceTests.entitlementsFiles() where file.path.contains("/native/") {
       let data = try Data(contentsOf: file)
       let plist = try PropertyListSerialization.propertyList(from: data, format: nil) as? [String: Any]
       guard let groups = plist?["keychain-access-groups"] as? [String] else { continue }
-      apps += 1
-      #expect(groups == ["$(AppIdentifierPrefix)dev.hermie.app"], "\(file.path)")
+      if file.lastPathComponent.hasPrefix("HermieShare-") {
+        shares += 1
+        #expect(groups == ["$(AppIdentifierPrefix)dev.hermie.app.share"], "\(file.path)")
+      } else {
+        apps += 1
+        #expect(
+          groups == ["$(AppIdentifierPrefix)dev.hermie.app", "$(AppIdentifierPrefix)dev.hermie.app.share"],
+          "\(file.path)")
+      }
     }
     #expect(apps >= 2)
+    #expect(shares == 2)
   }
 }

@@ -32,6 +32,7 @@ protocol and the stores know nothing about SwiftUI, an app extension links only 
 | `HermieGateway`    | Protocol         | addresses, sign-in, the HTTP client and the connection actor |
 | `HermieStore`      | none             | the keychain, the SQLite store and App Group files           |
 | `HermieShared`     | none             | types that are safe inside an extension                      |
+| `HermieShareKit`   | Shared           | the share extension's outbox writer and direct send          |
 | `HermieMarkdown`   | none             | the Markdown block model and its views                       |
 | `HermieCore`       | all of the above | the session, the transcript store and the feature models     |
 | `HermieUI`         | Core, Markdown   | the views, per feature, and the router                       |

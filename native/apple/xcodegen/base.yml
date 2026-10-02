@@ -43,6 +43,8 @@ targetTemplates:
       - package: HermieKit
         product: HermieUI
       - package: HermieKit
+        product: HermieCore
+      - package: HermieKit
         product: HermieShared
       - target: HermieWidgetsExtension
       - target: HermieShareExtension
@@ -103,5 +105,7 @@ targetTemplates:
     dependencies:
       - package: HermieKit
         product: HermieShared
+      - package: HermieKit
+        product: HermieShareKit
       - package: HermieKit
         product: HermieStore

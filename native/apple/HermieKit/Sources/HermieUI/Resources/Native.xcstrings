@@ -208,6 +208,75 @@
         }
       }
     },
+    "native.intents.expired" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Hermie hat zu lange zum Öffnen gebraucht, deshalb wurde nichts gesendet."
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Hermie took too long to open, so nothing was sent."
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Hermie deed er te lang over om te openen, dus er is niets verstuurd."
+          }
+        }
+      }
+    },
+    "native.intents.gatewayGone" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Das Gateway dieses Bots ist nicht mehr in Hermie, deshalb wurde nichts gesendet."
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "That bot's gateway is no longer in Hermie, so nothing was sent."
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "De gateway van die bot staat niet meer in Hermie, dus er is niets verstuurd."
+          }
+        }
+      }
+    },
+    "native.intents.unreadable" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Hermie konnte diese Anfrage nicht lesen. Vielleicht stammt sie von einer neueren Version."
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Hermie could not read that request. It may have been made by a newer version."
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Hermie kon dat verzoek niet lezen. Misschien is het gemaakt door een nieuwere versie."
+          }
+        }
+      }
+    },
     "native.later" : {
       "extractionState" : "manual",
       "localizations" : {

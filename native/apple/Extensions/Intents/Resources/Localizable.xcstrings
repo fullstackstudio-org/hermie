@@ -566,6 +566,52 @@
         }
       }
     },
+    "That message is too long for a Shortcut. Send it from Hermie instead." : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Diese Nachricht ist für einen Kurzbefehl zu lang. Sende sie stattdessen aus Hermie."
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "That message is too long for a Shortcut. Send it from Hermie instead."
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Dat bericht is te lang voor een opdracht. Verstuur het in plaats daarvan vanuit Hermie."
+          }
+        }
+      }
+    },
+    "The Shortcut was stopped before Hermie answered." : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Der Kurzbefehl wurde beendet, bevor Hermie geantwortet hat."
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "The Shortcut was stopped before Hermie answered."
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "De opdracht is gestopt voordat Hermie antwoordde."
+          }
+        }
+      }
+    },
     "There was nothing to send." : {
       "extractionState" : "manual",
       "localizations" : {
@@ -585,6 +631,29 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Er was niets om te versturen."
+          }
+        }
+      }
+    },
+    "Unlock Hermie to see which bots are waiting." : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Entsperre Hermie, um zu sehen, welche Bots warten."
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Unlock Hermie to see which bots are waiting."
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Ontgrendel Hermie om te zien welke bots wachten."
           }
         }
       }

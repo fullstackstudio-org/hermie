@@ -46,8 +46,14 @@
 	<string>An einen Bot senden</string>
 	<key>That chat could not be opened.</key>
 	<string>Dieser Chat konnte nicht geöffnet werden.</string>
+	<key>That message is too long for a Shortcut. Send it from Hermie instead.</key>
+	<string>Diese Nachricht ist für einen Kurzbefehl zu lang. Sende sie stattdessen aus Hermie.</string>
+	<key>The Shortcut was stopped before Hermie answered.</key>
+	<string>Der Kurzbefehl wurde beendet, bevor Hermie geantwortet hat.</string>
 	<key>There was nothing to send.</key>
 	<string>Es gab nichts zu senden.</string>
+	<key>Unlock Hermie to see which bots are waiting.</key>
+	<string>Entsperre Hermie, um zu sehen, welche Bots warten.</string>
 	<key>What should I ask?</key>
 	<string>Was soll ich fragen?</string>
 	<key>What should I send?</key>

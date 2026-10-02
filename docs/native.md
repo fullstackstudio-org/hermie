@@ -37,6 +37,7 @@ build.
 | `HermieGateway`    | Protocol       | addresses, sign-in, the HTTP client, the connection actor     | Foundation, CryptoKit                  |
 | `HermieStore`      | nothing        | the keychain, the SQLite store, App Group files               | Foundation, Security, SQLite3          |
 | `HermieShared`     | nothing        | types that are safe inside an app extension                   | Foundation                             |
+| `HermieShareKit`   | Shared         | the share extension's outbox writer and direct send           | Foundation                             |
 | `HermieMarkdown`   | nothing        | the Markdown block model and its views                        | SwiftUI                                |
 | `HermieCore`       | all six above  | the session, the transcript store, the feature models         | Foundation, Observation                |
 | `HermieUI`         | Core, Markdown | the views, per feature, and the router                        | SwiftUI, with small `#if os()` islands |
@@ -54,9 +55,10 @@ The rules that follow from it:
   its scenes, the app delegate adaptor, `Info.plist`, entitlements and the asset catalog. Everything
   else is in the package.
 - **An app extension links `HermieShared`, and `HermieStore` if it needs the keychain, and nothing
-  else.** No extension signs in, refreshes a token or resolves anything on its own
+  else** (the share extension also links `HermieShareKit`, its own logic kept in the package so it is
+  unit-tested). No extension signs in, refreshes a token or resolves anything on its own
   ([ADR-0023](adr/0023-the-shared-container-is-the-seam.md),
-  [ADR-0026](adr/0026-the-share-sheet-may-deliver.md)).
+  [ADR-0026](adr/0026-the-share-sheet-may-deliver.md)). See [Extensions](#extensions).
 - **No third-party packages.** Adding one needs a decision recorded first. The only one agreed in
   advance is a Markdown parser fallback, described in ADR-0028.
 
@@ -446,6 +448,40 @@ To try the fake gateway by hand:
 ```sh
 npm run fake-gateway -- --auth token --token demo
 ```
+
+## Extensions
+
+The widgets, the share extension and the App Intents (compiled into the apps) read what the app
+writes into the App Group and hand work back through it; the sources are in `native/apple/Extensions`
+and the app's side is `HermieCore/AppGroup`. The rules they keep:
+
+- **The share credential has a keychain group of its own.** The delivery record
+  (`hermie.share.delivery`) lives in `<team>.dev.hermie.app.share`, which the apps declare second and
+  the share extension declares alone, so the extension cannot read any other secret.
+  `ShareDeliveryPublisher` writes it there by name and deletes the copy earlier builds left in the
+  app's group. Keychain access groups are entitlements only: nothing to enable on the developer
+  portal.
+- **No background session for a credentialed request.** The share extension's direct send runs on
+  one ephemeral session whose delegate refuses every redirect, the WebSocket included, so a front
+  door's redirect to its identity provider never carries the token or the front-door headers
+  anywhere. Whatever does not finish within `ShareLease.attemptDeadline` is left for the app.
+- **A lease, then a claim.** The extension writes `lease.json` into the entry before it touches the
+  network and removes it when done; the app does not deliver an entry with a fresh lease. Just
+  before `prompt.submit` it writes `claim.json`, but only while the entry is still there: an entry
+  the app has taken is not sent twice. The app never sends a claimed entry without asking.
+- **The app lock comes first.** `ShareOutboxDrainer` and `IntentQueueDrainer` do nothing while the
+  app lock is on (`SystemSurfaceLock`, locked until the app installs its lock state), every App
+  Intent requires an unlocked device, and "Bots needing input" names nobody while the lock is on.
+  The widget snapshot and Spotlight take a `hidePreviews` input, and previews are privacy-sensitive.
+- **Every queued item names its gateway.** Shares and Shortcut requests carry the `gatewayKey` of
+  the roster their bot was picked from. A drain delivers only the active gateway's, leaves another
+  configured gateway's waiting, and purges one whose gateway is gone; signing out or removing a
+  gateway calls `purge(gatewayKey:)` on the drainers and the snapshot, Spotlight and targets
+  writers. An item from before keys were recorded goes only when exactly one gateway exists.
+- **Nothing is skipped for ever, nothing is followed through a link.** A manifest the app cannot
+  read is reported and removed; long shared text is stored as a file in the entry, so the manifest
+  stays under the one limit both sides share (`ShareManifest.maxBytes`); only regular files are
+  copied, listed or uploaded.
 
 ## Strings and icons
 

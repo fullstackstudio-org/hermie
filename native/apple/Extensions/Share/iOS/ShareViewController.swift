@@ -2,9 +2,12 @@ import SwiftUI
 import UIKit
 
 /**
- The share extension's entry point on iPhone and iPad: host the sheet, and do the two things only a
- view controller can — open the app, and finish the extension request. Everything else is
- `HermieShareSession`, which the Mac's controller hosts as well.
+ The share extension's entry point on iPhone and iPad: host the sheet, and finish the extension
+ request. Everything else is `HermieShareSession`, which the Mac's controller hosts as well.
+
+ It does not open the app. An extension on iPhone and iPad has no supported way to, and the old
+ responder-chain idiom does nothing since iOS 18; a queued share says it goes when Hermie next
+ opens, and the app delivers it then.
 
  `@objc(ShareViewController)` is load-bearing. `Info.plist` names the principal class as a plain
  string and the loader looks it up in the Objective-C runtime; without the attribute a Swift class
@@ -20,7 +23,7 @@ final class ShareViewController: UIViewController {
 
     let session = HermieShareSession(
       host: HermieShareSession.Host(
-        openApp: { [weak self] url in self?.openApp(url) },
+        openApp: nil,
         complete: { [weak self] in self?.extensionContext?.completeRequest(returningItems: [], completionHandler: nil) },
         cancel: { [weak self] code in
           self?.extensionContext?.cancelRequest(withError: NSError(domain: "dev.hermie.app.share", code: code))
@@ -41,32 +44,5 @@ final class ShareViewController: UIViewController {
     controller.view.autoresizingMask = [.flexibleWidth, .flexibleHeight]
     view.addSubview(controller.view)
     controller.didMove(toParent: self)
-  }
-
-  /**
-   Open the app from inside an extension.
-
-   `UIApplication.shared` is unavailable to an extension, so the application object is reached by
-   walking the responder chain and asked through a selector. This is the long-standing idiom rather
-   than a supported API, and the honest position is written here rather than assumed: if it stops
-   working, the entry is STILL in the outbox and the app still delivers it at its next launch. The
-   only thing lost is the immediacy, which is why nothing branches on the result.
-
-   The selector is built by name because the method it names is not one this target can reference:
-   `UIApplication.open(_:options:completionHandler:)` is marked unavailable in an extension.
-   */
-  private func openApp(_ url: URL) {
-    let selector = NSSelectorFromString("openURL:")
-    var responder: UIResponder? = self
-
-    while let current = responder {
-      if current.responds(to: selector) {
-        current.perform(selector, with: url)
-
-        return
-      }
-
-      responder = current.next
-    }
   }
 }

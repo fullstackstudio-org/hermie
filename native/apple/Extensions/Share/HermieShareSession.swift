@@ -1,4 +1,5 @@
 import Foundation
+import HermieShareKit
 import HermieShared
 import Observation
 import UniformTypeIdentifiers
@@ -29,9 +30,9 @@ import UniformTypeIdentifiers
  the state this extension used to leave behind on purpose: an entry on disk, and an app that
  delivers it at its next launch.
 
- The sheet then says which of the two happened, and the app is only asked to open on the queued
- path. A share that has already arrived has no reason to pull somebody out of the application they
- were reading.
+ The sheet then says which of the two happened. On the queued path it says the share goes when
+ Hermie next opens, and on iPhone and iPad that is all it does: an extension there has no
+ supported way to open its app. On the Mac the app is asked to open (`Host.openApp`), which is.
 
  ## Why the files are copied twice
 
@@ -48,8 +49,9 @@ import UniformTypeIdentifiers
 final class HermieShareSession {
   /// What the platform controller does for the session.
   struct Host {
-    /// Ask the system to bring the app forward with `url`. Best effort; the result is not branched on.
-    var openApp: @MainActor (URL) -> Void
+    /// Ask the system to bring the app forward with `url`, where the platform has a supported way to.
+    /// Best effort; the result is not branched on.
+    var openApp: (@MainActor (URL) -> Void)?
     /// The share is written (and maybe sent): close the sheet.
     var complete: @MainActor () -> Void
     /// Nothing was written: close the sheet. `code` 0 is the person cancelling, 1 a missing container.
@@ -57,7 +59,9 @@ final class HermieShareSession {
   }
 
   private(set) var bots: [HermieShareBot]
-  private(set) var payloads: [HermieShareOutbox.Payload] = []
+  /// The gateway the roster belongs to, recorded in the entry.
+  private var gatewayKey: String?
+  private(set) var payloads: [ShareOutbox.Payload] = []
   /// Whether the attachments have finished loading; "Send" waits for them.
   private(set) var loading = true
   /// The one line the sheet shows once "Send" has been tapped, or nil while asking.
@@ -77,7 +81,12 @@ final class HermieShareSession {
 
   init(host: Host) {
     self.host = host
-    bots = HermieShareRoster.load()
+    (bots, gatewayKey) = HermieShareRoster.snapshot()
+  }
+
+  /// Where attachments are staged: this process's temporary directory, which the system sweeps.
+  nonisolated private static var staging: URL {
+    FileManager.default.temporaryDirectory.appendingPathComponent("staged", isDirectory: true)
   }
 
   // MARK: - loading
@@ -92,7 +101,7 @@ final class HermieShareSession {
   func load(_ items: [Any]) {
     let providers = (items as? [NSExtensionItem] ?? [])
       .flatMap { $0.attachments ?? [] }
-      .prefix(HermieShareOutbox.itemLimit)
+      .prefix(ShareManifest.itemLimit)
 
     guard !providers.isEmpty else {
       loading = false
@@ -105,18 +114,20 @@ final class HermieShareSession {
     }
 
     Task {
-      var loaded: [HermieShareOutbox.Payload] = []
+      var loaded: [ShareOutbox.Payload] = []
 
       for load in loads {
-        if let payload = await load.value {
-          loaded.append(payload)
+        // Text too long to keep inline becomes a text file here, so a direct send uploads exactly
+        // what the entry holds.
+        if let payload = await load.value, let kept = ShareOutbox.normalise(payload, staging: Self.staging) {
+          loaded.append(kept)
         }
       }
 
       payloads = loaded
       loading = false
       // The roster again: the app may have written it while the loads ran.
-      bots = HermieShareRoster.load()
+      (bots, gatewayKey) = HermieShareRoster.snapshot()
     }
   }
 
@@ -129,7 +140,7 @@ final class HermieShareSession {
    asked about first because an image is the thing this feature exists for and because it travels
    by a different road in the app — over the socket as bytes, resized — than a file does.
    */
-  private static func load(_ provider: NSItemProvider) async -> HermieShareOutbox.Payload? {
+  private static func load(_ provider: NSItemProvider) async -> ShareOutbox.Payload? {
     if provider.hasItemConformingToTypeIdentifier(UTType.image.identifier) {
       return await copyFile(from: provider, type: .image, isImage: true)
     }
@@ -192,7 +203,7 @@ final class HermieShareSession {
     from provider: NSItemProvider,
     type: UTType,
     isImage: Bool
-  ) async -> HermieShareOutbox.Payload? {
+  ) async -> ShareOutbox.Payload? {
     let suggested = provider.suggestedName
 
     return await withCheckedContinuation { continuation in
@@ -208,24 +219,9 @@ final class HermieShareSession {
     }
   }
 
-  /** Copy into this process's temporary directory, which the system sweeps. */
-  nonisolated private static func stage(_ url: URL, name: String, isImage: Bool) -> HermieShareOutbox.Payload? {
-    let safe = HermieShareOutbox.safeFileName(name)
-    let destination = FileManager.default.temporaryDirectory
-      .appendingPathComponent(UUID().uuidString, isDirectory: true)
-      .appendingPathComponent(safe)
-
-    do {
-      try FileManager.default.createDirectory(
-        at: destination.deletingLastPathComponent(),
-        withIntermediateDirectories: true
-      )
-      try FileManager.default.copyItem(at: url, to: destination)
-    } catch {
-      return nil
-    }
-
-    return .file(url: destination, name: safe, isImage: isImage)
+  /** Copy into this process's temporary directory, which the system sweeps. Only a regular file. */
+  nonisolated private static func stage(_ url: URL, name: String, isImage: Bool) -> ShareOutbox.Payload? {
+    ShareOutbox.stage(url, name: name, isImage: isImage, in: staging)
   }
 
   // MARK: - the sheet
@@ -259,14 +255,16 @@ final class HermieShareSession {
    The ordering is the contract and it reads in one direction: the entry is on disk before anything
    else is attempted, so every failure below leaves the pre-ADR-0026 behaviour exactly as it was.
    Nothing here can lose a share and nothing here can send one twice — the claim inside
-   `HermieShareSender` is what holds the second half of that.
+   `ShareDelivery` (with its lease and claim) is what holds the second half of that.
    */
   func send(to bot: HermieShareBot, note: String) {
     guard status == nil else {
       return
     }
 
-    guard let identifier = HermieShareOutbox.write(bot: bot.name, note: note, payloads: payloads) else {
+    guard let outbox = ShareOutbox.system(),
+      let identifier = outbox.write(bot: bot.name, gatewayKey: gatewayKey, note: note, payloads: payloads)
+    else {
       // Nowhere to write means the App Group entitlement is missing from one of
       // the two signed binaries, and nothing this process does can fix it. The
       // share is abandoned rather than reported as sent.
@@ -285,15 +283,7 @@ final class HermieShareSession {
       reference with `@file:` — hands the agent a binary it cannot read. So an
       image queues, and the sheet says so in the same words as every other queue.
     */
-    let hasImage = payloads.contains { payload in
-      if case .file(_, _, true) = payload {
-        return true
-      }
-
-      return false
-    }
-
-    guard !hasImage else {
+    guard !payloads.contains(where: \.isImage) else {
       queue(identifier: identifier)
 
       return
@@ -302,15 +292,21 @@ final class HermieShareSession {
     status = targets.sending
     busy = true
 
-    let text = messageText(note: note)
-    let attachments = deliverableAttachments()
+    let request = ShareDelivery.Request(
+      entry: identifier,
+      bot: bot.name,
+      gatewayKey: gatewayKey,
+      text: messageText(note: note),
+      attachments: deliverableAttachments()
+    )
+    let targetsFile = targets.file
 
     Task {
-      let outcome = await HermieShareSender.deliver(
-        entry: identifier,
-        bot: bot.name,
-        text: text,
-        attachments: attachments
+      let outcome = await ShareDelivery.deliver(
+        request,
+        credential: HermieShareKeychain.deliveryCredential(),
+        targets: targetsFile,
+        outbox: outbox
       )
 
       switch outcome {
@@ -320,7 +316,7 @@ final class HermieShareSession {
         // owner rejected.
         finish(line: targets.sentLine(bot: bot.displayName))
 
-      case .queued:
+      case .queued, .takenByApp:
         queue(identifier: identifier)
       }
     }
@@ -331,15 +327,12 @@ final class HermieShareSession {
   }
 
   /**
-   The queued path: say so, and ask the system to open the app.
-
-   The open is what makes "will send when Hermie opens" happen now rather than at some later
-   launch. Its result is deliberately not branched on: the entry is on disk either way, and
-   reporting a failed open as a failed share would be reporting a latency problem as data loss.
+   The queued path: say so ("will send when Hermie opens"), and on the Mac ask the system to open
+   the app. The entry is on disk either way; the open only changes when it goes.
    */
   private func queue(identifier: String) {
-    if let url = DeepLink.share(id: identifier).url {
-      host.openApp(url)
+    if let openApp = host.openApp, let url = DeepLink.share(id: identifier).url {
+      openApp(url)
     }
 
     finish(line: targets.queued)
@@ -404,13 +397,13 @@ final class HermieShareSession {
    copies may have been renamed to keep two `IMG_0001.jpg` apart, which matters to the app and not
    to an upload.
    */
-  private func deliverableAttachments() -> [HermieShareSender.Attachment] {
+  private func deliverableAttachments() -> [ShareDelivery.Attachment] {
     payloads.compactMap { payload in
       guard case let .file(url, name, isImage) = payload, !isImage else {
         return nil
       }
 
-      return HermieShareSender.Attachment(url: url, name: name, mimeType: HermieShareOutbox.mimeType(for: url))
+      return ShareDelivery.Attachment(url: url, name: name, mimeType: ShareOutbox.mimeType(for: url))
     }
   }
 }

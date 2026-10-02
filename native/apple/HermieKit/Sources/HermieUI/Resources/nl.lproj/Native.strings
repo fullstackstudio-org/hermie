@@ -20,6 +20,12 @@
 	<string>Geen chat gekozen</string>
 	<key>native.gateways.rename</key>
 	<string>Hernoem</string>
+	<key>native.intents.expired</key>
+	<string>Hermie deed er te lang over om te openen, dus er is niets verstuurd.</string>
+	<key>native.intents.gatewayGone</key>
+	<string>De gateway van die bot staat niet meer in Hermie, dus er is niets verstuurd.</string>
+	<key>native.intents.unreadable</key>
+	<string>Hermie kon dat verzoek niet lezen. Misschien is het gemaakt door een nieuwere versie.</string>
 	<key>native.later</key>
 	<string>Komt in een latere build.</string>
 	<key>native.lock.coverLabel</key>

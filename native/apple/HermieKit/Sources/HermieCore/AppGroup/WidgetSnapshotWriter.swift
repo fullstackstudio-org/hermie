@@ -44,11 +44,27 @@ public struct WidgetSnapshotWriter: Sendable {
   /**
    Replace the snapshot. Answers whether the file now holds it.
 
+   `hidePreviews` writes every row's last line empty: the snapshot is read by widgets on a locked
+   screen, by the share sheet and by Siri, so while the app lock is on (or the owner hides
+   previews) no message text leaves the app. The wiring passes the app lock setting.
+
    Unchanged bytes are not rewritten and reload nothing, so calling this after every roster change
    is cheap.
    */
   @discardableResult
-  public func write(_ snapshot: WidgetSnapshot) -> Bool {
+  public func write(_ snapshot: WidgetSnapshot, hidePreviews: Bool) -> Bool {
+    var snapshot = snapshot
+
+    if hidePreviews {
+      snapshot.bots = snapshot.bots.map { bot in
+        var row = bot
+
+        row.lastLine = ""
+
+        return row
+      }
+    }
+
     guard let data = try? snapshot.encoded() else {
       return false
     }
@@ -86,6 +102,35 @@ public struct WidgetSnapshotWriter: Sendable {
    `bots` is the roster the app holds now, so this forgets pictures of bots that no longer exist;
    an avatar of a bot that still exists is never deleted, however old.
    */
+  /**
+   Take the snapshot and every avatar away when they are `gatewayKey`'s (or name no gateway): that
+   gateway was signed out of or removed. Answers whether anything went; reloads the widgets if so.
+   */
+  @discardableResult
+  public func purge(gatewayKey: String) -> Bool {
+    let key = (try? container.read(container.widgetSnapshotURL, maxBytes: Int.max))
+      .flatMap { try? JSONDecoder().decode(WidgetSnapshot.self, from: $0) }?.gatewayKey
+
+    guard key == nil || key == gatewayKey else {
+      return false
+    }
+
+    return purgeAll()
+  }
+
+  /// Take the snapshot and every avatar away, and reload the widgets so they show their empty state.
+  @discardableResult
+  public func purgeAll() -> Bool {
+    let snapshot = container.remove(container.widgetSnapshotURL)
+    let avatars = container.remove(container.avatarsURL)
+
+    if snapshot || avatars {
+      reloadTimelines()
+    }
+
+    return snapshot || avatars
+  }
+
   @discardableResult
   public func pruneAvatars(keeping bots: [String]) -> Int {
     let wanted = Set(bots.map { container.avatarURL(forBot: $0).lastPathComponent })

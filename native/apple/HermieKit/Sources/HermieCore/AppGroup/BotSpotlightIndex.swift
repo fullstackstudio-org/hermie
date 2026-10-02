@@ -18,7 +18,8 @@ import HermieShared
  `CSSearchableItemActionType` with that identifier) the link the app already opens.
  */
 public struct BotSpotlightIndex: Sendable {
-  /// One domain for every bot, so the old roster goes in one call.
+  /// One domain for every bot, so the old roster goes in one call; each gateway's bots are in a
+  /// subdomain of it (`dev.hermie.app.bots.<gatewayKey>`), so one gateway's go in one call too.
   public static let domain = "dev.hermie.app.bots"
   /// A month: a roster nobody opened in a while stays searchable, an abandoned gateway does not linger.
   public static let lifetime: TimeInterval = 30 * 24 * 60 * 60
@@ -33,26 +34,36 @@ public struct BotSpotlightIndex: Sendable {
 
   public init() {}
 
-  /// The rows for `bots`, in order; a bot whose link cannot be built is left out.
-  public static func entries(for bots: [WidgetSnapshot.Bot]) -> [Entry] {
+  /**
+   The rows for `bots`, in order; a bot whose link cannot be built is left out. The link names the
+   gateway, so a tap opens the bot on the gateway it was indexed for. `hidePreviews` leaves the
+   last line out: Spotlight shows it on a locked device.
+   */
+  public static func entries(for bots: [WidgetSnapshot.Bot], gatewayKey: String, hidePreviews: Bool) -> [Entry] {
     bots.compactMap { bot in
-      guard !bot.name.isEmpty, let link = DeepLink.chat(bot: bot.name, gatewayKey: "").string else {
+      guard !bot.name.isEmpty, let link = DeepLink.chat(bot: bot.name, gatewayKey: gatewayKey).string else {
         return nil
       }
 
       let title = bot.displayName.isEmpty ? bot.name : bot.displayName
 
       // The handle as well as the label: a search for the name the rest of the app uses finds it too.
-      return Entry(identifier: link, title: title, subtitle: bot.lastLine, keywords: [bot.name, title])
+      return Entry(
+        identifier: link, title: title, subtitle: hidePreviews ? "" : bot.lastLine, keywords: [bot.name, title])
     }
   }
 
-  /// Replace the index with `bots`.
-  public func replace(with bots: [WidgetSnapshot.Bot]) {
+  /// The subdomain one gateway's bots are indexed under.
+  public static func domain(for gatewayKey: String) -> String {
+    gatewayKey.isEmpty ? domain : "\(domain).\(gatewayKey)"
+  }
+
+  /// Replace the index with the active gateway's `bots`.
+  public func replace(with bots: [WidgetSnapshot.Bot], gatewayKey: String, hidePreviews: Bool) {
     #if canImport(CoreSpotlight)
       let index = CSSearchableIndex.default()
       let expiry = Date().addingTimeInterval(Self.lifetime)
-      let items = Self.entries(for: bots).map { entry in
+      let items = Self.entries(for: bots, gatewayKey: gatewayKey, hidePreviews: hidePreviews).map { entry in
         let attributes = CSSearchableItemAttributeSet(contentType: UTType.text)
 
         attributes.title = entry.title
@@ -61,7 +72,7 @@ public struct BotSpotlightIndex: Sendable {
 
         let item = CSSearchableItem(
           uniqueIdentifier: entry.identifier,
-          domainIdentifier: Self.domain,
+          domainIdentifier: Self.domain(for: gatewayKey),
           attributeSet: attributes
         )
 
@@ -76,6 +87,21 @@ public struct BotSpotlightIndex: Sendable {
       if !items.isEmpty {
         index.indexSearchableItems(items, completionHandler: nil)
       }
+    #endif
+  }
+
+  /// Take one gateway's bots out of the index: it was signed out of or removed.
+  public func purge(gatewayKey: String) {
+    #if canImport(CoreSpotlight)
+      CSSearchableIndex.default().deleteSearchableItems(
+        withDomainIdentifiers: [Self.domain(for: gatewayKey)], completionHandler: nil)
+    #endif
+  }
+
+  /// Take every bot out of the index.
+  public func purgeAll() {
+    #if canImport(CoreSpotlight)
+      CSSearchableIndex.default().deleteSearchableItems(withDomainIdentifiers: [Self.domain], completionHandler: nil)
     #endif
   }
 }

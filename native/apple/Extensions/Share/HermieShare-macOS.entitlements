@@ -15,10 +15,10 @@
 	<array>
 		<string>group.dev.hermie.app</string>
 	</array>
-	<!-- The app's keychain group, for the one delivery record; see HermieShare-iOS.entitlements. -->
+	<!-- Only the delivery record's own keychain group; see HermieShare-iOS.entitlements. -->
 	<key>keychain-access-groups</key>
 	<array>
-		<string>$(AppIdentifierPrefix)dev.hermie.app</string>
+		<string>$(AppIdentifierPrefix)dev.hermie.app.share</string>
 	</array>
 </dict>
 </plist>
