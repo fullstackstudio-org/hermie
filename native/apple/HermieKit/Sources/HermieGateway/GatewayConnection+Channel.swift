@@ -8,7 +8,7 @@ import HermieProtocol
 
 /// One call waiting for its answer.
 struct PendingCall {
-  let promise: Promise<JSONValue>
+  let promise: Promise<RPCReply<JSONValue>>
   var timer: TimerSlot?
 }
 
@@ -56,7 +56,7 @@ extension GatewayConnection {
   /// `JsonRpcGatewayClient.request` up to its promise: refuse without an open
   /// socket, then register the call and queue its frame.
   func clientCall(_ method: String, params: JSONValue, timeout: Duration) throws(GatewayRPCError)
-    -> (id: JSONRPCID, promise: Promise<JSONValue>)
+    -> (id: JSONRPCID, promise: Promise<RPCReply<JSONValue>>)
   {
     guard socket?.channel != nil else {
       throw GatewayRPCError(.notConnected, GatewayRPCError.notConnectedMessage)
@@ -67,7 +67,7 @@ extension GatewayConnection {
 
   /// `JsonRpcRequestChannel.request` up to its promise.
   func channelCall(_ method: String, params: JSONValue, timeout: Duration) throws(GatewayRPCError)
-    -> (id: JSONRPCID, promise: Promise<JSONValue>)
+    -> (id: JSONRPCID, promise: Promise<RPCReply<JSONValue>>)
   {
     guard let outbox = attachedOutbox else {
       throw GatewayRPCError(.notConnected, GatewayRPCError.notConnectedMessage)
@@ -79,7 +79,7 @@ extension GatewayConnection {
       throw GatewayRPCError(.unencodable, "The request could not be written as JSON: \(method)")
     }
 
-    let promise = Promise<JSONValue>()
+    let promise = Promise<RPCReply<JSONValue>>()
     var call = PendingCall(promise: promise)
 
     if timeout > .zero {
@@ -116,9 +116,10 @@ extension GatewayConnection {
 
   // MARK: Inbound frames
 
-  /// `handleFrame`: route one inbound text frame. Text that is not JSON, or
-  /// JSON that is not an object, is ignored.
-  func handleFrame(_ text: String) {
+  /// `handleFrame`: route one inbound text frame, `index` its place on the
+  /// wire (see `WireOrder.swift`). Text that is not JSON, or JSON that is not
+  /// an object, is ignored.
+  func handleFrame(_ text: String, index: UInt64) {
     guard let value = try? JSONValue(parsing: text), let frame = InboundFrame(jsonValue: value) else {
       return
     }
@@ -132,7 +133,7 @@ extension GatewayConnection {
         return
       }
 
-      deliverRequest(id: id, method: method, params: request.params, replayed: false)
+      deliverRequest(id: id, method: method, params: request.params, replayed: false, index: index)
 
     case .response(let response):
       guard let id = response.id else {
@@ -159,8 +160,8 @@ extension GatewayConnection {
         // answer with the server requests still waiting on the session. They
         // are re-delivered before the caller sees the result, over the socket
         // that owns them.
-        deliverOpenRequests(in: result)
-        call.promise.resolve(result)
+        deliverOpenRequests(in: result, index: index)
+        call.promise.resolve(RPCReply(index: index, result: result))
       }
 
     case .event(let notification):
@@ -170,7 +171,7 @@ extension GatewayConnection {
         advertiseCapabilities()
       }
 
-      handleEvent(event)
+      handleEvent(WireEvent(index: index, event: event))
 
     case .other:
       return
@@ -191,7 +192,7 @@ extension GatewayConnection {
 
   // MARK: Server→client requests
 
-  private func deliverOpenRequests(in result: JSONValue) {
+  private func deliverOpenRequests(in result: JSONValue, index: UInt64) {
     guard let open = result["open_requests"]?.arrayValue else {
       return
     }
@@ -201,14 +202,20 @@ extension GatewayConnection {
         continue
       }
 
-      deliverRequest(id: id, method: method, params: entry["params"]?.objectValue ?? [:], replayed: true)
+      deliverRequest(
+        id: id,
+        method: method,
+        params: entry["params"]?.objectValue ?? [:],
+        replayed: true,
+        index: index
+      )
     }
   }
 
   /// Hand an `approval` or `clarify` to the app; answer everything else, and
   /// these two when nobody is listening, `-32601` so the backend never waits
   /// out its deadline against a client that cannot answer.
-  func deliverRequest(id: String, method: String, params: JSONObject, replayed: Bool) {
+  func deliverRequest(id: String, method: String, params: JSONObject, replayed: Bool, index: UInt64) {
     let request = ServerRequest(id: id, method: method, params: params)
     let answerable: Bool
 
@@ -231,7 +238,9 @@ extension GatewayConnection {
     nextDeliveryToken += 1
     let token = nextDeliveryToken
     openDeliveries.insert(token)
-    requestHub.publish(ServerRequestDelivery(request: request, replayed: replayed, token: token, connection: self))
+    requestHub.publish(
+      ServerRequestDelivery(request: request, replayed: replayed, index: index, token: token, connection: self)
+    )
   }
 
   /// The app's answer to one delivery. The first answer goes out; later ones

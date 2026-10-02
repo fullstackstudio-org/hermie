@@ -21,7 +21,7 @@ struct ReplayState {
   var generation = 0
   /// While a replay is in flight, live seq'd frames for the sessions being
   /// replayed are parked here instead of dispatching.
-  var hold: OrderedMap<String, [GatewayEvent]>?
+  var hold: OrderedMap<String, [WireEvent]>?
   /// The server process identity (from `gateway.ready` / `session.events.since`).
   var epoch: String?
 
@@ -40,14 +40,16 @@ struct ReplayState {
 
   /// `handleEvent`'s hold check: park a live frame for a session being replayed.
   /// Returns true when the frame was parked.
-  mutating func park(_ event: GatewayEvent) -> Bool {
+  mutating func park(_ wire: WireEvent) -> Bool {
+    let event = wire.event
+
     guard hold != nil, let session = event.sessionID, !session.isEmpty,
       event.json["seq"]?.doubleValue != nil, hold?[session] != nil
     else {
       return false
     }
 
-    hold?[session]?.append(event)
+    hold?[session]?.append(wire)
     return true
   }
 
@@ -102,7 +104,7 @@ struct ReplayState {
     inFlight = true
     generation += 1
 
-    var parked = OrderedMap<String, [GatewayEvent]>()
+    var parked = OrderedMap<String, [WireEvent]>()
 
     for session in watermarks.keys {
       parked[session] = []
@@ -120,7 +122,7 @@ struct ReplayState {
   }
 
   /// Take the parked frames (and clear the hold), in the order they were parked.
-  mutating func releaseHold() -> [GatewayEvent] {
+  mutating func releaseHold() -> [WireEvent] {
     let parked = hold
     hold = nil
     return parked?.values.flatMap { $0 } ?? []

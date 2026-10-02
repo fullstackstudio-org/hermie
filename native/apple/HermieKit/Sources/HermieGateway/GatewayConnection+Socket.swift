@@ -239,7 +239,8 @@ extension GatewayConnection {
       return
     }
 
-    handleFrame(text)
+    wireIndex += 1
+    handleFrame(text, index: wireIndex)
   }
 
   /// The `close` event: recorded for any socket, as the reference's socket
@@ -259,7 +260,9 @@ extension GatewayConnection {
   // MARK: Events and replay
 
   /// `handleEvent`: a decoded `event` notification.
-  func handleEvent(_ event: GatewayEvent) {
+  func handleEvent(_ wire: WireEvent) {
+    let event = wire.event
+
     if event.type == GatewayEventType.gatewayReady {
       if event.payload?["heartbeat"] == .bool(true) {
         startHeartbeat()
@@ -272,28 +275,28 @@ extension GatewayConnection {
 
     // A replay is in flight for this session: park the frame; the replay's end
     // dispatches it after the gap, gated on seq.
-    if replay.park(event) {
+    if replay.park(wire) {
       return
     }
 
     replay.record(event)
-    dispatch(event)
+    dispatch(wire)
   }
 
   /// The connection's own `gateway.ready` handler runs first, as it was
   /// registered first; then every subscriber.
-  func dispatch(_ event: GatewayEvent) {
-    if event.type == GatewayEventType.gatewayReady {
-      onGatewayReady(event)
+  func dispatch(_ wire: WireEvent) {
+    if wire.event.type == GatewayEventType.gatewayReady {
+      onGatewayReady(wire.event)
     }
 
-    eventHub.publish(event)
+    eventHub.publish(wire)
   }
 
   /// `dispatchIfNewer`.
-  func dispatchIfNewer(_ event: GatewayEvent) {
-    if replay.admit(event) {
-      dispatch(event)
+  func dispatchIfNewer(_ wire: WireEvent) {
+    if replay.admit(wire.event) {
+      dispatch(wire)
     }
   }
 
@@ -304,7 +307,7 @@ extension GatewayConnection {
       return
     }
 
-    var calls: [Result<Promise<JSONValue>, GatewayRPCError>] = []
+    var calls: [Result<Promise<RPCReply<JSONValue>>, GatewayRPCError>] = []
 
     for (session, lastSeen) in entries {
       let params: JSONValue = ["session_id": .string(session), "last_seen": .number(lastSeen)]
@@ -321,8 +324,11 @@ extension GatewayConnection {
     spawn { await self.completeReplay(generation, started) }
   }
 
-  private func completeReplay(_ generation: Int, _ calls: [Result<Promise<JSONValue>, GatewayRPCError>]) async {
-    var results: [JSONValue?] = []
+  private func completeReplay(
+    _ generation: Int,
+    _ calls: [Result<Promise<RPCReply<JSONValue>>, GatewayRPCError>]
+  ) async {
+    var results: [RPCReply<JSONValue>?] = []
 
     for call in calls {
       switch call {
@@ -340,10 +346,12 @@ extension GatewayConnection {
       return
     }
 
-    for result in results {
-      guard let result, let events = result["events"]?.arrayValue else {
+    for reply in results {
+      guard let reply, let events = reply.result["events"]?.arrayValue else {
         continue
       }
+
+      let result = reply.result
 
       let epoch = result["epoch"]?.stringValue.flatMap { $0.isEmpty ? nil : $0 }
 
@@ -365,7 +373,8 @@ extension GatewayConnection {
           continue
         }
 
-        dispatchIfNewer(GatewayEvent(json: object))
+        // A replayed event carries the index of the answer that brought it.
+        dispatchIfNewer(WireEvent(index: reply.index, event: GatewayEvent(json: object)))
       }
     }
 

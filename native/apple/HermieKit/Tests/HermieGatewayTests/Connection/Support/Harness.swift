@@ -203,8 +203,8 @@ func firstEvent(of type: String, on connection: GatewayConnection) -> Task<Gatew
   let events = connection.events
 
   return Task {
-    for await event in events where event.type == type {
-      return event
+    for await wire in events where wire.event.type == type {
+      return wire.event
     }
 
     return nil

@@ -16,6 +16,9 @@ public struct ServerRequestDelivery: Sendable {
   /// than arriving live, so a screen that already shows it can skip a
   /// second notification.
   public let replayed: Bool
+  /// The wire index of the frame that brought it: its own, or for a request
+  /// re-delivered from `open_requests`, the result's (`WireOrder.swift`).
+  public let index: UInt64
 
   let token: UInt64
   let connection: GatewayConnection

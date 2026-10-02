@@ -62,8 +62,8 @@ struct ReplayTests {
     socket.respond(request["id"] ?? .null, result: result)
   }
 
-  private func seqs(_ events: Recorder<GatewayEvent>, _ type: String) -> [Double] {
-    events.values.filter { $0.type == type }.compactMap { $0.json["seq"]?.doubleValue }
+  private func seqs(_ events: Recorder<WireEvent>, _ type: String) -> [Double] {
+    events.values.map(\.event).filter { $0.type == type }.compactMap { $0.json["seq"]?.doubleValue }
   }
 
   @Test("records per-session seq watermarks from live events")
@@ -124,7 +124,7 @@ struct ReplayTests {
       )
 
       try await eventually("the replayed events") {
-        events.values.filter { $0.type == "tool.complete" }.compactMap { $0.payload?["n"] } == [1, 2]
+        events.values.map(\.event).filter { $0.type == "tool.complete" }.compactMap { $0.payload?["n"] } == [1, 2]
       }
       #expect(await h.connection.seqWatermarks["s1"] == 5)
     }

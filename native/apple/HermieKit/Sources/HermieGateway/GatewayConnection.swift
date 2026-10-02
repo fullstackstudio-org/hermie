@@ -37,6 +37,13 @@ import HermieProtocol
 /// subscribed, `approval` and `clarify` are answered `-32601` like every other
 /// server request, as the reference does when no handler is registered.
 ///
+/// **Order.** The three streams and the awaiting callers of `request` run on
+/// different tasks, so the order a consumer drains them in is not the wire's.
+/// Every event, server request and `requestReply` result carries the wire
+/// index of the frame it came from; a consumer orders or discards by it. An RPC
+/// result with index N reflects every frame with index < N. `WireOrder.swift`
+/// has the details.
+///
 /// Call `stop()` before releasing the connection: a live socket's reader keeps
 /// the actor alive until the socket closes.
 public actor GatewayConnection {
@@ -76,7 +83,7 @@ public actor GatewayConnection {
   let extraHeaders: [String: String]
 
   let statusHub = Broadcast<ConnectionStatus>(latest: ConnectionStatus(.disconnected), replaysLatest: true)
-  let eventHub = Broadcast<GatewayEvent>()
+  let eventHub = Broadcast<WireEvent>()
   let requestHub = Broadcast<ServerRequestDelivery>()
 
   // MARK: State of the dial loop (connection.ts)
@@ -110,6 +117,8 @@ public actor GatewayConnection {
   var handshake: Handshake?
   var replay = ReplayState()
   var nextGeneration: UInt64 = 0
+  /// The index of the last inbound frame read, across every socket (`WireOrder.swift`).
+  var wireIndex: UInt64 = 0
 
   // MARK: State of the call layer (json-rpc-channel.ts)
 
@@ -190,8 +199,10 @@ public actor GatewayConnection {
   /// Every status transition, starting with the current status.
   public nonisolated var statuses: AsyncStream<ConnectionStatus> { statusHub.subscribe() }
 
-  /// Every gateway event, live and replayed, in dispatch order.
-  public nonisolated var events: AsyncStream<GatewayEvent> { eventHub.subscribe() }
+  /// Every gateway event, live and replayed, in dispatch order, each with the
+  /// wire index that places it against RPC results and server requests (see
+  /// `WireOrder.swift`).
+  public nonisolated var events: AsyncStream<WireEvent> { eventHub.subscribe() }
 
   /// The `approval` and `clarify` requests the app is asked to answer.
   public nonisolated var serverRequests: AsyncStream<ServerRequestDelivery> { requestHub.subscribe() }
@@ -363,18 +374,33 @@ public actor GatewayConnection {
   public func request<M: RPCMethod>(_ method: M.Type, _ params: M.Params, timeout: Duration? = nil) async throws
     -> M.Result
   {
-    let value = try await request(M.name, params: params.jsonValue, timeout: timeout)
-
-    guard let result = M.Result(jsonValue: value) else {
-      throw GatewayRPCError(.unexpectedResult, "The gateway answered \(M.name) with a result of another shape.")
-    }
-
-    return result
+    try await requestReply(method, params, timeout: timeout).result
   }
 
   /// One JSON-RPC call by method name.
   public func request(_ method: String, params: JSONValue = .object([:]), timeout: Duration? = nil) async throws
     -> JSONValue
+  {
+    try await requestReply(method, params: params, timeout: timeout).result
+  }
+
+  /// `request`, with the wire index of the answer: the result reflects every
+  /// frame with a lower index and none with a higher one (`WireOrder.swift`).
+  public func requestReply<M: RPCMethod>(_ method: M.Type, _ params: M.Params, timeout: Duration? = nil) async throws
+    -> RPCReply<M.Result>
+  {
+    let reply = try await requestReply(M.name, params: params.jsonValue, timeout: timeout)
+
+    guard let result = M.Result(jsonValue: reply.result) else {
+      throw GatewayRPCError(.unexpectedResult, "The gateway answered \(M.name) with a result of another shape.")
+    }
+
+    return RPCReply(index: reply.index, result: result)
+  }
+
+  /// `request` by method name, with the wire index of the answer.
+  public func requestReply(_ method: String, params: JSONValue = .object([:]), timeout: Duration? = nil) async throws
+    -> RPCReply<JSONValue>
   {
     let window =
       timeout ?? .milliseconds(GatewayTimeouts.rpcTimeoutMs(method: method, firstSessionCallDone: firstSessionCallDone))
