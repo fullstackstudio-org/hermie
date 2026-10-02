@@ -212,25 +212,37 @@ extension GatewayConnection {
     }
   }
 
-  /// Hand an `approval` or `clarify` to the app; answer everything else, and
-  /// these two when nobody is listening, `-32601` so the backend never waits
-  /// out its deadline against a client that cannot answer.
+  /// Hand an `approval`, a `clarify` or a one-string prompt (`secret`, `sudo`,
+  /// `vault.*`) to the app; answer everything else, and these when nobody is
+  /// listening, `-32601` so the backend never waits out its deadline against a
+  /// client that cannot answer.
+  ///
+  /// A method the app cannot show still reaches a listener, already answered
+  /// (answering it again sends nothing), so the app can tell the person why
+  /// the bot stalled.
   func deliverRequest(id: String, method: String, params: JSONObject, replayed: Bool, index: UInt64) {
     let request = ServerRequest(id: id, method: method, params: params)
-    let answerable: Bool
+    let listening = requestHub.hasSubscribers
+    let supported: Bool
 
     switch request.body {
-    case .approval, .clarify:
-      answerable = requestHub.hasSubscribers
+    case .approval, .clarify, .secret, .sudo, .vaultUnlock, .vaultCode, .vaultSaveLogin:
+      supported = true
     case .unknown:
-      answerable = false
+      supported = false
     }
 
-    guard answerable else {
-      let message = "no handler for server request: \(method)"
-
-      if let answer = request.fail(code: JSONRPCError.methodNotFound, message: message) {
+    guard supported, listening else {
+      if let answer = request.fail(code: JSONRPCError.methodNotFound, message: Self.unsupportedMessage(method)) {
         send(answer.jsonValue)
+      }
+
+      if listening {
+        nextDeliveryToken += 1
+        requestHub.publish(
+          ServerRequestDelivery(
+            request: request, replayed: replayed, index: index, token: nextDeliveryToken, connection: self)
+        )
       }
       return
     }
@@ -241,6 +253,11 @@ extension GatewayConnection {
     requestHub.publish(
       ServerRequestDelivery(request: request, replayed: replayed, index: index, token: token, connection: self)
     )
+  }
+
+  /// The `-32601` message for a server request this client cannot show.
+  nonisolated static func unsupportedMessage(_ method: String) -> String {
+    "not supported by this client: \(method)"
   }
 
   /// The app's answer to one delivery. The first answer goes out, over the

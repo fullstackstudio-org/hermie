@@ -39,6 +39,7 @@ public final class GatewaySession {
     public var connection = GatewayConnection.Options()
     /// The visibility a chat screen starts at until the reader's settings arrive.
     public var defaultVisibility = VisibilityOptions(level: .normal, showBotToBot: true, showThinking: true)
+    public var secureInput = SecureInputCenter.Options()
 
     public init() {}
   }
@@ -49,6 +50,9 @@ public final class GatewaySession {
   /// Set when a resume reported a desktop contract below the floor (`DesktopContract`).
   public private(set) var incompatibility: GatewayError?
   public let chatList = ChatListModel()
+  /// The one-string prompts (`secret`, `sudo`, `vault.*`): a consumer of the
+  /// server requests of its own, so a typed secret never reaches the store.
+  @ObservationIgnored public let secureInput: SecureInputCenter
 
   @ObservationIgnored public let store: TranscriptStore
   @ObservationIgnored public let roster: BotRoster
@@ -104,6 +108,7 @@ public final class GatewaySession {
 
     self.init(
       gatewayID: record.id,
+      name: record.name,
       link: link,
       cache: cache,
       keyValues: keyValues,
@@ -116,6 +121,7 @@ public final class GatewaySession {
   /// a test hands in a scripted one.
   public init(
     gatewayID: String,
+    name: String? = nil,
     link: any GatewayLink,
     cache: (any ChatCaching)? = nil,
     keyValues: KeyValueStore? = nil,
@@ -134,6 +140,13 @@ public final class GatewaySession {
       clock: options.store.clock
     )
     self.store = TranscriptStore(link: link, roster: roster, cache: cache, options: options.store)
+    self.secureInput = SecureInputCenter(
+      link: link,
+      store: store,
+      clock: options.store.clock,
+      gatewayName: name ?? gatewayID,
+      options: options.secureInput
+    )
     (commands, commandSink) = AsyncStream.makeStream()
   }
 
@@ -159,6 +172,7 @@ public final class GatewaySession {
     await roster.setSessionIDSource { [weak store] in await store?.sessionIDs() ?? [:] }
     await store.setContractSink { [weak self] number, error in self?.contractChecked(number, error) }
     await store.attach()
+    secureInput.attach()
 
     let commands = self.commands
     tasks.append(
@@ -241,6 +255,8 @@ public final class GatewaySession {
     isShutDown = true
     commandSink.finish()
 
+    // Every prompt still open is answered `''` while the socket is still there.
+    await secureInput.shutdown()
     await store.persistAll()
     await link.shutdown()
 
@@ -353,6 +369,8 @@ public final class GatewaySession {
       models[key]?.apply(snapshot)
     }
 
+    secureInput.storeChanged()
+
     if let frameTimings {
       let cpu = clock_gettime_nsec_np(CLOCK_THREAD_CPUTIME_ID) - cpuStart
       frameTimings(FrameTiming(wall: ContinuousClock.now - wallStart, cpu: .nanoseconds(Int64(cpu))))
@@ -369,6 +387,7 @@ public final class GatewaySession {
     }
 
     let names = Set(snapshot.bots.map(\.name))
+    secureInput.storeChanged()
 
     for name in models.keys where !names.contains(name) {
       release(name)

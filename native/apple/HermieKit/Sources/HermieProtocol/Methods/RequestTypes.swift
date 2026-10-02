@@ -1,6 +1,7 @@
 import Foundation
 
-// Server→client questions (`approval`, `clarify`) and the methods that answer or poll them.
+// Server→client questions (`approval`, `clarify`, the one-string prompts) and the methods that
+// answer or poll them.
 
 /// `ApprovalChoice`.
 public enum ApprovalChoice: OpenStringEnum {
@@ -245,4 +246,78 @@ public struct ApprovalReceivedResult: JSONObjectBacked {
   public init(json: JSONObject) { self.json = json }
 
   public var acknowledged: Bool? { get { json[field: "acknowledged"] } set { json[field: "acknowledged"] = newValue } }
+}
+
+// MARK: - One-string prompts (`secret`, `sudo`, `vault.*`)
+
+/// The `secret` server request's params: a value for one named environment
+/// variable, which the gateway stores for the bot's profile.
+public struct SecretRequestParams: JSONObjectBacked {
+  public var json: JSONObject
+  public init(json: JSONObject) { self.json = json }
+
+  public var sessionID: String? { get { json[field: "session_id"] } set { json[field: "session_id"] = newValue } }
+  public var envVar: String? { get { json[field: "env_var"] } set { json[field: "env_var"] = newValue } }
+  public var prompt: String? { get { json[field: "prompt"] } set { json[field: "prompt"] = newValue } }
+  public var metadata: JSONObject? { get { json[field: "metadata"] } set { json[field: "metadata"] = newValue } }
+}
+
+/// The `sudo` server request's params: the command, redacted by the gateway.
+public struct SudoRequestParams: JSONObjectBacked {
+  public var json: JSONObject
+  public init(json: JSONObject) { self.json = json }
+
+  public var sessionID: String? { get { json[field: "session_id"] } set { json[field: "session_id"] = newValue } }
+  public var command: String? { get { json[field: "command"] } set { json[field: "command"] = newValue } }
+}
+
+/// The `vault.unlock_prompt` server request's params: which password manager.
+public struct VaultUnlockRequestParams: JSONObjectBacked {
+  public var json: JSONObject
+  public init(json: JSONObject) { self.json = json }
+
+  public var sessionID: String? { get { json[field: "session_id"] } set { json[field: "session_id"] = newValue } }
+  public var backend: String? { get { json[field: "backend"] } set { json[field: "backend"] = newValue } }
+  public var displayName: String? { get { json[field: "display_name"] } set { json[field: "display_name"] = newValue } }
+}
+
+/// The `vault.save_login` server request's params. Its answer's `value` is the
+/// JSON text `{"identifier": …, "password": …}`, or `''` not to save.
+public struct VaultSaveLoginRequestParams: JSONObjectBacked {
+  public var json: JSONObject
+  public init(json: JSONObject) { self.json = json }
+
+  public var sessionID: String? { get { json[field: "session_id"] } set { json[field: "session_id"] = newValue } }
+  public var origin: String? { get { json[field: "origin"] } set { json[field: "origin"] = newValue } }
+  public var site: String? { get { json[field: "site"] } set { json[field: "site"] = newValue } }
+}
+
+/// The `vault.code` server request's params: a one-time code for a site.
+public struct VaultCodeRequestParams: JSONObjectBacked {
+  public var json: JSONObject
+  public init(json: JSONObject) { self.json = json }
+
+  public var sessionID: String? { get { json[field: "session_id"] } set { json[field: "session_id"] = newValue } }
+  public var site: String? { get { json[field: "site"] } set { json[field: "site"] = newValue } }
+  public var hint: String? { get { json[field: "hint"] } set { json[field: "hint"] = newValue } }
+}
+
+/// The answer to any one-string prompt (`secret`, `sudo`, `vault.*`): `''`
+/// means skipped or declined.
+///
+/// It carries a secret, so neither its description nor its mirror shows the
+/// value; only `jsonValue` (what goes on the wire) does.
+public struct ValueResult: JSONObjectBacked, CustomDebugStringConvertible, CustomReflectable {
+  public var json: JSONObject
+  public init(json: JSONObject) { self.json = json }
+
+  public init(value: String) {
+    self.init(json: ["value": .string(value)])
+  }
+
+  public var value: String? { get { json[field: "value"] } set { json[field: "value"] = newValue } }
+
+  public var description: String { "ValueResult(<redacted>)" }
+  public var debugDescription: String { description }
+  public var customMirror: Mirror { Mirror(self, children: [:], displayStyle: .struct) }
 }

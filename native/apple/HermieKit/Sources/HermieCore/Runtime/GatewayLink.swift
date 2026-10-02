@@ -20,7 +20,8 @@ public protocol GatewayLink: Sendable {
   /// Every gateway event, live and replayed, in dispatch order.
   var events: AsyncStream<WireEvent> { get }
 
-  /// The `approval` and `clarify` requests the app is asked to answer.
+  /// The server requests the app is asked to answer (`approval`, `clarify`,
+  /// the one-string prompts), and the ones it cannot show, already declined.
   ///
   /// A sequence rather than a stream so production can map the connection's
   /// deliveries in place (`AsyncMapSequence`), with no task in between: the
@@ -135,8 +136,17 @@ public struct InboundRequest: Sendable {
 
   /// Decline: the gateway reads `-32601` as "this client cannot answer".
   public func decline() async -> Bool {
-    await failHandler(JSONRPCError.methodNotFound, "no handler for server request: \(method)")
+    await failHandler(JSONRPCError.methodNotFound, "not supported by this client: \(method)")
   }
+
+  /// Decline a request for a session no chat on this client holds (another
+  /// client may own it), with the same `-32601`.
+  public func declineUnowned() async -> Bool {
+    await failHandler(JSONRPCError.methodNotFound, "no chat on this client holds the session for: \(method)")
+  }
+
+  /// The typed reading.
+  public var body: ServerRequestBody { request.body }
 }
 
 extension GatewayLink {

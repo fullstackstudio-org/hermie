@@ -202,7 +202,7 @@ struct ChannelTests {
           "session_id": "s1",
           "open_requests": [
             ["id": "srq-9", "method": "approval", "params": ["session_id": "s1"]],
-            ["id": "srq-10", "method": "sudo", "params": ["session_id": "s1"]]
+            ["id": "srq-10", "method": "terminal.read", "params": ["session_id": "s1"]]
           ]
         ]
       }
@@ -220,11 +220,48 @@ struct ChannelTests {
       #expect(delivered?.request.id == "srq-9")
       #expect(delivered?.replayed == true)
 
-      // `sudo` is not the app's to answer: the connection declined it.
+      // `terminal.read` is not the app's to answer: the connection declined it,
+      // and still told the app, so it can say why the bot stalled.
       let socket = try #require(h.gateway.lastSocket)
       try await eventually("the refusal") {
-        socket.sent.contains { $0["id"] == "srq-10" && $0["error"]?["code"] == -32601 }
+        socket.sent.contains {
+          $0["id"] == "srq-10" && $0["error"]?["code"] == -32601
+            && $0["error"]?["message"] == "not supported by this client: terminal.read"
+        }
       }
+      let told = await iterator.next()
+      #expect(told?.request.id == "srq-10")
+      // Answering that copy sends nothing: the refusal was the one answer.
+      #expect(await told?.respond(["value": ""]) == false)
+    }
+  }
+
+  @Test("hands the one-string prompts to the app and declines them when nobody listens")
+  func deliversSecureInputPrompts() async throws {
+    try await withHarness { h in
+      await h.connection.start()
+      try await h.waitFor(.ready)
+
+      // Nobody listening: declined, as before.
+      await #expect {
+        _ = try await h.gateway.requestServerSide(method: "sudo", params: ["session_id": "s1"])
+      } throws: { error in
+        String(describing: error).contains("-32601")
+      }
+
+      let requests = h.connection.serverRequests
+      let answering = Task {
+        for await delivery in requests {
+          if case .secret = delivery.body {
+            await delivery.respond(["value": "typed"])
+          }
+        }
+      }
+      defer { answering.cancel() }
+
+      let answer = try await h.gateway.requestServerSide(
+        method: "secret", params: ["session_id": "s1", "env_var": "K", "prompt": "p"])
+      #expect(answer == ["value": "typed"])
     }
   }
 

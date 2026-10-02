@@ -416,6 +416,12 @@ public actor TranscriptStore {
     ingestedFrames += 1
 
     guard inbound.method == "approval" || inbound.method == "clarify" else {
+      // The one-string prompts never enter the transcript: `SecureInputCenter`,
+      // a consumer of its own, answers them.
+      if inbound.body.isSecureInput {
+        return
+      }
+
       // Everything else belongs to a surface this app does not have.
       spawn { _ in _ = await inbound.decline() }
       return

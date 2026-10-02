@@ -132,7 +132,7 @@ describe('POST /__fake/request', () => {
       const response = await fetch(`${gateway.url}/__fake/withdraw-requests`, { method: 'POST', body: '{}' })
 
       expect(await response.json()).toEqual({ withdrawn: 1 })
-      expect(await cancelled).toMatchObject({ id: request.id, reason: 'withdrawn' })
+      expect(await cancelled).toEqual({ id: request.id, method: 'clarify', reason: 'withdrawn' })
       expect(gateway.state.openServerRequests.size).toBe(0)
     } finally {
       socket.terminate()

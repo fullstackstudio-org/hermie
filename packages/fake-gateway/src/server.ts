@@ -3574,7 +3574,8 @@ export async function startFakeGateway(options: FakeGatewayOptions = {}): Promis
       const withdrawn = [...state.openServerRequests.entries()]
 
       for (const [id, request] of withdrawn) {
-        publish('request.cancel', request.session_id, { id, reason })
+        // `{id, method, reason}`, as `server_requests._emit_cancel` sends it.
+        publish('request.cancel', request.session_id, { id, method: request.method, reason })
         pendingServerRequests.get(id)?.reject(new Error(`withdrawn: ${reason}`))
         pendingServerRequests.delete(id)
       }

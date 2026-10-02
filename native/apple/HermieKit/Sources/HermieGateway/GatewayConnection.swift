@@ -35,9 +35,9 @@ import HermieProtocol
 /// `statuses` starts with the current status, as `onStatus` calls a new handler
 /// once. Subscribe to `events` and `serverRequests` before `start()`: nothing
 /// is buffered for a subscriber that comes later. `serverRequests` is meant for
-/// one long-lived consumer (the session); with none subscribed, `approval` and
-/// `clarify` are answered `-32601` like every other server request, as the
-/// reference does when no handler is registered. The streams end on
+/// the session's long-lived consumers; with none subscribed, every server
+/// request is answered `-32601`, as the reference does when no handler is
+/// registered. The streams end on
 /// `shutdown()` (and when the connection is released), not on `stop()`.
 ///
 /// **Order.** The three streams and the awaiting callers of `request` run on

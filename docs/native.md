@@ -270,6 +270,21 @@ The chat screen mounts them with `ComposerView(model:)` in its composer slot and
 `.answeringRequests(with:)` on the transcript, which sets the rows' `transcriptItemActions`, the
 cards' status (`transcriptRequests`) and the sheet for a pending request.
 
+The one-string prompts (`secret`, `sudo`, `vault.unlock_prompt`, `vault.code`, `vault.save_login`)
+never enter the transcript: what a person types for them must not reach the engine, the chat cache
+or a draft. `SecureInputCenter` (one per `GatewaySession`, `session.secureInput`) subscribes to the
+server requests itself, routes each prompt to the chat whose runtime session it names (waiting at
+most 15 s for a resume to bind one), and answers on the request's own reply: the value, or `''` for
+Skip. A prompt whose chat lets go of its session, and every prompt still open at shutdown, is
+answered `''` once; one the gateway stops waiting for (its deadline, known when the prompt arrives
+live: 120 s for `sudo` and `vault.unlock_prompt`, 180 s for `vault.code` and `vault.save_login`,
+300 s for `secret`; or its `request.cancel`) is closed with a notice and never answered. The typed
+value lives in the sheet's state as a `SecretValue`, whose description and mirror are redacted.
+Every other server request is refused `-32601` ("not supported by this client") by the connection,
+which still hands it to the center so the chat can say the bot asked for something the app cannot
+show. The chat screen mounts it with `.secureInput(SecureInputModel(session:bot:))`; the chat list
+reads `session.secureInput.needsInput(bot)` for its marker.
+
 ### Known divergences
 
 The port answers like the TypeScript on every input the TypeScript tests use. On malformed or

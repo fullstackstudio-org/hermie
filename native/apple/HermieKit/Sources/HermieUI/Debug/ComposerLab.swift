@@ -7,8 +7,8 @@
 
   /// The composer and the request answering against a live gateway, as a
   /// debug screen: one chat's transcript with the real `ComposerView`, the
-  /// approval and clarify cards answered through `RequestsModel`, and the
-  /// request sheet. The UI tests drive it against the fake gateway, so they do
+  /// approval and clarify cards answered through `RequestsModel`, the
+  /// request sheet, and the secure input sheet (`secret`, `sudo`, `vault.*`). The UI tests drive it against the fake gateway, so they do
   /// not depend on the chat screen.
   ///
   /// Launch arguments: `-HermieLabGateway <address>` (required; for the fake
@@ -31,7 +31,9 @@
     }
 
     @ViewBuilder private var content: some View {
-      if let composer = model.composer, let requests = model.requests, let chat = model.chat {
+      if let composer = model.composer, let requests = model.requests, let secureInput = model.secureInput,
+        let chat = model.chat
+      {
         ComposerLabTranscript(model: model, chat: chat)
           .safeAreaInset(edge: .bottom, spacing: 0) {
             VStack(spacing: 0) {
@@ -41,6 +43,7 @@
             }
           }
           .answeringRequests(with: requests)
+          .secureInput(secureInput)
       } else {
         ContentUnavailableView {
           Label("Composer lab", systemImage: "text.bubble")
@@ -80,6 +83,7 @@
     private(set) var chat: ChatModel?
     private(set) var composer: ComposerModel?
     private(set) var requests: RequestsModel?
+    private(set) var secureInput: SecureInputModel?
 
     @ObservationIgnored let listState = TranscriptListState()
     /// `-HermieLabHideTranscript YES`: the rows are not drawn, for an
@@ -119,6 +123,7 @@
         chat = session.chat(bot)
         composer = ComposerModel(session: session, bot: bot)
         requests = RequestsModel(session: session, bot: bot)
+        secureInput = SecureInputModel(session: session, bot: bot)
         try await session.open(bot)
       } catch {
         status = "Could not open \(bot): \(error)"

@@ -1672,6 +1672,702 @@
         }
       }
     },
+    "native.secureInput.close" : {
+      "comment" : "Button that closes the sheet after the request ended.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Schließen"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Close"
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Sluiten"
+          }
+        }
+      }
+    },
+    "native.secureInput.expired" : {
+      "comment" : "The request ended because the gateway stopped waiting.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Die Anfrage ist abgelaufen. Es wurde nichts gesendet."
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "The request expired. Nothing was sent."
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Het verzoek is verlopen. Er is niets verstuurd."
+          }
+        }
+      }
+    },
+    "native.secureInput.expiresIn" : {
+      "comment" : "How long the gateway still waits. The argument is the time left, like 1:05.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Läuft ab in %@"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Expires in %@"
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Verloopt over %@"
+          }
+        }
+      }
+    },
+    "native.secureInput.field.code" : {
+      "comment" : "Label of the field for a one-time code.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Code"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Code"
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Code"
+          }
+        }
+      }
+    },
+    "native.secureInput.field.masterPassword" : {
+      "comment" : "Label of the masked field for a password manager's master password.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Master-Passwort"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Master password"
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Hoofdwachtwoord"
+          }
+        }
+      }
+    },
+    "native.secureInput.field.password" : {
+      "comment" : "Label of the masked password field.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Passwort"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Password"
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Wachtwoord"
+          }
+        }
+      }
+    },
+    "native.secureInput.field.username" : {
+      "comment" : "Label of the user name field of a login to save.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Benutzername"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Username"
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Gebruikersnaam"
+          }
+        }
+      }
+    },
+    "native.secureInput.field.value" : {
+      "comment" : "Label of the masked field for a secret value.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Wert"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Value"
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Waarde"
+          }
+        }
+      }
+    },
+    "native.secureInput.gateway" : {
+      "comment" : "Under the secure input sheet's title: which gateway the request comes from. The argument is the gateway's name.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Auf Gateway %@"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "On gateway %@"
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Op gateway %@"
+          }
+        }
+      }
+    },
+    "native.secureInput.receiver.login" : {
+      "comment" : "Says who receives a login to save and what happens to it.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Hermie sendet dies an das Gateway, das es im Passworttresor des Bots speichert. Hermie speichert es nicht."
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Hermie sends this to the gateway, which saves it in the bot's password vault. Hermie does not keep it."
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Hermie stuurt dit naar de gateway, die het in de wachtwoordkluis van de bot bewaart. Hermie bewaart het niet."
+          }
+        }
+      }
+    },
+    "native.secureInput.receiver.stored" : {
+      "comment" : "Says who receives a secret value and what happens to it.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Hermie sendet dies an das Gateway, das es für diesen Bot speichert. Der Bot sieht es nicht. Hermie speichert es nicht."
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Hermie sends this to the gateway, which stores it for this bot. The bot does not see it. Hermie does not keep it."
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Hermie stuurt dit naar de gateway, die het voor deze bot bewaart. De bot ziet het niet. Hermie bewaart het niet."
+          }
+        }
+      }
+    },
+    "native.secureInput.receiver.used" : {
+      "comment" : "Says who receives a password or code and what happens to it.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Hermie sendet dies an das Gateway, wo der Bot es nutzt. Hermie speichert es nicht."
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Hermie sends this to the gateway, where the bot uses it. Hermie does not keep it."
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Hermie stuurt dit naar de gateway, waar de bot het gebruikt. Hermie bewaart het niet."
+          }
+        }
+      }
+    },
+    "native.secureInput.save" : {
+      "comment" : "Button that saves the login.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Speichern"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Save"
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Bewaren"
+          }
+        }
+      }
+    },
+    "native.secureInput.send" : {
+      "comment" : "Button that sends what was typed.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Senden"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Send"
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Versturen"
+          }
+        }
+      }
+    },
+    "native.secureInput.skip" : {
+      "comment" : "Button that answers without a value.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Überspringen"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Skip"
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Overslaan"
+          }
+        }
+      }
+    },
+    "native.secureInput.sudo.lead" : {
+      "comment" : "Explains a request for the administrator password.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Der Bot möchte diesen Befehl mit Administratorrechten auf dem Rechner des Gateways ausführen."
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "The bot wants to run this command with administrator rights on the gateway's computer."
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "De bot wil dit commando met beheerdersrechten uitvoeren op de computer van de gateway."
+          }
+        }
+      }
+    },
+    "native.secureInput.sudo.noCommand" : {
+      "comment" : "Shown instead of the command when the gateway did not send one.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Das Gateway nennt den Befehl nicht."
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "The gateway did not say which command."
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "De gateway zegt niet welk commando."
+          }
+        }
+      }
+    },
+    "native.secureInput.title.secret" : {
+      "comment" : "The sheet's title for a bot's request for a secret value, like an API key. The argument is the bot's name.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%@ fragt nach einem Geheimnis"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%@ asks for a secret"
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%@ vraagt om een geheim"
+          }
+        }
+      }
+    },
+    "native.secureInput.title.sudo" : {
+      "comment" : "The sheet's title when a bot asks for the administrator password of the gateway's computer. The argument is the bot's name.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%@ fragt nach einem Administratorpasswort"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%@ asks for an administrator password"
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%@ vraagt om een beheerderswachtwoord"
+          }
+        }
+      }
+    },
+    "native.secureInput.title.vaultCode" : {
+      "comment" : "The sheet's title when a bot asks for a one-time code. The argument is the bot's name.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%@ fragt nach einem Einmalcode"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%@ asks for a one-time code"
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%@ vraagt om een eenmalige code"
+          }
+        }
+      }
+    },
+    "native.secureInput.title.vaultSaveLogin" : {
+      "comment" : "The sheet's title when a bot asks to save a login for a website. The argument is the bot's name.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%@ möchte eine Anmeldung speichern"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%@ asks to save a login"
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%@ vraagt een login te bewaren"
+          }
+        }
+      }
+    },
+    "native.secureInput.title.vaultUnlock" : {
+      "comment" : "The sheet's title when a bot asks to unlock a password manager. The argument is the bot's name.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%@ möchte einen Passwortmanager entsperren"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%@ asks to unlock a password manager"
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%@ vraagt een wachtwoordmanager te ontgrendelen"
+          }
+        }
+      }
+    },
+    "native.secureInput.unsupported" : {
+      "comment" : "On a chat: the bot asked for something the app cannot show. The first argument is the bot's name, the second the technical name of the request.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%1$@ hat nach etwas gefragt, das diese App nicht anzeigen kann: %2$@"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%1$@ asked for something this app cannot show: %2$@"
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%1$@ vroeg om iets dat deze app niet kan tonen: %2$@"
+          }
+        }
+      }
+    },
+    "native.secureInput.variable" : {
+      "comment" : "Label before the name of the environment variable a secret is stored as.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Gespeichert als"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Stored as"
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Opgeslagen als"
+          }
+        }
+      }
+    },
+    "native.secureInput.vaultCode.lead" : {
+      "comment" : "Explains a request for a one-time code. The argument is the website.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Gib den Code für %@ ein."
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Enter the code for %@."
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Voer de code voor %@ in."
+          }
+        }
+      }
+    },
+    "native.secureInput.vaultCode.leadNoSite" : {
+      "comment" : "Explains a request for a one-time code when the website is not known.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Gib den Code ein, nach dem die Website gefragt hat."
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Enter the code the website asked for."
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Voer de code in waar de website om vroeg."
+          }
+        }
+      }
+    },
+    "native.secureInput.vaultSaveLogin.lead" : {
+      "comment" : "Explains a request to save a login. The argument is the website.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Speichere eine Anmeldung für %@."
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Save a login for %@."
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Bewaar een login voor %@."
+          }
+        }
+      }
+    },
+    "native.secureInput.vaultUnlock.lead" : {
+      "comment" : "Explains a request to unlock a password manager. The argument is its name.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Gib das Master-Passwort von %@ ein."
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Enter the master password of %@."
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Voer het hoofdwachtwoord van %@ in."
+          }
+        }
+      }
+    },
+    "native.secureInput.withdrawn" : {
+      "comment" : "The request ended because the bot stopped asking.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Der Bot fragt nicht mehr danach. Es wurde nichts gesendet."
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "The bot no longer asks for this. Nothing was sent."
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "De bot vraagt hier niet meer om. Er is niets verstuurd."
+          }
+        }
+      }
+    },
     "native.signIn.browserHint" : {
       "extractionState" : "manual",
       "localizations" : {

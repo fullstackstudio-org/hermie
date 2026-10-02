@@ -146,6 +146,64 @@
 	<string>Opnieuw proberen</string>
 	<key>native.requests.sending</key>
 	<string>Je antwoord wordt verstuurd…</string>
+	<key>native.secureInput.close</key>
+	<string>Sluiten</string>
+	<key>native.secureInput.expired</key>
+	<string>Het verzoek is verlopen. Er is niets verstuurd.</string>
+	<key>native.secureInput.expiresIn</key>
+	<string>Verloopt over %@</string>
+	<key>native.secureInput.field.code</key>
+	<string>Code</string>
+	<key>native.secureInput.field.masterPassword</key>
+	<string>Hoofdwachtwoord</string>
+	<key>native.secureInput.field.password</key>
+	<string>Wachtwoord</string>
+	<key>native.secureInput.field.username</key>
+	<string>Gebruikersnaam</string>
+	<key>native.secureInput.field.value</key>
+	<string>Waarde</string>
+	<key>native.secureInput.gateway</key>
+	<string>Op gateway %@</string>
+	<key>native.secureInput.receiver.login</key>
+	<string>Hermie stuurt dit naar de gateway, die het in de wachtwoordkluis van de bot bewaart. Hermie bewaart het niet.</string>
+	<key>native.secureInput.receiver.stored</key>
+	<string>Hermie stuurt dit naar de gateway, die het voor deze bot bewaart. De bot ziet het niet. Hermie bewaart het niet.</string>
+	<key>native.secureInput.receiver.used</key>
+	<string>Hermie stuurt dit naar de gateway, waar de bot het gebruikt. Hermie bewaart het niet.</string>
+	<key>native.secureInput.save</key>
+	<string>Bewaren</string>
+	<key>native.secureInput.send</key>
+	<string>Versturen</string>
+	<key>native.secureInput.skip</key>
+	<string>Overslaan</string>
+	<key>native.secureInput.sudo.lead</key>
+	<string>De bot wil dit commando met beheerdersrechten uitvoeren op de computer van de gateway.</string>
+	<key>native.secureInput.sudo.noCommand</key>
+	<string>De gateway zegt niet welk commando.</string>
+	<key>native.secureInput.title.secret</key>
+	<string>%@ vraagt om een geheim</string>
+	<key>native.secureInput.title.sudo</key>
+	<string>%@ vraagt om een beheerderswachtwoord</string>
+	<key>native.secureInput.title.vaultCode</key>
+	<string>%@ vraagt om een eenmalige code</string>
+	<key>native.secureInput.title.vaultSaveLogin</key>
+	<string>%@ vraagt een login te bewaren</string>
+	<key>native.secureInput.title.vaultUnlock</key>
+	<string>%@ vraagt een wachtwoordmanager te ontgrendelen</string>
+	<key>native.secureInput.unsupported</key>
+	<string>%1$@ vroeg om iets dat deze app niet kan tonen: %2$@</string>
+	<key>native.secureInput.variable</key>
+	<string>Opgeslagen als</string>
+	<key>native.secureInput.vaultCode.lead</key>
+	<string>Voer de code voor %@ in.</string>
+	<key>native.secureInput.vaultCode.leadNoSite</key>
+	<string>Voer de code in waar de website om vroeg.</string>
+	<key>native.secureInput.vaultSaveLogin.lead</key>
+	<string>Bewaar een login voor %@.</string>
+	<key>native.secureInput.vaultUnlock.lead</key>
+	<string>Voer het hoofdwachtwoord van %@ in.</string>
+	<key>native.secureInput.withdrawn</key>
+	<string>De bot vraagt hier niet meer om. Er is niets verstuurd.</string>
 	<key>native.signIn.browserHint</key>
 	<string>De aanmeldpagina opent in je browser, waar je bestaande aanmelding en het automatisch invullen van wachtwoorden beschikbaar zijn. Hermie ontvangt alleen het resultaat, op dit apparaat.</string>
 	<key>native.signIn.browserMayBeRefused</key>

@@ -217,9 +217,44 @@ struct EnvelopeTests {
     let refusal = try #require(request.fail(code: JSONRPCError.methodNotFound, message: "no handler"))
     #expect(try canonical(refusal) == #"{"error":{"code":-32601,"message":"no handler"},"id":"srq-7","jsonrpc":"2.0"}"#)
 
-    let other = ServerRequest(id: "srq-9", method: "sudo", params: ["session_id": "s"])
-    #expect(other.body == .unknown(method: "sudo", params: ["session_id": "s"]))
+    let other = ServerRequest(id: "srq-9", method: "tour", params: ["session_id": "s"])
+    #expect(other.body == .unknown(method: "tour", params: ["session_id": "s"]))
+    #expect(!other.body.isSecureInput)
     #expect(ServerRequest(json: ["id": "a", "method": "clarify", "params": "x"]).params.isEmpty)
+  }
+
+  @Test func readsTheOneStringPrompts() throws {
+    let secret = ServerRequest(
+      id: "srq-1", method: "secret",
+      params: ["session_id": "s", "env_var": "API_KEY", "prompt": "Paste the key", "metadata": ["skill": "x"]])
+    guard case .secret(let params) = secret.body else {
+      Issue.record("secret did not read as one")
+      return
+    }
+    #expect(params.envVar == "API_KEY")
+    #expect(params.prompt == "Paste the key")
+    #expect(params.metadata == ["skill": "x"])
+    #expect(secret.body.isSecureInput)
+
+    #expect(ServerRequest(id: "a", method: "sudo", params: ["command": "apt install x"]).body
+      == .sudo(SudoRequestParams(json: ["command": "apt install x"])))
+    #expect(ServerRequest(id: "a", method: "vault.unlock_prompt", params: ["backend": "b", "display_name": "B"]).body
+      == .vaultUnlock(VaultUnlockRequestParams(json: ["backend": "b", "display_name": "B"])))
+    #expect(ServerRequest(id: "a", method: "vault.code", params: ["site": "example.com"]).body
+      == .vaultCode(VaultCodeRequestParams(json: ["site": "example.com"])))
+    #expect(ServerRequest(id: "a", method: "vault.save_login", params: ["origin": "o", "site": "s"]).body
+      == .vaultSaveLogin(VaultSaveLoginRequestParams(json: ["origin": "o", "site": "s"])))
+    #expect(ServerRequestBody.Method.secureInput.count == 5)
+
+    // The answer goes out as it is, but never shows in a description or a mirror.
+    let result = ValueResult(value: "hunter2-value")
+    let answer = try #require(secret.respond(result.jsonValue))
+    #expect(try canonical(answer) == #"{"id":"srq-1","jsonrpc":"2.0","result":{"value":"hunter2-value"}}"#)
+    var dumped = ""
+    dump(result, to: &dumped)
+    for text in [String(describing: result), String(reflecting: result), "\(result)", dumped] {
+      #expect(!text.contains("hunter2"))
+    }
   }
 
   @Test func readsAResumeSnapshot() throws {

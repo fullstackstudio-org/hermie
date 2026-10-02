@@ -175,27 +175,45 @@ public struct ServerRequest: JSONObjectBacked {
   }
 }
 
-/// The typed reading of a server request. The client answers only `approval` and `clarify`;
-/// everything else is `unknown`, answered `-32601` by the connection.
+/// The typed reading of a server request. The client answers `approval`, `clarify` and the
+/// one-string prompts (`secret`, `sudo`, `vault.*`); everything else is `unknown`, answered
+/// `-32601` by the connection.
 public enum ServerRequestBody: Sendable, Hashable {
   case approval(ApprovalRequestParams)
   case clarify(ClarifyRequestParams)
+  case secret(SecretRequestParams)
+  case sudo(SudoRequestParams)
+  case vaultUnlock(VaultUnlockRequestParams)
+  case vaultCode(VaultCodeRequestParams)
+  case vaultSaveLogin(VaultSaveLoginRequestParams)
   case unknown(method: String, params: JSONObject)
 
   public enum Method {
     public static let approval = "approval"
     public static let clarify = "clarify"
+    public static let secret = "secret"
+    public static let sudo = "sudo"
+    public static let vaultUnlock = "vault.unlock_prompt"
+    public static let vaultCode = "vault.code"
+    public static let vaultSaveLogin = "vault.save_login"
     /// Every server request the backend declares (`SERVER_REQUEST_METHODS`).
     public static let all = [
       "approval", "clarify", "preview.act", "preview.read", "secret", "sudo", "terminal.read", "tour",
       "vault.code", "vault.save_login", "vault.unlock_prompt", "window.read"
     ]
+    /// The one-string prompts, answered with `ValueResult` (`''` skips).
+    public static let secureInput: Set<String> = [secret, sudo, vaultUnlock, vaultCode, vaultSaveLogin]
   }
 
   public init(method: String, params: JSONObject) {
     switch method {
     case Method.approval: self = .approval(ApprovalRequestParams(json: params))
     case Method.clarify: self = .clarify(ClarifyRequestParams(json: params))
+    case Method.secret: self = .secret(SecretRequestParams(json: params))
+    case Method.sudo: self = .sudo(SudoRequestParams(json: params))
+    case Method.vaultUnlock: self = .vaultUnlock(VaultUnlockRequestParams(json: params))
+    case Method.vaultCode: self = .vaultCode(VaultCodeRequestParams(json: params))
+    case Method.vaultSaveLogin: self = .vaultSaveLogin(VaultSaveLoginRequestParams(json: params))
     default: self = .unknown(method: method, params: params)
     }
   }
@@ -204,6 +222,11 @@ public enum ServerRequestBody: Sendable, Hashable {
     switch self {
     case .approval: Method.approval
     case .clarify: Method.clarify
+    case .secret: Method.secret
+    case .sudo: Method.sudo
+    case .vaultUnlock: Method.vaultUnlock
+    case .vaultCode: Method.vaultCode
+    case .vaultSaveLogin: Method.vaultSaveLogin
     case .unknown(let method, _): method
     }
   }
@@ -212,7 +235,20 @@ public enum ServerRequestBody: Sendable, Hashable {
     switch self {
     case .approval(let params): params.json
     case .clarify(let params): params.json
+    case .secret(let params): params.json
+    case .sudo(let params): params.json
+    case .vaultUnlock(let params): params.json
+    case .vaultCode(let params): params.json
+    case .vaultSaveLogin(let params): params.json
     case .unknown(_, let params): params
+    }
+  }
+
+  /// One of the one-string prompts the secure input sheet answers.
+  public var isSecureInput: Bool {
+    switch self {
+    case .secret, .sudo, .vaultUnlock, .vaultCode, .vaultSaveLogin: true
+    case .approval, .clarify, .unknown: false
     }
   }
 }

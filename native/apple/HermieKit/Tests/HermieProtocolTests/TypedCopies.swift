@@ -315,6 +315,41 @@ enum TypedCopy {
             }
             $0.answers = p.answers
           })
+      case .secret(let p):
+        .secret(
+          with(SecretRequestParams()) {
+            $0.sessionID = p.sessionID
+            $0.envVar = p.envVar
+            $0.prompt = p.prompt
+            $0.metadata = p.metadata
+          })
+      case .sudo(let p):
+        .sudo(
+          with(SudoRequestParams()) {
+            $0.sessionID = p.sessionID
+            $0.command = p.command
+          })
+      case .vaultUnlock(let p):
+        .vaultUnlock(
+          with(VaultUnlockRequestParams()) {
+            $0.sessionID = p.sessionID
+            $0.backend = p.backend
+            $0.displayName = p.displayName
+          })
+      case .vaultCode(let p):
+        .vaultCode(
+          with(VaultCodeRequestParams()) {
+            $0.sessionID = p.sessionID
+            $0.site = p.site
+            $0.hint = p.hint
+          })
+      case .vaultSaveLogin(let p):
+        .vaultSaveLogin(
+          with(VaultSaveLoginRequestParams()) {
+            $0.sessionID = p.sessionID
+            $0.origin = p.origin
+            $0.site = p.site
+          })
       case .unknown: request.body
       }
     return ServerRequest(id: request.id ?? "", body)

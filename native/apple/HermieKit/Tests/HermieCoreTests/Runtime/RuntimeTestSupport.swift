@@ -216,6 +216,12 @@ final class ScriptedLink: GatewayLink, Sendable {
     var watermarks: [String: Double] = [:]
     var restHeld = false
     var restWaiting: [CheckedContinuation<Void, Never>] = []
+    /// Every subscriber after the first, as the connection's broadcast has them.
+    var eventSubscribers: [AsyncStream<WireEvent>.Continuation] = []
+    var requestSubscribers: [AsyncStream<InboundRequest>.Continuation] = []
+    var eventSubscribed = false
+    var requestSubscribed = false
+    var declines: [(id: String, code: Int, message: String)] = []
   }
 
   private let state = Mutex(State())
@@ -232,14 +238,51 @@ final class ScriptedLink: GatewayLink, Sendable {
     (statusStream, statusSink) = AsyncStream.makeStream()
   }
 
+  /// The first subscriber gets the stream made at `init`; every later one a
+  /// stream of its own that sees every frame from then on, as the connection's
+  /// broadcast does.
   var events: AsyncStream<WireEvent> {
     record("subscribe events")
-    return eventStream
+    return state.withLock { state in
+      guard state.eventSubscribed else {
+        state.eventSubscribed = true
+        return eventStream
+      }
+
+      let (stream, sink) = AsyncStream<WireEvent>.makeStream()
+      state.eventSubscribers.append(sink)
+      return stream
+    }
   }
 
   var serverRequests: any AsyncSequence<InboundRequest, Never> & Sendable {
     record("subscribe requests")
-    return requestStream
+    return state.withLock { state -> AsyncStream<InboundRequest> in
+      guard state.requestSubscribed else {
+        state.requestSubscribed = true
+        return requestStream
+      }
+
+      let (stream, sink) = AsyncStream<InboundRequest>.makeStream()
+      state.requestSubscribers.append(sink)
+      return stream
+    }
+  }
+
+  private func broadcast(_ event: WireEvent) {
+    eventSink.yield(event)
+
+    for sink in state.withLock({ $0.eventSubscribers }) {
+      sink.yield(event)
+    }
+  }
+
+  private func broadcast(_ request: InboundRequest) {
+    requestSink.yield(request)
+
+    for sink in state.withLock({ $0.requestSubscribers }) {
+      sink.yield(request)
+    }
   }
   var statuses: AsyncStream<ConnectionStatus> { statusStream }
 
@@ -265,7 +308,7 @@ final class ScriptedLink: GatewayLink, Sendable {
         state.watermarks[session] = max(state.watermarks[session] ?? 0, seq)
       }
     }
-    eventSink.yield(WireEvent(index: index, event: event))
+    broadcast(WireEvent(index: index, event: event))
     return index
   }
 
@@ -323,15 +366,36 @@ final class ScriptedLink: GatewayLink, Sendable {
     }
 
     let request = ServerRequest(id: id, method: method, params: params)
+    // One reply per delivery, as `ServerRequestDelivery` guards it: the first
+    // answer or refusal goes out, later ones are dropped.
+    let answered = Once()
     let inbound = InboundRequest(
       request: request,
       replayed: replayed,
       index: index,
-      respond: { [weak self] result in self?.recordAnswer(id, result) ?? false },
-      fail: { _, _ in true }
+      respond: { [weak self] result in
+        guard !answered.done else {
+          return false
+        }
+
+        let sent = self?.recordAnswer(id, result) ?? false
+        if sent {
+          answered.mark()
+        }
+        return sent
+      },
+      fail: { [weak self] code, message in
+        guard !answered.done else {
+          return false
+        }
+
+        answered.mark()
+        self?.state.withLock { $0.declines.append((id, code, message)) }
+        return true
+      }
     )
 
-    requestSink.yield(inbound)
+    broadcast(inbound)
     return index
   }
 
@@ -345,6 +409,9 @@ final class ScriptedLink: GatewayLink, Sendable {
       return true
     }
   }
+
+  /// Refusals (`fail`) that went out, in order.
+  var declines: [(id: String, code: Int, message: String)] { state.withLock { $0.declines } }
 
   /// Answers that went out on a live reply, in order.
   var answers: [(id: String, result: JSONObject)] { state.withLock { $0.answers } }
@@ -525,6 +592,14 @@ final class ScriptedLink: GatewayLink, Sendable {
     requestSink.finish()
     statusSink.finish()
 
+    for sink in state.withLock({ $0.eventSubscribers }) {
+      sink.finish()
+    }
+
+    for sink in state.withLock({ $0.requestSubscribers }) {
+      sink.finish()
+    }
+
     let waiting = state.withLock { state in
       state.isShutDown = true
       defer { state.waiting.removeAll() }
@@ -534,6 +609,17 @@ final class ScriptedLink: GatewayLink, Sendable {
     for continuation in waiting.values {
       continuation.resume(throwing: GatewayRPCError(.closed, "WebSocket closed"))
     }
+  }
+}
+
+/// A flag set once, shared by a delivery's two reply closures.
+final class Once: Sendable {
+  private let flag = Mutex(false)
+
+  var done: Bool { flag.withLock { $0 } }
+
+  func mark() {
+    flag.withLock { $0 = true }
   }
 }
 

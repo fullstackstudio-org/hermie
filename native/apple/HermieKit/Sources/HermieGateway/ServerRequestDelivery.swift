@@ -1,8 +1,10 @@
 import HermieProtocol
 
-/// One server→client request the app is asked to answer: an `approval` or a
-/// `clarify`. Every other method is answered `-32601` by the connection itself
-/// and never reaches the app.
+/// One server→client request the app is asked to answer: an `approval`, a
+/// `clarify`, or a one-string prompt (`secret`, `sudo`, `vault.*`). Every other
+/// method is answered `-32601` by the connection itself; it still reaches the
+/// app, already answered (`respond` and `fail` send nothing), so the app can
+/// say that it could not show it.
 ///
 /// Answering is idempotent: the first `respond` or `fail` goes out, later ones
 /// are dropped, as `JsonRpcRequestChannel.deliverRequest` guards its `send`.
@@ -31,7 +33,7 @@ public struct ServerRequestDelivery: Sendable {
   let token: UInt64
   weak let connection: GatewayConnection?
 
-  /// The typed reading: `.approval` or `.clarify`.
+  /// The typed reading.
   public var body: ServerRequestBody { request.body }
 
   /// Answer with a result object. Returns whether the answer went out: `false`
