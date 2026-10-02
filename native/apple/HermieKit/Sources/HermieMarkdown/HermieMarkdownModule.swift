@@ -1,6 +1,5 @@
-/// Marks the `HermieMarkdown` module until it holds the block model and its
-/// views, so the target compiles and its place in the dependency graph can be
-/// tested.
+/// The module's name, which the dependency smoke tests of the targets that
+/// link `HermieMarkdown` check.
 public enum HermieMarkdownModule {
   public static let name = "HermieMarkdown"
 }
