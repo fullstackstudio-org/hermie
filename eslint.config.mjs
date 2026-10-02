@@ -104,6 +104,27 @@ export default config(
     }
   },
   {
+    // Browser APIs reach the web client through its seams: `platform/` (storage,
+    // network, visibility, sockets, ...) and `boot/` (location, frame, sign-in
+    // bounce). Everything else takes what it needs from them, which is what lets
+    // the ported controllers and the tests run without a window.
+    files: ['native/web/src/**/*.{ts,tsx}'],
+    ignores: [
+      'native/web/src/{platform,boot,test-support}/**',
+      'native/web/src/**/*.test.{ts,tsx}',
+      'native/web/src/test-setup.ts'
+    ],
+    rules: {
+      'no-restricted-globals': [
+        'error',
+        ...['window', 'localStorage', 'sessionStorage', 'indexedDB', 'navigator', 'location', 'history'].map(name => ({
+          name,
+          message: `Reach ${name} through a seam in native/web/src/platform or native/web/src/boot.`
+        }))
+      ]
+    }
+  },
+  {
     // The state, platform and core layers of the web client are React-free:
     // they are ported controllers and browser seams, and `features/` is the only
     // place a component reads them through a hook.
