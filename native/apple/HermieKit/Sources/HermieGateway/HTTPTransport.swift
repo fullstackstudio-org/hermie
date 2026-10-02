@@ -58,12 +58,21 @@ public struct JSONResponse: Sendable, Equatable {
   }
 }
 
-/// A transport failure, with the one fact the probe's scheme fallback needs
-/// that a `GatewayError` does not carry: whether a TLS failure was about the
-/// certificate (the reference reads it off `error.cause`).
+/// A transport failure, with the facts the probe's scheme fallback needs that a
+/// `GatewayError` does not carry: whether a TLS failure was about the
+/// certificate (the reference reads it off `error.cause`), and whether the
+/// peer demonstrably spoke TLS at all.
 struct TransportFailure: Error {
   var error: GatewayError
   var certificate: Bool
+  /// The handshake failed on a TLS alert the peer sent, so there IS a TLS
+  /// server on that port (a protocol version or cipher it will not accept, an
+  /// ATS minimum it does not meet). Retrying in the clear would answer a
+  /// question nobody asked, exactly as for a rejected certificate.
+  var peerSpokeTLS = false
+
+  /// An https server is there: never a reason to try http instead.
+  var tlsServerAnswered: Bool { certificate || peerSpokeTLS }
 }
 
 /// The round trip of `fetch-json.ts` (`requestText`) over `URLSession`.
@@ -229,16 +238,11 @@ public struct HTTPTransport: Sendable {
       )
     case .done(let data, let response):
       if let refusal = guardian.refusal {
-        let asked = URLOrigin(target)?.serialized ?? url
-        // Only ever an origin: a redirect's path and query may carry anything.
-        let landed = refusal.origin ?? "an address without a web origin"
         throw TransportFailure(
-          error: GatewayError(
-            .redirect,
-            "\(asked) redirected to \(landed). Nothing was read from it. "
-              + "Change the gateway address to the one you meant.",
-            status: (response as? HTTPURLResponse)?.statusCode,
-            redirectedTo: refusal.origin
+          error: FetchJSON.redirectError(
+            requestedURL: url,
+            target: refusal.target,
+            status: (response as? HTTPURLResponse)?.statusCode
           ),
           certificate: false
         )
@@ -291,11 +295,43 @@ public struct HTTPTransport: Sendable {
             ? "The TLS certificate for \(url) was rejected: \(message)"
             : "The TLS handshake with \(url) failed: \(message)"
         ),
-        certificate: certificate
+        certificate: certificate,
+        peerSpokeTLS: peerSentAlert(error)
       )
     }
 
     return TransportFailure(error: GatewayError(.network, "Could not reach \(url): \(message)"), certificate: false)
+  }
+
+  /// SecureTransport's received-alert codes, `errSSLPeerUnexpectedMsg` (-9819)
+  /// through `errSSLPeerNoRenegotiation` (-9840): only a TLS peer sends an alert.
+  static let peerAlertCodes = (-9840)...(-9819)
+
+  /// Did the handshake fail on an alert the peer sent? Read from the stream
+  /// error CFNetwork attaches to a -1200 (`_kCFStreamErrorCodeKey`, or an
+  /// underlying error in `NSOSStatusErrorDomain` or `kCFStreamErrorDomainSSL`).
+  /// Anything else — a peer that closed the connection or answered with bytes
+  /// that are not TLS — leaves the reading as it was, so the scheme fallback
+  /// still reaches a plain-http gateway.
+  static func peerSentAlert(_ error: any Error) -> Bool {
+    let nsError = error as NSError
+    var codes: [Int] = []
+
+    if let code = nsError.userInfo["_kCFStreamErrorCodeKey"] as? Int {
+      codes.append(code)
+    }
+
+    if let underlying = nsError.userInfo[NSUnderlyingErrorKey] as? NSError {
+      if underlying.domain == NSOSStatusErrorDomain || underlying.domain == "kCFStreamErrorDomainSSL" {
+        codes.append(underlying.code)
+      }
+
+      if let code = underlying.userInfo["_kCFStreamErrorCodeKey"] as? Int {
+        codes.append(code)
+      }
+    }
+
+    return codes.contains { peerAlertCodes.contains($0) }
   }
 }
 
@@ -340,16 +376,17 @@ struct URLOrigin: Sendable, Equatable {
   }
 }
 
-/// Decides each redirect by the request's `RedirectPolicy`, and remembers the
-/// origin of the first one it refused.
+/// Decides each redirect by the request's `RedirectPolicy` (comparing
+/// Foundation's own scheme, host and port), and remembers the first one it
+/// refused. The error itself is `FetchJSON.redirectError`, as the reference words it.
 private final class RedirectGuard: NSObject, URLSessionTaskDelegate, Sendable {
   private let asked: URLOrigin?
   private let policy: RedirectPolicy
   private let refused = Mutex<Refusal?>(nil)
 
-  /// A redirect that was not followed, and the origin it pointed at when it had one.
+  /// A redirect that was not followed, and the URL it pointed at.
   struct Refusal: Sendable {
-    var origin: String?
+    var target: String
   }
 
   init(asked url: URL, policy: RedirectPolicy) {
@@ -376,7 +413,7 @@ private final class RedirectGuard: NSObject, URLSessionTaskDelegate, Sendable {
       return
     }
 
-    refused.withLock { $0 = $0 ?? Refusal(origin: landed?.serialized) }
+    refused.withLock { $0 = $0 ?? Refusal(target: request.url?.absoluteString ?? "") }
     completionHandler(nil)
   }
 }

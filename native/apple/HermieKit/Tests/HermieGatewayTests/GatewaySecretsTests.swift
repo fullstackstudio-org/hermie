@@ -46,10 +46,28 @@ final class RecordingSecretStorage: GatewaySecretStorage {
 /// literal JSON below is `JSON.stringify`'s own output for the same values.
 @Suite struct GatewaySecretsTests {
   static let id = "g1a2b3c4d"
-  static let keys = GatewaySecretKeys(gatewayID: id)
+  static let keys = try! GatewaySecretKeys(gatewayID: id)
   static let base = "https://gateway.example.com"
 
-  @Test("names the six items exactly as the Expo app does, suffixed with '-' and the gateway id")
+  @Test("refuses a gateway id that would make an invalid or ambiguous key", arguments: ["", "g-1", "g.1", "g@1", "g 1", "gé"])
+  func invalidGatewayID(_ id: String) {
+    #expect(throws: GatewaySecretError.invalidGatewayID) { try GatewaySecretKeys(gatewayID: id) }
+  }
+
+  @Test("the in-memory store refuses a key the keychain store would refuse", arguments: ["", "a b", "a@b", "a/b", "é", "hermie.auth.access_token@g1"])
+  func invalidKey(_ key: String) {
+    let storage = InMemorySecretStorage()
+
+    #expect(throws: GatewaySecretError.invalidKey) { try storage.set(key, "v") }
+    #expect(throws: GatewaySecretError.invalidKey) { try storage.get(key) }
+    #expect(throws: GatewaySecretError.invalidKey) { try storage.delete(key) }
+  }
+
+  /// KEEP IN STEP with `SecretKeys.Gateway` in
+  /// `native/apple/HermieKit/Sources/HermieStore/SecretStore.swift`. This test
+  /// target cannot import `HermieStore`, so the names that file builds are
+  /// written out here; a change to either side must change this list.
+  @Test("names the six items exactly as the Expo app and HermieStore's SecretKeys do")
   func keyNames() {
     #expect(
       Self.keys.all == [
@@ -99,8 +117,8 @@ final class RecordingSecretStorage: GatewaySecretStorage {
 
     try store.save(set)
 
-    #expect(storage.get(Self.keys.accessToken) == "at-9")
-    #expect(storage.get(Self.keys.refreshToken) == "rt-9")
+    #expect(try storage.get(Self.keys.accessToken) == "at-9")
+    #expect(try storage.get(Self.keys.refreshToken) == "rt-9")
     #expect(try store.load() == set)
   }
 

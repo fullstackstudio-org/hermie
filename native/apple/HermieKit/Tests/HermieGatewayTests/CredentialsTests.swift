@@ -233,17 +233,74 @@ import Testing
     #expect(timeline.events == [AuthEvent(.ticketMinted), AuthEvent(.ticketFailed, status: 401, kind: .auth)])
   }
 
-  @Test("signing out wipes the tokens here and tells the gateway, best effort, with the bearer it held")
-  func signOutTellsTheGateway() async throws {
-    let server = StubServer { _ in .failing("offline") }
-    let (tokenCoordinator, store) = coordinator(tokens())
-    let credentials = NativePKCECredentials(baseURL: "https://gateway.test", coordinator: tokenCoordinator, transport: server.transport())
+  static func revoking(_ server: StubServer, canRevoke: Bool = true, clock: any Clock<Duration> = ContinuousClock())
+    -> (NativePKCECredentials, MemoryTokenStore)
+  {
+    let (tokenCoordinator, store) = coordinator(tokens(refreshToken: "rt-1", provider: "self-hosted"))
+    let credentials = NativePKCECredentials(
+      baseURL: "https://gateway.test",
+      coordinator: tokenCoordinator,
+      extraHeaders: ["CF-Access-Client-Id": "id"],
+      canRevoke: canRevoke,
+      transport: server.transport(clock: clock)
+    )
+
+    return (credentials, store)
+  }
+
+  @Test("signing out revokes the grant with the refresh token and provider, without a bearer, then wipes")
+  func signOutRevokes() async throws {
+    let server = StubServer { _ in .status(204) }
+    let (credentials, store) = Self.revoking(server)
 
     try await credentials.signOut()
 
-    #expect(await store.load() == nil)
-    #expect(server.requests.map(\.path) == ["/auth/logout"])
-    #expect(server.requests.first?.method == "POST")
-    #expect(server.requests.first?.header("authorization") == "Bearer at-1")
+    let request = try #require(server.requests.first)
+    #expect(server.requests.count == 1)
+    #expect(request.method == "POST")
+    #expect(request.path == "/auth/native/revoke")
+    #expect(try JSONValue(parsing: request.bodyText) == ["refresh_token": "rt-1", "provider": "self-hosted"])
+    #expect(request.header("authorization") == nil)
+    #expect(request.header("CF-Access-Client-Id") == "id")
+    #expect(store.load() == nil)
+  }
+
+  @Test("a refused, failing or unknown revoke still signs out", arguments: [StubReply.status(404), .status(429), .status(400), .failing("offline")])
+  func revokeFailureStillWipes(_ reply: StubReply) async throws {
+    let (credentials, store) = Self.revoking(StubServer { _ in reply })
+
+    try await credentials.signOut()
+
+    #expect(store.load() == nil)
+  }
+
+  @Test("a revoke that never answers is given up on, and the wipe happens")
+  func revokeHangs() async throws {
+    let clock = ManualClock()
+    let (credentials, store) = Self.revoking(StubServer { _ in .hang }, clock: clock)
+
+    let signOut = Task { try await credentials.signOut() }
+    await clock.waitForSleepers()
+    clock.advance(by: .milliseconds(NativePKCECredentials.revokeTimeoutMs))
+    try await signOut.value
+
+    #expect(store.load() == nil)
+  }
+
+  @Test("no revoke is sent when the gateway does not advertise native_revoke")
+  func noRevokeWithoutFlow() async throws {
+    let server = StubServer { _ in .status(204) }
+    let (credentials, store) = Self.revoking(server, canRevoke: false)
+
+    try await credentials.signOut()
+
+    #expect(server.requests.isEmpty)
+    #expect(store.load() == nil)
+  }
+
+  @Test("the probe says whether the gateway takes a revoke")
+  func revokeFlowAdvertised() {
+    #expect(ProbeResult(version: "", authRequired: true, authFlows: ["native_pkce", "native_revoke"], providers: [], supportsNativePKCE: true).supportsNativeRevoke)
+    #expect(!ProbeResult(version: "", authRequired: true, authFlows: ["native_pkce"], providers: [], supportsNativePKCE: true).supportsNativeRevoke)
   }
 }

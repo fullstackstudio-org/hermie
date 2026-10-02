@@ -27,7 +27,7 @@ import Testing
     let error = await gatewayError { try await http.get("/api/sessions") }
 
     #expect(error?.kind == .redirect)
-    #expect(error?.redirectedTo == "https://elsewhere.test")
+    #expect(error?.redirectedOrigin == "https://elsewhere.test")
     #expect(error?.status == 307)
     #expect(server.requests.map(\.host) == ["gateway.test"])
   }
@@ -60,7 +60,7 @@ import Testing
     #expect(error?.kind == .redirect)
     #expect(server.requests.map(\.host) == ["gateway.test"])
     #expect(server.requests.first?.path == "/auth/native/refresh")
-    #expect(await store.load()?.refreshToken == "rt-1")
+    #expect(store.load()?.refreshToken == "rt-1")
   }
 
   @Test("the code exchange is not followed to another host")
@@ -91,7 +91,8 @@ import Testing
     let call = await gatewayError { try await http.get("/api/status") }
 
     #expect(probe?.kind == .redirect)
-    #expect(probe?.redirectedTo == "http://gateway.test")
+    #expect(probe?.redirectedOrigin == "http://gateway.test")
+    #expect(probe?.message.hasPrefix("https://gateway.test redirected to http://gateway.test, which is not https.") == true)
     #expect(call?.kind == .redirect)
     #expect(server.requests.allSatisfy { $0.scheme == "https" })
   }
@@ -104,7 +105,7 @@ import Testing
 
     let error = await gatewayError { try await Probe.probeGateway("https://gateway.test", transport: server.transport()) }
 
-    #expect(error?.redirectedTo == "https://gateway.test:8443")
+    #expect(error?.redirectedOrigin == "https://gateway.test:8443")
     #expect(server.requests.count == 1)
   }
 
@@ -116,7 +117,7 @@ import Testing
 
     let error = await gatewayError { try await Probe.probeGateway("https://gateway.test", transport: server.transport()) }
 
-    #expect(error?.redirectedTo == "http://[fd7a:115c:a1e0::1]:9119")
+    #expect(error?.redirectedOrigin == "http://[fd7a:115c:a1e0::1]:9119")
   }
 
   @Test("an authenticated call follows no redirect at all, not even on its own origin")
@@ -133,7 +134,7 @@ import Testing
     let error = await gatewayError { try await http.get("/api/old") }
 
     #expect(error?.kind == .redirect)
-    #expect(error?.redirectedTo == "https://gateway.test")
+    #expect(error?.redirectedOrigin == "https://gateway.test")
     #expect(server.requests.map(\.path) == ["/api/old"])
   }
 
@@ -149,7 +150,7 @@ import Testing
 
     let error = await gatewayError { try await Probe.probeGateway("https://gateway.test", transport: server.transport()) }
 
-    #expect(error?.redirectedTo == "https://elsewhere.test")
+    #expect(error?.redirectedOrigin == "https://elsewhere.test")
     #expect(server.requests.allSatisfy { $0.host == "gateway.test" })
   }
 }

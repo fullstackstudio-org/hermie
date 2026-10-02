@@ -327,6 +327,28 @@ enum VectorDispatch {
     case ("fetch-json", "parseJsonBody"):
       guard let kind = arg(2).string.flatMap(GatewayErrorKind.init(rawValue:)) else { return nil }
       return vectorValue(try FetchJSON.parseJSONBody(arg(0).string!, url: arg(1).string!, kind: kind))
+    case ("fetch-json", "REFUSED_LOCATION_HEADER"):
+      return VectorValue(FetchJSON.refusedLocationHeader)
+    case ("fetch-json", "redirectSeen"):
+      let response = arg(0)
+      let shape = FetchJSON.ResponseShape(
+        status: Int(response["status"]?.number ?? 0),
+        type: response["type"]?.string,
+        url: response["url"]?.string,
+        headers: response["headers"]?.stringMap
+      )
+      return FetchJSON.redirectSeen(shape, requestedURL: arg(1).string!).map { .object(["target": .string($0)]) } ?? .null
+    case ("fetch-json", "redirectError"):
+      let error = FetchJSON.redirectError(
+        requestedURL: arg(0).string!,
+        target: arg(1).string!,
+        status: arg(2).number.map { Int($0) }
+      )
+      var fields: [String: VectorValue] = ["kind": .string(error.kind.rawValue), "message": .string(error.message)]
+      fields["status"] = error.status.map { .number(Double($0)) }
+      fields["redirectedTo"] = error.redirectedTo.map(VectorValue.string)
+      fields["redirectedOrigin"] = error.redirectedOrigin.map(VectorValue.string)
+      return .object(fields)
     case ("fetch-json", "parseJsonObject"):
       guard let kind = arg(2).string.flatMap(GatewayErrorKind.init(rawValue:)) else { return nil }
       return vectorValue(.object(try FetchJSON.parseJSONObject(arg(0).string!, url: arg(1).string!, kind: kind)))

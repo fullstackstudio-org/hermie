@@ -56,6 +56,182 @@ public enum FetchJSON {
     return object
   }
 
+  // MARK: - Redirects
+
+  /// Where the Android build's redirect guard puts a `Location` it refused to
+  /// follow (`REFUSED_LOCATION_HEADER`). Read by `redirectSeen` for parity; the
+  /// Apple transport refuses in its own delegate and never sees it.
+  public static let refusedLocationHeader = "x-hermie-refused-location"
+
+  /// The statuses that send a client somewhere else. 304 is a 3xx and is not one.
+  static let redirectStatuses: Set<Int> = [301, 302, 303, 307, 308]
+
+  /// The parts of a response `redirectSeen` reads.
+  public struct ResponseShape: Sendable, Equatable {
+    public var status: Int
+    /// `"opaqueredirect"` for a browser's manual redirect.
+    public var type: String?
+    public var url: String?
+    /// Read case-insensitively, as `Headers.get` reads them.
+    public var headers: [String: String]?
+
+    public init(status: Int, type: String? = nil, url: String? = nil, headers: [String: String]? = nil) {
+      self.status = status
+      self.type = type
+      self.url = url
+      self.headers = headers
+    }
+
+    func header(_ name: String) -> String? {
+      headers?.first { $0.key.lowercased() == name }?.value
+    }
+  }
+
+  /// Did this answer come from a redirect, followed or not? (`redirectSeen`)
+  ///
+  /// The target, resolved against the requested URL (`""` when hidden or
+  /// unparseable), or `nil` for an ordinary answer. Checked in order: an opaque
+  /// redirect, then a 301/302/303/307/308 (its `Location`, else the refused
+  /// location header), then an answer from another origin than was asked.
+  public static func redirectSeen(_ response: ResponseShape, requestedURL: String) -> String? {
+    if response.type == "opaqueredirect" {
+      return ""
+    }
+
+    if redirectStatuses.contains(response.status) {
+      guard let location = response.header("location") ?? response.header(refusedLocationHeader), !location.isEmpty
+      else {
+        return ""
+      }
+
+      return resolve(location, against: requestedURL) ?? ""
+    }
+
+    let landed = response.url ?? ""
+    let asked = origin(of: requestedURL)
+
+    guard !landed.isEmpty, !asked.isEmpty else {
+      return nil
+    }
+
+    let landedOrigin = origin(of: landed)
+
+    // A reported URL nobody can read is not proof of the same origin: it fails closed, naming nothing.
+    return landedOrigin == asked ? nil : (landedOrigin.isEmpty ? "" : landed)
+  }
+
+  /// The `redirect` failure for a request that was sent somewhere else
+  /// (`redirectError`). The sentence names what changed: no readable target,
+  /// another host, https to http on one host, or another scheme or port.
+  public static func redirectError(requestedURL: String, target: String, status: Int?) -> GatewayError {
+    let askedOrigin = origin(of: requestedURL)
+    let landedOrigin = origin(of: target)
+    let askedHost = hostname(ofOrigin: askedOrigin)
+    let landedHost = hostname(ofOrigin: landedOrigin)
+    let advice = "Nothing was read from it. Change the gateway address to the one you meant."
+    let message: String
+
+    if landedOrigin.isEmpty {
+      message = "\(requestedURL) answered with a redirect that was not followed. \(advice)"
+    } else if landedHost != askedHost {
+      message = "\(askedHost) redirected to \(landedHost), which is a different host. \(advice)"
+    } else if JSText.hasPrefix(askedOrigin, "https:"), JSText.hasPrefix(landedOrigin, "http:") {
+      message = "\(askedOrigin) redirected to \(landedOrigin), which is not https. \(advice)"
+    } else if landedOrigin != askedOrigin {
+      message = "\(askedOrigin) redirected to \(landedOrigin), which is a different address. \(advice)"
+    } else {
+      message = "\(requestedURL) redirected to \(target), which was not followed. \(advice)"
+    }
+
+    return GatewayError(
+      .redirect,
+      message,
+      status: status.flatMap { $0 == 0 ? nil : $0 },
+      redirectedTo: landedHost.isEmpty ? nil : landedHost,
+      redirectedOrigin: landedOrigin.isEmpty ? nil : landedOrigin
+    )
+  }
+
+  /// `new URL(url).origin`, `""` when it throws or the origin is opaque.
+  static func origin(of url: String) -> String {
+    guard let origin = WHATWGURL.parse(url)?.origin, origin != "null" else {
+      return ""
+    }
+
+    return origin
+  }
+
+  /// `new URL(origin).hostname` without IPv6 brackets; `""` for no origin.
+  private static func hostname(ofOrigin origin: String) -> String {
+    guard !origin.isEmpty, let host = WHATWGURL.parse(origin)?.host else {
+      return ""
+    }
+
+    return JSText.hasPrefix(host, "[") ? String(host.dropFirst().dropLast()) : host
+  }
+
+  /// `new URL(location, base).toString()` for a special base, `nil` where it
+  /// throws. A fragment is not kept (`WHATWGURL` stores none), and neither is
+  /// userinfo; nothing reads either.
+  static func resolve(_ location: String, against base: String) -> String? {
+    guard let baseURL = WHATWGURL.parse(base), baseURL.isSpecial, baseURL.host != nil else {
+      return WHATWGURL.parse(location).map(href)
+    }
+
+    let trimmed = JSText.strip(location) { $0.value <= 0x20 }
+    let scalars = Array(trimmed.unicodeScalars.filter { $0 != "\t" && $0 != "\n" && $0 != "\r" })
+    let text = JSText.string(scalars)
+    let root = "\(baseURL.protocolString)//\(baseURL.hostWithPort)"
+    let isSlash = { (scalar: Unicode.Scalar) in scalar == "/" || scalar == "\\" }
+
+    if hasScheme(scalars) {
+      return WHATWGURL.parse(text).map(href)
+    }
+
+    let absolute: String
+
+    if scalars.count >= 2, isSlash(scalars[0]), isSlash(scalars[1]) {
+      absolute = baseURL.protocolString + text
+    } else if let first = scalars.first, isSlash(first) {
+      absolute = root + text
+    } else if scalars.first == "?" {
+      absolute = root + baseURL.pathname + text
+    } else if scalars.isEmpty || scalars.first == "#" {
+      absolute = root + baseURL.pathname + (baseURL.query.map { "?" + $0 } ?? "")
+    } else {
+      let path = Array(baseURL.pathname.unicodeScalars)
+      let directory = path.lastIndex(of: "/").map { JSText.string(path[...$0]) } ?? "/"
+      absolute = root + directory + text
+    }
+
+    return WHATWGURL.parse(absolute).map(href)
+  }
+
+  /// `/^[a-z][a-z0-9+.-]*:/i`
+  private static func hasScheme(_ scalars: [Unicode.Scalar]) -> Bool {
+    guard let first = scalars.first, JSText.isASCIIAlpha(first) else {
+      return false
+    }
+
+    for scalar in scalars.dropFirst() {
+      if scalar == ":" {
+        return true
+      }
+
+      guard JSText.isASCIIAlpha(scalar) || JSText.isASCIIDigit(scalar) || "+.-".unicodeScalars.contains(scalar) else {
+        return false
+      }
+    }
+
+    return false
+  }
+
+  /// `url.href` without fragment or userinfo.
+  private static func href(_ url: WHATWGURL) -> String {
+    let authority = url.host == nil ? "" : "//\(url.hostWithPort)"
+    return "\(url.protocolString)\(authority)\(url.pathname)\(url.query.map { "?" + $0 } ?? "")"
+  }
+
   /// `String.prototype.includes`, code point for code point.
   static func contains(_ haystack: String, _ needle: String) -> Bool {
     let scalars = Array(haystack.unicodeScalars)

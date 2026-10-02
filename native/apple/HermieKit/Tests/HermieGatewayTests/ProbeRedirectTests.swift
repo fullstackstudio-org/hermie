@@ -27,8 +27,13 @@ import Testing
     let error = await gatewayError { try await Probe.probeGateway("http://127.0.0.1:9119", transport: server.transport()) }
 
     #expect(error?.kind == .redirect)
-    #expect(error?.redirectedTo == "http://localhost:9119")
-    #expect(error?.message.contains("redirected to") == true)
+    #expect(error?.redirectedOrigin == "http://localhost:9119")
+    #expect(error?.redirectedTo == "localhost")
+    #expect(
+      error?.message
+        == "127.0.0.1 redirected to localhost, which is a different host. Nothing was read from it. Change the gateway address to the one you meant."
+    )
+    #expect(ProbeVerdict.classify(error, address: "http://127.0.0.1:9119").actions == [.useHost("localhost", origin: "http://localhost:9119")])
     #expect(server.requests.map(\.host) == ["127.0.0.1"])
   }
 
@@ -45,7 +50,7 @@ import Testing
     let error = await gatewayError { try await Probe.resolveGatewayAddress("127.0.0.1:9119", transport: server.transport()) }
 
     #expect(error?.kind == .redirect)
-    #expect(error?.redirectedTo == "http://localhost:9119")
+    #expect(error?.redirectedOrigin == "http://localhost:9119")
   }
 
   @Test("is refused when the new address names the old host after an `@` in its path")
@@ -55,7 +60,7 @@ import Testing
     let error = await gatewayError { try await Probe.probeGateway("http://127.0.0.1:9119", transport: server.transport()) }
 
     #expect(error?.kind == .redirect)
-    #expect(error?.redirectedTo == "http://localhost:9119")
+    #expect(error?.redirectedOrigin == "http://localhost:9119")
   }
 
   @Test("follows a redirect that stays on the same host without comment")

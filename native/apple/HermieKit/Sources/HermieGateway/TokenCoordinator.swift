@@ -26,15 +26,20 @@ public struct AccessTokenOptions: Sendable, Equatable {
 ///
 /// - **Single flight.** Concurrent callers that need a refresh share one.
 /// - **An auth epoch fences every flight.** A sign-in or sign-out (`save`,
-///   `clear`) that lands while a store read or a refresh is out cannot be
-///   overwritten by it: the read hands back what is current, the refresh
-///   throws `AuthChangedError`.
-/// - **A definitive rejection signs out; anything else does not.** The
-///   refresh closure's failure is passed through `isAuthRejection` (a
-///   `GatewayError` of kind `auth` by default); only that clears the tokens.
+///   `clear`) that lands while a refresh is out makes it throw
+///   `AuthChangedError` instead of writing.
+/// - **Store calls never interleave.** `TokenStore` is synchronous and every
+///   call is made on this actor, so the epoch check and a save's writes run as
+///   one step; a sign-out cannot land between a rotation's refresh token and
+///   its access token. (The reference's store is async and needs a fenced load
+///   flight; here a read cannot overlap a sign-in at all.)
+/// - **A definitive rejection signs out; anything else does not.** Only a
+///   refresh failure `isAuthRejection` accepts (a `GatewayError` of kind
+///   `auth` by default) clears the tokens.
 /// - **Rotation is never thrown away.** The refresh token just spent is dead at
 ///   the server, so a rotated set whose write failed is still served from
-///   memory, and the failed write is recorded.
+///   memory, the failed write is recorded, and the write is tried again on the
+///   next call.
 ///
 /// Time is read only through `nowSeconds`.
 public actor TokenCoordinator {
@@ -54,8 +59,9 @@ public actor TokenCoordinator {
 
   private var authEpoch = 0
   private var cached = Cache.unknown
+  /// A rotated set that is being served but did not reach the store.
+  private var unsaved: TokenSet?
   private var nextFlightID = 0
-  private var loadFlight: (id: Int, task: Task<TokenSet?, any Error>)?
   private var refreshFlight: (id: Int, task: Task<String?, any Error>)?
   /// How many callers joined a refresh already in flight instead of starting one.
   private(set) var joinedRefreshes = 0
@@ -78,51 +84,21 @@ public actor TokenCoordinator {
 
   /// The token set as stored, without refreshing anything. A failed read is
   /// not remembered: the next call reads again.
-  public func current() async throws -> TokenSet? {
+  public func current() throws -> TokenSet? {
+    retryUnsavedWrite()
+
     if case .known(let tokens) = cached {
       return tokens
     }
 
-    if loadFlight == nil {
-      let flightEpoch = authEpoch
-      let id = flightID()
-      let store = store
-
-      // Inherits this actor, so everything after the read runs isolated and once per flight.
-      let task = Task<TokenSet?, any Error> {
-        do {
-          let loaded = try await store.load()
-
-          // A sign-in or sign-out landed while the read was out: its result wins.
-          if authEpoch != flightEpoch {
-            if case .known(let tokens) = cached {
-              return tokens
-            }
-
-            return nil
-          }
-
-          cached = .known(loaded)
-
-          if loadFlight?.id == id {
-            loadFlight = nil
-          }
-
-          return loaded
-        } catch {
-          if loadFlight?.id == id {
-            loadFlight = nil
-          }
-
-          timeline?.record(.failure(.tokenReadFailed, error))
-          throw error
-        }
-      }
-
-      loadFlight = (id, task)
+    do {
+      let loaded = try store.load()
+      cached = .known(loaded)
+      return loaded
+    } catch {
+      timeline?.record(.failure(.tokenReadFailed, error))
+      throw error
     }
-
-    return try await loadFlight!.task.value
   }
 
   /// An access token that is good to use right now: the stored one while it
@@ -134,7 +110,7 @@ public actor TokenCoordinator {
       return try await flight.task.value
     }
 
-    guard let tokens = try await current() else {
+    guard let tokens = try current() else {
       return nil
     }
 
@@ -152,50 +128,74 @@ public actor TokenCoordinator {
 
     if tokens.refreshToken.isEmpty {
       timeline?.record(AuthEvent(.tokenCleared, reason: .noRefreshToken))
-      try await clear()
+      try clear()
       return nil
-    }
-
-    // The store read suspended, so a second caller can have opened a rotation meanwhile.
-    if let raced = refreshFlight {
-      joinedRefreshes += 1
-      return try await raced.task.value
     }
 
     return try await startRefresh(tokens).value
   }
 
-  /// Persist a freshly minted token set and fence any flight in progress.
-  public func save(_ tokens: TokenSet) async throws {
+  /// Persist a freshly minted token set and fence any refresh in flight.
+  ///
+  /// If the store refuses, nothing is handed out: the store is cleared (best
+  /// effort, so a half-written set from two accounts cannot survive) and the
+  /// coordinator answers "signed out" until the next successful save.
+  public func save(_ tokens: TokenSet) throws {
     beginAuthChange()
-    cached = .known(tokens)
-    try await store.save(tokens)
+
+    do {
+      try store.save(tokens)
+      cached = .known(tokens)
+    } catch {
+      try? store.clear()
+      cached = .known(nil)
+      throw error
+    }
   }
 
-  /// Forget the tokens and fence any flight in progress.
-  public func clear() async throws {
+  /// Forget the tokens and fence any refresh in flight. Signed out here even
+  /// if the store refuses the delete.
+  public func clear() throws {
     beginAuthChange()
     cached = .known(nil)
-    try await store.clear()
+    try store.clear()
   }
 
   private func beginAuthChange() {
     authEpoch += 1
     refreshFlight = nil
-    loadFlight = nil
+    unsaved = nil
   }
 
-  private func flightID() -> Int {
-    nextFlightID += 1
-    return nextFlightID
+  /// Write a rotated set; on failure keep it to try again.
+  private func persist(_ rotated: TokenSet) {
+    do {
+      try store.save(rotated)
+      unsaved = nil
+      timeline?.record(AuthEvent(.tokenWriteOK))
+    } catch {
+      unsaved = rotated
+      timeline?.record(.failure(.tokenWriteFailed, error))
+    }
+  }
+
+  /// A rotated set that did not reach the store is written again while it is
+  /// still the one being served.
+  private func retryUnsavedWrite() {
+    guard let pending = unsaved, case .known(let served?) = cached, served == pending else {
+      return
+    }
+
+    persist(pending)
   }
 
   private func startRefresh(_ tokens: TokenSet) -> Task<String?, any Error> {
     let flightEpoch = authEpoch
-    let id = flightID()
+    nextFlightID += 1
+    let id = nextFlightID
     let refresh = refresh
-    let store = store
 
+    // Inherits this actor: everything but `refresh` itself runs isolated.
     let task = Task<String?, any Error> {
       defer {
         if refreshFlight?.id == id {
@@ -218,28 +218,26 @@ public actor TokenCoordinator {
 
         if isAuthRejection(error) {
           timeline?.record(AuthEvent(.tokenCleared, reason: .refreshRejected))
-          try await clear()
+          try clear()
           return nil
         }
 
         throw error
       }
 
+      // From here to the return nothing suspends, so no sign-in or sign-out
+      // can land between this check, the writes and the token handed out.
       guard authEpoch == flightEpoch else {
         throw AuthChangedError()
       }
 
       timeline?.record(AuthEvent(.refreshOK, expiresIn: rotated.expiresAt != 0 ? rotated.expiresAt - nowSeconds() : nil))
       cached = .known(rotated)
+      // The store puts the refresh token down first (see `SecretTokenStore.save`).
+      persist(rotated)
 
-      // The new access token is handed out only once this write has been
-      // attempted; the store puts the refresh token down first (see
-      // `SecretTokenStore.save`).
-      do {
-        try await store.save(rotated)
-        timeline?.record(AuthEvent(.tokenWriteOK))
-      } catch {
-        timeline?.record(.failure(.tokenWriteFailed, error))
+      guard authEpoch == flightEpoch else {
+        throw AuthChangedError()
       }
 
       return rotated.accessToken

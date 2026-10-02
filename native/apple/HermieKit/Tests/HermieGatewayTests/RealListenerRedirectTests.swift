@@ -33,7 +33,7 @@ import Testing
     let error = await gatewayError { try await http.get("/api/thing") }
 
     #expect(error?.kind == .redirect)
-    #expect(error?.redirectedTo == "http://localhost:\(elsewherePort)")
+    #expect(error?.redirectedOrigin == "http://localhost:\(elsewherePort)")
     #expect(gateway.requests.count == 1)
     #expect(gateway.requests.first?.lowercased().contains("authorization: bearer at-1") == true)
     #expect(elsewhere.requests.isEmpty)

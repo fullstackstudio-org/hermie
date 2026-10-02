@@ -133,3 +133,81 @@ import Testing
     #expect(!sent.headers.values.contains("abc123.access"))
   }
 }
+
+/// The scheme fallback and the front door: an Access service token never goes
+/// out over http, and an address behind one is never looked for in the clear.
+@Suite struct FrontDoorFallbackTests {
+  static let access = FrontDoor.cloudflareAccess(
+    .init(clientID: "abc123.access", clientSecret: FrontDoorTransportTests.secret, origin: "https://gateway.example.com")
+  )
+
+  /// https refuses to connect; http answers as a gateway.
+  static func blocked443() -> StubServer {
+    StubServer { request in
+      request.scheme == "https" ? .failing("connect ECONNREFUSED") : .json("{\"auth_required\":false,\"version\":\"1\"}")
+    }
+  }
+
+  static func noAccessHeaders(_ request: StubRequest) -> Bool {
+    !request.headers.keys.contains { $0.hasPrefix("cf-access-") }
+  }
+
+  @Test("with a front door configured there is no cleartext fallback at all")
+  func noFallbackWithFrontDoor() async {
+    let server = Self.blocked443()
+
+    let error = await gatewayError {
+      try await Probe.resolveGatewayAddress("gateway.example.com", frontDoor: Self.access, transport: server.transport())
+    }
+
+    #expect(error?.kind == .network)
+    #expect(server.requests.map(\.scheme) == ["https"])
+    #expect(server.requests.first?.header(FrontDoor.clientSecretHeader) == FrontDoorTransportTests.secret)
+  }
+
+  @Test("an http attempt carries no CF-Access header, even when the address was typed with http://")
+  func explicitHTTP() async throws {
+    let server = Self.blocked443()
+
+    _ = try await Probe.resolveGatewayAddress(
+      "http://gateway.example.com",
+      customHeaders: ["X-Custom": "1"],
+      frontDoor: Self.access,
+      transport: server.transport()
+    )
+
+    let sent = try #require(server.requests.first)
+    #expect(sent.scheme == "http")
+    #expect(Self.noAccessHeaders(sent))
+    #expect(sent.header("X-Custom") == "1")
+  }
+
+  @Test("without a front door the fallback still runs, with the custom headers on both attempts")
+  func customHeadersOnly() async throws {
+    let server = Self.blocked443()
+
+    let resolved = try await Probe.resolveGatewayAddress("gateway.example.com", customHeaders: ["X-Custom": "1"], transport: server.transport())
+
+    #expect(resolved.foundOverHTTP)
+    #expect(server.requests.map(\.scheme) == ["https", "http"])
+    #expect(server.requests.allSatisfy { $0.header("X-Custom") == "1" && Self.noAccessHeaders($0) })
+  }
+
+  @Test("a probe that carries front-door headers follows no redirect, not even on its own origin")
+  func probeWithHeadersRefusesRedirects() async {
+    let server = StubServer { request in
+      request.path == "/api/status" ? .redirect(status: 308, location: "/api/status/") : .json("{\"auth_required\":false}")
+    }
+
+    let error = await gatewayError {
+      try await Probe.probeGateway(
+        "https://gateway.example.com",
+        extraHeaders: Self.access.headers(for: "https://gateway.example.com"),
+        transport: server.transport()
+      )
+    }
+
+    #expect(error?.kind == .redirect)
+    #expect(server.requests.count == 1)
+  }
+}

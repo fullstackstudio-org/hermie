@@ -188,7 +188,12 @@ public struct HTTPClient: Sendable {
       )
     )
 
-    return Attempt(response: response, url: url, usedToken: GatewayCredentials.bearer(from: auth))
+    // The URL the answer came from: the transport has refused every redirect, so it is the one asked.
+    return Attempt(
+      response: response,
+      url: response.url.isEmpty ? url : response.url,
+      usedToken: GatewayCredentials.bearer(from: auth)
+    )
   }
 
   private struct BinaryAttempt {

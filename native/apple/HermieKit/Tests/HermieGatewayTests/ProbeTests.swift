@@ -143,7 +143,7 @@ import Testing
   }
 
   static func resolve(_ raw: String, _ server: StubServer, headers: [String: String] = [:]) async throws -> ResolvedAddress {
-    try await Probe.resolveGatewayAddress(raw, extraHeaders: headers, transport: server.transport())
+    try await Probe.resolveGatewayAddress(raw, customHeaders: headers, transport: server.transport())
   }
 
   @Test("keeps https when the address has no scheme and https answers")
@@ -266,6 +266,40 @@ import Testing
     #expect(try await ProbeTests.resolve("192.168.2.250:9119", handshake).foundOverHTTP)
     #expect(await gatewayError { try await ProbeTests.resolve("192.168.2.250:9119", untrusted) }?.kind == .tls)
     #expect(untrusted.requests.map(\.scheme) == ["https"])
+  }
+
+  /// A -1200 whose stream error is a TLS alert came from a real TLS server (a
+  /// protocol version or cipher it will not take); one whose stream error is a
+  /// closed connection is the plain-http peer the fallback exists for.
+  @Test(
+    "reads a TLS alert under a -1200 as an https server, and anything else as no TLS at all",
+    arguments: [(-9836, false), (-9824, false), (-9819, false), (-9840, false), (-9806, true), (-9847, true), (0, true)]
+  )
+  func alertUnderSecureConnectionFailed(_ streamCode: Int, _ fallsBack: Bool) async throws {
+    var info: [String: any Sendable] = [NSLocalizedDescriptionKey: "An SSL error has occurred."]
+
+    if streamCode != 0 {
+      info["_kCFStreamErrorCodeKey"] = streamCode
+    }
+
+    let failure = NSError(domain: NSURLErrorDomain, code: -1200, userInfo: info)
+    let server = StubServer { request in request.scheme == "https" ? .fail(failure) : .json(ProbeTests.ungated) }
+
+    if fallsBack {
+      #expect(try await ProbeTests.resolve("192.168.2.250:9119", server).foundOverHTTP)
+    } else {
+      #expect(await gatewayError { try await ProbeTests.resolve("192.168.2.250:9119", server) }?.kind == .tls)
+      #expect(server.requests.map(\.scheme) == ["https"])
+    }
+  }
+
+  @Test("finds the alert on an underlying OSStatus error too")
+  func alertOnUnderlyingError() {
+    let underlying = NSError(domain: NSOSStatusErrorDomain, code: -9836)
+    let error = NSError(domain: NSURLErrorDomain, code: -1200, userInfo: [NSUnderlyingErrorKey: underlying])
+
+    #expect(HTTPTransport.peerSentAlert(error))
+    #expect(!HTTPTransport.peerSentAlert(NSError(domain: NSURLErrorDomain, code: -1200)))
   }
 
   @Test("a provider with no display name is shown by its name, and a nameless row is dropped")

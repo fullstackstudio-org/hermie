@@ -1,4 +1,5 @@
 import HermieProtocol
+import Synchronization
 
 /// A signed-in gateway's bearer tokens (`TokenSet` in `native-auth.ts`).
 ///
@@ -42,33 +43,33 @@ extension TokenSet: CustomStringConvertible, CustomDebugStringConvertible, Custo
   }
 }
 
-/// What a description may say about a secret: whether there is one.
-enum Redacted {
-  static func presence(_ value: String) -> String {
-    value.isEmpty ? "<empty>" : "<redacted>"
-  }
-}
-
 /// Where the token set lives (`TokenStore`). On device it is the keychain
 /// (`SecretTokenStore`); the onboarding wizard holds tokens in memory until it
 /// is allowed to persist them (`MemoryTokenStore`).
+///
+/// **Synchronous on purpose**, unlike the reference's promises. The
+/// coordinator calls these on its own actor, so a save's several writes, the
+/// auth-epoch check before them and the one after run as one uninterrupted
+/// step: a sign-out or a sign-in cannot land between a rotation's refresh
+/// token and its access token. A keychain call is a short IPC round trip,
+/// and that is the price.
 public protocol TokenStore: Sendable {
-  func load() async throws -> TokenSet?
-  func save(_ tokens: TokenSet) async throws
-  func clear() async throws
+  func load() throws -> TokenSet?
+  func save(_ tokens: TokenSet) throws
+  func clear() throws
 }
 
 /// A token store that never touches disk (`createMemoryTokenStore`).
-public actor MemoryTokenStore: TokenStore {
-  private var tokens: TokenSet?
+public final class MemoryTokenStore: TokenStore {
+  private let tokens: Mutex<TokenSet?>
 
   public init(_ initial: TokenSet? = nil) {
-    tokens = initial
+    tokens = Mutex(initial)
   }
 
-  public func load() -> TokenSet? { tokens }
-  public func save(_ tokens: TokenSet) { self.tokens = tokens }
-  public func clear() { tokens = nil }
+  public func load() -> TokenSet? { tokens.withLock { $0 } }
+  public func save(_ tokens: TokenSet) { self.tokens.withLock { $0 = tokens } }
+  public func clear() { tokens.withLock { $0 = nil } }
 }
 
 /// The native PKCE token endpoints (`exchangeCode`, `refreshTokens`).

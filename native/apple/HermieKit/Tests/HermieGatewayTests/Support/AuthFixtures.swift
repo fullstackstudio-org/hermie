@@ -68,13 +68,13 @@ final class Counter: Sendable {
 /// A token store whose three operations are closures, for the cases that need
 /// a slow, failing or recording store.
 struct ScriptedTokenStore: TokenStore {
-  var onLoad: @Sendable () async throws -> TokenSet?
-  var onSave: @Sendable (TokenSet) async throws -> Void = { _ in }
-  var onClear: @Sendable () async throws -> Void = {}
+  var onLoad: @Sendable () throws -> TokenSet?
+  var onSave: @Sendable (TokenSet) throws -> Void = { _ in }
+  var onClear: @Sendable () throws -> Void = {}
 
-  func load() async throws -> TokenSet? { try await onLoad() }
-  func save(_ tokens: TokenSet) async throws { try await onSave(tokens) }
-  func clear() async throws { try await onClear() }
+  func load() throws -> TokenSet? { try onLoad() }
+  func save(_ tokens: TokenSet) throws { try onSave(tokens) }
+  func clear() throws { try onClear() }
 }
 
 /// A plain error with a message, like a platform failure.
@@ -108,6 +108,13 @@ struct AnonymousCredentials: CredentialProvider {
 /// Wait (in real time, briefly) until `count` callers have joined a refresh in flight.
 func waitForJoins(_ coordinator: TokenCoordinator, _ count: Int) async {
   for _ in 0..<5_000 where await coordinator.joinedRefreshes < count {
+    try? await Task.sleep(for: .milliseconds(1))
+  }
+}
+
+/// Wait (in real time, briefly) until `condition` holds.
+func waitUntil(_ condition: @Sendable () -> Bool) async {
+  for _ in 0..<5_000 where !condition() {
     try? await Task.sleep(for: .milliseconds(1))
   }
 }

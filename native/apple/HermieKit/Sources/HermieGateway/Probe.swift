@@ -60,8 +60,9 @@ public struct ResolvedAddress: Sendable, Equatable {
 /// for a gated gateway, all unauthenticated.
 ///
 /// A failure is a `GatewayError`, and what onboarding needs from it is on the
-/// error: `redirect` with `redirectedTo` (the origin the address pointed at;
-/// nothing was read from it), `not_hermes` with `sawLandingPage` and `hint`,
+/// error: `redirect` with `redirectedTo` (the host) and `redirectedOrigin` (the
+/// origin the address pointed at; nothing was read from it), `not_hermes` with
+/// `sawLandingPage` and `hint`,
 /// `auth` 401/403 for an access proxy in the way. `ProbeVerdict.classify` turns
 /// it into the hint and the buttons.
 public enum Probe {
@@ -94,17 +95,23 @@ public enum Probe {
 
   /// `probeGateway`, keeping the one fact the scheme fallback needs.
   private static func probeDetailed(
-    _ baseURL: String,
+    _ rawBaseURL: String,
     extraHeaders: [String: String],
     transport: HTTPTransport
   ) async throws(TransportFailure) -> ProbeResult {
+    // Raw text is allowed (a debug screen passes what was typed): normalised once, here.
+    let baseURL = try plain { () throws(GatewayError) in try GatewayAddress.normalizeBaseURL(rawBaseURL) }
     let headers = try plain { () throws(GatewayError) in try GatewayAddress.normalizeHeaders(extraHeaders) }
+    // A redirect within one origin may be followed only while nothing of ours
+    // rides along: a front-door header is a credential, and then the probe
+    // refuses every redirect like an authenticated call.
+    let redirects: RedirectPolicy = headers.isEmpty ? .sameOrigin : .refuseAll
     let statusURL = try plain { () throws(GatewayError) in try GatewayAddress.apiURL(baseURL, path: RESTPath.status) }
     // A redirect to another origin is refused by the transport before anything
     // is read: the reference's "before every other verdict".
     let status = try await transport.requestTextDetailed(
       statusURL,
-      JSONRequest(headers: headers, timeoutMs: timeoutMs, redirects: .sameOrigin)
+      JSONRequest(headers: headers, timeoutMs: timeoutMs, redirects: redirects)
     )
     let reading = try plain { () throws(GatewayError) in try readStatus(status, baseURL: baseURL, statusURL: statusURL) }
     var result = ProbeResult(
@@ -116,7 +123,7 @@ public enum Probe {
     )
 
     if reading.authRequired {
-      result.providers = try await probeProviders(baseURL, headers: headers, transport: transport)
+      result.providers = try await probeProviders(baseURL, headers: headers, redirects: redirects, transport: transport)
     }
 
     return result
@@ -192,12 +199,13 @@ public enum Probe {
   private static func probeProviders(
     _ baseURL: String,
     headers: [String: String],
+    redirects: RedirectPolicy,
     transport: HTTPTransport
   ) async throws(TransportFailure) -> [AuthProvider] {
     let url = try plain { () throws(GatewayError) in try GatewayAddress.apiURL(baseURL, path: RESTPath.authProviders) }
     let response = try await transport.requestTextDetailed(
       url,
-      JSONRequest(headers: headers, timeoutMs: timeoutMs, redirects: .sameOrigin)
+      JSONRequest(headers: headers, timeoutMs: timeoutMs, redirects: redirects)
     )
 
     return try plain { () throws(GatewayError) in try readProviders(response, url: url) }
@@ -264,22 +272,32 @@ public enum Probe {
   /// A rejected certificate, any HTTP status and a redirect are answers, and
   /// are reported as they are. If both schemes fail to answer, the https
   /// failure is the one reported, except a redirect found in the clear.
+  ///
+  /// The custom headers and the front door come in separately because the wire
+  /// headers are worked out per attempt, for that attempt's URL: front-door
+  /// headers never go out over http (`FrontDoor.headers(for:)`). And with a
+  /// front door configured there is no cleartext fallback at all: an address
+  /// behind an access proxy is an https address, and a network that blocks
+  /// 443 is not a reason to go looking for it in the clear.
   public static func resolveGatewayAddress(
     _ raw: String,
-    extraHeaders: [String: String] = [:],
+    customHeaders: [String: String] = [:],
+    frontDoor: FrontDoor = .none,
     transport: HTTPTransport = HTTPTransport()
   ) async throws(GatewayError) -> ResolvedAddress {
     let baseURL = try GatewayAddress.normalizeBaseURL(raw)
+    let headers = { (url: String) in GatewaySecrets.wireHeaders(custom: customHeaders, frontDoor: frontDoor, baseURL: url) }
+    let fallback = frontDoor.isComplete ? nil : try GatewayAddress.cleartextFallback(for: raw)
 
-    guard let cleartextURL = try GatewayAddress.cleartextFallback(for: raw) else {
-      let probe = try await probeGateway(baseURL, extraHeaders: extraHeaders, transport: transport)
+    guard let cleartextURL = fallback, !GatewayAddress.hasExplicitScheme(raw) else {
+      let probe = try await probeGateway(baseURL, extraHeaders: headers(baseURL), transport: transport)
       return ResolvedAddress(probe: probe, baseURL: baseURL, foundOverHTTP: false)
     }
 
     let httpsFailure: TransportFailure
 
     do {
-      let probe = try await probeDetailed(baseURL, extraHeaders: extraHeaders, transport: transport)
+      let probe = try await probeDetailed(baseURL, extraHeaders: headers(baseURL), transport: transport)
       return ResolvedAddress(probe: probe, baseURL: baseURL, foundOverHTTP: false)
     } catch {
       httpsFailure = error
@@ -290,7 +308,7 @@ public enum Probe {
     }
 
     do {
-      let probe = try await probeGateway(cleartextURL, extraHeaders: extraHeaders, transport: transport)
+      let probe = try await probeGateway(cleartextURL, extraHeaders: headers(cleartextURL), transport: transport)
       return ResolvedAddress(probe: probe, baseURL: cleartextURL, foundOverHTTP: true)
     } catch {
       // A redirect is the address saying it has moved, not a failure to reach it.
@@ -314,8 +332,8 @@ public enum Probe {
     case .network, .timeout:
       return true
     case .tls:
-      // A rejected certificate means there IS an https server here.
-      return !failure.certificate
+      // A rejected certificate, or a TLS alert from the peer, means there IS an https server here.
+      return !failure.tlsServerAnswered
     default:
       return false
     }

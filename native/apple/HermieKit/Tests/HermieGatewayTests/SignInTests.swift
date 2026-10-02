@@ -53,12 +53,16 @@ func query(_ url: String, _ name: String) -> String? {
     #expect(Self.decide("https://gateway.test/auth/native/authorize?state=x") == .allow)
     #expect(Self.decide("https://idp.example.com/login") == .allow)
     #expect(Self.decide("about:blank") == .allow)
+    #expect(Self.decide("about:srcdoc") == .allow)
   }
 
-  @Test("hands this attempt's callback over instead of loading it")
+  @Test("hands this attempt's callback over instead of loading it, however its port is spelled")
   func callback() {
     #expect(Self.decide("http://127.0.0.1:38007/callback?code=c1&state=the-state") == .callback)
-    #expect(Self.decide("http://[::1]:38007/callback?code=c1&state=the-state") == .callback)
+    // The URL parser reads all of these as the callback, and so does the web view.
+    #expect(Self.decide("http://127.0.0.1:038007/callback?code=c1&state=the-state") == .callback)
+    #expect(Self.decide("HTTP://127.0.0.1:0000038007/callback?code=c1&state=the-state") == .callback)
+    #expect(Self.decide("http://2130706433:38007/callback?code=c1&state=the-state") == .callback)
   }
 
   @Test("drops a code from another attempt, and says what the provider said")
@@ -73,39 +77,57 @@ func query(_ url: String, _ name: String) -> String? {
   }
 
   @Test(
-    "never loads anything else on this device's loopback",
+    "never loads anything on this device that is not the callback",
     arguments: [
-      // A leading zero is the same port to the web view, and not the callback's spelling.
-      "http://127.0.0.1:038007/callback?code=c1&state=the-state",
-      "http://127.0.0.1:0000038007/callback?code=c1&state=the-state",
       // Out of range: not a URL the web view would load, refused rather than guessed at.
       "http://127.0.0.1:65536/callback?code=c1&state=the-state",
       "http://127.0.0.1:99999999/callback",
       "http://127.0.0.1:38007",
+      "http://127.0.0.1:38007/callback/extra?code=c1&state=the-state",
+      "http://127.0.0.1:38008/callback?code=c1&state=the-state",
+      "http://[::1]:38007/callback?code=c1&state=the-state",
       "http://127.0.0.2:38007/callback?code=c1&state=the-state",
       "http://localhost:38007/callback?code=c1&state=the-state",
       "http://LOCALHOST:38007/callback",
       "http://localhost./",
       "http://evil.localhost:38007/callback",
-      "HTTP://127.0.0.1:38007/callback?code=c1&state=the-state",
-      "http://2130706433:38007/callback",
-      "http://0x7f.1:38007/callback",
-      "http://0177.0.0.1:38007/callback",
+      "http://0x7f.1:38008/",
+      "http://0177.0.0.1:38008/",
       "http://0.0.0.0:38007/callback",
       "http://[::]:38007/callback",
       "http://[::ffff:127.0.0.1]:38007/callback",
-      "http://[0:0:0:0:0:0:0:1]:38007/callback"
+      "http://[::ffff:0:0]:38007/callback",
+      "http://[0:0:0:0:0:0:0:1]:38007/callback",
+      "https://127.0.0.1:38007/callback?code=c1&state=the-state",
+      "https://localhost:1234/",
+      "https://[::1]/"
     ]
   )
   func blocksLoopback(_ url: String) {
     #expect(Self.decide(url) == .fail(.blockedNavigation))
   }
 
-  @Test("lets a gateway that runs on this device serve its own pages, and nothing else on loopback")
-  func localGateway() {
-    #expect(Self.decide("http://localhost:9119/auth/native/authorize", gateway: "http://localhost:9119") == .allow)
-    #expect(Self.decide("http://localhost:9120/", gateway: "http://localhost:9119") == .fail(.blockedNavigation))
-    #expect(Self.decide("http://localhost:38007/callback?code=c&state=the-state", gateway: "http://localhost:9119") == .fail(.blockedNavigation))
+  @Test(
+    "loads nothing but http and https",
+    arguments: [
+      "ws://127.0.0.1:38007/", "wss://gateway.test/api/ws", "myapp://callback?code=c1", "file:///etc/passwd",
+      "data:text/html,hi", "javascript:alert(1)", "intent://scan#Intent;end", "about:config", "ftp://gateway.test/"
+    ]
+  )
+  func blocksOtherSchemes(_ url: String) {
+    #expect(Self.decide(url) == .fail(.blockedNavigation))
+  }
+
+  @Test(
+    "lets a gateway that runs on this device serve its own pages, and nothing else on loopback",
+    arguments: ["http://localhost:9119", "http://127.0.0.1:9119", "http://[::1]:9119"]
+  )
+  func localGateway(_ gateway: String) {
+    #expect(Self.decide("\(gateway)/auth/native/authorize?state=x", gateway: gateway) == .allow)
+    #expect(Self.decide("\(gateway)/login", gateway: gateway) == .allow)
+    #expect(Self.decide("http://127.0.0.1:38007/callback?code=c&state=the-state", gateway: gateway) == .callback)
+    #expect(Self.decide("http://localhost:9120/", gateway: gateway) == .fail(.blockedNavigation))
+    #expect(Self.decide("http://127.0.0.1:9120/", gateway: gateway) == .fail(.blockedNavigation))
   }
 }
 
@@ -147,7 +169,7 @@ func query(_ url: String, _ name: String) -> String? {
     let saved = try await credentials.completeSignIn(redirectURL: callback)
 
     #expect(saved.accessToken == "at-1")
-    #expect(await store.load() == saved)
+    #expect(store.load() == saved)
 
     let body = try JSONValue(parsing: try #require(server.requests.first).bodyText)
     let verifier = try #require(body["code_verifier"]?.stringValue)
@@ -194,7 +216,7 @@ func query(_ url: String, _ name: String) -> String? {
 
     #expect(error?.kind == .auth)
     #expect(error?.status == 400)
-    #expect(await store.load() == nil)
+    #expect(store.load() == nil)
   }
 }
 
@@ -265,11 +287,19 @@ final class FakePKCEGateway: Sendable {
         return bearer.map { state.liveAccess.contains($0) } == true ? .json("{\"ticket\":\"tk-\(state.generation)\",\"ttl_seconds\":30}") : .status(401)
       case "/api/thing":
         return bearer.map { state.liveAccess.contains($0) } == true ? .json("{\"ok\":true}") : .status(401)
-      case "/auth/logout":
-        state.revoked = true
-        state.liveAccess = []
-        state.liveRefresh = nil
-        return .status(204)
+      case "/auth/native/revoke":
+        // Public: a bearer here would be a mistake, and the provider is required.
+        guard bearer == nil, body["provider"]?.stringValue?.isEmpty == false else {
+          return .status(400)
+        }
+
+        if body["refresh_token"]?.stringValue == state.liveRefresh {
+          state.revoked = true
+          state.liveAccess = []
+          state.liveRefresh = nil
+        }
+
+        return .status(200)
       default:
         return .status(404)
       }
@@ -285,7 +315,7 @@ final class FakePKCEGateway: Sendable {
     let server = StubServer { gateway.handle($0) }
     let transport = server.transport()
     let keychain = InMemorySecretStorage()
-    let keys = GatewaySecretKeys(gatewayID: "g0123abcd")
+    let keys = try! GatewaySecretKeys(gatewayID: "g0123abcd")
     let timeline = RecordingTimeline()
     let base = "https://gateway.test"
     let coordinator = TokenCoordinator(
@@ -305,6 +335,7 @@ final class FakePKCEGateway: Sendable {
     let credentials = NativePKCECredentials(
       baseURL: base,
       coordinator: coordinator,
+      canRevoke: true,
       transport: transport,
       timeline: timeline,
       randomBytes: { random.bytes($0) }
@@ -318,16 +349,16 @@ final class FakePKCEGateway: Sendable {
     #expect(await credentials.decision(for: callback) == .callback)
     try await credentials.completeSignIn(redirectURL: callback)
 
-    #expect(keychain.get(keys.accessToken) == "at-1")
-    #expect(keychain.get(keys.refreshToken) == "rt-1")
+    #expect(try keychain.get(keys.accessToken) == "at-1")
+    #expect(try keychain.get(keys.refreshToken) == "rt-1")
     #expect(try await http.get("/api/thing") == ["ok": true])
 
     // Inside the 60 s window: one proactive refresh, and the keychain holds the rotated pair.
     wall.set(1_000_000 + 3600 - 59)
     #expect(try await http.get("/api/thing") == ["ok": true])
-    #expect(keychain.get(keys.refreshToken) == "rt-2")
-    #expect(keychain.get(keys.accessToken) == "at-2")
-    #expect(GatewaySecrets.decodeTokenMeta(keychain.get(keys.tokenMeta)).expiresAt == 1_000_000 + 3600 - 59 + 3600)
+    #expect(try keychain.get(keys.refreshToken) == "rt-2")
+    #expect(try keychain.get(keys.accessToken) == "at-2")
+    #expect(GatewaySecrets.decodeTokenMeta(try keychain.get(keys.tokenMeta)).expiresAt == 1_000_000 + 3600 - 59 + 3600)
 
     // A second rotation presents the NEW refresh token, never the spent one.
     wall.set(1_000_000 + 2 * 3600)
@@ -337,7 +368,7 @@ final class FakePKCEGateway: Sendable {
     // The gateway drops the access token: a 401, one refresh, one retry.
     gateway.state.withLock { $0.liveAccess = [] }
     #expect(try await http.get("/api/thing") == ["ok": true])
-    #expect(keychain.get(keys.accessToken) == "at-4")
+    #expect(try keychain.get(keys.accessToken) == "at-4")
 
     // One ticket per dial.
     let plan = try await credentials.dialPlan(wsURL: "wss://gateway.test/api/ws", extraHeaders: [:])
@@ -346,9 +377,9 @@ final class FakePKCEGateway: Sendable {
     // Sign out: the gateway hears it, the keychain forgets, and nothing authenticates afterwards.
     try await credentials.signOut()
     #expect(gateway.state.withLock { $0.revoked })
-    #expect(keychain.get(keys.accessToken) == nil)
-    #expect(keychain.get(keys.refreshToken) == nil)
-    #expect(keychain.get(keys.tokenMeta) == nil)
+    #expect(try keychain.get(keys.accessToken) == nil)
+    #expect(try keychain.get(keys.refreshToken) == nil)
+    #expect(try keychain.get(keys.tokenMeta) == nil)
     #expect(await gatewayError { try await http.get("/api/thing") }?.kind == .auth)
     #expect(timeline.names.contains("rest.unauthorized"))
     #expect(timeline.names.filter { $0 == "refresh.ok" }.count == 3)
@@ -361,7 +392,7 @@ final class FakePKCEGateway: Sendable {
     let server = StubServer { gateway.handle($0) }
     let transport = server.transport()
     let keychain = InMemorySecretStorage()
-    let keys = GatewaySecretKeys(gatewayID: "g9")
+    let keys = try! GatewaySecretKeys(gatewayID: "g9")
     // A stale pair, as a restore from an old backup would leave it.
     try SecretTokenStore(storage: keychain, keys: keys).save(tokens(accessToken: "at-0", refreshToken: "rt-0", expiresAt: 10))
     let coordinator = TokenCoordinator(

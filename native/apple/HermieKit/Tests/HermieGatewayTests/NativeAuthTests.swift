@@ -251,7 +251,7 @@ import Testing
     }
 
     #expect(try await coordinator.accessToken() == nil)
-    #expect(await store.load() == nil)
+    #expect(store.load() == nil)
   }
 
   @Test("propagates a transport failure instead of signing the user out")
@@ -263,7 +263,7 @@ import Testing
     let error = await gatewayError { try await coordinator.accessToken() }
 
     #expect(error?.kind == .server)
-    #expect(await store.load() != nil)
+    #expect(store.load() != nil)
   }
 
   @Test("fences a rotation that a sign-out raced")
@@ -282,25 +282,26 @@ import Testing
     await gate.open()
 
     await #expect(throws: AuthChangedError.self) { try await pending.value }
-    #expect(await store.load() == nil)
+    #expect(store.load() == nil)
   }
 
+  /// The reference fences an async read with the auth epoch. Here the store is
+  /// synchronous and called on the coordinator's actor, so a sign-in cannot
+  /// land inside a slow read at all: it waits for it, and then wins.
   @Test("fences a store read that a sign-in raced")
   func fencesRead() async throws {
-    let gate = Gate()
-    let reading = Gate()
+    let reading = Counter()
     let store = ScriptedTokenStore(onLoad: {
-      await reading.open()
-      await gate.wait()
+      reading.increment()
+      Thread.sleep(forTimeInterval: 0.03)
       return tokens(accessToken: "at-old")
     })
     let coordinator = TokenCoordinator(store: store, refresh: { _ in tokens() }, nowSeconds: { 0 })
 
     let pending = Task { try await coordinator.current() }
-    await reading.wait()
+    await waitUntil { reading.count == 1 }
     try await coordinator.save(tokens(accessToken: "at-new"))
-    await gate.open()
-    _ = try await pending.value
+    #expect(try await pending.value?.accessToken == "at-old")
 
     #expect(try await coordinator.current()?.accessToken == "at-new")
   }
@@ -310,7 +311,7 @@ import Testing
     let (coordinator, store) = coordinator(tokens(refreshToken: "", expiresAt: 10))
 
     #expect(try await coordinator.accessToken() == nil)
-    #expect(await store.load() == nil)
+    #expect(store.load() == nil)
   }
 
   @Test("retries a store read that failed instead of memoising the failure")
@@ -409,7 +410,7 @@ import Testing
     }
 
     #expect(calls.count == 1)
-    #expect(await store.load()?.refreshToken == "rt-2")
+    #expect(store.load()?.refreshToken == "rt-2")
   }
 
   @Test("a 401 for the token a rotation just replaced joins that rotation instead of starting another")

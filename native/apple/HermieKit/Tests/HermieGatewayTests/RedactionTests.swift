@@ -53,9 +53,21 @@ import Testing
       canRefresh: true
     )
 
+    let access = FrontDoor.CloudflareAccess(clientID: "USER-SECRET-1", clientSecret: "CF-SECRET-1", origin: "https://gateway.test")
+    let request = JSONRequest(
+      method: "POST",
+      headers: ["authorization": "Bearer ACCESS-SECRET-1", "CF-Access-Client-Secret": "CF-SECRET-1"],
+      body: ["refresh_token": "REFRESH-SECRET-1"]
+    )
+
     Self.assertClean([
       set, [set], Optional(set) as Any, ticketPlan, tokenPlan, SessionTokenCredentials(token: "SESSION-SECRET-1"),
-      WSTicket(ticket: "TICKET-SECRET-1", ttlSeconds: 30), stored
+      WSTicket(ticket: "TICKET-SECRET-1", ttlSeconds: 30), stored, access, FrontDoor.cloudflareAccess(access), request,
+      AuthHeaderOptions(forceRefresh: true, rejectedAccessToken: "ACCESS-SECRET-1"),
+      AccessTokenOptions(forceRefresh: true, rejectedAccessToken: "ACCESS-SECRET-1"),
+      PKCE(verifier: "CODE-SECRET-1", challenge: "challenge", state: "TICKET-SECRET-1"),
+      LoopbackRedirect.code(code: "CODE-SECRET-1", state: "TICKET-SECRET-1"),
+      [LoopbackRedirect.code(code: "CODE-SECRET-1", state: "s")]
     ])
     #expect(String(describing: set).contains("expiresAt: 1"))
     #expect(String(describing: ticketPlan).contains("hermes-gateway-v1"))
@@ -105,7 +117,7 @@ import Testing
         )
       }
       await collect { _ = try await WSTicketMint.mint(baseURL: "https://gateway.test", headers: ["authorization": "Bearer ACCESS-SECRET-1"], transport: transport) }
-      await collect { _ = try await Probe.resolveGatewayAddress("gateway.test", extraHeaders: extra, transport: transport) }
+      await collect { _ = try await Probe.resolveGatewayAddress("gateway.test", customHeaders: extra, transport: transport) }
     }
 
     let clock = ManualClock()

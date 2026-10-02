@@ -1,16 +1,48 @@
 import HermieProtocol
 import Synchronization
 
-/// Where a gateway's secrets live. On device this is the keychain store in
-/// `HermieStore`, which has the same three methods, so the app conforms it
-/// with an empty extension; this target never imports it.
+/// Where a gateway's secrets live. On device this is `KeychainStore` in
+/// `HermieStore`, whose `SecretStore` protocol has these three methods with
+/// the same signatures, so the app conforms it with an empty extension; this
+/// target never imports it.
 public protocol GatewaySecretStorage: Sendable {
   func get(_ key: String) throws -> String?
   func set(_ key: String, _ value: String) throws
   func delete(_ key: String) throws
 }
 
+/// A secret store call this target refused before it reached a store.
+public enum GatewaySecretError: Error, Sendable, Equatable, CustomStringConvertible {
+  /// The key is empty or has a character outside `[A-Za-z0-9_.-]`.
+  case invalidKey
+  /// The gateway id is empty or has a character outside `[A-Za-z0-9_]`.
+  case invalidGatewayID
+
+  public var description: String {
+    switch self {
+    case .invalidKey: "Invalid secret key: keys are non-empty and use only letters, digits, '_', '.' and '-'."
+    case .invalidGatewayID: "Invalid gateway id for a secret key: it must be non-empty and use only letters, digits and '_'."
+    }
+  }
+}
+
+/// The key rules `expo-secure-store` enforces, and `SecretKeys` in
+/// `HermieStore/SecretStore.swift` with it.
+enum SecretKeyRule {
+  /// `[A-Za-z0-9_]`, ASCII only: `\w` without the `u` flag.
+  static func isWord(_ scalar: Unicode.Scalar) -> Bool {
+    JSText.isASCIIAlpha(scalar) || JSText.isASCIIDigit(scalar) || scalar == "_"
+  }
+
+  /// `^[\w.-]+$`
+  static func isValidKey(_ key: String) -> Bool {
+    !key.isEmpty && key.unicodeScalars.allSatisfy { isWord($0) || $0 == "." || $0 == "-" }
+  }
+}
+
 /// A secret store in memory, for tests and for anything that must not persist.
+/// It refuses a key the keychain store would refuse, so a test cannot pass on
+/// a key the device would reject.
 public final class InMemorySecretStorage: GatewaySecretStorage {
   private let values: Mutex<[String: String]>
 
@@ -18,15 +50,18 @@ public final class InMemorySecretStorage: GatewaySecretStorage {
     values = Mutex(initial)
   }
 
-  public func get(_ key: String) -> String? {
-    values.withLock { $0[key] }
+  public func get(_ key: String) throws(GatewaySecretError) -> String? {
+    try Self.check(key)
+    return values.withLock { $0[key] }
   }
 
-  public func set(_ key: String, _ value: String) {
+  public func set(_ key: String, _ value: String) throws(GatewaySecretError) {
+    try Self.check(key)
     values.withLock { $0[key] = value }
   }
 
-  public func delete(_ key: String) {
+  public func delete(_ key: String) throws(GatewaySecretError) {
+    try Self.check(key)
     _ = values.withLock { $0.removeValue(forKey: key) }
   }
 
@@ -34,17 +69,27 @@ public final class InMemorySecretStorage: GatewaySecretStorage {
   public var keys: Set<String> {
     values.withLock { Set($0.keys) }
   }
+
+  private static func check(_ key: String) throws(GatewaySecretError) {
+    guard SecretKeyRule.isValidKey(key) else {
+      throw .invalidKey
+    }
+  }
 }
 
 /// The six keychain items of one gateway, named exactly as the Expo app names
 /// them (`secretKeysFor` in `expo/hermie/src/gateway/config.ts`), so a native
 /// build finds what an Expo build stored and the other way round.
 ///
-/// The gateway id is a suffix after `-`: the secret store refuses the `@` the
-/// key-value store uses (`SECRET_NAMESPACE_SEPARATOR`).
+/// KEEP IN STEP with `SecretKeys.Gateway` in
+/// `native/apple/HermieKit/Sources/HermieStore/SecretStore.swift`: the same
+/// six names, the same `-` separator, the same id rule. This target cannot
+/// import `HermieStore`, so `GatewaySecretsTests.keyNames` pins the literal
+/// strings that file uses.
 public struct GatewaySecretKeys: Sendable, Equatable {
   public static let separator = "-"
 
+  public let gatewayID: String
   public let accessToken: String
   public let refreshToken: String
   /// JSON `{"expiresAt":<number>,"provider":<string>,"userId":<string>}`.
@@ -55,9 +100,16 @@ public struct GatewaySecretKeys: Sendable, Equatable {
   /// JSON `{"kind":"cloudflare_access","clientId":…,"clientSecret":…,"origin":…}`.
   public let frontDoor: String
 
-  public init(gatewayID: String) {
+  /// Throws for an id that would make an invalid key or an ambiguous split:
+  /// empty, or anything outside `[A-Za-z0-9_]` (so no `-` or `.`).
+  public init(gatewayID: String) throws(GatewaySecretError) {
+    guard !gatewayID.isEmpty, gatewayID.unicodeScalars.allSatisfy(SecretKeyRule.isWord) else {
+      throw .invalidGatewayID
+    }
+
     func key(_ base: String) -> String { base + Self.separator + gatewayID }
 
+    self.gatewayID = gatewayID
     accessToken = key("hermie.auth.access_token")
     refreshToken = key("hermie.auth.refresh_token")
     tokenMeta = key("hermie.auth.token_meta")
