@@ -198,6 +198,8 @@ public final class OnboardingModel {
   /// Resume mode: the address the gateway is stored under, which signing in again must not change.
   @ObservationIgnored private var storedAddress: String?
   @ObservationIgnored private var loadStarted = false
+  /// Resume mode: the custom headers and front door stored when the sheet opened.
+  @ObservationIgnored private var loadedWayIn: (headers: [String: String], frontDoor: FrontDoor)?
 
   // MARK: Private
 
@@ -316,7 +318,12 @@ public final class OnboardingModel {
   }
 
   public var canLeaveAddress: Bool {
-    resolved != nil && (!needsCleartextConfirmation || cleartextConfirmed)
+    resolved != nil && !listUnreadable && (!needsCleartextConfirmation || cleartextConfirmed)
+  }
+
+  /// The wizard opened: a gateway already synced from another device may be on its way (I11).
+  public func opened() async {
+    await accounts.sync.trigger(.onboarding)
   }
 
   /// A gated gateway this app can sign in to: native PKCE advertised, and a provider to use.
@@ -538,6 +545,7 @@ public final class OnboardingModel {
 
     advancedShown = !headers.isEmpty || frontDoorKind != .custom
     storedAddress = access.baseURL
+    loadedWayIn = (access.secrets.customHeaders, access.secrets.frontDoor)
     selectedProvider = access.config?.provider
     name = accounts.directory.entry(id: id)?.name ?? ""
     address = access.baseURL
@@ -852,37 +860,36 @@ public final class OnboardingModel {
   // MARK: - Finishing
 
   /**
-   Store the gateway and activate it. The secrets go first, through `GatewaySecrets.save` (which
-   deletes all six again when any write fails); then the registry entry and the config, in one
-   transaction; a failure there takes the secrets of a new gateway back out. Answers the gateway's
-   id, or nil with `saveState` saying why.
+   Store the gateway and activate it, through the sync engine (`GatewayRegistration`): a new
+   gateway is added with its config and its credentials in one call, which takes everything back
+   out when the credentials cannot be stored; a gateway signed in to again gets its new credential
+   (the tokens saved through its one coordinator), and nothing at all when it was removed or now
+   answers elsewhere. Who signed in is added to the config. Answers the gateway's id, or nil with
+   `saveState` saying why.
    */
   public func finish() async -> String? {
     guard let resolved, signIn == .signedIn, saveState != .saving, !closed else {
       return nil
     }
 
+    guard !listUnreadable else {
+      saveState = .failed(.unsupportedRegistry)
+      return nil
+    }
+
     let mode = authMode
-    let id: String
-    let existing: Bool
+    let existingId: String?
 
     switch self.mode {
     case .newGateway:
-      id = GatewayRegistry.newGatewayId()
-      existing = false
+      existingId = nil
     case .signIn(let gatewayId):
-      id = gatewayId
-      existing = true
-    }
-
-    guard let keys = try? GatewaySecretKeys(gatewayID: id) else {
-      saveState = .failed(.store)
-      return nil
+      existingId = gatewayId
     }
 
     // Signing in again keeps the gateway where it is: an address that now resolves elsewhere (a
     // redirect taken, an http fallback) is a different gateway, set up as one.
-    if existing, resolved.baseURL != storedAddress {
+    if existingId != nil, resolved.baseURL != storedAddress {
       saveState = .failed(.addressChanged)
       return nil
     }
@@ -898,97 +905,93 @@ public final class OnboardingModel {
     }
 
     let baseURL = resolved.baseURL
-    let custom = customHeaders
-    let door = frontDoor
     let token = mode == .sessionToken ? sessionToken.trimmingCharacters(in: .whitespacesAndNewlines) : nil
     let user = mode == .nativePKCE ? Self.displayName(identity, tokens: held) : nil
-    let config = StoredGatewayConfig(
-      baseUrl: baseURL,
-      authMode: mode,
-      provider: mode == .nativePKCE ? provider?.name : nil,
-      providerDisplayName: mode == .nativePKCE ? provider?.displayName : nil,
-      version: resolved.result.version.isEmpty ? nil : resolved.result.version,
-      userDisplayName: user,
-      userEmail: identity.flatMap { $0.email.isEmpty ? nil : $0.email },
-      userPictureUrl: identity.flatMap { $0.pictureURL.isEmpty ? nil : $0.pictureURL }
-    )
-    let storage = services.secrets
+    let kind = GatewayAuthKind(rawValue: mode.rawValue)
+    let sync = accounts.sync
+    let id: String
 
     do {
-      try await services.offMain {
-        if existing {
-          // A credential of the other mode must not survive next to the new one.
-          for key in [keys.accessToken, keys.refreshToken, keys.tokenMeta, keys.sessionToken] {
-            try storage.delete(key)
-          }
+      if let existingId {
+        let current = await accounts.config(for: existingId)?.authMode
+        let currentKind = current.map(GatewayAuthKind.init(rawValue:))
+
+        // The way in, when it was entered again here (a sign-out deletes it with the credential).
+        if customHeaders != loadedWayIn?.headers ?? [:] {
+          try await sync.storeCredential(.headers(customHeaders), of: existingId)
         }
 
-        try GatewaySecrets.save(
-          storage: storage,
-          keys: keys,
-          baseURL: baseURL,
-          customHeaders: custom,
-          frontDoor: door,
-          tokens: held,
-          sessionToken: token
-        )
-      }
-    } catch {
-      saveState = .failed(.keychain)
-      return nil
-    }
+        if frontDoor != loadedWayIn?.frontDoor ?? .none, case .cloudflareAccess(let access) = frontDoor, frontDoor.isComplete {
+          try await sync.storeCredential(.frontDoor(clientID: access.clientID, clientSecret: access.clientSecret), of: existingId)
+        }
 
-    let trimmedName = name.trimmingCharacters(in: .whitespacesAndNewlines)
-    let record = GatewayRecord(
-      id: id,
-      name: trimmedName.isEmpty ? GatewayRegistry.defaultName(for: baseURL) : trimmedName,
-      address: baseURL,
-      authKind: GatewayAuthKind(rawValue: mode.rawValue),
-      signedInUser: user,
-      addedAt: services.nowMilliseconds()
-    )
-    let configText: String
+        if let held {
+          let coordinator = try accounts.coordinator(for: existingId, baseURL: baseURL, headers: wireHeaders)
 
-    do {
-      configText = try config.encoded()
-    } catch {
-      saveState = .failed(.store)
-      return nil
-    }
+          try await GatewayRegistration.signedIn(
+            id: existingId, tokens: held, authKind: kind, currentKind: currentKind, coordinator: coordinator, through: sync)
+        } else {
+          try await GatewayRegistration.signedIn(
+            id: existingId, sessionToken: token ?? "", authKind: kind, currentKind: currentKind, through: sync)
+        }
 
-    do {
-      if existing {
-        try await GatewayRegistration.signedIn(
-          id: id,
-          authKind: record.authKind,
-          signedInUser: record.signedInUser,
-          config: configText,
-          in: services.store
-        )
+        id = existingId
       } else {
-        try await GatewayRegistration.add(record, config: configText, in: services.store)
+        let trimmedName = name.trimmingCharacters(in: .whitespacesAndNewlines)
+
+        id = try await GatewayRegistration.add(
+          NewGateway(
+            name: trimmedName.isEmpty ? GatewayRegistry.defaultName(for: baseURL) : trimmedName,
+            address: baseURL,
+            authKind: kind,
+            provider: mode == .nativePKCE ? provider.map { SyncProvider(name: $0.name, label: $0.displayName) } : nil,
+            user: user,
+            frontDoor: frontDoor,
+            customHeaders: customHeaders,
+            sessionToken: token,
+            tokens: held
+          ),
+          through: sync
+        )
       }
     } catch {
-      // Nothing may stay behind for a gateway the list does not name: a new one never made it in,
-      // and one signed in to again may have been removed meanwhile.
-      if !existing || error is GatewayRegistrationError {
-        _ = try? await services.offMain { try GatewaySecrets.clearCredentials(storage: storage, keys: keys) }
-      }
-
-      saveState = .failed(
-        error is GatewayRegistryError ? .unsupportedRegistry : error is GatewayRegistrationError ? .gatewayRemoved : .store
-      )
+      saveState = .failed(Self.saveProblem(error))
       return nil
     }
 
-    if !existing {
+    try? await GatewayRegistration.recordIdentity(
+      id: id,
+      version: resolved.result.version,
+      user: user,
+      email: identity?.email,
+      picture: identity?.pictureURL,
+      in: accounts.store
+    )
+
+    if existingId == nil {
       try? await accounts.directory.activate(id: id)
     }
 
     accounts.credentialsChanged(id, signedIn: true)
+    await accounts.signedIn(id)
     saveState = .idle
     close()
     return id
+  }
+
+  static func saveProblem(_ error: any Error) -> SaveProblem {
+    switch error as? SyncEngineError {
+    case .unknownGateway?: .gatewayRemoved
+    case .unsupportedRegistry?, .unreadableRegistry?: .unsupportedRegistry
+    case .secretStore?: .keychain
+    case nil where error is GatewayAccessError: .gatewayRemoved
+    default: .store
+    }
+  }
+
+  /// The gateway list could not be read (or was written by a newer Hermie): nothing is added over it.
+  public var listUnreadable: Bool {
+    accounts.directory.loadFailed || accounts.directory.unsupportedVersion != nil
   }
 
   /// The flow is over (finished or abandoned): stop everything and forget every secret it held.

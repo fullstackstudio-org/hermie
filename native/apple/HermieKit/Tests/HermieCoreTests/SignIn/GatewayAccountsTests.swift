@@ -12,27 +12,26 @@ struct GatewayAccountsTests {
   static let id = "g0123456789abcdef"
   static let base = "https://gw.example.test"
 
-  /// A native gateway as onboarding leaves it: entry, config, tokens, a custom header, push secret.
+  static let pushKey = "hermie.push.manage-\(id)"
+
+  /// A native gateway as onboarding leaves it (added through the engine with its tokens and a custom
+  /// header), and the push registrar's secret for it, which is not ours to delete.
   static func seeded(_ server: StubServer) async throws -> OnboardingHarness {
     let harness = try OnboardingHarness(transport: server.transport())
-    let keys = try GatewaySecretKeys(gatewayID: id)
 
-    try await GatewayRegistryStore(store: harness.store).add(
-      GatewayRecord(id: id, name: "Work", address: base, authKind: .nativePKCE, signedInUser: "Tester", addedAt: 1)
+    try await harness.addGateway(
+      NewGateway(
+        id: id,
+        name: "Work",
+        address: base,
+        authKind: .nativePKCE,
+        provider: SyncProvider(name: "self-hosted"),
+        user: "Tester",
+        customHeaders: ["X-Proxy-Key": "proxy-secret"],
+        tokens: TokenSet(accessToken: "at-1", refreshToken: "rt-1", expiresAt: 4_102_444_800, provider: "self-hosted", userID: "u")
+      )
     )
-    try await KeyValueStore(store: harness.store).setString(
-      try StoredGatewayConfig(baseUrl: base, authMode: .nativePKCE, provider: "self-hosted").encoded(),
-      forKey: StoredGatewayConfig.key(gatewayId: id)
-    )
-    try GatewaySecrets.save(
-      storage: harness.secrets,
-      keys: keys,
-      baseURL: base,
-      customHeaders: ["X-Proxy-Key": "proxy-secret"],
-      tokens: TokenSet(accessToken: "at-1", refreshToken: "rt-1", expiresAt: 4_102_444_800, provider: "self-hosted", userID: "u")
-    )
-    try harness.secrets.set(try SecretKeys.gateway(id).pushManage, "push-secret")
-    await harness.directory.load()
+    try harness.secrets.set(pushKey, "push-secret")
 
     return harness
   }
@@ -59,7 +58,7 @@ struct GatewayAccountsTests {
     #expect(request.header("x-proxy-key") == "proxy-secret")
   }
 
-  @Test("sign-out revokes when the gateway advertises it, deletes the credential, keeps the way in")
+  @Test("sign-out revokes when the gateway advertises it, then the engine deletes the sign-in items")
   func signOutRevokes() async throws {
     let server = GatewayStub.gated()
     let harness = try await Self.seeded(server)
@@ -74,8 +73,8 @@ struct GatewayAccountsTests {
     #expect(try harness.secrets.get(keys.accessToken) == nil)
     #expect(try harness.secrets.get(keys.refreshToken) == nil)
     #expect(try harness.secrets.get(keys.tokenMeta) == nil)
-    #expect(try harness.secrets.get(keys.extraHeaders) != nil)
-    #expect(try await harness.registry().gateway(id: Self.id)?.signedInUser == nil)
+    #expect(try harness.credentialKeys().isEmpty)
+    #expect(try harness.secrets.get(Self.pushKey) == "push-secret")
     #expect(try await harness.registry().gateway(id: Self.id) != nil)
     #expect(harness.accounts.status(for: Self.id) == .signedOut)
     #expect((harness.accounts.credentialsRevision[Self.id] ?? 0) > before)
@@ -109,21 +108,35 @@ struct GatewayAccountsTests {
     #expect(harness.accounts.status(for: Self.id) == .signedOut)
   }
 
-  @Test("removing a gateway revokes, then deletes every secret stored for it")
-  func removeForgets() async throws {
+  @Test("removing a gateway revokes first, then the engine deletes its credentials; push's secret stays")
+  func removeRevokesThenRemoves() async throws {
     let server = GatewayStub.gated()
     let harness = try await Self.seeded(server)
 
-    harness.directory.onRemoved = { [accounts = harness.accounts] id in await accounts.forget(id) }
     harness.accounts.follow()
     await eventually { harness.accounts.status(for: Self.id) == .signedIn }
 
-    try await harness.directory.remove(id: Self.id)
+    try await harness.accounts.remove(Self.id)
 
-    #expect(server.requests.contains { $0.path == "/auth/native/revoke" })
-    #expect(harness.secrets.keys.isEmpty)
+    let revoke = try #require(server.requests.first { $0.path == "/auth/native/revoke" })
+    #expect(revoke.bodyText.contains("rt-1"))
+    #expect(try harness.credentialKeys().isEmpty)
+    #expect(try harness.secrets.get(Self.pushKey) == "push-secret")
     #expect(await harness.config(Self.id) == nil)
     #expect(harness.accounts.status(for: Self.id) == .unknown)
+  }
+
+  @Test("signing out and removing end the live session first")
+  func endsTheSession() async throws {
+    let harness = try await Self.seeded(GatewayStub.gated())
+    let ended = Box<[String]>([])
+
+    harness.accounts.endSession = { id in ended.value.append(id) }
+
+    await harness.accounts.signOut(Self.id)
+    try await harness.accounts.remove(Self.id)
+
+    #expect(ended.value == [Self.id, Self.id])
   }
 
   @Test("one coordinator per gateway, dropped when its credentials change")
@@ -146,10 +159,14 @@ struct GatewayAccountsTests {
     }
   }
 
-  @Test("the keychain conforms, so the app can hand it to the gateway layer")
-  func keychainConforms() {
-    let storage: any GatewaySecretStorage = KeychainStore()
+}
 
-    #expect(storage is KeychainStore)
+/// A value a closure can change, for a test on the main actor.
+@MainActor
+final class Box<Value> {
+  var value: Value
+
+  init(_ value: Value) {
+    self.value = value
   }
 }

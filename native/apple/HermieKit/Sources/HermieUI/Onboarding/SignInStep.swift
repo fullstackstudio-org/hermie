@@ -31,6 +31,8 @@ struct SignInStep: View {
     Form {
       if isResume {
         ResumeHeader(model: model)
+        // A sign-out deleted the way in with the credential: it can be entered again here.
+        AdvancedSection(model: model)
       }
 
       if model.resolved != nil {

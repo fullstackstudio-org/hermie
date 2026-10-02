@@ -427,23 +427,31 @@ final class ManualTimer: Sendable {
 
 @MainActor
 struct OnboardingHarness {
-  let store: SQLiteStore
-  let secrets: InMemorySecretStorage
-  let directory: GatewayDirectory
+  let launch: AppLaunch
+  let secrets: InMemorySecretStore
   let accounts: GatewayAccounts
 
+  var store: SQLiteStore { launch.store }
+  var directory: GatewayDirectory { launch.gateways }
+  var sync: GatewaySyncEngine { launch.sync }
+
+  /// A launch on memory (both keychain sets in memory), with the engine every write goes through.
   init(
     transport: HTTPTransport,
     resolve: (@Sendable (String, [String: String], FrontDoor) async throws -> OnboardingProbe)? = nil,
     listener: (@Sendable () -> any LoopbackCallbackListening)? = nil,
     sleep: (@Sendable (Duration) async throws -> Void)? = nil,
-    secrets: InMemorySecretStorage = InMemorySecretStorage()
+    secrets: InMemorySecretStore = InMemorySecretStore()
   ) throws {
-    let store = try SQLiteStore(.inMemory)
-    let directory = GatewayDirectory(store: GatewayRegistryStore(store: store), changes: KeyValueStore(store: store))
+    let launch = AppLaunch(
+      environment: LaunchEnvironment(
+        dataDirectory: nil,
+        authenticator: ScriptedAuthenticator(),
+        secrets: secrets,
+        synced: InMemorySyncedItemStore()
+      )
+    )
     let services = GatewayServices(
-      store: store,
-      secrets: secrets,
       transport: transport,
       resolve: resolve,
       makeListener: listener ?? { FakeListener() },
@@ -452,10 +460,23 @@ struct OnboardingHarness {
       sleep: sleep ?? Self.instantDebounce
     )
 
-    self.store = store
+    self.launch = launch
     self.secrets = secrets
-    self.directory = directory
-    self.accounts = GatewayAccounts(directory: directory, services: services)
+    self.accounts = GatewayAccounts(launch: launch, services: services)
+    launch.gateways.onRemoved = { [accounts] id in await accounts.forgotten(id) }
+  }
+
+  /// The sign-in items of every gateway (`hermie.auth.*`) still in the keychain.
+  func credentialKeys() throws -> [String] {
+    try secrets.keys(prefix: "hermie.auth.")
+  }
+
+  /// Add a gateway the way onboarding does, through the engine.
+  @discardableResult
+  func addGateway(_ gateway: NewGateway) async throws -> String {
+    let id = try await sync.addGateway(gateway)
+    await directory.load()
+    return id
   }
 
   /// The probe's pause passes at once; the sign-in timeout never does (only cancellation ends it).
@@ -472,7 +493,7 @@ struct OnboardingHarness {
   }
 
   func registry() async throws -> GatewayRegistry {
-    try await GatewayRegistryStore(store: store).load()
+    try await store.read { GatewayRegistry.decode(try $0.kvValue(forKey: StoreKeys.gateways)) }
   }
 
   func config(_ id: String) async -> StoredGatewayConfig? {
@@ -549,4 +570,12 @@ func rawHTTP(port: UInt16, _ request: String) async throws -> String {
 /// A GET as a browser sends it.
 func browserGET(_ target: String, port: UInt16, host: String? = nil) -> String {
   "GET \(target) HTTP/1.1\r\nHost: \(host ?? "127.0.0.1:\(port)")\r\nUser-Agent: test\r\nAccept: text/html\r\n\r\n"
+}
+
+/// A device secret store that refuses every write, as a keychain can.
+final class RefusingSecretStore: SyncDeviceSecretStore {
+  func get(_ key: String) throws -> String? { nil }
+  func set(_ key: String, _ value: String) throws { throw SecretStoreError.keychain(operation: .add, status: -25_308) }
+  func delete(_ key: String) throws {}
+  func removeAll(prefix: String) throws -> Int { 0 }
 }

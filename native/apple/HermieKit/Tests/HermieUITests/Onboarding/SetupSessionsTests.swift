@@ -12,9 +12,9 @@ import Testing
 @Suite("Setup sessions")
 struct SetupSessionsTests {
   func accounts() -> GatewayAccounts {
-    let launch = AppLaunch(environment: LaunchEnvironment(dataDirectory: nil, authenticator: ScriptedAuthenticator()))
+    let launch = AppLaunch(environment: .inMemory(dataDirectory: nil, authenticator: ScriptedAuthenticator()))
 
-    return GatewayAccounts(directory: launch.gateways, services: GatewayServices(store: launch.store, secrets: InMemorySecretStorage()))
+    return GatewayAccounts(launch: launch, services: GatewayServices())
   }
 
   @Test("setup built again (after an unlock) is the same flow, where it was, with the same browser sheet")

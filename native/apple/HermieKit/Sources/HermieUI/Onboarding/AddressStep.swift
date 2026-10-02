@@ -39,6 +39,13 @@ struct AddressStep: View {
         SettingsNote(Strings.App.Onboarding.Address.subtitle)
       }
 
+      if model.listUnreadable {
+        Section {
+          StatusLine(text: NativeStrings.Onboarding.listUnreadable, tone: .error)
+            .accessibilityIdentifier("hermie.onboarding.listUnreadable")
+        }
+      }
+
       if let line = OnboardingMessages.probeLine(model) {
         Section {
           StatusLine(text: line.text, tone: line.tone)
@@ -130,7 +137,7 @@ private struct CleartextSection: View {
 }
 
 /// Advanced: how the proxy in front of the gateway lets Hermie through.
-private struct AdvancedSection: View {
+struct AdvancedSection: View {
   @Bindable var model: OnboardingModel
 
   var body: some View {

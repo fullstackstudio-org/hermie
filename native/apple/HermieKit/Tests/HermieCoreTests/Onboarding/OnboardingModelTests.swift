@@ -64,15 +64,6 @@ final class ProbeStub: Sendable {
   static let selfHosted = AuthProvider(name: "self-hosted", displayName: "Self-Hosted", supportsPassword: true)
 }
 
-/// A secret store that refuses every write.
-final class RefusingSecretStorage: GatewaySecretStorage {
-  struct Refused: Error {}
-
-  func get(_ key: String) throws -> String? { nil }
-  func set(_ key: String, _ value: String) throws { throw Refused() }
-  func delete(_ key: String) throws {}
-}
-
 @MainActor
 @Suite("Onboarding model")
 struct OnboardingModelTests {
@@ -647,7 +638,7 @@ struct OnboardingModelTests {
     #expect(!model.canLeaveSignIn)
     #expect(await model.finish() == nil)
     #expect(try await harness.registry().gateways.isEmpty)
-    #expect(harness.secrets.keys.isEmpty)
+    #expect(try harness.credentialKeys().isEmpty)
   }
 
   @Test("changing the address after signing in drops the sign-in")
@@ -676,11 +667,17 @@ struct OnboardingModelTests {
   @Test("a keychain that refuses leaves nothing behind")
   func keychainRefuses() async throws {
     let server = GatewayStub.ungated()
-    let store = try SQLiteStore(.inMemory)
-    let directory = GatewayDirectory(store: GatewayRegistryStore(store: store), changes: KeyValueStore(store: store))
+    let launch = AppLaunch(
+      environment: LaunchEnvironment(
+        dataDirectory: nil,
+        authenticator: ScriptedAuthenticator(),
+        secrets: RefusingSecretStore(),
+        synced: InMemorySyncedItemStore()
+      )
+    )
     let accounts = GatewayAccounts(
-      directory: directory,
-      services: GatewayServices(store: store, secrets: RefusingSecretStorage(), transport: server.transport(), sleep: OnboardingHarness.instantDebounce)
+      launch: launch,
+      services: GatewayServices(transport: server.transport(), sleep: OnboardingHarness.instantDebounce)
     )
     let model = OnboardingModel(mode: .newGateway, accounts: accounts)
 
@@ -691,7 +688,7 @@ struct OnboardingModelTests {
 
     #expect(await model.finish() == nil)
     #expect(model.saveState == .failed(.keychain))
-    #expect(try await GatewayRegistryStore(store: store).load().gateways.isEmpty)
+    #expect(GatewayRegistry.decode(try await launch.store.read { try $0.kvValue(forKey: StoreKeys.gateways) }).gateways.isEmpty)
   }
 
   @Test("a list from a newer Hermie is not written over, and the secrets are taken back out")
@@ -709,7 +706,7 @@ struct OnboardingModelTests {
 
     #expect(await model.finish() == nil)
     #expect(model.saveState == .failed(.unsupportedRegistry))
-    #expect(harness.secrets.keys.isEmpty)
+    #expect(try harness.credentialKeys().isEmpty)
   }
 
   // MARK: Review fixes
@@ -796,16 +793,17 @@ struct OnboardingModelTests {
     await eventually { if case .failed(.provider) = model.signIn { true } else { false } }
   }
 
-  /// A gateway stored and signed in with a session token, for the sign-in-again tests.
-  func storedTokenGateway(_ harness: OnboardingHarness, id: String, address: String = "https://gw.example.test") async throws {
-    try await GatewayRegistryStore(store: harness.store).add(
-      GatewayRecord(id: id, name: "Work", address: address, authKind: .sessionToken, addedAt: 1)
+  /// A session-token gateway added through the engine, signed out, for the sign-in-again tests.
+  func storedTokenGateway(
+    _ harness: OnboardingHarness,
+    id: String,
+    address: String = "https://gw.example.test",
+    headers: [String: String] = [:],
+    frontDoor: FrontDoor = .none
+  ) async throws {
+    try await harness.addGateway(
+      NewGateway(id: id, name: "Work", address: address, authKind: .sessionToken, frontDoor: frontDoor, customHeaders: headers)
     )
-    try await KeyValueStore(store: harness.store).setString(
-      try StoredGatewayConfig(baseUrl: address, authMode: .sessionToken).encoded(),
-      forKey: StoredGatewayConfig.key(gatewayId: id)
-    )
-    await harness.directory.load()
   }
 
   @Test("signing in again to a gateway removed meanwhile stores nothing and leaves no credential behind")
@@ -826,7 +824,7 @@ struct OnboardingModelTests {
 
     #expect(await model.continueFromSignIn() == nil)
     #expect(model.saveState == .failed(.gatewayRemoved))
-    #expect(harness.secrets.keys.isEmpty)
+    #expect(try harness.credentialKeys().isEmpty)
     #expect(await harness.config(id) == nil)
     #expect(try await harness.registry().gateways.isEmpty)
   }
@@ -847,7 +845,31 @@ struct OnboardingModelTests {
 
     #expect(await model.continueFromSignIn() == nil)
     #expect(model.saveState == .failed(.addressChanged))
-    #expect(harness.secrets.keys.isEmpty)
+    #expect(try harness.credentialKeys().isEmpty)
+  }
+
+  @Test("signing in again can enter the way in again, which a sign-out deleted")
+  func signInAgainWithTheWayIn() async throws {
+    let server = GatewayStub.ungated()
+    let harness = try OnboardingHarness(transport: server.transport())
+    let id = "g00aa11bb22cc66"
+    let keys = try GatewaySecretKeys(gatewayID: id)
+
+    try await storedTokenGateway(harness, id: id)
+
+    let model = harness.model(.signIn(gatewayId: id))
+
+    await model.load()
+    await eventually { model.resolved != nil }
+    model.addHeader()
+    model.headers[0].name = "X-Proxy-Key"
+    model.headers[0].value = "again"
+    await eventually { model.resolved != nil }
+    model.sessionToken = "good-token"
+
+    #expect(await model.continueFromSignIn() == id)
+    #expect(try harness.secrets.get(keys.extraHeaders)?.contains("again") == true)
+    #expect(try harness.secrets.get(keys.sessionToken) == "good-token")
   }
 
   @Test("load() runs once, however often the sheet is built again")
@@ -855,13 +877,7 @@ struct OnboardingModelTests {
     let harness = try OnboardingHarness(transport: GatewayStub.ungated().transport())
     let id = "g00aa11bb22cc55"
 
-    try await storedTokenGateway(harness, id: id)
-    try GatewaySecrets.save(
-      storage: harness.secrets,
-      keys: try GatewaySecretKeys(gatewayID: id),
-      baseURL: "https://gw.example.test",
-      customHeaders: ["X-Proxy-Key": "v"]
-    )
+    try await storedTokenGateway(harness, id: id, headers: ["X-Proxy-Key": "v"])
 
     let model = harness.model(.signIn(gatewayId: id))
 
@@ -879,22 +895,12 @@ struct OnboardingModelTests {
     let id = "g00112233445566"
     let keys = try GatewaySecretKeys(gatewayID: id)
 
-    try await GatewayRegistryStore(store: harness.store).add(
-      GatewayRecord(id: id, name: "Work", address: "https://gw.example.test", authKind: .sessionToken, addedAt: 1)
-    )
-    try await KeyValueStore(store: harness.store).setString(
-      try StoredGatewayConfig(baseUrl: "https://gw.example.test", authMode: .sessionToken).encoded(),
-      forKey: StoredGatewayConfig.key(gatewayId: id)
-    )
-    try GatewaySecrets.save(
-      storage: harness.secrets,
-      keys: keys,
-      baseURL: "https://gw.example.test",
-      customHeaders: ["X-Proxy-Key": "proxy-secret"],
+    try await storedTokenGateway(
+      harness,
+      id: id,
+      headers: ["X-Proxy-Key": "proxy-secret"],
       frontDoor: .cloudflareAccess(.init(clientID: "id", clientSecret: "cf", origin: "https://gw.example.test"))
     )
-    try harness.secrets.set(keys.accessToken, "stale-access")
-    await harness.directory.load()
 
     let model = harness.model(.signIn(gatewayId: id))
 
@@ -915,7 +921,6 @@ struct OnboardingModelTests {
 
     #expect(saved == id)
     #expect(try harness.secrets.get(keys.sessionToken) == "good-token")
-    #expect(try harness.secrets.get(keys.accessToken) == nil)
     #expect(try harness.secrets.get(keys.extraHeaders) != nil)
     #expect(try harness.secrets.get(keys.frontDoor) != nil)
     #expect(try await harness.registry().gateway(id: id)?.name == "Work")

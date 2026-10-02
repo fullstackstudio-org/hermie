@@ -104,7 +104,14 @@ struct GatewaysSettingsPage: View {
       presenting: removing
     ) { entry in
       Button(Strings.App.Settings.Gateways.removeConfirmAction, role: .destructive) {
-        Task { try? await directory.remove(id: entry.id) }
+        // Through the accounts: the grant is handed back before the engine removes the gateway.
+        Task {
+          if let accounts {
+            try? await accounts.remove(entry.id)
+          } else {
+            try? await directory.remove(id: entry.id)
+          }
+        }
       }
       Button(Strings.App.Settings.Gateways.keepIt, role: .cancel) {}
     } message: { _ in

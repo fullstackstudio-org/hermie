@@ -1,9 +1,12 @@
 import Foundation
 import HermieGateway
+import HermieProtocol
+import HermieShared
 import HermieStore
 import Observation
 
-/// What is stored for one gateway, read back together: its config and its secrets.
+/// What is stored for one gateway, read back together: its config and the credentials a connection
+/// may use (`GatewaySyncEngine.storedCredentials`).
 public struct GatewayAccess: Sendable {
   public var id: String
   public var baseURL: String
@@ -31,16 +34,21 @@ public enum GatewayAccessError: Error, Sendable, Equatable, CustomStringConverti
 }
 
 /**
- The credentials side of the configured gateways: who is signed in where, signing out, forgetting a
- removed gateway's secrets, and one `TokenCoordinator` per gateway for everything in this process that
- calls it with a bearer.
+ The credentials side of the configured gateways: who is signed in where, signing out, removing a
+ gateway (its grant revoked first), and one `TokenCoordinator` per gateway for everything in this
+ process that calls it with a bearer.
+
+ Every write goes through the sync engine (`launch.sync`), the only writer of the gateway list and
+ of every credential: it binds credentials to the origin they were entered for and records what the
+ person did for the other devices. Credentials are read only through `storedCredentials(of:)` and
+ `tokenStore(of:)`, which give nothing for a gateway whose credentials still belong to an origin it
+ moved away from.
 
  One coordinator per gateway matters: a refresh token rotates, and two coordinators refreshing the
  same grant would spend it twice, which a provider with reuse detection answers by revoking the
- session. Anything that needs the stored tokens (the account page, sign-out, and the session) asks
- `coordinator(for:)`; a change of credentials bumps `credentialsRevision`, and drops the cached one.
-
- `GatewayDirectory.onRemoved` is set to `forget(_:)` by the app.
+ session. Anything that needs the stored tokens (the account page, sign-out, a sign-in again, and
+ the session) asks `coordinator(for:)`; a change of credentials bumps `credentialsRevision` and drops
+ the cached one.
  */
 @MainActor
 @Observable
@@ -53,27 +61,40 @@ public final class GatewayAccounts {
 
   public let services: GatewayServices
   public let directory: GatewayDirectory
+  public let sync: GatewaySyncEngine
+  @ObservationIgnored public let store: SQLiteStore
+  @ObservationIgnored public let push: PushController?
+  @ObservationIgnored let share: ShareDeliveryPublisher?
+
+  /**
+   Called when this device stops using a gateway's credentials (a sign-out, a removal), so the live
+   session to it ends. The session wiring sets it; nothing else may keep a socket signed in with
+   credentials that are gone.
+   */
+  @ObservationIgnored public var endSession: (@MainActor (String) async -> Void)?
 
   /// Per gateway id. A gateway not read yet is `.unknown`.
   public private(set) var statuses: [String: Status] = [:]
   /// Per gateway id: bumped whenever its stored credentials changed (signed in, out, or removed).
   public private(set) var credentialsRevision: [String: Int] = [:]
 
-  /// The address of every gateway seen, so a removed one can still be revoked at.
-  @ObservationIgnored private var remembered: [String: String] = [:]
   @ObservationIgnored private var coordinators: [String: (baseURL: String, coordinator: TokenCoordinator)] = [:]
   @ObservationIgnored private var following = false
 
-  public init(directory: GatewayDirectory, services: GatewayServices) {
-    self.directory = directory
+  public init(launch: AppLaunch, services: GatewayServices, share: ShareDeliveryPublisher? = nil) {
+    self.directory = launch.gateways
+    self.sync = launch.sync
+    self.store = launch.store
+    self.push = launch.push
     self.services = services
+    self.share = share
   }
 
   public func status(for id: String) -> Status {
     statuses[id] ?? .unknown
   }
 
-  /// Keep the remembered addresses and the statuses in step with the gateway list. Idempotent.
+  /// Keep the statuses in step with the gateway list. Idempotent.
   public func follow() {
     guard !following else {
       return
@@ -84,14 +105,10 @@ public final class GatewayAccounts {
   }
 
   private func observeDirectory() {
-    let entries = withObservationTracking {
+    _ = withObservationTracking {
       directory.entries
     } onChange: { [weak self] in
       Task { @MainActor [weak self] in self?.observeDirectory() }
-    }
-
-    for entry in entries {
-      remembered[entry.id] = entry.address
     }
 
     Task { await refresh() }
@@ -100,8 +117,6 @@ public final class GatewayAccounts {
   /// Read whether each configured gateway has a credential stored.
   public func refresh() async {
     for entry in directory.entries {
-      remembered[entry.id] = entry.address
-
       let status: Status = ((try? await access(for: entry.id))?.secrets.hasCredentials ?? false) ? .signedIn : .signedOut
 
       if statuses[entry.id] != status {
@@ -115,42 +130,37 @@ public final class GatewayAccounts {
   public func config(for id: String) async -> StoredGatewayConfig? {
     let key = StoredGatewayConfig.key(gatewayId: id)
 
-    return StoredGatewayConfig.decode(try? await services.store.read { try $0.kvValue(forKey: key) })
+    return StoredGatewayConfig.decode(try? await store.read { try $0.kvValue(forKey: key) })
   }
 
-  /// The config and the secrets of one gateway. The address falls back to the registry's when the
-  /// config is missing, and the mode to the registry's auth kind.
+  /// The config and the credentials of one gateway, through the engine.
   public func access(for id: String) async throws -> GatewayAccess {
     let config = await config(for: id)
 
-    guard let baseURL = config?.baseUrl ?? directory.entry(id: id)?.address ?? remembered[id] else {
+    guard let baseURL = directory.entry(id: id)?.address ?? config?.baseUrl else {
       throw GatewayAccessError.unknownGateway
     }
 
-    let mode = config?.mode ?? .nativePKCE
-    let keys = try Self.keys(id)
-    let storage = services.secrets
     let secrets: StoredGatewaySecrets
 
     do {
-      secrets = try await services.offMain {
-        try GatewaySecrets.load(storage: storage, keys: keys, baseURL: baseURL, mode: mode)
-      }
+      secrets = try await sync.storedCredentials(of: id)
+    } catch SyncEngineError.unknownGateway {
+      throw GatewayAccessError.unknownGateway
     } catch {
       throw GatewayAccessError.keychain
     }
 
-    return GatewayAccess(id: id, baseURL: baseURL, mode: mode, config: config, secrets: secrets)
+    return GatewayAccess(id: id, baseURL: baseURL, mode: config?.mode ?? .nativePKCE, config: config, secrets: secrets)
   }
 
-  /// The one token coordinator for a gateway's stored tokens.
+  /// The one token coordinator for a gateway, over the engine's token store for it.
   public func coordinator(for id: String, baseURL: String, headers: [String: String]) throws -> TokenCoordinator {
     if let cached = coordinators[id], cached.baseURL == baseURL {
       return cached.coordinator
     }
 
-    let store = SecretTokenStore(storage: services.secrets, keys: try Self.keys(id))
-    let coordinator = services.tokenCoordinator(store: store, baseURL: baseURL, headers: headers)
+    let coordinator = services.tokenCoordinator(store: try sync.tokenStore(of: id), baseURL: baseURL, headers: headers)
 
     coordinators[id] = (baseURL, coordinator)
     return coordinator
@@ -195,68 +205,41 @@ public final class GatewayAccounts {
   // MARK: - Changing
 
   /**
-   Sign out of one gateway: hand a native grant back when the gateway advertises `native_revoke`
-   (best effort, bounded by the probe's and the revoke's timeouts), then delete the credential. The
-   way in (custom headers, front door) and the address stay, so signing in again asks for nothing
-   but the sign-in.
+   Sign out of one gateway on this device: the live session ends, a native grant is handed back
+   when the gateway advertises `native_revoke` (best effort, bounded by the probe's and the revoke's
+   timeouts), then the engine deletes the six sign-in items (the way in, custom headers and front
+   door, with them, as the Expo build does). The address stays. Push stops for it; the share sheet
+   stops sending to it.
    */
   public func signOut(_ id: String) async {
-    if let access = try? await access(for: id) {
-      if access.mode == .nativePKCE, let coordinator = try? coordinator(for: id, baseURL: access.baseURL, headers: access.secrets.extraHeaders) {
-        await revoke(baseURL: access.baseURL, headers: access.secrets.extraHeaders, coordinator: coordinator)
-      }
-    }
-
-    if let keys = try? Self.keys(id) {
-      let storage = services.secrets
-
-      _ = try? await services.offMain {
-        for key in [keys.accessToken, keys.refreshToken, keys.tokenMeta, keys.sessionToken] {
-          try? storage.delete(key)
-        }
-      }
-    }
-
-    try? await GatewayRegistration.signedOut(id: id, in: services.store)
-
-    credentialsChanged(id)
-    statuses[id] = .signedOut
+    await endSession?(id)
+    await revokeIfAdvertised(id)
+    try? await sync.signOut(id: id, scope: .thisDevice)
+    await push?.retire(gatewayId: id)
+    _ = share?.drop(gatewayId: id)
+    credentialsChanged(id, signedIn: false)
   }
 
   /**
-   A gateway was removed from the list (`GatewayDirectory.onRemoved`): revoke a native grant when the
-   gateway advertises it, then delete every secret stored for it. The registry and the key-value
-   store were purged before this is called, so the address comes from what was remembered.
+   Remove a gateway: the live session ends, its grant is handed back first (the credentials are
+   still there to do it with), then the directory removes it through the engine, which purges what
+   this device kept for it. `onRemoved` finishes the rest (`forgotten(_:)`).
    */
-  public func forget(_ id: String) async {
-    if let baseURL = remembered[id], let keys = try? Self.keys(id) {
-      let storage = services.secrets
-      let stored = try? await services.offMain {
-        try GatewaySecrets.load(storage: storage, keys: keys, baseURL: baseURL, mode: .nativePKCE)
-      }
+  public func remove(_ id: String, scope: RemovalScope = .thisDevice) async throws {
+    await endSession?(id)
+    await revokeIfAdvertised(id)
+    try await directory.remove(id: id, scope: scope)
+  }
 
-      if let stored, stored.hasCredentials, stored.canRefresh,
-        let coordinator = try? coordinator(for: id, baseURL: baseURL, headers: stored.extraHeaders) {
-        await revoke(baseURL: baseURL, headers: stored.extraHeaders, coordinator: coordinator)
-      }
-    }
-
-    if let all = try? SecretKeys.gateway(id).all {
-      let storage = services.secrets
-
-      _ = try? await services.offMain {
-        for key in all {
-          try? storage.delete(key)
-        }
-      }
-    }
-
-    remembered[id] = nil
+  /// A gateway left the list (`GatewayDirectory.onRemoved`, whoever removed it): forget what this
+  /// process holds for it, and stop the share sheet sending to it. The engine removed the secrets.
+  public func forgotten(_ id: String) async {
+    _ = share?.drop(gatewayId: id)
     statuses[id] = nil
     credentialsChanged(id)
   }
 
-  /// The credentials of a gateway were written by someone else (onboarding, the sign-in sheet).
+  /// The credentials of a gateway changed (onboarding, the sign-in sheet, a sign-out).
   public func credentialsChanged(_ id: String, signedIn: Bool? = nil) {
     coordinators[id] = nil
     credentialsRevision[id, default: 0] += 1
@@ -266,46 +249,78 @@ public final class GatewayAccounts {
     }
   }
 
-  /// `NativePKCECredentials.signOut()` with the probe's verdict on `native_revoke`. Never throws: the
-  /// local wipe happens either way.
-  private func revoke(baseURL: String, headers: [String: String], coordinator: TokenCoordinator) async {
-    let canRevoke = (try? await services.probe(baseURL, headers))?.supportsNativeRevoke ?? false
-    let credentials = NativePKCECredentials(
-      baseURL: baseURL,
-      coordinator: coordinator,
-      extraHeaders: headers,
-      canRevoke: canRevoke,
-      transport: services.transport
+  /// A finished sign-in: push resumes for the gateway, and when it is the live one the share sheet
+  /// gets what it sends with.
+  func signedIn(_ id: String) async {
+    await push?.resume(gatewayId: id)
+
+    guard directory.activeId == id, let share, let access = try? await access(for: id) else {
+      return
+    }
+
+    let tokens = access.mode == .nativePKCE
+      ? try? await coordinator(for: id, baseURL: access.baseURL, headers: access.secrets.extraHeaders).current()
+      : nil
+    let record = ShareDeliveryRecord.build(
+      gatewayId: id,
+      gatewayKey: GatewayKey.of(access.baseURL),
+      baseUrl: access.baseURL,
+      authMode: access.mode.rawValue,
+      headers: access.secrets.extraHeaders,
+      sessionToken: access.secrets.sessionToken,
+      accessToken: tokens?.accessToken,
+      expiresAt: tokens?.expiresAt ?? 0
     )
 
-    try? await credentials.signOut()
+    if let record {
+      _ = share.publish(record)
+    }
   }
 
-  static func keys(_ id: String) throws -> GatewaySecretKeys {
-    do {
-      return try GatewaySecretKeys(gatewayID: id)
-    } catch {
-      throw GatewayAccessError.unknownGateway
+  /// Hand a native grant back, when the gateway takes it (`native_revoke`). Never throws, and
+  /// changes nothing stored: the engine deletes the credentials afterwards.
+  private func revokeIfAdvertised(_ id: String) async {
+    guard let access = try? await access(for: id), access.mode == .nativePKCE,
+      let coordinator = try? coordinator(for: id, baseURL: access.baseURL, headers: access.secrets.extraHeaders),
+      let held = try? await coordinator.current(), !held.refreshToken.isEmpty
+    else {
+      return
     }
+
+    let headers = access.secrets.extraHeaders
+
+    guard (try? await services.probe(access.baseURL, headers))?.supportsNativeRevoke == true,
+      let url = try? GatewayAddress.apiURL(access.baseURL, path: NativePKCECredentials.revokePath)
+    else {
+      return
+    }
+
+    let body = JSONValue.object(["refresh_token": .string(held.refreshToken), "provider": .string(held.provider)])
+
+    _ = try? await services.transport.requestText(
+      url,
+      JSONRequest(
+        method: "POST",
+        headers: (try? GatewayAddress.normalizeHeaders(headers)) ?? [:],
+        body: body,
+        timeoutMs: NativePKCECredentials.revokeTimeoutMs
+      )
+    )
   }
 }
 
 extension GatewayAccounts {
   /**
-   The app's accounts: the launch's store, the keychain, and a loopback listener that answers the
-   browser with `pages`. Removing a gateway (`GatewayDirectory.onRemoved`) forgets its secrets.
+   The app's accounts over its launch, with a loopback listener that answers the browser with
+   `pages`. A gateway that leaves the list (`GatewayDirectory.onRemoved`) is forgotten here too.
    */
   public static func live(launch: AppLaunch, pages: LoopbackPages) -> GatewayAccounts {
     // One services value for the whole app, so every window shares the one browser sign-in gate.
-    let services = GatewayServices(
-      store: launch.store,
-      secrets: KeychainStore(),
-      makeListener: { LoopbackCallbackListener(pages: pages) }
-    )
-    let accounts = GatewayAccounts(directory: launch.gateways, services: services)
+    let services = GatewayServices(makeListener: { LoopbackCallbackListener(pages: pages) })
+    let accounts = GatewayAccounts(launch: launch, services: services, share: ShareDeliveryPublisher.live())
 
     launch.gateways.onRemoved = { [weak accounts] id in
-      await accounts?.forget(id)
+      await accounts?.forgotten(id)
     }
 
     accounts.follow()

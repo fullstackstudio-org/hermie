@@ -40,6 +40,7 @@ public struct OnboardingFlow: View {
         }
     }
     .interactiveDismissDisabled()
+    .task { await session.model.opened() }
     #if os(macOS)
       .frame(minWidth: 520, idealWidth: 560, minHeight: 560, idealHeight: 640)
     #endif

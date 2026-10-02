@@ -975,6 +975,29 @@
         }
       }
     },
+    "native.onboarding.listUnreadable" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Die Gateway-Liste auf diesem Gerät ist nicht lesbar oder stammt von einer neueren Hermie-Version, deshalb kann jetzt kein Gateway hinzugefügt werden. Aktualisiere Hermie oder starte es neu."
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "The gateway list on this device cannot be read, or was written by a newer Hermie, so no gateway can be added now. Update Hermie, or restart it."
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "De gatewaylijst op dit apparaat is onleesbaar of door een nieuwere Hermie geschreven, dus er kan nu geen gateway worden toegevoegd. Werk Hermie bij of start hem opnieuw."
+          }
+        }
+      }
+    },
     "native.onboarding.save.addressChanged" : {
       "extractionState" : "manual",
       "localizations" : {

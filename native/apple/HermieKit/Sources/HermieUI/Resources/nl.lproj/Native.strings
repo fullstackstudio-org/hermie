@@ -86,6 +86,8 @@
 	<string>Dit is geen geldige headernaam.</string>
 	<key>native.onboarding.header.reserved</key>
 	<string>Hermie zet deze header zelf.</string>
+	<key>native.onboarding.listUnreadable</key>
+	<string>De gatewaylijst op dit apparaat is onleesbaar of door een nieuwere Hermie geschreven, dus er kan nu geen gateway worden toegevoegd. Werk Hermie bij of start hem opnieuw.</string>
 	<key>native.onboarding.save.addressChanged</key>
 	<string>Deze gateway antwoordt nu op een ander adres, dus er is niets opgeslagen. Voeg hem opnieuw toe als nieuwe gateway.</string>
 	<key>native.onboarding.save.gatewayRemoved</key>

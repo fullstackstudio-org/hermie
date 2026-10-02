@@ -86,6 +86,8 @@
 	<string>Das ist kein gültiger Header-Name.</string>
 	<key>native.onboarding.header.reserved</key>
 	<string>Diesen Header setzt Hermie selbst.</string>
+	<key>native.onboarding.listUnreadable</key>
+	<string>Die Gateway-Liste auf diesem Gerät ist nicht lesbar oder stammt von einer neueren Hermie-Version, deshalb kann jetzt kein Gateway hinzugefügt werden. Aktualisiere Hermie oder starte es neu.</string>
 	<key>native.onboarding.save.addressChanged</key>
 	<string>Dieses Gateway antwortet jetzt unter einer anderen Adresse, deshalb wurde nichts gespeichert. Füge es als neues Gateway hinzu.</string>
 	<key>native.onboarding.save.gatewayRemoved</key>

@@ -1,6 +1,5 @@
 import Foundation
 import HermieGateway
-import HermieStore
 
 /// What a probe of a typed address found, and where (`ResolvedAddress`, which has no public init).
 public struct OnboardingProbe: Sendable, Equatable {
@@ -18,12 +17,11 @@ public struct OnboardingProbe: Sendable, Equatable {
 }
 
 /**
- Everything onboarding, sign-in and sign-out reach outside themselves for: the stores, the keychain,
- the network, the loopback listener and the clock. `live` is the app's; tests replace any of it.
+ What onboarding, sign-in and sign-out reach outside themselves for, besides the launch (its store,
+ its sync engine, which is the only writer of the gateway list and of every credential, and its
+ push): the network, the loopback listener and the clock. Tests replace any of it.
  */
 public struct GatewayServices: Sendable {
-  public var store: SQLiteStore
-  public var secrets: any GatewaySecretStorage
   public var transport: HTTPTransport
   /// `Probe.resolveGatewayAddress` (ADR-0014): https first, http only when no scheme was typed.
   public var resolve: @Sendable (_ raw: String, _ customHeaders: [String: String], _ frontDoor: FrontDoor) async throws
@@ -43,8 +41,6 @@ public struct GatewayServices: Sendable {
   public var browserGate: BrowserSignInGate
 
   public init(
-    store: SQLiteStore,
-    secrets: any GatewaySecretStorage,
     transport: HTTPTransport = HTTPTransport(),
     resolve: (@Sendable (String, [String: String], FrontDoor) async throws -> OnboardingProbe)? = nil,
     probe: (@Sendable (String, [String: String]) async throws -> ProbeResult)? = nil,
@@ -56,8 +52,6 @@ public struct GatewayServices: Sendable {
     signInTimeout: Duration = .seconds(600),
     browserGate: BrowserSignInGate? = nil
   ) {
-    self.store = store
-    self.secrets = secrets
     self.transport = transport
     self.resolve =
       resolve ?? { raw, custom, frontDoor in
@@ -78,11 +72,6 @@ public struct GatewayServices: Sendable {
     self.probeDebounce = probeDebounce
     self.signInTimeout = signInTimeout
     self.browserGate = browserGate ?? BrowserSignInGate()
-  }
-
-  /// Run a keychain call off the main actor: each one is a short IPC round trip, but it blocks.
-  func offMain<T: Sendable>(_ work: @escaping @Sendable () throws -> T) async throws -> T {
-    try await Task.detached(priority: .userInitiated) { try work() }.value
   }
 
   /// A coordinator over one gateway's stored tokens, refreshing through `NativeAuth`.

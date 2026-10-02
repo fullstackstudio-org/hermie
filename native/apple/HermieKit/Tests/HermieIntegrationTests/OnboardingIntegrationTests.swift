@@ -5,33 +5,50 @@ import HermieGateway
 import HermieStore
 import Testing
 
-/// The stores one launch of the app has, in memory: the database and the secret storage. Never
-/// the real keychain.
+/// What survives a relaunch of the app: its data directory (a temporary one) and both keychain
+/// sets, in memory. Never the real keychain.
 @MainActor
-struct OnboardingStores {
-  let store: SQLiteStore
-  let secrets: InMemorySecretStorage
+final class OnboardingStores {
+  let directory = FileManager.default.temporaryDirectory.appendingPathComponent("hermie-onboarding-\(UUID().uuidString)")
+  let secrets = InMemorySecretStore()
+  let synced = InMemorySyncedItemStore()
+  /// Every launch made, kept alive for the test.
+  private var launches: [AppLaunch] = []
 
-  init() throws {
-    store = try SQLiteStore(.inMemory)
-    secrets = InMemorySecretStorage()
+  init() throws {}
+
+  deinit {
+    try? FileManager.default.removeItem(at: directory)
   }
 
-  /// What a launch builds over these stores: the gateway list and the accounts, loaded.
+  /// A launch over these stores, started, and its accounts: what the app builds at every start.
   func launch(makeListener: @escaping @Sendable () -> any LoopbackCallbackListening = { LoopbackCallbackListener() })
     async -> GatewayAccounts
   {
-    let directory = GatewayDirectory(store: GatewayRegistryStore(store: store), changes: KeyValueStore(store: store))
-    let accounts = GatewayAccounts(
-      directory: directory,
-      services: GatewayServices(store: store, secrets: secrets, makeListener: makeListener)
+    let launch = AppLaunch(
+      environment: LaunchEnvironment(
+        dataDirectory: directory,
+        authenticator: ScriptedAuthenticator(),
+        secrets: secrets,
+        synced: synced
+      )
     )
 
-    directory.onRemoved = { [weak accounts] id in await accounts?.forget(id) }
-    await directory.load()
+    launches.append(launch)
+    await launch.start()
+
+    let accounts = GatewayAccounts(launch: launch, services: GatewayServices(makeListener: makeListener))
+
+    launch.gateways.onRemoved = { [weak accounts] id in await accounts?.forgotten(id) }
+    await launch.gateways.load()
     accounts.follow()
     await accounts.refresh()
     return accounts
+  }
+
+  /// The sign-in items of every gateway still in the keychain.
+  func credentialKeys() throws -> [String] {
+    try secrets.keys(prefix: "hermie.auth.")
   }
 }
 
@@ -183,8 +200,8 @@ extension Integration {
       #expect(try await relaunched.identity(for: id).userID == "tester@example.invalid")
 
       // Removing it wipes its secrets.
-      try await relaunched.directory.remove(id: id)
-      #expect(stores.secrets.keys.isEmpty)
+      try await relaunched.remove(id)
+      #expect(try stores.credentialKeys().isEmpty)
     }
 
     @Test(
@@ -238,8 +255,8 @@ extension Integration {
       #expect(try await relaunched.identity(for: id).userID == "tester@example.invalid")
 
       // Removing the gateway hands the grant back first, then wipes every item.
-      try await relaunched.directory.remove(id: id)
-      #expect(stores.secrets.keys.isEmpty)
+      try await relaunched.remove(id)
+      #expect(try stores.credentialKeys().isEmpty)
 
       await #expect(throws: GatewayError.self) {
         try await NativeAuth.refreshTokens(baseURL: baseURL, refreshToken: refreshToken, provider: "self-hosted")
