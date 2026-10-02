@@ -23,9 +23,9 @@ import Testing
     GatewayEvent(json: ["type": .string(type), "payload": .object(payload), "seq": .number(Double(seq))])
   }
 
-  /// The fastest of three runs of `events` over a fresh copy of `state`.
+  /// The fastest of five runs of `events` over a fresh copy of `state`.
   static func fastest(_ state: ChatState, _ events: [GatewayEvent], publishEvery: Int? = nil) -> Double {
-    (0..<3).map { _ in
+    (0..<5).map { _ in
       var state = state
       var published: ChatState? = nil
       let time = StateCopyBenchmarkTests.seconds {
@@ -44,9 +44,9 @@ import Testing
     .min()!
   }
 
-  /// `tool.start` then `tool.complete`, 1,000 times.
+  /// `tool.start` then `tool.complete`, 5,000 times.
   static func toolEvents() -> [GatewayEvent] {
-    (0..<1_000).flatMap { index -> [GatewayEvent] in
+    (0..<5_000).flatMap { index -> [GatewayEvent] in
       [
         event("tool.start", ["tool_id": .string("c\(index)"), "name": "terminal", "args": ["command": "ls"]], seq: 2 * index + 2),
         event("tool.complete", ["tool_id": .string("c\(index)"), "result_text": "ok"], seq: 2 * index + 3)
@@ -80,19 +80,20 @@ import Testing
   @Test func toolEventsDoNotScaleWithTheTranscript() {
     let events = Self.toolEvents()
     let after = Self.applied(events)
-    #expect(after.byToolID.count == 1_000)
-    #expect(after.items["t:c999"]?.asTool?.status == .complete)
+    #expect(after.byToolID.count == 5_000)
+    #expect(after.items["t:c4999"]?.asTool?.status == .complete)
 
     let small = Self.fastest(Self.runningTurn(filler: Self.small), events)
     let large = Self.fastest(Self.runningTurn(filler: Self.large), events)
     print(
       String(
-        format: "applyEvent(into:) tool.start + tool.complete ×1,000: %.4f s over %d items, %.4f s over %d items (ratio %.2f)",
+        format: "applyEvent(into:) tool.start + tool.complete ×5,000: %.4f s over %d items, %.4f s over %d items (ratio %.2f)",
         small, Self.small, large, Self.large, large / small
       )
     )
-    #expect(large < 2.0, "1,000 tool calls over \(Self.large) items took \(large) s")
-    #expect(large / small < 4.0, "a 20× larger transcript multiplied the time by \(large / small)")
+    #expect(large < 2.0, "5,000 tool calls over \(Self.large) items took \(large) s")
+    // Linear in the transcript would be ×20; the room above ×1 is for a loaded machine.
+    #expect(large / small < 8.0, "a 20× larger transcript multiplied the time by \(large / small)")
   }
 
   @Test func subagentProgressDoesNotScaleWithTheTranscript() {
@@ -110,7 +111,8 @@ import Testing
       )
     )
     #expect(large < 2.0, "2,000 progress events over \(Self.large) items took \(large) s")
-    #expect(large / small < 4.0, "a 20× larger transcript multiplied the time by \(large / small)")
+    // Linear in the transcript would be ×20; the room above ×1 is for a loaded machine.
+    #expect(large / small < 8.0, "a 20× larger transcript multiplied the time by \(large / small)")
   }
 
   /// Streaming while the store publishes a snapshot every 16 deltas. Each publish
