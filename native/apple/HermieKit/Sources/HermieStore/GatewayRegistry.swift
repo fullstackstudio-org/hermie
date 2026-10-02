@@ -72,7 +72,10 @@ public struct GatewayRecord: Sendable, Equatable {
 /**
  The gateway list and which one is live, as stored under `hermie.gateways`.
 
- `{ v: 1, gateways: [...], activeGatewayId }`. Per device and never synced. The operations are the
+ `{ v: 1, gateways: [...], activeGatewayId }`. The list itself is this device's and never leaves it;
+ with "Sync with iCloud Keychain" on, `GatewaySyncEngine` (HermieCore) mirrors its entries through
+ one synced record per gateway and writes what other devices changed back into it (ADR-0032,
+ `.claude/plans/native-rewrite-icloud.md`). The active pointer is never synced. The operations are the
  pure functions of `registry.ts`, with the same rules: the first gateway added becomes active and a
  later one does not; removing the active one moves the pointer to the first that is left.
 
@@ -334,7 +337,14 @@ public struct GatewayRegistryStore: Sendable {
   }
 
   /// Apply a change and save it, atomically.
+  ///
+  /// Not for adding a gateway or changing its address or auth kind: those go through
+  /// `GatewaySyncEngine` (HermieCore, `addGateway`, `changeAddress`, `changeAuthKind`) whether
+  /// sync is on or off. The engine binds each gateway's credentials to the origin they were
+  /// entered for, and an address changed here reads to it as a move to another origin: the
+  /// credentials of the old one are deleted (I13).
   @discardableResult
+  @_spi(GatewaySync)
   public func update(
     _ change: @escaping @Sendable (GatewayRegistry) -> GatewayRegistry
   ) async throws -> GatewayRegistry {
@@ -344,6 +354,7 @@ public struct GatewayRegistryStore: Sendable {
   }
 
   @discardableResult
+  @_spi(GatewaySync)
   public func add(_ record: GatewayRecord) async throws -> GatewayRegistry {
     try await update { $0.adding(record) }
   }
@@ -360,6 +371,7 @@ public struct GatewayRegistryStore: Sendable {
 
   /// Remove a gateway and everything this database kept for it.
   @discardableResult
+  @_spi(GatewaySync)
   public func remove(id: String) async throws -> GatewayRegistry {
     try await store.write { database in
       let registry = try Self.update(database) { $0.removing(id: id) }
@@ -394,6 +406,7 @@ public struct GatewayRegistryStore: Sendable {
    whose namespace is exactly this id goes, because a namespaced key is by definition this
    gateway's and one nobody remembered to list would otherwise outlive it for ever.
    */
+  @_spi(GatewaySync)
   public static func purge(gatewayId id: String, in database: SQLiteDatabase) throws {
     guard GatewayRegistry.isGatewayId(id) else {
       return

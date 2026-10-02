@@ -57,19 +57,23 @@ public final class GatewayDirectory {
   public private(set) var loadFailed = false
 
   /**
-   Called after a gateway was removed from the registry and its cached state purged. The sign-in
-   task sets this to delete the gateway's credentials from the keychain, which the registry store
-   deliberately does not own.
+   Called after a gateway was removed. Its registry entry, cached state and device-only
+   credentials are already gone (the sync engine removed them); this is for whatever else holds
+   on to it.
    */
   public var onRemoved: (@MainActor (String) async -> Void)?
 
+  /// Reads the list and changes the active pointer and names. Adding, moving and removing a
+  /// gateway go through `remover` (the sync engine), whether sync is on or off.
   public let store: GatewayRegistryStore
+  private let remover: any GatewayListSync
   private let changes: KeyValueStore
   private var watching = false
 
-  public init(store: GatewayRegistryStore, changes: KeyValueStore) {
+  public init(store: GatewayRegistryStore, changes: KeyValueStore, remover: any GatewayListSync) {
     self.store = store
     self.changes = changes
+    self.remover = remover
   }
 
   public var active: Entry? {
@@ -141,9 +145,17 @@ public final class GatewayDirectory {
     apply(try await store.rename(id: id, to: name))
   }
 
-  /// Remove a gateway and everything this device kept for it, then let `onRemoved` clear the rest.
-  public func remove(id: String) async throws {
-    apply(try await store.remove(id: id))
+  /// Settings → Gateways was opened: a reconcile (I11).
+  public func settingsOpened() async {
+    await remover.trigger(.settingsOpened)
+  }
+
+  /// Remove a gateway and everything this device kept for it, through the sync engine, so the
+  /// removal is recorded for sync (`.thisDevice` hides it here; `.allDevices` reaches every device
+  /// of a synced gateway), then tell `onRemoved`.
+  public func remove(id: String, scope: RemovalScope = .thisDevice) async throws {
+    try await remover.removeGateway(id: id, scope: scope)
+    apply(try await store.load())
     await onRemoved?(id)
   }
 }

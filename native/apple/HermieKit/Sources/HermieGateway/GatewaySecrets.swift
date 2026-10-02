@@ -138,6 +138,7 @@ public struct SecretTokenStore: TokenStore {
   private let storage: any GatewaySecretStorage
   private let keys: GatewaySecretKeys
 
+  @_spi(GatewaySync)
   public init(storage: any GatewaySecretStorage, keys: GatewaySecretKeys) {
     self.storage = storage
     self.keys = keys
@@ -229,6 +230,7 @@ public enum GatewaySecrets {
 
   /// Read everything `loadGatewaySetup` reads from the secret store. A store
   /// that throws is reported to the caller, which decides what to show.
+  @_spi(GatewaySync)
   public static func load(
     storage: any GatewaySecretStorage,
     keys: GatewaySecretKeys,
@@ -263,6 +265,7 @@ public enum GatewaySecrets {
   /// Write a gateway's secrets (`saveGatewaySetup`'s secret half). If any
   /// write fails, every one of the six is deleted again, best effort, and the
   /// failure is rethrown: a half-written gateway is worse than none.
+  @_spi(GatewaySync)
   public static func save(
     storage: any GatewaySecretStorage,
     keys: GatewaySecretKeys,
@@ -303,6 +306,7 @@ public enum GatewaySecrets {
 
   /// Sign out of one gateway: delete all six items (`clearCredentials`). The
   /// share extension's copy is the app's to drop.
+  @_spi(GatewaySync)
   public static func clearCredentials(storage: any GatewaySecretStorage, keys: GatewaySecretKeys) throws {
     var failure: (any Error)?
 

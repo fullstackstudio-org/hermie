@@ -1,6 +1,6 @@
 #if DEBUG
   import Foundation
-  import HermieStore
+  @_spi(GatewaySync) import HermieStore
 
   /**
    The switches the shell's UI tests launch the app with. Debug builds only: nothing here is

@@ -77,6 +77,7 @@ public struct MainWindow: View {
       saved = snapshot.encoded()
     }
     .pushLifecycle(launch: launch, router: router)
+    .syncLifecycle(launch: launch)
     .onChange(of: ShellRequests.shared.onboarding, initial: true) { _, mode in
       if let mode {
         ShellRequests.shared.onboarding = nil

@@ -43,6 +43,7 @@ struct GatewaysSettingsPage: View {
       }
     }
     .formStyle(.grouped)
+    .task { await directory.settingsOpened() }
     .toolbar {
       // In the toolbar rather than as a row: a button row in a form fails the Dynamic Type audit.
       ToolbarItem(placement: .primaryAction) {

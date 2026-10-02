@@ -24,8 +24,11 @@ public struct LaunchEnvironment: Sendable {
   public var appGroupContainer: URL?
   public var authenticator: any DeviceAuthenticator
   public var clock: @Sendable () -> Double
-  /// Where secrets live: the keychain in the app, memory in tests.
-  public var secrets: any SecretStore
+  /// Where secrets live: the keychain in the app, memory in tests. The device-only set: credentials,
+  /// push secrets, the sync print key.
+  public var secrets: any SyncDeviceSecretStore
+  /// The synced set in iCloud Keychain; only the sync engine reads it.
+  public var synced: any SyncedItemStore
   /// Push: the relay, the topic and the APNs environment.
   public var push: PushLaunchConfiguration
   #if DEBUG
@@ -38,7 +41,8 @@ public struct LaunchEnvironment: Sendable {
     appGroupContainer: URL? = nil,
     authenticator: any DeviceAuthenticator,
     clock: @escaping @Sendable () -> Double = AppLock.monotonicMilliseconds,
-    secrets: any SecretStore = InMemorySecretStore(),
+    secrets: any SyncDeviceSecretStore,
+    synced: any SyncedItemStore,
     push: PushLaunchConfiguration = .disabled
   ) {
     self.dataDirectory = dataDirectory
@@ -46,13 +50,36 @@ public struct LaunchEnvironment: Sendable {
     self.authenticator = authenticator
     self.clock = clock
     self.secrets = secrets
+    self.synced = synced
     self.push = push
+  }
+
+  /// For tests, previews and the UI tests: both keychain sets in memory. The keychain stores are
+  /// required parameters everywhere else, so no production caller keeps a secret in memory by
+  /// leaving one out.
+  public static func inMemory(
+    dataDirectory: URL?,
+    appGroupContainer: URL? = nil,
+    authenticator: any DeviceAuthenticator,
+    clock: @escaping @Sendable () -> Double = AppLock.monotonicMilliseconds,
+    push: PushLaunchConfiguration = .disabled
+  ) -> LaunchEnvironment {
+    LaunchEnvironment(
+      dataDirectory: dataDirectory,
+      appGroupContainer: appGroupContainer,
+      authenticator: authenticator,
+      clock: clock,
+      secrets: InMemorySecretStore(),
+      synced: InMemorySyncedItemStore(),
+      push: push
+    )
   }
 
   /**
    The app's own environment: Application Support (in a folder named after the bundle on the Mac,
    where an unsandboxed build would otherwise share the user's top-level folder), the App Group
-   container and the system authenticator. A debug build reads the UI tests' launch arguments
+   container, the system authenticator and the keychain (device-only and synced). The UI tests'
+   environment keeps its keychain in memory. A debug build reads the UI tests' launch arguments
    here and nowhere else (`LaunchTestHooks`).
    */
   public static func live(bundle: Bundle = .main, arguments: [String] = ProcessInfo.processInfo.arguments)
@@ -60,7 +87,7 @@ public struct LaunchEnvironment: Sendable {
   {
     #if DEBUG
       if let hooks = LaunchTestHooks(arguments: arguments) {
-        var environment = LaunchEnvironment(
+        var environment = LaunchEnvironment.inMemory(
           dataDirectory: hooks.dataDirectory,
           appGroupContainer: nil,
           authenticator: hooks.authenticator
@@ -77,6 +104,7 @@ public struct LaunchEnvironment: Sendable {
       appGroupContainer: AppGroupContainer.system()?.url,
       authenticator: SystemAuthenticator(),
       secrets: KeychainStore(),
+      synced: ICloudKeychainStore(),
       push: .live(bundle: bundle)
     )
   }
@@ -116,6 +144,8 @@ public final class AppLaunch {
   public let report: StoreLaunch.Report?
   public let lock: AppLock
   public let gateways: GatewayDirectory
+  /// The one bridge to iCloud Keychain, and the only path that adds, moves or removes a gateway.
+  public let sync: GatewaySyncEngine
   /// Push notifications: the switch, the permission and the relay registrations.
   public let push: PushController
   /// Told once each, in this order, until dismissed.
@@ -168,7 +198,10 @@ public final class AppLaunch {
       forcedLock: unknownLock,
       clock: environment.clock
     )
-    self.gateways = GatewayDirectory(store: GatewayRegistryStore(store: store), changes: KeyValueStore(store: store))
+    let sync = GatewaySyncEngine(database: store, secrets: environment.secrets, synced: environment.synced)
+    self.sync = sync
+    self.gateways = GatewayDirectory(
+      store: GatewayRegistryStore(store: store), changes: KeyValueStore(store: store), remover: sync)
     self.push = PushController(
       system: pushSystem ?? InertPushSystem(),
       registrar: PushRegistrar(
@@ -219,6 +252,24 @@ public final class AppLaunch {
     }
 
     await gateways.load()
+
+    // I11: sync at launch, once the gateway list is known (never on one that is unreadable or from
+    // a newer build). Which gateways' credentials are bound to an origin they left is read first,
+    // before anything can load a credential. With sync off or undisclosed, the reconcile only
+    // cleans up locally.
+    if gateways.pushGateways != nil {
+      await sync.prepare()
+      await sync.trigger(.launch)
+    }
+  }
+
+  /// A scene became active (I11: at most once per 30 seconds, the engine throttles).
+  public func becameActive() async {
+    guard started, gateways.pushGateways != nil else {
+      return
+    }
+
+    await sync.trigger(.foreground)
   }
 
   public func dismiss(_ notice: LaunchNotice) {
