@@ -396,7 +396,9 @@ public final class GatewaySession {
     await store.persistAll()
   }
 
-  private func markRead(_ name: String) async {
+  /// The reader has seen the chat up to now: its watermark moves and its unread count clears.
+  /// The chat screen calls it while the newest row is on screen and the window is in front.
+  public func markRead(_ name: String) async {
     let seconds = await roster.markSeen(name, at: (Date().timeIntervalSince1970).rounded(.down))
     await store.markSeen(name, at: seconds)
   }

@@ -150,6 +150,10 @@ public final class AppLaunch {
   public let push: PushController
   /// Told once each, in this order, until dismissed.
   public private(set) var notices: [LaunchNotice]
+  /// `start()` has finished: the gateway list is read and the sync engine knows which credentials
+  /// belong to an origin their gateway left. Nothing may load a credential before (`LiveGateway`
+  /// waits for it).
+  public private(set) var ready = false
 
   private var started = false
 
@@ -261,6 +265,8 @@ public final class AppLaunch {
       await sync.prepare()
       await sync.trigger(.launch)
     }
+
+    ready = true
   }
 
   /// A scene became active (I11: at most once per 30 seconds, the engine throttles).

@@ -63,6 +63,30 @@ public struct ChatListRow: Sendable, Equatable, Identifiable {
 
   public var id: String { bot.name }
 
+  public init(
+    bot: Bot,
+    avatar: String? = nil,
+    preview: ChatPreview? = nil,
+    unreadCount: Int = 0,
+    unread: Bool = false,
+    needsInput: Bool = false,
+    working: Bool = false,
+    attached: Bool = false,
+    hydration: HydrationState = .cold,
+    lastMessageAt: Double = 0
+  ) {
+    self.bot = bot
+    self.avatar = avatar
+    self.preview = preview
+    self.unreadCount = unreadCount
+    self.unread = unread
+    self.needsInput = needsInput
+    self.working = working
+    self.attached = attached
+    self.hydration = hydration
+    self.lastMessageAt = lastMessageAt
+  }
+
   /// The bead, given whether the gateway socket is up.
   public func presence(gatewayReady: Bool) -> Presence {
     Presence.of(
@@ -169,8 +193,21 @@ public final class ChatListModel {
 @Observable
 public final class ChatModel {
   public let key: String
-  public private(set) var snapshot: ChatSnapshot?
   public var draft = ""
+
+  /// The chat as the last frame left it. Replaced whole, once per frame.
+  ///
+  /// Observed by hand, without the comparison the `@Observable` macro puts in
+  /// a setter: `ChatSnapshot` is `Equatable`, so the generated setter would
+  /// compare every visible item of the old snapshot with the new one, deeply,
+  /// on the main actor, on every streamed delta. A fresh snapshot is a change
+  /// by definition (`revision` moved), so it is published without looking.
+  public var snapshot: ChatSnapshot? {
+    access(keyPath: \.snapshot)
+    return storedSnapshot
+  }
+
+  @ObservationIgnored private var storedSnapshot: ChatSnapshot?
   /// The reader's verbosity options (`setVisibility` re-projects the transcript).
   public private(set) var visibility: VisibilityOptions
 
@@ -226,7 +263,9 @@ public final class ChatModel {
   public var canSend: Bool { (snapshot?.attached ?? false) && connectionReady }
 
   func apply(_ snapshot: ChatSnapshot) {
-    self.snapshot = snapshot
+    withMutation(keyPath: \.snapshot) {
+      storedSnapshot = snapshot
+    }
 
     if !cardNotices.isEmpty {
       let open = Set(snapshot.openRequests.compactMap { $0.asApproval?.requestID ?? $0.asClarify?.requestID })

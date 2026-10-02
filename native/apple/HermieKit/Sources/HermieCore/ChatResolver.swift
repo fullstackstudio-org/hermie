@@ -191,7 +191,7 @@ public actor ChatResolver {
   }
 
   /// `messageOf`: an error's words, the gateway's own when it sent some.
-  static func describe(_ error: any Error) -> String {
+  public static func describe(_ error: any Error) -> String {
     switch error {
     case let rpc as GatewayRPCError: rpc.message
     case let gateway as GatewayError: gateway.message
