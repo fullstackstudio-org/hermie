@@ -1,3 +1,4 @@
+import HermieCore
 import HermieTranscript
 import SwiftUI
 
@@ -10,6 +11,10 @@ struct ApprovalCardView: View {
   let presentation: Presentation
 
   @Environment(\.transcriptItemActions) private var actions
+  @Environment(\.transcriptRequests) private var requests
+
+  /// An answer to this card is on its way: its buttons are off meanwhile.
+  private var sending: Bool { requests?.isSending(item.requestID) ?? false }
 
   var body: some View {
     if item.state == .open {
@@ -42,10 +47,14 @@ struct ApprovalCardView: View {
         HStack(spacing: 8) { buttons }
         VStack(alignment: .leading, spacing: 8) { buttons }
       }
+      .disabled(sending)
       if item.choices.contains("always") {
         Text(Strings.Chat.Approval.fine)
           .font(.caption)
           .foregroundStyle(.secondary)
+      }
+      if let requests {
+        RequestStatusView(requests: requests, requestID: item.requestID)
       }
     }
     .cardSurface(tint: .orange)
@@ -72,7 +81,7 @@ struct ApprovalCardView: View {
 
   private var outcome: String {
     if item.state == .cancelled {
-      return Strings.Chat.Approval.answeredElsewhere
+      return item.cancelReason == "timeout" ? Strings.Chat.Approval.timedOut : Strings.Chat.Approval.answeredElsewhere
     }
     let answer = item.answer.map(Self.outcome(for:)) ?? Strings.Chat.Approval.answeredElsewhere
     let command = item.command.count > 48 ? String(item.command.prefix(48)) + "…" : item.command
@@ -111,6 +120,7 @@ struct ClarifyCardView: View {
   let presentation: Presentation
 
   @Environment(\.transcriptItemActions) private var actions
+  @Environment(\.transcriptRequests) private var requests
   @State private var step = 0
   @State private var choices: [String: Set<String>] = [:]
   @State private var freeText: [String: String] = [:]
@@ -126,7 +136,9 @@ struct ClarifyCardView: View {
   }
 
   private var outcome: String {
-    if item.state == .cancelled { return Strings.Chat.Approval.answeredElsewhere }
+    if item.state == .cancelled {
+      return item.cancelReason == "timeout" ? Strings.Chat.Approval.timedOut : Strings.Chat.Approval.answeredElsewhere
+    }
     let answered = item.questions.filter { item.answers[$0.qid] != nil }.count
     return Strings.Chat.Clarify.outcome(answered: answered, total: item.questions.count)
   }
@@ -136,6 +148,9 @@ struct ClarifyCardView: View {
   }
 
   private var isLast: Bool { step >= item.questions.count - 1 }
+
+  /// An answer to this card is on its way.
+  private var sending: Bool { requests?.isSending(item.requestID) ?? false }
 
   private var openCard: some View {
     let question = current
@@ -171,13 +186,16 @@ struct ClarifyCardView: View {
         if isLast {
           Button(Strings.Chat.Clarify.submit, action: submit)
             .buttonStyle(.borderedProminent)
-            .disabled(collectedAnswers().isEmpty)
+            .disabled(collectedAnswers().isEmpty || sending)
             .accessibilityIdentifier("clarify.submit")
         } else {
           Button(Strings.Chat.Clarify.next) { step += 1 }
             .buttonStyle(.borderedProminent)
             .accessibilityIdentifier("clarify.next")
         }
+      }
+      if let requests {
+        RequestStatusView(requests: requests, requestID: item.requestID)
       }
     }
     .cardSurface(tint: .accentColor)
@@ -277,7 +295,7 @@ struct ClarifyCardView: View {
 
   private func submit() {
     let answers = collectedAnswers()
-    guard !answers.isEmpty else { return }
+    guard !answers.isEmpty, !sending else { return }
     actions.answerClarify(item, answers)
   }
 }

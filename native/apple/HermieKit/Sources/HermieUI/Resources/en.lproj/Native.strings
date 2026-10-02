@@ -12,6 +12,22 @@
 	<string>New Chat Window</string>
 	<key>native.commands.switchGateway</key>
 	<string>Switch Gateway…</string>
+	<key>native.composer.failed</key>
+	<string>The message did not go out: %@</string>
+	<key>native.composer.opening</key>
+	<string>Opening the chat…</string>
+	<key>native.composer.queueHint</key>
+	<string>Sends it when the current reply is finished.</string>
+	<key>native.composer.queued</key>
+	<string>Message queued</string>
+	<key>native.composer.sent</key>
+	<string>Message sent</string>
+	<key>native.composer.stopFailed</key>
+	<string>The reply could not be stopped: %@</string>
+	<key>native.composer.stopShortcut</key>
+	<string>Stop</string>
+	<key>native.composer.stopped</key>
+	<string>Response stopped</string>
 	<key>native.debug.title</key>
 	<string>Debug screens</string>
 	<key>native.detail.noChat.body</key>
@@ -58,6 +74,20 @@
 	<string>Relay</string>
 	<key>native.push.waiting</key>
 	<string>Waiting for this device’s push address…</string>
+	<key>native.requests.answered</key>
+	<string>Answer sent</string>
+	<key>native.requests.closesIn</key>
+	<string>Closes in %@</string>
+	<key>native.requests.failed</key>
+	<string>The answer was not sent: %@</string>
+	<key>native.requests.noLongerPending</key>
+	<string>This question is no longer waiting for an answer.</string>
+	<key>native.requests.notSent</key>
+	<string>Not sent: the connection dropped. The question comes back when it reconnects; answer it then.</string>
+	<key>native.requests.retry</key>
+	<string>Try again</string>
+	<key>native.requests.sending</key>
+	<string>Sending your answer…</string>
 	<key>native.transcript.unsupportedItem</key>
 	<string>This message (%@) needs a newer version of Hermie.</string>
 </dict>

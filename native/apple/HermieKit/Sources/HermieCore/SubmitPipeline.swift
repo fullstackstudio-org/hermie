@@ -523,6 +523,55 @@ extension TranscriptStore {
     return (reply?.result["approvals"]?.arrayValue ?? []).compactMap { $0.objectValue.map(PendingApproval.init(json:)) }
   }
 
+  /// Whether the gateway still waits on the approval behind this card, asked of
+  /// `approval.pending` right before an answer goes out.
+  ///
+  /// `unknown` when the question cannot be put: no attached session, a card
+  /// with no queue id, or a gateway that did not answer the call. An unknown
+  /// standing never blocks an answer — only a list that leaves the entry out
+  /// does — so a gateway without the method can still be answered.
+  public func approvalStanding(_ key: String, requestID: String) async -> ApprovalStanding {
+    guard let state = chats[key]?.state, let runtimeID = state.runtimeSessionID, !runtimeID.isEmpty,
+      let approvalID = state.byRequestID[requestID].flatMap({ state.items[$0] })?.asApproval?.approvalID,
+      // A request that carried no queue id has its transport id here instead,
+      // which no queue lists.
+      !approvalID.isEmpty, approvalID != requestID
+    else {
+      return .unknown
+    }
+
+    let params: JSONValue = ["session_id": .string(runtimeID), "profile": .string(key)]
+
+    guard let reply = try? await link.requestReply(RPC.ApprovalPending.name, params: params),
+      let approvals = reply.result["approvals"]?.arrayValue
+    else {
+      return .unknown
+    }
+
+    return approvals.contains { $0["request_id"]?.stringValue == approvalID } ? .pending : .gone
+  }
+
+  /// Close a card the gateway no longer holds open, as its own `request.cancel`
+  /// would: placed among the chat's frames, remembered so a late copy of the
+  /// request does not reopen it, and its reply handle forgotten.
+  public func withdrawRequest(_ key: String, requestID: String, reason: String) async {
+    _ = try? await local(key) {
+      guard self.isOpenCard(key, requestID), let runtimeID = self.chats[key]?.state.runtimeSessionID else {
+        return
+      }
+
+      let event = GatewayEvent(json: [
+        "type": .string(GatewayEventType.requestCancel),
+        "session_id": .string(runtimeID),
+        "payload": ["id": .string(requestID), "reason": .string(reason)]
+      ])
+      let now = self.now()
+      self.closedRequests[key, default: []].insert(requestID)
+      self.mutateState(key) { applyEvent(into: &$0, event, now) }
+      self.pruneRequests(key)
+    }
+  }
+
   // MARK: - A new conversation
 
   /// `startNewConversation` for the shared Bot Chat (`/new`, `/reset`, `/clear`).
@@ -710,6 +759,16 @@ extension TranscriptStore {
 
     return kept
   }
+}
+
+/// What `approval.pending` says about one approval card (`approvalStanding`).
+public enum ApprovalStanding: Sendable, Equatable {
+  /// Listed: the gateway still waits for an answer.
+  case pending
+  /// Left out: answered elsewhere, timed out or withdrawn.
+  case gone
+  /// The question could not be put; the answer goes out and the gateway decides.
+  case unknown
 }
 
 /// Moving a bot's chat to another conversation was refused because it would

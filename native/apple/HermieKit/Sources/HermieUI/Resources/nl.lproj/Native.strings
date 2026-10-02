@@ -12,6 +12,22 @@
 	<string>Nieuw chatvenster</string>
 	<key>native.commands.switchGateway</key>
 	<string>Wissel van gateway…</string>
+	<key>native.composer.failed</key>
+	<string>Het bericht is niet verstuurd: %@</string>
+	<key>native.composer.opening</key>
+	<string>De chat wordt geopend…</string>
+	<key>native.composer.queueHint</key>
+	<string>Verstuurt het zodra het huidige antwoord klaar is.</string>
+	<key>native.composer.queued</key>
+	<string>Bericht in de wachtrij</string>
+	<key>native.composer.sent</key>
+	<string>Bericht verstuurd</string>
+	<key>native.composer.stopFailed</key>
+	<string>Het antwoord kon niet worden gestopt: %@</string>
+	<key>native.composer.stopShortcut</key>
+	<string>Stoppen</string>
+	<key>native.composer.stopped</key>
+	<string>Antwoord gestopt</string>
 	<key>native.debug.title</key>
 	<string>Debugschermen</string>
 	<key>native.detail.noChat.body</key>
@@ -58,6 +74,20 @@
 	<string>Relay</string>
 	<key>native.push.waiting</key>
 	<string>Wacht op het pushadres van dit apparaat…</string>
+	<key>native.requests.answered</key>
+	<string>Antwoord verstuurd</string>
+	<key>native.requests.closesIn</key>
+	<string>Sluit over %@</string>
+	<key>native.requests.failed</key>
+	<string>Het antwoord is niet verstuurd: %@</string>
+	<key>native.requests.noLongerPending</key>
+	<string>Deze vraag wacht niet meer op een antwoord.</string>
+	<key>native.requests.notSent</key>
+	<string>Niet verstuurd: de verbinding viel weg. De vraag komt terug zodra er weer verbinding is; beantwoord hem dan.</string>
+	<key>native.requests.retry</key>
+	<string>Opnieuw proberen</string>
+	<key>native.requests.sending</key>
+	<string>Je antwoord wordt verstuurd…</string>
 	<key>native.transcript.unsupportedItem</key>
 	<string>Dit bericht (%@) heeft een nieuwere versie van Hermie nodig.</string>
 </dict>

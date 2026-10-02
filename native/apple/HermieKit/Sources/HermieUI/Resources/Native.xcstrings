@@ -116,6 +116,198 @@
         }
       }
     },
+    "native.composer.failed" : {
+      "comment" : "A message that was shown in the chat but did not reach the gateway. The argument is the gateway's error.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Die Nachricht wurde nicht gesendet: %@"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "The message did not go out: %@"
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Het bericht is niet verstuurd: %@"
+          }
+        }
+      }
+    },
+    "native.composer.opening" : {
+      "comment" : "Under the message field while the chat is still being opened, before anything can be sent.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Der Chat wird geöffnet…"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Opening the chat…"
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "De chat wordt geopend…"
+          }
+        }
+      }
+    },
+    "native.composer.queueHint" : {
+      "comment" : "VoiceOver hint on the send button while the bot is replying: the message waits for the reply to finish.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Sendet sie, sobald die aktuelle Antwort fertig ist."
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Sends it when the current reply is finished."
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Verstuurt het zodra het huidige antwoord klaar is."
+          }
+        }
+      }
+    },
+    "native.composer.queued" : {
+      "comment" : "Spoken by VoiceOver when a message was queued behind the reply that is running.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Nachricht in der Warteschlange"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Message queued"
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Bericht in de wachtrij"
+          }
+        }
+      }
+    },
+    "native.composer.sent" : {
+      "comment" : "Spoken by VoiceOver when a message was sent.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Nachricht gesendet"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Message sent"
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Bericht verstuurd"
+          }
+        }
+      }
+    },
+    "native.composer.stopFailed" : {
+      "comment" : "The stop button was pressed but the stop did not reach the gateway. The argument is the gateway's error.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Die Antwort konnte nicht gestoppt werden: %@"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "The reply could not be stopped: %@"
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Het antwoord kon niet worden gestopt: %@"
+          }
+        }
+      }
+    },
+    "native.composer.stopShortcut" : {
+      "comment" : "The name of the Esc keyboard shortcut that stops the bot's reply.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Stoppen"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Stop"
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Stoppen"
+          }
+        }
+      }
+    },
+    "native.composer.stopped" : {
+      "comment" : "Spoken by VoiceOver when the bot's reply was stopped.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Antwort gestoppt"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Response stopped"
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Antwoord gestopt"
+          }
+        }
+      }
+    },
     "native.debug.title" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -641,6 +833,174 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Wacht op het pushadres van dit apparaat…"
+          }
+        }
+      }
+    },
+    "native.requests.answered" : {
+      "comment" : "Spoken by VoiceOver when the answer to a bot's question was sent.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Antwort gesendet"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Answer sent"
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Antwoord verstuurd"
+          }
+        }
+      }
+    },
+    "native.requests.closesIn" : {
+      "comment" : "Under a bot's question that has a deadline. The argument is the time left, like 1:05.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Schließt in %@"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Closes in %@"
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Sluit over %@"
+          }
+        }
+      }
+    },
+    "native.requests.failed" : {
+      "comment" : "The answer to a bot's question was not sent. The argument is the gateway's error.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Die Antwort wurde nicht gesendet: %@"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "The answer was not sent: %@"
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Het antwoord is niet verstuurd: %@"
+          }
+        }
+      }
+    },
+    "native.requests.noLongerPending" : {
+      "comment" : "A bot's question was closed instead of answered, because the gateway no longer waits for an answer.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Diese Frage wartet nicht mehr auf eine Antwort."
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "This question is no longer waiting for an answer."
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Deze vraag wacht niet meer op een antwoord."
+          }
+        }
+      }
+    },
+    "native.requests.notSent" : {
+      "comment" : "On a bot's question whose answer did not leave the device because the connection dropped. Says the same as ChatModel.unsentAnswerNotice.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Nicht gesendet: Die Verbindung ist abgebrochen. Die Frage kommt zurück, sobald die Verbindung wieder steht; beantworte sie dann."
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Not sent: the connection dropped. The question comes back when it reconnects; answer it then."
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Niet verstuurd: de verbinding viel weg. De vraag komt terug zodra er weer verbinding is; beantwoord hem dan."
+          }
+        }
+      }
+    },
+    "native.requests.retry" : {
+      "comment" : "Button that sends a failed answer to a bot's question again.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Erneut versuchen"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Try again"
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Opnieuw proberen"
+          }
+        }
+      }
+    },
+    "native.requests.sending" : {
+      "comment" : "Under a bot's question while the answer is on its way.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Deine Antwort wird gesendet…"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Sending your answer…"
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Je antwoord wordt verstuurd…"
           }
         }
       }

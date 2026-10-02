@@ -6,7 +6,9 @@ import SwiftUI
 // app, its keychain group or a gateway. It is not shipped and is not part of
 // the `Hermie` scheme; `scripts/test.sh --ui` builds and runs it.
 //
-// `-HermieLabScreen lab|gallery` picks the screen (default: the menu).
+// `-HermieLabScreen lab|gallery|composer` picks the screen (default: the menu).
+// The composer lab dials the gateway `-HermieLabGateway` names (the fake
+// gateway the UI test script starts on the host).
 
 @main
 struct HermieLabApp: App {
@@ -16,6 +18,7 @@ struct HermieLabApp: App {
         switch UserDefaults.standard.string(forKey: "HermieLabScreen") {
         case "lab": TranscriptLabView()
         case "gallery": TranscriptItemGallery()
+        case "composer": ComposerLabView()
         default: TranscriptDebugMenu()
         }
       }

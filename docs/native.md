@@ -250,6 +250,26 @@ is placed, the store waits until it has taken in up to the connection's `seq` wa
 that preceded the answer cannot arrive after it. Snapshots reach the main actor at most once per
 frame. `Tests/HermieCoreTests/Runtime` replays the `contract/transcript/streams` scenarios through it.
 
+### The composer and answering requests
+
+`ComposerModel` and `RequestsModel` (`HermieCore`) sit on a chat's `ChatModel` and add nothing to
+the session layer's rules. The composer keeps the draft per gateway and bot in the key-value store
+(`hermie.chat.draft.<bot>@<gateway id>`, written 400 ms after typing stops and when the screen goes),
+sends through `TranscriptStore.send` (a send during a turn is parked in the store's queue, which the
+strip shows), stops with `stopTurn`, and routes `/new`, `/reset` and `/clear` to
+`startNewConversation`. Every other line, `/` included, goes to the bot as written until slash
+commands land. A send refused before anything was painted keeps the draft; one that failed after
+the paint leaves the bubble, marked interrupted. The requests model answers approvals with a choice
+the request offered and nothing else, asks `approval.pending` first (an approval the gateway no
+longer lists is closed with a notice instead of answered), answers through `ChatModel` (whose
+`cardNotices` records an answer that did not go out), and keeps an in-flight and a failed state per
+request, with Retry. No request in today's contract carries a deadline; `setDeadline` is the seam
+for one, and a card with a deadline counts down and closes as a timeout.
+
+The chat screen mounts them with `ComposerView(model:)` in its composer slot and
+`.answeringRequests(with:)` on the transcript, which sets the rows' `transcriptItemActions`, the
+cards' status (`transcriptRequests`) and the sheet for a pending request.
+
 ### Known divergences
 
 The port answers like the TypeScript on every input the TypeScript tests use. On malformed or
@@ -409,6 +429,12 @@ The lab reads these launch arguments:
 - `-HermieLabAutoScroll YES` starts panning at launch.
 - `-HermieLabAutoPrepend YES` prepends history when the list asks for it.
 - `-HermieGallerySample <title>` shows only the gallery samples whose title starts with this.
+- `-HermieLabScreen composer -HermieLabGateway http://127.0.0.1:<port>` shows the composer lab: the
+  researcher's chat on that gateway with the real composer, cards and request sheet
+  (`-HermieLabBot`, `-HermieLabToken` and `-HermieLabHideTranscript YES` are optional). Nothing is
+  written to disk. `scripts/test.sh --ui` starts a fake gateway on the host for its UI tests
+  (`ComposerUITests`) and hands them its address as `TEST_RUNNER_HERMIE_LAB_GATEWAY`; each test
+  starts by withdrawing every open request (`POST /__fake/withdraw-requests`).
 
 ## Black-box tests against the fake gateway
 

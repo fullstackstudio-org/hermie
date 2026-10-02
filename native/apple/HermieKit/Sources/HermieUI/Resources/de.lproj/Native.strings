@@ -12,6 +12,22 @@
 	<string>Neues Chatfenster</string>
 	<key>native.commands.switchGateway</key>
 	<string>Gateway wechseln…</string>
+	<key>native.composer.failed</key>
+	<string>Die Nachricht wurde nicht gesendet: %@</string>
+	<key>native.composer.opening</key>
+	<string>Der Chat wird geöffnet…</string>
+	<key>native.composer.queueHint</key>
+	<string>Sendet sie, sobald die aktuelle Antwort fertig ist.</string>
+	<key>native.composer.queued</key>
+	<string>Nachricht in der Warteschlange</string>
+	<key>native.composer.sent</key>
+	<string>Nachricht gesendet</string>
+	<key>native.composer.stopFailed</key>
+	<string>Die Antwort konnte nicht gestoppt werden: %@</string>
+	<key>native.composer.stopShortcut</key>
+	<string>Stoppen</string>
+	<key>native.composer.stopped</key>
+	<string>Antwort gestoppt</string>
 	<key>native.debug.title</key>
 	<string>Debug-Ansichten</string>
 	<key>native.detail.noChat.body</key>
@@ -58,6 +74,20 @@
 	<string>Relay</string>
 	<key>native.push.waiting</key>
 	<string>Wartet auf die Push-Adresse dieses Geräts…</string>
+	<key>native.requests.answered</key>
+	<string>Antwort gesendet</string>
+	<key>native.requests.closesIn</key>
+	<string>Schließt in %@</string>
+	<key>native.requests.failed</key>
+	<string>Die Antwort wurde nicht gesendet: %@</string>
+	<key>native.requests.noLongerPending</key>
+	<string>Diese Frage wartet nicht mehr auf eine Antwort.</string>
+	<key>native.requests.notSent</key>
+	<string>Nicht gesendet: Die Verbindung ist abgebrochen. Die Frage kommt zurück, sobald die Verbindung wieder steht; beantworte sie dann.</string>
+	<key>native.requests.retry</key>
+	<string>Erneut versuchen</string>
+	<key>native.requests.sending</key>
+	<string>Deine Antwort wird gesendet…</string>
 	<key>native.transcript.unsupportedItem</key>
 	<string>Diese Nachricht (%@) braucht eine neuere Version von Hermie.</string>
 </dict>

@@ -77,6 +77,69 @@ describe('POST /__fake/request', () => {
     }
   })
 
+  it('queues an approval with a queue id until it is answered, as the real gateway does', async () => {
+    const gateway = await startFakeGateway({ port: 0 })
+    const socket = await openSocket(gateway.wsUrl)
+
+    try {
+      const arrived = nextRequest(socket)
+
+      await fetch(`${gateway.url}/__fake/request`, {
+        method: 'POST',
+        headers: { 'content-type': 'application/json' },
+        body: JSON.stringify({
+          profile: 'researcher',
+          method: 'approval',
+          params: { request_id: 'appr-raised', command: 'ls', choices: ['once', 'deny'] }
+        })
+      })
+
+      const request = await arrived
+
+      expect([...gateway.state.pendingApprovals.keys()]).toContain('appr-raised')
+
+      socket.send(JSON.stringify({ jsonrpc: '2.0', id: request.id, result: { choice: 'deny' } }))
+      await expect.poll(() => [...gateway.state.pendingApprovals.keys()]).not.toContain('appr-raised')
+    } finally {
+      socket.terminate()
+      await gateway.close()
+    }
+  })
+
+  it('withdraws every open request on /__fake/withdraw-requests, with a request.cancel', async () => {
+    const gateway = await startFakeGateway({ port: 0 })
+    const socket = await openSocket(gateway.wsUrl)
+
+    try {
+      const arrived = nextRequest(socket)
+      const cancelled = new Promise<Record<string, unknown>>(resolve => {
+        socket.on('message', raw => {
+          const frame = JSON.parse(String(raw)) as { method?: string; params?: { type?: string; payload?: object } }
+
+          if (frame.method === 'event' && frame.params?.type === 'request.cancel') {
+            resolve(frame.params.payload as Record<string, unknown>)
+          }
+        })
+      })
+
+      await fetch(`${gateway.url}/__fake/request`, {
+        method: 'POST',
+        headers: { 'content-type': 'application/json' },
+        body: JSON.stringify({ profile: 'researcher', method: 'clarify', params: { question: 'Which?' } })
+      })
+      const request = await arrived
+
+      const response = await fetch(`${gateway.url}/__fake/withdraw-requests`, { method: 'POST', body: '{}' })
+
+      expect(await response.json()).toEqual({ withdrawn: 1 })
+      expect(await cancelled).toMatchObject({ id: request.id, reason: 'withdrawn' })
+      expect(gateway.state.openServerRequests.size).toBe(0)
+    } finally {
+      socket.terminate()
+      await gateway.close()
+    }
+  })
+
   it('says which profile it could not find rather than raising on the wrong chat', async () => {
     const gateway = await startFakeGateway({ port: 0 })
 

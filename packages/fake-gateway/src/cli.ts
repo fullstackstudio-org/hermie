@@ -62,6 +62,8 @@ if (values.help) {
       "                       instead of the profile's canonical Bot Chat — a sub-chat, once one exists",
       '  POST /__fake/request {profile, method, params}   raise a server→client request,',
       '                                                   e.g. method "clarify"',
+      '  POST /__fake/withdraw-requests {reason?}  withdraw every open server→client request',
+      '                                       (request.cancel to the sockets)',
       '  GET  /__fake/state                   counters and logs: connections, open sockets,',
       '                                       tickets, refreshes, replays, the method log and',
       '                                       the answers given to server requests, and',

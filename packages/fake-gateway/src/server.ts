@@ -3562,6 +3562,28 @@ export async function startFakeGateway(options: FakeGatewayOptions = {}): Promis
       return
     }
 
+    if (path === '/__fake/withdraw-requests' && method === 'POST') {
+      /*
+        Every server→client request still open is withdrawn, as the real
+        gateway does when it stops waiting: `request.cancel` to the sockets, the
+        wait itself rejected. A test that shares one gateway with others starts
+        from no open question this way, whatever the one before it left.
+      */
+      const body = await readBody(req)
+      const reason = typeof body.reason === 'string' ? body.reason : 'withdrawn'
+      const withdrawn = [...state.openServerRequests.entries()]
+
+      for (const [id, request] of withdrawn) {
+        publish('request.cancel', request.session_id, { id, reason })
+        pendingServerRequests.get(id)?.reject(new Error(`withdrawn: ${reason}`))
+        pendingServerRequests.delete(id)
+      }
+
+      json(res, 200, { withdrawn: withdrawn.length })
+
+      return
+    }
+
     if (path === '/__fake/reject-upgrades' && method === 'POST') {
       // The next `count` upgrades fail auth with `--close-code` even with a
       // valid credential: `rejectNextUpgrades`, for a client in another process.
@@ -3600,11 +3622,25 @@ export async function startFakeGateway(options: FakeGatewayOptions = {}): Promis
 
       const requestMethod = String(body.method ?? 'clarify')
       const params = (body.params ?? {}) as Record<string, unknown>
+      // An approval with a queue id is a queue entry, as the real gateway's
+      // always is: `approval.pending` lists it until it is answered or withdrawn,
+      // so a client that re-validates before answering finds it there.
+      const queueId = requestMethod === 'approval' && typeof params.request_id === 'string' ? params.request_id : ''
 
-      void requestServerSide(requestMethod, { session_id: session.id, ...params }).catch(() => {
-        // The client refusing or the socket closing is the caller's business,
-        // not this endpoint's: it has already answered.
-      })
+      if (queueId) {
+        state.pendingApprovals.set(queueId, { session_id: session.storedId, payload: params })
+      }
+
+      void requestServerSide(requestMethod, { session_id: session.id, ...params })
+        .catch(() => {
+          // The client refusing or the socket closing is the caller's business,
+          // not this endpoint's: it has already answered.
+        })
+        .finally(() => {
+          if (queueId) {
+            state.pendingApprovals.delete(queueId)
+          }
+        })
 
       json(res, 200, { raised: requestMethod, session_id: session.id })
 

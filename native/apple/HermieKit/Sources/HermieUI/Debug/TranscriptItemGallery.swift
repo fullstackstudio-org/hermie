@@ -228,6 +228,8 @@
           .accessibilityIdentifier("debug.lab")
         NavigationLink("Item gallery") { TranscriptItemGallery() }
           .accessibilityIdentifier("debug.gallery")
+        NavigationLink("Composer lab") { ComposerLabView() }
+          .accessibilityIdentifier("debug.composer")
       }
       .navigationTitle("Transcript")
     }

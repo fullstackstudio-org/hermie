@@ -24,7 +24,10 @@
 #                                                (the app shell's HermieShellUITests and the
 #                                                transcript lab's HermieLab) on a throwaway
 #                                                iPhone and a throwaway iPad, created for the
-#                                                run and deleted after it. HERMIE_SIM_PAD_TYPE
+#                                                run and deleted after it. The lab's composer
+#                                                tests run against a fake gateway started on
+#                                                this Mac for the run (node and the workspace
+#                                                needed; without them they skip). HERMIE_SIM_PAD_TYPE
 #                                                overrides the iPad type (default iPad Pro
 #                                                11-inch (M5)).
 #   native/apple/scripts/test.sh --ui-mac        also run the transcript lab's UI tests (HermieLab)
@@ -119,6 +122,55 @@ fi
 
 derived="$apple_dir/DerivedData"
 
+# A fake gateway on the host for the lab's composer UI tests, which the
+# simulator (or the Mac) reaches on 127.0.0.1. Its address goes to the test
+# runner as TEST_RUNNER_HERMIE_LAB_GATEWAY; without node or the workspace the
+# composer tests skip themselves. It streams slowly enough to be stopped, and a
+# watchdog takes it down when this script's end of its stdin closes.
+lab_gateway_pid=""
+start_lab_gateway() {
+  if ! command -v node >/dev/null 2>&1 || [[ ! -f "$repo_dir/node_modules/tsx/package.json" ]]; then
+    echo "No fake gateway for the composer UI tests (node or the workspace is missing); they will skip." >&2
+    return
+  fi
+
+  local log
+  log="$(mktemp -t hermie-lab-gateway)"
+  local watchdog="data:text/javascript,process.stdin.on('end',()=>process.exit(0)).on('error',()=>process.exit(0)).resume();//"
+  local fifo
+  fifo="$(mktemp -u -t hermie-lab-gateway-stdin)"
+  mkfifo "$fifo"
+  (cd "$repo_dir" && exec node --import tsx --import "$watchdog" \
+    packages/fake-gateway/src/cli.ts --port 0 --stream-delay 120 <"$fifo" >"$log" 2>&1) &
+  lab_gateway_pid=$!
+  # The write end, held by this script for the gateway's whole life.
+  exec 7>"$fifo"
+  rm -f "$fifo"
+
+  local url=""
+  for _ in $(seq 1 200); do
+    url="$(sed -n 's/^fake gateway listening on \(http[^ ]*\).*/\1/p' "$log" | head -n 1)"
+    [[ -n "$url" ]] && break
+    sleep 0.1
+  done
+
+  if [[ -z "$url" ]]; then
+    echo "The fake gateway for the composer UI tests did not start:" >&2
+    cat "$log" >&2
+    exit 1
+  fi
+
+  export TEST_RUNNER_HERMIE_LAB_GATEWAY="$url"
+  echo "Fake gateway for the composer UI tests on $url"
+}
+stop_lab_gateway() {
+  if [[ -n "$lab_gateway_pid" ]]; then
+    exec 7>&- || true
+    kill "$lab_gateway_pid" >/dev/null 2>&1 || true
+    lab_gateway_pid=""
+  fi
+}
+
 if [[ "$build_apps" == true ]]; then
   "$apple_dir/scripts/generate.sh"
   xcodebuild build -quiet \
@@ -182,6 +234,7 @@ if [[ "$ui" == true ]]; then
   # Devices of their own, deleted on the way out whatever happens.
   ui_devices=()
   ui_cleanup() {
+    stop_lab_gateway
     for device in "${ui_devices[@]}"; do
       xcrun simctl shutdown "$device" >/dev/null 2>&1 || true
       xcrun simctl delete "$device" >/dev/null 2>&1 || true
@@ -192,6 +245,8 @@ if [[ "$ui" == true ]]; then
     fi
   }
   trap ui_cleanup EXIT
+
+  start_lab_gateway
 
   ui_devices+=("$(xcrun simctl create "Hermie UI tests iPhone $$" "$phone_type" "$ui_runtime")")
   ui_devices+=("$(xcrun simctl create "Hermie UI tests iPad $$" "$pad_type" "$ui_runtime")")
@@ -207,11 +262,14 @@ if [[ "$ui" == true ]]; then
         CODE_SIGN_STYLE=Manual CODE_SIGN_IDENTITY=- DEVELOPMENT_TEAM=
     done
   done
+  stop_lab_gateway
   echo "UI tests passed"
 fi
 
 if [[ "$ui_mac" == true ]]; then
   "$apple_dir/scripts/generate.sh" macos
+  start_lab_gateway
+  trap stop_lab_gateway EXIT
   echo "HermieLab UI tests on this Mac; they drive the pointer until they finish"
   xcodebuild test -quiet \
     -project "$native_dir/macos/Hermie.xcodeproj" -scheme HermieLab \
