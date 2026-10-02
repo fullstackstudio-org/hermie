@@ -200,12 +200,12 @@ function settled(transaction: IDBTransaction): Promise<void> {
   })
 }
 
-/** The page's IndexedDB, or undefined when this browser has none or refuses it. */
-function pageIndexedDb(): IDBFactory | undefined {
+/** The page's IndexedDB, or null when this browser has none or refuses it. */
+function pageIndexedDb(): IDBFactory | null {
   try {
-    return globalThis.indexedDB ?? undefined
+    return globalThis.indexedDB ?? null
   } catch {
-    return undefined
+    return null
   }
 }
 
@@ -215,7 +215,8 @@ export class IndexedDbChatCache implements ChatCache {
   constructor(
     /** Which base path's rows this instance reads and writes. */
     private readonly ns: string,
-    private readonly factory: IDBFactory | undefined = pageIndexedDb()
+    /** `null` means "this browser has none": every call rejects, and `FallbackChatCache` downgrades. */
+    private readonly factory: IDBFactory | null = pageIndexedDb()
   ) {}
 
   private key(bot: string): string {

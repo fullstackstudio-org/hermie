@@ -33,11 +33,11 @@ export interface VisibilityEnvironment {
   window: Pick<Window, 'addEventListener' | 'removeEventListener'>
 }
 
-const pageEnvironment = (): VisibilityEnvironment | undefined =>
-  typeof window === 'undefined' || typeof document === 'undefined' ? undefined : { document, window }
+const pageEnvironment = (): VisibilityEnvironment | null =>
+  typeof window === 'undefined' || typeof document === 'undefined' ? null : { document, window }
 
 export function createVisibilityWatcher(
-  environment: VisibilityEnvironment | undefined = pageEnvironment()
+  environment: VisibilityEnvironment | null = pageEnvironment()
 ): VisibilityWatcher {
   const read = (): Visibility => (environment?.document.visibilityState === 'hidden' ? 'hidden' : 'visible')
 

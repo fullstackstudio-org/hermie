@@ -15,9 +15,9 @@ export interface ClipboardNavigator {
   readonly clipboard?: Pick<Clipboard, 'writeText'>
 }
 
-const pageNavigator = (): ClipboardNavigator | undefined => (typeof navigator === 'undefined' ? undefined : navigator)
+const pageNavigator = (): ClipboardNavigator | null => (typeof navigator === 'undefined' ? null : navigator)
 
-export function copyToClipboard(text: string, nav: ClipboardNavigator | undefined = pageNavigator()): boolean {
+export function copyToClipboard(text: string, nav: ClipboardNavigator | null = pageNavigator()): boolean {
   if (!text || !nav?.clipboard) {
     return false
   }
@@ -31,10 +31,7 @@ export function copyToClipboard(text: string, nav: ClipboardNavigator | undefine
   }
 }
 
-export async function writeClipboard(
-  text: string,
-  nav: ClipboardNavigator | undefined = pageNavigator()
-): Promise<boolean> {
+export async function writeClipboard(text: string, nav: ClipboardNavigator | null = pageNavigator()): Promise<boolean> {
   if (!text || !nav?.clipboard) {
     return false
   }

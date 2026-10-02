@@ -18,7 +18,7 @@ export function formatPageTitle(screen: string | undefined, app = APP_TITLE): st
 /** Name the tab after `screen` (or after the app alone). */
 export function setPageTitle(
   screen: string | undefined,
-  target: { title: string } | undefined = typeof document === 'undefined' ? undefined : document
+  target: { title: string } | null = typeof document === 'undefined' ? null : document
 ): void {
   if (target) {
     target.title = formatPageTitle(screen)

@@ -25,10 +25,11 @@ export interface NetworkEnvironment {
   navigator: { readonly onLine?: boolean }
 }
 
-const pageEnvironment = (): NetworkEnvironment | undefined =>
-  typeof window === 'undefined' ? undefined : { target: window, navigator: window.navigator }
+const pageEnvironment = (): NetworkEnvironment | null =>
+  typeof window === 'undefined' ? null : { target: window, navigator: window.navigator }
 
-export function createNetworkWatcher(environment: NetworkEnvironment | undefined = pageEnvironment()): NetworkWatcher {
+/** `null` means "no window": online, and nothing to listen to. */
+export function createNetworkWatcher(environment: NetworkEnvironment | null = pageEnvironment()): NetworkWatcher {
   return {
     subscribe(onChange) {
       if (!environment) {

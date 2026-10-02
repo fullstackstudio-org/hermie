@@ -14,10 +14,11 @@ export type { RandomBytes } from '@hermie/gateway-client'
 /** The part of `Crypto` this file uses, so a test can hand in its own. */
 export type RandomSource = Pick<Crypto, 'getRandomValues'>
 
-const pageCrypto = (): RandomSource | undefined =>
-  typeof crypto === 'undefined' || typeof crypto.getRandomValues !== 'function' ? undefined : crypto
+const pageCrypto = (): RandomSource | null =>
+  typeof crypto === 'undefined' || typeof crypto.getRandomValues !== 'function' ? null : crypto
 
-export function createRandomBytes(source: RandomSource | undefined = pageCrypto()): RandomBytes {
+/** `null` means "this browser has none": every call throws. */
+export function createRandomBytes(source: RandomSource | null = pageCrypto()): RandomBytes {
   return length => {
     if (!source) {
       throw new Error('This browser has no crypto.getRandomValues, so Hermie cannot generate a secure random value.')
