@@ -1,0 +1,1909 @@
+[
+  {
+    "args": [
+      "https://Gateway.Example.com:8443/hermes"
+    ],
+    "fn": "originOf",
+    "result": "https://gateway.example.com:8443"
+  },
+  {
+    "args": [
+      "https://gateway.example.com:8443"
+    ],
+    "fn": "originOf",
+    "result": "https://gateway.example.com:8443"
+  },
+  {
+    "args": [
+      "https://gateway.example.com:9443"
+    ],
+    "fn": "originOf",
+    "result": "https://gateway.example.com:9443"
+  },
+  {
+    "args": [
+      "http://gateway.example.com:8443"
+    ],
+    "fn": "originOf",
+    "result": "http://gateway.example.com:8443"
+  },
+  {
+    "args": [
+      "https://other.example.com:8443"
+    ],
+    "fn": "originOf",
+    "result": "https://other.example.com:8443"
+  },
+  {
+    "args": [
+      "https://example.com:443/"
+    ],
+    "fn": "originOf",
+    "note": "WHATWG quirk: the default port is dropped from the origin",
+    "result": "https://example.com"
+  },
+  {
+    "args": [
+      "http://example.com:80"
+    ],
+    "fn": "originOf",
+    "note": "WHATWG quirk: the default port is dropped from the origin",
+    "result": "http://example.com"
+  },
+  {
+    "args": [
+      "https://example.com/hermes/api/ws?x=1#f"
+    ],
+    "fn": "originOf",
+    "result": "https://example.com"
+  },
+  {
+    "args": [
+      "https://user:pw@example.com/"
+    ],
+    "fn": "originOf",
+    "note": "userinfo is not part of the origin",
+    "result": "https://example.com"
+  },
+  {
+    "args": [
+      "http://127.0.0.1:9119/x"
+    ],
+    "fn": "originOf",
+    "result": "http://127.0.0.1:9119"
+  },
+  {
+    "args": [
+      "http://[::1]:9119/x"
+    ],
+    "fn": "originOf",
+    "result": "http://[::1]:9119"
+  },
+  {
+    "args": [
+      "http://[FD7A:115C:A1E0::1]:9119/"
+    ],
+    "fn": "originOf",
+    "result": "http://[fd7a:115c:a1e0::1]:9119"
+  },
+  {
+    "args": [
+      "https://my-box.local"
+    ],
+    "fn": "originOf",
+    "result": "https://my-box.local"
+  },
+  {
+    "args": [
+      "https://something.ts.net"
+    ],
+    "fn": "originOf",
+    "result": "https://something.ts.net"
+  },
+  {
+    "args": [
+      "https://bücher.example/"
+    ],
+    "fn": "originOf",
+    "note": "WHATWG quirk: an IDN host becomes punycode",
+    "result": "https://xn--bcher-kva.example"
+  },
+  {
+    "args": [
+      "ws://example.com:80/"
+    ],
+    "fn": "originOf",
+    "note": "WHATWG quirk: ws is a special scheme with default port 80",
+    "result": "ws://example.com"
+  },
+  {
+    "args": [
+      "wss://example.com:443/api/ws"
+    ],
+    "fn": "originOf",
+    "note": "WHATWG quirk: wss is a special scheme with default port 443",
+    "result": "wss://example.com"
+  },
+  {
+    "args": [
+      "wss://gateway.example.net:8443/api/ws"
+    ],
+    "fn": "originOf",
+    "result": "wss://gateway.example.net:8443"
+  },
+  {
+    "args": [
+      "HTTP://EXAMPLE.COM"
+    ],
+    "fn": "originOf",
+    "note": "WHATWG quirk: scheme and host are lowercased",
+    "result": "http://example.com"
+  },
+  {
+    "args": [
+      "https://example.com./"
+    ],
+    "fn": "originOf",
+    "note": "WHATWG quirk: a trailing dot on the host is kept",
+    "result": "https://example.com."
+  },
+  {
+    "args": [
+      "mailto:a@b.example"
+    ],
+    "fn": "originOf",
+    "note": "WHATWG quirk: a non-special scheme has an opaque origin, serialised \"null\" (a non-empty string)",
+    "result": "null"
+  },
+  {
+    "args": [
+      "file:///tmp/x"
+    ],
+    "fn": "originOf",
+    "note": "WHATWG quirk: a file: URL has an opaque origin, serialised \"null\"",
+    "result": "null"
+  },
+  {
+    "args": [
+      "about:blank"
+    ],
+    "fn": "originOf",
+    "note": "WHATWG quirk: an opaque origin, serialised \"null\"",
+    "result": "null"
+  },
+  {
+    "args": [
+      "blob:https://example.com/0000"
+    ],
+    "fn": "originOf",
+    "note": "WHATWG quirk: a blob: URL's origin is the origin of the URL inside it",
+    "result": "https://example.com"
+  },
+  {
+    "args": [
+      "http://127.1/"
+    ],
+    "fn": "originOf",
+    "note": "WHATWG quirk: IPv4 shorthand is expanded to a dotted quad",
+    "result": "http://127.0.0.1"
+  },
+  {
+    "args": [
+      "http://0x7f.0.0.1/"
+    ],
+    "fn": "originOf",
+    "note": "WHATWG quirk: hex IPv4 parts are read as numbers",
+    "result": "http://127.0.0.1"
+  },
+  {
+    "args": [
+      "http://2130706433/"
+    ],
+    "fn": "originOf",
+    "note": "WHATWG quirk: a single decimal number is an IPv4 address",
+    "result": "http://127.0.0.1"
+  },
+  {
+    "args": [
+      "https:example.com"
+    ],
+    "fn": "originOf",
+    "note": "WHATWG quirk: a special scheme without slashes still has an authority",
+    "result": "https://example.com"
+  },
+  {
+    "args": [
+      "http:\\\\example.com"
+    ],
+    "fn": "originOf",
+    "note": "WHATWG quirk: backslashes count as slashes after a special scheme",
+    "result": "http://example.com"
+  },
+  {
+    "args": [
+      "  https://example.com/ "
+    ],
+    "fn": "originOf",
+    "note": "WHATWG quirk: leading and trailing spaces and C0 controls are stripped",
+    "result": "https://example.com"
+  },
+  {
+    "args": [
+      "https://example.com:99999"
+    ],
+    "fn": "originOf",
+    "note": "WHATWG quirk: a port above 65535 is a parse failure",
+    "result": ""
+  },
+  {
+    "args": [
+      "https://exa mple.com"
+    ],
+    "fn": "originOf",
+    "note": "WHATWG quirk: a space in the host is a parse failure",
+    "result": ""
+  },
+  {
+    "args": [
+      "gateway.example.com"
+    ],
+    "fn": "originOf",
+    "result": ""
+  },
+  {
+    "args": [
+      "example.com:9119"
+    ],
+    "fn": "originOf",
+    "result": "null"
+  },
+  {
+    "args": [
+      "localhost:3000"
+    ],
+    "fn": "originOf",
+    "result": "null"
+  },
+  {
+    "args": [
+      "//example.com"
+    ],
+    "fn": "originOf",
+    "result": ""
+  },
+  {
+    "args": [
+      "/hermes"
+    ],
+    "fn": "originOf",
+    "result": ""
+  },
+  {
+    "args": [
+      ""
+    ],
+    "fn": "originOf",
+    "result": ""
+  },
+  {
+    "args": [
+      {
+        "clientId": "client-id-123.access",
+        "clientSecret": "secret-abc",
+        "kind": "cloudflare_access",
+        "origin": "https://gateway.example.com"
+      }
+    ],
+    "fn": "isFrontDoorComplete",
+    "note": "complete",
+    "result": true
+  },
+  {
+    "args": [
+      {
+        "kind": "none"
+      }
+    ],
+    "fn": "isFrontDoorComplete",
+    "note": "none",
+    "result": false
+  },
+  {
+    "args": [
+      {
+        "clientId": "client-id-123.access",
+        "clientSecret": "",
+        "kind": "cloudflare_access",
+        "origin": "https://gateway.example.com"
+      }
+    ],
+    "fn": "isFrontDoorComplete",
+    "note": "empty secret",
+    "result": false
+  },
+  {
+    "args": [
+      {
+        "clientId": "   ",
+        "clientSecret": "secret-abc",
+        "kind": "cloudflare_access",
+        "origin": "https://gateway.example.com"
+      }
+    ],
+    "fn": "isFrontDoorComplete",
+    "note": "blank id",
+    "result": false
+  },
+  {
+    "args": [
+      {
+        "clientId": "",
+        "clientSecret": "secret-abc",
+        "kind": "cloudflare_access",
+        "origin": "https://gateway.example.com"
+      }
+    ],
+    "fn": "isFrontDoorComplete",
+    "note": "empty id",
+    "result": false
+  },
+  {
+    "args": [
+      {
+        "clientId": "  client-id-123.access\n",
+        "clientSecret": "secret-abc",
+        "kind": "cloudflare_access",
+        "origin": "https://gateway.example.com"
+      }
+    ],
+    "fn": "isFrontDoorComplete",
+    "note": "padded id",
+    "result": true
+  },
+  {
+    "args": [
+      {
+        "clientId": "client-id-123.access",
+        "clientSecret": " padded ",
+        "kind": "cloudflare_access",
+        "origin": "https://gateway.example.com"
+      }
+    ],
+    "fn": "isFrontDoorComplete",
+    "note": "padded secret",
+    "result": true
+  },
+  {
+    "args": [
+      {
+        "clientId": "client-id-123.access",
+        "clientSecret": " ",
+        "kind": "cloudflare_access",
+        "origin": "https://gateway.example.com"
+      }
+    ],
+    "fn": "isFrontDoorComplete",
+    "note": "whitespace-only secret",
+    "result": true
+  },
+  {
+    "args": [
+      {
+        "clientId": " ",
+        "clientSecret": "secret-abc",
+        "kind": "cloudflare_access",
+        "origin": "https://gateway.example.com"
+      }
+    ],
+    "fn": "isFrontDoorComplete",
+    "note": "no-break-space id",
+    "result": false
+  },
+  {
+    "args": [
+      {
+        "clientId": "client-id-123.access",
+        "clientSecret": "secret-abc",
+        "kind": "cloudflare_access",
+        "origin": "https://other.example.net"
+      }
+    ],
+    "fn": "isFrontDoorComplete",
+    "note": "other origin",
+    "result": true
+  },
+  {
+    "args": [
+      {
+        "clientId": "client-id-123.access",
+        "clientSecret": "sécret ✓",
+        "kind": "cloudflare_access",
+        "origin": "https://gateway.example.com"
+      }
+    ],
+    "fn": "isFrontDoorComplete",
+    "note": "unicode secret",
+    "result": true
+  },
+  {
+    "args": [
+      {
+        "clientId": "client-id-123.access",
+        "clientSecret": "secret-abc",
+        "kind": "cloudflare_access",
+        "origin": "https://gateway.example.com"
+      },
+      "https://gateway.example.com"
+    ],
+    "fn": "frontDoorHeaders",
+    "note": "complete",
+    "result": {
+      "CF-Access-Client-Id": "client-id-123.access",
+      "CF-Access-Client-Secret": "secret-abc"
+    }
+  },
+  {
+    "args": [
+      {
+        "clientId": "client-id-123.access",
+        "clientSecret": "secret-abc",
+        "kind": "cloudflare_access",
+        "origin": "https://gateway.example.com"
+      },
+      "http://gateway.example.com"
+    ],
+    "fn": "frontDoorHeaders",
+    "note": "complete",
+    "result": {}
+  },
+  {
+    "args": [
+      {
+        "kind": "none"
+      },
+      "https://gateway.example.com"
+    ],
+    "fn": "frontDoorHeaders",
+    "note": "none",
+    "result": {}
+  },
+  {
+    "args": [
+      {
+        "kind": "none"
+      },
+      "http://gateway.example.com"
+    ],
+    "fn": "frontDoorHeaders",
+    "note": "none",
+    "result": {}
+  },
+  {
+    "args": [
+      {
+        "clientId": "client-id-123.access",
+        "clientSecret": "",
+        "kind": "cloudflare_access",
+        "origin": "https://gateway.example.com"
+      },
+      "https://gateway.example.com"
+    ],
+    "fn": "frontDoorHeaders",
+    "note": "empty secret",
+    "result": {}
+  },
+  {
+    "args": [
+      {
+        "clientId": "client-id-123.access",
+        "clientSecret": "",
+        "kind": "cloudflare_access",
+        "origin": "https://gateway.example.com"
+      },
+      "http://gateway.example.com"
+    ],
+    "fn": "frontDoorHeaders",
+    "note": "empty secret",
+    "result": {}
+  },
+  {
+    "args": [
+      {
+        "clientId": "   ",
+        "clientSecret": "secret-abc",
+        "kind": "cloudflare_access",
+        "origin": "https://gateway.example.com"
+      },
+      "https://gateway.example.com"
+    ],
+    "fn": "frontDoorHeaders",
+    "note": "blank id",
+    "result": {}
+  },
+  {
+    "args": [
+      {
+        "clientId": "   ",
+        "clientSecret": "secret-abc",
+        "kind": "cloudflare_access",
+        "origin": "https://gateway.example.com"
+      },
+      "http://gateway.example.com"
+    ],
+    "fn": "frontDoorHeaders",
+    "note": "blank id",
+    "result": {}
+  },
+  {
+    "args": [
+      {
+        "clientId": "",
+        "clientSecret": "secret-abc",
+        "kind": "cloudflare_access",
+        "origin": "https://gateway.example.com"
+      },
+      "https://gateway.example.com"
+    ],
+    "fn": "frontDoorHeaders",
+    "note": "empty id",
+    "result": {}
+  },
+  {
+    "args": [
+      {
+        "clientId": "",
+        "clientSecret": "secret-abc",
+        "kind": "cloudflare_access",
+        "origin": "https://gateway.example.com"
+      },
+      "http://gateway.example.com"
+    ],
+    "fn": "frontDoorHeaders",
+    "note": "empty id",
+    "result": {}
+  },
+  {
+    "args": [
+      {
+        "clientId": "  client-id-123.access\n",
+        "clientSecret": "secret-abc",
+        "kind": "cloudflare_access",
+        "origin": "https://gateway.example.com"
+      },
+      "https://gateway.example.com"
+    ],
+    "fn": "frontDoorHeaders",
+    "note": "padded id",
+    "result": {
+      "CF-Access-Client-Id": "client-id-123.access",
+      "CF-Access-Client-Secret": "secret-abc"
+    }
+  },
+  {
+    "args": [
+      {
+        "clientId": "  client-id-123.access\n",
+        "clientSecret": "secret-abc",
+        "kind": "cloudflare_access",
+        "origin": "https://gateway.example.com"
+      },
+      "http://gateway.example.com"
+    ],
+    "fn": "frontDoorHeaders",
+    "note": "padded id",
+    "result": {}
+  },
+  {
+    "args": [
+      {
+        "clientId": "client-id-123.access",
+        "clientSecret": " padded ",
+        "kind": "cloudflare_access",
+        "origin": "https://gateway.example.com"
+      },
+      "https://gateway.example.com"
+    ],
+    "fn": "frontDoorHeaders",
+    "note": "padded secret",
+    "result": {
+      "CF-Access-Client-Id": "client-id-123.access",
+      "CF-Access-Client-Secret": " padded "
+    }
+  },
+  {
+    "args": [
+      {
+        "clientId": "client-id-123.access",
+        "clientSecret": " padded ",
+        "kind": "cloudflare_access",
+        "origin": "https://gateway.example.com"
+      },
+      "http://gateway.example.com"
+    ],
+    "fn": "frontDoorHeaders",
+    "note": "padded secret",
+    "result": {}
+  },
+  {
+    "args": [
+      {
+        "clientId": "client-id-123.access",
+        "clientSecret": " ",
+        "kind": "cloudflare_access",
+        "origin": "https://gateway.example.com"
+      },
+      "https://gateway.example.com"
+    ],
+    "fn": "frontDoorHeaders",
+    "note": "whitespace-only secret",
+    "result": {
+      "CF-Access-Client-Id": "client-id-123.access",
+      "CF-Access-Client-Secret": " "
+    }
+  },
+  {
+    "args": [
+      {
+        "clientId": "client-id-123.access",
+        "clientSecret": " ",
+        "kind": "cloudflare_access",
+        "origin": "https://gateway.example.com"
+      },
+      "http://gateway.example.com"
+    ],
+    "fn": "frontDoorHeaders",
+    "note": "whitespace-only secret",
+    "result": {}
+  },
+  {
+    "args": [
+      {
+        "clientId": " ",
+        "clientSecret": "secret-abc",
+        "kind": "cloudflare_access",
+        "origin": "https://gateway.example.com"
+      },
+      "https://gateway.example.com"
+    ],
+    "fn": "frontDoorHeaders",
+    "note": "no-break-space id",
+    "result": {}
+  },
+  {
+    "args": [
+      {
+        "clientId": " ",
+        "clientSecret": "secret-abc",
+        "kind": "cloudflare_access",
+        "origin": "https://gateway.example.com"
+      },
+      "http://gateway.example.com"
+    ],
+    "fn": "frontDoorHeaders",
+    "note": "no-break-space id",
+    "result": {}
+  },
+  {
+    "args": [
+      {
+        "clientId": "client-id-123.access",
+        "clientSecret": "secret-abc",
+        "kind": "cloudflare_access",
+        "origin": "https://other.example.net"
+      },
+      "https://gateway.example.com"
+    ],
+    "fn": "frontDoorHeaders",
+    "note": "other origin",
+    "result": {
+      "CF-Access-Client-Id": "client-id-123.access",
+      "CF-Access-Client-Secret": "secret-abc"
+    }
+  },
+  {
+    "args": [
+      {
+        "clientId": "client-id-123.access",
+        "clientSecret": "secret-abc",
+        "kind": "cloudflare_access",
+        "origin": "https://other.example.net"
+      },
+      "http://gateway.example.com"
+    ],
+    "fn": "frontDoorHeaders",
+    "note": "other origin",
+    "result": {}
+  },
+  {
+    "args": [
+      {
+        "clientId": "client-id-123.access",
+        "clientSecret": "sécret ✓",
+        "kind": "cloudflare_access",
+        "origin": "https://gateway.example.com"
+      },
+      "https://gateway.example.com"
+    ],
+    "fn": "frontDoorHeaders",
+    "note": "unicode secret",
+    "result": {
+      "CF-Access-Client-Id": "client-id-123.access",
+      "CF-Access-Client-Secret": "sécret ✓"
+    }
+  },
+  {
+    "args": [
+      {
+        "clientId": "client-id-123.access",
+        "clientSecret": "sécret ✓",
+        "kind": "cloudflare_access",
+        "origin": "https://gateway.example.com"
+      },
+      "http://gateway.example.com"
+    ],
+    "fn": "frontDoorHeaders",
+    "note": "unicode secret",
+    "result": {}
+  },
+  {
+    "args": [
+      {
+        "clientId": "client-id-123.access",
+        "clientSecret": "secret-abc",
+        "kind": "cloudflare_access",
+        "origin": "https://gateway.example.com"
+      },
+      "wss://gateway.example.com/api/ws"
+    ],
+    "fn": "frontDoorHeaders",
+    "result": {
+      "CF-Access-Client-Id": "client-id-123.access",
+      "CF-Access-Client-Secret": "secret-abc"
+    }
+  },
+  {
+    "args": [
+      {
+        "clientId": "client-id-123.access",
+        "clientSecret": "secret-abc",
+        "kind": "cloudflare_access",
+        "origin": "https://gateway.example.com"
+      },
+      "http://gateway.example.com"
+    ],
+    "fn": "frontDoorHeaders",
+    "result": {}
+  },
+  {
+    "args": [
+      {
+        "clientId": "client-id-123.access",
+        "clientSecret": "secret-abc",
+        "kind": "cloudflare_access",
+        "origin": "https://gateway.example.com"
+      },
+      "ws://gateway.example.com/api/ws"
+    ],
+    "fn": "frontDoorHeaders",
+    "result": {}
+  },
+  {
+    "args": [
+      {
+        "clientId": "client-id-123.access",
+        "clientSecret": "secret-abc",
+        "kind": "cloudflare_access",
+        "origin": "https://gateway.example.com"
+      },
+      "gateway.example.com"
+    ],
+    "fn": "frontDoorHeaders",
+    "result": {}
+  },
+  {
+    "args": [
+      {
+        "clientId": "client-id-123.access",
+        "clientSecret": "secret-abc",
+        "kind": "cloudflare_access",
+        "origin": "https://gateway.example.com"
+      },
+      "HTTPS://Gateway.Example.com"
+    ],
+    "fn": "frontDoorHeaders",
+    "result": {
+      "CF-Access-Client-Id": "client-id-123.access",
+      "CF-Access-Client-Secret": "secret-abc"
+    }
+  },
+  {
+    "args": [
+      {
+        "clientId": "client-id-123.access",
+        "clientSecret": "secret-abc",
+        "kind": "cloudflare_access",
+        "origin": "https://gateway.example.com"
+      },
+      "  https://gateway.example.com"
+    ],
+    "fn": "frontDoorHeaders",
+    "result": {
+      "CF-Access-Client-Id": "client-id-123.access",
+      "CF-Access-Client-Secret": "secret-abc"
+    }
+  },
+  {
+    "args": [
+      {
+        "clientId": "client-id-123.access",
+        "clientSecret": "secret-abc",
+        "kind": "cloudflare_access",
+        "origin": "https://gateway.example.com"
+      },
+      "WSS://gateway.example.com/api/ws"
+    ],
+    "fn": "frontDoorHeaders",
+    "result": {
+      "CF-Access-Client-Id": "client-id-123.access",
+      "CF-Access-Client-Secret": "secret-abc"
+    }
+  },
+  {
+    "args": [
+      {
+        "clientId": "client-id-123.access",
+        "clientSecret": "secret-abc",
+        "kind": "cloudflare_access",
+        "origin": "https://gateway.example.com"
+      },
+      "https://127.0.0.1:9119"
+    ],
+    "fn": "frontDoorHeaders",
+    "result": {
+      "CF-Access-Client-Id": "client-id-123.access",
+      "CF-Access-Client-Secret": "secret-abc"
+    }
+  },
+  {
+    "args": [
+      {
+        "clientId": "client-id-123.access",
+        "clientSecret": "secret-abc",
+        "kind": "cloudflare_access",
+        "origin": "https://gateway.example.com"
+      },
+      "http://127.0.0.1:9119"
+    ],
+    "fn": "frontDoorHeaders",
+    "result": {}
+  },
+  {
+    "args": [
+      {
+        "clientId": "client-id-123.access",
+        "clientSecret": "secret-abc",
+        "kind": "cloudflare_access",
+        "origin": "https://gateway.example.com"
+      },
+      "http://something.ts.net"
+    ],
+    "fn": "frontDoorHeaders",
+    "result": {}
+  },
+  {
+    "args": [
+      {
+        "clientId": "client-id-123.access",
+        "clientSecret": "secret-abc",
+        "kind": "cloudflare_access",
+        "origin": "https://gateway.example.com"
+      },
+      "https"
+    ],
+    "fn": "frontDoorHeaders",
+    "result": {}
+  },
+  {
+    "args": [
+      {
+        "clientId": "client-id-123.access",
+        "clientSecret": "secret-abc",
+        "kind": "cloudflare_access",
+        "origin": "https://gateway.example.com"
+      },
+      "https:gateway.example.com"
+    ],
+    "fn": "frontDoorHeaders",
+    "result": {}
+  },
+  {
+    "args": [
+      {
+        "clientId": "client-id-123.access",
+        "clientSecret": "secret-abc",
+        "kind": "cloudflare_access",
+        "origin": "https://gateway.example.com"
+      },
+      "wss://"
+    ],
+    "fn": "frontDoorHeaders",
+    "result": {
+      "CF-Access-Client-Id": "client-id-123.access",
+      "CF-Access-Client-Secret": "secret-abc"
+    }
+  },
+  {
+    "args": [
+      {
+        "clientId": "client-id-123.access",
+        "clientSecret": "secret-abc",
+        "kind": "cloudflare_access",
+        "origin": "https://gateway.example.com"
+      },
+      ""
+    ],
+    "fn": "frontDoorHeaders",
+    "result": {}
+  },
+  {
+    "args": [
+      {
+        "clientId": "client-id-123.access",
+        "clientSecret": "secret-abc",
+        "kind": "cloudflare_access",
+        "origin": "https://gateway.example.com"
+      },
+      "   "
+    ],
+    "fn": "frontDoorHeaders",
+    "result": {}
+  },
+  {
+    "args": [
+      {
+        "clientId": "client-id-123.access",
+        "clientSecret": "secret-abc",
+        "kind": "cloudflare_access",
+        "origin": "https://gateway.example.com"
+      },
+      "ftp://gateway.example.com"
+    ],
+    "fn": "frontDoorHeaders",
+    "result": {}
+  },
+  {
+    "args": [
+      {
+        "clientId": "client-id-123.access",
+        "clientSecret": "secret-abc",
+        "kind": "cloudflare_access",
+        "origin": "https://gateway.example.com"
+      },
+      "https://gateway.example.com:8443/hermes"
+    ],
+    "fn": "frontDoorHeaders",
+    "result": {
+      "CF-Access-Client-Id": "client-id-123.access",
+      "CF-Access-Client-Secret": "secret-abc"
+    }
+  },
+  {
+    "args": [
+      {
+        "clientId": "client-id-123.access",
+        "clientSecret": "secret-abc",
+        "kind": "cloudflare_access",
+        "origin": "https://gateway.example.com"
+      },
+      "https://gateway.example.com"
+    ],
+    "fn": "frontDoorWithheld",
+    "note": "complete",
+    "result": false
+  },
+  {
+    "args": [
+      {
+        "clientId": "client-id-123.access",
+        "clientSecret": "secret-abc",
+        "kind": "cloudflare_access",
+        "origin": "https://gateway.example.com"
+      },
+      "http://gateway.example.com"
+    ],
+    "fn": "frontDoorWithheld",
+    "note": "complete",
+    "result": true
+  },
+  {
+    "args": [
+      {
+        "kind": "none"
+      },
+      "https://gateway.example.com"
+    ],
+    "fn": "frontDoorWithheld",
+    "note": "none",
+    "result": false
+  },
+  {
+    "args": [
+      {
+        "kind": "none"
+      },
+      "http://gateway.example.com"
+    ],
+    "fn": "frontDoorWithheld",
+    "note": "none",
+    "result": false
+  },
+  {
+    "args": [
+      {
+        "clientId": "client-id-123.access",
+        "clientSecret": "",
+        "kind": "cloudflare_access",
+        "origin": "https://gateway.example.com"
+      },
+      "https://gateway.example.com"
+    ],
+    "fn": "frontDoorWithheld",
+    "note": "empty secret",
+    "result": false
+  },
+  {
+    "args": [
+      {
+        "clientId": "client-id-123.access",
+        "clientSecret": "",
+        "kind": "cloudflare_access",
+        "origin": "https://gateway.example.com"
+      },
+      "http://gateway.example.com"
+    ],
+    "fn": "frontDoorWithheld",
+    "note": "empty secret",
+    "result": false
+  },
+  {
+    "args": [
+      {
+        "clientId": "   ",
+        "clientSecret": "secret-abc",
+        "kind": "cloudflare_access",
+        "origin": "https://gateway.example.com"
+      },
+      "https://gateway.example.com"
+    ],
+    "fn": "frontDoorWithheld",
+    "note": "blank id",
+    "result": false
+  },
+  {
+    "args": [
+      {
+        "clientId": "   ",
+        "clientSecret": "secret-abc",
+        "kind": "cloudflare_access",
+        "origin": "https://gateway.example.com"
+      },
+      "http://gateway.example.com"
+    ],
+    "fn": "frontDoorWithheld",
+    "note": "blank id",
+    "result": false
+  },
+  {
+    "args": [
+      {
+        "clientId": "",
+        "clientSecret": "secret-abc",
+        "kind": "cloudflare_access",
+        "origin": "https://gateway.example.com"
+      },
+      "https://gateway.example.com"
+    ],
+    "fn": "frontDoorWithheld",
+    "note": "empty id",
+    "result": false
+  },
+  {
+    "args": [
+      {
+        "clientId": "",
+        "clientSecret": "secret-abc",
+        "kind": "cloudflare_access",
+        "origin": "https://gateway.example.com"
+      },
+      "http://gateway.example.com"
+    ],
+    "fn": "frontDoorWithheld",
+    "note": "empty id",
+    "result": false
+  },
+  {
+    "args": [
+      {
+        "clientId": "  client-id-123.access\n",
+        "clientSecret": "secret-abc",
+        "kind": "cloudflare_access",
+        "origin": "https://gateway.example.com"
+      },
+      "https://gateway.example.com"
+    ],
+    "fn": "frontDoorWithheld",
+    "note": "padded id",
+    "result": false
+  },
+  {
+    "args": [
+      {
+        "clientId": "  client-id-123.access\n",
+        "clientSecret": "secret-abc",
+        "kind": "cloudflare_access",
+        "origin": "https://gateway.example.com"
+      },
+      "http://gateway.example.com"
+    ],
+    "fn": "frontDoorWithheld",
+    "note": "padded id",
+    "result": true
+  },
+  {
+    "args": [
+      {
+        "clientId": "client-id-123.access",
+        "clientSecret": " padded ",
+        "kind": "cloudflare_access",
+        "origin": "https://gateway.example.com"
+      },
+      "https://gateway.example.com"
+    ],
+    "fn": "frontDoorWithheld",
+    "note": "padded secret",
+    "result": false
+  },
+  {
+    "args": [
+      {
+        "clientId": "client-id-123.access",
+        "clientSecret": " padded ",
+        "kind": "cloudflare_access",
+        "origin": "https://gateway.example.com"
+      },
+      "http://gateway.example.com"
+    ],
+    "fn": "frontDoorWithheld",
+    "note": "padded secret",
+    "result": true
+  },
+  {
+    "args": [
+      {
+        "clientId": "client-id-123.access",
+        "clientSecret": " ",
+        "kind": "cloudflare_access",
+        "origin": "https://gateway.example.com"
+      },
+      "https://gateway.example.com"
+    ],
+    "fn": "frontDoorWithheld",
+    "note": "whitespace-only secret",
+    "result": false
+  },
+  {
+    "args": [
+      {
+        "clientId": "client-id-123.access",
+        "clientSecret": " ",
+        "kind": "cloudflare_access",
+        "origin": "https://gateway.example.com"
+      },
+      "http://gateway.example.com"
+    ],
+    "fn": "frontDoorWithheld",
+    "note": "whitespace-only secret",
+    "result": true
+  },
+  {
+    "args": [
+      {
+        "clientId": " ",
+        "clientSecret": "secret-abc",
+        "kind": "cloudflare_access",
+        "origin": "https://gateway.example.com"
+      },
+      "https://gateway.example.com"
+    ],
+    "fn": "frontDoorWithheld",
+    "note": "no-break-space id",
+    "result": false
+  },
+  {
+    "args": [
+      {
+        "clientId": " ",
+        "clientSecret": "secret-abc",
+        "kind": "cloudflare_access",
+        "origin": "https://gateway.example.com"
+      },
+      "http://gateway.example.com"
+    ],
+    "fn": "frontDoorWithheld",
+    "note": "no-break-space id",
+    "result": false
+  },
+  {
+    "args": [
+      {
+        "clientId": "client-id-123.access",
+        "clientSecret": "secret-abc",
+        "kind": "cloudflare_access",
+        "origin": "https://other.example.net"
+      },
+      "https://gateway.example.com"
+    ],
+    "fn": "frontDoorWithheld",
+    "note": "other origin",
+    "result": false
+  },
+  {
+    "args": [
+      {
+        "clientId": "client-id-123.access",
+        "clientSecret": "secret-abc",
+        "kind": "cloudflare_access",
+        "origin": "https://other.example.net"
+      },
+      "http://gateway.example.com"
+    ],
+    "fn": "frontDoorWithheld",
+    "note": "other origin",
+    "result": true
+  },
+  {
+    "args": [
+      {
+        "clientId": "client-id-123.access",
+        "clientSecret": "sécret ✓",
+        "kind": "cloudflare_access",
+        "origin": "https://gateway.example.com"
+      },
+      "https://gateway.example.com"
+    ],
+    "fn": "frontDoorWithheld",
+    "note": "unicode secret",
+    "result": false
+  },
+  {
+    "args": [
+      {
+        "clientId": "client-id-123.access",
+        "clientSecret": "sécret ✓",
+        "kind": "cloudflare_access",
+        "origin": "https://gateway.example.com"
+      },
+      "http://gateway.example.com"
+    ],
+    "fn": "frontDoorWithheld",
+    "note": "unicode secret",
+    "result": true
+  },
+  {
+    "args": [
+      {
+        "clientId": "client-id-123.access",
+        "clientSecret": "secret-abc",
+        "kind": "cloudflare_access",
+        "origin": "https://gateway.example.com"
+      },
+      "wss://gateway.example.com/api/ws"
+    ],
+    "fn": "frontDoorWithheld",
+    "result": false
+  },
+  {
+    "args": [
+      {
+        "clientId": "client-id-123.access",
+        "clientSecret": "secret-abc",
+        "kind": "cloudflare_access",
+        "origin": "https://gateway.example.com"
+      },
+      "http://gateway.example.com"
+    ],
+    "fn": "frontDoorWithheld",
+    "result": true
+  },
+  {
+    "args": [
+      {
+        "clientId": "client-id-123.access",
+        "clientSecret": "secret-abc",
+        "kind": "cloudflare_access",
+        "origin": "https://gateway.example.com"
+      },
+      "ws://gateway.example.com/api/ws"
+    ],
+    "fn": "frontDoorWithheld",
+    "result": true
+  },
+  {
+    "args": [
+      {
+        "clientId": "client-id-123.access",
+        "clientSecret": "secret-abc",
+        "kind": "cloudflare_access",
+        "origin": "https://gateway.example.com"
+      },
+      "gateway.example.com"
+    ],
+    "fn": "frontDoorWithheld",
+    "result": true
+  },
+  {
+    "args": [
+      {
+        "clientId": "client-id-123.access",
+        "clientSecret": "secret-abc",
+        "kind": "cloudflare_access",
+        "origin": "https://gateway.example.com"
+      },
+      "HTTPS://Gateway.Example.com"
+    ],
+    "fn": "frontDoorWithheld",
+    "result": false
+  },
+  {
+    "args": [
+      {
+        "clientId": "client-id-123.access",
+        "clientSecret": "secret-abc",
+        "kind": "cloudflare_access",
+        "origin": "https://gateway.example.com"
+      },
+      "  https://gateway.example.com"
+    ],
+    "fn": "frontDoorWithheld",
+    "result": false
+  },
+  {
+    "args": [
+      {
+        "clientId": "client-id-123.access",
+        "clientSecret": "secret-abc",
+        "kind": "cloudflare_access",
+        "origin": "https://gateway.example.com"
+      },
+      "WSS://gateway.example.com/api/ws"
+    ],
+    "fn": "frontDoorWithheld",
+    "result": false
+  },
+  {
+    "args": [
+      {
+        "clientId": "client-id-123.access",
+        "clientSecret": "secret-abc",
+        "kind": "cloudflare_access",
+        "origin": "https://gateway.example.com"
+      },
+      "https://127.0.0.1:9119"
+    ],
+    "fn": "frontDoorWithheld",
+    "result": false
+  },
+  {
+    "args": [
+      {
+        "clientId": "client-id-123.access",
+        "clientSecret": "secret-abc",
+        "kind": "cloudflare_access",
+        "origin": "https://gateway.example.com"
+      },
+      "http://127.0.0.1:9119"
+    ],
+    "fn": "frontDoorWithheld",
+    "result": true
+  },
+  {
+    "args": [
+      {
+        "clientId": "client-id-123.access",
+        "clientSecret": "secret-abc",
+        "kind": "cloudflare_access",
+        "origin": "https://gateway.example.com"
+      },
+      "http://something.ts.net"
+    ],
+    "fn": "frontDoorWithheld",
+    "result": true
+  },
+  {
+    "args": [
+      {
+        "clientId": "client-id-123.access",
+        "clientSecret": "secret-abc",
+        "kind": "cloudflare_access",
+        "origin": "https://gateway.example.com"
+      },
+      "https"
+    ],
+    "fn": "frontDoorWithheld",
+    "result": true
+  },
+  {
+    "args": [
+      {
+        "clientId": "client-id-123.access",
+        "clientSecret": "secret-abc",
+        "kind": "cloudflare_access",
+        "origin": "https://gateway.example.com"
+      },
+      "https:gateway.example.com"
+    ],
+    "fn": "frontDoorWithheld",
+    "result": true
+  },
+  {
+    "args": [
+      {
+        "clientId": "client-id-123.access",
+        "clientSecret": "secret-abc",
+        "kind": "cloudflare_access",
+        "origin": "https://gateway.example.com"
+      },
+      "wss://"
+    ],
+    "fn": "frontDoorWithheld",
+    "result": false
+  },
+  {
+    "args": [
+      {
+        "clientId": "client-id-123.access",
+        "clientSecret": "secret-abc",
+        "kind": "cloudflare_access",
+        "origin": "https://gateway.example.com"
+      },
+      ""
+    ],
+    "fn": "frontDoorWithheld",
+    "result": true
+  },
+  {
+    "args": [
+      {
+        "clientId": "client-id-123.access",
+        "clientSecret": "secret-abc",
+        "kind": "cloudflare_access",
+        "origin": "https://gateway.example.com"
+      },
+      "   "
+    ],
+    "fn": "frontDoorWithheld",
+    "result": true
+  },
+  {
+    "args": [
+      {
+        "clientId": "client-id-123.access",
+        "clientSecret": "secret-abc",
+        "kind": "cloudflare_access",
+        "origin": "https://gateway.example.com"
+      },
+      "ftp://gateway.example.com"
+    ],
+    "fn": "frontDoorWithheld",
+    "result": true
+  },
+  {
+    "args": [
+      {
+        "clientId": "client-id-123.access",
+        "clientSecret": "secret-abc",
+        "kind": "cloudflare_access",
+        "origin": "https://gateway.example.com"
+      },
+      "https://gateway.example.com:8443/hermes"
+    ],
+    "fn": "frontDoorWithheld",
+    "result": false
+  },
+  {
+    "args": [
+      {
+        "CF-Access-Client-Id": "client-id-123.access",
+        "CF-Access-Client-Secret": "secret-abc"
+      }
+    ],
+    "fn": "describeFrontDoor",
+    "result": "cf-access: present"
+  },
+  {
+    "args": [
+      {
+        "CF-ACCESS-CLIENT-SECRET": "b",
+        "cf-access-client-id": "a"
+      }
+    ],
+    "fn": "describeFrontDoor",
+    "result": "cf-access: present"
+  },
+  {
+    "args": [
+      {
+        "CF-Access-Client-Id": "a"
+      }
+    ],
+    "fn": "describeFrontDoor",
+    "result": "cf-access: incomplete"
+  },
+  {
+    "args": [
+      {
+        "CF-Access-Client-Secret": "b"
+      }
+    ],
+    "fn": "describeFrontDoor",
+    "result": "cf-access: incomplete"
+  },
+  {
+    "args": [
+      {}
+    ],
+    "fn": "describeFrontDoor",
+    "result": ""
+  },
+  {
+    "args": [
+      {
+        "X-Other": "value"
+      }
+    ],
+    "fn": "describeFrontDoor",
+    "result": ""
+  },
+  {
+    "args": [
+      {
+        "CF-Access-Client-Id": "",
+        "CF-Access-Client-Secret": "b"
+      }
+    ],
+    "fn": "describeFrontDoor",
+    "result": "cf-access: incomplete"
+  },
+  {
+    "args": [
+      {
+        "CF-Access-Client-Id": "a",
+        "CF-Access-Client-Secret": ""
+      }
+    ],
+    "fn": "describeFrontDoor",
+    "result": "cf-access: incomplete"
+  },
+  {
+    "args": [
+      {
+        "CF-Access-Client-Id": "",
+        "CF-Access-Client-Secret": ""
+      }
+    ],
+    "fn": "describeFrontDoor",
+    "result": ""
+  },
+  {
+    "args": [
+      {
+        "CF-Access-Client-Id": " ",
+        "CF-Access-Client-Secret": " "
+      }
+    ],
+    "fn": "describeFrontDoor",
+    "result": "cf-access: present"
+  },
+  {
+    "args": [
+      {
+        "X-Other": "z",
+        "cf-access-client-id": "a"
+      }
+    ],
+    "fn": "describeFrontDoor",
+    "result": "cf-access: incomplete"
+  },
+  {
+    "args": [
+      {
+        "Cf-Acces-Client-Id": "a",
+        "Cf-Access-Client-Secret": "b"
+      }
+    ],
+    "fn": "describeFrontDoor",
+    "result": "cf-access: incomplete"
+  },
+  {
+    "args": [
+      {
+        "CF-Access-Client-Id": "a",
+        "CF-Access-Client-Secret": "b",
+        "X-Proxy-Shared-Secret": "c"
+      }
+    ],
+    "fn": "describeFrontDoor",
+    "result": "cf-access: present"
+  },
+  {
+    "args": [
+      {
+        "CF-Access-Client-Id": "client-id-123.access",
+        "CF-Access-Client-Secret": "secret-abc",
+        "X-Proxy-Shared-Secret": "a secret this package never heard of"
+      }
+    ],
+    "fn": "redactHeaders",
+    "result": {
+      "CF-Access-Client-Id": "present",
+      "CF-Access-Client-Secret": "present",
+      "X-Proxy-Shared-Secret": "present"
+    }
+  },
+  {
+    "args": [
+      {
+        "Cf-Acces-Client-Id": "x"
+      }
+    ],
+    "fn": "redactHeaders",
+    "result": {
+      "Cf-Acces-Client-Id": "present"
+    }
+  },
+  {
+    "args": [
+      {
+        "X-Empty": ""
+      }
+    ],
+    "fn": "redactHeaders",
+    "result": {
+      "X-Empty": ""
+    }
+  },
+  {
+    "args": [
+      {
+        "X-Blank": " "
+      }
+    ],
+    "fn": "redactHeaders",
+    "result": {
+      "X-Blank": "present"
+    }
+  },
+  {
+    "args": [
+      {}
+    ],
+    "fn": "redactHeaders",
+    "result": {}
+  },
+  {
+    "args": [
+      {
+        "X-Long": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+        "X-Short": "a"
+      }
+    ],
+    "fn": "redactHeaders",
+    "result": {
+      "X-Long": "present",
+      "X-Short": "present"
+    }
+  },
+  {
+    "args": [
+      {
+        "clientId": "client-id-123.access",
+        "clientSecret": "secret-abc",
+        "kind": "cloudflare_access",
+        "origin": "https://gateway.example.com"
+      },
+      "https://gateway.example.com"
+    ],
+    "fn": "accessUserScript",
+    "note": "complete",
+    "result": "(function () {\n  var origin = \"https://gateway.example.com\";\n  var name1 = \"CF-Access-Client-Id\";\n  var name2 = \"CF-Access-Client-Secret\";\n  var value1 = \"client-id-123.access\";\n  var value2 = \"secret-abc\";\n  function mine(input) {\n    try {\n      var url = input;\n      if (url && typeof url === 'object' && typeof url.url === 'string') { url = url.url; }\n      if (typeof url !== 'string') { return false; }\n      return window.location.origin === origin && new URL(url, window.location.href).origin === origin;\n    } catch (error) {\n      return false;\n    }\n  }\n  var fetchBefore = window.fetch;\n  if (fetchBefore) {\n    window.fetch = function (input, init) {\n      if (mine(input)) {\n        var options = init || {};\n        var source = options.headers;\n        if (source === undefined && input && typeof input === 'object' && input.headers) { source = input.headers; }\n        var headers = new Headers(source || undefined);\n        headers.set(name1, value1);\n        headers.set(name2, value2);\n        options.headers = headers;\n        return fetchBefore.call(this, input, options);\n      }\n      return fetchBefore.call(this, input, init);\n    };\n  }\n  var openBefore = XMLHttpRequest.prototype.open;\n  var sendBefore = XMLHttpRequest.prototype.send;\n  var eligible = new WeakMap();\n  XMLHttpRequest.prototype.open = function (method, url) {\n    eligible.set(this, mine(url));\n    return openBefore.apply(this, arguments);\n  };\n  XMLHttpRequest.prototype.send = function (body) {\n    if (eligible.get(this) === true) {\n      this.setRequestHeader(name1, value1);\n      this.setRequestHeader(name2, value2);\n    }\n    return sendBefore.apply(this, arguments);\n  };\n  true;\n})();"
+  },
+  {
+    "args": [
+      {
+        "clientId": "client-id-123.access",
+        "clientSecret": "secret-abc",
+        "kind": "cloudflare_access",
+        "origin": "https://gateway.example.com"
+      },
+      "wss://gateway.example.com/api/ws"
+    ],
+    "fn": "accessUserScript",
+    "note": "complete, wss address",
+    "result": "(function () {\n  var origin = \"wss://gateway.example.com\";\n  var name1 = \"CF-Access-Client-Id\";\n  var name2 = \"CF-Access-Client-Secret\";\n  var value1 = \"client-id-123.access\";\n  var value2 = \"secret-abc\";\n  function mine(input) {\n    try {\n      var url = input;\n      if (url && typeof url === 'object' && typeof url.url === 'string') { url = url.url; }\n      if (typeof url !== 'string') { return false; }\n      return window.location.origin === origin && new URL(url, window.location.href).origin === origin;\n    } catch (error) {\n      return false;\n    }\n  }\n  var fetchBefore = window.fetch;\n  if (fetchBefore) {\n    window.fetch = function (input, init) {\n      if (mine(input)) {\n        var options = init || {};\n        var source = options.headers;\n        if (source === undefined && input && typeof input === 'object' && input.headers) { source = input.headers; }\n        var headers = new Headers(source || undefined);\n        headers.set(name1, value1);\n        headers.set(name2, value2);\n        options.headers = headers;\n        return fetchBefore.call(this, input, options);\n      }\n      return fetchBefore.call(this, input, init);\n    };\n  }\n  var openBefore = XMLHttpRequest.prototype.open;\n  var sendBefore = XMLHttpRequest.prototype.send;\n  var eligible = new WeakMap();\n  XMLHttpRequest.prototype.open = function (method, url) {\n    eligible.set(this, mine(url));\n    return openBefore.apply(this, arguments);\n  };\n  XMLHttpRequest.prototype.send = function (body) {\n    if (eligible.get(this) === true) {\n      this.setRequestHeader(name1, value1);\n      this.setRequestHeader(name2, value2);\n    }\n    return sendBefore.apply(this, arguments);\n  };\n  true;\n})();"
+  },
+  {
+    "args": [
+      {
+        "clientId": "client-id-123.access",
+        "clientSecret": "secret-abc",
+        "kind": "cloudflare_access",
+        "origin": "https://gateway.example.com"
+      },
+      "HTTPS://Gateway.Example.com:8443/hermes"
+    ],
+    "fn": "accessUserScript",
+    "note": "complete, upper-case address with port and path",
+    "result": "(function () {\n  var origin = \"https://gateway.example.com:8443\";\n  var name1 = \"CF-Access-Client-Id\";\n  var name2 = \"CF-Access-Client-Secret\";\n  var value1 = \"client-id-123.access\";\n  var value2 = \"secret-abc\";\n  function mine(input) {\n    try {\n      var url = input;\n      if (url && typeof url === 'object' && typeof url.url === 'string') { url = url.url; }\n      if (typeof url !== 'string') { return false; }\n      return window.location.origin === origin && new URL(url, window.location.href).origin === origin;\n    } catch (error) {\n      return false;\n    }\n  }\n  var fetchBefore = window.fetch;\n  if (fetchBefore) {\n    window.fetch = function (input, init) {\n      if (mine(input)) {\n        var options = init || {};\n        var source = options.headers;\n        if (source === undefined && input && typeof input === 'object' && input.headers) { source = input.headers; }\n        var headers = new Headers(source || undefined);\n        headers.set(name1, value1);\n        headers.set(name2, value2);\n        options.headers = headers;\n        return fetchBefore.call(this, input, options);\n      }\n      return fetchBefore.call(this, input, init);\n    };\n  }\n  var openBefore = XMLHttpRequest.prototype.open;\n  var sendBefore = XMLHttpRequest.prototype.send;\n  var eligible = new WeakMap();\n  XMLHttpRequest.prototype.open = function (method, url) {\n    eligible.set(this, mine(url));\n    return openBefore.apply(this, arguments);\n  };\n  XMLHttpRequest.prototype.send = function (body) {\n    if (eligible.get(this) === true) {\n      this.setRequestHeader(name1, value1);\n      this.setRequestHeader(name2, value2);\n    }\n    return sendBefore.apply(this, arguments);\n  };\n  true;\n})();"
+  },
+  {
+    "args": [
+      {
+        "clientId": " client-id-123.access ",
+        "clientSecret": " secret-abc ",
+        "kind": "cloudflare_access",
+        "origin": "https://gateway.example.com"
+      },
+      "https://gateway.example.com"
+    ],
+    "fn": "accessUserScript",
+    "note": "padded id is trimmed, padded secret is not",
+    "result": "(function () {\n  var origin = \"https://gateway.example.com\";\n  var name1 = \"CF-Access-Client-Id\";\n  var name2 = \"CF-Access-Client-Secret\";\n  var value1 = \"client-id-123.access\";\n  var value2 = \" secret-abc \";\n  function mine(input) {\n    try {\n      var url = input;\n      if (url && typeof url === 'object' && typeof url.url === 'string') { url = url.url; }\n      if (typeof url !== 'string') { return false; }\n      return window.location.origin === origin && new URL(url, window.location.href).origin === origin;\n    } catch (error) {\n      return false;\n    }\n  }\n  var fetchBefore = window.fetch;\n  if (fetchBefore) {\n    window.fetch = function (input, init) {\n      if (mine(input)) {\n        var options = init || {};\n        var source = options.headers;\n        if (source === undefined && input && typeof input === 'object' && input.headers) { source = input.headers; }\n        var headers = new Headers(source || undefined);\n        headers.set(name1, value1);\n        headers.set(name2, value2);\n        options.headers = headers;\n        return fetchBefore.call(this, input, options);\n      }\n      return fetchBefore.call(this, input, init);\n    };\n  }\n  var openBefore = XMLHttpRequest.prototype.open;\n  var sendBefore = XMLHttpRequest.prototype.send;\n  var eligible = new WeakMap();\n  XMLHttpRequest.prototype.open = function (method, url) {\n    eligible.set(this, mine(url));\n    return openBefore.apply(this, arguments);\n  };\n  XMLHttpRequest.prototype.send = function (body) {\n    if (eligible.get(this) === true) {\n      this.setRequestHeader(name1, value1);\n      this.setRequestHeader(name2, value2);\n    }\n    return sendBefore.apply(this, arguments);\n  };\n  true;\n})();"
+  },
+  {
+    "args": [
+      {
+        "clientId": "client-id-123.access",
+        "clientSecret": "\";window.stolen=1;var x=\"",
+        "kind": "cloudflare_access",
+        "origin": "https://gateway.example.com"
+      },
+      "https://gateway.example.com"
+    ],
+    "fn": "accessUserScript",
+    "note": "secret that would close a string literal",
+    "result": "(function () {\n  var origin = \"https://gateway.example.com\";\n  var name1 = \"CF-Access-Client-Id\";\n  var name2 = \"CF-Access-Client-Secret\";\n  var value1 = \"client-id-123.access\";\n  var value2 = \"\\\";window.stolen=1;var x=\\\"\";\n  function mine(input) {\n    try {\n      var url = input;\n      if (url && typeof url === 'object' && typeof url.url === 'string') { url = url.url; }\n      if (typeof url !== 'string') { return false; }\n      return window.location.origin === origin && new URL(url, window.location.href).origin === origin;\n    } catch (error) {\n      return false;\n    }\n  }\n  var fetchBefore = window.fetch;\n  if (fetchBefore) {\n    window.fetch = function (input, init) {\n      if (mine(input)) {\n        var options = init || {};\n        var source = options.headers;\n        if (source === undefined && input && typeof input === 'object' && input.headers) { source = input.headers; }\n        var headers = new Headers(source || undefined);\n        headers.set(name1, value1);\n        headers.set(name2, value2);\n        options.headers = headers;\n        return fetchBefore.call(this, input, options);\n      }\n      return fetchBefore.call(this, input, init);\n    };\n  }\n  var openBefore = XMLHttpRequest.prototype.open;\n  var sendBefore = XMLHttpRequest.prototype.send;\n  var eligible = new WeakMap();\n  XMLHttpRequest.prototype.open = function (method, url) {\n    eligible.set(this, mine(url));\n    return openBefore.apply(this, arguments);\n  };\n  XMLHttpRequest.prototype.send = function (body) {\n    if (eligible.get(this) === true) {\n      this.setRequestHeader(name1, value1);\n      this.setRequestHeader(name2, value2);\n    }\n    return sendBefore.apply(this, arguments);\n  };\n  true;\n})();"
+  },
+  {
+    "args": [
+      {
+        "clientId": "client-id-123.access",
+        "clientSecret": "a\\b\n\t\u0001 é😀/",
+        "kind": "cloudflare_access",
+        "origin": "https://gateway.example.com"
+      },
+      "https://gateway.example.com"
+    ],
+    "fn": "accessUserScript",
+    "note": "secret with a backslash, control characters, U+2028, non-ASCII and an emoji. Values are embedded as JSON.stringify string literals: only \" \\ and control characters are escaped (\\b \\f \\n \\r \\t, else lowercase \\u00xx); U+2028, non-ASCII and \"/\" are written as is",
+    "result": "(function () {\n  var origin = \"https://gateway.example.com\";\n  var name1 = \"CF-Access-Client-Id\";\n  var name2 = \"CF-Access-Client-Secret\";\n  var value1 = \"client-id-123.access\";\n  var value2 = \"a\\\\b\\n\\t\\u0001 é😀/\";\n  function mine(input) {\n    try {\n      var url = input;\n      if (url && typeof url === 'object' && typeof url.url === 'string') { url = url.url; }\n      if (typeof url !== 'string') { return false; }\n      return window.location.origin === origin && new URL(url, window.location.href).origin === origin;\n    } catch (error) {\n      return false;\n    }\n  }\n  var fetchBefore = window.fetch;\n  if (fetchBefore) {\n    window.fetch = function (input, init) {\n      if (mine(input)) {\n        var options = init || {};\n        var source = options.headers;\n        if (source === undefined && input && typeof input === 'object' && input.headers) { source = input.headers; }\n        var headers = new Headers(source || undefined);\n        headers.set(name1, value1);\n        headers.set(name2, value2);\n        options.headers = headers;\n        return fetchBefore.call(this, input, options);\n      }\n      return fetchBefore.call(this, input, init);\n    };\n  }\n  var openBefore = XMLHttpRequest.prototype.open;\n  var sendBefore = XMLHttpRequest.prototype.send;\n  var eligible = new WeakMap();\n  XMLHttpRequest.prototype.open = function (method, url) {\n    eligible.set(this, mine(url));\n    return openBefore.apply(this, arguments);\n  };\n  XMLHttpRequest.prototype.send = function (body) {\n    if (eligible.get(this) === true) {\n      this.setRequestHeader(name1, value1);\n      this.setRequestHeader(name2, value2);\n    }\n    return sendBefore.apply(this, arguments);\n  };\n  true;\n})();"
+  },
+  {
+    "args": [
+      {
+        "kind": "none"
+      },
+      "https://gateway.example.com"
+    ],
+    "fn": "accessUserScript",
+    "note": "no front door",
+    "result": ""
+  },
+  {
+    "args": [
+      {
+        "clientId": "client-id-123.access",
+        "clientSecret": "secret-abc",
+        "kind": "cloudflare_access",
+        "origin": "https://gateway.example.com"
+      },
+      "http://gateway.example.com"
+    ],
+    "fn": "accessUserScript",
+    "note": "cleartext gateway",
+    "result": ""
+  },
+  {
+    "args": [
+      {
+        "clientId": "client-id-123.access",
+        "clientSecret": "secret-abc",
+        "kind": "cloudflare_access",
+        "origin": "https://gateway.example.com"
+      },
+      "not an address"
+    ],
+    "fn": "accessUserScript",
+    "note": "not an address",
+    "result": ""
+  },
+  {
+    "args": [
+      {
+        "clientId": "client-id-123.access",
+        "clientSecret": "secret-abc",
+        "kind": "cloudflare_access",
+        "origin": "https://gateway.example.com"
+      },
+      ""
+    ],
+    "fn": "accessUserScript",
+    "note": "empty address",
+    "result": ""
+  },
+  {
+    "args": [
+      {
+        "clientId": "client-id-123.access",
+        "clientSecret": "",
+        "kind": "cloudflare_access",
+        "origin": "https://gateway.example.com"
+      },
+      "https://gateway.example.com"
+    ],
+    "fn": "accessUserScript",
+    "note": "incomplete front door",
+    "result": ""
+  },
+  {
+    "args": [
+      {
+        "clientId": "client-id-123.access",
+        "clientSecret": "secret-abc",
+        "kind": "cloudflare_access",
+        "origin": "https://gateway.example.com"
+      },
+      "https://exa mple.com"
+    ],
+    "fn": "accessUserScript",
+    "note": "https scheme without a parseable origin",
+    "result": ""
+  },
+  {
+    "args": [],
+    "fn": "CF_ACCESS_CLIENT_ID",
+    "note": "constant",
+    "result": "CF-Access-Client-Id"
+  },
+  {
+    "args": [],
+    "fn": "CF_ACCESS_CLIENT_SECRET",
+    "note": "constant",
+    "result": "CF-Access-Client-Secret"
+  },
+  {
+    "args": [],
+    "fn": "CF_ACCESS_PRESENT",
+    "note": "constant",
+    "result": "cf-access: present"
+  },
+  {
+    "args": [],
+    "fn": "CF_ACCESS_INCOMPLETE",
+    "note": "constant",
+    "result": "cf-access: incomplete"
+  },
+  {
+    "args": [],
+    "fn": "REDACTED",
+    "note": "constant",
+    "result": "present"
+  },
+  {
+    "args": [],
+    "fn": "NO_FRONT_DOOR",
+    "note": "constant",
+    "result": {
+      "kind": "none"
+    }
+  }
+]

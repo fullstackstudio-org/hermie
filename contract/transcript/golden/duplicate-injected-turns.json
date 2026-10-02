@@ -1,0 +1,1568 @@
+[
+  {
+    "calls": [
+      {
+        "args": [
+          "researcher",
+          "stored-1",
+          "resolved-1"
+        ],
+        "op": "createChatState",
+        "result": {
+          "botName": "researcher",
+          "byApprovalId": {},
+          "byDelegationId": {},
+          "byProcessId": {},
+          "byRequestId": {},
+          "byRowId": {},
+          "byToolId": {},
+          "draft": "",
+          "hydration": "cold",
+          "items": {},
+          "lastSeq": 0,
+          "order": [],
+          "resolvedSessionId": "resolved-1",
+          "storedSessionId": "stored-1",
+          "subagents": {},
+          "turn": {
+            "active": false,
+            "local": false,
+            "nextSeq": 1000
+          },
+          "unreadCount": 0
+        }
+      },
+      {
+        "args": [
+          {
+            "botName": "researcher",
+            "byApprovalId": {},
+            "byDelegationId": {},
+            "byProcessId": {},
+            "byRequestId": {},
+            "byRowId": {},
+            "byToolId": {},
+            "draft": "",
+            "hydration": "cold",
+            "items": {},
+            "lastSeq": 0,
+            "order": [],
+            "resolvedSessionId": "resolved-1",
+            "storedSessionId": "stored-1",
+            "subagents": {},
+            "turn": {
+              "active": false,
+              "local": false,
+              "nextSeq": 1000
+            },
+            "unreadCount": 0
+          },
+          {
+            "seq": 1,
+            "type": "message.start"
+          },
+          1700000000000
+        ],
+        "op": "applyEvent",
+        "result": {
+          "botName": "researcher",
+          "byApprovalId": {},
+          "byDelegationId": {},
+          "byProcessId": {},
+          "byRequestId": {},
+          "byRowId": {},
+          "byToolId": {},
+          "compacting": false,
+          "draft": "",
+          "hydration": "cold",
+          "items": {
+            "f:1000": {
+              "id": "f:1000",
+              "kind": "user",
+              "origin": "foreign",
+              "seq": 1000,
+              "text": "",
+              "ts": 1700000000,
+              "unknownAuthor": true,
+              "version": 0
+            }
+          },
+          "lastSeq": 1,
+          "order": [
+            "f:1000"
+          ],
+          "resolvedSessionId": "resolved-1",
+          "storedSessionId": "stored-1",
+          "subagents": {},
+          "turn": {
+            "active": true,
+            "foreignReconcilePending": true,
+            "interrupted": false,
+            "local": false,
+            "nextSeq": 2000,
+            "startedAt": 1700000000000
+          },
+          "unreadCount": 0
+        }
+      },
+      {
+        "args": [
+          {
+            "botName": "researcher",
+            "byApprovalId": {},
+            "byDelegationId": {},
+            "byProcessId": {},
+            "byRequestId": {},
+            "byRowId": {},
+            "byToolId": {},
+            "compacting": false,
+            "draft": "",
+            "hydration": "cold",
+            "items": {
+              "f:1000": {
+                "id": "f:1000",
+                "kind": "user",
+                "origin": "foreign",
+                "seq": 1000,
+                "text": "",
+                "ts": 1700000000,
+                "unknownAuthor": true,
+                "version": 0
+              }
+            },
+            "lastSeq": 1,
+            "order": [
+              "f:1000"
+            ],
+            "resolvedSessionId": "resolved-1",
+            "storedSessionId": "stored-1",
+            "subagents": {},
+            "turn": {
+              "active": true,
+              "foreignReconcilePending": true,
+              "interrupted": false,
+              "local": false,
+              "nextSeq": 2000,
+              "startedAt": 1700000000000
+            },
+            "unreadCount": 0
+          },
+          {
+            "inflight": {
+              "assistant": "Reading it now",
+              "streaming": true,
+              "user": "[ASYNC DELEGATION BATCH COMPLETE — deleg_1bd47ada]\nA background fan-out unit you dispatched earlier — 3 subagent(s) — has finished; its consolidated results are below. Any other units from the same delegate_task call report separately as they finish.\n\nDispatched: 2026-09-21 20:44:11 (14m ago)\nRole: leaf   Model: gpt-5   Total duration: 812s\n\n--- ✓ TASK 1/3: Audit deps  (status=completed, 41s) ---\nNo drift.\n\n--- ✓ TASK 2/3: Write tests  (status=completed, 190s) ---\nNine cases, all green.\n\n--- ✗ TASK 3/3: Update docs  (status=failed) ---\n(no summary — status=failed: the page was locked)"
+            },
+            "running": true
+          },
+          1700000060000
+        ],
+        "op": "applyResumeSnapshot",
+        "result": {
+          "botName": "researcher",
+          "byApprovalId": {},
+          "byDelegationId": {},
+          "byProcessId": {},
+          "byRequestId": {},
+          "byRowId": {},
+          "byToolId": {},
+          "compacting": false,
+          "draft": "",
+          "hydration": "live",
+          "items": {
+            "f:1000": {
+              "body": "[ASYNC DELEGATION BATCH COMPLETE — deleg_1bd47ada]\nA background fan-out unit you dispatched earlier — 3 subagent(s) — has finished; its consolidated results are below. Any other units from the same delegate_task call report separately as they finish.\n\nDispatched: 2026-09-21 20:44:11 (14m ago)\nRole: leaf   Model: gpt-5   Total duration: 812s\n\n--- ✓ TASK 1/3: Audit deps  (status=completed, 41s) ---\nNo drift.\n\n--- ✓ TASK 2/3: Write tests  (status=completed, 190s) ---\nNine cases, all green.\n\n--- ✗ TASK 3/3: Update docs  (status=failed) ---\n(no summary — status=failed: the page was locked)",
+              "id": "f:1000",
+              "kind": "notice",
+              "noticeKind": "async_delegation_complete",
+              "origin": "inflight",
+              "seq": 1000,
+              "title": "ASYNC DELEGATION BATCH COMPLETE — deleg_1bd47ada",
+              "ts": 1700000060,
+              "version": 1
+            },
+            "i:2000": {
+              "id": "i:2000",
+              "interim": false,
+              "kind": "assistant",
+              "origin": "inflight",
+              "seq": 2000,
+              "streaming": true,
+              "text": "Reading it now",
+              "ts": 1700000060,
+              "version": 0
+            }
+          },
+          "lastSeq": 1,
+          "order": [
+            "f:1000",
+            "i:2000"
+          ],
+          "resolvedSessionId": "resolved-1",
+          "storedSessionId": "stored-1",
+          "subagents": {},
+          "turn": {
+            "active": true,
+            "assistantId": "i:2000",
+            "interrupted": false,
+            "local": false,
+            "nextSeq": 3000,
+            "startedAt": 1700000000000
+          },
+          "unreadCount": 0
+        }
+      }
+    ],
+    "test": "a resume during a turn the gateway started for itself > fills the placeholder with a notice, never with the owner speaking"
+  },
+  {
+    "calls": [
+      {
+        "args": [
+          "researcher",
+          "stored-1",
+          "resolved-1"
+        ],
+        "op": "createChatState",
+        "result": {
+          "botName": "researcher",
+          "byApprovalId": {},
+          "byDelegationId": {},
+          "byProcessId": {},
+          "byRequestId": {},
+          "byRowId": {},
+          "byToolId": {},
+          "draft": "",
+          "hydration": "cold",
+          "items": {},
+          "lastSeq": 0,
+          "order": [],
+          "resolvedSessionId": "resolved-1",
+          "storedSessionId": "stored-1",
+          "subagents": {},
+          "turn": {
+            "active": false,
+            "local": false,
+            "nextSeq": 1000
+          },
+          "unreadCount": 0
+        }
+      },
+      {
+        "args": [
+          {
+            "botName": "researcher",
+            "byApprovalId": {},
+            "byDelegationId": {},
+            "byProcessId": {},
+            "byRequestId": {},
+            "byRowId": {},
+            "byToolId": {},
+            "draft": "",
+            "hydration": "cold",
+            "items": {},
+            "lastSeq": 0,
+            "order": [],
+            "resolvedSessionId": "resolved-1",
+            "storedSessionId": "stored-1",
+            "subagents": {},
+            "turn": {
+              "active": false,
+              "local": false,
+              "nextSeq": 1000
+            },
+            "unreadCount": 0
+          },
+          {
+            "seq": 1,
+            "type": "message.start"
+          },
+          1700000000000
+        ],
+        "op": "applyEvent",
+        "result": {
+          "botName": "researcher",
+          "byApprovalId": {},
+          "byDelegationId": {},
+          "byProcessId": {},
+          "byRequestId": {},
+          "byRowId": {},
+          "byToolId": {},
+          "compacting": false,
+          "draft": "",
+          "hydration": "cold",
+          "items": {
+            "f:1000": {
+              "id": "f:1000",
+              "kind": "user",
+              "origin": "foreign",
+              "seq": 1000,
+              "text": "",
+              "ts": 1700000000,
+              "unknownAuthor": true,
+              "version": 0
+            }
+          },
+          "lastSeq": 1,
+          "order": [
+            "f:1000"
+          ],
+          "resolvedSessionId": "resolved-1",
+          "storedSessionId": "stored-1",
+          "subagents": {},
+          "turn": {
+            "active": true,
+            "foreignReconcilePending": true,
+            "interrupted": false,
+            "local": false,
+            "nextSeq": 2000,
+            "startedAt": 1700000000000
+          },
+          "unreadCount": 0
+        }
+      },
+      {
+        "args": [
+          {
+            "botName": "researcher",
+            "byApprovalId": {},
+            "byDelegationId": {},
+            "byProcessId": {},
+            "byRequestId": {},
+            "byRowId": {},
+            "byToolId": {},
+            "compacting": false,
+            "draft": "",
+            "hydration": "cold",
+            "items": {
+              "f:1000": {
+                "id": "f:1000",
+                "kind": "user",
+                "origin": "foreign",
+                "seq": 1000,
+                "text": "",
+                "ts": 1700000000,
+                "unknownAuthor": true,
+                "version": 0
+              }
+            },
+            "lastSeq": 1,
+            "order": [
+              "f:1000"
+            ],
+            "resolvedSessionId": "resolved-1",
+            "storedSessionId": "stored-1",
+            "subagents": {},
+            "turn": {
+              "active": true,
+              "foreignReconcilePending": true,
+              "interrupted": false,
+              "local": false,
+              "nextSeq": 2000,
+              "startedAt": 1700000000000
+            },
+            "unreadCount": 0
+          },
+          {
+            "inflight": {
+              "assistant": "",
+              "streaming": true,
+              "user": "[IMPORTANT: Background process proc-aa01 exited (exit code 1).\nCommand: npm run build\nOutput:\nerror TS2345: Argument of type string is not assignable.]"
+            },
+            "running": true
+          },
+          1700000060000
+        ],
+        "op": "applyResumeSnapshot",
+        "result": {
+          "botName": "researcher",
+          "byApprovalId": {},
+          "byDelegationId": {},
+          "byProcessId": {},
+          "byRequestId": {},
+          "byRowId": {},
+          "byToolId": {},
+          "compacting": false,
+          "draft": "",
+          "hydration": "live",
+          "items": {
+            "f:1000": {
+              "body": "error TS2345: Argument of type string is not assignable.",
+              "id": "f:1000",
+              "kind": "notice",
+              "noticeKind": "process_complete",
+              "origin": "inflight",
+              "seq": 1000,
+              "title": "IMPORTANT: Background process proc-aa01 exited (exit code 1).",
+              "ts": 1700000060,
+              "version": 1
+            }
+          },
+          "lastSeq": 1,
+          "order": [
+            "f:1000"
+          ],
+          "resolvedSessionId": "resolved-1",
+          "storedSessionId": "stored-1",
+          "subagents": {},
+          "turn": {
+            "active": true,
+            "interrupted": false,
+            "local": false,
+            "nextSeq": 2000,
+            "startedAt": 1700000000000
+          },
+          "unreadCount": 0
+        }
+      },
+      {
+        "args": [
+          "researcher",
+          "stored-1",
+          "resolved-1"
+        ],
+        "op": "createChatState",
+        "result": {
+          "botName": "researcher",
+          "byApprovalId": {},
+          "byDelegationId": {},
+          "byProcessId": {},
+          "byRequestId": {},
+          "byRowId": {},
+          "byToolId": {},
+          "draft": "",
+          "hydration": "cold",
+          "items": {},
+          "lastSeq": 0,
+          "order": [],
+          "resolvedSessionId": "resolved-1",
+          "storedSessionId": "stored-1",
+          "subagents": {},
+          "turn": {
+            "active": false,
+            "local": false,
+            "nextSeq": 1000
+          },
+          "unreadCount": 0
+        }
+      },
+      {
+        "args": [
+          {
+            "botName": "researcher",
+            "byApprovalId": {},
+            "byDelegationId": {},
+            "byProcessId": {},
+            "byRequestId": {},
+            "byRowId": {},
+            "byToolId": {},
+            "draft": "",
+            "hydration": "cold",
+            "items": {},
+            "lastSeq": 0,
+            "order": [],
+            "resolvedSessionId": "resolved-1",
+            "storedSessionId": "stored-1",
+            "subagents": {},
+            "turn": {
+              "active": false,
+              "local": false,
+              "nextSeq": 1000
+            },
+            "unreadCount": 0
+          },
+          {
+            "seq": 1,
+            "type": "message.start"
+          },
+          1700000000000
+        ],
+        "op": "applyEvent",
+        "result": {
+          "botName": "researcher",
+          "byApprovalId": {},
+          "byDelegationId": {},
+          "byProcessId": {},
+          "byRequestId": {},
+          "byRowId": {},
+          "byToolId": {},
+          "compacting": false,
+          "draft": "",
+          "hydration": "cold",
+          "items": {
+            "f:1000": {
+              "id": "f:1000",
+              "kind": "user",
+              "origin": "foreign",
+              "seq": 1000,
+              "text": "",
+              "ts": 1700000000,
+              "unknownAuthor": true,
+              "version": 0
+            }
+          },
+          "lastSeq": 1,
+          "order": [
+            "f:1000"
+          ],
+          "resolvedSessionId": "resolved-1",
+          "storedSessionId": "stored-1",
+          "subagents": {},
+          "turn": {
+            "active": true,
+            "foreignReconcilePending": true,
+            "interrupted": false,
+            "local": false,
+            "nextSeq": 2000,
+            "startedAt": 1700000000000
+          },
+          "unreadCount": 0
+        }
+      },
+      {
+        "args": [
+          {
+            "botName": "researcher",
+            "byApprovalId": {},
+            "byDelegationId": {},
+            "byProcessId": {},
+            "byRequestId": {},
+            "byRowId": {},
+            "byToolId": {},
+            "compacting": false,
+            "draft": "",
+            "hydration": "cold",
+            "items": {
+              "f:1000": {
+                "id": "f:1000",
+                "kind": "user",
+                "origin": "foreign",
+                "seq": 1000,
+                "text": "",
+                "ts": 1700000000,
+                "unknownAuthor": true,
+                "version": 0
+              }
+            },
+            "lastSeq": 1,
+            "order": [
+              "f:1000"
+            ],
+            "resolvedSessionId": "resolved-1",
+            "storedSessionId": "stored-1",
+            "subagents": {},
+            "turn": {
+              "active": true,
+              "foreignReconcilePending": true,
+              "interrupted": false,
+              "local": false,
+              "nextSeq": 2000,
+              "startedAt": 1700000000000
+            },
+            "unreadCount": 0
+          },
+          {
+            "inflight": {
+              "assistant": "",
+              "streaming": true,
+              "user": "✔ [ops] @researcher Kanban task-4412 done — Rotate the staging certificate\ndetails"
+            },
+            "running": true
+          },
+          1700000060000
+        ],
+        "op": "applyResumeSnapshot",
+        "result": {
+          "botName": "researcher",
+          "byApprovalId": {},
+          "byDelegationId": {},
+          "byProcessId": {},
+          "byRequestId": {},
+          "byRowId": {},
+          "byToolId": {},
+          "compacting": false,
+          "draft": "",
+          "hydration": "live",
+          "items": {
+            "f:1000": {
+              "body": "✔ [ops] @researcher Kanban task-4412 done — Rotate the staging certificate\ndetails",
+              "id": "f:1000",
+              "kind": "notice",
+              "noticeKind": "internal_notification",
+              "origin": "inflight",
+              "seq": 1000,
+              "title": "✔ [ops] @researcher Kanban task-4412 done — Rotate the staging certificate",
+              "ts": 1700000060,
+              "version": 1
+            }
+          },
+          "lastSeq": 1,
+          "order": [
+            "f:1000"
+          ],
+          "resolvedSessionId": "resolved-1",
+          "storedSessionId": "stored-1",
+          "subagents": {},
+          "turn": {
+            "active": true,
+            "interrupted": false,
+            "local": false,
+            "nextSeq": 2000,
+            "startedAt": 1700000000000
+          },
+          "unreadCount": 0
+        }
+      }
+    ],
+    "test": "a resume during a turn the gateway started for itself > does the same for a background process and a kanban dispatch"
+  },
+  {
+    "calls": [
+      {
+        "args": [
+          "researcher",
+          "stored-1",
+          "resolved-1"
+        ],
+        "op": "createChatState",
+        "result": {
+          "botName": "researcher",
+          "byApprovalId": {},
+          "byDelegationId": {},
+          "byProcessId": {},
+          "byRequestId": {},
+          "byRowId": {},
+          "byToolId": {},
+          "draft": "",
+          "hydration": "cold",
+          "items": {},
+          "lastSeq": 0,
+          "order": [],
+          "resolvedSessionId": "resolved-1",
+          "storedSessionId": "stored-1",
+          "subagents": {},
+          "turn": {
+            "active": false,
+            "local": false,
+            "nextSeq": 1000
+          },
+          "unreadCount": 0
+        }
+      },
+      {
+        "args": [
+          {
+            "botName": "researcher",
+            "byApprovalId": {},
+            "byDelegationId": {},
+            "byProcessId": {},
+            "byRequestId": {},
+            "byRowId": {},
+            "byToolId": {},
+            "draft": "",
+            "hydration": "cold",
+            "items": {},
+            "lastSeq": 0,
+            "order": [],
+            "resolvedSessionId": "resolved-1",
+            "storedSessionId": "stored-1",
+            "subagents": {},
+            "turn": {
+              "active": false,
+              "local": false,
+              "nextSeq": 1000
+            },
+            "unreadCount": 0
+          },
+          {
+            "seq": 1,
+            "type": "message.start"
+          },
+          1700000000000
+        ],
+        "op": "applyEvent",
+        "result": {
+          "botName": "researcher",
+          "byApprovalId": {},
+          "byDelegationId": {},
+          "byProcessId": {},
+          "byRequestId": {},
+          "byRowId": {},
+          "byToolId": {},
+          "compacting": false,
+          "draft": "",
+          "hydration": "cold",
+          "items": {
+            "f:1000": {
+              "id": "f:1000",
+              "kind": "user",
+              "origin": "foreign",
+              "seq": 1000,
+              "text": "",
+              "ts": 1700000000,
+              "unknownAuthor": true,
+              "version": 0
+            }
+          },
+          "lastSeq": 1,
+          "order": [
+            "f:1000"
+          ],
+          "resolvedSessionId": "resolved-1",
+          "storedSessionId": "stored-1",
+          "subagents": {},
+          "turn": {
+            "active": true,
+            "foreignReconcilePending": true,
+            "interrupted": false,
+            "local": false,
+            "nextSeq": 2000,
+            "startedAt": 1700000000000
+          },
+          "unreadCount": 0
+        }
+      },
+      {
+        "args": [
+          {
+            "botName": "researcher",
+            "byApprovalId": {},
+            "byDelegationId": {},
+            "byProcessId": {},
+            "byRequestId": {},
+            "byRowId": {},
+            "byToolId": {},
+            "compacting": false,
+            "draft": "",
+            "hydration": "cold",
+            "items": {
+              "f:1000": {
+                "id": "f:1000",
+                "kind": "user",
+                "origin": "foreign",
+                "seq": 1000,
+                "text": "",
+                "ts": 1700000000,
+                "unknownAuthor": true,
+                "version": 0
+              }
+            },
+            "lastSeq": 1,
+            "order": [
+              "f:1000"
+            ],
+            "resolvedSessionId": "resolved-1",
+            "storedSessionId": "stored-1",
+            "subagents": {},
+            "turn": {
+              "active": true,
+              "foreignReconcilePending": true,
+              "interrupted": false,
+              "local": false,
+              "nextSeq": 2000,
+              "startedAt": 1700000000000
+            },
+            "unreadCount": 0
+          },
+          {
+            "inflight": {
+              "assistant": "Reading it now",
+              "streaming": true,
+              "user": "[ASYNC DELEGATION BATCH COMPLETE — deleg_1bd47ada]\nA background fan-out unit you dispatched earlier — 3 subagent(s) — has finished; its consolidated results are below. Any other units from the same delegate_task call report separately as they finish.\n\nDispatched: 2026-09-21 20:44:11 (14m ago)\nRole: leaf   Model: gpt-5   Total duration: 812s\n\n--- ✓ TASK 1/3: Audit deps  (status=completed, 41s) ---\nNo drift.\n\n--- ✓ TASK 2/3: Write tests  (status=completed, 190s) ---\nNine cases, all green.\n\n--- ✗ TASK 3/3: Update docs  (status=failed) ---\n(no summary — status=failed: the page was locked)"
+            },
+            "running": true
+          },
+          1700000060000
+        ],
+        "op": "applyResumeSnapshot",
+        "result": {
+          "botName": "researcher",
+          "byApprovalId": {},
+          "byDelegationId": {},
+          "byProcessId": {},
+          "byRequestId": {},
+          "byRowId": {},
+          "byToolId": {},
+          "compacting": false,
+          "draft": "",
+          "hydration": "live",
+          "items": {
+            "f:1000": {
+              "body": "[ASYNC DELEGATION BATCH COMPLETE — deleg_1bd47ada]\nA background fan-out unit you dispatched earlier — 3 subagent(s) — has finished; its consolidated results are below. Any other units from the same delegate_task call report separately as they finish.\n\nDispatched: 2026-09-21 20:44:11 (14m ago)\nRole: leaf   Model: gpt-5   Total duration: 812s\n\n--- ✓ TASK 1/3: Audit deps  (status=completed, 41s) ---\nNo drift.\n\n--- ✓ TASK 2/3: Write tests  (status=completed, 190s) ---\nNine cases, all green.\n\n--- ✗ TASK 3/3: Update docs  (status=failed) ---\n(no summary — status=failed: the page was locked)",
+              "id": "f:1000",
+              "kind": "notice",
+              "noticeKind": "async_delegation_complete",
+              "origin": "inflight",
+              "seq": 1000,
+              "title": "ASYNC DELEGATION BATCH COMPLETE — deleg_1bd47ada",
+              "ts": 1700000060,
+              "version": 1
+            },
+            "i:2000": {
+              "id": "i:2000",
+              "interim": false,
+              "kind": "assistant",
+              "origin": "inflight",
+              "seq": 2000,
+              "streaming": true,
+              "text": "Reading it now",
+              "ts": 1700000060,
+              "version": 0
+            }
+          },
+          "lastSeq": 1,
+          "order": [
+            "f:1000",
+            "i:2000"
+          ],
+          "resolvedSessionId": "resolved-1",
+          "storedSessionId": "stored-1",
+          "subagents": {},
+          "turn": {
+            "active": true,
+            "assistantId": "i:2000",
+            "interrupted": false,
+            "local": false,
+            "nextSeq": 3000,
+            "startedAt": 1700000000000
+          },
+          "unreadCount": 0
+        }
+      },
+      {
+        "args": [
+          [
+            {
+              "display_kind": "async_delegation_complete",
+              "role": "user",
+              "row_id": 30,
+              "text": "[ASYNC DELEGATION BATCH COMPLETE — deleg_1bd47ada]\nA background fan-out unit you dispatched earlier — 3 subagent(s) — has finished; its consolidated results are below. Any other units from the same delegate_task call report separately as they finish.\n\nDispatched: 2026-09-21 20:44:11 (14m ago)\nRole: leaf   Model: gpt-5   Total duration: 812s\n\n--- ✓ TASK 1/3: Audit deps  (status=completed, 41s) ---\nNo drift.\n\n--- ✓ TASK 2/3: Write tests  (status=completed, 190s) ---\nNine cases, all green.\n\n--- ✗ TASK 3/3: Update docs  (status=failed) ---\n(no summary — status=failed: the page was locked)",
+              "timestamp": 1700000060
+            }
+          ],
+          "rest"
+        ],
+        "op": "rowsToItems",
+        "result": [
+          {
+            "body": "[ASYNC DELEGATION BATCH COMPLETE — deleg_1bd47ada]\nA background fan-out unit you dispatched earlier — 3 subagent(s) — has finished; its consolidated results are below. Any other units from the same delegate_task call report separately as they finish.\n\nDispatched: 2026-09-21 20:44:11 (14m ago)\nRole: leaf   Model: gpt-5   Total duration: 812s\n\n--- ✓ TASK 1/3: Audit deps  (status=completed, 41s) ---\nNo drift.\n\n--- ✓ TASK 2/3: Write tests  (status=completed, 190s) ---\nNine cases, all green.\n\n--- ✗ TASK 3/3: Update docs  (status=failed) ---\n(no summary — status=failed: the page was locked)",
+            "id": "r:30",
+            "kind": "notice",
+            "noticeKind": "async_delegation_complete",
+            "origin": "history",
+            "rowId": 30,
+            "seq": 0,
+            "title": "Background agent work finished",
+            "ts": 1700000060,
+            "version": 0
+          }
+        ]
+      },
+      {
+        "args": [
+          {
+            "botName": "researcher",
+            "byApprovalId": {},
+            "byDelegationId": {},
+            "byProcessId": {},
+            "byRequestId": {},
+            "byRowId": {},
+            "byToolId": {},
+            "compacting": false,
+            "draft": "",
+            "hydration": "live",
+            "items": {
+              "f:1000": {
+                "body": "[ASYNC DELEGATION BATCH COMPLETE — deleg_1bd47ada]\nA background fan-out unit you dispatched earlier — 3 subagent(s) — has finished; its consolidated results are below. Any other units from the same delegate_task call report separately as they finish.\n\nDispatched: 2026-09-21 20:44:11 (14m ago)\nRole: leaf   Model: gpt-5   Total duration: 812s\n\n--- ✓ TASK 1/3: Audit deps  (status=completed, 41s) ---\nNo drift.\n\n--- ✓ TASK 2/3: Write tests  (status=completed, 190s) ---\nNine cases, all green.\n\n--- ✗ TASK 3/3: Update docs  (status=failed) ---\n(no summary — status=failed: the page was locked)",
+                "id": "f:1000",
+                "kind": "notice",
+                "noticeKind": "async_delegation_complete",
+                "origin": "inflight",
+                "seq": 1000,
+                "title": "ASYNC DELEGATION BATCH COMPLETE — deleg_1bd47ada",
+                "ts": 1700000060,
+                "version": 1
+              },
+              "i:2000": {
+                "id": "i:2000",
+                "interim": false,
+                "kind": "assistant",
+                "origin": "inflight",
+                "seq": 2000,
+                "streaming": true,
+                "text": "Reading it now",
+                "ts": 1700000060,
+                "version": 0
+              }
+            },
+            "lastSeq": 1,
+            "order": [
+              "f:1000",
+              "i:2000"
+            ],
+            "resolvedSessionId": "resolved-1",
+            "storedSessionId": "stored-1",
+            "subagents": {},
+            "turn": {
+              "active": true,
+              "assistantId": "i:2000",
+              "interrupted": false,
+              "local": false,
+              "nextSeq": 3000,
+              "startedAt": 1700000000000
+            },
+            "unreadCount": 0
+          },
+          [
+            {
+              "body": "[ASYNC DELEGATION BATCH COMPLETE — deleg_1bd47ada]\nA background fan-out unit you dispatched earlier — 3 subagent(s) — has finished; its consolidated results are below. Any other units from the same delegate_task call report separately as they finish.\n\nDispatched: 2026-09-21 20:44:11 (14m ago)\nRole: leaf   Model: gpt-5   Total duration: 812s\n\n--- ✓ TASK 1/3: Audit deps  (status=completed, 41s) ---\nNo drift.\n\n--- ✓ TASK 2/3: Write tests  (status=completed, 190s) ---\nNine cases, all green.\n\n--- ✗ TASK 3/3: Update docs  (status=failed) ---\n(no summary — status=failed: the page was locked)",
+              "id": "r:30",
+              "kind": "notice",
+              "noticeKind": "async_delegation_complete",
+              "origin": "history",
+              "rowId": 30,
+              "seq": 0,
+              "title": "Background agent work finished",
+              "ts": 1700000060,
+              "version": 0
+            }
+          ]
+        ],
+        "op": "reconcileTail",
+        "result": {
+          "botName": "researcher",
+          "byApprovalId": {},
+          "byDelegationId": {},
+          "byProcessId": {},
+          "byRequestId": {},
+          "byRowId": {
+            "30": "f:1000"
+          },
+          "byToolId": {},
+          "compacting": false,
+          "draft": "",
+          "hydration": "live",
+          "items": {
+            "f:1000": {
+              "body": "[ASYNC DELEGATION BATCH COMPLETE — deleg_1bd47ada]\nA background fan-out unit you dispatched earlier — 3 subagent(s) — has finished; its consolidated results are below. Any other units from the same delegate_task call report separately as they finish.\n\nDispatched: 2026-09-21 20:44:11 (14m ago)\nRole: leaf   Model: gpt-5   Total duration: 812s\n\n--- ✓ TASK 1/3: Audit deps  (status=completed, 41s) ---\nNo drift.\n\n--- ✓ TASK 2/3: Write tests  (status=completed, 190s) ---\nNine cases, all green.\n\n--- ✗ TASK 3/3: Update docs  (status=failed) ---\n(no summary — status=failed: the page was locked)",
+              "id": "f:1000",
+              "kind": "notice",
+              "noticeKind": "async_delegation_complete",
+              "origin": "history",
+              "rowId": 30,
+              "seq": 0,
+              "title": "Background agent work finished",
+              "ts": 1700000060,
+              "version": 2
+            },
+            "i:2000": {
+              "id": "i:2000",
+              "interim": false,
+              "kind": "assistant",
+              "origin": "inflight",
+              "seq": 1000,
+              "streaming": true,
+              "text": "Reading it now",
+              "ts": 1700000060,
+              "version": 0
+            }
+          },
+          "lastSeq": 1,
+          "order": [
+            "f:1000",
+            "i:2000"
+          ],
+          "resolvedSessionId": "resolved-1",
+          "storedSessionId": "stored-1",
+          "subagents": {},
+          "turn": {
+            "active": true,
+            "assistantId": "i:2000",
+            "interrupted": false,
+            "local": false,
+            "nextSeq": 3000,
+            "startedAt": 1700000000000
+          },
+          "unreadCount": 0
+        }
+      }
+    ],
+    "test": "a resume during a turn the gateway started for itself > keeps one card when the persisted row arrives behind it"
+  },
+  {
+    "calls": [
+      {
+        "args": [
+          "researcher",
+          "stored-1",
+          "resolved-1"
+        ],
+        "op": "createChatState",
+        "result": {
+          "botName": "researcher",
+          "byApprovalId": {},
+          "byDelegationId": {},
+          "byProcessId": {},
+          "byRequestId": {},
+          "byRowId": {},
+          "byToolId": {},
+          "draft": "",
+          "hydration": "cold",
+          "items": {},
+          "lastSeq": 0,
+          "order": [],
+          "resolvedSessionId": "resolved-1",
+          "storedSessionId": "stored-1",
+          "subagents": {},
+          "turn": {
+            "active": false,
+            "local": false,
+            "nextSeq": 1000
+          },
+          "unreadCount": 0
+        }
+      },
+      {
+        "args": [
+          {
+            "botName": "researcher",
+            "byApprovalId": {},
+            "byDelegationId": {},
+            "byProcessId": {},
+            "byRequestId": {},
+            "byRowId": {},
+            "byToolId": {},
+            "draft": "",
+            "hydration": "cold",
+            "items": {},
+            "lastSeq": 0,
+            "order": [],
+            "resolvedSessionId": "resolved-1",
+            "storedSessionId": "stored-1",
+            "subagents": {},
+            "turn": {
+              "active": false,
+              "local": false,
+              "nextSeq": 1000
+            },
+            "unreadCount": 0
+          },
+          {
+            "seq": 1,
+            "type": "message.start"
+          },
+          1700000000000
+        ],
+        "op": "applyEvent",
+        "result": {
+          "botName": "researcher",
+          "byApprovalId": {},
+          "byDelegationId": {},
+          "byProcessId": {},
+          "byRequestId": {},
+          "byRowId": {},
+          "byToolId": {},
+          "compacting": false,
+          "draft": "",
+          "hydration": "cold",
+          "items": {
+            "f:1000": {
+              "id": "f:1000",
+              "kind": "user",
+              "origin": "foreign",
+              "seq": 1000,
+              "text": "",
+              "ts": 1700000000,
+              "unknownAuthor": true,
+              "version": 0
+            }
+          },
+          "lastSeq": 1,
+          "order": [
+            "f:1000"
+          ],
+          "resolvedSessionId": "resolved-1",
+          "storedSessionId": "stored-1",
+          "subagents": {},
+          "turn": {
+            "active": true,
+            "foreignReconcilePending": true,
+            "interrupted": false,
+            "local": false,
+            "nextSeq": 2000,
+            "startedAt": 1700000000000
+          },
+          "unreadCount": 0
+        }
+      },
+      {
+        "args": [
+          {
+            "botName": "researcher",
+            "byApprovalId": {},
+            "byDelegationId": {},
+            "byProcessId": {},
+            "byRequestId": {},
+            "byRowId": {},
+            "byToolId": {},
+            "compacting": false,
+            "draft": "",
+            "hydration": "cold",
+            "items": {
+              "f:1000": {
+                "id": "f:1000",
+                "kind": "user",
+                "origin": "foreign",
+                "seq": 1000,
+                "text": "",
+                "ts": 1700000000,
+                "unknownAuthor": true,
+                "version": 0
+              }
+            },
+            "lastSeq": 1,
+            "order": [
+              "f:1000"
+            ],
+            "resolvedSessionId": "resolved-1",
+            "storedSessionId": "stored-1",
+            "subagents": {},
+            "turn": {
+              "active": true,
+              "foreignReconcilePending": true,
+              "interrupted": false,
+              "local": false,
+              "nextSeq": 2000,
+              "startedAt": 1700000000000
+            },
+            "unreadCount": 0
+          },
+          {
+            "inflight": {
+              "assistant": "Reading",
+              "streaming": true,
+              "user": "[ASYNC DELEGATION BATCH COMPLETE — deleg_1bd47ada]\nA background fan-out unit you dispatched earlier — 3 subagent(s) — has finished; its consolidated results are below. Any other units from the same delegate_task call report separately as they finish.\n\nDispatched: 2026-09-21 20:44:11 (14m ago)\nRole: leaf   Model: gpt-5   Total duration: 812s\n\n--- ✓ TASK 1/3: Audit deps  (status=completed, 41s) ---\nNo drift.\n\n--- ✓ TASK 2/3: Write tests  (status=completed, 190s) ---\nNine cases, all green.\n\n--- ✗ TASK 3/3: Update docs  (status=failed) ---\n(no summary — status=failed: the page was locked)"
+            },
+            "running": true
+          },
+          1700000060000
+        ],
+        "op": "applyResumeSnapshot",
+        "result": {
+          "botName": "researcher",
+          "byApprovalId": {},
+          "byDelegationId": {},
+          "byProcessId": {},
+          "byRequestId": {},
+          "byRowId": {},
+          "byToolId": {},
+          "compacting": false,
+          "draft": "",
+          "hydration": "live",
+          "items": {
+            "f:1000": {
+              "body": "[ASYNC DELEGATION BATCH COMPLETE — deleg_1bd47ada]\nA background fan-out unit you dispatched earlier — 3 subagent(s) — has finished; its consolidated results are below. Any other units from the same delegate_task call report separately as they finish.\n\nDispatched: 2026-09-21 20:44:11 (14m ago)\nRole: leaf   Model: gpt-5   Total duration: 812s\n\n--- ✓ TASK 1/3: Audit deps  (status=completed, 41s) ---\nNo drift.\n\n--- ✓ TASK 2/3: Write tests  (status=completed, 190s) ---\nNine cases, all green.\n\n--- ✗ TASK 3/3: Update docs  (status=failed) ---\n(no summary — status=failed: the page was locked)",
+              "id": "f:1000",
+              "kind": "notice",
+              "noticeKind": "async_delegation_complete",
+              "origin": "inflight",
+              "seq": 1000,
+              "title": "ASYNC DELEGATION BATCH COMPLETE — deleg_1bd47ada",
+              "ts": 1700000060,
+              "version": 1
+            },
+            "i:2000": {
+              "id": "i:2000",
+              "interim": false,
+              "kind": "assistant",
+              "origin": "inflight",
+              "seq": 2000,
+              "streaming": true,
+              "text": "Reading",
+              "ts": 1700000060,
+              "version": 0
+            }
+          },
+          "lastSeq": 1,
+          "order": [
+            "f:1000",
+            "i:2000"
+          ],
+          "resolvedSessionId": "resolved-1",
+          "storedSessionId": "stored-1",
+          "subagents": {},
+          "turn": {
+            "active": true,
+            "assistantId": "i:2000",
+            "interrupted": false,
+            "local": false,
+            "nextSeq": 3000,
+            "startedAt": 1700000000000
+          },
+          "unreadCount": 0
+        }
+      },
+      {
+        "args": [
+          {
+            "botName": "researcher",
+            "byApprovalId": {},
+            "byDelegationId": {},
+            "byProcessId": {},
+            "byRequestId": {},
+            "byRowId": {},
+            "byToolId": {},
+            "compacting": false,
+            "draft": "",
+            "hydration": "live",
+            "items": {
+              "f:1000": {
+                "body": "[ASYNC DELEGATION BATCH COMPLETE — deleg_1bd47ada]\nA background fan-out unit you dispatched earlier — 3 subagent(s) — has finished; its consolidated results are below. Any other units from the same delegate_task call report separately as they finish.\n\nDispatched: 2026-09-21 20:44:11 (14m ago)\nRole: leaf   Model: gpt-5   Total duration: 812s\n\n--- ✓ TASK 1/3: Audit deps  (status=completed, 41s) ---\nNo drift.\n\n--- ✓ TASK 2/3: Write tests  (status=completed, 190s) ---\nNine cases, all green.\n\n--- ✗ TASK 3/3: Update docs  (status=failed) ---\n(no summary — status=failed: the page was locked)",
+                "id": "f:1000",
+                "kind": "notice",
+                "noticeKind": "async_delegation_complete",
+                "origin": "inflight",
+                "seq": 1000,
+                "title": "ASYNC DELEGATION BATCH COMPLETE — deleg_1bd47ada",
+                "ts": 1700000060,
+                "version": 1
+              },
+              "i:2000": {
+                "id": "i:2000",
+                "interim": false,
+                "kind": "assistant",
+                "origin": "inflight",
+                "seq": 2000,
+                "streaming": true,
+                "text": "Reading",
+                "ts": 1700000060,
+                "version": 0
+              }
+            },
+            "lastSeq": 1,
+            "order": [
+              "f:1000",
+              "i:2000"
+            ],
+            "resolvedSessionId": "resolved-1",
+            "storedSessionId": "stored-1",
+            "subagents": {},
+            "turn": {
+              "active": true,
+              "assistantId": "i:2000",
+              "interrupted": false,
+              "local": false,
+              "nextSeq": 3000,
+              "startedAt": 1700000000000
+            },
+            "unreadCount": 0
+          },
+          {
+            "inflight": {
+              "assistant": "Reading it now",
+              "streaming": true,
+              "user": "[ASYNC DELEGATION BATCH COMPLETE — deleg_1bd47ada]\nA background fan-out unit you dispatched earlier — 3 subagent(s) — has finished; its consolidated results are below. Any other units from the same delegate_task call report separately as they finish.\n\nDispatched: 2026-09-21 20:44:11 (14m ago)\nRole: leaf   Model: gpt-5   Total duration: 812s\n\n--- ✓ TASK 1/3: Audit deps  (status=completed, 41s) ---\nNo drift.\n\n--- ✓ TASK 2/3: Write tests  (status=completed, 190s) ---\nNine cases, all green.\n\n--- ✗ TASK 3/3: Update docs  (status=failed) ---\n(no summary — status=failed: the page was locked)"
+            },
+            "running": true
+          },
+          1700000061000
+        ],
+        "op": "applyResumeSnapshot",
+        "result": {
+          "botName": "researcher",
+          "byApprovalId": {},
+          "byDelegationId": {},
+          "byProcessId": {},
+          "byRequestId": {},
+          "byRowId": {},
+          "byToolId": {},
+          "compacting": false,
+          "draft": "",
+          "hydration": "live",
+          "items": {
+            "f:1000": {
+              "body": "[ASYNC DELEGATION BATCH COMPLETE — deleg_1bd47ada]\nA background fan-out unit you dispatched earlier — 3 subagent(s) — has finished; its consolidated results are below. Any other units from the same delegate_task call report separately as they finish.\n\nDispatched: 2026-09-21 20:44:11 (14m ago)\nRole: leaf   Model: gpt-5   Total duration: 812s\n\n--- ✓ TASK 1/3: Audit deps  (status=completed, 41s) ---\nNo drift.\n\n--- ✓ TASK 2/3: Write tests  (status=completed, 190s) ---\nNine cases, all green.\n\n--- ✗ TASK 3/3: Update docs  (status=failed) ---\n(no summary — status=failed: the page was locked)",
+              "id": "f:1000",
+              "kind": "notice",
+              "noticeKind": "async_delegation_complete",
+              "origin": "inflight",
+              "seq": 1000,
+              "title": "ASYNC DELEGATION BATCH COMPLETE — deleg_1bd47ada",
+              "ts": 1700000060,
+              "version": 1
+            },
+            "i:2000": {
+              "id": "i:2000",
+              "interim": false,
+              "kind": "assistant",
+              "origin": "inflight",
+              "seq": 2000,
+              "streaming": true,
+              "text": "Reading it now",
+              "ts": 1700000060,
+              "version": 1
+            }
+          },
+          "lastSeq": 1,
+          "order": [
+            "f:1000",
+            "i:2000"
+          ],
+          "resolvedSessionId": "resolved-1",
+          "storedSessionId": "stored-1",
+          "subagents": {},
+          "turn": {
+            "active": true,
+            "assistantId": "i:2000",
+            "interrupted": false,
+            "local": false,
+            "nextSeq": 3000,
+            "startedAt": 1700000000000
+          },
+          "unreadCount": 0
+        }
+      }
+    ],
+    "test": "a resume during a turn the gateway started for itself > keeps one card across a second resume"
+  },
+  {
+    "calls": [
+      {
+        "args": [
+          "researcher",
+          "stored-1",
+          "resolved-1"
+        ],
+        "op": "createChatState",
+        "result": {
+          "botName": "researcher",
+          "byApprovalId": {},
+          "byDelegationId": {},
+          "byProcessId": {},
+          "byRequestId": {},
+          "byRowId": {},
+          "byToolId": {},
+          "draft": "",
+          "hydration": "cold",
+          "items": {},
+          "lastSeq": 0,
+          "order": [],
+          "resolvedSessionId": "resolved-1",
+          "storedSessionId": "stored-1",
+          "subagents": {},
+          "turn": {
+            "active": false,
+            "local": false,
+            "nextSeq": 1000
+          },
+          "unreadCount": 0
+        }
+      },
+      {
+        "args": [
+          {
+            "botName": "researcher",
+            "byApprovalId": {},
+            "byDelegationId": {},
+            "byProcessId": {},
+            "byRequestId": {},
+            "byRowId": {},
+            "byToolId": {},
+            "draft": "",
+            "hydration": "cold",
+            "items": {},
+            "lastSeq": 0,
+            "order": [],
+            "resolvedSessionId": "resolved-1",
+            "storedSessionId": "stored-1",
+            "subagents": {},
+            "turn": {
+              "active": false,
+              "local": false,
+              "nextSeq": 1000
+            },
+            "unreadCount": 0
+          },
+          {
+            "seq": 1,
+            "type": "message.start"
+          },
+          1700000000000
+        ],
+        "op": "applyEvent",
+        "result": {
+          "botName": "researcher",
+          "byApprovalId": {},
+          "byDelegationId": {},
+          "byProcessId": {},
+          "byRequestId": {},
+          "byRowId": {},
+          "byToolId": {},
+          "compacting": false,
+          "draft": "",
+          "hydration": "cold",
+          "items": {
+            "f:1000": {
+              "id": "f:1000",
+              "kind": "user",
+              "origin": "foreign",
+              "seq": 1000,
+              "text": "",
+              "ts": 1700000000,
+              "unknownAuthor": true,
+              "version": 0
+            }
+          },
+          "lastSeq": 1,
+          "order": [
+            "f:1000"
+          ],
+          "resolvedSessionId": "resolved-1",
+          "storedSessionId": "stored-1",
+          "subagents": {},
+          "turn": {
+            "active": true,
+            "foreignReconcilePending": true,
+            "interrupted": false,
+            "local": false,
+            "nextSeq": 2000,
+            "startedAt": 1700000000000
+          },
+          "unreadCount": 0
+        }
+      },
+      {
+        "args": [
+          [
+            {
+              "display_kind": "async_delegation_complete",
+              "role": "user",
+              "row_id": 31,
+              "text": "[ASYNC DELEGATION BATCH COMPLETE — deleg_1bd47ada]\nA background fan-out unit you dispatched earlier — 3 subagent(s) — has finished; its consolidated results are below. Any other units from the same delegate_task call report separately as they finish.\n\nDispatched: 2026-09-21 20:44:11 (14m ago)\nRole: leaf   Model: gpt-5   Total duration: 812s\n\n--- ✓ TASK 1/3: Audit deps  (status=completed, 41s) ---\nNo drift.\n\n--- ✓ TASK 2/3: Write tests  (status=completed, 190s) ---\nNine cases, all green.\n\n--- ✗ TASK 3/3: Update docs  (status=failed) ---\n(no summary — status=failed: the page was locked)",
+              "timestamp": 1700000060
+            }
+          ],
+          "rest"
+        ],
+        "op": "rowsToItems",
+        "result": [
+          {
+            "body": "[ASYNC DELEGATION BATCH COMPLETE — deleg_1bd47ada]\nA background fan-out unit you dispatched earlier — 3 subagent(s) — has finished; its consolidated results are below. Any other units from the same delegate_task call report separately as they finish.\n\nDispatched: 2026-09-21 20:44:11 (14m ago)\nRole: leaf   Model: gpt-5   Total duration: 812s\n\n--- ✓ TASK 1/3: Audit deps  (status=completed, 41s) ---\nNo drift.\n\n--- ✓ TASK 2/3: Write tests  (status=completed, 190s) ---\nNine cases, all green.\n\n--- ✗ TASK 3/3: Update docs  (status=failed) ---\n(no summary — status=failed: the page was locked)",
+            "id": "r:31",
+            "kind": "notice",
+            "noticeKind": "async_delegation_complete",
+            "origin": "history",
+            "rowId": 31,
+            "seq": 0,
+            "title": "Background agent work finished",
+            "ts": 1700000060,
+            "version": 0
+          }
+        ]
+      },
+      {
+        "args": [
+          {
+            "botName": "researcher",
+            "byApprovalId": {},
+            "byDelegationId": {},
+            "byProcessId": {},
+            "byRequestId": {},
+            "byRowId": {},
+            "byToolId": {},
+            "compacting": false,
+            "draft": "",
+            "hydration": "cold",
+            "items": {
+              "f:1000": {
+                "id": "f:1000",
+                "kind": "user",
+                "origin": "foreign",
+                "seq": 1000,
+                "text": "",
+                "ts": 1700000000,
+                "unknownAuthor": true,
+                "version": 0
+              }
+            },
+            "lastSeq": 1,
+            "order": [
+              "f:1000"
+            ],
+            "resolvedSessionId": "resolved-1",
+            "storedSessionId": "stored-1",
+            "subagents": {},
+            "turn": {
+              "active": true,
+              "foreignReconcilePending": true,
+              "interrupted": false,
+              "local": false,
+              "nextSeq": 2000,
+              "startedAt": 1700000000000
+            },
+            "unreadCount": 0
+          },
+          [
+            {
+              "body": "[ASYNC DELEGATION BATCH COMPLETE — deleg_1bd47ada]\nA background fan-out unit you dispatched earlier — 3 subagent(s) — has finished; its consolidated results are below. Any other units from the same delegate_task call report separately as they finish.\n\nDispatched: 2026-09-21 20:44:11 (14m ago)\nRole: leaf   Model: gpt-5   Total duration: 812s\n\n--- ✓ TASK 1/3: Audit deps  (status=completed, 41s) ---\nNo drift.\n\n--- ✓ TASK 2/3: Write tests  (status=completed, 190s) ---\nNine cases, all green.\n\n--- ✗ TASK 3/3: Update docs  (status=failed) ---\n(no summary — status=failed: the page was locked)",
+              "id": "r:31",
+              "kind": "notice",
+              "noticeKind": "async_delegation_complete",
+              "origin": "history",
+              "rowId": 31,
+              "seq": 0,
+              "title": "Background agent work finished",
+              "ts": 1700000060,
+              "version": 0
+            }
+          ]
+        ],
+        "op": "reconcileTail",
+        "result": {
+          "botName": "researcher",
+          "byApprovalId": {},
+          "byDelegationId": {},
+          "byProcessId": {},
+          "byRequestId": {},
+          "byRowId": {
+            "31": "f:1000"
+          },
+          "byToolId": {},
+          "compacting": false,
+          "draft": "",
+          "hydration": "cold",
+          "items": {
+            "f:1000": {
+              "body": "[ASYNC DELEGATION BATCH COMPLETE — deleg_1bd47ada]\nA background fan-out unit you dispatched earlier — 3 subagent(s) — has finished; its consolidated results are below. Any other units from the same delegate_task call report separately as they finish.\n\nDispatched: 2026-09-21 20:44:11 (14m ago)\nRole: leaf   Model: gpt-5   Total duration: 812s\n\n--- ✓ TASK 1/3: Audit deps  (status=completed, 41s) ---\nNo drift.\n\n--- ✓ TASK 2/3: Write tests  (status=completed, 190s) ---\nNine cases, all green.\n\n--- ✗ TASK 3/3: Update docs  (status=failed) ---\n(no summary — status=failed: the page was locked)",
+              "id": "f:1000",
+              "kind": "notice",
+              "noticeKind": "async_delegation_complete",
+              "origin": "history",
+              "rowId": 31,
+              "seq": 0,
+              "title": "Background agent work finished",
+              "ts": 1700000060,
+              "version": 1
+            }
+          },
+          "lastSeq": 1,
+          "order": [
+            "f:1000"
+          ],
+          "resolvedSessionId": "resolved-1",
+          "storedSessionId": "stored-1",
+          "subagents": {},
+          "turn": {
+            "active": true,
+            "interrupted": false,
+            "local": false,
+            "nextSeq": 2000,
+            "startedAt": 1700000000000
+          },
+          "unreadCount": 0
+        }
+      }
+    ],
+    "test": "a tail fetch with no resume in front of it > turns the placeholder into the card rather than leaving an empty bubble beside it"
+  }
+]

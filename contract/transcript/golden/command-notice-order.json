@@ -1,0 +1,3983 @@
+[
+  {
+    "calls": [
+      {
+        "args": [
+          "researcher",
+          "stored-1",
+          "resolved-1"
+        ],
+        "op": "createChatState",
+        "result": {
+          "botName": "researcher",
+          "byApprovalId": {},
+          "byDelegationId": {},
+          "byProcessId": {},
+          "byRequestId": {},
+          "byRowId": {},
+          "byToolId": {},
+          "draft": "",
+          "hydration": "cold",
+          "items": {},
+          "lastSeq": 0,
+          "order": [],
+          "resolvedSessionId": "resolved-1",
+          "storedSessionId": "stored-1",
+          "subagents": {},
+          "turn": {
+            "active": false,
+            "local": false,
+            "nextSeq": 1000
+          },
+          "unreadCount": 0
+        }
+      },
+      {
+        "args": [
+          [
+            {
+              "role": "user",
+              "row_id": 1,
+              "text": "Take the staging stack down",
+              "timestamp": 1758387200
+            },
+            {
+              "role": "assistant",
+              "row_id": 2,
+              "text": "Running the compose command now.",
+              "timestamp": 1758387220
+            }
+          ],
+          "rpc"
+        ],
+        "op": "rowsToItems",
+        "result": [
+          {
+            "id": "r:1",
+            "kind": "user",
+            "origin": "history",
+            "rowId": 1,
+            "seq": 0,
+            "text": "Take the staging stack down",
+            "ts": 1758387200,
+            "version": 0
+          },
+          {
+            "id": "r:2",
+            "interim": false,
+            "kind": "assistant",
+            "origin": "history",
+            "rowId": 2,
+            "seq": 1000,
+            "status": "complete",
+            "streaming": false,
+            "text": "Running the compose command now.",
+            "ts": 1758387220,
+            "version": 0
+          }
+        ]
+      },
+      {
+        "args": [
+          {
+            "botName": "researcher",
+            "byApprovalId": {},
+            "byDelegationId": {},
+            "byProcessId": {},
+            "byRequestId": {},
+            "byRowId": {},
+            "byToolId": {},
+            "draft": "",
+            "hydration": "cold",
+            "items": {},
+            "lastSeq": 0,
+            "order": [],
+            "resolvedSessionId": "resolved-1",
+            "storedSessionId": "stored-1",
+            "subagents": {},
+            "turn": {
+              "active": false,
+              "local": false,
+              "nextSeq": 1000
+            },
+            "unreadCount": 0
+          },
+          [
+            {
+              "id": "r:1",
+              "kind": "user",
+              "origin": "history",
+              "rowId": 1,
+              "seq": 0,
+              "text": "Take the staging stack down",
+              "ts": 1758387200,
+              "version": 0
+            },
+            {
+              "id": "r:2",
+              "interim": false,
+              "kind": "assistant",
+              "origin": "history",
+              "rowId": 2,
+              "seq": 1000,
+              "status": "complete",
+              "streaming": false,
+              "text": "Running the compose command now.",
+              "ts": 1758387220,
+              "version": 0
+            }
+          ]
+        ],
+        "op": "reconcile",
+        "result": {
+          "botName": "researcher",
+          "byApprovalId": {},
+          "byDelegationId": {},
+          "byProcessId": {},
+          "byRequestId": {},
+          "byRowId": {
+            "1": "r:1",
+            "2": "r:2"
+          },
+          "byToolId": {},
+          "draft": "",
+          "hydration": "live",
+          "items": {
+            "r:1": {
+              "id": "r:1",
+              "kind": "user",
+              "origin": "history",
+              "rowId": 1,
+              "seq": 0,
+              "text": "Take the staging stack down",
+              "ts": 1758387200,
+              "version": 0
+            },
+            "r:2": {
+              "id": "r:2",
+              "interim": false,
+              "kind": "assistant",
+              "origin": "history",
+              "rowId": 2,
+              "seq": 1000,
+              "status": "complete",
+              "streaming": false,
+              "text": "Running the compose command now.",
+              "ts": 1758387220,
+              "version": 0
+            }
+          },
+          "lastSeq": 0,
+          "order": [
+            "r:1",
+            "r:2"
+          ],
+          "resolvedSessionId": "resolved-1",
+          "storedSessionId": "stored-1",
+          "subagents": {},
+          "turn": {
+            "active": false,
+            "local": false,
+            "nextSeq": 2000
+          },
+          "unreadCount": 0
+        }
+      },
+      {
+        "args": [
+          {
+            "botName": "researcher",
+            "byApprovalId": {},
+            "byDelegationId": {},
+            "byProcessId": {},
+            "byRequestId": {},
+            "byRowId": {
+              "1": "r:1",
+              "2": "r:2"
+            },
+            "byToolId": {},
+            "draft": "",
+            "hydration": "live",
+            "items": {
+              "r:1": {
+                "id": "r:1",
+                "kind": "user",
+                "origin": "history",
+                "rowId": 1,
+                "seq": 0,
+                "text": "Take the staging stack down",
+                "ts": 1758387200,
+                "version": 0
+              },
+              "r:2": {
+                "id": "r:2",
+                "interim": false,
+                "kind": "assistant",
+                "origin": "history",
+                "rowId": 2,
+                "seq": 1000,
+                "status": "complete",
+                "streaming": false,
+                "text": "Running the compose command now.",
+                "ts": 1758387220,
+                "version": 0
+              }
+            },
+            "lastSeq": 0,
+            "order": [
+              "r:1",
+              "r:2"
+            ],
+            "resolvedSessionId": "resolved-1",
+            "storedSessionId": "stored-1",
+            "subagents": {},
+            "turn": {
+              "active": false,
+              "local": false,
+              "nextSeq": 2000
+            },
+            "unreadCount": 0
+          },
+          {
+            "payload": {
+              "detail": "Model set to gpt-5",
+              "message": "/model gpt-5",
+              "noticeKind": "command"
+            },
+            "session_id": "sess-1",
+            "type": "notice"
+          },
+          1758387240000
+        ],
+        "op": "applyEvent",
+        "result": {
+          "botName": "researcher",
+          "byApprovalId": {},
+          "byDelegationId": {},
+          "byProcessId": {},
+          "byRequestId": {},
+          "byRowId": {
+            "1": "r:1",
+            "2": "r:2"
+          },
+          "byToolId": {},
+          "draft": "",
+          "hydration": "live",
+          "items": {
+            "n:2000": {
+              "body": "Model set to gpt-5",
+              "id": "n:2000",
+              "kind": "notice",
+              "noticeKind": "command",
+              "origin": "live",
+              "seq": 2000,
+              "title": "/model gpt-5",
+              "ts": 1758387240,
+              "version": 0
+            },
+            "r:1": {
+              "id": "r:1",
+              "kind": "user",
+              "origin": "history",
+              "rowId": 1,
+              "seq": 0,
+              "text": "Take the staging stack down",
+              "ts": 1758387200,
+              "version": 0
+            },
+            "r:2": {
+              "id": "r:2",
+              "interim": false,
+              "kind": "assistant",
+              "origin": "history",
+              "rowId": 2,
+              "seq": 1000,
+              "status": "complete",
+              "streaming": false,
+              "text": "Running the compose command now.",
+              "ts": 1758387220,
+              "version": 0
+            }
+          },
+          "lastSeq": 0,
+          "order": [
+            "r:1",
+            "r:2",
+            "n:2000"
+          ],
+          "resolvedSessionId": "resolved-1",
+          "storedSessionId": "stored-1",
+          "subagents": {},
+          "turn": {
+            "active": false,
+            "local": false,
+            "nextSeq": 3000
+          },
+          "unreadCount": 0
+        }
+      },
+      {
+        "args": [
+          {
+            "botName": "researcher",
+            "byApprovalId": {},
+            "byDelegationId": {},
+            "byProcessId": {},
+            "byRequestId": {},
+            "byRowId": {
+              "1": "r:1",
+              "2": "r:2"
+            },
+            "byToolId": {},
+            "draft": "",
+            "hydration": "live",
+            "items": {
+              "n:2000": {
+                "body": "Model set to gpt-5",
+                "id": "n:2000",
+                "kind": "notice",
+                "noticeKind": "command",
+                "origin": "live",
+                "seq": 2000,
+                "title": "/model gpt-5",
+                "ts": 1758387240,
+                "version": 0
+              },
+              "r:1": {
+                "id": "r:1",
+                "kind": "user",
+                "origin": "history",
+                "rowId": 1,
+                "seq": 0,
+                "text": "Take the staging stack down",
+                "ts": 1758387200,
+                "version": 0
+              },
+              "r:2": {
+                "id": "r:2",
+                "interim": false,
+                "kind": "assistant",
+                "origin": "history",
+                "rowId": 2,
+                "seq": 1000,
+                "status": "complete",
+                "streaming": false,
+                "text": "Running the compose command now.",
+                "ts": 1758387220,
+                "version": 0
+              }
+            },
+            "lastSeq": 0,
+            "order": [
+              "r:1",
+              "r:2",
+              "n:2000"
+            ],
+            "resolvedSessionId": "resolved-1",
+            "storedSessionId": "stored-1",
+            "subagents": {},
+            "turn": {
+              "active": false,
+              "local": false,
+              "nextSeq": 3000
+            },
+            "unreadCount": 0
+          },
+          1758387300000
+        ],
+        "op": "snapshotForCache",
+        "result": {
+          "format": 1,
+          "items": [
+            {
+              "id": "r:1",
+              "kind": "user",
+              "origin": "history",
+              "rowId": 1,
+              "seq": 0,
+              "text": "Take the staging stack down",
+              "ts": 1758387200,
+              "version": 0
+            },
+            {
+              "id": "r:2",
+              "interim": false,
+              "kind": "assistant",
+              "origin": "history",
+              "rowId": 2,
+              "seq": 1000,
+              "status": "complete",
+              "streaming": false,
+              "text": "Running the compose command now.",
+              "ts": 1758387220,
+              "version": 0
+            },
+            {
+              "body": "Model set to gpt-5",
+              "id": "n:2000",
+              "kind": "notice",
+              "noticeKind": "command",
+              "origin": "live",
+              "seq": 2000,
+              "title": "/model gpt-5",
+              "ts": 1758387240,
+              "version": 0
+            }
+          ],
+          "lastRowId": 2,
+          "lastSeq": 0,
+          "subagents": [],
+          "updatedAt": 1758387300000
+        }
+      },
+      {
+        "args": [
+          "researcher",
+          {
+            "resolvedSessionId": "resolved-1",
+            "storedSessionId": "stored-1"
+          },
+          {
+            "format": 1,
+            "items": [
+              {
+                "id": "r:1",
+                "kind": "user",
+                "origin": "history",
+                "rowId": 1,
+                "seq": 0,
+                "text": "Take the staging stack down",
+                "ts": 1758387200,
+                "version": 0
+              },
+              {
+                "id": "r:2",
+                "interim": false,
+                "kind": "assistant",
+                "origin": "history",
+                "rowId": 2,
+                "seq": 1000,
+                "status": "complete",
+                "streaming": false,
+                "text": "Running the compose command now.",
+                "ts": 1758387220,
+                "version": 0
+              },
+              {
+                "body": "Model set to gpt-5",
+                "id": "n:2000",
+                "kind": "notice",
+                "noticeKind": "command",
+                "origin": "live",
+                "seq": 2000,
+                "title": "/model gpt-5",
+                "ts": 1758387240,
+                "version": 0
+              }
+            ],
+            "lastRowId": 2,
+            "lastSeq": 0,
+            "subagents": [],
+            "updatedAt": 1758387300000
+          }
+        ],
+        "op": "stateFromCache",
+        "result": {
+          "botName": "researcher",
+          "byApprovalId": {},
+          "byDelegationId": {},
+          "byProcessId": {},
+          "byRequestId": {},
+          "byRowId": {
+            "1": "r:1",
+            "2": "r:2"
+          },
+          "byToolId": {},
+          "draft": "",
+          "hydration": "cached",
+          "items": {
+            "n:2000": {
+              "body": "Model set to gpt-5",
+              "id": "n:2000",
+              "kind": "notice",
+              "noticeKind": "command",
+              "origin": "live",
+              "seq": 2000,
+              "title": "/model gpt-5",
+              "ts": 1758387240,
+              "version": 0
+            },
+            "r:1": {
+              "id": "r:1",
+              "kind": "user",
+              "origin": "history",
+              "rowId": 1,
+              "seq": 0,
+              "text": "Take the staging stack down",
+              "ts": 1758387200,
+              "version": 0
+            },
+            "r:2": {
+              "id": "r:2",
+              "interim": false,
+              "kind": "assistant",
+              "origin": "history",
+              "rowId": 2,
+              "seq": 1000,
+              "status": "complete",
+              "streaming": false,
+              "text": "Running the compose command now.",
+              "ts": 1758387220,
+              "version": 0
+            }
+          },
+          "lastSeenRowId": 2,
+          "lastSeq": 0,
+          "order": [
+            "r:1",
+            "r:2",
+            "n:2000"
+          ],
+          "resolvedSessionId": "resolved-1",
+          "storedSessionId": "stored-1",
+          "subagents": {},
+          "turn": {
+            "active": false,
+            "local": false,
+            "nextSeq": 3000
+          },
+          "unreadCount": 0
+        }
+      }
+    ],
+    "test": "a slash command answer keeps the place it was answered in > survives the cache with the timestamp it was answered at"
+  },
+  {
+    "calls": [
+      {
+        "args": [
+          "researcher",
+          "stored-1",
+          "resolved-1"
+        ],
+        "op": "createChatState",
+        "result": {
+          "botName": "researcher",
+          "byApprovalId": {},
+          "byDelegationId": {},
+          "byProcessId": {},
+          "byRequestId": {},
+          "byRowId": {},
+          "byToolId": {},
+          "draft": "",
+          "hydration": "cold",
+          "items": {},
+          "lastSeq": 0,
+          "order": [],
+          "resolvedSessionId": "resolved-1",
+          "storedSessionId": "stored-1",
+          "subagents": {},
+          "turn": {
+            "active": false,
+            "local": false,
+            "nextSeq": 1000
+          },
+          "unreadCount": 0
+        }
+      },
+      {
+        "args": [
+          [
+            {
+              "role": "user",
+              "row_id": 1,
+              "text": "Take the staging stack down",
+              "timestamp": 1758387200
+            },
+            {
+              "role": "assistant",
+              "row_id": 2,
+              "text": "Running the compose command now.",
+              "timestamp": 1758387220
+            }
+          ],
+          "rpc"
+        ],
+        "op": "rowsToItems",
+        "result": [
+          {
+            "id": "r:1",
+            "kind": "user",
+            "origin": "history",
+            "rowId": 1,
+            "seq": 0,
+            "text": "Take the staging stack down",
+            "ts": 1758387200,
+            "version": 0
+          },
+          {
+            "id": "r:2",
+            "interim": false,
+            "kind": "assistant",
+            "origin": "history",
+            "rowId": 2,
+            "seq": 1000,
+            "status": "complete",
+            "streaming": false,
+            "text": "Running the compose command now.",
+            "ts": 1758387220,
+            "version": 0
+          }
+        ]
+      },
+      {
+        "args": [
+          {
+            "botName": "researcher",
+            "byApprovalId": {},
+            "byDelegationId": {},
+            "byProcessId": {},
+            "byRequestId": {},
+            "byRowId": {},
+            "byToolId": {},
+            "draft": "",
+            "hydration": "cold",
+            "items": {},
+            "lastSeq": 0,
+            "order": [],
+            "resolvedSessionId": "resolved-1",
+            "storedSessionId": "stored-1",
+            "subagents": {},
+            "turn": {
+              "active": false,
+              "local": false,
+              "nextSeq": 1000
+            },
+            "unreadCount": 0
+          },
+          [
+            {
+              "id": "r:1",
+              "kind": "user",
+              "origin": "history",
+              "rowId": 1,
+              "seq": 0,
+              "text": "Take the staging stack down",
+              "ts": 1758387200,
+              "version": 0
+            },
+            {
+              "id": "r:2",
+              "interim": false,
+              "kind": "assistant",
+              "origin": "history",
+              "rowId": 2,
+              "seq": 1000,
+              "status": "complete",
+              "streaming": false,
+              "text": "Running the compose command now.",
+              "ts": 1758387220,
+              "version": 0
+            }
+          ]
+        ],
+        "op": "reconcile",
+        "result": {
+          "botName": "researcher",
+          "byApprovalId": {},
+          "byDelegationId": {},
+          "byProcessId": {},
+          "byRequestId": {},
+          "byRowId": {
+            "1": "r:1",
+            "2": "r:2"
+          },
+          "byToolId": {},
+          "draft": "",
+          "hydration": "live",
+          "items": {
+            "r:1": {
+              "id": "r:1",
+              "kind": "user",
+              "origin": "history",
+              "rowId": 1,
+              "seq": 0,
+              "text": "Take the staging stack down",
+              "ts": 1758387200,
+              "version": 0
+            },
+            "r:2": {
+              "id": "r:2",
+              "interim": false,
+              "kind": "assistant",
+              "origin": "history",
+              "rowId": 2,
+              "seq": 1000,
+              "status": "complete",
+              "streaming": false,
+              "text": "Running the compose command now.",
+              "ts": 1758387220,
+              "version": 0
+            }
+          },
+          "lastSeq": 0,
+          "order": [
+            "r:1",
+            "r:2"
+          ],
+          "resolvedSessionId": "resolved-1",
+          "storedSessionId": "stored-1",
+          "subagents": {},
+          "turn": {
+            "active": false,
+            "local": false,
+            "nextSeq": 2000
+          },
+          "unreadCount": 0
+        }
+      },
+      {
+        "args": [
+          {
+            "botName": "researcher",
+            "byApprovalId": {},
+            "byDelegationId": {},
+            "byProcessId": {},
+            "byRequestId": {},
+            "byRowId": {
+              "1": "r:1",
+              "2": "r:2"
+            },
+            "byToolId": {},
+            "draft": "",
+            "hydration": "live",
+            "items": {
+              "r:1": {
+                "id": "r:1",
+                "kind": "user",
+                "origin": "history",
+                "rowId": 1,
+                "seq": 0,
+                "text": "Take the staging stack down",
+                "ts": 1758387200,
+                "version": 0
+              },
+              "r:2": {
+                "id": "r:2",
+                "interim": false,
+                "kind": "assistant",
+                "origin": "history",
+                "rowId": 2,
+                "seq": 1000,
+                "status": "complete",
+                "streaming": false,
+                "text": "Running the compose command now.",
+                "ts": 1758387220,
+                "version": 0
+              }
+            },
+            "lastSeq": 0,
+            "order": [
+              "r:1",
+              "r:2"
+            ],
+            "resolvedSessionId": "resolved-1",
+            "storedSessionId": "stored-1",
+            "subagents": {},
+            "turn": {
+              "active": false,
+              "local": false,
+              "nextSeq": 2000
+            },
+            "unreadCount": 0
+          },
+          {
+            "payload": {
+              "detail": "Model set to gpt-5",
+              "message": "/model gpt-5",
+              "noticeKind": "command"
+            },
+            "session_id": "sess-1",
+            "type": "notice"
+          },
+          1758387240000
+        ],
+        "op": "applyEvent",
+        "result": {
+          "botName": "researcher",
+          "byApprovalId": {},
+          "byDelegationId": {},
+          "byProcessId": {},
+          "byRequestId": {},
+          "byRowId": {
+            "1": "r:1",
+            "2": "r:2"
+          },
+          "byToolId": {},
+          "draft": "",
+          "hydration": "live",
+          "items": {
+            "n:2000": {
+              "body": "Model set to gpt-5",
+              "id": "n:2000",
+              "kind": "notice",
+              "noticeKind": "command",
+              "origin": "live",
+              "seq": 2000,
+              "title": "/model gpt-5",
+              "ts": 1758387240,
+              "version": 0
+            },
+            "r:1": {
+              "id": "r:1",
+              "kind": "user",
+              "origin": "history",
+              "rowId": 1,
+              "seq": 0,
+              "text": "Take the staging stack down",
+              "ts": 1758387200,
+              "version": 0
+            },
+            "r:2": {
+              "id": "r:2",
+              "interim": false,
+              "kind": "assistant",
+              "origin": "history",
+              "rowId": 2,
+              "seq": 1000,
+              "status": "complete",
+              "streaming": false,
+              "text": "Running the compose command now.",
+              "ts": 1758387220,
+              "version": 0
+            }
+          },
+          "lastSeq": 0,
+          "order": [
+            "r:1",
+            "r:2",
+            "n:2000"
+          ],
+          "resolvedSessionId": "resolved-1",
+          "storedSessionId": "stored-1",
+          "subagents": {},
+          "turn": {
+            "active": false,
+            "local": false,
+            "nextSeq": 3000
+          },
+          "unreadCount": 0
+        }
+      },
+      {
+        "args": [
+          {
+            "botName": "researcher",
+            "byApprovalId": {},
+            "byDelegationId": {},
+            "byProcessId": {},
+            "byRequestId": {},
+            "byRowId": {
+              "1": "r:1",
+              "2": "r:2"
+            },
+            "byToolId": {},
+            "draft": "",
+            "hydration": "live",
+            "items": {
+              "n:2000": {
+                "body": "Model set to gpt-5",
+                "id": "n:2000",
+                "kind": "notice",
+                "noticeKind": "command",
+                "origin": "live",
+                "seq": 2000,
+                "title": "/model gpt-5",
+                "ts": 1758387240,
+                "version": 0
+              },
+              "r:1": {
+                "id": "r:1",
+                "kind": "user",
+                "origin": "history",
+                "rowId": 1,
+                "seq": 0,
+                "text": "Take the staging stack down",
+                "ts": 1758387200,
+                "version": 0
+              },
+              "r:2": {
+                "id": "r:2",
+                "interim": false,
+                "kind": "assistant",
+                "origin": "history",
+                "rowId": 2,
+                "seq": 1000,
+                "status": "complete",
+                "streaming": false,
+                "text": "Running the compose command now.",
+                "ts": 1758387220,
+                "version": 0
+              }
+            },
+            "lastSeq": 0,
+            "order": [
+              "r:1",
+              "r:2",
+              "n:2000"
+            ],
+            "resolvedSessionId": "resolved-1",
+            "storedSessionId": "stored-1",
+            "subagents": {},
+            "turn": {
+              "active": false,
+              "local": false,
+              "nextSeq": 3000
+            },
+            "unreadCount": 0
+          },
+          1758387300000
+        ],
+        "op": "snapshotForCache",
+        "result": {
+          "format": 1,
+          "items": [
+            {
+              "id": "r:1",
+              "kind": "user",
+              "origin": "history",
+              "rowId": 1,
+              "seq": 0,
+              "text": "Take the staging stack down",
+              "ts": 1758387200,
+              "version": 0
+            },
+            {
+              "id": "r:2",
+              "interim": false,
+              "kind": "assistant",
+              "origin": "history",
+              "rowId": 2,
+              "seq": 1000,
+              "status": "complete",
+              "streaming": false,
+              "text": "Running the compose command now.",
+              "ts": 1758387220,
+              "version": 0
+            },
+            {
+              "body": "Model set to gpt-5",
+              "id": "n:2000",
+              "kind": "notice",
+              "noticeKind": "command",
+              "origin": "live",
+              "seq": 2000,
+              "title": "/model gpt-5",
+              "ts": 1758387240,
+              "version": 0
+            }
+          ],
+          "lastRowId": 2,
+          "lastSeq": 0,
+          "subagents": [],
+          "updatedAt": 1758387300000
+        }
+      },
+      {
+        "args": [
+          "researcher",
+          {
+            "resolvedSessionId": "resolved-1",
+            "storedSessionId": "stored-1"
+          },
+          {
+            "format": 1,
+            "items": [
+              {
+                "id": "r:1",
+                "kind": "user",
+                "origin": "history",
+                "rowId": 1,
+                "seq": 0,
+                "text": "Take the staging stack down",
+                "ts": 1758387200,
+                "version": 0
+              },
+              {
+                "id": "r:2",
+                "interim": false,
+                "kind": "assistant",
+                "origin": "history",
+                "rowId": 2,
+                "seq": 1000,
+                "status": "complete",
+                "streaming": false,
+                "text": "Running the compose command now.",
+                "ts": 1758387220,
+                "version": 0
+              },
+              {
+                "body": "Model set to gpt-5",
+                "id": "n:2000",
+                "kind": "notice",
+                "noticeKind": "command",
+                "origin": "live",
+                "seq": 2000,
+                "title": "/model gpt-5",
+                "ts": 1758387240,
+                "version": 0
+              }
+            ],
+            "lastRowId": 2,
+            "lastSeq": 0,
+            "subagents": [],
+            "updatedAt": 1758387300000
+          }
+        ],
+        "op": "stateFromCache",
+        "result": {
+          "botName": "researcher",
+          "byApprovalId": {},
+          "byDelegationId": {},
+          "byProcessId": {},
+          "byRequestId": {},
+          "byRowId": {
+            "1": "r:1",
+            "2": "r:2"
+          },
+          "byToolId": {},
+          "draft": "",
+          "hydration": "cached",
+          "items": {
+            "n:2000": {
+              "body": "Model set to gpt-5",
+              "id": "n:2000",
+              "kind": "notice",
+              "noticeKind": "command",
+              "origin": "live",
+              "seq": 2000,
+              "title": "/model gpt-5",
+              "ts": 1758387240,
+              "version": 0
+            },
+            "r:1": {
+              "id": "r:1",
+              "kind": "user",
+              "origin": "history",
+              "rowId": 1,
+              "seq": 0,
+              "text": "Take the staging stack down",
+              "ts": 1758387200,
+              "version": 0
+            },
+            "r:2": {
+              "id": "r:2",
+              "interim": false,
+              "kind": "assistant",
+              "origin": "history",
+              "rowId": 2,
+              "seq": 1000,
+              "status": "complete",
+              "streaming": false,
+              "text": "Running the compose command now.",
+              "ts": 1758387220,
+              "version": 0
+            }
+          },
+          "lastSeenRowId": 2,
+          "lastSeq": 0,
+          "order": [
+            "r:1",
+            "r:2",
+            "n:2000"
+          ],
+          "resolvedSessionId": "resolved-1",
+          "storedSessionId": "stored-1",
+          "subagents": {},
+          "turn": {
+            "active": false,
+            "local": false,
+            "nextSeq": 3000
+          },
+          "unreadCount": 0
+        }
+      },
+      {
+        "args": [
+          [
+            {
+              "role": "user",
+              "row_id": 1,
+              "text": "Take the staging stack down",
+              "timestamp": 1758387200
+            },
+            {
+              "role": "assistant",
+              "row_id": 2,
+              "text": "Running the compose command now.",
+              "timestamp": 1758387220
+            },
+            {
+              "role": "user",
+              "row_id": 3,
+              "text": "Set your name to the new one",
+              "timestamp": 1758475920
+            },
+            {
+              "role": "assistant",
+              "row_id": 4,
+              "text": "Done — it is set.",
+              "timestamp": 1758475925
+            }
+          ],
+          "rpc"
+        ],
+        "op": "rowsToItems",
+        "result": [
+          {
+            "id": "r:1",
+            "kind": "user",
+            "origin": "history",
+            "rowId": 1,
+            "seq": 0,
+            "text": "Take the staging stack down",
+            "ts": 1758387200,
+            "version": 0
+          },
+          {
+            "id": "r:2",
+            "interim": false,
+            "kind": "assistant",
+            "origin": "history",
+            "rowId": 2,
+            "seq": 1000,
+            "status": "complete",
+            "streaming": false,
+            "text": "Running the compose command now.",
+            "ts": 1758387220,
+            "version": 0
+          },
+          {
+            "id": "r:3",
+            "kind": "user",
+            "origin": "history",
+            "rowId": 3,
+            "seq": 2000,
+            "text": "Set your name to the new one",
+            "ts": 1758475920,
+            "version": 0
+          },
+          {
+            "id": "r:4",
+            "interim": false,
+            "kind": "assistant",
+            "origin": "history",
+            "rowId": 4,
+            "seq": 3000,
+            "status": "complete",
+            "streaming": false,
+            "text": "Done — it is set.",
+            "ts": 1758475925,
+            "version": 0
+          }
+        ]
+      },
+      {
+        "args": [
+          {
+            "botName": "researcher",
+            "byApprovalId": {},
+            "byDelegationId": {},
+            "byProcessId": {},
+            "byRequestId": {},
+            "byRowId": {
+              "1": "r:1",
+              "2": "r:2"
+            },
+            "byToolId": {},
+            "draft": "",
+            "hydration": "cached",
+            "items": {
+              "n:2000": {
+                "body": "Model set to gpt-5",
+                "id": "n:2000",
+                "kind": "notice",
+                "noticeKind": "command",
+                "origin": "live",
+                "seq": 2000,
+                "title": "/model gpt-5",
+                "ts": 1758387240,
+                "version": 0
+              },
+              "r:1": {
+                "id": "r:1",
+                "kind": "user",
+                "origin": "history",
+                "rowId": 1,
+                "seq": 0,
+                "text": "Take the staging stack down",
+                "ts": 1758387200,
+                "version": 0
+              },
+              "r:2": {
+                "id": "r:2",
+                "interim": false,
+                "kind": "assistant",
+                "origin": "history",
+                "rowId": 2,
+                "seq": 1000,
+                "status": "complete",
+                "streaming": false,
+                "text": "Running the compose command now.",
+                "ts": 1758387220,
+                "version": 0
+              }
+            },
+            "lastSeenRowId": 2,
+            "lastSeq": 0,
+            "order": [
+              "r:1",
+              "r:2",
+              "n:2000"
+            ],
+            "resolvedSessionId": "resolved-1",
+            "storedSessionId": "stored-1",
+            "subagents": {},
+            "turn": {
+              "active": false,
+              "local": false,
+              "nextSeq": 3000
+            },
+            "unreadCount": 0
+          },
+          [
+            {
+              "id": "r:1",
+              "kind": "user",
+              "origin": "history",
+              "rowId": 1,
+              "seq": 0,
+              "text": "Take the staging stack down",
+              "ts": 1758387200,
+              "version": 0
+            },
+            {
+              "id": "r:2",
+              "interim": false,
+              "kind": "assistant",
+              "origin": "history",
+              "rowId": 2,
+              "seq": 1000,
+              "status": "complete",
+              "streaming": false,
+              "text": "Running the compose command now.",
+              "ts": 1758387220,
+              "version": 0
+            },
+            {
+              "id": "r:3",
+              "kind": "user",
+              "origin": "history",
+              "rowId": 3,
+              "seq": 2000,
+              "text": "Set your name to the new one",
+              "ts": 1758475920,
+              "version": 0
+            },
+            {
+              "id": "r:4",
+              "interim": false,
+              "kind": "assistant",
+              "origin": "history",
+              "rowId": 4,
+              "seq": 3000,
+              "status": "complete",
+              "streaming": false,
+              "text": "Done — it is set.",
+              "ts": 1758475925,
+              "version": 0
+            }
+          ]
+        ],
+        "op": "reconcile",
+        "result": {
+          "botName": "researcher",
+          "byApprovalId": {},
+          "byDelegationId": {},
+          "byProcessId": {},
+          "byRequestId": {},
+          "byRowId": {
+            "1": "r:1",
+            "2": "r:2",
+            "3": "r:3",
+            "4": "r:4"
+          },
+          "byToolId": {},
+          "draft": "",
+          "hydration": "live",
+          "items": {
+            "n:2000": {
+              "body": "Model set to gpt-5",
+              "id": "n:2000",
+              "kind": "notice",
+              "noticeKind": "command",
+              "origin": "live",
+              "seq": 2000,
+              "title": "/model gpt-5",
+              "ts": 1758387240,
+              "version": 0
+            },
+            "r:1": {
+              "id": "r:1",
+              "kind": "user",
+              "origin": "history",
+              "pending": false,
+              "rowId": 1,
+              "seq": 0,
+              "text": "Take the staging stack down",
+              "ts": 1758387200,
+              "version": 1
+            },
+            "r:2": {
+              "id": "r:2",
+              "interim": false,
+              "kind": "assistant",
+              "origin": "history",
+              "rowId": 2,
+              "seq": 1000,
+              "status": "complete",
+              "streaming": false,
+              "text": "Running the compose command now.",
+              "ts": 1758387220,
+              "version": 1
+            },
+            "r:3": {
+              "id": "r:3",
+              "kind": "user",
+              "origin": "history",
+              "rowId": 3,
+              "seq": 3000,
+              "text": "Set your name to the new one",
+              "ts": 1758475920,
+              "version": 0
+            },
+            "r:4": {
+              "id": "r:4",
+              "interim": false,
+              "kind": "assistant",
+              "origin": "history",
+              "rowId": 4,
+              "seq": 4000,
+              "status": "complete",
+              "streaming": false,
+              "text": "Done — it is set.",
+              "ts": 1758475925,
+              "version": 0
+            }
+          },
+          "lastSeenRowId": 2,
+          "lastSeq": 0,
+          "order": [
+            "r:1",
+            "r:2",
+            "n:2000",
+            "r:3",
+            "r:4"
+          ],
+          "resolvedSessionId": "resolved-1",
+          "storedSessionId": "stored-1",
+          "subagents": {},
+          "turn": {
+            "active": false,
+            "local": false,
+            "nextSeq": 5000
+          },
+          "unreadCount": 0
+        }
+      },
+      {
+        "args": [
+          {
+            "botName": "researcher",
+            "byApprovalId": {},
+            "byDelegationId": {},
+            "byProcessId": {},
+            "byRequestId": {},
+            "byRowId": {
+              "1": "r:1",
+              "2": "r:2",
+              "3": "r:3",
+              "4": "r:4"
+            },
+            "byToolId": {},
+            "draft": "",
+            "hydration": "live",
+            "items": {
+              "n:2000": {
+                "body": "Model set to gpt-5",
+                "id": "n:2000",
+                "kind": "notice",
+                "noticeKind": "command",
+                "origin": "live",
+                "seq": 2000,
+                "title": "/model gpt-5",
+                "ts": 1758387240,
+                "version": 0
+              },
+              "r:1": {
+                "id": "r:1",
+                "kind": "user",
+                "origin": "history",
+                "pending": false,
+                "rowId": 1,
+                "seq": 0,
+                "text": "Take the staging stack down",
+                "ts": 1758387200,
+                "version": 1
+              },
+              "r:2": {
+                "id": "r:2",
+                "interim": false,
+                "kind": "assistant",
+                "origin": "history",
+                "rowId": 2,
+                "seq": 1000,
+                "status": "complete",
+                "streaming": false,
+                "text": "Running the compose command now.",
+                "ts": 1758387220,
+                "version": 1
+              },
+              "r:3": {
+                "id": "r:3",
+                "kind": "user",
+                "origin": "history",
+                "rowId": 3,
+                "seq": 3000,
+                "text": "Set your name to the new one",
+                "ts": 1758475920,
+                "version": 0
+              },
+              "r:4": {
+                "id": "r:4",
+                "interim": false,
+                "kind": "assistant",
+                "origin": "history",
+                "rowId": 4,
+                "seq": 4000,
+                "status": "complete",
+                "streaming": false,
+                "text": "Done — it is set.",
+                "ts": 1758475925,
+                "version": 0
+              }
+            },
+            "lastSeenRowId": 2,
+            "lastSeq": 0,
+            "order": [
+              "r:1",
+              "r:2",
+              "n:2000",
+              "r:3",
+              "r:4"
+            ],
+            "resolvedSessionId": "resolved-1",
+            "storedSessionId": "stored-1",
+            "subagents": {},
+            "turn": {
+              "active": false,
+              "local": false,
+              "nextSeq": 5000
+            },
+            "unreadCount": 0
+          },
+          "And your handle?",
+          null,
+          1758475980000
+        ],
+        "op": "beginLocalTurn",
+        "result": {
+          "botName": "researcher",
+          "byApprovalId": {},
+          "byDelegationId": {},
+          "byProcessId": {},
+          "byRequestId": {},
+          "byRowId": {
+            "1": "r:1",
+            "2": "r:2",
+            "3": "r:3",
+            "4": "r:4"
+          },
+          "byToolId": {},
+          "draft": "",
+          "hydration": "live",
+          "items": {
+            "n:2000": {
+              "body": "Model set to gpt-5",
+              "id": "n:2000",
+              "kind": "notice",
+              "noticeKind": "command",
+              "origin": "live",
+              "seq": 2000,
+              "title": "/model gpt-5",
+              "ts": 1758387240,
+              "version": 0
+            },
+            "o:5000": {
+              "id": "o:5000",
+              "kind": "user",
+              "origin": "optimistic",
+              "pending": true,
+              "seq": 5000,
+              "text": "And your handle?",
+              "ts": 1758475980,
+              "version": 0
+            },
+            "r:1": {
+              "id": "r:1",
+              "kind": "user",
+              "origin": "history",
+              "pending": false,
+              "rowId": 1,
+              "seq": 0,
+              "text": "Take the staging stack down",
+              "ts": 1758387200,
+              "version": 1
+            },
+            "r:2": {
+              "id": "r:2",
+              "interim": false,
+              "kind": "assistant",
+              "origin": "history",
+              "rowId": 2,
+              "seq": 1000,
+              "status": "complete",
+              "streaming": false,
+              "text": "Running the compose command now.",
+              "ts": 1758387220,
+              "version": 1
+            },
+            "r:3": {
+              "id": "r:3",
+              "kind": "user",
+              "origin": "history",
+              "rowId": 3,
+              "seq": 3000,
+              "text": "Set your name to the new one",
+              "ts": 1758475920,
+              "version": 0
+            },
+            "r:4": {
+              "id": "r:4",
+              "interim": false,
+              "kind": "assistant",
+              "origin": "history",
+              "rowId": 4,
+              "seq": 4000,
+              "status": "complete",
+              "streaming": false,
+              "text": "Done — it is set.",
+              "ts": 1758475925,
+              "version": 0
+            }
+          },
+          "lastSeenRowId": 2,
+          "lastSeq": 0,
+          "order": [
+            "r:1",
+            "r:2",
+            "n:2000",
+            "r:3",
+            "r:4",
+            "o:5000"
+          ],
+          "resolvedSessionId": "resolved-1",
+          "storedSessionId": "stored-1",
+          "subagents": {},
+          "turn": {
+            "active": true,
+            "interrupted": false,
+            "local": true,
+            "nextSeq": 6000,
+            "startedAt": 1758475980000
+          },
+          "unreadCount": 0
+        }
+      }
+    ],
+    "test": "a slash command answer keeps the place it was answered in > does not drift past the rows a later hydration added"
+  },
+  {
+    "calls": [
+      {
+        "args": [
+          "researcher",
+          "stored-1",
+          "resolved-1"
+        ],
+        "op": "createChatState",
+        "result": {
+          "botName": "researcher",
+          "byApprovalId": {},
+          "byDelegationId": {},
+          "byProcessId": {},
+          "byRequestId": {},
+          "byRowId": {},
+          "byToolId": {},
+          "draft": "",
+          "hydration": "cold",
+          "items": {},
+          "lastSeq": 0,
+          "order": [],
+          "resolvedSessionId": "resolved-1",
+          "storedSessionId": "stored-1",
+          "subagents": {},
+          "turn": {
+            "active": false,
+            "local": false,
+            "nextSeq": 1000
+          },
+          "unreadCount": 0
+        }
+      },
+      {
+        "args": [
+          [
+            {
+              "role": "user",
+              "row_id": 1,
+              "text": "Take the staging stack down",
+              "timestamp": 1758387200
+            },
+            {
+              "role": "assistant",
+              "row_id": 2,
+              "text": "Running the compose command now.",
+              "timestamp": 1758387220
+            }
+          ],
+          "rpc"
+        ],
+        "op": "rowsToItems",
+        "result": [
+          {
+            "id": "r:1",
+            "kind": "user",
+            "origin": "history",
+            "rowId": 1,
+            "seq": 0,
+            "text": "Take the staging stack down",
+            "ts": 1758387200,
+            "version": 0
+          },
+          {
+            "id": "r:2",
+            "interim": false,
+            "kind": "assistant",
+            "origin": "history",
+            "rowId": 2,
+            "seq": 1000,
+            "status": "complete",
+            "streaming": false,
+            "text": "Running the compose command now.",
+            "ts": 1758387220,
+            "version": 0
+          }
+        ]
+      },
+      {
+        "args": [
+          {
+            "botName": "researcher",
+            "byApprovalId": {},
+            "byDelegationId": {},
+            "byProcessId": {},
+            "byRequestId": {},
+            "byRowId": {},
+            "byToolId": {},
+            "draft": "",
+            "hydration": "cold",
+            "items": {},
+            "lastSeq": 0,
+            "order": [],
+            "resolvedSessionId": "resolved-1",
+            "storedSessionId": "stored-1",
+            "subagents": {},
+            "turn": {
+              "active": false,
+              "local": false,
+              "nextSeq": 1000
+            },
+            "unreadCount": 0
+          },
+          [
+            {
+              "id": "r:1",
+              "kind": "user",
+              "origin": "history",
+              "rowId": 1,
+              "seq": 0,
+              "text": "Take the staging stack down",
+              "ts": 1758387200,
+              "version": 0
+            },
+            {
+              "id": "r:2",
+              "interim": false,
+              "kind": "assistant",
+              "origin": "history",
+              "rowId": 2,
+              "seq": 1000,
+              "status": "complete",
+              "streaming": false,
+              "text": "Running the compose command now.",
+              "ts": 1758387220,
+              "version": 0
+            }
+          ]
+        ],
+        "op": "reconcile",
+        "result": {
+          "botName": "researcher",
+          "byApprovalId": {},
+          "byDelegationId": {},
+          "byProcessId": {},
+          "byRequestId": {},
+          "byRowId": {
+            "1": "r:1",
+            "2": "r:2"
+          },
+          "byToolId": {},
+          "draft": "",
+          "hydration": "live",
+          "items": {
+            "r:1": {
+              "id": "r:1",
+              "kind": "user",
+              "origin": "history",
+              "rowId": 1,
+              "seq": 0,
+              "text": "Take the staging stack down",
+              "ts": 1758387200,
+              "version": 0
+            },
+            "r:2": {
+              "id": "r:2",
+              "interim": false,
+              "kind": "assistant",
+              "origin": "history",
+              "rowId": 2,
+              "seq": 1000,
+              "status": "complete",
+              "streaming": false,
+              "text": "Running the compose command now.",
+              "ts": 1758387220,
+              "version": 0
+            }
+          },
+          "lastSeq": 0,
+          "order": [
+            "r:1",
+            "r:2"
+          ],
+          "resolvedSessionId": "resolved-1",
+          "storedSessionId": "stored-1",
+          "subagents": {},
+          "turn": {
+            "active": false,
+            "local": false,
+            "nextSeq": 2000
+          },
+          "unreadCount": 0
+        }
+      },
+      {
+        "args": [
+          {
+            "botName": "researcher",
+            "byApprovalId": {},
+            "byDelegationId": {},
+            "byProcessId": {},
+            "byRequestId": {},
+            "byRowId": {
+              "1": "r:1",
+              "2": "r:2"
+            },
+            "byToolId": {},
+            "draft": "",
+            "hydration": "live",
+            "items": {
+              "r:1": {
+                "id": "r:1",
+                "kind": "user",
+                "origin": "history",
+                "rowId": 1,
+                "seq": 0,
+                "text": "Take the staging stack down",
+                "ts": 1758387200,
+                "version": 0
+              },
+              "r:2": {
+                "id": "r:2",
+                "interim": false,
+                "kind": "assistant",
+                "origin": "history",
+                "rowId": 2,
+                "seq": 1000,
+                "status": "complete",
+                "streaming": false,
+                "text": "Running the compose command now.",
+                "ts": 1758387220,
+                "version": 0
+              }
+            },
+            "lastSeq": 0,
+            "order": [
+              "r:1",
+              "r:2"
+            ],
+            "resolvedSessionId": "resolved-1",
+            "storedSessionId": "stored-1",
+            "subagents": {},
+            "turn": {
+              "active": false,
+              "local": false,
+              "nextSeq": 2000
+            },
+            "unreadCount": 0
+          },
+          {
+            "payload": {
+              "detail": "Model set to gpt-5",
+              "message": "/model gpt-5",
+              "noticeKind": "command"
+            },
+            "session_id": "sess-1",
+            "type": "notice"
+          },
+          1758387240000
+        ],
+        "op": "applyEvent",
+        "result": {
+          "botName": "researcher",
+          "byApprovalId": {},
+          "byDelegationId": {},
+          "byProcessId": {},
+          "byRequestId": {},
+          "byRowId": {
+            "1": "r:1",
+            "2": "r:2"
+          },
+          "byToolId": {},
+          "draft": "",
+          "hydration": "live",
+          "items": {
+            "n:2000": {
+              "body": "Model set to gpt-5",
+              "id": "n:2000",
+              "kind": "notice",
+              "noticeKind": "command",
+              "origin": "live",
+              "seq": 2000,
+              "title": "/model gpt-5",
+              "ts": 1758387240,
+              "version": 0
+            },
+            "r:1": {
+              "id": "r:1",
+              "kind": "user",
+              "origin": "history",
+              "rowId": 1,
+              "seq": 0,
+              "text": "Take the staging stack down",
+              "ts": 1758387200,
+              "version": 0
+            },
+            "r:2": {
+              "id": "r:2",
+              "interim": false,
+              "kind": "assistant",
+              "origin": "history",
+              "rowId": 2,
+              "seq": 1000,
+              "status": "complete",
+              "streaming": false,
+              "text": "Running the compose command now.",
+              "ts": 1758387220,
+              "version": 0
+            }
+          },
+          "lastSeq": 0,
+          "order": [
+            "r:1",
+            "r:2",
+            "n:2000"
+          ],
+          "resolvedSessionId": "resolved-1",
+          "storedSessionId": "stored-1",
+          "subagents": {},
+          "turn": {
+            "active": false,
+            "local": false,
+            "nextSeq": 3000
+          },
+          "unreadCount": 0
+        }
+      },
+      {
+        "args": [
+          {
+            "botName": "researcher",
+            "byApprovalId": {},
+            "byDelegationId": {},
+            "byProcessId": {},
+            "byRequestId": {},
+            "byRowId": {
+              "1": "r:1",
+              "2": "r:2"
+            },
+            "byToolId": {},
+            "draft": "",
+            "hydration": "live",
+            "items": {
+              "n:2000": {
+                "body": "Model set to gpt-5",
+                "id": "n:2000",
+                "kind": "notice",
+                "noticeKind": "command",
+                "origin": "live",
+                "seq": 2000,
+                "title": "/model gpt-5",
+                "ts": 1758387240,
+                "version": 0
+              },
+              "r:1": {
+                "id": "r:1",
+                "kind": "user",
+                "origin": "history",
+                "rowId": 1,
+                "seq": 0,
+                "text": "Take the staging stack down",
+                "ts": 1758387200,
+                "version": 0
+              },
+              "r:2": {
+                "id": "r:2",
+                "interim": false,
+                "kind": "assistant",
+                "origin": "history",
+                "rowId": 2,
+                "seq": 1000,
+                "status": "complete",
+                "streaming": false,
+                "text": "Running the compose command now.",
+                "ts": 1758387220,
+                "version": 0
+              }
+            },
+            "lastSeq": 0,
+            "order": [
+              "r:1",
+              "r:2",
+              "n:2000"
+            ],
+            "resolvedSessionId": "resolved-1",
+            "storedSessionId": "stored-1",
+            "subagents": {},
+            "turn": {
+              "active": false,
+              "local": false,
+              "nextSeq": 3000
+            },
+            "unreadCount": 0
+          },
+          1758387300000
+        ],
+        "op": "snapshotForCache",
+        "result": {
+          "format": 1,
+          "items": [
+            {
+              "id": "r:1",
+              "kind": "user",
+              "origin": "history",
+              "rowId": 1,
+              "seq": 0,
+              "text": "Take the staging stack down",
+              "ts": 1758387200,
+              "version": 0
+            },
+            {
+              "id": "r:2",
+              "interim": false,
+              "kind": "assistant",
+              "origin": "history",
+              "rowId": 2,
+              "seq": 1000,
+              "status": "complete",
+              "streaming": false,
+              "text": "Running the compose command now.",
+              "ts": 1758387220,
+              "version": 0
+            },
+            {
+              "body": "Model set to gpt-5",
+              "id": "n:2000",
+              "kind": "notice",
+              "noticeKind": "command",
+              "origin": "live",
+              "seq": 2000,
+              "title": "/model gpt-5",
+              "ts": 1758387240,
+              "version": 0
+            }
+          ],
+          "lastRowId": 2,
+          "lastSeq": 0,
+          "subagents": [],
+          "updatedAt": 1758387300000
+        }
+      },
+      {
+        "args": [
+          "researcher",
+          {
+            "resolvedSessionId": "resolved-1",
+            "storedSessionId": "stored-1"
+          },
+          {
+            "format": 1,
+            "items": [
+              {
+                "id": "r:1",
+                "kind": "user",
+                "origin": "history",
+                "rowId": 1,
+                "seq": 0,
+                "text": "Take the staging stack down",
+                "ts": 1758387200,
+                "version": 0
+              },
+              {
+                "id": "r:2",
+                "interim": false,
+                "kind": "assistant",
+                "origin": "history",
+                "rowId": 2,
+                "seq": 1000,
+                "status": "complete",
+                "streaming": false,
+                "text": "Running the compose command now.",
+                "ts": 1758387220,
+                "version": 0
+              },
+              {
+                "body": "Model set to gpt-5",
+                "id": "n:2000",
+                "kind": "notice",
+                "noticeKind": "command",
+                "origin": "live",
+                "seq": 2000,
+                "title": "/model gpt-5",
+                "ts": 1758387240,
+                "version": 0
+              }
+            ],
+            "lastRowId": 2,
+            "lastSeq": 0,
+            "subagents": [],
+            "updatedAt": 1758387300000
+          }
+        ],
+        "op": "stateFromCache",
+        "result": {
+          "botName": "researcher",
+          "byApprovalId": {},
+          "byDelegationId": {},
+          "byProcessId": {},
+          "byRequestId": {},
+          "byRowId": {
+            "1": "r:1",
+            "2": "r:2"
+          },
+          "byToolId": {},
+          "draft": "",
+          "hydration": "cached",
+          "items": {
+            "n:2000": {
+              "body": "Model set to gpt-5",
+              "id": "n:2000",
+              "kind": "notice",
+              "noticeKind": "command",
+              "origin": "live",
+              "seq": 2000,
+              "title": "/model gpt-5",
+              "ts": 1758387240,
+              "version": 0
+            },
+            "r:1": {
+              "id": "r:1",
+              "kind": "user",
+              "origin": "history",
+              "rowId": 1,
+              "seq": 0,
+              "text": "Take the staging stack down",
+              "ts": 1758387200,
+              "version": 0
+            },
+            "r:2": {
+              "id": "r:2",
+              "interim": false,
+              "kind": "assistant",
+              "origin": "history",
+              "rowId": 2,
+              "seq": 1000,
+              "status": "complete",
+              "streaming": false,
+              "text": "Running the compose command now.",
+              "ts": 1758387220,
+              "version": 0
+            }
+          },
+          "lastSeenRowId": 2,
+          "lastSeq": 0,
+          "order": [
+            "r:1",
+            "r:2",
+            "n:2000"
+          ],
+          "resolvedSessionId": "resolved-1",
+          "storedSessionId": "stored-1",
+          "subagents": {},
+          "turn": {
+            "active": false,
+            "local": false,
+            "nextSeq": 3000
+          },
+          "unreadCount": 0
+        }
+      },
+      {
+        "args": [
+          [
+            {
+              "role": "user",
+              "row_id": 1,
+              "text": "Take the staging stack down",
+              "timestamp": 1758387200
+            },
+            {
+              "role": "assistant",
+              "row_id": 2,
+              "text": "Running the compose command now.",
+              "timestamp": 1758387220
+            },
+            {
+              "role": "user",
+              "row_id": 3,
+              "text": "Set your name to the new one",
+              "timestamp": 1758475920
+            },
+            {
+              "role": "assistant",
+              "row_id": 4,
+              "text": "Done — it is set.",
+              "timestamp": 1758475925
+            }
+          ],
+          "rpc"
+        ],
+        "op": "rowsToItems",
+        "result": [
+          {
+            "id": "r:1",
+            "kind": "user",
+            "origin": "history",
+            "rowId": 1,
+            "seq": 0,
+            "text": "Take the staging stack down",
+            "ts": 1758387200,
+            "version": 0
+          },
+          {
+            "id": "r:2",
+            "interim": false,
+            "kind": "assistant",
+            "origin": "history",
+            "rowId": 2,
+            "seq": 1000,
+            "status": "complete",
+            "streaming": false,
+            "text": "Running the compose command now.",
+            "ts": 1758387220,
+            "version": 0
+          },
+          {
+            "id": "r:3",
+            "kind": "user",
+            "origin": "history",
+            "rowId": 3,
+            "seq": 2000,
+            "text": "Set your name to the new one",
+            "ts": 1758475920,
+            "version": 0
+          },
+          {
+            "id": "r:4",
+            "interim": false,
+            "kind": "assistant",
+            "origin": "history",
+            "rowId": 4,
+            "seq": 3000,
+            "status": "complete",
+            "streaming": false,
+            "text": "Done — it is set.",
+            "ts": 1758475925,
+            "version": 0
+          }
+        ]
+      },
+      {
+        "args": [
+          {
+            "botName": "researcher",
+            "byApprovalId": {},
+            "byDelegationId": {},
+            "byProcessId": {},
+            "byRequestId": {},
+            "byRowId": {
+              "1": "r:1",
+              "2": "r:2"
+            },
+            "byToolId": {},
+            "draft": "",
+            "hydration": "cached",
+            "items": {
+              "n:2000": {
+                "body": "Model set to gpt-5",
+                "id": "n:2000",
+                "kind": "notice",
+                "noticeKind": "command",
+                "origin": "live",
+                "seq": 2000,
+                "title": "/model gpt-5",
+                "ts": 1758387240,
+                "version": 0
+              },
+              "r:1": {
+                "id": "r:1",
+                "kind": "user",
+                "origin": "history",
+                "rowId": 1,
+                "seq": 0,
+                "text": "Take the staging stack down",
+                "ts": 1758387200,
+                "version": 0
+              },
+              "r:2": {
+                "id": "r:2",
+                "interim": false,
+                "kind": "assistant",
+                "origin": "history",
+                "rowId": 2,
+                "seq": 1000,
+                "status": "complete",
+                "streaming": false,
+                "text": "Running the compose command now.",
+                "ts": 1758387220,
+                "version": 0
+              }
+            },
+            "lastSeenRowId": 2,
+            "lastSeq": 0,
+            "order": [
+              "r:1",
+              "r:2",
+              "n:2000"
+            ],
+            "resolvedSessionId": "resolved-1",
+            "storedSessionId": "stored-1",
+            "subagents": {},
+            "turn": {
+              "active": false,
+              "local": false,
+              "nextSeq": 3000
+            },
+            "unreadCount": 0
+          },
+          [
+            {
+              "id": "r:1",
+              "kind": "user",
+              "origin": "history",
+              "rowId": 1,
+              "seq": 0,
+              "text": "Take the staging stack down",
+              "ts": 1758387200,
+              "version": 0
+            },
+            {
+              "id": "r:2",
+              "interim": false,
+              "kind": "assistant",
+              "origin": "history",
+              "rowId": 2,
+              "seq": 1000,
+              "status": "complete",
+              "streaming": false,
+              "text": "Running the compose command now.",
+              "ts": 1758387220,
+              "version": 0
+            },
+            {
+              "id": "r:3",
+              "kind": "user",
+              "origin": "history",
+              "rowId": 3,
+              "seq": 2000,
+              "text": "Set your name to the new one",
+              "ts": 1758475920,
+              "version": 0
+            },
+            {
+              "id": "r:4",
+              "interim": false,
+              "kind": "assistant",
+              "origin": "history",
+              "rowId": 4,
+              "seq": 3000,
+              "status": "complete",
+              "streaming": false,
+              "text": "Done — it is set.",
+              "ts": 1758475925,
+              "version": 0
+            }
+          ]
+        ],
+        "op": "reconcile",
+        "result": {
+          "botName": "researcher",
+          "byApprovalId": {},
+          "byDelegationId": {},
+          "byProcessId": {},
+          "byRequestId": {},
+          "byRowId": {
+            "1": "r:1",
+            "2": "r:2",
+            "3": "r:3",
+            "4": "r:4"
+          },
+          "byToolId": {},
+          "draft": "",
+          "hydration": "live",
+          "items": {
+            "n:2000": {
+              "body": "Model set to gpt-5",
+              "id": "n:2000",
+              "kind": "notice",
+              "noticeKind": "command",
+              "origin": "live",
+              "seq": 2000,
+              "title": "/model gpt-5",
+              "ts": 1758387240,
+              "version": 0
+            },
+            "r:1": {
+              "id": "r:1",
+              "kind": "user",
+              "origin": "history",
+              "pending": false,
+              "rowId": 1,
+              "seq": 0,
+              "text": "Take the staging stack down",
+              "ts": 1758387200,
+              "version": 1
+            },
+            "r:2": {
+              "id": "r:2",
+              "interim": false,
+              "kind": "assistant",
+              "origin": "history",
+              "rowId": 2,
+              "seq": 1000,
+              "status": "complete",
+              "streaming": false,
+              "text": "Running the compose command now.",
+              "ts": 1758387220,
+              "version": 1
+            },
+            "r:3": {
+              "id": "r:3",
+              "kind": "user",
+              "origin": "history",
+              "rowId": 3,
+              "seq": 3000,
+              "text": "Set your name to the new one",
+              "ts": 1758475920,
+              "version": 0
+            },
+            "r:4": {
+              "id": "r:4",
+              "interim": false,
+              "kind": "assistant",
+              "origin": "history",
+              "rowId": 4,
+              "seq": 4000,
+              "status": "complete",
+              "streaming": false,
+              "text": "Done — it is set.",
+              "ts": 1758475925,
+              "version": 0
+            }
+          },
+          "lastSeenRowId": 2,
+          "lastSeq": 0,
+          "order": [
+            "r:1",
+            "r:2",
+            "n:2000",
+            "r:3",
+            "r:4"
+          ],
+          "resolvedSessionId": "resolved-1",
+          "storedSessionId": "stored-1",
+          "subagents": {},
+          "turn": {
+            "active": false,
+            "local": false,
+            "nextSeq": 5000
+          },
+          "unreadCount": 0
+        }
+      },
+      {
+        "args": [
+          {
+            "botName": "researcher",
+            "byApprovalId": {},
+            "byDelegationId": {},
+            "byProcessId": {},
+            "byRequestId": {},
+            "byRowId": {
+              "1": "r:1",
+              "2": "r:2",
+              "3": "r:3",
+              "4": "r:4"
+            },
+            "byToolId": {},
+            "draft": "",
+            "hydration": "live",
+            "items": {
+              "n:2000": {
+                "body": "Model set to gpt-5",
+                "id": "n:2000",
+                "kind": "notice",
+                "noticeKind": "command",
+                "origin": "live",
+                "seq": 2000,
+                "title": "/model gpt-5",
+                "ts": 1758387240,
+                "version": 0
+              },
+              "r:1": {
+                "id": "r:1",
+                "kind": "user",
+                "origin": "history",
+                "pending": false,
+                "rowId": 1,
+                "seq": 0,
+                "text": "Take the staging stack down",
+                "ts": 1758387200,
+                "version": 1
+              },
+              "r:2": {
+                "id": "r:2",
+                "interim": false,
+                "kind": "assistant",
+                "origin": "history",
+                "rowId": 2,
+                "seq": 1000,
+                "status": "complete",
+                "streaming": false,
+                "text": "Running the compose command now.",
+                "ts": 1758387220,
+                "version": 1
+              },
+              "r:3": {
+                "id": "r:3",
+                "kind": "user",
+                "origin": "history",
+                "rowId": 3,
+                "seq": 3000,
+                "text": "Set your name to the new one",
+                "ts": 1758475920,
+                "version": 0
+              },
+              "r:4": {
+                "id": "r:4",
+                "interim": false,
+                "kind": "assistant",
+                "origin": "history",
+                "rowId": 4,
+                "seq": 4000,
+                "status": "complete",
+                "streaming": false,
+                "text": "Done — it is set.",
+                "ts": 1758475925,
+                "version": 0
+              }
+            },
+            "lastSeenRowId": 2,
+            "lastSeq": 0,
+            "order": [
+              "r:1",
+              "r:2",
+              "n:2000",
+              "r:3",
+              "r:4"
+            ],
+            "resolvedSessionId": "resolved-1",
+            "storedSessionId": "stored-1",
+            "subagents": {},
+            "turn": {
+              "active": false,
+              "local": false,
+              "nextSeq": 5000
+            },
+            "unreadCount": 0
+          },
+          "And your handle?",
+          null,
+          1758475980000
+        ],
+        "op": "beginLocalTurn",
+        "result": {
+          "botName": "researcher",
+          "byApprovalId": {},
+          "byDelegationId": {},
+          "byProcessId": {},
+          "byRequestId": {},
+          "byRowId": {
+            "1": "r:1",
+            "2": "r:2",
+            "3": "r:3",
+            "4": "r:4"
+          },
+          "byToolId": {},
+          "draft": "",
+          "hydration": "live",
+          "items": {
+            "n:2000": {
+              "body": "Model set to gpt-5",
+              "id": "n:2000",
+              "kind": "notice",
+              "noticeKind": "command",
+              "origin": "live",
+              "seq": 2000,
+              "title": "/model gpt-5",
+              "ts": 1758387240,
+              "version": 0
+            },
+            "o:5000": {
+              "id": "o:5000",
+              "kind": "user",
+              "origin": "optimistic",
+              "pending": true,
+              "seq": 5000,
+              "text": "And your handle?",
+              "ts": 1758475980,
+              "version": 0
+            },
+            "r:1": {
+              "id": "r:1",
+              "kind": "user",
+              "origin": "history",
+              "pending": false,
+              "rowId": 1,
+              "seq": 0,
+              "text": "Take the staging stack down",
+              "ts": 1758387200,
+              "version": 1
+            },
+            "r:2": {
+              "id": "r:2",
+              "interim": false,
+              "kind": "assistant",
+              "origin": "history",
+              "rowId": 2,
+              "seq": 1000,
+              "status": "complete",
+              "streaming": false,
+              "text": "Running the compose command now.",
+              "ts": 1758387220,
+              "version": 1
+            },
+            "r:3": {
+              "id": "r:3",
+              "kind": "user",
+              "origin": "history",
+              "rowId": 3,
+              "seq": 3000,
+              "text": "Set your name to the new one",
+              "ts": 1758475920,
+              "version": 0
+            },
+            "r:4": {
+              "id": "r:4",
+              "interim": false,
+              "kind": "assistant",
+              "origin": "history",
+              "rowId": 4,
+              "seq": 4000,
+              "status": "complete",
+              "streaming": false,
+              "text": "Done — it is set.",
+              "ts": 1758475925,
+              "version": 0
+            }
+          },
+          "lastSeenRowId": 2,
+          "lastSeq": 0,
+          "order": [
+            "r:1",
+            "r:2",
+            "n:2000",
+            "r:3",
+            "r:4",
+            "o:5000"
+          ],
+          "resolvedSessionId": "resolved-1",
+          "storedSessionId": "stored-1",
+          "subagents": {},
+          "turn": {
+            "active": true,
+            "interrupted": false,
+            "local": true,
+            "nextSeq": 6000,
+            "startedAt": 1758475980000
+          },
+          "unreadCount": 0
+        }
+      }
+    ],
+    "test": "a slash command answer keeps the place it was answered in > leaves the order running forwards in time, which is what a date stamp reads"
+  },
+  {
+    "calls": [
+      {
+        "args": [
+          "researcher",
+          "stored-1",
+          "resolved-1"
+        ],
+        "op": "createChatState",
+        "result": {
+          "botName": "researcher",
+          "byApprovalId": {},
+          "byDelegationId": {},
+          "byProcessId": {},
+          "byRequestId": {},
+          "byRowId": {},
+          "byToolId": {},
+          "draft": "",
+          "hydration": "cold",
+          "items": {},
+          "lastSeq": 0,
+          "order": [],
+          "resolvedSessionId": "resolved-1",
+          "storedSessionId": "stored-1",
+          "subagents": {},
+          "turn": {
+            "active": false,
+            "local": false,
+            "nextSeq": 1000
+          },
+          "unreadCount": 0
+        }
+      },
+      {
+        "args": [
+          [
+            {
+              "role": "user",
+              "row_id": 1,
+              "text": "Take the staging stack down",
+              "timestamp": 1758387200
+            },
+            {
+              "role": "assistant",
+              "row_id": 2,
+              "text": "Running the compose command now.",
+              "timestamp": 1758387220
+            }
+          ],
+          "rpc"
+        ],
+        "op": "rowsToItems",
+        "result": [
+          {
+            "id": "r:1",
+            "kind": "user",
+            "origin": "history",
+            "rowId": 1,
+            "seq": 0,
+            "text": "Take the staging stack down",
+            "ts": 1758387200,
+            "version": 0
+          },
+          {
+            "id": "r:2",
+            "interim": false,
+            "kind": "assistant",
+            "origin": "history",
+            "rowId": 2,
+            "seq": 1000,
+            "status": "complete",
+            "streaming": false,
+            "text": "Running the compose command now.",
+            "ts": 1758387220,
+            "version": 0
+          }
+        ]
+      },
+      {
+        "args": [
+          {
+            "botName": "researcher",
+            "byApprovalId": {},
+            "byDelegationId": {},
+            "byProcessId": {},
+            "byRequestId": {},
+            "byRowId": {},
+            "byToolId": {},
+            "draft": "",
+            "hydration": "cold",
+            "items": {},
+            "lastSeq": 0,
+            "order": [],
+            "resolvedSessionId": "resolved-1",
+            "storedSessionId": "stored-1",
+            "subagents": {},
+            "turn": {
+              "active": false,
+              "local": false,
+              "nextSeq": 1000
+            },
+            "unreadCount": 0
+          },
+          [
+            {
+              "id": "r:1",
+              "kind": "user",
+              "origin": "history",
+              "rowId": 1,
+              "seq": 0,
+              "text": "Take the staging stack down",
+              "ts": 1758387200,
+              "version": 0
+            },
+            {
+              "id": "r:2",
+              "interim": false,
+              "kind": "assistant",
+              "origin": "history",
+              "rowId": 2,
+              "seq": 1000,
+              "status": "complete",
+              "streaming": false,
+              "text": "Running the compose command now.",
+              "ts": 1758387220,
+              "version": 0
+            }
+          ]
+        ],
+        "op": "reconcile",
+        "result": {
+          "botName": "researcher",
+          "byApprovalId": {},
+          "byDelegationId": {},
+          "byProcessId": {},
+          "byRequestId": {},
+          "byRowId": {
+            "1": "r:1",
+            "2": "r:2"
+          },
+          "byToolId": {},
+          "draft": "",
+          "hydration": "live",
+          "items": {
+            "r:1": {
+              "id": "r:1",
+              "kind": "user",
+              "origin": "history",
+              "rowId": 1,
+              "seq": 0,
+              "text": "Take the staging stack down",
+              "ts": 1758387200,
+              "version": 0
+            },
+            "r:2": {
+              "id": "r:2",
+              "interim": false,
+              "kind": "assistant",
+              "origin": "history",
+              "rowId": 2,
+              "seq": 1000,
+              "status": "complete",
+              "streaming": false,
+              "text": "Running the compose command now.",
+              "ts": 1758387220,
+              "version": 0
+            }
+          },
+          "lastSeq": 0,
+          "order": [
+            "r:1",
+            "r:2"
+          ],
+          "resolvedSessionId": "resolved-1",
+          "storedSessionId": "stored-1",
+          "subagents": {},
+          "turn": {
+            "active": false,
+            "local": false,
+            "nextSeq": 2000
+          },
+          "unreadCount": 0
+        }
+      },
+      {
+        "args": [
+          {
+            "botName": "researcher",
+            "byApprovalId": {},
+            "byDelegationId": {},
+            "byProcessId": {},
+            "byRequestId": {},
+            "byRowId": {
+              "1": "r:1",
+              "2": "r:2"
+            },
+            "byToolId": {},
+            "draft": "",
+            "hydration": "live",
+            "items": {
+              "r:1": {
+                "id": "r:1",
+                "kind": "user",
+                "origin": "history",
+                "rowId": 1,
+                "seq": 0,
+                "text": "Take the staging stack down",
+                "ts": 1758387200,
+                "version": 0
+              },
+              "r:2": {
+                "id": "r:2",
+                "interim": false,
+                "kind": "assistant",
+                "origin": "history",
+                "rowId": 2,
+                "seq": 1000,
+                "status": "complete",
+                "streaming": false,
+                "text": "Running the compose command now.",
+                "ts": 1758387220,
+                "version": 0
+              }
+            },
+            "lastSeq": 0,
+            "order": [
+              "r:1",
+              "r:2"
+            ],
+            "resolvedSessionId": "resolved-1",
+            "storedSessionId": "stored-1",
+            "subagents": {},
+            "turn": {
+              "active": false,
+              "local": false,
+              "nextSeq": 2000
+            },
+            "unreadCount": 0
+          },
+          {
+            "payload": {
+              "reason": "idle"
+            },
+            "session_id": "sess-1",
+            "type": "session.reclaimed"
+          },
+          1758387240000
+        ],
+        "op": "applyEvent",
+        "result": {
+          "botName": "researcher",
+          "byApprovalId": {},
+          "byDelegationId": {},
+          "byProcessId": {},
+          "byRequestId": {},
+          "byRowId": {
+            "1": "r:1",
+            "2": "r:2"
+          },
+          "byToolId": {},
+          "draft": "",
+          "hydration": "live",
+          "items": {
+            "n:2000": {
+              "body": "idle",
+              "id": "n:2000",
+              "kind": "notice",
+              "noticeKind": "reclaimed",
+              "origin": "live",
+              "seq": 2000,
+              "title": "Session reclaimed by the gateway",
+              "ts": 1758387240,
+              "version": 0
+            },
+            "r:1": {
+              "id": "r:1",
+              "kind": "user",
+              "origin": "history",
+              "rowId": 1,
+              "seq": 0,
+              "text": "Take the staging stack down",
+              "ts": 1758387200,
+              "version": 0
+            },
+            "r:2": {
+              "id": "r:2",
+              "interim": false,
+              "kind": "assistant",
+              "origin": "history",
+              "rowId": 2,
+              "seq": 1000,
+              "status": "complete",
+              "streaming": false,
+              "text": "Running the compose command now.",
+              "ts": 1758387220,
+              "version": 0
+            }
+          },
+          "lastSeq": 0,
+          "order": [
+            "r:1",
+            "r:2",
+            "n:2000"
+          ],
+          "resolvedSessionId": "resolved-1",
+          "storedSessionId": "stored-1",
+          "subagents": {},
+          "turn": {
+            "active": false,
+            "local": false,
+            "nextSeq": 3000
+          },
+          "unreadCount": 0
+        }
+      },
+      {
+        "args": [
+          {
+            "botName": "researcher",
+            "byApprovalId": {},
+            "byDelegationId": {},
+            "byProcessId": {},
+            "byRequestId": {},
+            "byRowId": {
+              "1": "r:1",
+              "2": "r:2"
+            },
+            "byToolId": {},
+            "draft": "",
+            "hydration": "live",
+            "items": {
+              "n:2000": {
+                "body": "idle",
+                "id": "n:2000",
+                "kind": "notice",
+                "noticeKind": "reclaimed",
+                "origin": "live",
+                "seq": 2000,
+                "title": "Session reclaimed by the gateway",
+                "ts": 1758387240,
+                "version": 0
+              },
+              "r:1": {
+                "id": "r:1",
+                "kind": "user",
+                "origin": "history",
+                "rowId": 1,
+                "seq": 0,
+                "text": "Take the staging stack down",
+                "ts": 1758387200,
+                "version": 0
+              },
+              "r:2": {
+                "id": "r:2",
+                "interim": false,
+                "kind": "assistant",
+                "origin": "history",
+                "rowId": 2,
+                "seq": 1000,
+                "status": "complete",
+                "streaming": false,
+                "text": "Running the compose command now.",
+                "ts": 1758387220,
+                "version": 0
+              }
+            },
+            "lastSeq": 0,
+            "order": [
+              "r:1",
+              "r:2",
+              "n:2000"
+            ],
+            "resolvedSessionId": "resolved-1",
+            "storedSessionId": "stored-1",
+            "subagents": {},
+            "turn": {
+              "active": false,
+              "local": false,
+              "nextSeq": 3000
+            },
+            "unreadCount": 0
+          },
+          1758387300000
+        ],
+        "op": "snapshotForCache",
+        "result": {
+          "format": 1,
+          "items": [
+            {
+              "id": "r:1",
+              "kind": "user",
+              "origin": "history",
+              "rowId": 1,
+              "seq": 0,
+              "text": "Take the staging stack down",
+              "ts": 1758387200,
+              "version": 0
+            },
+            {
+              "id": "r:2",
+              "interim": false,
+              "kind": "assistant",
+              "origin": "history",
+              "rowId": 2,
+              "seq": 1000,
+              "status": "complete",
+              "streaming": false,
+              "text": "Running the compose command now.",
+              "ts": 1758387220,
+              "version": 0
+            },
+            {
+              "body": "idle",
+              "id": "n:2000",
+              "kind": "notice",
+              "noticeKind": "reclaimed",
+              "origin": "live",
+              "seq": 2000,
+              "title": "Session reclaimed by the gateway",
+              "ts": 1758387240,
+              "version": 0
+            }
+          ],
+          "lastRowId": 2,
+          "lastSeq": 0,
+          "subagents": [],
+          "updatedAt": 1758387300000
+        }
+      },
+      {
+        "args": [
+          "researcher",
+          {
+            "resolvedSessionId": "resolved-1",
+            "storedSessionId": "stored-1"
+          },
+          {
+            "format": 1,
+            "items": [
+              {
+                "id": "r:1",
+                "kind": "user",
+                "origin": "history",
+                "rowId": 1,
+                "seq": 0,
+                "text": "Take the staging stack down",
+                "ts": 1758387200,
+                "version": 0
+              },
+              {
+                "id": "r:2",
+                "interim": false,
+                "kind": "assistant",
+                "origin": "history",
+                "rowId": 2,
+                "seq": 1000,
+                "status": "complete",
+                "streaming": false,
+                "text": "Running the compose command now.",
+                "ts": 1758387220,
+                "version": 0
+              },
+              {
+                "body": "idle",
+                "id": "n:2000",
+                "kind": "notice",
+                "noticeKind": "reclaimed",
+                "origin": "live",
+                "seq": 2000,
+                "title": "Session reclaimed by the gateway",
+                "ts": 1758387240,
+                "version": 0
+              }
+            ],
+            "lastRowId": 2,
+            "lastSeq": 0,
+            "subagents": [],
+            "updatedAt": 1758387300000
+          }
+        ],
+        "op": "stateFromCache",
+        "result": {
+          "botName": "researcher",
+          "byApprovalId": {},
+          "byDelegationId": {},
+          "byProcessId": {},
+          "byRequestId": {},
+          "byRowId": {
+            "1": "r:1",
+            "2": "r:2"
+          },
+          "byToolId": {},
+          "draft": "",
+          "hydration": "cached",
+          "items": {
+            "n:2000": {
+              "body": "idle",
+              "id": "n:2000",
+              "kind": "notice",
+              "noticeKind": "reclaimed",
+              "origin": "live",
+              "seq": 2000,
+              "title": "Session reclaimed by the gateway",
+              "ts": 1758387240,
+              "version": 0
+            },
+            "r:1": {
+              "id": "r:1",
+              "kind": "user",
+              "origin": "history",
+              "rowId": 1,
+              "seq": 0,
+              "text": "Take the staging stack down",
+              "ts": 1758387200,
+              "version": 0
+            },
+            "r:2": {
+              "id": "r:2",
+              "interim": false,
+              "kind": "assistant",
+              "origin": "history",
+              "rowId": 2,
+              "seq": 1000,
+              "status": "complete",
+              "streaming": false,
+              "text": "Running the compose command now.",
+              "ts": 1758387220,
+              "version": 0
+            }
+          },
+          "lastSeenRowId": 2,
+          "lastSeq": 0,
+          "order": [
+            "r:1",
+            "r:2",
+            "n:2000"
+          ],
+          "resolvedSessionId": "resolved-1",
+          "storedSessionId": "stored-1",
+          "subagents": {},
+          "turn": {
+            "active": false,
+            "local": false,
+            "nextSeq": 3000
+          },
+          "unreadCount": 0
+        }
+      },
+      {
+        "args": [
+          [
+            {
+              "role": "user",
+              "row_id": 1,
+              "text": "Take the staging stack down",
+              "timestamp": 1758387200
+            },
+            {
+              "role": "assistant",
+              "row_id": 2,
+              "text": "Running the compose command now.",
+              "timestamp": 1758387220
+            },
+            {
+              "role": "user",
+              "row_id": 3,
+              "text": "Set your name to the new one",
+              "timestamp": 1758475920
+            },
+            {
+              "role": "assistant",
+              "row_id": 4,
+              "text": "Done — it is set.",
+              "timestamp": 1758475925
+            }
+          ],
+          "rpc"
+        ],
+        "op": "rowsToItems",
+        "result": [
+          {
+            "id": "r:1",
+            "kind": "user",
+            "origin": "history",
+            "rowId": 1,
+            "seq": 0,
+            "text": "Take the staging stack down",
+            "ts": 1758387200,
+            "version": 0
+          },
+          {
+            "id": "r:2",
+            "interim": false,
+            "kind": "assistant",
+            "origin": "history",
+            "rowId": 2,
+            "seq": 1000,
+            "status": "complete",
+            "streaming": false,
+            "text": "Running the compose command now.",
+            "ts": 1758387220,
+            "version": 0
+          },
+          {
+            "id": "r:3",
+            "kind": "user",
+            "origin": "history",
+            "rowId": 3,
+            "seq": 2000,
+            "text": "Set your name to the new one",
+            "ts": 1758475920,
+            "version": 0
+          },
+          {
+            "id": "r:4",
+            "interim": false,
+            "kind": "assistant",
+            "origin": "history",
+            "rowId": 4,
+            "seq": 3000,
+            "status": "complete",
+            "streaming": false,
+            "text": "Done — it is set.",
+            "ts": 1758475925,
+            "version": 0
+          }
+        ]
+      },
+      {
+        "args": [
+          {
+            "botName": "researcher",
+            "byApprovalId": {},
+            "byDelegationId": {},
+            "byProcessId": {},
+            "byRequestId": {},
+            "byRowId": {
+              "1": "r:1",
+              "2": "r:2"
+            },
+            "byToolId": {},
+            "draft": "",
+            "hydration": "cached",
+            "items": {
+              "n:2000": {
+                "body": "idle",
+                "id": "n:2000",
+                "kind": "notice",
+                "noticeKind": "reclaimed",
+                "origin": "live",
+                "seq": 2000,
+                "title": "Session reclaimed by the gateway",
+                "ts": 1758387240,
+                "version": 0
+              },
+              "r:1": {
+                "id": "r:1",
+                "kind": "user",
+                "origin": "history",
+                "rowId": 1,
+                "seq": 0,
+                "text": "Take the staging stack down",
+                "ts": 1758387200,
+                "version": 0
+              },
+              "r:2": {
+                "id": "r:2",
+                "interim": false,
+                "kind": "assistant",
+                "origin": "history",
+                "rowId": 2,
+                "seq": 1000,
+                "status": "complete",
+                "streaming": false,
+                "text": "Running the compose command now.",
+                "ts": 1758387220,
+                "version": 0
+              }
+            },
+            "lastSeenRowId": 2,
+            "lastSeq": 0,
+            "order": [
+              "r:1",
+              "r:2",
+              "n:2000"
+            ],
+            "resolvedSessionId": "resolved-1",
+            "storedSessionId": "stored-1",
+            "subagents": {},
+            "turn": {
+              "active": false,
+              "local": false,
+              "nextSeq": 3000
+            },
+            "unreadCount": 0
+          },
+          [
+            {
+              "id": "r:1",
+              "kind": "user",
+              "origin": "history",
+              "rowId": 1,
+              "seq": 0,
+              "text": "Take the staging stack down",
+              "ts": 1758387200,
+              "version": 0
+            },
+            {
+              "id": "r:2",
+              "interim": false,
+              "kind": "assistant",
+              "origin": "history",
+              "rowId": 2,
+              "seq": 1000,
+              "status": "complete",
+              "streaming": false,
+              "text": "Running the compose command now.",
+              "ts": 1758387220,
+              "version": 0
+            },
+            {
+              "id": "r:3",
+              "kind": "user",
+              "origin": "history",
+              "rowId": 3,
+              "seq": 2000,
+              "text": "Set your name to the new one",
+              "ts": 1758475920,
+              "version": 0
+            },
+            {
+              "id": "r:4",
+              "interim": false,
+              "kind": "assistant",
+              "origin": "history",
+              "rowId": 4,
+              "seq": 3000,
+              "status": "complete",
+              "streaming": false,
+              "text": "Done — it is set.",
+              "ts": 1758475925,
+              "version": 0
+            }
+          ]
+        ],
+        "op": "reconcile",
+        "result": {
+          "botName": "researcher",
+          "byApprovalId": {},
+          "byDelegationId": {},
+          "byProcessId": {},
+          "byRequestId": {},
+          "byRowId": {
+            "1": "r:1",
+            "2": "r:2",
+            "3": "r:3",
+            "4": "r:4"
+          },
+          "byToolId": {},
+          "draft": "",
+          "hydration": "live",
+          "items": {
+            "n:2000": {
+              "body": "idle",
+              "id": "n:2000",
+              "kind": "notice",
+              "noticeKind": "reclaimed",
+              "origin": "live",
+              "seq": 2000,
+              "title": "Session reclaimed by the gateway",
+              "ts": 1758387240,
+              "version": 0
+            },
+            "r:1": {
+              "id": "r:1",
+              "kind": "user",
+              "origin": "history",
+              "pending": false,
+              "rowId": 1,
+              "seq": 0,
+              "text": "Take the staging stack down",
+              "ts": 1758387200,
+              "version": 1
+            },
+            "r:2": {
+              "id": "r:2",
+              "interim": false,
+              "kind": "assistant",
+              "origin": "history",
+              "rowId": 2,
+              "seq": 1000,
+              "status": "complete",
+              "streaming": false,
+              "text": "Running the compose command now.",
+              "ts": 1758387220,
+              "version": 1
+            },
+            "r:3": {
+              "id": "r:3",
+              "kind": "user",
+              "origin": "history",
+              "rowId": 3,
+              "seq": 3000,
+              "text": "Set your name to the new one",
+              "ts": 1758475920,
+              "version": 0
+            },
+            "r:4": {
+              "id": "r:4",
+              "interim": false,
+              "kind": "assistant",
+              "origin": "history",
+              "rowId": 4,
+              "seq": 4000,
+              "status": "complete",
+              "streaming": false,
+              "text": "Done — it is set.",
+              "ts": 1758475925,
+              "version": 0
+            }
+          },
+          "lastSeenRowId": 2,
+          "lastSeq": 0,
+          "order": [
+            "r:1",
+            "r:2",
+            "n:2000",
+            "r:3",
+            "r:4"
+          ],
+          "resolvedSessionId": "resolved-1",
+          "storedSessionId": "stored-1",
+          "subagents": {},
+          "turn": {
+            "active": false,
+            "local": false,
+            "nextSeq": 5000
+          },
+          "unreadCount": 0
+        }
+      }
+    ],
+    "test": "a reclaimed-session notice keeps the place it happened in > does not drift past the rows a later hydration added"
+  },
+  {
+    "calls": [
+      {
+        "args": [
+          "researcher",
+          "stored-1",
+          "resolved-1"
+        ],
+        "op": "createChatState",
+        "result": {
+          "botName": "researcher",
+          "byApprovalId": {},
+          "byDelegationId": {},
+          "byProcessId": {},
+          "byRequestId": {},
+          "byRowId": {},
+          "byToolId": {},
+          "draft": "",
+          "hydration": "cold",
+          "items": {},
+          "lastSeq": 0,
+          "order": [],
+          "resolvedSessionId": "resolved-1",
+          "storedSessionId": "stored-1",
+          "subagents": {},
+          "turn": {
+            "active": false,
+            "local": false,
+            "nextSeq": 1000
+          },
+          "unreadCount": 0
+        }
+      },
+      {
+        "args": [
+          [
+            {
+              "role": "user",
+              "row_id": 1,
+              "text": "Take the staging stack down",
+              "timestamp": 1758387200
+            },
+            {
+              "role": "assistant",
+              "row_id": 2,
+              "text": "Running the compose command now.",
+              "timestamp": 1758387220
+            }
+          ],
+          "rpc"
+        ],
+        "op": "rowsToItems",
+        "result": [
+          {
+            "id": "r:1",
+            "kind": "user",
+            "origin": "history",
+            "rowId": 1,
+            "seq": 0,
+            "text": "Take the staging stack down",
+            "ts": 1758387200,
+            "version": 0
+          },
+          {
+            "id": "r:2",
+            "interim": false,
+            "kind": "assistant",
+            "origin": "history",
+            "rowId": 2,
+            "seq": 1000,
+            "status": "complete",
+            "streaming": false,
+            "text": "Running the compose command now.",
+            "ts": 1758387220,
+            "version": 0
+          }
+        ]
+      },
+      {
+        "args": [
+          {
+            "botName": "researcher",
+            "byApprovalId": {},
+            "byDelegationId": {},
+            "byProcessId": {},
+            "byRequestId": {},
+            "byRowId": {},
+            "byToolId": {},
+            "draft": "",
+            "hydration": "cold",
+            "items": {},
+            "lastSeq": 0,
+            "order": [],
+            "resolvedSessionId": "resolved-1",
+            "storedSessionId": "stored-1",
+            "subagents": {},
+            "turn": {
+              "active": false,
+              "local": false,
+              "nextSeq": 1000
+            },
+            "unreadCount": 0
+          },
+          [
+            {
+              "id": "r:1",
+              "kind": "user",
+              "origin": "history",
+              "rowId": 1,
+              "seq": 0,
+              "text": "Take the staging stack down",
+              "ts": 1758387200,
+              "version": 0
+            },
+            {
+              "id": "r:2",
+              "interim": false,
+              "kind": "assistant",
+              "origin": "history",
+              "rowId": 2,
+              "seq": 1000,
+              "status": "complete",
+              "streaming": false,
+              "text": "Running the compose command now.",
+              "ts": 1758387220,
+              "version": 0
+            }
+          ]
+        ],
+        "op": "reconcile",
+        "result": {
+          "botName": "researcher",
+          "byApprovalId": {},
+          "byDelegationId": {},
+          "byProcessId": {},
+          "byRequestId": {},
+          "byRowId": {
+            "1": "r:1",
+            "2": "r:2"
+          },
+          "byToolId": {},
+          "draft": "",
+          "hydration": "live",
+          "items": {
+            "r:1": {
+              "id": "r:1",
+              "kind": "user",
+              "origin": "history",
+              "rowId": 1,
+              "seq": 0,
+              "text": "Take the staging stack down",
+              "ts": 1758387200,
+              "version": 0
+            },
+            "r:2": {
+              "id": "r:2",
+              "interim": false,
+              "kind": "assistant",
+              "origin": "history",
+              "rowId": 2,
+              "seq": 1000,
+              "status": "complete",
+              "streaming": false,
+              "text": "Running the compose command now.",
+              "ts": 1758387220,
+              "version": 0
+            }
+          },
+          "lastSeq": 0,
+          "order": [
+            "r:1",
+            "r:2"
+          ],
+          "resolvedSessionId": "resolved-1",
+          "storedSessionId": "stored-1",
+          "subagents": {},
+          "turn": {
+            "active": false,
+            "local": false,
+            "nextSeq": 2000
+          },
+          "unreadCount": 0
+        }
+      },
+      {
+        "args": [
+          [
+            {
+              "role": "user",
+              "row_id": 1,
+              "text": "Take the staging stack down",
+              "timestamp": 1758387200
+            },
+            {
+              "role": "assistant",
+              "row_id": 2,
+              "text": "Running the compose command now.",
+              "timestamp": 1758387220
+            },
+            {
+              "role": "user",
+              "row_id": 3,
+              "text": "Set your name to the new one",
+              "timestamp": 1758475920
+            },
+            {
+              "role": "assistant",
+              "row_id": 4,
+              "text": "Done — it is set.",
+              "timestamp": 1758475925
+            }
+          ],
+          "rpc"
+        ],
+        "op": "rowsToItems",
+        "result": [
+          {
+            "id": "r:1",
+            "kind": "user",
+            "origin": "history",
+            "rowId": 1,
+            "seq": 0,
+            "text": "Take the staging stack down",
+            "ts": 1758387200,
+            "version": 0
+          },
+          {
+            "id": "r:2",
+            "interim": false,
+            "kind": "assistant",
+            "origin": "history",
+            "rowId": 2,
+            "seq": 1000,
+            "status": "complete",
+            "streaming": false,
+            "text": "Running the compose command now.",
+            "ts": 1758387220,
+            "version": 0
+          },
+          {
+            "id": "r:3",
+            "kind": "user",
+            "origin": "history",
+            "rowId": 3,
+            "seq": 2000,
+            "text": "Set your name to the new one",
+            "ts": 1758475920,
+            "version": 0
+          },
+          {
+            "id": "r:4",
+            "interim": false,
+            "kind": "assistant",
+            "origin": "history",
+            "rowId": 4,
+            "seq": 3000,
+            "status": "complete",
+            "streaming": false,
+            "text": "Done — it is set.",
+            "ts": 1758475925,
+            "version": 0
+          }
+        ]
+      },
+      {
+        "args": [
+          {
+            "botName": "researcher",
+            "byApprovalId": {},
+            "byDelegationId": {},
+            "byProcessId": {},
+            "byRequestId": {},
+            "byRowId": {
+              "1": "r:1",
+              "2": "r:2"
+            },
+            "byToolId": {},
+            "draft": "",
+            "hydration": "live",
+            "items": {
+              "n:undated": {
+                "id": "n:undated",
+                "kind": "notice",
+                "noticeKind": "command",
+                "origin": "live",
+                "seq": -1,
+                "title": "/help",
+                "version": 0
+              },
+              "r:1": {
+                "id": "r:1",
+                "kind": "user",
+                "origin": "history",
+                "rowId": 1,
+                "seq": 0,
+                "text": "Take the staging stack down",
+                "ts": 1758387200,
+                "version": 0
+              },
+              "r:2": {
+                "id": "r:2",
+                "interim": false,
+                "kind": "assistant",
+                "origin": "history",
+                "rowId": 2,
+                "seq": 1000,
+                "status": "complete",
+                "streaming": false,
+                "text": "Running the compose command now.",
+                "ts": 1758387220,
+                "version": 0
+              }
+            },
+            "lastSeq": 0,
+            "order": [
+              "n:undated",
+              "r:1",
+              "r:2"
+            ],
+            "resolvedSessionId": "resolved-1",
+            "storedSessionId": "stored-1",
+            "subagents": {},
+            "turn": {
+              "active": false,
+              "local": false,
+              "nextSeq": 2000
+            },
+            "unreadCount": 0
+          },
+          [
+            {
+              "id": "r:1",
+              "kind": "user",
+              "origin": "history",
+              "rowId": 1,
+              "seq": 0,
+              "text": "Take the staging stack down",
+              "ts": 1758387200,
+              "version": 0
+            },
+            {
+              "id": "r:2",
+              "interim": false,
+              "kind": "assistant",
+              "origin": "history",
+              "rowId": 2,
+              "seq": 1000,
+              "status": "complete",
+              "streaming": false,
+              "text": "Running the compose command now.",
+              "ts": 1758387220,
+              "version": 0
+            },
+            {
+              "id": "r:3",
+              "kind": "user",
+              "origin": "history",
+              "rowId": 3,
+              "seq": 2000,
+              "text": "Set your name to the new one",
+              "ts": 1758475920,
+              "version": 0
+            },
+            {
+              "id": "r:4",
+              "interim": false,
+              "kind": "assistant",
+              "origin": "history",
+              "rowId": 4,
+              "seq": 3000,
+              "status": "complete",
+              "streaming": false,
+              "text": "Done — it is set.",
+              "ts": 1758475925,
+              "version": 0
+            }
+          ]
+        ],
+        "op": "reconcile",
+        "result": {
+          "botName": "researcher",
+          "byApprovalId": {},
+          "byDelegationId": {},
+          "byProcessId": {},
+          "byRequestId": {},
+          "byRowId": {
+            "1": "r:1",
+            "2": "r:2",
+            "3": "r:3",
+            "4": "r:4"
+          },
+          "byToolId": {},
+          "draft": "",
+          "hydration": "live",
+          "items": {
+            "n:undated": {
+              "id": "n:undated",
+              "kind": "notice",
+              "noticeKind": "command",
+              "origin": "live",
+              "seq": 4000,
+              "title": "/help",
+              "version": 0
+            },
+            "r:1": {
+              "id": "r:1",
+              "kind": "user",
+              "origin": "history",
+              "pending": false,
+              "rowId": 1,
+              "seq": 0,
+              "text": "Take the staging stack down",
+              "ts": 1758387200,
+              "version": 1
+            },
+            "r:2": {
+              "id": "r:2",
+              "interim": false,
+              "kind": "assistant",
+              "origin": "history",
+              "rowId": 2,
+              "seq": 1000,
+              "status": "complete",
+              "streaming": false,
+              "text": "Running the compose command now.",
+              "ts": 1758387220,
+              "version": 1
+            },
+            "r:3": {
+              "id": "r:3",
+              "kind": "user",
+              "origin": "history",
+              "rowId": 3,
+              "seq": 2000,
+              "text": "Set your name to the new one",
+              "ts": 1758475920,
+              "version": 0
+            },
+            "r:4": {
+              "id": "r:4",
+              "interim": false,
+              "kind": "assistant",
+              "origin": "history",
+              "rowId": 4,
+              "seq": 3000,
+              "status": "complete",
+              "streaming": false,
+              "text": "Done — it is set.",
+              "ts": 1758475925,
+              "version": 0
+            }
+          },
+          "lastSeq": 0,
+          "order": [
+            "r:1",
+            "r:2",
+            "r:3",
+            "r:4",
+            "n:undated"
+          ],
+          "resolvedSessionId": "resolved-1",
+          "storedSessionId": "stored-1",
+          "subagents": {},
+          "turn": {
+            "active": false,
+            "local": false,
+            "nextSeq": 5000
+          },
+          "unreadCount": 0
+        }
+      }
+    ],
+    "test": "a command notice with no timestamp of its own > falls back to the tail, the same place any other undated floating item lands"
+  }
+]

@@ -1,0 +1,4005 @@
+[
+  {
+    "calls": [
+      {
+        "args": [
+          "researcher",
+          "stored-1",
+          "resolved-1"
+        ],
+        "op": "createChatState",
+        "result": {
+          "botName": "researcher",
+          "byApprovalId": {},
+          "byDelegationId": {},
+          "byProcessId": {},
+          "byRequestId": {},
+          "byRowId": {},
+          "byToolId": {},
+          "draft": "",
+          "hydration": "cold",
+          "items": {},
+          "lastSeq": 0,
+          "order": [],
+          "resolvedSessionId": "resolved-1",
+          "storedSessionId": "stored-1",
+          "subagents": {},
+          "turn": {
+            "active": false,
+            "local": false,
+            "nextSeq": 1000
+          },
+          "unreadCount": 0
+        }
+      },
+      {
+        "args": [
+          [
+            {
+              "role": "user",
+              "row_id": 20,
+              "text": "[Cronjob \"Inbox scan\" output — scheduled job, not the user. Review it, act on anything that needs action, and summarize for the chat.]\n\n## Inbox scan\n\n- 3 threads waiting on a reply\n- 1 invoice past due\n\nNothing needs you before tomorrow.",
+              "timestamp": 1700000050
+            }
+          ],
+          "rest"
+        ],
+        "op": "rowsToItems",
+        "result": [
+          {
+            "body": "## Inbox scan\n\n- 3 threads waiting on a reply\n- 1 invoice past due\n\nNothing needs you before tomorrow.",
+            "id": "r:20",
+            "jobName": "Inbox scan",
+            "kind": "cron_delivery",
+            "origin": "history",
+            "rowId": 20,
+            "seq": 0,
+            "shape": "bot_chat",
+            "ts": 1700000050,
+            "version": 0
+          }
+        ]
+      },
+      {
+        "args": [
+          {
+            "botName": "researcher",
+            "byApprovalId": {},
+            "byDelegationId": {},
+            "byProcessId": {},
+            "byRequestId": {},
+            "byRowId": {},
+            "byToolId": {},
+            "draft": "",
+            "hydration": "cold",
+            "items": {},
+            "lastSeq": 0,
+            "order": [],
+            "resolvedSessionId": "resolved-1",
+            "storedSessionId": "stored-1",
+            "subagents": {},
+            "turn": {
+              "active": false,
+              "local": false,
+              "nextSeq": 1000
+            },
+            "unreadCount": 0
+          },
+          [
+            {
+              "body": "## Inbox scan\n\n- 3 threads waiting on a reply\n- 1 invoice past due\n\nNothing needs you before tomorrow.",
+              "id": "r:20",
+              "jobName": "Inbox scan",
+              "kind": "cron_delivery",
+              "origin": "history",
+              "rowId": 20,
+              "seq": 0,
+              "shape": "bot_chat",
+              "ts": 1700000050,
+              "version": 0
+            }
+          ]
+        ],
+        "op": "reconcile",
+        "result": {
+          "botName": "researcher",
+          "byApprovalId": {},
+          "byDelegationId": {},
+          "byProcessId": {},
+          "byRequestId": {},
+          "byRowId": {
+            "20": "r:20"
+          },
+          "byToolId": {},
+          "draft": "",
+          "hydration": "live",
+          "items": {
+            "r:20": {
+              "body": "## Inbox scan\n\n- 3 threads waiting on a reply\n- 1 invoice past due\n\nNothing needs you before tomorrow.",
+              "id": "r:20",
+              "jobName": "Inbox scan",
+              "kind": "cron_delivery",
+              "origin": "history",
+              "rowId": 20,
+              "seq": 0,
+              "shape": "bot_chat",
+              "ts": 1700000050,
+              "version": 0
+            }
+          },
+          "lastSeq": 0,
+          "order": [
+            "r:20"
+          ],
+          "resolvedSessionId": "resolved-1",
+          "storedSessionId": "stored-1",
+          "subagents": {},
+          "turn": {
+            "active": false,
+            "local": false,
+            "nextSeq": 1000
+          },
+          "unreadCount": 0
+        }
+      },
+      {
+        "args": [
+          {
+            "botName": "researcher",
+            "byApprovalId": {},
+            "byDelegationId": {},
+            "byProcessId": {},
+            "byRequestId": {},
+            "byRowId": {
+              "20": "r:20"
+            },
+            "byToolId": {},
+            "draft": "",
+            "hydration": "live",
+            "items": {
+              "r:20": {
+                "body": "## Inbox scan\n\n- 3 threads waiting on a reply\n- 1 invoice past due\n\nNothing needs you before tomorrow.",
+                "id": "r:20",
+                "jobName": "Inbox scan",
+                "kind": "cron_delivery",
+                "origin": "history",
+                "rowId": 20,
+                "seq": 0,
+                "shape": "bot_chat",
+                "ts": 1700000050,
+                "version": 0
+              }
+            },
+            "lastSeq": 0,
+            "order": [
+              "r:20"
+            ],
+            "resolvedSessionId": "resolved-1",
+            "storedSessionId": "stored-1",
+            "subagents": {},
+            "turn": {
+              "active": false,
+              "local": false,
+              "nextSeq": 1000
+            },
+            "unreadCount": 0
+          },
+          {
+            "inflight": {
+              "assistant": "Reading the inbox",
+              "streaming": true,
+              "user": "[Cronjob \"Inbox scan\" output — scheduled job, not the user. Review it, act on anything that needs action, and summarize for the chat.]\n\n## Inbox scan\n\n- 3 threads waiting on a reply\n- 1 invoice past due\n\nNothing needs you before tomorrow."
+            },
+            "running": true
+          },
+          1700000060000
+        ],
+        "op": "applyResumeSnapshot",
+        "result": {
+          "botName": "researcher",
+          "byApprovalId": {},
+          "byDelegationId": {},
+          "byProcessId": {},
+          "byRequestId": {},
+          "byRowId": {
+            "20": "r:20"
+          },
+          "byToolId": {},
+          "draft": "",
+          "hydration": "live",
+          "items": {
+            "i:1000": {
+              "id": "i:1000",
+              "interim": false,
+              "kind": "assistant",
+              "origin": "inflight",
+              "seq": 1000,
+              "streaming": true,
+              "text": "Reading the inbox",
+              "ts": 1700000060,
+              "version": 0
+            },
+            "r:20": {
+              "body": "## Inbox scan\n\n- 3 threads waiting on a reply\n- 1 invoice past due\n\nNothing needs you before tomorrow.",
+              "id": "r:20",
+              "jobName": "Inbox scan",
+              "kind": "cron_delivery",
+              "origin": "history",
+              "rowId": 20,
+              "seq": 0,
+              "shape": "bot_chat",
+              "ts": 1700000050,
+              "version": 0
+            }
+          },
+          "lastSeq": 0,
+          "order": [
+            "r:20",
+            "i:1000"
+          ],
+          "resolvedSessionId": "resolved-1",
+          "storedSessionId": "stored-1",
+          "subagents": {},
+          "turn": {
+            "active": true,
+            "assistantId": "i:1000",
+            "local": false,
+            "nextSeq": 2000,
+            "startedAt": 1700000060000
+          },
+          "unreadCount": 0
+        }
+      }
+    ],
+    "test": "a resume during a running cron turn > does not add a second card beside the delivery row history already carries"
+  },
+  {
+    "calls": [
+      {
+        "args": [
+          "researcher",
+          "stored-1",
+          "resolved-1"
+        ],
+        "op": "createChatState",
+        "result": {
+          "botName": "researcher",
+          "byApprovalId": {},
+          "byDelegationId": {},
+          "byProcessId": {},
+          "byRequestId": {},
+          "byRowId": {},
+          "byToolId": {},
+          "draft": "",
+          "hydration": "cold",
+          "items": {},
+          "lastSeq": 0,
+          "order": [],
+          "resolvedSessionId": "resolved-1",
+          "storedSessionId": "stored-1",
+          "subagents": {},
+          "turn": {
+            "active": false,
+            "local": false,
+            "nextSeq": 1000
+          },
+          "unreadCount": 0
+        }
+      },
+      {
+        "args": [
+          [
+            {
+              "role": "user",
+              "row_id": 21,
+              "text": "[Cron delivery: Morning Brief]\nTwo deploys overnight, both green.",
+              "timestamp": 1700000050
+            }
+          ],
+          "rest"
+        ],
+        "op": "rowsToItems",
+        "result": [
+          {
+            "body": "Two deploys overnight, both green.",
+            "id": "r:21",
+            "jobName": "Morning Brief",
+            "kind": "cron_delivery",
+            "origin": "history",
+            "rowId": 21,
+            "seq": 0,
+            "shape": "mirror",
+            "ts": 1700000050,
+            "version": 0
+          }
+        ]
+      },
+      {
+        "args": [
+          {
+            "botName": "researcher",
+            "byApprovalId": {},
+            "byDelegationId": {},
+            "byProcessId": {},
+            "byRequestId": {},
+            "byRowId": {},
+            "byToolId": {},
+            "draft": "",
+            "hydration": "cold",
+            "items": {},
+            "lastSeq": 0,
+            "order": [],
+            "resolvedSessionId": "resolved-1",
+            "storedSessionId": "stored-1",
+            "subagents": {},
+            "turn": {
+              "active": false,
+              "local": false,
+              "nextSeq": 1000
+            },
+            "unreadCount": 0
+          },
+          [
+            {
+              "body": "Two deploys overnight, both green.",
+              "id": "r:21",
+              "jobName": "Morning Brief",
+              "kind": "cron_delivery",
+              "origin": "history",
+              "rowId": 21,
+              "seq": 0,
+              "shape": "mirror",
+              "ts": 1700000050,
+              "version": 0
+            }
+          ]
+        ],
+        "op": "reconcile",
+        "result": {
+          "botName": "researcher",
+          "byApprovalId": {},
+          "byDelegationId": {},
+          "byProcessId": {},
+          "byRequestId": {},
+          "byRowId": {
+            "21": "r:21"
+          },
+          "byToolId": {},
+          "draft": "",
+          "hydration": "live",
+          "items": {
+            "r:21": {
+              "body": "Two deploys overnight, both green.",
+              "id": "r:21",
+              "jobName": "Morning Brief",
+              "kind": "cron_delivery",
+              "origin": "history",
+              "rowId": 21,
+              "seq": 0,
+              "shape": "mirror",
+              "ts": 1700000050,
+              "version": 0
+            }
+          },
+          "lastSeq": 0,
+          "order": [
+            "r:21"
+          ],
+          "resolvedSessionId": "resolved-1",
+          "storedSessionId": "stored-1",
+          "subagents": {},
+          "turn": {
+            "active": false,
+            "local": false,
+            "nextSeq": 1000
+          },
+          "unreadCount": 0
+        }
+      },
+      {
+        "args": [
+          {
+            "botName": "researcher",
+            "byApprovalId": {},
+            "byDelegationId": {},
+            "byProcessId": {},
+            "byRequestId": {},
+            "byRowId": {
+              "21": "r:21"
+            },
+            "byToolId": {},
+            "draft": "",
+            "hydration": "live",
+            "items": {
+              "r:21": {
+                "body": "Two deploys overnight, both green.",
+                "id": "r:21",
+                "jobName": "Morning Brief",
+                "kind": "cron_delivery",
+                "origin": "history",
+                "rowId": 21,
+                "seq": 0,
+                "shape": "mirror",
+                "ts": 1700000050,
+                "version": 0
+              }
+            },
+            "lastSeq": 0,
+            "order": [
+              "r:21"
+            ],
+            "resolvedSessionId": "resolved-1",
+            "storedSessionId": "stored-1",
+            "subagents": {},
+            "turn": {
+              "active": false,
+              "local": false,
+              "nextSeq": 1000
+            },
+            "unreadCount": 0
+          },
+          {
+            "inflight": {
+              "assistant": "Both green, nothing to do",
+              "streaming": true,
+              "user": "[Cron delivery: Morning Brief]\nTwo deploys overnight, both green."
+            },
+            "running": true
+          },
+          1700000060000
+        ],
+        "op": "applyResumeSnapshot",
+        "result": {
+          "botName": "researcher",
+          "byApprovalId": {},
+          "byDelegationId": {},
+          "byProcessId": {},
+          "byRequestId": {},
+          "byRowId": {
+            "21": "r:21"
+          },
+          "byToolId": {},
+          "draft": "",
+          "hydration": "live",
+          "items": {
+            "i:1000": {
+              "id": "i:1000",
+              "interim": false,
+              "kind": "assistant",
+              "origin": "inflight",
+              "seq": 1000,
+              "streaming": true,
+              "text": "Both green, nothing to do",
+              "ts": 1700000060,
+              "version": 0
+            },
+            "r:21": {
+              "body": "Two deploys overnight, both green.",
+              "id": "r:21",
+              "jobName": "Morning Brief",
+              "kind": "cron_delivery",
+              "origin": "history",
+              "rowId": 21,
+              "seq": 0,
+              "shape": "mirror",
+              "ts": 1700000050,
+              "version": 0
+            }
+          },
+          "lastSeq": 0,
+          "order": [
+            "r:21",
+            "i:1000"
+          ],
+          "resolvedSessionId": "resolved-1",
+          "storedSessionId": "stored-1",
+          "subagents": {},
+          "turn": {
+            "active": true,
+            "assistantId": "i:1000",
+            "local": false,
+            "nextSeq": 2000,
+            "startedAt": 1700000060000
+          },
+          "unreadCount": 0
+        }
+      }
+    ],
+    "test": "a resume during a running cron turn > does not add a second card for the mirror shape either"
+  },
+  {
+    "calls": [
+      {
+        "args": [
+          "researcher",
+          "stored-1",
+          "resolved-1"
+        ],
+        "op": "createChatState",
+        "result": {
+          "botName": "researcher",
+          "byApprovalId": {},
+          "byDelegationId": {},
+          "byProcessId": {},
+          "byRequestId": {},
+          "byRowId": {},
+          "byToolId": {},
+          "draft": "",
+          "hydration": "cold",
+          "items": {},
+          "lastSeq": 0,
+          "order": [],
+          "resolvedSessionId": "resolved-1",
+          "storedSessionId": "stored-1",
+          "subagents": {},
+          "turn": {
+            "active": false,
+            "local": false,
+            "nextSeq": 1000
+          },
+          "unreadCount": 0
+        }
+      },
+      {
+        "args": [
+          [
+            {
+              "role": "user",
+              "row_id": 22,
+              "text": "[Cronjob \"Inbox scan\" output — scheduled job, not the user. Review it, act on anything that needs action, and summarize for the chat.]\n\n## Inbox scan\n\n- 3 threads waiting on a reply\n- 1 invoice past due\n\nNothing needs you before tomorrow.",
+              "timestamp": 1700000050
+            }
+          ],
+          "rest"
+        ],
+        "op": "rowsToItems",
+        "result": [
+          {
+            "body": "## Inbox scan\n\n- 3 threads waiting on a reply\n- 1 invoice past due\n\nNothing needs you before tomorrow.",
+            "id": "r:22",
+            "jobName": "Inbox scan",
+            "kind": "cron_delivery",
+            "origin": "history",
+            "rowId": 22,
+            "seq": 0,
+            "shape": "bot_chat",
+            "ts": 1700000050,
+            "version": 0
+          }
+        ]
+      },
+      {
+        "args": [
+          {
+            "botName": "researcher",
+            "byApprovalId": {},
+            "byDelegationId": {},
+            "byProcessId": {},
+            "byRequestId": {},
+            "byRowId": {},
+            "byToolId": {},
+            "draft": "",
+            "hydration": "cold",
+            "items": {},
+            "lastSeq": 0,
+            "order": [],
+            "resolvedSessionId": "resolved-1",
+            "storedSessionId": "stored-1",
+            "subagents": {},
+            "turn": {
+              "active": false,
+              "local": false,
+              "nextSeq": 1000
+            },
+            "unreadCount": 0
+          },
+          [
+            {
+              "body": "## Inbox scan\n\n- 3 threads waiting on a reply\n- 1 invoice past due\n\nNothing needs you before tomorrow.",
+              "id": "r:22",
+              "jobName": "Inbox scan",
+              "kind": "cron_delivery",
+              "origin": "history",
+              "rowId": 22,
+              "seq": 0,
+              "shape": "bot_chat",
+              "ts": 1700000050,
+              "version": 0
+            }
+          ]
+        ],
+        "op": "reconcile",
+        "result": {
+          "botName": "researcher",
+          "byApprovalId": {},
+          "byDelegationId": {},
+          "byProcessId": {},
+          "byRequestId": {},
+          "byRowId": {
+            "22": "r:22"
+          },
+          "byToolId": {},
+          "draft": "",
+          "hydration": "live",
+          "items": {
+            "r:22": {
+              "body": "## Inbox scan\n\n- 3 threads waiting on a reply\n- 1 invoice past due\n\nNothing needs you before tomorrow.",
+              "id": "r:22",
+              "jobName": "Inbox scan",
+              "kind": "cron_delivery",
+              "origin": "history",
+              "rowId": 22,
+              "seq": 0,
+              "shape": "bot_chat",
+              "ts": 1700000050,
+              "version": 0
+            }
+          },
+          "lastSeq": 0,
+          "order": [
+            "r:22"
+          ],
+          "resolvedSessionId": "resolved-1",
+          "storedSessionId": "stored-1",
+          "subagents": {},
+          "turn": {
+            "active": false,
+            "local": false,
+            "nextSeq": 1000
+          },
+          "unreadCount": 0
+        }
+      },
+      {
+        "args": [
+          {
+            "botName": "researcher",
+            "byApprovalId": {},
+            "byDelegationId": {},
+            "byProcessId": {},
+            "byRequestId": {},
+            "byRowId": {
+              "22": "r:22"
+            },
+            "byToolId": {},
+            "draft": "",
+            "hydration": "live",
+            "items": {
+              "r:22": {
+                "body": "## Inbox scan\n\n- 3 threads waiting on a reply\n- 1 invoice past due\n\nNothing needs you before tomorrow.",
+                "id": "r:22",
+                "jobName": "Inbox scan",
+                "kind": "cron_delivery",
+                "origin": "history",
+                "rowId": 22,
+                "seq": 0,
+                "shape": "bot_chat",
+                "ts": 1700000050,
+                "version": 0
+              }
+            },
+            "lastSeq": 0,
+            "order": [
+              "r:22"
+            ],
+            "resolvedSessionId": "resolved-1",
+            "storedSessionId": "stored-1",
+            "subagents": {},
+            "turn": {
+              "active": false,
+              "local": false,
+              "nextSeq": 1000
+            },
+            "unreadCount": 0
+          },
+          {
+            "inflight": {
+              "assistant": "Reading",
+              "streaming": true,
+              "user": "[Cronjob \"Inbox scan\" output — scheduled job, not the user. Review it, act on anything that needs action, and summarize for the chat.]\n\n## Inbox scan\n\n- 3 threads waiting on a reply\n- 1 invoice past due\n\nNothing needs you before tomorrow."
+            },
+            "running": true
+          },
+          1700000060000
+        ],
+        "op": "applyResumeSnapshot",
+        "result": {
+          "botName": "researcher",
+          "byApprovalId": {},
+          "byDelegationId": {},
+          "byProcessId": {},
+          "byRequestId": {},
+          "byRowId": {
+            "22": "r:22"
+          },
+          "byToolId": {},
+          "draft": "",
+          "hydration": "live",
+          "items": {
+            "i:1000": {
+              "id": "i:1000",
+              "interim": false,
+              "kind": "assistant",
+              "origin": "inflight",
+              "seq": 1000,
+              "streaming": true,
+              "text": "Reading",
+              "ts": 1700000060,
+              "version": 0
+            },
+            "r:22": {
+              "body": "## Inbox scan\n\n- 3 threads waiting on a reply\n- 1 invoice past due\n\nNothing needs you before tomorrow.",
+              "id": "r:22",
+              "jobName": "Inbox scan",
+              "kind": "cron_delivery",
+              "origin": "history",
+              "rowId": 22,
+              "seq": 0,
+              "shape": "bot_chat",
+              "ts": 1700000050,
+              "version": 0
+            }
+          },
+          "lastSeq": 0,
+          "order": [
+            "r:22",
+            "i:1000"
+          ],
+          "resolvedSessionId": "resolved-1",
+          "storedSessionId": "stored-1",
+          "subagents": {},
+          "turn": {
+            "active": true,
+            "assistantId": "i:1000",
+            "local": false,
+            "nextSeq": 2000,
+            "startedAt": 1700000060000
+          },
+          "unreadCount": 0
+        }
+      },
+      {
+        "args": [
+          {
+            "botName": "researcher",
+            "byApprovalId": {},
+            "byDelegationId": {},
+            "byProcessId": {},
+            "byRequestId": {},
+            "byRowId": {
+              "22": "r:22"
+            },
+            "byToolId": {},
+            "draft": "",
+            "hydration": "live",
+            "items": {
+              "i:1000": {
+                "id": "i:1000",
+                "interim": false,
+                "kind": "assistant",
+                "origin": "inflight",
+                "seq": 1000,
+                "streaming": true,
+                "text": "Reading",
+                "ts": 1700000060,
+                "version": 0
+              },
+              "r:22": {
+                "body": "## Inbox scan\n\n- 3 threads waiting on a reply\n- 1 invoice past due\n\nNothing needs you before tomorrow.",
+                "id": "r:22",
+                "jobName": "Inbox scan",
+                "kind": "cron_delivery",
+                "origin": "history",
+                "rowId": 22,
+                "seq": 0,
+                "shape": "bot_chat",
+                "ts": 1700000050,
+                "version": 0
+              }
+            },
+            "lastSeq": 0,
+            "order": [
+              "r:22",
+              "i:1000"
+            ],
+            "resolvedSessionId": "resolved-1",
+            "storedSessionId": "stored-1",
+            "subagents": {},
+            "turn": {
+              "active": true,
+              "assistantId": "i:1000",
+              "local": false,
+              "nextSeq": 2000,
+              "startedAt": 1700000060000
+            },
+            "unreadCount": 0
+          },
+          {
+            "inflight": {
+              "assistant": "Reading the inbox",
+              "streaming": true,
+              "user": "[Cronjob \"Inbox scan\" output — scheduled job, not the user. Review it, act on anything that needs action, and summarize for the chat.]\n\n## Inbox scan\n\n- 3 threads waiting on a reply\n- 1 invoice past due\n\nNothing needs you before tomorrow."
+            },
+            "running": true
+          },
+          1700000061000
+        ],
+        "op": "applyResumeSnapshot",
+        "result": {
+          "botName": "researcher",
+          "byApprovalId": {},
+          "byDelegationId": {},
+          "byProcessId": {},
+          "byRequestId": {},
+          "byRowId": {
+            "22": "r:22"
+          },
+          "byToolId": {},
+          "draft": "",
+          "hydration": "live",
+          "items": {
+            "i:1000": {
+              "id": "i:1000",
+              "interim": false,
+              "kind": "assistant",
+              "origin": "inflight",
+              "seq": 1000,
+              "streaming": true,
+              "text": "Reading the inbox",
+              "ts": 1700000060,
+              "version": 1
+            },
+            "r:22": {
+              "body": "## Inbox scan\n\n- 3 threads waiting on a reply\n- 1 invoice past due\n\nNothing needs you before tomorrow.",
+              "id": "r:22",
+              "jobName": "Inbox scan",
+              "kind": "cron_delivery",
+              "origin": "history",
+              "rowId": 22,
+              "seq": 0,
+              "shape": "bot_chat",
+              "ts": 1700000050,
+              "version": 0
+            }
+          },
+          "lastSeq": 0,
+          "order": [
+            "r:22",
+            "i:1000"
+          ],
+          "resolvedSessionId": "resolved-1",
+          "storedSessionId": "stored-1",
+          "subagents": {},
+          "turn": {
+            "active": true,
+            "assistantId": "i:1000",
+            "local": false,
+            "nextSeq": 2000,
+            "startedAt": 1700000060000
+          },
+          "unreadCount": 0
+        }
+      }
+    ],
+    "test": "a resume during a running cron turn > keeps streaming onto the bubble the previous resume opened"
+  },
+  {
+    "calls": [
+      {
+        "args": [
+          "researcher",
+          "stored-1",
+          "resolved-1"
+        ],
+        "op": "createChatState",
+        "result": {
+          "botName": "researcher",
+          "byApprovalId": {},
+          "byDelegationId": {},
+          "byProcessId": {},
+          "byRequestId": {},
+          "byRowId": {},
+          "byToolId": {},
+          "draft": "",
+          "hydration": "cold",
+          "items": {},
+          "lastSeq": 0,
+          "order": [],
+          "resolvedSessionId": "resolved-1",
+          "storedSessionId": "stored-1",
+          "subagents": {},
+          "turn": {
+            "active": false,
+            "local": false,
+            "nextSeq": 1000
+          },
+          "unreadCount": 0
+        }
+      },
+      {
+        "args": [
+          [
+            {
+              "role": "user",
+              "row_id": 23,
+              "text": "[Cronjob \"Inbox scan\" output — scheduled job, not the user. Review it, act on anything that needs action, and summarize for the chat.]\n\n## Inbox scan\n\n- 3 threads waiting on a reply\n- 1 invoice past due\n\nNothing needs you before tomorrow.",
+              "timestamp": 1700000050
+            }
+          ],
+          "rest"
+        ],
+        "op": "rowsToItems",
+        "result": [
+          {
+            "body": "## Inbox scan\n\n- 3 threads waiting on a reply\n- 1 invoice past due\n\nNothing needs you before tomorrow.",
+            "id": "r:23",
+            "jobName": "Inbox scan",
+            "kind": "cron_delivery",
+            "origin": "history",
+            "rowId": 23,
+            "seq": 0,
+            "shape": "bot_chat",
+            "ts": 1700000050,
+            "version": 0
+          }
+        ]
+      },
+      {
+        "args": [
+          {
+            "botName": "researcher",
+            "byApprovalId": {},
+            "byDelegationId": {},
+            "byProcessId": {},
+            "byRequestId": {},
+            "byRowId": {},
+            "byToolId": {},
+            "draft": "",
+            "hydration": "cold",
+            "items": {},
+            "lastSeq": 0,
+            "order": [],
+            "resolvedSessionId": "resolved-1",
+            "storedSessionId": "stored-1",
+            "subagents": {},
+            "turn": {
+              "active": false,
+              "local": false,
+              "nextSeq": 1000
+            },
+            "unreadCount": 0
+          },
+          [
+            {
+              "body": "## Inbox scan\n\n- 3 threads waiting on a reply\n- 1 invoice past due\n\nNothing needs you before tomorrow.",
+              "id": "r:23",
+              "jobName": "Inbox scan",
+              "kind": "cron_delivery",
+              "origin": "history",
+              "rowId": 23,
+              "seq": 0,
+              "shape": "bot_chat",
+              "ts": 1700000050,
+              "version": 0
+            }
+          ]
+        ],
+        "op": "reconcile",
+        "result": {
+          "botName": "researcher",
+          "byApprovalId": {},
+          "byDelegationId": {},
+          "byProcessId": {},
+          "byRequestId": {},
+          "byRowId": {
+            "23": "r:23"
+          },
+          "byToolId": {},
+          "draft": "",
+          "hydration": "live",
+          "items": {
+            "r:23": {
+              "body": "## Inbox scan\n\n- 3 threads waiting on a reply\n- 1 invoice past due\n\nNothing needs you before tomorrow.",
+              "id": "r:23",
+              "jobName": "Inbox scan",
+              "kind": "cron_delivery",
+              "origin": "history",
+              "rowId": 23,
+              "seq": 0,
+              "shape": "bot_chat",
+              "ts": 1700000050,
+              "version": 0
+            }
+          },
+          "lastSeq": 0,
+          "order": [
+            "r:23"
+          ],
+          "resolvedSessionId": "resolved-1",
+          "storedSessionId": "stored-1",
+          "subagents": {},
+          "turn": {
+            "active": false,
+            "local": false,
+            "nextSeq": 1000
+          },
+          "unreadCount": 0
+        }
+      },
+      {
+        "args": [
+          {
+            "botName": "researcher",
+            "byApprovalId": {},
+            "byDelegationId": {},
+            "byProcessId": {},
+            "byRequestId": {},
+            "byRowId": {
+              "23": "r:23"
+            },
+            "byToolId": {},
+            "draft": "",
+            "hydration": "live",
+            "items": {
+              "r:23": {
+                "body": "## Inbox scan\n\n- 3 threads waiting on a reply\n- 1 invoice past due\n\nNothing needs you before tomorrow.",
+                "id": "r:23",
+                "jobName": "Inbox scan",
+                "kind": "cron_delivery",
+                "origin": "history",
+                "rowId": 23,
+                "seq": 0,
+                "shape": "bot_chat",
+                "ts": 1700000050,
+                "version": 0
+              }
+            },
+            "lastSeq": 0,
+            "order": [
+              "r:23"
+            ],
+            "resolvedSessionId": "resolved-1",
+            "storedSessionId": "stored-1",
+            "subagents": {},
+            "turn": {
+              "active": false,
+              "local": false,
+              "nextSeq": 1000
+            },
+            "unreadCount": 0
+          },
+          {
+            "seq": 1,
+            "type": "message.start"
+          },
+          1700000000000
+        ],
+        "op": "applyEvent",
+        "result": {
+          "botName": "researcher",
+          "byApprovalId": {},
+          "byDelegationId": {},
+          "byProcessId": {},
+          "byRequestId": {},
+          "byRowId": {
+            "23": "r:23"
+          },
+          "byToolId": {},
+          "compacting": false,
+          "draft": "",
+          "hydration": "live",
+          "items": {
+            "f:1000": {
+              "id": "f:1000",
+              "kind": "user",
+              "origin": "foreign",
+              "seq": 1000,
+              "text": "",
+              "ts": 1700000000,
+              "unknownAuthor": true,
+              "version": 0
+            },
+            "r:23": {
+              "body": "## Inbox scan\n\n- 3 threads waiting on a reply\n- 1 invoice past due\n\nNothing needs you before tomorrow.",
+              "id": "r:23",
+              "jobName": "Inbox scan",
+              "kind": "cron_delivery",
+              "origin": "history",
+              "rowId": 23,
+              "seq": 0,
+              "shape": "bot_chat",
+              "ts": 1700000050,
+              "version": 0
+            }
+          },
+          "lastSeq": 1,
+          "order": [
+            "r:23",
+            "f:1000"
+          ],
+          "resolvedSessionId": "resolved-1",
+          "storedSessionId": "stored-1",
+          "subagents": {},
+          "turn": {
+            "active": true,
+            "foreignReconcilePending": true,
+            "interrupted": false,
+            "local": false,
+            "nextSeq": 2000,
+            "startedAt": 1700000000000
+          },
+          "unreadCount": 0
+        }
+      },
+      {
+        "args": [
+          {
+            "botName": "researcher",
+            "byApprovalId": {},
+            "byDelegationId": {},
+            "byProcessId": {},
+            "byRequestId": {},
+            "byRowId": {
+              "23": "r:23"
+            },
+            "byToolId": {},
+            "compacting": false,
+            "draft": "",
+            "hydration": "live",
+            "items": {
+              "f:1000": {
+                "id": "f:1000",
+                "kind": "user",
+                "origin": "foreign",
+                "seq": 1000,
+                "text": "",
+                "ts": 1700000000,
+                "unknownAuthor": true,
+                "version": 0
+              },
+              "r:23": {
+                "body": "## Inbox scan\n\n- 3 threads waiting on a reply\n- 1 invoice past due\n\nNothing needs you before tomorrow.",
+                "id": "r:23",
+                "jobName": "Inbox scan",
+                "kind": "cron_delivery",
+                "origin": "history",
+                "rowId": 23,
+                "seq": 0,
+                "shape": "bot_chat",
+                "ts": 1700000050,
+                "version": 0
+              }
+            },
+            "lastSeq": 1,
+            "order": [
+              "r:23",
+              "f:1000"
+            ],
+            "resolvedSessionId": "resolved-1",
+            "storedSessionId": "stored-1",
+            "subagents": {},
+            "turn": {
+              "active": true,
+              "foreignReconcilePending": true,
+              "interrupted": false,
+              "local": false,
+              "nextSeq": 2000,
+              "startedAt": 1700000000000
+            },
+            "unreadCount": 0
+          },
+          {
+            "payload": {
+              "text": "Reading"
+            },
+            "seq": 2,
+            "type": "message.delta"
+          },
+          1700000000000
+        ],
+        "op": "applyEvent",
+        "result": {
+          "botName": "researcher",
+          "byApprovalId": {},
+          "byDelegationId": {},
+          "byProcessId": {},
+          "byRequestId": {},
+          "byRowId": {
+            "23": "r:23"
+          },
+          "byToolId": {},
+          "compacting": false,
+          "draft": "",
+          "hydration": "live",
+          "items": {
+            "a:2000": {
+              "id": "a:2000",
+              "interim": false,
+              "kind": "assistant",
+              "origin": "live",
+              "seq": 2000,
+              "streaming": true,
+              "text": "Reading",
+              "ts": 1700000000,
+              "version": 1
+            },
+            "f:1000": {
+              "id": "f:1000",
+              "kind": "user",
+              "origin": "foreign",
+              "seq": 1000,
+              "text": "",
+              "ts": 1700000000,
+              "unknownAuthor": true,
+              "version": 0
+            },
+            "r:23": {
+              "body": "## Inbox scan\n\n- 3 threads waiting on a reply\n- 1 invoice past due\n\nNothing needs you before tomorrow.",
+              "id": "r:23",
+              "jobName": "Inbox scan",
+              "kind": "cron_delivery",
+              "origin": "history",
+              "rowId": 23,
+              "seq": 0,
+              "shape": "bot_chat",
+              "ts": 1700000050,
+              "version": 0
+            }
+          },
+          "lastSeq": 2,
+          "order": [
+            "r:23",
+            "f:1000",
+            "a:2000"
+          ],
+          "resolvedSessionId": "resolved-1",
+          "storedSessionId": "stored-1",
+          "subagents": {},
+          "turn": {
+            "active": true,
+            "assistantId": "a:2000",
+            "foreignReconcilePending": true,
+            "interrupted": false,
+            "local": false,
+            "nextSeq": 3000,
+            "startedAt": 1700000000000
+          },
+          "unreadCount": 0
+        }
+      },
+      {
+        "args": [
+          {
+            "botName": "researcher",
+            "byApprovalId": {},
+            "byDelegationId": {},
+            "byProcessId": {},
+            "byRequestId": {},
+            "byRowId": {
+              "23": "r:23"
+            },
+            "byToolId": {},
+            "compacting": false,
+            "draft": "",
+            "hydration": "live",
+            "items": {
+              "a:2000": {
+                "id": "a:2000",
+                "interim": false,
+                "kind": "assistant",
+                "origin": "live",
+                "seq": 2000,
+                "streaming": true,
+                "text": "Reading",
+                "ts": 1700000000,
+                "version": 1
+              },
+              "f:1000": {
+                "id": "f:1000",
+                "kind": "user",
+                "origin": "foreign",
+                "seq": 1000,
+                "text": "",
+                "ts": 1700000000,
+                "unknownAuthor": true,
+                "version": 0
+              },
+              "r:23": {
+                "body": "## Inbox scan\n\n- 3 threads waiting on a reply\n- 1 invoice past due\n\nNothing needs you before tomorrow.",
+                "id": "r:23",
+                "jobName": "Inbox scan",
+                "kind": "cron_delivery",
+                "origin": "history",
+                "rowId": 23,
+                "seq": 0,
+                "shape": "bot_chat",
+                "ts": 1700000050,
+                "version": 0
+              }
+            },
+            "lastSeq": 2,
+            "order": [
+              "r:23",
+              "f:1000",
+              "a:2000"
+            ],
+            "resolvedSessionId": "resolved-1",
+            "storedSessionId": "stored-1",
+            "subagents": {},
+            "turn": {
+              "active": true,
+              "assistantId": "a:2000",
+              "foreignReconcilePending": true,
+              "interrupted": false,
+              "local": false,
+              "nextSeq": 3000,
+              "startedAt": 1700000000000
+            },
+            "unreadCount": 0
+          },
+          {
+            "inflight": {
+              "assistant": "Reading the inbox",
+              "streaming": true,
+              "user": "[Cronjob \"Inbox scan\" output — scheduled job, not the user. Review it, act on anything that needs action, and summarize for the chat.]\n\n## Inbox scan\n\n- 3 threads waiting on a reply\n- 1 invoice past due\n\nNothing needs you before tomorrow."
+            },
+            "running": true
+          },
+          1700000060000
+        ],
+        "op": "applyResumeSnapshot",
+        "result": {
+          "botName": "researcher",
+          "byApprovalId": {},
+          "byDelegationId": {},
+          "byProcessId": {},
+          "byRequestId": {},
+          "byRowId": {
+            "23": "r:23"
+          },
+          "byToolId": {},
+          "compacting": false,
+          "draft": "",
+          "hydration": "live",
+          "items": {
+            "a:2000": {
+              "id": "a:2000",
+              "interim": false,
+              "kind": "assistant",
+              "origin": "live",
+              "seq": 2000,
+              "streaming": true,
+              "text": "Reading the inbox",
+              "ts": 1700000000,
+              "version": 2
+            },
+            "r:23": {
+              "body": "## Inbox scan\n\n- 3 threads waiting on a reply\n- 1 invoice past due\n\nNothing needs you before tomorrow.",
+              "id": "r:23",
+              "jobName": "Inbox scan",
+              "kind": "cron_delivery",
+              "origin": "history",
+              "rowId": 23,
+              "seq": 0,
+              "shape": "bot_chat",
+              "ts": 1700000050,
+              "version": 0
+            }
+          },
+          "lastSeq": 2,
+          "order": [
+            "r:23",
+            "a:2000"
+          ],
+          "resolvedSessionId": "resolved-1",
+          "storedSessionId": "stored-1",
+          "subagents": {},
+          "turn": {
+            "active": true,
+            "assistantId": "a:2000",
+            "interrupted": false,
+            "local": false,
+            "nextSeq": 3000,
+            "startedAt": 1700000000000
+          },
+          "unreadCount": 0
+        }
+      }
+    ],
+    "test": "a resume during a running cron turn > sees past a foreign-author placeholder to the card behind it"
+  },
+  {
+    "calls": [
+      {
+        "args": [
+          "researcher",
+          "stored-1",
+          "resolved-1"
+        ],
+        "op": "createChatState",
+        "result": {
+          "botName": "researcher",
+          "byApprovalId": {},
+          "byDelegationId": {},
+          "byProcessId": {},
+          "byRequestId": {},
+          "byRowId": {},
+          "byToolId": {},
+          "draft": "",
+          "hydration": "cold",
+          "items": {},
+          "lastSeq": 0,
+          "order": [],
+          "resolvedSessionId": "resolved-1",
+          "storedSessionId": "stored-1",
+          "subagents": {},
+          "turn": {
+            "active": false,
+            "local": false,
+            "nextSeq": 1000
+          },
+          "unreadCount": 0
+        }
+      },
+      {
+        "args": [
+          {
+            "botName": "researcher",
+            "byApprovalId": {},
+            "byDelegationId": {},
+            "byProcessId": {},
+            "byRequestId": {},
+            "byRowId": {},
+            "byToolId": {},
+            "draft": "",
+            "hydration": "cold",
+            "items": {},
+            "lastSeq": 0,
+            "order": [],
+            "resolvedSessionId": "resolved-1",
+            "storedSessionId": "stored-1",
+            "subagents": {},
+            "turn": {
+              "active": false,
+              "local": false,
+              "nextSeq": 1000
+            },
+            "unreadCount": 0
+          },
+          {
+            "seq": 1,
+            "type": "message.start"
+          },
+          1700000000000
+        ],
+        "op": "applyEvent",
+        "result": {
+          "botName": "researcher",
+          "byApprovalId": {},
+          "byDelegationId": {},
+          "byProcessId": {},
+          "byRequestId": {},
+          "byRowId": {},
+          "byToolId": {},
+          "compacting": false,
+          "draft": "",
+          "hydration": "cold",
+          "items": {
+            "f:1000": {
+              "id": "f:1000",
+              "kind": "user",
+              "origin": "foreign",
+              "seq": 1000,
+              "text": "",
+              "ts": 1700000000,
+              "unknownAuthor": true,
+              "version": 0
+            }
+          },
+          "lastSeq": 1,
+          "order": [
+            "f:1000"
+          ],
+          "resolvedSessionId": "resolved-1",
+          "storedSessionId": "stored-1",
+          "subagents": {},
+          "turn": {
+            "active": true,
+            "foreignReconcilePending": true,
+            "interrupted": false,
+            "local": false,
+            "nextSeq": 2000,
+            "startedAt": 1700000000000
+          },
+          "unreadCount": 0
+        }
+      },
+      {
+        "args": [
+          {
+            "botName": "researcher",
+            "byApprovalId": {},
+            "byDelegationId": {},
+            "byProcessId": {},
+            "byRequestId": {},
+            "byRowId": {},
+            "byToolId": {},
+            "compacting": false,
+            "draft": "",
+            "hydration": "cold",
+            "items": {
+              "f:1000": {
+                "id": "f:1000",
+                "kind": "user",
+                "origin": "foreign",
+                "seq": 1000,
+                "text": "",
+                "ts": 1700000000,
+                "unknownAuthor": true,
+                "version": 0
+              }
+            },
+            "lastSeq": 1,
+            "order": [
+              "f:1000"
+            ],
+            "resolvedSessionId": "resolved-1",
+            "storedSessionId": "stored-1",
+            "subagents": {},
+            "turn": {
+              "active": true,
+              "foreignReconcilePending": true,
+              "interrupted": false,
+              "local": false,
+              "nextSeq": 2000,
+              "startedAt": 1700000000000
+            },
+            "unreadCount": 0
+          },
+          {
+            "payload": {
+              "text": "Reading"
+            },
+            "seq": 2,
+            "type": "message.delta"
+          },
+          1700000000000
+        ],
+        "op": "applyEvent",
+        "result": {
+          "botName": "researcher",
+          "byApprovalId": {},
+          "byDelegationId": {},
+          "byProcessId": {},
+          "byRequestId": {},
+          "byRowId": {},
+          "byToolId": {},
+          "compacting": false,
+          "draft": "",
+          "hydration": "cold",
+          "items": {
+            "a:2000": {
+              "id": "a:2000",
+              "interim": false,
+              "kind": "assistant",
+              "origin": "live",
+              "seq": 2000,
+              "streaming": true,
+              "text": "Reading",
+              "ts": 1700000000,
+              "version": 1
+            },
+            "f:1000": {
+              "id": "f:1000",
+              "kind": "user",
+              "origin": "foreign",
+              "seq": 1000,
+              "text": "",
+              "ts": 1700000000,
+              "unknownAuthor": true,
+              "version": 0
+            }
+          },
+          "lastSeq": 2,
+          "order": [
+            "f:1000",
+            "a:2000"
+          ],
+          "resolvedSessionId": "resolved-1",
+          "storedSessionId": "stored-1",
+          "subagents": {},
+          "turn": {
+            "active": true,
+            "assistantId": "a:2000",
+            "foreignReconcilePending": true,
+            "interrupted": false,
+            "local": false,
+            "nextSeq": 3000,
+            "startedAt": 1700000000000
+          },
+          "unreadCount": 0
+        }
+      },
+      {
+        "args": [
+          {
+            "botName": "researcher",
+            "byApprovalId": {},
+            "byDelegationId": {},
+            "byProcessId": {},
+            "byRequestId": {},
+            "byRowId": {},
+            "byToolId": {},
+            "compacting": false,
+            "draft": "",
+            "hydration": "cold",
+            "items": {
+              "a:2000": {
+                "id": "a:2000",
+                "interim": false,
+                "kind": "assistant",
+                "origin": "live",
+                "seq": 2000,
+                "streaming": true,
+                "text": "Reading",
+                "ts": 1700000000,
+                "version": 1
+              },
+              "f:1000": {
+                "id": "f:1000",
+                "kind": "user",
+                "origin": "foreign",
+                "seq": 1000,
+                "text": "",
+                "ts": 1700000000,
+                "unknownAuthor": true,
+                "version": 0
+              }
+            },
+            "lastSeq": 2,
+            "order": [
+              "f:1000",
+              "a:2000"
+            ],
+            "resolvedSessionId": "resolved-1",
+            "storedSessionId": "stored-1",
+            "subagents": {},
+            "turn": {
+              "active": true,
+              "assistantId": "a:2000",
+              "foreignReconcilePending": true,
+              "interrupted": false,
+              "local": false,
+              "nextSeq": 3000,
+              "startedAt": 1700000000000
+            },
+            "unreadCount": 0
+          },
+          {
+            "inflight": {
+              "assistant": "Reading the inbox",
+              "streaming": true,
+              "user": "[Cronjob \"Inbox scan\" output — scheduled job, not the user. Review it, act on anything that needs action, and summarize for the chat.]\n\n## Inbox scan\n\n- 3 threads waiting on a reply\n- 1 invoice past due\n\nNothing needs you before tomorrow."
+            },
+            "running": true
+          },
+          1700000060000
+        ],
+        "op": "applyResumeSnapshot",
+        "result": {
+          "botName": "researcher",
+          "byApprovalId": {},
+          "byDelegationId": {},
+          "byProcessId": {},
+          "byRequestId": {},
+          "byRowId": {},
+          "byToolId": {},
+          "compacting": false,
+          "draft": "",
+          "hydration": "live",
+          "items": {
+            "a:2000": {
+              "id": "a:2000",
+              "interim": false,
+              "kind": "assistant",
+              "origin": "live",
+              "seq": 2000,
+              "streaming": true,
+              "text": "Reading the inbox",
+              "ts": 1700000000,
+              "version": 2
+            },
+            "f:1000": {
+              "body": "## Inbox scan\n\n- 3 threads waiting on a reply\n- 1 invoice past due\n\nNothing needs you before tomorrow.",
+              "id": "f:1000",
+              "jobName": "Inbox scan",
+              "kind": "cron_delivery",
+              "origin": "inflight",
+              "seq": 1000,
+              "shape": "bot_chat",
+              "ts": 1700000060,
+              "version": 1
+            }
+          },
+          "lastSeq": 2,
+          "order": [
+            "f:1000",
+            "a:2000"
+          ],
+          "resolvedSessionId": "resolved-1",
+          "storedSessionId": "stored-1",
+          "subagents": {},
+          "turn": {
+            "active": true,
+            "assistantId": "a:2000",
+            "interrupted": false,
+            "local": false,
+            "nextSeq": 3000,
+            "startedAt": 1700000000000
+          },
+          "unreadCount": 0
+        }
+      }
+    ],
+    "test": "a resume during a running cron turn > fills the placeholder with the card, in place, on a chat that never saw the delivery"
+  },
+  {
+    "calls": [
+      {
+        "args": [
+          "researcher",
+          "stored-1",
+          "resolved-1"
+        ],
+        "op": "createChatState",
+        "result": {
+          "botName": "researcher",
+          "byApprovalId": {},
+          "byDelegationId": {},
+          "byProcessId": {},
+          "byRequestId": {},
+          "byRowId": {},
+          "byToolId": {},
+          "draft": "",
+          "hydration": "cold",
+          "items": {},
+          "lastSeq": 0,
+          "order": [],
+          "resolvedSessionId": "resolved-1",
+          "storedSessionId": "stored-1",
+          "subagents": {},
+          "turn": {
+            "active": false,
+            "local": false,
+            "nextSeq": 1000
+          },
+          "unreadCount": 0
+        }
+      },
+      {
+        "args": [
+          [
+            {
+              "role": "user",
+              "row_id": 40,
+              "text": "Message from 🤖 Writer (@writer): can you check the changelog?",
+              "timestamp": 1700000050
+            }
+          ],
+          "rest"
+        ],
+        "op": "rowsToItems",
+        "result": [
+          {
+            "id": "r:40",
+            "kind": "bot_dm_in",
+            "origin": "history",
+            "rowId": 40,
+            "senderHandle": "writer",
+            "senderName": "Writer",
+            "seq": 0,
+            "text": "can you check the changelog?",
+            "ts": 1700000050,
+            "version": 0
+          }
+        ]
+      },
+      {
+        "args": [
+          {
+            "botName": "researcher",
+            "byApprovalId": {},
+            "byDelegationId": {},
+            "byProcessId": {},
+            "byRequestId": {},
+            "byRowId": {},
+            "byToolId": {},
+            "draft": "",
+            "hydration": "cold",
+            "items": {},
+            "lastSeq": 0,
+            "order": [],
+            "resolvedSessionId": "resolved-1",
+            "storedSessionId": "stored-1",
+            "subagents": {},
+            "turn": {
+              "active": false,
+              "local": false,
+              "nextSeq": 1000
+            },
+            "unreadCount": 0
+          },
+          [
+            {
+              "id": "r:40",
+              "kind": "bot_dm_in",
+              "origin": "history",
+              "rowId": 40,
+              "senderHandle": "writer",
+              "senderName": "Writer",
+              "seq": 0,
+              "text": "can you check the changelog?",
+              "ts": 1700000050,
+              "version": 0
+            }
+          ]
+        ],
+        "op": "reconcile",
+        "result": {
+          "botName": "researcher",
+          "byApprovalId": {},
+          "byDelegationId": {},
+          "byProcessId": {},
+          "byRequestId": {},
+          "byRowId": {
+            "40": "r:40"
+          },
+          "byToolId": {},
+          "draft": "",
+          "hydration": "live",
+          "items": {
+            "r:40": {
+              "id": "r:40",
+              "kind": "bot_dm_in",
+              "origin": "history",
+              "rowId": 40,
+              "senderHandle": "writer",
+              "senderName": "Writer",
+              "seq": 0,
+              "text": "can you check the changelog?",
+              "ts": 1700000050,
+              "version": 0
+            }
+          },
+          "lastSeq": 0,
+          "order": [
+            "r:40"
+          ],
+          "resolvedSessionId": "resolved-1",
+          "storedSessionId": "stored-1",
+          "subagents": {},
+          "turn": {
+            "active": false,
+            "local": false,
+            "nextSeq": 1000
+          },
+          "unreadCount": 0
+        }
+      },
+      {
+        "args": [
+          {
+            "botName": "researcher",
+            "byApprovalId": {},
+            "byDelegationId": {},
+            "byProcessId": {},
+            "byRequestId": {},
+            "byRowId": {
+              "40": "r:40"
+            },
+            "byToolId": {},
+            "draft": "",
+            "hydration": "live",
+            "items": {
+              "r:40": {
+                "id": "r:40",
+                "kind": "bot_dm_in",
+                "origin": "history",
+                "rowId": 40,
+                "senderHandle": "writer",
+                "senderName": "Writer",
+                "seq": 0,
+                "text": "can you check the changelog?",
+                "ts": 1700000050,
+                "version": 0
+              }
+            },
+            "lastSeq": 0,
+            "order": [
+              "r:40"
+            ],
+            "resolvedSessionId": "resolved-1",
+            "storedSessionId": "stored-1",
+            "subagents": {},
+            "turn": {
+              "active": false,
+              "local": false,
+              "nextSeq": 1000
+            },
+            "unreadCount": 0
+          },
+          {
+            "inflight": {
+              "assistant": "Looking",
+              "streaming": true,
+              "user": "Message from 🤖 Writer (@writer): can you check the changelog?"
+            },
+            "running": true
+          },
+          1700000060000
+        ],
+        "op": "applyResumeSnapshot",
+        "result": {
+          "botName": "researcher",
+          "byApprovalId": {},
+          "byDelegationId": {},
+          "byProcessId": {},
+          "byRequestId": {},
+          "byRowId": {
+            "40": "r:40"
+          },
+          "byToolId": {},
+          "draft": "",
+          "hydration": "live",
+          "items": {
+            "i:1000": {
+              "id": "i:1000",
+              "interim": false,
+              "kind": "assistant",
+              "origin": "inflight",
+              "seq": 1000,
+              "streaming": true,
+              "text": "Looking",
+              "ts": 1700000060,
+              "version": 0
+            },
+            "r:40": {
+              "id": "r:40",
+              "kind": "bot_dm_in",
+              "origin": "history",
+              "rowId": 40,
+              "senderHandle": "writer",
+              "senderName": "Writer",
+              "seq": 0,
+              "text": "can you check the changelog?",
+              "ts": 1700000050,
+              "version": 0
+            }
+          },
+          "lastSeq": 0,
+          "order": [
+            "r:40",
+            "i:1000"
+          ],
+          "resolvedSessionId": "resolved-1",
+          "storedSessionId": "stored-1",
+          "subagents": {},
+          "turn": {
+            "active": true,
+            "assistantId": "i:1000",
+            "local": false,
+            "nextSeq": 2000,
+            "startedAt": 1700000060000
+          },
+          "unreadCount": 0
+        }
+      }
+    ],
+    "test": "a resume during a running teammate turn > does not add a second bubble beside the inbound row history carries"
+  },
+  {
+    "calls": [
+      {
+        "args": [
+          "researcher",
+          "stored-1",
+          "resolved-1"
+        ],
+        "op": "createChatState",
+        "result": {
+          "botName": "researcher",
+          "byApprovalId": {},
+          "byDelegationId": {},
+          "byProcessId": {},
+          "byRequestId": {},
+          "byRowId": {},
+          "byToolId": {},
+          "draft": "",
+          "hydration": "cold",
+          "items": {},
+          "lastSeq": 0,
+          "order": [],
+          "resolvedSessionId": "resolved-1",
+          "storedSessionId": "stored-1",
+          "subagents": {},
+          "turn": {
+            "active": false,
+            "local": false,
+            "nextSeq": 1000
+          },
+          "unreadCount": 0
+        }
+      },
+      {
+        "args": [
+          [
+            {
+              "role": "user",
+              "row_id": 41,
+              "text": "Message from 🤖 Writer (@writer): can you check the changelog?",
+              "timestamp": 1700000050
+            }
+          ],
+          "rest"
+        ],
+        "op": "rowsToItems",
+        "result": [
+          {
+            "id": "r:41",
+            "kind": "bot_dm_in",
+            "origin": "history",
+            "rowId": 41,
+            "senderHandle": "writer",
+            "senderName": "Writer",
+            "seq": 0,
+            "text": "can you check the changelog?",
+            "ts": 1700000050,
+            "version": 0
+          }
+        ]
+      },
+      {
+        "args": [
+          {
+            "botName": "researcher",
+            "byApprovalId": {},
+            "byDelegationId": {},
+            "byProcessId": {},
+            "byRequestId": {},
+            "byRowId": {},
+            "byToolId": {},
+            "draft": "",
+            "hydration": "cold",
+            "items": {},
+            "lastSeq": 0,
+            "order": [],
+            "resolvedSessionId": "resolved-1",
+            "storedSessionId": "stored-1",
+            "subagents": {},
+            "turn": {
+              "active": false,
+              "local": false,
+              "nextSeq": 1000
+            },
+            "unreadCount": 0
+          },
+          [
+            {
+              "id": "r:41",
+              "kind": "bot_dm_in",
+              "origin": "history",
+              "rowId": 41,
+              "senderHandle": "writer",
+              "senderName": "Writer",
+              "seq": 0,
+              "text": "can you check the changelog?",
+              "ts": 1700000050,
+              "version": 0
+            }
+          ]
+        ],
+        "op": "reconcile",
+        "result": {
+          "botName": "researcher",
+          "byApprovalId": {},
+          "byDelegationId": {},
+          "byProcessId": {},
+          "byRequestId": {},
+          "byRowId": {
+            "41": "r:41"
+          },
+          "byToolId": {},
+          "draft": "",
+          "hydration": "live",
+          "items": {
+            "r:41": {
+              "id": "r:41",
+              "kind": "bot_dm_in",
+              "origin": "history",
+              "rowId": 41,
+              "senderHandle": "writer",
+              "senderName": "Writer",
+              "seq": 0,
+              "text": "can you check the changelog?",
+              "ts": 1700000050,
+              "version": 0
+            }
+          },
+          "lastSeq": 0,
+          "order": [
+            "r:41"
+          ],
+          "resolvedSessionId": "resolved-1",
+          "storedSessionId": "stored-1",
+          "subagents": {},
+          "turn": {
+            "active": false,
+            "local": false,
+            "nextSeq": 1000
+          },
+          "unreadCount": 0
+        }
+      },
+      {
+        "args": [
+          {
+            "botName": "researcher",
+            "byApprovalId": {},
+            "byDelegationId": {},
+            "byProcessId": {},
+            "byRequestId": {},
+            "byRowId": {
+              "41": "r:41"
+            },
+            "byToolId": {},
+            "draft": "",
+            "hydration": "live",
+            "items": {
+              "r:41": {
+                "id": "r:41",
+                "kind": "bot_dm_in",
+                "origin": "history",
+                "rowId": 41,
+                "senderHandle": "writer",
+                "senderName": "Writer",
+                "seq": 0,
+                "text": "can you check the changelog?",
+                "ts": 1700000050,
+                "version": 0
+              }
+            },
+            "lastSeq": 0,
+            "order": [
+              "r:41"
+            ],
+            "resolvedSessionId": "resolved-1",
+            "storedSessionId": "stored-1",
+            "subagents": {},
+            "turn": {
+              "active": false,
+              "local": false,
+              "nextSeq": 1000
+            },
+            "unreadCount": 0
+          },
+          {
+            "seq": 1,
+            "type": "message.start"
+          },
+          1700000000000
+        ],
+        "op": "applyEvent",
+        "result": {
+          "botName": "researcher",
+          "byApprovalId": {},
+          "byDelegationId": {},
+          "byProcessId": {},
+          "byRequestId": {},
+          "byRowId": {
+            "41": "r:41"
+          },
+          "byToolId": {},
+          "compacting": false,
+          "draft": "",
+          "hydration": "live",
+          "items": {
+            "f:1000": {
+              "id": "f:1000",
+              "kind": "user",
+              "origin": "foreign",
+              "seq": 1000,
+              "text": "",
+              "ts": 1700000000,
+              "unknownAuthor": true,
+              "version": 0
+            },
+            "r:41": {
+              "id": "r:41",
+              "kind": "bot_dm_in",
+              "origin": "history",
+              "rowId": 41,
+              "senderHandle": "writer",
+              "senderName": "Writer",
+              "seq": 0,
+              "text": "can you check the changelog?",
+              "ts": 1700000050,
+              "version": 0
+            }
+          },
+          "lastSeq": 1,
+          "order": [
+            "r:41",
+            "f:1000"
+          ],
+          "resolvedSessionId": "resolved-1",
+          "storedSessionId": "stored-1",
+          "subagents": {},
+          "turn": {
+            "active": true,
+            "foreignReconcilePending": true,
+            "interrupted": false,
+            "local": false,
+            "nextSeq": 2000,
+            "startedAt": 1700000000000
+          },
+          "unreadCount": 0
+        }
+      },
+      {
+        "args": [
+          {
+            "botName": "researcher",
+            "byApprovalId": {},
+            "byDelegationId": {},
+            "byProcessId": {},
+            "byRequestId": {},
+            "byRowId": {
+              "41": "r:41"
+            },
+            "byToolId": {},
+            "compacting": false,
+            "draft": "",
+            "hydration": "live",
+            "items": {
+              "f:1000": {
+                "id": "f:1000",
+                "kind": "user",
+                "origin": "foreign",
+                "seq": 1000,
+                "text": "",
+                "ts": 1700000000,
+                "unknownAuthor": true,
+                "version": 0
+              },
+              "r:41": {
+                "id": "r:41",
+                "kind": "bot_dm_in",
+                "origin": "history",
+                "rowId": 41,
+                "senderHandle": "writer",
+                "senderName": "Writer",
+                "seq": 0,
+                "text": "can you check the changelog?",
+                "ts": 1700000050,
+                "version": 0
+              }
+            },
+            "lastSeq": 1,
+            "order": [
+              "r:41",
+              "f:1000"
+            ],
+            "resolvedSessionId": "resolved-1",
+            "storedSessionId": "stored-1",
+            "subagents": {},
+            "turn": {
+              "active": true,
+              "foreignReconcilePending": true,
+              "interrupted": false,
+              "local": false,
+              "nextSeq": 2000,
+              "startedAt": 1700000000000
+            },
+            "unreadCount": 0
+          },
+          {
+            "payload": {
+              "text": "Look"
+            },
+            "seq": 2,
+            "type": "message.delta"
+          },
+          1700000000000
+        ],
+        "op": "applyEvent",
+        "result": {
+          "botName": "researcher",
+          "byApprovalId": {},
+          "byDelegationId": {},
+          "byProcessId": {},
+          "byRequestId": {},
+          "byRowId": {
+            "41": "r:41"
+          },
+          "byToolId": {},
+          "compacting": false,
+          "draft": "",
+          "hydration": "live",
+          "items": {
+            "a:2000": {
+              "id": "a:2000",
+              "interim": false,
+              "kind": "assistant",
+              "origin": "live",
+              "seq": 2000,
+              "streaming": true,
+              "text": "Look",
+              "ts": 1700000000,
+              "version": 1
+            },
+            "f:1000": {
+              "id": "f:1000",
+              "kind": "user",
+              "origin": "foreign",
+              "seq": 1000,
+              "text": "",
+              "ts": 1700000000,
+              "unknownAuthor": true,
+              "version": 0
+            },
+            "r:41": {
+              "id": "r:41",
+              "kind": "bot_dm_in",
+              "origin": "history",
+              "rowId": 41,
+              "senderHandle": "writer",
+              "senderName": "Writer",
+              "seq": 0,
+              "text": "can you check the changelog?",
+              "ts": 1700000050,
+              "version": 0
+            }
+          },
+          "lastSeq": 2,
+          "order": [
+            "r:41",
+            "f:1000",
+            "a:2000"
+          ],
+          "resolvedSessionId": "resolved-1",
+          "storedSessionId": "stored-1",
+          "subagents": {},
+          "turn": {
+            "active": true,
+            "assistantId": "a:2000",
+            "foreignReconcilePending": true,
+            "interrupted": false,
+            "local": false,
+            "nextSeq": 3000,
+            "startedAt": 1700000000000
+          },
+          "unreadCount": 0
+        }
+      },
+      {
+        "args": [
+          {
+            "botName": "researcher",
+            "byApprovalId": {},
+            "byDelegationId": {},
+            "byProcessId": {},
+            "byRequestId": {},
+            "byRowId": {
+              "41": "r:41"
+            },
+            "byToolId": {},
+            "compacting": false,
+            "draft": "",
+            "hydration": "live",
+            "items": {
+              "a:2000": {
+                "id": "a:2000",
+                "interim": false,
+                "kind": "assistant",
+                "origin": "live",
+                "seq": 2000,
+                "streaming": true,
+                "text": "Look",
+                "ts": 1700000000,
+                "version": 1
+              },
+              "f:1000": {
+                "id": "f:1000",
+                "kind": "user",
+                "origin": "foreign",
+                "seq": 1000,
+                "text": "",
+                "ts": 1700000000,
+                "unknownAuthor": true,
+                "version": 0
+              },
+              "r:41": {
+                "id": "r:41",
+                "kind": "bot_dm_in",
+                "origin": "history",
+                "rowId": 41,
+                "senderHandle": "writer",
+                "senderName": "Writer",
+                "seq": 0,
+                "text": "can you check the changelog?",
+                "ts": 1700000050,
+                "version": 0
+              }
+            },
+            "lastSeq": 2,
+            "order": [
+              "r:41",
+              "f:1000",
+              "a:2000"
+            ],
+            "resolvedSessionId": "resolved-1",
+            "storedSessionId": "stored-1",
+            "subagents": {},
+            "turn": {
+              "active": true,
+              "assistantId": "a:2000",
+              "foreignReconcilePending": true,
+              "interrupted": false,
+              "local": false,
+              "nextSeq": 3000,
+              "startedAt": 1700000000000
+            },
+            "unreadCount": 0
+          },
+          {
+            "inflight": {
+              "assistant": "Looking",
+              "streaming": true,
+              "user": "Message from 🤖 Writer (@writer): can you check the changelog?"
+            },
+            "running": true
+          },
+          1700000060000
+        ],
+        "op": "applyResumeSnapshot",
+        "result": {
+          "botName": "researcher",
+          "byApprovalId": {},
+          "byDelegationId": {},
+          "byProcessId": {},
+          "byRequestId": {},
+          "byRowId": {
+            "41": "r:41"
+          },
+          "byToolId": {},
+          "compacting": false,
+          "draft": "",
+          "hydration": "live",
+          "items": {
+            "a:2000": {
+              "id": "a:2000",
+              "interim": false,
+              "kind": "assistant",
+              "origin": "live",
+              "seq": 2000,
+              "streaming": true,
+              "text": "Looking",
+              "ts": 1700000000,
+              "version": 2
+            },
+            "r:41": {
+              "id": "r:41",
+              "kind": "bot_dm_in",
+              "origin": "history",
+              "rowId": 41,
+              "senderHandle": "writer",
+              "senderName": "Writer",
+              "seq": 0,
+              "text": "can you check the changelog?",
+              "ts": 1700000050,
+              "version": 0
+            }
+          },
+          "lastSeq": 2,
+          "order": [
+            "r:41",
+            "a:2000"
+          ],
+          "resolvedSessionId": "resolved-1",
+          "storedSessionId": "stored-1",
+          "subagents": {},
+          "turn": {
+            "active": true,
+            "assistantId": "a:2000",
+            "interrupted": false,
+            "local": false,
+            "nextSeq": 3000,
+            "startedAt": 1700000000000
+          },
+          "unreadCount": 0
+        }
+      }
+    ],
+    "test": "a resume during a running teammate turn > sees past the foreign-author placeholder to that bubble"
+  },
+  {
+    "calls": [
+      {
+        "args": [
+          "researcher",
+          "stored-1",
+          "resolved-1"
+        ],
+        "op": "createChatState",
+        "result": {
+          "botName": "researcher",
+          "byApprovalId": {},
+          "byDelegationId": {},
+          "byProcessId": {},
+          "byRequestId": {},
+          "byRowId": {},
+          "byToolId": {},
+          "draft": "",
+          "hydration": "cold",
+          "items": {},
+          "lastSeq": 0,
+          "order": [],
+          "resolvedSessionId": "resolved-1",
+          "storedSessionId": "stored-1",
+          "subagents": {},
+          "turn": {
+            "active": false,
+            "local": false,
+            "nextSeq": 1000
+          },
+          "unreadCount": 0
+        }
+      },
+      {
+        "args": [
+          {
+            "botName": "researcher",
+            "byApprovalId": {},
+            "byDelegationId": {},
+            "byProcessId": {},
+            "byRequestId": {},
+            "byRowId": {},
+            "byToolId": {},
+            "draft": "",
+            "hydration": "cold",
+            "items": {},
+            "lastSeq": 0,
+            "order": [],
+            "resolvedSessionId": "resolved-1",
+            "storedSessionId": "stored-1",
+            "subagents": {},
+            "turn": {
+              "active": false,
+              "local": false,
+              "nextSeq": 1000
+            },
+            "unreadCount": 0
+          },
+          {
+            "seq": 1,
+            "type": "message.start"
+          },
+          1700000000000
+        ],
+        "op": "applyEvent",
+        "result": {
+          "botName": "researcher",
+          "byApprovalId": {},
+          "byDelegationId": {},
+          "byProcessId": {},
+          "byRequestId": {},
+          "byRowId": {},
+          "byToolId": {},
+          "compacting": false,
+          "draft": "",
+          "hydration": "cold",
+          "items": {
+            "f:1000": {
+              "id": "f:1000",
+              "kind": "user",
+              "origin": "foreign",
+              "seq": 1000,
+              "text": "",
+              "ts": 1700000000,
+              "unknownAuthor": true,
+              "version": 0
+            }
+          },
+          "lastSeq": 1,
+          "order": [
+            "f:1000"
+          ],
+          "resolvedSessionId": "resolved-1",
+          "storedSessionId": "stored-1",
+          "subagents": {},
+          "turn": {
+            "active": true,
+            "foreignReconcilePending": true,
+            "interrupted": false,
+            "local": false,
+            "nextSeq": 2000,
+            "startedAt": 1700000000000
+          },
+          "unreadCount": 0
+        }
+      },
+      {
+        "args": [
+          {
+            "botName": "researcher",
+            "byApprovalId": {},
+            "byDelegationId": {},
+            "byProcessId": {},
+            "byRequestId": {},
+            "byRowId": {},
+            "byToolId": {},
+            "compacting": false,
+            "draft": "",
+            "hydration": "cold",
+            "items": {
+              "f:1000": {
+                "id": "f:1000",
+                "kind": "user",
+                "origin": "foreign",
+                "seq": 1000,
+                "text": "",
+                "ts": 1700000000,
+                "unknownAuthor": true,
+                "version": 0
+              }
+            },
+            "lastSeq": 1,
+            "order": [
+              "f:1000"
+            ],
+            "resolvedSessionId": "resolved-1",
+            "storedSessionId": "stored-1",
+            "subagents": {},
+            "turn": {
+              "active": true,
+              "foreignReconcilePending": true,
+              "interrupted": false,
+              "local": false,
+              "nextSeq": 2000,
+              "startedAt": 1700000000000
+            },
+            "unreadCount": 0
+          },
+          {
+            "inflight": {
+              "assistant": "",
+              "streaming": true,
+              "user": "Message from 🤖 Writer (@writer): can you check the changelog?"
+            },
+            "running": true
+          },
+          1700000060000
+        ],
+        "op": "applyResumeSnapshot",
+        "result": {
+          "botName": "researcher",
+          "byApprovalId": {},
+          "byDelegationId": {},
+          "byProcessId": {},
+          "byRequestId": {},
+          "byRowId": {},
+          "byToolId": {},
+          "compacting": false,
+          "draft": "",
+          "hydration": "live",
+          "items": {
+            "f:1000": {
+              "id": "f:1000",
+              "kind": "bot_dm_in",
+              "origin": "inflight",
+              "senderHandle": "writer",
+              "senderName": "Writer",
+              "seq": 1000,
+              "text": "can you check the changelog?",
+              "ts": 1700000060,
+              "version": 1
+            }
+          },
+          "lastSeq": 1,
+          "order": [
+            "f:1000"
+          ],
+          "resolvedSessionId": "resolved-1",
+          "storedSessionId": "stored-1",
+          "subagents": {},
+          "turn": {
+            "active": true,
+            "interrupted": false,
+            "local": false,
+            "nextSeq": 2000,
+            "startedAt": 1700000000000
+          },
+          "unreadCount": 0
+        }
+      }
+    ],
+    "test": "a resume during a running teammate turn > projects the message as a DM bubble, not as the signature line in a user bubble"
+  },
+  {
+    "calls": [
+      {
+        "args": [
+          "researcher",
+          "stored-1",
+          "resolved-1"
+        ],
+        "op": "createChatState",
+        "result": {
+          "botName": "researcher",
+          "byApprovalId": {},
+          "byDelegationId": {},
+          "byProcessId": {},
+          "byRequestId": {},
+          "byRowId": {},
+          "byToolId": {},
+          "draft": "",
+          "hydration": "cold",
+          "items": {},
+          "lastSeq": 0,
+          "order": [],
+          "resolvedSessionId": "resolved-1",
+          "storedSessionId": "stored-1",
+          "subagents": {},
+          "turn": {
+            "active": false,
+            "local": false,
+            "nextSeq": 1000
+          },
+          "unreadCount": 0
+        }
+      },
+      {
+        "args": [
+          {
+            "botName": "researcher",
+            "byApprovalId": {},
+            "byDelegationId": {},
+            "byProcessId": {},
+            "byRequestId": {},
+            "byRowId": {},
+            "byToolId": {},
+            "draft": "",
+            "hydration": "cold",
+            "items": {},
+            "lastSeq": 0,
+            "order": [],
+            "resolvedSessionId": "resolved-1",
+            "storedSessionId": "stored-1",
+            "subagents": {},
+            "turn": {
+              "active": false,
+              "local": false,
+              "nextSeq": 1000
+            },
+            "unreadCount": 0
+          },
+          {
+            "inflight": {
+              "assistant": "Reading",
+              "streaming": true,
+              "user": "[Cronjob \"Inbox scan\" output — scheduled job, not the user. Review it, act on anything that needs action, and summarize for the chat.]\n\n## Inbox scan\n\n- 3 threads waiting on a reply\n- 1 invoice past due\n\nNothing needs you before tomorrow."
+            },
+            "running": true
+          },
+          1700000060000
+        ],
+        "op": "applyResumeSnapshot",
+        "result": {
+          "botName": "researcher",
+          "byApprovalId": {},
+          "byDelegationId": {},
+          "byProcessId": {},
+          "byRequestId": {},
+          "byRowId": {},
+          "byToolId": {},
+          "draft": "",
+          "hydration": "live",
+          "items": {
+            "i:1000": {
+              "body": "## Inbox scan\n\n- 3 threads waiting on a reply\n- 1 invoice past due\n\nNothing needs you before tomorrow.",
+              "id": "i:1000",
+              "jobName": "Inbox scan",
+              "kind": "cron_delivery",
+              "origin": "inflight",
+              "seq": 1000,
+              "shape": "bot_chat",
+              "ts": 1700000060,
+              "version": 0
+            },
+            "i:2000": {
+              "id": "i:2000",
+              "interim": false,
+              "kind": "assistant",
+              "origin": "inflight",
+              "seq": 2000,
+              "streaming": true,
+              "text": "Reading",
+              "ts": 1700000060,
+              "version": 0
+            }
+          },
+          "lastSeq": 0,
+          "order": [
+            "i:1000",
+            "i:2000"
+          ],
+          "resolvedSessionId": "resolved-1",
+          "storedSessionId": "stored-1",
+          "subagents": {},
+          "turn": {
+            "active": true,
+            "assistantId": "i:2000",
+            "local": false,
+            "nextSeq": 3000,
+            "startedAt": 1700000060000
+          },
+          "unreadCount": 0
+        }
+      }
+    ],
+    "test": "a resume during a running teammate turn > still adds the card when the chat has never seen that delivery"
+  },
+  {
+    "calls": [
+      {
+        "args": [
+          "researcher",
+          "stored-1",
+          "resolved-1"
+        ],
+        "op": "createChatState",
+        "result": {
+          "botName": "researcher",
+          "byApprovalId": {},
+          "byDelegationId": {},
+          "byProcessId": {},
+          "byRequestId": {},
+          "byRowId": {},
+          "byToolId": {},
+          "draft": "",
+          "hydration": "cold",
+          "items": {},
+          "lastSeq": 0,
+          "order": [],
+          "resolvedSessionId": "resolved-1",
+          "storedSessionId": "stored-1",
+          "subagents": {},
+          "turn": {
+            "active": false,
+            "local": false,
+            "nextSeq": 1000
+          },
+          "unreadCount": 0
+        }
+      },
+      {
+        "args": [
+          [
+            {
+              "role": "user",
+              "row_id": 30,
+              "text": "[Cronjob \"Inbox scan\" output — scheduled job, not the user. Review it, act on anything that needs action, and summarize for the chat.]\n\n## Inbox scan\n\n- 3 threads waiting on a reply\n- 1 invoice past due\n\nNothing needs you before tomorrow.",
+              "timestamp": 1700000050
+            },
+            {
+              "role": "assistant",
+              "row_id": 31,
+              "text": "Nothing needed you.",
+              "timestamp": 1700000060
+            }
+          ],
+          "rest"
+        ],
+        "op": "rowsToItems",
+        "result": [
+          {
+            "body": "## Inbox scan\n\n- 3 threads waiting on a reply\n- 1 invoice past due\n\nNothing needs you before tomorrow.",
+            "id": "r:30",
+            "jobName": "Inbox scan",
+            "kind": "cron_delivery",
+            "origin": "history",
+            "rowId": 30,
+            "seq": 0,
+            "shape": "bot_chat",
+            "ts": 1700000050,
+            "version": 0
+          },
+          {
+            "id": "r:31",
+            "interim": false,
+            "kind": "assistant",
+            "origin": "history",
+            "rowId": 31,
+            "seq": 1000,
+            "status": "complete",
+            "streaming": false,
+            "text": "Nothing needed you.",
+            "ts": 1700000060,
+            "version": 0
+          }
+        ]
+      },
+      {
+        "args": [
+          {
+            "botName": "researcher",
+            "byApprovalId": {},
+            "byDelegationId": {},
+            "byProcessId": {},
+            "byRequestId": {},
+            "byRowId": {},
+            "byToolId": {},
+            "draft": "",
+            "hydration": "cold",
+            "items": {},
+            "lastSeq": 0,
+            "order": [],
+            "resolvedSessionId": "resolved-1",
+            "storedSessionId": "stored-1",
+            "subagents": {},
+            "turn": {
+              "active": false,
+              "local": false,
+              "nextSeq": 1000
+            },
+            "unreadCount": 0
+          },
+          [
+            {
+              "body": "## Inbox scan\n\n- 3 threads waiting on a reply\n- 1 invoice past due\n\nNothing needs you before tomorrow.",
+              "id": "r:30",
+              "jobName": "Inbox scan",
+              "kind": "cron_delivery",
+              "origin": "history",
+              "rowId": 30,
+              "seq": 0,
+              "shape": "bot_chat",
+              "ts": 1700000050,
+              "version": 0
+            },
+            {
+              "id": "r:31",
+              "interim": false,
+              "kind": "assistant",
+              "origin": "history",
+              "rowId": 31,
+              "seq": 1000,
+              "status": "complete",
+              "streaming": false,
+              "text": "Nothing needed you.",
+              "ts": 1700000060,
+              "version": 0
+            }
+          ]
+        ],
+        "op": "reconcile",
+        "result": {
+          "botName": "researcher",
+          "byApprovalId": {},
+          "byDelegationId": {},
+          "byProcessId": {},
+          "byRequestId": {},
+          "byRowId": {
+            "30": "r:30",
+            "31": "r:31"
+          },
+          "byToolId": {},
+          "draft": "",
+          "hydration": "live",
+          "items": {
+            "r:30": {
+              "body": "## Inbox scan\n\n- 3 threads waiting on a reply\n- 1 invoice past due\n\nNothing needs you before tomorrow.",
+              "id": "r:30",
+              "jobName": "Inbox scan",
+              "kind": "cron_delivery",
+              "origin": "history",
+              "rowId": 30,
+              "seq": 0,
+              "shape": "bot_chat",
+              "ts": 1700000050,
+              "version": 0
+            },
+            "r:31": {
+              "id": "r:31",
+              "interim": false,
+              "kind": "assistant",
+              "origin": "history",
+              "rowId": 31,
+              "seq": 1000,
+              "status": "complete",
+              "streaming": false,
+              "text": "Nothing needed you.",
+              "ts": 1700000060,
+              "version": 0
+            }
+          },
+          "lastSeq": 0,
+          "order": [
+            "r:30",
+            "r:31"
+          ],
+          "resolvedSessionId": "resolved-1",
+          "storedSessionId": "stored-1",
+          "subagents": {},
+          "turn": {
+            "active": false,
+            "local": false,
+            "nextSeq": 2000
+          },
+          "unreadCount": 0
+        }
+      },
+      {
+        "args": [
+          {
+            "botName": "researcher",
+            "byApprovalId": {},
+            "byDelegationId": {},
+            "byProcessId": {},
+            "byRequestId": {},
+            "byRowId": {
+              "30": "r:30",
+              "31": "r:31"
+            },
+            "byToolId": {},
+            "draft": "",
+            "hydration": "live",
+            "items": {
+              "r:30": {
+                "body": "## Inbox scan\n\n- 3 threads waiting on a reply\n- 1 invoice past due\n\nNothing needs you before tomorrow.",
+                "id": "r:30",
+                "jobName": "Inbox scan",
+                "kind": "cron_delivery",
+                "origin": "history",
+                "rowId": 30,
+                "seq": 0,
+                "shape": "bot_chat",
+                "ts": 1700000050,
+                "version": 0
+              },
+              "r:31": {
+                "id": "r:31",
+                "interim": false,
+                "kind": "assistant",
+                "origin": "history",
+                "rowId": 31,
+                "seq": 1000,
+                "status": "complete",
+                "streaming": false,
+                "text": "Nothing needed you.",
+                "ts": 1700000060,
+                "version": 0
+              }
+            },
+            "lastSeq": 0,
+            "order": [
+              "r:30",
+              "r:31"
+            ],
+            "resolvedSessionId": "resolved-1",
+            "storedSessionId": "stored-1",
+            "subagents": {},
+            "turn": {
+              "active": false,
+              "local": false,
+              "nextSeq": 2000
+            },
+            "unreadCount": 0
+          },
+          {
+            "inflight": {
+              "assistant": "",
+              "streaming": true,
+              "user": "[Cronjob \"Inbox scan\" output — scheduled job, not the user. Review it, act on anything that needs action, and summarize for the chat.]\n\n## Inbox scan\n\n- 3 threads waiting on a reply\n- 1 invoice past due\n\nNothing needs you before tomorrow."
+            },
+            "running": true
+          },
+          1700000060000
+        ],
+        "op": "applyResumeSnapshot",
+        "result": {
+          "botName": "researcher",
+          "byApprovalId": {},
+          "byDelegationId": {},
+          "byProcessId": {},
+          "byRequestId": {},
+          "byRowId": {
+            "30": "r:30",
+            "31": "r:31"
+          },
+          "byToolId": {},
+          "draft": "",
+          "hydration": "live",
+          "items": {
+            "i:2000": {
+              "body": "## Inbox scan\n\n- 3 threads waiting on a reply\n- 1 invoice past due\n\nNothing needs you before tomorrow.",
+              "id": "i:2000",
+              "jobName": "Inbox scan",
+              "kind": "cron_delivery",
+              "origin": "inflight",
+              "seq": 2000,
+              "shape": "bot_chat",
+              "ts": 1700000060,
+              "version": 0
+            },
+            "r:30": {
+              "body": "## Inbox scan\n\n- 3 threads waiting on a reply\n- 1 invoice past due\n\nNothing needs you before tomorrow.",
+              "id": "r:30",
+              "jobName": "Inbox scan",
+              "kind": "cron_delivery",
+              "origin": "history",
+              "rowId": 30,
+              "seq": 0,
+              "shape": "bot_chat",
+              "ts": 1700000050,
+              "version": 0
+            },
+            "r:31": {
+              "id": "r:31",
+              "interim": false,
+              "kind": "assistant",
+              "origin": "history",
+              "rowId": 31,
+              "seq": 1000,
+              "status": "complete",
+              "streaming": false,
+              "text": "Nothing needed you.",
+              "ts": 1700000060,
+              "version": 0
+            }
+          },
+          "lastSeq": 0,
+          "order": [
+            "r:30",
+            "r:31",
+            "i:2000"
+          ],
+          "resolvedSessionId": "resolved-1",
+          "storedSessionId": "stored-1",
+          "subagents": {},
+          "turn": {
+            "active": true,
+            "local": false,
+            "nextSeq": 3000,
+            "startedAt": 1700000060000
+          },
+          "unreadCount": 0
+        }
+      }
+    ],
+    "test": "a NEW delivery of a job that has already run > gets its own card when an identical delivery is in flight again"
+  },
+  {
+    "calls": [
+      {
+        "args": [
+          "researcher",
+          "stored-1",
+          "resolved-1"
+        ],
+        "op": "createChatState",
+        "result": {
+          "botName": "researcher",
+          "byApprovalId": {},
+          "byDelegationId": {},
+          "byProcessId": {},
+          "byRequestId": {},
+          "byRowId": {},
+          "byToolId": {},
+          "draft": "",
+          "hydration": "cold",
+          "items": {},
+          "lastSeq": 0,
+          "order": [],
+          "resolvedSessionId": "resolved-1",
+          "storedSessionId": "stored-1",
+          "subagents": {},
+          "turn": {
+            "active": false,
+            "local": false,
+            "nextSeq": 1000
+          },
+          "unreadCount": 0
+        }
+      },
+      {
+        "args": [
+          [
+            {
+              "role": "user",
+              "row_id": 30,
+              "text": "[Cron delivery: Morning Brief]\nTwo deploys overnight, both green.",
+              "timestamp": 1700000050
+            },
+            {
+              "role": "assistant",
+              "row_id": 31,
+              "text": "Nothing needed you.",
+              "timestamp": 1700000060
+            }
+          ],
+          "rest"
+        ],
+        "op": "rowsToItems",
+        "result": [
+          {
+            "body": "Two deploys overnight, both green.",
+            "id": "r:30",
+            "jobName": "Morning Brief",
+            "kind": "cron_delivery",
+            "origin": "history",
+            "rowId": 30,
+            "seq": 0,
+            "shape": "mirror",
+            "ts": 1700000050,
+            "version": 0
+          },
+          {
+            "id": "r:31",
+            "interim": false,
+            "kind": "assistant",
+            "origin": "history",
+            "rowId": 31,
+            "seq": 1000,
+            "status": "complete",
+            "streaming": false,
+            "text": "Nothing needed you.",
+            "ts": 1700000060,
+            "version": 0
+          }
+        ]
+      },
+      {
+        "args": [
+          {
+            "botName": "researcher",
+            "byApprovalId": {},
+            "byDelegationId": {},
+            "byProcessId": {},
+            "byRequestId": {},
+            "byRowId": {},
+            "byToolId": {},
+            "draft": "",
+            "hydration": "cold",
+            "items": {},
+            "lastSeq": 0,
+            "order": [],
+            "resolvedSessionId": "resolved-1",
+            "storedSessionId": "stored-1",
+            "subagents": {},
+            "turn": {
+              "active": false,
+              "local": false,
+              "nextSeq": 1000
+            },
+            "unreadCount": 0
+          },
+          [
+            {
+              "body": "Two deploys overnight, both green.",
+              "id": "r:30",
+              "jobName": "Morning Brief",
+              "kind": "cron_delivery",
+              "origin": "history",
+              "rowId": 30,
+              "seq": 0,
+              "shape": "mirror",
+              "ts": 1700000050,
+              "version": 0
+            },
+            {
+              "id": "r:31",
+              "interim": false,
+              "kind": "assistant",
+              "origin": "history",
+              "rowId": 31,
+              "seq": 1000,
+              "status": "complete",
+              "streaming": false,
+              "text": "Nothing needed you.",
+              "ts": 1700000060,
+              "version": 0
+            }
+          ]
+        ],
+        "op": "reconcile",
+        "result": {
+          "botName": "researcher",
+          "byApprovalId": {},
+          "byDelegationId": {},
+          "byProcessId": {},
+          "byRequestId": {},
+          "byRowId": {
+            "30": "r:30",
+            "31": "r:31"
+          },
+          "byToolId": {},
+          "draft": "",
+          "hydration": "live",
+          "items": {
+            "r:30": {
+              "body": "Two deploys overnight, both green.",
+              "id": "r:30",
+              "jobName": "Morning Brief",
+              "kind": "cron_delivery",
+              "origin": "history",
+              "rowId": 30,
+              "seq": 0,
+              "shape": "mirror",
+              "ts": 1700000050,
+              "version": 0
+            },
+            "r:31": {
+              "id": "r:31",
+              "interim": false,
+              "kind": "assistant",
+              "origin": "history",
+              "rowId": 31,
+              "seq": 1000,
+              "status": "complete",
+              "streaming": false,
+              "text": "Nothing needed you.",
+              "ts": 1700000060,
+              "version": 0
+            }
+          },
+          "lastSeq": 0,
+          "order": [
+            "r:30",
+            "r:31"
+          ],
+          "resolvedSessionId": "resolved-1",
+          "storedSessionId": "stored-1",
+          "subagents": {},
+          "turn": {
+            "active": false,
+            "local": false,
+            "nextSeq": 2000
+          },
+          "unreadCount": 0
+        }
+      },
+      {
+        "args": [
+          {
+            "botName": "researcher",
+            "byApprovalId": {},
+            "byDelegationId": {},
+            "byProcessId": {},
+            "byRequestId": {},
+            "byRowId": {
+              "30": "r:30",
+              "31": "r:31"
+            },
+            "byToolId": {},
+            "draft": "",
+            "hydration": "live",
+            "items": {
+              "r:30": {
+                "body": "Two deploys overnight, both green.",
+                "id": "r:30",
+                "jobName": "Morning Brief",
+                "kind": "cron_delivery",
+                "origin": "history",
+                "rowId": 30,
+                "seq": 0,
+                "shape": "mirror",
+                "ts": 1700000050,
+                "version": 0
+              },
+              "r:31": {
+                "id": "r:31",
+                "interim": false,
+                "kind": "assistant",
+                "origin": "history",
+                "rowId": 31,
+                "seq": 1000,
+                "status": "complete",
+                "streaming": false,
+                "text": "Nothing needed you.",
+                "ts": 1700000060,
+                "version": 0
+              }
+            },
+            "lastSeq": 0,
+            "order": [
+              "r:30",
+              "r:31"
+            ],
+            "resolvedSessionId": "resolved-1",
+            "storedSessionId": "stored-1",
+            "subagents": {},
+            "turn": {
+              "active": false,
+              "local": false,
+              "nextSeq": 2000
+            },
+            "unreadCount": 0
+          },
+          {
+            "inflight": {
+              "assistant": "",
+              "streaming": true,
+              "user": "[Cron delivery: Morning Brief]\nTwo deploys overnight, both green."
+            },
+            "running": true
+          },
+          1700000060000
+        ],
+        "op": "applyResumeSnapshot",
+        "result": {
+          "botName": "researcher",
+          "byApprovalId": {},
+          "byDelegationId": {},
+          "byProcessId": {},
+          "byRequestId": {},
+          "byRowId": {
+            "30": "r:30",
+            "31": "r:31"
+          },
+          "byToolId": {},
+          "draft": "",
+          "hydration": "live",
+          "items": {
+            "i:2000": {
+              "body": "Two deploys overnight, both green.",
+              "id": "i:2000",
+              "jobName": "Morning Brief",
+              "kind": "cron_delivery",
+              "origin": "inflight",
+              "seq": 2000,
+              "shape": "mirror",
+              "ts": 1700000060,
+              "version": 0
+            },
+            "r:30": {
+              "body": "Two deploys overnight, both green.",
+              "id": "r:30",
+              "jobName": "Morning Brief",
+              "kind": "cron_delivery",
+              "origin": "history",
+              "rowId": 30,
+              "seq": 0,
+              "shape": "mirror",
+              "ts": 1700000050,
+              "version": 0
+            },
+            "r:31": {
+              "id": "r:31",
+              "interim": false,
+              "kind": "assistant",
+              "origin": "history",
+              "rowId": 31,
+              "seq": 1000,
+              "status": "complete",
+              "streaming": false,
+              "text": "Nothing needed you.",
+              "ts": 1700000060,
+              "version": 0
+            }
+          },
+          "lastSeq": 0,
+          "order": [
+            "r:30",
+            "r:31",
+            "i:2000"
+          ],
+          "resolvedSessionId": "resolved-1",
+          "storedSessionId": "stored-1",
+          "subagents": {},
+          "turn": {
+            "active": true,
+            "local": false,
+            "nextSeq": 3000,
+            "startedAt": 1700000060000
+          },
+          "unreadCount": 0
+        }
+      },
+      {
+        "args": [
+          {
+            "botName": "researcher",
+            "byApprovalId": {},
+            "byDelegationId": {},
+            "byProcessId": {},
+            "byRequestId": {},
+            "byRowId": {
+              "30": "r:30",
+              "31": "r:31"
+            },
+            "byToolId": {},
+            "draft": "",
+            "hydration": "live",
+            "items": {
+              "i:2000": {
+                "body": "Two deploys overnight, both green.",
+                "id": "i:2000",
+                "jobName": "Morning Brief",
+                "kind": "cron_delivery",
+                "origin": "inflight",
+                "seq": 2000,
+                "shape": "mirror",
+                "ts": 1700000060,
+                "version": 0
+              },
+              "r:30": {
+                "body": "Two deploys overnight, both green.",
+                "id": "r:30",
+                "jobName": "Morning Brief",
+                "kind": "cron_delivery",
+                "origin": "history",
+                "rowId": 30,
+                "seq": 0,
+                "shape": "mirror",
+                "ts": 1700000050,
+                "version": 0
+              },
+              "r:31": {
+                "id": "r:31",
+                "interim": false,
+                "kind": "assistant",
+                "origin": "history",
+                "rowId": 31,
+                "seq": 1000,
+                "status": "complete",
+                "streaming": false,
+                "text": "Nothing needed you.",
+                "ts": 1700000060,
+                "version": 0
+              }
+            },
+            "lastSeq": 0,
+            "order": [
+              "r:30",
+              "r:31",
+              "i:2000"
+            ],
+            "resolvedSessionId": "resolved-1",
+            "storedSessionId": "stored-1",
+            "subagents": {},
+            "turn": {
+              "active": true,
+              "local": false,
+              "nextSeq": 3000,
+              "startedAt": 1700000060000
+            },
+            "unreadCount": 0
+          },
+          {
+            "inflight": {
+              "assistant": "Checking",
+              "streaming": true,
+              "user": "[Cron delivery: Morning Brief]\nTwo deploys overnight, both green."
+            },
+            "running": true
+          },
+          1700000061000
+        ],
+        "op": "applyResumeSnapshot",
+        "result": {
+          "botName": "researcher",
+          "byApprovalId": {},
+          "byDelegationId": {},
+          "byProcessId": {},
+          "byRequestId": {},
+          "byRowId": {
+            "30": "r:30",
+            "31": "r:31"
+          },
+          "byToolId": {},
+          "draft": "",
+          "hydration": "live",
+          "items": {
+            "i:2000": {
+              "body": "Two deploys overnight, both green.",
+              "id": "i:2000",
+              "jobName": "Morning Brief",
+              "kind": "cron_delivery",
+              "origin": "inflight",
+              "seq": 2000,
+              "shape": "mirror",
+              "ts": 1700000060,
+              "version": 0
+            },
+            "i:3000": {
+              "id": "i:3000",
+              "interim": false,
+              "kind": "assistant",
+              "origin": "inflight",
+              "seq": 3000,
+              "streaming": true,
+              "text": "Checking",
+              "ts": 1700000061,
+              "version": 0
+            },
+            "r:30": {
+              "body": "Two deploys overnight, both green.",
+              "id": "r:30",
+              "jobName": "Morning Brief",
+              "kind": "cron_delivery",
+              "origin": "history",
+              "rowId": 30,
+              "seq": 0,
+              "shape": "mirror",
+              "ts": 1700000050,
+              "version": 0
+            },
+            "r:31": {
+              "id": "r:31",
+              "interim": false,
+              "kind": "assistant",
+              "origin": "history",
+              "rowId": 31,
+              "seq": 1000,
+              "status": "complete",
+              "streaming": false,
+              "text": "Nothing needed you.",
+              "ts": 1700000060,
+              "version": 0
+            }
+          },
+          "lastSeq": 0,
+          "order": [
+            "r:30",
+            "r:31",
+            "i:2000",
+            "i:3000"
+          ],
+          "resolvedSessionId": "resolved-1",
+          "storedSessionId": "stored-1",
+          "subagents": {},
+          "turn": {
+            "active": true,
+            "assistantId": "i:3000",
+            "local": false,
+            "nextSeq": 4000,
+            "startedAt": 1700000060000
+          },
+          "unreadCount": 0
+        }
+      }
+    ],
+    "test": "a NEW delivery of a job that has already run > adds exactly one card, not one per resume, while that new turn runs"
+  },
+  {
+    "calls": [
+      {
+        "args": [
+          "researcher",
+          "stored-1",
+          "resolved-1"
+        ],
+        "op": "createChatState",
+        "result": {
+          "botName": "researcher",
+          "byApprovalId": {},
+          "byDelegationId": {},
+          "byProcessId": {},
+          "byRequestId": {},
+          "byRowId": {},
+          "byToolId": {},
+          "draft": "",
+          "hydration": "cold",
+          "items": {},
+          "lastSeq": 0,
+          "order": [],
+          "resolvedSessionId": "resolved-1",
+          "storedSessionId": "stored-1",
+          "subagents": {},
+          "turn": {
+            "active": false,
+            "local": false,
+            "nextSeq": 1000
+          },
+          "unreadCount": 0
+        }
+      },
+      {
+        "args": [
+          [
+            {
+              "role": "user",
+              "row_id": 30,
+              "text": "[Cronjob \"Inbox scan\" output — scheduled job, not the user. Review it, act on anything that needs action, and summarize for the chat.]\n\n## Inbox scan\n\n- 3 threads waiting on a reply\n- 1 invoice past due\n\nNothing needs you before tomorrow.",
+              "timestamp": 1700000050
+            },
+            {
+              "role": "assistant",
+              "row_id": 31,
+              "text": "Nothing needed you.",
+              "timestamp": 1700000060
+            }
+          ],
+          "rest"
+        ],
+        "op": "rowsToItems",
+        "result": [
+          {
+            "body": "## Inbox scan\n\n- 3 threads waiting on a reply\n- 1 invoice past due\n\nNothing needs you before tomorrow.",
+            "id": "r:30",
+            "jobName": "Inbox scan",
+            "kind": "cron_delivery",
+            "origin": "history",
+            "rowId": 30,
+            "seq": 0,
+            "shape": "bot_chat",
+            "ts": 1700000050,
+            "version": 0
+          },
+          {
+            "id": "r:31",
+            "interim": false,
+            "kind": "assistant",
+            "origin": "history",
+            "rowId": 31,
+            "seq": 1000,
+            "status": "complete",
+            "streaming": false,
+            "text": "Nothing needed you.",
+            "ts": 1700000060,
+            "version": 0
+          }
+        ]
+      },
+      {
+        "args": [
+          {
+            "botName": "researcher",
+            "byApprovalId": {},
+            "byDelegationId": {},
+            "byProcessId": {},
+            "byRequestId": {},
+            "byRowId": {},
+            "byToolId": {},
+            "draft": "",
+            "hydration": "cold",
+            "items": {},
+            "lastSeq": 0,
+            "order": [],
+            "resolvedSessionId": "resolved-1",
+            "storedSessionId": "stored-1",
+            "subagents": {},
+            "turn": {
+              "active": false,
+              "local": false,
+              "nextSeq": 1000
+            },
+            "unreadCount": 0
+          },
+          [
+            {
+              "body": "## Inbox scan\n\n- 3 threads waiting on a reply\n- 1 invoice past due\n\nNothing needs you before tomorrow.",
+              "id": "r:30",
+              "jobName": "Inbox scan",
+              "kind": "cron_delivery",
+              "origin": "history",
+              "rowId": 30,
+              "seq": 0,
+              "shape": "bot_chat",
+              "ts": 1700000050,
+              "version": 0
+            },
+            {
+              "id": "r:31",
+              "interim": false,
+              "kind": "assistant",
+              "origin": "history",
+              "rowId": 31,
+              "seq": 1000,
+              "status": "complete",
+              "streaming": false,
+              "text": "Nothing needed you.",
+              "ts": 1700000060,
+              "version": 0
+            }
+          ]
+        ],
+        "op": "reconcile",
+        "result": {
+          "botName": "researcher",
+          "byApprovalId": {},
+          "byDelegationId": {},
+          "byProcessId": {},
+          "byRequestId": {},
+          "byRowId": {
+            "30": "r:30",
+            "31": "r:31"
+          },
+          "byToolId": {},
+          "draft": "",
+          "hydration": "live",
+          "items": {
+            "r:30": {
+              "body": "## Inbox scan\n\n- 3 threads waiting on a reply\n- 1 invoice past due\n\nNothing needs you before tomorrow.",
+              "id": "r:30",
+              "jobName": "Inbox scan",
+              "kind": "cron_delivery",
+              "origin": "history",
+              "rowId": 30,
+              "seq": 0,
+              "shape": "bot_chat",
+              "ts": 1700000050,
+              "version": 0
+            },
+            "r:31": {
+              "id": "r:31",
+              "interim": false,
+              "kind": "assistant",
+              "origin": "history",
+              "rowId": 31,
+              "seq": 1000,
+              "status": "complete",
+              "streaming": false,
+              "text": "Nothing needed you.",
+              "ts": 1700000060,
+              "version": 0
+            }
+          },
+          "lastSeq": 0,
+          "order": [
+            "r:30",
+            "r:31"
+          ],
+          "resolvedSessionId": "resolved-1",
+          "storedSessionId": "stored-1",
+          "subagents": {},
+          "turn": {
+            "active": false,
+            "local": false,
+            "nextSeq": 2000
+          },
+          "unreadCount": 0
+        }
+      },
+      {
+        "args": [
+          {
+            "botName": "researcher",
+            "byApprovalId": {},
+            "byDelegationId": {},
+            "byProcessId": {},
+            "byRequestId": {},
+            "byRowId": {
+              "30": "r:30",
+              "31": "r:31"
+            },
+            "byToolId": {},
+            "draft": "",
+            "hydration": "live",
+            "items": {
+              "r:30": {
+                "body": "## Inbox scan\n\n- 3 threads waiting on a reply\n- 1 invoice past due\n\nNothing needs you before tomorrow.",
+                "id": "r:30",
+                "jobName": "Inbox scan",
+                "kind": "cron_delivery",
+                "origin": "history",
+                "rowId": 30,
+                "seq": 0,
+                "shape": "bot_chat",
+                "ts": 1700000050,
+                "version": 0
+              },
+              "r:31": {
+                "id": "r:31",
+                "interim": false,
+                "kind": "assistant",
+                "origin": "history",
+                "rowId": 31,
+                "seq": 1000,
+                "status": "complete",
+                "streaming": false,
+                "text": "Nothing needed you.",
+                "ts": 1700000060,
+                "version": 0
+              }
+            },
+            "lastSeq": 0,
+            "order": [
+              "r:30",
+              "r:31"
+            ],
+            "resolvedSessionId": "resolved-1",
+            "storedSessionId": "stored-1",
+            "subagents": {},
+            "turn": {
+              "active": false,
+              "local": false,
+              "nextSeq": 2000
+            },
+            "unreadCount": 0
+          },
+          {
+            "inflight": {
+              "assistant": "",
+              "streaming": true,
+              "user": "[Cronjob \"Inbox scan\" output — scheduled job, not the user. Review it, act on anything that needs action, and summarize for the chat.]\n\n## Inbox scan\n\n- 1 thread waiting on a reply"
+            },
+            "running": true
+          },
+          1700000060000
+        ],
+        "op": "applyResumeSnapshot",
+        "result": {
+          "botName": "researcher",
+          "byApprovalId": {},
+          "byDelegationId": {},
+          "byProcessId": {},
+          "byRequestId": {},
+          "byRowId": {
+            "30": "r:30",
+            "31": "r:31"
+          },
+          "byToolId": {},
+          "draft": "",
+          "hydration": "live",
+          "items": {
+            "i:2000": {
+              "body": "## Inbox scan\n\n- 1 thread waiting on a reply",
+              "id": "i:2000",
+              "jobName": "Inbox scan",
+              "kind": "cron_delivery",
+              "origin": "inflight",
+              "seq": 2000,
+              "shape": "bot_chat",
+              "ts": 1700000060,
+              "version": 0
+            },
+            "r:30": {
+              "body": "## Inbox scan\n\n- 3 threads waiting on a reply\n- 1 invoice past due\n\nNothing needs you before tomorrow.",
+              "id": "r:30",
+              "jobName": "Inbox scan",
+              "kind": "cron_delivery",
+              "origin": "history",
+              "rowId": 30,
+              "seq": 0,
+              "shape": "bot_chat",
+              "ts": 1700000050,
+              "version": 0
+            },
+            "r:31": {
+              "id": "r:31",
+              "interim": false,
+              "kind": "assistant",
+              "origin": "history",
+              "rowId": 31,
+              "seq": 1000,
+              "status": "complete",
+              "streaming": false,
+              "text": "Nothing needed you.",
+              "ts": 1700000060,
+              "version": 0
+            }
+          },
+          "lastSeq": 0,
+          "order": [
+            "r:30",
+            "r:31",
+            "i:2000"
+          ],
+          "resolvedSessionId": "resolved-1",
+          "storedSessionId": "stored-1",
+          "subagents": {},
+          "turn": {
+            "active": true,
+            "local": false,
+            "nextSeq": 3000,
+            "startedAt": 1700000060000
+          },
+          "unreadCount": 0
+        }
+      }
+    ],
+    "test": "a NEW delivery of a job that has already run > separates two runs of the same job whose bodies differ"
+  }
+]

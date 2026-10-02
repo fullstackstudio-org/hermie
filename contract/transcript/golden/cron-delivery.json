@@ -1,0 +1,413 @@
+[
+  {
+    "calls": [
+      {
+        "args": [
+          "[Cronjob \"Inbox scan\" output — scheduled job, not the user. Review it, act on anything that needs action, and summarize for the chat.]\n\n## Inbox scan\n\n- 3 threads waiting on a reply\n- 1 invoice past due\n\nNothing needs you before tomorrow."
+        ],
+        "op": "parseCronDelivery",
+        "result": {
+          "body": "## Inbox scan\n\n- 3 threads waiting on a reply\n- 1 invoice past due\n\nNothing needs you before tomorrow.",
+          "jobName": "Inbox scan",
+          "nameRedacted": false,
+          "shape": "bot_chat"
+        }
+      }
+    ],
+    "test": "the two header shapes > reads the bot-chat delivery header"
+  },
+  {
+    "calls": [
+      {
+        "args": [
+          "[Cron delivery: Morning Brief]\nTwo deploys overnight, both green."
+        ],
+        "op": "parseCronDelivery",
+        "result": {
+          "body": "Two deploys overnight, both green.",
+          "jobName": "Morning Brief",
+          "nameRedacted": false,
+          "shape": "mirror"
+        }
+      }
+    ],
+    "test": "the two header shapes > reads the platform-mirror header, which has no instruction sentence"
+  },
+  {
+    "calls": [
+      {
+        "args": [
+          "[Cronjob \"Inbox scan\" output — scheduled job, not the user. Review it, act on anything that needs action, and summarize for the chat.]\n\n## Inbox scan\n\n- 3 threads waiting on a reply\n- 1 invoice past due\n\nNothing needs you before tomorrow."
+        ],
+        "op": "parseCronDelivery",
+        "result": {
+          "body": "## Inbox scan\n\n- 3 threads waiting on a reply\n- 1 invoice past due\n\nNothing needs you before tomorrow.",
+          "jobName": "Inbox scan",
+          "nameRedacted": false,
+          "shape": "bot_chat"
+        }
+      },
+      {
+        "args": [
+          "[Cron delivery: Morning Brief]\nTwo deploys overnight, both green."
+        ],
+        "op": "parseCronDelivery",
+        "result": {
+          "body": "Two deploys overnight, both green.",
+          "jobName": "Morning Brief",
+          "nameRedacted": false,
+          "shape": "mirror"
+        }
+      }
+    ],
+    "test": "the two header shapes > keeps the two apart rather than collapsing them into one kind of card"
+  },
+  {
+    "calls": [
+      {
+        "args": [
+          "[Cronjob \"[REDACTED - redaction failed]\" output — scheduled job, not the user. Review it, act on anything that needs action, and summarize for the chat.]\n\nnothing to see"
+        ],
+        "op": "parseCronDelivery",
+        "result": {
+          "body": "nothing to see",
+          "jobName": "[REDACTED - redaction failed]",
+          "nameRedacted": true,
+          "shape": "bot_chat"
+        }
+      }
+    ],
+    "test": "names the redactor and the config can produce > flags the redactor placeholder instead of titling a card with it"
+  },
+  {
+    "calls": [
+      {
+        "args": [
+          "[Cronjob \"He said \"ship it\"\" output — scheduled job, not the user. Review it, act on anything that needs action, and summarize for the chat.]\n\nshipped"
+        ],
+        "op": "parseCronDelivery",
+        "result": {
+          "body": "shipped",
+          "jobName": "He said \"ship it\"",
+          "nameRedacted": false,
+          "shape": "bot_chat"
+        }
+      }
+    ],
+    "test": "names the redactor and the config can produce > survives a name holding quotes"
+  },
+  {
+    "calls": [
+      {
+        "args": [
+          "[Cronjob \"Nightly [beta]\" output — scheduled job, not the user. Review it, act on anything that needs action, and summarize for the chat.]\n\nall green"
+        ],
+        "op": "parseCronDelivery",
+        "result": {
+          "body": "all green",
+          "jobName": "Nightly [beta]",
+          "nameRedacted": false,
+          "shape": "bot_chat"
+        }
+      },
+      {
+        "args": [
+          "[Cron delivery: Nightly [beta]]\nall green"
+        ],
+        "op": "parseCronDelivery",
+        "result": {
+          "body": "all green",
+          "jobName": "Nightly [beta]",
+          "nameRedacted": false,
+          "shape": "mirror"
+        }
+      }
+    ],
+    "test": "names the redactor and the config can produce > survives a name holding a closing bracket, in both shapes"
+  },
+  {
+    "calls": [
+      {
+        "args": [
+          "[Cronjob \"\" output — scheduled job, not the user. Review it, act on anything that needs action, and summarize for the chat.]\n\nbody"
+        ],
+        "op": "parseCronDelivery",
+        "result": {
+          "body": "body",
+          "jobName": "unknown job",
+          "nameRedacted": false,
+          "shape": "bot_chat"
+        }
+      }
+    ],
+    "test": "names the redactor and the config can produce > labels a nameless header rather than drawing a card with no title"
+  },
+  {
+    "calls": [
+      {
+        "args": [
+          "[Cronjob \"Inbox scan\" output — scheduled job, not the user. Review it, act on anything that needs action, and summarize for the chat.]\n\n"
+        ],
+        "op": "parseCronDelivery",
+        "result": {
+          "body": "",
+          "jobName": "Inbox scan",
+          "nameRedacted": false,
+          "shape": "bot_chat"
+        }
+      },
+      {
+        "args": [
+          "[Cronjob \"Inbox scan\" output — scheduled job, not the user. Review it, act on anything that needs action, and summarize for the chat.]"
+        ],
+        "op": "parseCronDelivery",
+        "result": {
+          "body": "",
+          "jobName": "Inbox scan",
+          "nameRedacted": false,
+          "shape": "bot_chat"
+        }
+      },
+      {
+        "args": [
+          "[Cron delivery: Morning Brief]"
+        ],
+        "op": "parseCronDelivery",
+        "result": {
+          "body": "",
+          "jobName": "Morning Brief",
+          "nameRedacted": false,
+          "shape": "mirror"
+        }
+      },
+      {
+        "args": [
+          "[Cron delivery: Morning Brief]\n"
+        ],
+        "op": "parseCronDelivery",
+        "result": {
+          "body": "",
+          "jobName": "Morning Brief",
+          "nameRedacted": false,
+          "shape": "mirror"
+        }
+      }
+    ],
+    "test": "bodies the wire really sends > reports an empty body when the header arrived without one"
+  },
+  {
+    "calls": [
+      {
+        "args": [
+          "[Cronjob \"Inbox scan\" output — scheduled job, not the user. Review it, act on anything that needs action, and summarize for the chat.]\r\n\r\n# Report\r\n\r\nline"
+        ],
+        "op": "parseCronDelivery",
+        "result": {
+          "body": "# Report\r\n\r\nline",
+          "jobName": "Inbox scan",
+          "nameRedacted": false,
+          "shape": "bot_chat"
+        }
+      },
+      {
+        "args": [
+          "[Cron delivery: Morning Brief]\r\nboth green"
+        ],
+        "op": "parseCronDelivery",
+        "result": {
+          "body": "both green",
+          "jobName": "Morning Brief",
+          "nameRedacted": false,
+          "shape": "mirror"
+        }
+      }
+    ],
+    "test": "bodies the wire really sends > handles CRLF line endings in both shapes"
+  },
+  {
+    "calls": [
+      {
+        "args": [
+          "  \n[Cronjob \"Inbox scan\" output — scheduled job, not the user. Review it, act on anything that needs action, and summarize for the chat.]\n\n## Inbox scan\n\n- 3 threads waiting on a reply\n- 1 invoice past due\n\nNothing needs you before tomorrow."
+        ],
+        "op": "parseCronDelivery",
+        "result": {
+          "body": "## Inbox scan\n\n- 3 threads waiting on a reply\n- 1 invoice past due\n\nNothing needs you before tomorrow.",
+          "jobName": "Inbox scan",
+          "nameRedacted": false,
+          "shape": "bot_chat"
+        }
+      }
+    ],
+    "test": "bodies the wire really sends > tolerates leading whitespace, which a transport may add"
+  },
+  {
+    "calls": [
+      {
+        "args": [
+          "[Cronjob \"Digest\" output — scheduled job, not the user. Review it, act on anything that needs action, and summarize for the chat.]\n\nMessage from 🤖 Writer (@writer): the draft is ready."
+        ],
+        "op": "parseCronDelivery",
+        "result": {
+          "body": "Message from 🤖 Writer (@writer): the draft is ready.",
+          "jobName": "Digest",
+          "nameRedacted": false,
+          "shape": "bot_chat"
+        }
+      }
+    ],
+    "test": "bodies the wire really sends > keeps a body that is itself an inbound DM as the cron report"
+  },
+  {
+    "calls": [
+      {
+        "args": [
+          "I was told: [Cronjob \"Inbox scan\" output — scheduled job, not the user. Review it, act on anything that needs action, and summarize for the chat.]\n\n## Inbox scan\n\n- 3 threads waiting on a reply\n- 1 invoice past due\n\nNothing needs you before tomorrow."
+        ],
+        "op": "parseCronDelivery",
+        "result": null
+      },
+      {
+        "args": [
+          "As in \"[Cron delivery: Morning Brief]\nTwo deploys overnight, both green.\", which is the shape."
+        ],
+        "op": "parseCronDelivery",
+        "result": null
+      }
+    ],
+    "test": "the conservative negatives > ignores a header quoted mid-prose"
+  },
+  {
+    "calls": [
+      {
+        "args": [
+          "```\n[Cronjob \"Inbox scan\" output — scheduled job, not the user. Review it, act on anything that needs action, and summarize for the chat.]\n```"
+        ],
+        "op": "parseCronDelivery",
+        "result": null
+      },
+      {
+        "args": [
+          "```text\n[Cron delivery: Morning Brief]\nbody\n```"
+        ],
+        "op": "parseCronDelivery",
+        "result": null
+      }
+    ],
+    "test": "the conservative negatives > ignores a header-like line inside a fenced code block"
+  },
+  {
+    "calls": [
+      {
+        "args": [
+          "[note] remember to bump the version"
+        ],
+        "op": "parseCronDelivery",
+        "result": null
+      },
+      {
+        "args": [
+          "[Cronjob] did it run?"
+        ],
+        "op": "parseCronDelivery",
+        "result": null
+      },
+      {
+        "args": [
+          "[Cron delivery] did it run?"
+        ],
+        "op": "parseCronDelivery",
+        "result": null
+      }
+    ],
+    "test": "the conservative negatives > ignores a message that merely starts with a bracket"
+  },
+  {
+    "calls": [
+      {
+        "args": [
+          "[Cronjob \"Inbox scan\" output — scheduled job.]\n\nbody"
+        ],
+        "op": "parseCronDelivery",
+        "result": null
+      }
+    ],
+    "test": "the conservative negatives > refuses a bot-chat header whose instruction sentence was reworded"
+  },
+  {
+    "calls": [
+      {
+        "args": [
+          "[Cron delivery: Morning Brief] and also this"
+        ],
+        "op": "parseCronDelivery",
+        "result": null
+      },
+      {
+        "args": [
+          "[Cronjob \"Inbox scan\" output — scheduled job, not the user. Review it, act on anything that needs action, and summarize for the chat.] plus a remark\n\nbody"
+        ],
+        "op": "parseCronDelivery",
+        "result": null
+      }
+    ],
+    "test": "the conservative negatives > refuses a header that is not alone on its line"
+  },
+  {
+    "calls": [
+      {
+        "args": [
+          ""
+        ],
+        "op": "parseCronDelivery",
+        "result": null
+      },
+      {
+        "args": [],
+        "op": "parseCronDelivery",
+        "result": null
+      },
+      {
+        "args": [
+          null
+        ],
+        "op": "parseCronDelivery",
+        "result": null
+      },
+      {
+        "args": [
+          42
+        ],
+        "op": "parseCronDelivery",
+        "result": null
+      }
+    ],
+    "test": "the conservative negatives > is total: any string is a legal argument"
+  },
+  {
+    "calls": [
+      {
+        "args": [
+          "[Cronjob \"Inbox scan\" output — scheduled job, not the user. Review it, act on anything that needs action, and summarize for the chat.]\n\n## Inbox scan\n\n- 3 threads waiting on a reply\n- 1 invoice past due\n\nNothing needs you before tomorrow."
+        ],
+        "op": "isCronDelivery",
+        "result": true
+      },
+      {
+        "args": [
+          "[Cron delivery: Morning Brief]\nTwo deploys overnight, both green."
+        ],
+        "op": "isCronDelivery",
+        "result": true
+      },
+      {
+        "args": [
+          "just a question"
+        ],
+        "op": "isCronDelivery",
+        "result": false
+      }
+    ],
+    "test": "isCronDelivery > answers the same question as the parser"
+  }
+]

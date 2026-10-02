@@ -1,0 +1,1121 @@
+[
+  {
+    "calls": [
+      {
+        "args": [
+          "researcher",
+          "stored-1",
+          "resolved-1"
+        ],
+        "op": "createChatState",
+        "result": {
+          "botName": "researcher",
+          "byApprovalId": {},
+          "byDelegationId": {},
+          "byProcessId": {},
+          "byRequestId": {},
+          "byRowId": {},
+          "byToolId": {},
+          "draft": "",
+          "hydration": "cold",
+          "items": {},
+          "lastSeq": 0,
+          "order": [],
+          "resolvedSessionId": "resolved-1",
+          "storedSessionId": "stored-1",
+          "subagents": {},
+          "turn": {
+            "active": false,
+            "local": false,
+            "nextSeq": 1000
+          },
+          "unreadCount": 0
+        }
+      },
+      {
+        "args": [
+          [
+            {
+              "role": "user",
+              "row_id": 4,
+              "text": "hello"
+            }
+          ],
+          "rest"
+        ],
+        "op": "rowsToItems",
+        "result": [
+          {
+            "id": "r:4",
+            "kind": "user",
+            "origin": "history",
+            "rowId": 4,
+            "seq": 0,
+            "text": "hello",
+            "version": 0
+          }
+        ]
+      },
+      {
+        "args": [
+          {
+            "botName": "researcher",
+            "byApprovalId": {},
+            "byDelegationId": {},
+            "byProcessId": {},
+            "byRequestId": {},
+            "byRowId": {},
+            "byToolId": {},
+            "draft": "",
+            "hydration": "cold",
+            "items": {},
+            "lastSeq": 0,
+            "order": [],
+            "resolvedSessionId": "resolved-1",
+            "storedSessionId": "stored-1",
+            "subagents": {},
+            "turn": {
+              "active": false,
+              "local": false,
+              "nextSeq": 1000
+            },
+            "unreadCount": 0
+          },
+          [
+            {
+              "id": "r:4",
+              "kind": "user",
+              "origin": "history",
+              "rowId": 4,
+              "seq": 0,
+              "text": "hello",
+              "version": 0
+            }
+          ]
+        ],
+        "op": "reconcileTail",
+        "result": {
+          "botName": "researcher",
+          "byApprovalId": {},
+          "byDelegationId": {},
+          "byProcessId": {},
+          "byRequestId": {},
+          "byRowId": {
+            "4": "r:4"
+          },
+          "byToolId": {},
+          "draft": "",
+          "hydration": "cold",
+          "items": {
+            "r:4": {
+              "id": "r:4",
+              "kind": "user",
+              "origin": "history",
+              "rowId": 4,
+              "seq": 0,
+              "text": "hello",
+              "version": 0
+            }
+          },
+          "lastSeq": 0,
+          "order": [
+            "r:4"
+          ],
+          "resolvedSessionId": "resolved-1",
+          "storedSessionId": "stored-1",
+          "subagents": {},
+          "turn": {
+            "active": false,
+            "local": false,
+            "nextSeq": 1000
+          },
+          "unreadCount": 0
+        }
+      },
+      {
+        "args": [
+          {
+            "botName": "researcher",
+            "byApprovalId": {},
+            "byDelegationId": {},
+            "byProcessId": {},
+            "byRequestId": {},
+            "byRowId": {
+              "4": "r:4"
+            },
+            "byToolId": {},
+            "draft": "",
+            "hydration": "cold",
+            "items": {
+              "r:4": {
+                "id": "r:4",
+                "kind": "user",
+                "origin": "history",
+                "rowId": 4,
+                "seq": 0,
+                "text": "hello",
+                "version": 0
+              }
+            },
+            "lastSeq": 0,
+            "order": [
+              "r:4"
+            ],
+            "resolvedSessionId": "resolved-1",
+            "storedSessionId": "stored-1",
+            "subagents": {},
+            "turn": {
+              "active": false,
+              "local": false,
+              "nextSeq": 1000
+            },
+            "unreadCount": 0
+          },
+          "and this",
+          null,
+          1700000000000
+        ],
+        "op": "beginLocalTurn",
+        "result": {
+          "botName": "researcher",
+          "byApprovalId": {},
+          "byDelegationId": {},
+          "byProcessId": {},
+          "byRequestId": {},
+          "byRowId": {
+            "4": "r:4"
+          },
+          "byToolId": {},
+          "draft": "",
+          "hydration": "cold",
+          "items": {
+            "o:1000": {
+              "id": "o:1000",
+              "kind": "user",
+              "origin": "optimistic",
+              "pending": true,
+              "seq": 1000,
+              "text": "and this",
+              "ts": 1700000000,
+              "version": 0
+            },
+            "r:4": {
+              "id": "r:4",
+              "kind": "user",
+              "origin": "history",
+              "rowId": 4,
+              "seq": 0,
+              "text": "hello",
+              "version": 0
+            }
+          },
+          "lastSeq": 0,
+          "order": [
+            "r:4",
+            "o:1000"
+          ],
+          "resolvedSessionId": "resolved-1",
+          "storedSessionId": "stored-1",
+          "subagents": {},
+          "turn": {
+            "active": true,
+            "interrupted": false,
+            "local": true,
+            "nextSeq": 2000,
+            "startedAt": 1700000000000
+          },
+          "unreadCount": 0
+        }
+      },
+      {
+        "args": [
+          {
+            "botName": "researcher",
+            "byApprovalId": {},
+            "byDelegationId": {},
+            "byProcessId": {},
+            "byRequestId": {},
+            "byRowId": {
+              "4": "r:4"
+            },
+            "byToolId": {},
+            "draft": "",
+            "hydration": "cold",
+            "items": {
+              "o:1000": {
+                "id": "o:1000",
+                "kind": "user",
+                "origin": "optimistic",
+                "pending": true,
+                "seq": 1000,
+                "text": "and this",
+                "ts": 1700000000,
+                "version": 0
+              },
+              "r:4": {
+                "id": "r:4",
+                "kind": "user",
+                "origin": "history",
+                "rowId": 4,
+                "seq": 0,
+                "text": "hello",
+                "version": 0
+              }
+            },
+            "lastSeq": 0,
+            "order": [
+              "r:4",
+              "o:1000"
+            ],
+            "resolvedSessionId": "resolved-1",
+            "storedSessionId": "stored-1",
+            "subagents": {},
+            "turn": {
+              "active": true,
+              "interrupted": false,
+              "local": true,
+              "nextSeq": 2000,
+              "startedAt": 1700000000000
+            },
+            "unreadCount": 0
+          },
+          {
+            "status": "streaming"
+          },
+          1700000000000
+        ],
+        "op": "confirmSubmit",
+        "result": {
+          "botName": "researcher",
+          "byApprovalId": {},
+          "byDelegationId": {},
+          "byProcessId": {},
+          "byRequestId": {},
+          "byRowId": {
+            "4": "r:4"
+          },
+          "byToolId": {},
+          "draft": "",
+          "hydration": "cold",
+          "items": {
+            "o:1000": {
+              "id": "o:1000",
+              "kind": "user",
+              "origin": "optimistic",
+              "pending": false,
+              "seq": 1000,
+              "text": "and this",
+              "ts": 1700000000,
+              "version": 1
+            },
+            "r:4": {
+              "id": "r:4",
+              "kind": "user",
+              "origin": "history",
+              "rowId": 4,
+              "seq": 0,
+              "text": "hello",
+              "version": 0
+            }
+          },
+          "lastSeq": 0,
+          "order": [
+            "r:4",
+            "o:1000"
+          ],
+          "resolvedSessionId": "resolved-1",
+          "storedSessionId": "stored-1",
+          "subagents": {},
+          "turn": {
+            "active": true,
+            "interrupted": false,
+            "local": true,
+            "nextSeq": 2000,
+            "startedAt": 1700000000000
+          },
+          "unreadCount": 0
+        }
+      },
+      {
+        "args": [
+          {
+            "botName": "researcher",
+            "byApprovalId": {},
+            "byDelegationId": {},
+            "byProcessId": {},
+            "byRequestId": {},
+            "byRowId": {
+              "4": "r:4"
+            },
+            "byToolId": {},
+            "draft": "",
+            "hydration": "cold",
+            "items": {
+              "o:1000": {
+                "id": "o:1000",
+                "kind": "user",
+                "origin": "optimistic",
+                "pending": false,
+                "seq": 1000,
+                "text": "and this",
+                "ts": 1700000000,
+                "version": 1
+              },
+              "r:4": {
+                "id": "r:4",
+                "kind": "user",
+                "origin": "history",
+                "rowId": 4,
+                "seq": 0,
+                "text": "hello",
+                "version": 0
+              }
+            },
+            "lastSeq": 0,
+            "order": [
+              "r:4",
+              "o:1000"
+            ],
+            "resolvedSessionId": "resolved-1",
+            "storedSessionId": "stored-1",
+            "subagents": {},
+            "turn": {
+              "active": true,
+              "interrupted": false,
+              "local": true,
+              "nextSeq": 2000,
+              "startedAt": 1700000000000
+            },
+            "unreadCount": 0
+          }
+        ],
+        "op": "transcriptDiagnostics",
+        "result": {
+          "foreignReconcilePending": false,
+          "highestRowId": 4,
+          "hydration": "cold",
+          "items": 2,
+          "lastSeq": 0,
+          "parkedPrompts": 0,
+          "persisted": 1,
+          "placeholders": 0,
+          "repeated": [],
+          "turnActive": true,
+          "turnLocal": true,
+          "unpaired": 1
+        }
+      }
+    ],
+    "test": "transcriptDiagnostics > counts what the gateway has given a row id and what it has not"
+  },
+  {
+    "calls": [
+      {
+        "args": [
+          "researcher",
+          "stored-1",
+          "resolved-1"
+        ],
+        "op": "createChatState",
+        "result": {
+          "botName": "researcher",
+          "byApprovalId": {},
+          "byDelegationId": {},
+          "byProcessId": {},
+          "byRequestId": {},
+          "byRowId": {},
+          "byToolId": {},
+          "draft": "",
+          "hydration": "cold",
+          "items": {},
+          "lastSeq": 0,
+          "order": [],
+          "resolvedSessionId": "resolved-1",
+          "storedSessionId": "stored-1",
+          "subagents": {},
+          "turn": {
+            "active": false,
+            "local": false,
+            "nextSeq": 1000
+          },
+          "unreadCount": 0
+        }
+      },
+      {
+        "args": [
+          [
+            {
+              "role": "user",
+              "row_id": 4,
+              "text": "hello"
+            }
+          ],
+          "rest"
+        ],
+        "op": "rowsToItems",
+        "result": [
+          {
+            "id": "r:4",
+            "kind": "user",
+            "origin": "history",
+            "rowId": 4,
+            "seq": 0,
+            "text": "hello",
+            "version": 0
+          }
+        ]
+      },
+      {
+        "args": [
+          {
+            "botName": "researcher",
+            "byApprovalId": {},
+            "byDelegationId": {},
+            "byProcessId": {},
+            "byRequestId": {},
+            "byRowId": {},
+            "byToolId": {},
+            "draft": "",
+            "hydration": "cold",
+            "items": {},
+            "lastSeq": 0,
+            "order": [],
+            "resolvedSessionId": "resolved-1",
+            "storedSessionId": "stored-1",
+            "subagents": {},
+            "turn": {
+              "active": false,
+              "local": false,
+              "nextSeq": 1000
+            },
+            "unreadCount": 0
+          },
+          [
+            {
+              "id": "r:4",
+              "kind": "user",
+              "origin": "history",
+              "rowId": 4,
+              "seq": 0,
+              "text": "hello",
+              "version": 0
+            }
+          ]
+        ],
+        "op": "reconcileTail",
+        "result": {
+          "botName": "researcher",
+          "byApprovalId": {},
+          "byDelegationId": {},
+          "byProcessId": {},
+          "byRequestId": {},
+          "byRowId": {
+            "4": "r:4"
+          },
+          "byToolId": {},
+          "draft": "",
+          "hydration": "cold",
+          "items": {
+            "r:4": {
+              "id": "r:4",
+              "kind": "user",
+              "origin": "history",
+              "rowId": 4,
+              "seq": 0,
+              "text": "hello",
+              "version": 0
+            }
+          },
+          "lastSeq": 0,
+          "order": [
+            "r:4"
+          ],
+          "resolvedSessionId": "resolved-1",
+          "storedSessionId": "stored-1",
+          "subagents": {},
+          "turn": {
+            "active": false,
+            "local": false,
+            "nextSeq": 1000
+          },
+          "unreadCount": 0
+        }
+      },
+      {
+        "args": [
+          {
+            "botName": "researcher",
+            "byApprovalId": {},
+            "byDelegationId": {},
+            "byProcessId": {},
+            "byRequestId": {},
+            "byRowId": {
+              "4": "r:4"
+            },
+            "byToolId": {},
+            "draft": "",
+            "hydration": "cold",
+            "items": {
+              "r:4": {
+                "id": "r:4",
+                "kind": "user",
+                "origin": "history",
+                "rowId": 4,
+                "seq": 0,
+                "text": "hello",
+                "version": 0
+              }
+            },
+            "lastSeq": 0,
+            "order": [
+              "r:4"
+            ],
+            "resolvedSessionId": "resolved-1",
+            "storedSessionId": "stored-1",
+            "subagents": {},
+            "turn": {
+              "active": false,
+              "local": false,
+              "nextSeq": 1000
+            },
+            "unreadCount": 0
+          },
+          {
+            "inflight": {
+              "user": "elsewhere"
+            }
+          },
+          1700000000000
+        ],
+        "op": "applyResumeSnapshot",
+        "result": {
+          "botName": "researcher",
+          "byApprovalId": {},
+          "byDelegationId": {},
+          "byProcessId": {},
+          "byRequestId": {},
+          "byRowId": {
+            "4": "r:4"
+          },
+          "byToolId": {},
+          "draft": "",
+          "hydration": "live",
+          "items": {
+            "i:1000": {
+              "id": "i:1000",
+              "kind": "user",
+              "origin": "inflight",
+              "seq": 1000,
+              "text": "elsewhere",
+              "ts": 1700000000,
+              "version": 0
+            },
+            "r:4": {
+              "id": "r:4",
+              "kind": "user",
+              "origin": "history",
+              "rowId": 4,
+              "seq": 0,
+              "text": "hello",
+              "version": 0
+            }
+          },
+          "lastSeq": 0,
+          "order": [
+            "r:4",
+            "i:1000"
+          ],
+          "resolvedSessionId": "resolved-1",
+          "storedSessionId": "stored-1",
+          "subagents": {},
+          "turn": {
+            "active": false,
+            "local": false,
+            "nextSeq": 2000
+          },
+          "unreadCount": 0
+        }
+      },
+      {
+        "args": [
+          [
+            {
+              "role": "user",
+              "row_id": 5,
+              "text": "elsewhere"
+            }
+          ],
+          "rest"
+        ],
+        "op": "rowsToItems",
+        "result": [
+          {
+            "id": "r:5",
+            "kind": "user",
+            "origin": "history",
+            "rowId": 5,
+            "seq": 0,
+            "text": "elsewhere",
+            "version": 0
+          }
+        ]
+      },
+      {
+        "args": [
+          {
+            "botName": "researcher",
+            "byApprovalId": {},
+            "byDelegationId": {},
+            "byProcessId": {},
+            "byRequestId": {},
+            "byRowId": {
+              "4": "r:4"
+            },
+            "byToolId": {},
+            "draft": "",
+            "hydration": "live",
+            "items": {
+              "i:1000": {
+                "id": "i:1000",
+                "kind": "user",
+                "origin": "inflight",
+                "seq": 1000,
+                "text": "elsewhere",
+                "ts": 1700000000,
+                "version": 0
+              },
+              "r:4": {
+                "id": "r:4",
+                "kind": "user",
+                "origin": "history",
+                "rowId": 4,
+                "seq": 0,
+                "text": "hello",
+                "version": 0
+              }
+            },
+            "lastSeq": 0,
+            "order": [
+              "r:4",
+              "i:1000"
+            ],
+            "resolvedSessionId": "resolved-1",
+            "storedSessionId": "stored-1",
+            "subagents": {},
+            "turn": {
+              "active": false,
+              "local": false,
+              "nextSeq": 2000
+            },
+            "unreadCount": 0
+          },
+          [
+            {
+              "id": "r:5",
+              "kind": "user",
+              "origin": "history",
+              "rowId": 5,
+              "seq": 0,
+              "text": "elsewhere",
+              "version": 0
+            }
+          ]
+        ],
+        "op": "reconcileTail",
+        "result": {
+          "botName": "researcher",
+          "byApprovalId": {},
+          "byDelegationId": {},
+          "byProcessId": {},
+          "byRequestId": {},
+          "byRowId": {
+            "4": "r:4",
+            "5": "i:1000"
+          },
+          "byToolId": {},
+          "draft": "",
+          "hydration": "live",
+          "items": {
+            "i:1000": {
+              "id": "i:1000",
+              "kind": "user",
+              "origin": "history",
+              "pending": false,
+              "rowId": 5,
+              "seq": 1000,
+              "text": "elsewhere",
+              "version": 1
+            },
+            "r:4": {
+              "id": "r:4",
+              "kind": "user",
+              "origin": "history",
+              "rowId": 4,
+              "seq": 0,
+              "text": "hello",
+              "version": 0
+            }
+          },
+          "lastSeq": 0,
+          "order": [
+            "r:4",
+            "i:1000"
+          ],
+          "resolvedSessionId": "resolved-1",
+          "storedSessionId": "stored-1",
+          "subagents": {},
+          "turn": {
+            "active": false,
+            "local": false,
+            "nextSeq": 2000
+          },
+          "unreadCount": 0
+        }
+      },
+      {
+        "args": [
+          {
+            "botName": "researcher",
+            "byApprovalId": {},
+            "byDelegationId": {},
+            "byProcessId": {},
+            "byRequestId": {},
+            "byRowId": {
+              "4": "r:4",
+              "5": "i:1000"
+            },
+            "byToolId": {},
+            "draft": "",
+            "hydration": "live",
+            "items": {
+              "dup": {
+                "id": "dup",
+                "kind": "user",
+                "origin": "history",
+                "pending": false,
+                "seq": 1000,
+                "text": "elsewhere",
+                "version": 1
+              },
+              "i:1000": {
+                "id": "i:1000",
+                "kind": "user",
+                "origin": "history",
+                "pending": false,
+                "rowId": 5,
+                "seq": 1000,
+                "text": "elsewhere",
+                "version": 1
+              },
+              "r:4": {
+                "id": "r:4",
+                "kind": "user",
+                "origin": "history",
+                "rowId": 4,
+                "seq": 0,
+                "text": "hello",
+                "version": 0
+              }
+            },
+            "lastSeq": 0,
+            "order": [
+              "r:4",
+              "i:1000",
+              "dup"
+            ],
+            "resolvedSessionId": "resolved-1",
+            "storedSessionId": "stored-1",
+            "subagents": {},
+            "turn": {
+              "active": false,
+              "local": false,
+              "nextSeq": 2000
+            },
+            "unreadCount": 0
+          }
+        ],
+        "op": "transcriptDiagnostics",
+        "result": {
+          "foreignReconcilePending": false,
+          "highestRowId": 5,
+          "hydration": "live",
+          "items": 3,
+          "lastSeq": 0,
+          "parkedPrompts": 0,
+          "persisted": 2,
+          "placeholders": 0,
+          "repeated": [
+            {
+              "fingerprint": "1816c98b",
+              "items": [
+                {
+                  "id": "i:1000",
+                  "origin": "history",
+                  "rowId": 5,
+                  "seq": 1000
+                },
+                {
+                  "id": "dup",
+                  "origin": "history",
+                  "seq": 1000
+                }
+              ],
+              "kind": "user",
+              "length": 9
+            }
+          ],
+          "turnActive": false,
+          "turnLocal": false,
+          "unpaired": 1
+        }
+      }
+    ],
+    "test": "transcriptDiagnostics > names the two items carrying the same text, without carrying the text"
+  },
+  {
+    "calls": [
+      {
+        "args": [
+          "researcher",
+          "stored-1",
+          "resolved-1"
+        ],
+        "op": "createChatState",
+        "result": {
+          "botName": "researcher",
+          "byApprovalId": {},
+          "byDelegationId": {},
+          "byProcessId": {},
+          "byRequestId": {},
+          "byRowId": {},
+          "byToolId": {},
+          "draft": "",
+          "hydration": "cold",
+          "items": {},
+          "lastSeq": 0,
+          "order": [],
+          "resolvedSessionId": "resolved-1",
+          "storedSessionId": "stored-1",
+          "subagents": {},
+          "turn": {
+            "active": false,
+            "local": false,
+            "nextSeq": 1000
+          },
+          "unreadCount": 0
+        }
+      },
+      {
+        "args": [
+          {
+            "botName": "researcher",
+            "byApprovalId": {},
+            "byDelegationId": {},
+            "byProcessId": {},
+            "byRequestId": {},
+            "byRowId": {},
+            "byToolId": {},
+            "draft": "",
+            "hydration": "cold",
+            "items": {},
+            "lastSeq": 0,
+            "order": [],
+            "resolvedSessionId": "resolved-1",
+            "storedSessionId": "stored-1",
+            "subagents": {},
+            "turn": {
+              "active": false,
+              "local": false,
+              "nextSeq": 1000
+            },
+            "unreadCount": 0
+          },
+          "a secret plan",
+          null,
+          1700000000000
+        ],
+        "op": "beginLocalTurn",
+        "result": {
+          "botName": "researcher",
+          "byApprovalId": {},
+          "byDelegationId": {},
+          "byProcessId": {},
+          "byRequestId": {},
+          "byRowId": {},
+          "byToolId": {},
+          "draft": "",
+          "hydration": "cold",
+          "items": {
+            "o:1000": {
+              "id": "o:1000",
+              "kind": "user",
+              "origin": "optimistic",
+              "pending": true,
+              "seq": 1000,
+              "text": "a secret plan",
+              "ts": 1700000000,
+              "version": 0
+            }
+          },
+          "lastSeq": 0,
+          "order": [
+            "o:1000"
+          ],
+          "resolvedSessionId": "resolved-1",
+          "storedSessionId": "stored-1",
+          "subagents": {},
+          "turn": {
+            "active": true,
+            "interrupted": false,
+            "local": true,
+            "nextSeq": 2000,
+            "startedAt": 1700000000000
+          },
+          "unreadCount": 0
+        }
+      },
+      {
+        "args": [
+          {
+            "botName": "researcher",
+            "byApprovalId": {},
+            "byDelegationId": {},
+            "byProcessId": {},
+            "byRequestId": {},
+            "byRowId": {},
+            "byToolId": {},
+            "draft": "",
+            "hydration": "cold",
+            "items": {
+              "o:1000": {
+                "id": "o:1000",
+                "kind": "user",
+                "origin": "optimistic",
+                "pending": true,
+                "seq": 1000,
+                "text": "a secret plan",
+                "ts": 1700000000,
+                "version": 0
+              }
+            },
+            "lastSeq": 0,
+            "order": [
+              "o:1000"
+            ],
+            "resolvedSessionId": "resolved-1",
+            "storedSessionId": "stored-1",
+            "subagents": {},
+            "turn": {
+              "active": true,
+              "interrupted": false,
+              "local": true,
+              "nextSeq": 2000,
+              "startedAt": 1700000000000
+            },
+            "unreadCount": 0
+          },
+          {
+            "status": "queued"
+          },
+          1700000000000
+        ],
+        "op": "confirmSubmit",
+        "result": {
+          "botName": "researcher",
+          "byApprovalId": {},
+          "byDelegationId": {},
+          "byProcessId": {},
+          "byRequestId": {},
+          "byRowId": {},
+          "byToolId": {},
+          "draft": "",
+          "hydration": "cold",
+          "items": {
+            "o:1000": {
+              "id": "o:1000",
+              "kind": "user",
+              "origin": "optimistic",
+              "pending": true,
+              "seq": 1000,
+              "text": "a secret plan",
+              "ts": 1700000000,
+              "version": 1
+            }
+          },
+          "lastSeq": 0,
+          "order": [
+            "o:1000"
+          ],
+          "queued": {
+            "local": true,
+            "text": "a secret plan"
+          },
+          "resolvedSessionId": "resolved-1",
+          "storedSessionId": "stored-1",
+          "subagents": {},
+          "turn": {
+            "active": true,
+            "interrupted": false,
+            "local": true,
+            "nextSeq": 2000,
+            "startedAt": 1700000000000
+          },
+          "unreadCount": 0
+        }
+      },
+      {
+        "args": [
+          "researcher",
+          {
+            "botName": "researcher",
+            "byApprovalId": {},
+            "byDelegationId": {},
+            "byProcessId": {},
+            "byRequestId": {},
+            "byRowId": {},
+            "byToolId": {},
+            "draft": "",
+            "hydration": "cold",
+            "items": {
+              "o:1000": {
+                "id": "o:1000",
+                "kind": "user",
+                "origin": "optimistic",
+                "pending": true,
+                "seq": 1000,
+                "text": "a secret plan",
+                "ts": 1700000000,
+                "version": 1
+              }
+            },
+            "lastSeq": 0,
+            "order": [
+              "o:1000"
+            ],
+            "queued": {
+              "local": true,
+              "text": "a secret plan"
+            },
+            "resolvedSessionId": "resolved-1",
+            "storedSessionId": "stored-1",
+            "subagents": {},
+            "turn": {
+              "active": true,
+              "interrupted": false,
+              "local": true,
+              "nextSeq": 2000,
+              "startedAt": 1700000000000
+            },
+            "unreadCount": 0
+          }
+        ],
+        "op": "formatTranscriptDiagnostics",
+        "result": [
+          "researcher: 1 items, 0 persisted, 1 unpaired",
+          "researcher: cold, turn running (ours), 1 parked"
+        ]
+      }
+    ],
+    "test": "transcriptDiagnostics > formats a line per finding that names paths rather than content"
+  }
+]

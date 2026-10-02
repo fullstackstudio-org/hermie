@@ -1,0 +1,272 @@
+[
+  {
+    "calls": [
+      {
+        "args": [
+          {
+            "context_max": 200000,
+            "context_used": 50000
+          }
+        ],
+        "op": "contextUsageOf",
+        "result": {
+          "estimated": false,
+          "fraction": 0.25,
+          "limit": 200000,
+          "percent": 25,
+          "used": 50000
+        }
+      }
+    ],
+    "test": "reading a context window > reports the two numbers and the percentage between them"
+  },
+  {
+    "calls": [
+      {
+        "args": [
+          {
+            "context_estimated": true,
+            "context_max": 128000,
+            "context_source": "model catalog",
+            "context_used": 64000
+          }
+        ],
+        "op": "contextUsageOf",
+        "result": {
+          "estimated": true,
+          "fraction": 0.5,
+          "limit": 128000,
+          "percent": 50,
+          "source": "model catalog",
+          "used": 64000
+        }
+      }
+    ],
+    "test": "reading a context window > carries the gateway’s own caveats through"
+  },
+  {
+    "calls": [
+      {
+        "args": [
+          {
+            "context_used": 9000,
+            "model": "some-model"
+          }
+        ],
+        "op": "contextUsageOf",
+        "result": null
+      },
+      {
+        "args": [
+          {
+            "context_max": 0,
+            "context_used": 9000
+          }
+        ],
+        "op": "contextUsageOf",
+        "result": null
+      },
+      {
+        "args": [
+          {
+            "context_max": 200000
+          }
+        ],
+        "op": "contextUsageOf",
+        "result": null
+      },
+      {
+        "args": [
+          {}
+        ],
+        "op": "contextUsageOf",
+        "result": null
+      },
+      {
+        "args": [
+          null
+        ],
+        "op": "contextUsageOf",
+        "result": null
+      },
+      {
+        "args": [],
+        "op": "contextUsageOf",
+        "result": null
+      }
+    ],
+    "test": "reading a context window > has nothing to draw without a window size"
+  },
+  {
+    "calls": [
+      {
+        "args": [
+          {
+            "context_max": 100,
+            "context_used": -1
+          }
+        ],
+        "op": "contextUsageOf",
+        "result": null
+      }
+    ],
+    "test": "reading a context window > refuses a figure that is not a finite count"
+  },
+  {
+    "calls": [
+      {
+        "args": [
+          {
+            "context_max": 100,
+            "context_used": 140
+          }
+        ],
+        "op": "contextUsageOf",
+        "result": {
+          "estimated": false,
+          "fraction": 1,
+          "limit": 100,
+          "percent": 100,
+          "used": 140
+        }
+      }
+    ],
+    "test": "reading a context window > clamps a session that is momentarily over its window"
+  },
+  {
+    "calls": [
+      {
+        "args": [
+          {
+            "context_max": 1000,
+            "context_percent": 0.9,
+            "context_used": 100
+          }
+        ],
+        "op": "contextUsageOf",
+        "result": {
+          "estimated": false,
+          "fraction": 0.1,
+          "limit": 1000,
+          "percent": 10,
+          "used": 100
+        }
+      }
+    ],
+    "test": "reading a context window > ignores the gateway’s own percentage"
+  },
+  {
+    "calls": [
+      {
+        "args": [
+          {
+            "info": {
+              "usage": {
+                "context_max": 200000,
+                "context_used": 10000
+              }
+            },
+            "usage": {
+              "context_max": 200000,
+              "context_used": 90000
+            }
+          }
+        ],
+        "op": "chatContextUsage",
+        "result": {
+          "estimated": false,
+          "fraction": 0.45,
+          "limit": 200000,
+          "percent": 45,
+          "used": 90000
+        }
+      }
+    ],
+    "test": "where a chat’s reading comes from > prefers what the last event carried"
+  },
+  {
+    "calls": [
+      {
+        "args": [
+          {
+            "info": {
+              "usage": {
+                "context_max": 200000,
+                "context_used": 10000
+              }
+            }
+          }
+        ],
+        "op": "chatContextUsage",
+        "result": {
+          "estimated": false,
+          "fraction": 0.05,
+          "limit": 200000,
+          "percent": 5,
+          "used": 10000
+        }
+      }
+    ],
+    "test": "where a chat’s reading comes from > falls back to the resume snapshot before any turn has run"
+  },
+  {
+    "calls": [
+      {
+        "args": [
+          {
+            "info": {
+              "usage": {
+                "context_max": 200000,
+                "context_used": 180000
+              }
+            },
+            "usage": {
+              "context_max": 200000,
+              "context_used": 12000
+            }
+          }
+        ],
+        "op": "chatContextUsage",
+        "result": {
+          "estimated": false,
+          "fraction": 0.06,
+          "limit": 200000,
+          "percent": 6,
+          "used": 12000
+        }
+      }
+    ],
+    "test": "where a chat’s reading comes from > does not take the larger of the two, because a compaction makes it smaller"
+  },
+  {
+    "calls": [
+      {
+        "args": [
+          {}
+        ],
+        "op": "chatContextUsage",
+        "result": null
+      },
+      {
+        "args": [],
+        "op": "chatContextUsage",
+        "result": null
+      },
+      {
+        "args": [],
+        "op": "contextUsageOfInfo",
+        "result": null
+      },
+      {
+        "args": [
+          {
+            "model": "x"
+          }
+        ],
+        "op": "contextUsageOfInfo",
+        "result": null
+      }
+    ],
+    "test": "where a chat’s reading comes from > has nothing to say about a chat that has never reported usage"
+  }
+]

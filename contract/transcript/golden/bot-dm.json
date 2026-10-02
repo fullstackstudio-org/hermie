@@ -1,0 +1,631 @@
+[
+  {
+    "calls": [
+      {
+        "args": [
+          "Message from 🤖 Writer Bot (@writer): draft is ready"
+        ],
+        "op": "parseIncomingBotMessage",
+        "result": {
+          "body": "draft is ready",
+          "senderHandle": "writer",
+          "senderName": "Writer Bot"
+        }
+      }
+    ],
+    "test": "parseIncomingBotMessage > reads the name, handle and body of the current signature"
+  },
+  {
+    "calls": [
+      {
+        "args": [
+          "Message from Researcher: found three sources"
+        ],
+        "op": "parseIncomingBotMessage",
+        "result": {
+          "body": "found three sources",
+          "senderName": "Researcher"
+        }
+      }
+    ],
+    "test": "parseIncomingBotMessage > reads the signature without an emoji or a handle"
+  },
+  {
+    "calls": [
+      {
+        "args": [
+          "[Message from agent 'scribe'] notes attached"
+        ],
+        "op": "parseIncomingBotMessage",
+        "result": {
+          "body": "notes attached",
+          "senderName": "scribe"
+        }
+      }
+    ],
+    "test": "parseIncomingBotMessage > reads the legacy bracket form"
+  },
+  {
+    "calls": [
+      {
+        "args": [
+          "Message from 🤖 Writer (@writer): line one\nline two"
+        ],
+        "op": "parseIncomingBotMessage",
+        "result": {
+          "body": "line one\nline two",
+          "senderHandle": "writer",
+          "senderName": "Writer"
+        }
+      }
+    ],
+    "test": "parseIncomingBotMessage > keeps a multi-line body intact"
+  },
+  {
+    "calls": [
+      {
+        "args": [
+          "I got a message from the writer today"
+        ],
+        "op": "parseIncomingBotMessage",
+        "result": null
+      }
+    ],
+    "test": "parseIncomingBotMessage > ignores a human message that merely mentions the phrase"
+  },
+  {
+    "calls": [
+      {
+        "args": [
+          "@writer"
+        ],
+        "op": "normalizeAgentTarget",
+        "result": "writer"
+      }
+    ],
+    "test": "normalizeAgentTarget > @writer → writer"
+  },
+  {
+    "calls": [
+      {
+        "args": [
+          "Writer"
+        ],
+        "op": "normalizeAgentTarget",
+        "result": "writer"
+      }
+    ],
+    "test": "normalizeAgentTarget > Writer → writer"
+  },
+  {
+    "calls": [
+      {
+        "args": [
+          "scribe@laptop"
+        ],
+        "op": "normalizeAgentTarget",
+        "result": "scribe"
+      }
+    ],
+    "test": "normalizeAgentTarget > scribe@laptop → scribe"
+  },
+  {
+    "calls": [
+      {
+        "args": [
+          "peer/scribe"
+        ],
+        "op": "normalizeAgentTarget",
+        "result": "scribe"
+      }
+    ],
+    "test": "normalizeAgentTarget > peer/scribe → scribe"
+  },
+  {
+    "calls": [
+      {
+        "args": [
+          "@Dr. Foo"
+        ],
+        "op": "normalizeAgentTarget",
+        "result": "dr. foo"
+      }
+    ],
+    "test": "normalizeAgentTarget > @Dr. Foo → dr. foo"
+  },
+  {
+    "calls": [
+      {
+        "args": [
+          ""
+        ],
+        "op": "normalizeAgentTarget",
+        "result": ""
+      }
+    ],
+    "test": "normalizeAgentTarget >  → "
+  },
+  {
+    "calls": [
+      {
+        "args": [],
+        "op": "normalizeAgentTarget",
+        "result": ""
+      }
+    ],
+    "test": "normalizeAgentTarget > undefined → "
+  },
+  {
+    "calls": [
+      {
+        "args": [
+          "{\"status\":\"queued\",\"delivery_id\":\"dm-1\",\"to\":\"@writer\",\"process_id\":\"proc-1\",\"detail\":\"Message queued\"}"
+        ],
+        "op": "parseMessageAgentResult",
+        "result": {
+          "deliveryId": "dm-1",
+          "processId": "proc-1",
+          "status": "queued",
+          "to": "@writer"
+        }
+      }
+    ],
+    "test": "parseMessageAgentResult > reads the fire-and-forget ack"
+  },
+  {
+    "calls": [
+      {
+        "args": [
+          {
+            "output": "{\"status\":\"claimed\",\"delivery_id\":\"dm-2\"}"
+          }
+        ],
+        "op": "parseMessageAgentResult",
+        "result": {
+          "deliveryId": "dm-2",
+          "status": "queued"
+        }
+      }
+    ],
+    "test": "parseMessageAgentResult > reads an ack wrapped in a terminal-style envelope"
+  },
+  {
+    "calls": [
+      {
+        "args": [
+          {
+            "delivery_id": "dm-3",
+            "error": "could not be confirmed",
+            "status": "ambiguous"
+          }
+        ],
+        "op": "parseMessageAgentResult",
+        "result": {
+          "deliveryId": "dm-3",
+          "error": "could not be confirmed",
+          "status": "ambiguous"
+        }
+      }
+    ],
+    "test": "parseMessageAgentResult > reads the ambiguous outcome"
+  },
+  {
+    "calls": [
+      {
+        "args": [
+          {
+            "error": "No teammate named 'nobody'.",
+            "reason": "unknown_target"
+          }
+        ],
+        "op": "parseMessageAgentResult",
+        "result": {
+          "error": "No teammate named 'nobody'.",
+          "reason": "unknown_target",
+          "status": "failed"
+        }
+      }
+    ],
+    "test": "parseMessageAgentResult > reads the error shape"
+  },
+  {
+    "calls": [
+      {
+        "args": [
+          "not json at all"
+        ],
+        "op": "parseMessageAgentResult",
+        "result": {
+          "error": "not json at all",
+          "status": "unknown"
+        }
+      }
+    ],
+    "test": "parseMessageAgentResult > does not invent a status for an unparseable result"
+  },
+  {
+    "calls": [
+      {
+        "args": [
+          "[IMPORTANT: Background process proc-2f9c completed (exit code 0).\nCommand: /usr/bin/python3 /opt/hermes/tools/bot_mode_dm.py --run-delivery query-file /root/.hermes/dm/2f9c.json hermes -p writer chat -c \"Bot Chat\" -Q -q @/root/.hermes/dm/2f9c.json\nOutput:\nMessage from 🤖 Writer (@writer): Draft is ready, I pushed it to the shared folder.]"
+        ],
+        "op": "parseProcessCompleteText",
+        "result": [
+          {
+            "command": "/usr/bin/python3 /opt/hermes/tools/bot_mode_dm.py --run-delivery query-file /root/.hermes/dm/2f9c.json hermes -p writer chat -c \"Bot Chat\" -Q -q @/root/.hermes/dm/2f9c.json",
+            "output": "Message from 🤖 Writer (@writer): Draft is ready, I pushed it to the shared folder.",
+            "sid": "proc-2f9c"
+          }
+        ]
+      }
+    ],
+    "test": "parseProcessCompleteText > reads one completion block"
+  },
+  {
+    "calls": [
+      {
+        "args": [
+          "2 background processes completed.\n\n[IMPORTANT: Background process proc-2f9c completed (exit code 0).\nCommand: /usr/bin/python3 /opt/hermes/tools/bot_mode_dm.py --run-delivery query-file /root/.hermes/dm/2f9c.json hermes -p writer chat -c \"Bot Chat\" -Q -q @/root/.hermes/dm/2f9c.json\nOutput:\nMessage from 🤖 Writer (@writer): Draft is ready, I pushed it to the shared folder.]\n\n[IMPORTANT: Background process proc-aa01 exited (exit code 1).\nCommand: npm run build\nOutput:\nerror TS2345: Argument of type string is not assignable.]"
+        ],
+        "op": "parseProcessCompleteText",
+        "result": [
+          {
+            "command": "/usr/bin/python3 /opt/hermes/tools/bot_mode_dm.py --run-delivery query-file /root/.hermes/dm/2f9c.json hermes -p writer chat -c \"Bot Chat\" -Q -q @/root/.hermes/dm/2f9c.json",
+            "output": "Message from 🤖 Writer (@writer): Draft is ready, I pushed it to the shared folder.",
+            "sid": "proc-2f9c"
+          },
+          {
+            "command": "npm run build",
+            "output": "error TS2345: Argument of type string is not assignable.",
+            "sid": "proc-aa01"
+          }
+        ]
+      }
+    ],
+    "test": "parseProcessCompleteText > reads a batch of blocks behind their header"
+  },
+  {
+    "calls": [
+      {
+        "args": [
+          "[IMPORTANT: Background process proc-w1 matched watch pattern \"ERROR\".\nCommand: tail -f app.log\nMatched output:\nERROR boom]"
+        ],
+        "op": "parseProcessCompleteText",
+        "result": [
+          {
+            "command": "tail -f app.log",
+            "output": "ERROR boom",
+            "sid": "proc-w1"
+          }
+        ]
+      }
+    ],
+    "test": "parseProcessCompleteText > reads a watch-pattern match"
+  },
+  {
+    "calls": [
+      {
+        "args": [
+          "the build finished"
+        ],
+        "op": "parseProcessCompleteText",
+        "result": []
+      }
+    ],
+    "test": "parseProcessCompleteText > returns nothing for prose"
+  },
+  {
+    "calls": [
+      {
+        "args": [
+          "/usr/bin/python3 /opt/hermes/tools/bot_mode_dm.py --run-delivery query-file /root/.hermes/dm/2f9c.json hermes -p writer chat -c \"Bot Chat\" -Q -q @/root/.hermes/dm/2f9c.json"
+        ],
+        "op": "isBotDmDeliveryCommand",
+        "result": true
+      },
+      {
+        "args": [
+          "/usr/bin/python3 /opt/hermes/tools/bot_mode_dm.py --run-delivery query-file /root/.hermes/dm/2f9c.json hermes -p writer chat -c \"Bot Chat\" -Q -q @/root/.hermes/dm/2f9c.json"
+        ],
+        "op": "deliveryTargetFromCommand",
+        "result": "writer"
+      }
+    ],
+    "test": "isBotDmDeliveryCommand > matches the runner form"
+  },
+  {
+    "calls": [
+      {
+        "args": [
+          "hermes -p writer chat -c \"Bot Chat\" --create-if-missing -Q -q \"Message from 🤖 Researcher (@researcher): ping\""
+        ],
+        "op": "isBotDmDeliveryCommand",
+        "result": true
+      },
+      {
+        "args": [
+          "hermes -p writer chat -c \"Bot Chat\" --create-if-missing -Q -q \"Message from 🤖 Researcher (@researcher): ping\""
+        ],
+        "op": "deliveryTargetFromCommand",
+        "result": "writer"
+      }
+    ],
+    "test": "isBotDmDeliveryCommand > matches the legacy terminal form"
+  },
+  {
+    "calls": [
+      {
+        "args": [
+          "npm run build"
+        ],
+        "op": "isBotDmDeliveryCommand",
+        "result": false
+      },
+      {
+        "args": [
+          "npm run build"
+        ],
+        "op": "deliveryTargetFromCommand",
+        "result": null
+      }
+    ],
+    "test": "isBotDmDeliveryCommand > does not match an ordinary command"
+  },
+  {
+    "calls": [
+      {
+        "args": [
+          "Message from 🤖 Writer (@writer): on it"
+        ],
+        "op": "replyFromDeliveryOutput",
+        "result": {
+          "text": "on it"
+        }
+      }
+    ],
+    "test": "replyFromDeliveryOutput > strips the echoed signature from plain output"
+  },
+  {
+    "calls": [
+      {
+        "args": [
+          "session_id: abc123\nthe answer"
+        ],
+        "op": "replyFromDeliveryOutput",
+        "result": {
+          "text": "the answer"
+        }
+      }
+    ],
+    "test": "replyFromDeliveryOutput > drops session bookkeeping lines"
+  },
+  {
+    "calls": [
+      {
+        "args": [
+          "{\"status\":\"settled\",\"delivery_id\":\"dm-1\",\"reply\":\"sure\"}"
+        ],
+        "op": "replyFromDeliveryOutput",
+        "result": {
+          "text": "sure"
+        }
+      }
+    ],
+    "test": "replyFromDeliveryOutput > reads the settled record"
+  },
+  {
+    "calls": [
+      {
+        "args": [
+          "{\"error\":\"@writer's Bot Chat is open elsewhere\",\"reason\":\"target_busy\"}"
+        ],
+        "op": "replyFromDeliveryOutput",
+        "result": {
+          "error": "@writer's Bot Chat is open elsewhere",
+          "reason": "target_busy"
+        }
+      }
+    ],
+    "test": "replyFromDeliveryOutput > reads the failure record"
+  },
+  {
+    "calls": [
+      {
+        "args": [
+          "   "
+        ],
+        "op": "replyFromDeliveryOutput",
+        "result": {}
+      }
+    ],
+    "test": "replyFromDeliveryOutput > returns nothing for empty output"
+  },
+  {
+    "calls": [
+      {
+        "args": [
+          [
+            {
+              "id": "u1",
+              "kind": "user",
+              "origin": "history",
+              "seq": 0,
+              "text": "human speaking",
+              "version": 0
+            },
+            {
+              "dispatch": {
+                "status": "queued"
+              },
+              "id": "d1",
+              "kind": "bot_dm_out",
+              "message": "hi",
+              "origin": "history",
+              "seq": 0,
+              "target": "@writer",
+              "targetHandle": "writer",
+              "toolId": "d1",
+              "version": 0
+            }
+          ],
+          [
+            "Writer",
+            "writer"
+          ]
+        ],
+        "op": "dispatchedTo",
+        "result": true
+      }
+    ],
+    "test": "dispatchedTo > is true when we messaged that teammate in this exchange"
+  },
+  {
+    "calls": [
+      {
+        "args": [
+          [
+            {
+              "dispatch": {
+                "status": "queued"
+              },
+              "id": "d1",
+              "kind": "bot_dm_out",
+              "message": "hi",
+              "origin": "history",
+              "seq": 0,
+              "target": "@writer",
+              "targetHandle": "writer",
+              "toolId": "d1",
+              "version": 0
+            },
+            {
+              "id": "u1",
+              "kind": "user",
+              "origin": "history",
+              "seq": 0,
+              "text": "human speaking",
+              "version": 0
+            }
+          ],
+          [
+            "writer"
+          ]
+        ],
+        "op": "dispatchedTo",
+        "result": false
+      }
+    ],
+    "test": "dispatchedTo > stops at the human turn, so an older dispatch does not count"
+  },
+  {
+    "calls": [
+      {
+        "args": [
+          [
+            {
+              "dispatch": {
+                "status": "queued"
+              },
+              "id": "d1",
+              "kind": "bot_dm_out",
+              "message": "hi",
+              "origin": "history",
+              "seq": 0,
+              "target": "@writer",
+              "targetHandle": "writer",
+              "toolId": "d1",
+              "version": 0
+            },
+            {
+              "id": "i1",
+              "kind": "bot_dm_in",
+              "origin": "history",
+              "senderHandle": "writer",
+              "senderName": "Writer",
+              "seq": 0,
+              "text": "hello",
+              "version": 0
+            }
+          ],
+          [
+            "writer"
+          ]
+        ],
+        "op": "dispatchedTo",
+        "result": false
+      }
+    ],
+    "test": "dispatchedTo > stops at an earlier inbound row from the same sender"
+  },
+  {
+    "calls": [
+      {
+        "args": [
+          [
+            {
+              "dispatch": {
+                "status": "queued"
+              },
+              "id": "d1",
+              "kind": "bot_dm_out",
+              "message": "hi",
+              "origin": "history",
+              "seq": 0,
+              "target": "@writer",
+              "targetHandle": "writer",
+              "toolId": "d1",
+              "version": 0
+            },
+            {
+              "id": "i1",
+              "kind": "bot_dm_in",
+              "origin": "history",
+              "senderHandle": "scribe",
+              "senderName": "Scribe",
+              "seq": 0,
+              "text": "hello",
+              "version": 0
+            }
+          ],
+          [
+            "writer"
+          ]
+        ],
+        "op": "dispatchedTo",
+        "result": true
+      }
+    ],
+    "test": "dispatchedTo > walks past an inbound row from a different sender"
+  },
+  {
+    "calls": [
+      {
+        "args": [
+          [
+            {
+              "dispatch": {
+                "status": "queued"
+              },
+              "id": "d1",
+              "kind": "bot_dm_out",
+              "message": "hi",
+              "origin": "history",
+              "seq": 0,
+              "target": "@writer",
+              "targetHandle": "writer",
+              "toolId": "d1",
+              "version": 0
+            }
+          ],
+          [
+            null,
+            ""
+          ]
+        ],
+        "op": "dispatchedTo",
+        "result": false
+      }
+    ],
+    "test": "dispatchedTo > needs a sender to match on"
+  }
+]

@@ -1,0 +1,1691 @@
+[
+  {
+    "args": [
+      {
+        "class": "GatewayError",
+        "kind": "not_hermes",
+        "message": "a not_hermes failure",
+        "sawLandingPage": true
+      },
+      {
+        "address": "https://10.0.0.4"
+      }
+    ],
+    "fn": "classifyProbeFailure",
+    "note": "args[0] is a descriptor of the error, built into the real class by the script: {\"class\":\"GatewayError\",\"kind\":<GatewayErrorKind>,\"message\":...,\"status\"?,\"closeCode\"?,\"redirectedTo\"?,\"hint\"?,\"sawLandingPage\"?}, {\"class\":\"Error\",\"message\":...} for a plain Error, or a bare JSON value (null, a string) passed through unchanged. args[1] is the options object as is; options.network is absent when unreported. A field absent from the descriptor is undefined on the error",
+    "result": {
+      "actions": [],
+      "hint": "private_network",
+      "landingPage": true
+    }
+  },
+  {
+    "args": [
+      {
+        "class": "GatewayError",
+        "kind": "not_hermes",
+        "message": "a not_hermes failure",
+        "sawLandingPage": true
+      },
+      {
+        "address": "https://10.0.0.4:9119"
+      }
+    ],
+    "fn": "classifyProbeFailure",
+    "result": {
+      "actions": [],
+      "hint": "private_network",
+      "landingPage": true
+    }
+  },
+  {
+    "args": [
+      {
+        "class": "GatewayError",
+        "kind": "not_hermes",
+        "message": "a not_hermes failure",
+        "sawLandingPage": true
+      },
+      {
+        "address": "http://100.71.2.9:9119"
+      }
+    ],
+    "fn": "classifyProbeFailure",
+    "result": {
+      "actions": [],
+      "hint": "private_network",
+      "landingPage": true
+    }
+  },
+  {
+    "args": [
+      {
+        "class": "GatewayError",
+        "kind": "not_hermes",
+        "message": "a not_hermes failure",
+        "sawLandingPage": true
+      },
+      {
+        "address": "https://hermes.tailnet-name.ts.net"
+      }
+    ],
+    "fn": "classifyProbeFailure",
+    "result": {
+      "actions": [],
+      "hint": "private_network",
+      "landingPage": true
+    }
+  },
+  {
+    "args": [
+      {
+        "class": "GatewayError",
+        "kind": "not_hermes",
+        "message": "a not_hermes failure",
+        "sawLandingPage": true
+      },
+      {
+        "address": "http://hermes.internal"
+      }
+    ],
+    "fn": "classifyProbeFailure",
+    "result": {
+      "actions": [],
+      "hint": "private_network",
+      "landingPage": true
+    }
+  },
+  {
+    "args": [
+      {
+        "class": "GatewayError",
+        "kind": "not_hermes",
+        "message": "a not_hermes failure",
+        "sawLandingPage": true
+      },
+      {
+        "address": "http://hermes.local"
+      }
+    ],
+    "fn": "classifyProbeFailure",
+    "result": {
+      "actions": [],
+      "hint": "private_network",
+      "landingPage": true
+    }
+  },
+  {
+    "args": [
+      {
+        "class": "GatewayError",
+        "kind": "not_hermes",
+        "message": "a not_hermes failure",
+        "sawLandingPage": true
+      },
+      {
+        "address": "http://hermes"
+      }
+    ],
+    "fn": "classifyProbeFailure",
+    "result": {
+      "actions": [],
+      "hint": "private_network",
+      "landingPage": true
+    }
+  },
+  {
+    "args": [
+      {
+        "class": "GatewayError",
+        "kind": "not_hermes",
+        "message": "a not_hermes failure",
+        "sawLandingPage": true
+      },
+      {
+        "address": "http://169.254.4.4"
+      }
+    ],
+    "fn": "classifyProbeFailure",
+    "result": {
+      "actions": [],
+      "hint": "private_network",
+      "landingPage": true
+    }
+  },
+  {
+    "args": [
+      {
+        "class": "GatewayError",
+        "kind": "not_hermes",
+        "message": "a not_hermes failure",
+        "sawLandingPage": true
+      },
+      {
+        "address": "http://192.168.1.20:9119"
+      }
+    ],
+    "fn": "classifyProbeFailure",
+    "result": {
+      "actions": [],
+      "hint": "private_network",
+      "landingPage": true
+    }
+  },
+  {
+    "args": [
+      {
+        "class": "GatewayError",
+        "kind": "not_hermes",
+        "message": "a not_hermes failure",
+        "sawLandingPage": true
+      },
+      {
+        "address": "http://[fd7a:115c:a1e0::1]:9119"
+      }
+    ],
+    "fn": "classifyProbeFailure",
+    "result": {
+      "actions": [],
+      "hint": "private_network",
+      "landingPage": true
+    }
+  },
+  {
+    "args": [
+      {
+        "class": "GatewayError",
+        "kind": "not_hermes",
+        "message": "a not_hermes failure",
+        "sawLandingPage": true
+      },
+      {
+        "address": "http://[fd12:3456:789a::1]:9119"
+      }
+    ],
+    "fn": "classifyProbeFailure",
+    "result": {
+      "actions": [],
+      "hint": "private_network",
+      "landingPage": true
+    }
+  },
+  {
+    "args": [
+      {
+        "class": "GatewayError",
+        "kind": "not_hermes",
+        "message": "a not_hermes failure",
+        "sawLandingPage": true
+      },
+      {
+        "address": "http://[fe80::1]:9119"
+      }
+    ],
+    "fn": "classifyProbeFailure",
+    "result": {
+      "actions": [],
+      "hint": "private_network",
+      "landingPage": true
+    }
+  },
+  {
+    "args": [
+      {
+        "class": "GatewayError",
+        "kind": "not_hermes",
+        "message": "a not_hermes failure",
+        "sawLandingPage": true
+      },
+      {
+        "address": "my-box.local:9119"
+      }
+    ],
+    "fn": "classifyProbeFailure",
+    "result": {
+      "actions": [],
+      "hint": "private_network",
+      "landingPage": true
+    }
+  },
+  {
+    "args": [
+      {
+        "class": "GatewayError",
+        "kind": "not_hermes",
+        "message": "a not_hermes failure",
+        "sawLandingPage": true
+      },
+      {
+        "address": "something.ts.net"
+      }
+    ],
+    "fn": "classifyProbeFailure",
+    "result": {
+      "actions": [],
+      "hint": "private_network",
+      "landingPage": true
+    }
+  },
+  {
+    "args": [
+      {
+        "class": "GatewayError",
+        "kind": "not_hermes",
+        "message": "a not_hermes failure",
+        "sawLandingPage": true
+      },
+      {
+        "address": "https://hermes.example.com"
+      }
+    ],
+    "fn": "classifyProbeFailure",
+    "result": {
+      "actions": [],
+      "hint": "none",
+      "landingPage": true
+    }
+  },
+  {
+    "args": [
+      {
+        "class": "GatewayError",
+        "kind": "not_hermes",
+        "message": "a not_hermes failure",
+        "sawLandingPage": true
+      },
+      {
+        "address": "https://hermes.example.org"
+      }
+    ],
+    "fn": "classifyProbeFailure",
+    "result": {
+      "actions": [],
+      "hint": "none",
+      "landingPage": true
+    }
+  },
+  {
+    "args": [
+      {
+        "class": "GatewayError",
+        "kind": "not_hermes",
+        "message": "a not_hermes failure",
+        "sawLandingPage": true
+      },
+      {
+        "address": "http://localhost:9119"
+      }
+    ],
+    "fn": "classifyProbeFailure",
+    "result": {
+      "actions": [],
+      "hint": "none",
+      "landingPage": true
+    }
+  },
+  {
+    "args": [
+      {
+        "class": "GatewayError",
+        "kind": "not_hermes",
+        "message": "a not_hermes failure",
+        "sawLandingPage": true
+      },
+      {
+        "address": "http://127.0.0.1:9119"
+      }
+    ],
+    "fn": "classifyProbeFailure",
+    "result": {
+      "actions": [],
+      "hint": "none",
+      "landingPage": true
+    }
+  },
+  {
+    "args": [
+      {
+        "class": "GatewayError",
+        "kind": "not_hermes",
+        "message": "a not_hermes failure",
+        "sawLandingPage": true
+      },
+      {
+        "address": "http://[::1]:9119"
+      }
+    ],
+    "fn": "classifyProbeFailure",
+    "result": {
+      "actions": [],
+      "hint": "none",
+      "landingPage": true
+    }
+  },
+  {
+    "args": [
+      {
+        "class": "GatewayError",
+        "kind": "not_hermes",
+        "message": "a not_hermes failure",
+        "sawLandingPage": true
+      },
+      {
+        "address": "https://8.8.8.8"
+      }
+    ],
+    "fn": "classifyProbeFailure",
+    "result": {
+      "actions": [],
+      "hint": "none",
+      "landingPage": true
+    }
+  },
+  {
+    "args": [
+      {
+        "class": "GatewayError",
+        "kind": "not_hermes",
+        "message": "a not_hermes failure",
+        "sawLandingPage": true
+      },
+      {
+        "address": ""
+      }
+    ],
+    "fn": "classifyProbeFailure",
+    "result": {
+      "actions": [],
+      "hint": "none",
+      "landingPage": true
+    }
+  },
+  {
+    "args": [
+      {
+        "class": "GatewayError",
+        "kind": "not_hermes",
+        "message": "a not_hermes failure",
+        "sawLandingPage": true
+      },
+      {
+        "address": "gateway.example.net"
+      }
+    ],
+    "fn": "classifyProbeFailure",
+    "result": {
+      "actions": [],
+      "hint": "none",
+      "landingPage": true
+    }
+  },
+  {
+    "args": [
+      {
+        "class": "GatewayError",
+        "kind": "not_hermes",
+        "message": "a not_hermes failure",
+        "sawLandingPage": false
+      },
+      {
+        "address": "https://10.0.0.4"
+      }
+    ],
+    "fn": "classifyProbeFailure",
+    "result": {
+      "actions": [],
+      "hint": "none",
+      "landingPage": false
+    }
+  },
+  {
+    "args": [
+      {
+        "class": "GatewayError",
+        "kind": "not_hermes",
+        "message": "a not_hermes failure"
+      },
+      {
+        "address": "https://10.0.0.4"
+      }
+    ],
+    "fn": "classifyProbeFailure",
+    "result": {
+      "actions": [],
+      "hint": "none",
+      "landingPage": false
+    }
+  },
+  {
+    "args": [
+      {
+        "class": "GatewayError",
+        "kind": "not_hermes",
+        "message": "a not_hermes failure",
+        "sawLandingPage": false
+      },
+      {
+        "address": "https://hermes.example.com"
+      }
+    ],
+    "fn": "classifyProbeFailure",
+    "result": {
+      "actions": [],
+      "hint": "none",
+      "landingPage": false
+    }
+  },
+  {
+    "args": [
+      {
+        "class": "GatewayError",
+        "kind": "not_hermes",
+        "message": "a not_hermes failure"
+      },
+      {
+        "address": "https://hermes.example.com"
+      }
+    ],
+    "fn": "classifyProbeFailure",
+    "result": {
+      "actions": [],
+      "hint": "none",
+      "landingPage": false
+    }
+  },
+  {
+    "args": [
+      {
+        "class": "GatewayError",
+        "kind": "network",
+        "message": "a network failure"
+      },
+      {
+        "address": "https://hermes.tailnet-name.ts.net"
+      }
+    ],
+    "fn": "classifyProbeFailure",
+    "result": {
+      "actions": [],
+      "hint": "none",
+      "landingPage": false
+    }
+  },
+  {
+    "args": [
+      {
+        "class": "GatewayError",
+        "kind": "network",
+        "message": "a network failure"
+      },
+      {
+        "address": "https://hermes.example.com"
+      }
+    ],
+    "fn": "classifyProbeFailure",
+    "result": {
+      "actions": [],
+      "hint": "none",
+      "landingPage": false
+    }
+  },
+  {
+    "args": [
+      {
+        "class": "GatewayError",
+        "kind": "network",
+        "message": "a network failure"
+      },
+      {
+        "address": "http://localhost:9119"
+      }
+    ],
+    "fn": "classifyProbeFailure",
+    "result": {
+      "actions": [],
+      "hint": "none",
+      "landingPage": false
+    }
+  },
+  {
+    "args": [
+      {
+        "class": "GatewayError",
+        "kind": "network",
+        "message": "a network failure"
+      },
+      {
+        "address": "https://hermes.tailnet-name.ts.net",
+        "network": "wifi"
+      }
+    ],
+    "fn": "classifyProbeFailure",
+    "result": {
+      "actions": [],
+      "hint": "none",
+      "landingPage": false
+    }
+  },
+  {
+    "args": [
+      {
+        "class": "GatewayError",
+        "kind": "network",
+        "message": "a network failure"
+      },
+      {
+        "address": "https://hermes.example.com",
+        "network": "wifi"
+      }
+    ],
+    "fn": "classifyProbeFailure",
+    "result": {
+      "actions": [],
+      "hint": "none",
+      "landingPage": false
+    }
+  },
+  {
+    "args": [
+      {
+        "class": "GatewayError",
+        "kind": "network",
+        "message": "a network failure"
+      },
+      {
+        "address": "http://localhost:9119",
+        "network": "wifi"
+      }
+    ],
+    "fn": "classifyProbeFailure",
+    "result": {
+      "actions": [],
+      "hint": "none",
+      "landingPage": false
+    }
+  },
+  {
+    "args": [
+      {
+        "class": "GatewayError",
+        "kind": "network",
+        "message": "a network failure"
+      },
+      {
+        "address": "https://hermes.tailnet-name.ts.net",
+        "network": "cellular"
+      }
+    ],
+    "fn": "classifyProbeFailure",
+    "result": {
+      "actions": [],
+      "hint": "private_network",
+      "landingPage": false
+    }
+  },
+  {
+    "args": [
+      {
+        "class": "GatewayError",
+        "kind": "network",
+        "message": "a network failure"
+      },
+      {
+        "address": "https://hermes.example.com",
+        "network": "cellular"
+      }
+    ],
+    "fn": "classifyProbeFailure",
+    "result": {
+      "actions": [],
+      "hint": "none",
+      "landingPage": false
+    }
+  },
+  {
+    "args": [
+      {
+        "class": "GatewayError",
+        "kind": "network",
+        "message": "a network failure"
+      },
+      {
+        "address": "http://localhost:9119",
+        "network": "cellular"
+      }
+    ],
+    "fn": "classifyProbeFailure",
+    "result": {
+      "actions": [],
+      "hint": "none",
+      "landingPage": false
+    }
+  },
+  {
+    "args": [
+      {
+        "class": "GatewayError",
+        "kind": "network",
+        "message": "a network failure"
+      },
+      {
+        "address": "https://hermes.tailnet-name.ts.net",
+        "network": "other"
+      }
+    ],
+    "fn": "classifyProbeFailure",
+    "result": {
+      "actions": [],
+      "hint": "none",
+      "landingPage": false
+    }
+  },
+  {
+    "args": [
+      {
+        "class": "GatewayError",
+        "kind": "network",
+        "message": "a network failure"
+      },
+      {
+        "address": "https://hermes.example.com",
+        "network": "other"
+      }
+    ],
+    "fn": "classifyProbeFailure",
+    "result": {
+      "actions": [],
+      "hint": "none",
+      "landingPage": false
+    }
+  },
+  {
+    "args": [
+      {
+        "class": "GatewayError",
+        "kind": "network",
+        "message": "a network failure"
+      },
+      {
+        "address": "http://localhost:9119",
+        "network": "other"
+      }
+    ],
+    "fn": "classifyProbeFailure",
+    "result": {
+      "actions": [],
+      "hint": "none",
+      "landingPage": false
+    }
+  },
+  {
+    "args": [
+      {
+        "class": "GatewayError",
+        "kind": "network",
+        "message": "a network failure"
+      },
+      {
+        "address": "https://hermes.tailnet-name.ts.net",
+        "network": "unknown"
+      }
+    ],
+    "fn": "classifyProbeFailure",
+    "result": {
+      "actions": [],
+      "hint": "none",
+      "landingPage": false
+    }
+  },
+  {
+    "args": [
+      {
+        "class": "GatewayError",
+        "kind": "network",
+        "message": "a network failure"
+      },
+      {
+        "address": "https://hermes.example.com",
+        "network": "unknown"
+      }
+    ],
+    "fn": "classifyProbeFailure",
+    "result": {
+      "actions": [],
+      "hint": "none",
+      "landingPage": false
+    }
+  },
+  {
+    "args": [
+      {
+        "class": "GatewayError",
+        "kind": "network",
+        "message": "a network failure"
+      },
+      {
+        "address": "http://localhost:9119",
+        "network": "unknown"
+      }
+    ],
+    "fn": "classifyProbeFailure",
+    "result": {
+      "actions": [],
+      "hint": "none",
+      "landingPage": false
+    }
+  },
+  {
+    "args": [
+      {
+        "class": "GatewayError",
+        "kind": "network",
+        "message": "a network failure"
+      },
+      {
+        "address": "https://10.0.0.4:9119",
+        "network": "cellular"
+      }
+    ],
+    "fn": "classifyProbeFailure",
+    "result": {
+      "actions": [],
+      "hint": "private_network",
+      "landingPage": false
+    }
+  },
+  {
+    "args": [
+      {
+        "class": "GatewayError",
+        "kind": "network",
+        "message": "a network failure"
+      },
+      {
+        "address": "http://100.71.2.9:9119",
+        "network": "cellular"
+      }
+    ],
+    "fn": "classifyProbeFailure",
+    "result": {
+      "actions": [],
+      "hint": "private_network",
+      "landingPage": false
+    }
+  },
+  {
+    "args": [
+      {
+        "class": "GatewayError",
+        "kind": "network",
+        "message": "a network failure"
+      },
+      {
+        "address": "https://hermes.tailnet-name.ts.net",
+        "network": "cellular"
+      }
+    ],
+    "fn": "classifyProbeFailure",
+    "result": {
+      "actions": [],
+      "hint": "private_network",
+      "landingPage": false
+    }
+  },
+  {
+    "args": [
+      {
+        "class": "GatewayError",
+        "kind": "network",
+        "message": "a network failure"
+      },
+      {
+        "address": "http://hermes.internal",
+        "network": "cellular"
+      }
+    ],
+    "fn": "classifyProbeFailure",
+    "result": {
+      "actions": [],
+      "hint": "private_network",
+      "landingPage": false
+    }
+  },
+  {
+    "args": [
+      {
+        "class": "GatewayError",
+        "kind": "network",
+        "message": "a network failure"
+      },
+      {
+        "address": "http://hermes.local",
+        "network": "cellular"
+      }
+    ],
+    "fn": "classifyProbeFailure",
+    "result": {
+      "actions": [],
+      "hint": "private_network",
+      "landingPage": false
+    }
+  },
+  {
+    "args": [
+      {
+        "class": "GatewayError",
+        "kind": "network",
+        "message": "a network failure"
+      },
+      {
+        "address": "http://hermes",
+        "network": "cellular"
+      }
+    ],
+    "fn": "classifyProbeFailure",
+    "result": {
+      "actions": [],
+      "hint": "private_network",
+      "landingPage": false
+    }
+  },
+  {
+    "args": [
+      {
+        "class": "GatewayError",
+        "kind": "network",
+        "message": "a network failure"
+      },
+      {
+        "address": "http://169.254.4.4",
+        "network": "cellular"
+      }
+    ],
+    "fn": "classifyProbeFailure",
+    "result": {
+      "actions": [],
+      "hint": "private_network",
+      "landingPage": false
+    }
+  },
+  {
+    "args": [
+      {
+        "class": "GatewayError",
+        "kind": "network",
+        "message": "a network failure"
+      },
+      {
+        "address": "http://192.168.1.20:9119",
+        "network": "cellular"
+      }
+    ],
+    "fn": "classifyProbeFailure",
+    "result": {
+      "actions": [],
+      "hint": "private_network",
+      "landingPage": false
+    }
+  },
+  {
+    "args": [
+      {
+        "class": "GatewayError",
+        "kind": "network",
+        "message": "a network failure"
+      },
+      {
+        "address": "http://[fd7a:115c:a1e0::1]:9119",
+        "network": "cellular"
+      }
+    ],
+    "fn": "classifyProbeFailure",
+    "result": {
+      "actions": [],
+      "hint": "private_network",
+      "landingPage": false
+    }
+  },
+  {
+    "args": [
+      {
+        "class": "GatewayError",
+        "kind": "network",
+        "message": "a network failure"
+      },
+      {
+        "address": "http://[fd12:3456:789a::1]:9119",
+        "network": "cellular"
+      }
+    ],
+    "fn": "classifyProbeFailure",
+    "result": {
+      "actions": [],
+      "hint": "private_network",
+      "landingPage": false
+    }
+  },
+  {
+    "args": [
+      {
+        "class": "GatewayError",
+        "kind": "network",
+        "message": "a network failure"
+      },
+      {
+        "address": "http://[fe80::1]:9119",
+        "network": "cellular"
+      }
+    ],
+    "fn": "classifyProbeFailure",
+    "result": {
+      "actions": [],
+      "hint": "private_network",
+      "landingPage": false
+    }
+  },
+  {
+    "args": [
+      {
+        "class": "GatewayError",
+        "kind": "network",
+        "message": "a network failure"
+      },
+      {
+        "address": "my-box.local:9119",
+        "network": "cellular"
+      }
+    ],
+    "fn": "classifyProbeFailure",
+    "result": {
+      "actions": [],
+      "hint": "private_network",
+      "landingPage": false
+    }
+  },
+  {
+    "args": [
+      {
+        "class": "GatewayError",
+        "kind": "network",
+        "message": "a network failure"
+      },
+      {
+        "address": "something.ts.net",
+        "network": "cellular"
+      }
+    ],
+    "fn": "classifyProbeFailure",
+    "result": {
+      "actions": [],
+      "hint": "private_network",
+      "landingPage": false
+    }
+  },
+  {
+    "args": [
+      {
+        "class": "GatewayError",
+        "kind": "network",
+        "message": "a network failure"
+      },
+      {
+        "address": "https://hermes.example.com",
+        "network": "cellular"
+      }
+    ],
+    "fn": "classifyProbeFailure",
+    "result": {
+      "actions": [],
+      "hint": "none",
+      "landingPage": false
+    }
+  },
+  {
+    "args": [
+      {
+        "class": "GatewayError",
+        "kind": "network",
+        "message": "a network failure"
+      },
+      {
+        "address": "https://hermes.example.org",
+        "network": "cellular"
+      }
+    ],
+    "fn": "classifyProbeFailure",
+    "result": {
+      "actions": [],
+      "hint": "none",
+      "landingPage": false
+    }
+  },
+  {
+    "args": [
+      {
+        "class": "GatewayError",
+        "kind": "network",
+        "message": "a network failure"
+      },
+      {
+        "address": "http://localhost:9119",
+        "network": "cellular"
+      }
+    ],
+    "fn": "classifyProbeFailure",
+    "result": {
+      "actions": [],
+      "hint": "none",
+      "landingPage": false
+    }
+  },
+  {
+    "args": [
+      {
+        "class": "GatewayError",
+        "kind": "network",
+        "message": "a network failure"
+      },
+      {
+        "address": "http://127.0.0.1:9119",
+        "network": "cellular"
+      }
+    ],
+    "fn": "classifyProbeFailure",
+    "result": {
+      "actions": [],
+      "hint": "none",
+      "landingPage": false
+    }
+  },
+  {
+    "args": [
+      {
+        "class": "GatewayError",
+        "kind": "network",
+        "message": "a network failure"
+      },
+      {
+        "address": "http://[::1]:9119",
+        "network": "cellular"
+      }
+    ],
+    "fn": "classifyProbeFailure",
+    "result": {
+      "actions": [],
+      "hint": "none",
+      "landingPage": false
+    }
+  },
+  {
+    "args": [
+      {
+        "class": "GatewayError",
+        "kind": "network",
+        "message": "a network failure"
+      },
+      {
+        "address": "https://8.8.8.8",
+        "network": "cellular"
+      }
+    ],
+    "fn": "classifyProbeFailure",
+    "result": {
+      "actions": [],
+      "hint": "none",
+      "landingPage": false
+    }
+  },
+  {
+    "args": [
+      {
+        "class": "GatewayError",
+        "kind": "network",
+        "message": "a network failure"
+      },
+      {
+        "address": "",
+        "network": "cellular"
+      }
+    ],
+    "fn": "classifyProbeFailure",
+    "result": {
+      "actions": [],
+      "hint": "none",
+      "landingPage": false
+    }
+  },
+  {
+    "args": [
+      {
+        "class": "GatewayError",
+        "kind": "network",
+        "message": "a network failure"
+      },
+      {
+        "address": "gateway.example.net",
+        "network": "cellular"
+      }
+    ],
+    "fn": "classifyProbeFailure",
+    "result": {
+      "actions": [],
+      "hint": "none",
+      "landingPage": false
+    }
+  },
+  {
+    "args": [
+      {
+        "class": "GatewayError",
+        "kind": "network",
+        "message": "a network failure",
+        "sawLandingPage": true
+      },
+      {
+        "address": "https://10.0.0.4",
+        "network": "cellular"
+      }
+    ],
+    "fn": "classifyProbeFailure",
+    "result": {
+      "actions": [],
+      "hint": "private_network",
+      "landingPage": false
+    }
+  },
+  {
+    "args": [
+      {
+        "class": "GatewayError",
+        "kind": "network",
+        "message": "a network failure",
+        "status": 502
+      },
+      {
+        "address": "https://10.0.0.4",
+        "network": "cellular"
+      }
+    ],
+    "fn": "classifyProbeFailure",
+    "result": {
+      "actions": [],
+      "hint": "private_network",
+      "landingPage": false
+    }
+  },
+  {
+    "args": [
+      {
+        "class": "GatewayError",
+        "kind": "timeout",
+        "message": "a timeout failure"
+      },
+      {
+        "address": "https://10.0.0.4",
+        "network": "cellular"
+      }
+    ],
+    "fn": "classifyProbeFailure",
+    "result": {
+      "actions": [],
+      "hint": "none",
+      "landingPage": false
+    }
+  },
+  {
+    "args": [
+      {
+        "class": "GatewayError",
+        "kind": "network",
+        "message": "a network failure"
+      },
+      {
+        "address": "https://hermes.example.org",
+        "network": "cellular"
+      }
+    ],
+    "fn": "classifyProbeFailure",
+    "result": {
+      "actions": [],
+      "hint": "none",
+      "landingPage": false
+    }
+  },
+  {
+    "args": [
+      {
+        "class": "GatewayError",
+        "kind": "redirect",
+        "message": "a redirect failure",
+        "redirectedTo": "hermes.other.example"
+      },
+      {
+        "address": "https://a.example"
+      }
+    ],
+    "fn": "classifyProbeFailure",
+    "result": {
+      "actions": [
+        {
+          "host": "hermes.other.example",
+          "kind": "use_host"
+        }
+      ],
+      "hint": "none",
+      "landingPage": false
+    }
+  },
+  {
+    "args": [
+      {
+        "class": "GatewayError",
+        "kind": "redirect",
+        "message": "a redirect failure"
+      },
+      {
+        "address": "https://a.example"
+      }
+    ],
+    "fn": "classifyProbeFailure",
+    "result": {
+      "actions": [],
+      "hint": "none",
+      "landingPage": false
+    }
+  },
+  {
+    "args": [
+      {
+        "class": "GatewayError",
+        "kind": "redirect",
+        "message": "a redirect failure",
+        "redirectedTo": ""
+      },
+      {
+        "address": "https://a.example"
+      }
+    ],
+    "fn": "classifyProbeFailure",
+    "result": {
+      "actions": [],
+      "hint": "none",
+      "landingPage": false
+    }
+  },
+  {
+    "args": [
+      {
+        "class": "GatewayError",
+        "kind": "redirect",
+        "message": "a redirect failure",
+        "redirectedTo": "x.example"
+      },
+      {
+        "address": "https://10.0.0.4"
+      }
+    ],
+    "fn": "classifyProbeFailure",
+    "result": {
+      "actions": [
+        {
+          "host": "x.example",
+          "kind": "use_host"
+        }
+      ],
+      "hint": "none",
+      "landingPage": false
+    }
+  },
+  {
+    "args": [
+      {
+        "class": "GatewayError",
+        "kind": "redirect",
+        "message": "a redirect failure",
+        "redirectedTo": "x.example"
+      },
+      {
+        "address": "https://10.0.0.4",
+        "network": "cellular"
+      }
+    ],
+    "fn": "classifyProbeFailure",
+    "result": {
+      "actions": [
+        {
+          "host": "x.example",
+          "kind": "use_host"
+        }
+      ],
+      "hint": "none",
+      "landingPage": false
+    }
+  },
+  {
+    "args": [
+      {
+        "class": "GatewayError",
+        "kind": "auth",
+        "message": "a auth failure",
+        "status": 401
+      },
+      {
+        "address": "https://hermes.example.com"
+      }
+    ],
+    "fn": "classifyProbeFailure",
+    "result": {
+      "actions": [
+        {
+          "kind": "front_door"
+        }
+      ],
+      "hint": "none",
+      "landingPage": false
+    }
+  },
+  {
+    "args": [
+      {
+        "class": "GatewayError",
+        "kind": "auth",
+        "message": "a auth failure",
+        "status": 403
+      },
+      {
+        "address": "https://hermes.example.com"
+      }
+    ],
+    "fn": "classifyProbeFailure",
+    "result": {
+      "actions": [
+        {
+          "kind": "front_door"
+        }
+      ],
+      "hint": "none",
+      "landingPage": false
+    }
+  },
+  {
+    "args": [
+      {
+        "class": "GatewayError",
+        "kind": "auth",
+        "message": "a auth failure",
+        "status": 401
+      },
+      {
+        "address": "https://10.0.0.4",
+        "network": "cellular"
+      }
+    ],
+    "fn": "classifyProbeFailure",
+    "result": {
+      "actions": [
+        {
+          "kind": "front_door"
+        }
+      ],
+      "hint": "none",
+      "landingPage": false
+    }
+  },
+  {
+    "args": [
+      {
+        "class": "GatewayError",
+        "kind": "auth",
+        "message": "a auth failure"
+      },
+      {
+        "address": "https://hermes.example.com"
+      }
+    ],
+    "fn": "classifyProbeFailure",
+    "result": {
+      "actions": [],
+      "hint": "none",
+      "landingPage": false
+    }
+  },
+  {
+    "args": [
+      {
+        "class": "GatewayError",
+        "kind": "auth",
+        "message": "a auth failure",
+        "status": 500
+      },
+      {
+        "address": "https://hermes.example.com"
+      }
+    ],
+    "fn": "classifyProbeFailure",
+    "result": {
+      "actions": [],
+      "hint": "none",
+      "landingPage": false
+    }
+  },
+  {
+    "args": [
+      {
+        "class": "GatewayError",
+        "kind": "auth",
+        "message": "a auth failure",
+        "status": 404
+      },
+      {
+        "address": "https://hermes.example.com"
+      }
+    ],
+    "fn": "classifyProbeFailure",
+    "result": {
+      "actions": [],
+      "hint": "none",
+      "landingPage": false
+    }
+  },
+  {
+    "args": [
+      {
+        "class": "GatewayError",
+        "closeCode": 4401,
+        "kind": "auth",
+        "message": "a auth failure"
+      },
+      {
+        "address": "https://hermes.example.com"
+      }
+    ],
+    "fn": "classifyProbeFailure",
+    "result": {
+      "actions": [],
+      "hint": "none",
+      "landingPage": false
+    }
+  },
+  {
+    "args": [
+      {
+        "class": "GatewayError",
+        "kind": "tls",
+        "message": "a tls failure"
+      },
+      {
+        "address": "https://10.0.0.4",
+        "network": "cellular"
+      }
+    ],
+    "fn": "classifyProbeFailure",
+    "result": {
+      "actions": [],
+      "hint": "none",
+      "landingPage": false
+    }
+  },
+  {
+    "args": [
+      {
+        "class": "GatewayError",
+        "kind": "server",
+        "message": "a server failure"
+      },
+      {
+        "address": "https://10.0.0.4",
+        "network": "cellular"
+      }
+    ],
+    "fn": "classifyProbeFailure",
+    "result": {
+      "actions": [],
+      "hint": "none",
+      "landingPage": false
+    }
+  },
+  {
+    "args": [
+      {
+        "class": "GatewayError",
+        "kind": "config",
+        "message": "a config failure"
+      },
+      {
+        "address": "https://10.0.0.4",
+        "network": "cellular"
+      }
+    ],
+    "fn": "classifyProbeFailure",
+    "result": {
+      "actions": [],
+      "hint": "none",
+      "landingPage": false
+    }
+  },
+  {
+    "args": [
+      {
+        "class": "GatewayError",
+        "kind": "incompatible",
+        "message": "a incompatible failure"
+      },
+      {
+        "address": "https://10.0.0.4",
+        "network": "cellular"
+      }
+    ],
+    "fn": "classifyProbeFailure",
+    "result": {
+      "actions": [],
+      "hint": "none",
+      "landingPage": false
+    }
+  },
+  {
+    "args": [
+      {
+        "class": "GatewayError",
+        "kind": "protocol",
+        "message": "a protocol failure"
+      },
+      {
+        "address": "https://10.0.0.4",
+        "network": "cellular"
+      }
+    ],
+    "fn": "classifyProbeFailure",
+    "result": {
+      "actions": [],
+      "hint": "none",
+      "landingPage": false
+    }
+  },
+  {
+    "args": [
+      {
+        "class": "GatewayError",
+        "kind": "timeout",
+        "message": "a timeout failure"
+      },
+      {
+        "address": "https://hermes.tailnet-name.ts.net",
+        "network": "cellular"
+      }
+    ],
+    "fn": "classifyProbeFailure",
+    "result": {
+      "actions": [],
+      "hint": "none",
+      "landingPage": false
+    }
+  },
+  {
+    "args": [
+      {
+        "class": "GatewayError",
+        "hint": "something",
+        "kind": "server",
+        "message": "a server failure",
+        "status": 500
+      },
+      {
+        "address": "https://10.0.0.4"
+      }
+    ],
+    "fn": "classifyProbeFailure",
+    "result": {
+      "actions": [],
+      "hint": "none",
+      "landingPage": false
+    }
+  },
+  {
+    "args": [
+      {
+        "class": "Error",
+        "message": "boom"
+      },
+      {
+        "address": "https://10.0.0.4",
+        "network": "cellular"
+      }
+    ],
+    "fn": "classifyProbeFailure",
+    "result": {
+      "actions": [],
+      "hint": "none",
+      "landingPage": false
+    }
+  },
+  {
+    "args": [
+      null,
+      {
+        "address": "https://10.0.0.4",
+        "network": "cellular"
+      }
+    ],
+    "fn": "classifyProbeFailure",
+    "result": {
+      "actions": [],
+      "hint": "none",
+      "landingPage": false
+    }
+  },
+  {
+    "args": [
+      "network",
+      {
+        "address": "https://10.0.0.4",
+        "network": "cellular"
+      }
+    ],
+    "fn": "classifyProbeFailure",
+    "result": {
+      "actions": [],
+      "hint": "none",
+      "landingPage": false
+    }
+  }
+]

@@ -14,7 +14,7 @@
     "node": ">=22"
   },
   "scripts": {
-    "typecheck": "tsc -b && tsc -p packages/hermie-web/tsconfig.test.json",
+    "typecheck": "tsc -b && tsc -p packages/hermie-web/tsconfig.test.json && tsc -p scripts/golden/tsconfig.json",
     "typecheck:clean": "tsc -b --clean",
     "lint": "eslint .",
     "lint:fix": "eslint . --fix",
@@ -28,6 +28,8 @@
     "contrast:check": "tsx scripts/check-contrast.ts --check",
     "icons": "node scripts/generate-app-icons.mjs && node scripts/generate-store-assets.mjs",
     "icons:check": "node scripts/generate-app-icons.mjs --check && node scripts/generate-store-assets.mjs --check",
+    "golden": "tsx scripts/golden/generate.ts",
+    "golden:check": "tsx scripts/golden/generate.ts --check",
     "licences": "node scripts/generate-third-party-licenses.mjs",
     "licences:check": "node scripts/generate-third-party-licenses.mjs --check",
     "set-version": "node scripts/set-version.mjs",

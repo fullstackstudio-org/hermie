@@ -1,0 +1,676 @@
+{
+  "SESSION": "run-1a2b",
+  "approvalRequest": {
+    "id": "srq-7",
+    "method": "approval",
+    "params": {
+      "allow_permanent": true,
+      "allow_session": true,
+      "choices": [
+        "once",
+        "session",
+        "always",
+        "deny"
+      ],
+      "command": "rm -rf build",
+      "description": "Delete the build directory",
+      "request_id": "apr-3",
+      "session_id": "run-1a2b",
+      "tool_name": "terminal"
+    }
+  },
+  "clarifyRequest": {
+    "id": "srq-8",
+    "method": "clarify",
+    "params": {
+      "questions": [
+        {
+          "choices": [
+            "staging",
+            "production"
+          ],
+          "multi_select": false,
+          "qid": "q1",
+          "question": "Which environment?"
+        },
+        {
+          "choices": [
+            "yes",
+            "no"
+          ],
+          "multi_select": false,
+          "qid": "q2",
+          "question": "Notify the team?"
+        }
+      ],
+      "session_id": "run-1a2b"
+    }
+  },
+  "delegationEvents": [
+    {
+      "payload": {},
+      "seq": 1,
+      "session_id": "run-1a2b",
+      "type": "message.start"
+    },
+    {
+      "payload": {
+        "args": {
+          "tasks": [
+            {
+              "goal": "Audit deps"
+            },
+            {
+              "goal": "Write tests"
+            },
+            {
+              "goal": "Update docs"
+            }
+          ]
+        },
+        "context": "delegate_task(3 tasks)",
+        "name": "delegate_task",
+        "tool_id": "call_delegate_1"
+      },
+      "seq": 2,
+      "session_id": "run-1a2b",
+      "type": "tool.start"
+    },
+    {
+      "payload": {
+        "delegation_id": "del-9",
+        "goal": "Audit deps",
+        "parent_id": "root",
+        "status": "queued",
+        "subagent_id": "child-0",
+        "task_count": 3,
+        "task_index": 0
+      },
+      "seq": 10,
+      "session_id": "run-1a2b",
+      "type": "subagent.spawn_requested"
+    },
+    {
+      "payload": {
+        "child_session_id": "sub-0",
+        "delegation_id": "del-9",
+        "goal": "Audit deps",
+        "model": "example-small-model",
+        "parent_id": "root",
+        "status": "running",
+        "subagent_id": "child-0",
+        "task_count": 3,
+        "task_index": 0
+      },
+      "seq": 11,
+      "session_id": "run-1a2b",
+      "type": "subagent.start"
+    },
+    {
+      "payload": {
+        "delegation_id": "del-9",
+        "goal": "Audit deps",
+        "status": "running",
+        "subagent_id": "child-0",
+        "task_count": 3,
+        "task_index": 0,
+        "text": "working on step 0"
+      },
+      "seq": 12,
+      "session_id": "run-1a2b",
+      "type": "subagent.progress"
+    },
+    {
+      "payload": {
+        "delegation_id": "del-9",
+        "goal": "Audit deps",
+        "status": "running",
+        "subagent_id": "child-0",
+        "task_count": 3,
+        "task_index": 0,
+        "tool_name": "read_file",
+        "tool_preview": "package.json"
+      },
+      "seq": 13,
+      "session_id": "run-1a2b",
+      "type": "subagent.tool"
+    },
+    {
+      "payload": {
+        "delegation_id": "del-9",
+        "goal": "Write tests",
+        "parent_id": "root",
+        "status": "queued",
+        "subagent_id": "child-1",
+        "task_count": 3,
+        "task_index": 1
+      },
+      "seq": 14,
+      "session_id": "run-1a2b",
+      "type": "subagent.spawn_requested"
+    },
+    {
+      "payload": {
+        "child_session_id": "sub-1",
+        "delegation_id": "del-9",
+        "goal": "Write tests",
+        "model": "example-small-model",
+        "parent_id": "root",
+        "status": "running",
+        "subagent_id": "child-1",
+        "task_count": 3,
+        "task_index": 1
+      },
+      "seq": 15,
+      "session_id": "run-1a2b",
+      "type": "subagent.start"
+    },
+    {
+      "payload": {
+        "delegation_id": "del-9",
+        "goal": "Write tests",
+        "status": "running",
+        "subagent_id": "child-1",
+        "task_count": 3,
+        "task_index": 1,
+        "text": "working on step 1"
+      },
+      "seq": 16,
+      "session_id": "run-1a2b",
+      "type": "subagent.progress"
+    },
+    {
+      "payload": {
+        "delegation_id": "del-9",
+        "goal": "Write tests",
+        "status": "running",
+        "subagent_id": "child-1",
+        "task_count": 3,
+        "task_index": 1,
+        "tool_name": "read_file",
+        "tool_preview": "package.json"
+      },
+      "seq": 17,
+      "session_id": "run-1a2b",
+      "type": "subagent.tool"
+    },
+    {
+      "payload": {
+        "delegation_id": "del-9",
+        "goal": "Update docs",
+        "parent_id": "root",
+        "status": "queued",
+        "subagent_id": "child-2",
+        "task_count": 3,
+        "task_index": 2
+      },
+      "seq": 18,
+      "session_id": "run-1a2b",
+      "type": "subagent.spawn_requested"
+    },
+    {
+      "payload": {
+        "child_session_id": "sub-2",
+        "delegation_id": "del-9",
+        "goal": "Update docs",
+        "model": "example-small-model",
+        "parent_id": "root",
+        "status": "running",
+        "subagent_id": "child-2",
+        "task_count": 3,
+        "task_index": 2
+      },
+      "seq": 19,
+      "session_id": "run-1a2b",
+      "type": "subagent.start"
+    },
+    {
+      "payload": {
+        "delegation_id": "del-9",
+        "goal": "Update docs",
+        "status": "running",
+        "subagent_id": "child-2",
+        "task_count": 3,
+        "task_index": 2,
+        "text": "working on step 2"
+      },
+      "seq": 20,
+      "session_id": "run-1a2b",
+      "type": "subagent.progress"
+    },
+    {
+      "payload": {
+        "delegation_id": "del-9",
+        "goal": "Update docs",
+        "status": "running",
+        "subagent_id": "child-2",
+        "task_count": 3,
+        "task_index": 2,
+        "tool_name": "read_file",
+        "tool_preview": "package.json"
+      },
+      "seq": 21,
+      "session_id": "run-1a2b",
+      "type": "subagent.tool"
+    },
+    {
+      "payload": {
+        "delegation_id": "del-9",
+        "duration_seconds": 12.5,
+        "files_read": [
+          "package.json"
+        ],
+        "files_written": [],
+        "goal": "Audit deps",
+        "input_tokens": 900,
+        "output_tokens": 120,
+        "status": "completed",
+        "subagent_id": "child-0",
+        "summary": "task 0 done",
+        "task_count": 3,
+        "task_index": 0,
+        "tool_count": 4
+      },
+      "seq": 30,
+      "session_id": "run-1a2b",
+      "type": "subagent.complete"
+    },
+    {
+      "payload": {
+        "delegation_id": "del-9",
+        "duration_seconds": 12.5,
+        "files_read": [
+          "package.json"
+        ],
+        "files_written": [],
+        "goal": "Write tests",
+        "input_tokens": 900,
+        "output_tokens": 120,
+        "status": "completed",
+        "subagent_id": "child-1",
+        "summary": "task 1 done",
+        "task_count": 3,
+        "task_index": 1,
+        "tool_count": 4
+      },
+      "seq": 31,
+      "session_id": "run-1a2b",
+      "type": "subagent.complete"
+    },
+    {
+      "payload": {
+        "delegation_id": "del-9",
+        "duration_seconds": 12.5,
+        "files_read": [
+          "package.json"
+        ],
+        "files_written": [],
+        "goal": "Update docs",
+        "input_tokens": 900,
+        "output_tokens": 120,
+        "status": "completed",
+        "subagent_id": "child-2",
+        "summary": "task 2 done",
+        "task_count": 3,
+        "task_index": 2,
+        "tool_count": 4
+      },
+      "seq": 32,
+      "session_id": "run-1a2b",
+      "type": "subagent.complete"
+    },
+    {
+      "payload": {
+        "duration_s": 41.2,
+        "name": "delegate_task",
+        "summary": "3 tasks completed",
+        "tool_id": "call_delegate_1"
+      },
+      "seq": 40,
+      "session_id": "run-1a2b",
+      "type": "tool.complete"
+    },
+    {
+      "payload": {
+        "status": "complete",
+        "text": "All three finished."
+      },
+      "seq": 41,
+      "session_id": "run-1a2b",
+      "type": "message.complete"
+    }
+  ],
+  "dmDispatchTurn": [
+    {
+      "payload": {},
+      "seq": 1,
+      "session_id": "run-1a2b",
+      "type": "message.start"
+    },
+    {
+      "payload": {
+        "text": "Asking the writer."
+      },
+      "seq": 2,
+      "session_id": "run-1a2b",
+      "type": "message.delta"
+    },
+    {
+      "payload": {
+        "args": {
+          "message": "Can you draft the announcement?",
+          "target": "@writer"
+        },
+        "context": "message_agent(writer)",
+        "name": "message_agent",
+        "tool_id": "call_dm_1"
+      },
+      "seq": 3,
+      "session_id": "run-1a2b",
+      "type": "tool.start"
+    },
+    {
+      "payload": {
+        "name": "message_agent",
+        "result": "{\"status\":\"queued\",\"delivery_id\":\"dm-2f9c\",\"to\":\"@writer\",\"process_id\":\"proc-2f9c\",\"queued_at\":1700000015}",
+        "tool_id": "call_dm_1"
+      },
+      "seq": 4,
+      "session_id": "run-1a2b",
+      "type": "tool.complete"
+    },
+    {
+      "payload": {
+        "status": "complete",
+        "text": "Asked the writer to draft it."
+      },
+      "seq": 5,
+      "session_id": "run-1a2b",
+      "type": "message.complete"
+    }
+  ],
+  "erroredTurn": [
+    {
+      "payload": {},
+      "seq": 1,
+      "session_id": "run-1a2b",
+      "type": "message.start"
+    },
+    {
+      "payload": {
+        "text": "Starting…"
+      },
+      "seq": 2,
+      "session_id": "run-1a2b",
+      "type": "message.delta"
+    },
+    {
+      "payload": {
+        "error": "Provider returned 429 after 3 retries",
+        "error_surface": {
+          "code": "rate_limited",
+          "layer": "provider",
+          "retryable": true
+        },
+        "partial": true,
+        "recoverable": true,
+        "status": "error",
+        "text": "Starting…"
+      },
+      "seq": 3,
+      "session_id": "run-1a2b",
+      "type": "message.complete"
+    }
+  ],
+  "streamedTurn": [
+    {
+      "payload": {},
+      "seq": 1,
+      "session_id": "run-1a2b",
+      "type": "message.start"
+    },
+    {
+      "payload": {
+        "text": "Check the changelog first."
+      },
+      "seq": 2,
+      "session_id": "run-1a2b",
+      "type": "reasoning.delta"
+    },
+    {
+      "payload": {
+        "text": "Let me "
+      },
+      "seq": 3,
+      "session_id": "run-1a2b",
+      "type": "message.delta"
+    },
+    {
+      "payload": {
+        "text": "look that up."
+      },
+      "seq": 4,
+      "session_id": "run-1a2b",
+      "type": "message.delta"
+    },
+    {
+      "payload": {
+        "name": "read_file"
+      },
+      "seq": 5,
+      "session_id": "run-1a2b",
+      "type": "tool.generating"
+    },
+    {
+      "payload": {
+        "args": {
+          "path": "CHANGELOG.md"
+        },
+        "args_text": "{\"path\":\"CHANGELOG.md\"}",
+        "context": "read_file(CHANGELOG.md)",
+        "name": "read_file",
+        "tool_id": "call_1"
+      },
+      "seq": 6,
+      "session_id": "run-1a2b",
+      "type": "tool.start"
+    },
+    {
+      "payload": {
+        "kind": "status",
+        "text": "Reading CHANGELOG.md"
+      },
+      "seq": 7,
+      "session_id": "run-1a2b",
+      "type": "status.update"
+    },
+    {
+      "payload": {
+        "duration_s": 0.42,
+        "inline_diff": "",
+        "name": "read_file",
+        "result": {
+          "content": "# 1.2.0"
+        },
+        "result_text": "# 1.2.0",
+        "summary": "read 1 file",
+        "tool_id": "call_1"
+      },
+      "seq": 8,
+      "session_id": "run-1a2b",
+      "type": "tool.complete"
+    },
+    {
+      "payload": {
+        "text": "Found it."
+      },
+      "seq": 9,
+      "session_id": "run-1a2b",
+      "type": "message.delta"
+    },
+    {
+      "payload": {
+        "already_streamed": true,
+        "text": "Found it."
+      },
+      "seq": 10,
+      "session_id": "run-1a2b",
+      "type": "message.interim"
+    },
+    {
+      "payload": {
+        "text": "Version 1.2.0 ships three fixes."
+      },
+      "seq": 11,
+      "session_id": "run-1a2b",
+      "type": "message.delta"
+    },
+    {
+      "payload": {
+        "status": "complete",
+        "text": "Version 1.2.0 ships three fixes.",
+        "usage": {
+          "calls": 1,
+          "input": 120,
+          "output": 48,
+          "total": 168
+        }
+      },
+      "seq": 12,
+      "session_id": "run-1a2b",
+      "type": "message.complete"
+    }
+  ],
+  "thinkingSummarisedAfterToolTurn": [
+    {
+      "payload": {},
+      "seq": 1,
+      "session_id": "run-1a2b",
+      "type": "message.start"
+    },
+    {
+      "payload": {
+        "text": "The changelog "
+      },
+      "seq": 2,
+      "session_id": "run-1a2b",
+      "type": "reasoning.delta"
+    },
+    {
+      "payload": {
+        "text": "is the place to look."
+      },
+      "seq": 3,
+      "session_id": "run-1a2b",
+      "type": "reasoning.delta"
+    },
+    {
+      "payload": {
+        "text": "Let me check."
+      },
+      "seq": 4,
+      "session_id": "run-1a2b",
+      "type": "message.delta"
+    },
+    {
+      "payload": {
+        "args": {
+          "path": "CHANGELOG.md"
+        },
+        "name": "read_file",
+        "tool_id": "call_9"
+      },
+      "seq": 5,
+      "session_id": "run-1a2b",
+      "type": "tool.start"
+    },
+    {
+      "payload": {
+        "text": "Read the changelog."
+      },
+      "seq": 6,
+      "session_id": "run-1a2b",
+      "type": "reasoning.available"
+    },
+    {
+      "payload": {
+        "name": "read_file",
+        "result": {
+          "content": "# 1.2.0"
+        },
+        "tool_id": "call_9"
+      },
+      "seq": 7,
+      "session_id": "run-1a2b",
+      "type": "tool.complete"
+    },
+    {
+      "payload": {
+        "text": "Version 1.2.0 ships three fixes."
+      },
+      "seq": 8,
+      "session_id": "run-1a2b",
+      "type": "message.delta"
+    },
+    {
+      "payload": {
+        "status": "complete",
+        "text": "Version 1.2.0 ships three fixes."
+      },
+      "seq": 9,
+      "session_id": "run-1a2b",
+      "type": "message.complete"
+    }
+  ],
+  "thinkingTurn": [
+    {
+      "payload": {},
+      "seq": 1,
+      "session_id": "run-1a2b",
+      "type": "message.start"
+    },
+    {
+      "payload": {
+        "text": "The changelog "
+      },
+      "seq": 2,
+      "session_id": "run-1a2b",
+      "type": "reasoning.delta"
+    },
+    {
+      "payload": {
+        "text": "is the place to look."
+      },
+      "seq": 3,
+      "session_id": "run-1a2b",
+      "type": "reasoning.delta"
+    },
+    {
+      "payload": {
+        "already_streamed": true,
+        "text": "Version 1.2.0"
+      },
+      "seq": 4,
+      "session_id": "run-1a2b",
+      "type": "message.interim"
+    },
+    {
+      "payload": {
+        "already_streamed": true,
+        "text": "Version 1.2.0 ships"
+      },
+      "seq": 5,
+      "session_id": "run-1a2b",
+      "type": "message.interim"
+    },
+    {
+      "payload": {
+        "status": "complete",
+        "text": "Version 1.2.0 ships three fixes."
+      },
+      "seq": 6,
+      "session_id": "run-1a2b",
+      "type": "message.complete"
+    }
+  ]
+}

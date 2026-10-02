@@ -1,0 +1,3219 @@
+[
+  {
+    "calls": [
+      {
+        "args": [
+          "researcher",
+          "stored-1",
+          "resolved-1"
+        ],
+        "op": "createChatState",
+        "result": {
+          "botName": "researcher",
+          "byApprovalId": {},
+          "byDelegationId": {},
+          "byProcessId": {},
+          "byRequestId": {},
+          "byRowId": {},
+          "byToolId": {},
+          "draft": "",
+          "hydration": "cold",
+          "items": {},
+          "lastSeq": 0,
+          "order": [],
+          "resolvedSessionId": "resolved-1",
+          "storedSessionId": "stored-1",
+          "subagents": {},
+          "turn": {
+            "active": false,
+            "local": false,
+            "nextSeq": 1000
+          },
+          "unreadCount": 0
+        }
+      },
+      {
+        "args": [
+          [
+            {
+              "role": "user",
+              "row_id": 1,
+              "text": "how did the deploy go?"
+            },
+            {
+              "role": "assistant",
+              "row_id": 2,
+              "text": "Three services, all green."
+            },
+            {
+              "display_kind": "model_switch",
+              "role": "user",
+              "row_id": 3,
+              "text": "[System: The active model for this chat has changed to k3 via provider moonshot. From this point forward, use this runtime metadata when answering questions about what model/provider is active.]"
+            },
+            {
+              "name": "read_file",
+              "role": "tool",
+              "row_id": 4,
+              "tool_id": "call_1"
+            }
+          ],
+          "rpc"
+        ],
+        "op": "rowsToItems",
+        "result": [
+          {
+            "id": "r:1",
+            "kind": "user",
+            "origin": "history",
+            "rowId": 1,
+            "seq": 0,
+            "text": "how did the deploy go?",
+            "version": 0
+          },
+          {
+            "id": "r:2",
+            "interim": false,
+            "kind": "assistant",
+            "origin": "history",
+            "rowId": 2,
+            "seq": 1000,
+            "status": "complete",
+            "streaming": false,
+            "text": "Three services, all green.",
+            "version": 0
+          },
+          {
+            "body": "The active model for this chat has changed to k3 via provider moonshot. From this point forward, use this runtime metadata when answering questions about what model/provider is active.",
+            "id": "r:3",
+            "kind": "notice",
+            "noticeKind": "model_switch",
+            "origin": "history",
+            "rowId": 3,
+            "seq": 2000,
+            "title": "Model changed",
+            "version": 0
+          },
+          {
+            "id": "t:call_1",
+            "kind": "tool",
+            "name": "read_file",
+            "origin": "history",
+            "resultKnown": false,
+            "rowId": 4,
+            "seq": 3000,
+            "status": "complete",
+            "toolId": "call_1",
+            "version": 0
+          }
+        ]
+      },
+      {
+        "args": [
+          {
+            "botName": "researcher",
+            "byApprovalId": {},
+            "byDelegationId": {},
+            "byProcessId": {},
+            "byRequestId": {},
+            "byRowId": {},
+            "byToolId": {},
+            "draft": "",
+            "hydration": "cold",
+            "items": {},
+            "lastSeq": 0,
+            "order": [],
+            "resolvedSessionId": "resolved-1",
+            "storedSessionId": "stored-1",
+            "subagents": {},
+            "turn": {
+              "active": false,
+              "local": false,
+              "nextSeq": 1000
+            },
+            "unreadCount": 0
+          },
+          [
+            {
+              "id": "r:1",
+              "kind": "user",
+              "origin": "history",
+              "rowId": 1,
+              "seq": 0,
+              "text": "how did the deploy go?",
+              "version": 0
+            },
+            {
+              "id": "r:2",
+              "interim": false,
+              "kind": "assistant",
+              "origin": "history",
+              "rowId": 2,
+              "seq": 1000,
+              "status": "complete",
+              "streaming": false,
+              "text": "Three services, all green.",
+              "version": 0
+            },
+            {
+              "body": "The active model for this chat has changed to k3 via provider moonshot. From this point forward, use this runtime metadata when answering questions about what model/provider is active.",
+              "id": "r:3",
+              "kind": "notice",
+              "noticeKind": "model_switch",
+              "origin": "history",
+              "rowId": 3,
+              "seq": 2000,
+              "title": "Model changed",
+              "version": 0
+            },
+            {
+              "id": "t:call_1",
+              "kind": "tool",
+              "name": "read_file",
+              "origin": "history",
+              "resultKnown": false,
+              "rowId": 4,
+              "seq": 3000,
+              "status": "complete",
+              "toolId": "call_1",
+              "version": 0
+            }
+          ]
+        ],
+        "op": "reconcile",
+        "result": {
+          "botName": "researcher",
+          "byApprovalId": {},
+          "byDelegationId": {},
+          "byProcessId": {},
+          "byRequestId": {},
+          "byRowId": {
+            "1": "r:1",
+            "2": "r:2",
+            "3": "r:3",
+            "4": "t:call_1"
+          },
+          "byToolId": {
+            "call_1": "t:call_1"
+          },
+          "draft": "",
+          "hydration": "live",
+          "items": {
+            "r:1": {
+              "id": "r:1",
+              "kind": "user",
+              "origin": "history",
+              "rowId": 1,
+              "seq": 0,
+              "text": "how did the deploy go?",
+              "version": 0
+            },
+            "r:2": {
+              "id": "r:2",
+              "interim": false,
+              "kind": "assistant",
+              "origin": "history",
+              "rowId": 2,
+              "seq": 1000,
+              "status": "complete",
+              "streaming": false,
+              "text": "Three services, all green.",
+              "version": 0
+            },
+            "r:3": {
+              "body": "The active model for this chat has changed to k3 via provider moonshot. From this point forward, use this runtime metadata when answering questions about what model/provider is active.",
+              "id": "r:3",
+              "kind": "notice",
+              "noticeKind": "model_switch",
+              "origin": "history",
+              "rowId": 3,
+              "seq": 2000,
+              "title": "Model changed",
+              "version": 0
+            },
+            "t:call_1": {
+              "id": "t:call_1",
+              "kind": "tool",
+              "name": "read_file",
+              "origin": "history",
+              "resultKnown": false,
+              "rowId": 4,
+              "seq": 3000,
+              "status": "complete",
+              "toolId": "call_1",
+              "version": 0
+            }
+          },
+          "lastSeq": 0,
+          "order": [
+            "r:1",
+            "r:2",
+            "r:3",
+            "t:call_1"
+          ],
+          "resolvedSessionId": "resolved-1",
+          "storedSessionId": "stored-1",
+          "subagents": {},
+          "turn": {
+            "active": false,
+            "local": false,
+            "nextSeq": 4000
+          },
+          "unreadCount": 0
+        }
+      },
+      {
+        "args": [
+          {
+            "botName": "researcher",
+            "byApprovalId": {},
+            "byDelegationId": {},
+            "byProcessId": {},
+            "byRequestId": {},
+            "byRowId": {
+              "1": "r:1",
+              "2": "r:2",
+              "3": "r:3",
+              "4": "t:call_1"
+            },
+            "byToolId": {
+              "call_1": "t:call_1"
+            },
+            "draft": "",
+            "hydration": "live",
+            "items": {
+              "r:1": {
+                "id": "r:1",
+                "kind": "user",
+                "origin": "history",
+                "rowId": 1,
+                "seq": 0,
+                "text": "how did the deploy go?",
+                "version": 0
+              },
+              "r:2": {
+                "id": "r:2",
+                "interim": false,
+                "kind": "assistant",
+                "origin": "history",
+                "rowId": 2,
+                "seq": 1000,
+                "status": "complete",
+                "streaming": false,
+                "text": "Three services, all green.",
+                "version": 0
+              },
+              "r:3": {
+                "body": "The active model for this chat has changed to k3 via provider moonshot. From this point forward, use this runtime metadata when answering questions about what model/provider is active.",
+                "id": "r:3",
+                "kind": "notice",
+                "noticeKind": "model_switch",
+                "origin": "history",
+                "rowId": 3,
+                "seq": 2000,
+                "title": "Model changed",
+                "version": 0
+              },
+              "t:call_1": {
+                "id": "t:call_1",
+                "kind": "tool",
+                "name": "read_file",
+                "origin": "history",
+                "resultKnown": false,
+                "rowId": 4,
+                "seq": 3000,
+                "status": "complete",
+                "toolId": "call_1",
+                "version": 0
+              }
+            },
+            "lastSeq": 0,
+            "order": [
+              "r:1",
+              "r:2",
+              "r:3",
+              "t:call_1"
+            ],
+            "resolvedSessionId": "resolved-1",
+            "storedSessionId": "stored-1",
+            "subagents": {},
+            "turn": {
+              "active": false,
+              "local": false,
+              "nextSeq": 4000
+            },
+            "unreadCount": 0
+          }
+        ],
+        "op": "previewFromChat",
+        "result": {
+          "system": false,
+          "text": "Three services, all green."
+        }
+      }
+    ],
+    "test": "the preview a transcript can answer for itself > takes the last real message, walking past everything the machine wrote"
+  },
+  {
+    "calls": [
+      {
+        "args": [
+          "researcher",
+          "stored-1",
+          "resolved-1"
+        ],
+        "op": "createChatState",
+        "result": {
+          "botName": "researcher",
+          "byApprovalId": {},
+          "byDelegationId": {},
+          "byProcessId": {},
+          "byRequestId": {},
+          "byRowId": {},
+          "byToolId": {},
+          "draft": "",
+          "hydration": "cold",
+          "items": {},
+          "lastSeq": 0,
+          "order": [],
+          "resolvedSessionId": "resolved-1",
+          "storedSessionId": "stored-1",
+          "subagents": {},
+          "turn": {
+            "active": false,
+            "local": false,
+            "nextSeq": 1000
+          },
+          "unreadCount": 0
+        }
+      },
+      {
+        "args": [
+          [
+            {
+              "role": "assistant",
+              "row_id": 1,
+              "text": "Ready when you are."
+            },
+            {
+              "role": "user",
+              "row_id": 2,
+              "text": "ship it"
+            }
+          ],
+          "rpc"
+        ],
+        "op": "rowsToItems",
+        "result": [
+          {
+            "id": "r:1",
+            "interim": false,
+            "kind": "assistant",
+            "origin": "history",
+            "rowId": 1,
+            "seq": 0,
+            "status": "complete",
+            "streaming": false,
+            "text": "Ready when you are.",
+            "version": 0
+          },
+          {
+            "id": "r:2",
+            "kind": "user",
+            "origin": "history",
+            "rowId": 2,
+            "seq": 1000,
+            "text": "ship it",
+            "version": 0
+          }
+        ]
+      },
+      {
+        "args": [
+          {
+            "botName": "researcher",
+            "byApprovalId": {},
+            "byDelegationId": {},
+            "byProcessId": {},
+            "byRequestId": {},
+            "byRowId": {},
+            "byToolId": {},
+            "draft": "",
+            "hydration": "cold",
+            "items": {},
+            "lastSeq": 0,
+            "order": [],
+            "resolvedSessionId": "resolved-1",
+            "storedSessionId": "stored-1",
+            "subagents": {},
+            "turn": {
+              "active": false,
+              "local": false,
+              "nextSeq": 1000
+            },
+            "unreadCount": 0
+          },
+          [
+            {
+              "id": "r:1",
+              "interim": false,
+              "kind": "assistant",
+              "origin": "history",
+              "rowId": 1,
+              "seq": 0,
+              "status": "complete",
+              "streaming": false,
+              "text": "Ready when you are.",
+              "version": 0
+            },
+            {
+              "id": "r:2",
+              "kind": "user",
+              "origin": "history",
+              "rowId": 2,
+              "seq": 1000,
+              "text": "ship it",
+              "version": 0
+            }
+          ]
+        ],
+        "op": "reconcile",
+        "result": {
+          "botName": "researcher",
+          "byApprovalId": {},
+          "byDelegationId": {},
+          "byProcessId": {},
+          "byRequestId": {},
+          "byRowId": {
+            "1": "r:1",
+            "2": "r:2"
+          },
+          "byToolId": {},
+          "draft": "",
+          "hydration": "live",
+          "items": {
+            "r:1": {
+              "id": "r:1",
+              "interim": false,
+              "kind": "assistant",
+              "origin": "history",
+              "rowId": 1,
+              "seq": 0,
+              "status": "complete",
+              "streaming": false,
+              "text": "Ready when you are.",
+              "version": 0
+            },
+            "r:2": {
+              "id": "r:2",
+              "kind": "user",
+              "origin": "history",
+              "rowId": 2,
+              "seq": 1000,
+              "text": "ship it",
+              "version": 0
+            }
+          },
+          "lastSeq": 0,
+          "order": [
+            "r:1",
+            "r:2"
+          ],
+          "resolvedSessionId": "resolved-1",
+          "storedSessionId": "stored-1",
+          "subagents": {},
+          "turn": {
+            "active": false,
+            "local": false,
+            "nextSeq": 2000
+          },
+          "unreadCount": 0
+        }
+      },
+      {
+        "args": [
+          {
+            "botName": "researcher",
+            "byApprovalId": {},
+            "byDelegationId": {},
+            "byProcessId": {},
+            "byRequestId": {},
+            "byRowId": {
+              "1": "r:1",
+              "2": "r:2"
+            },
+            "byToolId": {},
+            "draft": "",
+            "hydration": "live",
+            "items": {
+              "r:1": {
+                "id": "r:1",
+                "interim": false,
+                "kind": "assistant",
+                "origin": "history",
+                "rowId": 1,
+                "seq": 0,
+                "status": "complete",
+                "streaming": false,
+                "text": "Ready when you are.",
+                "version": 0
+              },
+              "r:2": {
+                "id": "r:2",
+                "kind": "user",
+                "origin": "history",
+                "rowId": 2,
+                "seq": 1000,
+                "text": "ship it",
+                "version": 0
+              }
+            },
+            "lastSeq": 0,
+            "order": [
+              "r:1",
+              "r:2"
+            ],
+            "resolvedSessionId": "resolved-1",
+            "storedSessionId": "stored-1",
+            "subagents": {},
+            "turn": {
+              "active": false,
+              "local": false,
+              "nextSeq": 2000
+            },
+            "unreadCount": 0
+          }
+        ],
+        "op": "previewFromChat",
+        "result": {
+          "system": false,
+          "text": "ship it"
+        }
+      }
+    ],
+    "test": "the preview a transcript can answer for itself > counts the owner’s own turn, because a messenger shows what you last said"
+  },
+  {
+    "calls": [
+      {
+        "args": [
+          "researcher",
+          "stored-1",
+          "resolved-1"
+        ],
+        "op": "createChatState",
+        "result": {
+          "botName": "researcher",
+          "byApprovalId": {},
+          "byDelegationId": {},
+          "byProcessId": {},
+          "byRequestId": {},
+          "byRowId": {},
+          "byToolId": {},
+          "draft": "",
+          "hydration": "cold",
+          "items": {},
+          "lastSeq": 0,
+          "order": [],
+          "resolvedSessionId": "resolved-1",
+          "storedSessionId": "stored-1",
+          "subagents": {},
+          "turn": {
+            "active": false,
+            "local": false,
+            "nextSeq": 1000
+          },
+          "unreadCount": 0
+        }
+      },
+      {
+        "args": [
+          [
+            {
+              "role": "user",
+              "row_id": 1,
+              "text": "Message from 🤖 Writer (@writer): draft is ready"
+            }
+          ],
+          "rpc"
+        ],
+        "op": "rowsToItems",
+        "result": [
+          {
+            "id": "r:1",
+            "kind": "bot_dm_in",
+            "origin": "history",
+            "rowId": 1,
+            "senderHandle": "writer",
+            "senderName": "Writer",
+            "seq": 0,
+            "text": "draft is ready",
+            "version": 0
+          }
+        ]
+      },
+      {
+        "args": [
+          {
+            "botName": "researcher",
+            "byApprovalId": {},
+            "byDelegationId": {},
+            "byProcessId": {},
+            "byRequestId": {},
+            "byRowId": {},
+            "byToolId": {},
+            "draft": "",
+            "hydration": "cold",
+            "items": {},
+            "lastSeq": 0,
+            "order": [],
+            "resolvedSessionId": "resolved-1",
+            "storedSessionId": "stored-1",
+            "subagents": {},
+            "turn": {
+              "active": false,
+              "local": false,
+              "nextSeq": 1000
+            },
+            "unreadCount": 0
+          },
+          [
+            {
+              "id": "r:1",
+              "kind": "bot_dm_in",
+              "origin": "history",
+              "rowId": 1,
+              "senderHandle": "writer",
+              "senderName": "Writer",
+              "seq": 0,
+              "text": "draft is ready",
+              "version": 0
+            }
+          ]
+        ],
+        "op": "reconcile",
+        "result": {
+          "botName": "researcher",
+          "byApprovalId": {},
+          "byDelegationId": {},
+          "byProcessId": {},
+          "byRequestId": {},
+          "byRowId": {
+            "1": "r:1"
+          },
+          "byToolId": {},
+          "draft": "",
+          "hydration": "live",
+          "items": {
+            "r:1": {
+              "id": "r:1",
+              "kind": "bot_dm_in",
+              "origin": "history",
+              "rowId": 1,
+              "senderHandle": "writer",
+              "senderName": "Writer",
+              "seq": 0,
+              "text": "draft is ready",
+              "version": 0
+            }
+          },
+          "lastSeq": 0,
+          "order": [
+            "r:1"
+          ],
+          "resolvedSessionId": "resolved-1",
+          "storedSessionId": "stored-1",
+          "subagents": {},
+          "turn": {
+            "active": false,
+            "local": false,
+            "nextSeq": 1000
+          },
+          "unreadCount": 0
+        }
+      },
+      {
+        "args": [
+          {
+            "botName": "researcher",
+            "byApprovalId": {},
+            "byDelegationId": {},
+            "byProcessId": {},
+            "byRequestId": {},
+            "byRowId": {
+              "1": "r:1"
+            },
+            "byToolId": {},
+            "draft": "",
+            "hydration": "live",
+            "items": {
+              "r:1": {
+                "id": "r:1",
+                "kind": "bot_dm_in",
+                "origin": "history",
+                "rowId": 1,
+                "senderHandle": "writer",
+                "senderName": "Writer",
+                "seq": 0,
+                "text": "draft is ready",
+                "version": 0
+              }
+            },
+            "lastSeq": 0,
+            "order": [
+              "r:1"
+            ],
+            "resolvedSessionId": "resolved-1",
+            "storedSessionId": "stored-1",
+            "subagents": {},
+            "turn": {
+              "active": false,
+              "local": false,
+              "nextSeq": 1000
+            },
+            "unreadCount": 0
+          }
+        ],
+        "op": "previewFromChat",
+        "result": {
+          "fromHandle": "writer",
+          "system": false,
+          "text": "draft is ready"
+        }
+      }
+    ],
+    "test": "the preview a transcript can answer for itself > names the teammate whose DM it is, so the row can prefix the handle"
+  },
+  {
+    "calls": [
+      {
+        "args": [
+          "researcher",
+          "stored-1",
+          "resolved-1"
+        ],
+        "op": "createChatState",
+        "result": {
+          "botName": "researcher",
+          "byApprovalId": {},
+          "byDelegationId": {},
+          "byProcessId": {},
+          "byRequestId": {},
+          "byRowId": {},
+          "byToolId": {},
+          "draft": "",
+          "hydration": "cold",
+          "items": {},
+          "lastSeq": 0,
+          "order": [],
+          "resolvedSessionId": "resolved-1",
+          "storedSessionId": "stored-1",
+          "subagents": {},
+          "turn": {
+            "active": false,
+            "local": false,
+            "nextSeq": 1000
+          },
+          "unreadCount": 0
+        }
+      },
+      {
+        "args": [
+          [
+            {
+              "role": "user",
+              "row_id": 1,
+              "text": "[Cronjob \"Inbox scan\" output — scheduled job, not the user. Review it, act on anything that needs action, and summarize for the chat.]\n\n## Inbox scan\n\n- 3 threads waiting on a reply\n- 1 invoice past due\n\nNothing needs you before tomorrow."
+            }
+          ],
+          "rpc"
+        ],
+        "op": "rowsToItems",
+        "result": [
+          {
+            "body": "## Inbox scan\n\n- 3 threads waiting on a reply\n- 1 invoice past due\n\nNothing needs you before tomorrow.",
+            "id": "r:1",
+            "jobName": "Inbox scan",
+            "kind": "cron_delivery",
+            "origin": "history",
+            "rowId": 1,
+            "seq": 0,
+            "shape": "bot_chat",
+            "version": 0
+          }
+        ]
+      },
+      {
+        "args": [
+          {
+            "botName": "researcher",
+            "byApprovalId": {},
+            "byDelegationId": {},
+            "byProcessId": {},
+            "byRequestId": {},
+            "byRowId": {},
+            "byToolId": {},
+            "draft": "",
+            "hydration": "cold",
+            "items": {},
+            "lastSeq": 0,
+            "order": [],
+            "resolvedSessionId": "resolved-1",
+            "storedSessionId": "stored-1",
+            "subagents": {},
+            "turn": {
+              "active": false,
+              "local": false,
+              "nextSeq": 1000
+            },
+            "unreadCount": 0
+          },
+          [
+            {
+              "body": "## Inbox scan\n\n- 3 threads waiting on a reply\n- 1 invoice past due\n\nNothing needs you before tomorrow.",
+              "id": "r:1",
+              "jobName": "Inbox scan",
+              "kind": "cron_delivery",
+              "origin": "history",
+              "rowId": 1,
+              "seq": 0,
+              "shape": "bot_chat",
+              "version": 0
+            }
+          ]
+        ],
+        "op": "reconcile",
+        "result": {
+          "botName": "researcher",
+          "byApprovalId": {},
+          "byDelegationId": {},
+          "byProcessId": {},
+          "byRequestId": {},
+          "byRowId": {
+            "1": "r:1"
+          },
+          "byToolId": {},
+          "draft": "",
+          "hydration": "live",
+          "items": {
+            "r:1": {
+              "body": "## Inbox scan\n\n- 3 threads waiting on a reply\n- 1 invoice past due\n\nNothing needs you before tomorrow.",
+              "id": "r:1",
+              "jobName": "Inbox scan",
+              "kind": "cron_delivery",
+              "origin": "history",
+              "rowId": 1,
+              "seq": 0,
+              "shape": "bot_chat",
+              "version": 0
+            }
+          },
+          "lastSeq": 0,
+          "order": [
+            "r:1"
+          ],
+          "resolvedSessionId": "resolved-1",
+          "storedSessionId": "stored-1",
+          "subagents": {},
+          "turn": {
+            "active": false,
+            "local": false,
+            "nextSeq": 1000
+          },
+          "unreadCount": 0
+        }
+      },
+      {
+        "args": [
+          {
+            "botName": "researcher",
+            "byApprovalId": {},
+            "byDelegationId": {},
+            "byProcessId": {},
+            "byRequestId": {},
+            "byRowId": {
+              "1": "r:1"
+            },
+            "byToolId": {},
+            "draft": "",
+            "hydration": "live",
+            "items": {
+              "r:1": {
+                "body": "## Inbox scan\n\n- 3 threads waiting on a reply\n- 1 invoice past due\n\nNothing needs you before tomorrow.",
+                "id": "r:1",
+                "jobName": "Inbox scan",
+                "kind": "cron_delivery",
+                "origin": "history",
+                "rowId": 1,
+                "seq": 0,
+                "shape": "bot_chat",
+                "version": 0
+              }
+            },
+            "lastSeq": 0,
+            "order": [
+              "r:1"
+            ],
+            "resolvedSessionId": "resolved-1",
+            "storedSessionId": "stored-1",
+            "subagents": {},
+            "turn": {
+              "active": false,
+              "local": false,
+              "nextSeq": 1000
+            },
+            "unreadCount": 0
+          }
+        ],
+        "op": "previewFromChat",
+        "result": {
+          "system": false,
+          "text": "## Inbox scan\n\n- 3 threads waiting on a reply\n- 1 invoice past due\n\nNothing needs you before tomorrow."
+        }
+      }
+    ],
+    "test": "the preview a transcript can answer for itself > previews a cron report by its body, never by its header"
+  },
+  {
+    "calls": [
+      {
+        "args": [
+          "researcher",
+          "stored-1",
+          "resolved-1"
+        ],
+        "op": "createChatState",
+        "result": {
+          "botName": "researcher",
+          "byApprovalId": {},
+          "byDelegationId": {},
+          "byProcessId": {},
+          "byRequestId": {},
+          "byRowId": {},
+          "byToolId": {},
+          "draft": "",
+          "hydration": "cold",
+          "items": {},
+          "lastSeq": 0,
+          "order": [],
+          "resolvedSessionId": "resolved-1",
+          "storedSessionId": "stored-1",
+          "subagents": {},
+          "turn": {
+            "active": false,
+            "local": false,
+            "nextSeq": 1000
+          },
+          "unreadCount": 0
+        }
+      },
+      {
+        "args": [
+          [
+            {
+              "role": "user",
+              "row_id": 1,
+              "text": "[ASYNC DELEGATION BATCH COMPLETE — deleg_1bd47ada]\nA background fan-out unit you dispatched earlier — 3 subagent(s) — has finished; its consolidated results are below. Any other units from the same delegate_task call report separately as they finish.\n\nDispatched: 2026-09-21 20:44:11 (14m ago)\nRole: leaf   Model: gpt-5   Total duration: 812s\n\n--- ✓ TASK 1/3: Audit deps  (status=completed, 41s) ---\nNo drift.\n\n--- ✓ TASK 2/3: Write tests  (status=completed, 190s) ---\nNine cases, all green.\n\n--- ✗ TASK 3/3: Update docs  (status=failed) ---\n(no summary — status=failed: the page was locked)"
+            }
+          ],
+          "rpc"
+        ],
+        "op": "rowsToItems",
+        "result": [
+          {
+            "body": "[ASYNC DELEGATION BATCH COMPLETE — deleg_1bd47ada]\nA background fan-out unit you dispatched earlier — 3 subagent(s) — has finished; its consolidated results are below. Any other units from the same delegate_task call report separately as they finish.\n\nDispatched: 2026-09-21 20:44:11 (14m ago)\nRole: leaf   Model: gpt-5   Total duration: 812s\n\n--- ✓ TASK 1/3: Audit deps  (status=completed, 41s) ---\nNo drift.\n\n--- ✓ TASK 2/3: Write tests  (status=completed, 190s) ---\nNine cases, all green.\n\n--- ✗ TASK 3/3: Update docs  (status=failed) ---\n(no summary — status=failed: the page was locked)",
+            "id": "r:1",
+            "kind": "notice",
+            "noticeKind": "async_delegation_complete",
+            "origin": "history",
+            "rowId": 1,
+            "seq": 0,
+            "title": "ASYNC DELEGATION BATCH COMPLETE — deleg_1bd47ada",
+            "version": 0
+          }
+        ]
+      },
+      {
+        "args": [
+          {
+            "botName": "researcher",
+            "byApprovalId": {},
+            "byDelegationId": {},
+            "byProcessId": {},
+            "byRequestId": {},
+            "byRowId": {},
+            "byToolId": {},
+            "draft": "",
+            "hydration": "cold",
+            "items": {},
+            "lastSeq": 0,
+            "order": [],
+            "resolvedSessionId": "resolved-1",
+            "storedSessionId": "stored-1",
+            "subagents": {},
+            "turn": {
+              "active": false,
+              "local": false,
+              "nextSeq": 1000
+            },
+            "unreadCount": 0
+          },
+          [
+            {
+              "body": "[ASYNC DELEGATION BATCH COMPLETE — deleg_1bd47ada]\nA background fan-out unit you dispatched earlier — 3 subagent(s) — has finished; its consolidated results are below. Any other units from the same delegate_task call report separately as they finish.\n\nDispatched: 2026-09-21 20:44:11 (14m ago)\nRole: leaf   Model: gpt-5   Total duration: 812s\n\n--- ✓ TASK 1/3: Audit deps  (status=completed, 41s) ---\nNo drift.\n\n--- ✓ TASK 2/3: Write tests  (status=completed, 190s) ---\nNine cases, all green.\n\n--- ✗ TASK 3/3: Update docs  (status=failed) ---\n(no summary — status=failed: the page was locked)",
+              "id": "r:1",
+              "kind": "notice",
+              "noticeKind": "async_delegation_complete",
+              "origin": "history",
+              "rowId": 1,
+              "seq": 0,
+              "title": "ASYNC DELEGATION BATCH COMPLETE — deleg_1bd47ada",
+              "version": 0
+            }
+          ]
+        ],
+        "op": "reconcile",
+        "result": {
+          "botName": "researcher",
+          "byApprovalId": {},
+          "byDelegationId": {},
+          "byProcessId": {},
+          "byRequestId": {},
+          "byRowId": {
+            "1": "r:1"
+          },
+          "byToolId": {},
+          "draft": "",
+          "hydration": "live",
+          "items": {
+            "r:1": {
+              "body": "[ASYNC DELEGATION BATCH COMPLETE — deleg_1bd47ada]\nA background fan-out unit you dispatched earlier — 3 subagent(s) — has finished; its consolidated results are below. Any other units from the same delegate_task call report separately as they finish.\n\nDispatched: 2026-09-21 20:44:11 (14m ago)\nRole: leaf   Model: gpt-5   Total duration: 812s\n\n--- ✓ TASK 1/3: Audit deps  (status=completed, 41s) ---\nNo drift.\n\n--- ✓ TASK 2/3: Write tests  (status=completed, 190s) ---\nNine cases, all green.\n\n--- ✗ TASK 3/3: Update docs  (status=failed) ---\n(no summary — status=failed: the page was locked)",
+              "id": "r:1",
+              "kind": "notice",
+              "noticeKind": "async_delegation_complete",
+              "origin": "history",
+              "rowId": 1,
+              "seq": 0,
+              "title": "ASYNC DELEGATION BATCH COMPLETE — deleg_1bd47ada",
+              "version": 0
+            }
+          },
+          "lastSeq": 0,
+          "order": [
+            "r:1"
+          ],
+          "resolvedSessionId": "resolved-1",
+          "storedSessionId": "stored-1",
+          "subagents": {},
+          "turn": {
+            "active": false,
+            "local": false,
+            "nextSeq": 1000
+          },
+          "unreadCount": 0
+        }
+      },
+      {
+        "args": [
+          {
+            "botName": "researcher",
+            "byApprovalId": {},
+            "byDelegationId": {},
+            "byProcessId": {},
+            "byRequestId": {},
+            "byRowId": {
+              "1": "r:1"
+            },
+            "byToolId": {},
+            "draft": "",
+            "hydration": "live",
+            "items": {
+              "r:1": {
+                "body": "[ASYNC DELEGATION BATCH COMPLETE — deleg_1bd47ada]\nA background fan-out unit you dispatched earlier — 3 subagent(s) — has finished; its consolidated results are below. Any other units from the same delegate_task call report separately as they finish.\n\nDispatched: 2026-09-21 20:44:11 (14m ago)\nRole: leaf   Model: gpt-5   Total duration: 812s\n\n--- ✓ TASK 1/3: Audit deps  (status=completed, 41s) ---\nNo drift.\n\n--- ✓ TASK 2/3: Write tests  (status=completed, 190s) ---\nNine cases, all green.\n\n--- ✗ TASK 3/3: Update docs  (status=failed) ---\n(no summary — status=failed: the page was locked)",
+                "id": "r:1",
+                "kind": "notice",
+                "noticeKind": "async_delegation_complete",
+                "origin": "history",
+                "rowId": 1,
+                "seq": 0,
+                "title": "ASYNC DELEGATION BATCH COMPLETE — deleg_1bd47ada",
+                "version": 0
+              }
+            },
+            "lastSeq": 0,
+            "order": [
+              "r:1"
+            ],
+            "resolvedSessionId": "resolved-1",
+            "storedSessionId": "stored-1",
+            "subagents": {},
+            "turn": {
+              "active": false,
+              "local": false,
+              "nextSeq": 1000
+            },
+            "unreadCount": 0
+          }
+        ],
+        "op": "previewFromChat",
+        "result": null
+      },
+      {
+        "args": [],
+        "op": "previewFromChat",
+        "result": null
+      }
+    ],
+    "test": "the preview a transcript can answer for itself > answers nothing for a chat holding only scaffolding, so the caller can fall back"
+  },
+  {
+    "calls": [
+      {
+        "args": [
+          "researcher",
+          "stored-1",
+          "resolved-1"
+        ],
+        "op": "createChatState",
+        "result": {
+          "botName": "researcher",
+          "byApprovalId": {},
+          "byDelegationId": {},
+          "byProcessId": {},
+          "byRequestId": {},
+          "byRowId": {},
+          "byToolId": {},
+          "draft": "",
+          "hydration": "cold",
+          "items": {},
+          "lastSeq": 0,
+          "order": [],
+          "resolvedSessionId": "resolved-1",
+          "storedSessionId": "stored-1",
+          "subagents": {},
+          "turn": {
+            "active": false,
+            "local": false,
+            "nextSeq": 1000
+          },
+          "unreadCount": 0
+        }
+      },
+      {
+        "args": [
+          [
+            {
+              "role": "assistant",
+              "row_id": 1,
+              "text": "Earlier answer."
+            },
+            {
+              "role": "user",
+              "row_id": 2,
+              "text": "   "
+            }
+          ],
+          "rpc"
+        ],
+        "op": "rowsToItems",
+        "result": [
+          {
+            "id": "r:1",
+            "interim": false,
+            "kind": "assistant",
+            "origin": "history",
+            "rowId": 1,
+            "seq": 0,
+            "status": "complete",
+            "streaming": false,
+            "text": "Earlier answer.",
+            "version": 0
+          }
+        ]
+      },
+      {
+        "args": [
+          {
+            "botName": "researcher",
+            "byApprovalId": {},
+            "byDelegationId": {},
+            "byProcessId": {},
+            "byRequestId": {},
+            "byRowId": {},
+            "byToolId": {},
+            "draft": "",
+            "hydration": "cold",
+            "items": {},
+            "lastSeq": 0,
+            "order": [],
+            "resolvedSessionId": "resolved-1",
+            "storedSessionId": "stored-1",
+            "subagents": {},
+            "turn": {
+              "active": false,
+              "local": false,
+              "nextSeq": 1000
+            },
+            "unreadCount": 0
+          },
+          [
+            {
+              "id": "r:1",
+              "interim": false,
+              "kind": "assistant",
+              "origin": "history",
+              "rowId": 1,
+              "seq": 0,
+              "status": "complete",
+              "streaming": false,
+              "text": "Earlier answer.",
+              "version": 0
+            }
+          ]
+        ],
+        "op": "reconcile",
+        "result": {
+          "botName": "researcher",
+          "byApprovalId": {},
+          "byDelegationId": {},
+          "byProcessId": {},
+          "byRequestId": {},
+          "byRowId": {
+            "1": "r:1"
+          },
+          "byToolId": {},
+          "draft": "",
+          "hydration": "live",
+          "items": {
+            "r:1": {
+              "id": "r:1",
+              "interim": false,
+              "kind": "assistant",
+              "origin": "history",
+              "rowId": 1,
+              "seq": 0,
+              "status": "complete",
+              "streaming": false,
+              "text": "Earlier answer.",
+              "version": 0
+            }
+          },
+          "lastSeq": 0,
+          "order": [
+            "r:1"
+          ],
+          "resolvedSessionId": "resolved-1",
+          "storedSessionId": "stored-1",
+          "subagents": {},
+          "turn": {
+            "active": false,
+            "local": false,
+            "nextSeq": 1000
+          },
+          "unreadCount": 0
+        }
+      },
+      {
+        "args": [
+          {
+            "botName": "researcher",
+            "byApprovalId": {},
+            "byDelegationId": {},
+            "byProcessId": {},
+            "byRequestId": {},
+            "byRowId": {
+              "1": "r:1"
+            },
+            "byToolId": {},
+            "draft": "",
+            "hydration": "live",
+            "items": {
+              "r:1": {
+                "id": "r:1",
+                "interim": false,
+                "kind": "assistant",
+                "origin": "history",
+                "rowId": 1,
+                "seq": 0,
+                "status": "complete",
+                "streaming": false,
+                "text": "Earlier answer.",
+                "version": 0
+              }
+            },
+            "lastSeq": 0,
+            "order": [
+              "r:1"
+            ],
+            "resolvedSessionId": "resolved-1",
+            "storedSessionId": "stored-1",
+            "subagents": {},
+            "turn": {
+              "active": false,
+              "local": false,
+              "nextSeq": 1000
+            },
+            "unreadCount": 0
+          }
+        ],
+        "op": "previewFromChat",
+        "result": {
+          "system": false,
+          "text": "Earlier answer."
+        }
+      }
+    ],
+    "test": "the preview a transcript can answer for itself > walks past a bubble with nothing in it — an empty turn is not a message"
+  },
+  {
+    "calls": [
+      {
+        "args": [
+          "[System: The active model for this chat has changed to k3 via provider moonshot. From this point forward, use this runtime metadata when answering questions about what model/provider is active.]"
+        ],
+        "op": "previewFromGatewayText",
+        "result": {
+          "system": true,
+          "text": "The active model for this chat has changed to k3 via provider moonshot."
+        }
+      }
+    ],
+    "test": "the preview when only the gateway’s string is available > shows the note without its wrapper, and marks it as the machine’s"
+  },
+  {
+    "calls": [
+      {
+        "args": [
+          "[System: The active model for this chat has changed to k3 via provider moonshot. From this point forward, use this runtime metadata when answering questions about what model/provider is active.]"
+        ],
+        "op": "previewFromGatewayText",
+        "result": {
+          "system": true,
+          "text": "The active model for this chat has changed to k3 via provider moonshot."
+        }
+      }
+    ],
+    "test": "the preview when only the gateway’s string is available > never lets the raw wrapper through"
+  },
+  {
+    "calls": [
+      {
+        "args": [
+          "[ASYNC DELEGATION BATCH COMPLETE — deleg_1bd47ada]\nA background fan-out unit you dispatched earlier — 3 subagent(s) — has finished; its consolidated results are below. Any other units from the same delegate_task call report separately as they finish.\n\nDispatched: 2026-09-21 20:44:11 (14m ago)\nRole: leaf   Model: gpt-5   Total duration: 812s\n\n--- ✓ TASK 1/3: Audit deps  (status=completed, 41s) ---\nNo drift.\n\n--- ✓ TASK 2/3: Write tests  (status=completed, 190s) ---\nNine cases, all green.\n\n--- ✗ TASK 3/3: Update docs  (status=failed) ---\n(no summary — status=failed: the page was locked)"
+        ],
+        "op": "previewFromGatewayText",
+        "result": {
+          "system": true,
+          "text": "ASYNC DELEGATION BATCH COMPLETE — deleg_1bd47ada"
+        }
+      }
+    ],
+    "test": "the preview when only the gateway’s string is available > shows a report’s header rather than its whole body, which is pages long"
+  },
+  {
+    "calls": [
+      {
+        "args": [
+          "can you check this"
+        ],
+        "op": "previewFromGatewayText",
+        "result": {
+          "system": false,
+          "text": "can you check this"
+        }
+      }
+    ],
+    "test": "the preview when only the gateway’s string is available > leaves an ordinary message exactly as it arrived"
+  },
+  {
+    "calls": [
+      {
+        "args": [
+          ""
+        ],
+        "op": "previewFromGatewayText",
+        "result": null
+      },
+      {
+        "args": [
+          "   "
+        ],
+        "op": "previewFromGatewayText",
+        "result": null
+      },
+      {
+        "args": [],
+        "op": "previewFromGatewayText",
+        "result": null
+      }
+    ],
+    "test": "the preview when only the gateway’s string is available > answers nothing for nothing"
+  },
+  {
+    "calls": [
+      {
+        "args": [
+          "researcher",
+          "stored-1",
+          "resolved-1"
+        ],
+        "op": "createChatState",
+        "result": {
+          "botName": "researcher",
+          "byApprovalId": {},
+          "byDelegationId": {},
+          "byProcessId": {},
+          "byRequestId": {},
+          "byRowId": {},
+          "byToolId": {},
+          "draft": "",
+          "hydration": "cold",
+          "items": {},
+          "lastSeq": 0,
+          "order": [],
+          "resolvedSessionId": "resolved-1",
+          "storedSessionId": "stored-1",
+          "subagents": {},
+          "turn": {
+            "active": false,
+            "local": false,
+            "nextSeq": 1000
+          },
+          "unreadCount": 0
+        }
+      },
+      {
+        "args": [
+          [
+            {
+              "role": "assistant",
+              "row_id": 1,
+              "text": "Three services, all green."
+            },
+            {
+              "display_kind": "model_switch",
+              "role": "user",
+              "row_id": 2,
+              "text": "[System: The active model for this chat has changed to k3 via provider moonshot. From this point forward, use this runtime metadata when answering questions about what model/provider is active.]"
+            }
+          ],
+          "rpc"
+        ],
+        "op": "rowsToItems",
+        "result": [
+          {
+            "id": "r:1",
+            "interim": false,
+            "kind": "assistant",
+            "origin": "history",
+            "rowId": 1,
+            "seq": 0,
+            "status": "complete",
+            "streaming": false,
+            "text": "Three services, all green.",
+            "version": 0
+          },
+          {
+            "body": "The active model for this chat has changed to k3 via provider moonshot. From this point forward, use this runtime metadata when answering questions about what model/provider is active.",
+            "id": "r:2",
+            "kind": "notice",
+            "noticeKind": "model_switch",
+            "origin": "history",
+            "rowId": 2,
+            "seq": 1000,
+            "title": "Model changed",
+            "version": 0
+          }
+        ]
+      },
+      {
+        "args": [
+          {
+            "botName": "researcher",
+            "byApprovalId": {},
+            "byDelegationId": {},
+            "byProcessId": {},
+            "byRequestId": {},
+            "byRowId": {},
+            "byToolId": {},
+            "draft": "",
+            "hydration": "cold",
+            "items": {},
+            "lastSeq": 0,
+            "order": [],
+            "resolvedSessionId": "resolved-1",
+            "storedSessionId": "stored-1",
+            "subagents": {},
+            "turn": {
+              "active": false,
+              "local": false,
+              "nextSeq": 1000
+            },
+            "unreadCount": 0
+          },
+          [
+            {
+              "id": "r:1",
+              "interim": false,
+              "kind": "assistant",
+              "origin": "history",
+              "rowId": 1,
+              "seq": 0,
+              "status": "complete",
+              "streaming": false,
+              "text": "Three services, all green.",
+              "version": 0
+            },
+            {
+              "body": "The active model for this chat has changed to k3 via provider moonshot. From this point forward, use this runtime metadata when answering questions about what model/provider is active.",
+              "id": "r:2",
+              "kind": "notice",
+              "noticeKind": "model_switch",
+              "origin": "history",
+              "rowId": 2,
+              "seq": 1000,
+              "title": "Model changed",
+              "version": 0
+            }
+          ]
+        ],
+        "op": "reconcile",
+        "result": {
+          "botName": "researcher",
+          "byApprovalId": {},
+          "byDelegationId": {},
+          "byProcessId": {},
+          "byRequestId": {},
+          "byRowId": {
+            "1": "r:1",
+            "2": "r:2"
+          },
+          "byToolId": {},
+          "draft": "",
+          "hydration": "live",
+          "items": {
+            "r:1": {
+              "id": "r:1",
+              "interim": false,
+              "kind": "assistant",
+              "origin": "history",
+              "rowId": 1,
+              "seq": 0,
+              "status": "complete",
+              "streaming": false,
+              "text": "Three services, all green.",
+              "version": 0
+            },
+            "r:2": {
+              "body": "The active model for this chat has changed to k3 via provider moonshot. From this point forward, use this runtime metadata when answering questions about what model/provider is active.",
+              "id": "r:2",
+              "kind": "notice",
+              "noticeKind": "model_switch",
+              "origin": "history",
+              "rowId": 2,
+              "seq": 1000,
+              "title": "Model changed",
+              "version": 0
+            }
+          },
+          "lastSeq": 0,
+          "order": [
+            "r:1",
+            "r:2"
+          ],
+          "resolvedSessionId": "resolved-1",
+          "storedSessionId": "stored-1",
+          "subagents": {},
+          "turn": {
+            "active": false,
+            "local": false,
+            "nextSeq": 2000
+          },
+          "unreadCount": 0
+        }
+      },
+      {
+        "args": [
+          {
+            "botName": "researcher",
+            "byApprovalId": {},
+            "byDelegationId": {},
+            "byProcessId": {},
+            "byRequestId": {},
+            "byRowId": {
+              "1": "r:1",
+              "2": "r:2"
+            },
+            "byToolId": {},
+            "draft": "",
+            "hydration": "live",
+            "items": {
+              "r:1": {
+                "id": "r:1",
+                "interim": false,
+                "kind": "assistant",
+                "origin": "history",
+                "rowId": 1,
+                "seq": 0,
+                "status": "complete",
+                "streaming": false,
+                "text": "Three services, all green.",
+                "version": 0
+              },
+              "r:2": {
+                "body": "The active model for this chat has changed to k3 via provider moonshot. From this point forward, use this runtime metadata when answering questions about what model/provider is active.",
+                "id": "r:2",
+                "kind": "notice",
+                "noticeKind": "model_switch",
+                "origin": "history",
+                "rowId": 2,
+                "seq": 1000,
+                "title": "Model changed",
+                "version": 0
+              }
+            },
+            "lastSeq": 0,
+            "order": [
+              "r:1",
+              "r:2"
+            ],
+            "resolvedSessionId": "resolved-1",
+            "storedSessionId": "stored-1",
+            "subagents": {},
+            "turn": {
+              "active": false,
+              "local": false,
+              "nextSeq": 2000
+            },
+            "unreadCount": 0
+          },
+          "[System: The active model for this chat has changed to k3 via provider moonshot. From this point forward, use this runtime metadata when answering questions about what model/provider is active.]"
+        ],
+        "op": "chatRowPreview",
+        "result": {
+          "system": false,
+          "text": "Three services, all green."
+        }
+      }
+    ],
+    "test": "choosing between the two > prefers a real message the transcript holds over a marker the string carries"
+  },
+  {
+    "calls": [
+      {
+        "args": [
+          "researcher",
+          "stored-1",
+          "resolved-1"
+        ],
+        "op": "createChatState",
+        "result": {
+          "botName": "researcher",
+          "byApprovalId": {},
+          "byDelegationId": {},
+          "byProcessId": {},
+          "byRequestId": {},
+          "byRowId": {},
+          "byToolId": {},
+          "draft": "",
+          "hydration": "cold",
+          "items": {},
+          "lastSeq": 0,
+          "order": [],
+          "resolvedSessionId": "resolved-1",
+          "storedSessionId": "stored-1",
+          "subagents": {},
+          "turn": {
+            "active": false,
+            "local": false,
+            "nextSeq": 1000
+          },
+          "unreadCount": 0
+        }
+      },
+      {
+        "args": [
+          [],
+          "rpc"
+        ],
+        "op": "rowsToItems",
+        "result": []
+      },
+      {
+        "args": [
+          {
+            "botName": "researcher",
+            "byApprovalId": {},
+            "byDelegationId": {},
+            "byProcessId": {},
+            "byRequestId": {},
+            "byRowId": {},
+            "byToolId": {},
+            "draft": "",
+            "hydration": "cold",
+            "items": {},
+            "lastSeq": 0,
+            "order": [],
+            "resolvedSessionId": "resolved-1",
+            "storedSessionId": "stored-1",
+            "subagents": {},
+            "turn": {
+              "active": false,
+              "local": false,
+              "nextSeq": 1000
+            },
+            "unreadCount": 0
+          },
+          []
+        ],
+        "op": "reconcile",
+        "result": {
+          "botName": "researcher",
+          "byApprovalId": {},
+          "byDelegationId": {},
+          "byProcessId": {},
+          "byRequestId": {},
+          "byRowId": {},
+          "byToolId": {},
+          "draft": "",
+          "hydration": "live",
+          "items": {},
+          "lastSeq": 0,
+          "order": [],
+          "resolvedSessionId": "resolved-1",
+          "storedSessionId": "stored-1",
+          "subagents": {},
+          "turn": {
+            "active": false,
+            "local": false,
+            "nextSeq": 1000
+          },
+          "unreadCount": 0
+        }
+      },
+      {
+        "args": [
+          {
+            "botName": "researcher",
+            "byApprovalId": {},
+            "byDelegationId": {},
+            "byProcessId": {},
+            "byRequestId": {},
+            "byRowId": {},
+            "byToolId": {},
+            "draft": "",
+            "hydration": "live",
+            "items": {},
+            "lastSeq": 0,
+            "order": [],
+            "resolvedSessionId": "resolved-1",
+            "storedSessionId": "stored-1",
+            "subagents": {},
+            "turn": {
+              "active": false,
+              "local": false,
+              "nextSeq": 1000
+            },
+            "unreadCount": 0
+          },
+          "[System: The active model for this chat has changed to k3 via provider moonshot. From this point forward, use this runtime metadata when answering questions about what model/provider is active.]"
+        ],
+        "op": "chatRowPreview",
+        "result": {
+          "system": true,
+          "text": "The active model for this chat has changed to k3 via provider moonshot."
+        }
+      },
+      {
+        "args": [
+          null,
+          "[System: The active model for this chat has changed to k3 via provider moonshot. From this point forward, use this runtime metadata when answering questions about what model/provider is active.]"
+        ],
+        "op": "chatRowPreview",
+        "result": {
+          "system": true,
+          "text": "The active model for this chat has changed to k3 via provider moonshot."
+        }
+      }
+    ],
+    "test": "choosing between the two > falls back to the unwrapped string when the transcript has no message in it"
+  },
+  {
+    "calls": [
+      {
+        "args": [
+          "[IMPORTANT: Background process proc_38ad4d983751 completed normally (exit code 0). Command: /usr/local/lib/tool --flag]"
+        ],
+        "op": "previewFromGatewayText",
+        "result": {
+          "system": true,
+          "text": "Background process proc_38ad4d983751 completed normally (exit code 0)"
+        }
+      }
+    ],
+    "test": "previewFromGatewayText on a row the gateway cut for the list > reads a single-line background-process wrapper as a system line"
+  },
+  {
+    "calls": [
+      {
+        "args": [
+          "[IMPORTANT: Background process proc_38ad4d983751 completed normally (exit code 0). Command: /usr/local/lib/too..."
+        ],
+        "op": "previewFromGatewayText",
+        "result": {
+          "system": true,
+          "text": "Background process proc_38ad4d983751 completed normally (exit code 0)"
+        }
+      }
+    ],
+    "test": "previewFromGatewayText on a row the gateway cut for the list > reads the same wrapper after the gateway cut its bracket off"
+  },
+  {
+    "calls": [
+      {
+        "args": [
+          "[System: The active model for this chat has changed to gpt-6-astra via /model. Sessions that were open keep t..."
+        ],
+        "op": "previewFromGatewayText",
+        "result": {
+          "system": true,
+          "text": "The active model for this chat has changed to gpt-6-astra via /model"
+        }
+      }
+    ],
+    "test": "previewFromGatewayText on a row the gateway cut for the list > reads a cut model-switch note down to its first sentence"
+  },
+  {
+    "calls": [
+      {
+        "args": [
+          "[the plan](https://example.test) is ready"
+        ],
+        "op": "previewFromGatewayText",
+        "result": {
+          "system": false,
+          "text": "[the plan](https://example.test) is ready"
+        }
+      }
+    ],
+    "test": "previewFromGatewayText on a row the gateway cut for the list > leaves a message that merely starts with a bracket alone"
+  },
+  {
+    "calls": [
+      {
+        "args": [
+          "researcher",
+          "stored-1",
+          "resolved-1"
+        ],
+        "op": "createChatState",
+        "result": {
+          "botName": "researcher",
+          "byApprovalId": {},
+          "byDelegationId": {},
+          "byProcessId": {},
+          "byRequestId": {},
+          "byRowId": {},
+          "byToolId": {},
+          "draft": "",
+          "hydration": "cold",
+          "items": {},
+          "lastSeq": 0,
+          "order": [],
+          "resolvedSessionId": "resolved-1",
+          "storedSessionId": "stored-1",
+          "subagents": {},
+          "turn": {
+            "active": false,
+            "local": false,
+            "nextSeq": 1000
+          },
+          "unreadCount": 0
+        }
+      },
+      {
+        "args": [
+          [
+            {
+              "display_metadata": {
+                "author": {
+                  "id": "authentik:writer",
+                  "name": "Robin"
+                }
+              },
+              "role": "user",
+              "row_id": 1,
+              "text": "draft is ready"
+            }
+          ],
+          "rpc"
+        ],
+        "op": "rowsToItems",
+        "result": [
+          {
+            "author": {
+              "id": "authentik:writer",
+              "name": "Robin"
+            },
+            "id": "r:1",
+            "kind": "user",
+            "origin": "history",
+            "rowId": 1,
+            "seq": 0,
+            "text": "draft is ready",
+            "version": 0
+          }
+        ]
+      },
+      {
+        "args": [
+          {
+            "botName": "researcher",
+            "byApprovalId": {},
+            "byDelegationId": {},
+            "byProcessId": {},
+            "byRequestId": {},
+            "byRowId": {},
+            "byToolId": {},
+            "draft": "",
+            "hydration": "cold",
+            "items": {},
+            "lastSeq": 0,
+            "order": [],
+            "resolvedSessionId": "resolved-1",
+            "storedSessionId": "stored-1",
+            "subagents": {},
+            "turn": {
+              "active": false,
+              "local": false,
+              "nextSeq": 1000
+            },
+            "unreadCount": 0
+          },
+          [
+            {
+              "author": {
+                "id": "authentik:writer",
+                "name": "Robin"
+              },
+              "id": "r:1",
+              "kind": "user",
+              "origin": "history",
+              "rowId": 1,
+              "seq": 0,
+              "text": "draft is ready",
+              "version": 0
+            }
+          ]
+        ],
+        "op": "reconcile",
+        "result": {
+          "botName": "researcher",
+          "byApprovalId": {},
+          "byDelegationId": {},
+          "byProcessId": {},
+          "byRequestId": {},
+          "byRowId": {
+            "1": "r:1"
+          },
+          "byToolId": {},
+          "draft": "",
+          "hydration": "live",
+          "items": {
+            "r:1": {
+              "author": {
+                "id": "authentik:writer",
+                "name": "Robin"
+              },
+              "id": "r:1",
+              "kind": "user",
+              "origin": "history",
+              "rowId": 1,
+              "seq": 0,
+              "text": "draft is ready",
+              "version": 0
+            }
+          },
+          "lastSeq": 0,
+          "order": [
+            "r:1"
+          ],
+          "resolvedSessionId": "resolved-1",
+          "storedSessionId": "stored-1",
+          "subagents": {},
+          "turn": {
+            "active": false,
+            "local": false,
+            "nextSeq": 1000
+          },
+          "unreadCount": 0
+        }
+      }
+    ],
+    "test": "who a group-chat row’s preview leads with (HERM-83, Task 5) > leads with the resolved name for somebody else’s row"
+  },
+  {
+    "calls": [
+      {
+        "args": [
+          "researcher",
+          "stored-1",
+          "resolved-1"
+        ],
+        "op": "createChatState",
+        "result": {
+          "botName": "researcher",
+          "byApprovalId": {},
+          "byDelegationId": {},
+          "byProcessId": {},
+          "byRequestId": {},
+          "byRowId": {},
+          "byToolId": {},
+          "draft": "",
+          "hydration": "cold",
+          "items": {},
+          "lastSeq": 0,
+          "order": [],
+          "resolvedSessionId": "resolved-1",
+          "storedSessionId": "stored-1",
+          "subagents": {},
+          "turn": {
+            "active": false,
+            "local": false,
+            "nextSeq": 1000
+          },
+          "unreadCount": 0
+        }
+      },
+      {
+        "args": [
+          [
+            {
+              "display_metadata": {
+                "author": {
+                  "id": "authentik:me",
+                  "name": "Me"
+                }
+              },
+              "role": "user",
+              "row_id": 1,
+              "text": "draft is ready"
+            }
+          ],
+          "rpc"
+        ],
+        "op": "rowsToItems",
+        "result": [
+          {
+            "author": {
+              "id": "authentik:me",
+              "name": "Me"
+            },
+            "id": "r:1",
+            "kind": "user",
+            "origin": "history",
+            "rowId": 1,
+            "seq": 0,
+            "text": "draft is ready",
+            "version": 0
+          }
+        ]
+      },
+      {
+        "args": [
+          {
+            "botName": "researcher",
+            "byApprovalId": {},
+            "byDelegationId": {},
+            "byProcessId": {},
+            "byRequestId": {},
+            "byRowId": {},
+            "byToolId": {},
+            "draft": "",
+            "hydration": "cold",
+            "items": {},
+            "lastSeq": 0,
+            "order": [],
+            "resolvedSessionId": "resolved-1",
+            "storedSessionId": "stored-1",
+            "subagents": {},
+            "turn": {
+              "active": false,
+              "local": false,
+              "nextSeq": 1000
+            },
+            "unreadCount": 0
+          },
+          [
+            {
+              "author": {
+                "id": "authentik:me",
+                "name": "Me"
+              },
+              "id": "r:1",
+              "kind": "user",
+              "origin": "history",
+              "rowId": 1,
+              "seq": 0,
+              "text": "draft is ready",
+              "version": 0
+            }
+          ]
+        ],
+        "op": "reconcile",
+        "result": {
+          "botName": "researcher",
+          "byApprovalId": {},
+          "byDelegationId": {},
+          "byProcessId": {},
+          "byRequestId": {},
+          "byRowId": {
+            "1": "r:1"
+          },
+          "byToolId": {},
+          "draft": "",
+          "hydration": "live",
+          "items": {
+            "r:1": {
+              "author": {
+                "id": "authentik:me",
+                "name": "Me"
+              },
+              "id": "r:1",
+              "kind": "user",
+              "origin": "history",
+              "rowId": 1,
+              "seq": 0,
+              "text": "draft is ready",
+              "version": 0
+            }
+          },
+          "lastSeq": 0,
+          "order": [
+            "r:1"
+          ],
+          "resolvedSessionId": "resolved-1",
+          "storedSessionId": "stored-1",
+          "subagents": {},
+          "turn": {
+            "active": false,
+            "local": false,
+            "nextSeq": 1000
+          },
+          "unreadCount": 0
+        }
+      }
+    ],
+    "test": "who a group-chat row’s preview leads with (HERM-83, Task 5) > never names the reader’s own attributed row"
+  },
+  {
+    "calls": [
+      {
+        "args": [
+          "researcher",
+          "stored-1",
+          "resolved-1"
+        ],
+        "op": "createChatState",
+        "result": {
+          "botName": "researcher",
+          "byApprovalId": {},
+          "byDelegationId": {},
+          "byProcessId": {},
+          "byRequestId": {},
+          "byRowId": {},
+          "byToolId": {},
+          "draft": "",
+          "hydration": "cold",
+          "items": {},
+          "lastSeq": 0,
+          "order": [],
+          "resolvedSessionId": "resolved-1",
+          "storedSessionId": "stored-1",
+          "subagents": {},
+          "turn": {
+            "active": false,
+            "local": false,
+            "nextSeq": 1000
+          },
+          "unreadCount": 0
+        }
+      },
+      {
+        "args": [
+          [
+            {
+              "display_metadata": {
+                "author": {
+                  "id": "authentik:writer",
+                  "name": "Robin"
+                }
+              },
+              "role": "user",
+              "row_id": 1,
+              "text": "draft is ready"
+            }
+          ],
+          "rpc"
+        ],
+        "op": "rowsToItems",
+        "result": [
+          {
+            "author": {
+              "id": "authentik:writer",
+              "name": "Robin"
+            },
+            "id": "r:1",
+            "kind": "user",
+            "origin": "history",
+            "rowId": 1,
+            "seq": 0,
+            "text": "draft is ready",
+            "version": 0
+          }
+        ]
+      },
+      {
+        "args": [
+          {
+            "botName": "researcher",
+            "byApprovalId": {},
+            "byDelegationId": {},
+            "byProcessId": {},
+            "byRequestId": {},
+            "byRowId": {},
+            "byToolId": {},
+            "draft": "",
+            "hydration": "cold",
+            "items": {},
+            "lastSeq": 0,
+            "order": [],
+            "resolvedSessionId": "resolved-1",
+            "storedSessionId": "stored-1",
+            "subagents": {},
+            "turn": {
+              "active": false,
+              "local": false,
+              "nextSeq": 1000
+            },
+            "unreadCount": 0
+          },
+          [
+            {
+              "author": {
+                "id": "authentik:writer",
+                "name": "Robin"
+              },
+              "id": "r:1",
+              "kind": "user",
+              "origin": "history",
+              "rowId": 1,
+              "seq": 0,
+              "text": "draft is ready",
+              "version": 0
+            }
+          ]
+        ],
+        "op": "reconcile",
+        "result": {
+          "botName": "researcher",
+          "byApprovalId": {},
+          "byDelegationId": {},
+          "byProcessId": {},
+          "byRequestId": {},
+          "byRowId": {
+            "1": "r:1"
+          },
+          "byToolId": {},
+          "draft": "",
+          "hydration": "live",
+          "items": {
+            "r:1": {
+              "author": {
+                "id": "authentik:writer",
+                "name": "Robin"
+              },
+              "id": "r:1",
+              "kind": "user",
+              "origin": "history",
+              "rowId": 1,
+              "seq": 0,
+              "text": "draft is ready",
+              "version": 0
+            }
+          },
+          "lastSeq": 0,
+          "order": [
+            "r:1"
+          ],
+          "resolvedSessionId": "resolved-1",
+          "storedSessionId": "stored-1",
+          "subagents": {},
+          "turn": {
+            "active": false,
+            "local": false,
+            "nextSeq": 1000
+          },
+          "unreadCount": 0
+        }
+      }
+    ],
+    "test": "who a group-chat row’s preview leads with (HERM-83, Task 5) > never names anybody outside the group chat, even with everything else known"
+  },
+  {
+    "calls": [
+      {
+        "args": [
+          "researcher",
+          "stored-1",
+          "resolved-1"
+        ],
+        "op": "createChatState",
+        "result": {
+          "botName": "researcher",
+          "byApprovalId": {},
+          "byDelegationId": {},
+          "byProcessId": {},
+          "byRequestId": {},
+          "byRowId": {},
+          "byToolId": {},
+          "draft": "",
+          "hydration": "cold",
+          "items": {},
+          "lastSeq": 0,
+          "order": [],
+          "resolvedSessionId": "resolved-1",
+          "storedSessionId": "stored-1",
+          "subagents": {},
+          "turn": {
+            "active": false,
+            "local": false,
+            "nextSeq": 1000
+          },
+          "unreadCount": 0
+        }
+      },
+      {
+        "args": [
+          [
+            {
+              "display_metadata": {
+                "author": {
+                  "id": "authentik:writer",
+                  "name": "Robin"
+                }
+              },
+              "role": "user",
+              "row_id": 1,
+              "text": "draft is ready"
+            }
+          ],
+          "rpc"
+        ],
+        "op": "rowsToItems",
+        "result": [
+          {
+            "author": {
+              "id": "authentik:writer",
+              "name": "Robin"
+            },
+            "id": "r:1",
+            "kind": "user",
+            "origin": "history",
+            "rowId": 1,
+            "seq": 0,
+            "text": "draft is ready",
+            "version": 0
+          }
+        ]
+      },
+      {
+        "args": [
+          {
+            "botName": "researcher",
+            "byApprovalId": {},
+            "byDelegationId": {},
+            "byProcessId": {},
+            "byRequestId": {},
+            "byRowId": {},
+            "byToolId": {},
+            "draft": "",
+            "hydration": "cold",
+            "items": {},
+            "lastSeq": 0,
+            "order": [],
+            "resolvedSessionId": "resolved-1",
+            "storedSessionId": "stored-1",
+            "subagents": {},
+            "turn": {
+              "active": false,
+              "local": false,
+              "nextSeq": 1000
+            },
+            "unreadCount": 0
+          },
+          [
+            {
+              "author": {
+                "id": "authentik:writer",
+                "name": "Robin"
+              },
+              "id": "r:1",
+              "kind": "user",
+              "origin": "history",
+              "rowId": 1,
+              "seq": 0,
+              "text": "draft is ready",
+              "version": 0
+            }
+          ]
+        ],
+        "op": "reconcile",
+        "result": {
+          "botName": "researcher",
+          "byApprovalId": {},
+          "byDelegationId": {},
+          "byProcessId": {},
+          "byRequestId": {},
+          "byRowId": {
+            "1": "r:1"
+          },
+          "byToolId": {},
+          "draft": "",
+          "hydration": "live",
+          "items": {
+            "r:1": {
+              "author": {
+                "id": "authentik:writer",
+                "name": "Robin"
+              },
+              "id": "r:1",
+              "kind": "user",
+              "origin": "history",
+              "rowId": 1,
+              "seq": 0,
+              "text": "draft is ready",
+              "version": 0
+            }
+          },
+          "lastSeq": 0,
+          "order": [
+            "r:1"
+          ],
+          "resolvedSessionId": "resolved-1",
+          "storedSessionId": "stored-1",
+          "subagents": {},
+          "turn": {
+            "active": false,
+            "local": false,
+            "nextSeq": 1000
+          },
+          "unreadCount": 0
+        }
+      }
+    ],
+    "test": "who a group-chat row’s preview leads with (HERM-83, Task 5) > never names anybody before the reader’s own identity is known"
+  },
+  {
+    "calls": [
+      {
+        "args": [
+          "researcher",
+          "stored-1",
+          "resolved-1"
+        ],
+        "op": "createChatState",
+        "result": {
+          "botName": "researcher",
+          "byApprovalId": {},
+          "byDelegationId": {},
+          "byProcessId": {},
+          "byRequestId": {},
+          "byRowId": {},
+          "byToolId": {},
+          "draft": "",
+          "hydration": "cold",
+          "items": {},
+          "lastSeq": 0,
+          "order": [],
+          "resolvedSessionId": "resolved-1",
+          "storedSessionId": "stored-1",
+          "subagents": {},
+          "turn": {
+            "active": false,
+            "local": false,
+            "nextSeq": 1000
+          },
+          "unreadCount": 0
+        }
+      },
+      {
+        "args": [
+          [
+            {
+              "role": "user",
+              "row_id": 1,
+              "text": "no stamp on this one"
+            }
+          ],
+          "rpc"
+        ],
+        "op": "rowsToItems",
+        "result": [
+          {
+            "id": "r:1",
+            "kind": "user",
+            "origin": "history",
+            "rowId": 1,
+            "seq": 0,
+            "text": "no stamp on this one",
+            "version": 0
+          }
+        ]
+      },
+      {
+        "args": [
+          {
+            "botName": "researcher",
+            "byApprovalId": {},
+            "byDelegationId": {},
+            "byProcessId": {},
+            "byRequestId": {},
+            "byRowId": {},
+            "byToolId": {},
+            "draft": "",
+            "hydration": "cold",
+            "items": {},
+            "lastSeq": 0,
+            "order": [],
+            "resolvedSessionId": "resolved-1",
+            "storedSessionId": "stored-1",
+            "subagents": {},
+            "turn": {
+              "active": false,
+              "local": false,
+              "nextSeq": 1000
+            },
+            "unreadCount": 0
+          },
+          [
+            {
+              "id": "r:1",
+              "kind": "user",
+              "origin": "history",
+              "rowId": 1,
+              "seq": 0,
+              "text": "no stamp on this one",
+              "version": 0
+            }
+          ]
+        ],
+        "op": "reconcile",
+        "result": {
+          "botName": "researcher",
+          "byApprovalId": {},
+          "byDelegationId": {},
+          "byProcessId": {},
+          "byRequestId": {},
+          "byRowId": {
+            "1": "r:1"
+          },
+          "byToolId": {},
+          "draft": "",
+          "hydration": "live",
+          "items": {
+            "r:1": {
+              "id": "r:1",
+              "kind": "user",
+              "origin": "history",
+              "rowId": 1,
+              "seq": 0,
+              "text": "no stamp on this one",
+              "version": 0
+            }
+          },
+          "lastSeq": 0,
+          "order": [
+            "r:1"
+          ],
+          "resolvedSessionId": "resolved-1",
+          "storedSessionId": "stored-1",
+          "subagents": {},
+          "turn": {
+            "active": false,
+            "local": false,
+            "nextSeq": 1000
+          },
+          "unreadCount": 0
+        }
+      }
+    ],
+    "test": "who a group-chat row’s preview leads with (HERM-83, Task 5) > never names an unattributed row"
+  },
+  {
+    "calls": [
+      {
+        "args": [
+          "researcher",
+          "stored-1",
+          "resolved-1"
+        ],
+        "op": "createChatState",
+        "result": {
+          "botName": "researcher",
+          "byApprovalId": {},
+          "byDelegationId": {},
+          "byProcessId": {},
+          "byRequestId": {},
+          "byRowId": {},
+          "byToolId": {},
+          "draft": "",
+          "hydration": "cold",
+          "items": {},
+          "lastSeq": 0,
+          "order": [],
+          "resolvedSessionId": "resolved-1",
+          "storedSessionId": "stored-1",
+          "subagents": {},
+          "turn": {
+            "active": false,
+            "local": false,
+            "nextSeq": 1000
+          },
+          "unreadCount": 0
+        }
+      },
+      {
+        "args": [
+          [
+            {
+              "display_metadata": {
+                "author": {
+                  "id": "authentik:writer",
+                  "name": "Robin"
+                }
+              },
+              "role": "user",
+              "row_id": 1,
+              "text": "draft is ready"
+            }
+          ],
+          "rpc"
+        ],
+        "op": "rowsToItems",
+        "result": [
+          {
+            "author": {
+              "id": "authentik:writer",
+              "name": "Robin"
+            },
+            "id": "r:1",
+            "kind": "user",
+            "origin": "history",
+            "rowId": 1,
+            "seq": 0,
+            "text": "draft is ready",
+            "version": 0
+          }
+        ]
+      },
+      {
+        "args": [
+          {
+            "botName": "researcher",
+            "byApprovalId": {},
+            "byDelegationId": {},
+            "byProcessId": {},
+            "byRequestId": {},
+            "byRowId": {},
+            "byToolId": {},
+            "draft": "",
+            "hydration": "cold",
+            "items": {},
+            "lastSeq": 0,
+            "order": [],
+            "resolvedSessionId": "resolved-1",
+            "storedSessionId": "stored-1",
+            "subagents": {},
+            "turn": {
+              "active": false,
+              "local": false,
+              "nextSeq": 1000
+            },
+            "unreadCount": 0
+          },
+          [
+            {
+              "author": {
+                "id": "authentik:writer",
+                "name": "Robin"
+              },
+              "id": "r:1",
+              "kind": "user",
+              "origin": "history",
+              "rowId": 1,
+              "seq": 0,
+              "text": "draft is ready",
+              "version": 0
+            }
+          ]
+        ],
+        "op": "reconcile",
+        "result": {
+          "botName": "researcher",
+          "byApprovalId": {},
+          "byDelegationId": {},
+          "byProcessId": {},
+          "byRequestId": {},
+          "byRowId": {
+            "1": "r:1"
+          },
+          "byToolId": {},
+          "draft": "",
+          "hydration": "live",
+          "items": {
+            "r:1": {
+              "author": {
+                "id": "authentik:writer",
+                "name": "Robin"
+              },
+              "id": "r:1",
+              "kind": "user",
+              "origin": "history",
+              "rowId": 1,
+              "seq": 0,
+              "text": "draft is ready",
+              "version": 0
+            }
+          },
+          "lastSeq": 0,
+          "order": [
+            "r:1"
+          ],
+          "resolvedSessionId": "resolved-1",
+          "storedSessionId": "stored-1",
+          "subagents": {},
+          "turn": {
+            "active": false,
+            "local": false,
+            "nextSeq": 1000
+          },
+          "unreadCount": 0
+        }
+      },
+      {
+        "args": [
+          {
+            "botName": "researcher",
+            "byApprovalId": {},
+            "byDelegationId": {},
+            "byProcessId": {},
+            "byRequestId": {},
+            "byRowId": {
+              "1": "r:1"
+            },
+            "byToolId": {},
+            "draft": "",
+            "hydration": "live",
+            "items": {
+              "r:1": {
+                "author": {
+                  "id": "authentik:writer",
+                  "name": "Robin"
+                },
+                "id": "r:1",
+                "kind": "user",
+                "origin": "history",
+                "rowId": 1,
+                "seq": 0,
+                "text": "draft is ready",
+                "version": 0
+              }
+            },
+            "lastSeq": 0,
+            "order": [
+              "r:1"
+            ],
+            "resolvedSessionId": "resolved-1",
+            "storedSessionId": "stored-1",
+            "subagents": {},
+            "turn": {
+              "active": false,
+              "local": false,
+              "nextSeq": 1000
+            },
+            "unreadCount": 0
+          },
+          {
+            "groupChat": true,
+            "ownAuthorId": "authentik:me"
+          }
+        ],
+        "op": "previewFromChat",
+        "result": {
+          "system": false,
+          "text": "draft is ready"
+        }
+      }
+    ],
+    "test": "who a group-chat row’s preview leads with (HERM-83, Task 5) > leaves every row unattributed when the caller has no resolver to name one with"
+  },
+  {
+    "calls": [
+      {
+        "args": [
+          "researcher",
+          "stored-1",
+          "resolved-1"
+        ],
+        "op": "createChatState",
+        "result": {
+          "botName": "researcher",
+          "byApprovalId": {},
+          "byDelegationId": {},
+          "byProcessId": {},
+          "byRequestId": {},
+          "byRowId": {},
+          "byToolId": {},
+          "draft": "",
+          "hydration": "cold",
+          "items": {},
+          "lastSeq": 0,
+          "order": [],
+          "resolvedSessionId": "resolved-1",
+          "storedSessionId": "stored-1",
+          "subagents": {},
+          "turn": {
+            "active": false,
+            "local": false,
+            "nextSeq": 1000
+          },
+          "unreadCount": 0
+        }
+      },
+      {
+        "args": [
+          [
+            {
+              "display_metadata": {
+                "author": {
+                  "id": "authentik:writer",
+                  "name": "Robin"
+                }
+              },
+              "role": "user",
+              "row_id": 1,
+              "text": "draft is ready"
+            }
+          ],
+          "rpc"
+        ],
+        "op": "rowsToItems",
+        "result": [
+          {
+            "author": {
+              "id": "authentik:writer",
+              "name": "Robin"
+            },
+            "id": "r:1",
+            "kind": "user",
+            "origin": "history",
+            "rowId": 1,
+            "seq": 0,
+            "text": "draft is ready",
+            "version": 0
+          }
+        ]
+      },
+      {
+        "args": [
+          {
+            "botName": "researcher",
+            "byApprovalId": {},
+            "byDelegationId": {},
+            "byProcessId": {},
+            "byRequestId": {},
+            "byRowId": {},
+            "byToolId": {},
+            "draft": "",
+            "hydration": "cold",
+            "items": {},
+            "lastSeq": 0,
+            "order": [],
+            "resolvedSessionId": "resolved-1",
+            "storedSessionId": "stored-1",
+            "subagents": {},
+            "turn": {
+              "active": false,
+              "local": false,
+              "nextSeq": 1000
+            },
+            "unreadCount": 0
+          },
+          [
+            {
+              "author": {
+                "id": "authentik:writer",
+                "name": "Robin"
+              },
+              "id": "r:1",
+              "kind": "user",
+              "origin": "history",
+              "rowId": 1,
+              "seq": 0,
+              "text": "draft is ready",
+              "version": 0
+            }
+          ]
+        ],
+        "op": "reconcile",
+        "result": {
+          "botName": "researcher",
+          "byApprovalId": {},
+          "byDelegationId": {},
+          "byProcessId": {},
+          "byRequestId": {},
+          "byRowId": {
+            "1": "r:1"
+          },
+          "byToolId": {},
+          "draft": "",
+          "hydration": "live",
+          "items": {
+            "r:1": {
+              "author": {
+                "id": "authentik:writer",
+                "name": "Robin"
+              },
+              "id": "r:1",
+              "kind": "user",
+              "origin": "history",
+              "rowId": 1,
+              "seq": 0,
+              "text": "draft is ready",
+              "version": 0
+            }
+          },
+          "lastSeq": 0,
+          "order": [
+            "r:1"
+          ],
+          "resolvedSessionId": "resolved-1",
+          "storedSessionId": "stored-1",
+          "subagents": {},
+          "turn": {
+            "active": false,
+            "local": false,
+            "nextSeq": 1000
+          },
+          "unreadCount": 0
+        }
+      }
+    ],
+    "test": "who a group-chat row’s preview leads with (HERM-83, Task 5) > threads the same options through `chatRowPreview`"
+  },
+  {
+    "calls": [
+      {
+        "args": [
+          "researcher",
+          "stored-1",
+          "resolved-1"
+        ],
+        "op": "createChatState",
+        "result": {
+          "botName": "researcher",
+          "byApprovalId": {},
+          "byDelegationId": {},
+          "byProcessId": {},
+          "byRequestId": {},
+          "byRowId": {},
+          "byToolId": {},
+          "draft": "",
+          "hydration": "cold",
+          "items": {},
+          "lastSeq": 0,
+          "order": [],
+          "resolvedSessionId": "resolved-1",
+          "storedSessionId": "stored-1",
+          "subagents": {},
+          "turn": {
+            "active": false,
+            "local": false,
+            "nextSeq": 1000
+          },
+          "unreadCount": 0
+        }
+      },
+      {
+        "args": [
+          [
+            {
+              "display_metadata": {
+                "author": {
+                  "id": "authentik:writer",
+                  "name": "Robin"
+                }
+              },
+              "role": "user",
+              "row_id": 1,
+              "text": "draft is ready"
+            }
+          ],
+          "rpc"
+        ],
+        "op": "rowsToItems",
+        "result": [
+          {
+            "author": {
+              "id": "authentik:writer",
+              "name": "Robin"
+            },
+            "id": "r:1",
+            "kind": "user",
+            "origin": "history",
+            "rowId": 1,
+            "seq": 0,
+            "text": "draft is ready",
+            "version": 0
+          }
+        ]
+      },
+      {
+        "args": [
+          {
+            "botName": "researcher",
+            "byApprovalId": {},
+            "byDelegationId": {},
+            "byProcessId": {},
+            "byRequestId": {},
+            "byRowId": {},
+            "byToolId": {},
+            "draft": "",
+            "hydration": "cold",
+            "items": {},
+            "lastSeq": 0,
+            "order": [],
+            "resolvedSessionId": "resolved-1",
+            "storedSessionId": "stored-1",
+            "subagents": {},
+            "turn": {
+              "active": false,
+              "local": false,
+              "nextSeq": 1000
+            },
+            "unreadCount": 0
+          },
+          [
+            {
+              "author": {
+                "id": "authentik:writer",
+                "name": "Robin"
+              },
+              "id": "r:1",
+              "kind": "user",
+              "origin": "history",
+              "rowId": 1,
+              "seq": 0,
+              "text": "draft is ready",
+              "version": 0
+            }
+          ]
+        ],
+        "op": "reconcile",
+        "result": {
+          "botName": "researcher",
+          "byApprovalId": {},
+          "byDelegationId": {},
+          "byProcessId": {},
+          "byRequestId": {},
+          "byRowId": {
+            "1": "r:1"
+          },
+          "byToolId": {},
+          "draft": "",
+          "hydration": "live",
+          "items": {
+            "r:1": {
+              "author": {
+                "id": "authentik:writer",
+                "name": "Robin"
+              },
+              "id": "r:1",
+              "kind": "user",
+              "origin": "history",
+              "rowId": 1,
+              "seq": 0,
+              "text": "draft is ready",
+              "version": 0
+            }
+          },
+          "lastSeq": 0,
+          "order": [
+            "r:1"
+          ],
+          "resolvedSessionId": "resolved-1",
+          "storedSessionId": "stored-1",
+          "subagents": {},
+          "turn": {
+            "active": false,
+            "local": false,
+            "nextSeq": 1000
+          },
+          "unreadCount": 0
+        }
+      },
+      {
+        "args": [
+          {
+            "botName": "researcher",
+            "byApprovalId": {},
+            "byDelegationId": {},
+            "byProcessId": {},
+            "byRequestId": {},
+            "byRowId": {
+              "1": "r:1"
+            },
+            "byToolId": {},
+            "draft": "",
+            "hydration": "live",
+            "items": {
+              "r:1": {
+                "author": {
+                  "id": "authentik:writer",
+                  "name": "Robin"
+                },
+                "id": "r:1",
+                "kind": "user",
+                "origin": "history",
+                "rowId": 1,
+                "seq": 0,
+                "text": "draft is ready",
+                "version": 0
+              }
+            },
+            "lastSeq": 0,
+            "order": [
+              "r:1"
+            ],
+            "resolvedSessionId": "resolved-1",
+            "storedSessionId": "stored-1",
+            "subagents": {},
+            "turn": {
+              "active": false,
+              "local": false,
+              "nextSeq": 1000
+            },
+            "unreadCount": 0
+          }
+        ],
+        "op": "previewFromChat",
+        "result": {
+          "system": false,
+          "text": "draft is ready"
+        }
+      }
+    ],
+    "test": "who a group-chat row’s preview leads with (HERM-83, Task 5) > leaves an absent options argument exactly as it behaved before `author` existed"
+  }
+]

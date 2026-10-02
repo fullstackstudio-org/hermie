@@ -21,3 +21,7 @@ native/**/*.xcodeproj
 CHANGELOG.md
 packages/hermes-shared/src
 design/*.html
+# The golden corpus is generated in its own canonical layout (sorted keys, two-space
+# indent) and checked by `npm run golden:check`; prettier would only re-wrap it.
+contract/transcript
+contract/gateway

@@ -1,0 +1,1376 @@
+[
+  {
+    "args": [],
+    "fn": "SESSION_SEARCH_LIMIT_CAP",
+    "note": "constant",
+    "result": 100
+  },
+  {
+    "args": [],
+    "fn": "SNIPPET_MATCH_OPEN",
+    "note": "constant",
+    "result": ">>>"
+  },
+  {
+    "args": [],
+    "fn": "SNIPPET_MATCH_CLOSE",
+    "note": "constant",
+    "result": "<<<"
+  },
+  {
+    "args": [
+      {
+        "archived": true,
+        "last_active": 1790001453.5,
+        "lineage_root": "stored-researcher-0000",
+        "message_count": 12,
+        "role": "user",
+        "session_id": "stored-researcher-0001",
+        "session_started": 1789999000,
+        "snippet": "the >>>invoice<<< service",
+        "started_at": 1790000000,
+        "title": "Invoices"
+      }
+    ],
+    "fn": "sessionSearchHitOf",
+    "note": "optional fields are omitted from the result when absent; text fields keep their original (untrimmed) value and count as absent only when blank after trim; at = last_active ?? started_at ?? session_started (a number, even 0 or negative); archived is true only for the boolean true; snippet is \"\" unless a string",
+    "result": {
+      "archived": true,
+      "at": 1790001453.5,
+      "lineageRoot": "stored-researcher-0000",
+      "messageCount": 12,
+      "role": "user",
+      "sessionId": "stored-researcher-0001",
+      "snippet": "the >>>invoice<<< service",
+      "title": "Invoices"
+    }
+  },
+  {
+    "args": [
+      {
+        "snippet": "orphan"
+      }
+    ],
+    "fn": "sessionSearchHitOf",
+    "result": null
+  },
+  {
+    "args": [
+      {
+        "session_id": "s1",
+        "snippet": "kept"
+      }
+    ],
+    "fn": "sessionSearchHitOf",
+    "result": {
+      "archived": false,
+      "sessionId": "s1",
+      "snippet": "kept"
+    }
+  },
+  {
+    "args": [
+      {
+        "id": "s2",
+        "snippet": "by id"
+      }
+    ],
+    "fn": "sessionSearchHitOf",
+    "result": {
+      "archived": false,
+      "sessionId": "s2",
+      "snippet": "by id"
+    }
+  },
+  {
+    "args": [
+      {
+        "id": "s2",
+        "session_id": "s1"
+      }
+    ],
+    "fn": "sessionSearchHitOf",
+    "result": {
+      "archived": false,
+      "sessionId": "s1",
+      "snippet": ""
+    }
+  },
+  {
+    "args": [
+      {
+        "id": "s2",
+        "session_id": "   "
+      }
+    ],
+    "fn": "sessionSearchHitOf",
+    "result": {
+      "archived": false,
+      "sessionId": "s2",
+      "snippet": ""
+    }
+  },
+  {
+    "args": [
+      {
+        "id": "",
+        "session_id": ""
+      }
+    ],
+    "fn": "sessionSearchHitOf",
+    "result": null
+  },
+  {
+    "args": [
+      {
+        "id": "s2",
+        "session_id": 5
+      }
+    ],
+    "fn": "sessionSearchHitOf",
+    "result": {
+      "archived": false,
+      "sessionId": "s2",
+      "snippet": ""
+    }
+  },
+  {
+    "args": [
+      {
+        "session_id": " padded ",
+        "title": "  Hello  "
+      }
+    ],
+    "fn": "sessionSearchHitOf",
+    "result": {
+      "archived": false,
+      "sessionId": " padded ",
+      "snippet": "",
+      "title": "  Hello  "
+    }
+  },
+  {
+    "args": [
+      {
+        "last_active": 3,
+        "session_id": "s",
+        "session_started": 1,
+        "started_at": 2
+      }
+    ],
+    "fn": "sessionSearchHitOf",
+    "result": {
+      "archived": false,
+      "at": 3,
+      "sessionId": "s",
+      "snippet": ""
+    }
+  },
+  {
+    "args": [
+      {
+        "session_id": "s",
+        "session_started": 1,
+        "started_at": 2
+      }
+    ],
+    "fn": "sessionSearchHitOf",
+    "result": {
+      "archived": false,
+      "at": 2,
+      "sessionId": "s",
+      "snippet": ""
+    }
+  },
+  {
+    "args": [
+      {
+        "session_id": "s",
+        "session_started": 1
+      }
+    ],
+    "fn": "sessionSearchHitOf",
+    "result": {
+      "archived": false,
+      "at": 1,
+      "sessionId": "s",
+      "snippet": ""
+    }
+  },
+  {
+    "args": [
+      {
+        "last_active": 0,
+        "session_id": "s",
+        "started_at": 2
+      }
+    ],
+    "fn": "sessionSearchHitOf",
+    "result": {
+      "archived": false,
+      "at": 0,
+      "sessionId": "s",
+      "snippet": ""
+    }
+  },
+  {
+    "args": [
+      {
+        "last_active": "3",
+        "session_id": "s",
+        "started_at": 2
+      }
+    ],
+    "fn": "sessionSearchHitOf",
+    "result": {
+      "archived": false,
+      "at": 2,
+      "sessionId": "s",
+      "snippet": ""
+    }
+  },
+  {
+    "args": [
+      {
+        "last_active": null,
+        "session_id": "s",
+        "started_at": 2
+      }
+    ],
+    "fn": "sessionSearchHitOf",
+    "result": {
+      "archived": false,
+      "at": 2,
+      "sessionId": "s",
+      "snippet": ""
+    }
+  },
+  {
+    "args": [
+      {
+        "last_active": -4,
+        "session_id": "s"
+      }
+    ],
+    "fn": "sessionSearchHitOf",
+    "result": {
+      "archived": false,
+      "at": -4,
+      "sessionId": "s",
+      "snippet": ""
+    }
+  },
+  {
+    "args": [
+      {
+        "message_count": 0,
+        "session_id": "s"
+      }
+    ],
+    "fn": "sessionSearchHitOf",
+    "result": {
+      "archived": false,
+      "messageCount": 0,
+      "sessionId": "s",
+      "snippet": ""
+    }
+  },
+  {
+    "args": [
+      {
+        "message_count": "3",
+        "session_id": "s"
+      }
+    ],
+    "fn": "sessionSearchHitOf",
+    "result": {
+      "archived": false,
+      "sessionId": "s",
+      "snippet": ""
+    }
+  },
+  {
+    "args": [
+      {
+        "message_count": 2.5,
+        "session_id": "s"
+      }
+    ],
+    "fn": "sessionSearchHitOf",
+    "result": {
+      "archived": false,
+      "messageCount": 2.5,
+      "sessionId": "s",
+      "snippet": ""
+    }
+  },
+  {
+    "args": [
+      {
+        "archived": true,
+        "session_id": "s"
+      }
+    ],
+    "fn": "sessionSearchHitOf",
+    "result": {
+      "archived": true,
+      "sessionId": "s",
+      "snippet": ""
+    }
+  },
+  {
+    "args": [
+      {
+        "archived": "true",
+        "session_id": "s"
+      }
+    ],
+    "fn": "sessionSearchHitOf",
+    "result": {
+      "archived": false,
+      "sessionId": "s",
+      "snippet": ""
+    }
+  },
+  {
+    "args": [
+      {
+        "archived": 1,
+        "session_id": "s"
+      }
+    ],
+    "fn": "sessionSearchHitOf",
+    "result": {
+      "archived": false,
+      "sessionId": "s",
+      "snippet": ""
+    }
+  },
+  {
+    "args": [
+      {
+        "archived": false,
+        "session_id": "s"
+      }
+    ],
+    "fn": "sessionSearchHitOf",
+    "result": {
+      "archived": false,
+      "sessionId": "s",
+      "snippet": ""
+    }
+  },
+  {
+    "args": [
+      {
+        "session_id": "s",
+        "snippet": 7
+      }
+    ],
+    "fn": "sessionSearchHitOf",
+    "result": {
+      "archived": false,
+      "sessionId": "s",
+      "snippet": ""
+    }
+  },
+  {
+    "args": [
+      {
+        "session_id": "s",
+        "snippet": ""
+      }
+    ],
+    "fn": "sessionSearchHitOf",
+    "result": {
+      "archived": false,
+      "sessionId": "s",
+      "snippet": ""
+    }
+  },
+  {
+    "args": [
+      {
+        "session_id": "s",
+        "snippet": "  spaced  "
+      }
+    ],
+    "fn": "sessionSearchHitOf",
+    "result": {
+      "archived": false,
+      "sessionId": "s",
+      "snippet": "  spaced  "
+    }
+  },
+  {
+    "args": [
+      {
+        "lineage_root": " ",
+        "role": "   ",
+        "session_id": "s",
+        "title": ""
+      }
+    ],
+    "fn": "sessionSearchHitOf",
+    "result": {
+      "archived": false,
+      "sessionId": "s",
+      "snippet": ""
+    }
+  },
+  {
+    "args": [
+      {
+        "lineage_root": "root-1",
+        "role": "assistant",
+        "session_id": "s"
+      }
+    ],
+    "fn": "sessionSearchHitOf",
+    "result": {
+      "archived": false,
+      "lineageRoot": "root-1",
+      "role": "assistant",
+      "sessionId": "s",
+      "snippet": ""
+    }
+  },
+  {
+    "args": [
+      {
+        "extra": "ignored",
+        "session_id": "s"
+      }
+    ],
+    "fn": "sessionSearchHitOf",
+    "result": {
+      "archived": false,
+      "sessionId": "s",
+      "snippet": ""
+    }
+  },
+  {
+    "args": [
+      {
+        "session_id": "ünï-✓",
+        "title": "Ünï 😀"
+      }
+    ],
+    "fn": "sessionSearchHitOf",
+    "result": {
+      "archived": false,
+      "sessionId": "ünï-✓",
+      "snippet": "",
+      "title": "Ünï 😀"
+    }
+  },
+  {
+    "args": [
+      null
+    ],
+    "fn": "sessionSearchHitOf",
+    "result": null
+  },
+  {
+    "args": [
+      "string"
+    ],
+    "fn": "sessionSearchHitOf",
+    "result": null
+  },
+  {
+    "args": [
+      5
+    ],
+    "fn": "sessionSearchHitOf",
+    "result": null
+  },
+  {
+    "args": [
+      true
+    ],
+    "fn": "sessionSearchHitOf",
+    "result": null
+  },
+  {
+    "args": [
+      []
+    ],
+    "fn": "sessionSearchHitOf",
+    "result": null
+  },
+  {
+    "args": [
+      [
+        {
+          "session_id": "s"
+        }
+      ]
+    ],
+    "fn": "sessionSearchHitOf",
+    "result": null
+  },
+  {
+    "args": [
+      {}
+    ],
+    "fn": "sessionSearchHitOf",
+    "result": null
+  },
+  {
+    "args": [
+      {
+        "results": [
+          {
+            "snippet": "orphan"
+          },
+          {
+            "session_id": "s1",
+            "snippet": "kept"
+          }
+        ]
+      }
+    ],
+    "fn": "parseSessionSearch",
+    "note": "args[0] undefined is encoded as null; rows are read in order and unreadable rows are dropped; duplicates are kept",
+    "result": [
+      {
+        "archived": false,
+        "sessionId": "s1",
+        "snippet": "kept"
+      }
+    ]
+  },
+  {
+    "args": [
+      {
+        "results": []
+      }
+    ],
+    "fn": "parseSessionSearch",
+    "result": []
+  },
+  {
+    "args": [
+      {
+        "results": [
+          {
+            "archived": true,
+            "last_active": 1790001453.5,
+            "lineage_root": "stored-researcher-0000",
+            "message_count": 12,
+            "role": "user",
+            "session_id": "stored-researcher-0001",
+            "session_started": 1789999000,
+            "snippet": "the >>>invoice<<< service",
+            "started_at": 1790000000,
+            "title": "Invoices"
+          },
+          {
+            "session_id": "s2"
+          },
+          null,
+          "x",
+          5,
+          [],
+          {
+            "id": "s3"
+          }
+        ]
+      }
+    ],
+    "fn": "parseSessionSearch",
+    "result": [
+      {
+        "archived": true,
+        "at": 1790001453.5,
+        "lineageRoot": "stored-researcher-0000",
+        "messageCount": 12,
+        "role": "user",
+        "sessionId": "stored-researcher-0001",
+        "snippet": "the >>>invoice<<< service",
+        "title": "Invoices"
+      },
+      {
+        "archived": false,
+        "sessionId": "s2",
+        "snippet": ""
+      },
+      {
+        "archived": false,
+        "sessionId": "s3",
+        "snippet": ""
+      }
+    ]
+  },
+  {
+    "args": [
+      null
+    ],
+    "fn": "parseSessionSearch",
+    "result": []
+  },
+  {
+    "args": [
+      {
+        "detail": "Search failed"
+      }
+    ],
+    "fn": "parseSessionSearch",
+    "result": []
+  },
+  {
+    "args": [
+      {
+        "results": "no"
+      }
+    ],
+    "fn": "parseSessionSearch",
+    "result": []
+  },
+  {
+    "args": [
+      {
+        "results": {}
+      }
+    ],
+    "fn": "parseSessionSearch",
+    "result": []
+  },
+  {
+    "args": [
+      {
+        "results": null
+      }
+    ],
+    "fn": "parseSessionSearch",
+    "result": []
+  },
+  {
+    "args": [
+      {
+        "results": {
+          "0": {
+            "session_id": "s"
+          }
+        }
+      }
+    ],
+    "fn": "parseSessionSearch",
+    "result": []
+  },
+  {
+    "args": [
+      []
+    ],
+    "fn": "parseSessionSearch",
+    "result": []
+  },
+  {
+    "args": [
+      [
+        {
+          "session_id": "s"
+        }
+      ]
+    ],
+    "fn": "parseSessionSearch",
+    "result": []
+  },
+  {
+    "args": [
+      "results"
+    ],
+    "fn": "parseSessionSearch",
+    "result": []
+  },
+  {
+    "args": [
+      42
+    ],
+    "fn": "parseSessionSearch",
+    "result": []
+  },
+  {
+    "args": [
+      {}
+    ],
+    "fn": "parseSessionSearch",
+    "result": []
+  },
+  {
+    "args": [
+      {
+        "results": [
+          {
+            "session_id": "a"
+          },
+          {
+            "session_id": "b"
+          },
+          {
+            "session_id": "a"
+          }
+        ]
+      }
+    ],
+    "fn": "parseSessionSearch",
+    "result": [
+      {
+        "archived": false,
+        "sessionId": "a",
+        "snippet": ""
+      },
+      {
+        "archived": false,
+        "sessionId": "b",
+        "snippet": ""
+      },
+      {
+        "archived": false,
+        "sessionId": "a",
+        "snippet": ""
+      }
+    ]
+  },
+  {
+    "args": [
+      "the >>>invoice<<< service"
+    ],
+    "fn": "snippetSegments",
+    "result": [
+      {
+        "match": false,
+        "text": "the "
+      },
+      {
+        "match": true,
+        "text": "invoice"
+      },
+      {
+        "match": false,
+        "text": " service"
+      }
+    ]
+  },
+  {
+    "args": [
+      "cat a >>> b"
+    ],
+    "fn": "snippetSegments",
+    "result": [
+      {
+        "match": false,
+        "text": "cat a >>> b"
+      }
+    ]
+  },
+  {
+    "args": [
+      ""
+    ],
+    "fn": "snippetSegments",
+    "result": []
+  },
+  {
+    "args": [
+      "no markers"
+    ],
+    "fn": "snippetSegments",
+    "result": [
+      {
+        "match": false,
+        "text": "no markers"
+      }
+    ]
+  },
+  {
+    "args": [
+      ">>>a<<<"
+    ],
+    "fn": "snippetSegments",
+    "result": [
+      {
+        "match": true,
+        "text": "a"
+      }
+    ]
+  },
+  {
+    "args": [
+      ">>>a<<<>>>b<<<"
+    ],
+    "fn": "snippetSegments",
+    "result": [
+      {
+        "match": true,
+        "text": "a"
+      },
+      {
+        "match": true,
+        "text": "b"
+      }
+    ]
+  },
+  {
+    "args": [
+      "x >>>a<<< y >>>b<<< z"
+    ],
+    "fn": "snippetSegments",
+    "result": [
+      {
+        "match": false,
+        "text": "x "
+      },
+      {
+        "match": true,
+        "text": "a"
+      },
+      {
+        "match": false,
+        "text": " y "
+      },
+      {
+        "match": true,
+        "text": "b"
+      },
+      {
+        "match": false,
+        "text": " z"
+      }
+    ]
+  },
+  {
+    "args": [
+      "only <<< close"
+    ],
+    "fn": "snippetSegments",
+    "result": [
+      {
+        "match": false,
+        "text": "only <<< close"
+      }
+    ]
+  },
+  {
+    "args": [
+      "only >>> open"
+    ],
+    "fn": "snippetSegments",
+    "result": [
+      {
+        "match": false,
+        "text": "only >>> open"
+      }
+    ]
+  },
+  {
+    "args": [
+      ">>><<<"
+    ],
+    "fn": "snippetSegments",
+    "note": "an empty match is a segment with empty text and match true",
+    "result": [
+      {
+        "match": true,
+        "text": ""
+      }
+    ]
+  },
+  {
+    "args": [
+      ">>>a>>>b<<<c<<<"
+    ],
+    "fn": "snippetSegments",
+    "note": "the first opener pairs with the first closer after it; the inner opener is just text",
+    "result": [
+      {
+        "match": true,
+        "text": "a>>>b"
+      },
+      {
+        "match": false,
+        "text": "c<<<"
+      }
+    ]
+  },
+  {
+    "args": [
+      ">>>a<<< >>> tail"
+    ],
+    "fn": "snippetSegments",
+    "result": [
+      {
+        "match": true,
+        "text": "a"
+      },
+      {
+        "match": false,
+        "text": " >>> tail"
+      }
+    ]
+  },
+  {
+    "args": [
+      "é>>>ü<<<ñ"
+    ],
+    "fn": "snippetSegments",
+    "result": [
+      {
+        "match": false,
+        "text": "é"
+      },
+      {
+        "match": true,
+        "text": "ü"
+      },
+      {
+        "match": false,
+        "text": "ñ"
+      }
+    ]
+  },
+  {
+    "args": [
+      "line one\n>>>two<<<\nline three"
+    ],
+    "fn": "snippetSegments",
+    "result": [
+      {
+        "match": false,
+        "text": "line one\n"
+      },
+      {
+        "match": true,
+        "text": "two"
+      },
+      {
+        "match": false,
+        "text": "\nline three"
+      }
+    ]
+  },
+  {
+    "args": [
+      ">>>   <<<"
+    ],
+    "fn": "snippetSegments",
+    "result": [
+      {
+        "match": true,
+        "text": "   "
+      }
+    ]
+  },
+  {
+    "args": [
+      "<<<>>>"
+    ],
+    "fn": "snippetSegments",
+    "result": [
+      {
+        "match": false,
+        "text": "<<<>>>"
+      }
+    ]
+  },
+  {
+    "args": [
+      ">>>>>>a<<<"
+    ],
+    "fn": "snippetSegments",
+    "note": "the first opener at index 0 pairs with the first closer; the text between is \">>>a\"",
+    "result": [
+      {
+        "match": true,
+        "text": ">>>a"
+      }
+    ]
+  },
+  {
+    "args": [
+      ">>>a<<<<<<"
+    ],
+    "fn": "snippetSegments",
+    "result": [
+      {
+        "match": true,
+        "text": "a"
+      },
+      {
+        "match": false,
+        "text": "<<<"
+      }
+    ]
+  },
+  {
+    "args": [
+      ">>>😀<<<"
+    ],
+    "fn": "snippetSegments",
+    "result": [
+      {
+        "match": true,
+        "text": "😀"
+      }
+    ]
+  },
+  {
+    "args": [
+      ">>>a<<<b>>>"
+    ],
+    "fn": "snippetSegments",
+    "result": [
+      {
+        "match": true,
+        "text": "a"
+      },
+      {
+        "match": false,
+        "text": "b>>>"
+      }
+    ]
+  },
+  {
+    "args": [
+      ">>"
+    ],
+    "fn": "snippetSegments",
+    "result": [
+      {
+        "match": false,
+        "text": ">>"
+      }
+    ]
+  },
+  {
+    "args": [
+      ">>>"
+    ],
+    "fn": "snippetSegments",
+    "result": [
+      {
+        "match": false,
+        "text": ">>>"
+      }
+    ]
+  },
+  {
+    "args": [
+      "<<<"
+    ],
+    "fn": "snippetSegments",
+    "result": [
+      {
+        "match": false,
+        "text": "<<<"
+      }
+    ]
+  },
+  {
+    "args": [
+      "  the >>>invoic<<<e\n\nservice\"}"
+    ],
+    "fn": "tidySnippet",
+    "result": "the >>>invoic<<<e service"
+  },
+  {
+    "args": [
+      ">>>invoices<<< there.\"}"
+    ],
+    "fn": "tidySnippet",
+    "result": ">>>invoices<<< there."
+  },
+  {
+    "args": [
+      "sent {\"a\":1} along"
+    ],
+    "fn": "tidySnippet",
+    "result": "sent {\"a\":1} along"
+  },
+  {
+    "args": [
+      ""
+    ],
+    "fn": "tidySnippet",
+    "result": ""
+  },
+  {
+    "args": [
+      "   "
+    ],
+    "fn": "tidySnippet",
+    "result": ""
+  },
+  {
+    "args": [
+      "\"}"
+    ],
+    "fn": "tidySnippet",
+    "result": ""
+  },
+  {
+    "args": [
+      "{\"a\":1}"
+    ],
+    "fn": "tidySnippet",
+    "result": "a\":1"
+  },
+  {
+    "args": [
+      "{\"a\":1,\"b\":2}"
+    ],
+    "fn": "tidySnippet",
+    "result": "a\":1,\"b\":2"
+  },
+  {
+    "args": [
+      "[1, 2, 3]"
+    ],
+    "fn": "tidySnippet",
+    "result": "1, 2, 3"
+  },
+  {
+    "args": [
+      "\\n\\n"
+    ],
+    "fn": "tidySnippet",
+    "result": "n\\n"
+  },
+  {
+    "args": [
+      ",,,hello,,,"
+    ],
+    "fn": "tidySnippet",
+    "result": "hello"
+  },
+  {
+    "args": [
+      " : hello : "
+    ],
+    "fn": "tidySnippet",
+    "result": "hello"
+  },
+  {
+    "args": [
+      "one\n\n  two"
+    ],
+    "fn": "tidySnippet",
+    "result": "one two"
+  },
+  {
+    "args": [
+      "a  b"
+    ],
+    "fn": "tidySnippet",
+    "note": "JS \\s and trim() cover Unicode White_Space plus U+FEFF, but not U+0085 or U+001C..U+001F",
+    "result": "a b"
+  },
+  {
+    "args": [
+      "ab"
+    ],
+    "fn": "tidySnippet",
+    "note": "U+0085 is NOT matched by JS \\s, so it survives",
+    "result": "ab"
+  },
+  {
+    "args": [
+      "﻿hello﻿"
+    ],
+    "fn": "tidySnippet",
+    "note": "U+FEFF IS matched by JS \\s and trim()",
+    "result": "hello"
+  },
+  {
+    "args": [
+      " a "
+    ],
+    "fn": "tidySnippet",
+    "result": "a"
+  },
+  {
+    "args": [
+      "　a　"
+    ],
+    "fn": "tidySnippet",
+    "result": "a"
+  },
+  {
+    "args": [
+      "​a​"
+    ],
+    "fn": "tidySnippet",
+    "note": "U+200B is not whitespace in JS",
+    "result": "​a​"
+  },
+  {
+    "args": [
+      "a\tb\u000bc\fd\re"
+    ],
+    "fn": "tidySnippet",
+    "note": "every run of \\s becomes one space",
+    "result": "a b c d e"
+  },
+  {
+    "args": [
+      "{ \"quoted\": \"text\" }"
+    ],
+    "fn": "tidySnippet",
+    "result": "\"quoted\": \"text\""
+  },
+  {
+    "args": [
+      "plain text"
+    ],
+    "fn": "tidySnippet",
+    "result": "plain text"
+  },
+  {
+    "args": [
+      " } "
+    ],
+    "fn": "tidySnippet",
+    "result": ""
+  },
+  {
+    "args": [
+      "\">>>a<<<\""
+    ],
+    "fn": "tidySnippet",
+    "result": ">>>a<<<"
+  },
+  {
+    "args": [
+      "\"a\""
+    ],
+    "fn": "tidySnippet",
+    "result": "a"
+  },
+  {
+    "args": [
+      "ünï ✓ 😀"
+    ],
+    "fn": "tidySnippet",
+    "result": "ünï ✓ 😀"
+  },
+  {
+    "args": [
+      ": , \\ [ ] { } \""
+    ],
+    "fn": "tidySnippet",
+    "result": ", \\ [ ] { }"
+  },
+  {
+    "args": [
+      ">>>invoices<<< there.\"}"
+    ],
+    "fn": "plainSnippet",
+    "result": "invoices there."
+  },
+  {
+    "args": [
+      "sent {\"a\":1} along"
+    ],
+    "fn": "plainSnippet",
+    "result": "sent {\"a\":1} along"
+  },
+  {
+    "args": [
+      "one\n\n  two"
+    ],
+    "fn": "plainSnippet",
+    "result": "one two"
+  },
+  {
+    "args": [
+      ""
+    ],
+    "fn": "plainSnippet",
+    "result": ""
+  },
+  {
+    "args": [
+      "the >>>invoice<<< service"
+    ],
+    "fn": "plainSnippet",
+    "result": "the invoice service"
+  },
+  {
+    "args": [
+      "cat a >>> b"
+    ],
+    "fn": "plainSnippet",
+    "result": "cat a >>> b"
+  },
+  {
+    "args": [
+      "  >>>a<<<  "
+    ],
+    "fn": "plainSnippet",
+    "result": "a"
+  },
+  {
+    "args": [
+      "{\"x\": \">>>match<<< here\"}"
+    ],
+    "fn": "plainSnippet",
+    "result": "x\": \"match here"
+  },
+  {
+    "args": [
+      ">>>a<<< and >>>b<<<"
+    ],
+    "fn": "plainSnippet",
+    "result": "a and b"
+  },
+  {
+    "args": [
+      ">>>\"quoted\"<<<"
+    ],
+    "fn": "plainSnippet",
+    "result": "\"quoted\""
+  },
+  {
+    "args": [
+      "\"}>>>a<<<{\""
+    ],
+    "fn": "plainSnippet",
+    "result": "a"
+  },
+  {
+    "args": [
+      ">>>a<<<}"
+    ],
+    "fn": "plainSnippet",
+    "result": "a"
+  },
+  {
+    "args": [
+      ">>><<<"
+    ],
+    "fn": "plainSnippet",
+    "result": ""
+  },
+  {
+    "args": [
+      "only >>> open"
+    ],
+    "fn": "plainSnippet",
+    "result": "only >>> open"
+  },
+  {
+    "args": [
+      "\"only <<< close\""
+    ],
+    "fn": "plainSnippet",
+    "result": "only <<< close"
+  },
+  {
+    "args": [
+      "ünï >>>✓<<< 😀"
+    ],
+    "fn": "plainSnippet",
+    "result": "ünï ✓ 😀"
+  }
+]

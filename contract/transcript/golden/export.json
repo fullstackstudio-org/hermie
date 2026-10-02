@@ -1,0 +1,71 @@
+[
+  {
+    "calls": [
+      {
+        "args": [
+          [
+            {
+              "id": "i14",
+              "kind": "user",
+              "origin": "history",
+              "seq": 14,
+              "text": "Hello.",
+              "ts": 60,
+              "version": 1
+            }
+          ],
+          {
+            "botName": "Researcher"
+          }
+        ],
+        "op": "exportTranscript",
+        "result": {
+          "markdown": "# Researcher\n\n**You**\n\nHello.\n",
+          "text": "Researcher\n==========\n\nYou:\nHello.\n"
+        }
+      }
+    ],
+    "test": "serializing a conversation > stamps nothing when the caller has no clock to lend"
+  },
+  {
+    "calls": [
+      {
+        "args": [
+          "Researcher",
+          "md",
+          "2026-09-22"
+        ],
+        "op": "transcriptFileName",
+        "result": "Researcher-2026-09-22.md"
+      },
+      {
+        "args": [
+          "ops/deploy",
+          "txt",
+          "2026-09-22"
+        ],
+        "op": "transcriptFileName",
+        "result": "ops-deploy-2026-09-22.txt"
+      },
+      {
+        "args": [
+          "  ",
+          "md",
+          "2026-09-22"
+        ],
+        "op": "transcriptFileName",
+        "result": "chat-2026-09-22.md"
+      },
+      {
+        "args": [
+          "日本語",
+          "md",
+          "2026-09-22"
+        ],
+        "op": "transcriptFileName",
+        "result": "chat-2026-09-22.md"
+      }
+    ],
+    "test": "naming the file > reduces a bot name to something a file system will take"
+  }
+]

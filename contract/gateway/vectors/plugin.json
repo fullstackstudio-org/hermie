@@ -1,0 +1,3156 @@
+[
+  {
+    "args": [],
+    "fn": "HERMIE_PLUGIN_KEY",
+    "note": "constant",
+    "result": "hermie-plugin"
+  },
+  {
+    "args": [],
+    "fn": "PLUGIN_CONTRACT_VERSION",
+    "note": "constant",
+    "result": 1
+  },
+  {
+    "args": [],
+    "fn": "PLUGIN_CAPABILITIES",
+    "note": "constant; an object of name -> capability string",
+    "result": {
+      "contextPerBot": "context.per_bot",
+      "contextPrompt": "context.system_prompt",
+      "contextTurnClaim": "context.turn_claim",
+      "memoryBrowse": "memory.browse",
+      "memoryEdit": "memory.edit",
+      "profilesDisplayName": "profiles.display_name",
+      "pushExpo": "push.expo",
+      "pushMute": "push.mute",
+      "pushPreview": "push.preview",
+      "pushSeenPerChat": "push.seen.per_chat",
+      "pushTurnDone": "push.type.turn_done",
+      "pushTurnFailed": "push.type.turn_failed",
+      "pushWebPush": "push.webpush",
+      "uiMetaPerUser": "ui_meta.per_user"
+    }
+  },
+  {
+    "args": [
+      {
+        "capabilities": [
+          "push.expo",
+          "push.type.turn_done",
+          "context.system_prompt"
+        ],
+        "limits": {
+          "contextChars": 1200,
+          "payloadBytes": 3500
+        },
+        "modules": {
+          "context": "on",
+          "presence": "planned",
+          "push": "on"
+        },
+        "updatedAt": 1790001453,
+        "v": 1,
+        "version": "0.2.0"
+      }
+    ],
+    "fn": "pluginAdvertOf",
+    "note": "result is null or {version, capabilities, modules, limits, updatedAt}. v must be a JSON integer 1..PLUGIN_CONTRACT_VERSION (1.5 and \"1\" are refused). capabilities: strings only, de-duplicated, sorted by UTF-16 code unit (so uppercase before lowercase, and non-ASCII after ASCII); a non-array gives []. modules: only string values. limits: a shallow copy of an object, [] otherwise. updatedAt: floor of a finite number, else 0",
+    "result": {
+      "capabilities": [
+        "context.system_prompt",
+        "push.expo",
+        "push.type.turn_done"
+      ],
+      "limits": {
+        "contextChars": 1200,
+        "payloadBytes": 3500
+      },
+      "modules": {
+        "context": "on",
+        "presence": "planned",
+        "push": "on"
+      },
+      "updatedAt": 1790001453,
+      "version": "0.2.0"
+    }
+  },
+  {
+    "args": [
+      {
+        "capabilities": [
+          "push.expo",
+          "push.type.turn_done",
+          "context.system_prompt"
+        ],
+        "limits": {
+          "contextChars": 1200,
+          "payloadBytes": 3500
+        },
+        "modules": {
+          "context": "on",
+          "presence": "planned",
+          "push": "on"
+        },
+        "updatedAt": 1790001453,
+        "v": 2,
+        "version": "0.2.0"
+      }
+    ],
+    "fn": "pluginAdvertOf",
+    "result": null
+  },
+  {
+    "args": [
+      {
+        "capabilities": [
+          "push.expo",
+          "push.type.turn_done",
+          "context.system_prompt"
+        ],
+        "limits": {
+          "contextChars": 1200,
+          "payloadBytes": 3500
+        },
+        "modules": {
+          "context": "on",
+          "presence": "planned",
+          "push": "on"
+        },
+        "updatedAt": 1790001453,
+        "v": "1",
+        "version": "0.2.0"
+      }
+    ],
+    "fn": "pluginAdvertOf",
+    "result": null
+  },
+  {
+    "args": [
+      {
+        "capabilities": [
+          "push.expo",
+          "push.type.turn_done",
+          "context.system_prompt"
+        ],
+        "limits": {
+          "contextChars": 1200,
+          "payloadBytes": 3500
+        },
+        "modules": {
+          "context": "on",
+          "presence": "planned",
+          "push": "on"
+        },
+        "updatedAt": 1790001453,
+        "v": true,
+        "version": "0.2.0"
+      }
+    ],
+    "fn": "pluginAdvertOf",
+    "result": null
+  },
+  {
+    "args": [
+      {
+        "capabilities": [
+          "push.expo",
+          "push.type.turn_done",
+          "context.system_prompt"
+        ],
+        "limits": {
+          "contextChars": 1200,
+          "payloadBytes": 3500
+        },
+        "modules": {
+          "context": "on",
+          "presence": "planned",
+          "push": "on"
+        },
+        "updatedAt": 1790001453,
+        "v": 0,
+        "version": "0.2.0"
+      }
+    ],
+    "fn": "pluginAdvertOf",
+    "result": null
+  },
+  {
+    "args": [
+      {
+        "capabilities": [
+          "push.expo",
+          "push.type.turn_done",
+          "context.system_prompt"
+        ],
+        "limits": {
+          "contextChars": 1200,
+          "payloadBytes": 3500
+        },
+        "modules": {
+          "context": "on",
+          "presence": "planned",
+          "push": "on"
+        },
+        "updatedAt": 1790001453,
+        "v": -1,
+        "version": "0.2.0"
+      }
+    ],
+    "fn": "pluginAdvertOf",
+    "result": null
+  },
+  {
+    "args": [
+      {
+        "capabilities": [
+          "push.expo",
+          "push.type.turn_done",
+          "context.system_prompt"
+        ],
+        "limits": {
+          "contextChars": 1200,
+          "payloadBytes": 3500
+        },
+        "modules": {
+          "context": "on",
+          "presence": "planned",
+          "push": "on"
+        },
+        "updatedAt": 1790001453,
+        "v": 1.5,
+        "version": "0.2.0"
+      }
+    ],
+    "fn": "pluginAdvertOf",
+    "result": null
+  },
+  {
+    "args": [
+      {
+        "capabilities": [
+          "push.expo",
+          "push.type.turn_done",
+          "context.system_prompt"
+        ],
+        "limits": {
+          "contextChars": 1200,
+          "payloadBytes": 3500
+        },
+        "modules": {
+          "context": "on",
+          "presence": "planned",
+          "push": "on"
+        },
+        "updatedAt": 1790001453,
+        "v": null,
+        "version": "0.2.0"
+      }
+    ],
+    "fn": "pluginAdvertOf",
+    "result": null
+  },
+  {
+    "args": [
+      {
+        "version": "0.2.0"
+      }
+    ],
+    "fn": "pluginAdvertOf",
+    "result": null
+  },
+  {
+    "args": [
+      null
+    ],
+    "fn": "pluginAdvertOf",
+    "result": null
+  },
+  {
+    "args": [
+      "hermie-plugin"
+    ],
+    "fn": "pluginAdvertOf",
+    "result": null
+  },
+  {
+    "args": [
+      42
+    ],
+    "fn": "pluginAdvertOf",
+    "result": null
+  },
+  {
+    "args": [
+      true
+    ],
+    "fn": "pluginAdvertOf",
+    "result": null
+  },
+  {
+    "args": [
+      [
+        {
+          "capabilities": [
+            "push.expo",
+            "push.type.turn_done",
+            "context.system_prompt"
+          ],
+          "limits": {
+            "contextChars": 1200,
+            "payloadBytes": 3500
+          },
+          "modules": {
+            "context": "on",
+            "presence": "planned",
+            "push": "on"
+          },
+          "updatedAt": 1790001453,
+          "v": 1,
+          "version": "0.2.0"
+        }
+      ]
+    ],
+    "fn": "pluginAdvertOf",
+    "result": null
+  },
+  {
+    "args": [
+      []
+    ],
+    "fn": "pluginAdvertOf",
+    "result": null
+  },
+  {
+    "args": [
+      {
+        "v": 1
+      }
+    ],
+    "fn": "pluginAdvertOf",
+    "result": {
+      "capabilities": [],
+      "limits": {},
+      "modules": {},
+      "updatedAt": 0,
+      "version": ""
+    }
+  },
+  {
+    "args": [
+      {
+        "v": 1,
+        "version": 5
+      }
+    ],
+    "fn": "pluginAdvertOf",
+    "result": {
+      "capabilities": [],
+      "limits": {},
+      "modules": {},
+      "updatedAt": 0,
+      "version": ""
+    }
+  },
+  {
+    "args": [
+      {
+        "v": 1,
+        "version": ""
+      }
+    ],
+    "fn": "pluginAdvertOf",
+    "result": {
+      "capabilities": [],
+      "limits": {},
+      "modules": {},
+      "updatedAt": 0,
+      "version": ""
+    }
+  },
+  {
+    "args": [
+      {
+        "capabilities": [
+          "push.expo"
+        ],
+        "limits": {
+          "contextChars": 1200,
+          "payloadBytes": 3500
+        },
+        "modules": {
+          "context": "on",
+          "presence": "planned",
+          "push": "on"
+        },
+        "updatedAt": 1790001453,
+        "v": 1,
+        "version": "0.2.0"
+      }
+    ],
+    "fn": "pluginAdvertOf",
+    "result": {
+      "capabilities": [
+        "push.expo"
+      ],
+      "limits": {
+        "contextChars": 1200,
+        "payloadBytes": 3500
+      },
+      "modules": {
+        "context": "on",
+        "presence": "planned",
+        "push": "on"
+      },
+      "updatedAt": 1790001453,
+      "version": "0.2.0"
+    }
+  },
+  {
+    "args": [
+      {
+        "capabilities": [
+          "b",
+          "a",
+          "b",
+          "a",
+          "c"
+        ],
+        "limits": {
+          "contextChars": 1200,
+          "payloadBytes": 3500
+        },
+        "modules": {
+          "context": "on",
+          "presence": "planned",
+          "push": "on"
+        },
+        "updatedAt": 1790001453,
+        "v": 1,
+        "version": "0.2.0"
+      }
+    ],
+    "fn": "pluginAdvertOf",
+    "result": {
+      "capabilities": [
+        "a",
+        "b",
+        "c"
+      ],
+      "limits": {
+        "contextChars": 1200,
+        "payloadBytes": 3500
+      },
+      "modules": {
+        "context": "on",
+        "presence": "planned",
+        "push": "on"
+      },
+      "updatedAt": 1790001453,
+      "version": "0.2.0"
+    }
+  },
+  {
+    "args": [
+      {
+        "capabilities": [
+          "b",
+          "B",
+          "a",
+          "é",
+          "Z",
+          "z",
+          "ä",
+          "Á"
+        ],
+        "limits": {
+          "contextChars": 1200,
+          "payloadBytes": 3500
+        },
+        "modules": {
+          "context": "on",
+          "presence": "planned",
+          "push": "on"
+        },
+        "updatedAt": 1790001453,
+        "v": 1,
+        "version": "0.2.0"
+      }
+    ],
+    "fn": "pluginAdvertOf",
+    "result": {
+      "capabilities": [
+        "B",
+        "Z",
+        "a",
+        "b",
+        "z",
+        "Á",
+        "ä",
+        "é"
+      ],
+      "limits": {
+        "contextChars": 1200,
+        "payloadBytes": 3500
+      },
+      "modules": {
+        "context": "on",
+        "presence": "planned",
+        "push": "on"
+      },
+      "updatedAt": 1790001453,
+      "version": "0.2.0"
+    }
+  },
+  {
+    "args": [
+      {
+        "capabilities": [
+          "x",
+          1,
+          null,
+          true,
+          [
+            "y"
+          ],
+          {
+            "z": 1
+          },
+          "w"
+        ],
+        "limits": {
+          "contextChars": 1200,
+          "payloadBytes": 3500
+        },
+        "modules": {
+          "context": "on",
+          "presence": "planned",
+          "push": "on"
+        },
+        "updatedAt": 1790001453,
+        "v": 1,
+        "version": "0.2.0"
+      }
+    ],
+    "fn": "pluginAdvertOf",
+    "result": {
+      "capabilities": [
+        "w",
+        "x"
+      ],
+      "limits": {
+        "contextChars": 1200,
+        "payloadBytes": 3500
+      },
+      "modules": {
+        "context": "on",
+        "presence": "planned",
+        "push": "on"
+      },
+      "updatedAt": 1790001453,
+      "version": "0.2.0"
+    }
+  },
+  {
+    "args": [
+      {
+        "capabilities": [],
+        "limits": {
+          "contextChars": 1200,
+          "payloadBytes": 3500
+        },
+        "modules": {
+          "context": "on",
+          "presence": "planned",
+          "push": "on"
+        },
+        "updatedAt": 1790001453,
+        "v": 1,
+        "version": "0.2.0"
+      }
+    ],
+    "fn": "pluginAdvertOf",
+    "result": {
+      "capabilities": [],
+      "limits": {
+        "contextChars": 1200,
+        "payloadBytes": 3500
+      },
+      "modules": {
+        "context": "on",
+        "presence": "planned",
+        "push": "on"
+      },
+      "updatedAt": 1790001453,
+      "version": "0.2.0"
+    }
+  },
+  {
+    "args": [
+      {
+        "capabilities": "push.expo",
+        "limits": {
+          "contextChars": 1200,
+          "payloadBytes": 3500
+        },
+        "modules": {
+          "context": "on",
+          "presence": "planned",
+          "push": "on"
+        },
+        "updatedAt": 1790001453,
+        "v": 1,
+        "version": "0.2.0"
+      }
+    ],
+    "fn": "pluginAdvertOf",
+    "result": {
+      "capabilities": [],
+      "limits": {
+        "contextChars": 1200,
+        "payloadBytes": 3500
+      },
+      "modules": {
+        "context": "on",
+        "presence": "planned",
+        "push": "on"
+      },
+      "updatedAt": 1790001453,
+      "version": "0.2.0"
+    }
+  },
+  {
+    "args": [
+      {
+        "capabilities": {
+          "0": "push.expo"
+        },
+        "limits": {
+          "contextChars": 1200,
+          "payloadBytes": 3500
+        },
+        "modules": {
+          "context": "on",
+          "presence": "planned",
+          "push": "on"
+        },
+        "updatedAt": 1790001453,
+        "v": 1,
+        "version": "0.2.0"
+      }
+    ],
+    "fn": "pluginAdvertOf",
+    "result": {
+      "capabilities": [],
+      "limits": {
+        "contextChars": 1200,
+        "payloadBytes": 3500
+      },
+      "modules": {
+        "context": "on",
+        "presence": "planned",
+        "push": "on"
+      },
+      "updatedAt": 1790001453,
+      "version": "0.2.0"
+    }
+  },
+  {
+    "args": [
+      {
+        "capabilities": null,
+        "limits": {
+          "contextChars": 1200,
+          "payloadBytes": 3500
+        },
+        "modules": {
+          "context": "on",
+          "presence": "planned",
+          "push": "on"
+        },
+        "updatedAt": 1790001453,
+        "v": 1,
+        "version": "0.2.0"
+      }
+    ],
+    "fn": "pluginAdvertOf",
+    "result": {
+      "capabilities": [],
+      "limits": {
+        "contextChars": 1200,
+        "payloadBytes": 3500
+      },
+      "modules": {
+        "context": "on",
+        "presence": "planned",
+        "push": "on"
+      },
+      "updatedAt": 1790001453,
+      "version": "0.2.0"
+    }
+  },
+  {
+    "args": [
+      {
+        "capabilities": [
+          "push.expo",
+          "push.type.turn_done",
+          "context.system_prompt"
+        ],
+        "limits": {
+          "contextChars": 1200,
+          "payloadBytes": 3500
+        },
+        "modules": {
+          "presence": "planned",
+          "push": "off"
+        },
+        "updatedAt": 1790001453,
+        "v": 1,
+        "version": "0.2.0"
+      }
+    ],
+    "fn": "pluginAdvertOf",
+    "result": {
+      "capabilities": [
+        "context.system_prompt",
+        "push.expo",
+        "push.type.turn_done"
+      ],
+      "limits": {
+        "contextChars": 1200,
+        "payloadBytes": 3500
+      },
+      "modules": {
+        "presence": "planned",
+        "push": "off"
+      },
+      "updatedAt": 1790001453,
+      "version": "0.2.0"
+    }
+  },
+  {
+    "args": [
+      {
+        "capabilities": [
+          "push.expo",
+          "push.type.turn_done",
+          "context.system_prompt"
+        ],
+        "limits": {
+          "contextChars": 1200,
+          "payloadBytes": 3500
+        },
+        "modules": {
+          "bad": 5,
+          "flag": true,
+          "list": [
+            "on"
+          ],
+          "nested": {
+            "a": 1
+          },
+          "push": "on",
+          "worse": null
+        },
+        "updatedAt": 1790001453,
+        "v": 1,
+        "version": "0.2.0"
+      }
+    ],
+    "fn": "pluginAdvertOf",
+    "result": {
+      "capabilities": [
+        "context.system_prompt",
+        "push.expo",
+        "push.type.turn_done"
+      ],
+      "limits": {
+        "contextChars": 1200,
+        "payloadBytes": 3500
+      },
+      "modules": {
+        "push": "on"
+      },
+      "updatedAt": 1790001453,
+      "version": "0.2.0"
+    }
+  },
+  {
+    "args": [
+      {
+        "capabilities": [
+          "push.expo",
+          "push.type.turn_done",
+          "context.system_prompt"
+        ],
+        "limits": {
+          "contextChars": 1200,
+          "payloadBytes": 3500
+        },
+        "modules": [],
+        "updatedAt": 1790001453,
+        "v": 1,
+        "version": "0.2.0"
+      }
+    ],
+    "fn": "pluginAdvertOf",
+    "result": {
+      "capabilities": [
+        "context.system_prompt",
+        "push.expo",
+        "push.type.turn_done"
+      ],
+      "limits": {
+        "contextChars": 1200,
+        "payloadBytes": 3500
+      },
+      "modules": {},
+      "updatedAt": 1790001453,
+      "version": "0.2.0"
+    }
+  },
+  {
+    "args": [
+      {
+        "capabilities": [
+          "push.expo",
+          "push.type.turn_done",
+          "context.system_prompt"
+        ],
+        "limits": {
+          "contextChars": 1200,
+          "payloadBytes": 3500
+        },
+        "modules": [
+          "on"
+        ],
+        "updatedAt": 1790001453,
+        "v": 1,
+        "version": "0.2.0"
+      }
+    ],
+    "fn": "pluginAdvertOf",
+    "result": {
+      "capabilities": [
+        "context.system_prompt",
+        "push.expo",
+        "push.type.turn_done"
+      ],
+      "limits": {
+        "contextChars": 1200,
+        "payloadBytes": 3500
+      },
+      "modules": {},
+      "updatedAt": 1790001453,
+      "version": "0.2.0"
+    }
+  },
+  {
+    "args": [
+      {
+        "capabilities": [
+          "push.expo",
+          "push.type.turn_done",
+          "context.system_prompt"
+        ],
+        "limits": {
+          "contextChars": 1200,
+          "payloadBytes": 3500
+        },
+        "modules": "on",
+        "updatedAt": 1790001453,
+        "v": 1,
+        "version": "0.2.0"
+      }
+    ],
+    "fn": "pluginAdvertOf",
+    "result": {
+      "capabilities": [
+        "context.system_prompt",
+        "push.expo",
+        "push.type.turn_done"
+      ],
+      "limits": {
+        "contextChars": 1200,
+        "payloadBytes": 3500
+      },
+      "modules": {},
+      "updatedAt": 1790001453,
+      "version": "0.2.0"
+    }
+  },
+  {
+    "args": [
+      {
+        "capabilities": [
+          "push.expo",
+          "push.type.turn_done",
+          "context.system_prompt"
+        ],
+        "limits": {
+          "contextChars": 1200,
+          "payloadBytes": 3500
+        },
+        "modules": null,
+        "updatedAt": 1790001453,
+        "v": 1,
+        "version": "0.2.0"
+      }
+    ],
+    "fn": "pluginAdvertOf",
+    "result": {
+      "capabilities": [
+        "context.system_prompt",
+        "push.expo",
+        "push.type.turn_done"
+      ],
+      "limits": {
+        "contextChars": 1200,
+        "payloadBytes": 3500
+      },
+      "modules": {},
+      "updatedAt": 1790001453,
+      "version": "0.2.0"
+    }
+  },
+  {
+    "args": [
+      {
+        "capabilities": [
+          "push.expo",
+          "push.type.turn_done",
+          "context.system_prompt"
+        ],
+        "limits": {
+          "nested": {
+            "a": [
+              1,
+              2
+            ]
+          },
+          "payloadBytes": 3500,
+          "text": "x"
+        },
+        "modules": {
+          "context": "on",
+          "presence": "planned",
+          "push": "on"
+        },
+        "updatedAt": 1790001453,
+        "v": 1,
+        "version": "0.2.0"
+      }
+    ],
+    "fn": "pluginAdvertOf",
+    "result": {
+      "capabilities": [
+        "context.system_prompt",
+        "push.expo",
+        "push.type.turn_done"
+      ],
+      "limits": {
+        "nested": {
+          "a": [
+            1,
+            2
+          ]
+        },
+        "payloadBytes": 3500,
+        "text": "x"
+      },
+      "modules": {
+        "context": "on",
+        "presence": "planned",
+        "push": "on"
+      },
+      "updatedAt": 1790001453,
+      "version": "0.2.0"
+    }
+  },
+  {
+    "args": [
+      {
+        "capabilities": [
+          "push.expo",
+          "push.type.turn_done",
+          "context.system_prompt"
+        ],
+        "limits": [],
+        "modules": {
+          "context": "on",
+          "presence": "planned",
+          "push": "on"
+        },
+        "updatedAt": 1790001453,
+        "v": 1,
+        "version": "0.2.0"
+      }
+    ],
+    "fn": "pluginAdvertOf",
+    "result": {
+      "capabilities": [
+        "context.system_prompt",
+        "push.expo",
+        "push.type.turn_done"
+      ],
+      "limits": {},
+      "modules": {
+        "context": "on",
+        "presence": "planned",
+        "push": "on"
+      },
+      "updatedAt": 1790001453,
+      "version": "0.2.0"
+    }
+  },
+  {
+    "args": [
+      {
+        "capabilities": [
+          "push.expo",
+          "push.type.turn_done",
+          "context.system_prompt"
+        ],
+        "limits": [
+          "x"
+        ],
+        "modules": {
+          "context": "on",
+          "presence": "planned",
+          "push": "on"
+        },
+        "updatedAt": 1790001453,
+        "v": 1,
+        "version": "0.2.0"
+      }
+    ],
+    "fn": "pluginAdvertOf",
+    "result": {
+      "capabilities": [
+        "context.system_prompt",
+        "push.expo",
+        "push.type.turn_done"
+      ],
+      "limits": {},
+      "modules": {
+        "context": "on",
+        "presence": "planned",
+        "push": "on"
+      },
+      "updatedAt": 1790001453,
+      "version": "0.2.0"
+    }
+  },
+  {
+    "args": [
+      {
+        "capabilities": [
+          "push.expo",
+          "push.type.turn_done",
+          "context.system_prompt"
+        ],
+        "limits": "x",
+        "modules": {
+          "context": "on",
+          "presence": "planned",
+          "push": "on"
+        },
+        "updatedAt": 1790001453,
+        "v": 1,
+        "version": "0.2.0"
+      }
+    ],
+    "fn": "pluginAdvertOf",
+    "result": {
+      "capabilities": [
+        "context.system_prompt",
+        "push.expo",
+        "push.type.turn_done"
+      ],
+      "limits": {},
+      "modules": {
+        "context": "on",
+        "presence": "planned",
+        "push": "on"
+      },
+      "updatedAt": 1790001453,
+      "version": "0.2.0"
+    }
+  },
+  {
+    "args": [
+      {
+        "capabilities": [
+          "push.expo",
+          "push.type.turn_done",
+          "context.system_prompt"
+        ],
+        "limits": null,
+        "modules": {
+          "context": "on",
+          "presence": "planned",
+          "push": "on"
+        },
+        "updatedAt": 1790001453,
+        "v": 1,
+        "version": "0.2.0"
+      }
+    ],
+    "fn": "pluginAdvertOf",
+    "result": {
+      "capabilities": [
+        "context.system_prompt",
+        "push.expo",
+        "push.type.turn_done"
+      ],
+      "limits": {},
+      "modules": {
+        "context": "on",
+        "presence": "planned",
+        "push": "on"
+      },
+      "updatedAt": 1790001453,
+      "version": "0.2.0"
+    }
+  },
+  {
+    "args": [
+      {
+        "capabilities": [
+          "push.expo",
+          "push.type.turn_done",
+          "context.system_prompt"
+        ],
+        "limits": {
+          "contextChars": 1200,
+          "payloadBytes": 3500
+        },
+        "modules": {
+          "context": "on",
+          "presence": "planned",
+          "push": "on"
+        },
+        "updatedAt": 1790001453.9,
+        "v": 1,
+        "version": "0.2.0"
+      }
+    ],
+    "fn": "pluginAdvertOf",
+    "result": {
+      "capabilities": [
+        "context.system_prompt",
+        "push.expo",
+        "push.type.turn_done"
+      ],
+      "limits": {
+        "contextChars": 1200,
+        "payloadBytes": 3500
+      },
+      "modules": {
+        "context": "on",
+        "presence": "planned",
+        "push": "on"
+      },
+      "updatedAt": 1790001453,
+      "version": "0.2.0"
+    }
+  },
+  {
+    "args": [
+      {
+        "capabilities": [
+          "push.expo",
+          "push.type.turn_done",
+          "context.system_prompt"
+        ],
+        "limits": {
+          "contextChars": 1200,
+          "payloadBytes": 3500
+        },
+        "modules": {
+          "context": "on",
+          "presence": "planned",
+          "push": "on"
+        },
+        "updatedAt": "1790001453",
+        "v": 1,
+        "version": "0.2.0"
+      }
+    ],
+    "fn": "pluginAdvertOf",
+    "result": {
+      "capabilities": [
+        "context.system_prompt",
+        "push.expo",
+        "push.type.turn_done"
+      ],
+      "limits": {
+        "contextChars": 1200,
+        "payloadBytes": 3500
+      },
+      "modules": {
+        "context": "on",
+        "presence": "planned",
+        "push": "on"
+      },
+      "updatedAt": 0,
+      "version": "0.2.0"
+    }
+  },
+  {
+    "args": [
+      {
+        "capabilities": [
+          "push.expo",
+          "push.type.turn_done",
+          "context.system_prompt"
+        ],
+        "limits": {
+          "contextChars": 1200,
+          "payloadBytes": 3500
+        },
+        "modules": {
+          "context": "on",
+          "presence": "planned",
+          "push": "on"
+        },
+        "updatedAt": -1.5,
+        "v": 1,
+        "version": "0.2.0"
+      }
+    ],
+    "fn": "pluginAdvertOf",
+    "result": {
+      "capabilities": [
+        "context.system_prompt",
+        "push.expo",
+        "push.type.turn_done"
+      ],
+      "limits": {
+        "contextChars": 1200,
+        "payloadBytes": 3500
+      },
+      "modules": {
+        "context": "on",
+        "presence": "planned",
+        "push": "on"
+      },
+      "updatedAt": -2,
+      "version": "0.2.0"
+    }
+  },
+  {
+    "args": [
+      {
+        "capabilities": [
+          "push.expo",
+          "push.type.turn_done",
+          "context.system_prompt"
+        ],
+        "limits": {
+          "contextChars": 1200,
+          "payloadBytes": 3500
+        },
+        "modules": {
+          "context": "on",
+          "presence": "planned",
+          "push": "on"
+        },
+        "updatedAt": 0,
+        "v": 1,
+        "version": "0.2.0"
+      }
+    ],
+    "fn": "pluginAdvertOf",
+    "result": {
+      "capabilities": [
+        "context.system_prompt",
+        "push.expo",
+        "push.type.turn_done"
+      ],
+      "limits": {
+        "contextChars": 1200,
+        "payloadBytes": 3500
+      },
+      "modules": {
+        "context": "on",
+        "presence": "planned",
+        "push": "on"
+      },
+      "updatedAt": 0,
+      "version": "0.2.0"
+    }
+  },
+  {
+    "args": [
+      {
+        "capabilities": [
+          "push.expo",
+          "push.type.turn_done",
+          "context.system_prompt"
+        ],
+        "limits": {
+          "contextChars": 1200,
+          "payloadBytes": 3500
+        },
+        "modules": {
+          "context": "on",
+          "presence": "planned",
+          "push": "on"
+        },
+        "updatedAt": null,
+        "v": 1,
+        "version": "0.2.0"
+      }
+    ],
+    "fn": "pluginAdvertOf",
+    "result": {
+      "capabilities": [
+        "context.system_prompt",
+        "push.expo",
+        "push.type.turn_done"
+      ],
+      "limits": {
+        "contextChars": 1200,
+        "payloadBytes": 3500
+      },
+      "modules": {
+        "context": "on",
+        "presence": "planned",
+        "push": "on"
+      },
+      "updatedAt": 0,
+      "version": "0.2.0"
+    }
+  },
+  {
+    "args": [
+      {
+        "capabilities": [
+          "push.expo",
+          "push.type.turn_done",
+          "context.system_prompt"
+        ],
+        "limits": {
+          "contextChars": 1200,
+          "payloadBytes": 3500
+        },
+        "modules": {
+          "context": "on",
+          "presence": "planned",
+          "push": "on"
+        },
+        "updatedAt": true,
+        "v": 1,
+        "version": "0.2.0"
+      }
+    ],
+    "fn": "pluginAdvertOf",
+    "result": {
+      "capabilities": [
+        "context.system_prompt",
+        "push.expo",
+        "push.type.turn_done"
+      ],
+      "limits": {
+        "contextChars": 1200,
+        "payloadBytes": 3500
+      },
+      "modules": {
+        "context": "on",
+        "presence": "planned",
+        "push": "on"
+      },
+      "updatedAt": 0,
+      "version": "0.2.0"
+    }
+  },
+  {
+    "args": [
+      {
+        "capabilities": [
+          "push.expo",
+          "push.type.turn_done",
+          "context.system_prompt"
+        ],
+        "extra": "ignored",
+        "limits": {
+          "contextChars": 1200,
+          "payloadBytes": 3500
+        },
+        "modules": {
+          "context": "on",
+          "presence": "planned",
+          "push": "on"
+        },
+        "updatedAt": 1790001453,
+        "v": 1,
+        "version": "0.2.0"
+      }
+    ],
+    "fn": "pluginAdvertOf",
+    "result": {
+      "capabilities": [
+        "context.system_prompt",
+        "push.expo",
+        "push.type.turn_done"
+      ],
+      "limits": {
+        "contextChars": 1200,
+        "payloadBytes": 3500
+      },
+      "modules": {
+        "context": "on",
+        "presence": "planned",
+        "push": "on"
+      },
+      "updatedAt": 1790001453,
+      "version": "0.2.0"
+    }
+  },
+  {
+    "args": [
+      {
+        "capabilities": [
+          "push.expo",
+          "push.webpush"
+        ],
+        "limits": {},
+        "modules": {
+          "push": "on"
+        },
+        "updatedAt": 1,
+        "v": 1,
+        "version": "1.0.0"
+      }
+    ],
+    "fn": "pluginAdvertOf",
+    "result": {
+      "capabilities": [
+        "push.expo",
+        "push.webpush"
+      ],
+      "limits": {},
+      "modules": {
+        "push": "on"
+      },
+      "updatedAt": 1,
+      "version": "1.0.0"
+    }
+  },
+  {
+    "args": [
+      [
+        {
+          "name": "writer",
+          "ui_meta": {
+            "hermes-bots": {}
+          }
+        },
+        {
+          "is_default": true,
+          "name": "researcher",
+          "ui_meta": {
+            "hermes-bots": {},
+            "hermie-plugin": {
+              "capabilities": [
+                "push.expo",
+                "push.type.turn_done",
+                "context.system_prompt"
+              ],
+              "limits": {
+                "contextChars": 1200,
+                "payloadBytes": 3500
+              },
+              "modules": {
+                "context": "on",
+                "presence": "planned",
+                "push": "on"
+              },
+              "updatedAt": 1790001453,
+              "v": 1,
+              "version": "0.2.0"
+            }
+          }
+        }
+      ]
+    ],
+    "fn": "pluginAdvert",
+    "note": "args[0] is a roster: either an array of profile rows or {profiles: [rows]}; only name, is_default and ui_meta are read. The first valid advert on a row with is_default === true (boolean true) wins; otherwise the first valid advert on any row. Rows that are not objects, or whose ui_meta is not an object, are skipped. null/undefined/anything else gives null",
+    "result": {
+      "capabilities": [
+        "context.system_prompt",
+        "push.expo",
+        "push.type.turn_done"
+      ],
+      "limits": {
+        "contextChars": 1200,
+        "payloadBytes": 3500
+      },
+      "modules": {
+        "context": "on",
+        "presence": "planned",
+        "push": "on"
+      },
+      "updatedAt": 1790001453,
+      "version": "0.2.0"
+    }
+  },
+  {
+    "args": [
+      [
+        {
+          "name": "writer",
+          "ui_meta": {
+            "hermie-plugin": {
+              "capabilities": [
+                "push.expo",
+                "push.type.turn_done",
+                "context.system_prompt"
+              ],
+              "limits": {
+                "contextChars": 1200,
+                "payloadBytes": 3500
+              },
+              "modules": {
+                "context": "on",
+                "presence": "planned",
+                "push": "on"
+              },
+              "updatedAt": 1790001453,
+              "v": 1,
+              "version": "0.2.0"
+            }
+          }
+        },
+        {
+          "is_default": true,
+          "name": "researcher",
+          "ui_meta": {
+            "hermes-bots": {}
+          }
+        }
+      ]
+    ],
+    "fn": "pluginAdvert",
+    "result": {
+      "capabilities": [
+        "context.system_prompt",
+        "push.expo",
+        "push.type.turn_done"
+      ],
+      "limits": {
+        "contextChars": 1200,
+        "payloadBytes": 3500
+      },
+      "modules": {
+        "context": "on",
+        "presence": "planned",
+        "push": "on"
+      },
+      "updatedAt": 1790001453,
+      "version": "0.2.0"
+    }
+  },
+  {
+    "args": [
+      [
+        {
+          "name": "writer",
+          "ui_meta": {
+            "hermie-plugin": {
+              "capabilities": [
+                "push.expo",
+                "push.type.turn_done",
+                "context.system_prompt"
+              ],
+              "limits": {
+                "contextChars": 1200,
+                "payloadBytes": 3500
+              },
+              "modules": {
+                "context": "on",
+                "presence": "planned",
+                "push": "on"
+              },
+              "updatedAt": 1790001453,
+              "v": 1,
+              "version": "0.0.1"
+            }
+          }
+        },
+        {
+          "is_default": true,
+          "name": "researcher",
+          "ui_meta": {
+            "hermie-plugin": {
+              "capabilities": [
+                "push.expo",
+                "push.type.turn_done",
+                "context.system_prompt"
+              ],
+              "limits": {
+                "contextChars": 1200,
+                "payloadBytes": 3500
+              },
+              "modules": {
+                "context": "on",
+                "presence": "planned",
+                "push": "on"
+              },
+              "updatedAt": 1790001453,
+              "v": 1,
+              "version": "0.2.0"
+            }
+          }
+        }
+      ]
+    ],
+    "fn": "pluginAdvert",
+    "result": {
+      "capabilities": [
+        "context.system_prompt",
+        "push.expo",
+        "push.type.turn_done"
+      ],
+      "limits": {
+        "contextChars": 1200,
+        "payloadBytes": 3500
+      },
+      "modules": {
+        "context": "on",
+        "presence": "planned",
+        "push": "on"
+      },
+      "updatedAt": 1790001453,
+      "version": "0.2.0"
+    }
+  },
+  {
+    "args": [
+      [
+        {
+          "is_default": false,
+          "name": "writer",
+          "ui_meta": {
+            "hermie-plugin": {
+              "capabilities": [
+                "push.expo",
+                "push.type.turn_done",
+                "context.system_prompt"
+              ],
+              "limits": {
+                "contextChars": 1200,
+                "payloadBytes": 3500
+              },
+              "modules": {
+                "context": "on",
+                "presence": "planned",
+                "push": "on"
+              },
+              "updatedAt": 1790001453,
+              "v": 1,
+              "version": "0.0.1"
+            }
+          }
+        },
+        {
+          "is_default": false,
+          "name": "researcher",
+          "ui_meta": {
+            "hermie-plugin": {
+              "capabilities": [
+                "push.expo",
+                "push.type.turn_done",
+                "context.system_prompt"
+              ],
+              "limits": {
+                "contextChars": 1200,
+                "payloadBytes": 3500
+              },
+              "modules": {
+                "context": "on",
+                "presence": "planned",
+                "push": "on"
+              },
+              "updatedAt": 1790001453,
+              "v": 1,
+              "version": "0.2.0"
+            }
+          }
+        }
+      ]
+    ],
+    "fn": "pluginAdvert",
+    "result": {
+      "capabilities": [
+        "context.system_prompt",
+        "push.expo",
+        "push.type.turn_done"
+      ],
+      "limits": {
+        "contextChars": 1200,
+        "payloadBytes": 3500
+      },
+      "modules": {
+        "context": "on",
+        "presence": "planned",
+        "push": "on"
+      },
+      "updatedAt": 1790001453,
+      "version": "0.0.1"
+    }
+  },
+  {
+    "args": [
+      [
+        {
+          "is_default": true,
+          "name": "writer",
+          "ui_meta": {
+            "hermie-plugin": {
+              "capabilities": [
+                "push.expo",
+                "push.type.turn_done",
+                "context.system_prompt"
+              ],
+              "limits": {
+                "contextChars": 1200,
+                "payloadBytes": 3500
+              },
+              "modules": {
+                "context": "on",
+                "presence": "planned",
+                "push": "on"
+              },
+              "updatedAt": 1790001453,
+              "v": 1,
+              "version": "0.2.0"
+            }
+          }
+        },
+        {
+          "is_default": true,
+          "name": "researcher",
+          "ui_meta": {
+            "hermie-plugin": {
+              "capabilities": [
+                "push.expo",
+                "push.type.turn_done",
+                "context.system_prompt"
+              ],
+              "limits": {
+                "contextChars": 1200,
+                "payloadBytes": 3500
+              },
+              "modules": {
+                "context": "on",
+                "presence": "planned",
+                "push": "on"
+              },
+              "updatedAt": 1790001453,
+              "v": 1,
+              "version": "0.0.1"
+            }
+          }
+        }
+      ]
+    ],
+    "fn": "pluginAdvert",
+    "result": {
+      "capabilities": [
+        "context.system_prompt",
+        "push.expo",
+        "push.type.turn_done"
+      ],
+      "limits": {
+        "contextChars": 1200,
+        "payloadBytes": 3500
+      },
+      "modules": {
+        "context": "on",
+        "presence": "planned",
+        "push": "on"
+      },
+      "updatedAt": 1790001453,
+      "version": "0.2.0"
+    }
+  },
+  {
+    "args": [
+      [
+        {
+          "name": "writer",
+          "ui_meta": {
+            "hermie-plugin": {
+              "capabilities": [
+                "push.expo",
+                "push.type.turn_done",
+                "context.system_prompt"
+              ],
+              "limits": {
+                "contextChars": 1200,
+                "payloadBytes": 3500
+              },
+              "modules": {
+                "context": "on",
+                "presence": "planned",
+                "push": "on"
+              },
+              "updatedAt": 1790001453,
+              "v": 1,
+              "version": "0.0.1"
+            }
+          }
+        },
+        {
+          "name": "researcher",
+          "ui_meta": {
+            "hermie-plugin": {
+              "capabilities": [
+                "push.expo",
+                "push.type.turn_done",
+                "context.system_prompt"
+              ],
+              "limits": {
+                "contextChars": 1200,
+                "payloadBytes": 3500
+              },
+              "modules": {
+                "context": "on",
+                "presence": "planned",
+                "push": "on"
+              },
+              "updatedAt": 1790001453,
+              "v": 1,
+              "version": "0.2.0"
+            }
+          }
+        }
+      ]
+    ],
+    "fn": "pluginAdvert",
+    "result": {
+      "capabilities": [
+        "context.system_prompt",
+        "push.expo",
+        "push.type.turn_done"
+      ],
+      "limits": {
+        "contextChars": 1200,
+        "payloadBytes": 3500
+      },
+      "modules": {
+        "context": "on",
+        "presence": "planned",
+        "push": "on"
+      },
+      "updatedAt": 1790001453,
+      "version": "0.0.1"
+    }
+  },
+  {
+    "args": [
+      [
+        {
+          "is_default": true,
+          "name": "researcher",
+          "ui_meta": {
+            "hermes-bots": {}
+          }
+        }
+      ]
+    ],
+    "fn": "pluginAdvert",
+    "result": null
+  },
+  {
+    "args": [
+      [
+        {
+          "is_default": true,
+          "name": "researcher",
+          "ui_meta": {
+            "hermie-plugin": {
+              "capabilities": [
+                "push.expo",
+                "push.type.turn_done",
+                "context.system_prompt"
+              ],
+              "limits": {
+                "contextChars": 1200,
+                "payloadBytes": 3500
+              },
+              "modules": {
+                "context": "on",
+                "presence": "planned",
+                "push": "on"
+              },
+              "updatedAt": 1790001453,
+              "v": 2,
+              "version": "0.2.0"
+            }
+          }
+        },
+        {
+          "name": "writer",
+          "ui_meta": {
+            "hermie-plugin": {
+              "capabilities": [
+                "push.expo",
+                "push.type.turn_done",
+                "context.system_prompt"
+              ],
+              "limits": {
+                "contextChars": 1200,
+                "payloadBytes": 3500
+              },
+              "modules": {
+                "context": "on",
+                "presence": "planned",
+                "push": "on"
+              },
+              "updatedAt": 1790001453,
+              "v": 1,
+              "version": "0.2.0"
+            }
+          }
+        }
+      ]
+    ],
+    "fn": "pluginAdvert",
+    "result": {
+      "capabilities": [
+        "context.system_prompt",
+        "push.expo",
+        "push.type.turn_done"
+      ],
+      "limits": {
+        "contextChars": 1200,
+        "payloadBytes": 3500
+      },
+      "modules": {
+        "context": "on",
+        "presence": "planned",
+        "push": "on"
+      },
+      "updatedAt": 1790001453,
+      "version": "0.2.0"
+    }
+  },
+  {
+    "args": [
+      [
+        {
+          "is_default": true,
+          "name": "researcher",
+          "ui_meta": {
+            "hermie-plugin": "x"
+          }
+        },
+        {
+          "name": "writer",
+          "ui_meta": {
+            "hermie-plugin": {
+              "capabilities": [
+                "push.expo",
+                "push.type.turn_done",
+                "context.system_prompt"
+              ],
+              "limits": {
+                "contextChars": 1200,
+                "payloadBytes": 3500
+              },
+              "modules": {
+                "context": "on",
+                "presence": "planned",
+                "push": "on"
+              },
+              "updatedAt": 1790001453,
+              "v": 1,
+              "version": "0.2.0"
+            }
+          }
+        }
+      ]
+    ],
+    "fn": "pluginAdvert",
+    "result": {
+      "capabilities": [
+        "context.system_prompt",
+        "push.expo",
+        "push.type.turn_done"
+      ],
+      "limits": {
+        "contextChars": 1200,
+        "payloadBytes": 3500
+      },
+      "modules": {
+        "context": "on",
+        "presence": "planned",
+        "push": "on"
+      },
+      "updatedAt": 1790001453,
+      "version": "0.2.0"
+    }
+  },
+  {
+    "args": [
+      [
+        {
+          "is_default": true,
+          "name": "researcher",
+          "ui_meta": null
+        },
+        {
+          "name": "writer",
+          "ui_meta": {
+            "hermie-plugin": {
+              "capabilities": [
+                "push.expo",
+                "push.type.turn_done",
+                "context.system_prompt"
+              ],
+              "limits": {
+                "contextChars": 1200,
+                "payloadBytes": 3500
+              },
+              "modules": {
+                "context": "on",
+                "presence": "planned",
+                "push": "on"
+              },
+              "updatedAt": 1790001453,
+              "v": 1,
+              "version": "0.2.0"
+            }
+          }
+        }
+      ]
+    ],
+    "fn": "pluginAdvert",
+    "result": {
+      "capabilities": [
+        "context.system_prompt",
+        "push.expo",
+        "push.type.turn_done"
+      ],
+      "limits": {
+        "contextChars": 1200,
+        "payloadBytes": 3500
+      },
+      "modules": {
+        "context": "on",
+        "presence": "planned",
+        "push": "on"
+      },
+      "updatedAt": 1790001453,
+      "version": "0.2.0"
+    }
+  },
+  {
+    "args": [
+      [
+        {
+          "is_default": true,
+          "name": "researcher",
+          "ui_meta": []
+        },
+        {
+          "name": "writer",
+          "ui_meta": {
+            "hermie-plugin": {
+              "capabilities": [
+                "push.expo",
+                "push.type.turn_done",
+                "context.system_prompt"
+              ],
+              "limits": {
+                "contextChars": 1200,
+                "payloadBytes": 3500
+              },
+              "modules": {
+                "context": "on",
+                "presence": "planned",
+                "push": "on"
+              },
+              "updatedAt": 1790001453,
+              "v": 1,
+              "version": "0.2.0"
+            }
+          }
+        }
+      ]
+    ],
+    "fn": "pluginAdvert",
+    "result": {
+      "capabilities": [
+        "context.system_prompt",
+        "push.expo",
+        "push.type.turn_done"
+      ],
+      "limits": {
+        "contextChars": 1200,
+        "payloadBytes": 3500
+      },
+      "modules": {
+        "context": "on",
+        "presence": "planned",
+        "push": "on"
+      },
+      "updatedAt": 1790001453,
+      "version": "0.2.0"
+    }
+  },
+  {
+    "args": [
+      [
+        {
+          "is_default": "true",
+          "name": "researcher",
+          "ui_meta": {
+            "hermie-plugin": {
+              "capabilities": [
+                "push.expo",
+                "push.type.turn_done",
+                "context.system_prompt"
+              ],
+              "limits": {
+                "contextChars": 1200,
+                "payloadBytes": 3500
+              },
+              "modules": {
+                "context": "on",
+                "presence": "planned",
+                "push": "on"
+              },
+              "updatedAt": 1790001453,
+              "v": 1,
+              "version": "0.2.0"
+            }
+          }
+        }
+      ]
+    ],
+    "fn": "pluginAdvert",
+    "result": {
+      "capabilities": [
+        "context.system_prompt",
+        "push.expo",
+        "push.type.turn_done"
+      ],
+      "limits": {
+        "contextChars": 1200,
+        "payloadBytes": 3500
+      },
+      "modules": {
+        "context": "on",
+        "presence": "planned",
+        "push": "on"
+      },
+      "updatedAt": 1790001453,
+      "version": "0.2.0"
+    }
+  },
+  {
+    "args": [
+      [
+        {
+          "is_default": 1,
+          "name": "researcher",
+          "ui_meta": {
+            "hermie-plugin": {
+              "capabilities": [
+                "push.expo",
+                "push.type.turn_done",
+                "context.system_prompt"
+              ],
+              "limits": {
+                "contextChars": 1200,
+                "payloadBytes": 3500
+              },
+              "modules": {
+                "context": "on",
+                "presence": "planned",
+                "push": "on"
+              },
+              "updatedAt": 1790001453,
+              "v": 1,
+              "version": "0.2.0"
+            }
+          }
+        },
+        {
+          "is_default": true,
+          "name": "writer",
+          "ui_meta": {
+            "hermie-plugin": {
+              "capabilities": [
+                "push.expo",
+                "push.type.turn_done",
+                "context.system_prompt"
+              ],
+              "limits": {
+                "contextChars": 1200,
+                "payloadBytes": 3500
+              },
+              "modules": {
+                "context": "on",
+                "presence": "planned",
+                "push": "on"
+              },
+              "updatedAt": 1790001453,
+              "v": 1,
+              "version": "0.0.1"
+            }
+          }
+        }
+      ]
+    ],
+    "fn": "pluginAdvert",
+    "result": {
+      "capabilities": [
+        "context.system_prompt",
+        "push.expo",
+        "push.type.turn_done"
+      ],
+      "limits": {
+        "contextChars": 1200,
+        "payloadBytes": 3500
+      },
+      "modules": {
+        "context": "on",
+        "presence": "planned",
+        "push": "on"
+      },
+      "updatedAt": 1790001453,
+      "version": "0.0.1"
+    }
+  },
+  {
+    "args": [
+      [
+        {
+          "name": "noMeta"
+        },
+        {
+          "name": "writer",
+          "ui_meta": {
+            "hermie-plugin": {
+              "capabilities": [
+                "push.expo",
+                "push.type.turn_done",
+                "context.system_prompt"
+              ],
+              "limits": {
+                "contextChars": 1200,
+                "payloadBytes": 3500
+              },
+              "modules": {
+                "context": "on",
+                "presence": "planned",
+                "push": "on"
+              },
+              "updatedAt": 1790001453,
+              "v": 1,
+              "version": "0.2.0"
+            }
+          }
+        }
+      ]
+    ],
+    "fn": "pluginAdvert",
+    "result": {
+      "capabilities": [
+        "context.system_prompt",
+        "push.expo",
+        "push.type.turn_done"
+      ],
+      "limits": {
+        "contextChars": 1200,
+        "payloadBytes": 3500
+      },
+      "modules": {
+        "context": "on",
+        "presence": "planned",
+        "push": "on"
+      },
+      "updatedAt": 1790001453,
+      "version": "0.2.0"
+    }
+  },
+  {
+    "args": [
+      [
+        null,
+        {
+          "name": "writer",
+          "ui_meta": {
+            "hermie-plugin": {
+              "capabilities": [
+                "push.expo",
+                "push.type.turn_done",
+                "context.system_prompt"
+              ],
+              "limits": {
+                "contextChars": 1200,
+                "payloadBytes": 3500
+              },
+              "modules": {
+                "context": "on",
+                "presence": "planned",
+                "push": "on"
+              },
+              "updatedAt": 1790001453,
+              "v": 1,
+              "version": "0.2.0"
+            }
+          }
+        }
+      ]
+    ],
+    "fn": "pluginAdvert",
+    "result": {
+      "capabilities": [
+        "context.system_prompt",
+        "push.expo",
+        "push.type.turn_done"
+      ],
+      "limits": {
+        "contextChars": 1200,
+        "payloadBytes": 3500
+      },
+      "modules": {
+        "context": "on",
+        "presence": "planned",
+        "push": "on"
+      },
+      "updatedAt": 1790001453,
+      "version": "0.2.0"
+    }
+  },
+  {
+    "args": [
+      []
+    ],
+    "fn": "pluginAdvert",
+    "result": null
+  },
+  {
+    "args": [
+      [
+        {
+          "hermie-plugin": {
+            "capabilities": [
+              "push.expo",
+              "push.type.turn_done",
+              "context.system_prompt"
+            ],
+            "limits": {
+              "contextChars": 1200,
+              "payloadBytes": 3500
+            },
+            "modules": {
+              "context": "on",
+              "presence": "planned",
+              "push": "on"
+            },
+            "updatedAt": 1790001453,
+            "v": 1,
+            "version": "0.2.0"
+          }
+        }
+      ]
+    ],
+    "fn": "pluginAdvert",
+    "result": null
+  },
+  {
+    "args": [
+      [
+        {
+          "name": "writer",
+          "ui_meta": {
+            "hermie-plugin": {
+              "capabilities": [
+                "push.expo",
+                "push.type.turn_done",
+                "context.system_prompt"
+              ],
+              "limits": {
+                "contextChars": 1200,
+                "payloadBytes": 3500
+              },
+              "modules": {
+                "context": "on",
+                "presence": "planned",
+                "push": "on"
+              },
+              "updatedAt": 1790001453,
+              "v": 1,
+              "version": "0.2.0"
+            }
+          }
+        },
+        "x",
+        5
+      ]
+    ],
+    "fn": "pluginAdvert",
+    "result": {
+      "capabilities": [
+        "context.system_prompt",
+        "push.expo",
+        "push.type.turn_done"
+      ],
+      "limits": {
+        "contextChars": 1200,
+        "payloadBytes": 3500
+      },
+      "modules": {
+        "context": "on",
+        "presence": "planned",
+        "push": "on"
+      },
+      "updatedAt": 1790001453,
+      "version": "0.2.0"
+    }
+  },
+  {
+    "args": [
+      {
+        "profiles": [
+          {
+            "name": "writer",
+            "ui_meta": {
+              "hermie-plugin": {
+                "capabilities": [
+                  "push.expo",
+                  "push.type.turn_done",
+                  "context.system_prompt"
+                ],
+                "limits": {
+                  "contextChars": 1200,
+                  "payloadBytes": 3500
+                },
+                "modules": {
+                  "context": "on",
+                  "presence": "planned",
+                  "push": "on"
+                },
+                "updatedAt": 1790001453,
+                "v": 1,
+                "version": "0.2.0"
+              }
+            }
+          }
+        ]
+      }
+    ],
+    "fn": "pluginAdvert",
+    "result": {
+      "capabilities": [
+        "context.system_prompt",
+        "push.expo",
+        "push.type.turn_done"
+      ],
+      "limits": {
+        "contextChars": 1200,
+        "payloadBytes": 3500
+      },
+      "modules": {
+        "context": "on",
+        "presence": "planned",
+        "push": "on"
+      },
+      "updatedAt": 1790001453,
+      "version": "0.2.0"
+    }
+  },
+  {
+    "args": [
+      {
+        "profiles": [
+          {
+            "name": "writer",
+            "ui_meta": {
+              "hermie-plugin": {
+                "capabilities": [
+                  "push.expo",
+                  "push.type.turn_done",
+                  "context.system_prompt"
+                ],
+                "limits": {
+                  "contextChars": 1200,
+                  "payloadBytes": 3500
+                },
+                "modules": {
+                  "context": "on",
+                  "presence": "planned",
+                  "push": "on"
+                },
+                "updatedAt": 1790001453,
+                "v": 1,
+                "version": "0.0.1"
+              }
+            }
+          },
+          {
+            "is_default": true,
+            "name": "researcher",
+            "ui_meta": {
+              "hermie-plugin": {
+                "capabilities": [
+                  "push.expo",
+                  "push.type.turn_done",
+                  "context.system_prompt"
+                ],
+                "limits": {
+                  "contextChars": 1200,
+                  "payloadBytes": 3500
+                },
+                "modules": {
+                  "context": "on",
+                  "presence": "planned",
+                  "push": "on"
+                },
+                "updatedAt": 1790001453,
+                "v": 1,
+                "version": "0.2.0"
+              }
+            }
+          }
+        ]
+      }
+    ],
+    "fn": "pluginAdvert",
+    "result": {
+      "capabilities": [
+        "context.system_prompt",
+        "push.expo",
+        "push.type.turn_done"
+      ],
+      "limits": {
+        "contextChars": 1200,
+        "payloadBytes": 3500
+      },
+      "modules": {
+        "context": "on",
+        "presence": "planned",
+        "push": "on"
+      },
+      "updatedAt": 1790001453,
+      "version": "0.2.0"
+    }
+  },
+  {
+    "args": [
+      {
+        "profiles": []
+      }
+    ],
+    "fn": "pluginAdvert",
+    "result": null
+  },
+  {
+    "args": [
+      {
+        "profiles": null
+      }
+    ],
+    "fn": "pluginAdvert",
+    "result": null
+  },
+  {
+    "args": [
+      {
+        "profiles": "x"
+      }
+    ],
+    "fn": "pluginAdvert",
+    "result": null
+  },
+  {
+    "args": [
+      {
+        "profiles": {}
+      }
+    ],
+    "fn": "pluginAdvert",
+    "result": null
+  },
+  {
+    "args": [
+      {}
+    ],
+    "fn": "pluginAdvert",
+    "result": null
+  },
+  {
+    "args": [
+      null
+    ],
+    "fn": "pluginAdvert",
+    "result": null
+  },
+  {
+    "args": [
+      "x"
+    ],
+    "fn": "pluginAdvert",
+    "result": null
+  },
+  {
+    "args": [
+      42
+    ],
+    "fn": "pluginAdvert",
+    "result": null
+  },
+  {
+    "args": [
+      {
+        "capabilities": [
+          "context.system_prompt",
+          "push.expo",
+          "push.type.turn_done"
+        ],
+        "limits": {
+          "contextChars": 1200,
+          "payloadBytes": 3500
+        },
+        "modules": {
+          "context": "on",
+          "presence": "planned",
+          "push": "on"
+        },
+        "updatedAt": 1790001453,
+        "version": "0.2.0"
+      },
+      "push.expo"
+    ],
+    "fn": "hasPluginCapability",
+    "note": "args[0] is a parsed PluginAdvert (the result shape of pluginAdvertOf) or null; exact, case-sensitive string match.",
+    "result": true
+  },
+  {
+    "args": [
+      {
+        "capabilities": [
+          "context.system_prompt",
+          "push.expo",
+          "push.type.turn_done"
+        ],
+        "limits": {
+          "contextChars": 1200,
+          "payloadBytes": 3500
+        },
+        "modules": {
+          "context": "on",
+          "presence": "planned",
+          "push": "on"
+        },
+        "updatedAt": 1790001453,
+        "version": "0.2.0"
+      },
+      "push.type.turn_done"
+    ],
+    "fn": "hasPluginCapability",
+    "result": true
+  },
+  {
+    "args": [
+      {
+        "capabilities": [
+          "context.system_prompt",
+          "push.expo",
+          "push.type.turn_done"
+        ],
+        "limits": {
+          "contextChars": 1200,
+          "payloadBytes": 3500
+        },
+        "modules": {
+          "context": "on",
+          "presence": "planned",
+          "push": "on"
+        },
+        "updatedAt": 1790001453,
+        "version": "0.2.0"
+      },
+      "push.webpush"
+    ],
+    "fn": "hasPluginCapability",
+    "result": false
+  },
+  {
+    "args": [
+      {
+        "capabilities": [
+          "context.system_prompt",
+          "push.expo",
+          "push.type.turn_done"
+        ],
+        "limits": {
+          "contextChars": 1200,
+          "payloadBytes": 3500
+        },
+        "modules": {
+          "context": "on",
+          "presence": "planned",
+          "push": "on"
+        },
+        "updatedAt": 1790001453,
+        "version": "0.2.0"
+      },
+      "PUSH.EXPO"
+    ],
+    "fn": "hasPluginCapability",
+    "result": false
+  },
+  {
+    "args": [
+      {
+        "capabilities": [
+          "context.system_prompt",
+          "push.expo",
+          "push.type.turn_done"
+        ],
+        "limits": {
+          "contextChars": 1200,
+          "payloadBytes": 3500
+        },
+        "modules": {
+          "context": "on",
+          "presence": "planned",
+          "push": "on"
+        },
+        "updatedAt": 1790001453,
+        "version": "0.2.0"
+      },
+      "push.expo "
+    ],
+    "fn": "hasPluginCapability",
+    "result": false
+  },
+  {
+    "args": [
+      {
+        "capabilities": [
+          "context.system_prompt",
+          "push.expo",
+          "push.type.turn_done"
+        ],
+        "limits": {
+          "contextChars": 1200,
+          "payloadBytes": 3500
+        },
+        "modules": {
+          "context": "on",
+          "presence": "planned",
+          "push": "on"
+        },
+        "updatedAt": 1790001453,
+        "version": "0.2.0"
+      },
+      "push"
+    ],
+    "fn": "hasPluginCapability",
+    "result": false
+  },
+  {
+    "args": [
+      {
+        "capabilities": [
+          "context.system_prompt",
+          "push.expo",
+          "push.type.turn_done"
+        ],
+        "limits": {
+          "contextChars": 1200,
+          "payloadBytes": 3500
+        },
+        "modules": {
+          "context": "on",
+          "presence": "planned",
+          "push": "on"
+        },
+        "updatedAt": 1790001453,
+        "version": "0.2.0"
+      },
+      ""
+    ],
+    "fn": "hasPluginCapability",
+    "result": false
+  },
+  {
+    "args": [
+      {
+        "capabilities": [],
+        "limits": {},
+        "modules": {},
+        "updatedAt": 0,
+        "version": ""
+      },
+      "push.expo"
+    ],
+    "fn": "hasPluginCapability",
+    "result": false
+  },
+  {
+    "args": [
+      {
+        "capabilities": [],
+        "limits": {},
+        "modules": {},
+        "updatedAt": 0,
+        "version": ""
+      },
+      ""
+    ],
+    "fn": "hasPluginCapability",
+    "result": false
+  },
+  {
+    "args": [
+      null,
+      "push.expo"
+    ],
+    "fn": "hasPluginCapability",
+    "result": false
+  },
+  {
+    "args": [
+      null,
+      ""
+    ],
+    "fn": "hasPluginCapability",
+    "result": false
+  },
+  {
+    "args": [
+      {
+        "capabilities": [
+          "push.expo"
+        ],
+        "limits": {},
+        "modules": {
+          "context": "planned",
+          "push": "off"
+        },
+        "updatedAt": 1,
+        "version": "0.2.0"
+      },
+      "push.expo"
+    ],
+    "fn": "hasPluginCapability",
+    "result": true
+  },
+  {
+    "args": [
+      {
+        "capabilities": [
+          "context.system_prompt",
+          "push.expo",
+          "push.type.turn_done"
+        ],
+        "limits": {
+          "contextChars": 1200,
+          "payloadBytes": 3500
+        },
+        "modules": {
+          "context": "on",
+          "presence": "planned",
+          "push": "on"
+        },
+        "updatedAt": 1790001453,
+        "version": "0.2.0"
+      },
+      "context.system_prompt"
+    ],
+    "fn": "hasPluginCapability",
+    "result": true
+  },
+  {
+    "args": [
+      {
+        "capabilities": [
+          "context.system_prompt",
+          "push.expo",
+          "push.type.turn_done"
+        ],
+        "limits": {
+          "contextChars": 1200,
+          "payloadBytes": 3500
+        },
+        "modules": {
+          "context": "on",
+          "presence": "planned",
+          "push": "on"
+        },
+        "updatedAt": 1790001453,
+        "version": "0.2.0"
+      },
+      "memory.browse"
+    ],
+    "fn": "hasPluginCapability",
+    "result": false
+  },
+  {
+    "args": [
+      {
+        "capabilities": [
+          "context.system_prompt",
+          "push.expo",
+          "push.type.turn_done"
+        ],
+        "limits": {
+          "contextChars": 1200,
+          "payloadBytes": 3500
+        },
+        "modules": {
+          "context": "on",
+          "presence": "planned",
+          "push": "on"
+        },
+        "updatedAt": 1790001453,
+        "version": "0.2.0"
+      },
+      "push"
+    ],
+    "fn": "pluginModuleOn",
+    "result": true
+  },
+  {
+    "args": [
+      {
+        "capabilities": [
+          "context.system_prompt",
+          "push.expo",
+          "push.type.turn_done"
+        ],
+        "limits": {
+          "contextChars": 1200,
+          "payloadBytes": 3500
+        },
+        "modules": {
+          "context": "on",
+          "presence": "planned",
+          "push": "on"
+        },
+        "updatedAt": 1790001453,
+        "version": "0.2.0"
+      },
+      "context"
+    ],
+    "fn": "pluginModuleOn",
+    "result": true
+  },
+  {
+    "args": [
+      {
+        "capabilities": [
+          "context.system_prompt",
+          "push.expo",
+          "push.type.turn_done"
+        ],
+        "limits": {
+          "contextChars": 1200,
+          "payloadBytes": 3500
+        },
+        "modules": {
+          "context": "on",
+          "presence": "planned",
+          "push": "on"
+        },
+        "updatedAt": 1790001453,
+        "version": "0.2.0"
+      },
+      "presence"
+    ],
+    "fn": "pluginModuleOn",
+    "result": false
+  },
+  {
+    "args": [
+      {
+        "capabilities": [
+          "context.system_prompt",
+          "push.expo",
+          "push.type.turn_done"
+        ],
+        "limits": {
+          "contextChars": 1200,
+          "payloadBytes": 3500
+        },
+        "modules": {
+          "context": "on",
+          "presence": "planned",
+          "push": "on"
+        },
+        "updatedAt": 1790001453,
+        "version": "0.2.0"
+      },
+      "missing"
+    ],
+    "fn": "pluginModuleOn",
+    "result": false
+  },
+  {
+    "args": [
+      {
+        "capabilities": [
+          "context.system_prompt",
+          "push.expo",
+          "push.type.turn_done"
+        ],
+        "limits": {
+          "contextChars": 1200,
+          "payloadBytes": 3500
+        },
+        "modules": {
+          "context": "on",
+          "presence": "planned",
+          "push": "on"
+        },
+        "updatedAt": 1790001453,
+        "version": "0.2.0"
+      },
+      "PUSH"
+    ],
+    "fn": "pluginModuleOn",
+    "result": false
+  },
+  {
+    "args": [
+      {
+        "capabilities": [
+          "context.system_prompt",
+          "push.expo",
+          "push.type.turn_done"
+        ],
+        "limits": {
+          "contextChars": 1200,
+          "payloadBytes": 3500
+        },
+        "modules": {
+          "context": "on",
+          "presence": "planned",
+          "push": "on"
+        },
+        "updatedAt": 1790001453,
+        "version": "0.2.0"
+      },
+      ""
+    ],
+    "fn": "pluginModuleOn",
+    "result": false
+  },
+  {
+    "args": [
+      {
+        "capabilities": [
+          "push.expo"
+        ],
+        "limits": {},
+        "modules": {
+          "context": "planned",
+          "push": "off"
+        },
+        "updatedAt": 1,
+        "version": "0.2.0"
+      },
+      "push"
+    ],
+    "fn": "pluginModuleOn",
+    "result": false
+  },
+  {
+    "args": [
+      {
+        "capabilities": [
+          "push.expo"
+        ],
+        "limits": {},
+        "modules": {
+          "context": "planned",
+          "push": "off"
+        },
+        "updatedAt": 1,
+        "version": "0.2.0"
+      },
+      "context"
+    ],
+    "fn": "pluginModuleOn",
+    "result": false
+  },
+  {
+    "args": [
+      {
+        "capabilities": [],
+        "limits": {},
+        "modules": {},
+        "updatedAt": 0,
+        "version": ""
+      },
+      "push"
+    ],
+    "fn": "pluginModuleOn",
+    "result": false
+  },
+  {
+    "args": [
+      null,
+      "push"
+    ],
+    "fn": "pluginModuleOn",
+    "result": false
+  },
+  {
+    "args": [
+      {
+        "capabilities": [
+          "context.system_prompt",
+          "push.expo",
+          "push.type.turn_done"
+        ],
+        "limits": {
+          "contextChars": 1200,
+          "payloadBytes": 3500
+        },
+        "modules": {
+          "push": "ON"
+        },
+        "updatedAt": 1790001453,
+        "version": "0.2.0"
+      },
+      "push"
+    ],
+    "fn": "pluginModuleOn",
+    "result": false
+  },
+  {
+    "args": [
+      {
+        "capabilities": [
+          "context.system_prompt",
+          "push.expo",
+          "push.type.turn_done"
+        ],
+        "limits": {
+          "contextChars": 1200,
+          "payloadBytes": 3500
+        },
+        "modules": {
+          "push": " on"
+        },
+        "updatedAt": 1790001453,
+        "version": "0.2.0"
+      },
+      "push"
+    ],
+    "fn": "pluginModuleOn",
+    "result": false
+  }
+]

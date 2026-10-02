@@ -1,0 +1,1520 @@
+[
+  {
+    "args": [
+      "https://example.com"
+    ],
+    "fn": "hasExplicitScheme",
+    "result": true
+  },
+  {
+    "args": [
+      "  http://example.com  "
+    ],
+    "fn": "hasExplicitScheme",
+    "result": true
+  },
+  {
+    "args": [
+      "HTTP://example.com"
+    ],
+    "fn": "hasExplicitScheme",
+    "result": true
+  },
+  {
+    "args": [
+      "Https://example.com"
+    ],
+    "fn": "hasExplicitScheme",
+    "result": true
+  },
+  {
+    "args": [
+      "example.com"
+    ],
+    "fn": "hasExplicitScheme",
+    "result": false
+  },
+  {
+    "args": [
+      "example.com:9119"
+    ],
+    "fn": "hasExplicitScheme",
+    "result": false
+  },
+  {
+    "args": [
+      "localhost:3000"
+    ],
+    "fn": "hasExplicitScheme",
+    "result": false
+  },
+  {
+    "args": [
+      ""
+    ],
+    "fn": "hasExplicitScheme",
+    "result": false
+  },
+  {
+    "args": [
+      "   "
+    ],
+    "fn": "hasExplicitScheme",
+    "result": false
+  },
+  {
+    "args": [
+      "ws://example.com"
+    ],
+    "fn": "hasExplicitScheme",
+    "result": true
+  },
+  {
+    "args": [
+      "wss://example.com"
+    ],
+    "fn": "hasExplicitScheme",
+    "result": true
+  },
+  {
+    "args": [
+      "file:///etc/passwd"
+    ],
+    "fn": "hasExplicitScheme",
+    "result": true
+  },
+  {
+    "args": [
+      "foo+bar.baz-1://x"
+    ],
+    "fn": "hasExplicitScheme",
+    "result": true
+  },
+  {
+    "args": [
+      "a://"
+    ],
+    "fn": "hasExplicitScheme",
+    "result": true
+  },
+  {
+    "args": [
+      "1http://example.com"
+    ],
+    "fn": "hasExplicitScheme",
+    "result": false
+  },
+  {
+    "args": [
+      "://example.com"
+    ],
+    "fn": "hasExplicitScheme",
+    "result": false
+  },
+  {
+    "args": [
+      "http:/example.com"
+    ],
+    "fn": "hasExplicitScheme",
+    "result": false
+  },
+  {
+    "args": [
+      "http:example.com"
+    ],
+    "fn": "hasExplicitScheme",
+    "result": false
+  },
+  {
+    "args": [
+      "mailto:a@b.example"
+    ],
+    "fn": "hasExplicitScheme",
+    "result": false
+  },
+  {
+    "args": [
+      "https://"
+    ],
+    "fn": "hasExplicitScheme",
+    "result": true
+  },
+  {
+    "args": [
+      "https //example.com"
+    ],
+    "fn": "hasExplicitScheme",
+    "result": false
+  },
+  {
+    "args": [
+      " \t\nhttps://example.com"
+    ],
+    "fn": "hasExplicitScheme",
+    "result": true
+  },
+  {
+    "args": [
+      " https://example.com"
+    ],
+    "fn": "hasExplicitScheme",
+    "note": "trim() removes a no-break space; a port that trims differently would disagree",
+    "result": true
+  },
+  {
+    "args": [
+      "gateway.example.net"
+    ],
+    "fn": "normalizeBaseUrl",
+    "result": "https://gateway.example.net"
+  },
+  {
+    "args": [
+      "http://localhost:9119"
+    ],
+    "fn": "normalizeBaseUrl",
+    "result": "http://localhost:9119"
+  },
+  {
+    "args": [
+      "https://example.com/hermes/?x=1#frag"
+    ],
+    "fn": "normalizeBaseUrl",
+    "result": "https://example.com/hermes"
+  },
+  {
+    "args": [
+      "https://example.com///"
+    ],
+    "fn": "normalizeBaseUrl",
+    "result": "https://example.com"
+  },
+  {
+    "args": [
+      "  example.com  "
+    ],
+    "fn": "normalizeBaseUrl",
+    "result": "https://example.com"
+  },
+  {
+    "args": [
+      "ws://example.com"
+    ],
+    "error": {
+      "kind": "config",
+      "message": "A gateway address must be http:// or https://, not ws://"
+    },
+    "fn": "normalizeBaseUrl",
+    "throws": true
+  },
+  {
+    "args": [
+      "file:///etc/passwd"
+    ],
+    "error": {
+      "kind": "config",
+      "message": "A gateway address must be http:// or https://, not file://"
+    },
+    "fn": "normalizeBaseUrl",
+    "throws": true
+  },
+  {
+    "args": [
+      "   "
+    ],
+    "error": {
+      "kind": "config",
+      "message": "Enter a gateway address."
+    },
+    "fn": "normalizeBaseUrl",
+    "throws": true
+  },
+  {
+    "args": [
+      ""
+    ],
+    "error": {
+      "kind": "config",
+      "message": "Enter a gateway address."
+    },
+    "fn": "normalizeBaseUrl",
+    "throws": true
+  },
+  {
+    "args": [
+      "HTTPS://Example.COM/Path"
+    ],
+    "fn": "normalizeBaseUrl",
+    "note": "WHATWG quirk: scheme and host are lowercased, the path keeps its case",
+    "result": "https://example.com/Path"
+  },
+  {
+    "args": [
+      "example.com:9119"
+    ],
+    "fn": "normalizeBaseUrl",
+    "result": "https://example.com:9119"
+  },
+  {
+    "args": [
+      "localhost:3000"
+    ],
+    "fn": "normalizeBaseUrl",
+    "result": "https://localhost:3000"
+  },
+  {
+    "args": [
+      "[::1]:9119"
+    ],
+    "fn": "normalizeBaseUrl",
+    "result": "https://[::1]:9119"
+  },
+  {
+    "args": [
+      "http://[::1]:9119/"
+    ],
+    "fn": "normalizeBaseUrl",
+    "result": "http://[::1]:9119"
+  },
+  {
+    "args": [
+      "http://[fd7a:115c:a1e0::1]:9119"
+    ],
+    "fn": "normalizeBaseUrl",
+    "result": "http://[fd7a:115c:a1e0::1]:9119"
+  },
+  {
+    "args": [
+      "https://example.com:443"
+    ],
+    "fn": "normalizeBaseUrl",
+    "note": "WHATWG quirk: the default port of the scheme is dropped from host",
+    "result": "https://example.com"
+  },
+  {
+    "args": [
+      "http://example.com:80/x"
+    ],
+    "fn": "normalizeBaseUrl",
+    "note": "WHATWG quirk: the default port of the scheme is dropped from host",
+    "result": "http://example.com/x"
+  },
+  {
+    "args": [
+      "https://example.com:8443/"
+    ],
+    "fn": "normalizeBaseUrl",
+    "result": "https://example.com:8443"
+  },
+  {
+    "args": [
+      "https://user:pw@example.com/hermes"
+    ],
+    "fn": "normalizeBaseUrl",
+    "note": "userinfo is not part of url.host, so it is dropped",
+    "result": "https://example.com/hermes"
+  },
+  {
+    "args": [
+      "10.0.0.5"
+    ],
+    "fn": "normalizeBaseUrl",
+    "result": "https://10.0.0.5"
+  },
+  {
+    "args": [
+      "192.168.1.20:9119"
+    ],
+    "fn": "normalizeBaseUrl",
+    "result": "https://192.168.1.20:9119"
+  },
+  {
+    "args": [
+      "http://127.0.0.1:9119"
+    ],
+    "fn": "normalizeBaseUrl",
+    "result": "http://127.0.0.1:9119"
+  },
+  {
+    "args": [
+      "my-box.local"
+    ],
+    "fn": "normalizeBaseUrl",
+    "result": "https://my-box.local"
+  },
+  {
+    "args": [
+      "something.ts.net"
+    ],
+    "fn": "normalizeBaseUrl",
+    "result": "https://something.ts.net"
+  },
+  {
+    "args": [
+      "example.com/hermes/"
+    ],
+    "fn": "normalizeBaseUrl",
+    "result": "https://example.com/hermes"
+  },
+  {
+    "args": [
+      "https://example.com/a//b/"
+    ],
+    "fn": "normalizeBaseUrl",
+    "result": "https://example.com/a//b"
+  },
+  {
+    "args": [
+      "https://example.com/a b"
+    ],
+    "fn": "normalizeBaseUrl",
+    "note": "WHATWG quirk: a space in the path is percent-encoded",
+    "result": "https://example.com/a%20b"
+  },
+  {
+    "args": [
+      "https://example.com/ü"
+    ],
+    "fn": "normalizeBaseUrl",
+    "note": "WHATWG quirk: non-ASCII path characters are percent-encoded as UTF-8",
+    "result": "https://example.com/%C3%BC"
+  },
+  {
+    "args": [
+      "https://example.com/a/./b/../c"
+    ],
+    "fn": "normalizeBaseUrl",
+    "note": "WHATWG quirk: dot segments in the path are resolved",
+    "result": "https://example.com/a/c"
+  },
+  {
+    "args": [
+      "https://example.com/Hermes"
+    ],
+    "fn": "normalizeBaseUrl",
+    "result": "https://example.com/Hermes"
+  },
+  {
+    "args": [
+      "https://example.com/%7Efoo"
+    ],
+    "fn": "normalizeBaseUrl",
+    "note": "percent-escapes in the path are kept as written",
+    "result": "https://example.com/%7Efoo"
+  },
+  {
+    "args": [
+      "https://example.com/hermes%2F/"
+    ],
+    "fn": "normalizeBaseUrl",
+    "note": "percent-escapes in the path are kept as written",
+    "result": "https://example.com/hermes%2F"
+  },
+  {
+    "args": [
+      "https://bücher.example"
+    ],
+    "fn": "normalizeBaseUrl",
+    "note": "WHATWG quirk: an IDN host becomes punycode",
+    "result": "https://xn--bcher-kva.example"
+  },
+  {
+    "args": [
+      "https://example.com?x=1"
+    ],
+    "fn": "normalizeBaseUrl",
+    "result": "https://example.com"
+  },
+  {
+    "args": [
+      "https://example.com#x"
+    ],
+    "fn": "normalizeBaseUrl",
+    "result": "https://example.com"
+  },
+  {
+    "args": [
+      "https://example.com/?"
+    ],
+    "fn": "normalizeBaseUrl",
+    "result": "https://example.com"
+  },
+  {
+    "args": [
+      "https://example.com/#"
+    ],
+    "fn": "normalizeBaseUrl",
+    "result": "https://example.com"
+  },
+  {
+    "args": [
+      "http://example.com./"
+    ],
+    "fn": "normalizeBaseUrl",
+    "result": "http://example.com."
+  },
+  {
+    "args": [
+      "https://"
+    ],
+    "error": {
+      "kind": "config",
+      "message": "That is not a valid address: https://"
+    },
+    "fn": "normalizeBaseUrl",
+    "throws": true
+  },
+  {
+    "args": [
+      "http://:9119"
+    ],
+    "error": {
+      "kind": "config",
+      "message": "That is not a valid address: http://:9119"
+    },
+    "fn": "normalizeBaseUrl",
+    "throws": true
+  },
+  {
+    "args": [
+      "foo://bar"
+    ],
+    "error": {
+      "kind": "config",
+      "message": "A gateway address must be http:// or https://, not foo://"
+    },
+    "fn": "normalizeBaseUrl",
+    "throws": true
+  },
+  {
+    "args": [
+      "ftp://example.com"
+    ],
+    "error": {
+      "kind": "config",
+      "message": "A gateway address must be http:// or https://, not ftp://"
+    },
+    "fn": "normalizeBaseUrl",
+    "throws": true
+  },
+  {
+    "args": [
+      "mailto:a@b.example"
+    ],
+    "fn": "normalizeBaseUrl",
+    "note": "WHATWG quirk: no \"://\" so https:// is prefixed, and \"mailto:a@\" parses as userinfo",
+    "result": "https://b.example"
+  },
+  {
+    "args": [
+      "javascript:alert(1)"
+    ],
+    "error": {
+      "kind": "config",
+      "message": "That is not a valid address: javascript:alert(1)"
+    },
+    "fn": "normalizeBaseUrl",
+    "throws": true
+  },
+  {
+    "args": [
+      "http:example.com"
+    ],
+    "error": {
+      "kind": "config",
+      "message": "That is not a valid address: http:example.com"
+    },
+    "fn": "normalizeBaseUrl",
+    "throws": true
+  },
+  {
+    "args": [
+      "https://example.com:99999"
+    ],
+    "error": {
+      "kind": "config",
+      "message": "That is not a valid address: https://example.com:99999"
+    },
+    "fn": "normalizeBaseUrl",
+    "throws": true
+  },
+  {
+    "args": [
+      "http://127.1"
+    ],
+    "fn": "normalizeBaseUrl",
+    "note": "WHATWG quirk: IPv4 shorthand is expanded to a dotted quad",
+    "result": "http://127.0.0.1"
+  },
+  {
+    "args": [
+      "https://exa mple.com"
+    ],
+    "error": {
+      "kind": "config",
+      "message": "That is not a valid address: https://exa mple.com"
+    },
+    "fn": "normalizeBaseUrl",
+    "throws": true
+  },
+  {
+    "args": [
+      "HTTP://example.com"
+    ],
+    "fn": "normalizeBaseUrl",
+    "result": "http://example.com"
+  },
+  {
+    "args": [
+      "https://exam\nple.com"
+    ],
+    "fn": "normalizeBaseUrl",
+    "note": "WHATWG quirk: tab and newline are stripped from the input before parsing",
+    "result": "https://example.com"
+  },
+  {
+    "args": [
+      "https:///example.com"
+    ],
+    "fn": "normalizeBaseUrl",
+    "note": "WHATWG quirk: extra slashes after a special scheme are skipped",
+    "result": "https://example.com"
+  },
+  {
+    "args": [
+      "\tgateway.example.net\n"
+    ],
+    "fn": "normalizeBaseUrl",
+    "result": "https://gateway.example.net"
+  },
+  {
+    "args": [
+      "https://example.com"
+    ],
+    "fn": "wsUrlFor",
+    "result": "wss://example.com/api/ws"
+  },
+  {
+    "args": [
+      "http://127.0.0.1:9119"
+    ],
+    "fn": "wsUrlFor",
+    "result": "ws://127.0.0.1:9119/api/ws"
+  },
+  {
+    "args": [
+      "https://example.com/hermes/"
+    ],
+    "fn": "wsUrlFor",
+    "result": "wss://example.com/hermes/api/ws"
+  },
+  {
+    "args": [
+      "example.com"
+    ],
+    "fn": "wsUrlFor",
+    "result": "wss://example.com/api/ws"
+  },
+  {
+    "args": [
+      "http://[::1]:9119"
+    ],
+    "fn": "wsUrlFor",
+    "result": "ws://[::1]:9119/api/ws"
+  },
+  {
+    "args": [
+      "ws://example.com"
+    ],
+    "error": {
+      "kind": "config",
+      "message": "A gateway address must be http:// or https://, not ws://"
+    },
+    "fn": "wsUrlFor",
+    "throws": true
+  },
+  {
+    "args": [
+      ""
+    ],
+    "error": {
+      "kind": "config",
+      "message": "Enter a gateway address."
+    },
+    "fn": "wsUrlFor",
+    "throws": true
+  },
+  {
+    "args": [
+      "https://example.com:443/hermes///"
+    ],
+    "fn": "wsUrlFor",
+    "note": "WHATWG quirk: the default port of the scheme is dropped from host",
+    "result": "wss://example.com/hermes/api/ws"
+  },
+  {
+    "args": [
+      "HTTP://Example.com"
+    ],
+    "fn": "wsUrlFor",
+    "result": "ws://example.com/api/ws"
+  },
+  {
+    "args": [
+      "localhost:3000"
+    ],
+    "fn": "wsUrlFor",
+    "result": "wss://localhost:3000/api/ws"
+  },
+  {
+    "args": [
+      "http://example.com:80"
+    ],
+    "fn": "wsUrlFor",
+    "note": "WHATWG quirk: the default port of the scheme is dropped from host",
+    "result": "ws://example.com/api/ws"
+  },
+  {
+    "args": [
+      "https://user:pw@example.com"
+    ],
+    "fn": "wsUrlFor",
+    "note": "userinfo is not part of url.host, so it is dropped",
+    "result": "wss://example.com/api/ws"
+  },
+  {
+    "args": [
+      "http://192.168.1.20:9119/prefix"
+    ],
+    "fn": "wsUrlFor",
+    "result": "ws://192.168.1.20:9119/prefix/api/ws"
+  },
+  {
+    "args": [
+      "https://gateway.example.net/a b"
+    ],
+    "fn": "wsUrlFor",
+    "result": "wss://gateway.example.net/a%20b/api/ws"
+  },
+  {
+    "args": [
+      "https://example.com/hermes",
+      "/api/status"
+    ],
+    "fn": "apiUrl",
+    "result": "https://example.com/hermes/api/status"
+  },
+  {
+    "args": [
+      "https://example.com",
+      "api/status"
+    ],
+    "fn": "apiUrl",
+    "result": "https://example.com/api/status"
+  },
+  {
+    "args": [
+      "https://example.com",
+      "/api/status"
+    ],
+    "fn": "apiUrl",
+    "result": "https://example.com/api/status"
+  },
+  {
+    "args": [
+      "https://example.com/",
+      "/api/status"
+    ],
+    "fn": "apiUrl",
+    "result": "https://example.com/api/status"
+  },
+  {
+    "args": [
+      "example.com",
+      "api/status"
+    ],
+    "fn": "apiUrl",
+    "result": "https://example.com/api/status"
+  },
+  {
+    "args": [
+      "https://example.com/hermes",
+      "/"
+    ],
+    "fn": "apiUrl",
+    "result": "https://example.com/hermes/"
+  },
+  {
+    "args": [
+      "https://example.com",
+      ""
+    ],
+    "fn": "apiUrl",
+    "result": "https://example.com/"
+  },
+  {
+    "args": [
+      "https://example.com",
+      "?x=1"
+    ],
+    "fn": "apiUrl",
+    "result": "https://example.com/?x=1"
+  },
+  {
+    "args": [
+      "https://example.com",
+      "//double"
+    ],
+    "fn": "apiUrl",
+    "result": "https://example.com//double"
+  },
+  {
+    "args": [
+      "https://example.com/hermes",
+      "/api/sessions/search?q=a%20b&limit=5"
+    ],
+    "fn": "apiUrl",
+    "result": "https://example.com/hermes/api/sessions/search?q=a%20b&limit=5"
+  },
+  {
+    "args": [
+      "https://example.com/prefix?q=1#f",
+      "/x"
+    ],
+    "fn": "apiUrl",
+    "result": "https://example.com/prefix/x"
+  },
+  {
+    "args": [
+      "http://127.0.0.1:9119",
+      "/api/auth/picture?id=a%3Ab"
+    ],
+    "fn": "apiUrl",
+    "result": "http://127.0.0.1:9119/api/auth/picture?id=a%3Ab"
+  },
+  {
+    "args": [
+      "ws://example.com",
+      "/a"
+    ],
+    "error": {
+      "kind": "config",
+      "message": "A gateway address must be http:// or https://, not ws://"
+    },
+    "fn": "apiUrl",
+    "throws": true
+  },
+  {
+    "args": [
+      "",
+      "/a"
+    ],
+    "error": {
+      "kind": "config",
+      "message": "Enter a gateway address."
+    },
+    "fn": "apiUrl",
+    "throws": true
+  },
+  {
+    "args": [
+      "http://[::1]:9119/hermes/",
+      "/api/ws"
+    ],
+    "fn": "apiUrl",
+    "result": "http://[::1]:9119/hermes/api/ws"
+  },
+  {
+    "args": [
+      "authentik:7f3a9c21-0b4e-4d2a-9f61-3c5e8a7b1d40"
+    ],
+    "fn": "authPicturePath",
+    "result": "/api/auth/picture?id=authentik%3A7f3a9c21-0b4e-4d2a-9f61-3c5e8a7b1d40"
+  },
+  {
+    "args": [
+      "basic:alice"
+    ],
+    "fn": "authPicturePath",
+    "result": "/api/auth/picture?id=basic%3Aalice"
+  },
+  {
+    "args": [
+      "a b/c?d=e&f#g"
+    ],
+    "fn": "authPicturePath",
+    "result": "/api/auth/picture?id=a%20b%2Fc%3Fd%3De%26f%23g"
+  },
+  {
+    "args": [
+      "é"
+    ],
+    "fn": "authPicturePath",
+    "result": "/api/auth/picture?id=%C3%A9"
+  },
+  {
+    "args": [
+      ""
+    ],
+    "fn": "authPicturePath",
+    "result": "/api/auth/picture?id="
+  },
+  {
+    "args": [
+      "x:y+z"
+    ],
+    "fn": "authPicturePath",
+    "result": "/api/auth/picture?id=x%3Ay%2Bz"
+  },
+  {
+    "args": [
+      "~'()*!"
+    ],
+    "fn": "authPicturePath",
+    "note": "encodeURIComponent leaves ~ ! * ' ( ) unescaped and escapes everything else outside A-Za-z0-9 - _ .",
+    "result": "/api/auth/picture?id=~'()*!"
+  },
+  {
+    "args": [
+      "😀"
+    ],
+    "fn": "authPicturePath",
+    "result": "/api/auth/picture?id=%F0%9F%98%80"
+  },
+  {
+    "args": [
+      "provider:user@example.com"
+    ],
+    "fn": "authPicturePath",
+    "result": "/api/auth/picture?id=provider%3Auser%40example.com"
+  },
+  {
+    "args": [
+      "%already"
+    ],
+    "fn": "authPicturePath",
+    "result": "/api/auth/picture?id=%25already"
+  },
+  {
+    "args": [
+      "日本語"
+    ],
+    "fn": "authPicturePath",
+    "result": "/api/auth/picture?id=%E6%97%A5%E6%9C%AC%E8%AA%9E"
+  },
+  {
+    "args": [
+      "Authorization"
+    ],
+    "fn": "isBlockedHeaderName",
+    "result": true
+  },
+  {
+    "args": [
+      "host"
+    ],
+    "fn": "isBlockedHeaderName",
+    "result": true
+  },
+  {
+    "args": [
+      "Cookie"
+    ],
+    "fn": "isBlockedHeaderName",
+    "result": true
+  },
+  {
+    "args": [
+      "Content-Length"
+    ],
+    "fn": "isBlockedHeaderName",
+    "result": true
+  },
+  {
+    "args": [
+      "X-Hermes-Session-Token"
+    ],
+    "fn": "isBlockedHeaderName",
+    "result": true
+  },
+  {
+    "args": [
+      " Host "
+    ],
+    "fn": "isBlockedHeaderName",
+    "result": true
+  },
+  {
+    "args": [
+      "HOST"
+    ],
+    "fn": "isBlockedHeaderName",
+    "result": true
+  },
+  {
+    "args": [
+      "Te"
+    ],
+    "fn": "isBlockedHeaderName",
+    "result": true
+  },
+  {
+    "args": [
+      "Origin"
+    ],
+    "fn": "isBlockedHeaderName",
+    "result": true
+  },
+  {
+    "args": [
+      "Referer"
+    ],
+    "fn": "isBlockedHeaderName",
+    "result": true
+  },
+  {
+    "args": [
+      "Connection"
+    ],
+    "fn": "isBlockedHeaderName",
+    "result": true
+  },
+  {
+    "args": [
+      "Upgrade"
+    ],
+    "fn": "isBlockedHeaderName",
+    "result": true
+  },
+  {
+    "args": [
+      "Transfer-Encoding"
+    ],
+    "fn": "isBlockedHeaderName",
+    "result": true
+  },
+  {
+    "args": [
+      "Trailer"
+    ],
+    "fn": "isBlockedHeaderName",
+    "result": true
+  },
+  {
+    "args": [
+      "Content-Type"
+    ],
+    "fn": "isBlockedHeaderName",
+    "result": true
+  },
+  {
+    "args": [
+      "X-Custom"
+    ],
+    "fn": "isBlockedHeaderName",
+    "result": false
+  },
+  {
+    "args": [
+      "Proxy-Authorization"
+    ],
+    "fn": "isBlockedHeaderName",
+    "result": false
+  },
+  {
+    "args": [
+      "CF-Access-Client-Id"
+    ],
+    "fn": "isBlockedHeaderName",
+    "result": false
+  },
+  {
+    "args": [
+      ""
+    ],
+    "fn": "isBlockedHeaderName",
+    "result": false
+  },
+  {
+    "args": [
+      "x-hermes-session-token "
+    ],
+    "fn": "isBlockedHeaderName",
+    "result": true
+  },
+  {
+    "args": [
+      " host"
+    ],
+    "fn": "isBlockedHeaderName",
+    "note": "trim() removes a no-break space, so this is \"host\"",
+    "result": true
+  },
+  {
+    "args": [
+      "CF-Access-Client-Id",
+      " abc\r\ndef "
+    ],
+    "fn": "normalizeHeader",
+    "result": [
+      "CF-Access-Client-Id",
+      "abcdef"
+    ]
+  },
+  {
+    "args": [
+      "CF-Access-Client-Secret",
+      "secret-abc"
+    ],
+    "fn": "normalizeHeader",
+    "result": [
+      "CF-Access-Client-Secret",
+      "secret-abc"
+    ]
+  },
+  {
+    "args": [
+      "bad header",
+      "x"
+    ],
+    "error": {
+      "kind": "config",
+      "message": "\"bad header\" is not a valid header name."
+    },
+    "fn": "normalizeHeader",
+    "throws": true
+  },
+  {
+    "args": [
+      "bad:header",
+      "x"
+    ],
+    "error": {
+      "kind": "config",
+      "message": "\"bad:header\" is not a valid header name."
+    },
+    "fn": "normalizeHeader",
+    "throws": true
+  },
+  {
+    "args": [
+      "",
+      "x"
+    ],
+    "error": {
+      "kind": "config",
+      "message": "\"\" is not a valid header name."
+    },
+    "fn": "normalizeHeader",
+    "throws": true
+  },
+  {
+    "args": [
+      "   ",
+      "x"
+    ],
+    "error": {
+      "kind": "config",
+      "message": "\"   \" is not a valid header name."
+    },
+    "fn": "normalizeHeader",
+    "throws": true
+  },
+  {
+    "args": [
+      "Authorization",
+      "x"
+    ],
+    "error": {
+      "kind": "config",
+      "message": "Hermie sets \"Authorization\" itself; it cannot be an extra header."
+    },
+    "fn": "normalizeHeader",
+    "throws": true
+  },
+  {
+    "args": [
+      "host",
+      "x"
+    ],
+    "error": {
+      "kind": "config",
+      "message": "Hermie sets \"host\" itself; it cannot be an extra header."
+    },
+    "fn": "normalizeHeader",
+    "throws": true
+  },
+  {
+    "args": [
+      "Cookie",
+      "x"
+    ],
+    "error": {
+      "kind": "config",
+      "message": "Hermie sets \"Cookie\" itself; it cannot be an extra header."
+    },
+    "fn": "normalizeHeader",
+    "throws": true
+  },
+  {
+    "args": [
+      "Content-Length",
+      "x"
+    ],
+    "error": {
+      "kind": "config",
+      "message": "Hermie sets \"Content-Length\" itself; it cannot be an extra header."
+    },
+    "fn": "normalizeHeader",
+    "throws": true
+  },
+  {
+    "args": [
+      "X-Hermes-Session-Token",
+      "x"
+    ],
+    "error": {
+      "kind": "config",
+      "message": "Hermie sets \"X-Hermes-Session-Token\" itself; it cannot be an extra header."
+    },
+    "fn": "normalizeHeader",
+    "throws": true
+  },
+  {
+    "args": [
+      " Origin ",
+      "x"
+    ],
+    "error": {
+      "kind": "config",
+      "message": "Hermie sets \"Origin\" itself; it cannot be an extra header."
+    },
+    "fn": "normalizeHeader",
+    "throws": true
+  },
+  {
+    "args": [
+      "X-Custom",
+      ""
+    ],
+    "fn": "normalizeHeader",
+    "result": [
+      "X-Custom",
+      ""
+    ]
+  },
+  {
+    "args": [
+      "X-Custom",
+      "   "
+    ],
+    "fn": "normalizeHeader",
+    "result": [
+      "X-Custom",
+      ""
+    ]
+  },
+  {
+    "args": [
+      "X-Custom",
+      "a\nb\rc"
+    ],
+    "fn": "normalizeHeader",
+    "result": [
+      "X-Custom",
+      "abc"
+    ]
+  },
+  {
+    "args": [
+      "X-Custom",
+      "\r\n"
+    ],
+    "fn": "normalizeHeader",
+    "result": [
+      "X-Custom",
+      ""
+    ]
+  },
+  {
+    "args": [
+      "X-Custom",
+      "a  b"
+    ],
+    "fn": "normalizeHeader",
+    "result": [
+      "X-Custom",
+      "a  b"
+    ]
+  },
+  {
+    "args": [
+      "X-Custom",
+      "\ta\t"
+    ],
+    "fn": "normalizeHeader",
+    "result": [
+      "X-Custom",
+      "a"
+    ]
+  },
+  {
+    "args": [
+      "X-Custom",
+      " abc﻿"
+    ],
+    "fn": "normalizeHeader",
+    "result": [
+      "X-Custom",
+      "abc"
+    ]
+  },
+  {
+    "args": [
+      " X-Custom ",
+      "v"
+    ],
+    "fn": "normalizeHeader",
+    "result": [
+      "X-Custom",
+      "v"
+    ]
+  },
+  {
+    "args": [
+      "X-Tok!#$%&'*+.^_`|~-0aZ",
+      "v"
+    ],
+    "fn": "normalizeHeader",
+    "result": [
+      "X-Tok!#$%&'*+.^_`|~-0aZ",
+      "v"
+    ]
+  },
+  {
+    "args": [
+      "X-Ünicode",
+      "v"
+    ],
+    "error": {
+      "kind": "config",
+      "message": "\"X-Ünicode\" is not a valid header name."
+    },
+    "fn": "normalizeHeader",
+    "throws": true
+  },
+  {
+    "args": [
+      "X Custom",
+      "v"
+    ],
+    "error": {
+      "kind": "config",
+      "message": "\"X Custom\" is not a valid header name."
+    },
+    "fn": "normalizeHeader",
+    "throws": true
+  },
+  {
+    "args": [
+      "X-Custom ",
+      "v"
+    ],
+    "fn": "normalizeHeader",
+    "result": [
+      "X-Custom",
+      "v"
+    ]
+  },
+  {
+    "args": [
+      "X-Custom()",
+      "v"
+    ],
+    "error": {
+      "kind": "config",
+      "message": "\"X-Custom()\" is not a valid header name."
+    },
+    "fn": "normalizeHeader",
+    "throws": true
+  },
+  {
+    "args": [
+      "X/Custom",
+      "v"
+    ],
+    "error": {
+      "kind": "config",
+      "message": "\"X/Custom\" is not a valid header name."
+    },
+    "fn": "normalizeHeader",
+    "throws": true
+  },
+  {
+    "args": [
+      "X-Custom",
+      "ünïcode ✓"
+    ],
+    "fn": "normalizeHeader",
+    "result": [
+      "X-Custom",
+      "ünïcode ✓"
+    ]
+  },
+  {
+    "args": [
+      "x-lower",
+      "v"
+    ],
+    "fn": "normalizeHeader",
+    "result": [
+      "x-lower",
+      "v"
+    ]
+  },
+  {
+    "args": [
+      "X-A\nB",
+      "v"
+    ],
+    "error": {
+      "kind": "config",
+      "message": "\"X-A\nB\" is not a valid header name."
+    },
+    "fn": "normalizeHeader",
+    "throws": true
+  },
+  {
+    "args": [
+      null
+    ],
+    "fn": "normalizeHeaders",
+    "note": "args[0] null stands for an undefined map (the argument is optional)",
+    "result": {}
+  },
+  {
+    "args": [
+      {}
+    ],
+    "fn": "normalizeHeaders",
+    "result": {}
+  },
+  {
+    "args": [
+      {
+        "CF-Access-Client-Secret": "shh"
+      }
+    ],
+    "fn": "normalizeHeaders",
+    "result": {
+      "CF-Access-Client-Secret": "shh"
+    }
+  },
+  {
+    "args": [
+      {
+        "CF-Access-Client-Id": " abc\r\n ",
+        "CF-Access-Client-Secret": "secret-abc"
+      }
+    ],
+    "fn": "normalizeHeaders",
+    "result": {
+      "CF-Access-Client-Id": "abc",
+      "CF-Access-Client-Secret": "secret-abc"
+    }
+  },
+  {
+    "args": [
+      {
+        "X-A": "1",
+        "x-a": "2"
+      }
+    ],
+    "fn": "normalizeHeaders",
+    "result": {
+      "X-A": "1",
+      "x-a": "2"
+    }
+  },
+  {
+    "args": [
+      {
+        "X-Custom": "a\nb"
+      }
+    ],
+    "fn": "normalizeHeaders",
+    "result": {
+      "X-Custom": "ab"
+    }
+  },
+  {
+    "args": [
+      {
+        "Authorization": "nope",
+        "X-Ok": "v"
+      }
+    ],
+    "error": {
+      "kind": "config",
+      "message": "Hermie sets \"Authorization\" itself; it cannot be an extra header."
+    },
+    "fn": "normalizeHeaders",
+    "throws": true
+  },
+  {
+    "args": [
+      {
+        "bad header": "v"
+      }
+    ],
+    "error": {
+      "kind": "config",
+      "message": "\"bad header\" is not a valid header name."
+    },
+    "fn": "normalizeHeaders",
+    "throws": true
+  },
+  {
+    "args": [
+      {
+        " X-Padded ": " v "
+      }
+    ],
+    "fn": "normalizeHeaders",
+    "result": {
+      "X-Padded": "v"
+    }
+  },
+  {
+    "args": [],
+    "fn": "BLOCKED_HEADER_NAMES",
+    "note": "constant; a Set, listed sorted",
+    "result": [
+      "authorization",
+      "connection",
+      "content-length",
+      "content-type",
+      "cookie",
+      "host",
+      "origin",
+      "referer",
+      "te",
+      "trailer",
+      "transfer-encoding",
+      "upgrade",
+      "x-hermes-session-token"
+    ]
+  },
+  {
+    "args": [],
+    "fn": "GATEWAY_WS_PATH",
+    "note": "constant",
+    "result": "/api/ws"
+  },
+  {
+    "args": [],
+    "fn": "AUTH_PICTURE_PATH",
+    "note": "constant",
+    "result": "/api/auth/picture"
+  }
+]

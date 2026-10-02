@@ -1,0 +1,778 @@
+[
+  {
+    "args": [
+      {
+        "provider": "authentik",
+        "userId": "7f3a9c21-0b4e-4d2a-9f61-3c5e8a7b1d40"
+      }
+    ],
+    "fn": "authorIdOf",
+    "result": "authentik:7f3a9c21-0b4e-4d2a-9f61-3c5e8a7b1d40"
+  },
+  {
+    "args": [
+      {
+        "provider": "basic",
+        "userId": "alice"
+      }
+    ],
+    "fn": "authorIdOf",
+    "result": "basic:alice"
+  },
+  {
+    "args": [
+      {
+        "provider": "authentik",
+        "userId": "alice"
+      }
+    ],
+    "fn": "authorIdOf",
+    "result": "authentik:alice"
+  },
+  {
+    "args": [
+      {
+        "provider": "\tAuthentik ",
+        "userId": "  Alice \n"
+      }
+    ],
+    "fn": "authorIdOf",
+    "result": "Authentik:Alice"
+  },
+  {
+    "args": [
+      {
+        "provider": "Basic",
+        "userId": "Alice"
+      }
+    ],
+    "fn": "authorIdOf",
+    "result": "Basic:Alice"
+  },
+  {
+    "args": [
+      {
+        "provider": "\u001cbasic",
+        "userId": "\u001falice"
+      }
+    ],
+    "fn": "authorIdOf",
+    "result": "basic:alice"
+  },
+  {
+    "args": [
+      {
+        "provider": "basic",
+        "userId": "﻿alice"
+      }
+    ],
+    "fn": "authorIdOf",
+    "result": "basic:﻿alice"
+  },
+  {
+    "args": [
+      {
+        "userId": "alice"
+      }
+    ],
+    "fn": "authorIdOf",
+    "note": "result omitted: the function returned undefined"
+  },
+  {
+    "args": [
+      {
+        "provider": "basic"
+      }
+    ],
+    "fn": "authorIdOf",
+    "note": "result omitted: the function returned undefined"
+  },
+  {
+    "args": [
+      {}
+    ],
+    "fn": "authorIdOf",
+    "note": "result omitted: the function returned undefined"
+  },
+  {
+    "args": [
+      {
+        "provider": "   ",
+        "userId": "alice"
+      }
+    ],
+    "fn": "authorIdOf",
+    "note": "result omitted: the function returned undefined"
+  },
+  {
+    "args": [
+      {
+        "provider": "basic",
+        "userId": ""
+      }
+    ],
+    "fn": "authorIdOf",
+    "note": "result omitted: the function returned undefined"
+  },
+  {
+    "args": [
+      {
+        "provider": "basic",
+        "userId": " \t\n "
+      }
+    ],
+    "fn": "authorIdOf",
+    "note": "result omitted: the function returned undefined"
+  },
+  {
+    "args": [
+      {
+        "provider": "",
+        "userId": ""
+      }
+    ],
+    "fn": "authorIdOf",
+    "note": "result omitted: the function returned undefined"
+  },
+  {
+    "args": [
+      {
+        "provider": "a:b",
+        "userId": "c:d"
+      }
+    ],
+    "fn": "authorIdOf",
+    "result": "a:b:c:d"
+  },
+  {
+    "args": [
+      {
+        "provider": "basic",
+        "userId": "alex@example.com"
+      }
+    ],
+    "fn": "authorIdOf",
+    "result": "basic:alex@example.com"
+  },
+  {
+    "args": [
+      {
+        "provider": "oidc",
+        "userId": "ünï-✓-😀"
+      }
+    ],
+    "fn": "authorIdOf",
+    "result": "oidc:ünï-✓-😀"
+  },
+  {
+    "args": [
+      {
+        "provider": " basic ",
+        "userId": "a b"
+      }
+    ],
+    "fn": "authorIdOf",
+    "result": "basic:a b"
+  },
+  {
+    "args": [
+      {
+        "provider": "basic",
+        "userId": "a b"
+      }
+    ],
+    "fn": "authorIdOf",
+    "result": "basic:a b"
+  },
+  {
+    "args": [
+      {
+        "provider": null,
+        "userId": "alice"
+      }
+    ],
+    "fn": "authorIdOf",
+    "note": "result omitted: the function returned undefined"
+  },
+  {
+    "args": [
+      {
+        "provider": "basic",
+        "userId": null
+      }
+    ],
+    "fn": "authorIdOf",
+    "note": "result omitted: the function returned undefined"
+  },
+  {
+    "args": [
+      {
+        "provider": "basic",
+        "userId": "\talice\t"
+      }
+    ],
+    "fn": "authorIdOf",
+    "note": "U+0009 at both ends of userId: stripped, because Python's str.isspace() is true for it",
+    "result": "basic:alice"
+  },
+  {
+    "args": [
+      {
+        "provider": "basic",
+        "userId": "\nalice\n"
+      }
+    ],
+    "fn": "authorIdOf",
+    "note": "U+000A at both ends of userId: stripped, because Python's str.isspace() is true for it",
+    "result": "basic:alice"
+  },
+  {
+    "args": [
+      {
+        "provider": "basic",
+        "userId": "\u000balice\u000b"
+      }
+    ],
+    "fn": "authorIdOf",
+    "note": "U+000B at both ends of userId: stripped, because Python's str.isspace() is true for it",
+    "result": "basic:alice"
+  },
+  {
+    "args": [
+      {
+        "provider": "basic",
+        "userId": "\falice\f"
+      }
+    ],
+    "fn": "authorIdOf",
+    "note": "U+000C at both ends of userId: stripped, because Python's str.isspace() is true for it",
+    "result": "basic:alice"
+  },
+  {
+    "args": [
+      {
+        "provider": "basic",
+        "userId": "\ralice\r"
+      }
+    ],
+    "fn": "authorIdOf",
+    "note": "U+000D at both ends of userId: stripped, because Python's str.isspace() is true for it",
+    "result": "basic:alice"
+  },
+  {
+    "args": [
+      {
+        "provider": "basic",
+        "userId": "\u001calice\u001c"
+      }
+    ],
+    "fn": "authorIdOf",
+    "note": "U+001C at both ends of userId: stripped, because Python's str.isspace() is true for it",
+    "result": "basic:alice"
+  },
+  {
+    "args": [
+      {
+        "provider": "basic",
+        "userId": "\u001dalice\u001d"
+      }
+    ],
+    "fn": "authorIdOf",
+    "note": "U+001D at both ends of userId: stripped, because Python's str.isspace() is true for it",
+    "result": "basic:alice"
+  },
+  {
+    "args": [
+      {
+        "provider": "basic",
+        "userId": "\u001ealice\u001e"
+      }
+    ],
+    "fn": "authorIdOf",
+    "note": "U+001E at both ends of userId: stripped, because Python's str.isspace() is true for it",
+    "result": "basic:alice"
+  },
+  {
+    "args": [
+      {
+        "provider": "basic",
+        "userId": "\u001falice\u001f"
+      }
+    ],
+    "fn": "authorIdOf",
+    "note": "U+001F at both ends of userId: stripped, because Python's str.isspace() is true for it",
+    "result": "basic:alice"
+  },
+  {
+    "args": [
+      {
+        "provider": "basic",
+        "userId": " alice "
+      }
+    ],
+    "fn": "authorIdOf",
+    "note": "U+0020 at both ends of userId: stripped, because Python's str.isspace() is true for it",
+    "result": "basic:alice"
+  },
+  {
+    "args": [
+      {
+        "provider": "basic",
+        "userId": "alice"
+      }
+    ],
+    "fn": "authorIdOf",
+    "note": "U+0085 at both ends of userId: stripped, because Python's str.isspace() is true for it",
+    "result": "basic:alice"
+  },
+  {
+    "args": [
+      {
+        "provider": "basic",
+        "userId": " alice "
+      }
+    ],
+    "fn": "authorIdOf",
+    "note": "U+00A0 at both ends of userId: stripped, because Python's str.isspace() is true for it",
+    "result": "basic:alice"
+  },
+  {
+    "args": [
+      {
+        "provider": "basic",
+        "userId": " alice "
+      }
+    ],
+    "fn": "authorIdOf",
+    "note": "U+1680 at both ends of userId: stripped, because Python's str.isspace() is true for it",
+    "result": "basic:alice"
+  },
+  {
+    "args": [
+      {
+        "provider": "basic",
+        "userId": " alice "
+      }
+    ],
+    "fn": "authorIdOf",
+    "note": "U+2000 at both ends of userId: stripped, because Python's str.isspace() is true for it",
+    "result": "basic:alice"
+  },
+  {
+    "args": [
+      {
+        "provider": "basic",
+        "userId": " alice "
+      }
+    ],
+    "fn": "authorIdOf",
+    "note": "U+2001 at both ends of userId: stripped, because Python's str.isspace() is true for it",
+    "result": "basic:alice"
+  },
+  {
+    "args": [
+      {
+        "provider": "basic",
+        "userId": " alice "
+      }
+    ],
+    "fn": "authorIdOf",
+    "note": "U+2002 at both ends of userId: stripped, because Python's str.isspace() is true for it",
+    "result": "basic:alice"
+  },
+  {
+    "args": [
+      {
+        "provider": "basic",
+        "userId": " alice "
+      }
+    ],
+    "fn": "authorIdOf",
+    "note": "U+2003 at both ends of userId: stripped, because Python's str.isspace() is true for it",
+    "result": "basic:alice"
+  },
+  {
+    "args": [
+      {
+        "provider": "basic",
+        "userId": " alice "
+      }
+    ],
+    "fn": "authorIdOf",
+    "note": "U+2004 at both ends of userId: stripped, because Python's str.isspace() is true for it",
+    "result": "basic:alice"
+  },
+  {
+    "args": [
+      {
+        "provider": "basic",
+        "userId": " alice "
+      }
+    ],
+    "fn": "authorIdOf",
+    "note": "U+2005 at both ends of userId: stripped, because Python's str.isspace() is true for it",
+    "result": "basic:alice"
+  },
+  {
+    "args": [
+      {
+        "provider": "basic",
+        "userId": " alice "
+      }
+    ],
+    "fn": "authorIdOf",
+    "note": "U+2006 at both ends of userId: stripped, because Python's str.isspace() is true for it",
+    "result": "basic:alice"
+  },
+  {
+    "args": [
+      {
+        "provider": "basic",
+        "userId": " alice "
+      }
+    ],
+    "fn": "authorIdOf",
+    "note": "U+2007 at both ends of userId: stripped, because Python's str.isspace() is true for it",
+    "result": "basic:alice"
+  },
+  {
+    "args": [
+      {
+        "provider": "basic",
+        "userId": " alice "
+      }
+    ],
+    "fn": "authorIdOf",
+    "note": "U+2008 at both ends of userId: stripped, because Python's str.isspace() is true for it",
+    "result": "basic:alice"
+  },
+  {
+    "args": [
+      {
+        "provider": "basic",
+        "userId": " alice "
+      }
+    ],
+    "fn": "authorIdOf",
+    "note": "U+2009 at both ends of userId: stripped, because Python's str.isspace() is true for it",
+    "result": "basic:alice"
+  },
+  {
+    "args": [
+      {
+        "provider": "basic",
+        "userId": " alice "
+      }
+    ],
+    "fn": "authorIdOf",
+    "note": "U+200A at both ends of userId: stripped, because Python's str.isspace() is true for it",
+    "result": "basic:alice"
+  },
+  {
+    "args": [
+      {
+        "provider": "basic",
+        "userId": " alice "
+      }
+    ],
+    "fn": "authorIdOf",
+    "note": "U+2028 at both ends of userId: stripped, because Python's str.isspace() is true for it",
+    "result": "basic:alice"
+  },
+  {
+    "args": [
+      {
+        "provider": "basic",
+        "userId": " alice "
+      }
+    ],
+    "fn": "authorIdOf",
+    "note": "U+2029 at both ends of userId: stripped, because Python's str.isspace() is true for it",
+    "result": "basic:alice"
+  },
+  {
+    "args": [
+      {
+        "provider": "basic",
+        "userId": " alice "
+      }
+    ],
+    "fn": "authorIdOf",
+    "note": "U+202F at both ends of userId: stripped, because Python's str.isspace() is true for it",
+    "result": "basic:alice"
+  },
+  {
+    "args": [
+      {
+        "provider": "basic",
+        "userId": " alice "
+      }
+    ],
+    "fn": "authorIdOf",
+    "note": "U+205F at both ends of userId: stripped, because Python's str.isspace() is true for it",
+    "result": "basic:alice"
+  },
+  {
+    "args": [
+      {
+        "provider": "basic",
+        "userId": "　alice　"
+      }
+    ],
+    "fn": "authorIdOf",
+    "note": "U+3000 at both ends of userId: stripped, because Python's str.isspace() is true for it",
+    "result": "basic:alice"
+  },
+  {
+    "args": [
+      {
+        "provider": "basic",
+        "userId": "﻿alice﻿"
+      }
+    ],
+    "fn": "authorIdOf",
+    "note": "U+FEFF at both ends of userId: kept, because Python's str.isspace() is false for it",
+    "result": "basic:﻿alice﻿"
+  },
+  {
+    "args": [
+      {
+        "provider": "basic",
+        "userId": "᠎alice᠎"
+      }
+    ],
+    "fn": "authorIdOf",
+    "note": "U+180E at both ends of userId: kept, because Python's str.isspace() is false for it",
+    "result": "basic:᠎alice᠎"
+  },
+  {
+    "args": [
+      {
+        "provider": "basic",
+        "userId": "​alice​"
+      }
+    ],
+    "fn": "authorIdOf",
+    "note": "U+200B at both ends of userId: kept, because Python's str.isspace() is false for it",
+    "result": "basic:​alice​"
+  },
+  {
+    "args": [
+      {
+        "provider": "basic",
+        "userId": "‌alice‌"
+      }
+    ],
+    "fn": "authorIdOf",
+    "note": "U+200C at both ends of userId: kept, because Python's str.isspace() is false for it",
+    "result": "basic:‌alice‌"
+  },
+  {
+    "args": [
+      {
+        "provider": "basic",
+        "userId": "‍alice‍"
+      }
+    ],
+    "fn": "authorIdOf",
+    "note": "U+200D at both ends of userId: kept, because Python's str.isspace() is false for it",
+    "result": "basic:‍alice‍"
+  },
+  {
+    "args": [
+      {
+        "provider": "basic",
+        "userId": "⁠alice⁠"
+      }
+    ],
+    "fn": "authorIdOf",
+    "note": "U+2060 at both ends of userId: kept, because Python's str.isspace() is false for it",
+    "result": "basic:⁠alice⁠"
+  },
+  {
+    "args": [
+      {
+        "provider": "basic",
+        "userId": "\u0000alice\u0000"
+      }
+    ],
+    "fn": "authorIdOf",
+    "note": "U+0000 at both ends of userId: kept, because Python's str.isspace() is false for it",
+    "result": "basic:\u0000alice\u0000"
+  },
+  {
+    "args": [
+      {
+        "provider": "basic",
+        "userId": "⠀alice⠀"
+      }
+    ],
+    "fn": "authorIdOf",
+    "note": "U+2800 at both ends of userId: kept, because Python's str.isspace() is false for it",
+    "result": "basic:⠀alice⠀"
+  },
+  {
+    "args": [
+      {
+        "displayName": " Alex Moreno ",
+        "provider": "authentik",
+        "userId": "7f3a9c21-0b4e-4d2a-9f61-3c5e8a7b1d40"
+      }
+    ],
+    "fn": "ownAuthorOf",
+    "result": {
+      "id": "authentik:7f3a9c21-0b4e-4d2a-9f61-3c5e8a7b1d40",
+      "name": "Alex Moreno"
+    }
+  },
+  {
+    "args": [
+      {
+        "displayName": "",
+        "provider": "authentik",
+        "userId": "7f3a9c21-0b4e-4d2a-9f61-3c5e8a7b1d40"
+      }
+    ],
+    "fn": "ownAuthorOf",
+    "result": {
+      "id": "authentik:7f3a9c21-0b4e-4d2a-9f61-3c5e8a7b1d40"
+    }
+  },
+  {
+    "args": [
+      {
+        "displayName": "   ",
+        "provider": "authentik",
+        "userId": "7f3a9c21-0b4e-4d2a-9f61-3c5e8a7b1d40"
+      }
+    ],
+    "fn": "ownAuthorOf",
+    "result": {
+      "id": "authentik:7f3a9c21-0b4e-4d2a-9f61-3c5e8a7b1d40"
+    }
+  },
+  {
+    "args": [
+      {
+        "provider": "authentik",
+        "userId": "alice"
+      }
+    ],
+    "fn": "ownAuthorOf",
+    "result": {
+      "id": "authentik:alice"
+    }
+  },
+  {
+    "args": [
+      {
+        "displayName": "Alice",
+        "provider": "",
+        "userId": "alice"
+      }
+    ],
+    "fn": "ownAuthorOf",
+    "note": "result omitted: the function returned undefined"
+  },
+  {
+    "args": [
+      {
+        "displayName": "Alice",
+        "provider": "basic",
+        "userId": ""
+      }
+    ],
+    "fn": "ownAuthorOf",
+    "note": "result omitted: the function returned undefined"
+  },
+  {
+    "args": [
+      {
+        "displayName": "\u001cAlice",
+        "provider": "basic",
+        "userId": "alice"
+      }
+    ],
+    "fn": "ownAuthorOf",
+    "result": {
+      "id": "basic:alice",
+      "name": "Alice"
+    }
+  },
+  {
+    "args": [
+      {
+        "displayName": "﻿Alice",
+        "provider": "basic",
+        "userId": "alice"
+      }
+    ],
+    "fn": "ownAuthorOf",
+    "result": {
+      "id": "basic:alice",
+      "name": "﻿Alice"
+    }
+  },
+  {
+    "args": [
+      {
+        "displayName": "Alex  Moreno",
+        "provider": "basic",
+        "userId": "alice"
+      }
+    ],
+    "fn": "ownAuthorOf",
+    "result": {
+      "id": "basic:alice",
+      "name": "Alex  Moreno"
+    }
+  },
+  {
+    "args": [
+      {
+        "displayName": "Álex 😀",
+        "provider": "basic",
+        "userId": "alice"
+      }
+    ],
+    "fn": "ownAuthorOf",
+    "result": {
+      "id": "basic:alice",
+      "name": "Álex 😀"
+    }
+  },
+  {
+    "args": [
+      {
+        "displayName": null,
+        "provider": "basic",
+        "userId": "alice"
+      }
+    ],
+    "fn": "ownAuthorOf",
+    "result": {
+      "id": "basic:alice"
+    }
+  },
+  {
+    "args": [
+      {
+        "displayName": " Alice ",
+        "provider": " basic ",
+        "userId": " alice "
+      }
+    ],
+    "fn": "ownAuthorOf",
+    "result": {
+      "id": "basic:alice",
+      "name": "Alice"
+    }
+  },
+  {
+    "args": [
+      {}
+    ],
+    "fn": "ownAuthorOf",
+    "note": "result omitted: the function returned undefined"
+  }
+]

@@ -1,0 +1,1386 @@
+[
+  {
+    "args": [],
+    "fn": "READY_TIMEOUT_MS",
+    "note": "constant",
+    "result": 10000
+  },
+  {
+    "args": [],
+    "fn": "DEFAULT_RPC_TIMEOUT_MS",
+    "note": "constant",
+    "result": 30000
+  },
+  {
+    "args": [],
+    "fn": "PROMPT_SUBMIT_TIMEOUT_MS",
+    "note": "constant",
+    "result": 1800000
+  },
+  {
+    "args": [],
+    "fn": "FIRST_SESSION_TIMEOUT_MS",
+    "note": "constant",
+    "result": 60000
+  },
+  {
+    "args": [],
+    "fn": "RECONNECT_CAP_MS",
+    "note": "constant",
+    "result": 15000
+  },
+  {
+    "args": [],
+    "fn": "PROTOCOL_LADDER_FLOOR",
+    "note": "constant",
+    "result": 3
+  },
+  {
+    "args": [],
+    "fn": "OFFLINE_GRACE_MS",
+    "note": "constant",
+    "result": 2500
+  },
+  {
+    "args": [],
+    "fn": "DIAL_FAILURE_RECENT_MS",
+    "note": "constant",
+    "result": 30000
+  },
+  {
+    "args": [],
+    "fn": "MIN_DESKTOP_CONTRACT",
+    "note": "constant",
+    "result": 7
+  },
+  {
+    "args": [
+      "prompt.submit",
+      true
+    ],
+    "fn": "rpcTimeoutMs",
+    "result": 1800000
+  },
+  {
+    "args": [
+      "prompt.submit",
+      false
+    ],
+    "fn": "rpcTimeoutMs",
+    "result": 1800000
+  },
+  {
+    "args": [
+      "session.resume",
+      false
+    ],
+    "fn": "rpcTimeoutMs",
+    "result": 60000
+  },
+  {
+    "args": [
+      "session.create",
+      false
+    ],
+    "fn": "rpcTimeoutMs",
+    "result": 60000
+  },
+  {
+    "args": [
+      "session.resume",
+      true
+    ],
+    "fn": "rpcTimeoutMs",
+    "result": 30000
+  },
+  {
+    "args": [
+      "session.create",
+      true
+    ],
+    "fn": "rpcTimeoutMs",
+    "result": 30000
+  },
+  {
+    "args": [
+      "profiles.list",
+      false
+    ],
+    "fn": "rpcTimeoutMs",
+    "result": 30000
+  },
+  {
+    "args": [
+      "profiles.list",
+      true
+    ],
+    "fn": "rpcTimeoutMs",
+    "result": 30000
+  },
+  {
+    "args": [
+      "",
+      false
+    ],
+    "fn": "rpcTimeoutMs",
+    "result": 30000
+  },
+  {
+    "args": [
+      "",
+      true
+    ],
+    "fn": "rpcTimeoutMs",
+    "result": 30000
+  },
+  {
+    "args": [
+      "PROMPT.SUBMIT",
+      false
+    ],
+    "fn": "rpcTimeoutMs",
+    "result": 30000
+  },
+  {
+    "args": [
+      "Session.Resume",
+      false
+    ],
+    "fn": "rpcTimeoutMs",
+    "result": 30000
+  },
+  {
+    "args": [
+      "session.resume ",
+      false
+    ],
+    "fn": "rpcTimeoutMs",
+    "result": 30000
+  },
+  {
+    "args": [
+      "session.info",
+      false
+    ],
+    "fn": "rpcTimeoutMs",
+    "result": 30000
+  },
+  {
+    "args": [
+      "prompt.steer",
+      true
+    ],
+    "fn": "rpcTimeoutMs",
+    "result": 30000
+  },
+  {
+    "args": [
+      0
+    ],
+    "fn": "defaultBackoffDelayMs",
+    "note": "`random` is the value Math.random() returned during the call. result = ceiling * (0.5 + 0.5 * random) with ceiling = min(15000, 300 * 2^attempt); evaluate in IEEE double in this order",
+    "random": 0,
+    "result": 150
+  },
+  {
+    "args": [
+      0
+    ],
+    "fn": "defaultBackoffDelayMs",
+    "random": 0.5,
+    "result": 225
+  },
+  {
+    "args": [
+      0
+    ],
+    "fn": "defaultBackoffDelayMs",
+    "random": 0.999999,
+    "result": 299.99985
+  },
+  {
+    "args": [
+      1
+    ],
+    "fn": "defaultBackoffDelayMs",
+    "random": 0,
+    "result": 300
+  },
+  {
+    "args": [
+      1
+    ],
+    "fn": "defaultBackoffDelayMs",
+    "random": 0.5,
+    "result": 450
+  },
+  {
+    "args": [
+      1
+    ],
+    "fn": "defaultBackoffDelayMs",
+    "random": 0.999999,
+    "result": 599.9997
+  },
+  {
+    "args": [
+      2
+    ],
+    "fn": "defaultBackoffDelayMs",
+    "random": 0,
+    "result": 600
+  },
+  {
+    "args": [
+      2
+    ],
+    "fn": "defaultBackoffDelayMs",
+    "random": 0.5,
+    "result": 900
+  },
+  {
+    "args": [
+      2
+    ],
+    "fn": "defaultBackoffDelayMs",
+    "random": 0.999999,
+    "result": 1199.9994
+  },
+  {
+    "args": [
+      3
+    ],
+    "fn": "defaultBackoffDelayMs",
+    "random": 0,
+    "result": 1200
+  },
+  {
+    "args": [
+      3
+    ],
+    "fn": "defaultBackoffDelayMs",
+    "random": 0.5,
+    "result": 1800
+  },
+  {
+    "args": [
+      3
+    ],
+    "fn": "defaultBackoffDelayMs",
+    "random": 0.999999,
+    "result": 2399.9988
+  },
+  {
+    "args": [
+      4
+    ],
+    "fn": "defaultBackoffDelayMs",
+    "random": 0,
+    "result": 2400
+  },
+  {
+    "args": [
+      4
+    ],
+    "fn": "defaultBackoffDelayMs",
+    "random": 0.5,
+    "result": 3600
+  },
+  {
+    "args": [
+      4
+    ],
+    "fn": "defaultBackoffDelayMs",
+    "random": 0.999999,
+    "result": 4799.9976
+  },
+  {
+    "args": [
+      5
+    ],
+    "fn": "defaultBackoffDelayMs",
+    "random": 0,
+    "result": 4800
+  },
+  {
+    "args": [
+      5
+    ],
+    "fn": "defaultBackoffDelayMs",
+    "random": 0.5,
+    "result": 7200
+  },
+  {
+    "args": [
+      5
+    ],
+    "fn": "defaultBackoffDelayMs",
+    "random": 0.999999,
+    "result": 9599.9952
+  },
+  {
+    "args": [
+      6
+    ],
+    "fn": "defaultBackoffDelayMs",
+    "random": 0,
+    "result": 7500
+  },
+  {
+    "args": [
+      6
+    ],
+    "fn": "defaultBackoffDelayMs",
+    "random": 0.5,
+    "result": 11250
+  },
+  {
+    "args": [
+      6
+    ],
+    "fn": "defaultBackoffDelayMs",
+    "random": 0.999999,
+    "result": 14999.992499999998
+  },
+  {
+    "args": [
+      7
+    ],
+    "fn": "defaultBackoffDelayMs",
+    "random": 0,
+    "result": 7500
+  },
+  {
+    "args": [
+      7
+    ],
+    "fn": "defaultBackoffDelayMs",
+    "random": 0.5,
+    "result": 11250
+  },
+  {
+    "args": [
+      7
+    ],
+    "fn": "defaultBackoffDelayMs",
+    "random": 0.999999,
+    "result": 14999.992499999998
+  },
+  {
+    "args": [
+      8
+    ],
+    "fn": "defaultBackoffDelayMs",
+    "random": 0,
+    "result": 7500
+  },
+  {
+    "args": [
+      8
+    ],
+    "fn": "defaultBackoffDelayMs",
+    "random": 0.5,
+    "result": 11250
+  },
+  {
+    "args": [
+      8
+    ],
+    "fn": "defaultBackoffDelayMs",
+    "random": 0.999999,
+    "result": 14999.992499999998
+  },
+  {
+    "args": [
+      9
+    ],
+    "fn": "defaultBackoffDelayMs",
+    "random": 0,
+    "result": 7500
+  },
+  {
+    "args": [
+      9
+    ],
+    "fn": "defaultBackoffDelayMs",
+    "random": 0.5,
+    "result": 11250
+  },
+  {
+    "args": [
+      9
+    ],
+    "fn": "defaultBackoffDelayMs",
+    "random": 0.999999,
+    "result": 14999.992499999998
+  },
+  {
+    "args": [
+      10
+    ],
+    "fn": "defaultBackoffDelayMs",
+    "random": 0,
+    "result": 7500
+  },
+  {
+    "args": [
+      10
+    ],
+    "fn": "defaultBackoffDelayMs",
+    "random": 0.5,
+    "result": 11250
+  },
+  {
+    "args": [
+      10
+    ],
+    "fn": "defaultBackoffDelayMs",
+    "random": 0.999999,
+    "result": 14999.992499999998
+  },
+  {
+    "args": [
+      11
+    ],
+    "fn": "defaultBackoffDelayMs",
+    "random": 0,
+    "result": 7500
+  },
+  {
+    "args": [
+      11
+    ],
+    "fn": "defaultBackoffDelayMs",
+    "random": 0.5,
+    "result": 11250
+  },
+  {
+    "args": [
+      11
+    ],
+    "fn": "defaultBackoffDelayMs",
+    "random": 0.999999,
+    "result": 14999.992499999998
+  },
+  {
+    "args": [
+      12
+    ],
+    "fn": "defaultBackoffDelayMs",
+    "random": 0,
+    "result": 7500
+  },
+  {
+    "args": [
+      12
+    ],
+    "fn": "defaultBackoffDelayMs",
+    "random": 0.5,
+    "result": 11250
+  },
+  {
+    "args": [
+      12
+    ],
+    "fn": "defaultBackoffDelayMs",
+    "random": 0.999999,
+    "result": 14999.992499999998
+  },
+  {
+    "args": [
+      0,
+      {
+        "capMs": 15000,
+        "jitter": false
+      }
+    ],
+    "fn": "reconnectBackoffDelayMs",
+    "note": "from @hermes/shared/reconnect-backoff (what defaultBackoffDelayMs is built on). jitter:false returns the ceiling min(capMs, baseDelayMs * 2^min(max(0, trunc(attempt)), 32)); defaults base 300, cap 15000. With jitter, result = random * ceiling and `random` is the value Math.random() returned. This option set is the one the connection uses.",
+    "result": 300
+  },
+  {
+    "args": [
+      1,
+      {
+        "capMs": 15000,
+        "jitter": false
+      }
+    ],
+    "fn": "reconnectBackoffDelayMs",
+    "result": 600
+  },
+  {
+    "args": [
+      2,
+      {
+        "capMs": 15000,
+        "jitter": false
+      }
+    ],
+    "fn": "reconnectBackoffDelayMs",
+    "result": 1200
+  },
+  {
+    "args": [
+      3,
+      {
+        "capMs": 15000,
+        "jitter": false
+      }
+    ],
+    "fn": "reconnectBackoffDelayMs",
+    "result": 2400
+  },
+  {
+    "args": [
+      4,
+      {
+        "capMs": 15000,
+        "jitter": false
+      }
+    ],
+    "fn": "reconnectBackoffDelayMs",
+    "result": 4800
+  },
+  {
+    "args": [
+      5,
+      {
+        "capMs": 15000,
+        "jitter": false
+      }
+    ],
+    "fn": "reconnectBackoffDelayMs",
+    "result": 9600
+  },
+  {
+    "args": [
+      6,
+      {
+        "capMs": 15000,
+        "jitter": false
+      }
+    ],
+    "fn": "reconnectBackoffDelayMs",
+    "result": 15000
+  },
+  {
+    "args": [
+      7,
+      {
+        "capMs": 15000,
+        "jitter": false
+      }
+    ],
+    "fn": "reconnectBackoffDelayMs",
+    "result": 15000
+  },
+  {
+    "args": [
+      8,
+      {
+        "capMs": 15000,
+        "jitter": false
+      }
+    ],
+    "fn": "reconnectBackoffDelayMs",
+    "result": 15000
+  },
+  {
+    "args": [
+      9,
+      {
+        "capMs": 15000,
+        "jitter": false
+      }
+    ],
+    "fn": "reconnectBackoffDelayMs",
+    "result": 15000
+  },
+  {
+    "args": [
+      10,
+      {
+        "capMs": 15000,
+        "jitter": false
+      }
+    ],
+    "fn": "reconnectBackoffDelayMs",
+    "result": 15000
+  },
+  {
+    "args": [
+      11,
+      {
+        "capMs": 15000,
+        "jitter": false
+      }
+    ],
+    "fn": "reconnectBackoffDelayMs",
+    "result": 15000
+  },
+  {
+    "args": [
+      12,
+      {
+        "capMs": 15000,
+        "jitter": false
+      }
+    ],
+    "fn": "reconnectBackoffDelayMs",
+    "result": 15000
+  },
+  {
+    "args": [
+      0,
+      {
+        "jitter": false
+      }
+    ],
+    "fn": "reconnectBackoffDelayMs",
+    "result": 300
+  },
+  {
+    "args": [
+      5,
+      {
+        "jitter": false
+      }
+    ],
+    "fn": "reconnectBackoffDelayMs",
+    "result": 9600
+  },
+  {
+    "args": [
+      10,
+      {
+        "jitter": false
+      }
+    ],
+    "fn": "reconnectBackoffDelayMs",
+    "result": 15000
+  },
+  {
+    "args": [
+      6,
+      {
+        "baseDelayMs": 100,
+        "capMs": 1000,
+        "jitter": false
+      }
+    ],
+    "fn": "reconnectBackoffDelayMs",
+    "result": 1000
+  },
+  {
+    "args": [
+      0,
+      {
+        "baseDelayMs": 100,
+        "capMs": 1000,
+        "jitter": false
+      }
+    ],
+    "fn": "reconnectBackoffDelayMs",
+    "result": 100
+  },
+  {
+    "args": [
+      3,
+      {
+        "baseDelayMs": 0,
+        "jitter": false
+      }
+    ],
+    "fn": "reconnectBackoffDelayMs",
+    "result": 0
+  },
+  {
+    "args": [
+      -1,
+      {
+        "jitter": false
+      }
+    ],
+    "fn": "reconnectBackoffDelayMs",
+    "result": 300
+  },
+  {
+    "args": [
+      -100,
+      {
+        "jitter": false
+      }
+    ],
+    "fn": "reconnectBackoffDelayMs",
+    "result": 300
+  },
+  {
+    "args": [
+      2.9,
+      {
+        "jitter": false
+      }
+    ],
+    "fn": "reconnectBackoffDelayMs",
+    "note": "attempt is truncated toward zero",
+    "result": 1200
+  },
+  {
+    "args": [
+      2.1,
+      {
+        "jitter": false
+      }
+    ],
+    "fn": "reconnectBackoffDelayMs",
+    "result": 1200
+  },
+  {
+    "args": [
+      -0.5,
+      {
+        "jitter": false
+      }
+    ],
+    "fn": "reconnectBackoffDelayMs",
+    "result": 300
+  },
+  {
+    "args": [
+      31,
+      {
+        "jitter": false
+      }
+    ],
+    "fn": "reconnectBackoffDelayMs",
+    "result": 15000
+  },
+  {
+    "args": [
+      32,
+      {
+        "jitter": false
+      }
+    ],
+    "fn": "reconnectBackoffDelayMs",
+    "result": 15000
+  },
+  {
+    "args": [
+      33,
+      {
+        "jitter": false
+      }
+    ],
+    "fn": "reconnectBackoffDelayMs",
+    "result": 15000
+  },
+  {
+    "args": [
+      1000,
+      {
+        "jitter": false
+      }
+    ],
+    "fn": "reconnectBackoffDelayMs",
+    "result": 15000
+  },
+  {
+    "args": [
+      4,
+      {
+        "capMs": 0,
+        "jitter": false
+      }
+    ],
+    "fn": "reconnectBackoffDelayMs",
+    "result": 0
+  },
+  {
+    "args": [
+      4,
+      {
+        "baseDelayMs": 300,
+        "capMs": 700,
+        "jitter": false
+      }
+    ],
+    "fn": "reconnectBackoffDelayMs",
+    "result": 700
+  },
+  {
+    "args": [
+      0,
+      {
+        "capMs": 15000
+      }
+    ],
+    "fn": "reconnectBackoffDelayMs",
+    "random": 0,
+    "result": 0
+  },
+  {
+    "args": [
+      0,
+      {
+        "capMs": 15000
+      }
+    ],
+    "fn": "reconnectBackoffDelayMs",
+    "random": 0.5,
+    "result": 150
+  },
+  {
+    "args": [
+      0,
+      {
+        "capMs": 15000
+      }
+    ],
+    "fn": "reconnectBackoffDelayMs",
+    "random": 0.999999,
+    "result": 299.9997
+  },
+  {
+    "args": [
+      3,
+      {
+        "capMs": 15000
+      }
+    ],
+    "fn": "reconnectBackoffDelayMs",
+    "random": 0,
+    "result": 0
+  },
+  {
+    "args": [
+      3,
+      {
+        "capMs": 15000
+      }
+    ],
+    "fn": "reconnectBackoffDelayMs",
+    "random": 0.5,
+    "result": 1200
+  },
+  {
+    "args": [
+      3,
+      {
+        "capMs": 15000
+      }
+    ],
+    "fn": "reconnectBackoffDelayMs",
+    "random": 0.999999,
+    "result": 2399.9976
+  },
+  {
+    "args": [
+      6,
+      {
+        "capMs": 15000
+      }
+    ],
+    "fn": "reconnectBackoffDelayMs",
+    "random": 0,
+    "result": 0
+  },
+  {
+    "args": [
+      6,
+      {
+        "capMs": 15000
+      }
+    ],
+    "fn": "reconnectBackoffDelayMs",
+    "random": 0.5,
+    "result": 7500
+  },
+  {
+    "args": [
+      6,
+      {
+        "capMs": 15000
+      }
+    ],
+    "fn": "reconnectBackoffDelayMs",
+    "random": 0.999999,
+    "result": 14999.984999999999
+  },
+  {
+    "args": [
+      12,
+      {
+        "capMs": 15000
+      }
+    ],
+    "fn": "reconnectBackoffDelayMs",
+    "random": 0,
+    "result": 0
+  },
+  {
+    "args": [
+      12,
+      {
+        "capMs": 15000
+      }
+    ],
+    "fn": "reconnectBackoffDelayMs",
+    "random": 0.5,
+    "result": 7500
+  },
+  {
+    "args": [
+      12,
+      {
+        "capMs": 15000
+      }
+    ],
+    "fn": "reconnectBackoffDelayMs",
+    "random": 0.999999,
+    "result": 14999.984999999999
+  },
+  {
+    "args": [
+      {
+        "desktop_contract": 7
+      }
+    ],
+    "fn": "assertDesktopContract",
+    "note": "info is a SessionLiveInfo-like object (only desktop_contract and lazy are read); known is optional. A string desktop_contract is read with parseInt(s, 10): leading whitespace and trailing junk are tolerated (\"8abc\" is 8). A number is taken as is (7.5 stays 7.5). Result is the contract checked, or null when a lazy resume was let through on trust. Throws an incompatible GatewayError",
+    "result": 7
+  },
+  {
+    "args": [
+      {
+        "desktop_contract": 8
+      }
+    ],
+    "fn": "assertDesktopContract",
+    "result": 8
+  },
+  {
+    "args": [
+      {
+        "desktop_contract": 9
+      }
+    ],
+    "fn": "assertDesktopContract",
+    "result": 9
+  },
+  {
+    "args": [
+      {
+        "desktop_contract": "9"
+      }
+    ],
+    "fn": "assertDesktopContract",
+    "result": 9
+  },
+  {
+    "args": [
+      {
+        "desktop_contract": "7"
+      }
+    ],
+    "fn": "assertDesktopContract",
+    "result": 7
+  },
+  {
+    "args": [
+      {
+        "desktop_contract": 6
+      }
+    ],
+    "error": {
+      "kind": "incompatible",
+      "message": "This gateway speaks desktop contract 6; Hermie needs at least 7. Update Hermes on the gateway."
+    },
+    "fn": "assertDesktopContract",
+    "throws": true
+  },
+  {
+    "args": [
+      {
+        "desktop_contract": "6"
+      }
+    ],
+    "error": {
+      "kind": "incompatible",
+      "message": "This gateway speaks desktop contract 6; Hermie needs at least 7. Update Hermes on the gateway."
+    },
+    "fn": "assertDesktopContract",
+    "throws": true
+  },
+  {
+    "args": [
+      {
+        "desktop_contract": 0
+      }
+    ],
+    "error": {
+      "kind": "incompatible",
+      "message": "This gateway speaks desktop contract 0; Hermie needs at least 7. Update Hermes on the gateway."
+    },
+    "fn": "assertDesktopContract",
+    "throws": true
+  },
+  {
+    "args": [
+      {
+        "desktop_contract": -1
+      }
+    ],
+    "error": {
+      "kind": "incompatible",
+      "message": "This gateway speaks desktop contract -1; Hermie needs at least 7. Update Hermes on the gateway."
+    },
+    "fn": "assertDesktopContract",
+    "throws": true
+  },
+  {
+    "args": [
+      {
+        "desktop_contract": "  8 "
+      }
+    ],
+    "fn": "assertDesktopContract",
+    "result": 8
+  },
+  {
+    "args": [
+      {
+        "desktop_contract": "8abc"
+      }
+    ],
+    "fn": "assertDesktopContract",
+    "result": 8
+  },
+  {
+    "args": [
+      {
+        "desktop_contract": "7.9"
+      }
+    ],
+    "fn": "assertDesktopContract",
+    "result": 7
+  },
+  {
+    "args": [
+      {
+        "desktop_contract": 7.5
+      }
+    ],
+    "fn": "assertDesktopContract",
+    "result": 7.5
+  },
+  {
+    "args": [
+      {
+        "desktop_contract": 6.9
+      }
+    ],
+    "error": {
+      "kind": "incompatible",
+      "message": "This gateway speaks desktop contract 6.9; Hermie needs at least 7. Update Hermes on the gateway."
+    },
+    "fn": "assertDesktopContract",
+    "throws": true
+  },
+  {
+    "args": [
+      {
+        "desktop_contract": "abc"
+      }
+    ],
+    "error": {
+      "kind": "incompatible",
+      "message": "This gateway does not report a desktop contract version, so it predates the session surface Hermie needs. Update Hermes on the gateway."
+    },
+    "fn": "assertDesktopContract",
+    "throws": true
+  },
+  {
+    "args": [
+      {
+        "desktop_contract": ""
+      }
+    ],
+    "error": {
+      "kind": "incompatible",
+      "message": "This gateway does not report a desktop contract version, so it predates the session surface Hermie needs. Update Hermes on the gateway."
+    },
+    "fn": "assertDesktopContract",
+    "throws": true
+  },
+  {
+    "args": [
+      {
+        "desktop_contract": null
+      }
+    ],
+    "error": {
+      "kind": "incompatible",
+      "message": "This gateway does not report a desktop contract version, so it predates the session surface Hermie needs. Update Hermes on the gateway."
+    },
+    "fn": "assertDesktopContract",
+    "throws": true
+  },
+  {
+    "args": [
+      {
+        "desktop_contract": true
+      }
+    ],
+    "error": {
+      "kind": "incompatible",
+      "message": "This gateway does not report a desktop contract version, so it predates the session surface Hermie needs. Update Hermes on the gateway."
+    },
+    "fn": "assertDesktopContract",
+    "throws": true
+  },
+  {
+    "args": [
+      {
+        "desktop_contract": [
+          7
+        ]
+      }
+    ],
+    "error": {
+      "kind": "incompatible",
+      "message": "This gateway does not report a desktop contract version, so it predates the session surface Hermie needs. Update Hermes on the gateway."
+    },
+    "fn": "assertDesktopContract",
+    "throws": true
+  },
+  {
+    "args": [
+      {}
+    ],
+    "error": {
+      "kind": "incompatible",
+      "message": "This gateway does not report a desktop contract version, so it predates the session surface Hermie needs. Update Hermes on the gateway."
+    },
+    "fn": "assertDesktopContract",
+    "throws": true
+  },
+  {
+    "args": [
+      null
+    ],
+    "error": {
+      "kind": "incompatible",
+      "message": "This gateway does not report a desktop contract version, so it predates the session surface Hermie needs. Update Hermes on the gateway."
+    },
+    "fn": "assertDesktopContract",
+    "throws": true
+  },
+  {
+    "args": [
+      {
+        "model": "x"
+      }
+    ],
+    "error": {
+      "kind": "incompatible",
+      "message": "This gateway does not report a desktop contract version, so it predates the session surface Hermie needs. Update Hermes on the gateway."
+    },
+    "fn": "assertDesktopContract",
+    "throws": true
+  },
+  {
+    "args": [
+      {
+        "lazy": true,
+        "model": "x"
+      },
+      7
+    ],
+    "fn": "assertDesktopContract",
+    "result": 7
+  },
+  {
+    "args": [
+      {
+        "lazy": true,
+        "model": "x"
+      },
+      9
+    ],
+    "fn": "assertDesktopContract",
+    "result": 9
+  },
+  {
+    "args": [
+      {
+        "lazy": true,
+        "model": "x"
+      }
+    ],
+    "fn": "assertDesktopContract",
+    "result": null
+  },
+  {
+    "args": [
+      {
+        "lazy": true,
+        "model": "x"
+      },
+      null
+    ],
+    "fn": "assertDesktopContract",
+    "result": null
+  },
+  {
+    "args": [
+      {
+        "lazy": true,
+        "model": "x"
+      },
+      6
+    ],
+    "error": {
+      "kind": "incompatible",
+      "message": "This gateway speaks desktop contract 6; Hermie needs at least 7. Update Hermes on the gateway."
+    },
+    "fn": "assertDesktopContract",
+    "throws": true
+  },
+  {
+    "args": [
+      {
+        "lazy": true,
+        "model": "x"
+      },
+      7.5
+    ],
+    "fn": "assertDesktopContract",
+    "result": 7.5
+  },
+  {
+    "args": [
+      {
+        "lazy": true,
+        "model": "x"
+      },
+      "7"
+    ],
+    "fn": "assertDesktopContract",
+    "result": null
+  },
+  {
+    "args": [
+      {
+        "desktop_contract": 5,
+        "lazy": true
+      },
+      7
+    ],
+    "error": {
+      "kind": "incompatible",
+      "message": "This gateway speaks desktop contract 5; Hermie needs at least 7. Update Hermes on the gateway."
+    },
+    "fn": "assertDesktopContract",
+    "throws": true
+  },
+  {
+    "args": [
+      {
+        "desktop_contract": 8,
+        "lazy": true
+      },
+      6
+    ],
+    "fn": "assertDesktopContract",
+    "result": 8
+  },
+  {
+    "args": [
+      {
+        "desktop_contract": "x",
+        "lazy": true
+      },
+      9
+    ],
+    "fn": "assertDesktopContract",
+    "result": 9
+  },
+  {
+    "args": [
+      {
+        "lazy": "true",
+        "model": "x"
+      },
+      7
+    ],
+    "error": {
+      "kind": "incompatible",
+      "message": "This gateway does not report a desktop contract version, so it predates the session surface Hermie needs. Update Hermes on the gateway."
+    },
+    "fn": "assertDesktopContract",
+    "throws": true
+  },
+  {
+    "args": [
+      {
+        "lazy": false,
+        "model": "x"
+      },
+      7
+    ],
+    "error": {
+      "kind": "incompatible",
+      "message": "This gateway does not report a desktop contract version, so it predates the session surface Hermie needs. Update Hermes on the gateway."
+    },
+    "fn": "assertDesktopContract",
+    "throws": true
+  },
+  {
+    "args": [
+      {
+        "desktop_contract": 7
+      },
+      3
+    ],
+    "fn": "assertDesktopContract",
+    "result": 7
+  },
+  {
+    "args": [
+      {
+        "desktop_contract": 8,
+        "lazy": true,
+        "model": "x"
+      },
+      null
+    ],
+    "fn": "assertDesktopContract",
+    "result": 8
+  },
+  {
+    "args": [
+      null,
+      7
+    ],
+    "error": {
+      "kind": "incompatible",
+      "message": "This gateway does not report a desktop contract version, so it predates the session surface Hermie needs. Update Hermes on the gateway."
+    },
+    "fn": "assertDesktopContract",
+    "throws": true
+  },
+  {
+    "args": [
+      {},
+      9
+    ],
+    "error": {
+      "kind": "incompatible",
+      "message": "This gateway does not report a desktop contract version, so it predates the session surface Hermie needs. Update Hermes on the gateway."
+    },
+    "fn": "assertDesktopContract",
+    "throws": true
+  }
+]

@@ -1,0 +1,850 @@
+[
+  {
+    "args": [],
+    "fn": "HERMIE_KEY",
+    "note": "constant",
+    "result": "hermie"
+  },
+  {
+    "args": [],
+    "fn": "HERMIE_APP_KEY",
+    "note": "constant",
+    "result": "hermie-app"
+  },
+  {
+    "args": [],
+    "fn": "BOT_MARKER_KEY",
+    "note": "constant",
+    "result": "hermes-bots"
+  },
+  {
+    "args": [],
+    "fn": "HERMIE_SECTION_VERSION",
+    "note": "constant",
+    "result": 1
+  },
+  {
+    "args": [],
+    "fn": "HERMIE_APP_SECTION_VERSION",
+    "note": "constant",
+    "result": 1
+  },
+  {
+    "args": [],
+    "fn": "APP_UPDATED_AT",
+    "note": "constant",
+    "result": "updatedAt"
+  },
+  {
+    "args": [
+      "owner"
+    ],
+    "fn": "appKeyFor",
+    "result": "hermie-app:owner"
+  },
+  {
+    "args": [
+      "alice"
+    ],
+    "fn": "appKeyFor",
+    "result": "hermie-app:alice"
+  },
+  {
+    "args": [
+      "authentik:7f3a9c21-0b4e-4d2a-9f61-3c5e8a7b1d40"
+    ],
+    "fn": "appKeyFor",
+    "result": "hermie-app:authentik:7f3a9c21-0b4e-4d2a-9f61-3c5e8a7b1d40"
+  },
+  {
+    "args": [
+      ""
+    ],
+    "fn": "appKeyFor",
+    "result": "hermie-app:"
+  },
+  {
+    "args": [
+      "a:b:c"
+    ],
+    "fn": "appKeyFor",
+    "result": "hermie-app:a:b:c"
+  },
+  {
+    "args": [
+      " padded "
+    ],
+    "fn": "appKeyFor",
+    "result": "hermie-app: padded "
+  },
+  {
+    "args": [
+      "ünï"
+    ],
+    "fn": "appKeyFor",
+    "result": "hermie-app:ünï"
+  },
+  {
+    "args": [
+      "basic:alice"
+    ],
+    "fn": "appKeyFor",
+    "result": "hermie-app:basic:alice"
+  },
+  {
+    "args": [
+      null
+    ],
+    "fn": "appStampOf",
+    "note": "args[0] null stands for a missing section (null; an undefined section reads the same)",
+    "result": 0
+  },
+  {
+    "args": [
+      {
+        "v": 1
+      }
+    ],
+    "fn": "appStampOf",
+    "result": 0
+  },
+  {
+    "args": [
+      {
+        "updatedAt": 1790000000,
+        "v": 1
+      }
+    ],
+    "fn": "appStampOf",
+    "result": 1790000000
+  },
+  {
+    "args": [
+      {
+        "updatedAt": 1790000000.9,
+        "v": 1
+      }
+    ],
+    "fn": "appStampOf",
+    "result": 1790000000
+  },
+  {
+    "args": [
+      {
+        "updatedAt": 0,
+        "v": 1
+      }
+    ],
+    "fn": "appStampOf",
+    "result": 0
+  },
+  {
+    "args": [
+      {
+        "updatedAt": 0.5,
+        "v": 1
+      }
+    ],
+    "fn": "appStampOf",
+    "result": 0
+  },
+  {
+    "args": [
+      {
+        "updatedAt": 1,
+        "v": 1
+      }
+    ],
+    "fn": "appStampOf",
+    "result": 1
+  },
+  {
+    "args": [
+      {
+        "updatedAt": -5,
+        "v": 1
+      }
+    ],
+    "fn": "appStampOf",
+    "result": 0
+  },
+  {
+    "args": [
+      {
+        "updatedAt": "1790000000",
+        "v": 1
+      }
+    ],
+    "fn": "appStampOf",
+    "result": 0
+  },
+  {
+    "args": [
+      {
+        "updatedAt": true,
+        "v": 1
+      }
+    ],
+    "fn": "appStampOf",
+    "result": 0
+  },
+  {
+    "args": [
+      {
+        "updatedAt": null,
+        "v": 1
+      }
+    ],
+    "fn": "appStampOf",
+    "result": 0
+  },
+  {
+    "args": [
+      {
+        "updatedAt": [
+          1
+        ],
+        "v": 1
+      }
+    ],
+    "fn": "appStampOf",
+    "result": 0
+  },
+  {
+    "args": [
+      {
+        "updatedAt": 1790000000000,
+        "v": 1
+      }
+    ],
+    "fn": "appStampOf",
+    "result": 1790000000000
+  },
+  {
+    "args": [
+      {
+        "themeChoice": "midnight",
+        "updatedAt": 42,
+        "v": 1
+      }
+    ],
+    "fn": "appStampOf",
+    "result": 42
+  },
+  {
+    "args": [
+      {}
+    ],
+    "fn": "appStampOf",
+    "result": 0
+  },
+  {
+    "args": [
+      {
+        "v": 1
+      }
+    ],
+    "fn": "inheritedFromLegacy",
+    "note": "copy with v forced to 1; the top-level keys \"push\" and \"context\" are removed, every other key (nested ones included) is kept as is, and key matching is case-sensitive",
+    "result": {
+      "v": 1
+    }
+  },
+  {
+    "args": [
+      {
+        "order": [
+          "researcher",
+          "writer"
+        ],
+        "themeChoice": "midnight",
+        "updatedAt": 1790000000,
+        "v": 1
+      }
+    ],
+    "fn": "inheritedFromLegacy",
+    "result": {
+      "order": [
+        "researcher",
+        "writer"
+      ],
+      "themeChoice": "midnight",
+      "updatedAt": 1790000000,
+      "v": 1
+    }
+  },
+  {
+    "args": [
+      {
+        "context": {
+          "users": {}
+        },
+        "push": {
+          "registrations": {
+            "install-aaaa": {
+              "v": 1
+            }
+          }
+        },
+        "themeChoice": "sand",
+        "v": 1
+      }
+    ],
+    "fn": "inheritedFromLegacy",
+    "result": {
+      "themeChoice": "sand",
+      "v": 1
+    }
+  },
+  {
+    "args": [
+      {
+        "push": {
+          "registrations": {}
+        },
+        "v": 1
+      }
+    ],
+    "fn": "inheritedFromLegacy",
+    "result": {
+      "v": 1
+    }
+  },
+  {
+    "args": [
+      {
+        "context": {
+          "users": {}
+        },
+        "v": 1
+      }
+    ],
+    "fn": "inheritedFromLegacy",
+    "result": {
+      "v": 1
+    }
+  },
+  {
+    "args": [
+      {
+        "themeChoice": "sand",
+        "v": 5
+      }
+    ],
+    "fn": "inheritedFromLegacy",
+    "result": {
+      "themeChoice": "sand",
+      "v": 1
+    }
+  },
+  {
+    "args": [
+      {
+        "themeChoice": "sand",
+        "v": 0
+      }
+    ],
+    "fn": "inheritedFromLegacy",
+    "result": {
+      "themeChoice": "sand",
+      "v": 1
+    }
+  },
+  {
+    "args": [
+      {
+        "themeChoice": "sand"
+      }
+    ],
+    "fn": "inheritedFromLegacy",
+    "result": {
+      "themeChoice": "sand",
+      "v": 1
+    }
+  },
+  {
+    "args": [
+      {
+        "themeChoice": "sand",
+        "v": "1"
+      }
+    ],
+    "fn": "inheritedFromLegacy",
+    "result": {
+      "themeChoice": "sand",
+      "v": 1
+    }
+  },
+  {
+    "args": [
+      {
+        "folders": [
+          {
+            "bots": [
+              "writer"
+            ],
+            "name": "Work"
+          }
+        ],
+        "nested": {
+          "context": 2,
+          "push": 1
+        },
+        "v": 1
+      }
+    ],
+    "fn": "inheritedFromLegacy",
+    "result": {
+      "folders": [
+        {
+          "bots": [
+            "writer"
+          ],
+          "name": "Work"
+        }
+      ],
+      "nested": {
+        "context": 2,
+        "push": 1
+      },
+      "v": 1
+    }
+  },
+  {
+    "args": [
+      {
+        "perBot": {
+          "researcher": {
+            "message": false
+          }
+        },
+        "v": 1
+      }
+    ],
+    "fn": "inheritedFromLegacy",
+    "result": {
+      "perBot": {
+        "researcher": {
+          "message": false
+        }
+      },
+      "v": 1
+    }
+  },
+  {
+    "args": [
+      {
+        "CONTEXT": 2,
+        "Push": 1,
+        "v": 1
+      }
+    ],
+    "fn": "inheritedFromLegacy",
+    "result": {
+      "CONTEXT": 2,
+      "Push": 1,
+      "v": 1
+    }
+  },
+  {
+    "args": [
+      {
+        "hermie-app:owner": {
+          "themeChoice": "midnight",
+          "v": 1
+        }
+      },
+      "hermie-app:owner",
+      1
+    ],
+    "fn": "readSection",
+    "note": "args: [bag, key, known]. Returns bag[key] untouched when it is an object (not an array) with a number v where 0 < v <= known, else null. v is only required to be a number: 0.5 and 1.5 pass (a non-integer between 0 and known is accepted)",
+    "result": {
+      "themeChoice": "midnight",
+      "v": 1
+    }
+  },
+  {
+    "args": [
+      {
+        "hermie-app:owner": {
+          "v": 1
+        }
+      },
+      "hermie-app:owner",
+      1
+    ],
+    "fn": "readSection",
+    "result": {
+      "v": 1
+    }
+  },
+  {
+    "args": [
+      {
+        "hermie-app:owner": {
+          "v": 2
+        }
+      },
+      "hermie-app:owner",
+      1
+    ],
+    "fn": "readSection",
+    "result": null
+  },
+  {
+    "args": [
+      {
+        "hermie-app:owner": {
+          "v": 2
+        }
+      },
+      "hermie-app:owner",
+      2
+    ],
+    "fn": "readSection",
+    "result": {
+      "v": 2
+    }
+  },
+  {
+    "args": [
+      {
+        "hermie-app:owner": {
+          "v": 3
+        }
+      },
+      "hermie-app:owner",
+      2
+    ],
+    "fn": "readSection",
+    "result": null
+  },
+  {
+    "args": [
+      {
+        "hermie-app:owner": {
+          "v": 0
+        }
+      },
+      "hermie-app:owner",
+      1
+    ],
+    "fn": "readSection",
+    "result": null
+  },
+  {
+    "args": [
+      {
+        "hermie-app:owner": {
+          "v": -1
+        }
+      },
+      "hermie-app:owner",
+      1
+    ],
+    "fn": "readSection",
+    "result": null
+  },
+  {
+    "args": [
+      {
+        "hermie-app:owner": {
+          "v": "1"
+        }
+      },
+      "hermie-app:owner",
+      1
+    ],
+    "fn": "readSection",
+    "result": null
+  },
+  {
+    "args": [
+      {
+        "hermie-app:owner": {
+          "v": null
+        }
+      },
+      "hermie-app:owner",
+      1
+    ],
+    "fn": "readSection",
+    "result": null
+  },
+  {
+    "args": [
+      {
+        "hermie-app:owner": {
+          "v": true
+        }
+      },
+      "hermie-app:owner",
+      1
+    ],
+    "fn": "readSection",
+    "result": null
+  },
+  {
+    "args": [
+      {
+        "hermie-app:owner": {
+          "themeChoice": "midnight"
+        }
+      },
+      "hermie-app:owner",
+      1
+    ],
+    "fn": "readSection",
+    "result": null
+  },
+  {
+    "args": [
+      {
+        "hermie-app:owner": {
+          "v": 1.5
+        }
+      },
+      "hermie-app:owner",
+      2
+    ],
+    "fn": "readSection",
+    "result": {
+      "v": 1.5
+    }
+  },
+  {
+    "args": [
+      {
+        "hermie-app:owner": {
+          "v": 0.5
+        }
+      },
+      "hermie-app:owner",
+      1
+    ],
+    "fn": "readSection",
+    "result": {
+      "v": 0.5
+    }
+  },
+  {
+    "args": [
+      {
+        "hermie-app:owner": {
+          "v": 1.5
+        }
+      },
+      "hermie-app:owner",
+      1
+    ],
+    "fn": "readSection",
+    "result": null
+  },
+  {
+    "args": [
+      {
+        "hermie": {
+          "archived": true,
+          "colour": "#336699",
+          "v": 1
+        }
+      },
+      "hermie",
+      1
+    ],
+    "fn": "readSection",
+    "result": {
+      "archived": true,
+      "colour": "#336699",
+      "v": 1
+    }
+  },
+  {
+    "args": [
+      {
+        "hermes-bots": {
+          "v": 1
+        },
+        "hermie": {
+          "v": 1
+        }
+      },
+      "hermes-bots",
+      1
+    ],
+    "fn": "readSection",
+    "result": {
+      "v": 1
+    }
+  },
+  {
+    "args": [
+      {
+        "hermie": {
+          "v": 1
+        }
+      },
+      "hermie-app:owner",
+      1
+    ],
+    "fn": "readSection",
+    "result": null
+  },
+  {
+    "args": [
+      {
+        "hermie-app:owner": "string"
+      },
+      "hermie-app:owner",
+      1
+    ],
+    "fn": "readSection",
+    "result": null
+  },
+  {
+    "args": [
+      {
+        "hermie-app:owner": [
+          "v"
+        ]
+      },
+      "hermie-app:owner",
+      1
+    ],
+    "fn": "readSection",
+    "result": null
+  },
+  {
+    "args": [
+      {
+        "hermie-app:owner": null
+      },
+      "hermie-app:owner",
+      1
+    ],
+    "fn": "readSection",
+    "result": null
+  },
+  {
+    "args": [
+      {
+        "hermie-app:owner": 5
+      },
+      "hermie-app:owner",
+      1
+    ],
+    "fn": "readSection",
+    "result": null
+  },
+  {
+    "args": [
+      {
+        "hermie-app:owner": {}
+      },
+      "hermie-app:owner",
+      1
+    ],
+    "fn": "readSection",
+    "result": null
+  },
+  {
+    "args": [
+      null,
+      "hermie-app:owner",
+      1
+    ],
+    "fn": "readSection",
+    "result": null
+  },
+  {
+    "args": [
+      {},
+      "hermie-app:owner",
+      1
+    ],
+    "fn": "readSection",
+    "result": null
+  },
+  {
+    "args": [
+      [],
+      "hermie-app:owner",
+      1
+    ],
+    "fn": "readSection",
+    "result": null
+  },
+  {
+    "args": [
+      [
+        {
+          "v": 1
+        }
+      ],
+      "0",
+      1
+    ],
+    "fn": "readSection",
+    "result": null
+  },
+  {
+    "args": [
+      "hermie-app",
+      "hermie-app:owner",
+      1
+    ],
+    "fn": "readSection",
+    "result": null
+  },
+  {
+    "args": [
+      42,
+      "hermie-app:owner",
+      1
+    ],
+    "fn": "readSection",
+    "result": null
+  },
+  {
+    "args": [
+      {
+        "hermie-app:owner": {
+          "v": 1
+        }
+      },
+      "",
+      1
+    ],
+    "fn": "readSection",
+    "result": null
+  },
+  {
+    "args": [
+      {
+        "": {
+          "v": 1
+        }
+      },
+      "",
+      1
+    ],
+    "fn": "readSection",
+    "result": {
+      "v": 1
+    }
+  },
+  {
+    "args": [
+      {
+        "hermie-app:owner": {
+          "v": 1
+        }
+      },
+      "hermie-app:owner",
+      0
+    ],
+    "fn": "readSection",
+    "result": null
+  }
+]

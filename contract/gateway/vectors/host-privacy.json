@@ -1,0 +1,1727 @@
+[
+  {
+    "args": [
+      "https://example.com/hermes?x=1"
+    ],
+    "fn": "hostOfAddress",
+    "result": "example.com"
+  },
+  {
+    "args": [
+      "example.com:9119"
+    ],
+    "fn": "hostOfAddress",
+    "result": "example.com"
+  },
+  {
+    "args": [
+      "example.com"
+    ],
+    "fn": "hostOfAddress",
+    "result": "example.com"
+  },
+  {
+    "args": [
+      "HTTP://Hermes.Tail-Example.TS.NET./"
+    ],
+    "fn": "hostOfAddress",
+    "result": "hermes.tail-example.ts.net"
+  },
+  {
+    "args": [
+      "http://[fd7a:115c:a1e0::1]:9119/api"
+    ],
+    "fn": "hostOfAddress",
+    "result": "fd7a:115c:a1e0::1"
+  },
+  {
+    "args": [
+      "fd7a:115c:a1e0::1"
+    ],
+    "fn": "hostOfAddress",
+    "result": "fd7a:115c:a1e0::1"
+  },
+  {
+    "args": [
+      "http://user:pass@192.168.1.4:9119"
+    ],
+    "fn": "hostOfAddress",
+    "result": "192.168.1.4"
+  },
+  {
+    "args": [
+      ""
+    ],
+    "fn": "hostOfAddress",
+    "result": ""
+  },
+  {
+    "args": [
+      "   "
+    ],
+    "fn": "hostOfAddress",
+    "result": ""
+  },
+  {
+    "args": [
+      "EXAMPLE.COM"
+    ],
+    "fn": "hostOfAddress",
+    "result": "example.com"
+  },
+  {
+    "args": [
+      "example.com:9119/path"
+    ],
+    "fn": "hostOfAddress",
+    "result": "example.com"
+  },
+  {
+    "args": [
+      "http://example.com:9119?x=1"
+    ],
+    "fn": "hostOfAddress",
+    "result": "example.com"
+  },
+  {
+    "args": [
+      "http://example.com#frag"
+    ],
+    "fn": "hostOfAddress",
+    "result": "example.com"
+  },
+  {
+    "args": [
+      "http://[::1]:9119"
+    ],
+    "fn": "hostOfAddress",
+    "result": "::1"
+  },
+  {
+    "args": [
+      "[::1]"
+    ],
+    "fn": "hostOfAddress",
+    "result": "::1"
+  },
+  {
+    "args": [
+      "::1"
+    ],
+    "fn": "hostOfAddress",
+    "result": "::1"
+  },
+  {
+    "args": [
+      "http://[::1"
+    ],
+    "fn": "hostOfAddress",
+    "result": "::1"
+  },
+  {
+    "args": [
+      "[]"
+    ],
+    "fn": "hostOfAddress",
+    "result": ""
+  },
+  {
+    "args": [
+      "user@host"
+    ],
+    "fn": "hostOfAddress",
+    "result": "host"
+  },
+  {
+    "args": [
+      "user:pass@host:80"
+    ],
+    "fn": "hostOfAddress",
+    "result": "host"
+  },
+  {
+    "args": [
+      "http://user@host@example.com/"
+    ],
+    "fn": "hostOfAddress",
+    "note": "the LAST \"@\" wins",
+    "result": "example.com"
+  },
+  {
+    "args": [
+      "http://example.com/path@foo"
+    ],
+    "fn": "hostOfAddress",
+    "note": "the credentials cut is lastIndexOf(\"@\") over the whole remainder, path included, so this reads host \"foo\"",
+    "result": "foo"
+  },
+  {
+    "args": [
+      "http://example.com#frag@x"
+    ],
+    "fn": "hostOfAddress",
+    "note": "lastIndexOf(\"@\") runs before the path/query/fragment cut, so this reads host \"x\"",
+    "result": "x"
+  },
+  {
+    "args": [
+      "example.com."
+    ],
+    "fn": "hostOfAddress",
+    "result": "example.com"
+  },
+  {
+    "args": [
+      "example.com.."
+    ],
+    "fn": "hostOfAddress",
+    "result": "example.com"
+  },
+  {
+    "args": [
+      "a.ts.net."
+    ],
+    "fn": "hostOfAddress",
+    "result": "a.ts.net"
+  },
+  {
+    "args": [
+      "http://:9119"
+    ],
+    "fn": "hostOfAddress",
+    "result": ""
+  },
+  {
+    "args": [
+      "host:"
+    ],
+    "fn": "hostOfAddress",
+    "result": "host"
+  },
+  {
+    "args": [
+      "http://host:99:88"
+    ],
+    "fn": "hostOfAddress",
+    "note": "two or more colons and no brackets: the whole authority is the host, no port cut",
+    "result": "host:99:88"
+  },
+  {
+    "args": [
+      "1.2.3.4:80"
+    ],
+    "fn": "hostOfAddress",
+    "result": "1.2.3.4"
+  },
+  {
+    "args": [
+      "ftp://x/"
+    ],
+    "fn": "hostOfAddress",
+    "result": "x"
+  },
+  {
+    "args": [
+      "://"
+    ],
+    "fn": "hostOfAddress",
+    "result": ""
+  },
+  {
+    "args": [
+      "://example.com"
+    ],
+    "fn": "hostOfAddress",
+    "result": "example.com"
+  },
+  {
+    "args": [
+      "a://b://c"
+    ],
+    "fn": "hostOfAddress",
+    "result": "b"
+  },
+  {
+    "args": [
+      "example.com?x=1"
+    ],
+    "fn": "hostOfAddress",
+    "result": "example.com"
+  },
+  {
+    "args": [
+      "example.com#x"
+    ],
+    "fn": "hostOfAddress",
+    "result": "example.com"
+  },
+  {
+    "args": [
+      "ÉXAMPLE.COM"
+    ],
+    "fn": "hostOfAddress",
+    "note": "toLowerCase is Unicode-aware",
+    "result": "éxample.com"
+  },
+  {
+    "args": [
+      "İSTANBUL.example"
+    ],
+    "fn": "hostOfAddress",
+    "note": "toLowerCase is Unicode-aware: İ (U+0130) lowercases to \"i\" + U+0307",
+    "result": "i̇stanbul.example"
+  },
+  {
+    "args": [
+      "\t example.com \n"
+    ],
+    "fn": "hostOfAddress",
+    "note": "trim() first",
+    "result": "example.com"
+  },
+  {
+    "args": [
+      "http://10.0.0.5:9119/hermes"
+    ],
+    "fn": "hostOfAddress",
+    "result": "10.0.0.5"
+  },
+  {
+    "args": [
+      "https://[2606:4700:4700::1111]:443/"
+    ],
+    "fn": "hostOfAddress",
+    "result": "2606:4700:4700::1111"
+  },
+  {
+    "args": [
+      "[2606:4700:4700::1111]:443"
+    ],
+    "fn": "hostOfAddress",
+    "result": "2606:4700:4700::1111"
+  },
+  {
+    "args": [
+      "something.ts.net:8443"
+    ],
+    "fn": "hostOfAddress",
+    "result": "something.ts.net"
+  },
+  {
+    "args": [
+      "http://my-box.local:9119"
+    ],
+    "fn": "hostOfAddress",
+    "result": "my-box.local"
+  },
+  {
+    "args": [
+      "http://127.0.0.1"
+    ],
+    "fn": "hostOfAddress",
+    "result": "127.0.0.1"
+  },
+  {
+    "args": [
+      "localhost"
+    ],
+    "fn": "hostOfAddress",
+    "result": "localhost"
+  },
+  {
+    "args": [
+      "LOCALHOST:3000"
+    ],
+    "fn": "hostOfAddress",
+    "result": "localhost"
+  },
+  {
+    "args": [
+      "http://127.0.0.1:9119"
+    ],
+    "fn": "classifyHost",
+    "result": {
+      "host": "127.0.0.1",
+      "isPrivate": true,
+      "privacy": "loopback"
+    }
+  },
+  {
+    "args": [
+      "127.13.2.9"
+    ],
+    "fn": "classifyHost",
+    "result": {
+      "host": "127.13.2.9",
+      "isPrivate": true,
+      "privacy": "loopback"
+    }
+  },
+  {
+    "args": [
+      "126.255.255.255"
+    ],
+    "fn": "classifyHost",
+    "result": {
+      "host": "126.255.255.255",
+      "isPrivate": false,
+      "privacy": "public"
+    }
+  },
+  {
+    "args": [
+      "128.0.0.1"
+    ],
+    "fn": "classifyHost",
+    "result": {
+      "host": "128.0.0.1",
+      "isPrivate": false,
+      "privacy": "public"
+    }
+  },
+  {
+    "args": [
+      "10.0.0.1"
+    ],
+    "fn": "classifyHost",
+    "result": {
+      "host": "10.0.0.1",
+      "isPrivate": true,
+      "privacy": "private"
+    }
+  },
+  {
+    "args": [
+      "10.0.0.5"
+    ],
+    "fn": "classifyHost",
+    "result": {
+      "host": "10.0.0.5",
+      "isPrivate": true,
+      "privacy": "private"
+    }
+  },
+  {
+    "args": [
+      "192.168.2.250:9119"
+    ],
+    "fn": "classifyHost",
+    "result": {
+      "host": "192.168.2.250",
+      "isPrivate": true,
+      "privacy": "private"
+    }
+  },
+  {
+    "args": [
+      "192.168.1.20"
+    ],
+    "fn": "classifyHost",
+    "result": {
+      "host": "192.168.1.20",
+      "isPrivate": true,
+      "privacy": "private"
+    }
+  },
+  {
+    "args": [
+      "192.169.0.1"
+    ],
+    "fn": "classifyHost",
+    "result": {
+      "host": "192.169.0.1",
+      "isPrivate": false,
+      "privacy": "public"
+    }
+  },
+  {
+    "args": [
+      "192.167.255.255"
+    ],
+    "fn": "classifyHost",
+    "result": {
+      "host": "192.167.255.255",
+      "isPrivate": false,
+      "privacy": "public"
+    }
+  },
+  {
+    "args": [
+      "172.16.0.1"
+    ],
+    "fn": "classifyHost",
+    "result": {
+      "host": "172.16.0.1",
+      "isPrivate": true,
+      "privacy": "private"
+    }
+  },
+  {
+    "args": [
+      "172.31.255.254"
+    ],
+    "fn": "classifyHost",
+    "result": {
+      "host": "172.31.255.254",
+      "isPrivate": true,
+      "privacy": "private"
+    }
+  },
+  {
+    "args": [
+      "172.15.0.1"
+    ],
+    "fn": "classifyHost",
+    "result": {
+      "host": "172.15.0.1",
+      "isPrivate": false,
+      "privacy": "public"
+    }
+  },
+  {
+    "args": [
+      "172.32.0.1"
+    ],
+    "fn": "classifyHost",
+    "result": {
+      "host": "172.32.0.1",
+      "isPrivate": false,
+      "privacy": "public"
+    }
+  },
+  {
+    "args": [
+      "169.254.1.1"
+    ],
+    "fn": "classifyHost",
+    "result": {
+      "host": "169.254.1.1",
+      "isPrivate": true,
+      "privacy": "link_local"
+    }
+  },
+  {
+    "args": [
+      "169.254.169.254"
+    ],
+    "fn": "classifyHost",
+    "result": {
+      "host": "169.254.169.254",
+      "isPrivate": true,
+      "privacy": "link_local"
+    }
+  },
+  {
+    "args": [
+      "169.253.0.1"
+    ],
+    "fn": "classifyHost",
+    "result": {
+      "host": "169.253.0.1",
+      "isPrivate": false,
+      "privacy": "public"
+    }
+  },
+  {
+    "args": [
+      "100.101.102.103"
+    ],
+    "fn": "classifyHost",
+    "result": {
+      "host": "100.101.102.103",
+      "isPrivate": true,
+      "privacy": "cgnat"
+    }
+  },
+  {
+    "args": [
+      "100.64.0.0"
+    ],
+    "fn": "classifyHost",
+    "result": {
+      "host": "100.64.0.0",
+      "isPrivate": true,
+      "privacy": "cgnat"
+    }
+  },
+  {
+    "args": [
+      "100.127.255.255"
+    ],
+    "fn": "classifyHost",
+    "result": {
+      "host": "100.127.255.255",
+      "isPrivate": true,
+      "privacy": "cgnat"
+    }
+  },
+  {
+    "args": [
+      "100.63.0.1"
+    ],
+    "fn": "classifyHost",
+    "result": {
+      "host": "100.63.0.1",
+      "isPrivate": false,
+      "privacy": "public"
+    }
+  },
+  {
+    "args": [
+      "100.128.0.1"
+    ],
+    "fn": "classifyHost",
+    "result": {
+      "host": "100.128.0.1",
+      "isPrivate": false,
+      "privacy": "public"
+    }
+  },
+  {
+    "args": [
+      "100.100.100.100"
+    ],
+    "fn": "classifyHost",
+    "result": {
+      "host": "100.100.100.100",
+      "isPrivate": true,
+      "privacy": "cgnat"
+    }
+  },
+  {
+    "args": [
+      "8.8.8.8"
+    ],
+    "fn": "classifyHost",
+    "result": {
+      "host": "8.8.8.8",
+      "isPrivate": false,
+      "privacy": "public"
+    }
+  },
+  {
+    "args": [
+      "0.0.0.0"
+    ],
+    "fn": "classifyHost",
+    "result": {
+      "host": "0.0.0.0",
+      "isPrivate": false,
+      "privacy": "public"
+    }
+  },
+  {
+    "args": [
+      "255.255.255.255"
+    ],
+    "fn": "classifyHost",
+    "result": {
+      "host": "255.255.255.255",
+      "isPrivate": false,
+      "privacy": "public"
+    }
+  },
+  {
+    "args": [
+      "999.1.1.1"
+    ],
+    "fn": "classifyHost",
+    "result": {
+      "host": "999.1.1.1",
+      "isPrivate": false,
+      "privacy": "public"
+    }
+  },
+  {
+    "args": [
+      "256.0.0.1"
+    ],
+    "fn": "classifyHost",
+    "result": {
+      "host": "256.0.0.1",
+      "isPrivate": false,
+      "privacy": "public"
+    }
+  },
+  {
+    "args": [
+      "1.2.3"
+    ],
+    "fn": "classifyHost",
+    "result": {
+      "host": "1.2.3",
+      "isPrivate": false,
+      "privacy": "public"
+    }
+  },
+  {
+    "args": [
+      "1.2.3.4.5"
+    ],
+    "fn": "classifyHost",
+    "result": {
+      "host": "1.2.3.4.5",
+      "isPrivate": false,
+      "privacy": "public"
+    }
+  },
+  {
+    "args": [
+      "010.0.0.1"
+    ],
+    "fn": "classifyHost",
+    "note": "leading zeros are read as decimal: 010 is 10, so this is RFC 1918",
+    "result": {
+      "host": "010.0.0.1",
+      "isPrivate": true,
+      "privacy": "private"
+    }
+  },
+  {
+    "args": [
+      "0x7f.0.0.1"
+    ],
+    "fn": "classifyHost",
+    "result": {
+      "host": "0x7f.0.0.1",
+      "isPrivate": false,
+      "privacy": "public"
+    }
+  },
+  {
+    "args": [
+      "2130706433"
+    ],
+    "fn": "classifyHost",
+    "note": "a bare number has no dot, so it is a name with no dots, not an address",
+    "result": {
+      "host": "2130706433",
+      "isPrivate": true,
+      "privacy": "local_name"
+    }
+  },
+  {
+    "args": [
+      "127.0.0.1."
+    ],
+    "fn": "classifyHost",
+    "result": {
+      "host": "127.0.0.1",
+      "isPrivate": true,
+      "privacy": "loopback"
+    }
+  },
+  {
+    "args": [
+      "http://user:pass@192.168.1.4:9119"
+    ],
+    "fn": "classifyHost",
+    "result": {
+      "host": "192.168.1.4",
+      "isPrivate": true,
+      "privacy": "private"
+    }
+  },
+  {
+    "args": [
+      "http://10.0.0.5:9119/hermes"
+    ],
+    "fn": "classifyHost",
+    "result": {
+      "host": "10.0.0.5",
+      "isPrivate": true,
+      "privacy": "private"
+    }
+  },
+  {
+    "args": [
+      "http://[::1]:9119"
+    ],
+    "fn": "classifyHost",
+    "result": {
+      "host": "::1",
+      "isPrivate": true,
+      "privacy": "loopback"
+    }
+  },
+  {
+    "args": [
+      "0:0:0:0:0:0:0:1"
+    ],
+    "fn": "classifyHost",
+    "result": {
+      "host": "0:0:0:0:0:0:0:1",
+      "isPrivate": true,
+      "privacy": "loopback"
+    }
+  },
+  {
+    "args": [
+      "::1"
+    ],
+    "fn": "classifyHost",
+    "result": {
+      "host": "::1",
+      "isPrivate": true,
+      "privacy": "loopback"
+    }
+  },
+  {
+    "args": [
+      "::"
+    ],
+    "fn": "classifyHost",
+    "result": {
+      "host": "::",
+      "isPrivate": false,
+      "privacy": "public"
+    }
+  },
+  {
+    "args": [
+      "fd7a:115c:a1e0::1"
+    ],
+    "fn": "classifyHost",
+    "result": {
+      "host": "fd7a:115c:a1e0::1",
+      "isPrivate": true,
+      "privacy": "tailnet"
+    }
+  },
+  {
+    "args": [
+      "FD7A:115C:A1E0:AB12:4843:CD96:6265:1"
+    ],
+    "fn": "classifyHost",
+    "result": {
+      "host": "fd7a:115c:a1e0:ab12:4843:cd96:6265:1",
+      "isPrivate": true,
+      "privacy": "tailnet"
+    }
+  },
+  {
+    "args": [
+      "fd7a:115c:a1e1::1"
+    ],
+    "fn": "classifyHost",
+    "result": {
+      "host": "fd7a:115c:a1e1::1",
+      "isPrivate": true,
+      "privacy": "private"
+    }
+  },
+  {
+    "args": [
+      "fd12:3456:789a::1"
+    ],
+    "fn": "classifyHost",
+    "result": {
+      "host": "fd12:3456:789a::1",
+      "isPrivate": true,
+      "privacy": "private"
+    }
+  },
+  {
+    "args": [
+      "fc00::1"
+    ],
+    "fn": "classifyHost",
+    "result": {
+      "host": "fc00::1",
+      "isPrivate": true,
+      "privacy": "private"
+    }
+  },
+  {
+    "args": [
+      "fc00::"
+    ],
+    "fn": "classifyHost",
+    "result": {
+      "host": "fc00::",
+      "isPrivate": true,
+      "privacy": "private"
+    }
+  },
+  {
+    "args": [
+      "fdff:ffff::1"
+    ],
+    "fn": "classifyHost",
+    "result": {
+      "host": "fdff:ffff::1",
+      "isPrivate": true,
+      "privacy": "private"
+    }
+  },
+  {
+    "args": [
+      "fe00::1"
+    ],
+    "fn": "classifyHost",
+    "result": {
+      "host": "fe00::1",
+      "isPrivate": false,
+      "privacy": "public"
+    }
+  },
+  {
+    "args": [
+      "fe80::1"
+    ],
+    "fn": "classifyHost",
+    "result": {
+      "host": "fe80::1",
+      "isPrivate": true,
+      "privacy": "link_local"
+    }
+  },
+  {
+    "args": [
+      "febf::1"
+    ],
+    "fn": "classifyHost",
+    "result": {
+      "host": "febf::1",
+      "isPrivate": true,
+      "privacy": "link_local"
+    }
+  },
+  {
+    "args": [
+      "fec0::1"
+    ],
+    "fn": "classifyHost",
+    "result": {
+      "host": "fec0::1",
+      "isPrivate": false,
+      "privacy": "public"
+    }
+  },
+  {
+    "args": [
+      "fe80::1%eth0"
+    ],
+    "fn": "classifyHost",
+    "note": "a zone id is not a hextet, so the literal fails to parse and every unreadable host reads public",
+    "result": {
+      "host": "fe80::1%eth0",
+      "isPrivate": false,
+      "privacy": "public"
+    }
+  },
+  {
+    "args": [
+      "2606:4700:4700::1111"
+    ],
+    "fn": "classifyHost",
+    "result": {
+      "host": "2606:4700:4700::1111",
+      "isPrivate": false,
+      "privacy": "public"
+    }
+  },
+  {
+    "args": [
+      "[2606:4700:4700::1111]:443"
+    ],
+    "fn": "classifyHost",
+    "result": {
+      "host": "2606:4700:4700::1111",
+      "isPrivate": false,
+      "privacy": "public"
+    }
+  },
+  {
+    "args": [
+      "2001:db8::1"
+    ],
+    "fn": "classifyHost",
+    "result": {
+      "host": "2001:db8::1",
+      "isPrivate": false,
+      "privacy": "public"
+    }
+  },
+  {
+    "args": [
+      "1:2:3:4:5:6:7:8"
+    ],
+    "fn": "classifyHost",
+    "result": {
+      "host": "1:2:3:4:5:6:7:8",
+      "isPrivate": false,
+      "privacy": "public"
+    }
+  },
+  {
+    "args": [
+      "1:2:3:4:5:6:7::8"
+    ],
+    "fn": "classifyHost",
+    "result": {
+      "host": "1:2:3:4:5:6:7::8",
+      "isPrivate": false,
+      "privacy": "public"
+    }
+  },
+  {
+    "args": [
+      "12345::1"
+    ],
+    "fn": "classifyHost",
+    "result": {
+      "host": "12345::1",
+      "isPrivate": false,
+      "privacy": "public"
+    }
+  },
+  {
+    "args": [
+      "::ffff:192.168.1.10"
+    ],
+    "fn": "classifyHost",
+    "result": {
+      "host": "::ffff:192.168.1.10",
+      "isPrivate": true,
+      "privacy": "private"
+    }
+  },
+  {
+    "args": [
+      "::ffff:8.8.8.8"
+    ],
+    "fn": "classifyHost",
+    "result": {
+      "host": "::ffff:8.8.8.8",
+      "isPrivate": false,
+      "privacy": "public"
+    }
+  },
+  {
+    "args": [
+      "::ffff:10.0.0.1"
+    ],
+    "fn": "classifyHost",
+    "result": {
+      "host": "::ffff:10.0.0.1",
+      "isPrivate": true,
+      "privacy": "private"
+    }
+  },
+  {
+    "args": [
+      "::ffff:100.64.0.1"
+    ],
+    "fn": "classifyHost",
+    "result": {
+      "host": "::ffff:100.64.0.1",
+      "isPrivate": true,
+      "privacy": "cgnat"
+    }
+  },
+  {
+    "args": [
+      "::ffff:169.254.0.1"
+    ],
+    "fn": "classifyHost",
+    "result": {
+      "host": "::ffff:169.254.0.1",
+      "isPrivate": true,
+      "privacy": "link_local"
+    }
+  },
+  {
+    "args": [
+      "::ffff:7f00:1"
+    ],
+    "fn": "classifyHost",
+    "note": "IPv4-mapped in hextet form: 127.0.0.1",
+    "result": {
+      "host": "::ffff:7f00:1",
+      "isPrivate": true,
+      "privacy": "loopback"
+    }
+  },
+  {
+    "args": [
+      "::FFFF:127.0.0.1"
+    ],
+    "fn": "classifyHost",
+    "note": "IPv4-mapped, uppercase",
+    "result": {
+      "host": "::ffff:127.0.0.1",
+      "isPrivate": true,
+      "privacy": "loopback"
+    }
+  },
+  {
+    "args": [
+      "::ffff:999.1.1.1"
+    ],
+    "fn": "classifyHost",
+    "result": {
+      "host": "::ffff:999.1.1.1",
+      "isPrivate": false,
+      "privacy": "public"
+    }
+  },
+  {
+    "args": [
+      "::0.0.0.1"
+    ],
+    "fn": "classifyHost",
+    "note": "a trailing dotted quad is two hextets, so this expands to ::1 and reads as loopback",
+    "result": {
+      "host": "::0.0.0.1",
+      "isPrivate": true,
+      "privacy": "loopback"
+    }
+  },
+  {
+    "args": [
+      "fd7a::115c::a1e0"
+    ],
+    "fn": "classifyHost",
+    "result": {
+      "host": "fd7a::115c::a1e0",
+      "isPrivate": false,
+      "privacy": "public"
+    }
+  },
+  {
+    "args": [
+      "fdzz::1"
+    ],
+    "fn": "classifyHost",
+    "result": {
+      "host": "fdzz::1",
+      "isPrivate": false,
+      "privacy": "public"
+    }
+  },
+  {
+    "args": [
+      "::1::2"
+    ],
+    "fn": "classifyHost",
+    "result": {
+      "host": "::1::2",
+      "isPrivate": false,
+      "privacy": "public"
+    }
+  },
+  {
+    "args": [
+      ":::"
+    ],
+    "fn": "classifyHost",
+    "result": {
+      "host": ":::",
+      "isPrivate": false,
+      "privacy": "public"
+    }
+  },
+  {
+    "args": [
+      "http://[fd7a:115c:a1e0::1]:9119"
+    ],
+    "fn": "classifyHost",
+    "result": {
+      "host": "fd7a:115c:a1e0::1",
+      "isPrivate": true,
+      "privacy": "tailnet"
+    }
+  },
+  {
+    "args": [
+      "[fe80::1]:80"
+    ],
+    "fn": "classifyHost",
+    "result": {
+      "host": "fe80::1",
+      "isPrivate": true,
+      "privacy": "link_local"
+    }
+  },
+  {
+    "args": [
+      "http://[::1"
+    ],
+    "fn": "classifyHost",
+    "result": {
+      "host": "::1",
+      "isPrivate": true,
+      "privacy": "loopback"
+    }
+  },
+  {
+    "args": [
+      "http://localhost:9119"
+    ],
+    "fn": "classifyHost",
+    "result": {
+      "host": "localhost",
+      "isPrivate": true,
+      "privacy": "loopback"
+    }
+  },
+  {
+    "args": [
+      "gateway.localhost"
+    ],
+    "fn": "classifyHost",
+    "result": {
+      "host": "gateway.localhost",
+      "isPrivate": true,
+      "privacy": "loopback"
+    }
+  },
+  {
+    "args": [
+      "localhost"
+    ],
+    "fn": "classifyHost",
+    "result": {
+      "host": "localhost",
+      "isPrivate": true,
+      "privacy": "loopback"
+    }
+  },
+  {
+    "args": [
+      "LOCALHOST"
+    ],
+    "fn": "classifyHost",
+    "result": {
+      "host": "localhost",
+      "isPrivate": true,
+      "privacy": "loopback"
+    }
+  },
+  {
+    "args": [
+      "localhost."
+    ],
+    "fn": "classifyHost",
+    "result": {
+      "host": "localhost",
+      "isPrivate": true,
+      "privacy": "loopback"
+    }
+  },
+  {
+    "args": [
+      "localhost.example.com"
+    ],
+    "fn": "classifyHost",
+    "result": {
+      "host": "localhost.example.com",
+      "isPrivate": false,
+      "privacy": "public"
+    }
+  },
+  {
+    "args": [
+      "hermes.tailnet-example.ts.net"
+    ],
+    "fn": "classifyHost",
+    "result": {
+      "host": "hermes.tailnet-example.ts.net",
+      "isPrivate": true,
+      "privacy": "tailnet"
+    }
+  },
+  {
+    "args": [
+      "https://Hermes.Tailnet-Example.TS.NET/"
+    ],
+    "fn": "classifyHost",
+    "result": {
+      "host": "hermes.tailnet-example.ts.net",
+      "isPrivate": true,
+      "privacy": "tailnet"
+    }
+  },
+  {
+    "args": [
+      "something.ts.net"
+    ],
+    "fn": "classifyHost",
+    "result": {
+      "host": "something.ts.net",
+      "isPrivate": true,
+      "privacy": "tailnet"
+    }
+  },
+  {
+    "args": [
+      "ts.net"
+    ],
+    "fn": "classifyHost",
+    "result": {
+      "host": "ts.net",
+      "isPrivate": false,
+      "privacy": "public"
+    }
+  },
+  {
+    "args": [
+      ".ts.net"
+    ],
+    "fn": "classifyHost",
+    "note": "endsWith(\".ts.net\") matches a host that is only the suffix",
+    "result": {
+      "host": ".ts.net",
+      "isPrivate": true,
+      "privacy": "tailnet"
+    }
+  },
+  {
+    "args": [
+      "studio.local"
+    ],
+    "fn": "classifyHost",
+    "result": {
+      "host": "studio.local",
+      "isPrivate": true,
+      "privacy": "local_name"
+    }
+  },
+  {
+    "args": [
+      "my-box.local"
+    ],
+    "fn": "classifyHost",
+    "result": {
+      "host": "my-box.local",
+      "isPrivate": true,
+      "privacy": "local_name"
+    }
+  },
+  {
+    "args": [
+      "my-box.local."
+    ],
+    "fn": "classifyHost",
+    "result": {
+      "host": "my-box.local",
+      "isPrivate": true,
+      "privacy": "local_name"
+    }
+  },
+  {
+    "args": [
+      ".local"
+    ],
+    "fn": "classifyHost",
+    "note": "endsWith(\".local\") matches a host that is only the suffix",
+    "result": {
+      "host": ".local",
+      "isPrivate": true,
+      "privacy": "local_name"
+    }
+  },
+  {
+    "args": [
+      "local"
+    ],
+    "fn": "classifyHost",
+    "result": {
+      "host": "local",
+      "isPrivate": true,
+      "privacy": "local_name"
+    }
+  },
+  {
+    "args": [
+      "hermes"
+    ],
+    "fn": "classifyHost",
+    "result": {
+      "host": "hermes",
+      "isPrivate": true,
+      "privacy": "local_name"
+    }
+  },
+  {
+    "args": [
+      "http://hermes:9119"
+    ],
+    "fn": "classifyHost",
+    "result": {
+      "host": "hermes",
+      "isPrivate": true,
+      "privacy": "local_name"
+    }
+  },
+  {
+    "args": [
+      "a_b"
+    ],
+    "fn": "classifyHost",
+    "result": {
+      "host": "a_b",
+      "isPrivate": true,
+      "privacy": "local_name"
+    }
+  },
+  {
+    "args": [
+      "hermes.lab.internal"
+    ],
+    "fn": "classifyHost",
+    "result": {
+      "host": "hermes.lab.internal",
+      "isPrivate": true,
+      "privacy": "local_name"
+    }
+  },
+  {
+    "args": [
+      "http://Hermes.FSS.Internal:9119/"
+    ],
+    "fn": "classifyHost",
+    "result": {
+      "host": "hermes.fss.internal",
+      "isPrivate": true,
+      "privacy": "local_name"
+    }
+  },
+  {
+    "args": [
+      "internal"
+    ],
+    "fn": "classifyHost",
+    "result": {
+      "host": "internal",
+      "isPrivate": true,
+      "privacy": "local_name"
+    }
+  },
+  {
+    "args": [
+      "a.internal"
+    ],
+    "fn": "classifyHost",
+    "result": {
+      "host": "a.internal",
+      "isPrivate": true,
+      "privacy": "local_name"
+    }
+  },
+  {
+    "args": [
+      "hermes.notinternal"
+    ],
+    "fn": "classifyHost",
+    "result": {
+      "host": "hermes.notinternal",
+      "isPrivate": false,
+      "privacy": "public"
+    }
+  },
+  {
+    "args": [
+      "hermes.example.com"
+    ],
+    "fn": "classifyHost",
+    "result": {
+      "host": "hermes.example.com",
+      "isPrivate": false,
+      "privacy": "public"
+    }
+  },
+  {
+    "args": [
+      "hermes.tailnet.example.org"
+    ],
+    "fn": "classifyHost",
+    "result": {
+      "host": "hermes.tailnet.example.org",
+      "isPrivate": false,
+      "privacy": "public"
+    }
+  },
+  {
+    "args": [
+      "example.com"
+    ],
+    "fn": "classifyHost",
+    "result": {
+      "host": "example.com",
+      "isPrivate": false,
+      "privacy": "public"
+    }
+  },
+  {
+    "args": [
+      "gateway.example.net"
+    ],
+    "fn": "classifyHost",
+    "result": {
+      "host": "gateway.example.net",
+      "isPrivate": false,
+      "privacy": "public"
+    }
+  },
+  {
+    "args": [
+      "https://gateway.example.net:8443/hermes"
+    ],
+    "fn": "classifyHost",
+    "result": {
+      "host": "gateway.example.net",
+      "isPrivate": false,
+      "privacy": "public"
+    }
+  },
+  {
+    "args": [
+      ""
+    ],
+    "fn": "classifyHost",
+    "result": {
+      "host": "",
+      "isPrivate": false,
+      "privacy": "public"
+    }
+  },
+  {
+    "args": [
+      "   "
+    ],
+    "fn": "classifyHost",
+    "result": {
+      "host": "",
+      "isPrivate": false,
+      "privacy": "public"
+    }
+  },
+  {
+    "args": [
+      "http://"
+    ],
+    "fn": "classifyHost",
+    "result": {
+      "host": "",
+      "isPrivate": false,
+      "privacy": "public"
+    }
+  },
+  {
+    "args": [
+      "[]"
+    ],
+    "fn": "classifyHost",
+    "result": {
+      "host": "",
+      "isPrivate": false,
+      "privacy": "public"
+    }
+  },
+  {
+    "args": [
+      "http://hermes.example.com"
+    ],
+    "fn": "isExposedCleartext",
+    "result": true
+  },
+  {
+    "args": [
+      "HTTP://hermes.example.com"
+    ],
+    "fn": "isExposedCleartext",
+    "result": true
+  },
+  {
+    "args": [
+      "https://hermes.example.com"
+    ],
+    "fn": "isExposedCleartext",
+    "result": false
+  },
+  {
+    "args": [
+      "http://100.101.102.103:9119"
+    ],
+    "fn": "isExposedCleartext",
+    "result": false
+  },
+  {
+    "args": [
+      "http://hermes.tailnet-example.ts.net"
+    ],
+    "fn": "isExposedCleartext",
+    "result": false
+  },
+  {
+    "args": [
+      "http://hermes.lab.internal"
+    ],
+    "fn": "isExposedCleartext",
+    "result": false
+  },
+  {
+    "args": [
+      "http://127.0.0.1:9119"
+    ],
+    "fn": "isExposedCleartext",
+    "result": false
+  },
+  {
+    "args": [
+      "  http://example.com"
+    ],
+    "fn": "isExposedCleartext",
+    "note": "trim() before the scheme test, and the scheme test is case-insensitive",
+    "result": true
+  },
+  {
+    "args": [
+      "http://localhost"
+    ],
+    "fn": "isExposedCleartext",
+    "result": false
+  },
+  {
+    "args": [
+      "http://[::1]:9119"
+    ],
+    "fn": "isExposedCleartext",
+    "result": false
+  },
+  {
+    "args": [
+      "http://[2606:4700:4700::1111]"
+    ],
+    "fn": "isExposedCleartext",
+    "result": true
+  },
+  {
+    "args": [
+      "http://192.168.1.20"
+    ],
+    "fn": "isExposedCleartext",
+    "result": false
+  },
+  {
+    "args": [
+      "http://10.0.0.5:9119"
+    ],
+    "fn": "isExposedCleartext",
+    "result": false
+  },
+  {
+    "args": [
+      "http://8.8.8.8"
+    ],
+    "fn": "isExposedCleartext",
+    "result": true
+  },
+  {
+    "args": [
+      "example.com"
+    ],
+    "fn": "isExposedCleartext",
+    "result": false
+  },
+  {
+    "args": [
+      ""
+    ],
+    "fn": "isExposedCleartext",
+    "result": false
+  },
+  {
+    "args": [
+      "http://"
+    ],
+    "fn": "isExposedCleartext",
+    "result": true
+  },
+  {
+    "args": [
+      "ws://example.com"
+    ],
+    "fn": "isExposedCleartext",
+    "result": false
+  },
+  {
+    "args": [
+      "http://my-box.local"
+    ],
+    "fn": "isExposedCleartext",
+    "result": false
+  },
+  {
+    "args": [
+      "something.ts.net"
+    ],
+    "fn": "isExposedCleartext",
+    "result": false
+  },
+  {
+    "args": [
+      "http://something.ts.net"
+    ],
+    "fn": "isExposedCleartext",
+    "result": false
+  },
+  {
+    "args": [
+      "http://example.com:9119/hermes"
+    ],
+    "fn": "isExposedCleartext",
+    "result": true
+  },
+  {
+    "args": [
+      "http://user@example.com"
+    ],
+    "fn": "isExposedCleartext",
+    "result": true
+  },
+  {
+    "args": [
+      "http://172.15.0.1"
+    ],
+    "fn": "isExposedCleartext",
+    "result": true
+  },
+  {
+    "args": [
+      "http://172.16.0.1"
+    ],
+    "fn": "isExposedCleartext",
+    "result": false
+  },
+  {
+    "args": [
+      "http://100.63.0.1"
+    ],
+    "fn": "isExposedCleartext",
+    "result": true
+  },
+  {
+    "args": [
+      "http://hermes"
+    ],
+    "fn": "isExposedCleartext",
+    "result": false
+  },
+  {
+    "args": [
+      "httpx://example.com"
+    ],
+    "fn": "isExposedCleartext",
+    "result": false
+  },
+  {
+    "args": [
+      "http:/example.com"
+    ],
+    "fn": "isExposedCleartext",
+    "result": false
+  }
+]

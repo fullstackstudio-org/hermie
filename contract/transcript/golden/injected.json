@@ -1,0 +1,580 @@
+[
+  {
+    "calls": [
+      {
+        "args": [
+          "[ASYNC DELEGATION BATCH COMPLETE — deleg_1bd47ada]\nA background fan-out unit you dispatched earlier — 3 subagent(s) — has finished; its consolidated results are below. Any other units from the same delegate_task call report separately as they finish.\n\nDispatched: 2026-09-21 20:44:11 (14m ago)\nRole: leaf   Model: gpt-5   Total duration: 812s\n\n--- ✓ TASK 1/3: Audit deps  (status=completed, 41s) ---\nNo drift.\n\n--- ✓ TASK 2/3: Write tests  (status=completed, 190s) ---\nNine cases, all green.\n\n--- ✗ TASK 3/3: Update docs  (status=failed) ---\n(no summary — status=failed: the page was locked)"
+        ],
+        "op": "parseInjectedRow",
+        "result": {
+          "body": "[ASYNC DELEGATION BATCH COMPLETE — deleg_1bd47ada]\nA background fan-out unit you dispatched earlier — 3 subagent(s) — has finished; its consolidated results are below. Any other units from the same delegate_task call report separately as they finish.\n\nDispatched: 2026-09-21 20:44:11 (14m ago)\nRole: leaf   Model: gpt-5   Total duration: 812s\n\n--- ✓ TASK 1/3: Audit deps  (status=completed, 41s) ---\nNo drift.\n\n--- ✓ TASK 2/3: Write tests  (status=completed, 190s) ---\nNine cases, all green.\n\n--- ✗ TASK 3/3: Update docs  (status=failed) ---\n(no summary — status=failed: the page was locked)",
+          "noticeKind": "async_delegation_complete",
+          "title": "ASYNC DELEGATION BATCH COMPLETE — deleg_1bd47ada"
+        }
+      }
+    ],
+    "test": "the headers the gateway injects > reads a fan-out report as delegation work that finished"
+  },
+  {
+    "calls": [
+      {
+        "args": [
+          "[ASYNC DELEGATION COMPLETE — deleg_77]\nStatus: completed   API calls: 4"
+        ],
+        "op": "parseInjectedRow",
+        "result": {
+          "body": "[ASYNC DELEGATION COMPLETE — deleg_77]\nStatus: completed   API calls: 4",
+          "noticeKind": "async_delegation_complete",
+          "title": "ASYNC DELEGATION COMPLETE — deleg_77"
+        }
+      },
+      {
+        "args": [
+          "[ASYNC DELEGATION TASK FAILED — deleg_77, task 2/3]\nOne subagent has failed."
+        ],
+        "op": "parseInjectedRow",
+        "result": {
+          "body": "[ASYNC DELEGATION TASK FAILED — deleg_77, task 2/3]\nOne subagent has failed.",
+          "noticeKind": "async_delegation_complete",
+          "title": "ASYNC DELEGATION TASK FAILED — deleg_77, task 2/3"
+        }
+      },
+      {
+        "args": [
+          "[ASYNC DELEGATION TASK FAILED — deleg_77, task 2/3]\nOne subagent has failed."
+        ],
+        "op": "parseInjectedRow",
+        "result": {
+          "body": "[ASYNC DELEGATION TASK FAILED — deleg_77, task 2/3]\nOne subagent has failed.",
+          "noticeKind": "async_delegation_complete",
+          "title": "ASYNC DELEGATION TASK FAILED — deleg_77, task 2/3"
+        }
+      }
+    ],
+    "test": "the headers the gateway injects > reads the single and the failed-task variants of the same family"
+  },
+  {
+    "calls": [
+      {
+        "args": [
+          "[IMPORTANT: Background process proc-aa01 exited (exit code 1).\nCommand: npm run build\nOutput:\nerror TS2345: Argument of type string is not assignable.]"
+        ],
+        "op": "parseInjectedRow",
+        "result": {
+          "body": "error TS2345: Argument of type string is not assignable.",
+          "noticeKind": "process_complete",
+          "title": "IMPORTANT: Background process proc-aa01 exited (exit code 1)."
+        }
+      }
+    ],
+    "test": "the headers the gateway injects > reads a background process whose bracket closes at the far end of the block"
+  },
+  {
+    "calls": [
+      {
+        "args": [
+          "[IMPORTANT: Background process proc-2f9c completed (exit code 0).\nCommand: /opt/hermes/tools/bot_mode_dm.py --run-delivery query-file /root/.hermes/dm/2f9c.json\nOutput:\nMessage from 🤖 Writer (@writer): pushed.]"
+        ],
+        "op": "parseInjectedRow",
+        "result": null
+      }
+    ],
+    "test": "the headers the gateway injects > leaves a completion carrying a teammate reply to the code that can attribute it"
+  },
+  {
+    "calls": [
+      {
+        "args": [
+          "[PRIOR CONTEXT — for reference only; not a new message]\nThe owner asked for the release notes and then went quiet.\n[END OF PRIOR CONTEXT — COMPACTION SUMMARY BELOW]"
+        ],
+        "op": "parseInjectedRow",
+        "result": {
+          "body": "[PRIOR CONTEXT — for reference only; not a new message]\nThe owner asked for the release notes and then went quiet.\n[END OF PRIOR CONTEXT — COMPACTION SUMMARY BELOW]",
+          "noticeKind": "internal_notification",
+          "title": "PRIOR CONTEXT — for reference only"
+        }
+      }
+    ],
+    "test": "the headers the gateway injects > reads the compaction handoff"
+  },
+  {
+    "calls": [
+      {
+        "args": [
+          "✔ [ops] @researcher Kanban task-4412 done — Rotate the staging certificate\n⏸ [ops] Kanban task-4413 blocked: waiting on DNS"
+        ],
+        "op": "parseInjectedRow",
+        "result": {
+          "body": "✔ [ops] @researcher Kanban task-4412 done — Rotate the staging certificate\n⏸ [ops] Kanban task-4413 blocked: waiting on DNS",
+          "noticeKind": "internal_notification",
+          "title": "✔ [ops] @researcher Kanban task-4412 done — Rotate the staging certificate"
+        }
+      }
+    ],
+    "test": "the headers the gateway injects > reads a kanban dispatch, which carries no bracketed header at all"
+  },
+  {
+    "calls": [
+      {
+        "args": [
+          "[ok] done"
+        ],
+        "op": "parseInjectedRow",
+        "result": null
+      },
+      {
+        "args": [
+          "[ok] done"
+        ],
+        "op": "isInjectedRow",
+        "result": false
+      }
+    ],
+    "test": "what stays a message > leaves a lower-case tag alone"
+  },
+  {
+    "calls": [
+      {
+        "args": [
+          "[1] first item\n[2] second item"
+        ],
+        "op": "parseInjectedRow",
+        "result": null
+      },
+      {
+        "args": [
+          "[1] first item\n[2] second item"
+        ],
+        "op": "isInjectedRow",
+        "result": false
+      }
+    ],
+    "test": "what stays a message > leaves a numbered list alone"
+  },
+  {
+    "calls": [
+      {
+        "args": [
+          "[TODO]"
+        ],
+        "op": "parseInjectedRow",
+        "result": null
+      },
+      {
+        "args": [
+          "[TODO]"
+        ],
+        "op": "isInjectedRow",
+        "result": false
+      }
+    ],
+    "test": "what stays a message > leaves a shouted label with nothing under it alone"
+  },
+  {
+    "calls": [
+      {
+        "args": [
+          "[TODO fix the parser\nbefore Friday"
+        ],
+        "op": "parseInjectedRow",
+        "result": null
+      },
+      {
+        "args": [
+          "[TODO fix the parser\nbefore Friday"
+        ],
+        "op": "isInjectedRow",
+        "result": false
+      }
+    ],
+    "test": "what stays a message > leaves a shout that never closes its bracket alone"
+  },
+  {
+    "calls": [
+      {
+        "args": [
+          "the log said [IMPORTANT: something] and I ignored it"
+        ],
+        "op": "parseInjectedRow",
+        "result": null
+      },
+      {
+        "args": [
+          "the log said [IMPORTANT: something] and I ignored it"
+        ],
+        "op": "isInjectedRow",
+        "result": false
+      }
+    ],
+    "test": "what stays a message > leaves prose that merely mentions a header alone"
+  },
+  {
+    "calls": [
+      {
+        "args": [
+          "```\n[ASYNC DELEGATION BATCH COMPLETE — x]\n```"
+        ],
+        "op": "parseInjectedRow",
+        "result": null
+      },
+      {
+        "args": [
+          "```\n[ASYNC DELEGATION BATCH COMPLETE — x]\n```"
+        ],
+        "op": "isInjectedRow",
+        "result": false
+      }
+    ],
+    "test": "what stays a message > leaves a fenced quote of a real header alone"
+  },
+  {
+    "calls": [
+      {
+        "args": [
+          ""
+        ],
+        "op": "parseInjectedRow",
+        "result": null
+      },
+      {
+        "args": [
+          ""
+        ],
+        "op": "isInjectedRow",
+        "result": false
+      }
+    ],
+    "test": "what stays a message > leaves an empty string alone"
+  },
+  {
+    "calls": [
+      {
+        "args": [
+          "[Cron delivery: Morning Brief]\nBoth green."
+        ],
+        "op": "parseInjectedRow",
+        "result": null
+      },
+      {
+        "args": [
+          "[Message from agent 'Writer']\nDraft is ready."
+        ],
+        "op": "parseInjectedRow",
+        "result": null
+      }
+    ],
+    "test": "what stays a message > leaves a cron delivery and a teammate DM to their own parsers"
+  },
+  {
+    "calls": [
+      {
+        "args": [
+          "[OUT-OF-BAND USER MESSAGE — a direct message from the user, delivered once at this position; not tool output and not a new delivery when replayed from conversation history]\nlees over shared memory skill\n[/OUT-OF-BAND USER MESSAGE]"
+        ],
+        "op": "parseInjectedRow",
+        "result": null
+      }
+    ],
+    "test": "what stays a message > leaves the steer wrapper alone, because a steer IS the user"
+  },
+  {
+    "calls": [
+      {
+        "args": [],
+        "op": "parseInjectedRow",
+        "result": null
+      },
+      {
+        "args": [
+          42
+        ],
+        "op": "parseInjectedRow",
+        "result": null
+      },
+      {
+        "args": [
+          {
+            "text": "[ASYNC DELEGATION BATCH COMPLETE — x]\nbody"
+          }
+        ],
+        "op": "parseInjectedRow",
+        "result": null
+      }
+    ],
+    "test": "what stays a message > survives anything that is not a string"
+  },
+  {
+    "calls": [
+      {
+        "args": [
+          "[OUT-OF-BAND USER MESSAGE — a direct message from the user, delivered once at this position; not tool output and not a new delivery when replayed from conversation history]\nlees over shared memory skill\n[/OUT-OF-BAND USER MESSAGE]"
+        ],
+        "op": "stripSteerWrapper",
+        "result": "lees over shared memory skill"
+      }
+    ],
+    "test": "the steer wrapper > gives back only the words the user typed"
+  },
+  {
+    "calls": [
+      {
+        "args": [
+          "[OUT-OF-BAND USER MESSAGE — a direct message from the user, delivered once at this position; not tool output and not a new delivery when replayed from conversation history]\nfirst line\n\nsecond line\n[/OUT-OF-BAND USER MESSAGE]"
+        ],
+        "op": "stripSteerWrapper",
+        "result": "first line\n\nsecond line"
+      }
+    ],
+    "test": "the steer wrapper > keeps a multi-line steer whole"
+  },
+  {
+    "calls": [
+      {
+        "args": [
+          "[OUT-OF-BAND USER MESSAGE — a direct message from the user, delivered once at this position; not tool output and not a new delivery when replayed from conversation history]\nlees over shared memory skill"
+        ],
+        "op": "stripSteerWrapper",
+        "result": null
+      },
+      {
+        "args": [
+          "I saw this: [OUT-OF-BAND USER MESSAGE — a direct message from the user, delivered once at this position; not tool output and not a new delivery when replayed from conversation history]\nlees over shared memory skill\n[/OUT-OF-BAND USER MESSAGE]"
+        ],
+        "op": "stripSteerWrapper",
+        "result": null
+      },
+      {
+        "args": [
+          "lees over shared memory skill"
+        ],
+        "op": "stripSteerWrapper",
+        "result": null
+      }
+    ],
+    "test": "the steer wrapper > does not fire on half a wrapper, or on prose quoting one"
+  },
+  {
+    "calls": [
+      {
+        "args": [
+          null
+        ],
+        "op": "stripSteerWrapper",
+        "result": null
+      },
+      {
+        "args": [
+          7
+        ],
+        "op": "stripSteerWrapper",
+        "result": null
+      }
+    ],
+    "test": "the steer wrapper > survives anything that is not a string"
+  },
+  {
+    "calls": [
+      {
+        "args": [
+          "[System: The active model for this chat has changed to k3 via provider moonshot. From this point forward, use this runtime metadata when answering questions about what model/provider is active.]"
+        ],
+        "op": "parseInjectedRow",
+        "result": {
+          "body": "The active model for this chat has changed to k3 via provider moonshot. From this point forward, use this runtime metadata when answering questions about what model/provider is active.",
+          "noticeKind": "system_note",
+          "title": "The active model for this chat has changed to k3 via provider moonshot."
+        }
+      }
+    ],
+    "test": "the scaffolding that does not shout > reads a model-switch marker as a system note, without its wrapper"
+  },
+  {
+    "calls": [
+      {
+        "args": [
+          "[System: The user has cleared the personality overlay. From this point forward, respond in your normal default style.]"
+        ],
+        "op": "parseInjectedRow",
+        "result": {
+          "body": "The user has cleared the personality overlay. From this point forward, respond in your normal default style.",
+          "noticeKind": "system_note",
+          "title": "The user has cleared the personality overlay."
+        }
+      }
+    ],
+    "test": "the scaffolding that does not shout > reads the personality marker the same way, because it is the same shape"
+  },
+  {
+    "calls": [
+      {
+        "args": [
+          "[System: Your previous tool call (write_file) was too large [truncated]. Retry.]"
+        ],
+        "op": "unwrapSystemNote",
+        "result": "Your previous tool call (write_file) was too large [truncated]. Retry."
+      }
+    ],
+    "test": "the scaffolding that does not shout > keeps a sentence that carries a bracket of its own whole"
+  },
+  {
+    "calls": [
+      {
+        "args": [
+          "[Your active task list was preserved across context compression]\n[>] Rotate the staging certificate\n[ ] Write the release notes"
+        ],
+        "op": "parseInjectedRow",
+        "result": {
+          "body": "[Your active task list was preserved across context compression]\n[>] Rotate the staging certificate\n[ ] Write the release notes",
+          "noticeKind": "internal_notification",
+          "title": "Your active task list was preserved across context compression"
+        }
+      },
+      {
+        "args": [
+          "[Planning state preserved across context compression]\nStep 2 of 4: draft the migration."
+        ],
+        "op": "parseInjectedRow",
+        "result": {
+          "body": "[Planning state preserved across context compression]\nStep 2 of 4: draft the migration.",
+          "noticeKind": "internal_notification",
+          "title": "Planning state preserved across context compression"
+        }
+      }
+    ],
+    "test": "the scaffolding that does not shout > reads the two compaction handoffs as notifications, keeping the row whole"
+  },
+  {
+    "calls": [
+      {
+        "args": [
+          "Cronjob Response: daily-report\n(job_id: job_9f21)\n-------------\n\nThree deploys, all green.\n\nTo stop or manage this job, send me a new message (e.g. \"stop reminder daily-report\")."
+        ],
+        "op": "parseInjectedRow",
+        "result": {
+          "body": "Cronjob Response: daily-report\n(job_id: job_9f21)\n-------------\n\nThree deploys, all green.\n\nTo stop or manage this job, send me a new message (e.g. \"stop reminder daily-report\").",
+          "noticeKind": "internal_notification",
+          "title": "Cronjob Response: daily-report"
+        }
+      }
+    ],
+    "test": "the scaffolding that does not shout > reads the cron platform wrapper, which carries no bracket anywhere"
+  },
+  {
+    "calls": [
+      {
+        "args": [
+          "Cronjob Response: what did the nightly job say?"
+        ],
+        "op": "parseInjectedRow",
+        "result": null
+      },
+      {
+        "args": [
+          "Cronjob Response: daily-report\nThree deploys, all green."
+        ],
+        "op": "parseInjectedRow",
+        "result": null
+      }
+    ],
+    "test": "the scaffolding that does not shout > needs the id line and the rule, not just the two opening words"
+  },
+  {
+    "calls": [
+      {
+        "args": [
+          "why does [System: ...] show up in my chat?"
+        ],
+        "op": "parseInjectedRow",
+        "result": null
+      },
+      {
+        "args": [
+          "[System: note] and then here is what I actually wanted"
+        ],
+        "op": "parseInjectedRow",
+        "result": null
+      },
+      {
+        "args": [
+          "[Your active task list is a mess, can you tidy it?"
+        ],
+        "op": "parseInjectedRow",
+        "result": null
+      }
+    ],
+    "test": "the scaffolding that does not shout > does not fire on prose that merely mentions the marker"
+  },
+  {
+    "calls": [
+      {
+        "args": [
+          "[System: my own note]"
+        ],
+        "op": "parseInjectedRow",
+        "result": {
+          "body": "my own note",
+          "noticeKind": "system_note",
+          "title": "my own note"
+        }
+      }
+    ],
+    "test": "the scaffolding that does not shout > is indistinguishable from a person who types one, and says so"
+  },
+  {
+    "calls": [
+      {
+        "args": [
+          "[ASYNC DELEGATION BATCH COMPLETE — deleg_1bd47ada]\nA background fan-out unit you dispatched earlier — 3 subagent(s) — has finished; its consolidated results are below. Any other units from the same delegate_task call report separately as they finish.\n\nDispatched: 2026-09-21 20:44:11 (14m ago)\nRole: leaf   Model: gpt-5   Total duration: 812s\n\n--- ✓ TASK 1/3: Audit deps  (status=completed, 41s) ---\nNo drift.\n\n--- ✓ TASK 2/3: Write tests  (status=completed, 190s) ---\nNine cases, all green.\n\n--- ✗ TASK 3/3: Update docs  (status=failed) ---\n(no summary — status=failed: the page was locked)"
+        ],
+        "op": "unwrapSystemNote",
+        "result": null
+      },
+      {
+        "args": [
+          "[System: ]"
+        ],
+        "op": "unwrapSystemNote",
+        "result": null
+      },
+      {
+        "args": [],
+        "op": "unwrapSystemNote",
+        "result": null
+      },
+      {
+        "args": [
+          12
+        ],
+        "op": "unwrapSystemNote",
+        "result": null
+      }
+    ],
+    "test": "the scaffolding that does not shout > takes nothing off anything that is not a system note"
+  },
+  {
+    "calls": [
+      {
+        "args": [
+          "[System: The active model for this chat has changed to k3 via provider moonshot. From this point forward, use this runtime metadata when answering questions about what model/provider is active.]"
+        ],
+        "op": "isInjectedRow",
+        "result": true
+      },
+      {
+        "args": [
+          "Cronjob Response: daily-report\n(job_id: job_9f21)\n-------------\n\nThree deploys, all green.\n\nTo stop or manage this job, send me a new message (e.g. \"stop reminder daily-report\")."
+        ],
+        "op": "isInjectedRow",
+        "result": true
+      },
+      {
+        "args": [
+          "what is the weather"
+        ],
+        "op": "isInjectedRow",
+        "result": false
+      }
+    ],
+    "test": "the scaffolding that does not shout > agrees with the predicate"
+  }
+]

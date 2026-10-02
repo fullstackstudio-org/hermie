@@ -1,0 +1,2407 @@
+[
+  {
+    "calls": [
+      {
+        "args": [
+          [
+            {
+              "role": "user",
+              "row_id": 1,
+              "text": "Summarise the release notes.",
+              "timestamp": 1700000000
+            },
+            {
+              "reasoning": "The user wants a summary; read the file first.",
+              "role": "assistant",
+              "row_id": 2,
+              "text": "Reading them now.",
+              "timestamp": 1700000001
+            },
+            {
+              "args": {
+                "path": "CHANGELOG.md"
+              },
+              "context": "read_file(CHANGELOG.md)",
+              "name": "read_file",
+              "role": "tool"
+            },
+            {
+              "role": "assistant",
+              "row_id": 3,
+              "text": "Three fixes and one feature.",
+              "timestamp": 1700000005
+            },
+            {
+              "display_kind": "model_switch",
+              "role": "user",
+              "row_id": 4,
+              "text": "Switched model",
+              "timestamp": 1700000006
+            },
+            {
+              "display_kind": "personality_switch",
+              "role": "user",
+              "row_id": 5,
+              "text": "Switched personality",
+              "timestamp": 1700000007
+            },
+            {
+              "display_kind": "auto_continue",
+              "role": "user",
+              "row_id": 6,
+              "text": "Resuming",
+              "timestamp": 1700000008
+            },
+            {
+              "display_kind": "skill_invocation",
+              "role": "user",
+              "row_id": 7,
+              "text": "/release-notes",
+              "timestamp": 1700000009
+            },
+            {
+              "display_kind": "steer",
+              "role": "user",
+              "row_id": 8,
+              "text": "actually make it shorter",
+              "timestamp": 1700000010
+            },
+            {
+              "display_kind": "internal_notification",
+              "role": "user",
+              "row_id": 9,
+              "text": "Bot roster refreshed",
+              "timestamp": 1700000011
+            },
+            {
+              "display_kind": "brand_new_kind",
+              "role": "user",
+              "row_id": 10,
+              "text": "Something new",
+              "timestamp": 1700000012
+            },
+            {
+              "display_kind": "hidden",
+              "role": "user",
+              "row_id": 11,
+              "text": "Hidden scaffolding",
+              "timestamp": 1700000013
+            },
+            {
+              "args": {
+                "message": "Can you draft the announcement?",
+                "target": "@writer"
+              },
+              "context": "message_agent(writer)",
+              "name": "message_agent",
+              "role": "tool",
+              "tool_id": "call_dm_1"
+            },
+            {
+              "display_kind": "process_complete",
+              "display_metadata": {
+                "display_text": "Background Process Finished: bot_mode_dm.py"
+              },
+              "role": "user",
+              "row_id": 12,
+              "text": "[IMPORTANT: Background process proc-2f9c completed (exit code 0).\nCommand: /usr/bin/python3 /opt/hermes/tools/bot_mode_dm.py --run-delivery query-file /root/.hermes/dm/2f9c.json hermes -p writer chat -c \"Bot Chat\" -Q -q @/root/.hermes/dm/2f9c.json\nOutput:\nMessage from 🤖 Writer (@writer): Draft is ready, I pushed it to the shared folder.]",
+              "timestamp": 1700000020
+            },
+            {
+              "args": {
+                "tasks": [
+                  {
+                    "goal": "Audit deps"
+                  },
+                  {
+                    "goal": "Write tests"
+                  },
+                  {
+                    "goal": "Update docs"
+                  }
+                ]
+              },
+              "context": "delegate_task(3 tasks)",
+              "name": "delegate_task",
+              "role": "tool",
+              "tool_id": "call_delegate_1"
+            },
+            {
+              "display_kind": "async_delegation_complete",
+              "display_metadata": {
+                "task_count": 3
+              },
+              "role": "user",
+              "row_id": 13,
+              "text": "[ASYNC DELEGATION BATCH COMPLETE]\n--- ✓ TASK 1/3: Audit deps  (status=completed) ---\nNo drift.",
+              "timestamp": 1700000030
+            },
+            {
+              "role": "user",
+              "row_id": 14,
+              "text": "Message from 🤖 Writer (@writer): The announcement draft is in docs/announce.md.",
+              "timestamp": 1700000040
+            },
+            {
+              "role": "assistant",
+              "row_id": 15,
+              "text": "Thanks — I will fold that in.",
+              "timestamp": 1700000041
+            },
+            {
+              "role": "user",
+              "row_id": 16,
+              "text": "[Cronjob \"Inbox scan\" output — scheduled job, not the user. Review it, act on anything that needs action, and summarize for the chat.]\n\n## Inbox scan\n\n- 3 threads waiting on a reply\n- 1 invoice past due\n\nNothing needs you before tomorrow.",
+              "timestamp": 1700000050
+            }
+          ],
+          "rpc"
+        ],
+        "op": "rowsToItems",
+        "result": [
+          {
+            "id": "r:1",
+            "kind": "user",
+            "origin": "history",
+            "rowId": 1,
+            "seq": 0,
+            "text": "Summarise the release notes.",
+            "ts": 1700000000,
+            "version": 0
+          },
+          {
+            "id": "r:2",
+            "interim": false,
+            "kind": "assistant",
+            "origin": "history",
+            "reasoning": "The user wants a summary; read the file first.",
+            "rowId": 2,
+            "seq": 1000,
+            "status": "complete",
+            "streaming": false,
+            "text": "Reading them now.",
+            "ts": 1700000001,
+            "version": 0
+          },
+          {
+            "args": {
+              "path": "CHANGELOG.md"
+            },
+            "context": "read_file(CHANGELOG.md)",
+            "id": "t:row-2",
+            "kind": "tool",
+            "name": "read_file",
+            "origin": "history",
+            "resultKnown": false,
+            "seq": 2000,
+            "status": "complete",
+            "summary": "read_file(CHANGELOG.md)",
+            "toolId": "row-2",
+            "version": 0
+          },
+          {
+            "id": "r:3",
+            "interim": false,
+            "kind": "assistant",
+            "origin": "history",
+            "rowId": 3,
+            "seq": 3000,
+            "status": "complete",
+            "streaming": false,
+            "text": "Three fixes and one feature.",
+            "ts": 1700000005,
+            "version": 0
+          },
+          {
+            "body": "Switched model",
+            "id": "r:4",
+            "kind": "notice",
+            "noticeKind": "model_switch",
+            "origin": "history",
+            "rowId": 4,
+            "seq": 4000,
+            "title": "Model changed",
+            "ts": 1700000006,
+            "version": 0
+          },
+          {
+            "body": "Switched personality",
+            "id": "r:5",
+            "kind": "notice",
+            "noticeKind": "personality_switch",
+            "origin": "history",
+            "rowId": 5,
+            "seq": 5000,
+            "title": "Personality changed",
+            "ts": 1700000007,
+            "version": 0
+          },
+          {
+            "body": "Resuming",
+            "id": "r:6",
+            "kind": "notice",
+            "noticeKind": "auto_continue",
+            "origin": "history",
+            "rowId": 6,
+            "seq": 6000,
+            "title": "Resumed interrupted turn",
+            "ts": 1700000008,
+            "version": 0
+          },
+          {
+            "displayKind": "skill_invocation",
+            "id": "r:7",
+            "kind": "user",
+            "origin": "history",
+            "rowId": 7,
+            "seq": 7000,
+            "text": "/release-notes",
+            "ts": 1700000009,
+            "version": 0
+          },
+          {
+            "displayKind": "steer",
+            "id": "r:8",
+            "kind": "user",
+            "origin": "history",
+            "rowId": 8,
+            "seq": 8000,
+            "text": "actually make it shorter",
+            "ts": 1700000010,
+            "version": 0
+          },
+          {
+            "body": "Bot roster refreshed",
+            "id": "r:9",
+            "kind": "notice",
+            "noticeKind": "internal_notification",
+            "origin": "history",
+            "rowId": 9,
+            "seq": 9000,
+            "title": "Internal notification",
+            "ts": 1700000011,
+            "version": 0
+          },
+          {
+            "body": "Something new",
+            "id": "r:10",
+            "kind": "notice",
+            "noticeKind": "unknown_display_kind",
+            "origin": "history",
+            "rowId": 10,
+            "seq": 10000,
+            "title": "brand_new_kind",
+            "ts": 1700000012,
+            "version": 0
+          },
+          {
+            "dispatch": {
+              "status": "queued"
+            },
+            "id": "t:call_dm_1",
+            "kind": "bot_dm_out",
+            "message": "Can you draft the announcement?",
+            "origin": "history",
+            "reply": {
+              "rowId": 12,
+              "text": "Draft is ready, I pushed it to the shared folder.",
+              "ts": 1700000020
+            },
+            "seq": 11000,
+            "target": "@writer",
+            "targetHandle": "writer",
+            "toolId": "call_dm_1",
+            "version": 1
+          },
+          {
+            "completion": "[ASYNC DELEGATION BATCH COMPLETE]\n--- ✓ TASK 1/3: Audit deps  (status=completed) ---\nNo drift.",
+            "goals": [
+              "Audit deps",
+              "Write tests",
+              "Update docs"
+            ],
+            "id": "t:call_delegate_1",
+            "kind": "subagent_group",
+            "origin": "history",
+            "rootIds": [],
+            "seq": 12000,
+            "status": "done",
+            "toolId": "call_delegate_1",
+            "version": 1
+          },
+          {
+            "body": "[ASYNC DELEGATION BATCH COMPLETE]\n--- ✓ TASK 1/3: Audit deps  (status=completed) ---\nNo drift.",
+            "id": "r:13",
+            "kind": "notice",
+            "noticeKind": "async_delegation_complete",
+            "origin": "history",
+            "rowId": 13,
+            "seq": 13000,
+            "title": "Background agent work finished",
+            "ts": 1700000030,
+            "version": 0
+          },
+          {
+            "answersOurDispatch": true,
+            "id": "r:14",
+            "kind": "bot_dm_in",
+            "origin": "history",
+            "rowId": 14,
+            "senderHandle": "writer",
+            "senderName": "Writer",
+            "seq": 14000,
+            "text": "The announcement draft is in docs/announce.md.",
+            "ts": 1700000040,
+            "version": 0
+          },
+          {
+            "id": "r:15",
+            "interim": false,
+            "kind": "assistant",
+            "origin": "history",
+            "rowId": 15,
+            "seq": 15000,
+            "status": "complete",
+            "streaming": false,
+            "text": "Thanks — I will fold that in.",
+            "ts": 1700000041,
+            "version": 0
+          },
+          {
+            "body": "## Inbox scan\n\n- 3 threads waiting on a reply\n- 1 invoice past due\n\nNothing needs you before tomorrow.",
+            "id": "r:16",
+            "jobName": "Inbox scan",
+            "kind": "cron_delivery",
+            "origin": "history",
+            "rowId": 16,
+            "seq": 16000,
+            "shape": "bot_chat",
+            "ts": 1700000050,
+            "version": 0
+          }
+        ]
+      },
+      {
+        "args": [
+          [
+            {
+              "content": "Summarise the release notes.",
+              "id": 1,
+              "role": "user",
+              "timestamp": 1700000000
+            },
+            {
+              "content": "Reading them now.",
+              "id": 2,
+              "reasoning_content": "Read the file first.",
+              "role": "assistant",
+              "timestamp": 1700000001
+            },
+            {
+              "context": "read_file(CHANGELOG.md)",
+              "name": "read_file",
+              "role": "tool",
+              "tool_id": "call_read_1"
+            },
+            {
+              "content": "raw stored body",
+              "display_content": "Message from 🤖 Writer (@writer): The announcement draft is in docs/announce.md.",
+              "id": 14,
+              "role": "user",
+              "timestamp": 1700000040
+            },
+            {
+              "content": "Thanks — I will fold that in.",
+              "id": 15,
+              "role": "assistant",
+              "timestamp": 1700000041
+            },
+            {
+              "content": "raw stored body",
+              "display_content": "[Cronjob \"Inbox scan\" output — scheduled job, not the user. Review it, act on anything that needs action, and summarize for the chat.]\n\n## Inbox scan\n\n- 3 threads waiting on a reply\n- 1 invoice past due\n\nNothing needs you before tomorrow.",
+              "id": 16,
+              "role": "user",
+              "timestamp": 1700000050
+            }
+          ],
+          "rest"
+        ],
+        "op": "rowsToItems",
+        "result": [
+          {
+            "id": "r:1",
+            "kind": "user",
+            "origin": "history",
+            "rowId": 1,
+            "seq": 0,
+            "text": "Summarise the release notes.",
+            "ts": 1700000000,
+            "version": 0
+          },
+          {
+            "id": "r:2",
+            "interim": false,
+            "kind": "assistant",
+            "origin": "history",
+            "reasoning": "Read the file first.",
+            "rowId": 2,
+            "seq": 1000,
+            "status": "complete",
+            "streaming": false,
+            "text": "Reading them now.",
+            "ts": 1700000001,
+            "version": 0
+          },
+          {
+            "context": "read_file(CHANGELOG.md)",
+            "id": "t:call_read_1",
+            "kind": "tool",
+            "name": "read_file",
+            "origin": "history",
+            "resultKnown": false,
+            "seq": 2000,
+            "status": "complete",
+            "summary": "read_file(CHANGELOG.md)",
+            "toolId": "call_read_1",
+            "version": 0
+          },
+          {
+            "id": "r:14",
+            "kind": "bot_dm_in",
+            "origin": "history",
+            "rowId": 14,
+            "senderHandle": "writer",
+            "senderName": "Writer",
+            "seq": 3000,
+            "text": "The announcement draft is in docs/announce.md.",
+            "ts": 1700000040,
+            "version": 0
+          },
+          {
+            "id": "r:15",
+            "interim": false,
+            "kind": "assistant",
+            "origin": "history",
+            "replyToBotHandle": "writer",
+            "rowId": 15,
+            "seq": 4000,
+            "status": "complete",
+            "streaming": false,
+            "text": "Thanks — I will fold that in.",
+            "ts": 1700000041,
+            "version": 0
+          },
+          {
+            "body": "## Inbox scan\n\n- 3 threads waiting on a reply\n- 1 invoice past due\n\nNothing needs you before tomorrow.",
+            "id": "r:16",
+            "jobName": "Inbox scan",
+            "kind": "cron_delivery",
+            "origin": "history",
+            "rowId": 16,
+            "seq": 5000,
+            "shape": "bot_chat",
+            "ts": 1700000050,
+            "version": 0
+          }
+        ]
+      }
+    ],
+    "test": "(module scope)"
+  },
+  {
+    "calls": [
+      {
+        "args": [
+          [
+            {
+              "role": "user",
+              "row_id": 1,
+              "text": "Summarise the release notes.",
+              "timestamp": 1700000000
+            },
+            {
+              "reasoning": "The user wants a summary; read the file first.",
+              "role": "assistant",
+              "row_id": 2,
+              "text": "Reading them now.",
+              "timestamp": 1700000001
+            },
+            {
+              "role": "user",
+              "row_id": 14,
+              "text": "Message from 🤖 Writer (@writer): The announcement draft is in docs/announce.md.",
+              "timestamp": 1700000040
+            },
+            {
+              "role": "assistant",
+              "row_id": 15,
+              "text": "Thanks — I will fold that in.",
+              "timestamp": 1700000041
+            },
+            {
+              "role": "user",
+              "row_id": 16,
+              "text": "[Cronjob \"Inbox scan\" output — scheduled job, not the user. Review it, act on anything that needs action, and summarize for the chat.]\n\n## Inbox scan\n\n- 3 threads waiting on a reply\n- 1 invoice past due\n\nNothing needs you before tomorrow.",
+              "timestamp": 1700000050
+            }
+          ],
+          "rpc"
+        ],
+        "op": "rowsToItems",
+        "result": [
+          {
+            "id": "r:1",
+            "kind": "user",
+            "origin": "history",
+            "rowId": 1,
+            "seq": 0,
+            "text": "Summarise the release notes.",
+            "ts": 1700000000,
+            "version": 0
+          },
+          {
+            "id": "r:2",
+            "interim": false,
+            "kind": "assistant",
+            "origin": "history",
+            "reasoning": "The user wants a summary; read the file first.",
+            "rowId": 2,
+            "seq": 1000,
+            "status": "complete",
+            "streaming": false,
+            "text": "Reading them now.",
+            "ts": 1700000001,
+            "version": 0
+          },
+          {
+            "id": "r:14",
+            "kind": "bot_dm_in",
+            "origin": "history",
+            "rowId": 14,
+            "senderHandle": "writer",
+            "senderName": "Writer",
+            "seq": 2000,
+            "text": "The announcement draft is in docs/announce.md.",
+            "ts": 1700000040,
+            "version": 0
+          },
+          {
+            "id": "r:15",
+            "interim": false,
+            "kind": "assistant",
+            "origin": "history",
+            "replyToBotHandle": "writer",
+            "rowId": 15,
+            "seq": 3000,
+            "status": "complete",
+            "streaming": false,
+            "text": "Thanks — I will fold that in.",
+            "ts": 1700000041,
+            "version": 0
+          },
+          {
+            "body": "## Inbox scan\n\n- 3 threads waiting on a reply\n- 1 invoice past due\n\nNothing needs you before tomorrow.",
+            "id": "r:16",
+            "jobName": "Inbox scan",
+            "kind": "cron_delivery",
+            "origin": "history",
+            "rowId": 16,
+            "seq": 4000,
+            "shape": "bot_chat",
+            "ts": 1700000050,
+            "version": 0
+          }
+        ]
+      }
+    ],
+    "test": "rowsToItems (rest history) > produces the same ids for the rows both transports carry"
+  },
+  {
+    "calls": [
+      {
+        "args": [
+          [
+            {
+              "role": "user",
+              "row_id": 16,
+              "text": "[Cronjob \"Inbox scan\" output — scheduled job, not the user. Review it, act on anything that needs action, and summarize for the chat.]\n\n## Inbox scan\n\n- 3 threads waiting on a reply\n- 1 invoice past due\n\nNothing needs you before tomorrow.",
+              "timestamp": 1700000050
+            }
+          ],
+          "rpc"
+        ],
+        "op": "rowsToItems",
+        "result": [
+          {
+            "body": "## Inbox scan\n\n- 3 threads waiting on a reply\n- 1 invoice past due\n\nNothing needs you before tomorrow.",
+            "id": "r:16",
+            "jobName": "Inbox scan",
+            "kind": "cron_delivery",
+            "origin": "history",
+            "rowId": 16,
+            "seq": 0,
+            "shape": "bot_chat",
+            "ts": 1700000050,
+            "version": 0
+          }
+        ]
+      },
+      {
+        "args": [
+          [
+            {
+              "content": "raw stored body",
+              "display_content": "[Cronjob \"Inbox scan\" output — scheduled job, not the user. Review it, act on anything that needs action, and summarize for the chat.]\n\n## Inbox scan\n\n- 3 threads waiting on a reply\n- 1 invoice past due\n\nNothing needs you before tomorrow.",
+              "id": 16,
+              "role": "user",
+              "timestamp": 1700000050
+            }
+          ],
+          "rest"
+        ],
+        "op": "rowsToItems",
+        "result": [
+          {
+            "body": "## Inbox scan\n\n- 3 threads waiting on a reply\n- 1 invoice past due\n\nNothing needs you before tomorrow.",
+            "id": "r:16",
+            "jobName": "Inbox scan",
+            "kind": "cron_delivery",
+            "origin": "history",
+            "rowId": 16,
+            "seq": 0,
+            "shape": "bot_chat",
+            "ts": 1700000050,
+            "version": 0
+          }
+        ]
+      }
+    ],
+    "test": "rowsToItems (rest history) > projects a cron delivery identically from either transport, id included"
+  },
+  {
+    "calls": [
+      {
+        "args": [
+          "Look at @image:/tmp/shot.png and tell me what broke.\n\n--- Attached Context ---\n@file:/srv/app/server.ts\n@image:/tmp/shot.png\n\n--- Context Warnings ---\none file was too large to inline"
+        ],
+        "op": "stripUserText",
+        "result": {
+          "attachments": [
+            "@file:/srv/app/server.ts",
+            "@image:/tmp/shot.png"
+          ],
+          "text": "Look at and tell me what broke."
+        }
+      }
+    ],
+    "test": "stripUserText > drops the attached-context block and the warnings tail"
+  },
+  {
+    "calls": [
+      {
+        "args": [
+          "just a question"
+        ],
+        "op": "stripUserText",
+        "result": {
+          "text": "just a question"
+        }
+      }
+    ],
+    "test": "stripUserText > leaves an ordinary message untouched"
+  },
+  {
+    "calls": [
+      {
+        "args": [
+          "@file:/srv/work/uploads/hermie/2026-09-20/ab-ui.xml"
+        ],
+        "op": "stripUserText",
+        "result": {
+          "attachments": [
+            "@file:/srv/work/uploads/hermie/2026-09-20/ab-ui.xml"
+          ],
+          "text": ""
+        }
+      }
+    ],
+    "test": "stripUserText > reads a file-only prompt as no text and one reference"
+  },
+  {
+    "calls": [
+      {
+        "args": [
+          "@file:/srv/work/uploads/hermie/2026-09-20/8setj4h3-ui.xml"
+        ],
+        "op": "attachmentRefName",
+        "result": "8setj4h3-ui.xml"
+      },
+      {
+        "args": [
+          "@file:\"/srv/work/my notes.txt\""
+        ],
+        "op": "attachmentRefName",
+        "result": "my notes.txt"
+      },
+      {
+        "args": [
+          "@file:`/srv/work/my notes.txt`"
+        ],
+        "op": "attachmentRefName",
+        "result": "my notes.txt"
+      },
+      {
+        "args": [
+          "@image:shot.png"
+        ],
+        "op": "attachmentRefName",
+        "result": "shot.png"
+      }
+    ],
+    "test": "attachment references as a comparison key > reads the name out of a reference, quoted or not"
+  },
+  {
+    "calls": [
+      {
+        "args": [
+          [
+            "@image:shot.png"
+          ]
+        ],
+        "op": "attachmentsMatchKey",
+        "result": "image:shot.png"
+      },
+      {
+        "args": [
+          [
+            "@image:/srv/work/.hermes/images/shot.png"
+          ]
+        ],
+        "op": "attachmentsMatchKey",
+        "result": "image:shot.png"
+      }
+    ],
+    "test": "attachment references as a comparison key > matches the same attachment described with and without its path"
+  },
+  {
+    "calls": [
+      {
+        "args": [
+          [
+            "@file:/a/one.txt",
+            "@image:two.png"
+          ]
+        ],
+        "op": "attachmentsMatchKey",
+        "result": "file:one.txt\u001fimage:two.png"
+      },
+      {
+        "args": [
+          [
+            "@image:/srv/two.png",
+            "@file:/a/one.txt"
+          ]
+        ],
+        "op": "attachmentsMatchKey",
+        "result": "file:one.txt\u001fimage:two.png"
+      }
+    ],
+    "test": "attachment references as a comparison key > ignores the order two references were listed in"
+  },
+  {
+    "calls": [
+      {
+        "args": [
+          [
+            "@image:diagram.png"
+          ]
+        ],
+        "op": "attachmentsMatchKey",
+        "result": "image:diagram.png"
+      },
+      {
+        "args": [
+          [
+            "@file:diagram.png"
+          ]
+        ],
+        "op": "attachmentsMatchKey",
+        "result": "file:diagram.png"
+      }
+    ],
+    "test": "attachment references as a comparison key > separates a picture from a document of the same name"
+  },
+  {
+    "calls": [
+      {
+        "args": [],
+        "op": "attachmentsMatchKey",
+        "result": ""
+      },
+      {
+        "args": [
+          []
+        ],
+        "op": "attachmentsMatchKey",
+        "result": ""
+      }
+    ],
+    "test": "attachment references as a comparison key > is empty for a turn that carries nothing, so text alone decides"
+  },
+  {
+    "calls": [
+      {
+        "args": [
+          [
+            {
+              "codex_message_items": [
+                {
+                  "content": [
+                    {
+                      "text": "thinking out loud",
+                      "type": "output_text"
+                    }
+                  ],
+                  "phase": "commentary",
+                  "role": "assistant",
+                  "type": "message"
+                },
+                {
+                  "content": [
+                    {
+                      "text": "Recovered reply.",
+                      "type": "output_text"
+                    }
+                  ],
+                  "phase": "final",
+                  "role": "assistant",
+                  "type": "message"
+                }
+              ],
+              "role": "assistant",
+              "row_id": 77,
+              "text": ""
+            }
+          ],
+          "rpc"
+        ],
+        "op": "rowsToItems",
+        "result": [
+          {
+            "id": "r:77",
+            "interim": false,
+            "kind": "assistant",
+            "origin": "history",
+            "rowId": 77,
+            "seq": 0,
+            "status": "complete",
+            "streaming": false,
+            "text": "Recovered reply.",
+            "version": 0
+          }
+        ]
+      }
+    ],
+    "test": "rowsToItems edge cases > recovers a reply that only survives in the codex sidecar"
+  },
+  {
+    "calls": [
+      {
+        "args": [
+          [
+            {
+              "display_kind": "process_complete",
+              "role": "user",
+              "row_id": 5,
+              "text": "[IMPORTANT: Background process proc-aa01 exited (exit code 1).\nCommand: npm run build\nOutput:\nerror TS2345: Argument of type string is not assignable.]"
+            }
+          ],
+          "rpc"
+        ],
+        "op": "rowsToItems",
+        "result": [
+          {
+            "body": "error TS2345: Argument of type string is not assignable.",
+            "completions": [
+              {
+                "command": "npm run build",
+                "output": "error TS2345: Argument of type string is not assignable.",
+                "sid": "proc-aa01"
+              }
+            ],
+            "id": "r:5",
+            "kind": "notice",
+            "noticeKind": "process_complete",
+            "origin": "history",
+            "rowId": 5,
+            "seq": 0,
+            "title": "Background process finished",
+            "version": 0
+          }
+        ]
+      }
+    ],
+    "test": "rowsToItems edge cases > keeps a non-delivery process completion as a notice"
+  },
+  {
+    "calls": [
+      {
+        "args": [
+          [
+            {
+              "display_kind": "process_complete",
+              "role": "user",
+              "row_id": 5,
+              "text": "[IMPORTANT: Background process proc-2f9c completed (exit code 0).\nCommand: /usr/bin/python3 /opt/hermes/tools/bot_mode_dm.py --run-delivery query-file /root/.hermes/dm/2f9c.json hermes -p writer chat -c \"Bot Chat\" -Q -q @/root/.hermes/dm/2f9c.json\nOutput:\nMessage from 🤖 Writer (@writer): Draft is ready, I pushed it to the shared folder.]"
+            }
+          ],
+          "rpc"
+        ],
+        "op": "rowsToItems",
+        "result": [
+          {
+            "body": "Draft is ready, I pushed it to the shared folder.",
+            "completions": [
+              {
+                "command": "/usr/bin/python3 /opt/hermes/tools/bot_mode_dm.py --run-delivery query-file /root/.hermes/dm/2f9c.json hermes -p writer chat -c \"Bot Chat\" -Q -q @/root/.hermes/dm/2f9c.json",
+                "output": "Message from 🤖 Writer (@writer): Draft is ready, I pushed it to the shared folder.",
+                "sid": "proc-2f9c"
+              }
+            ],
+            "id": "r:5",
+            "kind": "notice",
+            "noticeKind": "process_complete",
+            "origin": "history",
+            "rowId": 5,
+            "seq": 0,
+            "title": "Background process finished",
+            "version": 0
+          }
+        ]
+      }
+    ],
+    "test": "rowsToItems edge cases > keeps a delivery completion as a notice when no dispatch precedes it"
+  },
+  {
+    "calls": [
+      {
+        "args": [
+          [
+            {
+              "role": "assistant",
+              "text": ""
+            },
+            {
+              "role": "user",
+              "text": "   "
+            }
+          ],
+          "rpc"
+        ],
+        "op": "rowsToItems",
+        "result": []
+      }
+    ],
+    "test": "rowsToItems edge cases > drops rows with nothing to show"
+  },
+  {
+    "calls": [
+      {
+        "args": [
+          [
+            {
+              "role": "developer",
+              "text": "scaffolding"
+            }
+          ],
+          "rpc"
+        ],
+        "op": "rowsToItems",
+        "result": []
+      }
+    ],
+    "test": "rowsToItems edge cases > ignores roles it does not model"
+  },
+  {
+    "calls": [
+      {
+        "args": [
+          [
+            {
+              "role": "user",
+              "row_id": 5,
+              "text": "[Cron delivery: Morning Brief]\nTwo deploys overnight, both green."
+            }
+          ],
+          "rpc"
+        ],
+        "op": "rowsToItems",
+        "result": [
+          {
+            "body": "Two deploys overnight, both green.",
+            "id": "r:5",
+            "jobName": "Morning Brief",
+            "kind": "cron_delivery",
+            "origin": "history",
+            "rowId": 5,
+            "seq": 0,
+            "shape": "mirror",
+            "version": 0
+          }
+        ]
+      }
+    ],
+    "test": "cron deliveries in a transcript > projects the platform-mirror shape too"
+  },
+  {
+    "calls": [
+      {
+        "args": [
+          [
+            {
+              "role": "user",
+              "row_id": 5,
+              "text": "[Cronjob \"[REDACTED - redaction failed]\" output — scheduled job, not the user. Review it, act on anything that needs action, and summarize for the chat.]\n\nscrubbed"
+            }
+          ],
+          "rpc"
+        ],
+        "op": "rowsToItems",
+        "result": [
+          {
+            "body": "scrubbed",
+            "id": "r:5",
+            "jobName": "[REDACTED - redaction failed]",
+            "kind": "cron_delivery",
+            "nameRedacted": true,
+            "origin": "history",
+            "rowId": 5,
+            "seq": 0,
+            "shape": "bot_chat",
+            "version": 0
+          }
+        ]
+      }
+    ],
+    "test": "cron deliveries in a transcript > carries the redaction flag through to the item"
+  },
+  {
+    "calls": [
+      {
+        "args": [
+          [
+            {
+              "role": "user",
+              "row_id": 5,
+              "text": "[Cronjob \"Inbox scan\" output — scheduled job, not the user. Review it, act on anything that needs action, and summarize for the chat.]"
+            }
+          ],
+          "rpc"
+        ],
+        "op": "rowsToItems",
+        "result": [
+          {
+            "body": "",
+            "id": "r:5",
+            "jobName": "Inbox scan",
+            "kind": "cron_delivery",
+            "origin": "history",
+            "rowId": 5,
+            "seq": 0,
+            "shape": "bot_chat",
+            "version": 0
+          }
+        ]
+      }
+    ],
+    "test": "cron deliveries in a transcript > keeps a header the header arrived without a body yet"
+  },
+  {
+    "calls": [
+      {
+        "args": [
+          [
+            {
+              "role": "user",
+              "row_id": 5,
+              "text": "why does it say [Cronjob \"Inbox scan\" output — scheduled job, not the user. Review it, act on anything that needs action, and summarize for the chat.]\n\n## Inbox scan\n\n- 3 threads waiting on a reply\n- 1 invoice past due\n\nNothing needs you before tomorrow."
+            }
+          ],
+          "rpc"
+        ],
+        "op": "rowsToItems",
+        "result": [
+          {
+            "id": "r:5",
+            "kind": "user",
+            "origin": "history",
+            "rowId": 5,
+            "seq": 0,
+            "text": "why does it say [Cronjob \"Inbox scan\" output — scheduled job, not the user. Review it, act on anything that needs action, and summarize for the chat.]\n\n## Inbox scan\n\n- 3 threads waiting on a reply\n- 1 invoice past due\n\nNothing needs you before tomorrow.",
+            "version": 0
+          }
+        ]
+      }
+    ],
+    "test": "cron deliveries in a transcript > leaves a quoted header a user turn"
+  },
+  {
+    "calls": [
+      {
+        "args": [
+          [
+            {
+              "role": "user",
+              "row_id": 5,
+              "text": "```\n[Cronjob \"Inbox scan\" output — scheduled job, not the user. Review it, act on anything that needs action, and summarize for the chat.]\n```"
+            }
+          ],
+          "rpc"
+        ],
+        "op": "rowsToItems",
+        "result": [
+          {
+            "id": "r:5",
+            "kind": "user",
+            "origin": "history",
+            "rowId": 5,
+            "seq": 0,
+            "text": "```\n[Cronjob \"Inbox scan\" output — scheduled job, not the user. Review it, act on anything that needs action, and summarize for the chat.]\n```",
+            "version": 0
+          }
+        ]
+      }
+    ],
+    "test": "cron deliveries in a transcript > leaves a header inside a fenced code block a user turn"
+  },
+  {
+    "calls": [
+      {
+        "args": [
+          [
+            {
+              "role": "user",
+              "row_id": 5,
+              "text": "[urgent] the build is red"
+            }
+          ],
+          "rpc"
+        ],
+        "op": "rowsToItems",
+        "result": [
+          {
+            "id": "r:5",
+            "kind": "user",
+            "origin": "history",
+            "rowId": 5,
+            "seq": 0,
+            "text": "[urgent] the build is red",
+            "version": 0
+          }
+        ]
+      }
+    ],
+    "test": "cron deliveries in a transcript > leaves a genuine message that merely starts with a bracket a user turn"
+  },
+  {
+    "calls": [
+      {
+        "args": [
+          [
+            {
+              "display_kind": "steer",
+              "role": "user",
+              "row_id": 1,
+              "text": "[Cronjob \"Inbox scan\" output — scheduled job, not the user. Review it, act on anything that needs action, and summarize for the chat.]\n\n## Inbox scan\n\n- 3 threads waiting on a reply\n- 1 invoice past due\n\nNothing needs you before tomorrow."
+            },
+            {
+              "display_kind": "skill_invocation",
+              "role": "user",
+              "row_id": 2,
+              "text": "[Cron delivery: Morning Brief]\nTwo deploys overnight, both green."
+            },
+            {
+              "display_kind": "internal_notification",
+              "role": "user",
+              "row_id": 3,
+              "text": "[Cronjob \"Inbox scan\" output — scheduled job, not the user. Review it, act on anything that needs action, and summarize for the chat.]\n\n## Inbox scan\n\n- 3 threads waiting on a reply\n- 1 invoice past due\n\nNothing needs you before tomorrow."
+            },
+            {
+              "display_kind": "hidden",
+              "role": "user",
+              "row_id": 4,
+              "text": "[Cronjob \"Inbox scan\" output — scheduled job, not the user. Review it, act on anything that needs action, and summarize for the chat.]\n\n## Inbox scan\n\n- 3 threads waiting on a reply\n- 1 invoice past due\n\nNothing needs you before tomorrow."
+            }
+          ],
+          "rpc"
+        ],
+        "op": "rowsToItems",
+        "result": [
+          {
+            "displayKind": "steer",
+            "id": "r:1",
+            "kind": "user",
+            "origin": "history",
+            "rowId": 1,
+            "seq": 0,
+            "text": "[Cronjob \"Inbox scan\" output — scheduled job, not the user. Review it, act on anything that needs action, and summarize for the chat.]\n\n## Inbox scan\n\n- 3 threads waiting on a reply\n- 1 invoice past due\n\nNothing needs you before tomorrow.",
+            "version": 0
+          },
+          {
+            "displayKind": "skill_invocation",
+            "id": "r:2",
+            "kind": "user",
+            "origin": "history",
+            "rowId": 2,
+            "seq": 1000,
+            "text": "[Cron delivery: Morning Brief]\nTwo deploys overnight, both green.",
+            "version": 0
+          },
+          {
+            "body": "[Cronjob \"Inbox scan\" output — scheduled job, not the user. Review it, act on anything that needs action, and summarize for the chat.]\n\n## Inbox scan\n\n- 3 threads waiting on a reply\n- 1 invoice past due\n\nNothing needs you before tomorrow.",
+            "id": "r:3",
+            "kind": "notice",
+            "noticeKind": "internal_notification",
+            "origin": "history",
+            "rowId": 3,
+            "seq": 2000,
+            "title": "Internal notification",
+            "version": 0
+          }
+        ]
+      }
+    ],
+    "test": "cron deliveries in a transcript > never fires on a row the gateway already labelled"
+  },
+  {
+    "calls": [
+      {
+        "args": [
+          [
+            {
+              "role": "system",
+              "text": "[Cronjob \"Inbox scan\" output — scheduled job, not the user. Review it, act on anything that needs action, and summarize for the chat.]\n\n## Inbox scan\n\n- 3 threads waiting on a reply\n- 1 invoice past due\n\nNothing needs you before tomorrow."
+            }
+          ],
+          "rpc"
+        ],
+        "op": "rowsToItems",
+        "result": [
+          {
+            "id": "system:0",
+            "kind": "user",
+            "origin": "history",
+            "seq": 0,
+            "text": "[Cronjob \"Inbox scan\" output — scheduled job, not the user. Review it, act on anything that needs action, and summarize for the chat.]\n\n## Inbox scan\n\n- 3 threads waiting on a reply\n- 1 invoice past due\n\nNothing needs you before tomorrow.",
+            "version": 0
+          }
+        ]
+      },
+      {
+        "args": [
+          [
+            {
+              "role": "assistant",
+              "text": "[Cronjob \"Inbox scan\" output — scheduled job, not the user. Review it, act on anything that needs action, and summarize for the chat.]\n\n## Inbox scan\n\n- 3 threads waiting on a reply\n- 1 invoice past due\n\nNothing needs you before tomorrow."
+            }
+          ],
+          "rpc"
+        ],
+        "op": "rowsToItems",
+        "result": [
+          {
+            "id": "assistant:0",
+            "interim": false,
+            "kind": "assistant",
+            "origin": "history",
+            "seq": 0,
+            "status": "complete",
+            "streaming": false,
+            "text": "[Cronjob \"Inbox scan\" output — scheduled job, not the user. Review it, act on anything that needs action, and summarize for the chat.]\n\n## Inbox scan\n\n- 3 threads waiting on a reply\n- 1 invoice past due\n\nNothing needs you before tomorrow.",
+            "version": 0
+          }
+        ]
+      }
+    ],
+    "test": "cron deliveries in a transcript > never fires on a role that is not user"
+  },
+  {
+    "calls": [
+      {
+        "args": [
+          [
+            {
+              "role": "user",
+              "text": "[Cronjob \"Inbox scan\" output — scheduled job, not the user. Review it, act on anything that needs action, and summarize for the chat.]\n\n## Inbox scan\n\n- 3 threads waiting on a reply\n- 1 invoice past due\n\nNothing needs you before tomorrow."
+            }
+          ],
+          "rpc"
+        ],
+        "op": "rowsToItems",
+        "result": [
+          {
+            "body": "## Inbox scan\n\n- 3 threads waiting on a reply\n- 1 invoice past due\n\nNothing needs you before tomorrow.",
+            "id": "user:0",
+            "jobName": "Inbox scan",
+            "kind": "cron_delivery",
+            "origin": "history",
+            "seq": 0,
+            "shape": "bot_chat",
+            "version": 0
+          }
+        ]
+      },
+      {
+        "args": [
+          [
+            {
+              "display_content": "[Cronjob \"Inbox scan\" output — scheduled job, not the user. Review it, act on anything that needs action, and summarize for the chat.]\n\n## Inbox scan\n\n- 3 threads waiting on a reply\n- 1 invoice past due\n\nNothing needs you before tomorrow.",
+              "role": "user"
+            }
+          ],
+          "rest"
+        ],
+        "op": "rowsToItems",
+        "result": [
+          {
+            "body": "## Inbox scan\n\n- 3 threads waiting on a reply\n- 1 invoice past due\n\nNothing needs you before tomorrow.",
+            "id": "user:0",
+            "jobName": "Inbox scan",
+            "kind": "cron_delivery",
+            "origin": "history",
+            "seq": 0,
+            "shape": "bot_chat",
+            "version": 0
+          }
+        ]
+      },
+      {
+        "args": [
+          {
+            "body": "## Inbox scan\n\n- 3 threads waiting on a reply\n- 1 invoice past due\n\nNothing needs you before tomorrow.",
+            "id": "user:0",
+            "jobName": "Inbox scan",
+            "kind": "cron_delivery",
+            "origin": "history",
+            "seq": 0,
+            "shape": "bot_chat",
+            "version": 0
+          }
+        ],
+        "op": "normalizedItemText",
+        "result": "Inbox scan ## Inbox scan - 3 threads waiting on a reply - 1 invoice past due Nothing needs you before tomorrow."
+      },
+      {
+        "args": [
+          {
+            "body": "## Inbox scan\n\n- 3 threads waiting on a reply\n- 1 invoice past due\n\nNothing needs you before tomorrow.",
+            "id": "user:0",
+            "jobName": "Inbox scan",
+            "kind": "cron_delivery",
+            "origin": "history",
+            "seq": 0,
+            "shape": "bot_chat",
+            "version": 0
+          }
+        ],
+        "op": "normalizedItemText",
+        "result": "Inbox scan ## Inbox scan - 3 threads waiting on a reply - 1 invoice past due Nothing needs you before tomorrow."
+      },
+      {
+        "args": [
+          {
+            "body": "## Inbox scan\n\n- 3 threads waiting on a reply\n- 1 invoice past due\n\nNothing needs you before tomorrow.",
+            "id": "user:0",
+            "jobName": "Inbox scan",
+            "kind": "cron_delivery",
+            "origin": "history",
+            "seq": 0,
+            "shape": "bot_chat",
+            "version": 0
+          }
+        ],
+        "op": "normalizedItemText",
+        "result": "Inbox scan ## Inbox scan - 3 threads waiting on a reply - 1 invoice past due Nothing needs you before tomorrow."
+      },
+      {
+        "args": [
+          {
+            "body": "## Inbox scan\n\n- 3 threads waiting on a reply\n- 1 invoice past due\n\nNothing needs you before tomorrow.",
+            "id": "user:0",
+            "jobName": "Inbox scan",
+            "kind": "cron_delivery",
+            "origin": "history",
+            "seq": 0,
+            "shape": "bot_chat",
+            "version": 0
+          }
+        ],
+        "op": "normalizedItemText",
+        "result": "Inbox scan ## Inbox scan - 3 threads waiting on a reply - 1 invoice past due Nothing needs you before tomorrow."
+      }
+    ],
+    "test": "cron deliveries in a transcript > reconciles on a text key both transports agree about"
+  },
+  {
+    "calls": [
+      {
+        "args": [
+          [
+            {
+              "role": "user",
+              "row_id": 40,
+              "text": "[ASYNC DELEGATION BATCH COMPLETE — deleg_1bd47ada]\nA background fan-out unit you dispatched earlier — 3 subagent(s) — has finished; its consolidated results are below. Any other units from the same delegate_task call report separately as they finish.\n\nDispatched: 2026-09-21 20:44:11 (14m ago)\nRole: leaf   Model: gpt-5   Total duration: 812s\n\n--- ✓ TASK 1/3: Audit deps  (status=completed, 41s) ---\nNo drift.\n\n--- ✓ TASK 2/3: Write tests  (status=completed, 190s) ---\nNine cases, all green.\n\n--- ✗ TASK 3/3: Update docs  (status=failed) ---\n(no summary — status=failed: the page was locked)"
+            }
+          ],
+          "rpc"
+        ],
+        "op": "rowsToItems",
+        "result": [
+          {
+            "body": "[ASYNC DELEGATION BATCH COMPLETE — deleg_1bd47ada]\nA background fan-out unit you dispatched earlier — 3 subagent(s) — has finished; its consolidated results are below. Any other units from the same delegate_task call report separately as they finish.\n\nDispatched: 2026-09-21 20:44:11 (14m ago)\nRole: leaf   Model: gpt-5   Total duration: 812s\n\n--- ✓ TASK 1/3: Audit deps  (status=completed, 41s) ---\nNo drift.\n\n--- ✓ TASK 2/3: Write tests  (status=completed, 190s) ---\nNine cases, all green.\n\n--- ✗ TASK 3/3: Update docs  (status=failed) ---\n(no summary — status=failed: the page was locked)",
+            "id": "r:40",
+            "kind": "notice",
+            "noticeKind": "async_delegation_complete",
+            "origin": "history",
+            "rowId": 40,
+            "seq": 0,
+            "title": "ASYNC DELEGATION BATCH COMPLETE — deleg_1bd47ada",
+            "version": 0
+          }
+        ]
+      }
+    ],
+    "test": "an injected row with no display_kind > draws a fan-out report as a notice, not as the owner speaking"
+  },
+  {
+    "calls": [
+      {
+        "args": [
+          [
+            {
+              "args": {
+                "tasks": [
+                  {
+                    "goal": "Audit deps"
+                  }
+                ]
+              },
+              "name": "delegate_task",
+              "role": "tool",
+              "tool_id": "call_d1"
+            },
+            {
+              "role": "user",
+              "row_id": 41,
+              "text": "[ASYNC DELEGATION BATCH COMPLETE — deleg_1bd47ada]\nA background fan-out unit you dispatched earlier — 3 subagent(s) — has finished; its consolidated results are below. Any other units from the same delegate_task call report separately as they finish.\n\nDispatched: 2026-09-21 20:44:11 (14m ago)\nRole: leaf   Model: gpt-5   Total duration: 812s\n\n--- ✓ TASK 1/3: Audit deps  (status=completed, 41s) ---\nNo drift.\n\n--- ✓ TASK 2/3: Write tests  (status=completed, 190s) ---\nNine cases, all green.\n\n--- ✗ TASK 3/3: Update docs  (status=failed) ---\n(no summary — status=failed: the page was locked)"
+            }
+          ],
+          "rpc"
+        ],
+        "op": "rowsToItems",
+        "result": [
+          {
+            "completion": "[ASYNC DELEGATION BATCH COMPLETE — deleg_1bd47ada]\nA background fan-out unit you dispatched earlier — 3 subagent(s) — has finished; its consolidated results are below. Any other units from the same delegate_task call report separately as they finish.\n\nDispatched: 2026-09-21 20:44:11 (14m ago)\nRole: leaf   Model: gpt-5   Total duration: 812s\n\n--- ✓ TASK 1/3: Audit deps  (status=completed, 41s) ---\nNo drift.\n\n--- ✓ TASK 2/3: Write tests  (status=completed, 190s) ---\nNine cases, all green.\n\n--- ✗ TASK 3/3: Update docs  (status=failed) ---\n(no summary — status=failed: the page was locked)",
+            "goals": [
+              "Audit deps"
+            ],
+            "id": "t:call_d1",
+            "kind": "subagent_group",
+            "origin": "history",
+            "rootIds": [],
+            "seq": 0,
+            "status": "done",
+            "toolId": "call_d1",
+            "version": 1
+          },
+          {
+            "body": "[ASYNC DELEGATION BATCH COMPLETE — deleg_1bd47ada]\nA background fan-out unit you dispatched earlier — 3 subagent(s) — has finished; its consolidated results are below. Any other units from the same delegate_task call report separately as they finish.\n\nDispatched: 2026-09-21 20:44:11 (14m ago)\nRole: leaf   Model: gpt-5   Total duration: 812s\n\n--- ✓ TASK 1/3: Audit deps  (status=completed, 41s) ---\nNo drift.\n\n--- ✓ TASK 2/3: Write tests  (status=completed, 190s) ---\nNine cases, all green.\n\n--- ✗ TASK 3/3: Update docs  (status=failed) ---\n(no summary — status=failed: the page was locked)",
+            "id": "r:41",
+            "kind": "notice",
+            "noticeKind": "async_delegation_complete",
+            "origin": "history",
+            "rowId": 41,
+            "seq": 1000,
+            "title": "ASYNC DELEGATION BATCH COMPLETE — deleg_1bd47ada",
+            "version": 0
+          }
+        ]
+      }
+    ],
+    "test": "an injected row with no display_kind > closes the delegation group the report belongs to, exactly as the labelled row does"
+  },
+  {
+    "calls": [
+      {
+        "args": [
+          [
+            {
+              "role": "user",
+              "row_id": 40,
+              "text": "[IMPORTANT: Background process proc-aa01 exited (exit code 1).\nCommand: npm run build\nOutput:\nerror TS2345: Argument of type string is not assignable.]"
+            }
+          ],
+          "rpc"
+        ],
+        "op": "rowsToItems",
+        "result": [
+          {
+            "body": "error TS2345: Argument of type string is not assignable.",
+            "id": "r:40",
+            "kind": "notice",
+            "noticeKind": "process_complete",
+            "origin": "history",
+            "rowId": 40,
+            "seq": 0,
+            "title": "IMPORTANT: Background process proc-aa01 exited (exit code 1).",
+            "version": 0
+          }
+        ]
+      },
+      {
+        "args": [
+          [
+            {
+              "role": "user",
+              "row_id": 40,
+              "text": "[PRIOR CONTEXT — for reference only; not a new message]\nThe owner asked for the release notes and then went quiet.\n[END OF PRIOR CONTEXT — COMPACTION SUMMARY BELOW]"
+            }
+          ],
+          "rpc"
+        ],
+        "op": "rowsToItems",
+        "result": [
+          {
+            "body": "[PRIOR CONTEXT — for reference only; not a new message]\nThe owner asked for the release notes and then went quiet.\n[END OF PRIOR CONTEXT — COMPACTION SUMMARY BELOW]",
+            "id": "r:40",
+            "kind": "notice",
+            "noticeKind": "internal_notification",
+            "origin": "history",
+            "rowId": 40,
+            "seq": 0,
+            "title": "PRIOR CONTEXT — for reference only",
+            "version": 0
+          }
+        ]
+      },
+      {
+        "args": [
+          [
+            {
+              "role": "user",
+              "row_id": 40,
+              "text": "✔ [ops] @researcher Kanban task-4412 done — Rotate the staging certificate\ndetails"
+            }
+          ],
+          "rpc"
+        ],
+        "op": "rowsToItems",
+        "result": [
+          {
+            "body": "✔ [ops] @researcher Kanban task-4412 done — Rotate the staging certificate\ndetails",
+            "id": "r:40",
+            "kind": "notice",
+            "noticeKind": "internal_notification",
+            "origin": "history",
+            "rowId": 40,
+            "seq": 0,
+            "title": "✔ [ops] @researcher Kanban task-4412 done — Rotate the staging certificate",
+            "version": 0
+          }
+        ]
+      }
+    ],
+    "test": "an injected row with no display_kind > draws a background process, a compaction handoff and a kanban dispatch as notices"
+  },
+  {
+    "calls": [
+      {
+        "args": [
+          [
+            {
+              "display_kind": "async_delegation_complete",
+              "role": "user",
+              "row_id": 42,
+              "text": "[ASYNC DELEGATION BATCH COMPLETE — deleg_1bd47ada]\nA background fan-out unit you dispatched earlier — 3 subagent(s) — has finished; its consolidated results are below. Any other units from the same delegate_task call report separately as they finish.\n\nDispatched: 2026-09-21 20:44:11 (14m ago)\nRole: leaf   Model: gpt-5   Total duration: 812s\n\n--- ✓ TASK 1/3: Audit deps  (status=completed, 41s) ---\nNo drift.\n\n--- ✓ TASK 2/3: Write tests  (status=completed, 190s) ---\nNine cases, all green.\n\n--- ✗ TASK 3/3: Update docs  (status=failed) ---\n(no summary — status=failed: the page was locked)"
+            }
+          ],
+          "rpc"
+        ],
+        "op": "rowsToItems",
+        "result": [
+          {
+            "body": "[ASYNC DELEGATION BATCH COMPLETE — deleg_1bd47ada]\nA background fan-out unit you dispatched earlier — 3 subagent(s) — has finished; its consolidated results are below. Any other units from the same delegate_task call report separately as they finish.\n\nDispatched: 2026-09-21 20:44:11 (14m ago)\nRole: leaf   Model: gpt-5   Total duration: 812s\n\n--- ✓ TASK 1/3: Audit deps  (status=completed, 41s) ---\nNo drift.\n\n--- ✓ TASK 2/3: Write tests  (status=completed, 190s) ---\nNine cases, all green.\n\n--- ✗ TASK 3/3: Update docs  (status=failed) ---\n(no summary — status=failed: the page was locked)",
+            "id": "r:42",
+            "kind": "notice",
+            "noticeKind": "async_delegation_complete",
+            "origin": "history",
+            "rowId": 42,
+            "seq": 0,
+            "title": "Background agent work finished",
+            "version": 0
+          }
+        ]
+      },
+      {
+        "args": [
+          [
+            {
+              "role": "user",
+              "row_id": 40,
+              "text": "[ASYNC DELEGATION BATCH COMPLETE — deleg_1bd47ada]\nA background fan-out unit you dispatched earlier — 3 subagent(s) — has finished; its consolidated results are below. Any other units from the same delegate_task call report separately as they finish.\n\nDispatched: 2026-09-21 20:44:11 (14m ago)\nRole: leaf   Model: gpt-5   Total duration: 812s\n\n--- ✓ TASK 1/3: Audit deps  (status=completed, 41s) ---\nNo drift.\n\n--- ✓ TASK 2/3: Write tests  (status=completed, 190s) ---\nNine cases, all green.\n\n--- ✗ TASK 3/3: Update docs  (status=failed) ---\n(no summary — status=failed: the page was locked)"
+            }
+          ],
+          "rpc"
+        ],
+        "op": "rowsToItems",
+        "result": [
+          {
+            "body": "[ASYNC DELEGATION BATCH COMPLETE — deleg_1bd47ada]\nA background fan-out unit you dispatched earlier — 3 subagent(s) — has finished; its consolidated results are below. Any other units from the same delegate_task call report separately as they finish.\n\nDispatched: 2026-09-21 20:44:11 (14m ago)\nRole: leaf   Model: gpt-5   Total duration: 812s\n\n--- ✓ TASK 1/3: Audit deps  (status=completed, 41s) ---\nNo drift.\n\n--- ✓ TASK 2/3: Write tests  (status=completed, 190s) ---\nNine cases, all green.\n\n--- ✗ TASK 3/3: Update docs  (status=failed) ---\n(no summary — status=failed: the page was locked)",
+            "id": "r:40",
+            "kind": "notice",
+            "noticeKind": "async_delegation_complete",
+            "origin": "history",
+            "rowId": 40,
+            "seq": 0,
+            "title": "ASYNC DELEGATION BATCH COMPLETE — deleg_1bd47ada",
+            "version": 0
+          }
+        ]
+      },
+      {
+        "args": [
+          {
+            "body": "[ASYNC DELEGATION BATCH COMPLETE — deleg_1bd47ada]\nA background fan-out unit you dispatched earlier — 3 subagent(s) — has finished; its consolidated results are below. Any other units from the same delegate_task call report separately as they finish.\n\nDispatched: 2026-09-21 20:44:11 (14m ago)\nRole: leaf   Model: gpt-5   Total duration: 812s\n\n--- ✓ TASK 1/3: Audit deps  (status=completed, 41s) ---\nNo drift.\n\n--- ✓ TASK 2/3: Write tests  (status=completed, 190s) ---\nNine cases, all green.\n\n--- ✗ TASK 3/3: Update docs  (status=failed) ---\n(no summary — status=failed: the page was locked)",
+            "id": "r:42",
+            "kind": "notice",
+            "noticeKind": "async_delegation_complete",
+            "origin": "history",
+            "rowId": 42,
+            "seq": 0,
+            "title": "Background agent work finished",
+            "version": 0
+          }
+        ],
+        "op": "normalizedItemText",
+        "result": "[ASYNC DELEGATION BATCH COMPLETE — deleg_1bd47ada] A background fan-out unit you dispatched earlier — 3 subagent(s) — has finished; its consolidated results are below. Any other units from the same delegate_task call report separately as they finish. Dispatched: 2026-09-21 20:44:11 (14m ago) Role: leaf Model: gpt-5 Total duration: 812s --- ✓ TASK 1/3: Audit deps (status=completed, 41s) --- No drift. --- ✓ TASK 2/3: Write tests (status=completed, 190s) --- Nine cases, all green. --- ✗ TASK 3/3: Update docs (status=failed) --- (no summary — status=failed: the page was locked)"
+      },
+      {
+        "args": [
+          {
+            "body": "[ASYNC DELEGATION BATCH COMPLETE — deleg_1bd47ada]\nA background fan-out unit you dispatched earlier — 3 subagent(s) — has finished; its consolidated results are below. Any other units from the same delegate_task call report separately as they finish.\n\nDispatched: 2026-09-21 20:44:11 (14m ago)\nRole: leaf   Model: gpt-5   Total duration: 812s\n\n--- ✓ TASK 1/3: Audit deps  (status=completed, 41s) ---\nNo drift.\n\n--- ✓ TASK 2/3: Write tests  (status=completed, 190s) ---\nNine cases, all green.\n\n--- ✗ TASK 3/3: Update docs  (status=failed) ---\n(no summary — status=failed: the page was locked)",
+            "id": "r:40",
+            "kind": "notice",
+            "noticeKind": "async_delegation_complete",
+            "origin": "history",
+            "rowId": 40,
+            "seq": 0,
+            "title": "ASYNC DELEGATION BATCH COMPLETE — deleg_1bd47ada",
+            "version": 0
+          }
+        ],
+        "op": "normalizedItemText",
+        "result": "[ASYNC DELEGATION BATCH COMPLETE — deleg_1bd47ada] A background fan-out unit you dispatched earlier — 3 subagent(s) — has finished; its consolidated results are below. Any other units from the same delegate_task call report separately as they finish. Dispatched: 2026-09-21 20:44:11 (14m ago) Role: leaf Model: gpt-5 Total duration: 812s --- ✓ TASK 1/3: Audit deps (status=completed, 41s) --- No drift. --- ✓ TASK 2/3: Write tests (status=completed, 190s) --- Nine cases, all green. --- ✗ TASK 3/3: Update docs (status=failed) --- (no summary — status=failed: the page was locked)"
+      }
+    ],
+    "test": "an injected row with no display_kind > pairs with the same row described by its display_kind, because both say the same thing"
+  },
+  {
+    "calls": [
+      {
+        "args": [
+          [
+            {
+              "role": "user",
+              "row_id": 43,
+              "text": "[ok] done"
+            }
+          ],
+          "rpc"
+        ],
+        "op": "rowsToItems",
+        "result": [
+          {
+            "id": "r:43",
+            "kind": "user",
+            "origin": "history",
+            "rowId": 43,
+            "seq": 0,
+            "text": "[ok] done",
+            "version": 0
+          }
+        ]
+      },
+      {
+        "args": [
+          [
+            {
+              "role": "user",
+              "row_id": 44,
+              "text": "[1] first item\n[2] second item"
+            }
+          ],
+          "rpc"
+        ],
+        "op": "rowsToItems",
+        "result": [
+          {
+            "id": "r:44",
+            "kind": "user",
+            "origin": "history",
+            "rowId": 44,
+            "seq": 0,
+            "text": "[1] first item\n[2] second item",
+            "version": 0
+          }
+        ]
+      }
+    ],
+    "test": "an injected row with no display_kind > still leaves a message that merely opens with a bracket a user turn"
+  },
+  {
+    "calls": [
+      {
+        "args": [
+          [
+            {
+              "display_kind": "steer",
+              "role": "user",
+              "row_id": 50,
+              "text": "[OUT-OF-BAND USER MESSAGE — a direct message from the user, delivered once at this position; not tool output and not a new delivery when replayed from conversation history]\nlees over shared memory skill\n[/OUT-OF-BAND USER MESSAGE]"
+            }
+          ],
+          "rpc"
+        ],
+        "op": "rowsToItems",
+        "result": [
+          {
+            "displayKind": "steer",
+            "id": "r:50",
+            "kind": "user",
+            "origin": "history",
+            "rowId": 50,
+            "seq": 0,
+            "text": "lees over shared memory skill",
+            "version": 0
+          }
+        ]
+      }
+    ],
+    "test": "a persisted steer row > shows only the words the user typed"
+  },
+  {
+    "calls": [
+      {
+        "args": [
+          [
+            {
+              "display_kind": null,
+              "role": "user",
+              "row_id": 50,
+              "text": "[OUT-OF-BAND USER MESSAGE — a direct message from the user, delivered once at this position; not tool output and not a new delivery when replayed from conversation history]\nlees over shared memory skill\n[/OUT-OF-BAND USER MESSAGE]"
+            }
+          ],
+          "rpc"
+        ],
+        "op": "rowsToItems",
+        "result": [
+          {
+            "displayKind": "steer",
+            "id": "r:50",
+            "kind": "user",
+            "origin": "history",
+            "rowId": 50,
+            "seq": 0,
+            "text": "lees over shared memory skill",
+            "version": 0
+          }
+        ]
+      }
+    ],
+    "test": "a persisted steer row > is a steer even on a gateway that did not label it"
+  },
+  {
+    "calls": [
+      {
+        "args": [
+          [
+            {
+              "role": "user",
+              "row_id": 51,
+              "text": "[OUT-OF-BAND USER MESSAGE — a direct message from the user, delivered once at this position; not tool output and not a new delivery when replayed from conversation history]\nlees over shared memory skill\n[/OUT-OF-BAND USER MESSAGE]"
+            }
+          ],
+          "rpc"
+        ],
+        "op": "rowsToItems",
+        "result": [
+          {
+            "displayKind": "steer",
+            "id": "r:51",
+            "kind": "user",
+            "origin": "history",
+            "rowId": 51,
+            "seq": 0,
+            "text": "lees over shared memory skill",
+            "version": 0
+          }
+        ]
+      },
+      {
+        "args": [
+          {
+            "displayKind": "steer",
+            "id": "r:51",
+            "kind": "user",
+            "origin": "history",
+            "rowId": 51,
+            "seq": 0,
+            "text": "lees over shared memory skill",
+            "version": 0
+          }
+        ],
+        "op": "normalizedItemText",
+        "result": "lees over shared memory skill"
+      }
+    ],
+    "test": "a persisted steer row > pairs with the optimistic bubble, which never saw the wrapper"
+  },
+  {
+    "calls": [
+      {
+        "args": [
+          [
+            {
+              "display_kind": "model_switch",
+              "role": "user",
+              "row_id": 1,
+              "text": "[System: The active model for this chat has changed to k3 via provider moonshot. From this point forward, use this runtime metadata when answering questions about what model/provider is active.]"
+            },
+            {
+              "display_kind": "personality_switch",
+              "role": "user",
+              "row_id": 2,
+              "text": "[System: The active model for this chat has changed to k3 via provider moonshot. From this point forward, use this runtime metadata when answering questions about what model/provider is active.]"
+            },
+            {
+              "display_kind": "auto_continue",
+              "role": "user",
+              "row_id": 3,
+              "text": "[System: The active model for this chat has changed to k3 via provider moonshot. From this point forward, use this runtime metadata when answering questions about what model/provider is active.]"
+            }
+          ],
+          "rpc"
+        ],
+        "op": "rowsToItems",
+        "result": [
+          {
+            "body": "The active model for this chat has changed to k3 via provider moonshot. From this point forward, use this runtime metadata when answering questions about what model/provider is active.",
+            "id": "r:1",
+            "kind": "notice",
+            "noticeKind": "model_switch",
+            "origin": "history",
+            "rowId": 1,
+            "seq": 0,
+            "title": "Model changed",
+            "version": 0
+          },
+          {
+            "body": "The active model for this chat has changed to k3 via provider moonshot. From this point forward, use this runtime metadata when answering questions about what model/provider is active.",
+            "id": "r:2",
+            "kind": "notice",
+            "noticeKind": "personality_switch",
+            "origin": "history",
+            "rowId": 2,
+            "seq": 1000,
+            "title": "Personality changed",
+            "version": 0
+          },
+          {
+            "body": "The active model for this chat has changed to k3 via provider moonshot. From this point forward, use this runtime metadata when answering questions about what model/provider is active.",
+            "id": "r:3",
+            "kind": "notice",
+            "noticeKind": "auto_continue",
+            "origin": "history",
+            "rowId": 3,
+            "seq": 2000,
+            "title": "Resumed interrupted turn",
+            "version": 0
+          }
+        ]
+      }
+    ],
+    "test": "the [System: …] wrapper, on the history path > comes off a row the gateway labelled, whichever label it used"
+  },
+  {
+    "calls": [
+      {
+        "args": [
+          [
+            {
+              "role": "user",
+              "row_id": 9,
+              "text": "[System: The active model for this chat has changed to k3 via provider moonshot. From this point forward, use this runtime metadata when answering questions about what model/provider is active.]"
+            }
+          ],
+          "rpc"
+        ],
+        "op": "rowsToItems",
+        "result": [
+          {
+            "body": "The active model for this chat has changed to k3 via provider moonshot. From this point forward, use this runtime metadata when answering questions about what model/provider is active.",
+            "id": "r:9",
+            "kind": "notice",
+            "noticeKind": "system_note",
+            "origin": "history",
+            "rowId": 9,
+            "seq": 0,
+            "title": "The active model for this chat has changed to k3 via provider moonshot.",
+            "version": 0
+          }
+        ]
+      }
+    ],
+    "test": "the [System: …] wrapper, on the history path > comes off a row nothing labelled, to exactly the same words"
+  },
+  {
+    "calls": [
+      {
+        "args": [
+          [
+            {
+              "display_kind": "model_switch",
+              "role": "user",
+              "row_id": 1,
+              "text": "[System: The active model for this chat has changed to k3 via provider moonshot. From this point forward, use this runtime metadata when answering questions about what model/provider is active.]"
+            }
+          ],
+          "rpc"
+        ],
+        "op": "rowsToItems",
+        "result": [
+          {
+            "body": "The active model for this chat has changed to k3 via provider moonshot. From this point forward, use this runtime metadata when answering questions about what model/provider is active.",
+            "id": "r:1",
+            "kind": "notice",
+            "noticeKind": "model_switch",
+            "origin": "history",
+            "rowId": 1,
+            "seq": 0,
+            "title": "Model changed",
+            "version": 0
+          }
+        ]
+      },
+      {
+        "args": [
+          [
+            {
+              "role": "user",
+              "row_id": 1,
+              "text": "[System: The active model for this chat has changed to k3 via provider moonshot. From this point forward, use this runtime metadata when answering questions about what model/provider is active.]"
+            }
+          ],
+          "rpc"
+        ],
+        "op": "rowsToItems",
+        "result": [
+          {
+            "body": "The active model for this chat has changed to k3 via provider moonshot. From this point forward, use this runtime metadata when answering questions about what model/provider is active.",
+            "id": "r:1",
+            "kind": "notice",
+            "noticeKind": "system_note",
+            "origin": "history",
+            "rowId": 1,
+            "seq": 0,
+            "title": "The active model for this chat has changed to k3 via provider moonshot.",
+            "version": 0
+          }
+        ]
+      },
+      {
+        "args": [
+          {
+            "body": "The active model for this chat has changed to k3 via provider moonshot. From this point forward, use this runtime metadata when answering questions about what model/provider is active.",
+            "id": "r:1",
+            "kind": "notice",
+            "noticeKind": "model_switch",
+            "origin": "history",
+            "rowId": 1,
+            "seq": 0,
+            "title": "Model changed",
+            "version": 0
+          }
+        ],
+        "op": "normalizedItemText",
+        "result": "The active model for this chat has changed to k3 via provider moonshot. From this point forward, use this runtime metadata when answering questions about what model/provider is active."
+      },
+      {
+        "args": [
+          {
+            "body": "The active model for this chat has changed to k3 via provider moonshot. From this point forward, use this runtime metadata when answering questions about what model/provider is active.",
+            "id": "r:1",
+            "kind": "notice",
+            "noticeKind": "system_note",
+            "origin": "history",
+            "rowId": 1,
+            "seq": 0,
+            "title": "The active model for this chat has changed to k3 via provider moonshot.",
+            "version": 0
+          }
+        ],
+        "op": "normalizedItemText",
+        "result": "The active model for this chat has changed to k3 via provider moonshot. From this point forward, use this runtime metadata when answering questions about what model/provider is active."
+      }
+    ],
+    "test": "the [System: …] wrapper, on the history path > leaves the two descriptions of one row saying the same thing"
+  },
+  {
+    "calls": [
+      {
+        "args": [
+          [
+            {
+              "role": "user",
+              "row_id": 4,
+              "text": "[IMPORTANT: Background process proc-aa01 exited (exit code 1).\nCommand: npm run build\nOutput:\nerror TS2345: Argument of type string is not assignable.]"
+            }
+          ],
+          "rpc"
+        ],
+        "op": "rowsToItems",
+        "result": [
+          {
+            "body": "error TS2345: Argument of type string is not assignable.",
+            "id": "r:4",
+            "kind": "notice",
+            "noticeKind": "process_complete",
+            "origin": "history",
+            "rowId": 4,
+            "seq": 0,
+            "title": "IMPORTANT: Background process proc-aa01 exited (exit code 1).",
+            "version": 0
+          }
+        ]
+      }
+    ],
+    "test": "the [System: …] wrapper, on the history path > leaves a body that is not a system note alone"
+  },
+  {
+    "calls": [
+      {
+        "args": [
+          [
+            {
+              "display_metadata": {
+                "author": {
+                  "id": "oidc:user-a",
+                  "name": "Robin"
+                },
+                "display_text": "unrelated key, left alone"
+              },
+              "role": "user",
+              "row_id": 60,
+              "text": "lunch at noon?",
+              "timestamp": 1700000100
+            }
+          ],
+          "rpc"
+        ],
+        "op": "rowsToItems",
+        "result": [
+          {
+            "author": {
+              "id": "oidc:user-a",
+              "name": "Robin"
+            },
+            "id": "r:60",
+            "kind": "user",
+            "origin": "history",
+            "rowId": 60,
+            "seq": 0,
+            "text": "lunch at noon?",
+            "ts": 1700000100,
+            "version": 0
+          }
+        ]
+      }
+    ],
+    "test": "display_metadata.author (HERM-83) > projects a valid author, leaving an unrelated metadata key alone"
+  },
+  {
+    "calls": [
+      {
+        "args": [
+          [
+            {
+              "display_metadata": {
+                "author": "oidc:user-a"
+              },
+              "role": "user",
+              "row_id": 61,
+              "text": "string, not an object"
+            }
+          ],
+          "rpc"
+        ],
+        "op": "rowsToItems",
+        "result": [
+          {
+            "id": "r:61",
+            "kind": "user",
+            "origin": "history",
+            "rowId": 61,
+            "seq": 0,
+            "text": "string, not an object",
+            "version": 0
+          }
+        ]
+      }
+    ],
+    "test": "display_metadata.author (HERM-83) > projects no author when the stamp is a string, not an object"
+  },
+  {
+    "calls": [
+      {
+        "args": [
+          [
+            {
+              "display_metadata": {
+                "author": {}
+              },
+              "role": "user",
+              "row_id": 62,
+              "text": "empty object"
+            }
+          ],
+          "rpc"
+        ],
+        "op": "rowsToItems",
+        "result": [
+          {
+            "id": "r:62",
+            "kind": "user",
+            "origin": "history",
+            "rowId": 62,
+            "seq": 0,
+            "text": "empty object",
+            "version": 0
+          }
+        ]
+      }
+    ],
+    "test": "display_metadata.author (HERM-83) > projects no author for an empty author object"
+  },
+  {
+    "calls": [
+      {
+        "args": [
+          [
+            {
+              "display_metadata": {
+                "author": {
+                  "id": ""
+                }
+              },
+              "role": "user",
+              "row_id": 63,
+              "text": "blank id"
+            }
+          ],
+          "rpc"
+        ],
+        "op": "rowsToItems",
+        "result": [
+          {
+            "id": "r:63",
+            "kind": "user",
+            "origin": "history",
+            "rowId": 63,
+            "seq": 0,
+            "text": "blank id",
+            "version": 0
+          }
+        ]
+      }
+    ],
+    "test": "display_metadata.author (HERM-83) > projects no author for a blank id"
+  },
+  {
+    "calls": [
+      {
+        "args": [
+          [
+            {
+              "display_metadata": {
+                "author": {
+                  "id": 7
+                }
+              },
+              "role": "user",
+              "row_id": 64,
+              "text": "numeric id"
+            }
+          ],
+          "rpc"
+        ],
+        "op": "rowsToItems",
+        "result": [
+          {
+            "id": "r:64",
+            "kind": "user",
+            "origin": "history",
+            "rowId": 64,
+            "seq": 0,
+            "text": "numeric id",
+            "version": 0
+          }
+        ]
+      }
+    ],
+    "test": "display_metadata.author (HERM-83) > projects no author for a numeric id"
+  },
+  {
+    "calls": [
+      {
+        "args": [
+          [
+            {
+              "display_metadata": {
+                "author": {
+                  "id": "oidc:user-a",
+                  "name": 7
+                }
+              },
+              "role": "user",
+              "row_id": 65,
+              "text": "numeric name"
+            }
+          ],
+          "rpc"
+        ],
+        "op": "rowsToItems",
+        "result": [
+          {
+            "id": "r:65",
+            "kind": "user",
+            "origin": "history",
+            "rowId": 65,
+            "seq": 0,
+            "text": "numeric name",
+            "version": 0
+          }
+        ]
+      }
+    ],
+    "test": "display_metadata.author (HERM-83) > drops the whole author when the id is valid but the name is not a string"
+  },
+  {
+    "calls": [
+      {
+        "args": [
+          [
+            {
+              "display_metadata": "not an object",
+              "role": "user",
+              "row_id": 66,
+              "text": "metadata is a bare string"
+            }
+          ],
+          "rpc"
+        ],
+        "op": "rowsToItems",
+        "result": [
+          {
+            "id": "r:66",
+            "kind": "user",
+            "origin": "history",
+            "rowId": 66,
+            "seq": 0,
+            "text": "metadata is a bare string",
+            "version": 0
+          }
+        ]
+      }
+    ],
+    "test": "display_metadata.author (HERM-83) > projects no author when display_metadata itself is not an object"
+  },
+  {
+    "calls": [
+      {
+        "args": [
+          [
+            {
+              "display_metadata": {
+                "author": {
+                  "id": "oidc:user-a",
+                  "name": "Robin"
+                },
+                "display_text": "unrelated key, left alone"
+              },
+              "role": "user",
+              "row_id": 60,
+              "text": "lunch at noon?",
+              "timestamp": 1700000100
+            }
+          ],
+          "rpc"
+        ],
+        "op": "rowsToItems",
+        "result": [
+          {
+            "author": {
+              "id": "oidc:user-a",
+              "name": "Robin"
+            },
+            "id": "r:60",
+            "kind": "user",
+            "origin": "history",
+            "rowId": 60,
+            "seq": 0,
+            "text": "lunch at noon?",
+            "ts": 1700000100,
+            "version": 0
+          }
+        ]
+      },
+      {
+        "args": [
+          [
+            {
+              "content": "lunch at noon?",
+              "display_metadata": {
+                "author": {
+                  "id": "oidc:user-a",
+                  "name": "Robin"
+                },
+                "display_text": "unrelated key, left alone"
+              },
+              "id": 60,
+              "role": "user",
+              "timestamp": 1700000100
+            }
+          ],
+          "rest"
+        ],
+        "op": "rowsToItems",
+        "result": [
+          {
+            "author": {
+              "id": "oidc:user-a",
+              "name": "Robin"
+            },
+            "id": "r:60",
+            "kind": "user",
+            "origin": "history",
+            "rowId": 60,
+            "seq": 0,
+            "text": "lunch at noon?",
+            "ts": 1700000100,
+            "version": 0
+          }
+        ]
+      }
+    ],
+    "test": "display_metadata.author (HERM-83) > resolves the same author from the REST and the RPC shape of one row"
+  }
+]

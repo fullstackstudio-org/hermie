@@ -1,0 +1,101 @@
+{
+  "$comment": "Hand-written, not generated. The one push contract every sender (gateway plugin, Hermie Web, the relay) and both app generations conform to. See contract/README.md and the native-rewrite plan, decision D31.",
+  "version": 1,
+  "types": ["message", "request", "cron", "cron_done", "cron_failed", "turn_done", "turn_failed"],
+  "legacyTypes": {
+    "$comment": "Still valid on the wire because older registrations and senders carry it; no current sender produces it and no app offers a switch for it.",
+    "dm": "a bot-to-bot message"
+  },
+  "category": {
+    "id": "hermie.request",
+    "when": { "type": "request", "method": "approval" },
+    "actions": [
+      { "id": "hermie.request.allow", "title": "Allow", "destructive": false, "foreground": false },
+      { "id": "hermie.request.deny", "title": "Deny", "destructive": true, "foreground": false }
+    ],
+    "$comment": "An action is a hint, never an instruction: the app re-reads the open request by requestId and answers only if it is still open and still says what the notification said."
+  },
+  "android": {
+    "channels": [
+      { "id": "message", "type": "message" },
+      { "id": "request", "type": "request" },
+      { "id": "cron", "type": "cron" },
+      { "id": "cron_done", "type": "cron_done" },
+      { "id": "cron_failed", "type": "cron_failed" },
+      { "id": "turn_done", "type": "turn_done" },
+      { "id": "turn_failed", "type": "turn_failed" }
+    ],
+    "$comment": "Channel id equals the type name, one channel per type."
+  },
+  "data": {
+    "$comment": "The notification's data bag. Everything here is resolved against the gateway on tap; nothing in it is acted on unverified. Optional fields are omitted, never sent empty or null.",
+    "fields": [
+      {
+        "key": "bot",
+        "type": "string",
+        "required": true,
+        "description": "The profile name of the bot whose chat this is."
+      },
+      {
+        "key": "type",
+        "type": "string",
+        "enum": ["message", "request", "cron", "cron_done", "cron_failed", "turn_done", "turn_failed"],
+        "required": true,
+        "description": "One of `types`."
+      },
+      { "key": "sessionId", "type": "string", "required": true, "description": "The canonical (stored) session id." },
+      {
+        "key": "session",
+        "type": "string",
+        "required": false,
+        "description": "Legacy spelling of sessionId, written by Hermie Web for older app builds. Readers prefer sessionId."
+      },
+      {
+        "key": "sessionKind",
+        "type": "string",
+        "enum": ["canonical", "branch", "other"],
+        "required": false,
+        "description": "Which kind of conversation the session is."
+      },
+      {
+        "key": "requestId",
+        "type": "string",
+        "required": false,
+        "requiredWhen": { "type": "request" },
+        "description": "The server request the notification was raised for."
+      },
+      {
+        "key": "method",
+        "type": "string",
+        "required": false,
+        "description": "type request only: the server request method (approval, clarify, ...)."
+      },
+      {
+        "key": "cron",
+        "type": "boolean",
+        "const": true,
+        "required": false,
+        "description": "Present (true) when the event happened inside a scheduled run."
+      },
+      {
+        "key": "cronCertain",
+        "type": "boolean",
+        "required": false,
+        "description": "false: the cron attribution is a guess, word it as a plain message. Absent: treat as certain."
+      },
+      {
+        "key": "jobId",
+        "type": "string",
+        "required": false,
+        "description": "The scheduler's job id. Carried, never shown."
+      },
+      {
+        "key": "gatewayKey",
+        "type": "string",
+        "pattern": "^[0-9a-f]{16}$",
+        "required": false,
+        "description": "gatewayKeyOf(the gateway origin): FNV-1a 64 of the origin; see contract/gateway/vectors/gateway-key.json."
+      }
+    ]
+  }
+}

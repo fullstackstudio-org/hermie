@@ -1,0 +1,27 @@
+{
+  // The golden-corpus tooling (`npm run golden`): the generator, the transcript
+  // recorder and its vitest config, and the two dump scripts. None of it ships
+  // and none of it is under a package's `src/`, so no package tsconfig sees it.
+  //
+  // Like `packages/hermie-web/tsconfig.test.json`, this emits nothing and is not
+  // a composite project; the root `typecheck` script runs it as its own pass.
+  "extends": "../../tsconfig.base.json",
+  "compilerOptions": {
+    "composite": false,
+    "declaration": false,
+    "declarationMap": false,
+    "emitDeclarationOnly": false,
+    "noEmit": true,
+    // DOM for the ambient `fetch` / `WebSocket` / `URL` types the gateway client
+    // is written against; Node for the scripts themselves.
+    "lib": ["ES2023", "DOM"],
+    "types": ["node"]
+  },
+  "include": [
+    "./*.ts",
+    "../../packages/transcript/golden/**/*.ts",
+    "../../packages/transcript/vitest.golden.config.ts",
+    "../../packages/gateway-client/scripts/**/*.ts",
+    "../../packages/fake-gateway/scripts/**/*.ts"
+  ]
+}

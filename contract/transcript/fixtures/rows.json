@@ -1,0 +1,330 @@
+{
+  "$functions": [
+    "cronBotChatHeader"
+  ],
+  "DM_DELIVERY_COMMAND": "/usr/bin/python3 /opt/hermes/tools/bot_mode_dm.py --run-delivery query-file /root/.hermes/dm/2f9c.json hermes -p writer chat -c \"Bot Chat\" -Q -q @/root/.hermes/dm/2f9c.json",
+  "LEGACY_DELIVERY_COMMAND": "hermes -p writer chat -c \"Bot Chat\" --create-if-missing -Q -q \"Message from 🤖 Researcher (@researcher): ping\"",
+  "attachedContextRow": {
+    "role": "user",
+    "row_id": 42,
+    "text": "Look at @image:/tmp/shot.png and tell me what broke.\n\n--- Attached Context ---\n@file:/srv/app/server.ts\n@image:/tmp/shot.png\n\n--- Context Warnings ---\none file was too large to inline"
+  },
+  "authoredRow": {
+    "display_metadata": {
+      "author": {
+        "id": "oidc:user-a",
+        "name": "Robin"
+      },
+      "display_text": "unrelated key, left alone"
+    },
+    "role": "user",
+    "row_id": 60,
+    "text": "lunch at noon?",
+    "timestamp": 1700000100
+  },
+  "authoredRowRest": {
+    "content": "lunch at noon?",
+    "display_metadata": {
+      "author": {
+        "id": "oidc:user-a",
+        "name": "Robin"
+      },
+      "display_text": "unrelated key, left alone"
+    },
+    "id": 60,
+    "role": "user",
+    "timestamp": 1700000100
+  },
+  "authorlessRows": {
+    "blankId": {
+      "display_metadata": {
+        "author": {
+          "id": ""
+        }
+      },
+      "role": "user",
+      "row_id": 63,
+      "text": "blank id"
+    },
+    "emptyAuthor": {
+      "display_metadata": {
+        "author": {}
+      },
+      "role": "user",
+      "row_id": 62,
+      "text": "empty object"
+    },
+    "nonObjectMetadata": {
+      "display_metadata": "not an object",
+      "role": "user",
+      "row_id": 66,
+      "text": "metadata is a bare string"
+    },
+    "numericId": {
+      "display_metadata": {
+        "author": {
+          "id": 7
+        }
+      },
+      "role": "user",
+      "row_id": 64,
+      "text": "numeric id"
+    },
+    "numericName": {
+      "display_metadata": {
+        "author": {
+          "id": "oidc:user-a",
+          "name": 7
+        }
+      },
+      "role": "user",
+      "row_id": 65,
+      "text": "numeric name"
+    },
+    "stringAuthor": {
+      "display_metadata": {
+        "author": "oidc:user-a"
+      },
+      "role": "user",
+      "row_id": 61,
+      "text": "string, not an object"
+    }
+  },
+  "codexSidecarRow": {
+    "codex_message_items": [
+      {
+        "content": [
+          {
+            "text": "thinking out loud",
+            "type": "output_text"
+          }
+        ],
+        "phase": "commentary",
+        "role": "assistant",
+        "type": "message"
+      },
+      {
+        "content": [
+          {
+            "text": "Recovered reply.",
+            "type": "output_text"
+          }
+        ],
+        "phase": "final",
+        "role": "assistant",
+        "type": "message"
+      }
+    ],
+    "role": "assistant",
+    "row_id": 77,
+    "text": ""
+  },
+  "cronBotChatBody": "## Inbox scan\n\n- 3 threads waiting on a reply\n- 1 invoice past due\n\nNothing needs you before tomorrow.",
+  "cronBotChatText": "[Cronjob \"Inbox scan\" output — scheduled job, not the user. Review it, act on anything that needs action, and summarize for the chat.]\n\n## Inbox scan\n\n- 3 threads waiting on a reply\n- 1 invoice past due\n\nNothing needs you before tomorrow.",
+  "cronMirrorText": "[Cron delivery: Morning Brief]\nTwo deploys overnight, both green.",
+  "cronjobResponseText": "Cronjob Response: daily-report\n(job_id: job_9f21)\n-------------\n\nThree deploys, all green.\n\nTo stop or manage this job, send me a new message (e.g. \"stop reminder daily-report\").",
+  "delegationBatchText": "[ASYNC DELEGATION BATCH COMPLETE — deleg_1bd47ada]\nA background fan-out unit you dispatched earlier — 3 subagent(s) — has finished; its consolidated results are below. Any other units from the same delegate_task call report separately as they finish.\n\nDispatched: 2026-09-21 20:44:11 (14m ago)\nRole: leaf   Model: gpt-5   Total duration: 812s\n\n--- ✓ TASK 1/3: Audit deps  (status=completed, 41s) ---\nNo drift.\n\n--- ✓ TASK 2/3: Write tests  (status=completed, 190s) ---\nNine cases, all green.\n\n--- ✗ TASK 3/3: Update docs  (status=failed) ---\n(no summary — status=failed: the page was locked)",
+  "dmReplyProcessText": "[IMPORTANT: Background process proc-2f9c completed (exit code 0).\nCommand: /usr/bin/python3 /opt/hermes/tools/bot_mode_dm.py --run-delivery query-file /root/.hermes/dm/2f9c.json hermes -p writer chat -c \"Bot Chat\" -Q -q @/root/.hermes/dm/2f9c.json\nOutput:\nMessage from 🤖 Writer (@writer): Draft is ready, I pushed it to the shared folder.]",
+  "kanbanNotificationText": "✔ [ops] @researcher Kanban task-4412 done — Rotate the staging certificate",
+  "modelSwitchMarkerText": "[System: The active model for this chat has changed to k3 via provider moonshot. From this point forward, use this runtime metadata when answering questions about what model/provider is active.]",
+  "personalitySwitchMarkerText": "[System: The user has cleared the personality overlay. From this point forward, respond in your normal default style.]",
+  "plainProcessText": "[IMPORTANT: Background process proc-aa01 exited (exit code 1).\nCommand: npm run build\nOutput:\nerror TS2345: Argument of type string is not assignable.]",
+  "planningPreservedText": "[Planning state preserved across context compression]\nStep 2 of 4: draft the migration.",
+  "priorContextText": "[PRIOR CONTEXT — for reference only; not a new message]\nThe owner asked for the release notes and then went quiet.\n[END OF PRIOR CONTEXT — COMPACTION SUMMARY BELOW]",
+  "restHistoryRows": [
+    {
+      "content": "Summarise the release notes.",
+      "id": 1,
+      "role": "user",
+      "timestamp": 1700000000
+    },
+    {
+      "content": "Reading them now.",
+      "id": 2,
+      "reasoning_content": "Read the file first.",
+      "role": "assistant",
+      "timestamp": 1700000001
+    },
+    {
+      "context": "read_file(CHANGELOG.md)",
+      "name": "read_file",
+      "role": "tool",
+      "tool_id": "call_read_1"
+    },
+    {
+      "content": "raw stored body",
+      "display_content": "Message from 🤖 Writer (@writer): The announcement draft is in docs/announce.md.",
+      "id": 14,
+      "role": "user",
+      "timestamp": 1700000040
+    },
+    {
+      "content": "Thanks — I will fold that in.",
+      "id": 15,
+      "role": "assistant",
+      "timestamp": 1700000041
+    },
+    {
+      "content": "raw stored body",
+      "display_content": "[Cronjob \"Inbox scan\" output — scheduled job, not the user. Review it, act on anything that needs action, and summarize for the chat.]\n\n## Inbox scan\n\n- 3 threads waiting on a reply\n- 1 invoice past due\n\nNothing needs you before tomorrow.",
+      "id": 16,
+      "role": "user",
+      "timestamp": 1700000050
+    }
+  ],
+  "rpcHistoryRows": [
+    {
+      "role": "user",
+      "row_id": 1,
+      "text": "Summarise the release notes.",
+      "timestamp": 1700000000
+    },
+    {
+      "reasoning": "The user wants a summary; read the file first.",
+      "role": "assistant",
+      "row_id": 2,
+      "text": "Reading them now.",
+      "timestamp": 1700000001
+    },
+    {
+      "args": {
+        "path": "CHANGELOG.md"
+      },
+      "context": "read_file(CHANGELOG.md)",
+      "name": "read_file",
+      "role": "tool"
+    },
+    {
+      "role": "assistant",
+      "row_id": 3,
+      "text": "Three fixes and one feature.",
+      "timestamp": 1700000005
+    },
+    {
+      "display_kind": "model_switch",
+      "role": "user",
+      "row_id": 4,
+      "text": "Switched model",
+      "timestamp": 1700000006
+    },
+    {
+      "display_kind": "personality_switch",
+      "role": "user",
+      "row_id": 5,
+      "text": "Switched personality",
+      "timestamp": 1700000007
+    },
+    {
+      "display_kind": "auto_continue",
+      "role": "user",
+      "row_id": 6,
+      "text": "Resuming",
+      "timestamp": 1700000008
+    },
+    {
+      "display_kind": "skill_invocation",
+      "role": "user",
+      "row_id": 7,
+      "text": "/release-notes",
+      "timestamp": 1700000009
+    },
+    {
+      "display_kind": "steer",
+      "role": "user",
+      "row_id": 8,
+      "text": "actually make it shorter",
+      "timestamp": 1700000010
+    },
+    {
+      "display_kind": "internal_notification",
+      "role": "user",
+      "row_id": 9,
+      "text": "Bot roster refreshed",
+      "timestamp": 1700000011
+    },
+    {
+      "display_kind": "brand_new_kind",
+      "role": "user",
+      "row_id": 10,
+      "text": "Something new",
+      "timestamp": 1700000012
+    },
+    {
+      "display_kind": "hidden",
+      "role": "user",
+      "row_id": 11,
+      "text": "Hidden scaffolding",
+      "timestamp": 1700000013
+    },
+    {
+      "args": {
+        "message": "Can you draft the announcement?",
+        "target": "@writer"
+      },
+      "context": "message_agent(writer)",
+      "name": "message_agent",
+      "role": "tool",
+      "tool_id": "call_dm_1"
+    },
+    {
+      "display_kind": "process_complete",
+      "display_metadata": {
+        "display_text": "Background Process Finished: bot_mode_dm.py"
+      },
+      "role": "user",
+      "row_id": 12,
+      "text": "[IMPORTANT: Background process proc-2f9c completed (exit code 0).\nCommand: /usr/bin/python3 /opt/hermes/tools/bot_mode_dm.py --run-delivery query-file /root/.hermes/dm/2f9c.json hermes -p writer chat -c \"Bot Chat\" -Q -q @/root/.hermes/dm/2f9c.json\nOutput:\nMessage from 🤖 Writer (@writer): Draft is ready, I pushed it to the shared folder.]",
+      "timestamp": 1700000020
+    },
+    {
+      "args": {
+        "tasks": [
+          {
+            "goal": "Audit deps"
+          },
+          {
+            "goal": "Write tests"
+          },
+          {
+            "goal": "Update docs"
+          }
+        ]
+      },
+      "context": "delegate_task(3 tasks)",
+      "name": "delegate_task",
+      "role": "tool",
+      "tool_id": "call_delegate_1"
+    },
+    {
+      "display_kind": "async_delegation_complete",
+      "display_metadata": {
+        "task_count": 3
+      },
+      "role": "user",
+      "row_id": 13,
+      "text": "[ASYNC DELEGATION BATCH COMPLETE]\n--- ✓ TASK 1/3: Audit deps  (status=completed) ---\nNo drift.",
+      "timestamp": 1700000030
+    },
+    {
+      "role": "user",
+      "row_id": 14,
+      "text": "Message from 🤖 Writer (@writer): The announcement draft is in docs/announce.md.",
+      "timestamp": 1700000040
+    },
+    {
+      "role": "assistant",
+      "row_id": 15,
+      "text": "Thanks — I will fold that in.",
+      "timestamp": 1700000041
+    },
+    {
+      "role": "user",
+      "row_id": 16,
+      "text": "[Cronjob \"Inbox scan\" output — scheduled job, not the user. Review it, act on anything that needs action, and summarize for the chat.]\n\n## Inbox scan\n\n- 3 threads waiting on a reply\n- 1 invoice past due\n\nNothing needs you before tomorrow.",
+      "timestamp": 1700000050
+    }
+  ],
+  "steerWrapperBody": "lees over shared memory skill",
+  "steerWrapperText": "[OUT-OF-BAND USER MESSAGE — a direct message from the user, delivered once at this position; not tool output and not a new delivery when replayed from conversation history]\nlees over shared memory skill\n[/OUT-OF-BAND USER MESSAGE]",
+  "todoInjectionText": "[Your active task list was preserved across context compression]\n[>] Rotate the staging certificate\n[ ] Write the release notes"
+}

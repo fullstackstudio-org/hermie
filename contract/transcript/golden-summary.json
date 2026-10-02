@@ -1,0 +1,384 @@
+{
+  "operations": {
+    "activityEntries": {
+      "readsClock": false,
+      "recorded": 7,
+      "replayable": 7,
+      "skipped": {}
+    },
+    "answerRequest": {
+      "readsClock": false,
+      "recorded": 9,
+      "replayable": 9,
+      "skipped": {}
+    },
+    "applyEvent": {
+      "readsClock": false,
+      "recorded": 1047,
+      "replayable": 1047,
+      "skipped": {}
+    },
+    "applyProcessCompletion": {
+      "readsClock": false,
+      "recorded": 3,
+      "replayable": 3,
+      "skipped": {}
+    },
+    "applyResumeSnapshot": {
+      "readsClock": false,
+      "recorded": 94,
+      "replayable": 94,
+      "skipped": {}
+    },
+    "applyServerRequest": {
+      "readsClock": false,
+      "recorded": 29,
+      "replayable": 29,
+      "skipped": {}
+    },
+    "applySubagentSnapshot": {
+      "readsClock": false,
+      "recorded": 4,
+      "replayable": 4,
+      "skipped": {}
+    },
+    "attachmentRefName": {
+      "readsClock": false,
+      "recorded": 4,
+      "replayable": 4,
+      "skipped": {}
+    },
+    "attachmentsMatchKey": {
+      "readsClock": false,
+      "recorded": 8,
+      "replayable": 8,
+      "skipped": {}
+    },
+    "beginLocalTurn": {
+      "readsClock": false,
+      "recorded": 180,
+      "replayable": 180,
+      "skipped": {}
+    },
+    "beginSteer": {
+      "readsClock": false,
+      "recorded": 4,
+      "replayable": 4,
+      "skipped": {}
+    },
+    "chatContextUsage": {
+      "readsClock": false,
+      "recorded": 5,
+      "replayable": 5,
+      "skipped": {}
+    },
+    "chatRowPreview": {
+      "readsClock": false,
+      "recorded": 4,
+      "replayable": 3,
+      "skipped": {
+        "args: function": 1
+      }
+    },
+    "classifyUserRow": {
+      "readsClock": false,
+      "recorded": 9,
+      "replayable": 9,
+      "skipped": {}
+    },
+    "confirmSubmit": {
+      "readsClock": false,
+      "recorded": 140,
+      "replayable": 140,
+      "skipped": {}
+    },
+    "contextUsageOf": {
+      "readsClock": false,
+      "recorded": 13,
+      "replayable": 11,
+      "skipped": {
+        "args: non-finite-number": 2
+      }
+    },
+    "contextUsageOfInfo": {
+      "readsClock": false,
+      "recorded": 2,
+      "replayable": 2,
+      "skipped": {}
+    },
+    "createChatState": {
+      "readsClock": false,
+      "recorded": 518,
+      "replayable": 518,
+      "skipped": {}
+    },
+    "deliveryTargetFromCommand": {
+      "readsClock": false,
+      "recorded": 3,
+      "replayable": 3,
+      "skipped": {}
+    },
+    "dispatchedTo": {
+      "readsClock": false,
+      "recorded": 5,
+      "replayable": 5,
+      "skipped": {}
+    },
+    "dropSteer": {
+      "readsClock": false,
+      "recorded": 2,
+      "replayable": 2,
+      "skipped": {}
+    },
+    "exportTranscript": {
+      "readsClock": false,
+      "recorded": 19,
+      "replayable": 1,
+      "skipped": {
+        "args: function": 18
+      }
+    },
+    "findDmCounterpart": {
+      "readsClock": false,
+      "recorded": 5,
+      "replayable": 5,
+      "skipped": {}
+    },
+    "formatTranscriptDiagnostics": {
+      "readsClock": false,
+      "recorded": 1,
+      "replayable": 1,
+      "skipped": {}
+    },
+    "isBotDmDeliveryCommand": {
+      "readsClock": false,
+      "recorded": 3,
+      "replayable": 3,
+      "skipped": {}
+    },
+    "isBotToBotItem": {
+      "readsClock": false,
+      "recorded": 12,
+      "replayable": 12,
+      "skipped": {}
+    },
+    "isBusy": {
+      "readsClock": false,
+      "recorded": 3,
+      "replayable": 3,
+      "skipped": {}
+    },
+    "isCronDelivery": {
+      "readsClock": false,
+      "recorded": 3,
+      "replayable": 3,
+      "skipped": {}
+    },
+    "isInjectedRow": {
+      "readsClock": false,
+      "recorded": 10,
+      "replayable": 10,
+      "skipped": {}
+    },
+    "itemsVersion": {
+      "readsClock": false,
+      "recorded": 3,
+      "replayable": 3,
+      "skipped": {}
+    },
+    "lastMessageAt": {
+      "readsClock": false,
+      "recorded": 2,
+      "replayable": 2,
+      "skipped": {}
+    },
+    "latestStatus": {
+      "readsClock": false,
+      "recorded": 2,
+      "replayable": 2,
+      "skipped": {}
+    },
+    "markInterrupted": {
+      "readsClock": false,
+      "recorded": 3,
+      "replayable": 3,
+      "skipped": {}
+    },
+    "normalizeAgentTarget": {
+      "readsClock": false,
+      "recorded": 7,
+      "replayable": 7,
+      "skipped": {}
+    },
+    "normalizedItemText": {
+      "readsClock": false,
+      "recorded": 9,
+      "replayable": 9,
+      "skipped": {}
+    },
+    "openRequests": {
+      "readsClock": false,
+      "recorded": 2,
+      "replayable": 2,
+      "skipped": {}
+    },
+    "parseCronDelivery": {
+      "readsClock": false,
+      "recorded": 31,
+      "replayable": 31,
+      "skipped": {}
+    },
+    "parseIncomingBotMessage": {
+      "readsClock": false,
+      "recorded": 5,
+      "replayable": 5,
+      "skipped": {}
+    },
+    "parseInjectedRow": {
+      "readsClock": false,
+      "recorded": 32,
+      "replayable": 32,
+      "skipped": {}
+    },
+    "parseMessageAgentResult": {
+      "readsClock": false,
+      "recorded": 5,
+      "replayable": 5,
+      "skipped": {}
+    },
+    "parseModelId": {
+      "readsClock": false,
+      "recorded": 7,
+      "replayable": 7,
+      "skipped": {}
+    },
+    "parseProcessCompleteText": {
+      "readsClock": false,
+      "recorded": 4,
+      "replayable": 4,
+      "skipped": {}
+    },
+    "prettyModelName": {
+      "readsClock": false,
+      "recorded": 45,
+      "replayable": 45,
+      "skipped": {}
+    },
+    "previewFromChat": {
+      "readsClock": false,
+      "recorded": 14,
+      "replayable": 9,
+      "skipped": {
+        "args: function": 5
+      }
+    },
+    "previewFromGatewayText": {
+      "readsClock": false,
+      "recorded": 11,
+      "replayable": 11,
+      "skipped": {}
+    },
+    "reconcile": {
+      "readsClock": false,
+      "recorded": 289,
+      "replayable": 289,
+      "skipped": {}
+    },
+    "reconcileTail": {
+      "readsClock": false,
+      "recorded": 261,
+      "replayable": 261,
+      "skipped": {}
+    },
+    "replyFromDeliveryOutput": {
+      "readsClock": false,
+      "recorded": 5,
+      "replayable": 5,
+      "skipped": {}
+    },
+    "rowsToItems": {
+      "readsClock": false,
+      "recorded": 611,
+      "replayable": 611,
+      "skipped": {}
+    },
+    "runningSubagents": {
+      "readsClock": false,
+      "recorded": 2,
+      "replayable": 2,
+      "skipped": {}
+    },
+    "snapshotForCache": {
+      "readsClock": false,
+      "recorded": 24,
+      "replayable": 24,
+      "skipped": {}
+    },
+    "stateFromCache": {
+      "readsClock": false,
+      "recorded": 19,
+      "replayable": 19,
+      "skipped": {}
+    },
+    "stripSteerWrapper": {
+      "readsClock": false,
+      "recorded": 7,
+      "replayable": 7,
+      "skipped": {}
+    },
+    "stripUserText": {
+      "readsClock": false,
+      "recorded": 3,
+      "replayable": 3,
+      "skipped": {}
+    },
+    "subagentTree": {
+      "readsClock": false,
+      "recorded": 1,
+      "replayable": 1,
+      "skipped": {}
+    },
+    "transcriptDiagnostics": {
+      "readsClock": false,
+      "recorded": 2,
+      "replayable": 2,
+      "skipped": {}
+    },
+    "transcriptFileName": {
+      "readsClock": false,
+      "recorded": 4,
+      "replayable": 4,
+      "skipped": {}
+    },
+    "turnActivity": {
+      "readsClock": false,
+      "recorded": 12,
+      "replayable": 12,
+      "skipped": {}
+    },
+    "unreadBadgeLabel": {
+      "readsClock": false,
+      "recorded": 4,
+      "replayable": 4,
+      "skipped": {}
+    },
+    "unreadCountSince": {
+      "readsClock": false,
+      "recorded": 8,
+      "replayable": 8,
+      "skipped": {}
+    },
+    "unwrapSystemNote": {
+      "readsClock": false,
+      "recorded": 5,
+      "replayable": 5,
+      "skipped": {}
+    },
+    "visibleItems": {
+      "readsClock": false,
+      "recorded": 54,
+      "replayable": 54,
+      "skipped": {}
+    }
+  }
+}

@@ -74,7 +74,12 @@ export default config(
       '**/*.config.js',
       '**/*.config.mjs',
       '**/*.config.ts',
-      'packages/*/src/cli.ts'
+      'packages/*/src/cli.ts',
+      // The golden-corpus tooling (`npm run golden`): generators and the
+      // transcript recorder, none of which runs in the app.
+      'scripts/golden/**/*.ts',
+      'packages/*/scripts/**/*.ts',
+      'packages/transcript/golden/**/*.ts'
     ],
     languageOptions: {
       globals: globals.node

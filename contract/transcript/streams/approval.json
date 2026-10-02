@@ -1,0 +1,2052 @@
+{
+  "checkpoints": [
+    {
+      "after": 6,
+      "label": "hydrated",
+      "visible": {
+        "normal": [
+          {
+            "item": {
+              "id": "r:1",
+              "kind": "user",
+              "origin": "history",
+              "rowId": 1,
+              "seq": 0,
+              "text": "Introduce yourself in one line.",
+              "ts": 1789999400,
+              "version": 0
+            },
+            "presentation": "full"
+          },
+          {
+            "item": {
+              "id": "r:2",
+              "interim": false,
+              "kind": "assistant",
+              "origin": "history",
+              "reasoning": "Keep it to one line.",
+              "rowId": 2,
+              "seq": 1000,
+              "status": "complete",
+              "streaming": false,
+              "text": "I am researcher, at your service.",
+              "ts": 1789999401,
+              "version": 0
+            },
+            "presentation": "full"
+          },
+          {
+            "item": {
+              "args": {
+                "path": "SOUL.md"
+              },
+              "context": "read_file(SOUL.md)",
+              "id": "t:call_read_researcher",
+              "kind": "tool",
+              "name": "read_file",
+              "origin": "history",
+              "resultKnown": false,
+              "seq": 2000,
+              "status": "complete",
+              "summary": "read_file(SOUL.md)",
+              "toolId": "call_read_researcher",
+              "version": 0
+            },
+            "presentation": "collapsed"
+          },
+          {
+            "item": {
+              "dispatch": {
+                "status": "queued"
+              },
+              "id": "t:call_dm_1",
+              "kind": "bot_dm_out",
+              "message": "Can you draft the announcement?",
+              "origin": "history",
+              "reply": {
+                "rowId": 3,
+                "text": "Draft is ready, I pushed it to the shared folder.",
+                "ts": 1789999460
+              },
+              "seq": 3000,
+              "target": "@writer",
+              "targetHandle": "writer",
+              "toolId": "call_dm_1",
+              "version": 1
+            },
+            "presentation": "collapsed"
+          },
+          {
+            "item": {
+              "id": "r:4",
+              "interim": false,
+              "kind": "assistant",
+              "origin": "history",
+              "rowId": 4,
+              "seq": 4000,
+              "status": "complete",
+              "streaming": false,
+              "text": "Thanks — I will fold that in.",
+              "ts": 1789999461,
+              "version": 0
+            },
+            "presentation": "full"
+          },
+          {
+            "item": {
+              "body": "### Source scan — 4 new items\n\n| Source | Item | Why it matters |\n| --- | --- | --- |\n| docs.example.com | Retry semantics rewritten | Contradicts our own guide |\n| status.example.org | Two incidents, both closed | No action |\n| blog.example.net | Long post on session resume | Worth reading in full |\n| docs.example.com | Changelog for 1.4 | Three flags renamed |\n\nThe first one needs a decision: our guide still documents the old behaviour.\n\nNothing else is urgent. Next scan in four hours.",
+              "id": "r:5",
+              "jobName": "Source scan",
+              "kind": "cron_delivery",
+              "origin": "history",
+              "rowId": 5,
+              "seq": 5000,
+              "shape": "bot_chat",
+              "ts": 1789999520,
+              "version": 0
+            },
+            "presentation": "full"
+          },
+          {
+            "item": {
+              "id": "r:6",
+              "interim": false,
+              "kind": "assistant",
+              "origin": "history",
+              "rowId": 6,
+              "seq": 6000,
+              "status": "complete",
+              "streaming": false,
+              "text": "## Retry semantics: what actually changed\n\nShort version: the backoff is now computed per attempt instead of per call, so a\nlong-running request no longer inherits the delay of the one before it.\n\n| Behaviour | Before | After |\n| --- | --- | --- |\n| First retry delay | 1s | 1s |\n| Second retry delay | 1s | 2s |\n| Ceiling | none | 30s |\n| Jitter | none | ±20% |\n| Budget | per call | per attempt |\n\nWhere this bites us:\n\n- The reconnect loop, which assumed a flat delay.\n  - It reads the delay once and caches it.\n  - Caching it is what makes the ceiling invisible.\n- The upload path, which retries on its own.\n  - Two retry budgets now overlap.\n    - Worst case is eight attempts where we documented three.\n- Nothing in the transcript path: it does not retry.\n\nThe shape we should move to:\n\n```ts\nexport function backoff(attempt: number): number {\n  const base = Math.min(2 ** attempt * 1000, 30_000)\n  // Jitter is not decoration: without it every client in a fleet retries\n  // on the same tick and the recovery looks like a second outage.\n  return base * (0.8 + Math.random() * 0.4)\n}\n\nexport async function withRetries<T>(run: () => Promise<T>, attempts = 3): Promise<T> {\n  for (let attempt = 0; ; attempt += 1) {\n    try {\n      return await run()\n    } catch (error) {\n      if (attempt >= attempts - 1) {\n        throw error\n      }\n\n      await new Promise(resolve => setTimeout(resolve, backoff(attempt)))\n    }\n  }\n}\n```\n\n> The ceiling matters more than the curve. A retry that waits four minutes is\n> indistinguishable from a hang.\n\nI would change the reconnect loop first — it is the one a user can see.",
+              "ts": 1789999540,
+              "version": 0
+            },
+            "presentation": "full"
+          }
+        ],
+        "quiet": [
+          {
+            "item": {
+              "id": "r:1",
+              "kind": "user",
+              "origin": "history",
+              "rowId": 1,
+              "seq": 0,
+              "text": "Introduce yourself in one line.",
+              "ts": 1789999400,
+              "version": 0
+            },
+            "presentation": "full"
+          },
+          {
+            "item": {
+              "id": "r:2",
+              "interim": false,
+              "kind": "assistant",
+              "origin": "history",
+              "reasoning": "Keep it to one line.",
+              "rowId": 2,
+              "seq": 1000,
+              "status": "complete",
+              "streaming": false,
+              "text": "I am researcher, at your service.",
+              "ts": 1789999401,
+              "version": 0
+            },
+            "presentation": "full"
+          },
+          {
+            "item": {
+              "dispatch": {
+                "status": "queued"
+              },
+              "id": "t:call_dm_1",
+              "kind": "bot_dm_out",
+              "message": "Can you draft the announcement?",
+              "origin": "history",
+              "reply": {
+                "rowId": 3,
+                "text": "Draft is ready, I pushed it to the shared folder.",
+                "ts": 1789999460
+              },
+              "seq": 3000,
+              "target": "@writer",
+              "targetHandle": "writer",
+              "toolId": "call_dm_1",
+              "version": 1
+            },
+            "presentation": "collapsed"
+          },
+          {
+            "item": {
+              "id": "r:4",
+              "interim": false,
+              "kind": "assistant",
+              "origin": "history",
+              "rowId": 4,
+              "seq": 4000,
+              "status": "complete",
+              "streaming": false,
+              "text": "Thanks — I will fold that in.",
+              "ts": 1789999461,
+              "version": 0
+            },
+            "presentation": "full"
+          },
+          {
+            "item": {
+              "body": "### Source scan — 4 new items\n\n| Source | Item | Why it matters |\n| --- | --- | --- |\n| docs.example.com | Retry semantics rewritten | Contradicts our own guide |\n| status.example.org | Two incidents, both closed | No action |\n| blog.example.net | Long post on session resume | Worth reading in full |\n| docs.example.com | Changelog for 1.4 | Three flags renamed |\n\nThe first one needs a decision: our guide still documents the old behaviour.\n\nNothing else is urgent. Next scan in four hours.",
+              "id": "r:5",
+              "jobName": "Source scan",
+              "kind": "cron_delivery",
+              "origin": "history",
+              "rowId": 5,
+              "seq": 5000,
+              "shape": "bot_chat",
+              "ts": 1789999520,
+              "version": 0
+            },
+            "presentation": "collapsed"
+          },
+          {
+            "item": {
+              "id": "r:6",
+              "interim": false,
+              "kind": "assistant",
+              "origin": "history",
+              "rowId": 6,
+              "seq": 6000,
+              "status": "complete",
+              "streaming": false,
+              "text": "## Retry semantics: what actually changed\n\nShort version: the backoff is now computed per attempt instead of per call, so a\nlong-running request no longer inherits the delay of the one before it.\n\n| Behaviour | Before | After |\n| --- | --- | --- |\n| First retry delay | 1s | 1s |\n| Second retry delay | 1s | 2s |\n| Ceiling | none | 30s |\n| Jitter | none | ±20% |\n| Budget | per call | per attempt |\n\nWhere this bites us:\n\n- The reconnect loop, which assumed a flat delay.\n  - It reads the delay once and caches it.\n  - Caching it is what makes the ceiling invisible.\n- The upload path, which retries on its own.\n  - Two retry budgets now overlap.\n    - Worst case is eight attempts where we documented three.\n- Nothing in the transcript path: it does not retry.\n\nThe shape we should move to:\n\n```ts\nexport function backoff(attempt: number): number {\n  const base = Math.min(2 ** attempt * 1000, 30_000)\n  // Jitter is not decoration: without it every client in a fleet retries\n  // on the same tick and the recovery looks like a second outage.\n  return base * (0.8 + Math.random() * 0.4)\n}\n\nexport async function withRetries<T>(run: () => Promise<T>, attempts = 3): Promise<T> {\n  for (let attempt = 0; ; attempt += 1) {\n    try {\n      return await run()\n    } catch (error) {\n      if (attempt >= attempts - 1) {\n        throw error\n      }\n\n      await new Promise(resolve => setTimeout(resolve, backoff(attempt)))\n    }\n  }\n}\n```\n\n> The ceiling matters more than the curve. A retry that waits four minutes is\n> indistinguishable from a hang.\n\nI would change the reconnect loop first — it is the one a user can see.",
+              "ts": 1789999540,
+              "version": 0
+            },
+            "presentation": "full"
+          }
+        ],
+        "verbose": [
+          {
+            "item": {
+              "id": "r:1",
+              "kind": "user",
+              "origin": "history",
+              "rowId": 1,
+              "seq": 0,
+              "text": "Introduce yourself in one line.",
+              "ts": 1789999400,
+              "version": 0
+            },
+            "presentation": "full"
+          },
+          {
+            "item": {
+              "id": "r:2",
+              "interim": false,
+              "kind": "assistant",
+              "origin": "history",
+              "reasoning": "Keep it to one line.",
+              "rowId": 2,
+              "seq": 1000,
+              "status": "complete",
+              "streaming": false,
+              "text": "I am researcher, at your service.",
+              "ts": 1789999401,
+              "version": 0
+            },
+            "presentation": "full"
+          },
+          {
+            "item": {
+              "args": {
+                "path": "SOUL.md"
+              },
+              "context": "read_file(SOUL.md)",
+              "id": "t:call_read_researcher",
+              "kind": "tool",
+              "name": "read_file",
+              "origin": "history",
+              "resultKnown": false,
+              "seq": 2000,
+              "status": "complete",
+              "summary": "read_file(SOUL.md)",
+              "toolId": "call_read_researcher",
+              "version": 0
+            },
+            "presentation": "full"
+          },
+          {
+            "item": {
+              "dispatch": {
+                "status": "queued"
+              },
+              "id": "t:call_dm_1",
+              "kind": "bot_dm_out",
+              "message": "Can you draft the announcement?",
+              "origin": "history",
+              "reply": {
+                "rowId": 3,
+                "text": "Draft is ready, I pushed it to the shared folder.",
+                "ts": 1789999460
+              },
+              "seq": 3000,
+              "target": "@writer",
+              "targetHandle": "writer",
+              "toolId": "call_dm_1",
+              "version": 1
+            },
+            "presentation": "collapsed"
+          },
+          {
+            "item": {
+              "id": "r:4",
+              "interim": false,
+              "kind": "assistant",
+              "origin": "history",
+              "rowId": 4,
+              "seq": 4000,
+              "status": "complete",
+              "streaming": false,
+              "text": "Thanks — I will fold that in.",
+              "ts": 1789999461,
+              "version": 0
+            },
+            "presentation": "full"
+          },
+          {
+            "item": {
+              "body": "### Source scan — 4 new items\n\n| Source | Item | Why it matters |\n| --- | --- | --- |\n| docs.example.com | Retry semantics rewritten | Contradicts our own guide |\n| status.example.org | Two incidents, both closed | No action |\n| blog.example.net | Long post on session resume | Worth reading in full |\n| docs.example.com | Changelog for 1.4 | Three flags renamed |\n\nThe first one needs a decision: our guide still documents the old behaviour.\n\nNothing else is urgent. Next scan in four hours.",
+              "id": "r:5",
+              "jobName": "Source scan",
+              "kind": "cron_delivery",
+              "origin": "history",
+              "rowId": 5,
+              "seq": 5000,
+              "shape": "bot_chat",
+              "ts": 1789999520,
+              "version": 0
+            },
+            "presentation": "full"
+          },
+          {
+            "item": {
+              "id": "r:6",
+              "interim": false,
+              "kind": "assistant",
+              "origin": "history",
+              "rowId": 6,
+              "seq": 6000,
+              "status": "complete",
+              "streaming": false,
+              "text": "## Retry semantics: what actually changed\n\nShort version: the backoff is now computed per attempt instead of per call, so a\nlong-running request no longer inherits the delay of the one before it.\n\n| Behaviour | Before | After |\n| --- | --- | --- |\n| First retry delay | 1s | 1s |\n| Second retry delay | 1s | 2s |\n| Ceiling | none | 30s |\n| Jitter | none | ±20% |\n| Budget | per call | per attempt |\n\nWhere this bites us:\n\n- The reconnect loop, which assumed a flat delay.\n  - It reads the delay once and caches it.\n  - Caching it is what makes the ceiling invisible.\n- The upload path, which retries on its own.\n  - Two retry budgets now overlap.\n    - Worst case is eight attempts where we documented three.\n- Nothing in the transcript path: it does not retry.\n\nThe shape we should move to:\n\n```ts\nexport function backoff(attempt: number): number {\n  const base = Math.min(2 ** attempt * 1000, 30_000)\n  // Jitter is not decoration: without it every client in a fleet retries\n  // on the same tick and the recovery looks like a second outage.\n  return base * (0.8 + Math.random() * 0.4)\n}\n\nexport async function withRetries<T>(run: () => Promise<T>, attempts = 3): Promise<T> {\n  for (let attempt = 0; ; attempt += 1) {\n    try {\n      return await run()\n    } catch (error) {\n      if (attempt >= attempts - 1) {\n        throw error\n      }\n\n      await new Promise(resolve => setTimeout(resolve, backoff(attempt)))\n    }\n  }\n}\n```\n\n> The ceiling matters more than the curve. A retry that waits four minutes is\n> indistinguishable from a hang.\n\nI would change the reconnect loop first — it is the one a user can see.",
+              "ts": 1789999540,
+              "version": 0
+            },
+            "presentation": "full"
+          }
+        ]
+      }
+    },
+    {
+      "after": 20,
+      "label": "settled",
+      "visible": {
+        "normal": [
+          {
+            "item": {
+              "id": "r:1",
+              "kind": "user",
+              "origin": "history",
+              "rowId": 1,
+              "seq": 0,
+              "text": "Introduce yourself in one line.",
+              "ts": 1789999400,
+              "version": 0
+            },
+            "presentation": "full"
+          },
+          {
+            "item": {
+              "id": "r:2",
+              "interim": false,
+              "kind": "assistant",
+              "origin": "history",
+              "reasoning": "Keep it to one line.",
+              "rowId": 2,
+              "seq": 1000,
+              "status": "complete",
+              "streaming": false,
+              "text": "I am researcher, at your service.",
+              "ts": 1789999401,
+              "version": 0
+            },
+            "presentation": "full"
+          },
+          {
+            "item": {
+              "args": {
+                "path": "SOUL.md"
+              },
+              "context": "read_file(SOUL.md)",
+              "id": "t:call_read_researcher",
+              "kind": "tool",
+              "name": "read_file",
+              "origin": "history",
+              "resultKnown": false,
+              "seq": 2000,
+              "status": "complete",
+              "summary": "read_file(SOUL.md)",
+              "toolId": "call_read_researcher",
+              "version": 0
+            },
+            "presentation": "collapsed"
+          },
+          {
+            "item": {
+              "dispatch": {
+                "status": "queued"
+              },
+              "id": "t:call_dm_1",
+              "kind": "bot_dm_out",
+              "message": "Can you draft the announcement?",
+              "origin": "history",
+              "reply": {
+                "rowId": 3,
+                "text": "Draft is ready, I pushed it to the shared folder.",
+                "ts": 1789999460
+              },
+              "seq": 3000,
+              "target": "@writer",
+              "targetHandle": "writer",
+              "toolId": "call_dm_1",
+              "version": 1
+            },
+            "presentation": "collapsed"
+          },
+          {
+            "item": {
+              "id": "r:4",
+              "interim": false,
+              "kind": "assistant",
+              "origin": "history",
+              "rowId": 4,
+              "seq": 4000,
+              "status": "complete",
+              "streaming": false,
+              "text": "Thanks — I will fold that in.",
+              "ts": 1789999461,
+              "version": 0
+            },
+            "presentation": "full"
+          },
+          {
+            "item": {
+              "body": "### Source scan — 4 new items\n\n| Source | Item | Why it matters |\n| --- | --- | --- |\n| docs.example.com | Retry semantics rewritten | Contradicts our own guide |\n| status.example.org | Two incidents, both closed | No action |\n| blog.example.net | Long post on session resume | Worth reading in full |\n| docs.example.com | Changelog for 1.4 | Three flags renamed |\n\nThe first one needs a decision: our guide still documents the old behaviour.\n\nNothing else is urgent. Next scan in four hours.",
+              "id": "r:5",
+              "jobName": "Source scan",
+              "kind": "cron_delivery",
+              "origin": "history",
+              "rowId": 5,
+              "seq": 5000,
+              "shape": "bot_chat",
+              "ts": 1789999520,
+              "version": 0
+            },
+            "presentation": "full"
+          },
+          {
+            "item": {
+              "id": "r:6",
+              "interim": false,
+              "kind": "assistant",
+              "origin": "history",
+              "rowId": 6,
+              "seq": 6000,
+              "status": "complete",
+              "streaming": false,
+              "text": "## Retry semantics: what actually changed\n\nShort version: the backoff is now computed per attempt instead of per call, so a\nlong-running request no longer inherits the delay of the one before it.\n\n| Behaviour | Before | After |\n| --- | --- | --- |\n| First retry delay | 1s | 1s |\n| Second retry delay | 1s | 2s |\n| Ceiling | none | 30s |\n| Jitter | none | ±20% |\n| Budget | per call | per attempt |\n\nWhere this bites us:\n\n- The reconnect loop, which assumed a flat delay.\n  - It reads the delay once and caches it.\n  - Caching it is what makes the ceiling invisible.\n- The upload path, which retries on its own.\n  - Two retry budgets now overlap.\n    - Worst case is eight attempts where we documented three.\n- Nothing in the transcript path: it does not retry.\n\nThe shape we should move to:\n\n```ts\nexport function backoff(attempt: number): number {\n  const base = Math.min(2 ** attempt * 1000, 30_000)\n  // Jitter is not decoration: without it every client in a fleet retries\n  // on the same tick and the recovery looks like a second outage.\n  return base * (0.8 + Math.random() * 0.4)\n}\n\nexport async function withRetries<T>(run: () => Promise<T>, attempts = 3): Promise<T> {\n  for (let attempt = 0; ; attempt += 1) {\n    try {\n      return await run()\n    } catch (error) {\n      if (attempt >= attempts - 1) {\n        throw error\n      }\n\n      await new Promise(resolve => setTimeout(resolve, backoff(attempt)))\n    }\n  }\n}\n```\n\n> The ceiling matters more than the curve. A retry that waits four minutes is\n> indistinguishable from a hang.\n\nI would change the reconnect loop first — it is the one a user can see.",
+              "ts": 1789999540,
+              "version": 0
+            },
+            "presentation": "full"
+          },
+          {
+            "item": {
+              "id": "o:7000",
+              "kind": "user",
+              "origin": "optimistic",
+              "pending": false,
+              "seq": 7000,
+              "text": "please approve this cleanup",
+              "ts": 1790000006,
+              "version": 1
+            },
+            "presentation": "full"
+          },
+          {
+            "item": {
+              "durationS": 11,
+              "id": "a:8000",
+              "interim": false,
+              "kind": "assistant",
+              "origin": "live",
+              "reasoning": "Checked the README.",
+              "seq": 8000,
+              "status": "complete",
+              "streaming": false,
+              "text": "Looking that up for you.",
+              "ts": 1790000009,
+              "usage": {
+                "input": 12,
+                "output": 34,
+                "total": 46
+              },
+              "version": 7
+            },
+            "presentation": "full"
+          },
+          {
+            "item": {
+              "args": {
+                "path": "README.md"
+              },
+              "context": "read README.md",
+              "durationS": 0.2,
+              "id": "t:tool-167f352a",
+              "isError": false,
+              "kind": "tool",
+              "name": "read_file",
+              "origin": "live",
+              "result": "# Hermie",
+              "resultKnown": true,
+              "seq": 9000,
+              "status": "complete",
+              "summary": "read README.md",
+              "toolId": "tool-167f352a",
+              "ts": 1790000015,
+              "version": 1
+            },
+            "presentation": "collapsed"
+          },
+          {
+            "item": {
+              "allowPermanent": true,
+              "allowSession": true,
+              "answer": "once",
+              "approvalId": "appr-a2fedc71",
+              "choices": [
+                "once",
+                "session",
+                "always",
+                "deny"
+              ],
+              "command": "rm -rf ./build",
+              "description": "Remove the build directory",
+              "id": "req:srq-1",
+              "kind": "approval",
+              "origin": "live",
+              "requestId": "srq-1",
+              "seq": 10000,
+              "state": "answered",
+              "toolName": "run_command",
+              "ts": 1790000017,
+              "version": 1
+            },
+            "presentation": "full"
+          }
+        ],
+        "quiet": [
+          {
+            "item": {
+              "id": "r:1",
+              "kind": "user",
+              "origin": "history",
+              "rowId": 1,
+              "seq": 0,
+              "text": "Introduce yourself in one line.",
+              "ts": 1789999400,
+              "version": 0
+            },
+            "presentation": "full"
+          },
+          {
+            "item": {
+              "id": "r:2",
+              "interim": false,
+              "kind": "assistant",
+              "origin": "history",
+              "reasoning": "Keep it to one line.",
+              "rowId": 2,
+              "seq": 1000,
+              "status": "complete",
+              "streaming": false,
+              "text": "I am researcher, at your service.",
+              "ts": 1789999401,
+              "version": 0
+            },
+            "presentation": "full"
+          },
+          {
+            "item": {
+              "dispatch": {
+                "status": "queued"
+              },
+              "id": "t:call_dm_1",
+              "kind": "bot_dm_out",
+              "message": "Can you draft the announcement?",
+              "origin": "history",
+              "reply": {
+                "rowId": 3,
+                "text": "Draft is ready, I pushed it to the shared folder.",
+                "ts": 1789999460
+              },
+              "seq": 3000,
+              "target": "@writer",
+              "targetHandle": "writer",
+              "toolId": "call_dm_1",
+              "version": 1
+            },
+            "presentation": "collapsed"
+          },
+          {
+            "item": {
+              "id": "r:4",
+              "interim": false,
+              "kind": "assistant",
+              "origin": "history",
+              "rowId": 4,
+              "seq": 4000,
+              "status": "complete",
+              "streaming": false,
+              "text": "Thanks — I will fold that in.",
+              "ts": 1789999461,
+              "version": 0
+            },
+            "presentation": "full"
+          },
+          {
+            "item": {
+              "body": "### Source scan — 4 new items\n\n| Source | Item | Why it matters |\n| --- | --- | --- |\n| docs.example.com | Retry semantics rewritten | Contradicts our own guide |\n| status.example.org | Two incidents, both closed | No action |\n| blog.example.net | Long post on session resume | Worth reading in full |\n| docs.example.com | Changelog for 1.4 | Three flags renamed |\n\nThe first one needs a decision: our guide still documents the old behaviour.\n\nNothing else is urgent. Next scan in four hours.",
+              "id": "r:5",
+              "jobName": "Source scan",
+              "kind": "cron_delivery",
+              "origin": "history",
+              "rowId": 5,
+              "seq": 5000,
+              "shape": "bot_chat",
+              "ts": 1789999520,
+              "version": 0
+            },
+            "presentation": "collapsed"
+          },
+          {
+            "item": {
+              "id": "r:6",
+              "interim": false,
+              "kind": "assistant",
+              "origin": "history",
+              "rowId": 6,
+              "seq": 6000,
+              "status": "complete",
+              "streaming": false,
+              "text": "## Retry semantics: what actually changed\n\nShort version: the backoff is now computed per attempt instead of per call, so a\nlong-running request no longer inherits the delay of the one before it.\n\n| Behaviour | Before | After |\n| --- | --- | --- |\n| First retry delay | 1s | 1s |\n| Second retry delay | 1s | 2s |\n| Ceiling | none | 30s |\n| Jitter | none | ±20% |\n| Budget | per call | per attempt |\n\nWhere this bites us:\n\n- The reconnect loop, which assumed a flat delay.\n  - It reads the delay once and caches it.\n  - Caching it is what makes the ceiling invisible.\n- The upload path, which retries on its own.\n  - Two retry budgets now overlap.\n    - Worst case is eight attempts where we documented three.\n- Nothing in the transcript path: it does not retry.\n\nThe shape we should move to:\n\n```ts\nexport function backoff(attempt: number): number {\n  const base = Math.min(2 ** attempt * 1000, 30_000)\n  // Jitter is not decoration: without it every client in a fleet retries\n  // on the same tick and the recovery looks like a second outage.\n  return base * (0.8 + Math.random() * 0.4)\n}\n\nexport async function withRetries<T>(run: () => Promise<T>, attempts = 3): Promise<T> {\n  for (let attempt = 0; ; attempt += 1) {\n    try {\n      return await run()\n    } catch (error) {\n      if (attempt >= attempts - 1) {\n        throw error\n      }\n\n      await new Promise(resolve => setTimeout(resolve, backoff(attempt)))\n    }\n  }\n}\n```\n\n> The ceiling matters more than the curve. A retry that waits four minutes is\n> indistinguishable from a hang.\n\nI would change the reconnect loop first — it is the one a user can see.",
+              "ts": 1789999540,
+              "version": 0
+            },
+            "presentation": "full"
+          },
+          {
+            "item": {
+              "id": "o:7000",
+              "kind": "user",
+              "origin": "optimistic",
+              "pending": false,
+              "seq": 7000,
+              "text": "please approve this cleanup",
+              "ts": 1790000006,
+              "version": 1
+            },
+            "presentation": "full"
+          },
+          {
+            "item": {
+              "durationS": 11,
+              "id": "a:8000",
+              "interim": false,
+              "kind": "assistant",
+              "origin": "live",
+              "reasoning": "Checked the README.",
+              "seq": 8000,
+              "status": "complete",
+              "streaming": false,
+              "text": "Looking that up for you.",
+              "ts": 1790000009,
+              "usage": {
+                "input": 12,
+                "output": 34,
+                "total": 46
+              },
+              "version": 7
+            },
+            "presentation": "full"
+          },
+          {
+            "item": {
+              "allowPermanent": true,
+              "allowSession": true,
+              "answer": "once",
+              "approvalId": "appr-a2fedc71",
+              "choices": [
+                "once",
+                "session",
+                "always",
+                "deny"
+              ],
+              "command": "rm -rf ./build",
+              "description": "Remove the build directory",
+              "id": "req:srq-1",
+              "kind": "approval",
+              "origin": "live",
+              "requestId": "srq-1",
+              "seq": 10000,
+              "state": "answered",
+              "toolName": "run_command",
+              "ts": 1790000017,
+              "version": 1
+            },
+            "presentation": "full"
+          }
+        ],
+        "verbose": [
+          {
+            "item": {
+              "id": "r:1",
+              "kind": "user",
+              "origin": "history",
+              "rowId": 1,
+              "seq": 0,
+              "text": "Introduce yourself in one line.",
+              "ts": 1789999400,
+              "version": 0
+            },
+            "presentation": "full"
+          },
+          {
+            "item": {
+              "id": "r:2",
+              "interim": false,
+              "kind": "assistant",
+              "origin": "history",
+              "reasoning": "Keep it to one line.",
+              "rowId": 2,
+              "seq": 1000,
+              "status": "complete",
+              "streaming": false,
+              "text": "I am researcher, at your service.",
+              "ts": 1789999401,
+              "version": 0
+            },
+            "presentation": "full"
+          },
+          {
+            "item": {
+              "args": {
+                "path": "SOUL.md"
+              },
+              "context": "read_file(SOUL.md)",
+              "id": "t:call_read_researcher",
+              "kind": "tool",
+              "name": "read_file",
+              "origin": "history",
+              "resultKnown": false,
+              "seq": 2000,
+              "status": "complete",
+              "summary": "read_file(SOUL.md)",
+              "toolId": "call_read_researcher",
+              "version": 0
+            },
+            "presentation": "full"
+          },
+          {
+            "item": {
+              "dispatch": {
+                "status": "queued"
+              },
+              "id": "t:call_dm_1",
+              "kind": "bot_dm_out",
+              "message": "Can you draft the announcement?",
+              "origin": "history",
+              "reply": {
+                "rowId": 3,
+                "text": "Draft is ready, I pushed it to the shared folder.",
+                "ts": 1789999460
+              },
+              "seq": 3000,
+              "target": "@writer",
+              "targetHandle": "writer",
+              "toolId": "call_dm_1",
+              "version": 1
+            },
+            "presentation": "collapsed"
+          },
+          {
+            "item": {
+              "id": "r:4",
+              "interim": false,
+              "kind": "assistant",
+              "origin": "history",
+              "rowId": 4,
+              "seq": 4000,
+              "status": "complete",
+              "streaming": false,
+              "text": "Thanks — I will fold that in.",
+              "ts": 1789999461,
+              "version": 0
+            },
+            "presentation": "full"
+          },
+          {
+            "item": {
+              "body": "### Source scan — 4 new items\n\n| Source | Item | Why it matters |\n| --- | --- | --- |\n| docs.example.com | Retry semantics rewritten | Contradicts our own guide |\n| status.example.org | Two incidents, both closed | No action |\n| blog.example.net | Long post on session resume | Worth reading in full |\n| docs.example.com | Changelog for 1.4 | Three flags renamed |\n\nThe first one needs a decision: our guide still documents the old behaviour.\n\nNothing else is urgent. Next scan in four hours.",
+              "id": "r:5",
+              "jobName": "Source scan",
+              "kind": "cron_delivery",
+              "origin": "history",
+              "rowId": 5,
+              "seq": 5000,
+              "shape": "bot_chat",
+              "ts": 1789999520,
+              "version": 0
+            },
+            "presentation": "full"
+          },
+          {
+            "item": {
+              "id": "r:6",
+              "interim": false,
+              "kind": "assistant",
+              "origin": "history",
+              "rowId": 6,
+              "seq": 6000,
+              "status": "complete",
+              "streaming": false,
+              "text": "## Retry semantics: what actually changed\n\nShort version: the backoff is now computed per attempt instead of per call, so a\nlong-running request no longer inherits the delay of the one before it.\n\n| Behaviour | Before | After |\n| --- | --- | --- |\n| First retry delay | 1s | 1s |\n| Second retry delay | 1s | 2s |\n| Ceiling | none | 30s |\n| Jitter | none | ±20% |\n| Budget | per call | per attempt |\n\nWhere this bites us:\n\n- The reconnect loop, which assumed a flat delay.\n  - It reads the delay once and caches it.\n  - Caching it is what makes the ceiling invisible.\n- The upload path, which retries on its own.\n  - Two retry budgets now overlap.\n    - Worst case is eight attempts where we documented three.\n- Nothing in the transcript path: it does not retry.\n\nThe shape we should move to:\n\n```ts\nexport function backoff(attempt: number): number {\n  const base = Math.min(2 ** attempt * 1000, 30_000)\n  // Jitter is not decoration: without it every client in a fleet retries\n  // on the same tick and the recovery looks like a second outage.\n  return base * (0.8 + Math.random() * 0.4)\n}\n\nexport async function withRetries<T>(run: () => Promise<T>, attempts = 3): Promise<T> {\n  for (let attempt = 0; ; attempt += 1) {\n    try {\n      return await run()\n    } catch (error) {\n      if (attempt >= attempts - 1) {\n        throw error\n      }\n\n      await new Promise(resolve => setTimeout(resolve, backoff(attempt)))\n    }\n  }\n}\n```\n\n> The ceiling matters more than the curve. A retry that waits four minutes is\n> indistinguishable from a hang.\n\nI would change the reconnect loop first — it is the one a user can see.",
+              "ts": 1789999540,
+              "version": 0
+            },
+            "presentation": "full"
+          },
+          {
+            "item": {
+              "id": "o:7000",
+              "kind": "user",
+              "origin": "optimistic",
+              "pending": false,
+              "seq": 7000,
+              "text": "please approve this cleanup",
+              "ts": 1790000006,
+              "version": 1
+            },
+            "presentation": "full"
+          },
+          {
+            "item": {
+              "durationS": 11,
+              "id": "a:8000",
+              "interim": false,
+              "kind": "assistant",
+              "origin": "live",
+              "reasoning": "Checked the README.",
+              "seq": 8000,
+              "status": "complete",
+              "streaming": false,
+              "text": "Looking that up for you.",
+              "ts": 1790000009,
+              "usage": {
+                "input": 12,
+                "output": 34,
+                "total": 46
+              },
+              "version": 7
+            },
+            "presentation": "full"
+          },
+          {
+            "item": {
+              "args": {
+                "path": "README.md"
+              },
+              "context": "read README.md",
+              "durationS": 0.2,
+              "id": "t:tool-167f352a",
+              "isError": false,
+              "kind": "tool",
+              "name": "read_file",
+              "origin": "live",
+              "result": "# Hermie",
+              "resultKnown": true,
+              "seq": 9000,
+              "status": "complete",
+              "summary": "read README.md",
+              "toolId": "tool-167f352a",
+              "ts": 1790000015,
+              "version": 1
+            },
+            "presentation": "full"
+          },
+          {
+            "item": {
+              "allowPermanent": true,
+              "allowSession": true,
+              "answer": "once",
+              "approvalId": "appr-a2fedc71",
+              "choices": [
+                "once",
+                "session",
+                "always",
+                "deny"
+              ],
+              "command": "rm -rf ./build",
+              "description": "Remove the build directory",
+              "id": "req:srq-1",
+              "kind": "approval",
+              "origin": "live",
+              "requestId": "srq-1",
+              "seq": 10000,
+              "state": "answered",
+              "toolName": "run_command",
+              "ts": 1790000017,
+              "version": 1
+            },
+            "presentation": "full"
+          }
+        ]
+      }
+    }
+  ],
+  "description": "The turn parks on a server→client approval; the client answers \"once\" and the turn completes.",
+  "final": {
+    "botName": "researcher",
+    "byApprovalId": {
+      "appr-a2fedc71": "req:srq-1"
+    },
+    "byDelegationId": {},
+    "byProcessId": {},
+    "byRequestId": {
+      "srq-1": "req:srq-1"
+    },
+    "byRowId": {
+      "1": "r:1",
+      "2": "r:2",
+      "4": "r:4",
+      "5": "r:5",
+      "6": "r:6"
+    },
+    "byToolId": {
+      "call_dm_1": "t:call_dm_1",
+      "call_read_researcher": "t:call_read_researcher",
+      "tool-167f352a": "t:tool-167f352a"
+    },
+    "compacting": false,
+    "draft": "",
+    "epoch": "715709ff-5bcb-42ea-855b-efde4961226d",
+    "hydration": "live",
+    "info": {
+      "approval_mode": "ask",
+      "cwd": "/root/projects/researcher",
+      "desktop_contract": 7,
+      "fast": false,
+      "model": "example-provider/example-model",
+      "profile_name": "researcher",
+      "provider": "example-provider",
+      "reasoning_effort": "medium",
+      "running": false,
+      "stored_session_id": "stored-researcher-45a8698b",
+      "title": "Bot Chat",
+      "usage": {
+        "calls": 8,
+        "context_estimated": false,
+        "context_max": 200000,
+        "context_percent": 2.6,
+        "context_source": "model catalog",
+        "context_used": 5160,
+        "input": 2080,
+        "model": "example-provider/example-model",
+        "output": 1280,
+        "total": 3360
+      },
+      "version": "0.21.3-fake",
+      "yolo": false
+    },
+    "items": {
+      "a:8000": {
+        "durationS": 11,
+        "id": "a:8000",
+        "interim": false,
+        "kind": "assistant",
+        "origin": "live",
+        "reasoning": "Checked the README.",
+        "seq": 8000,
+        "status": "complete",
+        "streaming": false,
+        "text": "Looking that up for you.",
+        "ts": 1790000009,
+        "usage": {
+          "input": 12,
+          "output": 34,
+          "total": 46
+        },
+        "version": 7
+      },
+      "o:7000": {
+        "id": "o:7000",
+        "kind": "user",
+        "origin": "optimistic",
+        "pending": false,
+        "seq": 7000,
+        "text": "please approve this cleanup",
+        "ts": 1790000006,
+        "version": 1
+      },
+      "r:1": {
+        "id": "r:1",
+        "kind": "user",
+        "origin": "history",
+        "rowId": 1,
+        "seq": 0,
+        "text": "Introduce yourself in one line.",
+        "ts": 1789999400,
+        "version": 0
+      },
+      "r:2": {
+        "id": "r:2",
+        "interim": false,
+        "kind": "assistant",
+        "origin": "history",
+        "reasoning": "Keep it to one line.",
+        "rowId": 2,
+        "seq": 1000,
+        "status": "complete",
+        "streaming": false,
+        "text": "I am researcher, at your service.",
+        "ts": 1789999401,
+        "version": 0
+      },
+      "r:4": {
+        "id": "r:4",
+        "interim": false,
+        "kind": "assistant",
+        "origin": "history",
+        "rowId": 4,
+        "seq": 4000,
+        "status": "complete",
+        "streaming": false,
+        "text": "Thanks — I will fold that in.",
+        "ts": 1789999461,
+        "version": 0
+      },
+      "r:5": {
+        "body": "### Source scan — 4 new items\n\n| Source | Item | Why it matters |\n| --- | --- | --- |\n| docs.example.com | Retry semantics rewritten | Contradicts our own guide |\n| status.example.org | Two incidents, both closed | No action |\n| blog.example.net | Long post on session resume | Worth reading in full |\n| docs.example.com | Changelog for 1.4 | Three flags renamed |\n\nThe first one needs a decision: our guide still documents the old behaviour.\n\nNothing else is urgent. Next scan in four hours.",
+        "id": "r:5",
+        "jobName": "Source scan",
+        "kind": "cron_delivery",
+        "origin": "history",
+        "rowId": 5,
+        "seq": 5000,
+        "shape": "bot_chat",
+        "ts": 1789999520,
+        "version": 0
+      },
+      "r:6": {
+        "id": "r:6",
+        "interim": false,
+        "kind": "assistant",
+        "origin": "history",
+        "rowId": 6,
+        "seq": 6000,
+        "status": "complete",
+        "streaming": false,
+        "text": "## Retry semantics: what actually changed\n\nShort version: the backoff is now computed per attempt instead of per call, so a\nlong-running request no longer inherits the delay of the one before it.\n\n| Behaviour | Before | After |\n| --- | --- | --- |\n| First retry delay | 1s | 1s |\n| Second retry delay | 1s | 2s |\n| Ceiling | none | 30s |\n| Jitter | none | ±20% |\n| Budget | per call | per attempt |\n\nWhere this bites us:\n\n- The reconnect loop, which assumed a flat delay.\n  - It reads the delay once and caches it.\n  - Caching it is what makes the ceiling invisible.\n- The upload path, which retries on its own.\n  - Two retry budgets now overlap.\n    - Worst case is eight attempts where we documented three.\n- Nothing in the transcript path: it does not retry.\n\nThe shape we should move to:\n\n```ts\nexport function backoff(attempt: number): number {\n  const base = Math.min(2 ** attempt * 1000, 30_000)\n  // Jitter is not decoration: without it every client in a fleet retries\n  // on the same tick and the recovery looks like a second outage.\n  return base * (0.8 + Math.random() * 0.4)\n}\n\nexport async function withRetries<T>(run: () => Promise<T>, attempts = 3): Promise<T> {\n  for (let attempt = 0; ; attempt += 1) {\n    try {\n      return await run()\n    } catch (error) {\n      if (attempt >= attempts - 1) {\n        throw error\n      }\n\n      await new Promise(resolve => setTimeout(resolve, backoff(attempt)))\n    }\n  }\n}\n```\n\n> The ceiling matters more than the curve. A retry that waits four minutes is\n> indistinguishable from a hang.\n\nI would change the reconnect loop first — it is the one a user can see.",
+        "ts": 1789999540,
+        "version": 0
+      },
+      "req:srq-1": {
+        "allowPermanent": true,
+        "allowSession": true,
+        "answer": "once",
+        "approvalId": "appr-a2fedc71",
+        "choices": [
+          "once",
+          "session",
+          "always",
+          "deny"
+        ],
+        "command": "rm -rf ./build",
+        "description": "Remove the build directory",
+        "id": "req:srq-1",
+        "kind": "approval",
+        "origin": "live",
+        "requestId": "srq-1",
+        "seq": 10000,
+        "state": "answered",
+        "toolName": "run_command",
+        "ts": 1790000017,
+        "version": 1
+      },
+      "t:call_dm_1": {
+        "dispatch": {
+          "status": "queued"
+        },
+        "id": "t:call_dm_1",
+        "kind": "bot_dm_out",
+        "message": "Can you draft the announcement?",
+        "origin": "history",
+        "reply": {
+          "rowId": 3,
+          "text": "Draft is ready, I pushed it to the shared folder.",
+          "ts": 1789999460
+        },
+        "seq": 3000,
+        "target": "@writer",
+        "targetHandle": "writer",
+        "toolId": "call_dm_1",
+        "version": 1
+      },
+      "t:call_read_researcher": {
+        "args": {
+          "path": "SOUL.md"
+        },
+        "context": "read_file(SOUL.md)",
+        "id": "t:call_read_researcher",
+        "kind": "tool",
+        "name": "read_file",
+        "origin": "history",
+        "resultKnown": false,
+        "seq": 2000,
+        "status": "complete",
+        "summary": "read_file(SOUL.md)",
+        "toolId": "call_read_researcher",
+        "version": 0
+      },
+      "t:tool-167f352a": {
+        "args": {
+          "path": "README.md"
+        },
+        "context": "read README.md",
+        "durationS": 0.2,
+        "id": "t:tool-167f352a",
+        "isError": false,
+        "kind": "tool",
+        "name": "read_file",
+        "origin": "live",
+        "result": "# Hermie",
+        "resultKnown": true,
+        "seq": 9000,
+        "status": "complete",
+        "summary": "read README.md",
+        "toolId": "tool-167f352a",
+        "ts": 1790000015,
+        "version": 1
+      }
+    },
+    "lastSeq": 10,
+    "lastSeqSessionId": "runtime-4a31c816",
+    "order": [
+      "r:1",
+      "r:2",
+      "t:call_read_researcher",
+      "t:call_dm_1",
+      "r:4",
+      "r:5",
+      "r:6",
+      "o:7000",
+      "a:8000",
+      "t:tool-167f352a",
+      "req:srq-1"
+    ],
+    "resolvedSessionId": "stored-researcher-45a8698b",
+    "runtimeSessionId": "runtime-4a31c816",
+    "storedSessionId": "stored-researcher-45a8698b",
+    "subagents": {},
+    "turn": {
+      "active": false,
+      "interrupted": false,
+      "local": false,
+      "nextSeq": 11000
+    },
+    "unreadCount": 0,
+    "usage": {
+      "input": 12,
+      "output": 34,
+      "total": 46
+    }
+  },
+  "frames": [
+    {
+      "connection": 1,
+      "frame": {
+        "jsonrpc": "2.0",
+        "method": "event",
+        "params": {
+          "payload": {
+            "change_events": true,
+            "heartbeat": true,
+            "replay_epoch": "715709ff-5bcb-42ea-855b-efde4961226d",
+            "skin": {}
+          },
+          "type": "gateway.ready"
+        }
+      }
+    },
+    {
+      "connection": 1,
+      "frame": {
+        "id": "c-1",
+        "jsonrpc": "2.0",
+        "result": {
+          "bot_mode_protocol": true,
+          "profiles": [
+            {
+              "canonical_session": {
+                "id": "stored-researcher-45a8698b",
+                "last_active": 1789999940,
+                "message_count": 8,
+                "preview": "## Retry semantics: what actually changed\n\nShort version: the backoff is now computed per attempt instead of per call, so a\nlong-running request no longer inherits the delay of the one before it.\n\n| Behaviour | Before | After |\n| --- | --- | --- |\n| First retry delay | 1s | 1s |\n| Second retry delay | 1s | 2s |\n| Ceiling | none | 30s |\n| Jitter | none | ±20% |\n| Budget | per call | per attempt |\n\nWhere this bites us:\n\n- The reconnect loop, which assumed a flat delay.\n  - It reads the delay once and caches it.\n  - Caching it is what makes the ceiling invisible.\n- The upload path, which retries on its own.\n  - Two retry budgets now overlap.\n    - Worst case is eight attempts where we documented three.\n- Nothing in the transcript path: it does not retry.\n\nThe shape we should move to:\n\n```ts\nexport function backoff(attempt: number): number {\n  const base = Math.min(2 ** attempt * 1000, 30_000)\n  // Jitter is not decoration: without it every client in a fleet retries\n  // on the same tick and the recovery looks like a second outage.\n  return base * (0.8 + Math.random() * 0.4)\n}\n\nexport async function withRetries<T>(run: () => Promise<T>, attempts = 3): Promise<T> {\n  for (let attempt = 0; ; attempt += 1) {\n    try {\n      return await run()\n    } catch (error) {\n      if (attempt >= attempts - 1) {\n        throw error\n      }\n\n      await new Promise(resolve => setTimeout(resolve, backoff(attempt)))\n    }\n  }\n}\n```\n\n> The ceiling matters more than the curve. A retry that waits four minutes is\n> indistinguishable from a hang.\n\nI would change the reconnect loop first — it is the one a user can see.",
+                "resolved_id": "stored-researcher-45a8698b",
+                "title": "Bot Chat"
+              },
+              "description": "Finds things out.",
+              "display_name": "Researcher",
+              "has_avatar": true,
+              "is_default": true,
+              "model": "example-provider/example-model",
+              "name": "researcher",
+              "path": "/root/.hermes/profiles/researcher",
+              "provider": "example-provider",
+              "ui_meta": {
+                "hermes-bots": {},
+                "hermie-plugin": {
+                  "capabilities": [
+                    "context.per_bot",
+                    "context.system_prompt",
+                    "context.turn_claim",
+                    "push.expo",
+                    "push.mute",
+                    "push.preview",
+                    "push.seen.per_chat",
+                    "push.type.turn_done",
+                    "memory.browse",
+                    "memory.edit",
+                    "push.type.turn_failed",
+                    "push.webpush",
+                    "profiles.display_name",
+                    "ui_meta.per_user"
+                  ],
+                  "limits": {
+                    "contextChars": 1200,
+                    "payloadBytes": 3500
+                  },
+                  "modules": {
+                    "attachments": "planned",
+                    "context": "on",
+                    "memory": "on",
+                    "presence": "planned",
+                    "profiles": "on",
+                    "push": "on",
+                    "search": "planned",
+                    "sessions": "planned",
+                    "transcripts": "planned",
+                    "usage": "planned"
+                  },
+                  "updatedAt": 1790001453,
+                  "v": 1,
+                  "version": "0.2.0"
+                }
+              },
+              "ui_meta_revisions": {
+                "avatar": 1
+              }
+            },
+            {
+              "canonical_session": {
+                "id": "stored-writer-77503bfd",
+                "last_active": 1789999940,
+                "message_count": 11,
+                "preview": "",
+                "resolved_id": "stored-writer-77503bfd",
+                "title": "Bot Chat"
+              },
+              "description": "Writes things down.",
+              "display_name": "Writer",
+              "has_avatar": false,
+              "is_default": false,
+              "model": "example-provider/example-model",
+              "name": "writer",
+              "path": "/root/.hermes/profiles/writer",
+              "provider": "example-provider",
+              "ui_meta": {
+                "hermes-bots": {}
+              },
+              "ui_meta_revisions": {}
+            }
+          ]
+        }
+      }
+    },
+    {
+      "connection": 1,
+      "frame": {
+        "id": "c-2",
+        "jsonrpc": "2.0",
+        "result": {
+          "info": {
+            "approval_mode": "ask",
+            "cwd": "/root/projects/researcher",
+            "desktop_contract": 7,
+            "fast": false,
+            "model": "example-provider/example-model",
+            "profile_name": "researcher",
+            "provider": "example-provider",
+            "reasoning_effort": "medium",
+            "running": false,
+            "stored_session_id": "stored-researcher-45a8698b",
+            "title": "Bot Chat",
+            "usage": {
+              "calls": 8,
+              "context_estimated": false,
+              "context_max": 200000,
+              "context_percent": 2.6,
+              "context_source": "model catalog",
+              "context_used": 5160,
+              "input": 2080,
+              "model": "example-provider/example-model",
+              "output": 1280,
+              "total": 3360
+            },
+            "version": "0.21.3-fake",
+            "yolo": false
+          },
+          "message_count": 8,
+          "messages": [],
+          "messages_omitted": true,
+          "open_requests": [],
+          "session_id": "runtime-4a31c816",
+          "stored_session_id": "stored-researcher-45a8698b"
+        }
+      }
+    },
+    {
+      "connection": 1,
+      "frame": {
+        "id": "c-3",
+        "jsonrpc": "2.0",
+        "result": {
+          "count": 8,
+          "messages": [
+            {
+              "role": "user",
+              "row_id": 1,
+              "text": "Introduce yourself in one line.",
+              "timestamp": 1789999400
+            },
+            {
+              "reasoning": "Keep it to one line.",
+              "role": "assistant",
+              "row_id": 2,
+              "text": "I am researcher, at your service.",
+              "timestamp": 1789999401
+            },
+            {
+              "args": {
+                "path": "SOUL.md"
+              },
+              "context": "read_file(SOUL.md)",
+              "name": "read_file",
+              "role": "tool",
+              "tool_id": "call_read_researcher"
+            },
+            {
+              "args": {
+                "message": "Can you draft the announcement?",
+                "target": "@writer"
+              },
+              "context": "message_agent(writer)",
+              "name": "message_agent",
+              "role": "tool",
+              "tool_id": "call_dm_1"
+            },
+            {
+              "display_kind": "process_complete",
+              "display_metadata": {
+                "display_text": "Background Process Finished: bot_mode_dm.py"
+              },
+              "role": "user",
+              "row_id": 3,
+              "text": "[IMPORTANT: Background process proc-2f9c completed (exit code 0).\nCommand: /usr/bin/python3 /opt/hermes/tools/bot_mode_dm.py --run-delivery query-file /root/.hermes/dm/2f9c.json hermes -p writer chat -c \"Bot Chat\" -Q -q @/root/.hermes/dm/2f9c.json\nOutput:\nMessage from 🤖 Writer (@writer): Draft is ready, I pushed it to the shared folder.]",
+              "timestamp": 1789999460
+            },
+            {
+              "role": "assistant",
+              "row_id": 4,
+              "text": "Thanks — I will fold that in.",
+              "timestamp": 1789999461
+            },
+            {
+              "role": "user",
+              "row_id": 5,
+              "text": "[Cronjob \"Source scan\" output — scheduled job, not the user. Review it, act on anything that needs action, and summarize for the chat.]\n\n### Source scan — 4 new items\n\n| Source | Item | Why it matters |\n| --- | --- | --- |\n| docs.example.com | Retry semantics rewritten | Contradicts our own guide |\n| status.example.org | Two incidents, both closed | No action |\n| blog.example.net | Long post on session resume | Worth reading in full |\n| docs.example.com | Changelog for 1.4 | Three flags renamed |\n\nThe first one needs a decision: our guide still documents the old behaviour.\n\nNothing else is urgent. Next scan in four hours.",
+              "timestamp": 1789999520
+            },
+            {
+              "role": "assistant",
+              "row_id": 6,
+              "text": "## Retry semantics: what actually changed\n\nShort version: the backoff is now computed per attempt instead of per call, so a\nlong-running request no longer inherits the delay of the one before it.\n\n| Behaviour | Before | After |\n| --- | --- | --- |\n| First retry delay | 1s | 1s |\n| Second retry delay | 1s | 2s |\n| Ceiling | none | 30s |\n| Jitter | none | ±20% |\n| Budget | per call | per attempt |\n\nWhere this bites us:\n\n- The reconnect loop, which assumed a flat delay.\n  - It reads the delay once and caches it.\n  - Caching it is what makes the ceiling invisible.\n- The upload path, which retries on its own.\n  - Two retry budgets now overlap.\n    - Worst case is eight attempts where we documented three.\n- Nothing in the transcript path: it does not retry.\n\nThe shape we should move to:\n\n```ts\nexport function backoff(attempt: number): number {\n  const base = Math.min(2 ** attempt * 1000, 30_000)\n  // Jitter is not decoration: without it every client in a fleet retries\n  // on the same tick and the recovery looks like a second outage.\n  return base * (0.8 + Math.random() * 0.4)\n}\n\nexport async function withRetries<T>(run: () => Promise<T>, attempts = 3): Promise<T> {\n  for (let attempt = 0; ; attempt += 1) {\n    try {\n      return await run()\n    } catch (error) {\n      if (attempt >= attempts - 1) {\n        throw error\n      }\n\n      await new Promise(resolve => setTimeout(resolve, backoff(attempt)))\n    }\n  }\n}\n```\n\n> The ceiling matters more than the curve. A retry that waits four minutes is\n> indistinguishable from a hang.\n\nI would change the reconnect loop first — it is the one a user can see.",
+              "timestamp": 1789999540
+            }
+          ]
+        }
+      }
+    },
+    {
+      "connection": 1,
+      "frame": {
+        "id": "c-4",
+        "jsonrpc": "2.0",
+        "result": {
+          "count": 0,
+          "epoch": "715709ff-5bcb-42ea-855b-efde4961226d",
+          "events": [],
+          "latest_seq": 0,
+          "open_requests": [],
+          "truncated": false
+        }
+      }
+    },
+    {
+      "connection": 1,
+      "frame": {
+        "id": "c-5",
+        "jsonrpc": "2.0",
+        "result": {
+          "status": "streaming"
+        }
+      }
+    },
+    {
+      "connection": 1,
+      "frame": {
+        "jsonrpc": "2.0",
+        "method": "event",
+        "params": {
+          "payload": {},
+          "seq": 1,
+          "session_id": "runtime-4a31c816",
+          "type": "message.start"
+        }
+      }
+    },
+    {
+      "connection": 1,
+      "frame": {
+        "jsonrpc": "2.0",
+        "method": "event",
+        "params": {
+          "payload": {
+            "text": "Checking the "
+          },
+          "seq": 2,
+          "session_id": "runtime-4a31c816",
+          "type": "reasoning.delta"
+        }
+      }
+    },
+    {
+      "connection": 1,
+      "frame": {
+        "jsonrpc": "2.0",
+        "method": "event",
+        "params": {
+          "payload": {
+            "text": "README first."
+          },
+          "seq": 3,
+          "session_id": "runtime-4a31c816",
+          "type": "reasoning.delta"
+        }
+      }
+    },
+    {
+      "connection": 1,
+      "frame": {
+        "jsonrpc": "2.0",
+        "method": "event",
+        "params": {
+          "payload": {
+            "text": "Checked the README."
+          },
+          "seq": 4,
+          "session_id": "runtime-4a31c816",
+          "type": "reasoning.available"
+        }
+      }
+    },
+    {
+      "connection": 1,
+      "frame": {
+        "jsonrpc": "2.0",
+        "method": "event",
+        "params": {
+          "payload": {
+            "text": "Looking that up"
+          },
+          "seq": 5,
+          "session_id": "runtime-4a31c816",
+          "type": "message.delta"
+        }
+      }
+    },
+    {
+      "connection": 1,
+      "frame": {
+        "jsonrpc": "2.0",
+        "method": "event",
+        "params": {
+          "payload": {
+            "text": " for you."
+          },
+          "seq": 6,
+          "session_id": "runtime-4a31c816",
+          "type": "message.delta"
+        }
+      }
+    },
+    {
+      "connection": 1,
+      "frame": {
+        "jsonrpc": "2.0",
+        "method": "event",
+        "params": {
+          "payload": {
+            "name": "read_file"
+          },
+          "seq": 7,
+          "session_id": "runtime-4a31c816",
+          "type": "tool.generating"
+        }
+      }
+    },
+    {
+      "connection": 1,
+      "frame": {
+        "jsonrpc": "2.0",
+        "method": "event",
+        "params": {
+          "payload": {
+            "args": {
+              "path": "README.md"
+            },
+            "context": "read README.md",
+            "name": "read_file",
+            "tool_id": "tool-167f352a"
+          },
+          "seq": 8,
+          "session_id": "runtime-4a31c816",
+          "type": "tool.start"
+        }
+      }
+    },
+    {
+      "connection": 1,
+      "frame": {
+        "jsonrpc": "2.0",
+        "method": "event",
+        "params": {
+          "payload": {
+            "args": {
+              "path": "README.md"
+            },
+            "duration_s": 0.2,
+            "name": "read_file",
+            "result": "# Hermie",
+            "summary": "read README.md",
+            "tool_id": "tool-167f352a"
+          },
+          "seq": 9,
+          "session_id": "runtime-4a31c816",
+          "type": "tool.complete"
+        }
+      }
+    },
+    {
+      "connection": 1,
+      "frame": {
+        "id": "srq-1",
+        "jsonrpc": "2.0",
+        "method": "approval",
+        "params": {
+          "allow_permanent": true,
+          "allow_session": true,
+          "choices": [
+            "once",
+            "session",
+            "always",
+            "deny"
+          ],
+          "command": "rm -rf ./build",
+          "description": "Remove the build directory",
+          "request_id": "appr-a2fedc71",
+          "session_id": "runtime-4a31c816",
+          "tool_name": "run_command"
+        }
+      }
+    },
+    {
+      "connection": 1,
+      "frame": {
+        "jsonrpc": "2.0",
+        "method": "event",
+        "params": {
+          "payload": {
+            "status": "ok",
+            "text": "Looking that up for you.",
+            "usage": {
+              "input": 12,
+              "output": 34,
+              "total": 46
+            }
+          },
+          "seq": 10,
+          "session_id": "runtime-4a31c816",
+          "type": "message.complete"
+        }
+      }
+    },
+    {
+      "connection": 1,
+      "frame": {
+        "jsonrpc": "2.0",
+        "method": "event",
+        "params": {
+          "payload": {},
+          "type": "sessions.changed"
+        }
+      }
+    }
+  ],
+  "pinnedNow": 1790000000000,
+  "profile": "researcher",
+  "scenario": "approval",
+  "stepMs": 1000,
+  "steps": [
+    {
+      "args": [
+        "researcher",
+        "stored-researcher-45a8698b",
+        "stored-researcher-45a8698b"
+      ],
+      "op": "createChatState"
+    },
+    {
+      "args": [
+        {
+          "lastSeq": 0,
+          "lastSeqSessionId": "runtime-4a31c816",
+          "runtimeSessionId": "runtime-4a31c816"
+        },
+        [
+          "epoch"
+        ]
+      ],
+      "frame": 2,
+      "op": "patchState"
+    },
+    {
+      "args": [
+        {
+          "payload": {
+            "approval_mode": "ask",
+            "cwd": "/root/projects/researcher",
+            "desktop_contract": 7,
+            "fast": false,
+            "model": "example-provider/example-model",
+            "profile_name": "researcher",
+            "provider": "example-provider",
+            "reasoning_effort": "medium",
+            "running": false,
+            "stored_session_id": "stored-researcher-45a8698b",
+            "title": "Bot Chat",
+            "usage": {
+              "calls": 8,
+              "context_estimated": false,
+              "context_max": 200000,
+              "context_percent": 2.6,
+              "context_source": "model catalog",
+              "context_used": 5160,
+              "input": 2080,
+              "model": "example-provider/example-model",
+              "output": 1280,
+              "total": 3360
+            },
+            "version": "0.21.3-fake",
+            "yolo": false
+          },
+          "session_id": "runtime-4a31c816",
+          "type": "session.info"
+        },
+        1790000002000
+      ],
+      "frame": 2,
+      "op": "applyEvent"
+    },
+    {
+      "args": [
+        [
+          {
+            "id": "r:1",
+            "kind": "user",
+            "origin": "history",
+            "rowId": 1,
+            "seq": 0,
+            "text": "Introduce yourself in one line.",
+            "ts": 1789999400,
+            "version": 0
+          },
+          {
+            "id": "r:2",
+            "interim": false,
+            "kind": "assistant",
+            "origin": "history",
+            "reasoning": "Keep it to one line.",
+            "rowId": 2,
+            "seq": 1000,
+            "status": "complete",
+            "streaming": false,
+            "text": "I am researcher, at your service.",
+            "ts": 1789999401,
+            "version": 0
+          },
+          {
+            "args": {
+              "path": "SOUL.md"
+            },
+            "context": "read_file(SOUL.md)",
+            "id": "t:call_read_researcher",
+            "kind": "tool",
+            "name": "read_file",
+            "origin": "history",
+            "resultKnown": false,
+            "seq": 2000,
+            "status": "complete",
+            "summary": "read_file(SOUL.md)",
+            "toolId": "call_read_researcher",
+            "version": 0
+          },
+          {
+            "dispatch": {
+              "status": "queued"
+            },
+            "id": "t:call_dm_1",
+            "kind": "bot_dm_out",
+            "message": "Can you draft the announcement?",
+            "origin": "history",
+            "reply": {
+              "rowId": 3,
+              "text": "Draft is ready, I pushed it to the shared folder.",
+              "ts": 1789999460
+            },
+            "seq": 3000,
+            "target": "@writer",
+            "targetHandle": "writer",
+            "toolId": "call_dm_1",
+            "version": 1
+          },
+          {
+            "id": "r:4",
+            "interim": false,
+            "kind": "assistant",
+            "origin": "history",
+            "rowId": 4,
+            "seq": 4000,
+            "status": "complete",
+            "streaming": false,
+            "text": "Thanks — I will fold that in.",
+            "ts": 1789999461,
+            "version": 0
+          },
+          {
+            "body": "### Source scan — 4 new items\n\n| Source | Item | Why it matters |\n| --- | --- | --- |\n| docs.example.com | Retry semantics rewritten | Contradicts our own guide |\n| status.example.org | Two incidents, both closed | No action |\n| blog.example.net | Long post on session resume | Worth reading in full |\n| docs.example.com | Changelog for 1.4 | Three flags renamed |\n\nThe first one needs a decision: our guide still documents the old behaviour.\n\nNothing else is urgent. Next scan in four hours.",
+            "id": "r:5",
+            "jobName": "Source scan",
+            "kind": "cron_delivery",
+            "origin": "history",
+            "rowId": 5,
+            "seq": 5000,
+            "shape": "bot_chat",
+            "ts": 1789999520,
+            "version": 0
+          },
+          {
+            "id": "r:6",
+            "interim": false,
+            "kind": "assistant",
+            "origin": "history",
+            "rowId": 6,
+            "seq": 6000,
+            "status": "complete",
+            "streaming": false,
+            "text": "## Retry semantics: what actually changed\n\nShort version: the backoff is now computed per attempt instead of per call, so a\nlong-running request no longer inherits the delay of the one before it.\n\n| Behaviour | Before | After |\n| --- | --- | --- |\n| First retry delay | 1s | 1s |\n| Second retry delay | 1s | 2s |\n| Ceiling | none | 30s |\n| Jitter | none | ±20% |\n| Budget | per call | per attempt |\n\nWhere this bites us:\n\n- The reconnect loop, which assumed a flat delay.\n  - It reads the delay once and caches it.\n  - Caching it is what makes the ceiling invisible.\n- The upload path, which retries on its own.\n  - Two retry budgets now overlap.\n    - Worst case is eight attempts where we documented three.\n- Nothing in the transcript path: it does not retry.\n\nThe shape we should move to:\n\n```ts\nexport function backoff(attempt: number): number {\n  const base = Math.min(2 ** attempt * 1000, 30_000)\n  // Jitter is not decoration: without it every client in a fleet retries\n  // on the same tick and the recovery looks like a second outage.\n  return base * (0.8 + Math.random() * 0.4)\n}\n\nexport async function withRetries<T>(run: () => Promise<T>, attempts = 3): Promise<T> {\n  for (let attempt = 0; ; attempt += 1) {\n    try {\n      return await run()\n    } catch (error) {\n      if (attempt >= attempts - 1) {\n        throw error\n      }\n\n      await new Promise(resolve => setTimeout(resolve, backoff(attempt)))\n    }\n  }\n}\n```\n\n> The ceiling matters more than the curve. A retry that waits four minutes is\n> indistinguishable from a hang.\n\nI would change the reconnect loop first — it is the one a user can see.",
+            "ts": 1789999540,
+            "version": 0
+          }
+        ]
+      ],
+      "frame": 3,
+      "op": "reconcile"
+    },
+    {
+      "args": [
+        {
+          "inflight": null,
+          "open_requests": [],
+          "pending_approval": null,
+          "queued": null,
+          "running": null,
+          "todo_state": null,
+          "turn_started_at": null
+        },
+        1790000004000
+      ],
+      "frame": 2,
+      "op": "applyResumeSnapshot"
+    },
+    {
+      "args": [
+        {
+          "epoch": "715709ff-5bcb-42ea-855b-efde4961226d",
+          "lastSeq": 0,
+          "lastSeqSessionId": "runtime-4a31c816"
+        }
+      ],
+      "frame": 4,
+      "op": "patchState"
+    },
+    {
+      "args": [
+        "please approve this cleanup",
+        null,
+        1790000006000
+      ],
+      "op": "beginLocalTurn"
+    },
+    {
+      "args": [
+        {
+          "status": "streaming"
+        },
+        1790000007000
+      ],
+      "frame": 5,
+      "op": "confirmSubmit"
+    },
+    {
+      "args": [
+        {
+          "payload": {},
+          "seq": 1,
+          "session_id": "runtime-4a31c816",
+          "type": "message.start"
+        },
+        1790000008000
+      ],
+      "frame": 6,
+      "op": "applyEvent"
+    },
+    {
+      "args": [
+        {
+          "payload": {
+            "text": "Checking the "
+          },
+          "seq": 2,
+          "session_id": "runtime-4a31c816",
+          "type": "reasoning.delta"
+        },
+        1790000009000
+      ],
+      "frame": 7,
+      "op": "applyEvent"
+    },
+    {
+      "args": [
+        {
+          "payload": {
+            "text": "README first."
+          },
+          "seq": 3,
+          "session_id": "runtime-4a31c816",
+          "type": "reasoning.delta"
+        },
+        1790000010000
+      ],
+      "frame": 8,
+      "op": "applyEvent"
+    },
+    {
+      "args": [
+        {
+          "payload": {
+            "text": "Checked the README."
+          },
+          "seq": 4,
+          "session_id": "runtime-4a31c816",
+          "type": "reasoning.available"
+        },
+        1790000011000
+      ],
+      "frame": 9,
+      "op": "applyEvent"
+    },
+    {
+      "args": [
+        {
+          "payload": {
+            "text": "Looking that up"
+          },
+          "seq": 5,
+          "session_id": "runtime-4a31c816",
+          "type": "message.delta"
+        },
+        1790000012000
+      ],
+      "frame": 10,
+      "op": "applyEvent"
+    },
+    {
+      "args": [
+        {
+          "payload": {
+            "text": " for you."
+          },
+          "seq": 6,
+          "session_id": "runtime-4a31c816",
+          "type": "message.delta"
+        },
+        1790000013000
+      ],
+      "frame": 11,
+      "op": "applyEvent"
+    },
+    {
+      "args": [
+        {
+          "payload": {
+            "name": "read_file"
+          },
+          "seq": 7,
+          "session_id": "runtime-4a31c816",
+          "type": "tool.generating"
+        },
+        1790000014000
+      ],
+      "frame": 12,
+      "op": "applyEvent"
+    },
+    {
+      "args": [
+        {
+          "payload": {
+            "args": {
+              "path": "README.md"
+            },
+            "context": "read README.md",
+            "name": "read_file",
+            "tool_id": "tool-167f352a"
+          },
+          "seq": 8,
+          "session_id": "runtime-4a31c816",
+          "type": "tool.start"
+        },
+        1790000015000
+      ],
+      "frame": 13,
+      "op": "applyEvent"
+    },
+    {
+      "args": [
+        {
+          "payload": {
+            "args": {
+              "path": "README.md"
+            },
+            "duration_s": 0.2,
+            "name": "read_file",
+            "result": "# Hermie",
+            "summary": "read README.md",
+            "tool_id": "tool-167f352a"
+          },
+          "seq": 9,
+          "session_id": "runtime-4a31c816",
+          "type": "tool.complete"
+        },
+        1790000016000
+      ],
+      "frame": 14,
+      "op": "applyEvent"
+    },
+    {
+      "args": [
+        {
+          "id": "srq-1",
+          "method": "approval",
+          "params": {
+            "allow_permanent": true,
+            "allow_session": true,
+            "choices": [
+              "once",
+              "session",
+              "always",
+              "deny"
+            ],
+            "command": "rm -rf ./build",
+            "description": "Remove the build directory",
+            "request_id": "appr-a2fedc71",
+            "session_id": "runtime-4a31c816",
+            "tool_name": "run_command"
+          }
+        },
+        1790000017000
+      ],
+      "frame": 15,
+      "op": "applyServerRequest"
+    },
+    {
+      "args": [
+        "srq-1",
+        "once"
+      ],
+      "frame": 15,
+      "op": "answerRequest"
+    },
+    {
+      "args": [
+        {
+          "payload": {
+            "status": "ok",
+            "text": "Looking that up for you.",
+            "usage": {
+              "input": 12,
+              "output": 34,
+              "total": 46
+            }
+          },
+          "seq": 10,
+          "session_id": "runtime-4a31c816",
+          "type": "message.complete"
+        },
+        1790000019000
+      ],
+      "frame": 16,
+      "op": "applyEvent"
+    }
+  ]
+}

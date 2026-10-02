@@ -1,0 +1,2547 @@
+[
+  {
+    "args": [],
+    "fn": "DEFAULT_HTTP_TIMEOUT_MS",
+    "note": "constant",
+    "result": 10000
+  },
+  {
+    "args": [
+      "ssl"
+    ],
+    "fn": "looksLikeTlsFailure",
+    "result": true
+  },
+  {
+    "args": [
+      "SSL error"
+    ],
+    "fn": "looksLikeTlsFailure",
+    "result": true
+  },
+  {
+    "args": [
+      "The certificate for this server is invalid"
+    ],
+    "fn": "looksLikeTlsFailure",
+    "result": true
+  },
+  {
+    "args": [
+      "TLS handshake failed"
+    ],
+    "fn": "looksLikeTlsFailure",
+    "result": true
+  },
+  {
+    "args": [
+      "tls"
+    ],
+    "fn": "looksLikeTlsFailure",
+    "result": true
+  },
+  {
+    "args": [
+      "TLS"
+    ],
+    "fn": "looksLikeTlsFailure",
+    "result": true
+  },
+  {
+    "args": [
+      "Tls"
+    ],
+    "fn": "looksLikeTlsFailure",
+    "result": true
+  },
+  {
+    "args": [
+      "NSURLErrorDomain -1200"
+    ],
+    "fn": "looksLikeTlsFailure",
+    "result": true
+  },
+  {
+    "args": [
+      "x-1200y"
+    ],
+    "fn": "looksLikeTlsFailure",
+    "note": "plain substring \"-1200\", no word boundary",
+    "result": true
+  },
+  {
+    "args": [
+      "NSURLErrorDomain -1202"
+    ],
+    "fn": "looksLikeTlsFailure",
+    "note": "a certificate failure that is NOT a TLS failure by this predicate (no \"-1200\")",
+    "result": false
+  },
+  {
+    "args": [
+      "code -1203."
+    ],
+    "fn": "looksLikeTlsFailure",
+    "result": false
+  },
+  {
+    "args": [
+      "error(-1204)"
+    ],
+    "fn": "looksLikeTlsFailure",
+    "result": false
+  },
+  {
+    "args": [
+      "x-1205"
+    ],
+    "fn": "looksLikeTlsFailure",
+    "result": false
+  },
+  {
+    "args": [
+      "-1206"
+    ],
+    "fn": "looksLikeTlsFailure",
+    "result": false
+  },
+  {
+    "args": [
+      "-1201"
+    ],
+    "fn": "looksLikeTlsFailure",
+    "result": false
+  },
+  {
+    "args": [
+      "-1207"
+    ],
+    "fn": "looksLikeTlsFailure",
+    "result": false
+  },
+  {
+    "args": [
+      "-12020"
+    ],
+    "fn": "looksLikeTlsFailure",
+    "result": false
+  },
+  {
+    "args": [
+      "-1202x"
+    ],
+    "fn": "looksLikeTlsFailure",
+    "result": false
+  },
+  {
+    "args": [
+      "-1202_"
+    ],
+    "fn": "looksLikeTlsFailure",
+    "result": false
+  },
+  {
+    "args": [
+      "-120"
+    ],
+    "fn": "looksLikeTlsFailure",
+    "result": false
+  },
+  {
+    "args": [
+      "1202"
+    ],
+    "fn": "looksLikeTlsFailure",
+    "result": false
+  },
+  {
+    "args": [
+      "self signed"
+    ],
+    "fn": "looksLikeTlsFailure",
+    "result": false
+  },
+  {
+    "args": [
+      "self-signed certificate"
+    ],
+    "fn": "looksLikeTlsFailure",
+    "result": true
+  },
+  {
+    "args": [
+      "SELF-SIGNED"
+    ],
+    "fn": "looksLikeTlsFailure",
+    "result": false
+  },
+  {
+    "args": [
+      "self_signed"
+    ],
+    "fn": "looksLikeTlsFailure",
+    "result": false
+  },
+  {
+    "args": [
+      "DEPTH_ZERO_SELF_SIGNED_CERT"
+    ],
+    "fn": "looksLikeTlsFailure",
+    "note": "underscores are not \"self signed\" and \"cert\" is not \"certificate\"",
+    "result": false
+  },
+  {
+    "args": [
+      "untrusted"
+    ],
+    "fn": "looksLikeTlsFailure",
+    "result": false
+  },
+  {
+    "args": [
+      "UNTRUSTED root"
+    ],
+    "fn": "looksLikeTlsFailure",
+    "result": false
+  },
+  {
+    "args": [
+      "Network request failed"
+    ],
+    "fn": "looksLikeTlsFailure",
+    "result": false
+  },
+  {
+    "args": [
+      "fetch failed"
+    ],
+    "fn": "looksLikeTlsFailure",
+    "result": false
+  },
+  {
+    "args": [
+      "Could not reach the gateway"
+    ],
+    "fn": "looksLikeTlsFailure",
+    "result": false
+  },
+  {
+    "args": [
+      "classless"
+    ],
+    "fn": "looksLikeTlsFailure",
+    "note": "substring match: \"classless\" contains \"ssl\"",
+    "result": true
+  },
+  {
+    "args": [
+      "outlets"
+    ],
+    "fn": "looksLikeTlsFailure",
+    "result": false
+  },
+  {
+    "args": [
+      ""
+    ],
+    "fn": "looksLikeTlsFailure",
+    "result": false
+  },
+  {
+    "args": [
+      "   "
+    ],
+    "fn": "looksLikeTlsFailure",
+    "result": false
+  },
+  {
+    "args": [
+      "cert"
+    ],
+    "fn": "looksLikeTlsFailure",
+    "result": false
+  },
+  {
+    "args": [
+      "certificat"
+    ],
+    "fn": "looksLikeTlsFailure",
+    "result": false
+  },
+  {
+    "args": [
+      "CERTIFICATE_VERIFY_FAILED"
+    ],
+    "fn": "looksLikeTlsFailure",
+    "result": true
+  },
+  {
+    "args": [
+      "unable to verify the first certificate"
+    ],
+    "fn": "looksLikeTlsFailure",
+    "result": true
+  },
+  {
+    "args": [
+      "handshake failure"
+    ],
+    "fn": "looksLikeTlsFailure",
+    "result": false
+  },
+  {
+    "args": [
+      "ünï ✓ tls 😀"
+    ],
+    "fn": "looksLikeTlsFailure",
+    "result": true
+  },
+  {
+    "args": [
+      "ssl"
+    ],
+    "fn": "looksLikeCertificateFailure",
+    "result": false
+  },
+  {
+    "args": [
+      "SSL error"
+    ],
+    "fn": "looksLikeCertificateFailure",
+    "result": false
+  },
+  {
+    "args": [
+      "The certificate for this server is invalid"
+    ],
+    "fn": "looksLikeCertificateFailure",
+    "result": true
+  },
+  {
+    "args": [
+      "TLS handshake failed"
+    ],
+    "fn": "looksLikeCertificateFailure",
+    "result": false
+  },
+  {
+    "args": [
+      "tls"
+    ],
+    "fn": "looksLikeCertificateFailure",
+    "result": false
+  },
+  {
+    "args": [
+      "TLS"
+    ],
+    "fn": "looksLikeCertificateFailure",
+    "result": false
+  },
+  {
+    "args": [
+      "Tls"
+    ],
+    "fn": "looksLikeCertificateFailure",
+    "result": false
+  },
+  {
+    "args": [
+      "NSURLErrorDomain -1200"
+    ],
+    "fn": "looksLikeCertificateFailure",
+    "result": false
+  },
+  {
+    "args": [
+      "x-1200y"
+    ],
+    "fn": "looksLikeCertificateFailure",
+    "result": false
+  },
+  {
+    "args": [
+      "NSURLErrorDomain -1202"
+    ],
+    "fn": "looksLikeCertificateFailure",
+    "result": true
+  },
+  {
+    "args": [
+      "code -1203."
+    ],
+    "fn": "looksLikeCertificateFailure",
+    "note": "\".\" is a non-word character, so there is a boundary",
+    "result": true
+  },
+  {
+    "args": [
+      "error(-1204)"
+    ],
+    "fn": "looksLikeCertificateFailure",
+    "result": true
+  },
+  {
+    "args": [
+      "x-1205"
+    ],
+    "fn": "looksLikeCertificateFailure",
+    "note": "nothing is required before the \"-\"",
+    "result": true
+  },
+  {
+    "args": [
+      "-1206"
+    ],
+    "fn": "looksLikeCertificateFailure",
+    "result": true
+  },
+  {
+    "args": [
+      "-1201"
+    ],
+    "fn": "looksLikeCertificateFailure",
+    "result": false
+  },
+  {
+    "args": [
+      "-1207"
+    ],
+    "fn": "looksLikeCertificateFailure",
+    "result": false
+  },
+  {
+    "args": [
+      "-12020"
+    ],
+    "fn": "looksLikeCertificateFailure",
+    "note": "the pattern is -120[2-6] followed by a word boundary; a digit after it is not a boundary",
+    "result": false
+  },
+  {
+    "args": [
+      "-1202x"
+    ],
+    "fn": "looksLikeCertificateFailure",
+    "note": "a letter is a word character, so there is no boundary",
+    "result": false
+  },
+  {
+    "args": [
+      "-1202_"
+    ],
+    "fn": "looksLikeCertificateFailure",
+    "note": "\"_\" is a word character, so there is no boundary",
+    "result": false
+  },
+  {
+    "args": [
+      "-120"
+    ],
+    "fn": "looksLikeCertificateFailure",
+    "result": false
+  },
+  {
+    "args": [
+      "1202"
+    ],
+    "fn": "looksLikeCertificateFailure",
+    "result": false
+  },
+  {
+    "args": [
+      "self signed"
+    ],
+    "fn": "looksLikeCertificateFailure",
+    "result": true
+  },
+  {
+    "args": [
+      "self-signed certificate"
+    ],
+    "fn": "looksLikeCertificateFailure",
+    "result": true
+  },
+  {
+    "args": [
+      "SELF-SIGNED"
+    ],
+    "fn": "looksLikeCertificateFailure",
+    "result": true
+  },
+  {
+    "args": [
+      "self_signed"
+    ],
+    "fn": "looksLikeCertificateFailure",
+    "result": false
+  },
+  {
+    "args": [
+      "DEPTH_ZERO_SELF_SIGNED_CERT"
+    ],
+    "fn": "looksLikeCertificateFailure",
+    "result": false
+  },
+  {
+    "args": [
+      "untrusted"
+    ],
+    "fn": "looksLikeCertificateFailure",
+    "result": true
+  },
+  {
+    "args": [
+      "UNTRUSTED root"
+    ],
+    "fn": "looksLikeCertificateFailure",
+    "result": true
+  },
+  {
+    "args": [
+      "Network request failed"
+    ],
+    "fn": "looksLikeCertificateFailure",
+    "result": false
+  },
+  {
+    "args": [
+      "fetch failed"
+    ],
+    "fn": "looksLikeCertificateFailure",
+    "result": false
+  },
+  {
+    "args": [
+      "Could not reach the gateway"
+    ],
+    "fn": "looksLikeCertificateFailure",
+    "result": false
+  },
+  {
+    "args": [
+      "classless"
+    ],
+    "fn": "looksLikeCertificateFailure",
+    "result": false
+  },
+  {
+    "args": [
+      "outlets"
+    ],
+    "fn": "looksLikeCertificateFailure",
+    "result": false
+  },
+  {
+    "args": [
+      ""
+    ],
+    "fn": "looksLikeCertificateFailure",
+    "result": false
+  },
+  {
+    "args": [
+      "   "
+    ],
+    "fn": "looksLikeCertificateFailure",
+    "result": false
+  },
+  {
+    "args": [
+      "cert"
+    ],
+    "fn": "looksLikeCertificateFailure",
+    "result": false
+  },
+  {
+    "args": [
+      "certificat"
+    ],
+    "fn": "looksLikeCertificateFailure",
+    "result": false
+  },
+  {
+    "args": [
+      "CERTIFICATE_VERIFY_FAILED"
+    ],
+    "fn": "looksLikeCertificateFailure",
+    "result": true
+  },
+  {
+    "args": [
+      "unable to verify the first certificate"
+    ],
+    "fn": "looksLikeCertificateFailure",
+    "result": true
+  },
+  {
+    "args": [
+      "handshake failure"
+    ],
+    "fn": "looksLikeCertificateFailure",
+    "result": false
+  },
+  {
+    "args": [
+      "ünï ✓ tls 😀"
+    ],
+    "fn": "looksLikeCertificateFailure",
+    "result": false
+  },
+  {
+    "args": [
+      "{\"a\":1}",
+      "https://gateway.example.net/api/status",
+      "protocol"
+    ],
+    "fn": "parseJsonBody",
+    "note": "args: [text, url, kind]. Throws a GatewayError of the given kind whose message embeds the url. The result is the parsed JSON value",
+    "result": {
+      "a": 1
+    }
+  },
+  {
+    "args": [
+      "[1,2]",
+      "https://gateway.example.net/api/status",
+      "protocol"
+    ],
+    "fn": "parseJsonBody",
+    "result": [
+      1,
+      2
+    ]
+  },
+  {
+    "args": [
+      "1",
+      "https://gateway.example.net/api/status",
+      "protocol"
+    ],
+    "fn": "parseJsonBody",
+    "result": 1
+  },
+  {
+    "args": [
+      "\"s\"",
+      "https://gateway.example.net/api/status",
+      "protocol"
+    ],
+    "fn": "parseJsonBody",
+    "result": "s"
+  },
+  {
+    "args": [
+      "null",
+      "https://gateway.example.net/api/status",
+      "protocol"
+    ],
+    "fn": "parseJsonBody",
+    "result": null
+  },
+  {
+    "args": [
+      "true",
+      "https://gateway.example.net/api/status",
+      "protocol"
+    ],
+    "fn": "parseJsonBody",
+    "result": true
+  },
+  {
+    "args": [
+      "false",
+      "https://gateway.example.net/api/status",
+      "protocol"
+    ],
+    "fn": "parseJsonBody",
+    "result": false
+  },
+  {
+    "args": [
+      "{}",
+      "https://gateway.example.net/api/status",
+      "protocol"
+    ],
+    "fn": "parseJsonBody",
+    "result": {}
+  },
+  {
+    "args": [
+      "[]",
+      "https://gateway.example.net/api/status",
+      "protocol"
+    ],
+    "fn": "parseJsonBody",
+    "result": []
+  },
+  {
+    "args": [
+      "",
+      "https://gateway.example.net/api/status",
+      "protocol"
+    ],
+    "error": {
+      "kind": "protocol",
+      "message": "https://gateway.example.net/api/status answered with something that is not JSON."
+    },
+    "fn": "parseJsonBody",
+    "throws": true
+  },
+  {
+    "args": [
+      "   ",
+      "https://gateway.example.net/api/status",
+      "protocol"
+    ],
+    "error": {
+      "kind": "protocol",
+      "message": "https://gateway.example.net/api/status answered with something that is not JSON."
+    },
+    "fn": "parseJsonBody",
+    "throws": true
+  },
+  {
+    "args": [
+      "<html>",
+      "https://gateway.example.net/api/status",
+      "protocol"
+    ],
+    "error": {
+      "kind": "protocol",
+      "message": "https://gateway.example.net/api/status answered with something that is not JSON."
+    },
+    "fn": "parseJsonBody",
+    "throws": true
+  },
+  {
+    "args": [
+      "{bad",
+      "https://gateway.example.net/api/status",
+      "protocol"
+    ],
+    "error": {
+      "kind": "protocol",
+      "message": "https://gateway.example.net/api/status answered with something that is not JSON."
+    },
+    "fn": "parseJsonBody",
+    "throws": true
+  },
+  {
+    "args": [
+      " {\"a\":1} ",
+      "https://gateway.example.net/api/status",
+      "protocol"
+    ],
+    "fn": "parseJsonBody",
+    "note": "JSON.parse skips leading and trailing JSON whitespace (space, tab, LF, CR)",
+    "result": {
+      "a": 1
+    }
+  },
+  {
+    "args": [
+      "\n{\"a\":1}\n",
+      "https://gateway.example.net/api/status",
+      "protocol"
+    ],
+    "fn": "parseJsonBody",
+    "result": {
+      "a": 1
+    }
+  },
+  {
+    "args": [
+      "﻿{\"a\":1}",
+      "https://gateway.example.net/api/status",
+      "protocol"
+    ],
+    "error": {
+      "kind": "protocol",
+      "message": "https://gateway.example.net/api/status answered with something that is not JSON."
+    },
+    "fn": "parseJsonBody",
+    "note": "a UTF-8 BOM is not JSON whitespace: JSON.parse refuses it",
+    "throws": true
+  },
+  {
+    "args": [
+      "{\"a\":1}{\"b\":2}",
+      "https://gateway.example.net/api/status",
+      "protocol"
+    ],
+    "error": {
+      "kind": "protocol",
+      "message": "https://gateway.example.net/api/status answered with something that is not JSON."
+    },
+    "fn": "parseJsonBody",
+    "throws": true
+  },
+  {
+    "args": [
+      "{\"a\":1,}",
+      "https://gateway.example.net/api/status",
+      "protocol"
+    ],
+    "error": {
+      "kind": "protocol",
+      "message": "https://gateway.example.net/api/status answered with something that is not JSON."
+    },
+    "fn": "parseJsonBody",
+    "throws": true
+  },
+  {
+    "args": [
+      "{\"a\":NaN}",
+      "https://gateway.example.net/api/status",
+      "protocol"
+    ],
+    "error": {
+      "kind": "protocol",
+      "message": "https://gateway.example.net/api/status answered with something that is not JSON."
+    },
+    "fn": "parseJsonBody",
+    "throws": true
+  },
+  {
+    "args": [
+      "{'a':1}",
+      "https://gateway.example.net/api/status",
+      "protocol"
+    ],
+    "error": {
+      "kind": "protocol",
+      "message": "https://gateway.example.net/api/status answered with something that is not JSON."
+    },
+    "fn": "parseJsonBody",
+    "throws": true
+  },
+  {
+    "args": [
+      "{\"a\":1e2}",
+      "https://gateway.example.net/api/status",
+      "protocol"
+    ],
+    "fn": "parseJsonBody",
+    "note": "numbers are IEEE doubles: 1e2 is 100",
+    "result": {
+      "a": 100
+    }
+  },
+  {
+    "args": [
+      "{\"a\":1.0}",
+      "https://gateway.example.net/api/status",
+      "protocol"
+    ],
+    "fn": "parseJsonBody",
+    "note": "numbers are IEEE doubles: 1.0 is 1 (the result carries no integer/float distinction)",
+    "result": {
+      "a": 1
+    }
+  },
+  {
+    "args": [
+      "{\"a\":1.5,\"b\":-2,\"c\":0}",
+      "https://gateway.example.net/api/status",
+      "protocol"
+    ],
+    "fn": "parseJsonBody",
+    "result": {
+      "a": 1.5,
+      "b": -2,
+      "c": 0
+    }
+  },
+  {
+    "args": [
+      "{\"a\":-0}",
+      "https://gateway.example.net/api/status",
+      "protocol"
+    ],
+    "fn": "parseJsonBody",
+    "note": "-0 is written 0 by the canonical encoding",
+    "result": {
+      "a": 0
+    }
+  },
+  {
+    "args": [
+      "{\"big\":12345678901234567890}",
+      "https://gateway.example.net/api/status",
+      "protocol"
+    ],
+    "fn": "parseJsonBody",
+    "note": "a number beyond 2^53 loses precision: it is the double nearest to it",
+    "result": {
+      "big": 12345678901234567000
+    }
+  },
+  {
+    "args": [
+      "{\"a\":1,\"a\":2}",
+      "https://gateway.example.net/api/status",
+      "protocol"
+    ],
+    "fn": "parseJsonBody",
+    "note": "duplicate keys: the last one wins",
+    "result": {
+      "a": 2
+    }
+  },
+  {
+    "args": [
+      "{\"\":1}",
+      "https://gateway.example.net/api/status",
+      "protocol"
+    ],
+    "fn": "parseJsonBody",
+    "result": {
+      "": 1
+    }
+  },
+  {
+    "args": [
+      "{\"é\":\"\\u00e9\\n\\t\\\"\",\"emoji\":\"\\ud83d\\ude00\"}",
+      "https://gateway.example.net/api/status",
+      "protocol"
+    ],
+    "fn": "parseJsonBody",
+    "result": {
+      "emoji": "😀",
+      "é": "é\n\t\""
+    }
+  },
+  {
+    "args": [
+      "{\"nested\":{\"list\":[1,\"two\",null,true,{\"x\":[]}]}}",
+      "https://gateway.example.net/api/status",
+      "protocol"
+    ],
+    "fn": "parseJsonBody",
+    "result": {
+      "nested": {
+        "list": [
+          1,
+          "two",
+          null,
+          true,
+          {
+            "x": []
+          }
+        ]
+      }
+    }
+  },
+  {
+    "args": [
+      "{\"a\":\"\\/\"}",
+      "https://gateway.example.net/api/status",
+      "protocol"
+    ],
+    "fn": "parseJsonBody",
+    "note": "\"\\/\" is a legal JSON escape for \"/\"",
+    "result": {
+      "a": "/"
+    }
+  },
+  {
+    "args": [
+      "[1,2,3,]",
+      "https://gateway.example.net/api/status",
+      "protocol"
+    ],
+    "error": {
+      "kind": "protocol",
+      "message": "https://gateway.example.net/api/status answered with something that is not JSON."
+    },
+    "fn": "parseJsonBody",
+    "throws": true
+  },
+  {
+    "args": [
+      "{\"a\":01}",
+      "https://gateway.example.net/api/status",
+      "protocol"
+    ],
+    "error": {
+      "kind": "protocol",
+      "message": "https://gateway.example.net/api/status answered with something that is not JSON."
+    },
+    "fn": "parseJsonBody",
+    "throws": true
+  },
+  {
+    "args": [
+      "{\"a\":.5}",
+      "https://gateway.example.net/api/status",
+      "protocol"
+    ],
+    "error": {
+      "kind": "protocol",
+      "message": "https://gateway.example.net/api/status answered with something that is not JSON."
+    },
+    "fn": "parseJsonBody",
+    "throws": true
+  },
+  {
+    "args": [
+      "{\"a\":+1}",
+      "https://gateway.example.net/api/status",
+      "protocol"
+    ],
+    "error": {
+      "kind": "protocol",
+      "message": "https://gateway.example.net/api/status answered with something that is not JSON."
+    },
+    "fn": "parseJsonBody",
+    "throws": true
+  },
+  {
+    "args": [
+      "{\"a\":\"\t\"}",
+      "https://gateway.example.net/api/status",
+      "protocol"
+    ],
+    "error": {
+      "kind": "protocol",
+      "message": "https://gateway.example.net/api/status answered with something that is not JSON."
+    },
+    "fn": "parseJsonBody",
+    "note": "a raw tab inside a string is not legal JSON",
+    "throws": true
+  },
+  {
+    "args": [
+      "undefined",
+      "https://gateway.example.net/api/status",
+      "protocol"
+    ],
+    "error": {
+      "kind": "protocol",
+      "message": "https://gateway.example.net/api/status answered with something that is not JSON."
+    },
+    "fn": "parseJsonBody",
+    "throws": true
+  },
+  {
+    "args": [
+      "Infinity",
+      "https://gateway.example.net/api/status",
+      "protocol"
+    ],
+    "error": {
+      "kind": "protocol",
+      "message": "https://gateway.example.net/api/status answered with something that is not JSON."
+    },
+    "fn": "parseJsonBody",
+    "throws": true
+  },
+  {
+    "args": [
+      "\"unterminated",
+      "https://gateway.example.net/api/status",
+      "protocol"
+    ],
+    "error": {
+      "kind": "protocol",
+      "message": "https://gateway.example.net/api/status answered with something that is not JSON."
+    },
+    "fn": "parseJsonBody",
+    "throws": true
+  },
+  {
+    "args": [
+      "{\"a\":1} trailing",
+      "https://gateway.example.net/api/status",
+      "protocol"
+    ],
+    "error": {
+      "kind": "protocol",
+      "message": "https://gateway.example.net/api/status answered with something that is not JSON."
+    },
+    "fn": "parseJsonBody",
+    "throws": true
+  },
+  {
+    "args": [
+      "{\"a\":1}",
+      "https://gateway.example.net/api/status",
+      "not_hermes"
+    ],
+    "fn": "parseJsonBody",
+    "result": {
+      "a": 1
+    }
+  },
+  {
+    "args": [
+      "[1,2]",
+      "https://gateway.example.net/api/status",
+      "not_hermes"
+    ],
+    "fn": "parseJsonBody",
+    "result": [
+      1,
+      2
+    ]
+  },
+  {
+    "args": [
+      "1",
+      "https://gateway.example.net/api/status",
+      "not_hermes"
+    ],
+    "fn": "parseJsonBody",
+    "result": 1
+  },
+  {
+    "args": [
+      "\"s\"",
+      "https://gateway.example.net/api/status",
+      "not_hermes"
+    ],
+    "fn": "parseJsonBody",
+    "result": "s"
+  },
+  {
+    "args": [
+      "null",
+      "https://gateway.example.net/api/status",
+      "not_hermes"
+    ],
+    "fn": "parseJsonBody",
+    "result": null
+  },
+  {
+    "args": [
+      "true",
+      "https://gateway.example.net/api/status",
+      "not_hermes"
+    ],
+    "fn": "parseJsonBody",
+    "result": true
+  },
+  {
+    "args": [
+      "false",
+      "https://gateway.example.net/api/status",
+      "not_hermes"
+    ],
+    "fn": "parseJsonBody",
+    "result": false
+  },
+  {
+    "args": [
+      "{}",
+      "https://gateway.example.net/api/status",
+      "not_hermes"
+    ],
+    "fn": "parseJsonBody",
+    "result": {}
+  },
+  {
+    "args": [
+      "[]",
+      "https://gateway.example.net/api/status",
+      "not_hermes"
+    ],
+    "fn": "parseJsonBody",
+    "result": []
+  },
+  {
+    "args": [
+      "",
+      "https://gateway.example.net/api/status",
+      "not_hermes"
+    ],
+    "error": {
+      "kind": "not_hermes",
+      "message": "https://gateway.example.net/api/status answered with something that is not JSON."
+    },
+    "fn": "parseJsonBody",
+    "throws": true
+  },
+  {
+    "args": [
+      "   ",
+      "https://gateway.example.net/api/status",
+      "not_hermes"
+    ],
+    "error": {
+      "kind": "not_hermes",
+      "message": "https://gateway.example.net/api/status answered with something that is not JSON."
+    },
+    "fn": "parseJsonBody",
+    "throws": true
+  },
+  {
+    "args": [
+      "<html>",
+      "https://gateway.example.net/api/status",
+      "not_hermes"
+    ],
+    "error": {
+      "kind": "not_hermes",
+      "message": "https://gateway.example.net/api/status answered with something that is not JSON."
+    },
+    "fn": "parseJsonBody",
+    "throws": true
+  },
+  {
+    "args": [
+      "{bad",
+      "https://gateway.example.net/api/status",
+      "not_hermes"
+    ],
+    "error": {
+      "kind": "not_hermes",
+      "message": "https://gateway.example.net/api/status answered with something that is not JSON."
+    },
+    "fn": "parseJsonBody",
+    "throws": true
+  },
+  {
+    "args": [
+      " {\"a\":1} ",
+      "https://gateway.example.net/api/status",
+      "not_hermes"
+    ],
+    "fn": "parseJsonBody",
+    "result": {
+      "a": 1
+    }
+  },
+  {
+    "args": [
+      "\n{\"a\":1}\n",
+      "https://gateway.example.net/api/status",
+      "not_hermes"
+    ],
+    "fn": "parseJsonBody",
+    "result": {
+      "a": 1
+    }
+  },
+  {
+    "args": [
+      "﻿{\"a\":1}",
+      "https://gateway.example.net/api/status",
+      "not_hermes"
+    ],
+    "error": {
+      "kind": "not_hermes",
+      "message": "https://gateway.example.net/api/status answered with something that is not JSON."
+    },
+    "fn": "parseJsonBody",
+    "throws": true
+  },
+  {
+    "args": [
+      "{\"a\":1}{\"b\":2}",
+      "https://gateway.example.net/api/status",
+      "not_hermes"
+    ],
+    "error": {
+      "kind": "not_hermes",
+      "message": "https://gateway.example.net/api/status answered with something that is not JSON."
+    },
+    "fn": "parseJsonBody",
+    "throws": true
+  },
+  {
+    "args": [
+      "{\"a\":1,}",
+      "https://gateway.example.net/api/status",
+      "not_hermes"
+    ],
+    "error": {
+      "kind": "not_hermes",
+      "message": "https://gateway.example.net/api/status answered with something that is not JSON."
+    },
+    "fn": "parseJsonBody",
+    "throws": true
+  },
+  {
+    "args": [
+      "{\"a\":NaN}",
+      "https://gateway.example.net/api/status",
+      "not_hermes"
+    ],
+    "error": {
+      "kind": "not_hermes",
+      "message": "https://gateway.example.net/api/status answered with something that is not JSON."
+    },
+    "fn": "parseJsonBody",
+    "throws": true
+  },
+  {
+    "args": [
+      "{'a':1}",
+      "https://gateway.example.net/api/status",
+      "not_hermes"
+    ],
+    "error": {
+      "kind": "not_hermes",
+      "message": "https://gateway.example.net/api/status answered with something that is not JSON."
+    },
+    "fn": "parseJsonBody",
+    "throws": true
+  },
+  {
+    "args": [
+      "{\"a\":1e2}",
+      "https://gateway.example.net/api/status",
+      "not_hermes"
+    ],
+    "fn": "parseJsonBody",
+    "result": {
+      "a": 100
+    }
+  },
+  {
+    "args": [
+      "{\"a\":1.0}",
+      "https://gateway.example.net/api/status",
+      "not_hermes"
+    ],
+    "fn": "parseJsonBody",
+    "result": {
+      "a": 1
+    }
+  },
+  {
+    "args": [
+      "{\"a\":1.5,\"b\":-2,\"c\":0}",
+      "https://gateway.example.net/api/status",
+      "not_hermes"
+    ],
+    "fn": "parseJsonBody",
+    "result": {
+      "a": 1.5,
+      "b": -2,
+      "c": 0
+    }
+  },
+  {
+    "args": [
+      "{\"a\":-0}",
+      "https://gateway.example.net/api/status",
+      "not_hermes"
+    ],
+    "fn": "parseJsonBody",
+    "result": {
+      "a": 0
+    }
+  },
+  {
+    "args": [
+      "{\"big\":12345678901234567890}",
+      "https://gateway.example.net/api/status",
+      "not_hermes"
+    ],
+    "fn": "parseJsonBody",
+    "result": {
+      "big": 12345678901234567000
+    }
+  },
+  {
+    "args": [
+      "{\"a\":1,\"a\":2}",
+      "https://gateway.example.net/api/status",
+      "not_hermes"
+    ],
+    "fn": "parseJsonBody",
+    "result": {
+      "a": 2
+    }
+  },
+  {
+    "args": [
+      "{\"\":1}",
+      "https://gateway.example.net/api/status",
+      "not_hermes"
+    ],
+    "fn": "parseJsonBody",
+    "result": {
+      "": 1
+    }
+  },
+  {
+    "args": [
+      "{\"é\":\"\\u00e9\\n\\t\\\"\",\"emoji\":\"\\ud83d\\ude00\"}",
+      "https://gateway.example.net/api/status",
+      "not_hermes"
+    ],
+    "fn": "parseJsonBody",
+    "result": {
+      "emoji": "😀",
+      "é": "é\n\t\""
+    }
+  },
+  {
+    "args": [
+      "{\"nested\":{\"list\":[1,\"two\",null,true,{\"x\":[]}]}}",
+      "https://gateway.example.net/api/status",
+      "not_hermes"
+    ],
+    "fn": "parseJsonBody",
+    "result": {
+      "nested": {
+        "list": [
+          1,
+          "two",
+          null,
+          true,
+          {
+            "x": []
+          }
+        ]
+      }
+    }
+  },
+  {
+    "args": [
+      "{\"a\":\"\\/\"}",
+      "https://gateway.example.net/api/status",
+      "not_hermes"
+    ],
+    "fn": "parseJsonBody",
+    "result": {
+      "a": "/"
+    }
+  },
+  {
+    "args": [
+      "[1,2,3,]",
+      "https://gateway.example.net/api/status",
+      "not_hermes"
+    ],
+    "error": {
+      "kind": "not_hermes",
+      "message": "https://gateway.example.net/api/status answered with something that is not JSON."
+    },
+    "fn": "parseJsonBody",
+    "throws": true
+  },
+  {
+    "args": [
+      "{\"a\":01}",
+      "https://gateway.example.net/api/status",
+      "not_hermes"
+    ],
+    "error": {
+      "kind": "not_hermes",
+      "message": "https://gateway.example.net/api/status answered with something that is not JSON."
+    },
+    "fn": "parseJsonBody",
+    "throws": true
+  },
+  {
+    "args": [
+      "{\"a\":.5}",
+      "https://gateway.example.net/api/status",
+      "not_hermes"
+    ],
+    "error": {
+      "kind": "not_hermes",
+      "message": "https://gateway.example.net/api/status answered with something that is not JSON."
+    },
+    "fn": "parseJsonBody",
+    "throws": true
+  },
+  {
+    "args": [
+      "{\"a\":+1}",
+      "https://gateway.example.net/api/status",
+      "not_hermes"
+    ],
+    "error": {
+      "kind": "not_hermes",
+      "message": "https://gateway.example.net/api/status answered with something that is not JSON."
+    },
+    "fn": "parseJsonBody",
+    "throws": true
+  },
+  {
+    "args": [
+      "{\"a\":\"\t\"}",
+      "https://gateway.example.net/api/status",
+      "not_hermes"
+    ],
+    "error": {
+      "kind": "not_hermes",
+      "message": "https://gateway.example.net/api/status answered with something that is not JSON."
+    },
+    "fn": "parseJsonBody",
+    "throws": true
+  },
+  {
+    "args": [
+      "undefined",
+      "https://gateway.example.net/api/status",
+      "not_hermes"
+    ],
+    "error": {
+      "kind": "not_hermes",
+      "message": "https://gateway.example.net/api/status answered with something that is not JSON."
+    },
+    "fn": "parseJsonBody",
+    "throws": true
+  },
+  {
+    "args": [
+      "Infinity",
+      "https://gateway.example.net/api/status",
+      "not_hermes"
+    ],
+    "error": {
+      "kind": "not_hermes",
+      "message": "https://gateway.example.net/api/status answered with something that is not JSON."
+    },
+    "fn": "parseJsonBody",
+    "throws": true
+  },
+  {
+    "args": [
+      "\"unterminated",
+      "https://gateway.example.net/api/status",
+      "not_hermes"
+    ],
+    "error": {
+      "kind": "not_hermes",
+      "message": "https://gateway.example.net/api/status answered with something that is not JSON."
+    },
+    "fn": "parseJsonBody",
+    "throws": true
+  },
+  {
+    "args": [
+      "{\"a\":1} trailing",
+      "https://gateway.example.net/api/status",
+      "not_hermes"
+    ],
+    "error": {
+      "kind": "not_hermes",
+      "message": "https://gateway.example.net/api/status answered with something that is not JSON."
+    },
+    "fn": "parseJsonBody",
+    "throws": true
+  },
+  {
+    "args": [
+      "{\"a\":1}",
+      "https://gateway.example.net/api/status",
+      "protocol"
+    ],
+    "fn": "parseJsonObject",
+    "result": {
+      "a": 1
+    }
+  },
+  {
+    "args": [
+      "[1,2]",
+      "https://gateway.example.net/api/status",
+      "protocol"
+    ],
+    "error": {
+      "kind": "protocol",
+      "message": "https://gateway.example.net/api/status answered with JSON that is not an object."
+    },
+    "fn": "parseJsonObject",
+    "throws": true
+  },
+  {
+    "args": [
+      "1",
+      "https://gateway.example.net/api/status",
+      "protocol"
+    ],
+    "error": {
+      "kind": "protocol",
+      "message": "https://gateway.example.net/api/status answered with JSON that is not an object."
+    },
+    "fn": "parseJsonObject",
+    "throws": true
+  },
+  {
+    "args": [
+      "\"s\"",
+      "https://gateway.example.net/api/status",
+      "protocol"
+    ],
+    "error": {
+      "kind": "protocol",
+      "message": "https://gateway.example.net/api/status answered with JSON that is not an object."
+    },
+    "fn": "parseJsonObject",
+    "throws": true
+  },
+  {
+    "args": [
+      "null",
+      "https://gateway.example.net/api/status",
+      "protocol"
+    ],
+    "error": {
+      "kind": "protocol",
+      "message": "https://gateway.example.net/api/status answered with JSON that is not an object."
+    },
+    "fn": "parseJsonObject",
+    "throws": true
+  },
+  {
+    "args": [
+      "true",
+      "https://gateway.example.net/api/status",
+      "protocol"
+    ],
+    "error": {
+      "kind": "protocol",
+      "message": "https://gateway.example.net/api/status answered with JSON that is not an object."
+    },
+    "fn": "parseJsonObject",
+    "throws": true
+  },
+  {
+    "args": [
+      "false",
+      "https://gateway.example.net/api/status",
+      "protocol"
+    ],
+    "error": {
+      "kind": "protocol",
+      "message": "https://gateway.example.net/api/status answered with JSON that is not an object."
+    },
+    "fn": "parseJsonObject",
+    "throws": true
+  },
+  {
+    "args": [
+      "{}",
+      "https://gateway.example.net/api/status",
+      "protocol"
+    ],
+    "fn": "parseJsonObject",
+    "result": {}
+  },
+  {
+    "args": [
+      "[]",
+      "https://gateway.example.net/api/status",
+      "protocol"
+    ],
+    "error": {
+      "kind": "protocol",
+      "message": "https://gateway.example.net/api/status answered with JSON that is not an object."
+    },
+    "fn": "parseJsonObject",
+    "throws": true
+  },
+  {
+    "args": [
+      "",
+      "https://gateway.example.net/api/status",
+      "protocol"
+    ],
+    "error": {
+      "kind": "protocol",
+      "message": "https://gateway.example.net/api/status answered with something that is not JSON."
+    },
+    "fn": "parseJsonObject",
+    "throws": true
+  },
+  {
+    "args": [
+      "   ",
+      "https://gateway.example.net/api/status",
+      "protocol"
+    ],
+    "error": {
+      "kind": "protocol",
+      "message": "https://gateway.example.net/api/status answered with something that is not JSON."
+    },
+    "fn": "parseJsonObject",
+    "throws": true
+  },
+  {
+    "args": [
+      "<html>",
+      "https://gateway.example.net/api/status",
+      "protocol"
+    ],
+    "error": {
+      "kind": "protocol",
+      "message": "https://gateway.example.net/api/status answered with something that is not JSON."
+    },
+    "fn": "parseJsonObject",
+    "throws": true
+  },
+  {
+    "args": [
+      "{bad",
+      "https://gateway.example.net/api/status",
+      "protocol"
+    ],
+    "error": {
+      "kind": "protocol",
+      "message": "https://gateway.example.net/api/status answered with something that is not JSON."
+    },
+    "fn": "parseJsonObject",
+    "throws": true
+  },
+  {
+    "args": [
+      " {\"a\":1} ",
+      "https://gateway.example.net/api/status",
+      "protocol"
+    ],
+    "fn": "parseJsonObject",
+    "note": "JSON.parse skips leading and trailing JSON whitespace (space, tab, LF, CR)",
+    "result": {
+      "a": 1
+    }
+  },
+  {
+    "args": [
+      "\n{\"a\":1}\n",
+      "https://gateway.example.net/api/status",
+      "protocol"
+    ],
+    "fn": "parseJsonObject",
+    "result": {
+      "a": 1
+    }
+  },
+  {
+    "args": [
+      "﻿{\"a\":1}",
+      "https://gateway.example.net/api/status",
+      "protocol"
+    ],
+    "error": {
+      "kind": "protocol",
+      "message": "https://gateway.example.net/api/status answered with something that is not JSON."
+    },
+    "fn": "parseJsonObject",
+    "note": "a UTF-8 BOM is not JSON whitespace: JSON.parse refuses it",
+    "throws": true
+  },
+  {
+    "args": [
+      "{\"a\":1}{\"b\":2}",
+      "https://gateway.example.net/api/status",
+      "protocol"
+    ],
+    "error": {
+      "kind": "protocol",
+      "message": "https://gateway.example.net/api/status answered with something that is not JSON."
+    },
+    "fn": "parseJsonObject",
+    "throws": true
+  },
+  {
+    "args": [
+      "{\"a\":1,}",
+      "https://gateway.example.net/api/status",
+      "protocol"
+    ],
+    "error": {
+      "kind": "protocol",
+      "message": "https://gateway.example.net/api/status answered with something that is not JSON."
+    },
+    "fn": "parseJsonObject",
+    "throws": true
+  },
+  {
+    "args": [
+      "{\"a\":NaN}",
+      "https://gateway.example.net/api/status",
+      "protocol"
+    ],
+    "error": {
+      "kind": "protocol",
+      "message": "https://gateway.example.net/api/status answered with something that is not JSON."
+    },
+    "fn": "parseJsonObject",
+    "throws": true
+  },
+  {
+    "args": [
+      "{'a':1}",
+      "https://gateway.example.net/api/status",
+      "protocol"
+    ],
+    "error": {
+      "kind": "protocol",
+      "message": "https://gateway.example.net/api/status answered with something that is not JSON."
+    },
+    "fn": "parseJsonObject",
+    "throws": true
+  },
+  {
+    "args": [
+      "{\"a\":1e2}",
+      "https://gateway.example.net/api/status",
+      "protocol"
+    ],
+    "fn": "parseJsonObject",
+    "note": "numbers are IEEE doubles: 1e2 is 100",
+    "result": {
+      "a": 100
+    }
+  },
+  {
+    "args": [
+      "{\"a\":1.0}",
+      "https://gateway.example.net/api/status",
+      "protocol"
+    ],
+    "fn": "parseJsonObject",
+    "note": "numbers are IEEE doubles: 1.0 is 1 (the result carries no integer/float distinction)",
+    "result": {
+      "a": 1
+    }
+  },
+  {
+    "args": [
+      "{\"a\":1.5,\"b\":-2,\"c\":0}",
+      "https://gateway.example.net/api/status",
+      "protocol"
+    ],
+    "fn": "parseJsonObject",
+    "result": {
+      "a": 1.5,
+      "b": -2,
+      "c": 0
+    }
+  },
+  {
+    "args": [
+      "{\"a\":-0}",
+      "https://gateway.example.net/api/status",
+      "protocol"
+    ],
+    "fn": "parseJsonObject",
+    "note": "-0 is written 0 by the canonical encoding",
+    "result": {
+      "a": 0
+    }
+  },
+  {
+    "args": [
+      "{\"big\":12345678901234567890}",
+      "https://gateway.example.net/api/status",
+      "protocol"
+    ],
+    "fn": "parseJsonObject",
+    "note": "a number beyond 2^53 loses precision: it is the double nearest to it",
+    "result": {
+      "big": 12345678901234567000
+    }
+  },
+  {
+    "args": [
+      "{\"a\":1,\"a\":2}",
+      "https://gateway.example.net/api/status",
+      "protocol"
+    ],
+    "fn": "parseJsonObject",
+    "note": "duplicate keys: the last one wins",
+    "result": {
+      "a": 2
+    }
+  },
+  {
+    "args": [
+      "{\"\":1}",
+      "https://gateway.example.net/api/status",
+      "protocol"
+    ],
+    "fn": "parseJsonObject",
+    "result": {
+      "": 1
+    }
+  },
+  {
+    "args": [
+      "{\"é\":\"\\u00e9\\n\\t\\\"\",\"emoji\":\"\\ud83d\\ude00\"}",
+      "https://gateway.example.net/api/status",
+      "protocol"
+    ],
+    "fn": "parseJsonObject",
+    "result": {
+      "emoji": "😀",
+      "é": "é\n\t\""
+    }
+  },
+  {
+    "args": [
+      "{\"nested\":{\"list\":[1,\"two\",null,true,{\"x\":[]}]}}",
+      "https://gateway.example.net/api/status",
+      "protocol"
+    ],
+    "fn": "parseJsonObject",
+    "result": {
+      "nested": {
+        "list": [
+          1,
+          "two",
+          null,
+          true,
+          {
+            "x": []
+          }
+        ]
+      }
+    }
+  },
+  {
+    "args": [
+      "{\"a\":\"\\/\"}",
+      "https://gateway.example.net/api/status",
+      "protocol"
+    ],
+    "fn": "parseJsonObject",
+    "note": "\"\\/\" is a legal JSON escape for \"/\"",
+    "result": {
+      "a": "/"
+    }
+  },
+  {
+    "args": [
+      "[1,2,3,]",
+      "https://gateway.example.net/api/status",
+      "protocol"
+    ],
+    "error": {
+      "kind": "protocol",
+      "message": "https://gateway.example.net/api/status answered with something that is not JSON."
+    },
+    "fn": "parseJsonObject",
+    "throws": true
+  },
+  {
+    "args": [
+      "{\"a\":01}",
+      "https://gateway.example.net/api/status",
+      "protocol"
+    ],
+    "error": {
+      "kind": "protocol",
+      "message": "https://gateway.example.net/api/status answered with something that is not JSON."
+    },
+    "fn": "parseJsonObject",
+    "throws": true
+  },
+  {
+    "args": [
+      "{\"a\":.5}",
+      "https://gateway.example.net/api/status",
+      "protocol"
+    ],
+    "error": {
+      "kind": "protocol",
+      "message": "https://gateway.example.net/api/status answered with something that is not JSON."
+    },
+    "fn": "parseJsonObject",
+    "throws": true
+  },
+  {
+    "args": [
+      "{\"a\":+1}",
+      "https://gateway.example.net/api/status",
+      "protocol"
+    ],
+    "error": {
+      "kind": "protocol",
+      "message": "https://gateway.example.net/api/status answered with something that is not JSON."
+    },
+    "fn": "parseJsonObject",
+    "throws": true
+  },
+  {
+    "args": [
+      "{\"a\":\"\t\"}",
+      "https://gateway.example.net/api/status",
+      "protocol"
+    ],
+    "error": {
+      "kind": "protocol",
+      "message": "https://gateway.example.net/api/status answered with something that is not JSON."
+    },
+    "fn": "parseJsonObject",
+    "note": "a raw tab inside a string is not legal JSON",
+    "throws": true
+  },
+  {
+    "args": [
+      "undefined",
+      "https://gateway.example.net/api/status",
+      "protocol"
+    ],
+    "error": {
+      "kind": "protocol",
+      "message": "https://gateway.example.net/api/status answered with something that is not JSON."
+    },
+    "fn": "parseJsonObject",
+    "throws": true
+  },
+  {
+    "args": [
+      "Infinity",
+      "https://gateway.example.net/api/status",
+      "protocol"
+    ],
+    "error": {
+      "kind": "protocol",
+      "message": "https://gateway.example.net/api/status answered with something that is not JSON."
+    },
+    "fn": "parseJsonObject",
+    "throws": true
+  },
+  {
+    "args": [
+      "\"unterminated",
+      "https://gateway.example.net/api/status",
+      "protocol"
+    ],
+    "error": {
+      "kind": "protocol",
+      "message": "https://gateway.example.net/api/status answered with something that is not JSON."
+    },
+    "fn": "parseJsonObject",
+    "throws": true
+  },
+  {
+    "args": [
+      "{\"a\":1} trailing",
+      "https://gateway.example.net/api/status",
+      "protocol"
+    ],
+    "error": {
+      "kind": "protocol",
+      "message": "https://gateway.example.net/api/status answered with something that is not JSON."
+    },
+    "fn": "parseJsonObject",
+    "throws": true
+  },
+  {
+    "args": [
+      "{\"a\":1}",
+      "https://gateway.example.net/api/status",
+      "not_hermes"
+    ],
+    "fn": "parseJsonObject",
+    "result": {
+      "a": 1
+    }
+  },
+  {
+    "args": [
+      "[1,2]",
+      "https://gateway.example.net/api/status",
+      "not_hermes"
+    ],
+    "error": {
+      "kind": "not_hermes",
+      "message": "https://gateway.example.net/api/status answered with JSON that is not an object."
+    },
+    "fn": "parseJsonObject",
+    "throws": true
+  },
+  {
+    "args": [
+      "1",
+      "https://gateway.example.net/api/status",
+      "not_hermes"
+    ],
+    "error": {
+      "kind": "not_hermes",
+      "message": "https://gateway.example.net/api/status answered with JSON that is not an object."
+    },
+    "fn": "parseJsonObject",
+    "throws": true
+  },
+  {
+    "args": [
+      "\"s\"",
+      "https://gateway.example.net/api/status",
+      "not_hermes"
+    ],
+    "error": {
+      "kind": "not_hermes",
+      "message": "https://gateway.example.net/api/status answered with JSON that is not an object."
+    },
+    "fn": "parseJsonObject",
+    "throws": true
+  },
+  {
+    "args": [
+      "null",
+      "https://gateway.example.net/api/status",
+      "not_hermes"
+    ],
+    "error": {
+      "kind": "not_hermes",
+      "message": "https://gateway.example.net/api/status answered with JSON that is not an object."
+    },
+    "fn": "parseJsonObject",
+    "throws": true
+  },
+  {
+    "args": [
+      "true",
+      "https://gateway.example.net/api/status",
+      "not_hermes"
+    ],
+    "error": {
+      "kind": "not_hermes",
+      "message": "https://gateway.example.net/api/status answered with JSON that is not an object."
+    },
+    "fn": "parseJsonObject",
+    "throws": true
+  },
+  {
+    "args": [
+      "false",
+      "https://gateway.example.net/api/status",
+      "not_hermes"
+    ],
+    "error": {
+      "kind": "not_hermes",
+      "message": "https://gateway.example.net/api/status answered with JSON that is not an object."
+    },
+    "fn": "parseJsonObject",
+    "throws": true
+  },
+  {
+    "args": [
+      "{}",
+      "https://gateway.example.net/api/status",
+      "not_hermes"
+    ],
+    "fn": "parseJsonObject",
+    "result": {}
+  },
+  {
+    "args": [
+      "[]",
+      "https://gateway.example.net/api/status",
+      "not_hermes"
+    ],
+    "error": {
+      "kind": "not_hermes",
+      "message": "https://gateway.example.net/api/status answered with JSON that is not an object."
+    },
+    "fn": "parseJsonObject",
+    "throws": true
+  },
+  {
+    "args": [
+      "",
+      "https://gateway.example.net/api/status",
+      "not_hermes"
+    ],
+    "error": {
+      "kind": "not_hermes",
+      "message": "https://gateway.example.net/api/status answered with something that is not JSON."
+    },
+    "fn": "parseJsonObject",
+    "throws": true
+  },
+  {
+    "args": [
+      "   ",
+      "https://gateway.example.net/api/status",
+      "not_hermes"
+    ],
+    "error": {
+      "kind": "not_hermes",
+      "message": "https://gateway.example.net/api/status answered with something that is not JSON."
+    },
+    "fn": "parseJsonObject",
+    "throws": true
+  },
+  {
+    "args": [
+      "<html>",
+      "https://gateway.example.net/api/status",
+      "not_hermes"
+    ],
+    "error": {
+      "kind": "not_hermes",
+      "message": "https://gateway.example.net/api/status answered with something that is not JSON."
+    },
+    "fn": "parseJsonObject",
+    "throws": true
+  },
+  {
+    "args": [
+      "{bad",
+      "https://gateway.example.net/api/status",
+      "not_hermes"
+    ],
+    "error": {
+      "kind": "not_hermes",
+      "message": "https://gateway.example.net/api/status answered with something that is not JSON."
+    },
+    "fn": "parseJsonObject",
+    "throws": true
+  },
+  {
+    "args": [
+      " {\"a\":1} ",
+      "https://gateway.example.net/api/status",
+      "not_hermes"
+    ],
+    "fn": "parseJsonObject",
+    "result": {
+      "a": 1
+    }
+  },
+  {
+    "args": [
+      "\n{\"a\":1}\n",
+      "https://gateway.example.net/api/status",
+      "not_hermes"
+    ],
+    "fn": "parseJsonObject",
+    "result": {
+      "a": 1
+    }
+  },
+  {
+    "args": [
+      "﻿{\"a\":1}",
+      "https://gateway.example.net/api/status",
+      "not_hermes"
+    ],
+    "error": {
+      "kind": "not_hermes",
+      "message": "https://gateway.example.net/api/status answered with something that is not JSON."
+    },
+    "fn": "parseJsonObject",
+    "throws": true
+  },
+  {
+    "args": [
+      "{\"a\":1}{\"b\":2}",
+      "https://gateway.example.net/api/status",
+      "not_hermes"
+    ],
+    "error": {
+      "kind": "not_hermes",
+      "message": "https://gateway.example.net/api/status answered with something that is not JSON."
+    },
+    "fn": "parseJsonObject",
+    "throws": true
+  },
+  {
+    "args": [
+      "{\"a\":1,}",
+      "https://gateway.example.net/api/status",
+      "not_hermes"
+    ],
+    "error": {
+      "kind": "not_hermes",
+      "message": "https://gateway.example.net/api/status answered with something that is not JSON."
+    },
+    "fn": "parseJsonObject",
+    "throws": true
+  },
+  {
+    "args": [
+      "{\"a\":NaN}",
+      "https://gateway.example.net/api/status",
+      "not_hermes"
+    ],
+    "error": {
+      "kind": "not_hermes",
+      "message": "https://gateway.example.net/api/status answered with something that is not JSON."
+    },
+    "fn": "parseJsonObject",
+    "throws": true
+  },
+  {
+    "args": [
+      "{'a':1}",
+      "https://gateway.example.net/api/status",
+      "not_hermes"
+    ],
+    "error": {
+      "kind": "not_hermes",
+      "message": "https://gateway.example.net/api/status answered with something that is not JSON."
+    },
+    "fn": "parseJsonObject",
+    "throws": true
+  },
+  {
+    "args": [
+      "{\"a\":1e2}",
+      "https://gateway.example.net/api/status",
+      "not_hermes"
+    ],
+    "fn": "parseJsonObject",
+    "result": {
+      "a": 100
+    }
+  },
+  {
+    "args": [
+      "{\"a\":1.0}",
+      "https://gateway.example.net/api/status",
+      "not_hermes"
+    ],
+    "fn": "parseJsonObject",
+    "result": {
+      "a": 1
+    }
+  },
+  {
+    "args": [
+      "{\"a\":1.5,\"b\":-2,\"c\":0}",
+      "https://gateway.example.net/api/status",
+      "not_hermes"
+    ],
+    "fn": "parseJsonObject",
+    "result": {
+      "a": 1.5,
+      "b": -2,
+      "c": 0
+    }
+  },
+  {
+    "args": [
+      "{\"a\":-0}",
+      "https://gateway.example.net/api/status",
+      "not_hermes"
+    ],
+    "fn": "parseJsonObject",
+    "result": {
+      "a": 0
+    }
+  },
+  {
+    "args": [
+      "{\"big\":12345678901234567890}",
+      "https://gateway.example.net/api/status",
+      "not_hermes"
+    ],
+    "fn": "parseJsonObject",
+    "result": {
+      "big": 12345678901234567000
+    }
+  },
+  {
+    "args": [
+      "{\"a\":1,\"a\":2}",
+      "https://gateway.example.net/api/status",
+      "not_hermes"
+    ],
+    "fn": "parseJsonObject",
+    "result": {
+      "a": 2
+    }
+  },
+  {
+    "args": [
+      "{\"\":1}",
+      "https://gateway.example.net/api/status",
+      "not_hermes"
+    ],
+    "fn": "parseJsonObject",
+    "result": {
+      "": 1
+    }
+  },
+  {
+    "args": [
+      "{\"é\":\"\\u00e9\\n\\t\\\"\",\"emoji\":\"\\ud83d\\ude00\"}",
+      "https://gateway.example.net/api/status",
+      "not_hermes"
+    ],
+    "fn": "parseJsonObject",
+    "result": {
+      "emoji": "😀",
+      "é": "é\n\t\""
+    }
+  },
+  {
+    "args": [
+      "{\"nested\":{\"list\":[1,\"two\",null,true,{\"x\":[]}]}}",
+      "https://gateway.example.net/api/status",
+      "not_hermes"
+    ],
+    "fn": "parseJsonObject",
+    "result": {
+      "nested": {
+        "list": [
+          1,
+          "two",
+          null,
+          true,
+          {
+            "x": []
+          }
+        ]
+      }
+    }
+  },
+  {
+    "args": [
+      "{\"a\":\"\\/\"}",
+      "https://gateway.example.net/api/status",
+      "not_hermes"
+    ],
+    "fn": "parseJsonObject",
+    "result": {
+      "a": "/"
+    }
+  },
+  {
+    "args": [
+      "[1,2,3,]",
+      "https://gateway.example.net/api/status",
+      "not_hermes"
+    ],
+    "error": {
+      "kind": "not_hermes",
+      "message": "https://gateway.example.net/api/status answered with something that is not JSON."
+    },
+    "fn": "parseJsonObject",
+    "throws": true
+  },
+  {
+    "args": [
+      "{\"a\":01}",
+      "https://gateway.example.net/api/status",
+      "not_hermes"
+    ],
+    "error": {
+      "kind": "not_hermes",
+      "message": "https://gateway.example.net/api/status answered with something that is not JSON."
+    },
+    "fn": "parseJsonObject",
+    "throws": true
+  },
+  {
+    "args": [
+      "{\"a\":.5}",
+      "https://gateway.example.net/api/status",
+      "not_hermes"
+    ],
+    "error": {
+      "kind": "not_hermes",
+      "message": "https://gateway.example.net/api/status answered with something that is not JSON."
+    },
+    "fn": "parseJsonObject",
+    "throws": true
+  },
+  {
+    "args": [
+      "{\"a\":+1}",
+      "https://gateway.example.net/api/status",
+      "not_hermes"
+    ],
+    "error": {
+      "kind": "not_hermes",
+      "message": "https://gateway.example.net/api/status answered with something that is not JSON."
+    },
+    "fn": "parseJsonObject",
+    "throws": true
+  },
+  {
+    "args": [
+      "{\"a\":\"\t\"}",
+      "https://gateway.example.net/api/status",
+      "not_hermes"
+    ],
+    "error": {
+      "kind": "not_hermes",
+      "message": "https://gateway.example.net/api/status answered with something that is not JSON."
+    },
+    "fn": "parseJsonObject",
+    "throws": true
+  },
+  {
+    "args": [
+      "undefined",
+      "https://gateway.example.net/api/status",
+      "not_hermes"
+    ],
+    "error": {
+      "kind": "not_hermes",
+      "message": "https://gateway.example.net/api/status answered with something that is not JSON."
+    },
+    "fn": "parseJsonObject",
+    "throws": true
+  },
+  {
+    "args": [
+      "Infinity",
+      "https://gateway.example.net/api/status",
+      "not_hermes"
+    ],
+    "error": {
+      "kind": "not_hermes",
+      "message": "https://gateway.example.net/api/status answered with something that is not JSON."
+    },
+    "fn": "parseJsonObject",
+    "throws": true
+  },
+  {
+    "args": [
+      "\"unterminated",
+      "https://gateway.example.net/api/status",
+      "not_hermes"
+    ],
+    "error": {
+      "kind": "not_hermes",
+      "message": "https://gateway.example.net/api/status answered with something that is not JSON."
+    },
+    "fn": "parseJsonObject",
+    "throws": true
+  },
+  {
+    "args": [
+      "{\"a\":1} trailing",
+      "https://gateway.example.net/api/status",
+      "not_hermes"
+    ],
+    "error": {
+      "kind": "not_hermes",
+      "message": "https://gateway.example.net/api/status answered with something that is not JSON."
+    },
+    "fn": "parseJsonObject",
+    "throws": true
+  },
+  {
+    "args": [
+      "[1]",
+      "",
+      "protocol"
+    ],
+    "error": {
+      "kind": "protocol",
+      "message": " answered with JSON that is not an object."
+    },
+    "fn": "parseJsonObject",
+    "note": "empty url: the message starts with a space",
+    "throws": true
+  },
+  {
+    "args": [
+      "x",
+      "https://[::1]:9119/api/status?x=1",
+      "not_hermes"
+    ],
+    "error": {
+      "kind": "not_hermes",
+      "message": "https://[::1]:9119/api/status?x=1 answered with something that is not JSON."
+    },
+    "fn": "parseJsonBody",
+    "throws": true
+  }
+]

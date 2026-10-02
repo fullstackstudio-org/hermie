@@ -1,0 +1,3627 @@
+[
+  {
+    "args": [],
+    "fn": "PUSH_TYPES",
+    "note": "constant; the order is the order the switches are drawn in",
+    "result": [
+      "message",
+      "request",
+      "cron",
+      "cron_done",
+      "cron_failed",
+      "turn_done",
+      "turn_failed"
+    ]
+  },
+  {
+    "args": [],
+    "fn": "PUSH_SECTION_VERSION",
+    "note": "constant",
+    "result": 1
+  },
+  {
+    "args": [],
+    "fn": "PUSH_SECTION_KEY",
+    "note": "constant",
+    "result": "push"
+  },
+  {
+    "args": [],
+    "fn": "PUSH_PER_BOT_KEY",
+    "note": "constant",
+    "result": "perBot"
+  },
+  {
+    "args": [],
+    "fn": "PUSH_SEEN_TTL_SECONDS",
+    "note": "constant",
+    "result": 86400
+  },
+  {
+    "args": [
+      {
+        "cron": true,
+        "cron_done": true,
+        "cron_failed": true,
+        "message": true,
+        "request": true,
+        "turn_done": true,
+        "turn_failed": true
+      }
+    ],
+    "fn": "effectivePushTypes",
+    "note": "args[1] (the per-chat overrides) is optional. A non-boolean override value is ignored",
+    "result": {
+      "cron": true,
+      "cron_done": true,
+      "cron_failed": true,
+      "message": true,
+      "request": true,
+      "turn_done": true,
+      "turn_failed": true
+    }
+  },
+  {
+    "args": [
+      {
+        "cron": false,
+        "cron_done": false,
+        "cron_failed": false,
+        "message": false,
+        "request": false,
+        "turn_done": false,
+        "turn_failed": false
+      }
+    ],
+    "fn": "effectivePushTypes",
+    "result": {
+      "cron": false,
+      "cron_done": false,
+      "cron_failed": false,
+      "message": false,
+      "request": false,
+      "turn_done": false,
+      "turn_failed": false
+    }
+  },
+  {
+    "args": [
+      {
+        "cron": true,
+        "cron_done": true,
+        "cron_failed": true,
+        "message": true,
+        "request": true,
+        "turn_done": true,
+        "turn_failed": true
+      },
+      {}
+    ],
+    "fn": "effectivePushTypes",
+    "result": {
+      "cron": true,
+      "cron_done": true,
+      "cron_failed": true,
+      "message": true,
+      "request": true,
+      "turn_done": true,
+      "turn_failed": true
+    }
+  },
+  {
+    "args": [
+      {
+        "cron": true,
+        "cron_done": true,
+        "cron_failed": true,
+        "message": true,
+        "request": true,
+        "turn_done": true,
+        "turn_failed": true
+      },
+      {
+        "message": false
+      }
+    ],
+    "fn": "effectivePushTypes",
+    "result": {
+      "cron": true,
+      "cron_done": true,
+      "cron_failed": true,
+      "message": false,
+      "request": true,
+      "turn_done": true,
+      "turn_failed": true
+    }
+  },
+  {
+    "args": [
+      {
+        "cron": false,
+        "cron_done": false,
+        "cron_failed": false,
+        "message": false,
+        "request": false,
+        "turn_done": false,
+        "turn_failed": false
+      },
+      {
+        "turn_done": true
+      }
+    ],
+    "fn": "effectivePushTypes",
+    "result": {
+      "cron": false,
+      "cron_done": false,
+      "cron_failed": false,
+      "message": false,
+      "request": false,
+      "turn_done": true,
+      "turn_failed": false
+    }
+  },
+  {
+    "args": [
+      {
+        "cron": false,
+        "cron_done": false,
+        "cron_failed": false,
+        "message": true,
+        "request": true,
+        "turn_done": false,
+        "turn_failed": false
+      },
+      {
+        "cron": true,
+        "message": false
+      }
+    ],
+    "fn": "effectivePushTypes",
+    "result": {
+      "cron": true,
+      "cron_done": false,
+      "cron_failed": false,
+      "message": false,
+      "request": true,
+      "turn_done": false,
+      "turn_failed": false
+    }
+  },
+  {
+    "args": [
+      {
+        "cron": true,
+        "cron_done": true,
+        "cron_failed": true,
+        "message": true,
+        "request": true,
+        "turn_done": true,
+        "turn_failed": true
+      },
+      {
+        "cron": false,
+        "cron_done": false,
+        "cron_failed": false,
+        "message": false,
+        "request": false,
+        "turn_done": false,
+        "turn_failed": false
+      }
+    ],
+    "fn": "effectivePushTypes",
+    "result": {
+      "cron": false,
+      "cron_done": false,
+      "cron_failed": false,
+      "message": false,
+      "request": false,
+      "turn_done": false,
+      "turn_failed": false
+    }
+  },
+  {
+    "args": [
+      {
+        "cron": false,
+        "cron_done": false,
+        "cron_failed": false,
+        "message": false,
+        "request": false,
+        "turn_done": false,
+        "turn_failed": false
+      },
+      {
+        "cron": true,
+        "cron_done": true,
+        "cron_failed": true,
+        "message": true,
+        "request": true,
+        "turn_done": true,
+        "turn_failed": true
+      }
+    ],
+    "fn": "effectivePushTypes",
+    "result": {
+      "cron": true,
+      "cron_done": true,
+      "cron_failed": true,
+      "message": true,
+      "request": true,
+      "turn_done": true,
+      "turn_failed": true
+    }
+  },
+  {
+    "args": [
+      {
+        "cron": true,
+        "cron_done": true,
+        "cron_failed": true,
+        "message": true,
+        "request": true,
+        "turn_done": true,
+        "turn_failed": true
+      },
+      {
+        "cron": null,
+        "cron_done": [],
+        "cron_failed": {},
+        "message": "no",
+        "request": 0
+      }
+    ],
+    "fn": "effectivePushTypes",
+    "result": {
+      "cron": true,
+      "cron_done": true,
+      "cron_failed": true,
+      "message": true,
+      "request": true,
+      "turn_done": true,
+      "turn_failed": true
+    }
+  },
+  {
+    "args": [
+      {
+        "cron": true,
+        "cron_done": true,
+        "cron_failed": true,
+        "message": true,
+        "request": true,
+        "turn_done": true,
+        "turn_failed": true
+      },
+      {
+        "dm": false,
+        "unknown": false
+      }
+    ],
+    "fn": "effectivePushTypes",
+    "result": {
+      "cron": true,
+      "cron_done": true,
+      "cron_failed": true,
+      "message": true,
+      "request": true,
+      "turn_done": true,
+      "turn_failed": true
+    }
+  },
+  {
+    "args": [
+      {
+        "cron": false,
+        "cron_done": false,
+        "cron_failed": true,
+        "message": false,
+        "request": false,
+        "turn_done": false,
+        "turn_failed": false
+      },
+      {
+        "cron_failed": false,
+        "turn_failed": true
+      }
+    ],
+    "fn": "effectivePushTypes",
+    "result": {
+      "cron": false,
+      "cron_done": false,
+      "cron_failed": false,
+      "message": false,
+      "request": false,
+      "turn_done": false,
+      "turn_failed": true
+    }
+  },
+  {
+    "args": [
+      0
+    ],
+    "fn": "pushStampOf",
+    "result": 0
+  },
+  {
+    "args": [
+      1
+    ],
+    "fn": "pushStampOf",
+    "result": 0
+  },
+  {
+    "args": [
+      999
+    ],
+    "fn": "pushStampOf",
+    "result": 0
+  },
+  {
+    "args": [
+      1000
+    ],
+    "fn": "pushStampOf",
+    "result": 1
+  },
+  {
+    "args": [
+      1001
+    ],
+    "fn": "pushStampOf",
+    "result": 1
+  },
+  {
+    "args": [
+      1999
+    ],
+    "fn": "pushStampOf",
+    "result": 1
+  },
+  {
+    "args": [
+      1500
+    ],
+    "fn": "pushStampOf",
+    "result": 1
+  },
+  {
+    "args": [
+      60000
+    ],
+    "fn": "pushStampOf",
+    "result": 60
+  },
+  {
+    "args": [
+      1790001453999
+    ],
+    "fn": "pushStampOf",
+    "result": 1790001453
+  },
+  {
+    "args": [
+      1790001453000
+    ],
+    "fn": "pushStampOf",
+    "result": 1790001453
+  },
+  {
+    "args": [
+      0.5
+    ],
+    "fn": "pushStampOf",
+    "result": 0
+  },
+  {
+    "args": [
+      -1
+    ],
+    "fn": "pushStampOf",
+    "result": -1
+  },
+  {
+    "args": [
+      -1000
+    ],
+    "fn": "pushStampOf",
+    "result": -1
+  },
+  {
+    "args": [
+      -1001
+    ],
+    "fn": "pushStampOf",
+    "result": -2
+  },
+  {
+    "args": [
+      123456789012
+    ],
+    "fn": "pushStampOf",
+    "result": 123456789
+  },
+  {
+    "args": [],
+    "fn": "noPushTypes",
+    "note": "every type false, keys in PUSH_TYPES order",
+    "result": {
+      "cron": false,
+      "cron_done": false,
+      "cron_failed": false,
+      "message": false,
+      "request": false,
+      "turn_done": false,
+      "turn_failed": false
+    }
+  },
+  {
+    "args": [
+      null
+    ],
+    "fn": "pushTypesOf",
+    "result": {
+      "cron": false,
+      "cron_done": false,
+      "cron_failed": false,
+      "message": false,
+      "request": false,
+      "turn_done": false,
+      "turn_failed": false
+    }
+  },
+  {
+    "args": [
+      {}
+    ],
+    "fn": "pushTypesOf",
+    "result": {
+      "cron": false,
+      "cron_done": false,
+      "cron_failed": false,
+      "message": false,
+      "request": false,
+      "turn_done": false,
+      "turn_failed": false
+    }
+  },
+  {
+    "args": [
+      {
+        "message": true
+      }
+    ],
+    "fn": "pushTypesOf",
+    "result": {
+      "cron": false,
+      "cron_done": false,
+      "cron_failed": false,
+      "message": true,
+      "request": false,
+      "turn_done": false,
+      "turn_failed": false
+    }
+  },
+  {
+    "args": [
+      {
+        "message": "true"
+      }
+    ],
+    "fn": "pushTypesOf",
+    "result": {
+      "cron": false,
+      "cron_done": false,
+      "cron_failed": false,
+      "message": false,
+      "request": false,
+      "turn_done": false,
+      "turn_failed": false
+    }
+  },
+  {
+    "args": [
+      {
+        "message": 1
+      }
+    ],
+    "fn": "pushTypesOf",
+    "result": {
+      "cron": false,
+      "cron_done": false,
+      "cron_failed": false,
+      "message": false,
+      "request": false,
+      "turn_done": false,
+      "turn_failed": false
+    }
+  },
+  {
+    "args": [
+      {
+        "message": false
+      }
+    ],
+    "fn": "pushTypesOf",
+    "result": {
+      "cron": false,
+      "cron_done": false,
+      "cron_failed": false,
+      "message": false,
+      "request": false,
+      "turn_done": false,
+      "turn_failed": false
+    }
+  },
+  {
+    "args": [
+      {
+        "cron": true,
+        "cron_done": true,
+        "cron_failed": true,
+        "message": true,
+        "request": true,
+        "turn_done": true,
+        "turn_failed": true
+      }
+    ],
+    "fn": "pushTypesOf",
+    "result": {
+      "cron": true,
+      "cron_done": true,
+      "cron_failed": true,
+      "message": true,
+      "request": true,
+      "turn_done": true,
+      "turn_failed": true
+    }
+  },
+  {
+    "args": [
+      {
+        "cron": false,
+        "cron_done": false,
+        "cron_failed": false,
+        "message": false,
+        "request": false,
+        "turn_done": false,
+        "turn_failed": false
+      }
+    ],
+    "fn": "pushTypesOf",
+    "result": {
+      "cron": false,
+      "cron_done": false,
+      "cron_failed": false,
+      "message": false,
+      "request": false,
+      "turn_done": false,
+      "turn_failed": false
+    }
+  },
+  {
+    "args": [
+      {
+        "cron_failed": true,
+        "dm": true,
+        "turn_done": true
+      }
+    ],
+    "fn": "pushTypesOf",
+    "result": {
+      "cron": false,
+      "cron_done": false,
+      "cron_failed": true,
+      "message": false,
+      "request": false,
+      "turn_done": true,
+      "turn_failed": false
+    }
+  },
+  {
+    "args": [
+      []
+    ],
+    "fn": "pushTypesOf",
+    "result": {
+      "cron": false,
+      "cron_done": false,
+      "cron_failed": false,
+      "message": false,
+      "request": false,
+      "turn_done": false,
+      "turn_failed": false
+    }
+  },
+  {
+    "args": [
+      [
+        true
+      ]
+    ],
+    "fn": "pushTypesOf",
+    "result": {
+      "cron": false,
+      "cron_done": false,
+      "cron_failed": false,
+      "message": false,
+      "request": false,
+      "turn_done": false,
+      "turn_failed": false
+    }
+  },
+  {
+    "args": [
+      "message"
+    ],
+    "fn": "pushTypesOf",
+    "result": {
+      "cron": false,
+      "cron_done": false,
+      "cron_failed": false,
+      "message": false,
+      "request": false,
+      "turn_done": false,
+      "turn_failed": false
+    }
+  },
+  {
+    "args": [
+      42
+    ],
+    "fn": "pushTypesOf",
+    "result": {
+      "cron": false,
+      "cron_done": false,
+      "cron_failed": false,
+      "message": false,
+      "request": false,
+      "turn_done": false,
+      "turn_failed": false
+    }
+  },
+  {
+    "args": [
+      true
+    ],
+    "fn": "pushTypesOf",
+    "result": {
+      "cron": false,
+      "cron_done": false,
+      "cron_failed": false,
+      "message": false,
+      "request": false,
+      "turn_done": false,
+      "turn_failed": false
+    }
+  },
+  {
+    "args": [
+      {
+        "cron": "yes",
+        "message": true,
+        "request": null,
+        "turn_failed": true
+      }
+    ],
+    "fn": "pushTypesOf",
+    "result": {
+      "cron": false,
+      "cron_done": false,
+      "cron_failed": false,
+      "message": true,
+      "request": false,
+      "turn_done": false,
+      "turn_failed": true
+    }
+  },
+  {
+    "args": [
+      {},
+      {
+        "cron": true,
+        "cron_done": true,
+        "cron_failed": true,
+        "message": true,
+        "request": true,
+        "turn_done": true,
+        "turn_failed": true
+      }
+    ],
+    "fn": "adoptedPushTypes",
+    "note": "a boolean present in stored wins; an absent or non-boolean key takes defaults[type] === true",
+    "result": {
+      "cron": true,
+      "cron_done": true,
+      "cron_failed": true,
+      "message": true,
+      "request": true,
+      "turn_done": true,
+      "turn_failed": true
+    }
+  },
+  {
+    "args": [
+      null,
+      {
+        "cron": true,
+        "cron_done": true,
+        "cron_failed": true,
+        "message": true,
+        "request": true,
+        "turn_done": true,
+        "turn_failed": true
+      }
+    ],
+    "fn": "adoptedPushTypes",
+    "result": {
+      "cron": true,
+      "cron_done": true,
+      "cron_failed": true,
+      "message": true,
+      "request": true,
+      "turn_done": true,
+      "turn_failed": true
+    }
+  },
+  {
+    "args": [
+      {
+        "message": false
+      },
+      {
+        "cron": true,
+        "cron_done": true,
+        "cron_failed": true,
+        "message": true,
+        "request": true,
+        "turn_done": true,
+        "turn_failed": true
+      }
+    ],
+    "fn": "adoptedPushTypes",
+    "result": {
+      "cron": true,
+      "cron_done": true,
+      "cron_failed": true,
+      "message": false,
+      "request": true,
+      "turn_done": true,
+      "turn_failed": true
+    }
+  },
+  {
+    "args": [
+      {
+        "cron_done": false,
+        "message": false
+      },
+      {
+        "cron": true,
+        "cron_done": true,
+        "cron_failed": true,
+        "message": true,
+        "request": true,
+        "turn_done": true,
+        "turn_failed": true
+      }
+    ],
+    "fn": "adoptedPushTypes",
+    "result": {
+      "cron": true,
+      "cron_done": false,
+      "cron_failed": true,
+      "message": false,
+      "request": true,
+      "turn_done": true,
+      "turn_failed": true
+    }
+  },
+  {
+    "args": [
+      {
+        "message": true
+      },
+      {
+        "cron": false,
+        "cron_done": false,
+        "cron_failed": false,
+        "message": false,
+        "request": false,
+        "turn_done": false,
+        "turn_failed": false
+      }
+    ],
+    "fn": "adoptedPushTypes",
+    "result": {
+      "cron": false,
+      "cron_done": false,
+      "cron_failed": false,
+      "message": true,
+      "request": false,
+      "turn_done": false,
+      "turn_failed": false
+    }
+  },
+  {
+    "args": [
+      {},
+      {
+        "cron": false,
+        "cron_done": false,
+        "cron_failed": false,
+        "message": false,
+        "request": false,
+        "turn_done": false,
+        "turn_failed": false
+      }
+    ],
+    "fn": "adoptedPushTypes",
+    "result": {
+      "cron": false,
+      "cron_done": false,
+      "cron_failed": false,
+      "message": false,
+      "request": false,
+      "turn_done": false,
+      "turn_failed": false
+    }
+  },
+  {
+    "args": [
+      {
+        "cron": null,
+        "message": "false",
+        "request": 0
+      },
+      {
+        "cron": true,
+        "cron_done": true,
+        "cron_failed": true,
+        "message": true,
+        "request": true,
+        "turn_done": true,
+        "turn_failed": true
+      }
+    ],
+    "fn": "adoptedPushTypes",
+    "result": {
+      "cron": true,
+      "cron_done": true,
+      "cron_failed": true,
+      "message": true,
+      "request": true,
+      "turn_done": true,
+      "turn_failed": true
+    }
+  },
+  {
+    "args": [
+      {
+        "cron": null,
+        "message": "false",
+        "request": 0
+      },
+      {
+        "cron": false,
+        "cron_done": false,
+        "cron_failed": false,
+        "message": false,
+        "request": false,
+        "turn_done": false,
+        "turn_failed": false
+      }
+    ],
+    "fn": "adoptedPushTypes",
+    "result": {
+      "cron": false,
+      "cron_done": false,
+      "cron_failed": false,
+      "message": false,
+      "request": false,
+      "turn_done": false,
+      "turn_failed": false
+    }
+  },
+  {
+    "args": [
+      {
+        "cron": false,
+        "cron_done": false,
+        "cron_failed": false,
+        "message": false,
+        "request": false,
+        "turn_done": false,
+        "turn_failed": false
+      },
+      {
+        "cron": true,
+        "cron_done": true,
+        "cron_failed": true,
+        "message": true,
+        "request": true,
+        "turn_done": true,
+        "turn_failed": true
+      }
+    ],
+    "fn": "adoptedPushTypes",
+    "result": {
+      "cron": false,
+      "cron_done": false,
+      "cron_failed": false,
+      "message": false,
+      "request": false,
+      "turn_done": false,
+      "turn_failed": false
+    }
+  },
+  {
+    "args": [
+      {
+        "cron": true,
+        "cron_done": true,
+        "cron_failed": true,
+        "message": true,
+        "request": true,
+        "turn_done": true,
+        "turn_failed": true
+      },
+      {
+        "cron": false,
+        "cron_done": false,
+        "cron_failed": false,
+        "message": false,
+        "request": false,
+        "turn_done": false,
+        "turn_failed": false
+      }
+    ],
+    "fn": "adoptedPushTypes",
+    "result": {
+      "cron": true,
+      "cron_done": true,
+      "cron_failed": true,
+      "message": true,
+      "request": true,
+      "turn_done": true,
+      "turn_failed": true
+    }
+  },
+  {
+    "args": [
+      {},
+      {
+        "cron": false,
+        "cron_done": false,
+        "cron_failed": false,
+        "message": true,
+        "request": true,
+        "turn_done": false,
+        "turn_failed": false
+      }
+    ],
+    "fn": "adoptedPushTypes",
+    "result": {
+      "cron": false,
+      "cron_done": false,
+      "cron_failed": false,
+      "message": true,
+      "request": true,
+      "turn_done": false,
+      "turn_failed": false
+    }
+  },
+  {
+    "args": [
+      {
+        "turn_done": false
+      },
+      {
+        "cron": false,
+        "cron_done": false,
+        "cron_failed": false,
+        "message": false,
+        "request": false,
+        "turn_done": true,
+        "turn_failed": true
+      }
+    ],
+    "fn": "adoptedPushTypes",
+    "result": {
+      "cron": false,
+      "cron_done": false,
+      "cron_failed": false,
+      "message": false,
+      "request": false,
+      "turn_done": false,
+      "turn_failed": true
+    }
+  },
+  {
+    "args": [
+      [],
+      {
+        "cron": true,
+        "cron_done": true,
+        "cron_failed": true,
+        "message": true,
+        "request": true,
+        "turn_done": true,
+        "turn_failed": true
+      }
+    ],
+    "fn": "adoptedPushTypes",
+    "result": {
+      "cron": true,
+      "cron_done": true,
+      "cron_failed": true,
+      "message": true,
+      "request": true,
+      "turn_done": true,
+      "turn_failed": true
+    }
+  },
+  {
+    "args": [
+      "x",
+      {
+        "cron": true,
+        "cron_done": true,
+        "cron_failed": true,
+        "message": true,
+        "request": true,
+        "turn_done": true,
+        "turn_failed": true
+      }
+    ],
+    "fn": "adoptedPushTypes",
+    "result": {
+      "cron": true,
+      "cron_done": true,
+      "cron_failed": true,
+      "message": true,
+      "request": true,
+      "turn_done": true,
+      "turn_failed": true
+    }
+  },
+  {
+    "args": [
+      {
+        "dm": false
+      },
+      {
+        "cron": true,
+        "cron_done": true,
+        "cron_failed": true,
+        "message": true,
+        "request": true,
+        "turn_done": true,
+        "turn_failed": true
+      }
+    ],
+    "fn": "adoptedPushTypes",
+    "result": {
+      "cron": true,
+      "cron_done": true,
+      "cron_failed": true,
+      "message": true,
+      "request": true,
+      "turn_done": true,
+      "turn_failed": true
+    }
+  },
+  {
+    "args": [
+      {},
+      {
+        "message": "yes",
+        "request": 1
+      }
+    ],
+    "fn": "adoptedPushTypes",
+    "result": {
+      "cron": false,
+      "cron_done": false,
+      "cron_failed": false,
+      "message": false,
+      "request": false,
+      "turn_done": false,
+      "turn_failed": false
+    }
+  },
+  {
+    "args": [
+      {
+        "cron": false,
+        "cron_done": false,
+        "cron_failed": false,
+        "message": false,
+        "request": false,
+        "turn_done": false,
+        "turn_failed": false
+      }
+    ],
+    "fn": "noTypeWanted",
+    "result": true
+  },
+  {
+    "args": [
+      {
+        "cron": true,
+        "cron_done": true,
+        "cron_failed": true,
+        "message": true,
+        "request": true,
+        "turn_done": true,
+        "turn_failed": true
+      }
+    ],
+    "fn": "noTypeWanted",
+    "result": false
+  },
+  {
+    "args": [
+      {
+        "cron": false,
+        "cron_done": false,
+        "cron_failed": false,
+        "message": true,
+        "request": false,
+        "turn_done": false,
+        "turn_failed": false
+      }
+    ],
+    "fn": "noTypeWanted",
+    "result": false
+  },
+  {
+    "args": [
+      {
+        "cron": false,
+        "cron_done": false,
+        "cron_failed": false,
+        "message": false,
+        "request": false,
+        "turn_done": false,
+        "turn_failed": true
+      }
+    ],
+    "fn": "noTypeWanted",
+    "result": false
+  },
+  {
+    "args": [
+      {}
+    ],
+    "fn": "noTypeWanted",
+    "result": true
+  },
+  {
+    "args": [
+      {
+        "message": "yes"
+      }
+    ],
+    "fn": "noTypeWanted",
+    "result": true
+  },
+  {
+    "args": [
+      {
+        "message": 1
+      }
+    ],
+    "fn": "noTypeWanted",
+    "result": true
+  },
+  {
+    "args": [
+      {
+        "message": true
+      }
+    ],
+    "fn": "noTypeWanted",
+    "result": false
+  },
+  {
+    "args": [
+      {
+        "dm": true
+      }
+    ],
+    "fn": "noTypeWanted",
+    "result": true
+  },
+  {
+    "args": [
+      {
+        "address": {
+          "token": "ExponentPushToken[test-0001]",
+          "transport": "expo"
+        },
+        "gatewayKey": "bf796761db84e312",
+        "installationId": "install-aaaa",
+        "platform": "ios",
+        "preview": false,
+        "types": {
+          "cron": false,
+          "cron_done": false,
+          "cron_failed": false,
+          "message": true,
+          "request": true,
+          "turn_done": true,
+          "turn_failed": false
+        },
+        "updatedAt": 1790001453
+      }
+    ],
+    "fn": "pushRowFor",
+    "note": "installationId is not part of the row. gatewayKey is omitted when empty or absent. An expo address gives token; a webpush address gives endpoint + keys{p256dh,auth}, never both",
+    "result": {
+      "gatewayKey": "bf796761db84e312",
+      "platform": "ios",
+      "preview": false,
+      "token": "ExponentPushToken[test-0001]",
+      "transport": "expo",
+      "types": {
+        "cron": false,
+        "cron_done": false,
+        "cron_failed": false,
+        "message": true,
+        "request": true,
+        "turn_done": true,
+        "turn_failed": false
+      },
+      "updatedAt": 1790001453,
+      "v": 1
+    }
+  },
+  {
+    "args": [
+      {
+        "address": {
+          "endpoint": "https://push.example.com/send/abc123",
+          "keys": {
+            "auth": "test-auth-secret",
+            "p256dh": "BP-test-p256dh-key"
+          },
+          "transport": "webpush"
+        },
+        "gatewayKey": "bf796761db84e312",
+        "installationId": "install-aaaa",
+        "platform": "web",
+        "preview": true,
+        "types": {
+          "cron": false,
+          "cron_done": false,
+          "cron_failed": false,
+          "message": true,
+          "request": true,
+          "turn_done": true,
+          "turn_failed": false
+        },
+        "updatedAt": 1790001453
+      }
+    ],
+    "fn": "pushRowFor",
+    "result": {
+      "endpoint": "https://push.example.com/send/abc123",
+      "gatewayKey": "bf796761db84e312",
+      "keys": {
+        "auth": "test-auth-secret",
+        "p256dh": "BP-test-p256dh-key"
+      },
+      "platform": "web",
+      "preview": true,
+      "transport": "webpush",
+      "types": {
+        "cron": false,
+        "cron_done": false,
+        "cron_failed": false,
+        "message": true,
+        "request": true,
+        "turn_done": true,
+        "turn_failed": false
+      },
+      "updatedAt": 1790001453,
+      "v": 1
+    }
+  },
+  {
+    "args": [
+      {
+        "address": {
+          "token": "ExponentPushToken[test-0001]",
+          "transport": "expo"
+        },
+        "gatewayKey": "",
+        "installationId": "install-aaaa",
+        "platform": "ios",
+        "preview": false,
+        "types": {
+          "cron": false,
+          "cron_done": false,
+          "cron_failed": false,
+          "message": true,
+          "request": true,
+          "turn_done": true,
+          "turn_failed": false
+        },
+        "updatedAt": 1790001453
+      }
+    ],
+    "fn": "pushRowFor",
+    "result": {
+      "platform": "ios",
+      "preview": false,
+      "token": "ExponentPushToken[test-0001]",
+      "transport": "expo",
+      "types": {
+        "cron": false,
+        "cron_done": false,
+        "cron_failed": false,
+        "message": true,
+        "request": true,
+        "turn_done": true,
+        "turn_failed": false
+      },
+      "updatedAt": 1790001453,
+      "v": 1
+    }
+  },
+  {
+    "args": [
+      {
+        "address": {
+          "token": "ExponentPushToken[test-0001]",
+          "transport": "expo"
+        },
+        "installationId": "install-aaaa",
+        "platform": "ios",
+        "preview": false,
+        "types": {
+          "cron": false,
+          "cron_done": false,
+          "cron_failed": false,
+          "message": true,
+          "request": true,
+          "turn_done": true,
+          "turn_failed": false
+        },
+        "updatedAt": 1790001453
+      }
+    ],
+    "fn": "pushRowFor",
+    "result": {
+      "platform": "ios",
+      "preview": false,
+      "token": "ExponentPushToken[test-0001]",
+      "transport": "expo",
+      "types": {
+        "cron": false,
+        "cron_done": false,
+        "cron_failed": false,
+        "message": true,
+        "request": true,
+        "turn_done": true,
+        "turn_failed": false
+      },
+      "updatedAt": 1790001453,
+      "v": 1
+    }
+  },
+  {
+    "args": [
+      {
+        "address": {
+          "token": "ExponentPushToken[test-0001]",
+          "transport": "expo"
+        },
+        "gatewayKey": "bf796761db84e312",
+        "installationId": "install-aaaa",
+        "platform": "android",
+        "preview": true,
+        "types": {
+          "cron": true,
+          "cron_done": true,
+          "cron_failed": true,
+          "message": true,
+          "request": true,
+          "turn_done": true,
+          "turn_failed": true
+        },
+        "updatedAt": 1790001453
+      }
+    ],
+    "fn": "pushRowFor",
+    "result": {
+      "gatewayKey": "bf796761db84e312",
+      "platform": "android",
+      "preview": true,
+      "token": "ExponentPushToken[test-0001]",
+      "transport": "expo",
+      "types": {
+        "cron": true,
+        "cron_done": true,
+        "cron_failed": true,
+        "message": true,
+        "request": true,
+        "turn_done": true,
+        "turn_failed": true
+      },
+      "updatedAt": 1790001453,
+      "v": 1
+    }
+  },
+  {
+    "args": [
+      {
+        "address": {
+          "token": "ExponentPushToken[test-0001]",
+          "transport": "expo"
+        },
+        "gatewayKey": "bf796761db84e312",
+        "installationId": "install-aaaa",
+        "platform": "ios",
+        "preview": false,
+        "types": {
+          "cron": false,
+          "cron_done": false,
+          "cron_failed": false,
+          "message": false,
+          "request": false,
+          "turn_done": false,
+          "turn_failed": false
+        },
+        "updatedAt": 1790001453
+      }
+    ],
+    "fn": "pushRowFor",
+    "result": {
+      "gatewayKey": "bf796761db84e312",
+      "platform": "ios",
+      "preview": false,
+      "token": "ExponentPushToken[test-0001]",
+      "transport": "expo",
+      "types": {
+        "cron": false,
+        "cron_done": false,
+        "cron_failed": false,
+        "message": false,
+        "request": false,
+        "turn_done": false,
+        "turn_failed": false
+      },
+      "updatedAt": 1790001453,
+      "v": 1
+    }
+  },
+  {
+    "args": [
+      {
+        "address": {
+          "token": "ExponentPushToken[test-0001]",
+          "transport": "expo"
+        },
+        "gatewayKey": "bf796761db84e312",
+        "installationId": "install-aaaa",
+        "platform": "ios",
+        "preview": false,
+        "types": {
+          "cron": false,
+          "cron_done": false,
+          "cron_failed": false,
+          "message": true,
+          "request": true,
+          "turn_done": true,
+          "turn_failed": false
+        },
+        "updatedAt": 0
+      }
+    ],
+    "fn": "pushRowFor",
+    "result": {
+      "gatewayKey": "bf796761db84e312",
+      "platform": "ios",
+      "preview": false,
+      "token": "ExponentPushToken[test-0001]",
+      "transport": "expo",
+      "types": {
+        "cron": false,
+        "cron_done": false,
+        "cron_failed": false,
+        "message": true,
+        "request": true,
+        "turn_done": true,
+        "turn_failed": false
+      },
+      "updatedAt": 0,
+      "v": 1
+    }
+  },
+  {
+    "args": [
+      {
+        "address": {
+          "token": "ExponentPushToken[test-0001]",
+          "transport": "expo"
+        },
+        "gatewayKey": "bf796761db84e312",
+        "installationId": "install-aaaa",
+        "platform": "",
+        "preview": false,
+        "types": {
+          "cron": false,
+          "cron_done": false,
+          "cron_failed": false,
+          "message": true,
+          "request": true,
+          "turn_done": true,
+          "turn_failed": false
+        },
+        "updatedAt": 1790001453
+      }
+    ],
+    "fn": "pushRowFor",
+    "result": {
+      "gatewayKey": "bf796761db84e312",
+      "platform": "",
+      "preview": false,
+      "token": "ExponentPushToken[test-0001]",
+      "transport": "expo",
+      "types": {
+        "cron": false,
+        "cron_done": false,
+        "cron_failed": false,
+        "message": true,
+        "request": true,
+        "turn_done": true,
+        "turn_failed": false
+      },
+      "updatedAt": 1790001453,
+      "v": 1
+    }
+  },
+  {
+    "args": [
+      {
+        "address": {
+          "token": "ExponentPushToken[test-0001]",
+          "transport": "expo"
+        },
+        "gatewayKey": "bf796761db84e312",
+        "installationId": "",
+        "platform": "ios",
+        "preview": false,
+        "types": {
+          "cron": false,
+          "cron_done": false,
+          "cron_failed": false,
+          "message": true,
+          "request": true,
+          "turn_done": true,
+          "turn_failed": false
+        },
+        "updatedAt": 1790001453
+      }
+    ],
+    "fn": "pushRowFor",
+    "result": {
+      "gatewayKey": "bf796761db84e312",
+      "platform": "ios",
+      "preview": false,
+      "token": "ExponentPushToken[test-0001]",
+      "transport": "expo",
+      "types": {
+        "cron": false,
+        "cron_done": false,
+        "cron_failed": false,
+        "message": true,
+        "request": true,
+        "turn_done": true,
+        "turn_failed": false
+      },
+      "updatedAt": 1790001453,
+      "v": 1
+    }
+  },
+  {
+    "args": [
+      {
+        "address": {
+          "token": "",
+          "transport": "expo"
+        },
+        "gatewayKey": "bf796761db84e312",
+        "installationId": "install-aaaa",
+        "platform": "ios",
+        "preview": false,
+        "types": {
+          "cron": false,
+          "cron_done": false,
+          "cron_failed": false,
+          "message": true,
+          "request": true,
+          "turn_done": true,
+          "turn_failed": false
+        },
+        "updatedAt": 1790001453
+      }
+    ],
+    "fn": "pushRowFor",
+    "result": {
+      "gatewayKey": "bf796761db84e312",
+      "platform": "ios",
+      "preview": false,
+      "token": "",
+      "transport": "expo",
+      "types": {
+        "cron": false,
+        "cron_done": false,
+        "cron_failed": false,
+        "message": true,
+        "request": true,
+        "turn_done": true,
+        "turn_failed": false
+      },
+      "updatedAt": 1790001453,
+      "v": 1
+    }
+  },
+  {
+    "args": [
+      {
+        "address": {
+          "endpoint": "https://push.example.com/send/abc",
+          "keys": {
+            "auth": "a",
+            "extra": "x",
+            "p256dh": "k"
+          },
+          "transport": "webpush"
+        },
+        "gatewayKey": "bf796761db84e312",
+        "installationId": "install-aaaa",
+        "platform": "ios",
+        "preview": false,
+        "types": {
+          "cron": false,
+          "cron_done": false,
+          "cron_failed": false,
+          "message": true,
+          "request": true,
+          "turn_done": true,
+          "turn_failed": false
+        },
+        "updatedAt": 1790001453
+      }
+    ],
+    "fn": "pushRowFor",
+    "result": {
+      "endpoint": "https://push.example.com/send/abc",
+      "gatewayKey": "bf796761db84e312",
+      "keys": {
+        "auth": "a",
+        "p256dh": "k"
+      },
+      "platform": "ios",
+      "preview": false,
+      "transport": "webpush",
+      "types": {
+        "cron": false,
+        "cron_done": false,
+        "cron_failed": false,
+        "message": true,
+        "request": true,
+        "turn_done": true,
+        "turn_failed": false
+      },
+      "updatedAt": 1790001453,
+      "v": 1
+    }
+  },
+  {
+    "args": [
+      {
+        "push": {
+          "registrations": {
+            "": {
+              "v": 1
+            },
+            "install-aaaa": {
+              "token": "ExponentPushToken[test-0001]",
+              "transport": "expo",
+              "v": 1
+            },
+            "install-arr": [
+              1,
+              2
+            ],
+            "install-bbbb": {
+              "token": "ExponentPushToken[test-0002]",
+              "transport": "expo",
+              "v": 1
+            },
+            "install-cccc": {
+              "someFutureField": true,
+              "v": 7
+            },
+            "install-nul": null,
+            "install-num": 5,
+            "install-str": "not an object"
+          },
+          "seen": {
+            "install-aaaa": 1
+          }
+        }
+      },
+      "install-aaaa"
+    ],
+    "fn": "foreignPushRows",
+    "note": "rows are carried unvalidated (any non-null JSON value, even an unreadable one); dropped: the empty id, this installation own id, null. undefined cannot occur in JSON. args[1] is the own installationId",
+    "result": {
+      "install-arr": [
+        1,
+        2
+      ],
+      "install-bbbb": {
+        "token": "ExponentPushToken[test-0002]",
+        "transport": "expo",
+        "v": 1
+      },
+      "install-cccc": {
+        "someFutureField": true,
+        "v": 7
+      },
+      "install-num": 5,
+      "install-str": "not an object"
+    }
+  },
+  {
+    "args": [
+      {
+        "push": {
+          "registrations": {
+            "": {
+              "v": 1
+            },
+            "install-aaaa": {
+              "token": "ExponentPushToken[test-0001]",
+              "transport": "expo",
+              "v": 1
+            },
+            "install-arr": [
+              1,
+              2
+            ],
+            "install-bbbb": {
+              "token": "ExponentPushToken[test-0002]",
+              "transport": "expo",
+              "v": 1
+            },
+            "install-cccc": {
+              "someFutureField": true,
+              "v": 7
+            },
+            "install-nul": null,
+            "install-num": 5,
+            "install-str": "not an object"
+          },
+          "seen": {
+            "install-aaaa": 1
+          }
+        }
+      },
+      "install-zzzz"
+    ],
+    "fn": "foreignPushRows",
+    "result": {
+      "install-aaaa": {
+        "token": "ExponentPushToken[test-0001]",
+        "transport": "expo",
+        "v": 1
+      },
+      "install-arr": [
+        1,
+        2
+      ],
+      "install-bbbb": {
+        "token": "ExponentPushToken[test-0002]",
+        "transport": "expo",
+        "v": 1
+      },
+      "install-cccc": {
+        "someFutureField": true,
+        "v": 7
+      },
+      "install-num": 5,
+      "install-str": "not an object"
+    }
+  },
+  {
+    "args": [
+      {
+        "push": {
+          "registrations": {
+            "": {
+              "v": 1
+            },
+            "install-aaaa": {
+              "token": "ExponentPushToken[test-0001]",
+              "transport": "expo",
+              "v": 1
+            },
+            "install-arr": [
+              1,
+              2
+            ],
+            "install-bbbb": {
+              "token": "ExponentPushToken[test-0002]",
+              "transport": "expo",
+              "v": 1
+            },
+            "install-cccc": {
+              "someFutureField": true,
+              "v": 7
+            },
+            "install-nul": null,
+            "install-num": 5,
+            "install-str": "not an object"
+          },
+          "seen": {
+            "install-aaaa": 1
+          }
+        }
+      },
+      ""
+    ],
+    "fn": "foreignPushRows",
+    "result": {
+      "install-aaaa": {
+        "token": "ExponentPushToken[test-0001]",
+        "transport": "expo",
+        "v": 1
+      },
+      "install-arr": [
+        1,
+        2
+      ],
+      "install-bbbb": {
+        "token": "ExponentPushToken[test-0002]",
+        "transport": "expo",
+        "v": 1
+      },
+      "install-cccc": {
+        "someFutureField": true,
+        "v": 7
+      },
+      "install-num": 5,
+      "install-str": "not an object"
+    }
+  },
+  {
+    "args": [
+      null,
+      "install-aaaa"
+    ],
+    "fn": "foreignPushRows",
+    "result": {}
+  },
+  {
+    "args": [
+      {},
+      "install-aaaa"
+    ],
+    "fn": "foreignPushRows",
+    "result": {}
+  },
+  {
+    "args": [
+      [],
+      "install-aaaa"
+    ],
+    "fn": "foreignPushRows",
+    "result": {}
+  },
+  {
+    "args": [
+      "push",
+      "install-aaaa"
+    ],
+    "fn": "foreignPushRows",
+    "result": {}
+  },
+  {
+    "args": [
+      {
+        "push": null
+      },
+      "install-aaaa"
+    ],
+    "fn": "foreignPushRows",
+    "result": {}
+  },
+  {
+    "args": [
+      {
+        "push": []
+      },
+      "install-aaaa"
+    ],
+    "fn": "foreignPushRows",
+    "result": {}
+  },
+  {
+    "args": [
+      {
+        "push": {}
+      },
+      "install-aaaa"
+    ],
+    "fn": "foreignPushRows",
+    "result": {}
+  },
+  {
+    "args": [
+      {
+        "push": {
+          "registrations": null
+        }
+      },
+      "install-aaaa"
+    ],
+    "fn": "foreignPushRows",
+    "result": {}
+  },
+  {
+    "args": [
+      {
+        "push": {
+          "registrations": []
+        }
+      },
+      "install-aaaa"
+    ],
+    "fn": "foreignPushRows",
+    "result": {}
+  },
+  {
+    "args": [
+      {
+        "push": {
+          "registrations": "x"
+        }
+      },
+      "install-aaaa"
+    ],
+    "fn": "foreignPushRows",
+    "result": {}
+  },
+  {
+    "args": [
+      {
+        "push": {
+          "registrations": {
+            "install-aaaa": {
+              "v": 1
+            }
+          }
+        }
+      },
+      "install-aaaa"
+    ],
+    "fn": "foreignPushRows",
+    "result": {}
+  },
+  {
+    "args": [
+      {
+        "push": {
+          "registrations": {
+            "install-bbbb": {
+              "v": 1
+            }
+          }
+        }
+      },
+      "install-aaaa"
+    ],
+    "fn": "foreignPushRows",
+    "result": {
+      "install-bbbb": {
+        "v": 1
+      }
+    }
+  },
+  {
+    "args": [
+      {
+        "other": {
+          "registrations": {
+            "install-bbbb": {
+              "v": 1
+            }
+          }
+        }
+      },
+      "install-aaaa"
+    ],
+    "fn": "foreignPushRows",
+    "result": {}
+  },
+  {
+    "args": [
+      {
+        "push": {
+          "registrations": {
+            "install-bbbb": 0,
+            "install-cccc": false,
+            "install-dddd": ""
+          }
+        }
+      },
+      "install-aaaa"
+    ],
+    "fn": "foreignPushRows",
+    "result": {
+      "install-bbbb": 0,
+      "install-cccc": false,
+      "install-dddd": ""
+    }
+  },
+  {
+    "args": [
+      null
+    ],
+    "fn": "pushSeenOf",
+    "note": "a bare number n > 0 becomes {bot:\"\",at:floor(n)} (0.5 becomes at:0: the test is n > 0, then floor); an object needs a number at > 0; anything else is dropped; bot is \"\" unless a string",
+    "result": {}
+  },
+  {
+    "args": [
+      {}
+    ],
+    "fn": "pushSeenOf",
+    "result": {}
+  },
+  {
+    "args": [
+      {
+        "push": null
+      }
+    ],
+    "fn": "pushSeenOf",
+    "result": {}
+  },
+  {
+    "args": [
+      {
+        "push": {}
+      }
+    ],
+    "fn": "pushSeenOf",
+    "result": {}
+  },
+  {
+    "args": [
+      {
+        "push": {
+          "seen": null
+        }
+      }
+    ],
+    "fn": "pushSeenOf",
+    "result": {}
+  },
+  {
+    "args": [
+      {
+        "push": {
+          "seen": []
+        }
+      }
+    ],
+    "fn": "pushSeenOf",
+    "result": {}
+  },
+  {
+    "args": [
+      {
+        "push": {
+          "seen": {
+            "install-aaaa": 1790001453
+          }
+        }
+      }
+    ],
+    "fn": "pushSeenOf",
+    "result": {
+      "install-aaaa": {
+        "at": 1790001453,
+        "bot": ""
+      }
+    }
+  },
+  {
+    "args": [
+      {
+        "push": {
+          "seen": {
+            "install-aaaa": {
+              "at": 1790001453,
+              "bot": "researcher"
+            }
+          }
+        }
+      }
+    ],
+    "fn": "pushSeenOf",
+    "result": {
+      "install-aaaa": {
+        "at": 1790001453,
+        "bot": "researcher"
+      }
+    }
+  },
+  {
+    "args": [
+      {
+        "push": {
+          "seen": {
+            "install-aaaa": {
+              "at": 1790001453
+            }
+          }
+        }
+      }
+    ],
+    "fn": "pushSeenOf",
+    "result": {
+      "install-aaaa": {
+        "at": 1790001453,
+        "bot": ""
+      }
+    }
+  },
+  {
+    "args": [
+      {
+        "push": {
+          "seen": {
+            "install-aaaa": {
+              "at": 1790001453,
+              "bot": 5
+            }
+          }
+        }
+      }
+    ],
+    "fn": "pushSeenOf",
+    "result": {
+      "install-aaaa": {
+        "at": 1790001453,
+        "bot": ""
+      }
+    }
+  },
+  {
+    "args": [
+      {
+        "push": {
+          "seen": {
+            "install-aaaa": 1790001453.9
+          }
+        }
+      }
+    ],
+    "fn": "pushSeenOf",
+    "result": {
+      "install-aaaa": {
+        "at": 1790001453,
+        "bot": ""
+      }
+    }
+  },
+  {
+    "args": [
+      {
+        "push": {
+          "seen": {
+            "install-aaaa": {
+              "at": 1790001453.9,
+              "bot": "x"
+            }
+          }
+        }
+      }
+    ],
+    "fn": "pushSeenOf",
+    "result": {
+      "install-aaaa": {
+        "at": 1790001453,
+        "bot": "x"
+      }
+    }
+  },
+  {
+    "args": [
+      {
+        "push": {
+          "seen": {
+            "install-aaaa": 0
+          }
+        }
+      }
+    ],
+    "fn": "pushSeenOf",
+    "result": {}
+  },
+  {
+    "args": [
+      {
+        "push": {
+          "seen": {
+            "install-aaaa": -5
+          }
+        }
+      }
+    ],
+    "fn": "pushSeenOf",
+    "result": {}
+  },
+  {
+    "args": [
+      {
+        "push": {
+          "seen": {
+            "install-aaaa": 0.5
+          }
+        }
+      }
+    ],
+    "fn": "pushSeenOf",
+    "result": {
+      "install-aaaa": {
+        "at": 0,
+        "bot": ""
+      }
+    }
+  },
+  {
+    "args": [
+      {
+        "push": {
+          "seen": {
+            "install-aaaa": {
+              "at": 0,
+              "bot": "x"
+            }
+          }
+        }
+      }
+    ],
+    "fn": "pushSeenOf",
+    "result": {}
+  },
+  {
+    "args": [
+      {
+        "push": {
+          "seen": {
+            "install-aaaa": {
+              "at": -1,
+              "bot": "x"
+            }
+          }
+        }
+      }
+    ],
+    "fn": "pushSeenOf",
+    "result": {}
+  },
+  {
+    "args": [
+      {
+        "push": {
+          "seen": {
+            "install-aaaa": {
+              "at": "1790001453",
+              "bot": "x"
+            }
+          }
+        }
+      }
+    ],
+    "fn": "pushSeenOf",
+    "result": {}
+  },
+  {
+    "args": [
+      {
+        "push": {
+          "seen": {
+            "install-aaaa": "1790001453"
+          }
+        }
+      }
+    ],
+    "fn": "pushSeenOf",
+    "result": {}
+  },
+  {
+    "args": [
+      {
+        "push": {
+          "seen": {
+            "install-aaaa": true
+          }
+        }
+      }
+    ],
+    "fn": "pushSeenOf",
+    "result": {}
+  },
+  {
+    "args": [
+      {
+        "push": {
+          "seen": {
+            "install-aaaa": null
+          }
+        }
+      }
+    ],
+    "fn": "pushSeenOf",
+    "result": {}
+  },
+  {
+    "args": [
+      {
+        "push": {
+          "seen": {
+            "install-aaaa": [
+              1
+            ]
+          }
+        }
+      }
+    ],
+    "fn": "pushSeenOf",
+    "result": {}
+  },
+  {
+    "args": [
+      {
+        "push": {
+          "seen": {
+            "": 1790001453,
+            "install-bbbb": {
+              "at": 1790001000,
+              "bot": "writer"
+            }
+          }
+        }
+      }
+    ],
+    "fn": "pushSeenOf",
+    "result": {
+      "install-bbbb": {
+        "at": 1790001000,
+        "bot": "writer"
+      }
+    }
+  },
+  {
+    "args": [
+      {
+        "push": {
+          "seen": {
+            "install-aaaa": 1790001453,
+            "install-bbbb": {
+              "at": 5,
+              "bot": ""
+            },
+            "install-cccc": "x"
+          }
+        }
+      }
+    ],
+    "fn": "pushSeenOf",
+    "result": {
+      "install-aaaa": {
+        "at": 1790001453,
+        "bot": ""
+      },
+      "install-bbbb": {
+        "at": 5,
+        "bot": ""
+      }
+    }
+  },
+  {
+    "args": [
+      {
+        "other": {
+          "seen": {
+            "install-aaaa": 1
+          }
+        }
+      }
+    ],
+    "fn": "pushSeenOf",
+    "result": {}
+  },
+  {
+    "args": [
+      null
+    ],
+    "fn": "pushPerBotOf",
+    "note": "only boolean values under the known PUSH_TYPES survive; a bot with nothing left is dropped, and so is an empty bot name",
+    "result": {}
+  },
+  {
+    "args": [
+      {}
+    ],
+    "fn": "pushPerBotOf",
+    "result": {}
+  },
+  {
+    "args": [
+      {
+        "push": null
+      }
+    ],
+    "fn": "pushPerBotOf",
+    "result": {}
+  },
+  {
+    "args": [
+      {
+        "push": {}
+      }
+    ],
+    "fn": "pushPerBotOf",
+    "result": {}
+  },
+  {
+    "args": [
+      {
+        "push": {
+          "perBot": null
+        }
+      }
+    ],
+    "fn": "pushPerBotOf",
+    "result": {}
+  },
+  {
+    "args": [
+      {
+        "push": {
+          "perBot": []
+        }
+      }
+    ],
+    "fn": "pushPerBotOf",
+    "result": {}
+  },
+  {
+    "args": [
+      {
+        "push": {
+          "perBot": {
+            "researcher": {
+              "message": false
+            }
+          }
+        }
+      }
+    ],
+    "fn": "pushPerBotOf",
+    "result": {
+      "researcher": {
+        "message": false
+      }
+    }
+  },
+  {
+    "args": [
+      {
+        "push": {
+          "perBot": {
+            "researcher": {
+              "cron": true,
+              "message": false
+            },
+            "writer": {
+              "turn_done": true
+            }
+          }
+        }
+      }
+    ],
+    "fn": "pushPerBotOf",
+    "result": {
+      "researcher": {
+        "cron": true,
+        "message": false
+      },
+      "writer": {
+        "turn_done": true
+      }
+    }
+  },
+  {
+    "args": [
+      {
+        "push": {
+          "perBot": {
+            "researcher": {
+              "cron": null,
+              "message": "no",
+              "request": 1
+            }
+          }
+        }
+      }
+    ],
+    "fn": "pushPerBotOf",
+    "result": {}
+  },
+  {
+    "args": [
+      {
+        "push": {
+          "perBot": {
+            "researcher": {}
+          }
+        }
+      }
+    ],
+    "fn": "pushPerBotOf",
+    "result": {}
+  },
+  {
+    "args": [
+      {
+        "push": {
+          "perBot": {
+            "researcher": {
+              "dm": true,
+              "unknown": true
+            }
+          }
+        }
+      }
+    ],
+    "fn": "pushPerBotOf",
+    "result": {}
+  },
+  {
+    "args": [
+      {
+        "push": {
+          "perBot": {
+            "researcher": {
+              "dm": true,
+              "request": false
+            }
+          }
+        }
+      }
+    ],
+    "fn": "pushPerBotOf",
+    "result": {
+      "researcher": {
+        "request": false
+      }
+    }
+  },
+  {
+    "args": [
+      {
+        "push": {
+          "perBot": {
+            "": {
+              "message": true
+            }
+          }
+        }
+      }
+    ],
+    "fn": "pushPerBotOf",
+    "result": {}
+  },
+  {
+    "args": [
+      {
+        "push": {
+          "perBot": {
+            "fourth": 5,
+            "researcher": "x",
+            "third": [],
+            "writer": null
+          }
+        }
+      }
+    ],
+    "fn": "pushPerBotOf",
+    "result": {}
+  },
+  {
+    "args": [
+      {
+        "push": {
+          "perBot": {
+            "researcher": [
+              true
+            ]
+          }
+        }
+      }
+    ],
+    "fn": "pushPerBotOf",
+    "result": {}
+  },
+  {
+    "args": [
+      {
+        "push": {
+          "perBot": {
+            "researcher": {
+              "cron": true,
+              "cron_done": true,
+              "cron_failed": true,
+              "message": true,
+              "request": true,
+              "turn_done": true,
+              "turn_failed": true
+            }
+          }
+        }
+      }
+    ],
+    "fn": "pushPerBotOf",
+    "result": {
+      "researcher": {
+        "cron": true,
+        "cron_done": true,
+        "cron_failed": true,
+        "message": true,
+        "request": true,
+        "turn_done": true,
+        "turn_failed": true
+      }
+    }
+  },
+  {
+    "args": [
+      {
+        "other": {
+          "perBot": {
+            "researcher": {
+              "message": false
+            }
+          }
+        }
+      }
+    ],
+    "fn": "pushPerBotOf",
+    "result": {}
+  },
+  {
+    "args": [
+      {
+        "now": 1790001453,
+        "others": {},
+        "own": null,
+        "seen": {}
+      }
+    ],
+    "fn": "pushSectionFor",
+    "note": "args[0] is the PushSectionInput object; now is epoch seconds and is the only clock input (no Date.now is read). Result is absent (undefined) when there is nothing to say. Own row is written only with a non-empty installationId and at least one type on, and replaces an others row of the same id. seen entries are kept when at > 0 and now - at <= 86400 (a future stamp is kept); the shape is {bot,at} when perChat is true, a bare at otherwise. perBot is omitted when empty; result omitted: the function returned undefined"
+  },
+  {
+    "args": [
+      {
+        "now": 1790001453,
+        "others": {},
+        "own": {
+          "address": {
+            "token": "ExponentPushToken[test-0001]",
+            "transport": "expo"
+          },
+          "gatewayKey": "bf796761db84e312",
+          "installationId": "install-aaaa",
+          "platform": "ios",
+          "preview": false,
+          "types": {
+            "cron": false,
+            "cron_done": false,
+            "cron_failed": false,
+            "message": false,
+            "request": false,
+            "turn_done": false,
+            "turn_failed": false
+          },
+          "updatedAt": 1790001453
+        },
+        "seen": {}
+      }
+    ],
+    "fn": "pushSectionFor",
+    "note": "result omitted: the function returned undefined"
+  },
+  {
+    "args": [
+      {
+        "now": 1790001453,
+        "others": {},
+        "own": {
+          "address": {
+            "token": "ExponentPushToken[test-0001]",
+            "transport": "expo"
+          },
+          "gatewayKey": "bf796761db84e312",
+          "installationId": "",
+          "platform": "ios",
+          "preview": false,
+          "types": {
+            "cron": false,
+            "cron_done": false,
+            "cron_failed": false,
+            "message": true,
+            "request": true,
+            "turn_done": true,
+            "turn_failed": false
+          },
+          "updatedAt": 1790001453
+        },
+        "seen": {}
+      }
+    ],
+    "fn": "pushSectionFor",
+    "note": "result omitted: the function returned undefined"
+  },
+  {
+    "args": [
+      {
+        "now": 1790001453,
+        "others": {},
+        "own": {
+          "address": {
+            "token": "ExponentPushToken[test-0001]",
+            "transport": "expo"
+          },
+          "gatewayKey": "bf796761db84e312",
+          "installationId": "install-aaaa",
+          "platform": "ios",
+          "preview": false,
+          "types": {
+            "cron": false,
+            "cron_done": false,
+            "cron_failed": false,
+            "message": true,
+            "request": true,
+            "turn_done": true,
+            "turn_failed": false
+          },
+          "updatedAt": 1790001453
+        },
+        "seen": {}
+      }
+    ],
+    "fn": "pushSectionFor",
+    "result": {
+      "registrations": {
+        "install-aaaa": {
+          "gatewayKey": "bf796761db84e312",
+          "platform": "ios",
+          "preview": false,
+          "token": "ExponentPushToken[test-0001]",
+          "transport": "expo",
+          "types": {
+            "cron": false,
+            "cron_done": false,
+            "cron_failed": false,
+            "message": true,
+            "request": true,
+            "turn_done": true,
+            "turn_failed": false
+          },
+          "updatedAt": 1790001453,
+          "v": 1
+        }
+      },
+      "seen": {}
+    }
+  },
+  {
+    "args": [
+      {
+        "now": 1790001453,
+        "others": {},
+        "own": {
+          "address": {
+            "endpoint": "https://push.example.com/send/abc123",
+            "keys": {
+              "auth": "test-auth-secret",
+              "p256dh": "BP-test-p256dh-key"
+            },
+            "transport": "webpush"
+          },
+          "gatewayKey": "bf796761db84e312",
+          "installationId": "install-aaaa",
+          "platform": "web",
+          "preview": true,
+          "types": {
+            "cron": false,
+            "cron_done": false,
+            "cron_failed": false,
+            "message": true,
+            "request": true,
+            "turn_done": true,
+            "turn_failed": false
+          },
+          "updatedAt": 1790001453
+        },
+        "seen": {}
+      }
+    ],
+    "fn": "pushSectionFor",
+    "result": {
+      "registrations": {
+        "install-aaaa": {
+          "endpoint": "https://push.example.com/send/abc123",
+          "gatewayKey": "bf796761db84e312",
+          "keys": {
+            "auth": "test-auth-secret",
+            "p256dh": "BP-test-p256dh-key"
+          },
+          "platform": "web",
+          "preview": true,
+          "transport": "webpush",
+          "types": {
+            "cron": false,
+            "cron_done": false,
+            "cron_failed": false,
+            "message": true,
+            "request": true,
+            "turn_done": true,
+            "turn_failed": false
+          },
+          "updatedAt": 1790001453,
+          "v": 1
+        }
+      },
+      "seen": {}
+    }
+  },
+  {
+    "args": [
+      {
+        "now": 1790001453,
+        "others": {
+          "install-bbbb": {
+            "token": "ExponentPushToken[test-0002]",
+            "transport": "expo",
+            "v": 1
+          }
+        },
+        "own": null,
+        "seen": {}
+      }
+    ],
+    "fn": "pushSectionFor",
+    "result": {
+      "registrations": {
+        "install-bbbb": {
+          "token": "ExponentPushToken[test-0002]",
+          "transport": "expo",
+          "v": 1
+        }
+      },
+      "seen": {}
+    }
+  },
+  {
+    "args": [
+      {
+        "now": 1790001453,
+        "others": {
+          "install-bbbb": {
+            "token": "ExponentPushToken[test-0002]",
+            "transport": "expo",
+            "v": 1
+          }
+        },
+        "own": {
+          "address": {
+            "token": "ExponentPushToken[test-0001]",
+            "transport": "expo"
+          },
+          "gatewayKey": "bf796761db84e312",
+          "installationId": "install-aaaa",
+          "platform": "ios",
+          "preview": false,
+          "types": {
+            "cron": false,
+            "cron_done": false,
+            "cron_failed": false,
+            "message": true,
+            "request": true,
+            "turn_done": true,
+            "turn_failed": false
+          },
+          "updatedAt": 1790001453
+        },
+        "seen": {}
+      }
+    ],
+    "fn": "pushSectionFor",
+    "result": {
+      "registrations": {
+        "install-aaaa": {
+          "gatewayKey": "bf796761db84e312",
+          "platform": "ios",
+          "preview": false,
+          "token": "ExponentPushToken[test-0001]",
+          "transport": "expo",
+          "types": {
+            "cron": false,
+            "cron_done": false,
+            "cron_failed": false,
+            "message": true,
+            "request": true,
+            "turn_done": true,
+            "turn_failed": false
+          },
+          "updatedAt": 1790001453,
+          "v": 1
+        },
+        "install-bbbb": {
+          "token": "ExponentPushToken[test-0002]",
+          "transport": "expo",
+          "v": 1
+        }
+      },
+      "seen": {}
+    }
+  },
+  {
+    "args": [
+      {
+        "now": 1790001453,
+        "others": {
+          "install-aaaa": {
+            "stale": true,
+            "v": 1
+          }
+        },
+        "own": {
+          "address": {
+            "token": "ExponentPushToken[test-0001]",
+            "transport": "expo"
+          },
+          "gatewayKey": "bf796761db84e312",
+          "installationId": "install-aaaa",
+          "platform": "ios",
+          "preview": false,
+          "types": {
+            "cron": false,
+            "cron_done": false,
+            "cron_failed": false,
+            "message": true,
+            "request": true,
+            "turn_done": true,
+            "turn_failed": false
+          },
+          "updatedAt": 1790001453
+        },
+        "seen": {}
+      }
+    ],
+    "fn": "pushSectionFor",
+    "result": {
+      "registrations": {
+        "install-aaaa": {
+          "gatewayKey": "bf796761db84e312",
+          "platform": "ios",
+          "preview": false,
+          "token": "ExponentPushToken[test-0001]",
+          "transport": "expo",
+          "types": {
+            "cron": false,
+            "cron_done": false,
+            "cron_failed": false,
+            "message": true,
+            "request": true,
+            "turn_done": true,
+            "turn_failed": false
+          },
+          "updatedAt": 1790001453,
+          "v": 1
+        }
+      },
+      "seen": {}
+    }
+  },
+  {
+    "args": [
+      {
+        "now": 1790001453,
+        "others": {
+          "install-aaaa": {
+            "stale": true,
+            "v": 1
+          }
+        },
+        "own": {
+          "address": {
+            "token": "ExponentPushToken[test-0001]",
+            "transport": "expo"
+          },
+          "gatewayKey": "bf796761db84e312",
+          "installationId": "install-aaaa",
+          "platform": "ios",
+          "preview": false,
+          "types": {
+            "cron": false,
+            "cron_done": false,
+            "cron_failed": false,
+            "message": false,
+            "request": false,
+            "turn_done": false,
+            "turn_failed": false
+          },
+          "updatedAt": 1790001453
+        },
+        "seen": {}
+      }
+    ],
+    "fn": "pushSectionFor",
+    "result": {
+      "registrations": {
+        "install-aaaa": {
+          "stale": true,
+          "v": 1
+        }
+      },
+      "seen": {}
+    }
+  },
+  {
+    "args": [
+      {
+        "now": 1790001453,
+        "others": {
+          "install-cccc": {
+            "someFutureField": true,
+            "v": 7
+          }
+        },
+        "own": null,
+        "seen": {}
+      }
+    ],
+    "fn": "pushSectionFor",
+    "result": {
+      "registrations": {
+        "install-cccc": {
+          "someFutureField": true,
+          "v": 7
+        }
+      },
+      "seen": {}
+    }
+  },
+  {
+    "args": [
+      {
+        "now": 1790001453,
+        "others": {},
+        "own": null,
+        "seen": {
+          "install-aaaa": {
+            "at": 1790001453,
+            "bot": "researcher"
+          }
+        }
+      }
+    ],
+    "fn": "pushSectionFor",
+    "result": {
+      "registrations": {},
+      "seen": {
+        "install-aaaa": 1790001453
+      }
+    }
+  },
+  {
+    "args": [
+      {
+        "now": 1790001453,
+        "others": {},
+        "own": null,
+        "perChat": true,
+        "seen": {
+          "install-aaaa": {
+            "at": 1790001453,
+            "bot": "researcher"
+          }
+        }
+      }
+    ],
+    "fn": "pushSectionFor",
+    "result": {
+      "registrations": {},
+      "seen": {
+        "install-aaaa": {
+          "at": 1790001453,
+          "bot": "researcher"
+        }
+      }
+    }
+  },
+  {
+    "args": [
+      {
+        "now": 1790001453,
+        "others": {},
+        "own": null,
+        "perChat": false,
+        "seen": {
+          "install-aaaa": {
+            "at": 1790001453,
+            "bot": "researcher"
+          }
+        }
+      }
+    ],
+    "fn": "pushSectionFor",
+    "result": {
+      "registrations": {},
+      "seen": {
+        "install-aaaa": 1790001453
+      }
+    }
+  },
+  {
+    "args": [
+      {
+        "now": 1790001453,
+        "others": {},
+        "own": null,
+        "perChat": true,
+        "seen": {
+          "install-aaaa": {
+            "at": 1790001453,
+            "bot": ""
+          }
+        }
+      }
+    ],
+    "fn": "pushSectionFor",
+    "result": {
+      "registrations": {},
+      "seen": {
+        "install-aaaa": {
+          "at": 1790001453,
+          "bot": ""
+        }
+      }
+    }
+  },
+  {
+    "args": [
+      {
+        "now": 1790001453,
+        "others": {},
+        "own": null,
+        "seen": {
+          "install-aaaa": {
+            "at": 1789915053,
+            "bot": "x"
+          }
+        }
+      }
+    ],
+    "fn": "pushSectionFor",
+    "result": {
+      "registrations": {},
+      "seen": {
+        "install-aaaa": 1789915053
+      }
+    }
+  },
+  {
+    "args": [
+      {
+        "now": 1790001453,
+        "others": {},
+        "own": null,
+        "seen": {
+          "install-aaaa": {
+            "at": 1789915052,
+            "bot": "x"
+          }
+        }
+      }
+    ],
+    "fn": "pushSectionFor",
+    "note": "result omitted: the function returned undefined"
+  },
+  {
+    "args": [
+      {
+        "now": 1790001453,
+        "others": {},
+        "own": null,
+        "seen": {
+          "install-aaaa": {
+            "at": 1790005053,
+            "bot": "x"
+          }
+        }
+      }
+    ],
+    "fn": "pushSectionFor",
+    "result": {
+      "registrations": {},
+      "seen": {
+        "install-aaaa": 1790005053
+      }
+    }
+  },
+  {
+    "args": [
+      {
+        "now": 1790001453,
+        "others": {},
+        "own": null,
+        "seen": {
+          "install-aaaa": {
+            "at": 0,
+            "bot": "x"
+          }
+        }
+      }
+    ],
+    "fn": "pushSectionFor",
+    "note": "result omitted: the function returned undefined"
+  },
+  {
+    "args": [
+      {
+        "now": 1790001453,
+        "others": {},
+        "own": null,
+        "seen": {
+          "install-aaaa": {
+            "at": -5,
+            "bot": "x"
+          }
+        }
+      }
+    ],
+    "fn": "pushSectionFor",
+    "note": "result omitted: the function returned undefined"
+  },
+  {
+    "args": [
+      {
+        "now": 1790001453,
+        "others": {},
+        "own": null,
+        "perChat": true,
+        "seen": {
+          "install-aaaa": {
+            "at": 1790001453,
+            "bot": "a"
+          },
+          "install-bbbb": {
+            "at": 1789911453,
+            "bot": "b"
+          },
+          "install-cccc": {
+            "at": 1790001353,
+            "bot": "c"
+          }
+        }
+      }
+    ],
+    "fn": "pushSectionFor",
+    "result": {
+      "registrations": {},
+      "seen": {
+        "install-aaaa": {
+          "at": 1790001453,
+          "bot": "a"
+        },
+        "install-cccc": {
+          "at": 1790001353,
+          "bot": "c"
+        }
+      }
+    }
+  },
+  {
+    "args": [
+      {
+        "now": 1790001453,
+        "others": {},
+        "own": null,
+        "perBot": {
+          "researcher": {
+            "message": false
+          }
+        },
+        "seen": {}
+      }
+    ],
+    "fn": "pushSectionFor",
+    "result": {
+      "perBot": {
+        "researcher": {
+          "message": false
+        }
+      },
+      "registrations": {},
+      "seen": {}
+    }
+  },
+  {
+    "args": [
+      {
+        "now": 1790001453,
+        "others": {},
+        "own": null,
+        "perBot": {
+          "researcher": {}
+        },
+        "seen": {}
+      }
+    ],
+    "fn": "pushSectionFor",
+    "note": "result omitted: the function returned undefined"
+  },
+  {
+    "args": [
+      {
+        "now": 1790001453,
+        "others": {},
+        "own": null,
+        "perBot": {
+          "": {
+            "message": false
+          }
+        },
+        "seen": {}
+      }
+    ],
+    "fn": "pushSectionFor",
+    "note": "result omitted: the function returned undefined"
+  },
+  {
+    "args": [
+      {
+        "now": 1790001453,
+        "others": {},
+        "own": null,
+        "perBot": {},
+        "seen": {}
+      }
+    ],
+    "fn": "pushSectionFor",
+    "note": "result omitted: the function returned undefined"
+  },
+  {
+    "args": [
+      {
+        "now": 1790001453,
+        "others": {},
+        "own": null,
+        "perBot": {
+          "empty": {},
+          "researcher": {
+            "cron": true,
+            "message": false
+          },
+          "writer": {
+            "turn_done": true
+          }
+        },
+        "seen": {}
+      }
+    ],
+    "fn": "pushSectionFor",
+    "result": {
+      "perBot": {
+        "researcher": {
+          "cron": true,
+          "message": false
+        },
+        "writer": {
+          "turn_done": true
+        }
+      },
+      "registrations": {},
+      "seen": {}
+    }
+  },
+  {
+    "args": [
+      {
+        "now": 1790001453,
+        "others": {
+          "install-bbbb": {
+            "token": "ExponentPushToken[test-0002]",
+            "transport": "expo",
+            "v": 1
+          }
+        },
+        "own": {
+          "address": {
+            "token": "ExponentPushToken[test-0001]",
+            "transport": "expo"
+          },
+          "gatewayKey": "bf796761db84e312",
+          "installationId": "install-aaaa",
+          "platform": "ios",
+          "preview": false,
+          "types": {
+            "cron": false,
+            "cron_done": false,
+            "cron_failed": false,
+            "message": true,
+            "request": true,
+            "turn_done": true,
+            "turn_failed": false
+          },
+          "updatedAt": 1790001453
+        },
+        "perBot": {
+          "researcher": {
+            "cron": false
+          }
+        },
+        "perChat": true,
+        "seen": {
+          "install-aaaa": {
+            "at": 1790001453,
+            "bot": "researcher"
+          },
+          "install-bbbb": {
+            "at": 1790001448,
+            "bot": ""
+          }
+        }
+      }
+    ],
+    "fn": "pushSectionFor",
+    "result": {
+      "perBot": {
+        "researcher": {
+          "cron": false
+        }
+      },
+      "registrations": {
+        "install-aaaa": {
+          "gatewayKey": "bf796761db84e312",
+          "platform": "ios",
+          "preview": false,
+          "token": "ExponentPushToken[test-0001]",
+          "transport": "expo",
+          "types": {
+            "cron": false,
+            "cron_done": false,
+            "cron_failed": false,
+            "message": true,
+            "request": true,
+            "turn_done": true,
+            "turn_failed": false
+          },
+          "updatedAt": 1790001453,
+          "v": 1
+        },
+        "install-bbbb": {
+          "token": "ExponentPushToken[test-0002]",
+          "transport": "expo",
+          "v": 1
+        }
+      },
+      "seen": {
+        "install-aaaa": {
+          "at": 1790001453,
+          "bot": "researcher"
+        },
+        "install-bbbb": {
+          "at": 1790001448,
+          "bot": ""
+        }
+      }
+    }
+  },
+  {
+    "args": [
+      {
+        "now": 1790001453,
+        "others": {
+          "install-bbbb": {
+            "token": "ExponentPushToken[test-0002]",
+            "transport": "expo",
+            "v": 1
+          }
+        },
+        "own": {
+          "address": {
+            "token": "ExponentPushToken[test-0001]",
+            "transport": "expo"
+          },
+          "gatewayKey": "bf796761db84e312",
+          "installationId": "install-aaaa",
+          "platform": "ios",
+          "preview": false,
+          "types": {
+            "cron": false,
+            "cron_done": false,
+            "cron_failed": false,
+            "message": true,
+            "request": true,
+            "turn_done": true,
+            "turn_failed": false
+          },
+          "updatedAt": 1790001453
+        },
+        "perBot": {
+          "researcher": {
+            "cron": false
+          }
+        },
+        "seen": {
+          "install-aaaa": {
+            "at": 1790001453,
+            "bot": "researcher"
+          }
+        }
+      }
+    ],
+    "fn": "pushSectionFor",
+    "result": {
+      "perBot": {
+        "researcher": {
+          "cron": false
+        }
+      },
+      "registrations": {
+        "install-aaaa": {
+          "gatewayKey": "bf796761db84e312",
+          "platform": "ios",
+          "preview": false,
+          "token": "ExponentPushToken[test-0001]",
+          "transport": "expo",
+          "types": {
+            "cron": false,
+            "cron_done": false,
+            "cron_failed": false,
+            "message": true,
+            "request": true,
+            "turn_done": true,
+            "turn_failed": false
+          },
+          "updatedAt": 1790001453,
+          "v": 1
+        },
+        "install-bbbb": {
+          "token": "ExponentPushToken[test-0002]",
+          "transport": "expo",
+          "v": 1
+        }
+      },
+      "seen": {
+        "install-aaaa": 1790001453
+      }
+    }
+  }
+]

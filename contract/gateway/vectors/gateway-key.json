@@ -1,0 +1,414 @@
+[
+  {
+    "args": [
+      "https://Gateway.Example.com:8443/hermes"
+    ],
+    "fn": "gatewayKeyOf",
+    "result": "bf796761db84e312"
+  },
+  {
+    "args": [
+      "https://gateway.example.com:8443"
+    ],
+    "fn": "gatewayKeyOf",
+    "note": "the published vector: FNV-1a 64-bit over the UTF-8 bytes of the origin, 16 lowercase hex digits",
+    "result": "bf796761db84e312"
+  },
+  {
+    "args": [
+      "https://gateway.example.com:9443"
+    ],
+    "fn": "gatewayKeyOf",
+    "result": "4f2e31590f327133"
+  },
+  {
+    "args": [
+      "http://gateway.example.com:8443"
+    ],
+    "fn": "gatewayKeyOf",
+    "result": "2cdc6074348c209b"
+  },
+  {
+    "args": [
+      "https://other.example.com:8443"
+    ],
+    "fn": "gatewayKeyOf",
+    "result": "941368d7b1e8f566"
+  },
+  {
+    "args": [
+      "https://example.com:443/"
+    ],
+    "fn": "gatewayKeyOf",
+    "note": "WHATWG quirk: the default port is dropped from the origin",
+    "result": "837b2b5793a240b3"
+  },
+  {
+    "args": [
+      "http://example.com:80"
+    ],
+    "fn": "gatewayKeyOf",
+    "note": "WHATWG quirk: the default port is dropped from the origin",
+    "result": "f6e395b64dad9ae4"
+  },
+  {
+    "args": [
+      "https://example.com/hermes/api/ws?x=1#f"
+    ],
+    "fn": "gatewayKeyOf",
+    "result": "837b2b5793a240b3"
+  },
+  {
+    "args": [
+      "https://user:pw@example.com/"
+    ],
+    "fn": "gatewayKeyOf",
+    "note": "userinfo is not part of the origin",
+    "result": "837b2b5793a240b3"
+  },
+  {
+    "args": [
+      "http://127.0.0.1:9119/x"
+    ],
+    "fn": "gatewayKeyOf",
+    "result": "0ca2abac01b4354e"
+  },
+  {
+    "args": [
+      "http://[::1]:9119/x"
+    ],
+    "fn": "gatewayKeyOf",
+    "result": "c879090e150a7768"
+  },
+  {
+    "args": [
+      "http://[FD7A:115C:A1E0::1]:9119/"
+    ],
+    "fn": "gatewayKeyOf",
+    "result": "33133ecd97a1a911"
+  },
+  {
+    "args": [
+      "https://my-box.local"
+    ],
+    "fn": "gatewayKeyOf",
+    "result": "6f64bc210f175179"
+  },
+  {
+    "args": [
+      "https://something.ts.net"
+    ],
+    "fn": "gatewayKeyOf",
+    "result": "4c06694ea468aa5c"
+  },
+  {
+    "args": [
+      "https://bücher.example/"
+    ],
+    "fn": "gatewayKeyOf",
+    "note": "WHATWG quirk: an IDN host becomes punycode",
+    "result": "9f50a19618bbd065"
+  },
+  {
+    "args": [
+      "ws://example.com:80/"
+    ],
+    "fn": "gatewayKeyOf",
+    "note": "WHATWG quirk: ws is a special scheme with default port 80",
+    "result": "ec3379293f7c647e"
+  },
+  {
+    "args": [
+      "wss://example.com:443/api/ws"
+    ],
+    "fn": "gatewayKeyOf",
+    "note": "WHATWG quirk: wss is a special scheme with default port 443",
+    "result": "0b9bb4b55f67c54d"
+  },
+  {
+    "args": [
+      "wss://gateway.example.net:8443/api/ws"
+    ],
+    "fn": "gatewayKeyOf",
+    "result": "cdca10ba9b24ce76"
+  },
+  {
+    "args": [
+      "HTTP://EXAMPLE.COM"
+    ],
+    "fn": "gatewayKeyOf",
+    "note": "WHATWG quirk: scheme and host are lowercased",
+    "result": "f6e395b64dad9ae4"
+  },
+  {
+    "args": [
+      "https://example.com./"
+    ],
+    "fn": "gatewayKeyOf",
+    "note": "WHATWG quirk: a trailing dot on the host is kept",
+    "result": "0c8b42cfdcb3cac7"
+  },
+  {
+    "args": [
+      "mailto:a@b.example"
+    ],
+    "fn": "gatewayKeyOf",
+    "note": "WHATWG quirk: the origin is the string \"null\", which is non-empty, so the key is FNV-1a(\"null\")",
+    "result": "5b9bc4ba528108e4"
+  },
+  {
+    "args": [
+      "file:///tmp/x"
+    ],
+    "fn": "gatewayKeyOf",
+    "note": "WHATWG quirk: a file: URL has an opaque origin, serialised \"null\"",
+    "result": "5b9bc4ba528108e4"
+  },
+  {
+    "args": [
+      "about:blank"
+    ],
+    "fn": "gatewayKeyOf",
+    "note": "WHATWG quirk: an opaque origin, serialised \"null\"",
+    "result": "5b9bc4ba528108e4"
+  },
+  {
+    "args": [
+      "blob:https://example.com/0000"
+    ],
+    "fn": "gatewayKeyOf",
+    "note": "WHATWG quirk: a blob: URL's origin is the origin of the URL inside it",
+    "result": "837b2b5793a240b3"
+  },
+  {
+    "args": [
+      "http://127.1/"
+    ],
+    "fn": "gatewayKeyOf",
+    "note": "WHATWG quirk: IPv4 shorthand is expanded to a dotted quad",
+    "result": "41ee063dc03922bc"
+  },
+  {
+    "args": [
+      "http://0x7f.0.0.1/"
+    ],
+    "fn": "gatewayKeyOf",
+    "note": "WHATWG quirk: hex IPv4 parts are read as numbers",
+    "result": "41ee063dc03922bc"
+  },
+  {
+    "args": [
+      "http://2130706433/"
+    ],
+    "fn": "gatewayKeyOf",
+    "note": "WHATWG quirk: a single decimal number is an IPv4 address",
+    "result": "41ee063dc03922bc"
+  },
+  {
+    "args": [
+      "https:example.com"
+    ],
+    "fn": "gatewayKeyOf",
+    "note": "WHATWG quirk: a special scheme without slashes still has an authority",
+    "result": "837b2b5793a240b3"
+  },
+  {
+    "args": [
+      "http:\\\\example.com"
+    ],
+    "fn": "gatewayKeyOf",
+    "note": "WHATWG quirk: backslashes count as slashes after a special scheme",
+    "result": "f6e395b64dad9ae4"
+  },
+  {
+    "args": [
+      "  https://example.com/ "
+    ],
+    "fn": "gatewayKeyOf",
+    "note": "WHATWG quirk: leading and trailing spaces and C0 controls are stripped",
+    "result": "837b2b5793a240b3"
+  },
+  {
+    "args": [
+      "https://example.com:99999"
+    ],
+    "fn": "gatewayKeyOf",
+    "note": "WHATWG quirk: a port above 65535 is a parse failure",
+    "result": ""
+  },
+  {
+    "args": [
+      "https://exa mple.com"
+    ],
+    "fn": "gatewayKeyOf",
+    "note": "WHATWG quirk: a space in the host is a parse failure",
+    "result": ""
+  },
+  {
+    "args": [
+      "gateway.example.com"
+    ],
+    "fn": "gatewayKeyOf",
+    "note": "no scheme: not a URL, so the key is the empty string",
+    "result": ""
+  },
+  {
+    "args": [
+      "example.com:9119"
+    ],
+    "fn": "gatewayKeyOf",
+    "result": "5b9bc4ba528108e4"
+  },
+  {
+    "args": [
+      "localhost:3000"
+    ],
+    "fn": "gatewayKeyOf",
+    "result": "5b9bc4ba528108e4"
+  },
+  {
+    "args": [
+      "//example.com"
+    ],
+    "fn": "gatewayKeyOf",
+    "result": ""
+  },
+  {
+    "args": [
+      "/hermes"
+    ],
+    "fn": "gatewayKeyOf",
+    "result": ""
+  },
+  {
+    "args": [
+      ""
+    ],
+    "fn": "gatewayKeyOf",
+    "result": ""
+  },
+  {
+    "args": [
+      "bf796761db84e312"
+    ],
+    "fn": "isGatewayKey",
+    "result": true
+  },
+  {
+    "args": [
+      "0000000000000000"
+    ],
+    "fn": "isGatewayKey",
+    "result": true
+  },
+  {
+    "args": [
+      "ffffffffffffffff"
+    ],
+    "fn": "isGatewayKey",
+    "result": true
+  },
+  {
+    "args": [
+      ""
+    ],
+    "fn": "isGatewayKey",
+    "result": false
+  },
+  {
+    "args": [
+      "NOTHEX0000000000"
+    ],
+    "fn": "isGatewayKey",
+    "result": false
+  },
+  {
+    "args": [
+      "BF796761DB84E312"
+    ],
+    "fn": "isGatewayKey",
+    "result": false
+  },
+  {
+    "args": [
+      "bf796761db84e31"
+    ],
+    "fn": "isGatewayKey",
+    "result": false
+  },
+  {
+    "args": [
+      "bf796761db84e3123"
+    ],
+    "fn": "isGatewayKey",
+    "result": false
+  },
+  {
+    "args": [
+      "bf796761db84e312\n"
+    ],
+    "fn": "isGatewayKey",
+    "note": "JS $ has no end-of-line leniency; a regex engine whose $ also matches before a final newline would say true",
+    "result": false
+  },
+  {
+    "args": [
+      " bf796761db84e312"
+    ],
+    "fn": "isGatewayKey",
+    "result": false
+  },
+  {
+    "args": [
+      "bf796761db84e31g"
+    ],
+    "fn": "isGatewayKey",
+    "result": false
+  },
+  {
+    "args": [
+      "٠٠٠٠٠٠٠٠٠٠٠٠٠٠٠٠"
+    ],
+    "fn": "isGatewayKey",
+    "result": false
+  },
+  {
+    "args": [
+      null
+    ],
+    "fn": "isGatewayKey",
+    "result": false
+  },
+  {
+    "args": [
+      123
+    ],
+    "fn": "isGatewayKey",
+    "result": false
+  },
+  {
+    "args": [
+      true
+    ],
+    "fn": "isGatewayKey",
+    "result": false
+  },
+  {
+    "args": [
+      [
+        "bf796761db84e312"
+      ]
+    ],
+    "fn": "isGatewayKey",
+    "result": false
+  },
+  {
+    "args": [
+      {
+        "key": "bf796761db84e312"
+      }
+    ],
+    "fn": "isGatewayKey",
+    "result": false
+  }
+]

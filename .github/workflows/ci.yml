@@ -61,6 +61,12 @@ jobs:
       - name: Icons match the design source
         run: npm run icons:check
 
+      # The corpus the native port replays (contract/README.md). Fails when the
+      # TS engine, the gateway client's pure functions or the fake gateway
+      # changed without `npm run golden` being run and committed.
+      - name: The golden corpus matches the TypeScript reference
+        run: npm run golden:check
+
       - name: Ink clears AA on every composited surface
         run: npm run contrast:check
 

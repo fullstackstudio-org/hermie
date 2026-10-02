@@ -1,0 +1,599 @@
+[
+  {
+    "calls": [
+      {
+        "args": [
+          "claude-opus-5"
+        ],
+        "op": "prettyModelName",
+        "result": "Claude Opus 5"
+      }
+    ],
+    "test": "the families whose spelling is their own > claude-opus-5 reads as Claude Opus 5"
+  },
+  {
+    "calls": [
+      {
+        "args": [
+          "claude-sonnet-4-6"
+        ],
+        "op": "prettyModelName",
+        "result": "Claude Sonnet 4.6"
+      }
+    ],
+    "test": "the families whose spelling is their own > claude-sonnet-4-6 reads as Claude Sonnet 4.6"
+  },
+  {
+    "calls": [
+      {
+        "args": [
+          "claude-sonnet-4.6"
+        ],
+        "op": "prettyModelName",
+        "result": "Claude Sonnet 4.6"
+      }
+    ],
+    "test": "the families whose spelling is their own > claude-sonnet-4.6 reads as Claude Sonnet 4.6"
+  },
+  {
+    "calls": [
+      {
+        "args": [
+          "claude-3-5-sonnet"
+        ],
+        "op": "prettyModelName",
+        "result": "Claude 3.5 Sonnet"
+      }
+    ],
+    "test": "the families whose spelling is their own > claude-3-5-sonnet reads as Claude 3.5 Sonnet"
+  },
+  {
+    "calls": [
+      {
+        "args": [
+          "gpt-5.5"
+        ],
+        "op": "prettyModelName",
+        "result": "GPT-5.5"
+      }
+    ],
+    "test": "the families whose spelling is their own > gpt-5.5 reads as GPT-5.5"
+  },
+  {
+    "calls": [
+      {
+        "args": [
+          "gpt-5-5"
+        ],
+        "op": "prettyModelName",
+        "result": "GPT-5.5"
+      }
+    ],
+    "test": "the families whose spelling is their own > gpt-5-5 reads as GPT-5.5"
+  },
+  {
+    "calls": [
+      {
+        "args": [
+          "gpt-4o-mini"
+        ],
+        "op": "prettyModelName",
+        "result": "GPT-4o Mini"
+      }
+    ],
+    "test": "the families whose spelling is their own > gpt-4o-mini reads as GPT-4o Mini"
+  },
+  {
+    "calls": [
+      {
+        "args": [
+          "gemini-2.5-pro"
+        ],
+        "op": "prettyModelName",
+        "result": "Gemini 2.5 Pro"
+      }
+    ],
+    "test": "the families whose spelling is their own > gemini-2.5-pro reads as Gemini 2.5 Pro"
+  },
+  {
+    "calls": [
+      {
+        "args": [
+          "gemini-2.0-flash"
+        ],
+        "op": "prettyModelName",
+        "result": "Gemini 2.0 Flash"
+      }
+    ],
+    "test": "the families whose spelling is their own > gemini-2.0-flash reads as Gemini 2.0 Flash"
+  },
+  {
+    "calls": [
+      {
+        "args": [
+          "llama-3.1-70b"
+        ],
+        "op": "prettyModelName",
+        "result": "Llama 3.1 70B"
+      }
+    ],
+    "test": "the families whose spelling is their own > llama-3.1-70b reads as Llama 3.1 70B"
+  },
+  {
+    "calls": [
+      {
+        "args": [
+          "deepseek-v3"
+        ],
+        "op": "prettyModelName",
+        "result": "DeepSeek V3"
+      }
+    ],
+    "test": "the families whose spelling is their own > deepseek-v3 reads as DeepSeek V3"
+  },
+  {
+    "calls": [
+      {
+        "args": [
+          "deepseek-r1"
+        ],
+        "op": "prettyModelName",
+        "result": "DeepSeek R1"
+      }
+    ],
+    "test": "the families whose spelling is their own > deepseek-r1 reads as DeepSeek R1"
+  },
+  {
+    "calls": [
+      {
+        "args": [
+          "qwen3-235b"
+        ],
+        "op": "prettyModelName",
+        "result": "Qwen3 235B"
+      }
+    ],
+    "test": "the families whose spelling is their own > qwen3-235b reads as Qwen3 235B"
+  },
+  {
+    "calls": [
+      {
+        "args": [
+          "mistral-large-latest"
+        ],
+        "op": "prettyModelName",
+        "result": "Mistral Large Latest"
+      }
+    ],
+    "test": "the families whose spelling is their own > mistral-large-latest reads as Mistral Large Latest"
+  },
+  {
+    "calls": [
+      {
+        "args": [
+          "mixtral-8x7b"
+        ],
+        "op": "prettyModelName",
+        "result": "Mixtral 8x7B"
+      }
+    ],
+    "test": "the families whose spelling is their own > mixtral-8x7b reads as Mixtral 8x7B"
+  },
+  {
+    "calls": [
+      {
+        "args": [
+          "grok-code-fast-1"
+        ],
+        "op": "prettyModelName",
+        "result": "Grok Code Fast 1"
+      }
+    ],
+    "test": "the families whose spelling is their own > grok-code-fast-1 reads as Grok Code Fast 1"
+  },
+  {
+    "calls": [
+      {
+        "args": [
+          "glm-5.2"
+        ],
+        "op": "prettyModelName",
+        "result": "GLM-5.2"
+      }
+    ],
+    "test": "the families whose spelling is their own > glm-5.2 reads as GLM-5.2"
+  },
+  {
+    "calls": [
+      {
+        "args": [
+          "o3-mini"
+        ],
+        "op": "prettyModelName",
+        "result": "o3 Mini"
+      },
+      {
+        "args": [
+          "o1-preview"
+        ],
+        "op": "prettyModelName",
+        "result": "o1 Preview"
+      },
+      {
+        "args": [
+          "o4-mini-high"
+        ],
+        "op": "prettyModelName",
+        "result": "o4 Mini High"
+      }
+    ],
+    "test": "the families whose spelling is their own > leaves the o-series lower case, because that is how it is written"
+  },
+  {
+    "calls": [
+      {
+        "args": [
+          "k3"
+        ],
+        "op": "prettyModelName",
+        "result": "K3"
+      }
+    ],
+    "test": "ids the vendored search list says a gateway really reports > k3 reads as K3"
+  },
+  {
+    "calls": [
+      {
+        "args": [
+          "kimi-k3"
+        ],
+        "op": "prettyModelName",
+        "result": "Kimi K3"
+      }
+    ],
+    "test": "ids the vendored search list says a gateway really reports > kimi-k3 reads as Kimi K3"
+  },
+  {
+    "calls": [
+      {
+        "args": [
+          "kimi-k2.5"
+        ],
+        "op": "prettyModelName",
+        "result": "Kimi K2.5"
+      }
+    ],
+    "test": "ids the vendored search list says a gateway really reports > kimi-k2.5 reads as Kimi K2.5"
+  },
+  {
+    "calls": [
+      {
+        "args": [
+          "kimi-k2.6"
+        ],
+        "op": "prettyModelName",
+        "result": "Kimi K2.6"
+      }
+    ],
+    "test": "ids the vendored search list says a gateway really reports > kimi-k2.6 reads as Kimi K2.6"
+  },
+  {
+    "calls": [
+      {
+        "args": [
+          "kimi-for-coding"
+        ],
+        "op": "prettyModelName",
+        "result": "Kimi for Coding"
+      }
+    ],
+    "test": "ids the vendored search list says a gateway really reports > kimi-for-coding reads as Kimi for Coding"
+  },
+  {
+    "calls": [
+      {
+        "args": [
+          "gpt-5.6-sol"
+        ],
+        "op": "prettyModelName",
+        "result": "GPT-5.6 Sol"
+      }
+    ],
+    "test": "ids the vendored search list says a gateway really reports > gpt-5.6-sol reads as GPT-5.6 Sol"
+  },
+  {
+    "calls": [
+      {
+        "args": [
+          "x-preview-f-free"
+        ],
+        "op": "prettyModelName",
+        "result": "X Preview F Free"
+      }
+    ],
+    "test": "ids the vendored search list says a gateway really reports > x-preview-f-free reads as X Preview F Free"
+  },
+  {
+    "calls": [
+      {
+        "args": [
+          "claude-haiku-4-5-20251001"
+        ],
+        "op": "prettyModelName",
+        "result": "Claude Haiku 4.5"
+      },
+      {
+        "args": [
+          "claude-3-5-sonnet-20241022"
+        ],
+        "op": "prettyModelName",
+        "result": "Claude 3.5 Sonnet"
+      }
+    ],
+    "test": "the date a snapshot is pinned with > drops a stamp written in one token"
+  },
+  {
+    "calls": [
+      {
+        "args": [
+          "claude-opus-4-1-2025-08-05"
+        ],
+        "op": "prettyModelName",
+        "result": "Claude Opus 4.1"
+      }
+    ],
+    "test": "the date a snapshot is pinned with > drops one written as three"
+  },
+  {
+    "calls": [
+      {
+        "args": [
+          "mistral-large-2411"
+        ],
+        "op": "prettyModelName",
+        "result": "Mistral Large 2411"
+      }
+    ],
+    "test": "the date a snapshot is pinned with > keeps a version that only looks like a date"
+  },
+  {
+    "calls": [
+      {
+        "args": [
+          "20251001"
+        ],
+        "op": "prettyModelName",
+        "result": "20251001"
+      }
+    ],
+    "test": "the date a snapshot is pinned with > keeps a stamp that is the whole id, because dropping it would leave nothing"
+  },
+  {
+    "calls": [
+      {
+        "args": [
+          "anthropic/claude-opus-5"
+        ],
+        "op": "parseModelId",
+        "result": {
+          "id": "anthropic/claude-opus-5",
+          "name": "Claude Opus 5",
+          "provider": "anthropic"
+        }
+      }
+    ],
+    "test": "the route, which is not part of the name > anthropic/claude-opus-5 is Claude Opus 5 from anthropic"
+  },
+  {
+    "calls": [
+      {
+        "args": [
+          "openai/gpt-5.5"
+        ],
+        "op": "parseModelId",
+        "result": {
+          "id": "openai/gpt-5.5",
+          "name": "GPT-5.5",
+          "provider": "openai"
+        }
+      }
+    ],
+    "test": "the route, which is not part of the name > openai/gpt-5.5 is GPT-5.5 from openai"
+  },
+  {
+    "calls": [
+      {
+        "args": [
+          "azure/gpt-4o"
+        ],
+        "op": "parseModelId",
+        "result": {
+          "id": "azure/gpt-4o",
+          "name": "GPT-4o",
+          "provider": "azure"
+        }
+      }
+    ],
+    "test": "the route, which is not part of the name > azure/gpt-4o is GPT-4o from azure"
+  },
+  {
+    "calls": [
+      {
+        "args": [
+          "openrouter/anthropic/claude-opus-5"
+        ],
+        "op": "parseModelId",
+        "result": {
+          "id": "openrouter/anthropic/claude-opus-5",
+          "name": "Claude Opus 5",
+          "provider": "openrouter/anthropic"
+        }
+      }
+    ],
+    "test": "the route, which is not part of the name > openrouter/anthropic/claude-opus-5 is Claude Opus 5 from openrouter/anthropic"
+  },
+  {
+    "calls": [
+      {
+        "args": [
+          "duo-chat-claude-sonnet-4-6"
+        ],
+        "op": "parseModelId",
+        "result": {
+          "id": "duo-chat-claude-sonnet-4-6",
+          "name": "Claude Sonnet 4.6",
+          "provider": "duo-chat"
+        }
+      }
+    ],
+    "test": "the route, which is not part of the name > duo-chat-claude-sonnet-4-6 is Claude Sonnet 4.6 from duo-chat"
+  },
+  {
+    "calls": [
+      {
+        "args": [
+          "claude-opus-5"
+        ],
+        "op": "parseModelId",
+        "result": {
+          "id": "claude-opus-5",
+          "name": "Claude Opus 5",
+          "provider": null
+        }
+      }
+    ],
+    "test": "the route, which is not part of the name > claude-opus-5 is Claude Opus 5 from null"
+  },
+  {
+    "calls": [
+      {
+        "args": [
+          "llama-3.3-70b-instruct"
+        ],
+        "op": "prettyModelName",
+        "result": "Llama 3.3 70B Instruct"
+      },
+      {
+        "args": [
+          "qwen2.5-1.5b"
+        ],
+        "op": "prettyModelName",
+        "result": "Qwen2.5 1.5B"
+      }
+    ],
+    "test": "numbers that are not versions > capitalises a parameter count"
+  },
+  {
+    "calls": [
+      {
+        "args": [
+          "gpt-4-32k"
+        ],
+        "op": "prettyModelName",
+        "result": "GPT-4 32K"
+      }
+    ],
+    "test": "numbers that are not versions > capitalises a context window"
+  },
+  {
+    "calls": [
+      {
+        "args": [
+          "acme-thinker-2.1-turbo"
+        ],
+        "op": "prettyModelName",
+        "result": "Acme Thinker 2.1 Turbo"
+      },
+      {
+        "args": [
+          "internal_house_model_7"
+        ],
+        "op": "prettyModelName",
+        "result": "Internal House Model 7"
+      }
+    ],
+    "test": "an id nothing here has ever seen > is Title-Cased with its numbers left alone"
+  },
+  {
+    "calls": [
+      {
+        "args": [
+          "---"
+        ],
+        "op": "prettyModelName",
+        "result": "---"
+      },
+      {
+        "args": [
+          "::"
+        ],
+        "op": "prettyModelName",
+        "result": "::"
+      },
+      {
+        "args": [
+          "x"
+        ],
+        "op": "prettyModelName",
+        "result": "X"
+      },
+      {
+        "args": [
+          "7"
+        ],
+        "op": "prettyModelName",
+        "result": "7"
+      },
+      {
+        "args": [
+          "a-b-c"
+        ],
+        "op": "prettyModelName",
+        "result": "A B C"
+      },
+      {
+        "args": [
+          "   padded   "
+        ],
+        "op": "prettyModelName",
+        "result": "Padded"
+      }
+    ],
+    "test": "an id nothing here has ever seen > never comes back blank for an id that was not"
+  },
+  {
+    "calls": [
+      {
+        "args": [
+          ""
+        ],
+        "op": "prettyModelName",
+        "result": ""
+      },
+      {
+        "args": [
+          "   "
+        ],
+        "op": "prettyModelName",
+        "result": ""
+      }
+    ],
+    "test": "an id nothing here has ever seen > has nothing to say about nothing"
+  },
+  {
+    "calls": [
+      {
+        "args": [
+          "  anthropic/claude-opus-5  "
+        ],
+        "op": "parseModelId",
+        "result": {
+          "id": "  anthropic/claude-opus-5  ",
+          "name": "Claude Opus 5",
+          "provider": "anthropic"
+        }
+      }
+    ],
+    "test": "an id nothing here has ever seen > keeps the id it was given, whatever it decided to show"
+  }
+]
