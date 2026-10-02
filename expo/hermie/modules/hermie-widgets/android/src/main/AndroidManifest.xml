@@ -1,0 +1,39 @@
+<manifest xmlns:android="http://schemas.android.com/apk/res/android">
+  <!--
+    A library manifest, merged into the app's. That is what makes an
+    AppWidgetProvider possible from a local Expo module at all: a receiver has to
+    be declared in the manifest the system installs, and `expo/hermie/android/`
+    is generated and thrown away by every prebuild.
+
+    Both receivers are `exported="false"`. A widget provider only ever receives
+    the broadcasts the framework sends it, and the framework is inside the
+    system, not another app — so nothing outside this package needs to be able to
+    start them. The tap goes the other way: the widget holds a PendingIntent for
+    `hermie://chat/<bot>`, which the app's own exported MainActivity answers.
+  -->
+  <application>
+    <receiver
+      android:name=".HermieSmallWidgetProvider"
+      android:exported="false"
+      android:label="@string/hermie_widget_small_label">
+      <intent-filter>
+        <action android:name="android.appwidget.action.APPWIDGET_UPDATE" />
+      </intent-filter>
+      <meta-data
+        android:name="android.appwidget.provider"
+        android:resource="@xml/hermie_widget_small_info" />
+    </receiver>
+
+    <receiver
+      android:name=".HermieMediumWidgetProvider"
+      android:exported="false"
+      android:label="@string/hermie_widget_medium_label">
+      <intent-filter>
+        <action android:name="android.appwidget.action.APPWIDGET_UPDATE" />
+      </intent-filter>
+      <meta-data
+        android:name="android.appwidget.provider"
+        android:resource="@xml/hermie_widget_medium_info" />
+    </receiver>
+  </application>
+</manifest>

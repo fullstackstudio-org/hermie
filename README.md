@@ -1,5 +1,5 @@
 <p align="center">
-  <img src="apps/hermie/assets/icon.png" alt="" width="104" height="104">
+  <img src="expo/hermie/assets/icon.png" alt="" width="104" height="104">
 </p>
 
 <h1 align="center">Hermie</h1>
@@ -610,7 +610,7 @@ into an issue.
 The repository is an npm workspace:
 
 ```
-apps/hermie              the Expo app, and the local Expo modules under modules/
+expo/hermie              the Expo app, and the local Expo modules under modules/
 packages/hermes-shared   protocol sources vendored from Hermes Agent
 packages/gateway-client  connection state machine, credentials, PKCE — no React
 packages/transcript      the chat engine: item model, reducer, reconciliation, selectors

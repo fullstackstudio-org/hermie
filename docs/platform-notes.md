@@ -707,7 +707,7 @@ Builds and runs. Two things needed fixing:
   the Podfile covers the pod targets but not the resource-bundle targets CocoaPods synthesises from a
   podspec, so a stock prebuild fails with _"The iOS Simulator deployment target 'IPHONEOS_DEPLOYMENT_TARGET'
   is set to 13.4, but the range of supported deployment target versions is 15.0 to 27.0.x"_. The
-  config plugin `apps/hermie/plugins/with-ios-deployment-target-floor.js` raises the floor for every
+  config plugin `expo/hermie/plugins/with-ios-deployment-target-floor.js` raises the floor for every
   target in the Pods project. Drop it once the dependencies ship supported minimums.
 - **`expo-system-ui`** is required for `userInterfaceStyle` to take effect on Android; `expo prebuild`
   warns without it.
@@ -1148,7 +1148,7 @@ xcodebuild -workspace Hermie.xcworkspace -scheme Hermie -configuration Release \
 
 - **The products directory is `Release-iphoneos`**, not `Release-maccatalyst` and not anything with
   `macos` in it. The Mac build is the iOS slice; only the destination differs.
-  `apps/hermie/scripts/run-mac.mjs` reads the directory rather than hard-coding that name.
+  `expo/hermie/scripts/run-mac.mjs` reads the directory rather than hard-coding that name.
 - **Signing is not optional.** The App Store validation step runs on this configuration, so
   `CODE_SIGNING_ALLOWED=NO` is not a way out — the build needs a real Apple Developer team, automatic
   signing, and `-allowProvisioningUpdates` to mint the profile. The team identifier comes from
@@ -1178,11 +1178,11 @@ answer and is not: `RCTPlatform.mm` sets it from `#if TARGET_OS_MACCATALYST`, a 
 and a "Designed for iPad" app is an unmodified iOS binary, so it is false. Nothing in `node_modules`
 exposes `isiOSAppOnMac` either — checked across every installed package.
 
-So there is a local Expo module, `apps/hermie/modules/hermie-mac`, exporting one constant from
+So there is a local Expo module, `expo/hermie/modules/hermie-mac`, exporting one constant from
 `ProcessInfo.processInfo.isiOSAppOnMac`, read through `src/platform/runs-on-mac.ts`. Four things about
 it are worth knowing:
 
-- **`apps/hermie/modules/` is autolinked with no configuration.** Expo's
+- **`expo/hermie/modules/` is autolinked with no configuration.** Expo's
   `nativeModulesDir` defaults to `./modules` relative to the package that holds `package.json`.
   Verified: `HermieMac` appears in `ios/Podfile.lock`, in `Pods-Hermie.release.xcconfig`, in the
   generated `ExpoModulesProvider.swift`, and `HermieMacModule.o` is linked into the app binary.
@@ -1626,7 +1626,7 @@ second client.
 
 ### The picker on a Mac
 
-`expo-document-picker` is back in `apps/hermie/package.json`; it had gone out with the native macOS
+`expo-document-picker` is back in `expo/hermie/package.json`; it had gone out with the native macOS
 target, where it had no slice. It is needed again because the Mac now runs the iPad build, and that
 build is an iOS app: the module's iOS implementation presents `UIDocumentPickerViewController`, which
 UIKit provides for "Designed for iPad" apps on a Mac and renders as the ordinary macOS open panel.
@@ -2007,7 +2007,7 @@ Part 3 pointed the dev client at Metro (`--initialUrl`), because
 `expo-dev-launcher` reads the same array. React Native exposes nothing
 equivalent, so the local module answers it:
 `HermieMacModule.swift` publishes `devLaunchArguments`, and
-`apps/hermie/src/dev/launch-intent.ts` parses it. CONTRIBUTING.md has the
+`expo/hermie/src/dev/launch-intent.ts` parses it. CONTRIBUTING.md has the
 grammar.
 
 Three gates keep it out of a shipped build, and it wants all three because what
@@ -2924,11 +2924,11 @@ TeamIdentifier=<team>
 [Key] get-task-allow                    [Bool] true
 ```
 
-**No `keychain-access-groups`.** `apps/hermie/ios/Hermie/Hermie.entitlements` was an empty `<dict/>`,
+**No `keychain-access-groups`.** `expo/hermie/ios/Hermie/Hermie.entitlements` was an empty `<dict/>`,
 because `app.config.ts` set no `ios.entitlements`. So the effective group was entirely implicit,
 derived by the system from the signing identity. The embedded provisioning profile grants
 `<team>.*` and is a **seven-day automatic profile**, minted again whenever it has lapsed;
-`apps/hermie/scripts/run-mac.mjs` contains **no `codesign` call at all** — the inner bundle keeps
+`expo/hermie/scripts/run-mac.mjs` contains **no `codesign` call at all** — the inner bundle keeps
 whatever `xcodebuild` produced and the outer wrapper is not signed at all.
 
 ### The honest conclusion
@@ -3269,7 +3269,7 @@ is not a trade this needed.
 ### The menu bar is installed onto the app delegate's class at runtime
 
 `buildMenu(with:)` is a `UIResponder` method and UIKit calls it on the APP
-DELEGATE. Hermie's app delegate is generated (`apps/hermie/ios` is not committed),
+DELEGATE. Hermie's app delegate is generated (`expo/hermie/ios` is not committed),
 `ExpoAppDelegateSubscriber` has no menu hook, and the scene delegate is not an
 alternative — a scene is in the responder chain, its delegate is not. So
 `HermieMenuBar.install()` adds `buildMenuWithBuilder:` and a command selector to
@@ -4009,12 +4009,12 @@ configuring one meant completing the five-step wizard on a simulator by hand.
 the wizard's Done step writes — `saveGatewaySetup` with a config built by
 `configFromDraft` — so the ordinary startup read finds a configured gateway and the
 app lands on the connected shell. It is the only development argument that WRITES
-anything; see `apps/hermie/src/dev/seed-gateway.ts`.
+anything; see `expo/hermie/src/dev/seed-gateway.ts`.
 
 ### The `__DEV__` gate, measured instead of asserted
 
-`npx expo export:embed --platform ios --dev false --entry-file apps/hermie/index.js`
-(run from `apps/hermie`; the entry path resolves from the monorepo ROOT, which is
+`npx expo export:embed --platform ios --dev false --entry-file expo/hermie/index.js`
+(run from `expo/hermie`; the entry path resolves from the monorepo ROOT, which is
 why `--entry-file index.js` fails with "Unable to resolve module ./index.js"),
 then read back:
 
@@ -4152,7 +4152,7 @@ that this channel is not one flag away from a shipped app. Extras reach an
 activity that any app can already start, but nothing has to be registered for
 them, and what reads them can be switched off.
 
-`apps/hermie/modules/hermie-dev-launch` is the result: one Kotlin file, an
+`expo/hermie/modules/hermie-dev-launch` is the result: one Kotlin file, an
 `expo-module.config.json` and a `build.gradle`. It flattens `--es hermieGateway
 <url>` into `['--hermieGateway', '<url>']`, which is the shape
 `parseDevLaunchArguments` already takes, so the grammar and its tests did not
@@ -4991,7 +4991,7 @@ hue back, and `__tests__/themes.test.ts` fails if any of them drifts more than
 
 `npm run contrast:check` iterates `THEME_PRESETS` now — 551 pairs across three
 themes and two schemes — and the arithmetic moved into
-`apps/hermie/src/ui/contrast.ts` so the theme editor's guard and the build's gate
+`expo/hermie/src/ui/contrast.ts` so the theme editor's guard and the build's gate
 are one rule. A colour the editor accepts is a colour the check accepts, by
 construction rather than by discipline.
 
@@ -5093,7 +5093,7 @@ than reading one.
 ## Home-screen widgets, on three platforms (2026-09-21, later)
 
 WidgetKit on iOS, iPadOS and the Mac; `AppWidgetProvider` on Android; one JSON
-file behind all of it. `apps/hermie/modules/hermie-widgets/README.md` is the
+file behind all of it. `expo/hermie/modules/hermie-widgets/README.md` is the
 shape of the thing. This is what was measured getting there, and what is not.
 
 ### A widget knows nothing, so the app writes everything down
@@ -5332,8 +5332,8 @@ So this is **not** the debug-signed fallback. Both artefacts landed:
 
 | Artefact   | Path                                                                   | Size     |
 | ---------- | ---------------------------------------------------------------------- | -------- |
-| APK        | `apps/hermie/android/app/build/outputs/apk/release/app-release.apk`    | 105.0 MB |
-| app bundle | `apps/hermie/android/app/build/outputs/bundle/release/app-release.aab` | 66.9 MB  |
+| APK        | `expo/hermie/android/app/build/outputs/apk/release/app-release.apk`    | 105.0 MB |
+| app bundle | `expo/hermie/android/app/build/outputs/bundle/release/app-release.aab` | 66.9 MB  |
 
 `apksigner verify --print-certs` on the APK and `keytool -printcert -jarfile` on the bundle print the
 same certificate and the same digest, which is the check `docs/release.md` asks for:
@@ -5364,7 +5364,7 @@ adb devices -l
 # 1A2B3C4D5E6F   device product:... model:Pixel_7   transport_id:1
 # R9WT201XXXX    device product:... model:SM_X200   transport_id:2
 
-APK=apps/hermie/android/app/build/outputs/apk/release/app-release.apk
+APK=expo/hermie/android/app/build/outputs/apk/release/app-release.apk
 adb -s 1A2B3C4D5E6F install -r "$APK"      # the phone
 adb -s R9WT201XXXX install -r "$APK"       # the tablet
 ```
@@ -6363,7 +6363,7 @@ In rough order of how much they cost a user.
   `Animated`, and RNW warns that `selectable` is deprecated on every markdown
   render in a dev build.
 - **`design/tokens.md` is stale.** It gives the app background as `#F2F2F7` /
-  `#000000`; neither string appears anywhere in `apps/hermie/src`. The live
+  `#000000`; neither string appears anywhere in `expo/hermie/src`. The live
   values are per preset in `ui/themes.ts` — blue is `#EAF3FF` / `#070F1D`, which
   is what the new document template and `app.config.ts`'s splash colours should
   be read against.
@@ -7393,7 +7393,7 @@ destination that matters most is the one a string cannot reach.
 So `platform/share-text.ts` writes into the cache directory with `expo-file-system` and hands the
 resulting `file://` to the existing `shareFile` seam. `expo-file-system` was already in
 `node_modules` as a dependency of `expo` itself, which means it is already in the native build; it
-has been added to `apps/hermie/package.json` explicitly anyway, because a module reached through
+has been added to `expo/hermie/package.json` explicitly anyway, because a module reached through
 somebody else's dependency edge is a module that disappears the day they drop it.
 
 The cache directory rather than `document`, deliberately: an export is a hand-off, the system copies
@@ -8375,7 +8375,7 @@ machine and no device attached to it, but both native toolchains are present, so
 both builds were run — and they found a real bug that nothing else would have.
 
 **The TypeScript.** `npm run typecheck`, the full `npx vitest run` and the full `npx jest` in
-`apps/hermie` both pass, and `npx expo-doctor` reports no issues. The new suites:
+`expo/hermie` both pass, and `npx expo-doctor` reports no issues. The new suites:
 
 - `__tests__/share-outbox.test.ts` — the manifest as a table, mostly the refusals: a version this
   build does not know, an id that is not a name, a path that could climb out of the entry, an item
@@ -9075,7 +9075,7 @@ shell that receives it is the one mounted over the NEW connection.
   notification from a plugin-notified gateway carries no key and is read exactly
   as it always was.
 - **The widget's tap does not carry the key.** The snapshot holds it now; the
-  Swift in `apps/hermie/modules/hermie-widgets` still builds
+  Swift in `expo/hermie/modules/hermie-widgets` still builds
   `hermie://chat/<bot>` with no query. The JavaScript half is ready.
 - **The SQL and the IndexedDB calls are checked by what they ISSUE**, against a
   recording double, because there is no engine in the test environment. That
@@ -9638,7 +9638,7 @@ a clean-room observation.
 
 ADR-0007 gives a bot one chat and ADR-0025 said per-user chats were a later
 part of the service-layer direction. This is that part, and the whole of it is
-six hundred lines in `apps/hermie/src/features/user-chats/` plus three seams.
+six hundred lines in `expo/hermie/src/features/user-chats/` plus three seams.
 
 ### The title is the only key there is
 
@@ -10292,7 +10292,7 @@ grew a **second line** — the bot's other name, then the state, as
 wide the second one is. The owner's header drew `Juno Mar…` over
 `techsupport · …` with most of the row empty.
 
-Three things, in `apps/hermie/src/chat-ui/ChatHeader.tsx`:
+Three things, in `expo/hermie/src/chat-ui/ChatHeader.tsx`:
 
 - **A second ruler**, and the column takes the wider of the two. `pillTextWidth`
   now reads both.
@@ -10321,7 +10321,7 @@ starts is a flicker the reader has to explain to themselves.
 ### Verified, and not
 
 - **Gates:** `npm run typecheck`, `npx eslint .`, `npx prettier --check .`,
-  `npx vitest run` (84 files, 1618 tests) and `apps/hermie` Jest (231 suites,
+  `npx vitest run` (84 files, 1618 tests) and `expo/hermie` Jest (231 suites,
   2972 tests) all green.
 - **Item 1 is verified against the real sequence, not against a hand-built
   state.** The test goes through `reconcile` → `applyServerRequest` →
@@ -10377,7 +10377,7 @@ notification badge._
 
 - **Full suites, on this machine:** `npm run typecheck`, `npx eslint .`,
   `npx prettier --check .`, `npx vitest run` (83 files, 1620 tests) and
-  `cd apps/hermie && npx jest` (231 suites, 2978 tests). Green.
+  `cd expo/hermie && npx jest` (231 suites, 2978 tests). Green.
 - **Each rule fails without its change**, checked by reverting it: putting
   `bot_dm_in` back into `countsAsMessage` and `full` back into the `bot_dm_out`
   presentation fails two tests in `packages/transcript/src/selectors.test.ts`.
@@ -10565,7 +10565,7 @@ still carries `archived` and `colour` and nothing else. The two lines are
 `applyRemote` call, exactly as written above.
 
 Three things about it that are decisions rather than details, each pinned by
-`apps/hermie/__tests__/bot-name-sync.test.ts`:
+`expo/hermie/__tests__/bot-name-sync.test.ts`:
 
 - **The key is always sent, empty included.** An absent key means "this build
   knows nothing about names", and an emptied field has to be able to say the other

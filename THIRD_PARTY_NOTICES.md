@@ -57,9 +57,9 @@ it. Every upstream path below is relative to the upstream repository at the pinn
 | `packages/transcript/src/subagent-progress.ts`   | `apps/desktop/src/store/subagents.ts` (`toProgress`, `streamFromPayload`)                                                   | The `subagent.*` payload projection, including the status vocabulary                                                                                             |
 | `packages/transcript/src/types.ts`               | `apps/desktop/src/store/subagents.ts` (`MAX_STREAM`)                                                                        | `SUBAGENT_STREAM_CAP`: how many stream lines a subagent row retains                                                                                              |
 | `packages/transcript/src/bot-dm.ts`              | `apps/desktop/src/components/assistant-ui/thread/user-message.tsx`, `.../thread/agent-delivery.tsx`, `tools/bot_mode_dm.py` | The bot-to-bot wire conventions: the inbound delivery signature, `agentKey`, `dispatchedTo`, and both forms of the delivery command                              |
-| `apps/hermie/src/chat-ui/tool-result-summary.ts` | `apps/desktop/src/lib/tool-result-summary.ts`                                                                               | The heuristic that turns an arbitrary tool result into one human line                                                                                            |
-| `apps/hermie/src/chat-ui/tool-render-class.ts`   | `apps/desktop/src/lib/tool-render-class.ts`                                                                                 | Which surface a tool call renders as: card, silent, file edit, and the tool families                                                                             |
-| `apps/hermie/src/markdown/preprocess.ts`         | `apps/desktop/src/lib/markdown-preprocess.ts`                                                                               | A subset: reasoning blocks, fence normalisation, `MEDIA:` tags and table spacing. Everything about maths and the desktop-only renderers was deliberately dropped |
+| `expo/hermie/src/chat-ui/tool-result-summary.ts` | `apps/desktop/src/lib/tool-result-summary.ts`                                                                               | The heuristic that turns an arbitrary tool result into one human line                                                                                            |
+| `expo/hermie/src/chat-ui/tool-render-class.ts`   | `apps/desktop/src/lib/tool-render-class.ts`                                                                                 | Which surface a tool call renders as: card, silent, file edit, and the tool families                                                                             |
+| `expo/hermie/src/markdown/preprocess.ts`         | `apps/desktop/src/lib/markdown-preprocess.ts`                                                                               | A subset: reasoning blocks, fence normalisation, `MEDIA:` tags and table spacing. Everything about maths and the desktop-only renderers was deliberately dropped |
 
 These files also port upstream logic, but their own headers name the origin without naming a full
 upstream path. They are listed because the obligation does not depend on our precision, and listed
@@ -70,16 +70,16 @@ apart from the table because a path nobody has checked against the pin would be 
 - `packages/gateway-client/src/native-auth.ts` — `TokenCoordinator` is ported from the Hermes
   Desktop native access-token coordinator: one owner per refresh flight, with an auth epoch so a
   sign-in that lands mid-rotation cannot be overwritten.
-- `apps/hermie/src/markdown/blocks.ts` — the two lexer caches are ported from the desktop app's
+- `expo/hermie/src/markdown/blocks.ts` — the two lexer caches are ported from the desktop app's
   `markdown-blocks.ts`.
-- `apps/hermie/src/features/bots/bots-controller.ts` — canonical-chat resolution follows the
+- `expo/hermie/src/features/bots/bots-controller.ts` — canonical-chat resolution follows the
   desktop's order (roster field, then an exact-title `session.list`, then and only then
   `session.create`), and `PROFILE_SESSION_LIST_LIMIT` and `SESSION_COLUMNS` are the desktop's
   numbers.
 
 What is deliberately **not** in this list: files that cite an upstream module to explain a
-constraint rather than to credit a copy. `apps/hermie/src/features/chats/file-upload.ts` and
-`apps/hermie/src/features/cron/cron-controller.ts` point at `tui_gateway/prompt_turn.py` and
+constraint rather than to credit a copy. `expo/hermie/src/features/chats/file-upload.ts` and
+`expo/hermie/src/features/cron/cron-controller.ts` point at `tui_gateway/prompt_turn.py` and
 `tui_gateway/methods_tools.py` to say why the client has to behave a certain way, and the fixtures in
 `packages/transcript/src/__fixtures__/` are hand-written to mirror the wire shapes that
 `tui_gateway/contracts/events.py` and `tui_gateway/session_history.py` produce. Describing an

@@ -48,13 +48,13 @@ The options, reconsidered:
 ## Decision
 
 The Mac version of Hermie is the **iOS app running as "Designed for iPad" on Apple Silicon**. The
-native macOS target is deleted: `apps/hermie/macos/`, every `*.macos.ts(x)` variant, the
+native macOS target is deleted: `expo/hermie/macos/`, every `*.macos.ts(x)` variant, the
 `react-native-macos` dependency, the Metro platform and import rewrite, and the macOS CI and release
 jobs.
 
 Where a Mac genuinely differs from an iPad, one seam answers for it:
-`apps/hermie/src/platform/runs-on-mac.ts`, backed by a local Expo module
-(`apps/hermie/modules/hermie-mac`) that exposes `ProcessInfo.processInfo.isiOSAppOnMac`. React Native
+`expo/hermie/src/platform/runs-on-mac.ts`, backed by a local Expo module
+(`expo/hermie/modules/hermie-mac`) that exposes `ProcessInfo.processInfo.isiOSAppOnMac`. React Native
 offers nothing equivalent — `Platform.isMacCatalyst` reads the compile-time `TARGET_OS_MACCATALYST`
 flag, which is false for the unmodified iOS binary macOS runs this way. Three things use it today:
 Return sends in the composer, the status-bar safe-area inset is dropped, and the developer screen
@@ -80,7 +80,7 @@ same listing unless it is opted out in App Store Connect, so there is nothing ex
   replaced them answers a narrower question, and `SecretStore` and `KeyValueStore` stay as interfaces
   because tests substitute them.
 - **A local native module is new ground for this repo.** It is autolinked from
-  `apps/hermie/modules/`, needs no hand edits under the generated `ios/`, and is Apple-only, so
+  `expo/hermie/modules/`, needs no hand edits under the generated `ios/`, and is Apple-only, so
   Android's build graph is untouched. `.easignore` had to learn the difference between the generated
   `ios/` and a module's `ios/`; a bare `ios/` pattern silently dropped the module from an EAS
   archive.

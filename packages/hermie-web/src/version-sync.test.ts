@@ -42,10 +42,10 @@ describe('the release version, everywhere set-version.mjs writes it', () => {
     expect(version).toMatch(/^\d+\.\d+\.\d+/)
     const escaped = escapeForRegExp(version)
 
-    const appPkg = await readJson(path.join(REPO, 'apps/hermie/package.json'))
+    const appPkg = await readJson(path.join(REPO, 'expo/hermie/package.json'))
     expect(appPkg.version).toBe(version)
 
-    const appConfig = await readFile(path.join(REPO, 'apps/hermie/app.config.ts'), 'utf8')
+    const appConfig = await readFile(path.join(REPO, 'expo/hermie/app.config.ts'), 'utf8')
     expect(appConfig).toMatch(new RegExp(`version:\\s*'${escaped}'`))
 
     const desktopPkg = await readJson(path.join(REPO, 'apps/desktop/package.json'))
@@ -72,7 +72,7 @@ describe('the release version, everywhere set-version.mjs writes it', () => {
 
     expect(lock.version).toBe(version)
     expect(lock.packages['']?.version).toBe(version)
-    expect(lock.packages['apps/hermie']?.version).toBe(version)
+    expect(lock.packages['expo/hermie']?.version).toBe(version)
     expect(lock.packages['apps/desktop']?.version).toBe(version)
     expect(lock.packages['packages/hermie-web']?.version).toBe(version)
   })

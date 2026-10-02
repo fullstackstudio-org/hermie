@@ -2247,7 +2247,7 @@ describe('session.branch / session.delete — methods_session.py, and one assump
    * the mistake — and it would be a fake that lies, because upstream documents
    * no such refusal. The rule that the canonical chat is never deleted is the
    * APP's: `conversationActions` answers an empty action list for it, and
-   * `apps/hermie/__tests__/session-branch.test.ts` is where that is proved.
+   * `expo/hermie/__tests__/session-branch.test.ts` is where that is proved.
    */
   it('does NOT invent a refusal upstream does not document for the canonical chat', async () => {
     const { stored } = await liveBotChat('researcher')

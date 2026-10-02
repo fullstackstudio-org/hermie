@@ -16,8 +16,8 @@ export default config(
       '**/dist/**',
       '**/coverage/**',
       '**/.expo/**',
-      'apps/hermie/ios/**',
-      'apps/hermie/android/**',
+      'expo/hermie/ios/**',
+      'expo/hermie/android/**',
       // Rust build output; not JS/TS at all.
       'apps/desktop/src-tauri/target/**',
       // Vendored upstream sources are linted by their own project, not by ours.
@@ -61,12 +61,12 @@ export default config(
     // Build tooling and repo scripts run in Node, not in the app runtime.
     files: [
       'scripts/**/*.mjs',
-      'apps/*/scripts/**/*.mjs',
-      'apps/*/plugins/**/*.js',
+      '{apps,expo}/*/scripts/**/*.mjs',
+      '{apps,expo}/*/plugins/**/*.js',
       // A config plugin that lives inside the local module it installs, rather
-      // than in apps/hermie/plugins/ with the three that only patch the app's
+      // than in expo/hermie/plugins/ with the three that only patch the app's
       // own project. Same runtime, same rules.
-      'apps/*/modules/*/plugin/**/*.js',
+      '{apps,expo}/*/modules/*/plugin/**/*.js',
       // The published entry point of @hermie/web. It is CommonJS on purpose —
       // it has to run before anything is bundled, from a package with no build
       // step of its own — so `require` is the only import it can use.
@@ -87,7 +87,13 @@ export default config(
   {
     // Test suites and their setup run under Jest, which supplies `jest` and a
     // CommonJS `require` that mock factories are expected to use.
-    files: ['apps/*/jest.setup.js', 'apps/*/jest.after-env.js', '**/__tests__/**', '**/*.test.ts', '**/*.test.tsx'],
+    files: [
+      '{apps,expo}/*/jest.setup.js',
+      '{apps,expo}/*/jest.after-env.js',
+      '**/__tests__/**',
+      '**/*.test.ts',
+      '**/*.test.tsx'
+    ],
     languageOptions: {
       globals: { ...globals.node, ...globals.jest }
     },

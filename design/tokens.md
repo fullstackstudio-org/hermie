@@ -1,9 +1,9 @@
 # Hermie design tokens — Messenger direction
 
 > **The app background is not in this table.** It was, as `#F2F2F7` / `#000000`,
-> and neither string appears anywhere in `apps/hermie/src` any more. The floor is
+> and neither string appears anywhere in `expo/hermie/src` any more. The floor is
 > a property of the THEME PRESET, of which there are three in two schemes, and
-> `apps/hermie/src/ui/themes.ts` is the only place it is written down:
+> `expo/hermie/src/ui/themes.ts` is the only place it is written down:
 >
 > | Preset   | Light     | Dark      |
 > | -------- | --------- | --------- |

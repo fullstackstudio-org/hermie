@@ -95,14 +95,14 @@ wondering whether the other exists.
 ### The gateway, Metro and the build
 
 A **Debug** build, because the launch arguments are gated off in Release
-(`apps/hermie/src/dev/launch-intent.ts` gives the three gates). Pick free ports
+(`expo/hermie/src/dev/launch-intent.ts` gives the three gates). Pick free ports
 rather than the defaults if anything else is listening:
 
 ```sh
 npm run fake-gateway -- --auth token --token devtoken --port 9119 --host 127.0.0.1
 npm run start --workspace @hermie/app -- --port 8081
 
-cd apps/hermie && npx expo prebuild --platform ios
+cd expo/hermie && npx expo prebuild --platform ios
 cd ios && LANG=en_US.UTF-8 pod install
 xcodebuild -workspace Hermie.xcworkspace -scheme Hermie -configuration Debug \
   -sdk iphonesimulator -destination 'id=<udid>' -derivedDataPath /tmp/hermie-dd \

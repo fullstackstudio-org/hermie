@@ -19,7 +19,7 @@
  * ## Why the design language is copied rather than imported
  *
  * The colours are Hermie's own — the Blue preset's elevation ladder and the ink
- * that `npm run contrast:check` measures, from `apps/hermie/src/ui/tokens.ts` —
+ * that `npm run contrast:check` measures, from `expo/hermie/src/ui/tokens.ts` —
  * and they are written out here as literals. This package imports nothing but
  * `node:` builtins (ADR-0015): the released artefact is a self-contained
  * CommonJS `dist/server` with no `node_modules` beside it, so reaching into the
@@ -108,7 +108,7 @@ export const STYLE = `
       stack were twelve places the next change to it could miss one.
     */
     --ui-font: -apple-system, "SF Pro Text", system-ui, sans-serif;
-    /* Blue, light: the elevation ladder from apps/hermie/src/ui/themes.ts. */
+    /* Blue, light: the elevation ladder from expo/hermie/src/ui/themes.ts. */
     --bg: #eaf3ff;
     --panel: #f4f8fe;
     --card: #ffffff;
@@ -472,7 +472,7 @@ export const STYLE = `
 
     The colour is picked from the id, so the same person is the same colour on
     every visit and two people are rarely the same. Tint plus ink rather than a
-    saturated fill with white on it: "apps/hermie/src/ui/tokens.ts" keeps a
+    saturated fill with white on it: "expo/hermie/src/ui/tokens.ts" keeps a
     readable ink per accent for exactly this, and its 13% / 26% soft tint is the
     one an avatar ring already uses in the app.
   */

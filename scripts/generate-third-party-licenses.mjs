@@ -28,10 +28,10 @@ const here = dirname(fileURLToPath(import.meta.url))
 const repoRoot = resolve(here, '..')
 
 /** The workspace whose production tree ships to users. */
-const APP_WORKSPACE = 'apps/hermie'
+const APP_WORKSPACE = 'expo/hermie'
 
 const markdownPath = resolve(repoRoot, 'THIRD_PARTY_LICENSES.md')
-const jsonPath = resolve(repoRoot, 'apps/hermie/src/generated/third-party-licences.json')
+const jsonPath = resolve(repoRoot, 'expo/hermie/src/generated/third-party-licences.json')
 
 const checkOnly = process.argv.includes('--check')
 
@@ -443,7 +443,7 @@ function renderMarkdown({ entries, groups, workspaces }) {
   )
   lines.push('')
   lines.push(
-    'The list is the **production** dependency tree of `apps/hermie`, resolved transitively through',
+    'The list is the **production** dependency tree of `expo/hermie`, resolved transitively through',
     '`package-lock.json`. Development tooling is not in it: a linter, a test runner or a bundler never',
     "reaches a user's device, and the lockfile already records which entry only a development edge",
     'reaches.'

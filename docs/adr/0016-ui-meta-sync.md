@@ -260,7 +260,7 @@ A bump would only ever be right for a change that makes the section's EXISTING k
 different — at which point being re-seeded is the correct outcome rather than data loss.
 
 `folders`, `botNameOrder`, `textSize`, `push.perBot` and now `pinned` all follow this rule.
-`apps/hermie/__tests__/pinned-chats.test.ts` asserts the version is still 1, so the decision has to
+`expo/hermie/__tests__/pinned-chats.test.ts` asserts the version is still 1, so the decision has to
 be taken again deliberately rather than by accident.
 
 ## Amendment (2026-09-22): the same key, read through a service
@@ -404,7 +404,7 @@ was the next launch, which read the theme the person had replaced.
 `packages/gateway-client/src/ui-meta.test.ts`, over a real socket against the fake gateway: the later
 choice winning in both connect orders, a tie going to the gateway, an undated local change still
 kept, a dated section beating an undated one, and a gateway with no section still being seeded.
-`apps/hermie/__tests__/app-settings-sync.test.ts` and `apps/hermie/__tests__/arrangement-sync.test.ts`
+`expo/hermie/__tests__/app-settings-sync.test.ts` and `expo/hermie/__tests__/arrangement-sync.test.ts`
 drive the real stores against a gateway that remembers: the theme and the folders arriving on a
 second device in both connect orders, neither device writing back over the other, the date adopted
 rather than re-taken, an offline change landing on the next connect, a relaunch reading the arriving
@@ -433,7 +433,7 @@ is **always written, empty included**: absent means "this build knows nothing ab
 emptied field has to be able to say the other thing, or a name taken back on one device stands for
 ever on the next. The per-bot section is unchanged and still carries `archived` and `colour` alone.
 
-`apps/hermie/__tests__/bot-name-sync.test.ts` drives it on two devices against the gateway that
+`expo/hermie/__tests__/bot-name-sync.test.ts` drives it on two devices against the gateway that
 remembers: a rename arriving on the second device, one made with no socket landing on the next
 connect, an emptied field clearing the name on a device that still had it, and a rename being dated
 as a choice while the roster's fold beside it is not.
@@ -488,7 +488,7 @@ local like `sidebarCollapsed`. So are the per-conversation read watermarks (`las
 device's reading and this device's habit, and a list reordering on a phone because a desktop was used
 is a list moving under somebody's thumb.
 
-`apps/hermie/__tests__/current-conversation-sync.test.ts` drives it on two devices against the
+`expo/hermie/__tests__/current-conversation-sync.test.ts` drives it on two devices against the
 gateway that remembers: a pick arriving on the next open, the later pick winning in both connect
 orders, an offline pick landing on the next connect, a move back to the group chat carried as `{}`,
 the date moving for a pick and not for the fold, a stale-id correction or a re-pick, `myChats` still

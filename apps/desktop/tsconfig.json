@@ -3,7 +3,7 @@
   "compilerOptions": {
     // The shell's own pages (`connect.html`, `offline.html`) run in a
     // browser-grade webview, not Node — no React, no React Native Web (that
-    // is `apps/hermie`, a separate world this package never imports).
+    // is `expo/hermie`, a separate world this package never imports).
     "lib": ["ES2023", "DOM", "DOM.Iterable"],
     "types": ["vite/client"],
     "outDir": "./dist",

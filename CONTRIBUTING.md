@@ -20,7 +20,7 @@ Store validation, so it cannot be built unsigned. Set `HERMIE_APPLE_TEAM_ID` to
 your ten-character team identifier.
 
 Set `ANDROID_HOME` to your SDK location (usually `~/Library/Android/sdk` on macOS) before building
-for Android. Those versions are not a guess: `cd apps/hermie/android && ./gradlew -q app:properties`
+for Android. Those versions are not a guess: `cd expo/hermie/android && ./gradlew -q app:properties`
 prints what `expo-root-project` resolved, and that is what has to be installed.
 
 Any JDK 17 works — React Native 0.81 / AGP 8 want 17, not 21 and not 11. On macOS,
@@ -57,7 +57,7 @@ npm run contrast:check         # every ink clears AA on every composited surface
 ```
 
 `npm run contrast` prints the whole table instead of only the failures. It reads
-`apps/hermie/src/ui/tokens.ts`, so a colour changed there is measured there — see
+`expo/hermie/src/ui/tokens.ts`, so a colour changed there is measured there — see
 `scripts/check-contrast.ts` for what "composited" means and why a token measured
 against a token proves nothing.
 
@@ -95,7 +95,7 @@ npm run web          # both, in front of the fake gateway, at http://127.0.0.1:9
 
 `web:build` is two steps in two workspaces, and they land beside each other:
 `tsc -b` writes the server to `packages/hermie-web/dist/server`, and
-`apps/hermie/scripts/export-web.mjs` runs `expo export --platform web` into
+`expo/hermie/scripts/export-web.mjs` runs `expo export --platform web` into
 `packages/hermie-web/dist/web`. That is the directory the server looks in when `--static` is not
 given, and the export **empties** it first — Expo writes hashed bundle names, so a second export
 would otherwise leave the previous one behind for ever. CI runs `npm run web:build` on every pull
@@ -237,7 +237,7 @@ instead of loading Metro's bundle. The emulator reaches the host at `10.0.2.2`,
 never `localhost`.
 
 `--hermieOpen=<value>` works too. Section ids come from `GALLERY_SECTION_IDS` in
-`apps/hermie/src/features/settings/GalleryScreen.tsx`, which is the registry the
+`expo/hermie/src/features/settings/GalleryScreen.tsx`, which is the registry the
 gallery renders from — adding a component to the kit means adding a row there, and
 that is what keeps "one launch, one screenshot" true for the next component as
 well. `sheet:` shorthands are pinned against that list by
@@ -277,11 +277,11 @@ not absent.
 
 ## Native projects
 
-- `apps/hermie/ios` and `apps/hermie/android` are **generated**. They are not committed. Change
-  `apps/hermie/app.config.ts` or a config plugin under `apps/hermie/plugins/`, never the generated
+- `expo/hermie/ios` and `expo/hermie/android` are **generated**. They are not committed. Change
+  `expo/hermie/app.config.ts` or a config plugin under `expo/hermie/plugins/`, never the generated
   files — `npx expo prebuild --clean` will throw your edits away. There is no third native project:
   the Mac is the iOS one.
-- `apps/hermie/modules` holds local Expo modules, and is **committed**. There are two. `hermie-mac`
+- `expo/hermie/modules` holds local Expo modules, and is **committed**. There are two. `hermie-mac`
   exposes what React Native has no equivalent for: `ProcessInfo.processInfo.isiOSAppOnMac`, two
   keyboard answers, an allow-list of desktop shortcuts, a `UIContextMenuInteraction` host view
   (`HermieContextMenuView` — there is no secondary-click event in React Native at all) and Hermie's
@@ -342,7 +342,7 @@ and never quoted, because a properties file keeps the quote characters.
 
 The icons are generated, not drawn per size. `design/icon.svg` is the source; `npm run icons`
 rewrites every PNG from it and `npm run icons:check` — which CI runs — fails if one of them has
-drifted. Never edit a PNG in `apps/hermie/assets` directly.
+drifted. Never edit a PNG in `expo/hermie/assets` directly.
 
 The same two commands also rewrite the Play listing's feature graphic and 512 px icon from
 `design/store/feature-graphic.svg` and `design/icon.svg`; [docs/release.md](docs/release.md)

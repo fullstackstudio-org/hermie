@@ -1,7 +1,7 @@
 # Hermie design tokens — Liquid Glass
 
 Reference mockup: `liquid-glass.html` (open it in a browser, no build step). These
-are the values as they should land in `apps/hermie/src/ui/tokens.ts`. Every number
+are the values as they should land in `expo/hermie/src/ui/tokens.ts`. Every number
 below is the one the mockup actually uses; the contrast ratios were measured on the
 composited surfaces, not on the raw hex values.
 
@@ -90,7 +90,7 @@ because the contrast check reads it too. A chat's own colour is untouched: that
 is `theme.accent(name)`.
 
 Every pair in this table is checked on the COMPOSITED surface by
-`npm run contrast:check`, which reads `apps/hermie/src/ui/tokens.ts` rather than
+`npm run contrast:check`, which reads `expo/hermie/src/ui/tokens.ts` rather than
 a copy of it. 4.5 : 1 for ink, 3 : 1 for a mark. Change a value here and there,
 and let the check say whether it holds. `accentText` is measured per theme, on
 every surface in the table.
@@ -328,7 +328,7 @@ window frame 22.
 control is at least 44 tall on phone. Sidebar width **340 above 1100pt of window width, 300 below
 it** — this said 344 flat, which is a landscape number wearing no label: in portrait 344 is a third
 of an iPad Pro 13" (344 of 1032) and two fifths of an 11" (344 of 834), and what it takes comes out
-of the one column that has to hold prose. `sidebarWidth()` in `apps/hermie/src/ui/tokens.ts` is the
+of the one column that has to hold prose. `sidebarWidth()` in `expo/hermie/src/ui/tokens.ts` is the
 one place that decides.
 
 **Max bubble width** — the rule that fixes edge-to-edge text walls:

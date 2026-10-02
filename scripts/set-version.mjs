@@ -76,8 +76,8 @@ function edit(path, description, pattern, replace) {
 }
 
 edit('package.json', 'the version field', /"version":\s*"[^"]+"/, `"version": "${version}"`)
-edit('apps/hermie/package.json', 'the version field', /"version":\s*"[^"]+"/, `"version": "${version}"`)
-edit('apps/hermie/app.config.ts', 'the Expo version', /version:\s*'[^']+'/, `version: '${version}'`)
+edit('expo/hermie/package.json', 'the version field', /"version":\s*"[^"]+"/, `"version": "${version}"`)
+edit('expo/hermie/app.config.ts', 'the Expo version', /version:\s*'[^']+'/, `version: '${version}'`)
 edit('apps/desktop/package.json', 'the version field', /"version":\s*"[^"]+"/, `"version": "${version}"`)
 edit('apps/desktop/src-tauri/tauri.conf.json', 'the version field', /"version":\s*"[^"]+"/, `"version": "${version}"`)
 edit('apps/desktop/src-tauri/Cargo.toml', 'the package version', /^version = "[^"]+"/m, `version = "${version}"`)
@@ -129,7 +129,7 @@ function editLockVersions(path, entries) {
 editLockVersions('package-lock.json', [
   { label: 'the root document version', get: lock => lock },
   { label: 'packages[""] (the root workspace)', get: lock => lock.packages?.[''] },
-  { label: 'packages["apps/hermie"]', get: lock => lock.packages?.['apps/hermie'] },
+  { label: 'packages["expo/hermie"]', get: lock => lock.packages?.['expo/hermie'] },
   { label: 'packages["apps/desktop"]', get: lock => lock.packages?.['apps/desktop'] },
   { label: 'packages["packages/hermie-web"]', get: lock => lock.packages?.['packages/hermie-web'] }
 ])

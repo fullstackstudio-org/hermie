@@ -43,7 +43,7 @@ was dropped.
 
 ## Application identifier
 
-`dev.hermie.app` — `ios.bundleIdentifier` and `android.package` in `apps/hermie/app.config.ts`, and
+`dev.hermie.app` — `ios.bundleIdentifier` and `android.package` in `expo/hermie/app.config.ts`, and
 the keychain access group that follows from it. One string for both platforms, so there is one place
 to get it wrong instead of two. It is the container as far as the operating system is concerned: a
 build made under the previous identifier is a different app to the system and has to be signed in

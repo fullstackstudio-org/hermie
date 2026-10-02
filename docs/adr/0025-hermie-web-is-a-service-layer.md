@@ -233,7 +233,7 @@ that the state file is `0600`, that the people list fills from who has signed in
 administrator cannot be removed, and that read-only and the bot allow list are enforced on the proxy
 and on the cache. `packages/hermie-web/src/admin/access.test.ts` pins the gate's own arithmetic,
 including that a gateway naming nobody never matches an empty entry.
-`apps/hermie/__tests__/branding.test.ts` pins the app's half: a starting point rather than an
+`expo/hermie/__tests__/branding.test.ts` pins the app's half: a starting point rather than an
 override, and an absent flag reading as on.
 
 **Not verified:** anything against a real gateway, the push ceiling end to end through a real

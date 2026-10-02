@@ -96,7 +96,7 @@ equal one screenshot and they are gated off in Release:
 ```sh
 export JAVA_HOME=/opt/homebrew/opt/openjdk@17/libexec/openjdk.jdk/Contents/Home
 export ANDROID_HOME=~/Library/Android/sdk
-cd apps/hermie && npx expo prebuild --platform android
+cd expo/hermie && npx expo prebuild --platform android
 cd android && ./gradlew assembleDebug
 adb install -r app/build/outputs/apk/debug/app-debug.apk
 ```

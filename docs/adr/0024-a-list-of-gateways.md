@@ -149,7 +149,7 @@ nothing will have a reason to look at it again.
 ## What is verified, and what is not
 
 The suites cover the leak the whole design exists to prevent —
-`apps/hermie/__tests__/gateway-namespaces.test.ts` signs in to two gateways and checks that each
+`expo/hermie/__tests__/gateway-namespaces.test.ts` signs in to two gateways and checks that each
 one's tokens, settings, watermarks, arrangement and cached rows stay its own, that the installation
 id does not — and the move off the unsuffixed keys, the list's arithmetic
 (`gateway-registry.test.ts`), the screen (`gateways-screen.test.tsx`), the routing key and what a
@@ -169,7 +169,7 @@ tap from another gateway does (`gateway-routing.test.ts`), and the dead-connecti
   payload, and until it does, a notification from a plugin-notified gateway carries no key and is
   read exactly as it always was: open that chat on the gateway that is live.
 - **The widget's tap does not carry the key.** The snapshot now holds it, and the native widget code
-  (`apps/hermie/modules/hermie-widgets`) still builds `hermie://chat/<bot>` without the parameter.
+  (`expo/hermie/modules/hermie-widgets`) still builds `hermie://chat/<bot>` without the parameter.
   The JavaScript half is ready and the Swift half is a separate change.
 - **The SQLite and IndexedDB namespacing is checked by the statements it issues**, not by a round
   trip through an engine: there is neither in the test environment. What that does catch is the one

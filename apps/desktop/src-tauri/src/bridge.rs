@@ -59,7 +59,7 @@
 //! A command that runs answers `{ ok: true, … }` or `{ ok: false, reason }` and
 //! never rejects. An `invoke` the ACL refused *does* reject, with Tauri's own
 //! error — and the app-side facade
-//! (`apps/hermie/src/platform/desktop-shell.ts`) already treats a rejection and
+//! (`expo/hermie/src/platform/desktop-shell.ts`) already treats a rejection and
 //! an `{ ok: false }` alike, as "no". A refusal is a fact about the caller, not
 //! an error the caller can do anything about.
 
@@ -219,7 +219,7 @@ pub struct ShellInfo {
 /// Deserialized here rather than passed through as opaque JSON so the contract
 /// is checked at the boundary: a page that sends the wrong shape is refused by
 /// Tauri's own argument deserialization before any menu is rebuilt. Mirrors
-/// `MenuBarTitles` in `apps/hermie/src/platform/desktop-shortcuts.shared.ts`.
+/// `MenuBarTitles` in `expo/hermie/src/platform/desktop-shortcuts.shared.ts`.
 #[derive(Debug, Clone, PartialEq, Eq, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub struct MenuBarTitles {
@@ -778,7 +778,7 @@ mod tests {
         // and the refusal is a runtime error from `emit`, which `emit_to_app`
         // deliberately swallows — so a typo here would be silent. These must
         // also match the strings in
-        // `apps/hermie/src/platform/desktop-shell.ts`.
+        // `expo/hermie/src/platform/desktop-shell.ts`.
         let names = [
             events::SHORTCUT,
             events::LINK,

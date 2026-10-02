@@ -6,7 +6,7 @@
  * whatever that composites to. So measuring a token against a token proves
  * nothing.
  *
- * The arithmetic lives in `apps/hermie/src/ui/contrast.ts` and NOT here. That is
+ * The arithmetic lives in `expo/hermie/src/ui/contrast.ts` and NOT here. That is
  * the point of this round's split: the theme editor refuses a colour while
  * somebody is typing it, this fails a build, and if the two were separate code one
  * of them would be lying. This file is the table and the exit code; the rule is
@@ -27,9 +27,9 @@ import {
   surfacesFor,
   AA_TEXT,
   type ContrastRow
-} from '../apps/hermie/src/ui/contrast'
-import { resolveThemeFace, THEME_PRESET_ORDER } from '../apps/hermie/src/ui/themes'
-import { ACCENT_ORDER, ACCENTS, SENDER_INK_ORDER, lightColors, type Scheme } from '../apps/hermie/src/ui/tokens'
+} from '../expo/hermie/src/ui/contrast'
+import { resolveThemeFace, THEME_PRESET_ORDER } from '../expo/hermie/src/ui/themes'
+import { ACCENT_ORDER, ACCENTS, SENDER_INK_ORDER, lightColors, type Scheme } from '../expo/hermie/src/ui/tokens'
 
 function themeRows(): ContrastRow[] {
   const rows: ContrastRow[] = []

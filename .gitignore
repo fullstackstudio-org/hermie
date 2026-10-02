@@ -8,18 +8,18 @@ coverage/
 
 # Expo / continuous native generation — regenerate with `npx expo prebuild`
 .expo/
-apps/hermie/ios/
-apps/hermie/android/
+expo/hermie/ios/
+expo/hermie/android/
 
 # Gradle's output for the local Expo modules, whose `android/` IS committed —
 # so unlike the generated project above, only the build directories go.
-apps/hermie/modules/*/android/build/
-apps/hermie/modules/*/android/.gradle/
-apps/hermie/modules/*/android/.cxx/
+expo/hermie/modules/*/android/build/
+expo/hermie/modules/*/android/.gradle/
+expo/hermie/modules/*/android/.cxx/
 
 # Xcode build products, including the wrapped Mac bundle `npm run mac` writes
 DerivedData/
-apps/hermie/build/
+expo/hermie/build/
 
 # Rust build output for the desktop shell (`apps/desktop/dist` is covered by
 # the generic `dist/` rule above).

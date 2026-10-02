@@ -66,7 +66,7 @@ never looks one up.
 
 ### What is verified
 
-`apps/hermie/__tests__/inline-approvals.test.tsx`: the choices drawn are the server's and in its
+`expo/hermie/__tests__/inline-approvals.test.tsx`: the choices drawn are the server's and in its
 order on both surfaces, a tap reports the choice verbatim, a card with no question draws nothing, a
 collapsed card still shows the question rather than folding it away, an answer given on the
 transcript card reaches the controller, and the sheet goes down with it.

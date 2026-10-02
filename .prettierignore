@@ -8,9 +8,9 @@ node_modules
 dist
 coverage
 .expo
-apps/hermie/ios
-apps/hermie/android
-apps/hermie/modules/*/android/build
+expo/hermie/ios
+expo/hermie/android
+expo/hermie/modules/*/android/build
 # Rust build output; not JS/TS/JSON/CSS at all.
 apps/desktop/src-tauri/target
 CHANGELOG.md

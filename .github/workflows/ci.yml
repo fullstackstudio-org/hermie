@@ -125,7 +125,7 @@ jobs:
 
       - name: Generate the native project
         run: npx expo prebuild --platform android --no-install
-        working-directory: apps/hermie
+        working-directory: expo/hermie
 
       # Release as well as Debug, deliberately. The template gives the debug
       # manifest keys the main one lacks — `usesCleartextTraffic` was exactly
@@ -134,14 +134,14 @@ jobs:
       # Neither APK is signed with anything but the template's debug key.
       - name: Assemble
         run: ./gradlew assembleDebug assembleRelease --no-daemon
-        working-directory: apps/hermie/android
+        working-directory: expo/hermie/android
 
       - uses: actions/upload-artifact@v4
         with:
           name: hermie-android-apks
           path: |
-            apps/hermie/android/app/build/outputs/apk/debug/app-debug.apk
-            apps/hermie/android/app/build/outputs/apk/release/app-release.apk
+            expo/hermie/android/app/build/outputs/apk/debug/app-debug.apk
+            expo/hermie/android/app/build/outputs/apk/release/app-release.apk
           if-no-files-found: error
 
   ios:
@@ -161,14 +161,14 @@ jobs:
 
       - name: Generate the native project
         run: npx expo prebuild --platform ios --no-install
-        working-directory: apps/hermie
+        working-directory: expo/hermie
 
       - name: Pods
         run: pod install
-        working-directory: apps/hermie/ios
+        working-directory: expo/hermie/ios
 
       - name: Build
-        working-directory: apps/hermie/ios
+        working-directory: expo/hermie/ios
         run: |
           xcodebuild \
             -workspace Hermie.xcworkspace \

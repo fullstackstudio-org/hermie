@@ -53,7 +53,7 @@ Three ways out were considered.
 
 Hermie supports plain `http://` and sets the platform permission that makes it work:
 
-- iOS, through `ios.infoPlist` in `apps/hermie/app.config.ts`: `NSAllowsArbitraryLoads: true`, and
+- iOS, through `ios.infoPlist` in `expo/hermie/app.config.ts`: `NSAllowsArbitraryLoads: true`, and
   **nothing else in that dictionary**. The template's `NSAllowsLocalNetworking` is removed with it.
   That is not tidiness: since iOS 10 the presence of `NSAllowsLocalNetworking`,
   `NSAllowsArbitraryLoadsInWebContent` or `NSAllowsArbitraryLoadsForMedia` makes the system IGNORE

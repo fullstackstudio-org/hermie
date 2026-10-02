@@ -67,7 +67,7 @@ window.__HERMIE_DESKTOP__ = Object.freeze({ version: 1, platform: 'macos' | 'win
 ```
 
 That is the whole of "am I in the shell". The app reads it through
-`apps/hermie/src/platform/desktop-shell.ts`, which exports `RUNS_IN_DESKTOP_SHELL` and
+`expo/hermie/src/platform/desktop-shell.ts`, which exports `RUNS_IN_DESKTOP_SHELL` and
 `DESKTOP_SHELL_PLATFORM` as constants beside `RUNS_IN_BROWSER` and `RUNS_ON_MAC`. A marker whose
 shape the app does not recognise — no version, a platform it has never heard of — reads as "not in
 the shell", which leaves the app in its plain-browser behaviour rather than branching on a value it
@@ -87,7 +87,7 @@ desktop shell".
 
 ### The six commands
 
-`window.__TAURI__.core.invoke(...)` (the shell sets `withGlobalTauri`; `apps/hermie` imports nothing
+`window.__TAURI__.core.invoke(...)` (the shell sets `withGlobalTauri`; `expo/hermie` imports nothing
 Tauri, at module scope or otherwise, so a browser tab's bundle never grows a line for this). Each
 answers `{ ok: true, … }` or `{ ok: false, reason }` and never rejects of its own accord.
 
@@ -208,7 +208,7 @@ every capability deleted.
 
 ### The app-side seams
 
-Everything in `apps/hermie` that knows about the shell is gated on the marker and is a no-op in a
+Everything in `expo/hermie` that knows about the shell is gated on the marker and is a no-op in a
 plain tab and on native.
 
 - `src/platform/desktop-shell.ts` — the constants and the typed facade. Reads globals lazily; imports

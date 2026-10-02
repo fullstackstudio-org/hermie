@@ -37,7 +37,7 @@ it is a mistake.
 
 ### The shape
 
-Two lists that mean one thing, in `apps/hermie/src/store/folders.ts`:
+Two lists that mean one thing, in `expo/hermie/src/store/folders.ts`:
 
 ```ts
 entries: ({ kind: 'folder'; id: string } | { kind: 'chat'; name: string })[]
@@ -181,7 +181,7 @@ One rule is added, and it is the only thing about a folder drag that is not a ch
 
 ## What is verified
 
-`apps/hermie/__tests__/folders.test.ts` covers the invariant (a duplicate bot, one bot named by two
+`expo/hermie/__tests__/folders.test.ts` covers the invariant (a duplicate bot, one bot named by two
 folders, a folder nobody placed, an id nothing defines, and the invariant holding across a run of
 moves), the migration (each divider's own chats, the chats above the first one, a folder stopping
 where the next divider starts, the reading order preserved, and a blob written by something else
@@ -190,14 +190,14 @@ the aggregate counts with mute and archive applied, the rows a list draws open a
 target including the collapsed-folder case and the archived-chat offset, and the commit arithmetic
 end to end.
 
-`apps/hermie/__tests__/drag-reorder.test.ts` keeps the geometry half: midpoints, ragged rows, the
+`expo/hermie/__tests__/drag-reorder.test.ts` keeps the geometry half: midpoints, ragged rows, the
 synthetic half-row over a folder header, and how far the neighbours move.
-`apps/hermie/__tests__/chat-layout-store.test.ts` covers what the store adds — the disk keyed by
+`expo/hermie/__tests__/chat-layout-store.test.ts` covers what the store adds — the disk keyed by
 gateway, and the open/closed set surviving a reload and being forgotten with the folder.
-`apps/hermie/__tests__/bots-screen.test.tsx` drives the screen: adding a folder, naming it, the empty
+`expo/hermie/__tests__/bots-screen.test.tsx` drives the screen: adding a folder, naming it, the empty
 folder's own row, a search narrowing past it, and moving a bot in from the row menu.
 
-`apps/hermie/__tests__/folder-drag.test.tsx` covers the amendment: what a row key parses to and
+`expo/hermie/__tests__/folder-drag.test.tsx` covers the amendment: what a row key parses to and
 which anchors are positions rather than rows, a folder target inside another folder becoming that
 folder's own top-level place, the no-move and index-correction arithmetic for a folder, the grip and
 the pan handlers appearing on the folder row in edit mode, and a committed drop moving the folder
@@ -268,7 +268,7 @@ writes the section itself, which costs the pins and nothing else.
 
 ### What is verified
 
-`apps/hermie/__tests__/pinned-chats.test.ts`: the partition at the top level and inside a folder,
+`expo/hermie/__tests__/pinned-chats.test.ts`: the partition at the top level and inside a folder,
 that pinning reorders nothing within either half, that unpinning restores the list exactly, that the
 anchors are emitted in display order while their targets stay arrangement indices, every case of the
 clamp including the folder-filing regression above, the disk round trip, and the `ui_meta`

@@ -91,7 +91,7 @@ jobs:
 
       - name: Generate the native project
         run: npx expo prebuild --platform android --no-install
-        working-directory: apps/hermie
+        working-directory: expo/hermie
 
       # `secrets` is not available in a job-level `if`, so the presence of a key
       # becomes a step output that the steps below condition on. Only whether the
@@ -123,7 +123,7 @@ jobs:
       # installed at all, so there is never an unsigned artefact here.
       - name: Assemble the debug APK
         run: ./gradlew assembleDebug --no-daemon
-        working-directory: apps/hermie/android
+        working-directory: expo/hermie/android
 
       # `ORG_GRADLE_PROJECT_<name>` is how Gradle takes a project property from the
       # environment, so these four arrive as the properties
@@ -132,7 +132,7 @@ jobs:
       # strip them, which is the trap the plugin's error message names.
       - name: Assemble and bundle the signed release
         if: steps.signing.outputs.available == 'true'
-        working-directory: apps/hermie/android
+        working-directory: expo/hermie/android
         env:
           ORG_GRADLE_PROJECT_HERMIE_UPLOAD_STORE_FILE: ${{ runner.temp }}/signing/upload.jks
           ORG_GRADLE_PROJECT_HERMIE_UPLOAD_STORE_PASSWORD: ${{ secrets.HERMIE_UPLOAD_STORE_PASSWORD }}
@@ -148,12 +148,12 @@ jobs:
       - name: Name them after the tag
         run: |
           mkdir -p artifacts
-          cp apps/hermie/android/app/build/outputs/apk/debug/app-debug.apk \
+          cp expo/hermie/android/app/build/outputs/apk/debug/app-debug.apk \
             "artifacts/Hermie-android-debug.apk"
           if [ '${{ steps.signing.outputs.available }}' = 'true' ]; then
-            cp apps/hermie/android/app/build/outputs/apk/release/app-release.apk \
+            cp expo/hermie/android/app/build/outputs/apk/release/app-release.apk \
               "artifacts/Hermie-android-release.apk"
-            cp apps/hermie/android/app/build/outputs/bundle/release/app-release.aab \
+            cp expo/hermie/android/app/build/outputs/bundle/release/app-release.aab \
               "artifacts/Hermie-android-release.aab"
           fi
           ls -l artifacts

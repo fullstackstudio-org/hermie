@@ -6,7 +6,7 @@ Every third-party package that ships inside Hermie, with the licence each one de
 licence text each one carries. It is generated: `npm run licences` rewrites this file and
 `npm run licences:check` — which CI runs — fails if it has drifted from the dependency tree.
 
-The list is the **production** dependency tree of `apps/hermie`, resolved transitively through
+The list is the **production** dependency tree of `expo/hermie`, resolved transitively through
 `package-lock.json`. Development tooling is not in it: a linter, a test runner or a bundler never
 reaches a user's device, and the lockfile already records which entry only a development edge
 reaches.

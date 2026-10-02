@@ -30,11 +30,11 @@ import {
 const here = dirname(fileURLToPath(import.meta.url))
 const repoRoot = resolve(here, '..')
 const sourceSvg = resolve(repoRoot, 'design/icon.svg')
-const assetsDir = resolve(repoRoot, 'apps/hermie/assets')
+const assetsDir = resolve(repoRoot, 'expo/hermie/assets')
 /**
  * The browser build's icons.
  *
- * `apps/hermie/public` is copied to the root of the web export verbatim, so
+ * `expo/hermie/public` is copied to the root of the web export verbatim, so
  * these land next to `manifest.webmanifest` — which is the only reason they are
  * not in `assets/` with the rest: nothing bundles them, the manifest names them
  * by URL.
@@ -46,7 +46,7 @@ const assetsDir = resolve(repoRoot, 'apps/hermie/assets')
  * it Android put the `any` icon on a white circle of its own, which is a Hermie
  * icon inside somebody else's badge.
  */
-const webIconsDir = resolve(repoRoot, 'apps/hermie/public/icons')
+const webIconsDir = resolve(repoRoot, 'expo/hermie/public/icons')
 
 /**
  * The desktop shell's icons (Tauri, `apps/desktop`).

@@ -82,7 +82,7 @@ pub fn context<R: Runtime>() -> tauri::Context<R> {
 /// The marker the app page feature-detects, injected before any page script.
 ///
 /// `window.__HERMIE_DESKTOP__ = { version, platform }`, and nothing else. The
-/// app reads it through `apps/hermie/src/platform/desktop-shell.ts`, treats its
+/// app reads it through `expo/hermie/src/platform/desktop-shell.ts`, treats its
 /// absence as "not in the shell", and treats every bridge call as optional.
 ///
 /// A plugin because a window declared in `tauri.conf.json` has no place to hang

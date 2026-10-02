@@ -4,7 +4,7 @@
  *
  * These pages are NOT part of the app bundle — they are painted by this package
  * before anything is configured, and on the morning the bundle does not load —
- * so they cannot reach into `apps/hermie/src/i18n/`. They carry their own small
+ * so they cannot reach into `expo/hermie/src/i18n/`. They carry their own small
  * tables instead, and keep the same three rules that file tree keeps
  * (`docs/i18n.md`):
  *

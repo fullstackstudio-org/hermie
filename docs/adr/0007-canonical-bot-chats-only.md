@@ -72,10 +72,10 @@ that is wrong silently.
 
 ### What is verified
 
-`apps/hermie/__tests__/session-branch.test.ts`: the branch title, that branching leaves the
+`expo/hermie/__tests__/session-branch.test.ts`: the branch title, that branching leaves the
 canonical chat's session, rows and flags alone, that a branch opens under a key of its own without
 clearing the bot's unread watermark, and that the canonical row is offered no actions while every
-other row is offered four. `apps/hermie/__tests__/conversations-page.test.ts`: which id each of
+other row is offered four. `expo/hermie/__tests__/conversations-page.test.ts`: which id each of
 `session.title`, `session.delete` and `session.resume` is addressed by, and both rollback paths of
 the canonical swap. `packages/fake-gateway/src/upstream-shapes.test.ts` holds the fake's
 `session.branch` and `session.delete` to the contract — including that the fake invents no canonical
@@ -156,7 +156,7 @@ than destroys.
 
 ### What is verified
 
-`apps/hermie/__tests__/user-chats.test.ts`: the title ladder and the empty answer
+`expo/hermie/__tests__/user-chats.test.ts`: the title ladder and the empty answer
 that turns the feature off; that the lookup runs twice before a create and that
 the create is visible, follows the profile and names its parent; that a failed
 lookup mints nothing; that concurrent asks resolve once; that a new identity

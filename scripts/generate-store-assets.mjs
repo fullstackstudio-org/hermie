@@ -54,7 +54,7 @@ emit(
 /**
  * The listing icon: the app icon at the one size Play takes, with the corners
  * left square. Play rounds and masks the icon itself, exactly as iOS and Android
- * do with apps/hermie/assets/icon.png, so rounding it here would show a second
+ * do with expo/hermie/assets/icon.png, so rounding it here would show a second
  * radius inside the store's own.
  */
 const iconShapes = readSvg(readFileSync(iconSvg, 'utf8'))

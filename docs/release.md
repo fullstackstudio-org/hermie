@@ -21,7 +21,7 @@ One number, written down in seven places, plus the matching entries in
 
 - the root `package.json`;
 - the app's `package.json`;
-- `version` in `apps/hermie/app.config.ts`;
+- `version` in `expo/hermie/app.config.ts`;
 - Hermie Web's `package.json`, which `/hermie/update` and the container image report;
 - the desktop shell's `package.json`, `tauri.conf.json` and `Cargo.toml`.
 
@@ -158,7 +158,7 @@ credentials.
 ## The application identifier
 
 `dev.hermie.app` — `ios.bundleIdentifier` and `android.package` in
-`apps/hermie/app.config.ts`, and the keychain access group that follows from it. It
+`expo/hermie/app.config.ts`, and the keychain access group that follows from it. It
 used to be `nl.fullstackstudio.hermie`, an App ID stuck in a personal Apple team that
 cannot be moved to the paid one; nothing had ever been uploaded under it, so renaming
 it cost nothing but a prebuild. A build made before the change keeps its own data: the
@@ -333,7 +333,7 @@ back into any of these files.
 ### Building and uploading
 
 ```sh
-cd apps/hermie
+cd expo/hermie
 npm ci                                              # from the repository root
 npx expo prebuild --platform ios --clean
 cd ios && LANG=en_US.UTF-8 LC_ALL=en_US.UTF-8 pod install && cd ..
@@ -346,7 +346,7 @@ which App Store Connect refuses if it has seen it, and which silently misreports
 the commit in Settings if it has not.
 
 ```sh
-cd apps/hermie/ios
+cd expo/hermie/ios
 xcodebuild -workspace Hermie.xcworkspace -scheme Hermie -configuration Release \
   -destination 'generic/platform=iOS' archive \
   -archivePath "$BUILD/Hermie.xcarchive" \
@@ -461,7 +461,7 @@ HERMIE_UPLOAD_KEY_PASSWORD=…
 them, so `"secret"` is a password with two quote characters in it, and the failure
 arrives as `UnrecoverableKeyException: BadPaddingException` from inside AGP with
 nothing pointing at the cause. The path may contain spaces and needs no quoting or
-escaping either: it reaches `file()` as one string. `apps/hermie/plugins/with-android-release-signing.js`
+escaping either: it reaches `file()` as one string. `expo/hermie/plugins/with-android-release-signing.js`
 opens the keystore before the build starts and says both of these in its error.
 
 The same four can come from the environment instead, which is what CI uses — see
@@ -499,7 +499,7 @@ a line saying so, because a release must not be blocked by a check that could no
 run.
 
 It prints where the artefacts landed and how big they are. They are
-`apps/hermie/android/app/build/outputs/bundle/release/app-release.aab` and
+`expo/hermie/android/app/build/outputs/bundle/release/app-release.aab` and
 `.../apk/release/app-release.apk`.
 
 **Which key signed a build is in the log**, on the one line beginning `hermie:` —
@@ -526,7 +526,7 @@ back to debug signing says `CN=Android Debug` instead, which is the tell.
 Same shape as iOS:
 
 ```sh
-cd apps/hermie
+cd expo/hermie
 eas build --platform android --profile production      # an .aab
 eas submit --platform android --latest --track internal
 ```

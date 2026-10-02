@@ -25,7 +25,7 @@ set — but only part of it, and that part is not documented anywhere as a contr
 
 ## Decision
 
-macOS is a real target built with **react-native-macos**, living in `apps/hermie/macos/` inside the
+macOS is a real target built with **react-native-macos**, living in `expo/hermie/macos/` inside the
 same app package as iOS and Android. The directory is committed and maintained by hand: it started
 from the react-native-macos 0.81 template and was adapted, rather than being regenerated.
 
@@ -40,7 +40,7 @@ Metro serves the `macos` platform and rewrites every `react-native` import to `r
 
 - One React tree, one chat engine, one protocol implementation. A fix to the transcript reducer fixes
   it on every platform at once.
-- `apps/hermie/macos/` is ours to maintain. It does not regenerate with `expo prebuild`, which means
+- `expo/hermie/macos/` is ours to maintain. It does not regenerate with `expo prebuild`, which means
   changes to `app.config.ts` — the bundle identifier, the name, the icon — have to be mirrored there
   by hand. `docs/platform-notes.md` lists everything that was changed relative to the template.
 - The macOS module set is smaller than the iOS one, and the gaps are real. Secure storage in
