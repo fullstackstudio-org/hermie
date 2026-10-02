@@ -43,7 +43,7 @@ final class TranscriptListUITests: XCTestCase {
         .min { abs($0.value.midY - list.midY) < abs($1.value.midY - list.midY) },
       "no row on screen: \(before.count) rows in \(list), \(before.values.map(\.minY).sorted())")
     app.buttons["lab.prepend"].tap()
-    waitForReport(app, containing: "after prepend")
+    record("prepend 200 (\(label)): \(waitForReport(app, containing: "after prepend"))")
     settle()
     let after = try rowFrames(app)
     let moved = before.compactMap { id, frame in after[id].map { (id, $0.minY - frame.minY) } }

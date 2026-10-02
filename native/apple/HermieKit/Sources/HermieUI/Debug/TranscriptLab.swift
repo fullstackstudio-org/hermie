@@ -27,6 +27,15 @@
       .environment(\.transcriptExpansion, expansion)
       .environment(\.transcriptOwnAuthorID, "telegram:1")
       .safeAreaInset(edge: .top, spacing: 0) { controls }
+      .safeAreaInset(edge: .bottom, spacing: 0) {
+        // `-HermieLabBottomInset YES`: a bar under the list, where the chat screen's composer goes.
+        if UserDefaults.standard.bool(forKey: "HermieLabBottomInset") {
+          Text("Composer")
+            .frame(maxWidth: .infinity, minHeight: 44)
+            .background(.bar)
+            .accessibilityIdentifier("lab.bottomInset")
+        }
+      }
       .task { await model.load() }
       .onChange(of: model.listState.isAtBottom) { _, atBottom in
         if atBottom { model.newCount = 0 }
