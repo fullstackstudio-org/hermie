@@ -67,6 +67,11 @@ jobs:
       - name: The golden corpus matches the TypeScript reference
         run: npm run golden:check
 
+      # The native apps' String Catalog and Swift accessors (docs/i18n.md, "Native
+      # apps"). Fails when a TypeScript string changed without `npm run i18n`.
+      - name: The native string export matches the TypeScript catalogues
+        run: npm run i18n:check
+
       - name: Ink clears AA on every composited surface
         run: npm run contrast:check
 

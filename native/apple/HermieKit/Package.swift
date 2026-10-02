@@ -60,7 +60,12 @@ let package = Package(
       swiftSettings: settings
     ),
     // The views, per feature, and the router.
-    .target(name: "HermieUI", dependencies: ["HermieCore", "HermieMarkdown"], swiftSettings: settings),
+    .target(
+      name: "HermieUI",
+      dependencies: ["HermieCore", "HermieMarkdown"],
+      resources: [.process("Resources")],
+      swiftSettings: settings
+    ),
 
     .testTarget(name: "HermieProtocolTests", dependencies: ["HermieProtocol"], swiftSettings: settings),
     .testTarget(name: "HermieTranscriptTests", dependencies: ["HermieTranscript"], swiftSettings: settings),

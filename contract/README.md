@@ -21,7 +21,11 @@ changes and the port does not follow.
 | `transcript/streams/<scenario>.json`     | a fake-gateway conversation: the frames it sent, the engine steps, the resulting state               | `packages/fake-gateway/scripts/dump-frames.ts`    |
 | `gateway/vectors/<module>.json`          | input/output vectors for the pure functions of `@hermie/gateway-client`                              | `packages/gateway-client/scripts/dump-vectors.ts` |
 | `markdown/<group>.json`                  | the Expo app's Markdown block structure per input: blocks, preprocessing, inline, streaming prefixes | `scripts/golden/dump-markdown.ts`                 |
+| `i18n/catalogue.json`                    | the Expo app's strings in en, nl and de, as text, lists or templates (`docs/i18n.md`)                | `scripts/i18n/generate.ts`                        |
 | `push/contract.json`                     | the push contract (category, actions, data keys, types, Android channels) — hand-written             | by hand                                           |
+
+`i18n/` has a pipeline of its own: `npm run i18n` writes it (with the Apple String
+Catalog made from it) and `npm run i18n:check` guards it; `golden` leaves it alone.
 
 ## Regenerating
 

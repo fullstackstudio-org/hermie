@@ -1,0 +1,17 @@
+{
+  // The native string export (`npm run i18n`): it reads the Expo app's string
+  // tables and writes contract/i18n plus the Apple String Catalog. None of it
+  // ships, so no package tsconfig sees it; the root `typecheck` script runs it as
+  // its own pass, like scripts/golden.
+  "extends": "../../tsconfig.base.json",
+  "compilerOptions": {
+    "composite": false,
+    "declaration": false,
+    "declarationMap": false,
+    "emitDeclarationOnly": false,
+    "noEmit": true,
+    "lib": ["ES2023"],
+    "types": ["node"]
+  },
+  "include": ["./*.ts"]
+}

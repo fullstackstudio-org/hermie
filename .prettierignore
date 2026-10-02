@@ -26,3 +26,4 @@ design/*.html
 contract/transcript
 contract/gateway
 contract/markdown
+contract/i18n

@@ -78,6 +78,24 @@ native version rule are in [docs/release.md](../docs/release.md#native-apps).
 The app transport security setting is a single `NSAllowsArbitraryLoads`, on purpose; see
 [ADR-0014](../docs/adr/0014-plain-http-on-private-networks.md) before adding anything beside it.
 
+## Strings
+
+`HermieUI/Resources` holds two String Catalogs, and they are kept differently:
+
+- **`Localizable.xcstrings` is generated.** It is the Expo app's English, Dutch and German, exported
+  from the TypeScript catalogues by `npm run i18n`, together with the typed accessors in
+  `HermieUI/Generated/Strings.generated.swift` (`Strings.App.Common.cancel`,
+  `Strings.Chat.Clarify.step(current:total:)`). Never edit either by hand, and do not let Xcode add keys
+  to it: change the TypeScript and run the script. CI fails when they disagree.
+- **`Native.xcstrings` is written by hand.** Use it only for a string the native apps have and the Expo
+  app does not: a widget, a Shortcut, a system integration. Add it in all three languages, and read it
+  with `String(localized: "…", table: "Native", bundle: .module)`. A string both apps show belongs in
+  the TypeScript catalogues instead, so the two cannot drift apart.
+
+The apps follow the system's per-app language and have no picker of their own.
+[docs/i18n.md](../docs/i18n.md#native-apps) has the details: plurals, the hand-written overrides, and
+how the export is checked against the TypeScript.
+
 ## Roadmap
 
 - **M0**: the repository restructure, this skeleton, CI, and the golden corpus both worlds test against.
