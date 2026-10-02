@@ -39,15 +39,14 @@ final class HermieShellUITests: XCTestCase {
   /**
    The system audit, with every issue it finds written to the log before it fails the test.
 
-   One exclusion, and only one: the clipped-text warning on the chat list PLACEHOLDER's selected
-   row on iPad, a system sidebar cell that keeps one height when selected. The chat list task
-   replaces that placeholder with its own rows, and must pass the audit without this.
+   One exclusion: the clipped-text warning on the chat list's search field in the iPad sidebar, a
+   system `UISearchBar` that keeps one height at every text size.
    */
   private func audit(_ app: XCUIApplication, file: StaticString = #filePath, line: UInt = #line) throws {
     var issues: [String] = []
 
     try app.performAccessibilityAudit { issue in
-      if issue.auditType == .textClipped, issue.element?.identifier == "hermie.chatList.row" {
+      if issue.auditType == .textClipped, issue.element?.elementType == .searchField {
         return true
       }
 
@@ -131,7 +130,7 @@ final class HermieShellUITests: XCTestCase {
       "-HermieOpenURL", "hermie://chat/alice?gateway=\(key)"
     ])
 
-    let chat = element(app, "hermie.chat.placeholder")
+    let chat = element(app, "hermie.chat")
 
     XCTAssertTrue(chat.waitForExistence(timeout: 10))
     XCTAssertEqual(chat.value as? String, "alice")
@@ -152,7 +151,7 @@ final class HermieShellUITests: XCTestCase {
 
     app.open(URL(string: "hermie://chat/bob")!)
 
-    let chat = element(app, "hermie.chat.placeholder")
+    let chat = element(app, "hermie.chat")
 
     XCTAssertTrue(chat.waitForExistence(timeout: 10))
     XCTAssertEqual(chat.value as? String, "bob")
@@ -165,7 +164,7 @@ final class HermieShellUITests: XCTestCase {
     ])
 
     XCTAssertTrue(app.otherElements["hermie.notice"].waitForExistence(timeout: 10))
-    XCTAssertFalse(element(app, "hermie.chat.placeholder").exists)
+    XCTAssertFalse(element(app, "hermie.chat").exists)
   }
 
   func testTheSplitViewShowsTheListBesideTheChatOnIPadAndStacksOnIPhone() throws {
@@ -174,18 +173,18 @@ final class HermieShellUITests: XCTestCase {
       "-HermieOpenURL", "hermie://chat/alice"
     ])
 
-    XCTAssertTrue(element(app, "hermie.chat.placeholder").waitForExistence(timeout: 10))
+    XCTAssertTrue(element(app, "hermie.chat").waitForExistence(timeout: 10))
 
     if isPad {
       XCUIDevice.shared.orientation = .landscapeLeft
-      XCTAssertTrue(app.collectionViews["hermie.chatList.placeholder"].waitForExistence(timeout: 5))
-      XCTAssertTrue(element(app, "hermie.chat.placeholder").exists)
+      XCTAssertTrue(element(app, "hermie.chatList").waitForExistence(timeout: 5))
+      XCTAssertTrue(element(app, "hermie.chat").exists)
       XCUIDevice.shared.orientation = .portrait
     } else {
       // Collapsed: the chat is pushed over the list; back closes it.
-      XCTAssertFalse(app.collectionViews["hermie.chatList.placeholder"].isHittable)
+      XCTAssertFalse(element(app, "hermie.chatList").isHittable)
       app.navigationBars.buttons.element(boundBy: 0).tap()
-      XCTAssertTrue(app.collectionViews["hermie.chatList.placeholder"].waitForExistence(timeout: 5))
+      XCTAssertTrue(element(app, "hermie.chatList").waitForExistence(timeout: 5))
     }
 
     try audit(app)

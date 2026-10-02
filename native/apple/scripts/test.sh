@@ -125,7 +125,9 @@ derived="$apple_dir/DerivedData"
 # Fake gateways on the host for the UI tests, which the simulator (or the Mac) reaches on
 # 127.0.0.1: the lab's composer tests get one that streams slowly enough to be stopped
 # (TEST_RUNNER_HERMIE_LAB_GATEWAY), and the onboarding tests an ungated, a token and a
-# native-sign-in one (TEST_RUNNER_HERMIE_FAKE_GATEWAY_NONE, _TOKEN, _NATIVE). Each listens on a
+# native-sign-in one (TEST_RUNNER_HERMIE_FAKE_GATEWAY_NONE, _TOKEN, _NATIVE), and the chat screen's
+# test a token one with history whose replies stream slowly enough to watch and stop
+# (TEST_RUNNER_HERMIE_CHAT_GATEWAY, token ui-test-token). Each listens on a
 # port of its own (--port 0, read back from its listening line), and a watchdog takes it down
 # when this script's end of its stdin closes. Without node or the workspace the tests that need
 # one skip themselves.
@@ -267,6 +269,7 @@ if [[ "$ui" == true ]]; then
   start_fake_gateway HERMIE_FAKE_GATEWAY_NONE --auth none
   start_fake_gateway HERMIE_FAKE_GATEWAY_TOKEN --auth token --token ui-test-token
   start_fake_gateway HERMIE_FAKE_GATEWAY_NATIVE --auth native
+  start_fake_gateway HERMIE_CHAT_GATEWAY --auth token --token ui-test-token --stream-delay 500 --history-rows 40
 
   ui_devices+=("$(xcrun simctl create "Hermie UI tests iPhone $$" "$phone_type" "$ui_runtime")")
   ui_devices+=("$(xcrun simctl create "Hermie UI tests iPad $$" "$pad_type" "$ui_runtime")")
