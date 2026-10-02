@@ -66,8 +66,12 @@ public struct SyncEntry: Sendable, Equatable {
   public var removal: RemovalScope?
   /// Set by the engine when the person added this gateway here (the add wizard completed, or the
   /// address moved to a new origin). Only such a gateway is published over a removal on all
-  /// devices; one that merely existed here becomes `absent` instead. Consumed once published.
+  /// devices, and only over one older than the add (`addedHereAt`); one that merely existed here,
+  /// or was added before the removal, becomes `absent` instead. Consumed once published.
   public var addedHere: Bool
+  /// When it was added here, by this device's clock (`markAddedHere(gatewayId:key:at:)`; for a move
+  /// to a new origin, the reconcile that saw it). Without it, no removal is taken as older.
+  public var addedHereAt: Double?
   /// Credentials the person cleared on purpose ("Sign Out on All Devices", removing a front door
   /// or headers). Only these go out as a cleared value; a credential that is simply missing here
   /// is never published as cleared, it is put back from iCloud. Consumed by the next reconcile.
@@ -95,6 +99,7 @@ public struct SyncEntry: Sendable, Equatable {
     signedOut: Bool = false,
     removal: RemovalScope? = nil,
     addedHere: Bool = false,
+    addedHereAt: Double? = nil,
     clearing: Set<SyncField> = [],
     stamps: [String: SyncStamp] = [:],
     prints: [String: String] = [:],
@@ -107,6 +112,7 @@ public struct SyncEntry: Sendable, Equatable {
     self.signedOut = signedOut
     self.removal = removal
     self.addedHere = addedHere
+    self.addedHereAt = addedHereAt
     self.clearing = clearing
     self.stamps = stamps
     self.prints = prints
@@ -131,7 +137,7 @@ public struct SyncEntry: Sendable, Equatable {
   }
 
   private static let knownKeys: Set<String> = [
-    "key", "seen", "detached", "signedOut", "removal", "addedHere", "clearing", "stamps", "prints", "leftBehind",
+    "key", "seen", "detached", "signedOut", "removal", "addedHere", "addedHereAt", "clearing", "stamps", "prints", "leftBehind",
     "republish"
   ]
 
@@ -143,6 +149,7 @@ public struct SyncEntry: Sendable, Equatable {
     object["signedOut"] = .bool(signedOut)
     object["removal"] = removal.map { .string($0.rawValue) }
     object["addedHere"] = addedHere ? .bool(true) : Optional<JSONValue>.none
+    object["addedHereAt"] = addedHere ? addedHereAt.map(JSONValue.number) : Optional<JSONValue>.none
     object["clearing"] =
       clearing.isEmpty ? Optional<JSONValue>.none : .array(clearing.sorted().map { .string($0.rawValue) })
     object["stamps"] = .object(stamps.mapValues(\.json))
@@ -163,6 +170,7 @@ public struct SyncEntry: Sendable, Equatable {
     signedOut = object["signedOut"]?.boolValue ?? false
     removal = object["removal"]?.stringValue.flatMap(RemovalScope.init(rawValue:))
     addedHere = object["addedHere"]?.boolValue ?? false
+    addedHereAt = object["addedHereAt"]?.doubleValue.flatMap { $0.isFinite ? $0 : nil }
     clearing = Set((object["clearing"]?.arrayValue ?? []).compactMap { $0.stringValue.flatMap(SyncField.init(rawValue:)) })
     stamps = (object["stamps"]?.objectValue ?? [:]).compactMapValues { SyncStamp(json: $0) }
     prints = (object["prints"]?.objectValue ?? [:]).compactMapValues(\.stringValue)
@@ -328,9 +336,14 @@ public struct SyncState: Sendable, Equatable {
     intent(gatewayId, key: key) { $0.removal = scope }
   }
 
-  /// The person added this gateway here (the add wizard completed).
-  public mutating func markAddedHere(gatewayId: String, key: String) {
-    intent(gatewayId, key: key) { $0.addedHere = true }
+  /// The person added this gateway here (the add wizard completed), at `now` by this device's
+  /// clock. Recorded whether or not sync is on: a removal on all devices made after `now` still
+  /// wins when sync comes back.
+  public mutating func markAddedHere(gatewayId: String, key: String, at now: Double) {
+    intent(gatewayId, key: key) { entry in
+      entry.addedHere = true
+      entry.addedHereAt = now.isFinite ? now : nil
+    }
   }
 
   /// The person cleared a credential on purpose and it should be cleared on every device:

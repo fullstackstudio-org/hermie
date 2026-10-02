@@ -31,6 +31,10 @@ public enum SyncEvent: Sendable, Equatable {
   case headersNotSynced(gatewayId: String)
   /// Credentials that went missing here without anyone clearing them were put back from iCloud.
   case credentialRestored(gatewayId: String, fields: Set<SyncField>)
+  /// The store read empty while this device had read items in it ("Delete everything from iCloud
+  /// Keychain", or this device's copy was lost): these gateways stay here but are no longer synced
+  /// ("Sync again" is `SyncState.resync(gatewayId:)`). Ids only.
+  case storeEmptied(gatewayIds: [String])
 }
 
 /// Which rule of the merge a reconcile used, for tests and diagnostics. Carries nothing else.
@@ -39,6 +43,8 @@ enum SyncTrace: String, Sendable, Hashable {
   case readded
   /// A gateway that already existed here met a removal on all devices and stayed, device-only.
   case existingKeptAbsent
+  /// A gateway added here before a removal on all devices (with sync off, say) stayed, device-only.
+  case addedBeforeRemovalKeptAbsent
   /// An `absent` gateway met a newer tombstone and was purged.
   case absentPurged
   /// A credential from before a removal on all devices was dropped.
@@ -109,6 +115,11 @@ enum SyncTrace: String, Sendable, Hashable {
  changed it since. So a credential this device received never passes for one entered here, and an
  adopted gateway is never in the registry without its entry. A plan that `isEmpty` needs nothing
  done.
+
+ Tombstone rewrites are counted in `state` only, not in `provisionalState`: a plan that dies
+ before step 3 does not use up one of the three tries. The merge's known limits (what "Delete
+ everything" cannot tell apart, a switch-on that goes out without a fresh address stamp, clock
+ skew in "added after the removal") are listed on `GatewaySync`.
  */
 public struct SyncPlan: Sendable, Equatable {
   public var localOps: [SyncLocalOp]
@@ -177,6 +188,7 @@ extension SyncEvent: CustomStringConvertible {
     case let .needsSignIn(gatewayId): "needsSignIn(\(gatewayId))"
     case let .headersNotSynced(gatewayId): "headersNotSynced(\(gatewayId))"
     case let .credentialRestored(gatewayId, fields): "credentialRestored(\(gatewayId), \(fields.sorted().map(\.rawValue)))"
+    case let .storeEmptied(gatewayIds): "storeEmptied(\(gatewayIds))"
     }
   }
 }

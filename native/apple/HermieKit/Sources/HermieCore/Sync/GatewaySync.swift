@@ -19,10 +19,14 @@
 //   back (at most three times, counted once a plan is through), so a "stop syncing" delete that
 //   raced it cannot swallow the removal.
 // - Only a gateway the person added here (`SyncEntry.addedHere`) is published over a removal on all
-//   devices; one that merely existed here becomes `absent`, device-only. The same holds once the
-//   tombstone itself is pruned and only this device's memory of it is left.
+//   devices, and only when the add is newer than the removal: newer than the tombstone's stamp,
+//   or made after this device had seen the tombstone (`SyncEntry.addedHereAt` against the
+//   tombstone memory's `firstSeen`). One that merely existed here, or was added before the removal
+//   (with sync off, say), becomes `absent`, device-only. The same holds once the tombstone itself is
+//   pruned and only this device's memory of it is left; a re-add is stamped above that memory.
 // - A removal on all devices always writes a fresh tombstone, even over an existing one, so its
-//   age starts when the person removed the gateway.
+//   age starts when the person removed the gateway. It is stamped above everything this device
+//   knows at the key, a synced sibling at the same origin included.
 // - A gateway the sync purged before its state was saved is not hidden by the next run.
 // - "Stop syncing" deletes the item, and again while a read shows it live with the address
 //   register this device last knew, whether or not it ever read its own write back. Switched off, a
@@ -38,7 +42,8 @@
 // - I9, "Delete everything from iCloud Keychain": a store with no Hermie item at all, read by a
 //   device with an attached gateway whose item it had read, keeps every gateway here device-only
 //   (`absent`, including ones never read back), publishes no record and retires the remembered
-//   tombstones from rewriting. A remembered tombstone alone is not taken as evidence.
+//   tombstones from rewriting. A remembered tombstone alone is not taken as evidence. The gateways
+//   it detaches are announced (`SyncEvent.storeEmptied`). Its limits are listed below.
 // - A plan holds at most one local op per gateway.
 // - A move to another origin (or to an address that names none) writes the old key's tombstone
 //   unless one already covers what this device knew, and hides the old key when it cannot. The
@@ -207,6 +212,37 @@ extension LocalSyncSnapshot: CustomStringConvertible, CustomDebugStringConvertib
  whenever the store has lost it. (A read can still show this device's own copy before iCloud has
  accepted it; if iCloud then refuses it, the entry ends `absent`, device-only, until a device
  publishes the gateway again; `SyncState.resync(gatewayId:)` is the way back.)
+
+ Known limits:
+
+ - "Delete everything from iCloud Keychain" is told only from an empty store read by a device that
+   had read an item of an attached gateway. So:
+   1. A "stop syncing" delete of the store's only item reads as a delete of everything on every
+      device that had read it: their gateways, including ones added or moved there meanwhile, go
+      device-only (`SyncEvent.storeEmptied`) until resynced.
+   2. A device with only gateways it never read back, and no item it had read, publishes them
+      again after a real delete of everything (it cannot tell it from a first, lost write).
+   3. Losing this device's local copy of the synced set (a backup restored before iCloud Keychain
+      caught up, an Apple Account sign-out with "delete from this iPhone", iCloud Keychain turned
+      off and on) reads as a delete of everything: the gateways go device-only and re-attach by
+      themselves when their items come back, except those added here and not yet read back, which
+      stay device-only until resynced.
+   4. It is not a barrier while the deletions spread: a device that reads a half-deleted store and
+      writes one key (a rename, a token edit, the put-back of a lost register, a young tombstone
+      written back) brings that key back, and the other devices attach to it again.
+ - A gateway switched on again or resynced while the store already shows this device's own
+   address register live is published without a fresh address stamp (a fresh one there would
+   climb a millisecond per switch-on past a removal that a slow clock stamped just above it). A
+   device that switched it off after reading that register, and whose delete was lost or undone
+   by a stale write from a third device, deletes that publish again.
+ - A credential write a crash left pending (`SyncPlan.provisionalState`) whose register then
+   vanished from the store (a stale whole-item write) while no device still holds its value stays
+   unresolved on that device: its local value is neither published (it may be one this device only
+   received) nor cleared (nobody asked), until the record has a value for the field again. The
+   same holds after a lost print key.
+ - "Added after the removal" compares this device's clock with the remover's when this device
+   had not seen the removal before the add: with the remover's clock far behind, an add made
+   before the removal (with sync off here) still counts as newer and publishes over it.
  */
 public enum GatewaySync {
   /// How long a device remembers a removal on all devices, by its own clock.
@@ -314,6 +350,8 @@ private struct Reconciler {
   /// The store shows no items at all though this device knows it held some: "Delete everything
   /// from iCloud Keychain" (or this device's keychain was reset). No record is published in this run.
   var deletedEverything = false
+  /// The gateways that went device-only in this run because the store read empty.
+  var detachedByEmptyStore: [String] = []
 
   init(local: LocalSyncSnapshot, state: SyncState, now: Double, keyOf: @escaping (String) -> String) {
     self.keyOf = keyOf
@@ -339,6 +377,10 @@ private struct Reconciler {
     }
     adopt(skipping: Set(groups.keys))
     rememberTombstones()
+
+    if !detachedByEmptyStore.isEmpty {
+      events.append(.storeEmptied(gatewayIds: detachedByEmptyStore.sorted()))
+    }
 
     // What the engine saves with the registry changes, before the keychain is touched: the final
     // state, with every field this plan writes here marked pending (its print before and after),
@@ -572,7 +614,10 @@ private struct Reconciler {
       return cached
     }
 
-    let highest = ([records[key]?.highestT] + entry.stamps.values.map { Optional($0.t) }).compactMap { $0 }.max()
+    // A remembered removal counts too: its item may have been pruned while a device whose clock
+    // runs ahead still remembers it, and a re-add stamped below it would be cut there again.
+    let highest = ([records[key]?.highestT, state.tombstones[key]?.stamp.t] + entry.stamps.values.map { Optional($0.t) })
+      .compactMap { $0 }.max()
     let stamp = SyncStamp(t: SyncStamp.clamped(highest.map { max(now, $0 + 1) } ?? now), d: state.device)
 
     stampCache[key] = stamp
@@ -594,7 +639,13 @@ private struct Reconciler {
     }
 
     var tombstone = SyncedGatewayRecord(key: key)
-    tombstone.deleted = newStamp(key, entry)
+    // Above everything this device knows at the key, a synced sibling at the same origin included:
+    // with the item missing here and a clock running behind, `now` alone could fall below it.
+    let siblings = state.entries.values.filter { $0.key == key }.flatMap(\.stamps.values).map(\.t).max()
+    let stamp = newStamp(key, entry)
+    tombstone.deleted = siblings.map { known in
+      known >= stamp.t ? SyncStamp(t: SyncStamp.clamped(known + 1), d: state.device) : stamp
+    } ?? stamp
     // A gateway added again at this key in the same run must stamp above the tombstone.
     stampCache[key] = nil
 
@@ -663,7 +714,7 @@ private struct Reconciler {
         if entry.key != key {
           moveAway(from: entry, presentKeys: presentKeys)
           state.entries[gateway.id] = SyncEntry(
-            key: key, detached: entry.detached == .user ? .user : nil, addedHere: true)
+            key: key, detached: entry.detached == .user ? .user : nil, addedHere: true, addedHereAt: now)
           if !key.isEmpty { state.hidden.remove(key) }
         } else if entry.addedHere, !key.isEmpty {
           state.hidden.remove(key)
@@ -814,7 +865,10 @@ private struct Reconciler {
 
     if deletedEverything, entry.detached == nil || entry.detached == .absent {
       // Everything was deleted from the store: kept here, device-only; a publish wanted before
-      // that is dropped too (`resync` is the way back).
+      // that is dropped too (`resync` is the way back). Announced, so it is not silent.
+      if entry.detached == nil {
+        detachedByEmptyStore.append(gateway.id)
+      }
       entry.detached = .absent
       entry.republish = false
       store(gateway.id, entry)
@@ -885,11 +939,11 @@ private struct Reconciler {
         // I4: absence is never deletion. Keep it here, device-only, and do not republish it.
         entry.detached = .absent
         store(gateway.id, entry)
-      } else if remembered, !entry.addedHere {
+      } else if remembered, let memory = state.tombstones[key], !addedAfter(entry, memory.stamp, key: key) {
         // The item is gone (pruned), but this device remembers the removal on all devices: what
-        // it knew is older, and the gateway was not added here. Do not publish it again.
+        // it knew is older, and the gateway was not added here since. Do not publish it again.
         if entry.stamps.isEmpty {
-          traces.insert(.existingKeptAbsent)
+          traces.insert(entry.addedHere ? .addedBeforeRemovalKeptAbsent : .existingKeptAbsent)
           entry.detached = .absent
           store(gateway.id, entry)
         } else {
@@ -911,12 +965,13 @@ private struct Reconciler {
         attach(gateway, entry, key: key, base: record, mode: .merge)
       } else if !entry.stamps.isEmpty {
         purge(gateway)
-      } else if entry.addedHere {
+      } else if addedAfter(entry, deleted, key: key) {
         traces.insert(.readded)
         attach(gateway, entry, key: key, base: record, mode: .readd)
       } else {
-        // It existed here before; the removal on all devices is newer news. Keep it, device-only.
-        traces.insert(.existingKeptAbsent)
+        // It existed here before, or was added here before the removal on all devices (with sync
+        // off, say): the removal is newer news. Keep it, device-only.
+        traces.insert(entry.addedHere ? .addedBeforeRemovalKeptAbsent : .existingKeptAbsent)
         entry.detached = .absent
         store(gateway.id, entry)
       }
@@ -924,6 +979,27 @@ private struct Reconciler {
     }
 
     attach(gateway, entry, key: key, base: record, mode: entry.stamps.isEmpty ? .firstAttach : .merge)
+  }
+
+  /// Added here after the removal on all devices stamped `deleted`: the add is newer than the
+  /// tombstone's stamp (this device's clock against the remover's), or this device had already
+  /// seen the tombstone when the person added it (its own clock twice, so a remover's clock running
+  /// ahead cannot block a re-add for good). An add before the removal is undone by it, as anywhere
+  /// else, also when sync was off here at the time.
+  func addedAfter(_ entry: SyncEntry, _ deleted: SyncStamp, key: String) -> Bool {
+    guard entry.addedHere, let at = entry.addedHereAt else {
+      return false
+    }
+
+    if at > deleted.t {
+      return true
+    }
+
+    // Seen in this run for the first time: `firstSeen` is now, after any add.
+    guard let memory = input.tombstones[key], memory.stamp >= deleted else {
+      return false
+    }
+    return at > memory.firstSeen
   }
 
   /// Keep an entry that was not attached in this run. An intent to clear a credential everywhere
@@ -1257,6 +1333,7 @@ private struct Reconciler {
 
     entry.clearing.subtract(Set(fields + clearOnly).subtracting(frozen))
     entry.addedHere = false
+    entry.addedHereAt = nil
     entry.republish = false
     state.entries[gateway.id] = entry
   }

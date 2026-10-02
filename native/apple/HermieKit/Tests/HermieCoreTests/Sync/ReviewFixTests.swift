@@ -469,7 +469,7 @@ import Testing
 
   @Test func everyIntentBumpsTheGenerationAndAReconcileKeepsIt() {
     var state = SyncState(device: "a1b2c3d4", disclosed: true)
-    state.markAddedHere(gatewayId: "g01", key: Self.key)
+    state.markAddedHere(gatewayId: "g01", key: Self.key, at: startOfTime)
     state.markClearing(.sessionToken, gatewayId: "g01", key: Self.key)
     state.setSignedOut(true, gatewayId: "g01", key: Self.key)
     state.setGatewaySynced(false, gatewayId: "g01", key: Self.key)

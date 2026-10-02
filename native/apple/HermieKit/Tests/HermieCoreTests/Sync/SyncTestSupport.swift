@@ -208,6 +208,9 @@ struct TestDevice {
   /// it is still this device's own: forgotten once a plan writes that field here (the device then
   /// holds a value it received), so publishing an older entry over a newer one is caught.
   var own: [String: String] = [:]
+  /// When the person added each gateway here, by this device's clock (what `markAddedHere` got),
+  /// or when a reconcile first saw it moved to a new key.
+  var addedTimes: [String: Double] = [:]
 
   mutating func enter(_ field: SyncField, _ value: JSONValue?, gateway id: String) {
     own["\(id)|\(field.rawValue)"] = value.map { canonical($0) }
@@ -427,7 +430,9 @@ struct SyncWorld {
       frontDoor: frontDoorSecret.map { SyncFrontDoor(origin: origin, clientId: "client.access", clientSecret: $0) },
       sessionToken: token.map { SyncSessionToken(origin: origin, token: $0) })
     devices[device].gateways.append(gateway)
-    devices[device].state.markAddedHere(gatewayId: id, key: gateway.key)
+    let addedAt = (now + devices[device].clockOffset).rounded(.down)
+    devices[device].state.markAddedHere(gatewayId: id, key: gateway.key, at: addedAt)
+    devices[device].addedTimes[id] = addedAt
     devices[device].enter(.sessionToken, gateway.sessionToken?.json, gateway: id)
     devices[device].enter(.frontDoor, gateway.frontDoor?.json, gateway: id)
     return id

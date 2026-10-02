@@ -72,10 +72,12 @@ import Testing
     atLeast(coverage.lostWrites, 350, "iCloud writes lost with the state saved")
     atLeast(coverage.offOnOffDeletes, 45, "switched off, on and off again: deleted again")
     atLeast(coverage.unseenKeptAbsent, 80, "gateway never read back kept absent by a delete of everything")
-    atLeast(coverage.traces[.readded, default: 0], 170, "explicit re-add over a tombstone")
+    atLeast(coverage.traces[.readded, default: 0], 100, "explicit re-add over a tombstone")
     atLeast(coverage.traces[.existingKeptAbsent, default: 0], 35, "existing gateway kept absent by a removal")
+    atLeast(coverage.traces[.addedBeforeRemovalKeptAbsent, default: 0], 90, "added before a removal, kept absent")
+    atLeast(coverage.storeEmptiedEvents, 400, "gateways detached by an empty store announced")
     atLeast(coverage.traces[.absentPurged, default: 0], 55, "absent gateway purged by a tombstone")
-    atLeast(coverage.traces[.earlierLifeDropped, default: 0], 15, "credential from an earlier life dropped")
+    atLeast(coverage.traces[.earlierLifeDropped, default: 0], 6, "credential from an earlier life dropped")
     atLeast(coverage.traces[.tombstoneRewritten, default: 0], 350, "remembered tombstone merged back in")
     atLeast(coverage.traces[.tombstoneRewrittenOverMissing, default: 0], 120, "stop-syncing/removal race repaired")
     atLeast(coverage.traces[.stopSyncingDeleteRepeated, default: 0], 350, "lost stop-syncing delete made again")
@@ -113,6 +115,10 @@ import Testing
     var lostWrites = 0
     var offOnOffDeletes = 0
     var unseenKeptAbsent = 0
+    var storeEmptiedEvents = 0
+    var unstampedPublishDeleted = 0
+    var skewedReadds = 0
+    var pendingUnresolved = 0
     var traces: [SyncTrace: Int] = [:]
 
     mutating func add(_ other: Coverage) {
@@ -130,6 +136,10 @@ import Testing
       lostWrites += other.lostWrites
       offOnOffDeletes += other.offOnOffDeletes
       unseenKeptAbsent += other.unseenKeptAbsent
+      storeEmptiedEvents += other.storeEmptiedEvents
+      unstampedPublishDeleted += other.unstampedPublishDeleted
+      skewedReadds += other.skewedReadds
+      pendingUnresolved += other.pendingUnresolved
       traces.merge(other.traces, uniquingKeysWith: +)
     }
 
@@ -202,6 +212,18 @@ import Testing
     /// Devices that read an empty store while holding an attached gateway whose item they had read:
     /// to them everything was deleted (I9), whatever emptied it.
     var readEmpty: Set<Int> = []
+    /// Per key, the steps at which a delete of everything took that key's item.
+    var deletedEverythingKeys: [String: [Int]] = [:]
+    /// Per `device|key`, the newest tombstone that device has seen there and when it first saw it,
+    /// by its own clock.
+    var tombstoneSeen: [String: (stamp: SyncStamp, at: Double)] = [:]
+    /// The step at which each tombstone was written (`key|stamp`).
+    var tombstoneSteps: [String: Int] = [:]
+    /// The step at which each gateway was added on its device (`device|gatewayId`).
+    var addSteps: [String: Int] = [:]
+    /// Explicit publishes that went out without a fresh address stamp because the store already
+    /// showed this device's own address register (the documented limit): per key, stamp and step.
+    var unstampedPublishes: [String: [SyncStamp: Int]] = [:]
     /// Gateways that were on a device before sync knew of them (`device|gatewayId`): a removal on
     /// all devices keeps them there, device-only, by design.
     var preexisting: Set<String> = []
@@ -298,6 +320,7 @@ import Testing
           violation = "d\(device) wrote a tombstone at \(record.key) nobody asked for"
         }
         ledger.tombstones[record.key, default: []].insert(deleted)
+        ledger.tombstoneSteps["\(record.key)|\(deleted)"] = step
       }
 
       for op in plan.localOps {
@@ -374,10 +397,28 @@ import Testing
         }
         let wroteAddress = record.registers[.address]?.stamp.d == before.state.device
           && record.registers[.address]?.stamp.t ?? 0 > deleted.t
-        let explicit = before.gateways.contains { gateway in
-          gateway.key == record.key
-            && (before.state.entries[gateway.id].map { $0.addedHere || $0.key != record.key } ?? false
-              || (before.state.entries[gateway.id]?.stamp(.address)?.t ?? -1) > deleted.t)
+        // Explicit: the person added it here (or moved it here) after the removal, by this
+        // device's clock against the remover's, or after this device had seen that removal; or
+        // this device already knew it newer than that.
+        let seenAt = ledger.tombstoneSeen["\(device)|\(record.key)"].flatMap { $0.stamp >= deleted ? $0.at : nil }
+        let removedAt = ledger.tombstoneSteps["\(record.key)|\(deleted)"] ?? -1
+        var explicit = false
+        var skewed = false
+        for gateway in before.gateways where gateway.key == record.key {
+          let added = world.devices[device].addedTimes[gateway.id] ?? -.infinity
+          let addStep = ledger.addSteps["\(device)|\(gateway.id)"] ?? -1
+          if seenAt.map({ added > $0 }) == true || (before.state.entries[gateway.id]?.stamp(.address)?.t ?? -1) > deleted.t {
+            explicit = true
+          } else if added > deleted.t {
+            explicit = true
+            // Newer by the clocks, though the add came first: the documented clock-skew limit.
+            skewed = skewed || addStep < removedAt
+          }
+        }
+        if wroteAddress, explicit {
+          // The add takes effect here: from now on the key holds a gateway added again.
+          ledger.addStep[record.key] = step
+          if skewed { coverage.skewedReadds += 1 }
         }
         if wroteAddress, !explicit {
           violation = "d\(device) brought \(record.key) back over a tombstone without an explicit add"
@@ -411,6 +452,19 @@ import Testing
         }
       }
 
+      // An explicit publish over a store that already shows this device's own address register
+      // live goes out without a fresh stamp (the documented limit): counted, so it is not lost.
+      for gateway in before.gateways where ledger.republishing.contains("\(device)|\(gateway.id)") {
+        guard let shown = seen(gateway.key).flatMap({ $0.isLive ? $0.registers[.address]?.stamp : nil }),
+          shown.d == before.state.device, plan.state.entries[gateway.id]?.republish == false,
+          plan.state.entries[gateway.id]?.detached == nil
+        else {
+          continue
+        }
+        ledger.unstampedPublishes[gateway.key, default: [:]][shown] = step
+        ledger.republishing.remove("\(device)|\(gateway.id)")
+      }
+
       for account in plan.remoteDeletes {
         guard let key = account.split(separator: ".").last.map(String.init) else { continue }
         ledger.deletedKeys.insert(key)
@@ -431,6 +485,10 @@ import Testing
           let switchedOff = ledger.switchedOffAt["\(device)|\(gateway.id)"] ?? -1
           if let published = ledger.explicitPublishes[key]?[shown], published > switchedOff {
             violation = "d\(device) deleted \(key), published again on purpose after it stopped syncing"
+          }
+          if let published = ledger.unstampedPublishes[key]?[shown], published > switchedOff {
+            // The known limit: that publish carried no fresh stamp.
+            coverage.unstampedPublishDeleted += 1
           }
           if ledger.switchedOn.contains("\(device)|\(gateway.id)") {
             coverage.offOnOffDeletes += 1
@@ -478,10 +536,25 @@ import Testing
         }
       }
 
-      // I9: a store found emptied publishes no record.
+      // I9: a store found emptied publishes no record, and says which gateways it detached.
       if plan.traces.contains(.deletedEverything), plan.remotePuts.contains(where: \.isLive) {
         violation = "d\(device) published a record after everything was deleted"
       }
+      let detached = plan.traces.contains(.deletedEverything)
+        ? before.gateways.filter { gateway in
+          // Attached, or moved to a new key (where it starts over attached).
+          let entry = before.state.entries[gateway.id]
+          let attached = entry.map { $0.detached == nil || $0.key != gateway.key } ?? true
+          return attached && plan.state.entries[gateway.id]?.detached == .absent
+        }.map(\.id).sorted() : []
+      let announced = plan.events.compactMap { event -> [String]? in
+        if case let .storeEmptied(ids) = event { return ids }
+        return nil
+      }
+      if announced != (detached.isEmpty ? [] : [detached]) {
+        violation = "d\(device) announced \(announced) as detached by an empty store, not \(detached)"
+      }
+      if !detached.isEmpty { coverage.storeEmptiedEvents += 1 }
     }
 
     @discardableResult
@@ -506,11 +579,30 @@ import Testing
         world.apply(plan, to: device)
       }
 
+      // A move to a new key is an add there, as of the reconcile that first sees it.
+      for gateway in before.gateways {
+        if let entry = before.state.entries[gateway.id], entry.key != gateway.key {
+          world.devices[device].addedTimes[gateway.id] = (world.now + before.clockOffset).rounded(.down)
+          ledger.addSteps["\(device)|\(gateway.id)"] = step
+        }
+      }
+
       coverage.tally(plan, before: before.state)
       if view.isEmpty, before.state.enabled, before.state.entries.values.contains(where: { $0.detached == nil && $0.seen }) {
         ledger.readEmpty.insert(device)
       }
       check(plan, device: device, before: before, view: view)
+
+      // What this device has now seen of removals (after the check: the merge goes by what it
+      // had seen before this run).
+      let seenNow = (world.now + before.clockOffset).rounded(.down)
+      for record in view.map({ $0.normalized() }) + plan.remotePuts where record.isTombstone {
+        guard let deleted = record.deleted else { continue }
+        let slot = "\(device)|\(record.key)"
+        if ledger.tombstoneSeen[slot].map({ $0.stamp < deleted }) ?? true {
+          ledger.tombstoneSeen[slot] = (deleted, seenNow)
+        }
+      }
       log.append("d\(device) reconcile\(crash ? " (crash)" : loseWrites ? " (writes lost)" : "") \(plan)")
       if trace {
         log.append("    traces: \(plan.traces.map(\.rawValue).sorted()) hidden: \(plan.state.hidden.sorted())")
@@ -604,6 +696,27 @@ import Testing
       world.remove(device, gateway.id, scope: .allDevices)
     }
 
+    func deleteEverything(_ device: Int) {
+      ledger.deletedEverything.append(step)
+      for record in world.records(device) {
+        ledger.deletedEverythingKeys[record.key, default: []].append(step)
+      }
+      world.deleteEverything(device)
+    }
+
+    /// The person adds a gateway on a device.
+    @discardableResult
+    func addGateway(
+      _ device: Int, address: String, name: String = "Home", authKind: String = "session_token", token: String? = nil,
+      frontDoorSecret: String? = nil
+    ) -> String {
+      let id = world.add(
+        device, address: address, name: name, authKind: authKind, token: token, frontDoorSecret: frontDoorSecret)
+      ledger.added(at: GatewayKey.of(address), on: device, step: step)
+      ledger.addSteps["\(device)|\(id)"] = step
+      return id
+    }
+
     func wipe(_ device: Int) {
       coverage.wiped += 1
       ledger.wipes[device, default: []].append(step)
@@ -634,7 +747,10 @@ import Testing
         other.gateways.contains { candidate in
           guard candidate.id != id, candidate.key == key else { return false }
           guard let entry = other.state.entries[candidate.id] else { return true }
-          return entry.addedHere || entry.key != candidate.key || (entry.stamps.isEmpty && !entry.seen)
+          // A copy added here before the removal stays device-only when it meets it (it is older);
+          // only a move not yet seen by sync, or a copy that was there before sync knew of it and
+          // may publish before the removal reaches it, can race it.
+          return entry.key != candidate.key || (entry.stamps.isEmpty && !entry.seen && !entry.addedHere)
         }
       }
     }
@@ -648,11 +764,33 @@ import Testing
     switch seed % 8 {
     case 0:
       let address = addresses.randomElement(using: &rng)!
-      switch (seed / 8) % 3 {
+      switch (seed / 8) % 4 {
+      case 3:
+        // A Mac with sync off adds a gateway; days later a phone removes it from all devices; a
+        // month later the Mac switches sync on. Its add is older than the removal: device-only.
+        addGateway(0, address: address, name: "Scripted", token: "tok-s")
+        reconcile(0)
+        world.cloud.deliverAll()
+        setEnabled(2, false)
+        world.advance(5 * day)
+        step += 1
+        addGateway(2, address: address, name: "Mac", token: "tok-mac", frontDoorSecret: "door-mac")
+        world.advance(5 * day)
+        step += 1
+        if let gateway = copy(0, at: address) {
+          removeEverywhere(0, gateway)
+        }
+        reconcile(0)
+        world.cloud.deliverAll()
+        world.advance(30 * day)
+        step += 1
+        setEnabled(2, true)
+        reconcile(2)
+        log.append("scripted: d2 added with sync off before d0 removed it everywhere")
       case 0:
         // Headers cleared on a device whose sync is (or is then switched) off; another device sets
         // new ones; sync comes back a month later. The clear must not go out.
-        let id = world.add(0, address: address, name: "Scripted", token: "tok-s")
+        let id = addGateway(0, address: address, name: "Scripted", token: "tok-s")
         ledger.added(at: GatewayKey.of(address), on: 0, step: step)
         world.setHeaders(0, id, ["X-Team": "s1"])
         reconcile(0)
@@ -681,22 +819,21 @@ import Testing
         // A device holding a gateway it has not read back yet meets a store emptied by "Delete
         // everything from iCloud Keychain" on another device: nothing of it may go out.
         let other = addresses.first { GatewayKey.of($0) != GatewayKey.of(address) } ?? address
-        world.add(0, address: address, name: "Scripted", token: "tok-s")
+        addGateway(0, address: address, name: "Scripted", token: "tok-s")
         ledger.added(at: GatewayKey.of(address), on: 0, step: step)
         reconcile(0)
         world.cloud.deliverAll()
         reconcile(1)
-        world.add(1, address: other, name: "Unread", token: "tok-u")
+        addGateway(1, address: other, name: "Unread", token: "tok-u")
         ledger.added(at: GatewayKey.of(other), on: 1, step: step)
-        world.deleteEverything(0)
-        ledger.deletedEverything.append(step)
+        deleteEverything(0)
         world.cloud.deliverAll()
         reconcile(1)
         log.append("scripted: d0 deleted everything while d1 held a gateway it never read back")
       default:
         // "Stop syncing" on a phone; a tablet sees the item go, resyncs it; the phone, back later,
         // must leave that explicit publish alone.
-        let id = world.add(0, address: address, name: "Scripted", token: "tok-s")
+        let id = addGateway(0, address: address, name: "Scripted", token: "tok-s")
         ledger.added(at: GatewayKey.of(address), on: 0, step: step)
         reconcile(0)
         world.cloud.deliverAll()
@@ -718,7 +855,7 @@ import Testing
     case 1:
       // A copy that went absent (its device lost the item) meets a removal on all devices.
       let address = addresses.randomElement(using: &rng)!
-      world.add(0, address: address, name: "Scripted", token: "tok-s")
+      addGateway(0, address: address, name: "Scripted", token: "tok-s")
       ledger.added(at: GatewayKey.of(address), on: 0, step: step)
       reconcile(0)
       world.cloud.deliverAll()
@@ -738,7 +875,7 @@ import Testing
       let old = world.existing(2, address: address, token: "tok-old")
       ledger.addedBy[GatewayKey.of(address), default: []].insert(2)
       ledger.preexisting.insert("2|\(old)")
-      world.add(0, address: address, name: "Scripted")
+      addGateway(0, address: address, name: "Scripted")
       ledger.added(at: GatewayKey.of(address), on: 0, step: step)
       reconcile(0)
       world.cloud.deliverAll()
@@ -753,7 +890,7 @@ import Testing
     case 4:
       // A device signed out here loses the credentials it still had.
       let address = addresses.randomElement(using: &rng)!
-      world.add(0, address: address, name: "Scripted", token: "tok-s", frontDoorSecret: "door-s")
+      addGateway(0, address: address, name: "Scripted", token: "tok-s", frontDoorSecret: "door-s")
       ledger.added(at: GatewayKey.of(address), on: 0, step: step)
       reconcile(0)
       world.cloud.deliverAll()
@@ -766,7 +903,7 @@ import Testing
     case 2:
       // "Stop syncing" on one device races "remove from all devices" on another.
       let address = addresses.randomElement(using: &rng)!
-      world.add(0, address: address, name: "Scripted", token: "tok-s")
+      addGateway(0, address: address, name: "Scripted", token: "tok-s")
       ledger.added(at: GatewayKey.of(address), on: 0, step: step)
       reconcile(0)
       world.cloud.deliverAll()
@@ -784,7 +921,7 @@ import Testing
     case 5:
       // A device that received a newer token loses its print key before acting on it.
       let address = addresses.randomElement(using: &rng)!
-      let id = world.add(0, address: address, name: "Scripted", token: "tok-s1")
+      let id = addGateway(0, address: address, name: "Scripted", token: "tok-s1")
       ledger.added(at: GatewayKey.of(address), on: 0, step: step)
       reconcile(0)
       world.cloud.deliverAll()
@@ -798,7 +935,7 @@ import Testing
     case 6:
       // "Sign Out on All Devices", done as the design says: signed out here and cleared everywhere.
       let address = addresses.randomElement(using: &rng)!
-      world.add(0, address: address, name: "Scripted", token: "tok-s")
+      addGateway(0, address: address, name: "Scripted", token: "tok-s")
       ledger.added(at: GatewayKey.of(address), on: 0, step: step)
       reconcile(0)
       world.cloud.deliverAll()
@@ -812,7 +949,7 @@ import Testing
       // "Stop syncing" whose delete the keychain loses while the state is saved; switched on and
       // off again before the store shows the item gone.
       let address = addresses.randomElement(using: &rng)!
-      let id = world.add(0, address: address, name: "Scripted")
+      let id = addGateway(0, address: address, name: "Scripted")
       ledger.added(at: GatewayKey.of(address), on: 0, step: step)
       reconcile(0)
       if Bool.random(using: &rng) {
@@ -848,7 +985,7 @@ import Testing
           let door: String? = Int.random(in: 0..<3, using: &rng) == 0 ? "door-\(counter)" : nil
           let kind = Bool.random(using: &rng) ? "session_token" : "native_pkce"
           let name = names.randomElement(using: &rng)!
-          let id = world.add(device, address: address, name: name, authKind: kind, token: token, frontDoorSecret: door)
+          let id = addGateway(device, address: address, name: name, authKind: kind, token: token, frontDoorSecret: door)
           ledger.added(at: GatewayKey.of(address), on: device, step: step)
           log.append("d\(device) add \(id) \(address) \(name) \(kind) token:\(token ?? "-") door:\(door ?? "-")")
         case 3..<6:
@@ -946,8 +1083,7 @@ import Testing
           log.append("d\(device) resync \(gateway.id)")
         case 28:
           guard Int.random(in: 0..<3, using: &rng) == 0 else { continue }
-          world.deleteEverything(device)
-          ledger.deletedEverything.append(step)
+          deleteEverything(device)
           log.append("d\(device) delete-everything")
         default:
           reconcile(device, crash: true)
@@ -1046,10 +1182,16 @@ import Testing
         let key = entry.key
         let explained = ledger.deletedKeys.contains(key) || ledger.wipes[device.index] != nil
           || world.cloud.refusedAccounts.contains(SyncedGatewayRecord.account(forKey: key))
-          || ledger.removed.contains(key) || !ledger.deletedEverything.isEmpty || ledger.readEmpty.contains(device.index)
+          || ledger.removed.contains(key) || ledger.deletedEverythingKeys[key] != nil || ledger.readEmpty.contains(device.index)
         if !explained {
           return .failure(Failure(message: "d\(device.index) \(gateway.id) is absent though its item never vanished", log: log))
         }
+      }
+    }
+
+    for device in world.devices {
+      for entry in device.state.entries.values where entry.detached == nil {
+        coverage.pendingUnresolved += entry.prints.values.filter { SyncEntry.pending($0) != nil }.count
       }
     }
 
@@ -1109,12 +1251,17 @@ import Testing
             return "d\(device.index) still syncs \(gateway.id) at \(key), removed on all devices"
           }
           let index = device.index
-          // On the device before sync knew of it: kept there, device-only, by design.
+          // On the device before sync knew of it, or added there before the removal and never
+          // synced: kept there, device-only, by design (the removal is newer than the add).
           if ledger.preexisting.contains("\(index)|\(gateway.id)") { continue }
+          if (ledger.addSteps["\(index)|\(gateway.id)"] ?? .max) < removedAt, entry?.stamps.isEmpty == true,
+            entry?.detached == .absent {
+            continue
+          }
           let away = Ledger.away(index, since: removedAt, left: ledger.wipes, back: ledger.rejoins)
             || Ledger.away(index, since: removedAt, left: ledger.syncOff, back: ledger.syncOn)
             || ledger.gatewaySyncToggled[index]?[key]?.contains { $0 >= removedAt } == true
-            || ledger.deletedEverything.contains { $0 >= removedAt }
+            || ledger.deletedEverythingKeys[key]?.contains { $0 >= removedAt } == true
             || ledger.longGaps.contains { $0 > removedAt }
             // Its own knowledge is newer than the removal (re-added there, by a clock ahead).
             || (entry?.stamp(.address)?.t ?? -1) > (world.cloudRecord(key: key)?.deleted?.t ?? .infinity)
@@ -1195,12 +1342,18 @@ import Testing
     if gateway.authKind != record.authKind { return "authKind" }
     if gateway.provider != record.provider { return "provider" }
     if gateway.addedAt != record.addedAt { return "addedAt" }
+    // A credential still pending here with no register in the record is the documented limit (see
+    // `GatewaySync`): neither published nor cleared, as it may be a value this device only received.
+    func unresolved(_ field: SyncField) -> Bool {
+      SyncEntry.pending(entry.prints[field.rawValue]) != nil && record.registers[field] == nil
+    }
     // Signed out here, a missing front door or headers are left missing.
-    if door != record.frontDoor, !(entry.signedOut && door == nil) { return "frontDoor" }
-    if (headers?.headers.count ?? 0) <= 50, headers != record.headers, !(entry.signedOut && headers == nil) {
+    if door != record.frontDoor, !(entry.signedOut && door == nil), !unresolved(.frontDoor) { return "frontDoor" }
+    if (headers?.headers.count ?? 0) <= 50, headers != record.headers, !(entry.signedOut && headers == nil),
+      !unresolved(.headers) {
       return "headers"
     }
-    if !entry.signedOut, token != record.sessionToken { return "sessionToken" }
+    if !entry.signedOut, token != record.sessionToken, !unresolved(.sessionToken) { return "sessionToken" }
     if !entry.signedOut, gateway.user != record.user { return "user" }
     return nil
   }
