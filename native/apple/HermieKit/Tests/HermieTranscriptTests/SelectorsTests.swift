@@ -135,18 +135,23 @@ import Testing
 
   /// Twice the items, about twice the time: linear, not quadratic.
   @Test func visibleItemsIsLinear() {
-    func best(_ state: ChatState) -> Double {
-      let options = VisibilityOptions(level: .normal, showBotToBot: true, showThinking: false)
-      var best = Double.infinity
-      for _ in 0..<10 {
-        let start = ContinuousClock.now
-        _ = visibleItems(state, options)
-        best = min(best, GoldenRunner.seconds(since: start))
-      }
-      return best
+    let options = VisibilityOptions(level: .normal, showBotToBot: true, showThinking: false)
+    func once(_ state: ChatState) -> Double {
+      let start = ContinuousClock.now
+      _ = visibleItems(state, options)
+      return GoldenRunner.seconds(since: start)
     }
-    let small = best(Self.longChat(items: 5_000))
-    let large = best(Self.longChat(items: 20_000))
+    let smallChat = Self.longChat(items: 5_000)
+    let largeChat = Self.longChat(items: 20_000)
+    // The two sizes take turns, so a busy machine slows both: other suites run
+    // in parallel, and timing one size after the other let a burst of load land
+    // on the large one alone.
+    var small = Double.infinity
+    var large = Double.infinity
+    for _ in 0..<30 {
+      small = min(small, once(smallChat))
+      large = min(large, once(largeChat))
+    }
     print(String(format: "visibleItems: 5 000 items %.2f ms, 20 000 items %.2f ms (×%.1f)", small * 1000, large * 1000, large / small))
     #expect(large < small * 10, "4× the items took \(large / small)× the time")
   }
