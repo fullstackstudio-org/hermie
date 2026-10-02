@@ -449,13 +449,15 @@ enum Fixture {
   }
 
   static func rows(_ count: Int, from start: Int = 1) -> [JSONValue] {
-    (start..<(start + count)).map { id in
-      [
-        "role": .string(id % 2 == 1 ? "user" : "assistant"),
+    (start..<(start + count)).map { id -> JSONValue in
+      let role = id % 2 == 1 ? "user" : "assistant"
+      let row: JSONObject = [
+        "role": .string(role),
         "text": .string("row \(id)"),
         "row_id": .number(Double(id)),
         "timestamp": .number(Double(1_789_999_000 + id))
       ]
+      return .object(row)
     }
   }
 
