@@ -25,3 +25,4 @@ design/*.html
 # indent) and checked by `npm run golden:check`; prettier would only re-wrap it.
 contract/transcript
 contract/gateway
+contract/markdown

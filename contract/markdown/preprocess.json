@@ -1,0 +1,366 @@
+[
+  {
+    "blocks": [
+      {
+        "inline": [
+          {
+            "text": "Visible."
+          }
+        ],
+        "kind": "paragraph"
+      }
+    ],
+    "input": "<think>secret</think>Visible.",
+    "name": "closed reasoning block",
+    "preprocessed": "Visible."
+  },
+  {
+    "blocks": [
+      {
+        "inline": [
+          {
+            "text": "no Hermes"
+          }
+        ],
+        "kind": "paragraph"
+      }
+    ],
+    "input": "no<think>x</think>Hermes",
+    "name": "reasoning block between words",
+    "preprocessed": "no Hermes"
+  },
+  {
+    "blocks": [
+      {
+        "inline": [
+          {
+            "text": "Intro."
+          }
+        ],
+        "kind": "paragraph"
+      }
+    ],
+    "input": "Intro.\n\n<think>secret plan",
+    "name": "unterminated reasoning block",
+    "preprocessed": "Intro.\n\n"
+  },
+  {
+    "blocks": [
+      {
+        "inline": [
+          {
+            "text": "Intro."
+          }
+        ],
+        "kind": "paragraph"
+      }
+    ],
+    "input": "Intro.\n<thin",
+    "name": "partial reasoning tag",
+    "preprocessed": "Intro.\n"
+  },
+  {
+    "blocks": [
+      {
+        "inline": [
+          {
+            "text": "Prose that mentions <thinking> mid-sentence."
+          }
+        ],
+        "kind": "paragraph"
+      }
+    ],
+    "input": "Prose that mentions <thinking> mid-sentence.",
+    "name": "reasoning tag mid-sentence",
+    "preprocessed": "Prose that mentions <thinking> mid-sentence."
+  },
+  {
+    "blocks": [
+      {
+        "inline": [
+          {
+            "text": "Here it is:\n"
+          },
+          {
+            "link": "/srv/out/report.pdf",
+            "text": "report.pdf"
+          },
+          {
+            "text": "\nDone."
+          }
+        ],
+        "kind": "paragraph"
+      }
+    ],
+    "input": "Here it is:\nMEDIA:/srv/out/report.pdf\nDone.",
+    "name": "media tag line",
+    "preprocessed": "Here it is:\n[report.pdf](/srv/out/report.pdf)\nDone."
+  },
+  {
+    "blocks": [
+      {
+        "inline": [
+          {
+            "text": "[my report.pdf](/srv/out/my report.pdf)"
+          }
+        ],
+        "kind": "paragraph"
+      }
+    ],
+    "input": "MEDIA:\"/srv/out/my report.pdf\"",
+    "name": "quoted media tag",
+    "preprocessed": "[my report.pdf](/srv/out/my report.pdf)"
+  },
+  {
+    "blocks": [
+      {
+        "inline": [
+          {
+            "text": "Intro line"
+          }
+        ],
+        "kind": "paragraph"
+      },
+      {
+        "align": [
+          null,
+          null
+        ],
+        "header": [
+          [
+            {
+              "text": "a"
+            }
+          ],
+          [
+            {
+              "text": "b"
+            }
+          ]
+        ],
+        "kind": "table",
+        "rows": [
+          [
+            [
+              {
+                "text": "1"
+              }
+            ],
+            [
+              {
+                "text": "2"
+              }
+            ]
+          ]
+        ]
+      }
+    ],
+    "input": "Intro line\n| a | b |\n| --- | --- |\n| 1 | 2 |",
+    "name": "table without blank line above",
+    "preprocessed": "Intro line\n\n| a | b |\n| --- | --- |\n| 1 | 2 |"
+  },
+  {
+    "blocks": [
+      {
+        "align": [
+          null,
+          null
+        ],
+        "header": [
+          [
+            {
+              "text": "a"
+            }
+          ],
+          [
+            {
+              "text": "b"
+            }
+          ]
+        ],
+        "kind": "table",
+        "rows": [
+          [
+            [
+              {
+                "text": "1"
+              }
+            ],
+            [
+              {
+                "text": "2"
+              }
+            ]
+          ]
+        ]
+      },
+      {
+        "inline": [
+          {
+            "text": "Prose right after."
+          }
+        ],
+        "kind": "paragraph"
+      }
+    ],
+    "input": "| a | b |\n| --- | --- |\n| 1 | 2 |\nProse right after.",
+    "name": "table without blank line below",
+    "preprocessed": "| a | b |\n| --- | --- |\n| 1 | 2 |\n\nProse right after."
+  },
+  {
+    "blocks": [
+      {
+        "inline": [
+          {
+            "text": "Before\nAfter"
+          }
+        ],
+        "kind": "paragraph"
+      }
+    ],
+    "input": "Before\n```\n```\nAfter",
+    "name": "empty fence dropped",
+    "preprocessed": "Before\nAfter"
+  },
+  {
+    "blocks": [
+      {
+        "inline": [
+          {
+            "link": "https://example.com/a",
+            "text": "https://example.com/a"
+          }
+        ],
+        "kind": "paragraph"
+      }
+    ],
+    "input": "```\nhttps://example.com/a\n```",
+    "name": "url-only fence unwrapped",
+    "preprocessed": "<https://example.com/a>"
+  },
+  {
+    "blocks": [
+      {
+        "items": [
+          {
+            "blocks": [
+              {
+                "inline": [
+                  {
+                    "text": "a bullet\ntext"
+                  }
+                ],
+                "kind": "paragraph"
+              }
+            ]
+          }
+        ],
+        "kind": "list",
+        "ordered": false
+      }
+    ],
+    "input": "```- a bullet\ntext",
+    "name": "prose fenced by accident",
+    "preprocessed": "- a bullet\ntext"
+  },
+  {
+    "blocks": [
+      {
+        "inline": [
+          {
+            "text": "Here you go:"
+          }
+        ],
+        "kind": "paragraph"
+      },
+      {
+        "kind": "code",
+        "language": "ts",
+        "text": "const a = 1"
+      }
+    ],
+    "input": "Here you go:\n\n```ts\nconst a = 1",
+    "name": "unterminated fence",
+    "preprocessed": "Here you go:\n\n```ts\nconst a = 1"
+  },
+  {
+    "blocks": [
+      {
+        "inline": [
+          {
+            "text": "Here you go:"
+          }
+        ],
+        "kind": "paragraph"
+      }
+    ],
+    "input": "Here you go:\n\n```ts",
+    "name": "unterminated fence with nothing yet",
+    "preprocessed": "Here you go:\n"
+  },
+  {
+    "blocks": [
+      {
+        "kind": "code",
+        "language": "py",
+        "text": "a = 1"
+      },
+      {
+        "inline": [
+          {
+            "text": "Then:"
+          }
+        ],
+        "kind": "paragraph"
+      },
+      {
+        "kind": "code",
+        "language": "py",
+        "text": "b = 2"
+      }
+    ],
+    "input": "```py\na = 1\n```\n\nThen:\n\n```py\nb = 2",
+    "name": "unterminated fence after code",
+    "preprocessed": "```py\na = 1\n```\n\nThen:\n\n```py\nb = 2"
+  },
+  {
+    "blocks": [
+      {
+        "kind": "code",
+        "language": "c++",
+        "text": "int x;"
+      }
+    ],
+    "input": "```C++ extra words\nint x;\n```",
+    "name": "fence language sanitised",
+    "preprocessed": "```c++\nint x;\n```"
+  },
+  {
+    "blocks": [
+      {
+        "items": [
+          {
+            "blocks": [
+              {
+                "inline": [
+                  {
+                    "marks": [
+                      "bold"
+                    ],
+                    "text": "listed"
+                  }
+                ],
+                "kind": "paragraph"
+              }
+            ]
+          }
+        ],
+        "kind": "list",
+        "ordered": false
+      }
+    ],
+    "input": "- ** listed**",
+    "name": "stray emphasis in a list",
+    "preprocessed": "- **listed**"
+  }
+]

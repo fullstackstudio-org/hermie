@@ -13,6 +13,7 @@
  *   contract/transcript/fixtures/*.json    the engine's test fixtures
  *   contract/transcript/streams/*.json     fake-gateway scenarios
  *   contract/gateway/vectors/*.json        gateway-client pure functions
+ *   contract/markdown/*.json               the Expo app's Markdown block structure
  *   the counts section of contract/README.md
  * Hand-written (never touched): the rest of contract/README.md, contract/push/.
  */
@@ -46,7 +47,8 @@ const GENERATED = [
   'transcript/golden-summary.json',
   'transcript/fixtures',
   'transcript/streams',
-  'gateway/vectors'
+  'gateway/vectors',
+  'markdown'
 ]
 
 const COUNTS_START = '<!-- golden:counts:start -->'
@@ -117,12 +119,21 @@ function ownedFiles(base: string, owned: string): string[] {
   return statSync(path).isFile() ? [owned] : filesUnder(path).map(file => join(owned, file))
 }
 
-function countsSection(ops: Record<string, OpStats>, streams: number, vectors: Record<string, number>): string {
+function countsSection(
+  ops: Record<string, OpStats>,
+  streams: number,
+  vectors: Record<string, number>,
+  markdown: Record<string, number>
+): string {
   const names = Object.keys(ops).sort()
   const recorded = names.reduce((sum, op) => sum + (ops[op]?.recorded ?? 0), 0)
   const replayable = names.reduce((sum, op) => sum + (ops[op]?.replayable ?? 0), 0)
   const percent = recorded ? ((replayable / recorded) * 100).toFixed(1) : '0.0'
   const byReason: Record<string, number> = {}
+  const markdownCases = Object.values(markdown).reduce((a, b) => a + b, 0)
+  const markdownGroups = Object.entries(markdown)
+    .map(([file, count]) => `${file.replace(/\.json$/, '')} ${count}`)
+    .join(', ')
 
   for (const op of names) {
     for (const [reason, count] of Object.entries(ops[op]?.skipped ?? {})) {
@@ -137,6 +148,7 @@ function countsSection(ops: Record<string, OpStats>, streams: number, vectors: R
     '',
     `- Transcript calls recorded: **${recorded}**; replayable and in the corpus: **${replayable}** (${percent} %); skipped: **${recorded - replayable}**.`,
     `- Stream scenarios: **${streams}**. Gateway vector files: **${Object.keys(vectors).length}** with **${Object.values(vectors).reduce((a, b) => a + b, 0)}** vectors.`,
+    `- Markdown files: **${Object.keys(markdown).length}** with **${markdownCases}** cases (${markdownGroups}).`,
     ''
   ]
 
@@ -207,6 +219,7 @@ async function main(): Promise<void> {
     step('dumping the transcript fixtures', 'npx', ['tsx', 'packages/transcript/golden/dump-fixtures.ts', '--out', out])
     step('dumping the gateway vectors', 'npx', ['tsx', 'packages/gateway-client/scripts/dump-vectors.ts', '--out', out])
     step('recording the stream scenarios', 'npx', ['tsx', 'packages/fake-gateway/scripts/dump-frames.ts', '--out', out])
+    step('dumping the markdown blocks', 'npx', ['tsx', 'scripts/golden/dump-markdown.ts', '--out', out])
 
     const ops = aggregate(statsDir)
     const vectors: Record<string, number> = {}
@@ -216,10 +229,15 @@ async function main(): Promise<void> {
     }
 
     const streams = filesUnder(join(out, 'transcript', 'streams')).length
+    const markdown: Record<string, number> = {}
+
+    for (const file of filesUnder(join(out, 'markdown'))) {
+      markdown[file] = (JSON.parse(readFileSync(join(out, 'markdown', file), 'utf8')) as unknown[]).length
+    }
 
     writeFileSync(join(out, 'transcript', 'golden-summary.json'), prettyJson({ operations: ops }))
 
-    const readme = await readmeWith(countsSection(ops, streams, vectors))
+    const readme = await readmeWith(countsSection(ops, streams, vectors, markdown))
 
     if (check) {
       const problems: string[] = []

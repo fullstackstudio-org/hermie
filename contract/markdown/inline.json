@@ -1,0 +1,1023 @@
+[
+  {
+    "blocks": [
+      {
+        "inline": [
+          {
+            "text": "Body with "
+          },
+          {
+            "marks": [
+              "bold"
+            ],
+            "text": "bold"
+          },
+          {
+            "text": ", "
+          },
+          {
+            "marks": [
+              "italic"
+            ],
+            "text": "italic"
+          },
+          {
+            "text": ", "
+          },
+          {
+            "marks": [
+              "strike"
+            ],
+            "text": "struck"
+          },
+          {
+            "text": " and "
+          },
+          {
+            "marks": [
+              "code"
+            ],
+            "text": "code"
+          },
+          {
+            "text": "."
+          }
+        ],
+        "kind": "paragraph"
+      }
+    ],
+    "input": "Body with **bold**, *italic*, ~~struck~~ and `code`.",
+    "name": "bold italic strike code",
+    "preprocessed": "Body with **bold**, *italic*, ~~struck~~ and `code`."
+  },
+  {
+    "blocks": [
+      {
+        "inline": [
+          {
+            "text": "Some "
+          },
+          {
+            "marks": [
+              "bold"
+            ],
+            "text": "strong"
+          },
+          {
+            "text": " and "
+          },
+          {
+            "marks": [
+              "italic"
+            ],
+            "text": "em"
+          },
+          {
+            "text": " words, but snake_case_name stays."
+          }
+        ],
+        "kind": "paragraph"
+      }
+    ],
+    "input": "Some __strong__ and _em_ words, but snake_case_name stays.",
+    "name": "underscore emphasis",
+    "preprocessed": "Some __strong__ and _em_ words, but snake_case_name stays."
+  },
+  {
+    "blocks": [
+      {
+        "inline": [
+          {
+            "marks": [
+              "bold",
+              "italic"
+            ],
+            "text": "both"
+          },
+          {
+            "text": " and "
+          },
+          {
+            "marks": [
+              "bold"
+            ],
+            "text": "bold with "
+          },
+          {
+            "marks": [
+              "bold",
+              "italic"
+            ],
+            "text": "italic"
+          },
+          {
+            "marks": [
+              "bold"
+            ],
+            "text": " inside"
+          }
+        ],
+        "kind": "paragraph"
+      }
+    ],
+    "input": "***both*** and **bold with *italic* inside**",
+    "name": "bold italic",
+    "preprocessed": "***both*** and **bold with *italic* inside**"
+  },
+  {
+    "blocks": [
+      {
+        "inline": [
+          {
+            "marks": [
+              "bold",
+              "strike"
+            ],
+            "text": "dropped"
+          }
+        ],
+        "kind": "paragraph"
+      }
+    ],
+    "input": "**~~dropped~~**",
+    "name": "nested strike in bold",
+    "preprocessed": "**~~dropped~~**"
+  },
+  {
+    "blocks": [
+      {
+        "inline": [
+          {
+            "text": "Run it from ~/dir and then check ~/other for the log."
+          }
+        ],
+        "kind": "paragraph"
+      }
+    ],
+    "input": "Run it from ~/dir and then check ~/other for the log.",
+    "name": "single tilde in a path",
+    "preprocessed": "Run it from ~/dir and then check ~/other for the log."
+  },
+  {
+    "blocks": [
+      {
+        "inline": [
+          {
+            "text": "About ~50 rows, give or take."
+          }
+        ],
+        "kind": "paragraph"
+      }
+    ],
+    "input": "About ~50 rows, give or take.",
+    "name": "single tilde alone",
+    "preprocessed": "About ~50 rows, give or take."
+  },
+  {
+    "blocks": [
+      {
+        "inline": [
+          {
+            "marks": [
+              "strike"
+            ],
+            "text": "cd ~/old"
+          }
+        ],
+        "kind": "paragraph"
+      }
+    ],
+    "input": "~~cd ~/old~~",
+    "name": "strike across a lone tilde",
+    "preprocessed": "~~cd ~/old~~"
+  },
+  {
+    "blocks": [
+      {
+        "inline": [
+          {
+            "text": "root@box:~# stat -c '%u:%g %n' /usr/bin/sudo\n0:0 /usr/bin/sudo\nroot@box:~#"
+          }
+        ],
+        "kind": "paragraph"
+      }
+    ],
+    "input": "root@box:~# stat -c '%u:%g %n' /usr/bin/sudo\n0:0 /usr/bin/sudo\nroot@box:~#",
+    "name": "shell prompt",
+    "preprocessed": "root@box:~# stat -c '%u:%g %n' /usr/bin/sudo\n0:0 /usr/bin/sudo\nroot@box:~#"
+  },
+  {
+    "blocks": [
+      {
+        "inline": [
+          {
+            "marks": [
+              "bold",
+              "code"
+            ],
+            "text": "example.nl"
+          },
+          {
+            "marks": [
+              "bold"
+            ],
+            "text": " staat op autorenew=off"
+          }
+        ],
+        "kind": "paragraph"
+      }
+    ],
+    "input": "** `example.nl` staat op autorenew=off**",
+    "name": "stray space after opening bold",
+    "preprocessed": "**`example.nl` staat op autorenew=off**"
+  },
+  {
+    "blocks": [
+      {
+        "inline": [
+          {
+            "marks": [
+              "bold"
+            ],
+            "text": "autorenew staat op off"
+          }
+        ],
+        "kind": "paragraph"
+      }
+    ],
+    "input": "**autorenew staat op off **",
+    "name": "stray space before closing bold",
+    "preprocessed": "**autorenew staat op off**"
+  },
+  {
+    "blocks": [
+      {
+        "inline": [
+          {
+            "text": "a ** b ** c"
+          }
+        ],
+        "kind": "paragraph"
+      }
+    ],
+    "input": "a ** b ** c",
+    "name": "arithmetic asterisks",
+    "preprocessed": "a ** b ** c"
+  },
+  {
+    "blocks": [
+      {
+        "inline": [
+          {
+            "text": "x "
+          },
+          {
+            "marks": [
+              "bold"
+            ],
+            "text": "y"
+          },
+          {
+            "text": " z "
+          },
+          {
+            "marks": [
+              "bold"
+            ],
+            "text": "w"
+          }
+        ],
+        "kind": "paragraph"
+      }
+    ],
+    "input": "x ** y** z ** w**",
+    "name": "two stray pairs",
+    "preprocessed": "x **y** z **w**"
+  },
+  {
+    "blocks": [
+      {
+        "inline": [
+          {
+            "text": "Check "
+          },
+          {
+            "marks": [
+              "bold"
+            ],
+            "text": "the "
+          },
+          {
+            "marks": [
+              "bold",
+              "code"
+            ],
+            "text": "config.yml"
+          },
+          {
+            "marks": [
+              "bold"
+            ],
+            "text": " file"
+          },
+          {
+            "text": " first."
+          }
+        ],
+        "kind": "paragraph"
+      }
+    ],
+    "input": "Check **the `config.yml` file** first.",
+    "name": "bold with code inside",
+    "preprocessed": "Check **the `config.yml` file** first."
+  },
+  {
+    "blocks": [
+      {
+        "inline": [
+          {
+            "text": "Spaced "
+          },
+          {
+            "marks": [
+              "code"
+            ],
+            "text": " padded "
+          },
+          {
+            "text": " chip and "
+          },
+          {
+            "marks": [
+              "code"
+            ],
+            "text": "a"
+          },
+          {
+            "text": "b"
+          }
+        ],
+        "kind": "paragraph"
+      }
+    ],
+    "input": "Spaced ``  padded  `` chip and `a`b",
+    "name": "inline code with spaces",
+    "preprocessed": "Spaced ``  padded  `` chip and `a`b"
+  },
+  {
+    "blocks": [
+      {
+        "inline": [
+          {
+            "text": "Use "
+          },
+          {
+            "marks": [
+              "code"
+            ],
+            "text": "a`b"
+          },
+          {
+            "text": " here"
+          }
+        ],
+        "kind": "paragraph"
+      }
+    ],
+    "input": "Use `` a`b `` here",
+    "name": "code with backtick inside",
+    "preprocessed": "Use `` a`b `` here"
+  },
+  {
+    "blocks": [
+      {
+        "inline": [
+          {
+            "text": "Read "
+          },
+          {
+            "link": "https://example.com/docs",
+            "text": "the docs"
+          },
+          {
+            "text": " now."
+          }
+        ],
+        "kind": "paragraph"
+      }
+    ],
+    "input": "Read [the docs](https://example.com/docs) now.",
+    "name": "link",
+    "preprocessed": "Read [the docs](https://example.com/docs) now."
+  },
+  {
+    "blocks": [
+      {
+        "inline": [
+          {
+            "link": "https://example.com",
+            "marks": [
+              "bold"
+            ],
+            "text": "bold"
+          },
+          {
+            "link": "https://example.com",
+            "text": " label"
+          }
+        ],
+        "kind": "paragraph"
+      }
+    ],
+    "input": "[**bold** label](https://example.com)",
+    "name": "link with marks in label",
+    "preprocessed": "[**bold** label](https://example.com)"
+  },
+  {
+    "blocks": [
+      {
+        "inline": [
+          {
+            "text": "Go to "
+          },
+          {
+            "link": "https://example.com/a?b=c",
+            "text": "https://example.com/a?b=c"
+          },
+          {
+            "text": "."
+          }
+        ],
+        "kind": "paragraph"
+      }
+    ],
+    "input": "Go to <https://example.com/a?b=c>.",
+    "name": "autolink",
+    "preprocessed": "Go to <https://example.com/a?b=c>."
+  },
+  {
+    "blocks": [
+      {
+        "inline": [
+          {
+            "text": "read "
+          },
+          {
+            "link": "https://example.com",
+            "text": "https://example.com"
+          },
+          {
+            "text": " now"
+          }
+        ],
+        "kind": "paragraph"
+      }
+    ],
+    "input": "read https://example.com now",
+    "name": "bare url",
+    "preprocessed": "read <https://example.com> now"
+  },
+  {
+    "blocks": [
+      {
+        "inline": [
+          {
+            "text": "see "
+          },
+          {
+            "link": "https://example.com",
+            "text": "https://example.com"
+          },
+          {
+            "text": "."
+          }
+        ],
+        "kind": "paragraph"
+      }
+    ],
+    "input": "see https://example.com.",
+    "name": "bare url with full stop",
+    "preprocessed": "see <https://example.com>."
+  },
+  {
+    "blocks": [
+      {
+        "inline": [
+          {
+            "text": "(see "
+          },
+          {
+            "link": "https://example.com",
+            "text": "https://example.com"
+          },
+          {
+            "text": ")"
+          }
+        ],
+        "kind": "paragraph"
+      }
+    ],
+    "input": "(see https://example.com)",
+    "name": "bare url in parentheses",
+    "preprocessed": "(see <https://example.com>)"
+  },
+  {
+    "blocks": [
+      {
+        "inline": [
+          {
+            "link": "https://en.wikipedia.org/wiki/Foo_(bar)",
+            "text": "https://en.wikipedia.org/wiki/Foo_(bar)"
+          }
+        ],
+        "kind": "paragraph"
+      }
+    ],
+    "input": "https://en.wikipedia.org/wiki/Foo_(bar)",
+    "name": "bare url with parenthesis in path",
+    "preprocessed": "<https://en.wikipedia.org/wiki/Foo_(bar)>"
+  },
+  {
+    "blocks": [
+      {
+        "inline": [
+          {
+            "marks": [
+              "bold"
+            ],
+            "text": "see "
+          },
+          {
+            "link": "https://example.com/x",
+            "marks": [
+              "bold"
+            ],
+            "text": "https://example.com/x"
+          }
+        ],
+        "kind": "paragraph"
+      }
+    ],
+    "input": "**see https://example.com/x**",
+    "name": "bare url inside bold",
+    "preprocessed": "**see <https://example.com/x>**"
+  },
+  {
+    "blocks": [
+      {
+        "inline": [
+          {
+            "link": "https://example.com",
+            "text": "https://example.com"
+          }
+        ],
+        "kind": "paragraph"
+      }
+    ],
+    "input": "[https://example.com](https://example.com)",
+    "name": "url as link label",
+    "preprocessed": "[https://example.com](https://example.com)"
+  },
+  {
+    "blocks": [
+      {
+        "inline": [
+          {
+            "text": "The sky is blue and grass is green."
+          }
+        ],
+        "kind": "paragraph"
+      }
+    ],
+    "input": "The sky is blue[1] and grass is green[2, 3].",
+    "name": "citation markers",
+    "preprocessed": "The sky is blue and grass is green."
+  },
+  {
+    "blocks": [
+      {
+        "inline": [
+          {
+            "text": "Not *emphasis*, not `code`, a \n[bracket]."
+          }
+        ],
+        "kind": "paragraph"
+      }
+    ],
+    "input": "Not \\*emphasis\\*, not \\`code\\`, a \\[bracket\\].",
+    "name": "escapes",
+    "preprocessed": "Not \\*emphasis\\*, not \\`code\\`, a \\[bracket\\]."
+  },
+  {
+    "blocks": [
+      {
+        "inline": [
+          {
+            "text": "text <b>bold?</b> more"
+          }
+        ],
+        "kind": "paragraph"
+      }
+    ],
+    "input": "text <b>bold?</b> more",
+    "name": "inline html",
+    "preprocessed": "text <b>bold?</b> more"
+  },
+  {
+    "blocks": [
+      {
+        "inline": [
+          {
+            "text": "Einstein wrote "
+          },
+          {
+            "marks": [
+              "math"
+            ],
+            "text": "E = mc^2"
+          },
+          {
+            "text": " on a board."
+          }
+        ],
+        "kind": "paragraph"
+      }
+    ],
+    "input": "Einstein wrote $E = mc^2$ on a board.",
+    "name": "inline math with dollars",
+    "preprocessed": "Einstein wrote $E = mc^2$ on a board."
+  },
+  {
+    "blocks": [
+      {
+        "inline": [
+          {
+            "text": "Einstein wrote "
+          },
+          {
+            "marks": [
+              "math"
+            ],
+            "text": "E = mc^2"
+          },
+          {
+            "text": " on a board."
+          }
+        ],
+        "kind": "paragraph"
+      }
+    ],
+    "input": "Einstein wrote \\(E = mc^2\\) on a board.",
+    "name": "inline math with parens",
+    "preprocessed": "Einstein wrote \\(E = mc^2\\) on a board."
+  },
+  {
+    "blocks": [
+      {
+        "inline": [
+          {
+            "text": "the value "
+          },
+          {
+            "marks": [
+              "math"
+            ],
+            "text": " x^2 "
+          },
+          {
+            "text": " grows"
+          }
+        ],
+        "kind": "paragraph"
+      }
+    ],
+    "input": "the value \\( x^2 \\) grows",
+    "name": "spaced paren math",
+    "preprocessed": "the value \\( x^2 \\) grows"
+  },
+  {
+    "blocks": [
+      {
+        "inline": [
+          {
+            "text": "the value $ x^2 $ grows"
+          }
+        ],
+        "kind": "paragraph"
+      }
+    ],
+    "input": "the value $ x^2 $ grows",
+    "name": "spaced dollar is not math",
+    "preprocessed": "the value $ x^2 $ grows"
+  },
+  {
+    "blocks": [
+      {
+        "inline": [
+          {
+            "text": "It costs $5 and $7 today."
+          }
+        ],
+        "kind": "paragraph"
+      }
+    ],
+    "input": "It costs $5 and $7 today.",
+    "name": "prices are not math",
+    "preprocessed": "It costs $5 and $7 today."
+  },
+  {
+    "blocks": [
+      {
+        "inline": [
+          {
+            "text": "call "
+          },
+          {
+            "marks": [
+              "code"
+            ],
+            "text": "\\(x\\)"
+          },
+          {
+            "text": " here"
+          }
+        ],
+        "kind": "paragraph"
+      }
+    ],
+    "input": "call `\\(x\\)` here",
+    "name": "math in code is code",
+    "preprocessed": "call `\\(x\\)` here"
+  },
+  {
+    "blocks": [
+      {
+        "inline": [
+          {
+            "text": "Sum "
+          },
+          {
+            "marks": [
+              "math"
+            ],
+            "text": "a_i + b_i"
+          },
+          {
+            "text": " over "
+          },
+          {
+            "marks": [
+              "math"
+            ],
+            "text": "i"
+          },
+          {
+            "text": "."
+          }
+        ],
+        "kind": "paragraph"
+      }
+    ],
+    "input": "Sum $a_i + b_i$ over $i$.",
+    "name": "math with underscores",
+    "preprocessed": "Sum $a_i + b_i$ over $i$."
+  },
+  {
+    "blocks": [
+      {
+        "inline": [
+          {
+            "text": "half an expression ( "
+          }
+        ],
+        "kind": "paragraph"
+      }
+    ],
+    "input": "half an expression \\( ",
+    "name": "unterminated paren math",
+    "preprocessed": "half an expression \\( "
+  },
+  {
+    "blocks": [
+      {
+        "inline": [
+          {
+            "marks": [
+              "italic"
+            ],
+            "text": "one\ntwo"
+          }
+        ],
+        "kind": "paragraph"
+      }
+    ],
+    "input": "*one\ntwo*",
+    "name": "emphasis across soft break",
+    "preprocessed": "*one\ntwo*"
+  },
+  {
+    "blocks": [
+      {
+        "inline": [
+          {
+            "text": "one\ntwo"
+          }
+        ],
+        "kind": "paragraph"
+      }
+    ],
+    "input": "one\\\ntwo",
+    "name": "trailing backslash break",
+    "preprocessed": "one\\\ntwo"
+  },
+  {
+    "blocks": [
+      {
+        "inline": [
+          {
+            "link": "https://example.com/run",
+            "marks": [
+              "code"
+            ],
+            "text": "run"
+          }
+        ],
+        "kind": "paragraph"
+      }
+    ],
+    "input": "[`run`](https://example.com/run)",
+    "name": "code as link label",
+    "preprocessed": "[`run`](<https://example.com/run>)"
+  },
+  {
+    "blocks": [
+      {
+        "inline": [
+          {
+            "marks": [
+              "bold"
+            ],
+            "text": "area "
+          },
+          {
+            "marks": [
+              "bold",
+              "math"
+            ],
+            "text": "\\pi r^2"
+          }
+        ],
+        "kind": "paragraph"
+      }
+    ],
+    "input": "**area $\\pi r^2$**",
+    "name": "math inside bold",
+    "preprocessed": "**area $\\pi r^2$**"
+  },
+  {
+    "blocks": [
+      {
+        "inline": [
+          {
+            "link": "https://example.com",
+            "text": "see "
+          },
+          {
+            "link": "https://example.com",
+            "marks": [
+              "math"
+            ],
+            "text": "x"
+          },
+          {
+            "link": "https://example.com",
+            "text": " here"
+          }
+        ],
+        "kind": "paragraph"
+      }
+    ],
+    "input": "[see $x$ here](https://example.com)",
+    "name": "math inside a link label",
+    "preprocessed": "[see $x$ here](https://example.com)"
+  },
+  {
+    "blocks": [
+      {
+        "inline": [
+          {
+            "text": "Home is "
+          },
+          {
+            "link": "https://example.com/~user/page",
+            "text": "https://example.com/~user/page"
+          },
+          {
+            "text": " today."
+          }
+        ],
+        "kind": "paragraph"
+      }
+    ],
+    "input": "Home is https://example.com/~user/page today.",
+    "name": "url with a tilde",
+    "preprocessed": "Home is <https://example.com/~user/page> today."
+  },
+  {
+    "blocks": [
+      {
+        "inline": [
+          {
+            "text": "Use "
+          },
+          {
+            "marks": [
+              "code"
+            ],
+            "text": "~/bin"
+          },
+          {
+            "text": " and "
+          },
+          {
+            "marks": [
+              "strike"
+            ],
+            "text": "gone"
+          },
+          {
+            "text": "."
+          }
+        ],
+        "kind": "paragraph"
+      }
+    ],
+    "input": "Use `~/bin` and ~~gone~~.",
+    "name": "tilde in code and a strike",
+    "preprocessed": "Use `~/bin` and ~~gone~~."
+  },
+  {
+    "blocks": [
+      {
+        "inline": [
+          {
+            "marks": [
+              "bold"
+            ],
+            "text": "🎉 done"
+          }
+        ],
+        "kind": "paragraph"
+      }
+    ],
+    "input": "**🎉 done**",
+    "name": "emoji in bold",
+    "preprocessed": "**🎉 done**"
+  },
+  {
+    "blocks": [
+      {
+        "inline": [
+          {
+            "marks": [
+              "italic"
+            ],
+            "text": "italic "
+          },
+          {
+            "marks": [
+              "bold",
+              "italic"
+            ],
+            "text": "bold"
+          },
+          {
+            "marks": [
+              "italic"
+            ],
+            "text": " italic"
+          }
+        ],
+        "kind": "paragraph"
+      }
+    ],
+    "input": "*italic **bold** italic*",
+    "name": "emphasis nesting",
+    "preprocessed": "*italic **bold** italic*"
+  },
+  {
+    "blocks": [
+      {
+        "inline": [
+          {
+            "text": "Ünïcödé — “quotes” and emoji 🎉 stay as they are."
+          }
+        ],
+        "kind": "paragraph"
+      }
+    ],
+    "input": "Ünïcödé — “quotes” and emoji 🎉 stay as they are.",
+    "name": "unicode text",
+    "preprocessed": "Ünïcödé — “quotes” and emoji 🎉 stay as they are."
+  }
+]

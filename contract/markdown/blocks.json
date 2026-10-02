@@ -1,0 +1,2354 @@
+[
+  {
+    "blocks": [],
+    "input": "",
+    "name": "empty",
+    "preprocessed": ""
+  },
+  {
+    "blocks": [],
+    "input": "  \n\n ",
+    "name": "whitespace only",
+    "preprocessed": "  \n\n "
+  },
+  {
+    "blocks": [
+      {
+        "inline": [
+          {
+            "text": "Just a sentence."
+          }
+        ],
+        "kind": "paragraph"
+      }
+    ],
+    "input": "Just a sentence.",
+    "name": "one paragraph",
+    "preprocessed": "Just a sentence."
+  },
+  {
+    "blocks": [
+      {
+        "inline": [
+          {
+            "text": "First paragraph."
+          }
+        ],
+        "kind": "paragraph"
+      },
+      {
+        "inline": [
+          {
+            "text": "Second paragraph."
+          }
+        ],
+        "kind": "paragraph"
+      }
+    ],
+    "input": "First paragraph.\n\nSecond paragraph.",
+    "name": "two paragraphs",
+    "preprocessed": "First paragraph.\n\nSecond paragraph."
+  },
+  {
+    "blocks": [
+      {
+        "inline": [
+          {
+            "text": "line one\nline two"
+          }
+        ],
+        "kind": "paragraph"
+      }
+    ],
+    "input": "line one\nline two",
+    "name": "soft line break",
+    "preprocessed": "line one\nline two"
+  },
+  {
+    "blocks": [
+      {
+        "inline": [
+          {
+            "text": "line one\nline two"
+          }
+        ],
+        "kind": "paragraph"
+      }
+    ],
+    "input": "line one  \nline two",
+    "name": "hard line break",
+    "preprocessed": "line one  \nline two"
+  },
+  {
+    "blocks": [
+      {
+        "inline": [
+          {
+            "text": "One"
+          }
+        ],
+        "kind": "heading",
+        "level": 1
+      },
+      {
+        "inline": [
+          {
+            "text": "Two"
+          }
+        ],
+        "kind": "heading",
+        "level": 2
+      },
+      {
+        "inline": [
+          {
+            "text": "Three"
+          }
+        ],
+        "kind": "heading",
+        "level": 3
+      },
+      {
+        "inline": [
+          {
+            "text": "Four"
+          }
+        ],
+        "kind": "heading",
+        "level": 4
+      },
+      {
+        "inline": [
+          {
+            "text": "Five"
+          }
+        ],
+        "kind": "heading",
+        "level": 5
+      },
+      {
+        "inline": [
+          {
+            "text": "Six"
+          }
+        ],
+        "kind": "heading",
+        "level": 6
+      }
+    ],
+    "input": "# One\n## Two\n### Three\n#### Four\n##### Five\n###### Six",
+    "name": "atx headings",
+    "preprocessed": "# One\n## Two\n### Three\n#### Four\n##### Five\n###### Six"
+  },
+  {
+    "blocks": [
+      {
+        "inline": [
+          {
+            "text": "Section"
+          }
+        ],
+        "kind": "heading",
+        "level": 2
+      },
+      {
+        "inline": [
+          {
+            "text": "Body right under it."
+          }
+        ],
+        "kind": "paragraph"
+      }
+    ],
+    "input": "## Section\nBody right under it.",
+    "name": "heading then paragraph",
+    "preprocessed": "## Section\nBody right under it."
+  },
+  {
+    "blocks": [
+      {
+        "inline": [
+          {
+            "text": "Title"
+          }
+        ],
+        "kind": "heading",
+        "level": 1
+      },
+      {
+        "inline": [
+          {
+            "text": "Subtitle"
+          }
+        ],
+        "kind": "heading",
+        "level": 2
+      }
+    ],
+    "input": "Title\n=====\n\nSubtitle\n--------",
+    "name": "setext headings",
+    "preprocessed": "Title\n=====\n\nSubtitle\n--------"
+  },
+  {
+    "blocks": [
+      {
+        "inline": [
+          {
+            "text": "The "
+          },
+          {
+            "marks": [
+              "bold"
+            ],
+            "text": "bold"
+          },
+          {
+            "text": " "
+          },
+          {
+            "marks": [
+              "code"
+            ],
+            "text": "code"
+          },
+          {
+            "text": " part"
+          }
+        ],
+        "kind": "heading",
+        "level": 2
+      }
+    ],
+    "input": "## The **bold** `code` part",
+    "name": "heading with inline marks",
+    "preprocessed": "## The **bold** `code` part"
+  },
+  {
+    "blocks": [
+      {
+        "items": [
+          {
+            "blocks": [
+              {
+                "inline": [
+                  {
+                    "text": "one"
+                  }
+                ],
+                "kind": "paragraph"
+              }
+            ]
+          },
+          {
+            "blocks": [
+              {
+                "inline": [
+                  {
+                    "text": "two"
+                  }
+                ],
+                "kind": "paragraph"
+              }
+            ]
+          },
+          {
+            "blocks": [
+              {
+                "inline": [
+                  {
+                    "text": "three"
+                  }
+                ],
+                "kind": "paragraph"
+              }
+            ]
+          }
+        ],
+        "kind": "list",
+        "ordered": false
+      }
+    ],
+    "input": "- one\n- two\n- three",
+    "name": "unordered list",
+    "preprocessed": "- one\n- two\n- three"
+  },
+  {
+    "blocks": [
+      {
+        "items": [
+          {
+            "blocks": [
+              {
+                "inline": [
+                  {
+                    "text": "one"
+                  }
+                ],
+                "kind": "paragraph"
+              }
+            ]
+          },
+          {
+            "blocks": [
+              {
+                "inline": [
+                  {
+                    "text": "two"
+                  }
+                ],
+                "kind": "paragraph"
+              }
+            ]
+          }
+        ],
+        "kind": "list",
+        "ordered": false
+      },
+      {
+        "items": [
+          {
+            "blocks": [
+              {
+                "inline": [
+                  {
+                    "text": "three"
+                  }
+                ],
+                "kind": "paragraph"
+              }
+            ]
+          }
+        ],
+        "kind": "list",
+        "ordered": false
+      }
+    ],
+    "input": "* one\n* two\n\n+ three",
+    "name": "star and plus bullets",
+    "preprocessed": "* one\n* two\n\n+ three"
+  },
+  {
+    "blocks": [
+      {
+        "items": [
+          {
+            "blocks": [
+              {
+                "inline": [
+                  {
+                    "text": "first"
+                  }
+                ],
+                "kind": "paragraph"
+              }
+            ]
+          },
+          {
+            "blocks": [
+              {
+                "inline": [
+                  {
+                    "text": "second"
+                  }
+                ],
+                "kind": "paragraph"
+              }
+            ]
+          },
+          {
+            "blocks": [
+              {
+                "inline": [
+                  {
+                    "text": "third"
+                  }
+                ],
+                "kind": "paragraph"
+              }
+            ]
+          }
+        ],
+        "kind": "list",
+        "ordered": true,
+        "start": 1
+      }
+    ],
+    "input": "1. first\n2. second\n3. third",
+    "name": "ordered list",
+    "preprocessed": "1. first\n2. second\n3. third"
+  },
+  {
+    "blocks": [
+      {
+        "items": [
+          {
+            "blocks": [
+              {
+                "inline": [
+                  {
+                    "text": "third"
+                  }
+                ],
+                "kind": "paragraph"
+              }
+            ]
+          },
+          {
+            "blocks": [
+              {
+                "inline": [
+                  {
+                    "text": "fourth"
+                  }
+                ],
+                "kind": "paragraph"
+              }
+            ]
+          }
+        ],
+        "kind": "list",
+        "ordered": true,
+        "start": 3
+      }
+    ],
+    "input": "3. third\n4. fourth",
+    "name": "ordered list from three",
+    "preprocessed": "3. third\n4. fourth"
+  },
+  {
+    "blocks": [
+      {
+        "items": [
+          {
+            "blocks": [
+              {
+                "inline": [
+                  {
+                    "text": "first"
+                  }
+                ],
+                "kind": "paragraph"
+              }
+            ]
+          },
+          {
+            "blocks": [
+              {
+                "inline": [
+                  {
+                    "text": "second"
+                  }
+                ],
+                "kind": "paragraph"
+              }
+            ]
+          }
+        ],
+        "kind": "list",
+        "ordered": true,
+        "start": 1
+      }
+    ],
+    "input": "1) first\n2) second",
+    "name": "ordered list with parens",
+    "preprocessed": "1) first\n2) second"
+  },
+  {
+    "blocks": [
+      {
+        "items": [
+          {
+            "blocks": [
+              {
+                "inline": [
+                  {
+                    "text": "one"
+                  }
+                ],
+                "kind": "paragraph"
+              },
+              {
+                "items": [
+                  {
+                    "blocks": [
+                      {
+                        "inline": [
+                          {
+                            "text": "nested"
+                          }
+                        ],
+                        "kind": "paragraph"
+                      }
+                    ]
+                  },
+                  {
+                    "blocks": [
+                      {
+                        "inline": [
+                          {
+                            "text": "nested two"
+                          }
+                        ],
+                        "kind": "paragraph"
+                      }
+                    ]
+                  }
+                ],
+                "kind": "list",
+                "ordered": false
+              }
+            ]
+          },
+          {
+            "blocks": [
+              {
+                "inline": [
+                  {
+                    "text": "two"
+                  }
+                ],
+                "kind": "paragraph"
+              }
+            ]
+          }
+        ],
+        "kind": "list",
+        "ordered": false
+      }
+    ],
+    "input": "- one\n  - nested\n  - nested two\n- two",
+    "name": "nested list",
+    "preprocessed": "- one\n  - nested\n  - nested two\n- two"
+  },
+  {
+    "blocks": [
+      {
+        "items": [
+          {
+            "blocks": [
+              {
+                "inline": [
+                  {
+                    "text": "top"
+                  }
+                ],
+                "kind": "paragraph"
+              },
+              {
+                "items": [
+                  {
+                    "blocks": [
+                      {
+                        "inline": [
+                          {
+                            "text": "middle"
+                          }
+                        ],
+                        "kind": "paragraph"
+                      },
+                      {
+                        "items": [
+                          {
+                            "blocks": [
+                              {
+                                "inline": [
+                                  {
+                                    "text": "bottom"
+                                  }
+                                ],
+                                "kind": "paragraph"
+                              }
+                            ]
+                          }
+                        ],
+                        "kind": "list",
+                        "ordered": true,
+                        "start": 1
+                      }
+                    ]
+                  }
+                ],
+                "kind": "list",
+                "ordered": false
+              }
+            ]
+          },
+          {
+            "blocks": [
+              {
+                "inline": [
+                  {
+                    "text": "top again"
+                  }
+                ],
+                "kind": "paragraph"
+              }
+            ]
+          }
+        ],
+        "kind": "list",
+        "ordered": true,
+        "start": 1
+      }
+    ],
+    "input": "1. top\n   - middle\n     1. bottom\n2. top again",
+    "name": "deeply nested list",
+    "preprocessed": "1. top\n   - middle\n     1. bottom\n2. top again"
+  },
+  {
+    "blocks": [
+      {
+        "items": [
+          {
+            "blocks": [
+              {
+                "inline": [
+                  {
+                    "text": "one"
+                  }
+                ],
+                "kind": "paragraph"
+              }
+            ]
+          },
+          {
+            "blocks": [
+              {
+                "inline": [
+                  {
+                    "text": "two"
+                  }
+                ],
+                "kind": "paragraph"
+              }
+            ]
+          },
+          {
+            "blocks": [
+              {
+                "inline": [
+                  {
+                    "text": "three"
+                  }
+                ],
+                "kind": "paragraph"
+              }
+            ]
+          }
+        ],
+        "kind": "list",
+        "ordered": false
+      }
+    ],
+    "input": "- one\n\n- two\n\n- three",
+    "name": "loose list",
+    "preprocessed": "- one\n\n- two\n\n- three"
+  },
+  {
+    "blocks": [
+      {
+        "items": [
+          {
+            "blocks": [
+              {
+                "inline": [
+                  {
+                    "text": "first line"
+                  }
+                ],
+                "kind": "paragraph"
+              },
+              {
+                "inline": [
+                  {
+                    "text": "continued paragraph"
+                  }
+                ],
+                "kind": "paragraph"
+              }
+            ]
+          },
+          {
+            "blocks": [
+              {
+                "inline": [
+                  {
+                    "text": "second"
+                  }
+                ],
+                "kind": "paragraph"
+              }
+            ]
+          }
+        ],
+        "kind": "list",
+        "ordered": true,
+        "start": 1
+      }
+    ],
+    "input": "1. first line\n\n   continued paragraph\n2. second",
+    "name": "list item with two paragraphs",
+    "preprocessed": "1. first line\n\n   continued paragraph\n2. second"
+  },
+  {
+    "blocks": [
+      {
+        "items": [
+          {
+            "blocks": [
+              {
+                "inline": [
+                  {
+                    "text": "todo"
+                  }
+                ],
+                "kind": "paragraph"
+              }
+            ],
+            "checked": false
+          },
+          {
+            "blocks": [
+              {
+                "inline": [
+                  {
+                    "text": "done"
+                  }
+                ],
+                "kind": "paragraph"
+              }
+            ],
+            "checked": true
+          },
+          {
+            "blocks": [
+              {
+                "inline": [
+                  {
+                    "text": "also done"
+                  }
+                ],
+                "kind": "paragraph"
+              }
+            ],
+            "checked": true
+          },
+          {
+            "blocks": [
+              {
+                "inline": [
+                  {
+                    "text": "plain"
+                  }
+                ],
+                "kind": "paragraph"
+              }
+            ]
+          }
+        ],
+        "kind": "list",
+        "ordered": false
+      }
+    ],
+    "input": "- [ ] todo\n- [x] done\n- [X] also done\n- plain",
+    "name": "task list",
+    "preprocessed": "- [ ] todo\n- [x] done\n- [X] also done\n- plain"
+  },
+  {
+    "blocks": [
+      {
+        "items": [
+          {
+            "blocks": [
+              {
+                "inline": [
+                  {
+                    "text": "parent"
+                  }
+                ],
+                "kind": "paragraph"
+              },
+              {
+                "items": [
+                  {
+                    "blocks": [
+                      {
+                        "inline": [
+                          {
+                            "text": "child"
+                          }
+                        ],
+                        "kind": "paragraph"
+                      }
+                    ],
+                    "checked": true
+                  },
+                  {
+                    "blocks": [
+                      {
+                        "inline": [
+                          {
+                            "text": "other child"
+                          }
+                        ],
+                        "kind": "paragraph"
+                      }
+                    ],
+                    "checked": false
+                  }
+                ],
+                "kind": "list",
+                "ordered": false
+              }
+            ],
+            "checked": false
+          }
+        ],
+        "kind": "list",
+        "ordered": false
+      }
+    ],
+    "input": "- [ ] parent\n  - [x] child\n  - [ ] other child",
+    "name": "nested task list",
+    "preprocessed": "- [ ] parent\n  - [x] child\n  - [ ] other child"
+  },
+  {
+    "blocks": [
+      {
+        "inline": [
+          {
+            "text": "Steps:"
+          }
+        ],
+        "kind": "paragraph"
+      },
+      {
+        "items": [
+          {
+            "blocks": [
+              {
+                "inline": [
+                  {
+                    "text": "one"
+                  }
+                ],
+                "kind": "paragraph"
+              }
+            ]
+          },
+          {
+            "blocks": [
+              {
+                "inline": [
+                  {
+                    "text": "two"
+                  }
+                ],
+                "kind": "paragraph"
+              }
+            ]
+          }
+        ],
+        "kind": "list",
+        "ordered": false
+      }
+    ],
+    "input": "Steps:\n- one\n- two",
+    "name": "list after paragraph",
+    "preprocessed": "Steps:\n- one\n- two"
+  },
+  {
+    "blocks": [
+      {
+        "items": [
+          {
+            "blocks": [
+              {
+                "inline": [
+                  {
+                    "text": "one"
+                  }
+                ],
+                "kind": "paragraph"
+              }
+            ]
+          },
+          {
+            "blocks": [
+              {
+                "inline": [
+                  {
+                    "text": "two"
+                  }
+                ],
+                "kind": "paragraph"
+              }
+            ]
+          }
+        ],
+        "kind": "list",
+        "ordered": false
+      },
+      {
+        "inline": [
+          {
+            "text": "After the list."
+          }
+        ],
+        "kind": "paragraph"
+      }
+    ],
+    "input": "- one\n- two\n\nAfter the list.",
+    "name": "list then paragraph",
+    "preprocessed": "- one\n- two\n\nAfter the list."
+  },
+  {
+    "blocks": [
+      {
+        "items": [
+          {
+            "blocks": [
+              {
+                "inline": [
+                  {
+                    "text": "Run this:"
+                  }
+                ],
+                "kind": "paragraph"
+              },
+              {
+                "kind": "code",
+                "language": "sh",
+                "text": "make test"
+              }
+            ]
+          },
+          {
+            "blocks": [
+              {
+                "inline": [
+                  {
+                    "text": "Done"
+                  }
+                ],
+                "kind": "paragraph"
+              }
+            ]
+          }
+        ],
+        "kind": "list",
+        "ordered": true,
+        "start": 1
+      }
+    ],
+    "input": "1. Run this:\n\n   ```sh\n   make test\n   ```\n2. Done",
+    "name": "list item with code",
+    "preprocessed": "1. Run this:\n\n   ```sh\n   make test\n   ```\n2. Done"
+  },
+  {
+    "blocks": [
+      {
+        "blocks": [
+          {
+            "inline": [
+              {
+                "text": "quoted"
+              }
+            ],
+            "kind": "paragraph"
+          }
+        ],
+        "kind": "quote"
+      }
+    ],
+    "input": "> quoted",
+    "name": "block quote",
+    "preprocessed": "> quoted"
+  },
+  {
+    "blocks": [
+      {
+        "blocks": [
+          {
+            "inline": [
+              {
+                "text": "line one\nline two"
+              }
+            ],
+            "kind": "paragraph"
+          },
+          {
+            "inline": [
+              {
+                "text": "second paragraph"
+              }
+            ],
+            "kind": "paragraph"
+          }
+        ],
+        "kind": "quote"
+      }
+    ],
+    "input": "> line one\n> line two\n>\n> second paragraph",
+    "name": "multi-line block quote",
+    "preprocessed": "> line one\n> line two\n>\n> second paragraph"
+  },
+  {
+    "blocks": [
+      {
+        "blocks": [
+          {
+            "inline": [
+              {
+                "text": "starts here\nand continues lazily"
+              }
+            ],
+            "kind": "paragraph"
+          }
+        ],
+        "kind": "quote"
+      }
+    ],
+    "input": "> starts here\nand continues lazily",
+    "name": "lazy block quote",
+    "preprocessed": "> starts here\nand continues lazily"
+  },
+  {
+    "blocks": [
+      {
+        "blocks": [
+          {
+            "inline": [
+              {
+                "text": "outer"
+              }
+            ],
+            "kind": "paragraph"
+          },
+          {
+            "blocks": [
+              {
+                "inline": [
+                  {
+                    "text": "inner"
+                  }
+                ],
+                "kind": "paragraph"
+              }
+            ],
+            "kind": "quote"
+          }
+        ],
+        "kind": "quote"
+      }
+    ],
+    "input": "> outer\n>> inner",
+    "name": "nested block quote",
+    "preprocessed": "> outer\n>> inner"
+  },
+  {
+    "blocks": [
+      {
+        "blocks": [
+          {
+            "inline": [
+              {
+                "text": "Notes:"
+              }
+            ],
+            "kind": "paragraph"
+          },
+          {
+            "items": [
+              {
+                "blocks": [
+                  {
+                    "inline": [
+                      {
+                        "text": "one"
+                      }
+                    ],
+                    "kind": "paragraph"
+                  }
+                ]
+              },
+              {
+                "blocks": [
+                  {
+                    "inline": [
+                      {
+                        "text": "two"
+                      }
+                    ],
+                    "kind": "paragraph"
+                  }
+                ]
+              }
+            ],
+            "kind": "list",
+            "ordered": false
+          }
+        ],
+        "kind": "quote"
+      }
+    ],
+    "input": "> Notes:\n> - one\n> - two",
+    "name": "quote with list",
+    "preprocessed": "> Notes:\n> - one\n> - two"
+  },
+  {
+    "blocks": [
+      {
+        "blocks": [
+          {
+            "inline": [
+              {
+                "text": "first"
+              }
+            ],
+            "kind": "paragraph"
+          }
+        ],
+        "kind": "quote"
+      },
+      {
+        "blocks": [
+          {
+            "inline": [
+              {
+                "text": "second"
+              }
+            ],
+            "kind": "paragraph"
+          }
+        ],
+        "kind": "quote"
+      }
+    ],
+    "input": "> first\n\n> second",
+    "name": "two quotes",
+    "preprocessed": "> first\n\n> second"
+  },
+  {
+    "blocks": [
+      {
+        "align": [
+          null,
+          null
+        ],
+        "header": [
+          [
+            {
+              "text": "Area"
+            }
+          ],
+          [
+            {
+              "text": "Status"
+            }
+          ]
+        ],
+        "kind": "table",
+        "rows": [
+          [
+            [
+              {
+                "text": "Recovery"
+              }
+            ],
+            [
+              {
+                "text": "Shipped"
+              }
+            ]
+          ]
+        ]
+      }
+    ],
+    "input": "| Area | Status |\n| --- | --- |\n| Recovery | Shipped |",
+    "name": "table",
+    "preprocessed": "| Area | Status |\n| --- | --- |\n| Recovery | Shipped |"
+  },
+  {
+    "blocks": [
+      {
+        "align": [
+          "left",
+          "center",
+          "right",
+          null
+        ],
+        "header": [
+          [
+            {
+              "text": "Left"
+            }
+          ],
+          [
+            {
+              "text": "Centre"
+            }
+          ],
+          [
+            {
+              "text": "Right"
+            }
+          ],
+          [
+            {
+              "text": "None"
+            }
+          ]
+        ],
+        "kind": "table",
+        "rows": [
+          [
+            [
+              {
+                "text": "a"
+              }
+            ],
+            [
+              {
+                "text": "b"
+              }
+            ],
+            [
+              {
+                "text": "c"
+              }
+            ],
+            [
+              {
+                "text": "d"
+              }
+            ]
+          ],
+          [
+            [
+              {
+                "text": "e"
+              }
+            ],
+            [
+              {
+                "text": "f"
+              }
+            ],
+            [
+              {
+                "text": "g"
+              }
+            ],
+            [
+              {
+                "text": "h"
+              }
+            ]
+          ]
+        ]
+      }
+    ],
+    "input": "| Left | Centre | Right | None |\n|:--|:-:|--:|---|\n| a | b | c | d |\n| e | f | g | h |",
+    "name": "table with alignment",
+    "preprocessed": "| Left | Centre | Right | None |\n|:--|:-:|--:|---|\n| a | b | c | d |\n| e | f | g | h |"
+  },
+  {
+    "blocks": [
+      {
+        "align": [
+          null,
+          null
+        ],
+        "header": [
+          [
+            {
+              "text": "a"
+            }
+          ],
+          [
+            {
+              "text": "b"
+            }
+          ]
+        ],
+        "kind": "table",
+        "rows": [
+          [
+            [
+              {
+                "text": "1"
+              }
+            ],
+            [
+              {
+                "text": "2"
+              }
+            ]
+          ]
+        ]
+      }
+    ],
+    "input": "a | b\n--|--\n1 | 2",
+    "name": "table without outer pipes",
+    "preprocessed": "a | b\n--|--\n1 | 2"
+  },
+  {
+    "blocks": [
+      {
+        "align": [
+          null,
+          null
+        ],
+        "header": [
+          [
+            {
+              "text": "Key"
+            }
+          ],
+          [
+            {
+              "text": "Value"
+            }
+          ]
+        ],
+        "kind": "table",
+        "rows": [
+          [
+            [
+              {
+                "marks": [
+                  "code"
+                ],
+                "text": "id"
+              }
+            ],
+            [
+              {
+                "marks": [
+                  "bold"
+                ],
+                "text": "bold"
+              },
+              {
+                "text": " and "
+              },
+              {
+                "link": "https://example.com",
+                "text": "link"
+              }
+            ]
+          ]
+        ]
+      }
+    ],
+    "input": "| Key | Value |\n| --- | --- |\n| `id` | **bold** and [link](https://example.com) |",
+    "name": "table with inline marks",
+    "preprocessed": "| Key | Value |\n| --- | --- |\n| `id` | **bold** and [link](https://example.com) |"
+  },
+  {
+    "blocks": [
+      {
+        "align": [
+          null,
+          null,
+          null
+        ],
+        "header": [
+          [
+            {
+              "text": "a"
+            }
+          ],
+          [
+            {
+              "text": "b"
+            }
+          ],
+          [
+            {
+              "text": "c"
+            }
+          ]
+        ],
+        "kind": "table",
+        "rows": [
+          [
+            [
+              {
+                "text": "1"
+              }
+            ],
+            [],
+            []
+          ]
+        ]
+      }
+    ],
+    "input": "| a | b | c |\n| - | - | - |\n| 1 |",
+    "name": "table with short row",
+    "preprocessed": "| a | b | c |\n| - | - | - |\n| 1 |"
+  },
+  {
+    "blocks": [
+      {
+        "align": [
+          null,
+          null
+        ],
+        "header": [
+          [
+            {
+              "text": "a"
+            }
+          ],
+          [
+            {
+              "text": "b"
+            }
+          ]
+        ],
+        "kind": "table",
+        "rows": [
+          [
+            [
+              {
+                "text": "x | y"
+              }
+            ],
+            [
+              {
+                "text": "z"
+              }
+            ]
+          ]
+        ]
+      }
+    ],
+    "input": "| a | b |\n| - | - |\n| x \\| y | z |",
+    "name": "table with escaped pipe",
+    "preprocessed": "| a | b |\n| - | - |\n| x \\| y | z |"
+  },
+  {
+    "blocks": [
+      {
+        "align": [
+          null,
+          null,
+          null,
+          null,
+          null,
+          null
+        ],
+        "header": [
+          [
+            {
+              "text": "Registrar"
+            }
+          ],
+          [
+            {
+              "text": "Domain"
+            }
+          ],
+          [
+            {
+              "text": "Renews"
+            }
+          ],
+          [
+            {
+              "text": "Autorenew"
+            }
+          ],
+          [
+            {
+              "text": "Nameservers"
+            }
+          ],
+          [
+            {
+              "text": "Owner"
+            }
+          ]
+        ],
+        "kind": "table",
+        "rows": [
+          [
+            [
+              {
+                "text": "Registrar One"
+              }
+            ],
+            [
+              {
+                "text": "docs.example.org"
+              }
+            ],
+            [
+              {
+                "text": "2026-10-04"
+              }
+            ],
+            [
+              {
+                "text": "off"
+              }
+            ],
+            [
+              {
+                "text": "ns1.example.net"
+              }
+            ],
+            [
+              {
+                "text": "Operations"
+              }
+            ]
+          ]
+        ]
+      }
+    ],
+    "input": "| Registrar | Domain | Renews | Autorenew | Nameservers | Owner |\n| --- | --- | --- | --- | --- | --- |\n| Registrar One | docs.example.org | 2026-10-04 | off | ns1.example.net | Operations |",
+    "name": "wide table",
+    "preprocessed": "| Registrar | Domain | Renews | Autorenew | Nameservers | Owner |\n| --- | --- | --- | --- | --- | --- |\n| Registrar One | docs.example.org | 2026-10-04 | off | ns1.example.net | Operations |"
+  },
+  {
+    "blocks": [
+      {
+        "align": [
+          null,
+          null
+        ],
+        "header": [
+          [
+            {
+              "text": "a"
+            }
+          ],
+          [
+            {
+              "text": "b"
+            }
+          ]
+        ],
+        "kind": "table",
+        "rows": [
+          [
+            [
+              {
+                "text": "1"
+              }
+            ],
+            [
+              {
+                "text": "2"
+              }
+            ]
+          ]
+        ]
+      },
+      {
+        "inline": [
+          {
+            "text": "Prose after."
+          }
+        ],
+        "kind": "paragraph"
+      }
+    ],
+    "input": "| a | b |\n| - | - |\n| 1 | 2 |\n\nProse after.",
+    "name": "table then prose",
+    "preprocessed": "| a | b |\n| - | - |\n| 1 | 2 |\n\nProse after."
+  },
+  {
+    "blocks": [
+      {
+        "kind": "code",
+        "language": "ts",
+        "text": "const a = 1"
+      }
+    ],
+    "input": "```ts\nconst a = 1\n```",
+    "name": "fenced code with language",
+    "preprocessed": "```ts\nconst a = 1\n```"
+  },
+  {
+    "blocks": [
+      {
+        "kind": "code",
+        "text": "plain text"
+      }
+    ],
+    "input": "```\nplain text\n```",
+    "name": "fenced code without language",
+    "preprocessed": "```\nplain text\n```"
+  },
+  {
+    "blocks": [
+      {
+        "kind": "code",
+        "language": "python",
+        "text": "print(\"hi\")"
+      }
+    ],
+    "input": "~~~python\nprint(\"hi\")\n~~~",
+    "name": "tilde fence",
+    "preprocessed": "~~~python\nprint(\"hi\")\n~~~"
+  },
+  {
+    "blocks": [
+      {
+        "inline": [
+          {
+            "text": "inner"
+          }
+        ],
+        "kind": "paragraph"
+      }
+    ],
+    "input": "````md\n```\ninner\n```\n````",
+    "name": "long fence",
+    "preprocessed": "\ninner\n"
+  },
+  {
+    "blocks": [
+      {
+        "kind": "code",
+        "language": "js",
+        "text": "a()\n\n\nb()"
+      }
+    ],
+    "input": "```js\na()\n\n\nb()\n```",
+    "name": "fence with blank lines",
+    "preprocessed": "```js\na()\n\n\nb()\n```"
+  },
+  {
+    "blocks": [
+      {
+        "kind": "code",
+        "language": "python",
+        "text": "x = 1"
+      }
+    ],
+    "input": "```Python\nx = 1\n```",
+    "name": "fence with upper-case language",
+    "preprocessed": "```python\nx = 1\n```"
+  },
+  {
+    "blocks": [
+      {
+        "kind": "code",
+        "language": "js",
+        "text": "x()"
+      }
+    ],
+    "input": "```js title=\"a.js\"\nx()\n```",
+    "name": "fence with info string",
+    "preprocessed": "```js\nx()\n```"
+  },
+  {
+    "blocks": [
+      {
+        "kind": "code",
+        "text": "**not bold** [1] https://example.com"
+      }
+    ],
+    "input": "```\n**not bold** [1] https://example.com\n```",
+    "name": "fence keeps markdown literal",
+    "preprocessed": "```\n**not bold** [1] https://example.com\n```"
+  },
+  {
+    "blocks": [
+      {
+        "inline": [
+          {
+            "text": "Paragraph."
+          }
+        ],
+        "kind": "paragraph"
+      },
+      {
+        "kind": "code",
+        "text": "indented code\nmore"
+      }
+    ],
+    "input": "Paragraph.\n\n    indented code\n    more",
+    "name": "indented code",
+    "preprocessed": "Paragraph.\n\n    indented code\n    more"
+  },
+  {
+    "blocks": [
+      {
+        "inline": [
+          {
+            "text": "above"
+          }
+        ],
+        "kind": "paragraph"
+      },
+      {
+        "kind": "rule"
+      },
+      {
+        "kind": "rule"
+      },
+      {
+        "kind": "rule"
+      },
+      {
+        "inline": [
+          {
+            "text": "below"
+          }
+        ],
+        "kind": "paragraph"
+      }
+    ],
+    "input": "above\n\n---\n\n***\n\n___\n\nbelow",
+    "name": "thematic rules",
+    "preprocessed": "above\n\n---\n\n***\n\n___\n\nbelow"
+  },
+  {
+    "blocks": [
+      {
+        "kind": "mermaid",
+        "text": "flowchart TD\n  A[Start] --> B{Ready?}\n  B -->|yes| C[Ship]"
+      }
+    ],
+    "input": "```mermaid\nflowchart TD\n  A[Start] --> B{Ready?}\n  B -->|yes| C[Ship]\n```",
+    "name": "mermaid fence",
+    "preprocessed": "```mermaid\nflowchart TD\n  A[Start] --> B{Ready?}\n  B -->|yes| C[Ship]\n```"
+  },
+  {
+    "blocks": [
+      {
+        "kind": "mermaid",
+        "text": "pie title Where the minutes went\n  \"Reading\" : 42\n  \"Writing\" : 31"
+      }
+    ],
+    "input": "```mermaid\npie title Where the minutes went\n  \"Reading\" : 42\n  \"Writing\" : 31\n```",
+    "name": "mermaid pie",
+    "preprocessed": "```mermaid\npie title Where the minutes went\n  \"Reading\" : 42\n  \"Writing\" : 31\n```"
+  },
+  {
+    "blocks": [
+      {
+        "inline": [
+          {
+            "text": "The energy:"
+          }
+        ],
+        "kind": "paragraph"
+      },
+      {
+        "kind": "math",
+        "text": "\nE = mc^2\n"
+      }
+    ],
+    "input": "The energy:\n\n$$\nE = mc^2\n$$",
+    "name": "math block with dollars",
+    "preprocessed": "The energy:\n\n$$\nE = mc^2\n$$"
+  },
+  {
+    "blocks": [
+      {
+        "kind": "math",
+        "text": "\\frac{a+b}{c}"
+      }
+    ],
+    "input": "$$\\frac{a+b}{c}$$",
+    "name": "math block on one line",
+    "preprocessed": "$$\\frac{a+b}{c}$$"
+  },
+  {
+    "blocks": [
+      {
+        "inline": [
+          {
+            "text": "The energy:"
+          }
+        ],
+        "kind": "paragraph"
+      },
+      {
+        "kind": "math",
+        "text": "\nE = mc^2\n"
+      }
+    ],
+    "input": "The energy:\n\n\\[\nE = mc^2\n\\]",
+    "name": "math block with brackets",
+    "preprocessed": "The energy:\n\n\\[\nE = mc^2\n\\]"
+  },
+  {
+    "blocks": [
+      {
+        "inline": [
+          {
+            "text": "Before."
+          }
+        ],
+        "kind": "paragraph"
+      },
+      {
+        "kind": "math",
+        "text": "x^2 + y^2 = z^2"
+      },
+      {
+        "inline": [
+          {
+            "text": "After."
+          }
+        ],
+        "kind": "paragraph"
+      }
+    ],
+    "input": "Before.\n\n$$x^2 + y^2 = z^2$$\n\nAfter.",
+    "name": "math block between paragraphs",
+    "preprocessed": "Before.\n\n$$x^2 + y^2 = z^2$$\n\nAfter."
+  },
+  {
+    "blocks": [
+      {
+        "inline": [
+          {
+            "text": "$$\n$$"
+          }
+        ],
+        "kind": "paragraph"
+      }
+    ],
+    "input": "$$\n$$",
+    "name": "empty math block",
+    "preprocessed": "$$\n$$"
+  },
+  {
+    "blocks": [
+      {
+        "items": [
+          {
+            "blocks": [
+              {
+                "inline": [
+                  {
+                    "text": "one"
+                  }
+                ],
+                "kind": "paragraph"
+              }
+            ]
+          },
+          {
+            "blocks": []
+          },
+          {
+            "blocks": [
+              {
+                "inline": [
+                  {
+                    "text": "three"
+                  }
+                ],
+                "kind": "paragraph"
+              }
+            ]
+          }
+        ],
+        "kind": "list",
+        "ordered": false
+      }
+    ],
+    "input": "- one\n-\n- three",
+    "name": "empty list item",
+    "preprocessed": "- one\n-\n- three"
+  },
+  {
+    "blocks": [
+      {
+        "inline": [],
+        "kind": "heading",
+        "level": 2
+      }
+    ],
+    "input": "##",
+    "name": "empty heading",
+    "preprocessed": "##"
+  },
+  {
+    "blocks": [
+      {
+        "items": [
+          {
+            "blocks": [
+              {
+                "inline": [
+                  {
+                    "text": "one"
+                  }
+                ],
+                "kind": "heading",
+                "level": 2
+              }
+            ]
+          }
+        ],
+        "kind": "list",
+        "ordered": false
+      }
+    ],
+    "input": "- one\n  -",
+    "name": "setext underline inside a list item",
+    "preprocessed": "- one\n  -"
+  },
+  {
+    "blocks": [
+      {
+        "inline": [
+          {
+            "text": "Run this:"
+          }
+        ],
+        "kind": "paragraph"
+      },
+      {
+        "kind": "code",
+        "language": "sh",
+        "text": "ls -la"
+      },
+      {
+        "inline": [
+          {
+            "text": "Done."
+          }
+        ],
+        "kind": "paragraph"
+      }
+    ],
+    "input": "Run this:\n```sh\nls -la\n```\nDone.",
+    "name": "fence right after a paragraph",
+    "preprocessed": "Run this:\n```sh\nls -la\n```\nDone."
+  },
+  {
+    "blocks": [
+      {
+        "blocks": [
+          {
+            "inline": [
+              {
+                "text": "Title"
+              }
+            ],
+            "kind": "heading",
+            "level": 2
+          },
+          {
+            "inline": [
+              {
+                "text": "text under it"
+              }
+            ],
+            "kind": "paragraph"
+          }
+        ],
+        "kind": "quote"
+      }
+    ],
+    "input": "> ## Title\n> text under it",
+    "name": "heading inside a quote",
+    "preprocessed": "> ## Title\n> text under it"
+  },
+  {
+    "blocks": [
+      {
+        "blocks": [
+          {
+            "kind": "code",
+            "text": "quoted code"
+          }
+        ],
+        "kind": "quote"
+      }
+    ],
+    "input": "> ```\n> quoted code\n> ```",
+    "name": "code inside a quote",
+    "preprocessed": "> ```\n> quoted code\n> ```"
+  },
+  {
+    "blocks": [
+      {
+        "items": [
+          {
+            "blocks": [
+              {
+                "inline": [
+                  {
+                    "text": "ten"
+                  }
+                ],
+                "kind": "paragraph"
+              }
+            ]
+          },
+          {
+            "blocks": [
+              {
+                "inline": [
+                  {
+                    "text": "eleven"
+                  }
+                ],
+                "kind": "paragraph"
+              }
+            ]
+          }
+        ],
+        "kind": "list",
+        "ordered": true,
+        "start": 10
+      }
+    ],
+    "input": "10. ten\n11. eleven",
+    "name": "list with large start",
+    "preprocessed": "10. ten\n11. eleven"
+  },
+  {
+    "blocks": [
+      {
+        "items": [
+          {
+            "blocks": [
+              {
+                "inline": [
+                  {
+                    "text": "Prepare"
+                  }
+                ],
+                "kind": "paragraph"
+              },
+              {
+                "items": [
+                  {
+                    "blocks": [
+                      {
+                        "inline": [
+                          {
+                            "text": "fetch"
+                          }
+                        ],
+                        "kind": "paragraph"
+                      }
+                    ],
+                    "checked": true
+                  },
+                  {
+                    "blocks": [
+                      {
+                        "inline": [
+                          {
+                            "text": "build"
+                          }
+                        ],
+                        "kind": "paragraph"
+                      }
+                    ],
+                    "checked": false
+                  }
+                ],
+                "kind": "list",
+                "ordered": false
+              }
+            ]
+          },
+          {
+            "blocks": [
+              {
+                "inline": [
+                  {
+                    "text": "Ship"
+                  }
+                ],
+                "kind": "paragraph"
+              }
+            ]
+          }
+        ],
+        "kind": "list",
+        "ordered": true,
+        "start": 1
+      }
+    ],
+    "input": "1. Prepare\n   - [x] fetch\n   - [ ] build\n2. Ship",
+    "name": "mixed nested list with tasks",
+    "preprocessed": "1. Prepare\n   - [x] fetch\n   - [ ] build\n2. Ship"
+  },
+  {
+    "blocks": [
+      {
+        "items": [
+          {
+            "blocks": [
+              {
+                "inline": [
+                  {
+                    "text": "item"
+                  }
+                ],
+                "kind": "paragraph"
+              },
+              {
+                "align": [
+                  null,
+                  null
+                ],
+                "header": [
+                  [
+                    {
+                      "text": "a"
+                    }
+                  ],
+                  [
+                    {
+                      "text": "b"
+                    }
+                  ]
+                ],
+                "kind": "table",
+                "rows": [
+                  [
+                    [
+                      {
+                        "text": "1"
+                      }
+                    ],
+                    [
+                      {
+                        "text": "2"
+                      }
+                    ]
+                  ]
+                ]
+              }
+            ]
+          }
+        ],
+        "kind": "list",
+        "ordered": false
+      }
+    ],
+    "input": "- item\n\n  | a | b |\n  | - | - |\n  | 1 | 2 |",
+    "name": "table inside a list item",
+    "preprocessed": "- item\n\n  | a | b |\n  | - | - |\n  | 1 | 2 |"
+  },
+  {
+    "blocks": [
+      {
+        "inline": [
+          {
+            "text": "Look: a bar chart of weekly runs"
+          }
+        ],
+        "kind": "paragraph"
+      }
+    ],
+    "input": "Look: ![a bar chart of weekly runs](https://example.com/chart.png)",
+    "name": "image",
+    "preprocessed": "Look: ![a bar chart of weekly runs](https://example.com/chart.png)"
+  },
+  {
+    "blocks": [
+      {
+        "kind": "html",
+        "text": "<div>\nraw html\n</div>"
+      },
+      {
+        "inline": [
+          {
+            "text": "After."
+          }
+        ],
+        "kind": "paragraph"
+      }
+    ],
+    "input": "<div>\nraw html\n</div>\n\nAfter.",
+    "name": "html block",
+    "preprocessed": "<div>\nraw html\n</div>\n\nAfter."
+  },
+  {
+    "blocks": [
+      {
+        "inline": [
+          {
+            "text": "Title"
+          }
+        ],
+        "kind": "heading",
+        "level": 1
+      },
+      {
+        "inline": [
+          {
+            "text": "Body with "
+          },
+          {
+            "marks": [
+              "bold"
+            ],
+            "text": "bold"
+          },
+          {
+            "text": ", "
+          },
+          {
+            "marks": [
+              "italic"
+            ],
+            "text": "italic"
+          },
+          {
+            "text": ", "
+          },
+          {
+            "marks": [
+              "strike"
+            ],
+            "text": "struck"
+          },
+          {
+            "text": " and "
+          },
+          {
+            "marks": [
+              "code"
+            ],
+            "text": "code"
+          },
+          {
+            "text": "."
+          }
+        ],
+        "kind": "paragraph"
+      },
+      {
+        "items": [
+          {
+            "blocks": [
+              {
+                "inline": [
+                  {
+                    "text": "one"
+                  }
+                ],
+                "kind": "paragraph"
+              },
+              {
+                "items": [
+                  {
+                    "blocks": [
+                      {
+                        "inline": [
+                          {
+                            "text": "nested"
+                          }
+                        ],
+                        "kind": "paragraph"
+                      }
+                    ]
+                  }
+                ],
+                "kind": "list",
+                "ordered": false
+              }
+            ]
+          }
+        ],
+        "kind": "list",
+        "ordered": false
+      },
+      {
+        "items": [
+          {
+            "blocks": [
+              {
+                "inline": [
+                  {
+                    "text": "first"
+                  }
+                ],
+                "kind": "paragraph"
+              }
+            ]
+          }
+        ],
+        "kind": "list",
+        "ordered": true,
+        "start": 1
+      },
+      {
+        "blocks": [
+          {
+            "inline": [
+              {
+                "text": "quoted"
+              }
+            ],
+            "kind": "paragraph"
+          }
+        ],
+        "kind": "quote"
+      },
+      {
+        "align": [
+          null,
+          null
+        ],
+        "header": [
+          [
+            {
+              "text": "Area"
+            }
+          ],
+          [
+            {
+              "text": "Status"
+            }
+          ]
+        ],
+        "kind": "table",
+        "rows": [
+          [
+            [
+              {
+                "text": "Recovery"
+              }
+            ],
+            [
+              {
+                "text": "Shipped"
+              }
+            ]
+          ]
+        ]
+      },
+      {
+        "kind": "rule"
+      },
+      {
+        "kind": "code",
+        "language": "ts",
+        "text": "const a = 1"
+      },
+      {
+        "inline": [
+          {
+            "link": "https://example.com/x",
+            "text": "link"
+          }
+        ],
+        "kind": "paragraph"
+      }
+    ],
+    "input": "# Title\n\nBody with **bold**, *italic*, ~~struck~~ and `code`.\n\n- one\n  - nested\n\n1. first\n\n> quoted\n\n| Area | Status |\n| --- | --- |\n| Recovery | Shipped |\n\n---\n\n```ts\nconst a = 1\n```\n\n[link](https://example.com/x)",
+    "name": "every block kind",
+    "preprocessed": "# Title\n\nBody with **bold**, *italic*, ~~struck~~ and `code`.\n\n- one\n  - nested\n\n1. first\n\n> quoted\n\n| Area | Status |\n| --- | --- |\n| Recovery | Shipped |\n\n---\n\n```ts\nconst a = 1\n```\n\n[link](https://example.com/x)"
+  }
+]
