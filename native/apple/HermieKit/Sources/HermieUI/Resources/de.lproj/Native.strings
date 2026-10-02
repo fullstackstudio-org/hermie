@@ -6,6 +6,16 @@
 	<string>Build</string>
 	<key>native.about.commit</key>
 	<string>Commit</string>
+	<key>native.account.failed</key>
+	<string>Hermie konnte das Gateway nicht fragen, wer du bist. Prüfe die Verbindung und versuche es erneut.</string>
+	<key>native.account.loading</key>
+	<string>Gateway wird gefragt…</string>
+	<key>native.account.noGateway</key>
+	<string>Auf diesem Gerät ist noch kein Gateway eingerichtet.</string>
+	<key>native.account.signOutConfirm</key>
+	<string>Von diesem Gateway abmelden? Die Adresse bleibt erhalten, und du kannst dich jederzeit wieder anmelden.</string>
+	<key>native.account.userId</key>
+	<string>Benutzer-ID</string>
 	<key>native.commands.find</key>
 	<string>Suchen…</string>
 	<key>native.commands.newChatWindow</key>
@@ -48,6 +58,14 @@
 	<string>Hermie ist ausgeblendet, solange die App nicht im Vordergrund ist.</string>
 	<key>native.lock.settingUnknown</key>
 	<string>Die Sperreinstellung konnte nicht gelesen werden, daher sperrt sich Hermie jedes Mal, wenn du die App verlässt. Wähle eine Einstellung, die bleiben soll.</string>
+	<key>native.loopback.rejected.message</key>
+	<string>Diese Anfrage gehört nicht zu der Anmeldung, auf die Hermie wartet. Kehre zu Hermie zurück und starte die Anmeldung neu.</string>
+	<key>native.loopback.rejected.title</key>
+	<string>Keine Hermie-Anmeldung</string>
+	<key>native.loopback.success.message</key>
+	<string>Hermie schließt die Anmeldung ab. Diese Seite kann geschlossen werden.</string>
+	<key>native.loopback.success.title</key>
+	<string>Du kannst zu Hermie zurückkehren</string>
 	<key>native.notice.gatewayNotConfigured</key>
 	<string>Dieser Link gehört zu einem Gateway, das dieses Gerät nicht kennt. Füge das Gateway zuerst hinzu.</string>
 	<key>native.notice.lockSettingNotRestored</key>
@@ -58,6 +76,26 @@
 	<string>Die lokalen Daten von Hermie waren beschädigt und wurden neu angelegt. Alles, was noch lesbar war, wurde behalten.</string>
 	<key>native.notice.runningInMemory</key>
 	<string>Hermie konnte seinen Speicher nicht öffnen. Was du jetzt änderst, geht verloren, sobald Hermie beendet wird.</string>
+	<key>native.onboarding.confirmCleartext</key>
+	<string>Trotzdem über unverschlüsseltes http:// fortfahren</string>
+	<key>native.onboarding.confirmCleartextHint</key>
+	<string>Hermie sendet deine Nachrichten und deine Anmeldung unverschlüsselt an diese Adresse.</string>
+	<key>native.onboarding.continueHint</key>
+	<string>Verfügbar, sobald dieser Schritt erledigt ist.</string>
+	<key>native.onboarding.header.invalidName</key>
+	<string>Das ist kein gültiger Header-Name.</string>
+	<key>native.onboarding.header.reserved</key>
+	<string>Diesen Header setzt Hermie selbst.</string>
+	<key>native.onboarding.save.addressChanged</key>
+	<string>Dieses Gateway antwortet jetzt unter einer anderen Adresse, deshalb wurde nichts gespeichert. Füge es als neues Gateway hinzu.</string>
+	<key>native.onboarding.save.gatewayRemoved</key>
+	<string>Dieses Gateway wurde entfernt, während du dich angemeldet hast, deshalb wurde nichts gespeichert.</string>
+	<key>native.onboarding.save.keychainReason</key>
+	<string>der Schlüsselbund hat das Speichern verweigert.</string>
+	<key>native.onboarding.save.storeReason</key>
+	<string>die lokale Datenbank hat die Änderung verweigert.</string>
+	<key>native.onboarding.save.unsupportedRegistry</key>
+	<string>Die Gateway-Liste auf diesem Gerät stammt von einer neueren Hermie-Version, deshalb wurde nichts geändert. Aktualisiere Hermie und versuche es erneut.</string>
 	<key>native.push.cannotDeliverPlugin</key>
 	<string>Dieses Gateway kann noch nicht an dieses Gerät zustellen: Das Hermie-Plugin ist zu alt. Aktualisiere das Plugin auf dem Gateway.</string>
 	<key>native.push.cannotDeliverRelay</key>
@@ -106,6 +144,36 @@
 	<string>Erneut versuchen</string>
 	<key>native.requests.sending</key>
 	<string>Deine Antwort wird gesendet…</string>
+	<key>native.signIn.browserHint</key>
+	<string>Die Anmeldeseite öffnet sich in deinem Browser, wo deine bestehende Anmeldung und das automatische Ausfüllen von Passwörtern verfügbar sind. Hermie erhält nur das Ergebnis, auf diesem Gerät.</string>
+	<key>native.signIn.browserMayBeRefused</key>
+	<string>Funktioniert nur, wenn die Access-Richtlinie dich auch als Person im Browser anmelden lässt.</string>
+	<key>native.signIn.browserUnavailable</key>
+	<string>Die Anmeldung im Browser konnte nicht geöffnet werden. Melde dich stattdessen in Hermie an.</string>
+	<key>native.signIn.checking</key>
+	<string>Wird beim Gateway geprüft…</string>
+	<key>native.signIn.headersNeedInApp</key>
+	<string>Dieses Gateway braucht zusätzliche Header, die dein Browser nicht mitsenden kann, deshalb meldest du dich in Hermie an.</string>
+	<key>native.signIn.inApp</key>
+	<string>Probleme? In Hermie anmelden</string>
+	<key>native.signIn.inAppHint</key>
+	<string>Öffnet die Anmeldeseite des Gateways in Hermie statt in deinem Browser. Hermie vergisst die Cookies dieser Seite danach.</string>
+	<key>native.signIn.listenerUnavailable</key>
+	<string>Hermie konnte auf diesem Gerät nicht auf das Ergebnis der Anmeldung warten. Melde dich stattdessen in Hermie an.</string>
+	<key>native.signIn.loadFailed</key>
+	<string>Die Einstellungen dieses Gateways konnten auf diesem Gerät nicht gelesen werden.</string>
+	<key>native.signIn.pageLoadFailed</key>
+	<string>Die Anmeldeseite konnte nicht geladen werden. Prüfe die öffentliche Adresse des Gateways.</string>
+	<key>native.signIn.portInUse</key>
+	<string>Eine andere App auf diesem Gerät wartet bereits auf eine Anmeldung unter 127.0.0.1:38007 – vielleicht die Hermes-Desktop-App. Beende sie und versuche es erneut, oder melde dich in Hermie an.</string>
+	<key>native.signIn.providerRefused</key>
+	<string>Das Gateway oder sein Identitätsanbieter hat die Anmeldung abgelehnt. Versuche es erneut oder frage, wer das Gateway betreibt.</string>
+	<key>native.signIn.tokenRejected</key>
+	<string>Das Gateway hat dieses Sitzungstoken nicht akzeptiert. Kopiere es erneut von dem Rechner, auf dem hermes serve läuft.</string>
+	<key>native.signIn.useBrowserInstead</key>
+	<string>Stattdessen den Browser verwenden</string>
+	<key>native.signIn.waitingForBrowser</key>
+	<string>Warte auf die Anmeldung im Browser…</string>
 	<key>native.transcript.unsupportedItem</key>
 	<string>Diese Nachricht (%@) braucht eine neuere Version von Hermie.</string>
 </dict>

@@ -163,6 +163,23 @@ import Testing
     #expect(result.foundOverHTTP)
   }
 
+  @Test("the fallback to http on a public host leaves the custom headers behind; on a private one it keeps them")
+  func fallbackWithholdsHeadersInPublic() async throws {
+    let headers = ["X-Proxy-Key": "shared-secret"]
+    let publicServer = Self.stubScheme("http")
+    let exposed = try await Self.resolve("gateway.example.com", publicServer, headers: headers)
+
+    #expect(exposed.foundOverHTTP)
+    #expect(publicServer.requests.filter { $0.scheme == "https" }.allSatisfy { $0.header("X-Proxy-Key") == "shared-secret" })
+    #expect(publicServer.requests.filter { $0.scheme == "http" }.allSatisfy { $0.header("X-Proxy-Key") == nil })
+
+    let privateServer = Self.stubScheme("http")
+    _ = try await Self.resolve("hermes.tail9f3c.ts.net", privateServer, headers: headers)
+
+    #expect(privateServer.requests.filter { $0.scheme == "http" }.allSatisfy { $0.header("X-Proxy-Key") == "shared-secret" })
+    #expect(!privateServer.requests.filter { $0.scheme == "http" }.isEmpty)
+  }
+
   @Test("keeps a port and a path prefix across the fallback")
   func keepsPortAndPrefix() async throws {
     let result = try await Self.resolve("192.168.2.250:9119/hermes", Self.stubScheme("http"))

@@ -71,7 +71,7 @@ final class HermieShellUITests: XCTestCase {
     try audit(app)
 
     app.buttons["hermie.welcome.setUp"].tap()
-    XCTAssertTrue(app.otherElements["hermie.onboarding.placeholder"].waitForExistence(timeout: 5))
+    XCTAssertTrue(element(app, "hermie.onboarding.address").waitForExistence(timeout: 5))
   }
 
   /// The first frame with a lock configured is never the app: the gate draws nothing, then the plate.

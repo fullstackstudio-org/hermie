@@ -182,7 +182,9 @@ import Testing
     #expect(sent.header("X-Custom") == "1")
   }
 
-  @Test("without a front door the fallback still runs, with the custom headers on both attempts")
+  /// Diverges from `front-door-transport.test.ts`, which sends the custom headers on both attempts: on
+  /// a public host nobody has agreed to plain http yet, so the cleartext attempt goes without them.
+  @Test("without a front door the fallback still runs; on a public host the http attempt leaves the custom headers out")
   func customHeadersOnly() async throws {
     let server = Self.blocked443()
 
@@ -190,6 +192,18 @@ import Testing
 
     #expect(resolved.foundOverHTTP)
     #expect(server.requests.map(\.scheme) == ["https", "http"])
+    #expect(server.requests.allSatisfy { Self.noAccessHeaders($0) })
+    #expect(server.requests.first?.header("X-Custom") == "1")
+    #expect(server.requests.last?.header("X-Custom") == nil)
+  }
+
+  @Test("on a private host the fallback keeps the custom headers on both attempts")
+  func customHeadersOnlyPrivate() async throws {
+    let server = Self.blocked443()
+
+    let resolved = try await Probe.resolveGatewayAddress("192.168.2.250:9119", customHeaders: ["X-Custom": "1"], transport: server.transport())
+
+    #expect(resolved.foundOverHTTP)
     #expect(server.requests.allSatisfy { $0.header("X-Custom") == "1" && Self.noAccessHeaders($0) })
   }
 

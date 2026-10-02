@@ -47,6 +47,121 @@
         }
       }
     },
+    "native.account.failed" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Hermie konnte das Gateway nicht fragen, wer du bist. Prüfe die Verbindung und versuche es erneut."
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Hermie could not ask the gateway who you are. Check the connection and try again."
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Hermie kon de gateway niet vragen wie je bent. Controleer de verbinding en probeer het opnieuw."
+          }
+        }
+      }
+    },
+    "native.account.loading" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Gateway wird gefragt…"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Asking the gateway…"
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "De gateway vragen…"
+          }
+        }
+      }
+    },
+    "native.account.noGateway" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Auf diesem Gerät ist noch kein Gateway eingerichtet."
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "No gateway is set up on this device yet."
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Er is nog geen gateway ingesteld op dit apparaat."
+          }
+        }
+      }
+    },
+    "native.account.signOutConfirm" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Von diesem Gateway abmelden? Die Adresse bleibt erhalten, und du kannst dich jederzeit wieder anmelden."
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Sign out of this gateway? Its address stays, and you can sign in again at any time."
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Afmelden bij deze gateway? Het adres blijft bewaard en je kunt je altijd opnieuw aanmelden."
+          }
+        }
+      }
+    },
+    "native.account.userId" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Benutzer-ID"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "User ID"
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Gebruikers-ID"
+          }
+        }
+      }
+    },
     "native.commands.find" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -538,6 +653,98 @@
         }
       }
     },
+    "native.loopback.rejected.message" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Diese Anfrage gehört nicht zu der Anmeldung, auf die Hermie wartet. Kehre zu Hermie zurück und starte die Anmeldung neu."
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "This request does not belong to the sign-in Hermie is waiting for. Return to Hermie and start the sign-in again."
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Dit verzoek hoort niet bij de aanmelding waar Hermie op wacht. Ga terug naar Hermie en begin opnieuw met aanmelden."
+          }
+        }
+      }
+    },
+    "native.loopback.rejected.title" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Keine Hermie-Anmeldung"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Not a Hermie sign-in"
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Geen aanmelding van Hermie"
+          }
+        }
+      }
+    },
+    "native.loopback.success.message" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Hermie schließt die Anmeldung ab. Diese Seite kann geschlossen werden."
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Hermie finishes the sign-in. This page can be closed."
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Hermie rondt de aanmelding af. Deze pagina mag dicht."
+          }
+        }
+      }
+    },
+    "native.loopback.success.title" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Du kannst zu Hermie zurückkehren"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "You can return to Hermie"
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Je kunt teruggaan naar Hermie"
+          }
+        }
+      }
+    },
     "native.notice.gatewayNotConfigured" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -649,6 +856,236 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Hermie kon zijn opslag niet openen. Wat je nu verandert, is weg zodra Hermie stopt."
+          }
+        }
+      }
+    },
+    "native.onboarding.confirmCleartext" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Trotzdem über unverschlüsseltes http:// fortfahren"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Continue over plain http:// anyway"
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Toch doorgaan via onversleuteld http://"
+          }
+        }
+      }
+    },
+    "native.onboarding.confirmCleartextHint" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Hermie sendet deine Nachrichten und deine Anmeldung unverschlüsselt an diese Adresse."
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Hermie will send your messages and your sign-in to this address unencrypted."
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Hermie stuurt je berichten en je aanmelding onversleuteld naar dit adres."
+          }
+        }
+      }
+    },
+    "native.onboarding.continueHint" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Verfügbar, sobald dieser Schritt erledigt ist."
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Available once this step is complete."
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Beschikbaar zodra deze stap klaar is."
+          }
+        }
+      }
+    },
+    "native.onboarding.header.invalidName" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Das ist kein gültiger Header-Name."
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "This is not a valid header name."
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Dit is geen geldige headernaam."
+          }
+        }
+      }
+    },
+    "native.onboarding.header.reserved" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Diesen Header setzt Hermie selbst."
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Hermie sets this header itself."
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Hermie zet deze header zelf."
+          }
+        }
+      }
+    },
+    "native.onboarding.save.addressChanged" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Dieses Gateway antwortet jetzt unter einer anderen Adresse, deshalb wurde nichts gespeichert. Füge es als neues Gateway hinzu."
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "This gateway now answers at another address, so nothing was stored. Add it again as a new gateway."
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Deze gateway antwoordt nu op een ander adres, dus er is niets opgeslagen. Voeg hem opnieuw toe als nieuwe gateway."
+          }
+        }
+      }
+    },
+    "native.onboarding.save.gatewayRemoved" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Dieses Gateway wurde entfernt, während du dich angemeldet hast, deshalb wurde nichts gespeichert."
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "This gateway was removed while you were signing in, so nothing was stored."
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Deze gateway is verwijderd terwijl je je aanmeldde, dus er is niets opgeslagen."
+          }
+        }
+      }
+    },
+    "native.onboarding.save.keychainReason" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "der Schlüsselbund hat das Speichern verweigert."
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "the keychain refused to store them."
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "de sleutelhanger weigerde ze op te slaan."
+          }
+        }
+      }
+    },
+    "native.onboarding.save.storeReason" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "die lokale Datenbank hat die Änderung verweigert."
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "the local database refused the change."
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "de lokale database weigerde de wijziging."
+          }
+        }
+      }
+    },
+    "native.onboarding.save.unsupportedRegistry" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Die Gateway-Liste auf diesem Gerät stammt von einer neueren Hermie-Version, deshalb wurde nichts geändert. Aktualisiere Hermie und versuche es erneut."
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "The gateway list on this device was written by a newer version of Hermie, so nothing was changed. Update Hermie and try again."
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "De gatewaylijst op dit apparaat is geschreven door een nieuwere versie van Hermie, dus er is niets gewijzigd. Werk Hermie bij en probeer het opnieuw."
           }
         }
       }
@@ -1208,6 +1645,351 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Je antwoord wordt verstuurd…"
+          }
+        }
+      }
+    },
+    "native.signIn.browserHint" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Die Anmeldeseite öffnet sich in deinem Browser, wo deine bestehende Anmeldung und das automatische Ausfüllen von Passwörtern verfügbar sind. Hermie erhält nur das Ergebnis, auf diesem Gerät."
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "The sign-in page opens in your browser, where your existing sign-in and its password AutoFill are available. Hermie only receives the result, on this device."
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "De aanmeldpagina opent in je browser, waar je bestaande aanmelding en het automatisch invullen van wachtwoorden beschikbaar zijn. Hermie ontvangt alleen het resultaat, op dit apparaat."
+          }
+        }
+      }
+    },
+    "native.signIn.browserMayBeRefused" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Funktioniert nur, wenn die Access-Richtlinie dich auch als Person im Browser anmelden lässt."
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Only works when the Access policy also lets you sign in as a person in the browser."
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Werkt alleen als het Access-beleid je ook als persoon in de browser laat inloggen."
+          }
+        }
+      }
+    },
+    "native.signIn.browserUnavailable" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Die Anmeldung im Browser konnte nicht geöffnet werden. Melde dich stattdessen in Hermie an."
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "The browser sign-in could not be opened. Sign in inside Hermie instead."
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "De aanmelding in de browser kon niet worden geopend. Meld je in plaats daarvan aan binnen Hermie."
+          }
+        }
+      }
+    },
+    "native.signIn.checking" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Wird beim Gateway geprüft…"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Checking with the gateway…"
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Controleren bij de gateway…"
+          }
+        }
+      }
+    },
+    "native.signIn.headersNeedInApp" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Dieses Gateway braucht zusätzliche Header, die dein Browser nicht mitsenden kann, deshalb meldest du dich in Hermie an."
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "This gateway needs extra headers, which your browser cannot send, so you sign in inside Hermie."
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Deze gateway heeft extra headers nodig die je browser niet kan meesturen, dus je meldt je aan binnen Hermie."
+          }
+        }
+      }
+    },
+    "native.signIn.inApp" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Probleme? In Hermie anmelden"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Having trouble? Sign in inside Hermie"
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Lukt het niet? Meld je aan binnen Hermie"
+          }
+        }
+      }
+    },
+    "native.signIn.inAppHint" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Öffnet die Anmeldeseite des Gateways in Hermie statt in deinem Browser. Hermie vergisst die Cookies dieser Seite danach."
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Opens the gateway’s sign-in page inside Hermie instead of your browser. Hermie forgets that page’s cookies afterwards."
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Opent de aanmeldpagina van de gateway binnen Hermie in plaats van in je browser. Hermie vergeet de cookies van die pagina daarna."
+          }
+        }
+      }
+    },
+    "native.signIn.listenerUnavailable" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Hermie konnte auf diesem Gerät nicht auf das Ergebnis der Anmeldung warten. Melde dich stattdessen in Hermie an."
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Hermie could not wait for the sign-in result on this device. Sign in inside Hermie instead."
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Hermie kon op dit apparaat niet wachten op het resultaat van de aanmelding. Meld je in plaats daarvan aan binnen Hermie."
+          }
+        }
+      }
+    },
+    "native.signIn.loadFailed" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Die Einstellungen dieses Gateways konnten auf diesem Gerät nicht gelesen werden."
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "The settings of this gateway could not be read on this device."
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "De instellingen van deze gateway konden op dit apparaat niet worden gelezen."
+          }
+        }
+      }
+    },
+    "native.signIn.pageLoadFailed" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Die Anmeldeseite konnte nicht geladen werden. Prüfe die öffentliche Adresse des Gateways."
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "The sign-in page could not be loaded. Check the gateway’s public address."
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "De aanmeldpagina kon niet worden geladen. Controleer het openbare adres van de gateway."
+          }
+        }
+      }
+    },
+    "native.signIn.portInUse" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Eine andere App auf diesem Gerät wartet bereits auf eine Anmeldung unter 127.0.0.1:38007 – vielleicht die Hermes-Desktop-App. Beende sie und versuche es erneut, oder melde dich in Hermie an."
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Another app on this device is already waiting for a sign-in at 127.0.0.1:38007 — the Hermes desktop app, perhaps. Quit it and try again, or sign in inside Hermie instead."
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Een andere app op dit apparaat wacht al op een aanmelding op 127.0.0.1:38007 — misschien de Hermes-desktopapp. Sluit die af en probeer het opnieuw, of meld je aan binnen Hermie."
+          }
+        }
+      }
+    },
+    "native.signIn.providerRefused" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Das Gateway oder sein Identitätsanbieter hat die Anmeldung abgelehnt. Versuche es erneut oder frage, wer das Gateway betreibt."
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "The gateway or its identity provider refused the sign-in. Try again, or ask whoever runs the gateway."
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "De gateway of de identiteitsprovider weigerde de aanmelding. Probeer het opnieuw, of vraag het aan wie de gateway beheert."
+          }
+        }
+      }
+    },
+    "native.signIn.tokenRejected" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Das Gateway hat dieses Sitzungstoken nicht akzeptiert. Kopiere es erneut von dem Rechner, auf dem hermes serve läuft."
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "The gateway did not accept this session token. Copy it again from the machine running hermes serve."
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "De gateway accepteerde dit sessietoken niet. Kopieer het opnieuw van de machine waarop hermes serve draait."
+          }
+        }
+      }
+    },
+    "native.signIn.useBrowserInstead" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Stattdessen den Browser verwenden"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Use the browser instead"
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Toch de browser gebruiken"
+          }
+        }
+      }
+    },
+    "native.signIn.waitingForBrowser" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Warte auf die Anmeldung im Browser…"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Waiting for the sign-in in your browser…"
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Wachten op de aanmelding in je browser…"
           }
         }
       }

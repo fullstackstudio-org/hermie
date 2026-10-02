@@ -6,6 +6,16 @@
 	<string>Build</string>
 	<key>native.about.commit</key>
 	<string>Commit</string>
+	<key>native.account.failed</key>
+	<string>Hermie could not ask the gateway who you are. Check the connection and try again.</string>
+	<key>native.account.loading</key>
+	<string>Asking the gateway…</string>
+	<key>native.account.noGateway</key>
+	<string>No gateway is set up on this device yet.</string>
+	<key>native.account.signOutConfirm</key>
+	<string>Sign out of this gateway? Its address stays, and you can sign in again at any time.</string>
+	<key>native.account.userId</key>
+	<string>User ID</string>
 	<key>native.commands.find</key>
 	<string>Find…</string>
 	<key>native.commands.newChatWindow</key>
@@ -48,6 +58,14 @@
 	<string>Hermie is hidden while it is not in front.</string>
 	<key>native.lock.settingUnknown</key>
 	<string>The lock setting could not be read, so Hermie locks every time you leave it. Choose a setting to keep.</string>
+	<key>native.loopback.rejected.message</key>
+	<string>This request does not belong to the sign-in Hermie is waiting for. Return to Hermie and start the sign-in again.</string>
+	<key>native.loopback.rejected.title</key>
+	<string>Not a Hermie sign-in</string>
+	<key>native.loopback.success.message</key>
+	<string>Hermie finishes the sign-in. This page can be closed.</string>
+	<key>native.loopback.success.title</key>
+	<string>You can return to Hermie</string>
 	<key>native.notice.gatewayNotConfigured</key>
 	<string>That link is for a gateway this device does not know. Add the gateway first.</string>
 	<key>native.notice.lockSettingNotRestored</key>
@@ -58,6 +76,26 @@
 	<string>Hermie’s local data was damaged and has been rebuilt. Everything that could still be read was kept.</string>
 	<key>native.notice.runningInMemory</key>
 	<string>Hermie could not open its storage. Nothing you change now is kept after Hermie quits.</string>
+	<key>native.onboarding.confirmCleartext</key>
+	<string>Continue over plain http:// anyway</string>
+	<key>native.onboarding.confirmCleartextHint</key>
+	<string>Hermie will send your messages and your sign-in to this address unencrypted.</string>
+	<key>native.onboarding.continueHint</key>
+	<string>Available once this step is complete.</string>
+	<key>native.onboarding.header.invalidName</key>
+	<string>This is not a valid header name.</string>
+	<key>native.onboarding.header.reserved</key>
+	<string>Hermie sets this header itself.</string>
+	<key>native.onboarding.save.addressChanged</key>
+	<string>This gateway now answers at another address, so nothing was stored. Add it again as a new gateway.</string>
+	<key>native.onboarding.save.gatewayRemoved</key>
+	<string>This gateway was removed while you were signing in, so nothing was stored.</string>
+	<key>native.onboarding.save.keychainReason</key>
+	<string>the keychain refused to store them.</string>
+	<key>native.onboarding.save.storeReason</key>
+	<string>the local database refused the change.</string>
+	<key>native.onboarding.save.unsupportedRegistry</key>
+	<string>The gateway list on this device was written by a newer version of Hermie, so nothing was changed. Update Hermie and try again.</string>
 	<key>native.push.cannotDeliverPlugin</key>
 	<string>This gateway cannot deliver to this device yet: its Hermie plugin is too old. Update the plugin on the gateway.</string>
 	<key>native.push.cannotDeliverRelay</key>
@@ -106,6 +144,36 @@
 	<string>Try again</string>
 	<key>native.requests.sending</key>
 	<string>Sending your answer…</string>
+	<key>native.signIn.browserHint</key>
+	<string>The sign-in page opens in your browser, where your existing sign-in and its password AutoFill are available. Hermie only receives the result, on this device.</string>
+	<key>native.signIn.browserMayBeRefused</key>
+	<string>Only works when the Access policy also lets you sign in as a person in the browser.</string>
+	<key>native.signIn.browserUnavailable</key>
+	<string>The browser sign-in could not be opened. Sign in inside Hermie instead.</string>
+	<key>native.signIn.checking</key>
+	<string>Checking with the gateway…</string>
+	<key>native.signIn.headersNeedInApp</key>
+	<string>This gateway needs extra headers, which your browser cannot send, so you sign in inside Hermie.</string>
+	<key>native.signIn.inApp</key>
+	<string>Having trouble? Sign in inside Hermie</string>
+	<key>native.signIn.inAppHint</key>
+	<string>Opens the gateway’s sign-in page inside Hermie instead of your browser. Hermie forgets that page’s cookies afterwards.</string>
+	<key>native.signIn.listenerUnavailable</key>
+	<string>Hermie could not wait for the sign-in result on this device. Sign in inside Hermie instead.</string>
+	<key>native.signIn.loadFailed</key>
+	<string>The settings of this gateway could not be read on this device.</string>
+	<key>native.signIn.pageLoadFailed</key>
+	<string>The sign-in page could not be loaded. Check the gateway’s public address.</string>
+	<key>native.signIn.portInUse</key>
+	<string>Another app on this device is already waiting for a sign-in at 127.0.0.1:38007 — the Hermes desktop app, perhaps. Quit it and try again, or sign in inside Hermie instead.</string>
+	<key>native.signIn.providerRefused</key>
+	<string>The gateway or its identity provider refused the sign-in. Try again, or ask whoever runs the gateway.</string>
+	<key>native.signIn.tokenRejected</key>
+	<string>The gateway did not accept this session token. Copy it again from the machine running hermes serve.</string>
+	<key>native.signIn.useBrowserInstead</key>
+	<string>Use the browser instead</string>
+	<key>native.signIn.waitingForBrowser</key>
+	<string>Waiting for the sign-in in your browser…</string>
 	<key>native.transcript.unsupportedItem</key>
 	<string>This message (%@) needs a newer version of Hermie.</string>
 </dict>

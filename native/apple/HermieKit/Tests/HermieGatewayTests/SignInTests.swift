@@ -157,6 +157,33 @@ func query(_ url: String, _ name: String) -> String? {
     #expect(query(second, "provider") == nil)
   }
 
+  @Test("an attempt begun with a loopback listener's own port takes that callback, and only that one")
+  func ownRedirectURI() async throws {
+    let server = StubServer { _ in .json("{\"access_token\":\"at-1\",\"refresh_token\":\"rt-1\",\"expires_at\":5000}") }
+    let credentials = Self.credentials(server)
+    let redirect = "http://127.0.0.1:51234/callback"
+    let url = try await credentials.beginSignIn(redirectURI: redirect).authorizeURL
+    let state = try #require(query(url, "state"))
+
+    #expect(query(url, "redirect_uri") == redirect)
+    #expect(
+      SignInNavigation.decide("\(redirect)?code=c&state=\(state)", expectedState: state, gatewayBaseURL: "https://gateway.test", redirectURI: redirect)
+        == .callback
+    )
+    // The fixed port is not this attempt's callback; it is somewhere else on this device.
+    #expect(
+      SignInNavigation.decide(
+        "http://127.0.0.1:38007/callback?code=c&state=\(state)",
+        expectedState: state,
+        gatewayBaseURL: "https://gateway.test",
+        redirectURI: redirect
+      ) == .fail(.blockedNavigation)
+    )
+
+    let saved = try await credentials.completeSignIn(redirectURL: "\(redirect)?code=c&state=\(state)")
+    #expect(saved.accessToken == "at-1")
+  }
+
   @Test("completes once, with the verifier that matches the challenge, and saves the tokens")
   func completes() async throws {
     let server = StubServer { _ in .json("{\"access_token\":\"at-1\",\"refresh_token\":\"rt-1\",\"expires_at\":5000}") }

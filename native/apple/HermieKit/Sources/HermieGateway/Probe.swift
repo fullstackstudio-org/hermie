@@ -307,8 +307,12 @@ public enum Probe {
       throw httpsFailure.error
     }
 
+    // Nobody has agreed to plain http yet: on a host anyone can be on the path to, the custom
+    // headers (a proxy's shared secret, often) stay back, as the front door does on any http.
+    let cleartextHeaders = HostClassification.isExposedCleartext(cleartextURL) ? [:] : headers(cleartextURL)
+
     do {
-      let probe = try await probeGateway(cleartextURL, extraHeaders: headers(cleartextURL), transport: transport)
+      let probe = try await probeGateway(cleartextURL, extraHeaders: cleartextHeaders, transport: transport)
       return ResolvedAddress(probe: probe, baseURL: cleartextURL, foundOverHTTP: true)
     } catch {
       // A redirect is the address saying it has moved, not a failure to reach it.

@@ -25,11 +25,11 @@
 #                                                transcript lab's HermieLab) on a throwaway
 #                                                iPhone and a throwaway iPad, created for the
 #                                                run and deleted after it. The lab's composer
-#                                                tests run against a fake gateway started on
-#                                                this Mac for the run (node and the workspace
-#                                                needed; without them they skip). HERMIE_SIM_PAD_TYPE
-#                                                overrides the iPad type (default iPad Pro
-#                                                11-inch (M5)).
+#                                                tests and the onboarding tests run against
+#                                                fake gateways started on this Mac for the run
+#                                                (node and the workspace needed; without them
+#                                                they skip). HERMIE_SIM_PAD_TYPE overrides the
+#                                                iPad type (default iPad Pro 11-inch (M5)).
 #   native/apple/scripts/test.sh --ui-mac        also run the transcript lab's UI tests (HermieLab)
 #                                                on this Mac. They drive the real pointer and
 #                                                keyboard while they run, and the test runner
@@ -122,53 +122,70 @@ fi
 
 derived="$apple_dir/DerivedData"
 
-# A fake gateway on the host for the lab's composer UI tests, which the
-# simulator (or the Mac) reaches on 127.0.0.1. Its address goes to the test
-# runner as TEST_RUNNER_HERMIE_LAB_GATEWAY; without node or the workspace the
-# composer tests skip themselves. It streams slowly enough to be stopped, and a
-# watchdog takes it down when this script's end of its stdin closes.
-lab_gateway_pid=""
-start_lab_gateway() {
+# Fake gateways on the host for the UI tests, which the simulator (or the Mac) reaches on
+# 127.0.0.1: the lab's composer tests get one that streams slowly enough to be stopped
+# (TEST_RUNNER_HERMIE_LAB_GATEWAY), and the onboarding tests an ungated, a token and a
+# native-sign-in one (TEST_RUNNER_HERMIE_FAKE_GATEWAY_NONE, _TOKEN, _NATIVE). Each listens on a
+# port of its own (--port 0, read back from its listening line), and a watchdog takes it down
+# when this script's end of its stdin closes. Without node or the workspace the tests that need
+# one skip themselves.
+fake_gateway_pids=()
+fake_gateway_logs=()
+fake_gateway_fd=6
+start_fake_gateway() {
+  local variable="$1"
+  shift
+
   if ! command -v node >/dev/null 2>&1 || [[ ! -f "$repo_dir/node_modules/tsx/package.json" ]]; then
-    echo "No fake gateway for the composer UI tests (node or the workspace is missing); they will skip." >&2
+    echo "No fake gateway for $variable (node or the workspace is missing); its UI tests will skip." >&2
     return
   fi
 
   local log
-  log="$(mktemp -t hermie-lab-gateway)"
+  log="$(mktemp -t hermie-ui-gateway)"
+  fake_gateway_logs+=("$log")
   local watchdog="data:text/javascript,process.stdin.on('end',()=>process.exit(0)).on('error',()=>process.exit(0)).resume();//"
   local fifo
-  fifo="$(mktemp -u -t hermie-lab-gateway-stdin)"
+  fifo="$(mktemp -u -t hermie-ui-gateway-stdin)"
   mkfifo "$fifo"
   (cd "$repo_dir" && exec node --import tsx --import "$watchdog" \
-    packages/fake-gateway/src/cli.ts --port 0 --stream-delay 120 <"$fifo" >"$log" 2>&1) &
-  lab_gateway_pid=$!
+    packages/fake-gateway/src/cli.ts --port 0 "$@" <"$fifo" >"$log" 2>&1) &
+  fake_gateway_pids+=("$!")
   # The write end, held by this script for the gateway's whole life.
-  exec 7>"$fifo"
+  fake_gateway_fd=$((fake_gateway_fd + 1))
+  eval "exec ${fake_gateway_fd}>\"\$fifo\""
   rm -f "$fifo"
 
   local url=""
-  for _ in $(seq 1 200); do
+  for _ in $(seq 1 300); do
     url="$(sed -n 's/^fake gateway listening on \(http[^ ]*\).*/\1/p' "$log" | head -n 1)"
     [[ -n "$url" ]] && break
     sleep 0.1
   done
 
   if [[ -z "$url" ]]; then
-    echo "The fake gateway for the composer UI tests did not start:" >&2
+    echo "The fake gateway for $variable did not start:" >&2
     cat "$log" >&2
     exit 1
   fi
 
-  export TEST_RUNNER_HERMIE_LAB_GATEWAY="$url"
-  echo "Fake gateway for the composer UI tests on $url"
+  export "TEST_RUNNER_$variable=$url"
+  echo "Fake gateway for $variable on $url"
 }
-stop_lab_gateway() {
-  if [[ -n "$lab_gateway_pid" ]]; then
-    exec 7>&- || true
-    kill "$lab_gateway_pid" >/dev/null 2>&1 || true
-    lab_gateway_pid=""
-  fi
+stop_fake_gateways() {
+  local fd
+  for ((fd = 7; fd <= fake_gateway_fd; fd++)); do
+    eval "exec ${fd}>&-" 2>/dev/null || true
+  done
+  fake_gateway_fd=6
+  for pid in "${fake_gateway_pids[@]+"${fake_gateway_pids[@]}"}"; do
+    kill "$pid" >/dev/null 2>&1 || true
+  done
+  fake_gateway_pids=()
+  for log in "${fake_gateway_logs[@]+"${fake_gateway_logs[@]}"}"; do
+    rm -f "$log"
+  done
+  fake_gateway_logs=()
 }
 
 if [[ "$build_apps" == true ]]; then
@@ -234,7 +251,7 @@ if [[ "$ui" == true ]]; then
   # Devices of their own, deleted on the way out whatever happens.
   ui_devices=()
   ui_cleanup() {
-    stop_lab_gateway
+    stop_fake_gateways
     for device in "${ui_devices[@]}"; do
       xcrun simctl shutdown "$device" >/dev/null 2>&1 || true
       xcrun simctl delete "$device" >/dev/null 2>&1 || true
@@ -246,7 +263,10 @@ if [[ "$ui" == true ]]; then
   }
   trap ui_cleanup EXIT
 
-  start_lab_gateway
+  start_fake_gateway HERMIE_LAB_GATEWAY --stream-delay 120
+  start_fake_gateway HERMIE_FAKE_GATEWAY_NONE --auth none
+  start_fake_gateway HERMIE_FAKE_GATEWAY_TOKEN --auth token --token ui-test-token
+  start_fake_gateway HERMIE_FAKE_GATEWAY_NATIVE --auth native
 
   ui_devices+=("$(xcrun simctl create "Hermie UI tests iPhone $$" "$phone_type" "$ui_runtime")")
   ui_devices+=("$(xcrun simctl create "Hermie UI tests iPad $$" "$pad_type" "$ui_runtime")")
@@ -262,14 +282,14 @@ if [[ "$ui" == true ]]; then
         CODE_SIGN_STYLE=Manual CODE_SIGN_IDENTITY=- DEVELOPMENT_TEAM=
     done
   done
-  stop_lab_gateway
+  stop_fake_gateways
   echo "UI tests passed"
 fi
 
 if [[ "$ui_mac" == true ]]; then
   "$apple_dir/scripts/generate.sh" macos
-  start_lab_gateway
-  trap stop_lab_gateway EXIT
+  start_fake_gateway HERMIE_LAB_GATEWAY --stream-delay 120
+  trap stop_fake_gateways EXIT
   echo "HermieLab UI tests on this Mac; they drive the pointer until they finish"
   xcodebuild test -quiet \
     -project "$native_dir/macos/Hermie.xcodeproj" -scheme HermieLab \

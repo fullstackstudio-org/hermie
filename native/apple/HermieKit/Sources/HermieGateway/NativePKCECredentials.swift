@@ -25,8 +25,9 @@ public actor NativePKCECredentials: CredentialProvider {
   private let timeline: (any AuthEventRecorder)?
   private let randomBytes: @Sendable (Int) -> [UInt8]
   private let canRevoke: Bool
-  /// The attempt in progress: its verifier never leaves this actor.
-  private var pending: PKCE?
+  /// The attempt in progress: its verifier never leaves this actor, and the
+  /// loopback address it asked the gateway to send the browser back to.
+  private var pending: (pkce: PKCE, redirectURI: String)?
 
   /// The `auth_flows` entry that says `POST /auth/native/revoke` exists.
   public static let nativeRevokeFlow = "native_revoke"
@@ -123,14 +124,21 @@ public actor NativePKCECredentials: CredentialProvider {
   /// Start an attempt: a fresh verifier, challenge and state (reusing any of
   /// them across attempts is what PKCE exists to prevent), and the URL the
   /// web view opens. A previous attempt still pending is abandoned.
-  public func beginSignIn(provider: String? = nil) throws(GatewayError) -> SignInStart {
+  ///
+  /// - Parameter redirectURI: where the gateway sends the browser back to. The
+  ///   web view intercepts `PKCE.redirectURI` without loading it; a loopback
+  ///   listener passes its own `http://127.0.0.1:<port>/callback` (RFC 8252
+  ///   §7.3: any port), and only that address is then this attempt's callback.
+  public func beginSignIn(provider: String? = nil, redirectURI: String = PKCE.redirectURI) throws(GatewayError)
+    -> SignInStart
+  {
     let pkce = PKCE.create(randomBytes: randomBytes)
     let url = try PKCE.authorizeURL(
       baseURL: baseURL,
-      params: AuthorizeParams(provider: provider, challenge: pkce.challenge, state: pkce.state)
+      params: AuthorizeParams(provider: provider, challenge: pkce.challenge, state: pkce.state, redirectURI: redirectURI)
     )
 
-    pending = pkce
+    pending = (pkce, redirectURI)
     return SignInStart(authorizeURL: url)
   }
 
@@ -142,7 +150,12 @@ public actor NativePKCECredentials: CredentialProvider {
   /// What the web view should do with one navigation of the attempt in
   /// progress. A `fail` ends the attempt.
   public func decision(for navigationURL: String) -> SignInNavigation {
-    let decision = SignInNavigation.decide(navigationURL, expectedState: pending?.state ?? "", gatewayBaseURL: baseURL)
+    let decision = SignInNavigation.decide(
+      navigationURL,
+      expectedState: pending?.pkce.state ?? "",
+      gatewayBaseURL: baseURL,
+      redirectURI: pending?.redirectURI ?? PKCE.redirectURI
+    )
 
     if case .fail = decision {
       pending = nil
@@ -167,7 +180,12 @@ public actor NativePKCECredentials: CredentialProvider {
 
     let code: String
 
-    switch SignInNavigation.inspect(redirectURL, expectedState: attempt.state, gatewayBaseURL: baseURL) {
+    switch SignInNavigation.inspect(
+      redirectURL,
+      expectedState: attempt.pkce.state,
+      gatewayBaseURL: baseURL,
+      redirectURI: attempt.redirectURI
+    ) {
     case .callback(let found):
       code = found
     case .fail(let failure):
@@ -179,7 +197,7 @@ public actor NativePKCECredentials: CredentialProvider {
     let tokens = try await NativeAuth.exchangeCode(
       baseURL: baseURL,
       code: code,
-      verifier: attempt.verifier,
+      verifier: attempt.pkce.verifier,
       options: NativeAuth.Options(transport: transport, extraHeaders: extraHeaders, timeline: timeline)
     )
 
@@ -242,8 +260,13 @@ public enum SignInNavigation: Sendable, Equatable {
   ///    `localhost` and names under it, `::1`, IPv4-mapped loopback, `0.0.0.0`,
   ///    `::`, `::ffff:0:0`), except the gateway's own origin, for a gateway
   ///    that runs on this device. An unparseable URL fails closed.
-  public static func decide(_ url: String, expectedState: String, gatewayBaseURL: String) -> SignInNavigation {
-    switch inspect(url, expectedState: expectedState, gatewayBaseURL: gatewayBaseURL) {
+  public static func decide(
+    _ url: String,
+    expectedState: String,
+    gatewayBaseURL: String,
+    redirectURI: String = PKCE.redirectURI
+  ) -> SignInNavigation {
+    switch inspect(url, expectedState: expectedState, gatewayBaseURL: gatewayBaseURL, redirectURI: redirectURI) {
     case .allow: .allow
     case .callback: .callback
     case .fail(let failure): .fail(failure)
@@ -259,13 +282,20 @@ public enum SignInNavigation: Sendable, Equatable {
   /// `PKCE.redirectURI`, parsed once.
   private static let callbackURL = WHATWGURL.parse(PKCE.redirectURI)!
 
-  static func inspect(_ url: String, expectedState: String, gatewayBaseURL: String) -> Inspection {
+  static func inspect(
+    _ url: String,
+    expectedState: String,
+    gatewayBaseURL: String,
+    redirectURI: String = PKCE.redirectURI
+  ) -> Inspection {
     guard let parsed = WHATWGURL.parse(url) else {
       // Nothing a web view can load fails to parse; fail closed.
       return .fail(.blockedNavigation)
     }
 
-    if parsed.origin == callbackURL.origin, parsed.pathname == callbackURL.pathname {
+    let callback = redirectURI == PKCE.redirectURI ? callbackURL : (WHATWGURL.parse(redirectURI) ?? callbackURL)
+
+    if parsed.origin == callback.origin, parsed.pathname == callback.pathname {
       return readCallback(url, expectedState: expectedState)
     }
 

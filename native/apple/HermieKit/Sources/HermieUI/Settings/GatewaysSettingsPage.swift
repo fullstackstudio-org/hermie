@@ -2,17 +2,22 @@ import HermieCore
 import SwiftUI
 
 /**
- Settings → Gateways: every configured gateway, the live one marked. Choosing another switches to
- it; each row can be renamed (on this device only) or removed, after a confirmation, together with
+ Settings → Gateways: every configured gateway, the live one marked, and whether this device is
+ signed in to it. Choosing another switches to it; each row can be renamed (on this device only),
+ signed out of (the address stays) or into again, or removed, after a confirmation, together with
  everything stored for it. "Add gateway" opens setup and leaves the live gateway connected.
  */
 struct GatewaysSettingsPage: View {
   let onAddGateway: @MainActor () -> Void
 
   @Environment(AppLaunch.self) private var launch
+  @Environment(GatewayAccounts.self) private var accounts: GatewayAccounts?
+  @Environment(\.shellComponents) private var components
   @State private var renaming: GatewayDirectory.Entry?
   @State private var draftName = ""
   @State private var removing: GatewayDirectory.Entry?
+  @State private var signingIn: String?
+  @State private var signingOut: GatewayDirectory.Entry?
 
   var body: some View {
     let directory = launch.gateways
@@ -24,7 +29,15 @@ struct GatewaysSettingsPage: View {
             guard entry.id != directory.activeId else { return }
             Task { try? await directory.activate(id: entry.id) }
           } label: {
-            GatewayRowLabel(entry: entry, active: entry.id == directory.activeId)
+            VStack(alignment: .leading, spacing: 2) {
+              GatewayRowLabel(entry: entry, active: entry.id == directory.activeId)
+
+              if let line = accountLine(for: entry) {
+                Text(line)
+                  .font(.footnote)
+              }
+            }
+            .accessibilityElement(children: .combine)
           }
           .buttonStyle(.plain)
           .accessibilityAddTraits(entry.id == directory.activeId ? .isSelected : [])
@@ -69,6 +82,21 @@ struct GatewaysSettingsPage: View {
     } message: { _ in
       Text(Strings.App.Settings.Gateways.nameHint)
     }
+    .task { await accounts?.refresh() }
+    .sheet(item: Binding(get: { signingIn.map(SheetID.init) }, set: { signingIn = $0?.id })) { sheet in
+      components.signIn(SignInContext(gatewayId: sheet.id, finish: { signingIn = nil }))
+    }
+    .confirmationDialog(
+      NativeStrings.Account.signOutConfirm,
+      isPresented: Binding(get: { signingOut != nil }, set: { if !$0 { signingOut = nil } }),
+      titleVisibility: .visible,
+      presenting: signingOut
+    ) { entry in
+      Button(Strings.App.Settings.Gateways.signOut, role: .destructive) {
+        Task { await accounts?.signOut(entry.id) }
+      }
+      Button(Strings.App.Common.cancel, role: .cancel) {}
+    }
     .confirmationDialog(
       Strings.App.Settings.Gateways.removeConfirm,
       isPresented: Binding(get: { removing != nil }, set: { if !$0 { removing = nil } }),
@@ -91,8 +119,33 @@ struct GatewaysSettingsPage: View {
       renaming = entry
     }
 
+    switch accounts?.status(for: entry.id) {
+    case .signedIn?:
+      Button(Strings.App.Settings.Gateways.signOut, systemImage: "rectangle.portrait.and.arrow.right") {
+        signingOut = entry
+      }
+    case .signedOut?:
+      Button(Strings.App.Common.signIn, systemImage: "person.badge.key") {
+        signingIn = entry.id
+      }
+    case .unknown?, nil:
+      EmptyView()
+    }
+
     Button(Strings.App.Settings.Gateways.remove, systemImage: "trash", role: .destructive) {
       removing = entry
+    }
+  }
+
+  /// "Signed in as …" or "Signed out", once known.
+  private func accountLine(for entry: GatewayDirectory.Entry) -> String? {
+    switch accounts?.status(for: entry.id) {
+    case .signedOut?:
+      Strings.App.Settings.Gateways.signedOut
+    case .signedIn?:
+      entry.signedInUser.map { Strings.App.Settings.Gateways.signedInAs(user: $0) }
+    case .unknown?, nil:
+      nil
     }
   }
 }

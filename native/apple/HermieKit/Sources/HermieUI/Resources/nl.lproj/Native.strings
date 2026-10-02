@@ -6,6 +6,16 @@
 	<string>Build</string>
 	<key>native.about.commit</key>
 	<string>Commit</string>
+	<key>native.account.failed</key>
+	<string>Hermie kon de gateway niet vragen wie je bent. Controleer de verbinding en probeer het opnieuw.</string>
+	<key>native.account.loading</key>
+	<string>De gateway vragen…</string>
+	<key>native.account.noGateway</key>
+	<string>Er is nog geen gateway ingesteld op dit apparaat.</string>
+	<key>native.account.signOutConfirm</key>
+	<string>Afmelden bij deze gateway? Het adres blijft bewaard en je kunt je altijd opnieuw aanmelden.</string>
+	<key>native.account.userId</key>
+	<string>Gebruikers-ID</string>
 	<key>native.commands.find</key>
 	<string>Zoek…</string>
 	<key>native.commands.newChatWindow</key>
@@ -48,6 +58,14 @@
 	<string>Hermie is verborgen zolang de app niet vooraan staat.</string>
 	<key>native.lock.settingUnknown</key>
 	<string>De vergrendelinstelling kon niet worden gelezen, dus Hermie vergrendelt elke keer dat je de app verlaat. Kies een instelling om te bewaren.</string>
+	<key>native.loopback.rejected.message</key>
+	<string>Dit verzoek hoort niet bij de aanmelding waar Hermie op wacht. Ga terug naar Hermie en begin opnieuw met aanmelden.</string>
+	<key>native.loopback.rejected.title</key>
+	<string>Geen aanmelding van Hermie</string>
+	<key>native.loopback.success.message</key>
+	<string>Hermie rondt de aanmelding af. Deze pagina mag dicht.</string>
+	<key>native.loopback.success.title</key>
+	<string>Je kunt teruggaan naar Hermie</string>
 	<key>native.notice.gatewayNotConfigured</key>
 	<string>Die link hoort bij een gateway die dit apparaat niet kent. Voeg de gateway eerst toe.</string>
 	<key>native.notice.lockSettingNotRestored</key>
@@ -58,6 +76,26 @@
 	<string>De lokale gegevens van Hermie waren beschadigd en zijn opnieuw opgebouwd. Alles wat nog leesbaar was, is bewaard.</string>
 	<key>native.notice.runningInMemory</key>
 	<string>Hermie kon zijn opslag niet openen. Wat je nu verandert, is weg zodra Hermie stopt.</string>
+	<key>native.onboarding.confirmCleartext</key>
+	<string>Toch doorgaan via onversleuteld http://</string>
+	<key>native.onboarding.confirmCleartextHint</key>
+	<string>Hermie stuurt je berichten en je aanmelding onversleuteld naar dit adres.</string>
+	<key>native.onboarding.continueHint</key>
+	<string>Beschikbaar zodra deze stap klaar is.</string>
+	<key>native.onboarding.header.invalidName</key>
+	<string>Dit is geen geldige headernaam.</string>
+	<key>native.onboarding.header.reserved</key>
+	<string>Hermie zet deze header zelf.</string>
+	<key>native.onboarding.save.addressChanged</key>
+	<string>Deze gateway antwoordt nu op een ander adres, dus er is niets opgeslagen. Voeg hem opnieuw toe als nieuwe gateway.</string>
+	<key>native.onboarding.save.gatewayRemoved</key>
+	<string>Deze gateway is verwijderd terwijl je je aanmeldde, dus er is niets opgeslagen.</string>
+	<key>native.onboarding.save.keychainReason</key>
+	<string>de sleutelhanger weigerde ze op te slaan.</string>
+	<key>native.onboarding.save.storeReason</key>
+	<string>de lokale database weigerde de wijziging.</string>
+	<key>native.onboarding.save.unsupportedRegistry</key>
+	<string>De gatewaylijst op dit apparaat is geschreven door een nieuwere versie van Hermie, dus er is niets gewijzigd. Werk Hermie bij en probeer het opnieuw.</string>
 	<key>native.push.cannotDeliverPlugin</key>
 	<string>Deze gateway kan nog niet bij dit apparaat afleveren: de Hermie-plugin is te oud. Werk de plugin op de gateway bij.</string>
 	<key>native.push.cannotDeliverRelay</key>
@@ -106,6 +144,36 @@
 	<string>Opnieuw proberen</string>
 	<key>native.requests.sending</key>
 	<string>Je antwoord wordt verstuurd…</string>
+	<key>native.signIn.browserHint</key>
+	<string>De aanmeldpagina opent in je browser, waar je bestaande aanmelding en het automatisch invullen van wachtwoorden beschikbaar zijn. Hermie ontvangt alleen het resultaat, op dit apparaat.</string>
+	<key>native.signIn.browserMayBeRefused</key>
+	<string>Werkt alleen als het Access-beleid je ook als persoon in de browser laat inloggen.</string>
+	<key>native.signIn.browserUnavailable</key>
+	<string>De aanmelding in de browser kon niet worden geopend. Meld je in plaats daarvan aan binnen Hermie.</string>
+	<key>native.signIn.checking</key>
+	<string>Controleren bij de gateway…</string>
+	<key>native.signIn.headersNeedInApp</key>
+	<string>Deze gateway heeft extra headers nodig die je browser niet kan meesturen, dus je meldt je aan binnen Hermie.</string>
+	<key>native.signIn.inApp</key>
+	<string>Lukt het niet? Meld je aan binnen Hermie</string>
+	<key>native.signIn.inAppHint</key>
+	<string>Opent de aanmeldpagina van de gateway binnen Hermie in plaats van in je browser. Hermie vergeet de cookies van die pagina daarna.</string>
+	<key>native.signIn.listenerUnavailable</key>
+	<string>Hermie kon op dit apparaat niet wachten op het resultaat van de aanmelding. Meld je in plaats daarvan aan binnen Hermie.</string>
+	<key>native.signIn.loadFailed</key>
+	<string>De instellingen van deze gateway konden op dit apparaat niet worden gelezen.</string>
+	<key>native.signIn.pageLoadFailed</key>
+	<string>De aanmeldpagina kon niet worden geladen. Controleer het openbare adres van de gateway.</string>
+	<key>native.signIn.portInUse</key>
+	<string>Een andere app op dit apparaat wacht al op een aanmelding op 127.0.0.1:38007 — misschien de Hermes-desktopapp. Sluit die af en probeer het opnieuw, of meld je aan binnen Hermie.</string>
+	<key>native.signIn.providerRefused</key>
+	<string>De gateway of de identiteitsprovider weigerde de aanmelding. Probeer het opnieuw, of vraag het aan wie de gateway beheert.</string>
+	<key>native.signIn.tokenRejected</key>
+	<string>De gateway accepteerde dit sessietoken niet. Kopieer het opnieuw van de machine waarop hermes serve draait.</string>
+	<key>native.signIn.useBrowserInstead</key>
+	<string>Toch de browser gebruiken</string>
+	<key>native.signIn.waitingForBrowser</key>
+	<string>Wachten op de aanmelding in je browser…</string>
 	<key>native.transcript.unsupportedItem</key>
 	<string>Dit bericht (%@) heeft een nieuwere versie van Hermie nodig.</string>
 </dict>

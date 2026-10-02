@@ -12,10 +12,13 @@ import SwiftUI
 struct HermieApp: App {
   @UIApplicationDelegateAdaptor(PushAppDelegate.self) private var pushDelegate
   @State private var launch: AppLaunch
+  /// Who is signed in where; fills the setup and sign-in seams and forgets a removed gateway's secrets.
+  @State private var accounts: GatewayAccounts
 
   init() {
     let launch = AppLaunch(environment: .live(), pushSystem: SystemPushBridge())
     _launch = State(initialValue: launch)
+    _accounts = State(initialValue: .app(launch))
     PushInbox.shared.attach(launch.push)
   }
 
@@ -23,6 +26,8 @@ struct HermieApp: App {
     WindowGroup(id: ShellScene.main) {
       MainWindow()
         .environment(launch)
+        .environment(accounts)
+        .environment(\.shellComponents, .gatewaySetup(accounts: accounts))
     }
     .commands {
       HermieCommands()
@@ -32,6 +37,8 @@ struct HermieApp: App {
     WindowGroup(for: ChatRef.self) { $chat in
       ChatWindow(chat: $chat)
         .environment(launch)
+        .environment(accounts)
+        .environment(\.shellComponents, .gatewaySetup(accounts: accounts))
     }
   }
 }
