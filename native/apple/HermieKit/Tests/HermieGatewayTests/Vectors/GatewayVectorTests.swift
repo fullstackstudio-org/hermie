@@ -63,7 +63,8 @@ import Testing
       .map { String($0.dropLast(5)) }
     let later = Set(present).subtracting(VectorLoader.files)
 
-    // plugin, push, session-search, ui-meta: replayed by the tasks that port them.
+    // plugin, push, session-search: replayed by the tasks that port them. ui-meta is
+    // replayed by HermieCoreTests (UIMetaVectorTests), where the port lives.
     #expect(later == ["plugin", "push", "session-search", "ui-meta"])
   }
 }
