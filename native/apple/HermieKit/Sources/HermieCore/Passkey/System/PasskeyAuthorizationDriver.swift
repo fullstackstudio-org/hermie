@@ -32,7 +32,8 @@ final class ControllerPasskeyDriver: NSObject, PasskeyAuthorizationDriver {
   private let anchor: SystemPasskeyAuthenticator.Anchor
   private var controller: ASAuthorizationController?
   private var completion: (@MainActor (PasskeyAuthorizationOutcome) -> Void)?
-  private var window: ASPresentationAnchor?
+  /// Holds the window for the controller, which keeps its provider weakly.
+  private var presentation: Presentation?
 
   init(anchor: @escaping SystemPasskeyAuthenticator.Anchor) {
     self.anchor = anchor
@@ -46,11 +47,13 @@ final class ControllerPasskeyDriver: NSObject, PasskeyAuthorizationDriver {
 
     let controller = ASAuthorizationController(authorizationRequests: [request])
 
-    self.window = window
+    let presentation = Presentation(window: window)
+
+    self.presentation = presentation
     self.completion = completion
     self.controller = controller
     controller.delegate = self
-    controller.presentationContextProvider = self
+    controller.presentationContextProvider = presentation
     controller.performRequests()
   }
 
@@ -63,7 +66,7 @@ final class ControllerPasskeyDriver: NSObject, PasskeyAuthorizationDriver {
 
     self.completion = nil
     controller = nil
-    window = nil
+    presentation = nil
     completion?(outcome)
   }
 
@@ -119,8 +122,16 @@ extension ControllerPasskeyDriver: ASAuthorizationControllerDelegate {
   }
 }
 
-extension ControllerPasskeyDriver: ASAuthorizationControllerPresentationContextProviding {
+/// The window one ceremony is shown over, found before the controller runs.
+@MainActor
+private final class Presentation: NSObject, ASAuthorizationControllerPresentationContextProviding {
+  let window: ASPresentationAnchor
+
+  init(window: ASPresentationAnchor) {
+    self.window = window
+  }
+
   func presentationAnchor(for controller: ASAuthorizationController) -> ASPresentationAnchor {
-    window ?? anchor() ?? ASPresentationAnchor()
+    window
   }
 }
