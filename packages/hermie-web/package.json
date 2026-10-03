@@ -22,7 +22,7 @@
   },
   "devDependencies": {
     "@hermie/fake-gateway": "*",
-    "@types/ws": "^8.5.13",
-    "ws": "^8.18.0"
+    "@types/ws": "^8.18.2",
+    "ws": "^8.22.0"
   }
 }
