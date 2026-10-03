@@ -749,7 +749,10 @@ What is covered: the probe of each authentication mode, address resolution (ADR-
 session token, native PKCE sign-in without a web view through rotation and revocation on sign-out,
 ticket minting, redirect refusal between the gateway and a second local listener, and the plugin
 routes, the WebSocket connection, and the session runtime (`SessionRuntimeIntegrationTests`: a cold
-start from the cache, a streamed turn, an approval, a socket dropped mid-turn, history paging). UI
+start from the cache, a streamed turn, an approval, a socket dropped mid-turn, history paging), and
+the live wiring (`PushWiringIntegrationTests`: a registration landing as this installation's row on
+the live gateway and leaving it on a sign-out, with the relay registration retired; a notification
+action answering an approval only while it is listed and only for the bot and request id it names). UI
 smoke tests on the simulator use a fake gateway that `test.sh --ui` starts on the host
 (`ChatScreenUITests`).
 
@@ -821,9 +824,11 @@ and the app's side is `HermieCore/AppGroup`. The rules they keep:
   network and removes it when done; the app does not deliver an entry with a fresh lease. Just
   before `prompt.submit` it writes `claim.json`, but only while the entry is still there: an entry
   the app has taken is not sent twice. The app never sends a claimed entry without asking.
-- **The app lock comes first.** `ShareOutboxDrainer` and `IntentQueueDrainer` do nothing while the
-  app lock is on (`SystemSurfaceLock`, locked until the app installs its lock state), every App
-  Intent requires an unlocked device, and "Bots needing input" names nobody while the lock is on.
+- **The app lock comes first.** `ShareOutboxDrainer` and `IntentQueueDrainer` do nothing while
+  `SystemSurfaceLock` says locked, every App Intent requires an unlocked device, and "Bots needing
+  input" names nobody while it is locked. It is locked until `LiveWiring` installs its state (see
+  [the live wiring](#the-live-wiring)), and then open only while the launch is ready, the app lock
+  is open and the live gateway has a signed-in session.
   The widget snapshot and Spotlight take a `hidePreviews` input, and previews are privacy-sensitive.
 - **Every queued item names its gateway.** Shares and Shortcut requests carry the `gatewayKey` of
   the roster their bot was picked from. A drain delivers only the active gateway's, leaves another
@@ -908,11 +913,58 @@ controller; `PushController.handleDelivery` and `PushInbox.handleDelivery` are t
 app and its delegate. The relay cannot carry a clearing push yet (every relayed message is an
 alert), so on a relay row the app removes what it can itself.
 
-**Seams left for later tasks.** The `UNUserNotificationCenter` implementation of
-`PushDeliveredNotifications` and the app delegate's silent-push and `willPresent` calls into
-`handleDelivery`; showing a request opened from `PushRoute.request` (the secure input sheet, the
-confirmation and the passkey ceremony); a landing for a `security` tap (it opens the bot's chat
-today).
+**In the app shells.** `SystemDeliveredNotifications` is the `UNUserNotificationCenter`
+implementation of `PushDeliveredNotifications`; `willPresent` hands a clearing push to
+`handleDelivery` (and shows nothing), and both app delegates do the same for a silent data message.
+There is no notification service extension target yet; when one lands it calls
+`PushClearing.apply`. Where a tap lands (`PushLifecycle`): a message, an approval and every other
+request open the bot's chat (an approval's card is in its transcript; the confirmation, secure
+input and passkey sheets that `PushRoute.request` is the seam for come with their own task), and a
+`security` notice opens Settings → Account for the gateway it names (`PushRoute.security`, made
+the live gateway first when it is not).
+
+**Still held.** Showing a request opened from `PushRoute.request` in its own sheet; a named
+conversation (`PushRoute.conversation`) opens the bot's chat until the conversation viewer lands;
+the row of a gateway that is not the live one is written the next time it is (only the live
+gateway has a socket to write `ui_meta` through); the actions still bring the app to the front
+(`PushContract.actionsForegroundOverride`).
+
+### The live wiring
+
+`LiveWiring` (`HermieCore/Wiring`) is what runs against the live session besides the screens. The
+app shell builds it beside `LiveGateway` (`LiveWiring.app(launch:accounts:live:)`, which also puts
+`SystemDeliveredNotifications` and `PushInbox` in place) and hands it to the windows through the
+environment. It only follows: which gateway is live is `LiveGateway`'s, who is signed in where is
+`GatewayAccounts`'s.
+
+- **Push's session seams.** `pendingApprovals` waits for the live session's socket (a tap from a
+  cold start), opens the bot's chat when it is not attached, and reads `approval.pending` for the
+  runtime session the chat is attached under, never for one a payload named; `respond` answers
+  through the chat's open card when it shows one (so the transcript marks it) and by queue id
+  otherwise. Both answer only for the live gateway. `canonicalSessionIds` reads the live chat list.
+- **The ui_meta bridge.** One `GatewayMetaBridge` per live session: a `UIMetaSync` over the
+  session's own link, its copy kept per gateway under `hermie.ui_meta`, with this installation's
+  `PushRowWriter` as contributor. It reconciles once the session has read who this is
+  (`GatewaySession.uiMetaUser`: `owner` on a session-token gateway, the user id or email
+  `/api/auth/me` named otherwise, nobody after a refusal), on every `ready` edge, after every
+  `sessions.changed` sweep and when the app comes to the front. The window in front names the open
+  chat for the `seen` heartbeat. What the gateway's copy carries that this build does not draw
+  (other devices' rows, the chat layout and mutes, the plugin advert) goes back as it came; nothing
+  taken in is treated as this person's own choice. The settings bridge (`UIMetaSettingsBridge`) is
+  not registered yet: there is no native settings model to bridge to.
+- **Sign-out and removal.** `GatewayAccounts.endSession` is wrapped: before the session ends, the
+  bridge withdraws this installation's row from that gateway (while the credentials still work,
+  waiting at most three seconds) and the surfaces purge what they hold for it. `GatewayAccounts`
+  then retires the relay registration as before (`pushStillRegistered` when it cannot).
+- **The system surfaces.** `SystemSurfaces` writes the widget snapshot, the share sheet's targets
+  and the Spotlight rows from the live chat list (previews left out while the app lock is
+  configured), and drains the share outbox and the Shortcuts queue on every opening of the lock,
+  every `ready` edge, every `hermie://share` or `hermie://intent` link and every return to the
+  front. The app sends a share itself only when it names a bot, carries no claim and holds only
+  text and links; a share with files waits for the share extension's direct send (the app has no
+  upload path yet), and one with no bot or a claim waits for the sheet that asks the person. "Send
+  to" answers once the gateway took the prompt; "Ask" waits for the bot's finished reply within
+  the request's budget and otherwise answers that the bot is still working.
 
 Moving from the Expo app to a native build: the native app registers under a new installation id
 and does not retire the Expo app's row for the same device, because removing it automatically could
