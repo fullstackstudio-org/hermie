@@ -741,6 +741,33 @@ How much to trust them:
 `ChatListScreen` (`HermieUI/ChatList`) and `ChatScreen` (`HermieUI/Chat`) fill the shell's `chatList`
 and `chat` seams. Both read the session from `LiveGateway` in the environment.
 
+- **The list's arrangement.** Pin, mute, archive and the order are `GatewaySession.arrangement`
+  (`ChatArrangementModel`, `HermieCore/UIMeta/UIMetaChatList.swift`), read from and written through
+  the session's ui_meta sync, in the web client's wire format: `archived: true` in the bot's own
+  `hermie` section; `pinned` (names), `mutes` (name to the unix second it lapses, `0` for ever) and
+  the order (`entries` and `folders`) in the person's `hermie-app:<user id>`. So pins, mutes and
+  the order are per person; `archived`, on the bot's profile, is shared by everybody on the
+  gateway, as the web client and the Expo app have it. Pinned chats come first, each group in the
+  arrangement's order; a bot the arrangement does not place yet comes last. This build draws no
+  folders: a folder's chats stand in its place, and a drag does not cross a folder's edge.
+- **Where the actions are.** iOS: the trailing swipe archives (full swipe) and mutes (a duration
+  sheet), the leading swipe marks read and pins, the context menu has all of them, Edit reorders
+  on a phone and a long press drags on an iPad; VoiceOver reads the swipe actions and Move up /
+  Move down. Mac: the context menu, the Chat menu (Pin, Mute, Archive with ⌃⌘A for the selected
+  chat), drag in the sidebar, and the same VoiceOver actions. The archive is a row at the bottom
+  that opens a sheet on iPhone and iPad, and a disclosure group in the Mac's sidebar; while
+  searching, archived matches are a section of their own.
+- **A new message in an archived chat** leaves it archived, as the Expo app does: archiving is how
+  a chat stops asking for attention. The archive's entry carries no unread mark; inside the
+  archive a row shows its own unread state.
+- **Mute** shows a bell on the row and a "Muted until …" line in the menu. The gateway's notifier
+  reads `mutes` and holds a muted chat's notifications back; in front, `PushController.isMuted`
+  hides one that was already on its way (a `security` notice is shown whatever a mute says). Only
+  the live gateway's mutes are known on the device.
+- **Avatars** come from `profiles.get_asset` as a data URL (`AvatarData` reads it), are kept on disk
+  per gateway in the key-value store and painted from there on launch, and are asked for again
+  once per launch and per `ui_meta` revision.
+
 - **Per delta, the main actor assigns two references.** The session publishes one `ChatSnapshot`
   per frame into `ChatModel`, whose `snapshot` is observed by hand so the `@Observable` setter does
   not compare two transcripts. `ChatFeed` watches the snapshot's `revision`, builds rows in a
@@ -1070,9 +1097,12 @@ environment. It only follows: which gateway is live is `LiveGateway`'s, who is s
   `/api/auth/me` named otherwise, nobody after a read that failed), on every `ready` edge, after
   every `sessions.changed` sweep and when the app comes to the front (while any of its windows is
   in front: a second window minimised on the Mac does not stop the heartbeat). The window in front
-  names the open chat for the `seen` heartbeat. What the gateway's copy carries that this build does not draw
-  (other devices' rows, the chat layout and mutes, the plugin advert) goes back as it came; nothing
-  taken in is treated as this person's own choice. The settings bridge (`UIMetaSettingsBridge`) is
+  names the open chat for the `seen` heartbeat. The session's `ChatArrangementModel` reads and writes
+  the chat list's pins, mutes, order and archive through the same sync. What the gateway's copy
+  carries that this build does not draw (other devices' rows, folders, the plugin advert) goes back
+  as it came; nothing taken in is treated as this person's own choice. A change made only of chores
+  (the roster folded into the order, a lapsed mute swept, a push row) never wins over a section the
+  gateway holds (HERM-191): it is dropped, not sent, and redone on top of what was taken. The settings bridge (`UIMetaSettingsBridge`) is
   not registered yet: there is no native settings model to bridge to.
 - **Sign-out and removal.** `GatewayAccounts.endSession` is wrapped: before the session ends, the
   surfaces stop publishing for that gateway and, when it is the live gateway, the bridge withdraws
