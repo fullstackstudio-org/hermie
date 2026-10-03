@@ -60,10 +60,15 @@ public struct ChatListArrangement: Sendable, Hashable {
   public var looseHead: Int
   /// Bot → the folder it is in. A bot not in here is loose (or not placed yet, which is loose too).
   public var folderOf: [String: String]
+  /// Bot → the name this person gave it (`BotIdentity`); a bot not in here has none.
+  public var labels: [String: String]
+  /// Bot → the colour its chat was given; a bot not in here has the default one.
+  public var accents: [String: BotAccent]
 
   public init(
     archived: Set<String> = [], pinned: [String] = [], mutes: [String: Double] = [:], order: [String] = [],
-    looseHead: Int? = nil, folderOf: [String: String] = [:]
+    looseHead: Int? = nil, folderOf: [String: String] = [:], labels: [String: String] = [:],
+    accents: [String: BotAccent] = [:]
   ) {
     self.archived = archived
     self.pinned = pinned
@@ -71,6 +76,8 @@ public struct ChatListArrangement: Sendable, Hashable {
     self.order = order
     self.looseHead = looseHead ?? order.count
     self.folderOf = folderOf
+    self.labels = labels
+    self.accents = accents
   }
 
   /// Read off the device's copy, defensively: another build wrote it. The archive is the person's
@@ -82,7 +89,9 @@ public struct ChatListArrangement: Sendable, Hashable {
       mutes: Self.mutes(documents.app?[UIMetaField.mutes]),
       order: Self.botsInOrder(documents.app),
       looseHead: Self.looseHead(documents.app),
-      folderOf: Self.folderOf(documents.app)
+      folderOf: Self.folderOf(documents.app),
+      labels: BotIdentity.labels(documents.app?[UIMetaField.labels]),
+      accents: documents.bots.compactMapValues { BotIdentity.accent($0) }
     )
   }
 
@@ -94,6 +103,15 @@ public struct ChatListArrangement: Sendable, Hashable {
 
   public func isArchived(_ name: String) -> Bool {
     archived.contains(name)
+  }
+
+  /// The name this person gave the bot, or nil.
+  public func label(_ name: String) -> String? {
+    labels[name]
+  }
+
+  public func accent(_ name: String) -> BotAccent {
+    accents[name] ?? .default
   }
 
   public func isPinned(_ name: String) -> Bool {
@@ -605,6 +623,9 @@ public final class ChatArrangementModel {
   public func isPinned(_ name: String) -> Bool { arrangement.isPinned(name) }
   public func isMuted(_ name: String) -> Bool { arrangement.isMuted(name, now: max(clock, now())) }
   public func mutedUntil(_ name: String) -> Double? { arrangement.mutedUntil(name, now: max(clock, now())) }
+  /// The name this person gave the bot, or nil.
+  public func label(_ name: String) -> String? { arrangement.label(name) }
+  public func accent(_ name: String) -> BotAccent { arrangement.accent(name) }
 
   // MARK: Choices
 
@@ -621,6 +642,18 @@ public final class ChatArrangementModel {
 
   public func mute(_ name: String, for duration: MuteDuration) {
     setMute(name, until: duration.until(now: now()))
+  }
+
+  /// Name a bot in the person's own list (`BotIdentity.setLabel`); empty takes the name back.
+  public func setLabel(_ name: String, _ label: String) {
+    sync?.updateApp(.choice) { BotIdentity.setLabel(name, label, in: &$0) }
+    refresh()
+  }
+
+  /// Colour a bot's chat. It is the bot's own section, so everybody on the gateway sees it.
+  public func setAccent(_ name: String, _ accent: BotAccent) {
+    sync?.updateBot(name, .choice) { BotIdentity.setAccent(accent, in: &$0) }
+    refresh()
   }
 
   /// Move a chat next to another (`ChatListArrangement.move`); `roster` is the order on screen
