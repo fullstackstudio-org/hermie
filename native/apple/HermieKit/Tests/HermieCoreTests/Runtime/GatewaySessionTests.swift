@@ -82,6 +82,16 @@ final class ScriptedReachability: Reachability {
 }
 
 @Suite(.timeLimit(.minutes(1))) @MainActor struct GatewaySessionTests {
+  @Test func aChatStartsQuietWithoutReasoning() async throws {
+    // One built-in default: the session's is the synced settings' (`quiet`, no reasoning).
+    #expect(GatewaySession.Options().defaultVisibility == SyncedSettings.defaultChatView)
+    #expect(SyncedSettings.defaultChatView == VisibilityOptions(level: .quiet, showBotToBot: true, showThinking: false))
+
+    let harness = SessionHarness()
+    #expect(harness.session.chat(bot).visibility == SyncedSettings.defaultChatView)
+    await harness.session.shutdown()
+  }
+
   @Test func theStreamsAreSubscribedBeforeTheConnectionDials() async throws {
     let harness = SessionHarness()
     try await harness.start()
