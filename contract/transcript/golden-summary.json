@@ -14,8 +14,8 @@
     },
     "applyEvent": {
       "readsClock": false,
-      "recorded": 1047,
-      "replayable": 1047,
+      "recorded": 1163,
+      "replayable": 1163,
       "skipped": {}
     },
     "applyProcessCompletion": {
@@ -26,8 +26,8 @@
     },
     "applyResumeSnapshot": {
       "readsClock": false,
-      "recorded": 94,
-      "replayable": 94,
+      "recorded": 97,
+      "replayable": 97,
       "skipped": {}
     },
     "applyServerRequest": {
@@ -56,8 +56,8 @@
     },
     "beginLocalTurn": {
       "readsClock": false,
-      "recorded": 180,
-      "replayable": 180,
+      "recorded": 197,
+      "replayable": 197,
       "skipped": {}
     },
     "beginSteer": {
@@ -88,8 +88,8 @@
     },
     "confirmSubmit": {
       "readsClock": false,
-      "recorded": 140,
-      "replayable": 140,
+      "recorded": 157,
+      "replayable": 157,
       "skipped": {}
     },
     "contextUsageOf": {
@@ -108,8 +108,8 @@
     },
     "createChatState": {
       "readsClock": false,
-      "recorded": 518,
-      "replayable": 518,
+      "recorded": 536,
+      "replayable": 536,
       "skipped": {}
     },
     "deliveryTargetFromCommand": {
@@ -280,14 +280,14 @@
     },
     "reconcile": {
       "readsClock": false,
-      "recorded": 289,
-      "replayable": 289,
+      "recorded": 307,
+      "replayable": 307,
       "skipped": {}
     },
     "reconcileTail": {
       "readsClock": false,
-      "recorded": 261,
-      "replayable": 261,
+      "recorded": 267,
+      "replayable": 267,
       "skipped": {}
     },
     "replyFromDeliveryOutput": {
@@ -298,8 +298,8 @@
     },
     "rowsToItems": {
       "readsClock": false,
-      "recorded": 611,
-      "replayable": 611,
+      "recorded": 635,
+      "replayable": 635,
       "skipped": {}
     },
     "runningSubagents": {
@@ -310,14 +310,14 @@
     },
     "snapshotForCache": {
       "readsClock": false,
-      "recorded": 24,
-      "replayable": 24,
+      "recorded": 28,
+      "replayable": 28,
       "skipped": {}
     },
     "stateFromCache": {
       "readsClock": false,
-      "recorded": 19,
-      "replayable": 19,
+      "recorded": 23,
+      "replayable": 23,
       "skipped": {}
     },
     "stripSteerWrapper": {

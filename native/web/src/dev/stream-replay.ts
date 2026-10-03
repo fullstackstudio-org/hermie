@@ -94,7 +94,11 @@ export function applyStep(state: ChatState | undefined, step: StreamStep, option
   }
 
   let args = step.args
-  if (step.op === 'reconcile' && options.history?.length && state.order.length === 0) {
+  // The history goes into the first hydration of every state that does not hold
+  // it yet: a fresh chat, and also a chat opened again from its cache, which keeps
+  // only the newest items and reads the rest back from history.
+  const first = options.history?.[0]
+  if (step.op === 'reconcile' && options.history && first && !state.items[first.id]) {
     args = [[...options.history, ...(args[0] as TranscriptItem[])], ...args.slice(1)]
   }
 

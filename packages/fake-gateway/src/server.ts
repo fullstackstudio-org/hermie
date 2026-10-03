@@ -118,6 +118,24 @@ export interface ScenarioReply {
    * kinds arriving in one turn, in the order a real agent produces them.
    */
   toolAfterDeltas?: number
+  /**
+   * Mid-turn notes, each followed by the call it announces: what a turn with
+   * `display.interim_assistant_messages` on (upstream's default) sends before
+   * its answer.
+   *
+   * The order is the fork's, from `agent/turn_tool_round.py`: the note streams
+   * as `message.delta`, the assistant row is PERSISTED, and only then does
+   * `message.interim {text, already_streamed}` go out ("emit interim commentary
+   * after the DB append"), carrying no row id. The call follows, and its tool
+   * row lands in the history the way `session_history.py` projects one, named by
+   * `tool_call_id` and without a `row_id`.
+   *
+   * So a client can see a note's row before the frame that announces it, and
+   * see the frames again (`session.events.since`) after a reload has already
+   * brought the rows: the two orders the transcript has to settle into one
+   * bubble per note.
+   */
+  notes?: { text: string; tool: { name: string; args?: Record<string, unknown>; summary?: string; result?: unknown } }[]
 }
 
 export interface Scenario {
@@ -401,6 +419,8 @@ export interface TranscriptRow {
   display_metadata?: Record<string, unknown> | null
   name?: string | null
   tool_id?: string | null
+  /** What `session_history.py` names a tool row's call by; the same id `tool.start` sent as `tool_id`. */
+  tool_call_id?: string | null
   context?: string | null
   args?: Record<string, unknown> | null
   reasoning?: string | null
@@ -572,6 +592,7 @@ function restMessageRow(row: TranscriptRow, index: number): Record<string, unkno
     ...(row.timestamp === undefined ? {} : { timestamp: row.timestamp }),
     ...(row.name === undefined || row.name === null ? {} : { name: row.name }),
     ...(row.tool_id === undefined || row.tool_id === null ? {} : { tool_id: row.tool_id }),
+    ...(row.tool_call_id === undefined || row.tool_call_id === null ? {} : { tool_call_id: row.tool_call_id }),
     ...(row.context === undefined || row.context === null ? {} : { context: row.context }),
     ...(row.args === undefined || row.args === null ? {} : { args: row.args }),
     ...(row.reasoning === undefined || row.reasoning === null ? {} : { reasoning: row.reasoning })
@@ -1630,6 +1651,23 @@ const DEFAULT_SCENARIO: Scenario = {
         summary: 'read gateway/auth.py',
         result: 'def refresh(...):'
       }
+    },
+    {
+      // A turn that writes notes before it answers, as a real agent with interim
+      // assistant messages on does: two tool rounds, then the reply.
+      match: 'ledger',
+      notes: [
+        {
+          text: 'Entry 90 is marked paid. Now the cent on the payables account: first see how it is booked.',
+          tool: { name: 'terminal', args: { command: 'ledger show 17201' }, summary: 'ledger show 17201', result: 'ok' }
+        },
+        {
+          text: 'Looking the transfer up through the API myself: the payout of 16-09.',
+          tool: { name: 'terminal', args: { command: 'payouts get 16-09' }, summary: 'payouts get 16-09', result: 'ok' }
+        }
+      ],
+      deltas: ['Everything checks out ', 'and nothing was filed.'],
+      text: 'Everything checks out and nothing was filed.'
     },
     {
       // Thinking first, then words: the order a real turn arrives in, and the order
@@ -8596,6 +8634,60 @@ export async function startFakeGateway(options: FakeGatewayOptions = {}): Promis
     if (reply.reasoningAvailable) {
       at += streamDelayMs
       later(() => publish('reasoning.available', sid, { text: reply.reasoningAvailable }), at)
+    }
+
+    for (const note of reply.notes ?? []) {
+      const toolId = `tool-${randomUUID().slice(0, 8)}`
+      const tool = note.tool
+
+      at += streamDelayMs
+      later(() => {
+        spoken += note.text
+        publish('message.delta', sid, { text: note.text })
+      }, at)
+      at += streamDelayMs
+      later(() => {
+        // Written before the frame that announces it, as the fork does.
+        session.messages.push({
+          role: 'assistant',
+          text: note.text,
+          row_id: session.messages.length + 1,
+          timestamp: nowSeconds()
+        })
+        // The note is history now: an interrupt keeps it as its own row.
+        spoken = ''
+        publish('message.interim', sid, { text: note.text, already_streamed: true })
+      }, at)
+      at += streamDelayMs
+      later(
+        () =>
+          publish('tool.start', sid, {
+            tool_id: toolId,
+            name: tool.name,
+            context: tool.summary ?? '',
+            args: tool.args ?? {}
+          }),
+        at
+      )
+      at += streamDelayMs
+      later(() => {
+        session.messages.push({
+          role: 'tool',
+          name: tool.name,
+          context: tool.summary ?? '',
+          tool_call_id: toolId,
+          ...(tool.args ? { args: tool.args } : {}),
+          timestamp: nowSeconds()
+        })
+        publish('tool.complete', sid, {
+          tool_id: toolId,
+          name: tool.name,
+          args: tool.args ?? {},
+          duration_s: 0.2,
+          result: tool.result ?? null,
+          summary: tool.summary ?? ''
+        })
+      }, at)
     }
 
     // Where the tool call goes. Past the end means "after everything", which is

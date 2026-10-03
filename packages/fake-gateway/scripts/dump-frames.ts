@@ -31,6 +31,7 @@ import {
   applyResumeSnapshot,
   applyServerRequest,
   beginLocalTurn,
+  type CachedTranscript,
   type ChatState,
   confirmSubmit,
   createChatState,
@@ -38,6 +39,8 @@ import {
   reconcileTail,
   rowsToItems,
   type ServerRequest,
+  snapshotForCache,
+  stateFromCache,
   type TranscriptEvent,
   type TranscriptRow,
   type Verbosity,
@@ -125,6 +128,12 @@ class Client {
   private readonly pending = new Map<string, (frame: Json, index: number) => void>()
   private readonly waiters = new Set<() => void>()
   private readonly answers: { approval?: string; clarify?: Record<string, string> }
+  /** The event after which the app goes away (`goAwayAfter`). */
+  private awayAfter: string | undefined
+  /** The connection the app stopped reading when it went away. */
+  private awayConnection = 0
+  /** What the app had cached at the moment it went away. */
+  cached: CachedTranscript | undefined
 
   constructor(
     private readonly gateway: FakeGateway,
@@ -249,7 +258,26 @@ class Client {
     }).length
   }
 
+  /**
+   * Stop reading the socket right after the next `type` event, and keep what the
+   * app would have cached at that moment: the app going to the background in
+   * the middle of a turn. Nothing after it on this connection is recorded or
+   * applied, however the frames happen to be batched on the wire, which is what
+   * keeps the recording deterministic.
+   */
+  goAwayAfter(type: string): void {
+    this.awayAfter = type
+  }
+
+  get away(): boolean {
+    return this.cached !== undefined
+  }
+
   private onFrame(connection: number, frame: Json): void {
+    if (connection === this.awayConnection) {
+      return
+    }
+
     const index = this.recording.frames.length
 
     this.recording.frames.push({ connection, frame })
@@ -268,6 +296,12 @@ class Client {
         const now = this.now()
 
         this.step('applyEvent', [event, now], state => applyEvent(state, event, now), index)
+
+        if (this.awayAfter === event.type) {
+          this.awayAfter = undefined
+          this.awayConnection = connection
+          this.cached = snapshotForCache(this.state, this.now())
+        }
       }
     } else if (frame.id !== undefined) {
       this.onServerRequest(frame, index)
@@ -471,7 +505,34 @@ class Client {
     const resolvedId = this.resolvedId
 
     this.step('createChatState', [profile, storedId, resolvedId], () => createChatState(profile, storedId, resolvedId))
+    await this.load()
+  }
 
+  /**
+   * The store's `hydrate` for a chat it has a cache of: the cached transcript is
+   * painted first (`stateFromCache`, written down as the state it produces), and
+   * then the same resume, history, snapshot and replay as a cold open. The cache
+   * keeps its watermark, so the replay is warm: it hands back every frame after
+   * the moment the app went away, including frames for rows history already has.
+   */
+  async reopen(cached: CachedTranscript): Promise<void> {
+    const canonical = await this.canonical()
+
+    this.storedId = String(canonical.id)
+    this.resolvedId = String(canonical.resolved_id || canonical.id)
+
+    const { storedId, profile } = this
+    const resolvedId = this.resolvedId
+    const painted = stateFromCache(profile, { storedSessionId: storedId, resolvedSessionId: resolvedId }, cached)
+    const { botName: _botName, storedSessionId: _stored, resolvedSessionId: _resolved, ...fields } = painted
+
+    this.step('createChatState', [profile, storedId, resolvedId], () => createChatState(profile, storedId, resolvedId))
+    this.patch(fields as unknown as Json)
+    await this.load()
+  }
+
+  /** `hydrate` from the resume on: resume, its `session.info`, history, snapshot, open requests, replay. */
+  private async load(): Promise<void> {
     const { resume, frame: resumeFrame } = await this.resume()
 
     if (resume.info) {
@@ -658,6 +719,38 @@ const SCENARIOS: Scenario[] = [
       await client.submit('delegate the release checks')
       await client.settle(before)
       client.checkpoint('settled')
+    }
+  },
+  {
+    name: 'interim-reopen',
+    description:
+      'A turn with interim assistant messages on writes two notes before it answers. The app goes away right ' +
+      'after the first note, the turn finishes without it, and the chat is opened again from the cache: ' +
+      'history brings every row of the turn, then session.events.since replays every frame after the cached ' +
+      'watermark, describing rows that are already on screen. Each note and the reply must show once.',
+    profile: 'researcher',
+    async run(client, gateway) {
+      await client.hydrate()
+      client.checkpoint('hydrated')
+
+      client.goAwayAfter('message.interim')
+      await client.submit('reconcile the ledger')
+      await client.until(() => client.away, 'the first note')
+      client.checkpoint('away')
+
+      // The turn goes on without the app.
+      for (let waited = 0; gateway.state.runningSessions.size > 0; waited += 5) {
+        if (waited > TIMEOUT_MS) {
+          throw new Error('Timed out waiting for the turn to finish')
+        }
+
+        await new Promise(resolve => setTimeout(resolve, 5))
+      }
+
+      await client.disconnect()
+      await client.connect()
+      await client.reopen(client.cached!)
+      client.checkpoint('reopened')
     }
   },
   {
