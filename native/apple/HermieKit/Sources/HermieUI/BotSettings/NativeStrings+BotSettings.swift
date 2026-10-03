@@ -117,6 +117,10 @@ extension NativeStrings {
     static var notSynced: String {
       String(localized: "native.botSettings.notSynced", table: "Native", bundle: .module)
     }
+    /// Profile picture, change
+    static var photoMenu: String {
+      String(localized: "native.botSettings.photoMenu", table: "Native", bundle: .module)
+    }
     /// That photo could not be prepared. Choose another one.
     static var photoLarge: String {
       String(localized: "native.botSettings.photoLarge", table: "Native", bundle: .module)

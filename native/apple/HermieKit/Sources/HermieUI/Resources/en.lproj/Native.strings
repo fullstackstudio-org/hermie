@@ -58,6 +58,8 @@
 	<string>The instructions that give this bot its character: the SOUL.md of its profile on the gateway. Shown as plain text.</string>
 	<key>native.botSettings.photoLarge</key>
 	<string>That photo could not be prepared. Choose another one.</string>
+	<key>native.botSettings.photoMenu</key>
+	<string>Profile picture, change</string>
 	<key>native.botSettings.readOnly</key>
 	<string>Your account can look at this bot but not change it.</string>
 	<key>native.botSettings.revert</key>
