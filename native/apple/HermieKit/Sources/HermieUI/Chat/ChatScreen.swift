@@ -161,6 +161,7 @@ struct ChatSessionView<Composer: View>: View {
   @State private var owner = ChatFeedOwner<ChatFeed>()
   @Environment(\.scenePhase) private var scenePhase
   @Environment(AppRouter.self) private var router: AppRouter?
+  @Environment(LiveGateway.self) private var live: LiveGateway?
   #if os(iOS)
     @Environment(\.horizontalSizeClass) private var sizeClass
   #endif
@@ -197,7 +198,7 @@ struct ChatSessionView<Composer: View>: View {
         Color.clear
       }
     }
-    .modifier(ChatTitle(session: session, chat: chat, feed: feed))
+    .modifier(ChatTitle(session: session, chat: chat, feed: feed, diagnostics: diagnostics))
     #if os(iOS)
       .navigationBarTitleDisplayMode(.inline)
     #endif
@@ -240,6 +241,11 @@ struct ChatSessionView<Composer: View>: View {
       #endif
       return .ignored
     }
+  }
+
+  /// The text the title's long press copies.
+  private func diagnostics() -> String {
+    ChatDiagnostics.report(chat: chat, session: session, screen: owner.screen, owner: owner, live: live)
   }
 }
 
@@ -394,15 +400,45 @@ struct OwnAuthor: ViewModifier {
 }
 
 /// The bot's name, and under it what the bot is doing now, else its presence (`subtitleFor`).
+///
+/// A long press on it copies the screen's diagnostics (`ChatDiagnostics`), a hidden affordance for
+/// a report from the owner's phone; VoiceOver offers it as the title's action.
 struct ChatTitle: ViewModifier {
   let session: GatewaySession
   let chat: ChatRef
   let feed: ChatFeed?
+  let diagnostics: () -> String
+
+  @State private var copied = 0
 
   func body(content: Content) -> some View {
+    let title = session.chatList.rows[chat.bot]?.bot.displayName ?? chat.bot
+    let subtitle = Self.text(activity: feed?.activity ?? .idle, presence: presence)
+
     content
-      .navigationTitle(session.chatList.rows[chat.bot]?.bot.displayName ?? chat.bot)
-      .navigationSubtitle(Self.text(activity: feed?.activity ?? .idle, presence: presence))
+      .navigationTitle(title)
+      #if os(iOS)
+        // The bar draws our view in the title's place; the title above still names the screen for
+        // the back button and the app switcher.
+        .toolbar {
+          ToolbarItem(placement: .principal) {
+            ChatTitleView(title: title, subtitle: subtitle)
+              .onLongPressGesture(minimumDuration: 0.8) { copy() }
+              .accessibilityAction(named: NativeStrings.Chat.copyDiagnostics) { copy() }
+              .sensoryFeedback(.success, trigger: copied)
+              #if DEBUG
+                .onReceive(NotificationCenter.default.publisher(for: SwitchDrill.copyDiagnostics)) { _ in copy() }
+              #endif
+          }
+        }
+      #else
+        .navigationSubtitle(subtitle)
+      #endif
+  }
+
+  private func copy() {
+    ChatDiagnostics.copy(diagnostics())
+    copied += 1
   }
 
   private var presence: Presence {
@@ -422,6 +458,31 @@ struct ChatTitle: ViewModifier {
     }
   }
 }
+
+#if os(iOS)
+  /// The title and subtitle as the navigation bar draws them inline, in a view of our own so a
+  /// long press can reach them.
+  struct ChatTitleView: View {
+    let title: String
+    let subtitle: String
+
+    var body: some View {
+      VStack(spacing: 0) {
+        Text(title)
+          .font(.subheadline.weight(.semibold))
+        Text(subtitle)
+          .font(.caption)
+          .foregroundStyle(.secondary)
+      }
+      .lineLimit(1)
+      // The bar's own title stops growing here too.
+      .dynamicTypeSize(...DynamicTypeSize.xxxLarge)
+      .accessibilityElement(children: .combine)
+      .accessibilityAddTraits(.isHeader)
+      .accessibilityIdentifier("hermie.chat.title")
+    }
+  }
+#endif
 
 /// Verbosity and the two switches, per chat screen (`setVisibility`).
 struct VerbosityMenu: View {

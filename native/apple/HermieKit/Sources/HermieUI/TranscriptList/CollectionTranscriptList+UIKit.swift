@@ -371,6 +371,18 @@
       collectionView.didMoveIntoWindow = { [unowned self] in
         if !loaded && !items.isEmpty && collectionView.bounds.width > 0 { load() }
       }
+      state.geometry = { [weak self] in self?.geometry ?? "list gone" }
+    }
+
+    /// The collection view as one line, for the chat's diagnostics.
+    var geometry: String {
+      let view = collectionView
+      func size(_ size: CGSize) -> String { "\(Int(size.width))x\(Int(size.height))" }
+
+      return "UIKit bounds=\(size(view.bounds.size)) offset=\(Int(view.contentOffset.y)) "
+        + "content=\(size(view.contentSize)) insets=\(Int(view.contentInset.top))/\(Int(view.contentInset.bottom)) "
+        + "window=\(view.window != nil) hidden=\(view.isHidden) alpha=\(view.alpha) "
+        + "items=\(items.count) visible=\(view.indexPathsForVisibleItems.count) loaded=\(loaded) pinned=\(pinned)"
     }
 
     // MARK: Updates

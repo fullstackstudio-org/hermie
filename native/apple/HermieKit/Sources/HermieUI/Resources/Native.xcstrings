@@ -162,6 +162,29 @@
         }
       }
     },
+    "native.chat.copyDiagnostics" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Diagnose kopieren"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Copy diagnostics"
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Diagnose kopiëren"
+          }
+        }
+      }
+    },
     "native.chatList.archivedTitle" : {
       "extractionState" : "manual",
       "localizations" : {

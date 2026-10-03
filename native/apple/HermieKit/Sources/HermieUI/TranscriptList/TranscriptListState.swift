@@ -46,6 +46,10 @@ public final class TranscriptListState {
   /// The content offset as the list last reported it. Debug use only.
   @ObservationIgnored var contentOffset: CGFloat = 0
 
+  /// The list's geometry as one line (bounds, content size, insets, window, rows), for the chat's
+  /// diagnostics. Set by the collection-view lists; nil for the others.
+  @ObservationIgnored var geometry: (@MainActor () -> String)?
+
   /// Scrolls by `delta` points (positive: towards newer rows), as a finger
   /// would. For the transcript lab's hands-off measurements.
   func pan(by delta: CGFloat) {

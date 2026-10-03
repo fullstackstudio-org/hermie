@@ -150,6 +150,17 @@
         updateEdges()
         pinned = state.isAtBottom
       }
+      state.geometry = { [weak self] in self?.geometry ?? "list gone" }
+    }
+
+    /// The scroll view as one line, for the chat's diagnostics.
+    var geometry: String {
+      func size(_ size: CGSize) -> String { "\(Int(size.width))x\(Int(size.height))" }
+
+      return "AppKit bounds=\(size(scrollView.contentView.bounds.size)) offset=\(Int(offset)) "
+        + "content=\(size(collectionView.frame.size)) insets=\(Int(contentInsets.top))/\(Int(contentInsets.bottom)) "
+        + "window=\(scrollView.window != nil) hidden=\(scrollView.isHidden) "
+        + "items=\(items.count) visible=\(collectionView.indexPathsForVisibleItems().count) loaded=\(loaded) pinned=\(pinned)"
     }
 
     // MARK: Geometry

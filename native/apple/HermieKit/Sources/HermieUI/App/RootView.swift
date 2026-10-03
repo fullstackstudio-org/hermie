@@ -107,6 +107,9 @@ struct ShellSplitView: View {
       #endif
     }
     .accessibilityIdentifier("hermie.root.split")
+    #if DEBUG && os(iOS)
+      .modifier(SwitchDrill())
+    #endif
   }
 
   /// The column's name for the lifecycle log.

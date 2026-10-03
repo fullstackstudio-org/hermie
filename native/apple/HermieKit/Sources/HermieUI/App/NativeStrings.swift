@@ -29,6 +29,13 @@ enum NativeStrings {
     }
   }
 
+  enum Chat {
+    /// Copy diagnostics (the chat title's hidden long press, and its accessibility action)
+    static var copyDiagnostics: String {
+      String(localized: "native.chat.copyDiagnostics", table: "Native", bundle: .module)
+    }
+  }
+
   enum ChatList {
     /// Sign in to this gateway to see its chats.
     static var signedOut: String {
