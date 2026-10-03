@@ -21,6 +21,10 @@ extension NativeStrings {
     static var descriptionHeader: String {
       String(localized: "native.botSettings.descriptionHeader", table: "Native", bundle: .module)
     }
+    /// No description is set.
+    static var descriptionEmpty: String {
+      String(localized: "native.botSettings.descriptionEmpty", table: "Native", bundle: .module)
+    }
     /// The name the rest of Hermie addresses this bot by. It cannot be changed here.
     static var handleHint: String {
       String(localized: "native.botSettings.handleHint", table: "Native", bundle: .module)

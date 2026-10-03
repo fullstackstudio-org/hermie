@@ -190,9 +190,6 @@ struct ChatSessionView<Composer: View>: View {
             ToolbarItem(placement: .primaryAction) {
               VerbosityMenu(model: feed.model)
             }
-            ToolbarItem(placement: .primaryAction) {
-              BotSettingsButton(chat: chat)
-            }
           }
           #if DEBUG
             .overlay(alignment: .topLeading) {
@@ -408,7 +405,9 @@ struct OwnAuthor: ViewModifier {
   }
 }
 
-/// The bot's name, and under it what the bot is doing now, else its presence (`subtitleFor`).
+/// The bot's picture and name, and under the name what the bot is doing now, else its presence
+/// (`subtitleFor`), as the chat's title. It is also the way into the bot's settings: a tap on it opens
+/// them, as a tap on the contact at the top of a conversation does.
 ///
 /// A long press on it copies the screen's diagnostics (`ChatDiagnostics`), a hidden affordance for
 /// a report from the owner's phone; VoiceOver offers it as the title's action.
@@ -418,6 +417,7 @@ struct ChatTitle: ViewModifier {
   let feed: ChatFeed?
   let diagnostics: () -> String
 
+  @Environment(AppRouter.self) private var router: AppRouter?
   @State private var copied = 0
   /// "Copied" stands in the subtitle's place for a moment after a copy.
   @State private var confirming = false
@@ -430,30 +430,39 @@ struct ChatTitle: ViewModifier {
     let subtitle = Self.text(activity: feed?.activity ?? .idle, presence: presence)
 
     content
+      // The window's and the back button's title, and the app switcher's; the bar draws our view in
+      // its place.
       .navigationTitle(title)
-      #if os(iOS)
-        // The bar draws our view in the title's place; the title above still names the screen for
-        // the back button and the app switcher.
-        .toolbar {
-          ToolbarItem(placement: .principal) {
-            ChatTitleView(title: title, subtitle: confirming ? NativeStrings.Chat.diagnosticsCopied : subtitle)
-              .onLongPressGesture(minimumDuration: Self.pressDuration) { copy() }
-              .accessibilityAction(named: NativeStrings.Chat.copyDiagnostics) { copy() }
-              .sensoryFeedback(.success, trigger: copied)
-              .task(id: copied) {
-                guard copied > 0 else { return }
-                confirming = true
-                AccessibilityNotification.Announcement(NativeStrings.Chat.diagnosticsCopied).post()
-                try? await Task.sleep(for: .seconds(1.5))
-                confirming = false
-              }
-              #if DEBUG
-                .onReceive(NotificationCenter.default.publisher(for: SwitchDrill.copyDiagnostics)) { _ in copy() }
-              #endif
+      .toolbar {
+        ToolbarItem(placement: .principal) {
+          ChatTitleView(
+            title: title,
+            subtitle: confirming ? NativeStrings.Chat.diagnosticsCopied : subtitle,
+            avatar: session.chatList.rows[chat.bot]?.avatar,
+            accent: session.arrangement.accent(chat.bot),
+            presence: presence.state,
+            opensSettings: router != nil
+          )
+          .onTapGesture { router?.showBotSettings(chat) }
+          .onLongPressGesture(minimumDuration: Self.pressDuration) { copy() }
+          .accessibilityAction(.default) { router?.showBotSettings(chat) }
+          .accessibilityAction(named: NativeStrings.Chat.copyDiagnostics) { copy() }
+          .sensoryFeedback(.success, trigger: copied)
+          .task(id: copied) {
+            guard copied > 0 else { return }
+            confirming = true
+            AccessibilityNotification.Announcement(NativeStrings.Chat.diagnosticsCopied).post()
+            try? await Task.sleep(for: .seconds(1.5))
+            confirming = false
           }
+          #if DEBUG && os(iOS)
+            .onReceive(NotificationCenter.default.publisher(for: SwitchDrill.copyDiagnostics)) { _ in copy() }
+          #endif
         }
-      #else
-        .navigationSubtitle(subtitle)
+      }
+      #if os(macOS)
+        // The toolbar's own title would say the name a second time beside ours.
+        .toolbar(removing: .title)
       #endif
   }
 
@@ -480,32 +489,53 @@ struct ChatTitle: ViewModifier {
   }
 }
 
-#if os(iOS)
-  /// The title and subtitle as the navigation bar draws them inline, in a view of our own so a
-  /// long press can reach them.
-  struct ChatTitleView: View {
-    let title: String
-    let subtitle: String
+/// The picture with its presence bead, the name and the subtitle, as the chat's title draws them: in
+/// a view of our own so a tap and a long press can reach them.
+struct ChatTitleView: View {
+  let title: String
+  let subtitle: String
+  var avatar: String?
+  var accent: BotAccent = .default
+  var presence: PresenceState?
+  /// Whether a tap does something (there is a router to open the settings on).
+  var opensSettings = true
 
-    var body: some View {
-      VStack(spacing: 0) {
+  var body: some View {
+    HStack(spacing: 8) {
+      BotAvatar(name: title, avatar: avatar, size: Self.avatarSide, presence: presence, accent: accent)
+
+      VStack(alignment: .leading, spacing: 0) {
         Text(title)
-          .font(.subheadline.weight(.semibold))
+          #if os(iOS)
+            .font(.subheadline.weight(.semibold))
+          #else
+            .font(.headline)
+          #endif
         Text(subtitle)
           .font(.caption)
           .foregroundStyle(.secondary)
       }
-      .lineLimit(1)
-      // The bar's own title stops growing here too.
-      .dynamicTypeSize(...DynamicTypeSize.xxxLarge)
-      // Capped as the bar's title is, so at the accessibility sizes a press shows it large.
-      .accessibilityShowsLargeContentViewer()
-      .accessibilityElement(children: .combine)
-      .accessibilityAddTraits(.isHeader)
-      .accessibilityIdentifier("hermie.chat.title")
     }
+    .lineLimit(1)
+    // The bar's own title stops growing here too.
+    .dynamicTypeSize(...DynamicTypeSize.xxxLarge)
+    // Capped as the bar's title is, so at the accessibility sizes a press shows it large.
+    .accessibilityShowsLargeContentViewer()
+    .contentShape(.rect)
+    .accessibilityElement(children: .ignore)
+    .accessibilityLabel(opensSettings ? NativeStrings.Chat.titleOpensSettings(name: title) : title)
+    .accessibilityValue(subtitle)
+    .accessibilityHint(opensSettings ? NativeStrings.Chat.titleOpensSettingsHint : "")
+    .accessibilityAddTraits(opensSettings ? .isButton : .isHeader)
+    #if os(macOS)
+      .help(NativeStrings.BotSettings.open)
+    #endif
+    .accessibilityIdentifier("hermie.chat.title")
   }
-#endif
+
+  /// The picture's side: the bar is about this tall at its smallest.
+  static let avatarSide: CGFloat = 30
+}
 
 /// Verbosity and the two switches, per chat screen (`setVisibility`).
 struct VerbosityMenu: View {

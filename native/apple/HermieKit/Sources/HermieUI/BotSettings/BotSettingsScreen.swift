@@ -53,25 +53,6 @@ public struct BotSettingsScreen: View {
   }
 }
 
-/// The chat header's way in: opens the bot's settings over the chat. Absent where there is no router
-/// to push on.
-struct BotSettingsButton: View {
-  let chat: ChatRef
-
-  @Environment(AppRouter.self) private var router: AppRouter?
-
-  var body: some View {
-    if let router {
-      Button {
-        router.showBotSettings(chat)
-      } label: {
-        Label(NativeStrings.BotSettings.open, systemImage: "info.circle")
-      }
-      .accessibilityIdentifier("hermie.chat.botSettings")
-    }
-  }
-}
-
 /// The form over a running session.
 struct BotSettingsContent: View {
   let chat: ChatRef
