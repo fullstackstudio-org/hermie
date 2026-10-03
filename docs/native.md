@@ -1346,3 +1346,96 @@ Tests never touch the real keychain on a Mac: there it is the developer's own iC
 the UI tests launch with `-HermieUITest YES`, which swaps both keychain sets for memory.
 `-HermieSync on|ask|off|unavailable` and `-HermieSeedICloudGateway` set up the fake iCloud for a
 launch (`LaunchTestHooks`).
+
+## Bot settings
+
+A bot's settings page, `BotSettingsScreen` (`HermieUI/BotSettings`), is the `DetailRoute.botProfile`
+page pushed over the bot's chat. It opens from the chat header (the info button) and from the chat
+list's context menu (and its VoiceOver actions on the Mac): `AppRouter.showBotSettings` selects the
+chat and pushes the page once. The model behind it is `BotSettingsModel`
+(`HermieCore/BotSettings`), which `GatewaySession.botSettings(for:)` builds over the session's link.
+
+### What exists, and where
+
+The Expo app has the settings in three places (the profile sheet, the capabilities sheet and the chat
+options), the web client has only the chat options panel (verbosity, thinking, bot-to-bot) plus the
+`ui_meta` bridge that carries the chat list's choices, and the gateway backs each with the method or
+route in the last column. "Native" is what this build has.
+
+| Setting                                                       | Expo                                  | Web                      | Native                                                                | Gateway                                                                                                  |
+| ------------------------------------------------------------- | ------------------------------------- | ------------------------ | --------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------- |
+| Picture                                                       | profile sheet                         | no                       | yes: PhotosPicker, square JPEG at 512 px, metadata dropped            | `profiles.set_asset` (`data` or `clear`), `profiles.get_asset`                                           |
+| Display name (the person's own)                               | profile sheet                         | read from `ui_meta` only | yes                                                                   | `ui_meta` app section `labels` (per person)                                                              |
+| Display name on the gateway                                   | profile sheet, via the plugin         | no                       | not yet                                                               | `PATCH /api/plugins/hermie/profiles/{name}` (REST, advertised as `profiles.display_name`)                |
+| Handle (profile name)                                         | read-only row                         | no                       | read-only row                                                         | `profiles.list` `name`                                                                                   |
+| Rename the profile                                            | profile sheet, disclosure             | no                       | not yet                                                               | `PATCH /api/profiles/{name}` (REST)                                                                      |
+| Colour                                                        | profile sheet, row menu, chat options | read from `ui_meta` only | yes (shared with everyone on the gateway; tints the avatar's initial) | `ui_meta` bot section `hermie.colour`                                                                    |
+| Description                                                   | profile sheet                         | no                       | yes                                                                   | `profiles.configure` `description`                                                                       |
+| Personality (`SOUL.md`)                                       | no                                    | no                       | yes: editor, plain text                                               | `profiles.describe` `soul`, `profiles.configure` `soul`                                                  |
+| Model and provider (the bot's pin)                            | only when a bot is created            | no                       | yes: picker, with the expensive-model confirmation                    | `model.options`, `profiles.configure` `model` + `provider` (+ `confirm_expensive_model`)                 |
+| Model for one conversation, reasoning effort, fast mode, YOLO | chat options sheet                    | no                       | not yet: they belong to the chat, not the bot                         | `config.set` / `config.get` with `session_id`                                                            |
+| Toolsets                                                      | capabilities sheet                    | no                       | yes                                                                   | `profiles.describe` `toolsets`, `profiles.configure` `enabled_toolsets`                                  |
+| Skills (on or off)                                            | capabilities sheet                    | no                       | yes                                                                   | `profiles.describe` `skills`, `profiles.configure` `disabled_skills`                                     |
+| Skills catalogue (browse, install)                            | Skills page                           | no                       | not yet                                                               | `skills.manage` (`list`, `search`, `browse`, `install`)                                                  |
+| MCP servers (on or off) and the reload                        | capabilities sheet                    | no                       | yes                                                                   | `profiles.describe` `mcp_servers`, `profiles.configure` `enabled_mcp_servers`, `reload.mcp`              |
+| MCP servers page (probe, OAuth)                               | MCP page                              | no                       | not yet                                                               | `mcp.servers.list`, `.status`, `.test`, `.oauth.*`                                                       |
+| Memory                                                        | memory browser, graph                 | no                       | not yet                                                               | plugin REST `/api/plugins/hermie/memory/{list,search,raw,…}`                                             |
+| Conversations (branches)                                      | conversations page                    | conversations page       | not yet (`DetailRoute.sessions` is a placeholder)                     | `session.list`, `session.branch`                                                                         |
+| What the chat shows (verbosity, thinking, bot-to-bot)         | chat options                          | chat options panel       | yes, for the open chat                                                | client-side filter; the app-wide default is the `ui_meta` `defaults`                                     |
+| Pin                                                           | row menu                              | list                     | yes                                                                   | `ui_meta` app section `pinned`                                                                           |
+| Mute                                                          | row menu, chat options                | list                     | yes                                                                   | `ui_meta` app section `mutes`                                                                            |
+| Archive                                                       | row menu                              | list                     | yes                                                                   | `ui_meta` app section `archivedBots`                                                                     |
+| Folder, order                                                 | row menu, drag                        | list                     | not in settings (the list moves chats)                                | `ui_meta` app section `entries`, `folders`                                                               |
+| Notifications for this chat                                   | chat options                          | no                       | not yet                                                               | `ui_meta` push rows (`push.perBot`)                                                                      |
+| Voice (read aloud)                                            | chat options                          | no                       | not yet                                                               | none: on the device                                                                                      |
+| Export the conversation                                       | chat options                          | no                       | not yet                                                               | none: from the transcript                                                                                |
+| Delete the bot                                                | none                                  | none                     | none                                                                  | no `profiles.delete` method; `DELETE /api/profiles/{name}` exists on the gateway and no client offers it |
+
+### Decisions
+
+- **Writes go through the gateway's own methods.** The text fields are drafts with Save and Revert;
+  everything else writes at once. Each capability list is replaced whole, written the way the
+  gateway stores it (`BotSettingsParams`): skills as the DISABLED set, toolsets as a pin of the
+  names that are on, MCP servers as the ENABLED list. An empty toolset list takes the pin away, so
+  a switch never writes one (the last toolset stays on, and "Follow the gateway's defaults" is its
+  own request that rereads what the defaults are). Toggles made while a write is in flight are
+  coalesced: the running write sends the latest state when it returns, and a refusal puts the
+  section back to what the gateway last confirmed.
+- **`applied` is checked.** `profiles.configure` answers `ok` with a per-section `applied`; a
+  section the request carried that is not `true` there is a failure the screen says, not a
+  success. A guarded model answers `confirm_required` with nothing written, and is written only
+  after the person confirms. `reload.mcp` can refuse by succeeding (`confirm_required`); the screen
+  asks with the gateway's own words.
+- **Permissions.** The gateway offers no profile-level permission answer: it refuses at the write.
+  A refusal that reads as an access denial (codes 4030 to 4033, 4403, or the plain words for it)
+  puts the screen in read-only: the editors become selectable text, the switches are disabled, one
+  line says so. No connection is read-only too. The name, colour, pin, mute and archive are the
+  person's `ui_meta`, writable while the sync is attached.
+- **Capability checks.** A gateway without `profiles.describe` (`-32601`) shows the sections Hermie
+  keeps itself and one line that the rest is not offered. The model picker is drawn only where
+  `model.options` lists models.
+- **Untrusted text.** Everything the gateway sent (soul, description, toolset names and
+  descriptions, skill and server names, model names, its error words) is drawn as plain text
+  (`Text(verbatim:)`, a `TextEditor`), never Markdown.
+- **The label and colour reach the rest of the app.** `ChatArrangementModel` reads and writes
+  `labels` and the bot's `colour` like the chat list's choices; the list, its search and the chat's
+  title use the label, and a chosen colour is the avatar's initial background. The bubbles keep the
+  fixed blue.
+- **The picture.** `AvatarEncoder` decodes the photo, applies its orientation, crops the middle
+  square, scales to at most 512 px and writes a JPEG with no properties of its own, so a photo's
+  location never reaches the gateway, where everybody can read the picture.
+
+### Tests and what stands in for the gateway
+
+`BotSettingsParamsTests`, `BotSettingsModelTests` and `UIMetaBotIdentityTests` (HermieCoreTests)
+cover the mapping, the polarities, the coalescing, the refusals and the identity fields against a
+scripted gateway that stores a profile the way the real one does; `BotSettingsViewTests`
+(HermieUITests) the picture, the model search and the router's way in; `BotSettingsIntegrationTests`
+read and write a profile on the fake gateway over a real socket. The fake gateway keeps the soul,
+pins a model behind the expensive-model guard (`confirm_required`), and refuses a method on request
+(`POST /__fake/deny`), matching the shapes in `tui_gateway/methods_profiles.py`
+(`packages/fake-gateway/src/bot-settings.test.ts`).
+
+A debug build launched with `-HermieUITest YES` also takes `-HermieOpenChat <bot>` and
+`-HermieOpenBotSettings <bot>`, which open that chat or its settings page once the live gateway is
+known.

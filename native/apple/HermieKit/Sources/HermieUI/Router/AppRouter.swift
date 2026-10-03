@@ -162,6 +162,16 @@ public final class AppRouter {
     detailPath.append(route)
   }
 
+  /// Open a bot's settings: its chat is selected, as a row's tap would, and the settings page is
+  /// pushed over it (once: asking again while they are showing changes nothing).
+  public func showBotSettings(_ chat: ChatRef) {
+    openChat(chat)
+
+    if detailPath.last != .botProfile(chat) {
+      detailPath.append(.botProfile(chat))
+    }
+  }
+
   public func requestFind() {
     findRequests += 1
   }

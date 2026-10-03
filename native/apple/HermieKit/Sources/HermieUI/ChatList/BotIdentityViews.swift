@@ -21,6 +21,9 @@ struct BotAvatar: View {
   var size: CGFloat = 44
   /// The state bead, or nothing for a picture on its own.
   var presence: PresenceState?
+  /// The colour somebody gave this bot's chat. Under the default the initial sits on a colour picked
+  /// from the name; under any other it sits on that one.
+  var accent: BotAccent = .default
 
   @ScaledMetric(relativeTo: .body) private var scale: CGFloat = 1
 
@@ -60,8 +63,9 @@ struct BotAvatar: View {
         .font(.system(size: side * 0.42, weight: .semibold, design: .rounded))
         .foregroundStyle(.white)
         .frame(maxWidth: .infinity, maxHeight: .infinity)
-        // A quarter darker than the system colour, so white text on it stays above 4.5:1.
-        .background(Self.tint(for: name).mix(with: .black, by: 0.25))
+        // A quarter darker than the system colour, so white text on it stays above 4.5:1; a chosen
+        // accent is the colour white text is already readable on.
+        .background(accent == .default ? Self.tint(for: name).mix(with: .black, by: 0.25) : accent.bubble)
     }
   }
 }

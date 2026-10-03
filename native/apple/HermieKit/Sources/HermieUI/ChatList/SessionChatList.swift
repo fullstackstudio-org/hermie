@@ -12,6 +12,7 @@ struct SessionChatList: View {
   @State private var archiveOpen = false
   /// The row a swipe's Mute asked a duration for.
   @State private var muting: ChatListRow?
+  @Environment(AppRouter.self) private var router: AppRouter?
   #if os(iOS)
     @Environment(\.horizontalSizeClass) private var sizeClass
   #endif
@@ -20,7 +21,7 @@ struct SessionChatList: View {
     let list = session.chatList
     let ready = session.status.phase == .ready
     let rows = ChatListRows(session: session, query: query)
-    let actions = ChatRowActions(session: session)
+    let actions = ChatRowActions(session: session, openSettings: openSettings)
 
     List(selection: selection) {
       ForEach(rows.shown) { row in
@@ -82,13 +83,23 @@ struct SessionChatList: View {
     }
   }
 
+  /// The row menu's Bot settings: the chat is selected and the settings page pushed over it. Not
+  /// offered where there is no router (a list shown on its own).
+  private var openSettings: (@MainActor (String) -> Void)? {
+    guard let router else { return nil }
+
+    let gateway = session.gatewayID
+    return { name in router.showBotSettings(ChatRef(gatewayId: gateway, bot: name)) }
+  }
+
   /// One chat's row, with everything it can do.
   private func item(_ row: ChatListRow, ready: Bool, actions: ChatRowActions) -> some View {
     ChatListRowView(
       row: row,
       gatewayReady: ready,
       pinned: session.arrangement.isPinned(row.bot.name),
-      muted: session.arrangement.isMuted(row.bot.name)
+      muted: session.arrangement.isMuted(row.bot.name),
+      accent: session.arrangement.accent(row.bot.name)
     )
     .equatable()
     .tag(ChatRef(gatewayId: session.gatewayID, bot: row.bot.name))
@@ -263,7 +274,15 @@ struct ChatListRows {
     let list = session.chatList
     let arrangement = session.arrangement.arrangement
     // A secure prompt waiting (a password, a sudo, a vault) counts as needing input too.
-    let rows = ChatListFormat.filtered(list.names, rows: list.rows, query: query)
+    // The name this person gave a bot leads the row, and the search finds it by that name.
+    let named = list.rows.mapValues { row -> ChatListRow in
+      guard let label = arrangement.label(row.bot.name) else { return row }
+
+      var named = row
+      named.bot.displayName = label
+      return named
+    }
+    let rows = ChatListFormat.filtered(list.names, rows: named, query: query)
       .map { SessionChatList.marked($0, secureInput: session.secureInput) }
 
     searching = !query.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
@@ -309,12 +328,26 @@ struct ChatListRows {
     let selection: Binding<ChatRef?>
 
     @Environment(\.dismiss) private var dismiss
+    @Environment(AppRouter.self) private var router: AppRouter?
     @State private var muting: ChatListRow?
+
+    /// Bot settings from a row of the archive: the archive closes over the page it opens.
+    private var openSettings: (@MainActor (String) -> Void)? {
+      guard let router else { return nil }
+
+      let gateway = session.gatewayID
+      let close = dismiss
+
+      return { name in
+        router.showBotSettings(ChatRef(gatewayId: gateway, bot: name))
+        close()
+      }
+    }
 
     var body: some View {
       let ready = session.status.phase == .ready
       let rows = ChatListRows(session: session, query: "").archived
-      let actions = ChatRowActions(session: session)
+      let actions = ChatRowActions(session: session, openSettings: openSettings)
 
       NavigationStack {
         List {
@@ -327,7 +360,8 @@ struct ChatListRows {
                 row: row,
                 gatewayReady: ready,
                 pinned: session.arrangement.isPinned(row.bot.name),
-                muted: session.arrangement.isMuted(row.bot.name)
+                muted: session.arrangement.isMuted(row.bot.name),
+                accent: session.arrangement.accent(row.bot.name)
               )
               .equatable()
             }

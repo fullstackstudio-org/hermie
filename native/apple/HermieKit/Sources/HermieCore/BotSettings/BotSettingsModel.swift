@@ -517,6 +517,12 @@ public final class BotSettingsModel {
   public func confirmModel() async {
     guard let pending = modelConfirmation else { return }
 
+    await confirmModel(pending)
+  }
+
+  /// The same, for a screen that holds the question it showed: an alert closes (and so clears the
+  /// question) around the button that answers it, and the answer must not depend on which comes first.
+  public func confirmModel(_ pending: ModelConfirmation) async {
     modelConfirmation = nil
     await pin(pending.choice, confirmExpensive: true)
   }

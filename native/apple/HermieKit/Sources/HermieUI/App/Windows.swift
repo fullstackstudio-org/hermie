@@ -88,6 +88,18 @@ public struct MainWindow: View {
       if let index {
         perform(router.gatewaysChanged(index), on: launch)
       }
+      #if DEBUG
+        if let bot = launch.environment.testHooks?.openBotSettings, let gateway = router.selectedGatewayId,
+          router.detailPath.isEmpty
+        {
+          router.showBotSettings(ChatRef(gatewayId: gateway, bot: bot))
+        }
+        if let bot = launch.environment.testHooks?.openChat, let gateway = router.selectedGatewayId,
+          router.selectedChat == nil
+        {
+          router.openChat(ChatRef(gatewayId: gateway, bot: bot))
+        }
+      #endif
     }
     .onChange(of: router.snapshot) { _, snapshot in
       saved = snapshot.encoded()
