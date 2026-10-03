@@ -156,7 +156,9 @@ struct ChatSessionView<Composer: View>: View {
   let actions: @MainActor (ChatModel) -> TranscriptItemActions
   let composer: (ChatComposerContext) -> Composer
 
-  @State private var feed: ChatFeed?
+  /// The screen's feed, for as long as this screen's identity lives (`ChatFeedOwner`): not dropped on
+  /// `onDisappear`, which SwiftUI also sends to a chat that stays on screen.
+  @State private var owner = ChatFeedOwner<ChatFeed>()
   @Environment(\.scenePhase) private var scenePhase
   @Environment(AppRouter.self) private var router: AppRouter?
   #if os(iOS)
@@ -166,6 +168,8 @@ struct ChatSessionView<Composer: View>: View {
   /// Reads nothing that changes with a streamed delta (the title and the composer's name read the
   /// chat list in views of their own), so a delta re-evaluates `ChatTranscript` and nothing here.
   var body: some View {
+    let feed = owner.feed
+
     ZStack {
       if let feed {
         ChatTranscript(feed: feed)
@@ -198,28 +202,33 @@ struct ChatSessionView<Composer: View>: View {
       .navigationBarTitleDisplayMode(.inline)
     #endif
     .onAppear {
-      guard feed == nil else { return }
       let router = self.router
       let gatewayId = chat.gatewayId
       let base = actions
-      let next = ChatFeed(chat: chat, session: session) { model in
-        var built = base(model)
-        // A bot-to-bot row opens the other bot's chat, on the same gateway.
-        built.openBotChat = { handle in
-          router?.openChat(ChatRef(gatewayId: gatewayId, bot: handle))
+      let chat = self.chat
+      let session = self.session
+      let active = scenePhase == .active
+
+      owner.appeared {
+        let next = ChatFeed(chat: chat, session: session) { model in
+          var built = base(model)
+          // A bot-to-bot row opens the other bot's chat, on the same gateway.
+          built.openBotChat = { handle in
+            router?.openChat(ChatRef(gatewayId: gatewayId, bot: handle))
+          }
+          return built
         }
-        return built
+        next.sceneChanged(active: active)
+        return next
       }
-      next.start()
-      next.sceneChanged(active: scenePhase == .active)
-      feed = next
+      ChatLifecycleLog.note("screen #\(owner.screen) appeared: \(chat.bot), feed f\(owner.feed?.tag ?? 0)")
     }
     .onDisappear {
-      feed?.stop()
-      feed = nil
+      owner.disappeared()
+      ChatLifecycleLog.note("screen #\(owner.screen) disappeared: \(chat.bot), feed f\(owner.feed?.tag ?? 0) kept")
     }
     .onChange(of: scenePhase) { _, phase in
-      feed?.sceneChanged(active: phase == .active)
+      owner.feed?.sceneChanged(active: phase == .active)
     }
     .onKeyPress(.escape) {
       // Back to the list where the chat was pushed over it (iPhone, a narrow iPad window).

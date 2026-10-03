@@ -389,9 +389,9 @@ the field. The rules are the web client's (`native/web/src/core/chats/attachment
   nothing and cannot send them twice (HERM-126); a send refused before it was painted gives them
   back. A message parked behind a running turn keeps them (`TranscriptStore.queuedOutgoing`) and is
   not steerable, since an image cannot ride into a running turn.
-- **The camera is a sheet.** A full-screen cover fires the chat's `onDisappear`, and `ChatFeed.stop`
-  would empty the tray and close the session under the photo about to land in it. The photo is
-  re-encoded from its pixels (`UIImage.jpegData`), which leaves no metadata.
+- **The camera is a sheet.** A full-screen cover fires the chat's `onDisappear`; when that still
+  stopped the feed, it emptied the tray and closed the session under the photo about to land in it.
+  The photo is re-encoded from its pixels (`UIImage.jpegData`), which leaves no metadata.
 
 #### Location in library photos
 
@@ -895,6 +895,16 @@ and `chat` seams. Both read the session from `LiveGateway` in the environment.
   cold, cached or failed and the socket is ready; a failed open is tried again once per return of
   the connection and by "Try again". The banner over both screens comes from the session's status,
   never from a chat's `stale`, and waits a moment before it shows.
+- **A screen's feed lives as long as the screen's identity** (`ChatFeedOwner`), not from
+  `onAppear` to `onDisappear`. Opening a chat from the list in a collapsed split view (an iPhone)
+  lands the selection and the column change in one update, and SwiftUI then sends the new screen
+  `onAppear` and `onDisappear`, sometimes with no `onAppear` after it, while the screen stays on
+  screen: in the simulator a third of the opens did. A screen that dropped its feed there drew
+  nothing, neither transcript nor composer, until it was closed: the black chat after a switch
+  (0.2.4). The first appearance makes the feed; the feed stops when SwiftUI releases the owner (the
+  chat closed, another chat selected, the session replaced). Each feed holds a `ChatLease` of its own
+  on the bot's `ChatModel` and gives back only that one, so an old screen's late teardown cannot
+  take the model from the screen that holds it now.
 - **History** loads through `TranscriptListState.onNearTop` and `ChatModel.loadOlder`, one page at a
   time, until the answer is not `grew`.
 - **Read marks** move while the newest row is on screen and the window is in front, and once more

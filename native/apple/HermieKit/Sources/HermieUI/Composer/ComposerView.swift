@@ -86,9 +86,8 @@ public struct ComposerView: View {
       onFiles: { urls in AttachmentIntake.addFiles(urls, to: model.tray) }
     )
     #if os(iOS)
-      // A sheet, not a full-screen cover: a cover fires the chat's `onDisappear`, which stops the
-      // feed and empties the tray the photo is about to land in (the photo library and the file
-      // importer are sheets too, and leave the chat standing).
+      // A sheet, not a full-screen cover: the chat stays standing under it, as under the photo
+      // library and the file importer.
       .sheet(isPresented: $showCamera) {
         CameraPicker { data in
           AttachmentIntake.addCameraPhoto(data, to: model.tray)

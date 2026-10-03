@@ -94,9 +94,11 @@ struct ShellSplitView: View {
       }
     }
     .onChange(of: router.selectedChat, initial: true) { _, chat in
+      ChatLifecycleLog.note("selected \(chat?.bot ?? "no chat"), column \(Self.name(compactColumn))")
       compactColumn = chat == nil ? .sidebar : .detail
     }
     .onChange(of: compactColumn) { _, column in
+      ChatLifecycleLog.note("column \(Self.name(column))")
       // On iPhone, going back from a chat is closing it.
       #if os(iOS)
         if column == .sidebar, sizeClass == .compact {
@@ -105,6 +107,16 @@ struct ShellSplitView: View {
       #endif
     }
     .accessibilityIdentifier("hermie.root.split")
+  }
+
+  /// The column's name for the lifecycle log.
+  private static func name(_ column: NavigationSplitViewColumn) -> String {
+    switch column {
+    case .sidebar: "sidebar"
+    case .content: "content"
+    case .detail: "detail"
+    default: "other"
+    }
   }
 }
 

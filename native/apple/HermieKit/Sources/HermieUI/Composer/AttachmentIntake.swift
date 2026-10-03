@@ -256,8 +256,7 @@ struct PickedPhoto: Transferable {
 
 #if os(iOS)
   /// The camera, as the system's own picker: one photo, as a JPEG, then closed. Shown in a sheet,
-  /// never a full-screen cover: a cover takes the chat's `onDisappear`, which stops the chat's
-  /// feed and empties the composer's tray under the photo that is about to land in it.
+  /// never a full-screen cover, so the chat stays standing under it (see `ComposerView`).
   struct CameraPicker: UIViewControllerRepresentable {
     let onPhoto: (Data) -> Void
     @Environment(\.dismiss) private var dismiss

@@ -36,7 +36,7 @@ import Observation
  */
 @MainActor
 @Observable
-final class ChatFeed {
+final class ChatFeed: ChatScreenFeed {
   let chat: ChatRef
   let session: GatewaySession
   let model: ChatModel
@@ -77,16 +77,24 @@ final class ChatFeed {
   @ObservationIgnored private var markTask: Task<Void, Never>?
   /// The newest row (id and version) last marked read.
   @ObservationIgnored private var markedKey: String?
-  @ObservationIgnored private var stopped = false
+  @ObservationIgnored private(set) var stopped = false
+  /// This feed's own hold on the chat's model, given back when it stops (and only this one).
+  @ObservationIgnored let lease: ChatLease
+  /// A number for this feed in the diagnostics and the lifecycle log.
+  @ObservationIgnored let tag: Int
+  private static var tags = 0
 
   init(chat: ChatRef, session: GatewaySession, actions: @MainActor (ChatModel) -> TranscriptItemActions) {
+    Self.tags += 1
+    self.tag = Self.tags
     self.chat = chat
     self.session = session
-    self.model = ChatLeases.acquire(session, chat.bot)
+    (self.model, self.lease) = ChatLeases.acquire(session, chat.bot)
     self.composer = ComposerModel(session: session, bot: chat.bot)
     self.requests = RequestsModel(session: session, bot: chat.bot)
     self.secureInput = SecureInputModel(session: session, bot: chat.bot)
     self.itemActions = actions(model)
+    ChatLifecycleLog.note("feed f\(tag) made for \(chat.bot) (lease \(lease.id))")
   }
 
   var name: String { chat.bot }
@@ -137,6 +145,7 @@ final class ChatFeed {
     }
 
     stopped = true
+    ChatLifecycleLog.note("feed f\(tag) stopped for \(name) (lease \(lease.id))")
 
     for task in tasks {
       task.cancel()
@@ -151,10 +160,11 @@ final class ChatFeed {
 
     let session = self.session
     let name = self.name
+    let lease = self.lease
 
     Task {
       await session.close(name)
-      ChatLeases.release(session, name)
+      ChatLeases.release(lease, from: session)
     }
   }
 
@@ -316,32 +326,77 @@ final class ChatFeed {
   }
 }
 
+/// A chat screen's hold on a bot's `ChatModel`, from `ChatLeases.acquire`. Each is unique, so giving
+/// one back can only ever end that hold.
+struct ChatLease: Hashable, Sendable {
+  let session: ObjectIdentifier
+  let bot: String
+  let id: UInt64
+}
+
+/// Who holds which bot's model on which session, without the session: `ChatLeases` keeps one.
+struct ChatLeaseBook {
+  private var holders: [ObjectIdentifier: [String: Set<UInt64>]] = [:]
+  private var lastID: UInt64 = 0
+
+  mutating func acquire(session: ObjectIdentifier, bot: String) -> ChatLease {
+    lastID += 1
+    holders[session, default: [:]][bot, default: []].insert(lastID)
+
+    return ChatLease(session: session, bot: bot, id: lastID)
+  }
+
+  /// Gives `lease` back. True when it was the bot's last one, so the model goes back to the
+  /// session. A lease given back twice, or never taken, changes nothing and returns false: an old
+  /// screen's late teardown cannot take the model from a screen that holds it now.
+  mutating func release(_ lease: ChatLease) -> Bool {
+    guard holders[lease.session]?[lease.bot]?.remove(lease.id) != nil else {
+      return false
+    }
+
+    guard holders[lease.session]?[lease.bot]?.isEmpty == true else {
+      return false
+    }
+
+    holders[lease.session]?[lease.bot] = nil
+
+    if holders[lease.session]?.isEmpty == true {
+      holders[lease.session] = nil
+    }
+
+    return true
+  }
+
+  /// How many screens hold the bot's model on the session.
+  func count(session: ObjectIdentifier, bot: String) -> Int {
+    holders[session]?[bot]?.count ?? 0
+  }
+}
+
 /// One `ChatModel` per bot per session, shared by every screen that shows the chat (a second
 /// window, say), and released to the session only when the last of them goes away.
 @MainActor
 enum ChatLeases {
-  private static var counts: [ObjectIdentifier: [String: Int]] = [:]
+  private static var book = ChatLeaseBook()
 
-  static func acquire(_ session: GatewaySession, _ name: String) -> ChatModel {
-    counts[ObjectIdentifier(session), default: [:]][name, default: 0] += 1
-    return session.chat(name)
+  static func acquire(_ session: GatewaySession, _ name: String) -> (model: ChatModel, lease: ChatLease) {
+    let lease = book.acquire(session: ObjectIdentifier(session), bot: name)
+    ChatLifecycleLog.note("lease \(lease.id) taken for \(name), holders \(holders(session, name))")
+
+    return (session.chat(name), lease)
   }
 
-  static func release(_ session: GatewaySession, _ name: String) {
-    let id = ObjectIdentifier(session)
-    let remaining = (counts[id]?[name] ?? 1) - 1
+  static func release(_ lease: ChatLease, from session: GatewaySession) {
+    let last = book.release(lease)
+    ChatLifecycleLog.note("lease \(lease.id) given back for \(lease.bot), holders \(holders(session, lease.bot))")
 
-    if remaining > 0 {
-      counts[id]?[name] = remaining
-      return
+    if last {
+      session.release(lease.bot)
     }
+  }
 
-    counts[id]?[name] = nil
-
-    if counts[id]?.isEmpty == true {
-      counts[id] = nil
-    }
-
-    session.release(name)
+  /// How many screens hold the bot's model, for the diagnostics.
+  static func holders(_ session: GatewaySession, _ name: String) -> Int {
+    book.count(session: ObjectIdentifier(session), bot: name)
   }
 }
