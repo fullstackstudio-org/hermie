@@ -14,8 +14,8 @@
     },
     "applyEvent": {
       "readsClock": false,
-      "recorded": 1047,
-      "replayable": 1047,
+      "recorded": 1331,
+      "replayable": 1331,
       "skipped": {}
     },
     "applyProcessCompletion": {
@@ -56,8 +56,8 @@
     },
     "beginLocalTurn": {
       "readsClock": false,
-      "recorded": 180,
-      "replayable": 180,
+      "recorded": 195,
+      "replayable": 195,
       "skipped": {}
     },
     "beginSteer": {
@@ -88,8 +88,8 @@
     },
     "confirmSubmit": {
       "readsClock": false,
-      "recorded": 140,
-      "replayable": 140,
+      "recorded": 155,
+      "replayable": 155,
       "skipped": {}
     },
     "contextUsageOf": {
@@ -108,8 +108,8 @@
     },
     "createChatState": {
       "readsClock": false,
-      "recorded": 520,
-      "replayable": 520,
+      "recorded": 551,
+      "replayable": 551,
       "skipped": {}
     },
     "deliveryTargetFromCommand": {
@@ -280,8 +280,8 @@
     },
     "reconcile": {
       "readsClock": false,
-      "recorded": 290,
-      "replayable": 290,
+      "recorded": 323,
+      "replayable": 323,
       "skipped": {}
     },
     "reconcileTail": {
@@ -298,8 +298,8 @@
     },
     "rowsToItems": {
       "readsClock": false,
-      "recorded": 620,
-      "replayable": 620,
+      "recorded": 653,
+      "replayable": 653,
       "skipped": {}
     },
     "runningSubagents": {
@@ -310,14 +310,14 @@
     },
     "snapshotForCache": {
       "readsClock": false,
-      "recorded": 25,
-      "replayable": 25,
+      "recorded": 41,
+      "replayable": 41,
       "skipped": {}
     },
     "stateFromCache": {
       "readsClock": false,
-      "recorded": 20,
-      "replayable": 20,
+      "recorded": 36,
+      "replayable": 36,
       "skipped": {}
     },
     "stripSteerWrapper": {

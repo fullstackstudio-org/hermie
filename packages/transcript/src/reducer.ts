@@ -12,6 +12,7 @@ import {
   replyFromDeliveryOutput
 } from './bot-dm'
 import type { ParsedCronDelivery } from './cron-delivery'
+import { callKeyOf, rowIdOf } from './identity'
 import { type InjectedRow, isInjectedNotice } from './injected'
 import {
   attachmentsMatchKey,
@@ -50,6 +51,12 @@ export interface TranscriptEvent {
   session_id?: string
   seq?: number
   payload?: unknown
+  /**
+   * The gateway's id for the turn this frame belongs to, stamped on the event
+   * envelope of every turn-stream frame by a gateway that mints one. Absent
+   * otherwise, and then nothing below reads it.
+   */
+  turn_id?: string
 }
 
 /** `prompt.submit`'s reply, narrowed to what the optimistic turn needs. */
@@ -232,11 +239,26 @@ function addAnyItem(next: ChatState, draft: AnyNewItem, origin: ItemOrigin): voi
 }
 
 function dropItem(next: ChatState, id: string): void {
+  const item = next.items[id]
+
   delete next.items[id]
   const at = next.order.indexOf(id)
 
   if (at >= 0) {
     next.order.splice(at, 1)
+  }
+
+  // The identity indices must never name an item that is gone: a row id or a
+  // call key left pointing at nothing would read as "already on screen" and
+  // send the next frame for it nowhere.
+  if (item?.rowId !== undefined && next.byRowId[String(item.rowId)] === id) {
+    delete next.byRowId[String(item.rowId)]
+  }
+
+  const callKey = item ? callKeyOfItem(item) : undefined
+
+  if (callKey && next.byCallKey[callKey] === id) {
+    delete next.byCallKey[callKey]
   }
 }
 
@@ -434,6 +456,276 @@ function sealAssistantForTool(next: ChatState): void {
   })
 }
 
+// ── row, call and turn identity ──────────────────────────────────────────────
+//
+// A gateway that knows which row a frame is about says so (`identity.ts`), and
+// then the frame is paired by that id and by nothing else. The owner's report is
+// what this is for: a chat reopened from a cache saved mid-turn reads history
+// first and replays the turn's frames after it, and every frame that described
+// a row history had just brought stood its own bubble or card up beside it —
+// every note twice, normal and then grey, every tool card twice. Words and
+// stream position cannot tell "this note again" from "a new note saying the
+// same"; the row id can. Every branch below is taken only when the frame carries
+// the id, so a gateway that sends none keeps the paths above exactly as they were.
+
+/** `callKey` of an item kind that can carry one. */
+function callKeyOfItem(item: TranscriptItem): string | undefined {
+  return item.kind === 'tool' || item.kind === 'bot_dm_out' || item.kind === 'subagent_group' ? item.callKey : undefined
+}
+
+/** The item standing for persisted row `rowId`, when one is actually on screen. */
+function itemAtRow(next: ChatState, rowId: number): TranscriptItem | undefined {
+  const id = next.byRowId[String(rowId)]
+
+  return id ? next.items[id] : undefined
+}
+
+/** The card for call `callKey`, when one is actually on screen. */
+function itemAtCall(next: ChatState, callKey: string): TranscriptItem | undefined {
+  const id = next.byCallKey[callKey]
+  const item = id ? next.items[id] : undefined
+
+  return item && callKeyOfItem(item) === callKey ? item : undefined
+}
+
+/**
+ * The card a tool frame is about.
+ *
+ * Without a call identity this is `byToolId` and nothing else, as it always
+ * was. With one, the call key decides; `byToolId` is only asked after it, and
+ * its answer is refused when that card names a DIFFERENT call — a provider that
+ * numbers every turn's calls `call_0` would otherwise hand this turn's result to
+ * an earlier turn's card, which is exactly the clobbering a call key exists to
+ * end. A card that names no call at all (drawn before the gateway sent one) is
+ * still accepted: nothing says it is someone else's.
+ */
+function toolCardIdFor(next: ChatState, toolId: string, callKey: string | undefined): string | undefined {
+  if (!callKey) {
+    return toolId ? next.byToolId[toolId] : undefined
+  }
+
+  const byCall = itemAtCall(next, callKey)
+
+  if (byCall) {
+    return byCall.id
+  }
+
+  const byToolId = toolId ? next.byToolId[toolId] : undefined
+  const candidate = byToolId ? next.items[byToolId] : undefined
+  const candidateKey = candidate ? callKeyOfItem(candidate) : undefined
+
+  return candidate && (candidateKey === undefined || candidateKey === callKey) ? candidate.id : undefined
+}
+
+/**
+ * Give `itemId` the persisted row id `rowId`, unless another item already
+ * stands for that row — then nothing changes and that item's id comes back, so
+ * one row can never be described by two items.
+ */
+function assignRowId(next: ChatState, itemId: string, rowId: number): string {
+  const holder = itemAtRow(next, rowId)
+
+  if (holder && holder.id !== itemId) {
+    return holder.id
+  }
+
+  const item = next.items[itemId]
+
+  if (!item || item.rowId === rowId) {
+    return itemId
+  }
+
+  if (item.rowId !== undefined && next.byRowId[String(item.rowId)] === itemId) {
+    delete next.byRowId[String(item.rowId)]
+  }
+
+  patchItem(next, itemId, draft => {
+    draft.rowId = rowId
+  })
+
+  return itemId
+}
+
+/**
+ * Fold the live bubble `liveId` onto the row that already stands for it.
+ *
+ * The row keeps its id, its place and its text: it is what the gateway wrote,
+ * and a reader may already be looking at it. It takes only what the stream
+ * alone knew and the row does not say — the thought, its verbosity, the usage.
+ * Never a duration: this reducer cannot tell a turn it timed from its own
+ * `message.start` from frames a replay is handing it minutes later, and a row
+ * stamped "took 4 minutes" for a 3-second turn is worse than a row with no
+ * stamp. The live bubble then goes, and the turn's pointers move with it.
+ */
+function settleOntoRow(next: ChatState, liveId: string, rowItemId: string): void {
+  const live = next.items[liveId]
+  const row = next.items[rowItemId]
+
+  if (liveId === rowItemId || live?.kind !== 'assistant' || row?.kind !== 'assistant') {
+    return
+  }
+
+  const reasoning = !row.reasoning && live.reasoning ? live.reasoning : undefined
+  const verbose = row.reasoningVerbose === undefined && live.reasoningVerbose ? live.reasoningVerbose : undefined
+  const usage = !row.usage && live.usage ? live.usage : undefined
+
+  if (reasoning !== undefined || verbose !== undefined || usage !== undefined) {
+    patchItem<AssistantItem>(next, rowItemId, draft => {
+      if (reasoning !== undefined) {
+        draft.reasoning = reasoning
+      }
+
+      if (verbose !== undefined) {
+        draft.reasoningVerbose = verbose
+      }
+
+      if (usage !== undefined) {
+        draft.usage = usage
+      }
+    })
+  }
+
+  dropItem(next, liveId)
+  next.turn.assistantId = undefined
+
+  // The turn's thought follows the bubble that held it. A pointer at some OTHER
+  // item that is still there is left alone: that is where this turn's thinking
+  // already lives (`reasoningTargetId`).
+  const held = next.turn.reasoningId
+
+  if (held === undefined || held === liveId || !next.items[held]) {
+    next.turn.reasoningId = rowItemId
+  }
+}
+
+/**
+ * A tool call names the assistant row that holds it (`call_row_id`), and that
+ * row IS the bubble the call interrupts: the words streamed in the same model
+ * call, persisted with the call before the call ran. So the bubble a tool call
+ * is about to seal is folded onto that row when it is on screen — a chat whose
+ * gateway sends no `message.interim` (interims off, or a note whose words it had
+ * already delivered once) has nothing else that says which row the note became
+ * — and is stamped with it when it is not, so the row pairs with it by id later.
+ */
+function settleLiveOntoCallRow(next: ChatState, callRowId: number): void {
+  const live = next.turn.assistantId ? next.items[next.turn.assistantId] : undefined
+
+  if (live?.kind !== 'assistant' || live.rowId !== undefined) {
+    return
+  }
+
+  const row = itemAtRow(next, callRowId)
+
+  if (row) {
+    if (row.kind === 'assistant') {
+      settleOntoRow(next, live.id, row.id)
+    }
+
+    return
+  }
+
+  // An empty bubble is dropped by the seal that follows; it has nothing to stamp.
+  if (live.text.trim() || live.reasoning?.trim()) {
+    assignRowId(next, live.id, callRowId)
+  }
+}
+
+/**
+ * `message.interim` for a note the gateway has already persisted as row `rowId`.
+ *
+ * Returns false only when the row id is held by something that is not a note —
+ * a renumbered store, not this note — and the frame then takes the path a
+ * gateway without row ids takes.
+ */
+function interimOntoRow(next: ChatState, text: string, rowId: number, now: number): boolean {
+  const live = next.turn.assistantId ? next.items[next.turn.assistantId] : undefined
+  const row = itemAtRow(next, rowId)
+
+  if (row && row.kind !== 'assistant') {
+    return false
+  }
+
+  if (row) {
+    // The note is on screen already (history brought it): the bubble that was
+    // streaming it IS that row. The row's own text and shape stay as written.
+    if (live?.kind === 'assistant' && live.id !== row.id && live.rowId === undefined) {
+      settleOntoRow(next, live.id, row.id)
+    }
+
+    next.turn.assistantId = undefined
+
+    return true
+  }
+
+  if (live?.kind === 'assistant') {
+    patchItem<AssistantItem>(next, live.id, draft => {
+      if (text) {
+        draft.text = text
+      }
+
+      draft.streaming = false
+      draft.interim = true
+
+      if (draft.rowId === undefined) {
+        draft.rowId = rowId
+      }
+    })
+    next.turn.assistantId = undefined
+
+    return true
+  }
+
+  if (!text) {
+    return true
+  }
+
+  // An open note with no row of its own is this note delivered before the
+  // gateway had a row id for it; a note that names a DIFFERENT row is another
+  // note, and gets a bubble of its own.
+  const open = openInterimId(next)
+
+  if (open && next.items[open]?.rowId === undefined) {
+    patchItem<AssistantItem>(next, open, draft => {
+      draft.text = text
+      draft.rowId = rowId
+    })
+
+    return true
+  }
+
+  addItem<AssistantItem>(next, {
+    id: `a:${next.turn.nextSeq}`,
+    kind: 'assistant',
+    text,
+    streaming: false,
+    interim: true,
+    rowId,
+    ts: now / 1000
+  })
+
+  return true
+}
+
+/** `id`, when it names an assistant bubble that does not yet stand for any row. */
+function unpersistedNote(next: ChatState, id: string | undefined): string | undefined {
+  const item = id ? next.items[id] : undefined
+
+  return item?.kind === 'assistant' && item.rowId === undefined ? item.id : undefined
+}
+
+/** The user item that opened turn `turnId`, when one is on screen. */
+function userItemOfTurn(next: ChatState, turnId: string): UserItem | undefined {
+  for (const id of next.order) {
+    const item = next.items[id]
+
+    if (item?.kind === 'user' && item.turnId === turnId) {
+      return item
+    }
+  }
+
+  return undefined
+}
+
 function cancelOpenRequests(next: ChatState, reason: string): void {
   for (const id of next.order) {
     const item = next.items[id]
@@ -453,6 +745,7 @@ function clearTurn(next: ChatState): void {
   // non-local here is what used to make our own message arrive as a foreign
   // placeholder the moment the turn ahead of it finished.
   next.turn.local = next.queued?.local === true
+  delete next.turn.id
   next.turn.assistantId = undefined
   next.turn.reasoningId = undefined
   next.turn.startedAt = undefined
@@ -554,7 +847,16 @@ export function applyEvent(state: ChatState, event: TranscriptEvent, now: number
     case 'message.start': {
       next.compacting = false
 
-      if (!next.turn.local) {
+      const turnId = typeof event.turn_id === 'string' && event.turn_id ? event.turn_id : undefined
+
+      // A turn whose prompt is already on screen under its own turn id needs no
+      // stand-in and no tail fetch: the prompt is there. That is a replayed
+      // `message.start` landing on the history a reopened chat just read, and
+      // standing a blank "someone spoke" bubble above the prompt it started was
+      // one more row of the owner's doubled transcript.
+      const known = turnId && !next.turn.local ? userItemOfTurn(next, turnId) : undefined
+
+      if (!next.turn.local && !known) {
         // A prompt of ours the gateway parked starts its turn right here, and
         // nothing in the frame says so: `prompt.submit` answered `queued`
         // minutes ago and `message.start` carries no author. `ChatState.queued`
@@ -567,6 +869,10 @@ export function applyEvent(state: ChatState, event: TranscriptEvent, now: number
         if (parked) {
           patchItem<UserItem>(next, parked, draft => {
             draft.pending = false
+
+            if (turnId) {
+              draft.turnId = turnId
+            }
           })
           next.turn.local = true
         } else {
@@ -580,12 +886,21 @@ export function applyEvent(state: ChatState, event: TranscriptEvent, now: number
               kind: 'user',
               text: '',
               unknownAuthor: true,
+              // The placeholder knows which turn it stands for, so the tail
+              // fills it with THAT turn's prompt rather than the next one along.
+              ...(turnId ? { turnId } : {}),
               ts: now / 1000
             },
             'foreign'
           )
           next.turn.foreignReconcilePending = true
         }
+      }
+
+      if (turnId) {
+        next.turn.id = turnId
+      } else {
+        delete next.turn.id
       }
 
       next.turn.active = true
@@ -639,6 +954,12 @@ export function applyEvent(state: ChatState, event: TranscriptEvent, now: number
 
     case 'message.interim': {
       const text = str(payload.text)
+      const rowId = rowIdOf(payload)
+
+      if (rowId !== undefined && interimOntoRow(next, text, rowId, now)) {
+        return next
+      }
+
       const id = next.turn.assistantId
 
       if (id && next.items[id]?.kind === 'assistant') {
@@ -690,8 +1011,29 @@ export function applyEvent(state: ChatState, event: TranscriptEvent, now: number
     }
 
     case 'tool.start': {
+      const callKey = callKeyOf(payload)
+
+      if (callKey) {
+        settleLiveOntoCallRow(next, num(payload.call_row_id)!)
+      }
+
       sealAssistantForTool(next)
       next.turn.draftingTool = undefined
+
+      if (callKey) {
+        // The call is on screen already — history brought it, or this very frame
+        // was cached and is being replayed. One call, one card: the existing one
+        // is the card, and the provider's tool id now points at it.
+        const existing = itemAtCall(next, callKey)
+
+        if (existing) {
+          if (str(payload.tool_id)) {
+            next.byToolId[str(payload.tool_id)] = existing.id
+          }
+
+          return next
+        }
+      }
 
       const toolId = str(payload.tool_id) || `gen-${next.turn.nextSeq}`
       const name = str(payload.name) || 'tool'
@@ -705,6 +1047,7 @@ export function applyEvent(state: ChatState, event: TranscriptEvent, now: number
           id: `t:${toolId}`,
           kind: 'bot_dm_out',
           toolId,
+          ...(callKey ? { callKey } : {}),
           target,
           targetHandle: normalizeAgentTarget(target),
           message: str(args.message),
@@ -720,6 +1063,7 @@ export function applyEvent(state: ChatState, event: TranscriptEvent, now: number
           id: `t:${toolId}`,
           kind: 'subagent_group',
           toolId,
+          ...(callKey ? { callKey } : {}),
           goals: goalsFromArgs(args),
           rootIds: [],
           status: 'dispatched',
@@ -736,6 +1080,7 @@ export function applyEvent(state: ChatState, event: TranscriptEvent, now: number
         id: `t:${toolId}`,
         kind: 'tool',
         toolId,
+        ...(callKey ? { callKey } : {}),
         name,
         ...(context ? { context, summary: context } : {}),
         ...(Object.keys(args).length ? { args } : {}),
@@ -751,7 +1096,8 @@ export function applyEvent(state: ChatState, event: TranscriptEvent, now: number
     case 'tool.complete': {
       const toolId = str(payload.tool_id)
       const name = str(payload.name) || 'tool'
-      let id = toolId ? next.byToolId[toolId] : undefined
+      const callKey = callKeyOf(payload)
+      let id = toolCardIdFor(next, toolId, callKey)
 
       if (!id) {
         // A tool whose start we missed (late attach, replay gap): materialise it
@@ -760,11 +1106,22 @@ export function applyEvent(state: ChatState, event: TranscriptEvent, now: number
           id: `t:${toolId || `late-${next.turn.nextSeq}`}`,
           kind: 'tool',
           toolId: toolId || `late-${next.turn.nextSeq}`,
+          ...(callKey ? { callKey } : {}),
           name,
           status: 'running',
           resultKnown: false,
           ts: now / 1000
         }).id
+      } else if (callKey) {
+        const found = next.items[id]
+
+        if (found && callKeyOfItem(found) === undefined) {
+          // Found by its tool id, drawn before the gateway named the call: it
+          // learns the key now, so the row history brings later pairs with it.
+          patchItem(next, id, draft => {
+            ;(draft as ToolItem | BotDmOutItem | SubagentGroupItem).callKey = callKey
+          })
+        }
       }
 
       const item = next.items[id]
@@ -823,6 +1180,13 @@ export function applyEvent(state: ChatState, event: TranscriptEvent, now: number
         })
       }
 
+      // The tool's result row: the card is that row, so history pairs it by id.
+      const resultRowId = rowIdOf(payload)
+
+      if (resultRowId !== undefined) {
+        assignRowId(next, id, resultRowId)
+      }
+
       if (Array.isArray(payload.todos)) {
         next.todo = { todos: payload.todos, revision: num(payload.revision) ?? 0 }
       }
@@ -839,7 +1203,8 @@ export function applyEvent(state: ChatState, event: TranscriptEvent, now: number
     }
 
     case 'tool.output_risk': {
-      const id = next.byToolId[str(payload.tool_id)]
+      const callKey = callKeyOf(payload)
+      const id = callKey ? toolCardIdFor(next, str(payload.tool_id), callKey) : next.byToolId[str(payload.tool_id)]
 
       if (id) {
         patchItem<ToolItem>(next, id, draft => {
@@ -952,18 +1317,28 @@ export function applyEvent(state: ChatState, event: TranscriptEvent, now: number
       // Without that flag, a tool call in the middle of the turn has the same
       // effect: it sealed the bubble, so this completion has nowhere to land.
       const continued = next.turn.assistantId ? undefined : interimContinuedBy(next, finalText)
-      const id =
-        next.turn.assistantId ??
-        previewed ??
-        continued ??
-        (finalText || failure ? currentAssistantId(next, now) : undefined)
+      // The final assistant row, when the gateway names it (`row_id`, or the
+      // receipt's `final_assistant_row_id` from a gateway that predates it).
+      const finalRowId = rowIdOf(payload) ?? rowIdOf({ row_id: rec(payload.persisted_turn).final_assistant_row_id })
+      const finalRow = finalRowId !== undefined ? itemAtRow(next, finalRowId) : undefined
+      // A row id held by something that is not a reply is a renumbered store,
+      // not this reply; the frame is then read as if it carried no id at all.
+      const byIdentity = finalRowId !== undefined && (finalRow === undefined || finalRow.kind === 'assistant')
 
-      if (id) {
-        patchItem<AssistantItem>(next, id, draft => {
-          if (finalText && payload.response_previewed !== true) {
-            draft.text = finalText
-          }
+      if (byIdentity && finalRow) {
+        // The reply is on screen already, as its row. Whatever was standing in
+        // for it settles onto that row; the row keeps its words and is given
+        // only the verdict. No duration: see `settleOntoRow`.
+        const target =
+          unpersistedNote(next, next.turn.assistantId) ??
+          unpersistedNote(next, previewed) ??
+          unpersistedNote(next, continued)
 
+        if (target) {
+          settleOntoRow(next, target, finalRow.id)
+        }
+
+        patchItem<AssistantItem>(next, finalRow.id, draft => {
           draft.streaming = false
           draft.interim = false
           draft.status = status
@@ -975,11 +1350,52 @@ export function applyEvent(state: ChatState, event: TranscriptEvent, now: number
           if (payload.usage) {
             draft.usage = asUsage(payload.usage)
           }
-
-          if (durationS !== undefined) {
-            draft.durationS = durationS
-          }
         })
+      } else {
+        if (byIdentity && next.turn.assistantId && !unpersistedNote(next, next.turn.assistantId)) {
+          // A bubble that already stands for another row is not this reply.
+          next.turn.assistantId = undefined
+        }
+
+        const id = byIdentity
+          ? (unpersistedNote(next, next.turn.assistantId) ??
+            unpersistedNote(next, previewed) ??
+            unpersistedNote(next, continued) ??
+            (finalText || failure ? currentAssistantId(next, now) : undefined))
+          : (next.turn.assistantId ??
+            previewed ??
+            continued ??
+            (finalText || failure ? currentAssistantId(next, now) : undefined))
+
+        if (id) {
+          patchItem<AssistantItem>(next, id, draft => {
+            if (finalText && payload.response_previewed !== true) {
+              draft.text = finalText
+            }
+
+            draft.streaming = false
+            draft.interim = false
+            draft.status = status
+
+            if (failure) {
+              draft.error = failure
+            }
+
+            if (payload.usage) {
+              draft.usage = asUsage(payload.usage)
+            }
+
+            if (durationS !== undefined) {
+              draft.durationS = durationS
+            }
+
+            // The reply is not on screen as a row yet: this bubble is that row,
+            // and the history that brings it pairs with it by id.
+            if (byIdentity && draft.rowId === undefined) {
+              draft.rowId = finalRowId
+            }
+          })
+        }
       }
 
       if (payload.usage) {
