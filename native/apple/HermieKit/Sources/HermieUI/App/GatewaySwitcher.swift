@@ -90,10 +90,12 @@ struct GatewayPickerSheet: View {
   }
 }
 
-/// One gateway as a row: its name, its address, and whether it is the live one.
+/// One gateway as a row: its name, its address, and whether it is the live one. `note` is an
+/// optional third line (Settings puts the gateway's iCloud Sync state there).
 struct GatewayRowLabel: View {
   let entry: GatewayDirectory.Entry
   let active: Bool
+  var note: Text?
 
   var body: some View {
     HStack {
@@ -102,6 +104,10 @@ struct GatewayRowLabel: View {
           .font(.body.weight(.semibold))
         Text(entry.address)
           .font(.footnote)
+        if let note {
+          note
+            .font(.footnote)
+        }
       }
 
       Spacer()

@@ -86,6 +86,8 @@ public enum SettingsCategory: String, CaseIterable, Hashable, Sendable, Identifi
 public struct SettingsView: View {
   private let onAddGateway: @MainActor () -> Void
 
+  @Environment(AppLaunch.self) private var launch
+
   #if os(macOS)
     @State private var selection: SettingsCategory? = .gateways
   #else
@@ -138,6 +140,8 @@ public struct SettingsView: View {
           NavigationLink(value: category) {
             Label(category.title, systemImage: category.systemImage)
           }
+          // What iCloud Sync wants the person to see (its page is under Gateways).
+          .badge(category == .gateways ? launch.iCloudSync.attentionCount : 0)
           .accessibilityIdentifier("hermie.settings.category.\(category.rawValue)")
         }
       }

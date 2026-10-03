@@ -14,20 +14,36 @@ public struct OnboardingFlow: View {
   let context: OnboardingContext
   let key: String
   let session: SetupSessions.Session
+  let accounts: GatewayAccounts
+
+  @Environment(AppLaunch.self) private var launch
+  /// A gateway taken from iCloud Keychain that needs a sign-in here: the flow continues with it.
+  @State private var signingInFromICloud: String?
 
   public init(context: OnboardingContext, accounts: GatewayAccounts) {
     let key = SetupSessions.onboardingKey(accounts)
 
     self.context = context
     self.key = key
+    self.accounts = accounts
     self.session = SetupSessions.shared.session(key) { OnboardingModel(mode: .newGateway, accounts: accounts) }
   }
 
   public var body: some View {
     @Bindable var model = session.model
 
-    NavigationStack(path: $model.path) {
-      AddressStep(model: model, cancel: cancel)
+    if let id = signingInFromICloud {
+      SignInSheet(context: SignInContext(gatewayId: id, finish: { finish(id) }), accounts: accounts)
+    } else {
+      steps(model)
+    }
+  }
+
+  private func steps(_ model: OnboardingModel) -> some View {
+    @Bindable var model = model
+
+    return NavigationStack(path: $model.path) {
+      AddressStep(model: model, cancel: cancel, fromICloud: tookFromICloud)
         .navigationDestination(for: OnboardingModel.Step.self) { step in
           switch step {
           case .signIn:
@@ -40,7 +56,11 @@ public struct OnboardingFlow: View {
         }
     }
     .interactiveDismissDisabled()
-    .task { await session.model.opened() }
+    .task {
+      // Before the first step shows: what iCloud Keychain holds that is not here (I11).
+      launch.iCloudSync.lookInICloud()
+      await session.model.opened()
+    }
     #if os(macOS)
       .frame(minWidth: 520, idealWidth: 560, minHeight: 560, idealHeight: 640)
     #endif
@@ -50,6 +70,15 @@ public struct OnboardingFlow: View {
   private func cancel() {
     SetupSessions.shared.end(key)
     context.finish(nil)
+  }
+
+  /// Gateways came from iCloud Keychain: sign in to the first that needs it, else done with it.
+  private func tookFromICloud(_ results: [ICloudSyncModel.AddResult]) {
+    if let needing = results.first(where: \.needsSignIn)?.gatewayId {
+      signingInFromICloud = needing
+    } else if let first = results.first?.gatewayId {
+      finish(first)
+    }
   }
 
   private func finish(_ id: String) {

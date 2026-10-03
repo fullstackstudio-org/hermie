@@ -23,6 +23,8 @@ struct GatewaysSettingsPage: View {
     let directory = launch.gateways
 
     Form {
+      ICloudSyncGatewaySections()
+
       Section {
         ForEach(directory.entries) { entry in
           Button {
@@ -30,7 +32,9 @@ struct GatewaysSettingsPage: View {
             Task { try? await directory.activate(id: entry.id) }
           } label: {
             VStack(alignment: .leading, spacing: 2) {
-              GatewayRowLabel(entry: entry, active: entry.id == directory.activeId)
+              GatewayRowLabel(
+                entry: entry, active: entry.id == directory.activeId,
+                note: ICloudSyncText.badge(launch.iCloudSync, gatewayId: entry.id))
 
               if let line = accountLine(for: entry) {
                 Text(line)
@@ -54,8 +58,12 @@ struct GatewaysSettingsPage: View {
       } footer: {
         SettingsNote(Strings.App.Settings.Gateways.hint)
       }
+
+      ICloudSyncAvailableSection()
     }
     .formStyle(.grouped)
+    // A gateway taken from iCloud that needs a sign-in here opens the same sheet as "Sign in".
+    .environment(\.onNeedsSignIn, NeedsSignInAction { signingIn = $0 })
     .task { await directory.settingsOpened() }
     .toolbar {
       // In the toolbar rather than as a row: a button row in a form fails the Dynamic Type audit.
@@ -98,25 +106,50 @@ struct GatewaysSettingsPage: View {
       Button(Strings.App.Common.cancel, role: .cancel) {}
     }
     .confirmationDialog(
-      Strings.App.Settings.Gateways.removeConfirm,
+      removingSynced ? NativeStrings.ICloud.Remove.title : Strings.App.Settings.Gateways.removeConfirm,
       isPresented: Binding(get: { removing != nil }, set: { if !$0 { removing = nil } }),
       titleVisibility: .visible,
       presenting: removing
     ) { entry in
-      Button(Strings.App.Settings.Gateways.removeConfirmAction, role: .destructive) {
-        // Through the accounts: the grant is handed back before the engine removes the gateway.
-        Task {
-          if let accounts {
-            try? await accounts.remove(entry.id)
-          } else {
-            try? await directory.remove(id: entry.id)
-          }
+      // A synced gateway: from this device, or from every device (iCloud Sync, ADR-0032).
+      if launch.iCloudSync.canRemoveFromAllDevices(entry.id) {
+        Button(NativeStrings.ICloud.Remove.thisDevice, role: .destructive) {
+          remove(entry, scope: .thisDevice)
         }
+        .accessibilityIdentifier("hermie.settings.gateway.remove.thisDevice")
+        Button(NativeStrings.ICloud.Remove.allDevices, role: .destructive) {
+          remove(entry, scope: .allDevices)
+        }
+        .accessibilityIdentifier("hermie.settings.gateway.remove.allDevices")
+      } else {
+        Button(Strings.App.Settings.Gateways.removeConfirmAction, role: .destructive) {
+          remove(entry, scope: .thisDevice)
+        }
+        .accessibilityIdentifier("hermie.settings.gateway.remove.confirm")
       }
       Button(Strings.App.Settings.Gateways.keepIt, role: .cancel) {}
-    } message: { _ in
-      Text(Strings.App.Settings.Gateways.removeHint)
+    } message: { entry in
+      Text(
+        launch.iCloudSync.canRemoveFromAllDevices(entry.id)
+          ? NativeStrings.ICloud.Remove.message : Strings.App.Settings.Gateways.removeHint)
     }
+  }
+
+  /// Through the accounts: the grant is handed back before the engine removes the gateway.
+  private func remove(_ entry: GatewayDirectory.Entry, scope: RemovalScope) {
+    let directory = launch.gateways
+
+    Task {
+      if let accounts {
+        try? await accounts.remove(entry.id, scope: scope)
+      } else {
+        try? await directory.remove(id: entry.id, scope: scope)
+      }
+    }
+  }
+
+  private var removingSynced: Bool {
+    removing.map { launch.iCloudSync.canRemoveFromAllDevices($0.id) } ?? false
   }
 
   @ViewBuilder

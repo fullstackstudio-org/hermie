@@ -54,6 +54,162 @@
 	<string>No chat selected</string>
 	<key>native.gateways.rename</key>
 	<string>Rename</string>
+	<key>native.icloud.actionFailed</key>
+	<string>That did not work.</string>
+	<key>native.icloud.available.add</key>
+	<string>Add</string>
+	<key>native.icloud.available.footer</key>
+	<string>These gateways are in your iCloud Keychain but not on this device.</string>
+	<key>native.icloud.available.header</key>
+	<string>Available from iCloud</string>
+	<key>native.icloud.available.removedHere</key>
+	<string>Removed from this device earlier</string>
+	<key>native.icloud.available.signInAfter</key>
+	<string>Asks you to sign in once added</string>
+	<key>native.icloud.available.useAll</key>
+	<string>Use These Gateways</string>
+	<key>native.icloud.badge.synced</key>
+	<string>Synced with iCloud</string>
+	<key>native.icloud.deleteEverything.action</key>
+	<string>Delete Everything from iCloud Keychain…</string>
+	<key>native.icloud.deleteEverything.confirm</key>
+	<string>Delete Everything</string>
+	<key>native.icloud.deleteEverything.footer</key>
+	<string>Deletes every Hermie gateway and credential from your iCloud Keychain. No device loses a gateway.</string>
+	<key>native.icloud.deleteEverything.message</key>
+	<string>Every Hermie gateway and credential in your iCloud Keychain is deleted. Nothing is removed from any device. This device keeps its gateways and stops syncing them; gateways you add later are synced as usual. Your other devices keep theirs too, and stop syncing them until you choose Sync Again there. A device that changes a gateway before the deletion reaches it, or that had not yet received anything from iCloud, can put that gateway back.</string>
+	<key>native.icloud.deleteEverything.title</key>
+	<string>Delete Everything from iCloud Keychain?</string>
+	<key>native.icloud.disclosure.accept</key>
+	<string>Sync with iCloud</string>
+	<key>native.icloud.disclosure.availableHeader</key>
+	<string>Already in iCloud Keychain</string>
+	<key>native.icloud.disclosure.decline</key>
+	<string>Keep on This Device</string>
+	<key>native.icloud.disclosure.gatewaysHeader</key>
+	<string>On this device</string>
+	<key>native.icloud.disclosure.intro</key>
+	<string>Hermie can keep your gateways in your iCloud Keychain, so your other Apple devices get them without typing.</string>
+	<key>native.icloud.disclosure.later</key>
+	<string>You can change this at any time under Settings → Gateways → iCloud Sync.</string>
+	<key>native.icloud.disclosure.neverHeader</key>
+	<string>What is never stored</string>
+	<key>native.icloud.disclosure.neverOther</key>
+	<string>The app lock, your messages and drafts, and notification registrations.</string>
+	<key>native.icloud.disclosure.neverSignIns</key>
+	<string>Sign-ins through an identity provider or a password. Each device signs in on its own.</string>
+	<key>native.icloud.disclosure.storedHeader</key>
+	<string>What is stored</string>
+	<key>native.icloud.disclosure.storedList</key>
+	<string>Your list of gateways: name, address, how you sign in, and your user ID on each.</string>
+	<key>native.icloud.disclosure.storedSecrets</key>
+	<string>Session tokens, Cloudflare Access service tokens and custom headers.</string>
+	<key>native.icloud.disclosure.title</key>
+	<string>Sync Gateways with iCloud?</string>
+	<key>native.icloud.disclosure.whereBody</key>
+	<string>In your iCloud Keychain, which is end-to-end encrypted: Apple cannot read it and neither can we. It reaches only devices signed in to your Apple Account that you have approved. Nothing is sent to us.</string>
+	<key>native.icloud.disclosure.whereHeader</key>
+	<string>Where it is stored</string>
+	<key>native.icloud.disclosure.whereOff</key>
+	<string>Hermie cannot see whether iCloud Keychain is on. If it is off, everything stays on this device.</string>
+	<key>native.icloud.failure.keychain</key>
+	<string>The keychain refused the change. Choose Sync Now to try again.</string>
+	<key>native.icloud.failure.locked</key>
+	<string>The keychain cannot be read while this device is locked. Unlock it and choose Sync Now.</string>
+	<key>native.icloud.failure.newerVersion</key>
+	<string>Something on this device was written by a newer version of Hermie. Update Hermie to sync.</string>
+	<key>native.icloud.failure.other</key>
+	<string>Choose Sync Now to try again.</string>
+	<key>native.icloud.failure.storage</key>
+	<string>Hermie could not read its own storage. Quit and reopen Hermie, then choose Sync Now.</string>
+	<key>native.icloud.footer</key>
+	<string>Your gateway list, session tokens, Cloudflare Access service tokens and custom headers are kept in your iCloud Keychain, end-to-end encrypted, for your other Apple devices. Sign-ins through an identity provider or a password stay on each device. This needs iCloud Keychain to be on in the system settings; Hermie cannot see whether it is.</string>
+	<key>native.icloud.gateways.footer</key>
+	<string>A gateway that is not synced stays on this device only. Turning one off removes it from iCloud Keychain; your other devices keep their copies.</string>
+	<key>native.icloud.gateways.syncThisGateway</key>
+	<string>Sync this gateway</string>
+	<key>native.icloud.lastSynced</key>
+	<string>Last synced</string>
+	<key>native.icloud.notice.adopted</key>
+	<string>Added from iCloud Keychain:</string>
+	<key>native.icloud.notice.header</key>
+	<string>Needs your attention</string>
+	<key>native.icloud.notice.keptHere</key>
+	<string>These gateways were removed from all devices on another device. They are kept here because they were added here first. Syncing again does not bring them back on other devices; to have one on every device again, remove it here and add it again.</string>
+	<key>native.icloud.notice.needsSignIn</key>
+	<string>Added from iCloud Keychain. Sign in to use these gateways on this device:</string>
+	<key>native.icloud.notice.removedElsewhere</key>
+	<string>This gateway was removed from all devices on another device, so it is gone from this one too:</string>
+	<key>native.icloud.notice.storeEmptied</key>
+	<string>iCloud Keychain no longer holds these gateways, so they are kept on this device only. This happens after “Delete Everything from iCloud Keychain” on another device, or when this device’s copy of iCloud Keychain was reset.</string>
+	<key>native.icloud.phase.awaiting</key>
+	<string>Not turned on yet</string>
+	<key>native.icloud.phase.awaitingDetail</key>
+	<string>Hermie asks before it stores anything in iCloud Keychain.</string>
+	<key>native.icloud.phase.checking</key>
+	<string>Checking…</string>
+	<key>native.icloud.phase.failed</key>
+	<string>Did not finish</string>
+	<key>native.icloud.phase.newerVersion</key>
+	<string>Paused</string>
+	<key>native.icloud.phase.newerVersionDetail</key>
+	<string>A newer version of Hermie set up sync on this device. Update Hermie to sync again.</string>
+	<key>native.icloud.phase.off</key>
+	<string>Off</string>
+	<key>native.icloud.phase.offDetail</key>
+	<string>Your gateways stay on this device.</string>
+	<key>native.icloud.phase.syncing</key>
+	<string>Syncing…</string>
+	<key>native.icloud.phase.unavailable</key>
+	<string>Not available</string>
+	<key>native.icloud.phase.unavailableDetail</key>
+	<string>This copy of Hermie cannot use iCloud Keychain, so your gateways stay on this device. Copies from the App Store and TestFlight can.</string>
+	<key>native.icloud.phase.upToDate</key>
+	<string>Up to date</string>
+	<key>native.icloud.phase.waiting</key>
+	<string>Waiting to sync</string>
+	<key>native.icloud.remove.allDevices</key>
+	<string>Remove from All Devices</string>
+	<key>native.icloud.remove.message</key>
+	<string>From this device: it stays in iCloud Keychain and on your other devices, and does not come back here. From all devices: it is removed from iCloud Keychain, and from each of your devices the next time it syncs. Either way, this device forgets everything stored for it.</string>
+	<key>native.icloud.remove.thisDevice</key>
+	<string>Remove from This Device</string>
+	<key>native.icloud.remove.title</key>
+	<string>Remove This Gateway?</string>
+	<key>native.icloud.state.newerVersion</key>
+	<string>This device only: update Hermie to sync it</string>
+	<key>native.icloud.state.notInICloud</key>
+	<string>This device only: no longer in iCloud Keychain</string>
+	<key>native.icloud.state.off</key>
+	<string>Not synced</string>
+	<key>native.icloud.state.removedElsewhere</key>
+	<string>This device only: removed on another device</string>
+	<key>native.icloud.state.sameAddress</key>
+	<string>This device only: another gateway here has the same address</string>
+	<key>native.icloud.state.signInNeeded</key>
+	<string>Sign in needed</string>
+	<key>native.icloud.state.synced</key>
+	<string>Synced</string>
+	<key>native.icloud.state.thisDeviceOnly</key>
+	<string>This device only</string>
+	<key>native.icloud.status</key>
+	<string>Status</string>
+	<key>native.icloud.switch</key>
+	<string>Sync with iCloud</string>
+	<key>native.icloud.syncAgain</key>
+	<string>Sync Again</string>
+	<key>native.icloud.syncNow</key>
+	<string>Sync Now</string>
+	<key>native.icloud.title</key>
+	<string>iCloud Sync</string>
+	<key>native.icloud.turnOff.keep</key>
+	<string>Turn Off, Keep in iCloud</string>
+	<key>native.icloud.turnOff.message</key>
+	<string>Your gateways stay on this device. You can also remove the gateways this device synced from iCloud Keychain; your other devices keep their copies, each on that device only.</string>
+	<key>native.icloud.turnOff.remove</key>
+	<string>Turn Off and Remove from iCloud</string>
+	<key>native.icloud.turnOff.title</key>
+	<string>Turn Off iCloud Sync?</string>
 	<key>native.identity.anonymous</key>
 	<string>You are anonymous on this gateway: your messages carry no name.</string>
 	<key>native.intents.expired</key>

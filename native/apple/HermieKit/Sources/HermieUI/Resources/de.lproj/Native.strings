@@ -54,6 +54,162 @@
 	<string>Kein Chat ausgewählt</string>
 	<key>native.gateways.rename</key>
 	<string>Umbenennen</string>
+	<key>native.icloud.actionFailed</key>
+	<string>Das hat nicht geklappt.</string>
+	<key>native.icloud.available.add</key>
+	<string>Hinzufügen</string>
+	<key>native.icloud.available.footer</key>
+	<string>Diese Gateways sind in deinem iCloud-Schlüsselbund, aber nicht auf diesem Gerät.</string>
+	<key>native.icloud.available.header</key>
+	<string>Aus iCloud verfügbar</string>
+	<key>native.icloud.available.removedHere</key>
+	<string>Früher von diesem Gerät entfernt</string>
+	<key>native.icloud.available.signInAfter</key>
+	<string>Fragt nach dem Hinzufügen nach einer Anmeldung</string>
+	<key>native.icloud.available.useAll</key>
+	<string>Diese Gateways verwenden</string>
+	<key>native.icloud.badge.synced</key>
+	<string>Mit iCloud synchronisiert</string>
+	<key>native.icloud.deleteEverything.action</key>
+	<string>Alles aus dem iCloud-Schlüsselbund löschen …</string>
+	<key>native.icloud.deleteEverything.confirm</key>
+	<string>Alles löschen</string>
+	<key>native.icloud.deleteEverything.footer</key>
+	<string>Löscht jedes Hermie-Gateway und jede Zugangsangabe aus deinem iCloud-Schlüsselbund. Kein Gerät verliert ein Gateway.</string>
+	<key>native.icloud.deleteEverything.message</key>
+	<string>Jedes Hermie-Gateway und jede Zugangsangabe in deinem iCloud-Schlüsselbund wird gelöscht. Von keinem Gerät wird etwas entfernt. Dieses Gerät behält seine Gateways und synchronisiert sie nicht mehr; Gateways, die du später hinzufügst, werden wie gewohnt synchronisiert. Deine anderen Geräte behalten ihre ebenfalls und synchronisieren sie nicht mehr, bis du dort „Erneut synchronisieren“ wählst. Ein Gerät, das ein Gateway ändert, bevor die Löschung es erreicht, oder das noch nichts aus iCloud empfangen hatte, kann dieses Gateway zurückbringen.</string>
+	<key>native.icloud.deleteEverything.title</key>
+	<string>Alles aus dem iCloud-Schlüsselbund löschen?</string>
+	<key>native.icloud.disclosure.accept</key>
+	<string>Mit iCloud synchronisieren</string>
+	<key>native.icloud.disclosure.availableHeader</key>
+	<string>Schon im iCloud-Schlüsselbund</string>
+	<key>native.icloud.disclosure.decline</key>
+	<string>Auf diesem Gerät behalten</string>
+	<key>native.icloud.disclosure.gatewaysHeader</key>
+	<string>Auf diesem Gerät</string>
+	<key>native.icloud.disclosure.intro</key>
+	<string>Hermie kann deine Gateways in deinem iCloud-Schlüsselbund aufbewahren, damit deine anderen Apple-Geräte sie bekommen, ohne dass du etwas eintippst.</string>
+	<key>native.icloud.disclosure.later</key>
+	<string>Du kannst das jederzeit unter Einstellungen → Gateways → iCloud-Synchronisierung ändern.</string>
+	<key>native.icloud.disclosure.neverHeader</key>
+	<string>Was nie gespeichert wird</string>
+	<key>native.icloud.disclosure.neverOther</key>
+	<string>Die App-Sperre, deine Nachrichten und Entwürfe und die Registrierungen für Mitteilungen.</string>
+	<key>native.icloud.disclosure.neverSignIns</key>
+	<string>Anmeldungen über einen Identitätsanbieter oder ein Passwort. Jedes Gerät meldet sich selbst an.</string>
+	<key>native.icloud.disclosure.storedHeader</key>
+	<string>Was gespeichert wird</string>
+	<key>native.icloud.disclosure.storedList</key>
+	<string>Deine Liste der Gateways: Name, Adresse, wie du dich anmeldest, und deine Benutzer-ID auf jedem.</string>
+	<key>native.icloud.disclosure.storedSecrets</key>
+	<string>Sitzungstokens, Cloudflare-Access-Diensttokens und eigene Header.</string>
+	<key>native.icloud.disclosure.title</key>
+	<string>Gateways mit iCloud synchronisieren?</string>
+	<key>native.icloud.disclosure.whereBody</key>
+	<string>In deinem iCloud-Schlüsselbund, der Ende-zu-Ende-verschlüsselt ist: Apple kann ihn nicht lesen, und wir auch nicht. Er gelangt nur auf Geräte, die mit deinem Apple Account angemeldet sind und die du bestätigt hast. Nichts wird an uns gesendet.</string>
+	<key>native.icloud.disclosure.whereHeader</key>
+	<string>Wo es gespeichert wird</string>
+	<key>native.icloud.disclosure.whereOff</key>
+	<string>Hermie kann nicht sehen, ob der iCloud-Schlüsselbund eingeschaltet ist. Ist er aus, bleibt alles auf diesem Gerät.</string>
+	<key>native.icloud.failure.keychain</key>
+	<string>Der Schlüsselbund hat die Änderung abgelehnt. Wähle „Jetzt synchronisieren“, um es noch einmal zu versuchen.</string>
+	<key>native.icloud.failure.locked</key>
+	<string>Der Schlüsselbund kann nicht gelesen werden, solange dieses Gerät gesperrt ist. Entsperre es und wähle „Jetzt synchronisieren“.</string>
+	<key>native.icloud.failure.newerVersion</key>
+	<string>Etwas auf diesem Gerät wurde von einer neueren Hermie-Version geschrieben. Aktualisiere Hermie, um zu synchronisieren.</string>
+	<key>native.icloud.failure.other</key>
+	<string>Wähle „Jetzt synchronisieren“, um es noch einmal zu versuchen.</string>
+	<key>native.icloud.failure.storage</key>
+	<string>Hermie konnte seinen eigenen Speicher nicht lesen. Beende Hermie, öffne es wieder und wähle dann „Jetzt synchronisieren“.</string>
+	<key>native.icloud.footer</key>
+	<string>Deine Gateway-Liste, Sitzungstokens, Cloudflare-Access-Diensttokens und eigenen Header werden Ende-zu-Ende-verschlüsselt in deinem iCloud-Schlüsselbund aufbewahrt, für deine anderen Apple-Geräte. Anmeldungen über einen Identitätsanbieter oder ein Passwort bleiben auf jedem Gerät für sich. Dafür muss der iCloud-Schlüsselbund in den Systemeinstellungen eingeschaltet sein; Hermie kann nicht sehen, ob er es ist.</string>
+	<key>native.icloud.gateways.footer</key>
+	<string>Ein Gateway, das nicht synchronisiert wird, bleibt nur auf diesem Gerät. Schaltest du eines aus, wird es aus dem iCloud-Schlüsselbund entfernt; deine anderen Geräte behalten ihre Kopie.</string>
+	<key>native.icloud.gateways.syncThisGateway</key>
+	<string>Dieses Gateway synchronisieren</string>
+	<key>native.icloud.lastSynced</key>
+	<string>Zuletzt synchronisiert</string>
+	<key>native.icloud.notice.adopted</key>
+	<string>Aus dem iCloud-Schlüsselbund hinzugefügt:</string>
+	<key>native.icloud.notice.header</key>
+	<string>Braucht deine Aufmerksamkeit</string>
+	<key>native.icloud.notice.keptHere</key>
+	<string>Diese Gateways wurden auf einem anderen Gerät von allen Geräten entfernt. Sie bleiben hier, weil sie hier zuerst hinzugefügt wurden. Erneutes Synchronisieren bringt sie auf anderen Geräten nicht zurück; soll eines wieder auf jedem Gerät sein, entferne es hier und füge es erneut hinzu.</string>
+	<key>native.icloud.notice.needsSignIn</key>
+	<string>Aus dem iCloud-Schlüsselbund hinzugefügt. Melde dich an, um diese Gateways auf diesem Gerät zu nutzen:</string>
+	<key>native.icloud.notice.removedElsewhere</key>
+	<string>Dieses Gateway wurde auf einem anderen Gerät von allen Geräten entfernt, deshalb auch von diesem:</string>
+	<key>native.icloud.notice.storeEmptied</key>
+	<string>Der iCloud-Schlüsselbund enthält diese Gateways nicht mehr, deshalb bleiben sie nur auf diesem Gerät. Das passiert nach „Alles aus dem iCloud-Schlüsselbund löschen“ auf einem anderen Gerät oder wenn die Kopie des iCloud-Schlüsselbunds auf diesem Gerät zurückgesetzt wurde.</string>
+	<key>native.icloud.phase.awaiting</key>
+	<string>Noch nicht eingeschaltet</string>
+	<key>native.icloud.phase.awaitingDetail</key>
+	<string>Hermie fragt, bevor etwas im iCloud-Schlüsselbund gespeichert wird.</string>
+	<key>native.icloud.phase.checking</key>
+	<string>Wird geprüft …</string>
+	<key>native.icloud.phase.failed</key>
+	<string>Nicht abgeschlossen</string>
+	<key>native.icloud.phase.newerVersion</key>
+	<string>Pausiert</string>
+	<key>native.icloud.phase.newerVersionDetail</key>
+	<string>Eine neuere Hermie-Version hat die Synchronisierung auf diesem Gerät eingerichtet. Aktualisiere Hermie, um wieder zu synchronisieren.</string>
+	<key>native.icloud.phase.off</key>
+	<string>Aus</string>
+	<key>native.icloud.phase.offDetail</key>
+	<string>Deine Gateways bleiben auf diesem Gerät.</string>
+	<key>native.icloud.phase.syncing</key>
+	<string>Wird synchronisiert …</string>
+	<key>native.icloud.phase.unavailable</key>
+	<string>Nicht verfügbar</string>
+	<key>native.icloud.phase.unavailableDetail</key>
+	<string>Diese Hermie-Version kann den iCloud-Schlüsselbund nicht nutzen, deshalb bleiben deine Gateways auf diesem Gerät. Versionen aus dem App Store und von TestFlight können das.</string>
+	<key>native.icloud.phase.upToDate</key>
+	<string>Aktuell</string>
+	<key>native.icloud.phase.waiting</key>
+	<string>Wartet auf Synchronisierung</string>
+	<key>native.icloud.remove.allDevices</key>
+	<string>Von allen Geräten entfernen</string>
+	<key>native.icloud.remove.message</key>
+	<string>Von diesem Gerät: Es bleibt im iCloud-Schlüsselbund und auf deinen anderen Geräten und kommt hier nicht zurück. Von allen Geräten: Es wird aus dem iCloud-Schlüsselbund entfernt und von jedem deiner Geräte, sobald es synchronisiert. So oder so vergisst dieses Gerät alles, was dafür gespeichert ist.</string>
+	<key>native.icloud.remove.thisDevice</key>
+	<string>Von diesem Gerät entfernen</string>
+	<key>native.icloud.remove.title</key>
+	<string>Dieses Gateway entfernen?</string>
+	<key>native.icloud.state.newerVersion</key>
+	<string>Nur dieses Gerät: aktualisiere Hermie, um es zu synchronisieren</string>
+	<key>native.icloud.state.notInICloud</key>
+	<string>Nur dieses Gerät: nicht mehr im iCloud-Schlüsselbund</string>
+	<key>native.icloud.state.off</key>
+	<string>Nicht synchronisiert</string>
+	<key>native.icloud.state.removedElsewhere</key>
+	<string>Nur dieses Gerät: auf einem anderen Gerät entfernt</string>
+	<key>native.icloud.state.sameAddress</key>
+	<string>Nur dieses Gerät: ein anderes Gateway hier hat dieselbe Adresse</string>
+	<key>native.icloud.state.signInNeeded</key>
+	<string>Anmeldung nötig</string>
+	<key>native.icloud.state.synced</key>
+	<string>Synchronisiert</string>
+	<key>native.icloud.state.thisDeviceOnly</key>
+	<string>Nur dieses Gerät</string>
+	<key>native.icloud.status</key>
+	<string>Status</string>
+	<key>native.icloud.switch</key>
+	<string>Mit iCloud synchronisieren</string>
+	<key>native.icloud.syncAgain</key>
+	<string>Erneut synchronisieren</string>
+	<key>native.icloud.syncNow</key>
+	<string>Jetzt synchronisieren</string>
+	<key>native.icloud.title</key>
+	<string>iCloud-Synchronisierung</string>
+	<key>native.icloud.turnOff.keep</key>
+	<string>Ausschalten, in iCloud lassen</string>
+	<key>native.icloud.turnOff.message</key>
+	<string>Deine Gateways bleiben auf diesem Gerät. Du kannst die Gateways, die dieses Gerät synchronisiert hat, auch aus dem iCloud-Schlüsselbund entfernen; deine anderen Geräte behalten ihre Kopie, jeweils nur auf diesem Gerät.</string>
+	<key>native.icloud.turnOff.remove</key>
+	<string>Ausschalten und aus iCloud entfernen</string>
+	<key>native.icloud.turnOff.title</key>
+	<string>iCloud-Synchronisierung ausschalten?</string>
 	<key>native.identity.anonymous</key>
 	<string>Du bist auf diesem Gateway anonym: Deine Nachrichten tragen keinen Namen.</string>
 	<key>native.intents.expired</key>

@@ -607,6 +607,1800 @@
         }
       }
     },
+    "native.icloud.actionFailed" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Das hat nicht geklappt."
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "That did not work."
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Dat is niet gelukt."
+          }
+        }
+      }
+    },
+    "native.icloud.available.add" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Hinzufügen"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Add"
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Toevoegen"
+          }
+        }
+      }
+    },
+    "native.icloud.available.footer" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Diese Gateways sind in deinem iCloud-Schlüsselbund, aber nicht auf diesem Gerät."
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "These gateways are in your iCloud Keychain but not on this device."
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Deze gateways staan in je iCloud-sleutelhanger, maar niet op dit apparaat."
+          }
+        }
+      }
+    },
+    "native.icloud.available.header" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Aus iCloud verfügbar"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Available from iCloud"
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Beschikbaar uit iCloud"
+          }
+        }
+      }
+    },
+    "native.icloud.available.removedHere" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Früher von diesem Gerät entfernt"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Removed from this device earlier"
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Eerder van dit apparaat verwijderd"
+          }
+        }
+      }
+    },
+    "native.icloud.available.signInAfter" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Fragt nach dem Hinzufügen nach einer Anmeldung"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Asks you to sign in once added"
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Vraagt je om in te loggen na het toevoegen"
+          }
+        }
+      }
+    },
+    "native.icloud.available.useAll" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Diese Gateways verwenden"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Use These Gateways"
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Deze gateways gebruiken"
+          }
+        }
+      }
+    },
+    "native.icloud.badge.synced" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Mit iCloud synchronisiert"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Synced with iCloud"
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Gesynchroniseerd met iCloud"
+          }
+        }
+      }
+    },
+    "native.icloud.deleteEverything.action" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Alles aus dem iCloud-Schlüsselbund löschen …"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Delete Everything from iCloud Keychain…"
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Alles uit de iCloud-sleutelhanger verwijderen…"
+          }
+        }
+      }
+    },
+    "native.icloud.deleteEverything.confirm" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Alles löschen"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Delete Everything"
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Alles verwijderen"
+          }
+        }
+      }
+    },
+    "native.icloud.deleteEverything.footer" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Löscht jedes Hermie-Gateway und jede Zugangsangabe aus deinem iCloud-Schlüsselbund. Kein Gerät verliert ein Gateway."
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Deletes every Hermie gateway and credential from your iCloud Keychain. No device loses a gateway."
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Verwijdert elke Hermie-gateway en elk inloggegeven uit je iCloud-sleutelhanger. Geen enkel apparaat raakt een gateway kwijt."
+          }
+        }
+      }
+    },
+    "native.icloud.deleteEverything.message" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Jedes Hermie-Gateway und jede Zugangsangabe in deinem iCloud-Schlüsselbund wird gelöscht. Von keinem Gerät wird etwas entfernt. Dieses Gerät behält seine Gateways und synchronisiert sie nicht mehr; Gateways, die du später hinzufügst, werden wie gewohnt synchronisiert. Deine anderen Geräte behalten ihre ebenfalls und synchronisieren sie nicht mehr, bis du dort „Erneut synchronisieren“ wählst. Ein Gerät, das ein Gateway ändert, bevor die Löschung es erreicht, oder das noch nichts aus iCloud empfangen hatte, kann dieses Gateway zurückbringen."
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Every Hermie gateway and credential in your iCloud Keychain is deleted. Nothing is removed from any device. This device keeps its gateways and stops syncing them; gateways you add later are synced as usual. Your other devices keep theirs too, and stop syncing them until you choose Sync Again there. A device that changes a gateway before the deletion reaches it, or that had not yet received anything from iCloud, can put that gateway back."
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Elke Hermie-gateway en elk inloggegeven in je iCloud-sleutelhanger wordt verwijderd. Van geen enkel apparaat wordt iets verwijderd. Dit apparaat houdt zijn gateways en synchroniseert ze niet meer; gateways die je later toevoegt, worden gewoon gesynchroniseerd. Je andere apparaten houden die van hen ook, en synchroniseren ze niet meer tot je daar Opnieuw synchroniseren kiest. Een apparaat dat een gateway wijzigt voordat de verwijdering het bereikt, of dat nog niets uit iCloud had ontvangen, kan die gateway terugzetten."
+          }
+        }
+      }
+    },
+    "native.icloud.deleteEverything.title" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Alles aus dem iCloud-Schlüsselbund löschen?"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Delete Everything from iCloud Keychain?"
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Alles uit de iCloud-sleutelhanger verwijderen?"
+          }
+        }
+      }
+    },
+    "native.icloud.disclosure.accept" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Mit iCloud synchronisieren"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Sync with iCloud"
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Synchroniseren met iCloud"
+          }
+        }
+      }
+    },
+    "native.icloud.disclosure.availableHeader" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Schon im iCloud-Schlüsselbund"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Already in iCloud Keychain"
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Al in de iCloud-sleutelhanger"
+          }
+        }
+      }
+    },
+    "native.icloud.disclosure.decline" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Auf diesem Gerät behalten"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Keep on This Device"
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Op dit apparaat houden"
+          }
+        }
+      }
+    },
+    "native.icloud.disclosure.gatewaysHeader" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Auf diesem Gerät"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "On this device"
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Op dit apparaat"
+          }
+        }
+      }
+    },
+    "native.icloud.disclosure.intro" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Hermie kann deine Gateways in deinem iCloud-Schlüsselbund aufbewahren, damit deine anderen Apple-Geräte sie bekommen, ohne dass du etwas eintippst."
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Hermie can keep your gateways in your iCloud Keychain, so your other Apple devices get them without typing."
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Hermie kan je gateways in je iCloud-sleutelhanger bewaren, zodat je andere Apple-apparaten ze krijgen zonder dat je iets hoeft te typen."
+          }
+        }
+      }
+    },
+    "native.icloud.disclosure.later" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Du kannst das jederzeit unter Einstellungen → Gateways → iCloud-Synchronisierung ändern."
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "You can change this at any time under Settings → Gateways → iCloud Sync."
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Je kunt dit altijd wijzigen onder Instellingen → Gateways → iCloud-synchronisatie."
+          }
+        }
+      }
+    },
+    "native.icloud.disclosure.neverHeader" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Was nie gespeichert wird"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "What is never stored"
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Wat er nooit wordt bewaard"
+          }
+        }
+      }
+    },
+    "native.icloud.disclosure.neverOther" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Die App-Sperre, deine Nachrichten und Entwürfe und die Registrierungen für Mitteilungen."
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "The app lock, your messages and drafts, and notification registrations."
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "De app-vergrendeling, je berichten en concepten, en meldingsregistraties."
+          }
+        }
+      }
+    },
+    "native.icloud.disclosure.neverSignIns" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Anmeldungen über einen Identitätsanbieter oder ein Passwort. Jedes Gerät meldet sich selbst an."
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Sign-ins through an identity provider or a password. Each device signs in on its own."
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Inloggen via een identiteitsprovider of een wachtwoord. Elk apparaat logt zelf in."
+          }
+        }
+      }
+    },
+    "native.icloud.disclosure.storedHeader" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Was gespeichert wird"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "What is stored"
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Wat er wordt bewaard"
+          }
+        }
+      }
+    },
+    "native.icloud.disclosure.storedList" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Deine Liste der Gateways: Name, Adresse, wie du dich anmeldest, und deine Benutzer-ID auf jedem."
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Your list of gateways: name, address, how you sign in, and your user ID on each."
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Je lijst met gateways: naam, adres, hoe je inlogt en je gebruikers-ID op elke gateway."
+          }
+        }
+      }
+    },
+    "native.icloud.disclosure.storedSecrets" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Sitzungstokens, Cloudflare-Access-Diensttokens und eigene Header."
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Session tokens, Cloudflare Access service tokens and custom headers."
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Sessietokens, Cloudflare Access-servicetokens en eigen headers."
+          }
+        }
+      }
+    },
+    "native.icloud.disclosure.title" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Gateways mit iCloud synchronisieren?"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Sync Gateways with iCloud?"
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Gateways synchroniseren met iCloud?"
+          }
+        }
+      }
+    },
+    "native.icloud.disclosure.whereBody" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "In deinem iCloud-Schlüsselbund, der Ende-zu-Ende-verschlüsselt ist: Apple kann ihn nicht lesen, und wir auch nicht. Er gelangt nur auf Geräte, die mit deinem Apple Account angemeldet sind und die du bestätigt hast. Nichts wird an uns gesendet."
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "In your iCloud Keychain, which is end-to-end encrypted: Apple cannot read it and neither can we. It reaches only devices signed in to your Apple Account that you have approved. Nothing is sent to us."
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "In je iCloud-sleutelhanger, die end-to-end versleuteld is: Apple kan hem niet lezen en wij ook niet. Hij komt alleen op apparaten die met je Apple-account zijn ingelogd en die je hebt goedgekeurd. Er wordt niets naar ons gestuurd."
+          }
+        }
+      }
+    },
+    "native.icloud.disclosure.whereHeader" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Wo es gespeichert wird"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Where it is stored"
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Waar het wordt bewaard"
+          }
+        }
+      }
+    },
+    "native.icloud.disclosure.whereOff" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Hermie kann nicht sehen, ob der iCloud-Schlüsselbund eingeschaltet ist. Ist er aus, bleibt alles auf diesem Gerät."
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Hermie cannot see whether iCloud Keychain is on. If it is off, everything stays on this device."
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Hermie kan niet zien of de iCloud-sleutelhanger aanstaat. Staat hij uit, dan blijft alles op dit apparaat."
+          }
+        }
+      }
+    },
+    "native.icloud.failure.keychain" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Der Schlüsselbund hat die Änderung abgelehnt. Wähle „Jetzt synchronisieren“, um es noch einmal zu versuchen."
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "The keychain refused the change. Choose Sync Now to try again."
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "De sleutelhanger weigerde de wijziging. Kies Nu synchroniseren om het opnieuw te proberen."
+          }
+        }
+      }
+    },
+    "native.icloud.failure.locked" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Der Schlüsselbund kann nicht gelesen werden, solange dieses Gerät gesperrt ist. Entsperre es und wähle „Jetzt synchronisieren“."
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "The keychain cannot be read while this device is locked. Unlock it and choose Sync Now."
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "De sleutelhanger is niet te lezen zolang dit apparaat vergrendeld is. Ontgrendel het en kies Nu synchroniseren."
+          }
+        }
+      }
+    },
+    "native.icloud.failure.newerVersion" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Etwas auf diesem Gerät wurde von einer neueren Hermie-Version geschrieben. Aktualisiere Hermie, um zu synchronisieren."
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Something on this device was written by a newer version of Hermie. Update Hermie to sync."
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Iets op dit apparaat is door een nieuwere versie van Hermie geschreven. Werk Hermie bij om te synchroniseren."
+          }
+        }
+      }
+    },
+    "native.icloud.failure.other" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Wähle „Jetzt synchronisieren“, um es noch einmal zu versuchen."
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Choose Sync Now to try again."
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Kies Nu synchroniseren om het opnieuw te proberen."
+          }
+        }
+      }
+    },
+    "native.icloud.failure.storage" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Hermie konnte seinen eigenen Speicher nicht lesen. Beende Hermie, öffne es wieder und wähle dann „Jetzt synchronisieren“."
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Hermie could not read its own storage. Quit and reopen Hermie, then choose Sync Now."
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Hermie kon zijn eigen opslag niet lezen. Sluit Hermie af, open het opnieuw en kies dan Nu synchroniseren."
+          }
+        }
+      }
+    },
+    "native.icloud.footer" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Deine Gateway-Liste, Sitzungstokens, Cloudflare-Access-Diensttokens und eigenen Header werden Ende-zu-Ende-verschlüsselt in deinem iCloud-Schlüsselbund aufbewahrt, für deine anderen Apple-Geräte. Anmeldungen über einen Identitätsanbieter oder ein Passwort bleiben auf jedem Gerät für sich. Dafür muss der iCloud-Schlüsselbund in den Systemeinstellungen eingeschaltet sein; Hermie kann nicht sehen, ob er es ist."
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Your gateway list, session tokens, Cloudflare Access service tokens and custom headers are kept in your iCloud Keychain, end-to-end encrypted, for your other Apple devices. Sign-ins through an identity provider or a password stay on each device. This needs iCloud Keychain to be on in the system settings; Hermie cannot see whether it is."
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Je lijst met gateways, sessietokens, Cloudflare Access-servicetokens en eigen headers worden end-to-end versleuteld in je iCloud-sleutelhanger bewaard, voor je andere Apple-apparaten. Inloggen via een identiteitsprovider of een wachtwoord blijft op elk apparaat apart. Hiervoor moet de iCloud-sleutelhanger aanstaan in de systeeminstellingen; Hermie kan niet zien of dat zo is."
+          }
+        }
+      }
+    },
+    "native.icloud.gateways.footer" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Ein Gateway, das nicht synchronisiert wird, bleibt nur auf diesem Gerät. Schaltest du eines aus, wird es aus dem iCloud-Schlüsselbund entfernt; deine anderen Geräte behalten ihre Kopie."
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "A gateway that is not synced stays on this device only. Turning one off removes it from iCloud Keychain; your other devices keep their copies."
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Een gateway die niet wordt gesynchroniseerd, blijft alleen op dit apparaat. Zet je er een uit, dan verdwijnt hij uit de iCloud-sleutelhanger; je andere apparaten houden hun kopie."
+          }
+        }
+      }
+    },
+    "native.icloud.gateways.syncThisGateway" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Dieses Gateway synchronisieren"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Sync this gateway"
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Deze gateway synchroniseren"
+          }
+        }
+      }
+    },
+    "native.icloud.lastSynced" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Zuletzt synchronisiert"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Last synced"
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Laatst gesynchroniseerd"
+          }
+        }
+      }
+    },
+    "native.icloud.notice.adopted" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Aus dem iCloud-Schlüsselbund hinzugefügt:"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Added from iCloud Keychain:"
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Toegevoegd uit de iCloud-sleutelhanger:"
+          }
+        }
+      }
+    },
+    "native.icloud.notice.header" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Braucht deine Aufmerksamkeit"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Needs your attention"
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Vraagt je aandacht"
+          }
+        }
+      }
+    },
+    "native.icloud.notice.keptHere" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Diese Gateways wurden auf einem anderen Gerät von allen Geräten entfernt. Sie bleiben hier, weil sie hier zuerst hinzugefügt wurden. Erneutes Synchronisieren bringt sie auf anderen Geräten nicht zurück; soll eines wieder auf jedem Gerät sein, entferne es hier und füge es erneut hinzu."
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "These gateways were removed from all devices on another device. They are kept here because they were added here first. Syncing again does not bring them back on other devices; to have one on every device again, remove it here and add it again."
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Deze gateways zijn op een ander apparaat van alle apparaten verwijderd. Ze blijven hier, omdat ze hier eerder zijn toegevoegd. Opnieuw synchroniseren brengt ze niet terug op andere apparaten; wil je er een weer op elk apparaat, verwijder hem dan hier en voeg hem opnieuw toe."
+          }
+        }
+      }
+    },
+    "native.icloud.notice.needsSignIn" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Aus dem iCloud-Schlüsselbund hinzugefügt. Melde dich an, um diese Gateways auf diesem Gerät zu nutzen:"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Added from iCloud Keychain. Sign in to use these gateways on this device:"
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Toegevoegd uit de iCloud-sleutelhanger. Log in om deze gateways op dit apparaat te gebruiken:"
+          }
+        }
+      }
+    },
+    "native.icloud.notice.removedElsewhere" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Dieses Gateway wurde auf einem anderen Gerät von allen Geräten entfernt, deshalb auch von diesem:"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "This gateway was removed from all devices on another device, so it is gone from this one too:"
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Deze gateway is op een ander apparaat van alle apparaten verwijderd, dus ook van dit apparaat:"
+          }
+        }
+      }
+    },
+    "native.icloud.notice.storeEmptied" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Der iCloud-Schlüsselbund enthält diese Gateways nicht mehr, deshalb bleiben sie nur auf diesem Gerät. Das passiert nach „Alles aus dem iCloud-Schlüsselbund löschen“ auf einem anderen Gerät oder wenn die Kopie des iCloud-Schlüsselbunds auf diesem Gerät zurückgesetzt wurde."
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "iCloud Keychain no longer holds these gateways, so they are kept on this device only. This happens after “Delete Everything from iCloud Keychain” on another device, or when this device’s copy of iCloud Keychain was reset."
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "De iCloud-sleutelhanger bevat deze gateways niet meer, dus ze blijven alleen op dit apparaat. Dat gebeurt na ‘Alles uit de iCloud-sleutelhanger verwijderen’ op een ander apparaat, of als de kopie van de iCloud-sleutelhanger op dit apparaat opnieuw is ingesteld."
+          }
+        }
+      }
+    },
+    "native.icloud.phase.awaiting" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Noch nicht eingeschaltet"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Not turned on yet"
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Nog niet aangezet"
+          }
+        }
+      }
+    },
+    "native.icloud.phase.awaitingDetail" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Hermie fragt, bevor etwas im iCloud-Schlüsselbund gespeichert wird."
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Hermie asks before it stores anything in iCloud Keychain."
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Hermie vraagt het eerst voordat er iets in de iCloud-sleutelhanger komt."
+          }
+        }
+      }
+    },
+    "native.icloud.phase.checking" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Wird geprüft …"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Checking…"
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Controleren…"
+          }
+        }
+      }
+    },
+    "native.icloud.phase.failed" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Nicht abgeschlossen"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Did not finish"
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Niet gelukt"
+          }
+        }
+      }
+    },
+    "native.icloud.phase.newerVersion" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Pausiert"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Paused"
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Gepauzeerd"
+          }
+        }
+      }
+    },
+    "native.icloud.phase.newerVersionDetail" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Eine neuere Hermie-Version hat die Synchronisierung auf diesem Gerät eingerichtet. Aktualisiere Hermie, um wieder zu synchronisieren."
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "A newer version of Hermie set up sync on this device. Update Hermie to sync again."
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Een nieuwere versie van Hermie heeft synchronisatie op dit apparaat ingesteld. Werk Hermie bij om weer te synchroniseren."
+          }
+        }
+      }
+    },
+    "native.icloud.phase.off" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Aus"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Off"
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Uit"
+          }
+        }
+      }
+    },
+    "native.icloud.phase.offDetail" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Deine Gateways bleiben auf diesem Gerät."
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Your gateways stay on this device."
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Je gateways blijven op dit apparaat."
+          }
+        }
+      }
+    },
+    "native.icloud.phase.syncing" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Wird synchronisiert …"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Syncing…"
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Synchroniseren…"
+          }
+        }
+      }
+    },
+    "native.icloud.phase.unavailable" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Nicht verfügbar"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Not available"
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Niet beschikbaar"
+          }
+        }
+      }
+    },
+    "native.icloud.phase.unavailableDetail" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Diese Hermie-Version kann den iCloud-Schlüsselbund nicht nutzen, deshalb bleiben deine Gateways auf diesem Gerät. Versionen aus dem App Store und von TestFlight können das."
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "This copy of Hermie cannot use iCloud Keychain, so your gateways stay on this device. Copies from the App Store and TestFlight can."
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Deze versie van Hermie kan de iCloud-sleutelhanger niet gebruiken, dus je gateways blijven op dit apparaat. Versies uit de App Store en TestFlight kunnen dat wel."
+          }
+        }
+      }
+    },
+    "native.icloud.phase.upToDate" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Aktuell"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Up to date"
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Bijgewerkt"
+          }
+        }
+      }
+    },
+    "native.icloud.phase.waiting" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Wartet auf Synchronisierung"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Waiting to sync"
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Wacht op synchronisatie"
+          }
+        }
+      }
+    },
+    "native.icloud.remove.allDevices" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Von allen Geräten entfernen"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Remove from All Devices"
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Van alle apparaten verwijderen"
+          }
+        }
+      }
+    },
+    "native.icloud.remove.message" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Von diesem Gerät: Es bleibt im iCloud-Schlüsselbund und auf deinen anderen Geräten und kommt hier nicht zurück. Von allen Geräten: Es wird aus dem iCloud-Schlüsselbund entfernt und von jedem deiner Geräte, sobald es synchronisiert. So oder so vergisst dieses Gerät alles, was dafür gespeichert ist."
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "From this device: it stays in iCloud Keychain and on your other devices, and does not come back here. From all devices: it is removed from iCloud Keychain, and from each of your devices the next time it syncs. Either way, this device forgets everything stored for it."
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Van dit apparaat: hij blijft in de iCloud-sleutelhanger en op je andere apparaten, en komt hier niet terug. Van alle apparaten: hij verdwijnt uit de iCloud-sleutelhanger, en van elk van je apparaten zodra dat synchroniseert. Hoe dan ook vergeet dit apparaat alles wat ervoor bewaard is."
+          }
+        }
+      }
+    },
+    "native.icloud.remove.thisDevice" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Von diesem Gerät entfernen"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Remove from This Device"
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Van dit apparaat verwijderen"
+          }
+        }
+      }
+    },
+    "native.icloud.remove.title" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Dieses Gateway entfernen?"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Remove This Gateway?"
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Deze gateway verwijderen?"
+          }
+        }
+      }
+    },
+    "native.icloud.state.newerVersion" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Nur dieses Gerät: aktualisiere Hermie, um es zu synchronisieren"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "This device only: update Hermie to sync it"
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Alleen dit apparaat: werk Hermie bij om hem te synchroniseren"
+          }
+        }
+      }
+    },
+    "native.icloud.state.notInICloud" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Nur dieses Gerät: nicht mehr im iCloud-Schlüsselbund"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "This device only: no longer in iCloud Keychain"
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Alleen dit apparaat: niet meer in de iCloud-sleutelhanger"
+          }
+        }
+      }
+    },
+    "native.icloud.state.off" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Nicht synchronisiert"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Not synced"
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Niet gesynchroniseerd"
+          }
+        }
+      }
+    },
+    "native.icloud.state.removedElsewhere" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Nur dieses Gerät: auf einem anderen Gerät entfernt"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "This device only: removed on another device"
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Alleen dit apparaat: verwijderd op een ander apparaat"
+          }
+        }
+      }
+    },
+    "native.icloud.state.sameAddress" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Nur dieses Gerät: ein anderes Gateway hier hat dieselbe Adresse"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "This device only: another gateway here has the same address"
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Alleen dit apparaat: een andere gateway hier heeft hetzelfde adres"
+          }
+        }
+      }
+    },
+    "native.icloud.state.signInNeeded" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Anmeldung nötig"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Sign in needed"
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Inloggen nodig"
+          }
+        }
+      }
+    },
+    "native.icloud.state.synced" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Synchronisiert"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Synced"
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Gesynchroniseerd"
+          }
+        }
+      }
+    },
+    "native.icloud.state.thisDeviceOnly" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Nur dieses Gerät"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "This device only"
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Alleen dit apparaat"
+          }
+        }
+      }
+    },
+    "native.icloud.status" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Status"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Status"
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Status"
+          }
+        }
+      }
+    },
+    "native.icloud.switch" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Mit iCloud synchronisieren"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Sync with iCloud"
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Synchroniseren met iCloud"
+          }
+        }
+      }
+    },
+    "native.icloud.syncAgain" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Erneut synchronisieren"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Sync Again"
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Opnieuw synchroniseren"
+          }
+        }
+      }
+    },
+    "native.icloud.syncNow" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Jetzt synchronisieren"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Sync Now"
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Nu synchroniseren"
+          }
+        }
+      }
+    },
+    "native.icloud.title" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "iCloud-Synchronisierung"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "iCloud Sync"
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "iCloud-synchronisatie"
+          }
+        }
+      }
+    },
+    "native.icloud.turnOff.keep" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Ausschalten, in iCloud lassen"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Turn Off, Keep in iCloud"
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Uitzetten, in iCloud laten"
+          }
+        }
+      }
+    },
+    "native.icloud.turnOff.message" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Deine Gateways bleiben auf diesem Gerät. Du kannst die Gateways, die dieses Gerät synchronisiert hat, auch aus dem iCloud-Schlüsselbund entfernen; deine anderen Geräte behalten ihre Kopie, jeweils nur auf diesem Gerät."
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Your gateways stay on this device. You can also remove the gateways this device synced from iCloud Keychain; your other devices keep their copies, each on that device only."
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Je gateways blijven op dit apparaat. Je kunt de gateways die dit apparaat synchroniseerde ook uit de iCloud-sleutelhanger halen; je andere apparaten houden hun kopie, elk alleen op dat apparaat."
+          }
+        }
+      }
+    },
+    "native.icloud.turnOff.remove" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Ausschalten und aus iCloud entfernen"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Turn Off and Remove from iCloud"
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Uitzetten en uit iCloud halen"
+          }
+        }
+      }
+    },
+    "native.icloud.turnOff.title" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "iCloud-Synchronisierung ausschalten?"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Turn Off iCloud Sync?"
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "iCloud-synchronisatie uitzetten?"
+          }
+        }
+      }
+    },
     "native.identity.anonymous" : {
       "extractionState" : "manual",
       "localizations" : {

@@ -34,6 +34,7 @@ public struct RootView: View {
     .sheet(item: $router.sheet) { sheet in
       ShellSheet(sheet: sheet)
     }
+    .iCloudSyncDisclosure()
     #if DEBUG
       .onAppear { LaunchTrace.shared.record("root") }
     #endif

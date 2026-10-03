@@ -54,6 +54,162 @@
 	<string>Geen chat gekozen</string>
 	<key>native.gateways.rename</key>
 	<string>Hernoem</string>
+	<key>native.icloud.actionFailed</key>
+	<string>Dat is niet gelukt.</string>
+	<key>native.icloud.available.add</key>
+	<string>Toevoegen</string>
+	<key>native.icloud.available.footer</key>
+	<string>Deze gateways staan in je iCloud-sleutelhanger, maar niet op dit apparaat.</string>
+	<key>native.icloud.available.header</key>
+	<string>Beschikbaar uit iCloud</string>
+	<key>native.icloud.available.removedHere</key>
+	<string>Eerder van dit apparaat verwijderd</string>
+	<key>native.icloud.available.signInAfter</key>
+	<string>Vraagt je om in te loggen na het toevoegen</string>
+	<key>native.icloud.available.useAll</key>
+	<string>Deze gateways gebruiken</string>
+	<key>native.icloud.badge.synced</key>
+	<string>Gesynchroniseerd met iCloud</string>
+	<key>native.icloud.deleteEverything.action</key>
+	<string>Alles uit de iCloud-sleutelhanger verwijderen…</string>
+	<key>native.icloud.deleteEverything.confirm</key>
+	<string>Alles verwijderen</string>
+	<key>native.icloud.deleteEverything.footer</key>
+	<string>Verwijdert elke Hermie-gateway en elk inloggegeven uit je iCloud-sleutelhanger. Geen enkel apparaat raakt een gateway kwijt.</string>
+	<key>native.icloud.deleteEverything.message</key>
+	<string>Elke Hermie-gateway en elk inloggegeven in je iCloud-sleutelhanger wordt verwijderd. Van geen enkel apparaat wordt iets verwijderd. Dit apparaat houdt zijn gateways en synchroniseert ze niet meer; gateways die je later toevoegt, worden gewoon gesynchroniseerd. Je andere apparaten houden die van hen ook, en synchroniseren ze niet meer tot je daar Opnieuw synchroniseren kiest. Een apparaat dat een gateway wijzigt voordat de verwijdering het bereikt, of dat nog niets uit iCloud had ontvangen, kan die gateway terugzetten.</string>
+	<key>native.icloud.deleteEverything.title</key>
+	<string>Alles uit de iCloud-sleutelhanger verwijderen?</string>
+	<key>native.icloud.disclosure.accept</key>
+	<string>Synchroniseren met iCloud</string>
+	<key>native.icloud.disclosure.availableHeader</key>
+	<string>Al in de iCloud-sleutelhanger</string>
+	<key>native.icloud.disclosure.decline</key>
+	<string>Op dit apparaat houden</string>
+	<key>native.icloud.disclosure.gatewaysHeader</key>
+	<string>Op dit apparaat</string>
+	<key>native.icloud.disclosure.intro</key>
+	<string>Hermie kan je gateways in je iCloud-sleutelhanger bewaren, zodat je andere Apple-apparaten ze krijgen zonder dat je iets hoeft te typen.</string>
+	<key>native.icloud.disclosure.later</key>
+	<string>Je kunt dit altijd wijzigen onder Instellingen → Gateways → iCloud-synchronisatie.</string>
+	<key>native.icloud.disclosure.neverHeader</key>
+	<string>Wat er nooit wordt bewaard</string>
+	<key>native.icloud.disclosure.neverOther</key>
+	<string>De app-vergrendeling, je berichten en concepten, en meldingsregistraties.</string>
+	<key>native.icloud.disclosure.neverSignIns</key>
+	<string>Inloggen via een identiteitsprovider of een wachtwoord. Elk apparaat logt zelf in.</string>
+	<key>native.icloud.disclosure.storedHeader</key>
+	<string>Wat er wordt bewaard</string>
+	<key>native.icloud.disclosure.storedList</key>
+	<string>Je lijst met gateways: naam, adres, hoe je inlogt en je gebruikers-ID op elke gateway.</string>
+	<key>native.icloud.disclosure.storedSecrets</key>
+	<string>Sessietokens, Cloudflare Access-servicetokens en eigen headers.</string>
+	<key>native.icloud.disclosure.title</key>
+	<string>Gateways synchroniseren met iCloud?</string>
+	<key>native.icloud.disclosure.whereBody</key>
+	<string>In je iCloud-sleutelhanger, die end-to-end versleuteld is: Apple kan hem niet lezen en wij ook niet. Hij komt alleen op apparaten die met je Apple-account zijn ingelogd en die je hebt goedgekeurd. Er wordt niets naar ons gestuurd.</string>
+	<key>native.icloud.disclosure.whereHeader</key>
+	<string>Waar het wordt bewaard</string>
+	<key>native.icloud.disclosure.whereOff</key>
+	<string>Hermie kan niet zien of de iCloud-sleutelhanger aanstaat. Staat hij uit, dan blijft alles op dit apparaat.</string>
+	<key>native.icloud.failure.keychain</key>
+	<string>De sleutelhanger weigerde de wijziging. Kies Nu synchroniseren om het opnieuw te proberen.</string>
+	<key>native.icloud.failure.locked</key>
+	<string>De sleutelhanger is niet te lezen zolang dit apparaat vergrendeld is. Ontgrendel het en kies Nu synchroniseren.</string>
+	<key>native.icloud.failure.newerVersion</key>
+	<string>Iets op dit apparaat is door een nieuwere versie van Hermie geschreven. Werk Hermie bij om te synchroniseren.</string>
+	<key>native.icloud.failure.other</key>
+	<string>Kies Nu synchroniseren om het opnieuw te proberen.</string>
+	<key>native.icloud.failure.storage</key>
+	<string>Hermie kon zijn eigen opslag niet lezen. Sluit Hermie af, open het opnieuw en kies dan Nu synchroniseren.</string>
+	<key>native.icloud.footer</key>
+	<string>Je lijst met gateways, sessietokens, Cloudflare Access-servicetokens en eigen headers worden end-to-end versleuteld in je iCloud-sleutelhanger bewaard, voor je andere Apple-apparaten. Inloggen via een identiteitsprovider of een wachtwoord blijft op elk apparaat apart. Hiervoor moet de iCloud-sleutelhanger aanstaan in de systeeminstellingen; Hermie kan niet zien of dat zo is.</string>
+	<key>native.icloud.gateways.footer</key>
+	<string>Een gateway die niet wordt gesynchroniseerd, blijft alleen op dit apparaat. Zet je er een uit, dan verdwijnt hij uit de iCloud-sleutelhanger; je andere apparaten houden hun kopie.</string>
+	<key>native.icloud.gateways.syncThisGateway</key>
+	<string>Deze gateway synchroniseren</string>
+	<key>native.icloud.lastSynced</key>
+	<string>Laatst gesynchroniseerd</string>
+	<key>native.icloud.notice.adopted</key>
+	<string>Toegevoegd uit de iCloud-sleutelhanger:</string>
+	<key>native.icloud.notice.header</key>
+	<string>Vraagt je aandacht</string>
+	<key>native.icloud.notice.keptHere</key>
+	<string>Deze gateways zijn op een ander apparaat van alle apparaten verwijderd. Ze blijven hier, omdat ze hier eerder zijn toegevoegd. Opnieuw synchroniseren brengt ze niet terug op andere apparaten; wil je er een weer op elk apparaat, verwijder hem dan hier en voeg hem opnieuw toe.</string>
+	<key>native.icloud.notice.needsSignIn</key>
+	<string>Toegevoegd uit de iCloud-sleutelhanger. Log in om deze gateways op dit apparaat te gebruiken:</string>
+	<key>native.icloud.notice.removedElsewhere</key>
+	<string>Deze gateway is op een ander apparaat van alle apparaten verwijderd, dus ook van dit apparaat:</string>
+	<key>native.icloud.notice.storeEmptied</key>
+	<string>De iCloud-sleutelhanger bevat deze gateways niet meer, dus ze blijven alleen op dit apparaat. Dat gebeurt na ‘Alles uit de iCloud-sleutelhanger verwijderen’ op een ander apparaat, of als de kopie van de iCloud-sleutelhanger op dit apparaat opnieuw is ingesteld.</string>
+	<key>native.icloud.phase.awaiting</key>
+	<string>Nog niet aangezet</string>
+	<key>native.icloud.phase.awaitingDetail</key>
+	<string>Hermie vraagt het eerst voordat er iets in de iCloud-sleutelhanger komt.</string>
+	<key>native.icloud.phase.checking</key>
+	<string>Controleren…</string>
+	<key>native.icloud.phase.failed</key>
+	<string>Niet gelukt</string>
+	<key>native.icloud.phase.newerVersion</key>
+	<string>Gepauzeerd</string>
+	<key>native.icloud.phase.newerVersionDetail</key>
+	<string>Een nieuwere versie van Hermie heeft synchronisatie op dit apparaat ingesteld. Werk Hermie bij om weer te synchroniseren.</string>
+	<key>native.icloud.phase.off</key>
+	<string>Uit</string>
+	<key>native.icloud.phase.offDetail</key>
+	<string>Je gateways blijven op dit apparaat.</string>
+	<key>native.icloud.phase.syncing</key>
+	<string>Synchroniseren…</string>
+	<key>native.icloud.phase.unavailable</key>
+	<string>Niet beschikbaar</string>
+	<key>native.icloud.phase.unavailableDetail</key>
+	<string>Deze versie van Hermie kan de iCloud-sleutelhanger niet gebruiken, dus je gateways blijven op dit apparaat. Versies uit de App Store en TestFlight kunnen dat wel.</string>
+	<key>native.icloud.phase.upToDate</key>
+	<string>Bijgewerkt</string>
+	<key>native.icloud.phase.waiting</key>
+	<string>Wacht op synchronisatie</string>
+	<key>native.icloud.remove.allDevices</key>
+	<string>Van alle apparaten verwijderen</string>
+	<key>native.icloud.remove.message</key>
+	<string>Van dit apparaat: hij blijft in de iCloud-sleutelhanger en op je andere apparaten, en komt hier niet terug. Van alle apparaten: hij verdwijnt uit de iCloud-sleutelhanger, en van elk van je apparaten zodra dat synchroniseert. Hoe dan ook vergeet dit apparaat alles wat ervoor bewaard is.</string>
+	<key>native.icloud.remove.thisDevice</key>
+	<string>Van dit apparaat verwijderen</string>
+	<key>native.icloud.remove.title</key>
+	<string>Deze gateway verwijderen?</string>
+	<key>native.icloud.state.newerVersion</key>
+	<string>Alleen dit apparaat: werk Hermie bij om hem te synchroniseren</string>
+	<key>native.icloud.state.notInICloud</key>
+	<string>Alleen dit apparaat: niet meer in de iCloud-sleutelhanger</string>
+	<key>native.icloud.state.off</key>
+	<string>Niet gesynchroniseerd</string>
+	<key>native.icloud.state.removedElsewhere</key>
+	<string>Alleen dit apparaat: verwijderd op een ander apparaat</string>
+	<key>native.icloud.state.sameAddress</key>
+	<string>Alleen dit apparaat: een andere gateway hier heeft hetzelfde adres</string>
+	<key>native.icloud.state.signInNeeded</key>
+	<string>Inloggen nodig</string>
+	<key>native.icloud.state.synced</key>
+	<string>Gesynchroniseerd</string>
+	<key>native.icloud.state.thisDeviceOnly</key>
+	<string>Alleen dit apparaat</string>
+	<key>native.icloud.status</key>
+	<string>Status</string>
+	<key>native.icloud.switch</key>
+	<string>Synchroniseren met iCloud</string>
+	<key>native.icloud.syncAgain</key>
+	<string>Opnieuw synchroniseren</string>
+	<key>native.icloud.syncNow</key>
+	<string>Nu synchroniseren</string>
+	<key>native.icloud.title</key>
+	<string>iCloud-synchronisatie</string>
+	<key>native.icloud.turnOff.keep</key>
+	<string>Uitzetten, in iCloud laten</string>
+	<key>native.icloud.turnOff.message</key>
+	<string>Je gateways blijven op dit apparaat. Je kunt de gateways die dit apparaat synchroniseerde ook uit de iCloud-sleutelhanger halen; je andere apparaten houden hun kopie, elk alleen op dat apparaat.</string>
+	<key>native.icloud.turnOff.remove</key>
+	<string>Uitzetten en uit iCloud halen</string>
+	<key>native.icloud.turnOff.title</key>
+	<string>iCloud-synchronisatie uitzetten?</string>
 	<key>native.identity.anonymous</key>
 	<string>Je bent anoniem op deze gateway: je berichten dragen geen naam.</string>
 	<key>native.intents.expired</key>

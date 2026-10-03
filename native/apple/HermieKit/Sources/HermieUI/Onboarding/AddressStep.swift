@@ -10,11 +10,17 @@ import SwiftUI
 struct AddressStep: View {
   @Bindable var model: OnboardingModel
   let cancel: () -> Void
+  /// Gateways taken from iCloud Keychain on this step (`ICloudSetupSection`); nil hides the section.
+  var fromICloud: (([ICloudSyncModel.AddResult]) -> Void)?
 
   @FocusState private var addressFocused: Bool
 
   var body: some View {
     Form {
+      if let fromICloud {
+        ICloudSetupSection(use: fromICloud)
+      }
+
       Section {
         WrappingField(
           title: Strings.App.Onboarding.Address.label,
