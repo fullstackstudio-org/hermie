@@ -309,7 +309,8 @@ closed here (for any reason but its `request.cancel`) is the proof, and the prom
 saying the earlier answer did not arrive. The typed value lives in the sheet's state as a
 `SecretValue`, whose description and mirror are redacted, and goes out as a `ValueResult`. The
 sheet never takes the keyboard by itself: a field is focused by the person, after a 400 ms guard.
-Every other server request is refused `-32601` ("not supported by this client") by the connection,
+Every other server request (but `confirm` where a passkey model listens, below) is refused `-32601`
+("not supported by this client") by the connection,
 which still hands it to the center so the chat can say the bot asked for something the app cannot
 show. The chat screen mounts it with `.secureInput(SecureInputModel(session:bot:))`; the chat list
 reads `session.secureInput.needsInput(bot)` for its marker.
@@ -324,6 +325,55 @@ gateway with nothing to sign in with, or whose credentials still belong to an or
 from, is `signedOut`. It rebuilds the session when the gateway's `credentialsRevision` moves (a
 sign-in, a sign-out, a removal) and sets `GatewayAccounts.endSession`, so a sign-out or a removal
 ends the socket first.
+
+### Confirm at level passkey
+
+A `confirm` request at level `passkey` is one the gateway verifies itself: the app answers with a
+WebAuthn assertion over a challenge that commits to the gateway's base URL and id, the session, the
+request, a fresh nonce and the exact text shown. The construction, the wire objects and the order
+of the gateway's checks are `contract/confirm-passkey/README.md`. What the app does, by layer:
+
+- `HermieProtocol` (`Methods/ConfirmTypes.swift`, `REST/PasskeyRESTTypes.swift`): the `confirm`
+  params and result (`ConfirmResult.confirmed(_:)` and `ConfirmResult.declined`, the only two answers
+  at this level; there is no way to set `verified`), the `confirm_passkey` capability block and the
+  second call's advertisement, `RequestCancelReason` with `too_many_attempts` and
+  `verification_failed`, `passkey.changed`, and the six `/api/auth/passkeys` bodies. Anything that
+  carries a code or an assertion has a redacted description.
+- `HermieGateway`: `PasskeyChallenge.swift` (base64url, the base URL of contract §3 from the stored
+  gateway address through `GatewayAddress.passkeyBaseURL(of:)`, the text digest, the challenge,
+  enrolment-code canonicalisation). The challenge is computed from a `ConfirmDisplay`, the value the
+  confirm sheet renders and nothing else: a signature over text T exists only if the app showed T.
+  `PasskeyClient` calls the routes through the gateway's `HTTPClient` (a bearer sends no `Origin`)
+  and reads a refusal's `error` and `reason`. `ConfirmCapabilities.swift` is the two-step
+  `client.capabilities`: with `GatewayConnection.Options.confirm` set, the connection sends the
+  second call only when the first result allows it, advertises `passkey` only when the level is
+  enabled, the build's RP is listed for its kind and a credential for that RP is known here,
+  and runs both calls again on `refreshCapabilities()`. Without a source it makes the one call it
+  always made and answers every `confirm` `-32601`.
+- `HermieCore/Passkey`: `PasskeyAuthenticator` is the seam the system passkey sheet fills (one
+  ceremony at a time, `allowCredentialIDs` never empty, a dismissed sheet is `cancelled` and sends
+  nothing); `SoftPasskeyAuthenticator` is the test double (CryptoKit, ES256, attestation `none`, a
+  counter for a device-bound passkey, knobs to tamper with). `PasskeyModel` (`session.passkeys`,
+  built when `GatewaySession.Options.passkey` is set) reads the frames, enrols with a one-time code,
+  mints an invite and revokes with a step-up, keeps the credential list and the advertising policy
+  current, and pins the gateway's `gateway_id` per stored gateway on the first successful enrolment
+  (`KeyValuePasskeyPins`, key `hermie.passkey.pins`, with the credential ids it has seen).
+
+The model's rules: every answer goes through `request.answer`, so a refusal comes back (4033, 4034
+with `data.reason`, which leaves the request open for another try until the fifth refusal). `ok` is
+"received and valid" (`PasskeyConfirmPhase.received`), never "confirmed": the gateway commits it next
+and says `request.cancel {reason: "verification_failed"}` when that fails, which is the one reason
+that overrides a received answer. A decline is exactly `{decision: "declined", method: "tap"}`. When
+the ceremony cannot run here (no credential on this device, no RP in this build, the platform
+refuses), the frame gets error 4040 with `data.reason`. A frame without a credential for the
+build's RP, with an unknown `v`, or whose `gateway_id` differs from the pinned one (or is pinned for
+another stored gateway) is refused with 4040 and leaves a `PasskeyNotice`; so does a capability that
+breaks the pin, and a `passkey.changed` or a list read that shows a credential this device did not
+add. Nothing from a frame, an assertion or a code is logged.
+
+The detail is shown as the gateway sent it, monospaced with every space and line break kept; the
+sheet renders `ConfirmDisplay` and nothing else. Black-box coverage is
+`ConfirmPasskeyIntegrationTests` against the fake gateway's `--auth native --passkey`.
 
 ### Known divergences
 
