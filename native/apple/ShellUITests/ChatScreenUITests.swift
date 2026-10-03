@@ -435,6 +435,146 @@ final class ChatScreenUITests: XCTestCase {
     XCTAssertTrue(once.waitForNonExistence(timeout: 10), "the sheet goes once the answer went out")
   }
 
+  // MARK: The transcript's geometry
+
+  /// The transcript's row ids in order, oldest first, as the probe lists them.
+  private func rowOrder(_ app: XCUIApplication) -> [String] {
+    let text = element(app, "hermie.chat.probe.renders").value as? String ?? ""
+    return text.split(separator: ";").compactMap { entry in
+      entry.split(separator: "=", maxSplits: 1).first.map(String.init)
+    }
+  }
+
+  /// Every row the hierarchy holds, by id, with its frame on screen, from one snapshot. A row whose
+  /// identifier SwiftUI hands to each of its elements is the union of their frames.
+  private func rowFrames(_ app: XCUIApplication) throws -> [String: CGRect] {
+    var frames: [String: CGRect] = [:]
+    var pending = [try app.snapshot()]
+
+    while let node = pending.popLast() {
+      pending += node.children
+      if node.identifier.hasPrefix("row."), node.frame.height >= 1 {
+        let id = String(node.identifier.dropFirst(4))
+        frames[id] = frames[id].map { $0.union(node.frame) } ?? node.frame
+      }
+    }
+
+    return frames
+  }
+
+  /// No two rows on screen overlap, and the newest row is on screen and ends above the composer's
+  /// top edge: nothing the reader should see is under the composer or drawn over another row.
+  private func assertTranscriptLayout(
+    _ app: XCUIApplication, _ moment: String, file: StaticString = #filePath, line: UInt = #line
+  ) throws {
+    RunLoop.current.run(until: Date().addingTimeInterval(0.6))
+    let order = rowOrder(app)
+    let frames = try rowFrames(app)
+    let composer = element(app, "composer").frame
+    let shown = order.filter { frames[$0] != nil }
+    XCTAssertGreaterThan(shown.count, 1, "rows on screen \(moment)", file: file, line: line)
+
+    for (earlier, later) in zip(shown, shown.dropFirst()) {
+      guard let above = frames[earlier], let below = frames[later] else { continue }
+      XCTAssertGreaterThanOrEqual(
+        below.minY, above.maxY - 1,
+        "\(moment): row \(later) \(below) overlaps row \(earlier) \(above)", file: file, line: line)
+    }
+
+    guard let newest = order.last, let frame = frames[newest] else {
+      XCTFail("\(moment): the newest row \(order.last ?? "-") is not on screen", file: file, line: line)
+      return
+    }
+
+    XCTAssertLessThanOrEqual(
+      frame.maxY, composer.minY + 1,
+      "\(moment): the newest row \(frame) ends under the composer \(composer)", file: file, line: line)
+    XCTAssertGreaterThan(
+      frame.maxY, composer.minY - 80,
+      "\(moment): the list is not at the bottom (newest row \(frame), composer \(composer))", file: file, line: line)
+  }
+
+  private func openChat(_ app: XCUIApplication) {
+    let row = element(app, "hermie.chatList.row.\(Self.bot)")
+    XCTAssertTrue(row.waitForExistence(timeout: 30))
+    row.tap()
+    XCTAssertTrue(element(app, "composer").waitForExistence(timeout: 20))
+    waitFor("the chat to go live with its history") {
+      let state = probeState(app)
+      return state["hydration"] == "live" && Int(state["rows"] ?? "") ?? 0 > 10 && state["ready"] == "1"
+    }
+    RunLoop.current.run(until: Date().addingTimeInterval(1.5))
+  }
+
+  private func send(_ app: XCUIApplication, _ text: String) {
+    let field = app.textViews["composer.field"].firstMatch
+    XCTAssertTrue(field.waitForExistence(timeout: 10))
+    field.tap()
+    field.typeText(text)
+    app.buttons["composer.send"].tap()
+  }
+
+  /// The rows keep apart and the newest row ends above the composer: opened, after a send and its
+  /// reply with the keyboard up, and in landscape. (The rows used to take the safe area of the bars
+  /// they scroll under, so a row under the header was drawn pushed down over the next one, and one
+  /// under the composer pushed up.)
+  func testRowsKeepApartAndTheNewestRowEndsAboveTheComposer() throws {
+    let app = try launch()
+    setUpGateway(app)
+    openChat(app)
+    try assertTranscriptLayout(app, "opened")
+
+    send(app, "Introduce yourself in one line.")
+    waitFor("the reply to start") { probeState(app)["activity"] == "busy" }
+    waitFor("the reply to finish", timeout: 60) { probeState(app)["activity"] == "idle" }
+    try assertTranscriptLayout(app, "after a send, the keyboard up")
+
+    XCUIDevice.shared.orientation = .landscapeLeft
+    RunLoop.current.run(until: Date().addingTimeInterval(1.5))
+    try assertTranscriptLayout(app, "in landscape")
+    XCUIDevice.shared.orientation = .portrait
+    RunLoop.current.run(until: Date().addingTimeInterval(1.5))
+    try assertTranscriptLayout(app, "back in portrait")
+  }
+
+  /// A reader who scrolled up stays where they are when a message arrives (the jump pill shows),
+  /// and their own send takes them to the very bottom, the new bubble and the reply after it whole
+  /// above the composer.
+  func testAnIncomingMessageLeavesAScrolledUpReaderAndASendGoesToTheBottom() throws {
+    let app = try launch()
+    setUpGateway(app)
+    openChat(app)
+
+    let list = app.descendants(matching: .any)["transcript.list"].firstMatch
+    list.swipeDown(velocity: .slow)
+    list.swipeDown(velocity: .slow)
+    RunLoop.current.run(until: Date().addingTimeInterval(1.5))
+    let pill = app.buttons["transcript.jumpToLatest"]
+    XCTAssertTrue(pill.waitForExistence(timeout: 5), "scrolled up, the pill offers the way back")
+
+    let rowsBefore = Int(probeState(app)["rows"] ?? "") ?? 0
+    let before = try rowFrames(app)
+    let (status, _) = try call(
+      "POST", "/__fake/inject",
+      body: ["profile": Self.bot, "user": "A question from elsewhere.", "assistant": "An answer from elsewhere."])
+    XCTAssertEqual(status, 200)
+    waitFor("the injected turn to arrive") { Int(probeState(app)["rows"] ?? "") ?? 0 > rowsBefore }
+    RunLoop.current.run(until: Date().addingTimeInterval(1.5))
+    let after = try rowFrames(app)
+    let kept = before.keys.filter { after[$0] != nil }
+    XCTAssertFalse(kept.isEmpty, "the rows in view are still there")
+    for id in kept {
+      XCTAssertEqual(after[id]!.minY, before[id]!.minY, accuracy: 1, "row \(id) moved under a scrolled-up reader")
+    }
+    XCTAssertTrue(pill.exists, "an incoming message does not take the reader down")
+
+    send(app, "Introduce yourself in one line.")
+    waitFor("the reply to start") { probeState(app)["activity"] == "busy" }
+    waitFor("the reply to finish", timeout: 60) { probeState(app)["activity"] == "idle" }
+    try assertTranscriptLayout(app, "after a send from a scrolled-up place")
+    XCTAssertFalse(pill.exists, "at the bottom, no pill")
+  }
+
   /// The list and the chat at the largest text size: they wrap instead of clipping, the search
   /// field narrows the list by name, and the audit passes on both.
   func testTheListAndTheChatPassTheAuditAtTheLargestTextSize() throws {

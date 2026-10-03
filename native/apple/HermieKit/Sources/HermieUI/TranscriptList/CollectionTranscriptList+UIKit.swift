@@ -295,8 +295,20 @@
   }
 
   /// A plain cell; the layout decides its size.
+  ///
+  /// It has no safe area. The list scrolls under the header and the composer
+  /// (they are content insets, not a smaller frame), so a cell passing under
+  /// them lies in the window's safe area, and the row hosted in it honoured
+  /// that: it was laid out inset by the part of the bar the cell was under,
+  /// pushed down over the next row under the header and pushed up under the
+  /// composer, while the layout had placed the cells correctly. That drew rows
+  /// on top of each other and left the newest row partly under the composer,
+  /// at the bottom and while a reply streamed there. The insets are the list's
+  /// business; a row is laid out in its whole cell.
   final class TranscriptHostingCell: UICollectionViewCell {
     static let reuseIdentifier = "transcript.row"
+
+    override var safeAreaInsets: UIEdgeInsets { .zero }
   }
 
   /// Owns the collection view and keeps it in step with the rows.
@@ -641,6 +653,7 @@
       switch state.take() {
       case .bottom(let animated):
         pinned = true
+        publishAtBottom()
         scrollToBottom(animated: animated)
       case .item(let id, let anchor, let animated):
         guard let id = id.base as? Item.ID, let frame = layout.model.frame(of: id) else { return }
@@ -650,13 +663,14 @@
         y = min(max(y, -inset.top), maxOffset())
         pinned = false
         collectionView.setContentOffset(CGPoint(x: 0, y: y), animated: animated)
+        updateEdges()
       case .pan(let delta):
         // A stand-in for the reader's own scrolling, so it decides `pinned` as
         // their scrolling does.
         let y = min(max(collectionView.contentOffset.y + delta, -collectionView.adjustedContentInset.top), maxOffset())
         collectionView.contentOffset.y = y
         updateEdges()
-        pinned = state.isAtBottom
+        readerDecides()
       case nil:
         break
       }
@@ -726,21 +740,47 @@
       guard applying == 0 else { return }
       updateEdges()
       if scrollView.isTracking || scrollView.isDecelerating || scrollView.isDragging {
-        pinned = state.isAtBottom
+        readerDecides()
       }
     }
 
     func scrollViewDidEndDragging(_ scrollView: UIScrollView, willDecelerate decelerate: Bool) {
-      if !decelerate { pinned = state.isAtBottom }
+      if !decelerate { readerDecides() }
     }
 
     func scrollViewDidEndDecelerating(_ scrollView: UIScrollView) {
-      pinned = state.isAtBottom
+      readerDecides()
+    }
+
+    /// The reader's own scrolling decides whether the list follows: it does when they left it
+    /// within the threshold of the bottom.
+    private func readerDecides() {
+      pinned = geometricAtBottom
+      publishAtBottom()
     }
 
     func scrollViewDidEndScrollingAnimation(_ scrollView: UIScrollView) {
+      // Only the list animates the offset itself: to the bottom (a send, the jump pill), which
+      // pins it, or to a row, which unpins it. Neither is the reader's say. Reading `isAtBottom`
+      // here unpinned a send whose bubble or reply had grown the content while the animation ran,
+      // and the reply then streamed below the composer.
+      if pinned {
+        withApplying { keepAtBottom() }
+      }
       updateEdges()
-      pinned = state.isAtBottom
+    }
+
+    /// The viewport is within the threshold of the newest row, as of the last `updateEdges`.
+    private var geometricAtBottom = true
+
+    /// `isAtBottom` is what the pill, the unread count and the read marks see: the list follows
+    /// (`pinned`), or the reader is at the end anyway. A pinned list is at the bottom even in the
+    /// moment between the rows growing and the offset following them.
+    private func publishAtBottom() {
+      let atBottom = pinned || geometricAtBottom
+      if state.isAtBottom != atBottom {
+        state.isAtBottom = atBottom
+      }
     }
 
     /// At the bottom, near the top, and the row at the top.
@@ -748,10 +788,8 @@
       let inset = collectionView.adjustedContentInset
       let offset = collectionView.contentOffset.y
       let visibleBottom = offset + collectionView.bounds.height - inset.bottom
-      let atBottom = visibleBottom >= layout.model.contentHeight - state.bottomThreshold
-      if state.isAtBottom != atBottom {
-        state.isAtBottom = atBottom
-      }
+      geometricAtBottom = visibleBottom >= layout.model.contentHeight - state.bottomThreshold
+      publishAtBottom()
       let visibleTop = offset + inset.top
       let anchor = layout.model.anchor(visibleTop: visibleTop)
       state.topVisibleID = anchor.map { AnyHashable($0.id) }

@@ -107,6 +107,11 @@ extension EnvironmentValues {
 /// given and hands it to the collection view as content insets, so rows
 /// scroll under bars and the composer while the newest row still stops above
 /// them.
+///
+/// The collection view ignores every region of the safe area, the keyboard's
+/// included: the keyboard is in the insets it is handed, and a view that also
+/// let the keyboard shorten its frame counted the keyboard twice, leaving a
+/// keyboard's height of empty list between the newest row and the composer.
 struct CollectionTranscriptHost<Item: Identifiable & Equatable & Sendable, Row: View>: View where Item.ID: Sendable {
   let items: TranscriptListItems<Item>
   let state: TranscriptListState
@@ -122,7 +127,7 @@ struct CollectionTranscriptHost<Item: Identifiable & Equatable & Sendable, Row: 
         CollectionTranscriptList(
           items: items, state: state, spacing: spacing, insets: insets, commandSerial: state.commandSerial, row: row
         )
-        .ignoresSafeArea(.container, edges: .vertical)
+        .ignoresSafeArea(edges: .vertical)
       }
   }
 }
