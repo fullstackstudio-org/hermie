@@ -182,6 +182,16 @@ import Testing
       (try? await keyValues.string(forKey: GatewayNamespace("g1").key("hermie.avatar.researcher"))) == "data:image/png;base64,REVG"
     }
     await second.shutdown()
+
+    // The picture is taken away: the copy in memory and on disk goes with it.
+    var bare = Self.row.objectValue!
+    bare["has_avatar"] = false
+    bare["ui_meta_revisions"] = ["avatar": 4, "name": 8]
+    let third = BotRoster(link: later, gatewayID: "g1", cache: cache, keyValues: keyValues)
+    await third.loadAvatars([Bot(row: ProfileRow(json: bare))])
+    #expect(await third.current.avatars["researcher"] == nil)
+    #expect((try? await keyValues.string(forKey: GatewayNamespace("g1").key("hermie.avatar.researcher"))) == nil)
+    await third.shutdown()
   }
 
   @Test func aBusySessionLightsUpOnlyTheBotThatOwnsIt() async throws {

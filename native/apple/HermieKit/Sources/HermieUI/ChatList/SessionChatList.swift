@@ -152,13 +152,33 @@ struct SessionChatList: View {
         }
       } else {
         #if os(macOS)
-          Section(isExpanded: $archiveOpen) {
-            ForEach(rows.archived) { row in
-              item(row, ready: ready, actions: actions)
+          // A header of its own rather than `Section(isExpanded:)`, whose arrow the sidebar shows
+          // only while the pointer is over it: the archive is easy to miss as it is.
+          Section {
+            if archiveOpen {
+              ForEach(rows.archived) { row in
+                item(row, ready: ready, actions: actions)
+              }
             }
           } header: {
-            Text(Strings.App.Layout.archived(count: rows.archived.count))
-              .accessibilityIdentifier("hermie.chatList.archived")
+            Button {
+              withAnimation { archiveOpen.toggle() }
+            } label: {
+              HStack(spacing: 4) {
+                Image(systemName: "chevron.right")
+                  .font(.caption.weight(.semibold))
+                  .rotationEffect(.degrees(archiveOpen ? 90 : 0))
+                  .accessibilityHidden(true)
+                Text(Strings.App.Layout.archived(count: rows.archived.count))
+              }
+              .contentShape(.rect)
+            }
+            .buttonStyle(.plain)
+            .accessibilityHint(
+              archiveOpen
+                ? Strings.App.Layout.collapseFolder(name: NativeStrings.ChatList.archivedTitle)
+                : Strings.App.Layout.expandFolder(name: NativeStrings.ChatList.archivedTitle))
+            .accessibilityIdentifier("hermie.chatList.archived")
           }
         #else
           ArchiveEntryRow(count: rows.archived.count) {

@@ -320,6 +320,18 @@ public actor BotRoster {
   /// `loadAvatars`: once per `name + revision`; a failed fetch is not recorded,
   /// so the next refresh tries again.
   public func loadAvatars(_ bots: [Bot]) async {
+    // A bot whose picture was taken away: forget the copy in memory and on disk, once per revision.
+    for bot in bots where !bot.hasAvatar && !avatarsFetched.contains("\(bot.name):\(bot.uiMetaRevision)") {
+      avatarsFetched.insert("\(bot.name):\(bot.uiMetaRevision)")
+
+      if snapshot.avatars[bot.name] != nil {
+        snapshot.avatars[bot.name] = nil
+        publish()
+      }
+
+      await avatarDisk?.write(bot.name, nil)
+    }
+
     let pending = bots.filter { $0.hasAvatar && !avatarsFetched.contains("\($0.name):\($0.uiMetaRevision)") }
 
     for bot in pending {
