@@ -1,10 +1,14 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 
+import { createChatsStore } from '../../state/chats'
 import { createConnectionStore } from '../../state/connection'
+import { requestsStore } from '../../state/requests'
+import { chatWith } from '../../test-support/chat-fixtures'
 import { fakeVisibility } from '../../test-support/fake-watchers'
 
 const calls: string[] = []
 let connection = createConnectionStore()
+let chatStore = createChatsStore()
 const release = vi.fn(() => void calls.push('poll released'))
 const watchRunning = vi.fn(() => release)
 const refreshRunning = vi.fn(async () => {})
@@ -27,6 +31,8 @@ const { startSession } = await import('./session')
 beforeEach(() => {
   calls.length = 0
   connection = createConnectionStore()
+  chatStore = createChatsStore()
+  requestsStore.getState().reset()
   release.mockClear()
   watchRunning.mockClear()
   refreshRunning.mockClear()
@@ -39,7 +45,7 @@ beforeEach(() => {
     stores: { connection },
     stop: clientStop
   }))
-  connectChats.mockImplementation(() => ({ stop: chatsStop }))
+  connectChats.mockImplementation(() => ({ stop: chatsStop, chats: chatStore }))
 })
 
 const options = (visibility = fakeVisibility('visible')) => ({
@@ -131,5 +137,21 @@ describe('startSession', () => {
     expect(watchRunning).toHaveBeenCalledTimes(1)
     connection.getState().setStatus('ready', null)
     expect(refreshRunning).not.toHaveBeenCalled()
+  })
+
+  it('keeps the request queue in step with the chats it started, and empties it on stop', () => {
+    const session = startSession(options())
+
+    chatStore.getState().hydrate('researcher', chatWith('researcher', [], { runtimeSessionId: 'rt-1' }))
+    chatStore.getState().dispatchServerRequest('researcher', {
+      id: 'srq-1',
+      method: 'approval',
+      params: { command: 'ls', request_id: 'a1' }
+    })
+
+    expect(requestsStore.getState().queue.map(entry => entry.bot)).toEqual(['researcher'])
+
+    session.stop()
+    expect(requestsStore.getState().queue).toEqual([])
   })
 })

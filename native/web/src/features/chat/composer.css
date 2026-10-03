@@ -1,0 +1,206 @@
+/*
+ * The composer and the strip of queued messages above it. Colours, radii and
+ * gutters are the theme's (`ui/theme.css`); nothing here names a colour of its
+ * own. The policy forbids inline styles, so the one thing that varies at run
+ * time, the field's height, is set through the CSSOM by the component and capped
+ * here.
+ */
+
+.hm-composer {
+  position: relative;
+  display: flex;
+  flex: none;
+  flex-direction: column;
+  gap: 8px;
+  padding: 10px var(--hm-gutter) max(10px, env(safe-area-inset-bottom));
+  border-top: 1px solid var(--hm-line);
+  background: var(--hm-bg);
+}
+
+@media (min-width: 900px) {
+  .hm-composer {
+    padding-inline: 32px;
+  }
+}
+
+.hm-composer > * {
+  width: 100%;
+  max-width: 54rem;
+  margin-inline: auto;
+  box-sizing: border-box;
+}
+
+.hm-composer__row {
+  display: flex;
+  align-items: flex-end;
+  gap: 8px;
+}
+
+.hm-composer__field {
+  flex: 1 1 auto;
+  min-width: 0;
+  box-sizing: border-box;
+  /* One line tall at rest: the component grows it to what is typed. */
+  min-height: 44px;
+  max-height: min(40vh, 14rem);
+  padding: 10px 12px;
+  border: 1px solid var(--hm-line);
+  border-radius: var(--hm-radius);
+  background: var(--hm-bg);
+  color: var(--hm-text);
+  font: inherit;
+  line-height: 1.4;
+  resize: none;
+  overflow-y: auto;
+}
+
+.hm-composer__field::placeholder {
+  color: var(--hm-text-faint);
+}
+
+.hm-composer__row .hm-button {
+  flex: none;
+}
+
+.hm-composer__hint {
+  margin: 0;
+  color: var(--hm-text-faint);
+  font-size: 0.8125rem;
+}
+
+.hm-composer__failure {
+  margin: 0;
+  color: var(--hm-danger-text);
+  font-size: 0.9375rem;
+  overflow-wrap: anywhere;
+}
+
+/* ── completions ─────────────────────────────────────────────────────────── */
+
+.hm-composer__list {
+  position: absolute;
+  inset-inline: var(--hm-gutter);
+  bottom: 100%;
+  z-index: 3;
+  width: auto;
+  max-width: 54rem;
+  margin: 0 auto 4px;
+  padding: 4px;
+  list-style: none;
+  border: 1px solid var(--hm-line);
+  border-radius: var(--hm-radius);
+  background: var(--hm-surface);
+  box-shadow: 0 6px 24px color-mix(in srgb, var(--hm-text) 14%, transparent);
+}
+
+.hm-composer__option {
+  display: flex;
+  gap: 12px;
+  align-items: baseline;
+  padding: 8px 10px;
+  border-radius: calc(var(--hm-radius) - 4px);
+  cursor: pointer;
+}
+
+.hm-composer__option[aria-selected='true'] {
+  background: var(--hm-selected);
+}
+
+.hm-composer__option-name {
+  flex: none;
+  font-family: var(--hm-mono);
+  font-size: 0.9375rem;
+}
+
+.hm-composer__option-hint {
+  min-width: 0;
+  color: var(--hm-text-muted);
+  font-size: 0.875rem;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.hm-composer__note {
+  padding: 8px 10px;
+  color: var(--hm-text-muted);
+  font-size: 0.875rem;
+}
+
+/* ── the queue ───────────────────────────────────────────────────────────── */
+
+.hm-queue {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.hm-queue__item {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 6px 10px;
+  border: 1px solid var(--hm-line);
+  border-radius: var(--hm-radius);
+  background: var(--hm-surface);
+  font-size: 0.875rem;
+}
+
+.hm-queue__label {
+  flex: none;
+  color: var(--hm-text-faint);
+  font-size: 0.75rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+.hm-queue__text {
+  flex: 1 1 auto;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.hm-queue__actions {
+  display: flex;
+  flex: none;
+  gap: 2px;
+}
+
+.hm-queue__action {
+  appearance: none;
+  min-height: 32px;
+  padding: 0 8px;
+  border: 0;
+  border-radius: 6px;
+  background: transparent;
+  color: var(--hm-tint-text);
+  font: inherit;
+  cursor: pointer;
+}
+
+.hm-queue__action:hover {
+  background: var(--hm-surface-hover);
+}
+
+.hm-queue__more {
+  padding-inline: 10px;
+  color: var(--hm-text-faint);
+  font-size: 0.8125rem;
+}
+
+@media (max-width: 480px) {
+  .hm-queue__item {
+    flex-wrap: wrap;
+  }
+
+  .hm-queue__text {
+    flex-basis: 100%;
+    order: 2;
+  }
+}

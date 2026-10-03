@@ -170,6 +170,70 @@ export const WEB_STRINGS_SOURCE = {
       de: ({ name, time }: { name: string; time: string }) => `${name}, ${time}`
     }
   },
+  composer: {
+    /** Under the field when a send was refused: the words are back in the field. */
+    sendFailed: {
+      en: ({ message }: { message: string }) => `The message was not sent: ${message}`,
+      nl: ({ message }: { message: string }) => `Het bericht is niet verstuurd: ${message}`,
+      de: ({ message }: { message: string }) => `Die Nachricht wurde nicht gesendet: ${message}`
+    },
+    /** The name of the list of messages waiting behind the running reply. */
+    queueLabel: {
+      en: 'Messages waiting to be sent',
+      nl: 'Berichten die wachten om verstuurd te worden',
+      de: 'Nachrichten, die auf den Versand warten'
+    },
+    /** Under the field when a queued message could not be handed to the running reply. */
+    steerFailed: {
+      en: ({ message }: { message: string }) => `Could not steer the reply: ${message}`,
+      nl: ({ message }: { message: string }) => `Het antwoord bijsturen is niet gelukt: ${message}`,
+      de: ({ message }: { message: string }) => `Die Antwort ließ sich nicht lenken: ${message}`
+    },
+    /** The name of the list of commands the gateway offers for what is typed. */
+    commandsLabel: {
+      en: 'Commands',
+      nl: 'Commando’s',
+      de: 'Befehle'
+    }
+  },
+  requests: {
+    /** Names the bot a request comes from; the layer is over every chat, not only the bot's own. */
+    from: {
+      en: ({ name }: { name: string }) => `From ${name}`,
+      nl: ({ name }: { name: string }) => `Van ${name}`,
+      de: ({ name }: { name: string }) => `Von ${name}`
+    },
+    /** How many more are waiting behind the one on screen. */
+    more: {
+      en: ({ count }: { count: number }) => (count === 1 ? '1 more waiting' : `${count} more waiting`),
+      nl: ({ count }: { count: number }) => (count === 1 ? '1 andere wacht nog' : `${count} andere wachten nog`),
+      de: ({ count }: { count: number }) => (count === 1 ? '1 weitere wartet' : `${count} weitere warten`)
+    },
+    /** A clarify question left unanswered on purpose: the bot is told "no answer". */
+    skip: {
+      en: 'Skip',
+      nl: 'Overslaan',
+      de: 'Überspringen'
+    },
+    /** Said politely when the request on screen was withdrawn by the gateway. */
+    withdrawn: {
+      en: ({ name }: { name: string }) => `The request from ${name} was withdrawn.`,
+      nl: ({ name }: { name: string }) => `Het verzoek van ${name} is ingetrokken.`,
+      de: ({ name }: { name: string }) => `Die Anfrage von ${name} wurde zurückgezogen.`
+    },
+    /** Said politely when the request on screen ran out of time on the gateway. */
+    timedOut: {
+      en: ({ name }: { name: string }) => `The request from ${name} timed out.`,
+      nl: ({ name }: { name: string }) => `Het verzoek van ${name} is verlopen.`,
+      de: ({ name }: { name: string }) => `Die Anfrage von ${name} ist abgelaufen.`
+    },
+    /** Shown over the chat when an answer did not reach the gateway. */
+    answerFailed: {
+      en: ({ message }: { message: string }) => `The answer was not delivered: ${message}`,
+      nl: ({ message }: { message: string }) => `Het antwoord is niet aangekomen: ${message}`,
+      de: ({ message }: { message: string }) => `Die Antwort wurde nicht zugestellt: ${message}`
+    }
+  },
   language: {
     /** The first row of the language picker: a browser has a language list, not one device language. */
     followBrowser: {

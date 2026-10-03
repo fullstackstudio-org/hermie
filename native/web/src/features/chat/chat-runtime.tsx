@@ -15,17 +15,48 @@
 import { createContext, useContext } from 'react'
 
 import type { ChatController } from '../../core/chat-controller'
+import type { DraftStore } from './drafts'
 
-/** The controller methods a chat screen calls: opening, paging back and leaving. */
+/**
+ * The controller methods a chat screen calls: opening, paging back and leaving
+ * (the screen), sending, stopping and the queue behind a running turn, slash
+ * commands and uploads (the composer), and answering the two request kinds
+ * (the request layer, which is over every chat and so is given the same
+ * controller). `uploadFile` is for the attachments of W-19; nothing calls it yet.
+ */
 export type ChatScreenController = Pick<
   ChatController,
-  'openChat' | 'openSession' | 'openConversation' | 'loadOlder' | 'readKeyFor' | 'closeChat'
+  | 'openChat'
+  | 'openSession'
+  | 'openConversation'
+  | 'loadOlder'
+  | 'readKeyFor'
+  | 'closeChat'
+  | 'send'
+  | 'stopTurn'
+  | 'editQueued'
+  | 'deleteQueued'
+  | 'steerQueued'
+  | 'querySlash'
+  | 'runSlash'
+  | 'slashRouteFor'
+  | 'uploadFile'
+  | 'respondApproval'
+  | 'respondClarify'
+  | 'lockClarify'
+  | 'acknowledgeApproval'
+  | 'openApprovals'
 >
 
 export interface ChatSessionRuntime {
   controller: ChatScreenController
   /** The gateway's base URL (`ResolvedBasePath.baseUrl`). */
   gatewayBaseUrl: string
+  /**
+   * Where a chat's unsent words are kept between visits. Absent (a test of the
+   * screen, a gallery) keeps them for as long as the composer is on screen.
+   */
+  drafts?: DraftStore
 }
 
 export const ChatRuntimeContext = createContext<ChatSessionRuntime | null>(null)

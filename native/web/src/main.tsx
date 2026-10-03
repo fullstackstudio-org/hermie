@@ -18,6 +18,7 @@ import { strings } from './generated/strings'
 import { initLocale } from './i18n/locale'
 import { useLocale } from './i18n/use-locale'
 import { webStrings } from './i18n/web-strings'
+import { createDraftStore } from './features/chat/drafts'
 import { App } from './features/shell/App'
 import { startSession } from './features/shell/session'
 import { chatCacheFor, type ChatCache } from './platform/chat-cache'
@@ -118,7 +119,11 @@ async function run(root: Root, basePath: ResolvedBasePath, store: WebKeyValueSto
     root,
     <App
       user={state.identity.displayName || state.identity.email || state.identity.userId || ''}
-      chat={{ controller: session.chats.controller, gatewayBaseUrl: basePath.baseUrl }}
+      chat={{
+        controller: session.chats.controller,
+        gatewayBaseUrl: basePath.baseUrl,
+        drafts: createDraftStore(store)
+      }}
       onSignIn={() => signIn(basePath)}
       onSignOut={() => {
         // The order matters: the chats and the socket stop before the gateway's

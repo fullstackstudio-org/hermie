@@ -57,6 +57,7 @@ import { connectionStore } from '../../state/connection'
 import { Button } from '../../ui/primitives'
 import { clipLine } from './chat-format'
 import { ChatHeader } from './ChatHeader'
+import { Composer } from './Composer'
 import { useChatRuntime } from './chat-runtime'
 import { ChatItem } from './items/ChatItem'
 import { ItemContext, type ItemContextValue } from './items/item-context'
@@ -201,6 +202,9 @@ export function ChatScreen({ bot, session, view = DEFAULT_CHAT_VIEW }: ChatScree
     // The button is about to go; the reader's place is the transcript.
     stage.current?.querySelector<HTMLElement>('[role="log"]')?.focus({ preventScroll: true })
   }, [])
+
+  /** The reader sent something: wherever they were reading, they are at the newest row, and follow it. */
+  const pinToLatest = useCallback(() => listRef.current?.jumpToLatest(), [])
 
   // Messages that landed while the reader was further up: the button's count. The
   // delta is taken before the previous count is overwritten.
@@ -354,6 +358,11 @@ export function ChatScreen({ bot, session, view = DEFAULT_CHAT_VIEW }: ChatScree
 
         {away && rows.length > 0 ? <JumpToLatest count={arrived} onJump={jumpToLatest} /> : null}
       </div>
+
+      {/* A past conversation or a branch can be read and not answered; a chat the gateway does not list has no one to ask. */}
+      {runtime && key !== undefined && !viewer && record ? (
+        <Composer key={key} chatKey={key} botName={displayName} onSent={pinToLatest} />
+      ) : null}
 
       {/* A separate, polite region: a finished reply is said once, and a streaming one never is. */}
       <div className="hm-sr hm-chat__announce" role="status" aria-live="polite" aria-atomic="true">

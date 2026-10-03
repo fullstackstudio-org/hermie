@@ -47,7 +47,15 @@ const all = leaves(WEB_STRINGS_SOURCE as unknown as Source)
 
 /** Sample arguments for the function leaves: every parameter is a recognisable string. */
 const MARKER = '/some/path/index.html'
-const SAMPLE = { expected: MARKER, version: MARKER, name: MARKER, text: MARKER, time: MARKER }
+const SAMPLE = {
+  expected: MARKER,
+  version: MARKER,
+  name: MARKER,
+  text: MARKER,
+  time: MARKER,
+  message: MARKER,
+  count: MARKER
+}
 
 describe('the web-only strings', () => {
   it('has strings', () => {

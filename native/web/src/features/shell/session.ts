@@ -11,7 +11,8 @@
  *     placed on the bot whose chat holds its id.
  *  2. `connectChats` on that client (`core/chat-controller.ts`), with the boot's
  *     own author for the optimistic bubble.
- *  3. The running poll (`session.active_list`) while the page is shown, and once
+ *  3. The request queue (`state/requests.ts`): a view of the chats' open approvals and questions.
+ *  4. The running poll (`session.active_list`) while the page is shown, and once
  *     the moment the connection becomes usable, so a bot that is already working
  *     is not drawn idle for the first ten seconds.
  *
@@ -24,6 +25,7 @@ import { connectGateway, type ConnectGatewayOptions, type GatewayClient } from '
 import type { ChatCache } from '../../platform/chat-cache'
 import type { WebKeyValueStore } from '../../platform/key-value-store'
 import { type VisibilityWatcher, visibilityWatcher } from '../../platform/visibility'
+import { bindRequests } from '../../state/requests'
 
 export interface StartSessionOptions {
   /** The gateway's base URL (`ResolvedBasePath.baseUrl`). */
@@ -68,6 +70,9 @@ export function startSession(options: StartSessionOptions): Session {
     ...options.chats
   })
 
+  /** The request layer's queue is the open requests of the chats just started. */
+  const stopRequests = bindRequests(chats.chats)
+
   /** While the page is shown: the roster's running poll (reference counted; one is enough). */
   let release: (() => void) | undefined
 
@@ -110,6 +115,7 @@ export function startSession(options: StartSessionOptions): Session {
       stopStatus()
       release?.()
       release = undefined
+      stopRequests()
       chats.stop()
       client.stop()
     }

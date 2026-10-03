@@ -17,6 +17,9 @@
  * | `#/settings[/<section>]`      | Settings             | placeholder (W-20b)              |
  * | anything else                 | sent to `#/`         |                                  |
  *
+ * The request layer (a bot's approval or question, one at a time, over everything) is a
+ * sibling of the frame, and so is in every route; it reads the requests of every chat.
+ *
  * The chat screen opens its own chat (it is given the controller through
  * `ChatRuntimeContext`, which this provides from the `chat` prop); this component
  * opens nothing. A chat is keyed by its route, so moving to another one starts a
@@ -40,6 +43,7 @@ import { pluginStore } from '../../state/plugin'
 import { ChatList } from '../bots/ChatList'
 import { ChatScreen } from '../chat/ChatScreen'
 import { ChatRuntimeContext, type ChatSessionRuntime } from '../chat/chat-runtime'
+import { RequestLayer } from '../requests/RequestLayer'
 import { ConnectionLine } from './ConnectionLine'
 import { Layout } from './Layout'
 import { formatRoute, type Route, useRoute } from './router'
@@ -109,6 +113,8 @@ export function App({ user, onSignIn, onSignOut, router = pageHashRouter, chat }
           </p>
         )}
       </Layout>
+      {/* Over the whole page, whichever route: a bot's question is never behind a screen. */}
+      <RequestLayer />
     </ChatRuntimeContext.Provider>
   )
 }
