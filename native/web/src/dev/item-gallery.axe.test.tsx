@@ -8,12 +8,12 @@
  * suite runs in real browsers).
  */
 import axe from 'axe-core'
-import { fireEvent, render } from '@testing-library/react'
-import { afterEach, beforeEach, describe, expect, it } from 'vitest'
+import { fireEvent, render, screen } from '@testing-library/react'
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 
 import { resetActiveLocale, setActiveLocale, type Locale } from '../i18n/active-locale'
 
-import { GALLERY_ROLLUP, GALLERY_SECTIONS, ItemGalleryPage, PRESENTATIONS } from './item-gallery'
+import { GALLERY_ROLLUP, GALLERY_SECTIONS, ItemGalleryPage, MEDIA_SECTIONS, PRESENTATIONS } from './item-gallery'
 
 beforeEach(() => {
   document.documentElement.lang = 'en'
@@ -98,6 +98,56 @@ describe('the transcript item gallery', () => {
       }
     }
   })
+
+  it('has what the views draw inside a row and around the transcript', () => {
+    const { container } = render(<ItemGalleryPage />)
+
+    for (const id of MEDIA_SECTIONS) {
+      expect(container.querySelector(`#gallery-media-${id}`), id).not.toBeNull()
+    }
+
+    for (const selector of [
+      'ins',
+      'del',
+      'progress',
+      '.hm-gallery img',
+      '.hm-gallery .hm-file',
+      '.hm-file[data-state="error"]',
+      '[data-message-id][aria-keyshortcuts]'
+    ]) {
+      expect(container.querySelector(selector), selector).not.toBeNull()
+    }
+
+    // No message holds a control of its own: the menu is one for the page.
+    expect(screen.queryByRole('button', { name: 'Message actions' })).toBeNull()
+  })
+
+  for (const locale of ['en', 'nl', 'de'] as Locale[]) {
+    it(`has no accessibility violation in ${locale} with the message menu, the options and the viewer open`, async () => {
+      setActiveLocale(locale)
+      document.documentElement.lang = locale
+
+      const { container } = render(<ItemGalleryPage />)
+      const reply = container.querySelector<HTMLElement>('[data-message-id="gallery-assistant-reply"] .hm-bubble')!
+
+      // The hover button and the menu.
+      fireEvent.pointerOver(reply)
+      fireEvent.contextMenu(reply)
+      expect(await screen.findByRole('menu')).toBeTruthy()
+      expect(await violations()).toEqual([])
+      fireEvent.keyDown(document.activeElement!, { key: 'Escape' })
+
+      // The chat's options, whose panel loads when it is first opened.
+      fireEvent.click(container.querySelector<HTMLElement>('.hm-chat-options__button')!)
+      await vi.waitFor(() => expect(container.querySelector('.hm-chat-options__panel')).not.toBeNull())
+      expect(await violations()).toEqual([])
+
+      // A picture, in the viewer over everything.
+      fireEvent.click(container.querySelector<HTMLElement>('.hm-gallery button.hm-image')!)
+      expect(screen.getByRole('dialog')).toBeTruthy()
+      expect(await violations()).toEqual([])
+    }, 20_000)
+  }
 
   for (const locale of ['en', 'nl', 'de'] as Locale[]) {
     it(`has no accessibility violation in ${locale}, closed and opened`, async () => {

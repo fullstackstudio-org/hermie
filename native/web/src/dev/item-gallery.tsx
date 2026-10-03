@@ -4,6 +4,14 @@
  * `hidden-placeholder`), drawn by the real item views. To look at in a browser
  * and to run the accessibility checker over (`item-gallery.axe.test.tsx`).
  *
+ * Under the items, what the views draw inside a row and around the transcript:
+ * attachments as chips and as pictures (the ones "sent from this page" are tiny
+ * `data:` images, as the attachment tray makes them), a file chip in each of
+ * its states, diffs, and the chat's options. Every message on the page is
+ * reached by the transcript's one message menu (`MessageMenuLayer`): hover one,
+ * right-click it, or move to it with the arrow keys from a message and press
+ * Enter. A picture opens in the image viewer.
+ *
  *   npm run client:dev, then open /dev/items.html
  *
  * The items are literals: no engine, no gateway. A presentation the selectors
@@ -14,10 +22,18 @@
  * gate refuses the marker below if it ever did).
  */
 import type { Presentation, TranscriptItem, VisibleItem } from '@hermie/transcript'
+import { useMemo, useRef, useState } from 'react'
 
+import { ChatOptions } from '../features/chat/ChatOptions'
 import { rollupDmRuns } from '../features/chat/dm-rollup'
+import { ImageViewer } from '../features/chat/ImageViewer'
 import { ChatItem } from '../features/chat/items/ChatItem'
+import { DiffView } from '../features/chat/items/DiffView'
+import { FileChip } from '../features/chat/items/FileChip'
 import { ItemContext, type ItemContextValue } from '../features/chat/items/item-context'
+import { DETACHED_ITEM_HOST, type ItemHost, ItemHostContext, type ViewedImage } from '../features/chat/items/item-host'
+import { attachmentName } from '../features/chat/items/UserBubble'
+import { MessageMenuLayer } from '../features/chat/MessageMenu'
 
 /** The bundle gate refuses any file holding this (`scripts/web/check-bundle.mjs`). */
 const DEVELOPMENT_ONLY_MARKER = 'hermie:development-only'
@@ -64,6 +80,33 @@ export const GALLERY_SECTIONS: readonly GallerySection[] = [
           text: 'Here are the files.',
           attachments: ['@file:/srv/work/report.pdf', '@image:/tmp/shot.png'],
           pending: true
+        }
+      },
+      {
+        name: 'files only, one with a long name',
+        item: {
+          ...base('user', 'files-only'),
+          kind: 'user',
+          text: 'The report and the data behind it.',
+          attachments: ['@file:/srv/work/quarterly-report-of-the-finance-team-final-v4.pdf', '@file:/srv/work/data.csv']
+        }
+      },
+      {
+        name: 'a picture sent from this page',
+        item: {
+          ...base('user', 'one-picture'),
+          kind: 'user',
+          text: 'One screenshot.',
+          attachments: ['@image:screenshot.png']
+        }
+      },
+      {
+        name: 'three pictures and a file',
+        item: {
+          ...base('user', 'pictures'),
+          kind: 'user',
+          text: 'Three pictures and a file.',
+          attachments: ['@image:first.png', '@image:second.png', '@image:third.png', '@file:/srv/work/notes.md']
         }
       }
     ]
@@ -410,6 +453,41 @@ export const GALLERY_ROLLUP: VisibleItem = (() => {
   return rollupDmRuns(asides)[0] as VisibleItem
 })()
 
+/** A picture the attachment tray could have made: a raster `data:` image, so nothing is requested from anywhere. */
+const PICTURE =
+  'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mP8z8DwHwAFBQIAX8jx0gAAAABJRU5ErkJggg=='
+
+/** The pictures "sent from this page", by file name (`sent-previews.ts` in the app). */
+const SENT_PICTURES: Readonly<Record<string, string>> = {
+  'screenshot.png': PICTURE,
+  'first.png': PICTURE,
+  'second.png': PICTURE,
+  'third.png': PICTURE
+}
+
+const DIFF = [
+  '--- a/src/greeting.ts',
+  '+++ b/src/greeting.ts',
+  '@@ -1,5 +1,6 @@',
+  ' export function greet(name: string): string {',
+  "-  return 'Hello ' + name",
+  '+  const cleaned = name.trim()',
+  "+  return 'Hello, ' + cleaned + '!'",
+  ' }',
+  ' ',
+  ' export const version = 2'
+].join('\n')
+
+const LONG_DIFF = Array.from({ length: 40 }, (_, index) => `+line ${index + 1} of a long addition`).join('\n')
+
+/** The sections under the items: what the views draw inside a row and around the transcript. */
+export const MEDIA_SECTIONS = ['chips', 'diffs', 'options'] as const
+
+/** Every item on the page by id, for the message menu. */
+const GALLERY_ITEMS: ReadonlyMap<string, TranscriptItem> = new Map(
+  GALLERY_SECTIONS.flatMap(section => section.cases.map(entry => [entry.item.id, entry.item] as const))
+)
+
 const CONTEXT: ItemContextValue = {
   botName: 'Researcher',
   gatewayBaseUrl: GALLERY_GATEWAY,
@@ -433,28 +511,110 @@ function Presentations({ id, item }: { id: string; item: TranscriptItem }) {
 }
 
 export function ItemGalleryPage() {
+  const stage = useRef<HTMLDivElement>(null)
+  const [viewing, setViewing] = useState<{ image: ViewedImage; opener: HTMLElement | null } | null>(null)
+  const [notice, setNotice] = useState('')
+  const host = useMemo<ItemHost>(
+    () => ({
+      ...DETACHED_ITEM_HOST,
+      attachmentSrc: reference => SENT_PICTURES[attachmentName(reference)],
+      itemById: id => GALLERY_ITEMS.get(id),
+      openImage: (image, opener) => setViewing({ image, opener }),
+      announce: setNotice,
+      regenerate: () => setNotice('Regenerate was asked for.'),
+      regenerateTarget: () => 'gallery-assistant-reply'
+    }),
+    []
+  )
+
   return (
     <ItemContext.Provider value={CONTEXT}>
-      <main className="gallery" data-marker={DEVELOPMENT_ONLY_MARKER}>
-        <h1>Transcript items</h1>
-        {GALLERY_SECTIONS.map(section => (
-          <section aria-labelledby={`gallery-${section.id}`} key={section.id}>
-            <h2 id={`gallery-${section.id}`}>{section.title}</h2>
-            {section.cases.map(entry => (
-              <section aria-label={`${section.title}: ${entry.name}`} key={entry.item.id}>
-                <h3>{entry.name}</h3>
-                <Presentations id={entry.item.id} item={entry.item} />
+      <ItemHostContext.Provider value={host}>
+        <main className="gallery" data-marker={DEVELOPMENT_ONLY_MARKER}>
+          <div ref={stage}>
+            <h1>Transcript items</h1>
+            {GALLERY_SECTIONS.map(section => (
+              <section aria-labelledby={`gallery-${section.id}`} key={section.id}>
+                <h2 id={`gallery-${section.id}`}>{section.title}</h2>
+                {section.cases.map(entry => (
+                  <section aria-label={`${section.title}: ${entry.name}`} key={entry.item.id}>
+                    <h3>{entry.name}</h3>
+                    <Presentations id={entry.item.id} item={entry.item} />
+                  </section>
+                ))}
               </section>
             ))}
-          </section>
-        ))}
-        <section aria-labelledby="gallery-rollup">
-          <h2 id="gallery-rollup">Roll-up of bot-to-bot asides</h2>
-          <div className="gallery__row" id="gallery-rollup-row">
-            <ChatItem row={GALLERY_ROLLUP} />
+            <section aria-labelledby="gallery-rollup">
+              <h2 id="gallery-rollup">Roll-up of bot-to-bot asides</h2>
+              <div className="gallery__row" id="gallery-rollup-row">
+                <ChatItem row={GALLERY_ROLLUP} />
+              </div>
+            </section>
+
+            <section aria-labelledby="gallery-chips" id="gallery-media-chips">
+              <h2 id="gallery-chips">File chips</h2>
+              <ul className="gallery__chips">
+                <li>
+                  <FileChip name="report.pdf" size={1_536_000} />
+                </li>
+                <li>
+                  <FileChip name="a-very-long-file-name-that-has-to-give-way-in-the-middle.xlsx" size={20_480} />
+                </li>
+                <li>
+                  <FileChip name={'\u0645\u0644\u0641-\u0639\u0631\u0628\u064a.txt'} size={12} />
+                </li>
+                <li>
+                  <FileChip
+                    name="uploading.zip"
+                    status="uploading"
+                    progress={0.4}
+                    onRemove={() => setNotice('Removed.')}
+                  />
+                </li>
+                <li>
+                  <FileChip name="waiting.zip" status="uploading" onRemove={() => setNotice('Removed.')} />
+                </li>
+                <li>
+                  <FileChip
+                    name="huge.mov"
+                    status="error"
+                    error="Too large · 20 MB max"
+                    onRemove={() => setNotice('Removed.')}
+                  />
+                </li>
+                <li>
+                  <FileChip name="openable.txt" size={2048} onOpen={() => setNotice('Opened.')} />
+                </li>
+              </ul>
+            </section>
+
+            <section aria-labelledby="gallery-diffs" id="gallery-media-diffs">
+              <h2 id="gallery-diffs">Diffs</h2>
+              <DiffView diff={DIFF} />
+              <DiffView diff={LONG_DIFF} maxLines={12} />
+            </section>
+
+            <section aria-labelledby="gallery-options" id="gallery-media-options">
+              <h2 id="gallery-options">Chat options</h2>
+              <ChatOptions bot="gallery" />
+            </section>
+
+            <MessageMenuLayer container={stage} host={host} />
           </div>
-        </section>
-      </main>
+          <p role="status" className="hm-sr">
+            {notice}
+          </p>
+        </main>
+
+        {viewing ? (
+          <ImageViewer
+            image={viewing.image}
+            opener={viewing.opener}
+            gatewayBaseUrl={GALLERY_GATEWAY}
+            onClose={() => setViewing(null)}
+          />
+        ) : null}
+      </ItemHostContext.Provider>
     </ItemContext.Provider>
   )
 }
