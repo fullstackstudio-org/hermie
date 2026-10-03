@@ -11,9 +11,9 @@
  *    control of its own.
  *  - **Regenerate** on the last reply puts the reader's prompt on the gateway
  *    again, because the fake has no `/retry`.
- *  - **The chat's options.** Quiet takes the tool lines away at once and Verbose
- *    brings them back, the choice outlives a reload, and following the default
- *    again undoes it.
+ *  - **The chat's options.** A chat starts quiet, without tool lines; Normal
+ *    brings them back at once, the choice outlives a reload, and following the
+ *    default again undoes it.
  *  - **Accessibility.** The chat with the options open, and with a menu open, has
  *    no serious or critical axe violation, contrast included.
  */
@@ -150,12 +150,13 @@ test.describe('the chat’s options', () => {
     const tool = app.transcript.getByRole('button', { name: /read_file/u })
     const options = page.getByRole('button', { name: 'Chat options' })
 
-    await expect(tool).toBeVisible()
+    // Quiet by default: no tool line.
+    await expect(tool).toHaveCount(0)
 
     await options.click()
     await expect(options).toHaveAttribute('aria-expanded', 'true')
-    await page.getByRole('radio', { name: 'Quiet' }).check()
-    await expect(tool).toHaveCount(0)
+    await page.getByRole('radio', { name: 'Normal' }).check()
+    await expect(tool).toBeVisible()
     await expect(page.getByText('This conversation has its own view.')).toBeVisible()
 
     await page.keyboard.press('Escape')
@@ -164,14 +165,14 @@ test.describe('the chat’s options', () => {
 
     await page.reload()
     await expect(app.transcript).toContainText('Retry semantics')
-    await expect(app.transcript.getByRole('button', { name: /read_file/u })).toHaveCount(0)
+    await expect(app.transcript.getByRole('button', { name: /read_file/u })).toBeVisible()
 
     await page.getByRole('button', { name: 'Chat options' }).click()
-    await expect(page.getByRole('radio', { name: 'Quiet' })).toBeChecked()
-    await page.getByRole('button', { name: "Reset this conversation's view" }).click()
     await expect(page.getByRole('radio', { name: 'Normal' })).toBeChecked()
-    await expect(page.getByRole('radio', { name: 'Normal' })).toBeFocused()
-    await expect(app.transcript.getByRole('button', { name: /read_file/u })).toBeVisible()
+    await page.getByRole('button', { name: "Reset this conversation's view" }).click()
+    await expect(page.getByRole('radio', { name: 'Quiet' })).toBeChecked()
+    await expect(page.getByRole('radio', { name: 'Quiet' })).toBeFocused()
+    await expect(app.transcript.getByRole('button', { name: /read_file/u })).toHaveCount(0)
   })
 })
 

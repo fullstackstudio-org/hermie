@@ -11,11 +11,17 @@
  *
  * Deliberate differences:
  *
- *  - **The default is `normal`, not `quiet`.** It is what this client has shown
- *    since it could show a chat, and Settings (W-20b) is where the default is
- *    chosen and the synced arrangement (W-20a) is where the account's value
- *    arrives; until then a client that silently started hiding every tool call
- *    would be a change nobody asked for.
+ *  - **The account's synced default is not read yet.** The built-in default is
+ *    `quiet` with no reasoning, as in the Expo app and the Swift app (the
+ *    owner's call, 2026-10-03). The account's own default travels in the app
+ *    section's `defaults`, which the ui_meta bridge carries raw because no store
+ *    here owns it (`core/ui-meta-bridge.ts`); until one does, a default chosen on
+ *    another device does not reach this page.
+ *  - **Only a chosen default is stored**: the fields that differ from
+ *    `DEFAULT_CHAT_VIEW`, so a later change of the built-in default reaches a
+ *    page that never chose one. Builds before 2026-10-03 wrote the whole
+ *    default on every save while nothing could change it, so that exact old
+ *    value (`RETIRED_DEFAULT_VIEW`) is read as "nothing chosen".
  *  - **Stored in the page's key-value store** under an identity-bound key
  *    (`chat.view`, no `device.` prefix), so a sign-out clears it: it belongs to
  *    the account, like the Expo app's per-gateway blob. Read synchronously once,
@@ -31,8 +37,23 @@ import type { WebKeyValueStore } from '../platform/key-value-store'
 
 export type ChatView = VisibilityOptions
 
-/** What a chat shows until the reader or the account says otherwise: tool calls as one line each, no reasoning. */
-export const DEFAULT_CHAT_VIEW: ChatView = { level: 'normal', showBotToBot: true, showThinking: false }
+/** What a chat shows until the reader says otherwise: no tool calls (one "working" row while they run), no reasoning. */
+export const DEFAULT_CHAT_VIEW: ChatView = { level: 'quiet', showBotToBot: true, showThinking: false }
+
+/** The built-in default before 2026-10-03, which every save wrote although nobody had chosen it. */
+export const RETIRED_DEFAULT_VIEW: ChatView = { level: 'normal', showBotToBot: true, showThinking: false }
+
+const sameView = (a: Partial<ChatView>, b: ChatView): boolean =>
+  a.level === b.level && a.showBotToBot === b.showBotToBot && a.showThinking === b.showThinking
+
+/** The fields of `view` that differ from the built-in default: what a save keeps. */
+function chosenDefaults(view: ChatView): Partial<ChatView> {
+  return {
+    ...(view.level === DEFAULT_CHAT_VIEW.level ? {} : { level: view.level }),
+    ...(view.showBotToBot === DEFAULT_CHAT_VIEW.showBotToBot ? {} : { showBotToBot: view.showBotToBot }),
+    ...(view.showThinking === DEFAULT_CHAT_VIEW.showThinking ? {} : { showThinking: view.showThinking })
+  }
+}
 
 /** Identity-bound: cleared on sign-out (`platform/key-value-store.ts`). */
 export const CHAT_VIEW_KEY = 'chat.view'
@@ -104,7 +125,10 @@ function read(storage: WebKeyValueStore): Pick<ChatViewState, 'defaults' | 'perC
     }
   }
 
-  return { defaults: { ...DEFAULT_CHAT_VIEW, ...asViewPatch(stored?.defaults) }, perChat }
+  const storedDefaults = asViewPatch(stored?.defaults)
+  const chosen = sameView(storedDefaults, RETIRED_DEFAULT_VIEW) ? {} : storedDefaults
+
+  return { defaults: { ...DEFAULT_CHAT_VIEW, ...chosen }, perChat }
 }
 
 export function createChatViewStore(): StoreApi<ChatViewState> {
@@ -114,7 +138,7 @@ export function createChatViewStore(): StoreApi<ChatViewState> {
 
       // A preference that failed to persist resets on the next visit; not worth an error.
       try {
-        storage?.setSync(CHAT_VIEW_KEY, JSON.stringify({ defaults, perChat: { ...perChat } }))
+        storage?.setSync(CHAT_VIEW_KEY, JSON.stringify({ defaults: chosenDefaults(defaults), perChat: { ...perChat } }))
       } catch {
         // see above
       }

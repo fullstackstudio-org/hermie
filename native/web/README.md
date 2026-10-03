@@ -525,9 +525,11 @@ the key because the status line depends on it and ending a turn changes no item.
 this chat (`ChatOptions`, a disclosure at the end of the header: a radio group for the verbosity, checkboxes for
 bot-to-bot and thinking, and "Reset this conversation's view" once the chat has its own), kept in
 `state/chat-view.ts` under an identity-bound key: one default and an optional override per bot, as the Expo app keeps
-them. A switch is instant and loses nothing, mid-turn included. The default is `DEFAULT_CHAT_VIEW`: level `normal`
-(tool calls as one collapsed line each), bot-to-bot shown, no reasoning. The Expo app's default is `quiet`; Settings
-(W-20b) chooses it, and the `ui_meta` bridge carries the account's `defaults` raw until then.
+them. A switch is instant and loses nothing, mid-turn included. The default is `DEFAULT_CHAT_VIEW`: level `quiet` (no
+tool lines, one "working" row while they run), bot-to-bot shown, no reasoning, as in the Expo app and the Swift app
+(the owner's call, 2026-10-03). Only a default the reader chose is stored; the whole `normal` default that earlier builds
+wrote on every save is read as nothing chosen. The account's synced `defaults` is not read yet: the `ui_meta` bridge
+carries it raw until a store here owns it (Settings, W-20b).
 
 | Item                         | View                                                                                                                                                                                                                                                                                                                                                                                                                   |
 | ---------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |

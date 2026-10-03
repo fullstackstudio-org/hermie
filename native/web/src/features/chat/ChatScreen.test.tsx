@@ -14,7 +14,7 @@ import { readdirSync, readFileSync } from 'node:fs'
 import { join } from 'node:path'
 
 import { plainTextPreview } from '@hermie/markdown/plain-text'
-import { type ChatState, isBusy, visibleItems } from '@hermie/transcript'
+import { type ChatState, isBusy, type Verbosity, visibleItems } from '@hermie/transcript'
 import { act, fireEvent, render, screen, within } from '@testing-library/react'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 
@@ -23,6 +23,7 @@ import { ownAuthorStore } from '../../core/chats/own-author'
 import { sessionStatusStore } from '../../state/session-status'
 import { resetActiveLocale } from '../../i18n/active-locale'
 import { botsStore } from '../../state/bots'
+import { chatViewStore } from '../../state/chat-view'
 import { chatsStore } from '../../state/chats'
 import { connectionStore } from '../../state/connection'
 import {
@@ -276,7 +277,7 @@ describe('opening the chat', () => {
 
 describe('the transcript', () => {
   /** The ids the selectors show, less what the screen leaves out (a status line while nothing runs). */
-  const expectedIds = (state: ChatState, level: 'quiet' | 'normal'): string[] =>
+  const expectedIds = (state: ChatState, level: Verbosity): string[] =>
     visibleItems(state, { ...DEFAULT_CHAT_VIEW, level })
       .filter(row => !(row.item.kind === 'status' && row.presentation === 'chip' && !isBusy(state)))
       .map(row => row.item.id)
@@ -293,12 +294,12 @@ describe('the transcript', () => {
 
         const shown = rowKeys(container).filter(key => !key.startsWith('date:') && key !== 'web:typing')
 
-        expect(shown, checkpoint.label).toEqual(expectedIds(state, 'normal'))
+        expect(shown, checkpoint.label).toEqual(expectedIds(state, DEFAULT_CHAT_VIEW.level))
         // What the checkpoint recorded is what the selectors say at the level the screen uses.
         expect(
           visibleItems(state, DEFAULT_CHAT_VIEW).map(row => row.item.id),
           checkpoint.label
-        ).toEqual((checkpoint.visible.normal ?? []).map(row => row.item.id))
+        ).toEqual((checkpoint.visible[DEFAULT_CHAT_VIEW.level] ?? []).map(row => row.item.id))
       }
     })
 
@@ -363,6 +364,8 @@ describe('the transcript', () => {
   })
 
   it('draws what the gateway injected as a notice, never as the reader’s own bubble', () => {
+    // At `normal`, where a model switch is drawn at all (`quiet`, the default, leaves it out).
+    chatViewStore.getState().setDefaults({ level: 'normal' })
     commit(
       chatWith('researcher', [
         userItem('hi', {}, 'u'),
@@ -378,6 +381,8 @@ describe('the transcript', () => {
   })
 
   it('shows tools as one collapsed line each, and the latest status only while something runs', () => {
+    // At `normal`: `quiet`, the default, draws no tool line.
+    chatViewStore.getState().setDefaults({ level: 'normal' })
     commit(
       chatWith(
         'researcher',
@@ -413,6 +418,7 @@ describe('the transcript', () => {
   })
 
   it('opens a tool on a click and shows its detail as plain text, never as markup', () => {
+    chatViewStore.getState().setDefaults({ level: 'normal' })
     commit(
       chatWith('researcher', [
         toolItem(
@@ -533,6 +539,8 @@ describe('what the bot is doing now (PG-3)', () => {
     })
 
   it('names the tool being written at the tail, in the dots’ place, until the call starts', () => {
+    // At `normal`, where the started call is a row of its own (`quiet` draws one "working" row).
+    chatViewStore.getState().setDefaults({ level: 'normal' })
     commit(running())
     mount({}, fakeController())
 

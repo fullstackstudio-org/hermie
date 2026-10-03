@@ -3,8 +3,8 @@
  * the fake gateway serving the built client.
  *
  *  - **A cron delivery** (the fixture chat carries one): a card, not the owner's
- *    bubble, open at the default level with the report on it, folding on a
- *    click.
+ *    bubble, folded at the default level (`quiet`), opening on a click to the
+ *    report and folding again.
  *  - **A bot-to-bot message** (a teammate's message in the history): one closed
  *    aside on the left that opens on a click to the message, and links to the
  *    teammate's chat because this gateway has that bot. The link goes there; the
@@ -25,15 +25,20 @@ test.describe('the item views', () => {
     })
   })
 
-  test('a cron delivery is a card, open at the default level, that folds on a click', async ({ app }) => {
+  test('a cron delivery is a card, folded at the default level, that opens on a click', async ({ app }) => {
     await app.open()
 
     const line = app.transcript.getByRole('button', { name: /Source scan/u })
 
-    await expect(line).toHaveAttribute('aria-expanded', 'true')
-    await expect(app.transcript.locator('.hm-cron__body')).toBeVisible()
+    await expect(line).toHaveAttribute('aria-expanded', 'false')
+    await expect(app.transcript.locator('.hm-cron__body')).toHaveCount(0)
     // Not the owner's bubble: the scheduler is not a person.
     await expect(app.transcript.locator('.hm-msg[data-side="own"]', { hasText: 'Cronjob' })).toHaveCount(0)
+
+    await line.click()
+
+    await expect(line).toHaveAttribute('aria-expanded', 'true')
+    await expect(app.transcript.locator('.hm-cron__body')).toBeVisible()
 
     await line.click()
 
@@ -75,6 +80,7 @@ test.describe('the item views', () => {
 
       await app.transcript.locator('.hm-dm[data-kind="bot_dm_in"]').getByRole('button').click()
       await expect(app.transcript.locator('.hm-dm__body')).toBeVisible()
+      await app.transcript.getByRole('button', { name: /Source scan/u }).click()
       await expect(app.transcript.locator('.hm-cron__body')).toBeVisible()
 
       expect(await seriousViolations(page, `items-${scheme}`)).toEqual([])

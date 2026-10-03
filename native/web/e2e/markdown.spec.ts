@@ -168,6 +168,11 @@ for (const scheme of ['light', 'dark'] as const) {
       diagnostics
     }) => {
       await app.open()
+      // At `normal`, the level the pictures were recorded at: the rows above the reply move the
+      // blocks by a fraction of a pixel, and a picture of an element is cut on whole pixels.
+      await page.getByRole('button', { name: 'Chat options' }).click()
+      await page.getByRole('radio', { name: 'Normal' }).check()
+      await page.keyboard.press('Escape')
 
       const code = block(app, 'code')
       const math = block(app, 'math')

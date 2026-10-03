@@ -39,6 +39,10 @@ for (const scheme of ['light', 'dark'] as const) {
       await expect(app.transcript).toContainText('Retry semantics')
       await app.ready()
 
+      // At `normal`: the default, `quiet`, draws no tool line to open.
+      await page.getByRole('button', { name: 'Chat options' }).click()
+      await page.getByRole('radio', { name: 'Normal' }).check()
+      await page.keyboard.press('Escape')
       await app.transcript.getByRole('button', { name: /^read_file/u }).click()
       await app.field.fill('a draft')
 
