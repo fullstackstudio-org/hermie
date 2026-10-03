@@ -3,6 +3,8 @@ import SwiftUI
 
 #if os(iOS)
   import UIKit
+#elseif os(macOS)
+  import AppKit
 #endif
 
 /// Carry out what a router transition asked for.
@@ -29,7 +31,8 @@ extension GatewayDirectory {
   }
 }
 
-/// The toolbar's gateway menu: the configured gateways, the live one checked, and setup for another.
+/// The toolbar's gateway menu (iPhone and iPad): the configured gateways, the live one checked, and
+/// setup for another. The Mac has the menu bar's Gateway menu instead (`GatewayMenu`).
 struct GatewaySwitcherMenu: View {
   @Environment(AppLaunch.self) private var launch
   @Environment(AppRouter.self) private var router
@@ -85,10 +88,13 @@ struct GatewaySwitcherMenu: View {
  cut before it reaches the menu, measured in the menu's own font (the body style at the reader's
  text size) against the room a row has beside the checkmark column. The menu stays about 250 pt
  wide at every standard text size; measured on iOS 26, its words get about 155 pt, so 150 leaves a
- margin. The Mac's menus grow to fit their titles and need none of this.
+ margin. The Mac's menus grow to fit their titles, and a long host name grows the whole menu
+ bar menu with it: there it is cut at `macWidth` in the menu's own font.
  */
 enum MenuTitle {
   static let width: CGFloat = 150
+  /// The widest a gateway's name may stand in a Mac menu.
+  static let macWidth: CGFloat = 320
 
   static func fitted(_ title: String, typeSize: DynamicTypeSize) -> String {
     #if os(iOS)
@@ -99,7 +105,11 @@ enum MenuTitle {
         (candidate as NSString).size(withAttributes: [.font: font]).width <= width
       }
     #else
-      return title
+      let font = NSFont.menuFont(ofSize: 0)
+
+      return middleTruncated(title) { candidate in
+        (candidate as NSString).size(withAttributes: [.font: font]).width <= macWidth
+      }
     #endif
   }
 

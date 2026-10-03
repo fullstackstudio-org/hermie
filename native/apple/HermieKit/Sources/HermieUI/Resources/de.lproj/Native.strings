@@ -80,10 +80,16 @@
 	<string>Jetzt</string>
 	<key>native.chatList.signedOut</key>
 	<string>Melde dich bei diesem Gateway an, um seine Chats zu sehen.</string>
+	<key>native.commands.addGateway</key>
+	<string>Gateway hinzufügen…</string>
 	<key>native.commands.chatMenu</key>
 	<string>Chat</string>
 	<key>native.commands.find</key>
 	<string>Suchen…</string>
+	<key>native.commands.gatewayMenu</key>
+	<string>Gateway</string>
+	<key>native.commands.gatewaySettings</key>
+	<string>Gateway-Einstellungen…</string>
 	<key>native.commands.newChatWindow</key>
 	<string>Neues Chatfenster</string>
 	<key>native.commands.switchGateway</key>
