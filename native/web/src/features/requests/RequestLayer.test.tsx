@@ -8,6 +8,7 @@
 import { act, fireEvent, render, screen, within } from '@testing-library/react'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 
+import { closedRequest } from '../../core/request-withdrawn'
 import { resetActiveLocale } from '../../i18n/active-locale'
 import { setLanguageChoice } from '../../i18n/locale'
 import { chatsStore } from '../../state/chats'
@@ -20,14 +21,28 @@ import { RequestLayer } from './RequestLayer'
 
 function fakeController(over: Record<string, unknown> = {}) {
   const store = () => chatsStore.getState()
+  // The real controller refuses to answer a request that is no longer open; so does this one.
+  const refuseClosed = (bot: string, id: string): void => {
+    const chat = store().chats[bot]
+    const closed = closedRequest(chat?.items[chat.byRequestId[id] ?? ''], id)
+
+    if (closed) {
+      throw closed
+    }
+  }
   const controller = {
-    respondApproval: vi.fn(async (bot: string, id: string, choice: string) => store().answer(bot, id, choice)),
-    respondClarify: vi.fn(async (bot: string, id: string, answers: Record<string, string>) =>
+    respondApproval: vi.fn(async (bot: string, id: string, choice: string) => {
+      refuseClosed(bot, id)
+      store().answer(bot, id, choice)
+    }),
+    respondClarify: vi.fn(async (bot: string, id: string, answers: Record<string, string>) => {
+      refuseClosed(bot, id)
       store().answer(bot, id, answers)
-    ),
-    lockClarify: vi.fn(async (bot: string, id: string, qid: string, answer: string) =>
+    }),
+    lockClarify: vi.fn(async (bot: string, id: string, qid: string, answer: string) => {
+      refuseClosed(bot, id)
       store().answer(bot, id, { [qid]: answer })
-    ),
+    }),
     acknowledgeApproval: vi.fn(async () => undefined),
     ...over
   }
@@ -322,6 +337,53 @@ describe('restoring and withdrawing', () => {
     )
     await settle()
 
+    expect(container.parentElement?.querySelector('[aria-live="polite"]')?.textContent).toBe(
+      'The request from Writer timed out.'
+    )
+  })
+
+  it('says it was withdrawn when the press and the withdrawal land in the same frame', async () => {
+    const { container } = mount()
+
+    approval('researcher', 'srq-1')
+
+    // The cancel is applied to the store, then the press arrives from the button still on screen.
+    act(() => {
+      chatsStore
+        .getState()
+        .dispatchEvent('researcher', { type: 'request.cancel', payload: { id: 'srq-1', reason: 'cancelled' } })
+      fireEvent.click(button('Allow once'))
+    })
+    await settle()
+
+    const item = Object.values(chatsStore.getState().chats['researcher']?.items ?? {}).find(
+      entry => entry.kind === 'approval'
+    )
+
+    // The press did reach the controller, which refused it.
+    expect(controller.respondApproval).toHaveBeenCalledTimes(1)
+    expect(item).toMatchObject({ state: 'cancelled' })
+    expect(screen.queryByRole('dialog')).toBeNull()
+    expect(screen.queryByRole('alert')).toBeNull()
+    expect(container.parentElement?.querySelector('[aria-live="polite"]')?.textContent).toBe(
+      'The request from Dr. Researcher was withdrawn.'
+    )
+  })
+
+  it('says a clarify that timed out in the same frame as the answer timed out', async () => {
+    const { container } = mount()
+
+    clarify('writer', 'srq-1', { question: 'Quick?' })
+    act(() => {
+      chatsStore
+        .getState()
+        .dispatchEvent('writer', { type: 'request.cancel', payload: { id: 'srq-1', reason: 'timeout' } })
+      fireEvent.click(button('Skip'))
+    })
+    await settle()
+
+    expect(controller.respondClarify).toHaveBeenCalledTimes(1)
+    expect(screen.queryByRole('alert')).toBeNull()
     expect(container.parentElement?.querySelector('[aria-live="polite"]')?.textContent).toBe(
       'The request from Writer timed out.'
     )

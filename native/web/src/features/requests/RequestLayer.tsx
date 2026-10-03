@@ -44,6 +44,7 @@ import {
 } from 'react'
 import { type StoreApi, useStore } from 'zustand'
 
+import { RequestWithdrawnError } from '../../core/request-withdrawn'
 import { useLocale } from '../../i18n/use-locale'
 import { webStrings } from '../../i18n/web-strings'
 import { isolateModal } from '../../platform/modal-isolation'
@@ -71,6 +72,10 @@ export interface RequestLayerProps {
 }
 
 const messageOf = (error: unknown): string => (error instanceof Error ? error.message : String(error))
+
+/** What a reader is told when a request left without their answer. */
+const withdrawnAnnouncement = (name: string, reason: string | undefined): string =>
+  reason === 'timeout' ? webStrings.requests.timedOut({ name }) : webStrings.requests.withdrawn({ name })
 
 export function RequestLayer({
   store = requestsStore,
@@ -177,11 +182,7 @@ export function RequestLayer({
       if ((item?.kind === 'approval' || item?.kind === 'clarify') && item.state === 'cancelled') {
         const name = botsStore.getState().byName[previous.bot]?.displayName ?? previous.bot
 
-        setAnnouncement(
-          item.cancelReason === 'timeout'
-            ? webStrings.requests.timedOut({ name })
-            : webStrings.requests.withdrawn({ name })
-        )
+        setAnnouncement(withdrawnAnnouncement(name, item.cancelReason))
       }
     }
 
@@ -208,10 +209,22 @@ export function RequestLayer({
   }, [failure])
 
   // ── answering ───────────────────────────────────────────────────────────────
-  const report = useCallback(
-    (error: unknown) => setFailure(webStrings.requests.answerFailed({ message: messageOf(error) })),
-    []
-  )
+  // A press that reached the controller after the request was withdrawn is not a failed answer: nothing was
+  // sent, and the reader is told what happened, the same words as when they watched it go. (The card is no
+  // longer open, so the effect above never sees it leave as `cancelled` if the press came first.)
+  const report = useCallback((error: unknown, from: string) => {
+    if (error instanceof RequestWithdrawnError) {
+      if (error.state === 'cancelled') {
+        const name = botsStore.getState().byName[from]?.displayName ?? from
+
+        setAnnouncement(withdrawnAnnouncement(name, error.reason))
+      }
+
+      return
+    }
+
+    setFailure(webStrings.requests.answerFailed({ message: messageOf(error) }))
+  }, [])
 
   const onKeyDown = useCallback((event: KeyboardEvent<HTMLElement>) => {
     // Not an answer, so not a way out. Nothing behind the dialog hears it either.
@@ -286,7 +299,9 @@ export function RequestLayer({
                 descriptionId={descriptionId}
                 {...(tapGuardMs !== undefined ? { tapGuardMs } : {})}
                 onRespond={choice => {
-                  void controller?.respondApproval(current.bot, current.item.requestId, choice).catch(report)
+                  void controller
+                    ?.respondApproval(current.bot, current.item.requestId, choice)
+                    .catch(error => report(error, current.bot))
                 }}
               />
             ) : (
@@ -296,10 +311,14 @@ export function RequestLayer({
                 titleId={titleId}
                 descriptionId={descriptionId}
                 onSubmit={answers => {
-                  void controller?.respondClarify(current.bot, current.item.requestId, answers).catch(report)
+                  void controller
+                    ?.respondClarify(current.bot, current.item.requestId, answers)
+                    .catch(error => report(error, current.bot))
                 }}
                 onLock={(qid, answer) => {
-                  void controller?.lockClarify(current.bot, current.item.requestId, qid, answer).catch(report)
+                  void controller
+                    ?.lockClarify(current.bot, current.item.requestId, qid, answer)
+                    .catch(error => report(error, current.bot))
                 }}
               />
             )}

@@ -12,6 +12,7 @@ import type { MessageAuthor, UserItem } from '@hermie/transcript'
 import { BotsController } from './bots-controller'
 import { ChatController } from './chat-controller'
 import { immediateFrames } from './ingest'
+import { RequestWithdrawnError } from './request-withdrawn'
 import type { RpcFailure } from './rpc-failures'
 import { MemoryChatCache } from '../platform/chat-cache'
 import { botFromProfileRow, botsStore } from '../state/bots'
@@ -871,12 +872,12 @@ describe('approvals', () => {
     expect(approvals[0]).toMatchObject({ requestId: 'srq-9', approvalId: 'appr-1' })
   })
 
-  it('forgets the handles behind a card the gateway withdraws', async () => {
+  it('sends nothing for a card the gateway has withdrawn, and keeps it cancelled', async () => {
     const { gateway, controller } = setup()
 
     controller.start()
     await controller.openChat(RESEARCHER)
-    gateway.serverRequest('srq-9', 'approval', {
+    const delivered = gateway.serverRequest('srq-9', 'approval', {
       session_id: 'runtime-1',
       request_id: 'appr-1',
       command: 'rm -rf build'
@@ -892,12 +893,35 @@ describe('approvals', () => {
 
     expect(chatOf().items[chatOf().byRequestId['srq-9'] ?? '']).toMatchObject({ state: 'cancelled' })
 
-    // The handle is gone, so answering the dead card cannot resolve a request
-    // that no longer exists; it falls through to the queue instead.
-    gateway.reply('approval.respond', { resolved: 0 })
-    await controller.respondApproval('researcher', 'srq-9', 'once')
+    // The press was already on its way when the cancel was applied. It reaches a
+    // card that is no longer open: no reply frame, no queue RPC, and the card is
+    // not turned into an answered one.
+    const calls = gateway.methodOrder().length
+    const failure = await controller.respondApproval('researcher', 'srq-9', 'once').catch((error: unknown) => error)
 
-    expect(gateway.lastCall('approval.respond')).toMatchObject({ request_id: 'appr-1' })
+    expect(failure).toBeInstanceOf(RequestWithdrawnError)
+    expect(failure).toMatchObject({ state: 'cancelled', reason: 'timeout' })
+    expect(gateway.methodOrder()).toHaveLength(calls)
+    expect(gateway.methodOrder()).not.toContain('approval.respond')
+    expect(delivered.answer()).toBeNull()
+    expect(chatOf().items[chatOf().byRequestId['srq-9'] ?? '']).toMatchObject({ state: 'cancelled' })
+  })
+
+  it('refuses a second answer to a card that was already answered', async () => {
+    const { gateway, controller } = setup()
+
+    controller.start()
+    await controller.openChat(RESEARCHER)
+    const delivered = gateway.serverRequest('srq-9', 'approval', { session_id: 'runtime-1', request_id: 'appr-1' })
+
+    await controller.respondApproval('researcher', 'srq-9', 'once')
+    await expect(controller.respondApproval('researcher', 'srq-9', 'deny')).rejects.toMatchObject({
+      name: 'RequestWithdrawnError',
+      state: 'answered'
+    })
+
+    expect(delivered.answer()).toEqual({ choice: 'once' })
+    expect(chatOf().items[chatOf().byRequestId['srq-9'] ?? '']).toMatchObject({ state: 'answered', answer: 'once' })
   })
 })
 
@@ -961,6 +985,45 @@ describe('clarify', () => {
     await controller.respondClarify('researcher', 'srq-batch', { q1: 'staging' })
 
     expect(delivered.answer()).toEqual({ answers: { q1: 'staging' } })
+  })
+})
+
+describe('clarify after a withdrawal', () => {
+  it('sends nothing, to a question the gateway withdrew, from either way of answering', async () => {
+    const { gateway, controller } = setup()
+
+    gateway.reply('request.answer', { status: 'ok' })
+    gateway.reply('clarify.lock', { status: 'ok', remaining: ['q2'] })
+    controller.start()
+    await controller.openChat(RESEARCHER)
+    const delivered = gateway.serverRequest('srq-batch', 'clarify', {
+      session_id: 'runtime-1',
+      questions: [
+        { qid: 'q1', question: 'Which cluster?' },
+        { qid: 'q2', question: 'Which branch?' }
+      ]
+    })
+    await flush()
+
+    gateway.emit({
+      type: 'request.cancel',
+      session_id: 'runtime-1',
+      seq: 31,
+      payload: { id: 'srq-batch', method: 'clarify', reason: 'cancelled' }
+    })
+
+    const calls = gateway.methodOrder().length
+
+    await expect(controller.respondClarify('researcher', 'srq-batch', { q1: 'a', q2: 'b' })).rejects.toBeInstanceOf(
+      RequestWithdrawnError
+    )
+    await expect(controller.lockClarify('researcher', 'srq-batch', 'q1', 'a')).rejects.toBeInstanceOf(
+      RequestWithdrawnError
+    )
+
+    expect(gateway.methodOrder()).toHaveLength(calls)
+    expect(delivered.answer()).toBeNull()
+    expect(chatOf().items[chatOf().byRequestId['srq-batch'] ?? '']).toMatchObject({ state: 'cancelled' })
   })
 })
 

@@ -113,6 +113,7 @@ import { claimTurn } from './chats/turn-claim'
 import type { GatewayClient } from './gateway-client'
 import { createIngest, type FrameSource, type Ingest } from './ingest'
 import type { ChatGateway } from './link'
+import { closedRequest } from './request-withdrawn'
 import { describeRpcFailure, type RpcFailure } from './rpc-failures'
 import {
   buildConversationList,
@@ -1618,6 +1619,14 @@ export class ChatController {
     const chat = this.chats.getState().chats[botName]
     const itemId = chat?.byRequestId[requestId]
     const item = itemId ? chat?.items[itemId] : undefined
+    // A press that arrives after the request was withdrawn (or already answered)
+    // answers nothing: no RPC, and the card keeps the state it has.
+    const closed = closedRequest(item, requestId)
+
+    if (closed) {
+      throw closed
+    }
+
     const approvalId = item?.kind === 'approval' ? item.approvalId : requestId
     const live = this.pending.get(requestId)
     const result = { choice, ...(all ? { all: true } : {}) }
@@ -1660,6 +1669,12 @@ export class ChatController {
     const chat = this.chats.getState().chats[botName]
     const itemId = chat?.byRequestId[requestId]
     const item = itemId ? chat?.items[itemId] : undefined
+    const closed = closedRequest(item, requestId)
+
+    if (closed) {
+      throw closed
+    }
+
     const clarify = item?.kind === 'clarify' ? item : undefined
     const live = this.pending.get(requestId)
 
@@ -1684,13 +1699,27 @@ export class ChatController {
       return
     }
 
+    // Checked once above; the request may turn `answered` between two of these
+    // locks (the last one completes it), so they do not check again.
     for (const [qid, answer] of Object.entries(answers)) {
-      await this.lockClarify(botName, requestId, qid, answer)
+      await this.sendClarifyLock(botName, requestId, qid, answer)
     }
   }
 
   /** Lock one answer of a batch clarify without resolving the whole request. */
   async lockClarify(botName: string, requestId: string, questionId: string, answer: string): Promise<void> {
+    const chat = this.chats.getState().chats[botName]
+    const itemId = chat?.byRequestId[requestId]
+    const closed = closedRequest(itemId ? chat?.items[itemId] : undefined, requestId)
+
+    if (closed) {
+      throw closed
+    }
+
+    await this.sendClarifyLock(botName, requestId, questionId, answer)
+  }
+
+  private async sendClarifyLock(botName: string, requestId: string, questionId: string, answer: string): Promise<void> {
     this.chats.getState().answer(botName, requestId, { [questionId]: answer })
 
     await this.gateway.request('clarify.lock', {
