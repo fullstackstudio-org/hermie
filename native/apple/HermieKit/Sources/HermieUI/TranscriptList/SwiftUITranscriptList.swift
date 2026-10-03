@@ -14,7 +14,12 @@ import SwiftUI
 ///   them. Whether it follows is `TranscriptFollow`'s to decide: from what moved
 ///   the content (the reader, the list, the rows growing), not from one
 ///   geometry update, and growth the anchor did not keep is brought back to the
-///   bottom. The reader's own send (`followOwnSend`) always follows.
+///   bottom (`restoreBottom`): once the reader has scrolled, the position holds
+///   the top row's id and the scroll view keeps that row in place ahead of the
+///   anchor. The reader's own send (`followOwnSend`) always follows.
+/// - On the Mac the reader's wheel and trackpad are watched as events
+///   (`ReaderWheelMonitor`): a notched wheel has no scroll phase, and while either
+///   moves the content every geometry change is the reader's.
 /// - Commands go through the same `ScrollPosition`. One told `scrollTo(id:)`
 ///   keeps that target and resolves it again on every content change, and that
 ///   second resolution lands about 13 pt from the first (measured, whatever the
@@ -65,11 +70,16 @@ struct SwiftUITranscriptList<Item: Identifiable & Equatable & Sendable, Row: Vie
         visibleMaxY: geometry.visibleRect.maxY
       )
     } action: { old, new in
-      // Growth while following is kept by the size-change anchor, which reads `isAtBottom`; it is
-      // not chased with a scroll command from here: one issued while the rows changed size (a
-      // reply settling) left the lazy stack drawing an empty viewport.
+      // Growth while following is kept by the size-change anchor, which reads `isAtBottom`, until
+      // the scroll position holds a row's id: then the scroll view keeps that row in place and the
+      // growth is answered with `restoreBottom`, after this update (a scroll command issued inside
+      // it, while the rows changed size, left the lazy stack drawing an empty viewport).
       tracker.geometry = new
-      tracker.follow.geometryChanged(from: old, to: new, phase: tracker.phase, threshold: state.bottomThreshold)
+      let reaction = tracker.follow.geometryChanged(
+        from: old, to: new, phase: tracker.effectivePhase, threshold: state.bottomThreshold)
+      if reaction == .restoreBottom {
+        restoreBottom()
+      }
       publishFollowing()
     }
     .onScrollGeometryChange(for: Edges.self) { geometry in
@@ -90,11 +100,24 @@ struct SwiftUITranscriptList<Item: Identifiable & Equatable & Sendable, Row: Vie
       }
     }
     .modifier(OffsetTracking(state: state))
+    #if os(macOS)
+      .background {
+        ReaderWheelMonitor { input, time in
+          tracker.wheel.received(input, at: time)
+          commanded = false
+        }
+      }
+    #endif
     .onScrollPhaseChange { _, phase in
       tracker.phase = Self.followPhase(phase)
-      tracker.follow.phaseChanged(
-        to: tracker.phase, atBottom: tracker.geometry?.isAtBottom(threshold: state.bottomThreshold) ?? true)
+      let atBottom = tracker.geometry?.isAtBottom(threshold: state.bottomThreshold) ?? true
+      tracker.follow.phaseChanged(to: tracker.phase, atBottom: atBottom)
       publishFollowing()
+      if phase == .idle, tracker.follow.following, !atBottom {
+        // A scroll ended while the list follows (its own jump, which the rows outgrew as it ran),
+        // short of the bottom.
+        restoreBottom()
+      }
       switch phase {
       case .interacting:
         commanded = false
@@ -172,6 +195,22 @@ struct SwiftUITranscriptList<Item: Identifiable & Equatable & Sendable, Row: Vie
     }
   }
 
+  /// Puts the bottom back when the rows grew below a list that follows and the scroll view kept a
+  /// row in place instead (`TranscriptFollow.Reaction.restoreBottom`). After the update that saw
+  /// it, never inside it: a scroll command issued while the rows changed size left the lazy stack
+  /// drawing an empty viewport. Once per burst of updates, and not when the reader has taken over
+  /// in between.
+  private func restoreBottom() {
+    guard !tracker.restorePending else { return }
+    tracker.restorePending = true
+    Task { @MainActor in
+      tracker.restorePending = false
+      guard tracker.follow.following, tracker.effectivePhase == .idle else { return }
+      tracker.follow.commandedBottom()
+      position.scrollTo(edge: .bottom)
+    }
+  }
+
   /// `isAtBottom` is what the pill, the unread count and the read marks see: the
   /// list follows the newest row.
   private func publishFollowing() {
@@ -193,6 +232,16 @@ struct SwiftUITranscriptList<Item: Identifiable & Equatable & Sendable, Row: Vie
   @MainActor final class FollowTracker {
     var follow = TranscriptFollow()
     var phase = TranscriptFollow.Phase.idle
+    /// The reader's wheel and trackpad (the Mac's `ReaderWheelMonitor`).
+    var wheel = ReaderWheel()
+    /// A `restoreBottom` is waiting for the update to end.
+    var restorePending = false
+
+    /// The scroll view's phase, or the reader's while their wheel or trackpad moves the content:
+    /// the Mac's scroll view reports no phase for a wheel without one.
+    var effectivePhase: TranscriptFollow.Phase {
+      wheel.isActive(at: ProcessInfo.processInfo.systemUptime) ? .reader : phase
+    }
     /// The last geometry the list reported.
     var geometry: TranscriptFollow.Geometry?
     /// The rows as of the last snapshot.
