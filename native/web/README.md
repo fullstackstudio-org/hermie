@@ -6,14 +6,14 @@ served by the gateway itself through the `hermie` plugin, on the gateway's own o
 the threat model that follows from it are in
 [ADR-0030](../../docs/adr/0030-the-web-client-is-served-by-the-gateway-plugin.md).
 
-**Status: the shell.** What exists is the build, its checks, the boot, and the frame of the app: the client
-refuses to run in a frame, finds its gateway from its own address, probes it, reads who is signed in on the
-gateway's own session, connects, and shows the chat list in a two-pane layout with a router and a theme
-("The shell" below). The main pane says which route it is on and nothing more: there is no chat screen yet, no
-composer, and the plugin does not serve this build. The transcript list the chat screen will stand on exists
-too, measured against its budgets on a harness page ("Transcript list" below), and no screen uses it yet
-either. Until that changes, the browser keeps running the Expo
-app's web export through Hermie Web ([docs/web.md](../../docs/web.md)); nothing here replaces it.
+**Status: a chat you can read.** What exists is the build, its checks, the boot, the frame of the app and the chat
+screen: the client refuses to run in a frame, finds its gateway from its own address, probes it, reads who is
+signed in on the gateway's own session, connects, shows the chat list in a two-pane layout with a router and a
+theme ("The shell" below), and opens a chat in the main pane and streams it ("The chat screen" below): bubbles
+with Markdown, tool calls, notices, date separators, older history, jump to latest. There is no composer yet (you
+cannot send, stop, approve or answer a question from it), and the plugin does not serve this build. Until that
+changes, the browser keeps running the Expo app's web export through Hermie Web
+([docs/web.md](../../docs/web.md)); nothing here replaces it.
 
 ## Running it
 
@@ -37,11 +37,11 @@ styles, `ws:`, no Trusted Types). The production build never does; test against 
 | `npm run client:test`               | the client's unit and component tests (vitest, jsdom, Testing Library)                                      |
 | `npm run client:check-bundle`       | the gate on `dist/` (below); `-- --commit <sha>` also requires `build.json` to name that commit             |
 | `npm run client:check-reproducible` | builds twice from clean and compares every file; `-- --fresh-checkout` adds a build from `git archive HEAD` |
-| `npm run client:e2e`                | the Playwright suites in Chromium, WebKit and Firefox (today: the transcript list's, below)                 |
+| `npm run client:e2e`                | the Playwright suites in Chromium, WebKit and Firefox (the transcript list's and the chat screen's)         |
 
 Types, lint and format run with the rest of the repository (`npm run typecheck`, `npm run lint`,
-`npm run format`); `client:test`, the bundle gate and the transcript list's Playwright suite (Chromium only)
-also run in CI as the `web-client` job.
+`npm run format`); `client:test`, the bundle gate and the Playwright suites (Chromium only) also run in CI as
+the `web-client` job.
 
 ## The build
 
@@ -258,8 +258,8 @@ only code outside `boot/` that touches `location.hash`):
 | Route                      | Heading        | Main pane today                   |
 | -------------------------- | -------------- | --------------------------------- |
 | `#/`                       | Hermie         | "Pick a conversation to start..." |
-| `#/chat/<bot>`             | the bot's name | placeholder (the chat: W-10b)     |
-| `#/chat/<bot>/s/<session>` | the bot's name | placeholder (W-10b)               |
+| `#/chat/<bot>`             | the bot's name | the chat (`ChatScreen`)           |
+| `#/chat/<bot>/s/<session>` | the bot's name | that conversation (`ChatScreen`)  |
 | `#/settings[/<section>]`   | Settings       | placeholder (W-20b)               |
 | anything else              | sent to `#/`   |                                   |
 
@@ -293,11 +293,12 @@ against the per-bot watermark or the count of transcript messages past it, and a
 Home and End move between rows and Enter follows the link. A row subscribes to the stores with primitive
 selectors, so a streamed token re-renders its own row only.
 
-Nothing marks a chat read yet: that is the chat screen's job (`botsStore.markSeen`).
+A chat is marked read by the chat screen, not by the list (`botsStore.markSeen`; "The chat screen" below).
 
 ### The theme
 
-`ui/theme.css` holds every colour, size and motion as custom properties: light, dark or follow the browser
+`ui/theme.css` holds every colour, size and motion as custom properties (the danger ink, `--hm-danger-text`, is held to 4.5:1
+like the others): light, dark or follow the browser
 (`prefers-color-scheme`), plus one tint of nine. The choice is two attributes on `<html>` (`data-scheme`,
 `data-tint`; `platform/theme-target.ts`, because the policy forbids inline styles), stored per base path under
 `device.scheme` and `device.tint` (`state/settings.ts`, so a sign-out keeps them) and applied before the first
@@ -311,6 +312,96 @@ every connection state, three routes); jsdom has no layout, so contrast is the t
 layout is checked in a browser against the fake gateway: build, put `dist/` at `<dir>/app/` and run
 `npm run fake-gateway -- --auth cookie --plugin-assets <dir>`.
 
+## The chat screen
+
+`features/chat/` is the main pane of `#/chat/<bot>` and `#/chat/<bot>/s/<session>`. `App` hands it the page's
+controller and the gateway's base URL through `ChatRuntimeContext` (the entry module is the only place that has
+both) and gives it a key per route, so moving to another chat starts a screen of its own. The screen opens its
+own chat: nothing in `App` does.
+
+| File               | What                                                                                                     |
+| ------------------ | -------------------------------------------------------------------------------------------------------- |
+| `ChatScreen.tsx`   | the wiring: rows, scroll position, older history, read marking, announcements, the states of a chat      |
+| `use-open-chat.ts` | opens the route's chat when the connection is `ready`, leaves it on the way out, retries after a failure |
+| `ChatHeader.tsx`   | the line under the bot's name: its presence bead and what it is doing (the chat list's own rules)        |
+| `rows.ts`          | from `visibleItems` to the list's rows: date separators, the status line while busy, the typing row      |
+| `JumpToLatest.tsx` | the button over the bottom of the transcript, with how many messages arrived while the reader was above  |
+| `items/*.tsx`      | one view per item kind (below), each `React.memo` on `(id, version, presentation)`                       |
+| `chat.css`         | the screen and its views, on the theme's tokens                                                          |
+
+**Opening.** `openChat(bot, { follow: true })` once the connection is `ready` (a call on a socket that is still
+dialling rejects, so the open waits for the transition to ready, which also covers every reconnect). With a
+session in the route, `openSession` says where it belongs: one of the reader's own chats or the group chat becomes
+the bot's current conversation and is held under the bot's name like any other; a branch or a past conversation
+opens read-only (`openConversation`, under `bot#<session>`), with a line saying so, and marks nothing read. A
+failure to open is shown with "Try again". A bot the roster does not list says so. Leaving the screen calls
+`closeChat` (cache write, read mark) and does not detach, and never for a chat that did not open.
+
+**Who scrolls.** The transcript, and only the transcript: on a chat route `Layout` puts `data-screen="chat"` on
+the `main`, and `chat.css` turns its `overflow` off and moves the gutters inside. `TranscriptList` measures its
+rows against its own scrollport, so a second scrolling ancestor would move the rows under its anchoring without
+it being told. Everything above the transcript (heading, header, notes) keeps its place; everything over it
+("Loading earlier...", "Jump to latest") is absolutely positioned in the stage and is never a row, because a row
+added or taken away at the top would move the anchor.
+
+**What is shown.** `visibleItems(chat, view)`, memoised on `(itemsVersion, turn.active, view)`. `turn.active` is in
+the key because the status line depends on it and ending a turn changes no item. Until the reader can change it
+(the verbosity, bot-to-bot and thinking toggles are W-18b's) the view is `DEFAULT_CHAT_VIEW`: level `normal` (tool
+calls as one collapsed line each), bot-to-bot shown, no reasoning. The Expo app's default is `quiet`; at `quiet`
+the selectors drop the tool rows this screen is meant to show.
+
+| Item               | View                                                                                                                                                                               |
+| ------------------ | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `user`             | a bubble on the right in the tint, Markdown, clock, "Sending..." until the gateway has it; somebody else's in the group chat is on the left with their name                        |
+| `assistant`        | a bubble with Markdown; the typing dots in the same bubble until words arrive; usage and duration footer; a failure card under the words that arrived; interim and reply-to labels |
+| `tool`             | one collapsed line (name, what it did, how long or "Running..."); a click opens arguments and result as plain text; silent tools (`todo`) draw nothing until they fail             |
+| `notice`, `status` | centred, quiet lines, never a bubble; a notice with a body is a disclosure (a command's answer opens itself, an error keeps the danger tint); the latest status only while busy    |
+| date separator     | an `h2` row at the first row of each day (a row of its own, keyed by the day and the row it opens)                                                                                 |
+| typing row         | the dots, while the turn runs and the last thing drawn is the reader's own message                                                                                                 |
+| the rest           | a plain line saying what it is (`OtherRow`) until W-18a: a teammate bot's message and dispatch, a cron delivery, a subagent fan-out, an approval, a clarify                        |
+
+Gateway-injected rows are notices, never the reader's own bubble. Everything the gateway or an agent wrote that is
+not Markdown (tool arguments, results, notice bodies, a teammate's message) is shown as characters.
+
+**Headings in a message.** The page's `h1` is the bot's name and a day is an `h2`, so a message's headings are
+drawn as `h3` (`Markdown`'s `headingOffset` 2 and `headingMax` 3), whatever the author wrote: a `#` is never a
+second title, and a `##` written first never skips a level. The size still follows the depth that was written.
+
+**Read marking** is the native apps' rule (`core/chats/read-watermark.ts`): a message is read when it arrives in
+front of the reader, which is when the chat is open, live, the page is visible and the transcript is at the
+bottom. Scrolled up, the badge is doing its job (it is the same messages "Jump to latest" counts); coming back to
+the bottom reads what arrived meanwhile. It writes `markSeen(controller.readKeyFor(bot), max(now, lastMessageAt))`,
+under the key of the conversation the bot is on, so reading one of the reader's own chats never marks the group
+chat read. Opening and leaving mark as well, in the controller.
+
+**Older history.** When the reader is within 0.4 of a viewport of the top, `controller.loadOlder(key)` (once per
+oldest row, and not before the chat is live: a short chat is "at the top" at once). The page goes in at the front
+through `prependHistory`, and the list keeps the row the reader is on.
+
+**Said aloud.** The transcript is `role="log"` and `aria-busy` while a turn runs, so a screen reader is not read
+every delta. A separate polite `role="status"` region says once, when the turn ends, "<name> replied: <the first
+200 characters, Markdown taken off>". Nothing is said for a chat that is opened or was already finished.
+
+**Tests.** Component tests drive the screen with the recorded stream scenarios (`contract/transcript/streams`):
+each is replayed through the engine, the state after every step is committed to the store, and the rows on the
+page are compared with what the selectors say at each recorded checkpoint. The item views have their own tests;
+`chat.axe.test.tsx` runs axe in jsdom (both schemes, three languages, a conversation of every kind).
+`e2e/chat/open-chat.spec.ts` runs the **built** client in a browser against the fake gateway (started in the
+test, with `historyRows: 2000`, behind its dashboard route and cookie login; the client is built into a
+temporary directory by the test, so it is never a stale `dist/`):
+
+| Check                                                                                                                               | Result                 |
+| ----------------------------------------------------------------------------------------------------------------------------------- | ---------------------- |
+| open the chat: gap below the newest row in every frame from the first with rows; the bottom row never changes; again from the cache | 0 px; one bottom row   |
+| a 40-paragraph reply streamed in by the gateway: gap in every frame, `aria-busy`, one announcement at the end                       | 0 px; once             |
+| scrolled up while a reply and a whole turn arrive: the row being read does not move; "Jump to latest" with a count; pressing it     | 0 px; focus on the log |
+| reaching the top asks for older history and keeps the reader's place                                                                | grew; still reading    |
+| axe with contrast, light and dark, with a tool line opened                                                                          | no violation           |
+
+```sh
+npm run e2e:chromium --workspace @hermie/web-client -- e2e/chat     # the chat screen's suite alone
+```
+
 ## Markdown
 
 `src/markdown/` draws a message as React elements. The text goes through `@hermie/markdown` (`preprocessMarkdown`,
@@ -320,6 +411,9 @@ become elements; no HTML string is made anywhere, so there is nothing to sanitis
 ```tsx
 <Markdown text={message.text} gatewayBaseUrl={baseUrl} />
 ```
+
+Two optional props place a message's headings in the page it is drawn in (`headingOffset`, `headingMax`: a heading is
+the written level plus the offset, capped at the max; the transcript uses 2 and 3).
 
 | File                     | What                                                                                                 |
 | ------------------------ | ---------------------------------------------------------------------------------------------------- |
@@ -354,8 +448,8 @@ imports `src/dev/` (a test checks it), so it is not in `dist/`.
 
 ## Transcript list
 
-`features/chat/TranscriptList.tsx` is the list the chat screen will stand on (plan decision W8). No screen
-uses it yet. Its props are the whole boundary, so what is behind them can change without touching a caller:
+`features/chat/TranscriptList.tsx` is the list the chat screen stands on (plan decision W8). Its props are the
+whole boundary, so what is behind them can change without touching a caller:
 
 | Prop            | What                                                                                              |
 | --------------- | ------------------------------------------------------------------------------------------------- |
@@ -364,6 +458,8 @@ uses it yet. Its props are the whole boundary, so what is behind them can change
 | `onReachTop`    | the reader is within 0.4 of a viewport of the oldest row: load older history (once per first row) |
 | `onStickChange` | the list started (`true`) or stopped (`false`) following the newest row; it starts following      |
 | `label`         | the accessible name of the `role="log"` region                                                    |
+| `busy`          | `aria-busy` on the region while a reply streams into it                                           |
+| `listRef`       | a handle with one command, `jumpToLatest()`: go to the newest row and follow it from now on       |
 
 How it works:
 
@@ -459,10 +555,11 @@ event on 5,000 items unthrottled), roughly two thirds of the JavaScript time whi
 index.html                  the document: policy, one module script, empty #root
 vite.config.ts              base './', hashed assets, ASCII output, maps out of dist, dev server and proxy
 vitest.config.ts            jsdom, fixed stand-ins for the injected version and commit
-playwright.config.ts        the Playwright suites: three engines, the harness server
+playwright.config.ts        the Playwright suites: three engines, the harness server (the chat suite starts its own gateway)
 tsconfig.json               the client's code (DOM); tsconfig.node.json: the config files (Node);
                             tsconfig.e2e.json: the Playwright configuration and specs
 e2e/perf/                   the transcript list's performance suite and its trace reader
+e2e/chat/                   the chat screen on the built client, against the fake gateway
 scripts/
   write-build-manifest.mjs  dist/build.json
   source-commit.mjs         which commit this build is of (shared by the config and the manifest)
@@ -473,14 +570,15 @@ src/
                             controller and the ingest (above)
   state/                    zustand vanilla stores: connection, bots, plugin, chats, settings
   platform/                 the browser seams (above)
-  features/chat/            the transcript list, its scroll anchor and its chunks
+  features/chat/            the chat screen, its item views, the transcript list, its scroll anchor and chunks
   dev/                      development-only pages: the transcript harness, its probes, a stream replayer
   test-support/             test doubles: an IndexedDB, a fetch, a fetch with a cookie jar, a chat
                             gateway, the page's visibility and network, and a copy of the Expo app's
                             reader's-own-chat directory for the sub-chats test
   markdown/                 a message as React elements (above)
   dev/                      development-only pages, not reached by the build (dev/markdown.html serves one)
-  features/                 what a person sees: shell/ (router, frame, connection line, session), bots/ (the list)
+  features/                 what a person sees: shell/ (router, frame, connection line, session), bots/ (the list),
+                            chat/ (the screen)
   build-info.ts             version and commit injected by the build
   ui/                       theme.css (tokens), primitives/ and icons.tsx, base.css (the boot screens)
 ```
@@ -503,14 +601,14 @@ Every third-party package, and why it is here. Anything beyond this list needs a
 | `react`, `react-dom` (19.1.0)                                                        | runtime | the UI; the same version as the Expo app, so the ported logic runs on the React it was written against                                                                                                                                                      |
 | `zustand` (5.0.15)                                                                   | runtime | the stores the ported controllers already use, read by the screens with `useStore`; about 1 kB, no dependencies                                                                                                                                             |
 | `@hermes/shared`, `@hermie/gateway-client`, `@hermie/transcript`, `@hermie/markdown` | runtime | this repository's own packages (wire contract, gateway connection, transcript engine, Markdown core); used as they are. `@noble/hashes` comes in through `@hermie/gateway-client`. The boot uses `@hermie/gateway-client` (probe, cookie session, identity) |
-| `@hermie/fake-gateway`                                                               | dev     | this repository's stand-in gateway; the boot's integration test runs it in process                                                                                                                                                                          |
+| `@hermie/fake-gateway`                                                               | dev     | this repository's stand-in gateway; the boot's integration test and the chat screen's Playwright suite run it in process                                                                                                                                    |
 | `vite` (7.3.6)                                                                       | dev     | the bundler and dev server                                                                                                                                                                                                                                  |
 | `@vitejs/plugin-react` (5.1.4)                                                       | dev     | the JSX transform and fast refresh                                                                                                                                                                                                                          |
 | `vitest` (3.2.7), `jsdom` (26.1.0)                                                   | dev     | unit and component tests in a simulated browser; `vitest` is also what the rest of the repository tests with                                                                                                                                                |
 | `@testing-library/react` (16.3.3), `@testing-library/dom` (10.4.2)                   | dev     | component tests that query by role and text rather than by implementation; `@testing-library/dom` is a required peer of the React package                                                                                                                   |
-| `axe-core` (4.13.0)                                                                  | dev     | the accessibility checker the Markdown fixture page is tested with (`markdown-fixtures.axe.test.tsx`); MPL-2.0, test-only, not in the bundle                                                                                                                |
+| `axe-core` (4.13.0)                                                                  | dev     | the accessibility checker the Markdown fixture page and the chat screen are tested with (`*.axe.test.tsx`, and injected into the page by the chat Playwright suite, where contrast can be measured); MPL-2.0, test-only, not in the bundle                  |
 | `@types/react`, `@types/react-dom`                                                   | dev     | type definitions for React                                                                                                                                                                                                                                  |
-| `@playwright/test` (1.63.0)                                                          | dev     | the end-to-end and performance suites in Chromium, WebKit and Firefox (plan, "Constraints"); today the transcript list's                                                                                                                                    |
+| `@playwright/test` (1.63.0)                                                          | dev     | the end-to-end and performance suites in Chromium, WebKit and Firefox (plan, "Constraints"): the transcript list's and the chat screen's                                                                                                                    |
 | `typescript`, `eslint`, `prettier`                                                   | dev     | from the repository root, shared with every workspace                                                                                                                                                                                                       |
 
 Not added yet, because nothing uses them: `@axe-core/playwright` for the accessibility suites, and the
