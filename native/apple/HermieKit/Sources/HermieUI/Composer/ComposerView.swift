@@ -235,7 +235,7 @@ public struct ComposerView: View {
 
   private var attachGlyph: some View {
     Image(systemName: "plus")
-      .font(.body.weight(.semibold))
+      .font(.body.weight(.bold))
       .frame(width: controlHeight, height: controlHeight)
   }
 
@@ -409,17 +409,39 @@ struct SendButtonStyle: ButtonStyle {
   static let stopRed = Color(red: 0xD7 / 255, green: 0x00 / 255, blue: 0x15 / 255)
 }
 
-/// The plus beside the field: the same glass as the field, round, the same height as one line of it.
+/// The plus's colours, as Messages draws its own: a flat grey disc with a white plus, which
+/// stays visible on the black page where a dark glass disc vanished. The disc is a plain fill
+/// (no glass, no gradient), picked so the shape is at least 3:1 against the page it sits on
+/// (black in dark mode, white in light) and the white glyph is at least 3:1 against the disc.
+enum AttachPalette {
+  static let fillLight = (red: 0x70, green: 0x70, blue: 0x78)
+  static let fillDark = (red: 0x63, green: 0x63, blue: 0x66)
+
+  static let fill = Color.dynamic(
+    light: (fillLight.red, fillLight.green, fillLight.blue),
+    dark: (fillDark.red, fillDark.green, fillDark.blue))
+}
+
+/// The plus beside the field: a clearly visible filled grey circle with a bold white plus, round,
+/// the same height as one line of the field. Dimmed, not recoloured, when it is disabled.
 struct AttachButtonStyle: ButtonStyle {
   @Environment(\.isEnabled) private var isEnabled
 
   func makeBody(configuration: Configuration) -> some View {
     configuration.label
-      .foregroundStyle(isEnabled ? AnyShapeStyle(.primary) : AnyShapeStyle(.secondary))
-      .glassEffect(.regular.tint(ComposerView.fieldTint), in: .circle)
-      .opacity(configuration.isPressed ? 0.7 : 1)
-      .contentShape(.circle)
+      .foregroundStyle(Color.white)
+      .background(AttachPalette.fill, in: .circle)
+      .opacity(isEnabled ? (configuration.isPressed ? 0.7 : 1) : 0.4)
+      // 44 pt to touch on iPhone and iPad while the disc stays the field's line height (40 pt):
+      // the shape reaches two points past the layout frame on every side.
+      .contentShape(.circle.inset(by: -Self.hitSlop))
   }
+
+  #if os(iOS)
+    static let hitSlop: CGFloat = 2
+  #else
+    static let hitSlop: CGFloat = 0
+  #endif
 }
 
 extension View {
