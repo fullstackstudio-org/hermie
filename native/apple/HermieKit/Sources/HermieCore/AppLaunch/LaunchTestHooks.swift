@@ -23,6 +23,7 @@
    - `-HermieOpenURL 'hermie://…'` handle a link as if the system had delivered it
    - `-HermieOpenChat 'bot'` open that bot's chat once the live gateway is known
    - `-HermieOpenBotSettings 'bot'` open that bot's settings page once the live gateway is known
+   - `-HermieOpenGatewaySettings YES` present Settings on its Gateways page once the live gateway is known (iPhone and iPad)
    - `-HermieSelectModel 'model-id'` with `-HermieOpenBotSettings`: open the model picker on that page
      and choose that model, as a tap on its row does
    - `-HermieOpenURLWhenReady 'hermie://…'` the same, once a gateway is configured (one a synced
@@ -48,6 +49,7 @@
     public var openChat: String?
     public var openBotSettings: String?
     public var selectModel: String?
+    public var openGatewaySettings: Bool
     public var openURLWhenReady: String?
     public var sync: SyncSeed
     public var iCloudSeeds: [(name: String, address: String, token: String?)]
@@ -117,6 +119,7 @@
       openChat = values("-HermieOpenChat").last
       openBotSettings = values("-HermieOpenBotSettings").last
       selectModel = values("-HermieSelectModel").last
+      openGatewaySettings = isOn("-HermieOpenGatewaySettings")
       openURLWhenReady = values("-HermieOpenURLWhenReady").last
       sync = values("-HermieSync").last.flatMap(SyncSeed.init(rawValue:)) ?? .on
       iCloudSeeds = values("-HermieSeedICloudGateway").compactMap { value in

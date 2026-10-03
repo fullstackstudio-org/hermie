@@ -66,7 +66,7 @@ struct NotificationsSettingsPage: View {
         Section {
           ForEach(launch.gateways.entries) { entry in
             VStack(alignment: .leading, spacing: 4) {
-              LabeledContent(entry.name) {
+              LabeledContent(entry.displayLabel) {
                 Text(stateLabel(push.state(for: entry.id)))
               }
 
@@ -145,7 +145,7 @@ struct NotificationsSettingsPage: View {
 
         ForEach(entries) { entry in
           if let registration = push.registrations[entry.id] {
-            LabeledContent(entry.name) {
+            LabeledContent(entry.displayLabel) {
               VStack(alignment: .trailing) {
                 Text(verbatim: PushRelay.handlePrefix(registration.handle) + "…")
                   .monospaced()
@@ -156,13 +156,13 @@ struct NotificationsSettingsPage: View {
           }
 
           if push.undecodable.contains(entry.id) {
-            LabeledContent(entry.name) {
+            LabeledContent(entry.displayLabel) {
               Text(verbatim: "stored registration unreadable")
             }
           }
 
           if case .failed(let failure) = push.state(for: entry.id) {
-            LabeledContent(entry.name) {
+            LabeledContent(entry.displayLabel) {
               Text(verbatim: Self.describe(failure))
             }
           }
