@@ -1,0 +1,137 @@
+/* The chat list and its rows. Colours are the theme's (`ui/theme.css`). */
+
+.hm-chat-list {
+  min-width: 0;
+}
+
+.hm-rows {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.hm-row-item {
+  margin: 0;
+}
+
+.hm-row {
+  display: flex;
+  align-items: center;
+  gap: var(--hm-gap);
+  min-width: 0;
+  min-height: var(--hm-row-min);
+  padding: 10px var(--hm-gutter);
+  color: inherit;
+  text-decoration: none;
+}
+
+.hm-row:hover {
+  background: var(--hm-surface-hover);
+}
+
+.hm-row[data-selected='true'] {
+  --hm-ring: var(--hm-selected);
+
+  background: var(--hm-selected);
+}
+
+/* Focus is drawn inside the row: the list is a column of full-width links, and an outside ring would be cut by the pane. */
+.hm-row:focus-visible {
+  outline-offset: -3px;
+}
+
+.hm-row__avatar {
+  position: relative;
+  display: inline-flex;
+  flex: none;
+}
+
+.hm-row__bead {
+  position: absolute;
+  right: -2px;
+  bottom: -2px;
+  display: inline-flex;
+}
+
+.hm-row__body {
+  display: flex;
+  flex: 1 1 auto;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+}
+
+.hm-row__top {
+  display: flex;
+  align-items: baseline;
+  gap: 8px;
+  min-width: 0;
+}
+
+.hm-row__name {
+  flex: 1 1 auto;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-size: 1.0625rem;
+  font-weight: 600;
+  line-height: 1.3;
+}
+
+.hm-row[data-unread='true'] .hm-row__name {
+  font-weight: 700;
+}
+
+.hm-row__time {
+  flex: none;
+  color: var(--hm-text-faint);
+  font-size: 0.8125rem;
+  white-space: nowrap;
+}
+
+.hm-row__preview {
+  display: block;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  color: var(--hm-text-muted);
+  font-size: 0.9375rem;
+  line-height: 1.3;
+}
+
+.hm-row[data-unread='true'] .hm-row__preview {
+  color: var(--hm-text);
+}
+
+.hm-row__preview[data-system='true'] {
+  color: var(--hm-text-faint);
+  font-style: italic;
+}
+
+.hm-row__unread {
+  display: inline-flex;
+  flex: none;
+}
+
+/* A note under or instead of the list: empty, loading, failed, no plugin. */
+.hm-note {
+  margin: 0;
+  padding: 12px var(--hm-gutter);
+  color: var(--hm-text-muted);
+  font-size: 0.9375rem;
+  overflow-wrap: anywhere;
+}
+
+.hm-note--plugin {
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+  margin-top: 8px;
+  border-top: 1px solid var(--hm-line);
+}
+
+.hm-note--plugin .hm-icon {
+  margin-top: 2px;
+}

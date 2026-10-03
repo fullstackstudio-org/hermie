@@ -13,7 +13,10 @@ afterEach(() => {
  * copy of the English and not listed here fails, which is how an untranslated
  * string is told from a string that needs no translation.
  */
-const SAME_AS_ENGLISH: Readonly<Record<string, readonly Locale[]>> = {}
+const SAME_AS_ENGLISH: Readonly<Record<string, readonly Locale[]>> = {
+  // "Version 0.2.0" is the German word too.
+  'shell.version': ['de']
+}
 
 type Source = Record<string, unknown>
 
@@ -41,7 +44,8 @@ function leaves(
 const all = leaves(WEB_STRINGS_SOURCE as unknown as Source)
 
 /** Sample arguments for the function leaves: every parameter is a recognisable string. */
-const SAMPLE = { expected: '/some/path/index.html' }
+const MARKER = '/some/path/index.html'
+const SAMPLE = { expected: MARKER, version: MARKER }
 
 describe('the web-only strings', () => {
   it('has strings', () => {
@@ -89,7 +93,7 @@ describe('the web-only strings', () => {
       }
 
       for (const locale of LOCALES) {
-        expect((leaf[locale] as (a: unknown) => string)(SAMPLE), `${key} [${locale}]`).toContain(SAMPLE.expected)
+        expect((leaf[locale] as (a: unknown) => string)(SAMPLE), `${key} [${locale}]`).toContain(MARKER)
       }
     }
   })

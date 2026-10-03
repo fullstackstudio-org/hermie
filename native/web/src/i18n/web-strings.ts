@@ -88,6 +88,56 @@ export const WEB_STRINGS_SOURCE = {
       de: 'Offen'
     }
   },
+  shell: {
+    /** The first link on the page: jumps past the chat list to the main pane. */
+    skipToContent: {
+      en: 'Skip to content',
+      nl: 'Naar de inhoud',
+      de: 'Zum Inhalt springen'
+    },
+    /** The back affordance of the one-pane layout, which returns to the chat list. */
+    backToChats: {
+      en: 'Back to chats',
+      nl: 'Terug naar chats',
+      de: 'Zurück zu den Chats'
+    },
+    /** A hint under the chat list when the gateway has no Hermie plugin; the client works without it. */
+    noPlugin: {
+      en: 'This gateway has no Hermie plugin. Chats work, but notifications need it.',
+      nl: 'Deze gateway heeft geen Hermie-plugin. Chats werken, maar voor meldingen is de plugin nodig.',
+      de: 'Dieses Gateway hat kein Hermie-Plugin. Chats funktionieren, aber Benachrichtigungen brauchen es.'
+    },
+    /** The main pane's body until the chat screen exists. */
+    chatSoon: {
+      en: 'This is where the conversation will appear.',
+      nl: 'Hier verschijnt het gesprek.',
+      de: 'Hier erscheint die Unterhaltung.'
+    },
+    /** The main pane's body on a settings route until Settings exists. */
+    settingsSoon: {
+      en: 'Settings are still being built.',
+      nl: 'Instellingen komen er nog aan.',
+      de: 'Die Einstellungen folgen noch.'
+    },
+    /** The stamp on a chat row whose last message is under a minute old. */
+    now: {
+      en: 'Now',
+      nl: 'Nu',
+      de: 'Jetzt'
+    },
+    /** Shown instead of the app when the operator has switched the bundled client off on this gateway. */
+    switchedOff: {
+      en: 'The web client is switched off on this gateway. Ask whoever runs it to switch it on.',
+      nl: 'De webclient staat uit op deze gateway. Vraag degene die hem beheert om hem aan te zetten.',
+      de: 'Der Webclient ist auf diesem Gateway ausgeschaltet. Bitte die Person, die es betreibt, ihn einzuschalten.'
+    },
+    /** The client's own version in the sidebar footer: `Version 0.2.0 (abc1234)`. */
+    version: {
+      en: ({ version }: { version: string }) => `Version ${version}`,
+      nl: ({ version }: { version: string }) => `Versie ${version}`,
+      de: ({ version }: { version: string }) => `Version ${version}`
+    }
+  },
   language: {
     /** The first row of the language picker: a browser has a language list, not one device language. */
     followBrowser: {
