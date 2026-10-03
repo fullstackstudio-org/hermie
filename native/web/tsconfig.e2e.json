@@ -9,6 +9,6 @@
     "outDir": "./.tsbuild/e2e",
     "rootDir": "."
   },
-  "include": ["playwright.config.ts", "e2e/**/*.ts"],
+  "include": ["playwright.config.ts", "playwright.perf.config.ts", "e2e/**/*.ts"],
   "references": [{ "path": "./tsconfig.json" }]
 }

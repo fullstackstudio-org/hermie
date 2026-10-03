@@ -1,49 +1,38 @@
-import { dirname } from 'node:path'
-import { fileURLToPath } from 'node:url'
-
 import { defineConfig, devices } from '@playwright/test'
 
 /**
- * End-to-end and performance specs of the web client (`e2e/`).
+ * The black-box suite of the web client (`e2e/*.spec.ts`, not `e2e/perf`).
  *
- * Two suites. `e2e/perf`: the transcript list measured on the development-only
- * harness page, built with `vite build --mode harness` and served by `vite preview
- * --mode harness` on 127.0.0.1:4180 (production React, minified, under the
- * client's own document policy). `e2e/chat`: the chat screen on the built client
- * (the spec builds it, and starts the fake gateway that serves it, itself; the
- * harness server below is not used by it).
+ * Every test gets a fake gateway of its own, in cookie mode, serving the real
+ * production build through its copy of the dashboard's static route, so there
+ * is no web server to start here: `e2e/fixtures.ts` builds the client once per
+ * worker and starts and stops the gateways. The transcript list's performance
+ * budgets are a different suite with its own server and its own configuration
+ * (`playwright.perf.config.ts`).
  *
- * CI runs Chromium only (`--project=chromium`); WebKit and Firefox run locally
- * (`npm run client:e2e`, all three). One worker: measurements must not share the
- * machine with another browser.
+ * Chromium, WebKit and Firefox all run it (CI runs each in a job of its own).
+ * Tests do not share a gateway, so they could run side by side, but a machine
+ * that is busy with several browsers makes the frame-by-frame scroll checks
+ * slower for nothing: one worker, and a failure keeps its trace for the report.
  */
-const root = dirname(fileURLToPath(import.meta.url))
-const PORT = 4180
-
 export default defineConfig({
   testDir: 'e2e',
+  testIgnore: 'perf/**',
   outputDir: 'test-results',
   fullyParallel: false,
   workers: 1,
   forbidOnly: Boolean(process.env.CI),
   retries: 0,
-  timeout: 120_000,
+  timeout: 90_000,
+  expect: { timeout: 10_000 },
   reporter: process.env.CI ? [['list'], ['github']] : [['list']],
   use: {
-    baseURL: `http://127.0.0.1:${PORT}`,
     viewport: { width: 1280, height: 800 },
-    trace: 'off',
+    trace: 'retain-on-failure',
     video: 'off',
+    // The trace has a snapshot of every step; a screenshot would also put a style element into a page whose
+    // policy refuses them, and that shows up as a violation in the test that failed for another reason.
     screenshot: 'off'
-  },
-  webServer: {
-    command: 'npm run harness:build && npm run harness:serve',
-    cwd: root,
-    url: `http://127.0.0.1:${PORT}/src/dev/transcript-harness.html`,
-    reuseExistingServer: !process.env.CI,
-    timeout: 120_000,
-    stdout: 'ignore',
-    stderr: 'pipe'
   },
   projects: [
     { name: 'chromium', use: { ...devices['Desktop Chrome'], viewport: { width: 1280, height: 800 } } },

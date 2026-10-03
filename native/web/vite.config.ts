@@ -17,6 +17,8 @@ import { resolveSourceCommit } from './scripts/source-commit.mjs'
  *    prefix, so no URL in the output is absolute.
  *  - ASCII only (`esbuild.charset`): the scanner flags invisible characters, so
  *    non-ASCII is escaped rather than left to be judged.
+ *  - No `!` followed by a backtick inside a string or a pattern: the scanner
+ *    reads that as an inline shell snippet (see `backtickAfterBangEscaped`).
  *  - Nothing is inlined as a `data:` URI (`assetsInlineLimit: 0`): the policy
  *    in `index.html` allows `data:` for images only, not fonts or scripts.
  *  - Source maps are written next to `dist/`, not into it: the plugin tree must

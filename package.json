@@ -43,6 +43,7 @@
     "client:build": "npm run build --workspace @hermie/web-client",
     "client:test": "npm run test --workspace @hermie/web-client",
     "client:e2e": "npm run e2e --workspace @hermie/web-client",
+    "client:e2e:perf": "npm run e2e:perf --workspace @hermie/web-client",
     "client:check-bundle": "node scripts/web/check-bundle.mjs",
     "client:check-reproducible": "node scripts/web/check-reproducible.mjs",
     "client:guard-scan": "node scripts/web/guard-scan.mjs",

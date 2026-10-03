@@ -197,6 +197,14 @@ export default config(
     }
   },
   {
+    // Playwright hands a fixture its `use` callback, which the React hooks rule
+    // takes for a hook. The specs are not React.
+    files: ['native/web/e2e/**/*.ts'],
+    rules: {
+      'react-hooks/rules-of-hooks': 'off'
+    }
+  },
+  {
     // Test suites and their setup run under Jest, which supplies `jest` and a
     // CommonJS `require` that mock factories are expected to use.
     files: [
