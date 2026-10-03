@@ -42,7 +42,12 @@ public struct UIMetaState: Sendable, Hashable {
   /// never wins over a section the gateway holds (HERM-191): undated against undated would
   /// otherwise keep the local copy, and a flat order folded on a fresh install would replace the
   /// person's own arrangement.
-  public private(set) var appChoice = false
+  ///
+  /// Kept as the mark of the latest unsent choice (`choiceMark`, `0` for none), as the web client
+  /// keeps it: a choice that lands while a chore made during its flight is still pending leaves that
+  /// chore on its own, a chore again, which loses to the gateway's copy.
+  public var appChoice: Bool { choiceMark > 0 }
+  public private(set) var choiceMark: UInt64 = 0
 
   public private(set) var mode = UIMetaMode.local
 
@@ -88,7 +93,7 @@ public struct UIMetaState: Sendable, Hashable {
 
     if !self.userID.isEmpty {
       dirtyApp = false
-      appChoice = false
+      choiceMark = 0
     }
 
     self.userID = userID
@@ -112,7 +117,7 @@ public struct UIMetaState: Sendable, Hashable {
     dirtyApp = true
 
     if choice {
-      appChoice = true
+      choiceMark = markCount
     }
   }
 
@@ -464,7 +469,10 @@ public struct UIMetaState: Sendable, Hashable {
         }
       } else if appMark == write.appMark {
         dirtyApp = false
-        appChoice = false
+        choiceMark = 0
+      } else if choiceMark <= write.appMark {
+        // The choice landed; what was marked during its flight was a chore.
+        choiceMark = 0
       }
     }
 

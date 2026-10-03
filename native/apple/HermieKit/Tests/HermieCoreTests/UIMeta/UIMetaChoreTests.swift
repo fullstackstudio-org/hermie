@@ -59,6 +59,38 @@ import Testing
     #expect(gateway.meta("researcher")[ownerKey]?["entries"] == [["kind": "chat", "name": "writer"]])
   }
 
+  /// A chore made while a choice is in flight stays a chore once the choice lands: when its own
+  /// write then meets another device's undated section, the gateway's copy wins. (A plain flag
+  /// stayed set after the choice landed, and the chore, dated by the choice, overwrote it.)
+  @Test func aChoreMadeDuringAChoicesFlightStaysAChore() async {
+    let gateway = HoldingGateway()
+    let sync = UIMetaSync.device(gateway.gateway)
+    let theirs: JSONObject = ["v": 1, "pinned": ["zed"]]
+
+    sync.updateApp(.choice) { $0["pinned"] = ["writer"] }
+    await sync.reconcile()
+
+    gateway.hold("profiles.configure")
+    sync.updateApp(.choice) { $0["pinned"] = ["writer", "researcher"] }
+    let flight = Task { await sync.flush() }
+    await gateway.waitUntilHeld()
+
+    // During the choice's flight: a chore, and the next write held too.
+    sync.updateApp(.chore) { $0["entries"] = [["kind": "chat", "name": "writer"]] }
+    gateway.hold("profiles.configure")
+    gateway.release()
+    await gateway.waitUntilHeld()
+    #expect(!sync.state.appChoice, "the choice landed; what is left is a chore")
+
+    // Another device writes an undated section before the chore's write arrives.
+    gateway.write("researcher", [ownerKey: .object(theirs)])
+    gateway.release()
+    await flight.value
+
+    #expect(gateway.meta("researcher")[ownerKey]?["pinned"] == ["zed"])
+    #expect(sync.app?["pinned"] == ["zed"])
+  }
+
   /// The bookkeeping: a chore alone is dropped against any remote section; a choice is kept.
   @Test func onlyAChoreIsDropped() {
     var state = UIMetaState()
@@ -75,5 +107,6 @@ import Testing
     state.dropLosingChores(remote: UIMetaSnapshot(app: ["v": 1]))
     #expect(state.dirtyApp)
     #expect(state.appChoice)
+    #expect(state.choiceMark == state.markCount)
   }
 }
