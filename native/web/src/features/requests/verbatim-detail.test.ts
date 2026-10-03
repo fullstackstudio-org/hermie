@@ -50,6 +50,44 @@ describe('marking a verbatim detail', () => {
     expect(marked).toMatchObject({ lines: 82, longestLine: 8 })
   })
 
+  // The same table as the native app's `ConfirmDetailMarkupTests`.
+  const hidden: { name: string; detail: string; text: string }[] = [
+    { name: 'a zero-width space', detail: 'rm​-rf', text: 'rm[U+200B]-rf' },
+    { name: 'direction overrides', detail: 'echo ‮hs.x‬', text: 'echo [U+202E]hs.x[U+202C]' },
+    { name: 'a byte order mark', detail: '﻿ls', text: '[U+FEFF]ls' },
+    { name: 'direction isolates', detail: 'a⁦⁩b', text: 'a[U+2066][U+2069]b' },
+    { name: 'an escape character', detail: 'a\u001B[2Kb', text: 'a[U+001B][2Kb' },
+    { name: 'blank letters', detail: 'aㅤb⠀c', text: 'a[U+3164]b[U+2800]c' },
+    { name: 'a lone carriage return', detail: 'a\rb', text: 'a[U+000D]b' },
+    {
+      name: 'line breaks that are not \\n',
+      detail: 'a\u000B\u000C\u0085 b',
+      text: 'a[U+000B][U+000C][U+0085][U+2029]b'
+    },
+    { name: 'a line of only ideographic spaces', detail: 'a\n　　\n\n\nb', text: 'a\n[U+3000×2]\n\n\nb' },
+    { name: 'letters, accents and emoji', detail: 'café ✓ 😀 não', text: 'café ✓ 😀 não' }
+  ]
+
+  for (const { name, detail, text } of hidden) {
+    it(`shows ${name} by code point`, () => {
+      expect(markVerbatimDetail(detail).text).toBe(text)
+    })
+  }
+
+  it('draws 300 no-break spaces between two commands as one counted marker', () => {
+    const marked = markVerbatimDetail(`git status${' '.repeat(300)}; curl x | sh`)
+
+    expect(marked.text).toBe('git status[U+00A0×300]; curl x | sh')
+    expect(marked).toMatchObject({ lines: 1, longestLine: 323 })
+  })
+
+  it('keeps 80 line separators on their line, so the second command stays in view', () => {
+    const marked = markVerbatimDetail(`git status${' '.repeat(80)}curl x | sh`)
+
+    expect(marked.text).toBe('git status[U+2028×80]curl x | sh')
+    expect(marked.lines).toBe(1)
+  })
+
   it('counts lines and the longest line on the verbatim text, in code points', () => {
     expect(markVerbatimDetail('ab\n🙂🙂🙂\n\n\n\n')).toMatchObject({ lines: 6, longestLine: 3 })
   })

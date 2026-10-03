@@ -12,6 +12,13 @@ import Foundation
  - A run of 3 or more blank lines (empty, or only spaces and tabs) is one line `⋯ N empty lines ⋯`;
    one or two blank lines stay as they are.
  - A line ending `\r\n` is read as `\n`.
+ - Every other character that draws nothing, or moves text without being seen, is shown by its code
+   point: `[U+200B]`, and a run of the same one `[U+00A0×300]`. These are the control characters
+   other than tab and `\n` (a lone `\r`, escape, form feed), the format characters (zero-width ones,
+   the byte order mark, the direction overrides and isolates), every space separator but the plain
+   space (no-break, ideographic and the other widths), the line and paragraph separators, and the
+   blank letters (the Hangul fillers, the blank Braille pattern). So a line break that is not `\n`
+   stays on its line, and text cannot be reordered or hidden by what it does not draw.
 
  `lines` and `longestLine` are of the original text (`longestLine` in Unicode scalars). What is
  copied is the original, never this text.
@@ -72,12 +79,13 @@ struct ConfirmDetailMarkup: Equatable {
     line.unicodeScalars.allSatisfy { $0 == " " || $0 == "\t" }
   }
 
-  /// One line with its space runs and tabs made visible.
+  /// One line with its space runs, tabs and hidden characters made visible.
   private static func mark(_ line: String) -> String {
     var out = ""
     var run = 0
+    var hidden: (scalar: Unicode.Scalar, count: Int)?
 
-    func flush() {
+    func flushSpaces() {
       if run >= badgeFrom {
         out += "[\u{2423}\u{00D7}\(run)]"
       } else if run >= 2 {
@@ -89,21 +97,62 @@ struct ConfirmDetailMarkup: Equatable {
       run = 0
     }
 
+    func flushHidden() {
+      guard let (scalar, count) = hidden else { return }
+      out += count == 1 ? "[\(codePoint(scalar))]" : "[\(codePoint(scalar))\u{00D7}\(count)]"
+      hidden = nil
+    }
+
     for scalar in line.unicodeScalars {
-      switch scalar {
-      case " ":
+      if scalar == " " {
+        flushHidden()
         run += 1
-      case "\t":
-        flush()
+      } else if scalar == "\t" {
+        flushSpaces()
+        flushHidden()
         out += "\u{2192}"
-      default:
-        flush()
+      } else if isHidden(scalar) {
+        flushSpaces()
+
+        if let current = hidden, current.scalar == scalar {
+          hidden = (scalar, current.count + 1)
+        } else {
+          flushHidden()
+          hidden = (scalar, 1)
+        }
+      } else {
+        flushSpaces()
+        flushHidden()
         out.unicodeScalars.append(scalar)
       }
     }
 
-    flush()
+    flushSpaces()
+    flushHidden()
     return out
+  }
+
+  /// The blank letters (and the blank Braille pattern): drawn as nothing, though they are not spaces.
+  private static let blankLetters: Set<UInt32> = [0x115F, 0x1160, 0x3164, 0xFFA0, 0x2800]
+
+  /// Draws nothing, or moves text unseen (see the type's comment). Never tab, `\n` or the plain space.
+  static func isHidden(_ scalar: Unicode.Scalar) -> Bool {
+    if scalar == "\t" || scalar == "\n" || scalar == " " {
+      return false
+    }
+
+    switch scalar.properties.generalCategory {
+    case .control, .format, .spaceSeparator, .lineSeparator, .paragraphSeparator:
+      return true
+    default:
+      return blankLetters.contains(scalar.value)
+    }
+  }
+
+  /// `U+00A0`: at least four hex digits, upper case.
+  private static func codePoint(_ scalar: Unicode.Scalar) -> String {
+    let hex = String(scalar.value, radix: 16, uppercase: true)
+    return "U+" + String(repeating: "0", count: max(0, 4 - hex.count)) + hex
   }
 }
 
