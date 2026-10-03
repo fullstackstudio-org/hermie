@@ -59,6 +59,7 @@ interface ResolvedAccount {
   email: string
   displayName: string
   roles: string[]
+  picture: string | undefined
 }
 
 /** One sign-in the fake accepts, and the identity it answers with afterwards. */
@@ -71,6 +72,12 @@ export interface FakeAccount {
   displayName?: string
   /** `/api/auth/me`'s `roles`, which upstream sends on some deployments. */
   roles?: string[]
+  /**
+   * This person's profile picture as the gateway holds it: a `data:image/…;base64,…` URL or bare
+   * base64 of the image. `/api/auth/me` then answers `picture_url`, and `/api/auth/picture` serves
+   * it under `self-hosted:<user_id>`. Absent: no `picture_url`, and a 404 for that id.
+   */
+  picture?: string
 }
 
 export interface ScenarioReply {
@@ -183,6 +190,13 @@ export interface FakeGatewayOptions {
    * as nothing in this repository had two readers.
    */
   accounts?: FakeAccount[]
+  /**
+   * Pictures `GET /api/auth/picture?id=<provider>:<sub>` serves, by that id: a `data:image/…;base64,…`
+   * URL or bare base64. For the people who only appear as the author of a message
+   * (`/__fake/inject`'s `author`); an account's own picture is `FakeAccount.picture`. Every other id
+   * answers 404, which is what the gateway says for a person it holds no picture of.
+   */
+  pictures?: Record<string, string>
   scenario?: Scenario
   /**
    * Whether this gateway carries the transcript row identity of the fork
@@ -846,6 +860,8 @@ export interface FakeGatewayState {
    * like this and must NOT count as a rejection of the credential.
    */
   failNextTicketMints: number
+  /** The ids `GET /api/auth/picture` was asked for, in order: a picture fetched twice shows twice. */
+  pictureRequests: string[]
   /** Ticket mints answered with 503 because of `failNextTicketMints`. */
   ticketMintsFailed: number
   /**
@@ -1834,6 +1850,30 @@ function json(res: ServerResponse, status: number, body: unknown): void {
   res.end(text)
 }
 
+/** A `data:` URL's payload, or bare base64, as bytes. */
+function pictureBytes(source: string): Buffer {
+  const comma = source.startsWith('data:') ? source.indexOf(',') : -1
+
+  return Buffer.from(comma >= 0 ? source.slice(comma + 1) : source, 'base64')
+}
+
+/** What an image is, by its first bytes: PNG, JPEG, GIF or WebP; PNG when nothing says otherwise. */
+function pictureContentType(bytes: Buffer): string {
+  if (bytes[0] === 0xff && bytes[1] === 0xd8) {
+    return 'image/jpeg'
+  }
+
+  if (bytes.subarray(0, 3).toString('latin1') === 'GIF') {
+    return 'image/gif'
+  }
+
+  if (bytes.subarray(0, 4).toString('latin1') === 'RIFF' && bytes.subarray(8, 12).toString('latin1') === 'WEBP') {
+    return 'image/webp'
+  }
+
+  return 'image/png'
+}
+
 function html(res: ServerResponse, status: number, body: string): void {
   res.writeHead(status, { 'content-type': 'text/html; charset=utf-8' })
   res.end(body)
@@ -2777,6 +2817,7 @@ function initialState(options: FakeGatewayOptions): FakeGatewayState {
     rejectedUpgrades: 0,
     rejectNextUpgrades: 0,
     failNextTicketMints: 0,
+    pictureRequests: [],
     ticketMintsFailed: 0,
     spentRefreshTokens: new Set<string>(),
     refreshReuseAttempts: 0,
@@ -3213,8 +3254,21 @@ export async function startFakeGateway(options: FakeGatewayOptions = {}): Promis
     userId: account.userId ?? `${account.username}@example.invalid`,
     email: account.email ?? account.userId ?? `${account.username}@example.invalid`,
     displayName: account.displayName ?? account.username,
-    roles: account.roles ?? []
+    roles: account.roles ?? [],
+    picture: account.picture
   }))
+  /** Picture id (`<provider>:<sub>`) → its bytes, from `pictures` and the accounts' own. */
+  const pictures = new Map<string, Buffer>()
+
+  for (const [id, source] of Object.entries(options.pictures ?? {})) {
+    pictures.set(id, pictureBytes(source))
+  }
+
+  for (const account of accounts) {
+    if (account.picture) {
+      pictures.set(`self-hosted:${account.userId}`, pictureBytes(account.picture))
+    }
+  }
   /** Cookie value → the account it signs in. A Map, because who matters now. */
   const sessionCookies = new Map<string, ResolvedAccount>()
   /** Access token → the user id it was issued to (native mode), so a bearer names someone. */
@@ -4844,8 +4898,39 @@ export async function startFakeGateway(options: FakeGatewayOptions = {}): Promis
         // Absent on most deployments; the fake sends it only when a test asked
         // for one, so nothing reads a `[]` as "this gateway has roles".
         ...(who.roles.length ? { roles: who.roles } : {}),
+        // Only when the gateway holds a copy, as the fork sends it.
+        ...(gated() && pictures.has(`self-hosted:${who.userId}`)
+          ? { picture_url: `/api/auth/picture?id=${encodeURIComponent(`self-hosted:${who.userId}`)}` }
+          : {}),
         expires_at: nowSeconds() + 3600
       })
+
+      return
+    }
+
+    if (path === '/api/auth/picture' && method === 'GET') {
+      /*
+        Behind the gate like the rest of `/api/auth`, so it is only reached signed in. The bytes are
+        the gateway's own copy of what the identity provider sent, found by the id a message row's
+        `author.id` carries; an id it holds none for is a 404 (the client then draws the initial).
+      */
+      const id = url.searchParams.get('id') ?? ''
+      const bytes = pictures.get(id)
+
+      state.pictureRequests.push(id)
+
+      if (!bytes) {
+        json(res, 404, { detail: 'No picture' })
+
+        return
+      }
+
+      res.writeHead(200, {
+        'content-type': pictureContentType(bytes),
+        'content-length': bytes.length,
+        'cache-control': 'private, max-age=0'
+      })
+      res.end(bytes)
 
       return
     }
