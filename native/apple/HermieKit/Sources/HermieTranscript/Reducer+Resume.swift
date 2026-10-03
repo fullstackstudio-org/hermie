@@ -317,11 +317,14 @@ extension TranscriptReducer {
   /// `spokenPromptOfTurn`.
   static func spokenPromptOfTurn(_ state: ChatState, _ turnID: String) -> TranscriptItem? {
     for id in state.order {
-      guard let item = state.items[id], let held = item.turnID, JS.same(held, turnID) else { continue }
+      guard let item = state.items[id] else { continue }
 
       if case .user = item {
-        if !isForeignPlaceholder(item) { return item }
-      } else if item.rowID != nil {
+        if let held = item.turnID, JS.same(held, turnID), !isForeignPlaceholder(item) { return item }
+      } else if promptRowsOf(item).contains(where: { row in
+        guard let held = row.turnID else { return false }
+        return JS.same(held, turnID) && row.rowID != nil
+      }) {
         return item
       }
     }

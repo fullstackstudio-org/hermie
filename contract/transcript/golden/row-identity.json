@@ -216599,5 +216599,3531 @@
       }
     ],
     "test": "a turn the gateway started itself, on every path its row can take > a turn that is over > settles the placeholder of an earlier turn once another turn runs"
+  },
+  {
+    "calls": [
+      {
+        "args": [
+          "boekhouder",
+          "stored-1",
+          "resolved-1"
+        ],
+        "op": "createChatState",
+        "result": {
+          "botName": "boekhouder",
+          "byApprovalId": {},
+          "byCallKey": {},
+          "byDelegationId": {},
+          "byProcessId": {},
+          "byRequestId": {},
+          "byRowId": {},
+          "byToolId": {},
+          "draft": "",
+          "hydration": "cold",
+          "items": {},
+          "lastSeq": 0,
+          "order": [],
+          "resolvedSessionId": "resolved-1",
+          "storedSessionId": "stored-1",
+          "subagents": {},
+          "turn": {
+            "active": false,
+            "local": false,
+            "nextSeq": 1000
+          },
+          "unreadCount": 0
+        }
+      },
+      {
+        "args": [
+          [
+            {
+              "role": "user",
+              "row_id": 1,
+              "text": "tell sam"
+            },
+            {
+              "args": {
+                "message": "ping",
+                "target": "sam"
+              },
+              "name": "message_agent",
+              "role": "tool",
+              "row_id": 2,
+              "tool_call_id": "dm-1"
+            },
+            {
+              "role": "assistant",
+              "row_id": 3,
+              "text": "sent"
+            },
+            {
+              "display_kind": "process_complete",
+              "display_metadata": {
+                "turn_id": "T1"
+              },
+              "role": "user",
+              "row_id": 4,
+              "text": "[IMPORTANT: Background process proc-1 completed with exit code 0.\nCommand: python bot_mode_dm.py --run-delivery d1\nOutput:\nSam says hi]"
+            },
+            {
+              "role": "assistant",
+              "row_id": 5,
+              "text": "Sam answered."
+            }
+          ],
+          "rpc"
+        ],
+        "op": "rowsToItems",
+        "result": [
+          {
+            "id": "r:1",
+            "kind": "user",
+            "origin": "history",
+            "rowId": 1,
+            "seq": 0,
+            "text": "tell sam",
+            "version": 0
+          },
+          {
+            "dispatch": {
+              "status": "queued"
+            },
+            "id": "t:row-1",
+            "kind": "bot_dm_out",
+            "message": "ping",
+            "origin": "history",
+            "reply": {
+              "rowId": 4,
+              "text": "Sam says hi",
+              "turnId": "T1"
+            },
+            "rowId": 2,
+            "seq": 1000,
+            "target": "sam",
+            "targetHandle": "sam",
+            "toolId": "row-1",
+            "version": 1
+          },
+          {
+            "id": "r:3",
+            "interim": false,
+            "kind": "assistant",
+            "origin": "history",
+            "rowId": 3,
+            "seq": 2000,
+            "status": "complete",
+            "streaming": false,
+            "text": "sent",
+            "version": 0
+          },
+          {
+            "id": "r:5",
+            "interim": false,
+            "kind": "assistant",
+            "origin": "history",
+            "rowId": 5,
+            "seq": 3000,
+            "status": "complete",
+            "streaming": false,
+            "text": "Sam answered.",
+            "version": 0
+          }
+        ]
+      },
+      {
+        "args": [
+          {
+            "botName": "boekhouder",
+            "byApprovalId": {},
+            "byCallKey": {},
+            "byDelegationId": {},
+            "byProcessId": {},
+            "byRequestId": {},
+            "byRowId": {},
+            "byToolId": {},
+            "draft": "",
+            "hydration": "cold",
+            "items": {},
+            "lastSeq": 0,
+            "order": [],
+            "resolvedSessionId": "resolved-1",
+            "storedSessionId": "stored-1",
+            "subagents": {},
+            "turn": {
+              "active": false,
+              "local": false,
+              "nextSeq": 1000
+            },
+            "unreadCount": 0
+          },
+          [
+            {
+              "id": "r:1",
+              "kind": "user",
+              "origin": "history",
+              "rowId": 1,
+              "seq": 0,
+              "text": "tell sam",
+              "version": 0
+            },
+            {
+              "dispatch": {
+                "status": "queued"
+              },
+              "id": "t:row-1",
+              "kind": "bot_dm_out",
+              "message": "ping",
+              "origin": "history",
+              "reply": {
+                "rowId": 4,
+                "text": "Sam says hi",
+                "turnId": "T1"
+              },
+              "rowId": 2,
+              "seq": 1000,
+              "target": "sam",
+              "targetHandle": "sam",
+              "toolId": "row-1",
+              "version": 1
+            },
+            {
+              "id": "r:3",
+              "interim": false,
+              "kind": "assistant",
+              "origin": "history",
+              "rowId": 3,
+              "seq": 2000,
+              "status": "complete",
+              "streaming": false,
+              "text": "sent",
+              "version": 0
+            },
+            {
+              "id": "r:5",
+              "interim": false,
+              "kind": "assistant",
+              "origin": "history",
+              "rowId": 5,
+              "seq": 3000,
+              "status": "complete",
+              "streaming": false,
+              "text": "Sam answered.",
+              "version": 0
+            }
+          ]
+        ],
+        "op": "reconcile",
+        "result": {
+          "botName": "boekhouder",
+          "byApprovalId": {},
+          "byCallKey": {},
+          "byDelegationId": {},
+          "byProcessId": {},
+          "byRequestId": {},
+          "byRowId": {
+            "1": "r:1",
+            "2": "t:row-1",
+            "3": "r:3",
+            "5": "r:5"
+          },
+          "byToolId": {
+            "row-1": "t:row-1"
+          },
+          "draft": "",
+          "hydration": "live",
+          "items": {
+            "r:1": {
+              "id": "r:1",
+              "kind": "user",
+              "origin": "history",
+              "rowId": 1,
+              "seq": 0,
+              "text": "tell sam",
+              "version": 0
+            },
+            "r:3": {
+              "id": "r:3",
+              "interim": false,
+              "kind": "assistant",
+              "origin": "history",
+              "rowId": 3,
+              "seq": 2000,
+              "status": "complete",
+              "streaming": false,
+              "text": "sent",
+              "version": 0
+            },
+            "r:5": {
+              "id": "r:5",
+              "interim": false,
+              "kind": "assistant",
+              "origin": "history",
+              "rowId": 5,
+              "seq": 3000,
+              "status": "complete",
+              "streaming": false,
+              "text": "Sam answered.",
+              "version": 0
+            },
+            "t:row-1": {
+              "dispatch": {
+                "status": "queued"
+              },
+              "id": "t:row-1",
+              "kind": "bot_dm_out",
+              "message": "ping",
+              "origin": "history",
+              "reply": {
+                "rowId": 4,
+                "text": "Sam says hi",
+                "turnId": "T1"
+              },
+              "rowId": 2,
+              "seq": 1000,
+              "target": "sam",
+              "targetHandle": "sam",
+              "toolId": "row-1",
+              "version": 1
+            }
+          },
+          "lastSeq": 0,
+          "order": [
+            "r:1",
+            "t:row-1",
+            "r:3",
+            "r:5"
+          ],
+          "resolvedSessionId": "resolved-1",
+          "storedSessionId": "stored-1",
+          "subagents": {},
+          "turn": {
+            "active": false,
+            "local": false,
+            "nextSeq": 4000
+          },
+          "unreadCount": 0
+        }
+      },
+      {
+        "args": [
+          {
+            "botName": "boekhouder",
+            "byApprovalId": {},
+            "byCallKey": {},
+            "byDelegationId": {},
+            "byProcessId": {},
+            "byRequestId": {},
+            "byRowId": {
+              "1": "r:1",
+              "2": "t:row-1",
+              "3": "r:3",
+              "5": "r:5"
+            },
+            "byToolId": {
+              "row-1": "t:row-1"
+            },
+            "draft": "",
+            "hydration": "live",
+            "items": {
+              "r:1": {
+                "id": "r:1",
+                "kind": "user",
+                "origin": "history",
+                "rowId": 1,
+                "seq": 0,
+                "text": "tell sam",
+                "version": 0
+              },
+              "r:3": {
+                "id": "r:3",
+                "interim": false,
+                "kind": "assistant",
+                "origin": "history",
+                "rowId": 3,
+                "seq": 2000,
+                "status": "complete",
+                "streaming": false,
+                "text": "sent",
+                "version": 0
+              },
+              "r:5": {
+                "id": "r:5",
+                "interim": false,
+                "kind": "assistant",
+                "origin": "history",
+                "rowId": 5,
+                "seq": 3000,
+                "status": "complete",
+                "streaming": false,
+                "text": "Sam answered.",
+                "version": 0
+              },
+              "t:row-1": {
+                "dispatch": {
+                  "status": "queued"
+                },
+                "id": "t:row-1",
+                "kind": "bot_dm_out",
+                "message": "ping",
+                "origin": "history",
+                "reply": {
+                  "rowId": 4,
+                  "text": "Sam says hi",
+                  "turnId": "T1"
+                },
+                "rowId": 2,
+                "seq": 1000,
+                "target": "sam",
+                "targetHandle": "sam",
+                "toolId": "row-1",
+                "version": 1
+              }
+            },
+            "lastSeq": 0,
+            "order": [
+              "r:1",
+              "t:row-1",
+              "r:3",
+              "r:5"
+            ],
+            "resolvedSessionId": "resolved-1",
+            "storedSessionId": "stored-1",
+            "subagents": {},
+            "turn": {
+              "active": false,
+              "local": false,
+              "nextSeq": 4000
+            },
+            "unreadCount": 0
+          },
+          {
+            "seq": 20,
+            "turn_id": "T1",
+            "type": "message.start"
+          },
+          1790000000000
+        ],
+        "op": "applyEvent",
+        "result": {
+          "botName": "boekhouder",
+          "byApprovalId": {},
+          "byCallKey": {},
+          "byDelegationId": {},
+          "byProcessId": {},
+          "byRequestId": {},
+          "byRowId": {
+            "1": "r:1",
+            "2": "t:row-1",
+            "3": "r:3",
+            "5": "r:5"
+          },
+          "byToolId": {
+            "row-1": "t:row-1"
+          },
+          "compacting": false,
+          "draft": "",
+          "hydration": "live",
+          "items": {
+            "r:1": {
+              "id": "r:1",
+              "kind": "user",
+              "origin": "history",
+              "rowId": 1,
+              "seq": 0,
+              "text": "tell sam",
+              "version": 0
+            },
+            "r:3": {
+              "id": "r:3",
+              "interim": false,
+              "kind": "assistant",
+              "origin": "history",
+              "rowId": 3,
+              "seq": 2000,
+              "status": "complete",
+              "streaming": false,
+              "text": "sent",
+              "version": 0
+            },
+            "r:5": {
+              "id": "r:5",
+              "interim": false,
+              "kind": "assistant",
+              "origin": "history",
+              "rowId": 5,
+              "seq": 3000,
+              "status": "complete",
+              "streaming": false,
+              "text": "Sam answered.",
+              "version": 0
+            },
+            "t:row-1": {
+              "dispatch": {
+                "status": "queued"
+              },
+              "id": "t:row-1",
+              "kind": "bot_dm_out",
+              "message": "ping",
+              "origin": "history",
+              "reply": {
+                "rowId": 4,
+                "text": "Sam says hi",
+                "turnId": "T1"
+              },
+              "rowId": 2,
+              "seq": 1000,
+              "target": "sam",
+              "targetHandle": "sam",
+              "toolId": "row-1",
+              "version": 1
+            }
+          },
+          "lastSeq": 20,
+          "order": [
+            "r:1",
+            "t:row-1",
+            "r:3",
+            "r:5"
+          ],
+          "resolvedSessionId": "resolved-1",
+          "storedSessionId": "stored-1",
+          "subagents": {},
+          "turn": {
+            "active": true,
+            "id": "T1",
+            "interrupted": false,
+            "local": false,
+            "nextSeq": 4000,
+            "startedAt": 1790000000000
+          },
+          "unreadCount": 0
+        }
+      }
+    ],
+    "test": "a delivery row held only as the reply of a dispatch card > counts as the turn’s prompt on screen: a replayed message.start stands no placeholder up"
+  },
+  {
+    "calls": [
+      {
+        "args": [
+          "boekhouder",
+          "stored-1",
+          "resolved-1"
+        ],
+        "op": "createChatState",
+        "result": {
+          "botName": "boekhouder",
+          "byApprovalId": {},
+          "byCallKey": {},
+          "byDelegationId": {},
+          "byProcessId": {},
+          "byRequestId": {},
+          "byRowId": {},
+          "byToolId": {},
+          "draft": "",
+          "hydration": "cold",
+          "items": {},
+          "lastSeq": 0,
+          "order": [],
+          "resolvedSessionId": "resolved-1",
+          "storedSessionId": "stored-1",
+          "subagents": {},
+          "turn": {
+            "active": false,
+            "local": false,
+            "nextSeq": 1000
+          },
+          "unreadCount": 0
+        }
+      },
+      {
+        "args": [
+          [
+            {
+              "role": "user",
+              "row_id": 1,
+              "text": "tell sam"
+            },
+            {
+              "args": {
+                "message": "ping",
+                "target": "sam"
+              },
+              "name": "message_agent",
+              "role": "tool",
+              "row_id": 2,
+              "tool_call_id": "dm-1"
+            },
+            {
+              "role": "assistant",
+              "row_id": 3,
+              "text": "sent"
+            },
+            {
+              "display_kind": "process_complete",
+              "display_metadata": {
+                "turn_id": "T1"
+              },
+              "role": "user",
+              "row_id": 4,
+              "text": "[IMPORTANT: Background process proc-1 completed with exit code 0.\nCommand: python bot_mode_dm.py --run-delivery d1\nOutput:\nSam says hi]"
+            },
+            {
+              "role": "assistant",
+              "row_id": 5,
+              "text": "Sam answered."
+            }
+          ],
+          "rpc"
+        ],
+        "op": "rowsToItems",
+        "result": [
+          {
+            "id": "r:1",
+            "kind": "user",
+            "origin": "history",
+            "rowId": 1,
+            "seq": 0,
+            "text": "tell sam",
+            "version": 0
+          },
+          {
+            "dispatch": {
+              "status": "queued"
+            },
+            "id": "t:row-1",
+            "kind": "bot_dm_out",
+            "message": "ping",
+            "origin": "history",
+            "reply": {
+              "rowId": 4,
+              "text": "Sam says hi",
+              "turnId": "T1"
+            },
+            "rowId": 2,
+            "seq": 1000,
+            "target": "sam",
+            "targetHandle": "sam",
+            "toolId": "row-1",
+            "version": 1
+          },
+          {
+            "id": "r:3",
+            "interim": false,
+            "kind": "assistant",
+            "origin": "history",
+            "rowId": 3,
+            "seq": 2000,
+            "status": "complete",
+            "streaming": false,
+            "text": "sent",
+            "version": 0
+          },
+          {
+            "id": "r:5",
+            "interim": false,
+            "kind": "assistant",
+            "origin": "history",
+            "rowId": 5,
+            "seq": 3000,
+            "status": "complete",
+            "streaming": false,
+            "text": "Sam answered.",
+            "version": 0
+          }
+        ]
+      },
+      {
+        "args": [
+          {
+            "botName": "boekhouder",
+            "byApprovalId": {},
+            "byCallKey": {},
+            "byDelegationId": {},
+            "byProcessId": {},
+            "byRequestId": {},
+            "byRowId": {},
+            "byToolId": {},
+            "draft": "",
+            "hydration": "cold",
+            "items": {},
+            "lastSeq": 0,
+            "order": [],
+            "resolvedSessionId": "resolved-1",
+            "storedSessionId": "stored-1",
+            "subagents": {},
+            "turn": {
+              "active": false,
+              "local": false,
+              "nextSeq": 1000
+            },
+            "unreadCount": 0
+          },
+          [
+            {
+              "id": "r:1",
+              "kind": "user",
+              "origin": "history",
+              "rowId": 1,
+              "seq": 0,
+              "text": "tell sam",
+              "version": 0
+            },
+            {
+              "dispatch": {
+                "status": "queued"
+              },
+              "id": "t:row-1",
+              "kind": "bot_dm_out",
+              "message": "ping",
+              "origin": "history",
+              "reply": {
+                "rowId": 4,
+                "text": "Sam says hi",
+                "turnId": "T1"
+              },
+              "rowId": 2,
+              "seq": 1000,
+              "target": "sam",
+              "targetHandle": "sam",
+              "toolId": "row-1",
+              "version": 1
+            },
+            {
+              "id": "r:3",
+              "interim": false,
+              "kind": "assistant",
+              "origin": "history",
+              "rowId": 3,
+              "seq": 2000,
+              "status": "complete",
+              "streaming": false,
+              "text": "sent",
+              "version": 0
+            },
+            {
+              "id": "r:5",
+              "interim": false,
+              "kind": "assistant",
+              "origin": "history",
+              "rowId": 5,
+              "seq": 3000,
+              "status": "complete",
+              "streaming": false,
+              "text": "Sam answered.",
+              "version": 0
+            }
+          ]
+        ],
+        "op": "reconcile",
+        "result": {
+          "botName": "boekhouder",
+          "byApprovalId": {},
+          "byCallKey": {},
+          "byDelegationId": {},
+          "byProcessId": {},
+          "byRequestId": {},
+          "byRowId": {
+            "1": "r:1",
+            "2": "t:row-1",
+            "3": "r:3",
+            "5": "r:5"
+          },
+          "byToolId": {
+            "row-1": "t:row-1"
+          },
+          "draft": "",
+          "hydration": "live",
+          "items": {
+            "r:1": {
+              "id": "r:1",
+              "kind": "user",
+              "origin": "history",
+              "rowId": 1,
+              "seq": 0,
+              "text": "tell sam",
+              "version": 0
+            },
+            "r:3": {
+              "id": "r:3",
+              "interim": false,
+              "kind": "assistant",
+              "origin": "history",
+              "rowId": 3,
+              "seq": 2000,
+              "status": "complete",
+              "streaming": false,
+              "text": "sent",
+              "version": 0
+            },
+            "r:5": {
+              "id": "r:5",
+              "interim": false,
+              "kind": "assistant",
+              "origin": "history",
+              "rowId": 5,
+              "seq": 3000,
+              "status": "complete",
+              "streaming": false,
+              "text": "Sam answered.",
+              "version": 0
+            },
+            "t:row-1": {
+              "dispatch": {
+                "status": "queued"
+              },
+              "id": "t:row-1",
+              "kind": "bot_dm_out",
+              "message": "ping",
+              "origin": "history",
+              "reply": {
+                "rowId": 4,
+                "text": "Sam says hi",
+                "turnId": "T1"
+              },
+              "rowId": 2,
+              "seq": 1000,
+              "target": "sam",
+              "targetHandle": "sam",
+              "toolId": "row-1",
+              "version": 1
+            }
+          },
+          "lastSeq": 0,
+          "order": [
+            "r:1",
+            "t:row-1",
+            "r:3",
+            "r:5"
+          ],
+          "resolvedSessionId": "resolved-1",
+          "storedSessionId": "stored-1",
+          "subagents": {},
+          "turn": {
+            "active": false,
+            "local": false,
+            "nextSeq": 4000
+          },
+          "unreadCount": 0
+        }
+      },
+      {
+        "args": [
+          {
+            "botName": "boekhouder",
+            "byApprovalId": {},
+            "byCallKey": {},
+            "byDelegationId": {},
+            "byProcessId": {},
+            "byRequestId": {},
+            "byRowId": {
+              "1": "r:1",
+              "2": "t:row-1",
+              "3": "r:3",
+              "5": "r:5"
+            },
+            "byToolId": {
+              "row-1": "t:row-1"
+            },
+            "draft": "",
+            "hydration": "live",
+            "items": {
+              "r:1": {
+                "id": "r:1",
+                "kind": "user",
+                "origin": "history",
+                "rowId": 1,
+                "seq": 0,
+                "text": "tell sam",
+                "version": 0
+              },
+              "r:3": {
+                "id": "r:3",
+                "interim": false,
+                "kind": "assistant",
+                "origin": "history",
+                "rowId": 3,
+                "seq": 2000,
+                "status": "complete",
+                "streaming": false,
+                "text": "sent",
+                "version": 0
+              },
+              "r:5": {
+                "id": "r:5",
+                "interim": false,
+                "kind": "assistant",
+                "origin": "history",
+                "rowId": 5,
+                "seq": 3000,
+                "status": "complete",
+                "streaming": false,
+                "text": "Sam answered.",
+                "version": 0
+              },
+              "t:row-1": {
+                "dispatch": {
+                  "status": "queued"
+                },
+                "id": "t:row-1",
+                "kind": "bot_dm_out",
+                "message": "ping",
+                "origin": "history",
+                "reply": {
+                  "rowId": 4,
+                  "text": "Sam says hi",
+                  "turnId": "T1"
+                },
+                "rowId": 2,
+                "seq": 1000,
+                "target": "sam",
+                "targetHandle": "sam",
+                "toolId": "row-1",
+                "version": 1
+              }
+            },
+            "lastSeq": 0,
+            "order": [
+              "r:1",
+              "t:row-1",
+              "r:3",
+              "r:5"
+            ],
+            "resolvedSessionId": "resolved-1",
+            "storedSessionId": "stored-1",
+            "subagents": {},
+            "turn": {
+              "active": false,
+              "local": false,
+              "nextSeq": 4000
+            },
+            "unreadCount": 0
+          },
+          {
+            "inflight": {
+              "assistant": "Sam answered.",
+              "display_metadata": {
+                "turn_id": "T1"
+              },
+              "streaming": false,
+              "user": "Sam says hi"
+            },
+            "running": true
+          },
+          1790000120000
+        ],
+        "op": "applyResumeSnapshot",
+        "result": {
+          "botName": "boekhouder",
+          "byApprovalId": {},
+          "byCallKey": {},
+          "byDelegationId": {},
+          "byProcessId": {},
+          "byRequestId": {},
+          "byRowId": {
+            "1": "r:1",
+            "2": "t:row-1",
+            "3": "r:3",
+            "5": "r:5"
+          },
+          "byToolId": {
+            "row-1": "t:row-1"
+          },
+          "draft": "",
+          "hydration": "live",
+          "items": {
+            "r:1": {
+              "id": "r:1",
+              "kind": "user",
+              "origin": "history",
+              "rowId": 1,
+              "seq": 0,
+              "text": "tell sam",
+              "version": 0
+            },
+            "r:3": {
+              "id": "r:3",
+              "interim": false,
+              "kind": "assistant",
+              "origin": "history",
+              "rowId": 3,
+              "seq": 2000,
+              "status": "complete",
+              "streaming": false,
+              "text": "sent",
+              "version": 0
+            },
+            "r:5": {
+              "id": "r:5",
+              "interim": false,
+              "kind": "assistant",
+              "origin": "history",
+              "rowId": 5,
+              "seq": 3000,
+              "status": "complete",
+              "streaming": false,
+              "text": "Sam answered.",
+              "version": 0
+            },
+            "t:row-1": {
+              "dispatch": {
+                "status": "queued"
+              },
+              "id": "t:row-1",
+              "kind": "bot_dm_out",
+              "message": "ping",
+              "origin": "history",
+              "reply": {
+                "rowId": 4,
+                "text": "Sam says hi",
+                "turnId": "T1"
+              },
+              "rowId": 2,
+              "seq": 1000,
+              "target": "sam",
+              "targetHandle": "sam",
+              "toolId": "row-1",
+              "version": 1
+            }
+          },
+          "lastSeq": 0,
+          "order": [
+            "r:1",
+            "t:row-1",
+            "r:3",
+            "r:5"
+          ],
+          "resolvedSessionId": "resolved-1",
+          "storedSessionId": "stored-1",
+          "subagents": {},
+          "turn": {
+            "active": true,
+            "id": "T1",
+            "local": false,
+            "nextSeq": 4000,
+            "startedAt": 1790000120000
+          },
+          "unreadCount": 0
+        }
+      }
+    ],
+    "test": "a delivery row held only as the reply of a dispatch card > counts as the prompt a resume finds shown, so it adds no bubble of the owner’s"
+  },
+  {
+    "calls": [
+      {
+        "args": [
+          "boekhouder",
+          "stored-1",
+          "resolved-1"
+        ],
+        "op": "createChatState",
+        "result": {
+          "botName": "boekhouder",
+          "byApprovalId": {},
+          "byCallKey": {},
+          "byDelegationId": {},
+          "byProcessId": {},
+          "byRequestId": {},
+          "byRowId": {},
+          "byToolId": {},
+          "draft": "",
+          "hydration": "cold",
+          "items": {},
+          "lastSeq": 0,
+          "order": [],
+          "resolvedSessionId": "resolved-1",
+          "storedSessionId": "stored-1",
+          "subagents": {},
+          "turn": {
+            "active": false,
+            "local": false,
+            "nextSeq": 1000
+          },
+          "unreadCount": 0
+        }
+      },
+      {
+        "args": [
+          [
+            {
+              "role": "user",
+              "row_id": 1,
+              "text": "tell sam"
+            },
+            {
+              "args": {
+                "message": "ping",
+                "target": "sam"
+              },
+              "name": "message_agent",
+              "role": "tool",
+              "row_id": 2,
+              "tool_call_id": "dm-1"
+            },
+            {
+              "role": "assistant",
+              "row_id": 3,
+              "text": "sent"
+            },
+            {
+              "display_kind": "process_complete",
+              "display_metadata": {
+                "turn_id": "T1"
+              },
+              "role": "user",
+              "row_id": 4,
+              "text": "[IMPORTANT: Background process proc-1 completed with exit code 0.\nCommand: python bot_mode_dm.py --run-delivery d1\nOutput:\nSam says hi]"
+            },
+            {
+              "role": "assistant",
+              "row_id": 5,
+              "text": "Sam answered."
+            }
+          ],
+          "rpc"
+        ],
+        "op": "rowsToItems",
+        "result": [
+          {
+            "id": "r:1",
+            "kind": "user",
+            "origin": "history",
+            "rowId": 1,
+            "seq": 0,
+            "text": "tell sam",
+            "version": 0
+          },
+          {
+            "dispatch": {
+              "status": "queued"
+            },
+            "id": "t:row-1",
+            "kind": "bot_dm_out",
+            "message": "ping",
+            "origin": "history",
+            "reply": {
+              "rowId": 4,
+              "text": "Sam says hi",
+              "turnId": "T1"
+            },
+            "rowId": 2,
+            "seq": 1000,
+            "target": "sam",
+            "targetHandle": "sam",
+            "toolId": "row-1",
+            "version": 1
+          },
+          {
+            "id": "r:3",
+            "interim": false,
+            "kind": "assistant",
+            "origin": "history",
+            "rowId": 3,
+            "seq": 2000,
+            "status": "complete",
+            "streaming": false,
+            "text": "sent",
+            "version": 0
+          },
+          {
+            "id": "r:5",
+            "interim": false,
+            "kind": "assistant",
+            "origin": "history",
+            "rowId": 5,
+            "seq": 3000,
+            "status": "complete",
+            "streaming": false,
+            "text": "Sam answered.",
+            "version": 0
+          }
+        ]
+      },
+      {
+        "args": [
+          {
+            "botName": "boekhouder",
+            "byApprovalId": {},
+            "byCallKey": {},
+            "byDelegationId": {},
+            "byProcessId": {},
+            "byRequestId": {},
+            "byRowId": {},
+            "byToolId": {},
+            "draft": "",
+            "hydration": "cold",
+            "items": {},
+            "lastSeq": 0,
+            "order": [],
+            "resolvedSessionId": "resolved-1",
+            "storedSessionId": "stored-1",
+            "subagents": {},
+            "turn": {
+              "active": false,
+              "local": false,
+              "nextSeq": 1000
+            },
+            "unreadCount": 0
+          },
+          [
+            {
+              "id": "r:1",
+              "kind": "user",
+              "origin": "history",
+              "rowId": 1,
+              "seq": 0,
+              "text": "tell sam",
+              "version": 0
+            },
+            {
+              "dispatch": {
+                "status": "queued"
+              },
+              "id": "t:row-1",
+              "kind": "bot_dm_out",
+              "message": "ping",
+              "origin": "history",
+              "reply": {
+                "rowId": 4,
+                "text": "Sam says hi",
+                "turnId": "T1"
+              },
+              "rowId": 2,
+              "seq": 1000,
+              "target": "sam",
+              "targetHandle": "sam",
+              "toolId": "row-1",
+              "version": 1
+            },
+            {
+              "id": "r:3",
+              "interim": false,
+              "kind": "assistant",
+              "origin": "history",
+              "rowId": 3,
+              "seq": 2000,
+              "status": "complete",
+              "streaming": false,
+              "text": "sent",
+              "version": 0
+            },
+            {
+              "id": "r:5",
+              "interim": false,
+              "kind": "assistant",
+              "origin": "history",
+              "rowId": 5,
+              "seq": 3000,
+              "status": "complete",
+              "streaming": false,
+              "text": "Sam answered.",
+              "version": 0
+            }
+          ]
+        ],
+        "op": "reconcile",
+        "result": {
+          "botName": "boekhouder",
+          "byApprovalId": {},
+          "byCallKey": {},
+          "byDelegationId": {},
+          "byProcessId": {},
+          "byRequestId": {},
+          "byRowId": {
+            "1": "r:1",
+            "2": "t:row-1",
+            "3": "r:3",
+            "5": "r:5"
+          },
+          "byToolId": {
+            "row-1": "t:row-1"
+          },
+          "draft": "",
+          "hydration": "live",
+          "items": {
+            "r:1": {
+              "id": "r:1",
+              "kind": "user",
+              "origin": "history",
+              "rowId": 1,
+              "seq": 0,
+              "text": "tell sam",
+              "version": 0
+            },
+            "r:3": {
+              "id": "r:3",
+              "interim": false,
+              "kind": "assistant",
+              "origin": "history",
+              "rowId": 3,
+              "seq": 2000,
+              "status": "complete",
+              "streaming": false,
+              "text": "sent",
+              "version": 0
+            },
+            "r:5": {
+              "id": "r:5",
+              "interim": false,
+              "kind": "assistant",
+              "origin": "history",
+              "rowId": 5,
+              "seq": 3000,
+              "status": "complete",
+              "streaming": false,
+              "text": "Sam answered.",
+              "version": 0
+            },
+            "t:row-1": {
+              "dispatch": {
+                "status": "queued"
+              },
+              "id": "t:row-1",
+              "kind": "bot_dm_out",
+              "message": "ping",
+              "origin": "history",
+              "reply": {
+                "rowId": 4,
+                "text": "Sam says hi",
+                "turnId": "T1"
+              },
+              "rowId": 2,
+              "seq": 1000,
+              "target": "sam",
+              "targetHandle": "sam",
+              "toolId": "row-1",
+              "version": 1
+            }
+          },
+          "lastSeq": 0,
+          "order": [
+            "r:1",
+            "t:row-1",
+            "r:3",
+            "r:5"
+          ],
+          "resolvedSessionId": "resolved-1",
+          "storedSessionId": "stored-1",
+          "subagents": {},
+          "turn": {
+            "active": false,
+            "local": false,
+            "nextSeq": 4000
+          },
+          "unreadCount": 0
+        }
+      },
+      {
+        "args": [
+          {
+            "botName": "boekhouder",
+            "byApprovalId": {},
+            "byCallKey": {},
+            "byDelegationId": {},
+            "byProcessId": {},
+            "byRequestId": {},
+            "byRowId": {
+              "1": "r:1",
+              "2": "t:row-1",
+              "3": "r:3",
+              "5": "r:5"
+            },
+            "byToolId": {
+              "row-1": "t:row-1"
+            },
+            "draft": "",
+            "hydration": "live",
+            "items": {
+              "r:1": {
+                "id": "r:1",
+                "kind": "user",
+                "origin": "history",
+                "rowId": 1,
+                "seq": 0,
+                "text": "tell sam",
+                "version": 0
+              },
+              "r:3": {
+                "id": "r:3",
+                "interim": false,
+                "kind": "assistant",
+                "origin": "history",
+                "rowId": 3,
+                "seq": 2000,
+                "status": "complete",
+                "streaming": false,
+                "text": "sent",
+                "version": 0
+              },
+              "r:5": {
+                "id": "r:5",
+                "interim": false,
+                "kind": "assistant",
+                "origin": "history",
+                "rowId": 5,
+                "seq": 3000,
+                "status": "complete",
+                "streaming": false,
+                "text": "Sam answered.",
+                "version": 0
+              },
+              "t:row-1": {
+                "dispatch": {
+                  "status": "queued"
+                },
+                "id": "t:row-1",
+                "kind": "bot_dm_out",
+                "message": "ping",
+                "origin": "history",
+                "reply": {
+                  "rowId": 4,
+                  "text": "Sam says hi",
+                  "turnId": "T1"
+                },
+                "rowId": 2,
+                "seq": 1000,
+                "target": "sam",
+                "targetHandle": "sam",
+                "toolId": "row-1",
+                "version": 1
+              }
+            },
+            "lastSeq": 0,
+            "order": [
+              "r:1",
+              "t:row-1",
+              "r:3",
+              "r:5"
+            ],
+            "resolvedSessionId": "resolved-1",
+            "storedSessionId": "stored-1",
+            "subagents": {},
+            "turn": {
+              "active": false,
+              "local": false,
+              "nextSeq": 4000
+            },
+            "unreadCount": 0
+          },
+          {
+            "seq": 20,
+            "turn_id": "T1",
+            "type": "message.start"
+          },
+          1790000000000
+        ],
+        "op": "applyEvent",
+        "result": {
+          "botName": "boekhouder",
+          "byApprovalId": {},
+          "byCallKey": {},
+          "byDelegationId": {},
+          "byProcessId": {},
+          "byRequestId": {},
+          "byRowId": {
+            "1": "r:1",
+            "2": "t:row-1",
+            "3": "r:3",
+            "5": "r:5"
+          },
+          "byToolId": {
+            "row-1": "t:row-1"
+          },
+          "compacting": false,
+          "draft": "",
+          "hydration": "live",
+          "items": {
+            "r:1": {
+              "id": "r:1",
+              "kind": "user",
+              "origin": "history",
+              "rowId": 1,
+              "seq": 0,
+              "text": "tell sam",
+              "version": 0
+            },
+            "r:3": {
+              "id": "r:3",
+              "interim": false,
+              "kind": "assistant",
+              "origin": "history",
+              "rowId": 3,
+              "seq": 2000,
+              "status": "complete",
+              "streaming": false,
+              "text": "sent",
+              "version": 0
+            },
+            "r:5": {
+              "id": "r:5",
+              "interim": false,
+              "kind": "assistant",
+              "origin": "history",
+              "rowId": 5,
+              "seq": 3000,
+              "status": "complete",
+              "streaming": false,
+              "text": "Sam answered.",
+              "version": 0
+            },
+            "t:row-1": {
+              "dispatch": {
+                "status": "queued"
+              },
+              "id": "t:row-1",
+              "kind": "bot_dm_out",
+              "message": "ping",
+              "origin": "history",
+              "reply": {
+                "rowId": 4,
+                "text": "Sam says hi",
+                "turnId": "T1"
+              },
+              "rowId": 2,
+              "seq": 1000,
+              "target": "sam",
+              "targetHandle": "sam",
+              "toolId": "row-1",
+              "version": 1
+            }
+          },
+          "lastSeq": 20,
+          "order": [
+            "r:1",
+            "t:row-1",
+            "r:3",
+            "r:5"
+          ],
+          "resolvedSessionId": "resolved-1",
+          "storedSessionId": "stored-1",
+          "subagents": {},
+          "turn": {
+            "active": true,
+            "id": "T1",
+            "interrupted": false,
+            "local": false,
+            "nextSeq": 4000,
+            "startedAt": 1790000000000
+          },
+          "unreadCount": 0
+        }
+      },
+      {
+        "args": [
+          [
+            {
+              "display_kind": "process_complete",
+              "display_metadata": {
+                "turn_id": "T1"
+              },
+              "role": "user",
+              "row_id": 4,
+              "text": "[IMPORTANT: Background process proc-1 completed with exit code 0.\nCommand: python bot_mode_dm.py --run-delivery d1\nOutput:\nSam says hi]"
+            },
+            {
+              "role": "assistant",
+              "row_id": 5,
+              "text": "Sam answered."
+            }
+          ],
+          "rpc"
+        ],
+        "op": "rowsToItems",
+        "result": [
+          {
+            "body": "Sam says hi",
+            "completions": [
+              {
+                "command": "python bot_mode_dm.py --run-delivery d1",
+                "output": "Sam says hi",
+                "sid": "proc-1"
+              }
+            ],
+            "id": "r:4",
+            "kind": "notice",
+            "noticeKind": "process_complete",
+            "origin": "history",
+            "rowId": 4,
+            "seq": 0,
+            "title": "Background process finished",
+            "turnId": "T1",
+            "version": 0
+          },
+          {
+            "id": "r:5",
+            "interim": false,
+            "kind": "assistant",
+            "origin": "history",
+            "rowId": 5,
+            "seq": 1000,
+            "status": "complete",
+            "streaming": false,
+            "text": "Sam answered.",
+            "version": 0
+          }
+        ]
+      },
+      {
+        "args": [
+          {
+            "botName": "boekhouder",
+            "byApprovalId": {},
+            "byCallKey": {},
+            "byDelegationId": {},
+            "byProcessId": {},
+            "byRequestId": {},
+            "byRowId": {
+              "1": "r:1",
+              "2": "t:row-1",
+              "3": "r:3",
+              "5": "r:5"
+            },
+            "byToolId": {
+              "row-1": "t:row-1"
+            },
+            "compacting": false,
+            "draft": "",
+            "hydration": "live",
+            "items": {
+              "r:1": {
+                "id": "r:1",
+                "kind": "user",
+                "origin": "history",
+                "rowId": 1,
+                "seq": 0,
+                "text": "tell sam",
+                "version": 0
+              },
+              "r:3": {
+                "id": "r:3",
+                "interim": false,
+                "kind": "assistant",
+                "origin": "history",
+                "rowId": 3,
+                "seq": 2000,
+                "status": "complete",
+                "streaming": false,
+                "text": "sent",
+                "version": 0
+              },
+              "r:5": {
+                "id": "r:5",
+                "interim": false,
+                "kind": "assistant",
+                "origin": "history",
+                "rowId": 5,
+                "seq": 3000,
+                "status": "complete",
+                "streaming": false,
+                "text": "Sam answered.",
+                "version": 0
+              },
+              "t:row-1": {
+                "dispatch": {
+                  "status": "queued"
+                },
+                "id": "t:row-1",
+                "kind": "bot_dm_out",
+                "message": "ping",
+                "origin": "history",
+                "reply": {
+                  "rowId": 4,
+                  "text": "Sam says hi",
+                  "turnId": "T1"
+                },
+                "rowId": 2,
+                "seq": 1000,
+                "target": "sam",
+                "targetHandle": "sam",
+                "toolId": "row-1",
+                "version": 1
+              }
+            },
+            "lastSeq": 20,
+            "order": [
+              "r:1",
+              "t:row-1",
+              "r:3",
+              "r:5"
+            ],
+            "resolvedSessionId": "resolved-1",
+            "storedSessionId": "stored-1",
+            "subagents": {},
+            "turn": {
+              "active": true,
+              "id": "T1",
+              "interrupted": false,
+              "local": false,
+              "nextSeq": 4000,
+              "startedAt": 1790000000000
+            },
+            "unreadCount": 0
+          },
+          [
+            {
+              "body": "Sam says hi",
+              "completions": [
+                {
+                  "command": "python bot_mode_dm.py --run-delivery d1",
+                  "output": "Sam says hi",
+                  "sid": "proc-1"
+                }
+              ],
+              "id": "r:4",
+              "kind": "notice",
+              "noticeKind": "process_complete",
+              "origin": "history",
+              "rowId": 4,
+              "seq": 0,
+              "title": "Background process finished",
+              "turnId": "T1",
+              "version": 0
+            },
+            {
+              "id": "r:5",
+              "interim": false,
+              "kind": "assistant",
+              "origin": "history",
+              "rowId": 5,
+              "seq": 1000,
+              "status": "complete",
+              "streaming": false,
+              "text": "Sam answered.",
+              "version": 0
+            }
+          ]
+        ],
+        "op": "reconcileTail",
+        "result": {
+          "botName": "boekhouder",
+          "byApprovalId": {},
+          "byCallKey": {},
+          "byDelegationId": {},
+          "byProcessId": {},
+          "byRequestId": {},
+          "byRowId": {
+            "1": "r:1",
+            "2": "t:row-1",
+            "3": "r:3",
+            "5": "r:5"
+          },
+          "byToolId": {
+            "row-1": "t:row-1"
+          },
+          "compacting": false,
+          "draft": "",
+          "hydration": "live",
+          "items": {
+            "r:1": {
+              "id": "r:1",
+              "kind": "user",
+              "origin": "history",
+              "rowId": 1,
+              "seq": 0,
+              "text": "tell sam",
+              "version": 0
+            },
+            "r:3": {
+              "id": "r:3",
+              "interim": false,
+              "kind": "assistant",
+              "origin": "history",
+              "rowId": 3,
+              "seq": 2000,
+              "status": "complete",
+              "streaming": false,
+              "text": "sent",
+              "version": 0
+            },
+            "r:5": {
+              "id": "r:5",
+              "interim": false,
+              "kind": "assistant",
+              "origin": "history",
+              "rowId": 5,
+              "seq": 3000,
+              "status": "complete",
+              "streaming": false,
+              "text": "Sam answered.",
+              "version": 1
+            },
+            "t:row-1": {
+              "dispatch": {
+                "status": "queued"
+              },
+              "id": "t:row-1",
+              "kind": "bot_dm_out",
+              "message": "ping",
+              "origin": "history",
+              "reply": {
+                "rowId": 4,
+                "text": "Sam says hi",
+                "turnId": "T1"
+              },
+              "rowId": 2,
+              "seq": 1000,
+              "target": "sam",
+              "targetHandle": "sam",
+              "toolId": "row-1",
+              "version": 1
+            }
+          },
+          "lastSeq": 20,
+          "order": [
+            "r:1",
+            "t:row-1",
+            "r:3",
+            "r:5"
+          ],
+          "resolvedSessionId": "resolved-1",
+          "storedSessionId": "stored-1",
+          "subagents": {},
+          "turn": {
+            "active": true,
+            "id": "T1",
+            "interrupted": false,
+            "local": false,
+            "nextSeq": 4000,
+            "startedAt": 1790000000000
+          },
+          "unreadCount": 0
+        }
+      }
+    ],
+    "test": "a delivery row held only as the reply of a dispatch card > is held by a tail page without the dispatch, which adds no second copy as a notice"
+  },
+  {
+    "calls": [
+      {
+        "args": [
+          "boekhouder",
+          "stored-1",
+          "resolved-1"
+        ],
+        "op": "createChatState",
+        "result": {
+          "botName": "boekhouder",
+          "byApprovalId": {},
+          "byCallKey": {},
+          "byDelegationId": {},
+          "byProcessId": {},
+          "byRequestId": {},
+          "byRowId": {},
+          "byToolId": {},
+          "draft": "",
+          "hydration": "cold",
+          "items": {},
+          "lastSeq": 0,
+          "order": [],
+          "resolvedSessionId": "resolved-1",
+          "storedSessionId": "stored-1",
+          "subagents": {},
+          "turn": {
+            "active": false,
+            "local": false,
+            "nextSeq": 1000
+          },
+          "unreadCount": 0
+        }
+      },
+      {
+        "args": [
+          [
+            {
+              "role": "user",
+              "row_id": 1,
+              "text": "tell sam"
+            },
+            {
+              "args": {
+                "message": "ping",
+                "target": "sam"
+              },
+              "name": "message_agent",
+              "role": "tool",
+              "row_id": 2,
+              "tool_call_id": "dm-1"
+            },
+            {
+              "role": "assistant",
+              "row_id": 3,
+              "text": "sent"
+            }
+          ],
+          "rpc"
+        ],
+        "op": "rowsToItems",
+        "result": [
+          {
+            "id": "r:1",
+            "kind": "user",
+            "origin": "history",
+            "rowId": 1,
+            "seq": 0,
+            "text": "tell sam",
+            "version": 0
+          },
+          {
+            "dispatch": {
+              "status": "unknown"
+            },
+            "id": "t:row-1",
+            "kind": "bot_dm_out",
+            "message": "ping",
+            "origin": "history",
+            "rowId": 2,
+            "seq": 1000,
+            "target": "sam",
+            "targetHandle": "sam",
+            "toolId": "row-1",
+            "version": 0
+          },
+          {
+            "id": "r:3",
+            "interim": false,
+            "kind": "assistant",
+            "origin": "history",
+            "rowId": 3,
+            "seq": 2000,
+            "status": "complete",
+            "streaming": false,
+            "text": "sent",
+            "version": 0
+          }
+        ]
+      },
+      {
+        "args": [
+          {
+            "botName": "boekhouder",
+            "byApprovalId": {},
+            "byCallKey": {},
+            "byDelegationId": {},
+            "byProcessId": {},
+            "byRequestId": {},
+            "byRowId": {},
+            "byToolId": {},
+            "draft": "",
+            "hydration": "cold",
+            "items": {},
+            "lastSeq": 0,
+            "order": [],
+            "resolvedSessionId": "resolved-1",
+            "storedSessionId": "stored-1",
+            "subagents": {},
+            "turn": {
+              "active": false,
+              "local": false,
+              "nextSeq": 1000
+            },
+            "unreadCount": 0
+          },
+          [
+            {
+              "id": "r:1",
+              "kind": "user",
+              "origin": "history",
+              "rowId": 1,
+              "seq": 0,
+              "text": "tell sam",
+              "version": 0
+            },
+            {
+              "dispatch": {
+                "status": "unknown"
+              },
+              "id": "t:row-1",
+              "kind": "bot_dm_out",
+              "message": "ping",
+              "origin": "history",
+              "rowId": 2,
+              "seq": 1000,
+              "target": "sam",
+              "targetHandle": "sam",
+              "toolId": "row-1",
+              "version": 0
+            },
+            {
+              "id": "r:3",
+              "interim": false,
+              "kind": "assistant",
+              "origin": "history",
+              "rowId": 3,
+              "seq": 2000,
+              "status": "complete",
+              "streaming": false,
+              "text": "sent",
+              "version": 0
+            }
+          ]
+        ],
+        "op": "reconcile",
+        "result": {
+          "botName": "boekhouder",
+          "byApprovalId": {},
+          "byCallKey": {},
+          "byDelegationId": {},
+          "byProcessId": {},
+          "byRequestId": {},
+          "byRowId": {
+            "1": "r:1",
+            "2": "t:row-1",
+            "3": "r:3"
+          },
+          "byToolId": {
+            "row-1": "t:row-1"
+          },
+          "draft": "",
+          "hydration": "live",
+          "items": {
+            "r:1": {
+              "id": "r:1",
+              "kind": "user",
+              "origin": "history",
+              "rowId": 1,
+              "seq": 0,
+              "text": "tell sam",
+              "version": 0
+            },
+            "r:3": {
+              "id": "r:3",
+              "interim": false,
+              "kind": "assistant",
+              "origin": "history",
+              "rowId": 3,
+              "seq": 2000,
+              "status": "complete",
+              "streaming": false,
+              "text": "sent",
+              "version": 0
+            },
+            "t:row-1": {
+              "dispatch": {
+                "status": "unknown"
+              },
+              "id": "t:row-1",
+              "kind": "bot_dm_out",
+              "message": "ping",
+              "origin": "history",
+              "rowId": 2,
+              "seq": 1000,
+              "target": "sam",
+              "targetHandle": "sam",
+              "toolId": "row-1",
+              "version": 0
+            }
+          },
+          "lastSeq": 0,
+          "order": [
+            "r:1",
+            "t:row-1",
+            "r:3"
+          ],
+          "resolvedSessionId": "resolved-1",
+          "storedSessionId": "stored-1",
+          "subagents": {},
+          "turn": {
+            "active": false,
+            "local": false,
+            "nextSeq": 3000
+          },
+          "unreadCount": 0
+        }
+      },
+      {
+        "args": [
+          {
+            "botName": "boekhouder",
+            "byApprovalId": {},
+            "byCallKey": {},
+            "byDelegationId": {},
+            "byProcessId": {},
+            "byRequestId": {},
+            "byRowId": {
+              "1": "r:1",
+              "2": "t:row-1",
+              "3": "r:3"
+            },
+            "byToolId": {
+              "row-1": "t:row-1"
+            },
+            "draft": "",
+            "hydration": "live",
+            "items": {
+              "r:1": {
+                "id": "r:1",
+                "kind": "user",
+                "origin": "history",
+                "rowId": 1,
+                "seq": 0,
+                "text": "tell sam",
+                "version": 0
+              },
+              "r:3": {
+                "id": "r:3",
+                "interim": false,
+                "kind": "assistant",
+                "origin": "history",
+                "rowId": 3,
+                "seq": 2000,
+                "status": "complete",
+                "streaming": false,
+                "text": "sent",
+                "version": 0
+              },
+              "t:row-1": {
+                "dispatch": {
+                  "status": "unknown"
+                },
+                "id": "t:row-1",
+                "kind": "bot_dm_out",
+                "message": "ping",
+                "origin": "history",
+                "rowId": 2,
+                "seq": 1000,
+                "target": "sam",
+                "targetHandle": "sam",
+                "toolId": "row-1",
+                "version": 0
+              }
+            },
+            "lastSeq": 0,
+            "order": [
+              "r:1",
+              "t:row-1",
+              "r:3"
+            ],
+            "resolvedSessionId": "resolved-1",
+            "storedSessionId": "stored-1",
+            "subagents": {},
+            "turn": {
+              "active": false,
+              "local": false,
+              "nextSeq": 3000
+            },
+            "unreadCount": 0
+          },
+          {
+            "seq": 20,
+            "turn_id": "T1",
+            "type": "message.start"
+          },
+          1790000000000
+        ],
+        "op": "applyEvent",
+        "result": {
+          "botName": "boekhouder",
+          "byApprovalId": {},
+          "byCallKey": {},
+          "byDelegationId": {},
+          "byProcessId": {},
+          "byRequestId": {},
+          "byRowId": {
+            "1": "r:1",
+            "2": "t:row-1",
+            "3": "r:3"
+          },
+          "byToolId": {
+            "row-1": "t:row-1"
+          },
+          "compacting": false,
+          "draft": "",
+          "hydration": "live",
+          "items": {
+            "f:3000": {
+              "id": "f:3000",
+              "kind": "user",
+              "origin": "foreign",
+              "seq": 3000,
+              "text": "",
+              "ts": 1790000000,
+              "turnId": "T1",
+              "unknownAuthor": true,
+              "version": 0
+            },
+            "r:1": {
+              "id": "r:1",
+              "kind": "user",
+              "origin": "history",
+              "rowId": 1,
+              "seq": 0,
+              "text": "tell sam",
+              "version": 0
+            },
+            "r:3": {
+              "id": "r:3",
+              "interim": false,
+              "kind": "assistant",
+              "origin": "history",
+              "rowId": 3,
+              "seq": 2000,
+              "status": "complete",
+              "streaming": false,
+              "text": "sent",
+              "version": 0
+            },
+            "t:row-1": {
+              "dispatch": {
+                "status": "unknown"
+              },
+              "id": "t:row-1",
+              "kind": "bot_dm_out",
+              "message": "ping",
+              "origin": "history",
+              "rowId": 2,
+              "seq": 1000,
+              "target": "sam",
+              "targetHandle": "sam",
+              "toolId": "row-1",
+              "version": 0
+            }
+          },
+          "lastSeq": 20,
+          "order": [
+            "r:1",
+            "t:row-1",
+            "r:3",
+            "f:3000"
+          ],
+          "resolvedSessionId": "resolved-1",
+          "storedSessionId": "stored-1",
+          "subagents": {},
+          "turn": {
+            "active": true,
+            "foreignReconcilePending": true,
+            "id": "T1",
+            "interrupted": false,
+            "local": false,
+            "nextSeq": 4000,
+            "startedAt": 1790000000000
+          },
+          "unreadCount": 0
+        }
+      },
+      {
+        "args": [
+          [
+            {
+              "display_kind": "process_complete",
+              "display_metadata": {
+                "turn_id": "T1"
+              },
+              "role": "user",
+              "row_id": 4,
+              "text": "[IMPORTANT: Background process proc-1 completed with exit code 0.\nCommand: python bot_mode_dm.py --run-delivery d1\nOutput:\nSam says hi]"
+            }
+          ],
+          "rpc"
+        ],
+        "op": "rowsToItems",
+        "result": [
+          {
+            "body": "Sam says hi",
+            "completions": [
+              {
+                "command": "python bot_mode_dm.py --run-delivery d1",
+                "output": "Sam says hi",
+                "sid": "proc-1"
+              }
+            ],
+            "id": "r:4",
+            "kind": "notice",
+            "noticeKind": "process_complete",
+            "origin": "history",
+            "rowId": 4,
+            "seq": 0,
+            "title": "Background process finished",
+            "turnId": "T1",
+            "version": 0
+          }
+        ]
+      },
+      {
+        "args": [
+          {
+            "botName": "boekhouder",
+            "byApprovalId": {},
+            "byCallKey": {},
+            "byDelegationId": {},
+            "byProcessId": {},
+            "byRequestId": {},
+            "byRowId": {
+              "1": "r:1",
+              "2": "t:row-1",
+              "3": "r:3"
+            },
+            "byToolId": {
+              "row-1": "t:row-1"
+            },
+            "compacting": false,
+            "draft": "",
+            "hydration": "live",
+            "items": {
+              "f:3000": {
+                "id": "f:3000",
+                "kind": "user",
+                "origin": "foreign",
+                "seq": 3000,
+                "text": "",
+                "ts": 1790000000,
+                "turnId": "T1",
+                "unknownAuthor": true,
+                "version": 0
+              },
+              "r:1": {
+                "id": "r:1",
+                "kind": "user",
+                "origin": "history",
+                "rowId": 1,
+                "seq": 0,
+                "text": "tell sam",
+                "version": 0
+              },
+              "r:3": {
+                "id": "r:3",
+                "interim": false,
+                "kind": "assistant",
+                "origin": "history",
+                "rowId": 3,
+                "seq": 2000,
+                "status": "complete",
+                "streaming": false,
+                "text": "sent",
+                "version": 0
+              },
+              "t:row-1": {
+                "dispatch": {
+                  "status": "unknown"
+                },
+                "id": "t:row-1",
+                "kind": "bot_dm_out",
+                "message": "ping",
+                "origin": "history",
+                "reply": {
+                  "rowId": 4,
+                  "text": "Sam says hi",
+                  "turnId": "T1"
+                },
+                "rowId": 2,
+                "seq": 1000,
+                "target": "sam",
+                "targetHandle": "sam",
+                "toolId": "row-1",
+                "version": 0
+              }
+            },
+            "lastSeq": 20,
+            "order": [
+              "r:1",
+              "t:row-1",
+              "r:3",
+              "f:3000"
+            ],
+            "resolvedSessionId": "resolved-1",
+            "storedSessionId": "stored-1",
+            "subagents": {},
+            "turn": {
+              "active": true,
+              "foreignReconcilePending": true,
+              "id": "T1",
+              "interrupted": false,
+              "local": false,
+              "nextSeq": 4000,
+              "startedAt": 1790000000000
+            },
+            "unreadCount": 0
+          },
+          [
+            {
+              "body": "Sam says hi",
+              "completions": [
+                {
+                  "command": "python bot_mode_dm.py --run-delivery d1",
+                  "output": "Sam says hi",
+                  "sid": "proc-1"
+                }
+              ],
+              "id": "r:4",
+              "kind": "notice",
+              "noticeKind": "process_complete",
+              "origin": "history",
+              "rowId": 4,
+              "seq": 0,
+              "title": "Background process finished",
+              "turnId": "T1",
+              "version": 0
+            }
+          ]
+        ],
+        "op": "reconcileTail",
+        "result": {
+          "botName": "boekhouder",
+          "byApprovalId": {},
+          "byCallKey": {},
+          "byDelegationId": {},
+          "byProcessId": {},
+          "byRequestId": {},
+          "byRowId": {
+            "1": "r:1",
+            "2": "t:row-1",
+            "3": "r:3"
+          },
+          "byToolId": {
+            "row-1": "t:row-1"
+          },
+          "compacting": false,
+          "draft": "",
+          "hydration": "live",
+          "items": {
+            "r:1": {
+              "id": "r:1",
+              "kind": "user",
+              "origin": "history",
+              "rowId": 1,
+              "seq": 0,
+              "text": "tell sam",
+              "version": 0
+            },
+            "r:3": {
+              "id": "r:3",
+              "interim": false,
+              "kind": "assistant",
+              "origin": "history",
+              "rowId": 3,
+              "seq": 2000,
+              "status": "complete",
+              "streaming": false,
+              "text": "sent",
+              "version": 0
+            },
+            "t:row-1": {
+              "dispatch": {
+                "status": "unknown"
+              },
+              "id": "t:row-1",
+              "kind": "bot_dm_out",
+              "message": "ping",
+              "origin": "history",
+              "reply": {
+                "rowId": 4,
+                "text": "Sam says hi",
+                "turnId": "T1"
+              },
+              "rowId": 2,
+              "seq": 1000,
+              "target": "sam",
+              "targetHandle": "sam",
+              "toolId": "row-1",
+              "version": 0
+            }
+          },
+          "lastSeq": 20,
+          "order": [
+            "r:1",
+            "t:row-1",
+            "r:3"
+          ],
+          "resolvedSessionId": "resolved-1",
+          "storedSessionId": "stored-1",
+          "subagents": {},
+          "turn": {
+            "active": true,
+            "id": "T1",
+            "interrupted": false,
+            "local": false,
+            "nextSeq": 4000,
+            "startedAt": 1790000000000
+          },
+          "unreadCount": 0
+        }
+      }
+    ],
+    "test": "a delivery row held only as the reply of a dispatch card > settles the placeholder a known delivery row names, when it stood up before the join"
+  },
+  {
+    "calls": [
+      {
+        "args": [
+          "boekhouder",
+          "stored-1",
+          "resolved-1"
+        ],
+        "op": "createChatState",
+        "result": {
+          "botName": "boekhouder",
+          "byApprovalId": {},
+          "byCallKey": {},
+          "byDelegationId": {},
+          "byProcessId": {},
+          "byRequestId": {},
+          "byRowId": {},
+          "byToolId": {},
+          "draft": "",
+          "hydration": "cold",
+          "items": {},
+          "lastSeq": 0,
+          "order": [],
+          "resolvedSessionId": "resolved-1",
+          "storedSessionId": "stored-1",
+          "subagents": {},
+          "turn": {
+            "active": false,
+            "local": false,
+            "nextSeq": 1000
+          },
+          "unreadCount": 0
+        }
+      },
+      {
+        "args": [
+          [
+            {
+              "role": "user",
+              "row_id": 1,
+              "text": "hi"
+            },
+            {
+              "role": "assistant",
+              "row_id": 2,
+              "text": "hello"
+            }
+          ],
+          "rpc"
+        ],
+        "op": "rowsToItems",
+        "result": [
+          {
+            "id": "r:1",
+            "kind": "user",
+            "origin": "history",
+            "rowId": 1,
+            "seq": 0,
+            "text": "hi",
+            "version": 0
+          },
+          {
+            "id": "r:2",
+            "interim": false,
+            "kind": "assistant",
+            "origin": "history",
+            "rowId": 2,
+            "seq": 1000,
+            "status": "complete",
+            "streaming": false,
+            "text": "hello",
+            "version": 0
+          }
+        ]
+      },
+      {
+        "args": [
+          {
+            "botName": "boekhouder",
+            "byApprovalId": {},
+            "byCallKey": {},
+            "byDelegationId": {},
+            "byProcessId": {},
+            "byRequestId": {},
+            "byRowId": {},
+            "byToolId": {},
+            "draft": "",
+            "hydration": "cold",
+            "items": {},
+            "lastSeq": 0,
+            "order": [],
+            "resolvedSessionId": "resolved-1",
+            "storedSessionId": "stored-1",
+            "subagents": {},
+            "turn": {
+              "active": false,
+              "local": false,
+              "nextSeq": 1000
+            },
+            "unreadCount": 0
+          },
+          [
+            {
+              "id": "r:1",
+              "kind": "user",
+              "origin": "history",
+              "rowId": 1,
+              "seq": 0,
+              "text": "hi",
+              "version": 0
+            },
+            {
+              "id": "r:2",
+              "interim": false,
+              "kind": "assistant",
+              "origin": "history",
+              "rowId": 2,
+              "seq": 1000,
+              "status": "complete",
+              "streaming": false,
+              "text": "hello",
+              "version": 0
+            }
+          ]
+        ],
+        "op": "reconcile",
+        "result": {
+          "botName": "boekhouder",
+          "byApprovalId": {},
+          "byCallKey": {},
+          "byDelegationId": {},
+          "byProcessId": {},
+          "byRequestId": {},
+          "byRowId": {
+            "1": "r:1",
+            "2": "r:2"
+          },
+          "byToolId": {},
+          "draft": "",
+          "hydration": "live",
+          "items": {
+            "r:1": {
+              "id": "r:1",
+              "kind": "user",
+              "origin": "history",
+              "rowId": 1,
+              "seq": 0,
+              "text": "hi",
+              "version": 0
+            },
+            "r:2": {
+              "id": "r:2",
+              "interim": false,
+              "kind": "assistant",
+              "origin": "history",
+              "rowId": 2,
+              "seq": 1000,
+              "status": "complete",
+              "streaming": false,
+              "text": "hello",
+              "version": 0
+            }
+          },
+          "lastSeq": 0,
+          "order": [
+            "r:1",
+            "r:2"
+          ],
+          "resolvedSessionId": "resolved-1",
+          "storedSessionId": "stored-1",
+          "subagents": {},
+          "turn": {
+            "active": false,
+            "local": false,
+            "nextSeq": 2000
+          },
+          "unreadCount": 0
+        }
+      },
+      {
+        "args": [
+          {
+            "botName": "boekhouder",
+            "byApprovalId": {},
+            "byCallKey": {},
+            "byDelegationId": {},
+            "byProcessId": {},
+            "byRequestId": {},
+            "byRowId": {
+              "1": "r:1",
+              "2": "r:2"
+            },
+            "byToolId": {},
+            "draft": "",
+            "hydration": "live",
+            "items": {
+              "r:1": {
+                "id": "r:1",
+                "kind": "user",
+                "origin": "history",
+                "rowId": 1,
+                "seq": 0,
+                "text": "hi",
+                "version": 0
+              },
+              "r:2": {
+                "id": "r:2",
+                "interim": false,
+                "kind": "assistant",
+                "origin": "history",
+                "rowId": 2,
+                "seq": 1000,
+                "status": "complete",
+                "streaming": false,
+                "text": "hello",
+                "version": 0
+              }
+            },
+            "lastSeq": 0,
+            "order": [
+              "r:1",
+              "r:2"
+            ],
+            "resolvedSessionId": "resolved-1",
+            "storedSessionId": "stored-1",
+            "subagents": {},
+            "turn": {
+              "active": false,
+              "local": false,
+              "nextSeq": 2000
+            },
+            "unreadCount": 0
+          },
+          {
+            "seq": 20,
+            "turn_id": "T1",
+            "type": "message.start"
+          },
+          1790000000000
+        ],
+        "op": "applyEvent",
+        "result": {
+          "botName": "boekhouder",
+          "byApprovalId": {},
+          "byCallKey": {},
+          "byDelegationId": {},
+          "byProcessId": {},
+          "byRequestId": {},
+          "byRowId": {
+            "1": "r:1",
+            "2": "r:2"
+          },
+          "byToolId": {},
+          "compacting": false,
+          "draft": "",
+          "hydration": "live",
+          "items": {
+            "f:2000": {
+              "id": "f:2000",
+              "kind": "user",
+              "origin": "foreign",
+              "seq": 2000,
+              "text": "",
+              "ts": 1790000000,
+              "turnId": "T1",
+              "unknownAuthor": true,
+              "version": 0
+            },
+            "r:1": {
+              "id": "r:1",
+              "kind": "user",
+              "origin": "history",
+              "rowId": 1,
+              "seq": 0,
+              "text": "hi",
+              "version": 0
+            },
+            "r:2": {
+              "id": "r:2",
+              "interim": false,
+              "kind": "assistant",
+              "origin": "history",
+              "rowId": 2,
+              "seq": 1000,
+              "status": "complete",
+              "streaming": false,
+              "text": "hello",
+              "version": 0
+            }
+          },
+          "lastSeq": 20,
+          "order": [
+            "r:1",
+            "r:2",
+            "f:2000"
+          ],
+          "resolvedSessionId": "resolved-1",
+          "storedSessionId": "stored-1",
+          "subagents": {},
+          "turn": {
+            "active": true,
+            "foreignReconcilePending": true,
+            "id": "T1",
+            "interrupted": false,
+            "local": false,
+            "nextSeq": 3000,
+            "startedAt": 1790000000000
+          },
+          "unreadCount": 0
+        }
+      },
+      {
+        "args": [
+          {
+            "botName": "boekhouder",
+            "byApprovalId": {},
+            "byCallKey": {},
+            "byDelegationId": {},
+            "byProcessId": {},
+            "byRequestId": {},
+            "byRowId": {
+              "1": "r:1",
+              "2": "r:2"
+            },
+            "byToolId": {},
+            "compacting": false,
+            "draft": "",
+            "hydration": "live",
+            "items": {
+              "f:2000": {
+                "id": "f:2000",
+                "kind": "user",
+                "origin": "foreign",
+                "seq": 2000,
+                "text": "",
+                "ts": 1790000000,
+                "turnId": "T1",
+                "unknownAuthor": true,
+                "version": 0
+              },
+              "r:1": {
+                "id": "r:1",
+                "kind": "user",
+                "origin": "history",
+                "rowId": 1,
+                "seq": 0,
+                "text": "hi",
+                "version": 0
+              },
+              "r:2": {
+                "id": "r:2",
+                "interim": false,
+                "kind": "assistant",
+                "origin": "history",
+                "rowId": 2,
+                "seq": 1000,
+                "status": "complete",
+                "streaming": false,
+                "text": "hello",
+                "version": 0
+              }
+            },
+            "lastSeq": 20,
+            "order": [
+              "r:1",
+              "r:2",
+              "f:2000"
+            ],
+            "resolvedSessionId": "resolved-1",
+            "storedSessionId": "stored-1",
+            "subagents": {},
+            "turn": {
+              "active": true,
+              "foreignReconcilePending": true,
+              "id": "T1",
+              "interrupted": false,
+              "local": false,
+              "nextSeq": 3000,
+              "startedAt": 1790000000000
+            },
+            "unreadCount": 0
+          },
+          {
+            "payload": {
+              "text": "on it"
+            },
+            "seq": 21,
+            "turn_id": "T1",
+            "type": "message.delta"
+          },
+          1790000000000
+        ],
+        "op": "applyEvent",
+        "result": {
+          "botName": "boekhouder",
+          "byApprovalId": {},
+          "byCallKey": {},
+          "byDelegationId": {},
+          "byProcessId": {},
+          "byRequestId": {},
+          "byRowId": {
+            "1": "r:1",
+            "2": "r:2"
+          },
+          "byToolId": {},
+          "compacting": false,
+          "draft": "",
+          "hydration": "live",
+          "items": {
+            "a:3000": {
+              "id": "a:3000",
+              "interim": false,
+              "kind": "assistant",
+              "origin": "live",
+              "seq": 3000,
+              "streaming": true,
+              "text": "on it",
+              "ts": 1790000000,
+              "version": 1
+            },
+            "f:2000": {
+              "id": "f:2000",
+              "kind": "user",
+              "origin": "foreign",
+              "seq": 2000,
+              "text": "",
+              "ts": 1790000000,
+              "turnId": "T1",
+              "unknownAuthor": true,
+              "version": 0
+            },
+            "r:1": {
+              "id": "r:1",
+              "kind": "user",
+              "origin": "history",
+              "rowId": 1,
+              "seq": 0,
+              "text": "hi",
+              "version": 0
+            },
+            "r:2": {
+              "id": "r:2",
+              "interim": false,
+              "kind": "assistant",
+              "origin": "history",
+              "rowId": 2,
+              "seq": 1000,
+              "status": "complete",
+              "streaming": false,
+              "text": "hello",
+              "version": 0
+            }
+          },
+          "lastSeq": 21,
+          "order": [
+            "r:1",
+            "r:2",
+            "f:2000",
+            "a:3000"
+          ],
+          "resolvedSessionId": "resolved-1",
+          "storedSessionId": "stored-1",
+          "subagents": {},
+          "turn": {
+            "active": true,
+            "assistantId": "a:3000",
+            "foreignReconcilePending": true,
+            "id": "T1",
+            "interrupted": false,
+            "local": false,
+            "nextSeq": 4000,
+            "startedAt": 1790000000000
+          },
+          "unreadCount": 0
+        }
+      },
+      {
+        "args": [
+          {
+            "botName": "boekhouder",
+            "byApprovalId": {},
+            "byCallKey": {},
+            "byDelegationId": {},
+            "byProcessId": {},
+            "byRequestId": {},
+            "byRowId": {
+              "1": "r:1",
+              "2": "r:2"
+            },
+            "byToolId": {},
+            "compacting": false,
+            "draft": "",
+            "hydration": "live",
+            "items": {
+              "a:3000": {
+                "id": "a:3000",
+                "interim": false,
+                "kind": "assistant",
+                "origin": "live",
+                "seq": 3000,
+                "streaming": true,
+                "text": "on it",
+                "ts": 1790000000,
+                "version": 1
+              },
+              "f:2000": {
+                "id": "f:2000",
+                "kind": "user",
+                "origin": "foreign",
+                "seq": 2000,
+                "text": "",
+                "ts": 1790000000,
+                "turnId": "T1",
+                "unknownAuthor": true,
+                "version": 0
+              },
+              "r:1": {
+                "id": "r:1",
+                "kind": "user",
+                "origin": "history",
+                "rowId": 1,
+                "seq": 0,
+                "text": "hi",
+                "version": 0
+              },
+              "r:2": {
+                "id": "r:2",
+                "interim": false,
+                "kind": "assistant",
+                "origin": "history",
+                "rowId": 2,
+                "seq": 1000,
+                "status": "complete",
+                "streaming": false,
+                "text": "hello",
+                "version": 0
+              }
+            },
+            "lastSeq": 21,
+            "order": [
+              "r:1",
+              "r:2",
+              "f:2000",
+              "a:3000"
+            ],
+            "resolvedSessionId": "resolved-1",
+            "storedSessionId": "stored-1",
+            "subagents": {},
+            "turn": {
+              "active": true,
+              "assistantId": "a:3000",
+              "foreignReconcilePending": true,
+              "id": "T1",
+              "interrupted": false,
+              "local": false,
+              "nextSeq": 4000,
+              "startedAt": 1790000000000
+            },
+            "unreadCount": 0
+          },
+          {
+            "payload": {
+              "status": "complete",
+              "text": "on it"
+            },
+            "seq": 22,
+            "turn_id": "T1",
+            "type": "message.complete"
+          },
+          1790000000000
+        ],
+        "op": "applyEvent",
+        "result": {
+          "botName": "boekhouder",
+          "byApprovalId": {},
+          "byCallKey": {},
+          "byDelegationId": {},
+          "byProcessId": {},
+          "byRequestId": {},
+          "byRowId": {
+            "1": "r:1",
+            "2": "r:2"
+          },
+          "byToolId": {},
+          "compacting": false,
+          "draft": "",
+          "hydration": "live",
+          "items": {
+            "a:3000": {
+              "durationS": 0,
+              "id": "a:3000",
+              "interim": false,
+              "kind": "assistant",
+              "origin": "live",
+              "seq": 3000,
+              "status": "complete",
+              "streaming": false,
+              "text": "on it",
+              "ts": 1790000000,
+              "version": 2
+            },
+            "f:2000": {
+              "id": "f:2000",
+              "kind": "user",
+              "origin": "foreign",
+              "seq": 2000,
+              "text": "",
+              "ts": 1790000000,
+              "turnId": "T1",
+              "unknownAuthor": true,
+              "version": 0
+            },
+            "r:1": {
+              "id": "r:1",
+              "kind": "user",
+              "origin": "history",
+              "rowId": 1,
+              "seq": 0,
+              "text": "hi",
+              "version": 0
+            },
+            "r:2": {
+              "id": "r:2",
+              "interim": false,
+              "kind": "assistant",
+              "origin": "history",
+              "rowId": 2,
+              "seq": 1000,
+              "status": "complete",
+              "streaming": false,
+              "text": "hello",
+              "version": 0
+            }
+          },
+          "lastSeq": 22,
+          "order": [
+            "r:1",
+            "r:2",
+            "f:2000",
+            "a:3000"
+          ],
+          "resolvedSessionId": "resolved-1",
+          "storedSessionId": "stored-1",
+          "subagents": {},
+          "turn": {
+            "active": false,
+            "foreignReconcilePending": true,
+            "interrupted": false,
+            "local": false,
+            "nextSeq": 4000
+          },
+          "unreadCount": 0
+        }
+      },
+      {
+        "args": [
+          [
+            {
+              "role": "assistant",
+              "row_id": 4,
+              "text": "on it"
+            }
+          ],
+          "rpc"
+        ],
+        "op": "rowsToItems",
+        "result": [
+          {
+            "id": "r:4",
+            "interim": false,
+            "kind": "assistant",
+            "origin": "history",
+            "rowId": 4,
+            "seq": 0,
+            "status": "complete",
+            "streaming": false,
+            "text": "on it",
+            "version": 0
+          }
+        ]
+      },
+      {
+        "args": [
+          {
+            "botName": "boekhouder",
+            "byApprovalId": {},
+            "byCallKey": {},
+            "byDelegationId": {},
+            "byProcessId": {},
+            "byRequestId": {},
+            "byRowId": {
+              "1": "r:1",
+              "2": "r:2"
+            },
+            "byToolId": {},
+            "compacting": false,
+            "draft": "",
+            "hydration": "live",
+            "items": {
+              "a:3000": {
+                "durationS": 0,
+                "id": "a:3000",
+                "interim": false,
+                "kind": "assistant",
+                "origin": "live",
+                "seq": 3000,
+                "status": "complete",
+                "streaming": false,
+                "text": "on it",
+                "ts": 1790000000,
+                "version": 2
+              },
+              "f:2000": {
+                "id": "f:2000",
+                "kind": "user",
+                "origin": "foreign",
+                "seq": 2000,
+                "text": "",
+                "ts": 1790000000,
+                "turnId": "T1",
+                "unknownAuthor": true,
+                "version": 0
+              },
+              "r:1": {
+                "id": "r:1",
+                "kind": "user",
+                "origin": "history",
+                "rowId": 1,
+                "seq": 0,
+                "text": "hi",
+                "version": 0
+              },
+              "r:2": {
+                "id": "r:2",
+                "interim": false,
+                "kind": "assistant",
+                "origin": "history",
+                "rowId": 2,
+                "seq": 1000,
+                "status": "complete",
+                "streaming": false,
+                "text": "hello",
+                "version": 0
+              }
+            },
+            "lastSeq": 22,
+            "order": [
+              "r:1",
+              "r:2",
+              "f:2000",
+              "a:3000"
+            ],
+            "resolvedSessionId": "resolved-1",
+            "storedSessionId": "stored-1",
+            "subagents": {},
+            "turn": {
+              "active": false,
+              "foreignReconcilePending": true,
+              "interrupted": false,
+              "local": false,
+              "nextSeq": 4000
+            },
+            "unreadCount": 0
+          },
+          [
+            {
+              "id": "r:4",
+              "interim": false,
+              "kind": "assistant",
+              "origin": "history",
+              "rowId": 4,
+              "seq": 0,
+              "status": "complete",
+              "streaming": false,
+              "text": "on it",
+              "version": 0
+            }
+          ]
+        ],
+        "op": "reconcileTail",
+        "result": {
+          "botName": "boekhouder",
+          "byApprovalId": {},
+          "byCallKey": {},
+          "byDelegationId": {},
+          "byProcessId": {},
+          "byRequestId": {},
+          "byRowId": {
+            "1": "r:1",
+            "2": "r:2",
+            "4": "a:3000"
+          },
+          "byToolId": {},
+          "compacting": false,
+          "draft": "",
+          "hydration": "live",
+          "items": {
+            "a:3000": {
+              "durationS": 0,
+              "id": "a:3000",
+              "interim": false,
+              "kind": "assistant",
+              "origin": "history",
+              "rowId": 4,
+              "seq": 2000,
+              "status": "complete",
+              "streaming": false,
+              "text": "on it",
+              "version": 3
+            },
+            "r:1": {
+              "id": "r:1",
+              "kind": "user",
+              "origin": "history",
+              "rowId": 1,
+              "seq": 0,
+              "text": "hi",
+              "version": 0
+            },
+            "r:2": {
+              "id": "r:2",
+              "interim": false,
+              "kind": "assistant",
+              "origin": "history",
+              "rowId": 2,
+              "seq": 1000,
+              "status": "complete",
+              "streaming": false,
+              "text": "hello",
+              "version": 0
+            }
+          },
+          "lastSeq": 22,
+          "order": [
+            "r:1",
+            "r:2",
+            "a:3000"
+          ],
+          "resolvedSessionId": "resolved-1",
+          "storedSessionId": "stored-1",
+          "subagents": {},
+          "turn": {
+            "active": false,
+            "interrupted": false,
+            "local": false,
+            "nextSeq": 4000
+          },
+          "unreadCount": 0
+        }
+      },
+      {
+        "args": [
+          [
+            {
+              "display_kind": "auto_continue",
+              "display_metadata": {
+                "turn_id": "T1"
+              },
+              "role": "user",
+              "row_id": 3,
+              "text": "continue"
+            },
+            {
+              "role": "assistant",
+              "row_id": 4,
+              "text": "on it"
+            }
+          ],
+          "rpc"
+        ],
+        "op": "rowsToItems",
+        "result": [
+          {
+            "body": "continue",
+            "id": "r:3",
+            "kind": "notice",
+            "noticeKind": "auto_continue",
+            "origin": "history",
+            "rowId": 3,
+            "seq": 0,
+            "title": "Resumed interrupted turn",
+            "turnId": "T1",
+            "version": 0
+          },
+          {
+            "id": "r:4",
+            "interim": false,
+            "kind": "assistant",
+            "origin": "history",
+            "rowId": 4,
+            "seq": 1000,
+            "status": "complete",
+            "streaming": false,
+            "text": "on it",
+            "version": 0
+          }
+        ]
+      },
+      {
+        "args": [
+          {
+            "botName": "boekhouder",
+            "byApprovalId": {},
+            "byCallKey": {},
+            "byDelegationId": {},
+            "byProcessId": {},
+            "byRequestId": {},
+            "byRowId": {
+              "1": "r:1",
+              "2": "r:2",
+              "4": "a:3000"
+            },
+            "byToolId": {},
+            "compacting": false,
+            "draft": "",
+            "hydration": "live",
+            "items": {
+              "a:3000": {
+                "durationS": 0,
+                "id": "a:3000",
+                "interim": false,
+                "kind": "assistant",
+                "origin": "history",
+                "rowId": 4,
+                "seq": 2000,
+                "status": "complete",
+                "streaming": false,
+                "text": "on it",
+                "version": 3
+              },
+              "r:1": {
+                "id": "r:1",
+                "kind": "user",
+                "origin": "history",
+                "rowId": 1,
+                "seq": 0,
+                "text": "hi",
+                "version": 0
+              },
+              "r:2": {
+                "id": "r:2",
+                "interim": false,
+                "kind": "assistant",
+                "origin": "history",
+                "rowId": 2,
+                "seq": 1000,
+                "status": "complete",
+                "streaming": false,
+                "text": "hello",
+                "version": 0
+              }
+            },
+            "lastSeq": 22,
+            "order": [
+              "r:1",
+              "r:2",
+              "a:3000"
+            ],
+            "resolvedSessionId": "resolved-1",
+            "storedSessionId": "stored-1",
+            "subagents": {},
+            "turn": {
+              "active": false,
+              "interrupted": false,
+              "local": false,
+              "nextSeq": 4000
+            },
+            "unreadCount": 0
+          },
+          [
+            {
+              "body": "continue",
+              "id": "r:3",
+              "kind": "notice",
+              "noticeKind": "auto_continue",
+              "origin": "history",
+              "rowId": 3,
+              "seq": 0,
+              "title": "Resumed interrupted turn",
+              "turnId": "T1",
+              "version": 0
+            },
+            {
+              "id": "r:4",
+              "interim": false,
+              "kind": "assistant",
+              "origin": "history",
+              "rowId": 4,
+              "seq": 1000,
+              "status": "complete",
+              "streaming": false,
+              "text": "on it",
+              "version": 0
+            }
+          ]
+        ],
+        "op": "reconcileTail",
+        "result": {
+          "botName": "boekhouder",
+          "byApprovalId": {},
+          "byCallKey": {},
+          "byDelegationId": {},
+          "byProcessId": {},
+          "byRequestId": {},
+          "byRowId": {
+            "1": "r:1",
+            "2": "r:2",
+            "3": "r:3",
+            "4": "a:3000"
+          },
+          "byToolId": {},
+          "compacting": false,
+          "draft": "",
+          "hydration": "live",
+          "items": {
+            "a:3000": {
+              "durationS": 0,
+              "id": "a:3000",
+              "interim": false,
+              "kind": "assistant",
+              "origin": "history",
+              "rowId": 4,
+              "seq": 3000,
+              "status": "complete",
+              "streaming": false,
+              "text": "on it",
+              "version": 4
+            },
+            "r:1": {
+              "id": "r:1",
+              "kind": "user",
+              "origin": "history",
+              "rowId": 1,
+              "seq": 0,
+              "text": "hi",
+              "version": 0
+            },
+            "r:2": {
+              "id": "r:2",
+              "interim": false,
+              "kind": "assistant",
+              "origin": "history",
+              "rowId": 2,
+              "seq": 1000,
+              "status": "complete",
+              "streaming": false,
+              "text": "hello",
+              "version": 0
+            },
+            "r:3": {
+              "body": "continue",
+              "id": "r:3",
+              "kind": "notice",
+              "noticeKind": "auto_continue",
+              "origin": "history",
+              "rowId": 3,
+              "seq": 2000,
+              "title": "Resumed interrupted turn",
+              "turnId": "T1",
+              "version": 0
+            }
+          },
+          "lastSeq": 22,
+          "order": [
+            "r:1",
+            "r:2",
+            "r:3",
+            "a:3000"
+          ],
+          "resolvedSessionId": "resolved-1",
+          "storedSessionId": "stored-1",
+          "subagents": {},
+          "turn": {
+            "active": false,
+            "interrupted": false,
+            "local": false,
+            "nextSeq": 4000
+          },
+          "unreadCount": 0
+        }
+      }
+    ],
+    "test": "a stale tail that closes a placeholder > is healed by the next tail, which puts the notice above the reply by its row id"
   }
 ]

@@ -73,3 +73,19 @@ public func turnIDOfMetadata(_ value: JSONValue?) -> String? {
   guard case .string(let turnID)? = identityObject(value)?["turn_id"], !turnID.isEmpty else { return nil }
   return turnID
 }
+
+/// The turn a row opened and the row it was, for each way an item can stand for
+/// one: the item's own `turnID` and `rowID`, and, on a dispatch card that a
+/// delivery row joined, the `reply`'s. A joined delivery leaves no item of its
+/// own, so the card's reply is the only place that row is on screen.
+///
+/// `promptRowsOf`.
+func promptRowsOf(_ item: TranscriptItem) -> [(turnID: String?, rowID: Int?)] {
+  var rows: [(turnID: String?, rowID: Int?)] = [(item.turnID, item.rowID)]
+
+  if case .botDmOut(let outbound) = item, let reply = outbound.reply {
+    rows.append((reply.turnID, reply.rowID))
+  }
+
+  return rows
+}

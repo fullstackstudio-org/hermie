@@ -9,6 +9,7 @@
  *
  * Ported from `apps/desktop/src/lib/chat-messages/reconciliation.ts`.
  */
+import { promptRowsOf } from './identity'
 import { isInjectedNotice } from './injected'
 import { isMatchable, itemMatchKey } from './rows-to-items'
 import {
@@ -671,7 +672,14 @@ export function prependHistory(state: ChatState, olderItems: readonly Transcript
 export function reconcileTail(state: ChatState, tailItems: readonly TranscriptItem[]): ChatState {
   const list = state.order.map(id => state.items[id]).filter((item): item is TranscriptItem => Boolean(item))
   const placeholders = list.filter(item => item.kind === 'user' && item.unknownAuthor).map(item => item.id)
-  const knownRowIds = new Set(list.map(item => item.rowId).filter((rowId): rowId is number => rowId !== undefined))
+  // Every row on screen, including a delivery row that joined a dispatch card and
+  // so is held only as the card's `reply`: a page without the dispatch must not
+  // add that row again as a notice.
+  const knownRowIds = new Set(
+    list
+      .flatMap(item => promptRowsOf(item).map(row => row.rowId))
+      .filter((rowId): rowId is number => rowId !== undefined)
+  )
   const byId = new Map(list.map(item => [item.id, item]))
   const appended: TranscriptItem[] = []
   let placeholderCursor = 0
@@ -749,6 +757,16 @@ export function reconcileTail(state: ChatState, tailItems: readonly TranscriptIt
 
       if (current) {
         byId.set(current.id, mergeWithLive(fresh, current))
+      }
+
+      // The row is on screen already, so whatever turn it opened has had it.
+      const heldTurnId = turnOfOtherRow(fresh)
+      const heldId = heldTurnId ? liveByTurnId.get(heldTurnId) : undefined
+
+      if (heldId && !pairedLive.has(heldId) && isTurnPlaceholder(byId.get(heldId))) {
+        pairedLive.add(heldId)
+        filled.add(heldId)
+        byId.delete(heldId)
       }
 
       continue
