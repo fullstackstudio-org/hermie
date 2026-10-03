@@ -182,6 +182,32 @@ export class ScrollAnchor {
     this.maybeReachTop(metrics)
   }
 
+  /**
+   * Put the row with this key `offset` pixels below the top of the viewport (as
+   * far as the content allows) and hold it there: the reader is reading that row
+   * now, and stops following the bottom unless it is at the bottom. `false` when
+   * the row is not in the list.
+   */
+  showRow(key: string, offset = 0): boolean {
+    const top = this.surface.rowTop(key)
+
+    if (top === null) {
+      return false
+    }
+
+    const before = this.metrics()
+
+    this.surface.setScrollTop(Math.max(0, before.scrollTop + top - offset))
+
+    const after = this.metrics()
+
+    this.setStuck(distanceFromBottom(after) <= STICK_THRESHOLD)
+    this.record(after)
+    this.maybeReachTop(after)
+
+    return true
+  }
+
   /** Go to the newest row and follow it from now on. */
   stickToBottom(): void {
     this.setStuck(true)

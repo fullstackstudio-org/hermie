@@ -225,6 +225,76 @@ export const WEB_STRINGS_SOURCE = {
       }
     }
   },
+  sessions: {
+    /** The button on a bot's Conversations page that puts the current conversation away and starts a new one (`/new`). */
+    newConversation: {
+      en: 'New conversation',
+      nl: 'Nieuw gesprek',
+      de: 'Neue Unterhaltung'
+    },
+    /** Asked before a new conversation starts: the group chat is everybody's, so this puts it away for everybody. */
+    newConfirmBody: {
+      en: 'The current conversation moves to Past conversations and a new one starts. Everyone on this gateway shares it.',
+      nl: 'Het huidige gesprek gaat naar Eerdere gesprekken en er begint een nieuw gesprek. Iedereen op deze gateway deelt het.',
+      de: 'Die aktuelle Unterhaltung wird zu den früheren Unterhaltungen gelegt und eine neue beginnt. Alle auf diesem Gateway teilen sie.'
+    },
+    /** The button that confirms it. */
+    newConfirm: {
+      en: 'Start a new conversation',
+      nl: 'Nieuw gesprek starten',
+      de: 'Neue Unterhaltung beginnen'
+    },
+    /** Shown when the new conversation could not be started. */
+    newFailed: {
+      en: ({ message }: { message: string }) => `The new conversation was not started: ${message}`,
+      nl: ({ message }: { message: string }) => `Het nieuwe gesprek is niet gestart: ${message}`,
+      de: ({ message }: { message: string }) => `Die neue Unterhaltung wurde nicht begonnen: ${message}`
+    },
+    /** Said once a conversation has been renamed. */
+    renamed: {
+      en: 'The conversation has a new name.',
+      nl: 'Het gesprek heeft een nieuwe naam.',
+      de: 'Die Unterhaltung hat einen neuen Namen.'
+    },
+    /** Said once a conversation has been deleted. */
+    deleted: {
+      en: 'The conversation was deleted.',
+      nl: 'Het gesprek is verwijderd.',
+      de: 'Die Unterhaltung wurde gelöscht.'
+    },
+    /** Said once a past conversation or a branch has become the Bot Chat. */
+    adopted: {
+      en: 'That conversation is the Bot Chat now.',
+      nl: 'Dat gesprek is nu de Bot Chat.',
+      de: 'Diese Unterhaltung ist jetzt der Bot Chat.'
+    },
+    /** A rename, delete or swap the gateway refused, with its reason. */
+    actionFailed: {
+      en: ({ message }: { message: string }) => `That did not work: ${message}`,
+      nl: ({ message }: { message: string }) => `Dat lukte niet: ${message}`,
+      de: ({ message }: { message: string }) => `Das hat nicht geklappt: ${message}`
+    },
+    /** Above a past conversation or a branch: the way back to the bot's chat. */
+    backToChat: {
+      en: 'Back to the chat',
+      nl: 'Terug naar de chat',
+      de: 'Zurück zum Chat'
+    },
+    /** The accessible name of the conversation's group of actions, with its title. */
+    actionsFor: {
+      en: ({ name }: { name: string }) => `Actions for ${name}`,
+      nl: ({ name }: { name: string }) => `Acties voor ${name}`,
+      de: ({ name }: { name: string }) => `Aktionen für ${name}`
+    }
+  },
+  search: {
+    /** Announced when a chat opened from a search hit has scrolled to the row with the words in it. */
+    found: {
+      en: ({ query }: { query: string }) => `Found “${query}” in this chat.`,
+      nl: ({ query }: { query: string }) => `“${query}” gevonden in deze chat.`,
+      de: ({ query }: { query: string }) => `„${query}“ in diesem Chat gefunden.`
+    }
+  },
   composer: {
     /** Under the field when a send was refused: the words are back in the field. */
     sendFailed: {

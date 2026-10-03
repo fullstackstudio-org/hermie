@@ -49,3 +49,10 @@
   content-visibility: auto;
   contain-intrinsic-block-size: auto var(--transcript-chunk-estimate, 2400px);
 }
+
+/* The row a search hit opened the chat at (`revealRow`): marked until another row is. */
+.transcript-list__row[data-found='true'] {
+  border-radius: var(--hm-radius);
+  background: var(--hm-selected);
+  box-shadow: inset 3px 0 0 var(--hm-tint);
+}

@@ -1,0 +1,151 @@
+/* A bot's Conversations page (`ConversationsPage.tsx`). Colours are the theme's (`ui/theme.css`). */
+
+.hm-conversations {
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+  max-width: 44rem;
+  color: var(--hm-text);
+}
+
+.hm-conversations p {
+  margin: 0;
+}
+
+.hm-conversations__bot {
+  color: var(--hm-text-muted);
+}
+
+.hm-conversations__bot a {
+  color: var(--hm-link);
+}
+
+.hm-conversations__notice,
+.hm-conversations__state,
+.hm-conversations__empty {
+  color: var(--hm-text-muted);
+  overflow-wrap: anywhere;
+}
+
+.hm-conversations [data-tone='danger'] {
+  color: var(--hm-danger-text);
+}
+
+.hm-conversations__group {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.hm-conversations__group-title {
+  margin: 0;
+  color: var(--hm-text-faint);
+  font-size: 0.75rem;
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+
+.hm-conversations__rows {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.hm-conversation {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  padding-block: 10px;
+  border-bottom: 1px solid var(--hm-line);
+}
+
+.hm-conversation__title {
+  font-weight: 600;
+  overflow-wrap: anywhere;
+}
+
+.hm-conversation__preview {
+  overflow: hidden;
+  color: var(--hm-text-muted);
+  font-size: 0.9375rem;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.hm-conversation__meta {
+  color: var(--hm-text-faint);
+  font-size: 0.8125rem;
+}
+
+.hm-conversation__actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px 16px;
+}
+
+/* Text actions, a full touch target tall. */
+.hm-conversation__action {
+  appearance: none;
+  display: inline-flex;
+  align-items: center;
+  min-height: 44px;
+  padding: 0;
+  border: 0;
+  background: none;
+  color: var(--hm-tint-text);
+  font: inherit;
+  font-size: 0.9375rem;
+  text-decoration: none;
+  cursor: pointer;
+}
+
+.hm-conversation__action:hover:not(:disabled) {
+  text-decoration: underline;
+}
+
+.hm-conversation__action[data-tone='danger'] {
+  color: var(--hm-danger-text);
+}
+
+.hm-conversation__action:disabled {
+  opacity: 0.6;
+  cursor: default;
+}
+
+.hm-conversation__form,
+.hm-conversations__confirm {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.hm-conversation__label {
+  color: var(--hm-text-muted);
+  font-size: 0.875rem;
+}
+
+.hm-conversation__field {
+  box-sizing: border-box;
+  width: 100%;
+  min-height: 44px;
+  padding: 0 12px;
+  border: 1px solid var(--hm-line);
+  border-radius: var(--hm-radius);
+  background: var(--hm-surface);
+  color: var(--hm-text);
+  font: inherit;
+}
+
+.hm-conversations__buttons {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+/* The one destructive button: the danger ink as an outline, never a fill the theme does not hold to contrast. */
+.hm-button.hm-button--danger {
+  border-color: currentcolor;
+  background: transparent;
+  color: var(--hm-danger-text);
+}

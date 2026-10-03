@@ -138,6 +138,15 @@ describe('the routes', () => {
     expect(screen.getByRole('heading', { level: 1 }).textContent).toBe('Settings')
   })
 
+  it('heads a bot’s conversations page, and keeps the bot selected in the list', () => {
+    router.navigate('#/chat/writer/conversations')
+    renderApp()
+
+    expect(screen.getByRole('heading', { level: 1 }).textContent).toBe('Conversations')
+    expect(document.querySelector('a[data-bot="writer"]')?.getAttribute('aria-current')).toBe('page')
+    expect(pane()).toBe('detail')
+  })
+
   it('sends an unknown route to the home route', () => {
     router.navigate('#/nowhere/at/all')
     renderApp()

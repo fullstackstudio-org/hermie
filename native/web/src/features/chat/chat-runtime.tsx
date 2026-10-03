@@ -14,6 +14,8 @@
  */
 import { createContext, useContext } from 'react'
 
+import type { SessionSearchHttp } from '@hermie/gateway-client'
+
 import type { ChatController } from '../../core/chat-controller'
 import type { DraftStore } from './drafts'
 
@@ -22,7 +24,9 @@ import type { DraftStore } from './drafts'
  * (the screen), sending, stopping and the queue behind a running turn, slash
  * commands and uploads (the composer), and answering the two request kinds
  * (the request layer, which is over every chat and so is given the same
- * controller). `uploadFile` is the attachment tray's (`use-attachment-tray.ts`).
+ * controller), and a bot's other conversations (`features/sessions`: list,
+ * rename, delete, make one the Bot Chat, start a new one). `uploadFile` is the
+ * attachment tray's (`use-attachment-tray.ts`).
  */
 export type ChatScreenController = Pick<
   ChatController,
@@ -47,6 +51,12 @@ export type ChatScreenController = Pick<
   | 'cancelClarify'
   | 'acknowledgeApproval'
   | 'openApprovals'
+  | 'listConversations'
+  | 'onConversationsChanged'
+  | 'renameConversation'
+  | 'deleteConversation'
+  | 'adoptAsCanonical'
+  | 'startNewConversation'
 >
 
 export interface ChatSessionRuntime {
@@ -58,6 +68,12 @@ export interface ChatSessionRuntime {
    * screen, a gallery) keeps them for as long as the composer is on screen.
    */
   drafts?: DraftStore
+  /**
+   * The gateway's REST client, for the search over every bot's transcripts
+   * (`GET /api/sessions/search`, `features/search`). Absent (a test of the
+   * screen, a gallery) searches names only.
+   */
+  sessionSearch?: SessionSearchHttp
 }
 
 export const ChatRuntimeContext = createContext<ChatSessionRuntime | null>(null)

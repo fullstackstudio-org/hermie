@@ -72,6 +72,27 @@
   overflow-wrap: anywhere;
 }
 
+/* The way to the bot's other conversations, at the end of the line. */
+.hm-chat-header__link {
+  display: inline-flex;
+  align-items: center;
+  min-height: 44px;
+  margin-inline-start: auto;
+  color: var(--hm-link);
+  white-space: nowrap;
+}
+
+/* A past conversation or a branch: what it is, and the ways back. */
+.hm-chat__banner-links {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px 16px;
+}
+
+.hm-chat__banner-links a {
+  color: var(--hm-link);
+}
+
 /* ── notes above the transcript, and the stage the transcript fills ───────── */
 
 .hm-chat__banner {

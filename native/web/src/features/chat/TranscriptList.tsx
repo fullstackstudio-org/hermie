@@ -65,11 +65,26 @@ export interface TranscriptListProps {
   listRef?: Ref<TranscriptListHandle>
 }
 
-/** The one command the list takes besides its rows. */
+/** The commands the list takes besides its rows. */
 export interface TranscriptListHandle {
   /** Go to the newest row and follow it from now on (the "jump to latest" control). */
   jumpToLatest(): void
+  /**
+   * Scroll the row with this key into view, a little below the top, hold the
+   * reader there and mark it (`data-found` on the row, until another row is
+   * marked): a search hit's row. `false` when the row is not in the list.
+   */
+  revealRow(key: string): boolean
+  /**
+   * Scroll to the oldest row the list holds and hold the reader there, where
+   * older history lands next to what is drawn (a search walking back through
+   * history). Nothing is marked.
+   */
+  showOldest(): void
 }
+
+/** Where a revealed row lands: this fraction of the viewport below its top. */
+const REVEAL_FRACTION = 0.25
 
 /** What a chunk and its rows share with the list. One object for the list's life. */
 interface ListShared {
@@ -272,13 +287,79 @@ export function TranscriptList({
   const chunksRef = useRef<ChunkAssignment<VisibleItem>>(emptyAssignment())
   const rowsSeen = useRef<readonly VisibleItem[] | null>(null)
 
-  useImperativeHandle(listRef, () => ({ jumpToLatest: () => anchorRef.current?.stickToBottom() }), [])
-
   // One object for the list's life, so memoised chunks and rows never see it change.
   const [shared] = useState<ListShared>(() => ({
     rowElements: new Map(),
     resize: layoutClock.observeResize(() => anchorRef.current?.settle())
   }))
+
+  // The row `revealRow` marked last, so marking another unmarks it.
+  const marked = useRef<HTMLElement | null>(null)
+
+  useImperativeHandle(
+    listRef,
+    () => ({
+      jumpToLatest: () => anchorRef.current?.stickToBottom(),
+      revealRow(key) {
+        const anchor = anchorRef.current
+        const scroller = scrollerRef.current
+        const element = shared.rowElements.get(key)
+
+        if (!anchor || !scroller || !element?.isConnected) {
+          return false
+        }
+
+        /*
+          The row may sit in a chunk nobody has drawn yet, laid out at its
+          estimate, and so may its neighbours. Jumping there would draw them at
+          their real heights only after the jump, the anchor's correction for
+          that would bring the next skipped chunk in, and the resize watch would
+          be told about it in the same frame: WebKit's "ResizeObserver loop"
+          error, and a row that lands off its mark. So the row's chunk and the
+          two beside it are drawn first (laid out for real by the measurement the
+          jump makes), kept drawn for a whole frame, so the browser remembers
+          their real heights (`contain-intrinsic-size: auto`), and handed back to
+          `content-visibility: auto` after it.
+        */
+        const chunk = element.parentElement
+        const drawn = [chunk?.previousElementSibling, chunk, chunk?.nextElementSibling].filter(
+          (node): node is HTMLElement => node instanceof HTMLElement
+        )
+
+        for (const node of drawn) {
+          node.style.setProperty('content-visibility', 'visible')
+        }
+
+        layoutClock.nextFrame(() =>
+          layoutClock.nextFrame(() => {
+            for (const node of drawn) {
+              node.style.removeProperty('content-visibility')
+            }
+          })
+        )
+
+        if (!anchor.showRow(key, scroller.clientHeight * REVEAL_FRACTION)) {
+          return false
+        }
+
+        // Set on the element itself: the row's memo is on its item, and a mark is not part of the item.
+        marked.current?.removeAttribute('data-found')
+        element.setAttribute('data-found', 'true')
+        marked.current = element
+
+        return true
+      },
+      showOldest() {
+        const first = rowsRef.current?.firstElementChild?.firstElementChild
+        const key = first instanceof HTMLElement ? first.dataset.rowKey : undefined
+
+        if (key !== undefined) {
+          anchorRef.current?.showRow(key, 0)
+        }
+      }
+    }),
+    [shared]
+  )
 
   if (rowsSeen.current !== rows) {
     chunksRef.current = assignChunks(chunksRef.current, rows, keyOf)

@@ -293,6 +293,39 @@ describe('the scroll anchor', () => {
     expect(onStickChange.mock.calls).toEqual([[false], [true]])
   })
 
+  it('shows a row on request below the top, stops following and holds it while the tail grows', () => {
+    const model = ModelScroller.of(50)
+    const onStickChange = vi.fn()
+    const anchor = settledAtBottom(model, { onStickChange })
+
+    expect(anchor.showRow('r20', 150)).toBe(true)
+    expect(model.rowTop('r20')).toBe(150)
+    expect(anchor.stuck).toBe(false)
+    expect(onStickChange.mock.calls).toEqual([[false]])
+
+    model.grow('r49', 300)
+    model.grow('r10', 40)
+    anchor.settle()
+    expect(model.rowTop('r20')).toBe(150)
+  })
+
+  it('shows a row near the bottom as far as the content allows, and keeps following there', () => {
+    const model = ModelScroller.of(50)
+    const anchor = settledAtBottom(model)
+
+    expect(anchor.showRow('r49', 150)).toBe(true)
+    expect(anchor.stuck).toBe(true)
+    expect(model.top).toBe(5000 - 600)
+  })
+
+  it('cannot show a row that is not in the list', () => {
+    const model = ModelScroller.of(5)
+    const anchor = settledAtBottom(model)
+
+    expect(anchor.showRow('nope')).toBe(false)
+    expect(anchor.stuck).toBe(true)
+  })
+
   it('does nothing it cannot do when the anchored row is gone', () => {
     const model = ModelScroller.of(50)
     const anchor = settledAtBottom(model)

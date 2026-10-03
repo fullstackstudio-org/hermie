@@ -37,6 +37,15 @@
  * file picked, pasted or dropped ends in the same place. Only a chat that has a
  * composer and is attached to its session takes files: a file is uploaded into
  * that session's workspace.
+ *
+ * **A search hit** (`features/search`) opens the bot's chat with a `FindRequest`
+ * waiting: once the rows are there, the newest row with the words is scrolled
+ * into view and marked, paging back through older history where it has to
+ * (`useFindInChat`); where the words are not in the visible text, a line says so.
+ *
+ * **A past conversation or a branch** (`#/chat/<bot>/s/<id>`, `features/sessions`)
+ * opens read-only: a line says what it is, with the ways back to the chat and to
+ * the bot's conversations, and there is no composer.
  */
 import { plainTextPreview } from '@hermie/markdown/plain-text'
 import {
@@ -62,6 +71,9 @@ import { connectionStore } from '../../state/connection'
 import { Button } from '../../ui/primitives'
 import { ResumeProgressLine } from '../notices/ResumeProgressLine'
 import { SecureInputNotice } from '../notices/SecureInputNotice'
+import { useFindRequest } from '../search/find-request'
+import { useFindInChat } from '../search/use-find-in-chat'
+import { chatHref, conversationsHref } from '../shell/router'
 import { clipLine } from './chat-format'
 import { ChatHeader } from './ChatHeader'
 import { Composer } from './Composer'
@@ -275,6 +287,22 @@ export function ChatScreen({ bot, session, view = DEFAULT_CHAT_VIEW }: ChatScree
     }
   }, [live, loadOlder])
 
+  // ── a search hit's words ────────────────────────────────────────────────────
+  const findRequest = useFindRequest(bot)
+  const loadOlderPage = useCallback(
+    (): Promise<'grew' | 'start' | 'unavailable'> =>
+      runtime && key !== undefined ? runtime.controller.loadOlder(key) : Promise.resolve('unavailable'),
+    [runtime, key]
+  )
+  // Only the bot's own chat: a hit is always in it (`message-search.ts` drops the rest).
+  const find = useFindInChat({
+    request: session === undefined && key === bot ? findRequest : null,
+    rows: shown,
+    loaded: live,
+    list: listRef,
+    loadOlder: loadOlderPage
+  })
+
   // ── read marking ────────────────────────────────────────────────────────────
   const newestMessageAt = useMemo(
     () => (chat ? lastMessageAt(chat) : 0),
@@ -337,7 +365,15 @@ export function ChatScreen({ bot, session, view = DEFAULT_CHAT_VIEW }: ChatScree
     <DropZone className="hm-chat" enabled={tray !== null && attached} onFiles={dropFiles}>
       <ChatHeader bot={bot} chatKey={key} />
 
-      {viewer ? <p className="hm-chat__banner">{webStrings.chat.readOnly}</p> : null}
+      {viewer ? (
+        <div className="hm-chat__banner">
+          <p>{webStrings.chat.readOnly}</p>
+          <p className="hm-chat__banner-links">
+            <a href={chatHref(bot)}>{webStrings.sessions.backToChat}</a>
+            <a href={conversationsHref(bot)}>{strings.chat.sessions.conversations}</a>
+          </p>
+        </div>
+      ) : null}
       {offlineCopy ? <p className="hm-chat__banner">{strings.app.chat.offlineCopy}</p> : null}
       {hydration === 'stale' ? <p className="hm-chat__banner">{strings.app.chat.stale}</p> : null}
       {error ? (
@@ -348,6 +384,7 @@ export function ChatScreen({ bot, session, view = DEFAULT_CHAT_VIEW }: ChatScree
           </Button>
         </div>
       ) : null}
+      {find.missed ? <p className="hm-chat__banner">{find.status}</p> : null}
       {/* A secret, sudo or vault prompt that ended without an answer, or a request only the desktop app can answer. */}
       <SecureInputNotice chatKey={key ?? bot} bot={bot} />
       <ResumeProgressLine chatKey={key ?? bot} />
@@ -395,6 +432,10 @@ export function ChatScreen({ bot, session, view = DEFAULT_CHAT_VIEW }: ChatScree
       {/* A separate, polite region: a finished reply is said once, and a streaming one never is. */}
       <div className="hm-sr hm-chat__announce" role="status" aria-live="polite" aria-atomic="true">
         {announcement}
+      </div>
+      {/* And one for a search hit's row, found or not. */}
+      <div className="hm-sr" role="status" aria-live="polite" aria-atomic="true">
+        {find.status}
       </div>
     </DropZone>
   )

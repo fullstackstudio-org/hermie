@@ -14,6 +14,7 @@
  * | `#/`                          | Hermie               | "Pick a conversation..."         |
  * | `#/chat/<bot>`                | the bot's name       | the chat (`ChatScreen`)          |
  * | `#/chat/<bot>/s/<session>`    | the bot's name       | that conversation (`ChatScreen`) |
+ * | `#/chat/<bot>/conversations`  | Conversations        | the bot's conversations (`ConversationsPage`) |
  * | `#/settings`                  | Settings             | placeholder (W-20b), a link to Passkeys |
  * | `#/settings/passkeys`         | Settings             | the passkeys of this gateway (`Passkeys`) |
  * | `#/settings/<other section>`  | Settings             | placeholder (W-20b)              |
@@ -64,6 +65,11 @@ const loadPasskeys = () => import('../settings/Passkeys')
 const Passkeys = lazy(() => loadPasskeys().then(module => ({ default: module.Passkeys })))
 const preloadPasskeys = (): void => void loadPasskeys().catch(() => undefined)
 
+/** So is a bot's Conversations page, fetched when `#/chat/<bot>/conversations` is opened. */
+const ConversationsPage = lazy(() =>
+  import('../sessions/ConversationsPage').then(module => ({ default: module.ConversationsPage }))
+)
+
 export interface AppProps {
   /** Who is signed in: display name, else email, else id; empty when the gateway named nobody. */
   user: string
@@ -87,7 +93,8 @@ export interface AppProps {
 }
 
 /** The bot a route is on, if it is on one. */
-const botOf = (route: Route): string | undefined => (route.name === 'chat' ? route.bot : undefined)
+const botOf = (route: Route): string | undefined =>
+  route.name === 'chat' || route.name === 'conversations' ? route.bot : undefined
 
 export function App({
   user,
@@ -110,7 +117,13 @@ export function App({
 
   const appName = strings.app.app.name
   const heading =
-    route.name === 'chat' ? (botName ?? route.bot) : route.name === 'settings' ? strings.app.settings.title : appName
+    route.name === 'chat'
+      ? (botName ?? route.bot)
+      : route.name === 'conversations'
+        ? strings.chat.sessions.conversations
+        : route.name === 'settings'
+          ? strings.app.settings.title
+          : appName
 
   // The tab says where you are; the app's own name stands alone on the home route.
   useEffect(() => {
@@ -144,6 +157,10 @@ export function App({
                   bot={route.bot}
                   {...(route.session ? { session: route.session } : {})}
                 />
+              ) : route.name === 'conversations' ? (
+                <Suspense fallback={<div className="hm-main__body" aria-busy="true" />}>
+                  <ConversationsPage key={formatRoute(route)} bot={route.bot} router={router} />
+                </Suspense>
               ) : route.name === 'settings' && route.section === 'passkeys' ? (
                 <Suspense fallback={<div className="hm-main__body" aria-busy="true" />}>
                   <Passkeys />

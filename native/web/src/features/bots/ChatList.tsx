@@ -14,8 +14,14 @@
  * States, all in words: the roster is being read, it is empty, it could not be
  * read. When the gateway has no Hermie plugin the client still works; a hint
  * says that notifications need it.
+ *
+ * **Search** (`features/search`). A field above the list narrows it to the bots
+ * whose names hold the words, at once and on this device (`name-filter.ts`), and
+ * below the rows the gateway's search over every bot's transcripts answers after
+ * a pause in typing (`MessageHits`): a hit opens that chat at the words. Escape
+ * empties the field.
  */
-import { type KeyboardEvent, type ReactElement, useRef, useState } from 'react'
+import { type KeyboardEvent, type ReactElement, useMemo, useRef, useState } from 'react'
 import { useStore } from 'zustand'
 
 import { strings } from '../../generated/strings'
@@ -26,6 +32,8 @@ import { connectionStore } from '../../state/connection'
 import { pluginPresence, pluginStore } from '../../state/plugin'
 import { Icon } from '../../ui/icons'
 import { useOwnAuthorId } from '../chat/use-own-author'
+import { MessageHits } from '../search/MessageHits'
+import { filterByName } from '../search/name-filter'
 import { BotRow } from './BotRow'
 import './bots.css'
 
@@ -45,13 +53,17 @@ export function ChatList({ selectedBot }: ChatListProps): ReactElement {
   const author = useOwnAuthorId()
   const presence = useStore(pluginStore, pluginPresence)
 
+  const [query, setQuery] = useState('')
+  const narrowed = query.trim() !== ''
+  const shown = useMemo(() => filterByName(bots, query), [bots, query])
+
   const listRef = useRef<HTMLUListElement>(null)
   // The row a Tab lands on: wherever focus last was, else the open chat, else the first.
   const [focused, setFocused] = useState<string | null>(null)
   const tabbableBot =
-    (focused && bots.some(bot => bot.name === focused) ? focused : null) ??
-    (selectedBot && bots.some(bot => bot.name === selectedBot) ? selectedBot : null) ??
-    bots[0]?.name ??
+    (focused && shown.some(bot => bot.name === focused) ? focused : null) ??
+    (selectedBot && shown.some(bot => bot.name === selectedBot) ? selectedBot : null) ??
+    shown[0]?.name ??
     null
 
   const onKeyDown = (event: KeyboardEvent<HTMLUListElement>): void => {
@@ -83,6 +95,28 @@ export function ChatList({ selectedBot }: ChatListProps): ReactElement {
 
   return (
     <div className="hm-chat-list">
+      {bots.length > 0 ? (
+        <div className="hm-search" role="search">
+          <input
+            className="hm-search__field"
+            type="search"
+            value={query}
+            onChange={event => setQuery(event.target.value)}
+            onKeyDown={event => {
+              if (event.key === 'Escape' && query !== '') {
+                event.preventDefault()
+                setQuery('')
+              }
+            }}
+            aria-label={strings.app.bots.search}
+            placeholder={strings.app.bots.search}
+            autoComplete="off"
+            spellCheck={false}
+            enterKeyHint="search"
+          />
+        </div>
+      ) : null}
+
       {error && bots.length === 0 ? (
         <p className="hm-note" role="alert">
           {strings.app.bots.failed({ message: error })}
@@ -97,7 +131,11 @@ export function ChatList({ selectedBot }: ChatListProps): ReactElement {
 
       {read && bots.length === 0 && !error ? <p className="hm-note">{strings.app.bots.empty}</p> : null}
 
-      {bots.length > 0 ? (
+      {narrowed && bots.length > 0 && shown.length === 0 ? (
+        <p className="hm-note">{strings.app.bots.noMatches({ query: query.trim() })}</p>
+      ) : null}
+
+      {shown.length > 0 ? (
         <ul
           className="hm-rows"
           ref={listRef}
@@ -110,7 +148,7 @@ export function ChatList({ selectedBot }: ChatListProps): ReactElement {
             }
           }}
         >
-          {bots.map(bot => (
+          {shown.map(bot => (
             <BotRow
               key={bot.name}
               bot={bot}
@@ -123,6 +161,8 @@ export function ChatList({ selectedBot }: ChatListProps): ReactElement {
           ))}
         </ul>
       ) : null}
+
+      {narrowed ? <MessageHits query={query} /> : null}
 
       {presence === 'absent' ? (
         <p className="hm-note hm-note--plugin">

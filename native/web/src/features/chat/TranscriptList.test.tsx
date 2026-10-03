@@ -1,8 +1,9 @@
 import { type TranscriptItem, type VisibleItem } from '@hermie/transcript'
 import { render, screen } from '@testing-library/react'
+import { createRef } from 'react'
 import { describe, expect, it, vi } from 'vitest'
 
-import { sameRow, TranscriptList } from './TranscriptList'
+import { sameRow, TranscriptList, type TranscriptListHandle } from './TranscriptList'
 
 function userRow(id: string, text: string, version = 0): VisibleItem {
   const item = { id, kind: 'user', origin: 'history', seq: 0, text, version } as TranscriptItem
@@ -121,6 +122,25 @@ describe('TranscriptList', () => {
       <TranscriptList rows={[...history(2, 'o'), ...history(3)]} renderItem={renderItem} onReachTop={onReachTop} />
     )
     expect(onReachTop).toHaveBeenCalledTimes(2)
+  })
+
+  it('reveals a row on request and marks it, one row at a time; a row it does not hold is refused', () => {
+    const { renderItem } = counting()
+    const handle = createRef<TranscriptListHandle>()
+    const onStickChange = vi.fn()
+
+    render(<TranscriptList rows={history(40)} renderItem={renderItem} listRef={handle} onStickChange={onStickChange} />)
+    const rowEl = (key: string) => document.querySelector<HTMLElement>(`[data-row-key="${key}"]`)!
+
+    expect(handle.current?.revealRow('r10')).toBe(true)
+    expect(rowEl('r10').dataset.found).toBe('true')
+
+    expect(handle.current?.revealRow('r20')).toBe(true)
+    expect(rowEl('r20').dataset.found).toBe('true')
+    expect(rowEl('r10').hasAttribute('data-found')).toBe(false)
+
+    expect(handle.current?.revealRow('nope')).toBe(false)
+    expect(rowEl('r20').dataset.found).toBe('true')
   })
 
   it('compares rows on what they draw', () => {

@@ -128,7 +128,8 @@ async function run(root: Root, basePath: ResolvedBasePath, store: WebKeyValueSto
       chat={{
         controller: session.chats.controller,
         gatewayBaseUrl: basePath.baseUrl,
-        drafts: createDraftStore(store)
+        drafts: createDraftStore(store),
+        sessionSearch: session.client.http
       }}
       passkeys={session.passkeys}
       secureInput={session.secureInput}

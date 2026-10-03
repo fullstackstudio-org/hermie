@@ -35,6 +35,7 @@ import {
   userItem
 } from '../../test-support/chat-fixtures'
 import { aBot, LONG_AGO, resetShellStores, seedRoster } from '../../test-support/shell-stores'
+import { findRequests } from '../search/find-request'
 import { ChatScreen, type ChatScreenProps, DEFAULT_CHAT_VIEW } from './ChatScreen'
 import { ChatRuntimeContext, type ChatScreenController } from './chat-runtime'
 
@@ -153,6 +154,68 @@ describe('opening the chat', () => {
     expect(within(log()).getByText('To wait.')).toBeTruthy()
     // Nothing of the bot's own chat is on the page.
     expect(chatsStore.getState().chats.researcher).toBeUndefined()
+  })
+
+  it('offers the ways back from a past conversation: the chat, and the bot’s conversations', async () => {
+    const controller = fakeController({ openSession: vi.fn(async () => ({ kind: 'viewer' as const })) })
+
+    mount({ session: 'old-1' }, controller)
+    await vi.waitFor(() => expect(controller.openConversation).toHaveBeenCalledTimes(1))
+
+    expect(screen.getByRole('link', { name: 'Back to the chat' }).getAttribute('href')).toBe('#/chat/researcher')
+    // One in the banner, one at the end of the header line.
+    expect(screen.getAllByRole('link', { name: 'Conversations' }).map(link => link.getAttribute('href'))).toEqual([
+      '#/chat/researcher/conversations',
+      '#/chat/researcher/conversations'
+    ])
+    // Read-only: nothing to send with.
+    expect(screen.queryByRole('textbox')).toBeNull()
+  })
+
+  it('links the bot’s chat to its conversations', () => {
+    mount()
+
+    expect(screen.getByRole('link', { name: 'Conversations' }).getAttribute('href')).toBe(
+      '#/chat/researcher/conversations'
+    )
+  })
+
+  it('opens at a search hit’s words: the row is shown and marked, and it is said once', async () => {
+    findRequests.request('researcher', 'decide')
+    mount()
+    commit(
+      chatWith('researcher', [
+        userItem('what did we decide?', {}, 'u1'),
+        assistantItem('To wait.', {}, 'a1'),
+        userItem('ok', {}, 'u2')
+      ])
+    )
+
+    await vi.waitFor(() => expect(log().querySelector('[data-row-key="u1"]')?.getAttribute('data-found')).toBe('true'))
+    expect(screen.getByText('Found “decide” in this chat.')).toBeTruthy()
+    expect(findRequests.current()).toBeNull()
+  })
+
+  it('leaves a search hit for another bot’s chat alone', async () => {
+    findRequests.request('writer', 'decide')
+    mount()
+    commit(chatWith('researcher', [userItem('what did we decide?', {}, 'u1')]))
+
+    expect(log().querySelector('[data-found]')).toBeNull()
+    expect(findRequests.current()?.bot).toBe('writer')
+    findRequests.settle(findRequests.current()!.id)
+  })
+
+  it('says where a search hit’s words are not in the visible text', async () => {
+    findRequests.request('researcher', 'nowhere')
+    mount()
+    commit(chatWith('researcher', [userItem('hello', {}, 'u1')]))
+
+    expect(
+      await screen.findAllByText(
+        '“nowhere” was matched by the gateway, but it is not in the visible text of this chat.'
+      )
+    ).toHaveLength(2)
   })
 
   it('shows what failed, and opens again when the reader asks', async () => {

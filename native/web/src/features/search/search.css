@@ -1,0 +1,112 @@
+/* The chats field and the message hits under the list. Colours are the theme's (`ui/theme.css`). */
+
+.hm-search {
+  padding: 4px var(--hm-gutter) 8px;
+}
+
+.hm-search__field {
+  box-sizing: border-box;
+  width: 100%;
+  min-height: 40px;
+  padding: 0 12px;
+  border: 1px solid var(--hm-line);
+  border-radius: var(--hm-radius);
+  background: var(--hm-surface);
+  color: var(--hm-text);
+  font: inherit;
+}
+
+.hm-search__field::placeholder {
+  color: var(--hm-text-faint);
+  opacity: 1;
+}
+
+.hm-search-hits {
+  padding-block: 8px;
+  border-top: 1px solid var(--hm-line);
+}
+
+.hm-search-hits__title {
+  margin: 0;
+  padding: 4px var(--hm-gutter);
+  color: var(--hm-text-faint);
+  font-size: 0.75rem;
+  font-weight: 600;
+  letter-spacing: 0.04em;
+}
+
+.hm-search-hits__list {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.hm-search-hit__link {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-height: var(--hm-row-min);
+  padding: 8px var(--hm-gutter);
+  color: inherit;
+  text-decoration: none;
+}
+
+.hm-search-hit__link:hover {
+  background: var(--hm-surface-hover);
+}
+
+.hm-search-hit__link:focus-visible {
+  outline-offset: -3px;
+}
+
+.hm-search-hit__top {
+  display: flex;
+  align-items: baseline;
+  gap: 8px;
+  min-width: 0;
+}
+
+.hm-search-hit__name {
+  flex: 1 1 auto;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-weight: 600;
+}
+
+.hm-search-hit__time {
+  flex: none;
+  color: var(--hm-text-faint);
+  font-size: 0.8125rem;
+}
+
+.hm-search-hit__snippet {
+  display: -webkit-box;
+  overflow: hidden;
+  color: var(--hm-text-muted);
+  font-size: 0.9375rem;
+  line-height: 1.35;
+  overflow-wrap: anywhere;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
+  line-clamp: 2;
+}
+
+.hm-search-hit__snippet mark {
+  background: none;
+  color: var(--hm-tint-text);
+  font-weight: 600;
+}
+
+.hm-search-hits__status {
+  margin: 0;
+  padding: 4px var(--hm-gutter);
+  color: var(--hm-text-faint);
+  font-size: 0.8125rem;
+}
+
+/* Still there while it has nothing to say: a live region that comes and goes is not heard. */
+.hm-search-hits__status:empty {
+  padding: 0;
+}

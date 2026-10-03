@@ -10,6 +10,9 @@
  *
  * It reads the stores itself with selectors that return primitives, so a streamed
  * token re-renders the transcript and not this line.
+ *
+ * At its end, the way to the bot's other conversations (`#/chat/<bot>/conversations`,
+ * `features/sessions`): its past ones, its branches and a new one.
  */
 import { hasOpenRequest, turnActivity, type TurnActivity } from '@hermie/transcript'
 import { type ReactElement } from 'react'
@@ -23,6 +26,7 @@ import { chatsStore } from '../../state/chats'
 import { connectionStore } from '../../state/connection'
 import { Avatar, PresenceBead } from '../../ui/primitives'
 import { presenceOf } from '../bots/presence'
+import { conversationsHref } from '../shell/router'
 import { shortToolName } from './items/tool-text'
 
 export interface ChatHeaderProps {
@@ -109,6 +113,9 @@ export function ChatHeader({ bot, chatKey }: ChatHeaderProps): ReactElement {
       </span>
       <PresenceBead state={presence.state} size="inline" />
       <span className="hm-chat-header__status">{subtitleOf(ready, status, activity)}</span>
+      <a className="hm-chat-header__link" href={conversationsHref(bot)}>
+        {strings.chat.sessions.conversations}
+      </a>
     </p>
   )
 }

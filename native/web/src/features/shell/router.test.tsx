@@ -2,7 +2,16 @@ import { act, render, screen } from '@testing-library/react'
 import { describe, expect, it } from 'vitest'
 
 import { createHashRouter } from '../../platform/hash-router'
-import { chatHref, formatRoute, HOME, parseRoute, type Route, useRoute } from './router'
+import {
+  chatHref,
+  conversationHref,
+  conversationsHref,
+  formatRoute,
+  HOME,
+  parseRoute,
+  type Route,
+  useRoute
+} from './router'
 
 describe('parseRoute', () => {
   it.each<[string, Route]>([
@@ -12,6 +21,8 @@ describe('parseRoute', () => {
     ['#/chat/researcher', { name: 'chat', bot: 'researcher' }],
     ['#/chat/researcher/', { name: 'chat', bot: 'researcher' }],
     ['#/chat/researcher/s/20260101_abc', { name: 'chat', bot: 'researcher', session: '20260101_abc' }],
+    ['#/chat/researcher/conversations', { name: 'conversations', bot: 'researcher' }],
+    ['#/chat/researcher/conversations/', { name: 'conversations', bot: 'researcher' }],
     ['#/settings', { name: 'settings' }],
     ['#/settings/', { name: 'settings' }],
     ['#/settings/notifications', { name: 'settings', section: 'notifications' }],
@@ -35,6 +46,9 @@ describe('parseRoute', () => {
     '#/chat/a/s/',
     '#/chat/a/s/b/c',
     '#/chat/a/x/b',
+    '#/chat/a/conversation',
+    '#/chat/a/conversations/x',
+    '#/chat//conversations',
     '#/chat/%E0%A4%A',
     '#/settings/Not-Lower',
     '#/settings/a/b',
@@ -59,6 +73,7 @@ describe('formatRoute', () => {
     { name: 'chat', bot: 'researcher' },
     { name: 'chat', bot: 'résumé bot' },
     { name: 'chat', bot: 'a/b?c#d', session: 'x y/z' },
+    { name: 'conversations', bot: 'a/b?c#d' },
     { name: 'settings' },
     { name: 'settings', section: 'notifications' }
   ]
@@ -72,6 +87,8 @@ describe('formatRoute', () => {
   it('writes a fragment that stays one fragment: nothing in a name can add a path or a query', () => {
     expect(formatRoute({ name: 'chat', bot: 'a/b?c#d' })).toBe('#/chat/a%2Fb%3Fc%23d')
     expect(chatHref('writer')).toBe('#/chat/writer')
+    expect(conversationHref('writer', 'a/b')).toBe('#/chat/writer/s/a%2Fb')
+    expect(conversationsHref('a/b')).toBe('#/chat/a%2Fb/conversations')
   })
 })
 
