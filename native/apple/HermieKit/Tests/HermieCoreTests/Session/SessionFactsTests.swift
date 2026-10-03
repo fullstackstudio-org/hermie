@@ -88,6 +88,22 @@ private func me(provider: String, userID: String, name: String = "") -> AuthIden
     await session.shutdown()
   }
 
+  @Test func theGatewaysRowIdentityAdvertIsReadAndAdvisoryOnly() async throws {
+    let advertised = try await started(
+      identity: .sessionToken,
+      capabilities: ["per_session_exclusive_submit": true, "transcript_row_identity": true]
+    )
+    try await eventually("the capabilities") { await advertised.session.capabilities != nil }
+    #expect(advertised.session.rowIdentityTrusted)
+    #expect(advertised.session.rowAuthorsTrusted == false, "one advert says nothing about the other")
+    await advertised.session.shutdown()
+
+    let silent = try await started(identity: .sessionToken)
+    try await eventually("the capabilities") { await silent.session.capabilities != nil }
+    #expect(silent.session.rowIdentityTrusted == false)
+    await silent.session.shutdown()
+  }
+
   @Test func anAnswerWithoutAProviderOrAUserIsAnonymousNotInvented() async throws {
     let harness = try await started(identity: .answered(me(provider: "", userID: "someone@example.invalid")))
     #expect(harness.session.identityState == .anonymous(.noAccount))

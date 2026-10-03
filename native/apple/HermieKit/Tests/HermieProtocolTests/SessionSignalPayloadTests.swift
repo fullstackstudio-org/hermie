@@ -106,6 +106,11 @@ struct SessionSignalPayloadTests {
     #expect(capabilities.perMessageAuthor == true)
     #expect(GatewayCapabilitiesResult(json: ["per_session_exclusive_submit": true]).perMessageAuthor == nil)
 
+    // The identity advert is read by its wire name, and an answer without it says nothing.
+    #expect(GatewayCapabilitiesResult(json: ["transcript_row_identity": true]).transcriptRowIdentity == true)
+    #expect(GatewayCapabilitiesResult(json: ["transcript_row_identity": false]).transcriptRowIdentity == false)
+    #expect(capabilities.transcriptRowIdentity == nil)
+
     let resume = SessionResumeResult(json: [
       "session_id": "rt-1",
       "pending_connection": ["op_id": "op-1", "seq": 3, "deadline_at": 10, "timeout_seconds": 5, "targets": []]

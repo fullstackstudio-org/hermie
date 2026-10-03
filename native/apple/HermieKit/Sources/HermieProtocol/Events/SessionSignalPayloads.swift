@@ -369,6 +369,13 @@ public struct GatewayCapabilitiesResult: JSONObjectBacked {
     get { json[field: "per_message_author"] }
     set { json[field: "per_message_author"] = newValue }
   }
+  /// The gateway stamps row, call and turn identity on its frames and history (`row_id`,
+  /// `call_row_id` / `call_index`, `turn_id`). Advisory: the transcript engine decides per frame on
+  /// the fields themselves, so this is for a reader of a log, not a switch.
+  public var transcriptRowIdentity: Bool? {
+    get { json[field: "transcript_row_identity"] }
+    set { json[field: "transcript_row_identity"] = newValue }
+  }
 }
 
 /// `session.status` result: the TUI's `/status` report, as text.
