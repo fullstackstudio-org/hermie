@@ -990,6 +990,13 @@ export interface FakeGatewayState {
    * `has_avatar` and the revision a client re-fetches on.
    */
   profileAssets: Map<string, { mime: string; bytes: Buffer }>
+  /** Each profile's `SOUL.md`, which `profiles.describe` reads and `profiles.configure` writes. */
+  profileSouls: Map<string, string>
+  /**
+   * Methods this gateway refuses with a code and a message, whatever the caller: how a test stages
+   * an account that may read a profile and not write it (`POST /__fake/deny`).
+   */
+  deniedMethods: Map<string, { code: number; message: string }>
   /** Images accepted through `image.attach_bytes`, newest last. */
   attachedImages: { session_id: string; filename: string; bytes: number }[]
   /**
@@ -2953,6 +2960,8 @@ function initialState(options: FakeGatewayOptions): FakeGatewayState {
     pendingApprovals: new Map<string, { session_id: string; payload: Record<string, unknown> }>(),
     openServerRequests: new Map(),
     profileAssets: new Map<string, { mime: string; bytes: Buffer }>(),
+    profileSouls: new Map<string, string>(),
+    deniedMethods: new Map<string, { code: number; message: string }>(),
     attachedImages: [],
     uploadedFiles: new Map(),
     liveSubagents: new Map<string, LiveSubagent>(),
@@ -4358,6 +4367,32 @@ export async function startFakeGateway(options: FakeGatewayOptions = {}): Promis
       }
 
       json(res, 200, { withdrawn: withdrawn.length })
+
+      return
+    }
+
+    if (path === '/__fake/deny' && method === 'POST') {
+      /*
+        Refuse methods with a code and a message, as a gateway does an account that may not call
+        them (the access-denial range, `4030` by default). `clear` takes every refusal back. Not
+        part of the contract: a test's way of staging a read-only account.
+      */
+      const body = await readBody(req)
+
+      if (body.clear === true) {
+        state.deniedMethods.clear()
+      }
+
+      const methods = Array.isArray(body.methods) ? body.methods.filter(entry => typeof entry === 'string') : []
+
+      for (const entry of methods as string[]) {
+        state.deniedMethods.set(entry, {
+          code: typeof body.code === 'number' ? body.code : 4030,
+          message: typeof body.message === 'string' ? body.message : 'This account may not change profiles.'
+        })
+      }
+
+      json(res, 200, { denied: [...state.deniedMethods.keys()] })
 
       return
     }
@@ -6556,6 +6591,12 @@ export async function startFakeGateway(options: FakeGatewayOptions = {}): Promis
       return new Promise<never>(() => undefined)
     }
 
+    const denied = state.deniedMethods.get(method)
+
+    if (denied) {
+      throw new RpcFault(denied.code, denied.message)
+    }
+
     switch (method) {
       case 'client.capabilities': {
         /*
@@ -6686,6 +6727,37 @@ export async function startFakeGateway(options: FakeGatewayOptions = {}): Promis
         }
 
         /*
+          The soul is the profile's `SOUL.md`, written as given. The model is pinned only when BOTH
+          halves arrive (`_configure_model` writes nothing for one alone), and a guarded model is
+          the one `config.set` guards too: without `confirm_expensive_model` it writes NOTHING and
+          answers `confirm_required` with the gateway's own words, next to whatever else the
+          request carried and did apply.
+        */
+        if (typeof params.soul === 'string') {
+          state.profileSouls.set(name, params.soul)
+          applied.soul = true
+        }
+
+        let confirm: { confirm_required: true; confirm_message: string } | undefined
+        const modelId = typeof params.model === 'string' ? params.model.trim() : ''
+        const providerId = typeof params.provider === 'string' ? params.provider.trim() : ''
+
+        if (modelId && providerId) {
+          const confirmed =
+            params.confirm_expensive_model === true ||
+            boolWord(typeof params.confirm_expensive_model === 'string' ? params.confirm_expensive_model : undefined)
+
+          if (modelId.includes('expensive') && !confirmed) {
+            confirm = { confirm_required: true, confirm_message: `${modelId} is an expensive model. Continue?` }
+          } else {
+            // The normalised pair: a `provider/model` spelling is stored as the bare model id.
+            profile.provider = providerId
+            profile.model = modelId.startsWith(`${providerId}/`) ? modelId.slice(providerId.length + 1) : modelId
+            applied.model = true
+          }
+        }
+
+        /*
           The three capability sections, each stored the way upstream stores it
           rather than the way the switch rows read it. `_configure_cfg_sections`
           is the handler; the three savers beside it are the reason none of
@@ -6733,7 +6805,7 @@ export async function startFakeGateway(options: FakeGatewayOptions = {}): Promis
         const patch = params.ui_meta
 
         if (!patch || typeof patch !== 'object' || Array.isArray(patch)) {
-          return { ok: true, applied }
+          return { ok: true, applied, ...confirm }
         }
 
         const expected = (
@@ -6774,7 +6846,7 @@ export async function startFakeGateway(options: FakeGatewayOptions = {}): Promis
           applied.ui_meta_conflicts = conflicts
         }
 
-        return { ok: true, applied }
+        return { ok: true, applied, ...confirm }
       }
 
       /**
@@ -6801,7 +6873,7 @@ export async function startFakeGateway(options: FakeGatewayOptions = {}): Promis
         return {
           name,
           description: profile.description ?? '',
-          soul: '',
+          soul: state.profileSouls.get(name) ?? '',
           model: { provider: profile.provider ?? '', default: profile.model ?? '' },
           skills: (state.profileSkills.get(name) ?? []).map(skill => ({
             name: skill,

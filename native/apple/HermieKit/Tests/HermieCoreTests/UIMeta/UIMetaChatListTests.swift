@@ -212,7 +212,8 @@ import Testing
     #expect(arrangement == ChatListArrangement(
       archived: ["writer"],
       pinned: ["writer"],
-      mutes: ["researcher": noon + 8 * hour]
+      mutes: ["researcher": noon + 8 * hour],
+      accents: ["writer": .teal]
     ))
   }
 
