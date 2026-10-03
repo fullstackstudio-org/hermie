@@ -243,7 +243,7 @@ struct PasskeyCredentialRow: View {
     HStack(alignment: .center, spacing: 12) {
       VStack(alignment: .leading, spacing: 2) {
         // The name is the passkey's own, set by the app that made it: plain text.
-        Text(verbatim: credential.name ?? "")
+        Text(verbatim: Self.shownName(credential))
           .font(.body)
           .fixedSize(horizontal: false, vertical: true)
         Text(Self.added(credential.createdAt))
@@ -261,10 +261,15 @@ struct PasskeyCredentialRow: View {
         .frame(minWidth: 44, minHeight: 44)
         .contentShape(.rect)
         .disabled(busy)
-        .accessibilityLabel(Text(verbatim: "\(NativeStrings.Passkeys.removeAction): \(credential.name ?? "")"))
+        .accessibilityLabel(Text(verbatim: "\(NativeStrings.Passkeys.removeAction): \(Self.shownName(credential))"))
         .accessibilityIdentifier("hermie.passkeys.remove")
     }
     .accessibilityElement(children: .contain)
+  }
+
+  /// The name the gateway holds for the passkey: one bounded line.
+  static func shownName(_ credential: PasskeyCredentialInfo) -> String {
+    PasskeyModel.displayName(credential.name)
   }
 
   static func added(_ at: Double?) -> String {
@@ -498,6 +503,8 @@ extension NativeStrings {
       static var noCredentialForApp: String { string("native.passkeys.notice.noCredentialForApp") }
       /// A confirmation arrived that this app could not read…
       static var malformedRequest: String { string("native.passkeys.notice.malformedRequest") }
+      /// A confirmation arrived that had already expired…
+      static var expiredOnArrival: String { string("native.passkeys.notice.expiredOnArrival") }
       /// A passkey was added to your account on this gateway: {name}
       static func added(_ name: String) -> String {
         String(

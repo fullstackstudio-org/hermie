@@ -95,6 +95,7 @@ enum PasskeysText {
     case .unsupportedVersion: NativeStrings.Passkeys.Notice.unsupportedVersion
     case .noCredentialForApp: NativeStrings.Passkeys.Notice.noCredentialForApp
     case .malformedRequest: NativeStrings.Passkeys.Notice.malformedRequest
+    case .expiredOnArrival: NativeStrings.Passkeys.Notice.expiredOnArrival
     case .credentialAdded(let name): NativeStrings.Passkeys.Notice.added(name)
     case .credentialRevoked(let name): NativeStrings.Passkeys.Notice.revoked(name)
     }
@@ -113,7 +114,7 @@ enum PasskeysText {
     switch kind {
     case .gatewayIDMismatch, .gatewayIDConflict, .pinUnreadable: "exclamationmark.triangle"
     case .sameGatewayAs: "questionmark.circle"
-    case .unsupportedVersion, .noCredentialForApp, .malformedRequest: "exclamationmark.circle"
+    case .unsupportedVersion, .noCredentialForApp, .malformedRequest, .expiredOnArrival: "exclamationmark.circle"
     case .credentialAdded, .credentialRevoked: "key"
     }
   }

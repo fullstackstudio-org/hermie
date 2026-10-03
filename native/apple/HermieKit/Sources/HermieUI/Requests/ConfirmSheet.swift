@@ -82,15 +82,14 @@ struct ConfirmSheetView: View {
     }
     .task(id: confirmation.expiresAt) {
       // At zero the gateway has given up: end it here too, without waiting for its message.
-      guard let expiresAt = confirmation.expiresAt else { return }
-      let wait = expiresAt.timeIntervalSinceNow
+      let wait = confirmation.expiresAt.timeIntervalSinceNow
 
       if wait > 0 {
         try? await Task.sleep(for: .seconds(wait))
       }
 
       guard !Task.isCancelled else { return }
-      passkeys.expireIfDue(confirmation.id)
+      await passkeys.expireIfDue(confirmation.id)
     }
   }
 }
@@ -213,7 +212,7 @@ struct ConfirmFooter: View {
         ConfirmCountdown(expiresAt: confirmation.expiresAt)
       }
 
-      if let status = ConfirmSheetText.status(for: confirmation.phase) {
+      if let status = ConfirmSheetText.status(for: confirmation.phase, mayHaveArrived: confirmation.answerMayHaveArrived) {
         // A line of its own per state: a state that follows another within a frame (a fast link
         // answers at once) is a new view, so what it starts (the announcement) always runs. A task
         // or an `onChange` watching the phase from inside the sheet missed such a state.
@@ -232,18 +231,16 @@ struct ConfirmFooter: View {
 
 /// The time left, once a second; it reads from the moment the gateway gives up.
 struct ConfirmCountdown: View {
-  let expiresAt: Date?
+  let expiresAt: Date
 
   var body: some View {
-    if let expiresAt {
-      TimelineView(.periodic(from: .now, by: 1)) { context in
-        let left = max(0, Int(expiresAt.timeIntervalSince(context.date).rounded(.up)))
+    TimelineView(.periodic(from: .now, by: 1)) { context in
+      let left = max(0, Int(expiresAt.timeIntervalSince(context.date).rounded(.up)))
 
-        Label(NativeStrings.SecureInput.expiresIn(RequestCountdownView.clock(left)), systemImage: "timer")
-          .font(.caption.monospacedDigit())
-          .foregroundStyle(left <= 10 ? AnyShapeStyle(.red) : AnyShapeStyle(.primary))
-          .accessibilityIdentifier("confirm.countdown")
-      }
+      Label(NativeStrings.SecureInput.expiresIn(RequestCountdownView.clock(left)), systemImage: "timer")
+        .font(.caption.monospacedDigit())
+        .foregroundStyle(left <= 10 ? AnyShapeStyle(.red) : AnyShapeStyle(.primary))
+        .accessibilityIdentifier("confirm.countdown")
     }
   }
 }
@@ -388,6 +385,10 @@ extension NativeStrings {
     static func address(_ host: String) -> String {
       String(localized: "native.confirm.address", defaultValue: "Address \(host)", table: "Native", bundle: .module)
     }
+    /// The answer may have reached the gateway. You can try again, or check whether the action ran.
+    static var notSentMaybeArrived: String { string("native.confirm.notSentMaybeArrived") }
+    /// The answer may have reached the gateway. Check whether the action ran.
+    static var outcomeUnknown: String { string("native.confirm.outcomeUnknown") }
     /// Details
     static var detailLabel: String { string("native.confirm.detailLabel") }
     /// Your device will ask for your passkey for {rp}…

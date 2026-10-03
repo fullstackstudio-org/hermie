@@ -31,7 +31,8 @@ import Testing
     storedID: String = "gw-1",
     pins: [String: PasskeyPinRecord] = [:],
     store: (any PasskeyPinStore)? = nil,
-    authenticator: any PasskeyAuthenticator = SoftPasskeyAuthenticator(userHandle: Array(repeating: 9, count: 32))
+    authenticator: any PasskeyAuthenticator = SoftPasskeyAuthenticator(userHandle: Array(repeating: 9, count: 32)),
+    now: @escaping @Sendable () -> Double = { 1_790_000_000 }
   ) async -> Fixture {
     let link = ScriptedLink()
     let source = ConfirmCapabilitySource()
@@ -45,7 +46,7 @@ import Testing
       configuration: PasskeyConfiguration(rpID: rpID, plain: plain),
       pins: store ?? memory,
       source: source,
-      now: { 1_790_000_000 }
+      now: now
     )
     await model.start()
     let phone = authenticator as? SoftPasskeyAuthenticator ?? SoftPasskeyAuthenticator()

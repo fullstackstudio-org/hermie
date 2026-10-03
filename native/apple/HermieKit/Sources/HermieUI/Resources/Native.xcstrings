@@ -2184,6 +2184,54 @@
         }
       }
     },
+    "native.confirm.notSentMaybeArrived" : {
+      "comment" : "Confirm sheet: the answer's delivery is not known; it can be tried again.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Die Antwort ist möglicherweise beim Gateway angekommen. Du kannst es erneut versuchen oder prüfen, ob die Aktion ausgeführt wurde."
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "The answer may have reached the gateway. You can try again, or check whether the action ran."
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Het antwoord is mogelijk bij de gateway aangekomen. Je kunt het opnieuw proberen of controleren of de actie is uitgevoerd."
+          }
+        }
+      }
+    },
+    "native.confirm.outcomeUnknown" : {
+      "comment" : "Confirm sheet: it ended after an answer that may have been delivered.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Die Antwort ist möglicherweise beim Gateway angekommen. Prüfe, ob die Aktion ausgeführt wurde."
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "The answer may have reached the gateway. Check whether the action ran."
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Het antwoord is mogelijk bij de gateway aangekomen. Controleer of de actie is uitgevoerd."
+          }
+        }
+      }
+    },
     "native.confirm.passkeyNote" : {
       "comment" : "Confirm sheet, above the buttons. The first argument is the passkey identity the system sheet names (the same for every gateway), the second the address of the gateway this request is for.",
       "extractionState" : "manual",
@@ -5880,6 +5928,30 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Er is een passkey toegevoegd aan je account op deze gateway zonder dit apparaat: %@"
+          }
+        }
+      }
+    },
+    "native.passkeys.notice.expiredOnArrival" : {
+      "comment" : "Notice: a confirmation arrived already expired.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Es kam eine Passkey-Bestätigung an, die bereits abgelaufen war, daher wurde sie nicht angezeigt. Prüfe, ob Datum und Uhrzeit dieses Geräts stimmen."
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "A passkey confirmation arrived that had already expired, so it was not shown. Check that the date and time on this device are right."
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Er kwam een passkey-bevestiging binnen die al verlopen was, dus die is niet getoond. Controleer of de datum en tijd op dit apparaat kloppen."
           }
         }
       }

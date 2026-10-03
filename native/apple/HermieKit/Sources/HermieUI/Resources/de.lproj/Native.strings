@@ -188,6 +188,10 @@
 	<string>Dieses Gerät darf diese Anfrage nicht beantworten.</string>
 	<key>native.confirm.notSent</key>
 	<string>Die Antwort hat das Gateway nicht erreicht. Du kannst es erneut versuchen.</string>
+	<key>native.confirm.notSentMaybeArrived</key>
+	<string>Die Antwort ist möglicherweise beim Gateway angekommen. Du kannst es erneut versuchen oder prüfen, ob die Aktion ausgeführt wurde.</string>
+	<key>native.confirm.outcomeUnknown</key>
+	<string>Die Antwort ist möglicherweise beim Gateway angekommen. Prüfe, ob die Aktion ausgeführt wurde.</string>
 	<key>native.confirm.passkeyNote</key>
 	<string>Dein Gerät fragt nach deinem Passkey für %1$@. Dieser Name ist für jedes Gateway derselbe; diese Anfrage gilt für %2$@.</string>
 	<key>native.confirm.received</key>
@@ -506,6 +510,8 @@
 	<string>Noch nie verwendet</string>
 	<key>native.passkeys.notice.added</key>
 	<string>Ein Passkey wurde deinem Konto auf diesem Gateway ohne dieses Gerät hinzugefügt: %@</string>
+	<key>native.passkeys.notice.expiredOnArrival</key>
+	<string>Es kam eine Passkey-Bestätigung an, die bereits abgelaufen war, daher wurde sie nicht angezeigt. Prüfe, ob Datum und Uhrzeit dieses Geräts stimmen.</string>
 	<key>native.passkeys.notice.gatewayIDConflict</key>
 	<string>Die Bestätigung mit Passkey ist für dieses Gateway aus: Es zeigt eine Identität, die zu einem anderen Gateway gehört.</string>
 	<key>native.passkeys.notice.gatewayIDMismatch</key>

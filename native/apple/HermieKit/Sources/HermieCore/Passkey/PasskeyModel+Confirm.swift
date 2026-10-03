@@ -17,6 +17,8 @@ extension PasskeyModel {
   static let notAllowedCode = 4033
   static let refusedCode = 4034
   static let cannotRunCode = 4040
+  /// The longest a confirmation stays open here, whatever `expires_at` says.
+  static let maxConfirmSeconds: Double = 120
 
   // MARK: - Arrival
 
@@ -50,8 +52,11 @@ extension PasskeyModel {
       let (confirmation, context) = try read(id: id, params, inbound: inbound)
       contexts[id] = context
       upsert(confirmation)
-      // A re-delivery that outlived its `expires_at`: over here too, without a sheet.
-      endIfExpired(id)
+      // Past its `expires_at` on arrival (a re-delivery that outlived it, or a clock that is off):
+      // over here too, without a sheet, and the person is told.
+      if await endIfExpired(id) {
+        notify(.expiredOnArrival)
+      }
     } catch {
       if let notice = error.notice {
         notify(notice)
@@ -87,6 +92,10 @@ extension PasskeyModel {
       throw PasskeyFrameProblem(reason: Self.reason(for: problem), notice: problem)
     }
 
+    guard let frameExpiry = passkey.expiresAt, frameExpiry.isFinite else {
+      throw PasskeyFrameProblem(reason: "bad_request", notice: .malformedRequest)
+    }
+
     let allow = try allowList(passkey, rpID: rpID)
     let display = ConfirmDisplay(title: frame.title, summary: frame.summary, detail: params.detail, baseURL: baseURL)
     let binding = PasskeyChallengeBinding(
@@ -102,7 +111,7 @@ extension PasskeyModel {
       sessionID: frame.sessionID,
       display: display,
       userName: passkey.user?.name ?? "",
-      expiresAt: passkey.expiresAt.map { Date(timeIntervalSince1970: $0) },
+      expiresAt: Date(timeIntervalSince1970: min(frameExpiry, now() + Self.maxConfirmSeconds)),
       receivedAt: Date(timeIntervalSince1970: now()),
       phase: .waiting
     )
@@ -167,7 +176,7 @@ extension PasskeyModel {
   /// answer through `request.answer`. Dismissing the system sheet sends nothing.
   public func confirm(_ id: String) async {
     guard let current = confirmation(id), current.phase.isActionable, let context = contexts[id],
-      let rpID = configuration.rpID, !endIfExpired(id)
+      let rpID = configuration.rpID, !(await endIfExpired(id))
     else {
       return
     }
@@ -198,7 +207,7 @@ extension PasskeyModel {
 
   /// The person pressed Decline: exactly `{decision: "declined", method: "tap"}`.
   public func decline(_ id: String) async {
-    guard confirmation(id)?.phase.isActionable == true, !endIfExpired(id) else {
+    guard confirmation(id)?.phase.isActionable == true, !(await endIfExpired(id)) else {
       return
     }
 
@@ -207,19 +216,32 @@ extension PasskeyModel {
 
   /// The countdown reached zero: end the confirmation locally as timed out when its `expires_at`
   /// has passed (the gateway's own `request.cancel` ends it too, whichever comes first).
-  public func expireIfDue(_ id: String) {
-    endIfExpired(id)
+  public func expireIfDue(_ id: String) async {
+    await endIfExpired(id)
   }
 
   /// End an open confirmation past its `expires_at` locally, as timed out: the gateway has given
   /// up on it, so no ceremony runs and nothing is sent. `true` when it was ended.
+  ///
+  /// An answer in flight (`sending`) keeps its phase, as in `withdrawn(_:reason:)`: the reply may
+  /// still say it was received, and that is what the person must read. A ceremony in progress
+  /// (`signing`) ends first and is cancelled after, so the system's passkey sheet goes away with it
+  /// and the ceremony, returning, finds the request over and sends nothing.
   @discardableResult
-  func endIfExpired(_ id: String) -> Bool {
-    guard let current = confirmation(id), current.isOpen, current.isExpired(at: Date(timeIntervalSince1970: now())) else {
+  func endIfExpired(_ id: String) async -> Bool {
+    guard let current = confirmation(id), current.isOpen, current.phase != .sending,
+      current.isExpired(at: Date(timeIntervalSince1970: now()))
+    else {
       return false
     }
 
+    let signing = current.phase == .signing
     setPhase(id, .ended(.timedOut))
+
+    if signing {
+      await authenticator.cancel()
+    }
+
     return true
   }
 
@@ -283,7 +305,15 @@ extension PasskeyModel {
       return
     }
 
+    // A call that got no reply may have been delivered: for an assertion that is remembered, and
+    // nothing said from here on claims that nothing was confirmed.
+    if done == .received, case .notSent = outcome {
+      markAnswerMayHaveArrived(id)
+    }
+
     setPhase(id, outcome)
+    // The countdown ran out while this was in flight: now it can end.
+    await endIfExpired(id)
   }
 
   /// What a refused `request.answer` means for the confirmation.
@@ -335,7 +365,7 @@ extension PasskeyModel {
     }
 
     // The phase moves first: a ceremony that returns while `cancel()` runs finds the request
-    // over and sends nothing.
+    // over and sends nothing. (`setPhase` words an ending after a possible delivery as unknown.)
     let signing = current.phase == .signing
     setPhase(id, next)
 
