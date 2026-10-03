@@ -112,6 +112,7 @@ describe('the transcript item gallery', () => {
 
       expect(container.querySelectorAll('button[aria-expanded="false"]')).toHaveLength(0)
       expect(await violations()).toEqual([])
-    })
+      // Two axe runs over every item kind: about 1.5 s alone, past the default 5 s when the whole suite shares the CPU.
+    }, 20_000)
   }
 })
