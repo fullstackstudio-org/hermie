@@ -373,15 +373,16 @@ controller and the gateway's base URL through `ChatRuntimeContext` (the entry mo
 both) and gives it a key per route, so moving to another chat starts a screen of its own. The screen opens its
 own chat: nothing in `App` does.
 
-| File               | What                                                                                                     |
-| ------------------ | -------------------------------------------------------------------------------------------------------- |
-| `ChatScreen.tsx`   | the wiring: rows, scroll position, older history, read marking, announcements, the states of a chat      |
-| `use-open-chat.ts` | opens the route's chat when the connection is `ready`, leaves it on the way out, retries after a failure |
-| `ChatHeader.tsx`   | the line under the bot's name: its presence bead and what it is doing (the chat list's own rules)        |
-| `rows.ts`          | from `visibleItems` to the list's rows: date separators, the status line while busy, the typing row      |
-| `JumpToLatest.tsx` | the button over the bottom of the transcript, with how many messages arrived while the reader was above  |
-| `items/*.tsx`      | one view per item kind (below), each `React.memo` on `(id, version, presentation)`                       |
-| `chat.css`         | the screen and its views, on the theme's tokens                                                          |
+| File                 | What                                                                                                                        |
+| -------------------- | --------------------------------------------------------------------------------------------------------------------------- |
+| `ChatScreen.tsx`     | the wiring: rows, scroll position, older history, read marking, announcements, the states of a chat                         |
+| `use-open-chat.ts`   | opens the route's chat when the connection is `ready`, leaves it on the way out, retries after a failure                    |
+| `ChatHeader.tsx`     | the line under the bot's name: its presence bead and what it is doing (the chat list's own rules)                           |
+| `rows.ts`            | from `visibleItems` to the list's rows: date separators, the status line while busy, the typing row, the tool being written |
+| `items/TodoList.tsx` | the bot's task list (`todo.updated`), a strip over the composer, folded to one line by default                              |
+| `JumpToLatest.tsx`   | the button over the bottom of the transcript, with how many messages arrived while the reader was above                     |
+| `items/*.tsx`        | one view per item kind (below), each `React.memo` on `(id, version, presentation)`                                          |
+| `chat.css`           | the screen and its views, on the theme's tokens                                                                             |
 
 **Opening.** `openChat(bot, { follow: true })` once the connection is `ready` (a call on a socket that is still
 dialling rejects, so the open waits for the transition to ready, which also covers every reconnect). With a
@@ -416,6 +417,7 @@ the selectors drop the tool rows this screen is meant to show.
 | `notice`, `status`           | centred, quiet lines, never a bubble; a model or personality switch, an auto-continue and a `[System: ...]` note are one sentence (`SystemLine`); any other notice with a body is a disclosure (a command's answer opens itself, an error keeps the danger tint); the latest status only while busy                                                                                                                    |
 | date separator               | an `h2` row at the first row of each day (a row of its own, keyed by the day and the row it opens)                                                                                                                                                                                                                                                                                                                     |
 | typing row                   | the dots, while the turn runs and the last thing drawn is the reader's own message                                                                                                                                                                                                                                                                                                                                     |
+| tool being written           | "Preparing <tool>…" at the tail, in the typing row's place, from `tool.generating` until the call starts (`ToolGenerating`); the name cleaned, bounded and in a `<bdi>`                                                                                                                                                                                                                                                |
 | `approval`, `clarify`        | the record of the request, a plain line saying what was asked (`OtherRow`); the request itself is answered in the request layer                                                                                                                                                                                                                                                                                        |
 
 Every name and one-line text an agent or the gateway wrote (a handle, a job name, a tool summary, an error) is
@@ -423,6 +425,12 @@ cleaned and bounded by `displayText` and isolated in `<bdi>` (`WithName` for a s
 go through the Markdown renderer, which makes no HTML. `npm run client:dev`, then `/dev/items.html`, shows every
 item kind in every presentation (`src/dev/item-gallery.tsx`, development only, checked by axe in
 `item-gallery.axe.test.tsx`).
+
+**The task list** is not a row: each `todo.updated` snapshot (or one a tool result or a resume carries) replaces the
+last in `ChatState.todo`, so it is a strip over the composer (`TodoList`): folded, how far it is and the task in
+progress; open, every task with its mark (said in words to a screen reader) and a subtask indented under its parent.
+A list that is all done goes once the turn is over. A task's words are cleaned and bounded (`displayText`) and never
+Markdown; a task in an undocumented shape is read as far as it can be (an unknown status is "to do").
 
 Gateway-injected rows are notices, never the reader's own bubble. Everything the gateway or an agent wrote that is
 not Markdown (tool arguments, results, notice bodies, a thought) is shown as characters.
@@ -515,13 +523,13 @@ everything that talks to the gateway is a controller method, reached through `Ch
 A bot's approval or question (`clarify`) is answered in `features/requests/`, a modal layer over the whole page
 (`<RequestLayer />` in `App`, beside the frame), never in the transcript, where a row scrolls away.
 
-| File                | What                                                                                        |
-| ------------------- | ------------------------------------------------------------------------------------------- |
-| `state/requests.ts` | `requestsStore`: the open requests of every chat, oldest first; `bindRequests(chatsStore)`  |
-| `RequestLayer.tsx`  | the dialog, focus, the inert page, the polite announcements; answers through the controller |
-| `ApprovalSheet.tsx` | the command and Allow / Deny, the gateway's `choices`                                       |
-| `ClarifySheet.tsx`  | one question or a stepper over a batch: choices, free text, multi-select, Lock, Skip        |
-| `request-layer.css` | the scrim, the dialog and the sheets                                                        |
+| File                | What                                                                                                       |
+| ------------------- | ---------------------------------------------------------------------------------------------------------- |
+| `state/requests.ts` | `requestsStore`: the open requests of every chat, oldest first; `bindRequests(chatsStore)`                 |
+| `RequestLayer.tsx`  | the dialog, focus, the inert page, the polite announcements; answers through the controller                |
+| `ApprovalSheet.tsx` | the command and Allow / Deny, the gateway's `choices` less what its flags rule out; one answer for several |
+| `ClarifySheet.tsx`  | one question or a stepper over a batch: choices, free text, multi-select, Lock, Skip, Cancel all           |
+| `request-layer.css` | the scrim, the dialog and the sheets                                                                       |
 
 - **One source of truth.** The store holds no request of its own: it is a view over the chat store, which is where the
   engine puts a request raised on the socket, one the gateway re-delivers from `open_requests` on resume, and the
@@ -541,10 +549,23 @@ A bot's approval or question (`clarify`) is answered in `features/requests/`, a 
   once, session, always and deny have fixed wording from the catalogue, any other keeps its own name. The buttons wake
   400 ms after the dialog appears, so a click already on its way answers nothing, and a second press of one answer is
   ignored. `acknowledgeApproval` is sent when a person can first see it.
+- **What an approval offers** (PG-3). A choice the request's flags rule out is not drawn even when `choices` names it
+  (`offeredChoices`): "Allow for this session" needs `allow_session`, "Always allow" needs `allow_permanent`, and a
+  command the gateway's own safety check refused (`smart_denied`) offers once and deny only and says so, in fixed words,
+  in the dialog's description. "Allow for this session" and "Always allow" each have a line saying what they mean,
+  shown only with that choice.
+- **One answer for several.** When the same bot has other approvals waiting, a box (off, asleep behind the same guard)
+  gives them the same answer; ticked, it lists their commands, so nothing is allowed that was not on screen. It is
+  answered request by request with `respondApproval`, never with the wire's `all: true`: the gateway applies `all` to its
+  whole queue, which can hold an approval this page has not been shown. A smart-denied request is never part of it, nor
+  one that does not offer the choice pressed; a change in what the ticked box covers puts the buttons to sleep again.
 - **Clarify.** A single question with choices (radio), several (checkbox, joined with ", ") or free text, which edit the
   same one answer. A batch is a stepper: Next, Back, and Lock answer (`lockClarify`: locked on the gateway, then
   read-only). **Skip answers `''`**: on a single question, "no answer" for the bot; in a batch, that step, moving on, and
-  on the last step sending every answer. Command or Control+Return in the field answers.
+  on the last step sending every answer. Command or Control+Return in the field answers. **Cancel all** (a batch only)
+  is the gateway's cancel-all, a reply with neither `answer` nor `answers` (`cancelClarify`); the card closes as
+  `cancelled` under `CANCELLED_BY_READER` and nothing is announced. A single question has none: there it is the same
+  reply as Skip.
 - **Plain text.** The command, description, tool name, question and choices are the gateway's and an agent's words and
   are never Markdown here.
 - **Said aloud.** A request that left without the reader's answer (withdrawn, or timed out) is announced in a polite
@@ -569,6 +590,8 @@ acted in the middle of):
 | Deny; an approval for a bot whose chat is not on screen; two requests one at a time                                             | `{choice: 'deny'}`              |
 | a withdrawn request closes; one raised before the page loaded is restored                                                       | closed; restored                |
 | clarify: a choice with the arrow keys, free text, a three-step batch with Skip, Skip on a single question                       | `{answer}` / `{answers}` / `''` |
+| one answer for three of the same bot's approvals, the others listed first; a smart-denied one offers once and deny, in no bulk  | three `{choice: 'once'}`        |
+| Cancel all on a batch; a single question has Skip and no Cancel all                                                             | `{}`                            |
 | the page behind the layer is inert; 320 px wide does not scroll sideways                                                        | inert; no overflow              |
 | a request still open when the page is reloaded is asked again; axe (`e2e/a11y.spec.ts`) on every sheet, light and dark          | asked once more; no violation   |
 
@@ -982,7 +1005,7 @@ of frames in a row with the same answer).
 | ------------------ | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | `signin.spec.ts`   | an unauthenticated visit goes to the gateway's `/login` and signing in opens the client; a wrong password stays; a session lost before the first question ("Sign in again", the cookie deleted or ended by the gateway) restores the route after signing in; one lost while open is a signed-out line; a frame gets one sentence and makes no request to the API                                                                                                                                                                        |
 | `chat.spec.ts`     | the list (names, previews, unread, arrow keys, one pane on a phone), opening a chat, sending, Stop, the queue, drafts, a reply streamed in by the gateway, a socket dropped mid-reply (one bubble, the gateway's words once) and idle, and 2,000 rows of history (opens at the bottom without moving, pinned, reading above, older history)                                                                                                                                                                                             |
-| `requests.spec.ts` | approval and clarify with the keyboard alone, deny, several at once, another bot's, withdrawn, restored on resume and after a reload, a modal page behind them, 320 px                                                                                                                                                                                                                                                                                                                                                                  |
+| `requests.spec.ts` | approval and clarify with the keyboard alone, deny, several at once, another bot's, one answer for several, smart-denied, a batch's Cancel all, withdrawn, restored on resume and after a reload, a modal page behind them, 320 px                                                                                                                                                                                                                                                                                                      |
 | `a11y.spec.ts`     | axe, serious and critical, in light and dark: the chat list, a chat, the signed-out screen and every request sheet                                                                                                                                                                                                                                                                                                                                                                                                                      |
 | `passkey.spec.ts`  | Chromium only (a virtual authenticator over the DevTools `WebAuthn` domain): enrol with a code from `/__fake/passkey/code`; a confirmation raised with `/__fake/request`, confirmed, and read back as `verified: true` from `/__fake/state` `passkey.outcomes`; decline; a key the gateway cannot verify (`signature_invalid`, then `too_many_attempts`); a passkey revoked while open (`verification_failed`); a request still open after a reload; Escape; the detail's `white-space: pre` and sideways scroll; axe in light and dark |
 
