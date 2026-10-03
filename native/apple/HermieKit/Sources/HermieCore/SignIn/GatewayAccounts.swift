@@ -217,6 +217,18 @@ public final class GatewayAccounts {
     try await client(for: id).authMe()
   }
 
+  /// The signed-in person's own picture on a stored gateway: `/api/auth/me`'s `picture_url`, fetched
+  /// through the gateway's authenticated route with that gateway's credentials (never the identity
+  /// provider's address). `.missing` when it holds none, `.error` for anything else, and it never
+  /// throws: a picture that could not be loaded is a letter on the page, not a failure.
+  public func picture(for id: String, path: String) async -> PictureFetchOutcome {
+    guard path.hasPrefix(GatewayAddress.authPicturePathPrefix + "?"), let http = try? await self.client(for: id) else {
+      return .error
+    }
+
+    return (try? await http.fetchAuthenticatedPicture(path)) ?? .error
+  }
+
   /// Who a stored gateway says this client is, by the session's rule
   /// (`IdentityProbe.read`): a session token is anonymous without asking. Feed it
   /// to `GatewayIdentityState.after(_:)`.

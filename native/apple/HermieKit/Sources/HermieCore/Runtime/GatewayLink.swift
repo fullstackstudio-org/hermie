@@ -73,6 +73,11 @@ public protocol GatewayLink: Sendable {
   /// credentials (`IdentityProbe`). Never throws: a failure is an answer.
   func probeIdentity() async -> IdentityProbe
 
+  /// A person's picture, from the gateway's authenticated picture route (`/api/auth/picture?id=…`,
+  /// or the `picture_url` `/api/auth/me` named), through the link's own credentials. Never throws:
+  /// a picture that could not be loaded is `.error`, and one the gateway holds none of is `.missing`.
+  func fetchPicture(_ path: String) async -> PictureFetchOutcome
+
   /// Wait until every frame queued so far has been handed to the socket, or
   /// `limit` has passed: the last answers before a shutdown.
   func flushWrites(within limit: Duration) async
@@ -240,6 +245,11 @@ extension GatewayLink {
   /// A link that cannot read who it is answers that it could not.
   public func probeIdentity() async -> IdentityProbe {
     .failed("This connection cannot ask the gateway who you are.")
+  }
+
+  /// A link that cannot fetch a picture has none to show.
+  public func fetchPicture(_ path: String) async -> PictureFetchOutcome {
+    .error
   }
 
   /// A link with no writer of its own has nothing to wait for.

@@ -74,14 +74,37 @@ extension GatewaySession {
     }
 
     await adopt(next)
+    refreshOwnPicture(probe, identity: next.identity)
   }
 
-  /// Signed out: nothing is known any more, here or on disk.
+  /// The reader's own picture, from the address `/api/auth/me` named (never from the identity
+  /// provider): fetched again after every read, since it may have changed there, and dropped when the
+  /// gateway says it holds none.
+  private func refreshOwnPicture(_ probe: IdentityProbe, identity: GatewayIdentity?) {
+    guard case .answered(let me) = probe, let identity, identity.verified else {
+      return
+    }
+
+    let people = self.people
+    let id = identity.authorID
+    let path = me.pictureURL
+
+    Task {
+      if path.isEmpty {
+        await people.noteNone(id)
+      } else {
+        await people.refresh(id, path: path)
+      }
+    }
+  }
+
+  /// Signed out: nothing is known any more, here or on disk, and no picture is kept.
   public func forgetIdentity() async {
     identityReads += 1
     identityFailure = nil
     uiMetaUser = nil
     await adopt(.unknownYet)
+    await people.clear()
   }
 
   /// Before the first answer: the last good one, shown while the read is in

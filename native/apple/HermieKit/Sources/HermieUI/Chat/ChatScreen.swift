@@ -396,12 +396,15 @@ struct ComposerSlot<Composer: View>: View {
 }
 
 /// Who the reader is on this gateway, for the user bubbles: only when the gateway stamps every row
-/// with its author (`ownAuthorID`); without it every user turn is the reader's.
+/// with its author (`ownAuthorID`); without it every user turn is the reader's. The people's pictures
+/// come with it, from the same gateway.
 struct OwnAuthor: ViewModifier {
   let session: GatewaySession
 
   func body(content: Content) -> some View {
-    content.environment(\.transcriptOwnAuthorID, session.ownAuthorID)
+    content
+      .environment(\.transcriptOwnAuthorID, session.ownAuthorID)
+      .environment(\.transcriptPeoplePictures, session.people)
   }
 }
 

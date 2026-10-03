@@ -1,4 +1,5 @@
 #if DEBUG
+  import HermieCore
   import HermieProtocol
   import HermieTranscript
   import SwiftUI
@@ -13,6 +14,8 @@
     @State private var width: GalleryWidth = .natural
     @State private var expansion = TranscriptExpansion()
     @State private var log = "Tap a button on a card."
+    /// Robin has a picture here: the shared-chat sample draws it.
+    @State private var people = DebugPeoplePictures.make()
 
     public init() {}
 
@@ -78,6 +81,7 @@
       }
       .environment(\.transcriptExpansion, expansion)
       .environment(\.transcriptOwnAuthorID, "telegram:1")
+      .environment(\.transcriptPeoplePictures, people)
       .environment(\.transcriptItemActions, actions)
       .transformEnvironment(\.dynamicTypeSize) { size in
         if largeText { size = .accessibility5 }

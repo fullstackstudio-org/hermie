@@ -6,8 +6,9 @@ import SwiftUI
 /// A person's turn, as Messages draws it. The owner's own turns sit on the
 /// trailing side in a flat blue bubble with white text; in a shared chat a
 /// turn by someone else sits on the leading side in the grey bubble, with
-/// their initial beside the group's last bubble, coloured by their author id
-/// (never by name, which two people can share), and their name next to the
+/// their picture (`PersonAvatar`: the gateway's, else their initial coloured by
+/// their author id, never by name, which two people can share) beside the
+/// group's last bubble, and their name next to the
 /// time under it: "Lloyd · 21:42" (`metaLine`). The owner's own bubbles keep
 /// the time alone.
 ///
@@ -73,16 +74,11 @@ struct UserBubbleView: View {
 
   private func foreignBubble(_ author: MessageAuthor) -> some View {
     let name = author.name ?? Self.strippedID(author.id)
-    let tint = ItemFormat.authorTint(author.id)
     return HStack(alignment: .bottom, spacing: 8) {
       Group {
         // The avatar stands by the group's last bubble, as Messages puts it.
         if closesGroup {
-          Text(ItemFormat.initial(name))
-            .font(.caption.weight(.semibold))
-            .foregroundStyle(.white)
-            .frame(width: avatarSize, height: avatarSize)
-            .background(tint, in: .circle)
+          PersonAvatar(id: author.id, name: name, size: avatarSize)
         } else {
           Color.clear.frame(width: avatarSize, height: 1)
         }
