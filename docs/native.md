@@ -904,10 +904,15 @@ and the app's side is `HermieCore/AppGroup`. The rules they keep:
   one ephemeral session whose delegate refuses every redirect, the WebSocket included, so a front
   door's redirect to its identity provider never carries the token or the front-door headers
   anywhere. Whatever does not finish within `ShareLease.attemptDeadline` is left for the app.
-- **A lease, then a claim.** The extension writes `lease.json` into the entry before it touches the
-  network and removes it when done; the app does not deliver an entry with a fresh lease. Just
-  before `prompt.submit` it writes `claim.json`, but only while the entry is still there: an entry
-  the app has taken is not sent twice. The app never sends a claimed entry without asking.
+- **A lease, then a claim.** The extension takes `lease.json` in the entry before it touches the
+  network and removes it when done; the app does not deliver an entry with a fresh lease. The app
+  takes the same lease before it sends an entry itself and gives it back when it keeps the entry.
+  Both take it with `ShareLease.take`, which creates the file exclusively (a stale one is
+  replaced, a fresh one never), so only one side ever holds an entry; and the app leaves an entry
+  with no lease alone for `AppGroupShareOutbox.leaseGrace` after it was written, the moment in
+  which the extension leases it. Just before `prompt.submit` the extension writes `claim.json`, but
+  only while the entry is still there: an entry the app has taken is not sent twice. The app never
+  sends a claimed entry without asking.
 - **The app lock comes first.** `ShareOutboxDrainer` and `IntentQueueDrainer` do nothing while
   `SystemSurfaceLock` says locked, every App Intent requires an unlocked device, and "Bots needing
   input" names nobody while it is locked. It is locked until `LiveWiring` installs its state (see
@@ -1024,31 +1029,51 @@ environment. It only follows: which gateway is live is `LiveGateway`'s, who is s
 - **Push's session seams.** `pendingApprovals` waits for the live session's socket (a tap from a
   cold start), opens the bot's chat when it is not attached, and reads `approval.pending` for the
   runtime session the chat is attached under, never for one a payload named; `respond` answers
-  through the chat's open card when it shows one (so the transcript marks it) and by queue id
-  otherwise. Both answer only for the live gateway. `canonicalSessionIds` reads the live chat list.
+  through the chat's open card for that queue id when it shows one (so the transcript marks it)
+  and by queue id otherwise. Both answer only for the live gateway, and only while the app lock is
+  open: `pendingApprovals` also waits (within the same wait) for the person to unlock, and a tap
+  that finds the app still locked only opens the chat, where the card waits behind the plate. The
+  chat opens first and the answer follows. `canonicalSessionIds` reads the live chat list.
 - **The ui_meta bridge.** One `GatewayMetaBridge` per live session: a `UIMetaSync` over the
   session's own link, its copy kept per gateway under `hermie.ui_meta`, with this installation's
   `PushRowWriter` as contributor. It reconciles once the session has read who this is
   (`GatewaySession.uiMetaUser`: `owner` on a session-token gateway, the user id or email
-  `/api/auth/me` named otherwise, nobody after a refusal), on every `ready` edge, after every
-  `sessions.changed` sweep and when the app comes to the front. The window in front names the open
-  chat for the `seen` heartbeat. What the gateway's copy carries that this build does not draw
+  `/api/auth/me` named otherwise, nobody after a read that failed), on every `ready` edge, after
+  every `sessions.changed` sweep and when the app comes to the front (while any of its windows is
+  in front: a second window minimised on the Mac does not stop the heartbeat). The window in front
+  names the open chat for the `seen` heartbeat. What the gateway's copy carries that this build does not draw
   (other devices' rows, the chat layout and mutes, the plugin advert) goes back as it came; nothing
   taken in is treated as this person's own choice. The settings bridge (`UIMetaSettingsBridge`) is
   not registered yet: there is no native settings model to bridge to.
 - **Sign-out and removal.** `GatewayAccounts.endSession` is wrapped: before the session ends, the
-  bridge withdraws this installation's row from that gateway (while the credentials still work,
-  waiting at most three seconds) and the surfaces purge what they hold for it. `GatewayAccounts`
-  then retires the relay registration as before (`pushStillRegistered` when it cannot).
+  surfaces stop publishing for that gateway and, when it is the live gateway, the bridge withdraws
+  this installation's row from it (while the credentials still work, waiting at most three
+  seconds). Only the live gateway's row is withdrawn: a gateway that is not the live one has no
+  socket to write through, so its row stays on that gateway (the relay registration it names is
+  retired all the same, so nothing reaches this device through it). The surfaces purge what they
+  hold for the gateway once the sign-out went through, and for a removal only once the removal
+  did (`GatewayAccounts.purgeSurfaces`). `GatewayAccounts` then retires the relay registration as
+  before (`pushStillRegistered` when it cannot).
 - **The system surfaces.** `SystemSurfaces` writes the widget snapshot, the share sheet's targets
   and the Spotlight rows from the live chat list (previews left out while the app lock is
   configured), and drains the share outbox and the Shortcuts queue on every opening of the lock,
   every `ready` edge, every `hermie://share` or `hermie://intent` link and every return to the
-  front. The app sends a share itself only when it names a bot, carries no claim and holds only
-  text and links; a share with files waits for the share extension's direct send (the app has no
-  upload path yet), and one with no bot or a claim waits for the sheet that asks the person. "Send
-  to" answers once the gateway took the prompt; "Ask" waits for the bot's finished reply within
-  the request's budget and otherwise answers that the bot is still working.
+  front. A drain goes through the live session for that session's own gateway only: while a
+  switch settles, the directory can already name the next gateway, and what is queued for it waits
+  for its own session (the drainers route by the session's key, and `deliver` and `answer` refuse
+  anything else). The app sends a share itself only when it names a bot, carries no claim and holds
+  only text and links; a share with files waits for the share extension's direct send (the app has
+  no upload path yet), and one with no bot or a claim waits for the sheet that asks the person.
+  Before it sends one, the app takes the entry's lease (`ShareLease.take`, created exclusively,
+  the rule the extension follows too), so the two never send the same share; a share written less
+  than two seconds ago with no lease yet is left to the extension, and the drain looks again once
+  that grace is over. A Shortcut request is taken (`<id>.taken`) before it runs, so it runs at
+  most once, and its expiry is judged when its turn comes, not when the drain started. "Send to"
+  answers once the gateway took the prompt; one parked behind a turn that was already running
+  waits (at most ten seconds) for that turn to end and its prompt to go out, and otherwise answers
+  that it is queued in the app. "Ask" waits for the finished reply to its own prompt (never to the
+  turn that was running when it was asked) within the request's budget, outside the drain so the
+  next request is not held up, and otherwise answers that the bot is still working.
 
 Moving from the Expo app to a native build: the native app registers under a new installation id
 and does not retire the Expo app's row for the same device, because removing it automatically could
