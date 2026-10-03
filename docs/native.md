@@ -623,7 +623,21 @@ has a switch for it, and `TEST_RUNNER_HERMIE_LIST_IMPLEMENTATION` runs the UI te
   the newest row 123 pt under it on an iPad.
 - **The composer is a content inset.** The host measures the safe area the list is given (the bars,
   the keyboard, the composer) and hands it to the collection view as content insets. Rows scroll
-  under the bars, and a growing composer either keeps the bottom or moves nothing.
+  under the bars, and a growing composer either keeps the bottom or moves nothing. The collection
+  view ignores every region of the safe area, the keyboard's included: with the keyboard also
+  shortening its frame, the keyboard was counted twice and a keyboard's height of empty list stood
+  between the newest row and the composer.
+- **Cells have no safe area.** A cell passing under the header or the composer lies in the window's
+  safe area, and the row hosted in it honoured that: it was laid out inset by the part of the bar it
+  was under, pushed down over the next row under the header, pushed up under the composer, while the
+  layout had placed the cells correctly. `TranscriptHostingCell` reports a zero safe area. This was
+  the rows drawn over each other in the owner's screenshots, and the reader's row moving 154 pt in
+  `testRotatingKeepsTheReadersPlace` (landscape has another top inset).
+- **Pinned means following.** A `.bottom` command (the reader's send, the jump pill) pins the list,
+  and only the reader's own dragging unpins it: the end of the list's own scroll animation no longer
+  reads `isAtBottom` (which a bubble arriving during the animation had made false, so the reply
+  streamed below the composer). `isAtBottom` is "pinned, or within the threshold", so the pill does
+  not flash between a row growing and the offset following it.
 - **Each cell keeps its own accessibility and display scale.** The rows get the list's environment,
   except `accessibilityEnabled` and `displayScale`, which come from the cell
   (`RowEnvironmentBridge`). With the list's stale values, the rows were missing from the
@@ -635,6 +649,14 @@ has a switch for it, and `TEST_RUNNER_HERMIE_LIST_IMPLEMENTATION` runs the UI te
   `defaultScrollAnchor(.bottom)`, and with `.bottom` for `.sizeChanges` while `isAtBottom`. Once the
   reader has scrolled away, the size-change anchor is `nil`, so a reply growing below them moves
   nothing.
+- **Following is decided from what moved the content** (`TranscriptFollow`), not from one geometry
+  update. A bubble taller than the threshold grows the content before the anchor moves the offset,
+  and deciding from that update switched the anchor off: the bubble and the reply stayed below the
+  composer. Now only an offset change nothing else explains (a drag, a fling, the wheel, the
+  keyboard, the scroller) changes it; the list's own animated scroll and the rows growing do not.
+  When rows are removed or replaced while following (a reconcile that moved rows), the list goes
+  back to the bottom: the lazy stack otherwise kept the id of a row that was gone and drew an empty
+  viewport.
 - **Prepends without a jump, on iOS 27 and the Mac.** A `ScrollPosition` bound with `anchor: .top`
   over a `scrollTargetLayout` keeps the row at the top of the viewport where it is when rows are
   inserted above it. On iOS 26.x it does not (above).
@@ -820,6 +842,28 @@ composer:)` takes another, handed a `ChatComposerContext`. The transcript answer
   `.answeringRequests(with:actions:)` and `.secureInput(_:)`; a bot-to-bot row opens the other
   bot's chat through the router. `ComposerPlaceholder`, a disabled field, stands in only while
   there is no session.
+- **Messages, as Messages draws them.** The owner's turns are flat blue bubbles (the app's accent,
+  `#1772D3`, fixed; white text on it is 4.66:1) on the trailing side, the bot's words grey bubbles
+  on the leading side with the Markdown inside; no gradients. A bubble is at most three quarters of
+  the column and 560 pt (a reply with a table or code: 94 % and 820 pt), and as narrow as its words
+  (`markdownFillsWidth`). `TranscriptRowBuilder` groups consecutive bubbles from one sender (any
+  visible row between them, or an hour's pause, ends a group): only the last has the tail and the
+  time on a line of its own, and a date-and-time line goes above the first message and after a
+  pause. Rows are 2 pt apart and a group opens with 8 pt more.
+- **Tool calls are one compact group per run** (`ToolGroupView`): every call between two other
+  rows, hidden and silent ones too, so what a group holds never depends on presentation. "5 steps"
+  and what they did, opening to the calls and each to its raw arguments, result and identifier.
+  `ToolLabel` names a call for what it did: the dispatcher's summary ("Moneybird · list ledger
+  accounts"), `mcp__server__call` as "Server · call", "Ran code", "Ran a command"; code never shows
+  under a title. Status lines, cron reports and cards keep their own rows.
+- **The reader's own send goes to the bottom** from wherever they were, and the list follows the
+  bubble and the reply (`ComposerModel.onSubmit` → `TranscriptListState.followOwnSend`); a message
+  from elsewhere leaves a scrolled-up reader where they are, and the pill counts it.
+- **The composer floats as glass** over the transcript, which scrolls under it and stops above it.
+  The send button is the accent blue with something to send, a plainly visible grey disc without,
+  red to stop. The Mac field measures itself in a text system of its own: setting the live text
+  container to SwiftUI's probe widths (0, infinity) left the typed text laid out in no space after
+  the window became active.
 - **The session's facts.** The user bubbles know the reader by `GatewaySession.ownAuthorID`. The
   gateway's notices are dismissible lines (the account's over the list, a chat's own over it),
   a connector authorisation is a card with Open, Skip and Cancel, and the list says when this
@@ -830,7 +874,13 @@ that `test.sh --ui` starts on the Mac (`HERMIE_CHAT_GATEWAY`): set the gateway u
 with its token, see the bots, open a chat, send, watch the reply stream (failing if any row that was
 on screen before was drawn again), stop it, and answer an approval raised through
 `/__fake/request`. It reads the render counts through `ChatTestProbe`, which exists only in a debug
-build launched by a UI test.
+build launched by a UI test. Two more of its tests hold the geometry: no two rows on screen overlap
+and the newest row ends above the composer (opened, after a send with the keyboard up, in landscape
+and back), and a reply arriving below a scrolled-up reader moves nothing while their own send goes to
+the bottom. The second runs a first turn to its end before it measures: the fake gateway's extra
+history has negative row ids, and the engine's `inRowOrder` (whose "newest row above" starts at -1)
+moves that history's tool rows, which carry no row id, to just after it at the first turn's end.
+That move is the fake's; a real gateway's row ids are positive.
 
 ### The lab
 
@@ -881,6 +931,10 @@ The lab reads these launch arguments:
   written to disk. `scripts/test.sh --ui` starts a fake gateway on the host for its UI tests
   (`ComposerUITests`) and hands them its address as `TEST_RUNNER_HERMIE_LAB_GATEWAY`; each test
   starts by withdrawing every open request (`POST /__fake/withdraw-requests`).
+- In the composer lab, `-HermieLabDraft <text>` puts text in the field, and with
+  `-HermieLabSendAfter <seconds>` sends it (`-HermieLabSends <n>` times, each after the reply to the
+  one before); `-HermieLabScrollUp <points>` scrolls up that far before each send. For looking at
+  the field and at the list's scrolling on a send without driving the keyboard.
 
 ## Black-box tests against the fake gateway
 
