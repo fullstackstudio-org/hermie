@@ -74,8 +74,9 @@ public struct ComposerView: View {
       }
     }
     // Floating glass over the transcript, as Messages' field: no bar behind it. The transcript
-    // scrolls under it and stops above it (the slot is a safe-area inset of the list).
-    .padding(.horizontal, 12)
+    // scrolls under it and stops above it (the slot is a safe-area inset of the list). As far in
+    // from the window's edges as the bubbles.
+    .padding(.horizontal, Self.edgeInset)
     .padding(.top, 6)
     .padding(.bottom, 8)
     .overlay { dropHint }
@@ -148,6 +149,9 @@ public struct ComposerView: View {
   #else
     static let fieldTint = Color(uiColor: .systemBackground).opacity(0.6)
   #endif
+
+  /// The composer's distance from the window's left and right edges: the bubbles'.
+  static let edgeInset = ChatSpacing.edgeMargin
 
   /// Six lines, then the field scrolls.
   static let maxLines = 6

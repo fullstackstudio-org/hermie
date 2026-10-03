@@ -88,9 +88,9 @@ public struct StandardComposer: View {
   public var body: some View {
     VStack(spacing: 0) {
       RequestNoticeView(requests: context.requests)
-        .padding(.horizontal, 12)
+        .padding(.horizontal, ChatSpacing.edgeMargin)
       SecureInputNoticeView(model: context.secureInput)
-        .padding(.horizontal, 12)
+        .padding(.horizontal, ChatSpacing.edgeMargin)
       ComposerView(model: context.composer)
     }
   }
@@ -112,7 +112,7 @@ public struct ComposerPlaceholder: View {
       .padding(.vertical, 10)
       .background(.fill.tertiary, in: .rect(cornerRadius: 20))
       .disabled(true)
-      .padding(.horizontal)
+      .padding(.horizontal, ChatSpacing.edgeMargin)
       .padding(.vertical, 8)
       .background(.bar)
       .accessibilityIdentifier("hermie.composer.placeholder")
@@ -358,7 +358,7 @@ struct ChatBanners: View {
         .padding(.horizontal, 14)
         .padding(.vertical, 10)
         .background(.regularMaterial, in: .rect(cornerRadius: 12))
-        .padding(.horizontal)
+        .padding(.horizontal, ChatSpacing.edgeMargin)
         .padding(.vertical, 6)
         .accessibilityElement(children: .contain)
       } else if feed.hydration == .cached, feed.session.status.phase != .ready, feed.loaded {

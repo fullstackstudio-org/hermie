@@ -17,6 +17,18 @@ import Testing
     #expect(ChatTranscript.margin == ChatSpacing.edgeMargin)
   }
 
+  @Test func theComposerStandsAsFarFromTheEdgeAsTheBubbles() {
+    // 0.2.6 on the Mac: the bubbles 20 points in, the plus and the stop button 12.
+    #expect(ComposerView.edgeInset == ChatSpacing.edgeMargin)
+  }
+
+  #if os(macOS)
+    @Test func theMacsWindowEdgeHasMoreRoomThanTheBuildTheOwnerFoundTight() {
+      // 0.2.6: 20 points read as the bubbles and the composer touching a wide window's edge.
+      #expect(ChatSpacing.edgeMargin > 20)
+    }
+  #endif
+
   @Test func theRoomIsMoreThanTheBuildTheOwnerFoundCramped() {
     // 0.2.3: 2 points between bubbles of a group, 10 between groups, 12 from the window's edge, and
     // a bubble padded 13 by 8.
