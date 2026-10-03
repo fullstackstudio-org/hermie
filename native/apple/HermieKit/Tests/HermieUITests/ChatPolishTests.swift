@@ -9,13 +9,12 @@ import Testing
   @Test func aGapInsideAGroupIsPlainlySmallerThanTheGapBetweenGroups() {
     #expect(ChatSpacing.withinGroup < ChatSpacing.betweenGroups)
     #expect(ChatSpacing.betweenGroups >= ChatSpacing.withinGroup * 3, "the grouping stays readable")
-    #expect(ChatSpacing.groupGap + ChatSpacing.withinGroup == ChatSpacing.betweenGroups)
   }
 
   @Test func theTranscriptReadsTheTokensAndNothingElse() {
-    #expect(ChatTranscript.rowSpacing == ChatSpacing.withinGroup)
+    #expect(ChatTranscript.rowSpacing == 0, "each row carries its own room, so a row that draws nothing takes none")
+    #expect(TranscriptItemView.Gaps.chat == TranscriptItemView.Gaps(within: ChatSpacing.withinGroup, between: ChatSpacing.betweenGroups))
     #expect(ChatTranscript.margin == ChatSpacing.edgeMargin)
-    #expect(TranscriptItemView.groupGap == ChatSpacing.groupGap)
   }
 
   @Test func theRoomIsMoreThanTheBuildTheOwnerFoundCramped() {
@@ -54,6 +53,24 @@ import Testing
     #expect(geometry.center.y + geometry.dot / 2 <= side + 0.0001)
     #expect(abs(geometry.cutout - (geometry.dot + geometry.ring * 2)) < 0.0001)
     #expect(geometry.ring >= 2)
+  }
+
+  @Test func theAvatarIsACircleWithABiteTakenOutOnlyWhenThereIsABead() {
+    let side: CGFloat = 44
+    let frame = CGRect(x: 0, y: 0, width: side, height: side)
+    let geometry = PresenceGeometry(avatarSide: side)
+    let plain = AvatarShape(bite: nil).path(in: frame)
+    let bitten = AvatarShape(bite: geometry).path(in: frame)
+
+    #expect(plain.contains(CGPoint(x: side / 2, y: side / 2)))
+    #expect(plain.contains(geometry.center), "no bead: nothing is cut")
+    #expect(!plain.contains(CGPoint(x: 1, y: 1)), "a circle, not its square")
+
+    #expect(bitten.contains(CGPoint(x: side / 2, y: side / 2)), "the picture stays")
+    #expect(!bitten.contains(geometry.center), "the bite is empty")
+    #expect(!bitten.contains(CGPoint(x: geometry.center.x - geometry.dot / 2 - geometry.ring / 2, y: geometry.center.y)), "and wide enough for the ring")
+    #expect(!bitten.contains(CGPoint(x: side - 1, y: side - 1)), "the corner outside the circle stays empty")
+    #expect(bitten.contains(CGPoint(x: side / 2, y: 2)), "the rest of the circle is whole")
   }
 
   @Test func theBeadScalesWithTheAvatarSoLargeTextGrowsBothTogether() {

@@ -133,6 +133,23 @@ private func status(_ id: String, presentation: Presentation = .full) -> Visible
     #expect(TranscriptItemView.gap(above: rows[2]) == 0)
   }
 
+  @Test func theChatsGapsAreSmallInsideAGroupLargeBetweenGroupsAndNoneForARowThatDrawsNothing() {
+    var builder = TranscriptRowBuilder()
+    let gaps = TranscriptItemView.Gaps.chat
+    let rows = builder.rows(for: [
+      reply("a1", ts: 1000), reply("a2", ts: 1010), tool("t1", presentation: .hiddenPlaceholder, status: .running),
+      reply("a3", ts: 1020), user("u1", ts: 1030), tool("t2")
+    ])
+    #expect(rows.map(\.id) == ["a1", "a2", "tools:t1", "a3", "u1", "tools:t2"])
+
+    #expect(TranscriptItemView.gap(above: rows[0], gaps: gaps) == ChatSpacing.betweenGroups, "a group opens")
+    #expect(TranscriptItemView.gap(above: rows[1], gaps: gaps) == ChatSpacing.withinGroup, "inside the group")
+    #expect(TranscriptItemView.gap(above: rows[2], gaps: gaps) == 0, "draws nothing, takes nothing")
+    #expect(TranscriptItemView.gap(above: rows[3], gaps: gaps) == ChatSpacing.withinGroup, "the hidden row does not part the group")
+    #expect(TranscriptItemView.gap(above: rows[4], gaps: gaps) == ChatSpacing.betweenGroups, "the sender changes")
+    #expect(TranscriptItemView.gap(above: rows[5], gaps: gaps) == ChatSpacing.betweenGroups, "a tool group stands apart")
+  }
+
   @Test func aSilentToolThatWorkedDrawsNothingAndOneThatFailedDoes() {
     let worked = [tool("t1", name: "todo")]
     let failed = [tool("t1", name: "todo", status: .error)]

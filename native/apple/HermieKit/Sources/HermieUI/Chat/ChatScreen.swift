@@ -238,15 +238,17 @@ struct ChatSessionView<Composer: View>: View {
 struct ChatTranscript: View {
   let feed: ChatFeed
 
-  static let rowSpacing: CGFloat = ChatSpacing.withinGroup
+  /// None between rows: each row carries the room above itself (`TranscriptItemView.Gaps`), so a
+  /// row that draws nothing takes none.
+  static let rowSpacing: CGFloat = 0
   /// The bubbles' distance from the window's edges; the list itself runs edge to edge.
   static let margin: CGFloat = ChatSpacing.edgeMargin
 
   var body: some View {
-    // `ChatSpacing.withinGroup` between rows, so the bubbles of one group sit together; a row that opens a group
-    // adds its own room above it (`TranscriptItemView.groupGap`).
+    // Each row carries the room above itself (`ChatSpacing`): small inside a group of bubbles, large
+    // between groups, none for a row that draws nothing.
     TranscriptList(feed.rows, state: feed.listState, spacing: Self.rowSpacing) { row in
-      TranscriptItemView(row: row)
+      TranscriptItemView(row: row, gaps: .chat)
         .padding(.horizontal, Self.margin)
     } overlay: { state in
       JumpToLatestPill(state: state, newCount: feed.newCount)

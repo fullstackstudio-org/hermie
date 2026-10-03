@@ -37,21 +37,9 @@ struct BotAvatar: View {
 
     picture(side: side)
       .frame(width: side, height: side)
-      .clipShape(.circle)
-      .mask {
-        if presence != nil {
-          Rectangle()
-            .overlay(alignment: .topLeading) {
-              Circle()
-                .frame(width: geometry.cutout, height: geometry.cutout)
-                .position(geometry.center)
-                .blendMode(.destinationOut)
-            }
-            .compositingGroup()
-        } else {
-          Rectangle()
-        }
-      }
+      // One clip, a path: the circle with the bite taken out of it when there is a bead, the
+      // plain circle when there is not. Nothing is composited in an offscreen layer.
+      .clipShape(AvatarShape(bite: presence == nil ? nil : geometry))
       .overlay(alignment: .topLeading) {
         if let presence {
           PresenceDot(state: presence, diameter: geometry.dot)
@@ -97,6 +85,26 @@ struct PresenceGeometry: Equatable {
     let radius = avatarSide / 2
     let reach = radius * (1 + 2.0.squareRoot() / 2)
     return CGPoint(x: reach, y: reach)
+  }
+}
+
+/// The avatar's outline: a circle, with a round bite out of it where the state bead sits.
+struct AvatarShape: Shape {
+  var bite: PresenceGeometry?
+
+  func path(in rect: CGRect) -> Path {
+    let circle = Path(ellipseIn: rect)
+
+    guard let bite else {
+      return circle
+    }
+
+    let diameter = bite.cutout
+    let hole = CGRect(
+      x: rect.minX + bite.center.x - diameter / 2, y: rect.minY + bite.center.y - diameter / 2,
+      width: diameter, height: diameter)
+
+    return circle.subtracting(Path(ellipseIn: hole))
   }
 }
 

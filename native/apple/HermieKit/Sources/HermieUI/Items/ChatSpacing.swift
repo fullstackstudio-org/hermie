@@ -22,10 +22,6 @@ enum ChatSpacing {
   /// Between one group and the next: the sender changes, or a tool group, a notice or a card stands between.
   static let betweenGroups: CGFloat = 16
 
-  /// The room a row that opens a group adds above itself, on top of the list's own `withinGroup`
-  /// spacing between rows.
-  static let groupGap: CGFloat = betweenGroups - withinGroup
-
   /// A bubble's inner padding, left and right of its words.
   static let bubbleInsetH: CGFloat = 14
   /// A bubble's inner padding, above and below its words.

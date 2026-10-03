@@ -184,6 +184,8 @@ extension HTTPClient {
 private final class UploadDelegate: NSObject, URLSessionTaskDelegate, Sendable {
   private let onProgress: (@Sendable (Double) -> Void)?
   private let refused = Mutex<String?>(nil)
+  /// The last fraction passed on: a callback per network write would be a hop per chunk.
+  private let reported = Mutex<Double>(-1)
 
   init(onProgress: (@Sendable (Double) -> Void)?) {
     self.onProgress = onProgress
@@ -202,7 +204,16 @@ private final class UploadDelegate: NSObject, URLSessionTaskDelegate, Sendable {
       return
     }
 
-    onProgress?(min(1, Double(totalBytesSent) / Double(totalBytesExpectedToSend)))
+    let fraction = min(1, Double(totalBytesSent) / Double(totalBytesExpectedToSend))
+    let pass = reported.withLock { last -> Bool in
+      guard fraction - last >= 0.01 || fraction >= 1 && last < 1 else { return false }
+      last = fraction
+      return true
+    }
+
+    if pass {
+      onProgress?(fraction)
+    }
   }
 
   func urlSession(

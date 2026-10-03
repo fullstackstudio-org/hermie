@@ -11,13 +11,34 @@ import SwiftUI
 /// once per chat.
 public struct TranscriptItemView: View, Equatable {
   public let row: TranscriptRow
+  let gaps: Gaps
+
+  /// The room above a row, by what the row is. The chat has the rows carry it themselves (and its
+  /// list no spacing of its own), because a row that draws nothing must take no room at all, which
+  /// a spacing between rows cannot give it.
+  struct Gaps: Equatable, Sendable {
+    /// Above a bubble that continues its group.
+    var within: CGFloat
+    /// Above a row that opens a group, and above every row that is not a bubble.
+    var between: CGFloat
+
+    /// The labs', which keep their list's own spacing.
+    static let lab = Gaps(within: 0, between: 8)
+    /// The chat's (`ChatSpacing`).
+    static let chat = Gaps(within: ChatSpacing.withinGroup, between: ChatSpacing.betweenGroups)
+  }
 
   public init(row: TranscriptRow) {
+    self.init(row: row, gaps: .lab)
+  }
+
+  init(row: TranscriptRow, gaps: Gaps) {
     self.row = row
+    self.gaps = gaps
   }
 
   public nonisolated static func == (lhs: Self, rhs: Self) -> Bool {
-    lhs.row == rhs.row
+    lhs.row == rhs.row && lhs.gaps == rhs.gaps
   }
 
   public var body: some View {
@@ -27,22 +48,19 @@ public struct TranscriptItemView: View, Equatable {
     content
       .frame(maxWidth: .infinity, alignment: .leading)
       // Bubbles of one group sit close; a new group, and every other row, gets room above it.
-      .padding(.top, Self.gap(above: row))
+      .padding(.top, Self.gap(above: row, gaps: gaps))
       .accessibilityIdentifier("row.\(row.id)")
       #if DEBUG
         .onAppear { RenderCounter.appeared(row.id) }
       #endif
   }
 
-  /// The room above a row that opens a group, on top of the list's spacing between rows (`ChatSpacing.withinGroup`
-  /// in the chat, so the bubbles of one group sit as close as Messages draws them).
-  nonisolated static let groupGap: CGFloat = ChatSpacing.groupGap
-
-  /// The room above a row: none inside a group of bubbles, none for a row that draws nothing (a
-  /// hidden placeholder, quiet's stand-in for the running tool), the group gap otherwise.
-  nonisolated static func gap(above row: TranscriptRow) -> CGFloat {
+  /// The room above a row: none for a row that draws nothing (a hidden placeholder, quiet's
+  /// stand-in for the running tool), the small gap inside a group of bubbles, the large one
+  /// otherwise.
+  nonisolated static func gap(above row: TranscriptRow, gaps: Gaps = .lab) -> CGFloat {
     if TranscriptRowBuilder.drawsNothing(row) { return 0 }
-    return row.bubble.map { $0.opensGroup ? groupGap : 0 } ?? groupGap
+    return row.bubble.map { $0.opensGroup ? gaps.between : gaps.within } ?? gaps.between
   }
 
   @ViewBuilder private var content: some View {

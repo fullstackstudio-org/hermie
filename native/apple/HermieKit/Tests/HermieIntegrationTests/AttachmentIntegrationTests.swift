@@ -167,6 +167,7 @@ extension Integration {
         let fractions = seen.withLock { $0 }
         #expect(!fractions.isEmpty)
         #expect(fractions == fractions.sorted(), "progress only moves forward")
+        #expect(zip(fractions, fractions.dropFirst()).allSatisfy { $1 - $0 >= 0.01 || $1 == 1 }, "a callback per percent, not per write")
         #expect(fractions.last == 1)
       }
     }
