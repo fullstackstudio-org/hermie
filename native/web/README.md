@@ -10,8 +10,9 @@ the threat model that follows from it are in
 screen: the client refuses to run in a frame, finds its gateway from its own address, probes it, reads who is
 signed in on the gateway's own session, connects, shows the chat list in a two-pane layout with a router and a
 theme ("The shell" below), and opens a chat in the main pane and streams it ("The chat screen" below): bubbles
-with Markdown, tool calls, notices, date separators, older history, jump to latest. There is no composer yet (you
-cannot send, stop, approve or answer a question from it), and the plugin does not serve this build. Until that
+with Markdown, tool calls, notices, date separators, older history, jump to latest. You can send, stop a reply and
+answer a bot's approval or question from it ("The composer" and "Requests" below). It has no attachments, no secret
+prompts and no settings yet, and the plugin does not serve this build. Until that
 changes, the browser keeps running the Expo app's web export through Hermie Web
 ([docs/web.md](../../docs/web.md)); nothing here replaces it.
 
@@ -30,14 +31,14 @@ production, and it forwards `/api`, `/auth` and `/login` (WebSocket included) to
 The development document relaxes its Content-Security-Policy so the dev server can work (inline scripts and
 styles, `ws:`, no Trusted Types). The production build never does; test against `dist/` to see the real policy.
 
-| Command                             | What it does                                                                                                |
-| ----------------------------------- | ----------------------------------------------------------------------------------------------------------- |
-| `npm run client:dev`                | the Vite dev server (above)                                                                                 |
-| `npm run client:build`              | `vite build`, then writes `dist/build.json`                                                                 |
-| `npm run client:test`               | the client's unit and component tests (vitest, jsdom, Testing Library)                                      |
-| `npm run client:check-bundle`       | the gate on `dist/` (below); `-- --commit <sha>` also requires `build.json` to name that commit             |
-| `npm run client:check-reproducible` | builds twice from clean and compares every file; `-- --fresh-checkout` adds a build from `git archive HEAD` |
-| `npm run client:e2e`                | the Playwright suites in Chromium, WebKit and Firefox (the transcript list's and the chat screen's)         |
+| Command                             | What it does                                                                                                        |
+| ----------------------------------- | ------------------------------------------------------------------------------------------------------------------- |
+| `npm run client:dev`                | the Vite dev server (above)                                                                                         |
+| `npm run client:build`              | `vite build`, then writes `dist/build.json`                                                                         |
+| `npm run client:test`               | the client's unit and component tests (vitest, jsdom, Testing Library)                                              |
+| `npm run client:check-bundle`       | the gate on `dist/` (below); `-- --commit <sha>` also requires `build.json` to name that commit                     |
+| `npm run client:check-reproducible` | builds twice from clean and compares every file; `-- --fresh-checkout` adds a build from `git archive HEAD`         |
+| `npm run client:e2e`                | the Playwright suites in Chromium, WebKit and Firefox (the transcript list's, the chat screen's and the composer's) |
 
 Types, lint and format run with the rest of the repository (`npm run typecheck`, `npm run lint`,
 `npm run format`); `client:test`, the bundle gate and the Playwright suites (Chromium only) also run in CI as
@@ -152,6 +153,7 @@ Nothing in it is a credential: the session is the gateway's `HttpOnly` cookie, w
 | --------------------------------------------------- | ------------------------------------ | --------------------------------------------------------------------- | ----------- |
 | `localStorage` (`platform/key-value-store.ts`)      | `hermie:<base path>:device.*`        | device settings (scheme, tint, text size, installation id)            | kept        |
 | `localStorage`                                      | `hermie:<base path>:<anything else>` | identity-bound state (watermarks, layout, the owner's author id)      | cleared     |
+| `localStorage`                                      | `hermie:<base path>:draft.<chat>`    | what was typed in a chat and not sent                                 | cleared     |
 | IndexedDB `hermie-cache` (`platform/chat-cache.ts`) | rows keyed `<base path>:<bot>`       | transcript snapshots and the roster, in the Expo cache's record shape | cleared     |
 | `sessionStorage`                                    | `hermie:<base path>:route`           | the route, across one sign-in                                         | cleared     |
 
@@ -402,6 +404,106 @@ temporary directory by the test, so it is never a stale `dist/`):
 npm run e2e:chromium --workspace @hermie/web-client -- e2e/chat     # the chat screen's suite alone
 ```
 
+## The composer
+
+`features/chat/Composer.tsx`, under the transcript in `ChatScreen` (hidden on a past conversation, which can be read
+and not answered). The rules are the native apps' (`expo/hermie/src/chat-ui/Composer.tsx` and the chat screen's send);
+everything that talks to the gateway is a controller method, reached through `ChatRuntimeContext`.
+
+| File              | What                                                                                                   |
+| ----------------- | ------------------------------------------------------------------------------------------------------ |
+| `Composer.tsx`    | the field, Send, Stop, the completions, the draft; sends through `controller.send` and `runSlash`      |
+| `QueuedStrip.tsx` | the messages parked behind a running reply, as chips with Steer, Edit and Delete                       |
+| `send-key.ts`     | what a Return means: `decideKey`, the table of `expo/hermie/src/chat-ui/send-key.ts` plus the IME rule |
+| `drafts.ts`       | `DraftStore` over the key-value store: one draft per chat, per base path                               |
+| `composer.css`    | the composer, the completions and the queue, on the theme's tokens                                     |
+
+- **Return** sends, **Shift+Return** breaks the line, **Command or Control+Return** sends from anywhere. The Return that
+  confirms an input method's candidate (`isComposing`, or the legacy key code 229) never sends. On a device with no
+  mouse or trackpad (`platform/input-kind.ts`: `(any-pointer: fine)`) a bare Return breaks the line and the Send
+  button sends, as on a phone in the native apps; the key hint is shown only where Return sends.
+- **The field grows** with what is typed up to 40 % of the window, then scrolls. The height is set through the CSSOM,
+  which the document's policy allows (it forbids a `style` attribute in markup, not `element.style`).
+- **Draft.** Kept per chat in the key-value store under `draft.<chat>` (identity-bound, so a sign-out clears it), written
+  300 ms after the last key and at once on leaving the screen or hiding the tab. A send empties it; a send that is
+  refused puts the words back (ahead of anything typed meanwhile) with the reason under the field.
+- **Not connected.** The field stays live (a reconnect is a good moment to write the next message); Send is off until the
+  connection is `ready` and the chat has a session on the gateway. Stop is never switched off.
+- **Slash commands.** A line that begins with a slash runs as a command only if `slashRouteFor` (the gateway's catalogue)
+  knows the name, through `runSlash`; a `prefill` answer goes into the field. Anything else is a prompt. While the line is
+  `/...` the gateway is asked what could follow (`querySlash`); only the newest answer paints. The list is a
+  `listbox` the field names with `aria-controls` and `aria-activedescendant`: Up and Down move, Tab or Return take the
+  item (instead of sending), Escape closes it until the reader types again.
+- **Queue.** While a reply runs, a send is parked by the controller and drawn as a chip: **Steer** hands it to the running
+  reply (a refusal says "too late", and the controller has already put it back), **Edit** puts it in the field ahead of
+  what is there (not offered for a message with an attachment), **Delete**. Three chips are drawn, the rest are a count.
+- **Stop** appears while a reply runs: `controller.stopTurn`, which sends the interrupt and marks the chat interrupted
+  whatever the gateway answers, so the field is free again.
+- **Turn claim.** `controller.send` claims the turn before a model turn when the advert has `context.turn_claim`; nothing
+  here repeats it, and a slash command never reaches it.
+- **Pinned.** A send (or a command) calls `jumpToLatest()` before the round trip, so the reader's own bubble lands where
+  they are looking.
+- **Attachments** are W-19's. `ChatScreenController` already carries `uploadFile`; nothing calls it.
+
+## Requests
+
+A bot's approval or question (`clarify`) is answered in `features/requests/`, a modal layer over the whole page
+(`<RequestLayer />` in `App`, beside the frame), never in the transcript, where a row scrolls away.
+
+| File                | What                                                                                        |
+| ------------------- | ------------------------------------------------------------------------------------------- |
+| `state/requests.ts` | `requestsStore`: the open requests of every chat, oldest first; `bindRequests(chatsStore)`  |
+| `RequestLayer.tsx`  | the dialog, focus, the inert page, the polite announcements; answers through the controller |
+| `ApprovalSheet.tsx` | the command and Allow / Deny, the gateway's `choices`                                       |
+| `ClarifySheet.tsx`  | one question or a stepper over a batch: choices, free text, multi-select, Lock, Skip        |
+| `request-layer.css` | the scrim, the dialog and the sheets                                                        |
+
+- **One source of truth.** The store holds no request of its own: it is a view over the chat store, which is where the
+  engine puts a request raised on the socket, one the gateway re-delivers from `open_requests` on resume, and the
+  pending approval a resume reports. So a resume restores a request here with no code of its own, `request.cancel`
+  (the item turns `cancelled`) withdraws it, and an answer (`respondApproval` and `respondClarify` mark the item
+  `answered` first) takes it off in the same breath. `session.ts` binds it to the chats it starts.
+- **One at a time, oldest first,** in the order requests were first seen (not the rows' order: they are in different
+  chats), with "N more waiting" under the one on screen. A request for a chat that is not on screen raises the layer
+  too, and the dialog names the bot ("From <name>").
+- **A modal dialog.** `role="dialog"`, `aria-modal`, named by its heading, described by what is asked. The rest of the
+  page is `inert` while it is open (`platform/modal-isolation.ts`: every sibling of the layer and of its ancestors),
+  Tab is also kept inside by hand, and a focus that lands outside is brought back. **Escape does not dismiss, and
+  neither does the scrim**: a dismissed question is one the bot waits on with nobody looking. Focus goes to the
+  dialog itself (not a button) when a request appears, so a Return meant for the field presses nothing, and back to
+  where the reader was when the last one is gone (the composer, when that place no longer exists).
+- **Approval.** The buttons are exactly the gateway's `choices`, in its order (the engine's own set when it sent none):
+  once, session, always and deny have fixed wording from the catalogue, any other keeps its own name. The buttons wake
+  400 ms after the dialog appears, so a click already on its way answers nothing, and a second press of one answer is
+  ignored. `acknowledgeApproval` is sent when a person can first see it.
+- **Clarify.** A single question with choices (radio), several (checkbox, joined with ", ") or free text, which edit the
+  same one answer. A batch is a stepper: Next, Back, and Lock answer (`lockClarify`: locked on the gateway, then
+  read-only). **Skip answers `''`**: on a single question, "no answer" for the bot; in a batch, that step, moving on, and
+  on the last step sending every answer. Command or Control+Return in the field answers.
+- **Plain text.** The command, description, tool name, question and choices are the gateway's and an agent's words and
+  are never Markdown here.
+- **Said aloud.** A request that left without the reader's answer (withdrawn, or timed out) is announced in a polite
+  region beside the dialog ("The request from <name> was withdrawn."); a failure to deliver an answer is an alert.
+- **Secret, sudo, vault and `confirm` prompts** are W-14 and W-15; the queue's type is a union for them, and nothing of
+  them is handled here.
+
+`features/requests/RequestLayer.test.tsx` and `state/requests.test.ts` cover the above in jsdom, `requests.axe.test.tsx`
+runs axe on the composer and the layer (both schemes, every language), and `e2e/chat/compose.spec.ts` runs the **built**
+client against the fake gateway (streaming slowly, so a turn can be acted in the middle of):
+
+| Check                                                                                                                           | Result                          |
+| ------------------------------------------------------------------------------------------------------------------------------- | ------------------------------- |
+| Return sends, the bubble is painted, the reply streams (`aria-busy`), the field empties; Shift+Return breaks the line and grows | as described                    |
+| Stop mid-stream: the interrupt reaches the gateway, `runningSessions` empties, no word arrives after it                         | as described                    |
+| a send during a reply is a chip; Delete and Edit                                                                                | as described                    |
+| the draft per chat, across leaving the chat and a reload                                                                        | kept; cleared by a send         |
+| the prompt "approve" raises an approval; Allow once from the keyboard alone; Escape does not close it; focus returns            | `{choice: 'once'}`              |
+| Deny; an approval for a bot whose chat is not on screen; two requests one at a time                                             | `{choice: 'deny'}`              |
+| a withdrawn request closes; one raised before the page loaded is restored                                                       | closed; restored                |
+| clarify: a choice with the arrow keys, free text, a three-step batch with Skip, Skip on a single question                       | `{answer}` / `{answers}` / `''` |
+| the page behind the layer is inert; 320 px wide does not scroll sideways                                                        | inert; no overflow              |
+| axe with contrast, the layer open on an approval and on a batch, light and dark; nothing refused by the document's policy       | no violation                    |
+
 ## Markdown
 
 `src/markdown/` draws a message as React elements. The text goes through `@hermie/markdown` (`preprocessMarkdown`,
@@ -559,7 +661,7 @@ playwright.config.ts        the Playwright suites: three engines, the harness se
 tsconfig.json               the client's code (DOM); tsconfig.node.json: the config files (Node);
                             tsconfig.e2e.json: the Playwright configuration and specs
 e2e/perf/                   the transcript list's performance suite and its trace reader
-e2e/chat/                   the chat screen on the built client, against the fake gateway
+e2e/chat/                   the chat screen and the composer on the built client, against the fake gateway
 scripts/
   write-build-manifest.mjs  dist/build.json
   source-commit.mjs         which commit this build is of (shared by the config and the manifest)
@@ -568,9 +670,10 @@ src/
   boot/                     frame guard, base path, auth mode and cookie session, sign-in bounce, boot
   core/                     the connection and its lifecycle, the roster controller, the advert, the chat
                             controller and the ingest (above)
-  state/                    zustand vanilla stores: connection, bots, plugin, chats, settings
+  state/                    zustand vanilla stores: connection, bots, plugin, chats, settings, requests
   platform/                 the browser seams (above)
-  features/chat/            the chat screen, its item views, the transcript list, its scroll anchor and chunks
+  features/chat/            the chat screen, its item views, the transcript list, its scroll anchor and chunks, the composer
+  features/requests/        the request layer: approval and clarify, one at a time, in a modal dialog
   dev/                      development-only pages: the transcript harness, its probes, a stream replayer
   test-support/             test doubles: an IndexedDB, a fetch, a fetch with a cookie jar, a chat
                             gateway, the page's visibility and network, and a copy of the Expo app's
