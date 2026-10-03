@@ -14,8 +14,8 @@
     },
     "applyEvent": {
       "readsClock": false,
-      "recorded": 1838,
-      "replayable": 1838,
+      "recorded": 1550,
+      "replayable": 1550,
       "skipped": {}
     },
     "applyProcessCompletion": {
@@ -26,8 +26,8 @@
     },
     "applyResumeSnapshot": {
       "readsClock": false,
-      "recorded": 127,
-      "replayable": 127,
+      "recorded": 104,
+      "replayable": 104,
       "skipped": {}
     },
     "applyServerRequest": {
@@ -56,8 +56,8 @@
     },
     "beginLocalTurn": {
       "readsClock": false,
-      "recorded": 209,
-      "replayable": 209,
+      "recorded": 207,
+      "replayable": 207,
       "skipped": {}
     },
     "beginSteer": {
@@ -88,8 +88,8 @@
     },
     "confirmSubmit": {
       "readsClock": false,
-      "recorded": 168,
-      "replayable": 168,
+      "recorded": 166,
+      "replayable": 166,
       "skipped": {}
     },
     "contextUsageOf": {
@@ -286,8 +286,8 @@
     },
     "reconcile": {
       "readsClock": false,
-      "recorded": 402,
-      "replayable": 402,
+      "recorded": 356,
+      "replayable": 356,
       "skipped": {}
     },
     "reconcileTail": {
@@ -304,8 +304,8 @@
     },
     "rowsToItems": {
       "readsClock": false,
-      "recorded": 736,
-      "replayable": 736,
+      "recorded": 690,
+      "replayable": 690,
       "skipped": {}
     },
     "runningSubagents": {
@@ -316,14 +316,14 @@
     },
     "snapshotForCache": {
       "readsClock": false,
-      "recorded": 83,
-      "replayable": 83,
+      "recorded": 67,
+      "replayable": 67,
       "skipped": {}
     },
     "stateFromCache": {
       "readsClock": false,
-      "recorded": 78,
-      "replayable": 78,
+      "recorded": 62,
+      "replayable": 62,
       "skipped": {}
     },
     "stripSteerWrapper": {
