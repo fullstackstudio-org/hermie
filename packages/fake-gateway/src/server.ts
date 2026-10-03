@@ -118,6 +118,29 @@ export interface ScenarioReply {
    * kinds arriving in one turn, in the order a real agent produces them.
    */
   toolAfterDeltas?: number
+  /**
+   * Mid-turn notes, each followed by the call it announces: what a turn with
+   * `display.interim_assistant_messages` on (upstream's default) sends before
+   * its answer.
+   *
+   * The order is the fork's, from `agent/turn_tool_round.py`: the note streams
+   * as `message.delta`, the assistant row is PERSISTED, and only then does
+   * `message.interim {text, already_streamed}` go out ("emit interim commentary
+   * after the DB append"). The call follows, and its tool row lands in the
+   * history after the tool ran.
+   *
+   * So a client can see a note's row before the frame that announces it, and see
+   * the frames again (`session.events.since`) after a reload has already brought
+   * the rows: the two orders the transcript has to settle into one bubble per
+   * note.
+   *
+   * With `rowIdentity` on, every frame names the row it became (`message.interim`
+   * `row_id`, the call as `call_row_id` + `call_index`, the tool result row as
+   * `tool.complete.row_id`); with it off the rows are still written, the frames
+   * carry no identity and there is no `message.interim`, which is the gateway
+   * before the identity existed.
+   */
+  notes?: { text: string; tool: NonNullable<ScenarioReply['tool']> }[]
 }
 
 export interface Scenario {
@@ -153,6 +176,23 @@ export interface FakeGatewayOptions {
    */
   accounts?: FakeAccount[]
   scenario?: Scenario
+  /**
+   * Whether this gateway carries the transcript row identity of the fork
+   * (`.claude/plans/transcript-row-identity.md`). Default true.
+   *
+   * On: every turn-stream frame carries `turn_id` on its envelope and the user
+   * row `display_metadata.turn_id`; `message.interim`, `message.complete` and
+   * `tool.complete` name their persisted row; `tool.start` / `tool.complete`
+   * name their call (`call_row_id` + `call_index`) and history tool rows carry
+   * the same; `session.resume` says which streamed text no sealed note shows
+   * (`inflight.assistant_unsealed`); `gateway.capabilities` advertises
+   * `transcript_row_identity`.
+   *
+   * Off: none of it, and no `message.interim`. That is a gateway that predates
+   * the identity (Alsycon, an older fork), the one a client must still read as
+   * it did before.
+   */
+  rowIdentity?: boolean
   version?: string
   /** How many events per session the replay ring keeps. */
   replayRingSize?: number
@@ -401,6 +441,11 @@ export interface TranscriptRow {
   display_metadata?: Record<string, unknown> | null
   name?: string | null
   tool_id?: string | null
+  /** What `session_history.py` names a tool row's call by: the id `tool.start` sent as `tool_id`. */
+  tool_call_id?: string | null
+  /** The assistant row holding this tool row's call, and the call's position in its `tool_calls`. */
+  call_row_id?: number | null
+  call_index?: number | null
   context?: string | null
   args?: Record<string, unknown> | null
   reasoning?: string | null
@@ -572,6 +617,9 @@ function restMessageRow(row: TranscriptRow, index: number): Record<string, unkno
     ...(row.timestamp === undefined ? {} : { timestamp: row.timestamp }),
     ...(row.name === undefined || row.name === null ? {} : { name: row.name }),
     ...(row.tool_id === undefined || row.tool_id === null ? {} : { tool_id: row.tool_id }),
+    ...(row.tool_call_id === undefined || row.tool_call_id === null ? {} : { tool_call_id: row.tool_call_id }),
+    ...(row.call_row_id === undefined || row.call_row_id === null ? {} : { call_row_id: row.call_row_id }),
+    ...(row.call_index === undefined || row.call_index === null ? {} : { call_index: row.call_index }),
     ...(row.context === undefined || row.context === null ? {} : { context: row.context }),
     ...(row.args === undefined || row.args === null ? {} : { args: row.args }),
     ...(row.reasoning === undefined || row.reasoning === null ? {} : { reasoning: row.reasoning })
@@ -582,6 +630,8 @@ interface RingEntry {
   type: string
   session_id: string
   seq: number
+  /** The turn this frame belongs to; part of the envelope, so a replayed frame names it as the live one did. */
+  turn_id?: string
   payload: unknown
 }
 
@@ -1602,6 +1652,26 @@ const MATH_REPLY_DELTAS: string[] = [
   'That is the same ceiling the guide quotes, and the plan costs $12 a month either way.'
 ]
 
+/**
+ * The events that belong to one turn's stream, and so carry its `turn_id`
+ * (`tui_gateway/row_identity.py::TURN_STREAM_EVENTS`). Everything else on the
+ * wire is session chrome that can fire with no turn running and names no turn.
+ */
+const TURN_STREAM_EVENTS: ReadonlySet<string> = new Set([
+  'message.start',
+  'message.delta',
+  'message.interim',
+  'message.complete',
+  'reasoning.delta',
+  'reasoning.available',
+  'thinking.delta',
+  'tool.generating',
+  'tool.start',
+  'tool.complete',
+  'tool.output_risk',
+  'error'
+])
+
 const DEFAULT_SCENARIO: Scenario = {
   replies: [
     {
@@ -1630,6 +1700,23 @@ const DEFAULT_SCENARIO: Scenario = {
         summary: 'read gateway/auth.py',
         result: 'def refresh(...):'
       }
+    },
+    {
+      // A turn that writes notes before it answers, as a real agent with interim
+      // assistant messages on does: two tool rounds, then the reply.
+      match: 'ledger',
+      notes: [
+        {
+          text: 'Entry 90 is marked paid. Now the cent on the payables account: first see how it is booked.',
+          tool: { name: 'terminal', args: { command: 'ledger show 17201' }, summary: 'ledger show 17201', result: 'ok' }
+        },
+        {
+          text: 'Looking the transfer up through the API myself: the payout of 16-09.',
+          tool: { name: 'terminal', args: { command: 'payouts get 16-09' }, summary: 'payouts get 16-09', result: 'ok' }
+        }
+      ],
+      deltas: ['Everything checks out ', 'and nothing was filed.'],
+      text: 'Everything checks out and nothing was filed.'
     },
     {
       // Thinking first, then words: the order a real turn arrives in, and the order
@@ -2990,6 +3077,7 @@ export async function startFakeGateway(options: FakeGatewayOptions = {}): Promis
   const streamDelayMs = options.streamDelayMs ?? 2
   const subagentStepMs = options.subagentStepMs ?? 900
   const steerPersistsRow = options.steerPersistsRow ?? true
+  const rowIdentity = options.rowIdentity ?? true
   const version = options.version ?? '0.21.3-fake'
 
   const tickets = new Map<string, { expiresAt: number; userId: string; provider: string; identity?: Identity }>()
@@ -3030,6 +3118,18 @@ export async function startFakeGateway(options: FakeGatewayOptions = {}): Promis
   const streamEpochs = new Map<string, number>()
   /** Per stored session: the running reply's text so far, which an interrupt keeps. */
   const interruptedReplies = new Map<string, () => string>()
+  /**
+   * Per stored session: the turn that is running, as the fork's `inflight_turn` keeps it.
+   *
+   * `id` is the `turn_id` minted at submit and cleared after `message.complete`;
+   * `assistant` is every `message.delta` run together (sealed notes included);
+   * `sealedLen` is where it stood at the last interim delivered with
+   * `already_streamed`, which `session.resume` turns into `assistant_unsealed`.
+   */
+  const turns = new Map<
+    string,
+    { id: string; user: string; assistant: string; sealedLen: number | null; metadata: Record<string, unknown> | null }
+  >()
 
   const gated = () => state.auth === 'native' || state.auth === 'cookie'
   /** `native_revoke` is advertised, and its route answers, on a gated gateway that has it. */
@@ -3192,6 +3292,7 @@ export async function startFakeGateway(options: FakeGatewayOptions = {}): Promis
 
   function publish(type: string, sessionId: string | undefined, payload: unknown): void {
     let seq: number | undefined
+    let turnId: string | undefined
 
     if (sessionId) {
       const session = state.sessions.get(sessionId) ?? findByRuntimeId(sessionId)
@@ -3199,7 +3300,13 @@ export async function startFakeGateway(options: FakeGatewayOptions = {}): Promis
       if (session) {
         session.seq += 1
         seq = session.seq
-        session.ring.push({ type, session_id: session.id, seq, payload })
+
+        // The envelope of a turn-stream frame names the turn, while one is running.
+        if (rowIdentity && TURN_STREAM_EVENTS.has(type)) {
+          turnId = turns.get(session.storedId)?.id
+        }
+
+        session.ring.push({ type, session_id: session.id, seq, ...(turnId ? { turn_id: turnId } : {}), payload })
 
         if (session.ring.length > ringSize) {
           session.ring.shift()
@@ -3214,6 +3321,7 @@ export async function startFakeGateway(options: FakeGatewayOptions = {}): Promis
         type,
         ...(sessionId ? { session_id: resolveRuntimeId(sessionId) } : {}),
         ...(seq === undefined ? {} : { seq }),
+        ...(turnId ? { turn_id: turnId } : {}),
         ...(payload === undefined ? {} : { payload })
       }
     })
@@ -3314,7 +3422,10 @@ export async function startFakeGateway(options: FakeGatewayOptions = {}): Promis
       }
 
       if (current?.id === holder.storedId) {
-        return profile
+        // The row was minted once, at start; the count is the one thing that moves with the chat.
+        return current.message_count === holder.messages.length
+          ? profile
+          : { ...profile, canonical_session: { ...current, message_count: holder.messages.length } }
       }
 
       return {
@@ -6458,7 +6569,7 @@ export async function startFakeGateway(options: FakeGatewayOptions = {}): Promis
       }
 
       case 'gateway.capabilities':
-        return { per_session_exclusive_submit: true }
+        return { per_session_exclusive_submit: true, ...(rowIdentity ? { transcript_row_identity: true } : {}) }
 
       case 'gateway.ping':
         return { ok: true }
@@ -7605,6 +7716,7 @@ export async function startFakeGateway(options: FakeGatewayOptions = {}): Promis
         // As the gateway answers (`tui_gateway/server.py`, `if value:`): the key
         // is left out when nothing is open. `session.events.since` always carries it.
         const open = openRequestsFor(session.id, caller)
+        const inflight = inflightOf(session)
 
         return {
           session_id: session.id,
@@ -7613,6 +7725,7 @@ export async function startFakeGateway(options: FakeGatewayOptions = {}): Promis
           messages: omit ? [] : session.messages,
           messages_omitted: omit,
           info: sessionInfo(session),
+          ...(inflight ? { inflight } : {}),
           ...(open.length > 0 ? { open_requests: open } : {}),
           ...(pending ? { pending_approval: pending.payload } : {})
         }
@@ -7660,6 +7773,7 @@ export async function startFakeGateway(options: FakeGatewayOptions = {}): Promis
             type: entry.type,
             session_id: entry.session_id,
             seq: entry.seq,
+            ...(entry.turn_id ? { turn_id: entry.turn_id } : {}),
             payload: entry.payload
           })),
           latest_seq: session?.seq ?? 0,
@@ -7753,6 +7867,7 @@ export async function startFakeGateway(options: FakeGatewayOptions = {}): Promis
 
           state.runningSessions.delete(session.storedId)
           publish('message.complete', session.storedId, { text: '', status: 'interrupted' })
+          turns.delete(session.storedId)
         }
 
         return { status: 'interrupted', interrupted: true }
@@ -8576,11 +8691,31 @@ export async function startFakeGateway(options: FakeGatewayOptions = {}): Promis
       }, ms)
 
     state.runningSessions.add(sid)
+
+    // The gateway mints one id per turn and writes it on the user row, beside the
+    // author; the envelope of every frame of the turn names it too.
+    const turn = {
+      id: randomUUID().replace(/-/g, ''),
+      user: prompt.trim(),
+      assistant: '',
+      sealedLen: null as number | null,
+      metadata: rowIdentity ? { turn_id: '' } : null
+    }
+
+    if (turn.metadata) {
+      turn.metadata.turn_id = turn.id
+    }
+
+    turns.set(sid, turn)
+
+    const userRowId = session.messages.length + 1
+
     session.messages.push({
       role: 'user',
       text: prompt,
-      row_id: session.messages.length + 1,
-      timestamp: nowSeconds()
+      row_id: userRowId,
+      timestamp: nowSeconds(),
+      ...(turn.metadata ? { display_metadata: { ...turn.metadata } } : {})
     })
 
     later(() => publish('message.start', sid, {}), at)
@@ -8598,6 +8733,71 @@ export async function startFakeGateway(options: FakeGatewayOptions = {}): Promis
       later(() => publish('reasoning.available', sid, { text: reply.reasoningAvailable }), at)
     }
 
+    for (const note of reply.notes ?? []) {
+      const toolId = `tool-${randomUUID().slice(0, 8)}`
+      const tool = note.tool
+      let call: { call_row_id: number; call_index: number } | undefined
+
+      at += streamDelayMs
+      later(() => {
+        spoken += note.text
+        turn.assistant += note.text
+        publish('message.delta', sid, { text: note.text })
+      }, at)
+      at += streamDelayMs
+      later(() => {
+        // Written before the frame that announces it, as the fork does.
+        const rowId = session.messages.length + 1
+
+        session.messages.push({ role: 'assistant', text: note.text, row_id: rowId, timestamp: nowSeconds() })
+        // The note is history now: an interrupt keeps it as its own row.
+        spoken = ''
+
+        if (rowIdentity) {
+          call = { call_row_id: rowId, call_index: 0 }
+          turn.sealedLen = turn.assistant.length
+          publish('message.interim', sid, { text: note.text, already_streamed: true, row_id: rowId })
+        }
+      }, at)
+      at += streamDelayMs
+      later(
+        () =>
+          publish('tool.start', sid, {
+            tool_id: toolId,
+            name: tool.name,
+            context: tool.summary ?? '',
+            args: tool.args ?? {},
+            ...call
+          }),
+        at
+      )
+      at += streamDelayMs
+      later(() => {
+        // The tool row lands before the frame that announces the result.
+        const rowId = session.messages.length + 1
+
+        session.messages.push({
+          role: 'tool',
+          name: tool.name,
+          context: tool.summary ?? '',
+          tool_call_id: toolId,
+          ...(tool.args ? { args: tool.args } : {}),
+          ...(rowIdentity ? { row_id: rowId, ...call } : {}),
+          timestamp: nowSeconds()
+        })
+        publish('tool.complete', sid, {
+          tool_id: toolId,
+          name: tool.name,
+          args: tool.args ?? {},
+          duration_s: 0.2,
+          result: tool.result ?? null,
+          summary: tool.summary ?? '',
+          ...call,
+          ...(rowIdentity ? { row_id: rowId } : {})
+        })
+      }, at)
+    }
+
     // Where the tool call goes. Past the end means "after everything", which is
     // what a scenario without `toolAfterDeltas` asks for.
     const cut = reply.toolAfterDeltas ?? deltas.length
@@ -8607,6 +8807,7 @@ export async function startFakeGateway(options: FakeGatewayOptions = {}): Promis
         at += streamDelayMs
         later(() => {
           spoken += delta
+          turn.assistant += delta
           publish('message.delta', sid, { text: delta })
         }, at)
       }
@@ -8614,8 +8815,12 @@ export async function startFakeGateway(options: FakeGatewayOptions = {}): Promis
 
     emitDeltas(0, cut)
 
+    // The call of the single `tool`, and what its assistant row holds: see `finish`.
+    const toolCall: { row?: { id: number; text: string } } = {}
+
     if (reply.tool) {
       const toolId = `tool-${randomUUID().slice(0, 8)}`
+      let call: { call_row_id: number; call_index: number } | undefined
 
       if (reply.toolGenerating) {
         at += streamDelayMs
@@ -8623,29 +8828,56 @@ export async function startFakeGateway(options: FakeGatewayOptions = {}): Promis
       }
 
       at += streamDelayMs
-      later(
-        () =>
-          publish('tool.start', sid, {
-            tool_id: toolId,
-            name: reply.tool?.name,
-            context: reply.tool?.summary ?? '',
-            args: reply.tool?.args ?? {}
-          }),
-        at
-      )
+      later(() => {
+        if (rowIdentity) {
+          // The round's assistant row holds what was streamed so far (possibly
+          // nothing) and the call, and is persisted before the call starts. No
+          // `message.interim` names it: that is a gateway with interim notes off.
+          const rowId = session.messages.length + 1
+
+          session.messages.push({ role: 'assistant', text: spoken, row_id: rowId, timestamp: nowSeconds() })
+          toolCall.row = { id: rowId, text: spoken }
+          spoken = ''
+          call = { call_row_id: rowId, call_index: 0 }
+        }
+
+        publish('tool.start', sid, {
+          tool_id: toolId,
+          name: reply.tool?.name,
+          context: reply.tool?.summary ?? '',
+          args: reply.tool?.args ?? {},
+          ...call
+        })
+      }, at)
       at += streamDelayMs
-      later(
-        () =>
-          publish('tool.complete', sid, {
-            tool_id: toolId,
-            name: reply.tool?.name,
-            args: reply.tool?.args ?? {},
-            duration_s: 0.2,
-            result: reply.tool?.result ?? null,
-            summary: reply.tool?.summary ?? ''
-          }),
-        at
-      )
+      later(() => {
+        let resultRowId: number | undefined
+
+        if (rowIdentity) {
+          resultRowId = session.messages.length + 1
+          session.messages.push({
+            role: 'tool',
+            name: reply.tool?.name ?? null,
+            context: reply.tool?.summary ?? '',
+            tool_call_id: toolId,
+            ...(reply.tool?.args ? { args: reply.tool.args } : {}),
+            row_id: resultRowId,
+            ...call,
+            timestamp: nowSeconds()
+          })
+        }
+
+        publish('tool.complete', sid, {
+          tool_id: toolId,
+          name: reply.tool?.name,
+          args: reply.tool?.args ?? {},
+          duration_s: 0.2,
+          result: reply.tool?.result ?? null,
+          summary: reply.tool?.summary ?? '',
+          ...call,
+          ...(resultRowId === undefined ? {} : { row_id: resultRowId })
+        })
+      }, at)
     }
 
     emitDeltas(cut, deltas.length)
@@ -8660,12 +8892,37 @@ export async function startFakeGateway(options: FakeGatewayOptions = {}): Promis
 
     const finish = () => {
       state.runningSessions.delete(sid)
-      session.messages.push({ role: 'assistant', text, row_id: session.messages.length + 1, timestamp: nowSeconds() })
+
+      // A reply whose words all came BEFORE its one tool call has no text left for a row of its own:
+      // the row that holds the call is the row that holds the answer, and it is the one the
+      // completion names. Otherwise the turn would persist the same words twice, as two bubbles.
+      const closesOn = rowIdentity && toolCall.row?.text === text ? toolCall.row : undefined
+      const finalRowId = closesOn ? closesOn.id : session.messages.length + 1
+
+      if (!closesOn) {
+        session.messages.push({ role: 'assistant', text, row_id: finalRowId, timestamp: nowSeconds() })
+      }
+
+      // The turn's rows, from its user row on, the way `_persisted_turn_receipt` reports them.
+      const tail = session.messages.slice(userRowId - 1)
+      const receipt = {
+        row_ids: tail.map(row => row.row_id).filter((id): id is number => typeof id === 'number'),
+        complete: tail.filter(row => row.role === 'user').length === 1,
+        user_row_id: userRowId,
+        final_assistant_row_id: finalRowId
+      }
+
       publish('message.complete', sid, {
         text,
         status: 'ok',
-        usage: { input: 12, output: 34, total: 46 }
+        usage: { input: 12, output: 34, total: 46 },
+        ...(rowIdentity ? { row_id: finalRowId, persisted_turn: receipt } : {})
       })
+      // Cleared after the frame that ends the turn, so that frame is stamped too.
+      if (turns.get(sid) === turn) {
+        turns.delete(sid)
+      }
+
       publish('sessions.changed', undefined, {})
     }
 
@@ -8680,6 +8937,33 @@ export async function startFakeGateway(options: FakeGatewayOptions = {}): Promis
 
     at += streamDelayMs
     later(finish, at)
+  }
+
+  /**
+   * `session.resume`'s `inflight` (`session_auto_continue._inflight_snapshot`): the turn that is
+   * running, for a client that reconnects in the middle of it. `null` when none is.
+   *
+   * `assistant` is every streamed word of the turn, notes already sealed and persisted included.
+   * With the identity on, `assistant_unsealed` is what came after the last sealed note (the field
+   * is left out while no note was sealed) and `display_metadata` carries the turn's id, which is
+   * how a client holding the user row by id knows it already shows the prompt.
+   */
+  function inflightOf(session: FakeSession): Record<string, unknown> | null {
+    const turn = turns.get(session.storedId)
+
+    if (!turn || !state.runningSessions.has(session.storedId)) {
+      return null
+    }
+
+    return {
+      assistant: turn.assistant,
+      streaming: true,
+      user: turn.user,
+      ...(rowIdentity && turn.sealedLen !== null
+        ? { assistant_unsealed: turn.assistant.slice(turn.sealedLen).trimStart() }
+        : {}),
+      ...(rowIdentity && turn.metadata ? { display_metadata: { ...turn.metadata } } : {})
+    }
   }
 
   /**
