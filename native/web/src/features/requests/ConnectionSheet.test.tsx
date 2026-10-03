@@ -105,7 +105,11 @@ beforeEach(() => {
   chatsStore.getState().hydrate('researcher', chatWith('researcher', [], { runtimeSessionId: 'rt-researcher' }))
   chatsStore.getState().bindRuntime('researcher', 'rt-researcher')
   respond = vi.fn(async () => ({ status: 'ok' }))
-  connections = new ConnectionsModel({ gateway: { request: respond as never }, watchSignals, chats: chatsStore })
+  connections = new ConnectionsModel({
+    respond: params => respond('connection.respond', params),
+    watchSignals,
+    chats: chatsStore
+  })
   notices = new NoticesModel({ watchSignals })
   status = new SessionStatusModel({
     gateway: { request: vi.fn() as never, onStatus: () => () => undefined },

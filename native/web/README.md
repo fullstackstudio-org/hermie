@@ -665,8 +665,11 @@ ingest path at their place among the chat's frames and hands them to three model
   when it passed `authorisationLink`: `https`, a host, no user name or password before it, as the browser's own URL
   parser reads it (so `javascript:`, `data:` and `http:` never pass); its host is in the button's name and beside it,
   punycode for an international name. A refused link is said, not drawn. "Not now" and "Stop waiting" answer with
-  `connection.respond` (`status: skipped`, `settled_by: continue`), naming the runtime session both as `session_id`
-  and as `owner`.
+  `connection.respond` (`status: skipped`, `settled_by: continue`) in exactly the gateway's shape,
+  `{profile, owner: {type: 'session', session_id}, op_id, result}`: its params are `extra="forbid"`, and the generated
+  contract in `@hermes/shared`, which names the session as a top-level `session_id`, is wrong there, so the client types
+  the params itself (`ConnectionRespondParams` in `core/connections.ts`). The fake gateway's `connection.respond` refuses
+  any other key the same way.
 - **`session.status`**: `/status` on a gateway whose command catalogue does not list it asks for the session's report
   directly and puts it in the chat as the command's answer; one that lists it runs it through `slash.exec` as before.
 - **`session.resume_progress`**: a resume that says the gateway is still loading the conversation (`hydrating`) puts a
@@ -677,7 +680,8 @@ ingest path at their place among the chat's frames and hands them to three model
 `platform/socket.test.ts`, `features/requests/ConnectionSheet.test.tsx` and `features/shell/session.test.ts` cover it in
 jsdom; `e2e/session-gaps.spec.ts` drops the socket with `truncateNextReplay` set on the fake and checks the chat is read
 again with every turn once (and that a replay that vouches for itself reads nothing again), and drives the notices,
-a connection card and the progress line with the fake's `emit`.
+a connection card (its "Not now" and "Stop waiting" through the fake's strict `connection.respond`) and the progress
+line with the fake's `emit`.
 
 ## Passkeys
 

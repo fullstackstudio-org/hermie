@@ -26,12 +26,14 @@
  *     row says so.
  *  5. **Answers** go out with `connection.respond`: "Not now" on one row
  *     (`status: skipped`) or Cancel for the whole card (`settled_by: continue`, so
- *     the agent stops waiting for the deadline). The card moves when the gateway's
- *     `connection.update` comes back; an answer that did not go out says why on the
- *     sheet.
+ *     the agent stops waiting for the deadline), in exactly the shape the gateway's
+ *     strict contract takes (`ConnectionRespondParams` below). The card moves when
+ *     the gateway's `connection.update` comes back; an answer that did not go out
+ *     says why on the sheet.
  *  6. **Texts** are the gateway's and cleaned like every other bot-supplied text
  *     (`displayText`).
  */
+import type { RpcMethods } from '@hermes/shared/gateway-contract'
 import type { StoreApi } from 'zustand/vanilla'
 
 import type { ChatsState } from '../state/chats'
@@ -48,6 +50,55 @@ import type { SessionSignal } from './chat-controller'
 import type { ChatGateway } from './link'
 import { displayText, NAME_LIMIT, type SecureInputTimers, TEXT_LIMIT } from './requests/secure-input'
 import { botOfConversationKey } from './sessions/session-model'
+
+/**
+ * `connection.respond`'s params, as the gateway's contract defines them
+ * (`tui_gateway/contracts/connectors_operation.py`: `ConnectionRespondParams` on
+ * `ConnectionOperationParams` on `ProfileParams`). Every params model there is
+ * `extra="forbid"`, so a key that is not listed here makes the gateway refuse the
+ * whole answer with `4000`.
+ *
+ * Written here rather than read from `@hermes/shared/gateway-contract`, whose
+ * generated `ConnectionRespondParams` names the session as a top-level
+ * `session_id` and has no `owner`, which the gateway would refuse. That package is
+ * vendored and not edited from here; `respondThrough` is the one place the two meet.
+ */
+export interface ConnectionRespondParams {
+  /** The profile the chat runs on. */
+  profile: string
+  /** `SessionOwner`: the runtime session the operation belongs to. (`AccountOwner` is the settings screen's.) */
+  owner: { type: 'session'; session_id: string }
+  op_id: string
+  result: ConnectionAnswer
+}
+
+/** `ConnectionAnswer`: per-row outcomes, and an optional Continue. */
+export interface ConnectionAnswer {
+  targets?: ConnectionAnswerTarget[]
+  settled_by?: 'all_resolved' | 'continue' | 'deadline' | 'interrupt' | null
+}
+
+/** `ConnectionAnswerTarget`: one row's outcome as the card saw it. */
+export interface ConnectionAnswerTarget {
+  name: string
+  status: 'approved' | 'skipped'
+  detail?: string | null
+  /** The credential values an install asked for through `required_env`. */
+  env?: Record<string, string> | null
+}
+
+/** How an answer goes out. */
+export type ConnectionRespond = (params: ConnectionRespondParams) => Promise<unknown>
+
+/**
+ * `connection.respond` on the page's connection. The cast is the generated
+ * contract's wrong spelling of the params (see `ConnectionRespondParams`), and
+ * nothing else: what goes on the wire is exactly `params`.
+ */
+export function respondThrough(gateway: Pick<ChatGateway, 'request'>): ConnectionRespond {
+  return async params =>
+    await gateway.request('connection.respond', params as unknown as RpcMethods['connection.respond']['params'])
+}
 
 /** The longest link that is looked at at all. */
 const LINK_LIMIT = 4_096
@@ -161,7 +212,8 @@ const RESOLVED: ReadonlySet<string> = new Set(['connected', 'skipped', 'failed',
 export const isTargetOpen = (target: Pick<ConnectionTarget, 'state'>): boolean => !RESOLVED.has(target.state)
 
 export interface ConnectionsModelOptions {
-  gateway: Pick<ChatGateway, 'request'>
+  /** How an answer goes out: `respondThrough(gateway)` on the page. */
+  respond: ConnectionRespond
   /** Where the chat controller's signals are heard (`ChatController.onSessionSignal`). */
   watchSignals: (listener: (signal: SessionSignal) => void) => () => void
   /** The chats, so a card whose chat let go of its session goes with it (rule 3). */
@@ -249,7 +301,7 @@ export class ConnectionsModel {
       return false
     }
 
-    return await this.respond(card, { targets: [{ name: target, status: 'skipped' }] }, { what: 'skip', target })
+    return await this.answer(card, { targets: [{ name: target, status: 'skipped' }] }, { what: 'skip', target })
   }
 
   /** Cancel: end the operation now with whatever is unresolved, so the agent stops waiting for the deadline. */
@@ -260,12 +312,12 @@ export class ConnectionsModel {
       return false
     }
 
-    return await this.respond(card, { settled_by: 'continue' }, { what: 'cancel' })
+    return await this.answer(card, { settled_by: 'continue' }, { what: 'cancel' })
   }
 
-  private async respond(
+  private async answer(
     card: ConnectionCard,
-    result: { targets?: { name: string; status: string }[]; settled_by?: 'continue' },
+    result: ConnectionAnswer,
     sending: { what: 'skip' | 'cancel'; target?: string }
   ): Promise<boolean> {
     const { chat, opId } = card
@@ -273,15 +325,12 @@ export class ConnectionsModel {
     this.setAnswer(chat, opId, { kind: 'sending', ...sending })
 
     try {
-      // `session_id` is the generated contract's spelling of the owner; `owner` is the connector
-      // contract's (what the native apps send). Both name the same runtime session.
-      await this.options.gateway.request('connection.respond', {
+      await this.options.respond({
         profile: botOfConversationKey(chat),
-        session_id: card.runtimeSessionId,
         owner: { type: 'session', session_id: card.runtimeSessionId },
         op_id: opId,
         result
-      } as never)
+      })
       this.setAnswer(chat, opId, { kind: 'idle' })
 
       return true

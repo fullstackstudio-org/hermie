@@ -45,7 +45,7 @@ import { connectGateway, type ConnectGatewayOptions, type GatewayClient } from '
 import { serialiseBaseUrl } from '../../core/passkey/challenge'
 import { createPasskeyClient } from '../../core/passkey/client'
 import { PasskeyModel } from '../../core/passkey/model'
-import { ConnectionsModel } from '../../core/connections'
+import { ConnectionsModel, respondThrough } from '../../core/connections'
 import { NoticesModel } from '../../core/notices'
 import { SecureInputModel } from '../../core/requests/secure-input'
 import { SessionStatusModel } from '../../core/session-status'
@@ -160,7 +160,11 @@ export function startSession(options: StartSessionOptions): Session {
   const watchSignals = (listener: (signal: SessionSignal) => void): (() => void) =>
     chats.controller.onSessionSignal(listener)
   const notices = new NoticesModel({ watchSignals })
-  const connections = new ConnectionsModel({ gateway: client.gateway, watchSignals, chats: chats.chats })
+  const connections = new ConnectionsModel({
+    respond: respondThrough(client.gateway),
+    watchSignals,
+    chats: chats.chats
+  })
   const status = new SessionStatusModel({
     gateway: client.gateway,
     readIdentity: () => client.http.authMe(),

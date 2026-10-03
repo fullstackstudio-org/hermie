@@ -15,6 +15,8 @@
  *    host each link goes to and counts down to the gateway's deadline; a link opens
  *    in a new tab only when pressed; a `javascript:` link is offered as nothing to
  *    press; the gateway settling the operation closes the sheet.
+ *    "Not now" and "Stop waiting" reach the fake's `connection.respond`, which refuses any
+ *    key the gateway's strict contract does not list, and the sheet follows its update.
  *  - **Resume progress** (`session.resume_progress`) is a line on the chat while
  *    the gateway loads it, and gone once the load is complete.
  */
@@ -220,6 +222,89 @@ test.describe('what the gateway says beside the transcript', () => {
       payload: { op_id: 'op-1', seq: 3, settled: true, settled_by: 'all_resolved' }
     })
     await expect(app.page.getByRole('dialog')).toHaveCount(0)
+  })
+
+  test('answers "Not now" and "Stop waiting" in exactly the shape the gateway’s contract takes', async ({
+    app,
+    gateway
+  }) => {
+    await app.open()
+    await app.ready()
+
+    const sessionId = sessionIdOf(gateway)
+    const runtimeId = [...gateway.fake.state.sessions.values()].find(entry => entry.storedId === sessionId)?.id
+    const deadlineAt = Math.floor(Date.now() / 1000) + 300
+
+    // An operation the fake holds open, so its strict `connection.respond` has something to move.
+    gateway.fake.state.connectorOps.set('op-7', {
+      opId: 'op-7',
+      sessionId,
+      seq: 0,
+      deadlineAt,
+      settled: false,
+      settledBy: null,
+      reads: 0,
+      woken: false,
+      targets: [
+        {
+          name: 'github',
+          kind: 'connector',
+          action: 'authorize',
+          state: 'pending',
+          connectUrl: null,
+          detail: null,
+          resolvesTo: 'connected'
+        },
+        {
+          name: 'linear',
+          kind: 'connector',
+          action: 'authorize',
+          state: 'pending',
+          connectUrl: null,
+          detail: null,
+          resolvesTo: 'connected'
+        }
+      ]
+    })
+    gateway.fake.emit('connection.request', {
+      sessionId,
+      payload: {
+        op_id: 'op-7',
+        seq: 0,
+        tool_call_id: 'tc-7',
+        deadline_at: deadlineAt,
+        timeout_seconds: 300,
+        targets: [
+          { name: 'github', kind: 'connector', action: 'authorize', state: 'pending' },
+          { name: 'linear', kind: 'connector', action: 'authorize', state: 'pending' }
+        ]
+      }
+    })
+
+    const sheet = app.dialog
+    const github = sheet.getByRole('listitem').filter({ hasText: 'github' })
+
+    await sheet.getByRole('button', { name: 'Not now: github' }).click()
+    await expect(github.getByText('Skipped', { exact: true })).toBeVisible()
+    await expect(sheet.getByText(/did not reach the gateway/u)).toHaveCount(0)
+
+    await sheet.getByRole('button', { name: 'Stop waiting' }).click()
+    await expect(app.page.getByRole('dialog')).toHaveCount(0)
+
+    expect(gateway.fake.state.connectionResponses).toEqual([
+      {
+        profile: BOT,
+        owner: { type: 'session', session_id: runtimeId },
+        op_id: 'op-7',
+        result: { targets: [{ name: 'github', status: 'skipped' }] }
+      },
+      {
+        profile: BOT,
+        owner: { type: 'session', session_id: runtimeId },
+        op_id: 'op-7',
+        result: { settled_by: 'continue' }
+      }
+    ])
   })
 
   test('puts a line on the chat while the gateway loads it, and takes it away once the load is complete', async ({

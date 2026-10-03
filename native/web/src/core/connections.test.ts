@@ -4,7 +4,7 @@ import { createChatsStore } from '../state/chats'
 import { createConnectionsStore } from '../state/connections'
 import { chatWith } from '../test-support/chat-fixtures'
 import type { SessionSignal } from './chat-controller'
-import { authorisationLink, connectionTarget, ConnectionsModel, isTargetOpen } from './connections'
+import { authorisationLink, connectionTarget, ConnectionsModel, isTargetOpen, respondThrough } from './connections'
 
 const NOW = 1_800_000_000_000
 
@@ -32,7 +32,7 @@ function setup() {
   const chats = createChatsStore()
   const request$ = vi.fn(async (_method: string, _params?: unknown): Promise<unknown> => ({ status: 'ok' }))
   const model = new ConnectionsModel({
-    gateway: { request: request$ as never },
+    respond: respondThrough({ request: request$ as never }),
     store,
     chats,
     now: () => Date.now(),
@@ -303,7 +303,6 @@ describe('answering a card', () => {
         'connection.respond',
         {
           profile: 'researcher',
-          session_id: 'rt-1',
           owner: { type: 'session', session_id: 'rt-1' },
           op_id: 'op-1',
           result: { targets: [{ name: 'github', status: 'skipped' }] }
@@ -313,7 +312,6 @@ describe('answering a card', () => {
         'connection.respond',
         {
           profile: 'researcher',
-          session_id: 'rt-1',
           owner: { type: 'session', session_id: 'rt-1' },
           op_id: 'op-1',
           result: { settled_by: 'continue' }
@@ -321,6 +319,34 @@ describe('answering a card', () => {
       ]
     ])
     expect(card('researcher#own-1')?.answer).toEqual({ kind: 'idle' })
+  })
+
+  it('sends exactly the keys the gateway’s strict contract takes, and nothing else', async () => {
+    const { ask, model, request: call } = setup()
+
+    ask(request())
+    await model.skip('researcher', 'github')
+    await model.cancel('researcher')
+
+    for (const [method, params] of call.mock.calls) {
+      const sent = params as Record<string, Record<string, unknown>>
+
+      expect(method).toBe('connection.respond')
+      // `ConnectionRespondParams` (on `ConnectionOperationParams` on `ProfileParams`), `extra="forbid"`.
+      expect(Object.keys(sent).sort()).toEqual(['op_id', 'owner', 'profile', 'result'])
+      // `SessionOwner`.
+      expect(Object.keys(sent.owner!).sort()).toEqual(['session_id', 'type'])
+      // `ConnectionAnswer`.
+      expect(Object.keys(sent.result!).every(key => key === 'targets' || key === 'settled_by')).toBe(true)
+
+      // `ConnectionAnswerTarget`: `name`, `status` (approved | skipped), `detail?`, `env?`.
+      for (const target of (sent.result!.targets as Record<string, unknown>[] | undefined) ?? []) {
+        expect(Object.keys(target).every(key => ['name', 'status', 'detail', 'env'].includes(key))).toBe(true)
+        expect(['approved', 'skipped']).toContain(target.status)
+      }
+    }
+
+    expect(call).toHaveBeenCalledTimes(2)
   })
 
   it('says why an answer did not go out, and answers nothing for a row or a card it does not hold', async () => {

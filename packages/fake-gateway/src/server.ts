@@ -848,6 +848,8 @@ export interface FakeGatewayState {
    * client cannot get away with comparing two operations' counters.
    */
   connectorSeq: number
+  /** Every `connection.respond` the contract accepted, as it was sent, oldest first. */
+  connectionResponses: Record<string, unknown>[]
   cronJobs: CronJob[]
   /**
    * The profile `hermes serve` was launched with. `cron.manage` binds
@@ -2690,6 +2692,7 @@ function initialState(options: FakeGatewayOptions): FakeGatewayState {
     connectorsUnavailable: false,
     connectorOps: new Map<string, FakeConnectorOp>(),
     connectorSeq: 0,
+    connectionResponses: [],
     runningSessions: new Set<string>(),
     sessionConfig: new Map<string, Record<string, string>>(),
     pendingApprovals: new Map<string, { session_id: string; payload: Record<string, unknown> }>(),
@@ -3303,6 +3306,116 @@ export async function startFakeGateway(options: FakeGatewayOptions = {}): Promis
         detail: target.detail,
         ...(target.connectUrl ? { connect_url: target.connectUrl } : {})
       }))
+    }
+  }
+
+  /**
+   * `connection.respond`'s params, checked the way the gateway's contract checks them
+   * (`tui_gateway/contracts/connectors_operation.py`): `ConnectionRespondParams` on
+   * `ConnectionOperationParams` on `ProfileParams`, every one of them
+   * `extra="forbid"`, so a key the contract does not list is a `4000` and nothing
+   * is applied. The owner is the `ConnectorOwner` union; a row's `status` is
+   * `approved` or `skipped`.
+   */
+  function checkConnectionRespond(params: Record<string, unknown>): {
+    owner: { type: string; session_id?: string }
+    opId: string
+    targets: { name: string; status: string }[]
+    settledBy: string | null
+  } {
+    const isRecord = (value: unknown): value is Record<string, unknown> =>
+      typeof value === 'object' && value !== null && !Array.isArray(value)
+    const onlyKeys = (value: Record<string, unknown>, allowed: readonly string[], where: string): void => {
+      const extra = Object.keys(value).filter(key => !allowed.includes(key))
+
+      if (extra.length) {
+        throw new RpcFault(4000, `${where}: extra inputs are not permitted: ${extra.join(', ')}`)
+      }
+    }
+
+    onlyKeys(params, ['profile', 'owner', 'op_id', 'result'], 'params')
+
+    if (params.profile !== undefined && params.profile !== null && typeof params.profile !== 'string') {
+      throw new RpcFault(4000, 'profile must be a string')
+    }
+
+    const owner = params.owner
+
+    if (!isRecord(owner)) {
+      throw new RpcFault(4000, 'owner required')
+    }
+
+    if (owner.type === 'session') {
+      onlyKeys(owner, ['type', 'session_id'], 'owner')
+
+      if (typeof owner.session_id !== 'string' || !owner.session_id) {
+        throw new RpcFault(4000, 'owner.session_id required')
+      }
+    } else if (owner.type === 'account') {
+      onlyKeys(owner, ['type'], 'owner')
+    } else {
+      throw new RpcFault(4000, 'owner.type must be session or account')
+    }
+
+    if (typeof params.op_id !== 'string' || !params.op_id) {
+      throw new RpcFault(4000, 'op_id required')
+    }
+
+    const result = params.result
+
+    if (!isRecord(result)) {
+      throw new RpcFault(4000, 'result required')
+    }
+
+    onlyKeys(result, ['targets', 'settled_by'], 'result')
+
+    const settledBy = result.settled_by ?? null
+
+    if (settledBy !== null && !['all_resolved', 'continue', 'deadline', 'interrupt'].includes(String(settledBy))) {
+      throw new RpcFault(4000, `result.settled_by: not a settle reason: ${String(settledBy)}`)
+    }
+
+    const rows = result.targets ?? []
+
+    if (!Array.isArray(rows)) {
+      throw new RpcFault(4000, 'result.targets must be a list')
+    }
+
+    const targets = rows.map((row, index) => {
+      if (!isRecord(row)) {
+        throw new RpcFault(4000, `result.targets[${index}] must be an object`)
+      }
+
+      onlyKeys(row, ['name', 'status', 'detail', 'env'], `result.targets[${index}]`)
+
+      if (typeof row.name !== 'string' || !row.name) {
+        throw new RpcFault(4000, `result.targets[${index}].name required`)
+      }
+
+      if (row.status !== 'approved' && row.status !== 'skipped') {
+        throw new RpcFault(4000, `result.targets[${index}].status must be approved or skipped`)
+      }
+
+      if (row.detail !== undefined && row.detail !== null && typeof row.detail !== 'string') {
+        throw new RpcFault(4000, `result.targets[${index}].detail must be a string`)
+      }
+
+      if (
+        row.env !== undefined &&
+        row.env !== null &&
+        (!isRecord(row.env) || Object.values(row.env).some(value => typeof value !== 'string'))
+      ) {
+        throw new RpcFault(4000, `result.targets[${index}].env must map names to strings`)
+      }
+
+      return { name: row.name, status: row.status }
+    })
+
+    return {
+      owner: owner as { type: string; session_id?: string },
+      opId: params.op_id,
+      targets,
+      settledBy: settledBy as string | null
     }
   }
 
@@ -6542,6 +6655,48 @@ export async function startFakeGateway(options: FakeGatewayOptions = {}): Promis
         op.woken = true
 
         return { status: 'ok' }
+      }
+
+      /**
+       * `connection.respond` — the card's answer. Checked as strictly as the gateway's contract
+       * (`checkConnectionRespond`), recorded, and applied to the open operation it names: a skipped
+       * row moves to `skipped`, `settled_by: continue` (or every row resolved) settles it, and the
+       * change goes to the session as `connection.update`, as the gateway announces it.
+       */
+      case 'connection.respond': {
+        const answer = checkConnectionRespond(params)
+        const op = state.connectorOps.get(answer.opId)
+
+        if (!op || op.settled) {
+          throw new RpcFault(4004, 'no open operation with that op_id')
+        }
+
+        state.connectionResponses.push(structuredClone(params))
+
+        for (const row of answer.targets) {
+          const target = op.targets.find(entry => entry.name === row.name)
+
+          if (target && row.status === 'skipped') {
+            target.state = 'skipped'
+          }
+        }
+
+        if (
+          answer.settledBy === 'continue' ||
+          op.targets.every(target => target.state !== 'initiated' && target.state !== 'pending')
+        ) {
+          op.settled = true
+          op.settledBy = answer.settledBy ?? 'all_resolved'
+        }
+
+        state.connectorSeq += 1
+        op.seq = state.connectorSeq
+        publish('connection.update', op.sessionId, {
+          ...connectorOpView(op),
+          owner: { type: 'session', session_id: answer.owner.session_id ?? op.sessionId }
+        })
+
+        return { status: 'ok', settled: op.settled }
       }
 
       case 'mcp.servers.list':
