@@ -51,6 +51,10 @@ public final class AppLock {
   /// True while the platform prompt is up. Lifecycle events are ignored meanwhile: the prompt itself
   /// takes the app out of the active state, and re-locking under it makes an unlock unfinishable.
   public private(set) var prompting = false
+  /// How many passkey ceremonies have the system passkey sheet up (plan P10). Each counts like the
+  /// lock's own prompt: the sheet takes the app out of the active state, and re-locking under it
+  /// would put the plate over the confirmation the person is answering.
+  public private(set) var ceremonies = 0
   /// What this device offers, once asked.
   public private(set) var enrolment: DeviceEnrolment?
   /// The stored setting is unknown or unreadable; the machine runs at `immediately` meanwhile.
@@ -148,7 +152,7 @@ public final class AppLock {
    even then: leaving in the middle of a settings prompt must still start the clock.
    */
   public func appWentAway(entirely: Bool = false) {
-    guard !prompting || entirely, !away else {
+    guard !isPrompting || entirely, !away else {
       return
     }
 
@@ -165,7 +169,7 @@ public final class AppLock {
 
   /// The app is active again.
   public func appCameBack() {
-    guard !prompting else {
+    guard !isPrompting else {
       // Back from a real departure while a prompt was still settling: judged once it has.
       returnedDuringPrompt = returnedDuringPrompt || away
       return
@@ -183,7 +187,7 @@ public final class AppLock {
 
   /// True once after the plate went up on its own, so the first active window asks without a tap.
   public func consumeAutoPrompt() -> Bool {
-    guard autoPromptArmed, machine.locked, ready, !prompting else {
+    guard autoPromptArmed, machine.locked, ready, !isPrompting else {
       return false
     }
 
@@ -271,8 +275,42 @@ public final class AppLock {
     }
   }
 
+  // MARK: The passkey ceremony
+
+  /**
+   The system passkey sheet is up (`LockGuardedPasskeyAuthenticator` calls this around every
+   ceremony). Until the matching `ceremonyEnded()`, the lifecycle is read as it is under the lock's
+   own prompt: a resign is the sheet's, a real departure (`entirely`) still counts.
+   */
+  public func ceremonyBegan() {
+    ceremonies += 1
+  }
+
+  /// The system passkey sheet is gone. A departure seen meanwhile is judged now.
+  public func ceremonyEnded() {
+    guard ceremonies > 0 else {
+      return
+    }
+
+    ceremonies -= 1
+    settleReturn()
+  }
+
+  /// The lock's own prompt or a passkey ceremony is up.
+  private var isPrompting: Bool {
+    prompting || ceremonies > 0
+  }
+
   private func endPrompt() {
     prompting = false
+    settleReturn()
+  }
+
+  /// Judge a return that came while a prompt was up, once none is.
+  private func settleReturn() {
+    guard !isPrompting else {
+      return
+    }
 
     if returnedDuringPrompt {
       returnedDuringPrompt = false

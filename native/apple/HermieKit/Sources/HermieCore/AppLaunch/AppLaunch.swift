@@ -152,6 +152,10 @@ public final class AppLaunch {
   public let iCloudSync: ICloudSyncModel
   /// Push notifications: the switch, the permission and the relay registrations.
   public let push: PushController
+  /// Passkeys for every session the live gateway builds (`GatewaySession.Options.passkey`). Set once
+  /// by the app shell's wiring (`PasskeySetup.live`) before the first session; `nil` in tests,
+  /// previews and anything else that does not set it: no `confirm` level is announced.
+  @ObservationIgnored public var passkey: PasskeySetup?
   /// Told once each, in this order, until dismissed.
   public private(set) var notices: [LaunchNotice]
   /// `start()` has finished: the gateway list is read and the sync engine knows which credentials

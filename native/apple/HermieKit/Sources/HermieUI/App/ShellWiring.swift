@@ -6,10 +6,12 @@ extension LiveWiring {
   /**
    The app's wiring, built in the shell's `App` initialiser beside `LiveGateway`: push attached to
    the system's delegates and to its delivered notifications, the system surfaces over the App
-   Group (none without the entitlement, or in a UI test's launch), and everything started.
+   Group (none without the entitlement, or in a UI test's launch), passkeys through the system
+   passkey sheet for every session the live gateway builds, and everything started.
    */
   @MainActor
   public static func app(launch: AppLaunch, accounts: GatewayAccounts, live: LiveGateway) -> LiveWiring {
+    launch.passkey = launch.passkey ?? .app(launch: launch)
     launch.push.deliveredNotifications = SystemDeliveredNotifications()
     PushInbox.shared.attach(launch.push)
 

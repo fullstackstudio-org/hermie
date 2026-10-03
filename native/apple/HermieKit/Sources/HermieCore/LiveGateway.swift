@@ -268,8 +268,8 @@ extension LiveGateway {
   /**
    The app's connector: the gateway's credentials through `accounts` (the engine's
    `storedCredentials(of:)`, empty while they belong to an origin the gateway left), a native
-   gateway's one token coordinator from `accounts.coordinator(for:)`, and its chats cached in the
-   launch's database under its id.
+   gateway's one token coordinator from `accounts.coordinator(for:)`, its chats cached in the
+   launch's database under its id, and the launch's passkey setup (`AppLaunch.passkey`).
 
    Returns nil when there is nothing to sign in with, or the auth mode cannot be used outside a web
    page (`cookie`).
@@ -307,11 +307,15 @@ extension LiveGateway {
       var current = record
       current.address = access.baseURL
 
+      var options = GatewaySession.Options()
+      options.passkey = launch.passkey
+
       return try GatewaySession(
         record: current,
         credentials: credentials,
         extraHeaders: headers.isEmpty ? nil : headers,
-        database: launch.store
+        database: launch.store,
+        options: options
       )
     }
   }
