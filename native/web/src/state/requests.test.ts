@@ -187,7 +187,11 @@ describe('confirmations beside the engine', () => {
     passkeys.setState({ confirmations: [confirmation('srq-2'), confirmation('srq-3', { sessionId: 'rt-elsewhere' })] })
 
     expect(
-      queue().map(entry => [entry.kind, entry.bot, entry.kind === 'engine' ? entry.item.requestId : entry.id])
+      queue().map(entry => [
+        entry.kind,
+        entry.bot,
+        entry.kind === 'engine' ? entry.item.requestId : entry.kind === 'connection' ? entry.opId : entry.id
+      ])
     ).toEqual([
       ['engine', 'researcher', 'srq-1'],
       ['confirm', 'researcher', 'srq-2'],
@@ -271,7 +275,11 @@ describe('secure prompts beside the engine', () => {
     secure.setState({ prompts: [prompt('srq-3', 'writer', 2, 'vault.code'), prompt('srq-2', 'researcher', 1)] })
 
     expect(
-      queue().map(entry => [entry.kind, entry.bot, entry.kind === 'engine' ? entry.item.requestId : entry.id])
+      queue().map(entry => [
+        entry.kind,
+        entry.bot,
+        entry.kind === 'engine' ? entry.item.requestId : entry.kind === 'connection' ? entry.opId : entry.id
+      ])
     ).toEqual([
       ['engine', 'researcher', 'srq-1'],
       ['secure', 'researcher', 'srq-2'],

@@ -18,7 +18,6 @@
 import { type KeyboardEvent, type ReactElement, useRef, useState } from 'react'
 import { useStore } from 'zustand'
 
-import { ownAuthorId, ownAuthorStore } from '../../core/chats/own-author'
 import { strings } from '../../generated/strings'
 import { useLocale } from '../../i18n/use-locale'
 import { webStrings } from '../../i18n/web-strings'
@@ -26,6 +25,7 @@ import { botsStore } from '../../state/bots'
 import { connectionStore } from '../../state/connection'
 import { pluginPresence, pluginStore } from '../../state/plugin'
 import { Icon } from '../../ui/icons'
+import { useOwnAuthorId } from '../chat/use-own-author'
 import { BotRow } from './BotRow'
 import './bots.css'
 
@@ -42,7 +42,7 @@ export function ChatList({ selectedBot }: ChatListProps): ReactElement {
   const error = useStore(botsStore, state => state.error)
   const read = useStore(botsStore, state => state.refreshedAt !== null || state.bots.length > 0)
   const status = useStore(connectionStore, state => state.status)
-  const author = useStore(ownAuthorStore, ownAuthorId)
+  const author = useOwnAuthorId()
   const presence = useStore(pluginStore, pluginPresence)
 
   const listRef = useRef<HTMLUListElement>(null)

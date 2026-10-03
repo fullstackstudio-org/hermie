@@ -1,10 +1,13 @@
 import type { ServerRequest } from '@hermes/shared/json-rpc-channel'
-import type { ReplaySignal } from '../../core/chat-controller'
+import type { ReplaySignal, SessionSignal } from '../../core/chat-controller'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 
 import { createChatsStore } from '../../state/chats'
 import { createConnectionStore } from '../../state/connection'
+import { connectionsStore } from '../../state/connections'
+import { noticesStore } from '../../state/notices'
 import { requestsStore } from '../../state/requests'
+import { sessionStatusStore } from '../../state/session-status'
 import { secureInputStore } from '../../state/secure-input'
 import { chatWith } from '../../test-support/chat-fixtures'
 import { fakeVisibility } from '../../test-support/fake-watchers'
@@ -20,6 +23,10 @@ const chatsStop = vi.fn(() => void calls.push('chats stopped'))
 
 /** The chat controller's replay signals, as the secure input model hears them. */
 const replayListeners = new Set<(signal: ReplaySignal) => void>()
+/** The chat controller's session signals, as the notices, connections and status models hear them. */
+const sessionListeners = new Set<(signal: SessionSignal) => void>()
+const noteReplayGap = vi.fn()
+const authMe = vi.fn(async () => ({ provider: 'authentik', userId: '1', displayName: 'Ann' }))
 const connectGateway = vi.fn()
 const connectChats = vi.fn()
 
@@ -36,6 +43,8 @@ const { startSession } = await import('./session')
 beforeEach(() => {
   calls.length = 0
   replayListeners.clear()
+  sessionListeners.clear()
+  noteReplayGap.mockClear()
   connection = createConnectionStore()
   chatStore = createChatsStore()
   requestsStore.getState().reset()
@@ -51,6 +60,7 @@ beforeEach(() => {
     stores: { connection },
     // The passkey model's slice of the connection: never ready here, so it advertises nothing.
     gateway: { request: vi.fn(), onAny: () => () => {}, onRequest: () => () => {}, onStatus: () => () => {} },
+    http: { authMe },
     stop: clientStop
   }))
   connectChats.mockImplementation(() => ({
@@ -61,7 +71,13 @@ beforeEach(() => {
         replayListeners.add(listener)
 
         return () => replayListeners.delete(listener)
-      }
+      },
+      onSessionSignal: (listener: (signal: SessionSignal) => void) => {
+        sessionListeners.add(listener)
+
+        return () => sessionListeners.delete(listener)
+      },
+      noteReplayGap
     }
   }))
 })
@@ -235,5 +251,49 @@ describe('startSession', () => {
     expect(replayListeners.size).toBe(0)
     expect(requestsStore.getState().queue).toEqual([])
     expect(secureInputStore.getState().prompts).toEqual([])
+  })
+
+  it('hands what the gateway says beside the transcript to its models, puts a connection card on the queue, and stops them', () => {
+    const session = startSession(options())
+
+    chatStore.getState().hydrate('researcher', chatWith('researcher', [], { runtimeSessionId: 'rt-1' }))
+    chatStore.getState().bindRuntime('researcher', 'rt-1')
+
+    const say = (signal: SessionSignal): void => {
+      for (const listener of sessionListeners) {
+        listener(signal)
+      }
+    }
+
+    expect(sessionStatusStore.getState().identity).toEqual({ kind: 'known', authorId: 'authentik:1', name: 'Ann' })
+
+    say({ kind: 'notice.show', chat: undefined, payload: { text: 'Credits are low', level: 'warn', key: 'credits' } })
+    expect(noticesStore.getState().notices.map(notice => [notice.id, notice.text, notice.level])).toEqual([
+      ['credits', 'Credits are low', 'warn']
+    ])
+
+    say({
+      kind: 'connection.request',
+      chat: 'researcher',
+      runtimeSessionId: 'rt-1',
+      payload: {
+        op_id: 'op-1',
+        tool_call_id: 'tc-1',
+        deadline_at: Date.now() / 1000 + 60,
+        targets: [{ name: 'github', kind: 'connector', action: 'authorize', state: 'pending' }]
+      }
+    })
+    expect(requestsStore.getState().queue.map(entry => [entry.kind, entry.bot])).toEqual([['connection', 'researcher']])
+
+    say({ kind: 'resumed', chat: 'researcher', runtimeSessionId: 'rt-1', pendingConnection: null, hydrating: true })
+    expect(requestsStore.getState().queue).toEqual([])
+    expect(connectionsStore.getState().ended.researcher).toEqual({ opId: 'op-1', end: 'withdrawn' })
+    expect(sessionStatusStore.getState().resumeProgress).toEqual({ researcher: { status: 'loading' } })
+
+    session.stop()
+
+    expect(sessionListeners.size).toBe(0)
+    expect(noticesStore.getState().notices).toEqual([])
+    expect(sessionStatusStore.getState().identity).toEqual({ kind: 'unknown' })
   })
 })

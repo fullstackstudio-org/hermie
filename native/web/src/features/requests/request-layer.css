@@ -170,8 +170,8 @@
   color: var(--hm-danger-text);
 }
 
-/* Something about passkeys the person must see, over the page and over a dialog alike. */
-.hm-requests__notices {
+/* Notices over the page and over a dialog alike: about passkeys, then the gateway's own. */
+.hm-requests__notices-area {
   position: fixed;
   inset-inline: var(--hm-gutter);
   top: var(--hm-gutter);
@@ -181,9 +181,26 @@
   gap: 8px;
   box-sizing: border-box;
   width: min(34rem, calc(100% - 2 * var(--hm-gutter)));
+  max-height: calc(100% - 2 * var(--hm-gutter));
   margin: 0 auto;
+  overflow-y: auto;
+  /* The area itself is no target: only the notices in it are. */
+  pointer-events: none;
+}
+
+.hm-requests__notices-area:empty {
+  display: none;
+}
+
+/* Something about passkeys the person must see. */
+.hm-requests__notices {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin: 0;
   padding: 0;
   list-style: none;
+  pointer-events: auto;
 }
 
 .hm-requests__notice {
@@ -366,4 +383,94 @@
 /* The last seconds of the countdown. */
 .hm-requests__meta[data-tone='danger'] {
   color: var(--hm-danger-text);
+}
+
+/* The gateway's own notices: a credits line, "still starting the agent". Quieter than a passkey notice. */
+.hm-notices {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  pointer-events: auto;
+}
+
+.hm-notices__item {
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+  padding: 10px 14px;
+  border: 1px solid var(--hm-line);
+  border-inline-start-width: 4px;
+  border-radius: var(--hm-radius);
+  background: var(--hm-bg);
+  color: var(--hm-text);
+  overflow-wrap: anywhere;
+}
+
+.hm-notices__item[data-level='warn'],
+.hm-notices__item[data-level='error'] {
+  border-color: var(--hm-danger-text);
+}
+
+.hm-notices__item[data-level='success'] {
+  border-inline-start-color: var(--hm-tint-text);
+}
+
+.hm-notices__text {
+  flex: 1 1 auto;
+  margin: 0;
+  white-space: pre-wrap;
+}
+
+.hm-notices__from {
+  font-weight: 600;
+}
+
+/* A connector authorisation: the services, each with its state and its way forward. */
+.hm-connection__targets {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.hm-connection__target {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 6px;
+  padding: 10px 12px;
+  border: 1px solid var(--hm-line);
+  border-radius: var(--hm-radius);
+  background: var(--hm-surface);
+  overflow-wrap: anywhere;
+}
+
+.hm-connection__name {
+  margin: 0;
+  font-weight: 600;
+}
+
+.hm-connection__state,
+.hm-connection__detail,
+.hm-connection__host,
+.hm-connection__note {
+  margin: 0;
+  color: var(--hm-text-muted);
+  font-size: 0.9375rem;
+}
+
+.hm-connection__note[data-tone='danger'] {
+  color: var(--hm-danger-text);
+}
+
+.hm-connection__link {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
 }

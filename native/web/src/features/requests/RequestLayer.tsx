@@ -45,6 +45,14 @@
  * press and goes straight into the model's reply: nothing here holds it. A prompt
  * that ends without the reader's answer closes, is said politely, and leaves a
  * notice on its chat saying why (`features/notices/SecureInputNotice.tsx`).
+ *
+ * **A connector authorisation** (`ConnectionRequest`) is answered through the
+ * connections model (`skip`, `cancel`) on its own sheet (`ConnectionSheet.tsx`),
+ * with a countdown to the gateway's deadline; a link on it is opened only when the
+ * person presses it (`openAuthorisationLink`). One whose time ran out, or that the
+ * gateway settled while it was on screen, is said politely.
+ *
+ * The gateway's own notices (`GatewayNotices`) are drawn beside the dialog too.
  */
 import {
   lazy,
@@ -67,12 +75,16 @@ import { webStrings } from '../../i18n/web-strings'
 import { isolateModal } from '../../platform/modal-isolation'
 import { botsStore } from '../../state/bots'
 import { type ChatsState, chatsStore } from '../../state/chats'
+import { type ConnectionsState, connectionsStore } from '../../state/connections'
 import { type PasskeyConfirmation, type PasskeysState, passkeysStore } from '../../state/passkeys'
 import { type OpenRequest, type RequestsState, requestsStore } from '../../state/requests'
 import { type SecureInputState, secureInputStore, type SecurePrompt } from '../../state/secure-input'
 import { useChatRuntime } from '../chat/chat-runtime'
+import { GatewayNotices } from '../notices/GatewayNotices'
+import { openAuthorisationLink, useSessionSignalsRuntime } from '../notices/signals-runtime'
 import { ApprovalSheet } from './ApprovalSheet'
 import { ClarifySheet } from './ClarifySheet'
+import { ConnectionSheet } from './ConnectionSheet'
 import { usePasskeyRuntime } from './passkey-runtime'
 import { PasskeyNotices } from './PasskeyNotices'
 import { SecretSheet } from './SecretSheet'
@@ -129,6 +141,10 @@ export interface RequestLayerProps {
   passkeys?: StoreApi<PasskeysState>
   /** Where a secret, sudo or vault prompt is read; the page's own unless a test hands in its own. */
   secureInput?: StoreApi<SecureInputState>
+  /** Where a connector authorisation is read; the page's own unless a test hands in its own. */
+  connections?: StoreApi<ConnectionsState>
+  /** Opens an authorisation link the person pressed; a new tab with no opener unless a test hands in its own. */
+  openLink?: (url: string) => void
   /** Milliseconds before a sheet's buttons accept a press. Tests pass 0. */
   tapGuardMs?: number
 }
@@ -177,6 +193,17 @@ function secureAnnouncement(store: StoreApi<SecureInputState>, bot: string, id: 
   }
 }
 
+/** What a reader is told when a connection card left the screen without their answer, or nothing. */
+function connectionAnnouncement(store: StoreApi<ConnectionsState>, bot: string, opId: string, name: string): string {
+  const ended = store.getState().ended[bot]
+
+  if (ended?.opId !== opId) {
+    return ''
+  }
+
+  return ended.end === 'deadline' ? webStrings.connections.expired({ name }) : webStrings.connections.done({ name })
+}
+
 /** The sheet for a prompt's kind. */
 function SecureSheetFor(props: SecureSheetProps): ReactElement | null {
   switch (props.prompt.ask.kind) {
@@ -207,6 +234,8 @@ export function RequestLayer({
   chats = chatsStore,
   passkeys = passkeysStore,
   secureInput = secureInputStore,
+  connections = connectionsStore,
+  openLink = openAuthorisationLink,
   tapGuardMs
 }: RequestLayerProps): ReactElement {
   useLocale()
@@ -229,6 +258,13 @@ export function RequestLayer({
     secureId === undefined ? undefined : state.prompts.find(entry => entry.id === secureId)
   )
   const gatewayHost = useStore(secureInput, state => state.gateway)
+  const signals = useSessionSignalsRuntime()
+  const connectionOp = current?.kind === 'connection' ? current.opId : undefined
+  const card = useStore(connections, state => {
+    const held = bot === undefined || connectionOp === undefined ? undefined : state.cards[bot]
+
+    return held?.opId === connectionOp ? held : undefined
+  })
   const displayName = useStore(botsStore, state => (bot === undefined ? '' : (state.byName[bot]?.displayName ?? bot)))
   /** The name as the dialog shows it: the roster's words, cleaned and bounded like a request's (a bot can set it). */
   const shownName = displayText(displayName, BOT_NAME_LIMIT)
@@ -336,6 +372,17 @@ export function RequestLayer({
         if (said) {
           setAnnouncement(said)
         }
+      } else if (previous.kind === 'connection') {
+        const said = connectionAnnouncement(
+          connections,
+          previous.bot,
+          previous.opId,
+          displayText(senderName(previous, undefined), BOT_NAME_LIMIT)
+        )
+
+        if (said) {
+          setAnnouncement(said)
+        }
       } else {
         const item = chats.getState().chats[previous.bot]?.items[previous.item.id]
 
@@ -346,7 +393,7 @@ export function RequestLayer({
     }
 
     lastShown.current = queue[0]
-  }, [chats, passkeys, queue, secureInput])
+  }, [chats, connections, passkeys, queue, secureInput])
 
   // An approval is acknowledged to the gateway's queue the first time a person can see it.
   const approvalId = current?.kind === 'engine' && current.item.kind === 'approval' ? current.item.requestId : undefined
@@ -434,7 +481,10 @@ export function RequestLayer({
         </p>
       ) : null}
 
-      <PasskeyNotices store={passkeys} />
+      <aside className="hm-requests__notices-area" aria-label={webStrings.gatewayNotices.area} data-modal-keep="">
+        <PasskeyNotices store={passkeys} />
+        <GatewayNotices />
+      </aside>
 
       {current ? (
         <div className="hm-requests__scrim" ref={overlay}>
@@ -488,6 +538,26 @@ export function RequestLayer({
                     onExpire={() => passkeyActions?.expire(confirmation.id)}
                   />
                 </Suspense>
+              ) : null
+            ) : current.kind === 'connection' ? (
+              card ? (
+                <ConnectionSheet
+                  key={current.key}
+                  card={card}
+                  name={shownName}
+                  gateway={gatewayHost}
+                  titleId={titleId}
+                  descriptionId={descriptionId}
+                  {...(tapGuardMs !== undefined ? { tapGuardMs } : {})}
+                  onOpen={target => {
+                    if (target.link) {
+                      openLink(target.link.url)
+                      signals?.connections.markOpened(card.chat, target.name)
+                    }
+                  }}
+                  onSkip={target => void signals?.connections.skip(card.chat, target.name)}
+                  onCancel={() => void signals?.connections.cancel(card.chat)}
+                />
               ) : null
             ) : current.item.kind === 'approval' ? (
               <ApprovalSheet

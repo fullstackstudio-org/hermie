@@ -46,7 +46,6 @@ import { type ReactElement, useCallback, useEffect, useMemo, useRef, useState } 
 import { useStore } from 'zustand'
 
 import { boundConversation, type SettledGroupChat, settleGroupChat } from '../../core/chats/bound-conversation'
-import { ownAuthorId as ownAuthorIdOf, ownAuthorStore } from '../../core/chats/own-author'
 import { countsAsRead, readWatermark } from '../../core/chats/read-watermark'
 import { strings } from '../../generated/strings'
 import { useLocale } from '../../i18n/use-locale'
@@ -55,6 +54,7 @@ import { botsStore } from '../../state/bots'
 import { chatsStore } from '../../state/chats'
 import { connectionStore } from '../../state/connection'
 import { Button } from '../../ui/primitives'
+import { ResumeProgressLine } from '../notices/ResumeProgressLine'
 import { SecureInputNotice } from '../notices/SecureInputNotice'
 import { clipLine } from './chat-format'
 import { ChatHeader } from './ChatHeader'
@@ -66,6 +66,7 @@ import { JumpToLatest } from './JumpToLatest'
 import { transcriptRows } from './rows'
 import { TranscriptList, type TranscriptListHandle } from './TranscriptList'
 import { useOpenChat } from './use-open-chat'
+import { useOwnAuthorId } from './use-own-author'
 import { usePageVisible } from './use-page-visible'
 import './chat.css'
 
@@ -151,7 +152,7 @@ export function ChatScreen({ bot, session, view = DEFAULT_CHAT_VIEW }: ChatScree
   const record = useStore(botsStore, state => state.byName[bot])
   const rosterRead = useStore(botsStore, state => state.refreshedAt !== null || state.bots.length > 0)
   const ready = useStore(connectionStore, state => state.status === 'ready')
-  const ownAuthorId = useStore(ownAuthorStore, ownAuthorIdOf)
+  const ownAuthorId = useOwnAuthorId()
   const visible = usePageVisible()
   const displayName = record?.displayName ?? bot
 
@@ -329,6 +330,7 @@ export function ChatScreen({ bot, session, view = DEFAULT_CHAT_VIEW }: ChatScree
       ) : null}
       {/* A secret, sudo or vault prompt that ended without an answer, or a request only the desktop app can answer. */}
       <SecureInputNotice chatKey={key ?? bot} bot={bot} />
+      <ResumeProgressLine chatKey={key ?? bot} />
 
       <div className="hm-chat__stage" ref={stage}>
         {notOnGateway ? <p className="hm-chat__note">{webStrings.chat.notOnGateway}</p> : null}

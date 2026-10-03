@@ -127,6 +127,7 @@ async function run(root: Root, basePath: ResolvedBasePath, store: WebKeyValueSto
       }}
       passkeys={session.passkeys}
       secureInput={session.secureInput}
+      signals={{ notices: session.notices, connections: session.connections, status: session.status }}
       onSignIn={() => signIn(basePath)}
       onSignOut={() => {
         // The order matters: the chats and the socket stop before the gateway's

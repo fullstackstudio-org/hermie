@@ -18,8 +18,11 @@ import { setLanguageChoice } from '../../i18n/locale'
 import { createHashRouter } from '../../platform/hash-router'
 import { applyTheme } from '../../platform/theme-target'
 import { chatsStore } from '../../state/chats'
+import { connectionsStore } from '../../state/connections'
 import { connectionStore } from '../../state/connection'
+import { noticesStore } from '../../state/notices'
 import { bindRequests, requestsStore } from '../../state/requests'
+import { sessionStatusStore } from '../../state/session-status'
 import { assistantItem, chatWith, userItem } from '../../test-support/chat-fixtures'
 import { aBot, resetShellStores, seedRoster } from '../../test-support/shell-stores'
 import type { ChatSessionRuntime } from '../chat/chat-runtime'
@@ -41,11 +44,13 @@ beforeEach(() => {
     })
   )
   chatsStore.getState().hydrate('writer', chatWith('writer', [], { runtimeSessionId: 'rt-2' }))
-  stop = bindRequests(chatsStore, requestsStore)
+  stop = bindRequests(chatsStore, requestsStore, undefined, undefined, connectionsStore)
 })
 
 afterEach(() => {
   stop()
+  connectionsStore.getState().reset()
+  noticesStore.getState().reset()
   applyTheme({ scheme: 'system', tint: 'blue' })
   document.documentElement.removeAttribute('data-tint')
   resetActiveLocale()
@@ -192,4 +197,70 @@ describe('the composer and the request layer, through axe', () => {
     expect(document.documentElement.lang).toBe(locale)
     expect(await violations()).toEqual([])
   })
+
+  it.each(['light', 'dark'] as const)(
+    'has no violation in the %s scheme with a connection card, notices, a progress line and the identity line',
+    async scheme => {
+      applyTheme({ scheme, tint: 'blue' })
+      act(() => {
+        sessionStatusStore.setState({
+          identity: { kind: 'anonymous' },
+          resumeProgress: { researcher: { status: 'loading' } }
+        })
+        noticesStore.setState({
+          notices: [
+            { id: 'credits', text: 'Credits are low', level: 'warn', chat: 'researcher', serial: 1 },
+            { id: 'boot', text: 'Starting the agent', level: 'info', chat: undefined, serial: 2 }
+          ]
+        })
+      })
+      mount()
+      act(() =>
+        connectionsStore.setState({
+          cards: {
+            researcher: {
+              chat: 'researcher',
+              runtimeSessionId: 'rt-1',
+              opId: 'op-1',
+              toolCallId: 'tc-1',
+              seq: 1,
+              deadline: Date.now() + 90_000,
+              answer: { kind: 'failed', message: 'gateway not connected' },
+              version: 1,
+              seq0: 1,
+              targets: [
+                {
+                  name: 'github',
+                  label: 'github',
+                  kind: 'connector',
+                  action: 'authorize',
+                  state: 'pending',
+                  detail: 'Needs repo scope',
+                  instructions: 'Sign in with your work account',
+                  link: { url: 'https://auth.example/gh', host: 'auth.example' },
+                  linkRefused: false,
+                  opened: true
+                },
+                {
+                  name: 'notion',
+                  label: 'notion',
+                  kind: 'mcp',
+                  action: 'install',
+                  state: 'pending',
+                  detail: '',
+                  instructions: null,
+                  link: null,
+                  linkRefused: true,
+                  opened: false
+                }
+              ]
+            }
+          }
+        })
+      )
+
+      expect(screen.getByRole('dialog')).toBeTruthy()
+      expect(await violations()).toEqual([])
+    }
+  )
 })

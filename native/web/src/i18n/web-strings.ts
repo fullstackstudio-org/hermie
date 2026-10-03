@@ -867,6 +867,234 @@ export const WEB_STRINGS_SOURCE = {
       de: 'Schließen'
     }
   },
+  gatewayNotices: {
+    /** The area over the page where every notice is drawn: its accessible name. */
+    area: {
+      en: 'Notices',
+      nl: 'Meldingen',
+      de: 'Hinweise'
+    },
+    /** The list of the gateway's notices over the page: its accessible name. */
+    label: {
+      en: 'Notices from the gateway',
+      nl: 'Meldingen van de gateway',
+      de: 'Hinweise vom Gateway'
+    },
+    /** Before a notice that is about one chat: whose. */
+    fromBot: {
+      en: ({ name }: { name: string }) => `From ${name}:`,
+      nl: ({ name }: { name: string }) => `Van ${name}:`,
+      de: ({ name }: { name: string }) => `Von ${name}:`
+    },
+    /** Takes a notice away; its accessible name says which. */
+    close: {
+      en: 'Close',
+      nl: 'Sluiten',
+      de: 'Schließen'
+    },
+    /** The close button's accessible name. */
+    closeLabel: {
+      en: ({ text }: { text: string }) => `Close the notice: ${text}`,
+      nl: ({ text }: { text: string }) => `Melding sluiten: ${text}`,
+      de: ({ text }: { text: string }) => `Hinweis schließen: ${text}`
+    }
+  },
+  connections: {
+    /** The sheet's heading. */
+    title: {
+      en: ({ name }: { name: string }) => `${name} wants to connect a service`,
+      nl: ({ name }: { name: string }) => `${name} wil een dienst koppelen`,
+      de: ({ name }: { name: string }) => `${name} möchte einen Dienst verbinden`
+    },
+    /** Under the heading: what happens, and who waits. */
+    lead: {
+      en: ({ host }: { host: string }) =>
+        `The bot waits on ${host} until each service below is connected or skipped, or until the time runs out.`,
+      nl: ({ host }: { host: string }) =>
+        `De bot wacht op ${host} tot elke dienst hieronder gekoppeld of overgeslagen is, of tot de tijd om is.`,
+      de: ({ host }: { host: string }) =>
+        `Der Bot wartet auf ${host}, bis jeder Dienst unten verbunden oder übersprungen ist oder die Zeit abläuft.`
+    },
+    /** The list of services: its accessible name. */
+    targets: {
+      en: 'Services',
+      nl: 'Diensten',
+      de: 'Dienste'
+    },
+    /** Opens a service's authorisation page in a new tab. */
+    open: {
+      en: 'Authorise',
+      nl: 'Autoriseren',
+      de: 'Autorisieren'
+    },
+    /** The open button's accessible name: where it goes. */
+    openLabel: {
+      en: ({ name, host }: { name: string; host: string }) => `Authorise ${name} at ${host} (opens a new tab)`,
+      nl: ({ name, host }: { name: string; host: string }) =>
+        `${name} autoriseren op ${host} (opent een nieuw tabblad)`,
+      de: ({ name, host }: { name: string; host: string }) =>
+        `${name} auf ${host} autorisieren (öffnet einen neuen Tab)`
+    },
+    /** Beside the open button: the host the link goes to. */
+    opensAt: {
+      en: ({ host }: { host: string }) => `Opens ${host}`,
+      nl: ({ host }: { host: string }) => `Opent ${host}`,
+      de: ({ host }: { host: string }) => `Öffnet ${host}`
+    },
+    /** Once the person opened the link from here. */
+    opened: {
+      en: 'Opened. Finish there; this sheet follows when the service is connected.',
+      nl: 'Geopend. Rond het daar af; dit venster volgt zodra de dienst gekoppeld is.',
+      de: 'Geöffnet. Schließe es dort ab; dieses Fenster folgt, sobald der Dienst verbunden ist.'
+    },
+    /** The gateway sent a link the page does not open. */
+    linkRefused: {
+      en: 'The gateway sent a link Hermie does not open: only https links to a named host are opened.',
+      nl: 'De gateway stuurde een link die Hermie niet opent: alleen https-links naar een benoemde host worden geopend.',
+      de: 'Das Gateway hat einen Link gesendet, den Hermie nicht öffnet: Nur https-Links zu einem benannten Host werden geöffnet.'
+    },
+    /** The label over the gateway's own instructions for a row. */
+    instructions: {
+      en: 'What the gateway says',
+      nl: 'Wat de gateway zegt',
+      de: 'Was das Gateway sagt'
+    },
+    /** Skips one service. */
+    skip: {
+      en: 'Not now',
+      nl: 'Niet nu',
+      de: 'Nicht jetzt'
+    },
+    /** The skip button's accessible name. */
+    skipLabel: {
+      en: ({ name }: { name: string }) => `Not now: ${name}`,
+      nl: ({ name }: { name: string }) => `Niet nu: ${name}`,
+      de: ({ name }: { name: string }) => `Nicht jetzt: ${name}`
+    },
+    /** Ends the whole operation now, so the bot stops waiting. */
+    cancel: {
+      en: 'Stop waiting',
+      nl: 'Stop met wachten',
+      de: 'Nicht mehr warten'
+    },
+    /** The countdown to the gateway's deadline. */
+    timeLeft: {
+      en: ({ time }: { time: string }) => `Time left: ${time}`,
+      nl: ({ time }: { time: string }) => `Resterende tijd: ${time}`,
+      de: ({ time }: { time: string }) => `Verbleibende Zeit: ${time}`
+    },
+    /** While an answer goes out. */
+    sending: {
+      en: 'Sending…',
+      nl: 'Versturen…',
+      de: 'Wird gesendet…'
+    },
+    /** An answer that did not go out. */
+    failed: {
+      en: ({ message }: { message: string }) => `That did not reach the gateway: ${message}`,
+      nl: ({ message }: { message: string }) => `Dat kwam niet aan bij de gateway: ${message}`,
+      de: ({ message }: { message: string }) => `Das kam nicht beim Gateway an: ${message}`
+    },
+    /** Announced when a card's time ran out. */
+    expired: {
+      en: ({ name }: { name: string }) => `The time to connect a service for ${name} ran out.`,
+      nl: ({ name }: { name: string }) => `De tijd om een dienst te koppelen voor ${name} is om.`,
+      de: ({ name }: { name: string }) => `Die Zeit, einen Dienst für ${name} zu verbinden, ist abgelaufen.`
+    },
+    /** Announced when a card was settled or withdrawn without the sheet. */
+    done: {
+      en: ({ name }: { name: string }) => `${name} is no longer waiting for a connection.`,
+      nl: ({ name }: { name: string }) => `${name} wacht niet meer op een koppeling.`,
+      de: ({ name }: { name: string }) => `${name} wartet nicht mehr auf eine Verbindung.`
+    },
+    state: {
+      pending: {
+        en: 'Waiting for you',
+        nl: 'Wacht op jou',
+        de: 'Wartet auf dich'
+      },
+      initiated: {
+        en: 'Started, waiting for the service',
+        nl: 'Gestart, wacht op de dienst',
+        de: 'Gestartet, wartet auf den Dienst'
+      },
+      connected: {
+        en: 'Connected',
+        nl: 'Gekoppeld',
+        de: 'Verbunden'
+      },
+      skipped: {
+        en: 'Skipped',
+        nl: 'Overgeslagen',
+        de: 'Übersprungen'
+      },
+      failed: {
+        en: 'Failed',
+        nl: 'Mislukt',
+        de: 'Fehlgeschlagen'
+      },
+      expired: {
+        en: 'Expired',
+        nl: 'Verlopen',
+        de: 'Abgelaufen'
+      },
+      unavailable: {
+        en: 'Not available',
+        nl: 'Niet beschikbaar',
+        de: 'Nicht verfügbar'
+      },
+      notConnected: {
+        en: 'Not connected',
+        nl: 'Niet gekoppeld',
+        de: 'Nicht verbunden'
+      },
+      /** A state this build has no word for: the gateway's own, cleaned. */
+      other: {
+        en: ({ status }: { status: string }) => `State: ${status}`,
+        nl: ({ status }: { status: string }) => `Status: ${status}`,
+        de: ({ status }: { status: string }) => `Status: ${status}`
+      }
+    }
+  },
+  identity: {
+    /** In the sidebar: the gateway answered who is signed in without naming an account. */
+    anonymous: {
+      en: 'This gateway does not say who you are, so your messages are not marked as yours and nobody else’s are told apart.',
+      nl: 'Deze gateway zegt niet wie je bent, dus je berichten worden niet als de jouwe gemarkeerd en die van anderen worden niet onderscheiden.',
+      de: 'Dieses Gateway sagt nicht, wer du bist. Deine Nachrichten werden daher nicht als deine markiert und die anderer nicht unterschieden.'
+    },
+    /** In the sidebar: the gateway could not be asked who is signed in. */
+    failed: {
+      en: 'Hermie could not ask the gateway who you are, so your messages are not marked as yours. It asks again when the connection comes back.',
+      nl: 'Hermie kon de gateway niet vragen wie je bent, dus je berichten worden niet als de jouwe gemarkeerd. Hermie vraagt het opnieuw zodra de verbinding terug is.',
+      de: 'Hermie konnte das Gateway nicht fragen, wer du bist. Deine Nachrichten werden daher nicht als deine markiert. Hermie fragt erneut, sobald die Verbindung zurück ist.'
+    }
+  },
+  resumeProgress: {
+    /** On the chat while the gateway loads the conversation behind a resume. */
+    loading: {
+      en: 'The gateway is still loading this conversation…',
+      nl: 'De gateway laadt dit gesprek nog…',
+      de: 'Das Gateway lädt dieses Gespräch noch…'
+    },
+    /** On the chat when the gateway could not load the conversation. */
+    failed: {
+      en: 'The gateway could not load this conversation’s history.',
+      nl: 'De gateway kon de geschiedenis van dit gesprek niet laden.',
+      de: 'Das Gateway konnte den Verlauf dieses Gesprächs nicht laden.'
+    },
+    /** After the failure line: the gateway's reason. */
+    reason: {
+      en: ({ reason }: { reason: string }) => `The gateway says: ${reason}`,
+      nl: ({ reason }: { reason: string }) => `De gateway zegt: ${reason}`,
+      de: ({ reason }: { reason: string }) => `Das Gateway sagt: ${reason}`
+    },
+    close: {
+      en: 'Close',
+      nl: 'Sluiten',
+      de: 'Schließen'
+    }
+  },
   language: {
     /** The first row of the language picker: a browser has a language list, not one device language. */
     followBrowser: {

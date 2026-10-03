@@ -1,6 +1,6 @@
 /**
- * The foot of the sidebar: who is signed in, the way out, and which client this
- * is. Signing out is the entry module's business (stop the chats, stop the
+ * The foot of the sidebar: who is signed in (and, when the gateway did not say,
+ * that it did not: `IdentityNote`), the way out, and which client this is. Signing out is the entry module's business (stop the chats, stop the
  * client, end the gateway's session, clear this person's stored state, go to
  * the sign-in page); this only asks for it, once.
  */
@@ -12,6 +12,7 @@ import { useLocale } from '../../i18n/use-locale'
 import { webStrings } from '../../i18n/web-strings'
 import { Icon } from '../../ui/icons'
 import { Button } from '../../ui/primitives'
+import { IdentityNote } from '../notices/IdentityNote'
 
 export interface SidebarFooterProps {
   /** Who is signed in: the display name, else the email, else the id; empty when the gateway named nobody. */
@@ -29,6 +30,7 @@ export function SidebarFooter({ user, onSignOut }: SidebarFooterProps): ReactEle
       <p className="hm-sidebar__who">
         {user ? strings.app.onboarding.signIn.signedInAs({ user }) : strings.app.onboarding.signIn.signedIn}
       </p>
+      <IdentityNote />
       <Button
         variant="quiet"
         disabled={leaving}

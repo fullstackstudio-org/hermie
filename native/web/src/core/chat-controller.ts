@@ -124,6 +124,7 @@ import {
   OWN_CHAT_LABEL_MAX
 } from './sessions/conversation-list'
 import {
+  botOfConversationKey,
   cacheKeyFor,
   classifyConversations,
   conversationKey,
@@ -290,6 +291,48 @@ export interface ChatControllerOptions {
 }
 
 /**
+ * What the controller hands over beside the transcript, in wire order (the Swift
+ * store's `SessionSignal`). The engine is a parity port and reads none of these
+ * (an event it does not know only moves `lastSeq`), so they are picked off the
+ * ingest path here for the session's own models (`core/notices.ts`,
+ * `core/connections.ts`, `core/session-status.ts`). Payloads are the wire's,
+ * unread: the models read them defensively.
+ *
+ *  - `notice.show` / `notice.clear`: `notification.show` / `.clear`. `chat` is the
+ *    key of the chat whose session carried it, when one is bound; most notices
+ *    are about the account, whichever session carried them.
+ *  - `connection.request` / `connection.update` / `resume.progress`: on a bound
+ *    chat's session, only when newer than what the chat has applied (a replayed
+ *    frame the chat already saw raises nothing again).
+ *  - `resumed`: a `session.resume` answer was applied, with its
+ *    `pending_connection` (`null` when the chat waits on nothing) and whether the
+ *    transcript is still being loaded behind it (`hydrating`).
+ */
+export type SessionSignal =
+  | { kind: 'notice.show'; chat: string | undefined; payload: Record<string, unknown> }
+  | { kind: 'notice.clear'; payload: Record<string, unknown> }
+  | { kind: 'connection.request'; chat: string; runtimeSessionId: string; payload: Record<string, unknown> }
+  | { kind: 'connection.update'; chat: string; payload: Record<string, unknown> }
+  | { kind: 'resume.progress'; chat: string; payload: Record<string, unknown> }
+  | {
+      kind: 'resumed'
+      chat: string
+      runtimeSessionId: string
+      pendingConnection: Record<string, unknown> | null
+      hydrating: boolean
+    }
+
+const recordOf = (value: unknown): Record<string, unknown> =>
+  typeof value === 'object' && value !== null && !Array.isArray(value) ? (value as Record<string, unknown>) : {}
+
+/** The event types a bound chat hands over beside the engine (see `SessionSignal`). */
+const CHAT_SIGNAL_TYPES: ReadonlySet<string> = new Set([
+  'connection.request',
+  'connection.update',
+  'session.resume_progress'
+])
+
+/**
  * The gateway's way of saying "right command, wrong method".
  *
  * Upstream's `slash.exec` answers a skill or a bundle with
@@ -328,6 +371,14 @@ function refusesSessionId(error: unknown): boolean {
  * has, so the second half is all of it that means anything here.
  */
 const NEW_CONVERSATION_COMMANDS: ReadonlySet<string> = new Set(['new', 'reset', 'clear'])
+
+/**
+ * `/status`: the report on a live session. A gateway whose catalogue lists it
+ * answers it through `slash.exec` like any command; one whose catalogue does not
+ * is asked for the same report directly (`session.status`, which the TUI calls for
+ * its own `/status`), so the command never goes out as a prompt to the bot.
+ */
+const STATUS_COMMAND = 'status'
 
 /**
  * Which road a command takes.
@@ -527,6 +578,26 @@ export class ChatController {
   private readonly openedCounts = new Map<string, number>()
   /** `message_count` of each own chat in the latest listing, by stored id. */
   private readonly listedCounts = new Map<string, number>()
+  /** Who hears what the gateway says beside the transcript (`onSessionSignal`). */
+  private readonly sessionListeners = new Set<(signal: SessionSignal) => void>()
+  /** Whether the connection is at `ready` now. */
+  private connected = false
+  /**
+   * Chats a replay could not vouch for (`noteReplayGap`) while they could not be
+   * read again yet: the socket was not ready, or a recovery was on its way. The
+   * recovery reads them again.
+   */
+  private readonly gapped = new Set<string>()
+  /** Chats a reconnect is recovering right now (`recoverAfterReconnect`). */
+  private readonly recovering = new Set<string>()
+  /** The full re-read of each chat in the air, so two reasons to read it again read it once. */
+  private readonly refetching = new Map<string, Promise<void>>()
+  /**
+   * Chats whose last resume said the gateway was still loading the transcript
+   * behind it (`hydrating: true`): what was read then may be short, so the chat is
+   * read again once `session.resume_progress` says the load is `complete`.
+   */
+  private readonly loadingResumes = new Set<string>()
 
   constructor(options: ChatControllerOptions) {
     this.gateway = options.gateway
@@ -543,6 +614,94 @@ export class ChatController {
     this.frames = options.frames
     this.visibility = options.visibility
     this.ingestRef = this.createIngest()
+  }
+
+  /**
+   * Hear what the gateway says beside the transcript (`SessionSignal`), at its
+   * place among the chat's frames. Returns the way to stop.
+   */
+  onSessionSignal(listener: (signal: SessionSignal) => void): () => void {
+    this.sessionListeners.add(listener)
+
+    return () => this.sessionListeners.delete(listener)
+  }
+
+  /** Hand one signal over; whatever a listener does, it never costs the chats. */
+  private signal(signal: SessionSignal): void {
+    if (this.detached) {
+      return
+    }
+
+    for (const listener of [...this.sessionListeners]) {
+      try {
+        listener(signal)
+      } catch {
+        // The listener is somebody else's feature.
+      }
+    }
+  }
+
+  /**
+   * A chat-scoped event the engine does not read, handed over before the engine
+   * applies it: only when it is newer than what the chat has applied, so a frame
+   * replayed twice raises nothing twice.
+   */
+  private signalChatEvent(key: string, event: TranscriptEvent): void {
+    if (!CHAT_SIGNAL_TYPES.has(event.type)) {
+      return
+    }
+
+    const chat = this.chats.getState().chats[key]
+
+    if (typeof event.seq === 'number' && chat && event.seq <= chat.lastSeq) {
+      return
+    }
+
+    const payload = recordOf(event.payload)
+
+    if (event.type === 'connection.request') {
+      this.signal({ kind: 'connection.request', chat: key, runtimeSessionId: event.session_id ?? '', payload })
+    } else if (event.type === 'connection.update') {
+      this.signal({ kind: 'connection.update', chat: key, payload })
+    } else {
+      this.signal({ kind: 'resume.progress', chat: key, payload })
+
+      if (payload.status === 'complete' && this.loadingResumes.delete(key)) {
+        this.refetchWhenOpen(key, typeof payload.message_count === 'number' ? payload.message_count : undefined)
+      }
+    }
+  }
+
+  /**
+   * Read a chat again once whatever is opening it has finished: the load a resume
+   * deferred is done, and what the opening read may have been short.
+   */
+  private refetchWhenOpen(key: string, messageCount?: number): void {
+    const opening = this.opening.get(key)
+
+    void Promise.resolve(opening)
+      .catch(() => undefined)
+      .then(() => (this.detached ? undefined : this.refetch(key, messageCount)))
+      .catch(() => undefined)
+  }
+
+  /** A `session.resume` answer was applied to `key`: what it says beside the transcript. */
+  private signalResumed(key: string, runtimeSessionId: string, resume: SessionResumeResult): void {
+    const pending = (resume as { pending_connection?: unknown }).pending_connection
+
+    if (resume.hydrating === true) {
+      this.loadingResumes.add(key)
+    } else {
+      this.loadingResumes.delete(key)
+    }
+
+    this.signal({
+      kind: 'resumed',
+      chat: key,
+      runtimeSessionId,
+      pendingConnection: typeof pending === 'object' && pending !== null ? recordOf(pending) : null,
+      hydrating: resume.hydrating === true
+    })
   }
 
   private createIngest(): Ingest {
@@ -633,6 +792,11 @@ export class ChatController {
     this.slashCatalogs.clear()
     this.slashCatalogLoads.clear()
     this.slashSessionParam = true
+    this.connected = false
+    this.gapped.clear()
+    this.recovering.clear()
+    this.refetching.clear()
+    this.loadingResumes.clear()
   }
 
   // ── opening a chat ─────────────────────────────────────────────────────────
@@ -940,6 +1104,7 @@ export class ChatController {
     // 4. The in-flight tail the persisted rows do not contain yet.
     this.chats.getState().applySnapshot(key, resumeSnapshotOf(resume))
     this.registerOpenRequests(key, resume.open_requests ?? null, runtimeId, resumeAskedAt)
+    this.signalResumed(key, runtimeId, resume)
 
     // 5. Anything that happened between the history read and now.
     await this.replaySince(key, runtimeId)
@@ -1038,13 +1203,17 @@ export class ChatController {
    * `latest_seq` without applying the events; a warm one (a cached chat, a
    * reconnect) applies them. A `truncated` reply or a changed epoch means the
    * ring no longer reaches back far enough and only a full re-hydration is
-   * honest — the caller is already doing one.
+   * honest. During a hydration the caller has just done one; after a reconnect
+   * the answer is `'gap'` and the caller reads the chat again (`refetch`). So is
+   * a cold watermark against a session that has numbered events since: the chat
+   * came back on a session it never saw an event of (a rebuild), and what ran
+   * there while the socket was down is in no replay.
    */
-  private async replaySince(botName: string, runtimeId: string): Promise<void> {
+  private async replaySince(botName: string, runtimeId: string): Promise<'applied' | 'gap' | 'none'> {
     const chat = this.chats.getState().chats[botName]
 
     if (!chat) {
-      return
+      return 'none'
     }
 
     const knownEpoch = chat.epoch
@@ -1060,11 +1229,11 @@ export class ChatController {
       // The replay is an optimisation over the history read that just ran; a
       // failure costs the events of the last few seconds, which the socket
       // delivers anyway.
-      return
+      return 'none'
     }
 
     if (!result) {
-      return
+      return 'none'
     }
 
     // The epoch identifies the gateway process that did the numbering. A
@@ -1073,6 +1242,8 @@ export class ChatController {
     // be lined up against them.
     const epochChanged = knownEpoch !== undefined && knownEpoch !== result.epoch
     const cold = chat.lastSeq === 0 || epochChanged
+    const gap =
+      result.truncated === true || epochChanged || (chat.lastSeq === 0 && (Number(result.latest_seq) || 0) > 0)
 
     if (cold || result.truncated) {
       // Adopt the watermark without replaying: history already describes this.
@@ -1087,6 +1258,7 @@ export class ChatController {
         const event = transcriptEventOf(raw)
 
         if (event) {
+          this.signalChatEvent(botName, event)
           this.chats.getState().dispatchEvent(botName, event)
 
           // The requests answered beside the engine hear the live socket only: a withdrawal they missed
@@ -1111,6 +1283,96 @@ export class ChatController {
     }
 
     this.registerOpenRequests(botName, result.open_requests ?? null, runtimeId, askedAt)
+
+    return gap ? 'gap' : 'applied'
+  }
+
+  /**
+   * A replay this controller did not ask for could not vouch for itself: the
+   * connection's own replay after a reconnect (`@hermie/gateway-client` runs it
+   * for every session it holds a watermark for, before the chats recover)
+   * answered `truncated: true` for `runtimeSessionId` (`platform/socket.ts`,
+   * `ReplayGapTap`). The events it carried were applied, and the ones the ring
+   * had already dropped are in no frame, so the chat on that session is read
+   * again in full (`refetch`): at once when the socket is up and nothing is
+   * recovering the chat, otherwise by the recovery, after its resume.
+   *
+   * A chat that is being hydrated is left alone: its history read is that answer.
+   */
+  noteReplayGap(runtimeSessionId: string): void {
+    if (this.detached || !runtimeSessionId) {
+      return
+    }
+
+    const key = this.chats.getState().runtimeToBot[runtimeSessionId]
+    const chat = key === undefined ? undefined : this.chats.getState().chats[key]
+
+    if (key === undefined || !chat || chat.hydration === 'hydrating') {
+      return
+    }
+
+    if (!this.connected || this.recovering.has(key)) {
+      this.gapped.add(key)
+
+      return
+    }
+
+    void this.refetch(key).catch(() => undefined)
+  }
+
+  /**
+   * Read a chat again in full, as a hydration does, and reconcile what comes
+   * back onto what is there: ids kept, the not-yet-persisted tail and open
+   * requests kept, nothing doubled (`reconcile`). For a replay that could not
+   * vouch for itself. The queue and the draft are not touched. One read per chat
+   * at a time; a second reason to read it joins the first.
+   *
+   * `messageCount` is the session's own count when a resume just gave one; it
+   * only decides which transport reads the history, as on the first open.
+   */
+  private refetch(key: string, messageCount?: number): Promise<void> {
+    const existing = this.refetching.get(key)
+
+    if (existing) {
+      return existing
+    }
+
+    const run = this.readAgain(key, messageCount).finally(() => {
+      this.refetching.delete(key)
+    })
+
+    this.refetching.set(key, run)
+
+    return run
+  }
+
+  private async readAgain(key: string, messageCount?: number): Promise<void> {
+    const chat = this.chats.getState().chats[key]
+    const runtimeId = chat?.runtimeSessionId
+
+    if (!chat || !runtimeId) {
+      return
+    }
+
+    const window = this.windows.get(key)
+    // A chat that was paged over REST holds a window of a longer conversation: read it the same way again.
+    const count =
+      messageCount ?? (window && !window.reachedStart ? REST_HISTORY_THRESHOLD + 1 : countPersistedRows(chat))
+    const history = await this.loadHistory(runtimeId, chat.resolvedSessionId, botOfConversationKey(key), count)
+
+    // Rebound meanwhile (a rebuild, a switch): this read describes nothing the chat holds now. And an empty
+    // answer is no reason to empty a chat that holds rows (a hydration applies nothing for one either).
+    if (this.chats.getState().chats[key]?.runtimeSessionId !== runtimeId || history.rows.length === 0) {
+      return
+    }
+
+    this.chats.getState().applyHistory(key, rowsToItems(history.rows, history.shape))
+    this.windows.set(key, {
+      rows: history.rows.length,
+      reachedStart: history.shape === 'rpc' || history.rows.length < REST_HISTORY_LIMIT
+    })
+
+    void this.persist(key)
   }
 
   /**
@@ -1166,16 +1428,34 @@ export class ChatController {
     }
 
     const sessionId = event.session_id
+    const bound = sessionId ? this.chats.getState().runtimeToBot[sessionId] : undefined
+
+    // The gateway's notices belong to no chat's order: handed over whoever carried them, and
+    // still applied below when a bound chat did (the engine only moves its watermark).
+    if (event.type === 'notification.show' || event.type === 'notification.clear') {
+      const chat = bound === undefined ? undefined : this.chats.getState().chats[bound]
+      const fresh = typeof event.seq !== 'number' || !chat || event.seq > chat.lastSeq
+
+      if (fresh) {
+        this.signal(
+          event.type === 'notification.show'
+            ? { kind: 'notice.show', chat: bound, payload: recordOf(event.payload) }
+            : { kind: 'notice.clear', payload: recordOf(event.payload) }
+        )
+      }
+    }
 
     if (!sessionId) {
       return
     }
 
-    const botName = this.chats.getState().runtimeToBot[sessionId]
+    const botName = bound
 
     if (!botName) {
       return
     }
+
+    this.signalChatEvent(botName, event)
 
     if (event.type === 'session.info') {
       this.rememberContract(contractIn(event.payload as SessionLiveInfo | undefined))
@@ -1412,6 +1692,8 @@ export class ChatController {
   // ── connection status ──────────────────────────────────────────────────────
 
   private onStatus(status: ConnectionStatus): void {
+    this.connected = status === 'ready'
+
     if (status !== 'ready') {
       if (status === 'disconnected' || status === 'reconnecting' || status === 'paused' || status === 'offline') {
         this.stopApprovalPoll()
@@ -1439,12 +1721,24 @@ export class ChatController {
    * id), and rows were written we never saw. The first is fixed by re-resuming
    * every live chat; the second by comparing the roster's message counts with
    * what each chat holds and re-reading history only where they disagree.
+   *
+   * Unless the replay cannot vouch for itself: when this recovery's replay
+   * answers `truncated`, another epoch or a cold watermark against numbered
+   * events, or the connection's own replay reported a gap for the chat
+   * (`noteReplayGap`), the chat is read again in full instead (`refetch`),
+   * after its resume, so the in-flight turn and the open requests are there to
+   * be kept.
    */
   private async recoverAfterReconnect(): Promise<void> {
     const names = liveChatNames(this.chats.getState())
 
     if (!names.length) {
       return
+    }
+
+    // Before the first `await`: a gap the connection reports from here on waits for this recovery.
+    for (const name of names) {
+      this.recovering.add(name)
     }
 
     const bots = await this.botsController.refresh().catch(() => [] as Bot[])
@@ -1455,6 +1749,8 @@ export class ChatController {
         const chat = this.chats.getState().chats[name]
 
         if (!chat) {
+          this.recovering.delete(name)
+
           return
         }
 
@@ -1475,7 +1771,9 @@ export class ChatController {
           this.bindRuntime(name, resume.session_id)
           this.chats.getState().applySnapshot(name, resumeSnapshotOf(resume))
           this.registerOpenRequests(name, resume.open_requests ?? null, resume.session_id, resumeAskedAt)
-          await this.replaySince(name, resume.session_id)
+          this.signalResumed(name, resume.session_id, resume)
+
+          const replay = await this.replaySince(name, resume.session_id)
 
           const bot = byName.get(name)
           // The conversation the key is on: an own chat has its own count.
@@ -1484,13 +1782,23 @@ export class ChatController {
               ? bot.current.messageCount
               : bot?.canonical?.messageCount) ?? 0
 
-          if (expected > countPersistedRows(chat)) {
+          if (replay === 'gap' || this.gapped.has(name)) {
+            this.gapped.delete(name)
+            await this.refetch(name, typeof resume.message_count === 'number' ? resume.message_count : undefined)
+          } else if (expected > countPersistedRows(chat)) {
             await this.reconcileTailFor(name)
           }
 
           this.chats.getState().setHydration(name, 'live')
         } catch {
           this.chats.getState().setHydration(name, 'stale')
+        } finally {
+          this.recovering.delete(name)
+
+          // A gap reported after the check above: read it now, the socket is up.
+          if (this.gapped.delete(name) && this.connected) {
+            void this.refetch(name).catch(() => undefined)
+          }
         }
       })
     )
@@ -2604,7 +2912,7 @@ export class ChatController {
       (catalog.pairs ?? []).some(pair => named(pair[0] ?? '')) ||
       (catalog.categories ?? []).some(category => (category.pairs ?? []).some(pair => named(pair[0] ?? '')))
 
-    return known ? 'exec' : null
+    return known ? 'exec' : wanted === STATUS_COMMAND ? 'local' : null
   }
 
   /** The catalogue behind `querySlash`, for a picker that wants the whole list. */
@@ -2650,6 +2958,12 @@ export class ChatController {
     }
 
     const sessionId = this.requireRuntime(botName)
+
+    if (name === STATUS_COMMAND && this.slashRouteFor(botName, name) === 'local') {
+      this.slashOutput(botName, sessionId, command, await this.sessionStatus(botName))
+
+      return {}
+    }
     const result = await this.callSlash(botName, sessionId, command, name, arg)
     const directive = parseCommandDispatch(result)
 
@@ -3955,6 +4269,29 @@ export class ChatController {
 
       return await dispatch()
     }
+  }
+
+  /**
+   * `session.status`: the gateway's report on this chat's live session (model,
+   * tokens, what is running), as the plain text the TUI shows for `/status`.
+   * Rejects when the chat is not attached or the gateway refuses.
+   */
+  async sessionStatus(botName: string): Promise<string> {
+    const sessionId = this.requireRuntime(botName)
+    let result: { output?: unknown } | undefined
+
+    try {
+      result = (await this.gateway.request('session.status', {
+        session_id: sessionId,
+        profile: botOfConversationKey(botName)
+      })) as { output?: unknown } | undefined
+    } catch (error) {
+      this.noteRpcFailure('session.status', error)
+
+      throw error
+    }
+
+    return typeof result?.output === 'string' ? result.output : ''
   }
 
   /** One command's output, as the row kind a reader cannot miss. */

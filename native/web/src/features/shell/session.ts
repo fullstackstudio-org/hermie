@@ -19,31 +19,43 @@
  *     connection: `secret`, `sudo` and the vault prompts, answered beside the
  *     engine so a typed value never reaches a store, and the requests only the
  *     desktop app can answer, declined with a notice on their chat.
- *  5. The request queue (`state/requests.ts`): a view of the chats' open approvals
- *     and questions, of the confirmations the passkey model shows and of the
- *     prompts the secure input model holds.
- *  6. The running poll (`session.active_list`) while the page is shown, and once
+ *  5. What the gateway says beside the transcript, from the chat controller's
+ *     signals (`onSessionSignal`): its notices (`core/notices.ts`), the connector
+ *     authorisations a bot waits on (`core/connections.ts`), and who the reader is,
+ *     what the gateway can do and which chats it is still loading
+ *     (`core/session-status.ts`). The socket reads every replay answer on the way
+ *     in (`platform/socket.ts`, `ReplayGapTap`), and a session whose replay came
+ *     back `truncated` is read again in full (`ChatController.noteReplayGap`).
+ *  6. The request queue (`state/requests.ts`): a view of the chats' open approvals
+ *     and questions, of the confirmations the passkey model shows, of the
+ *     prompts the secure input model holds and of the connection cards.
+ *  7. The running poll (`session.active_list`) while the page is shown, and once
  *     the moment the connection becomes usable, so a bot that is already working
  *     is not drawn idle for the first ten seconds.
  *
  * `stop()` is the order the sign-out needs: the poll, then the secure prompts
- * (each open one answered `''` while the socket is still there), the passkeys and
- * the chats, then the client (which closes the socket and empties its stores). It
+ * (each open one answered `''` while the socket is still there), the notices, the
+ * connection cards, the session status, the passkeys and the chats, then the client (which closes the socket and empties its stores). It
  * is idempotent.
  */
-import type { ConnectChatsOptions, ChatRuntime } from '../../core/chat-controller'
+import type { ConnectChatsOptions, ChatRuntime, SessionSignal } from '../../core/chat-controller'
+import { ownAuthorStore } from '../../core/chats/own-author'
 import { connectChats } from '../../core/chat-controller'
 import { connectGateway, type ConnectGatewayOptions, type GatewayClient } from '../../core/gateway-client'
 import { serialiseBaseUrl } from '../../core/passkey/challenge'
 import { createPasskeyClient } from '../../core/passkey/client'
 import { PasskeyModel } from '../../core/passkey/model'
+import { ConnectionsModel } from '../../core/connections'
+import { NoticesModel } from '../../core/notices'
 import { SecureInputModel } from '../../core/requests/secure-input'
+import { SessionStatusModel } from '../../core/session-status'
 import type { ChatCache } from '../../platform/chat-cache'
 import type { WebKeyValueStore } from '../../platform/key-value-store'
 import { createPasskeyPins } from '../../platform/passkey-pins'
-import { createSocketFactoryWithOutbox, ErrorDataOutbox } from '../../platform/socket'
+import { createSocketFactoryWithOutbox, ErrorDataOutbox, ReplayGapTap } from '../../platform/socket'
 import { type VisibilityWatcher, visibilityWatcher } from '../../platform/visibility'
 import { createWebAuthn, type WebAuthnSeam } from '../../platform/webauthn'
+import { connectionsStore } from '../../state/connections'
 import { passkeysStore } from '../../state/passkeys'
 import { bindRequests } from '../../state/requests'
 import { secureInputStore } from '../../state/secure-input'
@@ -72,7 +84,10 @@ export interface Session {
   readonly chats: ChatRuntime
   readonly passkeys: PasskeyModel
   readonly secureInput: SecureInputModel
-  /** Stop the poll, the secure prompts, the passkeys and the chats, then the client, in that order. Idempotent. */
+  readonly notices: NoticesModel
+  readonly connections: ConnectionsModel
+  readonly status: SessionStatusModel
+  /** Stop the poll, the models beside the engine, the passkeys and the chats, then the client, in that order. Idempotent. */
   stop(): void
 }
 
@@ -88,13 +103,14 @@ function hostOf(baseUrl: string): string {
 export function startSession(options: StartSessionOptions): Session {
   const visibility = options.visibility ?? visibilityWatcher
   const outbox = new ErrorDataOutbox()
+  const replayGaps = new ReplayGapTap()
 
   const client = connectGateway({
     baseUrl: options.baseUrl,
     credentials: options.credentials,
     storage: options.storage,
     cache: options.cache,
-    socketFactory: createSocketFactoryWithOutbox(outbox),
+    socketFactory: createSocketFactoryWithOutbox(outbox, replayGaps),
     ...(options.visibility ? { visibility: options.visibility } : {}),
     ...options.connect
   })
@@ -140,8 +156,26 @@ export function startSession(options: StartSessionOptions): Session {
 
   secureInput.start()
 
+  const stopReplayGaps = replayGaps.onGap(sessionId => chats.controller.noteReplayGap(sessionId))
+  const watchSignals = (listener: (signal: SessionSignal) => void): (() => void) =>
+    chats.controller.onSessionSignal(listener)
+  const notices = new NoticesModel({ watchSignals })
+  const connections = new ConnectionsModel({ gateway: client.gateway, watchSignals, chats: chats.chats })
+  const status = new SessionStatusModel({
+    gateway: client.gateway,
+    readIdentity: () => client.http.authMe(),
+    initialAuthor: options.author,
+    ownAuthor: options.chats?.ownAuthor ?? ownAuthorStore,
+    watchSignals,
+    chats: chats.chats
+  })
+
+  notices.start()
+  connections.start()
+  status.start()
+
   /** The request layer's queue is the open requests of the chats just started, the confirmations and the prompts. */
-  const stopRequests = bindRequests(chats.chats, undefined, passkeysStore, secureInputStore)
+  const stopRequests = bindRequests(chats.chats, undefined, passkeysStore, secureInputStore, connectionsStore)
 
   /** While the page is shown: the roster's running poll (reference counted; one is enough). */
   let release: (() => void) | undefined
@@ -177,6 +211,9 @@ export function startSession(options: StartSessionOptions): Session {
     chats,
     passkeys,
     secureInput,
+    notices,
+    connections,
+    status,
     stop() {
       if (stopped) {
         return
@@ -189,6 +226,10 @@ export function startSession(options: StartSessionOptions): Session {
       release = undefined
       stopRequests()
       secureInput.stop()
+      stopReplayGaps()
+      notices.stop()
+      connections.stop()
+      status.stop()
       passkeys.stop()
       chats.stop()
       client.stop()

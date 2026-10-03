@@ -9,6 +9,7 @@ import { type Bot, botsStore } from '../state/bots'
 import { chatsStore } from '../state/chats'
 import { connectionStore } from '../state/connection'
 import { pluginStore } from '../state/plugin'
+import { sessionStatusStore } from '../state/session-status'
 import { settingsStore } from '../state/settings'
 
 /** Unix seconds in the past, far enough that a row's stamp is a date, not "Now" or a clock. */
@@ -44,6 +45,7 @@ export function resetShellStores(): void {
   pluginStore.getState().reset()
   ownAuthorStore.getState().reset()
   settingsStore.getState().reset()
+  sessionStatusStore.getState().reset()
 }
 
 /** Put a roster in the store as a gateway answer would, and mark every bot read. */

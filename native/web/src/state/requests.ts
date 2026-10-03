@@ -29,7 +29,9 @@
  * yet). A secret, a sudo password and a vault prompt are the second
  * (`SecureRequest`): the secure input model holds them (`state/secure-input.ts`,
  * which never holds an answer), and they are on the queue while they are open on
- * a chat the page holds.
+ * a chat the page holds. A connector authorisation is the third
+ * (`ConnectionRequest`): the connections model holds the card
+ * (`state/connections.ts`), and it is on the queue while it is open.
  *
  * A vanilla zustand store (`requestsStore`, `createRequestsStore` for tests),
  * fed by `bindRequests` once the chats exist (`features/shell/session.ts`).
@@ -38,6 +40,7 @@ import type { ApprovalItem, ChatState, ClarifyItem } from '@hermie/transcript'
 import { createStore, type StoreApi } from 'zustand/vanilla'
 
 import type { ChatsState } from './chats'
+import type { ConnectionsState } from './connections'
 import { type PasskeysState, visibleConfirmations } from './passkeys'
 import type { SecureInputState } from './secure-input'
 
@@ -83,8 +86,21 @@ export interface SecureRequest {
   method: string
 }
 
+/** A connector authorisation a bot waits on: the connections model holds the card; the layer reads it there by chat. */
+export interface ConnectionRequest {
+  kind: 'connection'
+  /** Unique across chats and kinds. */
+  key: string
+  /** The chat whose agent waits on it. */
+  bot: string
+  /** The operation's id (`ConnectionCard.opId`). */
+  opId: string
+  /** The card's version: it moves on every change. */
+  version: number
+}
+
 /** Everything the layer can draw. */
-export type OpenRequest = EngineRequest | ConfirmRequest | SecureRequest
+export type OpenRequest = EngineRequest | ConfirmRequest | SecureRequest | ConnectionRequest
 
 export interface RequestsState {
   /** Oldest first. The layer draws the first and says how many wait behind it. */
@@ -141,7 +157,7 @@ const versionOf = (entry: OpenRequest | undefined): number | undefined =>
     ? undefined
     : entry.kind === 'engine'
       ? entry.item.version
-      : entry.kind === 'confirm'
+      : entry.kind === 'confirm' || entry.kind === 'connection'
         ? entry.version
         : 0
 
@@ -158,6 +174,9 @@ export const confirmKey = (requestId: string): string => `confirm\u0000${request
 /** The key of a secure prompt's entry. */
 export const secureKey = (requestId: string): string => `secure\u0000${requestId}`
 
+/** The key of a connection card's entry. */
+export const connectionKey = (chat: string, opId: string): string => `connection\u0000${chat}\u0000${opId}`
+
 /**
  * Keep `store` equal to the open requests of `chats` (and the confirmations
  * `passkeys` shows, and the prompts `secureInput` holds), now and on every commit.
@@ -167,7 +186,8 @@ export function bindRequests(
   chats: Pick<StoreApi<ChatsState>, 'getState' | 'subscribe'>,
   store: StoreApi<RequestsState> = requestsStore,
   passkeys?: Pick<StoreApi<PasskeysState>, 'getState' | 'subscribe'>,
-  secureInput?: Pick<StoreApi<SecureInputState>, 'getState' | 'subscribe'>
+  secureInput?: Pick<StoreApi<SecureInputState>, 'getState' | 'subscribe'>,
+  connections?: Pick<StoreApi<ConnectionsState>, 'getState' | 'subscribe'>
 ): () => void {
   /** When each open request was first seen: its place in the queue. */
   const seen = new Map<string, number>()
@@ -176,17 +196,20 @@ export function bindRequests(
   let lastRuntime: ChatsState['runtimeToBot'] | undefined
   let lastConfirmations: PasskeysState['confirmations'] | undefined
   let lastPrompts: SecureInputState['prompts'] | undefined
+  let lastCards: ConnectionsState['cards'] | undefined
 
   const collect = (): void => {
     const state = chats.getState()
     const current = state.chats
     const confirmations = passkeys?.getState().confirmations
     const prompts = secureInput?.getState().prompts
+    const cards = connections?.getState().cards
 
     if (
       current === lastChats &&
       confirmations === lastConfirmations &&
       prompts === lastPrompts &&
+      cards === lastCards &&
       state.runtimeToBot === lastRuntime
     ) {
       return
@@ -196,6 +219,7 @@ export function bindRequests(
     lastRuntime = state.runtimeToBot
     lastConfirmations = confirmations
     lastPrompts = prompts
+    lastCards = cards
 
     const engine: EngineRequest[] = []
 
@@ -225,6 +249,16 @@ export function bindRequests(
         method: prompt.method
       }))
 
+    const connecting: ConnectionRequest[] = Object.values(cards ?? {})
+      .sort((a, b) => a.seq0 - b.seq0)
+      .map(card => ({
+        kind: 'connection',
+        key: connectionKey(card.chat, card.opId),
+        bot: card.chat,
+        opId: card.opId,
+        version: card.version
+      }))
+
     // Newly seen ones take the next places: an engine request by the gateway's own stamp, then by its
     // row; a confirmation in the order the passkey model received them, after those; a prompt in the order
     // the secure input model placed them, after those.
@@ -233,9 +267,10 @@ export function bindRequests(
         .filter(entry => !seen.has(entry.key))
         .sort((a, b) => (a.item.ts ?? 0) - (b.item.ts ?? 0) || a.item.seq - b.item.seq),
       ...confirms.filter(entry => !seen.has(entry.key)),
-      ...secure.filter(entry => !seen.has(entry.key))
+      ...secure.filter(entry => !seen.has(entry.key)),
+      ...connecting.filter(entry => !seen.has(entry.key))
     ]
-    const open: OpenRequest[] = [...engine, ...confirms, ...secure]
+    const open: OpenRequest[] = [...engine, ...confirms, ...secure, ...connecting]
 
     for (const entry of fresh) {
       counter += 1
@@ -262,11 +297,13 @@ export function bindRequests(
   const unsubscribe = chats.subscribe(collect)
   const unsubscribePasskeys = passkeys?.subscribe(collect)
   const unsubscribeSecure = secureInput?.subscribe(collect)
+  const unsubscribeConnections = connections?.subscribe(collect)
 
   return () => {
     unsubscribe()
     unsubscribePasskeys?.()
     unsubscribeSecure?.()
+    unsubscribeConnections?.()
     seen.clear()
     store.getState().reset()
   }

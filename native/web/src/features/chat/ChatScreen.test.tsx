@@ -20,6 +20,7 @@ import { beforeEach, describe, expect, it, vi } from 'vitest'
 
 import { replay, type StreamScenario } from '../../dev/stream-replay'
 import { ownAuthorStore } from '../../core/chats/own-author'
+import { sessionStatusStore } from '../../state/session-status'
 import { resetActiveLocale } from '../../i18n/active-locale'
 import { botsStore } from '../../state/bots'
 import { chatsStore } from '../../state/chats'
@@ -412,6 +413,7 @@ describe('the transcript', () => {
 
   it('draws somebody else’s message in the group chat on the left with their name, and nobody’s elsewhere', () => {
     ownAuthorStore.getState().set({ id: 'self-hosted:me' })
+    sessionStatusStore.setState({ capabilities: { perMessageAuthor: true, perSessionExclusiveSubmit: true } })
 
     const items = [
       userItem('mine', { author: { id: 'self-hosted:me', name: 'Me' } }, 'mine'),
@@ -430,6 +432,13 @@ describe('the transcript', () => {
 
     // The reader's identity unknown: every row is the reader's own, as before an author was stamped at all.
     ownAuthorStore.getState().reset()
+    const second = mount({}, fakeController())
+    expect(side('theirs')).toBe('own')
+    second.unmount()
+
+    // A gateway that does not vouch for the authors on its rows (no `per_message_author`): the same.
+    ownAuthorStore.getState().set({ id: 'self-hosted:me' })
+    sessionStatusStore.setState({ capabilities: { perMessageAuthor: false, perSessionExclusiveSubmit: true } })
     mount({}, fakeController())
     expect(side('theirs')).toBe('own')
   })
