@@ -318,6 +318,9 @@ every change by diffing, sends it (debounced 600 ms) and dates it. The actions:
 - `textSizeStore`: `setTextSize`; `textSizeScale(size)` is the factor for the transcript's type.
 - The bridge (`(await session.uiMeta)?.bridge`, a lazily loaded chunk): `mode` (`synced`, or `local` when the gateway cannot be read or refuses
   the write; the device's copy is then still correct), `pending`, `appKey`, `reconcileSoon()`, `flush()`.
+- `uiMetaStatusStore` (`state/ui-meta-status.ts`, in the main bundle): `starting`, `synced`, `local` or
+  `unavailable` (the bridge's chunk failed to load twice). A "settings not synced" line shows whenever
+  `settingsSynced(state)` is false after `starting`.
 
 What a screen does not do: call the bridge to send, write `appStampStore` (only the bridge dates), or treat
 `collapsed`, `sidebarCollapsed` and `conversationsCollapsed` as synced (they are about this window).
@@ -351,8 +354,13 @@ What a screen does not do: call the bridge to send, write `appStampStore` (only 
   gateway's copy since the connection came up, and again after each one; a reconcile runs on every rise to
   `ready`, on `sessions.changed` and when the page is shown, never two at once.
 - Bot edits the gateway has not taken survive a reload with their sections raw (`ui-meta.pending`); app edits
-  survive by their date.
-- The bridge is a chunk of its own, loaded once the session has started (`session.uiMeta` is a promise of it).
+  survive by their date. Which of `archived` and `colour` was changed is kept per bot, and only those are this
+  page's when the section goes out: an archive made offline yesterday does not take back a colour picked today.
+- A bot whose section was written in a schema version this build cannot read (a newer build's `v`) is never
+  written: a change to it stays pending, held back, and the console says so once.
+- The bridge is a chunk of its own, loaded once the session has started (`session.uiMeta` is a promise of it). A
+  chunk that fails to load is asked for once more after 2 s; failing again, it is logged and the status says
+  `unavailable`, and the stores stay on this device.
 
 ## Chats
 

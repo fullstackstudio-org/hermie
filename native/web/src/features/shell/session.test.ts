@@ -9,6 +9,7 @@ import { noticesStore } from '../../state/notices'
 import { requestsStore } from '../../state/requests'
 import { sessionStatusStore } from '../../state/session-status'
 import { secureInputStore } from '../../state/secure-input'
+import { createUiMetaStatusStore } from '../../state/ui-meta-status'
 import { chatWith } from '../../test-support/chat-fixtures'
 import { fakeVisibility } from '../../test-support/fake-watchers'
 
@@ -154,6 +155,56 @@ describe('startSession', () => {
     await startSession(options()).uiMeta
 
     expect(connectUiMeta).toHaveBeenCalledWith(expect.objectContaining({ userId: '' }))
+  })
+
+  describe('a ui_meta chunk that does not load', () => {
+    const failing = (times: number) => {
+      let left = times
+
+      return vi.fn(async () => {
+        if (left > 0) {
+          left -= 1
+          throw new Error('Failed to fetch dynamically imported module')
+        }
+
+        return { connectUiMeta: (...args: unknown[]) => connectUiMeta(...args) as never }
+      })
+    }
+
+    it('is asked for once more, and starts when the second try works', async () => {
+      const warn = vi.spyOn(console, 'warn').mockImplementation(() => undefined)
+      const status = createUiMetaStatusStore()
+      const loadUiMeta = failing(1)
+      const session = startSession({ ...options(), loadUiMeta, uiMetaRetryMs: 0, uiMeta: { status } })
+
+      expect(await session.uiMeta).toEqual({ stop: uiMetaStop })
+      expect(loadUiMeta).toHaveBeenCalledTimes(2)
+      expect(warn).toHaveBeenCalledTimes(1)
+      expect(status.getState().state).toBe('starting')
+
+      warn.mockRestore()
+    })
+
+    it('is said in the console and published as unavailable when the second try fails too', async () => {
+      const warn = vi.spyOn(console, 'warn').mockImplementation(() => undefined)
+      const error = vi.spyOn(console, 'error').mockImplementation(() => undefined)
+      const status = createUiMetaStatusStore()
+      const loadUiMeta = failing(2)
+      const session = startSession({ ...options(), loadUiMeta, uiMetaRetryMs: 0, uiMeta: { status } })
+
+      expect(await session.uiMeta).toBeNull()
+      expect(loadUiMeta).toHaveBeenCalledTimes(2)
+      expect(connectUiMeta).not.toHaveBeenCalled()
+      expect(error).toHaveBeenCalledWith(expect.stringContaining('settings sync'), expect.any(Error))
+      expect(status.getState().state).toBe('unavailable')
+
+      // And a sign-out leaves nothing of it behind.
+      session.stop()
+      expect(status.getState().state).toBe('starting')
+
+      warn.mockRestore()
+      error.mockRestore()
+    })
   })
 
   it('does not start the ui_meta bridge for a session that stopped before its chunk loaded', async () => {
