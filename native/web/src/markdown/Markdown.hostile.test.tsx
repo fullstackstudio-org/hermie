@@ -177,7 +177,9 @@ function inspect(root: Element): void {
     // Class names come from the renderer; the one that carries data from the
     // message is the language class, and only a plain token reaches it.
     for (const name of Array.from(element.classList)) {
-      expect(name, `class on <${tag.toLowerCase()}>`).toMatch(/^(md(-[a-z-]+)?|language-[A-Za-z0-9_+#.-]{1,40})$/)
+      expect(name, `class on <${tag.toLowerCase()}>`).toMatch(
+        /^(md(-[a-z]+)*|md-h[1-6]|language-[A-Za-z0-9_+#.-]{1,40})$/
+      )
     }
   }
 

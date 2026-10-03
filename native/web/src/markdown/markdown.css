@@ -83,6 +83,35 @@
   font-size: 0.94em;
 }
 
+/*
+ * A heading that was written at one depth and drawn at another (`headingOffset`,
+ * `headingMax`) keeps the size of the depth it was written at: the element says
+ * where it sits in the page, the class says how important the author made it.
+ */
+.md .md-h1 {
+  font-size: 1.5em;
+}
+
+.md .md-h2 {
+  font-size: 1.32em;
+}
+
+.md .md-h3 {
+  font-size: 1.18em;
+}
+
+.md .md-h4 {
+  font-size: 1.08em;
+}
+
+.md .md-h5 {
+  font-size: 1em;
+}
+
+.md .md-h6 {
+  font-size: 0.94em;
+}
+
 .md a {
   color: var(--md-link);
   text-decoration: underline;

@@ -321,6 +321,21 @@ describe('the rest of the vocabulary', () => {
     expect(screen.getAllByRole('heading').map(heading => heading.tagName)).toEqual(['H1', 'H3', 'H6'])
   })
 
+  it('pushes the headings down by the offset it is given, and no further than h6', () => {
+    render(<Markdown headingOffset={2} text={'# one\n\n### three\n\n###### six\n\n> ## quoted'} />)
+
+    expect(screen.getAllByRole('heading').map(heading => heading.tagName)).toEqual(['H3', 'H5', 'H6', 'H4'])
+  })
+
+  it('stops them at the deepest level it is given, and keeps the size of the depth that was written', () => {
+    render(<Markdown headingMax={3} headingOffset={2} text={'# one\n\n## two\n\n#### four'} />)
+
+    const headings = screen.getAllByRole('heading')
+
+    expect(headings.map(heading => heading.tagName)).toEqual(['H3', 'H3', 'H3'])
+    expect(headings.map(heading => heading.className)).toEqual(['md-h1', 'md-h2', 'md-h4'])
+  })
+
   it('draws emphasis, strong, strike, code and a hard break', () => {
     const { container } = render(<Markdown text={'*a* **b** ~~c~~ `d`  \ne'} />)
 

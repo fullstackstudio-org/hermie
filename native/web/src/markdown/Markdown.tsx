@@ -13,7 +13,7 @@
 import { preprocessMarkdown, splitBlocks } from '@hermie/markdown'
 import { memo, useMemo } from 'react'
 
-import { MarkdownBlock } from './Block'
+import { HeadingPlacementContext, MarkdownBlock } from './Block'
 import './markdown.css'
 
 export interface MarkdownProps {
@@ -25,6 +25,14 @@ export interface MarkdownProps {
    * image is shown as a link. Without it no image is loaded at all.
    */
   gatewayBaseUrl?: string
+  /**
+   * Levels to push the message's headings down (`#` is `h1` at 0, `h3` at 2).
+   * A message in a transcript sets it so it never adds a title of its own to
+   * the page. Default 0: a heading is the level it was written at.
+   */
+  headingOffset?: number
+  /** The deepest level a heading is drawn at, after the offset (default 6). A transcript sets 3. */
+  headingMax?: number
   className?: string
 }
 
@@ -49,18 +57,21 @@ export function blockKey(index: number, raw: string): string {
   return `${index}:${contentHash(raw)}`
 }
 
-function MarkdownView({ text, gatewayBaseUrl, className }: MarkdownProps) {
+function MarkdownView({ text, gatewayBaseUrl, headingOffset = 0, headingMax = 6, className }: MarkdownProps) {
   // The same text gives the same array (a memo in `splitBlocks`), and a longer
   // text reuses the settled slices of the shorter one.
   const blocks = useMemo(() => splitBlocks(preprocessMarkdown(text)), [text])
+  const placement = useMemo(() => ({ offset: headingOffset, max: headingMax }), [headingOffset, headingMax])
 
   return (
-    <div className={className ? `md ${className}` : 'md'}>
-      {blocks.map((raw, index) =>
-        // Whitespace-only slices render nothing, exactly as in the block model.
-        raw.trim() ? <MarkdownBlock baseUrl={gatewayBaseUrl} key={blockKey(index, raw)} raw={raw} /> : null
-      )}
-    </div>
+    <HeadingPlacementContext.Provider value={placement}>
+      <div className={className ? `md ${className}` : 'md'}>
+        {blocks.map((raw, index) =>
+          // Whitespace-only slices render nothing, exactly as in the block model.
+          raw.trim() ? <MarkdownBlock baseUrl={gatewayBaseUrl} key={blockKey(index, raw)} raw={raw} /> : null
+        )}
+      </div>
+    </HeadingPlacementContext.Provider>
   )
 }
 

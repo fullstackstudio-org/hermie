@@ -9,7 +9,7 @@
  * `@hermie/markdown`, which `contract/markdown` records.
  */
 import { marked, MATH_BLOCK_TOKEN, type MathToken, type Token, type Tokens } from '@hermie/markdown'
-import { memo, useMemo, type ReactNode } from 'react'
+import { createContext, memo, useContext, useMemo, type ReactNode } from 'react'
 
 import { useLocale } from '../i18n/use-locale'
 import { webStrings } from '../i18n/web-strings'
@@ -21,6 +21,36 @@ import { Table } from './Table'
 export const MERMAID_LANGUAGE = 'mermaid'
 
 type Heading = 'h1' | 'h2' | 'h3' | 'h4' | 'h5' | 'h6'
+
+/**
+ * Where a message's headings sit in the page they are drawn in.
+ *
+ * A message is inside a page that has its own `h1` (and, in a transcript, a date
+ * `h2`), so a `#` in a reply must not become a second title: `offset` pushes
+ * every heading down (`#` is an `h1` at 0 and an `h3` at 2) and `max` stops them
+ * going deeper (an `h4` straight after an `h2` is a skipped level, which a reader
+ * who moves by heading hears as a gap; a transcript caps at `h3`, so a message's
+ * headings are all one level below the day they are under, whatever the author
+ * wrote). The size still follows the depth that was written (`md-h<depth>`).
+ */
+export interface HeadingPlacement {
+  offset: number
+  max: number
+}
+
+export const HeadingPlacementContext = createContext<HeadingPlacement>({ offset: 0, max: 6 })
+
+function MessageHeading({ depth, tokens, baseUrl }: { depth: number; tokens: Token[]; baseUrl: string | undefined }) {
+  const { offset, max } = useContext(HeadingPlacementContext)
+  const written = Math.min(Math.max(depth, 1), 6)
+  const Tag = `h${Math.min(written + offset, max, 6)}` as Heading
+
+  return (
+    <Tag className={`md-h${written}`}>
+      <Inline baseUrl={baseUrl} tokens={tokens} />
+    </Tag>
+  )
+}
 
 function ListItem({ item, baseUrl }: { item: Tokens.ListItem; baseUrl: string | undefined }) {
   useLocale()
@@ -65,13 +95,8 @@ function renderBlock(token: Token, index: number, baseUrl: string | undefined, t
 
     case 'heading': {
       const heading = token as Tokens.Heading
-      const Tag = `h${Math.min(Math.max(heading.depth, 1), 6)}` as Heading
 
-      return (
-        <Tag key={index}>
-          <Inline baseUrl={baseUrl} tokens={heading.tokens} />
-        </Tag>
-      )
+      return <MessageHeading baseUrl={baseUrl} depth={heading.depth} key={index} tokens={heading.tokens} />
     }
 
     case 'paragraph':
