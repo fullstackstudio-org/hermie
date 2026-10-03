@@ -259,7 +259,10 @@ extension TranscriptStore {
   }
 
   /// `resumeSnapshotOf`: the fields `applyResumeSnapshot` reads, `turn_started_at`
-  /// from whichever half of the answer carried it.
+  /// from whichever half of the answer carried it. `inflight` goes whole, on purpose: the engine
+  /// reads `assistant_unsealed` (the text no note above already shows) and
+  /// `display_metadata.turn_id` (which prompt the running turn answers) from it, and a field
+  /// picked by name would be one more the gateway can add without anyone noticing it was dropped.
   func resumeSnapshot(of result: SessionResumeResult) -> SessionResumeResult {
     let raw = result.json
     let record = { (value: JSONValue?) -> JSONValue in
@@ -393,6 +396,16 @@ extension TranscriptStore {
         state.lastSeq = epochChanged ? latest : max(state.lastSeq, latest)
         state.lastSeqSessionID = runtimeID
         state.epoch = epoch
+
+        // A turn the cache restored mid-stream (`CachedTurn`) is continued only by the frames a
+        // replay brings, so with none coming its pointers go, as they did before the cache kept
+        // them: unless a resume has just said the turn still runs, which is then the live turn's
+        // own state (`turn.active`).
+        if state.turn.id != nil && !state.turn.active {
+          state.turn.id = nil
+          state.turn.assistantID = nil
+          state.turn.reasoningID = nil
+        }
       }
     } else {
       for raw in result["events"]?.arrayValue ?? [] {
@@ -433,6 +446,10 @@ extension TranscriptStore {
   }
 
   /// `transcriptEventOf`: one replayed frame, narrowed to what the reducer needs.
+  ///
+  /// `turn_id` rides the envelope beside `seq`, not the payload, so it has to be named here to
+  /// survive: a frame without it (an older gateway) simply has none, and the engine then takes
+  /// its old path. A live frame is handed to the engine whole (`applyLive`), `turn_id` included.
   func transcriptEvent(of raw: JSONValue) -> GatewayEvent? {
     guard let type = raw["type"]?.stringValue else {
       return nil
@@ -446,6 +463,10 @@ extension TranscriptStore {
 
     if case .number(let seq)? = raw["seq"] {
       json["seq"] = .number(seq)
+    }
+
+    if let turnID = raw["turn_id"]?.stringValue, !turnID.isEmpty {
+      json["turn_id"] = .string(turnID)
     }
 
     if let payload = raw["payload"] {

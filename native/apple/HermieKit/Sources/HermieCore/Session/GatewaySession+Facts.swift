@@ -29,6 +29,11 @@ extension GatewaySession {
   /// be drawn as somebody else's on the strength of it.
   public var rowAuthorsTrusted: Bool { capabilities?.perMessageAuthor == true }
 
+  /// Whether this gateway stamps row, call and turn identity on its frames and history
+  /// (`transcript_row_identity`). Diagnostics only: the transcript engine pairs by identity
+  /// whenever a frame carries it and by words when it does not, whatever this says.
+  public var rowIdentityTrusted: Bool { capabilities?.transcriptRowIdentity == true }
+
   /// The id a view compares a row's author with to tell the reader's own
   /// messages from a colleague's (`transcriptOwnAuthorID`). `nil` (every row
   /// drawn as the reader's own, as before authors existed) until the identity is
