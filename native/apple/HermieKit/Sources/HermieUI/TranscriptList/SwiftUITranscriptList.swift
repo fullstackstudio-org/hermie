@@ -51,6 +51,9 @@ struct SwiftUITranscriptList<Item: Identifiable & Equatable & Sendable, Row: Vie
       .scrollTargetLayout()
     }
     .accessibilityIdentifier("transcript.list")
+    // What scrolls under the header fades into it (Messages does the same): the Mac's default
+    // draws a line at the toolbar's edge instead.
+    .scrollEdgeEffectStyle(.soft, for: .top)
     .scrollPosition($position, anchor: .top)
     .defaultScrollAnchor(.bottom)
     .defaultScrollAnchor(state.isAtBottom ? .bottom : nil, for: .sizeChanges)

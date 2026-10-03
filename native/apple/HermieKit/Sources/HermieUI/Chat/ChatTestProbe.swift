@@ -11,7 +11,8 @@ extension EnvironmentValues {
   /// counts and appearances (`RenderCounter`), with what each row draws, as another, refreshed four
   /// times a second.
   ///
-  /// Tiny and outside the list, so reading it re-renders no row.
+  /// Tiny, invisible and outside the list, so reading it re-renders no row. It exists only in a
+  /// debug build (this whole type is `#if DEBUG`).
   struct ChatTestProbe: View {
     let feed: ChatFeed
 
@@ -35,7 +36,10 @@ extension EnvironmentValues {
 
         }
         .font(.system(size: 6))
-        .foregroundStyle(.primary)
+        // Read through the accessibility tree, never seen: clear text is still in the tree (a view
+        // at alpha 0 may be left out of it) and draws nothing over any background.
+        .foregroundStyle(.clear)
+        .allowsHitTesting(false)
         .task {
           while !Task.isCancelled {
             let rendered = RenderCounter.counts
