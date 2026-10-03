@@ -203,7 +203,7 @@ export interface FakeGatewayOptions {
   scenario?: Scenario
   /**
    * Whether this gateway carries the transcript row identity of the fork
-   * (`.claude/plans/transcript-row-identity.md`). Default true.
+   * (the transcript row identity plan). Default true.
    *
    * On: every turn-stream frame carries `turn_id` on its envelope and the user
    * row `display_metadata.turn_id`; `message.interim`, `message.complete` and

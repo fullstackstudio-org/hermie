@@ -1,7 +1,7 @@
 # Gateway MCP: the app's page and the `via` author
 
-What a client needs to know about the gateway's MCP endpoint (HERM-247, plan
-`.claude/plans/gateway-mcp.md`), and nothing else. The gateway fork serves a remote MCP
+What a client needs to know about the gateway's MCP endpoint (HERM-247), and nothing
+else. The gateway fork serves a remote MCP
 endpoint that Claude Code (or any MCP client that does OAuth 2.1) connects to **as the signed-in
 person**. Hermie never speaks MCP and runs no server. It does three things:
 
