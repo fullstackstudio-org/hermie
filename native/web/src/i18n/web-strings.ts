@@ -315,6 +315,15 @@ export const WEB_STRINGS_SOURCE = {
           ? `Dieselbe Antwort für die andere wartende Freigabe von ${name} geben`
           : `Dieselbe Antwort für die ${count} anderen wartenden Freigaben von ${name} geben`
     },
+    /** Said politely when the list a ticked box covered changed: the tick was taken back. */
+    othersChanged: {
+      en: ({ name }: { name: string }) =>
+        `The other approvals waiting from ${name} changed, so the box was cleared. Tick it again to see and answer them together.`,
+      nl: ({ name }: { name: string }) =>
+        `De andere goedkeuringen die van ${name} wachten zijn veranderd, dus het vakje is leeggemaakt. Vink het opnieuw aan om ze samen te zien en te beantwoorden.`,
+      de: ({ name }: { name: string }) =>
+        `Die anderen wartenden Freigaben von ${name} haben sich geändert, daher wurde das Kästchen geleert. Hake es erneut an, um sie zusammen zu sehen und zu beantworten.`
+    },
     /** Over the list of the other commands that answer would also cover. */
     othersLabel: {
       en: 'That answer also goes to:',

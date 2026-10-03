@@ -162,6 +162,43 @@ describe('the choices on screen', () => {
   })
 })
 
+describe('the lead line', () => {
+  it('isolates the handle and the directory, each cleaned and bounded', () => {
+    render(
+      <ApprovalSheet
+        item={approval()}
+        handle={'resear\u202echer'}
+        directory={'/srv/\u202eapp\u0007'}
+        titleId="t"
+        descriptionId="d"
+        onRespond={() => undefined}
+        tapGuardMs={0}
+      />
+    )
+
+    const lead = document.getElementById('d')
+
+    expect([...(lead?.querySelectorAll('bdi') ?? [])].map(bdi => bdi.textContent)).toEqual(['researcher', '/srv/app'])
+    expect(lead?.textContent).toBe('@researcher wants to run one command on your gateway host, in /srv/app.')
+  })
+
+  it('leaves the directory out when nothing is left of it', () => {
+    render(
+      <ApprovalSheet
+        item={approval()}
+        handle="researcher"
+        directory={'\u200b'}
+        titleId="t"
+        descriptionId="d"
+        onRespond={() => undefined}
+        tapGuardMs={0}
+      />
+    )
+
+    expect(document.getElementById('d')?.textContent).toBe('@researcher wants to run one command on your gateway host.')
+  })
+})
+
 describe('one answer for several', () => {
   const second = approval({ requestId: 'srq-2', approvalId: 'a-2', command: 'ls -la' })
   const third = approval({ requestId: 'srq-3', approvalId: 'a-3', command: 'cat notes.txt' })
@@ -179,7 +216,7 @@ describe('one answer for several', () => {
     expect(
       screen.getByText(sentence('Give the same answer to the 2 other approvals waiting from Dr. Researcher'))
     ).toBeTruthy()
-    expect(document.querySelector('bdi')?.textContent).toBe('Dr. Researcher')
+    expect(screen.getByRole('checkbox').closest('label')?.querySelector('bdi')?.textContent).toBe('Dr. Researcher')
     // Off: the other commands are not listed, and a press answers this request alone.
     expect(screen.queryByText('ls -la')).toBeNull()
   })
@@ -245,41 +282,104 @@ describe('one answer for several', () => {
     expect(onRespond).toHaveBeenCalledExactlyOnceWith('always', ['srq-2'])
   })
 
-  it('puts the buttons back to sleep when the list it covers changes while ticked', () => {
+  const again = (onRespond: ReturnType<typeof vi.fn>, others: ApprovalItem[], tapGuardMs = 0) => (
+    <section aria-labelledby="t" aria-describedby="d">
+      <ApprovalSheet
+        item={approval()}
+        handle="researcher"
+        name="Dr. Researcher"
+        titleId="t"
+        descriptionId="d"
+        onRespond={onRespond}
+        tapGuardMs={tapGuardMs}
+        others={others}
+      />
+    </section>
+  )
+  const notice = (): string => document.querySelector('[data-others-notice]')?.textContent ?? ''
+
+  it('takes the tick back when its list changes, says so politely, and leaves the focus where it was', () => {
+    const { onRespond, rerender } = sheet(approval(), { others: [second] })
+
+    fireEvent.click(box()!)
+
+    const allow = screen.getByRole('button', { name: 'Allow once' })
+
+    allow.focus()
+    expect(notice()).toBe('')
+
+    // A command joins the list while the reader is on the button.
+    rerender(again(onRespond, [second, third]))
+
+    expect(box()?.checked).toBe(false)
+    expect(screen.queryByText('That answer also goes to:')).toBeNull()
+    expect(notice()).toContain('The other approvals waiting from Dr. Researcher changed, so the box was cleared.')
+    expect(document.querySelector('[data-others-notice]')?.getAttribute('aria-live')).toBe('polite')
+    // Nothing was disabled under the focus: it is still on the button, and the button still answers.
+    expect(document.activeElement).toBe(allow)
+    expect(allow).toHaveProperty('disabled', false)
+
+    fireEvent.click(allow)
+
+    // This request alone: the new list was neither seen nor heard.
+    expect(onRespond).toHaveBeenCalledExactlyOnceWith('once', [])
+  })
+
+  it('takes the tick back when one of its list leaves, and answers the new list only once ticked again', () => {
+    const { onRespond, rerender } = sheet(approval(), { others: [second, third] })
+
+    fireEvent.click(box()!)
+    rerender(again(onRespond, [third]))
+
+    expect(box()?.checked).toBe(false)
+    expect(notice()).not.toBe('')
+
+    fireEvent.click(box()!)
+    expect(notice()).toBe('')
+    fireEvent.click(screen.getByRole('button', { name: 'Deny' }))
+
+    expect(onRespond).toHaveBeenCalledExactlyOnceWith('deny', ['srq-3'])
+  })
+
+  it('moves the focus to the command when the box goes with the last of its list', () => {
+    const { onRespond, rerender } = sheet(approval(), { others: [second] })
+
+    box()!.focus()
+    fireEvent.click(box()!)
+    rerender(again(onRespond, []))
+
+    expect(box()).toBeNull()
+    expect(document.activeElement?.textContent).toBe('rm -rf ./build')
+    expect(notice()).not.toBe('')
+  })
+
+  it('holds nothing back and says nothing when the list changes while the box is not ticked', () => {
     vi.useFakeTimers()
 
     const { onRespond, rerender } = sheet(approval(), { others: [second], tapGuardMs: 400 })
 
     act(() => vi.advanceTimersByTime(400))
-    fireEvent.click(box()!)
-    act(() => vi.advanceTimersByTime(400))
+    rerender(again(onRespond, [second, third], 400))
+
     expect(screen.getByRole('button', { name: 'Allow once' })).toHaveProperty('disabled', false)
-
-    rerender(
-      <section aria-labelledby="t" aria-describedby="d">
-        <ApprovalSheet
-          item={approval()}
-          handle="researcher"
-          name="Dr. Researcher"
-          titleId="t"
-          descriptionId="d"
-          onRespond={onRespond}
-          tapGuardMs={400}
-          others={[second, third]}
-        />
-      </section>
-    )
-
-    // A command just joined the list: a press already on its way must not cover it.
-    expect(screen.getByRole('button', { name: 'Allow once' })).toHaveProperty('disabled', true)
-    // The box itself stays in reach, so the reader can take it back.
-    expect(box()?.disabled).toBe(false)
+    expect(notice()).toBe('')
     fireEvent.click(screen.getByRole('button', { name: 'Allow once' }))
-    expect(onRespond).not.toHaveBeenCalled()
+    expect(onRespond).toHaveBeenCalledExactlyOnceWith('once', [])
+  })
 
-    act(() => vi.advanceTimersByTime(400))
-    fireEvent.click(screen.getByRole('button', { name: 'Allow once' }))
-    expect(onRespond).toHaveBeenCalledExactlyOnceWith('once', ['srq-2', 'srq-3'])
+  it('shows what each of the others is for, not only its command', () => {
+    const described = approval({
+      requestId: 'srq-7',
+      command: 'make clean',
+      description: 'Remove the build output',
+      toolName: 'terminal'
+    })
+
+    sheet(approval(), { others: [described] })
+    fireEvent.click(box()!)
+
+    expect(screen.getByText('Remove the build output')).toBeTruthy()
+    expect(screen.getByText(/Runs on your gateway · terminal/u)).toBeTruthy()
   })
 
   it('keeps the box asleep behind the first guard, like the buttons', () => {

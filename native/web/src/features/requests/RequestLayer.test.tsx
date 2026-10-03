@@ -141,7 +141,10 @@ describe('an approval', () => {
     expect(screen.getByRole('dialog', { name: 'Allow this command?' })).toBe(dialog())
     expect(within(dialog()).getByText(sentence('From Dr. Researcher'))).toBeTruthy()
     // The lead line is what the dialog is described by, and it names the bot's handle.
-    expect(dialog().getAttribute('aria-describedby')).toBe(within(dialog()).getByText(/@researcher wants to run/u).id)
+    const described = document.getElementById(dialog().getAttribute('aria-describedby') ?? '')
+
+    expect(described?.textContent).toMatch(/^@researcher wants to run/u)
+    expect(described?.querySelector('bdi')?.textContent).toBe('researcher')
   })
 
   it('shows the command, the description and the tool as plain text, never as Markdown', () => {
@@ -338,6 +341,29 @@ describe('one answer for several approvals', () => {
     // The writer's own question is next, and it was not answered for them.
     expect(within(dialog()).getByText('the writer’s')).toBeTruthy()
     expect(within(dialog()).queryByRole('checkbox')).toBeNull()
+  })
+
+  it('sends nothing for another approval withdrawn while the box was ticked, and says the list changed', async () => {
+    mount()
+    approval('researcher', 'srq-1', { command: 'first' })
+    approval('researcher', 'srq-2', { command: 'second' })
+    approval('researcher', 'srq-3', { command: 'third' })
+
+    fireEvent.click(within(dialog()).getByRole('checkbox'))
+    act(() =>
+      chatsStore
+        .getState()
+        .dispatchEvent('researcher', { type: 'request.cancel', payload: { id: 'srq-2', reason: 'cancelled' } })
+    )
+
+    expect((within(dialog()).getByRole('checkbox') as HTMLInputElement).checked).toBe(false)
+    expect(dialog().querySelector('[data-others-notice]')?.textContent).toMatch(/changed, so the box was cleared/u)
+
+    fireEvent.click(button('Allow once'))
+    await settle()
+
+    expect(controller.respondApproval).toHaveBeenCalledExactlyOnceWith('researcher', 'srq-1', 'once')
+    expect(controller.respondApproval).not.toHaveBeenCalledWith('researcher', 'srq-2', expect.anything())
   })
 
   it('leaves a smart-denied one of the same bot to ask on its own', async () => {

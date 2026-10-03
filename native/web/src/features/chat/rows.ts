@@ -34,6 +34,7 @@
  */
 import type { StatusItem, TranscriptItem, VisibleItem } from '@hermie/transcript'
 
+import { displayText, NAME_LIMIT } from '../../core/requests/secure-input'
 import { rollupDmRuns } from './dm-rollup'
 
 /** The status kind of a date separator row. */
@@ -150,7 +151,8 @@ export function transcriptRows(visible: readonly VisibleItem[], options: RowOpti
     }
   }
 
-  const drafting = options.draftingTool?.trim()
+  // The name as the row will show it: a name with nothing left after cleaning is no name, and the dots stay.
+  const drafting = displayText(options.draftingTool, NAME_LIMIT)
 
   if (options.turnActive && drafting) {
     rows.push(

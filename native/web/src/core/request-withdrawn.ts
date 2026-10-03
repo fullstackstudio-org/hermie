@@ -9,13 +9,6 @@
  * transcript's `cancelled` card into an `answered` one. It rejects with this
  * error so the caller can say what happened instead of a generic failure.
  */
-/**
- * The `cancelReason` of a clarify the reader ended themselves with "Cancel all" (`ChatController.cancelClarify`).
- * The card closes as `cancelled`, because nothing was answered, and under this reason, because the gateway did
- * not withdraw anything: the layer says nothing about it, the reader just did it.
- */
-export const CANCELLED_BY_READER = 'cancelled_by_reader'
-
 export class RequestWithdrawnError extends Error {
   /** `cancelled`: the gateway took the request back. `answered`: it was already answered. */
   readonly state: 'cancelled' | 'answered'
@@ -41,3 +34,10 @@ export function closedRequest(
 
   return new RequestWithdrawnError(requestId, item.state === 'cancelled' ? 'cancelled' : 'answered', item.cancelReason)
 }
+
+/**
+ * The `cancelReason` of a clarify the reader ended themselves with "Cancel all" (`ChatController.cancelClarify`).
+ * The card closes as `cancelled`, because nothing was answered, and under this reason, because the gateway did
+ * not withdraw anything: the layer says nothing about it, the reader just did it.
+ */
+export const CANCELLED_BY_READER = 'cancelled_by_reader'

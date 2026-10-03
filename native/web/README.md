@@ -558,7 +558,9 @@ A bot's approval or question (`clarify`) is answered in `features/requests/`, a 
   gives them the same answer; ticked, it lists their commands, so nothing is allowed that was not on screen. It is
   answered request by request with `respondApproval`, never with the wire's `all: true`: the gateway applies `all` to its
   whole queue, which can hold an approval this page has not been shown. A smart-denied request is never part of it, nor
-  one that does not offer the choice pressed; a change in what the ticked box covers puts the buttons to sleep again.
+  one that does not offer the choice pressed. The tick holds for the list it was given for: when a request joins or
+  leaves it, the box is unticked in the same render and a polite line in the dialog says so, with no button disabled
+  under the reader's focus.
 - **Clarify.** A single question with choices (radio), several (checkbox, joined with ", ") or free text, which edit the
   same one answer. A batch is a stepper: Next, Back, and Lock answer (`lockClarify`: locked on the gateway, then
   read-only). **Skip answers `''`**: on a single question, "no answer" for the bot; in a batch, that step, moving on, and

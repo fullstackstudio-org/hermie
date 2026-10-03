@@ -38,13 +38,23 @@
  * `all: true`, because the gateway resolves `all` against its whole queue,
  * which can hold an approval this page has not been shown yet. A smart-denied
  * request is never part of it, on either side: it asks on its own, and so does
- * one that does not offer the choice pressed. A change in
- * that list while the box is ticked puts the buttons back to sleep, so a press
- * already on its way cannot answer a command that just arrived.
+ * one that does not offer the choice pressed.
+ *
+ * The tick belongs to the list it was given for. When a request joins or leaves
+ * that list, the box is no longer ticked in the same render (the tick is derived
+ * from the list it was made for, so no effect has to win a race for it), and a
+ * polite line inside the dialog says why: nothing the reader did not see and hear
+ * can be answered, and no button is disabled under their focus. If the box itself
+ * goes (nothing left to cover) and takes the focus with it, the focus moves to the
+ * command.
+ *
+ * The bot's handle and the directory in the lead line are the roster's and the
+ * session's words: cleaned and bounded (`displayText`) and each in a `<bdi>`.
  */
 import type { ApprovalItem } from '@hermie/transcript'
-import { type ReactElement, useEffect, useId, useRef, useState } from 'react'
+import { Fragment, type ReactElement, type ReactNode, useEffect, useId, useRef, useState } from 'react'
 
+import { BOT_NAME_LIMIT, displayText, TEXT_LIMIT } from '../../core/requests/secure-input'
 import { strings } from '../../generated/strings'
 import { useLocale } from '../../i18n/use-locale'
 import { webStrings } from '../../i18n/web-strings'
@@ -113,6 +123,35 @@ export function offeredChoices(
 const toneOf = (choice: string): 'primary' | 'danger' | 'plain' =>
   choice === 'deny' ? 'danger' : choice === 'once' ? 'primary' : 'plain'
 
+/** Where the handle and the directory go in the catalogue's sentence; `displayText` drops both from any name. */
+const HANDLE_MARK = '\u0001'
+const DIRECTORY_MARK = '\u0002'
+
+/** The lead line, the handle and the directory each isolated: the sentence keeps every language's own order. */
+function leadLine(handle: string, directory: string): ReactNode {
+  const sentence = strings.chat.approval.lead({
+    handle: HANDLE_MARK,
+    ...(directory ? { directory: DIRECTORY_MARK } : {})
+  })
+  const parts: ReactNode[] = []
+
+  sentence.split(HANDLE_MARK).forEach((piece, index) => {
+    if (index > 0) {
+      parts.push(<bdi key={`h${index}`}>{handle}</bdi>)
+    }
+
+    piece.split(DIRECTORY_MARK).forEach((text, inner) => {
+      if (inner > 0) {
+        parts.push(<bdi key={`d${index}-${inner}`}>{directory}</bdi>)
+      }
+
+      parts.push(<Fragment key={`t${index}-${inner}`}>{text}</Fragment>)
+    })
+  })
+
+  return parts
+}
+
 export function ApprovalSheet({
   item,
   handle,
@@ -127,23 +166,23 @@ export function ApprovalSheet({
   useLocale()
 
   const [armed, setArmed] = useState(tapGuardMs <= 0)
-  const [forAll, setForAll] = useState(false)
-  /** The buttons sleep again for a moment: what the ticked box covers just changed under the reader. */
-  const [holding, setHolding] = useState(false)
+  /** The list the box was ticked for (`coveredKey` then), or `null`: a tick holds for that list and no other. */
+  const [tickedFor, setTickedFor] = useState<string | null>(null)
+  /** Said politely inside the dialog when a tick was taken back because its list changed. */
+  const [notice, setNotice] = useState('')
   /** One answer per question: the layer takes the sheet away on the next frame, and a second press lands before it. */
   const answered = useRef(false)
+  const commandRef = useRef<HTMLPreElement>(null)
   const listId = useId()
 
   const choices = offeredChoices(item)
   const smartDenied = item.smartDenied === true
   const covered = smartDenied ? [] : others.filter(other => other.smartDenied !== true)
-  const bulk = forAll && covered.length > 0
   /** Changes when the requests the box would cover change. */
   const coveredKey = covered.map(other => other.requestId).join('\u0000')
-  const forAllNow = useRef(forAll)
-  const lastCovered = useRef(coveredKey)
-
-  forAllNow.current = forAll
+  const forAll = tickedFor !== null && tickedFor === coveredKey && covered.length > 0
+  const shownHandle = displayText(handle, BOT_NAME_LIMIT)
+  const shownDirectory = displayText(directory, TEXT_LIMIT)
 
   useEffect(() => {
     answered.current = false
@@ -163,31 +202,25 @@ export function ApprovalSheet({
     return () => clearTimeout(timer)
   }, [item.id, tapGuardMs])
 
-  // A request joined or left what the ticked box covers: a press already on its way must not answer it.
-  // Ticking the box is the reader's own act and holds nothing back.
+  // The list a tick was given for changed: the tick is already gone from this render; say so, and keep the focus.
   useEffect(() => {
-    if (lastCovered.current === coveredKey) {
+    if (tickedFor === null || tickedFor === coveredKey) {
       return
     }
 
-    lastCovered.current = coveredKey
+    setTickedFor(null)
+    setNotice(webStrings.requests.othersChanged({ name }))
 
-    if (!forAllNow.current || tapGuardMs <= 0) {
-      return
+    const documentOf = commandRef.current?.ownerDocument
+    const active = documentOf?.activeElement
+
+    if (documentOf && (!active || active === documentOf.body)) {
+      commandRef.current?.focus({ preventScroll: true })
     }
-
-    setHolding(true)
-
-    const timer = setTimeout(() => setHolding(false), tapGuardMs)
-
-    return () => {
-      clearTimeout(timer)
-      setHolding(false)
-    }
-  }, [coveredKey, tapGuardMs])
+  }, [coveredKey, name, tickedFor])
 
   const respond = (choice: string): void => {
-    if (answered.current || !armed || holding) {
+    if (answered.current || !armed) {
       return
     }
 
@@ -195,7 +228,7 @@ export function ApprovalSheet({
     // A request that does not offer this choice (no "always" for it) is not given it: it asks on its own next.
     onRespond(
       choice,
-      bulk ? covered.filter(other => offeredChoices(other).includes(choice)).map(other => other.requestId) : []
+      forAll ? covered.filter(other => offeredChoices(other).includes(choice)).map(other => other.requestId) : []
     )
   }
 
@@ -206,7 +239,7 @@ export function ApprovalSheet({
       </h2>
 
       <p className="hm-requests__lead" id={descriptionId}>
-        {strings.chat.approval.lead({ handle, ...(directory ? { directory } : {}) })}
+        {leadLine(shownHandle, shownDirectory)}
         {/* In the description, so a screen reader says it with the question, before any button. */}
         {smartDenied ? (
           <span className="hm-requests__warning" data-smart-denied="">
@@ -216,7 +249,7 @@ export function ApprovalSheet({
       </p>
 
       {/* Scrolls when the command is long, so it takes the keyboard: a scroll region nobody can reach is a trap. */}
-      <pre className="hm-requests__command" tabIndex={0}>
+      <pre className="hm-requests__command" tabIndex={0} ref={commandRef}>
         {item.command}
       </pre>
 
@@ -236,7 +269,10 @@ export function ApprovalSheet({
               checked={forAll}
               disabled={!armed}
               aria-controls={forAll ? listId : undefined}
-              onChange={event => setForAll(event.target.checked)}
+              onChange={event => {
+                setTickedFor(event.target.checked ? coveredKey : null)
+                setNotice('')
+              }}
             />
             <span>
               <WithName
@@ -255,6 +291,12 @@ export function ApprovalSheet({
                     <pre className="hm-requests__command" data-size="small" tabIndex={0}>
                       {other.command}
                     </pre>
+                    {other.description ? <p className="hm-requests__text">{other.description}</p> : null}
+                    {other.toolName ? (
+                      <p className="hm-requests__meta">
+                        {strings.chat.approval.runsOn} · {other.toolName}
+                      </p>
+                    ) : null}
                   </li>
                 ))}
               </ul>
@@ -271,13 +313,18 @@ export function ApprovalSheet({
             variant={toneOf(choice) === 'primary' ? 'primary' : 'quiet'}
             data-choice={choice}
             data-tone={toneOf(choice)}
-            disabled={!armed || holding}
+            disabled={!armed}
             onClick={() => respond(choice)}
           >
             {choiceLabel(choice)}
           </Button>
         ))}
       </div>
+
+      {/* Always in the document, so a line put into it is announced. */}
+      <p className="hm-sr" aria-live="polite" aria-atomic="true" data-others-notice="">
+        {notice}
+      </p>
 
       {choices.includes('session') ? <p className="hm-requests__meta">{webStrings.requests.sessionHint}</p> : null}
       {choices.includes('always') ? <p className="hm-requests__meta">{strings.chat.approval.fine}</p> : null}

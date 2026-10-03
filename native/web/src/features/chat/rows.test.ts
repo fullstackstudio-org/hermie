@@ -1,7 +1,16 @@
 import type { VisibleItem } from '@hermie/transcript'
 import { describe, expect, it } from 'vitest'
 
-import { assistantItem, daysAfter, noticeItem, statusItem, toolItem, userItem } from '../../test-support/chat-fixtures'
+import {
+  assistantItem,
+  botDmInItem,
+  daysAfter,
+  noticeItem,
+  statusItem,
+  toolItem,
+  userItem
+} from '../../test-support/chat-fixtures'
+import { isRollupRow } from './dm-rollup'
 import {
   DATE_ROW_KIND,
   dayKeyOf,
@@ -180,5 +189,25 @@ describe('the tool being written', () => {
       'u',
       TYPING_ROW_ID
     ])
+    // Nothing left once cleaned: the turn still shows its dots.
+    expect(ids(transcriptRows([user], { busy: true, turnActive: true, draftingTool: '\u200b\u0007' }))).toEqual([
+      'u',
+      TYPING_ROW_ID
+    ])
+  })
+
+  it('stays at the tail after a run of bot-to-bot asides is rolled up', () => {
+    const asides = [1, 2, 3, 4].map(index => full(botDmInItem(`aside ${index}`, { ts: undefined }, `dm${index}`)))
+    const rows = transcriptRows([user, ...asides], { busy: true, turnActive: true, draftingTool: 'terminal' })
+
+    expect(rows.some(row => isRollupRow(row.item))).toBe(true)
+    expect(rows.at(-1)!.item.id).toBe(`${GENERATING_ROW_KIND}:terminal`)
+    expect(rows.filter(row => isGeneratingRow(row.item))).toHaveLength(1)
+  })
+
+  it('carries the name as the row shows it, cleaned', () => {
+    const rows = transcriptRows([user], { busy: true, turnActive: true, draftingTool: 'web\u202esearch ' })
+
+    expect(rows.at(-1)!.item.id).toBe(`${GENERATING_ROW_KIND}:websearch`)
   })
 })
