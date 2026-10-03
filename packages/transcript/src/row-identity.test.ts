@@ -824,8 +824,30 @@ describe('a tail sweep filling placeholders', () => {
       )
     )
 
-    expect(state.items[first!.id]).toMatchObject({ unknownAuthor: true, text: '' })
+    // Only the turn that named it fills the second; the first's turn is over and
+    // the tail paired nothing for it, so it is settled rather than left to wait.
+    expect(state.items[first!.id]).toBeUndefined()
     expect(state.items[second!.id]).toMatchObject({ text: 'from the second', rowId: 9, turnId: 'turn-f2' })
+    expect(state.turn.foreignReconcilePending).toBeUndefined()
+  })
+
+  it('does not hand a turn’s row to the placeholder of another turn that is still waiting', () => {
+    const live = apply(fresh(), [
+      { type: 'message.start', seq: 1, turn_id: 'turn-f1' },
+      { type: 'message.start', seq: 3, turn_id: 'turn-f2' }
+    ])
+    const [first, second] = users(live)
+    const state = reconcileTail(
+      live,
+      rowsToItems(
+        [{ role: 'user', id: 9, content: 'from the first', display_metadata: { turn_id: 'turn-f1' } }],
+        'rest'
+      )
+    )
+
+    expect(state.items[first!.id]).toMatchObject({ text: 'from the first', rowId: 9, turnId: 'turn-f1' })
+    // The running turn's own row has not come yet.
+    expect(state.items[second!.id]).toMatchObject({ unknownAuthor: true, text: '', turnId: 'turn-f2' })
     expect(state.turn.foreignReconcilePending).toBe(true)
   })
 })
@@ -1323,9 +1345,9 @@ describe('a placeholder for a turn the gateway started itself', () => {
     expect(state.turn.foreignReconcilePending).toBeUndefined()
   })
 
-  it('waits on while the tail only brings rows of another turn', () => {
+  it('waits on while the turn still runs and the tail only brings rows of another turn', () => {
     const state = reconcileTail(
-      awayFrom(),
+      apply(reconcile(fresh(), rowsToItems(OWN, 'rpc')), turnOf('T1', 10).slice(0, 2)),
       rowsToItems(
         [
           { ...continued('T0'), row_id: 3 },
@@ -1419,5 +1441,198 @@ describe('the turn pointers a cache restored, met by a resume', () => {
     // The old turn's bubble is not where the next delta of the new turn goes.
     expect(state.turn.assistantId).toBeUndefined()
     expect(state.turn.reasoningId).toBeUndefined()
+  })
+})
+
+// ── the same placeholder, on the paths the notice does not reach ─────────────
+//
+// A turn the gateway starts itself leaves a `turnId` placeholder that only its
+// own row may fill, and that row reaches the engine in more than one shape: as a
+// notice (above), joined into a dispatch card of the same page (no item of its
+// own), already in history when the turn's `message.start` is replayed, in a
+// full reconcile before the tail, and in a resume that names the turn.
+
+describe('a turn the gateway started itself, on every path its row can take', () => {
+  const unknown = (state: ChatState) => users(state).filter(item => item.unknownAuthor)
+  const kinds = (state: ChatState) => list(state).map(item => item.kind)
+  const START = { type: 'message.start', seq: 20, turn_id: 'T1' } satisfies TranscriptEvent
+  const DELTA = {
+    type: 'message.delta',
+    seq: 21,
+    turn_id: 'T1',
+    payload: { text: 'on it' }
+  } satisfies TranscriptEvent
+  const COMPLETE = {
+    type: 'message.complete',
+    seq: 22,
+    turn_id: 'T1',
+    payload: { text: 'on it', status: 'complete' }
+  } satisfies TranscriptEvent
+  const continued: TranscriptRow = {
+    role: 'user',
+    row_id: 3,
+    text: 'continue',
+    display_kind: 'auto_continue',
+    display_metadata: { turn_id: 'T1' }
+  }
+  const OWN = [
+    { role: 'user', row_id: 1, text: 'hi' },
+    { role: 'assistant', row_id: 2, text: 'hello' }
+  ] satisfies TranscriptRow[]
+
+  describe('a delivery that finds its dispatch inside the same page', () => {
+    const DISPATCHED: TranscriptRow[] = [
+      { role: 'user', row_id: 1, text: 'tell sam' },
+      {
+        role: 'tool',
+        row_id: 2,
+        name: 'message_agent',
+        tool_call_id: 'dm-1',
+        args: { target: 'sam', message: 'ping' }
+      },
+      { role: 'assistant', row_id: 3, text: 'sent' }
+    ]
+    const REPORT = [
+      '[IMPORTANT: Background process proc-1 completed with exit code 0.',
+      'Command: python bot_mode_dm.py --run-delivery d1',
+      'Output:',
+      'Sam says hi]'
+    ].join('\n')
+    const tail: TranscriptRow[] = [
+      ...DISPATCHED,
+      {
+        role: 'user',
+        row_id: 4,
+        text: REPORT,
+        display_kind: 'process_complete',
+        display_metadata: { turn_id: 'T1' }
+      },
+      { role: 'assistant', row_id: 5, text: 'Sam answered.' }
+    ]
+
+    it('lays the turn id on the reply it joined, since no item of the row’s own is left', () => {
+      const [dispatch] = rowsToItems(tail, 'rpc').filter(item => item.kind === 'bot_dm_out')
+
+      expect(dispatch).toMatchObject({ reply: { text: 'Sam says hi', rowId: 4, turnId: 'T1' } })
+    })
+
+    it('settles the placeholder, and the next sweep has nothing to wait for', () => {
+      const opened = reconcile(fresh(), rowsToItems(DISPATCHED, 'rpc'))
+      const away = apply(opened, [START])
+
+      expect(unknown(away)).toHaveLength(1)
+      expect(away.turn.foreignReconcilePending).toBe(true)
+
+      const state = reconcileTail(away, rowsToItems(tail, 'rpc'))
+
+      expect(unknown(state)).toHaveLength(0)
+      expect(state.turn.foreignReconcilePending).toBeUndefined()
+      expect(list(state).find(item => item.kind === 'bot_dm_out')).toMatchObject({ reply: { text: 'Sam says hi' } })
+    })
+  })
+
+  describe('a turn whose row history already holds when its message.start is replayed', () => {
+    it('stands no placeholder up, and waits for no tail', () => {
+      const history = reconcile(fresh(), rowsToItems([...OWN, continued], 'rpc'))
+      const state = apply(history, [START])
+
+      expect(kinds(state)).toEqual(['user', 'assistant', 'notice'])
+      expect(unknown(state)).toHaveLength(0)
+      expect(state.turn.foreignReconcilePending).toBeUndefined()
+      expect(state.turn).toMatchObject({ id: 'T1', active: true })
+    })
+
+    it('still stands one up for a notice that is not yet a row', () => {
+      const state = apply(reconcile(fresh(), rowsToItems(OWN, 'rpc')), [START])
+
+      expect(unknown(state)).toHaveLength(1)
+    })
+  })
+
+  describe('a full reconcile before the tail', () => {
+    it('settles the placeholder with the notice history brings for its turn', () => {
+      const away = apply(reconcile(fresh(), rowsToItems(OWN, 'rpc')), [START, DELTA])
+
+      expect(unknown(away)).toHaveLength(1)
+
+      const state = reconcile(
+        away,
+        rowsToItems([...OWN, continued, { role: 'assistant', row_id: 4, text: 'on it' }], 'rpc')
+      )
+
+      expect(unknown(state)).toHaveLength(0)
+      expect(state.turn.foreignReconcilePending).toBeUndefined()
+      expect(list(state).filter(item => item.kind === 'notice')).toHaveLength(1)
+      expect(list(state).filter(item => item.kind === 'assistant' && item.text === 'on it')).toHaveLength(1)
+    })
+
+    it('keeps a placeholder whose turn history has not reached', () => {
+      const away = apply(reconcile(fresh(), rowsToItems(OWN, 'rpc')), [START, DELTA])
+      const state = reconcile(away, rowsToItems(OWN, 'rpc'))
+
+      expect(unknown(state)).toHaveLength(1)
+      expect(state.turn.foreignReconcilePending).toBe(true)
+    })
+  })
+
+  describe('a resume that names the turn after the tail settled its placeholder', () => {
+    it('adds no prompt of the owner’s below the reply it started', () => {
+      const away = apply(reconcile(fresh(), rowsToItems(OWN, 'rpc')), [START, DELTA])
+      const settled = reconcileTail(
+        away,
+        rowsToItems([continued, { role: 'assistant', row_id: 4, text: 'on it' }], 'rpc')
+      )
+      const state = applyResumeSnapshot(
+        settled,
+        {
+          running: true,
+          inflight: {
+            user: 'continue',
+            display_metadata: { turn_id: 'T1' },
+            assistant: 'on it',
+            streaming: true
+          }
+        },
+        LATER
+      )
+
+      expect(users(state).map(item => item.text)).toEqual(['hi'])
+      expect(kinds(state)).toEqual(['user', 'assistant', 'notice', 'assistant'])
+    })
+  })
+
+  describe('a turn that is over', () => {
+    const rows = [{ role: 'assistant', row_id: 9, text: 'unrelated' }] satisfies TranscriptRow[]
+
+    it('waits on while the turn still runs and the tail brings nothing of it', () => {
+      const away = apply(reconcile(fresh(), rowsToItems(OWN, 'rpc')), [START, DELTA])
+      const state = reconcileTail(away, rowsToItems(rows, 'rpc'))
+
+      expect(unknown(state)).toHaveLength(1)
+      expect(state.turn.foreignReconcilePending).toBe(true)
+    })
+
+    it('settles the placeholder once message.complete has come and the tail paired nothing for it', () => {
+      const away = apply(reconcile(fresh(), rowsToItems(OWN, 'rpc')), [START, DELTA, COMPLETE])
+
+      expect(unknown(away)).toHaveLength(1)
+
+      const state = reconcileTail(away, rowsToItems(rows, 'rpc'))
+
+      expect(unknown(state)).toHaveLength(0)
+      expect(state.turn.foreignReconcilePending).toBeUndefined()
+    })
+
+    it('settles the placeholder of an earlier turn once another turn runs', () => {
+      const away = apply(reconcile(fresh(), rowsToItems(OWN, 'rpc')), [START, DELTA])
+      const later = apply(away, [{ type: 'message.start', seq: 30, turn_id: 'T2' }])
+
+      expect(unknown(later).map(item => item.turnId)).toEqual(['T1', 'T2'])
+
+      const state = reconcileTail(later, rowsToItems(rows, 'rpc'))
+
+      expect(unknown(state).map(item => item.turnId)).toEqual(['T2'])
+      expect(state.turn.foreignReconcilePending).toBe(true)
+    })
   })
 })

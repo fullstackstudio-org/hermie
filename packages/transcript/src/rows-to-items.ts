@@ -603,6 +603,7 @@ export function rowsToItems(rows: readonly TranscriptRow[], shape: RowShape, opt
           text: outcome.text ?? '',
           ...(ts !== undefined ? { ts } : {}),
           ...(rowId !== undefined ? { rowId } : {}),
+          ...(turnId ? { turnId } : {}),
           ...(outcome.error ? { error: outcome.error } : {}),
           ...(outcome.reason ? { reason: outcome.reason } : {})
         }

@@ -190,6 +190,12 @@ export interface BotDmReply {
   text: string
   ts?: number
   rowId?: number
+  /**
+   * The turn the delivery row started (`display_metadata.turn_id`), when the
+   * row joined this card and so left no item of its own to carry it: the one
+   * thing that says a placeholder standing for that turn has had its row.
+   */
+  turnId?: string
   error?: string
   reason?: string
 }

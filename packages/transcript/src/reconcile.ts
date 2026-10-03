@@ -40,6 +40,19 @@ const callKeyOfItem = (item: TranscriptItem): string | undefined =>
 const turnIdOfItem = (item: TranscriptItem): string | undefined => (item.kind === 'user' ? item.turnId : undefined)
 
 /**
+ * The turn a history row started when it did NOT become a bubble of the owner's:
+ * a notice, a report or a bot message carries it as `turnId`, and a delivery row
+ * that joined its dispatch card (so left no item of its own) lays it on the
+ * card's `reply`. The turn's placeholder is settled by exactly this.
+ */
+const turnOfOtherRow = (item: TranscriptItem): string | undefined =>
+  item.kind === 'user' ? undefined : (item.turnId ?? (item.kind === 'bot_dm_out' ? item.reply?.turnId : undefined))
+
+/** A placeholder `message.start` stood up for the author of a turn, not yet filled. */
+const isTurnPlaceholder = (item: TranscriptItem | undefined): item is UserItem =>
+  item?.kind === 'user' && item.unknownAuthor === true && Boolean(item.turnId)
+
+/**
  * Whether `current`, found by a call key or a turn id, may be `fresh`.
  *
  * The id says they are the same call or turn; a row id that says otherwise
@@ -476,7 +489,20 @@ export function reconcile(state: ChatState, freshItems: readonly TranscriptItem[
     return current && rowsAgree(current, fresh) ? current.id : undefined
   }
 
+  /** Placeholders of a turn whose row history now brings, in whatever shape. */
+  const settledPlaceholders = new Set<string>()
+
   for (const fresh of freshItems) {
+    // A row that opened a turn without becoming the owner's bubble is that turn's
+    // placeholder's row: the placeholder has nothing left to wait for.
+    const rowTurnId = turnOfOtherRow(fresh)
+    const standingId = rowTurnId ? byTurnId.get(rowTurnId) : undefined
+
+    if (standingId && !used.has(standingId) && isTurnPlaceholder(state.items[standingId])) {
+      used.add(standingId)
+      settledPlaceholders.add(standingId)
+    }
+
     let matchId = fresh.rowId !== undefined ? byRowId.get(fresh.rowId) : undefined
 
     // The gateway's own identities next: the turn a prompt opened, the call a
@@ -554,6 +580,16 @@ export function reconcile(state: ChatState, freshItems: readonly TranscriptItem[
   const next = rebuild(state, placeByTimestamp([...merged, ...kept], settled))
 
   next.hydration = 'live'
+
+  // The tail fetch exists to fill placeholders; with the last of them settled by
+  // this read there is nothing left for it to find.
+  if (
+    settledPlaceholders.size &&
+    next.turn.foreignReconcilePending &&
+    !Object.values(next.items).some(item => item.kind === 'user' && item.unknownAuthor)
+  ) {
+    next.turn = { ...next.turn, foreignReconcilePending: undefined }
+  }
 
   return next
 }
@@ -694,6 +730,19 @@ export function reconcileTail(state: ChatState, tailItems: readonly TranscriptIt
   let pairedAuthoredRow = false
 
   for (const fresh of tailItems) {
+    // A delivery row that found its dispatch inside this very page left no item
+    // of its own: the reply it joined onto the card carries its turn id. That is
+    // the turn's row, so the placeholder standing for it goes — the card shows
+    // the answer, and there is no author's bubble to fill.
+    const deliveredTurnId = fresh.kind === 'bot_dm_out' ? fresh.reply?.turnId : undefined
+    const deliveredId = deliveredTurnId ? liveByTurnId.get(deliveredTurnId) : undefined
+
+    if (deliveredId && !pairedLive.has(deliveredId) && isTurnPlaceholder(byId.get(deliveredId))) {
+      pairedLive.add(deliveredId)
+      filled.add(deliveredId)
+      byId.delete(deliveredId)
+    }
+
     if (fresh.rowId !== undefined && knownRowIds.has(fresh.rowId)) {
       const existingId = state.byRowId[String(fresh.rowId)]
       const current = existingId ? byId.get(existingId) : undefined
@@ -829,6 +878,22 @@ export function reconcileTail(state: ChatState, tailItems: readonly TranscriptIt
     appended.push(fresh)
   }
 
+  // A placeholder that names its turn waits for that turn's row, which is
+  // written when the turn starts. Once the turn is over (it ended, or another
+  // one runs) a tail that paired nothing for it never will: the row projected to
+  // nothing of its own, or this chat never had it. Keeping the placeholder would
+  // keep `foreignReconcilePending` true, and a tail fetch on every sweep after.
+  const closed = new Set<string>()
+
+  for (const id of placeholders) {
+    const standing = byId.get(id)
+
+    if (!filled.has(id) && isTurnPlaceholder(standing) && (!state.turn.active || state.turn.id !== standing.turnId)) {
+      closed.add(id)
+      byId.delete(id)
+    }
+  }
+
   // Splice new rows in front of the live tail (the bubbles of a turn that is
   // still running) instead of behind it.
   const ordered = state.order.map(id => byId.get(id)).filter((item): item is TranscriptItem => Boolean(item))
@@ -845,7 +910,7 @@ export function reconcileTail(state: ChatState, tailItems: readonly TranscriptIt
   }
 
   let merged = [...ordered.slice(0, insertAt), ...appended, ...ordered.slice(insertAt)]
-  let stillPending = placeholders.some(id => !filled.has(id))
+  let stillPending = placeholders.some(id => !filled.has(id) && !closed.has(id))
 
   if (pairedAuthoredRow && filled.size === 0) {
     // The tail described this turn without needing a placeholder, which means
