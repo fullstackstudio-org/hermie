@@ -68,6 +68,11 @@ public struct UserItem: TranscriptItemProtocol {
   public var unknownAuthor: Bool?
   /// Who the gateway says wrote this row. See `MessageAuthor` — absent, never guessed.
   public var author: MessageAuthor?
+  /// The gateway's id for the turn this prompt started (`display_metadata.turn_id`
+  /// on the persisted row). The same id rides every live frame of that turn, so it
+  /// is how a turn's prompt is recognised without reading its words. Absent from a
+  /// gateway that does not mint one.
+  public var turnID: String?
   public var extra: JSONObject
 
   public init(
@@ -78,6 +83,7 @@ public struct UserItem: TranscriptItemProtocol {
     displayKind: UserDisplayKind? = nil,
     unknownAuthor: Bool? = nil,
     author: MessageAuthor? = nil,
+    turnID: String? = nil,
     extra: JSONObject = [:]
   ) {
     self.base = base
@@ -87,6 +93,7 @@ public struct UserItem: TranscriptItemProtocol {
     self.displayKind = displayKind
     self.unknownAuthor = unknownAuthor
     self.author = author
+    self.turnID = turnID
     self.extra = extra
   }
 
@@ -100,6 +107,7 @@ public struct UserItem: TranscriptItemProtocol {
     displayKind = reader.optional("displayKind")
     unknownAuthor = reader.optional("unknownAuthor")
     author = reader.optional("author")
+    turnID = reader.optional("turnId")
     extra = reader.residue
   }
 
@@ -111,6 +119,7 @@ public struct UserItem: TranscriptItemProtocol {
     writer.set("displayKind", displayKind)
     writer.set("unknownAuthor", unknownAuthor)
     writer.set("author", author)
+    writer.set("turnId", turnID)
     return writer.json
   }
 }
@@ -329,6 +338,10 @@ public struct ToolItem: TranscriptItemProtocol {
   public var args: JSONObject?
   /// Only sent when the gateway runs at `display.tool_progress verbose`.
   public var argsText: String?
+  /// `"<call_row_id>/<call_index>"`: the persisted assistant row holding this call
+  /// and its position in that row's `tool_calls`. Unique per session whatever the
+  /// provider's `toolID` looks like. Absent when the wire carried no call identity.
+  public var callKey: String?
   public var status: ToolStatus
   /// False for a history row: the gateway does not persist tool results.
   public var resultKnown: Bool
@@ -349,6 +362,7 @@ public struct ToolItem: TranscriptItemProtocol {
     context: String? = nil,
     args: JSONObject? = nil,
     argsText: String? = nil,
+    callKey: String? = nil,
     status: ToolStatus,
     resultKnown: Bool,
     result: JSONValue? = nil,
@@ -366,6 +380,7 @@ public struct ToolItem: TranscriptItemProtocol {
     self.context = context
     self.args = args
     self.argsText = argsText
+    self.callKey = callKey
     self.status = status
     self.resultKnown = resultKnown
     self.result = result
@@ -387,6 +402,7 @@ public struct ToolItem: TranscriptItemProtocol {
     context = reader.optional("context")
     args = reader.optional("args")
     argsText = reader.optional("argsText")
+    callKey = reader.optional("callKey")
     status = try reader.required("status")
     resultKnown = try reader.required("resultKnown")
     result = reader.optional("result")
@@ -406,6 +422,7 @@ public struct ToolItem: TranscriptItemProtocol {
     writer.set("context", context)
     writer.set("args", args)
     writer.set("argsText", argsText)
+    writer.set("callKey", callKey)
     writer.set("status", status)
     writer.set("resultKnown", resultKnown)
     writer.set("result", result)
@@ -532,6 +549,8 @@ public struct BotDmOutItem: TranscriptItemProtocol {
   /// The routing alias: `@`-stripped, connection-stripped, last path segment, lowercased.
   public var targetHandle: String
   public var message: String
+  /// The call identity, as on `ToolItem.callKey`.
+  public var callKey: String?
   public var dispatch: BotDmDispatch
   public var reply: BotDmReply?
   public var extra: JSONObject
@@ -542,6 +561,7 @@ public struct BotDmOutItem: TranscriptItemProtocol {
     target: String,
     targetHandle: String,
     message: String,
+    callKey: String? = nil,
     dispatch: BotDmDispatch,
     reply: BotDmReply? = nil,
     extra: JSONObject = [:]
@@ -551,6 +571,7 @@ public struct BotDmOutItem: TranscriptItemProtocol {
     self.target = target
     self.targetHandle = targetHandle
     self.message = message
+    self.callKey = callKey
     self.dispatch = dispatch
     self.reply = reply
     self.extra = extra
@@ -564,6 +585,7 @@ public struct BotDmOutItem: TranscriptItemProtocol {
     target = try reader.required("target")
     targetHandle = try reader.required("targetHandle")
     message = try reader.required("message")
+    callKey = reader.optional("callKey")
     dispatch = try reader.requiredNested("dispatch")
     reply = reader.optional("reply")
     extra = reader.residue
@@ -575,6 +597,7 @@ public struct BotDmOutItem: TranscriptItemProtocol {
     writer.set("target", target)
     writer.set("targetHandle", targetHandle)
     writer.set("message", message)
+    writer.set("callKey", callKey)
     writer.set("dispatch", dispatch)
     writer.set("reply", reply)
     return writer.json
@@ -589,6 +612,8 @@ public struct SubagentGroupItem: TranscriptItemProtocol {
   public var base: ItemBase
   public var delegationID: String?
   public var toolID: String?
+  /// The call identity of the `delegate_task` call, as on `ToolItem.callKey`.
+  public var callKey: String?
   public var goals: [String]
   /// Subagent ids belonging to this fan-out.
   public var rootIDs: [String]
@@ -600,6 +625,7 @@ public struct SubagentGroupItem: TranscriptItemProtocol {
     base: ItemBase,
     delegationID: String? = nil,
     toolID: String? = nil,
+    callKey: String? = nil,
     goals: [String],
     rootIDs: [String],
     status: SubagentGroupStatus,
@@ -609,6 +635,7 @@ public struct SubagentGroupItem: TranscriptItemProtocol {
     self.base = base
     self.delegationID = delegationID
     self.toolID = toolID
+    self.callKey = callKey
     self.goals = goals
     self.rootIDs = rootIDs
     self.status = status
@@ -622,6 +649,7 @@ public struct SubagentGroupItem: TranscriptItemProtocol {
     base = try ItemBase(reading: &reader)
     delegationID = reader.optional("delegationId")
     toolID = reader.optional("toolId")
+    callKey = reader.optional("callKey")
     goals = try reader.required("goals")
     rootIDs = try reader.required("rootIds")
     status = try reader.required("status")
@@ -633,6 +661,7 @@ public struct SubagentGroupItem: TranscriptItemProtocol {
     var writer = ObjectWriter.item(Self.kind, base, extra: extra)
     writer.set("delegationId", delegationID)
     writer.set("toolId", toolID)
+    writer.set("callKey", callKey)
     writer.set("goals", goals)
     writer.set("rootIds", rootIDs)
     writer.set("status", status)

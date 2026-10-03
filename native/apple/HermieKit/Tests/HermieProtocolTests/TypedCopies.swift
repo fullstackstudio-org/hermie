@@ -20,7 +20,8 @@ enum TypedCopy {
     case .reasoningDelta(let p): .reasoningDelta(delta(p))
     case .thinkingDelta(let p): .thinkingDelta(delta(p))
     case .messageInterim(let p):
-      .messageInterim(with(MessageInterimPayload()) { $0.text = p.text; $0.alreadyStreamed = p.alreadyStreamed })
+      .messageInterim(
+        with(MessageInterimPayload()) { $0.text = p.text; $0.alreadyStreamed = p.alreadyStreamed; $0.rowID = p.rowID })
     case .messageComplete(let p): .messageComplete(complete(p))
     case .messageReaction(let p):
       .messageReaction(
@@ -40,6 +41,8 @@ enum TypedCopy {
           $0.risk = p.risk
           $0.findings = p.findings
           $0.redacted = p.redacted
+          $0.callRowID = p.callRowID
+          $0.callIndex = p.callIndex
         })
     case .subagentSpawnRequested(let p): .subagentSpawnRequested(subagent(p))
     case .subagentStart(let p): .subagentStart(subagent(p))
@@ -181,7 +184,7 @@ enum TypedCopy {
   }
 
   static func event(_ event: GatewayEvent) -> GatewayEvent {
-    GatewayEvent(body(event.body), sessionID: event.sessionID, seq: event.seq)
+    GatewayEvent(body(event.body), sessionID: event.sessionID, seq: event.seq, turnID: event.turnID)
   }
 
   static func delta(_ p: StreamDeltaPayload) -> StreamDeltaPayload {
@@ -203,6 +206,15 @@ enum TypedCopy {
       $0.recoverable = p.recoverable
       $0.errorSurface = p.errorSurface.map(errorSurface)
       $0.partial = p.partial
+      $0.rowID = p.rowID
+      $0.persistedTurn = p.persistedTurn.map { turn in
+        with(PersistedTurn()) {
+          $0.complete = turn.complete
+          $0.userRowID = turn.userRowID
+          $0.finalAssistantRowID = turn.finalAssistantRowID
+          $0.rowIDs = turn.rowIDs
+        }
+      }
     }
   }
 
@@ -256,6 +268,8 @@ enum TypedCopy {
       $0.args = p.args
       $0.argsText = p.argsText
       $0.preview = p.preview
+      $0.callRowID = p.callRowID
+      $0.callIndex = p.callIndex
     }
   }
 
@@ -272,6 +286,9 @@ enum TypedCopy {
       $0.todos = p.todos
       $0.revision = p.revision
       $0.error = p.error
+      $0.callRowID = p.callRowID
+      $0.callIndex = p.callIndex
+      $0.rowID = p.rowID
     }
   }
 
@@ -376,6 +393,8 @@ enum TypedCopy {
       $0.args = p.args
       $0.toolID = p.toolID
       $0.toolCallID = p.toolCallID
+      $0.callRowID = p.callRowID
+      $0.callIndex = p.callIndex
       $0.reasoning = p.reasoning
       $0.reasoningContent = p.reasoningContent
       $0.reasoningDetails = p.reasoningDetails
