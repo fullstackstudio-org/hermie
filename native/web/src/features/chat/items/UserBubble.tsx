@@ -25,6 +25,7 @@ import { webStrings } from '../../../i18n/web-strings'
 import { senderName } from '../../bots/preview'
 import { clockOf, isoOf } from '../chat-format'
 import { messageTargetProps } from '../message-menu'
+import { PersonAvatar } from '../PersonAvatar'
 import { AttachmentGallery } from './AttachmentGallery'
 import { useItemContext } from './item-context'
 import { MessageMarkdown } from './MessageMarkdown'
@@ -51,6 +52,25 @@ function UserBubbleView({ item, presentation }: RowViewProps<UserItem>) {
   const clock = clockOf(item.ts)
   const attachments = item.attachments ?? []
 
+  const bubble = (
+    <div className="hm-bubble" data-kind="user">
+      {item.text.trim() ? <MessageMarkdown text={item.text} /> : null}
+
+      {attachments.length > 0 ? (
+        <AttachmentGallery
+          attachments={attachments.map(reference => ({ reference, name: attachmentName(reference) }))}
+          onAccent={!foreign}
+        />
+      ) : null}
+
+      <p className="hm-bubble__meta">
+        {item.displayKind === 'steer' ? <span>{strings.chat.queue.steeredMarker}</span> : null}
+        {item.pending ? <span>{strings.chat.receipt.sending}</span> : null}
+        {clock ? <time dateTime={isoOf(item.ts)}>{clock}</time> : null}
+      </p>
+    </div>
+  )
+
   return (
     <article
       className="hm-msg"
@@ -61,22 +81,15 @@ function UserBubbleView({ item, presentation }: RowViewProps<UserItem>) {
     >
       {foreign && name ? <p className="hm-msg__sender">{name}</p> : null}
 
-      <div className="hm-bubble" data-kind="user">
-        {item.text.trim() ? <MessageMarkdown text={item.text} /> : null}
-
-        {attachments.length > 0 ? (
-          <AttachmentGallery
-            attachments={attachments.map(reference => ({ reference, name: attachmentName(reference) }))}
-            onAccent={!foreign}
-          />
-        ) : null}
-
-        <p className="hm-bubble__meta">
-          {item.displayKind === 'steer' ? <span>{strings.chat.queue.steeredMarker}</span> : null}
-          {item.pending ? <span>{strings.chat.receipt.sending}</span> : null}
-          {clock ? <time dateTime={isoOf(item.ts)}>{clock}</time> : null}
-        </p>
-      </div>
+      {foreign && item.author ? (
+        <div className="hm-msg__row">
+          {/* Beside the name above it, so the picture is decoration: the avatar hides itself from readers. */}
+          <PersonAvatar id={item.author.id} name={name} />
+          {bubble}
+        </div>
+      ) : (
+        bubble
+      )}
     </article>
   )
 }

@@ -104,6 +104,19 @@
   font-size: 0.875rem;
 }
 
+.hm-sidebar__person {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-width: 0;
+}
+
+.hm-sidebar__person .hm-avatar {
+  --hm-avatar: 28px;
+
+  font-size: 0.8125rem;
+}
+
 .hm-sidebar__who {
   margin: 0;
   overflow-wrap: anywhere;

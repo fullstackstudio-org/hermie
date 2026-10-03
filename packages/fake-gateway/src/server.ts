@@ -215,6 +215,12 @@ export interface FakeGatewayOptions {
    * it did before.
    */
   rowIdentity?: boolean
+  /**
+   * Whether `gateway.capabilities` advertises `per_message_author`: the fork stamps who wrote each
+   * message, so a client may draw a turn by somebody else as theirs. Default false, which is a
+   * gateway that stamps nobody (and every turn is the reader's own).
+   */
+  perMessageAuthor?: boolean
   version?: string
   /** How many events per session the replay ring keeps. */
   replayRingSize?: number
@@ -6741,7 +6747,11 @@ export async function startFakeGateway(options: FakeGatewayOptions = {}): Promis
       }
 
       case 'gateway.capabilities':
-        return { per_session_exclusive_submit: true, ...(rowIdentity ? { transcript_row_identity: true } : {}) }
+        return {
+          per_session_exclusive_submit: true,
+          ...(rowIdentity ? { transcript_row_identity: true } : {}),
+          ...(options.perMessageAuthor ? { per_message_author: true } : {})
+        }
 
       case 'gateway.ping':
         return { ok: true }

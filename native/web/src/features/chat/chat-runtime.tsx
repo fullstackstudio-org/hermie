@@ -17,6 +17,7 @@ import { createContext, useContext } from 'react'
 import type { SessionSearchHttp } from '@hermie/gateway-client'
 
 import type { ChatController } from '../../core/chat-controller'
+import type { PeoplePictures } from '../../core/people-pictures'
 import type { DraftStore } from './drafts'
 
 /**
@@ -74,6 +75,11 @@ export interface ChatSessionRuntime {
    * screen, a gallery) searches names only.
    */
   sessionSearch?: SessionSearchHttp
+  /**
+   * The people's pictures on this gateway (`core/people-pictures.ts`). Absent (a test of the screen,
+   * a gallery) draws everybody as an initial.
+   */
+  pictures?: PeoplePictures
 }
 
 export const ChatRuntimeContext = createContext<ChatSessionRuntime | null>(null)

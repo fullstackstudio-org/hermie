@@ -101,7 +101,13 @@ export interface Gateway {
   /** Every cookie session ends at once. */
   expireSessions(): Promise<number>
   /** Two messages into a bot's chat, as if a turn had been run elsewhere. */
-  inject(message: { profile?: string; user: string; assistant: string }): Promise<void>
+  inject(message: {
+    profile?: string
+    user: string
+    assistant: string
+    /** Who wrote the user message, as the fork stamps it (`display_metadata.author`). */
+    author?: { id: string; name?: string }
+  }): Promise<void>
 }
 
 /** Console errors and policy violations of the page under test. */

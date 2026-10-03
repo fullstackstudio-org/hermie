@@ -73,6 +73,8 @@ const ConversationsPage = lazy(() =>
 export interface AppProps {
   /** Who is signed in: display name, else email, else id; empty when the gateway named nobody. */
   user: string
+  /** Where the gateway holds the reader's own picture (`picture_url`); empty or absent when it holds none. */
+  pictureUrl?: string
   /** Go to the gateway's own sign-in page. */
   onSignIn: () => void
   /** Stop the session, end the gateway's session and leave. */
@@ -98,6 +100,7 @@ const botOf = (route: Route): string | undefined =>
 
 export function App({
   user,
+  pictureUrl,
   onSignIn,
   onSignOut,
   router = pageHashRouter,
@@ -149,7 +152,7 @@ export function App({
               heading={heading}
               status={<ConnectionLine onSignIn={onSignIn} />}
               sidebar={<ChatList selectedBot={bot} />}
-              footer={<SidebarFooter user={user} onSignOut={onSignOut} />}
+              footer={<SidebarFooter user={user} {...(pictureUrl ? { pictureUrl } : {})} onSignOut={onSignOut} />}
             >
               {route.name === 'chat' ? (
                 <ChatScreen
