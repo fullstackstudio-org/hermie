@@ -344,6 +344,7 @@ struct ChatBanners: View {
 
       GatewayNoticesView(model: feed.session.notices, chat: feed.name)
       ConnectionRequestCard(model: feed.session.connectionRequests, chat: feed.name)
+      PasskeyNoticesView(model: feed.session.passkeys)
 
       if let error = feed.openError {
         HStack(alignment: .firstTextBaseline, spacing: 10) {

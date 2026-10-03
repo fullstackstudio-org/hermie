@@ -1,0 +1,419 @@
+import HermieCore
+import HermieGateway
+import SwiftUI
+
+/**
+ The sheet for a `confirm` at level `passkey` (plan `confirm-passkey.md`, P10 and P15).
+
+ It is drawn by the app and never by the agent. The frame is fixed: who asks (the bot, by the name
+ this app knows it under), on which gateway (its name and its address, the host the passkey is made
+ for), and the two buttons, whose words are the app's. What the request says is the one thing that
+ is not: the title, the summary and the detail are shown as the gateway sent them and as the
+ challenge commits to them, with `Text(verbatim:)` (never Markdown, never a link), the detail in
+ a monospaced block that scrolls sideways and is never wrapped or cut, so a line break and the
+ spaces of a command stay where they are.
+
+ Nothing answers by itself: for 400 ms after the sheet appears nothing can be pressed, Esc and a
+ swipe do not close it while it is open (`RequestsModel.dismissSheet()` refuses), and Return is
+ not Confirm. Confirm starts the ceremony (the system's passkey sheet, over this one); dismissing
+ that returns here. A refused answer is a state with its reason in plain words and the same
+ buttons, so the person can try again.
+
+ The chrome and the buttons are pinned, only the request's text scrolls, so who asks and the
+ buttons stay in view at any text size.
+ */
+struct ConfirmSheetView: View {
+  let requests: RequestsModel
+  let passkeys: PasskeyModel
+  let confirmation: PasskeyConfirmation
+
+  /// How long after the sheet appears its buttons stay off.
+  static let tapGuard: Duration = .milliseconds(400)
+  /// The most of a pinned area's text size, so the chrome and the buttons leave room for the text.
+  static let pinnedTextSize: DynamicTypeSize = .xxxLarge
+
+  @State private var armed = false
+  @AccessibilityFocusState private var titleFocused: Bool
+  @Environment(\.scenePhase) private var scenePhase
+
+  var body: some View {
+    VStack(spacing: 0) {
+      ConfirmChrome(requests: requests, confirmation: confirmation, titleFocused: $titleFocused)
+        .padding(.horizontal, 20)
+        .padding(.top, 20)
+        .padding(.bottom, 12)
+        .dynamicTypeSize(...Self.pinnedTextSize)
+      Divider()
+      ScrollView {
+        ConfirmText(display: confirmation.display)
+          .padding(20)
+          .frame(maxWidth: .infinity, alignment: .leading)
+      }
+      // The request's words are read sharp to the edge, never faded under the pinned chrome.
+      .scrollEdgeEffectHidden(true, for: .vertical)
+      Divider()
+      ConfirmFooter(
+        requests: requests,
+        passkeys: passkeys,
+        confirmation: confirmation,
+        armed: armed,
+        rpID: passkeys.configuration.rpID ?? ""
+      )
+      .padding(.horizontal, 20)
+      .padding(.vertical, 12)
+      .dynamicTypeSize(...Self.pinnedTextSize)
+    }
+    .background(.background)
+    // Not in front: nothing of the request shows in the app switcher or on a shared screen. While
+    // the system's passkey sheet is up the app is not active either, and the person needs this
+    // text to decide, so the cover stays off then.
+    .overlay {
+      if scenePhase != .active, confirmation.phase != .signing {
+        PrivacyCoverView()
+      }
+    }
+    .accessibilityElement(children: .contain)
+    .accessibilityIdentifier("confirm.sheet")
+    .task(id: confirmation.id) {
+      armed = false
+      titleFocused = true
+      try? await Task.sleep(for: Self.tapGuard)
+      armed = !Task.isCancelled
+    }
+    .task(id: confirmation.expiresAt) {
+      // At zero the gateway has given up: end it here too, without waiting for its message.
+      guard let expiresAt = confirmation.expiresAt else { return }
+      let wait = expiresAt.timeIntervalSinceNow
+
+      if wait > 0 {
+        try? await Task.sleep(for: .seconds(wait))
+      }
+
+      guard !Task.isCancelled else { return }
+      passkeys.expireIfDue(confirmation.id)
+    }
+    .task(id: confirmation.phase) {
+      await settle(confirmation.phase)
+    }
+  }
+
+  /// A state worth hearing is announced; the ones that are over close the sheet after a moment.
+  private func settle(_ phase: PasskeyConfirmPhase) async {
+    if let status = ConfirmSheetText.status(for: phase), phase != .signing {
+      AccessibilityNotification.Announcement(status.text).post()
+    }
+
+    guard ConfirmSheetText.closesByItself(phase) else { return }
+    try? await Task.sleep(for: .seconds(ConfirmSheetText.lingerSeconds))
+
+    guard !Task.isCancelled else { return }
+    requests.dismissSheet()
+  }
+}
+
+/// The constant top: the app's own words for who asks and on which gateway. VoiceOver starts here.
+struct ConfirmChrome: View {
+  let requests: RequestsModel
+  let confirmation: PasskeyConfirmation
+  var titleFocused: AccessibilityFocusState<Bool>.Binding
+
+  var body: some View {
+    VStack(alignment: .leading, spacing: 6) {
+      Label {
+        Text(NativeStrings.Confirm.title(requests.botName))
+      } icon: {
+        Image(systemName: "lock.shield.fill")
+          .foregroundStyle(.tint)
+          .accessibilityHidden(true)
+      }
+      .font(.title2.bold())
+      .lineLimit(3)
+      .fixedSize(horizontal: false, vertical: true)
+      .accessibilityAddTraits(.isHeader)
+      .accessibilityFocused(titleFocused)
+      .accessibilityIdentifier("confirm.title")
+
+      VStack(alignment: .leading, spacing: 2) {
+        if !requests.gatewayName.isEmpty {
+          Text(NativeStrings.SecureInput.gateway(requests.gatewayName))
+            .font(.subheadline)
+            .lineLimit(1)
+            .truncationMode(.middle)
+            .accessibilityIdentifier("confirm.gateway")
+        }
+        // The address the passkey is made for, as the app dials it: it tells two gateways apart.
+        Text(verbatim: confirmation.display.host)
+          .font(.subheadline.monospaced())
+          .lineLimit(1)
+          .truncationMode(.middle)
+          .accessibilityIdentifier("confirm.host")
+      }
+      .foregroundStyle(.secondary)
+      .accessibilityElement(children: .contain)
+    }
+    .frame(maxWidth: .infinity, alignment: .leading)
+  }
+}
+
+/// What the request says, exactly as the gateway sent it.
+struct ConfirmText: View {
+  let display: ConfirmDisplay
+
+  var body: some View {
+    VStack(alignment: .leading, spacing: 14) {
+      if !display.title.isEmpty {
+        Text(verbatim: display.title)
+          .font(.headline)
+          .fixedSize(horizontal: false, vertical: true)
+          .accessibilityIdentifier("confirm.requestTitle")
+      }
+
+      if !display.summary.isEmpty {
+        Text(verbatim: display.summary)
+          .fixedSize(horizontal: false, vertical: true)
+          .accessibilityIdentifier("confirm.summary")
+      }
+
+      if let detail = display.detail, !detail.isEmpty {
+        ConfirmDetailBlock(detail: detail)
+      }
+    }
+  }
+}
+
+/// The detail: monospaced, every space and line break kept, never wrapped and never cut. A long
+/// line scrolls sideways; a tall block is the sheet's own scroll.
+struct ConfirmDetailBlock: View {
+  let detail: String
+
+  var body: some View {
+    VStack(alignment: .leading, spacing: 6) {
+      Text(NativeStrings.Confirm.detailLabel)
+        .font(.caption.weight(.semibold))
+        .foregroundStyle(.secondary)
+        .accessibilityHidden(true)
+
+      ScrollView(.horizontal) {
+        Text(verbatim: detail)
+          .font(.body.monospaced())
+          .fixedSize(horizontal: true, vertical: true)
+          .padding(12)
+          .accessibilityLabel(Text(verbatim: detail))
+          .accessibilityIdentifier("confirm.detail")
+      }
+      .scrollBounceBehavior(.basedOnSize, axes: .horizontal)
+      .background(.background.secondary, in: .rect(cornerRadius: 10))
+      .clipShape(.rect(cornerRadius: 10))
+    }
+  }
+}
+
+/// The pinned bottom: which name the system sheet will show, the time left, the state of the
+/// answer, and the buttons.
+struct ConfirmFooter: View {
+  let requests: RequestsModel
+  let passkeys: PasskeyModel
+  let confirmation: PasskeyConfirmation
+  let armed: Bool
+  let rpID: String
+
+  var body: some View {
+    VStack(alignment: .leading, spacing: 10) {
+      if confirmation.isOpen {
+        // The system sheet names the RP, the same for every gateway; this request is for the host.
+        Text(NativeStrings.Confirm.passkeyNote(rp: rpID, host: confirmation.display.host))
+          .font(.footnote)
+          .fixedSize(horizontal: false, vertical: true)
+          .accessibilityIdentifier("confirm.note")
+        ConfirmCountdown(expiresAt: confirmation.expiresAt)
+      }
+
+      if let status = ConfirmSheetText.status(for: confirmation.phase) {
+        ConfirmStatusLine(status: status)
+      }
+
+      ConfirmActions(requests: requests, passkeys: passkeys, confirmation: confirmation, armed: armed)
+    }
+  }
+}
+
+/// The time left, once a second; it reads from the moment the gateway gives up.
+struct ConfirmCountdown: View {
+  let expiresAt: Date?
+
+  var body: some View {
+    if let expiresAt {
+      TimelineView(.periodic(from: .now, by: 1)) { context in
+        let left = max(0, Int(expiresAt.timeIntervalSince(context.date).rounded(.up)))
+
+        Label(NativeStrings.SecureInput.expiresIn(RequestCountdownView.clock(left)), systemImage: "timer")
+          .font(.caption.monospacedDigit())
+          .foregroundStyle(left <= 10 ? AnyShapeStyle(.red) : AnyShapeStyle(.primary))
+          .accessibilityIdentifier("confirm.countdown")
+      }
+    }
+  }
+}
+
+/// One line about where the answer stands.
+struct ConfirmStatusLine: View {
+  let status: ConfirmSheetText.Status
+
+  var body: some View {
+    HStack(alignment: .firstTextBaseline, spacing: 8) {
+      if status.busy {
+        ProgressView()
+          .controlSize(.small)
+      } else {
+        Image(systemName: status.symbol)
+          .foregroundStyle(symbolStyle)
+          .accessibilityHidden(true)
+      }
+
+      Text(status.text)
+        .font(.callout)
+        .fixedSize(horizontal: false, vertical: true)
+    }
+    .accessibilityElement(children: .combine)
+    .accessibilityIdentifier("confirm.status")
+  }
+
+  private var symbolStyle: AnyShapeStyle {
+    switch status.tone {
+    case .good: AnyShapeStyle(.green)
+    case .problem: AnyShapeStyle(.orange)
+    case .progress, .neutral: AnyShapeStyle(.secondary)
+    }
+  }
+}
+
+/// Confirm and Decline while the confirmation is open, Close once it is over.
+struct ConfirmActions: View {
+  let requests: RequestsModel
+  let passkeys: PasskeyModel
+  let confirmation: PasskeyConfirmation
+  let armed: Bool
+
+  var body: some View {
+    if confirmation.isOpen {
+      // Re-read every second: the buttons go off the moment the time is up.
+      TimelineView(.periodic(from: .now, by: 1)) { context in
+        let enabled = armed && confirmation.isActionable(at: context.date)
+
+        ViewThatFits(in: .horizontal) {
+          HStack(spacing: 10) {
+            declineButton(enabled: enabled)
+            confirmButton(enabled: enabled)
+          }
+          VStack(spacing: 10) {
+            confirmButton(enabled: enabled)
+            declineButton(enabled: enabled)
+          }
+        }
+      }
+    } else {
+      Button {
+        requests.dismissSheet()
+      } label: {
+        Text(NativeStrings.SecureInput.close)
+          .font(.title3.weight(.semibold))
+          .frame(maxWidth: .infinity)
+      }
+      .buttonStyle(.bordered)
+      .tint(.primary)
+      .controlSize(.large)
+      .accessibilityIdentifier("confirm.close")
+    }
+  }
+
+  private func confirmButton(enabled: Bool) -> some View {
+    Button {
+      Task { await passkeys.confirm(confirmation.id) }
+    } label: {
+      Text(NativeStrings.Confirm.confirm)
+        .font(.title3.weight(.semibold))
+        .frame(maxWidth: .infinity)
+    }
+    .buttonStyle(.borderedProminent)
+    .controlSize(.large)
+    .disabled(!enabled)
+    .accessibilityHint(NativeStrings.Confirm.confirmHint)
+    .accessibilityIdentifier("confirm.confirm")
+  }
+
+  private func declineButton(enabled: Bool) -> some View {
+    Button {
+      Task { await passkeys.decline(confirmation.id) }
+    } label: {
+      Text(NativeStrings.Confirm.decline)
+        .font(.title3.weight(.semibold))
+        .frame(maxWidth: .infinity)
+    }
+    .buttonStyle(.bordered)
+    .tint(.primary)
+    .controlSize(.large)
+    .disabled(!enabled)
+    .accessibilityIdentifier("confirm.decline")
+  }
+}
+
+extension NativeStrings {
+  enum Confirm {
+    private static func string(_ key: String.LocalizationValue) -> String {
+      String(localized: key, table: "Native", bundle: .module)
+    }
+
+    /// {bot} asks you to confirm
+    static func title(_ bot: String) -> String {
+      String(localized: "native.confirm.title", defaultValue: "\(bot) asks you to confirm", table: "Native", bundle: .module)
+    }
+    /// Details
+    static var detailLabel: String { string("native.confirm.detailLabel") }
+    /// Your device will ask for your passkey for {rp}…
+    static func passkeyNote(rp: String, host: String) -> String {
+      String(
+        localized: "native.confirm.passkeyNote",
+        defaultValue:
+          "Your device will ask for your passkey for \(rp). That name is the same for every gateway; this request is for \(host).",
+        table: "Native",
+        bundle: .module
+      )
+    }
+    /// Confirm with passkey
+    static var confirm: String { string("native.confirm.confirm") }
+    /// Asks your device for your passkey.
+    static var confirmHint: String { string("native.confirm.confirmHint") }
+    /// Decline
+    static var decline: String { string("native.confirm.decline") }
+    /// Waiting for your passkey…
+    static var signing: String { string("native.confirm.signing") }
+    /// Answer received. The gateway is verifying it.
+    static var received: String { string("native.confirm.received") }
+    /// You declined this request.
+    static var declined: String { string("native.confirm.declined") }
+    /// The gateway does not know this passkey…
+    static var refusedUnknownCredential: String { string("native.confirm.refused.unknownCredential") }
+    /// Your device did not confirm that it is you…
+    static var refusedUserVerification: String { string("native.confirm.refused.userVerification") }
+    /// The gateway did not accept the passkey answer…
+    static var refusedOther: String { string("native.confirm.refused.other") }
+    /// The answer did not reach the gateway…
+    static var notSent: String { string("native.confirm.notSent") }
+    /// This request timed out. Nothing was confirmed.
+    static var timedOut: String { string("native.confirm.timedOut") }
+    /// Another device answered this request.
+    static var answeredElsewhere: String { string("native.confirm.answeredElsewhere") }
+    /// Too many answers were refused…
+    static var tooManyAttempts: String { string("native.confirm.tooManyAttempts") }
+    /// The gateway could not verify your answer. Nothing was confirmed.
+    static var verificationFailed: String { string("native.confirm.verificationFailed") }
+    /// This device may not answer this request.
+    static var notAllowed: String { string("native.confirm.notAllowed") }
+    /// No passkey for this gateway is available on this device…
+    static var noCredential: String { string("native.confirm.noCredential") }
+    /// This device cannot confirm with a passkey right now…
+    static var cannotConfirm: String { string("native.confirm.cannotConfirm") }
+    /// The request was withdrawn. Nothing was confirmed.
+    static var withdrawn: String { string("native.confirm.withdrawn") }
+  }
+}

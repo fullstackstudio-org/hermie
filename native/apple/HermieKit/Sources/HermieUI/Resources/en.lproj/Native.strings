@@ -148,6 +148,48 @@
 	<string>Stop</string>
 	<key>native.composer.stopped</key>
 	<string>Response stopped</string>
+	<key>native.confirm.answeredElsewhere</key>
+	<string>Another device answered this request.</string>
+	<key>native.confirm.cannotConfirm</key>
+	<string>This device cannot confirm with a passkey right now. Nothing was confirmed.</string>
+	<key>native.confirm.confirm</key>
+	<string>Confirm with passkey</string>
+	<key>native.confirm.confirmHint</key>
+	<string>Asks your device for your passkey.</string>
+	<key>native.confirm.decline</key>
+	<string>Decline</string>
+	<key>native.confirm.declined</key>
+	<string>You declined this request.</string>
+	<key>native.confirm.detailLabel</key>
+	<string>Details</string>
+	<key>native.confirm.noCredential</key>
+	<string>No passkey for this gateway is available on this device. Nothing was confirmed.</string>
+	<key>native.confirm.notAllowed</key>
+	<string>This device may not answer this request.</string>
+	<key>native.confirm.notSent</key>
+	<string>The answer did not reach the gateway. You can try again.</string>
+	<key>native.confirm.passkeyNote</key>
+	<string>Your device will ask for your passkey for %1$@. That name is the same for every gateway; this request is for %2$@.</string>
+	<key>native.confirm.received</key>
+	<string>Answer received. The gateway is verifying it.</string>
+	<key>native.confirm.refused.other</key>
+	<string>The gateway did not accept the passkey answer. You can try again.</string>
+	<key>native.confirm.refused.unknownCredential</key>
+	<string>The gateway does not know this passkey. It may have been removed. You can try again.</string>
+	<key>native.confirm.refused.userVerification</key>
+	<string>Your device did not confirm that it is you. You can try again.</string>
+	<key>native.confirm.signing</key>
+	<string>Waiting for your passkey…</string>
+	<key>native.confirm.timedOut</key>
+	<string>This request timed out. Nothing was confirmed.</string>
+	<key>native.confirm.title</key>
+	<string>%@ asks you to confirm</string>
+	<key>native.confirm.tooManyAttempts</key>
+	<string>Too many answers were refused. The request is closed and nothing was confirmed.</string>
+	<key>native.confirm.verificationFailed</key>
+	<string>The gateway could not verify your answer. Nothing was confirmed.</string>
+	<key>native.confirm.withdrawn</key>
+	<string>The request was withdrawn. Nothing was confirmed.</string>
 	<key>native.connectionRequest.open</key>
 	<string>Open</string>
 	<key>native.connectionRequest.skip</key>
@@ -388,6 +430,120 @@
 	<string>the local database refused the change.</string>
 	<key>native.onboarding.save.unsupportedRegistry</key>
 	<string>The gateway list on this device was written by a newer version of Hermie, so nothing was changed. Update Hermie and try again.</string>
+	<key>native.passkeys.add.action</key>
+	<string>Add passkey</string>
+	<key>native.passkeys.add.field</key>
+	<string>Code from the gateway's operator</string>
+	<key>native.passkeys.add.footer</key>
+	<string>The operator of this gateway gives you a one-time code. Your device then makes a passkey for it and asks for your approval.</string>
+	<key>native.passkeys.add.header</key>
+	<string>Add with a code</string>
+	<key>native.passkeys.added</key>
+	<string>Added %@</string>
+	<key>native.passkeys.addedUnknown</key>
+	<string>Added at an unknown time</string>
+	<key>native.passkeys.credentials.header</key>
+	<string>Passkeys of your account</string>
+	<key>native.passkeys.failure.alreadyEnrolled</key>
+	<string>This passkey is already on this gateway.</string>
+	<key>native.passkeys.failure.badAnswer</key>
+	<string>The gateway's answer was not what Hermie expected.</string>
+	<key>native.passkeys.failure.cannotUse</key>
+	<string>This device cannot use passkeys right now. Check that a screen lock and a passkey provider are set up.</string>
+	<key>native.passkeys.failure.codeNotValid</key>
+	<string>That code is not valid, has expired or was already used.</string>
+	<key>native.passkeys.failure.invalidCode</key>
+	<string>That code does not look right. Check it and try again.</string>
+	<key>native.passkeys.failure.noPasskey</key>
+	<string>No passkey of yours for this gateway is available on this device.</string>
+	<key>native.passkeys.failure.promptBusy</key>
+	<string>Another passkey prompt is open. Finish or close it first.</string>
+	<key>native.passkeys.failure.promptFailed</key>
+	<string>The passkey prompt did not finish. Try again.</string>
+	<key>native.passkeys.failure.refused</key>
+	<string>The gateway refused this.</string>
+	<key>native.passkeys.failure.seeNotice</key>
+	<string>Nothing was changed. See the notice above.</string>
+	<key>native.passkeys.failure.tooSlow</key>
+	<string>That took too long. Start again.</string>
+	<key>native.passkeys.invite.action</key>
+	<string>Create a code</string>
+	<key>native.passkeys.invite.copy</key>
+	<string>Copy code</string>
+	<key>native.passkeys.invite.expires</key>
+	<string>Expires at %@</string>
+	<key>native.passkeys.invite.footer</key>
+	<string>Use the code on the other device or in a browser to add a passkey there. It works once and expires soon. You will be asked for a passkey to create it.</string>
+	<key>native.passkeys.invite.header</key>
+	<string>Create a code for another device</string>
+	<key>native.passkeys.invite.hide</key>
+	<string>Hide code</string>
+	<key>native.passkeys.invite.off</key>
+	<string>The operator of this gateway has turned off creating codes here.</string>
+	<key>native.passkeys.lastUsed</key>
+	<string>Last used %@</string>
+	<key>native.passkeys.neverUsed</key>
+	<string>Never used</string>
+	<key>native.passkeys.notice.added</key>
+	<string>A passkey was added to your account on this gateway without this device: %@</string>
+	<key>native.passkeys.notice.gatewayIDConflict</key>
+	<string>Passkey confirmations are off for this gateway: it presents an identity that belongs to another gateway.</string>
+	<key>native.passkeys.notice.gatewayIDMismatch</key>
+	<string>Passkey confirmations are off for this gateway: it no longer identifies itself as the one you set passkeys up with. If it was reset on purpose, remove it and add it again.</string>
+	<key>native.passkeys.notice.malformedRequest</key>
+	<string>A passkey confirmation arrived that this app could not read, so it was not answered.</string>
+	<key>native.passkeys.notice.noCredentialForApp</key>
+	<string>A confirmation arrived that this device has no passkey for. Add one under Settings, Gateways, Passkeys.</string>
+	<key>native.passkeys.notice.pinUnreadable</key>
+	<string>Hermie could not read the passkey records it keeps for this gateway, so passkey confirmations are off for it. Nothing was changed.</string>
+	<key>native.passkeys.notice.revoked</key>
+	<string>A passkey was removed from your account on this gateway without this device: %@</string>
+	<key>native.passkeys.notice.sameGateway</key>
+	<string>This gateway presents the same passkey identity as “%@”, which you added already. If it is the same gateway under another address, link them. Until then its passkey confirmations are off.</string>
+	<key>native.passkeys.notice.sameGatewayAction</key>
+	<string>Same gateway as %@</string>
+	<key>native.passkeys.notice.unsupportedVersion</key>
+	<string>This gateway asked for a passkey confirmation in a version this app does not know. Update Hermie.</string>
+	<key>native.passkeys.remove.action</key>
+	<string>Remove passkey</string>
+	<key>native.passkeys.remove.message</key>
+	<string>It can no longer confirm anything on this gateway. You will be asked for a passkey to allow this.</string>
+	<key>native.passkeys.remove.title</key>
+	<string>Remove this passkey?</string>
+	<key>native.passkeys.state.disabled</key>
+	<string>Passkeys are turned off on this gateway.</string>
+	<key>native.passkeys.state.enrolled</key>
+	<string>Passkey confirmation is on for this gateway.</string>
+	<key>native.passkeys.state.loading</key>
+	<string>Checking this gateway…</string>
+	<key>native.passkeys.state.noBaseURL</key>
+	<string>The operator of this gateway has not set an address for passkeys.</string>
+	<key>native.passkeys.state.noIdentity</key>
+	<string>Passkeys need a signed-in account. Sign in to this gateway first.</string>
+	<key>native.passkeys.state.notConfigured</key>
+	<string>This version of Hermie has no passkey support, so passkey confirmation is not available.</string>
+	<key>native.passkeys.state.notEnrolled</key>
+	<string>No passkey for this gateway yet. Add one with a code from the gateway's operator.</string>
+	<key>native.passkeys.state.notOffered</key>
+	<string>This gateway does not offer passkeys.</string>
+	<key>native.passkeys.state.originNotListed</key>
+	<string>This gateway does not list the address Hermie uses to reach it. Its operator has to add that address to the gateway's passkey settings.</string>
+	<key>native.passkeys.state.privateOrigin</key>
+	<string>This gateway is only reachable on a private address, which passkeys do not allow unless its operator opts in.</string>
+	<key>native.passkeys.state.rateLimited</key>
+	<string>Too many attempts. Try again in %lld seconds.</string>
+	<key>native.passkeys.state.rateLimitedSoon</key>
+	<string>Too many attempts. Try again in a moment.</string>
+	<key>native.passkeys.state.rpNotAccepted</key>
+	<string>This gateway does not accept the passkey identity this version of Hermie uses.</string>
+	<key>native.passkeys.state.unreadable</key>
+	<string>Hermie could not read the passkey settings from this gateway.</string>
+	<key>native.passkeys.stateFooter</key>
+	<string>A passkey lets you confirm what a bot asks with your device, and the gateway checks the confirmation itself.</string>
+	<key>native.passkeys.stateHeader</key>
+	<string>Passkeys on %@</string>
+	<key>native.passkeys.title</key>
+	<string>Passkeys</string>
 	<key>native.push.cannotDeliverPlugin</key>
 	<string>This gateway cannot deliver to this device yet: its Hermie plugin is too old. Update the plugin on the gateway.</string>
 	<key>native.push.cannotDeliverRelay</key>
