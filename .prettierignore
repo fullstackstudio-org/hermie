@@ -34,3 +34,5 @@ contract/markdown
 contract/i18n
 # Written by `npm run i18n` (scripts/i18n/web.ts) in its own layout: sorted keys, one locale entry per line.
 native/web/src/generated
+# Byte-identical copy of the fork's passkey contract; its SHA256SUMS must keep passing.
+contract/confirm-passkey/

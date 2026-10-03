@@ -13,16 +13,17 @@ changes and the port does not follow.
 
 ## Layout
 
-| Path                                     | What                                                                                                 | Made by                                           |
-| ---------------------------------------- | ---------------------------------------------------------------------------------------------------- | ------------------------------------------------- |
-| `transcript/golden/<suite>.json`         | every top-level call one transcript test file made into the engine, with its result                  | `packages/transcript/vitest.golden.config.ts`     |
-| `transcript/golden-summary.json`         | per operation: calls recorded, replayable, skipped (by reason), whether it read a clock              | `scripts/golden/generate.ts`                      |
-| `transcript/fixtures/{events,rows}.json` | `packages/transcript/src/__fixtures__/{events,rows}.ts` as data                                      | `packages/transcript/golden/dump-fixtures.ts`     |
-| `transcript/streams/<scenario>.json`     | a fake-gateway conversation: the frames it sent, the engine steps, the resulting state               | `packages/fake-gateway/scripts/dump-frames.ts`    |
-| `gateway/vectors/<module>.json`          | input/output vectors for the pure functions of `@hermie/gateway-client`                              | `packages/gateway-client/scripts/dump-vectors.ts` |
-| `markdown/<group>.json`                  | the Expo app's Markdown block structure per input: blocks, preprocessing, inline, streaming prefixes | `scripts/golden/dump-markdown.ts`                 |
-| `i18n/catalogue.json`                    | the Expo app's strings in en, nl and de, as text, lists or templates (`docs/i18n.md`)                | `scripts/i18n/generate.ts`                        |
-| `push/contract.json`                     | the push contract (category, actions, data keys, types, Android channels) — hand-written             | by hand                                           |
+| Path                                     | What                                                                                                    | Made by                                           |
+| ---------------------------------------- | ------------------------------------------------------------------------------------------------------- | ------------------------------------------------- |
+| `transcript/golden/<suite>.json`         | every top-level call one transcript test file made into the engine, with its result                     | `packages/transcript/vitest.golden.config.ts`     |
+| `transcript/golden-summary.json`         | per operation: calls recorded, replayable, skipped (by reason), whether it read a clock                 | `scripts/golden/generate.ts`                      |
+| `transcript/fixtures/{events,rows}.json` | `packages/transcript/src/__fixtures__/{events,rows}.ts` as data                                         | `packages/transcript/golden/dump-fixtures.ts`     |
+| `transcript/streams/<scenario>.json`     | a fake-gateway conversation: the frames it sent, the engine steps, the resulting state                  | `packages/fake-gateway/scripts/dump-frames.ts`    |
+| `gateway/vectors/<module>.json`          | input/output vectors for the pure functions of `@hermie/gateway-client`                                 | `packages/gateway-client/scripts/dump-vectors.ts` |
+| `markdown/<group>.json`                  | the Expo app's Markdown block structure per input: blocks, preprocessing, inline, streaming prefixes    | `scripts/golden/dump-markdown.ts`                 |
+| `i18n/catalogue.json`                    | the Expo app's strings in en, nl and de, as text, lists or templates (`docs/i18n.md`)                   | `scripts/i18n/generate.ts`                        |
+| `push/contract.json`                     | the push contract (category, actions, data keys, types, Android channels) — hand-written                | by hand                                           |
+| `confirm-passkey/`                       | the passkey confirm contract: challenge construction, base-URL serialisation, CBOR subset, test vectors | the fork (`contract/confirm-passkey/generate.py`) |
 
 `i18n/` has a pipeline of its own: `npm run i18n` writes it (with the Apple String
 Catalog made from it) and `npm run i18n:check` guards it; `golden` leaves it alone.
@@ -250,6 +251,15 @@ the data key `requestId`, the seven types, Android channel ids equal to the type
 names, and the data payload's field list with types. It is the target every
 sender and both app generations conform to; Hermie Web's and the Expo app's
 tests check their payloads and ids against it.
+
+## `confirm-passkey/`
+
+A byte-identical copy of the fork's `contract/confirm-passkey/` (its `README.md`, `vectors.json`,
+`generate.py` and `SHA256SUMS`): how a `confirm` request at level `passkey` binds its WebAuthn
+challenge to the gateway, the request, the session, the text and the user, how a base URL is
+serialised, which CBOR subset an attestation may use, and the vectors every verifier and every
+client must pass. The fork is the source; this copy is refreshed by hand when the fork's changes,
+and `shasum -a 256 -c SHA256SUMS` in that directory must pass. `golden` leaves it alone.
 
 ## Counts
 
