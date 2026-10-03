@@ -5,6 +5,7 @@
  * events, read items back through the selectors.
  */
 export * from './types'
+export * from './identity'
 export * from './bot-dm'
 export * from './cron-delivery'
 export * from './injected'

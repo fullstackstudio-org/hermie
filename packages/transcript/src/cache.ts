@@ -90,6 +90,13 @@ export function stateFromCache(botName: string, ids: SessionIds, snapshot: Cache
       state.byToolId[placed.toolId] = placed.id
     }
 
+    if (
+      (placed.kind === 'tool' || placed.kind === 'bot_dm_out' || placed.kind === 'subagent_group') &&
+      placed.callKey
+    ) {
+      state.byCallKey[placed.callKey] = placed.id
+    }
+
     if (placed.kind === 'bot_dm_out' && placed.dispatch.processId) {
       state.byProcessId[placed.dispatch.processId] = placed.id
     }

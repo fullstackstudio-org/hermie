@@ -37,6 +37,10 @@ export interface TranscriptDiagnostics {
   unpaired: number
   /** Items on screen standing in for an author a tail fetch has not named yet. */
   placeholders: number
+  /** Tool-like items carrying the gateway's call identity (`callKey`). */
+  withCallKey: number
+  /** User items carrying the gateway's turn id (`turnId`). */
+  withTurnId: number
   repeated: RepeatedText[]
   highestRowId?: number
   lastSeq: number
@@ -74,6 +78,8 @@ export function transcriptDiagnostics(state: ChatState): TranscriptDiagnostics {
   let persisted = 0
   let unpaired = 0
   let placeholders = 0
+  let withCallKey = 0
+  let withTurnId = 0
   let parkedPrompts = 0
   let highestRowId: number | undefined
 
@@ -93,6 +99,14 @@ export function transcriptDiagnostics(state: ChatState): TranscriptDiagnostics {
 
     if (item.kind === 'user' && item.unknownAuthor) {
       placeholders += 1
+    }
+
+    if ((item.kind === 'tool' || item.kind === 'bot_dm_out' || item.kind === 'subagent_group') && item.callKey) {
+      withCallKey += 1
+    }
+
+    if (item.kind === 'user' && item.turnId) {
+      withTurnId += 1
     }
 
     if (item.kind === 'user' && item.origin === 'optimistic' && item.pending === true) {
@@ -127,6 +141,8 @@ export function transcriptDiagnostics(state: ChatState): TranscriptDiagnostics {
     persisted,
     unpaired,
     placeholders,
+    withCallKey,
+    withTurnId,
     repeated: [...byText.values()].filter(entry => entry.items.length > 1),
     ...(highestRowId !== undefined ? { highestRowId } : {}),
     lastSeq: state.lastSeq,
@@ -155,7 +171,8 @@ export function formatTranscriptDiagnostics(botName: string, state: ChatState): 
       `${report.turnLocal ? ' (ours)' : ''}` +
       `${report.foreignReconcilePending ? ', tail pending' : ''}` +
       `${report.parkedPrompts ? `, ${report.parkedPrompts} parked` : ''}` +
-      `${report.placeholders ? `, ${report.placeholders} unnamed` : ''}`
+      `${report.placeholders ? `, ${report.placeholders} unnamed` : ''}`,
+    `${botName}: ${report.withCallKey} with call key, ${report.withTurnId} with turn id`
   ]
 
   for (const entry of report.repeated) {

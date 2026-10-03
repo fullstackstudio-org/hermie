@@ -37,6 +37,27 @@ describe('cache round trip', () => {
     expect(after.byToolId).toEqual(before.byToolId)
   })
 
+  it('rebuilds the call index from the items, never from stored indices', () => {
+    const before = reconcile(
+      fresh(),
+      rowsToItems(
+        [
+          { role: 'user', text: 'go', row_id: 1, display_metadata: { turn_id: 'turn-1' } },
+          { role: 'assistant', text: 'on it', row_id: 2 },
+          { role: 'tool', name: 'read_file', tool_id: 'call_0', row_id: 3, call_row_id: 2, call_index: 0 }
+        ],
+        'rpc'
+      )
+    )
+    const snapshot = snapshotForCache(before, NOW)
+    const after = stateFromCache('researcher', IDS, snapshot)
+
+    expect(before.byCallKey).toEqual({ '2/0': 't:call_0' })
+    expect(after.byCallKey).toEqual(before.byCallKey)
+    expect(JSON.stringify(snapshot)).not.toContain('byCallKey')
+    expect((after.items['r:1'] as UserItem).turnId).toBe('turn-1')
+  })
+
   it('restores the delivery process index so a late reply still lands', () => {
     const live = dmDispatchTurn.reduce((state, event) => applyEvent(state, event, NOW), fresh())
     const after = roundTrip(live)

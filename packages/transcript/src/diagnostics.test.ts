@@ -47,4 +47,21 @@ describe('transcriptDiagnostics', () => {
     expect(lines[1]).toContain('1 parked')
     expect(lines.join('\n')).not.toContain('secret')
   })
+
+  it('counts the items that carry the gateway identities and prints it on one line', () => {
+    const loaded = reconcileTail(
+      fresh(),
+      rowsToItems(
+        [
+          { role: 'user', row_id: 1, text: 'hi', display_metadata: { turn_id: 't-1' } },
+          { role: 'tool', name: 'read_file', tool_id: 'c0', row_id: 3, call_row_id: 2, call_index: 0 },
+          { role: 'tool', name: 'read_file', tool_id: 'c1', row_id: 5 }
+        ],
+        'rpc'
+      )
+    )
+
+    expect(transcriptDiagnostics(loaded)).toMatchObject({ withCallKey: 1, withTurnId: 1 })
+    expect(formatTranscriptDiagnostics('researcher', loaded)).toContain('researcher: 1 with call key, 1 with turn id')
+  })
 })

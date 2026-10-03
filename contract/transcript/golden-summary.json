@@ -108,8 +108,8 @@
     },
     "createChatState": {
       "readsClock": false,
-      "recorded": 518,
-      "replayable": 518,
+      "recorded": 520,
+      "replayable": 520,
       "skipped": {}
     },
     "deliveryTargetFromCommand": {
@@ -146,8 +146,8 @@
     },
     "formatTranscriptDiagnostics": {
       "readsClock": false,
-      "recorded": 1,
-      "replayable": 1,
+      "recorded": 2,
+      "replayable": 2,
       "skipped": {}
     },
     "isBotDmDeliveryCommand": {
@@ -280,14 +280,14 @@
     },
     "reconcile": {
       "readsClock": false,
-      "recorded": 289,
-      "replayable": 289,
+      "recorded": 290,
+      "replayable": 290,
       "skipped": {}
     },
     "reconcileTail": {
       "readsClock": false,
-      "recorded": 261,
-      "replayable": 261,
+      "recorded": 262,
+      "replayable": 262,
       "skipped": {}
     },
     "replyFromDeliveryOutput": {
@@ -298,8 +298,8 @@
     },
     "rowsToItems": {
       "readsClock": false,
-      "recorded": 611,
-      "replayable": 611,
+      "recorded": 620,
+      "replayable": 620,
       "skipped": {}
     },
     "runningSubagents": {
@@ -310,14 +310,14 @@
     },
     "snapshotForCache": {
       "readsClock": false,
-      "recorded": 24,
-      "replayable": 24,
+      "recorded": 25,
+      "replayable": 25,
       "skipped": {}
     },
     "stateFromCache": {
       "readsClock": false,
-      "recorded": 19,
-      "replayable": 19,
+      "recorded": 20,
+      "replayable": 20,
       "skipped": {}
     },
     "stripSteerWrapper": {
@@ -340,8 +340,8 @@
     },
     "transcriptDiagnostics": {
       "readsClock": false,
-      "recorded": 2,
-      "replayable": 2,
+      "recorded": 3,
+      "replayable": 3,
       "skipped": {}
     },
     "transcriptFileName": {

@@ -587,3 +587,100 @@ describe('display_metadata.author (HERM-83)', () => {
     expect((fromRest as UserItem).author).toEqual({ id: 'oidc:user-a', name: 'Robin' })
   })
 })
+
+describe('row identity', () => {
+  const rpcTool: TranscriptRow = {
+    role: 'tool',
+    name: 'read_file',
+    tool_call_id: 'call_0',
+    row_id: 12,
+    call_row_id: 11,
+    call_index: 0,
+    context: 'read_file(a.md)'
+  }
+  const restTool: TranscriptRow = {
+    role: 'tool',
+    name: 'read_file',
+    tool_id: 'call_0',
+    id: 12,
+    call_row_id: 11,
+    call_index: 1
+  }
+
+  it('reads an RPC tool row by its tool_call_id, its row id and its call identity', () => {
+    const [item] = rowsToItems([rpcTool], 'rpc') as ToolItem[]
+
+    expect(item).toMatchObject({ id: 't:call_0', toolId: 'call_0', rowId: 12, callKey: '11/0' })
+  })
+
+  it('reads a REST tool row by its tool_id, its id and its call identity', () => {
+    const [item] = rowsToItems([restTool], 'rest') as ToolItem[]
+
+    expect(item).toMatchObject({ id: 't:call_0', toolId: 'call_0', rowId: 12, callKey: '11/1' })
+  })
+
+  it('prefers tool_id over tool_call_id and falls back to the row index', () => {
+    const rows: TranscriptRow[] = [
+      { role: 'tool', name: 'a', tool_id: 'one', tool_call_id: 'two' },
+      { role: 'tool', name: 'b' }
+    ]
+
+    expect((rowsToItems(rows, 'rpc') as ToolItem[]).map(item => item.toolId)).toEqual(['one', 'row-1'])
+  })
+
+  it('leaves a tool row with no identity exactly as it was', () => {
+    const [item] = rowsToItems([{ role: 'tool', name: 'read_file', tool_id: 'call_1' }], 'rpc') as ToolItem[]
+
+    expect(item).not.toHaveProperty('callKey')
+    expect(item).not.toHaveProperty('rowId')
+  })
+
+  it('refuses half a call identity and malformed halves', () => {
+    const rows: TranscriptRow[] = [
+      { role: 'tool', name: 'a', tool_id: 'x', call_row_id: 11 },
+      { role: 'tool', name: 'b', tool_id: 'y', call_index: 0 },
+      { role: 'tool', name: 'c', tool_id: 'z', call_row_id: '11', call_index: 0 },
+      { role: 'tool', name: 'd', tool_id: 'w', call_row_id: 11, call_index: -1 }
+    ]
+
+    for (const item of rowsToItems(rows, 'rpc') as ToolItem[]) {
+      expect(item.callKey).toBeUndefined()
+    }
+  })
+
+  it('carries the call identity onto a message_agent and a delegate_task row', () => {
+    const rows: TranscriptRow[] = [
+      {
+        role: 'tool',
+        name: 'message_agent',
+        tool_id: 'dm',
+        args: { target: '@bob', message: 'hi' },
+        call_row_id: 3,
+        call_index: 0
+      },
+      { role: 'tool', name: 'delegate_task', tool_id: 'dg', args: { goal: 'g' }, call_row_id: 3, call_index: 1 }
+    ]
+    const [dm, group] = rowsToItems(rows, 'rpc')
+
+    expect((dm as BotDmOutItem).callKey).toBe('3/0')
+    expect((group as SubagentGroupItem).callKey).toBe('3/1')
+  })
+
+  it('reads the turn id off a user row, from an object or from its JSON text', () => {
+    const rows: TranscriptRow[] = [
+      { role: 'user', text: 'hello', row_id: 1, display_metadata: { author: { id: 'a:1' }, turn_id: 'abc123' } },
+      { role: 'user', text: 'again', row_id: 2, display_metadata: JSON.stringify({ turn_id: 'def456' }) },
+      { role: 'user', text: 'plain', row_id: 3 },
+      { role: 'user', text: 'empty', row_id: 4, display_metadata: { turn_id: '' } },
+      { role: 'user', text: 'wrong', row_id: 5, display_metadata: { turn_id: 7 } }
+    ]
+
+    expect((rowsToItems(rows, 'rpc') as UserItem[]).map(item => item.turnId)).toEqual([
+      'abc123',
+      'def456',
+      undefined,
+      undefined,
+      undefined
+    ])
+  })
+})

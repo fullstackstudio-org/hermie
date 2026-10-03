@@ -90,6 +90,13 @@ export interface UserItem extends ItemBase {
   unknownAuthor?: boolean
   /** Who the gateway says wrote this row. See `MessageAuthor` — absent, never guessed. */
   author?: MessageAuthor
+  /**
+   * The gateway's id for the turn this prompt started (`display_metadata.turn_id`
+   * on the persisted row). The same id rides every live frame of that turn, so it
+   * is how a turn's prompt is recognised without reading its words. Absent from a
+   * gateway that does not mint one.
+   */
+  turnId?: string
 }
 
 /** An inbound bot-to-bot message: a `role:user` row that is NOT the human speaking. */
@@ -138,6 +145,12 @@ export interface ToolItem extends ItemBase {
   args?: Record<string, unknown>
   /** Only sent when the gateway runs at `display.tool_progress verbose`. */
   argsText?: string
+  /**
+   * `"<call_row_id>/<call_index>"`: the persisted assistant row holding this call
+   * and its position in that row's `tool_calls`. Unique per session whatever the
+   * provider's `toolId` looks like. Absent when the wire carried no call identity.
+   */
+  callKey?: string
   status: ToolStatus
   /** False for a history row: the gateway does not persist tool results. */
   resultKnown: boolean
@@ -185,6 +198,8 @@ export interface BotDmOutItem extends ItemBase {
   /** The routing alias: `@`-stripped, connection-stripped, last path segment, lowercased. */
   targetHandle: string
   message: string
+  /** The call identity, as on `ToolItem.callKey`. */
+  callKey?: string
   dispatch: BotDmDispatch
   reply?: BotDmReply
 }
@@ -196,6 +211,8 @@ export interface SubagentGroupItem extends ItemBase {
   kind: 'subagent_group'
   delegationId?: string
   toolId?: string
+  /** The call identity of the `delegate_task` call, as on `ToolItem.callKey`. */
+  callKey?: string
   goals: string[]
   /** Subagent ids belonging to this fan-out. */
   rootIds: string[]
@@ -387,6 +404,8 @@ export interface TodoSnapshot {
 
 export interface TurnState {
   active: boolean
+  /** The gateway's id for the running turn (`turn_id` on its frames), when it sent one. */
+  id?: string
   startedAt?: number
   /** The assistant item currently receiving deltas. */
   assistantId?: string
@@ -429,6 +448,11 @@ export interface ChatState {
   order: string[]
   /** tool_id → item id. */
   byToolId: Record<string, string>
+  /**
+   * `callKey` → item id. Derived like every index here, never cached, and empty
+   * against a gateway that sends no call identity.
+   */
+  byCallKey: Record<string, string>
   /** String(rowId) → item id; string-keyed so the cache round-trips as JSON. */
   byRowId: Record<string, string>
   /** Server-request id → item id. */
@@ -517,6 +541,7 @@ export function createChatState(botName: string, storedSessionId: string, resolv
     items: {},
     order: [],
     byToolId: {},
+    byCallKey: {},
     byRowId: {},
     byRequestId: {},
     byApprovalId: {},
