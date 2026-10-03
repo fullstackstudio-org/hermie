@@ -2,6 +2,12 @@ import HermieCore
 import HermieGateway
 import SwiftUI
 
+#if os(iOS)
+  import UIKit
+#elseif os(macOS)
+  import AppKit
+#endif
+
 /**
  The sheet for a `confirm` at level `passkey` (plan `confirm-passkey.md`, P10 and P15).
 
@@ -33,8 +39,17 @@ struct ConfirmSheetView: View {
   static let pinnedTextSize: DynamicTypeSize = .xxxLarge
 
   @State private var armed = false
+  @State private var review = ConfirmDetailReview()
   @AccessibilityFocusState private var titleFocused: Bool
   @Environment(\.scenePhase) private var scenePhase
+  @Environment(\.accessibilityVoiceOverEnabled) private var voiceOver
+
+  /// The detail does not fit and has not been read to its end: Confirm stays off. With VoiceOver on
+  /// the whole text, markers included, is read out as the element's label, so nothing is gated.
+  private var detailUnread: Bool {
+    guard let detail = confirmation.display.detail, !detail.isEmpty, !voiceOver else { return false }
+    return !review.complete
+  }
 
   var body: some View {
     VStack(spacing: 0) {
@@ -45,7 +60,7 @@ struct ConfirmSheetView: View {
         .dynamicTypeSize(...Self.pinnedTextSize)
       Divider()
       ScrollView {
-        ConfirmText(display: confirmation.display)
+        ConfirmText(display: confirmation.display, review: $review)
           .padding(20)
           .frame(maxWidth: .infinity, alignment: .leading)
       }
@@ -57,6 +72,7 @@ struct ConfirmSheetView: View {
         passkeys: passkeys,
         confirmation: confirmation,
         armed: armed,
+        detailUnread: detailUnread,
         rpID: passkeys.configuration.rpID ?? ""
       )
       .padding(.horizontal, 20)
@@ -142,6 +158,7 @@ struct ConfirmChrome: View {
 /// What the request says, exactly as the gateway sent it.
 struct ConfirmText: View {
   let display: ConfirmDisplay
+  @Binding var review: ConfirmDetailReview
 
   var body: some View {
     VStack(alignment: .leading, spacing: 14) {
@@ -159,37 +176,103 @@ struct ConfirmText: View {
       }
 
       if let detail = display.detail, !detail.isEmpty {
-        ConfirmDetailBlock(detail: detail)
+        ConfirmDetailBlock(detail: detail, review: $review)
       }
     }
   }
 }
 
-/// The detail: monospaced, every space and line break kept, never wrapped and never cut. A long
-/// line scrolls sideways; a tall block is the sheet's own scroll.
+/// The detail: monospaced, every line break kept, never wrapped and never cut, with its whitespace
+/// made visible (`ConfirmDetailMarkup`). It has a viewport of its own that scrolls both ways with the
+/// scroll bars always showing, and says how long it is when it does not fit. Copy puts the exact
+/// text on the pasteboard, not the marked one.
 struct ConfirmDetailBlock: View {
   let detail: String
+  @Binding var review: ConfirmDetailReview
+
+  @ScaledMetric(relativeTo: .body) private var viewportHeight: CGFloat = 220
+  @State private var copied = false
+  @State private var content = CGSize.zero
+  @State private var viewport = CGSize.zero
 
   var body: some View {
-    VStack(alignment: .leading, spacing: 6) {
-      Text(NativeStrings.Confirm.detailLabel)
-        .font(.caption.weight(.semibold))
-        .foregroundStyle(.secondary)
-        .accessibilityHidden(true)
+    let markup = ConfirmDetailMarkup(detail, emptyLines: NativeStrings.Confirm.emptyLines)
 
-      ScrollView(.horizontal) {
-        Text(verbatim: detail)
+    VStack(alignment: .leading, spacing: 6) {
+      HStack {
+        Text(NativeStrings.Confirm.detailLabel)
+          .font(.caption.weight(.semibold))
+          .foregroundStyle(.secondary)
+          .accessibilityHidden(true)
+
+        Spacer()
+
+        Button(copied ? NativeStrings.Confirm.copiedDetail : NativeStrings.Confirm.copyDetail, systemImage: copied ? "checkmark" : "doc.on.doc") {
+          ConfirmDetailBoard.copy(detail)
+          copied = true
+        }
+        .font(.caption)
+        .buttonStyle(.borderless)
+        .frame(minWidth: 44, minHeight: 44)
+        .contentShape(.rect)
+        .accessibilityIdentifier("confirm.detail.copy")
+      }
+
+      ScrollView([.horizontal, .vertical]) {
+        Text(verbatim: markup.text)
           .font(.body.monospaced())
           .fixedSize(horizontal: true, vertical: true)
           .padding(12)
-          .accessibilityLabel(Text(verbatim: detail))
           .accessibilityIdentifier("confirm.detail")
+          .onGeometryChange(for: CGSize.self, of: \.size) { size in
+            content = size
+            review.measure(content: size, viewport: viewport)
+          }
       }
-      .scrollBounceBehavior(.basedOnSize, axes: .horizontal)
+      .frame(maxHeight: viewportHeight)
+      .scrollIndicators(.visible)
+      .scrollIndicatorsFlash(onAppear: true)
       .background(.background.secondary, in: .rect(cornerRadius: 10))
       .clipShape(.rect(cornerRadius: 10))
+      .onGeometryChange(for: CGSize.self, of: \.size) { size in
+        viewport = size
+        review.measure(content: content, viewport: size)
+      }
+      .onScrollGeometryChange(for: CGRect.self, of: \.visibleRect) { _, visible in
+        review.see(visible: visible, content: content)
+      }
+      .accessibilityIdentifier("confirm.detailViewport")
+
+      if review.overflows {
+        Text(NativeStrings.Confirm.detailStats(lines: markup.lines, longest: markup.longestLine))
+          .font(.caption)
+          .accessibilityIdentifier("confirm.detail.stats")
+      }
     }
   }
+
+}
+
+/// The pasteboard for the detail: the exact text, for this device only, gone after two minutes.
+@MainActor
+enum ConfirmDetailBoard {
+  static func copy(_ detail: String) {
+    #if os(iOS)
+      UIPasteboard.general.setItems(
+        [["public.utf8-plain-text": detail]],
+        options: [.localOnly: true, .expirationDate: Date().addingTimeInterval(120)])
+    #elseif os(macOS)
+      write(detail, to: .general)
+    #endif
+  }
+
+  #if os(macOS)
+    /// Put `detail`, exactly, on `board`.
+    static func write(_ detail: String, to board: NSPasteboard) {
+      board.clearContents()
+      board.setString(detail, forType: .string)
+    }
+  #endif
 }
 
 /// The pinned bottom: which name the system sheet will show, the time left, the state of the
@@ -199,6 +282,8 @@ struct ConfirmFooter: View {
   let passkeys: PasskeyModel
   let confirmation: PasskeyConfirmation
   let armed: Bool
+  /// The detail does not fit and has not been read to its end.
+  let detailUnread: Bool
   let rpID: String
 
   var body: some View {
@@ -220,7 +305,15 @@ struct ConfirmFooter: View {
           .id(status.text)
       }
 
-      ConfirmActions(requests: requests, passkeys: passkeys, confirmation: confirmation, armed: armed)
+      if detailUnread, confirmation.phase.isActionable {
+        Label(NativeStrings.Confirm.scrollToConfirm, systemImage: "arrow.down.right")
+          .font(.footnote)
+          .fixedSize(horizontal: false, vertical: true)
+          .accessibilityIdentifier("confirm.scrollHint")
+      }
+
+      ConfirmActions(
+        requests: requests, passkeys: passkeys, confirmation: confirmation, armed: armed, detailUnread: detailUnread)
 
       if ConfirmSheetText.closesByItself(confirmation.phase) {
         ConfirmLinger(requests: requests, confirmationID: confirmation.id)
@@ -307,6 +400,7 @@ struct ConfirmActions: View {
   let passkeys: PasskeyModel
   let confirmation: PasskeyConfirmation
   let armed: Bool
+  let detailUnread: Bool
 
   var body: some View {
     if confirmation.isOpen {
@@ -317,10 +411,10 @@ struct ConfirmActions: View {
         ViewThatFits(in: .horizontal) {
           HStack(spacing: 10) {
             declineButton(enabled: enabled)
-            confirmButton(enabled: enabled)
+            confirmButton(enabled: enabled && !detailUnread)
           }
           VStack(spacing: 10) {
-            confirmButton(enabled: enabled)
+            confirmButton(enabled: enabled && !detailUnread)
             declineButton(enabled: enabled)
           }
         }
@@ -389,6 +483,30 @@ extension NativeStrings {
     static var notSentMaybeArrived: String { string("native.confirm.notSentMaybeArrived") }
     /// The answer may have reached the gateway. Check whether the action ran.
     static var outcomeUnknown: String { string("native.confirm.outcomeUnknown") }
+    /// ⋯ {count} empty lines ⋯
+    static func emptyLines(_ count: Int) -> String {
+      String(
+        localized: "native.confirm.detail.emptyLines", defaultValue: "\u{22EF} \(count) empty lines \u{22EF}", table: "Native",
+        bundle: .module)
+    }
+    /// Copy details
+    static var copyDetail: String { string("native.confirm.copyDetail") }
+    /// Copied
+    static var copiedDetail: String { string("native.confirm.copiedDetail") }
+    /// Scroll to the end of the details to confirm.
+    static var scrollToConfirm: String { string("native.confirm.scrollToConfirm") }
+    /// {lines} lines · longest line {longest} characters
+    static func detailStats(lines: Int, longest: Int) -> String {
+      if lines == 1 {
+        return String(
+          localized: "native.confirm.detailStats.one", defaultValue: "1 line · longest line \(longest) characters",
+          table: "Native", bundle: .module)
+      }
+
+      return String(
+        localized: "native.confirm.detailStats.other",
+        defaultValue: "\(lines) lines · longest line \(longest) characters", table: "Native", bundle: .module)
+    }
     /// Details
     static var detailLabel: String { string("native.confirm.detailLabel") }
     /// Your device will ask for your passkey for {rp}…

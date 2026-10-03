@@ -287,7 +287,7 @@ extension PasskeyModel {
     setPhase(id, .sending)
 
     let params = RequestAnswerParams(id: id, result: result.json)
-    let outcome: PasskeyConfirmPhase
+    var outcome: PasskeyConfirmPhase
 
     do {
       let reply = try await link.requestReply(RPC.RequestAnswer.name, params: params.jsonValue)
@@ -295,6 +295,14 @@ extension PasskeyModel {
       outcome = status == .ok ? done : .ended(.withdrawn(reason: status?.rawValue ?? ""))
     } catch let error as GatewayRPCError {
       outcome = Self.phase(after: error)
+
+      // A gateway that no longer knows the request (anything but 4033 or 4034) gives no verdict on
+      // an earlier assertion that may have arrived: that is the end, and it is not "not sent".
+      if error.kind == .rejected, error.code != Self.notAllowedCode, error.code != Self.refusedCode,
+        confirmation(id)?.answerMayHaveArrived == true
+      {
+        outcome = .ended(.outcomeUnknown)
+      }
     } catch {
       outcome = .notSent("The answer did not reach the gateway.")
     }

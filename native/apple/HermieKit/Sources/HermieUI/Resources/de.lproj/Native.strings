@@ -158,12 +158,22 @@
 	<string>Mit Passkey bestätigen</string>
 	<key>native.confirm.confirmHint</key>
 	<string>Fragt dein Gerät nach deinem Passkey.</string>
+	<key>native.confirm.copiedDetail</key>
+	<string>Kopiert</string>
+	<key>native.confirm.copyDetail</key>
+	<string>Details kopieren</string>
 	<key>native.confirm.decline</key>
 	<string>Ablehnen</string>
 	<key>native.confirm.declined</key>
 	<string>Du hast diese Anfrage abgelehnt.</string>
+	<key>native.confirm.detail.emptyLines</key>
+	<string>⋯ %lld leere Zeilen ⋯</string>
 	<key>native.confirm.detailLabel</key>
 	<string>Details</string>
+	<key>native.confirm.detailStats.one</key>
+	<string>1 Zeile · längste Zeile %lld Zeichen</string>
+	<key>native.confirm.detailStats.other</key>
+	<string>%1$lld Zeilen · längste Zeile %2$lld Zeichen</string>
 	<key>native.confirm.noCredential</key>
 	<string>Auf diesem Gerät ist kein Passkey für dieses Gateway verfügbar. Es wurde nichts bestätigt.</string>
 	<key>native.confirm.notAllowed</key>
@@ -184,6 +194,8 @@
 	<string>Das Gateway kennt diesen Passkey nicht. Er wurde vielleicht entfernt. Du kannst es erneut versuchen.</string>
 	<key>native.confirm.refused.userVerification</key>
 	<string>Dein Gerät hat nicht bestätigt, dass du es bist. Du kannst es erneut versuchen.</string>
+	<key>native.confirm.scrollToConfirm</key>
+	<string>Scrolle bis zum Ende der Details, um zu bestätigen.</string>
 	<key>native.confirm.signing</key>
 	<string>Warte auf deinen Passkey…</string>
 	<key>native.confirm.timedOut</key>
