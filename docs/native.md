@@ -408,6 +408,90 @@ gateway sent and show something else than the text the signature commits to.
 The sheet also owns the states the model now types for it: `sameGatewayAs` (its link action),
 `pinUnreadable`, `PasskeyRouteError.Kind.rateLimited` (with `retryAfter`) and `.originNotListed`.
 
+#### The system passkey sheet (CP-9)
+
+`SystemPasskeyAuthenticator` (`HermieCore/Passkey/System/`) is the app's `PasskeyAuthenticator`:
+`ASAuthorizationController` with `ASAuthorizationPlatformPublicKeyCredentialProvider`, a fresh
+controller per ceremony, shown over the key window of the scene in front
+(`HermieUI/App/PasskeyPresentation.swift`). A registration asks for user verification
+(`.required`), attestation `none`, the name the model built (`<display name> — <gateway host>`, plan
+P3, which the system sheet shows), the gateway's user handle, and excludes the credentials the
+gateway already holds for the user. An assertion asks for user verification and always sets
+`allowedCredentials` from the request; an empty list is refused before any sheet. The controller
+sits behind `PasskeyAuthorizationDriver`, so the rules are tested without the system
+(`SystemPasskeyAuthenticatorTests`). Only the platform error's domain and code are read; the text
+the platform wrote is never passed on.
+
+| What happens                                                                             | The model gets                                                                                        |
+| ---------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------- |
+| a second ceremony while one runs (any gateway, register or assert)                       | `busy`, no second sheet                                                                               |
+| `cancel()` (a `request.cancel` withdrew the request)                                     | the sheet is dismissed and the ceremony ends `cancelled` at once; the system's late answer is dropped |
+| the person dismisses the sheet (`ASAuthorizationError.canceled`)                         | `cancelled`: nothing is sent, the app's sheet stays                                                   |
+| an empty allow list                                                                      | `noCredential` (4040 `no_credential`), no sheet                                                       |
+| an empty RP                                                                              | `unavailable(rp_not_configured)`, no sheet                                                            |
+| `.notInteractive`                                                                        | `unavailable(not_interactive)`                                                                        |
+| `.deviceNotConfiguredForPasskeyCreation`                                                 | `unavailable(device_not_configured)`                                                                  |
+| `.matchedExcludedCredential`                                                             | `failed`: this provider already holds a passkey for the account                                       |
+| `.unknown`, `.invalidResponse`, `.notHandled`, `.failed`, another domain                 | `failed("… (<domain> <code>)")`, retryable                                                            |
+| a signature by a credential the request did not allow, or no window to show the sheet in | `failed`, retryable                                                                                   |
+
+The platform has no error of its own for "none of these passkeys is here": with
+`allowedCredentials` set the sheet offers a nearby device instead (**unverified** on a device; no
+security-key request is made, plan P14), and the person dismissing it is `cancelled`. `noCredential` therefore comes from the model (the allow list does not
+meet what this device has seen) and from an empty list.
+
+**The RP is a build setting.** `HERMIE_PASSKEY_RP_ID` in `native/apple/Config/Shared.xcconfig`
+(default `confirm.hermie.dev`, which serves the association file for `<team>.dev.hermie.app`)
+becomes both apps' `com.apple.developer.associated-domains` entry `webcredentials:<RP>` and the
+Info.plist key `HermiePasskeyRPID`, which `PasskeyConfiguration.live()` reads at launch (a value
+that is not a host name reads as no RP). A build that sets it empty signs with
+`App/Hermie-NoPasskey.entitlements` instead (the same file without the associated domain; the
+project picks it through `HERMIE_ENTITLEMENTS_SUFFIX`), gets `PasskeyConfiguration(rpID: nil)` and
+never advertises `passkey`. No extension declares an associated domain.
+`PasskeyBuildSettingsTests` parses the xcconfig, both apps' entitlements and Info.plist, both
+project specs and every extension's entitlements to keep it so. The unsigned CI build
+(`CODE_SIGNING_ALLOWED=NO`) does not process entitlements, as with push.
+
+**The lock.** The authenticator is wrapped in `LockGuardedPasskeyAuthenticator`, which calls
+`AppLock.ceremonyBegan()` before and `ceremonyEnded()` after every ceremony. While one runs,
+`AppLock` reads the lifecycle as it does under its own prompt (plan P10): a resign is the sheet's
+and does not re-lock, a real departure (the background on iOS, a hidden app on the Mac) still
+counts, a return from one is judged once the sheet is gone, and no automatic unlock prompt is
+raised under the sheet. The guard sits on the authenticator rather than on
+`PasskeyConfirmPhase.signing` because enrolment, invites and revokes run a ceremony without a
+confirmation, and a withdrawn confirmation leaves `.signing` before the sheet has closed.
+
+**The wiring.** `LiveWiring.app` (the shell's) sets `AppLaunch.passkey` once to
+`PasskeySetup.live(configuration: .live(), authenticator: SystemPasskeyAuthenticator(...), lock:,
+keyValues:)`: one authenticator for every gateway, the lock guard around it, and the pins in the
+launch's database (`KeyValuePasskeyPins`). `LiveGateway.accountsConnector` hands it to every session
+it builds (`GatewaySession.Options.passkey`). Unit tests and previews leave it `nil` (no `confirm`
+level); the app's UI-test launches go through the shell and get the system sheet too, so a UI test
+that drives a ceremony needs a launch hook of its own first.
+
+**On a real device** (nothing above can be shown in the simulator or in CI; record the results with
+the CP-1 vectors):
+
+1. The association resolves through Apple's association CDN for a TestFlight build on iOS and on
+   macOS (the CDN's copy for `confirm.hermie.dev` lists the app id).
+2. Enrol with a one-time code: iCloud Keychain creates the passkey, the system sheet names it
+   `Hermie — <gateway host>`; repeat with Bitwarden as the provider on iOS and on macOS.
+3. Confirm a `passkey` request: the gateway accepts the assertion. Note the value of
+   `clientDataJSON.origin` for an app-initiated ceremony (expected `https://confirm.hermie.dev`,
+   **unverified**), the flags (UV, BE, BS) and the signCount per provider.
+4. Decline from the app's sheet: no system sheet, `declined` at the gateway.
+5. Cancel from the system sheet: nothing is sent, the app's sheet stays and Confirm works again.
+6. `request.cancel` while the system sheet is up (let it time out, or answer on another device): the
+   system sheet closes.
+7. App lock at "immediately": the system sheet does not re-lock the app; sending the app to the
+   background during the ceremony does.
+8. Assert from a nearby device (hybrid), and with a passkey that is not on this device (what the
+   sheet offers; dismissing it is `cancelled`).
+9. A second Apple device on the same iCloud account confirms with the synced passkey without
+   enrolling.
+10. Enrol again on a device that already holds the gateway's passkey: the excluded credential
+    (`.matchedExcludedCredential`) or a second passkey, whichever the platform does for an app.
+
 ### Known divergences
 
 The port answers like the TypeScript on every input the TypeScript tests use. On malformed or
