@@ -61,6 +61,10 @@ import Testing
     ]
   ]
 
+  /// Allow-listed files that must be debug builds only: the whole file inside `#if DEBUG`, so what
+  /// they are allowed to do is never compiled into a release build.
+  static let debugOnly = ["HermieCore/AppLaunch/LaunchTestHooks.swift", "HermieUI/Debug/PasskeyLab.swift"]
+
   static var sources: URL {
     URL(fileURLWithPath: #filePath)
       .deletingLastPathComponent()  // Sync
@@ -109,6 +113,19 @@ import Testing
       for rule in rules.keys {
         #expect(hits.contains { $0.path == path && $0.rule == rule }, "stale allow-list entry \(path): \(rule)")
       }
+    }
+  }
+
+  @Test func theAllowedDebugFilesAreWhollyInsideIfDebug() throws {
+    for path in Self.debugOnly {
+      let text = try String(contentsOf: Self.sources.appendingPathComponent(path), encoding: .utf8)
+      let code = text.components(separatedBy: "\n").map { $0.trimmingCharacters(in: .whitespaces) }.filter {
+        !$0.isEmpty && !$0.hasPrefix("//")
+      }
+
+      #expect(code.first == "#if DEBUG", "\(path) must start with #if DEBUG")
+      #expect(code.last == "#endif", "\(path) must end with the #endif of that #if DEBUG")
+      #expect(Self.allowed[path] != nil, "\(path) is listed as debug only but is not allow-listed")
     }
   }
 
