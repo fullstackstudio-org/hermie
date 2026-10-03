@@ -127,9 +127,13 @@ describe('startSession', () => {
     expect(connectGateway.mock.invocationCallOrder[0]).toBeLessThan(connectChats.mock.invocationCallOrder[0]!)
   })
 
-  it('follows the person’s ui_meta on the same connection, under the key the boot’s identity names', () => {
+  it('follows the person’s ui_meta on the same connection, under the key the boot’s identity names', async () => {
     const settings = { ...options(), identity: { userId: 'tester@example.invalid', email: '', displayName: 'Ann' } }
     const session = startSession(settings)
+
+    // A chunk of its own: loaded after the session starts, not before.
+    expect(connectUiMeta).not.toHaveBeenCalled()
+    expect(await session.uiMeta).toEqual({ stop: uiMetaStop })
 
     expect(connectUiMeta).toHaveBeenCalledWith(
       expect.objectContaining({
@@ -146,10 +150,19 @@ describe('startSession', () => {
     expect(deviceContextStore.getState().userId).toBe('')
   })
 
-  it('names nobody, the local-only path, when the boot read no identity', () => {
-    startSession(options())
+  it('names nobody, the local-only path, when the boot read no identity', async () => {
+    await startSession(options()).uiMeta
 
     expect(connectUiMeta).toHaveBeenCalledWith(expect.objectContaining({ userId: '' }))
+  })
+
+  it('does not start the ui_meta bridge for a session that stopped before its chunk loaded', async () => {
+    const session = startSession(options())
+
+    session.stop()
+
+    expect(await session.uiMeta).toBeNull()
+    expect(connectUiMeta).not.toHaveBeenCalled()
   })
 
   it('polls the running state while the page is shown, and stops while it is hidden', () => {
@@ -193,9 +206,11 @@ describe('startSession', () => {
     expect(refreshRunning).toHaveBeenCalledTimes(2)
   })
 
-  it('stops the poll, then the chats, then the client, once', () => {
+  it('stops the poll, then the chats, then the client, once', async () => {
     const visibility = fakeVisibility('visible')
     const session = startSession(options(visibility))
+
+    await session.uiMeta
 
     session.stop()
     session.stop()

@@ -35,7 +35,8 @@
  *  8. The `ui_meta` bridge (`core/ui-meta-bridge.ts`, `connectUiMeta`) on the same
  *     connection, under the app-wide key of the person the boot read
  *     (`uiMetaUserIdOf`): the arrangement, the mutes and the text size follow the
- *     person, and the roster is folded into the arrangement.
+ *     person, and the roster is folded into the arrangement. Loaded as a chunk of
+ *     its own once the session has started (`uiMeta` is a promise of it).
  *
  * `stop()` is the order the sign-out needs: the poll, the `ui_meta` bridge, then the secure prompts
  * (each open one answered `''` while the socket is still there), the notices, the
@@ -53,7 +54,7 @@ import { ConnectionsModel, respondThrough } from '../../core/connections'
 import { NoticesModel } from '../../core/notices'
 import { SecureInputModel } from '../../core/requests/secure-input'
 import { SessionStatusModel } from '../../core/session-status'
-import { connectUiMeta, type ConnectUiMetaOptions, type UiMetaRuntime } from '../../core/ui-meta-bridge'
+import type { ConnectUiMetaOptions, UiMetaRuntime } from '../../core/ui-meta-bridge'
 import type { ChatCache } from '../../platform/chat-cache'
 import type { WebKeyValueStore } from '../../platform/key-value-store'
 import { createPasskeyPins } from '../../platform/passkey-pins'
@@ -99,7 +100,8 @@ export interface Session {
   readonly notices: NoticesModel
   readonly connections: ConnectionsModel
   readonly status: SessionStatusModel
-  readonly uiMeta: UiMetaRuntime
+  /** The `ui_meta` bridge, once its chunk has loaded; `null` when the session stopped first or it failed to load. */
+  readonly uiMeta: Promise<UiMetaRuntime | null>
   /** Stop the poll, the `ui_meta` bridge, the models beside the engine, the passkeys and the chats, then the client, in that order. Idempotent. */
   stop(): void
 }
@@ -202,15 +204,32 @@ export function startSession(options: StartSessionOptions): Session {
     email: options.identity?.email ?? ''
   })
 
-  const uiMeta = connectUiMeta({
-    gateway: client.gateway,
-    connection: client.stores.connection,
-    bots: client.stores.bots,
-    storage: options.storage,
-    userId: uiMetaUserIdOf(options.identity),
-    ...(options.visibility ? { visibility: options.visibility } : {}),
-    ...options.uiMeta
-  })
+  /*
+    The bridge is a chunk of its own: nothing on the first screen waits for it,
+    and the stores it fills are filled the moment it lands (it reconciles at once
+    on a connection that is already usable).
+  */
+  let uiMetaRuntime: UiMetaRuntime | null = null
+  let uiMetaStopped = false
+  const uiMeta: Promise<UiMetaRuntime | null> = import('../../core/ui-meta-bridge')
+    .then(({ connectUiMeta }) => {
+      if (uiMetaStopped) {
+        return null
+      }
+
+      uiMetaRuntime = connectUiMeta({
+        gateway: client.gateway,
+        connection: client.stores.connection,
+        bots: client.stores.bots,
+        storage: options.storage,
+        userId: uiMetaUserIdOf(options.identity),
+        ...(options.visibility ? { visibility: options.visibility } : {}),
+        ...options.uiMeta
+      })
+
+      return uiMetaRuntime
+    })
+    .catch(() => null)
 
   /** The request layer's queue is the open requests of the chats just started, the confirmations and the prompts. */
   const stopRequests = bindRequests(chats.chats, undefined, passkeysStore, secureInputStore, connectionsStore)
@@ -263,7 +282,8 @@ export function startSession(options: StartSessionOptions): Session {
       stopStatus()
       release?.()
       release = undefined
-      uiMeta.stop()
+      uiMetaStopped = true
+      uiMetaRuntime?.stop()
       deviceContextStore.getState().retire()
       stopRequests()
       secureInput.stop()
