@@ -56,6 +56,34 @@ describe('the stream replay', () => {
     }
   )
 
+  it('interim-reopen settles each note, each tool card and the answer once, at every verbosity', () => {
+    const scenario = scenarios.find(entry => entry.scenario === 'interim-reopen') as StreamScenario
+    const settled = scenario.checkpoints.find(checkpoint => checkpoint.label === 'settled')
+    const states = [...replay(scenario)]
+    const state = states[(settled?.after ?? 0) - 1] as ChatState
+    const notes = ['Entry 90 is marked paid.', 'Looking the transfer up through the API', 'Everything checks out']
+
+    for (const level of ['quiet', 'normal', 'verbose'] as const) {
+      const shown = visibleItems(state, { level, showBotToBot: true, showThinking: true }).map(row => row.item)
+      const texts = shown.flatMap(item => (item.kind === 'assistant' ? [item.text] : []))
+
+      for (const note of notes) {
+        expect(
+          texts.filter(text => text.startsWith(note)),
+          `${level}: ${note}`
+        ).toHaveLength(1)
+      }
+
+      expect(new Set(texts).size, `${level}: assistant texts`).toBe(texts.length)
+
+      const tools = shown.flatMap(item => (item.kind === 'tool' && item.name === 'terminal' ? [item] : []))
+
+      // Quiet hides tool cards; the others show the two calls of the turn, once each.
+      expect(tools, level).toHaveLength(level === 'quiet' ? 0 : 2)
+      expect(new Set(tools.map(item => item.callKey)).size, `${level}: call keys`).toBe(tools.length)
+    }
+  })
+
   it('refuses a step it does not know, or one before the state exists', () => {
     expect(() => applyStep(undefined, { op: 'applyEvent', args: [] })).toThrow(/before createChatState/)
     const state = applyStep(undefined, { op: 'createChatState', args: ['tester', 's', 's'] })
