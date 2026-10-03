@@ -940,7 +940,7 @@ export interface Strings {
         readonly active: string
         /** Add gateway */
         readonly add: string
-        /** Runs setup for another machine. The gateway you are on now stays connected until you switch. */
+        /** Runs setup for another machine. The gateway currently open stays connected until you switch. */
         readonly addHint: string
         /** Session token */
         readonly authModeToken: string

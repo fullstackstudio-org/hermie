@@ -4416,7 +4416,7 @@
       "kind": "text",
       "values": {
         "de": "Startet die Einrichtung für eine weitere Maschine. Das Gateway, auf dem du gerade bist, bleibt verbunden, bis du wechselst.",
-        "en": "Runs setup for another machine. The gateway you are on now stays connected until you switch.",
+        "en": "Runs setup for another machine. The gateway currently open stays connected until you switch.",
         "nl": "Start de instelwizard voor een andere machine. De gateway waar je nu op zit blijft verbonden tot je overstapt."
       }
     },

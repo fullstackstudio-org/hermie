@@ -1142,7 +1142,7 @@ const stringsEn = {
       use: 'Use this gateway',
       manage: 'Manage',
       add: 'Add gateway',
-      addHint: 'Runs setup for another machine. The gateway you are on now stays connected until you switch.',
+      addHint: 'Runs setup for another machine. The gateway currently open stays connected until you switch.',
 
       /** One gateway, on its own page. */
       detailTitle: 'Gateway',

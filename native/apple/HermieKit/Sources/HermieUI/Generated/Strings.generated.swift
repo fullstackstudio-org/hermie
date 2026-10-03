@@ -1135,7 +1135,7 @@ public enum Strings {
         public static var active: Swift.String { Swift.String(localized: "app.settings.gateways.active", table: "Localizable", bundle: HermieStringsLookup.bundle) }
         /// Add gateway
         public static var add: Swift.String { Swift.String(localized: "app.settings.gateways.add", table: "Localizable", bundle: HermieStringsLookup.bundle) }
-        /// Runs setup for another machine. The gateway you are on now stays connected until you switch.
+        /// Runs setup for another machine. The gateway currently open stays connected until you switch.
         public static var addHint: Swift.String { Swift.String(localized: "app.settings.gateways.addHint", table: "Localizable", bundle: HermieStringsLookup.bundle) }
         /// Session token
         public static var authModeToken: Swift.String { Swift.String(localized: "app.settings.gateways.authModeToken", table: "Localizable", bundle: HermieStringsLookup.bundle) }

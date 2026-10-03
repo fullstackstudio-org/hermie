@@ -10931,7 +10931,7 @@
         "en" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Runs setup for another machine. The gateway you are on now stays connected until you switch."
+            "value" : "Runs setup for another machine. The gateway currently open stays connected until you switch."
           }
         },
         "nl" : {

@@ -875,7 +875,7 @@
 	<key>app.settings.gateways.add</key>
 	<string>Add gateway</string>
 	<key>app.settings.gateways.addHint</key>
-	<string>Runs setup for another machine. The gateway you are on now stays connected until you switch.</string>
+	<string>Runs setup for another machine. The gateway currently open stays connected until you switch.</string>
 	<key>app.settings.gateways.authModeToken</key>
 	<string>Session token</string>
 	<key>app.settings.gateways.back</key>

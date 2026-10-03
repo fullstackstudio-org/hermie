@@ -427,7 +427,7 @@
   "app.settings.gateway": "Gateway",
   "app.settings.gateways.active": "Connected",
   "app.settings.gateways.add": "Add gateway",
-  "app.settings.gateways.addHint": "Runs setup for another machine. The gateway you are on now stays connected until you switch.",
+  "app.settings.gateways.addHint": "Runs setup for another machine. The gateway currently open stays connected until you switch.",
   "app.settings.gateways.authModeToken": "Session token",
   "app.settings.gateways.back": "Gateways",
   "app.settings.gateways.connect": "Connect to this gateway",
