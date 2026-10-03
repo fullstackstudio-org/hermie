@@ -995,3 +995,118 @@ describe('a chore against the gateway’s copy', () => {
     })
   })
 })
+
+describe('a chore made while a choice is out', () => {
+  /** A device whose `during` runs once, while its next `profiles.configure` is in flight. */
+  function deviceWithFlight(request: UiMetaGateway['request']) {
+    const flight: { during: (() => void) | null } = { during: null }
+    const local: UiMetaSnapshot = { app: null, bots: {} }
+    const sync: UiMetaSync = new UiMetaSync({
+      gateway: {
+        request: async (method, params) => {
+          const answer = request(method, params)
+          const run = method === 'profiles.configure' ? flight.during : null
+
+          if (run) {
+            flight.during = null
+            run()
+          }
+
+          return answer
+        }
+      },
+      read: () => local,
+      apply: snapshot => {
+        local.app = snapshot.app
+        local.bots = { ...snapshot.bots }
+      }
+    })
+
+    sync.setUser(OWNER)
+
+    return { sync, local, flight }
+  }
+
+  it('is sent in a further round', async () => {
+    await withGateway(async ({ request }) => {
+      const phone = deviceWithFlight(request)
+
+      await phone.sync.reconcile()
+      phone.local.app = { v: 1, folders: ['Finance'], [APP_UPDATED_AT]: 10 }
+      phone.sync.markApp()
+      phone.flight.during = () => {
+        phone.local.app = { v: 1, folders: ['Finance'], order: ['writer'], [APP_UPDATED_AT]: 10 }
+        phone.sync.markApp('chore')
+      }
+      await phone.sync.flush()
+
+      expect((await metaOf(request, 'researcher'))[APP_KEY]).toMatchObject({ folders: ['Finance'], order: ['writer'] })
+      expect(phone.sync.pending).toBe(false)
+    })
+  })
+
+  it('is a chore again once the choice has landed, and loses to the gateway’s copy', async () => {
+    await withGateway(async ({ request }) => {
+      const phone = deviceWithFlight(request)
+
+      await phone.sync.reconcile()
+      phone.local.app = { v: 1, folders: ['Finance'], [APP_UPDATED_AT]: 10 }
+      phone.sync.markApp()
+      phone.flight.during = () => {
+        phone.local.app = { v: 1, folders: ['Finance'], order: ['writer'], [APP_UPDATED_AT]: 10 }
+        phone.sync.markApp('chore')
+        // Another client writes the section, undated, while the choice is out:
+        // the further round's write is refused and re-read.
+        void request('profiles.configure', {
+          name: 'researcher',
+          ui_meta: { [APP_KEY]: { v: 1, folders: ['Travel'] } }
+        })
+      }
+      await phone.sync.flush()
+
+      // The choice is the one that landed; what was left was a chore, and a
+      // chore does not win over a section the gateway holds.
+      expect((await metaOf(request, 'researcher'))[APP_KEY]).toEqual({ v: 1, folders: ['Travel'] })
+      expect(phone.local.app).toEqual({ v: 1, folders: ['Travel'] })
+      expect(phone.sync.pending).toBe(false)
+    })
+  })
+})
+
+describe('a held bot section', () => {
+  it('is not written, stays pending, and goes out once it is no longer held', async () => {
+    await withGateway(async ({ request }) => {
+      let held = true
+      const local: UiMetaSnapshot = { app: null, bots: {} }
+      const sync = new UiMetaSync({
+        gateway: { request },
+        read: () => local,
+        apply: snapshot => {
+          local.app = snapshot.app
+          local.bots = { ...snapshot.bots }
+        },
+        holdBot: name => held && name === 'writer'
+      })
+
+      sync.setUser(OWNER)
+      await sync.reconcile()
+
+      local.bots.writer = { v: 1, archived: true }
+      local.bots.researcher = { v: 1, colour: 'teal' }
+      sync.markBot('writer')
+      sync.markBot('researcher')
+      await sync.flush()
+
+      expect(await metaOf(request, 'writer')).not.toHaveProperty(HERMIE_KEY)
+      expect((await metaOf(request, 'researcher'))[HERMIE_KEY]).toEqual({ v: 1, colour: 'teal' })
+      expect(sync.pending).toBe(true)
+      expect(sync.pendingBots).toEqual(['writer'])
+
+      held = false
+      await sync.flush()
+
+      expect((await metaOf(request, 'writer'))[HERMIE_KEY]).toEqual({ v: 1, archived: true })
+      expect(sync.pending).toBe(false)
+    })
+  })
+})

@@ -268,6 +268,16 @@ export interface UiMetaSyncOptions {
    * rather than spinning.
    */
   retries?: number
+  /**
+   * A bot whose section must not be written now: its dirty section is kept back
+   * (still pending, still dirty) and every other section goes out as usual.
+   * The case it exists for is a roster section in a schema version this client
+   * cannot read (`readSection` answers `null`): writing it would replace a newer
+   * build's section with this client's shape, or remove it. Asked at every
+   * attempt, so a section the roster has just shown to be unreadable is held
+   * from the retry onwards. Absent means nothing is held.
+   */
+  holdBot?: (botName: string) => boolean
 }
 
 const isObject = (value: unknown): value is Record<string, unknown> =>
@@ -400,8 +410,18 @@ export class UiMetaSync {
    * `appLocalWins`), and a flat list folded on a fresh device would replace the
    * person's folders. `markApp()` with no argument is a choice, which is what
    * every caller meant before chores were told apart.
+   *
+   * Kept as the mark of the latest unsent choice (`0` for none), so a choice
+   * that lands while a chore made during its flight is still pending leaves
+   * that chore on its own: a chore again, which loses to the gateway's copy.
    */
-  private appChoice = false
+  private choiceMark = 0
+
+  private get appChoice(): boolean {
+    return this.choiceMark > 0
+  }
+
+  private readonly holdBot: (botName: string) => boolean
 
   private currentMode: UiMetaMode = 'local'
   private flushing: Promise<void> | null = null
@@ -411,6 +431,7 @@ export class UiMetaSync {
     this.read = options.read
     this.apply = options.apply
     this.retries = options.retries ?? 1
+    this.holdBot = options.holdBot ?? (() => false)
   }
 
   /** `synced` once a roster has been read and no write has been refused since. */
@@ -440,7 +461,7 @@ export class UiMetaSync {
 
     this.userId = userId
     this.dirtyApp = false
-    this.appChoice = false
+    this.choiceMark = 0
   }
 
   /** True while something written locally has not reached the gateway. */
@@ -471,7 +492,7 @@ export class UiMetaSync {
     this.dirtyApp = true
 
     if (kind === 'choice') {
-      this.appChoice = true
+      this.choiceMark = this.markCount
     }
   }
 
@@ -828,7 +849,9 @@ export class UiMetaSync {
     }
 
     for (const botName of this.dirtyBots) {
-      at(botName).push(HERMIE_KEY)
+      if (!this.holdBot(botName)) {
+        at(botName).push(HERMIE_KEY)
+      }
     }
 
     const appKey = this.appKey
@@ -903,8 +926,15 @@ export class UiMetaSync {
    * archived and has no colour has nothing to say, and leaving an empty object
    * behind would be a key on somebody's profile that means nothing.
    */
-  private async send(profile: string, keys: readonly string[]): Promise<void> {
+  private async send(profile: string, all: readonly string[]): Promise<void> {
     for (let attempt = 0; attempt <= this.retries; attempt += 1) {
+      // A held bot section is left out of this attempt, and stays dirty.
+      const keys = all.filter(key => key !== HERMIE_KEY || !this.holdBot(profile))
+
+      if (!keys.length) {
+        return
+      }
+
       const sections = this.sectionsFor(profile, keys)
       // The marks these bytes carry, taken in the same step as the bytes.
       const carried = { app: this.appMark, bot: this.botMarks.get(profile) ?? 0 }
@@ -1001,7 +1031,10 @@ export class UiMetaSync {
         }
       } else if (this.appMark === carried.app) {
         this.dirtyApp = false
-        this.appChoice = false
+        this.choiceMark = 0
+      } else if (this.choiceMark <= carried.app) {
+        // The choice landed; what was marked during its flight was a chore.
+        this.choiceMark = 0
       }
     }
   }
@@ -1026,7 +1059,7 @@ export class UiMetaSync {
     this.revisions.clear()
     this.dirtyBots.clear()
     this.dirtyApp = false
-    this.appChoice = false
+    this.choiceMark = 0
     this.appMark = 0
     this.botMarks.clear()
     this.defaultProfile = null
