@@ -11,11 +11,14 @@ struct ChatListRowView: View, Equatable {
   let gatewayReady: Bool
   var pinned = false
   var muted = false
+  /// The colour this bot's chat was given (`BotIdentity`).
+  var accent: BotAccent = .default
 
   @Environment(\.dynamicTypeSize) private var typeSize
 
   nonisolated static func == (lhs: Self, rhs: Self) -> Bool {
     lhs.row == rhs.row && lhs.gatewayReady == rhs.gatewayReady && lhs.pinned == rhs.pinned && lhs.muted == rhs.muted
+      && lhs.accent == rhs.accent
   }
 
   var body: some View {
@@ -26,7 +29,7 @@ struct ChatListRowView: View, Equatable {
     let stamp = ChatListFormat.stamp(row, presence: presence)
 
     HStack(alignment: large ? .top : .center, spacing: 12) {
-      BotAvatar(name: row.bot.displayName, avatar: row.avatar, presence: presence.state)
+      BotAvatar(name: row.bot.displayName, avatar: row.avatar, presence: presence.state, accent: accent)
 
       VStack(alignment: .leading, spacing: 2) {
         if large {

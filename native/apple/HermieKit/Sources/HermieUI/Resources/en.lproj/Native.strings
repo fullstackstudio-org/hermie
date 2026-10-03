@@ -16,6 +16,58 @@
 	<string>Sign out of this gateway? Its address stays, and you can sign in again at any time.</string>
 	<key>native.account.userId</key>
 	<string>User ID</string>
+	<key>native.botSettings.about</key>
+	<string>About this bot</string>
+	<key>native.botSettings.chatList</key>
+	<string>Chat list</string>
+	<key>native.botSettings.colourHint</key>
+	<string>Everyone on this gateway sees this colour, and the other Hermie apps use it too.</string>
+	<key>native.botSettings.descriptionHeader</key>
+	<string>Description</string>
+	<key>native.botSettings.followDefaults</key>
+	<string>Follow the gateway’s defaults</string>
+	<key>native.botSettings.handleHint</key>
+	<string>The name the rest of Hermie addresses this bot by. It cannot be changed here.</string>
+	<key>native.botSettings.identity</key>
+	<string>Identity</string>
+	<key>native.botSettings.lastToolset</key>
+	<string>At least one toolset has to stay on. To go back to the gateway’s defaults, use “Follow the gateway’s defaults”.</string>
+	<key>native.botSettings.mcp</key>
+	<string>MCP servers</string>
+	<key>native.botSettings.modelChoose</key>
+	<string>Choose a model</string>
+	<key>native.botSettings.modelFollows</key>
+	<string>Follows the gateway’s model</string>
+	<key>native.botSettings.modelUnavailable</key>
+	<string>This gateway does not list the models it offers, so the model cannot be changed here.</string>
+	<key>native.botSettings.notApplied</key>
+	<string>The gateway accepted the change but did not apply it.</string>
+	<key>native.botSettings.notSynced</key>
+	<string>The name, colour, pin, mute and archive are saved as soon as Hermie has synced with the gateway.</string>
+	<key>native.botSettings.offline</key>
+	<string>Connect to the gateway to change these settings.</string>
+	<key>native.botSettings.open</key>
+	<string>Open bot settings</string>
+	<key>native.botSettings.personality</key>
+	<string>Personality</string>
+	<key>native.botSettings.personalityEmpty</key>
+	<string>No personality is set.</string>
+	<key>native.botSettings.personalityHint</key>
+	<string>The instructions that give this bot its character: the SOUL.md of its profile on the gateway. Shown as plain text.</string>
+	<key>native.botSettings.photoLarge</key>
+	<string>That photo could not be prepared. Choose another one.</string>
+	<key>native.botSettings.readOnly</key>
+	<string>Your account can look at this bot but not change it.</string>
+	<key>native.botSettings.revert</key>
+	<string>Revert</string>
+	<key>native.botSettings.skills</key>
+	<string>Skills</string>
+	<key>native.botSettings.title</key>
+	<string>Bot settings</string>
+	<key>native.botSettings.toolsets</key>
+	<string>Toolsets</string>
+	<key>native.botSettings.unsupported</key>
+	<string>This gateway does not offer these settings.</string>
 	<key>native.chat.copyDiagnostics</key>
 	<string>Copy diagnostics</string>
 	<key>native.chat.diagnosticsCopied</key>

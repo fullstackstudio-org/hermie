@@ -204,12 +204,17 @@ struct DetailRoot: View {
   }
 }
 
-/// A page pushed on a chat, until the task that owns it lands.
+/// A page pushed on a chat: the bot's settings, or a placeholder until the task that owns the page lands.
 struct DetailRoutePlaceholder: View {
   let route: DetailRoute
 
   var body: some View {
-    EmptyState(NativeStrings.later, systemImage: "hammer")
+    switch route {
+    case .botProfile(let chat):
+      BotSettingsScreen(chat: chat)
+    case .sessions:
+      EmptyState(NativeStrings.later, systemImage: "hammer")
+    }
   }
 }
 

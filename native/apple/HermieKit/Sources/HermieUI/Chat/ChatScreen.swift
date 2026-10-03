@@ -190,6 +190,9 @@ struct ChatSessionView<Composer: View>: View {
             ToolbarItem(placement: .primaryAction) {
               VerbosityMenu(model: feed.model)
             }
+            ToolbarItem(placement: .primaryAction) {
+              BotSettingsButton(chat: chat)
+            }
           }
           #if DEBUG
             .overlay(alignment: .topLeading) {
@@ -423,7 +426,7 @@ struct ChatTitle: ViewModifier {
   static let pressDuration = 1.5
 
   func body(content: Content) -> some View {
-    let title = session.chatList.rows[chat.bot]?.bot.displayName ?? chat.bot
+    let title = session.chatName(chat.bot)
     let subtitle = Self.text(activity: feed?.activity ?? .idle, presence: presence)
 
     content

@@ -16,6 +16,8 @@ import SwiftUI
 @MainActor
 struct ChatRowActions {
   let session: GatewaySession
+  /// Open the bot's settings page; nil where the list cannot navigate (the line is then not offered).
+  var openSettings: (@MainActor (String) -> Void)?
 
   var arrangement: ChatArrangementModel { session.arrangement }
 
@@ -47,6 +49,7 @@ struct ChatRowActions {
     let name = row.bot.name
 
     markReadButton(row)
+    settingsButton(name)
 
     if arrangement.canEdit {
       pinButton(name)
@@ -64,6 +67,17 @@ struct ChatRowActions {
         Label(Strings.App.Layout.markRead, systemImage: "checkmark.message")
       }
       .tint(.blue)
+    }
+  }
+
+  @ViewBuilder func settingsButton(_ name: String) -> some View {
+    if let openSettings {
+      Button {
+        openSettings(name)
+      } label: {
+        Label(NativeStrings.BotSettings.title, systemImage: "slider.horizontal.3")
+      }
+      .accessibilityIdentifier("hermie.chatList.action.settings")
     }
   }
 
@@ -159,6 +173,10 @@ struct ChatRowActions {
 
     if row.unread || row.unreadCount > 0 {
       Button(Strings.App.Layout.markRead) { markRead(name) }
+    }
+
+    if let openSettings {
+      Button(NativeStrings.BotSettings.title) { openSettings(name) }
     }
 
     if arrangement.canEdit {

@@ -16,6 +16,58 @@
 	<string>Afmelden bij deze gateway? Het adres blijft bewaard en je kunt je altijd opnieuw aanmelden.</string>
 	<key>native.account.userId</key>
 	<string>Gebruikers-ID</string>
+	<key>native.botSettings.about</key>
+	<string>Over deze bot</string>
+	<key>native.botSettings.chatList</key>
+	<string>Chatlijst</string>
+	<key>native.botSettings.colourHint</key>
+	<string>Iedereen op deze gateway ziet deze kleur, en de andere Hermie-apps gebruiken hem ook.</string>
+	<key>native.botSettings.descriptionHeader</key>
+	<string>Beschrijving</string>
+	<key>native.botSettings.followDefaults</key>
+	<string>De standaard van de gateway volgen</string>
+	<key>native.botSettings.handleHint</key>
+	<string>De naam waarmee de rest van Hermie deze bot aanspreekt. Die kun je hier niet wijzigen.</string>
+	<key>native.botSettings.identity</key>
+	<string>Identiteit</string>
+	<key>native.botSettings.lastToolset</key>
+	<string>Minstens één toolset moet aan blijven. Om terug te gaan naar de standaard van de gateway gebruik je “De standaard van de gateway volgen”.</string>
+	<key>native.botSettings.mcp</key>
+	<string>MCP-servers</string>
+	<key>native.botSettings.modelChoose</key>
+	<string>Kies een model</string>
+	<key>native.botSettings.modelFollows</key>
+	<string>Volgt het model van de gateway</string>
+	<key>native.botSettings.modelUnavailable</key>
+	<string>Deze gateway toont niet welke modellen hij aanbiedt, dus het model kan hier niet worden gewijzigd.</string>
+	<key>native.botSettings.notApplied</key>
+	<string>De gateway nam de wijziging aan maar paste hem niet toe.</string>
+	<key>native.botSettings.notSynced</key>
+	<string>De naam, kleur, pin, demping en het archief worden opgeslagen zodra Hermie met de gateway is gesynchroniseerd.</string>
+	<key>native.botSettings.offline</key>
+	<string>Maak verbinding met de gateway om deze instellingen te wijzigen.</string>
+	<key>native.botSettings.open</key>
+	<string>Bot-instellingen openen</string>
+	<key>native.botSettings.personality</key>
+	<string>Persoonlijkheid</string>
+	<key>native.botSettings.personalityEmpty</key>
+	<string>Er is geen persoonlijkheid ingesteld.</string>
+	<key>native.botSettings.personalityHint</key>
+	<string>De instructies die deze bot zijn karakter geven: het SOUL.md-bestand van zijn profiel op de gateway. Wordt als gewone tekst getoond.</string>
+	<key>native.botSettings.photoLarge</key>
+	<string>Die foto kon niet worden voorbereid. Kies een andere.</string>
+	<key>native.botSettings.readOnly</key>
+	<string>Je account kan deze bot bekijken maar niet wijzigen.</string>
+	<key>native.botSettings.revert</key>
+	<string>Terugzetten</string>
+	<key>native.botSettings.skills</key>
+	<string>Skills</string>
+	<key>native.botSettings.title</key>
+	<string>Bot-instellingen</string>
+	<key>native.botSettings.toolsets</key>
+	<string>Toolsets</string>
+	<key>native.botSettings.unsupported</key>
+	<string>Deze gateway biedt deze instellingen niet aan.</string>
 	<key>native.chat.copyDiagnostics</key>
 	<string>Diagnose kopiëren</string>
 	<key>native.chat.diagnosticsCopied</key>
