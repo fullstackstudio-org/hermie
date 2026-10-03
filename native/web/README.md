@@ -54,7 +54,9 @@ compress. The build is shaped around that:
 - **No source maps in the bundle.** They are written next to it, to `dist-maps/`, and uploaded as a CI
   artefact.
 - **ASCII only.** The plugin scanner flags invisible Unicode, so the build escapes non-ASCII text instead of
-  leaving it for the scanner to judge.
+  leaving it for the scanner to judge. esbuild's `charset` option does not reach a regular expression
+  literal, so a small plugin in `vite.config.ts` writes whatever non-ASCII is left in the chunks as `\uXXXX`
+  (the shared Markdown package has such a literal: a pair of curly quotes in a character class).
 - **Nothing inlined as a `data:` URI**; the document's policy allows `data:` for images only.
 - **The policy travels with the document** (`index.html`): the route sets no security headers. No inline
   script, no inline style, nothing but this origin, Trusted Types required. `frame-ancestors` cannot be set
@@ -236,6 +238,47 @@ interrupt, an approval and a clarify raised through `/__fake/request`, and a soc
 duplicate and no lost item. The ported Expo tests run the controller on `immediateFrames`, which commits every
 write at once as the Expo store did; the batching itself is `core/ingest.test.ts`'s.
 
+## Markdown
+
+`src/markdown/` draws a message as React elements. The text goes through `@hermie/markdown` (`preprocessMarkdown`,
+`splitBlocks`, then `marked.lexer` per block, the same three steps the Expo app and the corpus use) and the tokens
+become elements; no HTML string is made anywhere, so there is nothing to sanitise.
+
+```tsx
+<Markdown text={message.text} gatewayBaseUrl={baseUrl} />
+```
+
+| File                     | What                                                                                                 |
+| ------------------------ | ---------------------------------------------------------------------------------------------------- |
+| `markdown/Markdown.tsx`  | the component: one memoised child per top-level block, keyed by its index and a hash of its source   |
+| `markdown/Block.tsx`     | block tokens: paragraph, heading, list (nested, ordered, task), quote, rule, fence, raw HTML as text |
+| `markdown/Inline.tsx`    | inline tokens: strong, em, del, code, line breaks, links, images                                     |
+| `markdown/CodeBlock.tsx` | a fence: language label, copy button with a polite live announcement, a box that scrolls sideways    |
+| `markdown/Table.tsx`     | a table in its own focusable scroll container, `th scope="col"`                                      |
+| `markdown/links.ts`      | the two allow-lists: which links may be anchors, which images may load                               |
+| `markdown/markdown.css`  | the styles, on tokens that follow the reader's colour scheme                                         |
+
+The rules, each pinned by a test:
+
+- Raw HTML in a message, block or inline, is shown as the characters that were typed. An entity stays as written.
+- A link is an anchor only for `http:`, `https:` and `mailto:` (`target="_blank"`, `rel="noopener noreferrer"`).
+  Any other link keeps its words and loses the link. The check is anchored at the first character, so a leading
+  space, a control character or a case trick does not get past it.
+- An image loads (`<img loading="lazy">`) only from the gateway's origin: a path is joined onto
+  `gatewayBaseUrl`, an address must have the same origin. Any other `http(s)` image is a link with the alt text;
+  anything else, and any image when there is no `gatewayBaseUrl`, is its alt text. An image that fails to load
+  falls back to its alt text.
+- `math` and `mermaid` blocks, and inline math, show their source until the renderers for them arrive (W-21).
+- While a reply streams, a block whose source did not change is not rendered again and keeps its DOM element.
+
+`markdown/*.structure.test.tsx` reads the rendered DOM back into the block model and compares it with every input of
+`contract/markdown/blocks.json` and `inline.json`; `*.streaming.test.tsx` replays `streaming.json`;
+`*.hostile.test.tsx` renders hostile input and checks the result against a closed list of elements and attributes.
+
+`src/dev/markdown-fixtures.tsx` is a page with every kind of block, for the eye and for axe
+(`markdown-fixtures.axe.test.tsx`): run `npm run client:dev` and open `/dev/markdown.html`. Nothing the build reaches
+imports `src/dev/` (a test checks it), so it is not in `dist/`.
+
 ## Layout
 
 ```
@@ -256,6 +299,8 @@ src/
   test-support/             test doubles: an IndexedDB, a fetch, a fetch with a cookie jar, a chat
                             gateway, the page's visibility and network, and a copy of the Expo app's
                             reader's-own-chat directory for the sub-chats test
+  markdown/                 a message as React elements (above)
+  dev/                      development-only pages, not reached by the build (dev/markdown.html serves one)
   Placeholder.tsx           what a signed-in reader sees for now: heading and build label
   build-info.ts             version and commit injected by the build
   ui/base.css               page ground for both colour schemes (the policy forbids inline styles)
@@ -274,19 +319,21 @@ turn text into markup at all.
 
 Every third-party package, and why it is here. Anything beyond this list needs a decision first.
 
-| Package                                                            | Kind    | Why                                                                                                                                                                                                                                          |
-| ------------------------------------------------------------------ | ------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `react`, `react-dom` (19.1.0)                                      | runtime | the UI; the same version as the Expo app, so the ported logic runs on the React it was written against                                                                                                                                       |
-| `zustand` (5.0.15)                                                 | runtime | the stores the ported controllers already use; about 1 kB, no dependencies. Declared for the work that follows: the smoke page does not import it, so it is not in the bundle yet                                                            |
-| `@hermes/shared`, `@hermie/gateway-client`, `@hermie/transcript`   | runtime | this repository's own packages (wire contract, gateway connection, transcript engine); used as they are. `@noble/hashes` comes in through `@hermie/gateway-client`. The boot uses `@hermie/gateway-client` (probe, cookie session, identity) |
-| `@hermie/fake-gateway`                                             | dev     | this repository's stand-in gateway; the boot's integration test runs it in process                                                                                                                                                           |
-| `vite` (7.3.6)                                                     | dev     | the bundler and dev server                                                                                                                                                                                                                   |
-| `@vitejs/plugin-react` (5.1.4)                                     | dev     | the JSX transform and fast refresh                                                                                                                                                                                                           |
-| `vitest` (3.2.7), `jsdom` (26.1.0)                                 | dev     | unit and component tests in a simulated browser; `vitest` is also what the rest of the repository tests with                                                                                                                                 |
-| `@testing-library/react` (16.3.3), `@testing-library/dom` (10.4.2) | dev     | component tests that query by role and text rather than by implementation; `@testing-library/dom` is a required peer of the React package                                                                                                    |
-| `@types/react`, `@types/react-dom`                                 | dev     | type definitions for React                                                                                                                                                                                                                   |
-| `typescript`, `eslint`, `prettier`                                 | dev     | from the repository root, shared with every workspace                                                                                                                                                                                        |
+| Package                                                                              | Kind    | Why                                                                                                                                                                                                                                                         |
+| ------------------------------------------------------------------------------------ | ------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `react`, `react-dom` (19.1.0)                                                        | runtime | the UI; the same version as the Expo app, so the ported logic runs on the React it was written against                                                                                                                                                      |
+| `zustand` (5.0.15)                                                                   | runtime | the stores the ported controllers already use; about 1 kB, no dependencies. Declared for the work that follows: the smoke page does not import it, so it is not in the bundle yet                                                                           |
+| `@hermes/shared`, `@hermie/gateway-client`, `@hermie/transcript`, `@hermie/markdown` | runtime | this repository's own packages (wire contract, gateway connection, transcript engine, Markdown core); used as they are. `@noble/hashes` comes in through `@hermie/gateway-client`. The boot uses `@hermie/gateway-client` (probe, cookie session, identity) |
+| `@hermie/fake-gateway`                                                               | dev     | this repository's stand-in gateway; the boot's integration test runs it in process                                                                                                                                                                          |
+| `vite` (7.3.6)                                                                       | dev     | the bundler and dev server                                                                                                                                                                                                                                  |
+| `@vitejs/plugin-react` (5.1.4)                                                       | dev     | the JSX transform and fast refresh                                                                                                                                                                                                                          |
+| `vitest` (3.2.7), `jsdom` (26.1.0)                                                   | dev     | unit and component tests in a simulated browser; `vitest` is also what the rest of the repository tests with                                                                                                                                                |
+| `@testing-library/react` (16.3.3), `@testing-library/dom` (10.4.2)                   | dev     | component tests that query by role and text rather than by implementation; `@testing-library/dom` is a required peer of the React package                                                                                                                   |
+| `axe-core` (4.13.0)                                                                  | dev     | the accessibility checker the Markdown fixture page is tested with (`markdown-fixtures.axe.test.tsx`); MPL-2.0, test-only, not in the bundle                                                                                                                |
+| `@types/react`, `@types/react-dom`                                                   | dev     | type definitions for React                                                                                                                                                                                                                                  |
+| `typescript`, `eslint`, `prettier`                                                   | dev     | from the repository root, shared with every workspace                                                                                                                                                                                                       |
 
 Not added yet, because nothing uses them: `@playwright/test` and `@axe-core/playwright` for the end-to-end
-and accessibility suites, and `@hermie/markdown` (a package that does not exist yet). The licence text of every
+and accessibility suites. `@hermie/markdown` brings `marked` (and `highlight.js`, which nothing here imports
+yet) into the bundle once a screen renders a message. The licence text of every
 runtime dependency is meant to ship in `dist/licenses.json` and be shown in About; that is not generated yet.
