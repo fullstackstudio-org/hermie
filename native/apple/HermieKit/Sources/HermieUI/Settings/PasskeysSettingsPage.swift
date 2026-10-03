@@ -322,9 +322,22 @@ struct PasskeyInviteView: View {
   }
 }
 
-/// The pasteboard for a code: it stays on this device and goes when the code expires.
+/// The pasteboard for a code. On iOS it stays on this device and the system removes it when the code
+/// expires. On macOS it is written with the markers that clipboard managers honour (concealed and
+/// transient, so it is not kept in their history) and cleared when the code expires, if the
+/// pasteboard still holds that value (nothing else was copied meanwhile). macOS has no local-only
+/// pasteboard, so a Universal Clipboard to a nearby device is not prevented, and if the app is quit
+/// before the code expires the value stays until the next copy.
 @MainActor
 enum PasskeyCodeBoard {
+  /// The markers of nspasteboard.org: a clipboard manager skips what carries them.
+  static let concealedType = "org.nspasteboard.ConcealedType"
+  static let transientType = "org.nspasteboard.TransientType"
+
+  #if os(macOS)
+    private static var clearing: Task<Void, Never>?
+  #endif
+
   static func copy(_ invite: PasskeyInvite) {
     #if os(iOS)
       var options: [UIPasteboard.OptionsKey: Any] = [.localOnly: true]
@@ -335,10 +348,47 @@ enum PasskeyCodeBoard {
 
       UIPasteboard.general.setItems([["public.utf8-plain-text": invite.code]], options: options)
     #elseif os(macOS)
-      NSPasteboard.general.clearContents()
-      NSPasteboard.general.setString(invite.code, forType: .string)
+      let board = NSPasteboard.general
+      let written = write(invite.code, to: board)
+
+      clearing?.cancel()
+      clearing = nil
+
+      guard let expires = invite.expiresAt else { return }
+
+      let code = invite.code
+      clearing = Task { @MainActor in
+        let wait = expires.timeIntervalSinceNow
+
+        if wait > 0 {
+          try? await Task.sleep(for: .seconds(wait))
+        }
+
+        guard !Task.isCancelled else { return }
+        clearIfUnchanged(board, written: written, code: code)
+      }
     #endif
   }
+
+  #if os(macOS)
+    /// Put `code` on `board` with the concealed and transient markers; the change count after it.
+    static func write(_ code: String, to board: NSPasteboard) -> Int {
+      let concealed = NSPasteboard.PasteboardType(concealedType)
+      let transient = NSPasteboard.PasteboardType(transientType)
+      board.clearContents()
+      board.declareTypes([.string, concealed, transient], owner: nil)
+      board.setString(code, forType: .string)
+      board.setData(Data(), forType: concealed)
+      board.setData(Data(), forType: transient)
+      return board.changeCount
+    }
+
+    /// Remove the code from the pasteboard when it is still what the pasteboard holds.
+    static func clearIfUnchanged(_ board: NSPasteboard, written: Int, code: String) {
+      guard board.changeCount == written, board.string(forType: .string) == code else { return }
+      board.clearContents()
+    }
+  #endif
 }
 
 /// The row to the Passkeys page in Settings → Gateways: the live gateway's, when this build has

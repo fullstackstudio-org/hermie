@@ -547,8 +547,12 @@ rate limited, unreadable, off for a reason (`disabled`, `no_base_url`, `private_
 `no_identity`), the identity not accepted, not enrolled, enrolled), lists the passkeys of the
 account (name, added, last used), removes one after a confirmation (a step-up, so the system's sheet
 asks), enrols with a code ("Add with a code"), and, where the operator allows it, "Create a code for
-another device", which shows the code with a copy button (the pasteboard keeps it on this device and
-drops it when it expires) and when it expires, and forgets it when the page goes away. A dismissed
+another device", which shows the code with a copy button and when it expires, and forgets it when the
+page goes away. The copy stays on this device on iOS (local-only, with an expiry the system honours).
+On macOS it carries the concealed and transient pasteboard markers (`org.nspasteboard.*`, so clipboard
+managers skip it) and is cleared when the code expires if the pasteboard still holds it; macOS has no
+local-only pasteboard (Universal Clipboard is not prevented), and a value stays until the next copy
+if the app is quit before the code expires. A dismissed
 system sheet is not an error; every other failure is said in words.
 
 **Testing the sheet.** The shipped apps have no software authenticator, so the sheet and the page

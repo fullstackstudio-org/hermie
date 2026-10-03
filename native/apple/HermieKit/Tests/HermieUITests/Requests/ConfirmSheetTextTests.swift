@@ -7,6 +7,20 @@ import Testing
 
 @Suite("Confirm sheet words")
 struct ConfirmSheetTextTests {
+  @Test("after a possible delivery no sentence says that nothing was confirmed")
+  func unknownDelivery() {
+    let unknown = ConfirmSheetText.status(for: .ended(.outcomeUnknown))?.text ?? ""
+    let retry = ConfirmSheetText.status(for: .notSent("x"), mayHaveArrived: true)?.text ?? ""
+    let plain = ConfirmSheetText.status(for: .notSent("x"))?.text ?? ""
+
+    for text in [unknown, retry] {
+      #expect(text.contains("may have reached the gateway"), "\(text)")
+      #expect(!text.localizedCaseInsensitiveContains("nothing was confirmed"), "\(text)")
+    }
+
+    #expect(retry != plain)
+  }
+
   @Test("every state of a confirmation has its own words, and waiting has none")
   func statuses() {
     #expect(ConfirmSheetText.status(for: .waiting) == nil)
@@ -14,7 +28,8 @@ struct ConfirmSheetTextTests {
     let phases: [PasskeyConfirmPhase] = [
       .signing, .sending, .refused(reason: "signature_invalid"), .notSent("x"), .received, .declined,
       .ended(.timedOut), .ended(.answeredElsewhere), .ended(.tooManyAttempts), .ended(.verificationFailed),
-      .ended(.notAllowed), .ended(.unavailable(reason: "no_credential")), .ended(.withdrawn(reason: "cancelled"))
+      .ended(.notAllowed), .ended(.unavailable(reason: "no_credential")), .ended(.withdrawn(reason: "cancelled")),
+      .ended(.outcomeUnknown)
     ]
 
     for phase in phases {
