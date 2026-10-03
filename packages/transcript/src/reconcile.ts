@@ -284,6 +284,7 @@ function rebuild(state: ChatState, list: readonly TranscriptItem[]): ChatState {
     items: {},
     order: [],
     byToolId: {},
+    byCallKey: {},
     byRowId: {},
     byRequestId: {},
     byApprovalId: {},
@@ -316,6 +317,13 @@ function rebuild(state: ChatState, list: readonly TranscriptItem[]): ChatState {
 
     if (toolKey) {
       next.byToolId[toolKey] = placed.id
+    }
+
+    if (
+      (placed.kind === 'tool' || placed.kind === 'bot_dm_out' || placed.kind === 'subagent_group') &&
+      placed.callKey
+    ) {
+      next.byCallKey[placed.callKey] = placed.id
     }
 
     if (placed.kind === 'bot_dm_out' && placed.dispatch.processId) {

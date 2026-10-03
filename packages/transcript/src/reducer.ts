@@ -93,6 +93,7 @@ function editable(state: ChatState): ChatState {
     items: { ...state.items },
     order: [...state.order],
     byToolId: { ...state.byToolId },
+    byCallKey: { ...state.byCallKey },
     byRowId: { ...state.byRowId },
     byRequestId: { ...state.byRequestId },
     byApprovalId: { ...state.byApprovalId },
@@ -106,6 +107,10 @@ function editable(state: ChatState): ChatState {
 function indexItem(next: ChatState, item: TranscriptItem): void {
   if (item.rowId !== undefined) {
     next.byRowId[String(item.rowId)] = item.id
+  }
+
+  if ((item.kind === 'tool' || item.kind === 'bot_dm_out' || item.kind === 'subagent_group') && item.callKey) {
+    next.byCallKey[item.callKey] = item.id
   }
 
   if (item.kind === 'tool' || item.kind === 'bot_dm_out') {

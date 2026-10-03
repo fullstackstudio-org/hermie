@@ -2403,5 +2403,411 @@
       }
     ],
     "test": "display_metadata.author (HERM-83) > resolves the same author from the REST and the RPC shape of one row"
+  },
+  {
+    "calls": [
+      {
+        "args": [
+          [
+            {
+              "call_index": 0,
+              "call_row_id": 11,
+              "context": "read_file(a.md)",
+              "name": "read_file",
+              "role": "tool",
+              "row_id": 12,
+              "tool_call_id": "call_0"
+            }
+          ],
+          "rpc"
+        ],
+        "op": "rowsToItems",
+        "result": [
+          {
+            "callKey": "11/0",
+            "context": "read_file(a.md)",
+            "id": "t:call_0",
+            "kind": "tool",
+            "name": "read_file",
+            "origin": "history",
+            "resultKnown": false,
+            "rowId": 12,
+            "seq": 0,
+            "status": "complete",
+            "summary": "read_file(a.md)",
+            "toolId": "call_0",
+            "version": 0
+          }
+        ]
+      }
+    ],
+    "test": "row identity > reads an RPC tool row by its tool_call_id, its row id and its call identity"
+  },
+  {
+    "calls": [
+      {
+        "args": [
+          [
+            {
+              "call_index": 1,
+              "call_row_id": 11,
+              "id": 12,
+              "name": "read_file",
+              "role": "tool",
+              "tool_id": "call_0"
+            }
+          ],
+          "rest"
+        ],
+        "op": "rowsToItems",
+        "result": [
+          {
+            "callKey": "11/1",
+            "id": "t:call_0",
+            "kind": "tool",
+            "name": "read_file",
+            "origin": "history",
+            "resultKnown": false,
+            "rowId": 12,
+            "seq": 0,
+            "status": "complete",
+            "toolId": "call_0",
+            "version": 0
+          }
+        ]
+      }
+    ],
+    "test": "row identity > reads a REST tool row by its tool_id, its id and its call identity"
+  },
+  {
+    "calls": [
+      {
+        "args": [
+          [
+            {
+              "name": "a",
+              "role": "tool",
+              "tool_call_id": "two",
+              "tool_id": "one"
+            },
+            {
+              "name": "b",
+              "role": "tool"
+            }
+          ],
+          "rpc"
+        ],
+        "op": "rowsToItems",
+        "result": [
+          {
+            "id": "t:one",
+            "kind": "tool",
+            "name": "a",
+            "origin": "history",
+            "resultKnown": false,
+            "seq": 0,
+            "status": "complete",
+            "toolId": "one",
+            "version": 0
+          },
+          {
+            "id": "t:row-1",
+            "kind": "tool",
+            "name": "b",
+            "origin": "history",
+            "resultKnown": false,
+            "seq": 1000,
+            "status": "complete",
+            "toolId": "row-1",
+            "version": 0
+          }
+        ]
+      }
+    ],
+    "test": "row identity > prefers tool_id over tool_call_id and falls back to the row index"
+  },
+  {
+    "calls": [
+      {
+        "args": [
+          [
+            {
+              "name": "read_file",
+              "role": "tool",
+              "tool_id": "call_1"
+            }
+          ],
+          "rpc"
+        ],
+        "op": "rowsToItems",
+        "result": [
+          {
+            "id": "t:call_1",
+            "kind": "tool",
+            "name": "read_file",
+            "origin": "history",
+            "resultKnown": false,
+            "seq": 0,
+            "status": "complete",
+            "toolId": "call_1",
+            "version": 0
+          }
+        ]
+      }
+    ],
+    "test": "row identity > leaves a tool row with no identity exactly as it was"
+  },
+  {
+    "calls": [
+      {
+        "args": [
+          [
+            {
+              "call_row_id": 11,
+              "name": "a",
+              "role": "tool",
+              "tool_id": "x"
+            },
+            {
+              "call_index": 0,
+              "name": "b",
+              "role": "tool",
+              "tool_id": "y"
+            },
+            {
+              "call_index": 0,
+              "call_row_id": "11",
+              "name": "c",
+              "role": "tool",
+              "tool_id": "z"
+            },
+            {
+              "call_index": -1,
+              "call_row_id": 11,
+              "name": "d",
+              "role": "tool",
+              "tool_id": "w"
+            }
+          ],
+          "rpc"
+        ],
+        "op": "rowsToItems",
+        "result": [
+          {
+            "id": "t:x",
+            "kind": "tool",
+            "name": "a",
+            "origin": "history",
+            "resultKnown": false,
+            "seq": 0,
+            "status": "complete",
+            "toolId": "x",
+            "version": 0
+          },
+          {
+            "id": "t:y",
+            "kind": "tool",
+            "name": "b",
+            "origin": "history",
+            "resultKnown": false,
+            "seq": 1000,
+            "status": "complete",
+            "toolId": "y",
+            "version": 0
+          },
+          {
+            "id": "t:z",
+            "kind": "tool",
+            "name": "c",
+            "origin": "history",
+            "resultKnown": false,
+            "seq": 2000,
+            "status": "complete",
+            "toolId": "z",
+            "version": 0
+          },
+          {
+            "id": "t:w",
+            "kind": "tool",
+            "name": "d",
+            "origin": "history",
+            "resultKnown": false,
+            "seq": 3000,
+            "status": "complete",
+            "toolId": "w",
+            "version": 0
+          }
+        ]
+      }
+    ],
+    "test": "row identity > refuses half a call identity and malformed halves"
+  },
+  {
+    "calls": [
+      {
+        "args": [
+          [
+            {
+              "args": {
+                "message": "hi",
+                "target": "@bob"
+              },
+              "call_index": 0,
+              "call_row_id": 3,
+              "name": "message_agent",
+              "role": "tool",
+              "tool_id": "dm"
+            },
+            {
+              "args": {
+                "goal": "g"
+              },
+              "call_index": 1,
+              "call_row_id": 3,
+              "name": "delegate_task",
+              "role": "tool",
+              "tool_id": "dg"
+            }
+          ],
+          "rpc"
+        ],
+        "op": "rowsToItems",
+        "result": [
+          {
+            "callKey": "3/0",
+            "dispatch": {
+              "status": "unknown"
+            },
+            "id": "t:dm",
+            "kind": "bot_dm_out",
+            "message": "hi",
+            "origin": "history",
+            "seq": 0,
+            "target": "@bob",
+            "targetHandle": "bob",
+            "toolId": "dm",
+            "version": 0
+          },
+          {
+            "callKey": "3/1",
+            "goals": [
+              "g"
+            ],
+            "id": "t:dg",
+            "kind": "subagent_group",
+            "origin": "history",
+            "rootIds": [],
+            "seq": 1000,
+            "status": "dispatched",
+            "toolId": "dg",
+            "version": 0
+          }
+        ]
+      }
+    ],
+    "test": "row identity > carries the call identity onto a message_agent and a delegate_task row"
+  },
+  {
+    "calls": [
+      {
+        "args": [
+          [
+            {
+              "display_metadata": {
+                "author": {
+                  "id": "a:1"
+                },
+                "turn_id": "abc123"
+              },
+              "role": "user",
+              "row_id": 1,
+              "text": "hello"
+            },
+            {
+              "display_metadata": "{\"turn_id\":\"def456\"}",
+              "role": "user",
+              "row_id": 2,
+              "text": "again"
+            },
+            {
+              "role": "user",
+              "row_id": 3,
+              "text": "plain"
+            },
+            {
+              "display_metadata": {
+                "turn_id": ""
+              },
+              "role": "user",
+              "row_id": 4,
+              "text": "empty"
+            },
+            {
+              "display_metadata": {
+                "turn_id": 7
+              },
+              "role": "user",
+              "row_id": 5,
+              "text": "wrong"
+            }
+          ],
+          "rpc"
+        ],
+        "op": "rowsToItems",
+        "result": [
+          {
+            "author": {
+              "id": "a:1"
+            },
+            "id": "r:1",
+            "kind": "user",
+            "origin": "history",
+            "rowId": 1,
+            "seq": 0,
+            "text": "hello",
+            "turnId": "abc123",
+            "version": 0
+          },
+          {
+            "id": "r:2",
+            "kind": "user",
+            "origin": "history",
+            "rowId": 2,
+            "seq": 1000,
+            "text": "again",
+            "turnId": "def456",
+            "version": 0
+          },
+          {
+            "id": "r:3",
+            "kind": "user",
+            "origin": "history",
+            "rowId": 3,
+            "seq": 2000,
+            "text": "plain",
+            "version": 0
+          },
+          {
+            "id": "r:4",
+            "kind": "user",
+            "origin": "history",
+            "rowId": 4,
+            "seq": 3000,
+            "text": "empty",
+            "version": 0
+          },
+          {
+            "id": "r:5",
+            "kind": "user",
+            "origin": "history",
+            "rowId": 5,
+            "seq": 4000,
+            "text": "wrong",
+            "version": 0
+          }
+        ]
+      }
+    ],
+    "test": "row identity > reads the turn id off a user row, from an object or from its JSON text"
   }
 ]

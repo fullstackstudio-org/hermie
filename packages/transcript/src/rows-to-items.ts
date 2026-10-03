@@ -20,6 +20,7 @@ import {
   replyFromDeliveryOutput
 } from './bot-dm'
 import { type ParsedCronDelivery, parseCronDelivery } from './cron-delivery'
+import { callKeyOf, turnIdOfMetadata } from './identity'
 import { type InjectedRow, parseInjectedRow, stripSteerWrapper, unwrapSystemNote } from './injected'
 import {
   type AssistantItem,
@@ -432,7 +433,12 @@ export function rowsToItems(rows: readonly TranscriptRow[], shape: RowShape, opt
 
     if (role === 'tool') {
       const name = typeof row.name === 'string' ? row.name : 'tool'
-      const toolId = (typeof row.tool_id === 'string' && row.tool_id) || `row-${index}`
+      // RPC history names the call `tool_call_id`, the stored row (REST) `tool_id`.
+      const toolId =
+        (typeof row.tool_id === 'string' && row.tool_id) ||
+        (typeof row.tool_call_id === 'string' && row.tool_call_id) ||
+        `row-${index}`
+      const callKey = callKeyOf(row)
       const args = row.args ?? undefined
       const context = typeof row.context === 'string' && row.context ? row.context : undefined
 
@@ -442,6 +448,7 @@ export function rowsToItems(rows: readonly TranscriptRow[], shape: RowShape, opt
           id: `t:${toolId}`,
           kind: 'bot_dm_out',
           toolId,
+          ...(callKey ? { callKey } : {}),
           target,
           targetHandle: normalizeAgentTarget(target),
           message: typeof args?.message === 'string' ? args.message : '',
@@ -459,6 +466,7 @@ export function rowsToItems(rows: readonly TranscriptRow[], shape: RowShape, opt
           id: `t:${toolId}`,
           kind: 'subagent_group',
           toolId,
+          ...(callKey ? { callKey } : {}),
           goals: goalsFromArgs(args),
           rootIds: [],
           status: 'dispatched',
@@ -472,6 +480,7 @@ export function rowsToItems(rows: readonly TranscriptRow[], shape: RowShape, opt
         id: `t:${toolId}`,
         kind: 'tool',
         toolId,
+        ...(callKey ? { callKey } : {}),
         name,
         ...(context ? { context, summary: context } : {}),
         ...(args ? { args } : {}),
@@ -726,6 +735,8 @@ export function rowsToItems(rows: readonly TranscriptRow[], shape: RowShape, opt
     // `display_kind` — carries no author and must not be given one.
     const author = role === 'user' ? authorFromMetadata(row.display_metadata) : undefined
 
+    const turnId = role === 'user' ? turnIdOfMetadata(row.display_metadata) : undefined
+
     push<UserItem>({
       id: fallbackId,
       kind: 'user',
@@ -733,6 +744,7 @@ export function rowsToItems(rows: readonly TranscriptRow[], shape: RowShape, opt
       ...(stripped.attachments ? { attachments: stripped.attachments } : {}),
       ...(speechKind ? { displayKind: speechKind } : {}),
       ...(author ? { author } : {}),
+      ...(turnId ? { turnId } : {}),
       ...base
     })
   })
