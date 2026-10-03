@@ -31,18 +31,21 @@ production, and it forwards `/api`, `/auth` and `/login` (WebSocket included) to
 The development document relaxes its Content-Security-Policy so the dev server can work (inline scripts and
 styles, `ws:`, no Trusted Types). The production build never does; test against `dist/` to see the real policy.
 
-| Command                             | What it does                                                                                                        |
-| ----------------------------------- | ------------------------------------------------------------------------------------------------------------------- |
-| `npm run client:dev`                | the Vite dev server (above)                                                                                         |
-| `npm run client:build`              | `vite build`, then writes `dist/build.json`                                                                         |
-| `npm run client:test`               | the client's unit and component tests (vitest, jsdom, Testing Library)                                              |
-| `npm run client:check-bundle`       | the gate on `dist/` (below); `-- --commit <sha>` also requires `build.json` to name that commit                     |
-| `npm run client:check-reproducible` | builds twice from clean and compares every file; `-- --fresh-checkout` adds a build from `git archive HEAD`         |
-| `npm run client:e2e`                | the Playwright suites in Chromium, WebKit and Firefox (the transcript list's, the chat screen's and the composer's) |
+| Command                             | What it does                                                                                                     |
+| ----------------------------------- | ---------------------------------------------------------------------------------------------------------------- |
+| `npm run client:dev`                | the Vite dev server (above)                                                                                      |
+| `npm run client:build`              | `vite build`, then writes `dist/build.json`                                                                      |
+| `npm run client:test`               | the client's unit and component tests (vitest, jsdom, Testing Library)                                           |
+| `npm run client:check-bundle`       | the gate on `dist/` (below); `-- --commit <sha>` also requires `build.json` to name that commit                  |
+| `npm run client:check-reproducible` | builds twice from clean and compares every file; `-- --fresh-checkout` adds a build from `git archive HEAD`      |
+| `npm run client:guard-scan`         | the Hermes plugin scanner over `dist/`, fork and upstream at pinned commits (below)                              |
+| `npm run client:e2e`                | the black-box and accessibility suite on the built client, in Chromium, WebKit and Firefox ("The browser suite") |
+| `npm run client:e2e:perf`           | the transcript list's performance suite on the harness, in the same three engines ("The harness and the suite")  |
 
 Types, lint and format run with the rest of the repository (`npm run typecheck`, `npm run lint`,
-`npm run format`); `client:test`, the bundle gate and the Playwright suites (Chromium only) also run in CI as
-the `web-client` job.
+`npm run format`); `client:test`, the bundle gate, the plugin scanner, the reproducibility check and the
+performance suite (Chromium only) also run in CI as the `web-client` job, and the browser suite runs in all three
+engines as the `web-client-e2e` jobs.
 
 ## The build
 
@@ -60,6 +63,11 @@ compress. The build is shaped around that:
   leaving it for the scanner to judge. esbuild's `charset` option does not reach a regular expression
   literal, so a small plugin in `vite.config.ts` writes whatever non-ASCII is left in the chunks as `\uXXXX`
   (the shared Markdown package has such a literal: a pair of curly quotes in a character class).
+- **No `!` followed by a backtick in a string or a pattern.** The scanner's `inline_shell_exec` pattern (an inline
+  shell snippet of a Hermes skill) reads two of the Markdown code's regular expressions, which say "not followed
+  by a backtick", as a command: a HIGH finding and a `caution` verdict for an import. A second plugin in
+  `vite.config.ts` writes the backtick as `\x60` inside string and pattern literals (the same character, found
+  with the parser, so a template that follows a `!` is not touched).
 - **Nothing inlined as a `data:` URI**; the document's policy allows `data:` for images only.
 - **The policy travels with the document** (`index.html`): the route sets no security headers. No inline
   script, no inline style, nothing but this origin, Trusted Types required. `frame-ancestors` cannot be set
@@ -103,6 +111,31 @@ built from; the script warns, and such a build must not be imported.
   own document: one of them was imported by the client.
 
 It prints what it measured against each limit.
+
+### The plugin scanner
+
+`npm run client:guard-scan` (`scripts/web/guard-scan.mjs`) runs Hermes's own plugin scanner over `dist/`, the way
+the plugin repository's `guard-scan` job runs it over the tree the build is imported into (plan W3), so a finding
+shows up here and not in a pull request of another repository after the import. The rules it holds to:
+
+- it fetches `tools/` of the fork the gateways run and of upstream, each at the 40-character commit pinned in
+  `scripts/web/scanner-pins.json` (the same two commits as the plugin's `.github/scanner-pins.json`; move them
+  together). A branch or a tag cannot stand in for a pin, and a server that answers with another commit is an error;
+- it lays `dist/` under `dashboard/app/` of a synthetic plugin tree beside a minimal `plugin.yaml`, so the scanner
+  sees the paths it sees on an install, and calls `scan_plugin` and `should_allow_plugin_install` in a fresh
+  `python -I -B` child per scanner (the two define the same package name; `guard-scan-run.py` refuses a `tools`
+  that did not come from the checkout);
+- it passes only on a verdict of `safe` that the install would allow outright (`caution` fails), for both
+  scanners; there is no threshold of its own;
+- a gate that cannot run does not pass: a scanner that cannot be fetched or imported, one that prints no result,
+  a directory that is not a build (no `index.html` or `build.json`, almost no files) and a configuration with no
+  scanner all fail; a report line that could start a workflow command is made harmless before it reaches the log.
+
+The scanner needs Python 3.10 or newer (`GUARD_SCAN_PYTHON` names the interpreter; the runner's `python3` is
+3.12) and the network. `scripts/web/guard-scan.test.ts` tests the gate against a stand-in scanner (every verdict, a
+scanner that crashes or says nothing, the pins, the fetch from a local repository, what reaches the log), and with
+`GUARD_SCAN_REAL=1` against the real ones: the real build passes, and a build with a planted prompt-injection
+sentence does not. CI runs it that way after the gate itself.
 
 ### Reproducibility
 
@@ -388,20 +421,23 @@ every delta. A separate polite `role="status"` region says once, when the turn e
 each is replayed through the engine, the state after every step is committed to the store, and the rows on the
 page are compared with what the selectors say at each recorded checkpoint. The item views have their own tests;
 `chat.axe.test.tsx` runs axe in jsdom (both schemes, three languages, a conversation of every kind).
-`e2e/chat/open-chat.spec.ts` runs the **built** client in a browser against the fake gateway (started in the
-test, with `historyRows: 2000`, behind its dashboard route and cookie login; the client is built into a
-temporary directory by the test, so it is never a stale `dist/`):
+`e2e/chat.spec.ts` runs the **built** client in a browser against the fake gateway (a gateway of its own per test,
+with `historyRows: 2000` for the long-history group, behind its dashboard route and cookie login; the client is built
+into a temporary directory once per worker, so it is never a stale `dist/`; "The browser suite" below). The long
+history's checks:
 
 | Check                                                                                                                               | Result                 |
 | ----------------------------------------------------------------------------------------------------------------------------------- | ---------------------- |
 | open the chat: gap below the newest row in every frame from the first with rows; the bottom row never changes; again from the cache | 0 px; one bottom row   |
-| a 40-paragraph reply streamed in by the gateway: gap in every frame, `aria-busy`, one announcement at the end                       | 0 px; once             |
+| a 40-paragraph reply streamed in by the gateway: gap in every frame, the newest row followed                                        | 0 px                   |
 | scrolled up while a reply and a whole turn arrive: the row being read does not move; "Jump to latest" with a count; pressing it     | 0 px; focus on the log |
 | reaching the top asks for older history and keeps the reader's place                                                                | grew; still reading    |
-| axe with contrast, light and dark, with a tool line opened                                                                          | no violation           |
+
+A short reply streamed in from the gateway is a separate test: `aria-busy` while it runs, one announcement when it
+is whole. Axe, with contrast, is `e2e/a11y.spec.ts`.
 
 ```sh
-npm run e2e:chromium --workspace @hermie/web-client -- e2e/chat     # the chat screen's suite alone
+npm run e2e:chromium --workspace @hermie/web-client -- chat.spec.ts   # the chat screen's suite alone
 ```
 
 ## The composer
@@ -488,8 +524,9 @@ A bot's approval or question (`clarify`) is answered in `features/requests/`, a 
   them is handled here.
 
 `features/requests/RequestLayer.test.tsx` and `state/requests.test.ts` cover the above in jsdom, `requests.axe.test.tsx`
-runs axe on the composer and the layer (both schemes, every language), and `e2e/chat/compose.spec.ts` runs the **built**
-client against the fake gateway (streaming slowly, so a turn can be acted in the middle of):
+runs axe on the composer and the layer (both schemes, every language), and `e2e/chat.spec.ts` (sending and stopping)
+and `e2e/requests.spec.ts` run the **built** client against the fake gateway (streaming slowly, so a turn can be
+acted in the middle of):
 
 | Check                                                                                                                           | Result                          |
 | ------------------------------------------------------------------------------------------------------------------------------- | ------------------------------- |
@@ -502,7 +539,7 @@ client against the fake gateway (streaming slowly, so a turn can be acted in the
 | a withdrawn request closes; one raised before the page loaded is restored                                                       | closed; restored                |
 | clarify: a choice with the arrow keys, free text, a three-step batch with Skip, Skip on a single question                       | `{answer}` / `{answers}` / `''` |
 | the page behind the layer is inert; 320 px wide does not scroll sideways                                                        | inert; no overflow              |
-| axe with contrast, the layer open on an approval and on a batch, light and dark; nothing refused by the document's policy       | no violation                    |
+| a request still open when the page is reloaded is asked again; axe (`e2e/a11y.spec.ts`) on every sheet, light and dark          | asked once more; no violation   |
 
 ## Markdown
 
@@ -600,14 +637,15 @@ its marker, so none of it can reach `dist/`.
 | every recorded scenario's checkpoints, as rows on the page                                                                   | Chromium, WebKit, Firefox | exact                           |
 
 ```sh
-npx playwright install chromium webkit firefox      # once
-npm run client:e2e                                  # all three engines
-npm run e2e:chromium --workspace @hermie/web-client # what CI runs
-TRANSCRIPT_PERF_SECONDS=15 npm run client:e2e       # a shorter throttled run while working on it
+npx playwright install chromium webkit firefox                   # once
+npm run client:e2e:perf                                          # all three engines
+npm run e2e:perf:chromium --workspace @hermie/web-client         # what CI runs
+TRANSCRIPT_PERF_SECONDS=15 npm run client:e2e:perf               # a shorter throttled run while working on it
 ```
 
-CI runs Chromium only, in the `web-client` job; WebKit and Firefox are run by hand before a change to the
-list is merged. Every measure is printed and attached to the test's results.
+It has its own configuration, `playwright.perf.config.ts` (the harness server, which the black-box suite does not
+need). CI runs Chromium only, in the `web-client` job beside the bundle budgets; WebKit and Firefox are run by hand
+before a change to the list is merged. Every measure is printed and attached to the test's results.
 
 ### Measured
 
@@ -651,17 +689,58 @@ What the spike changed on the way:
 The rest of each frame is the engine: `applyEvent` copies the chat's indices on every event (about 1.4 ms per
 event on 5,000 items unthrottled), roughly two thirds of the JavaScript time while streaming.
 
+## The browser suite
+
+`e2e/*.spec.ts`, configured by `playwright.config.ts`: the built client in a real browser against the fake gateway,
+in Chromium, WebKit and Firefox. It is a black-box suite: the page is driven by roles and accessible names, the
+gateway by its control endpoints (`/__fake/state`, `request`, `withdraw-requests`, `drop-sockets`,
+`expire-sessions`, `inject`), and no test waits for time to pass: it waits for what the page shows (Playwright's
+auto-waiting), for what the gateway reports (`expect.poll`), or for the page to stop moving (`settled`, a number
+of frames in a row with the same answer).
+
+`e2e/fixtures.ts` is what every spec gets:
+
+- the production build, once per worker: `vite build` into a temporary directory, laid out as the plugin carries
+  it, then `build.json` written as `npm run client:build` does;
+- a fake gateway of its own per test, on a free port, in cookie mode, serving that build through its copy of the
+  dashboard's static route (`gatewayOptions` changes how it starts: history rows, a slow stream, a scenario);
+- `diagnostics`, on every test: any `console.error`, uncaught page error or `securitypolicyviolation` event fails
+  the test that caused it. A test that provokes one on purpose says so, where it does it
+  (`diagnostics.allow(/pattern/)`);
+- `app` (sign in, open a route, the field, Send, Stop, the dialog) and `seriousViolations` (axe with contrast).
+
+| Spec               | What it proves                                                                                                                                                                                                                                                                                                                                                   |
+| ------------------ | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `signin.spec.ts`   | an unauthenticated visit goes to the gateway's `/login` and signing in opens the client; a wrong password stays; a session lost before the first question ("Sign in again", the cookie deleted or ended by the gateway) restores the route after signing in; one lost while open is a signed-out line; a frame gets one sentence and makes no request to the API |
+| `chat.spec.ts`     | the list (names, previews, unread, arrow keys, one pane on a phone), opening a chat, sending, Stop, the queue, drafts, a reply streamed in by the gateway, a socket dropped mid-reply (one bubble, the gateway's words once) and idle, and 2,000 rows of history (opens at the bottom without moving, pinned, reading above, older history)                      |
+| `requests.spec.ts` | approval and clarify with the keyboard alone, deny, several at once, another bot's, withdrawn, restored on resume and after a reload, a modal page behind them, 320 px                                                                                                                                                                                           |
+| `a11y.spec.ts`     | axe, serious and critical, in light and dark: the chat list, a chat, the signed-out screen and every request sheet                                                                                                                                                                                                                                               |
+
+```sh
+npx playwright install chromium webkit firefox        # once
+npm run client:e2e                                    # all three engines
+npm run e2e:chromium --workspace @hermie/web-client   # one engine
+npm run e2e --workspace @hermie/web-client -- --project=webkit signin.spec.ts
+```
+
+Two things differ by engine and are handled in the specs, not hidden: WebKit logs a dropped socket on the console
+(the dropped-socket tests allow that one message), and Safari on macOS tabs only to links and fields, so the
+keyboard test reaches the approval button with Option+Tab there. CI runs each engine in a job of its own
+(`web-client-e2e`, on `ubuntu-24.04`, a failed test's trace uploaded); no path filter, so the check always reports.
+The Firefox build that Playwright ships does not start on every macOS; the CI job is where Firefox runs.
+
 ## Layout
 
 ```
 index.html                  the document: policy, one module script, empty #root
 vite.config.ts              base './', hashed assets, ASCII output, maps out of dist, dev server and proxy
 vitest.config.ts            jsdom, fixed stand-ins for the injected version and commit
-playwright.config.ts        the Playwright suites: three engines, the harness server (the chat suite starts its own gateway)
+playwright.config.ts        the browser suite: three engines, no web server (e2e/fixtures.ts starts a gateway per test)
+playwright.perf.config.ts   the performance suite: three engines, the harness server
 tsconfig.json               the client's code (DOM); tsconfig.node.json: the config files (Node);
                             tsconfig.e2e.json: the Playwright configuration and specs
 e2e/perf/                   the transcript list's performance suite and its trace reader
-e2e/chat/                   the chat screen and the composer on the built client, against the fake gateway
+e2e/                        the browser suite: fixtures.ts, signin, chat, requests and a11y specs
 scripts/
   write-build-manifest.mjs  dist/build.json
   source-commit.mjs         which commit this build is of (shared by the config and the manifest)
@@ -709,13 +788,13 @@ Every third-party package, and why it is here. Anything beyond this list needs a
 | `@vitejs/plugin-react` (5.1.4)                                                       | dev     | the JSX transform and fast refresh                                                                                                                                                                                                                          |
 | `vitest` (3.2.7), `jsdom` (26.1.0)                                                   | dev     | unit and component tests in a simulated browser; `vitest` is also what the rest of the repository tests with                                                                                                                                                |
 | `@testing-library/react` (16.3.3), `@testing-library/dom` (10.4.2)                   | dev     | component tests that query by role and text rather than by implementation; `@testing-library/dom` is a required peer of the React package                                                                                                                   |
-| `axe-core` (4.13.0)                                                                  | dev     | the accessibility checker the Markdown fixture page and the chat screen are tested with (`*.axe.test.tsx`, and injected into the page by the chat Playwright suite, where contrast can be measured); MPL-2.0, test-only, not in the bundle                  |
+| `axe-core` (4.13.0)                                                                  | dev     | the accessibility checker the Markdown fixture page and the chat screen are tested with (`*.axe.test.tsx`, and run in the browser by `@axe-core/playwright`, where contrast can be measured); MPL-2.0, test-only, not in the bundle                         |
+| `@axe-core/playwright` (4.13.0)                                                      | dev     | axe on a Playwright page: the accessibility specs (`e2e/a11y.spec.ts`); it depends on `axe-core` at the same minor, so the two cannot drift apart; MPL-2.0, test-only, not in the bundle                                                                    |
 | `@types/react`, `@types/react-dom`                                                   | dev     | type definitions for React                                                                                                                                                                                                                                  |
 | `@playwright/test` (1.63.0)                                                          | dev     | the end-to-end and performance suites in Chromium, WebKit and Firefox (plan, "Constraints"): the transcript list's and the chat screen's                                                                                                                    |
 | `typescript`, `eslint`, `prettier`                                                   | dev     | from the repository root, shared with every workspace                                                                                                                                                                                                       |
 
-Not added yet, because nothing uses them: `@axe-core/playwright` for the accessibility suites, and the
-pre-approved `@tanstack/react-virtual` (the transcript list did not need it, see "Measured" above).
+Not added yet, because nothing uses it: the pre-approved `@tanstack/react-virtual` (the transcript list did not need it, see "Measured" above).
 `@hermie/markdown` brings `marked` (and `highlight.js`, which nothing here imports
 yet) into the bundle once a screen renders a message. The licence text of every
 runtime dependency is meant to ship in `dist/licenses.json` and be shown in About; that is not generated yet.

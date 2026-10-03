@@ -571,6 +571,48 @@ To try the fake gateway by hand:
 npm run fake-gateway -- --auth token --token demo
 ```
 
+## Web client
+
+The browser client in `native/web` ([its README](../native/web/README.md) has the detail) is tested at four
+levels, each with its own command and its own place in CI.
+
+| Level                         | Command                                                                         | Where it runs in CI                  |
+| ----------------------------- | ------------------------------------------------------------------------------- | ------------------------------------ |
+| unit and component (jsdom)    | `npm run client:test`                                                           | `web-client`                         |
+| the build and what leaves it  | `npm run client:check-bundle`, `client:check-reproducible`, `client:guard-scan` | `web-client`                         |
+| a browser, end to end         | `npm run client:e2e`                                                            | `web-client-e2e`, one job per engine |
+| the transcript list's budgets | `npm run client:e2e:perf`                                                       | `web-client`, Chromium only          |
+
+**The browser suite** runs the real production build in Chromium, WebKit and Firefox against
+`packages/fake-gateway` in cookie mode, serving the build through its copy of the dashboard's static route. A
+gateway of its own per test on a free port means no test inherits another's open request, draft or cookie. The
+specs are black box: roles and accessible names for the page, the gateway's `/__fake/*` control endpoints for the
+gateway, and no sleeps (auto-waiting locators, `expect.poll` on the gateway's state, `settled` for "has stopped
+moving"). Every test fails on a console error, an uncaught page error or a `securitypolicyviolation`. What is
+covered: sign-in and a lost session (the redirect to the gateway's `/login`, "Sign in again", the route restored
+after it, a frame refusing to render), the chat (list, open, stream, send, stop, queue, drafts, a dropped socket
+without a duplicate, a long history), the request layer (approval, clarify, withdrawn, restored), and axe on every
+screen and sheet in both colour schemes (no serious or critical violation). To add a spec, import `test` and
+`expect` from `native/web/e2e/fixtures.ts`, not from `@playwright/test`.
+
+```sh
+npx playwright install chromium webkit firefox       # once
+npm run client:e2e                                   # all engines, from the repository root
+npm run e2e --workspace @hermie/web-client -- --project=webkit e2e/requests.spec.ts
+npx playwright show-trace native/web/test-results/<test>/trace.zip   # after a failure
+```
+
+**Required checks.** CI's `web-client-e2e` is a matrix, so branch protection needs the three check names
+(`Web client end to end (chromium)`, `(webkit)` and `(firefox)`) rather than one. The workflow has no path filter:
+a required check that a path filter keeps from starting leaves a pull request that touches none of the paths
+unmergeable.
+
+**The plugin scanner** (`npm run client:guard-scan`) runs the Hermes plugin scanner, fork and upstream at the commits
+pinned in `scripts/web/scanner-pins.json`, over `native/web/dist` laid into a synthetic plugin tree, and fails on
+anything but `safe`. It is the same scan the plugin repository runs before an import, run here first. It needs
+Python 3.10 or newer (`GUARD_SCAN_PYTHON`) and the network. When the plugin repository moves a scanner pin, move
+this one in the same change.
+
 ## Extensions
 
 The widgets, the share extension and the App Intents (compiled into the apps) read what the app
