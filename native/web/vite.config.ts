@@ -44,6 +44,39 @@ function manualChunks(id: string): string | undefined {
 }
 
 /**
+ * Writes what is left of non-ASCII text in the JavaScript as `\uXXXX`.
+ *
+ * `esbuild.charset: 'ascii'` escapes non-ASCII in strings, templates and
+ * identifiers, but not inside a regular expression literal (esbuild does not
+ * rewrite a pattern's source), so a dependency or a source file with a quote
+ * like U+201D in a character class would put a non-ASCII byte in the bundle and
+ * fail the plugin scanner's check. In a string, a template or a pattern the
+ * escape means the same character, so nothing about the program changes; and
+ * this only ever sees text the minifier left unescaped.
+ */
+function asciiOnlyScripts(): Plugin {
+  const anyNonAscii = /\P{ASCII}/u
+  const eachNonAscii = /\P{ASCII}/gu
+
+  // One `\uXXXX` per UTF-16 unit: a character outside the BMP becomes the
+  // surrogate pair, which a string, a template and a pattern all read as it.
+  const escape = (char: string): string =>
+    Array.from({ length: char.length }, (_, at) => `\\u${char.charCodeAt(at).toString(16).padStart(4, '0')}`).join('')
+
+  return {
+    name: 'hermie:ascii-only-scripts',
+    apply: 'build',
+    generateBundle(_options, bundle) {
+      for (const file of Object.values(bundle)) {
+        if (file.type === 'chunk' && anyNonAscii.test(file.code)) {
+          file.code = file.code.replace(eachNonAscii, escape)
+        }
+      }
+    }
+  }
+}
+
+/**
  * Moves `*.map` out of the output directory into `<outDir>-maps`. Vite can only
  * write maps beside the files they describe; the bundle that is imported into
  * the plugin must not contain them.
@@ -142,7 +175,7 @@ export default defineConfig(({ command }) => {
   return {
     root,
     base: './',
-    plugins: [react(), mapsOutsideOutDir(), relaxPolicyInDevelopment(), serveAtGatewayPath()],
+    plugins: [react(), asciiOnlyScripts(), mapsOutsideOutDir(), relaxPolicyInDevelopment(), serveAtGatewayPath()],
     define: {
       __HERMIE_VERSION__: JSON.stringify(packageJson.version),
       __HERMIE_COMMIT__: JSON.stringify(commit)

@@ -15,6 +15,7 @@
   "references": [
     { "path": "../../packages/hermes-shared" },
     { "path": "../../packages/gateway-client" },
+    { "path": "../../packages/markdown" },
     { "path": "../../packages/transcript" },
     // Tests only: the integration test boots against the fake gateway in process.
     { "path": "../../packages/fake-gateway" }
