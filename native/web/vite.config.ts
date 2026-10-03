@@ -5,6 +5,7 @@ import { fileURLToPath } from 'node:url'
 import react from '@vitejs/plugin-react'
 import { defineConfig, type Plugin } from 'vite'
 
+import { escapeNonAscii } from './scripts/ascii-only.mjs'
 import { resolveSourceCommit } from './scripts/source-commit.mjs'
 
 /**
@@ -46,34 +47,18 @@ function manualChunks(id: string): string | undefined {
 }
 
 /**
- * Writes what is left of non-ASCII text in the JavaScript as `\uXXXX`.
- *
- * `esbuild.charset: 'ascii'` escapes non-ASCII in strings, templates and
- * identifiers, but not inside a regular expression literal (esbuild does not
- * rewrite a pattern's source), so a dependency or a source file with a quote
- * like U+201D in a character class would put a non-ASCII byte in the bundle and
- * fail the plugin scanner's check. In a string, a template or a pattern the
- * escape means the same character, so nothing about the program changes; and
- * this only ever sees text the minifier left unescaped.
+ * Writes what is left of non-ASCII text in the JavaScript as `\uXXXX`, or fails
+ * the build where that would not mean the same thing (`scripts/ascii-only.mjs`
+ * says which, and why). Only ever sees text the minifier left unescaped.
  */
 function asciiOnlyScripts(): Plugin {
-  // Non-ASCII, and the control characters a minified chunk can only hold inside
-  // a string, a template or a pattern (tab, newline and carriage return stay).
-  const anyNonAscii = /[^\t\n\r\x20-\x7e]/u
-  const eachNonAscii = /[^\t\n\r\x20-\x7e]/gu
-
-  // One `\uXXXX` per UTF-16 unit: a character outside the BMP becomes the
-  // surrogate pair, which a string, a template and a pattern all read as it.
-  const escape = (char: string): string =>
-    Array.from({ length: char.length }, (_, at) => `\\u${char.charCodeAt(at).toString(16).padStart(4, '0')}`).join('')
-
   return {
     name: 'hermie:ascii-only-scripts',
     apply: 'build',
     generateBundle(_options, bundle) {
       for (const file of Object.values(bundle)) {
-        if (file.type === 'chunk' && anyNonAscii.test(file.code)) {
-          file.code = file.code.replace(eachNonAscii, escape)
+        if (file.type === 'chunk') {
+          file.code = escapeNonAscii(file.code, code => this.parse(code), file.fileName)
         }
       }
     }
@@ -204,6 +189,7 @@ function relaxPolicyInDevelopment(): Plugin {
           .replace("style-src 'self'", "style-src 'self' 'unsafe-inline'")
           .replace("connect-src 'self'", "connect-src 'self' ws: wss:")
           .replace(/;\s*require-trusted-types-for 'script'/, '')
+          .replace(/;\s*trusted-types 'none'/, '')
         return `${open}${relaxed}${close}`
       })
     }

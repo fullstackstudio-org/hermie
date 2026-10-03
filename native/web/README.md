@@ -62,7 +62,10 @@ compress. The build is shaped around that:
 - **ASCII only.** The plugin scanner flags invisible Unicode, so the build escapes non-ASCII text instead of
   leaving it for the scanner to judge. esbuild's `charset` option does not reach a regular expression
   literal, so a small plugin in `vite.config.ts` writes whatever non-ASCII is left in the chunks as `\uXXXX`
-  (the shared Markdown package has such a literal: a pair of curly quotes in a character class).
+  (the shared Markdown package has such a literal: a pair of curly quotes in a character class). It fails the
+  build instead where the escape would not mean the same: after an odd run of backslashes (the character is
+  already escaped) and inside a tagged template (the tag reads the raw text). A pattern's `.source` shows the
+  escape, not the character; nothing here reads it. The transform is `scripts/ascii-only.mjs`.
 - **No `!` followed by a backtick in a string or a pattern.** The scanner's `inline_shell_exec` pattern (an inline
   shell snippet of a Hermes skill) reads two of the Markdown code's regular expressions, which say "not followed
   by a backtick", as a command: a HIGH finding and a `caution` verdict for an import. A second plugin in
