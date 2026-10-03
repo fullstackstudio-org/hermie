@@ -14,8 +14,8 @@
     },
     "applyEvent": {
       "readsClock": false,
-      "recorded": 1448,
-      "replayable": 1448,
+      "recorded": 1838,
+      "replayable": 1838,
       "skipped": {}
     },
     "applyProcessCompletion": {
@@ -26,8 +26,8 @@
     },
     "applyResumeSnapshot": {
       "readsClock": false,
-      "recorded": 99,
-      "replayable": 99,
+      "recorded": 127,
+      "replayable": 127,
       "skipped": {}
     },
     "applyServerRequest": {
@@ -56,8 +56,8 @@
     },
     "beginLocalTurn": {
       "readsClock": false,
-      "recorded": 207,
-      "replayable": 207,
+      "recorded": 209,
+      "replayable": 209,
       "skipped": {}
     },
     "beginSteer": {
@@ -88,8 +88,8 @@
     },
     "confirmSubmit": {
       "readsClock": false,
-      "recorded": 166,
-      "replayable": 166,
+      "recorded": 168,
+      "replayable": 168,
       "skipped": {}
     },
     "contextUsageOf": {
@@ -108,8 +108,8 @@
     },
     "createChatState": {
       "readsClock": false,
-      "recorded": 573,
-      "replayable": 573,
+      "recorded": 575,
+      "replayable": 575,
       "skipped": {}
     },
     "deliveryTargetFromCommand": {
@@ -286,8 +286,8 @@
     },
     "reconcile": {
       "readsClock": false,
-      "recorded": 344,
-      "replayable": 344,
+      "recorded": 402,
+      "replayable": 402,
       "skipped": {}
     },
     "reconcileTail": {
@@ -304,8 +304,8 @@
     },
     "rowsToItems": {
       "readsClock": false,
-      "recorded": 678,
-      "replayable": 678,
+      "recorded": 736,
+      "replayable": 736,
       "skipped": {}
     },
     "runningSubagents": {
@@ -316,14 +316,14 @@
     },
     "snapshotForCache": {
       "readsClock": false,
-      "recorded": 55,
-      "replayable": 55,
+      "recorded": 83,
+      "replayable": 83,
       "skipped": {}
     },
     "stateFromCache": {
       "readsClock": false,
-      "recorded": 50,
-      "replayable": 50,
+      "recorded": 78,
+      "replayable": 78,
       "skipped": {}
     },
     "stripSteerWrapper": {

@@ -183,6 +183,54 @@ name one routing alias. `normalizeAgentTarget` reduces them the same way the
 desktop does: strip a leading `@`, strip an `@<connection>` suffix, keep the last
 `/` segment, lowercase.
 
+## A row is paired by its id
+
+One persisted row is one item, on every path a chat can arrive on: live
+streaming, a chat reopened from a cache saved mid-turn, a reconnect replay
+(`session.events.since`), a tail sweep, a resume, and any mix of them. A gateway
+that knows which row a frame is about says so, and the engine pairs by that and
+by nothing else: no words, no stream position, no watermark.
+
+**The fields** (all optional, read by `identity.ts`):
+
+| where                                             | field                       | names                                                     |
+| ------------------------------------------------- | --------------------------- | --------------------------------------------------------- |
+| event envelope (`TranscriptEvent`)                | `turn_id`                   | the turn this frame belongs to                            |
+| `message.interim`, `message.complete`             | `row_id`                    | the assistant row the note or reply was persisted as      |
+| `tool.start`, `tool.complete`, `tool.output_risk` | `call_row_id`, `call_index` | the call: its assistant row and its place in `tool_calls` |
+| `tool.complete`                                   | `row_id`                    | the tool's result row                                     |
+| history tool rows                                 | `row_id`, `call_*`          | the same row and call                                     |
+| user rows, `inflight.display_metadata`            | `turn_id`                   | the turn the prompt opened                                |
+| `session.resume` `inflight`                       | `assistant_unsealed`        | what the turn streamed after its last sealed note         |
+
+On items they become `rowId`, `callKey` (`"<call_row_id>/<call_index>"`, unique
+per session however a provider numbers its `tool_id`) and `UserItem.turnId`;
+`ChatState.byCallKey` indexes the calls and `turn.id` holds the running turn's id.
+
+**The rule.** A frame naming a row already on screen settles the live bubble onto
+that row: the row keeps its id, place and text and takes only what the stream
+alone knew (the thought, the usage — never a duration timed off a replay). A frame
+naming a row not on screen stamps the row id onto the bubble it seals or
+finishes, so history pairs with it by id later. A tool frame finds its card by
+call key first, and never hands a result to a card that names another call.
+`message.start` with a turn id stands no placeholder up when the prompt is on
+screen under it. `reconcile` and `reconcileTail` match by row id, then turn id,
+then call key, then tool id, then words, and refuse a tool-id or word match
+whose items name different calls or turns. `applyResumeSnapshot` knows the prompt
+by its turn id and paints only `assistant_unsealed`.
+
+**A turn cut by the cache.** A snapshot taken mid-stream keeps the running turn's
+id and the bubble and thought it was writing to (`CachedTurn`), so the frames
+replayed after it carry on that bubble rather than start a second one, and the
+frame naming its row settles it there. `stateFromCache` restores them only beside
+a watermark and only while they still name an open bubble; a hydration that
+replays nothing lets them go.
+
+**The degrade.** Every branch is taken only when its field is present. A gateway
+that sends none (an older one, or one mid-upgrade) takes exactly the paths that
+existed before, which every other suite in this package pins; `row-identity.test.ts`
+replays the owner's reopen after every frame both ways.
+
 ## Layout
 
 | file                   | what it owns                                                   |
@@ -196,6 +244,7 @@ desktop does: strip a leading `@`, strip an `@<connection>` suffix, keep the las
 | `reconcile.ts`         | stable-id merge and tail reconcile                             |
 | `selectors.ts`         | verbosity, bot-to-bot, subagent views                          |
 | `cache.ts`             | the offline snapshot shape                                     |
+| `identity.ts`          | the row, call and turn identities read off frames and rows     |
 
 Tests sit next to the code as `*.test.ts`, with hand-written wire fixtures under
 `src/__fixtures__/`.
