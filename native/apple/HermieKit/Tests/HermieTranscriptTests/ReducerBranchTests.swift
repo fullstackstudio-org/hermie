@@ -14,6 +14,9 @@ import Testing
 // (`packages/transcript/src`), so these assert parity with the TypeScript, not the
 // port's reading of it. Steps use the corpus conventions: a `null` argument is
 // "not supplied", `patchState` is the stream scenarios' `{ ...state, ...fields }`.
+// A step may also name one of the state-first history operations (`reconcile`,
+// `reconcileTail`, `prependHistory`), for the identity branches that live there;
+// its items are written out as the engine holds them.
 //
 // Re-recording after a deliberate TypeScript change, or after adding a scenario
 // (its `expected` may start as `null`): `npm run golden:branch-cases` runs every
@@ -46,7 +49,9 @@ import Testing
         continue
       }
 
-      guard let operation = GoldenOps.reducer[op] else { throw GoldenHarnessError("no reducer operation \(op)") }
+      guard let operation = GoldenOps.reducer[op] ?? GoldenOps.history[op] else {
+        throw GoldenHarnessError("no reducer or history operation \(op)")
+      }
       state = try operation(GoldenArgs([state] + args)) ?? .null
     }
 
@@ -501,6 +506,67 @@ private let fixture = #"""
       ["applyResumeSnapshot",{"pending_approval":{"command":"rm -rf build"},"running":true},1790000001000]
     ],
     "expected": {"botName":"bot","byApprovalId":{"pending:approval":"req:pending:approval"},"byCallKey":{},"byDelegationId":{},"byProcessId":{},"byRequestId":{"pending:approval":"req:pending:approval"},"byRowId":{},"byToolId":{},"draft":"","hydration":"live","items":{"req:pending:approval":{"allowPermanent":true,"allowSession":true,"approvalId":"pending:approval","choices":["once","session","always","deny"],"command":"rm -rf build","id":"req:pending:approval","kind":"approval","origin":"live","requestId":"pending:approval","seq":1000,"state":"open","ts":1790000001,"version":0}},"lastSeq":0,"order":["req:pending:approval"],"resolvedSessionId":"resolved","storedSessionId":"stored","subagents":{},"turn":{"active":true,"local":false,"nextSeq":2000,"startedAt":1790000001000},"unreadCount":0}
+  },
+  {
+    "name": "identity-card-learns-its-call",
+    "covers": "a card drawn without a call identity learns it from tool.complete; a tool id whose card names another call is refused; tool.output_risk by call key; message.start without a turn id lets go of the named turn's thought",
+    "steps": [
+      ["applyEvent",{"type":"message.start","turn_id":"T1","payload":{}},1790000001000],
+      ["applyEvent",{"type":"reasoning.delta","turn_id":"T1","payload":{"text":"thinking"}},1790000001500],
+      ["applyEvent",{"type":"tool.start","turn_id":"T1","payload":{"tool_id":"c1","name":"terminal"}},1790000002000],
+      ["applyEvent",{"type":"tool.complete","turn_id":"T1","payload":{"tool_id":"c1","name":"terminal","call_row_id":5,"call_index":0,"row_id":6,"result_text":"ok"}},1790000003000],
+      ["applyEvent",{"type":"tool.complete","turn_id":"T1","payload":{"tool_id":"c1","name":"terminal","call_row_id":9,"call_index":0,"result_text":"other"}},1790000003500],
+      ["applyEvent",{"type":"tool.output_risk","turn_id":"T1","payload":{"tool_id":"c1","call_row_id":9,"call_index":0,"risk":"high","findings":["token"],"redacted":true}},1790000003600],
+      ["applyEvent",{"type":"message.start","payload":{}},1790000004000]
+    ],
+    "expected": {"botName":"bot","byApprovalId":{},"byCallKey":{"5/0":"t:c1","9/0":"t:c1#2"},"byDelegationId":{},"byProcessId":{},"byRequestId":{},"byRowId":{"6":"t:c1"},"byToolId":{"c1":"t:c1#2"},"compacting":false,"draft":"","hydration":"cold","items":{"a:2000":{"id":"a:2000","interim":true,"kind":"assistant","origin":"live","reasoning":"thinking","seq":2000,"streaming":false,"text":"","ts":1790000001.5,"version":2},"f:1000":{"id":"f:1000","kind":"user","origin":"foreign","seq":1000,"text":"","ts":1790000001,"turnId":"T1","unknownAuthor":true,"version":0},"f:5000":{"id":"f:5000","kind":"user","origin":"foreign","seq":5000,"text":"","ts":1790000004,"unknownAuthor":true,"version":0},"t:c1":{"callKey":"5/0","id":"t:c1","isError":false,"kind":"tool","name":"terminal","origin":"live","resultKnown":true,"resultText":"ok","rowId":6,"seq":3000,"status":"complete","toolId":"c1","ts":1790000002,"version":3},"t:c1#2":{"callKey":"9/0","id":"t:c1#2","isError":false,"kind":"tool","name":"terminal","origin":"live","outputRisk":{"findings":["token"],"redacted":true,"risk":"high"},"resultKnown":true,"resultText":"other","seq":4000,"status":"complete","toolId":"c1","ts":1790000003.5,"version":2}},"lastSeq":0,"order":["f:1000","a:2000","t:c1","t:c1#2","f:5000"],"resolvedSessionId":"resolved","storedSessionId":"stored","subagents":{},"turn":{"active":true,"foreignReconcilePending":true,"interrupted":false,"local":false,"nextSeq":6000,"startedAt":1790000004000},"unreadCount":0}
+  },
+  {
+    "name": "identity-settle-carries-thought-and-usage",
+    "covers": "settleOntoRow hands the row the live bubble's thought, its verbosity and its usage when the row has none",
+    "steps": [
+      ["patchState",{"items":{"r:10":{"id":"r:10","kind":"assistant","origin":"history","rowId":10,"seq":0,"streaming":false,"interim":false,"text":"the note","version":0},"a:1000":{"id":"a:1000","kind":"assistant","origin":"live","seq":1000,"streaming":true,"interim":false,"text":"the note","reasoning":"thinking","reasoningVerbose":true,"usage":{"input":1,"output":2},"version":3}},"order":["r:10","a:1000"],"byRowId":{"10":"r:10"},"turn":{"active":true,"local":true,"nextSeq":2000,"id":"T2","assistantId":"a:1000","reasoningId":"a:1000"}}],
+      ["applyEvent",{"type":"message.interim","turn_id":"T2","payload":{"text":"the note","row_id":10,"already_streamed":true}},1790000002000]
+    ],
+    "expected": {"botName":"bot","byApprovalId":{},"byCallKey":{},"byDelegationId":{},"byProcessId":{},"byRequestId":{},"byRowId":{"10":"r:10"},"byToolId":{},"draft":"","hydration":"cold","items":{"r:10":{"id":"r:10","interim":false,"kind":"assistant","origin":"history","reasoning":"thinking","reasoningVerbose":true,"rowId":10,"seq":0,"streaming":false,"text":"the note","usage":{"input":1,"output":2},"version":1}},"lastSeq":0,"order":["r:10"],"resolvedSessionId":"resolved","storedSessionId":"stored","subagents":{},"turn":{"active":true,"id":"T2","local":true,"nextSeq":2000,"reasoningId":"r:10"},"unreadCount":0}
+  },
+  {
+    "name": "identity-call-row-stamps-a-thought-only-bubble",
+    "covers": "a tool call whose row is not on screen stamps that row onto a live bubble holding only a thought, which the seal then keeps",
+    "steps": [
+      ["applyEvent",{"type":"message.start","turn_id":"T3","payload":{}},1790000001000],
+      ["applyEvent",{"type":"reasoning.delta","turn_id":"T3","payload":{"text":"pondering"}},1790000001500],
+      ["applyEvent",{"type":"tool.start","turn_id":"T3","payload":{"tool_id":"t9","name":"read_file","call_row_id":20,"call_index":0}},1790000002000]
+    ],
+    "expected": {"botName":"bot","byApprovalId":{},"byCallKey":{"20/0":"t:t9"},"byDelegationId":{},"byProcessId":{},"byRequestId":{},"byRowId":{"20":"a:2000"},"byToolId":{"t9":"t:t9"},"compacting":false,"draft":"","hydration":"cold","items":{"a:2000":{"id":"a:2000","interim":true,"kind":"assistant","origin":"live","reasoning":"pondering","rowId":20,"seq":2000,"streaming":false,"text":"","ts":1790000001.5,"version":3},"f:1000":{"id":"f:1000","kind":"user","origin":"foreign","seq":1000,"text":"","ts":1790000001,"turnId":"T3","unknownAuthor":true,"version":0},"t:t9":{"callKey":"20/0","id":"t:t9","kind":"tool","name":"read_file","origin":"live","resultKnown":false,"seq":3000,"status":"running","toolId":"t9","ts":1790000002,"version":0}},"lastSeq":0,"order":["f:1000","a:2000","t:t9"],"resolvedSessionId":"resolved","storedSessionId":"stored","subagents":{},"turn":{"active":true,"foreignReconcilePending":true,"id":"T3","interrupted":false,"local":false,"nextSeq":4000,"reasoningId":"a:2000","startedAt":1790000001000},"unreadCount":0}
+  },
+  {
+    "name": "identity-rehydrate-by-turn-and-call",
+    "covers": "reconcile pairs by turn id and call key onto persisted items, and refuses a turn match whose row id says it is another row",
+    "steps": [
+      ["reconcile",[{"id":"r:1","kind":"user","origin":"history","rowId":1,"seq":0,"text":"hi","turnId":"T4","version":0},{"id":"r:2","kind":"tool","origin":"history","rowId":2,"seq":1000,"toolId":"x","callKey":"1/0","name":"terminal","status":"complete","resultKnown":false,"version":0}]],
+      ["reconcile",[{"id":"r:7","kind":"user","origin":"history","rowId":7,"seq":0,"text":"other","turnId":"T4","version":0},{"id":"user:1","kind":"user","origin":"history","seq":1000,"text":"hi again","turnId":"T4","version":0},{"id":"tool:2","kind":"tool","origin":"history","seq":2000,"toolId":"y","callKey":"1/0","name":"terminal","status":"complete","resultKnown":false,"version":0}]]
+    ],
+    "expected": {"botName":"bot","byApprovalId":{},"byCallKey":{"1/0":"r:2"},"byDelegationId":{},"byProcessId":{},"byRequestId":{},"byRowId":{"7":"r:7"},"byToolId":{"y":"r:2"},"draft":"","hydration":"live","items":{"r:1":{"id":"r:1","kind":"user","origin":"history","pending":false,"seq":1000,"text":"hi again","turnId":"T4","version":1},"r:2":{"callKey":"1/0","id":"r:2","kind":"tool","name":"terminal","origin":"history","resultKnown":false,"seq":2000,"status":"complete","toolId":"y","version":1},"r:7":{"id":"r:7","kind":"user","origin":"history","rowId":7,"seq":0,"text":"other","turnId":"T4","version":0}},"lastSeq":0,"order":["r:7","r:1","r:2"],"resolvedSessionId":"resolved","storedSessionId":"stored","subagents":{},"turn":{"active":false,"local":false,"nextSeq":3000},"unreadCount":0}
+  },
+  {
+    "name": "identity-tail-by-turn-and-call",
+    "covers": "reconcileTail fills a placeholder by its turn id once, appends a second row of that turn, and pairs a card by its call key over a different tool id",
+    "steps": [
+      ["applyEvent",{"type":"message.start","turn_id":"T5","payload":{}},1790000001000],
+      ["applyEvent",{"type":"tool.start","turn_id":"T5","payload":{"tool_id":"k1","name":"terminal","call_row_id":29,"call_index":0}},1790000002000],
+      ["reconcileTail",[{"id":"r:31","kind":"user","origin":"history","rowId":31,"seq":0,"text":"do it","turnId":"T5","version":0},{"id":"r:32","kind":"user","origin":"history","rowId":32,"seq":1000,"text":"dup","turnId":"T5","version":0},{"id":"r:33","kind":"tool","origin":"history","rowId":33,"seq":2000,"toolId":"k1-other","callKey":"29/0","name":"terminal","status":"complete","resultKnown":false,"version":0}]]
+    ],
+    "expected": {"botName":"bot","byApprovalId":{},"byCallKey":{"29/0":"t:k1"},"byDelegationId":{},"byProcessId":{},"byRequestId":{},"byRowId":{"31":"f:1000","32":"r:32","33":"t:k1"},"byToolId":{"k1-other":"t:k1"},"compacting":false,"draft":"","hydration":"cold","items":{"f:1000":{"id":"f:1000","kind":"user","origin":"history","rowId":31,"seq":0,"text":"do it","turnId":"T5","version":1},"r:32":{"id":"r:32","kind":"user","origin":"history","rowId":32,"seq":1000,"text":"dup","turnId":"T5","version":0},"t:k1":{"callKey":"29/0","id":"t:k1","kind":"tool","name":"terminal","origin":"history","resultKnown":false,"rowId":33,"seq":2000,"status":"complete","toolId":"k1-other","version":1}},"lastSeq":0,"order":["f:1000","r:32","t:k1"],"resolvedSessionId":"resolved","storedSessionId":"stored","subagents":{},"turn":{"active":true,"id":"T5","interrupted":false,"local":false,"nextSeq":3000,"startedAt":1790000001000},"unreadCount":0}
+  },
+  {
+    "name": "identity-older-page-overlaps-by-call",
+    "covers": "prependHistory drops an older tool row whose call key is already on screen, whatever its row id",
+    "steps": [
+      ["reconcile",[{"id":"r:50","kind":"tool","origin":"history","rowId":50,"seq":0,"toolId":"p","callKey":"49/0","name":"terminal","status":"complete","resultKnown":false,"version":0}]],
+      ["prependHistory",[{"id":"r:40","kind":"user","origin":"history","rowId":40,"seq":0,"text":"older","version":0},{"id":"r:41","kind":"tool","origin":"history","rowId":41,"seq":1000,"toolId":"p","callKey":"49/0","name":"terminal","status":"complete","resultKnown":false,"version":0}]]
+    ],
+    "expected": {"botName":"bot","byApprovalId":{},"byCallKey":{"49/0":"r:50"},"byDelegationId":{},"byProcessId":{},"byRequestId":{},"byRowId":{"40":"r:40","50":"r:50"},"byToolId":{"p":"r:50"},"draft":"","hydration":"live","items":{"r:40":{"id":"r:40","kind":"user","origin":"history","rowId":40,"seq":0,"text":"older","version":0},"r:50":{"callKey":"49/0","id":"r:50","kind":"tool","name":"terminal","origin":"history","resultKnown":false,"rowId":50,"seq":1000,"status":"complete","toolId":"p","version":0}},"lastSeq":0,"order":["r:40","r:50"],"resolvedSessionId":"resolved","storedSessionId":"stored","subagents":{},"turn":{"active":false,"local":false,"nextSeq":2000},"unreadCount":0}
   }
 ]
 """#

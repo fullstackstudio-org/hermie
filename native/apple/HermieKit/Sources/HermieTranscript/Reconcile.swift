@@ -5,8 +5,9 @@ import HermieProtocol
 //
 // Stable ids are the point. A UI keyed on `item.id` must not remount every row
 // when a re-hydration lands, so a fresh item adopts the id of the current item
-// it matches: durable `rowId` first, then `tool_id`, then what the item says and
-// carries (`itemMatchKey`).
+// it matches: durable `rowId` first, then the gateway's turn and call identities
+// (`turnId`, `callKey`), then `tool_id`, then what the item says and carries
+// (`itemMatchKey`).
 //
 // Ported from `apps/desktop/src/lib/chat-messages/reconciliation.ts`.
 //
@@ -24,6 +25,48 @@ private func toolKeyOf(_ item: TranscriptItem) -> String? {
     default: nil
     }
   return key.flatMap { $0.isEmpty ? nil : $0 }
+}
+
+/// The gateway's call identity on an item kind that can carry one (`Identity.swift`).
+///
+/// `callKeyOfItem`. Empty counts as none, as the TypeScript's truthiness tests it.
+private func callKeyOfItem(_ item: TranscriptItem) -> String? {
+  JS.nonEmpty(item.callKey)
+}
+
+/// The gateway's turn identity on a prompt.
+///
+/// `turnIdOfItem`.
+private func turnIDOfItem(_ item: TranscriptItem) -> String? {
+  JS.nonEmpty(item.asUser?.turnID)
+}
+
+/// Whether `current`, found by a call key or a turn id, may be `fresh`.
+///
+/// The id says they are the same call or turn; a row id that says otherwise
+/// wins, because two persisted rows are two rows whatever else they share.
+///
+/// `rowsAgree`.
+private func rowsAgree(_ current: TranscriptItem, _ fresh: TranscriptItem) -> Bool {
+  current.rowID == nil || fresh.rowID == nil || current.rowID == fresh.rowID
+}
+
+/// Whether two items the old keys paired may really be one, as far as the
+/// gateway's identities go: two different calls, or two different turns, are
+/// never one item, however alike their tool ids or words. An item without the
+/// identity says nothing either way, which is every item from before it existed.
+///
+/// `identitiesAgree`.
+private func identitiesAgree(_ a: TranscriptItem?, _ b: TranscriptItem) -> Bool {
+  guard let a else { return true }
+
+  let callA = callKeyOfItem(a)
+  let callB = callKeyOfItem(b)
+  let turnA = turnIDOfItem(a)
+  let turnB = turnIDOfItem(b)
+
+  return (callA == nil || callB == nil || JS.same(callA!, callB!))
+    && (turnA == nil || turnB == nil || JS.same(turnA!, turnB!))
 }
 
 /// Whether two items that say the same thing may be the same turn, as far as
@@ -155,6 +198,21 @@ private func mergeWithLive(_ fresh: TranscriptItem, _ current: TranscriptItem) -
   var merged = fresh
   merged.id = current.id
   merged.version = current.version &+ 1
+
+  if merged.kind != current.kind {
+    return merged
+  }
+
+  // An identity either side learned is kept: a row from a history projection
+  // that predates it, merged onto a card the stream named, still names its call.
+  if let callKey = callKeyOfItem(current), callKeyOfItem(merged) == nil {
+    merged.callKey = callKey
+  }
+
+  if let turnID = turnIDOfItem(current), case .user(var user) = merged, JS.nonEmpty(user.turnID) == nil {
+    user.turnID = turnID
+    merged = .user(user)
+  }
 
   switch (merged, current) {
   case (.tool(var carried), .tool(let current)):
@@ -374,6 +432,8 @@ private struct MatchCandidates {
 /// not-yet-persisted tail plus any open request.
 public func reconcile(_ state: ChatState, _ freshItems: [TranscriptItem]) -> ChatState {
   var byRowID: [Int: String] = [:]
+  var byTurnID: [String: String] = [:]
+  var byCallKey: [String: String] = [:]
   var byToolKey: [String: String] = [:]
   var byMatchKey = MatchCandidates()
 
@@ -384,6 +444,14 @@ public func reconcile(_ state: ChatState, _ freshItems: [TranscriptItem]) -> Cha
 
     if let rowID = item.rowID, byRowID[rowID] == nil {
       byRowID[rowID] = id
+    }
+
+    if let turnID = turnIDOfItem(item), byTurnID[turnID] == nil {
+      byTurnID[turnID] = id
+    }
+
+    if let callKey = callKeyOfItem(item), byCallKey[callKey] == nil {
+      byCallKey[callKey] = id
     }
 
     if let toolKey = toolKeyOf(item), byToolKey[toolKey] == nil {
@@ -405,16 +473,42 @@ public func reconcile(_ state: ChatState, _ freshItems: [TranscriptItem]) -> Cha
     return used.contains(id)
   }
 
+  /// A candidate found by an identity, when nothing has claimed it and no row id
+  /// contradicts it.
+  func byIdentity(_ id: String?, _ fresh: TranscriptItem) -> String? {
+    guard let id, !id.isEmpty, !used.contains(id), let current = state.items[id] else { return nil }
+    return rowsAgree(current, fresh) ? current.id : nil
+  }
+
   for fresh in freshItems {
     var matchID = fresh.rowID.flatMap { byRowID[$0] }
 
+    // The gateway's own identities next: the turn a prompt opened, the call a
+    // card is. Each is unique where the words and the provider's tool ids are
+    // not, so a pair made here needs nothing the reader can see to agree.
+    if unusable(matchID) {
+      matchID = turnIDOfItem(fresh).flatMap { byIdentity(byTurnID[$0], fresh) }
+    }
+
+    if unusable(matchID) {
+      matchID = callKeyOfItem(fresh).flatMap { byIdentity(byCallKey[$0], fresh) }
+    }
+
     if unusable(matchID) {
       matchID = toolKeyOf(fresh).flatMap { byToolKey[$0] }
+
+      if let found = JS.nonEmpty(matchID), !identitiesAgree(state.items[found], fresh) {
+        matchID = nil
+      }
     }
 
     if unusable(matchID) {
       matchID = matchKeyIfMatchable(fresh).flatMap { key in
-        byMatchKey.first(for: key, where: { authorsAgree(state.items[$0], fresh) }, isTaken: { used.contains($0) })
+        byMatchKey.first(
+          for: key,
+          where: { authorsAgree(state.items[$0], fresh) && identitiesAgree(state.items[$0], fresh) },
+          isTaken: { used.contains($0) }
+        )
       }
     }
 
@@ -484,14 +578,25 @@ public func reconcile(_ state: ChatState, _ freshItems: [TranscriptItem]) -> Cha
 /// because its far end grew.
 public func prependHistory(_ state: ChatState, _ olderItems: [TranscriptItem]) -> ChatState {
   var known = Set<Int>()
+  var knownCalls = Set<String>()
 
   for id in state.order {
-    if let rowID = state.items[id]?.rowID {
+    guard let item = state.items[id] else { continue }
+
+    if let rowID = item.rowID {
       known.insert(rowID)
+    }
+
+    if let callKey = callKeyOfItem(item) {
+      knownCalls.insert(callKey)
     }
   }
 
-  let older = olderItems.filter { item in item.rowID.map { !known.contains($0) } ?? true }
+  // The call key is the belt to the row id's braces: a call is one card, so an
+  // older page re-sending it is a page that overlaps, whatever its row says.
+  let older = olderItems.filter { item in
+    (item.rowID.map { !known.contains($0) } ?? true) && (callKeyOfItem(item).map { !knownCalls.contains($0) } ?? true)
+  }
 
   if older.isEmpty {
     return state
@@ -542,7 +647,22 @@ public func reconcileTail(_ state: ChatState, _ tailItems: [TranscriptItem]) -> 
     }
   }
 
+  /**
+   * The live prompts that know which turn they opened: a parked prompt the
+   * turn's `message.start` claimed, and a foreign placeholder standing in for a
+   * turn's author. A row naming that turn is theirs and nobody else's.
+   */
+  var liveByTurnID: [String: String] = [:]
+
+  for item in list {
+    if let turnID = turnIDOfItem(item), item.rowID == nil, liveByTurnID[turnID] == nil {
+      liveByTurnID[turnID] = item.id
+    }
+  }
+
   var pairedLive = Set<String>()
+  /// Placeholders already given their row, by turn id or by position.
+  var filled = Set<String>()
   /**
    * The tail carried an authored row that belonged to a bubble already on
    * screen — our own optimistic submit coming back persisted. It is the only
@@ -560,8 +680,45 @@ public func reconcileTail(_ state: ChatState, _ tailItems: [TranscriptItem]) -> 
       continue
     }
 
+    // A prompt that names its turn goes to the live item standing for that
+    // turn: the claimed prompt, or the placeholder that turn put up — that one,
+    // never the next placeholder along.
+    let turnID = turnIDOfItem(fresh)
+    let turnMatch = turnID.flatMap { liveByTurnID[$0] }.flatMap { id in
+      id.isEmpty || pairedLive.contains(id) ? nil : byID[id]
+    }
+
+    if let turnMatch, turnMatch.asUser?.unknownAuthor != true || isAuthoredRow(fresh) {
+      pairedLive.insert(turnMatch.id)
+
+      if turnMatch.asUser?.unknownAuthor == true {
+        filled.insert(turnMatch.id)
+
+        var claimed = fresh
+        claimed.id = turnMatch.id
+        claimed.version = turnMatch.version &+ 1
+        byID[turnMatch.id] = claimed
+      } else {
+        byID[turnMatch.id] = mergeWithLive(fresh, turnMatch)
+        pairedAuthoredRow = true
+      }
+
+      continue
+    }
+
+    // A call is one card: its key first, then the provider's tool id — and not
+    // a tool id whose card names another call.
+    if let callKey = callKeyOfItem(fresh), let callMatchID = JS.nonEmpty(state.byCallKey[callKey]),
+      let callMatch = byID[callMatchID], callKeyOfItem(callMatch).map({ JS.same($0, callKey) }) == true,
+      rowsAgree(callMatch, fresh)
+    {
+      byID[callMatch.id] = mergeWithLive(fresh, callMatch)
+
+      continue
+    }
+
     if let toolKey = toolKeyOf(fresh), let toolMatchID = state.byToolID[toolKey], !toolMatchID.isEmpty,
-      let toolMatch = byID[toolMatchID]
+      let toolMatch = byID[toolMatchID], identitiesAgree(toolMatch, fresh)
     {
       byID[toolMatch.id] = mergeWithLive(fresh, toolMatch)
 
@@ -569,7 +726,11 @@ public func reconcileTail(_ state: ChatState, _ tailItems: [TranscriptItem]) -> 
     }
 
     let liveID = matchKeyIfMatchable(fresh).flatMap { key in
-      liveByMatchKey.first(for: key, where: { authorsAgree(byID[$0], fresh) }, isTaken: { pairedLive.contains($0) })
+      liveByMatchKey.first(
+        for: key,
+        where: { authorsAgree(byID[$0], fresh) && identitiesAgree(byID[$0], fresh) },
+        isTaken: { pairedLive.contains($0) }
+      )
     }
 
     if let liveID, !liveID.isEmpty, let liveMatch = byID[liveID] {
@@ -591,16 +752,24 @@ public func reconcileTail(_ state: ChatState, _ tailItems: [TranscriptItem]) -> 
       continue
     }
 
-    if isAuthoredRow(fresh) && placeholderCursor < placeholders.count {
+    // By position, for a row that names no turn: the next placeholder nobody has
+    // filled. A row that names its turn and found no item for it is simply new.
+    while placeholderCursor < placeholders.count && filled.contains(placeholders[placeholderCursor]) {
+      placeholderCursor += 1
+    }
+
+    if turnID == nil && isAuthoredRow(fresh) && placeholderCursor < placeholders.count {
       let placeholderID = placeholders[placeholderCursor]
 
       placeholderCursor += 1
 
       if !placeholderID.isEmpty, let placeholder = byID[placeholderID] {
-        var filled = fresh
-        filled.id = placeholderID
-        filled.version = placeholder.version &+ 1
-        byID[placeholderID] = filled
+        filled.insert(placeholderID)
+
+        var claimed = fresh
+        claimed.id = placeholderID
+        claimed.version = placeholder.version &+ 1
+        byID[placeholderID] = claimed
 
         continue
       }
@@ -625,18 +794,20 @@ public func reconcileTail(_ state: ChatState, _ tailItems: [TranscriptItem]) -> 
   }
 
   var merged = Array(ordered[..<insertAt]) + appended + Array(ordered[insertAt...])
-  var stillPending = placeholderCursor < placeholders.count
+  var stillPending = placeholders.contains { !filled.contains($0) }
 
-  if pairedAuthoredRow && placeholderCursor == 0 {
+  if pairedAuthoredRow && filled.isEmpty {
     // The tail described this turn without needing a placeholder, which means
     // the turn was ours all along: the row paired with the optimistic bubble
     // above. An empty placeholder nobody will ever fill is an empty bubble the
     // reader has to explain to themselves, so it goes. A tail that simply has
-    // not reached the foreign row yet pairs nothing and leaves it standing.
+    // not reached the foreign row yet pairs nothing and leaves it standing —
+    // and so does a placeholder that names its turn, which only that turn's
+    // row may fill.
     let stale = Set(
       placeholders.filter { id in
         guard case .user(let item)? = byID[id] else { return false }
-        return item.unknownAuthor == true && JS.trim(item.text).isEmpty
+        return item.unknownAuthor == true && JS.trim(item.text).isEmpty && JS.nonEmpty(item.turnID) == nil
       }
     )
 

@@ -36,7 +36,9 @@ public func applyEvent(into state: inout ChatState, _ event: GatewayEvent, _ now
 
   switch event.type {
   case "message.start":
-    R.messageStart(&state, now)
+    // `typeof event.turn_id === 'string' && event.turn_id`: the envelope's turn id,
+    // read raw like `seq`, so a gateway that mints none sends the old path.
+    R.messageStart(&state, JS.nonEmpty(event.json["turn_id"]?.stringValue), now)
 
   case "message.delta":
     R.messageDelta(&state, payload, now)

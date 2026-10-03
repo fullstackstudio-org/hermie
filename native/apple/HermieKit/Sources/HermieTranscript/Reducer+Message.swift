@@ -4,11 +4,19 @@ import HermieProtocol
 // events of `applyEvent`.
 
 extension TranscriptReducer {
-  /// `case 'message.start'`.
-  static func messageStart(_ next: inout ChatState, _ now: Double) {
+  /// `case 'message.start'`. `turnID` is the envelope's `turn_id`, when the
+  /// gateway minted one.
+  static func messageStart(_ next: inout ChatState, _ turnID: String?, _ now: Double) {
     next.compacting = false
 
-    if !next.turn.local {
+    // A turn whose prompt is already on screen under its own turn id needs no
+    // stand-in and no tail fetch: the prompt is there. That is a replayed
+    // `message.start` landing on the history a reopened chat just read, and
+    // standing a blank "someone spoke" bubble above the prompt it started was
+    // one more row of the owner's doubled transcript.
+    let known = turnID != nil && !next.turn.local ? userItemOfTurn(next, turnID!) : nil
+
+    if !next.turn.local && known == nil {
       // A prompt of ours the gateway parked starts its turn right here, and
       // nothing in the frame says so: `prompt.submit` answered `queued`
       // minutes ago and `message.start` carries no author. `ChatState.queued`
@@ -19,6 +27,10 @@ extension TranscriptReducer {
       if let parked = JS.nonEmpty(firstParkedPromptID(next)) {
         patchUser(&next, parked) { draft in
           draft.pending = false
+
+          if let turnID {
+            draft.turnID = turnID
+          }
         }
         next.turn.local = true
       } else {
@@ -26,12 +38,25 @@ extension TranscriptReducer {
         // another surface. Stand a placeholder in for the author until a tail
         // reconcile tells us who spoke.
         addItem(&next, id: "f:\(next.turn.nextSeq)", ts: now / 1000, origin: .foreign) { base in
-          .user(UserItem(base: base, text: "", unknownAuthor: true))
+          // The placeholder knows which turn it stands for, so the tail fills it
+          // with THAT turn's prompt rather than the next one along.
+          .user(UserItem(base: base, text: "", unknownAuthor: true, turnID: turnID))
         }
         next.turn.foreignReconcilePending = true
       }
     }
 
+    if let turnID, next.turn.local {
+      stampLocalPrompt(&next, turnID)
+    }
+
+    // A different turn starts: the thought a cached turn was writing to is not
+    // this one's (the live bubble is let go below, as it always was).
+    if let current = next.turn.id, turnID.map({ !JS.same(current, $0) }) ?? true {
+      next.turn.reasoningID = nil
+    }
+
+    next.turn.id = turnID
     next.turn.active = true
     next.turn.startedAt = now
     next.turn.assistantID = nil
@@ -84,6 +109,10 @@ extension TranscriptReducer {
   /// `case 'message.interim'`.
   static func messageInterim(_ next: inout ChatState, _ payload: JSONObject, _ now: Double) {
     let text = str(payload["text"])
+
+    if let rowID = rowIDOf(payload), interimOntoRow(&next, text, rowID, now) {
+      return
+    }
 
     if let id = JS.nonEmpty(next.turn.assistantID), case .assistant? = next.items[id] {
       patchAssistant(&next, id) { draft in
@@ -174,20 +203,29 @@ extension TranscriptReducer {
     // Without that flag, a tool call in the middle of the turn has the same
     // effect: it sealed the bubble, so this completion has nowhere to land.
     let continued = JS.nonEmpty(next.turn.assistantID) != nil ? nil : interimContinuedBy(next, finalText)
-    var id = next.turn.assistantID ?? previewed ?? continued
-
-    if id == nil && (!finalText.isEmpty || failure != nil) {
-      id = currentAssistantID(&next, now)
-    }
-
+    // The final assistant row, when the gateway names it (`row_id`, or the
+    // receipt's `final_assistant_row_id` from a gateway that predates it).
+    let finalRowID =
+      rowIDOf(payload) ?? rec(payload["persisted_turn"])["final_assistant_row_id"].flatMap { rowIDOf(["row_id": $0]) }
+    let finalRow = finalRowID.flatMap { itemAtRow(next, $0) }
+    // A row id held by something that is not a reply is a renumbered store,
+    // not this reply; the frame is then read as if it carried no id at all.
+    let byIdentity = finalRowID != nil && (finalRow == nil || finalRow?.kind == .assistant)
     let usage = JS.truthy(payload["usage"]) ? Usage(json: rec(payload["usage"])) : nil
 
-    if let id = JS.nonEmpty(id) {
-      patchAssistant(&next, id) { draft in
-        if !finalText.isEmpty && !previewedFlag {
-          draft.text = finalText
-        }
+    if byIdentity, let finalRow {
+      // The reply is on screen already, as its row. Whatever was standing in
+      // for it settles onto that row; the row keeps its words and is given
+      // only the verdict. No duration: see `settleOntoRow`.
+      let target =
+        unpersistedNote(next, next.turn.assistantID) ?? unpersistedNote(next, previewed)
+        ?? unpersistedNote(next, continued)
 
+      if let target {
+        settleOntoRow(&next, target, finalRow.id)
+      }
+
+      patchAssistant(&next, finalRow.id) { draft in
         draft.streaming = false
         draft.interim = false
         draft.status = status
@@ -199,9 +237,52 @@ extension TranscriptReducer {
         if let usage {
           draft.usage = usage
         }
+      }
+    } else {
+      if byIdentity && JS.nonEmpty(next.turn.assistantID) != nil
+        && unpersistedNote(next, next.turn.assistantID) == nil
+      {
+        // A bubble that already stands for another row is not this reply.
+        next.turn.assistantID = nil
+      }
 
-        if let durationS {
-          draft.durationS = durationS
+      var id: String? =
+        byIdentity
+        ? unpersistedNote(next, next.turn.assistantID) ?? unpersistedNote(next, previewed)
+          ?? unpersistedNote(next, continued)
+        : next.turn.assistantID ?? previewed ?? continued
+
+      if id == nil && (!finalText.isEmpty || failure != nil) {
+        id = currentAssistantID(&next, now)
+      }
+
+      if let id = JS.nonEmpty(id) {
+        patchAssistant(&next, id) { draft in
+          if !finalText.isEmpty && !previewedFlag {
+            draft.text = finalText
+          }
+
+          draft.streaming = false
+          draft.interim = false
+          draft.status = status
+
+          if let failure {
+            draft.error = failure
+          }
+
+          if let usage {
+            draft.usage = usage
+          }
+
+          if let durationS {
+            draft.durationS = durationS
+          }
+
+          // The reply is not on screen as a row yet: this bubble is that row,
+          // and the history that brings it pairs with it by id.
+          if byIdentity && draft.rowID == nil {
+            draft.rowID = finalRowID
+          }
         }
       }
     }

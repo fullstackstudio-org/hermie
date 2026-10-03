@@ -112,6 +112,12 @@ public struct InflightTurn: JSONObjectBacked {
   public init(json: JSONObject) { self.json = json }
 
   public var assistant: String? { get { json[field: "assistant"] } set { json[field: "assistant"] = newValue } }
+  /// What `assistant` streamed after the last note delivered as `already_streamed`: the part no
+  /// sealed note above already shows. Absent from a gateway that does not track it.
+  public var assistantUnsealed: String? {
+    get { json[field: "assistant_unsealed"] }
+    set { json[field: "assistant_unsealed"] = newValue }
+  }
   public var streaming: Bool? { get { json[field: "streaming"] } set { json[field: "streaming"] = newValue } }
   public var user: String? { get { json[field: "user"] } set { json[field: "user"] = newValue } }
   public var displayKind: String? { get { json[field: "display_kind"] } set { json[field: "display_kind"] = newValue } }
