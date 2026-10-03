@@ -14,6 +14,10 @@ public struct ItemBase: Sendable, Hashable {
   /// Bumped on every mutation; lets a UI memoize per item and per state cheaply.
   public var version: Int
   public var reactions: [ItemReaction]?
+  /// A persisted row the live stream has described although its id does not say
+  /// so (`seenLive` in `types.ts`; see `isDescribed` in `Turns.swift`). Only ever
+  /// `true` or absent.
+  public var seenLive: Bool?
 
   public init(
     id: String,
@@ -22,7 +26,8 @@ public struct ItemBase: Sendable, Hashable {
     rowID: Int? = nil,
     origin: ItemOrigin,
     version: Int,
-    reactions: [ItemReaction]? = nil
+    reactions: [ItemReaction]? = nil,
+    seenLive: Bool? = nil
   ) {
     self.id = id
     self.seq = seq
@@ -31,6 +36,7 @@ public struct ItemBase: Sendable, Hashable {
     self.origin = origin
     self.version = version
     self.reactions = reactions
+    self.seenLive = seenLive
   }
 
   init(reading reader: inout ObjectReader) throws(TranscriptDecodingError) {
@@ -41,6 +47,7 @@ public struct ItemBase: Sendable, Hashable {
     origin = try reader.required("origin")
     version = try reader.required("version")
     reactions = reader.optional("reactions")
+    seenLive = reader.optional("seenLive")
   }
 
   func write(into writer: inout ObjectWriter) {
@@ -51,6 +58,7 @@ public struct ItemBase: Sendable, Hashable {
     writer.set("origin", origin)
     writer.set("version", version)
     writer.set("reactions", reactions)
+    writer.set("seenLive", seenLive)
   }
 }
 

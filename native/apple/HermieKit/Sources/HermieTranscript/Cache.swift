@@ -231,6 +231,9 @@ public func stateFromCache(_ botName: String, _ ids: SessionIDs, _ snapshot: Cac
 
   if let lastRowID = snapshot.lastRowID {
     state.lastSeenRowID = lastRowID
+  } else if let sessionID = snapshot.lastSeqSessionID, !sessionID.isEmpty {
+    // A watermark over a chat that held no row yet: every row is newer than it.
+    state.lastSeenRowID = 0
   }
 
   return state

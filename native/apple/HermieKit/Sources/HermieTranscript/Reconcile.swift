@@ -152,6 +152,13 @@ private func mergeWithLive(_ fresh: TranscriptItem, _ current: TranscriptItem) -
   merged.id = current.id
   merged.version = current.version &+ 1
 
+  // A row the stream described stays described. A message row says so by the
+  // live id it takes over; a call keeps its tool id either way, so it carries the
+  // mark instead, and so does any row the reducer settled a frame onto.
+  if current.base.seenLive == true || (isCall(current) && isDescribed(current)) {
+    merged.base.seenLive = true
+  }
+
   switch (merged, current) {
   case (.tool(var carried), .tool(let current)):
     // A history tool row has a name and a preview but never a result.
@@ -242,6 +249,42 @@ private func inRowOrder(_ list: [TranscriptItem]) -> [TranscriptItem] {
   keyed.sort { $0.key != $1.key ? $0.key < $1.key : $0.index < $1.index }
 
   return keyed.map { list[$0.index] }
+}
+
+/// The turn each item of a list belongs to, numbered by the prompts that open
+/// them. `turnNumbers`.
+private func turnNumbers(_ list: [TranscriptItem]) -> [String: Int] {
+  var turns: [String: Int] = [:]
+  var turn = 0
+
+  for item in list {
+    if opensTurn(item) {
+      turn += 1
+    }
+
+    turns[item.id] = turn
+  }
+
+  return turns
+}
+
+/// The call a fresh row of the given tool id pairs with: every card with that id,
+/// taken in order and each at most once, and only from the turn the fresh row
+/// belongs to when that turn is known. `pickCall`.
+private func pickCall(
+  _ candidates: [String]?,
+  _ taken: Set<String>,
+  _ turns: [String: Int],
+  _ turn: Int?,
+  _ usable: (String) -> Bool = { _ in true }
+) -> String? {
+  candidates?.first { id in !taken.contains(id) && (turn == nil || turns[id] == turn) && usable(id) }
+}
+
+/// The newest row a chat holds, as the watermark `lastSeenRowId` counts it.
+/// `newestRowId`.
+private func newestRowID(_ list: [TranscriptItem], _ floor: Int) -> Int {
+  list.reduce(floor) { newest, item in item.rowID.map { $0 > newest ? $0 : newest } ?? newest }
 }
 
 private func rebuild(_ state: ChatState, _ list: [TranscriptItem]) -> ChatState {
@@ -365,8 +408,9 @@ private struct MatchCandidates {
 /// not-yet-persisted tail plus any open request.
 public func reconcile(_ state: ChatState, _ freshItems: [TranscriptItem]) -> ChatState {
   var byRowID: [Int: String] = [:]
-  var byToolKey: [String: String] = [:]
+  var byToolKey: [String: [String]] = [:]
   var byMatchKey = MatchCandidates()
+  let turns = turnNumbers(state.order.compactMap { state.items[$0] })
 
   for id in state.order {
     guard let item = state.items[id] else {
@@ -377,8 +421,8 @@ public func reconcile(_ state: ChatState, _ freshItems: [TranscriptItem]) -> Cha
       byRowID[rowID] = id
     }
 
-    if let toolKey = toolKeyOf(item), byToolKey[toolKey] == nil {
-      byToolKey[toolKey] = id
+    if let toolKey = toolKeyOf(item) {
+      byToolKey[toolKey, default: []].append(id)
     }
 
     if let key = matchKeyIfMatchable(item) {
@@ -396,11 +440,14 @@ public func reconcile(_ state: ChatState, _ freshItems: [TranscriptItem]) -> Cha
     return used.contains(id)
   }
 
+  /// The turn the fresh rows are in, as far as the last one that paired says.
+  var turn: Int?
+
   for fresh in freshItems {
     var matchID = fresh.rowID.flatMap { byRowID[$0] }
 
     if unusable(matchID) {
-      matchID = toolKeyOf(fresh).flatMap { byToolKey[$0] }
+      matchID = toolKeyOf(fresh).flatMap { pickCall(byToolKey[$0], used, turns, turn) }
     }
 
     if unusable(matchID) {
@@ -412,8 +459,14 @@ public func reconcile(_ state: ChatState, _ freshItems: [TranscriptItem]) -> Cha
     if !unusable(matchID), let matchID, let current = state.items[matchID] {
       used.insert(current.id)
       merged.append(mergeWithLive(fresh, current))
+      turn = turns[current.id]
 
       continue
+    }
+
+    if opensTurn(fresh) {
+      // A prompt nothing on screen stands for: a turn of its own, unknown here.
+      turn = nil
     }
 
     merged.append(fresh)
@@ -446,6 +499,14 @@ public func reconcile(_ state: ChatState, _ freshItems: [TranscriptItem]) -> Cha
   // are matched by nothing above: their rows took the row-id match. They are
   // folded into those rows here, one turn at a time (`foldLiveCopies`).
   var next = rebuild(state, foldLiveCopies(placeByTimestamp(merged + kept, settled), activeID: state.turn.assistantID))
+
+  // The watermark moves on to everything this read brought, except on the read a
+  // chat opened from its cache makes before its replay: that replay hands back
+  // the frames written after the cache, and the rows they describe are among the
+  // ones this read just brought.
+  if let seen = state.lastSeenRowID, state.hydration != .cached, state.hydration != .hydrating {
+    next.lastSeenRowID = newestRowID(next.orderedItems, seen)
+  }
 
   next.hydration = .live
 
@@ -512,6 +573,19 @@ public func reconcileTail(_ state: ChatState, _ tailItems: [TranscriptItem]) -> 
   var byID = Dictionary(list.map { ($0.id, $0) }, uniquingKeysWith: { _, later in later })
   var appended: [TranscriptItem] = []
   var placeholderCursor = 0
+  let turns = turnNumbers(list)
+  /// Every card on screen, by tool id, in order (`pickCall`).
+  var callsByToolKey: [String: [String]] = [:]
+
+  for item in list {
+    if let toolKey = toolKeyOf(item) {
+      callsByToolKey[toolKey, default: []].append(item.id)
+    }
+  }
+
+  var pairedCalls = Set<String>()
+  /// The turn the tail's rows are in, as far as the last one that paired says.
+  var turn: Int?
 
   /**
    * The live tail, indexed by what each item says and carries.
@@ -549,15 +623,25 @@ public func reconcileTail(_ state: ChatState, _ tailItems: [TranscriptItem]) -> 
     if let rowID = fresh.rowID, knownRowIDs.contains(rowID) {
       if let existingID = state.byRowID[String(rowID)], !existingID.isEmpty, let current = byID[existingID] {
         byID[current.id] = mergeWithLive(fresh, current)
+        turn = turns[current.id]
       }
 
       continue
     }
 
-    if let toolKey = toolKeyOf(fresh), let toolMatchID = state.byToolID[toolKey], !toolMatchID.isEmpty,
+    // A call is paired by its tool id, which is not unique (`pickCall`): a card
+    // still waiting for its row first, in the turn the tail is in, then the card
+    // the index names, as long as it is in that turn and this sweep has not
+    // paired it already.
+    if let toolKey = toolKeyOf(fresh),
+      let toolMatchID = pickCall(callsByToolKey[toolKey], pairedCalls, turns, turn, { byID[$0]?.rowID == nil })
+        ?? pickCall(
+          JS.nonEmpty(state.byToolID[toolKey]).map { [$0] }, pairedCalls, turns, turn),
       let toolMatch = byID[toolMatchID]
     {
+      pairedCalls.insert(toolMatch.id)
       byID[toolMatch.id] = mergeWithLive(fresh, toolMatch)
+      turn = turns[toolMatch.id]
 
       continue
     }
@@ -569,6 +653,7 @@ public func reconcileTail(_ state: ChatState, _ tailItems: [TranscriptItem]) -> 
     if let liveID, !liveID.isEmpty, let liveMatch = byID[liveID] {
       pairedLive.insert(liveMatch.id)
       byID[liveMatch.id] = mergeWithLive(fresh, liveMatch)
+      turn = turns[liveMatch.id]
 
       if isAuthoredRow(fresh) {
         pairedAuthoredRow = true
@@ -595,9 +680,14 @@ public func reconcileTail(_ state: ChatState, _ tailItems: [TranscriptItem]) -> 
         filled.id = placeholderID
         filled.version = placeholder.version &+ 1
         byID[placeholderID] = filled
+        turn = turns[placeholderID]
 
         continue
       }
+    }
+
+    if opensTurn(fresh) {
+      turn = nil
     }
 
     appended.append(fresh)
@@ -643,6 +733,12 @@ public func reconcileTail(_ state: ChatState, _ tailItems: [TranscriptItem]) -> 
   var next = rebuild(state, foldLiveCopies(inRowOrder(merged), activeID: state.turn.assistantID))
 
   next.turn.foreignReconcilePending = stillPending ? true : nil
+
+  // A tail sweep is the stream catching up: whatever it brought, no replay is
+  // going to describe again (`lastSeenRowId`).
+  if let seen = state.lastSeenRowID {
+    next.lastSeenRowID = newestRowID(next.orderedItems, seen)
+  }
 
   return next
 }

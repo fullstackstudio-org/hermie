@@ -16,11 +16,18 @@ extension TranscriptReducer {
       // parked burst used to start as a foreign turn and put an empty
       // placeholder in front of the user's own message. A bubble still marked
       // `pending` is a prompt of ours waiting for exactly this frame.
-      if let parked = JS.nonEmpty(firstParkedPromptID(next)) {
+      let parked = JS.nonEmpty(firstParkedPromptID(next))
+      let held = parked == nil ? claimNextPrompt(next) : nil
+
+      if let parked {
         patchUser(&next, parked) { draft in
           draft.pending = false
         }
         next.turn.local = true
+      } else if let held {
+        // The prompt is already on screen (history brought it before this frame
+        // came back): the turn is that one, and nobody needs standing in.
+        markSeen(&next, held)
       } else {
         // Nobody local submitted, so this turn belongs to a teammate bot or
         // another surface. Stand a placeholder in for the author until a tail
@@ -232,7 +239,9 @@ extension TranscriptReducer {
           draft.usage = usage
         }
 
-        if let durationS {
+        // A row keeps its own duration: the clock this turn started on may be a
+        // cache's, or the replay's own, and either would date it wrongly.
+        if let durationS, replyRow == nil {
           draft.durationS = durationS
         }
       }

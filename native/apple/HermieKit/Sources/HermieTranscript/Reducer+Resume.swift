@@ -475,7 +475,9 @@ public func applyResumeSnapshot(into next: inout ChatState, _ snapshot: SessionR
       guard let item = next.items[id]?.asAssistant, live.map({ !JS.same(item.id, $0.id) }) ?? true else { return nil }
       return item
     }
-    let unshown = unshownTail(assistantText, earlier)
+    // Only for the turn the snapshot describes: without its prompt on screen the
+    // turn above is somebody else's, and its notes are not this reply's.
+    let unshown = overlap.promptShown ? unshownTail(assistantText, earlier) : nil
     let replyText = unshown ?? assistantText
     // Every word of it already a note above: nothing is left to stand up.
     let nothingNew = unshown.map { JS.trim($0).isEmpty } == true && failure == nil

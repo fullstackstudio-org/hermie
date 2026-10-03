@@ -17,6 +17,11 @@ import HermieProtocol
 // turn (`_delivered_interim_texts`, reset per user turn), while two turns are free
 // to say "On it." each. So everything here is scoped to the turn an item belongs
 // to, and nothing pairs across a prompt.
+//
+// One row is described by the stream at most once. `seenLive` marks a row the
+// stream has described although nothing in its id says so (the reducer settled a
+// replayed frame onto it, or a fold put a live copy into it); a row that took
+// over a live item's id says it by the id (`isDescribed`).
 
 /// An item that opens a turn: the prompt it answers.
 ///
@@ -45,20 +50,35 @@ func sameWords(_ a: String, _ b: String) -> Bool {
   return !left.isEmpty && JS.same(left, normalizeMatchText(b))
 }
 
-/// Whether a persisted item came from a projection that had no live item for it.
-///
-/// `reconcile` and `reconcileTail` keep the LIVE item's id when they pair it with
-/// its row, so a persisted item whose id is still the projection's own `r:<row>`
-/// was never anybody's live bubble. That is the one row a stray live copy may be
-/// folded into: a row that already took over a live bubble was that bubble's
-/// row, and a second live item with the same words beside it is a second message
-/// (one whose row has not arrived yet), not a copy.
-///
-/// `fromHistoryOnly`.
-func fromHistoryOnly(_ item: TranscriptItem) -> Bool {
-  guard let rowID = item.rowID else { return false }
+/// Whether the live stream has described this item (`isDescribed` in
+/// `turns.ts`): anything not yet replaced by a row, a row marked `seenLive`, or a
+/// message row whose id is not the projection's own `r:<row>`. A call keeps its
+/// tool id either way, so it says it only through `seenLive`.
+func isDescribed(_ item: TranscriptItem) -> Bool {
+  if item.base.seenLive == true {
+    return true
+  }
 
-  return JS.same(item.id, "r:\(rowID)")
+  guard let rowID = item.rowID else {
+    return item.origin != .history
+  }
+
+  return !isCall(item) && !JS.same(item.id, "r:\(rowID)")
+}
+
+/// A persisted row the stream has not described yet. `isClaimableRow`.
+func isClaimableRow(_ item: TranscriptItem) -> Bool {
+  item.rowID != nil && !isDescribed(item)
+}
+
+/// Whether an item can say where the live stream has got to: not a status line,
+/// a question, or one of the client's own notices. `marksStream`.
+func marksStream(_ item: TranscriptItem) -> Bool {
+  switch item {
+  case .status, .approval, .clarify: false
+  case .notice: isInjectedNotice(item)
+  default: true
+  }
 }
 
 /// Tool-like items: the calls a turn's notes stand between. `isCall`.
@@ -100,7 +120,7 @@ func liveCopyCandidate(_ item: TranscriptItem, activeID: String?) -> AssistantIt
 ///
 /// Conservative on purpose, because the same words can be two messages:
 ///
-/// - Only a row that came from history alone can take a copy (`fromHistoryOnly`).
+/// - Only a row the stream has not described can take a copy (`isClaimableRow`).
 ///   A row that already absorbed a live bubble has its live description.
 /// - A sealed note (`interim`) pairs with any such row of its turn: the gateway
 ///   never sends one interim text twice in a turn.
@@ -115,7 +135,7 @@ func foldLiveCopies(_ list: [TranscriptItem], activeID: String?) -> [TranscriptI
 
   func foldTurn(_ from: Int, _ to: Int) {
     let rows = (from..<to).filter { index in
-      if case .assistant = list[index] { fromHistoryOnly(list[index]) } else { false }
+      if case .assistant = list[index] { isClaimableRow(list[index]) } else { false }
     }
 
     if rows.isEmpty {
@@ -134,7 +154,7 @@ func foldLiveCopies(_ list: [TranscriptItem], activeID: String?) -> [TranscriptI
       }
 
       if case .assistant = item, isSettled(item) {
-        reply = fromHistoryOnly(item) ? index : nil
+        reply = isClaimableRow(item) ? index : nil
         break
       }
     }
@@ -181,7 +201,8 @@ func foldLiveCopies(_ list: [TranscriptItem], activeID: String?) -> [TranscriptI
 }
 
 /// The row, with whatever only the live copy knew: history carries no duration,
-/// no usage, and on older gateways no reasoning. `carryLiveKnowledge`.
+/// no usage, and on older gateways no reasoning. It is marked as described.
+/// `carryLiveKnowledge`.
 func carryLiveKnowledge(_ row: AssistantItem, _ live: AssistantItem) -> AssistantItem {
   var carried = row
 
@@ -189,6 +210,7 @@ func carryLiveKnowledge(_ row: AssistantItem, _ live: AssistantItem) -> Assistan
   carried.reasoningVerbose = row.reasoningVerbose ?? live.reasoningVerbose
   carried.durationS = row.durationS ?? live.durationS
   carried.usage = row.usage ?? live.usage
+  carried.base.seenLive = true
   carried.version = row.version &+ 1
 
   return carried

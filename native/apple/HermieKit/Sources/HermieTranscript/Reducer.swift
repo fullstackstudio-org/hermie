@@ -502,21 +502,85 @@ extension TranscriptReducer {
     return ids.reversed()
   }
 
+  /// Whether the stream's watermark already covers an item: the stream
+  /// described it, or it is a row no newer than the newest one the chat held when
+  /// its watermark was taken (`lastSeenRowId`). `covered`.
+  static func covered(_ next: ChatState, _ item: TranscriptItem) -> Bool {
+    if isDescribed(item) {
+      return true
+    }
+
+    guard let rowID = item.rowID, let seen = next.lastSeenRowID else { return false }
+
+    return rowID <= seen
+  }
+
+  /// Whether `id` is the bubble the stream is filling, or the one excluded.
+  private static func standsAside(_ next: ChatState, _ id: String, _ exclude: String?) -> Bool {
+    next.turn.assistantID.map { JS.same($0, id) } == true || exclude.map { JS.same($0, id) } == true
+  }
+
+  /// Where the live stream has got to: the index in `order` of the newest item its
+  /// watermark covers, `-1` when it covers nothing on screen yet, or `nil` when the
+  /// chat has no watermark to place rows against. `streamPosition`.
+  static func streamPosition(_ next: ChatState, exclude: String?) -> Int? {
+    guard next.lastSeenRowID != nil else { return nil }
+
+    for index in next.order.indices.reversed() {
+      let id = next.order[index]
+
+      guard !id.isEmpty, let item = next.items[id], !standsAside(next, id, exclude), marksStream(item) else {
+        continue
+      }
+
+      if covered(next, item) {
+        return index
+      }
+    }
+
+    return -1
+  }
+
+  /// The index of the first prompt in `order`, or `-1`. `firstPromptIndex`.
+  static func firstPromptIndex(_ next: ChatState) -> Int {
+    next.order.firstIndex { id in next.items[id].map(opensTurn) ?? false } ?? -1
+  }
+
+  /// The rows a frame of the live stream can describe: those after the newest
+  /// item the stream's watermark covers, up to the next prompt. `streamSpan`.
+  static func streamSpan(_ next: ChatState, exclude: String?) -> [String]? {
+    guard let position = streamPosition(next, exclude: exclude) else { return nil }
+
+    // Covering nothing yet, the stream is in the first turn on screen: its start
+    // came before the watermark, or `message.start` would have claimed it.
+    let at = position >= 0 ? position : firstPromptIndex(next)
+    var ids: [String] = []
+    var index = at + 1
+
+    while index < next.order.count {
+      let id = next.order[index]
+      index += 1
+
+      guard !id.isEmpty, let item = next.items[id] else { continue }
+
+      if opensTurn(item) {
+        break
+      }
+
+      if !standsAside(next, id, exclude) {
+        ids.append(id)
+      }
+    }
+
+    return ids
+  }
+
   /// The row this turn already holds for a note with these words, if the
-  /// transcript is showing one.
-  ///
-  /// `message.interim` names no row, and the gateway writes the row BEFORE it
-  /// sends the frame (`agent/turn_tool_round.py`). So the row can be on screen
-  /// first: a chat opened from a cache saved mid-turn reads history and then
-  /// replays the frames after its watermark, and a tail can land between the
-  /// write and the frame. Pairing on the words is safe inside one turn and only
-  /// there: the gateway never delivers one interim text twice in a turn
-  /// (`_delivered_interim_texts`), while two turns may both say "On it.".
-  ///
-  /// `persistedNoteFor`.
+  /// transcript is showing one the stream has not described yet. A row a live
+  /// bubble already became is never a candidate. `persistedNoteFor`.
   static func persistedNoteFor(_ next: ChatState, _ words: String, exclude: String?) -> AssistantItem? {
-    for id in currentTurnIDs(next) {
-      if case .assistant(let item)? = next.items[id], item.rowID != nil, exclude.map({ !JS.same(id, $0) }) ?? true,
+    for id in streamSpan(next, exclude: exclude) ?? [] {
+      if let entry = next.items[id], case .assistant(let item) = entry, isClaimableRow(entry), !covered(next, entry),
         sameWords(item.text, words)
       {
         return item
@@ -527,38 +591,37 @@ extension TranscriptReducer {
   }
 
   /// The row this turn already holds for its REPLY, if the transcript is showing
-  /// one.
-  ///
-  /// Narrower than a note on purpose: a reply is the turn's last assistant row,
-  /// with no call after it. A note that happens to say the same words stands
-  /// before a call, so it is never mistaken for the reply the turn is finishing
-  /// with.
-  ///
-  /// `persistedReplyFor`.
+  /// one the stream has not described yet: the last assistant row of the stream's
+  /// turn, with no call after it. `persistedReplyFor`.
   static func persistedReplyFor(_ next: ChatState, _ words: String, exclude: String?) -> AssistantItem? {
-    let turn = currentTurnIDs(next).filter { id in exclude.map { !JS.same(id, $0) } ?? true }
+    for id in (streamSpan(next, exclude: exclude) ?? []).reversed() {
+      guard let item = next.items[id], marksStream(item) else { continue }
 
-    for id in turn.reversed() {
-      guard let item = next.items[id] else { continue }
-
-      switch item {
-      case .status:
-        continue
-      case .assistant(let assistant):
-        return assistant.rowID != nil && sameWords(assistant.text, words) ? assistant : nil
-      default:
+      guard case .assistant(let assistant) = item else {
         if isCall(item) {
           return nil
         }
+
+        continue
       }
+
+      return isClaimableRow(item) && !covered(next, item) && sameWords(assistant.text, words) ? assistant : nil
     }
 
     return nil
   }
 
+  /// Mark a persisted item as described by the stream. `markSeen`.
+  static func markSeen(_ next: inout ChatState, _ id: String) {
+    guard let item = next.items[id], item.base.seenLive != true else { return }
+
+    patchAnyItem(&next, id) { draft in
+      draft.base.seenLive = true
+    }
+  }
+
   /// Fold a live bubble into the row that already describes it, keeping what
-  /// only the stream knew: history carries no duration and no usage, and on older
-  /// gateways no reasoning. `settleOntoRow`.
+  /// only the stream knew, and mark the row as described. `settleOntoRow`.
   static func settleOntoRow(_ next: inout ChatState, _ liveID: String, _ rowItemID: String) {
     guard case .assistant(let live)? = next.items[liveID], !JS.same(liveID, rowItemID) else { return }
 
@@ -578,6 +641,8 @@ extension TranscriptReducer {
       if draft.usage == nil, let usage = live.usage {
         draft.usage = usage
       }
+
+      draft.base.seenLive = true
     }
     dropItem(&next, liveID)
 
@@ -590,35 +655,38 @@ extension TranscriptReducer {
     }
   }
 
-  /// A `tool.start` for a call the transcript already holds.
-  ///
-  /// That is a replay: a chat opened from a cache saved mid-turn reads history,
-  /// then gets every frame after its watermark again, and the call's row is
-  /// already on screen. A second card for it would stand beside the first, and
-  /// the words the replay streamed in front of it are the note history already
-  /// put right above that call, so they settle onto it. Anything else in the
-  /// bubble is sealed the ordinary way.
-  ///
-  /// `settleReplayedCall`.
-  static func settleReplayedCall(_ next: inout ChatState, _ callID: String) {
-    if case .assistant(let bubble)? = itemAt(next, next.turn.assistantID), bubble.rowID == nil,
-      let at = next.order.firstIndex(where: { JS.same($0, callID) })
-    {
-      for index in stride(from: at - 1, through: 0, by: -1) {
-        guard let item = itemAt(next, next.order[index]) else { continue }
+  /// The tool id a call item is named by. `callIdOf`.
+  static func callID(of item: TranscriptItem) -> String? {
+    switch item {
+    case .tool(let tool): tool.toolID
+    case .botDmOut(let dispatch): dispatch.toolID
+    case .subagentGroup(let group): group.toolID
+    default: nil
+    }
+  }
 
-        if case .status = item {
-          continue
-        }
+  /// A `tool.start` for a call the stream's turn already holds as a row: a
+  /// replay. A tool id is not unique in a transcript, so the card must be in the
+  /// stream's turn, after everything the stream has described, and not described
+  /// itself; `false` sends anything else to a card of its own.
+  /// `claimReplayedCall`.
+  static func claimReplayedCall(_ next: inout ChatState, _ toolID: String) -> Bool {
+    guard let span = streamSpan(next, exclude: nil),
+      let cardID = span.first(where: { id in
+        guard let item = next.items[id] else { return false }
+        return callID(of: item).map { JS.same($0, toolID) } == true && !covered(next, item)
+      }),
+      let cardIndex = span.firstIndex(where: { JS.same($0, cardID) })
+    else { return false }
 
-        if isCall(item) {
-          continue
-        }
+    if case .assistant(let bubble)? = itemAt(next, next.turn.assistantID), bubble.rowID == nil {
+      for index in stride(from: cardIndex - 1, through: 0, by: -1) {
+        guard let item = next.items[span[index]], marksStream(item), !isCall(item) else { continue }
 
-        if case .assistant(let note) = item, !JS.same(note.id, bubble.id), sameWords(note.text, bubble.text) {
+        if case .assistant(let note) = item, isClaimableRow(item), !covered(next, item),
+          sameWords(note.text, bubble.text)
+        {
           settleOntoRow(&next, bubble.id, note.id)
-
-          return
         }
 
         break
@@ -626,6 +694,30 @@ extension TranscriptReducer {
     }
 
     sealAssistantForTool(&next)
+    markSeen(&next, cardID)
+    next.byToolID[toolID] = cardID
+
+    return true
+  }
+
+  /// The prompt a `message.start` opens, when history already holds it: the next
+  /// prompt after where the stream has got to, if its watermark does not cover
+  /// it. `claimNextPrompt`.
+  static func claimNextPrompt(_ next: ChatState) -> String? {
+    guard let at = streamPosition(next, exclude: nil) else { return nil }
+
+    var index = at + 1
+
+    while index < next.order.count {
+      let id = next.order[index]
+      index += 1
+
+      if !id.isEmpty, let item = next.items[id], opensTurn(item) {
+        return covered(next, item) ? nil : id
+      }
+    }
+
+    return nil
   }
 
   /// `cancelOpenRequests`.

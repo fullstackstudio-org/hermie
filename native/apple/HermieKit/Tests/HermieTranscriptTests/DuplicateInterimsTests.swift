@@ -180,4 +180,139 @@ import Testing
 
     #expect(Self.shown(resumed) == [Self.first, Self.second, "Nu de"])
   }
+
+  // MARK: - The review's cases
+
+  /// What a chat opened again paints first: the cached transcript, with its watermark.
+  static func fromCache(_ state: ChatState) -> ChatState {
+    var watermarked = state
+    watermarked.lastSeqSessionID = "runtime-1"
+    return stateFromCache(
+      "boekhouder", SessionIDs(storedSessionID: "stored-1", resolvedSessionID: "resolved-1"),
+      snapshotForCache(watermarked, now: now)
+    )
+  }
+
+  /// Opened again from what `away` cached: history first, then the frames after the watermark.
+  static func reopen(_ away: ChatState, _ rows: [TranscriptRow], _ replay: [GatewayEvent]) -> ChatState {
+    apply(reconcile(fromCache(away), rowsToItems(rows, .rpc)), replay)
+  }
+
+  static func call(_ seq: Int, _ toolID: String, _ result: String) -> [GatewayEvent] {
+    [
+      event("tool.start", seq, ["tool_id": .string(toolID), "name": "terminal", "context": .string(result)]),
+      event("tool.complete", seq + 1, ["tool_id": .string(toolID), "name": "terminal", "result": .string(result)])
+    ]
+  }
+
+  static func cards(_ state: ChatState) -> [String] {
+    state.orderedItems.compactMap(\.asTool).map { "\($0.toolID)=\($0.result?.stringValue ?? "-")" }
+  }
+
+  static func submitted(_ state: ChatState, _ text: String) -> ChatState {
+    confirmSubmit(beginLocalTurn(state, text, nil, now), PromptSubmitResult(json: ["status": "streaming"]), now)
+  }
+
+  @Test("a tool id used again in a later turn, or twice in one, gets a card of its own")
+  func reusedToolIDs() {
+    let one = Self.apply(
+      Self.submitted(createChatState("boekhouder", "s", "s"), "one"),
+      [Self.event("message.start", 1)] + Self.call(2, "call_0", "first")
+        + [Self.event("message.complete", 4, ["text": "One done."])]
+    )
+    let two = Self.apply(
+      Self.submitted(one, "two"),
+      [Self.event("message.start", 5)] + Self.call(6, "call_0", "second") + Self.call(8, "call_0", "third")
+    )
+
+    #expect(Self.cards(two) == ["call_0=first", "call_0=second", "call_0=third"])
+  }
+
+  @Test("a reply that repeats the last note keeps its own bubble")
+  func replyRepeatsTheNote() {
+    let same = "Ik controleer het nog één keer."
+    let noted = Self.reopen(
+      Self.apply(Self.sent(), [Self.event("message.start", 1)]),
+      [
+        Self.row(["role": "user", "row_id": 1, "text": .string(Self.prompt)]),
+        Self.row(["role": "assistant", "row_id": 2, "text": .string(same)])
+      ],
+      [
+        Self.event("message.delta", 2, ["text": .string(same)]),
+        Self.event("message.interim", 3, ["text": .string(same), "already_streamed": true])
+      ]
+    )
+    let done = Self.apply(
+      noted,
+      [Self.event("message.delta", 4, ["text": .string(same)]), Self.event("message.complete", 5, ["text": .string(same)])]
+    )
+
+    #expect(Self.shown(done) == [same, same])
+    #expect(Self.assistants(done).map(\.rowID) == [2, nil])
+  }
+
+  @Test("a replay that runs into the next turn settles each frame onto its own turn's row")
+  func replaySpansTwoTurns() {
+    let next = "en nu de verkoopkant"
+    let rows =
+      Self.rows + [
+        Self.row(["role": "user", "row_id": 7, "text": .string(next), "timestamp": 1_790_000_006]),
+        Self.row(["role": "assistant", "row_id": 8, "text": .string(Self.second), "timestamp": 1_790_000_007]),
+        Self.row(["role": "tool", "name": "terminal", "context": "curl", "tool_call_id": "call_2", "timestamp": 1_790_000_008]),
+        Self.row(["role": "assistant", "row_id": 10, "text": "Klaar.", "timestamp": 1_790_000_009])
+      ]
+    let replay: [GatewayEvent] =
+      Array(Self.turn.dropFirst(5)) + [Self.event("message.start", 12)] + Self.round(13, Self.second, "call_2") + [
+        Self.event("message.delta", 17, ["text": "Klaar."]), Self.event("message.complete", 18, ["text": "Klaar."])
+      ]
+    let state = Self.reopen(Self.apply(Self.sent(), Self.turn.prefix(5)), rows, replay)
+
+    #expect(Self.shown(state) == [Self.first, Self.second, Self.final, Self.second, "Klaar."])
+    #expect(Self.assistants(state).map(\.rowID) == [2, 4, 6, 8, 10])
+    #expect(state.orderedItems.compactMap(\.asTool).count == 3)
+    #expect(state.orderedItems.compactMap(\.asUser).map(\.text) == [Self.prompt, next])
+  }
+
+  @Test("a turn /retry starts keeps its note under its own placeholder")
+  func retry() {
+    let done = Self.reopen(Self.apply(Self.sent(), [Self.event("message.start", 1)]), Self.rows, Array(Self.turn.dropFirst()))
+    let retried = Self.apply(
+      done,
+      [
+        Self.event("message.start", 20), Self.event("message.delta", 21, ["text": .string(Self.first)]),
+        Self.event("message.interim", 22, ["text": .string(Self.first), "already_streamed": true])
+      ]
+    )
+
+    #expect(Self.shown(retried) == [Self.first, Self.second, Self.final, Self.first])
+    #expect(retried.orderedItems.compactMap(\.asUser).filter { $0.unknownAuthor == true }.count == 1)
+    #expect(Self.assistants(retried).last?.rowID == nil)
+  }
+
+  @Test("a second identical note is never folded into a row the replay settled onto")
+  func secondNoteAfterAbsorption() {
+    let checking = "Checking."
+    let settled = Self.reopen(
+      Self.apply(Self.sent("check both"), [Self.event("message.start", 1)]),
+      [
+        Self.row(["role": "user", "row_id": 1, "text": "check both"]),
+        Self.row(["role": "assistant", "row_id": 2, "text": .string(checking)]),
+        Self.row(["role": "tool", "name": "terminal", "tool_call_id": "call_a"])
+      ],
+      [
+        Self.event("message.delta", 2, ["text": .string(checking)]),
+        Self.event("message.interim", 3, ["text": .string(checking), "already_streamed": true]),
+        Self.event("tool.start", 4, ["tool_id": "call_a", "name": "terminal"]),
+        Self.event("tool.complete", 5, ["tool_id": "call_a", "name": "terminal"]),
+        Self.event("message.delta", 6, ["text": .string(checking)]),
+        Self.event("tool.start", 7, ["tool_id": "call_b", "name": "terminal"])
+      ]
+    )
+    let tailed = reconcileTail(
+      settled, rowsToItems([Self.row(["role": "assistant", "id": 2, "content": .string(checking)])], .rest)
+    )
+
+    #expect(Self.assistants(settled).first?.base.seenLive == true)
+    #expect(Self.shown(tailed) == [checking, checking])
+  }
 }
