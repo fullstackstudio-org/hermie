@@ -256,7 +256,8 @@ import Testing
       authenticator: FailingAuthenticator(error: .cancelled),
       configuration: PasskeyConfiguration(rpID: Self.rpID),
       pins: InMemoryPasskeyPins(),
-      source: nil
+      source: nil,
+      now: { 1_790_000_000 }
     )
     await model.start()
     link.raise(id: "srq-1", method: "confirm", params: Self.params(ids: ["AQID"]))

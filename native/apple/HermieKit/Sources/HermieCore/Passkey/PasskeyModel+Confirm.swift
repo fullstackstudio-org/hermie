@@ -26,10 +26,10 @@ extension PasskeyModel {
     }
 
     guard params.level == .passkey else {
-      // `plain` belongs to a sheet this model is not; without one it was never advertised.
-      if !configuration.plain {
-        _ = await inbound.decline()
-      }
+      // `plain` belongs to a sheet the app does not have yet (CP-10's). Until it does, a `plain`
+      // request is declined `-32601` here, whether or not `configuration.plain` advertised it:
+      // never left for the gateway's deadline.
+      _ = await inbound.decline()
       return
     }
 
@@ -50,6 +50,8 @@ extension PasskeyModel {
       let (confirmation, context) = try read(id: id, params, inbound: inbound)
       contexts[id] = context
       upsert(confirmation)
+      // A re-delivery that outlived its `expires_at`: over here too, without a sheet.
+      endIfExpired(id)
     } catch {
       if let notice = error.notice {
         notify(notice)
@@ -163,7 +165,7 @@ extension PasskeyModel {
   /// answer through `request.answer`. Dismissing the system sheet sends nothing.
   public func confirm(_ id: String) async {
     guard let current = confirmation(id), current.phase.isActionable, let context = contexts[id],
-      let rpID = configuration.rpID
+      let rpID = configuration.rpID, !endIfExpired(id)
     else {
       return
     }
@@ -194,11 +196,23 @@ extension PasskeyModel {
 
   /// The person pressed Decline: exactly `{decision: "declined", method: "tap"}`.
   public func decline(_ id: String) async {
-    guard confirmation(id)?.phase.isActionable == true else {
+    guard confirmation(id)?.phase.isActionable == true, !endIfExpired(id) else {
       return
     }
 
     await answer(id, ConfirmResult.declined, done: .declined)
+  }
+
+  /// End an open confirmation past its `expires_at` locally, as timed out: the gateway has given
+  /// up on it, so no ceremony runs and nothing is sent. `true` when it was ended.
+  @discardableResult
+  func endIfExpired(_ id: String) -> Bool {
+    guard let current = confirmation(id), current.isOpen, current.isExpired(at: Date(timeIntervalSince1970: now())) else {
+      return false
+    }
+
+    setPhase(id, .ended(.timedOut))
+    return true
   }
 
   private func ceremonyFailed(_ id: String, _ error: PasskeyCeremonyError, before: PasskeyConfirmPhase) async {
@@ -312,10 +326,13 @@ extension PasskeyModel {
       return
     }
 
-    if current.phase == .signing {
+    // The phase moves first: a ceremony that returns while `cancel()` runs finds the request
+    // over and sends nothing.
+    let signing = current.phase == .signing
+    setPhase(id, next)
+
+    if signing {
       await authenticator.cancel()
     }
-
-    setPhase(id, next)
   }
 }

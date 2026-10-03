@@ -9,7 +9,8 @@ public struct PasskeyConfiguration: Sendable {
   public var rpID: String?
   public var kind: PasskeyRPKind
   /// The app shows a `plain` confirmation too, so `plain` is advertised beside `passkey`. Off until
-  /// the app has a sheet for it.
+  /// the app has a sheet for it (CP-10); until then the model declines every `plain` request
+  /// `-32601` whatever this says, so none waits out the gateway's deadline.
   public var plain: Bool
   /// The first half of the credential name the app gives a new passkey: the system sheet shows
   /// `<displayName> — <gateway host>` (plan P3).
@@ -61,6 +62,17 @@ public struct PasskeyConfirmation: Sendable, Equatable, Identifiable {
 
   /// Still waiting for this device to answer (or answering).
   public var isOpen: Bool { phase.isOpen }
+
+  /// Past `expires_at`: the gateway has given up on it.
+  public func isExpired(at now: Date) -> Bool {
+    expiresAt.map { $0 <= now } ?? false
+  }
+
+  /// Confirm and Decline may be pressed at `now`: the phase allows it and it has not expired. The
+  /// model ends an expired one as timed out when either is pressed.
+  public func isActionable(at now: Date) -> Bool {
+    phase.isActionable && !isExpired(at: now)
+  }
 }
 
 /// Where one confirmation stands.
