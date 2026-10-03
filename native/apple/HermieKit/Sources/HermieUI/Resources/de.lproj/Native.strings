@@ -16,8 +16,16 @@
 	<string>Von diesem Gateway abmelden? Die Adresse bleibt erhalten, und du kannst dich jederzeit wieder anmelden.</string>
 	<key>native.account.userId</key>
 	<string>Benutzer-ID</string>
+	<key>native.chatList.archivedTitle</key>
+	<string>Archiviert</string>
+	<key>native.chatList.muteTitle</key>
+	<string>%@ stummschalten</string>
+	<key>native.chatList.now</key>
+	<string>Jetzt</string>
 	<key>native.chatList.signedOut</key>
 	<string>Melde dich bei diesem Gateway an, um seine Chats zu sehen.</string>
+	<key>native.commands.chatMenu</key>
+	<string>Chat</string>
 	<key>native.commands.find</key>
 	<string>Suchen…</string>
 	<key>native.commands.newChatWindow</key>

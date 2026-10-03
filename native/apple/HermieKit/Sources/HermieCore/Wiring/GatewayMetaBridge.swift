@@ -18,9 +18,10 @@ import HermieStore
    written from the registrar's address for THIS gateway only, and is withdrawn from the gateway
    before the session ends on a sign-out (`withdrawRow`), while the credentials still work.
 
- What the gateway's copy carries that this build does not draw (another device's rows, the chat
- layout, the mutes, the plugin advert) is carried as it came; nothing taken in from the gateway is
- ever treated as this person's own choice or row.
+ The chat list's archive, pins and mutes are read and written through this sync by the session's
+ `ChatArrangementModel`, attached on `start()`. What the gateway's copy carries that this build does
+ not draw (another device's rows, the folders and order, the plugin advert) is carried as it came;
+ nothing taken in from the gateway is ever treated as this person's own choice or row.
  */
 @MainActor
 public final class GatewayMetaBridge {
@@ -78,6 +79,8 @@ public final class GatewayMetaBridge {
       return
     }
 
+    session.arrangement.attach(sync)
+
     session.onSessionsChanged = { [weak self] in
       self?.reconcileSoon()
     }
@@ -102,6 +105,7 @@ public final class GatewayMetaBridge {
     following?.cancel()
     following = nil
     writer.stop()
+    session?.arrangement.detach(sync)
 
     if let session, session.onSessionsChanged != nil {
       session.onSessionsChanged = nil

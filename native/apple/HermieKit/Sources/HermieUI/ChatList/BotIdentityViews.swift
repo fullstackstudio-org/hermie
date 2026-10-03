@@ -84,7 +84,11 @@ enum AvatarImages {
 }
 
 /// The bead on a bot's avatar: one of four states (`presence.ts`). Colour is never the only
-/// signal: needs-input and working carry a glyph, and the row's label says the state in words.
+/// signal: needs-input and working carry a glyph, offline is hollow, and the row's label says the
+/// state in words.
+///
+/// Static by design: online green, working blue, offline a hollow grey ring. Nothing here moves; a
+/// bead that pulsed for "working" would animate a whole list of busy bots at once.
 struct PresenceDot: View {
   let state: PresenceState
   var diameter: CGFloat = 14
@@ -93,9 +97,17 @@ struct PresenceDot: View {
 
   var body: some View {
     let side = diameter * min(scale, 1.6)
+    let ring = max(2, side * 0.14)
 
     ZStack {
-      Circle().fill(Self.colour(state))
+      if state == .offline {
+        Circle().fill(.background)
+        Circle()
+          .strokeBorder(Self.colour(state), lineWidth: max(1.5, side * 0.16))
+          .padding(ring)
+      } else {
+        Circle().fill(Self.colour(state))
+      }
 
       if let symbol = Self.symbol(state) {
         Image(systemName: symbol)
@@ -104,7 +116,7 @@ struct PresenceDot: View {
       }
     }
     .frame(width: side, height: side)
-    .overlay(Circle().strokeBorder(.background, lineWidth: max(2, side * 0.14)))
+    .overlay(Circle().strokeBorder(.background, lineWidth: ring))
     .accessibilityHidden(true)
   }
 

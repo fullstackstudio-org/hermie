@@ -83,7 +83,8 @@ struct ChatListFormatTests {
 
     #expect(ChatListFormat.listTime(0, now: now, calendar: calendar).isEmpty)
     #expect(ChatListFormat.listTime(.nan, now: now, calendar: calendar).isEmpty)
-    #expect(!ChatListFormat.listTime(seconds - 10, now: now, calendar: calendar).isEmpty)
+    // One short word, never "10 seconds ago": a long time took the bot name's room in a sidebar.
+    #expect(ChatListFormat.listTime(seconds - 10, now: now, calendar: calendar) == NativeStrings.ChatList.now)
 
     let earlier = ChatListFormat.listTime(seconds - 3 * 86_400, now: now, calendar: calendar)
     let older = ChatListFormat.listTime(seconds - 30 * 86_400, now: now, calendar: calendar)
@@ -97,6 +98,28 @@ struct ChatListFormatTests {
     let row = Self.row("helper", display: "Helper", unread: 3)
     let label = ChatListFormat.accessibilityLabel(row, presence: Presence.of(gatewayReady: true, sessionAttached: true, working: false, needsInput: false))
     #expect(label == ["Helper", "helper", Strings.App.Presence.online, Strings.App.Bots.unreadLabel(count: 3)].joined(separator: ", "))
+  }
+
+  @Test("a pinned, muted row says so after its names")
+  func pinnedAndMutedLabel() {
+    let row = Self.row("helper", display: "Helper", unread: 0)
+    let label = ChatListFormat.accessibilityLabel(
+      row, presence: Presence.of(gatewayReady: true, sessionAttached: true, working: false, needsInput: false),
+      pinned: true, muted: true)
+    #expect(label == ["Helper", "helper", Strings.App.Layout.pinnedRow, Strings.App.Layout.mutedRow, Strings.App.Presence.online].joined(separator: ", "))
+  }
+
+  @Test("a mute's end: the time today, the weekday and time on another day, nothing for ever")
+  func muteUntil() {
+    var calendar = Calendar(identifier: .gregorian)
+    calendar.timeZone = .current
+    let now = Date(timeIntervalSince1970: 1_790_000_000)
+    let today = calendar.startOfDay(for: now).addingTimeInterval(23 * 3600).timeIntervalSince1970
+
+    #expect(ChatListFormat.muteUntil(0, now: now, calendar: calendar).isEmpty)
+    #expect(ChatListFormat.muteUntil(today, now: now, calendar: calendar) == Date(timeIntervalSince1970: today).formatted(date: .omitted, time: .shortened))
+    #expect(ChatListFormat.muteUntil(today + 2 * 86_400, now: now, calendar: calendar).count > ChatListFormat.muteUntil(today, now: now, calendar: calendar).count)
+    #expect(ChatListFormat.mutedState(0) == Strings.App.Layout.muted)
   }
 
   /// `swift test` runs on the Mac, where text does not scale with Dynamic Type, so this proves the
@@ -126,6 +149,28 @@ struct ChatListFormatTests {
     let largest = try height(.accessibility5)
     #expect(regular > 0)
     #expect(largest >= regular)
+  }
+
+  /// The iPad's sidebar broke "boekhouder" over two lines beside "3 seconden geleden": a name is
+  /// one line whatever its length, so a long one makes the row no taller than a short one.
+  @Test("a long bot name stays on one line in a narrow sidebar")
+  func longNameStaysOnOneLine() throws {
+    func height(_ name: String) throws -> Int {
+      let row = ChatListRow(
+        bot: Bot(name: "b", displayName: name),
+        preview: ChatPreview(text: "Klaar.", system: false),
+        unreadCount: 3,
+        attached: true,
+        lastMessageAt: Date().timeIntervalSince1970 - 5
+      )
+      let renderer = ImageRenderer(
+        content: ChatListRowView(row: row, gatewayReady: true, pinned: true, muted: true).frame(width: 280)
+      )
+      renderer.proposedSize = ProposedViewSize(width: 280, height: nil)
+      return try #require(renderer.cgImage).height
+    }
+
+    #expect(try height("boekhouder-met-een-erg-lange-naam-die-niet-past") == height("bo"))
   }
 
   @Test("the pipeline counts new replies below the newest row, never history prepended above")

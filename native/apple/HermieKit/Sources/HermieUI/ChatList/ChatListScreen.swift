@@ -10,7 +10,12 @@ import SwiftUI
  opens the chat (beside the list on iPad and the Mac, pushed over it on iPhone). The arrow keys move
  the selection, which opens the chat they land on.
 
- It reads the session from `LiveGateway` in the environment and writes nothing but read marks.
+ Pinned chats come first; archived chats leave the list for the archive (a row at the bottom that
+ opens them on iPhone and iPad, a disclosure group in the Mac's sidebar). Pin, mute and archive are
+ the session's `ChatArrangementModel`, which writes them through the gateway's `ui_meta` so they
+ follow the reader to their other devices and to the web client.
+
+ It reads the session from `LiveGateway` in the environment.
  */
 public struct ChatListScreen: View {
   let context: ChatListContext
@@ -86,113 +91,3 @@ public struct ChatListScreen: View {
   }
 }
 
-/// The list over a running session.
-struct SessionChatList: View {
-  let session: GatewaySession
-  let selection: Binding<ChatRef?>
-  let query: String
-  let signIn: () -> Void
-
-  var body: some View {
-    let list = session.chatList
-    let ready = session.status.phase == .ready
-    let rows = ChatListFormat.filtered(list.names, rows: list.rows, query: query)
-
-    List(selection: selection) {
-      ForEach(rows) { listed in
-        // A secure prompt waiting (a password, a sudo, a vault) counts as needing input too.
-        let row = Self.marked(listed, secureInput: session.secureInput)
-        ChatListRowView(row: row, gatewayReady: ready)
-          .equatable()
-          .tag(ChatRef(gatewayId: session.gatewayID, bot: row.bot.name))
-          .contextMenu { menu(row) }
-          #if os(iOS)
-            .swipeActions(edge: .leading) { markRead(row) }
-          #endif
-      }
-    }
-    .overlay { overlay(list: list, rows: rows) }
-    .safeAreaInset(edge: .top, spacing: 0) {
-      VStack(spacing: 0) {
-        ConnectionBanner(
-          status: session.status,
-          retry: { Task { await session.retryNow() } },
-          signIn: signIn
-        )
-        GatewayNoticesView(model: session.notices, chat: nil)
-      }
-    }
-    .safeAreaInset(edge: .bottom, spacing: 0) {
-      AnonymousIdentityLine(session: session)
-        .padding(.horizontal)
-        .padding(.vertical, 6)
-    }
-    .refreshable {
-      _ = try? await session.roster.refresh()
-    }
-    .task {
-      // Running state is polled only while the list is on screen.
-      await session.watchRunning()
-    }
-    .onDisappear {
-      Task { await session.unwatchRunning() }
-    }
-  }
-
-  @ViewBuilder private func overlay(list: ChatListModel, rows: [ChatListRow]) -> some View {
-    if rows.isEmpty {
-      if !query.trimmingCharacters(in: .whitespaces).isEmpty, !list.names.isEmpty {
-        EmptyState(Strings.App.Common.search, systemImage: "magnifyingglass", message: Text(Strings.App.Bots.noMatches(query: query)))
-      } else if let error = list.rosterError, list.refreshed || !list.loading {
-        EmptyState(Strings.App.Tabs.chats, systemImage: "exclamationmark.triangle", message: Text(Strings.App.Bots.failed(message: error))) {
-          Button(Strings.App.Common.retry) {
-            Task { _ = try? await session.roster.refresh() }
-          }
-          .buttonStyle(.bordered)
-        }
-      } else if list.refreshed {
-        EmptyState(Strings.App.Tabs.chats, systemImage: "person.crop.circle.badge.questionmark", message: Text(Self.emptyText))
-      } else {
-        VStack(spacing: 12) {
-          ProgressView()
-          Text(Strings.App.Bots.loading).foregroundStyle(.secondary)
-        }
-        .accessibilityElement(children: .combine)
-        .accessibilityIdentifier("hermie.chatList.loading")
-      }
-    }
-  }
-
-  static func marked(_ row: ChatListRow, secureInput: SecureInputCenter) -> ChatListRow {
-    guard !row.needsInput, secureInput.needsInput(row.bot.name) else {
-      return row
-    }
-
-    var marked = row
-    marked.needsInput = true
-    return marked
-  }
-
-  /// The catalogue's sentence carries Markdown (a `hermes profile create` code span).
-  private static var emptyText: AttributedString {
-    let text = Strings.App.Bots.empty
-    return (try? AttributedString(markdown: text)) ?? AttributedString(text)
-  }
-
-  @ViewBuilder private func menu(_ row: ChatListRow) -> some View {
-    markRead(row)
-  }
-
-  /// The one row action this build has. More (pin, mute, archive, colour) join it here.
-  @ViewBuilder private func markRead(_ row: ChatListRow) -> some View {
-    if row.unread || row.unreadCount > 0 {
-      Button {
-        let name = row.bot.name
-        Task { await session.markRead(name) }
-      } label: {
-        Label(Strings.App.Layout.markRead, systemImage: "checkmark.message")
-      }
-      .tint(.blue)
-    }
-  }
-}

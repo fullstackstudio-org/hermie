@@ -16,8 +16,16 @@
 	<string>Afmelden bij deze gateway? Het adres blijft bewaard en je kunt je altijd opnieuw aanmelden.</string>
 	<key>native.account.userId</key>
 	<string>Gebruikers-ID</string>
+	<key>native.chatList.archivedTitle</key>
+	<string>Gearchiveerd</string>
+	<key>native.chatList.muteTitle</key>
+	<string>%@ dempen</string>
+	<key>native.chatList.now</key>
+	<string>Nu</string>
 	<key>native.chatList.signedOut</key>
 	<string>Meld je aan bij deze gateway om de chats te zien.</string>
+	<key>native.commands.chatMenu</key>
+	<string>Chat</string>
 	<key>native.commands.find</key>
 	<string>Zoek…</string>
 	<key>native.commands.newChatWindow</key>

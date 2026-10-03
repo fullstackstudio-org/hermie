@@ -194,6 +194,11 @@ public final class LiveWiring {
       self?.session(for: gatewayId)?.canonicalSessionIDs(bot: bot) ?? []
     }
 
+    // A muted chat's notification is not shown in front (the notifier holds it back otherwise).
+    push.isMuted = { [weak self] gatewayId, bot in
+      self?.session(for: gatewayId)?.arrangement.isMuted(bot) ?? false
+    }
+
     push.onAddressesChanged = { [weak self] ids in
       guard let meta = self?.meta else {
         return

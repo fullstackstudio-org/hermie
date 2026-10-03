@@ -53,6 +53,9 @@ public final class GatewaySession {
   /// Set when a resume reported a desktop contract below the floor (`DesktopContract`).
   public private(set) var incompatibility: GatewayError?
   public let chatList = ChatListModel()
+  /// The chat list's archive, pins and mutes, read from and written through this session's ui_meta
+  /// sync once `GatewayMetaBridge` attaches it.
+  public let arrangement = ChatArrangementModel()
   /// The one-string prompts (`secret`, `sudo`, `vault.*`): a consumer of the
   /// server requests of its own, so a typed secret never reaches the store.
   @ObservationIgnored public let secureInput: SecureInputCenter

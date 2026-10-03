@@ -2,18 +2,20 @@ import HermieCore
 import SwiftUI
 
 /// One bot in the chat list: avatar and presence bead, name, time, the last message, the unread
-/// count and the needs-input mark.
+/// count, and the marks beside the name (pinned, muted, needs input).
 ///
 /// Compared on its values, so a summary that changed one bot's row redraws that row only. At the
 /// accessibility text sizes the time moves under the name instead of squeezing it.
 struct ChatListRowView: View, Equatable {
   let row: ChatListRow
   let gatewayReady: Bool
+  var pinned = false
+  var muted = false
 
   @Environment(\.dynamicTypeSize) private var typeSize
 
   nonisolated static func == (lhs: Self, rhs: Self) -> Bool {
-    lhs.row == rhs.row && lhs.gatewayReady == rhs.gatewayReady
+    lhs.row == rhs.row && lhs.gatewayReady == rhs.gatewayReady && lhs.pinned == rhs.pinned && lhs.muted == rhs.muted
   }
 
   var body: some View {
@@ -59,17 +61,21 @@ struct ChatListRowView: View, Equatable {
     .padding(.vertical, 4)
     .contentShape(.rect)
     .accessibilityElement(children: .ignore)
-    .accessibilityLabel(ChatListFormat.accessibilityLabel(row, presence: presence))
+    .accessibilityLabel(ChatListFormat.accessibilityLabel(row, presence: presence, pinned: pinned, muted: muted))
     .accessibilityValue([preview.text, stamp].filter { !$0.isEmpty }.joined(separator: ", "))
     .accessibilityAddTraits(.isButton)
     .accessibilityIdentifier("hermie.chatList.row.\(row.bot.name)")
   }
 
+  /// One line, cut at the end, never hyphenated over two: the full name is in the row's label. It
+  /// gets the room before the time does.
   private var name: some View {
     Text(row.bot.displayName)
       .font(.headline)
       .fontWeight(row.unread || row.unreadCount > 0 ? .bold : .semibold)
-      .fixedSize(horizontal: false, vertical: true)
+      .lineLimit(1)
+      .truncationMode(.tail)
+      .layoutPriority(1)
   }
 
   private func time(_ stamp: String) -> some View {
@@ -81,6 +87,21 @@ struct ChatListRowView: View, Equatable {
   }
 
   @ViewBuilder private var marks: some View {
+    if pinned {
+      Image(systemName: "pin.fill")
+        .foregroundStyle(.secondary)
+        .imageScale(.small)
+        .accessibilityHidden(true)
+    }
+
+    if muted {
+      Image(systemName: "bell.slash.fill")
+        .foregroundStyle(.secondary)
+        .imageScale(.small)
+        .accessibilityHidden(true)
+        .accessibilityIdentifier("hermie.chatList.muted.\(row.bot.name)")
+    }
+
     if row.needsInput {
       Image(systemName: "exclamationmark.bubble.fill")
         .foregroundStyle(.orange)

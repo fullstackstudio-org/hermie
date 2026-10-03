@@ -34,9 +34,23 @@ enum NativeStrings {
     static var signedOut: String {
       String(localized: "native.chatList.signedOut", table: "Native", bundle: .module)
     }
+    /// Now (a row's time, under a minute old)
+    static var now: String {
+      String(localized: "native.chatList.now", table: "Native", bundle: .module)
+    }
+    /// Archived
+    static var archivedTitle: String {
+      String(localized: "native.chatList.archivedTitle", table: "Native", bundle: .module)
+    }
+    /// Mute {name}
+    static func muteTitle(name: String) -> String {
+      String(localized: "native.chatList.muteTitle", defaultValue: "Mute \(name)", table: "Native", bundle: .module)
+    }
   }
 
   enum Commands {
+    /// Chat
+    static var chatMenu: String { String(localized: "native.commands.chatMenu", table: "Native", bundle: .module) }
     /// Find…
     static var find: String { String(localized: "native.commands.find", table: "Native", bundle: .module) }
     /// New Chat Window

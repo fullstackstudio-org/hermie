@@ -506,4 +506,30 @@ struct PushKindsControllerTests {
     #expect(await inbox.handleDelivery(Self.request("clarify", ["requestId": "srq-1", "clear": true])) == 1)
     #expect(center.removed == ["n1"])
   }
+
+  @Test("a muted chat's notification is not shown in front; security is, and so is another gateway's bot")
+  func mutedChatIsHidden() async throws {
+    let rig = try PushControllerTests.Rig()
+    var asked: [String] = []
+
+    rig.controller.isMuted = { gatewayId, bot in
+      asked.append("\(gatewayId)/\(bot)")
+      return gatewayId == G.one.id && bot == "scout"
+    }
+
+    // The gateway list is not known yet: nothing names a gateway, nothing is held back.
+    #expect(rig.controller.presentation(for: Self.request("approval")) == .foreground)
+    #expect(asked.isEmpty)
+
+    await rig.controller.setGateways([G.one, G.two])
+
+    #expect(rig.controller.presentation(for: Self.request("approval")) == .hidden)
+    #expect(rig.controller.presentation(for: Self.request("approval", ["bot": "writer"])) == .foreground)
+    #expect(rig.controller.presentation(for: Self.request("approval", ["gatewayKey": .string(G.two.key)])) == .foreground)
+
+    let security = PushPayload(
+      shape: .relay, data: ["type": "security", "bot": "scout", "change": "revoked", "gatewayKey": .string(G.one.key)])
+    #expect(rig.controller.presentation(for: security) == .foreground)
+    #expect(asked == ["g1/scout", "g1/writer", "g2/scout"])
+  }
 }

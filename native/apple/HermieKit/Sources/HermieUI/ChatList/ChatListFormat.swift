@@ -11,8 +11,9 @@ enum ChatListFormat {
   static let previewLimit = 90
   static let accessibilityPreviewLimit = 36
 
-  /// `formatListTime`: nothing for no time, "now" under a minute, the clock today, the weekday
-  /// within a week, else the date. In the reader's locale and calendar.
+  /// `formatListTime`: nothing for no time, "Now" under a minute, the clock today, the weekday
+  /// within a week, else the date. In the reader's locale and calendar, and always short, so the
+  /// bot's name keeps its room.
   static func listTime(_ unixSeconds: Double, now: Date = .now, calendar: Calendar = .current) -> String {
     guard unixSeconds.isFinite, unixSeconds > 0 else {
       return ""
@@ -21,8 +22,9 @@ enum ChatListFormat {
     let date = Date(timeIntervalSince1970: unixSeconds)
     let age = now.timeIntervalSince(date)
 
+    // One short word, as the Expo list says it: "3 seconds ago" took the name's room in a sidebar.
     if age < 60 {
-      return date.formatted(.relative(presentation: .named))
+      return NativeStrings.ChatList.now
     }
 
     if calendar.isDate(date, inSameDayAs: now) {
@@ -93,13 +95,21 @@ enum ChatListFormat {
     }
   }
 
-  /// What VoiceOver reads for a row, in the order it is drawn: the names, the presence, the
-  /// unread state, the needs-input mark.
-  static func accessibilityLabel(_ row: ChatListRow, presence: Presence) -> String {
+  /// What VoiceOver reads for a row, in the order it is drawn: the names, the pinned and muted
+  /// marks, the presence, the unread state, the needs-input mark.
+  static func accessibilityLabel(_ row: ChatListRow, presence: Presence, pinned: Bool = false, muted: Bool = false) -> String {
     var parts = [row.bot.displayName]
 
     if row.bot.displayName != row.bot.name {
       parts.append(row.bot.name)
+    }
+
+    if pinned {
+      parts.append(Strings.App.Layout.pinnedRow)
+    }
+
+    if muted {
+      parts.append(Strings.App.Layout.mutedRow)
     }
 
     parts.append(presenceLabel(presence))
@@ -115,5 +125,37 @@ enum ChatListFormat {
     }
 
     return parts.joined(separator: ", ")
+  }
+
+  /// When a mute lapses, as the menu says it (`formatMuteUntil`): the time today, else the weekday
+  /// and the time (the longest mute is a week, so a weekday places it). Empty for a mute with no end.
+  static func muteUntil(_ until: Double, now: Date = .now, calendar: Calendar = .current) -> String {
+    guard until.isFinite, until > 0 else {
+      return ""
+    }
+
+    let end = Date(timeIntervalSince1970: until)
+
+    if calendar.isDate(end, inSameDayAs: now) {
+      return end.formatted(date: .omitted, time: .shortened)
+    }
+
+    return end.formatted(.dateTime.weekday(.abbreviated).hour().minute())
+  }
+
+  /// The disabled line a muted chat's menu starts with: "Muted until …", or "Muted" for ever.
+  static func mutedState(_ until: Double, now: Date = .now) -> String {
+    let when = muteUntil(until, now: now)
+    return when.isEmpty ? Strings.App.Layout.muted : Strings.App.Layout.mutedUntil(when: when)
+  }
+
+  /// The menu's word for a duration.
+  static func muteTitle(_ duration: MuteDuration) -> String {
+    switch duration {
+    case .oneHour: Strings.App.Layout.MuteFor._1h
+    case .eightHours: Strings.App.Layout.MuteFor._8h
+    case .oneWeek: Strings.App.Layout.MuteFor._1w
+    case .forever: Strings.App.Layout.MuteFor.forever
+    }
   }
 }

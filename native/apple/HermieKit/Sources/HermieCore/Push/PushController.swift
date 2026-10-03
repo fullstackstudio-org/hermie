@@ -218,6 +218,12 @@ public final class PushController {
     _, _ in []
   }
 
+  /// The session seam for a mute: whether the reader silenced this bot's chat on this gateway
+  /// (`ChatArrangementModel`, read from the app section's `mutes`). The gateway's notifier already
+  /// holds back a muted chat's notifications; this covers one that was on its way when the mute was
+  /// chosen, or a notifier that has not read the section yet. Nothing is muted until it is set.
+  @ObservationIgnored public var isMuted: @MainActor (_ gatewayId: String, _ bot: String) -> Bool = { _, _ in false }
+
   /// The system's delivered notifications, for a clearing push to take one off. The app shell sets
   /// one over `UNUserNotificationCenter`; until then nothing is delivered and nothing is removed.
   @ObservationIgnored public var deliveredNotifications: any PushDeliveredNotifications = NoDeliveredNotifications()
@@ -592,8 +598,33 @@ public final class PushController {
 
   /// How a notification is shown while the app is in front.
   public func presentation(for payload: PushPayload?) -> PushPresentation {
+    guard let payload else {
+      return .foreground
+    }
+
     // A clearing push is silent: it takes a notification away and shows nothing itself.
-    payload?.isClear == true ? .hidden : .foreground
+    if payload.isClear {
+      return .hidden
+    }
+
+    // A muted chat stays silent in front too, except for what no switch turns off (`security`).
+    if !payload.bypassesFilters, mutedChat(payload) {
+      return .hidden
+    }
+
+    return .foreground
+  }
+
+  /// Whether the payload names a configured gateway and a bot whose chat is muted there.
+  private func mutedChat(_ payload: PushPayload) -> Bool {
+    let key = payload.string("gatewayKey")
+    let bot = payload.string("bot")
+
+    guard !key.isEmpty, !bot.isEmpty, let gateway = gateways.first(where: { $0.key == key }) else {
+      return false
+    }
+
+    return isMuted(gateway.id, bot)
   }
 
   /**
