@@ -81,6 +81,7 @@ import {
   passkeysStore
 } from '../../state/passkeys'
 import type { ChatGateway } from '../link'
+import { displayText, NAME_LIMIT } from '../requests/secure-input'
 import {
   b64uDecode,
   b64uEncode,
@@ -1285,7 +1286,13 @@ export class PasskeyModel {
     this.store.setState(state => ({ notices: state.notices.filter(notice => notice.id !== id) }))
   }
 
-  private notify(notice: PasskeyNoticeKind): void {
+  private notify(unchecked: PasskeyNoticeKind): void {
+    // The name of a passkey is the gateway's: one bounded line without control or direction characters, as in
+    // the native apps (`PasskeyModel.displayName`).
+    const notice =
+      unchecked.kind === 'credential_added' || unchecked.kind === 'credential_revoked'
+        ? { ...unchecked, name: displayText(unchecked.name, NAME_LIMIT).replace(/\n/gu, ' ') }
+        : unchecked
     const same = JSON.stringify(notice)
 
     if (this.store.getState().notices.some(existing => JSON.stringify(existing.notice) === same)) {
