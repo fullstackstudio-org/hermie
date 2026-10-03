@@ -13,6 +13,7 @@ import { createKeyValueStore, type StorageLike } from '../../platform/key-value-
 import { createPasskeyPins } from '../../platform/passkey-pins'
 import { createPasskeysStore } from '../../state/passkeys'
 import { softWebAuthn } from '../../test-support/soft-webauthn'
+import { NAME_LIMIT } from '../requests/secure-input'
 import type { PasskeyClient, PasskeyStatus } from './client'
 import {
   credentialName,
@@ -854,6 +855,24 @@ describe('a status read that breaks the pin', () => {
     expect(page.store.getState()).toMatchObject({ status: null, credentials: [] })
     expect(page.store.getState().notices.map(notice => notice.notice)).toEqual([{ kind: 'gateway_id_mismatch' }])
     expect(page.pins.seen().ids).toEqual([])
+  })
+})
+
+describe('a passkey added or revoked elsewhere', () => {
+  it('names it in one bounded line, whatever the gateway sent', async () => {
+    const page = setUp({ client: { status: vi.fn(async () => GATEWAY_STATUS()) } })
+    const name = `Laptop‮\n\nkcatta${'x'.repeat(500)}`
+
+    page.emit('passkey.changed', { change: 'added', credential: { id: 'bmV3', name } })
+    await vi.waitFor(() => expect(page.store.getState().notices).toHaveLength(1))
+
+    const notice = page.store.getState().notices[0]?.notice
+    const shown = notice?.kind === 'credential_added' ? notice.name : ''
+
+    expect(shown.startsWith('Laptop kcatta')).toBe(true)
+    expect(shown).not.toMatch(/[\n‮]/u)
+    expect(Array.from(shown).length).toBeLessThanOrEqual(NAME_LIMIT + 1)
+    expect(shown.endsWith('…')).toBe(true)
   })
 })
 
