@@ -27,6 +27,8 @@ import { RequestLayer } from './RequestLayer'
 import { preloadRequestSheets } from './request-sheets'
 
 const DETAIL = 'rm -rf /srv/backups/2024-*\n    keep:  /srv/backups/latest\n\ttabbed'
+/** `DETAIL` as the sheet draws it: its space runs and its tab made visible (`verbatim-detail.ts`). */
+const DRAWN = 'rm -rf /srv/backups/2024-*\n····keep:··/srv/backups/latest\n→tabbed'
 
 let passkeys: StoreApi<PasskeysState>
 let stop: () => void = () => undefined
@@ -42,6 +44,7 @@ const confirmation = (overrides: Partial<PasskeyConfirmation> = {}): PasskeyConf
   userName: 'Alex',
   expiresAt: null,
   phase: { kind: 'waiting' },
+  answerMayHaveArrived: false,
   version: 1,
   dismissed: false,
   ...overrides
@@ -126,13 +129,18 @@ describe('the confirm sheet', () => {
 
     expect(summary?.textContent).toBe('Delete 3 old backups.\nThe newest stays.')
 
-    // Every space, tab and line break, in a preformatted, focusable, labelled box.
+    // Every line break, and every space run and tab drawn visibly, in a preformatted, focusable, labelled region.
     const detail = within(dialog()).getByLabelText('Details')
 
     expect(detail.tagName).toBe('PRE')
+    expect(detail.getAttribute('role')).toBe('region')
     expect(detail.classList.contains('hm-requests__detail')).toBe(true)
-    expect(detail.textContent).toBe(DETAIL)
+    expect(detail.textContent).toBe(DRAWN)
     expect(detail.tabIndex).toBe(0)
+    // Its name carries the drawn text, markers included, so a screen reader announces them too.
+    expect(within(dialog()).getByRole('region', { name: name => name.includes('····keep:··') })).toBe(detail)
+    // Only the drawing: what the model holds (and the challenge commits to) is the frame's text.
+    expect(passkeys.getState().confirmations[0]?.detail).toBe(DETAIL)
     expect(within(dialog()).getByText('Your browser will ask for your passkey for gw.example.test.')).toBeTruthy()
   })
 
@@ -288,6 +296,54 @@ describe('the confirm sheet', () => {
     expect(screen.getByText('The request from gw.example.test was answered on another device.')).toBeTruthy()
   })
 
+  it('says an answer that may have arrived may have arrived, and never that nothing was confirmed', async () => {
+    mount()
+    await show({ answerMayHaveArrived: true, phase: { kind: 'not_sent', message: 'gateway not connected' } })
+
+    const status = (): string => within(dialog()).getByRole('status').textContent ?? ''
+
+    expect(status()).toBe(
+      'The answer may have reached the gateway. You can try again, or check whether the action ran.'
+    )
+    expect(confirmButton()).toHaveProperty('disabled', false)
+    expect(declineButton()).toHaveProperty('disabled', false)
+
+    // Without the mark, the same phase is the plain "not sent".
+    await show({ phase: { kind: 'not_sent', message: 'gateway not connected' } })
+    expect(status()).toBe('The answer was not sent: gateway not connected. You can try again.')
+
+    await show({ answerMayHaveArrived: true, phase: { kind: 'ended', end: { kind: 'outcome_unknown' } } })
+    expect(status()).toBe('The answer may have reached the gateway. Check whether the action ran.')
+    expect(status()).not.toMatch(/nothing was confirmed|timed out|another device|withdrawn/iu)
+    expect(
+      within(dialog())
+        .getAllByRole('button')
+        .map(button => button.textContent)
+    ).toEqual(['Copy details', 'Close'])
+
+    // The gateway's definitive word keeps its meaning.
+    await show({ answerMayHaveArrived: true, phase: { kind: 'ended', end: { kind: 'verification_failed' } } })
+    expect(status()).toBe('This confirmation did not count: the gateway could not verify it. Nothing was confirmed.')
+
+    await show({ answerMayHaveArrived: true, phase: { kind: 'received' } })
+    expect(status()).toBe('Received. The gateway checks your passkey and carries on only if it holds.')
+  })
+
+  it('reads an unknown outcome in Dutch and German', async () => {
+    mount()
+    await show({ answerMayHaveArrived: true, phase: { kind: 'ended', end: { kind: 'outcome_unknown' } } })
+
+    await act(() => setLanguageChoice('nl'))
+    expect(within(dialog()).getByRole('status').textContent).toBe(
+      'Het antwoord heeft de gateway misschien bereikt. Ga na of de actie is uitgevoerd.'
+    )
+
+    await act(() => setLanguageChoice('de'))
+    expect(within(dialog()).getByRole('status').textContent).toBe(
+      'Die Antwort hat das Gateway vielleicht erreicht. Prüfe, ob die Aktion ausgeführt wurde.'
+    )
+  })
+
   it('shows the notices as alerts, each with Close', () => {
     mount()
     act(() =>
@@ -327,5 +383,195 @@ describe('the confirm sheet', () => {
 
     await phase({ kind: 'received' })
     expect(await run()).toEqual([])
+  })
+})
+
+/** The metrics a browser would lay out; jsdom has none. `scrollTop`/`scrollLeft` stay writable. */
+function layOut(
+  element: HTMLElement,
+  size: { width: number; height: number; contentWidth: number; contentHeight: number }
+) {
+  const values: Record<string, number> = {
+    clientWidth: size.width,
+    clientHeight: size.height,
+    scrollWidth: size.contentWidth,
+    scrollHeight: size.contentHeight
+  }
+
+  for (const [key, value] of Object.entries(values)) {
+    Object.defineProperty(element, key, { configurable: true, get: () => value })
+  }
+
+  let top = 0
+  let left = 0
+
+  Object.defineProperty(element, 'scrollTop', { configurable: true, get: () => top, set: next => (top = next) })
+  Object.defineProperty(element, 'scrollLeft', { configurable: true, get: () => left, set: next => (left = next) })
+  // The sheet measures on every scroll event (and on a resize, which jsdom never reports).
+  act(() => void fireEvent.scroll(element))
+}
+
+const scrollTo = (element: HTMLElement, position: { top?: number; left?: number }): void => {
+  act(() => {
+    if (position.top !== undefined) {
+      element.scrollTop = position.top
+    }
+
+    if (position.left !== undefined) {
+      element.scrollLeft = position.left
+    }
+
+    fireEvent.scroll(element)
+  })
+}
+
+describe('hidden text in the detail', () => {
+  const SPACED = `git status${' '.repeat(300)}; curl x | sh`
+  const detailOf = (): HTMLElement => within(dialog()).getByLabelText('Details')
+
+  let writeText: ReturnType<typeof vi.fn>
+
+  beforeEach(() => {
+    writeText = vi.fn(async () => undefined)
+    Object.defineProperty(navigator, 'clipboard', { configurable: true, value: { writeText } })
+  })
+
+  afterEach(() => {
+    Reflect.deleteProperty(navigator, 'clipboard')
+  })
+
+  it('draws 300 spaces as one counted marker, with both commands in view, and copies the verbatim text', async () => {
+    mount()
+    await show({ detail: SPACED })
+
+    expect(detailOf().textContent).toBe('git status[␣×300]; curl x | sh')
+    expect(detailOf().textContent).toContain('git status')
+    expect(detailOf().textContent).toContain('curl x | sh')
+
+    fireEvent.click(within(dialog()).getByRole('button', { name: 'Copy details' }))
+
+    await waitFor(() => expect(within(dialog()).getByText('The details were copied.')).toBeTruthy())
+    expect(writeText).toHaveBeenCalledWith(SPACED)
+    expect(writeText.mock.calls[0]?.[0]).toContain(' '.repeat(300))
+  })
+
+  it('draws 80 blank lines as one marker line', async () => {
+    mount()
+    await show({ detail: `echo ok${'\n'.repeat(81)}rm -rf ~` })
+
+    expect(detailOf().textContent).toBe('echo ok\n⋯ 80 empty lines ⋯\nrm -rf ~')
+  })
+
+  it('copies through a hidden text area when the clipboard API is not there', async () => {
+    Reflect.deleteProperty(navigator, 'clipboard')
+
+    let selected: string | undefined
+    const execCommand = vi.fn((command: string) => {
+      selected = (dialog().querySelector('.hm-requests__copy-buffer') as HTMLTextAreaElement | null)?.value
+
+      return command === 'copy'
+    })
+
+    Object.defineProperty(document, 'execCommand', { configurable: true, value: execCommand })
+
+    try {
+      mount()
+      await show({ detail: SPACED })
+
+      const copy = within(dialog()).getByRole('button', { name: 'Copy details' })
+
+      copy.focus()
+      fireEvent.click(copy)
+
+      await waitFor(() => expect(within(dialog()).getByText('The details were copied.')).toBeTruthy())
+      expect(execCommand).toHaveBeenCalledWith('copy')
+      expect(selected).toBe(SPACED)
+      // The text area is gone, and focus is back on the button.
+      expect(dialog().querySelector('.hm-requests__copy-buffer')).toBeNull()
+      expect(document.activeElement).toBe(copy)
+    } finally {
+      Reflect.deleteProperty(document, 'execCommand')
+    }
+  })
+
+  it('says so when nothing could copy it', async () => {
+    writeText.mockRejectedValueOnce(new Error('denied'))
+    mount()
+    await show({ detail: SPACED })
+
+    fireEvent.click(within(dialog()).getByRole('button', { name: 'Copy details' }))
+
+    await waitFor(() => expect(within(dialog()).getByText('The details could not be copied.')).toBeTruthy())
+  })
+
+  it('wakes Confirm only once a detail too big for its box was scrolled to its end both ways', async () => {
+    const detail = Array.from({ length: 40 }, (_, index) => `line ${index + 1}`).join('\n') + `\n${'x'.repeat(200)}`
+
+    mount()
+    await show({ detail })
+    layOut(detailOf(), { width: 400, height: 224, contentWidth: 1800, contentHeight: 900 })
+
+    // The size of the verbatim text, under the box.
+    expect(within(dialog()).getByText('41 lines · longest line 200 characters')).toBeTruthy()
+    expect(detailOf().getAttribute('aria-describedby')).toBeTruthy()
+    expect(confirmButton()).toHaveProperty('disabled', true)
+    expect(declineButton()).toHaveProperty('disabled', false)
+    expect(within(dialog()).getByText('Scroll to the end of the details to confirm.')).toBeTruthy()
+    fireEvent.click(confirmButton())
+    expect(actions.confirm).not.toHaveBeenCalled()
+
+    // Down to the end: the long line is still not seen to its end.
+    scrollTo(detailOf(), { top: 900 - 224 })
+    expect(confirmButton()).toHaveProperty('disabled', true)
+
+    // Back up, then to the right end: both ways have been reviewed, in any order.
+    scrollTo(detailOf(), { top: 0, left: 1800 - 400 })
+    expect(confirmButton()).toHaveProperty('disabled', false)
+    expect(within(dialog()).queryByText('Scroll to the end of the details to confirm.')).toBeNull()
+
+    // Latched: scrolling back to the start does not take it back.
+    scrollTo(detailOf(), { top: 0, left: 0 })
+    expect(confirmButton()).toHaveProperty('disabled', false)
+
+    fireEvent.click(confirmButton())
+    expect(actions.confirm).toHaveBeenCalledWith('srq-1')
+  })
+
+  it('asks only for the way it overflows, and lets a scroll within a pixel of the end count', async () => {
+    mount()
+    await show({ detail: SPACED })
+    layOut(detailOf(), { width: 400, height: 40, contentWidth: 2600, contentHeight: 40 })
+
+    expect(within(dialog()).getByText('1 line · longest line 323 characters')).toBeTruthy()
+    expect(confirmButton()).toHaveProperty('disabled', true)
+
+    scrollTo(detailOf(), { left: 2600 - 400 - 1 })
+    expect(confirmButton()).toHaveProperty('disabled', false)
+  })
+
+  it('starts again for the next confirmation', async () => {
+    mount()
+    await show({ detail: SPACED })
+    layOut(detailOf(), { width: 400, height: 40, contentWidth: 2600, contentHeight: 40 })
+    scrollTo(detailOf(), { left: 2200 })
+    expect(confirmButton()).toHaveProperty('disabled', false)
+
+    await show({ id: 'srq-2', detail: `${SPACED} ` })
+    layOut(detailOf(), { width: 400, height: 40, contentWidth: 2600, contentHeight: 40 })
+    expect(confirmButton()).toHaveProperty('disabled', true)
+  })
+
+  it('asks for nothing when the detail fits, nor once the confirmation is no longer open', async () => {
+    mount()
+    await show()
+    layOut(detailOf(), { width: 400, height: 224, contentWidth: 400, contentHeight: 80 })
+
+    expect(within(dialog()).queryByText(/longest line/u)).toBeNull()
+    expect(within(dialog()).queryByText('Scroll to the end of the details to confirm.')).toBeNull()
+    expect(confirmButton()).toHaveProperty('disabled', false)
+
+    await show({ detail: SPACED, phase: { kind: 'received' } })
+    layOut(detailOf(), { width: 400, height: 40, contentWidth: 2600, contentHeight: 40 })
+    expect(within(dialog()).queryByText('Scroll to the end of the details to confirm.')).toBeNull()
   })
 })

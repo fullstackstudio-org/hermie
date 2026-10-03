@@ -20,6 +20,7 @@ import {
   DECLINE,
   type OpenSession,
   type PasskeyGateway,
+  isTransportFailure,
   PasskeyModel,
   phaseAfter
 } from './model'
@@ -374,6 +375,173 @@ describe('what the gateway says back', () => {
       })
     })
   }
+})
+
+describe('an answer that may have arrived', () => {
+  /** The browser's sheet hands back an assertion at once (what it holds does not matter to a hand gateway). */
+  function signs(page: ReturnType<typeof setUp>): void {
+    const held = page.model as unknown as { options: { webauthn: { get: (...args: unknown[]) => unknown } } }
+
+    vi.spyOn(held.options.webauthn, 'get').mockResolvedValue({
+      credentialId: new Uint8Array([1, 2, 3]),
+      authenticatorData: new Uint8Array(37),
+      clientDataJSON: new Uint8Array([123, 125]),
+      signature: new Uint8Array([48, 6]),
+      userHandle: null
+    })
+  }
+
+  const UNKNOWN = { kind: 'ended', end: { kind: 'outcome_unknown' } }
+
+  /** A confirmation whose passkey answer got no reply: the socket closed under it. */
+  async function lost(): Promise<ReturnType<typeof setUp>> {
+    const page = setUp()
+
+    signs(page)
+    page.deliver('srq-1', frame())
+    page.answer.mockRejectedValueOnce(new Error('gateway not connected'))
+    await page.model.confirm('srq-1')
+
+    return page
+  }
+
+  const entry = (page: ReturnType<typeof setUp>) => page.store.getState().confirmations[0]
+
+  it('tells a transport failure from the gateway’s word', () => {
+    expect(isTransportFailure(new Error('request timed out after 30s: request.answer'))).toBe(true)
+    expect(isTransportFailure(new JsonRpcGatewayError('closed'))).toBe(true)
+    expect(isTransportFailure(new JsonRpcGatewayError('unknown request', { code: 4004 }))).toBe(false)
+    expect(isTransportFailure(new JsonRpcGatewayError('answer refused', { code: 4034 }))).toBe(false)
+  })
+
+  it('is marked after a passkey answer got no reply, and stays open to try again', async () => {
+    const page = await lost()
+
+    expect(page.answer).toHaveBeenCalledWith('request.answer', expect.objectContaining({ id: 'srq-1' }))
+    expect(entry(page)).toMatchObject({
+      phase: { kind: 'not_sent', message: 'gateway not connected' },
+      answerMayHaveArrived: true,
+      dismissed: false
+    })
+  })
+
+  it('is not marked by a decline that got no reply, nor by an answer the gateway refused', async () => {
+    const declined = setUp()
+
+    declined.deliver('srq-1', frame())
+    declined.answer.mockRejectedValueOnce(new Error('gateway not connected'))
+    await declined.model.decline('srq-1')
+    expect(entry(declined)).toMatchObject({ phase: { kind: 'not_sent' }, answerMayHaveArrived: false })
+
+    const refused = setUp()
+
+    signs(refused)
+    refused.deliver('srq-1', frame())
+    refused.answer.mockRejectedValueOnce(
+      new JsonRpcGatewayError('answer refused', { code: 4034, data: { reason: 'signature_invalid' } })
+    )
+    await refused.model.confirm('srq-1')
+    expect(entry(refused)).toMatchObject({
+      phase: { kind: 'refused', reason: 'signature_invalid' },
+      answerMayHaveArrived: false
+    })
+  })
+
+  it('ends outcome-unknown, not timed out, at its deadline on the page’s clock', async () => {
+    const page = await lost()
+
+    page.clock.now = NOW + 120
+    expect(page.model.expire('srq-1')).toBe(true)
+    // On screen: the person must read it.
+    expect(entry(page)).toMatchObject({ phase: UNKNOWN, dismissed: false })
+  })
+
+  it('ends outcome-unknown, not timed out, when a confirm or a decline comes after the deadline', async () => {
+    for (const act of ['confirm', 'decline'] as const) {
+      const page = await lost()
+
+      page.clock.now = NOW + 121
+      await page.model[act]('srq-1')
+      expect(entry(page), act).toMatchObject({ phase: UNKNOWN, dismissed: false })
+    }
+  })
+
+  it('ends outcome-unknown when a Decline is answered “not found” or “expired”', async () => {
+    const notFound = await lost()
+
+    notFound.answer.mockRejectedValueOnce(new JsonRpcGatewayError('request not found', { code: 4004 }))
+    await notFound.model.decline('srq-1')
+    expect(notFound.answer).toHaveBeenLastCalledWith('request.answer', { id: 'srq-1', result: DECLINE })
+    expect(entry(notFound)).toMatchObject({ phase: UNKNOWN, dismissed: false })
+
+    const expired = await lost()
+
+    expired.answer.mockResolvedValueOnce({ status: 'expired' })
+    await expired.model.decline('srq-1')
+    expect(entry(expired)).toMatchObject({ phase: UNKNOWN, dismissed: false })
+  })
+
+  it('ends outcome-unknown when a retry is answered “expired”', async () => {
+    const page = await lost()
+
+    page.answer.mockResolvedValueOnce({ status: 'expired' })
+    await page.model.confirm('srq-1')
+    expect(entry(page)).toMatchObject({ phase: UNKNOWN, dismissed: false })
+  })
+
+  it('is received when a retry is answered ok, and declined when a Decline is (the request was still open)', async () => {
+    const retried = await lost()
+
+    await retried.model.confirm('srq-1')
+    expect(entry(retried)?.phase).toEqual({ kind: 'received' })
+
+    const declined = await lost()
+
+    await declined.model.decline('srq-1')
+    expect(entry(declined)).toMatchObject({ phase: { kind: 'declined' }, dismissed: true })
+  })
+
+  it('keeps saying it may have arrived when a retry gets no reply either', async () => {
+    const page = await lost()
+
+    page.answer.mockRejectedValueOnce(new Error('request timed out after 30s: request.answer'))
+    await page.model.decline('srq-1')
+    expect(entry(page)).toMatchObject({ phase: { kind: 'not_sent' }, answerMayHaveArrived: true })
+  })
+
+  const cancels: { reason: string; phase: unknown; dismissed: boolean }[] = [
+    { reason: 'resolved', phase: UNKNOWN, dismissed: false },
+    { reason: 'timeout', phase: UNKNOWN, dismissed: false },
+    { reason: 'cancelled', phase: UNKNOWN, dismissed: false },
+    { reason: 'verification_failed', phase: { kind: 'ended', end: { kind: 'verification_failed' } }, dismissed: false },
+    { reason: 'too_many_attempts', phase: { kind: 'ended', end: { kind: 'too_many_attempts' } }, dismissed: false }
+  ]
+
+  for (const cancel of cancels) {
+    it(`request.cancel ${cancel.reason} after it may have arrived`, async () => {
+      const page = await lost()
+
+      page.emit('request.cancel', { id: 'srq-1', method: 'confirm', reason: cancel.reason })
+      expect(entry(page)).toMatchObject({ phase: cancel.phase, dismissed: cancel.dismissed })
+    })
+  }
+
+  it('ends outcome-unknown when a read of the open requests no longer lists it', async () => {
+    const page = await lost()
+    const internals = page.model as unknown as { withdrawn(id: string, reason: string): void }
+
+    // What `readOpenRequests` does for a request the gateway no longer lists.
+    internals.withdrawn('srq-1', 'timeout')
+    expect(entry(page)).toMatchObject({ phase: UNKNOWN, dismissed: false })
+  })
+
+  it('keeps a 4033 on a retry as not allowed', async () => {
+    const page = await lost()
+
+    page.answer.mockRejectedValueOnce(new JsonRpcGatewayError('not allowed', { code: 4033 }))
+    await page.model.confirm('srq-1')
+    expect(entry(page)?.phase).toEqual({ kind: 'ended', end: { kind: 'not_allowed' } })
+  })
 })
 
 describe('the page’s clock ends a confirmation', () => {

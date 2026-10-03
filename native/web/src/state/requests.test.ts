@@ -159,6 +159,7 @@ describe('confirmations beside the engine', () => {
     userName: 'Alex',
     expiresAt: null,
     phase: { kind: 'waiting' },
+    answerMayHaveArrived: false,
     version: 1,
     dismissed: false,
     ...overrides
