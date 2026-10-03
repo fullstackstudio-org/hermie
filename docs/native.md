@@ -350,21 +350,92 @@ bottom or not, scroll to the bottom or to a row, a callback near the top) and an
 jump pill. None of that says how the list is drawn, so the implementation can be replaced without
 touching the item views or the chat screen.
 
-**Decision: the SwiftUI list stays (implementation A).** It is a `ScrollView` over a `LazyVStack`,
-bottom-anchored with the iOS 18 scroll APIs. The collection-view representable (implementation B) was
-not built: A keeps the anchored row in place on a history prepend and re-renders only the streaming
-row on a delta. The one Apple hitch metric it could be measured with passed. One risk is still open,
-under [What is still open](#what-is-still-open).
+There are two implementations behind it, and `TranscriptListImplementation` picks one at run time:
 
-### How it meets the bar
+- **A, `swiftUI`**: a `ScrollView` over a `LazyVStack`, bottom-anchored with the iOS 18 scroll APIs
+  (`SwiftUITranscriptList.swift`).
+- **B, `collection`**: a `UICollectionView` on iPhone and iPad, an `NSCollectionView` on the Mac, with
+  the same SwiftUI rows in its cells (`CollectionTranscriptList+UIKit.swift`, `+AppKit.swift`, and the
+  shared `TranscriptListLayoutModel`).
+
+**Decision: B on iPhone and iPad, on every iOS version the app supports; A on the Mac for now.**
+
+- **iOS 26.x breaks A.** A history prepend moved the anchored row on every run on the iOS 26.5
+  simulator, and a bar under the list that grows by 160 pt (the composer gaining lines) moved every
+  row of a reader who had scrolled up by 91 pt. SwiftUI keeps the anchor in a `ScrollPosition`, and
+  there is no way to correct it from outside. B moves nothing in either case, on iOS 26.5 and 27,
+  iPhone and iPad (the table below).
+- **B on 27 as well.** A keeps the place on a prepend and under a growing bar on iOS 27, but
+  portrait to landscape and back moved every row of a scrolled-up reader by 208 pt on an iPhone
+  with iOS 27. B moves nothing there on any of the four. One implementation per platform is also
+  one set of bugs.
+- **The Mac keeps A** until B is measured there as thoroughly as on iOS. B passes the hands-off
+  bench and its prepend check on the Mac, and scrolls with far fewer late frames. But it is slower
+  while a reply streams at the bottom, it keeps the memory of a long streamed reply after it scrolls
+  away, and the Mac UI tests (which drive the real pointer) and text selection inside rows have not
+  been run against it. See [What is still open](#what-is-still-open).
+- **A is not deleted:** the Mac uses it, and the lab compares the two.
+
+The chat screen's transcript (`ChatTranscript`, under [The chat screens](#the-chat-screens)) is a
+`TranscriptList` too, so it gets B on iPhone and iPad without a change of its own.
+
+In debug builds `-HermieListImplementation swiftUI|collection` forces one implementation, the lab
+has a switch for it, and `TEST_RUNNER_HERMIE_LIST_IMPLEMENTATION` runs the UI tests against one.
+
+### How B works
+
+- **One layout model on both platforms.** `TranscriptListLayoutModel` holds every row's height
+  together with the width it was measured at, the rows' tops as running sums, and the anchor rule.
+  The anchor is the first row whose bottom is below the top of the viewport, and that row's distance
+  from it. A height change above the anchor moves the content offset by the same amount, so nothing on
+  screen moves. While the reader is at the bottom, the bottom stays instead.
+- **Rows are measured before they are shown.** UIKit's self-sizing is not used: it asks a cell for its
+  size on every invalidation, and its answers vary by a point or a line between passes, which moved
+  rows on screen for no reason. Instead, an off-screen `UIHostingController` (`NSHostingController`)
+  measures a row at the list's width, synchronously, before the row comes within 400 pt of the
+  viewport. This happens in the layout's bounds-change invalidation (which carries the offset
+  correction), and in the coordinator's own flows: loading, a structural change, a resize.
+- **Rows take their ideal height.** A row is `fixedSize(vertical)`, so its height depends only on the
+  width. A row whose content changes reports its new height through `onGeometryChange`. The report
+  is applied on the next turn of the main queue, because inside a layout pass an invalidation is not
+  acted on. The anchor is taken before the change and put back after it.
+- **Structural changes are batch updates.** Rows added or removed above or below are a
+  `difference(from:)` applied with `performBatchUpdates`. Rows on screen keep their cells, so they are
+  neither measured nor rendered again. More than 600 changes reload instead. A delta to the same
+  rows reconfigures only the changed cells on screen.
+- **Only the rows on screen are drawn.** Prefetching is off: a prefetched cell renders its row
+  whether it is shown or not. In the chat screen's UI test, a row the stream had not changed was
+  rendered in a prefetched cell and then again in the cell that showed it (the stack traces showed
+  both). A reply that streams below the reader is drawn when it comes into view; A keeps drawing it
+  frame after frame.
+- **Resizes keep the reader's row.** When its frame changes, a collection view moves its own offset
+  (by 166 pt when an iPad turns) and may measure rows at the new width, both before it lays out. So
+  the list reads the reader's place as the frame is about to change, from the offset and heights the
+  reader saw. At a new width every row is measured again, starting with the ones around that row.
+- **Keeping the bottom measures on the way.** Rows that come into view when the list scrolls itself
+  to the bottom are measured, and the bottom is kept again, until nothing changes. The layout gives
+  no offset correction to an offset the coordinator sets itself; without this, a growing bar left
+  the newest row 123 pt under it on an iPad.
+- **The composer is a content inset.** The host measures the safe area the list is given (the bars,
+  the keyboard, the composer) and hands it to the collection view as content insets. Rows scroll
+  under the bars, and a growing composer either keeps the bottom or moves nothing.
+- **Each cell keeps its own accessibility and display scale.** The rows get the list's environment,
+  except `accessibilityEnabled` and `displayScale`, which come from the cell
+  (`RowEnvironmentBridge`). With the list's stale values, the rows were missing from the
+  accessibility tree until the reader scrolled.
+
+### How A meets the bar
 
 - **Opens at the bottom and follows a growing reply** while the reader is at the bottom, with
   `defaultScrollAnchor(.bottom)`, and with `.bottom` for `.sizeChanges` while `isAtBottom`. Once the
   reader has scrolled away, the size-change anchor is `nil`, so a reply growing below them moves
   nothing.
-- **Prepends without a jump.** A `ScrollPosition` bound with `anchor: .top` over a
-  `scrollTargetLayout` keeps the row at the top of the viewport where it is when rows are inserted
-  above it.
+- **Prepends without a jump, on iOS 27 and the Mac.** A `ScrollPosition` bound with `anchor: .top`
+  over a `scrollTargetLayout` keeps the row at the top of the viewport where it is when rows are
+  inserted above it. On iOS 26.x it does not (above).
+
+The next three hold for B as well; its cells host the same `TranscriptListRow`.
+
 - **A delta re-renders one row.** `TranscriptListRow` is `Equatable` on its item, and
   `TranscriptRow` compares in O(1) on a stamp taken when it is built: the id, the item's `version`, the
   presentation, and whether the selectors took the thought away. This relies on the engine's rule
@@ -398,20 +469,22 @@ The spike tripped over three things that the code now avoids:
 
 ### Numbers
 
-Measured on 2 October 2026 on an M5 Max (18 cores) with Xcode 27.0. The iPhone figures come from an
-iPhone 17 simulator (iOS 27.0, 60 Hz), the Mac figures from the Mac's own 120 Hz display. The machine
-was running other heavy jobs throughout: the load average was between 2 and 98 over the session, and
-each figure below gives the load average it was taken at. The transcript is 2,000 synthetic items
-(1,935 rows after the selectors), and a reply streams at 30 deltas per second.
+Measured on an M5 Max (18 cores) with Xcode 27.0: A on 2 October 2026, B (and A again, beside it) on
+3 October. The simulators run at 60 Hz: an iPhone 17 and an iPad (A16) on iOS 26.5 and on iOS 27.0.
+The Mac figures come from the Mac's own 120 Hz display. The machine was running other heavy jobs
+throughout, so every figure gives the load average it was taken at. The transcript is 2,000 synthetic
+items (1,935 rows after the selectors), and a reply streams at 30 deltas per second.
 
-| Measure                                                                   | iPhone 17 simulator                                                  | Mac                                                                                                            |
-| ------------------------------------------------------------------------- | -------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------- |
-| Row bodies re-evaluated during 600 deltas, other than the streaming row's | 0 of the 24 rows on screen (streaming row: 599)                      | not run on the Mac (same views)                                                                                |
-| History prepend of 200 rows after the reader scrolled: Δy of every row    | 0.0 pt (UI test, asserted ≤ 1 pt)                                    | not run on the Mac                                                                                             |
-| `XCTHitchMetric` while streaming and scrolling (UI test, 3 iterations)    | no data: the metric records nothing on the simulator                 | 0.000 ms/s, 0 hitches (XCUITest scroll-wheel events; load 10–33)                                               |
-| Display-link meter, hands-off bench, 15 s per phase                       | idle 0.00, stream 0.00, pan 2.50, stream + pan 0.00 ms/s (load 4–8)  | idle 1.97, stream 5.00, pan 142, stream + pan 91 ms/s (`-O` build, load 6–10)                                  |
-| Display-link meter during the UI test's swipes                            | 75–79 ms/s over two runs (XCUITest snapshots running; load 5–30)     | none                                                                                                           |
-| Memory footprint                                                          | 36.5 MB after loading (+19.4 MB for the rows), 60 MB after the bench | 37 MB after loading (+17 MB); 250–275 MB while a long streamed reply is on screen; 60 MB after it scrolls away |
+| Measure                                                                   | A, iPhone 17 simulator (iOS 27)                                                                                                       | B, simulators (iOS 26.5 and 27, iPhone and iPad)                                                                                                                                  | A, Mac                                                                                                                                                                                          | B, Mac                                                                                                                        |
+| ------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------- |
+| Row bodies re-evaluated during 600 deltas, other than the streaming row's | 0 of the 24 rows on screen (streaming row: 599)                                                                                       | 0 of 25–30 (iPhone) and of 39 (iPad) rows on screen, streaming row 600 (load 5–34); on the iPad with 26.5 the first row of the transcript, off screen, was drawn 12 times (below) | not run on the Mac (same views)                                                                                                                                                                 | not run                                                                                                                       |
+| History prepend of 200 rows after the reader scrolled: Δy of every row    | 0.0 pt (UI test, asserted ≤ 1 pt); on iOS 26.5 it fails every run                                                                     | 0.0 pt on all four, after a scroll and straight after a scroll command (UI test; load 8–63)                                                                                       | not run on the Mac                                                                                                                                                                              | 0.00 and 0.47 pt (bench; load 8–30)                                                                                           |
+| A 160 pt bar under the list grows (UI test)                               | iOS 26.5: every row of a scrolled-up reader moved 91 pt; iOS 27: 0 pt (load 23)                                                       | scrolled up: 0 pt on all four; at the bottom the newest row ends on the bar (load 8–63)                                                                                           | not run                                                                                                                                                                                         | not run                                                                                                                       |
+| Portrait, landscape, portrait while scrolled up (UI test)                 | iOS 27: every row moved 208 pt (load 23)                                                                                              | 0.0 pt on all four (load 5–90)                                                                                                                                                    | not applicable                                                                                                                                                                                  | not applicable                                                                                                                |
+| `XCTHitchMetric` while streaming and scrolling (UI test, 3 iterations)    | no data: the metric records nothing on the simulator                                                                                  | no data (same reason)                                                                                                                                                             | 0.000 ms/s, 0 hitches (XCUITest scroll-wheel events; load 10–33)                                                                                                                                | not run: the Mac UI tests drive the real pointer                                                                              |
+| Display-link meter, hands-off bench, 15 s per phase                       | idle 0.00, stream 0.00, pan 2.50, stream + pan 0.00 ms/s (load 4–8); again on 3 October: 0.00, 0.00, 4.48 and 5.93, 0.00 (load 17–52) | iPhone 27, three runs: idle 0.00, stream 0.00, pan 0.00, stream + pan 0.00 ms/s (load 4–52)                                                                                       | 2 Oct: idle 1.97, stream 5.00, pan 142, stream + pan 91 ms/s (load 6–10). 3 Oct, two runs: idle 1.06 / 0.91, stream 51 / 47, pan 286 / 270, stream + pan 492 / 559 (load 8–31). All `-O` builds | two runs: idle 0.89 / 1.09, stream 95 / 93, pan 38 / 47, stream + pan 34 / 339 ms/s (`-O` build; load 8–31)                   |
+| Display-link meter during the UI test's swipes                            | 75–79 ms/s over two runs (XCUITest snapshots running; load 5–30)                                                                      | iPhone 154–171 (26.5) and 163–200 (27); iPad 39–64 (26.5) and 89–128 (27) ms/s over two to three runs each (load 5–34)                                                            | none                                                                                                                                                                                            | none                                                                                                                          |
+| Memory footprint                                                          | 36.5 MB after loading (+19.4 MB for the rows), 60 MB after the bench                                                                  | 32–33 MB after loading (+14 MB), 49–51 MB after the bench (iPhone 27); 150–233 MB at the end of the UI test's swipes while a reply streams                                        | 37 MB after loading (+17 MB); 250–275 MB while a long streamed reply is on screen; 65–75 MB after it scrolls away                                                                               | 39 MB after loading (+18 MB); 265–275 MB while a long streamed reply is on screen, and still 270–280 MB after it scrolls away |
 
 How much to trust them:
 
@@ -429,20 +502,49 @@ How much to trust them:
   `LazyVStack` placement and display-list update, not in the rows.
 - **The Mac's `XCTHitchMetric` run** used XCUITest's discrete 600 pt scroll-wheel steps, which
   animate little, so it is the optimistic bound.
+- **B's meter during the UI test's swipes** is two to three times A's, while B's hands-off bench is
+  at zero. The difference is XCUITest: every snapshot it takes walks the collection view's
+  accessibility tree, which makes and lays out cells (a cell for the first row of the transcript too),
+  and the meter counts that time. The bench drives the same list with nothing reading it. On a
+  device, measure with Instruments.
+- **The bench's pan** reaches B through `updateUIView` (`updateNSView`), which sets the collection
+  view's content offset; for A each step re-resolves the `ScrollPosition` and the lazy stack (above).
+  Neither is a finger, and A's driver costs more, so the pan columns favour B; streaming compares
+  like for like.
+- **The Mac's numbers on 3 October** are far worse for A than on 2 October at a similar load, so the
+  two days do not compare. Compare A and B within a day.
 
 ### What is still open
 
-- **Smooth scrolling at 120 Hz is not proven.** Measure on a ProMotion iPhone and on the Mac with
-  Instruments, scrolling by hand while a reply streams, before the chat screen ships on this list.
-  If it misses 5 ms/s, build the collection-view representable behind the same boundary. Nothing
-  outside `TranscriptList` would change.
-- **A prepend straight after a programmatic jump.** A `ScrollPosition` that was told
+- **Smooth scrolling at 120 Hz is not proven** for either implementation. Measure on a ProMotion
+  iPhone and on the Mac with Instruments, scrolling by hand while a reply streams, before the chat
+  screen ships on this list.
+- **B on the Mac** before it becomes the Mac's default:
+  - It is about twice as slow as A while a reply streams at the bottom (93–95 against 47–51 ms/s).
+    Not profiled yet. The likely cost: the streaming row reports a new height on most deltas, and
+    each report invalidates the layout and keeps the bottom.
+  - The memory of a long streamed reply stays after the reply scrolls away (270–280 MB against A's
+    65–75 MB). What holds it was not found; the item the collection view keeps for reuse, with its
+    hosting controller, is the first suspect.
+  - The Mac UI tests and text selection inside a row have not been run against it: the Mac UI tests
+    drive the real pointer and were not run unattended.
+  - The bench's prepend logged a layout query for an item index past the end while the batch update
+    ran (AppKit ignored it).
+- **The first row is drawn for accessibility.** With an accessibility client attached (XCUITest, and
+  presumably VoiceOver), UIKit asks the collection view for its first element, and the collection
+  view makes and renders a cell for the first row of the transcript, far off screen. On the iPad
+  with iOS 26.5 that happened 12 times during the render test's 600 deltas; the lab reports it apart
+  from the rows on screen. The test does not query the app while the deltas run, so the queries
+  come from the accessibility runtime itself, perhaps prompted by the growing content; that was not
+  established. No other configuration showed it.
+- **A prepend straight after a programmatic jump** (A only). A `ScrollPosition` that was told
   `scrollTo(id:)` keeps that target and resolves it again on the next content change. A prepend
   forced in that state moved the rows off the screen in the spike. The list avoids the state: it
   holds `onNearTop` back after a command until the reader scrolls. Code that prepends on its own
   initiative must do the same.
-- **A long reply streaming on screen holds about 200 MB of GPU memory on the Mac** ("owned unmapped
-  (graphics)" in `vmmap`, not the malloc heap). The memory goes with the row once it scrolls away,
+- **A long reply streaming on screen holds about 200 MB of GPU memory on the Mac** with either
+  implementation ("owned unmapped (graphics)" in `vmmap`, not the malloc heap). With A the memory goes
+  with the row once it scrolls away,
   and it does not change when the reply is drawn as plain `Text` instead of Markdown. It comes from
   how SwiftUI renders a tall view that changes 30 times a second. Splitting a long reply into several
   rows would bound it.
@@ -489,7 +591,10 @@ build launched by a UI test.
 
 `TranscriptLabView` (`HermieUI/Debug`, debug builds only) is the spike as a screen. It shows the
 synthetic transcript, with buttons to stream, prepend, jump to the middle, run the meter, pan, and
-run the render-count test, and a report line under them. `TranscriptItemGallery` shows every item
+run the render-count test, and a report line under them. "List" cycles the implementation (auto, A,
+B), and "Bar" puts a 160 pt bar under the list, as a composer that grew would. The hands-off bench
+ends by scrolling up, prepending 200 rows and logging how far the rows on screen moved (B only; A
+logs "no rows"). `TranscriptItemGallery` shows every item
 kind in every presentation, with switches for the colour scheme, AX5 and the width of an iPhone, an
 iPad or a Mac window. `DebugScreens.registerTranscriptScreens()` lists both under Settings →
 Advanced when the app calls it at launch, and `TranscriptDebugMenu` links both on its own.
