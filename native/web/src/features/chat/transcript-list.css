@@ -1,0 +1,51 @@
+/*
+ * The transcript list (`TranscriptList.tsx`).
+ *
+ * The scroller fills whatever its parent gives it. Its content is at least as
+ * tall as the viewport, with a spacer that takes the slack, so a short chat
+ * sits at the bottom like every messenger's.
+ *
+ * `overflow-anchor: none`: the browser's own scroll anchoring is off, because
+ * `scroll-anchor.ts` does the same job in all three engines alike and two
+ * corrections for one change would move the reader twice.
+ */
+.transcript-list {
+  box-sizing: border-box;
+  height: 100%;
+  overflow-x: hidden;
+  overflow-y: auto;
+  overflow-anchor: none;
+  overscroll-behavior-y: contain;
+}
+
+.transcript-list:focus-visible {
+  outline: 2px solid Highlight;
+  outline-offset: -2px;
+}
+
+.transcript-list__content {
+  display: flex;
+  flex-direction: column;
+  min-height: 100%;
+}
+
+.transcript-list__spacer {
+  flex: 1 1 auto;
+}
+
+.transcript-list__rows {
+  flex: none;
+}
+
+/*
+ * A chunk of rows far from the viewport is skipped: no style, layout or paint
+ * for its rows, and the sum of their per-kind estimates (set by
+ * `TranscriptList.tsx` as `--transcript-chunk-estimate`) stands in for its
+ * height. `auto` makes a chunk that has been drawn once keep its real height
+ * while it is skipped again, so an estimate only ever stands in for rows nobody
+ * has seen yet.
+ */
+.transcript-list__chunk {
+  content-visibility: auto;
+  contain-intrinsic-block-size: auto var(--transcript-chunk-estimate, 2400px);
+}
