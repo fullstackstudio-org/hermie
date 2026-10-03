@@ -11,8 +11,9 @@ screen: the client refuses to run in a frame, finds its gateway from its own add
 signed in on the gateway's own session, connects, shows the chat list in a two-pane layout with a router and a
 theme ("The shell" below), and opens a chat in the main pane and streams it ("The chat screen" below): bubbles
 with Markdown, tool calls, notices, date separators, older history, jump to latest. You can send, stop a reply and
-answer a bot's approval or question from it ("The composer" and "Requests" below). It has no attachments, no secret
-prompts and no settings yet, and the plugin does not serve this build. Until that
+answer a bot's approval or question from it ("The composer" and "Requests" below), and confirm a sensitive action with
+a passkey that the gateway verifies itself ("Passkeys" below). It has no attachments, no secret prompts and no settings
+beyond the passkeys page yet, and the plugin does not serve this build. Until that
 changes, the browser keeps running the Expo app's web export through Hermie Web
 ([docs/web.md](../../docs/web.md)); nothing here replaces it.
 
@@ -188,13 +189,15 @@ fake gateway in cookie mode.
 
 Nothing in it is a credential: the session is the gateway's `HttpOnly` cookie, which the client cannot read.
 
-| Where                                               | Key or name                          | What                                                                  | On sign-out |
-| --------------------------------------------------- | ------------------------------------ | --------------------------------------------------------------------- | ----------- |
-| `localStorage` (`platform/key-value-store.ts`)      | `hermie:<base path>:device.*`        | device settings (scheme, tint, text size, installation id)            | kept        |
-| `localStorage`                                      | `hermie:<base path>:<anything else>` | identity-bound state (watermarks, layout, the owner's author id)      | cleared     |
-| `localStorage`                                      | `hermie:<base path>:draft.<chat>`    | what was typed in a chat and not sent                                 | cleared     |
-| IndexedDB `hermie-cache` (`platform/chat-cache.ts`) | rows keyed `<base path>:<bot>`       | transcript snapshots and the roster, in the Expo cache's record shape | cleared     |
-| `sessionStorage`                                    | `hermie:<base path>:route`           | the route, across one sign-in                                         | cleared     |
+| Where                                               | Key or name                                        | What                                                                  | On sign-out |
+| --------------------------------------------------- | -------------------------------------------------- | --------------------------------------------------------------------- | ----------- |
+| `localStorage` (`platform/key-value-store.ts`)      | `hermie:<base path>:device.*`                      | device settings (scheme, tint, text size, installation id)            | kept        |
+| `localStorage`                                      | `hermie:<base path>:<anything else>`               | identity-bound state (watermarks, layout, the owner's author id)      | cleared     |
+| `localStorage`                                      | `hermie:<base path>:draft.<chat>`                  | what was typed in a chat and not sent                                 | cleared     |
+| `localStorage`                                      | `hermie:<base path>:device.passkey.pin@<base URL>` | the gateway id pinned on the first passkey enrolment ("Passkeys")     | kept        |
+| `localStorage`                                      | `hermie:<base path>:passkey.seen@<base URL>`       | the signed-in person's passkey ids this browser has seen              | cleared     |
+| IndexedDB `hermie-cache` (`platform/chat-cache.ts`) | rows keyed `<base path>:<bot>`                     | transcript snapshots and the roster, in the Expo cache's record shape | cleared     |
+| `sessionStorage`                                    | `hermie:<base path>:route`                         | the route, across one sign-in                                         | cleared     |
 
 `<base path>` is the prefix, or `/` at the root, so two gateways behind different prefixes on one host keep
 apart. A key is identity-bound unless it starts with `device.`, so a key nobody classified is cleared rather
@@ -209,15 +212,17 @@ Nothing outside `src/platform/` and `src/boot/` touches `window`, `localStorage`
 reach the bundle, are exempt). Each seam takes its browser object as an argument, so the tests hand in their
 own:
 
-| Seam                                                  | What                                                                        |
-| ----------------------------------------------------- | --------------------------------------------------------------------------- |
-| `platform/key-value-store.ts`                         | `createKeyValueStore({ namespace })`: the Expo store's contract, namespaced |
-| `platform/chat-cache.ts`                              | `chatCacheFor(namespace)`: IndexedDB, falling back to memory                |
-| `platform/net-info.ts`                                | `networkWatcher`: `online` / `offline`                                      |
-| `platform/visibility.ts`                              | `visibilityWatcher`: `visibilitychange`, `pagehide`, `pageshow`             |
-| `platform/socket.ts`                                  | `createSocketFactory()`: the page's `WebSocket` for `GatewayConnection`     |
-| `platform/layout.ts`                                  | `layoutClock`: `requestAnimationFrame` and `ResizeObserver` for the lists   |
-| `platform/clipboard.ts`, `page-title.ts`, `random.ts` | copy, the tab's title, `crypto.getRandomValues`                             |
+| Seam                                                  | What                                                                         |
+| ----------------------------------------------------- | ---------------------------------------------------------------------------- |
+| `platform/key-value-store.ts`                         | `createKeyValueStore({ namespace })`: the Expo store's contract, namespaced  |
+| `platform/chat-cache.ts`                              | `chatCacheFor(namespace)`: IndexedDB, falling back to memory                 |
+| `platform/net-info.ts`                                | `networkWatcher`: `online` / `offline`                                       |
+| `platform/visibility.ts`                              | `visibilityWatcher`: `visibilitychange`, `pagehide`, `pageshow`              |
+| `platform/socket.ts`                                  | `createSocketFactory()`: the page's `WebSocket` for `GatewayConnection`      |
+| `platform/layout.ts`                                  | `layoutClock`: `requestAnimationFrame` and `ResizeObserver` for the lists    |
+| `platform/clipboard.ts`, `page-title.ts`, `random.ts` | copy, the tab's title, `crypto.getRandomValues`                              |
+| `platform/webauthn.ts`                                | `navigator.credentials.create/get` and `crypto.subtle` for the passkey level |
+| `platform/passkey-pins.ts`                            | the passkey pins (above), and other gateways' pins on this origin            |
 
 ## Connection
 
@@ -296,13 +301,15 @@ renders `<App>`; nothing under `features/` starts a connection or fetches, it re
 One URL and the route in the fragment (plan W4; `features/shell/router.ts`, over `platform/hash-router.ts`, the
 only code outside `boot/` that touches `location.hash`):
 
-| Route                      | Heading        | Main pane today                   |
-| -------------------------- | -------------- | --------------------------------- |
-| `#/`                       | Hermie         | "Pick a conversation to start..." |
-| `#/chat/<bot>`             | the bot's name | the chat (`ChatScreen`)           |
-| `#/chat/<bot>/s/<session>` | the bot's name | that conversation (`ChatScreen`)  |
-| `#/settings[/<section>]`   | Settings       | placeholder (W-20b)               |
-| anything else              | sent to `#/`   |                                   |
+| Route                      | Heading        | Main pane today                         |
+| -------------------------- | -------------- | --------------------------------------- |
+| `#/`                       | Hermie         | "Pick a conversation to start..."       |
+| `#/chat/<bot>`             | the bot's name | the chat (`ChatScreen`)                 |
+| `#/chat/<bot>/s/<session>` | the bot's name | that conversation (`ChatScreen`)        |
+| `#/settings`               | Settings       | placeholder (W-20b), a link to Passkeys |
+| `#/settings/passkeys`      | Settings       | this gateway's passkeys ("Passkeys")    |
+| `#/settings/<section>`     | Settings       | placeholder (W-20b)                     |
+| anything else              | sent to `#/`   |                                         |
 
 A bot name or session id is one percent-encoded segment; `parseRoute` and `formatRoute` are inverses. An unknown
 route is rewritten to `#/` in place (no history entry). A route change moves focus to the main heading (not on
@@ -526,8 +533,9 @@ A bot's approval or question (`clarify`) is answered in `features/requests/`, a 
   are never Markdown here.
 - **Said aloud.** A request that left without the reader's answer (withdrawn, or timed out) is announced in a polite
   region beside the dialog ("The request from <name> was withdrawn."); a failure to deliver an answer is an alert.
-- **Secret, sudo, vault and `confirm` prompts** are W-14 and W-15; the queue's type is a union for them, and nothing of
-  them is handled here.
+- **A `confirm` at level `passkey`** joins the same queue as an entry of its own kind (`ConfirmRequest`), held by the
+  passkey model rather than the chat store; "Passkeys" below. **Secret, sudo, vault and `plain` confirm prompts** are
+  W-14 and W-15, and nothing of them is handled here.
 
 `features/requests/RequestLayer.test.tsx` and `state/requests.test.ts` cover the above in jsdom, `requests.axe.test.tsx`
 runs axe on the composer and the layer (both schemes, every language), and `e2e/chat.spec.ts` (sending and stopping)
@@ -546,6 +554,90 @@ acted in the middle of):
 | clarify: a choice with the arrow keys, free text, a three-step batch with Skip, Skip on a single question                       | `{answer}` / `{answers}` / `''` |
 | the page behind the layer is inert; 320 px wide does not scroll sideways                                                        | inert; no overflow              |
 | a request still open when the page is reloaded is asked again; axe (`e2e/a11y.spec.ts`) on every sheet, light and dark          | asked once more; no violation   |
+
+## Passkeys
+
+A `confirm` request at level `passkey` is one the gateway verifies itself: the page answers with a WebAuthn assertion
+over a challenge that commits to the gateway's base URL and id, the session, the request, a fresh nonce and the exact
+text shown. The construction, the wire objects and the order of the gateway's checks are
+`contract/confirm-passkey/README.md`; the plan is `confirm-passkey.md` (task CP-13). The native apps do the same with
+their own RP (`docs/native.md`, "Confirm at level passkey"); the phases, refusal reasons and notices here are theirs.
+
+| File                                     | What                                                                                                      |
+| ---------------------------------------- | --------------------------------------------------------------------------------------------------------- |
+| `core/passkey/challenge.ts`              | base64url, the base URL, the text digest, the challenge and the enrolment code (contract §2 to §7)        |
+| `core/passkey/client.ts`                 | the six `/api/auth/passkeys` routes on the cookie session, with the refusal's `error` and `reason`        |
+| `core/passkey/model.ts`                  | `PasskeyModel`: frames, answers, withdrawals, advertising, enrolment, step-ups, pins, notices             |
+| `state/passkeys.ts`                      | the store the model writes: confirmations and their phases, notices, the list, the capability verdict     |
+| `platform/webauthn.ts`                   | the browser's ceremonies (`WebAuthnSeam`) and SHA-256                                                     |
+| `platform/passkey-pins.ts`               | the pins (see "Browser storage")                                                                          |
+| `platform/socket.ts` (`ErrorDataOutbox`) | puts `data.reason` on a 4040 error frame, which the vendored channel's `fail(code, message)` cannot carry |
+| `features/requests/ConfirmSheet.tsx`     | the sheet in the request layer                                                                            |
+| `features/requests/PasskeyNotices.tsx`   | the notices, over the page                                                                                |
+| `features/settings/Passkeys.tsx`         | `#/settings/passkeys`: the state, the list, add with a code, make a code, remove                          |
+
+**Where it is offered.** The RP is the page's own hostname (`location.hostname`), never the registrable domain, and the
+base URL is the page's origin. The page advertises the level only when all of these hold: the page is a secure context
+with WebAuthn; the gateway's base URL has no path prefix (two gateways under prefixes of one host share its browser
+security boundary, contract §10); the first `client.capabilities` result carries `confirm_passkey` with `v: 1` and
+`enabled: true`; its `rp.web` lists this hostname; and its `gateway_id` breaks no pin. The channel already sends the first
+call on `gateway.ready` and throws its answer away, so the model sends it again after every arrival at `ready` and reads
+it, then sends the second: `{server_requests: true, confirm: ["passkey"], confirm_passkey: {v: 1, kind: "web", rp_id}}`.
+`plain` is not advertised: this client has no sheet for it yet. Unlike the native apps, the page does not wait until it
+knows a passkey of its own before advertising: the gateway decides per request whether the person has one for this RP,
+and a browser can hold a synced passkey this page never enrolled. Once `passkey` is newly accepted on a socket the open
+requests of every session the page holds are read again (`session.events.since`), because the gateway hides a gated
+request from a connection that had not advertised the level when the resume ran.
+
+**Answering**, as rules (the model's header has them in full):
+
+- every answer goes through `request.answer`, so a refusal comes back: 4033 (this connection may not answer; it is over
+  for this page), 4034 with `data.reason` (the request stays open; try again), and the fifth refusal is
+  `too_many_attempts`;
+- `ok` means "received and valid", never "confirmed": the sheet says the gateway checks it. The gateway commits the answer
+  next, and a failed commit arrives as `request.cancel {reason: "verification_failed"}`, which the sheet shows as "did not
+  count", even over a sheet the person had closed. The page never sends `verified`;
+- a decline is exactly `{decision: "declined", method: "tap"}`;
+- closing the browser's passkey sheet sends nothing and leaves the confirmation as it was;
+- a frame this page cannot take is answered with error 4040 and `data.reason`: `rp_not_configured`, `bad_base_url`,
+  `unsupported_version`, `bad_request`, `no_credential`, `gateway_id_mismatch`, `gateway_id_conflict`. The last five also
+  leave a notice; a ceremony the browser refuses outright (`SecurityError`, `NotSupportedError`) is `rp_not_configured`;
+- `request.cancel` ends an open confirmation: `timeout`, `resolved` (another device answered) and any other reason close
+  the sheet with a polite announcement; `too_many_attempts` and `verification_failed` stay on screen until closed.
+
+**The sheet** is the plan's P15 frame: who asks (the gateway's host) and which passkey the browser will ask for (this
+page's host) in fixed words, then the title, summary and detail exactly as the frame carried them, never as Markdown.
+The detail is monospaced with every space and line break kept (`white-space: pre`) and scrolls sideways instead of
+wrapping. The challenge is computed from the same `PasskeyConfirmation` the sheet renders. Confirm and Decline wake
+400 ms after the sheet appears; Escape and the scrim do not dismiss it; a countdown runs to `passkey.expires_at`; the
+phases (`waiting`, `signing`, `sending`, `refused`, `not_sent`, `received`, `declined`, `ended`) are said in a status line.
+
+**Pins** (contract §10). The gateway id is pinned on the first successful enrolment in this browser, not on first
+connect. After that a capability, a frame or a status read with another id is refused and leaves a notice, and so is an
+id another gateway on this origin pinned. The pin survives a sign-out (it is about the gateway, not a person); the
+passkey ids this browser has seen do not. A `passkey.changed` or a list read that shows a passkey this browser did not
+add is a notice.
+
+**Settings.** `#/settings/passkeys` says whether the level is on here and why not, lists the person's passkeys (for
+this site and for the apps), adds a passkey of this browser with a one-time code (`register/begin`, the ceremony,
+`register/finish`; the page names the passkey `Hermie — <host>`), makes a code for another device and removes a
+passkey, both behind a step-up assertion with a passkey of this site. A code is shown once and stored nowhere.
+
+**Not the native app.** In a browser the page is the client: what it displayed is asserted by code the gateway served,
+so a script injection on the gateway's origin could show one text and ask for a signature over another (plan, Security
+Considerations point 7). The page turns no text into markup anywhere ("Layout", the lint rules), which is the defence
+it has.
+
+**Tests.** `challenge.test.ts` runs the CP-1 vectors (base URL, text digest, every challenge with its preimage,
+enrolment codes) with Node's `webcrypto` standing in for `crypto.subtle`. `model.test.ts` reads frames (every 4040
+reason and its notice), the `request.answer` refusals and every `request.cancel` reason. `model.integration.test.ts` runs
+the model against the fake gateway with the level on, over a real socket, with a software authenticator
+(`test-support/soft-webauthn.ts`, on the fake gateway's own CBOR encoder): advertising, enrolment with an operator code,
+a confirmation the gateway verifies (and the same challenge as the fake gateway's `SoftAuthenticator` computes for that
+frame), decline, refusals up to `too_many_attempts`, a passkey revoked while the request is open, a timeout, a closed
+browser sheet, a 4040 with its `data.reason` on the wire, the open requests read again on a new socket, invite and
+revoke, a `passkey.changed` notice and a broken pin. `ConfirmSheet.test.tsx` and `Passkeys.test.tsx` cover the views,
+with axe. `e2e/passkey.spec.ts` drives the built client in Chromium with a virtual authenticator ("The browser suite").
 
 ## Markdown
 
@@ -713,14 +805,20 @@ of frames in a row with the same answer).
 - `diagnostics`, on every test: any `console.error`, uncaught page error or `securitypolicyviolation` event fails
   the test that caused it. A test that provokes one on purpose says so, where it does it
   (`diagnostics.allow(/pattern/)`);
-- `app` (sign in, open a route, the field, Send, Stop, the dialog) and `seriousViolations` (axe with contrast).
+- `app` (sign in, open a route, the field, Send, Stop, the dialog) and `seriousViolations` (axe with contrast);
+- `secureOrigin`, for a spec that needs an https page (`test.use({ secureOrigin: 'https://gw.example.test' })`): the
+  page is loaded from that origin and Playwright's routing carries every request (`route.fetch`) and WebSocket
+  (`routeWebSocket`, piped to the fake over Node's `WebSocket`) to the fake gateway, so the page is a secure context on a
+  host name WebAuthn takes as an RP, without a certificate or a proxy; the session cookie is copied to that host on
+  sign-in.
 
-| Spec               | What it proves                                                                                                                                                                                                                                                                                                                                                   |
-| ------------------ | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `signin.spec.ts`   | an unauthenticated visit goes to the gateway's `/login` and signing in opens the client; a wrong password stays; a session lost before the first question ("Sign in again", the cookie deleted or ended by the gateway) restores the route after signing in; one lost while open is a signed-out line; a frame gets one sentence and makes no request to the API |
-| `chat.spec.ts`     | the list (names, previews, unread, arrow keys, one pane on a phone), opening a chat, sending, Stop, the queue, drafts, a reply streamed in by the gateway, a socket dropped mid-reply (one bubble, the gateway's words once) and idle, and 2,000 rows of history (opens at the bottom without moving, pinned, reading above, older history)                      |
-| `requests.spec.ts` | approval and clarify with the keyboard alone, deny, several at once, another bot's, withdrawn, restored on resume and after a reload, a modal page behind them, 320 px                                                                                                                                                                                           |
-| `a11y.spec.ts`     | axe, serious and critical, in light and dark: the chat list, a chat, the signed-out screen and every request sheet                                                                                                                                                                                                                                               |
+| Spec               | What it proves                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                          |
+| ------------------ | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `signin.spec.ts`   | an unauthenticated visit goes to the gateway's `/login` and signing in opens the client; a wrong password stays; a session lost before the first question ("Sign in again", the cookie deleted or ended by the gateway) restores the route after signing in; one lost while open is a signed-out line; a frame gets one sentence and makes no request to the API                                                                                                                                                                        |
+| `chat.spec.ts`     | the list (names, previews, unread, arrow keys, one pane on a phone), opening a chat, sending, Stop, the queue, drafts, a reply streamed in by the gateway, a socket dropped mid-reply (one bubble, the gateway's words once) and idle, and 2,000 rows of history (opens at the bottom without moving, pinned, reading above, older history)                                                                                                                                                                                             |
+| `requests.spec.ts` | approval and clarify with the keyboard alone, deny, several at once, another bot's, withdrawn, restored on resume and after a reload, a modal page behind them, 320 px                                                                                                                                                                                                                                                                                                                                                                  |
+| `a11y.spec.ts`     | axe, serious and critical, in light and dark: the chat list, a chat, the signed-out screen and every request sheet                                                                                                                                                                                                                                                                                                                                                                                                                      |
+| `passkey.spec.ts`  | Chromium only (a virtual authenticator over the DevTools `WebAuthn` domain): enrol with a code from `/__fake/passkey/code`; a confirmation raised with `/__fake/request`, confirmed, and read back as `verified: true` from `/__fake/state` `passkey.outcomes`; decline; a key the gateway cannot verify (`signature_invalid`, then `too_many_attempts`); a passkey revoked while open (`verification_failed`); a request still open after a reload; Escape; the detail's `white-space: pre` and sideways scroll; axe in light and dark |
 
 ```sh
 npx playwright install chromium webkit firefox        # once
@@ -754,11 +852,13 @@ src/
   main.tsx                  the boot sequence and its screens (with dev/, the only React outside features/ and ui/)
   boot/                     frame guard, base path, auth mode and cookie session, sign-in bounce, boot
   core/                     the connection and its lifecycle, the roster controller, the advert, the chat
-                            controller and the ingest (above)
+                            controller and the ingest (above); core/passkey/, the passkey level
   state/                    zustand vanilla stores: connection, bots, plugin, chats, settings, requests
   platform/                 the browser seams (above)
   features/chat/            the chat screen, its item views, the transcript list, its scroll anchor and chunks, the composer
-  features/requests/        the request layer: approval and clarify, one at a time, in a modal dialog
+  features/requests/        the request layer: approval, clarify and the passkey confirmation, one at a time, in a
+                            modal dialog; the passkey notices
+  features/settings/        the passkeys page (the rest of Settings is W-20b's)
   dev/                      development-only pages: the transcript harness, its probes, a stream replayer
   test-support/             test doubles: an IndexedDB, a fetch, a fetch with a cookie jar, a chat
                             gateway, the page's visibility and network, and a copy of the Expo app's
