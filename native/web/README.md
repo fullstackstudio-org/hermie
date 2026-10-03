@@ -1124,6 +1124,13 @@ The rules, each pinned by a test:
   source character for character. The palette is the package's `code-theme.ts`, as custom properties in both
   schemes; `markdown-highlight.test.ts` holds it to the package and to 4.5:1 on the code surface (four light values
   are darker than the package's, which measure under 4.5:1 there). Code the reader sent (on the tint) is not coloured.
+- A listing is coloured only once it comes within a viewport's height of being seen (`near-viewport.ts`: one
+  `IntersectionObserver` per scroll container, the transcript provided through `ScrollRootContext`; a listing already
+  in view is coloured before its first paint). Far ones stay plain, one text node each: colouring every listing of a
+  2,000-row history made each full style and layout pass in WebKit several times dearer (the long-history e2e test
+  went from 8 s to 28 s). Highlighted lines are remembered per text and language (500 listings, least recently used
+  first), and a listing that grows while a reply streams is coloured again at most every 150 ms, the new tail plain
+  in between.
 - `$$…$$` is drawn as an `svg` (`role="img"`, named by its LaTeX source) of `text`, `tspan`, `rect` and `path`,
   from `parseMath` and `math-layout.ts`: the Expo app's construction and constants, with boxes lined up on the maths
   axis and fences and radicals drawn to the height they enclose. Widths come from the browser's own text metrics

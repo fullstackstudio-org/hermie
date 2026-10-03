@@ -2,10 +2,11 @@
  * A fenced code block: the language, a copy button and the source in a
  * monospace box that scrolls sideways.
  *
- * With a language, the source is coloured once the highlighting chunk has
- * loaded (`Highlight.tsx`, through `lazy.ts`); until then, and for a language
- * no grammar knows, it is the plain source, which has the same characters and
- * so the same size.
+ * With a language, the source is coloured once it comes within a viewport of
+ * being seen (`near-viewport.ts`) and the highlighting chunk has loaded
+ * (`Highlight.tsx`, through `lazy.ts`); until then, and for a language no
+ * grammar knows, it is the plain source, which has the same characters and so
+ * the same size. A listing far up a long history therefore stays one text node.
  *
  * The same box carries a drawing (`drawing`): typeset mathematics and Mermaid
  * diagrams are shown in it, with a "Show source" toggle that puts the source in
@@ -23,6 +24,7 @@ import { useLocale } from '../i18n/use-locale'
 import { webStrings } from '../i18n/web-strings'
 import { writeClipboard } from '../platform/clipboard'
 import { highlightRenderer, useLazyModule } from './lazy'
+import { useNearViewport } from './near-viewport'
 
 export type CodeBlockKind = 'code' | 'math' | 'mermaid'
 
@@ -56,12 +58,16 @@ const NO_HIGHLIGHT: typeof highlightRenderer = {
   subscribe: () => () => undefined
 }
 
-/** The source, coloured when the chunk is there and the language is one it knows. */
-function SourceText({ code, language }: { code: string; language: string | undefined }) {
-  // Asked for only when there is a language to colour: a plain fence never loads it.
-  const highlight = useLazyModule(language ? highlightRenderer : NO_HIGHLIGHT)
+/**
+ * The source, coloured when it is near the visible area (`near-viewport.ts`), the
+ * chunk is there and the language is one it knows.
+ */
+function SourceText({ code, language, colour }: { code: string; language: string | undefined; colour: boolean }) {
+  // Asked for only when there is a language to colour and the block is near: a plain
+  // fence, or a listing far up the history, never loads it and is not re-rendered by it.
+  const highlight = useLazyModule(language && colour ? highlightRenderer : NO_HIGHLIGHT)
 
-  if (!language || !highlight || !highlight.isKnownLanguage(language)) {
+  if (!language || !colour || !highlight || !highlight.isKnownLanguage(language)) {
     return <>{code}</>
   }
 
@@ -74,6 +80,9 @@ export function CodeBlock({ code, language, kind = 'code', label, drawing }: Cod
   const [state, setState] = useState<CopyState>('idle')
   const [showSource, setShowSource] = useState(false)
   const timer = useRef<ReturnType<typeof setTimeout> | undefined>(undefined)
+  const body = useRef<HTMLPreElement>(null)
+  const colourable = kind === 'code' && Boolean(language)
+  const near = useNearViewport(body, colourable)
 
   useEffect(() => () => clearTimeout(timer.current), [])
 
@@ -116,9 +125,9 @@ export function CodeBlock({ code, language, kind = 'code', label, drawing }: Cod
           {drawing}
         </div>
       ) : (
-        <pre className="md-code-body" tabIndex={0}>
+        <pre className="md-code-body" ref={body} tabIndex={0}>
           <code {...(language && SAFE_LANGUAGE.test(language) ? { className: `language-${language}` } : {})}>
-            <SourceText code={code} language={kind === 'code' ? language : undefined} />
+            <SourceText code={code} colour={near} language={colourable ? language : undefined} />
           </code>
         </pre>
       )}

@@ -43,6 +43,7 @@ import {
   useState
 } from 'react'
 
+import { ScrollRootContext } from '../../markdown/near-viewport'
 import { layoutClock, type ResizeWatch } from '../../platform/layout'
 import { assignChunks, type ChunkAssignment, emptyAssignment } from './row-chunks'
 import { ScrollAnchor, type RowPosition, type ScrollSurface } from './scroll-anchor'
@@ -423,9 +424,12 @@ export function TranscriptList({
       <div className="transcript-list__content">
         <div className="transcript-list__spacer" />
         <div ref={rowsRef} className="transcript-list__rows">
-          {chunksRef.current.chunks.map(chunk => (
-            <Chunk key={chunk.id} rows={chunk.rows} renderItem={renderItem} shared={shared} />
-          ))}
+          {/* What a code block measures "near the reader" against (`markdown/near-viewport.ts`). */}
+          <ScrollRootContext.Provider value={scrollerRef}>
+            {chunksRef.current.chunks.map(chunk => (
+              <Chunk key={chunk.id} rows={chunk.rows} renderItem={renderItem} shared={shared} />
+            ))}
+          </ScrollRootContext.Provider>
         </div>
       </div>
     </div>
