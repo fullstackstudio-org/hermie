@@ -15,7 +15,9 @@ afterEach(() => {
  */
 const SAME_AS_ENGLISH: Readonly<Record<string, readonly Locale[]>> = {
   // "Version 0.2.0" is the German word too.
-  'shell.version': ['de']
+  'shell.version': ['de'],
+  // `{name}, {time}` is the same two placeholders and a comma in every language.
+  'chat.messageFrom': ['nl', 'de']
 }
 
 type Source = Record<string, unknown>
@@ -45,7 +47,7 @@ const all = leaves(WEB_STRINGS_SOURCE as unknown as Source)
 
 /** Sample arguments for the function leaves: every parameter is a recognisable string. */
 const MARKER = '/some/path/index.html'
-const SAMPLE = { expected: MARKER, version: MARKER }
+const SAMPLE = { expected: MARKER, version: MARKER, name: MARKER, text: MARKER, time: MARKER }
 
 describe('the web-only strings', () => {
   it('has strings', () => {

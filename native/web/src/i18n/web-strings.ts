@@ -107,12 +107,6 @@ export const WEB_STRINGS_SOURCE = {
       nl: 'Deze gateway heeft geen Hermie-plugin. Chats werken, maar voor meldingen is de plugin nodig.',
       de: 'Dieses Gateway hat kein Hermie-Plugin. Chats funktionieren, aber Benachrichtigungen brauchen es.'
     },
-    /** The main pane's body until the chat screen exists. */
-    chatSoon: {
-      en: 'This is where the conversation will appear.',
-      nl: 'Hier verschijnt het gesprek.',
-      de: 'Hier erscheint die Unterhaltung.'
-    },
     /** The main pane's body on a settings route until Settings exists. */
     settingsSoon: {
       en: 'Settings are still being built.',
@@ -136,6 +130,44 @@ export const WEB_STRINGS_SOURCE = {
       en: ({ version }: { version: string }) => `Version ${version}`,
       nl: ({ version }: { version: string }) => `Versie ${version}`,
       de: ({ version }: { version: string }) => `Version ${version}`
+    }
+  },
+  chat: {
+    /** The accessible name of the transcript region (`role="log"`). */
+    transcriptLabel: {
+      en: ({ name }: { name: string }) => `Conversation with ${name}`,
+      nl: ({ name }: { name: string }) => `Gesprek met ${name}`,
+      de: ({ name }: { name: string }) => `Unterhaltung mit ${name}`
+    },
+    /** Announced politely when a reply has finished: who, and the start of what they said. */
+    replied: {
+      en: ({ name, text }: { name: string; text: string }) => `${name} replied: ${text}`,
+      nl: ({ name, text }: { name: string; text: string }) => `${name} antwoordde: ${text}`,
+      de: ({ name, text }: { name: string; text: string }) => `${name} hat geantwortet: ${text}`
+    },
+    /** Shown instead of a conversation whose bot the gateway does not list. */
+    notOnGateway: {
+      en: 'This chat is not on this gateway.',
+      nl: 'Deze chat staat niet op deze gateway.',
+      de: 'Dieser Chat ist nicht auf diesem Gateway.'
+    },
+    /** Above a past conversation or a branch, which can be read and not answered. */
+    readOnly: {
+      en: 'You are reading an earlier conversation. It cannot be answered.',
+      nl: 'Je leest een eerder gesprek. Daar kun je niet meer op antwoorden.',
+      de: 'Du liest eine frühere Unterhaltung. Darauf lässt sich nicht mehr antworten.'
+    },
+    /** The name of the list of files a message carries. */
+    attachments: {
+      en: 'Attachments',
+      nl: 'Bijlagen',
+      de: 'Anhänge'
+    },
+    /** The name of a message for assistive technology: who said it, and when. */
+    messageFrom: {
+      en: ({ name, time }: { name: string; time: string }) => `${name}, ${time}`,
+      nl: ({ name, time }: { name: string; time: string }) => `${name}, ${time}`,
+      de: ({ name, time }: { name: string; time: string }) => `${name}, ${time}`
     }
   },
   language: {

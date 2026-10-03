@@ -8,11 +8,15 @@
  */
 import type { ReactElement } from 'react'
 
-export type IconName = 'chevronLeft' | 'signOut' | 'plug' | 'wifiOff' | 'alert'
+export type IconName =
+  'chevronLeft' | 'chevronRight' | 'chevronDown' | 'arrowDown' | 'signOut' | 'plug' | 'wifiOff' | 'alert'
 
 /** Stroke paths on a 24 x 24 grid, drawn with a round 2px pen. */
 const PATHS: Record<IconName, readonly string[]> = {
   chevronLeft: ['M15 5l-7 7 7 7'],
+  chevronRight: ['M9 5l7 7-7 7'],
+  chevronDown: ['M5 9l7 7 7-7'],
+  arrowDown: ['M12 5v14', 'M6 13l6 6 6-6'],
   signOut: ['M9 4H5a1 1 0 0 0-1 1v14a1 1 0 0 0 1 1h4', 'M16 8l4 4-4 4', 'M20 12H9'],
   plug: ['M9 3v5', 'M15 3v5', 'M6 8h12v3a6 6 0 0 1-12 0V8z', 'M12 17v4'],
   wifiOff: ['M3 3l18 18', 'M8.5 16.4a5 5 0 0 1 7 0', 'M5 12.9a10 10 0 0 1 3.2-2', 'M12 20h.01'],

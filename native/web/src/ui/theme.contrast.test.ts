@@ -254,6 +254,7 @@ describe.each(STATES)('contrast, $name', ({ state }) => {
       for (const ground of ['--hm-bg', '--hm-surface']) {
         require(`tint ink on ${ground}`, at('--hm-tint-text'), at(ground), 4.5)
         require(`warn ink on ${ground}`, at('--hm-warn-text'), at(ground), 4.5)
+        require(`danger ink on ${ground}`, at('--hm-danger-text'), at(ground), 4.5)
       }
 
       require('on-tint on tint', at('--hm-on-tint'), at('--hm-tint'), 4.5)

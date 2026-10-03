@@ -49,6 +49,7 @@
   --hm-line: #d9dce3;
   --hm-on-tint: #ffffff;
   --hm-warn-text: #8a4b00;
+  --hm-danger-text: #b3261e;
   --hm-presence-online: #188a3e;
   --hm-presence-working: #1668e3;
   --hm-presence-needs-input: #b86e00;
@@ -69,6 +70,7 @@
     --hm-text-faint: #9ba3b1;
     --hm-line: #2a2e37;
     --hm-warn-text: #ffb531;
+    --hm-danger-text: #ff9d95;
     --hm-presence-online: #3ed374;
     --hm-presence-working: #5aa4ff;
     --hm-presence-needs-input: #ffb531;
@@ -88,6 +90,7 @@
   --hm-text-faint: #9ba3b1;
   --hm-line: #2a2e37;
   --hm-warn-text: #ffb531;
+  --hm-danger-text: #ff9d95;
   --hm-presence-online: #3ed374;
   --hm-presence-working: #5aa4ff;
   --hm-presence-needs-input: #ffb531;
