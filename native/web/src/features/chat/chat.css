@@ -558,3 +558,130 @@
 .hm-linkish:hover {
   text-decoration: underline;
 }
+
+/* ── the tool being written (tool.generating) ────────────────────────────── */
+
+.hm-generating {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  max-width: min(46rem, 100%);
+  margin: 0;
+  color: var(--hm-text-muted);
+  font-size: 0.875rem;
+  overflow-wrap: anywhere;
+}
+
+.hm-generating .hm-dots {
+  flex: none;
+}
+
+/* ── the bot's task list, over the composer (todo.updated) ───────────────── */
+
+.hm-todo {
+  flex: none;
+  box-sizing: border-box;
+  width: calc(100% - 2 * var(--hm-gutter));
+  max-width: 54rem;
+  margin: 0 auto 6px;
+  border: 1px solid var(--hm-line);
+  border-radius: var(--hm-radius);
+  background: var(--hm-surface);
+  color: var(--hm-text);
+}
+
+.hm-todo__head {
+  appearance: none;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  width: 100%;
+  min-width: 0;
+  min-height: 44px;
+  padding: 6px 12px;
+  border: 0;
+  border-radius: inherit;
+  background: transparent;
+  color: inherit;
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+}
+
+.hm-todo__head:hover {
+  background: var(--hm-surface-hover);
+}
+
+.hm-todo__title {
+  flex: none;
+  font-weight: 600;
+}
+
+.hm-todo__progress {
+  flex: none;
+  color: var(--hm-text-muted);
+  font-size: 0.8125rem;
+}
+
+.hm-todo__current {
+  flex: 1 1 auto;
+  min-width: 0;
+  overflow: hidden;
+  color: var(--hm-text-muted);
+  font-size: 0.875rem;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.hm-todo__head .hm-icon {
+  flex: none;
+  margin-inline-start: auto;
+}
+
+.hm-todo__list {
+  max-height: 14rem;
+  margin: 0;
+  padding: 0 12px 10px;
+  overflow: auto;
+  list-style: none;
+}
+
+.hm-todo__task {
+  display: flex;
+  align-items: baseline;
+  gap: 8px;
+  padding-block: 3px;
+  font-size: 0.9375rem;
+  overflow-wrap: anywhere;
+}
+
+.hm-todo__task[data-depth='1'] {
+  padding-inline-start: 1.25rem;
+}
+
+.hm-todo__task[data-depth='2'] {
+  padding-inline-start: 2.5rem;
+}
+
+.hm-todo__task[data-depth='3'] {
+  padding-inline-start: 3.75rem;
+}
+
+.hm-todo__mark {
+  flex: none;
+  width: 1em;
+  color: var(--hm-text-muted);
+  text-align: center;
+}
+
+.hm-todo__task[data-status='in_progress'] .hm-todo__mark,
+.hm-todo__task[data-status='in_progress'] .hm-todo__text {
+  color: var(--hm-tint-text);
+  font-weight: 600;
+}
+
+.hm-todo__task[data-status='completed'] .hm-todo__text,
+.hm-todo__task[data-status='cancelled'] .hm-todo__text {
+  color: var(--hm-text-muted);
+  text-decoration: line-through;
+}

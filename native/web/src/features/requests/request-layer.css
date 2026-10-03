@@ -474,3 +474,37 @@
   align-items: center;
   gap: 8px;
 }
+
+/* A command the gateway's own safety check refused: said in the description, in the danger ink, on its own line. */
+.hm-requests__warning {
+  display: block;
+  margin-top: 8px;
+  padding: 8px 12px;
+  border: 1px solid var(--hm-danger-text);
+  border-radius: var(--hm-radius);
+  color: var(--hm-danger-text);
+  font-weight: 600;
+}
+
+/* The other commands one answer would also cover, while the box for it is ticked. */
+.hm-requests__others {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  min-width: 0;
+}
+
+.hm-requests__others-list {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.hm-requests__command[data-size='small'] {
+  max-height: 7rem;
+  padding: 8px 10px;
+  font-size: 0.875rem;
+}

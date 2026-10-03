@@ -9,7 +9,7 @@
  * the layer open, in light and dark. What this checks is the structure: roles,
  * names, labels, the dialog's relations and the page behind it.
  */
-import { act, fireEvent, render, screen, waitFor } from '@testing-library/react'
+import { act, fireEvent, render, screen, waitFor, within } from '@testing-library/react'
 import axe from 'axe-core'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 
@@ -74,6 +74,9 @@ const runtime = (): ChatSessionRuntime => ({
     readKeyFor: vi.fn((bot: string) => bot),
     closeChat: vi.fn(async () => undefined),
     acknowledgeApproval: vi.fn(async () => undefined),
+    respondApproval: vi.fn(async (bot: string, id: string, choice: string) =>
+      chatsStore.getState().answer(bot, id, choice)
+    ),
     querySlash: vi.fn(async () => ({
       items: [
         { text: 'model', display: '/model', meta: 'Switch the model' },
@@ -156,6 +159,40 @@ describe('the composer and the request layer, through axe', () => {
       approval()
 
       expect(screen.getByRole('dialog')).toBeTruthy()
+      expect(await violations()).toEqual([])
+    })
+
+    it('has no violation with a smart-denied approval, and with one answer for several ticked', async () => {
+      mount()
+      approval()
+      act(() =>
+        chatsStore.getState().dispatchServerRequest('researcher', {
+          id: 'srq-3',
+          method: 'approval',
+          params: { command: 'ls -la', request_id: 'a-3' }
+        })
+      )
+
+      const tick = screen.getByRole('checkbox')
+
+      await waitFor(() => expect((tick as HTMLInputElement).disabled).toBe(false))
+      fireEvent.click(tick)
+      expect(within(screen.getByRole('dialog')).getByText('ls -la')).toBeTruthy()
+      expect(await violations()).toEqual([])
+
+      act(() =>
+        chatsStore.getState().dispatchServerRequest('writer', {
+          id: 'srq-4',
+          method: 'approval',
+          params: { command: 'curl example.test', smart_denied: true, request_id: 'a-4' }
+        })
+      )
+      await waitFor(() =>
+        expect((screen.getByRole('button', { name: 'Allow once' }) as HTMLButtonElement).disabled).toBe(false)
+      )
+      // Answers the first two (the box is ticked); the smart-denied one is next.
+      fireEvent.click(screen.getByRole('button', { name: 'Deny' }))
+      await waitFor(() => expect(within(screen.getByRole('dialog')).getByText(/safety check refused/u)).toBeTruthy())
       expect(await violations()).toEqual([])
     })
 

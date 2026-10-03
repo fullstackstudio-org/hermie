@@ -66,7 +66,9 @@ const SAMPLE = {
   reason: MARKER,
   date: MARKER,
   code: MARKER,
-  method: MARKER
+  method: MARKER,
+  done: MARKER,
+  total: MARKER
 }
 
 describe('the web-only strings', () => {

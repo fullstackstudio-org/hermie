@@ -17,6 +17,12 @@
  * step and moves to the next, and on the last step it sends everything. A
  * question that was already locked keeps its answer.
  *
+ * **Cancel all** (a batch only) ends the whole request without an answer: the
+ * gateway's cancel-all, a reply with neither `answer` nor `answers`, which the
+ * bot reads as the reader declining (answers locked earlier are dropped with
+ * it). A single question has no such button: its cancel-all and its Skip are the
+ * same reply on the wire, and one button for one thing is the honest count.
+ *
  * **The buttons wake after `tapGuardMs`**, as the approval's do: a sheet that
  * appears under a click already on its way (a Skip meant for the page behind it)
  * must not answer a question the reader has not read. The field's own
@@ -42,6 +48,8 @@ export interface ClarifySheetProps {
   onSubmit: (answers: Record<string, string>) => void
   /** Lock one answer of a batch on the gateway without answering the whole request. */
   onLock?: (qid: string, answer: string) => void
+  /** End a batch without answering any of it (the gateway's cancel-all). Once, like `onSubmit`. */
+  onCancelAll?: () => void
   /** Milliseconds before a press is accepted. Tests pass 0. */
   tapGuardMs?: number
 }
@@ -72,6 +80,7 @@ export function ClarifySheet({
   descriptionId,
   onSubmit,
   onLock,
+  onCancelAll,
   tapGuardMs = DEFAULT_CLARIFY_TAP_GUARD_MS
 }: ClarifySheetProps): ReactElement | null {
   useLocale()
@@ -119,6 +128,8 @@ export function ClarifySheet({
   }
 
   const batch = item.questions.length > 1
+  /** The request is a batch on the wire (`questions`), even of one: only then is cancel-all its own reply. */
+  const cancellable = onCancelAll !== undefined && (batch || item.batch === true)
   const last = index >= item.questions.length - 1
   const isLocked = locked.has(question.qid)
   const value = isLocked ? (item.answers[question.qid] ?? '') : (answers[question.qid] ?? '')
@@ -146,6 +157,15 @@ export function ClarifySheet({
 
     left.current = true
     onSubmit(all)
+  }
+
+  const cancelAll = (): void => {
+    if (left.current || !onCancelAll) {
+      return
+    }
+
+    left.current = true
+    onCancelAll()
   }
 
   const advance = (): void => {
@@ -265,6 +285,17 @@ export function ClarifySheet({
         <Button className="hm-requests__action" variant="quiet" disabled={!armed} onClick={skip}>
           {webStrings.requests.skip}
         </Button>
+        {cancellable ? (
+          <Button
+            className="hm-requests__action"
+            variant="quiet"
+            data-tone="danger"
+            disabled={!armed}
+            onClick={cancelAll}
+          >
+            {webStrings.requests.cancelAll}
+          </Button>
+        ) : null}
       </div>
     </>
   )

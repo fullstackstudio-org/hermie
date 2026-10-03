@@ -8,7 +8,7 @@
 import { act, fireEvent, render, screen, within } from '@testing-library/react'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 
-import { closedRequest } from '../../core/request-withdrawn'
+import { CANCELLED_BY_READER, closedRequest } from '../../core/request-withdrawn'
 import { resetActiveLocale } from '../../i18n/active-locale'
 import { setLanguageChoice } from '../../i18n/locale'
 import { chatsStore } from '../../state/chats'
@@ -43,6 +43,10 @@ function fakeController(over: Record<string, unknown> = {}) {
     lockClarify: vi.fn(async (bot: string, id: string, qid: string, answer: string) => {
       refuseClosed(bot, id)
       store().answer(bot, id, { [qid]: answer })
+    }),
+    cancelClarify: vi.fn(async (bot: string, id: string) => {
+      refuseClosed(bot, id)
+      store().dispatchEvent(bot, { type: 'request.cancel', payload: { id, reason: CANCELLED_BY_READER } })
     }),
     acknowledgeApproval: vi.fn(async () => undefined),
     ...over
@@ -279,6 +283,75 @@ describe('one at a time', () => {
     approval('stranger', 'srq-1')
 
     expect(within(dialog()).getByText(sentence('From stranger'))).toBeTruthy()
+  })
+})
+
+describe('what the request offers (PG-3)', () => {
+  it('offers once and deny alone for a command the gateway’s own check refused, and says so', () => {
+    mount()
+    // No `choices`: the engine's fallback names all four, and the flags take two away again.
+    approval('researcher', 'srq-1', { smart_denied: true, allow_permanent: false })
+
+    expect(
+      within(dialog())
+        .getAllByRole('button')
+        .map(item => item.textContent)
+    ).toEqual(['Allow once', 'Deny'])
+    expect(document.getElementById(dialog().getAttribute('aria-describedby') ?? '')?.textContent).toContain(
+      'safety check refused this command'
+    )
+  })
+
+  it('leaves out a choice the flags rule out, even when the gateway listed it', () => {
+    mount()
+    approval('researcher', 'srq-1', { choices: ['once', 'session', 'always', 'deny'], allow_session: false })
+
+    expect(
+      within(dialog())
+        .getAllByRole('button')
+        .map(item => item.textContent)
+    ).toEqual(['Allow once', 'Always allow', 'Deny'])
+  })
+})
+
+describe('one answer for several approvals', () => {
+  it('answers each of the same bot’s waiting approvals, request by request, and no other bot’s', async () => {
+    mount()
+    approval('researcher', 'srq-1', { command: 'first' })
+    approval('writer', 'srq-2', { command: 'the writer’s' })
+    approval('researcher', 'srq-3', { command: 'third' })
+
+    const tick = within(dialog()).getByRole('checkbox', {
+      name: 'Give the same answer to the other approval waiting from Dr. Researcher'
+    })
+
+    fireEvent.click(tick)
+    expect(within(dialog()).getByText('third')).toBeTruthy()
+    expect(within(dialog()).queryByText('the writer’s')).toBeNull()
+
+    fireEvent.click(button('Allow once'))
+    await settle()
+
+    expect(controller.respondApproval).toHaveBeenCalledTimes(2)
+    expect(controller.respondApproval).toHaveBeenNthCalledWith(1, 'researcher', 'srq-1', 'once')
+    expect(controller.respondApproval).toHaveBeenNthCalledWith(2, 'researcher', 'srq-3', 'once')
+    // The writer's own question is next, and it was not answered for them.
+    expect(within(dialog()).getByText('the writer’s')).toBeTruthy()
+    expect(within(dialog()).queryByRole('checkbox')).toBeNull()
+  })
+
+  it('leaves a smart-denied one of the same bot to ask on its own', async () => {
+    mount()
+    approval('researcher', 'srq-1', { command: 'first' })
+    approval('researcher', 'srq-2', { command: 'refused', smart_denied: true })
+
+    expect(within(dialog()).queryByRole('checkbox')).toBeNull()
+
+    fireEvent.click(button('Allow once'))
+    await settle()
+
+    expect(controller.respondApproval).toHaveBeenCalledExactlyOnceWith('researcher', 'srq-1', 'once')
+    expect(within(dialog()).getByText('refused')).toBeTruthy()
   })
 })
 
@@ -657,6 +730,14 @@ describe('a clarify', () => {
     expect(controller.respondClarify).toHaveBeenCalledWith('researcher', 'srq-1', { q1: 'Gamma, Beta' })
   })
 
+  it('has no Cancel all on a single question: there Skip is the same answer', () => {
+    mount()
+    clarify('researcher', 'srq-1', { question: 'One?', choices: ['a'] })
+
+    expect(within(dialog()).queryByRole('button', { name: 'Cancel all questions' })).toBeNull()
+    expect(button('Skip')).toBeTruthy()
+  })
+
   it('Skip answers with an empty string, so the bot goes on', async () => {
     mount()
     clarify('researcher', 'srq-1', single)
@@ -748,6 +829,46 @@ describe('a clarify', () => {
       expect(within(dialog()).getByText('Locked')).toBeTruthy()
       expect((within(dialog()).getByLabelText('no') as HTMLInputElement).disabled).toBe(true)
       expect(within(dialog()).queryByRole('button', { name: 'Lock answer' })).toBeNull()
+    })
+
+    it('Cancel all ends the batch without an answer, and says nothing about a withdrawal', async () => {
+      const { container } = mount()
+
+      clarify('researcher', 'srq-1', batch)
+      fireEvent.click(within(dialog()).getByLabelText('yes'))
+      fireEvent.click(button('Next'))
+
+      // Twice before the layer takes the sheet away: one cancel.
+      const cancel = button('Cancel all questions')
+
+      fireEvent.click(cancel)
+      fireEvent.click(cancel)
+      await settle()
+
+      expect(controller.cancelClarify).toHaveBeenCalledExactlyOnceWith('researcher', 'srq-1')
+      expect(controller.respondClarify).not.toHaveBeenCalled()
+      expect(screen.queryByRole('dialog')).toBeNull()
+      expect(container.parentElement?.querySelector('[aria-live="polite"]')?.textContent).toBe('')
+    })
+
+    it('holds Cancel all behind the same guard as the other buttons', () => {
+      vi.useFakeTimers()
+      mount({ tapGuardMs: 400 })
+      clarify('researcher', 'srq-1', batch)
+
+      fireEvent.click(button('Cancel all questions'))
+      expect(controller.cancelClarify).not.toHaveBeenCalled()
+
+      act(() => void vi.advanceTimersByTime(450))
+      fireEvent.click(button('Cancel all questions'))
+      expect(controller.cancelClarify).toHaveBeenCalledOnce()
+    })
+
+    it('offers Cancel all on a batch of one, whose answer is a batch on the wire', () => {
+      mount()
+      clarify('researcher', 'srq-1', { questions: [{ qid: 'only', question: 'Only one?' }] })
+
+      expect(button('Cancel all questions')).toBeTruthy()
     })
 
     it('keeps an answer that was locked before, and shows it', async () => {

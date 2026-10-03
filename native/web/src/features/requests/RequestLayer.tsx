@@ -28,8 +28,9 @@
  *    Return meant for the field the reader was typing in finds nothing to press;
  *    when the last request is gone focus returns to where it was.
  *
- * **Answering** goes through the controller (`respondApproval`,
- * `respondClarify`, `lockClarify`), and for a `confirm` at level `passkey`
+ * **Answering** goes through the controller (`respondApproval`, one call per
+ * request when one answer covers several of the same bot's, `respondClarify`,
+ * `lockClarify`, `cancelClarify`), and for a `confirm` at level `passkey`
  * through the passkey model (`confirm`, `decline`, `dismiss`); this component
  * calls nothing else. A failure to deliver an answer is said in an alert over
  * the page; a confirmation says where it stands on its own sheet, and stays on
@@ -54,6 +55,7 @@
  *
  * The gateway's own notices (`GatewayNotices`) are drawn beside the dialog too.
  */
+import type { ApprovalItem } from '@hermie/transcript'
 import {
   lazy,
   type KeyboardEvent,
@@ -68,7 +70,7 @@ import {
 } from 'react'
 import { type StoreApi, useStore } from 'zustand'
 
-import { RequestWithdrawnError } from '../../core/request-withdrawn'
+import { CANCELLED_BY_READER, RequestWithdrawnError } from '../../core/request-withdrawn'
 import { BOT_NAME_LIMIT, displayText } from '../../core/requests/secure-input'
 import { useLocale } from '../../i18n/use-locale'
 import { webStrings } from '../../i18n/web-strings'
@@ -77,7 +79,7 @@ import { botsStore } from '../../state/bots'
 import { type ChatsState, chatsStore } from '../../state/chats'
 import { type ConnectionsState, connectionsStore } from '../../state/connections'
 import { type PasskeyConfirmation, type PasskeysState, passkeysStore } from '../../state/passkeys'
-import { type OpenRequest, type RequestsState, requestsStore } from '../../state/requests'
+import { type EngineRequest, type OpenRequest, type RequestsState, requestsStore } from '../../state/requests'
 import { type SecureInputState, secureInputStore, type SecurePrompt } from '../../state/secure-input'
 import { useChatRuntime } from '../chat/chat-runtime'
 import { GatewayNotices } from '../notices/GatewayNotices'
@@ -151,9 +153,26 @@ export interface RequestLayerProps {
 
 const messageOf = (error: unknown): string => (error instanceof Error ? error.message : String(error))
 
-/** What a reader is told when a request left without their answer. */
+/** What a reader is told when a request left without their answer; nothing for a clarify they cancelled themselves. */
 const withdrawnAnnouncement = (name: string, reason: string | undefined): string =>
-  reason === 'timeout' ? webStrings.requests.timedOut({ name }) : webStrings.requests.withdrawn({ name })
+  reason === CANCELLED_BY_READER
+    ? ''
+    : reason === 'timeout'
+      ? webStrings.requests.timedOut({ name })
+      : webStrings.requests.withdrawn({ name })
+
+/** The same chat's other open approvals, oldest first: what one answer for several may also cover. */
+function otherApprovals(queue: readonly OpenRequest[], current: EngineRequest): ApprovalItem[] {
+  const found: ApprovalItem[] = []
+
+  for (const entry of queue) {
+    if (entry !== current && entry.kind === 'engine' && entry.bot === current.bot && entry.item.kind === 'approval') {
+      found.push(entry.item)
+    }
+  }
+
+  return found
+}
 
 /** What a reader is told when a confirmation left the screen without their answer, or nothing. */
 function confirmationAnnouncement(confirmation: PasskeyConfirmation | undefined, name: string): string {
@@ -387,7 +406,11 @@ export function RequestLayer({
         const item = chats.getState().chats[previous.bot]?.items[previous.item.id]
 
         if ((item?.kind === 'approval' || item?.kind === 'clarify') && item.state === 'cancelled') {
-          setAnnouncement(withdrawnAnnouncement(senderName(previous, undefined), item.cancelReason))
+          const said = withdrawnAnnouncement(senderName(previous, undefined), item.cancelReason)
+
+          if (said) {
+            setAnnouncement(said)
+          }
         }
       }
     }
@@ -420,10 +443,13 @@ export function RequestLayer({
   // longer open, so the effect above never sees it leave as `cancelled` if the press came first.)
   const report = useCallback((error: unknown, from: string) => {
     if (error instanceof RequestWithdrawnError) {
-      if (error.state === 'cancelled') {
-        const name = botsStore.getState().byName[from]?.displayName ?? from
+      const said =
+        error.state === 'cancelled'
+          ? withdrawnAnnouncement(botsStore.getState().byName[from]?.displayName ?? from, error.reason)
+          : ''
 
-        setAnnouncement(withdrawnAnnouncement(name, error.reason))
+      if (said) {
+        setAnnouncement(said)
       }
 
       return
@@ -564,14 +590,19 @@ export function RequestLayer({
                 key={current.key}
                 item={current.item}
                 handle={current.bot}
+                name={shownName}
+                others={otherApprovals(queue, current)}
                 {...(cwd ? { directory: cwd } : {})}
                 titleId={titleId}
                 descriptionId={descriptionId}
                 {...(tapGuardMs !== undefined ? { tapGuardMs } : {})}
-                onRespond={choice => {
-                  void controller
-                    ?.respondApproval(current.bot, current.item.requestId, choice)
-                    .catch(error => report(error, current.bot))
+                onRespond={(choice, others) => {
+                  // One by one, in one go: each is marked answered before anything is awaited (see `ApprovalSheet`).
+                  for (const requestId of [current.item.requestId, ...others]) {
+                    void controller
+                      ?.respondApproval(current.bot, requestId, choice)
+                      .catch(error => report(error, current.bot))
+                  }
                 }}
               />
             ) : (
@@ -589,6 +620,11 @@ export function RequestLayer({
                 onLock={(qid, answer) => {
                   void controller
                     ?.lockClarify(current.bot, current.item.requestId, qid, answer)
+                    .catch(error => report(error, current.bot))
+                }}
+                onCancelAll={() => {
+                  void controller
+                    ?.cancelClarify(current.bot, current.item.requestId)
                     .catch(error => report(error, current.bot))
                 }}
               />

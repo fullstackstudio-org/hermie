@@ -1,7 +1,7 @@
 /**
  * From what `visibleItems` returned to the rows the list draws.
  *
- * Four things the engine's selectors do not do, because they are about the
+ * Five things the engine's selectors do not do, because they are about the
  * screen and not about a transcript:
  *
  *  - **Roll-ups.** More than three bot-to-bot asides in a row become one row
@@ -22,10 +22,15 @@
  *    the turn runs and the last thing drawn is the reader's own message. Once a
  *    reply exists its own bubble holds the dots (`AssistantBubble`), so the two
  *    are never drawn at once.
+ *  - **The tool being written.** The bot named the tool it is writing a call to
+ *    (`tool.generating`, `turn.draftingTool`) and the call has no row yet: one
+ *    row at the tail says so (`ToolGenerating`), in the typing row's place. Its
+ *    id carries the name, so a second name is a new row rather than an old row
+ *    the list's memo would never draw again.
  *
- * Both separator and typing rows are `status` items under a `web:` kind the
- * gateway cannot send, so the item union stays closed and `ChatItem` can tell
- * them from the engine's own by that kind alone.
+ * Separator, typing and tool-being-written rows are `status` items under a `web:`
+ * kind the gateway cannot send, so the item union stays closed and `ChatItem` can
+ * tell them from the engine's own by that kind alone.
  */
 import type { StatusItem, TranscriptItem, VisibleItem } from '@hermie/transcript'
 
@@ -39,6 +44,9 @@ export const TYPING_ROW_KIND = 'web:typing'
 
 /** The typing row's id; there is at most one. */
 export const TYPING_ROW_ID = 'web:typing'
+
+/** The status kind of the row that names the tool the bot is writing a call to; its `text` is the name. */
+export const GENERATING_ROW_KIND = 'web:generating'
 
 const DAY_MS = 86_400_000
 
@@ -81,6 +89,9 @@ export const isDateRow = (item: TranscriptItem): item is StatusItem =>
 export const isTypingRow = (item: TranscriptItem): item is StatusItem =>
   item.kind === 'status' && item.statusKind === TYPING_ROW_KIND
 
+export const isGeneratingRow = (item: TranscriptItem): item is StatusItem =>
+  item.kind === 'status' && item.statusKind === GENERATING_ROW_KIND
+
 /** Whether a row draws nothing at all, so it neither opens a day nor counts as "the last thing". */
 const drawsNothing = (row: VisibleItem): boolean => row.presentation === 'hidden-placeholder'
 
@@ -89,6 +100,8 @@ export interface RowOptions {
   busy: boolean
   /** The turn itself is running (`chat.turn.active`): the typing row may be shown. */
   turnActive: boolean
+  /** The tool the bot named before its call exists (`chat.turn.draftingTool`). */
+  draftingTool?: string | undefined
 }
 
 /**
@@ -137,7 +150,19 @@ export function transcriptRows(visible: readonly VisibleItem[], options: RowOpti
     }
   }
 
-  if (options.turnActive && (lastDrawn === undefined || lastDrawn.item.kind === 'user')) {
+  const drafting = options.draftingTool?.trim()
+
+  if (options.turnActive && drafting) {
+    rows.push(
+      syntheticStatus(
+        `${GENERATING_ROW_KIND}:${drafting}`,
+        GENERATING_ROW_KIND,
+        Number.MAX_SAFE_INTEGER,
+        undefined,
+        drafting
+      )
+    )
+  } else if (options.turnActive && (lastDrawn === undefined || lastDrawn.item.kind === 'user')) {
     rows.push(syntheticStatus(TYPING_ROW_ID, TYPING_ROW_KIND, Number.MAX_SAFE_INTEGER, undefined, ''))
   }
 

@@ -113,7 +113,7 @@ import { claimTurn } from './chats/turn-claim'
 import type { GatewayClient } from './gateway-client'
 import { createIngest, type FrameSource, type Ingest } from './ingest'
 import type { ChatGateway } from './link'
-import { closedRequest } from './request-withdrawn'
+import { CANCELLED_BY_READER, closedRequest } from './request-withdrawn'
 import { describeRpcFailure, type RpcFailure } from './rpc-failures'
 import {
   buildConversationList,
@@ -2103,6 +2103,44 @@ export class ChatController {
     for (const [qid, answer] of Object.entries(answers)) {
       await this.sendClarifyLock(botName, requestId, qid, answer)
     }
+  }
+
+  /**
+   * End a clarify without answering it: the gateway's cancel-all, a reply with
+   * neither `answer` nor `answers` (`ClarifyResult`). For a batch the bot is told
+   * the reader declined, and answers locked earlier go with it; for a single
+   * question it reads as a skip.
+   *
+   * The card closes as `cancelled` under `CANCELLED_BY_READER` rather than as
+   * `answered`: nothing was answered, and the reason tells the request layer the
+   * gateway withdrew nothing. It is closed before the reply goes out, as an
+   * answer is, so a second press finds it closed.
+   */
+  async cancelClarify(botName: string, requestId: string): Promise<void> {
+    const chat = this.chats.getState().chats[botName]
+    const itemId = chat?.byRequestId[requestId]
+    const closed = closedRequest(itemId ? chat?.items[itemId] : undefined, requestId)
+
+    if (closed) {
+      throw closed
+    }
+
+    const live = this.pending.get(requestId)
+
+    this.chats.getState().dispatchEvent(botName, {
+      type: 'request.cancel',
+      payload: { id: requestId, reason: CANCELLED_BY_READER }
+    })
+
+    if (live) {
+      this.pending.delete(requestId)
+      this.acknowledged.delete(requestId)
+      live.request.respond({})
+
+      return
+    }
+
+    await this.gateway.request('request.answer', { id: requestId, result: {}, profile: botName })
   }
 
   /** Lock one answer of a batch clarify without resolving the whole request. */

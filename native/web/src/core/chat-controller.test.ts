@@ -12,7 +12,7 @@ import type { MessageAuthor, UserItem } from '@hermie/transcript'
 import { BotsController } from './bots-controller'
 import { ChatController, type ReplaySignal } from './chat-controller'
 import { immediateFrames } from './ingest'
-import { RequestWithdrawnError } from './request-withdrawn'
+import { CANCELLED_BY_READER, RequestWithdrawnError } from './request-withdrawn'
 import type { RpcFailure } from './rpc-failures'
 import { MemoryChatCache } from '../platform/chat-cache'
 import { botFromProfileRow, botsStore } from '../state/bots'
@@ -1062,6 +1062,73 @@ describe('clarify', () => {
     await controller.respondClarify('researcher', 'srq-batch', { q1: 'staging' })
 
     expect(delivered.answer()).toEqual({ answers: { q1: 'staging' } })
+  })
+})
+
+describe('cancelling a clarify (cancel-all)', () => {
+  const batch = {
+    session_id: 'runtime-1',
+    questions: [
+      { qid: 'q1', question: 'Which cluster?' },
+      { qid: 'q2', question: 'Which branch?' }
+    ]
+  }
+
+  it('answers a live clarify with neither answer nor answers, and closes the card as the reader’s own', async () => {
+    const { gateway, controller } = setup()
+
+    controller.start()
+    await controller.openChat(RESEARCHER)
+
+    const delivered = gateway.serverRequest('srq-batch', 'clarify', batch)
+
+    await controller.cancelClarify('researcher', 'srq-batch')
+
+    expect(delivered.answer()).toEqual({})
+    expect(gateway.methodOrder()).not.toContain('request.answer')
+    expect(gateway.methodOrder()).not.toContain('clarify.lock')
+    expect(chatOf().items[chatOf().byRequestId['srq-batch'] ?? '']).toMatchObject({
+      state: 'cancelled',
+      cancelReason: CANCELLED_BY_READER
+    })
+  })
+
+  it('settles a replayed clarify through request.answer with an empty result', async () => {
+    const { gateway, controller } = setup()
+
+    gateway.reply('request.answer', { status: 'ok' })
+    controller.start()
+    await controller.openChat(RESEARCHER)
+    chatsStore.getState().dispatchServerRequest('researcher', {
+      id: 'srq-batch',
+      method: 'clarify',
+      params: batch,
+      replayed: true
+    })
+
+    await controller.cancelClarify('researcher', 'srq-batch')
+
+    expect(gateway.lastCall('request.answer')).toEqual({ id: 'srq-batch', result: {}, profile: 'researcher' })
+  })
+
+  it('sends nothing for a clarify that is no longer open, and a second press finds it closed', async () => {
+    const { gateway, controller } = setup()
+
+    controller.start()
+    await controller.openChat(RESEARCHER)
+
+    const delivered = gateway.serverRequest('srq-batch', 'clarify', batch)
+
+    await controller.cancelClarify('researcher', 'srq-batch')
+
+    const calls = gateway.methodOrder().length
+
+    await expect(controller.cancelClarify('researcher', 'srq-batch')).rejects.toBeInstanceOf(RequestWithdrawnError)
+    await expect(controller.respondClarify('researcher', 'srq-batch', { q1: 'a', q2: 'b' })).rejects.toBeInstanceOf(
+      RequestWithdrawnError
+    )
+    expect(gateway.methodOrder()).toHaveLength(calls)
+    expect(delivered.answer()).toEqual({})
   })
 })
 

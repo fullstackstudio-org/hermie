@@ -9,7 +9,7 @@
  * landmarks, headings, names, roles, ARIA and labels, with the scheme attribute on
  * the document as the app puts it.
  */
-import { render } from '@testing-library/react'
+import { act, render } from '@testing-library/react'
 import axe from 'axe-core'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 
@@ -126,6 +126,29 @@ describe('the chat screen, through axe', () => {
       const { container } = mount()
 
       container.querySelector<HTMLButtonElement>('.hm-tool__line')?.click()
+      expect(await violations()).toEqual([])
+    })
+
+    it('has no violation with the task list open and a tool being written', async () => {
+      chatsStore.getState().hydrate('researcher', {
+        ...conversation(),
+        turn: { active: true, local: true, nextSeq: 90_000, draftingTool: 'terminal' },
+        todo: {
+          revision: 3,
+          todos: [
+            { id: '1', content: 'Read the logs', status: 'completed' },
+            { id: '2', content: 'Find the cause', status: 'in_progress' },
+            { id: '2a', content: 'Check the retry path', status: 'pending', parent: '2' },
+            { id: '3', content: 'Old idea', status: 'cancelled' }
+          ]
+        }
+      })
+      const { container } = mount()
+
+      expect(container.querySelector('[data-generating]')).toBeTruthy()
+      container.querySelector<HTMLButtonElement>('.hm-todo__head')?.click()
+      await act(async () => undefined)
+      expect(container.querySelectorAll('.hm-todo__task')).toHaveLength(4)
       expect(await violations()).toEqual([])
     })
 

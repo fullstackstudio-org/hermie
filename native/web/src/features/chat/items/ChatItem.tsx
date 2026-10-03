@@ -2,14 +2,14 @@
  * One row of the transcript: the view for its kind.
  *
  * The engine's kinds and the rows of the screen's own (`rows.ts`: a date
- * separator and the typing row; `dm-rollup.ts`: a run of bot-to-bot asides
- * rolled up; all three `status` items under a kind the gateway cannot send) are
- * told apart here and nowhere else.
+ * separator, the typing row and the tool being written; `dm-rollup.ts`: a run of
+ * bot-to-bot asides rolled up; all of them `status` items under a kind the
+ * gateway cannot send) are told apart here and nowhere else.
  */
 import type { VisibleItem } from '@hermie/transcript'
 
 import { isRollupRow } from '../dm-rollup'
-import { isDateRow, isTypingRow } from '../rows'
+import { isDateRow, isGeneratingRow, isTypingRow } from '../rows'
 import { AssistantBubble } from './AssistantBubble'
 import { BotDmAside } from './BotDmAside'
 import { BotDmRollup } from './BotDmRollup'
@@ -21,6 +21,7 @@ import { StatusRow } from './StatusRow'
 import { SubagentGroupCard } from './SubagentGroupCard'
 import { isSystemLineNotice, SystemLine } from './SystemLine'
 import { ToolCard } from './ToolCard'
+import { ToolGenerating } from './ToolGenerating'
 import { TypingRow } from './TypingRow'
 import { UserBubble } from './UserBubble'
 import './item-views.css'
@@ -49,6 +50,10 @@ export function ChatItem({ row }: { row: VisibleItem }) {
         <NoticeRow item={item} presentation={presentation} />
       )
     case 'status':
+      if (isGeneratingRow(item)) {
+        return <ToolGenerating name={item.text} />
+      }
+
       if (isDateRow(item)) {
         return <DateSeparator item={item} presentation={presentation} />
       }

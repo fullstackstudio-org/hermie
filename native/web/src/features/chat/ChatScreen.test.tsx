@@ -460,6 +460,81 @@ describe('the transcript', () => {
   })
 })
 
+describe('what the bot is doing now (PG-3)', () => {
+  const running = () =>
+    chatWith('researcher', [userItem('fix it', {}, 'u')], {
+      runtimeSessionId: 'rt-1',
+      turn: { active: true, local: true, nextSeq: 9000 }
+    })
+
+  it('names the tool being written at the tail, in the dots’ place, until the call starts', () => {
+    commit(running())
+    mount({}, fakeController())
+
+    expect(within(log()).getByRole('img', { name: /replying|typing/iu })).toBeTruthy()
+
+    // A turn field, not an item: no row's version moves, and the screen still follows it.
+    act(() =>
+      chatsStore.getState().dispatchEvent('researcher', { type: 'tool.generating', payload: { name: 'terminal' } })
+    )
+
+    expect(log().querySelector('[data-generating]')?.textContent).toBe('Preparing terminal…')
+    expect(within(log()).queryByRole('img')).toBeNull()
+
+    act(() =>
+      chatsStore
+        .getState()
+        .dispatchEvent('researcher', { type: 'tool.start', payload: { tool_id: 'call-1', name: 'terminal' } })
+    )
+
+    expect(log().querySelector('[data-generating]')).toBeNull()
+    expect(within(log()).getByRole('button', { name: /terminal/u })).toBeTruthy()
+  })
+
+  it('shows the task list over the composer when a snapshot arrives, and replaces it with the next', () => {
+    commit(running())
+    mount({}, fakeController())
+
+    expect(screen.queryByRole('region', { name: 'Tasks' })).toBeNull()
+
+    act(() =>
+      chatsStore.getState().dispatchEvent('researcher', {
+        type: 'todo.updated',
+        payload: {
+          revision: 1,
+          todos: [
+            { id: '1', content: 'Find the bug', status: 'in_progress' },
+            { id: '2', content: 'Fix it', status: 'pending' }
+          ]
+        }
+      })
+    )
+
+    const strip = screen.getByRole('region', { name: 'Tasks' })
+
+    expect(strip.textContent).toContain('0 of 2 done')
+    expect(strip.textContent).toContain('Find the bug')
+    // Not a row of the transcript: the list is about now.
+    expect(log().contains(strip)).toBe(false)
+
+    act(() =>
+      chatsStore.getState().dispatchEvent('researcher', {
+        type: 'todo.updated',
+        payload: {
+          revision: 2,
+          todos: [
+            { id: '1', content: 'Find the bug', status: 'completed' },
+            { id: '2', content: 'Fix it', status: 'in_progress' }
+          ]
+        }
+      })
+    )
+
+    expect(screen.getByRole('region', { name: 'Tasks' }).textContent).toContain('1 of 2 done')
+    expect(screen.getByRole('region', { name: 'Tasks' }).textContent).toContain('Fix it')
+  })
+})
+
 describe('older history', () => {
   it('asks for a page when the reader reaches the top, and not before the chat is live', async () => {
     const controller = fakeController()

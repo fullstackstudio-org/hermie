@@ -2,7 +2,16 @@ import type { VisibleItem } from '@hermie/transcript'
 import { describe, expect, it } from 'vitest'
 
 import { assistantItem, daysAfter, noticeItem, statusItem, toolItem, userItem } from '../../test-support/chat-fixtures'
-import { DATE_ROW_KIND, dayKeyOf, isDateRow, isTypingRow, transcriptRows, TYPING_ROW_ID } from './rows'
+import {
+  DATE_ROW_KIND,
+  dayKeyOf,
+  GENERATING_ROW_KIND,
+  isDateRow,
+  isGeneratingRow,
+  isTypingRow,
+  transcriptRows,
+  TYPING_ROW_ID
+} from './rows'
 
 const full = (item: VisibleItem['item']): VisibleItem => ({ item, presentation: 'full' })
 const options = { busy: false, turnActive: false }
@@ -135,5 +144,41 @@ describe('the typing row', () => {
     const hidden: VisibleItem = { item: userItem('x', { ts: undefined }, 'h'), presentation: 'hidden-placeholder' }
 
     expect(ids(transcriptRows([user, hidden], { busy: true, turnActive: true }))).toEqual(['u', 'h', TYPING_ROW_ID])
+  })
+})
+
+describe('the tool being written', () => {
+  const user = full(userItem('go', { ts: undefined }, 'u'))
+  const reply = full(assistantItem('Let me look.', { ts: undefined, streaming: true }, 'a'))
+
+  it('takes the typing row’s place at the tail while the turn runs, carrying the name', () => {
+    const rows = transcriptRows([user], { busy: true, turnActive: true, draftingTool: 'terminal' })
+    const last = rows.at(-1)!.item
+
+    expect(ids(rows)).toEqual(['u', `${GENERATING_ROW_KIND}:terminal`])
+    expect(isGeneratingRow(last)).toBe(true)
+    expect(isTypingRow(last)).toBe(false)
+    expect((last as { text: string }).text).toBe('terminal')
+  })
+
+  it('follows a reply that is already on screen, where the typing row would not be', () => {
+    const rows = transcriptRows([user, reply], { busy: true, turnActive: true, draftingTool: 'read_file' })
+
+    expect(ids(rows)).toEqual(['u', 'a', `${GENERATING_ROW_KIND}:read_file`])
+  })
+
+  it('is a new row for a new name, so the list draws it', () => {
+    const first = transcriptRows([user], { busy: true, turnActive: true, draftingTool: 'terminal' })
+    const second = transcriptRows([user], { busy: true, turnActive: true, draftingTool: 'web_search' })
+
+    expect(first.at(-1)!.item.id).not.toBe(second.at(-1)!.item.id)
+  })
+
+  it('is not drawn once the turn has ended, nor for a blank name', () => {
+    expect(ids(transcriptRows([user], { busy: false, turnActive: false, draftingTool: 'terminal' }))).toEqual(['u'])
+    expect(ids(transcriptRows([user], { busy: true, turnActive: true, draftingTool: '  ' }))).toEqual([
+      'u',
+      TYPING_ROW_ID
+    ])
   })
 })

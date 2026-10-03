@@ -7,8 +7,11 @@ import type { TranscriptItem, VisibleItem } from '@hermie/transcript'
 import { fireEvent, render, screen, within } from '@testing-library/react'
 import { describe, expect, it } from 'vitest'
 
+import { resetActiveLocale } from '../../../i18n/active-locale'
+import { setLanguageChoice } from '../../../i18n/locale'
 import { assistantItem, noticeItem, statusItem, toolItem, userItem } from '../../../test-support/chat-fixtures'
 import { LONG_AGO } from '../../../test-support/shell-stores'
+import { GENERATING_ROW_KIND } from '../rows'
 import { ChatItem } from './ChatItem'
 import { dayLabel } from './DateSeparator'
 import { ItemContext } from './item-context'
@@ -389,5 +392,39 @@ describe('the records of a request', () => {
         state: 'open'
       })
     ).toBe('The bot has a questionWhich one?')
+  })
+})
+
+describe('the tool being written', () => {
+  const generating = (name: string) =>
+    statusItem(name, { statusKind: GENERATING_ROW_KIND, ts: undefined }, `${GENERATING_ROW_KIND}:${name}`)
+
+  it('names the tool in a sentence, the name in its own isolated span, with decorative dots', () => {
+    const { container } = draw(generating('terminal'))
+
+    expect(container.querySelector('[data-generating]')?.textContent).toBe('Preparing terminal…')
+    expect(container.querySelector('bdi')?.textContent).toBe('terminal')
+    expect(container.querySelector('.hm-dots')?.getAttribute('aria-hidden')).toBe('true')
+    expect(container.querySelector('[role="img"]')).toBeNull()
+  })
+
+  it('cleans and bounds the model’s word, and draws nothing for a name with nothing left', () => {
+    const { container } = draw(generating('web\u202esearch\u0007 **bold**'))
+
+    expect(container.querySelector('bdi')?.textContent).toBe('websearch **bold**')
+    expect(container.querySelector('strong')).toBeNull()
+
+    const empty = draw(generating('\u200b\u0007'))
+
+    expect(empty.container.querySelector('[data-generating]')).toBeNull()
+  })
+
+  it('says it in the reader’s language', async () => {
+    await setLanguageChoice('de')
+
+    const { container } = draw(generating('terminal'))
+
+    expect(container.querySelector('[data-generating]')?.textContent).toBe('terminal wird vorbereitet…')
+    resetActiveLocale()
   })
 })

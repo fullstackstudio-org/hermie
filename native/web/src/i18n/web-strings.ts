@@ -182,6 +182,47 @@ export const WEB_STRINGS_SOURCE = {
       en: ({ name, time }: { name: string; time: string }) => `${name}, ${time}`,
       nl: ({ name, time }: { name: string; time: string }) => `${name}, ${time}`,
       de: ({ name, time }: { name: string; time: string }) => `${name}, ${time}`
+    },
+    /** The bot is writing a tool call (`tool.generating`) and has named the tool, before the call exists. */
+    preparingTool: {
+      en: ({ name }: { name: string }) => `Preparing ${name}…`,
+      nl: ({ name }: { name: string }) => `${name} wordt voorbereid…`,
+      de: ({ name }: { name: string }) => `${name} wird vorbereitet…`
+    },
+    /** The name of the bot's task list over the composer (`todo.updated`). */
+    todoTitle: {
+      en: 'Tasks',
+      nl: 'Taken',
+      de: 'Aufgaben'
+    },
+    /** Beside the title: how far the list is. */
+    todoProgress: {
+      en: ({ done, total }: { done: number; total: number }) => `${done} of ${total} done`,
+      nl: ({ done, total }: { done: number; total: number }) => `${done} van ${total} klaar`,
+      de: ({ done, total }: { done: number; total: number }) => `${done} von ${total} erledigt`
+    },
+    /** What each task's mark means, said to assistive technology. */
+    todoStatus: {
+      pending: {
+        en: 'To do',
+        nl: 'Te doen',
+        de: 'Offen'
+      },
+      in_progress: {
+        en: 'In progress',
+        nl: 'Bezig',
+        de: 'In Arbeit'
+      },
+      completed: {
+        en: 'Done',
+        nl: 'Klaar',
+        de: 'Erledigt'
+      },
+      cancelled: {
+        en: 'Cancelled',
+        nl: 'Geannuleerd',
+        de: 'Abgebrochen'
+      }
     }
   },
   composer: {
@@ -246,6 +287,45 @@ export const WEB_STRINGS_SOURCE = {
       en: ({ message }: { message: string }) => `The answer was not delivered: ${message}`,
       nl: ({ message }: { message: string }) => `Het antwoord is niet aangekomen: ${message}`,
       de: ({ message }: { message: string }) => `Die Antwort wurde nicht zugestellt: ${message}`
+    },
+    /** On an approval the gateway's own safety check refused (`smart_denied`): the reader is the override. */
+    smartDenied: {
+      en: 'The gateway’s own safety check refused this command. It runs only if you allow it here.',
+      nl: 'De eigen veiligheidscontrole van de gateway heeft dit commando geweigerd. Het draait alleen als jij het hier toestaat.',
+      de: 'Die eigene Sicherheitsprüfung des Gateways hat diesen Befehl abgelehnt. Er läuft nur, wenn du ihn hier erlaubst.'
+    },
+    /** Under the choices, when "Allow for this session" is one of them: what it means, apart from "Always allow". */
+    sessionHint: {
+      en: 'Allow for this session: this command runs without asking again until the session ends.',
+      nl: 'Toestaan voor deze sessie: dit commando draait zonder opnieuw te vragen tot de sessie eindigt.',
+      de: 'Für diese Sitzung erlauben: Dieser Befehl läuft ohne erneute Nachfrage, bis die Sitzung endet.'
+    },
+    /** The box that makes one answer apply to the other approvals waiting from the same bot. Off by default. */
+    sameForAll: {
+      en: ({ count, name }: { count: number; name: string }) =>
+        count === 1
+          ? `Give the same answer to the other approval waiting from ${name}`
+          : `Give the same answer to the ${count} other approvals waiting from ${name}`,
+      nl: ({ count, name }: { count: number; name: string }) =>
+        count === 1
+          ? `Geef hetzelfde antwoord op de andere goedkeuring die van ${name} wacht`
+          : `Geef hetzelfde antwoord op de ${count} andere goedkeuringen die van ${name} wachten`,
+      de: ({ count, name }: { count: number; name: string }) =>
+        count === 1
+          ? `Dieselbe Antwort für die andere wartende Freigabe von ${name} geben`
+          : `Dieselbe Antwort für die ${count} anderen wartenden Freigaben von ${name} geben`
+    },
+    /** Over the list of the other commands that answer would also cover. */
+    othersLabel: {
+      en: 'That answer also goes to:',
+      nl: 'Dat antwoord geldt ook voor:',
+      de: 'Diese Antwort gilt auch für:'
+    },
+    /** Ends a batch of questions without answering any of them: the bot is told the reader declined. */
+    cancelAll: {
+      en: 'Cancel all questions',
+      nl: 'Alle vragen annuleren',
+      de: 'Alle Fragen abbrechen'
     }
   },
   passkeys: {

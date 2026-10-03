@@ -62,6 +62,7 @@ import { Composer } from './Composer'
 import { useChatRuntime } from './chat-runtime'
 import { ChatItem } from './items/ChatItem'
 import { ItemContext, type ItemContextValue } from './items/item-context'
+import { TodoList } from './items/TodoList'
 import { JumpToLatest } from './JumpToLatest'
 import { transcriptRows } from './rows'
 import { TranscriptList, type TranscriptListHandle } from './TranscriptList'
@@ -166,13 +167,18 @@ export function ChatScreen({ bot, session, view = DEFAULT_CHAT_VIEW }: ChatScree
   const version = chat ? itemsVersion(chat) : 0
   const turnActive = chat?.turn.active ?? false
   const busy = chat ? isBusy(chat) : false
+  /** The tool the bot named before its call exists: a turn field, so no item's version moves with it. */
+  const draftingTool = chat?.turn.draftingTool
   const shown = useMemo<VisibleItem[]>(
     () => (chat ? visibleItems(chat, view) : []),
     // `chat` itself changes on every commit; what it holds that matters is the version and the turn.
     // eslint-disable-next-line react-hooks/exhaustive-deps
     [version, key, turnActive, view.level, view.showBotToBot, view.showThinking]
   )
-  const rows = useMemo(() => transcriptRows(shown, { busy, turnActive }), [shown, busy, turnActive])
+  const rows = useMemo(
+    () => transcriptRows(shown, { busy, turnActive, draftingTool }),
+    [shown, busy, turnActive, draftingTool]
+  )
 
   const itemContext = useMemo<ItemContextValue>(
     () => ({ botName: displayName, gatewayBaseUrl: runtime?.gatewayBaseUrl, ownAuthorId, groupChat, chatKey: key }),
@@ -363,6 +369,9 @@ export function ChatScreen({ bot, session, view = DEFAULT_CHAT_VIEW }: ChatScree
 
         {away && rows.length > 0 ? <JumpToLatest count={arrived} onJump={jumpToLatest} /> : null}
       </div>
+
+      {/* The bot's task list: about now, so over the field rather than in the transcript. */}
+      <TodoList key={`todo:${key ?? bot}`} todo={chat?.todo} turnActive={turnActive} />
 
       {/* A past conversation or a branch can be read and not answered; a chat the gateway does not list has no one to ask. */}
       {runtime && key !== undefined && !viewer && record ? (

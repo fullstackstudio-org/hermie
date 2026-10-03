@@ -44,6 +44,7 @@ export type ChatScreenController = Pick<
   | 'respondApproval'
   | 'respondClarify'
   | 'lockClarify'
+  | 'cancelClarify'
   | 'acknowledgeApproval'
   | 'openApprovals'
 >

