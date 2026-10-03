@@ -198,8 +198,8 @@ Nothing in it is a credential: the session is the gateway's `HttpOnly` cookie, w
 
 `<base path>` is the prefix, or `/` at the root, so two gateways behind different prefixes on one host keep
 apart. A key is identity-bound unless it starts with `device.`, so a key nobody classified is cleared rather
-than left for the next person. The language choice is still stored by `src/i18n/locale.ts` under its own
-key, `hermie.language` (docs/i18n.md). A browser that refuses a store gets a page that works and forgets:
+than left for the next person. The language choice is one of them: `device.language`, read and written through
+`platform/locale-environment.ts` (an earlier build's bare `hermie.language` key is taken over once; docs/i18n.md). A browser that refuses a store gets a page that works and forgets:
 values are kept in memory, and the cache falls back to memory on its first failure.
 
 ### Seams

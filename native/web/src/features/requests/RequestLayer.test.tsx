@@ -109,7 +109,6 @@ beforeEach(() => {
 afterEach(() => {
   stopBinding()
   vi.useRealTimers()
-  window.localStorage.removeItem('hermie.language')
 })
 
 describe('with nothing to answer', () => {

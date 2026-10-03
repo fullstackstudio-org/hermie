@@ -17,7 +17,6 @@ beforeEach(() => {
 
 afterEach(() => {
   resetActiveLocale()
-  window.localStorage.removeItem('hermie.language')
 })
 
 /** The stamp of `LONG_AGO`, in this machine's zone. */

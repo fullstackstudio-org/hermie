@@ -164,57 +164,30 @@ describe('setLanguageChoice', () => {
   })
 })
 
-describe('the browser environment', () => {
-  const memory = (): Pick<Storage, 'getItem' | 'setItem'> & { map: Map<string, string> } => {
-    const map = new Map<string, string>()
-
-    return {
-      map,
-      getItem: key => map.get(key) ?? null,
-      setItem: (key, value) => {
-        map.set(key, value)
-      }
-    }
-  }
-
+describe('the default environment', () => {
   afterEach(() => {
     vi.unstubAllGlobals()
   })
 
-  it('reads and writes localStorage under its own key', async () => {
-    const store = memory()
+  it('touches no storage: a choice lasts for the page, and nothing is read back', async () => {
+    const touched = vi.fn()
 
-    vi.stubGlobal('localStorage', store)
+    vi.stubGlobal('localStorage', {
+      getItem: touched,
+      setItem: touched,
+      removeItem: touched,
+      key: touched,
+      length: 0
+    })
     configureLocale()
 
-    await setLanguageChoice('nl')
-    expect(store.map.get('hermie.language')).toBe('nl')
-
-    resetLocale()
-    configureLocale()
-    expect(await initLocale()).toBe('nl')
+    expect(await initLocale()).toBe('en')
+    await expect(setLanguageChoice('nl')).resolves.toBe('nl')
     expect(languageChoice()).toBe('nl')
-  })
-
-  it('survives a store that cannot be read or written', async () => {
-    const blocked = {
-      getItem: () => {
-        throw new Error('blocked')
-      },
-      setItem: () => {
-        throw new Error('blocked')
-      }
-    }
-
-    vi.stubGlobal('localStorage', blocked)
-    configureLocale()
-
-    await expect(initLocale()).resolves.toBe('en')
-    await expect(setLanguageChoice('de')).resolves.toBe('de')
+    expect(touched).not.toHaveBeenCalled()
   })
 
   it('reads navigator.languages in order', async () => {
-    vi.stubGlobal('localStorage', memory())
     vi.stubGlobal('navigator', { languages: ['fr-FR', 'de-AT', 'nl'], language: 'fr-FR' })
     configureLocale()
 
@@ -222,7 +195,6 @@ describe('the browser environment', () => {
   })
 
   it('falls back to navigator.language when there is no list', async () => {
-    vi.stubGlobal('localStorage', memory())
     vi.stubGlobal('navigator', { language: 'nl-BE' })
     configureLocale()
 

@@ -49,7 +49,6 @@ afterEach(() => {
   applyTheme({ scheme: 'system', tint: 'blue' })
   document.documentElement.removeAttribute('data-tint')
   resetActiveLocale()
-  window.localStorage.removeItem('hermie.language')
 })
 
 async function violations(): Promise<string[]> {

@@ -14,7 +14,10 @@
  * (docs/i18n.md, "Web client").
  *
  * The choice belongs to the browser profile, like the colour scheme: it is
- * stored locally and never sent to a gateway.
+ * stored locally and never sent to a gateway. It lives in the page's key-value
+ * store under `device.language`, so it survives a sign-out, and this file reads
+ * and writes it only through a `LocaleEnvironment` (`platform/locale-environment.ts`
+ * builds the page's); it touches no browser object itself.
  *
  * Switching does not remount anything. `setLanguageChoice` loads the language,
  * then makes it active, and subscribers (`useLocale`, or `subscribeLocale`
@@ -23,6 +26,7 @@
  * another.
  */
 import { activeLocale, LOCALES, resetActiveLocale, setActiveLocale, SOURCE_LOCALE, type Locale } from './active-locale'
+import { browserLanguages } from '../platform/browser-languages'
 import { loadCatalogue } from './catalogue'
 
 export {
@@ -44,8 +48,8 @@ export type LanguageChoice = 'system' | Locale
 
 export const DEFAULT_LANGUAGE_CHOICE: LanguageChoice = 'system'
 
-/** The `localStorage` key of the stored choice. */
-export const LANGUAGE_STORAGE_KEY = 'hermie.language'
+/** The key of the stored choice in the page's key-value store: device-local, so a sign-out keeps it. */
+export const LANGUAGE_KEY = 'device.language'
 
 const isLocale = (value: unknown): value is Locale => LOCALES.includes(value as Locale)
 
@@ -90,9 +94,10 @@ export function resolveLanguage(choice: LanguageChoice, languages: readonly (str
 }
 
 /**
- * What the language rules read and write. The default is the browser's own
- * `localStorage` and `navigator`; `configureLocale` swaps it (the platform
- * seam of the client, and the tests).
+ * What the language rules read and write. The page's own is
+ * `localeEnvironmentFor(store)` (`platform/locale-environment.ts`), handed to
+ * `configureLocale` by the entry module before the first `initLocale`; tests hand
+ * in their own.
  */
 export interface LocaleEnvironment {
   /** The stored choice as it was written, or null/undefined when there is none or the store cannot be read. */
@@ -103,30 +108,14 @@ export interface LocaleEnvironment {
   languages(): readonly string[]
 }
 
+/**
+ * Until a store is configured: nothing stored and nothing to store into (a
+ * choice then lasts until the page closes), and the browser's own list.
+ */
 const browserEnvironment: LocaleEnvironment = {
-  readChoice() {
-    try {
-      return globalThis.localStorage.getItem(LANGUAGE_STORAGE_KEY)
-    } catch {
-      return undefined
-    }
-  },
-  writeChoice(choice) {
-    try {
-      globalThis.localStorage.setItem(LANGUAGE_STORAGE_KEY, choice)
-    } catch {
-      // Private browsing or a full store: the choice holds for this page only.
-    }
-  },
-  languages() {
-    const nav = globalThis.navigator as Navigator | undefined
-
-    if (!nav) {
-      return []
-    }
-
-    return nav.languages?.length ? nav.languages : nav.language ? [nav.language] : []
-  }
+  readChoice: () => undefined,
+  writeChoice: () => undefined,
+  languages: () => browserLanguages()
 }
 
 let environment: LocaleEnvironment = browserEnvironment
@@ -136,7 +125,7 @@ let choice: LanguageChoice = DEFAULT_LANGUAGE_CHOICE
 /** The latest request; an older one that resolves after it is dropped. */
 let generation = 0
 
-/** Replace what the rules read and write. Pass nothing to go back to the browser's own. */
+/** Replace what the rules read and write. Pass nothing to go back to the default: nothing stored, the browser's list. */
 export function configureLocale(next?: LocaleEnvironment): void {
   environment = next ?? browserEnvironment
 }

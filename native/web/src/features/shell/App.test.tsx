@@ -24,7 +24,6 @@ beforeEach(() => {
 
 afterEach(() => {
   resetActiveLocale()
-  window.localStorage.removeItem('hermie.language')
 })
 
 function renderApp(over: Partial<AppProps> = {}) {

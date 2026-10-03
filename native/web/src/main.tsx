@@ -10,12 +10,12 @@
 import { StrictMode, type ReactNode } from 'react'
 import { createRoot, type Root } from 'react-dom/client'
 
-import { pageBasePath, type ResolvedBasePath } from './boot/base-path'
+import { pageBasePath, type ResolvedBasePath, storageNamespace } from './boot/base-path'
 import { boot, describeBootFailure, type BootState } from './boot/boot'
 import { refuseInFrame } from './boot/frame-guard'
 import { claimForOwner, restoreRoute, signIn, signOut } from './boot/login-bounce'
 import { strings } from './generated/strings'
-import { initLocale } from './i18n/locale'
+import { configureLocale, initLocale } from './i18n/locale'
 import { useLocale } from './i18n/use-locale'
 import { webStrings } from './i18n/web-strings'
 import { createDraftStore } from './features/chat/drafts'
@@ -23,6 +23,7 @@ import { App } from './features/shell/App'
 import { startSession } from './features/shell/session'
 import { chatCacheFor, type ChatCache } from './platform/chat-cache'
 import { createKeyValueStore, type WebKeyValueStore } from './platform/key-value-store'
+import { localeEnvironmentFor } from './platform/locale-environment'
 import { bindTheme, settingsStore } from './state/settings'
 import { Button } from './ui/primitives'
 import './ui/theme.css'
@@ -140,6 +141,13 @@ async function start(): Promise<void> {
     return
   }
 
+  const basePath = pageBasePath()
+  // The language is a device setting in the page's own store, so the store comes
+  // before the language. A page served from the wrong path has no namespace of
+  // its own; its error screen reads the root's.
+  const store = createKeyValueStore({ namespace: basePath.ok ? basePath.namespace : storageNamespace('') })
+
+  configureLocale(localeEnvironmentFor(store))
   await initLocale()
 
   const container = document.getElementById('root')
@@ -149,7 +157,6 @@ async function start(): Promise<void> {
   }
 
   const root = createRoot(container)
-  const basePath = pageBasePath()
 
   if (!basePath.ok) {
     render(root, <Misconfigured expected={basePath.expected} />)
@@ -159,8 +166,6 @@ async function start(): Promise<void> {
 
   // The device's own choices (scheme, tint) are applied before the first
   // screen, so a stored dark mode is dark from the first frame.
-  const store = createKeyValueStore({ namespace: basePath.namespace })
-
   settingsStore.getState().hydrate(store)
   bindTheme()
 
