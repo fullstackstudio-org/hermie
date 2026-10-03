@@ -765,6 +765,25 @@ function userItemOfTurn(next: ChatState, turnId: string): UserItem | undefined {
   return undefined
 }
 
+/**
+ * Whether the prompt that opened turn `turnId` is on screen, as anything.
+ *
+ * A prompt of the owner's is a user item carrying the turn id (a placeholder
+ * standing for it counts: the turn is known). A turn the gateway started itself
+ * has no such bubble: its `role:user` row projects to a notice, a report or a
+ * bot message, and that item carries the same turn id and the row's id.
+ */
+function turnPromptOnScreen(next: ChatState, turnId: string): boolean {
+  return (
+    userItemOfTurn(next, turnId) !== undefined ||
+    next.order.some(id => {
+      const item = next.items[id]
+
+      return item?.turnId === turnId && item.rowId !== undefined
+    })
+  )
+}
+
 function cancelOpenRequests(next: ChatState, reason: string): void {
   for (const id of next.order) {
     const item = next.items[id]
@@ -893,7 +912,7 @@ export function applyEvent(state: ChatState, event: TranscriptEvent, now: number
       // `message.start` landing on the history a reopened chat just read, and
       // standing a blank "someone spoke" bubble above the prompt it started was
       // one more row of the owner's doubled transcript.
-      const known = turnId && !next.turn.local ? userItemOfTurn(next, turnId) : undefined
+      const known = turnId && !next.turn.local ? turnPromptOnScreen(next, turnId) : false
 
       if (!next.turn.local && !known) {
         // A prompt of ours the gateway parked starts its turn right here, and
@@ -2102,12 +2121,20 @@ function resumeOverlap(
   return { promptShown: wroteItself, replyPersisted: false }
 }
 
-/** The prompt on screen that opened turn `turnId` — a real one, not a placeholder still waiting for it. */
-function spokenPromptOfTurn(state: ChatState, turnId: string): UserItem | undefined {
+/**
+ * The prompt on screen that opened turn `turnId` — a real one, not a placeholder
+ * still waiting for it. Whatever that row became counts: the owner's bubble, or
+ * the notice of a turn the gateway started itself (`turnPromptOnScreen`).
+ */
+function spokenPromptOfTurn(state: ChatState, turnId: string): TranscriptItem | undefined {
   for (const id of state.order) {
     const item = state.items[id]
 
-    if (item?.kind === 'user' && item.turnId === turnId && !isForeignPlaceholder(item)) {
+    if (item?.turnId !== turnId) {
+      continue
+    }
+
+    if (item.kind === 'user' ? !isForeignPlaceholder(item) : item.rowId !== undefined) {
       return item
     }
   }

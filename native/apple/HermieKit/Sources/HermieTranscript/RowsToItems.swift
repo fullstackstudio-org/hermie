@@ -700,6 +700,7 @@ private struct RowProjection {
           text: outcome.text ?? "",
           ts: facts.ts,
           rowID: facts.rowID,
+          turnID: facts.turnID,
           error: error,
           reason: outcome.reason.flatMap { $0.isEmpty ? nil : $0 }
         )

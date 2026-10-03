@@ -491,6 +491,10 @@ public struct BotDmReply: TranscriptJSONCodable, Hashable {
   public var text: String
   public var ts: Double?
   public var rowID: Int?
+  /// The turn the delivery row started (`display_metadata.turn_id`), when the row
+  /// joined this card and so left no item of its own to carry it: the one thing
+  /// that says a placeholder standing for that turn has had its row.
+  public var turnID: String?
   public var error: String?
   public var reason: String?
   public var extra: JSONObject
@@ -499,6 +503,7 @@ public struct BotDmReply: TranscriptJSONCodable, Hashable {
     text: String,
     ts: Double? = nil,
     rowID: Int? = nil,
+    turnID: String? = nil,
     error: String? = nil,
     reason: String? = nil,
     extra: JSONObject = [:]
@@ -506,6 +511,7 @@ public struct BotDmReply: TranscriptJSONCodable, Hashable {
     self.text = text
     self.ts = ts
     self.rowID = rowID
+    self.turnID = turnID
     self.error = error
     self.reason = reason
     self.extra = extra
@@ -516,6 +522,7 @@ public struct BotDmReply: TranscriptJSONCodable, Hashable {
     text = try reader.required("text")
     ts = reader.optional("ts")
     rowID = reader.optional("rowId")
+    turnID = reader.optional("turnId")
     error = reader.optional("error")
     reason = reader.optional("reason")
     extra = reader.residue
@@ -526,6 +533,7 @@ public struct BotDmReply: TranscriptJSONCodable, Hashable {
     writer.set("text", text)
     writer.set("ts", ts)
     writer.set("rowId", rowID)
+    writer.set("turnId", turnID)
     writer.set("error", error)
     writer.set("reason", reason)
     return writer.json

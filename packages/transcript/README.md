@@ -212,7 +212,12 @@ paired by the id even when its words disagree.
 On items they become `rowId`, `callKey` (`"<call_row_id>/<call_index>"`, unique
 per session however a provider numbers its `tool_id`) and `turnId`, which a `role:user`
 row leaves on whatever it projects to (the owner's bubble, but also the notice of a
-turn the gateway started itself, so that turn's placeholder is settled by its row);
+turn the gateway started itself, so that turn's placeholder is settled by its row;
+a delivery row that joins a dispatch card of its own page lays it on the card's `reply`
+instead, and a turn already on screen under it, as anything with that id and a row, needs
+no placeholder at all). A placeholder whose turn is over (it ended, or another one runs)
+is settled by the first tail that pairs nothing for it, so a row that projects to nothing
+cannot keep the tail sweep firing;
 `ChatState.byCallKey` indexes the calls and `turn.id` holds the running turn's id.
 
 **The rule.** A frame naming a row already on screen settles the live bubble onto

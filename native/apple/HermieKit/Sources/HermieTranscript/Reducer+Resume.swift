@@ -310,14 +310,18 @@ extension TranscriptReducer {
   }
 
   /// The prompt on screen that opened turn `turnID` — a real one, not a
-  /// placeholder still waiting for it.
+  /// placeholder still waiting for it. Whatever that row became counts: the
+  /// owner's bubble, or the notice of a turn the gateway started itself
+  /// (`turnPromptOnScreen`).
   ///
   /// `spokenPromptOfTurn`.
-  static func spokenPromptOfTurn(_ state: ChatState, _ turnID: String) -> UserItem? {
+  static func spokenPromptOfTurn(_ state: ChatState, _ turnID: String) -> TranscriptItem? {
     for id in state.order {
-      if case .user(let item)? = state.items[id], let held = item.turnID, JS.same(held, turnID),
-        !isForeignPlaceholder(.user(item))
-      {
+      guard let item = state.items[id], let held = item.turnID, JS.same(held, turnID) else { continue }
+
+      if case .user = item {
+        if !isForeignPlaceholder(item) { return item }
+      } else if item.rowID != nil {
         return item
       }
     }

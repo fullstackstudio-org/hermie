@@ -14,9 +14,9 @@ extension TranscriptReducer {
     // `message.start` landing on the history a reopened chat just read, and
     // standing a blank "someone spoke" bubble above the prompt it started was
     // one more row of the owner's doubled transcript.
-    let known = turnID != nil && !next.turn.local ? userItemOfTurn(next, turnID!) : nil
+    let known = turnID != nil && !next.turn.local && turnPromptOnScreen(next, turnID!)
 
-    if !next.turn.local && known == nil {
+    if !next.turn.local && !known {
       // A prompt of ours the gateway parked starts its turn right here, and
       // nothing in the frame says so: `prompt.submit` answered `queued`
       // minutes ago and `message.start` carries no author. `ChatState.queued`

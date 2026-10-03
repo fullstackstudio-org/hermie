@@ -286,6 +286,25 @@ extension TranscriptReducer {
     }
   }
 
+  /// Whether the prompt that opened turn `turnID` is on screen, as anything.
+  ///
+  /// A prompt of the owner's is a user item carrying the turn id (a placeholder
+  /// standing for it counts: the turn is known). A turn the gateway started itself
+  /// has no such bubble: its `role:user` row projects to a notice, a report or a
+  /// bot message, and that item carries the same turn id and the row's id.
+  ///
+  /// `turnPromptOnScreen`.
+  static func turnPromptOnScreen(_ next: ChatState, _ turnID: String) -> Bool {
+    if userItemOfTurn(next, turnID) != nil {
+      return true
+    }
+
+    return next.order.contains { id in
+      guard let item = next.items[id], let held = item.turnID, JS.same(held, turnID) else { return false }
+      return item.rowID != nil
+    }
+  }
+
   /// The user item that opened turn `turnID`, when one is on screen.
   ///
   /// `userItemOfTurn`.
