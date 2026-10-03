@@ -325,11 +325,15 @@ test.describe('a passkey confirmation in the browser', () => {
     await expect.poll(() => outcomeOf(gateway, second)).toMatchObject({ outcome: 'confirmed', verified: true })
   })
 
-  test('fetches the settings page and the sheet only when they are first needed', async ({ app, gateway, page }) => {
+  test('fetches the sheets when the session starts, and the settings page only when it is opened', async ({
+    app,
+    gateway,
+    page
+  }) => {
     const fetched: string[] = []
 
     page.on('request', request => {
-      const chunk = /\/assets\/(ConfirmSheet|Passkeys)-[\w-]+\.(?:js|css)$/u.exec(new URL(request.url()).pathname)
+      const chunk = /\/assets\/(sheets|Passkeys)-[\w-]+\.(?:js|css)$/u.exec(new URL(request.url()).pathname)
 
       if (chunk?.[1]) {
         fetched.push(chunk[1])
@@ -339,16 +343,17 @@ test.describe('a passkey confirmation in the browser', () => {
     await virtualAuthenticator(page)
     await app.open('#/chat/researcher')
     await app.ready()
-    expect(fetched).toEqual([])
+    // The request sheets, the confirmation's included, arrive before any request does.
+    await expect.poll(() => fetched).toEqual(['sheets'])
 
-    // The settings page: its own chunk (and styles), not the sheet's.
+    // The settings page: its own chunk (and styles).
     await enrol(page, gateway, hash => app.open(hash))
-    expect(new Set(fetched)).toEqual(new Set(['Passkeys']))
+    expect(new Set(fetched)).toEqual(new Set(['sheets', 'Passkeys']))
 
-    // The first confirm frame: the sheet's chunk.
+    // The first confirm frame needs nothing more.
     await raise(gateway, { summary: 'Restart the service.' })
     await expect(app.dialog.getByRole('button', { name: 'Confirm with passkey' })).toBeEnabled()
-    expect(new Set(fetched)).toEqual(new Set(['Passkeys', 'ConfirmSheet']))
+    expect(new Set(fetched)).toEqual(new Set(['sheets', 'Passkeys']))
   })
 
   test('Escape does not dismiss the sheet', async ({ app, gateway, page }) => {
