@@ -173,8 +173,17 @@ struct ComposerTextField {
 #elseif os(macOS)
   extension ComposerTextField: NSViewRepresentable {
     func makeNSView(context: Context) -> NSScrollView {
+      let scroll = Self.makeScrollView()
+      if let textView = scroll.documentView as? KeyTextView {
+        textView.delegate = context.coordinator
+        configure(textView, context: context)
+      }
+      return scroll
+    }
+
+    /// The text view in its scroll view, as the field draws it.
+    @MainActor static func makeScrollView() -> NSScrollView {
       let textView = KeyTextView()
-      textView.delegate = context.coordinator
       textView.isRichText = false
       textView.importsGraphics = false
       textView.allowsUndo = true
@@ -192,7 +201,6 @@ struct ComposerTextField {
       scroll.drawsBackground = false
       scroll.hasVerticalScroller = true
       scroll.autohidesScrollers = true
-      configure(textView, context: context)
       return scroll
     }
 
@@ -224,19 +232,40 @@ struct ComposerTextField {
     }
 
     func sizeThatFits(_ proposal: ProposedViewSize, nsView scroll: NSScrollView, context: Context) -> CGSize? {
-      guard let textView = scroll.documentView as? NSTextView, let layout = textView.layoutManager,
-        let container = textView.textContainer
-      else {
+      guard let textView = scroll.documentView as? NSTextView else {
         return nil
       }
 
-      let width = proposal.width ?? 240
-      container.containerSize = NSSize(width: width - textView.textContainerInset.width * 2, height: .greatestFiniteMagnitude)
-      layout.ensureLayout(for: container)
+      return Self.fittingSize(of: textView, width: proposal.width ?? 240, maxLines: maxLines)
+    }
+
+    /// The field's size at `width`: as tall as its text, up to `maxLines` lines.
+    ///
+    /// Measured in a text system of its own, never in the text view's: SwiftUI also asks with
+    /// probe widths (0, infinity), and a live container set to one of those kept it, because the
+    /// view's frame did not change and `widthTracksTextView` only acts on a frame change. After a
+    /// 0-wide probe the text was laid out in no space and the field showed nothing of what was
+    /// typed (in the Mac app, after the window became active).
+    @MainActor static func fittingSize(of textView: NSTextView, width: CGFloat, maxLines: Int) -> CGSize? {
+      guard let live = textView.textContainer else {
+        return nil
+      }
+
       let font = textView.font ?? .preferredFont(forTextStyle: .body)
+      let inset = textView.textContainerInset
+      let storage = NSTextStorage(attributedString: textView.attributedString())
+      let layout = NSLayoutManager()
+      let container = NSTextContainer(
+        size: NSSize(width: max(0, width - inset.width * 2), height: .greatestFiniteMagnitude))
+      container.lineFragmentPadding = live.lineFragmentPadding
+      layout.addTextContainer(container)
+      storage.addLayoutManager(layout)
+      layout.ensureLayout(for: container)
+
       let lineHeight = layout.defaultLineHeight(for: font)
-      let insets = textView.textContainerInset.height * 2
-      let used = max(layout.usedRect(for: container).height, lineHeight) + insets
+      let insets = inset.height * 2
+      // An empty field, or a width too narrow for a glyph, is still one line tall.
+      let used = max(width > 0 ? layout.usedRect(for: container).height : 0, lineHeight) + insets
       let cap = (lineHeight * CGFloat(maxLines) + insets).rounded(.up)
       return CGSize(width: width, height: min(used.rounded(.up), cap))
     }
