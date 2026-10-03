@@ -137,7 +137,7 @@ import Testing
     let f = await T.fixture()
     try await PasskeyModelTests().raise(f, T.params(ids: [f.phone.id], expiresAt: 1_789_999_999))
 
-    f.model.expireIfDue("srq-1")
+    await f.model.expireIfDue("srq-1")
     #expect(f.model.confirmation("srq-1")?.phase == .ended(.timedOut))
   }
 

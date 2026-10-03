@@ -239,7 +239,9 @@ public final class PasskeyModel {
 
   // MARK: - Notices
 
-  func notify(_ kind: PasskeyNotice.Kind) {
+  func notify(_ unchecked: PasskeyNotice.Kind) {
+    let kind = Self.bounded(unchecked)
+
     guard !notices.contains(where: { $0.kind == kind }) else {
       return
     }
@@ -265,12 +267,53 @@ public final class PasskeyModel {
     }
   }
 
+  /// An ending that would say "nothing was confirmed" is `outcomeUnknown` once an assertion may
+  /// have been delivered. What the gateway decided itself (`verification_failed`, too many
+  /// attempts, not allowed) keeps its meaning, and so does a reply of `ok`.
+  static func worded(_ phase: PasskeyConfirmPhase, mayHaveArrived: Bool) -> PasskeyConfirmPhase {
+    guard mayHaveArrived, case .ended(let end) = phase else {
+      return phase
+    }
+
+    switch end {
+    case .timedOut, .answeredElsewhere, .withdrawn, .unavailable:
+      return .ended(.outcomeUnknown)
+    case .tooManyAttempts, .verificationFailed, .notAllowed, .outcomeUnknown:
+      return phase
+    }
+  }
+
+  /// The name of a passkey, which the gateway holds: one line, no control or direction characters,
+  /// bounded (`SecurePrompt.displayText`), whatever the account holds.
+  public static func displayName(_ raw: String?) -> String {
+    SecurePrompt.displayText(raw, limit: SecurePrompt.nameLimit).replacingOccurrences(of: "\n", with: " ")
+  }
+
+  static func bounded(_ kind: PasskeyNotice.Kind) -> PasskeyNotice.Kind {
+    switch kind {
+    case .credentialAdded(let name):
+      .credentialAdded(name: displayName(name))
+    case .credentialRevoked(let name):
+      .credentialRevoked(name: displayName(name))
+    default:
+      kind
+    }
+  }
+
+  func markAnswerMayHaveArrived(_ id: String) {
+    guard let index = confirmations.firstIndex(where: { $0.id == id }) else {
+      return
+    }
+
+    confirmations[index].answerMayHaveArrived = true
+  }
+
   func setPhase(_ id: String, _ phase: PasskeyConfirmPhase) {
     guard let index = confirmations.firstIndex(where: { $0.id == id }) else {
       return
     }
 
-    confirmations[index].phase = phase
+    confirmations[index].phase = Self.worded(phase, mayHaveArrived: confirmations[index].answerMayHaveArrived)
 
     if !phase.isOpen {
       contexts[id] = nil

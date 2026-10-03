@@ -58,18 +58,24 @@ public struct PasskeyConfirmation: Sendable, Equatable, Identifiable {
   public let display: ConfirmDisplay
   /// The bound user's name, as the gateway gave it.
   public let userName: String
-  /// When the gateway gives up on it (`passkey.expires_at`), for the countdown.
-  public let expiresAt: Date?
+  /// When this device gives up on it, for the countdown: the frame's `passkey.expires_at`, and never
+  /// more than `PasskeyModel.maxConfirmSeconds` after `receivedAt`, so a clock that is far off cannot
+  /// keep a request open (or make it last for days).
+  public let expiresAt: Date
   /// When this device read the frame: the order the sheets come up in.
   public let receivedAt: Date
   public internal(set) var phase: PasskeyConfirmPhase
+  /// An assertion was sent and its delivery is not known (the call failed without a reply): the
+  /// gateway may have taken it. From then on no state of this confirmation says "nothing was
+  /// confirmed" (`PasskeyModel.setPhase` turns those endings into `.outcomeUnknown`).
+  public internal(set) var answerMayHaveArrived = false
 
   /// Still waiting for this device to answer (or answering).
   public var isOpen: Bool { phase.isOpen }
 
   /// Past `expires_at`: the gateway has given up on it.
   public func isExpired(at now: Date) -> Bool {
-    expiresAt.map { $0 <= now } ?? false
+    expiresAt <= now
   }
 
   /// Confirm and Decline may be pressed at `now`: the phase allows it and it has not expired. The
@@ -132,6 +138,9 @@ public enum PasskeyConfirmEnd: Sendable, Equatable {
   case unavailable(reason: String)
   /// Withdrawn for another reason (`request.cancel`'s, as it came).
   case withdrawn(reason: String)
+  /// It ended after an assertion that may have reached the gateway (`answerMayHaveArrived`): whether
+  /// the action ran is not known here, and the sheet says so instead of "nothing was confirmed".
+  case outcomeUnknown
 }
 
 /// Something the person should see that is not one confirmation: never a silent failure.
@@ -156,6 +165,9 @@ public struct PasskeyNotice: Sendable, Equatable, Identifiable {
     case noCredentialForApp
     /// A passkey frame this build could not read (a field missing or malformed).
     case malformedRequest
+    /// A confirmation arrived already past its `expires_at`: most likely this device's clock is
+    /// wrong. It was ended without a sheet.
+    case expiredOnArrival
     /// A credential was added to this account without this device (`passkey.changed`, or the list grew).
     case credentialAdded(name: String)
     /// A credential was revoked without this device.

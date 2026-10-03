@@ -23,7 +23,9 @@ enum ConfirmSheetText {
   }
 
   /// The line under the text, or `nil` while there is nothing to say (waiting for the person).
-  static func status(for phase: PasskeyConfirmPhase) -> Status? {
+  /// `mayHaveArrived`: an assertion was sent and may have been taken; nothing then says that nothing
+  /// was confirmed.
+  static func status(for phase: PasskeyConfirmPhase, mayHaveArrived: Bool = false) -> Status? {
     switch phase {
     case .waiting:
       nil
@@ -34,7 +36,9 @@ enum ConfirmSheetText {
     case .refused(let reason):
       Status(text: refusal(reason), symbol: "exclamationmark.triangle", tone: .problem)
     case .notSent:
-      Status(text: NativeStrings.Confirm.notSent, symbol: "exclamationmark.triangle", tone: .problem)
+      Status(
+        text: mayHaveArrived ? NativeStrings.Confirm.notSentMaybeArrived : NativeStrings.Confirm.notSent,
+        symbol: "exclamationmark.triangle", tone: .problem)
     case .received:
       Status(text: NativeStrings.Confirm.received, symbol: "checkmark.circle.fill", tone: .good)
     case .declined:
@@ -67,6 +71,7 @@ enum ConfirmSheetText {
     case .unavailable(let reason):
       reason == "no_credential" ? NativeStrings.Confirm.noCredential : NativeStrings.Confirm.cannotConfirm
     case .withdrawn: NativeStrings.Confirm.withdrawn
+    case .outcomeUnknown: NativeStrings.Confirm.outcomeUnknown
     }
   }
 

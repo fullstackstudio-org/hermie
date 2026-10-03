@@ -170,6 +170,10 @@
 	<string>This device may not answer this request.</string>
 	<key>native.confirm.notSent</key>
 	<string>The answer did not reach the gateway. You can try again.</string>
+	<key>native.confirm.notSentMaybeArrived</key>
+	<string>The answer may have reached the gateway. You can try again, or check whether the action ran.</string>
+	<key>native.confirm.outcomeUnknown</key>
+	<string>The answer may have reached the gateway. Check whether the action ran.</string>
 	<key>native.confirm.passkeyNote</key>
 	<string>Your device will ask for your passkey for %1$@. That name is the same for every gateway; this request is for %2$@.</string>
 	<key>native.confirm.received</key>
@@ -488,6 +492,8 @@
 	<string>Never used</string>
 	<key>native.passkeys.notice.added</key>
 	<string>A passkey was added to your account on this gateway without this device: %@</string>
+	<key>native.passkeys.notice.expiredOnArrival</key>
+	<string>A passkey confirmation arrived that had already expired, so it was not shown. Check that the date and time on this device are right.</string>
 	<key>native.passkeys.notice.gatewayIDConflict</key>
 	<string>Passkey confirmations are off for this gateway: it presents an identity that belongs to another gateway.</string>
 	<key>native.passkeys.notice.gatewayIDMismatch</key>

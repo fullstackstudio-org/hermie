@@ -170,6 +170,10 @@
 	<string>Dit apparaat mag dit verzoek niet beantwoorden.</string>
 	<key>native.confirm.notSent</key>
 	<string>Het antwoord heeft de gateway niet bereikt. Je kunt het opnieuw proberen.</string>
+	<key>native.confirm.notSentMaybeArrived</key>
+	<string>Het antwoord is mogelijk bij de gateway aangekomen. Je kunt het opnieuw proberen of controleren of de actie is uitgevoerd.</string>
+	<key>native.confirm.outcomeUnknown</key>
+	<string>Het antwoord is mogelijk bij de gateway aangekomen. Controleer of de actie is uitgevoerd.</string>
 	<key>native.confirm.passkeyNote</key>
 	<string>Je apparaat vraagt om je passkey voor %1$@. Die naam is voor elke gateway hetzelfde; dit verzoek is voor %2$@.</string>
 	<key>native.confirm.received</key>
@@ -488,6 +492,8 @@
 	<string>Nog nooit gebruikt</string>
 	<key>native.passkeys.notice.added</key>
 	<string>Er is een passkey toegevoegd aan je account op deze gateway zonder dit apparaat: %@</string>
+	<key>native.passkeys.notice.expiredOnArrival</key>
+	<string>Er kwam een passkey-bevestiging binnen die al verlopen was, dus die is niet getoond. Controleer of de datum en tijd op dit apparaat kloppen.</string>
 	<key>native.passkeys.notice.gatewayIDConflict</key>
 	<string>Bevestigen met een passkey staat uit voor deze gateway: hij toont een identiteit die bij een andere gateway hoort.</string>
 	<key>native.passkeys.notice.gatewayIDMismatch</key>
