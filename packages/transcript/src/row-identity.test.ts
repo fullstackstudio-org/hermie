@@ -19,8 +19,8 @@
 import { describe, expect, it } from 'vitest'
 
 import { snapshotForCache, stateFromCache } from './cache'
-import { reconcile } from './reconcile'
-import { applyEvent, beginLocalTurn, confirmSubmit, type TranscriptEvent } from './reducer'
+import { prependHistory, reconcile, reconcileTail } from './reconcile'
+import { applyEvent, applyResumeSnapshot, beginLocalTurn, confirmSubmit, type TranscriptEvent } from './reducer'
 import { rowsToItems, type TranscriptRow } from './rows-to-items'
 import {
   type AssistantItem,
@@ -543,5 +543,267 @@ describe('message.complete naming its row', () => {
       ['Checking.', 12, true],
       ['Checking. Done.', 16, false]
     ])
+  })
+})
+
+// ── part 2: reconcile, tail and resume ───────────────────────────────────────
+
+/** The turn's rows as a later projection words them: the same rows, different punctuation. */
+const REWORDED_ROWS: TranscriptRow[] = TURN_ROWS.map(row =>
+  row.role === 'assistant' && typeof row.text === 'string' ? { ...row, text: `${row.text.replace(/\.$/u, '')} …` } : row
+)
+
+/** The same rows as the REST route returns them: `id`, the stored tool id, no `row_id`. */
+const restRowsOf = (rows: readonly TranscriptRow[]): TranscriptRow[] =>
+  rows.map(({ row_id, tool_call_id, text, ...row }) => ({
+    ...row,
+    id: row_id,
+    content: text,
+    ...(tool_call_id ? { tool_id: tool_call_id } : {})
+  }))
+
+describe('a re-hydration after the turn streamed live', () => {
+  it('pairs every note and card by its id, though no text key would match', () => {
+    const live = apply(sentTurn(), FRAMES)
+    const reloaded = reconcile(live, rowsToItems([...EARLIER_ROWS, ...REWORDED_ROWS], 'rpc'))
+
+    expect(shape(reloaded)).toEqual([
+      'user@1',
+      'assistant@2',
+      'user@11',
+      'assistant@12',
+      'tool:12/0@13',
+      'assistant@14',
+      'tool:14/0@15',
+      'assistant@16'
+    ])
+    // The ids the live items had are the ids the rows carry now: nothing remounts.
+    expect(assistants(reloaded).map(item => item.id)).toEqual(assistants(live).map(item => item.id))
+    expect(cards(reloaded).map(card => card.id)).toEqual(cards(live).map(card => card.id))
+    expect(assistants(reloaded).map(item => item.text)).toEqual([
+      EARLIER_REPLY,
+      ...REWORDED_ROWS.filter(row => row.role === 'assistant').map(row => row.text)
+    ])
+    expect(cards(reloaded).every(card => card.resultKnown && card.result === 'ok')).toBe(true)
+  })
+
+  it('does the same through a tail sweep', () => {
+    const live = apply(sentTurn(), FRAMES)
+    const tailed = reconcileTail(live, rowsToItems(restRowsOf(REWORDED_ROWS), 'rest'))
+
+    expect(shape(tailed)).toEqual(shape(reconcile(live, rowsToItems([...EARLIER_ROWS, ...REWORDED_ROWS], 'rpc'))))
+    expect(assistants(tailed).map(item => item.id)).toEqual(assistants(live).map(item => item.id))
+    expect(new Set(list(tailed).map(item => item.rowId)).size).toBe(list(tailed).length)
+  })
+
+  it('pairs the card a cache kept with its row when two turns reused call_0', () => {
+    const turnOne = framesOf('turn-1', [
+      { type: 'message.start', seq: 1 },
+      { type: 'message.delta', seq: 2, payload: { text: 'Looking.' } },
+      { type: 'tool.start', seq: 3, payload: { tool_id: 'call_0', name: 'ls', call_row_id: 2, call_index: 0 } },
+      {
+        type: 'tool.complete',
+        seq: 4,
+        payload: { tool_id: 'call_0', name: 'ls', result: 'one', call_row_id: 2, call_index: 0, row_id: 3 }
+      },
+      { type: 'message.complete', seq: 5, payload: { text: 'Once.', status: 'complete', row_id: 4 } }
+    ])
+    const turnTwo = framesOf('turn-2', [
+      { type: 'message.start', seq: 6 },
+      { type: 'message.delta', seq: 7, payload: { text: 'Again.' } },
+      { type: 'tool.start', seq: 8, payload: { tool_id: 'call_0', name: 'ls', call_row_id: 6, call_index: 0 } },
+      {
+        type: 'tool.complete',
+        seq: 9,
+        payload: { tool_id: 'call_0', name: 'ls', result: 'two', call_row_id: 6, call_index: 0, row_id: 7 }
+      },
+      { type: 'message.complete', seq: 10, payload: { text: 'Twice.', status: 'complete', row_id: 8 } }
+    ])
+    const rows: TranscriptRow[] = [
+      { role: 'user', row_id: 1, text: 'once', display_metadata: { turn_id: 'turn-1' } },
+      { role: 'assistant', row_id: 2, text: 'Looking.' },
+      { role: 'tool', row_id: 3, name: 'ls', tool_call_id: 'call_0', call_row_id: 2, call_index: 0 },
+      { role: 'assistant', row_id: 4, text: 'Once.' },
+      { role: 'user', row_id: 5, text: 'twice', display_metadata: { turn_id: 'turn-2' } },
+      { role: 'assistant', row_id: 6, text: 'Again.' },
+      { role: 'tool', row_id: 7, name: 'ls', tool_call_id: 'call_0', call_row_id: 6, call_index: 0 },
+      { role: 'assistant', row_id: 8, text: 'Twice.' }
+    ]
+    // Away right after the second turn's tool.start: its card is cached with no row yet.
+    const away = apply(fresh(), [...turnOne, ...turnTwo.slice(0, 3)])
+    const hydrated = reconcile(fromCache(away), rowsToItems(rows, 'rpc'))
+    const state = apply(hydrated, turnTwo.slice(3), LATER)
+
+    expect(cards(state).map(card => [card.callKey, card.rowId, card.result])).toEqual([
+      ['2/0', 3, 'one'],
+      ['6/0', 7, 'two']
+    ])
+    expect(cards(state).map(card => card.id)).toEqual(cards(away).map(card => card.id))
+    expect(assistants(state).map(item => item.rowId)).toEqual([2, 4, 6, 8])
+  })
+})
+
+describe('two identical prompts from two authors (HERM-83, by id)', () => {
+  /** The reader's "ok", parked and then claimed by its own turn; no author on the bubble. */
+  function readerTurn(): ChatState {
+    const parked = confirmSubmit(beginLocalTurn(fresh(), 'ok', undefined, NOW), { status: 'queued' }, NOW)
+    const idle = { ...parked, turn: { ...parked.turn, local: false, active: false } }
+
+    return applyEvent(idle, { type: 'message.start', seq: 1, turn_id: 'turn-reader' }, NOW)
+  }
+
+  const rows: TranscriptRow[] = [
+    {
+      role: 'user',
+      row_id: 5,
+      text: 'ok',
+      display_metadata: { turn_id: 'turn-colleague', author: { id: 'telegram:2', name: 'Lloyd' } }
+    },
+    {
+      role: 'user',
+      row_id: 6,
+      text: 'ok',
+      display_metadata: { turn_id: 'turn-reader', author: { id: 'telegram:1', name: 'Sebas' } }
+    }
+  ]
+
+  it('pairs each with its own row on a re-hydration', () => {
+    const live = readerTurn()
+    const bubble = users(live)[0]!
+    const state = reconcile(live, rowsToItems(rows, 'rpc'))
+
+    expect(users(state).map(item => [item.rowId, item.turnId])).toEqual([
+      [5, 'turn-colleague'],
+      [6, 'turn-reader']
+    ])
+    expect(state.byRowId['6']).toBe(bubble.id)
+  })
+
+  it('pairs each with its own row on a tail sweep', () => {
+    const live = readerTurn()
+    const bubble = users(live)[0]!
+    const state = reconcileTail(live, rowsToItems(restRowsOf(rows), 'rest'))
+
+    expect(users(state).map(item => [item.rowId, item.turnId])).toEqual([
+      [5, 'turn-colleague'],
+      [6, 'turn-reader']
+    ])
+    expect(state.byRowId['6']).toBe(bubble.id)
+  })
+})
+
+describe('a tail sweep filling placeholders', () => {
+  it('fills the placeholder its turn stood up, and only that one', () => {
+    const live = apply(fresh(), [
+      { type: 'message.start', seq: 1, turn_id: 'turn-f1' },
+      { type: 'message.complete', seq: 2, turn_id: 'turn-f1', payload: { status: 'complete' } },
+      { type: 'message.start', seq: 3, turn_id: 'turn-f2' }
+    ])
+    const [first, second] = users(live)
+
+    expect([first?.turnId, second?.turnId]).toEqual(['turn-f1', 'turn-f2'])
+
+    const state = reconcileTail(
+      live,
+      rowsToItems(
+        [{ role: 'user', id: 9, content: 'from the second', display_metadata: { turn_id: 'turn-f2' } }],
+        'rest'
+      )
+    )
+
+    expect(state.items[first!.id]).toMatchObject({ unknownAuthor: true, text: '' })
+    expect(state.items[second!.id]).toMatchObject({ text: 'from the second', rowId: 9, turnId: 'turn-f2' })
+    expect(state.turn.foreignReconcilePending).toBe(true)
+  })
+})
+
+describe('an older page re-sending a call', () => {
+  it('is not added twice when the card on screen has no row yet', () => {
+    const live = apply(sentTurn(), FRAMES.slice(0, 5))
+    const page = rowsToItems([TURN_ROWS[2]!], 'rpc')
+    const state = prependHistory(live, page)
+
+    expect(cards(state)).toHaveLength(1)
+    expect(state).toBe(live)
+  })
+})
+
+describe('a resume naming its turn', () => {
+  /** Away after the second card finished; back while the turn still runs. */
+  function resumedMidTurn(inflight: Record<string, unknown>): ChatState {
+    const away = apply(sentTurn(), FRAMES.slice(0, 10))
+    const hydrated = reconcile(fromCache(away), rowsToItems([...EARLIER_ROWS, ...TURN_ROWS.slice(0, 5)], 'rpc'))
+
+    return applyResumeSnapshot(
+      hydrated,
+      {
+        running: true,
+        inflight: { user: PROMPT, display_metadata: { turn_id: TURN }, ...inflight }
+      },
+      LATER
+    )
+  }
+
+  it('paints only what no sealed note above already shows', () => {
+    const state = resumedMidTurn({
+      assistant: `${FIRST}${SECOND}Ik heb alles`,
+      assistant_unsealed: 'Ik heb alles',
+      streaming: true
+    })
+
+    expect(assistants(state).map(item => item.text)).toEqual([EARLIER_REPLY, FIRST, SECOND, 'Ik heb alles'])
+    expect(assistants(state).at(-1)).toMatchObject({ streaming: true, origin: 'inflight' })
+    expect(state.turn.assistantId).toBe(assistants(state).at(-1)!.id)
+    expect(users(state)).toHaveLength(2)
+    expect(state.turn.id).toBe(TURN)
+  })
+
+  it('paints no bubble for an empty rest between two segments', () => {
+    const state = resumedMidTurn({ assistant: `${FIRST}${SECOND}`, assistant_unsealed: '', streaming: false })
+
+    expect(assistants(state).map(item => item.text)).toEqual([EARLIER_REPLY, FIRST, SECOND])
+  })
+
+  it('opens an empty bubble for an empty rest the stream is about to fill', () => {
+    const state = resumedMidTurn({ assistant: `${FIRST}${SECOND}`, assistant_unsealed: '', streaming: true })
+
+    expect(assistants(state).map(item => [item.text, item.streaming])).toEqual([
+      [EARLIER_REPLY, false],
+      [FIRST, false],
+      [SECOND, false],
+      ['', true]
+    ])
+  })
+
+  it('knows the prompt by its turn id, however its words normalise', () => {
+    const away = apply(sentTurn(), FRAMES.slice(0, 1))
+    const rows = [{ ...TURN_ROWS[0]!, text: `${PROMPT}!` }]
+    const hydrated = reconcile(fromCache(away), rowsToItems([...EARLIER_ROWS, ...rows], 'rpc'))
+    const state = applyResumeSnapshot(
+      hydrated,
+      { running: true, inflight: { user: PROMPT, display_metadata: { turn_id: TURN }, assistant: '' } },
+      LATER
+    )
+
+    expect(users(state).map(item => [item.text, item.rowId])).toEqual([
+      [EARLIER_PROMPT, 1],
+      [`${PROMPT}!`, 11]
+    ])
+    expect(state.turn.id).toBe(TURN)
+  })
+
+  it('fills the placeholder its turn stood up, with the turn id on it', () => {
+    const hydrated = reconcile(fresh(), rowsToItems(EARLIER_ROWS, 'rpc'))
+    const started = applyEvent(hydrated, { type: 'message.start', seq: 1, turn_id: 'turn-f' }, NOW)
+    const placeholder = users(started).at(-1)!
+    const state = applyResumeSnapshot(
+      started,
+      { running: true, inflight: { user: 'from elsewhere', display_metadata: { turn_id: 'turn-f' } } },
+      LATER
+    )
+
+    expect(state.items[placeholder.id]).toMatchObject({ kind: 'user', text: 'from elsewhere', turnId: 'turn-f' })
+    expect(users(state)).toHaveLength(2)
+    expect(state.turn.foreignReconcilePending).toBeUndefined()
   })
 })

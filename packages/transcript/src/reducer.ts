@@ -12,7 +12,7 @@ import {
   replyFromDeliveryOutput
 } from './bot-dm'
 import type { ParsedCronDelivery } from './cron-delivery'
-import { callKeyOf, rowIdOf } from './identity'
+import { callKeyOf, rowIdOf, turnIdOfMetadata } from './identity'
 import { type InjectedRow, isInjectedNotice } from './injected'
 import {
   attachmentsMatchKey,
@@ -2045,6 +2045,55 @@ function resumeOverlap(
   return { promptShown: wroteItself, replyPersisted: false }
 }
 
+/** The prompt on screen that opened turn `turnId` — a real one, not a placeholder still waiting for it. */
+function spokenPromptOfTurn(state: ChatState, turnId: string): UserItem | undefined {
+  for (const id of state.order) {
+    const item = state.items[id]
+
+    if (item?.kind === 'user' && item.turnId === turnId && !isForeignPlaceholder(item)) {
+      return item
+    }
+  }
+
+  return undefined
+}
+
+/**
+ * The placeholder a resume may fill: the one turn `turnId` stood up when the
+ * resume names its turn, else the newest one that names no other turn. Without
+ * a turn id, the newest placeholder, as always.
+ */
+function placeholderForTurn(state: ChatState, turnId: string | undefined): string | undefined {
+  if (!turnId) {
+    return foreignPlaceholderId(state)
+  }
+
+  let unnamed: string | undefined
+
+  for (let index = state.order.length - 1; index >= 0; index -= 1) {
+    const item = state.items[state.order[index] ?? '']
+
+    if (item?.kind !== 'user' || !isForeignPlaceholder(item)) {
+      continue
+    }
+
+    if (item.turnId === turnId) {
+      return item.id
+    }
+
+    unnamed = unnamed ?? (item.turnId ? undefined : item.id)
+  }
+
+  return unnamed
+}
+
+/** Whether the durable reply after the newest prompt is this turn's whole reply (a retained turn). */
+function settledReplyIs(state: ChatState, assistantText: string): boolean {
+  const { settledReply } = shownTurn(state)
+
+  return settledReply !== undefined && settledReply === normalizeMatchText(assistantText)
+}
+
 /** The un-persisted assistant bubble this turn is filling, if it has one. */
 function liveAssistantOfCurrentTurn(state: ChatState): AssistantItem | undefined {
   for (let index = state.order.length - 1; index >= 0; index -= 1) {
@@ -2089,14 +2138,22 @@ export function applyResumeSnapshot(state: ChatState, snapshot: ResumeSnapshot, 
   // dispatched as `session.info` a step before this one, which is why a caller
   // that forwards only the top-level field still gets the comparison.
   const turnStartedAt = running ? (num(snapshot.turn_started_at) ?? num(next.info?.turn_started_at)) : undefined
-  const overlap = resumeOverlap(next, prompt, assistantText, turnStartedAt)
+  // The turn's own id, off the prompt's metadata. When the prompt is on screen
+  // under it, it is shown — whatever its words normalise to, and whatever the
+  // timestamps say about the reply below it. Only "is that reply this one" is
+  // still asked the old way, because nothing else can answer it.
+  const turnId = turnIdOfMetadata(inflight.display_metadata)
+  const turnPrompt = turnId ? spokenPromptOfTurn(next, turnId) : undefined
+  const overlap = turnPrompt
+    ? { promptShown: true, replyPersisted: settledReplyIs(next, assistantText) }
+    : resumeOverlap(next, prompt, assistantText, turnStartedAt)
 
   // Either way, the resume has named the author of the newest turn, and the
   // placeholder exists only because `message.start` could not. It is filled
   // below when the prompt is new to us; when the prompt is already on screen
   // there is nothing left for it to become, and a blank bubble between a cron
   // card and its reply is a row the reader has to explain to themselves.
-  const placeholder = userText ? foreignPlaceholderId(next) : undefined
+  const placeholder = userText ? placeholderForTurn(next, turnId) : undefined
   /*
     A delivery report opens a turn, and projects nothing.
 
@@ -2154,6 +2211,7 @@ export function applyResumeSnapshot(state: ChatState, snapshot: ResumeSnapshot, 
                 // file resumes as an empty bubble, and the row that lands for it has
                 // nothing to pair with and becomes a second one.
                 ...(prompt.refs ? { attachments: prompt.refs } : {}),
+                ...(turnId ? { turnId } : {}),
                 ts: now / 1000
               }
 
@@ -2176,19 +2234,35 @@ export function applyResumeSnapshot(state: ChatState, snapshot: ResumeSnapshot, 
     next.turn.foreignReconcilePending = undefined
   }
 
+  if (turnId && running) {
+    next.turn.id = turnId
+  }
+
   const inflightStatus = str(inflight.status)
   const inflightError = str(inflight.error).trim()
+  /*
+    What the bubble shows. `inflight.assistant` is every word the turn has
+    streamed, run together — including the notes it already sealed, which are
+    on screen as their own rows. A gateway that knows where the last sealed note
+    ended answers the rest as `assistant_unsealed`, and that is all this bubble
+    may say; repainting the whole string under the notes was the same notes a
+    second time. An empty rest is no bubble, unless the turn is mid-stream and
+    the next words need somewhere to land.
+  */
+  const unsealed = typeof inflight.assistant_unsealed === 'string' ? inflight.assistant_unsealed : undefined
+  const bubbleText = unsealed ?? assistantText
   const failure = inflightError
     ? {
         message: inflightError,
-        partial: Boolean(assistantText),
+        partial: Boolean(bubbleText),
         ...(inflight.recoverable === true ? { recoverable: true } : {})
       }
     : undefined
+  const openStream = unsealed !== undefined && inflight.streaming === true
 
   // A durable row already carrying this reply needs nothing added to it; the
   // `live` branch below covers the bubble a stream is still filling.
-  if ((assistantText || failure) && !overlap.replyPersisted) {
+  if ((bubbleText || failure || openStream) && !overlap.replyPersisted) {
     const live = liveAssistantOfCurrentTurn(next)
 
     if (!live) {
@@ -2197,7 +2271,7 @@ export function applyResumeSnapshot(state: ChatState, snapshot: ResumeSnapshot, 
         {
           id: `i:${next.turn.nextSeq}`,
           kind: 'assistant',
-          text: assistantText,
+          text: bubbleText,
           streaming: inflight.streaming === true,
           interim: false,
           ...(failure
@@ -2223,8 +2297,8 @@ export function applyResumeSnapshot(state: ChatState, snapshot: ResumeSnapshot, 
 
       patchItem<AssistantItem>(next, live.id, draft => {
         if (!sealed) {
-          if (assistantText.length > draft.text.length) {
-            draft.text = assistantText
+          if (bubbleText.length > draft.text.length) {
+            draft.text = bubbleText
           }
 
           draft.streaming = inflight.streaming === true

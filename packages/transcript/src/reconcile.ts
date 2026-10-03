@@ -32,6 +32,41 @@ const toolKeyOf = (item: TranscriptItem): string | undefined =>
       ? item.toolId
       : undefined
 
+/** The gateway's call identity on an item kind that can carry one (`identity.ts`). */
+const callKeyOfItem = (item: TranscriptItem): string | undefined =>
+  item.kind === 'tool' || item.kind === 'bot_dm_out' || item.kind === 'subagent_group' ? item.callKey : undefined
+
+/** The gateway's turn identity on a prompt. */
+const turnIdOfItem = (item: TranscriptItem): string | undefined => (item.kind === 'user' ? item.turnId : undefined)
+
+/**
+ * Whether `current`, found by a call key or a turn id, may be `fresh`.
+ *
+ * The id says they are the same call or turn; a row id that says otherwise
+ * wins, because two persisted rows are two rows whatever else they share.
+ */
+const rowsAgree = (current: TranscriptItem, fresh: TranscriptItem): boolean =>
+  current.rowId === undefined || fresh.rowId === undefined || current.rowId === fresh.rowId
+
+/**
+ * Whether two items the old keys paired may really be one, as far as the
+ * gateway's identities go: two different calls, or two different turns, are
+ * never one item, however alike their tool ids or words. An item without the
+ * identity says nothing either way, which is every item from before it existed.
+ */
+function identitiesAgree(a: TranscriptItem | undefined, b: TranscriptItem): boolean {
+  if (!a) {
+    return true
+  }
+
+  const callA = callKeyOfItem(a)
+  const callB = callKeyOfItem(b)
+  const turnA = turnIdOfItem(a)
+  const turnB = turnIdOfItem(b)
+
+  return (!callA || !callB || callA === callB) && (!turnA || !turnB || turnA === turnB)
+}
+
 /**
  * The last-resort pairing key: the kind, the text, and the attachments.
  *
@@ -172,6 +207,20 @@ function mergeWithLive(fresh: TranscriptItem, current: TranscriptItem): Transcri
 
   if (fresh.kind !== current.kind) {
     return merged
+  }
+
+  // An identity either side learned is kept: a row from a history projection
+  // that predates it, merged onto a card the stream named, still names its call.
+  const callKey = callKeyOfItem(current)
+
+  if (callKey && !callKeyOfItem(merged)) {
+    ;(merged as ToolItem | BotDmOutItem | SubagentGroupItem).callKey = callKey
+  }
+
+  const turnId = turnIdOfItem(current)
+
+  if (turnId && merged.kind === 'user' && !merged.turnId) {
+    merged.turnId = turnId
   }
 
   if (merged.kind === 'tool' && current.kind === 'tool') {
@@ -376,6 +425,8 @@ function rebuild(state: ChatState, list: readonly TranscriptItem[]): ChatState {
  */
 export function reconcile(state: ChatState, freshItems: readonly TranscriptItem[]): ChatState {
   const byRowId = new Map<number, string>()
+  const byTurnId = new Map<string, string>()
+  const byCallKey = new Map<string, string>()
   const byToolKey = new Map<string, string>()
   const byMatchKey = new Map<string, string[]>()
 
@@ -388,6 +439,18 @@ export function reconcile(state: ChatState, freshItems: readonly TranscriptItem[
 
     if (item.rowId !== undefined && !byRowId.has(item.rowId)) {
       byRowId.set(item.rowId, id)
+    }
+
+    const turnId = turnIdOfItem(item)
+
+    if (turnId && !byTurnId.has(turnId)) {
+      byTurnId.set(turnId, id)
+    }
+
+    const callKey = callKeyOfItem(item)
+
+    if (callKey && !byCallKey.has(callKey)) {
+      byCallKey.set(callKey, id)
     }
 
     const toolKey = toolKeyOf(item)
@@ -406,18 +469,48 @@ export function reconcile(state: ChatState, freshItems: readonly TranscriptItem[
   const used = new Set<string>()
   const merged: TranscriptItem[] = []
 
+  /** A candidate found by an identity, when nothing has claimed it and no row id contradicts it. */
+  const byIdentity = (id: string | undefined, fresh: TranscriptItem): string | undefined => {
+    const current = id && !used.has(id) ? state.items[id] : undefined
+
+    return current && rowsAgree(current, fresh) ? current.id : undefined
+  }
+
   for (const fresh of freshItems) {
     let matchId = fresh.rowId !== undefined ? byRowId.get(fresh.rowId) : undefined
+
+    // The gateway's own identities next: the turn a prompt opened, the call a
+    // card is. Each is unique where the words and the provider's tool ids are
+    // not, so a pair made here needs nothing the reader can see to agree.
+    if (!matchId || used.has(matchId)) {
+      const turnId = turnIdOfItem(fresh)
+
+      matchId = turnId ? byIdentity(byTurnId.get(turnId), fresh) : undefined
+    }
+
+    if (!matchId || used.has(matchId)) {
+      const callKey = callKeyOfItem(fresh)
+
+      matchId = callKey ? byIdentity(byCallKey.get(callKey), fresh) : undefined
+    }
 
     if (!matchId || used.has(matchId)) {
       const toolKey = toolKeyOf(fresh)
 
       matchId = toolKey ? byToolKey.get(toolKey) : undefined
+
+      if (matchId && !identitiesAgree(state.items[matchId], fresh)) {
+        matchId = undefined
+      }
     }
 
     if (!matchId || used.has(matchId)) {
       matchId = isMatchable(fresh)
-        ? byMatchKey.get(matchKeyOf(fresh))?.find(id => !used.has(id) && authorsAgree(state.items[id], fresh))
+        ? byMatchKey
+            .get(matchKeyOf(fresh))
+            ?.find(
+              id => !used.has(id) && authorsAgree(state.items[id], fresh) && identitiesAgree(state.items[id], fresh)
+            )
         : undefined
     }
 
@@ -493,16 +586,29 @@ export function reconcile(state: ChatState, freshItems: readonly TranscriptItem[
  */
 export function prependHistory(state: ChatState, olderItems: readonly TranscriptItem[]): ChatState {
   const known = new Set<number>()
+  const knownCalls = new Set<string>()
 
   for (const id of state.order) {
-    const rowId = state.items[id]?.rowId
+    const item = state.items[id]
+    const rowId = item?.rowId
+    const callKey = item ? callKeyOfItem(item) : undefined
 
     if (rowId !== undefined) {
       known.add(rowId)
     }
+
+    if (callKey) {
+      knownCalls.add(callKey)
+    }
   }
 
-  const older = olderItems.filter(item => item.rowId === undefined || !known.has(item.rowId))
+  // The call key is the belt to the row id's braces: a call is one card, so an
+  // older page re-sending it is a page that overlaps, whatever its row says.
+  const older = olderItems.filter(item => {
+    const callKey = callKeyOfItem(item)
+
+    return (item.rowId === undefined || !known.has(item.rowId)) && (!callKey || !knownCalls.has(callKey))
+  })
 
   if (!older.length) {
     return state
@@ -561,7 +667,24 @@ export function reconcileTail(state: ChatState, tailItems: readonly TranscriptIt
     liveByMatchKey.set(key, [...(liveByMatchKey.get(key) ?? []), item.id])
   }
 
+  /**
+   * The live prompts that know which turn they opened: a parked prompt the
+   * turn's `message.start` claimed, and a foreign placeholder standing in for a
+   * turn's author. A row naming that turn is theirs and nobody else's.
+   */
+  const liveByTurnId = new Map<string, string>()
+
+  for (const item of list) {
+    const turnId = turnIdOfItem(item)
+
+    if (turnId && item.rowId === undefined && !liveByTurnId.has(turnId)) {
+      liveByTurnId.set(turnId, item.id)
+    }
+  }
+
   const pairedLive = new Set<string>()
+  /** Placeholders already given their row, by turn id or by position. */
+  const filled = new Set<string>()
   /**
    * The tail carried an authored row that belonged to a bubble already on
    * screen — our own optimistic submit coming back persisted. It is the only
@@ -582,18 +705,53 @@ export function reconcileTail(state: ChatState, tailItems: readonly TranscriptIt
       continue
     }
 
+    // A prompt that names its turn goes to the live item standing for that
+    // turn: the claimed prompt, or the placeholder that turn put up — that one,
+    // never the next placeholder along.
+    const turnId = turnIdOfItem(fresh)
+    const turnMatchId = turnId ? liveByTurnId.get(turnId) : undefined
+    const turnMatch = turnMatchId && !pairedLive.has(turnMatchId) ? byId.get(turnMatchId) : undefined
+
+    if (turnMatch && (!(turnMatch.kind === 'user' && turnMatch.unknownAuthor) || isAuthoredRow(fresh))) {
+      pairedLive.add(turnMatch.id)
+
+      if (turnMatch.kind === 'user' && turnMatch.unknownAuthor) {
+        filled.add(turnMatch.id)
+        byId.set(turnMatch.id, { ...fresh, id: turnMatch.id, version: turnMatch.version + 1 })
+      } else {
+        byId.set(turnMatch.id, mergeWithLive(fresh, turnMatch))
+        pairedAuthoredRow = true
+      }
+
+      continue
+    }
+
+    // A call is one card: its key first, then the provider's tool id — and not
+    // a tool id whose card names another call.
+    const callKey = callKeyOfItem(fresh)
+    const callMatchId = callKey ? state.byCallKey[callKey] : undefined
+    const callMatch = callMatchId ? byId.get(callMatchId) : undefined
+
+    if (callMatch && callKeyOfItem(callMatch) === callKey && rowsAgree(callMatch, fresh)) {
+      byId.set(callMatch.id, mergeWithLive(fresh, callMatch))
+
+      continue
+    }
+
     const toolKey = toolKeyOf(fresh)
     const toolMatchId = toolKey ? state.byToolId[toolKey] : undefined
     const toolMatch = toolMatchId ? byId.get(toolMatchId) : undefined
 
-    if (toolMatch) {
+    if (toolMatch && identitiesAgree(toolMatch, fresh)) {
       byId.set(toolMatch.id, mergeWithLive(fresh, toolMatch))
 
       continue
     }
 
     const liveId = isMatchable(fresh)
-      ? liveByMatchKey.get(matchKeyOf(fresh))?.find(id => !pairedLive.has(id) && authorsAgree(byId.get(id), fresh))
+      ? liveByMatchKey
+          .get(matchKeyOf(fresh))
+          ?.find(id => !pairedLive.has(id) && authorsAgree(byId.get(id), fresh) && identitiesAgree(byId.get(id), fresh))
       : undefined
     const liveMatch = liveId ? byId.get(liveId) : undefined
 
@@ -620,12 +778,19 @@ export function reconcileTail(state: ChatState, tailItems: readonly TranscriptIt
       continue
     }
 
-    if (isAuthoredRow(fresh) && placeholderCursor < placeholders.length) {
+    // By position, for a row that names no turn: the next placeholder nobody has
+    // filled. A row that names its turn and found no item for it is simply new.
+    while (placeholderCursor < placeholders.length && filled.has(placeholders[placeholderCursor] ?? '')) {
+      placeholderCursor += 1
+    }
+
+    if (!turnId && isAuthoredRow(fresh) && placeholderCursor < placeholders.length) {
       const placeholderId = placeholders[placeholderCursor]
 
       placeholderCursor += 1
 
       if (placeholderId && byId.has(placeholderId)) {
+        filled.add(placeholderId)
         byId.set(placeholderId, { ...fresh, id: placeholderId, version: (byId.get(placeholderId)?.version ?? 0) + 1 })
 
         continue
@@ -651,19 +816,21 @@ export function reconcileTail(state: ChatState, tailItems: readonly TranscriptIt
   }
 
   let merged = [...ordered.slice(0, insertAt), ...appended, ...ordered.slice(insertAt)]
-  let stillPending = placeholderCursor < placeholders.length
+  let stillPending = placeholders.some(id => !filled.has(id))
 
-  if (pairedAuthoredRow && placeholderCursor === 0) {
+  if (pairedAuthoredRow && filled.size === 0) {
     // The tail described this turn without needing a placeholder, which means
     // the turn was ours all along: the row paired with the optimistic bubble
     // above. An empty placeholder nobody will ever fill is an empty bubble the
     // reader has to explain to themselves, so it goes. A tail that simply has
-    // not reached the foreign row yet pairs nothing and leaves it standing.
+    // not reached the foreign row yet pairs nothing and leaves it standing —
+    // and so does a placeholder that names its turn, which only that turn's
+    // row may fill.
     const stale = new Set(
       placeholders.filter(id => {
         const item = byId.get(id)
 
-        return item?.kind === 'user' && item.unknownAuthor && !item.text.trim()
+        return item?.kind === 'user' && item.unknownAuthor && !item.text.trim() && !item.turnId
       })
     )
 
