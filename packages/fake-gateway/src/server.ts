@@ -159,6 +159,12 @@ export interface FakeGatewayOptions {
   /** Delay between streamed frames, in ms. */
   streamDelayMs?: number
   /**
+   * How long `POST /api/files/upload-stream` holds its answer after the body
+   * arrived, in ms (default 0). Lets a black-box test cancel an upload that is
+   * still in flight; a real gateway is slow here for the size of the file.
+   */
+  uploadDelayMs?: number
+  /**
    * Extra history to put in front of every Bot Chat, in ROWS.
    *
    * The scroll of a long transcript could not be measured against this server:
@@ -2077,6 +2083,47 @@ const isRecord = (value: unknown): value is Record<string, unknown> => typeof va
 
 /** `_MANAGED_FILE_MAX_BYTES` in `hermes_cli/web_server.py`. */
 const MANAGED_FILE_MAX_BYTES = 100 * 1024 * 1024
+
+/** `_ATTACH_BYTES_MAX_BYTES` in `tui_gateway/prompt_attachments.py`: the cap of `image.attach_bytes`. */
+const ATTACH_BYTES_MAX_BYTES = 25 * 1024 * 1024
+
+/** `_IMAGE_EXTENSIONS` in `hermes_cli/cli_terminal_input.py`: what `image.attach_bytes` accepts. */
+const IMAGE_EXTENSIONS = new Set(['.png', '.jpg', '.jpeg', '.gif', '.webp', '.bmp', '.tiff', '.tif', '.svg', '.ico'])
+
+/**
+ * `_sniff_image_ext`: the filename's extension when it has one, else the magic
+ * bytes (WebP's RIFF container, PNG, JPEG, GIF, BMP), else `.png`.
+ */
+function sniffImageExtension(bytes: Buffer, filename: string): string {
+  const base = filename.split(/[/\\]/u).pop() ?? ''
+  const dot = base.lastIndexOf('.')
+
+  if (dot > 0) {
+    return base.slice(dot).toLowerCase()
+  }
+
+  if (bytes.subarray(0, 4).toString('latin1') === 'RIFF' && bytes.subarray(8, 12).toString('latin1') === 'WEBP') {
+    return '.webp'
+  }
+
+  const head = bytes.subarray(0, 8)
+
+  if (head.equals(Buffer.from([0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a]))) {
+    return '.png'
+  }
+
+  if (head[0] === 0xff && head[1] === 0xd8 && head[2] === 0xff) {
+    return '.jpg'
+  }
+
+  const text = head.toString('latin1')
+
+  if (text.startsWith('GIF87a') || text.startsWith('GIF89a')) {
+    return '.gif'
+  }
+
+  return text.startsWith('BM') ? '.bmp' : '.png'
+}
 
 interface MultipartForm {
   fields: Record<string, string>
@@ -5501,6 +5548,18 @@ export async function startFakeGateway(options: FakeGatewayOptions = {}): Promis
       contentType: form.file.contentType
     }
 
+    if (options.uploadDelayMs) {
+      await new Promise(resolve => setTimeout(resolve, options.uploadDelayMs))
+    }
+
+    // A browser that cancelled while the answer was held has gone: the real
+    // gateway removes its temporary file when the stream ends early, and keeps nothing.
+    if (req.socket.destroyed || res.destroyed || res.writableEnded) {
+      res.destroy()
+
+      return
+    }
+
     state.uploadedFiles.set(requested, entry)
 
     json(res, 200, {
@@ -7466,11 +7525,44 @@ export async function startFakeGateway(options: FakeGatewayOptions = {}): Promis
         }
 
       case 'image.attach_bytes': {
-        const base64 = String(params.content_base64 ?? params.data ?? '')
+        /*
+          `image.attach_bytes` in `tui_gateway/methods_prompt.py`, with its
+          refusals: 4015 with no payload, 4017 for a payload that is not strict
+          base64 (or is empty), 4018 over the 25 MiB cap, 4016 for an extension
+          the gateway does not take as an image.
+        */
+        const raw = String(params.content_base64 ?? params.data ?? '').trim()
+
+        if (!raw) {
+          throw new RpcFault(4015, 'content_base64 required')
+        }
+
+        const payload = raw.replace(/^data:image\/[a-zA-Z0-9.+-]*;base64,/su, '').replace(/\s+/gu, '')
+
+        if (!/^[A-Za-z0-9+/]*={0,2}$/u.test(payload) || payload.length % 4 !== 0) {
+          throw new RpcFault(4017, 'data is not valid base64')
+        }
+
+        const bytes = Buffer.from(payload, 'base64')
+
+        if (bytes.length === 0) {
+          throw new RpcFault(4017, 'image is empty')
+        }
+
+        if (bytes.length > ATTACH_BYTES_MAX_BYTES) {
+          throw new RpcFault(4018, `image too large (${bytes.length} bytes; cap is 25 MB)`)
+        }
+
+        const extension = sniffImageExtension(bytes, String(params.filename ?? ''))
+
+        if (!IMAGE_EXTENSIONS.has(extension)) {
+          throw new RpcFault(4016, `unsupported image extension: ${extension}`)
+        }
+
         state.attachedImages.push({
           session_id: String(params.session_id ?? ''),
           filename: String(params.filename ?? 'image.png'),
-          bytes: Math.floor((base64.length * 3) / 4)
+          bytes: bytes.length
         })
 
         return { attached: true, name: String(params.filename ?? 'image.png'), width: 1, height: 1, count: 1 }
