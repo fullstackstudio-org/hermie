@@ -13,7 +13,9 @@ theme ("The shell" below), and opens a chat in the main pane and streams it ("Th
 with Markdown, tool calls, notices, date separators, older history, jump to latest. You can send, stop a reply and
 answer a bot's approval or question from it ("The composer" and "Requests" below), and confirm a sensitive action with
 a passkey that the gateway verifies itself ("Passkeys" below), and answer a bot's secret, sudo and password-manager
-prompts ("Secret prompts" below), and attach files and images by the picker, a paste or a drop ("Attachments" below). A bot's past conversations and branches have a page of their own, a new conversation can be started there, and the chats field searches names and every bot's messages ("Conversations and search" below). It has no settings beyond the passkeys page yet, and the plugin does not serve this build. Until that
+prompts ("Secret prompts" below), and attach files and images by the picker, a paste or a drop ("Attachments" below). A bot's past conversations and branches have a page of their own, a new conversation can be started there, and the chats field searches names and every bot's messages ("Conversations and search" below).
+The chat list's arrangement, the mutes and the text size follow the person through the gateway's `ui_meta`
+("Settings that follow the person" below), with no screen to change them yet. It has no settings beyond the passkeys page yet, and the plugin does not serve this build. Until that
 changes, the browser keeps running the Expo app's web export through Hermie Web
 ([docs/web.md](../../docs/web.md)); nothing here replaces it.
 
@@ -221,7 +223,8 @@ Nothing in it is a credential: the session is the gateway's `HttpOnly` cookie, w
 | Where                                               | Key or name                                        | What                                                                  | On sign-out |
 | --------------------------------------------------- | -------------------------------------------------- | --------------------------------------------------------------------- | ----------- |
 | `localStorage` (`platform/key-value-store.ts`)      | `hermie:<base path>:device.*`                      | device settings (scheme, tint, text size, installation id)            | kept        |
-| `localStorage`                                      | `hermie:<base path>:<anything else>`               | identity-bound state (watermarks, layout, the owner's author id)      | cleared     |
+| `localStorage`                                      | `hermie:<base path>:<anything else>`               | identity-bound state (watermarks, the owner's author id)              | cleared     |
+| `localStorage`                                      | `chats.layout`, `app.chosen`, `ui-meta.pending`    | the arrangement, its date, unsent bot edits ("Settings that follow")  | cleared     |
 | `localStorage`                                      | `hermie:<base path>:draft.<chat>`                  | what was typed in a chat and not sent                                 | cleared     |
 | `localStorage`                                      | `hermie:<base path>:device.passkey.pin@<base URL>` | the gateway id pinned on the first passkey enrolment ("Passkeys")     | kept        |
 | `localStorage`                                      | `hermie:<base path>:passkey.seen@<base URL>`       | the signed-in person's passkey ids this browser has seen              | cleared     |
@@ -279,6 +282,68 @@ the cache, read again on every arrival at `ready`, and the plugin advert is take
 closes the socket and empties the stores; call it before signing out. The rules in full are at the top of
 `core/gateway-client.ts`; `core/gateway-client.integration.test.ts` runs them against the fake gateway in
 cookie mode, dropped sockets included.
+
+## Settings that follow the person (`ui_meta`)
+
+The chat list's arrangement (order, folders, pins, archive, per-chat colour, the reader's own names for bots,
+which conversation each bot is on), the mutes and the transcript's text size live in the gateway's `ui_meta`,
+exactly where the Expo and Swift apps keep them (ADR-0016): a bot's `archived` and `colour` on that bot's own
+`hermie` section, everything else in the app-wide `hermie-app:<user id>` on the default profile. The stores are
+what the screens paint from; `core/ui-meta-bridge.ts` mirrors them onto the gateway and back, and
+`@hermie/gateway-client/ui-meta`'s `UiMetaSync` does the protocol (per-key compare-and-swap, one retry after a
+re-read, the dated last-writer-wins, the per-person key, the bare `hermie-app` for the push rows of a plugin
+without `ui_meta.per_user`). It never writes a key it does not own: not the plugin's `hermie-plugin`, not
+another tool's `hermes-bots`.
+
+| File                      | What                                                                                                    |
+| ------------------------- | ------------------------------------------------------------------------------------------------------- |
+| `state/layout.ts`         | `layoutStore`: the arrangement and everything per chat; `chats.layout`, identity-bound                  |
+| `state/folders.ts`        | the arrangement as a value: `normalise`, `readArrangement` (migrates dividers), the moves, accent names |
+| `state/mute.ts`           | a mute is a deadline in unix seconds (`0` is forever): `muteUntil`, `isMuted`, `withoutExpired`         |
+| `state/text-size.ts`      | `textSizeStore` and the scale; `device.textSize`, kept on sign-out like the scheme and the tint         |
+| `state/app-stamp.ts`      | `appStampStore`: when this person last chose something (`updatedAt`, seconds); `app.chosen`             |
+| `state/device-context.ts` | `deviceContextStore`: who the boot read; `uiMetaUserIdOf` builds the key's user id                      |
+| `core/ui-meta-bridge.ts`  | `UiMetaBridge` (the mirror) and `connectUiMeta` (its wiring, started by `features/shell/session.ts`)    |
+
+**For a screen (W-20b).** Change things through the stores' actions and nothing else; the bridge notices
+every change by diffing, sends it (debounced 600 ms) and dates it. The actions:
+
+- `layoutStore`: `moveBy`, `moveToFolder`, `dropBot`, `dropFolder`, `moveFolderBy`, `addFolder` (answers the
+  id), `addFolderAround`, `renameFolder`, `setFolderColour`, `removeFolder`, `setFolderOpen` (this browser
+  only), `setArchived`, `setPinned` / `togglePinned`, `setMyChat`, `setCurrent`, `setAccent` (`'default'` is no
+  colour), `setLabel` (empty clears), `setMute(bot, untilSeconds | 0 | null)`, `dropExpiredMutes(now)`,
+  `setSidebarCollapsed` and `setConversationsCollapsed` (this browser only). Read with the selectors
+  `chatMuted`, `chatPinned`, `myChat`, `currentTargetOf`, `currentConversation`, `chatAccent`, `botLabel`,
+  `archivedOf`, `foldersOf`, `botsInOrder` and `resolveSidebarCollapsed`.
+- `textSizeStore`: `setTextSize`; `textSizeScale(size)` is the factor for the transcript's type.
+- The bridge (`session.uiMeta.bridge`): `mode` (`synced`, or `local` when the gateway cannot be read or refuses
+  the write; the device's copy is then still correct), `pending`, `appKey`, `reconcileSoon()`, `flush()`.
+
+What a screen does not do: call the bridge to send, write `appStampStore` (only the bridge dates), or treat
+`collapsed`, `sidebarCollapsed` and `conversationsCollapsed` as synced (they are about this window).
+
+**The rules** (the Swift app's `UIMetaDocuments` and `UIMetaState`, and the Expo app's bridge):
+
+- The sections are held **raw**: every field this build does not know, every value it cannot read (a newer
+  build's text size, a colour it has no swatch for) and every row another device wrote goes back as it came;
+  an edit changes only the fields it names. The defaults, the name order and the theme have no store here and
+  are carried like any unknown field (W11).
+- A **choice** dates the app section; a **chore** (the roster folded in, lapsed mutes swept, a stale id
+  forgotten: the layout store's `chores`) is sent undated. The newer date wins a reconcile, a tie goes to the
+  gateway, undated on both sides keeps this page's copy, and a gateway without the section is seeded from it.
+- Taking a gateway's copy: its fields as they came, a field it no longer carries gone, except the fields a
+  section can predate (`KEPT_WHEN_ABSENT`), which keep their held value. `updatedAt` is adopted as it arrived.
+  The push rows come from where the notifier looks, never from this page.
+- Retired fields travel no further: `context` (HERM-119) and Hermie Web's availability stamp in `push`
+  (`endpoint`, `vapidPublicKey`, `version`, `daemonVersion`, `capabilities`, `relayOrigins`, `at`) are dropped
+  the next time the section is written.
+- A bot section left with nothing but `v` is sent as `null`, which removes it.
+- **One departure from the Swift app**: when this page's copy wins, a field it does not project is still taken
+  from the gateway's copy, since this build cannot have chosen anything about it. So a conflict never loses a
+  field another build added meanwhile (`core/ui-meta-bridge.integration.test.ts`).
+- The live roster is folded into the arrangement only after the first reconcile, and again after each one; a
+  reconcile runs on every rise to `ready`, on `sessions.changed` and when the page is shown, never two at once.
+- Bot edits the gateway has not taken survive a reload (`ui-meta.pending`); app edits survive by their date.
 
 ## Chats
 
@@ -1167,7 +1232,7 @@ playwright.perf.config.ts   the performance suite: three engines, the harness se
 tsconfig.json               the client's code (DOM); tsconfig.node.json: the config files (Node);
                             tsconfig.e2e.json: the Playwright configuration and specs
 e2e/perf/                   the transcript list's performance suite and its trace reader
-e2e/                        the browser suite: fixtures.ts, signin, chat, requests and a11y specs
+e2e/                        the browser suite: fixtures.ts, signin, chat, requests, ui-meta and a11y specs
 scripts/
   write-build-manifest.mjs  dist/build.json
   source-commit.mjs         which commit this build is of (shared by the config and the manifest)
@@ -1176,7 +1241,8 @@ src/
   boot/                     frame guard, base path, auth mode and cookie session, sign-in bounce, boot
   core/                     the connection and its lifecycle, the roster controller, the advert, the chat
                             controller and the ingest (above); core/passkey/, the passkey level
-  state/                    zustand vanilla stores: connection, bots, plugin, chats, settings, requests
+  state/                    zustand vanilla stores: connection, bots, plugin, chats, settings, requests, and the
+                            ones `ui_meta` mirrors: layout (with folders and mute), text size, app stamp, device context
   platform/                 the browser seams (above)
   features/chat/            the chat screen, its item views, the transcript list, its scroll anchor and chunks, the composer
   features/requests/        the request layer: approval, clarify and the passkey confirmation, one at a time, in a
