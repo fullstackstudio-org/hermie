@@ -122,7 +122,9 @@ Rejected:
   import pull request and the changelog, and only `dangerous` from it blocks). The protocol's secure prompt
   is named `sudo`, an honest bundle carries that word, and only the fork judges it by its token rather than
   by its minified line. That judgement lowers a key or comparison to a visible `low` only in a plugin whose
-  JavaScript names no route to a process, eval or module load, and it has stated limits: JavaScript only
+  JavaScript names no route to a process, eval or module load on its denylist (which has known gaps, such as
+  the browser's own code-from-string routes, and only ever lowers `sudo_usage` and a member `exec_string`),
+  and it has stated limits: JavaScript only
   (Python and shell consumers are judged by their own rules), nothing under the scanner's excluded
   directories (`node_modules` …), and no route built without a name it knows. See plan W3 and
   `native/web/README.md`.

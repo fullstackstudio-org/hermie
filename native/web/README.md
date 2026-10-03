@@ -187,6 +187,11 @@ reading, so its `caution` is expected; an upstream `caution` only means an insta
 
 What the fork's rule does not claim (accepted limits, written down in `tools/plugin_guard_context.py`, rule 5b):
 
+- the "nothing can run" inventory is a denylist with known gaps, not a proof; it only ever decides whether a
+  `sudo_usage` or a member `exec_string` finding drops to `low`, and every other finding is untouched. The browser's
+  own code-from-string routes (an inserted `<script>` element, a `javascript:` URL, `setAttribute("on…")`,
+  `innerHTML`) are not on the list: they run in the page, not on the host;
+
 - it reads JavaScript only: a Python or shell file of the plugin that hands JS data to a process is not counted
   (those files are judged by their own rules);
 - directories the scanner never reads (`node_modules`, `.venv` and the rest of `EXCLUDED_DIRS`) are invisible to
