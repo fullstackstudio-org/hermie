@@ -52,6 +52,12 @@
 	<string>Wähle einen Bot aus der Liste.</string>
 	<key>native.detail.noChat.title</key>
 	<string>Kein Chat ausgewählt</string>
+	<key>native.gateways.removeFailed.notSynced</key>
+	<string>Dieses Gateway wird nicht mehr mit dem iCloud-Schlüsselbund synchronisiert und kann daher nur von diesem Gerät entfernt werden. Es wurde nichts entfernt.</string>
+	<key>native.gateways.removeFailed.other</key>
+	<string>Es wurde nichts entfernt. Versuche es erneut.</string>
+	<key>native.gateways.removeFailed.title</key>
+	<string>Nicht entfernt</string>
 	<key>native.gateways.rename</key>
 	<string>Umbenennen</string>
 	<key>native.icloud.actionFailed</key>
@@ -142,6 +148,8 @@
 	<string>Dieses Gateway wurde auf einem anderen Gerät von allen Geräten entfernt, deshalb auch von diesem:</string>
 	<key>native.icloud.notice.storeEmptied</key>
 	<string>Der iCloud-Schlüsselbund enthält diese Gateways nicht mehr, deshalb bleiben sie nur auf diesem Gerät. Das passiert nach „Alles aus dem iCloud-Schlüsselbund löschen“ auf einem anderen Gerät oder wenn die Kopie des iCloud-Schlüsselbunds auf diesem Gerät zurückgesetzt wurde.</string>
+	<key>native.icloud.notice.turnOnAppLock</key>
+	<string>App-Sperre einschalten</string>
 	<key>native.icloud.phase.awaiting</key>
 	<string>Noch nicht eingeschaltet</string>
 	<key>native.icloud.phase.awaitingDetail</key>

@@ -99,6 +99,9 @@ import Testing
     #expect(screen.model.available.map(\.address) == [homeAddress])
     #expect(screen.model.available.first?.removedHere == false)
     #expect(screen.model.needsDisclosure)
+    // Looking is reading only: nothing written, and a sync before the answer writes nothing either.
+    #expect(await world[1].reconcile() == .skipped(.notDisclosed))
+    #expect(Self.writes(of: world[1], in: world).isEmpty)
 
     await screen.model.acceptDisclosure()
     await world.settle()
@@ -134,6 +137,53 @@ import Testing
     #expect(world[1].token(try #require(ids[homeAddress])) == "tok-1")
     #expect(screen.model.signInNeeded == [try #require(ids["https://lab.test"])])
     #expect(screen.model.available.isEmpty)
+  }
+
+  /// Setup for another gateway on a device that has gateways and has not answered (or setup opened
+  /// before the disclosure could show): "Use These Gateways" is not the answer. Nothing is taken,
+  /// nothing of this device's goes to iCloud, and the disclosure is asked for instead.
+  @Test func useTheseGatewaysOnADeviceWithGatewaysOfItsOwnAsksTheDisclosureFirst() async throws {
+    let world = try EngineWorld(2)
+    try await world[0].engine.disclose()
+    try await addGateway(world[0], address: homeAddress, token: "tok-1")
+    await world.settle()
+
+    let mine = try await addGateway(world[1], address: "https://lab.test", name: "Lab", token: "tok-lab")
+    let screen = await Screen(world[1])
+    await world[1].reconcile()
+    screen.model.lookInICloud()
+    await screen.idle()
+    #expect(screen.model.available.map(\.address) == [homeAddress])
+    #expect(screen.model.needsDisclosure)
+    #expect(!screen.model.setupCanUseAvailable)
+
+    let results = await screen.model.useAvailable()
+    await world[1].engine.waitUntilIdle()
+    await world[1].reconcile()
+    await screen.idle()
+
+    #expect(results.isEmpty)
+    #expect(!screen.model.status.disclosed, "taking them did not answer for this device's own gateways")
+    #expect(screen.model.disclosureRequested)
+    #expect(screen.model.showsDisclosure)
+    #expect(screen.model.actionFailure == nil)
+    #expect(try await world[1].gateways().map(\.id) == [mine])
+    #expect(Self.writes(of: world[1], in: world).isEmpty, "nothing of this device's went to iCloud Keychain")
+
+    // The engine refuses it too, whoever asks.
+    let offered = try await world[1].engine.adoptable()
+    await #expect(throws: SyncEngineError.notDisclosed) {
+      try await world[1].engine.adopt(offered)
+    }
+    #expect(try await world[1].state()?.disclosed == false)
+    #expect(Self.writes(of: world[1], in: world).isEmpty)
+
+    // Answered, they come over and this device's gateway is synced.
+    await screen.model.acceptDisclosure()
+    await world.settle()
+    await screen.idle()
+    #expect(Set(try await world[1].gateways().map(\.address)) == [homeAddress, "https://lab.test"])
+    #expect(world.cloudRecord("https://lab.test")?.isLive == true)
   }
 
   @Test func decliningWritesNothingEver() async throws {
@@ -231,6 +281,40 @@ import Testing
     await world.settle()
     #expect(try await world[1].only().id == ids[1])
     #expect(world[1].token(ids[1]) == "tok-1")
+  }
+
+  /// "Turn Off and Remove from iCloud" with a sync that does not run to the end: sync stays on, the
+  /// failure is shown, and the item (session token included) is not left behind with sync off.
+  @Test func removingFromICloudThatDoesNotFinishKeepsSyncOn() async throws {
+    let (world, _) = try await sharedWorld()
+    let screen = await Screen(world[0])
+    await screen.idle()
+    #expect(screen.model.isOn)
+
+    // The store goes away: the sync is skipped.
+    world.cloud.setAvailability(.unavailable, on: "device0")
+    await screen.model.turnOff(removingFromICloud: true)
+    await screen.idle()
+    #expect(screen.model.status.enabled, "a skipped sync deleted nothing, so sync stays on")
+    #expect(screen.model.actionFailure != nil)
+    world.cloud.setAvailability(.available, on: "device0")
+    #expect(world.cloudRecord(homeAddress)?.isLive == true)
+
+    // The delete fails: the sync applies its plan with a remote failure.
+    world.cloud.failNext(.delete, on: "device0", with: .keychain(operation: .delete, status: -25_293))
+    await screen.model.turnOff(removingFromICloud: true)
+    await screen.idle()
+    #expect(screen.model.status.enabled, "the item is still in iCloud Keychain, so sync stays on")
+    #expect(screen.model.actionFailure == .keychain)
+    #expect(world.cloudRecord(homeAddress)?.isLive == true)
+
+    // Tried again with the store working: the item goes, then sync stops.
+    await screen.model.turnOff(removingFromICloud: true)
+    await screen.idle()
+    #expect(screen.model.actionFailure == nil)
+    #expect(!screen.model.status.enabled)
+    world.cloud.deliverAll()
+    #expect(world.cloud.cloudItems().isEmpty)
   }
 
   @Test func syncThisGatewayDeletesAndRepublishesItsItem() async throws {
@@ -346,6 +430,47 @@ import Testing
   }
 
   // MARK: Notices
+
+  /// I12: the "gateways added" notice offers the app lock when a session token came over and this
+  /// device has no lock; not for a gateway that still needs a sign-in, and not when a lock is on.
+  @Test func theGatewaysAddedNoticeOffersTheAppLockForASessionToken() async throws {
+    let world = try EngineWorld(2)
+    try await world.discloseAll()
+    try await addGateway(world[0], address: homeAddress, token: "tok-1")
+    try await addGateway(world[0], address: "https://lab.test", name: "Lab", token: nil)
+    let screen = await Screen(world[1])
+    await world.settle()
+    await screen.idle()
+
+    let noLock = AppLock(
+      settings: KeyValueStore(store: try SQLiteStore(.inMemory)), authenticator: ScriptedAuthenticator(), forcedLock: false)
+    await noLock.hydrate()
+    let lockedStore = KeyValueStore(store: try SQLiteStore(.inMemory))
+    try await lockedStore.setString(#"{"threshold":"immediately"}"#, forKey: StoreKeys.lock)
+    let locked = AppLock(settings: lockedStore, authenticator: ScriptedAuthenticator(), forcedLock: false)
+    await locked.hydrate()
+    #expect(locked.machine.threshold == .immediately)
+
+    let ids = Dictionary(uniqueKeysWithValues: try await world[1].gateways().map { ($0.address, $0.id) })
+    let home = try #require(ids[homeAddress])
+    let lab = try #require(ids["https://lab.test"])
+    #expect(screen.model.adoptedWithSessionToken == [home])
+
+    let adopted = try #require(screen.model.notices.first { $0.kind == .adopted })
+    #expect(Set(adopted.gatewayIds) == [home, lab])
+    #expect(screen.model.offersAppLock(adopted, lock: noLock))
+    #expect(!screen.model.offersAppLock(adopted, lock: locked))
+    let signIn = try #require(screen.model.notices.first { $0.kind == .needsSignIn })
+    #expect(!screen.model.offersAppLock(signIn, lock: noLock))
+
+    // Only the gateway that needs a sign-in left: no offer.
+    try await screen.directory.remove(id: home, scope: .thisDevice)
+    await world.settle()
+    await screen.idle()
+    let rest = try #require(screen.model.notices.first { $0.kind == .adopted })
+    #expect(rest.gatewayIds == [lab])
+    #expect(!screen.model.offersAppLock(rest, lock: noLock))
+  }
 
   @Test func aRemovalElsewhereIsToldByNameAndDismissed() async throws {
     let (world, ids) = try await sharedWorld()

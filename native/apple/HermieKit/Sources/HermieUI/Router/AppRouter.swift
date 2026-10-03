@@ -150,6 +150,14 @@ public final class AppRouter {
     sheet = nil
   }
 
+  /// Close `expected` when it is still the sheet up: a flow that finishes late (setup taking
+  /// gateways from iCloud, a sign-in) must not close a sheet that replaced it meanwhile.
+  public func dismissSheet(_ expected: AppSheet) {
+    if sheet == expected {
+      sheet = nil
+    }
+  }
+
   public func dismissNotice() {
     notice = nil
   }

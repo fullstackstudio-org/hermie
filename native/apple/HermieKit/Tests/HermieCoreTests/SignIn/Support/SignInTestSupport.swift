@@ -441,14 +441,15 @@ struct OnboardingHarness {
     resolve: (@Sendable (String, [String: String], FrontDoor) async throws -> OnboardingProbe)? = nil,
     listener: (@Sendable () -> any LoopbackCallbackListening)? = nil,
     sleep: (@Sendable (Duration) async throws -> Void)? = nil,
-    secrets: InMemorySecretStore = InMemorySecretStore()
+    secrets: InMemorySecretStore = InMemorySecretStore(),
+    synced: InMemorySyncedItemStore = InMemorySyncedItemStore()
   ) throws {
     let launch = AppLaunch(
       environment: LaunchEnvironment(
         dataDirectory: nil,
         authenticator: ScriptedAuthenticator(),
         secrets: secrets,
-        synced: InMemorySyncedItemStore()
+        synced: synced
       )
     )
     let services = GatewayServices(

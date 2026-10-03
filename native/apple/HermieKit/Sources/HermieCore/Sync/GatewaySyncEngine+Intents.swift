@@ -143,6 +143,10 @@ extension GatewaySyncEngine {
   /// "Use These Gateways" on a new device: the disclosure is seen, the offered records the person
   /// did not pick are hidden here, and a reconcile adopts the rest. The outcome is that reconcile's:
   /// `.upToDate` when a reconcile already queued (the disclosure triggers one) adopted them first.
+  ///
+  /// Taking them answers the disclosure only on a device with no gateway of its own: one that has
+  /// gateways would publish their credentials at the next reconcile without the person having seen
+  /// what goes to iCloud Keychain (I10), so there it throws `.notDisclosed` and changes nothing.
   @discardableResult
   public func adopt(_ chosen: [AdoptableGateway]) async throws -> SyncOutcome {
     beginIntent()
@@ -152,7 +156,10 @@ extension GatewaySyncEngine {
       let keep = Set(chosen.map(\.key))
       let hide = offered.map(\.key).filter { !keep.contains($0) }
 
-      try await commitIntent { _, state, _ in
+      try await commitIntent { db, state, _ in
+        if !state.disclosed, !(try Self.registry(in: db).gateways.isEmpty) {
+          throw SyncEngineError.notDisclosed
+        }
         state.disclosed = true
         state.hidden.formUnion(hide)
       }
@@ -177,21 +184,7 @@ extension GatewaySyncEngine {
     beginIntent()
     defer { endIntent() }
 
-    let (registry, stateText) = try await database.read { db in
-      (GatewayRegistry.decode(try db.kvValue(forKey: StoreKeys.gateways)), try db.kvValue(forKey: SyncState.storageKey))
-    }
-
-    guard let record = registry.gateway(id: id) else {
-      throw SyncEngineError.unknownGateway
-    }
-
-    if scope == .allDevices {
-      guard let state = SyncState.decode(stateText), state.unsupportedVersion == nil, state.enabled,
-        state.disclosed, let entry = state.entries[id], entry.detached == nil
-      else {
-        throw SyncEngineError.notAttached
-      }
-    }
+    let record = try await removable(id: id, scope: scope)
 
     await lifecycle.willPurge(gatewayId: id)
 
@@ -221,6 +214,37 @@ extension GatewaySyncEngine {
     await flushCredentialChanges()
     trigger(.localChange)
     await refreshStatus()
+  }
+
+  /**
+   Whether `removeGateway(id:scope:)` would take this removal now, read only: it throws what the
+   removal would refuse with (`.unknownGateway`, `.notAttached`) and changes nothing. For a caller
+   that does something irreversible first (handing a grant back) and must not do it for a removal
+   that is then refused. The removal checks again: the state can change in between.
+   */
+  public func checkRemoval(id: String, scope: RemovalScope) async throws {
+    _ = try await removable(id: id, scope: scope)
+  }
+
+  /// The gateway a removal is for, when the removal may go ahead.
+  private func removable(id: String, scope: RemovalScope) async throws -> GatewayRecord {
+    let (registry, stateText) = try await database.read { db in
+      (GatewayRegistry.decode(try db.kvValue(forKey: StoreKeys.gateways)), try db.kvValue(forKey: SyncState.storageKey))
+    }
+
+    guard let record = registry.gateway(id: id) else {
+      throw SyncEngineError.unknownGateway
+    }
+
+    if scope == .allDevices {
+      guard let state = SyncState.decode(stateText), state.unsupportedVersion == nil, state.enabled,
+        state.disclosed, let entry = state.entries[id], entry.detached == nil
+      else {
+        throw SyncEngineError.notAttached
+      }
+    }
+
+    return record
   }
 
   /// "Delete Everything from iCloud Keychain" (I9): every item is deleted, the remembered removals

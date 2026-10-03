@@ -212,9 +212,9 @@ struct ShellSheet: View {
         // The full page on iPad, so every category fits without a row under the sheet's edge.
         .presentationSizing(.page)
     case let .onboarding(mode):
-      components.onboarding(OnboardingContext(mode: mode, finish: { _ in router.dismissSheet() }))
+      components.onboarding(OnboardingContext(mode: mode, finish: { _ in router.dismissSheet(sheet) }))
     case let .signIn(gatewayId):
-      components.signIn(SignInContext(gatewayId: gatewayId, finish: { router.dismissSheet() }))
+      components.signIn(SignInContext(gatewayId: gatewayId, finish: { router.dismissSheet(sheet) }))
     case .gatewayPicker:
       GatewayPickerSheet()
     }

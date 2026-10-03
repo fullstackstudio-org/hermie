@@ -122,6 +122,19 @@ struct AppRouterLinkTests {
     #expect(router.sheet == .onboarding(.additionalGateway))
   }
 
+  @Test("a flow that finishes late closes its own sheet, never the one that replaced it")
+  func lateFinish() {
+    let router = AppRouter()
+
+    router.present(.onboarding(.firstGateway))
+    router.present(.signIn(gatewayId: home.id))
+    router.dismissSheet(.onboarding(.firstGateway))
+    #expect(router.sheet == .signIn(gatewayId: home.id))
+
+    router.dismissSheet(.signIn(gatewayId: home.id))
+    #expect(router.sheet == nil)
+  }
+
   @Test("share and Shortcut links are queued for their tasks; anything else is ignored")
   func queued() {
     let router = AppRouter()

@@ -247,11 +247,15 @@ public final class GatewayAccounts {
   }
 
   /**
-   Remove a gateway: the live session ends, its grant is handed back first (the credentials are
-   still there to do it with), then the directory removes it through the engine, which purges what
-   this device kept for it. `onRemoved` finishes the rest (`forgotten(_:)`).
+   Remove a gateway: the engine is asked first whether it takes the removal in this scope (a
+   refused one, such as "Remove from All Devices" for a gateway that is no longer synced, throws
+   here with the session and the grant untouched). Then the live session ends, its grant is handed
+   back (the credentials are still there to do it with), and the directory removes it through the
+   engine, which purges what this device kept for it. `onRemoved` finishes the rest
+   (`forgotten(_:)`).
    */
   public func remove(_ id: String, scope: RemovalScope = .thisDevice) async throws {
+    try await sync.checkRemoval(id: id, scope: scope)
     await endSession?(id)
     await revokeIfAdvertised(id)
     try await directory.remove(id: id, scope: scope)

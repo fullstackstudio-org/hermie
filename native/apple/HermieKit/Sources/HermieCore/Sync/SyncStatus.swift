@@ -83,6 +83,8 @@ public enum SyncEngineError: Error, Sendable, Equatable, CustomStringConvertible
   case unknownGateway
   /// "Remove from All Devices" for a gateway that is not synced.
   case notAttached
+  /// Something only the person's answer to the disclosure may do (I10), asked before that answer.
+  case notDisclosed
   /// An id, address or field the operation cannot take.
   case invalidArgument
   /// The system could not produce random bytes.
@@ -107,6 +109,7 @@ public enum SyncEngineError: Error, Sendable, Equatable, CustomStringConvertible
     case let .database(code): "The local database failed with code \(code)."
     case .unknownGateway: "There is no such gateway on this device."
     case .notAttached: "This gateway is not synced, so it can only be removed from this device."
+    case .notDisclosed: "iCloud Sync has not been answered on this device yet."
     case .invalidArgument: "The gateway or field is not one sync can take."
     case .randomUnavailable: "No random bytes were available."
     case .credentialsQuarantined: "This gateway's credentials still belong to its previous address."

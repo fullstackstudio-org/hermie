@@ -52,6 +52,12 @@
 	<string>Choose a bot from the list.</string>
 	<key>native.detail.noChat.title</key>
 	<string>No chat selected</string>
+	<key>native.gateways.removeFailed.notSynced</key>
+	<string>This gateway is no longer synced with iCloud Keychain, so it can only be removed from this device. Nothing was removed.</string>
+	<key>native.gateways.removeFailed.other</key>
+	<string>Nothing was removed. Try again.</string>
+	<key>native.gateways.removeFailed.title</key>
+	<string>Not Removed</string>
 	<key>native.gateways.rename</key>
 	<string>Rename</string>
 	<key>native.icloud.actionFailed</key>
@@ -142,6 +148,8 @@
 	<string>This gateway was removed from all devices on another device, so it is gone from this one too:</string>
 	<key>native.icloud.notice.storeEmptied</key>
 	<string>iCloud Keychain no longer holds these gateways, so they are kept on this device only. This happens after “Delete Everything from iCloud Keychain” on another device, or when this device’s copy of iCloud Keychain was reset.</string>
+	<key>native.icloud.notice.turnOnAppLock</key>
+	<string>Turn On App Lock</string>
 	<key>native.icloud.phase.awaiting</key>
 	<string>Not turned on yet</string>
 	<key>native.icloud.phase.awaitingDetail</key>

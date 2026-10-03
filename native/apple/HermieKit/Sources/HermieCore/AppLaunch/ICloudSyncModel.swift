@@ -9,8 +9,9 @@ import Observation
  engine's `SyncStatus`, its person-facing notices and the records it offers.
 
  Nothing here writes to iCloud Keychain before the person has answered the disclosure: the engine
- refuses to (`GatewaySync.reconcile` rule 1, `writeRemote`), and the only call that answers it for
- the person is `acceptDisclosure()`.
+ refuses to (`GatewaySync.reconcile` rule 1, `writeRemote`), and the calls that answer it for the
+ person are `acceptDisclosure()` and, on a device with no gateway of its own, setup's
+ `useAvailable()`.
  */
 @MainActor
 @Observable
@@ -150,6 +151,9 @@ public final class ICloudSyncModel {
   public private(set) var signInNeeded: Set<String> = []
   /// Gateways kept here after a removal on all devices elsewhere (`removedElsewhereKeptHere`).
   public private(set) var keptAfterRemoval: Set<String> = []
+  /// Gateways added from iCloud Keychain that came with their session token: usable here at once,
+  /// so the "gateways added" notice offers the app lock for them (I12).
+  public private(set) var adoptedWithSessionToken: Set<String> = []
   /// A sync, or another action, the person started is running.
   public private(set) var busy = false
   public private(set) var syncing = false
@@ -182,6 +186,28 @@ public final class ICloudSyncModel {
     status.enabled && !status.disclosed && status.availability == .available && !status.unsupportedState
       && directory.loaded && !directory.loadFailed && directory.unsupportedVersion == nil
       && (!directory.isEmpty || !available.isEmpty)
+  }
+
+  /**
+   Setup may offer "Use These Gateways": taking them is the answer to the disclosure only on a
+   device with no gateway of its own (I10). One that has gateways (setup for another gateway, or
+   setup opened before the disclosure could show) is asked the disclosure first, which lists both
+   what would be stored and what would be taken.
+   */
+  public var setupCanUseAvailable: Bool {
+    status.disclosed || ownsNoGateways
+  }
+
+  /// The gateway list is known, and empty.
+  private var ownsNoGateways: Bool {
+    directory.loaded && !directory.loadFailed && directory.unsupportedVersion == nil && directory.isEmpty
+  }
+
+  /// The "gateways added" notice offers "Turn On App Lock" (I12): it names a gateway that came with
+  /// its session token, and this device has no app lock.
+  public func offersAppLock(_ notice: Notice, lock: AppLock) -> Bool {
+    notice.kind == .adopted && !lock.settingUnknown && lock.machine.threshold == .off
+      && notice.gatewayIds.contains(where: adoptedWithSessionToken.contains)
   }
 
   /// The disclosure sheet is to be shown: due, or asked for from Settings.
@@ -351,9 +377,11 @@ public final class ICloudSyncModel {
 
     let kept = keptAfterRemoval.filter(isAbsent)
     let signIn = signInNeeded.filter(isHere)
+    let withToken = adoptedWithSessionToken.filter(isHere)
     // Assigned only when changed: every assignment redraws whatever reads it.
     if kept != keptAfterRemoval { keptAfterRemoval = kept }
     if signIn != signInNeeded { signInNeeded = signIn }
+    if withToken != adoptedWithSessionToken { adoptedWithSessionToken = withToken }
 
     let current = notices.compactMap { notice -> Notice? in
       var notice = notice
@@ -375,6 +403,7 @@ public final class ICloudSyncModel {
 
     // Forget what no notice or mark needs any more.
     let tracked = Set(notices.flatMap(\.gatewayIds)).union(keptAfterRemoval).union(signInNeeded)
+      .union(adoptedWithSessionToken)
     seenHere.formIntersection(tracked)
     seenAbsent.formIntersection(tracked)
 
@@ -433,11 +462,15 @@ public final class ICloudSyncModel {
     case let .removedElsewhere(id, name):
       signInNeeded.remove(id)
       keptAfterRemoval.remove(id)
+      adoptedWithSessionToken.remove(id)
       add(.removedElsewhere(name: name), [id])
     case let .needsSignIn(id):
       signInNeeded.insert(id)
+      // The engine says so right after `.adopted` for a gateway that came without a usable token.
+      adoptedWithSessionToken.remove(id)
       add(.needsSignIn, [id])
     case let .adopted(id):
+      adoptedWithSessionToken.insert(id)
       add(.adopted, [id])
     case .unavailable:
       // The status line says so; it is not a notice.
@@ -503,18 +536,59 @@ public final class ICloudSyncModel {
   /**
    The switch turned off. Everything stays on this device. With `removingFromICloud`, every gateway
    synced from here is switched to "this device only" first, which deletes its item from iCloud
-   Keychain; other devices keep their copies, device-only. Then sync stops here.
+   Keychain; other devices keep their copies, device-only. Sync stops here only once that is done:
+   a sync that did not run to the end leaves the items (session tokens among them) in iCloud
+   Keychain, and with sync off nothing here would delete them. Then the failure is shown and sync
+   stays on, so the person can try again.
    */
   public func turnOff(removingFromICloud: Bool) async {
     await run {
       if removingFromICloud {
-        for (id, gateway) in self.status.gateways.sorted(by: { $0.key < $1.key }) where gateway.canRemoveFromAllDevices {
-          try await self.engine.setGatewaySynced(false, id: id)
-        }
-        let outcome = await self.engine.reconcileNow(.manual)
-        if case let .failed(error) = outcome { throw error }
+        try await self.removeEverySyncedGatewayFromICloud()
       }
       try await self.engine.setSyncEnabled(false)
+    }
+  }
+
+  /// How many syncs `turnOff(removingFromICloud: true)` runs before it gives up.
+  static let removalAttempts = 4
+
+  /**
+   Switch every attached gateway to "this device only" and sync until iCloud Keychain agrees: a
+   sync with nothing left to do (`.upToDate`) and no gateway here attached any more. A sync that
+   applied its plan in full goes round again (the next one confirms the deletes, and switches off
+   one it may have taken from iCloud meanwhile), and so does one that was superseded. Anything else
+   fails: a remote write that failed, a sync that was skipped (the store went away) or failed.
+   */
+  private func removeEverySyncedGatewayFromICloud() async throws {
+    for _ in 0..<Self.removalAttempts {
+      for (id, gateway) in status.gateways.sorted(by: { $0.key < $1.key }) where gateway.canRemoveFromAllDevices {
+        try await engine.setGatewaySynced(false, id: id)
+      }
+
+      switch await engine.reconcileNow(.manual) {
+      case .upToDate:
+        if !status.gateways.values.contains(where: \.canRemoveFromAllDevices) { return }
+      case let .applied(summary):
+        if summary.remoteFailures > 0 { throw ActionFailure(.keychain) }
+      case .superseded:
+        continue
+      case let .skipped(reason):
+        throw ActionFailure(reason == .unsupportedState ? .newerVersion : .keychain)
+      case let .failed(error):
+        throw error
+      }
+    }
+
+    throw ActionFailure(.other)
+  }
+
+  /// An action stopped for a reason the model decided rather than the engine.
+  private struct ActionFailure: Error {
+    let failure: Failure
+
+    init(_ failure: Failure) {
+      self.failure = failure
     }
   }
 
@@ -588,21 +662,28 @@ public final class ICloudSyncModel {
   }
 
   /**
-   "Use These Gateways" in setup: every gateway on offer is added here. Unanswered, this is the
-   answer (the step shows what is stored and where): the engine's `adopt` marks the disclosure
-   seen and adopts them. Results come in the order offered, each with its id here and whether it
-   needs a sign-in on this device.
+   "Use These Gateways" in setup: every gateway on offer is added here. Unanswered on a device with
+   no gateway of its own, this is the answer (the step shows what is stored and where): the engine's
+   `adopt` marks the disclosure seen and adopts them. Unanswered on a device that has gateways, it
+   is not (`setupCanUseAvailable`): nothing is taken or written, and the disclosure is asked for
+   instead; the engine refuses it as well. Results come in the order offered, each with its id here
+   and whether it needs a sign-in on this device; none when nothing was added.
    */
   public func useAvailable() async -> [AddResult] {
     let offers = available
     guard !offers.isEmpty else { return [] }
+
+    guard setupCanUseAvailable else {
+      disclosureRequested = true
+      return []
+    }
 
     let fresh = offers.filter { !$0.removedHere }.map(\.gateway)
     let removed = offers.filter(\.removedHere)
 
     let succeeded = await run {
       if !self.status.disclosed {
-        // A device that has not answered: taking these is the answer; nothing of its own exists.
+        // Unanswered, and no gateway of its own: taking these is the answer.
         _ = try await self.engine.adopt(fresh)
       }
       for offer in removed {
@@ -612,8 +693,13 @@ public final class ICloudSyncModel {
             name: gateway.name, address: gateway.address, authKind: GatewayAuthKind(rawValue: gateway.authKind),
             addedAt: gateway.addedAt))
       }
-      let outcome = await self.engine.reconcileNow(.manual)
-      if case let .failed(error) = outcome { throw error }
+      switch await self.engine.reconcileNow(.manual) {
+      case let .failed(error): throw error
+      case let .skipped(reason): throw ActionFailure(reason == .unsupportedState ? .newerVersion : .keychain)
+      // Another sync does the work: wait for it; what it added is checked below.
+      case .superseded: await self.engine.waitUntilIdle()
+      case .applied, .upToDate: break
+      }
     }
 
     guard succeeded else { return [] }
@@ -625,6 +711,9 @@ public final class ICloudSyncModel {
       if offer.needsSignIn { signInNeeded.insert(id) }
       return AddResult(gatewayId: id, needsSignIn: offer.needsSignIn)
     }
+
+    // Nothing arrived: not done, so "try again" rather than a setup that closes on nothing.
+    if results.isEmpty { actionFailure = .other }
 
     refreshAvailable()
     return results
@@ -652,8 +741,15 @@ public final class ICloudSyncModel {
     do {
       try await body()
       return true
+    } catch SyncEngineError.notDisclosed {
+      // Not a failure: the answer comes first (`useAvailable`).
+      disclosureRequested = true
+      return false
     } catch let error as SyncEngineError {
       actionFailure = error == .storeUnavailable ? .keychain : Self.failure(error)
+      return false
+    } catch let error as ActionFailure {
+      actionFailure = error.failure
       return false
     } catch {
       actionFailure = .other
@@ -679,7 +775,8 @@ public final class ICloudSyncModel {
     case .secretStore, .syncedStore, .storeUnavailable, .randomUnavailable: .keychain
     case .database, .unreadableRegistry, .unreadableConfig: .storage
     case .unsupportedRegistry, .unsupportedState: .newerVersion
-    case .unknownGateway, .notAttached, .invalidArgument, .credentialsQuarantined, .invalidPlan, .other: .other
+    case .unknownGateway, .notAttached, .notDisclosed, .invalidArgument, .credentialsQuarantined, .invalidPlan, .other:
+      .other
     }
   }
 }

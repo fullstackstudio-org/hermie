@@ -66,6 +66,17 @@ enum NativeStrings {
   enum Gateways {
     /// Rename
     static var rename: String { String(localized: "native.gateways.rename", table: "Native", bundle: .module) }
+
+    enum RemoveFailed {
+      /// Not Removed
+      static var title: String { String(localized: "native.gateways.removeFailed.title", table: "Native", bundle: .module) }
+      /// This gateway is no longer synced with iCloud Keychain, so it can only be removed from this device. Nothing was removed.
+      static var notSynced: String {
+        String(localized: "native.gateways.removeFailed.notSynced", table: "Native", bundle: .module)
+      }
+      /// Nothing was removed. Try again.
+      static var other: String { String(localized: "native.gateways.removeFailed.other", table: "Native", bundle: .module) }
+    }
   }
 
   /// Coming in a later build.

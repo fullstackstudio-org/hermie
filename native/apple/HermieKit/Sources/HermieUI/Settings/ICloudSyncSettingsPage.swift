@@ -16,6 +16,8 @@ struct ICloudSyncSettingsPage: View {
   @State private var confirmingDeleteEverything = false
   /// The gateway whose sign-in sheet is up: the same sheet as Settings → Gateways → "Sign in".
   @State private var signingIn: String?
+  /// "Turn On App Lock" on the "gateways added" notice (I12) opened the lock picker.
+  @State private var openingLock = false
 
   private var onNeedsSignIn: NeedsSignInAction {
     NeedsSignInAction { signingIn = $0 }
@@ -28,7 +30,9 @@ struct ICloudSyncSettingsPage: View {
       if !model.notices.isEmpty {
         Section {
           ForEach(model.notices) { notice in
-            ICloudSyncNoticeRow(notice: notice, model: model, onNeedsSignIn: onNeedsSignIn)
+            ICloudSyncNoticeRow(
+              notice: notice, model: model, onNeedsSignIn: onNeedsSignIn, lock: launch.lock,
+              openLock: { openingLock = true })
           }
         } header: {
           SettingsNote(NativeStrings.ICloud.Notice.header)
@@ -113,6 +117,9 @@ struct ICloudSyncSettingsPage: View {
     .formStyle(.grouped)
     .navigationTitle(NativeStrings.ICloud.title)
     .accessibilityIdentifier("hermie.settings.icloud.page")
+    .navigationDestination(isPresented: $openingLock) {
+      LockThresholdPage()
+    }
     .confirmationDialog(
       NativeStrings.ICloud.TurnOff.title, isPresented: $confirmingTurnOff, titleVisibility: .visible
     ) {
@@ -210,6 +217,9 @@ private struct ICloudSyncNoticeRow: View {
   let notice: ICloudSyncModel.Notice
   let model: ICloudSyncModel
   let onNeedsSignIn: NeedsSignInAction?
+  let lock: AppLock
+  /// Privacy & security → Require unlock, where every pick authenticates first.
+  let openLock: () -> Void
 
   var body: some View {
     VStack(alignment: .leading, spacing: 8) {
@@ -245,6 +255,15 @@ private struct ICloudSyncNoticeRow: View {
             onNeedsSignIn(id)
           }
           .buttonStyle(.borderless)
+        }
+
+        // I12: a session token came over and nothing locks the app here. The lock never syncs.
+        if model.offersAppLock(notice, lock: lock) {
+          Button(NativeStrings.ICloud.Notice.turnOnAppLock) {
+            openLock()
+          }
+          .buttonStyle(.borderless)
+          .accessibilityIdentifier("hermie.settings.icloud.notice.appLock")
         }
 
         Spacer()

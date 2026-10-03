@@ -18,6 +18,8 @@ struct GatewaysSettingsPage: View {
   @State private var removing: GatewayDirectory.Entry?
   @State private var signingIn: String?
   @State private var signingOut: GatewayDirectory.Entry?
+  /// Why the last removal did not happen, until the alert is put away.
+  @State private var removalFailure: String?
 
   var body: some View {
     let directory = launch.gateways
@@ -133,17 +135,35 @@ struct GatewaysSettingsPage: View {
         launch.iCloudSync.canRemoveFromAllDevices(entry.id)
           ? NativeStrings.ICloud.Remove.message : Strings.App.Settings.Gateways.removeHint)
     }
+    .alert(
+      NativeStrings.Gateways.RemoveFailed.title,
+      isPresented: Binding(get: { removalFailure != nil }, set: { if !$0 { removalFailure = nil } }),
+      presenting: removalFailure
+    ) { _ in
+      Button(Strings.App.Common.dismiss, role: .cancel) {}
+    } message: { message in
+      Text(message)
+    }
   }
 
-  /// Through the accounts: the grant is handed back before the engine removes the gateway.
+  /// Through the accounts: the engine checks the scope, then the grant is handed back, then the
+  /// engine removes the gateway. A removal that did not happen says so.
   private func remove(_ entry: GatewayDirectory.Entry, scope: RemovalScope) {
     let directory = launch.gateways
 
     Task {
-      if let accounts {
-        try? await accounts.remove(entry.id, scope: scope)
-      } else {
-        try? await directory.remove(id: entry.id, scope: scope)
+      do {
+        if let accounts {
+          try await accounts.remove(entry.id, scope: scope)
+        } else {
+          try await directory.remove(id: entry.id, scope: scope)
+        }
+      } catch SyncEngineError.unknownGateway {
+        // Already gone (removed elsewhere meanwhile): what the person asked for.
+      } catch SyncEngineError.notAttached {
+        removalFailure = NativeStrings.Gateways.RemoveFailed.notSynced
+      } catch {
+        removalFailure = NativeStrings.Gateways.RemoveFailed.other
       }
     }
   }

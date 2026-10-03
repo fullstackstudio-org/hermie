@@ -584,6 +584,75 @@
         }
       }
     },
+    "native.gateways.removeFailed.notSynced" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Dieses Gateway wird nicht mehr mit dem iCloud-Schlüsselbund synchronisiert und kann daher nur von diesem Gerät entfernt werden. Es wurde nichts entfernt."
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "This gateway is no longer synced with iCloud Keychain, so it can only be removed from this device. Nothing was removed."
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Deze gateway wordt niet meer gesynchroniseerd met de iCloud-sleutelhanger en kan daarom alleen van dit apparaat worden verwijderd. Er is niets verwijderd."
+          }
+        }
+      }
+    },
+    "native.gateways.removeFailed.other" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Es wurde nichts entfernt. Versuche es erneut."
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Nothing was removed. Try again."
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Er is niets verwijderd. Probeer het opnieuw."
+          }
+        }
+      }
+    },
+    "native.gateways.removeFailed.title" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Nicht entfernt"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Not Removed"
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Niet verwijderd"
+          }
+        }
+      }
+    },
     "native.gateways.rename" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -1615,6 +1684,29 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "De iCloud-sleutelhanger bevat deze gateways niet meer, dus ze blijven alleen op dit apparaat. Dat gebeurt na ‘Alles uit de iCloud-sleutelhanger verwijderen’ op een ander apparaat, of als de kopie van de iCloud-sleutelhanger op dit apparaat opnieuw is ingesteld."
+          }
+        }
+      }
+    },
+    "native.icloud.notice.turnOnAppLock" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "App-Sperre einschalten"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Turn On App Lock"
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "App-vergrendeling aanzetten"
           }
         }
       }

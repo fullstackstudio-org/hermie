@@ -186,6 +186,10 @@ extension NativeStrings {
       static var storeEmptied: String {
         String(localized: "native.icloud.notice.storeEmptied", table: "Native", bundle: .module)
       }
+      /// Turn On App Lock
+      static var turnOnAppLock: String {
+        String(localized: "native.icloud.notice.turnOnAppLock", table: "Native", bundle: .module)
+      }
     }
 
     enum Phase {

@@ -52,6 +52,12 @@
 	<string>Kies een bot uit de lijst.</string>
 	<key>native.detail.noChat.title</key>
 	<string>Geen chat gekozen</string>
+	<key>native.gateways.removeFailed.notSynced</key>
+	<string>Deze gateway wordt niet meer gesynchroniseerd met de iCloud-sleutelhanger en kan daarom alleen van dit apparaat worden verwijderd. Er is niets verwijderd.</string>
+	<key>native.gateways.removeFailed.other</key>
+	<string>Er is niets verwijderd. Probeer het opnieuw.</string>
+	<key>native.gateways.removeFailed.title</key>
+	<string>Niet verwijderd</string>
 	<key>native.gateways.rename</key>
 	<string>Hernoem</string>
 	<key>native.icloud.actionFailed</key>
@@ -142,6 +148,8 @@
 	<string>Deze gateway is op een ander apparaat van alle apparaten verwijderd, dus ook van dit apparaat:</string>
 	<key>native.icloud.notice.storeEmptied</key>
 	<string>De iCloud-sleutelhanger bevat deze gateways niet meer, dus ze blijven alleen op dit apparaat. Dat gebeurt na ‘Alles uit de iCloud-sleutelhanger verwijderen’ op een ander apparaat, of als de kopie van de iCloud-sleutelhanger op dit apparaat opnieuw is ingesteld.</string>
+	<key>native.icloud.notice.turnOnAppLock</key>
+	<string>App-vergrendeling aanzetten</string>
 	<key>native.icloud.phase.awaiting</key>
 	<string>Nog niet aangezet</string>
 	<key>native.icloud.phase.awaitingDetail</key>
