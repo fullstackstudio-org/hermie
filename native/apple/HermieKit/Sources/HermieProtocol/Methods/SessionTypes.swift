@@ -30,6 +30,10 @@ public struct TranscriptRow: JSONObjectBacked {
   public var args: JSONObject? { get { json[field: "args"] } set { json[field: "args"] = newValue } }
   public var toolID: String? { get { json[field: "tool_id"] } set { json[field: "tool_id"] = newValue } }
   public var toolCallID: String? { get { json[field: "tool_call_id"] } set { json[field: "tool_call_id"] = newValue } }
+  /// Tool rows: the persisted assistant row holding this call, and the call's position in its
+  /// `tool_calls`. Absent when the gateway derived no call identity.
+  public var callRowID: Int? { get { json[field: "call_row_id"] } set { json[field: "call_row_id"] = newValue } }
+  public var callIndex: Int? { get { json[field: "call_index"] } set { json[field: "call_index"] = newValue } }
   public var reasoning: String? { get { json[field: "reasoning"] } set { json[field: "reasoning"] = newValue } }
   public var reasoningContent: String? {
     get { json[field: "reasoning_content"] }

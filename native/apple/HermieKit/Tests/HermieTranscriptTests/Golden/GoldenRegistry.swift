@@ -43,7 +43,7 @@ enum GoldenRegistry {
         "dropSteer", "confirmSubmit", "markInterrupted", "applyProcessCompletion", "applySubagentSnapshot"
       ]),
       ("task 12: history, reconcile, cache", [
-        "rowsToItems", "reconcile", "reconcileTail", "snapshotForCache", "stateFromCache", "classifyUserRow",
+        "rowsToItems", "reconcile", "reconcileTail", "prependHistory", "snapshotForCache", "stateFromCache", "classifyUserRow",
         "stripUserText", "attachmentRefName", "attachmentsMatchKey", "normalizedItemText"
       ]),
       ("task 13: selectors and derived views", [

@@ -9,12 +9,13 @@ public struct GatewayEvent: JSONObjectBacked {
   public init(json: JSONObject) { self.json = json }
 
   /// An event with a typed body. The payload is written as the body's object.
-  public init(_ body: GatewayEventBody, sessionID: String? = nil, seq: Int? = nil) {
+  public init(_ body: GatewayEventBody, sessionID: String? = nil, seq: Int? = nil, turnID: String? = nil) {
     self.init()
     self.type = body.type
     self.payload = body.payload
     self.sessionID = sessionID
     self.seq = seq
+    self.turnID = turnID
   }
 
   public var type: String {
@@ -33,6 +34,11 @@ public struct GatewayEvent: JSONObjectBacked {
 
   /// Per-session monotonic counter; absent on session-less broadcasts.
   public var seq: Int? { get { json[field: "seq"] } set { json[field: "seq"] = newValue } }
+
+  /// The gateway's id for the turn this frame belongs to. It rides the ENVELOPE of every
+  /// turn-stream frame (`message.*`, `reasoning.*`, `thinking.delta`, `tool.*`, `error`) while
+  /// a turn runs, and is absent on every other event and from a gateway that mints none.
+  public var turnID: String? { get { json[field: "turn_id"] } set { json[field: "turn_id"] = newValue } }
 
   /// The typed reading of `type` and `payload`. A known type whose payload is absent or not
   /// an object reads as that type with an empty payload (the reference's `rec(payload)`);

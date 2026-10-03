@@ -30,6 +30,9 @@ public struct MessageInterimPayload: JSONObjectBacked {
     get { json[field: "already_streamed"] }
     set { json[field: "already_streamed"] = newValue }
   }
+  /// The assistant row this note was persisted as; absent when it was delivered before a
+  /// flush (live commentary, a flush that failed).
+  public var rowID: Int? { get { json[field: "row_id"] } set { json[field: "row_id"] = newValue } }
 }
 
 /// `prompt_turn._result_status`.
@@ -79,6 +82,28 @@ public struct MessageCompletePayload: JSONObjectBacked {
     set { json[field: "error_surface"] = newValue }
   }
   public var partial: Bool? { get { json[field: "partial"] } set { json[field: "partial"] = newValue } }
+  /// The final assistant row, by the same rule as `persistedTurn.finalAssistantRowID`; absent on
+  /// an error, an interruption or an unpersisted turn.
+  public var rowID: Int? { get { json[field: "row_id"] } set { json[field: "row_id"] = newValue } }
+  /// The receipt of what the turn persisted.
+  public var persistedTurn: PersistedTurn? {
+    get { json[field: "persisted_turn"] }
+    set { json[field: "persisted_turn"] = newValue }
+  }
+}
+
+/// `message.complete.persisted_turn`: which rows the turn became.
+public struct PersistedTurn: JSONObjectBacked {
+  public var json: JSONObject
+  public init(json: JSONObject) { self.json = json }
+
+  public var complete: Bool? { get { json[field: "complete"] } set { json[field: "complete"] = newValue } }
+  public var userRowID: Int? { get { json[field: "user_row_id"] } set { json[field: "user_row_id"] = newValue } }
+  public var finalAssistantRowID: Int? {
+    get { json[field: "final_assistant_row_id"] }
+    set { json[field: "final_assistant_row_id"] = newValue }
+  }
+  public var rowIDs: [Int]? { get { json[field: "row_ids"] } set { json[field: "row_ids"] = newValue } }
 }
 
 /// `agent/error_surface.py::_surface`: advisory `{layer, code, retryable}`.
@@ -179,6 +204,9 @@ public struct ToolStartPayload: JSONObjectBacked {
   public var args: JSONObject? { get { json[field: "args"] } set { json[field: "args"] = newValue } }
   public var argsText: String? { get { json[field: "args_text"] } set { json[field: "args_text"] = newValue } }
   public var preview: String? { get { json[field: "preview"] } set { json[field: "preview"] = newValue } }
+  /// The persisted assistant row holding this call, and the call's position in its `tool_calls`.
+  public var callRowID: Int? { get { json[field: "call_row_id"] } set { json[field: "call_row_id"] = newValue } }
+  public var callIndex: Int? { get { json[field: "call_index"] } set { json[field: "call_index"] = newValue } }
 }
 
 /// `tool.complete`.
@@ -199,6 +227,11 @@ public struct ToolCompletePayload: JSONObjectBacked {
   public var revision: Int? { get { json[field: "revision"] } set { json[field: "revision"] = newValue } }
   /// Not in the upstream contract; the reference reads it as a failure flag (`Boolean(payload.error)`).
   public var error: JSONValue? { get { json["error"] } set { json["error"] = newValue } }
+  /// The call identity, as on `ToolStartPayload`.
+  public var callRowID: Int? { get { json[field: "call_row_id"] } set { json[field: "call_row_id"] = newValue } }
+  public var callIndex: Int? { get { json[field: "call_index"] } set { json[field: "call_index"] = newValue } }
+  /// The persisted tool RESULT row.
+  public var rowID: Int? { get { json[field: "row_id"] } set { json[field: "row_id"] = newValue } }
 }
 
 /// `tool.output_risk`.
@@ -211,6 +244,9 @@ public struct ToolOutputRiskPayload: JSONObjectBacked {
   public var risk: String? { get { json[field: "risk"] } set { json[field: "risk"] = newValue } }
   public var findings: [String]? { get { json[field: "findings"] } set { json[field: "findings"] = newValue } }
   public var redacted: Bool? { get { json[field: "redacted"] } set { json[field: "redacted"] = newValue } }
+  /// The call identity, as on `ToolStartPayload`.
+  public var callRowID: Int? { get { json[field: "call_row_id"] } set { json[field: "call_row_id"] = newValue } }
+  public var callIndex: Int? { get { json[field: "call_index"] } set { json[field: "call_index"] = newValue } }
 }
 
 /// `SubagentStatus`.

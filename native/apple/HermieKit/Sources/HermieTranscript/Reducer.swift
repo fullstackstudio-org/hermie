@@ -113,6 +113,10 @@ extension TranscriptReducer {
       next.byRowID[String(rowID)] = item.id
     }
 
+    if let callKey = JS.nonEmpty(item.callKey) {
+      next.byCallKey[callKey] = item.id
+    }
+
     switch item {
     case .tool(let tool):
       next.byToolID[tool.toolID] = tool.id

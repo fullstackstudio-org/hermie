@@ -255,6 +255,7 @@ private func rebuild(_ state: ChatState, _ list: [TranscriptItem]) -> ChatState 
   next.order = []
   next.order.reserveCapacity(list.count)
   next.byToolID = [:]
+  next.byCallKey = [:]
   next.byRowID = [:]
   next.byRequestID = [:]
   next.byApprovalID = [:]
@@ -286,6 +287,10 @@ private func rebuild(_ state: ChatState, _ list: [TranscriptItem]) -> ChatState 
 
     if let toolKey = toolKeyOf(placed) {
       next.byToolID[toolKey] = id
+    }
+
+    if let callKey = JS.nonEmpty(placed.callKey) {
+      next.byCallKey[callKey] = id
     }
 
     switch placed {
