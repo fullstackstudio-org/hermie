@@ -1,0 +1,13 @@
+{
+  "comment": "Which copies of the Hermes plugin scanner scripts/web/guard-scan.mjs runs. Each is fetched at the commit named here, so a CI run is reproducible. The gateways run the fork; upstream is scanned as well because the fork tracks it. These are the same two commits the plugin repository pins in .github/scanner-pins.json: the plugin's own guard-scan job is the one that blocks an import, and this one has to say the same thing earlier. Move a pin here in a pull request of its own, at the same time as the plugin's.",
+  "scanners": {
+    "fork": {
+      "repo": "https://github.com/fullstackstudio-org/hermes-agent.git",
+      "commit": "9cfa68a1aea8cedb521588a9c9ddef02676420d0"
+    },
+    "upstream": {
+      "repo": "https://github.com/NousResearch/hermes-agent.git",
+      "commit": "5fe12f373ea65c1601db678c7841168d6394382b"
+    }
+  }
+}
