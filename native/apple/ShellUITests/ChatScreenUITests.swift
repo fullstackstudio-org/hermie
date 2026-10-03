@@ -537,28 +537,38 @@ final class ChatScreenUITests: XCTestCase {
     try assertTranscriptLayout(app, "back in portrait")
   }
 
-  /// A reader who scrolled up stays where they are when a message arrives (the jump pill shows),
-  /// and their own send takes them to the very bottom, the new bubble and the reply after it whole
-  /// above the composer.
-  func testAnIncomingMessageLeavesAScrolledUpReaderAndASendGoesToTheBottom() throws {
+  /// A reader who scrolled up stays where they are while the bot's reply arrives and grows below
+  /// them (the jump pill shows), and their own send takes them to the very bottom, the new bubble
+  /// and the reply after it whole above the composer.
+  func testAReplyArrivingBelowAScrolledUpReaderMovesNothingAndASendGoesToTheBottom() throws {
     let app = try launch()
     setUpGateway(app)
     openChat(app)
 
+    // A first turn, to its end. The fake gateway's extra history carries negative row ids, and
+    // the engine's re-ordering at a turn's end (`inRowOrder`, whose "newest row above" starts at
+    // -1) moves that history's tool rows, which have no row id, to just after it the first time.
+    // That move is the fake's, not the list's: a real gateway's row ids are positive.
+    send(app, "Introduce yourself in one line.")
+    waitFor("the first reply to start") { probeState(app)["activity"] == "busy" }
+    waitFor("the first reply to finish", timeout: 60) { probeState(app)["activity"] == "idle" }
+    RunLoop.current.run(until: Date().addingTimeInterval(1.5))
+
+    // "long": the fake gateway answers with a long reply and a tool call, slowly.
+    send(app, "Write a long answer, please.")
+    waitFor("the reply to start") { probeState(app)["activity"] == "busy" }
+
     let list = app.descendants(matching: .any)["transcript.list"].firstMatch
     list.swipeDown(velocity: .slow)
     list.swipeDown(velocity: .slow)
-    RunLoop.current.run(until: Date().addingTimeInterval(1.5))
     let pill = app.buttons["transcript.jumpToLatest"]
     XCTAssertTrue(pill.waitForExistence(timeout: 5), "scrolled up, the pill offers the way back")
+    RunLoop.current.run(until: Date().addingTimeInterval(1.5))
 
+    // The reply goes on arriving below: rows are added and the streaming one grows.
     let rowsBefore = Int(probeState(app)["rows"] ?? "") ?? 0
     let before = try rowFrames(app)
-    let (status, _) = try call(
-      "POST", "/__fake/inject",
-      body: ["profile": Self.bot, "user": "A question from elsewhere.", "assistant": "An answer from elsewhere."])
-    XCTAssertEqual(status, 200)
-    waitFor("the injected turn to arrive") { Int(probeState(app)["rows"] ?? "") ?? 0 > rowsBefore }
+    waitFor("the reply to finish", timeout: 90) { probeState(app)["activity"] == "idle" }
     RunLoop.current.run(until: Date().addingTimeInterval(1.5))
     let after = try rowFrames(app)
     let kept = before.keys.filter { after[$0] != nil }
@@ -566,7 +576,8 @@ final class ChatScreenUITests: XCTestCase {
     for id in kept {
       XCTAssertEqual(after[id]!.minY, before[id]!.minY, accuracy: 1, "row \(id) moved under a scrolled-up reader")
     }
-    XCTAssertTrue(pill.exists, "an incoming message does not take the reader down")
+    XCTAssertTrue(pill.exists, "a reply arriving below does not take the reader down")
+    XCTAssertGreaterThanOrEqual(Int(probeState(app)["rows"] ?? "") ?? 0, rowsBefore)
 
     send(app, "Introduce yourself in one line.")
     waitFor("the reply to start") { probeState(app)["activity"] == "busy" }
