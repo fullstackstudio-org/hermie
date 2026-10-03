@@ -122,11 +122,47 @@ import Testing
       #expect(source.latest?.verdict == .advertised)
       #expect(source.latest?.passkeyAccepted == true)
 
-      // Something changed (a passkey enrolled): the announcement runs again on the same socket.
+      // Something changed (the passkey was revoked): the announcement runs again on the same socket.
+      // Its first call keeps what this socket advertised, so a request raised between the two calls
+      // still finds this client; the second call then withdraws `passkey`.
       source.setPolicy(Self.policy(hasCredential: false))
       await h.connection.refreshCapabilities()
       try await eventually("the second report") { source.latest?.verdict == .notEnrolled }
-      #expect(socket.sent.filter { $0["method"] == "client.capabilities" }.count == 3)
+      let again = socket.sent.filter { $0["method"] == "client.capabilities" }.dropFirst(2)
+      #expect(again.count == 2)
+      #expect(again.first?["params"] == calls.last?["params"], "the first call of a refresh keeps the advertisement")
+      #expect(again.last?["params"] == ["server_requests": true], "and the second withdraws it")
+    }
+  }
+
+  @Test("once passkey is newly accepted on a socket, the open requests of the attached sessions are read again")
+  func refetchOpenRequests() async throws {
+    let source = ConfirmCapabilitySource(policy: Self.policy(hasCredential: false))
+    var options = HarnessOptions()
+    options.confirm = source
+
+    try await withHarness(options) { h in
+      var first = Self.first().json
+      first["confirm"] = ["passkey"]
+      h.gateway.with { $0.scriptedResults["client.capabilities"] = .object(first) }
+      await h.connection.start()
+      try await h.waitFor(.ready)
+      try await eventually("the first report") { source.latest?.verdict == .notEnrolled }
+
+      // A chat is attached on this socket; the gateway hid its gated request from it so far.
+      _ = try await h.connection.request("session.resume", params: ["session_id": "s1"])
+      let socket = try #require(h.gateway.lastSocket)
+      let asked = { socket.sent.filter { $0["method"] == "session.events.since" }.count }
+      let before = asked()
+
+      // A passkey was enrolled: `passkey` is accepted now, so the gated requests are visible.
+      source.setPolicy(Self.policy())
+      await h.connection.refreshCapabilities()
+      try await eventually("passkey accepted") { source.latest?.passkeyAccepted == true }
+      try await eventually("the open requests read again") { asked() > before }
+
+      let call = try #require(socket.sent.last { $0["method"] == "session.events.since" })
+      #expect(call["params"]?["session_id"] == "s1")
     }
   }
 

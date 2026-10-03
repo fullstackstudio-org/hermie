@@ -140,6 +140,12 @@ public actor GatewayConnection {
   var heartbeatTimer: TimerSlot?
   var openDeliveries: Set<UInt64> = []
   var nextDeliveryToken: UInt64 = 0
+  /// What the attached socket advertised for `confirm` and got accepted, `nil` while nothing was.
+  /// A refresh's first call repeats it, so the gateway never sees this client without its levels.
+  var confirmAdvertised: ClientCapabilitiesParams?
+  /// Runtime session ids this connection resumed or created, in first-seen order: the sessions
+  /// whose open requests are read again once a socket gains the `passkey` level.
+  var attachedSessions: [String] = []
 
   // MARK: Bookkeeping
 
@@ -476,11 +482,25 @@ public actor GatewayConnection {
 
     let (id, promise) = try clientCall(method, params: params, timeout: window)
 
-    return try await withTaskCancellationHandler {
+    let reply = try await withTaskCancellationHandler {
       try await promise.value()
     } onCancel: {
       Task { await self.abandonCall(id) }
     }
+
+    noteAttached(method, reply.result)
+    return reply
+  }
+
+  /// Remember the runtime session a `session.resume` or `session.create` answer names.
+  private func noteAttached(_ method: String, _ result: JSONValue) {
+    guard Self.isFirstSessionMethod(method), let session = result["session_id"]?.stringValue, !session.isEmpty,
+      !attachedSessions.contains(session)
+    else {
+      return
+    }
+
+    attachedSessions.append(session)
   }
 
   static func isFirstSessionMethod(_ method: String) -> Bool {

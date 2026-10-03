@@ -22,6 +22,12 @@ private func passkeyWait(_ what: String, _ condition: @MainActor () async throws
   }
 }
 
+/// How many `client.capabilities` calls so far offered `passkey`.
+private func passkeyAdvertisements(_ gateway: FakeGateway) async throws -> Int {
+  let calls = try await gateway.control("GET", "/__fake/state")["clientCapabilities"]?.arrayValue ?? []
+  return calls.filter { $0["confirm"]?.arrayValue?.contains(.string("passkey")) == true }.count
+}
+
 /// `FakeGateway.with` a gateway that knows the passkey level, with a body on the main actor.
 private func withPasskeyGateway(_ body: @escaping @MainActor @Sendable (FakeGateway) async throws -> Void) async throws {
   try await FakeGateway.with(PasskeyApp.options) { gateway in try await body(gateway) }
@@ -42,20 +48,23 @@ private struct PasskeyApp {
 
   static func open(
     _ gateway: FakeGateway,
+    storedID: String = "g-passkey",
     pins: InMemoryPasskeyPins = InMemoryPasskeyPins(),
-    phone: SoftPasskeyAuthenticator = SoftPasskeyAuthenticator()
+    phone: SoftPasskeyAuthenticator = SoftPasskeyAuthenticator(),
+    backoff: Duration = .milliseconds(100),
+    openChat: Bool = true
   ) async throws -> PasskeyApp {
     let native = try await NativeSession(gateway: gateway)
     try await native.signIn()
 
     var options = GatewaySession.Options()
-    options.connection.backoff = { _ in .milliseconds(100) }
+    options.connection.backoff = { _ in backoff }
     options.passkey = PasskeySetup(
       configuration: PasskeyConfiguration(rpID: SoftPasskeyAuthenticator.nativeRPID, displayName: "Test phone"),
       authenticator: phone,
       pins: pins
     )
-    let record = GatewayRecord(id: "g-passkey", name: "fake", address: gateway.baseURL, authKind: .nativePKCE, addedAt: 0)
+    let record = GatewayRecord(id: storedID, name: "fake", address: gateway.baseURL, authKind: .nativePKCE, addedAt: 0)
     let session = try GatewaySession(
       record: record,
       credentials: native.credentials,
@@ -68,7 +77,9 @@ private struct PasskeyApp {
     try await passkeyWait("the socket and the roster") {
       session.status.phase == .ready && session.chatList.rows["researcher"] != nil
     }
-    try await session.open("researcher")
+    if openChat {
+      try await session.open("researcher")
+    }
     try await passkeyWait("the first capability report") { passkeys.capability != nil }
 
     return PasskeyApp(gateway: gateway, session: session, passkeys: passkeys, phone: phone, pins: pins)
@@ -284,6 +295,46 @@ extension Integration {
 
         let passkeys = app.passkeys
         try await passkeyWait("passkey withdrawn from the socket") { passkeys.capability?.verdict == .notEnrolled }
+        await app.session.shutdown()
+      }
+    }
+
+    @Test("a passkey confirm raised while this socket was down reaches the model after the reconnect")
+    func raisedWhileDown() async throws {
+      try await withPasskeyGateway { gateway in
+        // This device comes back slowly; a second device of the same person stays capable meanwhile,
+        // so the gateway has someone to send the request to while this socket is down.
+        let app = try await PasskeyApp.open(gateway, backoff: .seconds(2), openChat: false)
+        try await app.enrol()
+        let other = try await PasskeyApp.open(gateway, storedID: "g-other", phone: app.phone.clone())
+        let otherModel = other.passkeys
+        try await passkeyWait("passkey accepted on the second socket") { otherModel.capability?.passkeyAccepted == true }
+
+        // The researcher's chat is attached on this device's connection, and only there: no chat
+        // store replays it after the reconnect, so what the connection asks is all it gets.
+        let stored = try #require(await app.session.roster.bot(named: "researcher")?.canonical?.id)
+        _ = try await app.session.link.requestReply("session.resume", params: ["session_id": .string(stored)])
+
+        let advertised = try await passkeyAdvertisements(gateway)
+        try await gateway.dropSockets()
+        try await passkeyWait("the second device advertising again") {
+          try await passkeyAdvertisements(gateway) > advertised
+        }
+
+        let raised = try await gateway.control(
+          "POST",
+          "/__fake/request",
+          body: .object([
+            "method": "confirm",
+            "params": .object(["level": "passkey", "title": "Rotate keys", "summary": "Rotate the deploy keys."])
+          ])
+        )
+        let id = try #require(raised["request_id"]?.stringValue)
+        let passkeys = app.passkeys
+        try await passkeyWait("the confirmation on the device that was away") { passkeys.confirmation(id) != nil }
+        #expect(app.passkeys.confirmation(id)?.phase == .waiting)
+
+        await other.session.shutdown()
         await app.session.shutdown()
       }
     }

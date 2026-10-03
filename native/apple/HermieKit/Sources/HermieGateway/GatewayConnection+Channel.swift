@@ -28,6 +28,8 @@ extension GatewayConnection {
     attachedGeneration = generation
     attachedOutbox = outbox
     heartbeat.lastLivenessAt = clock.now
+    // A new socket starts without an advertisement at the gateway.
+    confirmAdvertised = nil
   }
 
   /// `detach`: drop the generation and fail every call in flight with `error`.
@@ -206,7 +208,10 @@ extension GatewayConnection {
   ///
   /// With a `confirm` source the announcement is the contract's two calls: the
   /// first result decides the second (`ConfirmAdvertisement.secondCall`), and
-  /// the source hears what came back.
+  /// the source hears what came back. Every call replaces the advertisement at
+  /// the gateway, so on a socket that already advertised levels the first call
+  /// repeats them: a request raised between the two calls still finds this
+  /// client. When the second call would advertise nothing, it withdraws them.
   func advertiseCapabilities() {
     guard let source = options.confirm else {
       _ = try? channelCall(
@@ -217,17 +222,16 @@ extension GatewayConnection {
       return
     }
 
+    let carried = confirmAdvertised
+    let params = carried ?? ClientCapabilitiesParams(serverRequests: true)
+
     guard let generation = attachedGeneration,
-      let (_, first) = try? channelCall(
-        RPC.ClientCapabilities.name,
-        params: ClientCapabilitiesParams(serverRequests: true).jsonValue,
-        timeout: options.requestTimeout
-      )
+      let (_, first) = try? channelCall(RPC.ClientCapabilities.name, params: params.jsonValue, timeout: options.requestTimeout)
     else {
       return
     }
 
-    spawn { await self.completeCapabilities(first, generation: generation, source: source) }
+    spawn { await self.completeCapabilities(first, generation: generation, source: source, carried: carried != nil) }
   }
 
   /// Run the two-step announcement again on the live socket: what the app can do
@@ -244,15 +248,19 @@ extension GatewayConnection {
   private func completeCapabilities(
     _ first: Promise<RPCReply<JSONValue>>,
     generation: UInt64,
-    source: ConfirmCapabilitySource
+    source: ConfirmCapabilitySource,
+    carried: Bool
   ) async {
     let parsed = (try? await first.value().result).flatMap(ClientCapabilitiesResult.init(jsonValue:))
     let policy = source.policy
     let verdict = ConfirmAdvertisement.verdict(parsed?.confirmPasskey, policy: policy.passkey)
+    let decided = parsed.flatMap { ConfirmAdvertisement.secondCall(after: $0, policy: policy) }
+    // The first call repeated levels this client may no longer offer: without a second call of
+    // its own, the second call takes them back.
+    let withdrawal = carried ? ClientCapabilitiesParams(serverRequests: true) : nil
 
     // Re-check after the suspension: the socket the first call went out on may be gone.
-    guard attachedGeneration == generation, let parsed,
-      let params = ConfirmAdvertisement.secondCall(after: parsed, policy: policy),
+    guard attachedGeneration == generation, parsed != nil, let params = decided ?? withdrawal,
       let (_, second) = try? channelCall(RPC.ClientCapabilities.name, params: params.jsonValue, timeout: options.requestTimeout)
     else {
       source.record(ConfirmCapabilityReport(first: parsed, verdict: verdict, accepted: []))
@@ -264,8 +272,40 @@ extension GatewayConnection {
     let accepted = (answer?.confirm ?? []).filter { wanted.contains($0) }
     // Advertised but refused: the gateway did not take it after all.
     let outcome = verdict == .advertised && !accepted.contains(.passkey) ? .notOffered : verdict
+    let report = ConfirmCapabilityReport(first: parsed, verdict: outcome, accepted: accepted)
 
-    source.record(ConfirmCapabilityReport(first: parsed, verdict: outcome, accepted: accepted))
+    // Re-check after the suspension: only the socket the calls went out on is described.
+    guard attachedGeneration == generation else {
+      source.record(report)
+      return
+    }
+
+    let gained = accepted.contains(.passkey) && confirmAdvertised?.confirm?.contains(.passkey) != true
+    confirmAdvertised = accepted.isEmpty ? nil : params
+    source.record(report)
+
+    if gained {
+      refetchOpenRequests()
+    }
+  }
+
+  /// The gateway shows a request gated at `passkey` only to a connection that advertised the
+  /// level, and the reconnect replay asks before the second call has. Once a socket gains the
+  /// level, the open requests of every session this connection knows are read again: their
+  /// answers re-deliver what is still open (`deliverOpenRequests`). Their events are not
+  /// dispatched; the socket has delivered those live since it opened, and the replay the rest.
+  func refetchOpenRequests() {
+    var sessions = attachedSessions
+
+    for session in replay.watermarks.keys where !sessions.contains(session) {
+      sessions.append(session)
+    }
+
+    for session in sessions {
+      let lastSeen = replay.watermarks[session] ?? 0
+      let params: JSONValue = ["session_id": .string(session), "last_seen": .number(lastSeen)]
+      _ = try? clientCall(RPC.SessionEventsSince.name, params: params, timeout: ReplayState.requestTimeout)
+    }
   }
 
   // MARK: Server→client requests
