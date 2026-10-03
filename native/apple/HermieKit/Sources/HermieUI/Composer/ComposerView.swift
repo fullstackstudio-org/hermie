@@ -79,19 +79,19 @@ public struct ComposerView: View {
     .padding(.top, 6)
     .padding(.bottom, 8)
     .overlay { dropHint }
-    .onDrop(of: [.fileURL, .image], isTargeted: $dropTargeted) { providers in
-      ingest { await AttachmentIntake.stage(dropped: providers) }
-      return true
-    }
+    .onDrop(of: [.fileURL, .image, .item], delegate: AttachmentDropDelegate(tray: model.tray, targeted: $dropTargeted))
     .attachmentPickers(
       photos: $showPhotos, files: $showFiles, selection: $photoSelection,
-      onPhotos: { items in ingest { await AttachmentIntake.stage(photos: items) } },
-      onFiles: { urls in ingest { await AttachmentIntake.stage(urls: urls) } }
+      onPhotos: { items in AttachmentIntake.addPhotos(items, to: model.tray) },
+      onFiles: { urls in AttachmentIntake.addFiles(urls, to: model.tray) }
     )
     #if os(iOS)
-      .fullScreenCover(isPresented: $showCamera) {
+      // A sheet, not a full-screen cover: a cover fires the chat's `onDisappear`, which stops the
+      // feed and empties the tray the photo is about to land in (the photo library and the file
+      // importer are sheets too, and leave the chat standing).
+      .sheet(isPresented: $showCamera) {
         CameraPicker { data in
-          ingest { await AttachmentIntake.stage(image: data, type: .jpeg) }
+          AttachmentIntake.addCameraPhoto(data, to: model.tray)
         }
         .ignoresSafeArea()
       }
@@ -133,7 +133,7 @@ public struct ComposerView: View {
         return true
       },
       onPaste: { items in
-        ingest { await AttachmentIntake.stage(paste: items) }
+        AttachmentIntake.addPasted(items, to: model.tray)
       }
     )
     // The placeholder is the text view's own (`ComposerTextField`), drawn on the typed text's first
@@ -168,24 +168,6 @@ public struct ComposerView: View {
   private var controlHeight: CGFloat { min(scaledControlHeight, Self.baseControlHeight * 1.5) }
 
   // MARK: Attachments
-
-  /// Stage what a picker, a drop or a paste brought, off the main actor, and say so when a file
-  /// could not be copied.
-  private func ingest(_ work: @escaping @MainActor () async -> AttachmentIntake.Outcome) {
-    let model = self.model
-
-    Task { @MainActor in
-      let outcome = await work()
-
-      if !outcome.files.isEmpty {
-        model.tray.add(outcome.files)
-      }
-
-      if let failure = outcome.failure {
-        model.report(NativeStrings.Composer.Attach.stagingFailed(failure))
-      }
-    }
-  }
 
   /// "Drop to attach", over the composer while a file hovers on it.
   @ViewBuilder private var dropHint: some View {
@@ -456,7 +438,9 @@ extension View {
       maxSelectionCount: 10,
       matching: .any(of: [.images, .videos]),
       // A HEIC photograph arrives as a JPEG: the gateway reads that as an image.
-      preferredItemEncoding: .compatible
+      // What the library holds: a movie is not transcoded to be picked. A photo is made ready for the
+      // gateway (location removed, HEIC as JPEG) by `AttachmentStaging.stage(libraryItem:name:)`.
+      preferredItemEncoding: .current
     )
     .onChange(of: selection.wrappedValue) { _, items in
       guard !items.isEmpty else { return }

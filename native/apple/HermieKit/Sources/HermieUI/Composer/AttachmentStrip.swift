@@ -59,7 +59,7 @@ struct AttachmentChip: View {
     .accessibilityValue(Self.spokenStatus(item))
     .accessibilityAction(named: Text(NativeStrings.Composer.Attach.remove(name: item.name)), onRemove)
     .accessibilityActions {
-      if item.status == .failed, item.problem?.isRetryable ?? true {
+      if item.canRetry {
         Button(NativeStrings.Composer.Attach.retry(name: item.name), action: onRetry)
       }
     }
@@ -119,7 +119,7 @@ struct AttachmentChip: View {
       }
       .frame(maxWidth: .infinity, alignment: .leading)
 
-      if item.status == .failed, item.problem?.isRetryable ?? true {
+      if item.canRetry {
         Button(action: onRetry) {
           Image(systemName: "arrow.clockwise")
             .font(.body.weight(.semibold))
@@ -197,7 +197,7 @@ struct AttachmentChip: View {
     case .ready:
       return AttachmentFormat.size(item.size)
     case .working:
-      if item.kind == .image {
+      if item.preparing || item.kind == .image {
         return NativeStrings.Composer.Attach.reading
       }
 
@@ -269,11 +269,6 @@ struct AttachmentThumbnail: View {
 }
 
 extension AttachmentProblem {
-  /// Whether trying again could end differently.
-  var isRetryable: Bool {
-    if case .tooLarge = self { false } else { true }
-  }
-
   /// What the chip says, in the reader's language.
   var message: String {
     switch self {
@@ -338,6 +333,18 @@ extension NativeStrings.Composer {
         table: "Native",
         bundle: .module
       )
+    }
+    /// Photo
+    static var photo: String {
+      String(localized: "native.composer.attach.photo", table: "Native", bundle: .module)
+    }
+    /// Video
+    static var video: String {
+      String(localized: "native.composer.attach.video", table: "Native", bundle: .module)
+    }
+    /// Attachment
+    static var item: String {
+      String(localized: "native.composer.attach.item", table: "Native", bundle: .module)
     }
     /// Preparing…
     static var reading: String {
@@ -406,15 +413,6 @@ extension NativeStrings.Composer {
     /// Attachments
     static var list: String {
       String(localized: "native.composer.attach.list", table: "Native", bundle: .module)
-    }
-    /// The file could not be attached: {reason}
-    static func stagingFailed(_ reason: String) -> String {
-      String(
-        localized: "native.composer.attach.stagingFailed",
-        defaultValue: "The file could not be attached: \(reason)",
-        table: "Native",
-        bundle: .module
-      )
     }
   }
 }

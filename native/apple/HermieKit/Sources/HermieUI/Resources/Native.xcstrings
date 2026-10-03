@@ -466,6 +466,30 @@
         }
       }
     },
+    "native.composer.attach.item" : {
+      "comment" : "The name an attachment chip carries while a dropped item that has no name is being prepared.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Anhang"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Attachment"
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Bijlage"
+          }
+        }
+      }
+    },
     "native.composer.attach.list" : {
       "comment" : "Accessibility label of the row of attachments above the message field.",
       "extractionState" : "manual",
@@ -486,6 +510,30 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Bijlagen"
+          }
+        }
+      }
+    },
+    "native.composer.attach.photo" : {
+      "comment" : "The name an attachment chip carries while a photo from the library is being prepared.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Foto"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Photo"
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Foto"
           }
         }
       }
@@ -730,30 +778,6 @@
         }
       }
     },
-    "native.composer.attach.stagingFailed" : {
-      "comment" : "Shown above the message field when a picked, dropped or pasted file could not be copied for sending. The argument is the reason.",
-      "extractionState" : "manual",
-      "localizations" : {
-        "de" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Die Datei konnte nicht angehängt werden: %@"
-          }
-        },
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "The file could not be attached: %@"
-          }
-        },
-        "nl" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Het bestand kon niet worden bijgevoegd: %@"
-          }
-        }
-      }
-    },
     "native.composer.attach.uploading" : {
       "comment" : "Under an attachment chip while its file is uploaded. The argument is the percentage done.",
       "extractionState" : "manual",
@@ -798,6 +822,30 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Uploaden…"
+          }
+        }
+      }
+    },
+    "native.composer.attach.video" : {
+      "comment" : "The name an attachment chip carries while a video from the library is being prepared.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Video"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Video"
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Video"
           }
         }
       }

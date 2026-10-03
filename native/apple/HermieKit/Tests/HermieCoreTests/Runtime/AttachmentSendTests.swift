@@ -53,6 +53,28 @@ private func picked(_ name: String, _ type: String?, bytes: Int = 3) throws -> P
     await harness.shutdown()
   }
 
+  @Test func aGateway413OnTheUploadIsATooLargeProblemOnTheChip() async throws {
+    let harness = try await storeHarness()
+    harness.link.onUpload { _ in
+      throw GatewayError(.protocol, "too big", status: 413, hint: "File is too large")
+    }
+    let store = harness.store
+    let tray = await MainActor.run {
+      AttachmentTray(
+        AttachmentTray.Dependencies(upload: { file, progress in
+          try await store.uploadAttachment(bot, file: file, onProgress: progress)
+        }))
+    }
+
+    _ = await MainActor.run { tray.add([try! picked("a.pdf", "application/pdf")]) }
+    try await eventually("the chip to fail") { await MainActor.run { tray.items.first?.status == .failed } }
+
+    let problem = await MainActor.run { tray.items.first?.problem }
+    #expect(problem == .tooLarge(limitBytes: AttachmentRules.maxFileBytes))
+    #expect(await MainActor.run { tray.items.first?.canRetry } == false)
+    await harness.shutdown()
+  }
+
   @Test func theGatewaysResolvedPathWinsOverTheOneAskedFor() async throws {
     let harness = try await storeHarness()
     harness.link.onUpload { _ in "/real/home/work/space/uploads/x-a.pdf" }
@@ -289,6 +311,25 @@ private struct ComposerRig {
 
     #expect(rig.link.calls(RPC.ImageAttachBytes.name).count == 1, "the image went once")
     #expect(rig.link.calls(RPC.PromptSubmit.name).count == 1, "and so did the turn")
+    await rig.shutdown()
+  }
+
+  @Test func sendWaitsForAPickedItemStillBeingCopied() async throws {
+    let rig = try await ComposerRig.opened()
+    let composer = rig.composer
+
+    composer.draft = "see this"
+    let id = composer.tray.prepare([("Photo", .image)])[0]
+    #expect(!composer.canSubmit, "the chip is there, its copy is not")
+
+    await composer.submit()
+    #expect(rig.link.calls(RPC.PromptSubmit.name).isEmpty)
+    #expect(composer.draft == "see this")
+
+    composer.tray.provide(id, .success(try picked("photo.png", "image/png")))
+    let tray = composer.tray
+    try await eventually("the chip to be ready") { await MainActor.run { !tray.blocked } }
+    #expect(composer.canSubmit)
     await rig.shutdown()
   }
 

@@ -42,8 +42,12 @@
 	<string>Zum Anhängen ablegen</string>
 	<key>native.composer.attach.files</key>
 	<string>Dateien</string>
+	<key>native.composer.attach.item</key>
+	<string>Anhang</string>
 	<key>native.composer.attach.list</key>
 	<string>Anhänge</string>
+	<key>native.composer.attach.photo</key>
+	<string>Foto</string>
 	<key>native.composer.attach.photoLibrary</key>
 	<string>Fotomediathek</string>
 	<key>native.composer.attach.problem.failed</key>
@@ -64,12 +68,12 @@
 	<string>%@ entfernen</string>
 	<key>native.composer.attach.retry</key>
 	<string>%@ erneut versuchen</string>
-	<key>native.composer.attach.stagingFailed</key>
-	<string>Die Datei konnte nicht angehängt werden: %@</string>
 	<key>native.composer.attach.uploading</key>
 	<string>Wird hochgeladen %lld %%</string>
 	<key>native.composer.attach.uploadingStart</key>
 	<string>Wird hochgeladen…</string>
+	<key>native.composer.attach.video</key>
+	<string>Video</string>
 	<key>native.composer.attach.waitingHint</key>
 	<string>Wartet, bis die Anhänge fertig sind</string>
 	<key>native.composer.failed</key>

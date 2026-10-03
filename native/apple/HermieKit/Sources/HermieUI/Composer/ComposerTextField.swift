@@ -571,11 +571,19 @@ struct ComposerTextField {
     }
 
     override func validateUserInterfaceItem(_ item: any NSValidatedUserInterfaceItem) -> Bool {
-      if item.action == #selector(paste(_:)), !Self.attachments(on: .general).isEmpty {
+      // Asked for on every menu pass, so nothing is read: only whether the pasteboard could give
+      // files or a picture. What it holds is read when Paste is chosen.
+      if item.action == #selector(paste(_:)), Self.canPasteAttachment(from: .general) {
         return true
       }
 
       return super.validateUserInterfaceItem(item)
+    }
+
+    /// Whether the pasteboard has copied files or a picture, without reading either.
+    static func canPasteAttachment(from board: NSPasteboard) -> Bool {
+      board.canReadObject(forClasses: [NSURL.self], options: [.urlReadingFileURLsOnly: true])
+        || board.availableType(from: [.png, .tiff]) != nil
     }
 
     /// What on the pasteboard is to be attached rather than typed: copied files first, then a

@@ -68,6 +68,11 @@ public enum AttachmentRules {
     return "\(base.isEmpty ? "image" : base).\(given)"
   }
 
+  /// The most the road a file takes accepts: 25 MiB for an image, 100 MiB for anything else.
+  public static func cap(forName name: String, mimeType: String?) -> Int {
+    imageName(for: name, mimeType: mimeType) == nil ? maxFileBytes : maxImageBytes
+  }
+
   /// A file name that cannot mean anything but itself: path separators, `..`, control characters
   /// and leading dots are removed rather than escaped (`sanitiseUploadName`).
   public static func sanitisedName(_ name: String) -> String {

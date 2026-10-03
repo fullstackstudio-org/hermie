@@ -42,8 +42,12 @@
 	<string>Zet neer om bij te voegen</string>
 	<key>native.composer.attach.files</key>
 	<string>Bestanden</string>
+	<key>native.composer.attach.item</key>
+	<string>Bijlage</string>
 	<key>native.composer.attach.list</key>
 	<string>Bijlagen</string>
+	<key>native.composer.attach.photo</key>
+	<string>Foto</string>
 	<key>native.composer.attach.photoLibrary</key>
 	<string>Fotobibliotheek</string>
 	<key>native.composer.attach.problem.failed</key>
@@ -64,12 +68,12 @@
 	<string>%@ verwijderen</string>
 	<key>native.composer.attach.retry</key>
 	<string>%@ opnieuw proberen</string>
-	<key>native.composer.attach.stagingFailed</key>
-	<string>Het bestand kon niet worden bijgevoegd: %@</string>
 	<key>native.composer.attach.uploading</key>
 	<string>Uploaden %lld%%</string>
 	<key>native.composer.attach.uploadingStart</key>
 	<string>Uploaden…</string>
+	<key>native.composer.attach.video</key>
+	<string>Video</string>
 	<key>native.composer.attach.waitingHint</key>
 	<string>Wacht tot de bijlagen klaar zijn</string>
 	<key>native.composer.failed</key>

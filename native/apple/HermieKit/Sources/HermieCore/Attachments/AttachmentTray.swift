@@ -34,8 +34,9 @@ public enum AttachmentProblem: Sendable, Equatable {
   /// The file could not be read from this device.
   case unreadable(message: String)
 
-  /// A retry would be refused the same way.
-  var retryable: Bool {
+  /// Whether trying again could end differently: not for a file over its cap, which would be
+  /// refused the same way.
+  public var retryable: Bool {
     if case .tooLarge = self { false } else { true }
   }
 
@@ -70,6 +71,22 @@ public enum AttachmentUploadError: Error, Sendable, Equatable {
   case noWorkspace
 }
 
+/// Why a picked file could not be copied in for sending.
+public enum StagingFailure: Error, Sendable, Equatable {
+  /// Over the cap of the road it takes, known before a byte was copied. `size` is nil when the
+  /// source did not say.
+  case tooLarge(limitBytes: Int, size: Int?)
+  /// The file could not be read or copied.
+  case unreadable(message: String)
+
+  var problem: AttachmentProblem {
+    switch self {
+    case .tooLarge(let limit, _): .tooLarge(limitBytes: limit)
+    case .unreadable(let message): .unreadable(message: message)
+    }
+  }
+}
+
 public enum AttachmentKind: Sendable, Equatable {
   case image
   case file
@@ -90,6 +107,10 @@ public struct StagedAttachment: Sendable, Equatable, Identifiable {
   public var size: Int
   public var status: AttachmentStatus
   public var problem: AttachmentProblem?
+  /// Picked, and still being copied in: there is no file to read or upload yet.
+  public var preparing = false
+  /// Whether a failed chip can be started again (it has a file, and the problem is not a cap).
+  public var canRetry = false
   /// How much of an upload has gone, 0 to 1; nil for an image (read, not uploaded) or before it starts.
   public var progress: Double?
   /// Where a ready image can be drawn from, when it is small enough to show as its own thumbnail.
@@ -153,15 +174,16 @@ public final class AttachmentTray {
   /// A chip and what only the tray holds: the file, the work, the attempt.
   @MainActor fileprivate final class Entry {
     var view: StagedAttachment
-    let file: PickedFile
+    /// Nil while the chip is still being prepared, and for one that never got a file.
+    var file: PickedFile?
     /// The name an image is attached under (`AttachmentRules.imageName`); unused for a file.
-    let imageName: String
+    var imageName: String
     var input: OutgoingAttachment?
     var task: Task<Void, Never>?
     /// Bumped on every start: an answer for an earlier attempt is dropped.
     var attempt = 0
 
-    init(view: StagedAttachment, file: PickedFile, imageName: String) {
+    init(view: StagedAttachment, file: PickedFile?, imageName: String) {
       self.view = view
       self.file = file
       self.imageName = imageName
@@ -207,6 +229,56 @@ public final class AttachmentTray {
     return files.count
   }
 
+  /// What was just picked, before anything is copied: one chip each, marked preparing, so the send
+  /// waits for the copies ("send waits for all") and the reader sees at once that something
+  /// arrived. Answers the chips' ids, for `provide(_:_:)`.
+  public func prepare(_ picks: [(name: String, kind: AttachmentKind)]) -> [String] {
+    let ids = picks.map { pick -> String in
+      let id = deps.newID()
+      var view = StagedAttachment(id: id, kind: pick.kind, name: pick.name, size: 0, status: .working)
+      view.preparing = true
+      entries.append(Entry(view: view, file: nil, imageName: pick.name))
+      return id
+    }
+
+    publish()
+    return ids
+  }
+
+  /// What came of preparing one chip: the copy, which then starts on its road, or why there is
+  /// none. A chip that was removed (or whose chat was left) meanwhile does not take the file: it
+  /// is deleted here, and nothing is read or uploaded.
+  public func provide(_ id: String, _ result: Result<PickedFile, StagingFailure>) {
+    guard let entry = entries.first(where: { $0.view.id == id }), entry.view.preparing else {
+      if case .success(let file) = result {
+        AttachmentStaging.discard(file.url)
+      }
+
+      return
+    }
+
+    entry.view.preparing = false
+
+    switch result {
+    case .success(let file):
+      let imageName = AttachmentRules.imageName(for: file.name, mimeType: file.mimeType)
+      entry.file = file
+      entry.imageName = imageName ?? file.name
+      entry.view.kind = imageName == nil ? .file : .image
+      entry.view.name = file.name.isEmpty ? (imageName ?? entry.view.name) : file.name
+      entry.view.size = file.size
+      start(entry)
+    case .failure(let failure):
+      if case .tooLarge(_, let size?) = failure {
+        entry.view.size = size
+      }
+
+      update(entry, status: .failed, problem: failure.problem)
+    }
+
+    publish()
+  }
+
   /// Take a chip away. A running upload is cancelled; an uploaded file stays on the gateway.
   public func remove(_ id: String) {
     guard let entry = entries.first(where: { $0.view.id == id }) else {
@@ -222,7 +294,7 @@ public final class AttachmentTray {
   /// Start a failed chip again. An oversized file is not retried: it would be refused the same way.
   public func retry(_ id: String) {
     guard let entry = entries.first(where: { $0.view.id == id }), entry.view.status == .failed,
-      entry.view.problem?.retryable ?? true
+      entry.file != nil, entry.view.problem?.retryable ?? true
     else {
       return
     }
@@ -289,7 +361,10 @@ public final class AttachmentTray {
     entry.input = nil
 
     let attempt = entry.attempt
-    let file = entry.file
+
+    guard let file = entry.file else {
+      return
+    }
 
     update(entry, status: .working, problem: nil, progress: nil, previewURL: nil)
 
@@ -395,6 +470,7 @@ public final class AttachmentTray {
     entry.view.problem = problem
     entry.view.progress = progress
     entry.view.previewURL = previewURL
+    entry.view.canRetry = status == .failed && entry.file != nil && (problem?.retryable ?? true)
   }
 
   private func publish() {
@@ -402,13 +478,9 @@ public final class AttachmentTray {
   }
 
   private func discardFile(of entry: Entry) {
-    let url = entry.file.url
-    // Only what the app copied: the staging folder is the tray's own.
-    guard url.path.hasPrefix(AttachmentStaging.directory.path) else {
-      return
+    if let url = entry.file?.url {
+      AttachmentStaging.discard(url)
     }
-
-    try? FileManager.default.removeItem(at: url)
   }
 }
 
@@ -433,8 +505,18 @@ public enum AttachmentStaging {
     return folder.appendingPathComponent(AttachmentRules.sanitisedName(name))
   }
 
+  /// The size of the file at `url`, which the caller can read (inside its security scope), or nil.
+  public static func size(of url: URL) -> Int? {
+    try? url.resourceValues(forKeys: [.fileSizeKey]).fileSize
+  }
+
   /// Copy a picked file in (reading it inside its security scope), and describe the copy.
-  public static func stage(copying source: URL, name: String? = nil, mimeType: String? = nil) throws -> PickedFile {
+  ///
+  /// The source's size is read first: a file over the cap of the road it would take (25 MiB as an
+  /// image, 100 MiB as anything else) is refused before a byte is copied.
+  public static func stage(
+    copying source: URL, name: String? = nil, mimeType: String? = nil
+  ) throws(StagingFailure) -> PickedFile {
     let scoped = source.startAccessingSecurityScopedResource()
 
     defer {
@@ -444,20 +526,52 @@ public enum AttachmentStaging {
     }
 
     let display = name ?? source.lastPathComponent
-    let destination = try slot(for: display)
+    let known = size(of: source)
+    let limit = AttachmentRules.cap(forName: display, mimeType: mimeType)
 
-    try FileManager.default.copyItem(at: source, to: destination)
+    if let known, known > limit {
+      throw .tooLarge(limitBytes: limit, size: known)
+    }
 
-    let size = (try? destination.resourceValues(forKeys: [.fileSizeKey]).fileSize) ?? 0
-    return PickedFile(name: display, mimeType: mimeType, size: size, url: destination)
+    do {
+      let destination = try slot(for: display)
+
+      try FileManager.default.copyItem(at: source, to: destination)
+
+      return PickedFile(name: display, mimeType: mimeType, size: size(of: destination) ?? known ?? 0, url: destination)
+    } catch {
+      throw .unreadable(message: (error as NSError).localizedDescription)
+    }
   }
 
-  /// Stage bytes that have no file (a paste, a dropped image).
-  public static func stage(data: Data, name: String, mimeType: String? = nil) throws -> PickedFile {
-    let destination = try slot(for: name)
+  /// Stage bytes that have no file (a paste, a dropped image), refusing what is over the cap.
+  public static func stage(data: Data, name: String, mimeType: String? = nil) throws(StagingFailure) -> PickedFile {
+    let limit = AttachmentRules.cap(forName: name, mimeType: mimeType)
 
-    try data.write(to: destination, options: .atomic)
-    return PickedFile(name: name, mimeType: mimeType, size: data.count, url: destination)
+    if data.count > limit {
+      throw .tooLarge(limitBytes: limit, size: data.count)
+    }
+
+    do {
+      let destination = try slot(for: name)
+
+      try data.write(to: destination, options: .atomic)
+      return PickedFile(name: name, mimeType: mimeType, size: data.count, url: destination)
+    } catch {
+      throw .unreadable(message: (error as NSError).localizedDescription)
+    }
+  }
+
+  /// Delete a staged copy, and the folder it was made in. Anything outside the staging folder is
+  /// not the tray's to delete and is left alone.
+  public static func discard(_ url: URL) {
+    let folder = url.deletingLastPathComponent()
+
+    guard folder.deletingLastPathComponent().standardizedFileURL == directory.standardizedFileURL else {
+      return
+    }
+
+    try? FileManager.default.removeItem(at: folder)
   }
 
   /// Remove the copies left from an earlier run (a crash, a send that never came): every slot

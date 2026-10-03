@@ -252,12 +252,6 @@ public final class ComposerModel {
     notice = nil
   }
 
-  /// Say something the screen found out that the model could not: a file that could not be copied
-  /// for sending, in the words the screen chose.
-  public func report(_ message: String) {
-    notice = .other(message)
-  }
-
   /// Send what is in the field, or run the command it holds.
   ///
   /// `/new`, `/reset` and `/clear` start a new conversation. Anything else goes

@@ -364,6 +364,58 @@ from, is `signedOut`. It rebuilds the session when the gateway's `credentialsRev
 sign-in, a sign-out, a removal) and sets `GatewayAccounts.endSession`, so a sign-out or a removal
 ends the socket first.
 
+### Attachments
+
+The composer's "+" (a menu on iPhone and iPad: Photo Library, Camera where there is one, Files; the
+file picker on the Mac) also takes files dropped on the composer and files or pictures pasted into
+the field. The rules are the web client's (`native/web/src/core/chats/attachments.ts`):
+
+- **Two roads.** An image the gateway reads by its extension (`png jpg jpeg gif webp bmp tiff tif`)
+  goes as base64 over the socket (`image.attach_bytes`, 25 MiB) before `prompt.submit`, and is
+  never named in the prompt. Anything else (an SVG, a HEIC, a PDF, a movie) is uploaded over HTTP
+  when it is staged (`POST /api/files/upload-stream`, 100 MiB) to
+  `<cwd>/uploads/hermie/<date>/<token>-<name>`, and named in the prompt by its `@file:` reference.
+  With no working directory (`info.cwd` of the resume, or `/`) the upload is refused on its chip
+  rather than aimed at the root of the gateway's machine.
+- **Staging.** What is picked, dropped or pasted gets a chip at once (`AttachmentTray.prepare`),
+  marked preparing, so `canSubmit` is false from the first moment; the copy into
+  `<tmp>/hermie-attachments/<uuid>/` (`AttachmentStaging`) runs off the main actor and reads the
+  source's size first, so a file over its road's cap becomes a failed chip with no copy made. The
+  copy then goes to `AttachmentTray.provide`, which starts it on its road, or deletes it when the
+  chip is gone by then (removed, or the chat was left: `ChatFeed.stop` clears the tray). Copies
+  older than a day are swept at launch.
+- **Sending.** The send waits until every chip is ready. The attachments are taken out of the tray
+  in the same synchronous step that clears the draft (`take()`), so a second Return or tap finds
+  nothing and cannot send them twice (HERM-126); a send refused before it was painted gives them
+  back. A message parked behind a running turn keeps them (`TranscriptStore.queuedOutgoing`) and is
+  not steerable, since an image cannot ride into a running turn.
+- **The camera is a sheet.** A full-screen cover fires the chat's `onDisappear`, and `ChatFeed.stop`
+  would empty the tray and close the session under the photo about to land in it. The photo is
+  re-encoded from its pixels (`UIImage.jpegData`), which leaves no metadata.
+
+#### Location in library photos
+
+A photo from the library names the place it was taken (EXIF GPS) and often the place's name (IPTC
+and XMP city, region, country, sub-location). The agent never needs it and the gateway may be
+someone else's machine, so a library photo leaves without it (`AttachmentPrivacy`):
+
+- A format the gateway takes as an image is **copied** with ImageIO
+  (`CGImageDestinationCopyImageSource`, `kCGImageMetadataShouldExcludeGPS`, and the XMP place tags
+  merged in as removed). That is not a re-encode: the pixels are the original's and a JPEG is not
+  compressed a second time. What was copied is read back, and a copy that still names a place is
+  discarded.
+- A PNG, TIFF or BMP whose copy would keep its location (ImageIO does not apply the edit to them) is
+  written again as the same lossless format, carrying the orientation and nothing else.
+- A HEIC, or anything the gateway would not take as an image, becomes a JPEG (quality 0.9) with the
+  orientation only. The Photos picker is asked for what the library holds (`.current`), not for the
+  system's own transcode, so a movie is not re-encoded to be picked.
+- A **movie is sent as it is**: its metadata, including a location track, is not touched.
+- A picture picked in Files, dragged in or pasted is sent as the reader chose it, unchanged.
+
+Tests: `AttachmentPrivacyTests` (a fixture with GPS, IPTC and XMP places, before and after),
+`AttachmentTrayTests`, `AttachmentSendTests`, `HTTPClientUploadTests` and the fake-gateway
+`AttachmentIntegrationTests`.
+
 ### Confirm at level passkey
 
 A `confirm` request at level `passkey` is one the gateway verifies itself: the app answers with a

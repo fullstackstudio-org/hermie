@@ -176,6 +176,130 @@ private struct TrayHarness {
     #expect(!FileManager.default.fileExists(atPath: staged.url.path))
   }
 
+  // MARK: Preparing
+
+  @Test func aPickedItemIsAChipAtOnceAndHoldsTheSendUntilItsCopyIsMade() async throws {
+    let harness = try TrayHarness()
+
+    let ids = harness.tray.prepare([("report.pdf", .file), ("Photo", .image)])
+
+    #expect(harness.tray.items.map(\.name) == ["report.pdf", "Photo"])
+    #expect(harness.tray.items.allSatisfy { $0.preparing && $0.status == .working })
+    #expect(harness.tray.blocked, "send waits for every copy")
+    #expect(harness.tray.take() == nil)
+    #expect(harness.held.started.isEmpty, "nothing to upload yet")
+
+    harness.tray.provide(ids[0], .success(try harness.file("report.pdf", type: "application/pdf")))
+    #expect(harness.tray.items[0].preparing == false)
+    try await eventually("the upload to start") { harness.held.isWaiting("report.pdf") }
+    #expect(harness.tray.blocked)
+
+    harness.held.finish("report.pdf")
+    harness.tray.provide(ids[1], .success(try harness.file("IMG_0111.jpeg", type: "image/jpeg")))
+    try await harness.settled(.ready)
+    #expect(harness.tray.items.map(\.name) == ["report.pdf", "IMG_0111.jpeg"], "the chip takes the file's own name")
+    #expect(harness.tray.items[1].kind == .image)
+    #expect(harness.tray.take()?.attachments.count == 2)
+  }
+
+  @Test func aCopyRefusedForItsSizeIsAFailedChipThatIsNotRetried() throws {
+    let harness = try TrayHarness()
+    let id = harness.tray.prepare([("big.bin", .file)])[0]
+
+    harness.tray.provide(id, .failure(.tooLarge(limitBytes: AttachmentRules.maxFileBytes, size: 150_000_000)))
+
+    let chip = try #require(harness.tray.items.first)
+    #expect(chip.status == .failed)
+    #expect(chip.problem == .tooLarge(limitBytes: AttachmentRules.maxFileBytes))
+    #expect(chip.size == 150_000_000)
+    #expect(!chip.canRetry)
+    harness.tray.retry(id)
+    #expect(harness.tray.items.first?.status == .failed)
+    #expect(harness.held.started.isEmpty)
+    #expect(harness.tray.blocked)
+  }
+
+  @Test func aCopyThatFailedIsFailedAndCannotBeRetriedWithoutAFile() throws {
+    let harness = try TrayHarness()
+    let id = harness.tray.prepare([("a.pdf", .file)])[0]
+
+    harness.tray.provide(id, .failure(.unreadable(message: "gone")))
+
+    #expect(harness.tray.items.first?.problem == .unreadable(message: "gone"))
+    #expect(harness.tray.items.first?.canRetry == false, "there is nothing to start again")
+    harness.tray.retry(id)
+    #expect(harness.held.started.isEmpty)
+    harness.tray.remove(id)
+    #expect(!harness.tray.blocked)
+  }
+
+  @Test func aCopyThatFinishesAfterTheChipWasRemovedOrTheChatLeftIsDeletedAndNeverUploaded() async throws {
+    let harness = try TrayHarness()
+    let first = try AttachmentStaging.stage(data: Data("one".utf8), name: "one.pdf", mimeType: "application/pdf")
+    let second = try AttachmentStaging.stage(data: Data("two".utf8), name: "two.pdf", mimeType: "application/pdf")
+    let ids = harness.tray.prepare([("one.pdf", .file), ("two.pdf", .file)])
+
+    harness.tray.remove(ids[0])
+    harness.tray.clear()
+    harness.tray.provide(ids[0], .success(first))
+    harness.tray.provide(ids[1], .success(second))
+
+    #expect(!FileManager.default.fileExists(atPath: first.url.path))
+    #expect(!FileManager.default.fileExists(atPath: second.url.path))
+    #expect(harness.tray.isEmpty)
+    try await Task.sleep(for: .milliseconds(20))
+    #expect(harness.held.started.isEmpty, "nothing was uploaded")
+  }
+
+  @Test func theSizeIsReadBeforeACopyIsMadeAndAFileOverItsRoadsCapIsRefused() throws {
+    let folder = FileManager.default.temporaryDirectory.appendingPathComponent("cap-\(UUID().uuidString)")
+    try FileManager.default.createDirectory(at: folder, withIntermediateDirectories: true)
+    defer { try? FileManager.default.removeItem(at: folder) }
+
+    // Sparse: the size is there and the bytes are not.
+    func sparse(_ name: String, _ size: Int) throws -> URL {
+      let url = folder.appendingPathComponent(name)
+      FileManager.default.createFile(atPath: url.path, contents: nil)
+      let handle = try FileHandle(forWritingTo: url)
+      try handle.truncate(atOffset: UInt64(size))
+      try handle.close()
+      return url
+    }
+
+    let image = try sparse("big.png", AttachmentRules.maxImageBytes + 1)
+    let file = try sparse("big.bin", AttachmentRules.maxFileBytes + 1)
+    let fine = try sparse("fine.bin", AttachmentRules.maxImageBytes + 1_000)
+
+    #expect(throws: StagingFailure.tooLarge(limitBytes: AttachmentRules.maxImageBytes, size: AttachmentRules.maxImageBytes + 1)) {
+      _ = try AttachmentStaging.stage(copying: image, mimeType: "image/png")
+    }
+    #expect(throws: StagingFailure.tooLarge(limitBytes: AttachmentRules.maxFileBytes, size: AttachmentRules.maxFileBytes + 1)) {
+      _ = try AttachmentStaging.stage(copying: file)
+    }
+
+    // A file over the image cap but under the file cap is fine as a file.
+    let staged = try AttachmentStaging.stage(copying: fine)
+    AttachmentStaging.discard(staged.url)
+    #expect(staged.size == AttachmentRules.maxImageBytes + 1_000)
+
+    #expect(throws: StagingFailure.self) {
+      _ = try AttachmentStaging.stage(
+        data: Data(count: AttachmentRules.maxImageBytes + 1), name: "x.png", mimeType: "image/png")
+    }
+  }
+
+  @Test func discardingACopyRemovesItsFolderAndOnlyInsideTheStagingFolder() throws {
+    let staged = try AttachmentStaging.stage(data: Data("x".utf8), name: "a.txt")
+    AttachmentStaging.discard(staged.url)
+    #expect(!FileManager.default.fileExists(atPath: staged.url.deletingLastPathComponent().path))
+
+    let outside = FileManager.default.temporaryDirectory.appendingPathComponent("outside-\(UUID().uuidString).txt")
+    try Data("x".utf8).write(to: outside)
+    AttachmentStaging.discard(outside)
+    #expect(FileManager.default.fileExists(atPath: outside.path), "not the tray's to delete")
+    try FileManager.default.removeItem(at: outside)
+  }
+
   @Test func theLaunchSweepRemovesOnlyCopiesOlderThanADay() throws {
     let root = FileManager.default.temporaryDirectory.appendingPathComponent("purge-\(UUID().uuidString)")
     defer { try? FileManager.default.removeItem(at: root) }
