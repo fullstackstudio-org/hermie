@@ -54,7 +54,8 @@ const SAMPLE = {
   text: MARKER,
   time: MARKER,
   message: MARKER,
-  count: MARKER
+  count: MARKER,
+  status: MARKER
 }
 
 describe('the web-only strings', () => {

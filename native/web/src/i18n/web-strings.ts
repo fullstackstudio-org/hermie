@@ -56,6 +56,20 @@ export const WEB_STRINGS_SOURCE = {
         `Diese Seite wird nicht unter dem Pfad ausgeliefert, den Hermie erwartet. Öffne sie unter ${expected}.`
     }
   },
+  boot: {
+    /**
+     * Shown when the gateway's address answered 401 or 403 where the gateway itself would not
+     * (an access proxy, a firewall, an origin check). A person signing in again would only come back here.
+     */
+    refusedInFront: {
+      en: ({ status }: { status: number }) =>
+        `Something between this page and the gateway answered HTTP ${status} instead of the gateway. Signing in again will not help: ask whoever runs the proxy or firewall to let /api, /auth and /login through.`,
+      nl: ({ status }: { status: number }) =>
+        `Iets tussen deze pagina en de gateway antwoordde met HTTP ${status} in plaats van de gateway. Opnieuw inloggen helpt niet: vraag wie de proxy of firewall beheert om /api, /auth en /login door te laten.`,
+      de: ({ status }: { status: number }) =>
+        `Etwas zwischen dieser Seite und dem Gateway hat mit HTTP ${status} geantwortet statt des Gateways. Erneutes Anmelden hilft nicht: Bitte die Person, die Proxy oder Firewall betreibt, /api, /auth und /login durchzulassen.`
+    }
+  },
   markdown: {
     /** The code block's copy button: its label and its accessible name. */
     copyCode: {

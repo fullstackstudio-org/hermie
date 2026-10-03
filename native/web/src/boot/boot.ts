@@ -20,6 +20,7 @@
 import { GatewayError, type FetchLike, type ProbeResult } from '@hermie/gateway-client'
 
 import { strings } from '../generated/strings'
+import { webStrings } from '../i18n/web-strings'
 import {
   createCookieSession,
   detectAuthMode,
@@ -93,9 +94,12 @@ export function describeBootFailure(error: GatewayError, baseUrl: string): strin
     case 'redirect':
       return errors.redirected({ from: host, to: error.redirectedTo ?? '?' })
     case 'auth':
-      // `probeGateway` says `auth` only for a 401/403 on the public
-      // `/api/status`: something in front of the gateway refused.
-      return errors.authProxy({ status: error.status ?? 401 })
+      // Here `auth` is a refusal that no sign-in answers: a 401/403 on the public
+      // `/api/status`, or a 403 on `/api/auth/me` (a 401 there is a lapsed session
+      // and never gets this far). Something in front of the gateway said it. The
+      // catalogue's own sentence sends the reader to "Advanced", which this client
+      // does not have.
+      return webStrings.boot.refusedInFront({ status: error.status ?? 403 })
     case 'incompatible':
       return errors.incompatible
     default:

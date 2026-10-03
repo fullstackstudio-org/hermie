@@ -43,6 +43,23 @@ describe('the boot state machine', () => {
     expect(await boot(basePath, { fetchImpl: fetch })).toMatchObject({ kind: 'needs_signin', basePath })
   })
 
+  it('is unreachable, not a sign-in, when something in front of the gateway answers 403 for the identity', async () => {
+    const { fetch } = fakeFetch({ ...gatedRoutes, 'GET /api/auth/me': () => json(403, { detail: 'Forbidden' }) })
+    const state = await boot(basePath, { fetchImpl: fetch })
+
+    expect(state).toMatchObject({ kind: 'unreachable', error: { kind: 'auth', status: 403 } })
+
+    if (state.kind !== 'unreachable') {
+      throw new Error(`expected unreachable, got ${state.kind}`)
+    }
+
+    // The words name the status and do not send the reader round the sign-in loop or to a screen this client lacks.
+    const said = describeBootFailure(state.error, basePath.baseUrl)
+
+    expect(said).toContain('HTTP 403')
+    expect(said).not.toMatch(/Advanced/u)
+  })
+
   it('stops at token mode on an ungated gateway, without asking who is signed in', async () => {
     const { fetch, calls } = fakeFetch(ungatedRoutes)
 
@@ -72,7 +89,8 @@ describe('a failed boot, in words', () => {
     expect(say(new GatewayError('tls', 'x'))).toContain(host)
     expect(say(new GatewayError('not_hermes', 'x'))).toContain(host)
     expect(say(new GatewayError('server', 'x', { status: 502 }))).toContain('502')
-    expect(say(new GatewayError('auth', 'x', { status: 403 }))).toContain('403')
+    expect(say(new GatewayError('auth', 'x', { status: 403 }))).toContain('HTTP 403')
+    expect(say(new GatewayError('auth', 'x', { status: 401 }))).toContain('HTTP 401')
     expect(say(new GatewayError('redirect', 'x', { redirectedTo: 'elsewhere.example.com' }))).toContain(
       'elsewhere.example.com'
     )

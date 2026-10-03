@@ -92,15 +92,26 @@ describe('the identity', () => {
     expect(result).toMatchObject({ kind: 'signed_in', signedIn: { author: undefined } })
   })
 
-  it.each([401, 403])('needs a sign-in when the session is refused (HTTP %i)', async status => {
+  it('needs a sign-in when the session is refused (HTTP 401)', async () => {
     const { fetch } = fakeFetch(
       {
-        'GET /api/auth/me': () => json(status, { error: 'session_expired', login_url: '/login' })
+        'GET /api/auth/me': () => json(401, { error: 'session_expired', login_url: '/login' })
       },
       '/hermes'
     )
 
     expect(await readIdentity(createCookieSession(baseUrl, fetch).http)).toEqual({ kind: 'needs_signin' })
+  })
+
+  // The gateway answers a missing or lapsed session with 401. A 403 is a proxy, a firewall or an origin check
+  // in front of it: signing in again would reload into the same 403, so it is a failure to show, not a sign-in.
+  it('does not take an HTTP 403 for a lapsed session, and throws it with its status', async () => {
+    const { fetch } = fakeFetch({ 'GET /api/auth/me': () => json(403, { detail: 'Forbidden' }) }, '/hermes')
+
+    const failure = readIdentity(createCookieSession(baseUrl, fetch).http)
+
+    await expect(failure).rejects.toBeInstanceOf(GatewayError)
+    await expect(failure).rejects.toMatchObject({ kind: 'auth', status: 403 })
   })
 
   it('throws any other failure for the caller to show', async () => {

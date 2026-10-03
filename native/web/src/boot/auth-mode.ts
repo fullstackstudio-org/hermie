@@ -77,9 +77,12 @@ export interface SignedInIdentity {
 export type IdentityResult = { kind: 'signed_in'; signedIn: SignedInIdentity } | { kind: 'needs_signin' }
 
 /**
- * `GET /api/auth/me`. A refusal (401, 403) means the session lapsed between the
- * document load and now: `needs_signin`. Anything else is thrown for the
- * caller to show as "cannot reach the gateway".
+ * `GET /api/auth/me`. A 401 means the session lapsed between the document load
+ * and now: `needs_signin`. A 403 does not: the gateway answers a missing or lapsed
+ * session with 401, so a 403 is a proxy, a firewall or an origin check speaking
+ * for it, and signing in again would reload into the same 403 (a loop). It is
+ * thrown, like any other failure, for the caller to show as "cannot reach the
+ * gateway", with the status.
  */
 export async function readIdentity(http: GatewayHttp): Promise<IdentityResult> {
   try {
@@ -87,7 +90,7 @@ export async function readIdentity(http: GatewayHttp): Promise<IdentityResult> {
 
     return { kind: 'signed_in', signedIn: { identity, author: ownAuthorOf(identity) } }
   } catch (error) {
-    if (isGatewayError(error) && error.kind === 'auth') {
+    if (isGatewayError(error) && error.kind === 'auth' && error.status !== 403) {
       return { kind: 'needs_signin' }
     }
 
