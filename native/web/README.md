@@ -287,8 +287,10 @@ cookie mode, dropped sockets included.
 
 The chat list's arrangement (order, folders, pins, archive, per-chat colour, the reader's own names for bots,
 which conversation each bot is on), the mutes and the transcript's text size live in the gateway's `ui_meta`,
-exactly where the Expo and Swift apps keep them (ADR-0016): a bot's `archived` and `colour` on that bot's own
-`hermie` section, everything else in the app-wide `hermie-app:<user id>` on the default profile. The stores are
+exactly where the Expo and Swift apps keep them (ADR-0016): a bot's `colour` on that bot's own `hermie` section,
+everything else in the app-wide `hermie-app:<user id>` on the default profile. The archive is per account: the
+person's `archivedBots` (bot names, sorted, no repeats) in that same section, the wire format the native client
+uses. The stores are
 what the screens paint from; `core/ui-meta-bridge.ts` mirrors them onto the gateway and back, and
 `@hermie/gateway-client/ui-meta`'s `UiMetaSync` does the protocol (per-key compare-and-swap, one retry after a
 re-read, the dated last-writer-wins, the per-person key, the bare `hermie-app` for the push rows of a plugin
@@ -343,19 +345,24 @@ What a screen does not do: call the bridge to send, write `appStampStore` (only 
 - Retired fields travel no further: `context` (HERM-119) and Hermie Web's availability stamp in `push`
   (`endpoint`, `vapidPublicKey`, `version`, `daemonVersion`, `capabilities`, `relayOrigins`, `at`) are dropped
   the next time the section is written.
+- **Archive is per account.** `setArchived` changes the person's `archivedBots`, dated like any other choice;
+  two people on one gateway keep separate archives. A person whose section has no list yet is seeded once from
+  the bots whose shared `hermie` section says `archived: true` (what the Expo app wrote), as a chore, so the seed
+  never beats a section the gateway holds; after that the list is the only source. The shared flag is never
+  written or cleared: the Expo app may still read it.
 - A bot section left with nothing at all but `v` is sent as `null`, which removes it. A pending bot section is
-  the gateway's section with this page's `archived` and `colour` written in, so one carrying fields this page
-  does not own is never removed.
+  the gateway's section with this page's `colour` written in, so one carrying fields this page does not own (the
+  shared `archived` flag among them) is never removed.
 - **One departure from the Swift app**: when this page's copy wins, every field it does not project is the
   gateway's (taken when it has one, gone when it does not), since this build cannot have chosen anything about
-  it; the same for a pending bot section beyond `archived` and `colour`. So a conflict never loses a field another
+  it; the same for a pending bot section beyond its `colour`. So a conflict never loses a field another
   build added meanwhile (`core/ui-meta-bridge.integration.test.ts`).
 - The live roster is folded into the arrangement only while connected and after a reconcile that actually took the
   gateway's copy since the connection came up, and again after each one; a reconcile runs on every rise to
   `ready`, on `sessions.changed` and when the page is shown, never two at once.
 - Bot edits the gateway has not taken survive a reload with their sections raw (`ui-meta.pending`); app edits
-  survive by their date. Which of `archived` and `colour` was changed is kept per bot, and only those are this
-  page's when the section goes out: an archive made offline yesterday does not take back a colour picked today.
+  survive by their date. Which of a pending bot's own fields changed is kept per bot (since the archive moved to
+  the person's list, that is only `colour`), and only those are this page's when the section goes out.
 - A bot whose section was written in a schema version this build cannot read (a newer build's `v`) is never
   written: a change to it stays pending, held back, and the console says so once.
 - The bridge is a chunk of its own, loaded once the session has started (`session.uiMeta` is a promise of it). A
