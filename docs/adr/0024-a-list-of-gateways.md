@@ -1,6 +1,7 @@
 # 0024. A list of gateways, one live at a time, everything on disk keyed by which
 
-- Status: Accepted
+- Status: Accepted; amended by [0032](0032-icloud-gateway-sync.md) (on the native Apple apps the list
+  follows the Apple Account through iCloud Keychain)
 - Date: 2026-09-22
 - Amends: [0006](0006-single-gateway-no-relay.md)
 - See also: [0030](0030-web-client-served-by-the-plugin.md), where a web page has exactly one gateway, its own origin, and the registry does not apply

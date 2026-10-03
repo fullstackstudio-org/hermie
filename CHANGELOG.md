@@ -40,6 +40,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- **The native Apple apps keep your gateways in iCloud Keychain.** The gateway list and the
+  credentials that are the same on every device (session tokens, Cloudflare Access service tokens,
+  custom headers) reach your other Apple devices without typing; sign-ins through an identity
+  provider or a password stay on each device. Sync is on by default and asks once per device before
+  it first stores anything. Settings → Gateways → iCloud Sync has the switch, "Sync this gateway",
+  "Sync Now" and "Delete Everything from iCloud Keychain", and removing a synced gateway asks whether
+  to remove it from this device or from all of them (ADR-0032).
 - **Hermie Web delivers to the native Apple apps through the push relay.** A registration with
   `transport: "relay"` is sent through `POST /v1/send` on the project's relay, with the bot's name and
   the event type only. The daemon posts only to relays on its own allow-list (`--push-relays`, env

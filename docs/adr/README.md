@@ -34,13 +34,14 @@ new record supersedes it, and the old one gets a line at the top pointing forwar
 | [0021](0021-header-based-front-doors.md)               | Header-based front doors: Cloudflare Access                                  | Accepted                   |
 | [0022](0022-voice-on-the-device.md)                    | Speech happens on the device; the gateway's voice RPCs are not used          | Accepted                   |
 | [0023](0023-the-shared-container-is-the-seam.md)       | The shared container is the seam for every system surface                    | Amended by 0026            |
-| [0024](0024-a-list-of-gateways.md)                     | A list of gateways, one live at a time, storage keyed by which               | Accepted, see 0030         |
+| [0024](0024-a-list-of-gateways.md)                     | A list of gateways, one live at a time, storage keyed by which               | Amended by 0032, see 0030  |
 | [0025](0025-hermie-web-is-a-service-layer.md)          | Hermie Web is a service layer, not only a proxy                              | Superseded by 0030         |
 | [0026](0026-the-share-sheet-may-deliver.md)            | The share sheet may deliver, once, with the app's own answers                | Accepted                   |
 | [0027](0027-desktop-is-a-webview-over-hermie-web.md)   | The desktop shell loads a remote Hermie Web URL, not a bundled export        | Amended by 0030            |
 | [0028](0028-native-apps-on-apple-platforms.md)         | Native SwiftUI apps on Apple platforms, sharing one Swift package            | Accepted                   |
 | [0029](0029-expo-native-and-the-contract-directory.md) | `expo/`, `native/` and a `contract/` both are tested against                 | Accepted, see 0030         |
 | [0030](0030-web-client-served-by-the-plugin.md)        | The web client is served by the `hermie` plugin, on the gateway's origin     | Accepted                   |
+| [0032](0032-icloud-gateway-sync.md)                    | Gateways follow the Apple Account through iCloud Keychain                    | Accepted                   |
 
 ## Template
 

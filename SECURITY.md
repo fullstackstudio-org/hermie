@@ -34,6 +34,21 @@ Knowing this helps when assessing an issue:
   storage.
 - **Chat transcripts** are cached locally so the app can paint before the gateway answers. They are
   not encrypted beyond the protection the operating system gives the app container.
+- **iCloud Keychain** (the native Apple apps only, [ADR-0032](docs/adr/0032-icloud-gateway-sync.md)).
+  If "Sync with iCloud Keychain" is on, Hermie stores your list of gateways (name, address, how you
+  sign in, and your user id on that gateway) and the credentials that are the same on every device (a
+  session token, a Cloudflare Access service token, custom headers) in your iCloud Keychain. iCloud
+  Keychain is end-to-end encrypted: Apple cannot read it and neither can we, and it reaches only
+  devices signed in to your Apple Account that you have approved. Sign-ins through an identity
+  provider or a password stay on the device that made them. Messages, drafts, the app lock and
+  notification registrations are never stored there. Nothing is sent to us. If iCloud Keychain is
+  off, the same data stays on the device.
+
+  For an assessment: anyone who holds the person's iCloud Keychain (an approved device, or the
+  account and a device passcode) holds every session token in it, which is full access to that
+  gateway. Only the sync engine reads the synced items; a credential from them is written to the
+  device-only keychain only for the origin it was entered for, and the Cloudflare Access pair never
+  for a plain-http gateway. The app shows what will be stored and asks before it first writes there.
 
 The gap that used to be here — macOS had no keystore-backed `SecretStore`, so tokens went to
 unencrypted app storage — is closed. The native macOS target is gone, and the Mac runs the iOS build

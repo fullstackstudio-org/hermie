@@ -635,3 +635,35 @@ Moving from the Expo app to a native build: the native app registers under a new
 and does not retire the Expo app's row for the same device, because removing it automatically could
 cut off a device that still runs the Expo app. Remove those Expo rows by hand from each gateway's
 push section as part of the cut-over.
+
+## Gateways in iCloud Keychain
+
+The native apps keep the gateway list, and the credentials that are the same on every device, in the
+person's iCloud Keychain ([ADR-0032](adr/0032-icloud-gateway-sync.md)). The pieces:
+
+- `HermieStore`: `ICloudKeychainStore` (synchronizable items, service `hermie.sync.v1`) and, for tests
+  and the UI tests, `FakeCloud` with one `InMemorySyncedItemStore` replica per device.
+- `HermieCore/Sync`: the record, the merge (`GatewaySync.reconcile`, a pure function) and
+  `GatewaySyncEngine`, the only code that reads the synced set and the only path that adds, moves,
+  removes or signs out of a gateway, whether sync is on or not. Its doc comments list the merge's
+  rules and its known limits; the ADR says them in prose.
+- `HermieCore/AppLaunch/ICloudSyncModel`: what the views read (status line, per-gateway state,
+  badges, notices, the gateways iCloud offers) and the actions they call. The views hold no logic.
+- `HermieUI`: the one-time disclosure (`App/ICloudSyncDisclosure.swift`), Settings → Gateways →
+  iCloud Sync (`Settings/ICloudSyncSettingsPage.swift`) and the hooks on the Gateways page
+  (`Settings/ICloudSyncGatewayHooks.swift`).
+
+Sync is on by default and asks once per device before it first writes to iCloud Keychain. Nothing
+reads iCloud before that answer except the onboarding, through `ICloudSyncModel.lookInICloud()`.
+The wizard's first step lists what it found ("Available from iCloud"), and one tap adopts them. A
+gateway taken from iCloud whose sign-in cannot travel shows "Sign in needed" and opens the same
+sign-in sheet as Settings ("Sign in", through the `onNeedsSignIn` environment value);
+`GatewayAccounts.signedIn(_:)`, where every finished sign-in lands, tells the model. Removing a
+gateway, from this device or from all, goes through `GatewayAccounts.remove(_:scope:)`, which hands
+the grant back first.
+
+Tests never touch the real keychain on a Mac: there it is the developer's own iCloud Keychain.
+`swift test` uses the in-memory stores and the multi-device fakes (`Tests/HermieCoreTests/Sync/`), and
+the UI tests launch with `-HermieUITest YES`, which swaps both keychain sets for memory.
+`-HermieSync on|ask|off|unavailable` and `-HermieSeedICloudGateway` set up the fake iCloud for a
+launch (`LaunchTestHooks`).
