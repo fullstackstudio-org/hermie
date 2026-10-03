@@ -161,8 +161,18 @@ export class FakeChatGateway implements ChatGateway {
     return this.restMessages as never
   }
 
-  /** Publish one gateway event to every subscriber. */
-  emit(event: { type: string; session_id?: string; seq?: number; payload?: unknown }): void {
+  /**
+   * Publish one gateway event to every subscriber, as the socket delivers it: the whole `params` object,
+   * so a frame may carry `turn_id` on its envelope and whatever else the transport adds.
+   */
+  emit(event: {
+    type: string
+    session_id?: string
+    seq?: number
+    turn_id?: string
+    payload?: unknown
+    [envelope: string]: unknown
+  }): void {
     for (const handler of [...this.eventHandlers]) {
       handler(event)
     }

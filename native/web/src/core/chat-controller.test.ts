@@ -351,6 +351,293 @@ describe('routing live traffic', () => {
   })
 })
 
+describe('row identity on the frames', () => {
+  /** A cache holding the chat as the app last saw it, at a watermark the replay below continues from. */
+  async function warmCache(): Promise<MemoryChatCache> {
+    const cache = new MemoryChatCache()
+
+    await cache.write({
+      bot: 'researcher',
+      itemsJson: JSON.stringify({
+        format: 1,
+        items: [
+          { id: 'r:1', kind: 'user', text: 'Introduce yourself.', seq: 0, version: 0, origin: 'history', rowId: 1 }
+        ],
+        subagents: [],
+        lastSeq: 3,
+        lastSeqSessionId: 'runtime-1',
+        epoch: 'e1',
+        updatedAt: 1
+      }),
+      lastRowId: 1,
+      lastSeq: 3,
+      epoch: 'e1',
+      updatedAt: 1
+    })
+
+    return cache
+  }
+
+  const REPLAY = {
+    latest_seq: 5,
+    truncated: false,
+    count: 2,
+    epoch: 'e1',
+    open_requests: []
+  }
+
+  it('hands the engine the turn id of a replayed frame', async () => {
+    const { gateway, controller } = setup({ cache: await warmCache() })
+
+    gateway.reply('session.events.since', {
+      ...REPLAY,
+      events: [
+        { type: 'message.start', session_id: 'runtime-1', seq: 4, turn_id: 'turn-replayed', payload: {} },
+        // Not a string, so not an id: dropped rather than guessed at.
+        { type: 'message.delta', session_id: 'runtime-1', seq: 5, turn_id: 7, payload: { text: 'streamed' } }
+      ]
+    })
+
+    await controller.openChat(RESEARCHER)
+
+    expect(chatOf().lastSeq).toBe(5)
+    expect(chatOf().turn.id).toBe('turn-replayed')
+  })
+
+  it('stands no placeholder for a replayed turn whose prompt the history already shows', async () => {
+    const history = [
+      {
+        role: 'user',
+        text: 'Introduce yourself.',
+        row_id: 1,
+        timestamp: 1_700_000_000,
+        display_metadata: { turn_id: 'turn-1' }
+      },
+      { role: 'assistant', text: 'I am researcher.', row_id: 2, timestamp: 1_700_000_001 }
+    ]
+    const frames = (turnId: string | undefined) => ({
+      ...REPLAY,
+      events: [
+        {
+          type: 'message.start',
+          session_id: 'runtime-1',
+          seq: 4,
+          ...(turnId ? { turn_id: turnId } : {}),
+          payload: {}
+        }
+      ]
+    })
+    const placeholders = () =>
+      Object.values(chatOf().items).filter(item => item.kind === 'user' && item.unknownAuthor === true).length
+
+    // With the id, the frame finds its prompt on screen.
+    const withId = setup({ cache: await warmCache() })
+
+    withId.gateway.reply('session.history', { count: 2, messages: history })
+    withId.gateway.reply('session.events.since', frames('turn-1'))
+    await withId.controller.openChat(RESEARCHER)
+
+    expect(placeholders()).toBe(0)
+
+    // Without it (an older gateway) the old path runs: a stranger may have spoken.
+    chatsStore.getState().reset()
+    botsStore.getState().reset()
+
+    const withoutId = setup({ cache: await warmCache() })
+
+    withoutId.gateway.reply('session.history', { count: 2, messages: history })
+    withoutId.gateway.reply('session.events.since', frames(undefined))
+    await withoutId.controller.openChat(RESEARCHER)
+
+    expect(placeholders()).toBe(1)
+  })
+
+  it('hands the engine a live frame with its turn id, and nothing else the socket carried', async () => {
+    const { gateway, controller } = setup()
+
+    controller.start()
+    await controller.openChat(RESEARCHER)
+
+    const dispatched: unknown[] = []
+    const original = chatsStore.getState().dispatchEvent
+
+    chatsStore.setState({
+      dispatchEvent: (name, event) => {
+        dispatched.push(event)
+        original(name, event)
+      }
+    })
+
+    gateway.emit({
+      type: 'message.start',
+      session_id: 'runtime-1',
+      seq: 8,
+      turn_id: 'turn-live',
+      payload: {},
+      connectionId: 'c1',
+      profile: 'researcher'
+    })
+
+    expect(dispatched).toEqual([
+      { type: 'message.start', session_id: 'runtime-1', seq: 8, turn_id: 'turn-live', payload: {} }
+    ])
+    expect(chatOf().turn.id).toBe('turn-live')
+
+    // A frame of an older gateway carries none and reaches the engine without one.
+    dispatched.length = 0
+    gateway.emit({ type: 'message.delta', session_id: 'runtime-1', seq: 9, payload: { text: 'more' } })
+
+    expect(dispatched).toEqual([{ type: 'message.delta', session_id: 'runtime-1', seq: 9, payload: { text: 'more' } }])
+  })
+
+  it('forwards what the resume says about the running turn: its prompt id and the text no note shows', async () => {
+    const { gateway, controller } = setup()
+
+    gateway.reply('session.history', {
+      count: 2,
+      messages: [
+        {
+          role: 'user',
+          text: 'Look it up.',
+          row_id: 1,
+          timestamp: 1_700_000_000,
+          display_metadata: { turn_id: 'turn-9' }
+        },
+        { role: 'assistant', text: 'Let me check.', row_id: 2, timestamp: 1_700_000_001 }
+      ]
+    })
+    gateway.reply('session.resume', {
+      session_id: 'runtime-1',
+      stored_session_id: 'tip-researcher',
+      message_count: 2,
+      messages: [],
+      messages_omitted: true,
+      running: true,
+      turn_started_at: 1_700_000_000,
+      info: { desktop_contract: 7 },
+      open_requests: [],
+      inflight: {
+        user: 'Look it up.',
+        // Every word streamed so far, the note above included; the rest is what no row shows yet.
+        assistant: 'Let me check. And then',
+        assistant_unsealed: ' And then',
+        streaming: true,
+        display_metadata: { turn_id: 'turn-9' }
+      }
+    })
+
+    await controller.openChat(RESEARCHER)
+
+    const bubble = Object.values(chatOf().items).find(item => item.kind === 'assistant' && item.streaming)
+
+    expect(chatOf().turn.id).toBe('turn-9')
+    // Not 'Let me check. And then': the note is already its own row.
+    expect(bubble).toMatchObject({ kind: 'assistant', text: ' And then' })
+    expect(Object.values(chatOf().items).filter(item => item.kind === 'user')).toHaveLength(1)
+  })
+})
+
+describe('the roster count against the rows a chat holds', () => {
+  /*
+    FINDING (C1). `bot.canonical.messageCount` is the roster's count of DB rows, tool rows included, and
+    `recoverAfterReconnect` sweeps the tail only when it exceeds `countPersistedRows` (the items that hold
+    a row id). Before row identity an RPC tool row carried no `row_id`, so every tool call of a chat kept
+    the count one short and a reconnect swept the tail for rows it already held. Now the RPC history names
+    each tool row, the card holds that id, and the two counts agree: a chat of N rows is N persisted items.
+
+    One boundary stays: an assistant row that holds ONLY tool_calls (no words) projects to no item, so it
+    cannot be counted. Such a chat still sweeps once on a reconnect: harmless (the tail fetch only appends
+    what is missing), and never more often than before. The last test pins that rather than hiding it.
+  */
+  const ROSTER = (count: number) => ({
+    profiles: [
+      {
+        name: 'researcher',
+        path: '/p',
+        canonical_session: { id: 'stored-researcher', resolved_id: 'tip-researcher', message_count: count }
+      }
+    ]
+  })
+
+  async function reconnectWith(rows: unknown[], rosterCount: number) {
+    const { gateway, controller } = setup()
+
+    gateway.reply('session.history', { count: rows.length, messages: rows })
+    gateway.reply('session.resume', {
+      session_id: 'runtime-1',
+      stored_session_id: 'tip-researcher',
+      message_count: rows.length,
+      messages: [],
+      messages_omitted: true,
+      info: { desktop_contract: 7 },
+      open_requests: []
+    })
+    controller.start()
+    await controller.openChat(RESEARCHER)
+    gateway.status('ready')
+    await flush()
+
+    gateway.restMessages = rows
+    gateway.reply('profiles.list', ROSTER(rosterCount))
+    gateway.status('reconnecting')
+    gateway.status('ready')
+    await flush()
+
+    return gateway
+  }
+
+  const TURN = [
+    { role: 'user', text: 'Look it up.', row_id: 1, timestamp: 1_700_000_000 },
+    {
+      role: 'assistant',
+      text: 'Let me check.',
+      row_id: 2,
+      timestamp: 1_700_000_001,
+      tool_calls: [{ id: 'call_a', function: { name: 'web_search' } }]
+    },
+    {
+      role: 'tool',
+      name: 'web_search',
+      tool_call_id: 'call_a',
+      text: 'results',
+      row_id: 3,
+      call_row_id: 2,
+      call_index: 0
+    },
+    { role: 'assistant', text: 'Found it.', row_id: 4, timestamp: 1_700_000_004 }
+  ]
+
+  it('sweeps nothing for a chat whose tool rows the history names', async () => {
+    const gateway = await reconnectWith(TURN, 4)
+
+    expect(gateway.restCalls.filter(call => call.limit === 30)).toHaveLength(0)
+    expect(chatOf().order.filter(id => chatOf().items[id]?.rowId !== undefined)).toHaveLength(4)
+  })
+
+  it('sweeps once for a tool row an older gateway left unnamed, as it always did', async () => {
+    const unnamed = TURN.map(row => {
+      const { row_id: _named, ...rest } = row
+
+      return row.role === 'tool' ? rest : row
+    })
+    const gateway = await reconnectWith(unnamed, 4)
+
+    expect(gateway.restCalls.filter(call => call.limit === 30)).toHaveLength(1)
+  })
+
+  it('still sweeps once when an assistant row holds only tool calls and so projects to no item', async () => {
+    const wordless = [
+      TURN[0],
+      { role: 'assistant', text: '', row_id: 2, timestamp: 1_700_000_001, tool_calls: [{ id: 'call_a' }] },
+      TURN[2],
+      TURN[3]
+    ]
+    const gateway = await reconnectWith(wordless, 4)
+
+    expect(gateway.restCalls.filter(call => call.limit === 30)).toHaveLength(1)
+  })
+})
+
 describe('a foreign turn', () => {
   it('stands a placeholder in and fills it from a tail fetch', async () => {
     const { gateway, controller } = setup()

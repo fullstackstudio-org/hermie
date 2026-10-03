@@ -487,7 +487,9 @@ describe('the transcript', () => {
 
   it('draws somebody else’s message in the group chat on the left with their name, and nobody’s elsewhere', () => {
     ownAuthorStore.getState().set({ id: 'self-hosted:me' })
-    sessionStatusStore.setState({ capabilities: { perMessageAuthor: true, perSessionExclusiveSubmit: true } })
+    sessionStatusStore.setState({
+      capabilities: { perMessageAuthor: true, perSessionExclusiveSubmit: true, transcriptRowIdentity: false }
+    })
 
     const items = [
       userItem('mine', { author: { id: 'self-hosted:me', name: 'Me' } }, 'mine'),
@@ -512,7 +514,9 @@ describe('the transcript', () => {
 
     // A gateway that does not vouch for the authors on its rows (no `per_message_author`): the same.
     ownAuthorStore.getState().set({ id: 'self-hosted:me' })
-    sessionStatusStore.setState({ capabilities: { perMessageAuthor: false, perSessionExclusiveSubmit: true } })
+    sessionStatusStore.setState({
+      capabilities: { perMessageAuthor: false, perSessionExclusiveSubmit: true, transcriptRowIdentity: false }
+    })
     mount({}, fakeController())
     expect(side('theirs')).toBe('own')
   })

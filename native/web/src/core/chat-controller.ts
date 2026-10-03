@@ -744,7 +744,17 @@ export class ChatController {
     this.detached = null
     this.started = true
     this.unsubscribes.push(
-      this.gateway.onAny(event => this.ingestRef.push(() => this.onEvent(event as TranscriptEvent))),
+      this.gateway.onAny(event =>
+        this.ingestRef.push(() => {
+          // The same narrowing the replay applies, so a live frame reaches the engine as a replayed one
+          // does: with its `turn_id`, and with nothing else the socket happened to carry.
+          const narrowed = transcriptEventOf(event as unknown as Record<string, unknown>)
+
+          if (narrowed) {
+            this.onEvent(narrowed)
+          }
+        })
+      ),
       this.gateway.onRequest(request => this.ingestRef.now(() => this.onServerRequest(request))),
       this.gateway.onStatus(status => this.onStatus(status))
     )
@@ -4962,6 +4972,9 @@ export interface ModelChoice {
  */
 function resumeSnapshotOf(result: SessionResumeResult): ResumeSnapshot {
   return {
+    // Whole, on purpose: the engine reads `assistant_unsealed` (the text no note above already shows) and
+    // `display_metadata.turn_id` (which prompt the running turn answers) from it, and a field this client
+    // picked by name would be one more the gateway can add without anyone noticing it was dropped.
     inflight: asRecord(result.inflight),
     running: result.running ?? null,
     // The gateway states this twice — once at the top level and once inside
@@ -5003,7 +5016,12 @@ function approvalCardIdFor(chat: ChatState | undefined, approvalId: string): str
   return item?.kind === 'approval' && item.state === 'open' ? item.requestId : undefined
 }
 
-/** One replayed event frame, narrowed to what the reducer needs. */
+/**
+ * One event frame, replayed or live, narrowed to what the reducer needs.
+ *
+ * `turn_id` rides the envelope beside `seq`, not the payload, so it has to be named here to survive:
+ * a frame without it (an older gateway) simply has none, and the engine then takes its old path.
+ */
 function transcriptEventOf(raw: Record<string, unknown>): TranscriptEvent | null {
   if (typeof raw.type !== 'string') {
     return null
@@ -5013,6 +5031,7 @@ function transcriptEventOf(raw: Record<string, unknown>): TranscriptEvent | null
     type: raw.type,
     ...(typeof raw.session_id === 'string' ? { session_id: raw.session_id } : {}),
     ...(typeof raw.seq === 'number' ? { seq: raw.seq } : {}),
+    ...(typeof raw.turn_id === 'string' && raw.turn_id ? { turn_id: raw.turn_id } : {}),
     payload: raw.payload
   }
 }
