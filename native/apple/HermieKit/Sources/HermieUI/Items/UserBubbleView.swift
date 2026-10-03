@@ -1,3 +1,4 @@
+import HermieCore
 import HermieMarkdown
 import HermieTranscript
 import SwiftUI
@@ -5,12 +6,13 @@ import SwiftUI
 /// A person's turn, as Messages draws it. The owner's own turns sit on the
 /// trailing side in a flat blue bubble with white text; in a shared chat a
 /// turn by someone else sits on the leading side in the grey bubble, with
-/// their name and initial, coloured by their author id (never by name, which
-/// two people can share).
+/// their initial beside the group's last bubble, coloured by their author id
+/// (never by name, which two people can share), and their name next to the
+/// time under it: "Lloyd · 21:42" (`metaLine`). The owner's own bubbles keep
+/// the time alone.
 ///
 /// The chat is shared when the item carries an `author` that is not the owner;
-/// the builder tells the view whether this turn opens a run by its author, so
-/// the name shows once per run, and where the bubble sits in its group
+/// the builder tells the view where the bubble sits in its group
 /// (`BubbleLayout`): only the last bubble of a group has the tail and the time
 /// under it.
 struct UserBubbleView: View {
@@ -61,7 +63,7 @@ struct UserBubbleView: View {
         }
         .opacity(item.pending == true ? 0.7 : 1)
       }
-      meta
+      meta(sender: nil)
     }
     .frame(maxWidth: .infinity, alignment: .trailing)
     .accessibilityElement(children: .combine)
@@ -87,19 +89,13 @@ struct UserBubbleView: View {
       }
       .accessibilityHidden(true)
       VStack(alignment: .leading, spacing: ChatSpacing.bubbleCaption) {
-        if opensAuthorRun {
-          Text(name)
-            .font(.caption.weight(.semibold))
-            .foregroundStyle(tint)
-            .padding(.leading, ChatSpacing.bubbleInsetH)
-        }
         BubbleColumn(side: .incoming, width: .text) {
           MessageBubble(side: .incoming, tail: closesGroup, fill: BubblePalette.incoming) {
             words(foreground: .primary)
           }
           .opacity(item.pending == true ? 0.7 : 1)
         }
-        meta
+        meta(sender: name)
       }
     }
     .frame(maxWidth: .infinity, alignment: .leading)
@@ -127,9 +123,10 @@ struct UserBubbleView: View {
     .tint(foreground == .white ? .white : nil)
   }
 
-  /// The time under the group's last bubble, on a line of its own (never on the words' last line);
-  /// "Sending…" and the steered marker under any bubble that has them.
-  @ViewBuilder private var meta: some View {
+  /// The time under the group's last bubble, on a line of its own (never on the words' last line),
+  /// with the sender's name before it when someone else wrote it; "Sending…" and the steered
+  /// marker under any bubble that has them.
+  @ViewBuilder private func meta(sender: String?) -> some View {
     let clock = closesGroup ? ItemFormat.clock(item.ts) : nil
     let steered = item.displayKind == .steer
     if clock != nil || steered || item.pending == true {
@@ -140,13 +137,30 @@ struct UserBubbleView: View {
         if item.pending == true {
           Text(Strings.Chat.Receipt.sending)
         } else if let clock {
-          Text(clock)
+          Text(verbatim: Self.metaLine(sender: sender, clock: clock))
+            .lineLimit(1)
+            .truncationMode(.middle)
         }
       }
       .font(.caption2)
       .foregroundStyle(.secondary)
       .padding(.horizontal, ChatSpacing.captionInset)
     }
+  }
+
+  /// The longest sender's name shown next to the time, in characters.
+  static let senderLimit = 40
+
+  /// The line under a group's last bubble: the time, after the sender's name when someone else
+  /// wrote it ("Lloyd · 21:42"). The name is the gateway's untrusted text, so it goes through
+  /// `SecurePrompt.displayText` (no control or direction characters, one line, at most
+  /// `senderLimit` characters) and is isolated with FIRST STRONG ISOLATE … POP DIRECTIONAL
+  /// ISOLATE, so a right-to-left name cannot reorder the time beside it.
+  static func metaLine(sender: String?, clock: String) -> String {
+    guard let sender else { return clock }
+    let name = SecurePrompt.displayText(sender, limit: senderLimit).replacingOccurrences(of: "\n", with: " ")
+    guard !name.isEmpty else { return clock }
+    return "\u{2068}\(name)\u{2069} · \(clock)"
   }
 
   @ViewBuilder private var copyAction: some View {

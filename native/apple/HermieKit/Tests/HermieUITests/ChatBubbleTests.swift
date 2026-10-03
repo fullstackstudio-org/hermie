@@ -284,3 +284,36 @@ private func status(_ id: String, presentation: Presentation = .full) -> Visible
     return (max(la, lb) + 0.05) / (min(la, lb) + 0.05)
   }
 }
+
+/// The owner's "in a chat, when someone else sends something: put the name next to the time".
+@Suite struct ForeignSenderLineTests {
+  @Test func someoneElsesBubbleShowsTheirNameBeforeTheTime() {
+    #expect(UserBubbleView.metaLine(sender: "Lloyd", clock: "21:42") == "\u{2068}Lloyd\u{2069} · 21:42")
+  }
+
+  @Test func theOwnersBubbleKeepsTheTimeAlone() {
+    #expect(UserBubbleView.metaLine(sender: nil, clock: "21:42") == "21:42")
+  }
+
+  @Test func aRightToLeftNameIsIsolatedFromTheTime() {
+    let line = UserBubbleView.metaLine(sender: "\u{05D3}\u{05E0}\u{05D4}", clock: "21:42")
+    #expect(line.hasPrefix("\u{2068}"))
+    #expect(line.hasSuffix("\u{2069} · 21:42"))
+  }
+
+  @Test func directionOverridesAndLineBreaksInTheNameAreDropped() {
+    let line = UserBubbleView.metaLine(sender: "Ll\u{202E}oyd\nvan Dam", clock: "21:42")
+    #expect(line == "\u{2068}Lloyd van Dam\u{2069} · 21:42")
+  }
+
+  @Test func aLongNameIsCut() {
+    let line = UserBubbleView.metaLine(sender: String(repeating: "a", count: 200), clock: "21:42")
+    let name = line.dropFirst().prefix { $0 != "\u{2069}" }
+    #expect(name.count == UserBubbleView.senderLimit + 1, "the limit and an ellipsis")
+    #expect(name.hasSuffix("…"))
+  }
+
+  @Test func aNameOfNothingButControlsFallsBackToTheTime() {
+    #expect(UserBubbleView.metaLine(sender: "\u{202E}\u{200B}", clock: "21:42") == "21:42")
+  }
+}
