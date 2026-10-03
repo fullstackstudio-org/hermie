@@ -90,7 +90,8 @@ jobs:
   # the commit named in `build.json` somewhere else and compares every file;
   # and that the transcript list meets its performance budgets in Chromium.
   # A sibling job rather than steps of `check`, so a bundle problem is not
-  # buried under the app's tests and the two run side by side.
+  # buried under the app's tests and the two run side by side. What a browser
+  # does with the built client, in all three engines, is `web-client-e2e` below.
   web-client:
     name: Web client (build, bundle gate, reproducibility)
     runs-on: ubuntu-latest
@@ -117,29 +118,45 @@ jobs:
       - name: Bundle gate
         run: npm run client:check-bundle -- --commit "$(git rev-parse HEAD)"
 
+      # The Hermes plugin scanner over the build, as the plugin's own `guard-scan`
+      # job will run it over the tree the build is imported into (plan W3): the
+      # fork the gateways run and upstream, each fetched at the commit pinned in
+      # `scripts/web/scanner-pins.json`, with `dist/` laid under `dashboard/app`
+      # next to a manifest. Passes only on a `safe` verdict. The first finding
+      # this found was a real one: upstream read a regular expression of the
+      # Markdown code as an inline shell snippet. The second step is the gate's
+      # own test against the real scanners: the real build passes and a build with
+      # a planted critical pattern does not. Both need the network (a sparse fetch
+      # of `tools/`, a few megabytes) and the runner's Python.
+      - name: Plugin scanner (fork and upstream, pinned)
+        run: npm run client:guard-scan
+
+      - name: The scanner gate fails a planted pattern
+        run: npx vitest run scripts/web/guard-scan
+        env:
+          GUARD_SCAN_REAL: '1'
+
       # The transcript list against its budgets (plan W-8): 60 s of a reply
       # streaming into a 5,000-item chat at 4x CPU throttling (no task over
       # 50 ms, under 1 % of frames dropped, no drift while reading, pinned at
       # the bottom), a cached chat painted within 300 ms, and the recorded
       # stream scenarios drawn as their checkpoints say. Chromium only here;
-      # WebKit and Firefox run locally (`npm run client:e2e`). It runs on the
-      # development-only harness build (`dist-harness/`), never on `dist/`.
-      #
-      # The same command runs the chat screen's suite (plan W-10b): the built
-      # client against the fake gateway with 2,000 rows of history, opened at
-      # the bottom without moving, pinned while a reply streams, "jump to
-      # latest" when scrolled up, and axe with contrast in light and dark. It
-      # builds the client itself, into a temporary directory.
+      # WebKit and Firefox run locally (`npm run client:e2e:perf`). It runs on
+      # the development-only harness build (`dist-harness/`), never on `dist/`.
+      # It stays in this job, not in `web-client-e2e`: its budgets are Chromium
+      # measures, it needs a machine to itself for a minute of throttled
+      # streaming (one job per runner gives it that), and a miss belongs beside
+      # the bundle budgets rather than among three engines' behaviour checks.
       - name: Install Chromium for Playwright
         run: npx playwright install --with-deps chromium
 
-      - name: Transcript list performance and chat screen (Chromium)
-        run: npm run e2e:chromium --workspace @hermie/web-client
+      - name: Transcript list performance (Chromium)
+        run: npm run e2e:perf:chromium --workspace @hermie/web-client
 
       - uses: actions/upload-artifact@v4
         if: failure()
         with:
-          name: hermie-web-client-e2e-results
+          name: hermie-web-client-perf-results
           path: native/web/test-results
           if-no-files-found: ignore
 
@@ -162,6 +179,58 @@ jobs:
           name: hermie-web-client-maps
           path: native/web/dist-maps
           if-no-files-found: error
+
+  # The web client in a browser, end to end: the real production build served by
+  # the fake gateway's copy of the dashboard's static route, in Chromium, WebKit
+  # and Firefox, one job each so that a failure in one engine does not hide the
+  # others and the three run side by side (plan W-12). `e2e/fixtures.ts` builds
+  # the client and starts a gateway of its own per test; the specs are sign-in
+  # and session loss, the chat (list, open, stream, send, stop, a dropped
+  # socket), the request layer (approval, clarify, withdrawn, restored), and axe
+  # in both colour schemes on every screen and sheet. Any console error or
+  # content-security-policy violation fails the test that caused it.
+  #
+  # No path filter, on purpose: this workflow runs on every pull request and every
+  # job in it does, so a required `Web client end to end` check always starts. A
+  # check that is required and filtered by path never reports on a pull request
+  # that touches none of the paths, and that pull request cannot be merged. The
+  # price is three browsers on a documentation-only change; if that becomes too
+  # dear the right fix is a path filter inside the job that still reports success
+  # (skip the steps, not the job), not a trigger filter.
+  web-client-e2e:
+    name: Web client end to end (${{ matrix.browser }})
+    runs-on: ubuntu-24.04
+    timeout-minutes: 25
+    permissions:
+      contents: read
+    strategy:
+      fail-fast: false
+      matrix:
+        browser: [chromium, webkit, firefox]
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version-file: .nvmrc
+          cache: npm
+
+      - name: Install
+        run: npm ci
+
+      - name: Install ${{ matrix.browser }} for Playwright
+        run: npx playwright install --with-deps ${{ matrix.browser }}
+
+      - name: End-to-end and accessibility specs
+        run: npm run e2e --workspace @hermie/web-client -- --project=${{ matrix.browser }}
+
+      # A trace of every failed test: `npx playwright show-trace <file>`.
+      - uses: actions/upload-artifact@v4
+        if: failure()
+        with:
+          name: hermie-web-client-e2e-traces-${{ matrix.browser }}
+          path: native/web/test-results
+          if-no-files-found: ignore
 
   # `check` above runs the JavaScript/TypeScript suites; it has no `cargo test`
   # anywhere, so the desktop bridge's ACL guarantees (`src/acl.rs`,
