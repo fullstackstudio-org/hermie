@@ -134,6 +134,7 @@ export function startSession(options: StartSessionOptions): Session {
     gateway: client.gateway,
     chatFor: sessionId => chats.chats.getState().runtimeToBot[sessionId],
     watchChats: listener => chats.chats.subscribe(() => listener()),
+    watchReplays: listener => chats.controller.onReplaySignal(listener),
     gatewayName: hostOf(options.baseUrl)
   })
 

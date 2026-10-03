@@ -33,20 +33,29 @@
  *     arrival plus the method's timeout, which is never before the gateway's.
  *  3. **Ending.** The deadline passing closes a prompt with an "expired" notice
  *     and sends nothing; `request.cancel` closes it with "expired" (`timeout`) or
- *     "withdrawn" (any other reason). A prompt whose session no chat holds any
- *     more is answered `''` with a "withdrawn" notice, and `stop` (a sign-out)
- *     answers every open one `''` before the socket closes.
+ *     "withdrawn" (any other reason), whether it arrived live or in a reconnect's
+ *     replay (`replayedCancel`). After a reconnect, a prompt its session's
+ *     `open_requests` no longer lists ended while the page was not listening and
+ *     closes with a notice saying so (`reconcile`): an answer to it would be
+ *     dropped. A cancel that crosses an answer sent from here says the answer may
+ *     not have arrived. A prompt whose session no chat holds any more is answered
+ *     `''` with a "withdrawn" notice, and `stop` (a sign-out) answers every open
+ *     one `''` before the socket closes.
  *  4. **Routing.** A prompt belongs to the chat whose runtime session is the
  *     request's `session_id`. One for a session no chat holds yet waits (a resume
  *     re-delivers open requests before it binds their session), bounded in number,
  *     until a chat holds it or its deadline passes; it is never declined for
- *     waiting, because another client of the same gateway, or a chat the reader is
- *     about to open, may answer it. When its session moves to another chat, the
- *     prompt moves with it.
+ *     waiting (the native apps decline after 15 s), because a `-32601` makes the
+ *     gateway give up on it for every client, and another client of the same
+ *     gateway, or a chat the reader is about to open, may still answer it. When
+ *     its session moves to another chat (or a re-delivered copy names another
+ *     session), the prompt moves with it.
  *  5. **An answer that did not arrive.** A re-delivered copy of a request this
  *     model already answered or let go is proof that the gateway never got it:
- *     the prompt opens again and says so. A copy of one the gateway withdrew, one
- *     that expired, or one that was only a notice is ignored.
+ *     the prompt opens again and says so (an answer and a Skip in their own
+ *     words); one let go of here (its chat let go of it) opens again without
+ *     that line. A copy of one the gateway withdrew, one that expired, or one
+ *     that was only a notice is ignored.
  *  6. **Requests only the desktop app can answer** are declined at once with the
  *     native apps' `-32601`, and leave ONE notice on their chat per request, however
  *     often it is re-delivered (a notice for a session no chat holds waits 15 s for
@@ -69,6 +78,7 @@ import {
   type SecureNoticeKind,
   type SecurePrompt
 } from '../../state/secure-input'
+import type { ReplaySignal } from '../chat-controller'
 import type { ChatGateway } from '../link'
 import { declineUnsupported, isUnsupportedMethod, UNSUPPORTED_CODE } from './unsupported'
 
@@ -97,6 +107,8 @@ export const GATEWAY_TIMEOUT_MS: Readonly<Record<SecureAsk['kind'], number>> = O
 
 /** The longest name shown (a variable, a site, a password manager, a method). */
 export const NAME_LIMIT = 120
+/** The longest bot name shown in a sheet's heading, its "From" line and a chat's notice. */
+export const BOT_NAME_LIMIT = 64
 /** The longest free text shown (a prompt, a hint). */
 export const TEXT_LIMIT = 600
 /** The longest command shown. */
@@ -284,6 +296,8 @@ export interface SecureInputModelOptions {
   chatFor: (sessionId: string) => string | undefined
   /** Call `listener` whenever the sessions the chats hold may have changed; returns the way to stop. */
   watchChats?: (listener: () => void) => () => void
+  /** Call `listener` with what each reconnect learned about open requests (`ChatController.onReplaySignal`). */
+  watchReplays?: (listener: (signal: ReplaySignal) => void) => () => void
   /** The gateway as a person knows it (its host), for the sheet's chrome. */
   gatewayName?: string
   /** Epoch milliseconds. */
@@ -307,6 +321,9 @@ type CloseReason =
 interface Closed {
   reason: CloseReason
   deadline: number | null
+  /** For `answered`: whether it was a Skip (`''`), and the chat it was on, for a later "may not have arrived". */
+  skipped?: boolean
+  bot?: string
 }
 
 /** A prompt that is open or waiting for its chat: the newest delivery and what it asks. */
@@ -315,7 +332,11 @@ interface Entry {
   sessionId: string
   ask: SecureAsk
   deadline: number | null
-  earlierAnswerLost: boolean
+  /** When this page ends it: the deadline, or for one first seen re-delivered its arrival plus the timeout. */
+  expiry: number
+  /** When this page first saw it, on its clock. */
+  arrivedAt: number
+  earlierLost: SecurePrompt['earlierLost']
 }
 
 interface ParkedNotice {
@@ -383,7 +404,16 @@ export class SecureInputModel {
       gateway.onStatus((status: ConnectionStatus) => {
         this.ready = status === 'ready'
       }),
-      ...(this.options.watchChats ? [this.options.watchChats(() => this.chatsChanged())] : [])
+      ...(this.options.watchChats ? [this.options.watchChats(() => this.chatsChanged())] : []),
+      ...(this.options.watchReplays
+        ? [
+            this.options.watchReplays(signal =>
+              signal.kind === 'cancel'
+                ? this.replayedCancel(signal.id, signal.reason)
+                : this.reconcile(signal.sessionId, signal.ids, signal.askedAt)
+            )
+          ]
+        : [])
     )
   }
 
@@ -452,6 +482,43 @@ export class SecureInputModel {
     return this.openPrompt(id) ? this.deliver(id, SKIPPED) : 'closed'
   }
 
+  /**
+   * What a reconnect learned about the requests still waiting on one runtime session (a `session.resume`'s or
+   * a `session.events.since`'s `open_requests`): every prompt of that session the gateway no longer lists
+   * ended while this page was not listening (withdrawn, timed out, answered elsewhere), so it closes with a
+   * notice saying so and nothing is sent; an answer to it would be dropped. The snapshot's own requests were
+   * re-delivered a moment before it (the channel delivers them before the call resolves), so they stay, and so
+   * does one first seen at or after `askedAt` (when the call went out): it may be newer than the snapshot.
+   */
+  reconcile(sessionId: string, openIds: readonly string[], askedAt = Number.POSITIVE_INFINITY): void {
+    if (this.stopped || !sessionId) {
+      return
+    }
+
+    const listed = new Set(openIds)
+
+    for (const [id, entry] of [...this.entries]) {
+      if (entry.sessionId !== sessionId || listed.has(id) || entry.arrivedAt >= askedAt) {
+        continue
+      }
+
+      const prompt = this.store.getState().prompts.find(candidate => candidate.id === id)
+
+      this.finish(id, 'cancelled')
+
+      if (prompt) {
+        this.show(prompt.bot, id, { kind: 'lapsed' })
+      }
+    }
+  }
+
+  /** A `request.cancel` that reached this page in a replay (`session.events.since`) rather than live. */
+  replayedCancel(id: string, reason: string): void {
+    if (!this.stopped) {
+      this.withdraw(id, reason)
+    }
+  }
+
   /** Take the chat's notice away. */
   dismissNotice(bot: string): void {
     const notices = this.store.getState().notices
@@ -483,8 +550,11 @@ export class SecureInputModel {
     return prompt
   }
 
+  /** Its deadline, or for one first seen re-delivered (no deadline shown) the end this page set for it. */
   private pastDeadline(prompt: SecurePrompt): boolean {
-    return prompt.deadline !== null && this.now() >= prompt.deadline
+    const end = prompt.deadline ?? this.entries.get(prompt.id)?.expiry
+
+    return end !== undefined && this.now() >= end
   }
 
   private deliver(id: string, text: string): AnswerOutcome {
@@ -498,7 +568,9 @@ export class SecureInputModel {
       return 'offline'
     }
 
-    this.finish(id, 'answered')
+    const bot = this.store.getState().prompts.find(prompt => prompt.id === id)?.bot
+
+    this.finish(id, 'answered', { skipped: text === SKIPPED, ...(bot !== undefined ? { bot } : {}) })
     entry.request.respond({ value: text })
 
     return 'sent'
@@ -549,9 +621,20 @@ export class SecureInputModel {
 
     const existing = this.entries.get(id)
 
-    // A copy of one already here: a reconnect re-delivered it, and its reply now goes out on the newest copy.
+    // A copy of one already here: a reconnect re-delivered it, and its reply now goes out on the newest copy,
+    // under the session the newest copy names.
     if (existing) {
       existing.request = request
+
+      const session = str(request.params.session_id)
+
+      if (session && session !== existing.sessionId) {
+        existing.sessionId = session
+        this.store.setState(state => ({
+          prompts: state.prompts.map(prompt => (prompt.id === id ? { ...prompt, sessionId: session } : prompt))
+        }))
+        this.chatsChanged()
+      }
 
       return
     }
@@ -587,7 +670,16 @@ export class SecureInputModel {
       expiry = now + timeout
     }
 
-    const entry: Entry = { request, sessionId, ask, deadline, earlierAnswerLost: reopening?.reason === 'answered' }
+    const entry: Entry = {
+      request,
+      sessionId,
+      ask,
+      deadline,
+      expiry,
+      arrivedAt: now,
+      // Only an answer of the person's that went out from here can have been lost; one let go of here was not.
+      earlierLost: reopening?.reason === 'answered' ? (reopening.skipped ? 'skip' : 'answer') : null
+    }
     const bot = this.options.chatFor(sessionId)
 
     if (bot === undefined && this.parked.size >= MAX_PARKED) {
@@ -621,7 +713,7 @@ export class SecureInputModel {
       bot,
       sessionId: entry.sessionId,
       deadline: entry.deadline,
-      earlierAnswerLost: entry.earlierAnswerLost,
+      earlierLost: entry.earlierLost,
       seq: this.seq
     }
 
@@ -769,8 +861,17 @@ export class SecureInputModel {
       return
     }
 
-    // Not here (yet, or not a prompt at all): whatever arrives with this id later is ignored.
-    this.close(id, 'cancelled')
+    const done = this.closed.get(id)
+
+    // Answered from here a moment ago, and the gateway stopped waiting all the same: the two crossed, and the
+    // answer may never have been taken. Said, not swallowed (the native apps' `mayNotHaveArrived`); a Skip
+    // that crossed changes nothing for the reader.
+    if (done?.reason === 'answered' && !done.skipped && done.bot !== undefined) {
+      this.show(done.bot, id, { kind: 'may_not_have_arrived' })
+    }
+
+    // Not here (yet, or not a prompt at all, or done): whatever arrives with this id later is ignored.
+    this.close(id, 'cancelled', done?.deadline ?? null)
   }
 
   /** The deadline passed: close it, send nothing. */
@@ -788,7 +889,7 @@ export class SecureInputModel {
   // ── bookkeeping ───────────────────────────────────────────────────────────────────────────────
 
   /** Take a prompt out of every table, and remember it is done and why. */
-  private finish(id: string, reason: CloseReason): void {
+  private finish(id: string, reason: CloseReason, extra: Pick<Closed, 'skipped' | 'bot'> = {}): void {
     const deadline = this.entries.get(id)?.deadline ?? null
     const timer = this.expiries.get(id)
 
@@ -806,12 +907,17 @@ export class SecureInputModel {
       this.store.setState({ prompts: prompts.filter(prompt => prompt.id !== id) })
     }
 
-    this.close(id, reason, deadline)
+    this.close(id, reason, deadline, extra)
   }
 
-  private close(id: string, reason: CloseReason, deadline: number | null = null): void {
+  private close(
+    id: string,
+    reason: CloseReason,
+    deadline: number | null = null,
+    extra: Pick<Closed, 'skipped' | 'bot'> = {}
+  ): void {
     this.closed.delete(id)
-    this.closed.set(id, { reason, deadline })
+    this.closed.set(id, { reason, deadline, ...extra })
 
     if (this.closed.size > CLOSED_LIMIT) {
       const oldest = this.closed.keys().next().value

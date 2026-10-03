@@ -23,13 +23,18 @@
  *     layer puts focus on the dialog, not the field, and for `tapGuardMs` after the
  *     sheet appears the fields and buttons are off, so keystrokes or a click meant
  *     for something else never land here, and whatever reached a field by then is
- *     dropped when they wake. Every field is `autocomplete="off"` (the plan's rule)
- *     and carries the opt-outs the common password-manager extensions read, has no
+ *     dropped when they wake. Every field is `autocomplete="off"` (the plan's rule;
+ *     a one-time code is `one-time-code`, see `SecureField.autoComplete`) and
+ *     carries the opt-outs the common password-manager extensions read, has no
  *     `name` and sits in no `<form>`: what this origin has saved is the gateway's
  *     sign-in, never the answer to a bot's question, so nothing may be offered into
  *     these fields, and nothing typed here may be offered for saving. A field is
  *     emptied before it leaves the page (in the commit that removes it), so a
  *     browser that looks at a password field as it disappears sees nothing.
+ *     Known limit: Chromium and Safari ignore `autocomplete="off"` on a password
+ *     field and may still offer to save what was typed (a login above all) under
+ *     this origin; the guard, the clearing, and no form and no name make that
+ *     less likely, not impossible (README, "Secret prompts").
  *  4. **Only Send or Skip ends it.** Escape and the scrim do nothing (the layer
  *     keeps them). Skip answers `''`. Return in the last field is Send.
  *  5. **A countdown to the gateway's deadline**, when it is known; the model ends
@@ -82,10 +87,16 @@ export interface SecureField {
   label: string
   /** Masked (every value a bot asks for) or not (a login's username, which is not a secret). */
   type: 'password' | 'text'
+  /**
+   * `off` (the plan's rule) unless said otherwise: a one-time code is `one-time-code`, which tells the browser
+   * it is no password to save and lets it offer a code it just received (plan amendment, W-14 round 2).
+   */
+  autoComplete?: 'off' | 'one-time-code'
 }
 
 interface FrameProps extends SecureSheetProps {
-  title: string
+  /** The heading: fixed words around the bot's name (`WithName`). */
+  title: ReactNode
   /** What is asked: fixed leads and the request's words in quoted boxes. */
   details: ReactNode
   fields: readonly SecureField[]
@@ -298,9 +309,11 @@ export function SecureSheetFrame({
         {webStrings.secureInput.gateway({ host: gateway })}
       </p>
 
-      {prompt.earlierAnswerLost ? (
+      {prompt.earlierLost ? (
         <p className="hm-requests__phase" data-tone="danger">
-          {webStrings.secureInput.earlierAnswerLost}
+          {prompt.earlierLost === 'skip'
+            ? webStrings.secureInput.earlierSkipLost
+            : webStrings.secureInput.earlierAnswerLost}
         </p>
       ) : null}
 
@@ -320,7 +333,7 @@ export function SecureSheetFrame({
                 ref={field.role === 'value' ? valueField : identifierField}
                 className="hm-secure__input"
                 type={field.type}
-                autoComplete="off"
+                autoComplete={field.autoComplete ?? 'off'}
                 autoCapitalize="off"
                 autoCorrect="off"
                 spellCheck={false}

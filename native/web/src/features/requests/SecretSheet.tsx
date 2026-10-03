@@ -8,6 +8,7 @@ import type { ReactElement } from 'react'
 
 import { webStrings } from '../../i18n/web-strings'
 import { SecureQuote, type SecureSheetProps, SecureSheetFrame } from './SecureSheet'
+import { WithName } from './with-name'
 
 export function SecretSheet(props: SecureSheetProps): ReactElement | null {
   const { ask } = props.prompt
@@ -21,7 +22,7 @@ export function SecretSheet(props: SecureSheetProps): ReactElement | null {
   return (
     <SecureSheetFrame
       {...props}
-      title={words.titleSecret({ name: props.name })}
+      title={<WithName phrase={name => words.titleSecret({ name })} name={props.name} />}
       details={
         <>
           {ask.prompt ? <SecureQuote text={ask.prompt} /> : null}

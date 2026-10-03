@@ -1,4 +1,5 @@
 import type { ServerRequest } from '@hermes/shared/json-rpc-channel'
+import type { ReplaySignal } from '../../core/chat-controller'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 
 import { createChatsStore } from '../../state/chats'
@@ -17,6 +18,8 @@ const refreshRunning = vi.fn(async () => {})
 const clientStop = vi.fn(() => void calls.push('client stopped'))
 const chatsStop = vi.fn(() => void calls.push('chats stopped'))
 
+/** The chat controller's replay signals, as the secure input model hears them. */
+const replayListeners = new Set<(signal: ReplaySignal) => void>()
 const connectGateway = vi.fn()
 const connectChats = vi.fn()
 
@@ -32,6 +35,7 @@ const { startSession } = await import('./session')
 
 beforeEach(() => {
   calls.length = 0
+  replayListeners.clear()
   connection = createConnectionStore()
   chatStore = createChatsStore()
   requestsStore.getState().reset()
@@ -49,7 +53,17 @@ beforeEach(() => {
     gateway: { request: vi.fn(), onAny: () => () => {}, onRequest: () => () => {}, onStatus: () => () => {} },
     stop: clientStop
   }))
-  connectChats.mockImplementation(() => ({ stop: chatsStop, chats: chatStore }))
+  connectChats.mockImplementation(() => ({
+    stop: chatsStop,
+    chats: chatStore,
+    controller: {
+      onReplaySignal: (listener: (signal: ReplaySignal) => void) => {
+        replayListeners.add(listener)
+
+        return () => replayListeners.delete(listener)
+      }
+    }
+  }))
 })
 
 const options = (visibility = fakeVisibility('visible')) => ({
@@ -203,9 +217,22 @@ describe('startSession', () => {
     expect(requestsStore.getState().queue.map(entry => [entry.kind, entry.bot])).toEqual([['secure', 'researcher']])
     expect(secureInputStore.getState().gateway).toBe('gw.example')
 
+    // A withdrawal that came in a reconnect's replay reaches the model through the controller.
+    const second: ServerRequest = { ...request, id: 'srq-2', respond: () => void replies.push('answered srq-2') }
+
+    handlers.some(handler => handler(second) !== false)
+    expect(secureInputStore.getState().prompts.map(prompt => prompt.id)).toEqual(['srq-1', 'srq-2'])
+
+    for (const listener of replayListeners) {
+      listener({ kind: 'cancel', id: 'srq-2', reason: 'interrupted' })
+    }
+
+    expect(secureInputStore.getState().prompts.map(prompt => prompt.id)).toEqual(['srq-1'])
+
     session.stop()
 
     expect(replies).toEqual([{ value: '' }, 'client stopped'])
+    expect(replayListeners.size).toBe(0)
     expect(requestsStore.getState().queue).toEqual([])
     expect(secureInputStore.getState().prompts).toEqual([])
   })

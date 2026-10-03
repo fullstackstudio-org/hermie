@@ -15,6 +15,7 @@ import { chatsStore } from '../../state/chats'
 import { connectionStore } from '../../state/connection'
 import { bindRequests, requestsStore } from '../../state/requests'
 import { chatWith } from '../../test-support/chat-fixtures'
+import { sentence } from '../../test-support/sentence'
 import { aBot, resetShellStores, seedRoster } from '../../test-support/shell-stores'
 import { ChatRuntimeContext, type ChatScreenController } from '../chat/chat-runtime'
 import { RequestLayer } from './RequestLayer'
@@ -134,7 +135,7 @@ describe('an approval', () => {
 
     expect(dialog().getAttribute('aria-modal')).toBe('true')
     expect(screen.getByRole('dialog', { name: 'Allow this command?' })).toBe(dialog())
-    expect(within(dialog()).getByText('From Dr. Researcher')).toBeTruthy()
+    expect(within(dialog()).getByText(sentence('From Dr. Researcher'))).toBeTruthy()
     // The lead line is what the dialog is described by, and it names the bot's handle.
     expect(dialog().getAttribute('aria-describedby')).toBe(within(dialog()).getByText(/@researcher wants to run/u).id)
   })
@@ -227,7 +228,7 @@ describe('an approval', () => {
     mount()
     approval('researcher', 'srq-1')
 
-    expect(within(dialog()).getByText('Van Dr. Researcher')).toBeTruthy()
+    expect(within(dialog()).getByText(sentence('Van Dr. Researcher'))).toBeTruthy()
     expect(
       within(dialog())
         .getAllByRole('button')
@@ -251,7 +252,7 @@ describe('one at a time', () => {
 
     expect(screen.getByRole('dialog', { name: 'Before I continue' })).toBeTruthy()
     expect(within(dialog()).getByText('Second?')).toBeTruthy()
-    expect(within(dialog()).getByText('From Writer')).toBeTruthy()
+    expect(within(dialog()).getByText(sentence('From Writer'))).toBeTruthy()
     expect(within(dialog()).getByText('1 more waiting')).toBeTruthy()
 
     fireEvent.click(button('Skip'))
@@ -269,7 +270,7 @@ describe('one at a time', () => {
     mount()
     approval('writer', 'srq-1')
 
-    expect(within(dialog()).getByText('From Writer')).toBeTruthy()
+    expect(within(dialog()).getByText(sentence('From Writer'))).toBeTruthy()
   })
 
   it('names a bot the roster does not list by its handle', () => {
@@ -277,7 +278,7 @@ describe('one at a time', () => {
     mount()
     approval('stranger', 'srq-1')
 
-    expect(within(dialog()).getByText('From stranger')).toBeTruthy()
+    expect(within(dialog()).getByText(sentence('From stranger'))).toBeTruthy()
   })
 })
 

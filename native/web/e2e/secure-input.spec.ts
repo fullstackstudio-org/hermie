@@ -14,7 +14,11 @@
  *  - **Nothing is kept.** After an answer the value is in no field, nowhere in the
  *    page's markup, not in the address, not in local or session storage and not in
  *    any IndexedDB store the page wrote (the transcript cache among them).
+ *    Nor in anything the page wrote to its console.
  *  - **Withdrawn** (`request.cancel`): the sheet closes and the chat says why.
+ *  - **Withdrawn while the socket was down**: after the reconnect the sheet
+ *    closes with a notice saying so, and nothing can be sent to it.
+ *  - **Signing out** with a prompt open answers it `''` before the socket goes.
  *  - **Expired**: the gateway's deadline closes it, on the page's clock.
  *  - **Restored**: one still open when the page is reloaded comes back from
  *    `open_requests` and can be answered.
@@ -74,6 +78,21 @@ async function everythingKept(page: Page): Promise<string> {
   })
 }
 
+/** What the page wrote to its console in this test: the value must not be in it either. */
+let consoleLines: string[] = []
+
+test.beforeEach(({ page }) => {
+  consoleLines = []
+  page.on('console', message => consoleLines.push(message.text()))
+})
+
+test.afterEach(() => {
+  expect(consoleLines.join('\n')).not.toContain('ZQ7xK')
+})
+
+/** The chat's line about a prompt that ended without an answer, or a request it declined. */
+const chatNotice = (page: Page) => page.locator('[data-secure-notice]')
+
 const lastAnswer = async (gateway: Gateway, method: string) =>
   (await gateway.answers()).filter(answer => answer.method === method).at(-1)
 
@@ -126,7 +145,7 @@ test.describe('answering a prompt', () => {
       const input = app.dialog.getByLabel(label, { exact: true })
 
       await expect(input).toHaveAttribute('type', 'password')
-      await expect(input).toHaveAttribute('autocomplete', 'off')
+      await expect(input).toHaveAttribute('autocomplete', method === 'vault.code' ? 'one-time-code' : 'off')
       expect(await input.evaluate(element => element.hasAttribute('name') || element.closest('form') !== null)).toBe(
         false
       )
@@ -196,12 +215,12 @@ test.describe('ending without an answer', () => {
     expect(await gateway.withdraw('interrupted')).toBe(1)
 
     await expect(app.dialog).toHaveCount(0)
-    await expect(page.getByText('Researcher no longer asks for this. Nothing was sent.')).toBeVisible()
+    await expect(chatNotice(page)).toContainText('Researcher no longer asks for this. Nothing was sent.')
     expect(await gateway.answers()).toEqual([])
     expect(await everythingKept(page)).not.toContain('ZQ7xK')
 
     await page.getByRole('button', { name: 'Close' }).click()
-    await expect(page.getByText('Researcher no longer asks for this.')).toHaveCount(0)
+    await expect(chatNotice(page)).toHaveCount(0)
   })
 
   test("expired: the gateway's two minutes pass, the sheet closes and the chat says so", async ({
@@ -222,8 +241,61 @@ test.describe('ending without an answer', () => {
     await page.clock.runFor(60_000)
 
     await expect(app.dialog).toHaveCount(0)
-    await expect(page.getByText('The request from Researcher expired. Nothing was sent.')).toBeVisible()
+    await expect(chatNotice(page)).toContainText('The request from Researcher expired. Nothing was sent.')
     expect((await gateway.answers()).filter(answer => answer.method === 'sudo')).toEqual([])
+  })
+})
+
+test.describe('a withdrawal the page did not hear', () => {
+  test('a prompt the gateway withdrew while the socket was down closes after the reconnect, and says so', async ({
+    app,
+    diagnostics,
+    gateway,
+    page
+  }) => {
+    // The socket is cut on purpose; WebKit says so in the console.
+    diagnostics.allow(/network connection was lost|WebSocket connection to .* failed/u)
+
+    await app.open()
+    await app.ready()
+
+    await gateway.raise('sudo', { command: 'ls' })
+    await expect(app.dialog).toBeVisible()
+    await app.dialog.getByLabel('Password').fill(SECRET)
+
+    // The page goes offline and its socket with it; the gateway gives up on the request meanwhile.
+    await page.context().setOffline(true)
+    await gateway.dropSockets()
+    await expect.poll(async () => (await gateway.state()).openSockets).toBe(0)
+    expect(await gateway.withdraw('timeout')).toBe(1)
+    await page.context().setOffline(false)
+
+    // Back on the gateway: the sheet closes, its field emptied, and the chat says why.
+    await expect(app.dialog).toHaveCount(0, { timeout: 30_000 })
+    await expect(chatNotice(page)).toContainText(
+      'The request from Researcher ended while the connection was down. Nothing was sent.'
+    )
+    // Nothing is left to send to: no sheet, no field.
+    await expect(page.locator('input[data-secure-field]')).toHaveCount(0)
+    expect((await gateway.answers()).filter(answer => answer.method === 'sudo')).toEqual([])
+    expect(await everythingKept(page)).not.toContain('ZQ7xK')
+  })
+})
+
+test.describe('signing out', () => {
+  test('with a prompt open answers it with the empty string before the socket goes', async ({ app, gateway, page }) => {
+    await app.open()
+    await app.ready()
+
+    await gateway.raise('secret', { env_var: 'X', prompt: 'A key please' })
+    await expect(app.dialog).toBeVisible()
+    await app.dialog.getByLabel('Value').fill(SECRET)
+
+    // A reader cannot reach Sign out behind the sheet (the page is inert); the click stands in for any
+    // sign-out while a prompt is open, which must tell the bot "skipped" rather than leave it waiting.
+    await page.getByRole('button', { name: 'Sign out' }).dispatchEvent('click')
+
+    await expect.poll(async () => (await lastAnswer(gateway, 'secret'))?.result).toEqual({ value: '' })
   })
 })
 
@@ -259,9 +331,9 @@ test.describe('what only the desktop app can answer', () => {
 
       await gateway.raise(method, {})
 
-      await expect(
-        page.getByText(`Researcher sent a request that needs the Hermes desktop app (${method}). It was declined here.`)
-      ).toBeVisible()
+      await expect(chatNotice(page)).toContainText(
+        `Researcher sent a request that needs the Hermes desktop app (${method}). It was declined here.`
+      )
       await expect(app.dialog).toHaveCount(0)
       await expect
         .poll(async () => (await lastAnswer(gateway, method))?.error)

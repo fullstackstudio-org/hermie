@@ -10,7 +10,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import type { MessageAuthor, UserItem } from '@hermie/transcript'
 
 import { BotsController } from './bots-controller'
-import { ChatController } from './chat-controller'
+import { ChatController, type ReplaySignal } from './chat-controller'
 import { immediateFrames } from './ingest'
 import { RequestWithdrawnError } from './request-withdrawn'
 import type { RpcFailure } from './rpc-failures'
@@ -1894,5 +1894,95 @@ describe('reading further back', () => {
     const rowIds = after.order.map(id => after.items[id]?.rowId).filter(rowId => rowId !== undefined)
 
     expect(new Set(rowIds).size).toBe(rowIds.length)
+  })
+})
+
+describe('what a reconnect tells the requests answered beside the engine', () => {
+  it('passes on the open_requests of every resume and replay, per runtime session, with when it asked', async () => {
+    const { gateway, controller } = setup()
+    const signals: ReplaySignal[] = []
+
+    controller.onReplaySignal(signal => signals.push(signal))
+    controller.start()
+    await controller.openChat(RESEARCHER)
+
+    expect(signals.filter(signal => signal.kind === 'open_requests')).toEqual([
+      { kind: 'open_requests', sessionId: 'runtime-1', ids: [], askedAt: expect.any(Number) },
+      { kind: 'open_requests', sessionId: 'runtime-1', ids: [], askedAt: expect.any(Number) }
+    ])
+
+    signals.length = 0
+    gateway.status('ready')
+    await flush()
+    gateway.reply('session.resume', {
+      session_id: 'runtime-1',
+      stored_session_id: 'tip-researcher',
+      message_count: 2,
+      messages: [],
+      info: { desktop_contract: 7 },
+      open_requests: [{ id: 'srq-7', method: 'sudo', params: { session_id: 'runtime-1' } }]
+    })
+    gateway.status('reconnecting')
+    gateway.status('ready')
+    await flush()
+
+    expect(signals).toContainEqual({
+      kind: 'open_requests',
+      sessionId: 'runtime-1',
+      ids: ['srq-7'],
+      askedAt: expect.any(Number)
+    })
+  })
+
+  it('says nothing about open requests when the gateway sent no list', async () => {
+    const { gateway, controller } = setup()
+    const signals: ReplaySignal[] = []
+
+    gateway.reply('session.events.since', { events: [], latest_seq: 7, truncated: false, count: 0, epoch: 'e1' })
+    gateway.reply('session.resume', {
+      session_id: 'runtime-1',
+      stored_session_id: 'tip-researcher',
+      message_count: 2,
+      messages: [],
+      info: { desktop_contract: 7 }
+    })
+    controller.onReplaySignal(signal => signals.push(signal))
+    controller.start()
+    await controller.openChat(RESEARCHER)
+
+    expect(signals).toEqual([])
+  })
+
+  it('passes on a request.cancel the replay carried, which the live socket never delivered', async () => {
+    const { gateway, controller } = setup()
+    const signals: ReplaySignal[] = []
+
+    controller.onReplaySignal(signal => signals.push(signal))
+    controller.start()
+    await controller.openChat(RESEARCHER)
+    gateway.emit({ type: 'message.delta', session_id: 'runtime-1', seq: 8, payload: { text: 'a' } })
+
+    gateway.reply('session.events.since', {
+      events: [
+        {
+          type: 'request.cancel',
+          session_id: 'runtime-1',
+          seq: 9,
+          payload: { id: 'srq-3', method: 'sudo', reason: 'timeout' }
+        }
+      ],
+      latest_seq: 9,
+      truncated: false,
+      count: 1,
+      epoch: 'e1',
+      open_requests: []
+    })
+    gateway.status('ready')
+    await flush()
+    gateway.status('reconnecting')
+    gateway.status('ready')
+    await flush()
+
+    expect(signals).toContainEqual({ kind: 'cancel', id: 'srq-3', reason: 'timeout' })
   })
 })

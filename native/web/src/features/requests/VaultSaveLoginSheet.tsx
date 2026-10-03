@@ -10,6 +10,7 @@ import type { ReactElement } from 'react'
 
 import { webStrings } from '../../i18n/web-strings'
 import { SecureQuote, type SecureSheetProps, SecureSheetFrame } from './SecureSheet'
+import { WithName } from './with-name'
 
 export function VaultSaveLoginSheet(props: SecureSheetProps): ReactElement | null {
   const { ask } = props.prompt
@@ -23,7 +24,7 @@ export function VaultSaveLoginSheet(props: SecureSheetProps): ReactElement | nul
   return (
     <SecureSheetFrame
       {...props}
-      title={words.titleVaultSaveLogin({ name: props.name })}
+      title={<WithName phrase={name => words.titleVaultSaveLogin({ name })} name={props.name} />}
       details={
         <>
           <p className="hm-requests__text">{words.vaultSaveLoginLead}</p>

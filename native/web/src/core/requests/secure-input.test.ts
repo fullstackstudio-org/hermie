@@ -26,6 +26,7 @@ import {
   readAsk,
   SecureInputModel
 } from './secure-input'
+import type { ReplaySignal } from '../chat-controller'
 import { UNSUPPORTED_CODE } from './unsupported'
 
 /** A value nobody would type by accident: if it shows up anywhere but a reply, it leaked. */
@@ -217,6 +218,26 @@ describe('deadlines follow the gateway', () => {
     expect(notice('researcher')).toEqual({ kind: 'expired' })
   })
 
+  it('refuses an answer to one first seen re-delivered once its own end has passed, even before the timer fires', () => {
+    let now = timers.now()
+
+    model.stop()
+    gw = fakeSecureGateway()
+    model = new SecureInputModel({
+      gateway: gw.gateway,
+      store,
+      chatFor: id => sessions[id],
+      now: () => now,
+      timers: { setTimeout: () => 0, clearTimeout: () => undefined }
+    })
+    model.start()
+    gw.deliver('srq-1', 'sudo', { session_id: 'rt-1' }, true)
+    now += GATEWAY_TIMEOUT_MS.sudo
+
+    expect(model.answer('srq-1', SECRET)).toBe('closed')
+    expect(gw.replies).toEqual([])
+  })
+
   it('shows no countdown for one first seen re-delivered, and closes it a whole timeout after it arrived', () => {
     gw.deliver('srq-1', 'vault.code', { session_id: 'rt-1' }, true)
 
@@ -278,7 +299,7 @@ describe('restored from open_requests', () => {
     gw.deliver('srq-1', 'secret', { session_id: 'rt-1', env_var: 'X', prompt: 'p' }, true)
 
     expect(prompts().map(prompt => prompt.id)).toEqual(['srq-1'])
-    expect(prompts()[0]?.earlierAnswerLost).toBe(false)
+    expect(prompts()[0]?.earlierLost).toBeNull()
   })
 
   it('opens again one whose answer never arrived, and says so', () => {
@@ -286,9 +307,33 @@ describe('restored from open_requests', () => {
     model.answer('srq-1', SECRET)
     gw.deliver('srq-1', 'sudo', { session_id: 'rt-1' }, true)
 
-    expect(prompts()[0]?.earlierAnswerLost).toBe(true)
+    expect(prompts()[0]?.earlierLost).toBe('answer')
     expect(model.answer('srq-1', 'again')).toBe('sent')
     expect(gw.replies.at(-1)).toEqual({ id: 'srq-1', result: { value: 'again' } })
+  })
+
+  it('says a lost Skip in its own words', () => {
+    gw.deliver('srq-1', 'sudo', { session_id: 'rt-1' })
+    model.skip('srq-1')
+    gw.deliver('srq-1', 'sudo', { session_id: 'rt-1' }, true)
+
+    expect(prompts()[0]?.earlierLost).toBe('skip')
+  })
+
+  it('opens again one its chat let go of, without saying an answer was lost', () => {
+    gw.deliver('srq-1', 'sudo', { session_id: 'rt-1' })
+    moveSessions({ 'rt-2': 'writer' })
+    moveSessions({ 'rt-1': 'researcher', 'rt-2': 'writer' })
+    gw.deliver('srq-1', 'sudo', { session_id: 'rt-1' }, true)
+
+    expect(prompts().map(prompt => [prompt.id, prompt.earlierLost])).toEqual([['srq-1', null]])
+  })
+
+  it('follows the session the newest copy names', () => {
+    gw.deliver('srq-1', 'sudo', { session_id: 'rt-1' })
+    gw.deliver('srq-1', 'sudo', { session_id: 'rt-2' }, true)
+
+    expect(prompts().map(prompt => [prompt.sessionId, prompt.bot])).toEqual([['rt-2', 'writer']])
   })
 
   it('ignores a live duplicate of one already answered', () => {
@@ -305,6 +350,104 @@ describe('restored from open_requests', () => {
     gw.deliver('srq-1', 'sudo', { session_id: 'rt-1' }, true)
 
     expect(prompts()).toEqual([])
+  })
+})
+
+describe('a reconnect', () => {
+  it('closes a prompt the gateway withdrew while the socket was down, from the replayed request.cancel', () => {
+    gw.deliver('srq-1', 'sudo', { session_id: 'rt-1' })
+    model.replayedCancel('srq-1', 'interrupted')
+
+    expect(prompts()).toEqual([])
+    expect(notice('researcher')).toEqual({ kind: 'withdrawn' })
+    expect(model.answer('srq-1', SECRET)).toBe('closed')
+    expect(gw.replies).toEqual([])
+  })
+
+  it("closes the prompts its session's open_requests no longer lists, says why, and sends nothing", () => {
+    gw.deliver('srq-1', 'sudo', { session_id: 'rt-1' })
+    gw.deliver('srq-2', 'secret', { session_id: 'rt-1', env_var: 'X', prompt: 'p' })
+    gw.deliver('srq-3', 'sudo', { session_id: 'rt-2' })
+    timers.advance(1_000)
+
+    model.reconcile('rt-1', ['srq-2'], timers.now())
+
+    expect(prompts().map(prompt => prompt.id)).toEqual(['srq-2', 'srq-3'])
+    expect(notice('researcher')).toEqual({ kind: 'lapsed' })
+    expect(model.answer('srq-1', SECRET)).toBe('closed')
+    expect(gw.replies).toEqual([])
+    // And a copy that turns up later is not opened again: the gateway stopped waiting.
+    gw.deliver('srq-1', 'sudo', { session_id: 'rt-1' }, true)
+    expect(prompts().map(prompt => prompt.id)).toEqual(['srq-2', 'srq-3'])
+  })
+
+  it('keeps a prompt first seen after the call went out: it may be newer than the snapshot', () => {
+    const askedAt = timers.now()
+
+    gw.deliver('srq-1', 'sudo', { session_id: 'rt-1' })
+    model.reconcile('rt-1', [], askedAt)
+
+    expect(prompts().map(prompt => prompt.id)).toEqual(['srq-1'])
+  })
+
+  it('lets go of a prompt waiting for its chat quietly', () => {
+    gw.deliver('srq-1', 'sudo', { session_id: 'rt-9' })
+    timers.advance(1)
+    model.reconcile('rt-9', [], timers.now())
+    moveSessions({ ...sessions, 'rt-9': 'researcher' })
+
+    expect(prompts()).toEqual([])
+    expect(store.getState().notices).toEqual({})
+  })
+
+  it('hears both through watchReplays', () => {
+    let hear: (signal: ReplaySignal) => void = () => undefined
+
+    model.stop()
+    gw = fakeSecureGateway()
+    model = new SecureInputModel({
+      gateway: gw.gateway,
+      store,
+      chatFor: id => sessions[id],
+      watchReplays: listener => {
+        hear = listener
+
+        return () => undefined
+      },
+      now: () => timers.now(),
+      timers
+    })
+    model.start()
+    gw.deliver('srq-1', 'sudo', { session_id: 'rt-1' })
+    gw.deliver('srq-2', 'sudo', { session_id: 'rt-1' })
+    timers.advance(1)
+
+    hear({ kind: 'cancel', id: 'srq-1', reason: 'timeout' })
+    hear({ kind: 'open_requests', sessionId: 'rt-1', ids: [], askedAt: timers.now() })
+
+    expect(prompts()).toEqual([])
+    expect(notice('researcher')).toEqual({ kind: 'lapsed' })
+  })
+})
+
+describe('an answer and a withdrawal that cross', () => {
+  it('says the answer may not have arrived', () => {
+    gw.deliver('srq-1', 'sudo', { session_id: 'rt-1' })
+    model.answer('srq-1', SECRET)
+    gw.cancel('srq-1', 'timeout')
+
+    expect(notice('researcher')).toEqual({ kind: 'may_not_have_arrived' })
+    // And the gateway stopped waiting: a re-delivered copy is not opened again.
+    gw.deliver('srq-1', 'sudo', { session_id: 'rt-1' }, true)
+    expect(prompts()).toEqual([])
+  })
+
+  it('says nothing for a Skip that crossed', () => {
+    gw.deliver('srq-1', 'sudo', { session_id: 'rt-1' })
+    model.skip('srq-1')
+    gw.cancel('srq-1', 'timeout')
+
+    expect(store.getState().notices).toEqual({})
   })
 })
 

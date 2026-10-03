@@ -243,7 +243,7 @@ describe('secure prompts beside the engine', () => {
     bot,
     sessionId: `rt-${bot}`,
     deadline: null,
-    earlierAnswerLost: false,
+    earlierLost: null,
     seq
   })
 

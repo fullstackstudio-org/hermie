@@ -11,7 +11,7 @@ import { act, fireEvent, render, screen, within } from '@testing-library/react'
 import axe from 'axe-core'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 
-import { GATEWAY_TIMEOUT_MS, SecureInputModel } from '../../core/requests/secure-input'
+import { BOT_NAME_LIMIT, GATEWAY_TIMEOUT_MS, SecureInputModel } from '../../core/requests/secure-input'
 import { resetActiveLocale } from '../../i18n/active-locale'
 import { setLanguageChoice } from '../../i18n/locale'
 import { chatsStore } from '../../state/chats'
@@ -25,6 +25,7 @@ import {
   manualTimers,
   type ManualTimers
 } from '../../test-support/secure-input-gateway'
+import { sentence } from '../../test-support/sentence'
 import { aBot, resetShellStores, seedRoster } from '../../test-support/shell-stores'
 import { SecureInputNotice } from '../notices/SecureInputNotice'
 import { DEFAULT_TAP_GUARD_MS } from './ApprovalSheet'
@@ -170,6 +171,34 @@ describe('each prompt, in fixed words', () => {
     expect(outside).not.toContain('session expired')
   })
 
+  it("cleans, bounds and isolates the bot's name: a bidirectional override, an overlong name", () => {
+    seedRoster([aBot('researcher', { displayName: `Evil\u202Etxt.exe ${'x'.repeat(200)}` }), aBot('writer')])
+    mount()
+    raise('srq-1', 'sudo', { command: 'ls' })
+
+    const heading = within(dialog()).getByRole('heading')
+    const from = dialog().querySelector('.hm-requests__from') as HTMLElement
+
+    for (const line of [heading, from]) {
+      const name = line.querySelector('bdi')
+
+      expect(name).not.toBeNull()
+      expect(line.textContent).not.toContain('\u202E')
+      expect([...(name?.textContent ?? '')].length).toBeLessThanOrEqual(BOT_NAME_LIMIT + 1)
+      expect(name?.textContent?.endsWith('…')).toBe(true)
+    }
+
+    expect(dialog().textContent).not.toContain('\u202E')
+
+    // And the chat's line about it, once it ends.
+    act(() => gw.cancel('srq-1', 'interrupted'))
+
+    const banner = document.querySelector('[data-secure-notice]') as HTMLElement
+
+    expect(banner.querySelector('bdi')?.textContent?.endsWith('…')).toBe(true)
+    expect(banner.textContent).not.toContain('\u202E')
+  })
+
   it('sudo with no command says so', () => {
     mount()
     raise('srq-1', 'sudo', {})
@@ -234,7 +263,7 @@ describe('the fields', () => {
     ['vault.code', { site: 's' }],
     ['vault.save_login', { origin: 'o', site: 's' }]
   ])(
-    '%s: masked, autocomplete off, kept from password managers, unnamed, in no form, not focused',
+    '%s: masked, autocomplete off (a code: one-time-code), kept from password managers, unnamed, in no form, not focused',
     (method, params) => {
       mount()
       raise('srq-1', method, params)
@@ -245,7 +274,8 @@ describe('the fields', () => {
       expect(value.type).toBe('password')
 
       for (const input of inputs) {
-        expect(input.getAttribute('autocomplete')).toBe('off')
+        // A one-time code says so: no password to save (plan amendment); everything else is off.
+        expect(input.getAttribute('autocomplete')).toBe(method === 'vault.code' ? 'one-time-code' : 'off')
         expect(input.hasAttribute('name')).toBe(false)
         expect(input.closest('form')).toBeNull()
         expect(input.hasAttribute('data-1p-ignore')).toBe(true)
@@ -414,7 +444,7 @@ describe('ending without an answer', () => {
     expect(screen.queryByRole('dialog')).toBeNull()
     expect(input.value).toBe('')
     expect(gw.replies).toEqual([])
-    expect(screen.getByText('Dr. Researcher no longer asks for this. Nothing was sent.')).toBeTruthy()
+    expect(screen.getByText(sentence('Dr. Researcher no longer asks for this. Nothing was sent.'))).toBeTruthy()
     expect(document.querySelector('[aria-live="polite"]')?.textContent).toBe(
       'The request from Dr. Researcher was withdrawn.'
     )
@@ -462,7 +492,7 @@ describe('ending without an answer', () => {
     expect(screen.queryByRole('dialog')).toBeNull()
     expect(input.value).toBe('')
     expect(gw.replies).toEqual([])
-    expect(screen.getByText('The request from Dr. Researcher expired. Nothing was sent.')).toBeTruthy()
+    expect(screen.getByText(sentence('The request from Dr. Researcher expired. Nothing was sent.'))).toBeTruthy()
   })
 
   it('the notice closes', () => {
@@ -481,7 +511,9 @@ describe('ending without an answer', () => {
     expect(screen.queryByRole('dialog')).toBeNull()
     expect(
       screen.getByText(
-        'Dr. Researcher sent a request that needs the Hermes desktop app (terminal.read). It was declined here.'
+        sentence(
+          'Dr. Researcher sent a request that needs the Hermes desktop app (terminal.read). It was declined here.'
+        )
       )
     ).toBeTruthy()
   })

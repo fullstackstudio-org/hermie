@@ -13,13 +13,14 @@ import type { ReactElement } from 'react'
 import { useStore } from 'zustand'
 import type { StoreApi } from 'zustand/vanilla'
 
-import { displayText, NAME_LIMIT } from '../../core/requests/secure-input'
+import { BOT_NAME_LIMIT, displayText } from '../../core/requests/secure-input'
 import { useLocale } from '../../i18n/use-locale'
 import { webStrings } from '../../i18n/web-strings'
 import { botsStore } from '../../state/bots'
 import { type SecureInputState, secureInputStore, type SecureNoticeKind } from '../../state/secure-input'
 import { Button } from '../../ui/primitives'
 import { useSecureInputRuntime } from '../requests/secure-input-runtime'
+import { WithName } from '../requests/with-name'
 
 /** What the chat says about one notice; `name` is the bot's, cleaned. */
 export function secureNoticeText(notice: SecureNoticeKind, name: string): string {
@@ -32,6 +33,10 @@ export function secureNoticeText(notice: SecureNoticeKind, name: string): string
       return words.noticeWithdrawn({ name })
     case 'unsupported':
       return words.noticeUnsupported({ name, method: notice.method })
+    case 'lapsed':
+      return words.noticeLapsed({ name })
+    case 'may_not_have_arrived':
+      return words.noticeMayNotHaveArrived({ name })
   }
 }
 
@@ -61,7 +66,9 @@ export function SecureInputNotice({
 
   return (
     <div className="hm-chat__banner" role="status" data-secure-notice={entry.notice.kind}>
-      <p>{secureNoticeText(entry.notice, displayText(name, NAME_LIMIT))}</p>
+      <p>
+        <WithName phrase={shown => secureNoticeText(entry.notice, shown)} name={displayText(name, BOT_NAME_LIMIT)} />
+      </p>
       <Button variant="quiet" onClick={() => runtime?.dismissNotice(chatKey)}>
         {webStrings.secureInput.close}
       </Button>

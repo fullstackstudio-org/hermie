@@ -19,6 +19,7 @@ import {
 } from '../../state/passkeys'
 import { bindRequests, requestsStore } from '../../state/requests'
 import { chatWith } from '../../test-support/chat-fixtures'
+import { sentence } from '../../test-support/sentence'
 import { aBot, resetShellStores, seedRoster } from '../../test-support/shell-stores'
 import type { StoreApi } from 'zustand/vanilla'
 import { type PasskeyActions, PasskeyRuntimeContext } from './passkey-runtime'
@@ -113,7 +114,7 @@ describe('the confirm sheet', () => {
     await show()
 
     expect(dialog().getAttribute('aria-modal')).toBe('true')
-    expect(within(dialog()).getByText('From Dr. Researcher')).toBeTruthy()
+    expect(within(dialog()).getByText(sentence('From Dr. Researcher'))).toBeTruthy()
     expect(within(dialog()).getByRole('heading', { name: 'Delete backups' })).toBeTruthy()
     expect(dialog().getAttribute('aria-describedby')).toBeTruthy()
     expect(document.getElementById(dialog().getAttribute('aria-describedby') as string)?.textContent).toBe(

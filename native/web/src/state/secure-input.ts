@@ -47,8 +47,11 @@ export interface SecurePrompt {
    * when this page cannot know (it first saw the request re-delivered, so it may have waited a while).
    */
   deadline: number | null
-  /** The gateway asks again because an answer sent from here never reached it: the sheet says so. */
-  earlierAnswerLost: boolean
+  /**
+   * The gateway asks again because an answer (`'answer'`) or a Skip (`'skip'`) sent from here never reached it:
+   * the sheet says so. `null` for anything else.
+   */
+  earlierLost: 'answer' | 'skip' | null
   /** The order prompts were first seen in, across chats. */
   seq: number
 }
@@ -61,6 +64,10 @@ export type SecureNoticeKind =
   | { kind: 'withdrawn' }
   /** The bot asked for something only the desktop app can do (`method`, cleaned): it was declined. */
   | { kind: 'unsupported'; method: string }
+  /** It ended while the connection was down (a reconnect's `open_requests` no longer lists it): nothing was sent. */
+  | { kind: 'lapsed' }
+  /** An answer went out from here as the gateway stopped waiting: the two crossed, and it may not have arrived. */
+  | { kind: 'may_not_have_arrived' }
 
 export interface SecureNotice {
   /** A serial: the same notice twice is shown twice. */

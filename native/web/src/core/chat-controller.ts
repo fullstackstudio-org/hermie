@@ -395,8 +395,19 @@ function detachedView(snapshot: ChatsState): StoreApi<ChatsState> {
   return { getState: () => state, setState: () => undefined }
 }
 
+/**
+ * What a reconnect tells the requests answered beside the engine (`core/requests/secure-input.ts`), which hear
+ * the live socket only: the `open_requests` a resume or a replay answered with, per runtime session, and the
+ * `request.cancel` events a replay carried. `askedAt` is this controller's clock just before the call went out:
+ * a request first seen after it may be newer than the snapshot.
+ */
+export type ReplaySignal =
+  | { kind: 'open_requests'; sessionId: string; ids: readonly string[]; askedAt: number }
+  | { kind: 'cancel'; id: string; reason: string }
+
 export class ChatController {
   private readonly gateway: ChatGateway
+  private readonly replayListeners = new Set<(signal: ReplaySignal) => void>()
   /** The store itself: only the ingest touches it (routes its actions, commits to it). */
   private readonly store: ChatsStore
   private readonly bots: StoreApi<BotsState>
@@ -578,6 +589,23 @@ export class ChatController {
       this.gateway.onRequest(request => this.ingestRef.now(() => this.onServerRequest(request))),
       this.gateway.onStatus(status => this.onStatus(status))
     )
+  }
+
+  /** Hear what reconnects learn about open server requests (`ReplaySignal`). Returns the way to stop. */
+  onReplaySignal(listener: (signal: ReplaySignal) => void): () => void {
+    this.replayListeners.add(listener)
+
+    return () => this.replayListeners.delete(listener)
+  }
+
+  private signalReplay(signal: ReplaySignal): void {
+    for (const listener of [...this.replayListeners]) {
+      try {
+        listener(signal)
+      } catch {
+        // A listener's failure is its own; the chats carry on.
+      }
+    }
   }
 
   stop(): void {
@@ -833,6 +861,7 @@ export class ChatController {
     this.chats.getState().setHydration(key, 'hydrating')
 
     let resume: SessionResumeResult
+    const resumeAskedAt = this.now()
 
     try {
       resume = await this.gateway.request('session.resume', {
@@ -910,7 +939,7 @@ export class ChatController {
 
     // 4. The in-flight tail the persisted rows do not contain yet.
     this.chats.getState().applySnapshot(key, resumeSnapshotOf(resume))
-    this.registerOpenRequests(key, resume.open_requests ?? null)
+    this.registerOpenRequests(key, resume.open_requests ?? null, runtimeId, resumeAskedAt)
 
     // 5. Anything that happened between the history read and now.
     await this.replaySince(key, runtimeId)
@@ -1019,6 +1048,7 @@ export class ChatController {
     }
 
     const knownEpoch = chat.epoch
+    const askedAt = this.now()
     let result
 
     try {
@@ -1058,6 +1088,20 @@ export class ChatController {
 
         if (event) {
           this.chats.getState().dispatchEvent(botName, event)
+
+          // The requests answered beside the engine hear the live socket only: a withdrawal they missed
+          // while it was down reaches them here.
+          if (event.type === 'request.cancel') {
+            const payload = (event.payload ?? {}) as { id?: unknown; reason?: unknown }
+
+            if (typeof payload.id === 'string' && payload.id) {
+              this.signalReplay({
+                kind: 'cancel',
+                id: payload.id,
+                reason: typeof payload.reason === 'string' ? payload.reason : ''
+              })
+            }
+          }
         }
       }
 
@@ -1066,7 +1110,7 @@ export class ChatController {
         .update(botName, state => (state.epoch === result.epoch ? state : { ...state, epoch: result.epoch }))
     }
 
-    this.registerOpenRequests(botName, result.open_requests ?? null)
+    this.registerOpenRequests(botName, result.open_requests ?? null, runtimeId, askedAt)
   }
 
   /**
@@ -1074,8 +1118,25 @@ export class ChatController {
    *
    * These arrive without a live JSON-RPC handle, so answering one goes out as
    * `approval.respond` / `clarify.lock` rather than as a reply to the request.
+   *
+   * The list itself, when the gateway sent one, is also what the requests answered
+   * beside the engine reconcile against (`ReplaySignal`).
    */
-  private registerOpenRequests(botName: string, entries: OpenRequestEntry[] | null): void {
+  private registerOpenRequests(
+    botName: string,
+    entries: OpenRequestEntry[] | null,
+    runtimeId?: string,
+    askedAt?: number
+  ): void {
+    if (Array.isArray(entries) && runtimeId && askedAt !== undefined) {
+      this.signalReplay({
+        kind: 'open_requests',
+        sessionId: runtimeId,
+        ids: entries.flatMap(entry => (typeof entry?.id === 'string' ? [entry.id] : [])),
+        askedAt
+      })
+    }
+
     for (const entry of Array.isArray(entries) ? entries : []) {
       if (typeof entry?.id !== 'string' || typeof entry.method !== 'string') {
         continue
@@ -1398,6 +1459,7 @@ export class ChatController {
         }
 
         try {
+          const resumeAskedAt = this.now()
           const resume = await this.gateway.request('session.resume', {
             session_id: chat.storedSessionId,
             profile: name,
@@ -1412,7 +1474,7 @@ export class ChatController {
 
           this.bindRuntime(name, resume.session_id)
           this.chats.getState().applySnapshot(name, resumeSnapshotOf(resume))
-          this.registerOpenRequests(name, resume.open_requests ?? null)
+          this.registerOpenRequests(name, resume.open_requests ?? null, resume.session_id, resumeAskedAt)
           await this.replaySince(name, resume.session_id)
 
           const bot = byName.get(name)

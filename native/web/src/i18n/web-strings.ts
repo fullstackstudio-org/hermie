@@ -809,6 +809,12 @@ export const WEB_STRINGS_SOURCE = {
       nl: 'Je eerdere antwoord heeft de gateway niet bereikt. Voer het opnieuw in.',
       de: 'Deine frühere Antwort hat das Gateway nicht erreicht. Gib sie erneut ein.'
     },
+    /** The gateway asks again because an earlier Skip never reached it. */
+    earlierSkipLost: {
+      en: 'You skipped this before, but the gateway did not get that. Skip again, or answer it.',
+      nl: 'Je sloeg dit eerder over, maar de gateway heeft dat niet ontvangen. Sla het opnieuw over of beantwoord het.',
+      de: 'Du hast das schon übersprungen, aber das Gateway hat es nicht erhalten. Überspring es erneut oder beantworte es.'
+    },
     /** Send or Skip was pressed while the connection was down: nothing went out, the field keeps what was typed. */
     offline: {
       en: 'Not connected to the gateway. Nothing was sent; try again once the connection is back.',
@@ -826,6 +832,24 @@ export const WEB_STRINGS_SOURCE = {
       en: ({ name }: { name: string }) => `${name} no longer asks for this. Nothing was sent.`,
       nl: ({ name }: { name: string }) => `${name} vraagt hier niet meer om. Er is niets verstuurd.`,
       de: ({ name }: { name: string }) => `${name} fragt nicht mehr danach. Es wurde nichts gesendet.`
+    },
+    /** On the chat: a prompt ended while the connection was down; a reconnect found it gone. */
+    noticeLapsed: {
+      en: ({ name }: { name: string }) =>
+        `The request from ${name} ended while the connection was down. Nothing was sent.`,
+      nl: ({ name }: { name: string }) =>
+        `Het verzoek van ${name} is beëindigd terwijl de verbinding weg was. Er is niets verstuurd.`,
+      de: ({ name }: { name: string }) =>
+        `Die Anfrage von ${name} endete, während die Verbindung weg war. Es wurde nichts gesendet.`
+    },
+    /** On the chat: an answer went out just as the gateway stopped waiting; it may not have been taken. */
+    noticeMayNotHaveArrived: {
+      en: ({ name }: { name: string }) =>
+        `Your answer to ${name} may not have arrived: the request ended at the same moment.`,
+      nl: ({ name }: { name: string }) =>
+        `Je antwoord aan ${name} is mogelijk niet aangekomen: het verzoek eindigde op hetzelfde moment.`,
+      de: ({ name }: { name: string }) =>
+        `Deine Antwort an ${name} ist vielleicht nicht angekommen: Die Anfrage endete im selben Moment.`
     },
     /** On the chat: the bot asked for something only the desktop app can do, and the page said no. */
     noticeUnsupported: {

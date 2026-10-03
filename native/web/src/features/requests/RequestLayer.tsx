@@ -61,7 +61,7 @@ import {
 import { type StoreApi, useStore } from 'zustand'
 
 import { RequestWithdrawnError } from '../../core/request-withdrawn'
-import { displayText, NAME_LIMIT } from '../../core/requests/secure-input'
+import { BOT_NAME_LIMIT, displayText } from '../../core/requests/secure-input'
 import { useLocale } from '../../i18n/use-locale'
 import { webStrings } from '../../i18n/web-strings'
 import { isolateModal } from '../../platform/modal-isolation'
@@ -82,6 +82,7 @@ import { SudoSheet } from './SudoSheet'
 import { VaultCodeSheet } from './VaultCodeSheet'
 import { VaultSaveLoginSheet } from './VaultSaveLoginSheet'
 import { VaultUnlockSheet } from './VaultUnlockSheet'
+import { WithName } from './with-name'
 import './request-layer.css'
 
 /**
@@ -169,6 +170,8 @@ function secureAnnouncement(store: StoreApi<SecureInputState>, bot: string, id: 
       return webStrings.requests.timedOut({ name })
     case 'withdrawn':
       return webStrings.requests.withdrawn({ name })
+    case 'lapsed':
+      return webStrings.secureInput.noticeLapsed({ name })
     default:
       return ''
   }
@@ -227,6 +230,8 @@ export function RequestLayer({
   )
   const gatewayHost = useStore(secureInput, state => state.gateway)
   const displayName = useStore(botsStore, state => (bot === undefined ? '' : (state.byName[bot]?.displayName ?? bot)))
+  /** The name as the dialog shows it: the roster's words, cleaned and bounded like a request's (a bot can set it). */
+  const shownName = displayText(displayName, BOT_NAME_LIMIT)
   const cwd = useStore(chats, state => {
     const info = bot === undefined ? undefined : state.chats[bot]?.info
 
@@ -321,7 +326,12 @@ export function RequestLayer({
           setAnnouncement(said)
         }
       } else if (previous.kind === 'secure') {
-        const said = secureAnnouncement(secureInput, previous.bot, previous.id, senderName(previous, undefined))
+        const said = secureAnnouncement(
+          secureInput,
+          previous.bot,
+          previous.id,
+          displayText(senderName(previous, undefined), BOT_NAME_LIMIT)
+        )
 
         if (said) {
           setAnnouncement(said)
@@ -439,7 +449,9 @@ export function RequestLayer({
             onKeyDown={onKeyDown}
           >
             {current.kind === 'engine' || displayName ? (
-              <p className="hm-requests__from">{webStrings.requests.from({ name: displayName })}</p>
+              <p className="hm-requests__from">
+                <WithName phrase={name => webStrings.requests.from({ name })} name={shownName} />
+              </p>
             ) : null}
 
             {current.kind === 'secure' ? (
@@ -447,7 +459,7 @@ export function RequestLayer({
                 <SecureSheetFor
                   key={current.key}
                   prompt={prompt}
-                  name={displayText(displayName, NAME_LIMIT)}
+                  name={shownName}
                   gateway={gatewayHost}
                   titleId={titleId}
                   descriptionId={descriptionId}
