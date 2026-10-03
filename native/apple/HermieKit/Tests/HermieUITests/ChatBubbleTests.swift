@@ -114,6 +114,20 @@ private func status(_ id: String, presentation: Presentation = .full) -> Visible
     #expect(!TranscriptRowBuilder.drawsNothing(settled[2]))
   }
 
+  @Test func quietsHiddenRunningToolTakesNoRoomAndDoesNotPartTheBubbles() {
+    // At `quiet` the selectors keep only the running tool, as a hidden placeholder.
+    var builder = TranscriptRowBuilder()
+    let rows = builder.rows(for: [
+      reply("a1"), tool("t1", presentation: .hiddenPlaceholder, status: .running), reply("a2", streaming: true)
+    ])
+    #expect(rows.map(\.id) == ["a1", "tools:t1", "a2"])
+    #expect(TranscriptRowBuilder.drawsNothing(rows[1]))
+    #expect(TranscriptItemView.gap(above: rows[1]) == 0)
+    #expect(rows[0].bubble?.closesGroup == false, "a1 and a2 are one group across the hidden row")
+    #expect(rows[2].bubble?.opensGroup == false)
+    #expect(TranscriptItemView.gap(above: rows[2]) == 0)
+  }
+
   @Test func aSilentToolThatWorkedDrawsNothingAndOneThatFailedDoes() {
     let worked = [tool("t1", name: "todo")]
     let failed = [tool("t1", name: "todo", status: .error)]

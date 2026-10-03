@@ -27,7 +27,7 @@ public struct TranscriptItemView: View, Equatable {
     content
       .frame(maxWidth: .infinity, alignment: .leading)
       // Bubbles of one group sit close; a new group, and every other row, gets room above it.
-      .padding(.top, row.bubble.map { $0.opensGroup ? Self.groupGap : 0 } ?? Self.groupGap)
+      .padding(.top, Self.gap(above: row))
       .accessibilityIdentifier("row.\(row.id)")
       #if DEBUG
         .onAppear { RenderCounter.appeared(row.id) }
@@ -36,7 +36,14 @@ public struct TranscriptItemView: View, Equatable {
 
   /// The room above a row that opens a group, on top of the list's spacing between rows (2 points
   /// in the chat, so the bubbles of one group sit as close as Messages draws them).
-  static let groupGap: CGFloat = 8
+  nonisolated static let groupGap: CGFloat = 8
+
+  /// The room above a row: none inside a group of bubbles, none for a row that draws nothing (a
+  /// hidden placeholder, quiet's stand-in for the running tool), the group gap otherwise.
+  nonisolated static func gap(above row: TranscriptRow) -> CGFloat {
+    if TranscriptRowBuilder.drawsNothing(row) { return 0 }
+    return row.bubble.map { $0.opensGroup ? groupGap : 0 } ?? groupGap
+  }
 
   @ViewBuilder private var content: some View {
     switch row.content {
