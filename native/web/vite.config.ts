@@ -6,6 +6,7 @@ import react from '@vitejs/plugin-react'
 import { defineConfig, type Plugin } from 'vite'
 
 import { escapeNonAscii } from './scripts/ascii-only.mjs'
+import { catalogueRead, pathsReadUnder } from './scripts/catalogue-reads.mjs'
 import { resolveSourceCommit } from './scripts/source-commit.mjs'
 
 /**
@@ -135,6 +136,41 @@ function backtickAfterBangEscaped(): Plugin {
 }
 
 /**
+ * Bundles only the part of each generated locale file the client can read.
+ *
+ * `src/generated/locales/<tag>.json` carries every string of the Expo app, and
+ * the web client reads a small part of them; the rest would ride along in the
+ * first load (English) and in each language chunk. `scripts/catalogue-reads.mjs`
+ * finds the keys the sources under `src` read, by a rule that only ever errs
+ * towards keeping a key, and this hands the bundler the locale files cut down to
+ * those. The unit tests and the dev server read the files whole.
+ */
+function catalogueOnlyWhatIsRead(): Plugin {
+  const locales = join(root, 'src', 'generated', 'locales')
+  let paths: string[] | null = null
+
+  return {
+    name: 'hermie:catalogue-only-what-is-read',
+    apply: 'build',
+    enforce: 'pre',
+    buildStart() {
+      paths = pathsReadUnder(join(root, 'src'))
+    },
+    load(id) {
+      const file = id.split('?')[0] ?? id
+
+      if (dirname(file) !== locales || !file.endsWith('.json')) {
+        return null
+      }
+
+      const catalogue = JSON.parse(readFileSync(file, 'utf8')) as Record<string, unknown>
+
+      return `${JSON.stringify(catalogueRead(catalogue, paths), null, 1)}\n`
+    }
+  }
+}
+
+/**
  * Moves `*.map` out of the output directory into `<outDir>-maps`. Vite can only
  * write maps beside the files they describe; the bundle that is imported into
  * the plugin must not contain them.
@@ -250,6 +286,7 @@ export default defineConfig(({ command, mode }) => {
       ? [react()]
       : [
           react(),
+          catalogueOnlyWhatIsRead(),
           asciiOnlyScripts(),
           backtickAfterBangEscaped(),
           mapsOutsideOutDir(),

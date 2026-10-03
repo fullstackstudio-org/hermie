@@ -4,7 +4,8 @@
  * `src/generated/strings.ts` is types plus one call to `createStrings`; what a
  * read returns comes from `src/generated/locales/<tag>.json`, looked up when the
  * read is made. English is imported statically, so the first frame is always
- * readable. Dutch and German are separate chunks, fetched by `loadCatalogue`
+ * readable. A production build carries only the keys the client reads, in every
+ * language (`catalogueOnlyWhatIsRead` in `vite.config.ts`); tests read them all. Dutch and German are separate chunks, fetched by `loadCatalogue`
  * when a reader asks for them, and `locale.ts` switches the language only after
  * that has resolved.
  *
