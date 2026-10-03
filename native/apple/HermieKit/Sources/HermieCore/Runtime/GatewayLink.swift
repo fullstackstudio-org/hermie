@@ -21,7 +21,8 @@ public protocol GatewayLink: Sendable {
   var events: AsyncStream<WireEvent> { get }
 
   /// The server requests the app is asked to answer (`approval`, `clarify`,
-  /// the one-string prompts), and the ones it cannot show, already declined.
+  /// the one-string prompts, `confirm` where a passkey model listens), and the
+  /// ones it cannot show, already declined.
   ///
   /// A sequence rather than a stream so production can map the connection's
   /// deliveries in place (`AsyncMapSequence`), with no task in between: the
@@ -64,6 +65,10 @@ public protocol GatewayLink: Sendable {
   /// Wait until every frame queued so far has been handed to the socket, or
   /// `limit` has passed: the last answers before a shutdown.
   func flushWrites(within limit: Duration) async
+
+  /// Run the `client.capabilities` announcement again on the live socket, because what
+  /// the app can perform for `confirm` changed (`GatewayConnection.refreshCapabilities`).
+  func refreshCapabilities() async
 
   func start() async
   func stop() async
@@ -113,19 +118,24 @@ public struct InboundRequest: Sendable {
   public let index: UInt64
   private let respondHandler: @Sendable (JSONObject) async -> Bool
   private let failHandler: @Sendable (Int, String) async -> Bool
+  private let failWithDataHandler: (@Sendable (Int, String, JSONValue) async -> Bool)?
 
+  /// - Parameter failWithData: an error answer that carries `data`; without one, `fail(code:message:data:)`
+  ///   sends the code and the message only.
   public init(
     request: ServerRequest,
     replayed: Bool,
     index: UInt64,
     respond: @escaping @Sendable (JSONObject) async -> Bool,
-    fail: @escaping @Sendable (Int, String) async -> Bool
+    fail: @escaping @Sendable (Int, String) async -> Bool,
+    failWithData: (@Sendable (Int, String, JSONValue) async -> Bool)? = nil
   ) {
     self.request = request
     self.replayed = replayed
     self.index = index
     self.respondHandler = respond
     self.failHandler = fail
+    self.failWithDataHandler = failWithData
   }
 
   public init(_ delivery: ServerRequestDelivery) {
@@ -134,8 +144,18 @@ public struct InboundRequest: Sendable {
       replayed: delivery.replayed,
       index: delivery.index,
       respond: { result in await delivery.respond(result) },
-      fail: { code, message in await delivery.fail(code: code, message: message) }
+      fail: { code, message in await delivery.fail(code: code, message: message) },
+      failWithData: { code, message, data in await delivery.fail(code: code, message: message, data: data) }
     )
+  }
+
+  /// Answer with a JSON-RPC error carrying `data` (`confirm`'s 4040 `{reason}`); `false` when it did not go out.
+  public func fail(code: Int, message: String, data: JSONValue) async -> Bool {
+    guard let failWithDataHandler else {
+      return await failHandler(code, message)
+    }
+
+    return await failWithDataHandler(code, message, data)
   }
 
   public var id: String { request.id ?? "" }
@@ -213,6 +233,9 @@ extension GatewayLink {
 
   /// A link with no writer of its own has nothing to wait for.
   public func flushWrites(within limit: Duration) async {}
+
+  /// A link without a capability announcement of its own has nothing to repeat.
+  public func refreshCapabilities() async {}
 }
 
 extension ConnectionLink {
@@ -220,6 +243,10 @@ extension ConnectionLink {
   /// than beside the rest of `ConnectionLink` in `GatewaySession.swift`.
   public func flushWrites(within limit: Duration) async {
     await connection.flushWrites(within: limit)
+  }
+
+  public func refreshCapabilities() async {
+    await connection.refreshCapabilities()
   }
 }
 

@@ -224,6 +224,7 @@ final class ScriptedLink: GatewayLink, Sendable {
     var declines: [(id: String, code: Int, message: String)] = []
     var identity: IdentityProbe = .sessionToken
     var identityReads = 0
+    var declineData: [String: JSONValue] = [:]
   }
 
   private let state = Mutex(State())
@@ -418,6 +419,18 @@ final class ScriptedLink: GatewayLink, Sendable {
         answered.mark()
         self?.state.withLock { $0.declines.append((id, code, message)) }
         return true
+      },
+      failWithData: { [weak self] code, message, data in
+        guard !answered.done else {
+          return false
+        }
+
+        answered.mark()
+        self?.state.withLock {
+          $0.declines.append((id, code, message))
+          $0.declineData[id] = data
+        }
+        return true
       }
     )
 
@@ -438,6 +451,9 @@ final class ScriptedLink: GatewayLink, Sendable {
 
   /// Refusals (`fail`) that went out, in order.
   var declines: [(id: String, code: Int, message: String)] { state.withLock { $0.declines } }
+
+  /// The `data` of a refusal that carried one, by request id.
+  func declineData(_ id: String) -> JSONValue? { state.withLock { $0.declineData[id] } }
 
   /// Answers that went out on a live reply, in order.
   var answers: [(id: String, result: JSONObject)] { state.withLock { $0.answers } }

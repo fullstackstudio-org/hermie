@@ -441,8 +441,9 @@ public actor TranscriptStore {
 
     guard inbound.method == "approval" || inbound.method == "clarify" else {
       // The one-string prompts never enter the transcript: `SecureInputCenter`,
-      // a consumer of its own, answers them.
-      if inbound.body.isSecureInput {
+      // a consumer of its own, answers them. So does `PasskeyModel` a `confirm`
+      // (the connection delivers one only when it announced `confirm`).
+      if inbound.body.isSecureInput || inbound.method == ServerRequestBody.Method.confirm {
         return
       }
 

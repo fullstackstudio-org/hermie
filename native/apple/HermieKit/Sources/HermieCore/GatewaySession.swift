@@ -40,6 +40,9 @@ public final class GatewaySession {
     /// The visibility a chat screen starts at until the reader's settings arrive.
     public var defaultVisibility = VisibilityOptions(level: .normal, showBotToBot: true, showThinking: true)
     public var secureInput = SecureInputCenter.Options()
+    /// Passkeys and the `confirm` level `passkey` (`PasskeyModel`). `nil`: the connection announces
+    /// no `confirm` level and answers every `confirm` request `-32601`, as before.
+    public var passkey: PasskeySetup?
 
     public init() {}
   }
@@ -57,6 +60,9 @@ public final class GatewaySession {
   public let notices: GatewayNoticesModel
   /// The connector authorisation cards the chats' agents are waiting on.
   public let connectionRequests: ConnectionRequestsModel
+  /// The gateway's passkeys and its `confirm` requests at level `passkey`; `nil` unless
+  /// `Options.passkey` was given.
+  public let passkeys: PasskeyModel?
   /// Who the gateway says this client is. Read after every connect and on
   /// `refreshIdentity()`; see `GatewayIdentityState`.
   public internal(set) var identityState = GatewayIdentityState.unknownYet
@@ -126,14 +132,29 @@ public final class GatewaySession {
   ) throws {
     let cache = database.map { SQLiteChatCache(store: $0, gatewayId: record.id) }
     let keyValues = database.map { KeyValueStore(store: $0) }
+    let source = options.passkey.map { _ in ConfirmCapabilitySource() }
+    var connectionOptions = options.connection
+    connectionOptions.confirm = source ?? connectionOptions.confirm
     let link = try ConnectionLink(
       baseURL: record.address,
       extraHeaders: extraHeaders,
       credentials: credentials,
       transport: transport,
       clock: options.store.clock,
-      options: options.connection
+      options: connectionOptions
     )
+    let passkeys = options.passkey.map { setup in
+      PasskeyModel(
+        storedGatewayID: record.id,
+        address: record.address,
+        link: link,
+        client: PasskeyClient(http: link.http),
+        authenticator: setup.authenticator,
+        configuration: setup.configuration,
+        pins: setup.pins ?? keyValues.map { KeyValuePasskeyPins(store: $0) } ?? InMemoryPasskeyPins(),
+        source: source
+      )
+    }
 
     self.init(
       gatewayID: record.id,
@@ -142,6 +163,7 @@ public final class GatewaySession {
       cache: cache,
       keyValues: keyValues,
       reachability: reachability,
+      passkeys: passkeys,
       options: options
     )
   }
@@ -155,9 +177,11 @@ public final class GatewaySession {
     cache: (any ChatCaching)? = nil,
     keyValues: KeyValueStore? = nil,
     reachability: (any Reachability)? = nil,
+    passkeys: PasskeyModel? = nil,
     options: Options = Options()
   ) {
     self.gatewayID = gatewayID
+    self.passkeys = passkeys
     self.link = link
     self.reachability = reachability
     self.keyValues = keyValues
@@ -215,6 +239,7 @@ public final class GatewaySession {
     await store.setContractSink { [weak self] number, error in self?.contractChecked(number, error) }
     await store.attach()
     secureInput.attach()
+    await passkeys?.start()
 
     let commands = self.commands
     tasks.append(
@@ -309,6 +334,7 @@ public final class GatewaySession {
 
     // Every prompt still open is answered `''` while the socket is still there.
     await secureInput.shutdown()
+    await passkeys?.shutdown()
     await store.persistAll()
     await link.shutdown()
 
