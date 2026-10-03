@@ -13,7 +13,7 @@ theme ("The shell" below), and opens a chat in the main pane and streams it ("Th
 with Markdown, tool calls, notices, date separators, older history, jump to latest. You can send, stop a reply and
 answer a bot's approval or question from it ("The composer" and "Requests" below), and confirm a sensitive action with
 a passkey that the gateway verifies itself ("Passkeys" below), and answer a bot's secret, sudo and password-manager
-prompts ("Secret prompts" below). It has no attachments and no settings beyond the passkeys page yet, and the plugin does not serve this build. Until that
+prompts ("Secret prompts" below), and attach files and images by the picker, a paste or a drop ("Attachments" below). It has no settings beyond the passkeys page yet, and the plugin does not serve this build. Until that
 changes, the browser keeps running the Expo app's web export through Hermie Web
 ([docs/web.md](../../docs/web.md)); nothing here replaces it.
 
@@ -229,6 +229,7 @@ own:
 | `platform/clipboard.ts`, `page-title.ts`, `random.ts` | copy, the tab's title, `crypto.getRandomValues`                              |
 | `platform/webauthn.ts`                                | `navigator.credentials.create/get` and `crypto.subtle` for the passkey level |
 | `platform/passkey-pins.ts`                            | the passkey pins (above), and other gateways' pins on this origin            |
+| `platform/files.ts`                                   | a file's bytes as base64, the files of a drag, the stray-drop guard          |
 
 ## Connection
 
@@ -471,7 +472,7 @@ everything that talks to the gateway is a controller method, reached through `Ch
 | `QueuedStrip.tsx` | the messages parked behind a running reply, as chips with Steer, Edit and Delete                       |
 | `send-key.ts`     | what a Return means: `decideKey`, the table of `expo/hermie/src/chat-ui/send-key.ts` plus the IME rule |
 | `drafts.ts`       | `DraftStore` over the key-value store: one draft per chat, per base path                               |
-| `composer.css`    | the composer, the completions and the queue, on the theme's tokens                                     |
+| `composer.css`    | the composer, the completions, the queue and the attachment chips, on the theme's tokens               |
 
 - **Return** sends, **Shift+Return** breaks the line, **Command or Control+Return** sends from anywhere. The Return that
   confirms an input method's candidate (`isComposing`, or the legacy key code 229) never sends. On a device with no
@@ -498,7 +499,49 @@ everything that talks to the gateway is a controller method, reached through `Ch
   here repeats it, and a slash command never reaches it.
 - **Pinned.** A send (or a command) calls `jumpToLatest()` before the round trip, so the reader's own bubble lands where
   they are looking.
-- **Attachments** are W-19's. `ChatScreenController` already carries `uploadFile`; nothing calls it.
+- **Attachments**: see below.
+
+### Attachments
+
+A file or an image goes with the next message from three ways in, which all end in the chat's attachment tray:
+
+| File                        | What                                                                                         |
+| --------------------------- | -------------------------------------------------------------------------------------------- |
+| `core/chats/attachments.ts` | `AttachmentTray`: which road a file takes, the chips' states, `take` / `restore` for a send  |
+| `core/chats/file-upload.ts` | the upload into the session's workspace (`POST /api/files/upload-stream`), now with `signal` |
+| `use-attachment-tray.ts`    | one tray per chat key, made by `ChatScreen`, uploading through `controller.uploadFile`       |
+| `AttachMenu.tsx`            | the attach button and the browser's file dialog (`<input type="file" multiple>`, no form)    |
+| `paste.ts`                  | which pastes attach files and which are text                                                 |
+| `DropZone.tsx`              | the whole chat as a drop target: a visible, announced target while files are over it         |
+| `AttachmentChips.tsx`       | the chips over the field: name, thumbnail or glyph, state, Cancel / Try again / Remove       |
+
+- **Two roads.** An image in a format the gateway takes as one (PNG, JPEG, GIF, WebP, BMP, TIFF; by its extension, or
+  a nameless paste by its type) is read as base64 when it is staged and goes over the socket with the message
+  (`image.attach_bytes`, 25 MiB). Anything else, an SVG, an icon and a HEIC photo included, is uploaded as it is staged
+  into `<cwd>/uploads/hermie/<date>/<token>-<name>` (100 MiB) and named in the prompt by its `@file:` reference, which
+  is how the agent can read it. The caps are checked before a byte moves; the gateway's own refusal (`detail`) is shown
+  on the chip it concerns. No image is resized or re-encoded: the client carries no image processing.
+- **Progress** is "Preparing…" or "Uploading…", then the size or the reason. There is no percentage: `fetch` reports
+  no upload progress, and `XMLHttpRequest`, which does, follows redirects by itself and would replay the file and the
+  session to wherever a 307 points, which `uploadFile` refuses (`redirect: 'manual'`). **Cancel** aborts the request
+  (the gateway removes its temporary file); **Try again** starts the same file on a fresh path; **Remove** takes a
+  chip away (an uploaded file stays on the gateway, as in the native apps).
+- **What is shown is what is sent.** Send waits while a chip is still working or has failed ("Send is available once
+  every attachment is ready or removed."), and is named "Send message with 2 attachments" while there are some. A
+  message may be attachments and no words. A slash command takes none; they stay for the next message.
+- **Once (HERM-126).** The tray is emptied by `take()` in the same synchronous step that decides to send, before
+  anything is awaited, so a second Return or click landing while the first send is in flight finds nothing to send.
+  A send that fails puts back exactly what it took, in order, ahead of anything staged meanwhile, with the words.
+- **Paste.** Files with no text (a screenshot), or whose text is only their names (a file copied in the Finder), are
+  attached; text that comes with a picture of itself (spreadsheet cells) goes into the field as text.
+- **Drop.** Only a drag that carries `Files` lights the target ("Drop file to attach", said once politely). While a
+  chat that takes attachments is open, a file dropped anywhere else on the page is ignored instead of being opened by
+  the browser in place of the app. The keyboard's way in is the attach button.
+- **Thumbnails** are `data:` URLs of the bytes already read, up to 8 MiB; larger images show the file glyph. Not
+  `blob:` URLs: a recorder that copies the page (Playwright's trace) fetches a `blob:` image from inside the page, a
+  connection `connect-src 'self'` refuses and reports.
+- Only a chat with a composer that is attached to its session takes files: a file is uploaded into that session's
+  workspace, which the resume names (`info.cwd`).
 
 ## Requests
 
@@ -912,13 +955,14 @@ of frames in a row with the same answer).
   host name WebAuthn takes as an RP, without a certificate or a proxy; the session cookie is copied to that host on
   sign-in.
 
-| Spec               | What it proves                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                          |
-| ------------------ | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `signin.spec.ts`   | an unauthenticated visit goes to the gateway's `/login` and signing in opens the client; a wrong password stays; a session lost before the first question ("Sign in again", the cookie deleted or ended by the gateway) restores the route after signing in; one lost while open is a signed-out line; a frame gets one sentence and makes no request to the API                                                                                                                                                                        |
-| `chat.spec.ts`     | the list (names, previews, unread, arrow keys, one pane on a phone), opening a chat, sending, Stop, the queue, drafts, a reply streamed in by the gateway, a socket dropped mid-reply (one bubble, the gateway's words once) and idle, and 2,000 rows of history (opens at the bottom without moving, pinned, reading above, older history)                                                                                                                                                                                             |
-| `requests.spec.ts` | approval and clarify with the keyboard alone, deny, several at once, another bot's, withdrawn, restored on resume and after a reload, a modal page behind them, 320 px                                                                                                                                                                                                                                                                                                                                                                  |
-| `a11y.spec.ts`     | axe, serious and critical, in light and dark: the chat list, a chat, the signed-out screen and every request sheet                                                                                                                                                                                                                                                                                                                                                                                                                      |
-| `passkey.spec.ts`  | Chromium only (a virtual authenticator over the DevTools `WebAuthn` domain): enrol with a code from `/__fake/passkey/code`; a confirmation raised with `/__fake/request`, confirmed, and read back as `verified: true` from `/__fake/state` `passkey.outcomes`; decline; a key the gateway cannot verify (`signature_invalid`, then `too_many_attempts`); a passkey revoked while open (`verification_failed`); a request still open after a reload; Escape; the detail's `white-space: pre` and sideways scroll; axe in light and dark |
+| Spec                  | What it proves                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                          |
+| --------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `signin.spec.ts`      | an unauthenticated visit goes to the gateway's `/login` and signing in opens the client; a wrong password stays; a session lost before the first question ("Sign in again", the cookie deleted or ended by the gateway) restores the route after signing in; one lost while open is a signed-out line; a frame gets one sentence and makes no request to the API                                                                                                                                                                        |
+| `chat.spec.ts`        | the list (names, previews, unread, arrow keys, one pane on a phone), opening a chat, sending, Stop, the queue, drafts, a reply streamed in by the gateway, a socket dropped mid-reply (one bubble, the gateway's words once) and idle, and 2,000 rows of history (opens at the bottom without moving, pinned, reading above, older history)                                                                                                                                                                                             |
+| `requests.spec.ts`    | approval and clarify with the keyboard alone, deny, several at once, another bot's, withdrawn, restored on resume and after a reload, a modal page behind them, 320 px                                                                                                                                                                                                                                                                                                                                                                  |
+| `attachments.spec.ts` | attach by the picker and by a drop (a file and an image), send, the chip in the bubble and the agent's reply naming the file; Return twice sends once (HERM-126); cancel an upload in flight; axe with chips and the drop target                                                                                                                                                                                                                                                                                                        |
+| `a11y.spec.ts`        | axe, serious and critical, in light and dark: the chat list, a chat, the signed-out screen and every request sheet                                                                                                                                                                                                                                                                                                                                                                                                                      |
+| `passkey.spec.ts`     | Chromium only (a virtual authenticator over the DevTools `WebAuthn` domain): enrol with a code from `/__fake/passkey/code`; a confirmation raised with `/__fake/request`, confirmed, and read back as `verified: true` from `/__fake/state` `passkey.outcomes`; decline; a key the gateway cannot verify (`signature_invalid`, then `too_many_attempts`); a passkey revoked while open (`verification_failed`); a request still open after a reload; Escape; the detail's `white-space: pre` and sideways scroll; axe in light and dark |
 
 ```sh
 npx playwright install chromium webkit firefox        # once
