@@ -160,6 +160,27 @@ public indirect enum TranscriptItem: TranscriptJSONCodable, Hashable {
     set { base.reactions = newValue }
   }
 
+  /// `callKey` of a kind that can carry one (`tool`, `bot_dm_out`, `subagent_group`);
+  /// `nil` for every other kind, and ignored when set on one.
+  public var callKey: String? {
+    get {
+      switch self {
+      case .tool(let item): item.callKey
+      case .botDmOut(let item): item.callKey
+      case .subagentGroup(let item): item.callKey
+      default: nil
+      }
+    }
+    set {
+      switch self {
+      case .tool(var item): item.callKey = newValue; self = .tool(item)
+      case .botDmOut(var item): item.callKey = newValue; self = .botDmOut(item)
+      case .subagentGroup(var item): item.callKey = newValue; self = .subagentGroup(item)
+      default: break
+      }
+    }
+  }
+
   // MARK: Typed access
 
   public var asApproval: ApprovalItem? { if case .approval(let item) = self { item } else { nil } }

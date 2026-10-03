@@ -73,6 +73,10 @@ public struct TranscriptDiagnostics: Sendable, Hashable {
   public var unpaired: Int
   /// Items on screen standing in for an author a tail fetch has not named yet.
   public var placeholders: Int
+  /// Tool-like items carrying the gateway's call identity (`callKey`).
+  public var withCallKey: Int
+  /// User items carrying the gateway's turn id (`turnID`).
+  public var withTurnID: Int
   public var repeated: [RepeatedText]
   public var highestRowID: Int?
   public var lastSeq: Int
@@ -91,6 +95,8 @@ public struct TranscriptDiagnostics: Sendable, Hashable {
       "persisted": .number(Double(persisted)),
       "unpaired": .number(Double(unpaired)),
       "placeholders": .number(Double(placeholders)),
+      "withCallKey": .number(Double(withCallKey)),
+      "withTurnId": .number(Double(withTurnID)),
       "repeated": .array(repeated.map(\.jsonValue)),
       "lastSeq": .number(Double(lastSeq)),
       "hydration": hydration.jsonValue,
@@ -136,6 +142,8 @@ public func transcriptDiagnostics(_ state: ChatState) -> TranscriptDiagnostics {
   var persisted = 0
   var unpaired = 0
   var placeholders = 0
+  var withCallKey = 0
+  var withTurnID = 0
   var parkedPrompts = 0
   var highestRowID: Int?
 
@@ -149,9 +157,16 @@ public func transcriptDiagnostics(_ state: ChatState) -> TranscriptDiagnostics {
       unpaired += 1
     }
 
+    if JS.nonEmpty(item.callKey) != nil {
+      withCallKey += 1
+    }
+
     if case .user(let user) = item {
       if user.unknownAuthor == true {
         placeholders += 1
+      }
+      if JS.nonEmpty(user.turnID) != nil {
+        withTurnID += 1
       }
       if user.origin == .optimistic && user.pending == true {
         parkedPrompts += 1
@@ -180,6 +195,8 @@ public func transcriptDiagnostics(_ state: ChatState) -> TranscriptDiagnostics {
     persisted: persisted,
     unpaired: unpaired,
     placeholders: placeholders,
+    withCallKey: withCallKey,
+    withTurnID: withTurnID,
     repeated: repeatedKeys.compactMap { byText[$0] }.filter { $0.items.count > 1 },
     highestRowID: highestRowID,
     lastSeq: state.lastSeq,
@@ -207,7 +224,8 @@ public func formatTranscriptDiagnostics(_ botName: String, _ state: ChatState) -
       + (report.turnLocal ? " (ours)" : "")
       + (report.foreignReconcilePending ? ", tail pending" : "")
       + (report.parkedPrompts != 0 ? ", \(report.parkedPrompts) parked" : "")
-      + (report.placeholders != 0 ? ", \(report.placeholders) unnamed" : "")
+      + (report.placeholders != 0 ? ", \(report.placeholders) unnamed" : ""),
+    "\(botName): \(report.withCallKey) with call key, \(report.withTurnID) with turn id"
   ]
 
   for entry in report.repeated {

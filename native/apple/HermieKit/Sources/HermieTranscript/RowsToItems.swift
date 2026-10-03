@@ -531,7 +531,9 @@ private struct RowProjection {
 
   private mutating func projectTool(_ row: JSONObject, _ facts: RowFacts, index: Int) {
     let name = row["name"]?.stringValue ?? "tool"
-    let toolID = nonEmptyString(row["tool_id"]) ?? "row-\(index)"
+    // RPC history names the call `tool_call_id`, the stored row (REST) `tool_id`.
+    let toolID = nonEmptyString(row["tool_id"]) ?? nonEmptyString(row["tool_call_id"]) ?? "row-\(index)"
+    let callKey = callKeyOf(row)
     let args = coalesce(row["args"])
     let argsObject = args?.objectValue
     let context = nonEmptyString(row["context"])
@@ -547,6 +549,7 @@ private struct RowProjection {
             target: target,
             targetHandle: normalizeAgentTarget(target),
             message: argsObject?["message"]?.stringValue ?? "",
+            callKey: callKey,
             // History never carries the tool result, so the dispatch outcome is
             // unknown until a `process_complete` row joins the reply back in.
             dispatch: BotDmDispatch(status: .unknown)
@@ -563,6 +566,7 @@ private struct RowProjection {
           SubagentGroupItem(
             base: base(facts, id: "t:\(toolID)"),
             toolID: toolID,
+            callKey: callKey,
             goals: goalsFromArgs(argsObject),
             rootIDs: [],
             status: .dispatched
@@ -578,6 +582,7 @@ private struct RowProjection {
       name: name,
       context: context,
       args: argsObject,
+      callKey: callKey,
       status: .complete,
       resultKnown: false,
       summary: context
@@ -837,6 +842,7 @@ private struct RowProjection {
     // row reaching here — an older gateway, a transport that dropped
     // `display_kind` — carries no author and must not be given one.
     let author = role == "user" ? authorFromMetadata(row["display_metadata"]) : nil
+    let turnID = role == "user" ? turnIDOfMetadata(row["display_metadata"]) : nil
 
     items.append(
       .user(
@@ -845,7 +851,8 @@ private struct RowProjection {
           text: stripped.text,
           attachments: stripped.attachments,
           displayKind: speechKind,
-          author: author
+          author: author,
+          turnID: turnID
         )
       )
     )

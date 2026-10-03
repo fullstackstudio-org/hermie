@@ -26,6 +26,9 @@ public struct CachedTranscript: TranscriptJSONCodable, Hashable {
   /// 12 silently drops the entire chat.
   public var lastSeqSessionID: String?
   public var epoch: String?
+  /// The turn that was streaming when the snapshot was taken, written only for a
+  /// turn the gateway named (`turn.id`). See `CachedTurn`.
+  public var turn: CachedTurn?
   public var updatedAt: Double
   /// Keys this build does not know, kept so the snapshot re-encodes unchanged.
   public var extra: JSONObject
@@ -38,6 +41,7 @@ public struct CachedTranscript: TranscriptJSONCodable, Hashable {
     lastSeq: Int,
     lastSeqSessionID: String? = nil,
     epoch: String? = nil,
+    turn: CachedTurn? = nil,
     updatedAt: Double,
     extra: JSONObject = [:]
   ) {
@@ -48,6 +52,7 @@ public struct CachedTranscript: TranscriptJSONCodable, Hashable {
     self.lastSeq = lastSeq
     self.lastSeqSessionID = lastSeqSessionID
     self.epoch = epoch
+    self.turn = turn
     self.updatedAt = updatedAt
     self.extra = extra
   }
@@ -61,6 +66,7 @@ public struct CachedTranscript: TranscriptJSONCodable, Hashable {
     lastSeq = try reader.required("lastSeq")
     lastSeqSessionID = reader.optional("lastSeqSessionId")
     epoch = reader.optional("epoch")
+    turn = reader.optional("turn")
     updatedAt = try reader.required("updatedAt")
     extra = reader.residue
   }
@@ -89,7 +95,54 @@ public struct CachedTranscript: TranscriptJSONCodable, Hashable {
     writer.set("lastSeq", lastSeq)
     writer.set("lastSeqSessionId", lastSeqSessionID)
     writer.set("epoch", epoch)
+    writer.set("turn", turn)
     writer.set("updatedAt", updatedAt)
+    return writer.json
+  }
+}
+
+/// `CachedTurn`: where a turn cut off by the snapshot was writing.
+///
+/// A chat saved mid-stream holds a half-written bubble, and the frames that
+/// finish it are replayed when the chat opens again. Without these pointers the
+/// replay could not know that bubble was the one it was filling: it started a
+/// second one, and the half-written first stayed on screen beside the row the
+/// turn became (the owner's reopen, cut between two deltas, or right after a
+/// thought with no words yet). With them the replay carries on where the stream
+/// stopped, and the frame naming the row settles that bubble onto it.
+///
+/// Only the pointers the reducer appends through. Nothing that would make a
+/// reopened chat claim a turn is running (`active`), or time one (`startedAt`).
+public struct CachedTurn: TranscriptJSONCodable, Hashable {
+  /// The gateway's id for the turn.
+  public var id: String
+  /// The bubble receiving deltas.
+  public var assistantID: String?
+  /// The item holding the turn's thought.
+  public var reasoningID: String?
+  /// Keys this build does not know, kept so the snapshot re-encodes unchanged.
+  public var extra: JSONObject
+
+  public init(id: String, assistantID: String? = nil, reasoningID: String? = nil, extra: JSONObject = [:]) {
+    self.id = id
+    self.assistantID = assistantID
+    self.reasoningID = reasoningID
+    self.extra = extra
+  }
+
+  public init(decoding json: JSONValue, at path: String) throws(TranscriptDecodingError) {
+    var reader = try ObjectReader(json, at: path, type: "CachedTurn")
+    id = try reader.required("id")
+    assistantID = reader.optional("assistantId")
+    reasoningID = reader.optional("reasoningId")
+    extra = reader.residue
+  }
+
+  public var jsonValue: JSONValue {
+    var writer = ObjectWriter(extra: extra)
+    writer.set("id", id)
+    writer.set("assistantId", assistantID)
+    writer.set("reasoningId", reasoningID)
     return writer.json
   }
 }
@@ -119,6 +172,7 @@ public struct SessionIDs: TranscriptJSONCodable, Hashable {
 }
 
 extension CachedTranscript: JSONField {}
+extension CachedTurn: JSONField {}
 extension SessionIDs: JSONField {}
 
 private func isCacheable(_ item: TranscriptItem) -> Bool {
@@ -148,6 +202,7 @@ public func snapshotForCache(_ state: ChatState, now: Double) -> CachedTranscrip
     }
 
   let lastRowID = items.last { $0.rowID != nil }?.rowID
+  let turn = cachedTurn(of: state, items)
 
   return CachedTranscript(
     format: cacheFormat,
@@ -157,8 +212,41 @@ public func snapshotForCache(_ state: ChatState, now: Double) -> CachedTranscrip
     lastSeq: state.lastSeq,
     lastSeqSessionID: state.lastSeqSessionID.flatMap { $0.isEmpty ? nil : $0 },
     epoch: state.epoch.flatMap { $0.isEmpty ? nil : $0 },
+    turn: turn,
     updatedAt: now
   )
+}
+
+/// `cachedTurnOf`: the running turn's pointers, when the gateway named the turn
+/// and they point into what is cached.
+private func cachedTurn(of state: ChatState, _ items: [TranscriptItem]) -> CachedTurn? {
+  guard let id = JS.nonEmpty(state.turn.id) else { return nil }
+
+  let cached = Set(items.map(\.id))
+  let assistantID = JS.nonEmpty(state.turn.assistantID).flatMap { cached.contains($0) ? $0 : nil }
+  let reasoningID = JS.nonEmpty(state.turn.reasoningID).flatMap { cached.contains($0) ? $0 : nil }
+
+  return CachedTurn(id: id, assistantID: assistantID, reasoningID: reasoningID)
+}
+
+/// `restoreTurn`: put a cached turn's pointers back, each only while it still
+/// names what it named: a bubble that is there, an assistant one, and still open
+/// - a pointer at anything else would send the next delta somewhere it does not
+/// belong.
+private func restoreTurn(_ state: inout ChatState, _ turn: CachedTurn?) {
+  guard let turn, !turn.id.isEmpty else { return }
+
+  state.turn.id = turn.id
+
+  if let key = JS.nonEmpty(turn.assistantID), case .assistant(let live)? = state.items[key],
+    !live.interim, live.rowID == nil
+  {
+    state.turn.assistantID = live.id
+  }
+
+  if let key = JS.nonEmpty(turn.reasoningID), case .assistant(let held)? = state.items[key] {
+    state.turn.reasoningID = held.id
+  }
 }
 
 /// Rebuild a paintable state from disk. Indices are derived, never stored.
@@ -182,6 +270,10 @@ public func stateFromCache(_ botName: String, _ ids: SessionIDs, _ snapshot: Cac
 
     if let rowID = placed.rowID {
       state.byRowID[String(rowID)] = id
+    }
+
+    if let callKey = JS.nonEmpty(placed.callKey) {
+      state.byCallKey[callKey] = id
     }
 
     switch placed {
@@ -224,6 +316,10 @@ public func stateFromCache(_ botName: String, _ ids: SessionIDs, _ snapshot: Cac
     if let epoch = snapshot.epoch, !epoch.isEmpty {
       state.epoch = epoch
     }
+
+    // Only beside a watermark: the turn is continued by the frames replayed
+    // after it, and a snapshot read as cold replays nothing.
+    restoreTurn(&state, snapshot.turn)
   }
   // A snapshot from before the watermark carried its session id cannot say which
   // session it counted, so it is read as cold: one extra replay-free hydration

@@ -123,6 +123,8 @@ public struct TodoSnapshot: TranscriptJSONCodable, Hashable {
 
 public struct TurnState: TranscriptJSONCodable, Hashable {
   public var active: Bool
+  /// The gateway's id for the running turn (`turn_id` on its frames), when it sent one.
+  public var id: String?
   public var startedAt: Double?
   /// The assistant item currently receiving deltas.
   public var assistantID: String?
@@ -151,6 +153,7 @@ public struct TurnState: TranscriptJSONCodable, Hashable {
 
   public init(
     active: Bool,
+    id: String? = nil,
     startedAt: Double? = nil,
     assistantID: String? = nil,
     reasoningID: String? = nil,
@@ -162,6 +165,7 @@ public struct TurnState: TranscriptJSONCodable, Hashable {
     extra: JSONObject = [:]
   ) {
     self.active = active
+    self.id = id
     self.startedAt = startedAt
     self.assistantID = assistantID
     self.reasoningID = reasoningID
@@ -176,6 +180,7 @@ public struct TurnState: TranscriptJSONCodable, Hashable {
   public init(decoding json: JSONValue, at path: String) throws(TranscriptDecodingError) {
     var reader = try ObjectReader(json, at: path, type: "TurnState")
     active = try reader.required("active")
+    id = reader.optional("id")
     startedAt = reader.optional("startedAt")
     assistantID = reader.optional("assistantId")
     reasoningID = reader.optional("reasoningId")
@@ -190,6 +195,7 @@ public struct TurnState: TranscriptJSONCodable, Hashable {
   public var jsonValue: JSONValue {
     var writer = ObjectWriter(extra: extra)
     writer.set("active", active)
+    writer.set("id", id)
     writer.set("startedAt", startedAt)
     writer.set("assistantId", assistantID)
     writer.set("reasoningId", reasoningID)
@@ -214,6 +220,9 @@ public struct ChatState: TranscriptJSONCodable, Hashable {
   public var order: [String]
   /// tool_id → item id.
   public var byToolID: [String: String]
+  /// `callKey` → item id. Derived like every index here, never cached, and empty
+  /// against a gateway that sends no call identity.
+  public var byCallKey: [String: String]
   /// String(rowId) → item id; string-keyed so the cache round-trips as JSON.
   public var byRowID: [String: String]
   /// Server-request id → item id.
@@ -265,6 +274,7 @@ public struct ChatState: TranscriptJSONCodable, Hashable {
     items: [String: TranscriptItem] = [:],
     order: [String] = [],
     byToolID: [String: String] = [:],
+    byCallKey: [String: String] = [:],
     byRowID: [String: String] = [:],
     byRequestID: [String: String] = [:],
     byApprovalID: [String: String] = [:],
@@ -293,6 +303,7 @@ public struct ChatState: TranscriptJSONCodable, Hashable {
     self.items = items
     self.order = order
     self.byToolID = byToolID
+    self.byCallKey = byCallKey
     self.byRowID = byRowID
     self.byRequestID = byRequestID
     self.byApprovalID = byApprovalID
@@ -324,6 +335,7 @@ public struct ChatState: TranscriptJSONCodable, Hashable {
     items = try Self.decodeItems(&reader)
     order = try reader.required("order")
     byToolID = try reader.required("byToolId")
+    byCallKey = try reader.required("byCallKey")
     byRowID = try reader.required("byRowId")
     byRequestID = try reader.required("byRequestId")
     byApprovalID = try reader.required("byApprovalId")
@@ -379,6 +391,7 @@ public struct ChatState: TranscriptJSONCodable, Hashable {
     writer.set("items", items)
     writer.set("order", order)
     writer.set("byToolId", byToolID)
+    writer.set("byCallKey", byCallKey)
     writer.set("byRowId", byRowID)
     writer.set("byRequestId", byRequestID)
     writer.set("byApprovalId", byApprovalID)
@@ -451,6 +464,7 @@ public func createChatState(_ botName: String, _ storedSessionID: String, _ reso
     items: [:],
     order: [],
     byToolID: [:],
+    byCallKey: [:],
     byRowID: [:],
     byRequestID: [:],
     byApprovalID: [:],
