@@ -1,5 +1,6 @@
 import Foundation
 import HermieShared
+@testable import HermieCore
 import Testing
 
 /// A Debug build is another app to the system (`dev.hermie.app.dev`): its own preferences, sandbox
@@ -63,6 +64,23 @@ import Testing
       #expect(info["HermieKeychainGroup"] as? String == "$(AppIdentifierPrefix)$(HERMIE_BUNDLE_ID)")
       #expect(info["HermieShareKeychainGroup"] as? String == "$(AppIdentifierPrefix)$(HERMIE_BUNDLE_ID).share")
     }
+  }
+
+  @Test("a Debug build does not register with the push relay, which does not serve its topic")
+  func debugBuildsSkipThePushRelay() throws {
+    let lines = try Files.text("apple/Config/Shared.xcconfig").split(separator: "\n").map {
+      $0.trimmingCharacters(in: .whitespaces)
+    }
+
+    #expect(lines.contains("HERMIE_PUSH = YES"))
+    #expect(lines.contains("HERMIE_PUSH[config=Debug] = NO"))
+
+    for app in ["ios", "macos"] {
+      #expect(try Files.plist("\(app)/App/Info.plist")["HermiePush"] as? String == "$(HERMIE_PUSH)")
+    }
+
+    // A bundle that does not say NO (a test bundle) keeps the relay.
+    #expect(PushLaunchConfiguration.live(bundle: Bundle(for: Marker.self)).relayOrigin != nil)
   }
 
   @Test("a bundle without the key, or with an unexpanded one, reads the release group")

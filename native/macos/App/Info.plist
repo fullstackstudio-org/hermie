@@ -46,6 +46,9 @@
 	<!-- The App Group this build's entitlements name (`group.dev.hermie.app` in Release). -->
 	<key>HermieAppGroup</key>
 	<string>group.$(HERMIE_BUNDLE_ID)</string>
+	<!-- NO in a Debug build: it never registers with the push relay (HERMIE_PUSH). -->
+	<key>HermiePush</key>
+	<string>$(HERMIE_PUSH)</string>
 	<key>CFBundleURLTypes</key>
 	<array>
 		<dict>

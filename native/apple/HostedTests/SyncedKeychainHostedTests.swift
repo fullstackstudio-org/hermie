@@ -87,7 +87,9 @@ import Testing
     let group = try #require(attributes[kSecAttrAccessGroup as String] as? String)
     // The app's own group: `<team>.dev.hermie.app` in a release build, `.dev.hermie.app.dev` in
     // the Debug build these tests host in (HERMIE_BUNDLE_ID).
-    #expect(group.hasSuffix("." + (Bundle.main.bundleIdentifier ?? "dev.hermie.app")), "landed in \(group)")
+    let app = Bundle.main.bundleIdentifier ?? "dev.hermie.app"
+    // Unprefixed under ad hoc signing with no team (`$(AppIdentifierPrefix)` is empty).
+    #expect(group == app || group.hasSuffix("." + app), "landed in \(group)")
 
     // Replacing the value keeps every attribute.
     try store.put(SyncedItem(account: account, value: "record 2"))

@@ -28,12 +28,18 @@ public struct PushLaunchConfiguration: Sendable {
     self.environmentSource = environmentSource
   }
 
-  /// The app bundle's topic and environment, and the default relay.
+  /// The Info.plist key a build turns the relay off with (`HERMIE_PUSH` in Config/Shared.xcconfig).
+  public static let infoKey = "HermiePush"
+
+  /// The app bundle's topic and environment, and the default relay. A Debug build
+  /// (`dev.hermie.app.dev`, `HermiePush` = `NO`) gets no relay: the relay does not serve its topic,
+  /// and a row naming it in the person's push section would be one no notifier can deliver to.
   public static func live(bundle: Bundle = .main) -> PushLaunchConfiguration {
     let detected = APNsEnvironmentDetection.current(bundle: bundle)
+    let off = (bundle.object(forInfoDictionaryKey: infoKey) as? String)?.uppercased() == "NO"
 
     return PushLaunchConfiguration(
-      relayOrigin: PushRelay.defaultOrigin,
+      relayOrigin: off ? nil : PushRelay.defaultOrigin,
       topic: bundle.bundleIdentifier ?? "dev.hermie.app",
       environment: detected.environment,
       environmentSource: detected.source

@@ -20,6 +20,12 @@
 // never read or write those of an installed Hermie.
 HERMIE_BUNDLE_ID = dev.hermie.app
 HERMIE_BUNDLE_ID[config=Debug] = dev.hermie.app.dev
+
+// Whether the build registers with the push relay (Info.plist HermiePush). The relay
+// only serves the release topic, so a Debug build writes no push row a notifier could
+// never deliver to.
+HERMIE_PUSH = YES
+HERMIE_PUSH[config=Debug] = NO
 PRODUCT_NAME = Hermie
 PRODUCT_BUNDLE_IDENTIFIER = $(HERMIE_BUNDLE_ID)
 
