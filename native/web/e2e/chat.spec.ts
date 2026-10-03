@@ -660,4 +660,89 @@ test.describe('a chat with a long history', () => {
 
     expect(gap).toBeGreaterThan(200)
   })
+
+  test('colours the listings near the reader and leaves the rest plain, with none seen plain while scrolling', async ({
+    app,
+    gateway,
+    page
+  }) => {
+    // The history has a listing in every fourth row. Colouring all of them made every full style and
+    // layout pass of a long chat several times dearer in WebKit; only the ones near the reader are.
+    await app.open()
+    await expect.poll(() => rowCount(app)).toBeGreaterThan(100)
+    await settled(page, quiet(app, gateway), 40)
+
+    /** Listings in the transcript: how many, how many coloured, and how many in view drawn plain. */
+    const listings = () =>
+      app.transcript.evaluate(log => {
+        const view = log.getBoundingClientRect()
+        const blocks = [...log.querySelectorAll<HTMLElement>('pre.md-code-body')].filter(block =>
+          block.querySelector('code.language-ts')
+        )
+        const inView = blocks.filter(block => {
+          const box = block.getBoundingClientRect()
+
+          return box.height > 0 && box.bottom > view.top && box.top < view.bottom
+        })
+
+        return {
+          total: blocks.length,
+          coloured: blocks.filter(block => block.querySelector('.md-hl')).length,
+          inView: inView.length,
+          plainInView: inView.filter(block => !block.querySelector('.md-hl')).length
+        }
+      })
+
+    await expect.poll(async () => (await listings()).plainInView).toBe(0)
+
+    const opened = await listings()
+
+    expect(opened.inView).toBeGreaterThan(0)
+    expect(opened.total).toBeGreaterThan(40)
+    // The ones in view and a viewport either side, not the whole history.
+    expect(opened.coloured).toBeLessThan(opened.total / 2)
+
+    // Scroll up a tenth of a viewport a frame (six viewports a second, a quick read). Each frame is looked at right after its scroll, before
+    // anything else has run: what is in view then is what that frame paints. No listing in it is plain.
+    const scrolled = await app.transcript.evaluate(
+      log =>
+        new Promise<{ seen: number; plain: number }>(resolve => {
+          let frames = 0
+          let seen = 0
+          let plain = 0
+          const step = (): void => {
+            log.scrollTop -= log.clientHeight / 10
+
+            const view = log.getBoundingClientRect()
+
+            for (const block of log.querySelectorAll<HTMLElement>('pre.md-code-body')) {
+              const box = block.getBoundingClientRect()
+
+              if (
+                box.height > 0 &&
+                box.bottom > view.top &&
+                box.top < view.bottom &&
+                block.querySelector('code.language-ts')
+              ) {
+                seen += 1
+                plain += block.querySelector('.md-hl') ? 0 : 1
+              }
+            }
+
+            frames += 1
+
+            if (frames >= 90 || log.scrollTop === 0) {
+              resolve({ seen, plain })
+            } else {
+              requestAnimationFrame(step)
+            }
+          }
+
+          requestAnimationFrame(step)
+        })
+    )
+
+    expect(scrolled.seen).toBeGreaterThan(20)
+    expect(scrolled.plain).toBe(0)
+  })
 })

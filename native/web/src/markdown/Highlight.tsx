@@ -12,7 +12,7 @@
  * two together and measures every one against the code block's surface.
  */
 import { highlightToLines, isKnownLanguage, type CodeSpan } from '@hermie/markdown/highlight'
-import { Fragment, memo, useMemo } from 'react'
+import { Fragment, memo, useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react'
 
 export { isKnownLanguage }
 
@@ -85,14 +85,60 @@ export interface HighlightedCodeProps {
   language: string
 }
 
-/**
- * The lines of `code`, coloured. The text is exactly `code`: the spans of a line
- * are its characters in order, and the lines are joined with the newlines they
- * were split on, so selecting and copying out of the block gives the source back.
- */
-function HighlightedCodeView({ code, language }: HighlightedCodeProps) {
-  const lines = useMemo(() => highlightToLines(code, language), [code, language])
+/** How many highlighted listings are remembered; the oldest is forgotten first. */
+export const HIGHLIGHT_CACHE_SIZE = 500
 
+/** A listing longer than this is highlighted but not remembered, so the cache stays small. */
+const CACHEABLE_LENGTH = 20_000
+
+const cache = new Map<string, CodeSpan[][]>()
+
+/**
+ * The lines of `code` in `language`, remembered by both: a block that mounts
+ * again (a history page landing above it, a chat opened a second time) gets
+ * the spans it had without highlight.js running again.
+ */
+export function cachedLines(code: string, language: string): CodeSpan[][] {
+  if (code.length > CACHEABLE_LENGTH) {
+    return highlightToLines(code, language)
+  }
+
+  const key = `${language}\n${code}`
+  const hit = cache.get(key)
+
+  if (hit) {
+    // Most recently used goes last: a Map iterates in insertion order.
+    cache.delete(key)
+    cache.set(key, hit)
+
+    return hit
+  }
+
+  const lines = highlightToLines(code, language)
+
+  cache.set(key, lines)
+
+  if (cache.size > HIGHLIGHT_CACHE_SIZE) {
+    cache.delete(cache.keys().next().value as string)
+  }
+
+  return lines
+}
+
+/** Empties the cache (tests). */
+export function clearHighlightCache(): void {
+  cache.clear()
+}
+
+/**
+ * While a listing grows (a reply streaming into it), it is coloured again at
+ * most this often; between two passes the part that arrived since is drawn
+ * plain after the coloured part. Same characters, same size: only the colour of
+ * the newest few characters waits.
+ */
+export const STREAM_HIGHLIGHT_MS = 150
+
+function Lines({ lines }: { lines: CodeSpan[][] }) {
   return (
     <>
       {lines.map((spans, index) => (
@@ -103,6 +149,47 @@ function HighlightedCodeView({ code, language }: HighlightedCodeProps) {
           ))}
         </Fragment>
       ))}
+    </>
+  )
+}
+
+/**
+ * The lines of `code`, coloured. The text is exactly `code`: the spans of a line
+ * are its characters in order, and the lines are joined with the newlines they
+ * were split on, so selecting and copying out of the block gives the source back.
+ */
+function HighlightedCodeView({ code, language }: HighlightedCodeProps) {
+  // The text that was last coloured; it catches up with `code` at most every STREAM_HIGHLIGHT_MS.
+  const [coloured, setColoured] = useState(code)
+  const latest = useRef(code)
+  const pending = useRef<ReturnType<typeof setTimeout> | undefined>(undefined)
+
+  useLayoutEffect(() => {
+    latest.current = code
+  }, [code])
+
+  useEffect(() => {
+    if (code === coloured || pending.current !== undefined) {
+      return
+    }
+
+    pending.current = setTimeout(() => {
+      pending.current = undefined
+      setColoured(latest.current)
+    }, STREAM_HIGHLIGHT_MS)
+  }, [code, coloured])
+
+  useEffect(() => () => clearTimeout(pending.current), [])
+
+  // A listing that grew keeps its coloured part and shows the new tail plain; any
+  // other change (rare: an edit in the middle) is plain until the next pass.
+  const base = code === coloured || code.startsWith(coloured) ? coloured : ''
+  const lines = useMemo(() => (base ? cachedLines(base, language) : []), [base, language])
+
+  return (
+    <>
+      <Lines lines={lines} />
+      {code.slice(base.length)}
     </>
   )
 }
