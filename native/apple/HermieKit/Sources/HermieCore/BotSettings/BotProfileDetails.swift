@@ -73,6 +73,13 @@ public struct BotProfileDetails: Sendable, Equatable {
   public var skills: [BotSwitch]
   public var mcpServers: [BotSwitch]
 
+  /// The Skills toolset is listed and off. The bot then gets no skill tools and no list of skills in
+  /// its instructions in Hermie chats, whatever the per-skill switches say; a skill typed as a slash
+  /// command still loads, which is why the per-skill switches stay.
+  public var skillsToolsetOff: Bool {
+    toolsets.first { $0.name == "skills" }.map { !$0.enabled } ?? false
+  }
+
   public init(
     name: String,
     description: String = "",

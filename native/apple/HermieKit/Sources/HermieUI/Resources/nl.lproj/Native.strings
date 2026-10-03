@@ -64,10 +64,14 @@
 	<string>Terugzetten</string>
 	<key>native.botSettings.skills</key>
 	<string>Skills</string>
+	<key>native.botSettings.skillsToolsetOff</key>
+	<string>De toolset Skills staat uit, dus in Hermie-chats krijgt deze bot geen skill-tools en geen lijst met skills in zijn instructies. Zelf een skill starten kan nog wel: typ / en de naam. De schakelaars hieronder zetten losse skills overal uit, ook dat.</string>
 	<key>native.botSettings.title</key>
 	<string>Bot-instellingen</string>
 	<key>native.botSettings.toolsets</key>
 	<string>Toolsets</string>
+	<key>native.botSettings.toolsetsScope</key>
+	<string>Deze schakelaars bepalen wat de bot kan gebruiken in chats in Hermie. Dezelfde bot via een berichtenapp, en zijn geplande taken, houden hun eigen lijsten op de gateway.</string>
 	<key>native.botSettings.unsupported</key>
 	<string>Deze gateway biedt deze instellingen niet aan.</string>
 	<key>native.chat.copyDiagnostics</key>

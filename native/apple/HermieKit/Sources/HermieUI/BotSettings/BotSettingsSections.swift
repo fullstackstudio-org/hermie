@@ -500,9 +500,11 @@ struct BotToolsetsSection: View {
     } header: {
       Text(NativeStrings.BotSettings.toolsets)
     } footer: {
-      SettingsNote(
+      let state =
         details?.toolsetsPinned == true
-          ? Strings.Profiles.Capabilities.toolsetsPinned : Strings.Profiles.Capabilities.toolsetsUnpinned)
+        ? Strings.Profiles.Capabilities.toolsetsPinned : Strings.Profiles.Capabilities.toolsetsUnpinned
+
+      SettingsNote("\(state) \(NativeStrings.BotSettings.toolsetsScope)")
     }
   }
 
@@ -554,7 +556,11 @@ struct BotSkillsSection: View {
     } header: {
       Text(NativeStrings.BotSettings.skills)
     } footer: {
-      SettingsNote(Strings.Profiles.Capabilities.skillsFooter)
+      if model.details?.skillsToolsetOff == true {
+        SettingsNote("\(Strings.Profiles.Capabilities.skillsFooter) \(NativeStrings.BotSettings.skillsToolsetOff)")
+      } else {
+        SettingsNote(Strings.Profiles.Capabilities.skillsFooter)
+      }
     }
   }
 }

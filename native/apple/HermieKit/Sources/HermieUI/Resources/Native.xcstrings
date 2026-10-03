@@ -714,6 +714,29 @@
         }
       }
     },
+    "native.botSettings.skillsToolsetOff" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Das Toolset Skills ist aus, daher bekommt dieser Bot in Hermie-Chats keine Skill-Werkzeuge und keine Skill-Liste in seinen Anweisungen. Einen Skill selbst zu starten geht weiterhin: tippe / und seinen Namen. Die Schalter unten deaktivieren einzelne Skills überall, auch das."
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "The Skills toolset is off, so in Hermie chats this bot gets no skill tools and no list of skills in its instructions. You can still start a skill yourself by typing / and its name. The switches below turn off single skills everywhere, that included."
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "De toolset Skills staat uit, dus in Hermie-chats krijgt deze bot geen skill-tools en geen lijst met skills in zijn instructies. Zelf een skill starten kan nog wel: typ / en de naam. De schakelaars hieronder zetten losse skills overal uit, ook dat."
+          }
+        }
+      }
+    },
     "native.botSettings.title" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -756,6 +779,29 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Toolsets"
+          }
+        }
+      }
+    },
+    "native.botSettings.toolsetsScope" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Diese Schalter bestimmen, was der Bot in Chats in Hermie nutzen kann. Derselbe Bot über eine Messaging-App und seine geplanten Aufgaben behalten ihre eigenen Listen auf dem Gateway."
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "These switches decide what the bot can use in chats in Hermie. The same bot reached through a messaging app, and its scheduled jobs, keep their own lists on the gateway."
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Deze schakelaars bepalen wat de bot kan gebruiken in chats in Hermie. Dezelfde bot via een berichtenapp, en zijn geplande taken, houden hun eigen lijsten op de gateway."
           }
         }
       }
