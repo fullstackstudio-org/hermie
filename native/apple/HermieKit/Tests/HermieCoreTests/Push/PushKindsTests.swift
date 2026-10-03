@@ -518,7 +518,7 @@ struct PushKindsControllerTests {
     return PushPayload(shape: .relay, data: data)
   }
 
-  @Test("a mute silences a muted chat's plain messages in front, never what needs an answer")
+  @Test("a mute silences a muted chat's informational notifications in front, never what needs an answer")
   func mutedChatIsHidden() async throws {
     let rig = try PushControllerTests.Rig()
     var asked: [String] = []
@@ -534,9 +534,12 @@ struct PushKindsControllerTests {
 
     await rig.controller.setGateways([G.one, G.two])
 
-    // A plain message (and its legacy spelling) of the muted chat: hidden.
-    #expect(rig.controller.presentation(for: Self.message()) == .hidden)
-    #expect(rig.controller.presentation(for: Self.message(["type": "dm"])) == .hidden)
+    // Everything informational of the muted chat: hidden, a type this build does not know included.
+    for type in ["message", "dm", "cron", "cron_done", "cron_failed", "turn_done", "turn_failed", "something-new"] {
+      #expect(rig.controller.presentation(for: Self.message(["type": .string(type)])) == .hidden, "\(type)")
+    }
+    // The explicit list of what a mute never silences.
+    #expect(PushContract.alwaysShownTypes == ["request", "security"])
     // Another bot, another gateway: shown.
     #expect(rig.controller.presentation(for: Self.message(["bot": "writer"])) == .foreground)
     #expect(rig.controller.presentation(for: Self.message(["gatewayKey": .string(G.two.key)])) == .foreground)

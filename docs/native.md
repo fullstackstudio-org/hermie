@@ -788,11 +788,13 @@ and `chat` seams. Both read the session from `LiveGateway` in the environment.
   archive a row shows its own unread state.
 - **Mute** shows a bell on the row and a "Muted until …" line in the menu. The gateway's notifier
   reads `mutes` and holds a muted chat's notifications back; in front, `PushController.isMuted`
-  hides one that was already on its way. A mute silences plain messages only (`message`, the
-  legacy `dm`): an approval, a clarify, a secure prompt or a passkey confirmation (`request`) and
-  a `security` notice are shown whatever a mute says, since needs input is what must reach the
-  person (`PushContract.mutableTypes`, also in `PushFilter`). Only the live gateway's mutes are
-  known on the device.
+  hides one that was already on its way. A mute silences everything informational (a message, a
+  finished or failed turn, a cron result, and any type this build does not know) and never what
+  needs an answer: an approval, a clarify, a secure prompt or a passkey confirmation (`request`)
+  and a `security` notice are always shown. The rule is an explicit always-shown list
+  (`PushContract.alwaysShownTypes`, used by `PushController` and `PushFilter`), so a new
+  needs-answer type is added there on purpose. Only the live gateway's mutes are known on the
+  device.
 - **Avatars** come from `profiles.get_asset` as a data URL (`AvatarData` reads it), are kept on disk
   per gateway in the key-value store and painted from there on launch, and are asked for again
   once per launch and per `ui_meta` revision; a bot that no longer has one loses the stored copy.

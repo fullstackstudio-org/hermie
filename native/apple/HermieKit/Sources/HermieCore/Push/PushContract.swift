@@ -32,10 +32,12 @@ public enum PushContract {
   /// The type spelled by senders older than the contract, still valid on the wire (`legacyTypes`).
   public static let legacyTypes = ["dm"]
 
-  /// The types a mute silences: a plain message (and its legacy spelling). Everything a person has
-  /// to answer (an approval, a clarify, a secure prompt, a passkey confirmation: `request`) reaches
-  /// them whatever a mute says, and so does every unfiltered type.
-  public static let mutableTypes = ["message", "dm"]
+  /// The types a mute never silences: everything a person has to answer (an approval, a clarify, a
+  /// secure prompt, a passkey confirmation: `request`) and every unfiltered type (`security`).
+  /// Every other type is informational (a message, a finished turn, a cron result) and a mute
+  /// silences it, a type this build does not know included: a new needs-answer type is added here,
+  /// on purpose, rather than slipping through a list of what to silence.
+  public static let alwaysShownTypes = ["request"] + unfilteredTypes
 
   /// The payload types whose notifications can carry the actions. Whether one does depends on its
   /// `method` too: only an approval (`PushPayload.wantsActions`).
