@@ -172,8 +172,10 @@ environment variable read at build time is the usual cause.
 4. **Probe** (`boot/auth-mode.ts`): `GET /api/status`. `auth_required: false` is a session-token gateway,
    which the client does not handle yet; it says so and stops.
 5. **Identity**: `GET /api/auth/me` on the gateway's `HttpOnly` cookie session, sent `same-origin` and never
-   anywhere else. A 401 or 403 is "Sign in again", which stashes the route and goes to
-   `<prefix>/login?next=<this page>`; any other failure says what failed, with "Try again".
+   anywhere else. A 401 is "Sign in again", which stashes the route and goes to
+   `<prefix>/login?next=<this page>`; a 403 is not (the gateway says 401 for a lapsed session, so a 403 is a proxy
+   or firewall in front of it, and a sign-in would reload into the same 403): it and any other failure say what
+   failed, with "Try again".
 6. **Signed in**: if the stored state was written for somebody else, it is cleared first
    (`claimForOwner`). Sign-out is `POST /auth/logout`, then the transcript cache and every identity-bound
    setting are cleared, then `/login`.
