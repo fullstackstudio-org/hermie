@@ -393,7 +393,9 @@ import Testing
     let sync = UIMetaSync.device(gateway.gateway)
     let model = ChatArrangementModel(now: { noon })
     model.attach(sync)
-    try? await Task.sleep(for: .milliseconds(50))
+    // The attach has read the stored copy once the archive seed has landed (the seed and the fold
+    // both wait for that read); only a roster answered after it folds on its own.
+    await eventually("the attach's first read") { sync.app?["archivedBots"] != nil }
 
     model.rosterRefreshed(["researcher", "writer"])
     #expect(sync.state.dirtyApp && !sync.state.appChoice)
@@ -528,9 +530,11 @@ import Testing
     #expect(gateway.meta("researcher")[UIMeta.appKey(for: "anne")]?["archivedBots"] == ["writer"])
 
     // Later the Expo app archives researcher with the shared flag: Anne's list does not follow.
-    gateway.write("researcher", [UIMeta.botKey: ["v": 1, "archived": true]])
+    // The colour rides in the same section as the shared flag, so the model showing it says the
+    // change was taken in and the rows were redrawn from it.
+    gateway.write("researcher", [UIMeta.botKey: ["v": 1, "archived": true, "colour": "teal"]])
     await sync.reconcile()
-    try? await Task.sleep(for: .milliseconds(50))
+    await eventually("the model to follow the gateway's copy") { model.accent("researcher") == .teal }
     #expect(!model.isArchived("researcher"))
     #expect(sync.app?["archivedBots"] == ["writer"])
   }
@@ -545,7 +549,8 @@ import Testing
     let sync = UIMetaSync.device(gateway.gateway, user: "anne")
     let model = ChatArrangementModel(now: { noon })
     model.attach(sync)
-    try? await Task.sleep(for: .milliseconds(50))
+    // The attach has read the stored copy once the archive seed has landed.
+    await eventually("the attach's first read") { sync.app?["archivedBots"] != nil }
 
     await sync.reconcile()
     await sync.reconcile()
