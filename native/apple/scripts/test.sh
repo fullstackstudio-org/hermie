@@ -272,6 +272,8 @@ if [[ "$ui" == true ]]; then
   start_fake_gateway HERMIE_FAKE_GATEWAY_NATIVE --auth native
   start_fake_gateway HERMIE_FAKE_GATEWAY_STAGED --auth native --idp staged
   start_fake_gateway HERMIE_CHAT_GATEWAY --auth token --token ui-test-token --stream-delay 500 --history-rows 40
+  # Its own gateway: archiving writes the gateway's ui_meta, which the chat tests must not inherit.
+  start_fake_gateway HERMIE_LIST_GATEWAY --auth token --token ui-test-token
 
   ui_devices+=("$(xcrun simctl create "Hermie UI tests iPhone $$" "$phone_type" "$ui_runtime")")
   ui_devices+=("$(xcrun simctl create "Hermie UI tests iPad $$" "$pad_type" "$ui_runtime")")
