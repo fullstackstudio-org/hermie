@@ -72,6 +72,16 @@ public final class TranscriptListState {
     commandSerial &+= 1
   }
 
+  /// Calls `onNearTop` after the current update, never inside it: the prepend
+  /// it starts moves the content and must take its anchor from a settled
+  /// layout.
+  func callOnNearTopLater() {
+    guard onNearTop != nil else { return }
+    Task { @MainActor [weak self] in
+      self?.onNearTop?()
+    }
+  }
+
   func take() -> Command? {
     defer { command = nil }
     return command

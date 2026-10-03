@@ -14,6 +14,10 @@
   public struct TranscriptLabView: View {
     @State private var model = TranscriptLabModel()
     @State private var expansion = TranscriptExpansion()
+    /// Forces one list implementation; nil is the app's own choice.
+    @State private var implementation: TranscriptListImplementation?
+    /// A bar under the list that changes height, as a composer does.
+    @State private var bottomBar: CGFloat = 0
 
     public init() {}
 
@@ -26,6 +30,13 @@
       }
       .environment(\.transcriptExpansion, expansion)
       .environment(\.transcriptOwnAuthorID, "telegram:1")
+      .environment(\.transcriptListImplementation, implementation)
+      .id(implementation)
+      .safeAreaInset(edge: .bottom, spacing: 0) {
+        Rectangle().fill(.bar).frame(height: bottomBar)
+          .accessibilityElement()
+          .accessibilityIdentifier("lab.bottomBar")
+      }
       .safeAreaInset(edge: .top, spacing: 0) { controls }
       .safeAreaInset(edge: .bottom, spacing: 0) {
         // `-HermieLabBottomInset YES`: a bar under the list, where the chat screen's composer goes.
@@ -56,6 +67,11 @@
               .accessibilityIdentifier("lab.prepend")
             Button("Middle") { model.scrollToMiddle() }
               .accessibilityIdentifier("lab.middle")
+            Button("List: \(implementation?.rawValue ?? "auto")") {
+              let all: [TranscriptListImplementation?] = [nil] + TranscriptListImplementation.allCases
+              implementation = all[((all.firstIndex(of: implementation) ?? 0) + 1) % all.count]
+            }
+            .accessibilityIdentifier("lab.implementation")
           }
           GridRow {
             Button(model.meterRunning ? "Stop meter" : "Meter") { model.toggleMeter() }
@@ -65,6 +81,8 @@
             Button("Render test") { Task { await model.runRenderTest() } }
               .accessibilityIdentifier("lab.renderTest")
               .disabled(model.isStreaming)
+            Button(bottomBar == 0 ? "Bar" : "No bar") { bottomBar = bottomBar == 0 ? 160 : 0 }
+              .accessibilityIdentifier("lab.bar")
           }
         }
         .buttonStyle(.bordered)
@@ -164,6 +182,16 @@
       await phase("stream", stream: true, scroll: false)
       await phase("pan", stream: false, scroll: true)
       await phase("stream+pan", stream: true, scroll: true)
+      // A reader's scroll up, then 200 older rows above them.
+      for _ in 0..<150 {
+        listState.pan(by: -12)
+        try? await Task.sleep(for: .milliseconds(8))
+      }
+      try? await Task.sleep(for: .seconds(1))
+      await prepend()
+      let shift = TranscriptListDiagnostics.lastStructuralShift.map { String(format: "%.2f pt", $0) } ?? "no rows"
+      benchLog("prepend 200 after scrolling up: rows on screen moved at most \(shift)")
+      lines.append("prepend shift \(shift)")
       let footprint = "footprint \(MemoryFootprint.megabytes(MemoryFootprint.current())) with \(rows.count) rows"
       benchLog("\(footprint)")
       lines.append(footprint)
@@ -210,8 +238,13 @@
     }
 
     func prepend() async {
+      TranscriptListDiagnostics.remeasured = []
       rows = await driver.prepend(count: 200)
-      report = "\(rows.count) rows after prepend · top \(String(describing: listState.topVisibleID?.base ?? "-"))"
+      try? await Task.sleep(for: .milliseconds(300))
+      report =
+        "\(rows.count) rows after prepend · top \(String(describing: listState.topVisibleID?.base ?? "-"))"
+        + " · shift \(TranscriptListDiagnostics.lastStructuralShift.map { String(format: "%.2f", $0) } ?? "-")"
+        + " · remeasured \(TranscriptListDiagnostics.remeasured.prefix(8))"
     }
 
     func scrollToMiddle() {
@@ -277,6 +310,11 @@
       try? await Task.sleep(for: .seconds(1))
       let streamingID = await driver.streamingID ?? ""
       let before = RenderCounter.counts
+      // The rows on screen: from the one at the top of the viewport to the
+      // newest. A row rendered earlier and now off screen is counted apart.
+      let top = listState.topVisibleID?.base as? String
+      let firstOnScreen = top.flatMap { id in rows.firstIndex { $0.id == id } } ?? 0
+      let onScreen = Set(rows[firstOnScreen...].map(\.id))
       isStreaming = true
       await stream(deltas: 600)
       isStreaming = false
@@ -284,18 +322,30 @@
       var untouched = 0
       var rerendered = 0
       var extraBodies = 0
+      var names: [String] = []
+      var offScreen: [String] = []
+      var offScreenBodies = 0
       for (id, count) in before where id != streamingID {
-        untouched += 1
         let now = after[id] ?? count
+        guard onScreen.contains(id) else {
+          if now != count {
+            offScreen.append(id)
+            offScreenBodies += now - count
+          }
+          continue
+        }
+        untouched += 1
         if now != count {
           rerendered += 1
+          names.append(id)
           extraBodies += now - count
         }
       }
       let streamingBodies = (after[streamingID] ?? 0) - (before[streamingID] ?? 0)
       report =
         "render test: 600 deltas · streaming row bodies \(streamingBodies) · rows on screen before \(untouched) · "
-        + "re-rendered \(rerendered) (\(extraBodies) extra bodies)"
+        + "re-rendered \(rerendered) (\(extraBodies) extra bodies) \(names.sorted().prefix(6)) · "
+        + "rendered off screen \(offScreen.count) (\(offScreenBodies) bodies) \(offScreen.sorted().prefix(6))"
     }
   }
 

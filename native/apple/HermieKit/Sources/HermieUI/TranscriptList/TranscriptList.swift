@@ -49,10 +49,80 @@ where Item.ID: Sendable {
     self.overlay = overlay
   }
 
+  @Environment(\.transcriptListImplementation) private var requested
+
   public var body: some View {
-    SwiftUITranscriptList(items: items, state: state, spacing: spacing, row: row)
+    implementation
       .overlay(alignment: .bottom) {
         overlay(state)
+      }
+  }
+
+  @ViewBuilder private var implementation: some View {
+    switch TranscriptListImplementation.resolved(requested) {
+    case .swiftUI:
+      SwiftUITranscriptList(items: items, state: state, spacing: spacing, row: row)
+    case .collection:
+      CollectionTranscriptHost(items: items, state: state, spacing: spacing, row: row)
+    }
+  }
+}
+
+/// Which list draws a `TranscriptList`; see "Transcript list" in docs/native.md.
+enum TranscriptListImplementation: String, CaseIterable, Sendable {
+  /// `ScrollView` + `LazyVStack` (implementation A).
+  case swiftUI
+  /// `UICollectionView` / `NSCollectionView` with SwiftUI rows (implementation B).
+  case collection
+
+  /// What a list uses when nothing asks for one in particular: the collection
+  /// view on iPhone and iPad (the SwiftUI list loses the reader's place on a
+  /// prepend under iOS 26.x), the SwiftUI list on the Mac until the collection
+  /// view has been measured there (docs/native.md, "Transcript list").
+  #if os(macOS)
+    static let standard = TranscriptListImplementation.swiftUI
+  #else
+    static let standard = TranscriptListImplementation.collection
+  #endif
+
+  /// `requested`, else the launch argument `-HermieListImplementation` (debug
+  /// builds; the lab and its UI tests use it), else `standard`.
+  static func resolved(_ requested: TranscriptListImplementation?) -> TranscriptListImplementation {
+    if let requested { return requested }
+    #if DEBUG
+      if let raw = UserDefaults.standard.string(forKey: "HermieListImplementation"), let forced = Self(rawValue: raw) {
+        return forced
+      }
+    #endif
+    return standard
+  }
+}
+
+extension EnvironmentValues {
+  /// Forces one implementation of `TranscriptList`, for the lab's comparisons.
+  @Entry var transcriptListImplementation: TranscriptListImplementation? = nil
+}
+
+/// Implementation B behind the boundary: measures the safe area the list is
+/// given and hands it to the collection view as content insets, so rows
+/// scroll under bars and the composer while the newest row still stops above
+/// them.
+struct CollectionTranscriptHost<Item: Identifiable & Equatable & Sendable, Row: View>: View where Item.ID: Sendable {
+  let items: TranscriptListItems<Item>
+  let state: TranscriptListState
+  let spacing: CGFloat
+  let row: (Item) -> Row
+
+  @State private var insets = EdgeInsets()
+
+  var body: some View {
+    Color.clear
+      .onGeometryChange(for: EdgeInsets.self) { $0.safeAreaInsets } action: { insets = $0 }
+      .overlay {
+        CollectionTranscriptList(
+          items: items, state: state, spacing: spacing, insets: insets, commandSerial: state.commandSerial, row: row
+        )
+        .ignoresSafeArea(.container, edges: .vertical)
       }
   }
 }

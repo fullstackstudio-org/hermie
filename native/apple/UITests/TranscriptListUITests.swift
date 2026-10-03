@@ -18,7 +18,7 @@ final class TranscriptListUITests: XCTestCase {
 
     // Mid-list, by the reader's own scrolling: the way history is loaded (the
     // list asks for it when the reader nears the top).
-    let list = app.scrollViews["transcript.list"]
+    let list = Self.list(in: app)
     for _ in 0..<4 { scrollUp(list) }
     settle(seconds: 2)
     let moved = try prependDelta(app, label: "after the reader scrolled")
@@ -36,8 +36,8 @@ final class TranscriptListUITests: XCTestCase {
   /// Prepends 200 rows and returns how far a row in the middle of the screen
   /// moved, in points.
   private func prependDelta(_ app: XCUIApplication, label: String) throws -> CGFloat {
-    let list = app.scrollViews["transcript.list"].frame
-    let before = try rowFrames(app)
+    let list = Self.list(in: app).frame
+    let before = try settledRowFrames(app)
     let anchor = try XCTUnwrap(
       before.filter { $0.value.minY > list.minY + 140 && $0.value.minY < list.maxY - 60 }
         .min { abs($0.value.midY - list.midY) < abs($1.value.midY - list.midY) },
@@ -59,6 +59,20 @@ final class TranscriptListUITests: XCTestCase {
     return delta
   }
 
+  /// Row frames once the list has stopped moving: two snapshots a second
+  /// apart that agree. A swipe can still be decelerating after a fixed wait,
+  /// and a measurement taken then blames the list for the swipe.
+  private func settledRowFrames(_ app: XCUIApplication) throws -> [String: CGRect] {
+    var last = try rowFrames(app)
+    for _ in 0..<10 {
+      settle()
+      let next = try rowFrames(app)
+      if next == last { return next }
+      last = next
+    }
+    return last
+  }
+
   /// The frame of every row in one accessibility snapshot.
   private func rowFrames(_ app: XCUIApplication) throws -> [String: CGRect] {
     var frames: [String: CGRect] = [:]
@@ -69,9 +83,103 @@ final class TranscriptListUITests: XCTestCase {
       }
       node.children.forEach(walk)
     }
-    walk(try app.scrollViews["transcript.list"].snapshot())
+    walk(try app.snapshot())
     return frames
   }
+
+  // MARK: - Insets and resizes
+
+  /// A bar under the list that grows (a composer gaining lines): at the bottom
+  /// the newest row stays just above it; scrolled up, nothing moves.
+  func testABottomBarThatGrowsKeepsTheBottomOrTheReadersPlace() throws {
+    continueAfterFailure = true
+    let app = launch(screen: "lab")
+    waitForReport(app, containing: "rows")
+    let bar = app.descendants(matching: .any)["lab.bottomBar"].firstMatch
+
+    app.buttons["lab.bar"].tap()
+    var pinned: [String: CGRect] = [:]
+    for _ in 0..<5 where pinned.isEmpty {
+      settle()
+      pinned = try rowFrames(app)
+    }
+    if pinned.isEmpty {
+      let shot = XCTAttachment(screenshot: app.screenshot())
+      shot.name = "no-rows"
+      shot.lifetime = .keepAlways
+      add(shot)
+      var lines: [String] = []
+      func dump(_ node: any XCUIElementSnapshot, _ depth: Int) {
+        guard lines.count < 80 else { return }
+        lines.append(
+          String(repeating: " ", count: depth) + "\(node.elementType.rawValue) '\(node.identifier)' '\(node.label.prefix(30))' \(node.frame.integral)")
+        node.children.forEach { dump($0, depth + 1) }
+      }
+      if let snapshot = try? app.snapshot() { dump(snapshot, 0) }
+      record("no rows on screen:\n\(lines.joined(separator: "\n"))")
+    }
+    let lowest = try XCTUnwrap(pinned.values.max { $0.maxY < $1.maxY })
+    let rows = pinned.sorted { $0.value.minY < $1.value.minY }.map { "\($0.key)@\(Int($0.value.minY))-\(Int($0.value.maxY))" }
+    record("bar 160 at the bottom: newest row ends at \(lowest.maxY), bar starts at \(bar.frame.minY); rows \(rows)")
+    XCTAssertLessThanOrEqual(lowest.maxY, bar.frame.minY + 1, "the newest row went under the bar")
+    XCTAssertGreaterThan(lowest.maxY, bar.frame.minY - 40, "the list did not follow the bar up")
+    app.buttons["lab.bar"].tap()
+    settle()
+
+    let list = Self.list(in: app)
+    for _ in 0..<3 { scrollUp(list) }
+    settle(seconds: 3)
+    let before = try settledRowFrames(app)
+    app.buttons["lab.bar"].tap()
+    settle()
+    let after = try rowFrames(app)
+    let moved = before.compactMap { id, frame in after[id].map { abs($0.minY - frame.minY) } }
+    let fullyInside = before.filter { $0.value.minY > list.frame.minY + 140 && $0.value.maxY < list.frame.maxY - 200 }
+    let worst = fullyInside.keys.compactMap { id in after[id].map { abs($0.minY - before[id]!.minY) } }.max() ?? 0
+    record("bar 160 while scrolled up: rows moved \(moved.map { Int($0) })")
+    XCTAssertLessThanOrEqual(worst, 1, "rows moved \(worst) pt when the bar grew")
+  }
+
+  #if os(iOS)
+    /// Portrait → landscape → portrait while scrolled up: the reader's rows
+    /// stay on screen in landscape and come back to the point in portrait.
+    func testRotatingKeepsTheReadersPlace() throws {
+      continueAfterFailure = true
+      let app = launch(screen: "lab")
+      waitForReport(app, containing: "rows")
+      let list = Self.list(in: app)
+      // Drags that stop before they let go: a fling can still be gliding when
+      // the device turns (on a loaded machine it outlasted ten snapshots), and
+      // the turn then starts from a place the test never saw.
+      for _ in 0..<3 {
+        let start = list.coordinate(withNormalizedOffset: CGVector(dx: 0.5, dy: 0.3))
+        let end = list.coordinate(withNormalizedOffset: CGVector(dx: 0.5, dy: 0.85))
+        start.press(forDuration: 0.05, thenDragTo: end, withVelocity: .default, thenHoldForDuration: 0.5)
+      }
+      let before = try settledRowFrames(app)
+      // The reader's row: the first one wholly below the lab's controls, which
+      // is where the visible part of the list starts (rows scroll under them).
+      let visibleTop = app.staticTexts["lab.report"].frame.maxY
+      let inside = before.filter { $0.value.minY >= visibleTop && $0.value.maxY < list.frame.maxY - 60 }
+      let anchor = try XCTUnwrap(inside.min { $0.value.minY < $1.value.minY }, "no row on screen")
+
+      XCUIDevice.shared.orientation = .landscapeLeft
+      settle(seconds: 3)
+      let landscape = try rowFrames(app)
+      record("landscape: \(anchor.key) at \(landscape[anchor.key].map { "\($0.minY)" } ?? "off screen")")
+      XCTAssertNotNil(landscape[anchor.key], "the reader's row left the screen in landscape")
+
+      XCUIDevice.shared.orientation = .portrait
+      settle(seconds: 3)
+      let after = try rowFrames(app)
+      let delta = after[anchor.key].map { $0.minY - anchor.value.minY } ?? .infinity
+      let moved = before.compactMap { id, frame in
+        after[id].map { "\(id):\(Int(($0.minY - frame.minY).rounded()))/h\(Int(($0.height - frame.height).rounded()))" }
+      }
+      record("rotated and back: \(anchor.key) moved \(delta) pt; every row: \(moved.sorted().joined(separator: " "))")
+      XCTAssertLessThanOrEqual(abs(delta), 1, "the reader's row moved \(delta) pt over a rotation")
+    }
+  #endif
 
   // MARK: - (c) a delta re-renders the streaming row only
 
@@ -79,6 +187,11 @@ final class TranscriptListUITests: XCTestCase {
     let app = launch(screen: "lab")
     record("loaded: \(waitForReport(app, containing: "footprint"))")
     app.buttons["lab.renderTest"].tap()
+    // Wait without looking: every accessibility snapshot of the app while it
+    // streams is work the app does for the test, not for the delta (the
+    // collection view makes a cell for the first row to answer one). The 600
+    // deltas take 20 s; on a loaded machine longer.
+    settle(seconds: 40)
     let report = waitForReport(app, containing: "re-rendered", timeout: 120)
     record(report)
     let rerendered = try XCTUnwrap(number(after: "re-rendered ", in: report))
@@ -94,7 +207,7 @@ final class TranscriptListUITests: XCTestCase {
   func testScrollingWhileAReplyStreams() throws {
     let app = launch(screen: "lab", arguments: ["-HermieLabStream", "YES"])
     waitForReport(app, containing: "rows")
-    let list = app.scrollViews["transcript.list"]
+    let list = Self.list(in: app)
     app.buttons["lab.meter"].tap()
 
     let options = XCTMeasureOptions()
@@ -151,8 +264,23 @@ final class TranscriptListUITests: XCTestCase {
     if let anchor = ProcessInfo.processInfo.environment["HERMIE_LAB_MIDDLE_ANCHOR"] {
       app.launchArguments += ["-HermieLabMiddleAnchor", anchor]
     }
+    // TEST_RUNNER_HERMIE_LIST_IMPLEMENTATION=swiftUI|collection runs the tests
+    // against one implementation of the list (default: the app's own choice).
+    if let implementation = ProcessInfo.processInfo.environment["HERMIE_LIST_IMPLEMENTATION"] {
+      app.launchArguments += ["-HermieListImplementation", implementation]
+    }
     app.launch()
     return app
+  }
+
+  /// The transcript list, whichever implementation draws it: a scroll view, a
+  /// collection view, or the Mac's scroll view around one.
+  private static func list(in app: XCUIApplication) -> XCUIElement {
+    #if os(macOS)
+      let scroll = app.scrollViews["transcript.scroll"]
+      if scroll.exists { return scroll }
+    #endif
+    return app.descendants(matching: .any)["transcript.list"].firstMatch
   }
 
   @discardableResult
@@ -178,7 +306,9 @@ final class TranscriptListUITests: XCTestCase {
         let line = "page \(page): \(issue.compactDescription) on \(element)"
         // An element only partly inside the scroll view is measured against
         // the edge that clips it; it is audited whole on the next page.
-        let clipped = issue.auditType == .contrast && issue.element.map { !visible.contains($0.frame) } == true
+        let clipped =
+          (issue.auditType == .contrast || issue.auditType == .textClipped)
+          && issue.element.map { !visible.contains($0.frame) } == true
         if clipped || Self.toleratedAuditIssue(issue) {
           self.record("audit (tolerated) \(line)")
         } else {

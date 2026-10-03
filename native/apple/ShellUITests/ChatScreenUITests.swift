@@ -394,7 +394,8 @@ final class ChatScreenUITests: XCTestCase {
     // Scrolled up a little, as a reader does: the keyboard goes, the list stops following the reply,
     // and the older rows stay in view while it streams below them. The reply has been drawn frame
     // after frame; no row on screen that it did not change may have been drawn again.
-    app.scrollViews["transcript.list"].swipeDown(velocity: .slow)
+    // A scroll view or a collection view, whichever implementation draws the list.
+    app.descendants(matching: .any)["transcript.list"].firstMatch.swipeDown(velocity: .slow)
     RunLoop.current.run(until: Date().addingTimeInterval(1.5))
     let during = renderCounts(app)
     let onScreenDuring = try visibleRows(app)
@@ -405,8 +406,14 @@ final class ChatScreenUITests: XCTestCase {
     XCTAssertGreaterThan(untouched.count, 0, "rows on screen that the stream did not change")
     XCTAssertEqual(redrawn.keys.sorted(), [], "rows drawn again by a stream that did not change them: \(redrawn)")
 
-    let streamed = during.filter { id, row in before[id] == nil && row.count > 2 }
-    XCTAssertFalse(streamed.isEmpty, "the streaming reply was drawn once per frame")
+    // The reply streams below the rows in view. The SwiftUI list keeps it built and draws it frame
+    // after frame; the collection view (iPhone and iPad) builds only the rows on screen, and draws the
+    // reply when it comes into view.
+    let reply = during.filter { id, _ in before[id] == nil }
+    let streamed = reply.filter { id, row in row.count > 2 || !onScreenDuring.contains(id) }
+    XCTAssertFalse(
+      streamed.isEmpty,
+      "the streaming reply was drawn once per frame while on screen: new rows \(reply), on screen \(onScreenDuring.sorted())")
 
     // Stop: the button is Send again, the turn is over on the gateway, the partial reply stays.
     let stop = app.buttons["composer.stop"]
