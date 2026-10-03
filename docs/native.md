@@ -79,6 +79,17 @@ treated as errors. The rules the code is written to:
 - **No Combine and no `ObservableObject`.** Streams are `AsyncStream` or `AsyncThrowingStream`.
 - **`@unchecked Sendable` needs a reason.** Write a comment saying why the type is safe, and expect
   the reviewer to read it.
+- **What an Apple framework calls back into is `nonisolated` or `@Sendable`.** Completion handlers,
+  delegate methods and presentation providers may be called on any queue, whatever the protocol's
+  annotation says. A closure written inside a `@MainActor` type and passed straight to an
+  Objective-C API is inferred to be the main actor's, and Swift 6 checks that at run time: called
+  from another queue, it traps (`_dispatch_assert_queue_fail` in `swift_task_isCurrentExecutor`).
+  That took the Mac app down in TestFlight 0.2.1, when `ASWebAuthenticationSession` ended a session
+  over XPC after "Open in browser". Read what the callback was given into `Sendable` values where
+  it arrives and hand the rest to the main actor (`MainActorHop.run`, or a `Task { @MainActor … }`);
+  build such a closure in a `nonisolated` function or give its type `@Sendable`, so the compiler
+  keeps it that way. A presentation anchor is found on the main thread before the system needs it
+  (`WebAuthenticationPresenter`, `ControllerPasskeyDriver`).
 
 ## Building and testing
 
@@ -831,6 +842,10 @@ on `FakeGateway`, sent outside the client under test.
 
 What is covered: the probe of each authentication mode, address resolution (ADR-0014), REST with a
 session token, native PKCE sign-in without a web view through rotation and revocation on sign-out,
+the whole native round trip through an identity provider with a password and a one-time-code step
+(`NativeOIDCRoundTripTests`, the fake's `--idp staged`: the gateway's PKCE cookie, the provider's
+own cookies, its redirect to `/auth/callback` and the gateway's to the attempt's loopback port,
+including a wrong code that sends the person back to the password form inside one attempt),
 ticket minting, redirect refusal between the gateway and a second local listener, and the plugin
 routes, the WebSocket connection, and the session runtime (`SessionRuntimeIntegrationTests`: a cold
 start from the cache, a streamed turn, an approval, a socket dropped mid-turn, history paging), and
@@ -838,7 +853,12 @@ the live wiring (`PushWiringIntegrationTests`: a registration landing as this in
 the live gateway and leaving it on a sign-out, with the relay registration retired; a notification
 action answering an approval only while it is listed and only for the bot and request id it names). UI
 smoke tests on the simulator use a fake gateway that `test.sh --ui` starts on the host
-(`ChatScreenUITests`).
+(`ChatScreenUITests`), and the primary native sign-in runs there for real (`BrowserSignInUITests`:
+the system browser sheet, the staged identity provider's password and code forms, the redirect to
+the app's loopback listener, the sheet closing). That test is what found the listener refusing the
+browser on iOS: with `NWParameters.acceptLocalOnly` set, Network closed the browser's connection as
+"non-local" the moment it was accepted, so the browser showed a lost connection and the sign-in
+never finished.
 
 To try the fake gateway by hand:
 

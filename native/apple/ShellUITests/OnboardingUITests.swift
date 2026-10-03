@@ -5,9 +5,9 @@ import XCTest
  starts on the host (the simulator reaches them on 127.0.0.1): an ungated one, a token one and a
  native-sign-in one. Without them (another runner) these tests are skipped.
 
- The native test signs in with the in-app page, the fallback: the system browser sheet of the primary
- way is another process's window, which XCUITest cannot drive reliably. The browser way and its
- loopback listener are covered by the package's listener and integration tests.
+ The native test here signs in with the in-app page, the fallback. The primary way, the system
+ browser sheet and the loopback redirect, is `BrowserSignInUITests`, against a gateway with the
+ staged identity provider.
 
  Every step passes the accessibility audit. The keyboard is put away before an audit: text it covers
  would fail the contrast check for what is drawn over it.
