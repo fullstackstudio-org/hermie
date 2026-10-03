@@ -20,6 +20,7 @@ const watchRunning = vi.fn(() => release)
 const refreshRunning = vi.fn(async () => {})
 const clientStop = vi.fn(() => void calls.push('client stopped'))
 const chatsStop = vi.fn(() => void calls.push('chats stopped'))
+const uiMetaStop = vi.fn(() => void calls.push('ui-meta stopped'))
 
 /** The chat controller's replay signals, as the secure input model hears them. */
 const replayListeners = new Set<(signal: ReplaySignal) => void>()
@@ -29,6 +30,7 @@ const noteReplayGap = vi.fn()
 const authMe = vi.fn(async () => ({ provider: 'authentik', userId: '1', displayName: 'Ann' }))
 const connectGateway = vi.fn()
 const connectChats = vi.fn()
+const connectUiMeta = vi.fn()
 
 vi.mock('../../core/gateway-client', () => ({
   connectGateway: (...args: unknown[]) => connectGateway(...args)
@@ -38,7 +40,12 @@ vi.mock('../../core/chat-controller', () => ({
   connectChats: (...args: unknown[]) => connectChats(...args)
 }))
 
+vi.mock('../../core/ui-meta-bridge', () => ({
+  connectUiMeta: (...args: unknown[]) => connectUiMeta(...args)
+}))
+
 const { startSession } = await import('./session')
+const { deviceContextStore } = await import('../../state/device-context')
 
 beforeEach(() => {
   calls.length = 0
@@ -55,6 +62,10 @@ beforeEach(() => {
   chatsStop.mockClear()
   connectGateway.mockReset()
   connectChats.mockReset()
+  connectUiMeta.mockReset()
+  uiMetaStop.mockClear()
+  connectUiMeta.mockImplementation(() => ({ stop: uiMetaStop }))
+  deviceContextStore.getState().reset()
   connectGateway.mockImplementation(() => ({
     bots: { watchRunning, refreshRunning },
     stores: { connection },
@@ -116,6 +127,31 @@ describe('startSession', () => {
     expect(connectGateway.mock.invocationCallOrder[0]).toBeLessThan(connectChats.mock.invocationCallOrder[0]!)
   })
 
+  it('follows the person’s ui_meta on the same connection, under the key the boot’s identity names', () => {
+    const settings = { ...options(), identity: { userId: 'tester@example.invalid', email: '', displayName: 'Ann' } }
+    const session = startSession(settings)
+
+    expect(connectUiMeta).toHaveBeenCalledWith(
+      expect.objectContaining({
+        gateway: session.client.gateway,
+        connection,
+        storage: settings.storage,
+        userId: 'tester@example.invalid',
+        visibility: settings.visibility
+      })
+    )
+    expect(deviceContextStore.getState()).toMatchObject({ gated: true, userId: 'tester@example.invalid' })
+
+    session.stop()
+    expect(deviceContextStore.getState().userId).toBe('')
+  })
+
+  it('names nobody, the local-only path, when the boot read no identity', () => {
+    startSession(options())
+
+    expect(connectUiMeta).toHaveBeenCalledWith(expect.objectContaining({ userId: '' }))
+  })
+
   it('polls the running state while the page is shown, and stops while it is hidden', () => {
     const visibility = fakeVisibility('visible')
 
@@ -164,7 +200,7 @@ describe('startSession', () => {
     session.stop()
     session.stop()
 
-    expect(calls).toEqual(['poll released', 'chats stopped', 'client stopped'])
+    expect(calls).toEqual(['poll released', 'ui-meta stopped', 'chats stopped', 'client stopped'])
     // A page shown after sign-out starts nothing.
     visibility.set('hidden')
     visibility.set('visible')

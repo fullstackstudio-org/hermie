@@ -32,8 +32,12 @@
  *  7. The running poll (`session.active_list`) while the page is shown, and once
  *     the moment the connection becomes usable, so a bot that is already working
  *     is not drawn idle for the first ten seconds.
+ *  8. The `ui_meta` bridge (`core/ui-meta-bridge.ts`, `connectUiMeta`) on the same
+ *     connection, under the app-wide key of the person the boot read
+ *     (`uiMetaUserIdOf`): the arrangement, the mutes and the text size follow the
+ *     person, and the roster is folded into the arrangement.
  *
- * `stop()` is the order the sign-out needs: the poll, then the secure prompts
+ * `stop()` is the order the sign-out needs: the poll, the `ui_meta` bridge, then the secure prompts
  * (each open one answered `''` while the socket is still there), the notices, the
  * connection cards, the session status, the passkeys and the chats, then the client (which closes the socket and empties its stores). It
  * is idempotent.
@@ -49,6 +53,7 @@ import { ConnectionsModel, respondThrough } from '../../core/connections'
 import { NoticesModel } from '../../core/notices'
 import { SecureInputModel } from '../../core/requests/secure-input'
 import { SessionStatusModel } from '../../core/session-status'
+import { connectUiMeta, type ConnectUiMetaOptions, type UiMetaRuntime } from '../../core/ui-meta-bridge'
 import type { ChatCache } from '../../platform/chat-cache'
 import type { WebKeyValueStore } from '../../platform/key-value-store'
 import { createPasskeyPins } from '../../platform/passkey-pins'
@@ -56,6 +61,7 @@ import { createSocketFactoryWithOutbox, ErrorDataOutbox, ReplayGapTap } from '..
 import { type VisibilityWatcher, visibilityWatcher } from '../../platform/visibility'
 import { createWebAuthn, type WebAuthnSeam } from '../../platform/webauthn'
 import { connectionsStore } from '../../state/connections'
+import { deviceContextStore, uiMetaUserIdOf } from '../../state/device-context'
 import { passkeysStore } from '../../state/passkeys'
 import { bindRequests } from '../../state/requests'
 import { secureInputStore } from '../../state/secure-input'
@@ -67,6 +73,11 @@ export interface StartSessionOptions {
   credentials: ConnectGatewayOptions['credentials']
   /** The boot's `signed_in.author`. */
   author: ConnectChatsOptions['author']
+  /**
+   * The boot's `signed_in.identity`: who `/api/auth/me` named. It picks the
+   * app-wide `ui_meta` key; absent or nameless is the local-only path.
+   */
+  identity?: { userId?: string; email?: string; displayName?: string }
   /** This gateway's key-value store (watermarks are read from and written to it). */
   storage: WebKeyValueStore
   /** This gateway's transcript cache. */
@@ -77,6 +88,7 @@ export interface StartSessionOptions {
   chats?: Partial<Omit<ConnectChatsOptions, 'client' | 'cache' | 'author'>>
   /** The browser's passkey ceremonies; the page's own unless a test hands in its own. */
   webauthn?: WebAuthnSeam
+  uiMeta?: Partial<Omit<ConnectUiMetaOptions, 'gateway' | 'connection' | 'bots' | 'storage' | 'userId'>>
 }
 
 export interface Session {
@@ -87,7 +99,8 @@ export interface Session {
   readonly notices: NoticesModel
   readonly connections: ConnectionsModel
   readonly status: SessionStatusModel
-  /** Stop the poll, the models beside the engine, the passkeys and the chats, then the client, in that order. Idempotent. */
+  readonly uiMeta: UiMetaRuntime
+  /** Stop the poll, the `ui_meta` bridge, the models beside the engine, the passkeys and the chats, then the client, in that order. Idempotent. */
   stop(): void
 }
 
@@ -178,6 +191,27 @@ export function startSession(options: StartSessionOptions): Session {
   connections.start()
   status.start()
 
+  /*
+    Who the boot read, and their `ui_meta`: a gated gateway always, since this
+    client runs on the cookie session only.
+  */
+  deviceContextStore.getState().setIdentity({
+    gated: true,
+    userId: options.identity?.userId ?? '',
+    displayName: options.identity?.displayName ?? '',
+    email: options.identity?.email ?? ''
+  })
+
+  const uiMeta = connectUiMeta({
+    gateway: client.gateway,
+    connection: client.stores.connection,
+    bots: client.stores.bots,
+    storage: options.storage,
+    userId: uiMetaUserIdOf(options.identity),
+    ...(options.visibility ? { visibility: options.visibility } : {}),
+    ...options.uiMeta
+  })
+
   /** The request layer's queue is the open requests of the chats just started, the confirmations and the prompts. */
   const stopRequests = bindRequests(chats.chats, undefined, passkeysStore, secureInputStore, connectionsStore)
 
@@ -218,6 +252,7 @@ export function startSession(options: StartSessionOptions): Session {
     notices,
     connections,
     status,
+    uiMeta,
     stop() {
       if (stopped) {
         return
@@ -228,6 +263,8 @@ export function startSession(options: StartSessionOptions): Session {
       stopStatus()
       release?.()
       release = undefined
+      uiMeta.stop()
+      deviceContextStore.getState().retire()
       stopRequests()
       secureInput.stop()
       stopReplayGaps()

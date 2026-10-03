@@ -113,6 +113,7 @@ async function run(root: Root, basePath: ResolvedBasePath, store: WebKeyValueSto
     baseUrl: basePath.baseUrl,
     credentials: state.session.credentials,
     author: state.author,
+    identity: state.identity,
     storage: store,
     cache
   })
