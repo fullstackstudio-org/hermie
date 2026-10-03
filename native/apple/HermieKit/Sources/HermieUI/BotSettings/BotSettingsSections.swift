@@ -345,6 +345,11 @@ struct BotModelSection: View {
   @Bindable var model: BotSettingsModel
   let editable: Bool
 
+  #if DEBUG
+    @Environment(AppLaunch.self) private var launch: AppLaunch?
+    @State private var drillPicker = false
+  #endif
+
   var body: some View {
     let details = model.details
     let row = session.chatList.rows[chat.bot]?.bot
@@ -400,6 +405,19 @@ struct BotModelSection: View {
         SettingsNote(NativeStrings.BotSettings.modelUnavailable)
       }
     }
+    #if DEBUG
+      // `-HermieSelectModel`: the picker opens by itself, then the picker chooses.
+      .navigationDestination(isPresented: $drillPicker) {
+        if case .loaded(let choices) = model.modelChoices {
+          ModelPicker(model: model, choices: choices)
+        }
+      }
+      .task(id: model.modelChoices) {
+        if launch?.environment.testHooks?.selectModel != nil, case .loaded = model.modelChoices {
+          drillPicker = true
+        }
+      }
+    #endif
   }
 }
 

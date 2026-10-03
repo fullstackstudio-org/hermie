@@ -127,6 +127,16 @@ struct BotSettingsViewTests {
     #expect(!ModelChoiceList.isCurrent(choices[0], pin: BotModelPin()))
   }
 
+  @Test func onTheMacTheModelSearchIsNotInTheWindowsToolbar() {
+    // A `.searchable` on a page pushed beside the sidebar's own search makes AppKit raise while it
+    // inserts the second search item into the one NSToolbar, and the app ends (0.2.6, macOS).
+    #if os(macOS)
+      #expect(ModelSearchPlacement.current == .inline)
+    #else
+      #expect(ModelSearchPlacement.current == .navigationBar)
+    #endif
+  }
+
   // MARK: Words
 
   @Test func everyFailureHasWordsAndTheGatewaysAreOnlyUsedWhenItSentSome() {

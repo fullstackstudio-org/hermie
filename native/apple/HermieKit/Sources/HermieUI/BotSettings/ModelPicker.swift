@@ -14,6 +14,9 @@ struct ModelPicker: View {
 
   @Environment(\.dismiss) private var dismiss
   @State private var query = ""
+  #if DEBUG
+    @Environment(AppLaunch.self) private var launch: AppLaunch?
+  #endif
 
   var body: some View {
     let current = model.details?.model ?? BotModelPin()
@@ -23,8 +26,7 @@ struct ModelPicker: View {
         Section {
           ForEach(section.choices) { choice in
             Button {
-              Task { await model.chooseModel(choice) }
-              dismiss()
+              pick(choice)
             } label: {
               row(choice, current: ModelChoiceList.isCurrent(choice, pin: current))
             }
@@ -36,11 +38,30 @@ struct ModelPicker: View {
         }
       }
     }
-    .searchable(text: $query, prompt: Strings.Chat.Options.modelSearch)
+    .modifier(ModelSearch(query: $query))
     .navigationTitle(Strings.Chat.Options.model)
     #if os(iOS)
       .navigationBarTitleDisplayMode(.inline)
     #endif
+    #if DEBUG
+      .task {
+        // `-HermieSelectModel`: a tap on that model's row, a moment after the page is up.
+        guard let wanted = launch?.environment.testHooks?.selectModel,
+          let choice = choices.first(where: { $0.model == wanted })
+        else { return }
+
+        fputs("hermie-drill: picker is up, choosing \(choice.id)\n", stderr)
+        try? await Task.sleep(for: .seconds(2))
+        pick(choice)
+        fputs("hermie-drill: chose \(choice.id)\n", stderr)
+      }
+    #endif
+  }
+
+  /// Choosing a model pins the bot to it and goes back.
+  private func pick(_ choice: BotModelChoice) {
+    Task { await model.chooseModel(choice) }
+    dismiss()
   }
 
   private func row(_ choice: BotModelChoice, current: Bool) -> some View {
@@ -63,6 +84,59 @@ struct ModelPicker: View {
     .contentShape(.rect)
     .accessibilityElement(children: .combine)
     .accessibilityAddTraits(current ? .isSelected : [])
+  }
+}
+
+/**
+ Where the picker's search field goes.
+
+ On the Mac a `.searchable` on a page pushed in the detail column asks the window's one `NSToolbar`
+ for a search item, while the chat list in the sidebar already holds one. Two search items in one
+ toolbar make AppKit raise an exception while it inserts the second (`-[NSToolbar
+ _insertNewItemWithItemIdentifier:…]`, from SwiftUI's toolbar update), which is not caught and ends
+ the app, on the layout pass that opens the picker. So on the Mac the field is a row of the page itself;
+ on iPhone and iPad the navigation bar's own search field is used, which has no such neighbour.
+ */
+enum ModelSearchPlacement: Equatable {
+  /// The navigation bar's search field (`.searchable`).
+  case navigationBar
+  /// A field above the list, part of the page and nothing the window's toolbar knows about.
+  case inline
+
+  static var current: ModelSearchPlacement {
+    #if os(macOS)
+      .inline
+    #else
+      .navigationBar
+    #endif
+  }
+}
+
+/// The picker's search field in the place `ModelSearchPlacement` says.
+struct ModelSearch: ViewModifier {
+  @Binding var query: String
+
+  func body(content: Content) -> some View {
+    switch ModelSearchPlacement.current {
+    case .navigationBar:
+      content.searchable(text: $query, prompt: Strings.Chat.Options.modelSearch)
+    case .inline:
+      content.safeAreaInset(edge: .top, spacing: 0) {
+        HStack(spacing: 6) {
+          Image(systemName: "magnifyingglass")
+            .foregroundStyle(.secondary)
+            .accessibilityHidden(true)
+          TextField(Strings.Chat.Options.modelSearch, text: $query)
+            .textFieldStyle(.plain)
+            .accessibilityIdentifier("hermie.botSettings.model.search")
+        }
+        .padding(.horizontal, 10)
+        .padding(.vertical, 7)
+        .background(.quaternary, in: .rect(cornerRadius: 8))
+        .padding(.horizontal)
+        .padding(.vertical, 8)
+      }
+    }
   }
 }
 
