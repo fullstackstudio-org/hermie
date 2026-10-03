@@ -531,7 +531,10 @@ private struct RowProjection {
 
   private mutating func projectTool(_ row: JSONObject, _ facts: RowFacts, index: Int) {
     let name = row["name"]?.stringValue ?? "tool"
-    let toolID = nonEmptyString(row["tool_id"]) ?? "row-\(index)"
+    // The gateway's history projection names the call `tool_call_id`
+    // (`tui_gateway/session_history.py`), the same id `tool.start` carried as
+    // `tool_id`; without it a reloaded call never met its live card.
+    let toolID = nonEmptyString(row["tool_id"]) ?? nonEmptyString(row["tool_call_id"]) ?? "row-\(index)"
     let args = coalesce(row["args"])
     let argsObject = args?.objectValue
     let context = nonEmptyString(row["context"])

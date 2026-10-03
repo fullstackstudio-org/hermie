@@ -143,11 +143,7 @@ private func placeByTimestamp(_ list: [TranscriptItem], _ floating: [TranscriptI
 /// already running and starts none of its own, so letting it fill a placeholder
 /// would draw a mid-turn correction as the prompt of somebody else's turn.
 private func isAuthoredRow(_ item: TranscriptItem) -> Bool {
-  switch item {
-  case .user(let user): user.displayKind != .steer
-  case .botDmIn, .cronDelivery: true
-  default: isInjectedNotice(item)
-  }
+  opensTurn(item)
 }
 
 /// Merge live knowledge onto a hydrated row: history is thinner than the stream.
@@ -446,7 +442,10 @@ public func reconcile(_ state: ChatState, _ freshItems: [TranscriptItem]) -> Cha
     kept.append(item)
   }
 
-  var next = rebuild(state, placeByTimestamp(merged + kept, settled))
+  // The live copies a replay stood up beside rows that were already on screen
+  // are matched by nothing above: their rows took the row-id match. They are
+  // folded into those rows here, one turn at a time (`foldLiveCopies`).
+  var next = rebuild(state, foldLiveCopies(placeByTimestamp(merged + kept, settled), activeID: state.turn.assistantID))
 
   next.hydration = .live
 
@@ -641,7 +640,7 @@ public func reconcileTail(_ state: ChatState, _ tailItems: [TranscriptItem]) -> 
     }
   }
 
-  var next = rebuild(state, inRowOrder(merged))
+  var next = rebuild(state, foldLiveCopies(inRowOrder(merged), activeID: state.turn.assistantID))
 
   next.turn.foreignReconcilePending = stillPending ? true : nil
 

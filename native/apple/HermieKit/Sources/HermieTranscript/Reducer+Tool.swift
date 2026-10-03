@@ -5,6 +5,14 @@ import HermieProtocol
 extension TranscriptReducer {
   /// `case 'tool.start'`.
   static func toolStart(_ next: inout ChatState, _ payload: JSONObject, _ now: Double) {
+    if let toolID = JS.nonEmpty(str(payload["tool_id"])), let known = next.byToolID[toolID], next.items[known] != nil {
+      // A call already on screen: the frame is a replay of rows a reload brought.
+      settleReplayedCall(&next, known)
+      next.turn.draftingTool = nil
+
+      return
+    }
+
     sealAssistantForTool(&next)
     next.turn.draftingTool = nil
 

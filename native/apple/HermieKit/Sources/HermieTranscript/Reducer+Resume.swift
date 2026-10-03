@@ -467,7 +467,20 @@ public func applyResumeSnapshot(into next: inout ChatState, _ snapshot: SessionR
   // A durable row already carrying this reply needs nothing added to it; the
   // `live` branch below covers the bubble a stream is still filling.
   if (!assistantText.isEmpty || failure != nil) && !overlap.replyPersisted {
-    if let live = R.liveAssistantOfCurrentTurn(next) {
+    let live = R.liveAssistantOfCurrentTurn(next)
+    // `inflight.assistant` is the whole turn's deltas run together, so the notes
+    // this turn already sealed (and the gateway already wrote) open it. Those are
+    // on screen as their own items; only what follows them is this bubble's.
+    let earlier = R.currentTurnIDs(next).compactMap { id -> AssistantItem? in
+      guard let item = next.items[id]?.asAssistant, live.map({ !JS.same(item.id, $0.id) }) ?? true else { return nil }
+      return item
+    }
+    let unshown = unshownTail(assistantText, earlier)
+    let replyText = unshown ?? assistantText
+    // Every word of it already a note above: nothing is left to stand up.
+    let nothingNew = unshown.map { JS.trim($0).isEmpty } == true && failure == nil
+
+    if let live {
       // `inflight.assistant` is this turn's reply flattened to one string, and
       // the bubble on screen is that same reply — so it settles onto it. A
       // bubble a tool call already SEALED holds one segment of that flat
@@ -477,8 +490,8 @@ public func applyResumeSnapshot(into next: inout ChatState, _ snapshot: SessionR
 
       R.patchAssistant(&next, live.id) { draft in
         if !sealed {
-          if JS.length(assistantText) > JS.length(draft.text) {
-            draft.text = assistantText
+          if JS.length(replyText) > JS.length(draft.text) {
+            draft.text = replyText
           }
 
           draft.streaming = streaming
@@ -495,12 +508,12 @@ public func applyResumeSnapshot(into next: inout ChatState, _ snapshot: SessionR
       if streaming && !sealed {
         next.turn.assistantID = live.id
       }
-    } else {
+    } else if !nothingNew {
       let id = R.addItem(&next, id: "i:\(next.turn.nextSeq)", ts: now / 1000, origin: .inflight) { base in
         .assistant(
           AssistantItem(
             base: base,
-            text: assistantText,
+            text: replyText,
             streaming: streaming,
             interim: false,
             status: failure != nil ? .error : inflightStatus == "interrupted" ? .interrupted : nil,

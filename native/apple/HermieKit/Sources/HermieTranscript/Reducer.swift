@@ -479,8 +479,153 @@ extension TranscriptReducer {
 
     patchAssistant(&next, id) { draft in
       draft.streaming = false
-      draft.interim = true
+      // A bubble a tail already paired with its row is a message, not a preview.
+      draft.interim = draft.rowID == nil
     }
+  }
+
+  /// The ids of the turn now running: everything after the newest item that
+  /// opened one. `currentTurnIds`.
+  static func currentTurnIDs(_ next: ChatState) -> [String] {
+    var ids: [String] = []
+
+    for id in next.order.reversed() {
+      guard !id.isEmpty, let item = next.items[id] else { continue }
+
+      if opensTurn(item) {
+        break
+      }
+
+      ids.append(id)
+    }
+
+    return ids.reversed()
+  }
+
+  /// The row this turn already holds for a note with these words, if the
+  /// transcript is showing one.
+  ///
+  /// `message.interim` names no row, and the gateway writes the row BEFORE it
+  /// sends the frame (`agent/turn_tool_round.py`). So the row can be on screen
+  /// first: a chat opened from a cache saved mid-turn reads history and then
+  /// replays the frames after its watermark, and a tail can land between the
+  /// write and the frame. Pairing on the words is safe inside one turn and only
+  /// there: the gateway never delivers one interim text twice in a turn
+  /// (`_delivered_interim_texts`), while two turns may both say "On it.".
+  ///
+  /// `persistedNoteFor`.
+  static func persistedNoteFor(_ next: ChatState, _ words: String, exclude: String?) -> AssistantItem? {
+    for id in currentTurnIDs(next) {
+      if case .assistant(let item)? = next.items[id], item.rowID != nil, exclude.map({ !JS.same(id, $0) }) ?? true,
+        sameWords(item.text, words)
+      {
+        return item
+      }
+    }
+
+    return nil
+  }
+
+  /// The row this turn already holds for its REPLY, if the transcript is showing
+  /// one.
+  ///
+  /// Narrower than a note on purpose: a reply is the turn's last assistant row,
+  /// with no call after it. A note that happens to say the same words stands
+  /// before a call, so it is never mistaken for the reply the turn is finishing
+  /// with.
+  ///
+  /// `persistedReplyFor`.
+  static func persistedReplyFor(_ next: ChatState, _ words: String, exclude: String?) -> AssistantItem? {
+    let turn = currentTurnIDs(next).filter { id in exclude.map { !JS.same(id, $0) } ?? true }
+
+    for id in turn.reversed() {
+      guard let item = next.items[id] else { continue }
+
+      switch item {
+      case .status:
+        continue
+      case .assistant(let assistant):
+        return assistant.rowID != nil && sameWords(assistant.text, words) ? assistant : nil
+      default:
+        if isCall(item) {
+          return nil
+        }
+      }
+    }
+
+    return nil
+  }
+
+  /// Fold a live bubble into the row that already describes it, keeping what
+  /// only the stream knew: history carries no duration and no usage, and on older
+  /// gateways no reasoning. `settleOntoRow`.
+  static func settleOntoRow(_ next: inout ChatState, _ liveID: String, _ rowItemID: String) {
+    guard case .assistant(let live)? = next.items[liveID], !JS.same(liveID, rowItemID) else { return }
+
+    patchAssistant(&next, rowItemID) { draft in
+      if draft.reasoning == nil, let reasoning = live.reasoning {
+        draft.reasoning = reasoning
+      }
+
+      if draft.reasoningVerbose == nil, let verbose = live.reasoningVerbose {
+        draft.reasoningVerbose = verbose
+      }
+
+      if draft.durationS == nil, let durationS = live.durationS {
+        draft.durationS = durationS
+      }
+
+      if draft.usage == nil, let usage = live.usage {
+        draft.usage = usage
+      }
+    }
+    dropItem(&next, liveID)
+
+    if next.turn.assistantID.map({ JS.same($0, liveID) }) == true {
+      next.turn.assistantID = nil
+    }
+
+    if next.turn.reasoningID.map({ JS.same($0, liveID) }) == true {
+      next.turn.reasoningID = rowItemID
+    }
+  }
+
+  /// A `tool.start` for a call the transcript already holds.
+  ///
+  /// That is a replay: a chat opened from a cache saved mid-turn reads history,
+  /// then gets every frame after its watermark again, and the call's row is
+  /// already on screen. A second card for it would stand beside the first, and
+  /// the words the replay streamed in front of it are the note history already
+  /// put right above that call, so they settle onto it. Anything else in the
+  /// bubble is sealed the ordinary way.
+  ///
+  /// `settleReplayedCall`.
+  static func settleReplayedCall(_ next: inout ChatState, _ callID: String) {
+    if case .assistant(let bubble)? = itemAt(next, next.turn.assistantID), bubble.rowID == nil,
+      let at = next.order.firstIndex(where: { JS.same($0, callID) })
+    {
+      for index in stride(from: at - 1, through: 0, by: -1) {
+        guard let item = itemAt(next, next.order[index]) else { continue }
+
+        if case .status = item {
+          continue
+        }
+
+        if isCall(item) {
+          continue
+        }
+
+        if case .assistant(let note) = item, !JS.same(note.id, bubble.id), sameWords(note.text, bubble.text) {
+          settleOntoRow(&next, bubble.id, note.id)
+
+          return
+        }
+
+        break
+      }
+    }
+
+    sealAssistantForTool(&next)
   }
 
   /// `cancelOpenRequests`.

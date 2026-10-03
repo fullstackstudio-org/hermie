@@ -84,15 +84,31 @@ extension TranscriptReducer {
   /// `case 'message.interim'`.
   static func messageInterim(_ next: inout ChatState, _ payload: JSONObject, _ now: Double) {
     let text = str(payload["text"])
+    let bubble = itemAt(next, next.turn.assistantID)?.asAssistant
+    // The row this note was written as, when it is already on screen. The frame
+    // then describes that row a second time, so the bubble the stream built for
+    // it settles onto it rather than being sealed beside it.
+    let row = persistedNoteFor(next, text.isEmpty ? bubble?.text ?? "" : text, exclude: bubble?.id)
 
-    if let id = JS.nonEmpty(next.turn.assistantID), case .assistant? = next.items[id] {
-      patchAssistant(&next, id) { draft in
+    if let row {
+      if let bubble, bubble.rowID == nil {
+        settleOntoRow(&next, bubble.id, row.id)
+      }
+
+      next.turn.assistantID = nil
+
+      return
+    }
+
+    if let bubble {
+      patchAssistant(&next, bubble.id) { draft in
         if !text.isEmpty {
           draft.text = text
         }
 
         draft.streaming = false
-        draft.interim = true
+        // A bubble a tail already paired with its row is a message, not a preview.
+        draft.interim = draft.rowID == nil
       }
       next.turn.assistantID = nil
 
@@ -174,7 +190,23 @@ extension TranscriptReducer {
     // Without that flag, a tool call in the middle of the turn has the same
     // effect: it sealed the bubble, so this completion has nowhere to land.
     let continued = JS.nonEmpty(next.turn.assistantID) != nil ? nil : interimContinuedBy(next, finalText)
-    var id = next.turn.assistantID ?? previewed ?? continued
+    let landing = next.turn.assistantID ?? previewed ?? continued
+    let target = itemAt(next, landing)
+    // The reply already on screen as this turn's last row: the frame is a replay
+    // over a reload, so the bubble it streamed settles onto the row.
+    var replyRow: AssistantItem?
+
+    if target == nil || (target?.asAssistant.map { $0.rowID == nil } ?? false) {
+      let words = finalText.isEmpty ? target?.asAssistant?.text ?? "" : finalText
+
+      replyRow = persistedReplyFor(next, words, exclude: target?.id)
+    }
+
+    if let replyRow, let target {
+      settleOntoRow(&next, target.id, replyRow.id)
+    }
+
+    var id = replyRow?.id ?? landing
 
     if id == nil && (!finalText.isEmpty || failure != nil) {
       id = currentAssistantID(&next, now)
@@ -184,7 +216,7 @@ extension TranscriptReducer {
 
     if let id = JS.nonEmpty(id) {
       patchAssistant(&next, id) { draft in
-        if !finalText.isEmpty && !previewedFlag {
+        if !finalText.isEmpty && !previewedFlag && replyRow == nil {
           draft.text = finalText
         }
 
