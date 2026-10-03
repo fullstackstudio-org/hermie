@@ -176,12 +176,22 @@
 	<string>Confirm with passkey</string>
 	<key>native.confirm.confirmHint</key>
 	<string>Asks your device for your passkey.</string>
+	<key>native.confirm.copiedDetail</key>
+	<string>Copied</string>
+	<key>native.confirm.copyDetail</key>
+	<string>Copy details</string>
 	<key>native.confirm.decline</key>
 	<string>Decline</string>
 	<key>native.confirm.declined</key>
 	<string>You declined this request.</string>
+	<key>native.confirm.detail.emptyLines</key>
+	<string>⋯ %lld empty lines ⋯</string>
 	<key>native.confirm.detailLabel</key>
 	<string>Details</string>
+	<key>native.confirm.detailStats.one</key>
+	<string>1 line · longest line %lld characters</string>
+	<key>native.confirm.detailStats.other</key>
+	<string>%1$lld lines · longest line %2$lld characters</string>
 	<key>native.confirm.noCredential</key>
 	<string>No passkey for this gateway is available on this device. Nothing was confirmed.</string>
 	<key>native.confirm.notAllowed</key>
@@ -202,6 +212,8 @@
 	<string>The gateway does not know this passkey. It may have been removed. You can try again.</string>
 	<key>native.confirm.refused.userVerification</key>
 	<string>Your device did not confirm that it is you. You can try again.</string>
+	<key>native.confirm.scrollToConfirm</key>
+	<string>Scroll to the end of the details to confirm.</string>
 	<key>native.confirm.signing</key>
 	<string>Waiting for your passkey…</string>
 	<key>native.confirm.timedOut</key>

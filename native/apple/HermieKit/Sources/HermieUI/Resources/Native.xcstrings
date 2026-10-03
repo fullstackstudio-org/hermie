@@ -2040,6 +2040,54 @@
         }
       }
     },
+    "native.confirm.copiedDetail" : {
+      "comment" : "Confirm sheet: the details were copied.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Kopiert"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Copied"
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Gekopieerd"
+          }
+        }
+      }
+    },
+    "native.confirm.copyDetail" : {
+      "comment" : "Confirm sheet: copies the details exactly as sent.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Details kopieren"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Copy details"
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Details kopiëren"
+          }
+        }
+      }
+    },
     "native.confirm.decline" : {
       "comment" : "Confirm sheet: the button that says no. Fixed wording.",
       "extractionState" : "manual",
@@ -2088,6 +2136,30 @@
         }
       }
     },
+    "native.confirm.detail.emptyLines" : {
+      "comment" : "Confirm sheet: stands for a run of three or more blank lines in the details. The argument is how many.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "⋯ %lld leere Zeilen ⋯"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "⋯ %lld empty lines ⋯"
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "⋯ %lld lege regels ⋯"
+          }
+        }
+      }
+    },
     "native.confirm.detailLabel" : {
       "comment" : "Confirm sheet: label over the monospaced details of the request (the exact command or text to be confirmed).",
       "extractionState" : "manual",
@@ -2108,6 +2180,54 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Details"
+          }
+        }
+      }
+    },
+    "native.confirm.detailStats.one" : {
+      "comment" : "Confirm sheet: size of details that do not fit, one line. The argument is the longest line's length.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "1 Zeile · längste Zeile %lld Zeichen"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "1 line · longest line %lld characters"
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "1 regel · langste regel %lld tekens"
+          }
+        }
+      }
+    },
+    "native.confirm.detailStats.other" : {
+      "comment" : "Confirm sheet: size of details that do not fit. The arguments are the number of lines and the longest line's length.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%1$lld Zeilen · längste Zeile %2$lld Zeichen"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%1$lld lines · longest line %2$lld characters"
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%1$lld regels · langste regel %2$lld tekens"
           }
         }
       }
@@ -2348,6 +2468,30 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Je apparaat heeft niet bevestigd dat jij het bent. Je kunt het opnieuw proberen."
+          }
+        }
+      }
+    },
+    "native.confirm.scrollToConfirm" : {
+      "comment" : "Confirm sheet: why Confirm is off until the details were read to their end.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Scrolle bis zum Ende der Details, um zu bestätigen."
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Scroll to the end of the details to confirm."
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Scroll naar het einde van de details om te bevestigen."
           }
         }
       }

@@ -193,6 +193,33 @@ import Testing
     #expect(g.model.confirmation("srq-1")?.phase == .received)
   }
 
+  @Test("after a lost reply a gateway error that says it no longer knows the request ends as unknown")
+  func lostReplyThenAnUnknownRequestError() async throws {
+    let (f, _) = try await Self.open()
+    try await Self.confirmLosingTheReply(f)
+
+    let retry = Task { await f.model.confirm("srq-1") }
+    let call = try await f.link.pendingCall("request.answer")
+    f.link.fail(call, GatewayRPCError(.rejected, "no such request", code: 4004))
+    await retry.value
+
+    #expect(f.model.confirmation("srq-1")?.phase == .ended(.outcomeUnknown))
+  }
+
+  @Test("after a lost reply a refused retry (4034) stays retryable")
+  func lostReplyThenARefusal() async throws {
+    let (f, _) = try await Self.open()
+    try await Self.confirmLosingTheReply(f)
+
+    let retry = Task { await f.model.confirm("srq-1") }
+    let call = try await f.link.pendingCall("request.answer")
+    f.link.fail(call, GatewayRPCError(.rejected, "invalid", code: 4034, data: ["reason": "signature_invalid"]))
+    await retry.value
+
+    #expect(f.model.confirmation("srq-1")?.phase == .refused(reason: "signature_invalid"))
+    #expect(f.model.confirmation("srq-1")?.answerMayHaveArrived == true)
+  }
+
   @Test("after a lost reply the gateway's own words keep their meaning, and the others become unknown")
   func lostReplyThenTheGatewayCancels() async throws {
     let cases: [(String, PasskeyConfirmPhase)] = [
