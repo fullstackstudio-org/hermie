@@ -32,6 +32,46 @@
 	<string>Neues Chatfenster</string>
 	<key>native.commands.switchGateway</key>
 	<string>Gateway wechseln…</string>
+	<key>native.composer.attach.add</key>
+	<string>Anhang hinzufügen</string>
+	<key>native.composer.attach.camera</key>
+	<string>Foto aufnehmen</string>
+	<key>native.composer.attach.chooseFile</key>
+	<string>Datei auswählen…</string>
+	<key>native.composer.attach.drop</key>
+	<string>Zum Anhängen ablegen</string>
+	<key>native.composer.attach.files</key>
+	<string>Dateien</string>
+	<key>native.composer.attach.list</key>
+	<string>Anhänge</string>
+	<key>native.composer.attach.photoLibrary</key>
+	<string>Fotomediathek</string>
+	<key>native.composer.attach.problem.failed</key>
+	<string>Hochladen fehlgeschlagen: %@</string>
+	<key>native.composer.attach.problem.noWorkspace</key>
+	<string>Dieser Chat hat noch keinen Arbeitsordner, daher kann keine Datei angehängt werden</string>
+	<key>native.composer.attach.problem.refused</key>
+	<string>Das Gateway hat es abgelehnt: %@</string>
+	<key>native.composer.attach.problem.tooLarge</key>
+	<string>Zu groß, das Limit ist %@</string>
+	<key>native.composer.attach.problem.unreadable</key>
+	<string>Die Datei konnte nicht gelesen werden</string>
+	<key>native.composer.attach.reading</key>
+	<string>Wird vorbereitet…</string>
+	<key>native.composer.attach.ready</key>
+	<string>Bereit</string>
+	<key>native.composer.attach.remove</key>
+	<string>%@ entfernen</string>
+	<key>native.composer.attach.retry</key>
+	<string>%@ erneut versuchen</string>
+	<key>native.composer.attach.stagingFailed</key>
+	<string>Die Datei konnte nicht angehängt werden: %@</string>
+	<key>native.composer.attach.uploading</key>
+	<string>Wird hochgeladen %lld %%</string>
+	<key>native.composer.attach.uploadingStart</key>
+	<string>Wird hochgeladen…</string>
+	<key>native.composer.attach.waitingHint</key>
+	<string>Wartet, bis die Anhänge fertig sind</string>
 	<key>native.composer.failed</key>
 	<string>Die Nachricht wurde nicht gesendet: %@</string>
 	<key>native.composer.opening</key>

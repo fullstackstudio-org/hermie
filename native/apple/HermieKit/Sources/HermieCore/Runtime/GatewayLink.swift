@@ -53,6 +53,17 @@ public protocol GatewayLink: Sendable {
   /// unclaimed rather than late, and never at the cost of a sign-in.
   func claimTurn(_ runtimeSessionID: String) async
 
+  /// `POST /api/files/upload-stream`: one local file to one absolute path on the gateway, answering
+  /// the path it landed on. `onProgress` gets 0 to 1. Throws `GatewayError`; cancelling the task
+  /// cancels the upload. A link without a REST side refuses (the default).
+  func uploadFile(
+    from file: URL,
+    name: String,
+    mimeType: String,
+    to path: String,
+    onProgress: (@Sendable (Double) -> Void)?
+  ) async throws -> String
+
   /// Every session a reconnect replay could not make whole
   /// (`GatewayConnection.replayGaps`). Subscribed before `start()`, like `events`.
   /// A link without a replay of its own has none (the default).
@@ -233,6 +244,17 @@ extension GatewayLink {
 
   /// A link with no writer of its own has nothing to wait for.
   public func flushWrites(within limit: Duration) async {}
+
+  /// A link with no REST side cannot take a file.
+  public func uploadFile(
+    from file: URL,
+    name: String,
+    mimeType: String,
+    to path: String,
+    onProgress: (@Sendable (Double) -> Void)?
+  ) async throws -> String {
+    throw GatewayError(.config, "This connection cannot upload files.")
+  }
 
   /// A link without a capability announcement of its own has nothing to repeat.
   public func refreshCapabilities() async {}

@@ -32,6 +32,46 @@
 	<string>Nieuw chatvenster</string>
 	<key>native.commands.switchGateway</key>
 	<string>Wissel van gateway…</string>
+	<key>native.composer.attach.add</key>
+	<string>Bijlage toevoegen</string>
+	<key>native.composer.attach.camera</key>
+	<string>Foto maken</string>
+	<key>native.composer.attach.chooseFile</key>
+	<string>Kies bestand…</string>
+	<key>native.composer.attach.drop</key>
+	<string>Zet neer om bij te voegen</string>
+	<key>native.composer.attach.files</key>
+	<string>Bestanden</string>
+	<key>native.composer.attach.list</key>
+	<string>Bijlagen</string>
+	<key>native.composer.attach.photoLibrary</key>
+	<string>Fotobibliotheek</string>
+	<key>native.composer.attach.problem.failed</key>
+	<string>Uploaden mislukt: %@</string>
+	<key>native.composer.attach.problem.noWorkspace</key>
+	<string>Deze chat heeft nog geen werkmap, dus er kan geen bestand worden bijgevoegd</string>
+	<key>native.composer.attach.problem.refused</key>
+	<string>De gateway weigerde het: %@</string>
+	<key>native.composer.attach.problem.tooLarge</key>
+	<string>Te groot, de limiet is %@</string>
+	<key>native.composer.attach.problem.unreadable</key>
+	<string>Het bestand kon niet worden gelezen</string>
+	<key>native.composer.attach.reading</key>
+	<string>Voorbereiden…</string>
+	<key>native.composer.attach.ready</key>
+	<string>Klaar</string>
+	<key>native.composer.attach.remove</key>
+	<string>%@ verwijderen</string>
+	<key>native.composer.attach.retry</key>
+	<string>%@ opnieuw proberen</string>
+	<key>native.composer.attach.stagingFailed</key>
+	<string>Het bestand kon niet worden bijgevoegd: %@</string>
+	<key>native.composer.attach.uploading</key>
+	<string>Uploaden %lld%%</string>
+	<key>native.composer.attach.uploadingStart</key>
+	<string>Uploaden…</string>
+	<key>native.composer.attach.waitingHint</key>
+	<string>Wacht tot de bijlagen klaar zijn</string>
 	<key>native.composer.failed</key>
 	<string>Het bericht is niet verstuurd: %@</string>
 	<key>native.composer.opening</key>

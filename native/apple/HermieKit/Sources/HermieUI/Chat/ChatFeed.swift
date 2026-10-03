@@ -146,6 +146,8 @@ final class ChatFeed {
     markTask?.cancel()
     listState.onNearTop = nil
     composer.onSubmit = nil
+    // Leaving the chat: every upload stops and what was staged goes with it.
+    composer.tray.clear()
 
     let session = self.session
     let name = self.name

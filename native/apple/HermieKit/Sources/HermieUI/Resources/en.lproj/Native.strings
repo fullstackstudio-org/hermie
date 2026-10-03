@@ -32,6 +32,46 @@
 	<string>New Chat Window</string>
 	<key>native.commands.switchGateway</key>
 	<string>Switch Gateway…</string>
+	<key>native.composer.attach.add</key>
+	<string>Add attachment</string>
+	<key>native.composer.attach.camera</key>
+	<string>Take Photo</string>
+	<key>native.composer.attach.chooseFile</key>
+	<string>Choose File…</string>
+	<key>native.composer.attach.drop</key>
+	<string>Drop to attach</string>
+	<key>native.composer.attach.files</key>
+	<string>Files</string>
+	<key>native.composer.attach.list</key>
+	<string>Attachments</string>
+	<key>native.composer.attach.photoLibrary</key>
+	<string>Photo Library</string>
+	<key>native.composer.attach.problem.failed</key>
+	<string>Upload failed: %@</string>
+	<key>native.composer.attach.problem.noWorkspace</key>
+	<string>This chat has no working folder yet, so a file cannot be attached</string>
+	<key>native.composer.attach.problem.refused</key>
+	<string>The gateway refused it: %@</string>
+	<key>native.composer.attach.problem.tooLarge</key>
+	<string>Too large, the limit is %@</string>
+	<key>native.composer.attach.problem.unreadable</key>
+	<string>The file could not be read</string>
+	<key>native.composer.attach.reading</key>
+	<string>Preparing…</string>
+	<key>native.composer.attach.ready</key>
+	<string>Ready</string>
+	<key>native.composer.attach.remove</key>
+	<string>Remove %@</string>
+	<key>native.composer.attach.retry</key>
+	<string>Retry %@</string>
+	<key>native.composer.attach.stagingFailed</key>
+	<string>The file could not be attached: %@</string>
+	<key>native.composer.attach.uploading</key>
+	<string>Uploading %lld%%</string>
+	<key>native.composer.attach.uploadingStart</key>
+	<string>Uploading…</string>
+	<key>native.composer.attach.waitingHint</key>
+	<string>Waiting for the attachments to finish</string>
 	<key>native.composer.failed</key>
 	<string>The message did not go out: %@</string>
 	<key>native.composer.opening</key>

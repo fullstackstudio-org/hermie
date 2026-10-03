@@ -253,6 +253,9 @@ public final class AppLaunch {
 
     started = true
 
+    // The copies of picked files an earlier run left behind (a send that never came).
+    Task.detached(priority: .utility) { AttachmentStaging.purge() }
+
     #if DEBUG
       if let hooks = environment.testHooks {
         await hooks.seed(keyValues)

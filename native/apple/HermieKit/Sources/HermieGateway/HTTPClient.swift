@@ -75,8 +75,8 @@ public enum PictureFetchOutcome: Sendable, Equatable {
 public struct HTTPClient: Sendable {
   public let baseURL: String
   public let credentials: any CredentialProvider
-  private let extraHeaders: [String: String]
-  private let transport: HTTPTransport
+  let extraHeaders: [String: String]
+  let transport: HTTPTransport
   private let defaultTimeoutMs: Int
   private let timeline: (any AuthEventRecorder)?
 

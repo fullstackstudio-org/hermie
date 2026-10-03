@@ -1,0 +1,2 @@
+/* The camera permission prompt: shown when the reader first takes a photo to attach to a message. */
+"NSCameraUsageDescription" = "Hermie uses the camera so you can take a photo and attach it to a message.";

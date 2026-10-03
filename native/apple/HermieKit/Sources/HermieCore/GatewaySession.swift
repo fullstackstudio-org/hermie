@@ -648,6 +648,16 @@ public struct ConnectionLink: GatewayLink {
     await IdentityProbe.read(http)
   }
 
+  public func uploadFile(
+    from file: URL,
+    name: String,
+    mimeType: String,
+    to path: String,
+    onProgress: (@Sendable (Double) -> Void)?
+  ) async throws -> String {
+    try await http.uploadFile(from: file, name: name, mimeType: mimeType, to: path, onProgress: onProgress)
+  }
+
   public func claimTurn(_ runtimeSessionID: String) async {
     let baseURL = http.baseURL
     let credentials = self.credentials

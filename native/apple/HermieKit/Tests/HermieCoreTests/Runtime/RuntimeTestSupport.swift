@@ -209,6 +209,8 @@ final class ScriptedLink: GatewayLink, Sendable {
     var restRows: (@Sendable (String, MessageWindow) -> [TranscriptRow]?)?
     var restCalls: [(String, MessageWindow)] = []
     var lifecycle: [String] = []
+    var uploads: [Upload] = []
+    var uploadHandler: (@Sendable (Upload) async throws -> String)?
     var answers: [(id: String, result: JSONObject)] = []
     var socketOpen = true
     var isShutDown = false
@@ -353,6 +355,39 @@ final class ScriptedLink: GatewayLink, Sendable {
 
   func claimTurn(_ runtimeSessionID: String) async {
     record("claimTurn \(runtimeSessionID)")
+  }
+
+  /// One upload the store asked for.
+  struct Upload: Sendable, Equatable {
+    var file: URL
+    var name: String
+    var mimeType: String
+    var path: String
+  }
+
+  /// Uploads asked for, oldest first.
+  var uploads: [Upload] { state.withLock { $0.uploads } }
+
+  /// What the next uploads answer with (default: the path they were asked for).
+  func onUpload(_ handler: @escaping @Sendable (Upload) async throws -> String) {
+    state.withLock { $0.uploadHandler = handler }
+  }
+
+  func uploadFile(
+    from file: URL,
+    name: String,
+    mimeType: String,
+    to path: String,
+    onProgress: (@Sendable (Double) -> Void)?
+  ) async throws -> String {
+    let upload = Upload(file: file, name: name, mimeType: mimeType, path: path)
+    let handler = state.withLock { state -> (@Sendable (Upload) async throws -> String)? in
+      state.uploads.append(upload)
+      return state.uploadHandler
+    }
+
+    onProgress?(0.5)
+    return try await handler?(upload) ?? path
   }
 
   @discardableResult

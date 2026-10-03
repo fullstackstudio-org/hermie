@@ -16,9 +16,10 @@ import HermieTranscript
 //   three things a reader does with a parked message are Steer, Edit and
 //   Delete, and the gateway's queue can do none of them. One parked message
 //   goes out per completed turn.
-// - Attachments are a later task: `attachments` is the seam (`@file:` /
-//   `@image:` references, as `UserItem.attachments` holds them), and nothing
-//   is uploaded here.
+// - Attachments arrive already staged (`AttachmentTray`): a file is uploaded
+//   and named in the prompt by its `@file:` reference, an image's bytes go over
+//   the socket (`image.attach_bytes`) before the submit, as the web client does.
+//   A parked message keeps them until it leaves the queue.
 //
 // Answers to a live request go out on its own JSON-RPC reply, and the card is
 // marked answered only once that reply went out. A reply whose socket is gone
@@ -37,8 +38,13 @@ extension TranscriptStore {
   /// `send`: answers the id of the item the prompt was painted as, or `nil`
   /// when it was parked behind the running turn.
   @discardableResult
-  public func send(_ key: String, text: String, attachments: [String]? = nil) async throws -> String? {
-    switch try await submit(key, text: text, attachments: attachments) {
+  public func send(
+    _ key: String,
+    text: String,
+    attachments: [String]? = nil,
+    outgoing: [OutgoingAttachment] = []
+  ) async throws -> String? {
+    switch try await submit(key, text: text, attachments: attachments, outgoing: outgoing) {
     case .submitted(let itemID): itemID
     case .parked: nil
     }
@@ -70,9 +76,18 @@ extension TranscriptStore {
     text: String,
     attachments: [String]?,
     parkAs: String? = nil,
-    follow: Bool = false
+    follow: Bool = false,
+    outgoing: [OutgoingAttachment] = []
   ) async throws -> SendReceipt {
     let author = options.ownAuthor()
+    // What the bubble records: the references the gateway's own row will carry. A file is also named
+    // in the prompt, which is what is painted AND submitted (the two have to be byte-identical, or
+    // the gateway echoes the turn back as a message the reconciler does not recognise).
+    let references = outgoing.isEmpty ? attachments : outgoing.map(\.reference)
+    let body = AttachmentRules.withFileReferences(text, paths: outgoing.compactMap(\.filePath))
+    let images: [(filename: String, base64: String)] = outgoing.compactMap {
+      if case .image(let filename, let base64) = $0 { (filename, base64) } else { nil }
+    }
     let ticket = generation(of: key)
 
     guard !retiring.contains(key) else {
@@ -91,7 +106,11 @@ extension TranscriptStore {
       }
 
       if state.turn.active {
-        let id = self.enqueue(key, text: text, attachments: attachments, id: parkAs)
+        let id = self.enqueue(key, text: text, attachments: references, id: parkAs)
+
+        if !outgoing.isEmpty {
+          self.queuedOutgoing[id] = outgoing
+        }
 
         if follow {
           self.followedPrompts[id] = .parked
@@ -101,7 +120,7 @@ extension TranscriptStore {
       }
 
       let now = self.now()
-      self.mutateState(key) { beginLocalTurn(into: &$0, text, attachments, now, author) }
+      self.mutateState(key) { beginLocalTurn(into: &$0, body, references, now, author) }
       self.chats[key]?.sending += 1
 
       return .painted(itemID: self.chats[key]?.state.order.last, runtimeID: runtimeID)
@@ -118,16 +137,26 @@ extension TranscriptStore {
       runtimeID = runtime
     }
 
-    let params: JSONValue = ["session_id": .string(runtimeID), "profile": .string(key), "text": .string(text)]
-
-    // `claimTurn`: when the plugin reads claims, tell it whose turn this is,
-    // right before the submit that names the same runtime session. A courtesy
-    // that never fails the send (`GatewayLink.claimTurn`).
-    if await roster.offers(PluginCapabilities.contextTurnClaim) {
-      await link.claimTurn(runtimeID)
-    }
+    let params: JSONValue = ["session_id": .string(runtimeID), "profile": .string(key), "text": .string(body)]
 
     do {
+      // Images first: the gateway queues them onto the next turn, so the order matters.
+      for image in images {
+        _ = try await link.requestReply(
+          RPC.ImageAttachBytes.name,
+          params: [
+            "session_id": .string(runtimeID), "profile": .string(key), "content_base64": .string(image.base64),
+            "filename": .string(image.filename)
+          ])
+      }
+
+      // `claimTurn`: when the plugin reads claims, tell it whose turn this is,
+      // right before the submit that names the same runtime session. A courtesy
+      // that never fails the send (`GatewayLink.claimTurn`).
+      if await roster.offers(PluginCapabilities.contextTurnClaim) {
+        await link.claimTurn(runtimeID)
+      }
+
       try await ordered(key, generation: ticket, { [link] in
         try await link.requestReply(RPC.PromptSubmit.name, params: params)
       }) { reply in
@@ -235,11 +264,14 @@ extension TranscriptStore {
       return
     }
 
+    let outgoing = queuedOutgoing.removeValue(forKey: taken.id) ?? []
+
     // A failed send painted its own failure; putting the message back would
     // start a loop against a gateway that is refusing it. One that met a new
     // turn is parked again under the id it had.
     do {
-      let receipt = try await submit(key, text: taken.text, attachments: taken.attachments, parkAs: taken.id)
+      let receipt = try await submit(
+        key, text: taken.text, attachments: taken.attachments, parkAs: taken.id, outgoing: outgoing)
 
       if case .submitted(let itemID) = receipt {
         settleFollowed(taken.id, .submitted(itemID: itemID))
@@ -255,12 +287,14 @@ extension TranscriptStore {
       return nil
     }
 
+    queuedOutgoing[id] = nil
     settleFollowed(id, .withdrawn)
     return taken.text
   }
 
   public func deleteQueued(_ key: String, _ id: String) {
     if takeQueued(key, id) != nil {
+      queuedOutgoing[id] = nil
       settleFollowed(id, .withdrawn)
     }
   }
@@ -284,7 +318,9 @@ extension TranscriptStore {
       throw ChatRuntimeError.notAttached(key)
     }
 
-    guard let taken = takeQueued(key, id) else {
+    // A steer folds text into the running turn; an image cannot ride along, and a file's reference
+    // is composed at send time. A message with attachments waits for its own turn.
+    guard queuedOutgoing[id] == nil, let taken = takeQueued(key, id) else {
       return .rejected
     }
 

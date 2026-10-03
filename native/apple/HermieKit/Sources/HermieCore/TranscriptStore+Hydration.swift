@@ -1229,6 +1229,10 @@ extension TranscriptStore {
     }
 
     // Its parked prompts go with it.
+    for queued in record.queue {
+      queuedOutgoing[queued.id] = nil
+    }
+
     for queued in record.queue where followedPrompts[queued.id] != nil {
       followedPrompts[queued.id] = .withdrawn
     }

@@ -138,6 +138,9 @@ public actor TranscriptStore {
   var queueSeq = 0
   /// Parked prompts somebody follows (`sendFollowing`), by queue id: what became of each.
   var followedPrompts: [String: FollowedPrompt] = [:]
+  /// What a parked prompt carries beyond its words (an image's bytes, a file's path), by queue id.
+  /// The strip only ever draws names; these leave with the entry, whichever way it leaves.
+  var queuedOutgoing: [String: [OutgoingAttachment]] = [:]
 
   // MARK: The ingest path
 

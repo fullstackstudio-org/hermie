@@ -1,4 +1,5 @@
 import HermieCore
+import PhotosUI
 import SwiftUI
 
 /// The composer of one chat, for the chat screen's `composer` slot (placed
@@ -14,8 +15,13 @@ import SwiftUI
 /// - Esc stops the bot while it is at work (a sheet that is up takes Esc first);
 ///   it never clears the field.
 ///
-/// The field keeps its focus after a send. It takes plain text only:
-/// attachments are a later task, which fills `ComposerModel.attachments`.
+/// The field keeps its focus after a send.
+///
+/// A "+" at the leading edge adds attachments, as in Messages: on iPhone and iPad a menu (Photo
+/// Library, Camera where there is one, Files), on the Mac the file picker; files can also be
+/// dropped on the composer and pictures or copied files pasted into the field. Each becomes a chip
+/// above the field (`AttachmentStrip`) that uploads at once; the send button waits until every
+/// chip is ready.
 public struct ComposerView: View {
   @Bindable var model: ComposerModel
 
@@ -23,6 +29,15 @@ public struct ComposerView: View {
   @State private var focused = false
   /// Moved to put the caret back in the field.
   @State private var focusRequest = 0
+  /// What the plus menu opened.
+  @State private var showPhotos = false
+  @State private var showFiles = false
+  @State private var photoSelection: [PhotosPickerItem] = []
+  /// A file is being dragged over the composer.
+  @State private var dropTargeted = false
+  #if os(iOS)
+    @State private var showCamera = false
+  #endif
 
   public init(model: ComposerModel) {
     self.model = model
@@ -46,8 +61,13 @@ public struct ComposerView: View {
         noticeRow(notice)
       }
 
+      if !model.tray.items.isEmpty {
+        AttachmentStrip(tray: model.tray)
+      }
+
       GlassEffectContainer(spacing: 8) {
         HStack(alignment: .bottom, spacing: 8) {
+          attachButton
           field
           actionButton
         }
@@ -58,6 +78,24 @@ public struct ComposerView: View {
     .padding(.horizontal, 12)
     .padding(.top, 6)
     .padding(.bottom, 8)
+    .overlay { dropHint }
+    .onDrop(of: [.fileURL, .image], isTargeted: $dropTargeted) { providers in
+      ingest { await AttachmentIntake.stage(dropped: providers) }
+      return true
+    }
+    .attachmentPickers(
+      photos: $showPhotos, files: $showFiles, selection: $photoSelection,
+      onPhotos: { items in ingest { await AttachmentIntake.stage(photos: items) } },
+      onFiles: { urls in ingest { await AttachmentIntake.stage(urls: urls) } }
+    )
+    #if os(iOS)
+      .fullScreenCover(isPresented: $showCamera) {
+        CameraPicker { data in
+          ingest { await AttachmentIntake.stage(image: data, type: .jpeg) }
+        }
+        .ignoresSafeArea()
+      }
+    #endif
     .background(escapeShortcut)
     .task { await model.loadDraft() }
     .onDisappear {
@@ -82,6 +120,7 @@ public struct ComposerView: View {
       accessibilityLabel: Strings.Chat.Composer.messageTo(bot: model.bot),
       accessibilityHint: Self.keyHint,
       maxLines: Self.maxLines,
+      controlHeight: controlHeight,
       focusRequest: focusRequest,
       onFocusChange: { focused = $0 },
       onSend: { send() },
@@ -92,46 +131,132 @@ public struct ComposerView: View {
 
         stop()
         return true
+      },
+      onPaste: { items in
+        ingest { await AttachmentIntake.stage(paste: items) }
       }
     )
-    .overlay(alignment: .topLeading) {
-      if model.draft.isEmpty {
-        Text(Strings.Chat.Composer.placeholder)
-          // A plain colour, not the hierarchical `.secondary`: inside glass that one turns
-          // vibrant and blends with what is behind the field, below the audit's contrast.
-          .foregroundStyle(Self.placeholderColor)
-          .lineLimit(1)
-          .fixedSize(horizontal: false, vertical: true)
-          .padding(.horizontal, Self.placeholderInset.width)
-          .padding(.vertical, Self.placeholderInset.height)
-          .allowsHitTesting(false)
-          .accessibilityHidden(true)
-      }
-    }
+    // The placeholder is the text view's own (`ComposerTextField`), drawn on the typed text's first
+    // line: no overlay with insets to keep in step with it.
     .padding(.horizontal, 4)
-    .padding(.vertical, 2)
     // Tinted with the page's background, so the words in the field keep their contrast over a
-    // busy transcript as over an empty one.
-    .glassEffect(.regular.tint(Self.fieldTint), in: .rect(cornerRadius: 20))
+    // busy transcript as over an empty one. As round as the buttons beside it on one line.
+    .glassEffect(.regular.tint(Self.fieldTint), in: .rect(cornerRadius: controlHeight / 2))
   }
 
   #if os(macOS)
-    private static let placeholderColor = Color(nsColor: .secondaryLabelColor)
-    private static let fieldTint = Color(nsColor: .textBackgroundColor).opacity(0.6)
+    static let fieldTint = Color(nsColor: .textBackgroundColor).opacity(0.6)
   #else
-    private static let placeholderColor = Color(uiColor: .secondaryLabel)
-    private static let fieldTint = Color(uiColor: .systemBackground).opacity(0.6)
-  #endif
-
-  /// Where the text view's first character sits, for the placeholder.
-  #if os(macOS)
-    private static let placeholderInset = CGSize(width: 13, height: 8)
-  #else
-    private static let placeholderInset = CGSize(width: 17, height: 10)
+    static let fieldTint = Color(uiColor: .systemBackground).opacity(0.6)
   #endif
 
   /// Six lines, then the field scrolls.
   static let maxLines = 6
+
+  /// The height of one line of the field, and the size of the round buttons beside it: they share
+  /// it, so the plus, the text and the send button sit on one centre line. Scales with Dynamic Type,
+  /// up to one and a half times: at the largest accessibility sizes three round buttons the size of
+  /// the text would leave the field no room for a word.
+  #if os(macOS)
+    private static let baseControlHeight: CGFloat = 32
+  #else
+    private static let baseControlHeight: CGFloat = 40
+  #endif
+
+  @ScaledMetric(relativeTo: .body) private var scaledControlHeight: CGFloat = ComposerView.baseControlHeight
+
+  private var controlHeight: CGFloat { min(scaledControlHeight, Self.baseControlHeight * 1.5) }
+
+  // MARK: Attachments
+
+  /// Stage what a picker, a drop or a paste brought, off the main actor, and say so when a file
+  /// could not be copied.
+  private func ingest(_ work: @escaping @MainActor () async -> AttachmentIntake.Outcome) {
+    let model = self.model
+
+    Task { @MainActor in
+      let outcome = await work()
+
+      if !outcome.files.isEmpty {
+        model.tray.add(outcome.files)
+      }
+
+      if let failure = outcome.failure {
+        model.report(NativeStrings.Composer.Attach.stagingFailed(failure))
+      }
+    }
+  }
+
+  /// "Drop to attach", over the composer while a file hovers on it.
+  @ViewBuilder private var dropHint: some View {
+    if dropTargeted {
+      RoundedRectangle(cornerRadius: 24)
+        .strokeBorder(.tint, style: StrokeStyle(lineWidth: 2, dash: [6, 4]))
+        .background(.tint.opacity(0.08), in: .rect(cornerRadius: 24))
+        .overlay {
+          Label(NativeStrings.Composer.Attach.drop, systemImage: "paperclip")
+            .font(.callout.weight(.semibold))
+            .foregroundStyle(.tint)
+        }
+        .padding(4)
+        .allowsHitTesting(false)
+        .accessibilityHidden(true)
+    }
+  }
+
+  /// The plus: a menu on iPhone and iPad (Photo Library, Camera where there is one, Files), the
+  /// file picker on the Mac.
+  @ViewBuilder private var attachButton: some View {
+    #if os(iOS)
+      Menu {
+        Button {
+          showPhotos = true
+        } label: {
+          Label(NativeStrings.Composer.Attach.photoLibrary, systemImage: "photo.on.rectangle")
+        }
+        .accessibilityIdentifier("composer.attach.photos")
+
+        if CameraPicker.isAvailable {
+          Button {
+            showCamera = true
+          } label: {
+            Label(NativeStrings.Composer.Attach.camera, systemImage: "camera")
+          }
+          .accessibilityIdentifier("composer.attach.camera")
+        }
+
+        Button {
+          showFiles = true
+        } label: {
+          Label(NativeStrings.Composer.Attach.files, systemImage: "folder")
+        }
+        .accessibilityIdentifier("composer.attach.files")
+      } label: {
+        attachGlyph
+      }
+      .menuStyle(.button)
+      .menuIndicator(.hidden)
+      .buttonStyle(AttachButtonStyle())
+      .accessibilityLabel(NativeStrings.Composer.Attach.add)
+      .accessibilityIdentifier("composer.attach")
+    #else
+      Button {
+        showFiles = true
+      } label: {
+        attachGlyph
+      }
+      .buttonStyle(AttachButtonStyle())
+      .help(NativeStrings.Composer.Attach.chooseFile)
+      .accessibilityLabel(NativeStrings.Composer.Attach.chooseFile)
+      .accessibilityIdentifier("composer.attach")
+    #endif
+  }
+
+  private var attachGlyph: some View {
+    Image(systemName: "plus")
+      .font(.body.weight(.semibold))
+      .frame(width: controlHeight, height: controlHeight)
+  }
 
   private static var keyHint: String {
     #if os(macOS)
@@ -147,10 +272,17 @@ public struct ComposerView: View {
   private var stopping: Bool { model.running && !hasText }
 
   private var hasText: Bool {
-    !model.draft.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty || !model.attachments.isEmpty
+    !model.draft.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty || !model.tray.isEmpty
   }
 
-  @ScaledMetric(relativeTo: .body) private var buttonSize: CGFloat = 32
+  /// What VoiceOver says after "Send": that it waits for the attachments, or that it queues.
+  private var sendHint: String {
+    if model.tray.blocked, !stopping {
+      return NativeStrings.Composer.Attach.waitingHint
+    }
+
+    return model.turnActive && !stopping ? NativeStrings.Composer.queueHint : ""
+  }
 
   private var actionButton: some View {
     Button {
@@ -162,12 +294,12 @@ public struct ComposerView: View {
     } label: {
       Image(systemName: stopping ? "stop.fill" : "arrow.up")
         .font(.body.weight(.bold))
-        .frame(width: buttonSize, height: buttonSize)
+        .frame(width: controlHeight, height: controlHeight)
     }
     .buttonStyle(SendButtonStyle(role: stopping ? .stop : .send))
     .disabled(stopping ? model.isStopping : !model.canSubmit)
     .accessibilityLabel(stopping ? Strings.Chat.Composer.stop : Strings.Chat.Composer.send)
-    .accessibilityHint(model.turnActive && !stopping ? NativeStrings.Composer.queueHint : "")
+    .accessibilityHint(sendHint)
     .accessibilityIdentifier(stopping ? "composer.stop" : "composer.send")
   }
 
@@ -296,6 +428,49 @@ struct SendButtonStyle: ButtonStyle {
   static let stopRed = Color(red: 0xD7 / 255, green: 0x00 / 255, blue: 0x15 / 255)
 }
 
+/// The plus beside the field: the same glass as the field, round, the same height as one line of it.
+struct AttachButtonStyle: ButtonStyle {
+  @Environment(\.isEnabled) private var isEnabled
+
+  func makeBody(configuration: Configuration) -> some View {
+    configuration.label
+      .foregroundStyle(isEnabled ? AnyShapeStyle(.primary) : AnyShapeStyle(.secondary))
+      .glassEffect(.regular.tint(ComposerView.fieldTint), in: .circle)
+      .opacity(configuration.isPressed ? 0.7 : 1)
+      .contentShape(.circle)
+  }
+}
+
+extension View {
+  /// The pickers the plus opens: the photo library, and the file importer (for any file, several at a time).
+  func attachmentPickers(
+    photos: Binding<Bool>,
+    files: Binding<Bool>,
+    selection: Binding<[PhotosPickerItem]>,
+    onPhotos: @escaping ([PhotosPickerItem]) -> Void,
+    onFiles: @escaping ([URL]) -> Void
+  ) -> some View {
+    photosPicker(
+      isPresented: photos,
+      selection: selection,
+      maxSelectionCount: 10,
+      matching: .any(of: [.images, .videos]),
+      // A HEIC photograph arrives as a JPEG: the gateway reads that as an image.
+      preferredItemEncoding: .compatible
+    )
+    .onChange(of: selection.wrappedValue) { _, items in
+      guard !items.isEmpty else { return }
+      onPhotos(items)
+      selection.wrappedValue = []
+    }
+    .fileImporter(isPresented: files, allowedContentTypes: [.item], allowsMultipleSelection: true) { result in
+      if case .success(let urls) = result {
+        onFiles(urls)
+      }
+    }
+  }
+}
+
 /// The messages parked behind the running turn: up to three, then a count.
 /// Each can be handed to the turn now (Steer), taken back into the field
 /// (Edit) or dropped (Delete).
@@ -331,13 +506,17 @@ struct QueuedStrip: View {
         .font(.callout)
         .lineLimit(1)
         .frame(maxWidth: .infinity, alignment: .leading)
-      Button {
-        Task { await model.steerQueued(entry.id) }
-      } label: {
-        Image(systemName: "arrow.turn.down.right")
-          .accessibilityLabel(Strings.Chat.Queue.steer)
+      // A message with attachments waits for its own turn: a steer folds words into the running
+      // one, and an image cannot ride along.
+      if entry.attachments?.isEmpty ?? true {
+        Button {
+          Task { await model.steerQueued(entry.id) }
+        } label: {
+          Image(systemName: "arrow.turn.down.right")
+            .accessibilityLabel(Strings.Chat.Queue.steer)
+        }
+        .accessibilityIdentifier("composer.queue.steer.\(index)")
       }
-      .accessibilityIdentifier("composer.queue.steer.\(index)")
       if entry.attachments?.isEmpty ?? true {
         Button {
           Task { await model.editQueued(entry.id) }

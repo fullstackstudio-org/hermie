@@ -77,10 +77,9 @@ public final class ComposerModel {
     }
   }
 
-  /// References of files to send with the next message (`@file:` /
-  /// `@image:`). The seam for attachments, which a later task fills; plain
-  /// text is all the field takes today.
-  public var attachments: [String] = []
+  /// What is staged to go with the next message: images read, files uploaded, each a chip.
+  /// A send waits for it (`canSubmit`) and takes it out in the same step that clears the draft.
+  public let tray: AttachmentTray
 
   /// Sends whose `prompt.submit` has not answered yet. A second message may
   /// follow before the first is answered: the store queues it behind the turn.
@@ -119,7 +118,8 @@ public final class ComposerModel {
     gatewayID: String,
     session: GatewaySession?,
     drafts: KeyValueStore?,
-    debounce: Duration = ComposerModel.draftDebounce
+    debounce: Duration = ComposerModel.draftDebounce,
+    tray: AttachmentTray? = nil
   ) {
     self.chat = chat
     self.gatewayID = gatewayID
@@ -127,6 +127,17 @@ public final class ComposerModel {
     self.drafts = drafts
     self.debounce = debounce
     self.draft = ""
+
+    if let tray {
+      self.tray = tray
+    } else {
+      let store = chat.store
+      let key = chat.key
+      self.tray = AttachmentTray(
+        AttachmentTray.Dependencies(upload: { file, progress in
+          try await store.uploadAttachment(key, file: file, onProgress: progress)
+        }))
+    }
   }
 
   // MARK: - State the view reads
@@ -149,7 +160,11 @@ public final class ComposerModel {
   public var canSend: Bool { chat.canSend }
 
   /// Whether the send button does anything: something to send and a chat to send it to.
-  public var canSubmit: Bool { canSend && (!trimmedDraft.isEmpty || !attachments.isEmpty) }
+  ///
+  /// Never while an attachment is still being read or uploaded, or failed and still in the tray:
+  /// what the reader sees staged is what goes, and a message that silently left without the file
+  /// would be the worse surprise.
+  public var canSubmit: Bool { canSend && !tray.blocked && (!trimmedDraft.isEmpty || !tray.isEmpty) }
 
   /// The bot is at work (a turn, a tool, a subagent, a compaction): Stop is
   /// offered while the field is empty, and Esc stops.
@@ -237,6 +252,12 @@ public final class ComposerModel {
     notice = nil
   }
 
+  /// Say something the screen found out that the model could not: a file that could not be copied
+  /// for sending, in the words the screen chose.
+  public func report(_ message: String) {
+    notice = .other(message)
+  }
+
   /// Send what is in the field, or run the command it holds.
   ///
   /// `/new`, `/reset` and `/clear` start a new conversation. Anything else goes
@@ -244,13 +265,17 @@ public final class ComposerModel {
   public func submit() async {
     let body = draft
     let trimmed = body.trimmingCharacters(in: .whitespacesAndNewlines)
-    let files = attachments
 
-    guard !trimmed.isEmpty || !files.isEmpty else {
+    guard !trimmed.isEmpty || !tray.isEmpty else {
       return
     }
 
-    if files.isEmpty, let command = Self.conversationCommand(trimmed) {
+    // The send waits for the tray: an upload still going, or one that failed, holds it back.
+    guard !tray.blocked else {
+      return
+    }
+
+    if tray.isEmpty, let command = Self.conversationCommand(trimmed) {
       await runConversationCommand(command, body: body)
       return
     }
@@ -263,7 +288,10 @@ public final class ComposerModel {
     notice = nil
     sendsInFlight += 1
     draft = ""
-    attachments = []
+    // Taken out of the tray in this very step, before anything is awaited: a second Return (or a
+    // tap on Send) that lands while this send is in flight finds the tray empty and sends nothing
+    // (HERM-126: the same attachments went out twice).
+    let taken = tray.take()
     onSubmit?()
 
     defer {
@@ -271,21 +299,30 @@ public final class ComposerModel {
     }
 
     do {
-      let painted = try await chat.store.send(bot, text: body, attachments: files.isEmpty ? nil : files)
+      let painted = try await chat.store.send(bot, text: body, outgoing: taken?.attachments ?? [])
       announce(painted == nil ? .queued : .sent)
+
+      if let taken {
+        tray.release(taken)
+      }
     } catch let error as ChatRuntimeError where error.isNotAttached {
-      // Refused before anything was painted: the words go back where they were.
+      // Refused before anything was painted: the words go back where they were, and so do the files.
       if draft.isEmpty {
         draft = body
       }
 
-      if attachments.isEmpty {
-        attachments = files
+      if let taken {
+        tray.restore(taken)
       }
 
       notice = .notSent(error.message)
     } catch {
-      // Painted, then failed: the bubble keeps the words, marked interrupted.
+      // Painted, then failed: the bubble keeps the words, marked interrupted. What it carried is
+      // on screen with it, not in the tray.
+      if let taken {
+        tray.release(taken)
+      }
+
       notice = .failed(ChatResolver.describe(error))
     }
   }
