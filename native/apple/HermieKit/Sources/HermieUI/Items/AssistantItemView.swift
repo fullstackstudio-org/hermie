@@ -8,8 +8,8 @@ import SwiftUI
 /// the time only on the last bubble of a group (`BubbleLayout`). Around the
 /// bubble, not in it: who it answers, its thought (closed until opened), an
 /// error card when it failed, and a footer with duration, tokens and model once
-/// it is done. While it is being written and has no words yet, the bubble holds
-/// typing dots.
+/// it is done. While it is being written and has no words yet there is no bubble: the
+/// transcript's typing indicator (`TypingIndicatorRow`) stands in for it.
 ///
 /// The bubble is no wider than three quarters of the column; a reply with a
 /// table or code in it gets nearly the whole column, so neither is squeezed.
@@ -25,8 +25,6 @@ struct AssistantItemView: View {
   @Environment(\.transcriptExpansion) private var expansion
 
   private var hasBody: Bool { !item.text.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty }
-  /// Writing, with nothing to show yet: the typing bubble.
-  private var typing: Bool { item.streaming && !hasBody && item.error == nil }
   private var closesGroup: Bool { bubble?.closesGroup ?? true }
 
   var body: some View {
@@ -75,14 +73,10 @@ struct AssistantItemView: View {
         )
         .padding(.leading, 6)
       }
-      if hasBody || typing {
+      if hasBody {
         BubbleColumn(side: .incoming, width: Self.width(for: markdown)) {
           MessageBubble(side: .incoming, tail: closesGroup, fill: BubblePalette.incoming) {
-            if hasBody {
-              words
-            } else {
-              TypingDots()
-            }
+            words
           }
         }
       }
@@ -189,19 +183,6 @@ struct ReasoningDisclosure: View {
           }
       }
     }
-  }
-}
-
-/// Dots while a reply is being written. Still under Reduce Motion.
-struct StreamingIndicator: View {
-  @Environment(\.accessibilityReduceMotion) private var reduceMotion
-
-  var body: some View {
-    Image(systemName: "ellipsis")
-      .font(.title3)
-      .foregroundStyle(.secondary)
-      .symbolEffect(.variableColor.iterative, options: .repeat(.continuous), isActive: !reduceMotion)
-      .accessibilityLabel(Strings.App.Chat.Subtitle.typing)
   }
 }
 

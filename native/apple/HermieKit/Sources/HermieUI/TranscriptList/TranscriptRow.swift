@@ -28,7 +28,14 @@ public struct TranscriptRow: Identifiable, Equatable, Sendable {
     /// The tool calls between two messages, drawn as one compact group ("5
     /// steps") that opens to the list of them. A single call is a group of one.
     case toolGroup([VisibleItem])
+    /// The bot is working and has nothing on screen yet: its three dots, as the last row, where the
+    /// reply will appear. Not an item of the transcript; the feed adds it and takes it away
+    /// (`TypingIndicatorGate`).
+    case typingIndicator
   }
+
+  /// The one typing row's id: stable, so the row is inserted and removed, never replaced.
+  public static let typingIndicatorID = "typing-indicator"
 
   /// What equality compares. See the type's notes.
   struct Stamp: Equatable, Sendable {
@@ -50,6 +57,11 @@ public struct TranscriptRow: Identifiable, Equatable, Sendable {
         presentation = .collapsed
         thought = false
         members = rows.flatMap { [$0.item.version, Presentation.allCases.firstIndex(of: $0.presentation) ?? 0] }
+      case .typingIndicator:
+        version = 0
+        presentation = .full
+        thought = false
+        members = []
       }
     }
   }
@@ -95,6 +107,11 @@ public struct TranscriptRow: Identifiable, Equatable, Sendable {
   public var visibleItem: VisibleItem? {
     if case .item(let visible) = content { visible } else { nil }
   }
+
+  /// This is the typing row, not one of the transcript's own.
+  public var isTypingIndicator: Bool {
+    if case .typingIndicator = content { true } else { false }
+  }
 }
 
 /// Where a message's bubble sits among its neighbours, as Messages groups
@@ -137,6 +154,14 @@ public struct BubbleLayout: Equatable, Sendable {
 public struct TranscriptRowBuilder: Sendable {
   /// A run of more bot-to-bot rows than this rolls up (`ROLLUP_THRESHOLD`).
   public static let rollupThreshold = 3
+  /// The typing row, to go after `rows`: the bot's bubble, in a group of its own (the bubble above
+  /// it, if it is the bot's, has closed its group with a tail and a time of its own).
+  public static func typingIndicatorRow() -> TranscriptRow {
+    TranscriptRow(
+      id: TranscriptRow.typingIndicatorID, content: .typingIndicator,
+      bubble: BubbleLayout(sender: .bot, opensGroup: true, closesGroup: true))
+  }
+
   /// A pause between two messages this long (seconds) starts a new group and
   /// puts the date and time above the next one, as Messages does.
   public static let timeHeaderGap: Double = 60 * 60
@@ -259,7 +284,8 @@ public struct TranscriptRowBuilder: Sendable {
   }
 
   /// Who a row's bubble is from, when it is drawn as a bubble: a person's turn, or the bot's reply
-  /// with words in it (or still on its way, as the typing bubble). A demoted row (a chip) is not.
+  /// with words in it. A demoted row (a chip) is not, and neither is a reply still on its way with
+  /// no words: the typing row stands for it.
   static func bubbleSender(_ row: TranscriptRow) -> BubbleLayout.Sender? {
     guard let visible = row.visibleItem, visible.presentation == .full || visible.presentation == .collapsed else {
       return nil
@@ -268,8 +294,7 @@ public struct TranscriptRowBuilder: Sendable {
     case .user(let user):
       return .person(authorID: user.author?.id)
     case .assistant(let assistant):
-      let words = assistant.text.contains { !$0.isWhitespace }
-      return words || (assistant.streaming && assistant.error == nil) ? .bot : nil
+      return assistant.text.contains { !$0.isWhitespace } ? .bot : nil
     default:
       return nil
     }
@@ -313,7 +338,7 @@ public struct TranscriptRowBuilder: Sendable {
   static func drawsNothing(_ row: TranscriptRow) -> Bool {
     switch row.content {
     case .item(let visible): visible.presentation == .hiddenPlaceholder
-    case .botDmRollup: false
+    case .botDmRollup, .typingIndicator: false
     case .toolGroup(let members): drawnTools(members).isEmpty
     }
   }

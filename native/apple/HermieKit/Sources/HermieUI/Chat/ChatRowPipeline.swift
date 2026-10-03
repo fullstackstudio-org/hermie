@@ -18,7 +18,10 @@ actor ChatRowPipeline {
   private var known: Set<String> = []
   private var first = true
 
-  func rows(for items: [VisibleItem], historyComplete: Bool = true) -> Output {
+  /// - Parameter typing: the bot's typing row goes last. It is the list's row and not the
+  ///   transcript's: it counts as no arrival, and it is not among the rows a later arrival is
+  ///   measured from.
+  func rows(for items: [VisibleItem], historyComplete: Bool = true, typing: Bool = false) -> Output {
     let rows = builder.rows(for: items, historyComplete: historyComplete)
     var arrived = 0
 
@@ -35,6 +38,10 @@ actor ChatRowPipeline {
     known = Set(rows.map(\.id))
     first = false
 
-    return Output(rows: TranscriptListItems(rows), arrived: arrived)
+    guard typing else {
+      return Output(rows: TranscriptListItems(rows), arrived: arrived)
+    }
+
+    return Output(rows: TranscriptListItems(rows + [TranscriptRowBuilder.typingIndicatorRow()]), arrived: arrived)
   }
 }

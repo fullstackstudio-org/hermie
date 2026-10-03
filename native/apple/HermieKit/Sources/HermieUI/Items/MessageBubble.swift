@@ -180,18 +180,3 @@ struct BubbleTimeHeader: View {
     return formatter
   }()
 }
-
-/// The bot is writing and has no words yet: three dots in its bubble. Their
-/// animation changes only the dots' colour, never the layout.
-struct TypingDots: View {
-  @Environment(\.accessibilityReduceMotion) private var reduceMotion
-
-  var body: some View {
-    Image(systemName: "ellipsis")
-      .font(.title3.weight(.semibold))
-      .foregroundStyle(.secondary)
-      .symbolEffect(.variableColor.iterative, options: .repeat(.continuous), isActive: !reduceMotion)
-      .frame(minHeight: 20)
-      .accessibilityLabel(Strings.App.Chat.Subtitle.typing)
-  }
-}

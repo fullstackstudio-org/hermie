@@ -84,10 +84,11 @@ private func status(_ id: String, presentation: Presentation = .full) -> Visible
     #expect(before[0] != after[0], "a1 lost its tail: the row must not compare equal")
   }
 
-  @Test func aTypingReplyIsABubbleAndAnEmptySettledOneIsNot() {
+  @Test func aReplyWithNoWordsIsNoBubbleWhetherItIsStillComingOrNot() {
+    // The bot's typing row (`TypingIndicatorTests`) stands for one still being written.
     var builder = TranscriptRowBuilder()
     let rows = builder.rows(for: [reply("typing", "", streaming: true), reply("empty", "")])
-    #expect(rows[0].bubble != nil)
+    #expect(rows[0].bubble == nil)
     #expect(rows[1].bubble == nil)
   }
 
