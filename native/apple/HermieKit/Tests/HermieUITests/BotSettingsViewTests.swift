@@ -114,12 +114,13 @@ struct BotSettingsViewTests {
     #expect(ModelChoiceList.matching(choices, query: "nothing like it").isEmpty)
   }
 
-  @Test func theCurrentModelIsTheOneWithTheSameProviderAndEitherSpellingOfTheId() {
+  @Test func theCurrentModelIsTheOneWithTheSameProviderAndTheSameId() {
     let bare = BotModelPin(provider: "second-provider", model: "reasoner-2")
-    let qualified = BotModelPin(provider: "second-provider", model: "second-provider/reasoner-2")
+    let prefixed = BotModelPin(provider: "second-provider", model: "second-provider/reasoner-2")
 
     #expect(ModelChoiceList.isCurrent(choices[2], pin: bare))
-    #expect(ModelChoiceList.isCurrent(choices[2], pin: qualified))
+    // A leading `provider/` is part of another model's name, not a spelling of this one.
+    #expect(!ModelChoiceList.isCurrent(choices[2], pin: prefixed))
     #expect(!ModelChoiceList.isCurrent(choices[0], pin: bare))
     // The same id under another provider is another model; an unpinned bot has none.
     #expect(!ModelChoiceList.isCurrent(choices[2], pin: BotModelPin(provider: "example-provider", model: "reasoner-2")))

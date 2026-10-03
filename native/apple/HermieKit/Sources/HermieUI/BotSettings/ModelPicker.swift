@@ -106,13 +106,9 @@ enum ModelChoiceList {
     return sections
   }
 
-  /// Whether this is the model the bot is pinned to. The gateway stores the bare model id, so both
-  /// spellings count.
+  /// Whether this is the model the bot is pinned to: the same provider and the same id, as the
+  /// gateway stored it.
   static func isCurrent(_ choice: BotModelChoice, pin: BotModelPin) -> Bool {
-    guard pin.isPinned, pin.provider == choice.provider else {
-      return false
-    }
-
-    return pin.model == choice.model || pin.model == choice.qualified
+    pin.isPinned && pin.provider == choice.provider && pin.model == choice.model
   }
 }

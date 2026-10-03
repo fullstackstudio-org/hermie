@@ -1401,14 +1401,29 @@ route in the last column. "Native" is what this build has.
   own request that rereads what the defaults are). Toggles made while a write is in flight are
   coalesced: the running write sends the latest state when it returns, and a refusal puts the
   section back to what the gateway last confirmed.
+- **The model pin is the bare id and the provider.** `profiles.configure` gets `model` exactly as
+  `model.options` lists it and `provider` in its own field, as the gateway's desktop client sends
+  them. The gateway's `normalize_model_for_provider` keeps a leading `provider/` for openrouter,
+  nous, ollama, lmstudio and user providers, so a prefix added by the client would become part of
+  the model's name.
+- **One write at a time per profile.** Every `profiles.configure` (description, personality,
+  model, toolsets, skills, MCP servers) goes through one serial queue, and builds its params when
+  its turn comes: the gateway changes the profile's config without a lock, so two writes in flight
+  can lose one. `profiles.describe` is not queued, so each section has a generation that moves when
+  a write to it is confirmed; a snapshot is only believed for a section if that generation has not
+  moved since the read was sent and no write to the section is under way. Putting the toolsets back
+  to the defaults counts as a write to them, and locks their switches until it has been read back.
+- **The MCP reload question is in the app's words.** The gateway's own warning is written for its
+  command line (it tells the reader to reply `/reload-mcp now`), so the alert says what the two
+  buttons do and leaves the gateway's text out.
 - **`applied` is checked.** `profiles.configure` answers `ok` with a per-section `applied`; a
   section the request carried that is not `true` there is a failure the screen says, not a
   success. A guarded model answers `confirm_required` with nothing written, and is written only
   after the person confirms. `reload.mcp` can refuse by succeeding (`confirm_required`); the screen
   asks with the gateway's own words.
 - **Permissions.** The gateway offers no profile-level permission answer: it refuses at the write.
-  A refusal that reads as an access denial (codes 4030 to 4033, 4403, or the plain words for it)
-  puts the screen in read-only: the editors become selectable text, the switches are disabled, one
+  A refusal that reads as an access denial (codes 4030 to 4033, 4403, or explicit words such as
+  "forbidden" or "access denied") puts the screen in read-only: the editors become selectable text, the switches are disabled, one
   line says so. No connection is read-only too. The name, colour, pin, mute and archive are the
   person's `ui_meta`, writable while the sync is attached.
 - **Capability checks.** A gateway without `profiles.describe` (`-32601`) shows the sections Hermie

@@ -39,12 +39,16 @@ public enum BotSettingsParams {
   }
 
   /// A model pin. `model` and `provider` go together or not at all (the gateway pins only when it
-  /// has both), and `model` is spelled `provider/model`, as the Expo app's new-bot form sends it.
-  /// `confirmExpensive` answers a `confirm_required` the gateway gave for a guarded model.
+  /// has both), and `model` is the id exactly as `model.options` lists it, with the provider in its
+  /// own field, as the gateway's desktop client sends it. Never `provider/model`: the gateway's
+  /// `normalize_model_for_provider` keeps a leading `provider/` for openrouter, nous, ollama,
+  /// lmstudio and the user's own providers, so a prefix added here would be part of the model's name
+  /// and break that bot. `confirmExpensive` answers a `confirm_required` the gateway gave for a
+  /// guarded model.
   public static func model(_ profile: String, _ choice: BotModelChoice, confirmExpensive: Bool = false) -> JSONObject {
     var params: JSONObject = [
       "name": .string(profile),
-      "model": .string(choice.qualified),
+      "model": .string(choice.model),
       "provider": .string(choice.provider)
     ]
 
