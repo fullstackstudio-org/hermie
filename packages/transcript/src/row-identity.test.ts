@@ -919,3 +919,210 @@ describe('a resume naming its turn', () => {
     expect(state.turn.foreignReconcilePending).toBeUndefined()
   })
 })
+
+// ── part 3: a cache saved after every frame ──────────────────────────────────
+//
+// The owner's case in full. A chat with three earlier turns of history (one
+// whose tool call is `call_0`, as the new turn's will be; one whose note says
+// exactly what a note of the new turn says), then one new turn, cached after
+// every single one of its frames. Each cut is reopened two ways: the turn
+// finished while the app was away (history holds every row, the rest of the
+// frames replay), and the turn is still running (history holds the rows the
+// gateway had written by then, a resume describes the rest as the gateway
+// would, then the frames replay).
+
+const EVERY_TURN = 'turn-every'
+const NOTE_A = 'Ik kijk eerst naar de boekingen van september.'
+const NOTE_ECHO = 'Dat klopt met het bankafschrift.'
+const NOTE_FINAL = 'Alles is nagelopen; er hoeft niets te gebeuren.'
+
+const EVERY_EARLIER: TranscriptRow[] = [
+  { role: 'user', row_id: 1, text: 'eerste vraag', display_metadata: { turn_id: 'turn-1' } },
+  { role: 'assistant', row_id: 2, text: 'Kijken.' },
+  { role: 'tool', row_id: 3, name: 'terminal', tool_call_id: 'call_0', call_row_id: 2, call_index: 0 },
+  { role: 'assistant', row_id: 4, text: 'Klaar.' },
+  { role: 'user', row_id: 5, text: 'tweede vraag', display_metadata: { turn_id: 'turn-2' } },
+  { role: 'assistant', row_id: 6, text: NOTE_ECHO },
+  { role: 'user', row_id: 7, text: 'derde vraag', display_metadata: { turn_id: 'turn-3' } },
+  { role: 'assistant', row_id: 8, text: 'Prima.' }
+]
+
+/** The new turn's rows, each with the index of the frame that persisted it. */
+const EVERY_ROWS: [TranscriptRow, number][] = [
+  [{ role: 'user', row_id: 11, text: 'loop alles na', display_metadata: { turn_id: EVERY_TURN } }, -1],
+  [{ role: 'assistant', row_id: 12, text: NOTE_A }, 4],
+  [{ role: 'tool', row_id: 13, name: 'terminal', tool_call_id: 'call_0', call_row_id: 12, call_index: 0 }, 6],
+  [{ role: 'assistant', row_id: 14, text: NOTE_ECHO }, 8],
+  [{ role: 'tool', row_id: 15, name: 'terminal', tool_call_id: 'call_1', call_row_id: 14, call_index: 0 }, 10],
+  [{ role: 'assistant', row_id: 16, text: NOTE_FINAL }, 12]
+]
+
+const EVERY_FRAMES: TranscriptEvent[] = framesOf(EVERY_TURN, [
+  { type: 'message.start', seq: 21 },
+  { type: 'reasoning.delta', seq: 22, payload: { text: 'September first.' } },
+  // One note in two deltas, so a cache can be cut in the middle of it.
+  { type: 'message.delta', seq: 23, payload: { text: 'Ik kijk eerst naar ' } },
+  { type: 'message.delta', seq: 24, payload: { text: 'de boekingen van september.' } },
+  { type: 'message.interim', seq: 25, payload: { text: NOTE_A, already_streamed: true, row_id: 12 } },
+  ...toolFrames(26, 'call_0', 12, 0, 13),
+  { type: 'message.delta', seq: 28, payload: { text: NOTE_ECHO } },
+  { type: 'message.interim', seq: 29, payload: { text: NOTE_ECHO, already_streamed: true, row_id: 14 } },
+  ...toolFrames(30, 'call_1', 14, 0, 15),
+  { type: 'message.delta', seq: 32, payload: { text: NOTE_FINAL } },
+  { type: 'message.complete', seq: 33, payload: { text: NOTE_FINAL, status: 'complete', usage: USAGE, row_id: 16 } }
+])
+
+/** The earlier history on screen and the owner's prompt sent, as the device held it. */
+function everyBase(earlier: readonly TranscriptRow[]): ChatState {
+  const hydrated = reconcile(fresh(), rowsToItems(earlier, 'rpc'))
+
+  return confirmSubmit(beginLocalTurn(hydrated, 'loop alles na', undefined, NOW), { status: 'streaming' }, NOW)
+}
+
+/** The resume the gateway would answer with `cut` frames of the turn behind it. */
+function inflightAt(frames: readonly TranscriptEvent[], cut: number, withIdentity: boolean): Record<string, unknown> {
+  let assistant = ''
+  let sealedLength = 0
+
+  for (const event of frames.slice(0, cut)) {
+    const payload = (event.payload ?? {}) as { text?: string; already_streamed?: boolean }
+
+    if (event.type === 'message.delta') {
+      assistant += payload.text ?? ''
+    } else if (event.type === 'message.interim' && payload.already_streamed) {
+      sealedLength = assistant.length
+    }
+  }
+
+  const unsealed = assistant.slice(sealedLength).replace(/^\s+/u, '')
+
+  return {
+    user: 'loop alles na',
+    assistant,
+    streaming: unsealed !== '',
+    ...(withIdentity ? { display_metadata: { turn_id: EVERY_TURN }, assistant_unsealed: unsealed } : {})
+  }
+}
+
+/** Frames and rows as a gateway without any of the identity would send them. */
+const stripFrame = ({ turn_id: _turnId, ...event }: TranscriptEvent): TranscriptEvent => {
+  const {
+    row_id: _row,
+    call_row_id: _call,
+    call_index: _index,
+    ...payload
+  } = (event.payload ?? {}) as Record<string, unknown>
+
+  return event.payload === undefined ? event : { ...event, payload }
+}
+const stripRow = (row: TranscriptRow): TranscriptRow => {
+  const { call_row_id: _call, call_index: _index, display_metadata: _metadata, ...rest } = row
+
+  // A tool row's own `row_id` is part of the identity too; the other rows always had theirs.
+  return row.role === 'tool' ? { ...rest, row_id: undefined } : rest
+}
+
+/** Every reopen of the turn, after each cut: [cut, finished-while-away, still-running]. */
+function everyReopen(withIdentity: boolean): [number, ChatState, ChatState][] {
+  const earlier = withIdentity ? EVERY_EARLIER : EVERY_EARLIER.map(stripRow)
+  const turnRows = EVERY_ROWS.map(([row, at]): [TranscriptRow, number] => [withIdentity ? row : stripRow(row), at])
+  const frames = withIdentity ? EVERY_FRAMES : EVERY_FRAMES.map(stripFrame)
+  const runs: [number, ChatState, ChatState][] = []
+  let live = everyBase(earlier)
+
+  for (let cut = 0; cut <= frames.length; cut += 1) {
+    if (cut > 0) {
+      live = applyEvent(live, frames[cut - 1]!, NOW)
+    }
+
+    const cached = fromCache(live)
+    const rest = frames.slice(cut)
+    const finished = apply(
+      reconcile(cached, rowsToItems([...earlier, ...turnRows.map(([row]) => row)], 'rpc')),
+      rest,
+      LATER
+    )
+    const written = turnRows.filter(([, at]) => at < cut).map(([row]) => row)
+    const hydrated = reconcile(cached, rowsToItems([...earlier, ...written], 'rpc'))
+    const running = cut < frames.length
+    const resumed = applyResumeSnapshot(
+      hydrated,
+      running ? { running: true, inflight: inflightAt(frames, cut, withIdentity) } : { running: false },
+      LATER
+    )
+
+    runs.push([cut, finished, apply(resumed, rest, LATER)])
+  }
+
+  return runs
+}
+
+/** The invariants of a settled reopen, as one comparable value. */
+function settledShape(state: ChatState) {
+  const rowIds = list(state).map(item => item.rowId)
+
+  return {
+    everyItemHasARow: rowIds.every(rowId => rowId !== undefined),
+    rowIdsUnique: new Set(rowIds).size === rowIds.length,
+    notes: assistants(state).map(item => item.text),
+    cards: cards(state).map(card => `${card.callKey}:${card.status}`),
+    prompts: users(state).map(item => item.text),
+    placeholders: users(state).filter(item => item.unknownAuthor).length,
+    active: state.turn.active
+  }
+}
+
+describe('a cache saved after every frame of a turn', () => {
+  const expected = {
+    everyItemHasARow: true,
+    rowIdsUnique: true,
+    notes: ['Kijken.', 'Klaar.', NOTE_ECHO, 'Prima.', NOTE_A, NOTE_ECHO, NOTE_FINAL],
+    cards: ['2/0:complete', '12/0:complete', '14/0:complete'],
+    prompts: ['eerste vraag', 'tweede vraag', 'derde vraag', 'loop alles na'],
+    placeholders: 0,
+    active: false
+  }
+
+  it('reopens after every frame with every row once, whether the turn finished or still runs', () => {
+    for (const [cut, finished, running] of everyReopen(true)) {
+      expect(settledShape(finished), `finished, cut after ${cut} frames`).toEqual(expected)
+      expect(settledShape(running), `running, cut after ${cut} frames`).toEqual(expected)
+      expect(
+        cards(finished)
+          .slice(1)
+          .every(card => card.resultKnown),
+        `finished results, cut ${cut}`
+      ).toBe(true)
+      expect(
+        cards(running)
+          .slice(1)
+          .every(card => card.resultKnown),
+        `running results, cut ${cut}`
+      ).toBe(true)
+    }
+  })
+
+  it('reopens without identity as the engine always did', () => {
+    // Recorded so the port replays the old path too.
+    const counts = everyReopen(false).map(([, finished, running]) => [finished.order.length, running.order.length])
+
+    // Measured against the engine before any identity existed (f86766f1): the
+    // same counts, duplicates and all — a settled reopen holds 14 items.
+    expect(counts).toEqual([
+      [20, 15],
+      [19, 14],
+      [20, 15],
+      [20, 14],
+      [19, 14],
+      [18, 14],
+      [18, 14],
+      [18, 15],
+      [17, 16],
+      [16, 16],
+      [15, 16],
+      [15, 16],
+      [15, 15],
+      [14, 14]
+    ])
+  })
+})
