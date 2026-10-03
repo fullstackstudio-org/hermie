@@ -1,7 +1,6 @@
 /**
  * The signed-in app: the frame (`Layout`), the chat list in its sidebar, the
- * connection line above both panes, and a main pane that says what route it is
- * on until the chat screen exists (W-10b).
+ * connection line above both panes, and the chat screen in the main pane.
  *
  * It takes no connection and starts none: the entry module started the session
  * (`session.ts`) and every screen reads the stores it fills. What it is given is
@@ -13,10 +12,15 @@
  * | Route                         | Heading              | Main pane today                  |
  * | ----------------------------- | -------------------- | -------------------------------- |
  * | `#/`                          | Hermie               | "Pick a conversation..."         |
- * | `#/chat/<bot>`                | the bot's name       | placeholder (W-10b: the chat)    |
- * | `#/chat/<bot>/s/<session>`    | the bot's name       | placeholder (W-10b)              |
+ * | `#/chat/<bot>`                | the bot's name       | the chat (`ChatScreen`)          |
+ * | `#/chat/<bot>/s/<session>`    | the bot's name       | that conversation (`ChatScreen`) |
  * | `#/settings[/<section>]`      | Settings             | placeholder (W-20b)              |
  * | anything else                 | sent to `#/`         |                                  |
+ *
+ * The chat screen opens its own chat (it is given the controller through
+ * `ChatRuntimeContext`, which this provides from the `chat` prop); this component
+ * opens nothing. A chat is keyed by its route, so moving to another one starts a
+ * screen of its own and nothing of the last one's scroll or state carries over.
  *
  * A gateway whose operator switched the bundled client off (`modules.web: off`
  * in the plugin's advert) gets one sentence instead of the app: a courtesy, not
@@ -34,9 +38,11 @@ import { setPageTitle } from '../../platform/page-title'
 import { botsStore } from '../../state/bots'
 import { pluginStore } from '../../state/plugin'
 import { ChatList } from '../bots/ChatList'
+import { ChatScreen } from '../chat/ChatScreen'
+import { ChatRuntimeContext, type ChatSessionRuntime } from '../chat/chat-runtime'
 import { ConnectionLine } from './ConnectionLine'
 import { Layout } from './Layout'
-import { type Route, useRoute } from './router'
+import { formatRoute, type Route, useRoute } from './router'
 import { SidebarFooter } from './SidebarFooter'
 
 export interface AppProps {
@@ -48,12 +54,17 @@ export interface AppProps {
   onSignOut: () => void
   /** The page's address, unless a test hands in its own. */
   router?: HashRouter
+  /**
+   * What a chat opens itself with: the controller and the gateway's base URL.
+   * Absent in a test of the frame, where a chat draws what the stores hold and opens nothing.
+   */
+  chat?: ChatSessionRuntime
 }
 
 /** The bot a route is on, if it is on one. */
 const botOf = (route: Route): string | undefined => (route.name === 'chat' ? route.bot : undefined)
 
-export function App({ user, onSignIn, onSignOut, router = pageHashRouter }: AppProps): ReactElement {
+export function App({ user, onSignIn, onSignOut, router = pageHashRouter, chat }: AppProps): ReactElement {
   useLocale()
 
   const route = useRoute(router)
@@ -82,20 +93,22 @@ export function App({ user, onSignIn, onSignOut, router = pageHashRouter }: AppP
   }
 
   return (
-    <Layout
-      route={route}
-      heading={heading}
-      status={<ConnectionLine onSignIn={onSignIn} />}
-      sidebar={<ChatList selectedBot={bot} />}
-      footer={<SidebarFooter user={user} onSignOut={onSignOut} />}
-    >
-      <p className="hm-main__body">
-        {route.name === 'home'
-          ? strings.app.chat.pickBot
-          : route.name === 'chat'
-            ? webStrings.shell.chatSoon
-            : webStrings.shell.settingsSoon}
-      </p>
-    </Layout>
+    <ChatRuntimeContext.Provider value={chat ?? null}>
+      <Layout
+        route={route}
+        heading={heading}
+        status={<ConnectionLine onSignIn={onSignIn} />}
+        sidebar={<ChatList selectedBot={bot} />}
+        footer={<SidebarFooter user={user} onSignOut={onSignOut} />}
+      >
+        {route.name === 'chat' ? (
+          <ChatScreen key={formatRoute(route)} bot={route.bot} {...(route.session ? { session: route.session } : {})} />
+        ) : (
+          <p className="hm-main__body">
+            {route.name === 'home' ? strings.app.chat.pickBot : webStrings.shell.settingsSoon}
+          </p>
+        )}
+      </Layout>
+    </ChatRuntimeContext.Provider>
   )
 }

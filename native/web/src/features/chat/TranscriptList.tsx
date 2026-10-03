@@ -31,7 +31,17 @@
  *    it stable (`useCallback`) or every row renders again.
  */
 import { type VisibleItem } from '@hermie/transcript'
-import { type CSSProperties, memo, type ReactNode, useCallback, useLayoutEffect, useRef, useState } from 'react'
+import {
+  type CSSProperties,
+  memo,
+  type ReactNode,
+  type Ref,
+  useCallback,
+  useImperativeHandle,
+  useLayoutEffect,
+  useRef,
+  useState
+} from 'react'
 
 import { layoutClock, type ResizeWatch } from '../../platform/layout'
 import { assignChunks, type ChunkAssignment, emptyAssignment } from './row-chunks'
@@ -49,6 +59,16 @@ export interface TranscriptListProps {
   onStickChange?: (stuck: boolean) => void
   /** The accessible name of the transcript region. */
   label?: string
+  /** A reply is streaming into the list: `aria-busy`, so a reader of the log is not interrupted by every delta. */
+  busy?: boolean
+  /** What the list can be told to do (`jumpToLatest`); the props stay the whole of what it is told. */
+  listRef?: Ref<TranscriptListHandle>
+}
+
+/** The one command the list takes besides its rows. */
+export interface TranscriptListHandle {
+  /** Go to the newest row and follow it from now on (the "jump to latest" control). */
+  jumpToLatest(): void
 }
 
 /** What a chunk and its rows share with the list. One object for the list's life. */
@@ -237,12 +257,22 @@ function domSurface(
   }
 }
 
-export function TranscriptList({ rows, renderItem, onReachTop, onStickChange, label }: TranscriptListProps) {
+export function TranscriptList({
+  rows,
+  renderItem,
+  onReachTop,
+  onStickChange,
+  label,
+  busy,
+  listRef
+}: TranscriptListProps) {
   const scrollerRef = useRef<HTMLDivElement>(null)
   const rowsRef = useRef<HTMLDivElement>(null)
   const anchorRef = useRef<ScrollAnchor | null>(null)
   const chunksRef = useRef<ChunkAssignment<VisibleItem>>(emptyAssignment())
   const rowsSeen = useRef<readonly VisibleItem[] | null>(null)
+
+  useImperativeHandle(listRef, () => ({ jumpToLatest: () => anchorRef.current?.stickToBottom() }), [])
 
   // One object for the list's life, so memoised chunks and rows never see it change.
   const [shared] = useState<ListShared>(() => ({
@@ -297,7 +327,14 @@ export function TranscriptList({ rows, renderItem, onReachTop, onStickChange, la
   })
 
   return (
-    <div ref={scrollerRef} className="transcript-list" role="log" aria-label={label} tabIndex={0}>
+    <div
+      ref={scrollerRef}
+      className="transcript-list"
+      role="log"
+      aria-label={label}
+      aria-busy={busy ? true : undefined}
+      tabIndex={0}
+    >
       <div className="transcript-list__content">
         <div className="transcript-list__spacer" />
         <div ref={rowsRef} className="transcript-list__rows">

@@ -118,6 +118,7 @@ async function run(root: Root, basePath: ResolvedBasePath, store: WebKeyValueSto
     root,
     <App
       user={state.identity.displayName || state.identity.email || state.identity.userId || ''}
+      chat={{ controller: session.chats.controller, gatewayBaseUrl: basePath.baseUrl }}
       onSignIn={() => signIn(basePath)}
       onSignOut={() => {
         // The order matters: the chats and the socket stop before the gateway's

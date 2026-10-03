@@ -15,6 +15,11 @@
  * is told where they are. On the narrow list route the main pane is not shown, so
  * the heading cannot take focus and the sidebar's own heading does instead.
  *
+ * **Who scrolls.** The main pane does, except on a chat route (`data-screen="chat"`
+ * on the `main`): there the transcript is the one scroller and the pane around it
+ * holds still (`features/chat/chat.css`), because two nested scrollports would
+ * move the rows under the transcript's own anchoring.
+ *
  * **The skip link** is the first thing a Tab reaches. It points at `#main` (an
  * accessibility checker wants a skip link to name a real element), but the
  * router reads the fragment as a route, so a click never reaches the address: it
@@ -107,7 +112,7 @@ export function Layout({ route, status, sidebar, footer, heading, children }: La
           <footer className="hm-sidebar__footer">{footer}</footer>
         </div>
 
-        <main className="hm-main" id={MAIN_ID}>
+        <main className="hm-main" id={MAIN_ID} data-screen={route.name}>
           <a className="hm-back" href={HOME_HASH}>
             <Icon name="chevronLeft" size={20} />
             {webStrings.shell.backToChats}

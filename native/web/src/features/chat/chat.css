@@ -1,0 +1,560 @@
+/*
+ * The chat screen and its item views. Colours, radii and gutters are the theme's
+ * (`ui/theme.css`); nothing here names a colour of its own.
+ *
+ * **Who scrolls.** On a chat route the main pane holds still (`overflow: hidden`,
+ * keyed on the `data-screen` `Layout` puts on it) and the transcript is the one
+ * scroller, filling what is left under the heading and the header. The pane's own
+ * gutters move inside it, so the transcript's scroll bar sits on the pane's edge
+ * and not inset by the gutter.
+ *
+ * **Rows carry their own spacing as padding, not margin.** A chunk of rows is
+ * `content-visibility: auto`, which contains its layout, and the row estimates
+ * the list scrolls by are only close if no margin collapses through a boundary.
+ *
+ * No animation but the typing dots, which are content (a reply is coming), and
+ * they hold still for a reader who asked for less motion.
+ */
+
+.hm-main[data-screen='chat'] {
+  overflow: hidden;
+  padding: 0;
+}
+
+/* Everything above the transcript keeps the pane's gutter. */
+.hm-main[data-screen='chat'] > .hm-main__title,
+.hm-main[data-screen='chat'] .hm-chat-header,
+.hm-main[data-screen='chat'] .hm-chat__banner {
+  padding-inline: var(--hm-gutter);
+}
+
+.hm-main[data-screen='chat'] > .hm-back {
+  margin-inline: calc(var(--hm-gutter) - 8px);
+}
+
+@media (min-width: 900px) {
+  .hm-main[data-screen='chat'] > .hm-main__title,
+  .hm-main[data-screen='chat'] .hm-chat-header,
+  .hm-main[data-screen='chat'] .hm-chat__banner {
+    padding-inline: 32px;
+  }
+}
+
+.hm-chat {
+  display: flex;
+  flex: 1 1 auto;
+  flex-direction: column;
+  min-height: 0;
+  min-width: 0;
+}
+
+/* ── the header line ─────────────────────────────────────────────────────── */
+
+.hm-chat-header {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex: none;
+  margin: 0;
+  padding-block: 0 10px;
+  color: var(--hm-text-muted);
+  font-size: 0.9375rem;
+}
+
+.hm-chat-header .hm-avatar {
+  --hm-avatar: 28px;
+
+  font-size: 0.875rem;
+}
+
+.hm-chat-header__status {
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+
+/* ── notes above the transcript, and the stage the transcript fills ───────── */
+
+.hm-chat__banner {
+  flex: none;
+  margin: 0;
+  padding-block: 8px;
+  border-top: 1px solid var(--hm-line);
+  background: var(--hm-surface);
+  color: var(--hm-text-muted);
+  font-size: 0.9375rem;
+  overflow-wrap: anywhere;
+}
+
+.hm-chat__banner[data-tone='danger'] {
+  color: var(--hm-danger-text);
+}
+
+.hm-chat__banner p {
+  margin: 0 0 8px;
+}
+
+.hm-chat__stage {
+  position: relative;
+  flex: 1 1 auto;
+  min-height: 0;
+  border-top: 1px solid var(--hm-line);
+}
+
+/* The list fills the stage whatever the stage's own height is made of. */
+.hm-chat__stage > .transcript-list {
+  position: absolute;
+  inset: 0;
+  height: auto;
+}
+
+/* The width of a column of messages: readable, and centred in a wide pane. */
+.hm-chat .transcript-list__content {
+  box-sizing: border-box;
+  width: 100%;
+  max-width: 54rem;
+  margin-inline: auto;
+  padding: 8px var(--hm-gutter) 16px;
+}
+
+@media (min-width: 900px) {
+  .hm-chat .transcript-list__content {
+    padding-inline: 32px;
+  }
+}
+
+.hm-chat .transcript-list__row {
+  padding-block: 3px;
+}
+
+.hm-chat__note {
+  margin: 0;
+  padding: 24px var(--hm-gutter);
+  color: var(--hm-text-muted);
+  text-align: center;
+  overflow-wrap: anywhere;
+}
+
+/* "Loading earlier…": over the top of the transcript, never a row of it (a row would move the anchor). */
+.hm-chat__older {
+  position: absolute;
+  top: 8px;
+  left: 50%;
+  z-index: 2;
+  margin: 0;
+  padding: 4px 12px;
+  border: 1px solid var(--hm-line);
+  border-radius: var(--hm-radius-pill);
+  background: var(--hm-surface);
+  color: var(--hm-text-muted);
+  font-size: 0.8125rem;
+  transform: translateX(-50%);
+}
+
+/* ── jump to latest ──────────────────────────────────────────────────────── */
+
+.hm-jump {
+  appearance: none;
+  position: absolute;
+  right: var(--hm-gutter);
+  bottom: 12px;
+  z-index: 2;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  min-height: 44px;
+  padding: 0 16px;
+  border: 1px solid var(--hm-line);
+  border-radius: var(--hm-radius-pill);
+  background: var(--hm-surface);
+  color: var(--hm-tint-text);
+  font: inherit;
+  font-weight: 600;
+  box-shadow: 0 2px 10px color-mix(in srgb, var(--hm-text) 18%, transparent);
+  cursor: pointer;
+}
+
+.hm-jump:hover {
+  background: var(--hm-surface-hover);
+}
+
+.hm-jump__count {
+  color: var(--hm-text-muted);
+  font-weight: 500;
+}
+
+/* ── messages ────────────────────────────────────────────────────────────── */
+
+.hm-msg {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  min-width: 0;
+}
+
+.hm-msg[data-side='own'] {
+  align-items: flex-end;
+}
+
+.hm-msg__sender {
+  margin: 0 0 2px 12px;
+  color: var(--hm-text-muted);
+  font-size: 0.8125rem;
+  font-weight: 600;
+  overflow-wrap: anywhere;
+}
+
+.hm-msg__footer {
+  margin: 2px 0 0 12px;
+  color: var(--hm-text-faint);
+  font-size: 0.75rem;
+  overflow-wrap: anywhere;
+}
+
+.hm-bubble {
+  box-sizing: border-box;
+  min-width: 0;
+  max-width: min(46rem, 92%);
+  padding: 8px 14px;
+  border: 1px solid var(--hm-line);
+  border-radius: 18px;
+  border-bottom-left-radius: 6px;
+  background: var(--hm-surface);
+  color: var(--hm-text);
+  overflow-wrap: anywhere;
+}
+
+.hm-msg[data-interim='true'] .hm-bubble {
+  border-style: dashed;
+}
+
+/* The reader's own: the tint, with white on it; the text inside follows that colour. */
+.hm-msg[data-side='own'] .hm-bubble {
+  border-color: transparent;
+  border-radius: 18px;
+  border-bottom-right-radius: 6px;
+  background: var(--hm-tint);
+  color: var(--hm-on-tint);
+}
+
+.hm-msg[data-side='own'] .md {
+  --md-link: currentColor;
+  --md-muted: currentColor;
+}
+
+.hm-bubble .md {
+  --md-link: var(--hm-link);
+}
+
+.hm-bubble .md a {
+  text-decoration: underline;
+}
+
+.hm-bubble__meta {
+  display: flex;
+  justify-content: flex-end;
+  gap: 8px;
+  margin: 2px 0 0;
+  color: var(--hm-text-faint);
+  font-size: 0.75rem;
+}
+
+.hm-bubble__meta:empty {
+  display: none;
+}
+
+.hm-msg[data-side='own'] .hm-bubble__meta {
+  color: var(--hm-on-tint);
+}
+
+.hm-bubble__files {
+  margin: 6px 0 0;
+  padding: 0;
+  list-style: none;
+}
+
+.hm-bubble__files li {
+  display: inline-block;
+  margin: 2px 4px 2px 0;
+  padding: 2px 10px;
+  border: 1px solid currentColor;
+  border-radius: var(--hm-radius-pill);
+  font-size: 0.8125rem;
+}
+
+/* A turn that failed: the words that arrived stay above it. */
+.hm-failure {
+  max-width: min(46rem, 92%);
+  margin-top: 4px;
+  padding: 8px 12px;
+  border: 1px solid var(--hm-danger-text);
+  border-radius: var(--hm-radius);
+  color: var(--hm-text);
+  overflow-wrap: anywhere;
+}
+
+.hm-failure p {
+  margin: 0;
+}
+
+.hm-failure__title {
+  color: var(--hm-danger-text);
+  font-weight: 600;
+}
+
+.hm-failure__note {
+  margin-top: 4px;
+  color: var(--hm-text-muted);
+  font-size: 0.875rem;
+}
+
+/* ── typing dots ─────────────────────────────────────────────────────────── */
+
+.hm-dots {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding-block: 7px;
+}
+
+.hm-dots__dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: var(--hm-text-muted);
+  animation: hm-dot 1.2s ease-in-out infinite;
+}
+
+.hm-dots__dot:nth-child(2) {
+  animation-delay: 0.15s;
+}
+
+.hm-dots__dot:nth-child(3) {
+  animation-delay: 0.3s;
+}
+
+@keyframes hm-dot {
+  0%,
+  60%,
+  100% {
+    opacity: 0.35;
+  }
+
+  30% {
+    opacity: 1;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .hm-dots__dot {
+    animation: none;
+    opacity: 0.7;
+  }
+}
+
+/* ── the rest of the rows: date, chips, asides, tools, notices ───────────── */
+
+.hm-day {
+  margin: 14px 0 2px;
+  color: var(--hm-text-faint);
+  font-size: 0.75rem;
+  font-weight: 600;
+  letter-spacing: 0.06em;
+  text-align: center;
+  text-transform: uppercase;
+}
+
+.hm-chip,
+.hm-note-line {
+  box-sizing: border-box;
+  max-width: 100%;
+  margin: 2px auto;
+  color: var(--hm-text-muted);
+  font-size: 0.8125rem;
+  text-align: center;
+  overflow-wrap: anywhere;
+}
+
+.hm-chip {
+  width: fit-content;
+  padding: 2px 12px;
+  border-radius: var(--hm-radius-pill);
+  background: var(--hm-surface);
+}
+
+.hm-note-line[data-tone='danger'] {
+  color: var(--hm-danger-text);
+}
+
+.hm-aside {
+  box-sizing: border-box;
+  max-width: min(46rem, 100%);
+  margin-inline: auto;
+  padding: 6px 12px;
+  border-left: 3px solid var(--hm-line);
+  color: var(--hm-text-muted);
+  font-size: 0.9375rem;
+  overflow-wrap: anywhere;
+}
+
+.hm-aside p {
+  margin: 0;
+}
+
+.hm-aside__eyebrow {
+  font-size: 0.75rem;
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+
+.hm-aside__text {
+  white-space: pre-wrap;
+}
+
+.hm-tool,
+.hm-notice {
+  box-sizing: border-box;
+  max-width: min(46rem, 100%);
+  border: 1px solid var(--hm-line);
+  border-radius: var(--hm-radius);
+  background: var(--hm-surface);
+  color: var(--hm-text);
+}
+
+.hm-notice {
+  margin-inline: auto;
+}
+
+.hm-tool[data-failed='true'],
+.hm-notice[data-tone='danger'] {
+  border-color: var(--hm-danger-text);
+}
+
+.hm-tool__line,
+.hm-notice__line {
+  appearance: none;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  width: 100%;
+  min-height: 44px;
+  padding: 6px 12px;
+  border: 0;
+  border-radius: inherit;
+  background: transparent;
+  color: inherit;
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+}
+
+.hm-tool__line:hover,
+.hm-notice__line:hover {
+  background: var(--hm-surface-hover);
+}
+
+.hm-tool__name,
+.hm-notice__title {
+  min-width: 0;
+  font-weight: 600;
+  overflow-wrap: anywhere;
+}
+
+.hm-notice__title {
+  flex: 1 1 auto;
+}
+
+.hm-tool__summary {
+  flex: 1 1 auto;
+  min-width: 0;
+  overflow: hidden;
+  color: var(--hm-text-muted);
+  font-size: 0.875rem;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.hm-tool__state {
+  flex: none;
+  color: var(--hm-text-muted);
+  font-size: 0.8125rem;
+}
+
+.hm-tool[data-failed='true'] .hm-tool__state,
+.hm-tool[data-failed='true'] .hm-tool__name,
+.hm-notice[data-tone='danger'] .hm-notice__title {
+  color: var(--hm-danger-text);
+}
+
+.hm-tool__body {
+  padding: 0 12px 10px;
+  border-top: 1px solid var(--hm-line);
+}
+
+.hm-tool__section {
+  margin-top: 8px;
+}
+
+.hm-tool__heading {
+  margin: 0 0 2px;
+  color: var(--hm-text-muted);
+  font-size: 0.75rem;
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+
+.hm-tool__text,
+.hm-notice__body {
+  margin: 0;
+  font-family: var(--hm-mono);
+  font-size: 0.8125rem;
+  line-height: 1.45;
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+}
+
+.hm-notice__body {
+  padding: 0 12px 10px;
+}
+
+.hm-tool__args {
+  margin: 0;
+}
+
+.hm-tool__args dt {
+  color: var(--hm-text-muted);
+  font-size: 0.8125rem;
+}
+
+.hm-tool__args dd {
+  margin: 0 0 4px;
+}
+
+.hm-tool__findings {
+  margin: 0;
+  padding-left: 1.2em;
+  font-size: 0.875rem;
+}
+
+.hm-tool__note {
+  margin: 8px 0 0;
+  color: var(--hm-text-muted);
+  font-size: 0.8125rem;
+}
+
+.hm-linkish {
+  appearance: none;
+  padding: 4px 0;
+  border: 0;
+  background: transparent;
+  color: var(--hm-tint-text);
+  font: inherit;
+  font-size: 0.8125rem;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.hm-linkish:hover {
+  text-decoration: underline;
+}
