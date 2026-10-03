@@ -2154,7 +2154,7 @@ export class ChatController {
   async uploadFile(
     botName: string,
     file: UploadableFile,
-    options: { onProgress?: (fraction: number) => void } = {}
+    options: { onProgress?: (fraction: number) => void; signal?: AbortSignal } = {}
   ): Promise<UploadedFile> {
     const chat = this.chats.getState().chats[botName]
 
@@ -2166,7 +2166,8 @@ export class ChatController {
       http: this.http,
       file,
       cwd: typeof chat?.info?.cwd === 'string' ? chat.info.cwd : undefined,
-      ...(options.onProgress ? { onProgress: options.onProgress } : {})
+      ...(options.onProgress ? { onProgress: options.onProgress } : {}),
+      ...(options.signal ? { signal: options.signal } : {})
     })
   }
 

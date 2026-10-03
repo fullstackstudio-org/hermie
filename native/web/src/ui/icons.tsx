@@ -9,7 +9,16 @@
 import type { ReactElement } from 'react'
 
 export type IconName =
-  'chevronLeft' | 'chevronRight' | 'chevronDown' | 'arrowDown' | 'signOut' | 'plug' | 'wifiOff' | 'alert'
+  | 'chevronLeft'
+  | 'chevronRight'
+  | 'chevronDown'
+  | 'arrowDown'
+  | 'signOut'
+  | 'plug'
+  | 'wifiOff'
+  | 'alert'
+  | 'paperclip'
+  | 'file'
 
 /** Stroke paths on a 24 x 24 grid, drawn with a round 2px pen. */
 const PATHS: Record<IconName, readonly string[]> = {
@@ -20,7 +29,11 @@ const PATHS: Record<IconName, readonly string[]> = {
   signOut: ['M9 4H5a1 1 0 0 0-1 1v14a1 1 0 0 0 1 1h4', 'M16 8l4 4-4 4', 'M20 12H9'],
   plug: ['M9 3v5', 'M15 3v5', 'M6 8h12v3a6 6 0 0 1-12 0V8z', 'M12 17v4'],
   wifiOff: ['M3 3l18 18', 'M8.5 16.4a5 5 0 0 1 7 0', 'M5 12.9a10 10 0 0 1 3.2-2', 'M12 20h.01'],
-  alert: ['M12 3l10 18H2L12 3z', 'M12 10v4', 'M12 17.5h.01']
+  alert: ['M12 3l10 18H2L12 3z', 'M12 10v4', 'M12 17.5h.01'],
+  paperclip: [
+    'M20 11.5l-8.2 8.2a5 5 0 0 1-7.1-7.1l8.6-8.6a3.4 3.4 0 0 1 4.8 4.8l-8.5 8.5a1.7 1.7 0 0 1-2.4-2.4l7.8-7.8'
+  ],
+  file: ['M14 3H7a1 1 0 0 0-1 1v16a1 1 0 0 0 1 1h10a1 1 0 0 0 1-1V7l-4-4z', 'M14 3v4h4']
 }
 
 export interface IconProps {

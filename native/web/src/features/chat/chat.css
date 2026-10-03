@@ -558,3 +558,33 @@
 .hm-linkish:hover {
   text-decoration: underline;
 }
+
+/* ── a drag of files over the chat ───────────────────────────────────────── */
+
+.hm-chat.hm-dropzone {
+  position: relative;
+}
+
+/* Drawn over the chat while files are dragged over it; the drag events still reach the chat underneath. */
+.hm-dropzone__target {
+  position: absolute;
+  inset: 8px;
+  z-index: 5;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border: 2px dashed var(--hm-tint-text);
+  border-radius: var(--hm-radius);
+  background: color-mix(in srgb, var(--hm-bg) 88%, transparent);
+  pointer-events: none;
+}
+
+.hm-dropzone__words {
+  margin: 0;
+  padding: 12px 18px;
+  border-radius: var(--hm-radius);
+  background: var(--hm-surface);
+  color: var(--hm-text);
+  font-size: 1.0625rem;
+  font-weight: 600;
+}

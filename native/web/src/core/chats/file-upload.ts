@@ -36,10 +36,12 @@
  * plausible-looking wrong directory produces an upload that succeeds and a
  * reference the agent will not read, which is the worst of the options.
  *
- * Ported from the Expo app's `src/features/chats/file-upload.ts` with no
- * deliberate difference. The `{uri}` part below is React Native's and a
- * browser never takes it: the web composer (W-19) always hands over `body`, a
- * `File`. It is kept so the two copies can still be compared line by line.
+ * Ported from the Expo app's `src/features/chats/file-upload.ts`. One
+ * deliberate difference: `signal` (W-19), so the web composer can cancel an
+ * upload the reader no longer wants, and the `cancelled` reason that says so.
+ * The `{uri}` part below is React Native's and a browser never takes it: the
+ * web composer always hands over `body`, a `File`. It is kept so the two copies
+ * can still be compared line by line.
  */
 import { type GatewayHttp, redirectSeen } from '@hermie/gateway-client'
 
@@ -57,20 +59,28 @@ export const MAX_UPLOAD_BYTES = 100 * 1024 * 1024
  *   that does not contain the session's workspace lands here, and no path the
  *   client could pick would work.
  * - `failed`      the upload did not complete: the socket, the proxy, a 5xx.
+ * - `cancelled`   the caller aborted it through `signal`. Nobody is told: the
+ *   reader asked for it.
  */
-export type FileUploadFailureReason = 'too-large' | 'no-workspace' | 'refused' | 'failed'
+export type FileUploadFailureReason = 'too-large' | 'no-workspace' | 'refused' | 'failed' | 'cancelled'
 
 export class FileUploadError extends Error {
   readonly reason: FileUploadFailureReason
   readonly status?: number
+  /** The gateway's own words (FastAPI's `detail`), when it answered with a refusal. */
+  readonly detail?: string
 
-  constructor(reason: FileUploadFailureReason, message: string, status?: number) {
+  constructor(reason: FileUploadFailureReason, message: string, status?: number, detail?: string) {
     super(message)
     this.name = 'FileUploadError'
     this.reason = reason
 
     if (status !== undefined) {
       this.status = status
+    }
+
+    if (detail !== undefined) {
+      this.detail = detail
     }
   }
 }
@@ -105,6 +115,11 @@ export interface UploadFileOptions {
   cwd: string | undefined
   /** 0…1 where the platform reports it, which React Native's fetch does not. */
   onProgress?: (fraction: number) => void
+  /**
+   * Aborts the request, which the gateway notices as the stream ending and
+   * answers by removing its temporary file (`stream_upload_to_path`).
+   */
+  signal?: AbortSignal
   /** Injected in tests; the real one streams from a `file://` URI. */
   fetchImpl?: typeof fetch
   /** Injected in tests, so a path is predictable. */
@@ -296,9 +311,14 @@ export async function uploadFile(options: UploadFileOptions): Promise<UploadedFi
       // The credentials and the file both stay with the gateway: a 307 or 308
       // would otherwise replay them to whatever host it named. See
       // `JsonRequest.followRedirects` in the gateway client.
-      redirect: 'manual'
+      redirect: 'manual',
+      ...(options.signal ? { signal: options.signal } : {})
     })
   } catch (cause) {
+    if (options.signal?.aborted) {
+      throw new FileUploadError('cancelled', `The upload of ${file.name} was cancelled.`)
+    }
+
     throw new FileUploadError('failed', `${file.name} could not be uploaded: ${messageOf(cause)}`)
   }
 
@@ -307,10 +327,13 @@ export async function uploadFile(options: UploadFileOptions): Promise<UploadedFi
   }
 
   if (!response.ok) {
+    const detail = await detailOf(response)
+
     throw new FileUploadError(
       response.status === 413 ? 'too-large' : 'refused',
-      `The gateway refused the upload of ${file.name}: ${await detailOf(response)}`,
-      response.status
+      `The gateway refused the upload of ${file.name}: ${detail}`,
+      response.status,
+      detail
     )
   }
 
