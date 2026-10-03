@@ -257,14 +257,16 @@ Web's daemon, the relay) and what every app generation must be able to read. It 
   say;
 - `requests.methods`: per request `method` (`approval`, `clarify`, `secret`, `sudo`,
   `vault.unlock_prompt`, `vault.code`, `vault.save_login`, `confirm`) whether the request id is
-  `required` or sent `whenKnown`, whether the Allow/Deny actions are offered, whether any text about
+  `required` or sent `whenKnown` (an approval is `whenKnown`: without an id it is posted without the
+  category), whether the Allow/Deny actions are offered, whether any text about
   the request may travel (`preview`; `false` is never, whatever the registration or the gateway
   says), and for `confirm` its `level` (`plain` or `passkey`; neither is ever an action);
 - `clear`: the clearing push. A `type: request` data bag with `clear: true`, the same `method`,
   `requestId` and conversation as the notification it withdraws, a `reason` (`answered`,
   `cancelled`, `timeout`) and `replaces` (the withdrawn notification's `eventId`). It is sent only to
   a registration row that says `clears: true`, has no visible half where the transport can do
-  without one, and cannot go through the relay yet (every relayed message is an alert);
+  without one (a Web Push worker must show nothing for it), and cannot go through the relay yet
+  (every relayed message is an alert);
 - Android channel ids equal to the type names (`android.channels`), and `alsoChannels` for the
   unfiltered types;
 - the data payload's field list with types, enums and `requiredWhen` (plus `alsoRequiredWhen`: more
@@ -281,8 +283,13 @@ Two fields do not mean what they might at first read:
   filled with the stored id. Every other type carries the stored session id, as the session list
   shows it. **`sessionKey`** (requests only) is the conversation under its stored id, for opening
   it.
-- **`requestId`** is required for an approval and for every request that has no other handle (the
-  secure inputs, `confirm`); a clarify carries it when the sender knows it.
+- **`requestId`** is required for every request that has no other handle (the secure inputs,
+  `confirm`); an approval and a clarify carry it when the sender has it.
+
+Two registration-row keys steer what a sender may send: **`clears: true`** (the device understands a
+clearing push) and, for a Web Push row, **`requestMethods: true`** (its worker reads a request's
+`method`, so a `confirm` or a secure input is sent to it and shown without Allow or Deny; the worker
+that shipped with the Expo web build never writes it and so is never sent one).
 
 It is the target every sender and both app generations conform to; Hermie Web's and the Expo app's
 tests check their payloads and ids against it, and the gateway plugin keeps a copy at

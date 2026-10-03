@@ -37,11 +37,11 @@
     }
   },
   "requests": {
-    "$comment": "What a `type: request` notification is, per `data.method` (the gateway's own name for the server request). `requestId`: `required` means the sender omits the notification rather than send it without one; `whenKnown` means it carries one only when the sender has it. `actions`: whether the category with Allow and Deny is posted. `preview`: whether the data bag and the visible text may ever carry text about the request; `false` means never, whatever the registration's `preview` and the gateway's setting say (for a secure input the text is what must stay off a screen; for a confirmation the sender is never told it). `level` is `confirm` only.",
+    "$comment": "What a `type: request` notification is, per `data.method` (the gateway's own name for the server request). `requestId`: `required` means the sender omits the notification rather than send it without one; `whenKnown` means it carries one when it has it. An approval is `whenKnown` because the approval hook of a gateway may carry no request id: such an approval is posted without the category (no Allow or Deny, which need an id) and the app finds the open request itself; the field's `requiredWhen` is the strict form a sender that always has the id (Hermie Web's daemon) meets. `actions`: whether the category with Allow and Deny is posted. `preview`: whether the data bag and the visible text may ever carry text about the request; `false` means never, whatever the registration's `preview` and the gateway's setting say (for a secure input the text is what must stay off a screen; for a confirmation the sender is never told it). `level` is `confirm` only. A Web Push row gets a `confirm` or a secure input only if it says `requestMethods: true`: the worker that shipped with the Expo web build adds Allow and Deny to every `type: request` push, which these must never have, and it never writes that key; a worker that reads `method` and writes the key shows these buttonless.",
     "methods": [
       {
         "method": "approval",
-        "requestId": "required",
+        "requestId": "whenKnown",
         "actions": true,
         "preview": true
       },
@@ -91,7 +91,7 @@
     ]
   },
   "clear": {
-    "$comment": "A clearing push withdraws the notification of a request that stopped being open (answered on another device, cancelled, timed out). It is a `type: request` data bag with `clear: true`, the same `method`, `requestId` and conversation as the notification it withdraws, a `reason`, and `replaces`: the `eventId` of that notification, which is the only handle for a clarify seen without a request id. It has no visible half on a transport that can carry one without (Expo: content-available data message). A sender sends it only to a registration row that says `clears: true`: a build that does not know the field would show it as a new request, buttons and all. The relay cannot carry one yet (every relayed message is an alert), so a relay row gets none and the app removes what it can itself.",
+    "$comment": "A clearing push withdraws the notification of a request that stopped being open (answered on another device, cancelled, timed out). It is a `type: request` data bag with `clear: true`, the same `method`, `requestId` and conversation as the notification it withdraws, a `reason`, and `replaces`: the `eventId` of that notification, which is the only handle for a clarify seen without a request id. It has no visible half on a transport that can carry one without: Expo gets a content-available data message with no title, body or sound, and Web Push gets `{data}` alone. A worker receiving one must show nothing; Chrome may then show its generic \"updated in the background\" notice unless the worker closes an existing notification for that request (by tag) in the same event. A sender sends it only to a registration row that says `clears: true`: a build that does not know the field would show it as a new request, buttons and all. The relay cannot carry one yet (every relayed message is an alert), so a relay row gets none and the app removes what it can itself.",
     "reasons": ["answered", "cancelled", "timeout"],
     "optIn": "registration row field `clears: true`"
   },
@@ -126,7 +126,7 @@
         "type": "turn_failed"
       }
     ],
-    "$comment": "Channel id equals the type name, one channel per type. `alsoChannels` are the channels of the unfiltered types (`unfilteredTypes`): a device that has not created one falls back to its default channel.",
+    "$comment": "Channel id equals the type name, one channel per type. `alsoChannels` are the channels of the unfiltered types (`unfilteredTypes`). A device must create the `security` channel itself (the native app does; the Expo app does not, and Android then falls back to its default channel for that notification).",
     "alsoChannels": [
       {
         "id": "security",
@@ -183,7 +183,7 @@
           "type": "request",
           "method": "approval"
         },
-        "description": "The server request the notification was raised for. Required for every method `requests` marks `required` (approval, the secure inputs, confirm); a clarify carries it when the sender knows it. On a clearing push, the id of the request it closes, when the sender knew it.",
+        "description": "The server request the notification was raised for. Required for every method `requests` marks `required` (the secure inputs, confirm); an approval and a clarify carry it when the sender has it (an approval without one is posted without the category). On a clearing push, the id of the request it closes, when the sender knew it.",
         "alsoRequiredWhen": [
           {
             "type": "request",
