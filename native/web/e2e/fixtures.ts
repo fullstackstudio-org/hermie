@@ -19,6 +19,13 @@
  *    the in-process object): `state`, `raise`, `withdraw`, `dropSockets`,
  *    `expireSessions`, `inject`. A spec that needs to know the gateway has
  *    heard something polls `state()`; none sleeps.
+ *  - **An https front, when a spec asks for one** (`test.use({ secureOrigin })`):
+ *    the page is then loaded from that origin (`https://gw.example.test`, say),
+ *    and every request and WebSocket the browser makes to it is carried to the
+ *    fake gateway by Playwright's own routing, so the page is a secure context
+ *    on a host name WebAuthn accepts as an RP without a certificate or a
+ *    proxy. The session cookie is copied to that host on sign-in. What the
+ *    passkey level needs (`e2e/passkey.spec.ts`); everything else is unchanged.
  *  - **Diagnostics on every test** (an automatic fixture): any `console.error`,
  *    any uncaught page error and any `securitypolicyviolation` event fails the
  *    test when it ends, with the message. The one thing a spec may say is
@@ -40,7 +47,7 @@ import { fileURLToPath } from 'node:url'
 
 import { AxeBuilder } from '@axe-core/playwright'
 import { type FakeGateway, type FakeGatewayOptions, startFakeGateway } from '@hermie/fake-gateway'
-import { expect, type Locator, type Page, test as base } from '@playwright/test'
+import { type BrowserContext, expect, type Locator, type Page, test as base } from '@playwright/test'
 
 const root = join(dirname(fileURLToPath(import.meta.url)), '..')
 
@@ -123,6 +130,8 @@ export interface App {
 interface Options {
   /** How the gateway of each test is started, on top of cookie mode and the built client. */
   gatewayOptions: Partial<FakeGatewayOptions>
+  /** Serve the page from this https origin, carried to the fake gateway by routing (see above). */
+  secureOrigin: string | null
 }
 
 interface TestFixtures {
@@ -148,14 +157,14 @@ async function control(url: string, path: string, body: unknown = {}): Promise<u
   return response.json()
 }
 
-function controlsOf(fake: FakeGateway): Gateway {
+function controlsOf(fake: FakeGateway, secureOrigin: string | null): Gateway {
   const url = fake.url
   const state = async (): Promise<FakeState> => (await (await fetch(`${url}/__fake/state`)).json()) as FakeState
 
   return {
     fake,
     url,
-    appUrl: (hash = '') => `${url}${APP_PATH}${hash}`,
+    appUrl: (hash = '') => `${secureOrigin ?? url}${APP_PATH}${hash}`,
     state,
     answers: async () => (await state()).serverRequestAnswers,
     running: async () => (await state()).runningSessions,
@@ -178,8 +187,54 @@ function controlsOf(fake: FakeGateway): Gateway {
   }
 }
 
+/** Close codes a routed WebSocket may be closed with; anything else becomes a normal closure. */
+const closeCode = (code: number | undefined): number =>
+  code === 1000 || (code !== undefined && code >= 3000 && code <= 4999) ? code : 1000
+
+/**
+ * Carry every request and WebSocket of `origin` to the fake gateway at `target`
+ * (see "An https front" above). The browser sees `origin` and nothing else.
+ */
+async function routeSecureOrigin(context: BrowserContext, origin: string, target: string): Promise<void> {
+  await context.route(
+    url => url.origin === origin,
+    async route => {
+      const request = route.request()
+      const response = await route.fetch({
+        url: target + request.url().slice(origin.length),
+        headers: await request.allHeaders()
+      })
+
+      await route.fulfill({ response })
+    }
+  )
+
+  const wsOrigin = origin.replace(/^https:/u, 'wss:')
+
+  await context.routeWebSocket(
+    url => url.href.startsWith(`${wsOrigin}/`),
+    ws => {
+      const upstream = new WebSocket(target.replace(/^http/u, 'ws') + ws.url().slice(wsOrigin.length), ws.protocols())
+      const waiting: (string | Buffer)[] = []
+
+      upstream.binaryType = 'arraybuffer'
+      upstream.onopen = () => {
+        for (const message of waiting.splice(0)) {
+          upstream.send(message)
+        }
+      }
+      upstream.onmessage = event =>
+        ws.send(typeof event.data === 'string' ? event.data : Buffer.from(event.data as ArrayBuffer))
+      upstream.onclose = event => ws.close({ code: closeCode(event.code), reason: event.reason })
+      ws.onMessage(message => (upstream.readyState === WebSocket.OPEN ? upstream.send(message) : waiting.push(message)))
+      ws.onClose((code, reason) => upstream.close(closeCode(code), reason))
+    }
+  )
+}
+
 export const test = base.extend<TestFixtures & Options, WorkerFixtures>({
   gatewayOptions: [{}, { option: true }],
+  secureOrigin: [null, { option: true }],
 
   builtClient: [
     // eslint-disable-next-line no-empty-pattern -- Playwright reads the dependencies from the destructuring
@@ -196,17 +251,20 @@ export const test = base.extend<TestFixtures & Options, WorkerFixtures>({
     { scope: 'worker', timeout: 180_000 }
   ],
 
-  gateway: async ({ builtClient, gatewayOptions }, use) => {
+  gateway: async ({ builtClient, gatewayOptions, secureOrigin }, use) => {
     const fake = await startFakeGateway({ auth: 'cookie', pluginAssets: builtClient, ...gatewayOptions })
 
-    await use(controlsOf(fake))
+    await use(controlsOf(fake, secureOrigin))
     await fake.close()
   },
 
   // The gateway is set up before the browser context and so torn down after it: a server cannot close while
   // the browser still holds its keep-alive connections, and the context is what closes them.
-  // eslint-disable-next-line @typescript-eslint/no-unused-vars -- the dependency is the point
-  context: async ({ gateway, context }, use) => {
+  context: async ({ gateway, context, secureOrigin }, use) => {
+    if (secureOrigin) {
+      await routeSecureOrigin(context, secureOrigin, gateway.url)
+    }
+
     await use(context)
   },
 
@@ -253,7 +311,7 @@ export const test = base.extend<TestFixtures & Options, WorkerFixtures>({
     { auto: true }
   ],
 
-  app: async ({ page, gateway }, use) => {
+  app: async ({ page, gateway, secureOrigin }, use) => {
     const field = page.getByRole('textbox', { name: /^Message / })
     const sendButton = page.getByRole('button', { name: 'Send', exact: true })
 
@@ -265,6 +323,14 @@ export const test = base.extend<TestFixtures & Options, WorkerFixtures>({
         })
 
         expect(login.ok()).toBe(true)
+
+        // Behind an https front the browser asks that host, so the session goes there too.
+        if (secureOrigin) {
+          const host = new URL(secureOrigin).hostname
+          const cookies = await page.context().cookies(gateway.url)
+
+          await page.context().addCookies(cookies.map(cookie => ({ ...cookie, domain: host, path: '/', secure: true })))
+        }
       },
       async open(hash = `#/chat/${BOT}`) {
         await app.signIn()
