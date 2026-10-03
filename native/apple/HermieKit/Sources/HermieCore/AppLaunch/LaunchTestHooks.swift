@@ -33,6 +33,9 @@
      in-memory `FakeCloud`, never iCloud Keychain.
    - `-HermieSeedICloudGateway 'Name|https://host|token'` repeatable; a gateway another device put
      in that fake iCloud Keychain (no token: an identity-provider gateway)
+   - `-HermieWindowSize 1600x900` the main window's content size in points (Mac), for screenshots
+     of a wide or a narrow window without dragging its edge
+   - `-HermieSidebar hidden` open the main window with its sidebar collapsed
    */
   public struct LaunchTestHooks: Sendable {
     public var dataDirectory: URL
@@ -48,6 +51,9 @@
     public var openURLWhenReady: String?
     public var sync: SyncSeed
     public var iCloudSeeds: [(name: String, address: String, token: String?)]
+    /// The main window's content size (`-HermieWindowSize WxH`), Mac only.
+    public var windowSize: (width: Double, height: Double)?
+    public var sidebarHidden: Bool
     /// The fake iCloud Keychain this launch syncs with; the app's replica is `"local"`.
     public let cloud = FakeCloud(delivery: .immediate)
 
@@ -119,6 +125,12 @@
         guard parts.count >= 2 else { return nil }
         return (parts[0], parts[1], parts.count > 2 && !parts[2].isEmpty ? parts[2] : nil)
       }
+
+      windowSize = values("-HermieWindowSize").last.flatMap { value in
+        let parts = value.lowercased().split(separator: "x").compactMap { Double($0) }
+        return parts.count == 2 && parts[0] > 0 && parts[1] > 0 ? (parts[0], parts[1]) : nil
+      }
+      sidebarHidden = values("-HermieSidebar").last == "hidden"
 
       // The replica exists before its availability is set (setting it on an unknown one does nothing).
       _ = cloud.replica("local")

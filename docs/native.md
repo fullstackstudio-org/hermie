@@ -888,9 +888,12 @@ and `chat` seams. Both read the session from `LiveGateway` in the environment.
   sheet), the leading swipe marks read and pins, the context menu has all of them, Edit reorders
   on a phone and a long press drags on an iPad; VoiceOver reads the swipe actions and Move up /
   Move down. Mac: the context menu, the Chat menu (Pin, Mute, Archive with ⌃⌘A for the selected
-  chat), drag in the sidebar, and the same VoiceOver actions. The archive is a row at the bottom
-  that opens a sheet on iPhone and iPad, and a header with a disclosure arrow in the Mac's sidebar; while
-  searching, archived matches are a section of their own.
+  chat), drag in the sidebar, and the same VoiceOver actions. The Mac switches gateways from the
+  menu bar's Gateway menu (`GatewayMenu`): every gateway, the window's own checked, ⌘1 to ⌘9 for
+  the first nine, a long host name cut in the middle at 320 pt, then Add Gateway… and Gateway
+  Settings…; it has no toolbar switcher. iPhone and iPad keep the toolbar's switcher and Switch
+  Gateway (⌃⌘G). The archive is a row at the bottom that opens a sheet on iPhone and iPad, and a
+  header with a disclosure arrow in the Mac's sidebar; while searching, archived matches are a section of their own.
 - **A new message in an archived chat** leaves it archived, as the Expo app does: archiving is how
   a chat stops asking for attention. The archive's entry carries no unread mark; inside the
   archive a row shows its own unread state.
@@ -960,7 +963,15 @@ composer:)` takes another, handed a `ChatComposerContext`. The transcript answer
   (`markdownFillsWidth`). `TranscriptRowBuilder` groups consecutive bubbles from one sender (any
   visible row between them, or an hour's pause, ends a group): only the last has the tail and the
   time on a line of its own, and a date-and-time line goes above the first message and after a
-  pause. Rows are 2 pt apart and a group opens with 8 pt more.
+  pause. Rows are 2 pt apart and a group opens with 8 pt more. The bubbles, the composer (its plus
+  and its send or stop button), the notices over the composer and the error line under the header
+  all stand `ChatSpacing.edgeMargin` from the window's edges: 16 pt on iPhone and iPad, 28 pt on
+  the Mac, whose windows are wide and round-cornered (at 20 the owner still saw the bubbles and the
+  composer touch the edge). In a shared chat someone else's bubble carries their initial beside the
+  group's last bubble and their name next to the time under it, "Lloyd · 21:42"
+  (`UserBubbleView.metaLine`): the gateway's untrusted name through `SecurePrompt.displayText`
+  (no control or direction characters, at most 40 characters) and bidi-isolated, so a
+  right-to-left name cannot reorder the time. The owner's bubbles keep the time alone.
 - **Tool calls are one compact group per run** (`ToolGroupView`): every call between two other
   rows, hidden and silent ones too, so what a group holds never depends on presentation. "5 steps"
   and what they did, opening to the calls and each to its raw arguments, result and identifier.
@@ -970,6 +981,18 @@ composer:)` takes another, handed a `ChatComposerContext`. The transcript answer
 - **The reader's own send goes to the bottom** from wherever they were, and the list follows the
   bubble and the reply (`ComposerModel.onSubmit` → `TranscriptListState.followOwnSend`); a message
   from elsewhere leaves a scrolled-up reader where they are, and the pill counts it.
+- **Following on the Mac** (the SwiftUI list). Once the reader has scrolled, the list's
+  `ScrollPosition` holds the id of the row at the top, and the scroll view keeps that row in place
+  through every change of the content, ahead of the size-change anchor: a list that still meant to
+  follow stood still while the reply grew under the composer (the owner's "scrolls not along",
+  0.2.6). `TranscriptFollow` now answers growth that the offset did not keep while following with
+  `restoreBottom`, and the list puts the bottom back after that update
+  (`position.scrollTo(edge: .bottom)`, which also drops the row's id). The reader's wheel and
+  trackpad are watched as events (`ReaderWheelMonitor`, a local monitor over the list's frame): a
+  trackpad gesture and its momentum, and a notched wheel without phases for 0.3 s after each step (`ReaderWheel`), make every geometry
+  change the reader's, so scrolling up stops the following even while a row grows, and reaching
+  the bottom again resumes it. Seen by hand with `-HermieWindowSize`, against the fake gateway, by
+  running a turn from a second socket.
 - **The composer floats as glass** over the transcript, which scrolls under it and stops above it.
   The send button is the accent blue with something to send, a plainly visible grey disc without,
   red to stop. The Mac field measures itself in a text system of its own: setting the live text
@@ -1493,7 +1516,12 @@ pins a model behind the expensive-model guard (`confirm_required`), and refuses 
 
 A debug build launched with `-HermieUITest YES` also takes `-HermieOpenChat <bot>` and
 `-HermieOpenBotSettings <bot>`, which open that chat or its settings page once the live gateway is
-known. With `-HermieSelectModel <model id>` the settings page also opens the model picker and
+known, and on the Mac `-HermieWindowSize <width>x<height>` and `-HermieSidebar hidden`, which size
+the main window and collapse its sidebar, for screenshots of a wide and a narrow window without
+touching it (launch with `open -g`, and `-ApplePersistenceIgnoreState YES` so no restored window
+or restore prompt gets in the way).
+
+With `-HermieSelectModel <model id>` the settings page also opens the model picker and
 chooses that model after two seconds, as a tap on its row does (the way the Mac's picker crash was
 reproduced without driving the UI).
 

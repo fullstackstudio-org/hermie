@@ -129,8 +129,34 @@ public struct MainWindow: View {
         LaunchTraceProbe()
       }
     #endif
+    #if DEBUG && os(macOS)
+      .background {
+        if let size = launch.environment.testHooks?.windowSize {
+          DebugWindowSize(width: size.width, height: size.height)
+        }
+      }
+    #endif
   }
 }
+
+#if DEBUG && os(macOS)
+  /// Gives the window it is in the content size `-HermieWindowSize` asked for, once, when it joins
+  /// the window: screenshots of a wide and a narrow window without dragging an edge.
+  struct DebugWindowSize: NSViewRepresentable {
+    let width: Double
+    let height: Double
+
+    func makeNSView(context: Context) -> NSView {
+      let view = NSView()
+      DispatchQueue.main.async { [weak view] in
+        view?.window?.setContentSize(NSSize(width: width, height: height))
+      }
+      return view
+    }
+
+    func updateNSView(_ nsView: NSView, context: Context) {}
+  }
+#endif
 
 /**
  An extra window for one chat (iPad and Mac), opened with `openWindow(value: ChatRef)`. Behind the

@@ -79,11 +79,12 @@ struct ShellSplitView: View {
   #endif
 
   @State private var compactColumn: NavigationSplitViewColumn = .sidebar
+  @State private var columns = NavigationSplitViewVisibility.automatic
 
   var body: some View {
     @Bindable var router = router
 
-    NavigationSplitView(preferredCompactColumn: $compactColumn) {
+    NavigationSplitView(columnVisibility: $columns, preferredCompactColumn: $compactColumn) {
       Sidebar()
     } detail: {
       NavigationStack(path: $router.detailPath) {
@@ -107,6 +108,13 @@ struct ShellSplitView: View {
       #endif
     }
     .accessibilityIdentifier("hermie.root.split")
+    #if DEBUG
+      .onAppear {
+        if launch.environment.testHooks?.sidebarHidden == true {
+          columns = .detailOnly
+        }
+      }
+    #endif
     #if DEBUG && os(iOS)
       .modifier(SwitchDrill())
     #endif
