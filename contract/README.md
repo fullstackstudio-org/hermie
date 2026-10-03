@@ -22,7 +22,7 @@ changes and the port does not follow.
 | `gateway/vectors/<module>.json`          | input/output vectors for the pure functions of `@hermie/gateway-client`                                 | `packages/gateway-client/scripts/dump-vectors.ts` |
 | `markdown/<group>.json`                  | the Expo app's Markdown block structure per input: blocks, preprocessing, inline, streaming prefixes    | `scripts/golden/dump-markdown.ts`                 |
 | `i18n/catalogue.json`                    | the Expo app's strings in en, nl and de, as text, lists or templates (`docs/i18n.md`)                   | `scripts/i18n/generate.ts`                        |
-| `push/contract.json`                     | the push contract (category, actions, data keys, types, Android channels) — hand-written                | by hand                                           |
+| `push/contract.json`                     | the push contract (requests, clearing, data keys, types, channels, examples) — hand-written             | by hand                                           |
 | `confirm-passkey/`                       | the passkey confirm contract: challenge construction, base-URL serialisation, CBOR subset, test vectors | the fork (`contract/confirm-passkey/generate.py`) |
 
 `i18n/` has a pipeline of its own: `npm run i18n` writes it (with the Apple String
@@ -245,12 +245,49 @@ spells out every normalisation.
 
 ## `push/contract.json`
 
-Hand-written: the notification category
-`hermie.request` with actions `hermie.request.allow` / `hermie.request.deny`,
-the data key `requestId`, the seven types, Android channel ids equal to the type
-names, and the data payload's field list with types. It is the target every
-sender and both app generations conform to; Hermie Web's and the Expo app's
-tests check their payloads and ids against it.
+Hand-written: what a push notification is, from every sender's side (the gateway plugin, Hermie
+Web's daemon, the relay) and what every app generation must be able to read. It holds:
+
+- the notification category `hermie.request` with its two actions `hermie.request.allow` /
+  `hermie.request.deny`, and `category.notFor`: the request methods that are posted with **no**
+  category at every level and on every transport (`clarify`, the secure inputs, `confirm`);
+- `types`: the seven switchable types, and `unfilteredTypes` (`security`), values of the data `type`
+  that no device asks for and none can refuse: a sender delivers them to the devices of the person
+  they are about whatever the switches, per-chat overrides, a mute and the open-chat suppression
+  say;
+- `requests.methods`: per request `method` (`approval`, `clarify`, `secret`, `sudo`,
+  `vault.unlock_prompt`, `vault.code`, `vault.save_login`, `confirm`) whether the request id is
+  `required` or sent `whenKnown`, whether the Allow/Deny actions are offered, whether any text about
+  the request may travel (`preview`; `false` is never, whatever the registration or the gateway
+  says), and for `confirm` its `level` (`plain` or `passkey`; neither is ever an action);
+- `clear`: the clearing push. A `type: request` data bag with `clear: true`, the same `method`,
+  `requestId` and conversation as the notification it withdraws, a `reason` (`answered`,
+  `cancelled`, `timeout`) and `replaces` (the withdrawn notification's `eventId`). It is sent only to
+  a registration row that says `clears: true`, has no visible half where the transport can do
+  without one, and cannot go through the relay yet (every relayed message is an alert);
+- Android channel ids equal to the type names (`android.channels`), and `alsoChannels` for the
+  unfiltered types;
+- the data payload's field list with types, enums and `requiredWhen` (plus `alsoRequiredWhen`: more
+  conditions beside the first, so a reader that only knows `requiredWhen` is not disturbed);
+- `examples`: one data bag, with its visible strings, category and whether it is silent, for every
+  notification the gateway plugin raises, built from fixed ids. A sender's tests build the same
+  notifications and compare; an app's tests read them as payloads it must handle.
+
+Two fields do not mean what they might at first read:
+
+- **`sessionId`** of a `request` is the **runtime** session id: the id the gateway's live session
+  list and the request methods (`approval.pending`, `approval.respond`, ...) use, which is what an app
+  compares to an open request's session. It is absent when the sender cannot know it, and is never
+  filled with the stored id. Every other type carries the stored session id, as the session list
+  shows it. **`sessionKey`** (requests only) is the conversation under its stored id, for opening
+  it.
+- **`requestId`** is required for an approval and for every request that has no other handle (the
+  secure inputs, `confirm`); a clarify carries it when the sender knows it.
+
+It is the target every sender and both app generations conform to; Hermie Web's and the Expo app's
+tests check their payloads and ids against it, and the gateway plugin keeps a copy at
+`tests/fixtures/push_contract.json` that its tests compare with this file. Additive changes (a new
+optional field, a request method, an unfiltered type) do not bump `version`.
 
 ## `confirm-passkey/`
 

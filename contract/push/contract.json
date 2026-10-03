@@ -1,31 +1,138 @@
 {
-  "$comment": "Hand-written, not generated. The one push contract every sender (gateway plugin, Hermie Web, the relay) and both app generations conform to. See contract/README.md.",
+  "$comment": "Hand-written, not generated. The one push contract every sender (gateway plugin, Hermie Web, the relay) and both app generations conform to. See contract/README.md. Additive changes (a new optional field, a new request method, a new unfiltered type) do not bump `version`.",
   "version": 1,
   "types": ["message", "request", "cron", "cron_done", "cron_failed", "turn_done", "turn_failed"],
   "legacyTypes": {
     "$comment": "Still valid on the wire because older registrations and senders carry it; no current sender produces it and no app offers a switch for it.",
     "dm": "a bot-to-bot message"
   },
+  "unfilteredTypes": {
+    "$comment": "Values of the data `type` that are not switches. No device asks for one and none can refuse it: a sender delivers it to the devices of the person it is about whatever the per-type switches, the per-chat overrides, a mute and the open-chat suppression say. They are not in `types`, so no settings screen lists one, and a registration row has no key for them.",
+    "security": "a change to the person's own account that they should hear about at once: a passkey added or removed"
+  },
   "category": {
     "id": "hermie.request",
-    "when": { "type": "request", "method": "approval" },
+    "when": {
+      "type": "request",
+      "method": "approval"
+    },
     "actions": [
-      { "id": "hermie.request.allow", "title": "Allow", "destructive": false, "foreground": false },
-      { "id": "hermie.request.deny", "title": "Deny", "destructive": true, "foreground": false }
+      {
+        "id": "hermie.request.allow",
+        "title": "Allow",
+        "destructive": false,
+        "foreground": false
+      },
+      {
+        "id": "hermie.request.deny",
+        "title": "Deny",
+        "destructive": true,
+        "foreground": false
+      }
     ],
-    "$comment": "An action is a hint, never an instruction: the app re-reads the open request by requestId and answers only if it is still open and still says what the notification said."
+    "$comment": "An action is a hint, never an instruction: the app re-reads the open request by requestId and answers only if it is still open and still says what the notification said. The category is posted for an approval and for nothing else (see `notFor`, and `requests` for every method): a clarify has no answer a button could send, a secure input has to be typed, and a confirmation is the person's own act, which a tap on a notification (possibly on a locked screen) would not be. A clearing push (`data.clear`) never carries a category.",
+    "notFor": {
+      "$comment": "Request methods that are posted with NO category, at every level and on every transport. The Allow and Deny actions must never be offered for these.",
+      "methods": ["clarify", "secret", "sudo", "vault.unlock_prompt", "vault.code", "vault.save_login", "confirm"]
+    }
+  },
+  "requests": {
+    "$comment": "What a `type: request` notification is, per `data.method` (the gateway's own name for the server request). `requestId`: `required` means the sender omits the notification rather than send it without one; `whenKnown` means it carries one only when the sender has it. `actions`: whether the category with Allow and Deny is posted. `preview`: whether the data bag and the visible text may ever carry text about the request; `false` means never, whatever the registration's `preview` and the gateway's setting say (for a secure input the text is what must stay off a screen; for a confirmation the sender is never told it). `level` is `confirm` only.",
+    "methods": [
+      {
+        "method": "approval",
+        "requestId": "required",
+        "actions": true,
+        "preview": true
+      },
+      {
+        "method": "clarify",
+        "requestId": "whenKnown",
+        "actions": false,
+        "preview": true
+      },
+      {
+        "method": "secret",
+        "requestId": "required",
+        "actions": false,
+        "preview": false
+      },
+      {
+        "method": "sudo",
+        "requestId": "required",
+        "actions": false,
+        "preview": false
+      },
+      {
+        "method": "vault.unlock_prompt",
+        "requestId": "required",
+        "actions": false,
+        "preview": false
+      },
+      {
+        "method": "vault.code",
+        "requestId": "required",
+        "actions": false,
+        "preview": false
+      },
+      {
+        "method": "vault.save_login",
+        "requestId": "required",
+        "actions": false,
+        "preview": false
+      },
+      {
+        "method": "confirm",
+        "requestId": "required",
+        "actions": false,
+        "preview": false,
+        "level": ["plain", "passkey"]
+      }
+    ]
+  },
+  "clear": {
+    "$comment": "A clearing push withdraws the notification of a request that stopped being open (answered on another device, cancelled, timed out). It is a `type: request` data bag with `clear: true`, the same `method`, `requestId` and conversation as the notification it withdraws, a `reason`, and `replaces`: the `eventId` of that notification, which is the only handle for a clarify seen without a request id. It has no visible half on a transport that can carry one without (Expo: content-available data message). A sender sends it only to a registration row that says `clears: true`: a build that does not know the field would show it as a new request, buttons and all. The relay cannot carry one yet (every relayed message is an alert), so a relay row gets none and the app removes what it can itself.",
+    "reasons": ["answered", "cancelled", "timeout"],
+    "optIn": "registration row field `clears: true`"
   },
   "android": {
     "channels": [
-      { "id": "message", "type": "message" },
-      { "id": "request", "type": "request" },
-      { "id": "cron", "type": "cron" },
-      { "id": "cron_done", "type": "cron_done" },
-      { "id": "cron_failed", "type": "cron_failed" },
-      { "id": "turn_done", "type": "turn_done" },
-      { "id": "turn_failed", "type": "turn_failed" }
+      {
+        "id": "message",
+        "type": "message"
+      },
+      {
+        "id": "request",
+        "type": "request"
+      },
+      {
+        "id": "cron",
+        "type": "cron"
+      },
+      {
+        "id": "cron_done",
+        "type": "cron_done"
+      },
+      {
+        "id": "cron_failed",
+        "type": "cron_failed"
+      },
+      {
+        "id": "turn_done",
+        "type": "turn_done"
+      },
+      {
+        "id": "turn_failed",
+        "type": "turn_failed"
+      }
     ],
-    "$comment": "Channel id equals the type name, one channel per type."
+    "$comment": "Channel id equals the type name, one channel per type. `alsoChannels` are the channels of the unfiltered types (`unfilteredTypes`): a device that has not created one falls back to its default channel.",
+    "alsoChannels": [
+      {
+        "id": "security",
+        "type": "security"
+      }
+    ]
   },
   "data": {
     "$comment": "The notification's data bag. Everything here is resolved against the gateway on tap; nothing in it is acted on unverified. Optional fields are omitted, never sent empty or null.",
@@ -39,15 +146,21 @@
       {
         "key": "type",
         "type": "string",
-        "enum": ["message", "request", "cron", "cron_done", "cron_failed", "turn_done", "turn_failed"],
+        "enum": ["message", "request", "cron", "cron_done", "cron_failed", "turn_done", "turn_failed", "security"],
         "required": true,
-        "description": "One of `types`."
+        "description": "One of `types`, or one of `unfilteredTypes`."
       },
       {
         "key": "sessionId",
         "type": "string",
         "required": false,
-        "description": "The session the event happened in. Present whenever the event has a session; omitted otherwise."
+        "description": "For `type: request`: the RUNTIME session id, the one the gateway's live session list and the request methods (`approval.pending`, `approval.respond`, ...) name; omitted when the sender cannot know it (an approval seen through a hook that does not carry it), and never replaced by the stored id: an app compares it to the open request's session and a stored id would never match. For every other type: the stored session id, as the session list shows it. Omitted when the event has no session."
+      },
+      {
+        "key": "sessionKey",
+        "type": "string",
+        "required": false,
+        "description": "`type: request` only: the conversation the request is in under its STORED id (what the session list shows), so a tap can open the conversation while `sessionId` stays the runtime id an answer is addressed with. Omitted when unknown."
       },
       {
         "key": "session",
@@ -66,14 +179,53 @@
         "key": "requestId",
         "type": "string",
         "required": false,
-        "requiredWhen": { "type": "request", "method": "approval" },
-        "description": "The server request the notification was raised for. Required for an approval, which the Allow and Deny actions answer; a clarify carries it when the sender knows it."
+        "requiredWhen": {
+          "type": "request",
+          "method": "approval"
+        },
+        "description": "The server request the notification was raised for. Required for every method `requests` marks `required` (approval, the secure inputs, confirm); a clarify carries it when the sender knows it. On a clearing push, the id of the request it closes, when the sender knew it.",
+        "alsoRequiredWhen": [
+          {
+            "type": "request",
+            "method": "secret"
+          },
+          {
+            "type": "request",
+            "method": "sudo"
+          },
+          {
+            "type": "request",
+            "method": "vault.unlock_prompt"
+          },
+          {
+            "type": "request",
+            "method": "vault.code"
+          },
+          {
+            "type": "request",
+            "method": "vault.save_login"
+          },
+          {
+            "type": "request",
+            "method": "confirm"
+          }
+        ]
       },
       {
         "key": "method",
         "type": "string",
         "required": false,
-        "description": "type request only: the server request method (approval, clarify, ...)."
+        "description": "type request only: the server request method, as the gateway names it. One of `requests.methods`.",
+        "enum": [
+          "approval",
+          "clarify",
+          "secret",
+          "sudo",
+          "vault.unlock_prompt",
+          "vault.code",
+          "vault.save_login",
+          "confirm"
+        ]
       },
       {
         "key": "cron",
@@ -93,6 +245,48 @@
         "type": "string",
         "required": false,
         "description": "The scheduler's job id. Carried, never shown: no title or body contains it."
+      },
+      {
+        "key": "level",
+        "type": "string",
+        "enum": ["plain", "passkey"],
+        "required": false,
+        "description": "method confirm only: how the confirmation is proven. `passkey` can only be done in the app, with the device's own authentication; `plain` is a confirmation in the app that needs no proof. Neither is ever offered as a notification action."
+      },
+      {
+        "key": "clear",
+        "type": "boolean",
+        "const": true,
+        "required": false,
+        "description": "Present (true) on a clearing push: the notification this one names is no longer a request that can be answered. See `clear`."
+      },
+      {
+        "key": "reason",
+        "type": "string",
+        "enum": ["answered", "cancelled", "timeout"],
+        "required": false,
+        "description": "clear only: why the request is no longer open."
+      },
+      {
+        "key": "replaces",
+        "type": "string",
+        "pattern": "^[a-z_]+:[0-9a-f]{32}$",
+        "required": false,
+        "description": "clear only: the `eventId` of the notification this one withdraws."
+      },
+      {
+        "key": "event",
+        "type": "string",
+        "enum": ["background.complete"],
+        "required": false,
+        "description": "The gateway event a notification reports when `type` alone does not say. `background.complete`: something the person sent to the background finished; `type` is `turn_done`, so the same switch decides."
+      },
+      {
+        "key": "change",
+        "type": "string",
+        "enum": ["added", "revoked"],
+        "required": false,
+        "description": "type security only: what happened to the passkey. Which one, how it was authorised and who did it never travel."
       },
       {
         "key": "gatewayKey",
@@ -120,6 +314,332 @@
         "type": "number",
         "required": false,
         "description": "Unix seconds when the event happened. Written by the gateway plugin; informational."
+      }
+    ]
+  },
+  "examples": {
+    "$comment": "One data bag, with the visible strings, the category and whether it is a silent message, for every notification the gateway plugin raises, built from fixed ids, the contract's pinned gateway key and the canonical session kind. A sender's tests build the same notifications and compare; an app's tests read them as the payloads it must handle. The ids are made up and name nobody.",
+    "list": [
+      {
+        "name": "approval",
+        "data": {
+          "v": 1,
+          "type": "request",
+          "bot": "scout",
+          "at": 1790000000,
+          "eventId": "request:e73f568f3575f6b525d031267d258a0b",
+          "sessionKey": "20261003_101500_a1b2c3",
+          "sessionKind": "canonical",
+          "gatewayKey": "bf796761db84e312",
+          "method": "approval",
+          "requestId": "appr-1"
+        },
+        "title": "scout",
+        "body": "Needs your approval",
+        "category": "hermie.request"
+      },
+      {
+        "name": "approval_runtime_session",
+        "data": {
+          "v": 1,
+          "type": "request",
+          "bot": "scout",
+          "at": 1790000000,
+          "eventId": "request:e73f568f3575f6b525d031267d258a0b",
+          "sessionId": "8a1b2c3d",
+          "sessionKey": "20261003_101500_a1b2c3",
+          "sessionKind": "canonical",
+          "gatewayKey": "bf796761db84e312",
+          "method": "approval",
+          "requestId": "appr-1"
+        },
+        "title": "scout",
+        "body": "Needs your approval",
+        "category": "hermie.request"
+      },
+      {
+        "name": "clarify_without_request_id",
+        "data": {
+          "v": 1,
+          "type": "request",
+          "bot": "scout",
+          "at": 1790000000,
+          "eventId": "clarify:7bd013f2a727a9ba545683ba5fd3d80f",
+          "sessionKey": "20261003_101500_a1b2c3",
+          "sessionKind": "canonical",
+          "gatewayKey": "bf796761db84e312",
+          "method": "clarify"
+        },
+        "title": "scout",
+        "body": "Asked you a question"
+      },
+      {
+        "name": "clarify",
+        "data": {
+          "v": 1,
+          "type": "request",
+          "bot": "scout",
+          "at": 1790000000,
+          "eventId": "request:cea95d3d9a9944fc788b130702a06209",
+          "sessionId": "8a1b2c3d",
+          "sessionKey": "20261003_101500_a1b2c3",
+          "sessionKind": "canonical",
+          "gatewayKey": "bf796761db84e312",
+          "method": "clarify",
+          "requestId": "srq-0123456789ab"
+        },
+        "title": "scout",
+        "body": "Asked you a question"
+      },
+      {
+        "name": "secret",
+        "data": {
+          "v": 1,
+          "type": "request",
+          "bot": "scout",
+          "at": 1790000000,
+          "eventId": "request:fb1a627ee0025a214875128aa9129b3d",
+          "sessionId": "8a1b2c3d",
+          "sessionKey": "20261003_101500_a1b2c3",
+          "sessionKind": "canonical",
+          "gatewayKey": "bf796761db84e312",
+          "method": "secret",
+          "requestId": "srq-0123456789ab"
+        },
+        "title": "scout",
+        "body": "Needs a secret"
+      },
+      {
+        "name": "sudo",
+        "data": {
+          "v": 1,
+          "type": "request",
+          "bot": "scout",
+          "at": 1790000000,
+          "eventId": "request:ce2376a0f2235ddf4d079a39bfce3c09",
+          "sessionId": "8a1b2c3d",
+          "sessionKey": "20261003_101500_a1b2c3",
+          "sessionKind": "canonical",
+          "gatewayKey": "bf796761db84e312",
+          "method": "sudo",
+          "requestId": "srq-0123456789ab"
+        },
+        "title": "scout",
+        "body": "Needs your password"
+      },
+      {
+        "name": "vault_unlock_prompt",
+        "data": {
+          "v": 1,
+          "type": "request",
+          "bot": "scout",
+          "at": 1790000000,
+          "eventId": "request:4399fadee7d2da66601bee1d53780355",
+          "sessionId": "8a1b2c3d",
+          "sessionKey": "20261003_101500_a1b2c3",
+          "sessionKind": "canonical",
+          "gatewayKey": "bf796761db84e312",
+          "method": "vault.unlock_prompt",
+          "requestId": "srq-0123456789ab"
+        },
+        "title": "scout",
+        "body": "Needs your master password"
+      },
+      {
+        "name": "vault_code",
+        "data": {
+          "v": 1,
+          "type": "request",
+          "bot": "scout",
+          "at": 1790000000,
+          "eventId": "request:afc38f47b6f72f43286ac699d12a91b7",
+          "sessionId": "8a1b2c3d",
+          "sessionKey": "20261003_101500_a1b2c3",
+          "sessionKind": "canonical",
+          "gatewayKey": "bf796761db84e312",
+          "method": "vault.code",
+          "requestId": "srq-0123456789ab"
+        },
+        "title": "scout",
+        "body": "Needs a verification code"
+      },
+      {
+        "name": "vault_save_login",
+        "data": {
+          "v": 1,
+          "type": "request",
+          "bot": "scout",
+          "at": 1790000000,
+          "eventId": "request:72d4a67bb254ef766e863d75d25600ba",
+          "sessionId": "8a1b2c3d",
+          "sessionKey": "20261003_101500_a1b2c3",
+          "sessionKind": "canonical",
+          "gatewayKey": "bf796761db84e312",
+          "method": "vault.save_login",
+          "requestId": "srq-0123456789ab"
+        },
+        "title": "scout",
+        "body": "Wants to save a login"
+      },
+      {
+        "name": "confirm_passkey",
+        "data": {
+          "v": 1,
+          "type": "request",
+          "bot": "scout",
+          "at": 1790000000,
+          "eventId": "request:8d2e7a09f214c313a01c862e8fec36f0",
+          "sessionId": "8a1b2c3d",
+          "sessionKey": "20261003_101500_a1b2c3",
+          "sessionKind": "canonical",
+          "gatewayKey": "bf796761db84e312",
+          "method": "confirm",
+          "requestId": "srq-0123456789ab",
+          "level": "passkey"
+        },
+        "title": "scout",
+        "body": "Confirm this in the app"
+      },
+      {
+        "name": "confirm_plain",
+        "data": {
+          "v": 1,
+          "type": "request",
+          "bot": "scout",
+          "at": 1790000000,
+          "eventId": "request:8d2e7a09f214c313a01c862e8fec36f0",
+          "sessionId": "8a1b2c3d",
+          "sessionKey": "20261003_101500_a1b2c3",
+          "sessionKind": "canonical",
+          "gatewayKey": "bf796761db84e312",
+          "method": "confirm",
+          "requestId": "srq-0123456789ab",
+          "level": "plain"
+        },
+        "title": "scout",
+        "body": "Needs your confirmation"
+      },
+      {
+        "name": "clear_approval_answered",
+        "data": {
+          "v": 1,
+          "type": "request",
+          "bot": "scout",
+          "at": 1790000000,
+          "eventId": "clear:91d90307460e2dec1c063f97045dc51e",
+          "sessionKey": "20261003_101500_a1b2c3",
+          "sessionKind": "canonical",
+          "gatewayKey": "bf796761db84e312",
+          "method": "approval",
+          "clear": true,
+          "reason": "answered",
+          "replaces": "request:e73f568f3575f6b525d031267d258a0b",
+          "requestId": "appr-1"
+        },
+        "title": "scout",
+        "body": "Request closed",
+        "silent": true
+      },
+      {
+        "name": "clear_clarify_timeout",
+        "data": {
+          "v": 1,
+          "type": "request",
+          "bot": "scout",
+          "at": 1790000000,
+          "eventId": "clear:5572266a39f6e2df3b32dc2964f76cf3",
+          "sessionKey": "20261003_101500_a1b2c3",
+          "sessionKind": "canonical",
+          "gatewayKey": "bf796761db84e312",
+          "method": "clarify",
+          "clear": true,
+          "reason": "timeout",
+          "replaces": "clarify:7bd013f2a727a9ba545683ba5fd3d80f"
+        },
+        "title": "scout",
+        "body": "Request closed",
+        "silent": true
+      },
+      {
+        "name": "clear_secret_cancelled",
+        "data": {
+          "v": 1,
+          "type": "request",
+          "bot": "scout",
+          "at": 1790000000,
+          "eventId": "clear:b0e8d36bc1b661310bbdfca0d7e63da2",
+          "sessionId": "8a1b2c3d",
+          "sessionKey": "20261003_101500_a1b2c3",
+          "sessionKind": "canonical",
+          "gatewayKey": "bf796761db84e312",
+          "method": "secret",
+          "clear": true,
+          "reason": "cancelled",
+          "replaces": "request:fb1a627ee0025a214875128aa9129b3d",
+          "requestId": "srq-0123456789ab"
+        },
+        "title": "scout",
+        "body": "Request closed",
+        "silent": true
+      },
+      {
+        "name": "background_complete",
+        "data": {
+          "v": 1,
+          "type": "turn_done",
+          "bot": "scout",
+          "at": 1790000000,
+          "eventId": "background:588fc71ff8f30734f6e00c82ab7e0a68",
+          "sessionId": "20261003_101500_a1b2c3",
+          "sessionKind": "canonical",
+          "gatewayKey": "bf796761db84e312",
+          "event": "background.complete"
+        },
+        "title": "scout",
+        "body": "A background task finished"
+      },
+      {
+        "name": "security_added",
+        "data": {
+          "v": 1,
+          "type": "security",
+          "bot": "scout",
+          "at": 1790000000,
+          "eventId": "security:9f779c872059e5c075c089b67cce2ff7",
+          "gatewayKey": "bf796761db84e312",
+          "change": "added"
+        },
+        "title": "scout",
+        "body": "A passkey was added"
+      },
+      {
+        "name": "security_added_preview",
+        "data": {
+          "v": 1,
+          "type": "security",
+          "bot": "scout",
+          "at": 1790000000,
+          "eventId": "security:9f779c872059e5c075c089b67cce2ff7",
+          "gatewayKey": "bf796761db84e312",
+          "change": "added",
+          "preview": "The passkey “Pocket” was added"
+        },
+        "title": "scout",
+        "body": "The passkey “Pocket” was added"
+      },
+      {
+        "name": "security_revoked",
+        "data": {
+          "v": 1,
+          "type": "security",
+          "bot": "scout",
+          "at": 1790000000,
+          "eventId": "security:30a00025fb938e5846a79b9059ebe0c2",
+          "gatewayKey": "bf796761db84e312",
+          "change": "revoked"
+        },
+        "title": "scout",
+        "body": "A passkey was removed"
       }
     ]
   }
