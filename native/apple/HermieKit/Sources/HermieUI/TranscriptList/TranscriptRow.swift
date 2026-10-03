@@ -157,7 +157,10 @@ public struct TranscriptRowBuilder: Sendable {
   /// Documents parsed so far, for tests and the lab's memory readout.
   public var documentCount: Int { parsed.count }
 
-  public mutating func rows(for visible: [VisibleItem]) -> [TranscriptRow] {
+  /// - Parameter historyComplete: the oldest of these rows is the chat's first: no earlier page
+  ///   can be loaded. Only then does the first message get the date line above it, so a page of
+  ///   history arriving later does not take that line away and move the reader's rows by its height.
+  public mutating func rows(for visible: [VisibleItem], historyComplete: Bool = true) -> [TranscriptRow] {
     var next: [String: Parsed] = [:]
     next.reserveCapacity(parsed.count + 8)
     var rows: [TranscriptRow] = []
@@ -239,7 +242,7 @@ public struct TranscriptRowBuilder: Sendable {
     if !run.isEmpty { flushRun() }
     flushTools()
 
-    Self.layOutBubbles(&rows)
+    Self.layOutBubbles(&rows, historyComplete: historyComplete)
     parsed = next
     return rows
   }
@@ -265,7 +268,7 @@ public struct TranscriptRowBuilder: Sendable {
     case .user(let user):
       return .person(authorID: user.author?.id)
     case .assistant(let assistant):
-      let words = !assistant.text.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
+      let words = assistant.text.contains { !$0.isWhitespace }
       return words || (assistant.streaming && assistant.error == nil) ? .bot : nil
     default:
       return nil
@@ -274,7 +277,9 @@ public struct TranscriptRowBuilder: Sendable {
 
   /// Groups the message rows as Messages does. A group is the bubbles of one sender with nothing
   /// visible between them (a tool group, a status line or a card ends it) and no pause of an hour.
-  static func layOutBubbles(_ rows: inout [TranscriptRow]) {
+  /// The date line goes above a message after a pause or on a new day, and above the chat's first
+  /// message once the whole history is loaded.
+  static func layOutBubbles(_ rows: inout [TranscriptRow], historyComplete: Bool = true, calendar: Calendar = .current) {
     var previous: (index: Int, sender: BubbleLayout.Sender, ts: Double?)?
     var lastMessageTS: Double?
     var seenMessage = false
@@ -290,7 +295,8 @@ public struct TranscriptRowBuilder: Sendable {
       }
       let ts = rows[index].visibleItem?.item.base.ts
       let paused = Self.paused(from: lastMessageTS, to: ts)
-      let header: Double? = (!seenMessage || paused) ? ts : nil
+      let newDay = Self.newDay(from: lastMessageTS, to: ts, calendar: calendar)
+      let header: Double? = ((!seenMessage && historyComplete) || paused || newDay) ? ts : nil
       var opens = true
       if let before = previous, before.sender == sender, before.index < index, !paused {
         opens = false
@@ -319,6 +325,11 @@ public struct TranscriptRowBuilder: Sendable {
       guard case .tool(let tool) = member.item else { return false }
       return member.presentation != .hiddenPlaceholder && !drawsNothing(tool)
     }
+  }
+
+  private static func newDay(from earlier: Double?, to later: Double?, calendar: Calendar) -> Bool {
+    guard let earlier, let later else { return false }
+    return !calendar.isDate(Date(timeIntervalSince1970: earlier), inSameDayAs: Date(timeIntervalSince1970: later))
   }
 
   private static func paused(from earlier: Double?, to later: Double?) -> Bool {

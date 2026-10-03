@@ -101,7 +101,9 @@ struct BubbleColumn: Layout {
     guard let bubble = subviews.first else { return .zero }
     // A probe (no width, or an infinite one) gets the bubble's own size at the cap, never an
     // infinite width back: a lazy stack sizing its rows with probes is thrown off by one.
-    guard let available = proposal.width, available.isFinite else {
+    // A width of 0 or less is a probe as well: answering it with the bubble's height at no width
+    // (a word a line) made a one-line bubble hundreds of points tall.
+    guard let available = proposal.width, available.isFinite, available > 0 else {
       return bubble.sizeThatFits(ProposedViewSize(width: width.maximum, height: nil))
     }
     let size = bubble.sizeThatFits(ProposedViewSize(width: width.cap(available), height: nil))

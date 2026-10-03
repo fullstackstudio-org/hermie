@@ -197,7 +197,13 @@ enum ToolLabel {
   /// does not already say it. Never code: that is in the details.
   static func subtitle(_ item: ToolItem) -> String? {
     let lower = item.name.lowercased()
-    if dispatchers.contains(lower) || codeRunners.contains(lower) {
+    if dispatchers.contains(lower) {
+      // The title is the call's own summary, which the model's arguments shape; the line under it
+      // names the server and tool the gateway actually dispatched, so a title cannot pass one
+      // call off as another.
+      return dispatchedTool(item)
+    }
+    if codeRunners.contains(lower) {
       return running(item) && item.status == .generating ? Strings.Chat.Tool.generating : nil
     }
     if let summary = item.summary.map(clean), !summary.isEmpty { return ItemFormat.preview(summary, limit: 90) }
@@ -205,6 +211,21 @@ enum ToolLabel {
     if item.status == .generating { return Strings.Chat.Tool.generating }
     if let context = item.context.map(clean), !context.isEmpty { return ItemFormat.preview(context, limit: 90) }
     return nil
+  }
+
+  /// The server and tool a dispatcher call ran, as its arguments name them ("moneybird ·
+  /// list_ledger_accounts"), else the dispatcher's own name.
+  static func dispatchedTool(_ item: ToolItem) -> String {
+    func argument(_ keys: [String]) -> String? {
+      for key in keys {
+        if case .string(let value)? = item.args?[key], !value.isEmpty { return value }
+      }
+      return nil
+    }
+    let server = argument(["server", "server_name", "mcp_server"])
+    let tool = argument(["tool", "tool_name", "name"])
+    let parts = [server, tool].compactMap { $0 }
+    return parts.isEmpty ? item.name : parts.joined(separator: " · ")
   }
 
   /// `send_message` → "Send message".

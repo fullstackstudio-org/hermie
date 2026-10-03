@@ -18,8 +18,8 @@ actor ChatRowPipeline {
   private var known: Set<String> = []
   private var first = true
 
-  func rows(for items: [VisibleItem]) -> Output {
-    let rows = builder.rows(for: items)
+  func rows(for items: [VisibleItem], historyComplete: Bool = true) -> Output {
+    let rows = builder.rows(for: items, historyComplete: historyComplete)
     var arrived = 0
 
     // Only rows after the newest one already shown are arrivals: history prepended above is not.

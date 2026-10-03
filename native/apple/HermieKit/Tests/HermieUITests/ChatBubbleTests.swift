@@ -4,6 +4,11 @@ import HermieProtocol
 import HermieTranscript
 import Testing
 
+#if os(macOS)
+  import AppKit
+  import SwiftUI
+#endif
+
 @testable import HermieUI
 
 private func base(_ id: String, ts: Double? = nil, version: Int = 1) -> ItemBase {
@@ -159,8 +164,51 @@ private func status(_ id: String, presentation: Presentation = .full) -> Visible
       case .tool(let command) = tool("v", name: "terminal", summary: "ls -la").item
     else { return }
     #expect(ToolLabel.subtitle(code) == nil)
-    #expect(ToolLabel.subtitle(dispatch) == nil, "the summary is the title already")
+    #expect(ToolLabel.subtitle(dispatch) == "tool_call", "no arguments: the dispatcher's own name")
     #expect(ToolLabel.subtitle(command) == "ls -la")
+  }
+
+  @Test func aDispatcherCallNamesTheToolItRanUnderItsTitle() {
+    // The title is the call's summary, which the model shapes; the line under it is what the
+    // gateway dispatched, so a title cannot pass one call off as another.
+    let item = ToolItem(
+      base: base("t"), toolID: "t", name: "tool_call",
+      args: ["server": .string("moneybird"), "tool": .string("list_ledger_accounts")],
+      status: .complete, resultKnown: true, summary: "Moneybird · list ledger accounts")
+    #expect(ToolLabel.title(item) == "Moneybird · list ledger accounts")
+    #expect(ToolLabel.subtitle(item) == "moneybird · list_ledger_accounts")
+  }
+
+  @Test func theFirstMessageGetsItsDateLineOnlyOnceTheWholeHistoryIsLoaded() {
+    // Before, a page of history arriving took the line away from the row that had been first and
+    // moved the reader's rows by its height.
+    var builder = TranscriptRowBuilder()
+    let partial = builder.rows(for: [user("u1", ts: 1000), reply("a1", ts: 1100)], historyComplete: false)
+    #expect(partial.map(\.bubble?.timeHeader) == [nil, nil])
+    let complete = builder.rows(for: [user("u1", ts: 1000), reply("a1", ts: 1100)], historyComplete: true)
+    #expect(complete.map(\.bubble?.timeHeader) == [1000, nil])
+  }
+
+  @Test func aNewDayGetsADateLineWithoutAPause() {
+    var calendar = Calendar(identifier: .gregorian)
+    calendar.timeZone = TimeZone(identifier: "UTC")!
+    // 23:50 and 00:10 the next day, twenty minutes apart.
+    var rows = [TranscriptRow(user("u1", ts: 86_400 - 600)), TranscriptRow(reply("a1", ts: 86_400 + 600))]
+    TranscriptRowBuilder.layOutBubbles(&rows, historyComplete: false, calendar: calendar)
+    #expect(rows.map(\.bubble?.timeHeader) == [nil, 86_400 + 600])
+  }
+
+  @Test @MainActor func aProbeOfNoWidthGetsTheBubblesOwnSizeNotAWordALine() throws {
+    // A width of 0 answered with the height at no width: a one-line bubble hundreds of points tall.
+    #if os(macOS)
+      let host = NSHostingController(
+        rootView: BubbleColumn(side: .outgoing, width: .text) {
+          Text("Oke nu wil ik dat als ik klik op download de checklist, dat die kaart omdraait")
+        })
+      let probed = host.sizeThatFits(in: CGSize(width: 0, height: CGFloat.greatestFiniteMagnitude))
+      let laidOut = host.sizeThatFits(in: CGSize(width: 1200, height: CGFloat.greatestFiniteMagnitude))
+      #expect(probed.height <= laidOut.height * 3, "probe \(probed), laid out \(laidOut)")
+    #endif
   }
 
   @Test func aGroupSaysHowManyStepsAndWhatTheyDid() {

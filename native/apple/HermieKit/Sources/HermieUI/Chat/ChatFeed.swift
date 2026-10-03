@@ -201,11 +201,12 @@ final class ChatFeed {
     repeat {
       rebuild = false
 
-      guard let items = model.snapshot?.items else {
+      guard let snapshot = model.snapshot else {
         return
       }
 
-      let output = await pipeline.rows(for: items)
+      // The chat's first message gets its date line only once no earlier page can arrive.
+      let output = await pipeline.rows(for: snapshot.items, historyComplete: !snapshot.canLoadOlder)
 
       guard !stopped else {
         return
