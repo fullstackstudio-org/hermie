@@ -87,7 +87,29 @@ struct LiveGatewayTests {
 
     let session = try await connect(first)
     #expect(session?.gatewayID == fixture.first)
+    #expect(session?.passkeys == nil, "no passkey setup on the launch: no confirm level")
     #expect(try await connect(second) == nil, "no token stored")
+  }
+
+  @Test("the accounts connector gives every session the launch's passkey setup")
+  func accountsConnectorPasskeys() async throws {
+    let fixture = try await Fixture()
+    let authenticator = SystemPasskeyAuthenticator(anchor: { nil })
+
+    fixture.launch.passkey = .live(
+      configuration: PasskeyConfiguration(rpID: "confirm.hermie.dev"),
+      authenticator: authenticator,
+      lock: fixture.launch.lock,
+      keyValues: fixture.launch.keyValues
+    )
+
+    let connect = LiveGateway.accountsConnector(launch: fixture.launch, accounts: fixture.accounts)
+    let record = try #require(try await fixture.launch.gateways.store.load().gateway(id: fixture.first))
+    let session = try #require(try await connect(record))
+    let passkeys = try #require(session.passkeys)
+
+    #expect(passkeys.configuration.rpID == "confirm.hermie.dev")
+    await session.shutdown()
   }
 
   @Test("a sign-out ends the session and the revision bump leaves it signed out")
