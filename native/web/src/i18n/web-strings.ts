@@ -56,6 +56,38 @@ export const WEB_STRINGS_SOURCE = {
         `Diese Seite wird nicht unter dem Pfad ausgeliefert, den Hermie erwartet. Öffne sie unter ${expected}.`
     }
   },
+  markdown: {
+    /** The code block's copy button: its label and its accessible name. */
+    copyCode: {
+      en: 'Copy code',
+      nl: 'Code kopiëren',
+      de: 'Code kopieren'
+    },
+    /** Announced, and shown beside the button, once the code is on the clipboard. */
+    copied: {
+      en: 'Copied',
+      nl: 'Gekopieerd',
+      de: 'Kopiert'
+    },
+    /** When the browser refuses the copy (no secure context, no permission). */
+    copyFailed: {
+      en: 'Could not copy',
+      nl: 'Kopiëren is niet gelukt',
+      de: 'Kopieren fehlgeschlagen'
+    },
+    /** The name of the checkbox on a finished task-list item. */
+    taskDone: {
+      en: 'Done',
+      nl: 'Klaar',
+      de: 'Erledigt'
+    },
+    /** The name of the checkbox on an open task-list item. */
+    taskOpen: {
+      en: 'Not done',
+      nl: 'Niet klaar',
+      de: 'Offen'
+    }
+  },
   language: {
     /** The first row of the language picker: a browser has a language list, not one device language. */
     followBrowser: {

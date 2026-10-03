@@ -1,0 +1,294 @@
+/*
+ * A Markdown message. Everything is scoped to `.md`, and the colours are
+ * tokens on it that follow the reader's scheme (the page's own tokens arrive
+ * with the theme, W-10a). Lines and surfaces are derived from the text colour
+ * so they hold on any background a bubble puts under them.
+ *
+ * The document's policy forbids inline styles, which is why alignment and every
+ * other presentational choice is a class and not a `style` attribute.
+ */
+
+.md {
+  --md-link: #0b57d0;
+  --md-code-surface: color-mix(in srgb, currentColor 7%, transparent);
+  --md-line: color-mix(in srgb, currentColor 22%, transparent);
+  --md-muted: color-mix(in srgb, currentColor 68%, transparent);
+  --md-mono: ui-monospace, 'SF Mono', Menlo, Consolas, 'Liberation Mono', monospace;
+
+  overflow-wrap: anywhere;
+  line-height: 1.5;
+}
+
+@media (prefers-color-scheme: dark) {
+  .md {
+    --md-link: #8ab4f8;
+  }
+}
+
+.md > :first-child {
+  margin-top: 0;
+}
+
+.md > :last-child {
+  margin-bottom: 0;
+}
+
+.md p,
+.md ul,
+.md ol,
+.md blockquote,
+.md pre,
+.md .md-code,
+.md .md-table-scroll {
+  margin: 0.5em 0;
+}
+
+/* A soft line break in a message is a line break. */
+.md p,
+.md .md-item-text {
+  white-space: pre-line;
+}
+
+.md h1,
+.md h2,
+.md h3,
+.md h4,
+.md h5,
+.md h6 {
+  margin: 0.9em 0 0.35em;
+  line-height: 1.25;
+}
+
+.md h1 {
+  font-size: 1.5em;
+}
+
+.md h2 {
+  font-size: 1.32em;
+}
+
+.md h3 {
+  font-size: 1.18em;
+}
+
+.md h4 {
+  font-size: 1.08em;
+}
+
+.md h5 {
+  font-size: 1em;
+}
+
+.md h6 {
+  font-size: 0.94em;
+}
+
+.md a {
+  color: var(--md-link);
+  text-decoration: underline;
+  text-underline-offset: 0.15em;
+}
+
+.md a:focus-visible,
+.md .md-code-copy:focus-visible,
+.md .md-table-scroll:focus-visible,
+.md .md-code-body:focus-visible {
+  outline: 2px solid var(--md-link);
+  outline-offset: 2px;
+}
+
+.md hr {
+  height: 1px;
+  margin: 1em 0;
+  border: 0;
+  background: var(--md-line);
+}
+
+/* Lists */
+
+.md ul,
+.md ol {
+  padding-inline-start: 1.6em;
+}
+
+.md li > ul,
+.md li > ol {
+  margin: 0.2em 0;
+}
+
+.md li {
+  margin: 0.15em 0;
+}
+
+.md li > p {
+  margin: 0.25em 0;
+}
+
+.md li.md-task {
+  list-style: none;
+  margin-inline-start: -1.4em;
+}
+
+.md li.md-task > input {
+  margin: 0 0.5em 0 0;
+  vertical-align: baseline;
+}
+
+/* A loose task item: the first paragraph sits beside the box. */
+.md li.md-task > input + p {
+  display: inline-block;
+  margin-top: 0;
+}
+
+/* Quote */
+
+.md blockquote {
+  padding-inline-start: 0.9em;
+  border-inline-start: 3px solid var(--md-line);
+  color: var(--md-muted);
+}
+
+/* Inline code */
+
+.md .md-code-inline {
+  padding: 0.1em 0.35em;
+  border-radius: 4px;
+  background: var(--md-code-surface);
+  font-family: var(--md-mono);
+  font-size: 0.9em;
+  /* A chip is one token: it moves to the next line whole when it fits there. */
+  overflow-wrap: normal;
+  word-break: normal;
+}
+
+/* Images */
+
+.md .md-image {
+  display: block;
+  max-width: 100%;
+  height: auto;
+  margin: 0.5em 0;
+  border-radius: 8px;
+}
+
+.md .md-image-alt {
+  color: var(--md-muted);
+}
+
+/* Fenced code */
+
+.md .md-code {
+  overflow: hidden;
+  border: 1px solid var(--md-line);
+  border-radius: 8px;
+  background: var(--md-code-surface);
+}
+
+.md .md-code-bar {
+  display: flex;
+  align-items: center;
+  gap: 0.75em;
+  padding: 0.25em 0.5em 0.25em 0.75em;
+  border-bottom: 1px solid var(--md-line);
+  font-size: 0.8em;
+}
+
+.md .md-code-lang {
+  color: var(--md-muted);
+  font-family: var(--md-mono);
+}
+
+.md .md-code-copy {
+  margin-inline-start: auto;
+  padding: 0.2em 0.6em;
+  border: 1px solid var(--md-line);
+  border-radius: 6px;
+  background: transparent;
+  color: inherit;
+  font: inherit;
+  cursor: pointer;
+}
+
+.md .md-code-copy:hover {
+  background: var(--md-code-surface);
+}
+
+.md .md-code-status {
+  min-width: 6em;
+  color: var(--md-muted);
+}
+
+.md .md-code-body,
+.md .md-html {
+  margin: 0;
+  padding: 0.6em 0.75em;
+  overflow-x: auto;
+  font-family: var(--md-mono);
+  font-size: 0.875em;
+  line-height: 1.45;
+  /* Listings scroll sideways; they do not wrap. */
+  white-space: pre;
+  overflow-wrap: normal;
+  tab-size: 4;
+}
+
+/* Raw HTML in a message, shown as the text it is. */
+.md .md-html {
+  margin: 0.5em 0;
+  overflow-x: visible;
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+  color: var(--md-muted);
+}
+
+.md .md-code-body code {
+  font: inherit;
+}
+
+/* Tables */
+
+.md .md-table-scroll {
+  max-width: 100%;
+  overflow-x: auto;
+  border: 1px solid var(--md-line);
+  border-radius: 8px;
+}
+
+.md table {
+  border-collapse: collapse;
+  min-width: 100%;
+  font-size: 0.95em;
+}
+
+.md th,
+.md td {
+  padding: 0.45em 0.7em;
+  border-inline-end: 1px solid var(--md-line);
+  text-align: start;
+  vertical-align: top;
+  /* A column is as wide as its longest cell; the container scrolls. */
+  overflow-wrap: normal;
+}
+
+.md th:last-child,
+.md td:last-child {
+  border-inline-end: 0;
+}
+
+.md thead th {
+  border-bottom: 1px solid var(--md-line);
+  background: var(--md-code-surface);
+  font-weight: 600;
+}
+
+.md tbody tr + tr td {
+  border-top: 1px solid var(--md-line);
+}
+
+.md .md-align-center {
+  text-align: center;
+}
+
+.md .md-align-right {
+  text-align: end;
+}
