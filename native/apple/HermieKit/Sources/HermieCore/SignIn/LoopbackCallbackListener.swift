@@ -130,8 +130,12 @@ public protocol LoopbackCallbackListening: Sendable {
  and the state. A port nobody can know in advance is a port nobody can be listening on first. This
  listener:
 
- - binds the IPv4 loopback address only (never a wildcard), refuses endpoint reuse, and accepts local
-   connections only;
+ - binds the IPv4 loopback address only (never a wildcard) and refuses endpoint reuse, so only a
+   process on this device can reach it; a connection whose peer is not a loopback address is closed
+   unread all the same. Not `NWParameters.acceptLocalOnly`: on iOS that closes the system browser's
+   connection as "non-local" the moment it is accepted (the browser then shows "the network
+   connection was lost" and the sign-in never finishes; seen on the iOS 27 simulator, TestFlight
+   0.2.1);
  - reads at most 8 KiB of request head per connection, with a deadline, and handles a bounded number of
    connections at once, so a client that never finishes its request cannot hold it;
  - answers anything that is not `GET /callback…` with `Host: 127.0.0.1:<port>`, and any callback the
@@ -259,13 +263,7 @@ public actor LoopbackCallbackListener: LoopbackCallbackListening {
 
   private func bind() async throws {
     let wanted = port ?? requestedPort
-    let parameters = NWParameters(tls: nil, tcp: NWProtocolTCP.Options())
-
-    parameters.requiredLocalEndpoint = .hostPort(host: .ipv4(.loopback), port: NWEndpoint.Port(rawValue: wanted) ?? .any)
-    parameters.acceptLocalOnly = true
-    parameters.allowLocalEndpointReuse = false
-    parameters.includePeerToPeer = false
-
+    let parameters = Self.parameters(port: wanted)
     let created: NWListener
 
     do {
@@ -297,7 +295,7 @@ public actor LoopbackCallbackListener: LoopbackCallbackListening {
     }
 
     created.newConnectionHandler = { [weak self] connection in
-      guard let self else {
+      guard let self, Self.isLoopbackPeer(connection.endpoint) else {
         connection.cancel()
         return
       }
@@ -522,6 +520,31 @@ public actor LoopbackCallbackListener: LoopbackCallbackListening {
     }
 
     connection.cancel()
+  }
+
+  /// What the listener binds with: the IPv4 loopback address and `port` (0: the system's choice).
+  static func parameters(port: UInt16) -> NWParameters {
+    let parameters = NWParameters(tls: nil, tcp: NWProtocolTCP.Options())
+
+    parameters.requiredLocalEndpoint = .hostPort(host: .ipv4(.loopback), port: NWEndpoint.Port(rawValue: port) ?? .any)
+    // `acceptLocalOnly` stays off: see the type's notes. The loopback binding is what keeps other
+    // devices out, and `isLoopbackPeer` checks every connection besides.
+    parameters.allowLocalEndpointReuse = false
+    parameters.includePeerToPeer = false
+    return parameters
+  }
+
+  /// Whether a connection comes from this device's loopback interface.
+  static func isLoopbackPeer(_ endpoint: NWEndpoint) -> Bool {
+    guard case .hostPort(let host, _) = endpoint else {
+      return false
+    }
+
+    switch host {
+    case .ipv4(let address): return address.isLoopback
+    case .ipv6(let address): return address.isLoopback
+    default: return false
+    }
   }
 
   static func startFailure(_ error: any Error, port: UInt16) -> LoopbackListenerError {
