@@ -379,6 +379,30 @@ export class UiMetaSync {
   private readonly dirtyBots = new Set<string>()
   private dirtyApp = false
 
+  /**
+   * Counts every mark. Each dirty section remembers the count of its latest
+   * mark, and a landed write cleans only the sections whose mark it carried: an
+   * edit made while the write was out stays dirty and goes in a further round
+   * (the Swift app's `UIMetaState.markCount`). Before this, a write that landed
+   * cleaned an edit made during its flight, which then reverted on the next
+   * reconcile.
+   */
+  private markCount = 0
+  private appMark = 0
+  private readonly botMarks = new Map<string, number>()
+
+  /**
+   * Whether the app section's unsent change includes a CHOICE, or only chores
+   * (housekeeping nobody decided: a roster folded in, a lapsed mute swept).
+   *
+   * A chore never wins over the gateway's content: an undated chore against an
+   * undated section would otherwise keep the local copy (the offline rule in
+   * `appLocalWins`), and a flat list folded on a fresh device would replace the
+   * person's folders. `markApp()` with no argument is a choice, which is what
+   * every caller meant before chores were told apart.
+   */
+  private appChoice = false
+
   private currentMode: UiMetaMode = 'local'
   private flushing: Promise<void> | null = null
 
@@ -416,6 +440,7 @@ export class UiMetaSync {
 
     this.userId = userId
     this.dirtyApp = false
+    this.appChoice = false
   }
 
   /** True while something written locally has not reached the gateway. */
@@ -431,11 +456,28 @@ export class UiMetaSync {
    * flush. `read()` is asked at the moment the write goes out.
    */
   markBot(botName: string): void {
+    this.markCount += 1
+    this.botMarks.set(botName, this.markCount)
     this.dirtyBots.add(botName)
   }
 
-  markApp(): void {
+  /**
+   * Record that the app-wide section changed locally: a `choice` (the default)
+   * or a `chore`, which is sent but never wins over the gateway's copy.
+   */
+  markApp(kind: 'choice' | 'chore' = 'choice'): void {
+    this.markCount += 1
+    this.appMark = this.markCount
     this.dirtyApp = true
+
+    if (kind === 'choice') {
+      this.appChoice = true
+    }
+  }
+
+  /** The bots whose sections have not reached the gateway, in the order they were marked. */
+  get pendingBots(): string[] {
+    return [...this.dirtyBots]
   }
 
   /**
@@ -455,6 +497,7 @@ export class UiMetaSync {
     }
 
     this.noteNewerLocalApp(remote)
+    this.dropLosingChores(remote)
 
     const snapshot = this.withPendingKept(remote)
 
@@ -470,7 +513,7 @@ export class UiMetaSync {
       the pull itself.
     */
     if (remote.migrated) {
-      this.dirtyApp = true
+      this.markApp()
     }
 
     await this.flush()
@@ -503,7 +546,19 @@ export class UiMetaSync {
     const local = this.read()
 
     if (local.app && appStampOf(local.app) > appStampOf(remote.app)) {
-      this.dirtyApp = true
+      this.markApp()
+    }
+  }
+
+  /**
+   * An unsent app change made only of chores loses to any section the gateway
+   * holds, and is dropped rather than sent: it is housekeeping the app redoes on
+   * top of whatever it takes (the roster is folded in again), and nobody chose
+   * it. See `appChoice`.
+   */
+  private dropLosingChores(remote: UiMetaSnapshot): void {
+    if (this.dirtyApp && !this.appChoice && remote.app) {
+      this.dirtyApp = false
     }
   }
 
@@ -524,12 +579,12 @@ export class UiMetaSync {
     const local = this.read()
 
     if (!remote.app && local.app) {
-      this.dirtyApp = true
+      this.markApp()
     }
 
     for (const [name, section] of Object.entries(local.bots)) {
       if (section && !remote.bots[name]) {
-        this.dirtyBots.add(name)
+        this.markBot(name)
       }
     }
   }
@@ -596,6 +651,9 @@ export class UiMetaSync {
    *    before this field existed and the one the offline case needs: a change
    *    made with no socket, by a build or a device that has no date to offer, is
    *    still a change and must not be erased on landing.
+   *  - **A chore never wins over a section the gateway holds** (`appChoice`):
+   *    nobody chose it, and undated against undated would otherwise hand a
+   *    folded flat list the person's folders.
    *  - **A gateway with no section at all takes ours.** There is nothing up there
    *    to lose, and `seedWhatTheGatewayLacks` says why an absent key is not a
    *    decision anybody made.
@@ -615,7 +673,7 @@ export class UiMetaSync {
       return true
     }
 
-    if (!local) {
+    if (!local || !this.appChoice) {
       return false
     }
 
@@ -729,6 +787,21 @@ export class UiMetaSync {
   }
 
   private async run(): Promise<void> {
+    // Rounds until one ends with no mark made during it: an edit made while a
+    // round was out is sent by the next round rather than stranded until the
+    // next reconcile.
+    for (;;) {
+      const marks = this.markCount
+
+      await this.round()
+
+      if (this.markCount === marks || !this.pending) {
+        return
+      }
+    }
+  }
+
+  private async round(): Promise<void> {
     /*
       Grouped by profile, which matters in exactly one case and that case is the
       common one: the default profile is also a BOT, so a reader who colours the
@@ -833,6 +906,8 @@ export class UiMetaSync {
   private async send(profile: string, keys: readonly string[]): Promise<void> {
     for (let attempt = 0; attempt <= this.retries; attempt += 1) {
       const sections = this.sectionsFor(profile, keys)
+      // The marks these bytes carry, taken in the same step as the bytes.
+      const carried = { app: this.appMark, bot: this.botMarks.get(profile) ?? 0 }
       const expected: Record<string, number> = {}
 
       for (const key of keys) {
@@ -868,7 +943,7 @@ export class UiMetaSync {
       }
 
       if (!Object.keys(conflicts).length) {
-        this.clearDirty(profile, keys)
+        this.clearDirty(profile, keys, carried)
 
         return
       }
@@ -916,12 +991,17 @@ export class UiMetaSync {
     return { ...(held ?? {}), v: HERMIE_APP_SECTION_VERSION, ...(push ? { push } : {}) }
   }
 
-  private clearDirty(profile: string, keys: readonly string[]): void {
+  /** Clean what this write carried, and only that: a section marked again since stays dirty. */
+  private clearDirty(profile: string, keys: readonly string[], carried: { app: number; bot: number }): void {
     for (const key of keys) {
       if (key === HERMIE_KEY) {
-        this.dirtyBots.delete(profile)
-      } else {
+        if ((this.botMarks.get(profile) ?? 0) === carried.bot) {
+          this.dirtyBots.delete(profile)
+          this.botMarks.delete(profile)
+        }
+      } else if (this.appMark === carried.app) {
         this.dirtyApp = false
+        this.appChoice = false
       }
     }
   }
@@ -936,6 +1016,7 @@ export class UiMetaSync {
     const remote = await this.pull()
 
     if (remote) {
+      this.dropLosingChores(remote)
       this.apply(this.withPendingKept(remote))
     }
   }
@@ -945,6 +1026,9 @@ export class UiMetaSync {
     this.revisions.clear()
     this.dirtyBots.clear()
     this.dirtyApp = false
+    this.appChoice = false
+    this.appMark = 0
+    this.botMarks.clear()
     this.defaultProfile = null
     // And a different person: the identity was that gateway's answer about who
     // is holding the phone, not this device's.

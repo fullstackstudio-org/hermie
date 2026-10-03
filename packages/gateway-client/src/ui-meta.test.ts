@@ -826,3 +826,172 @@ describe('inheriting the anonymous arrangement', () => {
     })
   })
 })
+
+/**
+ * An edit made while a write is out.
+ *
+ * The write carries the bytes `read()` gave it at the moment it left. A landed
+ * write used to clean the section whatever happened meanwhile, so an edit made
+ * during its flight was dropped from the pending set and reverted on the next
+ * reconcile. Now a write cleans only what it carried (the Swift app's marks), and
+ * the flush goes round again for what it did not.
+ */
+describe('an edit made while a write is out', () => {
+  /** A gateway that runs `during` once, while the first `profiles.configure` is in flight. */
+  const midFlight = (request: UiMetaGateway['request'], during: () => void): UiMetaGateway['request'] => {
+    let done = false
+
+    return async (method, params) => {
+      const answer = request(method, params)
+
+      if (method === 'profiles.configure' && !done) {
+        done = true
+        during()
+      }
+
+      return answer
+    }
+  }
+
+  it('is sent by a further round for a bot section', async () => {
+    await withGateway(async ({ request }) => {
+      const local: UiMetaSnapshot = { app: null, bots: {} }
+      const sync: UiMetaSync = new UiMetaSync({
+        gateway: {
+          request: midFlight(request, () => {
+            local.bots.researcher = { v: 1, archived: true, colour: 'teal' }
+            sync.markBot('researcher')
+          })
+        },
+        read: () => local,
+        apply: snapshot => {
+          local.app = snapshot.app
+          local.bots = { ...snapshot.bots }
+        }
+      })
+
+      sync.setUser(OWNER)
+      await sync.reconcile()
+
+      local.bots.researcher = { v: 1, archived: true }
+      sync.markBot('researcher')
+      await sync.flush()
+
+      expect((await metaOf(request, 'researcher'))[HERMIE_KEY]).toEqual({ v: 1, archived: true, colour: 'teal' })
+      expect(sync.pending).toBe(false)
+
+      // And the next reconcile keeps it, rather than taking the first write back.
+      await sync.reconcile()
+      expect(local.bots.researcher).toEqual({ v: 1, archived: true, colour: 'teal' })
+    })
+  })
+
+  it('is sent by a further round for the app section', async () => {
+    await withGateway(async ({ request }) => {
+      const local: UiMetaSnapshot = { app: null, bots: {} }
+      const sync: UiMetaSync = new UiMetaSync({
+        gateway: {
+          request: midFlight(request, () => {
+            local.app = { v: 1, order: ['writer', 'researcher'], [APP_UPDATED_AT]: 20 }
+            sync.markApp()
+          })
+        },
+        read: () => local,
+        apply: snapshot => {
+          local.app = snapshot.app
+          local.bots = { ...snapshot.bots }
+        }
+      })
+
+      sync.setUser(OWNER)
+      await sync.reconcile()
+
+      local.app = { v: 1, order: ['writer'], [APP_UPDATED_AT]: 10 }
+      sync.markApp()
+      await sync.flush()
+
+      expect((await metaOf(request, 'researcher'))[APP_KEY]).toMatchObject({ order: ['writer', 'researcher'] })
+      expect(sync.pending).toBe(false)
+    })
+  })
+})
+
+/**
+ * A chore never wins over data.
+ *
+ * Housekeeping nobody decided (a roster folded into the list, a lapsed mute
+ * swept) is marked as a chore. An undated chore against an undated section used
+ * to keep the local copy, by the offline rule, and a flat list folded on a fresh
+ * device replaced the person's folders. A chore now loses to any section the
+ * gateway holds and is dropped, and still seeds a gateway that has none.
+ */
+describe('a chore against the gateway’s copy', () => {
+  it('loses to an undated section, and is not sent', async () => {
+    await withGateway(async ({ request, device }) => {
+      const desktop = device()
+
+      await desktop.sync.reconcile()
+      desktop.local.app = { v: 1, folders: ['Finance'] }
+      desktop.sync.markApp()
+      await desktop.sync.flush()
+
+      const before = await metaOf(request, 'researcher')
+      const phone = device({ app: { v: 1, order: ['writer', 'researcher'] }, bots: {} })
+
+      phone.sync.markApp('chore')
+      await phone.sync.reconcile()
+
+      expect(phone.local.app).toMatchObject({ folders: ['Finance'] })
+      expect(phone.local.app).not.toHaveProperty('order')
+      expect(phone.sync.pending).toBe(false)
+      expect(await metaOf(request, 'researcher')).toEqual(before)
+    })
+  })
+
+  it('loses to the anonymous section on the inheritance pull too', async () => {
+    await withGateway(async ({ request, device }) => {
+      await request('profiles.configure', {
+        name: 'researcher',
+        ui_meta: { [HERMIE_APP_KEY]: { v: 1, folders: ['Finance'] } }
+      })
+
+      const phone = device({ app: { v: 1, order: ['writer'] }, bots: {} })
+
+      phone.sync.markApp('chore')
+      await phone.sync.reconcile()
+
+      expect((await metaOf(request, 'researcher'))[APP_KEY]).toMatchObject({ folders: ['Finance'] })
+      expect((await metaOf(request, 'researcher'))[APP_KEY]).not.toHaveProperty('order')
+    })
+  })
+
+  it('still seeds a gateway that has no section', async () => {
+    await withGateway(async ({ request, device }) => {
+      const phone = device({ app: { v: 1, order: ['writer'] }, bots: {} })
+
+      phone.sync.markApp('chore')
+      await phone.sync.reconcile()
+
+      expect((await metaOf(request, 'researcher'))[APP_KEY]).toMatchObject({ order: ['writer'] })
+    })
+  })
+
+  it('wins beside a choice, by the choice’s date', async () => {
+    await withGateway(async ({ request, device }) => {
+      const desktop = device()
+
+      await desktop.sync.reconcile()
+      desktop.local.app = { v: 1, folders: ['Finance'], [APP_UPDATED_AT]: 10 }
+      desktop.sync.markApp()
+      await desktop.sync.flush()
+
+      const phone = device({ app: { v: 1, folders: ['Travel'], [APP_UPDATED_AT]: 20 }, bots: {} })
+
+      phone.sync.markApp('chore')
+      phone.sync.markApp()
+      await phone.sync.reconcile()
+
+      expect((await metaOf(request, 'researcher'))[APP_KEY]).toMatchObject({ folders: ['Travel'] })
+    })
+  })
+})
