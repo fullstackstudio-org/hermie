@@ -35,6 +35,10 @@ public enum PushRows {
   /// How long a `seen` stamp stays in the section before it is swept out.
   public static let seenTTL: Double = 86_400
   public static let relayPlatforms = ["ios", "macos"]
+  /// The row field that says this installation handles clearing pushes (`clear` in the contract):
+  /// `true` when it does, absent when it does not. Not part of `pushRowFor`'s reference (the vectors
+  /// replay that unchanged); `PushRowWriter` adds it.
+  public static let clearsKey = "clears"
   /// The plugin capability that says the notifier reads `{bot, at}` in `seen`.
   public static let perChatCapability = "push.seen.per_chat"
   /// The plugin capability that says the notifier can deliver to a relay row.

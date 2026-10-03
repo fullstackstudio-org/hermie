@@ -826,7 +826,57 @@ UI smoke test.
 
 ## Notifications
 
-Push on the native apps is not decided here. A separate ADR will cover notifications.
+The model layer of push is `HermieCore/Push`. What a notification is, for every sender and both app
+generations, is `contract/push/contract.json`; Swift holds itself to that file in
+`PushContractTests` (every data key, enum, request method, channel and the examples in
+`examples.list` are read from the file, so a contract change that this build does not know fails a
+test).
+
+**Reading a payload.** `PushPayload` reads the data bag defensively and exposes the keys the
+contract lists: `type` (the seven switches, the unfiltered `security` and the legacy `dm`),
+`requestMethod`, `requestId`, `sessionId`, `sessionKey`, `sessionKind`, `level`, `clear` (as
+`isClear`), `reason`, `replaces`, `event`, `change`, `eventId` and `gatewayKey`. `readKeys` and
+`carriedKeys` together are every key of the contract.
+
+- **Request methods.** `PushRequestMethod` names `approval`, `clarify`, `secret`, `sudo`,
+  `vault.unlock_prompt`, `vault.code`, `vault.save_login` and `confirm`. Only an approval is posted
+  under `hermie.request` (`PushPayload.wantsActions`); every other method never gets Allow or Deny,
+  and a tap that says Allow or Deny on one is a plain open. A request with no `method` is not an
+  approval for the category, but a tap still reads it as one (the senders before the contract only
+  posted approvals with the actions).
+- **`sessionId` of a request is the runtime id.** The approval a tap answers is matched by request
+  id and bot, and by that runtime id when the payload names one (it is absent when the sender could
+  not know it). The conversation a request opens is named by `sessionKey`, the stored id the session
+  list shows; the runtime id never opens a conversation.
+- **Requests that are not approvals open in the app.** A tap on a clarify, a secure input or a
+  confirmation yields `PushRoute.request(link, PushOpenRequest)`: the method, request id, runtime
+  and stored session ids, the confirmation `level` and where the conversation behind it opens. At
+  level `passkey` the confirmation can only be done in the app (`needsDeviceAuthentication`). Showing
+  the request is a later task: `PushLifecycle` opens the bot's chat meanwhile. Nothing in the route is
+  acted on unverified; the shell re-reads the open request from the gateway by `requestId`.
+- **`security`.** An unfiltered type: it bypasses the per-type switches, the per-chat overrides, a
+  mute and the open-chat suppression (`PushPayload.bypassesFilters`, `PushFilter`). It is no switch:
+  no registration row key, no settings entry, and `PushRows` keeps writing the seven types.
+- **`background.complete`.** Sent as `turn_done` with `event`; the `turn_done` switch decides it
+  (`PushPayload.switchType`).
+
+**Clearing.** The registration row carries `clears: true` (`PushRows.clearsKey`, written by
+`PushRowWriter`, not by the reference port `PushRows.rowFor`, which the contract vectors replay
+unchanged), which tells a sender this build can handle a clearing push. A clearing push is a
+`type: request` bag with `clear: true`; it is silent (`PushPresentation.hidden`), never carries a
+category and is never a tap. It removes the delivered notification of the same bot with the same
+request id, or whose `eventId` is `replaces`, through `PushDeliveredNotifications`, a protocol over
+the system's delivered notifications that keeps `UNUserNotificationCenter` out of the model.
+`PushClearing.apply(_:to:)` is the call for a notification service extension, which has no
+controller; `PushController.handleDelivery` and `PushInbox.handleDelivery` are the calls for the
+app and its delegate. The relay cannot carry a clearing push yet (every relayed message is an
+alert), so on a relay row the app removes what it can itself.
+
+**Seams left for later tasks.** The `UNUserNotificationCenter` implementation of
+`PushDeliveredNotifications` and the app delegate's silent-push and `willPresent` calls into
+`handleDelivery`; showing a request opened from `PushRoute.request` (the secure input sheet, the
+confirmation and the passkey ceremony); a landing for a `security` tap (it opens the bot's chat
+today).
 
 Moving from the Expo app to a native build: the native app registers under a new installation id
 and does not retire the Expo app's row for the same device, because removing it automatically could

@@ -37,6 +37,11 @@ struct PushLifecycle: ViewModifier {
             // Seam: the router has no conversation route yet. Until the conversation viewer lands,
             // the bot's chat opens; the session id the notification named is dropped here.
             perform(router.handle(link), on: launch)
+          case .request(let link, _):
+            // Seam: showing a request that is not an approval (a secure input, a confirmation, a
+            // passkey one) is a later task. Until it lands, the bot's chat opens, where the request
+            // is shown as it is today; `PushOpenRequest` is dropped here.
+            perform(router.handle(link), on: launch)
           case .chatList:
             router.closeChat()
             router.section = .chats

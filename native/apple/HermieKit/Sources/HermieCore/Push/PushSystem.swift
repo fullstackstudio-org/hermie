@@ -30,6 +30,9 @@ public struct PushPresentation: Sendable, Equatable {
    gateway's, from the `seen` heartbeat.
    */
   public static let foreground = PushPresentation(banner: true, list: true, sound: false, badge: false)
+
+  /// Not shown at all: a clearing push, which only takes a delivered notification away.
+  public static let hidden = PushPresentation(banner: false, list: false, sound: false, badge: false)
 }
 
 /**
@@ -131,5 +134,14 @@ public final class PushInbox {
 
   public func presentation(for payload: PushPayload?) -> PushPresentation {
     controller?.presentation(for: payload) ?? .foreground
+  }
+
+  /// A notification arrived (in front, or a silent data message in the background). A clearing push
+  /// is handled; nil when the payload is not one, or when no controller is attached yet (a launch
+  /// from a silent push then has nothing delivered to remove through the app, and the notification
+  /// service extension, which does not need a controller, is the path for it: `PushClearing.apply`).
+  @discardableResult
+  public func handleDelivery(_ payload: PushPayload?) async -> Int? {
+    await controller?.handleDelivery(payload)
   }
 }

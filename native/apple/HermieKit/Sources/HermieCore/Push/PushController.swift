@@ -43,6 +43,13 @@ public enum PushRoute: Sendable, Equatable {
    opens `link`'s chat and hands `sessionId` to that seam (`AppRouter` has none yet).
    */
   case conversation(DeepLink, sessionId: String)
+  /**
+   A request that is not an approval (a clarify, a secure input, a confirmation, at level `passkey`
+   one that can only be done in the app): open it. The seam for the later task that shows it; until
+   then the shell opens `link`'s chat (or `PushOpenRequest.destination`'s conversation) and drops the
+   rest. Re-read the request from the gateway by `requestId` before showing anything.
+   */
+  case request(DeepLink, PushOpenRequest)
   /// The chat list: the notification could not be tied to a configured gateway or a usable bot.
   case chatList
 }
@@ -141,10 +148,16 @@ extension GatewayDirectory {
  the bot's own chat (a branch or another conversation just opens); they re-read that bot's session
  through `pendingApprovals`, decide with `PushTapRules.resolve` (request id, bot and session must
  all match), answer through `respond`, once per request even if the tap arrives twice, and open the
- chat either way.
+ chat either way. Only an approval is ever answered from a notification: a clarify, a secure input
+ and a confirmation (at level `passkey` it can only be done in the app) open as `PushRoute.request`,
+ and a request opens its conversation by its stored `sessionKey` (its `sessionId` is the runtime id).
+
+ A clearing push (`PushPayload.isClear`) is never a tap and never shown (`presentation` is `hidden`):
+ `handleDelivery` removes the delivered notification it withdraws through `deliveredNotifications`.
 
  Seams for later tasks: `addressState(for:)` and `onAddressesChanged` for the ui_meta push row
- writer; `pendingApprovals`, `respond`, `retire`, `resume` and `setGateways` for the session layer.
+ writer; `pendingApprovals`, `respond`, `retire`, `resume` and `setGateways` for the session layer;
+ `deliveredNotifications` for the system's centre; `PushRoute.request` for showing a request.
  */
 @MainActor
 @Observable
@@ -198,6 +211,10 @@ public final class PushController {
   @ObservationIgnored public var canonicalSessionIds: @MainActor (_ gatewayId: String, _ bot: String) -> [String] = {
     _, _ in []
   }
+
+  /// The system's delivered notifications, for a clearing push to take one off. The app shell sets
+  /// one over `UNUserNotificationCenter`; until then nothing is delivered and nothing is removed.
+  @ObservationIgnored public var deliveredNotifications: any PushDeliveredNotifications = NoDeliveredNotifications()
 
   @ObservationIgnored private var token: APNsDeviceToken?
   @ObservationIgnored private var gatewaysKnown = false
@@ -569,12 +586,32 @@ public final class PushController {
 
   /// How a notification is shown while the app is in front.
   public func presentation(for payload: PushPayload?) -> PushPresentation {
-    .foreground
+    // A clearing push is silent: it takes a notification away and shows nothing itself.
+    payload?.isClear == true ? .hidden : .foreground
+  }
+
+  /**
+   A notification arrived (in front or as a silent data message): when it is a clearing push, remove
+   the delivered notification it withdraws (by request id, or by `replaces`) and report how many went;
+   nil when it is not a clearing push, which the caller then treats as any other notification.
+   */
+  @discardableResult
+  public func handleDelivery(_ payload: PushPayload?) async -> Int? {
+    guard let payload else {
+      return nil
+    }
+
+    return await PushClearing.apply(payload, to: deliveredNotifications)
   }
 
   /// A tap on a notification, or on one of its actions. See the type's documentation for the rules.
   public func handleResponse(actionIdentifier: String, payload: PushPayload?) async {
     guard let payload else {
+      return
+    }
+
+    // A clearing push is never tapped, and is never an instruction to open anything.
+    if await handleDelivery(payload) != nil {
       return
     }
 
@@ -594,10 +631,16 @@ public final class PushController {
     }
 
     // Where it lands: the bot's chat, or the conversation the notification named.
+    let canonicalIds = canonicalSessionIds(gateway.id, tap.bot)
+
     let chat: PushRoute =
-      switch PushTapRules.destination(tap, canonicalIds: canonicalSessionIds(gateway.id, tap.bot)) {
-      case .chat: .chat(tap.link)
-      case .conversation(let sessionId): .conversation(tap.link, sessionId: sessionId)
+      if let request = PushTapRules.openRequest(tap, canonicalIds: canonicalIds) {
+        .request(tap.link, request)
+      } else {
+        switch PushTapRules.destination(tap, canonicalIds: canonicalIds) {
+        case .chat: .chat(tap.link)
+        case .conversation(let sessionId): .conversation(tap.link, sessionId: sessionId)
+        }
       }
 
     // A plain tap; an action on a gateway the app is not connected to (its requests cannot be

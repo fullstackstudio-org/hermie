@@ -563,7 +563,7 @@ struct PushControllerTests {
 
     rig.controller.attachLinkHandler(UUID()) { opened.items.append($0) }
     rig.controller.canonicalSessionIds = { gateway, bot in gateway == "g1" && bot == "ops" ? ["s-main", "s-main-resolved"] : [] }
-    rig.controller.pendingApprovals = { _ in [Self.open(session: "s-b")] }
+    rig.controller.pendingApprovals = { _ in [Self.open(session: "rt-b")] }
     rig.controller.respond = { _ in answered += 1 }
     await rig.controller.setGateways([G.one])
 
@@ -577,10 +577,14 @@ struct PushControllerTests {
     // No kind, the chat's own id under its other name: the chat.
     await rig.controller.handleResponse(
       actionIdentifier: "", payload: Self.payload(["bot": "ops", "gatewayKey": G.one.key, "sessionId": "s-main-resolved"]))
-    // An Allow about a conversation opens it and answers nothing.
+    // An Allow about a conversation opens it and answers nothing. A request names the conversation
+    // by its stored `sessionKey`; its `sessionId` is the runtime id the request methods use.
     await rig.controller.handleResponse(
       actionIdentifier: "hermie.request.allow",
-      payload: Self.payload(["bot": "ops", "type": "request", "requestId": "r-1", "gatewayKey": G.one.key, "sessionId": "s-b"]))
+      payload: Self.payload([
+        "bot": "ops", "type": "request", "method": "approval", "requestId": "r-1", "gatewayKey": G.one.key,
+        "sessionId": "rt-b", "sessionKey": "s-b"
+      ]))
 
     #expect(
       opened.items

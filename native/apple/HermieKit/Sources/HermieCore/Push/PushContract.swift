@@ -19,8 +19,33 @@ public enum PushContract {
   /// plugin sent the type) and `hermie.approval` (Hermie Web). Registered with the same actions.
   public static let legacyRequestCategories = ["request", "hermie.approval"]
 
-  /// The payload types whose notifications carry the actions.
+  /// Types a notification can carry that are not switches (`unfilteredTypes`): no device asks for
+  /// one and none can refuse it, so a registration row has no key for them and no settings screen
+  /// lists them. A sender delivers them whatever the switches, the per-chat overrides, a mute and
+  /// the open-chat suppression say.
+  public static let unfilteredTypes = ["security"]
+
+  /// The type spelled by senders older than the contract, still valid on the wire (`legacyTypes`).
+  public static let legacyTypes = ["dm"]
+
+  /// The payload types whose notifications can carry the actions. Whether one does depends on its
+  /// `method` too: only an approval (`PushPayload.wantsActions`).
   public static let typesWithActions = ["request"]
+
+  /// The method whose notification is posted under `requestCategory`, and nothing else is.
+  public static let actionsMethod = PushRequestMethod.approval
+
+  /// Android channel ids (`android.channels`): one per type, the id equal to the type name. iOS has
+  /// no channels; the list is here so a test holds both generations to the same names.
+  public static var channelIds: [String] { types }
+
+  /// Channels of the unfiltered types (`android.alsoChannels`).
+  public static var alsoChannelIds: [String] { unfilteredTypes }
+
+  /// Every `type` a payload may carry and the reader recognises, switch or not.
+  public static func isKnownType(_ type: String) -> Bool {
+    types.contains(type) || unfilteredTypes.contains(type) || legacyTypes.contains(type)
+  }
 
   /**
    TEMPORARY, against the contract: both actions bring the app to the front.
@@ -120,4 +145,90 @@ public struct PushCategoryDescriptor: Sendable, Equatable {
       PushCategoryDescriptor(identifier: $0, actions: actions)
     }
   }
+}
+
+// MARK: - Request methods
+
+/**
+ What a `type: request` notification is, per `data.method` (`requests.methods`): the gateway's own
+ name for the server request. Only an approval is ever posted with the Allow and Deny actions; every
+ other kind has no answer a button could send (a clarify), has to be typed (the secure inputs) or is
+ the person's own act (a confirmation, possibly on a locked screen).
+ */
+public enum PushRequestMethod: String, Sendable, CaseIterable {
+  case approval
+  case clarify
+  case secret
+  case sudo
+  case vaultUnlockPrompt = "vault.unlock_prompt"
+  case vaultCode = "vault.code"
+  case vaultSaveLogin = "vault.save_login"
+  case confirm
+
+  /// Whether the sender always names the request id or only when it knows it.
+  public enum RequestIdRule: String, Sendable, Equatable {
+    case required
+    case whenKnown
+  }
+
+  /// A method this build names, or a `vault.*` method a newer plugin may add: a request kind either
+  /// way, and never one with actions.
+  public static func isRequestKind(_ method: String) -> Bool {
+    PushRequestMethod(rawValue: method) != nil || method.hasPrefix("vault.")
+  }
+
+  /// Whether the notification is posted under `hermie.request`, with Allow and Deny.
+  public var offersActions: Bool { self == PushContract.actionsMethod }
+
+  public var requestId: RequestIdRule { self == .clarify ? .whenKnown : .required }
+
+  /// Whether the data bag and the visible text may ever carry text about the request; `false` means
+  /// never, whatever the registration's `preview` says.
+  public var carriesPreview: Bool { self == .approval || self == .clarify }
+
+  /// A value typed into the app: the secure inputs (`secret`, `sudo`, `vault.*`).
+  public var isSecureInput: Bool {
+    switch self {
+    case .secret, .sudo, .vaultUnlockPrompt, .vaultCode, .vaultSaveLogin: true
+    case .approval, .clarify, .confirm: false
+    }
+  }
+
+  /// The levels a confirmation can be proven at; empty for every other method.
+  public var levels: [PushConfirmLevel] { self == .confirm ? PushConfirmLevel.allCases : [] }
+}
+
+/// How a `confirm` is proven (`data.level`). `passkey` can only be done in the app, with the
+/// device's own authentication; `plain` is a confirmation in the app that needs no proof. Neither is
+/// ever offered as a notification action.
+public enum PushConfirmLevel: String, Sendable, CaseIterable {
+  case plain
+  case passkey
+}
+
+/// Why a request stopped being open (`data.reason` of a clearing push).
+public enum PushClearReason: String, Sendable, CaseIterable {
+  case answered
+  case cancelled
+  case timeout
+}
+
+/// The gateway event a notification reports when `type` alone does not say (`data.event`).
+public enum PushEvent: String, Sendable, CaseIterable {
+  /// Something the person sent to the background finished. The `type` is `turn_done`.
+  case backgroundComplete = "background.complete"
+
+  /// The switch that decides it: the same as for the type it is sent under.
+  public var type: String {
+    switch self {
+    case .backgroundComplete: "turn_done"
+    }
+  }
+}
+
+/// What happened to the person's passkey (`data.change` of a `type: security` notification). Which
+/// one, how it was authorised and who did it never travel.
+public enum PushSecurityChange: String, Sendable, CaseIterable {
+  case added
+  case revoked
 }

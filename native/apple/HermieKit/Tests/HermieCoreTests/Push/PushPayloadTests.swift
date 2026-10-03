@@ -9,11 +9,21 @@ import Testing
 /// contract's own field list, then what a tap on it means.
 @Suite("Push payload")
 struct PushPayloadTests {
-  /// Every data key the contract lists. The reader reads some and carries the rest untouched.
-  static let contractKeys: Set<String> = [
-    "bot", "type", "sessionId", "session", "sessionKind", "requestId", "method", "cron", "cronCertain", "jobId",
-    "gatewayKey", "eventId", "v", "at"
-  ]
+  /// Every data key the contract lists, read from the contract itself.
+  static func contractKeys() throws -> Set<String> {
+    guard case .object(let contract) = try ContractFiles.json("push/contract.json"),
+      case .object(let data)? = contract["data"], case .array(let fields)? = data["fields"]
+    else {
+      throw TimedOut(what: "the contract's data fields")
+    }
+
+    return Set(
+      fields.compactMap { field -> String? in
+        if case .object(let object) = field, case .string(let key)? = object["key"] { key } else { nil }
+      })
+  }
+
+  static let eventId = "request:" + String(repeating: "0", count: 31) + "1"
 
   static let gatewayKey = "0123456789abcdef"
 
@@ -41,6 +51,12 @@ struct PushPayloadTests {
       case ("requestId", _): bag[key] = "req-1"
       case ("method", _): bag[key] = "approval"
       case ("gatewayKey", _): bag[key] = gatewayKey
+      case ("sessionKey", _): bag[key] = "20261003_101500_a1b2c3"
+      case ("level", _): bag[key] = "passkey"
+      case ("reason", _): bag[key] = "answered"
+      case ("replaces", _): bag[key] = eventId
+      case ("event", _): bag[key] = "background.complete"
+      case ("change", _): bag[key] = "added"
       case ("eventId", _): bag[key] = "approval:" + String(repeating: "0", count: 32)
       case (_, "boolean"): bag[key] = true
       case (_, "number"): bag[key] = 1
@@ -72,18 +88,29 @@ struct PushPayloadTests {
     let payload = try #require(PushPayload(userInfo: Self.relayUserInfo(try Self.contractData())))
 
     #expect(payload.shape == .relay)
-    #expect(Set(payload.data.keys) == Self.contractKeys)
+    #expect(Set(payload.data.keys) == (try Self.contractKeys()))
     #expect(payload.type == "request")
-    #expect(payload.wantsActions)
+    // Every field at once makes a clearing push (`clear: true`), which never has the actions.
+    #expect(payload.isClear)
+    #expect(!payload.wantsActions)
+    #expect(payload.sessionKey == "20261003_101500_a1b2c3")
+    #expect(payload.level == .passkey)
+    #expect(payload.clearReason == .answered)
+    #expect(payload.replaces == Self.eventId)
+    #expect(payload.event == .backgroundComplete)
+    #expect(payload.securityChange == .added)
+    #expect(payload.requestMethod == .approval)
     #expect(payload.data["cron"] == .bool(true))
     #expect(payload.data["at"] == .number(1))
 
+    // The Allow on it is only an open: this bag is a clearing push, which is never answered.
     let tap = try #require(PushTap(actionIdentifier: "hermie.request.allow", payload: payload))
     #expect(
       tap
         == PushTap(
-          bot: "researcher", requestId: "req-1", action: .allow, gatewayKey: Self.gatewayKey, sessionId: "sess-1",
-          sessionKind: .branch)
+          bot: "researcher", requestId: "req-1", action: .open, gatewayKey: Self.gatewayKey, sessionId: "sess-1",
+          sessionKind: .branch, type: "request", method: "approval", sessionKey: "20261003_101500_a1b2c3",
+          level: .passkey, isClear: true)
     )
     #expect(tap.link == .chat(bot: "researcher", gatewayKey: Self.gatewayKey))
   }
@@ -101,7 +128,7 @@ struct PushPayloadTests {
       PushPayload(userInfo: Self.expoUserInfo(#"{"v":1,"type":"message","bot":"writer","sessionId":"s-9"}"#)))
     #expect(fromText.shape == .expo)
     #expect(PushTap(actionIdentifier: "com.apple.UNNotificationDefaultActionIdentifier", payload: fromText)
-      == PushTap(bot: "writer", sessionId: "s-9"))
+      == PushTap(bot: "writer", sessionId: "s-9", type: "message"))
   }
 
   @Test("the relay shape wins when both keys are present")
@@ -119,7 +146,7 @@ struct PushPayloadTests {
 
     #expect(
       PushTap(actionIdentifier: "deny", payload: payload)
-        == PushTap(bot: "ops", requestId: "r-7", action: .deny, sessionId: "s-1")
+        == PushTap(bot: "ops", requestId: "r-7", action: .deny, sessionId: "s-1", type: "request")
     )
   }
 

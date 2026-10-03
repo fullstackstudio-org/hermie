@@ -87,7 +87,9 @@ struct PushRowWriterTests {
           "types": .object(PushRows.defaultTypes),
           "preview": false,
           "gatewayKey": .string(Self.gatewayKey),
-          "updatedAt": 1_790_001_453
+          "updatedAt": 1_790_001_453,
+          // This build handles clearing pushes, and says so (`clear.optIn` in the contract).
+          "clears": true
         ]
     )
     #expect(

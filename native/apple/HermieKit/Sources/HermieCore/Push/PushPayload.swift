@@ -56,15 +56,102 @@ public struct PushPayload: Sendable, Equatable {
     return ""
   }
 
-  /// The payload's `type`, when it is one the contract (or its legacy list) names.
+  /// The data keys this reader reads (an accessor below, or the tap's). Together with
+  /// `carriedKeys` they are every key `contract/push/contract.json` lists, and a test holds the two
+  /// to that file in both directions.
+  public static let readKeys: Set<String> = [
+    "bot", "type", "sessionId", "sessionKey", "session", "sessionKind", "requestId", "method", "level", "clear",
+    "reason", "replaces", "event", "change", "gatewayKey", "eventId"
+  ]
+
+  /// The data keys the contract lists that nothing here acts on: they stay in `data` as they came.
+  public static let carriedKeys: Set<String> = ["cron", "cronCertain", "jobId", "v", "at"]
+
+  /// The payload's `type`, when it is one the contract names: a switch (`PushContract.types`), an
+  /// unfiltered type (`security`) or the legacy `dm`. `""` for anything else.
   public var type: String {
     let type = string("type")
-    return PushContract.types.contains(type) || type == "dm" ? type : ""
+    return PushContract.isKnownType(type) ? type : ""
   }
 
-  /// True when this payload is the kind that carries the two actions.
+  /// A `type: security` notice, or any other type the person cannot switch off: delivered whatever
+  /// the per-type switches, the per-chat overrides, a mute and the open-chat suppression say.
+  public var bypassesFilters: Bool {
+    PushContract.unfilteredTypes.contains(type)
+  }
+
+  /// The `type: request` method as the contract names it, or nil (absent, not a request, or one
+  /// this build does not know).
+  public var requestMethod: PushRequestMethod? {
+    PushRequestMethod(rawValue: string("method"))
+  }
+
+  /**
+   True when this payload is posted under `hermie.request`, with Allow and Deny: a `request` whose
+   `method` is `approval`, and nothing else (`category.when`). Every other request method has no
+   actions, a request that names no method is not an approval, and a clearing push never carries a
+   category.
+   */
   public var wantsActions: Bool {
-    PushContract.typesWithActions.contains(type)
+    PushContract.typesWithActions.contains(type) && !isClear && requestMethod?.offersActions == true
+  }
+
+  /// The category the notification is posted under, or nil for none.
+  public var categoryIdentifier: String? {
+    wantsActions ? PushContract.requestCategory : nil
+  }
+
+  /// `data.sessionKey` of a request: the conversation under its stored id. `""` when unknown.
+  public var sessionKey: String { string("sessionKey") }
+
+  /// `data.level` of a `confirm`, or nil when absent or unknown.
+  public var level: PushConfirmLevel? { PushConfirmLevel(rawValue: string("level")) }
+
+  /// A clearing push: `type: request` with `clear: true`. It withdraws a delivered notification, is
+  /// silent and is never shown, never answered and never opens anything.
+  public var isClear: Bool {
+    type == "request" && data["clear"] == .bool(true)
+  }
+
+  /// `data.reason` of a clearing push, or nil.
+  public var clearReason: PushClearReason? { PushClearReason(rawValue: string("reason")) }
+
+  /// `data.replaces`: the `eventId` of the notification a clearing push withdraws, or `""` when absent
+  /// or not shaped like one.
+  public var replaces: String {
+    let value = string("replaces")
+    return Self.isEventId(value) ? value : ""
+  }
+
+  /// `data.eventId`, or `""` when absent or not shaped like one.
+  public var eventId: String {
+    let value = string("eventId")
+    return Self.isEventId(value) ? value : ""
+  }
+
+  /// `data.event`, or nil. `background.complete` is sent under `type: turn_done`.
+  public var event: PushEvent? { PushEvent(rawValue: string("event")) }
+
+  /// The per-type switch that decides this notification (`PushContract.types`), or nil for an
+  /// unfiltered type, which has none. A `background.complete` is the `turn_done` switch.
+  public var switchType: String? {
+    PushContract.types.contains(type) ? type : nil
+  }
+
+  /// `data.change` of a `type: security` notification, or nil.
+  public var securityChange: PushSecurityChange? { PushSecurityChange(rawValue: string("change")) }
+
+  /// `'<kind>:'` and 32 hex digits (`eventId`, `replaces`).
+  static func isEventId(_ value: String) -> Bool {
+    guard let colon = value.firstIndex(of: ":") else {
+      return false
+    }
+
+    let kind = value[..<colon]
+    let digest = value[value.index(after: colon)...]
+
+    return !kind.isEmpty && kind.allSatisfy { ("a"..."z").contains($0) || $0 == "_" } && digest.count == 32
+      && digest.allSatisfy { ("0"..."9").contains($0) || ("a"..."f").contains($0) }
   }
 
   // MARK: Reading the bag
@@ -153,9 +240,20 @@ public struct PushTap: Sendable, Equatable {
   public var action: Action
   /// The sending gateway's link key, or `""` when the payload carried none or not a valid one.
   public var gatewayKey: String
-  /// The session the notified thing happened in, or `""`.
+  /// The session the notified thing happened in, or `""`. For a `request` this is the RUNTIME
+  /// session id (what the request methods name); for every other type the stored one.
   public var sessionId: String
   public var sessionKind: PushSessionKind
+  /// The payload's `type` when the contract names it, else `""`.
+  public var type: String
+  /// The request method as the payload spelled it (`PushRequestMethod`), or `""`.
+  public var method: String
+  /// `type: request` only: the conversation under its STORED id, for opening it. `""` when unknown.
+  public var sessionKey: String
+  /// `method: confirm` only.
+  public var level: PushConfirmLevel?
+  /// A clearing push (`clear: true`): never answered and never opened; it only withdraws.
+  public var isClear: Bool
 
   public init(
     bot: String,
@@ -163,7 +261,12 @@ public struct PushTap: Sendable, Equatable {
     action: Action = .open,
     gatewayKey: String = "",
     sessionId: String = "",
-    sessionKind: PushSessionKind = .unknown
+    sessionKind: PushSessionKind = .unknown,
+    type: String = "",
+    method: String = "",
+    sessionKey: String = "",
+    level: PushConfirmLevel? = nil,
+    isClear: Bool = false
   ) {
     self.bot = bot
     self.requestId = requestId
@@ -171,6 +274,11 @@ public struct PushTap: Sendable, Equatable {
     self.gatewayKey = gatewayKey
     self.sessionId = sessionId
     self.sessionKind = sessionKind
+    self.type = type
+    self.method = method
+    self.sessionKey = sessionKey
+    self.level = level
+    self.isClear = isClear
   }
 
   /**
@@ -180,7 +288,9 @@ public struct PushTap: Sendable, Equatable {
    Both spellings of the actions and the request id are read (`hermie.request.allow` and `allow`,
    `requestId` and `request`), and both of the session id (`sessionId`, and Hermie Web's `session`).
    An Allow or Deny that names no request degrades to a plain open rather than answering whichever
-   question is oldest.
+   question is oldest, and so does one on a notification that is not an approval (a clarify, a
+   secure input, a confirmation, a clearing push): a request with no `method` is still read as an
+   approval, the only kind the senders before the contract posted with the actions.
    */
   public init?(actionIdentifier: String, payload: PushPayload) {
     let bot = payload.string("bot")
@@ -202,16 +312,52 @@ public struct PushTap: Sendable, Equatable {
 
     let key = payload.string("gatewayKey")
     let sessionId = payload.string("sessionId").isEmpty ? payload.string("session") : payload.string("sessionId")
+    let method = payload.string("method")
+    let answers = Self.methodAnswersInPlace(method) && !payload.isClear
 
     self.init(
       bot: bot,
       requestId: requestId,
-      action: action != .open && requestId.isEmpty ? .open : action,
+      action: action != .open && (requestId.isEmpty || !answers) ? .open : action,
       gatewayKey: Identifiers.isGatewayKey(key) ? key : "",
       sessionId: sessionId,
       // A kind this build does not know is read as no kind at all.
-      sessionKind: PushSessionKind(rawValue: payload.string("sessionKind")) ?? .unknown
+      sessionKind: PushSessionKind(rawValue: payload.string("sessionKind")) ?? .unknown,
+      type: payload.type,
+      method: method,
+      sessionKey: payload.sessionKey,
+      level: payload.level,
+      isClear: payload.isClear
     )
+  }
+
+  /// Whether an Allow or Deny may answer a notification of this method: an approval, or one that
+  /// names none (older senders).
+  static func methodAnswersInPlace(_ method: String) -> Bool {
+    method.isEmpty || method == PushContract.actionsMethod.rawValue
+  }
+
+  /// Whether this tap's notification is one an Allow or Deny could answer.
+  public var methodAnswersInPlace: Bool {
+    Self.methodAnswersInPlace(method) && !isClear
+  }
+
+  /// A `type: request` notification.
+  public var isRequest: Bool {
+    type == "request"
+  }
+
+  /// The id of the conversation the notification is about, as the session list knows it: for a
+  /// request the `sessionKey` (its `sessionId` is the runtime id, which names no conversation), for
+  /// every other type the `sessionId`.
+  public var conversationId: String {
+    isRequest ? sessionKey : sessionId
+  }
+
+  /// Whether a tap on this notification opens a request in the app rather than only a chat: a
+  /// request of any method but an approval (a clarify, a secure input, a confirmation).
+  public var opensRequest: Bool {
+    isRequest && !isClear && !method.isEmpty && method != PushContract.actionsMethod.rawValue
   }
 
   /// The chat a tap opens through the app's link handling. Only used once `gatewayKey` is known to
@@ -219,6 +365,62 @@ public struct PushTap: Sendable, Equatable {
   /// gateway happens to be live.
   public var link: DeepLink {
     .chat(bot: bot, gatewayKey: gatewayKey)
+  }
+}
+
+/**
+ The seam for opening a request in the app: what a tap on a `type: request` notification that is not
+ an approval hands to the shell (`PushRoute.request`). The handling (the secure input sheet, the
+ confirmation, the passkey ceremony) is a later task; this is everything the notification said, as
+ lookups: the shell re-reads the open request from the gateway by `requestId` (or finds the pending
+ clarify) and shows it only if it is still open. Nothing in here is acted on unverified.
+
+ At `level: passkey` the confirmation can only be done in the app with the device's own
+ authentication, so the tap lands here and nowhere else.
+ */
+public struct PushOpenRequest: Sendable, Equatable {
+  public var bot: String
+  public var gatewayKey: String
+  /// The method as the payload spelled it; `PushRequestMethod(rawValue:)` when this build knows it.
+  public var method: String
+  /// Empty for a clarify the sender had no id for.
+  public var requestId: String
+  /// The RUNTIME session id the request is addressed with, or `""` when the sender could not know it.
+  public var sessionId: String
+  /// The conversation under its STORED id, or `""`.
+  public var sessionKey: String
+  public var level: PushConfirmLevel?
+  /// Where the conversation behind it opens: the bot's chat, or the conversation `sessionKey` names.
+  public var destination: PushDestination
+
+  public init(
+    bot: String,
+    gatewayKey: String = "",
+    method: String,
+    requestId: String = "",
+    sessionId: String = "",
+    sessionKey: String = "",
+    level: PushConfirmLevel? = nil,
+    destination: PushDestination = .chat
+  ) {
+    self.bot = bot
+    self.gatewayKey = gatewayKey
+    self.method = method
+    self.requestId = requestId
+    self.sessionId = sessionId
+    self.sessionKey = sessionKey
+    self.level = level
+    self.destination = destination
+  }
+
+  /// The method this build knows, or nil.
+  public var requestMethod: PushRequestMethod? {
+    PushRequestMethod(rawValue: method)
+  }
+
+  /// Proven in the app with the device's own authentication, never from the notification.
+  public var needsDeviceAuthentication: Bool {
+    requestMethod == .confirm && level == .passkey
   }
 }
 
@@ -282,7 +484,8 @@ public enum PushIntent: Sendable, Equatable {
 public enum PushDestination: Sendable, Equatable {
   /// The bot's own chat.
   case chat
-  /// One named conversation of that bot.
+  /// One named conversation of that bot, by the id the session list shows (for a request that is
+  /// its `sessionKey`).
   case conversation(sessionId: String)
 }
 
@@ -300,7 +503,7 @@ public enum PushTapRules {
   public static func resolve(_ tap: PushTap, pending: [PushOpenApproval]) -> PushIntent {
     let open = PushIntent.openChat(bot: tap.bot)
 
-    guard tap.action != .open, !tap.requestId.isEmpty, answersInPlace(tap) else {
+    guard tap.action != .open, !tap.requestId.isEmpty, tap.methodAnswersInPlace, answersInPlace(tap) else {
       return open
     }
 
@@ -333,18 +536,41 @@ public enum PushTapRules {
    anything else opens the chat.
    */
   public static func destination(_ tap: PushTap, canonicalIds: [String]) -> PushDestination {
-    if tap.sessionKind == .canonical || tap.sessionId.isEmpty {
+    // A request names its conversation by `sessionKey`; its `sessionId` is the runtime id, which no
+    // session list shows.
+    let conversation = tap.conversationId
+
+    if tap.sessionKind == .canonical || conversation.isEmpty {
       return .chat
     }
 
     if tap.sessionKind == .branch || tap.sessionKind == .other {
-      return .conversation(sessionId: tap.sessionId)
+      return .conversation(sessionId: conversation)
     }
 
-    if canonicalIds.isEmpty || canonicalIds.contains(tap.sessionId) {
+    if canonicalIds.isEmpty || canonicalIds.contains(conversation) {
       return .chat
     }
 
-    return .conversation(sessionId: tap.sessionId)
+    return .conversation(sessionId: conversation)
+  }
+
+  /// What a tap on a request that is not an approval opens in the app, or nil for every other tap
+  /// (a message, an approval, a security notice). See `PushOpenRequest`.
+  public static func openRequest(_ tap: PushTap, canonicalIds: [String]) -> PushOpenRequest? {
+    guard tap.opensRequest else {
+      return nil
+    }
+
+    return PushOpenRequest(
+      bot: tap.bot,
+      gatewayKey: tap.gatewayKey,
+      method: tap.method,
+      requestId: tap.requestId,
+      sessionId: tap.sessionId,
+      sessionKey: tap.sessionKey,
+      level: tap.level,
+      destination: destination(tap, canonicalIds: canonicalIds)
+    )
   }
 }

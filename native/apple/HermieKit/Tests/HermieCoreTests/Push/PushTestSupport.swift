@@ -365,3 +365,31 @@ final class LoopbackRelay: Sendable {
     }
   }
 }
+
+// MARK: - Delivered notifications
+
+/// The system's delivered notifications, as a test sets them up: what is shown, and what was removed.
+final class FakeDeliveredNotifications: PushDeliveredNotifications {
+  private let state: Mutex<State>
+
+  private struct State {
+    var shown: [PushDeliveredNotification]
+    var removed: [String] = []
+  }
+
+  init(_ shown: [PushDeliveredNotification] = []) {
+    state = Mutex(State(shown: shown))
+  }
+
+  var shown: [PushDeliveredNotification] { state.withLock { $0.shown } }
+  var removed: [String] { state.withLock { $0.removed } }
+
+  func delivered() async -> [PushDeliveredNotification] { shown }
+
+  func remove(identifiers: [String]) async {
+    state.withLock { state in
+      state.removed.append(contentsOf: identifiers)
+      state.shown.removeAll { identifiers.contains($0.identifier) }
+    }
+  }
+}
