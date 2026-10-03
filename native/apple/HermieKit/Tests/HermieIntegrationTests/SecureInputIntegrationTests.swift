@@ -35,9 +35,9 @@ private struct SecureChat {
   let session: GatewaySession
   let model: SecureInputModel
 
-  static func open(_ gateway: FakeGateway) async throws -> SecureChat {
+  static func open(_ gateway: FakeGateway, backoff: Duration = .milliseconds(100)) async throws -> SecureChat {
     var options = GatewaySession.Options()
-    options.connection.backoff = { _ in .milliseconds(100) }
+    options.connection.backoff = { _ in backoff }
     let record = GatewayRecord(id: "g-secure", name: "fake", address: gateway.baseURL, authKind: .sessionToken, addedAt: 0)
     let session = try GatewaySession(
       record: record,
@@ -166,6 +166,35 @@ extension Integration {
         #expect(await model.send(SecretValue("too late")) == false)
         #expect(try await SecureChat.answers(gateway).contains { $0.id == id } == false)
         await chat.session.shutdown()
+      }
+    }
+
+    @Test("a prompt the gateway withdrew while the socket was down closes after the reconnect, and nothing is sent")
+    func withdrawnWhileDown() async throws {
+      try await withSecureGateway { gateway in
+        // A reconnect waits a minute unless asked to dial: the gateway withdraws
+        // the request while this client has no socket at all.
+        let chat = try await SecureChat.open(gateway, backoff: .seconds(60))
+        let model = chat.model
+        let session = chat.session
+
+        let id = try await chat.raise(gateway, "sudo", ["command": "ls"])
+
+        _ = try await gateway.control("POST", "/__fake/drop-sockets")
+        try await secureWait("the socket to drop") {
+          let state = try await gateway.control("GET", "/__fake/state")
+          return session.status.phase != .ready && state["openSockets"] == 0
+        }
+        let withdrawn = try await gateway.control("POST", "/__fake/withdraw-requests", body: ["reason": "timeout"])
+        #expect(withdrawn["withdrawn"] == 1)
+        #expect(model.presented?.id == id, "the client heard nothing: the sheet is still up")
+
+        await session.retryNow()
+        try await secureWait("the prompt to close") { model.presented == nil }
+        #expect(model.presentedOutcome == .lapsed)
+        #expect(await model.send(SecretValue("too late")) == false)
+        #expect(try await SecureChat.answers(gateway).contains { $0.id == id } == false)
+        await session.shutdown()
       }
     }
 
