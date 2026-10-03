@@ -78,7 +78,9 @@ const SAMPLE = {
   total: MARKER,
   detail: MARKER,
   problem: MARKER,
-  query: MARKER
+  query: MARKER,
+  added: MARKER,
+  removed: MARKER
 }
 
 describe('the web-only strings', () => {

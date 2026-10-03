@@ -38,6 +38,7 @@ import { Icon } from '../../../ui/icons'
 import { WithName } from '../../requests/with-name'
 import { chatHref } from '../../shell/router'
 import { clipLine, clockOf, isoOf } from '../chat-format'
+import { messageTargetProps } from '../message-menu'
 import { MessageMarkdown } from './MessageMarkdown'
 import { type RowViewProps, sameRowView } from './row-view'
 
@@ -154,7 +155,12 @@ function BotDmAsideView({ item, presentation }: RowViewProps<BotDmItem>) {
     : (name: string) => strings.chat.botDm.asideFrom({ handle: name })
 
   return (
-    <article className="hm-dm" data-kind={item.kind} data-open={open ? 'true' : 'false'}>
+    <article
+      className="hm-dm"
+      data-kind={item.kind}
+      data-open={open ? 'true' : 'false'}
+      {...messageTargetProps(item.id)}
+    >
       <button
         className="hm-dm__line"
         type="button"

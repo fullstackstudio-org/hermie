@@ -9,9 +9,12 @@
  *
  * The text is Markdown, the same as the reply beside it: a person who typed
  * `**done**` was writing markup, and showing the asterisks on one side and bold
- * on the other would be the page disagreeing with itself. An attachment is its
- * file name, as text: what the gateway holds is a path on its own disk, which
- * the page cannot open.
+ * on the other would be the page disagreeing with itself. The attachments are
+ * the gallery's (`AttachmentGallery`): a picture where the host has one to load
+ * (an image the reader sent from this page), otherwise the file's name as a
+ * chip, because what the gateway holds is a path on its own disk that the page
+ * cannot open. The message is one the transcript's shared menu reaches
+ * (`messageTargetProps`).
  */
 import type { UserItem } from '@hermie/transcript'
 import { memo } from 'react'
@@ -21,6 +24,8 @@ import { useLocale } from '../../../i18n/use-locale'
 import { webStrings } from '../../../i18n/web-strings'
 import { senderName } from '../../bots/preview'
 import { clockOf, isoOf } from '../chat-format'
+import { messageTargetProps } from '../message-menu'
+import { AttachmentGallery } from './AttachmentGallery'
 import { useItemContext } from './item-context'
 import { MessageMarkdown } from './MessageMarkdown'
 import { type RowViewProps, sameRowView } from './row-view'
@@ -51,6 +56,7 @@ function UserBubbleView({ item, presentation }: RowViewProps<UserItem>) {
       className="hm-msg"
       data-side={foreign ? 'other' : 'own'}
       data-pending={item.pending ? 'true' : 'false'}
+      {...messageTargetProps(item.id)}
       aria-label={name ? (clock ? webStrings.chat.messageFrom({ name, time: clock }) : name) : undefined}
     >
       {foreign && name ? <p className="hm-msg__sender">{name}</p> : null}
@@ -59,11 +65,10 @@ function UserBubbleView({ item, presentation }: RowViewProps<UserItem>) {
         {item.text.trim() ? <MessageMarkdown text={item.text} /> : null}
 
         {attachments.length > 0 ? (
-          <ul className="hm-bubble__files" aria-label={webStrings.chat.attachments}>
-            {attachments.map(reference => (
-              <li key={reference}>{attachmentName(reference)}</li>
-            ))}
-          </ul>
+          <AttachmentGallery
+            attachments={attachments.map(reference => ({ reference, name: attachmentName(reference) }))}
+            onAccent={!foreign}
+          />
         ) : null}
 
         <p className="hm-bubble__meta">

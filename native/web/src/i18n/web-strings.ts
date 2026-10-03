@@ -304,6 +304,48 @@ export const WEB_STRINGS_SOURCE = {
       de: ({ query }: { query: string }) => `„${query}“ in diesem Chat gefunden.`
     }
   },
+  itemViews: {
+    /** The transcript's description: how the keyboard reaches a message and its actions. */
+    keyboardHint: {
+      en: 'Up and down arrows move between messages. Enter or Shift+F10 opens the actions of a message.',
+      nl: 'Met de pijltjes omhoog en omlaag ga je van bericht naar bericht. Enter of Shift+F10 opent de acties van een bericht.',
+      de: 'Mit den Pfeiltasten nach oben und unten wechselst du zwischen Nachrichten. Enter oder Umschalt+F10 öffnet die Aktionen einer Nachricht.'
+    },
+    diff: {
+      /** Above a diff, and the name of its scroll region: how many lines it adds and removes. */
+      summary: {
+        en: ({ added, removed }: { added: number; removed: number }) =>
+          `${added.toLocaleString('en')} ${added === 1 ? 'line' : 'lines'} added, ${removed.toLocaleString('en')} removed`,
+        nl: ({ added, removed }: { added: number; removed: number }) =>
+          `${added.toLocaleString('nl')} ${added === 1 ? 'regel' : 'regels'} toegevoegd, ${removed.toLocaleString('nl')} verwijderd`,
+        de: ({ added, removed }: { added: number; removed: number }) =>
+          `${added.toLocaleString('de')} ${added === 1 ? 'Zeile' : 'Zeilen'} hinzugefügt, ${removed.toLocaleString('de')} entfernt`
+      },
+      /** Read before an added line of a diff, for somebody who cannot see its colour. */
+      added: {
+        en: 'Added:',
+        nl: 'Toegevoegd:',
+        de: 'Hinzugefügt:'
+      },
+      /** Read before a removed line of a diff. */
+      removed: {
+        en: 'Removed:',
+        nl: 'Verwijderd:',
+        de: 'Entfernt:'
+      },
+      /** Under a diff that was cut short. */
+      more: {
+        en: ({ count }: { count: number }) =>
+          count === 1 ? '1 more line not shown' : `${count.toLocaleString('en')} more lines not shown`,
+        nl: ({ count }: { count: number }) =>
+          count === 1 ? '1 regel meer niet getoond' : `${count.toLocaleString('nl')} regels meer niet getoond`,
+        de: ({ count }: { count: number }) =>
+          count === 1
+            ? '1 weitere Zeile nicht angezeigt'
+            : `${count.toLocaleString('de')} weitere Zeilen nicht angezeigt`
+      }
+    }
+  },
   composer: {
     /** Under the field when a send was refused: the words are back in the field. */
     sendFailed: {

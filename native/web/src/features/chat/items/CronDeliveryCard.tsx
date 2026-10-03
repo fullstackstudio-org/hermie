@@ -24,6 +24,7 @@ import { strings } from '../../../generated/strings'
 import { useLocale } from '../../../i18n/use-locale'
 import { Icon } from '../../../ui/icons'
 import { clockOf } from '../chat-format'
+import { messageTargetProps } from '../message-menu'
 import { MessageMarkdown } from './MessageMarkdown'
 import { type RowViewProps, sameRowView } from './row-view'
 
@@ -59,7 +60,7 @@ function CronDeliveryCardView({ item, presentation }: RowViewProps<CronDeliveryI
   const clock = clockOf(item.ts)
 
   return (
-    <article className="hm-cron" data-open={open ? 'true' : 'false'}>
+    <article className="hm-cron" data-open={open ? 'true' : 'false'} {...messageTargetProps(item.id)}>
       <button
         className="hm-cron__line"
         type="button"

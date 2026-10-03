@@ -25,6 +25,7 @@ import { startSession } from './features/shell/session'
 import { chatCacheFor, type ChatCache } from './platform/chat-cache'
 import { createKeyValueStore, type WebKeyValueStore } from './platform/key-value-store'
 import { localeEnvironmentFor } from './platform/locale-environment'
+import { chatViewStore } from './state/chat-view'
 import { bindTheme, settingsStore } from './state/settings'
 import { Button } from './ui/primitives'
 import './ui/theme.css'
@@ -106,6 +107,8 @@ async function run(root: Root, basePath: ResolvedBasePath, store: WebKeyValueSto
 
   // Before anything is painted from the cache: it must be this person's.
   await claimForOwner({ cache, store }, state.author?.id)
+  // What each chat shows is this person's too, so it is read only once the store is theirs.
+  chatViewStore.getState().hydrate(store)
 
   // The connection, the chats on it and the roster's running poll: started once,
   // here, so no re-render can start a second one.

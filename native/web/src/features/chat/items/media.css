@@ -1,0 +1,321 @@
+/*
+ * What a message carries besides its words: a diff, files, pictures, and the
+ * viewer a picture opens in. Colours are the theme's (`ui/theme.css`); where a
+ * tint is needed it is a mix of a theme colour into the surface, so the text on
+ * it keeps the contrast the theme measures (`ui/theme.contrast.test.ts`).
+ */
+
+/* ── a diff ──────────────────────────────────────────────────────────────── */
+
+.hm-diff {
+  margin: 8px 0 0;
+  min-width: 0;
+}
+
+.hm-diff__summary {
+  margin: 0 0 4px;
+  color: var(--hm-text-muted);
+  font-size: 0.8125rem;
+}
+
+.hm-diff__scroll {
+  overflow-x: auto;
+  border: 1px solid var(--hm-line);
+  border-radius: var(--hm-radius);
+  background: var(--hm-bg);
+}
+
+.hm-diff__lines {
+  display: table;
+  min-width: 100%;
+  font-family: var(--hm-mono);
+  font-size: 0.75rem;
+  line-height: 1.5;
+}
+
+.hm-diff__line {
+  display: table-row;
+  white-space: pre;
+}
+
+.hm-diff__line > span,
+.hm-diff__line > ins,
+.hm-diff__line > del {
+  display: table-cell;
+}
+
+.hm-diff__gutter {
+  min-width: 3ch;
+  padding: 0 6px;
+  color: var(--hm-text-faint);
+  text-align: end;
+  user-select: none;
+}
+
+.hm-diff__marker {
+  padding-inline-end: 6px;
+  user-select: none;
+}
+
+.hm-diff__text {
+  width: 100%;
+  padding-inline-end: 12px;
+  color: var(--hm-text);
+  text-decoration: none;
+}
+
+.hm-diff__line[data-kind='add'] {
+  background: color-mix(in srgb, var(--hm-presence-online) 16%, var(--hm-bg));
+}
+
+.hm-diff__line[data-kind='delete'] {
+  background: color-mix(in srgb, var(--hm-danger-text) 14%, var(--hm-bg));
+}
+
+.hm-diff__line[data-kind='hunk'] {
+  background: color-mix(in srgb, var(--hm-presence-working) 12%, var(--hm-bg));
+  color: var(--hm-text-muted);
+}
+
+.hm-diff__line[data-kind='hunk'] .hm-diff__text,
+.hm-diff__line[data-kind='meta'] .hm-diff__text {
+  color: var(--hm-text-muted);
+}
+
+.hm-diff__more {
+  margin: 4px 0 0;
+  color: var(--hm-text-muted);
+  font-size: 0.75rem;
+}
+
+/* ── the attachments of a message ───────────────────────────────────────── */
+
+.hm-gallery {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  gap: 4px;
+  margin: 6px 0 0;
+  padding: 0;
+  list-style: none;
+}
+
+.hm-gallery[data-columns='2'] {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
+.hm-gallery[data-columns='3'] {
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+}
+
+/* A file takes a row of its own, whatever the pictures beside it do. */
+.hm-gallery__entry[data-kind='file'] {
+  grid-column: 1 / -1;
+}
+
+/* ── a file ──────────────────────────────────────────────────────────────── */
+
+.hm-file {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  max-width: min(100%, 22rem);
+  padding: 6px 10px;
+  border: 1px solid var(--hm-line);
+  border-radius: var(--hm-radius);
+  background: var(--hm-bg);
+  color: var(--hm-text);
+  font-size: 0.8125rem;
+  vertical-align: middle;
+}
+
+.hm-file[data-on-accent='true'] {
+  border-color: currentColor;
+  background: transparent;
+  color: inherit;
+}
+
+.hm-file[data-state='error'] {
+  border-color: var(--hm-danger-text);
+  color: var(--hm-danger-text);
+}
+
+.hm-file__glyph {
+  flex: none;
+}
+
+.hm-file__body {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+}
+
+.hm-file__name {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.hm-file__open {
+  appearance: none;
+  padding: 0;
+  border: 0;
+  background: transparent;
+  color: inherit;
+  font: inherit;
+  text-align: start;
+  text-decoration: underline;
+  cursor: pointer;
+}
+
+.hm-file__detail {
+  color: inherit;
+  font-size: 0.75rem;
+  opacity: 0.85;
+  overflow-wrap: anywhere;
+}
+
+.hm-file:not([data-on-accent='true']):not([data-state='error']) .hm-file__detail {
+  color: var(--hm-text-muted);
+  opacity: 1;
+}
+
+.hm-file__progress {
+  width: 100%;
+  height: 4px;
+  accent-color: var(--hm-tint);
+}
+
+.hm-file__remove {
+  appearance: none;
+  display: inline-flex;
+  flex: none;
+  align-items: center;
+  justify-content: center;
+  width: 28px;
+  height: 28px;
+  margin: -4px -6px -4px 0;
+  border: 0;
+  border-radius: var(--hm-radius-pill);
+  background: transparent;
+  color: inherit;
+  font: inherit;
+  font-size: 1.125rem;
+  line-height: 1;
+  cursor: pointer;
+}
+
+.hm-file__remove:hover {
+  background: color-mix(in srgb, currentColor 12%, transparent);
+}
+
+/* ── a picture ───────────────────────────────────────────────────────────── */
+
+.hm-image {
+  appearance: none;
+  display: block;
+  box-sizing: border-box;
+  width: 100%;
+  margin: 0;
+  padding: 0;
+  overflow: hidden;
+  border: 1px solid var(--hm-line);
+  border-radius: 12px;
+  background: var(--hm-bg);
+  font: inherit;
+  cursor: zoom-in;
+}
+
+.hm-image[data-on-accent='true'] {
+  border-color: color-mix(in srgb, var(--hm-on-tint) 30%, transparent);
+  background: color-mix(in srgb, var(--hm-on-tint) 18%, transparent);
+}
+
+.hm-image__img {
+  display: block;
+  width: 100%;
+}
+
+/* On its own: its own shape, up to a ceiling, never cropped. */
+.hm-image[data-layout='solo'] .hm-image__img {
+  height: auto;
+  max-height: 260px;
+  object-fit: contain;
+}
+
+/* In a grid: a tile of one height, filled and cropped, so the grid reads as one. */
+.hm-image[data-layout='cell'] .hm-image__img {
+  height: 108px;
+  object-fit: cover;
+}
+
+/* ── the viewer ──────────────────────────────────────────────────────────── */
+
+.hm-viewer {
+  position: fixed;
+  inset: 0;
+  z-index: 50;
+  display: flex;
+  background: color-mix(in srgb, #000000 82%, transparent);
+}
+
+.hm-viewer__dialog {
+  display: flex;
+  flex: 1 1 auto;
+  flex-direction: column;
+  min-width: 0;
+  min-height: 0;
+}
+
+.hm-viewer__bar {
+  display: flex;
+  flex: none;
+  align-items: center;
+  gap: 12px;
+  padding: 10px var(--hm-gutter);
+  background: var(--hm-surface);
+  color: var(--hm-text);
+}
+
+.hm-viewer__title {
+  flex: 1 1 auto;
+  min-width: 0;
+  margin: 0;
+  overflow: hidden;
+  font-size: 1rem;
+  font-weight: 600;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.hm-viewer__action {
+  appearance: none;
+  display: inline-flex;
+  flex: none;
+  align-items: center;
+  min-height: 44px;
+  padding: 0 14px;
+  border: 1px solid var(--hm-line);
+  border-radius: var(--hm-radius);
+  background: var(--hm-bg);
+  color: var(--hm-tint-text);
+  font: inherit;
+  font-weight: 600;
+  text-decoration: none;
+  cursor: pointer;
+}
+
+.hm-viewer__stage {
+  display: flex;
+  flex: 1 1 auto;
+  align-items: center;
+  justify-content: center;
+  min-height: 0;
+  padding: 16px;
+}
+
+.hm-viewer__img {
+  max-width: 100%;
+  max-height: 100%;
+  object-fit: contain;
+}

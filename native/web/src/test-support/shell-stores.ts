@@ -6,6 +6,7 @@
  */
 import { ownAuthorStore } from '../core/chats/own-author'
 import { type Bot, botsStore } from '../state/bots'
+import { chatViewStore } from '../state/chat-view'
 import { chatsStore } from '../state/chats'
 import { connectionStore } from '../state/connection'
 import { pluginStore } from '../state/plugin'
@@ -46,6 +47,7 @@ export function resetShellStores(): void {
   ownAuthorStore.getState().reset()
   settingsStore.getState().reset()
   sessionStatusStore.getState().reset()
+  chatViewStore.getState().reset()
 }
 
 /** Put a roster in the store as a gateway answer would, and mark every bot read. */

@@ -295,21 +295,6 @@
   color: var(--hm-on-tint);
 }
 
-.hm-bubble__files {
-  margin: 6px 0 0;
-  padding: 0;
-  list-style: none;
-}
-
-.hm-bubble__files li {
-  display: inline-block;
-  margin: 2px 4px 2px 0;
-  padding: 2px 10px;
-  border: 1px solid currentColor;
-  border-radius: var(--hm-radius-pill);
-  font-size: 0.8125rem;
-}
-
 /* A turn that failed: the words that arrived stay above it. */
 .hm-failure {
   max-width: min(46rem, 92%);

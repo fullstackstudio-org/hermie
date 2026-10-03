@@ -1,0 +1,133 @@
+/*
+ * The chat's options: a button at the end of the header line and the panel it
+ * shows under it. The panel floats over the transcript; it holds native
+ * controls, so the browser draws their states and their focus.
+ */
+
+.hm-chat__head {
+  display: flex;
+  flex: none;
+  align-items: center;
+  gap: 8px;
+  min-width: 0;
+}
+
+.hm-chat__head > .hm-chat-header {
+  flex: 1 1 auto;
+  min-width: 0;
+}
+
+.hm-chat-options {
+  position: relative;
+  display: inline-block;
+  flex: none;
+  margin-block-end: 10px;
+  margin-inline-end: var(--hm-gutter);
+}
+
+@media (min-width: 900px) {
+  .hm-chat-options {
+    margin-inline-end: 32px;
+  }
+}
+
+.hm-chat-options__button {
+  appearance: none;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  min-height: 36px;
+  padding: 0 10px;
+  border: 1px solid var(--hm-line);
+  border-radius: var(--hm-radius-pill);
+  background: transparent;
+  color: var(--hm-text-muted);
+  font: inherit;
+  font-size: 0.875rem;
+  cursor: pointer;
+}
+
+.hm-chat-options__button:hover,
+.hm-chat-options__button[aria-expanded='true'] {
+  background: var(--hm-surface-hover);
+  color: var(--hm-text);
+}
+
+.hm-chat-options__panel {
+  position: absolute;
+  inset-inline-end: 0;
+  top: calc(100% + 6px);
+  z-index: 30;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  width: min(20rem, calc(100vw - 32px));
+  padding: 12px 14px;
+  border: 1px solid var(--hm-line);
+  border-radius: var(--hm-radius);
+  background: var(--hm-bg);
+  box-shadow: 0 8px 24px color-mix(in srgb, #000000 18%, transparent);
+  color: var(--hm-text);
+  font-size: 0.9375rem;
+}
+
+.hm-chat-options__panel[hidden] {
+  display: none;
+}
+
+.hm-chat-options__heading {
+  margin: 0;
+  font-weight: 600;
+}
+
+.hm-chat-options__set {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  margin: 0;
+  padding: 0;
+  border: 0;
+}
+
+.hm-chat-options__set legend {
+  margin-bottom: 4px;
+  padding: 0;
+  color: var(--hm-text-muted);
+  font-size: 0.8125rem;
+}
+
+.hm-chat-options__choice {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-height: 32px;
+  cursor: pointer;
+}
+
+.hm-chat-options__choice input {
+  width: 18px;
+  height: 18px;
+  margin: 0;
+  accent-color: var(--hm-tint);
+}
+
+.hm-chat-options__note,
+.hm-chat-options__hint {
+  margin: 0;
+  color: var(--hm-text-muted);
+  font-size: 0.8125rem;
+}
+
+.hm-chat-options__reset {
+  appearance: none;
+  align-self: flex-start;
+  min-height: 36px;
+  padding: 0 12px;
+  border: 1px solid var(--hm-line);
+  border-radius: var(--hm-radius);
+  background: transparent;
+  color: var(--hm-tint-text);
+  font: inherit;
+  font-weight: 600;
+  cursor: pointer;
+}

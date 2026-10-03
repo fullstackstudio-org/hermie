@@ -1,0 +1,103 @@
+/*
+ * The transcript's one message menu (`MessageMenu.tsx`), its one hover button,
+ * and how a message looks when the keyboard has it.
+ *
+ * No message holds a control of its own: a box in every message slowed WebKit's
+ * long-history layout three times over. The hover button is a single element,
+ * fixed over the corner of the bubble it belongs to and moved by the component;
+ * it is hidden until it has been placed, so it never shows at the corner of the
+ * window first.
+ */
+
+.hm-msg-more {
+  appearance: none;
+  position: fixed;
+  z-index: 30;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 28px;
+  height: 28px;
+  margin: 0;
+  padding: 0;
+  transform: translate(-50%, -50%);
+  visibility: hidden;
+  border: 1px solid var(--hm-line);
+  border-radius: var(--hm-radius-pill);
+  background: var(--hm-bg);
+  box-shadow: 0 2px 8px color-mix(in srgb, #000000 14%, transparent);
+  color: var(--hm-text-muted);
+  cursor: pointer;
+}
+
+.hm-msg-more[data-placed] {
+  visibility: visible;
+}
+
+/* Drawn by the stylesheet, so it never lands in a selection of the transcript; the button's name is its label. */
+.hm-msg-more::before {
+  content: '\22ef';
+  font-size: 1.125rem;
+  line-height: 1;
+}
+
+.hm-msg-more:hover,
+.hm-msg-more[aria-expanded='true'] {
+  background: var(--hm-surface-hover);
+  color: var(--hm-text);
+}
+
+/*
+ * A message the arrows moved to is `tabindex="-1"`, which the theme draws no
+ * ring for (a heading focused by a route change); a message is the reader's
+ * place in the list, so it gets one.
+ */
+.transcript-list [data-message-id]:focus-visible {
+  outline: var(--hm-focus-width) solid var(--hm-focus);
+  outline-offset: 2px;
+  border-radius: var(--hm-radius);
+}
+
+.hm-menu {
+  position: fixed;
+  z-index: 40;
+  display: flex;
+  flex-direction: column;
+  min-width: 12rem;
+  padding: 4px;
+  border: 1px solid var(--hm-line);
+  border-radius: var(--hm-radius);
+  background: var(--hm-bg);
+  box-shadow: 0 8px 24px color-mix(in srgb, #000000 18%, transparent);
+  color: var(--hm-text);
+}
+
+.hm-menu .hm-menu__item {
+  appearance: none;
+  min-height: 36px;
+  padding: 6px 12px;
+  border: 0;
+  border-radius: 6px;
+  background: transparent;
+  color: inherit;
+  font: inherit;
+  font-size: 0.9375rem;
+  text-align: start;
+  cursor: pointer;
+}
+
+.hm-menu .hm-menu__item:hover,
+.hm-menu .hm-menu__item:focus {
+  background: var(--hm-selected);
+}
+
+/* The lines are `tabindex="-1"` (the arrows move between them), which the theme draws no ring for; this one does. */
+.hm-menu .hm-menu__item:focus-visible {
+  outline: var(--hm-focus-width) solid var(--hm-focus);
+  outline-offset: -2px;
+}
+
+.hm-menu .hm-menu__item[aria-disabled='true'] {
+  color: var(--hm-text-muted);
+  cursor: default;
+}

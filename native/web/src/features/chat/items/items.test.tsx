@@ -172,7 +172,9 @@ describe('a tool card', () => {
     const patch = draw(toolItem('patch', { inlineDiff: '-a\n+b' }), 'full')
 
     expect(patch.container.querySelector('.hm-tool')?.getAttribute('data-family')).toBe('diff')
-    expect(patch.container.querySelector('.hm-tool__diff')?.textContent).toBe('-a\n+b')
+    // The patch is drawn by the diff view: a removed and an added line, each saying which it is.
+    expect(patch.container.querySelector('.hm-tool__diff del')?.textContent).toBe('Removed: a')
+    expect(patch.container.querySelector('.hm-tool__diff ins')?.textContent).toBe('Added: b')
   })
 
   it('is a chip holding its name, if it is ever handed over as one', () => {

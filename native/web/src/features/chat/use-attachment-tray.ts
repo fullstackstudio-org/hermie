@@ -10,6 +10,7 @@
 import { useEffect, useMemo, useSyncExternalStore } from 'react'
 
 import { AttachmentTray, type StagedAttachment } from '../../core/chats/attachments'
+import { rememberSentPreviews } from '../../core/chats/sent-previews'
 import { readFileAsBase64 } from '../../platform/files'
 import type { ChatScreenController } from './chat-runtime'
 
@@ -28,7 +29,9 @@ export function useAttachmentTray(
         ? null
         : new AttachmentTray({
             upload: (file, options) => controller.uploadFile(chatKey, file, options),
-            readBase64: readFileAsBase64
+            readBase64: readFileAsBase64,
+            // So the bubble a send paints shows its pictures (`sent-previews.ts`).
+            onTake: images => rememberSentPreviews(chatKey, images)
           }),
     [chatKey, controller]
   )

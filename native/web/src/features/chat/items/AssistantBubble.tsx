@@ -17,7 +17,8 @@
  *
  * The footer says how long it took, what it cost and on what, only when the
  * gateway reported usage: a duration alone is a number with nothing to attach it
- * to.
+ * to. The reply is one the transcript's shared menu reaches (copy, regenerate:
+ * `messageTargetProps`).
  */
 import { type AssistantItem, prettyModelName } from '@hermie/transcript'
 import { memo } from 'react'
@@ -27,6 +28,7 @@ import { formatNumber } from '../../../i18n/format'
 import { useLocale } from '../../../i18n/use-locale'
 import { webStrings } from '../../../i18n/web-strings'
 import { clockOf, formatDuration, isoOf } from '../chat-format'
+import { messageTargetProps } from '../message-menu'
 import { ErrorCard } from './ErrorCard'
 import { useItemContext } from './item-context'
 import { MessageMarkdown } from './MessageMarkdown'
@@ -95,6 +97,7 @@ function AssistantBubbleView({ item, presentation }: RowViewProps<AssistantItem>
       className="hm-msg"
       data-side="bot"
       data-interim={item.interim ? 'true' : 'false'}
+      {...messageTargetProps(item.id)}
       aria-label={clock ? webStrings.chat.messageFrom({ name: botName, time: clock }) : botName || undefined}
     >
       {item.replyToBotHandle ? (

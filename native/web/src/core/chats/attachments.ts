@@ -159,6 +159,18 @@ export interface AttachmentTrayDeps {
   readBase64(file: Blob): Promise<string>
   /** Injected in tests, so ids are predictable. */
   newId?(): string
+  /**
+   * The images of a send, as they are taken out of the tray: the name each is
+   * attached under and its thumbnail, so the bubble the send paints can show
+   * the picture rather than its name (`sent-previews.ts`).
+   */
+  onTake?(images: readonly SentImagePreview[]): void
+}
+
+/** An image of a send: the name it is attached under (`imageNameFor`) and its own `data:` thumbnail. */
+export interface SentImagePreview {
+  readonly name: string
+  readonly previewUrl: string
 }
 
 /** Attachments taken out of the tray for one send. Hand it back to `restore` or `release`. */
@@ -309,6 +321,17 @@ export class AttachmentTray {
     const entries = this.entries
 
     this.entries = []
+
+    const images = entries.flatMap(entry =>
+      entry.view.kind === 'image' && entry.view.previewUrl
+        ? [{ name: entry.imageName, previewUrl: entry.view.previewUrl }]
+        : []
+    )
+
+    if (images.length > 0) {
+      this.deps.onTake?.(images)
+    }
+
     this.emit()
 
     return { entries, inputs: entries.flatMap(entry => (entry.input ? [entry.input] : [])) }

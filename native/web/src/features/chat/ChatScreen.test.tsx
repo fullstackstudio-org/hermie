@@ -392,10 +392,12 @@ describe('the transcript', () => {
     )
     const { rerender } = mount({}, fakeController())
 
-    expect(screen.getAllByRole('button', { expanded: false }).map(button => button.textContent)).toEqual([
-      '\u2315web_searchthree results',
-      '\u25a4read_filenotes.md'
-    ])
+    // The tools' disclosures, in the log; the chat's options button is above it.
+    expect(
+      within(screen.getByRole('log'))
+        .getAllByRole('button', { expanded: false })
+        .map(button => button.textContent)
+    ).toEqual(['\u2315web_searchthree results', '\u25a4read_filenotes.md'])
     expect(screen.getByText('compacting context')).toBeTruthy()
 
     commit(

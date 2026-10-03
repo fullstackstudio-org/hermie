@@ -59,6 +59,8 @@ export interface TranscriptListProps {
   onStickChange?: (stuck: boolean) => void
   /** The accessible name of the transcript region. */
   label?: string
+  /** The id of what describes it (how the keyboard reaches its messages). */
+  describedBy?: string
   /** A reply is streaming into the list: `aria-busy`, so a reader of the log is not interrupted by every delta. */
   busy?: boolean
   /** What the list can be told to do (`jumpToLatest`); the props stay the whole of what it is told. */
@@ -278,6 +280,7 @@ export function TranscriptList({
   onReachTop,
   onStickChange,
   label,
+  describedBy,
   busy,
   listRef
 }: TranscriptListProps) {
@@ -413,6 +416,7 @@ export function TranscriptList({
       className="transcript-list"
       role="log"
       aria-label={label}
+      aria-describedby={describedBy}
       aria-busy={busy ? true : undefined}
       tabIndex={0}
     >

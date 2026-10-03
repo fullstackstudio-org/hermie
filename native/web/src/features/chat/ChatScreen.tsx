@@ -46,6 +46,19 @@
  * **A past conversation or a branch** (`#/chat/<bot>/s/<id>`, `features/sessions`)
  * opens read-only: a line says what it is, with the ways back to the chat and to
  * the bot's conversations, and there is no composer.
+ *
+ * **What it shows** is the reader's choice for this chat (`ChatOptions`, kept in
+ * `state/chat-view.ts`), unless a test hands in a `view`.
+ *
+ * **A message's actions** (copy, copy as Markdown, regenerate) are one menu for
+ * the whole transcript (`MessageMenuLayer`), reached by pointer, long press and
+ * the keyboard's roving focus over messages; no message holds a control of its
+ * own. What a row and that menu ask the screen for (a message by id, a picture
+ * for an attachment, the image viewer, a copy, the last reply again) goes
+ * through one host object whose identity never changes (`items/item-host.ts`),
+ * so asking never re-renders a settled row. A third polite region says what a
+ * menu line did. The image viewer is drawn here, outside the list, and loaded
+ * the first time a picture is opened.
  */
 import { plainTextPreview } from '@hermie/markdown/plain-text'
 import {
@@ -57,15 +70,20 @@ import {
   type VisibilityOptions,
   type VisibleItem
 } from '@hermie/transcript'
-import { type ReactElement, useCallback, useEffect, useMemo, useRef, useState } from 'react'
+import { lazy, type ReactElement, Suspense, useCallback, useEffect, useId, useMemo, useRef, useState } from 'react'
 import { useStore } from 'zustand'
+import { useShallow } from 'zustand/react/shallow'
 
 import { boundConversation, type SettledGroupChat, settleGroupChat } from '../../core/chats/bound-conversation'
 import { countsAsRead, readWatermark } from '../../core/chats/read-watermark'
+import { regenerateLastTurn, regenerateTargetIsOwn } from '../../core/chats/regenerate'
+import { sentPreviewFor } from '../../core/chats/sent-previews'
 import { strings } from '../../generated/strings'
 import { useLocale } from '../../i18n/use-locale'
 import { webStrings } from '../../i18n/web-strings'
+import { writeClipboard } from '../../platform/clipboard'
 import { botsStore } from '../../state/bots'
+import { chatViewFor, chatViewStore, DEFAULT_CHAT_VIEW } from '../../state/chat-view'
 import { chatsStore } from '../../state/chats'
 import { connectionStore } from '../../state/connection'
 import { Button } from '../../ui/primitives'
@@ -76,13 +94,17 @@ import { useFindInChat } from '../search/use-find-in-chat'
 import { chatHref, conversationsHref } from '../shell/router'
 import { clipLine } from './chat-format'
 import { ChatHeader } from './ChatHeader'
+import { ChatOptions } from './ChatOptions'
 import { Composer } from './Composer'
 import { useChatRuntime } from './chat-runtime'
 import { DropZone } from './DropZone'
 import { ChatItem } from './items/ChatItem'
 import { ItemContext, type ItemContextValue } from './items/item-context'
+import { type ItemHost, ItemHostContext, type ViewedImage } from './items/item-host'
 import { TodoList } from './items/TodoList'
+import { attachmentName } from './items/UserBubble'
 import { JumpToLatest } from './JumpToLatest'
+import { MessageMenuLayer } from './MessageMenu'
 import { transcriptRows } from './rows'
 import { TranscriptList, type TranscriptListHandle } from './TranscriptList'
 import { useAttachmentTray } from './use-attachment-tray'
@@ -91,12 +113,13 @@ import { useOwnAuthorId } from './use-own-author'
 import { usePageVisible } from './use-page-visible'
 import './chat.css'
 
-/**
- * What the chat shows of the transcript until the reader can change it (the
- * verbosity, bot-to-bot and thinking toggles are W-18b's): tool calls as one
- * collapsed line each, notices folded, no reasoning.
- */
-export const DEFAULT_CHAT_VIEW: VisibilityOptions = { level: 'normal', showBotToBot: true, showThinking: false }
+/** What a chat shows until the reader changes it (`state/chat-view.ts`). */
+export { DEFAULT_CHAT_VIEW }
+
+/** The image viewer: a chunk of its own, fetched the first time a picture is opened. */
+const ImageViewer = lazy(() => import('./ImageViewer').then(module => ({ default: module.ImageViewer })))
+
+const messageOf = (error: unknown): string => (error instanceof Error ? error.message : String(error))
 
 /** How much of a finished reply is read out. */
 const ANNOUNCE_CHARS = 200
@@ -106,7 +129,7 @@ export interface ChatScreenProps {
   bot: string
   /** The conversation the route names, when it names one (`#/chat/<bot>/s/<session>`). */
   session?: string
-  /** What of the transcript is shown; `DEFAULT_CHAT_VIEW` unless a test or a later setting says otherwise. */
+  /** What of the transcript is shown; the reader's choice for this chat (`ChatOptions`) unless a test pins it. */
   view?: VisibilityOptions
 }
 
@@ -166,7 +189,7 @@ function useGroupChat(bot: string, key: string | undefined): boolean {
   return key !== undefined && key !== bot ? false : result.group
 }
 
-export function ChatScreen({ bot, session, view = DEFAULT_CHAT_VIEW }: ChatScreenProps): ReactElement {
+export function ChatScreen({ bot, session, view: pinned }: ChatScreenProps): ReactElement {
   useLocale()
 
   const runtime = useChatRuntime()
@@ -180,6 +203,11 @@ export function ChatScreen({ bot, session, view = DEFAULT_CHAT_VIEW }: ChatScree
   const { key, viewer, error, retry } = useOpenChat({ runtime, record, bot, session, ready })
   const chat = useStore(chatsStore, state => (key === undefined ? undefined : state.chats[key]))
   const groupChat = useGroupChat(bot, key)
+  const chosen = useStore(
+    chatViewStore,
+    useShallow(state => chatViewFor(state, bot))
+  )
+  const view = pinned ?? chosen
 
   // ── the rows ────────────────────────────────────────────────────────────────
   // `visibleItems` does no caching of its own, by design: this is where the memo
@@ -233,6 +261,115 @@ export function ChatScreen({ bot, session, view = DEFAULT_CHAT_VIEW }: ChatScree
 
   /** The reader sent something: wherever they were reading, they are at the newest row, and follow it. */
   const pinToLatest = useCallback(() => listRef.current?.jumpToLatest(), [])
+
+  // ── what a row and the message menu can ask for ─────────────────────────────
+  const hintId = useId()
+  const [viewing, setViewing] = useState<{ image: ViewedImage; opener: HTMLElement | null } | null>(null)
+  const [menuNotice, setMenuNotice] = useState({ text: '', serial: 0 })
+  const shownRef = useRef(shown)
+  const keyRef = useRef(key)
+  const menuLive = useRef({ turnActive: false, target: null as string | null, listeners: new Set<() => void>() })
+  // What the host's stable methods call: replaced every render, read when they run.
+  const act = useRef<{ regenerate: () => void }>({ regenerate: () => undefined })
+
+  shownRef.current = shown
+  keyRef.current = key
+
+  const host = useMemo<ItemHost>(
+    () => ({
+      // The pictures the reader sent from this page (`sent-previews.ts`); everything else is a chip.
+      attachmentSrc: reference => sentPreviewFor(keyRef.current, attachmentName(reference)),
+      itemById: id => {
+        const current = keyRef.current
+
+        return current === undefined ? undefined : chatsStore.getState().chats[current]?.items[id]
+      },
+      openImage: (image, opener) => setViewing({ image, opener }),
+      copy: text => writeClipboard(text),
+      // A new node each time, so the same words twice are still said twice.
+      announce: text => setMenuNotice(current => ({ text, serial: current.serial + 1 })),
+      regenerate: () => act.current.regenerate(),
+      subscribe: listener => {
+        menuLive.current.listeners.add(listener)
+
+        return () => menuLive.current.listeners.delete(listener)
+      },
+      turnActive: () => menuLive.current.turnActive,
+      regenerateTarget: () => menuLive.current.target
+    }),
+    []
+  )
+
+  // The one reply that may be asked for again: the newest, in a chat that can be answered, after the reader's own turn.
+  const regenerateTarget = useMemo(() => {
+    if (
+      !runtime ||
+      key === undefined ||
+      viewer ||
+      !record ||
+      !regenerateTargetIsOwn(shown, { groupChat, ownAuthorId })
+    ) {
+      return null
+    }
+
+    for (let index = shown.length - 1; index >= 0; index -= 1) {
+      const item = shown[index]?.item
+
+      if (item?.kind === 'assistant' && !item.interim) {
+        return item.id
+      }
+    }
+
+    return null
+  }, [groupChat, key, ownAuthorId, record, runtime, shown, viewer])
+
+  useEffect(() => {
+    const state = menuLive.current
+
+    if (state.turnActive === turnActive && state.target === regenerateTarget) {
+      return
+    }
+
+    state.turnActive = turnActive
+    state.target = regenerateTarget
+
+    for (const listener of state.listeners) {
+      listener()
+    }
+  }, [regenerateTarget, turnActive])
+
+  act.current.regenerate = () => {
+    if (!runtime || key === undefined) {
+      return
+    }
+
+    const { controller } = runtime
+
+    void regenerateLastTurn({
+      turnActive: chatsStore.getState().chats[key]?.turn.active ?? false,
+      items: shownRef.current,
+      knowsSlashCommand: name => controller.slashRouteFor(key, name) !== null,
+      runSlash: command => {
+        pinToLatest()
+
+        return controller.runSlash(key, command)
+      },
+      send: async text => {
+        pinToLatest()
+        await controller.send(key, text)
+      },
+      groupChat,
+      ...(ownAuthorId ? { ownAuthorId } : {})
+    })
+      .then(outcome => {
+        if (outcome.kind === 'busy') {
+          host.announce(strings.chat.menu.turnRunning)
+        } else if (outcome.kind === 'nothing') {
+          host.announce(strings.chat.menu.nothingToRegenerate)
+        }
+      })
+      .catch((error: unknown) => host.announce(webStrings.composer.sendFailed({ message: messageOf(error) })))
+  }
 
   // Messages that landed while the reader was further up: the button's count. The
   // delta is taken before the previous count is overwritten.
@@ -363,7 +500,10 @@ export function ChatScreen({ bot, session, view = DEFAULT_CHAT_VIEW }: ChatScree
 
   return (
     <DropZone className="hm-chat" enabled={tray !== null && attached} onFiles={dropFiles}>
-      <ChatHeader bot={bot} chatKey={key} />
+      <div className="hm-chat__head">
+        <ChatHeader bot={bot} chatKey={key} />
+        <ChatOptions bot={bot} />
+      </div>
 
       {viewer ? (
         <div className="hm-chat__banner">
@@ -400,17 +540,24 @@ export function ChatScreen({ bot, session, view = DEFAULT_CHAT_VIEW }: ChatScree
 
         {rows.length > 0 ? (
           <ItemContext.Provider value={itemContext}>
-            <TranscriptList
-              rows={rows}
-              renderItem={renderItem}
-              onReachTop={onReachTop}
-              onStickChange={onStickChange}
-              label={webStrings.chat.transcriptLabel({ name: displayName })}
-              busy={turnActive}
-              listRef={listRef}
-            />
+            <ItemHostContext.Provider value={host}>
+              <TranscriptList
+                rows={rows}
+                renderItem={renderItem}
+                onReachTop={onReachTop}
+                onStickChange={onStickChange}
+                label={webStrings.chat.transcriptLabel({ name: displayName })}
+                describedBy={hintId}
+                busy={turnActive}
+                listRef={listRef}
+              />
+            </ItemHostContext.Provider>
           </ItemContext.Provider>
         ) : null}
+        <p className="hm-sr" id={hintId}>
+          {webStrings.itemViews.keyboardHint}
+        </p>
+        {rows.length > 0 ? <MessageMenuLayer container={stage} host={host} /> : null}
 
         {loadingOlder ? (
           <p className="hm-chat__older" role="status">
@@ -437,6 +584,21 @@ export function ChatScreen({ bot, session, view = DEFAULT_CHAT_VIEW }: ChatScree
       <div className="hm-sr" role="status" aria-live="polite" aria-atomic="true">
         {find.status}
       </div>
+      {/* And one for what a message's menu did: copied, or why nothing was sent again. */}
+      <div className="hm-sr" role="status" aria-live="polite" aria-atomic="true" data-modal-keep="">
+        {menuNotice.text ? <span key={menuNotice.serial}>{menuNotice.text}</span> : null}
+      </div>
+
+      {viewing ? (
+        <Suspense fallback={null}>
+          <ImageViewer
+            image={viewing.image}
+            opener={viewing.opener}
+            gatewayBaseUrl={runtime?.gatewayBaseUrl}
+            onClose={() => setViewing(null)}
+          />
+        </Suspense>
+      ) : null}
     </DropZone>
   )
 }

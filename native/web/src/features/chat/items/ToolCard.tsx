@@ -4,7 +4,7 @@
  * The line is a button (`aria-expanded`): the tool's family glyph, its name,
  * what it did, and how long it took or that it is still running or failed.
  * Opened, it shows the warning when the output was flagged as untrusted, the
- * arguments, the diff a patch produced, what came back (or what went wrong) and
+ * arguments, the diff a patch produced (`DiffView`), what came back (or what went wrong) and
  * the raw arguments the gateway sends at its verbose setting: all of it as
  * characters in a `pre`-style block, never Markdown, because none of it was
  * written for a reader.
@@ -27,6 +27,7 @@ import { strings } from '../../../generated/strings'
 import { useLocale } from '../../../i18n/use-locale'
 import { Icon } from '../../../ui/icons'
 import { formatDuration } from '../chat-format'
+import { DiffView } from './DiffView'
 import { type RowViewProps, sameRowView } from './row-view'
 import {
   argumentLines,
@@ -170,10 +171,10 @@ function ToolCardView({ item, presentation }: RowViewProps<ToolItem>) {
             </Section>
           ) : null}
 
-          {/* A patch's diff, as the text it is; the diff view with its own semantics is a view of its own. */}
+          {/* A patch's diff: added and removed lines that say so to a screen reader, not only in colour. */}
           {item.inlineDiff ? (
             <div className="hm-tool__section hm-tool__diff">
-              <Value text={item.inlineDiff} />
+              <DiffView diff={item.inlineDiff} />
             </div>
           ) : null}
 
