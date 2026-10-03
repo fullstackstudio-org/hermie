@@ -73,6 +73,14 @@ extension NativeStrings {
     static var followDefaults: String {
       String(localized: "native.botSettings.followDefaults", table: "Native", bundle: .module)
     }
+    /// These switches decide what the bot can use in chats in Hermie. The same bot reached through a messaging app, and its scheduled jobs, keep their own lists on the gateway.
+    static var toolsetsScope: String {
+      String(localized: "native.botSettings.toolsetsScope", table: "Native", bundle: .module)
+    }
+    /// The Skills toolset is off, so in Hermie chats this bot gets no skill tools and no list of skills in its instructions. You can still start a skill yourself by typing / and its name. The switches below turn off single skills everywhere, that included.
+    static var skillsToolsetOff: String {
+      String(localized: "native.botSettings.skillsToolsetOff", table: "Native", bundle: .module)
+    }
     /// At least one toolset has to stay on.
     static var lastToolset: String {
       String(localized: "native.botSettings.lastToolset", table: "Native", bundle: .module)

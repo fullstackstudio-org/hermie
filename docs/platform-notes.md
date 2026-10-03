@@ -8696,6 +8696,23 @@ list when everything is enabled pins a snapshot of the gateway's defaults that t
 them, so the bot silently misses any toolset added later. `configureParamsFor` sends `[]` in that
 case, which is what the desktop's own editor does.
 
+**A switch that said off while the tools were on (2026-10-03).** `_describe_toolsets` used to read
+`enabled` off the literal `platform_toolsets.cli` list. A list holding a composite (`[hermes-cli]`,
+which is what `hermes setup` and older configs write, and what every profile on our own gateway
+carried) names no checklist key, so every switch drew off on a bot that had every tool, and the
+first switch turned on from that screen pinned only the ones the person had touched. The reverse
+held too: a toolset in `agent.disabled_toolsets` drew on and the model never saw it. The fork now
+reads `enabled` from the resolver the agent is built from (`_configured_cli_toolsets`), tested
+against the tools an app chat really gets (`tests/tui_gateway/test_profiles_toolset_truth.py`). A
+gateway older than that fix still draws the composite case wrong. What the list covers is the `cli`
+platform: the app, the web client and the terminal. The same bot on a messaging platform, and its
+cron jobs, resolve their own `platform_toolsets.<platform>` lists, and a gateway started with
+`HERMES_TUI_TOOLSETS` overrides all profiles; the screen says the first and cannot see the second.
+With the Skills toolset off the model has no `skills_list`/`skill_view`/`skill_manage` and no skill
+index in its prompt, but `/skill-name` still loads a skill into the turn, so a bot "using skills"
+beside a Skills switch that is off is possible. Only `disabled_skills` removes that path, which is
+why the Skills section says so when the toolset is off.
+
 `_describe_toolsets` also makes the list non-constant: a `_DEFAULT_OFF_TOOLSETS` entry is omitted
 ENTIRELY while it is off, so enabling one makes a row appear that was never there.
 

@@ -9,6 +9,19 @@ import Testing
 struct BotSettingsParamsTests {
   // MARK: Reading
 
+  /// The Skills note under the skills list appears only when the gateway lists the Skills toolset and
+  /// reports it off: a gateway that does not list it, or lists it on, says nothing.
+  @Test func theSkillsToolsetIsOffOnlyWhenTheGatewayListsItAndSaysSo() {
+    let off = BotProfileDetails(name: "a", toolsets: [BotToolset(name: "web"), BotToolset(name: "skills", enabled: false)])
+    let on = BotProfileDetails(name: "a", toolsets: [BotToolset(name: "skills", enabled: true)])
+    let unlisted = BotProfileDetails(name: "a", toolsets: [BotToolset(name: "web", enabled: false)])
+
+    #expect(off.skillsToolsetOff)
+    #expect(!on.skillsToolsetOff)
+    #expect(!unlisted.skillsToolsetOff)
+    #expect(!BotProfileDetails(name: "a").skillsToolsetOff)
+  }
+
   @Test func aDescribeAnswerBecomesTheDetailsTheScreenWorksWith() throws {
     let reply: JSONValue = [
       "name": "researcher",

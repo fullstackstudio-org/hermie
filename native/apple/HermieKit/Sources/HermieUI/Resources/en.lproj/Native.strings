@@ -62,10 +62,14 @@
 	<string>Revert</string>
 	<key>native.botSettings.skills</key>
 	<string>Skills</string>
+	<key>native.botSettings.skillsToolsetOff</key>
+	<string>The Skills toolset is off, so in Hermie chats this bot gets no skill tools and no list of skills in its instructions. You can still start a skill yourself by typing / and its name. The switches below turn off single skills everywhere, that included.</string>
 	<key>native.botSettings.title</key>
 	<string>Bot settings</string>
 	<key>native.botSettings.toolsets</key>
 	<string>Toolsets</string>
+	<key>native.botSettings.toolsetsScope</key>
+	<string>These switches decide what the bot can use in chats in Hermie. The same bot reached through a messaging app, and its scheduled jobs, keep their own lists on the gateway.</string>
 	<key>native.botSettings.unsupported</key>
 	<string>This gateway does not offer these settings.</string>
 	<key>native.chat.copyDiagnostics</key>
