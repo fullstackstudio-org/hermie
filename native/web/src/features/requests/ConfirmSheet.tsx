@@ -27,6 +27,7 @@
  */
 import { type ReactElement, useEffect, useId, useRef, useState } from 'react'
 
+import { sheetStrings } from '../../i18n/sheet-strings'
 import { useLocale } from '../../i18n/use-locale'
 import { webStrings } from '../../i18n/web-strings'
 import {
@@ -75,25 +76,25 @@ export function phaseText(phase: ConfirmPhase): string {
     case 'declined':
       return ''
     case 'signing':
-      return webStrings.passkeys.signing
+      return sheetStrings.passkeys.signing
     case 'sending':
-      return webStrings.passkeys.sending
+      return sheetStrings.passkeys.sending
     case 'refused':
-      return webStrings.passkeys.refused({ reason: phase.reason || 'refused' })
+      return sheetStrings.passkeys.refused({ reason: phase.reason || 'refused' })
     case 'not_sent':
-      return webStrings.passkeys.notSent({ message: phase.message })
+      return sheetStrings.passkeys.notSent({ message: phase.message })
     case 'received':
-      return webStrings.passkeys.received
+      return sheetStrings.passkeys.received
     case 'ended':
       switch (phase.end.kind) {
         case 'verification_failed':
-          return webStrings.passkeys.verificationFailed
+          return sheetStrings.passkeys.verificationFailed
         case 'too_many_attempts':
-          return webStrings.passkeys.tooManyAttempts
+          return sheetStrings.passkeys.tooManyAttempts
         case 'not_allowed':
-          return webStrings.passkeys.notAllowed
+          return sheetStrings.passkeys.notAllowed
         case 'unavailable':
-          return webStrings.passkeys.unavailable({ reason: phase.end.reason })
+          return sheetStrings.passkeys.unavailable({ reason: phase.end.reason })
         default:
           return ''
       }
@@ -191,7 +192,7 @@ export function ConfirmSheet({
       {confirmation.detail ? (
         <div className="hm-requests__detail-box">
           <p className="hm-requests__label" id={detailId}>
-            {webStrings.passkeys.detailLabel}
+            {sheetStrings.passkeys.detailLabel}
           </p>
           {/* Scrolls sideways when a line is long, so it takes the keyboard: a scroll region nobody can reach is a trap. */}
           <pre className="hm-requests__detail" tabIndex={0} aria-labelledby={detailId} data-confirm-detail="">
@@ -200,11 +201,11 @@ export function ConfirmSheet({
         </div>
       ) : null}
 
-      <p className="hm-requests__meta">{webStrings.passkeys.rpLine({ rp: rpId })}</p>
+      <p className="hm-requests__meta">{sheetStrings.passkeys.rpLine({ rp: rpId })}</p>
 
       {open && confirmation.expiresAt !== null ? (
         <p className="hm-requests__meta">
-          {webStrings.passkeys.expires({ time: countdown(confirmation.expiresAt - clock) })}
+          {sheetStrings.passkeys.expires({ time: countdown(confirmation.expiresAt - clock) })}
         </p>
       ) : null}
 
@@ -221,7 +222,7 @@ export function ConfirmSheet({
         {open ? (
           <>
             <Button className="hm-requests__action" variant="primary" disabled={!actionable} onClick={onConfirm}>
-              {webStrings.passkeys.confirm}
+              {sheetStrings.passkeys.confirm}
             </Button>
             <Button
               className="hm-requests__action"
@@ -230,7 +231,7 @@ export function ConfirmSheet({
               disabled={!actionable}
               onClick={onDecline}
             >
-              {webStrings.passkeys.decline}
+              {sheetStrings.passkeys.decline}
             </Button>
           </>
         ) : (

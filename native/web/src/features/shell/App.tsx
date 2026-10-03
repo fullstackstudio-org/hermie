@@ -56,8 +56,13 @@ import { Layout } from './Layout'
 import { formatRoute, type Route, useRoute } from './router'
 import { SidebarFooter } from './SidebarFooter'
 
-/** The passkeys page (and its styles) is a chunk of its own, fetched when `#/settings/passkeys` is opened. */
-const Passkeys = lazy(() => import('../settings/Passkeys').then(module => ({ default: module.Passkeys })))
+/**
+ * The passkeys page (and its styles) is a chunk of its own, fetched when `#/settings/passkeys` is opened, or
+ * earlier, when a pointer or the focus reaches the link to it.
+ */
+const loadPasskeys = () => import('../settings/Passkeys')
+const Passkeys = lazy(() => loadPasskeys().then(module => ({ default: module.Passkeys })))
+const preloadPasskeys = (): void => void loadPasskeys().catch(() => undefined)
 
 export interface AppProps {
   /** Who is signed in: display name, else email, else id; empty when the gateway named nobody. */
@@ -148,7 +153,11 @@ export function App({
                   <p>{webStrings.shell.settingsSoon}</p>
                   {route.section === undefined ? (
                     <p>
-                      <a href={formatRoute({ name: 'settings', section: 'passkeys' })}>
+                      <a
+                        href={formatRoute({ name: 'settings', section: 'passkeys' })}
+                        onPointerEnter={preloadPasskeys}
+                        onFocus={preloadPasskeys}
+                      >
                         {webStrings.passkeys.settings.title}
                       </a>
                     </p>

@@ -6,7 +6,7 @@
  */
 import type { ReactElement } from 'react'
 
-import { webStrings } from '../../i18n/web-strings'
+import { sheetStrings } from '../../i18n/sheet-strings'
 import { SecureQuote, type SecureSheetProps, SecureSheetFrame } from './SecureSheet'
 import { WithName } from './with-name'
 
@@ -17,7 +17,7 @@ export function SecretSheet(props: SecureSheetProps): ReactElement | null {
     return null
   }
 
-  const words = webStrings.secureInput
+  const words = sheetStrings.secureInput
 
   return (
     <SecureSheetFrame

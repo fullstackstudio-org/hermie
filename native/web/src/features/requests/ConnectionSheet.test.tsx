@@ -6,7 +6,7 @@
  * ones on the page's stores, driven by session signals.
  */
 import { act, fireEvent, render, screen, within } from '@testing-library/react'
-import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
+import { afterEach, beforeAll, beforeEach, describe, expect, it, vi } from 'vitest'
 
 import type { SessionSignal } from '../../core/chat-controller'
 import { ConnectionsModel } from '../../core/connections'
@@ -25,6 +25,12 @@ import { IdentityNote } from '../notices/IdentityNote'
 import { ResumeProgressLine } from '../notices/ResumeProgressLine'
 import { SessionSignalsRuntimeContext } from '../notices/signals-runtime'
 import { RequestLayer } from './RequestLayer'
+import { preloadRequestSheets } from './request-sheets'
+
+// The sheets are a chunk of their own (`request-sheets.ts`); the page fetches it when the session starts.
+beforeAll(async () => {
+  await preloadRequestSheets()
+})
 
 const NOW = 1_800_000_000_000
 

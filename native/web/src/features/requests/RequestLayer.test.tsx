@@ -6,7 +6,7 @@
  * off the layer); the chat store, the queue and the roster are the page's own.
  */
 import { act, fireEvent, render, screen, within } from '@testing-library/react'
-import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
+import { afterEach, beforeAll, beforeEach, describe, expect, it, vi } from 'vitest'
 
 import { CANCELLED_BY_READER, closedRequest } from '../../core/request-withdrawn'
 import { resetActiveLocale } from '../../i18n/active-locale'
@@ -19,6 +19,12 @@ import { sentence } from '../../test-support/sentence'
 import { aBot, resetShellStores, seedRoster } from '../../test-support/shell-stores'
 import { ChatRuntimeContext, type ChatScreenController } from '../chat/chat-runtime'
 import { RequestLayer } from './RequestLayer'
+import { preloadRequestSheets } from './request-sheets'
+
+// The sheets are a chunk of their own (`request-sheets.ts`); the page fetches it when the session starts.
+beforeAll(async () => {
+  await preloadRequestSheets()
+})
 
 function fakeController(over: Record<string, unknown> = {}) {
   const store = () => chatsStore.getState()

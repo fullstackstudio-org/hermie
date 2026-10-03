@@ -56,8 +56,8 @@ import { Fragment, type ReactElement, type ReactNode, useEffect, useId, useRef, 
 
 import { BOT_NAME_LIMIT, displayText, TEXT_LIMIT } from '../../core/requests/secure-input'
 import { strings } from '../../generated/strings'
+import { sheetStrings } from '../../i18n/sheet-strings'
 import { useLocale } from '../../i18n/use-locale'
-import { webStrings } from '../../i18n/web-strings'
 import { Button } from '../../ui/primitives'
 import { WithName } from './with-name'
 
@@ -209,7 +209,7 @@ export function ApprovalSheet({
     }
 
     setTickedFor(null)
-    setNotice(webStrings.requests.othersChanged({ name }))
+    setNotice(sheetStrings.requests.othersChanged({ name }))
 
     const documentOf = commandRef.current?.ownerDocument
     const active = documentOf?.activeElement
@@ -243,7 +243,7 @@ export function ApprovalSheet({
         {/* In the description, so a screen reader says it with the question, before any button. */}
         {smartDenied ? (
           <span className="hm-requests__warning" data-smart-denied="">
-            {webStrings.requests.smartDenied}
+            {sheetStrings.requests.smartDenied}
           </span>
         ) : null}
       </p>
@@ -276,7 +276,7 @@ export function ApprovalSheet({
             />
             <span>
               <WithName
-                phrase={shown => webStrings.requests.sameForAll({ count: covered.length, name: shown })}
+                phrase={shown => sheetStrings.requests.sameForAll({ count: covered.length, name: shown })}
                 name={name}
               />
             </span>
@@ -284,7 +284,7 @@ export function ApprovalSheet({
 
           {forAll ? (
             <div className="hm-requests__others" id={listId}>
-              <p className="hm-requests__meta">{webStrings.requests.othersLabel}</p>
+              <p className="hm-requests__meta">{sheetStrings.requests.othersLabel}</p>
               <ul className="hm-requests__others-list">
                 {covered.map(other => (
                   <li key={other.id}>
@@ -326,7 +326,7 @@ export function ApprovalSheet({
         {notice}
       </p>
 
-      {choices.includes('session') ? <p className="hm-requests__meta">{webStrings.requests.sessionHint}</p> : null}
+      {choices.includes('session') ? <p className="hm-requests__meta">{sheetStrings.requests.sessionHint}</p> : null}
       {choices.includes('always') ? <p className="hm-requests__meta">{strings.chat.approval.fine}</p> : null}
     </>
   )

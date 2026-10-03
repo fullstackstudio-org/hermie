@@ -54,8 +54,8 @@ import {
 } from 'react'
 
 import { type AnswerOutcome, answerText } from '../../core/requests/secure-input'
+import { sheetStrings } from '../../i18n/sheet-strings'
 import { useLocale } from '../../i18n/use-locale'
-import { webStrings } from '../../i18n/web-strings'
 import type { SecurePrompt } from '../../state/secure-input'
 import { Button } from '../../ui/primitives'
 import { DEFAULT_TAP_GUARD_MS } from './ApprovalSheet'
@@ -121,7 +121,7 @@ const countdown = (ms: number): string => {
  */
 export function SecureQuote({
   text,
-  label = webStrings.secureInput.quoteLabel,
+  label = sheetStrings.secureInput.quoteLabel,
   monospaced = false
 }: {
   text: string
@@ -306,14 +306,14 @@ export function SecureSheetFrame({
       </h2>
 
       <p className="hm-requests__lead" id={descriptionId}>
-        {webStrings.secureInput.gateway({ host: gateway })}
+        {sheetStrings.secureInput.gateway({ host: gateway })}
       </p>
 
       {prompt.earlierLost ? (
         <p className="hm-requests__phase" data-tone="danger">
           {prompt.earlierLost === 'skip'
-            ? webStrings.secureInput.earlierSkipLost
-            : webStrings.secureInput.earlierAnswerLost}
+            ? sheetStrings.secureInput.earlierSkipLost
+            : sheetStrings.secureInput.earlierAnswerLost}
         </p>
       ) : null}
 
@@ -354,19 +354,19 @@ export function SecureSheetFrame({
 
       {deadline !== null ? (
         <p className="hm-requests__meta" data-tone={deadline - time <= 10_000 ? 'danger' : undefined}>
-          {webStrings.secureInput.expiresIn({ time: countdown(deadline - time) })}
+          {sheetStrings.secureInput.expiresIn({ time: countdown(deadline - time) })}
         </p>
       ) : null}
 
       <p className="hm-requests__phase" role="status" data-tone={offline ? 'danger' : undefined}>
-        {offline ? webStrings.secureInput.offline : ''}
+        {offline ? sheetStrings.secureInput.offline : ''}
       </p>
 
       <p className="hm-secure__receiver">{receiver}</p>
 
       <div className="hm-requests__actions">
         <Button className="hm-requests__action" variant="quiet" disabled={!armed} onClick={skip}>
-          {webStrings.secureInput.skip}
+          {sheetStrings.secureInput.skip}
         </Button>
         <Button className="hm-requests__action" variant="primary" disabled={!armed || !answerable} onClick={submit}>
           {sendLabel}

@@ -11,7 +11,7 @@
  */
 import { act, fireEvent, render, screen, waitFor, within } from '@testing-library/react'
 import axe from 'axe-core'
-import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
+import { afterEach, beforeAll, beforeEach, describe, expect, it, vi } from 'vitest'
 
 import { FileUploadError, type UploadableFile } from '../../core/chats/file-upload'
 import { resetActiveLocale } from '../../i18n/active-locale'
@@ -28,6 +28,12 @@ import { assistantItem, chatWith, userItem } from '../../test-support/chat-fixtu
 import { aBot, resetShellStores, seedRoster } from '../../test-support/shell-stores'
 import type { ChatSessionRuntime } from '../chat/chat-runtime'
 import { App } from '../shell/App'
+import { preloadRequestSheets } from './request-sheets'
+
+// The sheets are a chunk of their own (`request-sheets.ts`); the page fetches it when the session starts.
+beforeAll(async () => {
+  await preloadRequestSheets()
+})
 
 let stop: () => void = () => undefined
 

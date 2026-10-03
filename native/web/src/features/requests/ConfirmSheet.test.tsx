@@ -24,6 +24,7 @@ import { aBot, resetShellStores, seedRoster } from '../../test-support/shell-sto
 import type { StoreApi } from 'zustand/vanilla'
 import { type PasskeyActions, PasskeyRuntimeContext } from './passkey-runtime'
 import { RequestLayer } from './RequestLayer'
+import { preloadRequestSheets } from './request-sheets'
 
 const DETAIL = 'rm -rf /srv/backups/2024-*\n    keep:  /srv/backups/latest\n\ttabbed'
 
@@ -48,10 +49,10 @@ const confirmation = (overrides: Partial<PasskeyConfirmation> = {}): PasskeyConf
 
 let version = 1
 
-// The sheet is a chunk of its own, loaded when the first confirmation is drawn: the act is async so the
-// chunk's promise settles inside it. (The module is imported once up front, so that is a few microtasks.)
+// The sheets are a chunk of their own (`request-sheets.ts`), which the page fetches when the session starts;
+// once it is in memory a confirmation's sheet is drawn in the same pass.
 beforeAll(async () => {
-  await import('./ConfirmSheet')
+  await preloadRequestSheets()
 })
 
 const show = (overrides: Partial<PasskeyConfirmation> = {}): Promise<void> =>

@@ -65,6 +65,11 @@
   line-height: 1.25;
 }
 
+/* The dialog while the sheets' chunk is still on its way: about the height of a short sheet, nothing in it. */
+.hm-requests__pending {
+  min-height: 9rem;
+}
+
 .hm-requests__lead,
 .hm-requests__text,
 .hm-requests__question {

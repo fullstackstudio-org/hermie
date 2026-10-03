@@ -1,6 +1,7 @@
 import { afterEach, describe, expect, it } from 'vitest'
 
 import { LOCALES, resetActiveLocale, setActiveLocale, TRANSLATED_LOCALES, type Locale } from './active-locale'
+import { SHEET_STRINGS_SOURCE, sheetStrings } from './sheet-strings'
 import { WEB_STRINGS_SOURCE, webStrings } from './web-strings'
 
 afterEach(() => {
@@ -19,10 +20,10 @@ const SAME_AS_ENGLISH: Readonly<Record<string, readonly Locale[]>> = {
   // `{name}, {time}` is the same two placeholders and a comma in every language.
   'chat.messageFrom': ['nl', 'de'],
   // "Details" and "Passkeys" are the Dutch and German words too.
-  'passkeys.detailLabel': ['nl', 'de'],
+  'sheets.passkeys.detailLabel': ['nl', 'de'],
   'passkeys.settings.title': ['nl', 'de'],
   // "Code" is the Dutch and German word too.
-  'secureInput.fieldCode': ['nl', 'de'],
+  'sheets.secureInput.fieldCode': ['nl', 'de'],
   // `{name}: {problem}` is the same two placeholders and a colon in every language.
   'attachments.problemAnnounced': ['nl', 'de']
 }
@@ -50,7 +51,11 @@ function leaves(
   return out
 }
 
-const all = leaves(WEB_STRINGS_SOURCE as unknown as Source)
+/** Both tables: the entry's, and the one only the sheets' chunk reads (`sheet-strings.ts`), under `sheets.`. */
+const all = [
+  ...leaves(WEB_STRINGS_SOURCE as unknown as Source),
+  ...leaves(SHEET_STRINGS_SOURCE as unknown as Source, 'sheets')
+]
 
 /** Sample arguments for the function leaves: every parameter is a recognisable string. */
 const MARKER = '/some/path/index.html'
@@ -78,6 +83,14 @@ const SAMPLE = {
 describe('the web-only strings', () => {
   it('has strings', () => {
     expect(all.length).toBeGreaterThan(0)
+  })
+
+  it('says each thing in one table only, so the two cannot drift apart', () => {
+    const entry = new Set(leaves(WEB_STRINGS_SOURCE as unknown as Source).map(([key]) => key))
+
+    for (const [key] of leaves(SHEET_STRINGS_SOURCE as unknown as Source)) {
+      expect(entry.has(key), key).toBe(false)
+    }
   })
 
   it('has every leaf in every language, as the same kind of value', () => {
@@ -124,6 +137,15 @@ describe('the web-only strings', () => {
         expect((leaf[locale] as (a: unknown) => string)(SAMPLE), `${key} [${locale}]`).toContain(MARKER)
       }
     }
+  })
+})
+
+describe('sheetStrings', () => {
+  it('reads in the language that is active when it is read, like webStrings', () => {
+    expect(sheetStrings.requests.skip).toBe('Skip')
+
+    setActiveLocale('nl')
+    expect(sheetStrings.requests.skip).toBe('Overslaan')
   })
 })
 

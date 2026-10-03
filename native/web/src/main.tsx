@@ -19,6 +19,7 @@ import { configureLocale, initLocale } from './i18n/locale'
 import { useLocale } from './i18n/use-locale'
 import { webStrings } from './i18n/web-strings'
 import { createDraftStore } from './features/chat/drafts'
+import { preloadRequestSheets } from './features/requests/request-sheets'
 import { App } from './features/shell/App'
 import { startSession } from './features/shell/session'
 import { chatCacheFor, type ChatCache } from './platform/chat-cache'
@@ -115,6 +116,10 @@ async function run(root: Root, basePath: ResolvedBasePath, store: WebKeyValueSto
     storage: store,
     cache
   })
+
+  // A bot's question must be on screen the moment it arrives: the sheets' chunk is fetched now, while the
+  // socket is still connecting. A failure here is retried by the request layer when it has one to show.
+  void preloadRequestSheets().catch(() => undefined)
 
   render(
     root,

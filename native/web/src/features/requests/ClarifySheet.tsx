@@ -35,8 +35,8 @@ import type { ClarifyItem } from '@hermie/transcript'
 import { type KeyboardEvent, type ReactElement, useEffect, useId, useMemo, useRef, useState } from 'react'
 
 import { strings } from '../../generated/strings'
+import { sheetStrings } from '../../i18n/sheet-strings'
 import { useLocale } from '../../i18n/use-locale'
-import { webStrings } from '../../i18n/web-strings'
 import { Button } from '../../ui/primitives'
 
 export interface ClarifySheetProps {
@@ -283,7 +283,7 @@ export function ClarifySheet({
           </Button>
         ) : null}
         <Button className="hm-requests__action" variant="quiet" disabled={!armed} onClick={skip}>
-          {webStrings.requests.skip}
+          {sheetStrings.requests.skip}
         </Button>
         {cancellable ? (
           <Button
@@ -293,7 +293,7 @@ export function ClarifySheet({
             disabled={!armed}
             onClick={cancelAll}
           >
-            {webStrings.requests.cancelAll}
+            {sheetStrings.requests.cancelAll}
           </Button>
         ) : null}
       </div>

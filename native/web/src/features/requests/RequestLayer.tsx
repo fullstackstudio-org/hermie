@@ -57,10 +57,8 @@
  */
 import type { ApprovalItem } from '@hermie/transcript'
 import {
-  lazy,
   type KeyboardEvent,
   type ReactElement,
-  Suspense,
   useCallback,
   useEffect,
   useId,
@@ -84,29 +82,19 @@ import { type SecureInputState, secureInputStore, type SecurePrompt } from '../.
 import { useChatRuntime } from '../chat/chat-runtime'
 import { GatewayNotices } from '../notices/GatewayNotices'
 import { openAuthorisationLink, useSessionSignalsRuntime } from '../notices/signals-runtime'
-import { ApprovalSheet } from './ApprovalSheet'
-import { ClarifySheet } from './ClarifySheet'
-import { ConnectionSheet } from './ConnectionSheet'
 import { usePasskeyRuntime } from './passkey-runtime'
 import { PasskeyNotices } from './PasskeyNotices'
-import { SecretSheet } from './SecretSheet'
+import { type RequestSheets, useRequestSheets } from './request-sheets'
 import { useSecureInputRuntime } from './secure-input-runtime'
 import type { SecureSheetProps } from './SecureSheet'
-import { SudoSheet } from './SudoSheet'
-import { VaultCodeSheet } from './VaultCodeSheet'
-import { VaultSaveLoginSheet } from './VaultSaveLoginSheet'
-import { VaultUnlockSheet } from './VaultUnlockSheet'
 import { WithName } from './with-name'
 import './request-layer.css'
 
 /**
- * The passkey confirmation's sheet is a chunk of its own, fetched when the first `confirm` frame needs it
- * (the model that reads the frame and the WebAuthn layer stay in the entry bundle: a frame is read, and a
- * 4040 answered, whether or not the sheet ever loads).
+ * What a confirmation's dialog shows while the sheets' chunk loads (`request-sheets.ts`; the passkey model
+ * that reads the frame and the WebAuthn layer stay in the entry bundle: a frame is read, and a 4040
+ * answered, whether or not the sheet ever loads): its heading and who asks, and nothing to press.
  */
-const ConfirmSheet = lazy(() => import('./ConfirmSheet').then(module => ({ default: module.ConfirmSheet })))
-
-/** What the dialog shows while that chunk loads: its heading and who asks, and nothing to press. */
 function ConfirmFallback({
   confirmation,
   titleId,
@@ -224,18 +212,18 @@ function connectionAnnouncement(store: StoreApi<ConnectionsState>, bot: string, 
 }
 
 /** The sheet for a prompt's kind. */
-function SecureSheetFor(props: SecureSheetProps): ReactElement | null {
+function SecureSheetFor({ sheets, ...props }: SecureSheetProps & { sheets: RequestSheets }): ReactElement | null {
   switch (props.prompt.ask.kind) {
     case 'secret':
-      return <SecretSheet {...props} />
+      return <sheets.SecretSheet {...props} />
     case 'sudo':
-      return <SudoSheet {...props} />
+      return <sheets.SudoSheet {...props} />
     case 'vault_unlock':
-      return <VaultUnlockSheet {...props} />
+      return <sheets.VaultUnlockSheet {...props} />
     case 'vault_code':
-      return <VaultCodeSheet {...props} />
+      return <sheets.VaultCodeSheet {...props} />
     case 'vault_save_login':
-      return <VaultSaveLoginSheet {...props} />
+      return <sheets.VaultSaveLoginSheet {...props} />
   }
 }
 
@@ -266,6 +254,8 @@ export function RequestLayer({
   const queue = useStore(store, state => state.queue)
   const current = queue[0]
   const open = current !== undefined
+  // Every sheet comes from one chunk, fetched when the session starts and held from then on.
+  const sheets = useRequestSheets(open)
   const bot = current?.bot
   const confirmId = current?.kind === 'confirm' ? current.id : undefined
   const confirmation = useStore(passkeys, state =>
@@ -530,28 +520,10 @@ export function RequestLayer({
               </p>
             ) : null}
 
-            {current.kind === 'secure' ? (
-              prompt ? (
-                <SecureSheetFor
-                  key={current.key}
-                  prompt={prompt}
-                  name={shownName}
-                  gateway={gatewayHost}
-                  titleId={titleId}
-                  descriptionId={descriptionId}
-                  {...(tapGuardMs !== undefined ? { tapGuardMs } : {})}
-                  onAnswer={(value, identifier) => secureActions?.answer(prompt.id, value, identifier) ?? 'closed'}
-                  onSkip={() => secureActions?.skip(prompt.id) ?? 'closed'}
-                />
-              ) : null
-            ) : current.kind === 'confirm' ? (
+            {current.kind === 'confirm' ? (
               confirmation ? (
-                <Suspense
-                  fallback={
-                    <ConfirmFallback confirmation={confirmation} titleId={titleId} descriptionId={descriptionId} />
-                  }
-                >
-                  <ConfirmSheet
+                sheets ? (
+                  <sheets.ConfirmSheet
                     key={current.key}
                     confirmation={confirmation}
                     rpId={rpId}
@@ -563,11 +535,31 @@ export function RequestLayer({
                     onClose={() => passkeyActions?.dismiss(confirmation.id)}
                     onExpire={() => passkeyActions?.expire(confirmation.id)}
                   />
-                </Suspense>
+                ) : (
+                  <ConfirmFallback confirmation={confirmation} titleId={titleId} descriptionId={descriptionId} />
+                )
+              ) : null
+            ) : !sheets ? (
+              // The sheets' chunk is not in memory yet (it is fetched when the session starts): nothing to press.
+              <div className="hm-requests__pending" aria-busy="true" />
+            ) : current.kind === 'secure' ? (
+              prompt ? (
+                <SecureSheetFor
+                  sheets={sheets}
+                  key={current.key}
+                  prompt={prompt}
+                  name={shownName}
+                  gateway={gatewayHost}
+                  titleId={titleId}
+                  descriptionId={descriptionId}
+                  {...(tapGuardMs !== undefined ? { tapGuardMs } : {})}
+                  onAnswer={(value, identifier) => secureActions?.answer(prompt.id, value, identifier) ?? 'closed'}
+                  onSkip={() => secureActions?.skip(prompt.id) ?? 'closed'}
+                />
               ) : null
             ) : current.kind === 'connection' ? (
               card ? (
-                <ConnectionSheet
+                <sheets.ConnectionSheet
                   key={current.key}
                   card={card}
                   name={shownName}
@@ -586,7 +578,7 @@ export function RequestLayer({
                 />
               ) : null
             ) : current.item.kind === 'approval' ? (
-              <ApprovalSheet
+              <sheets.ApprovalSheet
                 key={current.key}
                 item={current.item}
                 handle={current.bot}
@@ -606,7 +598,7 @@ export function RequestLayer({
                 }}
               />
             ) : (
-              <ClarifySheet
+              <sheets.ClarifySheet
                 key={current.key}
                 item={current.item}
                 titleId={titleId}

@@ -19,6 +19,7 @@ import type { StoreApi } from 'zustand/vanilla'
 
 import { displayEnrolmentCode } from '../../core/passkey/challenge'
 import type { PasskeyActionError, PasskeyInvite } from '../../core/passkey/model'
+import { sheetStrings } from '../../i18n/sheet-strings'
 import { formatDate, formatDateTime, formatDuration } from '../../i18n/format'
 import { useLocale } from '../../i18n/use-locale'
 import { webStrings } from '../../i18n/web-strings'
@@ -38,7 +39,7 @@ interface Message {
 
 /** What a failed action says. */
 export function actionFailure(error: unknown, rpId: string): string {
-  const words = webStrings.passkeys.settings
+  const words = sheetStrings.passkeys.settings
   const problem = (error as PasskeyActionError | null)?.problem
 
   if (!problem) {
@@ -68,7 +69,7 @@ export function actionFailure(error: unknown, rpId: string): string {
         case 'unavailable':
           return words.notSupported
         case 'busy':
-          return words.failed({ message: webStrings.passkeys.signing })
+          return words.failed({ message: sheetStrings.passkeys.signing })
         case 'failed':
           return words.failed({ message: problem.problem.message })
       }
@@ -109,7 +110,7 @@ export function Passkeys({ store = passkeysStore }: { store?: StoreApi<PasskeysS
   const rpId = useStore(store, state => state.rpId)
   const pinned = useStore(store, state => state.pinned)
   const unlisted = useStore(store, state => state.capability?.verdict.kind === 'base_url_not_listed')
-  const words = webStrings.passkeys.settings
+  const words = sheetStrings.passkeys.settings
   const ids = useId()
   const codeId = `${ids}-code`
   const helpId = `${ids}-help`
@@ -222,7 +223,7 @@ export function Passkeys({ store = passkeysStore }: { store?: StoreApi<PasskeysS
   return (
     <section className="hm-passkeys" aria-labelledby={`${ids}-title`}>
       <h2 className="hm-passkeys__title" id={`${ids}-title`}>
-        {words.title}
+        {webStrings.passkeys.settings.title}
       </h2>
       <p className="hm-passkeys__text">{words.intro}</p>
       {state ? <p className="hm-passkeys__state">{state}</p> : null}
@@ -278,7 +279,7 @@ export function Passkeys({ store = passkeysStore }: { store?: StoreApi<PasskeysS
           disabled={!supported || !accepted}
         />
         <Button type="submit" disabled={!canAct || code.trim() === ''}>
-          {busy === 'enrol' ? webStrings.passkeys.signing : words.enrol}
+          {busy === 'enrol' ? sheetStrings.passkeys.signing : words.enrol}
         </Button>
       </form>
 
@@ -287,7 +288,7 @@ export function Passkeys({ store = passkeysStore }: { store?: StoreApi<PasskeysS
           <h3 className="hm-passkeys__heading">{words.inviteTitle}</h3>
           <p className="hm-passkeys__text">{words.inviteHelp}</p>
           <Button variant="quiet" disabled={!canAct} onClick={mintInvite}>
-            {busy === 'invite' ? webStrings.passkeys.signing : words.invite}
+            {busy === 'invite' ? sheetStrings.passkeys.signing : words.invite}
           </Button>
           {invite ? (
             <div className="hm-passkeys__code">

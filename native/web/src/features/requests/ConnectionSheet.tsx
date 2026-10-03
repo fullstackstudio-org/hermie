@@ -24,8 +24,8 @@
 import { type ReactElement, useEffect, useId, useState } from 'react'
 
 import { isTargetOpen } from '../../core/connections'
+import { sheetStrings } from '../../i18n/sheet-strings'
 import { useLocale } from '../../i18n/use-locale'
-import { webStrings } from '../../i18n/web-strings'
 import type { ConnectionCard, ConnectionTarget } from '../../state/connections'
 import { Button } from '../../ui/primitives'
 import { DEFAULT_TAP_GUARD_MS } from './ApprovalSheet'
@@ -60,7 +60,7 @@ export const countdown = (ms: number): string => {
 
 /** A row's state in words; one this build has no word for is the gateway's own. */
 export function targetStateText(state: string): string {
-  const words = webStrings.connections.state
+  const words = sheetStrings.connections.state
 
   switch (state) {
     case 'pending':
@@ -107,34 +107,34 @@ function TargetRow({
       <p className="hm-connection__state">{targetStateText(target.state)}</p>
       {target.detail ? <p className="hm-connection__detail">{target.detail}</p> : null}
       {target.instructions ? (
-        <SecureQuote text={target.instructions} label={webStrings.connections.instructions} />
+        <SecureQuote text={target.instructions} label={sheetStrings.connections.instructions} />
       ) : null}
       {open && target.link ? (
         <div className="hm-connection__link">
           <Button
             disabled={!armed}
-            aria-label={webStrings.connections.openLabel({ name: target.label, host: target.link.host })}
+            aria-label={sheetStrings.connections.openLabel({ name: target.label, host: target.link.host })}
             onClick={onOpen}
           >
-            {webStrings.connections.open}
+            {sheetStrings.connections.open}
           </Button>
-          <span className="hm-connection__host">{webStrings.connections.opensAt({ host: target.link.host })}</span>
+          <span className="hm-connection__host">{sheetStrings.connections.opensAt({ host: target.link.host })}</span>
         </div>
       ) : null}
-      {open && target.opened ? <p className="hm-connection__note">{webStrings.connections.opened}</p> : null}
+      {open && target.opened ? <p className="hm-connection__note">{sheetStrings.connections.opened}</p> : null}
       {open && target.linkRefused ? (
         <p className="hm-connection__note" data-tone="danger">
-          {webStrings.connections.linkRefused}
+          {sheetStrings.connections.linkRefused}
         </p>
       ) : null}
       {open ? (
         <Button
           variant="quiet"
           disabled={!armed || busy}
-          aria-label={webStrings.connections.skipLabel({ name: target.label })}
+          aria-label={sheetStrings.connections.skipLabel({ name: target.label })}
           onClick={onSkip}
         >
-          {webStrings.connections.skip}
+          {sheetStrings.connections.skip}
         </Button>
       ) : null}
     </li>
@@ -188,15 +188,15 @@ export function ConnectionSheet({
   return (
     <>
       <h2 className="hm-requests__title" id={titleId}>
-        <WithName phrase={shown => webStrings.connections.title({ name: shown })} name={name} />
+        <WithName phrase={shown => sheetStrings.connections.title({ name: shown })} name={name} />
       </h2>
 
       <p className="hm-requests__lead" id={descriptionId}>
-        {webStrings.connections.lead({ host: gateway })}
+        {sheetStrings.connections.lead({ host: gateway })}
       </p>
 
       <p className="hm-requests__label" id={listId}>
-        {webStrings.connections.targets}
+        {sheetStrings.connections.targets}
       </p>
       <ul className="hm-connection__targets" aria-labelledby={listId}>
         {card.targets.map(target => (
@@ -212,20 +212,20 @@ export function ConnectionSheet({
       </ul>
 
       <p className="hm-requests__meta" data-tone={left <= 10_000 ? 'danger' : undefined}>
-        {webStrings.connections.timeLeft({ time: countdown(left) })}
+        {sheetStrings.connections.timeLeft({ time: countdown(left) })}
       </p>
 
       <p className="hm-requests__phase" role="status" data-tone={card.answer.kind === 'failed' ? 'danger' : undefined}>
         {card.answer.kind === 'sending'
-          ? webStrings.connections.sending
+          ? sheetStrings.connections.sending
           : card.answer.kind === 'failed'
-            ? webStrings.connections.failed({ message: card.answer.message })
+            ? sheetStrings.connections.failed({ message: card.answer.message })
             : ''}
       </p>
 
       <div className="hm-requests__actions">
         <Button className="hm-requests__action" variant="quiet" disabled={!armed || busy} onClick={onCancel}>
-          {webStrings.connections.cancel}
+          {sheetStrings.connections.cancel}
         </Button>
       </div>
     </>
