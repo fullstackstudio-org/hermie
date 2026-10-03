@@ -166,6 +166,48 @@
 	<string>Stoppen</string>
 	<key>native.composer.stopped</key>
 	<string>Antwort gestoppt</string>
+	<key>native.confirm.answeredElsewhere</key>
+	<string>Ein anderes Gerät hat diese Anfrage beantwortet.</string>
+	<key>native.confirm.cannotConfirm</key>
+	<string>Dieses Gerät kann gerade nicht mit einem Passkey bestätigen. Es wurde nichts bestätigt.</string>
+	<key>native.confirm.confirm</key>
+	<string>Mit Passkey bestätigen</string>
+	<key>native.confirm.confirmHint</key>
+	<string>Fragt dein Gerät nach deinem Passkey.</string>
+	<key>native.confirm.decline</key>
+	<string>Ablehnen</string>
+	<key>native.confirm.declined</key>
+	<string>Du hast diese Anfrage abgelehnt.</string>
+	<key>native.confirm.detailLabel</key>
+	<string>Details</string>
+	<key>native.confirm.noCredential</key>
+	<string>Auf diesem Gerät ist kein Passkey für dieses Gateway verfügbar. Es wurde nichts bestätigt.</string>
+	<key>native.confirm.notAllowed</key>
+	<string>Dieses Gerät darf diese Anfrage nicht beantworten.</string>
+	<key>native.confirm.notSent</key>
+	<string>Die Antwort hat das Gateway nicht erreicht. Du kannst es erneut versuchen.</string>
+	<key>native.confirm.passkeyNote</key>
+	<string>Dein Gerät fragt nach deinem Passkey für %1$@. Dieser Name ist für jedes Gateway derselbe; diese Anfrage gilt für %2$@.</string>
+	<key>native.confirm.received</key>
+	<string>Antwort erhalten. Das Gateway prüft sie.</string>
+	<key>native.confirm.refused.other</key>
+	<string>Das Gateway hat die Passkey-Antwort nicht akzeptiert. Du kannst es erneut versuchen.</string>
+	<key>native.confirm.refused.unknownCredential</key>
+	<string>Das Gateway kennt diesen Passkey nicht. Er wurde vielleicht entfernt. Du kannst es erneut versuchen.</string>
+	<key>native.confirm.refused.userVerification</key>
+	<string>Dein Gerät hat nicht bestätigt, dass du es bist. Du kannst es erneut versuchen.</string>
+	<key>native.confirm.signing</key>
+	<string>Warte auf deinen Passkey…</string>
+	<key>native.confirm.timedOut</key>
+	<string>Diese Anfrage ist abgelaufen. Es wurde nichts bestätigt.</string>
+	<key>native.confirm.title</key>
+	<string>%@ bittet dich um Bestätigung</string>
+	<key>native.confirm.tooManyAttempts</key>
+	<string>Zu viele Antworten wurden abgelehnt. Die Anfrage ist geschlossen und es wurde nichts bestätigt.</string>
+	<key>native.confirm.verificationFailed</key>
+	<string>Das Gateway konnte deine Antwort nicht prüfen. Es wurde nichts bestätigt.</string>
+	<key>native.confirm.withdrawn</key>
+	<string>Die Anfrage wurde zurückgezogen. Es wurde nichts bestätigt.</string>
 	<key>native.connectionRequest.open</key>
 	<string>Öffnen</string>
 	<key>native.connectionRequest.skip</key>
@@ -406,6 +448,120 @@
 	<string>die lokale Datenbank hat die Änderung verweigert.</string>
 	<key>native.onboarding.save.unsupportedRegistry</key>
 	<string>Die Gateway-Liste auf diesem Gerät stammt von einer neueren Hermie-Version, deshalb wurde nichts geändert. Aktualisiere Hermie und versuche es erneut.</string>
+	<key>native.passkeys.add.action</key>
+	<string>Passkey hinzufügen</string>
+	<key>native.passkeys.add.field</key>
+	<string>Code vom Betreiber des Gateways</string>
+	<key>native.passkeys.add.footer</key>
+	<string>Der Betreiber dieses Gateways gibt dir einen einmaligen Code. Dein Gerät erstellt damit einen Passkey und fragt nach deiner Zustimmung.</string>
+	<key>native.passkeys.add.header</key>
+	<string>Mit einem Code hinzufügen</string>
+	<key>native.passkeys.added</key>
+	<string>Hinzugefügt %@</string>
+	<key>native.passkeys.addedUnknown</key>
+	<string>Zu einem unbekannten Zeitpunkt hinzugefügt</string>
+	<key>native.passkeys.credentials.header</key>
+	<string>Passkeys deines Kontos</string>
+	<key>native.passkeys.failure.alreadyEnrolled</key>
+	<string>Dieser Passkey ist bereits auf diesem Gateway.</string>
+	<key>native.passkeys.failure.badAnswer</key>
+	<string>Die Antwort des Gateways war nicht, was Hermie erwartet hat.</string>
+	<key>native.passkeys.failure.cannotUse</key>
+	<string>Dieses Gerät kann gerade keine Passkeys verwenden. Prüfe, ob eine Bildschirmsperre und ein Passkey-Anbieter eingerichtet sind.</string>
+	<key>native.passkeys.failure.codeNotValid</key>
+	<string>Dieser Code ist ungültig, abgelaufen oder wurde schon verwendet.</string>
+	<key>native.passkeys.failure.invalidCode</key>
+	<string>Dieser Code sieht nicht richtig aus. Prüfe ihn und versuche es erneut.</string>
+	<key>native.passkeys.failure.noPasskey</key>
+	<string>Auf diesem Gerät ist kein Passkey von dir für dieses Gateway verfügbar.</string>
+	<key>native.passkeys.failure.promptBusy</key>
+	<string>Eine andere Passkey-Abfrage ist offen. Schließe sie zuerst ab.</string>
+	<key>native.passkeys.failure.promptFailed</key>
+	<string>Die Passkey-Abfrage wurde nicht abgeschlossen. Versuche es erneut.</string>
+	<key>native.passkeys.failure.refused</key>
+	<string>Das Gateway hat dies abgelehnt.</string>
+	<key>native.passkeys.failure.seeNotice</key>
+	<string>Es wurde nichts geändert. Siehe den Hinweis oben.</string>
+	<key>native.passkeys.failure.tooSlow</key>
+	<string>Das hat zu lange gedauert. Beginne von vorn.</string>
+	<key>native.passkeys.invite.action</key>
+	<string>Code erstellen</string>
+	<key>native.passkeys.invite.copy</key>
+	<string>Code kopieren</string>
+	<key>native.passkeys.invite.expires</key>
+	<string>Läuft um %@ ab</string>
+	<key>native.passkeys.invite.footer</key>
+	<string>Verwende den Code auf dem anderen Gerät oder in einem Browser, um dort einen Passkey hinzuzufügen. Er gilt einmal und läuft bald ab. Zum Erstellen wirst du nach einem Passkey gefragt.</string>
+	<key>native.passkeys.invite.header</key>
+	<string>Code für ein anderes Gerät erstellen</string>
+	<key>native.passkeys.invite.hide</key>
+	<string>Code ausblenden</string>
+	<key>native.passkeys.invite.off</key>
+	<string>Der Betreiber dieses Gateways hat das Erstellen von Codes hier ausgeschaltet.</string>
+	<key>native.passkeys.lastUsed</key>
+	<string>Zuletzt verwendet %@</string>
+	<key>native.passkeys.neverUsed</key>
+	<string>Noch nie verwendet</string>
+	<key>native.passkeys.notice.added</key>
+	<string>Ein Passkey wurde deinem Konto auf diesem Gateway ohne dieses Gerät hinzugefügt: %@</string>
+	<key>native.passkeys.notice.gatewayIDConflict</key>
+	<string>Die Bestätigung mit Passkey ist für dieses Gateway aus: Es zeigt eine Identität, die zu einem anderen Gateway gehört.</string>
+	<key>native.passkeys.notice.gatewayIDMismatch</key>
+	<string>Die Bestätigung mit Passkey ist für dieses Gateway aus: Es meldet sich nicht mehr als das Gateway, für das du Passkeys eingerichtet hast. Wurde es absichtlich zurückgesetzt, entferne es und füge es erneut hinzu.</string>
+	<key>native.passkeys.notice.malformedRequest</key>
+	<string>Es kam eine Passkey-Bestätigung an, die diese App nicht lesen konnte, daher wurde sie nicht beantwortet.</string>
+	<key>native.passkeys.notice.noCredentialForApp</key>
+	<string>Es kam eine Bestätigung an, für die dieses Gerät keinen Passkey hat. Füge einen unter Einstellungen, Gateways, Passkeys hinzu.</string>
+	<key>native.passkeys.notice.pinUnreadable</key>
+	<string>Hermie konnte die Passkey-Daten, die es für dieses Gateway speichert, nicht lesen, daher ist die Bestätigung mit Passkey aus. Es wurde nichts geändert.</string>
+	<key>native.passkeys.notice.revoked</key>
+	<string>Ein Passkey wurde von deinem Konto auf diesem Gateway ohne dieses Gerät entfernt: %@</string>
+	<key>native.passkeys.notice.sameGateway</key>
+	<string>Dieses Gateway zeigt dieselbe Passkey-Identität wie „%@“, das du bereits hinzugefügt hast. Ist es dasselbe Gateway unter einer anderen Adresse, verknüpfe sie. Bis dahin ist die Bestätigung mit Passkey aus.</string>
+	<key>native.passkeys.notice.sameGatewayAction</key>
+	<string>Dasselbe Gateway wie %@</string>
+	<key>native.passkeys.notice.unsupportedVersion</key>
+	<string>Dieses Gateway hat eine Passkey-Bestätigung in einer Version angefragt, die diese App nicht kennt. Aktualisiere Hermie.</string>
+	<key>native.passkeys.remove.action</key>
+	<string>Passkey entfernen</string>
+	<key>native.passkeys.remove.message</key>
+	<string>Er kann danach nichts mehr auf diesem Gateway bestätigen. Du wirst dafür nach einem Passkey gefragt.</string>
+	<key>native.passkeys.remove.title</key>
+	<string>Diesen Passkey entfernen?</string>
+	<key>native.passkeys.state.disabled</key>
+	<string>Passkeys sind auf diesem Gateway ausgeschaltet.</string>
+	<key>native.passkeys.state.enrolled</key>
+	<string>Die Bestätigung mit Passkey ist für dieses Gateway aktiv.</string>
+	<key>native.passkeys.state.loading</key>
+	<string>Dieses Gateway wird geprüft…</string>
+	<key>native.passkeys.state.noBaseURL</key>
+	<string>Der Betreiber dieses Gateways hat keine Adresse für Passkeys festgelegt.</string>
+	<key>native.passkeys.state.noIdentity</key>
+	<string>Für Passkeys musst du angemeldet sein. Melde dich zuerst an diesem Gateway an.</string>
+	<key>native.passkeys.state.notConfigured</key>
+	<string>Diese Version von Hermie unterstützt keine Passkeys, daher ist die Bestätigung mit Passkey nicht verfügbar.</string>
+	<key>native.passkeys.state.notEnrolled</key>
+	<string>Noch kein Passkey für dieses Gateway. Füge einen mit einem Code vom Betreiber des Gateways hinzu.</string>
+	<key>native.passkeys.state.notOffered</key>
+	<string>Dieses Gateway bietet keine Passkeys an.</string>
+	<key>native.passkeys.state.originNotListed</key>
+	<string>Dieses Gateway führt die Adresse nicht auf, unter der Hermie es erreicht. Der Betreiber muss diese Adresse in den Passkey-Einstellungen des Gateways ergänzen.</string>
+	<key>native.passkeys.state.privateOrigin</key>
+	<string>Dieses Gateway ist nur unter einer privaten Adresse erreichbar, was Passkeys nur erlauben, wenn der Betreiber das freigibt.</string>
+	<key>native.passkeys.state.rateLimited</key>
+	<string>Zu viele Versuche. Versuche es in %lld Sekunden erneut.</string>
+	<key>native.passkeys.state.rateLimitedSoon</key>
+	<string>Zu viele Versuche. Versuche es gleich noch einmal.</string>
+	<key>native.passkeys.state.rpNotAccepted</key>
+	<string>Dieses Gateway akzeptiert die Passkey-Identität dieser Hermie-Version nicht.</string>
+	<key>native.passkeys.state.unreadable</key>
+	<string>Hermie konnte die Passkey-Einstellungen dieses Gateways nicht lesen.</string>
+	<key>native.passkeys.stateFooter</key>
+	<string>Mit einem Passkey bestätigst du mit deinem Gerät, was ein Bot fragt, und das Gateway prüft die Bestätigung selbst.</string>
+	<key>native.passkeys.stateHeader</key>
+	<string>Passkeys auf %@</string>
+	<key>native.passkeys.title</key>
+	<string>Passkeys</string>
 	<key>native.push.cannotDeliverPlugin</key>
 	<string>Dieses Gateway kann noch nicht an dieses Gerät zustellen: Das Hermie-Plugin ist zu alt. Aktualisiere das Plugin auf dem Gateway.</string>
 	<key>native.push.cannotDeliverRelay</key>

@@ -26,6 +26,9 @@ struct RequestSheetModifier: ViewModifier {
           // Opaque at every detent: a command to approve is read against a
           // plain background, never against the transcript showing through.
           .presentationBackground(.background)
+          // A passkey confirmation is answered by Confirm or Decline, or it ends: Esc and a swipe
+          // never close it while it is open.
+          .interactiveDismissDisabled(requests.presentedConfirmation?.isOpen == true)
           #if os(macOS)
             .frame(minWidth: 420, idealWidth: 480, minHeight: 320)
           #endif
@@ -35,6 +38,25 @@ struct RequestSheetModifier: ViewModifier {
           requests.present(next)
         }
       }
+      .task(id: requests.unroutedConfirmationIDs) {
+        await routeConfirmations()
+      }
+  }
+
+  /// A confirmation belongs to the chat that holds its session. One whose session is not bound yet
+  /// is asked about again: a reconnect re-delivers open requests before the resume that binds them.
+  private func routeConfirmations() async {
+    for _ in 0..<120 {
+      if await requests.routeConfirmations() {
+        return
+      }
+
+      try? await Task.sleep(for: .milliseconds(500))
+
+      if Task.isCancelled {
+        return
+      }
+    }
   }
 
   private var presented: Binding<Presented?> {
@@ -57,6 +79,14 @@ struct RequestSheetView: View {
   let requestID: String
 
   var body: some View {
+    if let confirmation = requests.presentedConfirmation, let passkeys = requests.passkeys {
+      ConfirmSheetView(requests: requests, passkeys: passkeys, confirmation: confirmation)
+    } else {
+      approvalsBody
+    }
+  }
+
+  private var approvalsBody: some View {
     ScrollView {
       VStack(alignment: .leading, spacing: 14) {
         switch requests.presentedRequest {
