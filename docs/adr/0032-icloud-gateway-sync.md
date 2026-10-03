@@ -170,17 +170,30 @@ is something to store (a gateway on the device) and iCloud Keychain can be used.
 Device" turns sync off; turning it on later in Settings asks the same question first. Until it is
 answered, the engine writes nothing to iCloud. The launch does not read it either; setup does, just
 before its first step, and lists what it found under "Available from iCloud" with the same words
-about what is stored and where. "Use These Gateways" there is the answer: it takes them all, and a
-gateway whose sign-in cannot travel continues with the sign-in step. When the store cannot be used
+about what is stored and where. On a device with no gateway of its own, "Use These Gateways" there is
+the answer: it takes them all, and a gateway whose sign-in cannot travel continues with the sign-in
+step. On a device that already has gateways (setup for another one, or setup opened before the
+sheet could show) it is not the answer, because taking them would also publish this device's own
+credentials: setup leaves the offer out, the engine refuses to adopt there, and the sheet, which
+lists both what would be stored and what would be taken, asks first. When the store cannot be used
 (an unsigned build, no keychain access group) the sheet is not shown and Settings says so.
+
+When gateways come over from iCloud and one of them brought its session token, the "Added from
+iCloud Keychain" notice offers "Turn On App Lock" while this device has no lock; it opens Privacy &
+security → Require unlock, which authenticates before any change. The lock itself never syncs: a
+synced "off" could switch a lock off on another device.
 
 Settings → Gateways → iCloud Sync has the switch, where sync stands and when it last finished, one
 row per gateway with "Sync this gateway", "Sync Now", "Sync Again" for a gateway no longer in iCloud,
 and "Delete Everything from iCloud Keychain". Turning the switch off asks whether to also remove this
 device's gateways from iCloud ("stop syncing" for each); other devices keep their copies either way.
-Removing a synced gateway asks "from This Device" (it stays in iCloud and on the other devices, and
-is hidden here) or "from All Devices" (a tombstone); either way the sign-in is handed back to the
-gateway first, as for any removal. Gateways in iCloud that were removed from this device are offered
+With removal, sync stops only after a sync has run to the end with every item gone; one that was
+skipped, failed or could not delete an item leaves sync on and says so, because with sync off
+nothing here would delete what was left behind. Removing a synced gateway asks "from This Device"
+(it stays in iCloud and on the other devices, and is hidden here) or "from All Devices" (a
+tombstone). The engine checks the scope first, so a removal it would refuse (a gateway no longer
+synced) touches nothing and says why; then the sign-in is handed back to the gateway, as for any
+removal, and then the gateway is removed. Gateways in iCloud that were removed from this device are offered
 back under "Available from iCloud"; one that needs a sign-in opens the same sign-in sheet as
 Settings, and a finished sign-in clears its "Sign in needed".
 
