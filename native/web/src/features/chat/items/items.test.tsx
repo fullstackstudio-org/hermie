@@ -84,6 +84,49 @@ describe('a user bubble', () => {
 
     expect(container.querySelector('article')?.getAttribute('aria-label')).toMatch(/^Dana, /)
   })
+
+  describe('when an agent sent it for somebody (`author.via`)', () => {
+    const via = { kind: 'mcp', client: 'Claude Code' }
+
+    it('says `You via <client>` over the reader’s own row, in any chat, and keeps it on the reader’s side', () => {
+      const own = { id: 'p:me', name: 'Robin', via }
+
+      for (const context of [{}, { groupChat: true, ownAuthorId: 'p:me' }]) {
+        const { container, unmount } = draw(userItem('from the agent', { author: own, ts: LONG_AGO }), 'full', context)
+
+        expect(container.querySelector('.hm-msg')?.getAttribute('data-side')).toBe('own')
+        expect(container.querySelector('.hm-msg__sender')?.textContent).toBe('You via Claude Code')
+        expect(container.querySelector('article')?.getAttribute('aria-label')).toMatch(/^You via Claude Code, /)
+        unmount()
+      }
+    })
+
+    it('says `<name> via <client>` over a colleague’s row in the group chat, on their side', () => {
+      const { container } = draw(
+        userItem('for Dana', { author: { id: 'p:dana', name: 'Dana', via }, ts: LONG_AGO }),
+        'full',
+        { groupChat: true, ownAuthorId: 'p:me' }
+      )
+
+      expect(container.querySelector('.hm-msg')?.getAttribute('data-side')).toBe('other')
+      expect(container.querySelector('.hm-msg__sender')?.textContent).toBe('Dana via Claude Code')
+    })
+
+    it('draws the label as plain text, never as markup', () => {
+      const { container } = draw(
+        userItem('x', { author: { id: 'p:me', via: { kind: 'mcp', client: '<b>Agent</b> **x**' } } })
+      )
+
+      expect(container.querySelector('.hm-msg__sender')?.textContent).toBe('You via <b>Agent</b> **x**')
+      expect(container.querySelector('.hm-msg__sender b')).toBeNull()
+    })
+
+    it('leaves a row with no marker captionless, as before', () => {
+      const { container } = draw(userItem('mine', { author: { id: 'p:me', name: 'Robin' } }))
+
+      expect(container.querySelector('.hm-msg__sender')).toBeNull()
+    })
+  })
 })
 
 describe('an assistant bubble', () => {

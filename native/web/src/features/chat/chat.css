@@ -244,6 +244,12 @@
   overflow-wrap: anywhere;
 }
 
+.hm-msg[data-side='own'] .hm-msg__sender {
+  /* An agent's turn for the reader: the label sits over the bubble on the reader's side. */
+  margin: 0 4px 2px 0;
+  text-align: right;
+}
+
 .hm-msg__footer {
   margin: 2px 0 0 12px;
   color: var(--hm-text-faint);

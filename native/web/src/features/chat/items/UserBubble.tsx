@@ -7,6 +7,11 @@
  * the reader's own: that is the honest default, and the only one that cannot
  * put the reader's words under a stranger's name.
  *
+ * A row an agent sent on somebody's behalf (`author.via`, `contract/gateway/mcp.md`) is the
+ * exception to both: it carries one label over it, `<name> via <client>`
+ * (`authorLabel`), whoever's it is and in every chat, so it is never drawn as the
+ * person typing. The name in it is the person's: `You` for the reader's own.
+ *
  * The text is Markdown, the same as the reply beside it: a person who typed
  * `**done**` was writing markup, and showing the asterisks on one side and bold
  * on the other would be the page disagreeing with itself. The attachments are
@@ -16,7 +21,7 @@
  * cannot open. The message is one the transcript's shared menu reaches
  * (`messageTargetProps`).
  */
-import type { UserItem } from '@hermie/transcript'
+import { authorLabel, type UserItem } from '@hermie/transcript'
 import { memo } from 'react'
 
 import { strings } from '../../../generated/strings'
@@ -48,7 +53,12 @@ function UserBubbleView({ item, presentation }: RowViewProps<UserItem>) {
   }
 
   const foreign = groupChat && ownAuthorId !== undefined && item.author !== undefined && item.author.id !== ownAuthorId
-  const name = foreign ? (item.author ? senderName(item.author) : '') : strings.chat.export.self
+  const person = foreign ? (item.author ? senderName(item.author) : '') : strings.chat.export.self
+  // A row an agent sent for somebody is never drawn as that person alone, in any chat: `<name> via <client>`.
+  const viaAgent = item.author?.via !== undefined
+  const name = viaAgent ? authorLabel(item.author, person) : person
+  // The name over the bubble: somebody else's, or any agent's. The reader's own turn is not captioned.
+  const caption = foreign || viaAgent
   const clock = clockOf(item.ts)
   const attachments = item.attachments ?? []
 
@@ -79,12 +89,12 @@ function UserBubbleView({ item, presentation }: RowViewProps<UserItem>) {
       {...messageTargetProps(item.id)}
       aria-label={name ? (clock ? webStrings.chat.messageFrom({ name, time: clock }) : name) : undefined}
     >
-      {foreign && name ? <p className="hm-msg__sender">{name}</p> : null}
+      {caption && name ? <p className="hm-msg__sender">{name}</p> : null}
 
       {foreign && item.author ? (
         <div className="hm-msg__row">
           {/* Beside the name above it, so the picture is decoration: the avatar hides itself from readers. */}
-          <PersonAvatar id={item.author.id} name={name} />
+          <PersonAvatar id={item.author.id} name={person} />
           {bubble}
         </div>
       ) : (
