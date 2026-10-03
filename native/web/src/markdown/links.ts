@@ -69,6 +69,35 @@ function parseUrl(text: string): URL | null {
   }
 }
 
+/** Whether a path that is joined onto the base can only descend: no backslash, no `.` or `..` segment (encoded or not). */
+function isPlainPath(path: string): boolean {
+  if (path.includes('\\')) {
+    return false
+  }
+
+  return path
+    .split(/[?#]/u, 1)[0]!
+    .split('/')
+    .every(segment => {
+      let decoded = segment
+
+      try {
+        decoded = decodeURIComponent(segment)
+      } catch {
+        return false
+      }
+
+      return decoded !== '.' && decoded !== '..' && !decoded.includes('\\') && !decoded.includes('/')
+    })
+}
+
+/** Whether `path` is `base` or a path below it (`/hermes/a` is under `/hermes`; `/hermesx` is not). */
+function isUnder(path: string, base: string): boolean {
+  const root = base.replace(/\/+$/u, '')
+
+  return path === root || path.startsWith(`${root}/`)
+}
+
 const isWebUrl = (url: URL): boolean => url.protocol === 'http:' || url.protocol === 'https:'
 
 /**
@@ -78,9 +107,13 @@ const isWebUrl = (url: URL): boolean => url.protocol === 'http:' || url.protocol
  * a URL, so a path is joined onto the gateway's base URL exactly as the Expo
  * app does (the base may carry a prefix, `https://host/prefix`, that a rooted
  * path stays under). A URL with a scheme or a protocol-relative one is checked
- * against the base's origin. The result is an `<img>` only when it lands there:
- * a remote image is a request the reader did not make, to a host the agent
- * chose, carrying the page's address in the `Referer`.
+ * against the base's origin. The result is an `<img>` only when it lands there
+ * and stays under the base's path (so behind a prefix proxy, `../` cannot climb
+ * out of the prefix to another service on the same origin, which would be asked
+ * with the reader's cookie): a remote image is a request the reader did not
+ * make, to a host the agent chose, carrying the page's address in the `Referer`.
+ * A path is never allowed to hold a backslash or a dot segment, however it is
+ * spelled; no attachment path has either.
  *
  * With no base URL a path has nothing to resolve against and comes back as
  * text; so does anything that is not `http(s)`, `data:` included.
@@ -102,6 +135,10 @@ export function resolveImage(href: string, baseUrl?: string): ImageSource {
   } else if (source.startsWith('//')) {
     url = parseUrl(`${gateway?.protocol ?? 'https:'}${source}`)
   } else if (gateway && baseUrl) {
+    if (!isPlainPath(source)) {
+      return { kind: 'text' }
+    }
+
     url = parseUrl(`${baseUrl.replace(/\/+$/, '')}/${source.replace(/^\/+/, '')}`)
   } else {
     return { kind: 'text' }
@@ -111,9 +148,16 @@ export function resolveImage(href: string, baseUrl?: string): ImageSource {
     return { kind: 'text' }
   }
 
-  // A URL with credentials in it is never loaded, same origin or not.
-  if (gateway && url.origin === gateway.origin && !url.username && !url.password) {
-    return { kind: 'image', src: url.href }
+  if (gateway && url.origin === gateway.origin) {
+    // The gateway's own origin, but below the base's path or not at all: another service behind the same host.
+    if (!isUnder(url.pathname, gateway.pathname)) {
+      return { kind: 'text' }
+    }
+
+    // A URL with credentials in it is never loaded, same origin or not.
+    if (!url.username && !url.password) {
+      return { kind: 'image', src: url.href }
+    }
   }
 
   return { kind: 'link', href: url.href }

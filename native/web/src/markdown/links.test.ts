@@ -98,6 +98,44 @@ describe('how an image is drawn', () => {
     }
   })
 
+  it('draws a path nowhere that climbs, however the climb is spelled', () => {
+    for (const base of [GATEWAY, `${GATEWAY}/hermes`]) {
+      for (const source of [
+        '/../../../../evil',
+        '../../../../evil',
+        '/api/../../evil',
+        'api/files/../../../evil',
+        '/./api/a.png',
+        '/%2e%2e/%2E%2e/evil',
+        '/api/%2e%2e/evil',
+        '/api/..%2fevil',
+        '/\\evil.example/a.png',
+        'api\\files\\a.png',
+        '\\\\evil.example\\a.png'
+      ]) {
+        expect(resolveImage(source, base), `${source} on ${base}`).toEqual({ kind: 'text' })
+      }
+    }
+  })
+
+  it('keeps an address on the gateway origin under the prefix the gateway is published at', () => {
+    const prefixed = `${GATEWAY}/hermes`
+
+    expect(resolveImage(`${GATEWAY}/hermes/api/files/1.png`, prefixed)).toEqual({
+      kind: 'image',
+      src: `${GATEWAY}/hermes/api/files/1.png`
+    })
+    // The same host, but another service behind it: not the gateway's to load from, and not a link either.
+    for (const source of [
+      `${GATEWAY}/api/status`,
+      `${GATEWAY}/hermesx/a.png`,
+      `${GATEWAY}/hermes/../api/status`,
+      `//gw.example.test/other/a.png`
+    ]) {
+      expect(resolveImage(source, prefixed), source).toEqual({ kind: 'text' })
+    }
+  })
+
   it('shows anything that is not http(s) as text', () => {
     for (const source of [
       'data:image/png;base64,AAAA',

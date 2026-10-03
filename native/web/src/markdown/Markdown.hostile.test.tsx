@@ -115,6 +115,10 @@ const HOSTILE: readonly [name: string, input: string][] = [
   ['image with a handler in its alt', '![x" onerror="alert(1)](/api/a.png)'],
   ['image with a handler in its title', '![x](/api/a.png "t\\" onerror=\\"alert(1)")'],
   ['image from a path that climbs out', '![x](/../../../evil.example/a.png)'],
+  ['image from a relative path that climbs out', '![x](../../../../evil)'],
+  ['image from a path with an encoded climb', '![x](/api/%2e%2e/%2e%2e/evil)'],
+  ['image from a path with a backslash host', '![x](/\\evil.example/x)'],
+  ['image from a path outside the prefix', `![x](${GATEWAY}/api/status)`],
   ['entities that spell markup', '&lt;script&gt;alert(1)&lt;/script&gt; &amp;lt;b&amp;gt; &#60;b&#62; &#x3C;i&#x3E;'],
   ['handler in a heading', '# <img src=x onerror=alert(1)>'],
   ['handler in a table cell', '| a |\n| --- |\n| <img src=x onerror=alert(1)> |'],
@@ -138,7 +142,7 @@ beforeEach(() => {
   resetBlockCache()
 })
 
-function inspect(root: Element): void {
+function inspect(root: Element, base = GATEWAY): void {
   for (const element of [root, ...Array.from(root.querySelectorAll('*'))]) {
     const tag = element.tagName
 
@@ -160,7 +164,7 @@ function inspect(root: Element): void {
 
     if (tag === 'IMG') {
       expect(element.getAttribute('src') ?? '', 'an image from outside the gateway').toMatch(
-        new RegExp(`^${GATEWAY.replaceAll('.', '\\.')}/`)
+        new RegExp(`^${base.replaceAll('.', '\\.')}/`)
       )
       expect(element.getAttribute('loading')).toBe('lazy')
     }
@@ -195,6 +199,13 @@ describe('hostile input', () => {
     const { container } = render(<Markdown gatewayBaseUrl={GATEWAY} text={input} />)
 
     inspect(container)
+  })
+
+  // Behind a prefix proxy the prefix is the gateway's whole address space: nothing may load from beside it.
+  it.each(HOSTILE)('%s, behind a prefix', (_name, input) => {
+    const { container } = render(<Markdown gatewayBaseUrl={`${GATEWAY}/hermes`} text={input} />)
+
+    inspect(container, `${GATEWAY}/hermes`)
   })
 
   it('shows the markup of an attack as the text it is', () => {
