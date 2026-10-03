@@ -216,8 +216,28 @@
   align-items: flex-end;
 }
 
+/* Somebody else's turn: their picture (or initial) at the foot of the bubble, as the native apps draw it. */
+.hm-msg__row {
+  display: flex;
+  align-items: flex-end;
+  gap: 8px;
+  min-width: 0;
+  max-width: 100%;
+}
+
+.hm-msg__row .hm-avatar {
+  --hm-avatar: 28px;
+
+  font-size: 0.8125rem;
+}
+
+.hm-msg__row .hm-bubble {
+  max-width: min(46rem, calc(92% - 36px));
+}
+
 .hm-msg__sender {
-  margin: 0 0 2px 12px;
+  /* Over the bubble, not over the picture beside it: the picture's 28px and its gap, then the usual inset. */
+  margin: 0 0 2px 48px;
   color: var(--hm-text-muted);
   font-size: 0.8125rem;
   font-weight: 600;

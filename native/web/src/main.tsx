@@ -14,6 +14,7 @@ import { pageBasePath, type ResolvedBasePath, storageNamespace } from './boot/ba
 import { boot, describeBootFailure, type BootState } from './boot/boot'
 import { refuseInFrame } from './boot/frame-guard'
 import { claimForOwner, restoreRoute, signIn, signOut } from './boot/login-bounce'
+import { createPeoplePictures } from './core/people-pictures'
 import { strings } from './generated/strings'
 import { configureLocale, initLocale } from './i18n/locale'
 import { useLocale } from './i18n/use-locale'
@@ -121,6 +122,11 @@ async function run(root: Root, basePath: ResolvedBasePath, store: WebKeyValueSto
     cache
   })
 
+  // The people's pictures, through the gateway's authenticated route and this session's own credentials.
+  const pictures = createPeoplePictures({
+    fetchPicture: path => session.client.http.fetchAuthenticatedPicture(path)
+  })
+
   // A bot's question must be on screen the moment it arrives: the sheets' chunk is fetched now, while the
   // socket is still connecting. A failure here is retried by the request layer when it has one to show.
   void preloadRequestSheets().catch(() => undefined)
@@ -129,7 +135,9 @@ async function run(root: Root, basePath: ResolvedBasePath, store: WebKeyValueSto
     root,
     <App
       user={state.identity.displayName || state.identity.email || state.identity.userId || ''}
+      pictureUrl={state.identity.pictureUrl}
       chat={{
+        pictures,
         controller: session.chats.controller,
         gatewayBaseUrl: basePath.baseUrl,
         drafts: createDraftStore(store),
@@ -143,6 +151,7 @@ async function run(root: Root, basePath: ResolvedBasePath, store: WebKeyValueSto
         // The order matters: the chats and the socket stop before the gateway's
         // session is ended, so nothing dials with a session that is going away.
         session.stop()
+        pictures.clear()
         void signOut({ basePath, credentials: state.session.credentials, cache, store })
       }}
     />
