@@ -121,9 +121,11 @@ public struct TranscriptRow: Identifiable, Equatable, Sendable {
 /// long pause.
 public struct BubbleLayout: Equatable, Sendable {
   /// Who said it, for the grouping: the owner (or a person in a shared chat,
-  /// by author id), or the bot.
+  /// by author id), or the bot. A turn an agent sent on a person's behalf (`viaClient`, the agent's
+  /// name) is a sender of its own: it never joins the person's own bubbles, so the line that names
+  /// the agent stays under it.
   public enum Sender: Equatable, Sendable {
-    case person(authorID: String?)
+    case person(authorID: String?, viaClient: String? = nil)
     case bot
   }
 
@@ -292,7 +294,7 @@ public struct TranscriptRowBuilder: Sendable {
     }
     switch visible.item {
     case .user(let user):
-      return .person(authorID: user.author?.id)
+      return .person(authorID: user.author?.id, viaClient: user.author?.via?.client)
     case .assistant(let assistant):
       return assistant.text.contains { !$0.isWhitespace } ? .bot : nil
     default:

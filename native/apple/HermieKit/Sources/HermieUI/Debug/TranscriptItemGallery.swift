@@ -189,6 +189,11 @@
       }
       add("User", g.user(seq: 1, author: nil))
       add("User, shared chat", g.user(seq: 2, author: MessageAuthor(id: "telegram:42", name: "Robin")))
+      add(
+        "User, sent by an agent",
+        g.user(
+          seq: 27,
+          author: MessageAuthor(id: "telegram:42", name: "Robin", via: AuthorVia(kind: "mcp", client: "Example Agent"))))
       var pending = g.user(seq: 3)
       pending.updateUser {
         $0.pending = true
