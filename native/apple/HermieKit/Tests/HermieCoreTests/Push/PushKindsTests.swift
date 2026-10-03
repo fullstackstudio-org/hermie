@@ -507,7 +507,18 @@ struct PushKindsControllerTests {
     #expect(center.removed == ["n1"])
   }
 
-  @Test("a muted chat's notification is not shown in front; security is, and so is another gateway's bot")
+  /// A plain message of a muted chat; `type: "message"` on this gateway.
+  static func message(_ extra: [String: JSONValue] = [:]) -> PushPayload {
+    var data: JSONObject = ["v": 1, "type": "message", "bot": "scout", "gatewayKey": .string(G.one.key), "sessionId": "8a1b2c3d"]
+
+    for (key, value) in extra {
+      data[key] = value
+    }
+
+    return PushPayload(shape: .relay, data: data)
+  }
+
+  @Test("a mute silences a muted chat's plain messages in front, never what needs an answer")
   func mutedChatIsHidden() async throws {
     let rig = try PushControllerTests.Rig()
     var asked: [String] = []
@@ -518,18 +529,31 @@ struct PushKindsControllerTests {
     }
 
     // The gateway list is not known yet: nothing names a gateway, nothing is held back.
-    #expect(rig.controller.presentation(for: Self.request("approval")) == .foreground)
+    #expect(rig.controller.presentation(for: Self.message()) == .foreground)
     #expect(asked.isEmpty)
 
     await rig.controller.setGateways([G.one, G.two])
 
-    #expect(rig.controller.presentation(for: Self.request("approval")) == .hidden)
-    #expect(rig.controller.presentation(for: Self.request("approval", ["bot": "writer"])) == .foreground)
-    #expect(rig.controller.presentation(for: Self.request("approval", ["gatewayKey": .string(G.two.key)])) == .foreground)
+    // A plain message (and its legacy spelling) of the muted chat: hidden.
+    #expect(rig.controller.presentation(for: Self.message()) == .hidden)
+    #expect(rig.controller.presentation(for: Self.message(["type": "dm"])) == .hidden)
+    // Another bot, another gateway: shown.
+    #expect(rig.controller.presentation(for: Self.message(["bot": "writer"])) == .foreground)
+    #expect(rig.controller.presentation(for: Self.message(["gatewayKey": .string(G.two.key)])) == .foreground)
+
+    // Everything that needs the person, of the muted chat: shown.
+    for method in ["approval", "clarify", "secret", "sudo", "confirm"] {
+      #expect(rig.controller.presentation(for: Self.request(method, ["level": "passkey"])) == .foreground, "\(method)")
+    }
 
     let security = PushPayload(
       shape: .relay, data: ["type": "security", "bot": "scout", "change": "revoked", "gatewayKey": .string(G.one.key)])
     #expect(rig.controller.presentation(for: security) == .foreground)
-    #expect(asked == ["g1/scout", "g1/writer", "g2/scout"])
+
+    // The rule written once for the device: a mute stops a message, not a request.
+    let all = Dictionary(uniqueKeysWithValues: PushContract.types.map { ($0, true) })
+    #expect(!PushFilter.allows(Self.message(), wanted: all, muted: true))
+    #expect(PushFilter.allows(Self.request("approval"), wanted: all, muted: true))
+    #expect(asked.allSatisfy { $0 == "g1/scout" || $0 == "g1/writer" || $0 == "g2/scout" })
   }
 }

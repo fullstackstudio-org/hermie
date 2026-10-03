@@ -607,8 +607,10 @@ public final class PushController {
       return .hidden
     }
 
-    // A muted chat stays silent in front too, except for what no switch turns off (`security`).
-    if !payload.bypassesFilters, mutedChat(payload) {
+    // A muted chat's plain messages stay silent in front too. What needs the person (an approval,
+    // a clarify, a secure prompt, a passkey confirmation) and what no switch turns off
+    // (`security`) are shown whatever the mute says.
+    if payload.silencedByMute, mutedChat(payload) {
       return .hidden
     }
 

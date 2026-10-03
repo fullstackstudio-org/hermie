@@ -80,6 +80,12 @@ public struct PushPayload: Sendable, Equatable {
     PushContract.unfilteredTypes.contains(type)
   }
 
+  /// Whether a mute of this payload's chat silences it: a plain message only
+  /// (`PushContract.mutableTypes`), never anything that needs an answer.
+  public var silencedByMute: Bool {
+    PushContract.mutableTypes.contains(type)
+  }
+
   /// The `type: request` method as the contract names it, or nil (absent, not a request, or one
   /// this build does not know).
   public var requestMethod: PushRequestMethod? {

@@ -170,7 +170,8 @@ public enum PushClearing {
  unfiltered type (`security`) is shown whatever the switches and a mute say.
  */
 public enum PushFilter {
-  /// Whether a notification is shown given this device's per-type switches and a mute.
+  /// Whether a notification is shown given this device's per-type switches and a mute. A mute
+  /// silences a plain message only; a request (it needs an answer) gets through it.
   public static func allows(_ payload: PushPayload, wanted: [String: Bool], muted: Bool) -> Bool {
     if payload.bypassesFilters {
       return true
@@ -180,6 +181,6 @@ public enum PushFilter {
       return false
     }
 
-    return !muted && wanted[type] == true
+    return !(muted && payload.silencedByMute) && wanted[type] == true
   }
 }
