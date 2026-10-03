@@ -182,6 +182,16 @@ final class RecordingCalls: Sendable {
     #expect(skip["owner"] == ["type": "session", "session_id": .string(runtime)])
     #expect(skip["result"] == ["targets": [["name": "mail", "status": "skipped"]]])
     #expect(sent[1].1["result"] == ["settled_by": "continue"])
+
+    // `ConnectionRespondParams` on `ConnectionOperationParams` on `ProfileParams`
+    // (`tui_gateway/contracts/connectors_operation.py`), every one `extra="forbid"`:
+    // exactly these keys, the owner a `SessionOwner`, and no top-level `session_id`.
+    for (_, params) in sent {
+      #expect(Set(params.objectValue?.keys.map { $0 } ?? []) == ["profile", "owner", "op_id", "result"])
+      #expect(Set(params["owner"]?.objectValue?.keys.map { $0 } ?? []) == ["type", "session_id"])
+      let answerKeys = Set(params["result"]?.objectValue?.keys.map { $0 } ?? [])
+      #expect(answerKeys.isSubset(of: ["targets", "settled_by"]))
+    }
     #expect(model.request(for: chat) != nil, "the card moves when the gateway says so")
 
     calls.failing(true)
