@@ -378,6 +378,23 @@ interface PendingRequest {
   request: GatewayServerRequest
 }
 
+/**
+ * The chat store as a stopped controller sees it: the state it had, every action
+ * a no-op (they all return nothing), and nothing to subscribe to. A flow that was
+ * awaiting an RPC when the controller stopped goes on reading, and writes into thin
+ * air; the store itself is left to whoever stopped the controller (a sign-out empties it).
+ */
+function detachedView(snapshot: ChatsState): StoreApi<ChatsState> {
+  const state = Object.fromEntries(
+    Object.entries(snapshot).map(([key, value]) => [key, typeof value === 'function' ? () => undefined : value])
+  ) as unknown as ChatsState
+
+  // The one action that answers: a runtime id's bot, from the snapshot.
+  state.botForRuntime = runtimeSessionId => snapshot.runtimeToBot[runtimeSessionId]
+
+  return { getState: () => state, setState: () => undefined }
+}
+
 export class ChatController {
   private readonly gateway: ChatGateway
   /** The store itself: only the ingest touches it (routes its actions, commits to it). */
@@ -394,6 +411,14 @@ export class ChatController {
   private readonly visibility: VisibilityWatcher | undefined
   /** The one road into the chat store (`core/ingest.ts`); rebuilt by a `start` after a `stop`. */
   private ingestRef: Ingest
+  /**
+   * Set by `stop()`, cleared by `start()`: what an answer that arrives after the
+   * controller was stopped (a slow RPC, a cache read) is read against. While it is
+   * set `chats` is a view that writes nothing, and `persist` writes nothing, so
+   * the late answer cannot put a person's chat back into a store that was just
+   * emptied for a sign-out, or into a cache that was just cleared.
+   */
+  private detached: StoreApi<ChatsState> | null = null
 
   private unsubscribes: (() => void)[] = []
   /** Approval request ids already acknowledged, so the ack is sent once. */
@@ -522,7 +547,7 @@ export class ChatController {
    * in wire order and ahead of the once-per-frame commit (see `core/ingest.ts`).
    */
   private get chats(): StoreApi<ChatsState> {
-    return this.ingestRef.chats
+    return this.detached ?? this.ingestRef.chats
   }
 
   /** The ingest, for the runtime: it flushes it when the page hides. */
@@ -546,6 +571,7 @@ export class ChatController {
       this.ingestRef = this.createIngest()
     }
 
+    this.detached = null
     this.started = true
     this.unsubscribes.push(
       this.gateway.onAny(event => this.ingestRef.push(() => this.onEvent(event as TranscriptEvent))),
@@ -566,6 +592,9 @@ export class ChatController {
     // store told, before the timers that applying can arm are cleared below.
     // The store's actions go back to the store itself.
     this.ingestRef.dispose()
+    // From here a flow that was in flight when the controller stopped reads what
+    // the chats were at that moment and writes nothing (see `detached`).
+    this.detached = detachedView(this.store.getState())
     this.clearSessionsChangedTimer()
     this.stopApprovalPoll()
     this.stopSubagentPoll()
@@ -4202,6 +4231,12 @@ export class ChatController {
 
   /** Write one chat's snapshot. Called on `message.complete`, on close and on background. */
   async persist(botName: string): Promise<void> {
+    // A stopped controller writes no cache: a sign-out stops it and then clears
+    // the cache, and a flow that was in flight must not write behind that.
+    if (this.detached) {
+      return
+    }
+
     const chat = this.chats.getState().chats[botName]
 
     if (!this.cache || !chat || chat.hydration === 'cold') {

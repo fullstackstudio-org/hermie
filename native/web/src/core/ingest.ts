@@ -280,6 +280,14 @@ export function createIngest(options: IngestOptions): Ingest {
   })
 
   const write = (change: ChatsWrite): void => {
+    if (disposed) {
+      // A late answer to a controller that has been stopped. The Expo store took
+      // it; here it is dropped: stopping is what a sign-out does first, and an
+      // answer that lands after the store was emptied would put the previous
+      // person's chat back into it.
+      return
+    }
+
     if (!draining) {
       drain()
     }
@@ -288,14 +296,6 @@ export function createIngest(options: IngestOptions): Ingest {
     const patch = typeof change === 'function' ? change(base) : change
 
     if (patch === base) {
-      return
-    }
-
-    if (disposed) {
-      // A late answer to a controller that has been stopped: nothing commits
-      // for it any more, so it goes to the store as the Expo store took it.
-      store.setState(patch as Partial<ChatsData>)
-
       return
     }
 

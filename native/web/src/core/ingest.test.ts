@@ -313,6 +313,22 @@ describe('the ingest', () => {
     expect(frames.waiting).toBe(0)
   })
 
+  it('drops a write that comes through its view after dispose, so a late answer cannot refill an emptied store', () => {
+    const { store, committed } = storeWithChat()
+    const ingest = createIngest({ store, frames: manualFrames(), visibility: fakeVisibility('visible') })
+
+    ingest.dispose()
+    store.getState().reset()
+
+    // The view's own `setState` is what a late answer to a stopped controller goes through.
+    ingest.chats.setState({ queues: { bot: [{ id: 'late', text: 'late' }] } })
+    ingest.push(() => undefined)
+
+    expect(committed()).toEqual([])
+    expect(store.getState().chats).toEqual({})
+    expect(ingest.dirty).toBe(false)
+  })
+
   it('with immediate frames, commits every write at once, as the Expo store did', () => {
     const { store, notified, committed } = storeWithChat()
     const ingest = createIngest({ store, frames: immediateFrames, visibility: fakeVisibility('visible') })

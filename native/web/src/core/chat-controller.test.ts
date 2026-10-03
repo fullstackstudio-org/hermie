@@ -709,6 +709,83 @@ describe('the queue behind a running turn', () => {
   })
 })
 
+describe('stopping with work in flight', () => {
+  /** A promise settled from outside, for an RPC answer that arrives late. */
+  function deferred<T>() {
+    let resolve!: (value: T) => void
+    const promise = new Promise<T>(done => {
+      resolve = done
+    })
+
+    return { promise, resolve }
+  }
+
+  const RESUMED = {
+    session_id: 'runtime-1',
+    stored_session_id: 'tip-researcher',
+    message_count: 2,
+    messages: [],
+    messages_omitted: true,
+    info: { desktop_contract: 7 },
+    open_requests: []
+  }
+
+  it('writes nothing to the store when a slow answer arrives after stop and the store was emptied', async () => {
+    const { gateway, controller } = setup()
+    const late = deferred<typeof RESUMED>()
+
+    gateway.reply('session.resume', () => late.promise)
+    controller.start()
+
+    const opening = controller.openChat(RESEARCHER).catch(() => undefined)
+
+    await flush()
+    expect(gateway.methodOrder()).toEqual(['session.resume'])
+
+    // What a sign-out does: stop the controller, then empty the store.
+    controller.stop()
+    chatsStore.getState().reset()
+
+    late.resolve(RESUMED)
+    await opening
+    await flush()
+
+    expect(chatsStore.getState().chats).toEqual({})
+    expect(chatsStore.getState().runtimeToBot).toEqual({})
+    expect(chatsStore.getState().live).toEqual({})
+  })
+
+  it('writes no cache row after stop, so a flow in flight cannot undo a sign-out clearing it', async () => {
+    const { controller, cache } = setup()
+
+    controller.start()
+    await controller.openChat(RESEARCHER)
+    await controller.persist('researcher')
+    expect(await cache!.read('researcher')).not.toBeNull()
+
+    controller.stop()
+    await cache!.clear()
+    await controller.persist('researcher')
+    await controller.closeChat('researcher')
+    await controller.persistAll()
+
+    expect(await cache!.read('researcher')).toBeNull()
+  })
+
+  it('works again after a start: what was stopped is not stopped for good', async () => {
+    const { controller, cache } = setup()
+
+    controller.start()
+    controller.stop()
+    controller.start()
+    await controller.openChat(RESEARCHER)
+    await controller.persist('researcher')
+
+    expect(chatOf().hydration).not.toBe('cold')
+    expect(await cache!.read('researcher')).not.toBeNull()
+  })
+})
+
 describe('approvals', () => {
   it('acknowledges the card, then answers the request the agent is waiting on', async () => {
     const { gateway, controller } = setup()
