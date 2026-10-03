@@ -22,7 +22,7 @@ import type { DraftStore } from './drafts'
  * (the screen), sending, stopping and the queue behind a running turn, slash
  * commands and uploads (the composer), and answering the two request kinds
  * (the request layer, which is over every chat and so is given the same
- * controller). `uploadFile` is for the attachments of W-19; nothing calls it yet.
+ * controller). `uploadFile` is the attachment tray's (`use-attachment-tray.ts`).
  */
 export type ChatScreenController = Pick<
   ChatController,

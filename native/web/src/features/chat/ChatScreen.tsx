@@ -31,6 +31,12 @@
  * **Announcements.** The transcript is `role="log"` and `aria-busy` while a turn
  * streams, so a screen reader is not read every delta; a second, polite region
  * says once when a reply is finished, and who by.
+ *
+ * **Attachments.** The chat owns its attachment tray (`useAttachmentTray`) and
+ * hands it to the composer and to the drop zone that is the whole chat, so a
+ * file picked, pasted or dropped ends in the same place. Only a chat that has a
+ * composer and is attached to its session takes files: a file is uploaded into
+ * that session's workspace.
  */
 import { plainTextPreview } from '@hermie/markdown/plain-text'
 import {
@@ -60,12 +66,14 @@ import { clipLine } from './chat-format'
 import { ChatHeader } from './ChatHeader'
 import { Composer } from './Composer'
 import { useChatRuntime } from './chat-runtime'
+import { DropZone } from './DropZone'
 import { ChatItem } from './items/ChatItem'
 import { ItemContext, type ItemContextValue } from './items/item-context'
 import { TodoList } from './items/TodoList'
 import { JumpToLatest } from './JumpToLatest'
 import { transcriptRows } from './rows'
 import { TranscriptList, type TranscriptListHandle } from './TranscriptList'
+import { useAttachmentTray } from './use-attachment-tray'
 import { useOpenChat } from './use-open-chat'
 import { useOwnAuthorId } from './use-own-author'
 import { usePageVisible } from './use-page-visible'
@@ -313,6 +321,12 @@ export function ChatScreen({ bot, session, view = DEFAULT_CHAT_VIEW }: ChatScree
     wasRunning.current = turnActive
   }, [displayName, latestReply, turnActive])
 
+  // ── attachments ─────────────────────────────────────────────────────────────
+  const composing = runtime !== null && key !== undefined && !viewer && record !== undefined
+  const tray = useAttachmentTray(composing ? key : undefined, runtime?.controller)
+  const attached = chat?.runtimeSessionId !== undefined
+  const dropFiles = useCallback((files: File[]) => void tray?.add(files), [tray])
+
   // ── what there is to say ────────────────────────────────────────────────────
   const notOnGateway = !record && rosterRead
   const opening = !notOnGateway && rows.length === 0 && !live && !error
@@ -320,7 +334,7 @@ export function ChatScreen({ bot, session, view = DEFAULT_CHAT_VIEW }: ChatScree
   const offlineCopy = !ready && rows.length > 0
 
   return (
-    <div className="hm-chat">
+    <DropZone className="hm-chat" enabled={tray !== null && attached} onFiles={dropFiles}>
       <ChatHeader bot={bot} chatKey={key} />
 
       {viewer ? <p className="hm-chat__banner">{webStrings.chat.readOnly}</p> : null}
@@ -375,13 +389,13 @@ export function ChatScreen({ bot, session, view = DEFAULT_CHAT_VIEW }: ChatScree
 
       {/* A past conversation or a branch can be read and not answered; a chat the gateway does not list has no one to ask. */}
       {runtime && key !== undefined && !viewer && record ? (
-        <Composer key={key} chatKey={key} botName={displayName} onSent={pinToLatest} />
+        <Composer key={key} chatKey={key} botName={displayName} onSent={pinToLatest} tray={tray} />
       ) : null}
 
       {/* A separate, polite region: a finished reply is said once, and a streaming one never is. */}
       <div className="hm-sr hm-chat__announce" role="status" aria-live="polite" aria-atomic="true">
         {announcement}
       </div>
-    </div>
+    </DropZone>
   )
 }

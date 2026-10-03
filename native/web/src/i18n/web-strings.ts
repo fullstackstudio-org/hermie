@@ -251,6 +251,86 @@ export const WEB_STRINGS_SOURCE = {
       de: 'Befehle'
     }
   },
+  attachments: {
+    /** The name of the strip of attachments staged for the next message. */
+    trayLabel: {
+      en: 'Attachments for the next message',
+      nl: 'Bijlagen voor het volgende bericht',
+      de: 'Anhänge für die nächste Nachricht'
+    },
+    /** Said politely once files were added to the tray, by the picker, a drop or a paste. */
+    added: {
+      en: ({ count }: { count: number }) => (count === 1 ? '1 attachment added' : `${count} attachments added`),
+      nl: ({ count }: { count: number }) => (count === 1 ? '1 bijlage toegevoegd' : `${count} bijlagen toegevoegd`),
+      de: ({ count }: { count: number }) => (count === 1 ? '1 Anhang hinzugefügt' : `${count} Anhänge hinzugefügt`)
+    },
+    /** On an image's chip while its bytes are read. */
+    preparing: {
+      en: 'Preparing…',
+      nl: 'Voorbereiden…',
+      de: 'Wird vorbereitet…'
+    },
+    /** On a file's chip while it goes to the gateway. There is no percentage: the browser reports none. */
+    uploading: {
+      en: 'Uploading…',
+      nl: 'Uploaden…',
+      de: 'Wird hochgeladen…'
+    },
+    /** On a chip whose file the browser could not read. */
+    unreadable: {
+      en: 'This file could not be read.',
+      nl: 'Dit bestand kon niet worden gelezen.',
+      de: 'Diese Datei ließ sich nicht lesen.'
+    },
+    /** On a chip the gateway refused, with the gateway's own reason. */
+    refused: {
+      en: ({ detail }: { detail: string }) => `The gateway refused it: ${detail}`,
+      nl: ({ detail }: { detail: string }) => `De gateway weigerde het: ${detail}`,
+      de: ({ detail }: { detail: string }) => `Das Gateway hat es abgelehnt: ${detail}`
+    },
+    /** On a chip whose upload did not complete, with what went wrong. */
+    failed: {
+      en: ({ message }: { message: string }) => `Upload failed: ${message}`,
+      nl: ({ message }: { message: string }) => `Upload mislukt: ${message}`,
+      de: ({ message }: { message: string }) => `Hochladen fehlgeschlagen: ${message}`
+    },
+    /** Said politely when a chip did not become ready: its name, then why. */
+    problemAnnounced: {
+      en: ({ name, problem }: { name: string; problem: string }) => `${name}: ${problem}`,
+      nl: ({ name, problem }: { name: string; problem: string }) => `${name}: ${problem}`,
+      de: ({ name, problem }: { name: string; problem: string }) => `${name}: ${problem}`
+    },
+    /** The accessible name of a chip's cancel button. */
+    cancelNamed: {
+      en: ({ name }: { name: string }) => `Cancel the upload of ${name}`,
+      nl: ({ name }: { name: string }) => `Upload van ${name} annuleren`,
+      de: ({ name }: { name: string }) => `Hochladen von ${name} abbrechen`
+    },
+    /** The visible text of a failed chip's retry button. */
+    retry: {
+      en: 'Try again',
+      nl: 'Opnieuw',
+      de: 'Erneut'
+    },
+    /** The accessible name of a failed chip's retry button. */
+    retryNamed: {
+      en: ({ name }: { name: string }) => `Try ${name} again`,
+      nl: ({ name }: { name: string }) => `${name} opnieuw proberen`,
+      de: ({ name }: { name: string }) => `${name} erneut versuchen`
+    },
+    /** The accessible name of a chip's remove button. */
+    removeNamed: {
+      en: ({ name }: { name: string }) => `Remove ${name}`,
+      nl: ({ name }: { name: string }) => `${name} verwijderen`,
+      de: ({ name }: { name: string }) => `${name} entfernen`
+    },
+    /** Under the tray while a chip is not ready: why Send is off. */
+    waiting: {
+      en: 'Send is available once every attachment is ready or removed.',
+      nl: 'Versturen kan zodra elke bijlage klaar of verwijderd is.',
+      de: 'Senden ist möglich, sobald jeder Anhang bereit oder entfernt ist.'
+    }
+  },
   requests: {
     /** Names the bot a request comes from; the layer is over every chat, not only the bot's own. */
     from: {

@@ -32,8 +32,18 @@
  * controls and the item it is on (`aria-controls`, `aria-activedescendant`).
  * Up and Down move, Tab or Return takes the item, Escape closes the list.
  *
- * **Attachments** are W-19's: `onAttach` is the seam, and the controller's
- * `uploadFile` is already in the runtime's slice.
+ * **Attachments** (W-19) come from the attach button (the browser's file
+ * dialog), a paste of files into the field (`paste.ts`) and a drop on the chat
+ * (`DropZone`, which the chat screen puts around the composer), and all three
+ * end in the chat's `AttachmentTray` (`core/chats/attachments.ts`): an image is
+ * read for `image.attach_bytes`, anything else is uploaded as it is staged and
+ * named in the prompt by its `@file:` reference. A message may be attachments
+ * and no words. Send waits while a chip is still working or has failed, so what
+ * the tray shows is what goes, and the tray is emptied in the same synchronous
+ * step that decides to send (`take`): a second Return or click landing while the
+ * first send is in flight finds nothing to send again (HERM-126). A send that
+ * fails puts the attachments back, with the words. A slash command takes no
+ * attachments: they stay staged for the next message.
  *
  * Nothing here talks to the gateway except through the controller, and the text
  * the bot or the reader wrote is never Markdown in this component.
@@ -41,6 +51,7 @@
 import { parseSlashCommand, looksLikeSlashCommand } from '@hermes/shared/slash'
 import {
   type ChangeEvent,
+  type ClipboardEvent,
   type KeyboardEvent,
   type ReactElement,
   useCallback,
@@ -52,6 +63,7 @@ import {
 } from 'react'
 import { useStore } from 'zustand'
 
+import type { AttachmentTray } from '../../core/chats/attachments'
 import { strings } from '../../generated/strings'
 import { useLocale } from '../../i18n/use-locale'
 import { webStrings } from '../../i18n/web-strings'
@@ -59,9 +71,13 @@ import { hasFinePointer } from '../../platform/input-kind'
 import { chatsStore, type QueuedMessage } from '../../state/chats'
 import { connectionStore } from '../../state/connection'
 import { Button } from '../../ui/primitives'
+import { AttachMenu } from './AttachMenu'
+import { AttachmentChips } from './AttachmentChips'
 import { useChatRuntime } from './chat-runtime'
+import { filesFromPaste } from './paste'
 import { QueuedStrip } from './QueuedStrip'
 import { decideKey } from './send-key'
+import { useStagedAttachments } from './use-attachment-tray'
 import { usePageVisible } from './use-page-visible'
 import './composer.css'
 
@@ -81,6 +97,11 @@ export interface ComposerProps {
   botName: string
   /** The reader just sent a message (or ran a command): keep the transcript pinned to the newest row. */
   onSent?: () => void
+  /**
+   * The chat's attachment tray (`useAttachmentTray`), shared with the drop zone
+   * over the chat. Without one the composer offers no attachments.
+   */
+  tray?: AttachmentTray | null
 }
 
 interface Completion {
@@ -100,7 +121,7 @@ interface CompletionState {
 
 const messageOf = (error: unknown): string => (error instanceof Error ? error.message : String(error))
 
-export function Composer({ chatKey, botName, onSent }: ComposerProps): ReactElement {
+export function Composer({ chatKey, botName, onSent, tray = null }: ComposerProps): ReactElement {
   useLocale()
 
   const runtime = useChatRuntime()
@@ -115,6 +136,9 @@ export function Composer({ chatKey, botName, onSent }: ComposerProps): ReactElem
   const ready = useStore(connectionStore, state => state.status === 'ready')
   // Send is what a closed gateway switches off; the field, Stop and the strip stay as they are.
   const canSend = Boolean(controller) && ready && attached
+  const staged = useStagedAttachments(tray)
+  // A file is uploaded into the session's workspace, which a chat names once it is attached.
+  const canAttach = tray !== null && attached
 
   const [text, setText] = useState(() => drafts?.read(chatKey) ?? '')
   const [failure, setFailure] = useState<string | null>(null)
@@ -276,7 +300,24 @@ export function Composer({ chatKey, botName, onSent }: ComposerProps): ReactElem
   const submit = useCallback(async () => {
     const body = textRef.current.trim()
 
-    if (!body || !controller || !canSend) {
+    if (!controller || !canSend) {
+      return
+    }
+
+    const slash =
+      body !== '' &&
+      looksLikeSlashCommand(body) &&
+      controller.slashRouteFor(chatKey, parseSlashCommand(body).name) !== null
+
+    // A chip still working or failed holds a message back: what the tray shows is what goes. A command takes none.
+    if (!slash && tray?.blocked) {
+      return
+    }
+    // Out of the tray now, before anything is awaited: a second Return or click landing while this send is in
+    // flight finds the tray empty, and with the field empty too, nothing to send (HERM-126).
+    const taken = slash ? null : (tray?.take() ?? null)
+
+    if (!body && !taken) {
       return
     }
 
@@ -286,17 +327,24 @@ export function Composer({ chatKey, botName, onSent }: ComposerProps): ReactElem
     closeCompletions()
     setFailure(null)
 
-    /** The words come back, ahead of anything typed since. */
+    /** The words come back, ahead of anything typed since, and so do the attachments. */
     const restore = (error: unknown): void => {
       const typedSince = textRef.current
 
-      put(typedSince.trim() === '' ? body : `${body}\n${typedSince}`)
-      flushDraft()
+      if (body !== '') {
+        put(typedSince.trim() === '' ? body : `${body}\n${typedSince}`)
+        flushDraft()
+      }
+
+      if (taken) {
+        tray?.restore(taken)
+      }
+
       setFailure(webStrings.composer.sendFailed({ message: messageOf(error) }))
     }
 
     try {
-      if (looksLikeSlashCommand(body) && controller.slashRouteFor(chatKey, parseSlashCommand(body).name) !== null) {
+      if (slash) {
         onSent?.()
 
         const outcome = await controller.runSlash(chatKey, body)
@@ -311,11 +359,45 @@ export function Composer({ chatKey, botName, onSent }: ComposerProps): ReactElem
 
       // Before the round trip: the optimistic bubble is painted at once, and the view is already where it will land.
       onSent?.()
-      await controller.send(chatKey, body)
+
+      if (taken) {
+        await controller.send(chatKey, body, taken.inputs)
+        tray?.release(taken)
+      } else {
+        await controller.send(chatKey, body)
+      }
     } catch (error) {
       restore(error)
     }
-  }, [canSend, chatKey, closeCompletions, controller, flushDraft, onSent, put])
+  }, [canSend, chatKey, closeCompletions, controller, flushDraft, onSent, put, tray])
+
+  // ── attaching ───────────────────────────────────────────────────────────────
+  const attach = useCallback(
+    (files: File[]) => {
+      if (canAttach && tray) {
+        setFailure(null)
+        tray.add(files)
+      }
+    },
+    [canAttach, tray]
+  )
+
+  const onPaste = useCallback(
+    (event: ClipboardEvent<HTMLTextAreaElement>) => {
+      if (!canAttach) {
+        return
+      }
+
+      const files = filesFromPaste(event.clipboardData)
+
+      if (files.length > 0) {
+        // The files are what was meant; their names or a picture's placeholder text are not for the field.
+        event.preventDefault()
+        attach(files)
+      }
+    },
+    [attach, canAttach]
+  )
 
   const onKeyDown = useCallback(
     (event: KeyboardEvent<HTMLTextAreaElement>) => {
@@ -418,8 +500,10 @@ export function Composer({ chatKey, botName, onSent }: ComposerProps): ReactElem
 
   const remove = useCallback((id: string) => controller?.deleteQueued(chatKey, id), [chatKey, controller])
 
-  const sendable = canSend && text.trim() !== ''
+  const blocked = staged.some(item => item.status !== 'ready')
+  const sendable = canSend && !blocked && (text.trim() !== '' || staged.length > 0)
   const hintId = `${listId}-hint`
+  const waitingId = `${listId}-waiting`
 
   return (
     <div className="hm-composer">
@@ -461,7 +545,10 @@ export function Composer({ chatKey, botName, onSent }: ComposerProps): ReactElem
         </ul>
       ) : null}
 
+      {tray ? <AttachmentChips tray={tray} attachments={staged} waitingId={waitingId} /> : null}
+
       <div className="hm-composer__row">
+        {tray ? <AttachMenu onFiles={attach} disabled={!canAttach} /> : null}
         <label className="hm-sr" htmlFor={`${listId}-field`}>
           {strings.chat.composer.messageTo({ bot: botName })}
         </label>
@@ -480,6 +567,7 @@ export function Composer({ chatKey, botName, onSent }: ComposerProps): ReactElem
           aria-activedescendant={listOpen && completions && completions.items.length > 0 ? optionId(active) : undefined}
           onChange={onChange}
           onKeyDown={onKeyDown}
+          onPaste={onPaste}
           onBlur={closeCompletions}
         />
         {running ? (
@@ -487,7 +575,15 @@ export function Composer({ chatKey, botName, onSent }: ComposerProps): ReactElem
             {strings.app.chat.stop}
           </Button>
         ) : null}
-        <Button className="hm-composer__send" disabled={!sendable} onClick={() => void submit()}>
+        <Button
+          className="hm-composer__send"
+          disabled={!sendable}
+          aria-label={
+            staged.length > 0 ? strings.chat.composer.sendWithAttachments({ count: staged.length }) : undefined
+          }
+          aria-describedby={blocked ? waitingId : undefined}
+          onClick={() => void submit()}
+        >
           {strings.app.chat.send}
         </Button>
       </div>

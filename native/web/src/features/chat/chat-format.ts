@@ -2,7 +2,7 @@
  * The small formatting the item views share. All of it goes through `Intl`
  * (`i18n/format.ts`), so a clock reads as the reader's language writes it.
  */
-import { formatTime } from '../../i18n/format'
+import { formatNumber, formatTime } from '../../i18n/format'
 
 /** The time of day a message was stamped, or an empty string when it carries no stamp. */
 export function clockOf(unixSeconds: number | undefined): string {
@@ -57,3 +57,22 @@ export function clipLine(value: string, max: number): string {
 
   return characters.length > max ? `${characters.slice(0, max - 1).join('')}…` : collapsed
 }
+
+/**
+ * A file size in the reader's digits: `812 B`, `14 kB`, `2.4 MB`, in steps of
+ * 1024. The gateway's caps are said through `megabytesOf` instead.
+ */
+export function formatBytes(bytes: number): string {
+  if (bytes < 1024) {
+    return formatNumber(bytes, { style: 'unit', unit: 'byte', unitDisplay: 'narrow' })
+  }
+
+  if (bytes < 1024 * 1024) {
+    return formatNumber(bytes / 1024, { style: 'unit', unit: 'kilobyte', maximumFractionDigits: 0 })
+  }
+
+  return formatNumber(bytes / (1024 * 1024), { style: 'unit', unit: 'megabyte', maximumFractionDigits: 1 })
+}
+
+/** A cap in whole binary megabytes, as the gateway states it (`25`, `100`). */
+export const megabytesOf = (bytes: number): number => Math.round(bytes / (1024 * 1024))

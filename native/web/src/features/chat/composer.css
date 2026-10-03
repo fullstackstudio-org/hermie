@@ -204,3 +204,120 @@
     order: 2;
   }
 }
+
+/* ── attachments ─────────────────────────────────────────────────────────── */
+
+.hm-composer__row .hm-composer__attach {
+  width: 44px;
+  padding: 0;
+}
+
+.hm-attach {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.hm-attach__list {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.hm-attach__chip {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-width: 0;
+  max-width: min(100%, 22rem);
+  padding: 4px 4px 4px 6px;
+  border: 1px solid var(--hm-line);
+  border-radius: var(--hm-radius);
+  background: var(--hm-surface);
+  font-size: 0.875rem;
+}
+
+.hm-attach__chip[data-status='failed'] {
+  border-color: var(--hm-danger-text);
+}
+
+.hm-attach__thumb,
+.hm-attach__glyph {
+  flex: none;
+  width: 36px;
+  height: 36px;
+  border-radius: calc(var(--hm-radius) - 4px);
+}
+
+.hm-attach__thumb {
+  object-fit: cover;
+  background: var(--hm-bg);
+}
+
+.hm-attach__glyph {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  background: var(--hm-bg);
+  color: var(--hm-text-muted);
+}
+
+.hm-attach__text {
+  display: flex;
+  flex: 1 1 auto;
+  flex-direction: column;
+  min-width: 0;
+}
+
+.hm-attach__name {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.hm-attach__status {
+  color: var(--hm-text-muted);
+  font-size: 0.8125rem;
+  overflow-wrap: anywhere;
+}
+
+.hm-attach__chip[data-status='failed'] .hm-attach__status {
+  color: var(--hm-danger-text);
+}
+
+.hm-attach__actions {
+  display: flex;
+  flex: none;
+  gap: 2px;
+}
+
+.hm-attach__action {
+  appearance: none;
+  min-width: 32px;
+  min-height: 32px;
+  padding: 0 8px;
+  border: 0;
+  border-radius: 6px;
+  background: transparent;
+  color: var(--hm-tint-text);
+  font: inherit;
+  cursor: pointer;
+}
+
+.hm-attach__action:hover {
+  background: var(--hm-surface-hover);
+}
+
+.hm-attach__remove {
+  font-size: 1.125rem;
+  line-height: 1;
+}
+
+.hm-attach__waiting {
+  margin: 0;
+  color: var(--hm-text-muted);
+  font-size: 0.8125rem;
+}
