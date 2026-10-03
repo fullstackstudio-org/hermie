@@ -70,7 +70,7 @@ compress. The build is shaped around that:
   with the parser, so a template that follows a `!` is not touched).
 - **Nothing inlined as a `data:` URI**; the document's policy allows `data:` for images only.
 - **The policy travels with the document** (`index.html`): the route sets no security headers. No inline
-  script, no inline style, nothing but this origin, Trusted Types required. `frame-ancestors` cannot be set
+  script, no inline style, nothing but this origin, Trusted Types required and no Trusted Types policy allowed. `frame-ancestors` cannot be set
   from a meta element, so refusing to render in a frame is the entry module's job (see "Boot").
 
 ### `build.json`
@@ -103,8 +103,9 @@ built from; the script warns, and such a build must not be imported.
 - a `.js`, `.mjs`, `.css`, `.html`, `.json` or `.svg` file contains a non-ASCII byte;
 - the JavaScript needed before the first screen (the entry and every chunk it imports statically; a dynamic
   `import()` does not count) is over 700 kB, or 230 kB gzipped;
-- `index.html` has no policy, allows `unsafe-inline` or `unsafe-eval`, or has inline script, a style element,
-  a `style` attribute or an inline handler;
+- `index.html` has no policy, a policy that is not exactly the reference set written in the gate (every directive
+  and source of the plan's W6, plus `trusted-types 'none'`; one missing or extra fails), a `<script>` or `<link>`
+  before the policy element, or inline script, a style element, a `style` attribute or an inline handler;
 - `build.json` is missing, malformed, not in canonical form, or does not match the files: a changed byte, a
   missing file or an unlisted file;
 - a text file holds `hermie:development-only`, the stamp every development-only page (`src/dev`) puts on its

@@ -17,7 +17,8 @@
 //   - the code needed before the first screen (the entry and the chunks it
 //     imports statically) is larger than 700 kB, or 230 kB gzipped;
 //   - `index.html` carries inline script or style, an inline handler, no policy,
-//     or a policy that allows `unsafe-inline` or `unsafe-eval`;
+//     a policy that is not exactly REFERENCE_POLICY (a missing or extra
+//     directive or source), or a script or link element before the policy;
 //   - `build.json` is missing, malformed, not in canonical form, or does not
 //     match the files (a changed byte, a missing file, an unlisted file);
 //   - a text file carries the development-only marker: code from
@@ -205,22 +206,110 @@ function initialScripts(html, contents) {
   return { initial: [...seen].sort(), problems }
 }
 
-/** The inline-code rules the document's policy relies on. */
-function checkDocument(html) {
+/**
+ * The policy `native/web/index.html` carries: the plan's decision W6, plus
+ * `trusted-types 'none'` so the page can create no Trusted Types policy to turn a
+ * string into script. The document must carry exactly this set: a missing
+ * directive, an extra one, or a source added to or removed from one is a
+ * different policy and fails the gate. Change it here and in `index.html`
+ * together, with the reason in the commit.
+ */
+export const REFERENCE_POLICY = Object.freeze({
+  'default-src': ["'none'"],
+  'script-src': ["'self'"],
+  'style-src': ["'self'"],
+  'img-src': ["'self'", 'data:', 'blob:'],
+  'font-src': ["'self'"],
+  'connect-src': ["'self'"],
+  'worker-src': ["'self'"],
+  'manifest-src': ["'self'"],
+  'media-src': ["'self'", 'blob:'],
+  'base-uri': ["'none'"],
+  'form-action': ["'none'"],
+  'object-src': ["'none'"],
+  'frame-src': ["'none'"],
+  'require-trusted-types-for': ["'script'"],
+  'trusted-types': ["'none'"]
+})
+
+/**
+ * Splits a policy into its directives. A repeated directive stays a second
+ * entry, because a browser ignores all but the first and the gate must not.
+ *
+ * @param {string} content
+ * @returns {Array<[string, string[]]>}
+ */
+function policyDirectives(content) {
+  return content
+    .split(';')
+    .map(part => part.trim().split(/\s+/).filter(Boolean))
+    .filter(tokens => tokens.length > 0)
+    .map(([name, ...sources]) => [name.toLowerCase(), sources])
+}
+
+/** Every difference between a policy and REFERENCE_POLICY, as problem lines. */
+function policyProblems(content) {
   const problems = []
-  const policy = /<meta\b[^>]*http-equiv\s*=\s*["']Content-Security-Policy["'][^>]*>/i.exec(html)
+  const seen = new Set()
+
+  for (const [name, sources] of policyDirectives(content)) {
+    if (seen.has(name)) {
+      problems.push(`index.html: the policy repeats the ${name} directive`)
+      continue
+    }
+    seen.add(name)
+
+    const expected = REFERENCE_POLICY[name]
+    if (!expected) {
+      problems.push(`index.html: the policy has a directive the reference does not: ${name}`)
+      continue
+    }
+    for (const source of sources) {
+      if (!expected.includes(source)) {
+        problems.push(`index.html: the policy ${name} allows ${source}, which the reference does not`)
+      }
+    }
+    for (const source of expected) {
+      if (!sources.includes(source)) {
+        problems.push(`index.html: the policy ${name} lacks ${source}`)
+      }
+    }
+  }
+
+  for (const name of Object.keys(REFERENCE_POLICY)) {
+    if (!seen.has(name)) {
+      problems.push(`index.html: the policy lacks the ${name} directive`)
+    }
+  }
+  return problems
+}
+
+/** The policy rules and the inline-code rules the document relies on. */
+function checkDocument(source) {
+  const problems = []
+  // A tag inside a comment is not a tag; blank the comment, keeping every offset.
+  const html = source.replace(/<!--[\s\S]*?(?:-->|$)/g, comment => ' '.repeat(comment.length))
+  const policies = [...html.matchAll(/<meta\b[^>]*http-equiv\s*=\s*["']?Content-Security-Policy["']?[^>]*>/gi)]
+  const policy = policies[0]
 
   if (!policy) {
     problems.push('index.html: no Content-Security-Policy meta element')
   } else {
+    if (policies.length > 1) {
+      problems.push('index.html: has more than one Content-Security-Policy meta element')
+    }
     const content = attributesOf(policy[0].replace(/^<meta/i, '')).get('content') ?? ''
     for (const unsafe of ['unsafe-inline', 'unsafe-eval']) {
       if (content.includes(unsafe)) {
         problems.push(`index.html: the policy allows '${unsafe}'`)
       }
     }
-    if (!/script-src\s+'self'(?:\s*;|$)/.test(content)) {
-      problems.push("index.html: the policy does not restrict script-src to 'self'")
+    problems.push(...policyProblems(content))
+
+    // A policy only governs what the parser reads after it.
+    const earlier = /<(?:script|link)\b/i.exec(html.slice(0, policy.index))
+    if (earlier) {
+      problems.push(`index.html: a ${earlier[0].slice(1).toLowerCase()} element comes before the policy`)
     }
   }
 

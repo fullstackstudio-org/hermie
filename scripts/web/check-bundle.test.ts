@@ -1,17 +1,17 @@
 import { randomBytes } from 'node:crypto'
-import { mkdirSync, mkdtempSync, rmSync, symlinkSync, writeFileSync } from 'node:fs'
+import { mkdirSync, mkdtempSync, readFileSync, rmSync, symlinkSync, writeFileSync } from 'node:fs'
 import { tmpdir } from 'node:os'
 import { dirname, join } from 'node:path'
 
 import { afterEach, describe, expect, it } from 'vitest'
 
 import { buildManifest, serialiseManifest } from '../../native/web/scripts/write-build-manifest.mjs'
-import { checkBundle, DEVELOPMENT_ONLY_MARKER, LIMITS } from './check-bundle.mjs'
+import { checkBundle, DEVELOPMENT_ONLY_MARKER, LIMITS, REFERENCE_POLICY } from './check-bundle.mjs'
 
 const COMMIT = '0123456789abcdef0123456789abcdef01234567'
 
 const POLICY =
-  "default-src 'none'; script-src 'self'; style-src 'self'; img-src 'self' data: blob:; connect-src 'self'; object-src 'none'"
+  "default-src 'none'; script-src 'self'; style-src 'self'; img-src 'self' data: blob:; font-src 'self'; connect-src 'self'; worker-src 'self'; manifest-src 'self'; media-src 'self' blob:; base-uri 'none'; form-action 'none'; object-src 'none'; frame-src 'none'; require-trusted-types-for 'script'; trusted-types 'none'"
 
 function documentWith({ head = '', policy = POLICY } = {}): string {
   return [
@@ -264,6 +264,108 @@ describe('index.html', () => {
     expect(checkBundle(write({ ...goodFiles(), 'index.html': loose })).problems).toEqual(
       expect.arrayContaining([expect.stringContaining("allows 'unsafe-inline'")])
     )
+  })
+
+  describe('the policy', () => {
+    const policyProblems = (policy: string, mutate?: (html: string) => string) => {
+      const html = documentWith({ policy })
+      return checkBundle(write({ ...goodFiles(), 'index.html': mutate ? mutate(html) : html })).problems
+    }
+    const without = (directive: string) =>
+      POLICY.split('; ')
+        .filter(part => !part.startsWith(`${directive} `))
+        .join('; ')
+
+    it('is the one the document carries today, and the reference is written down', () => {
+      const source = readFileSync(join(__dirname, '../../native/web/index.html'), 'utf8')
+      const content = /http-equiv="Content-Security-Policy"\s+content="([^"]*)"/.exec(source)?.[1]
+
+      expect(content).toBe(POLICY)
+      expect(
+        POLICY.split('; ').map(part => {
+          const [name, ...sources] = part.split(' ')
+          return [name, sources]
+        })
+      ).toEqual(Object.entries(REFERENCE_POLICY))
+      expect(checkBundle(write(goodFiles())).problems).toEqual([])
+    })
+
+    it.each(['default-src', 'base-uri', 'object-src', 'require-trusted-types-for', 'trusted-types', 'frame-src'])(
+      'refuses a policy that lacks %s',
+      directive => {
+        expect(policyProblems(without(directive))).toEqual(
+          expect.arrayContaining([`index.html: the policy lacks the ${directive} directive`])
+        )
+      }
+    )
+
+    it('refuses a source added to a directive', () => {
+      expect(policyProblems(POLICY.replace("img-src 'self'", "img-src 'self' https:"))).toEqual(
+        expect.arrayContaining(['index.html: the policy img-src allows https:, which the reference does not'])
+      )
+      expect(policyProblems(POLICY.replace("connect-src 'self'", "connect-src 'self' wss://example.org"))).toEqual(
+        expect.arrayContaining([expect.stringContaining('connect-src allows wss://example.org')])
+      )
+    })
+
+    it('refuses a source taken out of a directive', () => {
+      expect(policyProblems(POLICY.replace("img-src 'self' data: blob:", "img-src 'self'"))).toEqual(
+        expect.arrayContaining([
+          'index.html: the policy img-src lacks data:',
+          'index.html: the policy img-src lacks blob:'
+        ])
+      )
+    })
+
+    it('refuses a directive the reference does not have, and a repeated one', () => {
+      expect(policyProblems(`${POLICY}; frame-ancestors 'none'`)).toEqual(
+        expect.arrayContaining(['index.html: the policy has a directive the reference does not: frame-ancestors'])
+      )
+      expect(policyProblems(`${POLICY}; script-src 'self' https://cdn.example`)).toEqual(
+        expect.arrayContaining(['index.html: the policy repeats the script-src directive'])
+      )
+    })
+
+    it('refuses a policy that is not the first thing the parser reads', () => {
+      const early = documentWith().replace(
+        '<meta charset="utf-8">',
+        '<meta charset="utf-8"><script type="module" src="./assets/react-BBBB.js"></script>'
+      )
+      expect(checkBundle(write({ ...goodFiles(), 'index.html': early })).problems).toEqual(
+        expect.arrayContaining(['index.html: a script element comes before the policy'])
+      )
+
+      const link = documentWith().replace(
+        '<meta charset="utf-8">',
+        '<link rel="stylesheet" href="./assets/index-CCCC.css">'
+      )
+      expect(checkBundle(write({ ...goodFiles(), 'index.html': link })).problems).toEqual(
+        expect.arrayContaining(['index.html: a link element comes before the policy'])
+      )
+    })
+
+    it('does not take a policy or a script inside a comment for the real one', () => {
+      const commented = documentWith().replace(
+        '<meta charset="utf-8">',
+        `<!-- <meta http-equiv="Content-Security-Policy" content="${POLICY}"> <script src="x.js"></script> -->`
+      )
+      const without = commented.replace(/\n<meta http-equiv[^>]*>/, '')
+
+      expect(checkBundle(write({ ...goodFiles(), 'index.html': without })).problems).toEqual(
+        expect.arrayContaining([expect.stringContaining('no Content-Security-Policy meta element')])
+      )
+      expect(checkBundle(write({ ...goodFiles(), 'index.html': commented })).problems).toEqual([])
+    })
+
+    it('refuses a second policy element', () => {
+      const twice = documentWith().replace(
+        '<meta charset="utf-8">',
+        `<meta charset="utf-8"><meta http-equiv="Content-Security-Policy" content="${POLICY}">`
+      )
+      expect(checkBundle(write({ ...goodFiles(), 'index.html': twice })).problems).toEqual(
+        expect.arrayContaining(['index.html: has more than one Content-Security-Policy meta element'])
+      )
+    })
   })
 
   it('refuses a missing document', () => {

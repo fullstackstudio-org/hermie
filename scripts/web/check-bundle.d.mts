@@ -21,6 +21,8 @@ export const TEXT_EXTENSIONS: readonly string[]
 export const LIMITS: Readonly<BundleLimits>
 export const MANIFEST_NAME: string
 export const DEVELOPMENT_ONLY_MARKER: string
+/** The Content-Security-Policy `index.html` must carry, directive by directive: nothing more, nothing less. */
+export const REFERENCE_POLICY: Readonly<Record<string, readonly string[]>>
 
 export function checkBundle(
   dir: string,
