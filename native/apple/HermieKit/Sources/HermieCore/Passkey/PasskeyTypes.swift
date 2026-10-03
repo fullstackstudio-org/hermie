@@ -51,6 +51,8 @@ public struct PasskeySetup: Sendable {
 public struct PasskeyConfirmation: Sendable, Equatable, Identifiable {
   /// The server request's id.
   public let id: String
+  /// The runtime session the request belongs to: which chat shows it.
+  public let sessionID: String
   /// The sheet's text and the base URL it names: the only input of the sheet, and the value the
   /// challenge is computed from.
   public let display: ConfirmDisplay
@@ -58,6 +60,8 @@ public struct PasskeyConfirmation: Sendable, Equatable, Identifiable {
   public let userName: String
   /// When the gateway gives up on it (`passkey.expires_at`), for the countdown.
   public let expiresAt: Date?
+  /// When this device read the frame: the order the sheets come up in.
+  public let receivedAt: Date
   public internal(set) var phase: PasskeyConfirmPhase
 
   /// Still waiting for this device to answer (or answering).

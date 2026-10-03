@@ -99,9 +99,11 @@ extension PasskeyModel {
     )
     let confirmation = PasskeyConfirmation(
       id: id,
+      sessionID: frame.sessionID,
       display: display,
       userName: passkey.user?.name ?? "",
       expiresAt: passkey.expiresAt.map { Date(timeIntervalSince1970: $0) },
+      receivedAt: Date(timeIntervalSince1970: now()),
       phase: .waiting
     )
 
@@ -201,6 +203,12 @@ extension PasskeyModel {
     }
 
     await answer(id, ConfirmResult.declined, done: .declined)
+  }
+
+  /// The countdown reached zero: end the confirmation locally as timed out when its `expires_at`
+  /// has passed (the gateway's own `request.cancel` ends it too, whichever comes first).
+  public func expireIfDue(_ id: String) {
+    endIfExpired(id)
   }
 
   /// End an open confirmation past its `expires_at` locally, as timed out: the gateway has given

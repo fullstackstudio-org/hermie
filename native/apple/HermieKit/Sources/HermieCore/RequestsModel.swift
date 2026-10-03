@@ -54,10 +54,20 @@ public struct AnsweredEntry: Sendable, Equatable {
 ///   a failed state with the answer kept, for a retry;
 /// - picks the request a sheet shows, and counts down to a request's deadline
 ///   when it carries one.
+///
+/// A `confirm` at level `passkey` (`PasskeyModel`) is one more request of the same area: it
+/// belongs to the chat that holds its runtime session, comes up in the same sheet one at a time
+/// with the approvals and questions (the oldest first), and is answered by the passkey model,
+/// never from here. Unlike an approval it cannot be put away while it is open: only Confirm,
+/// Decline or its own end closes it.
 @MainActor
 @Observable
 public final class RequestsModel {
   public let chat: ChatModel
+  /// The gateway's passkeys, when this build has them: the `confirm` requests at level `passkey`.
+  public let passkeys: PasskeyModel?
+  /// The gateway's name as the person knows it, for the confirm sheet's frame.
+  public let gatewayName: String
 
   /// Per request id: an answer on its way, or one that did not go out.
   public private(set) var phases: [String: RequestPhase] = [:]
@@ -72,27 +82,50 @@ public final class RequestsModel {
 
   /// Deadlines by request id, when a request carries one.
   public private(set) var deadlines: [String: Date] = [:]
+  /// Which chat holds a confirmation's session, by request id; filled by `routeConfirmations()`.
+  public private(set) var confirmRoutes: [String: String] = [:]
   @ObservationIgnored private var serial = 0
   @ObservationIgnored private var dismissed: Set<String> = []
+  /// Confirmations whose ending the person has seen and closed.
+  @ObservationIgnored private var acknowledged: Set<String> = []
+  /// Which chat holds a runtime session: the store's routes, or a test's.
+  @ObservationIgnored let confirmRoute: @Sendable (String) async -> String?
 
-  public init(chat: ChatModel) {
+  public init(
+    chat: ChatModel,
+    passkeys: PasskeyModel? = nil,
+    gatewayName: String = "",
+    confirmRoute: (@Sendable (String) async -> String?)? = nil
+  ) {
     self.chat = chat
+    self.passkeys = passkeys
+    self.gatewayName = gatewayName
+    let store = chat.store
+    self.confirmRoute = confirmRoute ?? { await store.chatKey(forRuntime: $0) }
   }
 
   public convenience init(session: GatewaySession, bot: String) {
-    self.init(chat: session.chat(bot))
+    self.init(
+      chat: session.chat(bot),
+      passkeys: session.passkeys,
+      gatewayName: session.secureInput.gatewayName
+    )
   }
 
   // MARK: - What the views read
 
   public var bot: String { chat.key }
 
+  /// The bot's name for the confirm sheet: cleaned and bounded like the request's own texts, since
+  /// the gateway names its bots.
+  public var botName: String { SecurePrompt.displayText(bot, limit: SecurePrompt.nameLimit) }
+
   /// The questions still waiting, oldest first.
   public var openRequests: [TranscriptItem] { chat.openRequests }
 
   /// The request the sheet shows, while it is still in the transcript.
   public var presentedRequest: TranscriptItem? {
-    guard let id = presentedRequestID else {
+    guard let id = presentedRequestID, presentedConfirmation == nil else {
       return nil
     }
 
@@ -141,6 +174,58 @@ public final class RequestsModel {
     return max(0, Int(deadline.timeIntervalSince(now).rounded(.up)))
   }
 
+  // MARK: - Passkey confirmations
+
+  /// The confirmations that belong to this chat, oldest first: the passkey model's, whose session
+  /// this chat holds.
+  public var confirmations: [PasskeyConfirmation] {
+    (passkeys?.confirmations ?? [])
+      .filter { confirmRoutes[$0.id] == bot }
+      .sorted { $0.receivedAt < $1.receivedAt }
+  }
+
+  /// The confirmation the sheet shows.
+  public var presentedConfirmation: PasskeyConfirmation? {
+    guard let id = presentedRequestID else {
+      return nil
+    }
+
+    return confirmations.first { $0.id == id }
+  }
+
+  /// Ids of confirmations the passkey model holds that no chat has claimed yet.
+  public var unroutedConfirmationIDs: [String] {
+    (passkeys?.confirmations ?? []).map(\.id).filter { confirmRoutes[$0] == nil }
+  }
+
+  /// Ask the store which chat holds each unclaimed confirmation's session. One whose session no
+  /// chat holds yet is asked again later: a reconnect re-delivers open requests before the resume
+  /// that binds their session returns. `true` when everything is claimed.
+  @discardableResult
+  public func routeConfirmations() async -> Bool {
+    for confirmation in passkeys?.confirmations ?? [] where confirmRoutes[confirmation.id] == nil {
+      if let key = await confirmRoute(confirmation.sessionID) {
+        confirmRoutes[confirmation.id] = key
+      }
+    }
+
+    return unroutedConfirmationIDs.isEmpty
+  }
+
+  /// A confirmation the sheet may come up for: still open, or ended by a verification the gateway
+  /// could not commit after the sheet closed (the person must hear that it did NOT go through).
+  private func isPresentable(_ confirmation: PasskeyConfirmation) -> Bool {
+    if acknowledged.contains(confirmation.id) {
+      return false
+    }
+
+    if confirmation.phase == .ended(.verificationFailed) {
+      return true
+    }
+
+    return confirmation.isOpen && !dismissed.contains(confirmation.id)
+  }
+
   // MARK: - The sheet
 
   /// Show the sheet for a request (from a card, a notification, the list).
@@ -151,8 +236,21 @@ public final class RequestsModel {
 
   /// The reader put the sheet away. Not an answer: the question stays open in
   /// the transcript, and the sheet does not come back for it by itself.
+  ///
+  /// A confirmation that is still open stays: Esc and a swipe never answer it, never close it.
   public func dismissSheet() {
     if let id = presentedRequestID {
+      if let confirmation = confirmations.first(where: { $0.id == id }) {
+        guard !confirmation.isOpen else {
+          return
+        }
+
+        // Heard: a verification the gateway could not commit is told once.
+        if confirmation.phase == .ended(.verificationFailed) {
+          acknowledged.insert(id)
+        }
+      }
+
       dismissed.insert(id)
     }
 
@@ -160,9 +258,23 @@ public final class RequestsModel {
   }
 
   /// The oldest open request the reader has not put away, for a screen that
-  /// raises the sheet as questions arrive.
+  /// raises the sheet as questions arrive. An approval, a question and a passkey confirmation
+  /// share one line: the one that arrived first comes first.
   public var nextToPresent: String? {
-    openRequests.first { !dismissed.contains($0.requestID ?? "") }?.requestID
+    let item = openRequests.first { !dismissed.contains($0.requestID ?? "") }
+    let confirmation = confirmations.first(where: isPresentable)
+
+    switch (item, confirmation) {
+    case (let item?, let confirmation?):
+      let arrived = item.arrival ?? .distantPast
+      return arrived <= confirmation.receivedAt ? item.requestID : confirmation.id
+    case (let item?, nil):
+      return item.requestID
+    case (nil, let confirmation?):
+      return confirmation.id
+    case (nil, nil):
+      return nil
+    }
   }
 
   public func dismissNotice() {
@@ -291,6 +403,11 @@ public final class RequestsModel {
 }
 
 extension TranscriptItem {
+  /// When the request reached the device, when the wire said.
+  var arrival: Date? {
+    ts.map { Date(timeIntervalSince1970: $0) }
+  }
+
   /// The request id of an approval or clarify card.
   public var requestID: String? {
     switch self {
