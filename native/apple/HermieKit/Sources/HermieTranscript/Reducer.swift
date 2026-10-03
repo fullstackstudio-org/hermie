@@ -17,6 +17,9 @@ import HermieProtocol
 // - `Reducer+Message.swift` — `message.*`, reasoning, status, notices, errors and
 //   the session-level events;
 // - `Reducer+Tool.swift` — `tool.*` and `todo.updated`;
+// - `Reducer+Identity.swift` — the row, call and turn identity helpers the
+//   message and tool families pair frames through (`assignRowID`,
+//   `settleOntoRow`, …);
 // - `Reducer+Subagent.swift` — `subagent.*` and `applySubagentSnapshot`;
 // - `Reducer+Request.swift` — `applyServerRequest`, `answerRequest`, `request.cancel`;
 // - `Reducer+Resume.swift` — `applyResumeSnapshot`;
@@ -299,10 +302,23 @@ extension TranscriptReducer {
 
   /// `dropItem`.
   static func dropItem(_ next: inout ChatState, _ id: String) {
+    let item = next.items[id]
+
     next.items[id] = nil
 
     if let at = next.order.firstIndex(where: { JS.same($0, id) }) {
       next.order.remove(at: at)
+    }
+
+    // The identity indices must never name an item that is gone: a row id or a
+    // call key left pointing at nothing would read as "already on screen" and
+    // send the next frame for it nowhere.
+    if let rowID = item?.rowID, let indexed = next.byRowID[String(rowID)], JS.same(indexed, id) {
+      next.byRowID[String(rowID)] = nil
+    }
+
+    if let callKey = JS.nonEmpty(item?.callKey), let indexed = next.byCallKey[callKey], JS.same(indexed, id) {
+      next.byCallKey[callKey] = nil
     }
   }
 }
@@ -508,6 +524,7 @@ extension TranscriptReducer {
     // non-local here is what used to make our own message arrive as a foreign
     // placeholder the moment the turn ahead of it finished.
     next.turn.local = next.queued?.local == true
+    next.turn.id = nil
     next.turn.assistantID = nil
     next.turn.reasoningID = nil
     next.turn.startedAt = nil

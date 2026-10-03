@@ -5,8 +5,31 @@ import HermieProtocol
 extension TranscriptReducer {
   /// `case 'tool.start'`.
   static func toolStart(_ next: inout ChatState, _ payload: JSONObject, _ now: Double) {
+    let callKey = callKeyOf(payload)
+
+    if callKey != nil {
+      // A bubble that already IS a row (a cached bubble history paired with
+      // its row by its words) is let go, not sealed: the row stays as written.
+      if itemAt(next, next.turn.assistantID)?.rowID != nil {
+        next.turn.assistantID = nil
+      } else if let callRowID = num(payload["call_row_id"]) {
+        settleLiveOntoCallRow(&next, callRowID)
+      }
+    }
+
     sealAssistantForTool(&next)
     next.turn.draftingTool = nil
+
+    if let callKey, let existing = itemAtCall(next, callKey) {
+      // The call is on screen already — history brought it, or this very frame
+      // was cached and is being replayed. One call, one card: the existing one
+      // is the card, and the provider's tool id now points at it.
+      if let toolID = JS.nonEmpty(str(payload["tool_id"])) {
+        next.byToolID[toolID] = existing.id
+      }
+
+      return
+    }
 
     let toolID = JS.nonEmpty(str(payload["tool_id"])) ?? "gen-\(next.turn.nextSeq)"
     let name = JS.nonEmpty(str(payload["name"])) ?? "tool"
@@ -24,6 +47,7 @@ extension TranscriptReducer {
             target: target,
             targetHandle: normalizeAgentTarget(target),
             message: str(args["message"]),
+            callKey: callKey,
             dispatch: BotDmDispatch(status: .sending)
           )
         )
@@ -35,7 +59,14 @@ extension TranscriptReducer {
     if name == "delegate_task" {
       addItem(&next, id: "t:\(toolID)", ts: ts) { base in
         .subagentGroup(
-          SubagentGroupItem(base: base, toolID: toolID, goals: goalsFromArgs(args), rootIDs: [], status: .dispatched)
+          SubagentGroupItem(
+            base: base,
+            toolID: toolID,
+            callKey: callKey,
+            goals: goalsFromArgs(args),
+            rootIDs: [],
+            status: .dispatched
+          )
         )
       }
 
@@ -54,6 +85,7 @@ extension TranscriptReducer {
           context: JS.nonEmpty(context),
           args: args.isEmpty ? nil : args,
           argsText: JS.nonEmpty(argsText),
+          callKey: callKey,
           status: .running,
           resultKnown: false,
           summary: JS.nonEmpty(context)
@@ -66,7 +98,8 @@ extension TranscriptReducer {
   static func toolComplete(_ next: inout ChatState, _ payload: JSONObject, _ now: Double) {
     let toolID = str(payload["tool_id"])
     let name = JS.nonEmpty(str(payload["name"])) ?? "tool"
-    var id = toolID.isEmpty ? nil : next.byToolID[toolID]
+    let callKey = callKeyOf(payload)
+    var id = toolCardIDFor(next, toolID, callKey)
 
     if JS.nonEmpty(id) == nil {
       // A tool whose start we missed (late attach, replay gap): materialise it
@@ -74,7 +107,13 @@ extension TranscriptReducer {
       let lateID = JS.nonEmpty(toolID) ?? "late-\(next.turn.nextSeq)"
 
       id = addItem(&next, id: "t:\(lateID)", ts: now / 1000) { base in
-        .tool(ToolItem(base: base, toolID: lateID, name: name, status: .running, resultKnown: false))
+        .tool(ToolItem(base: base, toolID: lateID, name: name, callKey: callKey, status: .running, resultKnown: false))
+      }
+    } else if let callKey, let found = next.items[id!], found.callKey == nil {
+      // Found by its tool id, drawn before the gateway named the call: it
+      // learns the key now, so the row history brings later pairs with it.
+      patchAnyItem(&next, id!) { draft in
+        draft.callKey = callKey
       }
     }
 
@@ -141,6 +180,11 @@ extension TranscriptReducer {
       }
     }
 
+    // The tool's result row: the card is that row, so history pairs it by id.
+    if let resultRowID = rowIDOf(payload) {
+      assignRowID(&next, itemID, resultRowID)
+    }
+
     if case .array(let todos)? = payload["todos"] {
       next.todo = TodoSnapshot(todos: todos, revision: num(payload["revision"]) ?? 0)
     }
@@ -153,7 +197,11 @@ extension TranscriptReducer {
   /// dispatch or a group would carry an `outputRisk` too. Those kinds have no such
   /// field here; it is written into their `extra`, which encodes to the same JSON.
   static func toolOutputRisk(_ next: inout ChatState, _ payload: JSONObject) {
-    guard let id = JS.nonEmpty(next.byToolID[str(payload["tool_id"])]) else { return }
+    let callKey = callKeyOf(payload)
+    let found =
+      callKey != nil ? toolCardIDFor(next, str(payload["tool_id"]), callKey) : next.byToolID[str(payload["tool_id"])]
+
+    guard let id = JS.nonEmpty(found) else { return }
 
     let findings: [String] =
       if case .array(let values)? = payload["findings"] { values.compactMap(\.stringValue) } else { [] }

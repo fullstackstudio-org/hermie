@@ -309,6 +309,58 @@ extension TranscriptReducer {
     return (wroteItself, false)
   }
 
+  /// The prompt on screen that opened turn `turnID` — a real one, not a
+  /// placeholder still waiting for it.
+  ///
+  /// `spokenPromptOfTurn`.
+  static func spokenPromptOfTurn(_ state: ChatState, _ turnID: String) -> UserItem? {
+    for id in state.order {
+      if case .user(let item)? = state.items[id], let held = item.turnID, JS.same(held, turnID),
+        !isForeignPlaceholder(.user(item))
+      {
+        return item
+      }
+    }
+
+    return nil
+  }
+
+  /// The placeholder a resume may fill: the one turn `turnID` stood up when the
+  /// resume names its turn, else the newest one that names no other turn. Without
+  /// a turn id, the newest placeholder, as always.
+  ///
+  /// `placeholderForTurn`.
+  static func placeholderForTurn(_ state: ChatState, _ turnID: String?) -> String? {
+    guard let turnID else {
+      return foreignPlaceholderID(state)
+    }
+
+    var unnamed: String?
+
+    for id in state.order.reversed() {
+      guard case .user(let item)? = state.items[id], isForeignPlaceholder(.user(item)) else {
+        continue
+      }
+
+      if let held = item.turnID, JS.same(held, turnID) {
+        return item.id
+      }
+
+      unnamed = unnamed ?? (JS.nonEmpty(item.turnID) != nil ? nil : item.id)
+    }
+
+    return unnamed
+  }
+
+  /// Whether the durable reply after the newest prompt is this turn's whole reply
+  /// (a retained turn).
+  ///
+  /// `settledReplyIs`.
+  static func settledReplyIs(_ state: ChatState, _ assistantText: String) -> Bool {
+    guard let settledReply = shownTurn(state).settledReply else { return false }
+    return JS.same(settledReply, normalizeMatchText(assistantText))
+  }
+
   /// The un-persisted assistant bubble this turn is filling, if it has one.
   ///
   /// `liveAssistantOfCurrentTurn`.
@@ -325,7 +377,7 @@ extension TranscriptReducer {
   }
 
   /// The item a projectable prompt becomes, built on the `ItemBase` it is handed.
-  static func inflightPromptItem(_ prompt: InflightPrompt, _ base: ItemBase) -> TranscriptItem {
+  static func inflightPromptItem(_ prompt: InflightPrompt, _ turnID: String?, _ base: ItemBase) -> TranscriptItem {
     switch prompt.kind {
     case .cronDelivery(let cron):
       return .cronDelivery(
@@ -356,7 +408,7 @@ extension TranscriptReducer {
       // the text: without them a prompt that was nothing but a file resumes as an
       // empty bubble, and the row that lands for it has nothing to pair with and
       // becomes a second one.
-      return .user(UserItem(base: base, text: speech, attachments: refs))
+      return .user(UserItem(base: base, text: speech, attachments: refs, turnID: turnID))
 
     case .botDmReply:
       // Never projected (see `projectable`); the TypeScript's draft would fall
@@ -404,14 +456,23 @@ public func applyResumeSnapshot(into next: inout ChatState, _ snapshot: SessionR
   // dispatched as `session.info` a step before this one, which is why a caller
   // that forwards only the top-level field still gets the comparison.
   let turnStartedAt = running ? (R.num(raw["turn_started_at"]) ?? R.num(next.info?.json["turn_started_at"])) : nil
-  let overlap = R.resumeOverlap(next, prompt, assistantText, turnStartedAt)
+  // The turn's own id, off the prompt's metadata. When the prompt is on screen
+  // under it, it is shown — whatever its words normalise to, and whatever the
+  // timestamps say about the reply below it. Only "is that reply this one" is
+  // still asked the old way, because nothing else can answer it.
+  let turnID = turnIDOfMetadata(inflight["display_metadata"])
+  let turnPrompt = turnID.flatMap { R.spokenPromptOfTurn(next, $0) }
+  let overlap =
+    turnPrompt != nil
+    ? (promptShown: true, replyPersisted: R.settledReplyIs(next, assistantText))
+    : R.resumeOverlap(next, prompt, assistantText, turnStartedAt)
 
   // Either way, the resume has named the author of the newest turn, and the
   // placeholder exists only because `message.start` could not. It is filled
   // below when the prompt is new to us; when the prompt is already on screen
   // there is nothing left for it to become, and a blank bubble between a cron
   // card and its reply is a row the reader has to explain to themselves.
-  let placeholder = userText.isEmpty ? nil : R.foreignPlaceholderID(next)
+  let placeholder = userText.isEmpty ? nil : R.placeholderForTurn(next, turnID)
   /*
     A delivery report opens a turn, and projects nothing.
 
@@ -437,9 +498,9 @@ public func applyResumeSnapshot(into next: inout ChatState, _ snapshot: SessionR
     // appended, the prompt would sit BELOW the reply it started, because the
     // placeholder is already above the streaming bubble.
     if let placeholder {
-      R.recastItem(&next, placeholder, ts: now / 1000, origin: .inflight) { R.inflightPromptItem(prompt, $0) }
+      R.recastItem(&next, placeholder, ts: now / 1000, origin: .inflight) { R.inflightPromptItem(prompt, turnID, $0) }
     } else {
-      R.addItem(&next, id: draftID, ts: now / 1000, origin: .inflight) { R.inflightPromptItem(prompt, $0) }
+      R.addItem(&next, id: draftID, ts: now / 1000, origin: .inflight) { R.inflightPromptItem(prompt, turnID, $0) }
     }
   } else if let placeholder {
     R.dropItem(&next, placeholder)
@@ -452,21 +513,37 @@ public func applyResumeSnapshot(into next: inout ChatState, _ snapshot: SessionR
     next.turn.foreignReconcilePending = nil
   }
 
+  if let turnID, running {
+    next.turn.id = turnID
+  }
+
   let inflightStatus = R.str(inflight["status"])
   let inflightError = JS.trim(R.str(inflight["error"]))
+  /*
+    What the bubble shows. `inflight.assistant` is every word the turn has
+    streamed, run together — including the notes it already sealed, which are
+    on screen as their own rows. A gateway that knows where the last sealed note
+    ended answers the rest as `assistant_unsealed`, and that is all this bubble
+    may say; repainting the whole string under the notes was the same notes a
+    second time. An empty rest is no bubble, unless the turn is mid-stream and
+    the next words need somewhere to land.
+  */
+  let unsealed = inflight["assistant_unsealed"]?.stringValue
+  let bubbleText = unsealed ?? assistantText
   let failure: AssistantFailure? =
     inflightError.isEmpty
     ? nil
     : AssistantFailure(
       message: inflightError,
-      partial: !assistantText.isEmpty,
+      partial: !bubbleText.isEmpty,
       recoverable: R.isTrue(inflight["recoverable"]) ? true : nil
     )
   let streaming = R.isTrue(inflight["streaming"])
+  let openStream = unsealed != nil && streaming
 
   // A durable row already carrying this reply needs nothing added to it; the
   // `live` branch below covers the bubble a stream is still filling.
-  if (!assistantText.isEmpty || failure != nil) && !overlap.replyPersisted {
+  if (!bubbleText.isEmpty || failure != nil || openStream) && !overlap.replyPersisted {
     if let live = R.liveAssistantOfCurrentTurn(next) {
       // `inflight.assistant` is this turn's reply flattened to one string, and
       // the bubble on screen is that same reply — so it settles onto it. A
@@ -477,8 +554,8 @@ public func applyResumeSnapshot(into next: inout ChatState, _ snapshot: SessionR
 
       R.patchAssistant(&next, live.id) { draft in
         if !sealed {
-          if JS.length(assistantText) > JS.length(draft.text) {
-            draft.text = assistantText
+          if JS.length(bubbleText) > JS.length(draft.text) {
+            draft.text = bubbleText
           }
 
           draft.streaming = streaming
@@ -500,7 +577,7 @@ public func applyResumeSnapshot(into next: inout ChatState, _ snapshot: SessionR
         .assistant(
           AssistantItem(
             base: base,
-            text: assistantText,
+            text: bubbleText,
             streaming: streaming,
             interim: false,
             status: failure != nil ? .error : inflightStatus == "interrupted" ? .interrupted : nil,
