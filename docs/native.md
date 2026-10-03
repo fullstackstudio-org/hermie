@@ -320,7 +320,10 @@ in the `session.events.since` replay closes its prompt as a live one would, and 
 session's `open_requests` (from the resume or the replay) no longer lists closes with a notice that
 it ended while the connection was down, nothing sent. One first seen at or after the moment just
 before that call went out (on the session's monotonic clock) is kept, since it may be newer than
-the list, and an answer without the list changes nothing. An answer is "sent" once its frame is queued, so a socket
+the list, and an answer without the list changes nothing. The gateway leaves an empty list out of a resume,
+so after a reconnect it is usually the replay's list that decides. A known gateway gap: with turn
+isolation, its `_open_requests` can leave out a request that is still open (a second child
+request), and the app then says the prompt ended while the bot waits out its deadline. An answer is "sent" once its frame is queued, so a socket
 that dies before the gateway read it loses it; the gateway's re-delivery of a request already
 closed here (for any reason but its `request.cancel`) is the proof, and the prompt opens again
 saying the earlier answer did not arrive. The typed value lives in the sheet's state as a
