@@ -494,9 +494,21 @@ credential ids, and records the link so neither side reads the other as a confli
 `gateway_id` pinned for no gateway in the list stays a refusal (`gatewayIDConflict`).
 
 A withdrawal during the ceremony ends the confirmation before the authenticator is cancelled, so a
-ceremony returning in that window sends nothing. A confirmation past its `expires_at` ends locally as
-timed out (`PasskeyConfirmation.isActionable(at:)` for the sheet's buttons). A `plain` request is
-declined `-32601` until the app has a sheet for it, whatever `PasskeyConfiguration.plain` says.
+ceremony returning in that window sends nothing. The local deadline is the frame's `expires_at`, which
+is required and never more than 120 seconds after the frame arrived (a clock that is off cannot keep a
+request open); past it the confirmation ends locally as timed out (`PasskeyConfirmation.isActionable(at:)`
+for the sheet's buttons), and a frame that is already past it on arrival raises a notice instead of
+failing silently. The countdown never ends an answer in flight (`sending`): the reply may still say
+received, and that is what the person reads. During the ceremony it moves the phase first and then
+cancels the authenticator, so the system's passkey sheet goes away with it.
+
+An assertion whose `request.answer` failed without a reply may have been delivered. The confirmation
+remembers it (`answerMayHaveArrived`), the retry sentence says the answer may have reached the gateway,
+and from then on a timeout, a `resolved` or other cancel, a decline or a retry the gateway no longer
+knows end as `outcomeUnknown` ("Check whether the action ran"), never as "nothing was confirmed". The
+gateway's own verdicts keep their meaning (`verification_failed`, too many attempts, 4033, a refusal
+that leaves it open, an `ok`). The web client does the same. A `plain` request is declined `-32601`
+until the app has a sheet for it, whatever `PasskeyConfiguration.plain` says.
 
 The detail is shown as the gateway sent it, monospaced with every space and line break kept; the
 sheet renders `ConfirmDisplay` and nothing else. Its host includes the path prefix of a gateway
@@ -515,20 +527,32 @@ path prefix), one line saying the system sheet will name the app's RP (`confirm.
 same for every gateway) and that this request is for the host, the countdown from `expires_at`, and
 two buttons with fixed words, "Confirm with passkey" and "Decline". What the request says is shown
 as sent with `Text(verbatim:)`: the title, the summary and the detail, which sits in a monospaced
-block that scrolls sideways and is never wrapped or cut, so a line break, a blank line and an
-indent stay where they are (it is one accessibility element whose label is the text). Nothing from
-the agent or the gateway reaches a button or a heading, and the gateway's `reason` words only pick
-one of the app's sentences (`ConfirmSheetText`).
+block that is never wrapped or cut. Text that looks harmless can hide what runs (a command, 300
+spaces, a second command; or 80 blank lines before one), so the block draws whitespace visibly
+(`ConfirmDetailMarkup`, the same rules as the web client's `markVerbatimDetail`): a run of 2 to 6
+spaces is that many `·`, a run of 7 or more is `[␣×N]`, a tab is `→`, and a run of 3 or more blank
+lines is one `⋯ N empty lines ⋯`. The block has a viewport of its own (about 220 pt, scaled with
+the text size) that scrolls both ways with the bars always showing; when it overflows, a caption
+says "N lines · longest line M characters". Confirm stays off, with a line saying why, until every
+direction in which it overflows has been scrolled to its end (`ConfirmDetailReview`; once reached it
+stays reached); Decline is never held, and VoiceOver, which reads all of it, markers included as the
+element's label, is not held either. "Copy details" puts the exact original text on the
+pasteboard, local to this device and gone after two minutes on iOS. The gateway limits what it sends as well, but the client is safe on its own. Nothing from the agent or the gateway reaches a
+button or a heading, and the gateway's `reason` words only pick one of the app's sentences
+(`ConfirmSheetText`). The names of passkeys the gateway holds go through `SecurePrompt.displayText`
+as one bounded line, in the notices and in the list.
 
 For 400 ms after it appears nothing can be pressed, Return is not Confirm, and Esc and a swipe do
 not close an open confirmation (`RequestsModel.dismissSheet()` refuses; the sheet is
 `interactiveDismissDisabled`). Confirm runs the ceremony; dismissing the system's sheet returns to
 this one, because the model puts the phase back. The states: waiting, signing ("Waiting for your
 passkey…"), sending, received (a check, "Answer received. The gateway is verifying it": never
-"confirmed", and the sheet closes by itself after 2.5 s), declined (closes the same way), refused
-(the reason in plain words, the same two buttons, so Confirm is the retry), not sent (the same),
-and the ended ones (timed out, answered elsewhere, too many refusals, verification failed, not
-allowed, this device cannot, withdrawn), each with its sentence and a Close. A verification the
+"confirmed", and the sheet closes by itself after 2.5 s: a view that exists only in those two
+states starts the timer, because a task watching the phase from inside the sheet never saw a state
+that followed another within a frame), declined (closes the same way), refused (the reason in plain
+words, the same two buttons, so Confirm is the retry), not sent (the same), and the ended ones
+(timed out, answered elsewhere, too many refusals, verification failed, not allowed, this device
+cannot, withdrawn, outcome unknown), each with its sentence and a Close. A verification the
 gateway could not commit after the sheet closed (`request.cancel verification_failed`) raises the
 sheet again once, saying that nothing was confirmed. The app is covered while it is not in front
 (the app switcher), except while the system's passkey sheet is up, where the person needs the text.
