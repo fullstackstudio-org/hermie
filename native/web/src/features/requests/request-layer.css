@@ -136,12 +136,13 @@
 }
 
 /*
- * A confirmation's detail, verbatim: every space and line break kept and never wrapped, so a line break
- * is never hidden and a command reads as the one that runs. A long line scrolls sideways.
+ * A confirmation's detail, verbatim: every line break kept and never wrapped, so a line break is never
+ * hidden and a command reads as the one that runs. About twelve lines tall; past that, and past a long
+ * line, it scrolls, with bars that stay on screen (below) so a reader can see there is more.
  */
 .hm-requests__detail {
   margin: 0;
-  max-height: 16rem;
+  max-height: 14rem;
   padding: 12px 14px;
   overflow: auto;
   border: 1px solid var(--hm-line);
@@ -159,6 +160,62 @@
 .hm-requests__detail:focus-visible {
   outline: var(--hm-focus-width) solid var(--hm-focus);
   outline-offset: 2px;
+}
+
+/*
+ * Scroll bars that do not fade: Chromium and WebKit draw a styled bar as a classic one, never an overlay
+ * that hides until the pointer moves. (Chromium ignores these once `scrollbar-color` is set, so that is
+ * only for the browsers without them.)
+ */
+.hm-requests__detail::-webkit-scrollbar {
+  width: 12px;
+  height: 12px;
+}
+
+.hm-requests__detail::-webkit-scrollbar-track {
+  background: var(--hm-surface);
+}
+
+.hm-requests__detail::-webkit-scrollbar-thumb {
+  min-width: 24px;
+  min-height: 24px;
+  border: 3px solid var(--hm-surface);
+  border-radius: 6px;
+  background: var(--hm-text-faint);
+}
+
+.hm-requests__detail::-webkit-scrollbar-corner {
+  background: var(--hm-surface);
+}
+
+@supports not selector(::-webkit-scrollbar) {
+  .hm-requests__detail {
+    scrollbar-width: auto;
+    scrollbar-color: var(--hm-text-faint) var(--hm-surface);
+  }
+}
+
+/* Under the detail: its size when it is too big for the box, and the copy button. */
+.hm-requests__detail-foot {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 4px 12px;
+}
+
+.hm-requests__detail-foot > .hm-requests__meta:empty {
+  display: none;
+}
+
+/* The text area the copy fallback selects: in the dialog (its focus trap), out of sight. */
+.hm-requests__copy-buffer {
+  position: fixed;
+  top: 0;
+  left: -9999px;
+  width: 1px;
+  height: 1px;
+  opacity: 0;
+  pointer-events: none;
 }
 
 .hm-requests__phase {

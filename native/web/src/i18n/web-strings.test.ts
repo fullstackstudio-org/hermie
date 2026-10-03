@@ -80,7 +80,9 @@ const SAMPLE = {
   problem: MARKER,
   query: MARKER,
   added: MARKER,
-  removed: MARKER
+  removed: MARKER,
+  lines: MARKER,
+  longest: MARKER
 }
 
 describe('the web-only strings', () => {

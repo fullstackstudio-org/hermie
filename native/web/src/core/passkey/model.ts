@@ -16,6 +16,14 @@
  *    (phase `received`): the gateway commits it next and says `request.cancel
  *    {reason: "verification_failed"}` when that fails, which is the one reason
  *    that overrides an answer that went through. A client never sends `verified`.
+ *  - **An answer that may have arrived is never called "not confirmed".** When a
+ *    `request.answer` carrying an assertion gets no reply (the socket closed, the
+ *    call timed out), the gateway may have taken it: the confirmation is marked
+ *    `answerMayHaveArrived`, the retry state says the answer may have reached the
+ *    gateway, and every later ending that is not the gateway's definitive verdict
+ *    (a timeout, `resolved`, a withdrawal, a later answer it no longer takes) is
+ *    `outcome_unknown`. `verification_failed`, too many attempts, 4033 and an `ok`
+ *    keep their meaning.
  *  - **A decline is exactly `{decision: "declined", method: "tap"}`.**
  *  - **When the ceremony cannot run here** the frame is answered with error 4040
  *    and `data.reason`: `rp_not_configured` (no secure context or no WebAuthn),
@@ -62,6 +70,7 @@ import type { PasskeyPinStore } from '../../platform/passkey-pins'
 import { type CeremonyProblem, CeremonyError, type WebAuthnSeam } from '../../platform/webauthn'
 import {
   type AdvertisingVerdict,
+  type ConfirmEnd,
   type ConfirmPhase,
   isActionablePhase,
   isExpired,
@@ -625,6 +634,7 @@ export class PasskeyModel {
         userName: text(user.name) ?? '',
         expiresAt: expires,
         phase: { kind: 'waiting' },
+        answerMayHaveArrived: false,
         version: 0,
         dismissed: false
       },
@@ -781,7 +791,15 @@ export class PasskeyModel {
     }
   }
 
-  /** Send `result` through `request.answer` and read what came back. */
+  /**
+   * Send `result` through `request.answer` and read what came back.
+   *
+   * A call that got no reply (the socket closed, it timed out) may still have delivered what it carried: when
+   * that was an assertion, the confirmation is marked `answerMayHaveArrived`, and from then on no ending
+   * says that nothing was confirmed unless the gateway said so (see `patch`). A gateway that answers a later
+   * try with anything but `ok`, 4033 or 4034 (it no longer knows the request, it was settled) gives no
+   * verdict either: such a confirmation ends `outcome_unknown`.
+   */
   private async answer(id: string, result: Record<string, unknown>, done: ConfirmPhase): Promise<void> {
     this.setPhase(id, { kind: 'sending' })
 
@@ -793,7 +811,17 @@ export class PasskeyModel {
 
       outcome = status === 'ok' ? done : { kind: 'ended', end: { kind: 'withdrawn', reason: status } }
     } catch (error) {
+      const unanswered = isTransportFailure(error)
+
+      if (unanswered && result.decision === 'confirmed') {
+        this.patch(id, { answerMayHaveArrived: true })
+      }
+
       outcome = phaseAfter(error)
+
+      if (!unanswered && outcome.kind === 'not_sent' && this.find(id)?.answerMayHaveArrived) {
+        outcome = { kind: 'ended', end: { kind: 'outcome_unknown' } }
+      }
     }
 
     // A `request.cancel` may have ended it meanwhile; only `verification_failed` overrides an answer
@@ -852,8 +880,10 @@ export class PasskeyModel {
     this.setPhase(id, next)
 
     // What ended it without the person's doing is said by the layer as it goes; what the person
-    // must read (it did not count) stays on screen, even over a sheet they had closed.
-    const quiet = next.kind === 'ended' && ['timed_out', 'answered_elsewhere', 'withdrawn'].includes(next.end.kind)
+    // must read (it did not count, or it may have counted) stays on screen, even over a sheet they had
+    // closed. Read back: an answer that may have arrived turns these endings into `outcome_unknown`.
+    const ended = this.find(id)?.phase
+    const quiet = ended?.kind === 'ended' && QUIET_ENDS.has(ended.end.kind)
 
     this.patch(id, { dismissed: quiet })
   }
@@ -1280,7 +1310,15 @@ export class PasskeyModel {
     })
   }
 
-  private patch(id: string, change: Partial<Pick<PasskeyConfirmation, 'phase' | 'dismissed'>>): void {
+  /**
+   * Change one confirmation. The one choke point for its phase, so the rule holds whoever ends it: once an
+   * assertion may have reached the gateway, an ending that is not the gateway's definitive verdict
+   * (`UNSETTLED_ENDS`) becomes `outcome_unknown`.
+   */
+  private patch(
+    id: string,
+    change: Partial<Pick<PasskeyConfirmation, 'phase' | 'dismissed' | 'answerMayHaveArrived'>>
+  ): void {
     const current = this.find(id)
 
     if (!current) {
@@ -1290,6 +1328,10 @@ export class PasskeyModel {
     this.nextVersion += 1
 
     const next = { ...current, ...change, version: this.nextVersion }
+
+    if (next.answerMayHaveArrived && next.phase.kind === 'ended' && UNSETTLED_ENDS.has(next.phase.end.kind)) {
+      next.phase = { kind: 'ended', end: { kind: 'outcome_unknown' } }
+    }
 
     this.store.setState(state => ({
       confirmations: state.confirmations.map(existing => (existing.id === id ? next : existing))
@@ -1303,6 +1345,29 @@ export class PasskeyModel {
   private setPhase(id: string, phase: ConfirmPhase): void {
     this.patch(id, { phase })
   }
+}
+
+/** Endings the layer announces as the sheet closes (nothing the person must read on the sheet). */
+const QUIET_ENDS: ReadonlySet<ConfirmEnd['kind']> = new Set(['timed_out', 'answered_elsewhere', 'withdrawn'])
+
+/**
+ * Endings that are not the gateway's verdict on an answer: after an assertion may have arrived, each of
+ * them is `outcome_unknown` (the request may have been settled by that very assertion). The definitive
+ * ones (`verification_failed`, `too_many_attempts`, `not_allowed`) keep their meaning.
+ */
+const UNSETTLED_ENDS: ReadonlySet<ConfirmEnd['kind']> = new Set([
+  'timed_out',
+  'answered_elsewhere',
+  'withdrawn',
+  'unavailable'
+])
+
+/**
+ * A `request.answer` that failed without the gateway's reply (no socket, a timeout, a send that threw): what
+ * it carried may have been delivered. A JSON-RPC error with a code is the gateway's word, so it is not.
+ */
+export function isTransportFailure(error: unknown): boolean {
+  return !(error instanceof JsonRpcGatewayError) || typeof error.code !== 'number'
 }
 
 /** The gateway's limit on a passkey's name, in characters. */
@@ -1330,6 +1395,7 @@ export function credentialName(displayName: string, host: string): string {
 
 /** What a refused `request.answer` means for the confirmation. */
 export function phaseAfter(error: unknown): ConfirmPhase {
+  // No reply from the gateway (`isTransportFailure`): try again.
   if (!(error instanceof JsonRpcGatewayError) || typeof error.code !== 'number') {
     return { kind: 'not_sent', message: error instanceof Error ? error.message : String(error) }
   }

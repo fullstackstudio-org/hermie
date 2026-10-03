@@ -26,7 +26,11 @@ export type ConfirmPhase =
   | { kind: 'sending' }
   /** The gateway refused the assertion (4034, `reason` as it gave it). The request stays open: try again. */
   | { kind: 'refused'; reason: string }
-  /** The answer did not reach the gateway (no socket, a timeout), or the browser failed; try again. */
+  /**
+   * The answer did not get a reply (no socket, a timeout), or the browser failed; try again. When the
+   * confirmation's `answerMayHaveArrived` is set, an assertion may have reached the gateway all the same, and
+   * the sheet says so instead of "not sent".
+   */
   | { kind: 'not_sent'; message: string }
   /**
    * `request.answer` said `ok`: the assertion was received and is valid. NOT "confirmed": the
@@ -54,6 +58,13 @@ export type ConfirmEnd =
   | { kind: 'unavailable'; reason: string }
   /** Withdrawn for another reason (`request.cancel`'s, as it came). */
   | { kind: 'withdrawn'; reason: string }
+  /**
+   * It ended without a definitive word after an assertion may have reached the gateway (a `request.answer`
+   * carrying one got no reply): it may have been confirmed. Every ending that is not the gateway's
+   * definitive verdict (`timed_out`, `answered_elsewhere`, `withdrawn`, `unavailable`, an answer the gateway
+   * no longer takes) becomes this one, so the page never says "nothing was confirmed" when it may have been.
+   */
+  | { kind: 'outcome_unknown' }
 
 /** Still waiting for this page to answer (or answering). */
 export const isOpenPhase = (phase: ConfirmPhase): boolean =>
@@ -95,6 +106,12 @@ export interface PasskeyConfirmation {
   /** Unix seconds when the gateway gives up on it (`passkey.expires_at`), for the countdown. */
   expiresAt: number | null
   phase: ConfirmPhase
+  /**
+   * A `request.answer` carrying this confirmation's assertion failed without a reply from the gateway
+   * (the socket closed, the call timed out): the assertion may have been delivered and accepted. Set once,
+   * never cleared; a decline's failure does not set it.
+   */
+  answerMayHaveArrived: boolean
   /** Bumped on every change, so a list can tell an entry moved without comparing it. */
   version: number
   /** The person closed the sheet of a confirmation that had finished. */

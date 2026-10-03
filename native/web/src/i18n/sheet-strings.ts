@@ -78,6 +78,43 @@ export const SHEET_STRINGS_SOURCE = {
       nl: 'Details',
       de: 'Details'
     },
+    /** Copies the detail exactly as the gateway sent it (not the drawing with its whitespace markers). */
+    copyDetail: {
+      en: 'Copy details',
+      nl: 'Details kopiëren',
+      de: 'Details kopieren'
+    },
+    detailCopied: {
+      en: 'The details were copied.',
+      nl: 'De details zijn gekopieerd.',
+      de: 'Die Details wurden kopiert.'
+    },
+    detailNotCopied: {
+      en: 'The details could not be copied.',
+      nl: 'De details konden niet worden gekopieerd.',
+      de: 'Die Details konnten nicht kopiert werden.'
+    },
+    /** Under a detail too big for its box: the size of the text as the gateway sent it. */
+    detailSize: {
+      en: ({ lines, longest }: { lines: number; longest: number }) =>
+        `${lines} ${lines === 1 ? 'line' : 'lines'} · longest line ${longest} ${longest === 1 ? 'character' : 'characters'}`,
+      nl: ({ lines, longest }: { lines: number; longest: number }) =>
+        `${lines} ${lines === 1 ? 'regel' : 'regels'} · langste regel ${longest} ${longest === 1 ? 'teken' : 'tekens'}`,
+      de: ({ lines, longest }: { lines: number; longest: number }) =>
+        `${lines} ${lines === 1 ? 'Zeile' : 'Zeilen'} · längste Zeile ${longest} Zeichen`
+    },
+    /** The marker line that stands for 3 or more blank lines in a row inside the detail, between `⋯`. */
+    emptyLines: {
+      en: ({ count }: { count: number }) => `⋯ ${count} empty lines ⋯`,
+      nl: ({ count }: { count: number }) => `⋯ ${count} lege regels ⋯`,
+      de: ({ count }: { count: number }) => `⋯ ${count} leere Zeilen ⋯`
+    },
+    /** Under the buttons while Confirm waits for the detail to be scrolled to its end. */
+    scrollToConfirm: {
+      en: 'Scroll to the end of the details to confirm.',
+      nl: 'Scrol naar het einde van de details om te bevestigen.',
+      de: 'Scrolle bis zum Ende der Details, um zu bestätigen.'
+    },
     /** Which passkey the browser will ask for: the page's own host is the passkey's site. */
     rpLine: {
       en: ({ rp }: { rp: string }) => `Your browser will ask for your passkey for ${rp}.`,
@@ -125,6 +162,21 @@ export const SHEET_STRINGS_SOURCE = {
         `Het antwoord is niet verstuurd: ${message}. Je kunt het opnieuw proberen.`,
       de: ({ message }: { message: string }) =>
         `Die Antwort wurde nicht gesendet: ${message}. Du kannst es noch einmal versuchen.`
+    },
+    /**
+     * Instead of `notSent` once an answer carrying the passkey got no reply: it may have been delivered, so
+     * nothing here may say that nothing was confirmed.
+     */
+    mayHaveArrived: {
+      en: 'The answer may have reached the gateway. You can try again, or check whether the action ran.',
+      nl: 'Het antwoord heeft de gateway misschien bereikt. Je kunt het opnieuw proberen, of nagaan of de actie is uitgevoerd.',
+      de: 'Die Antwort hat das Gateway vielleicht erreicht. Du kannst es noch einmal versuchen oder prüfen, ob die Aktion ausgeführt wurde.'
+    },
+    /** The end of a confirmation whose answer may have arrived, without the gateway's verdict on it. */
+    outcomeUnknown: {
+      en: 'The answer may have reached the gateway. Check whether the action ran.',
+      nl: 'Het antwoord heeft de gateway misschien bereikt. Ga na of de actie is uitgevoerd.',
+      de: 'Die Antwort hat das Gateway vielleicht erreicht. Prüfe, ob die Aktion ausgeführt wurde.'
     },
     /** After `ok`: received and valid, NOT confirmed yet. */
     received: {

