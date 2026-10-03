@@ -45,10 +45,13 @@ public struct WSTicket: Sendable, Equatable, CustomStringConvertible, CustomDebu
 public struct HTTPExchange: Sendable, Equatable {
   public var status: Int
   public var body: JSONValue?
+  /// The `retry-after` header, verbatim; empty when absent.
+  public var retryAfter: String
 
-  public init(status: Int, body: JSONValue?) {
+  public init(status: Int, body: JSONValue?, retryAfter: String = "") {
     self.status = status
     self.body = body
+    self.retryAfter = retryAfter
   }
 
   public var ok: Bool { (200...299).contains(status) }
@@ -192,7 +195,7 @@ public struct HTTPClient: Sendable {
 
     let text = attempt.response.text
     let parsed = JSText.trim(text).isEmpty ? nil : try? JSONValue(parsing: text)
-    return HTTPExchange(status: attempt.response.status, body: parsed)
+    return HTTPExchange(status: attempt.response.status, body: parsed, retryAfter: attempt.response.retryAfter)
   }
 
   // MARK: - The round trip

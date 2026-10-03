@@ -216,9 +216,16 @@ public struct ConfirmDisplay: Sendable, Hashable {
     ConfirmDisplay(title: "", summary: subject, detail: nil, baseURL: baseURL)
   }
 
-  /// The host the sheet names, from `baseURL`.
+  /// What the sheet names the gateway by, from `baseURL`: the host (with a port that is not the
+  /// default) and the path prefix of a gateway served under one, `gw.example.com/hermes`. Two
+  /// gateways behind one host differ only there.
   public var host: String {
-    WHATWGURL.parse(baseURL)?.hostWithPort ?? baseURL
+    guard let url = WHATWGURL.parse(baseURL) else {
+      return baseURL
+    }
+
+    let path = url.pathname == "/" ? "" : url.pathname
+    return url.hostWithPort + path
   }
 
   /// `text_digest` (contract §4).

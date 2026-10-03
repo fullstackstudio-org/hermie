@@ -6,6 +6,12 @@ public struct PasskeyRouteError: Error, Sendable, Equatable {
   public enum Kind: Sendable, Equatable {
     /// The gateway does not serve the routes: the level is off or unknown there (GET 404, POST 405).
     case notOffered
+    /// 429 `rate_limited`: too many tries; `retryAfter` says when the next may go, when it was given.
+    case rateLimited
+    /// 403 `origin_not_listed`: the gateway does not list the address this app dialed among its
+    /// passkey base URLs (or, signed in with a cookie, the `Origin` the call carried). Something the
+    /// operator changes (`confirm.passkey.base_urls`), not the person.
+    case originNotListed
     /// Any other refusal; `error` and `reason` say which.
     case refused
     /// A 2xx answer that is not the object the route promises.
@@ -20,13 +26,23 @@ public struct PasskeyRouteError: Error, Sendable, Equatable {
   public var reason: String
   /// The route's own sentence, for the developer detail.
   public var detail: String
+  /// `rateLimited`: the seconds of the answer's `Retry-After`, when it gave a number of them.
+  public var retryAfter: Int?
 
-  public init(_ kind: Kind, status: Int, error: String = "", reason: String = "", detail: String = "") {
+  public init(
+    _ kind: Kind,
+    status: Int,
+    error: String = "",
+    reason: String = "",
+    detail: String = "",
+    retryAfter: Int? = nil
+  ) {
     self.kind = kind
     self.status = status
     self.error = error
     self.reason = reason
     self.detail = detail
+    self.retryAfter = retryAfter
   }
 }
 
@@ -87,14 +103,36 @@ public struct PasskeyClient: Sendable {
   /// A non-2xx answer as a `PasskeyRouteError`.
   static func refusal(_ exchange: HTTPExchange) -> PasskeyRouteError {
     let body = exchange.body.flatMap(PasskeyRouteErrorBody.init(jsonValue:))
-    let kind: PasskeyRouteError.Kind = exchange.status == 404 || exchange.status == 405 ? .notOffered : .refused
+    let error = body?.error ?? ""
+    let kind = kind(status: exchange.status, error: error)
 
     return PasskeyRouteError(
       kind,
       status: exchange.status,
-      error: body?.error ?? "",
+      error: error,
       reason: body?.reason ?? "",
-      detail: body?.detail ?? ""
+      detail: body?.detail ?? "",
+      retryAfter: kind == .rateLimited ? seconds(exchange.retryAfter) : nil
     )
+  }
+
+  private static func kind(status: Int, error: String) -> PasskeyRouteError.Kind {
+    switch status {
+    case 404, 405: .notOffered
+    case 429: .rateLimited
+    case 403 where error == "origin_not_listed": .originNotListed
+    default: .refused
+    }
+  }
+
+  /// `Retry-After` as delay-seconds; the HTTP-date form, and anything else, is `nil`.
+  private static func seconds(_ header: String) -> Int? {
+    let trimmed = header.trimmingCharacters(in: .whitespaces)
+
+    guard !trimmed.isEmpty, trimmed.allSatisfy(\.isASCII), trimmed.allSatisfy(\.isNumber) else {
+      return nil
+    }
+
+    return Int(trimmed)
   }
 }

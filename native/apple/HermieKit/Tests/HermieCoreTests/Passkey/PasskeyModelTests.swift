@@ -390,6 +390,13 @@ import Testing
     try await eventually("the notice") { @MainActor in !f.model.notices.isEmpty }
     #expect(f.model.notices.map(\.kind) == [.credentialAdded(name: "Laptop — gw.example.com")])
   }
+
+  @Test("a new passkey's name carries the path prefix of a gateway served under one")
+  func credentialNameWithPath() throws {
+    let configuration = PasskeyConfiguration(rpID: Self.rpID, displayName: "Phone")
+    let baseURL = try GatewayAddress.passkeyBaseURL(of: "https://gw.example.com/hermes/")
+    #expect(configuration.credentialName(host: ConfirmDisplay.subject("", baseURL: baseURL).host) == "Phone — gw.example.com/hermes")
+  }
 }
 
 /// An authenticator whose every ceremony fails with `error`.
