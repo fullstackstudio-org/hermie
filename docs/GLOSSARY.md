@@ -247,6 +247,31 @@ completion onto the sealed bubble whenever the two texts are prefix-compatible i
 streaming can drop characters and the final can add a trailing delta, but only one message can
 satisfy that test, so no flag is needed to make it safe.
 
+## Row identity
+
+The number the gateway's store gave a persisted message (`messages.id`), carried as `row_id` on the
+frames that finish a row (`message.interim`, `message.complete`, a tool's `tool.complete`) and on
+history rows. A client that is told which row a live frame is about settles its bubble onto that
+row instead of drawing a second one beside it. Hermie pairs by this id whenever the gateway sends
+one and falls back to matching words only when it does not, which is what an older gateway gets. The
+engine's name for it on an item is `rowId`; see `packages/transcript/README.md`.
+
+## Call key
+
+The client's key for one tool call: `"<call_row_id>/<call_index>"`, the assistant row that holds the
+call and the call's position in that row's `tool_calls`. It is unique inside a session however a
+provider numbers its `tool_id`, so a card is found by it first and the provider's `tool_id` stays as
+the fallback for a gateway that sends no call identity. A tool card keeps it as `callKey`, and the
+chat state indexes cards by it in `byCallKey`.
+
+## Turn id
+
+A random identifier the gateway mints once per turn and stamps on every frame of that turn's stream.
+It is also written on the prompt's row (`display_metadata.turn_id`), so a prompt shown from history,
+from an optimistic send or from a resume snapshot is recognised as the one that opened the running
+turn, and no placeholder is stood up beside it. It carries no identity of its own and a client
+cannot choose it.
+
 ## Replay epoch
 
 An identifier the gateway sends on connect, marking the generation of its event log. It lets a

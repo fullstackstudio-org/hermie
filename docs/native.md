@@ -198,6 +198,14 @@ before changing the reducer.
   `Support/JSText.swift` (`JS.trim`, `JS.same`, `JS.nonEmpty`, `JS.truthy`, `JS.localeCompare`,
   `jsStableSorted`, …) and `Support/JSRegExp.swift` (`JSRegExp`, `JSPattern`). Use them rather than
   Swift's `==`, `count` or `trimmingCharacters`, which answer differently.
+- **Row identity is ported as its own files.** `Identity.swift` (reading the row, call and turn
+  identities off a frame or a row) and `Reducer+Identity.swift` (settling a live item onto its row,
+  finding a card by call key) mirror `identity.ts` and the identity branches of `reducer.ts`. The
+  fields are optional on every type, and a frame without them takes the paths that existed before.
+  `contract/transcript/golden/row-identity.json` and the `interim-reopen*` streams record the
+  TypeScript behaviour, including a cache saved after every frame of a turn, so a change to the
+  identity rules is a golden diff the Swift side has to follow, and `ParityGates.corpusCalls` and
+  `streamCount` move with it.
 
 ### The parity gates
 

@@ -23,7 +23,7 @@ So both are projected onto one item model:
 ## The item model
 
 `ChatState` is normalised: an id-keyed `items` map, an `order` array, and
-indices (`byToolId`, `byRowId`, `byRequestId`, `byProcessId`, `byDelegationId`).
+indices (`byToolId`, `byRowId`, `byCallKey`, `byRequestId`, `byProcessId`, `byDelegationId`).
 Item kinds:
 
 | kind                   | what it is                                                                            |
@@ -190,6 +190,12 @@ streaming, a chat reopened from a cache saved mid-turn, a reconnect replay
 (`session.events.since`), a tail sweep, a resume, and any mix of them. A gateway
 that knows which row a frame is about says so, and the engine pairs by that and
 by nothing else: no words, no stream position, no watermark.
+
+The one-line version: **the engine pairs by id when the gateway gives one, and by
+words only when it does not.** The words path is the fallback for a gateway that
+sends no ids (an older one, Alsycon), and it is the code `main` had before the ids
+existed. It is never a second opinion beside an id: a frame that carries an id is
+paired by the id even when its words disagree.
 
 **The fields** (all optional, read by `identity.ts`):
 
