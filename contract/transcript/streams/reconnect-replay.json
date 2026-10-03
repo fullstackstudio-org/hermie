@@ -1881,7 +1881,6 @@
           "message_count": 8,
           "messages": [],
           "messages_omitted": true,
-          "open_requests": [],
           "session_id": "runtime-4a31c816",
           "stored_session_id": "stored-researcher-45a8698b"
         }
@@ -2312,7 +2311,6 @@
           "message_count": 12,
           "messages": [],
           "messages_omitted": true,
-          "open_requests": [],
           "session_id": "runtime-4a31c816",
           "stored_session_id": "stored-researcher-45a8698b"
         }
@@ -2681,7 +2679,7 @@
       "args": [
         {
           "inflight": null,
-          "open_requests": [],
+          "open_requests": null,
           "pending_approval": null,
           "queued": null,
           "running": null,
@@ -2901,7 +2899,7 @@
       "args": [
         {
           "inflight": null,
-          "open_requests": [],
+          "open_requests": null,
           "pending_approval": null,
           "queued": null,
           "running": null,
