@@ -32,6 +32,8 @@ export function noticeText(notice: PasskeyNoticeKind): string {
       return words.noCredential
     case 'malformed_request':
       return words.malformedRequest
+    case 'base_url_not_listed':
+      return words.baseUrlNotListed
     case 'credential_added':
       return words.credentialAdded({ name: notice.name })
     case 'credential_revoked':

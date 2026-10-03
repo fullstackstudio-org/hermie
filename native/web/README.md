@@ -36,12 +36,18 @@ styles, `ws:`, no Trusted Types). The production build never does; test against 
 | ----------------------------------- | ---------------------------------------------------------------------------------------------------------------- |
 | `npm run client:dev`                | the Vite dev server (above)                                                                                      |
 | `npm run client:build`              | `vite build`, then writes `dist/build.json`                                                                      |
-| `npm run client:test`               | the client's unit and component tests (vitest, jsdom, Testing Library)                                           |
+| `npm run client:test`               | the client's unit and component tests (vitest, jsdom, Testing Library; `scripts/run-vitest.mjs`, below)          |
 | `npm run client:check-bundle`       | the gate on `dist/` (below); `-- --commit <sha>` also requires `build.json` to name that commit                  |
 | `npm run client:check-reproducible` | builds twice from clean and compares every file; `-- --fresh-checkout` adds a build from `git archive HEAD`      |
 | `npm run client:guard-scan`         | the Hermes plugin scanner over `dist/`, fork and upstream at pinned commits (below)                              |
 | `npm run client:e2e`                | the black-box and accessibility suite on the built client, in Chromium, WebKit and Firefox ("The browser suite") |
 | `npm run client:e2e:perf`           | the transcript list's performance suite on the harness, in the same three engines ("The harness and the suite")  |
+
+**Node 25 and later.** Node ships its own Web Storage there, and its `localStorage` and `sessionStorage` globals
+shadow jsdom's, so the suite needs `NODE_OPTIONS=--no-webstorage`. `npm run client:test` goes through
+`scripts/run-vitest.mjs`, which adds the flag when the Node it runs on accepts it (it asks Node by starting it with
+the flag, not by reading a version number) and changes nothing on Node 22, which refuses the flag and would not
+start. Calling `vitest` directly on Node 25 needs the flag by hand.
 
 Types, lint and format run with the rest of the repository (`npm run typecheck`, `npm run lint`,
 `npm run format`); `client:test`, the bundle gate, the plugin scanner, the reproducibility check and the
@@ -563,31 +569,38 @@ text shown. The construction, the wire objects and the order of the gateway's ch
 `contract/confirm-passkey/README.md`; the plan is `confirm-passkey.md` (task CP-13). The native apps do the same with
 their own RP (`docs/native.md`, "Confirm at level passkey"); the phases, refusal reasons and notices here are theirs.
 
-| File                                     | What                                                                                                      |
-| ---------------------------------------- | --------------------------------------------------------------------------------------------------------- |
-| `core/passkey/challenge.ts`              | base64url, the base URL, the text digest, the challenge and the enrolment code (contract §2 to §7)        |
-| `core/passkey/client.ts`                 | the six `/api/auth/passkeys` routes on the cookie session, with the refusal's `error` and `reason`        |
-| `core/passkey/model.ts`                  | `PasskeyModel`: frames, answers, withdrawals, advertising, enrolment, step-ups, pins, notices             |
-| `state/passkeys.ts`                      | the store the model writes: confirmations and their phases, notices, the list, the capability verdict     |
-| `platform/webauthn.ts`                   | the browser's ceremonies (`WebAuthnSeam`) and SHA-256                                                     |
-| `platform/passkey-pins.ts`               | the pins (see "Browser storage")                                                                          |
-| `platform/socket.ts` (`ErrorDataOutbox`) | puts `data.reason` on a 4040 error frame, which the vendored channel's `fail(code, message)` cannot carry |
-| `features/requests/ConfirmSheet.tsx`     | the sheet in the request layer                                                                            |
-| `features/requests/PasskeyNotices.tsx`   | the notices, over the page                                                                                |
-| `features/settings/Passkeys.tsx`         | `#/settings/passkeys`: the state, the list, add with a code, make a code, remove                          |
+| File                                     | What                                                                                                       |
+| ---------------------------------------- | ---------------------------------------------------------------------------------------------------------- |
+| `core/passkey/challenge.ts`              | base64url, the base URL, the text digest, the challenge and the enrolment code (contract §2 to §7)         |
+| `core/passkey/client.ts`                 | the six `/api/auth/passkeys` routes on the cookie session, with the refusal's `error` and `reason`         |
+| `core/passkey/model.ts`                  | `PasskeyModel`: frames, answers, withdrawals, advertising, enrolment, step-ups, pins, notices              |
+| `state/passkeys.ts`                      | the store the model writes: confirmations and their phases, notices, the list, the capability verdict      |
+| `platform/webauthn.ts`                   | the browser's ceremonies (`WebAuthnSeam`) and SHA-256                                                      |
+| `platform/passkey-pins.ts`               | the pins (see "Browser storage"), and forgetting this gateway's                                            |
+| `platform/socket.ts` (`ErrorDataOutbox`) | puts `data.reason` on a 4040 error frame, which the vendored channel's `fail(code, message)` cannot carry  |
+| `features/requests/ConfirmSheet.tsx`     | the sheet in the request layer (a chunk of its own, below)                                                 |
+| `features/requests/PasskeyNotices.tsx`   | the notices, over the page                                                                                 |
+| `features/settings/Passkeys.tsx`         | `#/settings/passkeys`: the state, the list, add with a code, make a code, remove, forget the pin (a chunk) |
 
 **Where it is offered.** The RP is the page's own hostname (`location.hostname`), never the registrable domain, and the
 base URL is the page's origin. The page advertises the level only when all of these hold: the page is a secure context
 with WebAuthn; the gateway's base URL has no path prefix (two gateways under prefixes of one host share its browser
 security boundary, contract §10); the first `client.capabilities` result carries `confirm_passkey` with `v: 1` and
-`enabled: true`; its `rp.web` lists this hostname; and its `gateway_id` breaks no pin. The channel already sends the first
+`enabled: true`; its `rp.web` lists this hostname; its `gateway_id` breaks no pin; and the status read
+(`GET /api/auth/passkeys`) lists this page's origin among its `base_urls`. Without that last one every answer would be
+refused (`base_url_not_accepted`) and five refusals open the no-downgrade window for the conversation, so the page
+says so (a notice, and the settings page's state) and does not advertise; a gateway that lists none (an older one) is
+not held to it. The channel already sends the first
 call on `gateway.ready` and throws its answer away, so the model sends it again after every arrival at `ready` and reads
 it, then sends the second: `{server_requests: true, confirm: ["passkey"], confirm_passkey: {v: 1, kind: "web", rp_id}}`.
 `plain` is not advertised: this client has no sheet for it yet. Unlike the native apps, the page does not wait until it
 knows a passkey of its own before advertising: the gateway decides per request whether the person has one for this RP,
 and a browser can hold a synced passkey this page never enrolled. Once `passkey` is newly accepted on a socket the open
 requests of every session the page holds are read again (`session.events.since`), because the gateway hides a gated
-request from a connection that had not advertised the level when the resume ran.
+request from a connection that had not advertised the level when the resume ran. A chat that resumes while the capability calls are still in flight (its answer hidden, and not yet taken in when the level is accepted) is read when its session appears. The read also settles what the page already holds: a confirmation that was open before it,
+belongs to a session just read and is not among the `open_requests` the gateway answers with is over (the socket that
+would have said so dropped), and ends as timed out, quietly, like the gateway's own `request.cancel timeout`; a
+gateway that answers without the list says nothing about them.
 
 **Answering**, as rules (the model's header has them in full):
 
@@ -602,6 +615,11 @@ request from a connection that had not advertised the level when the resume ran.
 - a frame this page cannot take is answered with error 4040 and `data.reason`: `rp_not_configured`, `bad_base_url`,
   `unsupported_version`, `bad_request`, `no_credential`, `gateway_id_mismatch`, `gateway_id_conflict`. The last five also
   leave a notice; a ceremony the browser refuses outright (`SecurityError`, `NotSupportedError`) is `rp_not_configured`;
+- the page's own clock ends a confirmation too: one whose `expires_at` has passed is not actionable, `confirm` and
+  `decline` end it as timed out instead of running a ceremony for a dead request, and the sheet asks for that at the
+  deadline (and switches its buttons off from then on);
+- 4033 is about the connection, not the request: a frame delivered again for the same id (the gateway offering it to
+  this connection once the level is accepted) brings a request that ended that way back to waiting;
 - `request.cancel` ends an open confirmation: `timeout`, `resolved` (another device answered) and any other reason close
   the sheet with a polite announcement; `too_many_attempts` and `verification_failed` stay on screen until closed.
 
@@ -616,12 +634,28 @@ phases (`waiting`, `signing`, `sending`, `refused`, `not_sent`, `received`, `dec
 connect. After that a capability, a frame or a status read with another id is refused and leaves a notice, and so is an
 id another gateway on this origin pinned. The pin survives a sign-out (it is about the gateway, not a person); the
 passkey ids this browser has seen do not. A `passkey.changed` or a list read that shows a passkey this browser did not
-add is a notice.
+add is a notice. A status read that breaks the pin keeps nothing: the settings page does not list another gateway's
+passkeys under the notice.
+
+A gateway whose passkey store was reset on purpose presents a new id and is refused for it, and the pin cannot be
+cleared from the page except by the person's word: **Settings, Passkeys, "Forget this gateway's passkey pin"**, behind a
+confirmation, clears `device.passkey.pin@<base URL>` and nothing else (not the ids this browser has seen, not another
+gateway's pin), and the capability calls run again; the next enrolment pins the id the gateway presents. Clearing the
+site's data does the same and more.
 
 **Settings.** `#/settings/passkeys` says whether the level is on here and why not, lists the person's passkeys (for
 this site and for the apps), adds a passkey of this browser with a one-time code (`register/begin`, the ceremony,
-`register/finish`; the page names the passkey `Hermie — <host>`), makes a code for another device and removes a
-passkey, both behind a step-up assertion with a passkey of this site. A code is shown once and stored nowhere.
+`register/finish`; the page names the passkey `Hermie — <host>`, the host cut in the middle with an ellipsis where the
+name would pass the gateway's 100 characters), makes a code for another device and removes a passkey, both behind a
+step-up assertion with a passkey of this site. A code is shown once, in the page with a Copy button
+(`platform/clipboard.ts`), and stored nowhere; the live region says "your code is ready", not the code. A 429 shows the
+wait the gateway asked for (`Retry-After`), and a 403 `origin_not_listed` is a state of its own: the gateway does not
+list this page's address.
+
+**Two chunks.** The sheet (`ConfirmSheet`) and the settings page (`Passkeys` and `passkeys.css`) are loaded with
+`React.lazy`, on the first `confirm` frame and when `#/settings/passkeys` is opened; the model, the pins, the client
+and the WebAuthn layer stay in the entry bundle, because a frame is read, and a 4040 answered, whether or not the
+sheet ever loads. While the sheet loads the dialog shows its heading and who asks, and nothing to press.
 
 **Not the native app.** In a browser the page is the client: what it displayed is asserted by code the gateway served,
 so a script injection on the gateway's origin could show one text and ask for a signature over another (plan, Security

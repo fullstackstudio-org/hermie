@@ -10,7 +10,8 @@
  * step-up: the browser asks for a passkey of this site first (plan P6, P7), so a
  * session alone can neither add nor remove one.
  *
- * A code is shown once, as the gateway gave it, and is never written anywhere.
+ * A code is shown once, as the gateway gave it, in the page (with a Copy button) and never in a live
+ * region: the status line says it is ready, not what it is. It is never written anywhere.
  */
 import { type FormEvent, type ReactElement, useEffect, useId, useState } from 'react'
 import { useStore } from 'zustand'
@@ -18,9 +19,10 @@ import type { StoreApi } from 'zustand/vanilla'
 
 import { displayEnrolmentCode } from '../../core/passkey/challenge'
 import type { PasskeyActionError, PasskeyInvite } from '../../core/passkey/model'
-import { formatDate, formatDateTime } from '../../i18n/format'
+import { formatDate, formatDateTime, formatDuration } from '../../i18n/format'
 import { useLocale } from '../../i18n/use-locale'
 import { webStrings } from '../../i18n/web-strings'
+import { writeClipboard } from '../../platform/clipboard'
 import { type PasskeysState, passkeysStore } from '../../state/passkeys'
 import { Button } from '../../ui/primitives'
 import { noticeText } from '../requests/PasskeyNotices'
@@ -77,8 +79,15 @@ export function actionFailure(error: unknown, rpId: string): string {
         return words.codeRefused
       }
 
+      if (problem.error === 'origin_not_listed') {
+        // 403: the gateway does not list this page's address for passkeys. Its own state, in plain words.
+        return words.originNotListed({ host: rpId })
+      }
+
       if (problem.status === 429) {
-        return words.rateLimited
+        return problem.retryAfter !== null
+          ? words.rateLimitedFor({ time: formatDuration(problem.retryAfter) })
+          : words.rateLimited
       }
 
       return words.failed({ message: problem.reason ? `${problem.message} (${problem.reason})` : problem.message })
@@ -98,6 +107,8 @@ export function Passkeys({ store = passkeysStore }: { store?: StoreApi<PasskeysS
   const credentials = useStore(store, state => state.credentials)
   const supported = useStore(store, state => state.supported)
   const rpId = useStore(store, state => state.rpId)
+  const pinned = useStore(store, state => state.pinned)
+  const unlisted = useStore(store, state => state.capability?.verdict.kind === 'base_url_not_listed')
   const words = webStrings.passkeys.settings
   const ids = useId()
   const codeId = `${ids}-code`
@@ -106,13 +117,15 @@ export function Passkeys({ store = passkeysStore }: { store?: StoreApi<PasskeysS
   const [busy, setBusy] = useState<Busy>(null)
   const [message, setMessage] = useState<Message | null>(null)
   const [invite, setInvite] = useState<PasskeyInvite | null>(null)
+  const [forgetting, setForgetting] = useState(false)
 
   // The list as it is now, every time the page is opened.
   useEffect(() => {
     void runtime?.refresh()
   }, [runtime])
 
-  const accepted = status?.enabled === true && Array.isArray(status.rp?.web) && status.rp.web.includes(rpId)
+  const accepted =
+    status?.enabled === true && Array.isArray(status.rp?.web) && status.rp.web.includes(rpId) && !unlisted
   const canAct = supported && accepted && runtime !== null && busy === null
   const ownPasskey = credentials.some(credential => credential.rp_id === rpId)
 
@@ -126,6 +139,8 @@ export function Passkeys({ store = passkeysStore }: { store?: StoreApi<PasskeysS
     state = words.failed({ message: statusError.message })
   } else if (status && !status.enabled) {
     state = words.off({ reason: status.reason || 'disabled' })
+  } else if (status && unlisted) {
+    state = words.baseUrlNotListed({ host: rpId })
   } else if (status && !accepted) {
     state = words.rpNotAccepted({ host: rpId })
   } else if (status) {
@@ -171,8 +186,25 @@ export function Passkeys({ store = passkeysStore }: { store?: StoreApi<PasskeysS
 
       setInvite(minted)
 
-      return words.inviteCode({ code: displayEnrolmentCode(minted.code) })
+      // The code is on the page, once; the live region only says it is there.
+      return words.inviteReady
     })
+  }
+
+  const copyInvite = (): void => {
+    if (!invite) {
+      return
+    }
+
+    void writeClipboard(displayEnrolmentCode(invite.code)).then(copied =>
+      setMessage({ tone: copied ? 'ok' : 'danger', text: copied ? words.codeCopied : words.codeNotCopied })
+    )
+  }
+
+  const forgetPin = (): void => {
+    setForgetting(false)
+    runtime?.forgetPin()
+    setMessage({ tone: 'ok', text: words.pinForgotten })
   }
 
   const revoke = (id: string): void => {
@@ -258,16 +290,41 @@ export function Passkeys({ store = passkeysStore }: { store?: StoreApi<PasskeysS
             {busy === 'invite' ? webStrings.passkeys.signing : words.invite}
           </Button>
           {invite ? (
-            <p className="hm-passkeys__code">
-              <code>{displayEnrolmentCode(invite.code)}</code>
+            <div className="hm-passkeys__code">
+              <span className="hm-passkeys__meta">{words.inviteCodeLabel}</span>
+              <code data-invite-code="">{displayEnrolmentCode(invite.code)}</code>
+              <Button variant="quiet" onClick={copyInvite}>
+                {words.copyCode}
+              </Button>
               {invite.expiresAt !== null ? (
                 <span className="hm-passkeys__meta">
-                  {' '}
                   {words.inviteExpires({ time: formatDateTime(invite.expiresAt * 1000) })}
                 </span>
               ) : null}
-            </p>
+            </div>
           ) : null}
+        </div>
+      ) : null}
+
+      {pinned && runtime ? (
+        <div className="hm-passkeys__form">
+          <h3 className="hm-passkeys__heading">{words.pinTitle}</h3>
+          <p className="hm-passkeys__text">{words.pinHelp}</p>
+          {forgetting ? (
+            <div className="hm-passkeys__confirm" role="group" aria-label={words.pinForget}>
+              <p className="hm-passkeys__text">{words.pinConfirmQuestion}</p>
+              <Button variant="quiet" data-tone="danger" onClick={forgetPin}>
+                {words.pinConfirm}
+              </Button>
+              <Button variant="quiet" onClick={() => setForgetting(false)}>
+                {words.pinCancel}
+              </Button>
+            </div>
+          ) : (
+            <Button variant="quiet" data-tone="danger" onClick={() => setForgetting(true)}>
+              {words.pinForget}
+            </Button>
+          )}
         </div>
       ) : null}
 

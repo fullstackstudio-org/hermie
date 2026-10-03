@@ -16,6 +16,12 @@
  * again (the reason the contract pins on enrolment and not on first connect).
  * The credential ids are one person's and go with them.
  *
+ * A gateway whose passkey store was reset on purpose presents a new id and is
+ * refused for it. The page can say "this gateway's store was reset" only by the
+ * person's word: `forget()` clears the pin of that one gateway (the settings page
+ * offers it behind a confirmation), and the next enrolment pins the new id. Without
+ * it the pin goes only with the site's data.
+ *
  * `foreignGatewayIds` reads the pins of every OTHER gateway this browser holds on
  * this origin (another base path), straight from `localStorage`: a gateway that
  * presents one of them is impersonating it.
@@ -33,6 +39,11 @@ export interface PasskeyPinStore {
   /** The pinned `gateway_id` (base64url), or `null` before the first enrolment here. */
   gatewayId(): string | null
   pin(gatewayId: string): void
+  /**
+   * Forget the pin of this gateway, and nothing else (not the seen ids, not another gateway's pin).
+   * The one way a legitimate reset of the gateway's own store is accepted from the page.
+   */
+  forget(): void
   seen(): SeenCredentials
   remember(ids: readonly string[]): void
   /** The ids pinned for other gateways this browser holds. */
@@ -88,6 +99,9 @@ export function createPasskeyPins(options: PasskeyPinsOptions): PasskeyPinStore 
     },
     pin(gatewayId) {
       store.setSync(PIN_KEY + baseUrl, JSON.stringify({ gateway_id: gatewayId, pinned_at: now() }))
+    },
+    forget() {
+      store.deleteSync(PIN_KEY + baseUrl)
     },
     seen() {
       const record = readJson<{ known_credential_ids?: unknown; seen_at?: unknown }>(SEEN_KEY + baseUrl)

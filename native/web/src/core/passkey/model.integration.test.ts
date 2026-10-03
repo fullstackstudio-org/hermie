@@ -385,6 +385,33 @@ describe('the passkey model against the fake gateway', () => {
     )
   })
 
+  it('ends a confirmation the gateway timed out while the socket was down, when it reads the open requests again', async () => {
+    const gateway = await passkeyGateway()
+    let sessionId = ''
+    const page = await openPage(gateway, { sessions: () => (sessionId ? [{ sessionId, lastSeen: 0 }] : []) })
+
+    await enrol(page)
+
+    const raised = await raise(gateway, { summary: 'Restart the service.' })
+    const id = raised.body.request_id as string
+
+    sessionId = raised.body.session_id as string
+    await waitFor(() => expect(confirmation(page, id)?.phase).toEqual({ kind: 'waiting' }))
+
+    // The socket drops, and the gateway gives up on the request while nobody is listening: its
+    // `request.cancel timeout` goes to no one.
+    await control(gateway, '/__fake/drop-sockets')
+    expect((await control(gateway, '/__fake/passkey/expire', { request_id: id })).status).toBe(200)
+
+    // Back on a new socket the page reads the open requests again, and this one is not among them.
+    await waitFor(() =>
+      expect(confirmation(page, id)).toMatchObject({
+        phase: { kind: 'ended', end: { kind: 'timed_out' } },
+        dismissed: true
+      })
+    )
+  })
+
   it('closing the browser sheet sends nothing; a ceremony that cannot run answers 4040 with the reason', async () => {
     const page = await openPage(await passkeyGateway())
 

@@ -33,7 +33,7 @@
  * in the plugin's advert) gets one sentence instead of the app: a courtesy, not
  * a boundary (plan, "Plugin config additions").
  */
-import { type ReactElement, useEffect } from 'react'
+import { lazy, type ReactElement, Suspense, useEffect } from 'react'
 import { useStore } from 'zustand'
 
 import { webClientSwitchedOff } from '../../core/advert'
@@ -49,11 +49,13 @@ import { ChatScreen } from '../chat/ChatScreen'
 import { ChatRuntimeContext, type ChatSessionRuntime } from '../chat/chat-runtime'
 import { type PasskeyActions, PasskeyRuntimeContext } from '../requests/passkey-runtime'
 import { RequestLayer } from '../requests/RequestLayer'
-import { Passkeys } from '../settings/Passkeys'
 import { ConnectionLine } from './ConnectionLine'
 import { Layout } from './Layout'
 import { formatRoute, type Route, useRoute } from './router'
 import { SidebarFooter } from './SidebarFooter'
+
+/** The passkeys page (and its styles) is a chunk of its own, fetched when `#/settings/passkeys` is opened. */
+const Passkeys = lazy(() => import('../settings/Passkeys').then(module => ({ default: module.Passkeys })))
 
 export interface AppProps {
   /** Who is signed in: display name, else email, else id; empty when the gateway named nobody. */
@@ -121,7 +123,9 @@ export function App({ user, onSignIn, onSignOut, router = pageHashRouter, chat, 
               {...(route.session ? { session: route.session } : {})}
             />
           ) : route.name === 'settings' && route.section === 'passkeys' ? (
-            <Passkeys />
+            <Suspense fallback={<div className="hm-main__body" aria-busy="true" />}>
+              <Passkeys />
+            </Suspense>
           ) : route.name === 'settings' ? (
             <div className="hm-main__body">
               <p>{webStrings.shell.settingsSoon}</p>

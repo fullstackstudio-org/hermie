@@ -39,7 +39,16 @@
  *    runs before the second call, so once `passkey` is newly accepted on a socket
  *    the open requests of every session the page holds are read again
  *    (`session.events.since`); the channel hands them to this model like a live
- *    frame.
+ *    frame. A session the page starts holding only after that (a chat that
+ *    resumed while the capability calls were still in flight, and whose answer
+ *    the gateway had hidden) is read when it appears. A confirmation that was
+ *    open before a read, belongs to a session just read and is not listed any
+ *    more is over (the socket that told us so dropped): it ends as `timed_out`,
+ *    quietly, like the gateway's own `timeout`.
+ *  - **The page's clock ends a confirmation too.** A confirmation whose
+ *    `expires_at` has passed is not actionable (`confirm` and `decline` end it as
+ *    `timed_out` instead of running a ceremony for a dead request), and the sheet
+ *    asks for it to end at the deadline (`expire`).
  *  - **Pins** (contract §10): the gateway id is pinned on the first successful
  *    enrolment; after that a frame, a capability or a status read with another id
  *    is refused and leaves a notice, and so is an id pinned for another gateway in
@@ -55,6 +64,7 @@ import {
   type AdvertisingVerdict,
   type ConfirmPhase,
   isActionablePhase,
+  isExpired,
   isOpenPhase,
   type PasskeyConfirmation,
   type PasskeyNoticeKind,
@@ -119,6 +129,8 @@ export interface PasskeyModelOptions {
   store?: StoreApi<PasskeysState>
   /** The sessions the page holds, for reading their open requests again. */
   openSessions?: () => readonly OpenSession[]
+  /** Call `listener` whenever the sessions the page holds may have changed; returns the way to stop. */
+  watchSessions?: (listener: () => void) => () => void
   /** How a 4040 with `data.reason` goes out; without one the error goes out without `data`. */
   failWithData?: FailWithData
   /** The first half of a new passkey's name: `<displayName> — <host>`. */
@@ -144,7 +156,15 @@ export type PasskeyActionProblem =
   /** The ceremony produced nothing. */
   | { kind: 'ceremony'; problem: CeremonyProblem }
   /** The route refused (`error` and `reason` as it gave them). */
-  | { kind: 'refused'; status: number; error: string; reason: string; message: string }
+  | {
+      kind: 'refused'
+      status: number
+      error: string
+      reason: string
+      message: string
+      /** Seconds the gateway asked the caller to wait (a 429's `Retry-After`). */
+      retryAfter: number | null
+    }
   /** The answer was not what the route promises. */
   | { kind: 'bad_answer' }
   /** The call did not get through. */
@@ -180,6 +200,9 @@ interface Account {
   rpId: string
 }
 
+/** A `gateway_id` that breaks a pin (contract §10). */
+type PinProblem = { kind: 'gateway_id_mismatch' } | { kind: 'gateway_id_conflict' }
+
 class FrameProblem extends Error {
   constructor(
     readonly reason: string,
@@ -211,6 +234,8 @@ export class PasskeyModel {
   /** Bumped per socket generation (every arrival at `ready`), so a late capability answer is dropped. */
   private generation = 0
   private acceptedOnSocket = false
+  /** The sessions whose open requests were read on this socket, once the level was accepted on it. */
+  private readonly sessionsRead = new Set<string>()
   private nextNoticeId = 0
   private nextVersion = 0
 
@@ -242,7 +267,11 @@ export class PasskeyModel {
 
     this.started = true
     this.store.getState().reset()
-    this.store.setState({ supported: this.supported, rpId: this.options.webauthn.rpId })
+    this.store.setState({
+      supported: this.supported,
+      rpId: this.options.webauthn.rpId,
+      pinned: this.options.pins.gatewayId() !== null
+    })
 
     const { gateway } = this.options
 
@@ -257,10 +286,20 @@ export class PasskeyModel {
           void this.changed(payload)
         }
       }),
+      ...(this.options.watchSessions
+        ? [
+            this.options.watchSessions(() => {
+              if (this.acceptedOnSocket && !this.stopped) {
+                void this.readOpenRequests()
+              }
+            })
+          ]
+        : []),
       gateway.onStatus(status => {
         if (status !== 'ready') {
           this.wasReady = false
           this.acceptedOnSocket = false
+          this.sessionsRead.clear()
 
           return
         }
@@ -317,10 +356,28 @@ export class PasskeyModel {
     }
 
     const offer = isRecord(first.confirm_passkey) ? first.confirm_passkey : null
-    const verdict = this.verdict(offer)
+    let verdict = this.verdict(offer)
 
     if (verdict.kind === 'gateway_id_mismatch' || verdict.kind === 'gateway_id_conflict') {
       this.notify({ kind: verdict.kind })
+    }
+
+    if (verdict.kind === 'advertised') {
+      // The base URLs the level accepts are in the status read, not in the capability offer. A page whose
+      // address is not one of them would have every answer refused (`base_url_not_accepted`), and five
+      // refusals open the no-downgrade window for the conversation: do not advertise to begin with.
+      const read = await this.readStatus()
+
+      if (generation !== this.generation || this.stopped) {
+        return
+      }
+
+      if (read.problem) {
+        verdict = read.problem
+      } else if (read.status && !this.baseUrlListed(read.status)) {
+        verdict = { kind: 'base_url_not_listed' }
+        this.notify({ kind: 'base_url_not_listed' })
+      }
     }
 
     let accepted: string[] = []
@@ -354,9 +411,18 @@ export class PasskeyModel {
 
     // The level is on here: read the list once, for the settings page and the notices. (Where it is off the
     // routes answer 404, and the settings page reads them itself when it is opened.)
-    if (offer?.enabled === true && this.store.getState().status === null) {
+    if (offer?.enabled === true && this.store.getState().status === null && verdict.kind !== 'advertised') {
       await this.refresh()
     }
+  }
+
+  /** The gateway lists this page's address among its base URLs; true too when it does not say (an older gateway). */
+  private baseUrlListed(status: PasskeyStatus): boolean {
+    if (!Array.isArray(status.base_urls) || this.baseUrl === null) {
+      return true
+    }
+
+    return status.base_urls.some(url => typeof url === 'string' && serialiseBaseUrl(url) === this.baseUrl)
   }
 
   private verdict(offer: Record<string, unknown> | null): AdvertisingVerdict {
@@ -381,21 +447,61 @@ export class PasskeyModel {
     return this.pinProblem(text(offer.gateway_id) ?? '') ?? { kind: 'advertised' }
   }
 
-  /** Read the open requests of every session the page holds again; they arrive through the channel. */
+  /**
+   * Read the open requests of every session the page holds again; they arrive through the channel. A
+   * confirmation that was open before the read, is in a session just read and is not among the open
+   * requests the gateway lists now is over: the socket that said so was dropped (or the request never
+   * reached it), and nothing will say it again.
+   */
   private async readOpenRequests(): Promise<void> {
-    const sessions = this.options.openSessions?.() ?? []
+    const sessions = (this.options.openSessions?.() ?? []).filter(({ sessionId }) => !this.sessionsRead.has(sessionId))
+
+    for (const { sessionId } of sessions) {
+      this.sessionsRead.add(sessionId)
+    }
 
     await Promise.all(
-      sessions.map(({ sessionId, lastSeen }) =>
-        this.options.gateway
-          .request('session.events.since', { session_id: sessionId, last_seen: lastSeen })
-          .catch(() => undefined)
-      )
+      sessions.map(async ({ sessionId, lastSeen }) => {
+        // Only what was here before the read: a frame that arrives while it is in flight may be newer than
+        // the gateway's list.
+        const before = this.store
+          .getState()
+          .confirmations.filter(entry => entry.sessionId === sessionId && isOpenPhase(entry.phase))
+          .map(entry => entry.id)
+        let result: unknown
+
+        try {
+          result = await this.options.gateway.request('session.events.since', {
+            session_id: sessionId,
+            last_seen: lastSeen
+          })
+        } catch {
+          // Not read: the next change of the sessions tries it again.
+          this.sessionsRead.delete(sessionId)
+
+          return
+        }
+
+        const open = isRecord(result) ? result.open_requests : undefined
+
+        if (this.stopped || !Array.isArray(open)) {
+          // A gateway that does not list them says nothing about them.
+          return
+        }
+
+        const listed = new Set(open.map(entry => (isRecord(entry) ? text(entry.id) : null)))
+
+        for (const id of before) {
+          if (!listed.has(id)) {
+            this.withdrawn(id, 'timeout')
+          }
+        }
+      })
     )
   }
 
   /** A `gateway_id` checked against the pins (contract §10). */
-  private pinProblem(gatewayId: string): { kind: 'gateway_id_mismatch' } | { kind: 'gateway_id_conflict' } | null {
+  private pinProblem(gatewayId: string): PinProblem | null {
     const pinned = this.options.pins.gatewayId()
 
     if (pinned !== null && pinned !== gatewayId) {
@@ -414,9 +520,13 @@ export class PasskeyModel {
       return false
     }
 
+    const existing = this.find(request.id)
+
     // A copy of one already here: a reconnect or a second read re-delivered it. An error goes out on
-    // the newest copy.
-    if (this.find(request.id)) {
+    // the newest copy. The one exception is a request this connection was told (4033) it may not answer: that
+    // was about the connection then (an answer in the window before the second capabilities call was
+    // accepted), and a frame delivered again is the gateway offering it to this connection now.
+    if (existing && !(existing.phase.kind === 'ended' && existing.phase.end.kind === 'not_allowed')) {
       const context = this.contexts.get(request.id)
 
       if (context) {
@@ -553,7 +663,7 @@ export class PasskeyModel {
     const current = this.find(id)
     const context = this.contexts.get(id)
 
-    if (!current || !context || !isActionablePhase(current.phase)) {
+    if (!current || !context || !isActionablePhase(current.phase) || this.expire(id)) {
       return
     }
 
@@ -602,11 +712,29 @@ export class PasskeyModel {
   async decline(id: string): Promise<void> {
     const current = this.find(id)
 
-    if (!current || !isActionablePhase(current.phase)) {
+    if (!current || !isActionablePhase(current.phase) || this.expire(id)) {
       return
     }
 
     await this.answer(id, { ...DECLINE }, { kind: 'declined' })
+  }
+
+  /**
+   * End a confirmation whose deadline has passed on this page's clock, the way the gateway's own `timeout`
+   * would (quietly; the layer says it). The gateway's `request.cancel` is the first word, but a socket that
+   * dropped misses it, and a request nobody can answer must not stay on screen as if somebody could. An
+   * answer already on its way is left to the gateway. Returns whether it ended.
+   */
+  expire(id: string): boolean {
+    const current = this.find(id)
+
+    if (!current || !isOpenPhase(current.phase) || !isExpired(current, this.now)) {
+      return false
+    }
+
+    this.withdrawn(id, 'timeout')
+
+    return this.find(id)?.phase.kind === 'ended'
   }
 
   /** The person closed the sheet of a finished confirmation. */
@@ -752,19 +880,27 @@ export class PasskeyModel {
 
   /** Read `GET /api/auth/passkeys`. Never throws; `statusError` says why it failed. */
   async refresh(): Promise<void> {
+    await this.readStatus()
+  }
+
+  /** `refresh`, with what it read: the status, or the pin it broke (already noticed), or neither when it failed. */
+  private async readStatus(): Promise<{ status: PasskeyStatus | null; problem: PinProblem | null }> {
     if (this.stopped) {
-      return
+      return { status: null, problem: null }
     }
 
     try {
       const next = await this.options.client.status()
 
       if (this.stopped) {
-        return
+        return { status: null, problem: null }
       }
 
       this.store.setState({ statusError: null })
-      this.adopt(next)
+
+      const problem = this.adopt(next)
+
+      return { status: problem ? null : next, problem }
     } catch (error) {
       const route = error instanceof PasskeyRouteError ? error : null
 
@@ -774,23 +910,28 @@ export class PasskeyModel {
           message: error instanceof Error ? error.message : String(error)
         }
       })
+
+      return { status: null, problem: null }
     }
   }
 
-  /** Take in a status read: notice a gateway id that breaks the pin and passkeys added without this page. */
-  private adopt(next: PasskeyStatus): void {
+  /**
+   * Take in a status read: notice a gateway id that breaks the pin and passkeys added without this page.
+   * Returns the pin it breaks, in which case nothing of the read is kept: it is not this gateway's list as
+   * this browser knows it, and the settings page must not show another gateway's passkeys under the notice.
+   */
+  private adopt(next: PasskeyStatus): PinProblem | null {
     const credentials = Array.isArray(next.credentials) ? next.credentials : []
-
-    this.store.setState({ status: next, credentials })
-
     const problem = next.gateway_id ? this.pinProblem(next.gateway_id) : null
 
     if (problem) {
-      // Not this gateway's list as this browser knows it: nothing of it is remembered.
+      this.store.setState({ status: null, credentials: [] })
       this.notify(problem)
 
-      return
+      return problem
     }
+
+    this.store.setState({ status: next, credentials })
 
     const seen = this.options.pins.seen()
     const added = credentials.filter(
@@ -802,6 +943,8 @@ export class PasskeyModel {
     }
 
     this.options.pins.remember(credentials.map(credential => credential.id))
+
+    return null
   }
 
   // ── enrolment and step-ups ────────────────────────────────────────────────────────────────────
@@ -819,7 +962,7 @@ export class PasskeyModel {
 
     const account = await this.account()
     const host = new URL(account.baseUrl).host
-    const name = `${this.options.displayName ?? 'Hermie'} — ${host}`
+    const name = credentialName(this.options.displayName ?? 'Hermie', host)
     const begin = await this.route(client =>
       client.registerBegin({ rp_id: account.rpId, base_url: account.baseUrl, name })
     )
@@ -886,6 +1029,8 @@ export class PasskeyModel {
       if (this.options.pins.gatewayId() === null) {
         this.options.pins.pin(account.gatewayIdText)
       }
+
+      this.store.setState({ pinned: true })
 
       this.options.pins.remember([...this.options.pins.seen().ids, id])
       await this.refresh()
@@ -999,6 +1144,15 @@ export class PasskeyModel {
     }
 
     const fresh = await this.route(client => client.status())
+    const broken = typeof fresh?.gateway_id === 'string' ? this.pinProblem(fresh.gateway_id) : null
+
+    if (broken) {
+      // Another gateway's list: not shown, not kept.
+      this.store.setState({ status: null, credentials: [] })
+      this.notify(broken)
+
+      throw new PasskeyActionError(broken)
+    }
 
     this.store.setState({
       status: fresh,
@@ -1021,14 +1175,6 @@ export class PasskeyModel {
 
     if (!gatewayId || !handle || typeof fresh.user?.id !== 'string' || !fresh.user.id) {
       throw new PasskeyActionError({ kind: 'bad_answer' })
-    }
-
-    const problem = this.pinProblem(fresh.gateway_id)
-
-    if (problem) {
-      this.notify(problem)
-
-      throw new PasskeyActionError(problem)
     }
 
     return {
@@ -1060,7 +1206,8 @@ export class PasskeyModel {
           status: error.status,
           error: error.error,
           reason: error.reason,
-          message: error.message
+          message: error.message,
+          retryAfter: error.retryAfter
         })
       }
 
@@ -1068,6 +1215,26 @@ export class PasskeyModel {
         kind: 'transport',
         message: error instanceof Error ? error.message : String(error)
       })
+    }
+  }
+
+  // ── the pin ───────────────────────────────────────────────────────────────────────────────────
+
+  /**
+   * Forget the gateway id pinned for this gateway, and only that: the way a gateway whose passkey store
+   * was reset on purpose is accepted again (the pin is otherwise cleared only with the site's data). The
+   * next enrolment pins the id it presents. What the model decided under the old pin is decided again:
+   * the mismatch notice goes and the capability calls run once more.
+   */
+  forgetPin(): void {
+    this.options.pins.forget()
+    this.store.setState(state => ({
+      pinned: false,
+      notices: state.notices.filter(notice => notice.notice.kind !== 'gateway_id_mismatch')
+    }))
+
+    if (this.wasReady && !this.stopped) {
+      void this.advertise()
     }
   }
 
@@ -1136,6 +1303,29 @@ export class PasskeyModel {
   private setPhase(id: string, phase: ConfirmPhase): void {
     this.patch(id, { phase })
   }
+}
+
+/** The gateway's limit on a passkey's name, in characters. */
+export const CREDENTIAL_NAME_LIMIT = 100
+
+/**
+ * `<displayName> — <host>`, cut to the gateway's limit by shortening the host with an ellipsis in the middle
+ * (both ends of a host say something: the first label and the domain).
+ */
+export function credentialName(displayName: string, host: string): string {
+  const prefix = `${displayName} — `
+  const room = CREDENTIAL_NAME_LIMIT - Array.from(prefix).length
+  const letters = Array.from(host)
+
+  if (letters.length <= room) {
+    return prefix + host
+  }
+
+  const keep = Math.max(room - 1, 2)
+  const head = Math.ceil(keep / 2)
+  const tail = keep - head
+
+  return `${prefix}${letters.slice(0, head).join('')}…${letters.slice(letters.length - tail).join('')}`
 }
 
 /** What a refused `request.answer` means for the confirmation. */

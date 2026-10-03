@@ -84,7 +84,9 @@ export class PasskeyRouteError extends Error {
     /** The route's `error` (`code_invalid`, `assertion_invalid`, ...). */
     readonly error = '',
     /** The contract's `reason`, when the route gave one. */
-    readonly reason = ''
+    readonly reason = '',
+    /** Seconds the gateway asked the caller to wait (`Retry-After` on a 429), when it said. */
+    readonly retryAfter: number | null = null
   ) {
     super(message)
     this.name = 'PasskeyRouteError'
@@ -110,6 +112,23 @@ export interface PasskeyClient {
 }
 
 const PREFIX = '/api/auth/passkeys'
+
+/** `Retry-After` as whole seconds: delta-seconds, or an HTTP date taken against `now` (ms). `null` when absent or unreadable. */
+export function parseRetryAfter(value: string | null | undefined, now: number = Date.now()): number | null {
+  const raw = value?.trim()
+
+  if (!raw) {
+    return null
+  }
+
+  if (/^\d+$/u.test(raw)) {
+    return Number(raw)
+  }
+
+  const at = Date.parse(raw)
+
+  return Number.isNaN(at) ? null : Math.max(0, Math.ceil((at - now) / 1000))
+}
 
 /** The page's `fetch`, looked up when called. */
 const pageFetch: FetchLike = (input, init) => globalThis.fetch(input, init)
@@ -164,7 +183,8 @@ export function createPasskeyClient(baseUrl: string, fetchImpl: FetchLike = page
       text('detail') || text('error') || `HTTP ${response.status}`,
       response.status,
       text('error'),
-      text('reason')
+      text('reason'),
+      response.status === 429 ? parseRetryAfter(response.headers?.get('retry-after')) : null
     )
   }
 

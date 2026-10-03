@@ -17,15 +17,25 @@
  *  3. **Only an explicit press answers.** Escape does not dismiss (the layer
  *     keeps it), and the buttons wake `tapGuardMs` after the sheet appears, so a
  *     click or a Return already on its way answers nothing.
- *  4. **`received` is not "confirmed".** After the gateway said `ok` the sheet
+ *  4. **The deadline is the page's clock too.** The gateway's `request.cancel` is
+ *     the first word, but a socket that dropped misses it: at `expires_at` the
+ *     sheet asks for the confirmation to end (`onExpire`), and from then on its
+ *     buttons are off, so a dead request is never answered with a ceremony.
+ *  5. **`received` is not "confirmed".** After the gateway said `ok` the sheet
  *     says the answer arrived and that the gateway checks it; if the gateway's
  *     commit fails it says that nothing was confirmed.
  */
-import { type ReactElement, useEffect, useId, useState } from 'react'
+import { type ReactElement, useEffect, useId, useRef, useState } from 'react'
 
 import { useLocale } from '../../i18n/use-locale'
 import { webStrings } from '../../i18n/web-strings'
-import { type ConfirmPhase, isActionablePhase, isOpenPhase, type PasskeyConfirmation } from '../../state/passkeys'
+import {
+  type ConfirmPhase,
+  isActionablePhase,
+  isExpired,
+  isOpenPhase,
+  type PasskeyConfirmation
+} from '../../state/passkeys'
 import { Button } from '../../ui/primitives'
 import { DEFAULT_TAP_GUARD_MS } from './ApprovalSheet'
 
@@ -41,6 +51,8 @@ export interface ConfirmSheetProps {
   onDecline: () => void
   /** Close the sheet of a finished confirmation. */
   onClose: () => void
+  /** The deadline (`expiresAt`) passed on this page's clock while the confirmation was still open. */
+  onExpire?: () => void
   /** Milliseconds before a press is accepted. Tests pass 0. */
   tapGuardMs?: number
   /** Unix seconds, for the countdown; the clock unless a test hands in its own. */
@@ -100,6 +112,7 @@ export function ConfirmSheet({
   onConfirm,
   onDecline,
   onClose,
+  onExpire,
   tapGuardMs = DEFAULT_TAP_GUARD_MS,
   now = clockSeconds
 }: ConfirmSheetProps): ReactElement {
@@ -110,7 +123,9 @@ export function ConfirmSheet({
   const [clock, setClock] = useState(now)
   const { phase } = confirmation
   const open = isOpenPhase(phase)
-  const actionable = armed && isActionablePhase(phase)
+  const expired = isExpired(confirmation, clock)
+  const actionable = armed && isActionablePhase(phase) && !expired
+  const expire = useRef(onExpire)
   const host = new URL(confirmation.baseUrl).host
 
   useEffect(() => {
@@ -138,6 +153,25 @@ export function ConfirmSheet({
     const timer = setInterval(() => setClock(now()), 1000)
 
     return () => clearInterval(timer)
+  }, [open, confirmation.expiresAt, now])
+
+  useEffect(() => {
+    expire.current = onExpire
+  })
+
+  // At the deadline the confirmation ends, whether or not the gateway got to say so (a socket that dropped
+  // while it timed out never hears it). A deadline already past fires at once.
+  useEffect(() => {
+    if (!open || confirmation.expiresAt === null) {
+      return
+    }
+
+    // `setTimeout` takes at most 2^31 - 1 ms; a nearer-than-that deadline is the only one that matters, and
+    // the model checks the clock itself before it ends anything.
+    const delay = Math.min(Math.max(0, (confirmation.expiresAt - now()) * 1000), 2_147_483_647)
+    const timer = setTimeout(() => expire.current?.(), delay)
+
+    return () => clearTimeout(timer)
   }, [open, confirmation.expiresAt, now])
 
   const status = phaseText(phase)

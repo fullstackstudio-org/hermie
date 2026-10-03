@@ -3,7 +3,7 @@
  * list, enrolling with a code, making a code and removing a passkey, and how a
  * failure reads. The model is spies over its store.
  */
-import { act, fireEvent, render, screen, waitFor, within } from '@testing-library/react'
+import { act, cleanup, fireEvent, render, screen, waitFor, within } from '@testing-library/react'
 import axe from 'axe-core'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import type { StoreApi } from 'zustand/vanilla'
@@ -42,11 +42,13 @@ beforeEach(() => {
     confirm: vi.fn(),
     decline: vi.fn(),
     dismiss: vi.fn(),
+    expire: vi.fn(),
     dismissNotice: vi.fn(),
     refresh: vi.fn(async () => undefined),
     enrol: vi.fn(async () => THIS_SITE),
     mintInvite: vi.fn(async () => ({ code: 'm67b1pk0qjbtjwrqssb2', expiresAt: 1_790_000_900 })),
-    revoke: vi.fn(async () => undefined)
+    revoke: vi.fn(async () => undefined),
+    forgetPin: vi.fn()
   }
 })
 
@@ -105,13 +107,27 @@ describe('the passkeys page', () => {
   it.each([
     [new PasskeyActionError({ kind: 'invalid_code' }), 'That is not an enrolment code.'],
     [
-      new PasskeyActionError({ kind: 'refused', status: 403, error: 'code_invalid', reason: '', message: 'no' }),
+      new PasskeyActionError({
+        kind: 'refused',
+        status: 403,
+        error: 'code_invalid',
+        reason: '',
+        message: 'no',
+        retryAfter: null
+      }),
       'The gateway did not accept that code.'
     ],
     [new PasskeyActionError({ kind: 'ceremony', problem: { kind: 'cancelled' } }), 'The passkey prompt was closed.'],
     [new PasskeyActionError({ kind: 'ceremony', problem: { kind: 'exists' } }), 'already holds a passkey'],
     [
-      new PasskeyActionError({ kind: 'refused', status: 429, error: 'rate_limited', reason: '', message: 'no' }),
+      new PasskeyActionError({
+        kind: 'refused',
+        status: 429,
+        error: 'rate_limited',
+        reason: '',
+        message: 'no',
+        retryAfter: null
+      }),
       'Too many tries.'
     ]
   ])('says what went wrong: %#', async (error, text) => {
@@ -150,7 +166,7 @@ describe('the passkeys page', () => {
     expect(screen.queryByRole('button', { name: 'Make a code' })).toBeNull()
   })
 
-  it('makes a code for another device and shows it once', async () => {
+  it('makes a code for another device and shows it once, outside the live region', async () => {
     store.setState({ credentials: [THIS_SITE] })
     mount()
 
@@ -158,6 +174,103 @@ describe('the passkeys page', () => {
 
     await waitFor(() => expect(screen.getByText('M67B1-PK0QJ-BTJWR-QSSB2')).toBeTruthy())
     expect(actions.mintInvite).toHaveBeenCalledTimes(1)
+    // The status line says the code is ready; it does not read the code out.
+    expect(screen.getByRole('status').textContent).toBe('Your code is ready below.')
+    expect(document.body.textContent?.split('M67B1-PK0QJ-BTJWR-QSSB2')).toHaveLength(2)
+  })
+
+  it('copies the code with a button, and says so, or says it could not', async () => {
+    const writeText = vi.fn(async () => undefined)
+
+    vi.stubGlobal('navigator', { clipboard: { writeText } })
+    store.setState({ credentials: [THIS_SITE] })
+    mount()
+    fireEvent.click(screen.getByRole('button', { name: 'Make a code' }))
+    await screen.findByText('M67B1-PK0QJ-BTJWR-QSSB2')
+
+    fireEvent.click(screen.getByRole('button', { name: 'Copy the code' }))
+
+    await waitFor(() => expect(screen.getByRole('status').textContent).toBe('The code was copied.'))
+    expect(writeText).toHaveBeenCalledWith('M67B1-PK0QJ-BTJWR-QSSB2')
+
+    writeText.mockRejectedValueOnce(new Error('denied'))
+    fireEvent.click(screen.getByRole('button', { name: 'Copy the code' }))
+
+    await waitFor(() => expect(screen.getByRole('status').textContent).toContain('could not be copied'))
+    // Still not in the live region.
+    expect(screen.getByRole('status').textContent).not.toContain('M67B1')
+    vi.unstubAllGlobals()
+  })
+
+  it('says how long to wait when the gateway says so, and keeps the plain sentence when it does not', async () => {
+    actions.enrol.mockRejectedValueOnce(
+      new PasskeyActionError({
+        kind: 'refused',
+        status: 429,
+        error: 'rate_limited',
+        reason: '',
+        message: 'later',
+        retryAfter: 600
+      })
+    )
+    mount()
+
+    fireEvent.change(screen.getByLabelText('Enrolment code'), { target: { value: 'nope' } })
+    fireEvent.click(screen.getByRole('button', { name: 'Add a passkey' }))
+
+    await waitFor(() => expect(screen.getByRole('status').textContent).toBe('Too many tries. Try again in 10 minutes.'))
+  })
+
+  it('shows a write the gateway refused for the page’s address as a state of its own', async () => {
+    actions.enrol.mockRejectedValueOnce(
+      new PasskeyActionError({
+        kind: 'refused',
+        status: 403,
+        error: 'origin_not_listed',
+        reason: '',
+        message: 'A browser write needs an Origin that is one of this gateway’s passkey base URLs.',
+        retryAfter: null
+      })
+    )
+    mount()
+
+    fireEvent.change(screen.getByLabelText('Enrolment code'), { target: { value: 'nope' } })
+    fireEvent.click(screen.getByRole('button', { name: 'Add a passkey' }))
+
+    await waitFor(() =>
+      expect(screen.getByRole('status').textContent).toBe(
+        'The gateway refused this because it does not list gw.example.test as an address for passkeys. Ask whoever runs it to add this address.'
+      )
+    )
+  })
+
+  it('says, and does not offer, what the gateway does not list the page’s address for', () => {
+    store.setState({ capability: { verdict: { kind: 'base_url_not_listed' }, accepted: [] } })
+    mount()
+
+    expect(screen.getByText(/does not list gw\.example\.test as an address for passkeys/u)).toBeTruthy()
+    expect(screen.getByRole('button', { name: 'Add a passkey' })).toHaveProperty('disabled', true)
+  })
+
+  it('forgets the gateway’s pin only after a confirmation, and only when there is one', () => {
+    mount()
+    expect(screen.queryByRole('button', { name: /Forget this gateway/u })).toBeNull()
+    cleanup()
+
+    store.setState({ pinned: true })
+    mount()
+
+    fireEvent.click(screen.getByRole('button', { name: 'Forget this gateway’s passkey pin' }))
+    expect(actions.forgetPin).not.toHaveBeenCalled()
+
+    fireEvent.click(screen.getByRole('button', { name: 'Keep it' }))
+    expect(actions.forgetPin).not.toHaveBeenCalled()
+
+    fireEvent.click(screen.getByRole('button', { name: 'Forget this gateway’s passkey pin' }))
+    fireEvent.click(screen.getByRole('button', { name: 'Yes, forget it' }))
+
+    expect(actions.forgetPin).toHaveBeenCalledTimes(1)
+    expect(screen.getByRole('status').textContent).toContain('forgot the gateway’s identity')
   })
 
   it('passes axe', async () => {

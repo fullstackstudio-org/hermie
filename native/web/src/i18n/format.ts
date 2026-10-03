@@ -119,6 +119,21 @@ export function formatRelative(deltaMs: number): string {
 }
 
 /**
+ * A wait of `seconds`, in the active language: "45 seconds" below two minutes, whole minutes (rounded up, so
+ * it is never too short) above.
+ */
+export function formatDuration(seconds: number): string {
+  const whole = Math.max(0, Math.ceil(seconds))
+  const [value, unit] = whole <= 120 ? [whole, 'second' as const] : [Math.ceil(whole / 60), 'minute' as const]
+
+  try {
+    return new Intl.NumberFormat(intlLocale(), { style: 'unit', unit, unitDisplay: 'long' }).format(value)
+  } catch {
+    return `${value} ${unit}${value === 1 ? '' : 's'}`
+  }
+}
+
+/**
  * A list, joined the way the language joins lists. `disjunction` is the default
  * because most callers offer a choice ("http or https").
  */

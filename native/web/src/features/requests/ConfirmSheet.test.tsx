@@ -4,9 +4,9 @@
  * the passkey model reports, and the notices. The model is a handful of spies
  * over its store (`state/passkeys.ts`); its own rules are `core/passkey`'s tests.
  */
-import { act, fireEvent, render, screen, within } from '@testing-library/react'
+import { act, fireEvent, render, screen, waitFor, within } from '@testing-library/react'
 import axe from 'axe-core'
-import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
+import { afterEach, beforeAll, beforeEach, describe, expect, it, vi } from 'vitest'
 
 import { resetActiveLocale } from '../../i18n/active-locale'
 import { setLanguageChoice } from '../../i18n/locale'
@@ -47,13 +47,19 @@ const confirmation = (overrides: Partial<PasskeyConfirmation> = {}): PasskeyConf
 
 let version = 1
 
-const show = (overrides: Partial<PasskeyConfirmation> = {}): void =>
-  void act(() => {
+// The sheet is a chunk of its own, loaded when the first confirmation is drawn: the act is async so the
+// chunk's promise settles inside it. (The module is imported once up front, so that is a few microtasks.)
+beforeAll(async () => {
+  await import('./ConfirmSheet')
+})
+
+const show = (overrides: Partial<PasskeyConfirmation> = {}): Promise<void> =>
+  act(async () => {
     version += 1
     passkeys.setState({ confirmations: [confirmation({ version, ...overrides })] })
   })
 
-const phase = (next: ConfirmPhase, dismissed = false): void => show({ phase: next, dismissed })
+const phase = (next: ConfirmPhase, dismissed = false): Promise<void> => show({ phase: next, dismissed })
 
 beforeEach(() => {
   resetShellStores()
@@ -70,11 +76,13 @@ beforeEach(() => {
     confirm: vi.fn(async () => undefined),
     decline: vi.fn(async () => undefined),
     dismiss: vi.fn(),
+    expire: vi.fn(),
     dismissNotice: vi.fn(),
     refresh: vi.fn(async () => undefined),
     enrol: vi.fn(),
     mintInvite: vi.fn(),
-    revoke: vi.fn()
+    revoke: vi.fn(),
+    forgetPin: vi.fn()
   }
 })
 
@@ -100,9 +108,9 @@ const confirmButton = (): HTMLElement => within(dialog()).getByRole('button', { 
 const declineButton = (): HTMLElement => within(dialog()).getByRole('button', { name: 'Decline' })
 
 describe('the confirm sheet', () => {
-  it('shows the gateway’s text verbatim inside a fixed frame', () => {
+  it('shows the gateway’s text verbatim inside a fixed frame', async () => {
     mount()
-    show()
+    await show()
 
     expect(dialog().getAttribute('aria-modal')).toBe('true')
     expect(within(dialog()).getByText('From Dr. Researcher')).toBeTruthy()
@@ -126,19 +134,19 @@ describe('the confirm sheet', () => {
     expect(within(dialog()).getByText('Your browser will ask for your passkey for gw.example.test.')).toBeTruthy()
   })
 
-  it('never reads the text as Markdown', () => {
+  it('never reads the text as Markdown', async () => {
     mount()
-    show({ title: '**Pay** [now](https://evil.example)', summary: '# Heading\n`code`', detail: '<b>bold</b>' })
+    await show({ title: '**Pay** [now](https://evil.example)', summary: '# Heading\n`code`', detail: '<b>bold</b>' })
 
     expect(within(dialog()).getByRole('heading', { name: '**Pay** [now](https://evil.example)' })).toBeTruthy()
     expect(dialog().querySelector('a, b, code, h1')).toBeNull()
     expect(within(dialog()).getByLabelText('Details').textContent).toBe('<b>bold</b>')
   })
 
-  it('wakes its buttons only after the tap guard', () => {
+  it('wakes its buttons only after the tap guard', async () => {
     vi.useFakeTimers()
     mount(400)
-    show()
+    await show()
 
     expect(confirmButton()).toHaveProperty('disabled', true)
     expect(declineButton()).toHaveProperty('disabled', true)
@@ -152,18 +160,18 @@ describe('the confirm sheet', () => {
     expect(actions.confirm).toHaveBeenCalledWith('srq-1')
   })
 
-  it('declines through the model', () => {
+  it('declines through the model', async () => {
     mount()
-    show()
+    await show()
 
     fireEvent.click(declineButton())
 
     expect(actions.decline).toHaveBeenCalledWith('srq-1')
   })
 
-  it('is not dismissed by Escape', () => {
+  it('is not dismissed by Escape', async () => {
     mount()
-    show()
+    await show()
 
     fireEvent.keyDown(dialog(), { key: 'Escape' })
 
@@ -171,24 +179,24 @@ describe('the confirm sheet', () => {
     expect(actions.dismiss).not.toHaveBeenCalled()
   })
 
-  it('says where the confirmation stands, and offers only what fits', () => {
+  it('says where the confirmation stands, and offers only what fits', async () => {
     mount()
-    show()
+    await show()
 
-    phase({ kind: 'signing' })
+    await phase({ kind: 'signing' })
     expect(within(dialog()).getByRole('status').textContent).toBe('Waiting for your passkey…')
     expect(confirmButton()).toHaveProperty('disabled', true)
 
-    phase({ kind: 'sending' })
+    await phase({ kind: 'sending' })
     expect(within(dialog()).getByRole('status').textContent).toBe('Sending…')
 
-    phase({ kind: 'refused', reason: 'signature_invalid' })
+    await phase({ kind: 'refused', reason: 'signature_invalid' })
     expect(within(dialog()).getByRole('status').textContent).toBe(
       'The gateway did not accept this answer (signature_invalid). You can try again.'
     )
     expect(confirmButton()).toHaveProperty('disabled', false)
 
-    phase({ kind: 'received' })
+    await phase({ kind: 'received' })
     expect(within(dialog()).getByRole('status').textContent).toBe(
       'Received. The gateway checks your passkey and carries on only if it holds.'
     )
@@ -197,44 +205,84 @@ describe('the confirm sheet', () => {
     fireEvent.click(within(dialog()).getByRole('button', { name: 'Close' }))
     expect(actions.dismiss).toHaveBeenCalledWith('srq-1')
 
-    phase({ kind: 'ended', end: { kind: 'verification_failed' } })
+    await phase({ kind: 'ended', end: { kind: 'verification_failed' } })
     expect(within(dialog()).getByRole('status').textContent).toBe(
       'This confirmation did not count: the gateway could not verify it. Nothing was confirmed.'
     )
 
-    phase({ kind: 'ended', end: { kind: 'too_many_attempts' } })
+    await phase({ kind: 'ended', end: { kind: 'too_many_attempts' } })
     expect(within(dialog()).getByRole('status').textContent).toBe(
       'Too many answers were refused. The request was closed and nothing was confirmed.'
     )
   })
 
-  it('counts down to the gateway’s deadline while it is open', () => {
+  it('counts down to the gateway’s deadline while it is open', async () => {
     mount()
-    show({ expiresAt: 1_000_125 })
+    await show({ expiresAt: Date.now() / 1000 + 125 })
 
     // The sheet's clock is the page's; the line is there and in m:ss.
-    expect(within(dialog()).getByText(/^Expires in \d+:\d\d$/u)).toBeTruthy()
+    expect(within(dialog()).getByText(/^Expires in 2:0\d$/u)).toBeTruthy()
 
-    phase({ kind: 'received' })
+    await phase({ kind: 'received' })
     expect(within(dialog()).queryByText(/^Expires in/u)).toBeNull()
   })
 
-  it('says politely that a confirmation timed out, and closes', () => {
+  it('asks for the confirmation to end at its deadline, and switches its buttons off from then on', async () => {
+    vi.useFakeTimers()
     mount()
-    show()
-    phase({ kind: 'ended', end: { kind: 'timed_out' } }, true)
+    await show({ expiresAt: Date.now() / 1000 + 30 })
+
+    expect(confirmButton()).toHaveProperty('disabled', false)
+
+    act(() => void vi.advanceTimersByTime(29_000))
+    expect(actions.expire).not.toHaveBeenCalled()
+    expect(confirmButton()).toHaveProperty('disabled', false)
+
+    act(() => void vi.advanceTimersByTime(1_000))
+    expect(actions.expire).toHaveBeenCalledTimes(1)
+    expect(actions.expire).toHaveBeenCalledWith('srq-1')
+    // The model has not answered yet (a spy): the sheet itself no longer takes a press.
+    expect(confirmButton()).toHaveProperty('disabled', true)
+    expect(declineButton()).toHaveProperty('disabled', true)
+    fireEvent.click(confirmButton())
+    expect(actions.confirm).not.toHaveBeenCalled()
+  })
+
+  it('does not take a press for a confirmation whose deadline is already past, and says so at once', async () => {
+    mount()
+    await show({ expiresAt: Date.now() / 1000 - 5 })
+
+    await waitFor(() => expect(actions.expire).toHaveBeenCalledWith('srq-1'))
+    expect(confirmButton()).toHaveProperty('disabled', true)
+    expect(within(dialog()).getByText('Expires in 0:00')).toBeTruthy()
+  })
+
+  it('asks for nothing once the confirmation is no longer open', async () => {
+    vi.useFakeTimers()
+    mount()
+    await show({ expiresAt: Date.now() / 1000 + 30 })
+    await phase({ kind: 'received' })
+
+    act(() => void vi.advanceTimersByTime(60_000))
+    expect(actions.expire).not.toHaveBeenCalled()
+  })
+
+  it('says politely that a confirmation timed out, and closes', async () => {
+    mount()
+    await show()
+    await phase({ kind: 'ended', end: { kind: 'timed_out' } }, true)
 
     expect(screen.queryByRole('dialog')).toBeNull()
     expect(screen.getByText('The request from Dr. Researcher timed out.')).toBeTruthy()
   })
 
-  it('names the gateway when the confirmation is in no chat the page holds', () => {
+  it('names the gateway when the confirmation is in no chat the page holds', async () => {
     mount()
-    show({ sessionId: 'rt-elsewhere' })
+    await show({ sessionId: 'rt-elsewhere' })
 
     expect(within(dialog()).queryByText(/^From /u)).toBeNull()
 
-    phase({ kind: 'ended', end: { kind: 'answered_elsewhere' } }, true)
+    await phase({ kind: 'ended', end: { kind: 'answered_elsewhere' } }, true)
     expect(screen.getByText('The request from gw.example.test was answered on another device.')).toBeTruthy()
   })
 
@@ -256,7 +304,7 @@ describe('the confirm sheet', () => {
   it('reads in Dutch and German', async () => {
     mount()
     await act(() => setLanguageChoice('nl'))
-    show()
+    await show()
 
     expect(within(dialog()).getByRole('button', { name: 'Bevestigen met passkey' })).toBeTruthy()
 
@@ -266,7 +314,7 @@ describe('the confirm sheet', () => {
 
   it('passes axe with the sheet open, before and after an answer', async () => {
     mount()
-    show()
+    await show()
 
     const run = async (): Promise<string[]> =>
       (await axe.run(document.documentElement, { rules: { 'color-contrast': { enabled: false } } })).violations.map(
@@ -275,7 +323,7 @@ describe('the confirm sheet', () => {
 
     expect(await run()).toEqual([])
 
-    phase({ kind: 'received' })
+    await phase({ kind: 'received' })
     expect(await run()).toEqual([])
   })
 })

@@ -40,8 +40,10 @@
  * dialog, so they are seen whichever route is open.
  */
 import {
+  lazy,
   type KeyboardEvent,
   type ReactElement,
+  Suspense,
   useCallback,
   useEffect,
   useId,
@@ -62,10 +64,38 @@ import { type OpenRequest, type RequestsState, requestsStore } from '../../state
 import { useChatRuntime } from '../chat/chat-runtime'
 import { ApprovalSheet } from './ApprovalSheet'
 import { ClarifySheet } from './ClarifySheet'
-import { ConfirmSheet } from './ConfirmSheet'
 import { usePasskeyRuntime } from './passkey-runtime'
 import { PasskeyNotices } from './PasskeyNotices'
 import './request-layer.css'
+
+/**
+ * The passkey confirmation's sheet is a chunk of its own, fetched when the first `confirm` frame needs it
+ * (the model that reads the frame and the WebAuthn layer stay in the entry bundle: a frame is read, and a
+ * 4040 answered, whether or not the sheet ever loads).
+ */
+const ConfirmSheet = lazy(() => import('./ConfirmSheet').then(module => ({ default: module.ConfirmSheet })))
+
+/** What the dialog shows while that chunk loads: its heading and who asks, and nothing to press. */
+function ConfirmFallback({
+  confirmation,
+  titleId,
+  descriptionId
+}: {
+  confirmation: PasskeyConfirmation
+  titleId: string
+  descriptionId: string
+}): ReactElement {
+  return (
+    <>
+      <h2 className="hm-requests__title" id={titleId}>
+        {confirmation.title}
+      </h2>
+      <p className="hm-requests__lead" id={descriptionId}>
+        {webStrings.passkeys.sheetLead({ host: new URL(confirmation.baseUrl).host })}
+      </p>
+    </>
+  )
+}
 
 /** How long a failure to deliver an answer stays on screen. */
 const FAILURE_MS = 12_000
@@ -349,17 +379,24 @@ export function RequestLayer({
 
             {current.kind === 'confirm' ? (
               confirmation ? (
-                <ConfirmSheet
-                  key={current.key}
-                  confirmation={confirmation}
-                  rpId={rpId}
-                  titleId={titleId}
-                  descriptionId={descriptionId}
-                  {...(tapGuardMs !== undefined ? { tapGuardMs } : {})}
-                  onConfirm={() => void passkeyActions?.confirm(confirmation.id)}
-                  onDecline={() => void passkeyActions?.decline(confirmation.id)}
-                  onClose={() => passkeyActions?.dismiss(confirmation.id)}
-                />
+                <Suspense
+                  fallback={
+                    <ConfirmFallback confirmation={confirmation} titleId={titleId} descriptionId={descriptionId} />
+                  }
+                >
+                  <ConfirmSheet
+                    key={current.key}
+                    confirmation={confirmation}
+                    rpId={rpId}
+                    titleId={titleId}
+                    descriptionId={descriptionId}
+                    {...(tapGuardMs !== undefined ? { tapGuardMs } : {})}
+                    onConfirm={() => void passkeyActions?.confirm(confirmation.id)}
+                    onDecline={() => void passkeyActions?.decline(confirmation.id)}
+                    onClose={() => passkeyActions?.dismiss(confirmation.id)}
+                    onExpire={() => passkeyActions?.expire(confirmation.id)}
+                  />
+                </Suspense>
               ) : null
             ) : current.item.kind === 'approval' ? (
               <ApprovalSheet

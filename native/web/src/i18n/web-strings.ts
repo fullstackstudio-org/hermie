@@ -375,6 +375,11 @@ export const WEB_STRINGS_SOURCE = {
         nl: 'Een passkey-verzoek kon niet gelezen worden. Het is geweigerd.',
         de: 'Eine Passkey-Anfrage konnte nicht gelesen werden. Sie wurde abgelehnt.'
       },
+      baseUrlNotListed: {
+        en: 'This gateway does not list this page’s address for passkeys, so this page does not offer them here. Ask whoever runs the gateway to add the address.',
+        nl: 'Deze gateway heeft het adres van deze pagina niet in zijn lijst voor passkeys, dus deze pagina biedt ze hier niet aan. Vraag wie de gateway beheert om het adres toe te voegen.',
+        de: 'Dieses Gateway führt die Adresse dieser Seite nicht in seiner Liste für Passkeys, deshalb bietet diese Seite sie hier nicht an. Bitte die Person, die das Gateway betreibt, die Adresse einzutragen.'
+      },
       credentialAdded: {
         en: ({ name }: { name: string }) =>
           `A passkey was added to your account without this browser: ${name}. If that was not you, remove it and tell whoever runs the gateway.`,
@@ -422,6 +427,23 @@ export const WEB_STRINGS_SOURCE = {
           `Deze gateway accepteert geen passkeys voor ${host}. Vraag wie hem beheert om dit adres toe te voegen.`,
         de: ({ host }: { host: string }) =>
           `Dieses Gateway akzeptiert keine Passkeys für ${host}. Bitte die Person, die es betreibt, diese Adresse einzutragen.`
+      },
+      baseUrlNotListed: {
+        en: ({ host }: { host: string }) =>
+          `This gateway does not list ${host} as an address for passkeys. Ask whoever runs it to add this address.`,
+        nl: ({ host }: { host: string }) =>
+          `Deze gateway heeft ${host} niet als adres voor passkeys in zijn lijst. Vraag wie hem beheert om dit adres toe te voegen.`,
+        de: ({ host }: { host: string }) =>
+          `Dieses Gateway führt ${host} nicht als Adresse für Passkeys. Bitte die Person, die es betreibt, diese Adresse einzutragen.`
+      },
+      /** A write the gateway refused (403 `origin_not_listed`): the page's address is not one of its passkey addresses. */
+      originNotListed: {
+        en: ({ host }: { host: string }) =>
+          `The gateway refused this because it does not list ${host} as an address for passkeys. Ask whoever runs it to add this address.`,
+        nl: ({ host }: { host: string }) =>
+          `De gateway weigerde dit omdat hij ${host} niet als adres voor passkeys in zijn lijst heeft. Vraag wie hem beheert om dit adres toe te voegen.`,
+        de: ({ host }: { host: string }) =>
+          `Das Gateway hat das abgelehnt, weil es ${host} nicht als Adresse für Passkeys führt. Bitte die Person, die es betreibt, diese Adresse einzutragen.`
       },
       ready: {
         en: 'Passkey confirmations are on for this gateway.',
@@ -504,10 +526,31 @@ export const WEB_STRINGS_SOURCE = {
         nl: 'Code maken',
         de: 'Code erstellen'
       },
-      inviteCode: {
-        en: ({ code }: { code: string }) => `Your code: ${code}`,
-        nl: ({ code }: { code: string }) => `Je code: ${code}`,
-        de: ({ code }: { code: string }) => `Dein Code: ${code}`
+      /** Said in the live region when a code was made: the code itself is not read out. */
+      inviteReady: {
+        en: 'Your code is ready below.',
+        nl: 'Je code staat klaar hieronder.',
+        de: 'Dein Code steht unten bereit.'
+      },
+      inviteCodeLabel: {
+        en: 'Your code',
+        nl: 'Je code',
+        de: 'Dein Code'
+      },
+      copyCode: {
+        en: 'Copy the code',
+        nl: 'Code kopiëren',
+        de: 'Code kopieren'
+      },
+      codeCopied: {
+        en: 'The code was copied.',
+        nl: 'De code is gekopieerd.',
+        de: 'Der Code wurde kopiert.'
+      },
+      codeNotCopied: {
+        en: 'The code could not be copied. Select it and copy it by hand.',
+        nl: 'De code kon niet gekopieerd worden. Selecteer hem en kopieer hem zelf.',
+        de: 'Der Code konnte nicht kopiert werden. Markiere ihn und kopiere ihn von Hand.'
       },
       inviteExpires: {
         en: ({ time }: { time: string }) => `It works once, until ${time}.`,
@@ -543,6 +586,46 @@ export const WEB_STRINGS_SOURCE = {
         en: 'Too many tries. Wait a few minutes and try again.',
         nl: 'Te veel pogingen. Wacht een paar minuten en probeer het opnieuw.',
         de: 'Zu viele Versuche. Warte ein paar Minuten und versuch es noch einmal.'
+      },
+      rateLimitedFor: {
+        en: ({ time }: { time: string }) => `Too many tries. Try again in ${time}.`,
+        nl: ({ time }: { time: string }) => `Te veel pogingen. Probeer het over ${time} opnieuw.`,
+        de: ({ time }: { time: string }) => `Zu viele Versuche. Versuch es in ${time} noch einmal.`
+      },
+      pinTitle: {
+        en: 'This gateway’s identity',
+        nl: 'De identiteit van deze gateway',
+        de: 'Die Identität dieses Gateways'
+      },
+      pinHelp: {
+        en: 'When you added a passkey here, this browser remembered the identity the gateway gave. If the gateway’s passkey store was reset on purpose, it presents a new one and is refused until this browser forgets the old one. Forget it only if you know the store was reset: a gateway you cannot vouch for could otherwise choose it again.',
+        nl: 'Toen je hier een passkey toevoegde, onthield deze browser de identiteit die de gateway gaf. Is de passkey-opslag van de gateway met opzet gewist, dan presenteert hij een nieuwe en wordt hij geweigerd tot deze browser de oude vergeet. Vergeet hem alleen als je weet dat de opslag gewist is: een gateway waar je niet voor kunt instaan zou hem anders opnieuw kunnen kiezen.',
+        de: 'Als du hier einen Passkey hinzugefügt hast, hat sich dieser Browser die Identität gemerkt, die das Gateway nannte. Wurde der Passkey-Speicher des Gateways absichtlich zurückgesetzt, meldet es sich mit einer neuen und wird abgelehnt, bis dieser Browser die alte vergisst. Vergiss sie nur, wenn du weißt, dass der Speicher zurückgesetzt wurde: Für ein Gateway, für das du nicht bürgen kannst, könnte sie sich sonst neu wählen.'
+      },
+      pinForget: {
+        en: 'Forget this gateway’s passkey pin',
+        nl: 'De passkey-pin van deze gateway vergeten',
+        de: 'Den Passkey-Pin dieses Gateways vergessen'
+      },
+      pinConfirmQuestion: {
+        en: 'Forget the identity pinned for this gateway? Passkeys of other gateways stay as they are.',
+        nl: 'De vastgezette identiteit van deze gateway vergeten? Passkeys van andere gateways blijven zoals ze zijn.',
+        de: 'Die für dieses Gateway gemerkte Identität vergessen? Passkeys anderer Gateways bleiben unverändert.'
+      },
+      pinConfirm: {
+        en: 'Yes, forget it',
+        nl: 'Ja, vergeet hem',
+        de: 'Ja, vergessen'
+      },
+      pinCancel: {
+        en: 'Keep it',
+        nl: 'Bewaren',
+        de: 'Behalten'
+      },
+      pinForgotten: {
+        en: 'This browser forgot the gateway’s identity. The next passkey you add pins the one it presents now.',
+        nl: 'Deze browser is de identiteit van de gateway vergeten. De volgende passkey die je toevoegt zet degene vast die hij nu presenteert.',
+        de: 'Dieser Browser hat die Identität des Gateways vergessen. Der nächste Passkey, den du hinzufügst, merkt sich die, die es jetzt nennt.'
       },
       failed: {
         en: ({ message }: { message: string }) => `That did not work: ${message}`,

@@ -13,8 +13,16 @@ import { createKeyValueStore, type StorageLike } from '../../platform/key-value-
 import { createPasskeyPins } from '../../platform/passkey-pins'
 import { createPasskeysStore } from '../../state/passkeys'
 import { softWebAuthn } from '../../test-support/soft-webauthn'
-import type { PasskeyClient } from './client'
-import { DECLINE, type PasskeyGateway, PasskeyModel, phaseAfter } from './model'
+import type { PasskeyClient, PasskeyStatus } from './client'
+import {
+  credentialName,
+  CREDENTIAL_NAME_LIMIT,
+  DECLINE,
+  type OpenSession,
+  type PasskeyGateway,
+  PasskeyModel,
+  phaseAfter
+} from './model'
 
 const BASE = 'https://gw.example.test'
 const GATEWAY_ID = 'AAECAwQFBgcICQoLDA0ODw'
@@ -106,7 +114,20 @@ const frame = (overrides: Record<string, unknown> = {}, passkey: Record<string, 
   ...overrides
 })
 
-function setUp(options: { baseUrl?: string; available?: boolean; pinned?: string; foreign?: string } = {}) {
+/** The frame's `expires_at` is 120 s after this. */
+const NOW = 1_790_000_000
+
+function setUp(
+  options: {
+    baseUrl?: string
+    available?: boolean
+    pinned?: string
+    foreign?: string
+    client?: Partial<PasskeyClient>
+    sessions?: readonly OpenSession[]
+    watch?: (listener: () => void) => () => void
+  } = {}
+) {
   const hand = handGateway()
   const storage = memoryStorage()
 
@@ -125,20 +146,24 @@ function setUp(options: { baseUrl?: string; available?: boolean; pinned?: string
   }
 
   const store = createPasskeysStore()
+  const clock = { now: NOW }
   const failures: { id: string; code: number; data: Record<string, unknown> }[] = []
   const model = new PasskeyModel({
     gateway: hand.gateway,
-    client: {} as PasskeyClient,
+    client: (options.client ?? {}) as PasskeyClient,
     webauthn: softWebAuthn(BASE, { available: options.available ?? true }),
     baseUrl: options.baseUrl ?? BASE,
     pins,
     store,
+    now: () => clock.now,
+    ...(options.sessions ? { openSessions: () => options.sessions as readonly OpenSession[] } : {}),
+    ...(options.watch ? { watchSessions: options.watch } : {}),
     failWithData: (request, code, _message, data) => void failures.push({ id: request.id, code, data })
   })
 
   model.start()
 
-  return { ...hand, model, store, failures }
+  return { ...hand, model, store, failures, clock, pins, storage }
 }
 
 describe('reading a confirm frame', () => {
@@ -349,4 +374,348 @@ describe('what the gateway says back', () => {
       })
     })
   }
+})
+
+describe('the page’s clock ends a confirmation', () => {
+  it('ends an expired one as timed out in confirm and decline, with no ceremony and no answer', async () => {
+    for (const act of ['confirm', 'decline'] as const) {
+      const page = setUp()
+      const held = page.model as unknown as { options: { webauthn: { get: (...args: unknown[]) => unknown } } }
+      const get = vi.spyOn(held.options.webauthn, 'get')
+
+      page.deliver('srq-1', frame())
+      // The deadline (NOW + 120 s) passed while no socket told us.
+      page.clock.now = NOW + 121
+      await page.model[act]('srq-1')
+
+      expect(page.store.getState().confirmations[0], act).toMatchObject({
+        phase: { kind: 'ended', end: { kind: 'timed_out' } },
+        dismissed: true
+      })
+      expect(get, act).not.toHaveBeenCalled()
+      expect(page.answer, act).not.toHaveBeenCalled()
+    }
+  })
+
+  it('ends it exactly at its deadline, and leaves a later one, an answered one and one without a deadline alone', () => {
+    const page = setUp()
+
+    page.deliver('srq-1', frame())
+    page.deliver('srq-2', frame({}, { expires_at: undefined }))
+    page.deliver('srq-3', frame())
+    page.store.setState(state => ({
+      confirmations: state.confirmations.map(entry =>
+        entry.id === 'srq-3' ? { ...entry, phase: { kind: 'received' } } : entry
+      )
+    }))
+
+    page.clock.now = NOW + 119
+    expect(page.model.expire('srq-1')).toBe(false)
+
+    page.clock.now = NOW + 120
+    expect(page.model.expire('srq-1')).toBe(true)
+    expect(page.model.expire('srq-2')).toBe(false)
+    // An answer that went through is the gateway's to settle.
+    expect(page.model.expire('srq-3')).toBe(false)
+    expect(page.model.expire('missing')).toBe(false)
+    expect(page.store.getState().confirmations.map(entry => entry.phase.kind)).toEqual(['ended', 'waiting', 'received'])
+  })
+
+  it('does not let a late 4033 end a request for good: the frame again brings it back', async () => {
+    const page = setUp()
+
+    page.deliver('srq-1', frame())
+    page.answer.mockRejectedValueOnce(new JsonRpcGatewayError('not allowed', { code: 4033 }))
+    await page.model.decline('srq-1')
+
+    expect(page.store.getState().confirmations[0]?.phase).toEqual({ kind: 'ended', end: { kind: 'not_allowed' } })
+
+    // The second capabilities call was accepted; the gateway offers the request to this connection now.
+    expect(page.deliver('srq-1', frame()).accepted).toBe(true)
+
+    expect(page.store.getState().confirmations).toHaveLength(1)
+    expect(page.store.getState().confirmations[0]).toMatchObject({ phase: { kind: 'waiting' }, dismissed: false })
+
+    await page.model.decline('srq-1')
+    expect(page.answer).toHaveBeenLastCalledWith('request.answer', { id: 'srq-1', result: DECLINE })
+  })
+})
+
+const GATEWAY_STATUS = (overrides: Partial<PasskeyStatus> = {}): PasskeyStatus => ({
+  v: 1,
+  enabled: true,
+  reason: '',
+  gateway_id: GATEWAY_ID,
+  user: { id: 'self-hosted:u1', handle: 'aGFuZGxl' },
+  rp: { native: [], web: ['gw.example.test'] },
+  base_urls: [BASE],
+  user_invites: true,
+  credentials: [],
+  ...overrides
+})
+
+/** A page whose socket is up: `advertise()` runs the two capability calls against what `since` answers. */
+function advertising(
+  options: {
+    status?: PasskeyStatus
+    since?: (sessionId: string) => unknown
+    offerId?: string
+    sessions?: OpenSession[]
+    watch?: (listener: () => void) => () => void
+  } = {}
+) {
+  const sessions: OpenSession[] = options.sessions ?? [{ sessionId: 'sess-1', lastSeen: 0 }]
+  const page = setUp({
+    sessions,
+    ...(options.watch ? { watch: options.watch } : {}),
+    client: { status: vi.fn(async () => options.status ?? GATEWAY_STATUS()) }
+  })
+
+  page.answer.mockImplementation(async (method: string, params: unknown) => {
+    if (method === 'client.capabilities') {
+      return (params as { confirm?: string[] }).confirm
+        ? { confirm: ['passkey'] }
+        : {
+            confirm: [],
+            confirm_passkey: {
+              v: 1,
+              enabled: true,
+              reason: '',
+              gateway_id: options.offerId ?? GATEWAY_ID,
+              rp: { native: [], web: ['gw.example.test'] }
+            }
+          }
+    }
+
+    if (method === 'session.events.since') {
+      return options.since ? options.since((params as { session_id: string }).session_id) : { open_requests: [] }
+    }
+
+    return { status: 'ok' }
+  })
+
+  return page
+}
+
+const callsTo = (page: ReturnType<typeof setUp>, method: string): unknown[] =>
+  page.answer.mock.calls.filter(([name]) => name === method).map(([, params]) => params)
+
+describe('the base URL the gateway lists', () => {
+  it('advertises when the gateway lists this page’s address', async () => {
+    const page = advertising()
+
+    await page.model.advertise()
+
+    expect(page.store.getState().capability).toEqual({ verdict: { kind: 'advertised' }, accepted: ['passkey'] })
+    expect(callsTo(page, 'client.capabilities')).toHaveLength(2)
+  })
+
+  it('does not advertise when it does not, and says so (every answer would be refused)', async () => {
+    const page = advertising({ status: GATEWAY_STATUS({ base_urls: ['https://elsewhere.example.test'] }) })
+
+    await page.model.advertise()
+
+    expect(page.store.getState().capability).toEqual({ verdict: { kind: 'base_url_not_listed' }, accepted: [] })
+    expect(page.store.getState().notices.map(notice => notice.notice)).toEqual([{ kind: 'base_url_not_listed' }])
+    // Only the first call: nothing was offered.
+    expect(callsTo(page, 'client.capabilities')).toHaveLength(1)
+  })
+
+  it('goes by the serialised form of the listed addresses, and by nothing when the gateway lists none', async () => {
+    const same = advertising({ status: GATEWAY_STATUS({ base_urls: ['HTTPS://GW.EXAMPLE.TEST:443/'] }) })
+
+    await same.model.advertise()
+    expect(same.store.getState().capability?.verdict).toEqual({ kind: 'advertised' })
+
+    const silent = advertising({ status: GATEWAY_STATUS({ base_urls: undefined }) })
+
+    await silent.model.advertise()
+    expect(silent.store.getState().capability?.verdict).toEqual({ kind: 'advertised' })
+  })
+})
+
+describe('reading the open requests again', () => {
+  it('ends a confirmation of a session just read that the gateway no longer lists', async () => {
+    const page = advertising()
+
+    page.deliver('srq-1', frame())
+    await page.model.advertise()
+
+    expect(page.store.getState().confirmations[0]).toMatchObject({
+      phase: { kind: 'ended', end: { kind: 'timed_out' } },
+      dismissed: true
+    })
+  })
+
+  it('keeps one the gateway still lists, one of another session, and one it said nothing about', async () => {
+    const listed = advertising({ since: () => ({ open_requests: [{ id: 'srq-1', method: 'confirm', params: {} }] }) })
+
+    listed.deliver('srq-1', frame())
+    listed.deliver('srq-2', frame({ session_id: 'sess-other' }))
+    await listed.model.advertise()
+    expect(listed.store.getState().confirmations.map(entry => entry.phase.kind)).toEqual(['waiting', 'waiting'])
+
+    const unlisted = advertising({ since: () => ({ events: [] }) })
+
+    unlisted.deliver('srq-1', frame())
+    await unlisted.model.advertise()
+    expect(unlisted.store.getState().confirmations[0]?.phase.kind).toBe('waiting')
+
+    const answered = advertising()
+
+    answered.deliver('srq-1', frame())
+    answered.store.setState(state => ({
+      confirmations: state.confirmations.map(entry => ({ ...entry, phase: { kind: 'received' } }))
+    }))
+    await answered.model.advertise()
+    expect(answered.store.getState().confirmations[0]?.phase.kind).toBe('received')
+  })
+
+  it('reads a session the page starts holding after the level was accepted, once, and not before', async () => {
+    const held: OpenSession[] = []
+    let changed = (): void => undefined
+    const page = advertising({
+      sessions: held,
+      watch: listener => {
+        changed = listener
+
+        return () => undefined
+      }
+    })
+
+    // Not accepted yet: a change of the sessions reads nothing.
+    held.push({ sessionId: 'sess-0', lastSeen: 0 })
+    changed()
+    expect(callsTo(page, 'session.events.since')).toEqual([])
+
+    // Accepted while no chat of the page held a session (its resume answer was hidden, and the chat had
+    // not taken it in yet).
+    held.length = 0
+    await page.model.advertise()
+    expect(callsTo(page, 'session.events.since')).toEqual([])
+
+    page.deliver('srq-1', frame())
+    held.push({ sessionId: 'sess-1', lastSeen: 7 })
+    changed()
+    changed()
+    await vi.waitFor(() => expect(callsTo(page, 'session.events.since')).toHaveLength(1))
+
+    // Read once, with what the page had seen of it; the gateway's list is empty, so the confirmation is over.
+    expect(callsTo(page, 'session.events.since')).toEqual([{ session_id: 'sess-1', last_seen: 7 }])
+    await vi.waitFor(() => expect(page.store.getState().confirmations[0]?.phase.kind).toBe('ended'))
+  })
+
+  it('leaves what arrives while it reads alone', async () => {
+    const page = advertising({
+      since: () => {
+        // A frame that came after the gateway's list was made.
+        page.deliver('srq-new', frame())
+
+        return { open_requests: [] }
+      }
+    })
+
+    await page.model.advertise()
+
+    expect(page.store.getState().confirmations.map(entry => [entry.id, entry.phase.kind])).toEqual([
+      ['srq-new', 'waiting']
+    ])
+  })
+})
+
+describe('a status read that breaks the pin', () => {
+  it('keeps nothing of it, so the settings page lists no other gateway’s passkeys', async () => {
+    const page = setUp({
+      pinned: 'ZmZmZmZmZmZmZmZmZmZmZg',
+      client: {
+        status: vi.fn(async () =>
+          GATEWAY_STATUS({ credentials: [{ id: 'b3RoZXI', name: 'Somebody else’s', rp_id: 'gw.example.test' }] })
+        )
+      }
+    })
+
+    page.store.setState({ status: GATEWAY_STATUS(), credentials: GATEWAY_STATUS().credentials })
+    await page.model.refresh()
+
+    expect(page.store.getState()).toMatchObject({ status: null, credentials: [] })
+    expect(page.store.getState().notices.map(notice => notice.notice)).toEqual([{ kind: 'gateway_id_mismatch' }])
+    expect(page.pins.seen().ids).toEqual([])
+  })
+})
+
+describe('forgetting the pin', () => {
+  it('clears this gateway’s pin and its mismatch notice, and nothing else', () => {
+    const page = setUp({ pinned: 'ZmZmZmZmZmZmZmZmZmZmZg', foreign: 'AAAAAAAAAAAAAAAAAAAAAA' })
+
+    page.pins.remember(['a'])
+    page.store.setState({
+      pinned: true,
+      notices: [
+        { id: 1, notice: { kind: 'gateway_id_mismatch' }, at: 0 },
+        { id: 2, notice: { kind: 'gateway_id_conflict' }, at: 0 }
+      ]
+    })
+    page.model.forgetPin()
+
+    expect(page.pins.gatewayId()).toBeNull()
+    expect(page.pins.seen().ids).toEqual(['a'])
+    expect(page.pins.foreignGatewayIds().has('AAAAAAAAAAAAAAAAAAAAAA')).toBe(true)
+    expect(page.store.getState().pinned).toBe(false)
+    expect(page.store.getState().notices.map(notice => notice.notice.kind)).toEqual(['gateway_id_conflict'])
+  })
+
+  it('is what makes a reset gateway acceptable again: the capability calls run once more', async () => {
+    const page = advertising({ offerId: 'ZmZmZmZmZmZmZmZmZmZmZg' })
+
+    page.pins.pin(GATEWAY_ID)
+    await page.model.advertise()
+    expect(page.store.getState().capability?.verdict).toEqual({ kind: 'gateway_id_mismatch' })
+
+    page.pins.forget()
+    await page.model.advertise()
+    expect(page.store.getState().capability?.verdict).toEqual({ kind: 'advertised' })
+  })
+})
+
+describe('the passkey’s name', () => {
+  it('is “Hermie — <host>” while it fits', () => {
+    expect(credentialName('Hermie', 'gw.example.test')).toBe('Hermie — gw.example.test')
+  })
+
+  it('is cut to the gateway’s limit by shortening the host in the middle', () => {
+    const host = `${'a'.repeat(63)}.${'b'.repeat(63)}.${'c'.repeat(63)}.example.test`
+    const name = credentialName('Hermie', host)
+
+    expect(Array.from(name)).toHaveLength(CREDENTIAL_NAME_LIMIT)
+    expect(name.startsWith('Hermie — aaaa')).toBe(true)
+    expect(name.endsWith('.example.test')).toBe(true)
+    expect(name).toContain('…')
+  })
+
+  it('is what enrolment sends for such a host', async () => {
+    const long = `${'a'.repeat(60)}.${'b'.repeat(60)}.example.test`
+    const base = `https://${long}`
+    const hand = handGateway()
+    const sent: string[] = []
+    const storage = memoryStorage()
+    const model = new PasskeyModel({
+      gateway: hand.gateway,
+      client: {
+        status: async () => GATEWAY_STATUS({ rp: { native: [], web: [long] }, base_urls: [base] }),
+        registerBegin: async (body: { name: string }) => {
+          sent.push(body.name)
+          throw new Error('stop here')
+        }
+      } as unknown as PasskeyClient,
+      webauthn: softWebAuthn(base),
+      baseUrl: base,
+      pins: createPasskeyPins({ store: createKeyValueStore({ namespace: '/', storage }), baseUrl: base, storage }),
+      store: createPasskeysStore()
+    })
+
+    await expect(model.enrol('00000-00000-00000-00000')).rejects.toBeDefined()
+    expect(sent).toHaveLength(1)
+    expect(Array.from(sent[0] as string).length).toBeLessThanOrEqual(CREDENTIAL_NAME_LIMIT)
+    expect(sent[0]).toContain('…')
+  })
 })

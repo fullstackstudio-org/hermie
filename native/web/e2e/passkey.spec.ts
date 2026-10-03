@@ -283,6 +283,74 @@ test.describe('a passkey confirmation in the browser', () => {
     await expect.poll(() => outcomeOf(gateway, id)).toMatchObject({ outcome: 'confirmed', verified: true })
   })
 
+  test('a confirmation the gateway ended while the socket was down closes on reconnect, and the next one is reachable', async ({
+    app,
+    diagnostics,
+    gateway,
+    page
+  }) => {
+    await virtualAuthenticator(page)
+    await enrol(page, gateway, hash => app.open(hash))
+    await page.goto(gateway.appUrl('#/chat/researcher'))
+    await app.ready()
+
+    const first = await raise(gateway, { title: 'Delete backups', summary: 'Delete 3 old backups.' })
+
+    await expect(app.dialog.getByRole('heading', { name: 'Delete backups' })).toBeVisible()
+    await expect(app.dialog.getByRole('button', { name: 'Confirm with passkey' })).toBeEnabled()
+
+    // The socket drops, and the gateway gives up on the request while nobody is listening: the
+    // `request.cancel timeout` goes to no one, and the page's own clock is nowhere near the deadline.
+    diagnostics.allow(/WebSocket/u)
+
+    const before = (await gateway.state()).connections
+
+    expect(await gateway.dropSockets()).toBeGreaterThan(0)
+    expect((await post(gateway, '/__fake/passkey/expire', { request_id: first })).status).toBe(200)
+
+    // The page dials again, advertises the level, reads its chat's open requests, and this one is not among them.
+    await expect.poll(async () => (await gateway.state()).connections).toBeGreaterThan(before)
+    await expect(page.getByText('The request from Researcher timed out.')).toBeAttached()
+    await expect(app.dialog).toHaveCount(0)
+
+    // What comes next is not hidden behind a request nobody can answer any more.
+    const second = await raise(gateway, { title: 'Publish the release', summary: 'Publish version 2.0.' })
+
+    await expect(app.dialog.getByRole('heading', { name: 'Publish the release' })).toBeVisible()
+
+    const confirm = app.dialog.getByRole('button', { name: 'Confirm with passkey' })
+
+    await expect(confirm).toBeEnabled()
+    await confirm.click()
+    await expect.poll(() => outcomeOf(gateway, second)).toMatchObject({ outcome: 'confirmed', verified: true })
+  })
+
+  test('fetches the settings page and the sheet only when they are first needed', async ({ app, gateway, page }) => {
+    const fetched: string[] = []
+
+    page.on('request', request => {
+      const chunk = /\/assets\/(ConfirmSheet|Passkeys)-[\w-]+\.(?:js|css)$/u.exec(new URL(request.url()).pathname)
+
+      if (chunk?.[1]) {
+        fetched.push(chunk[1])
+      }
+    })
+
+    await virtualAuthenticator(page)
+    await app.open('#/chat/researcher')
+    await app.ready()
+    expect(fetched).toEqual([])
+
+    // The settings page: its own chunk (and styles), not the sheet's.
+    await enrol(page, gateway, hash => app.open(hash))
+    expect(new Set(fetched)).toEqual(new Set(['Passkeys']))
+
+    // The first confirm frame: the sheet's chunk.
+    await raise(gateway, { summary: 'Restart the service.' })
+    await expect(app.dialog.getByRole('button', { name: 'Confirm with passkey' })).toBeEnabled()
+    expect(new Set(fetched)).toEqual(new Set(['Passkeys', 'ConfirmSheet']))
+  })
+
   test('Escape does not dismiss the sheet', async ({ app, gateway, page }) => {
     await virtualAuthenticator(page)
     await enrol(page, gateway, hash => app.open(hash))

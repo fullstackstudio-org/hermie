@@ -105,6 +105,7 @@ export function startSession(options: StartSessionOptions): Session {
             ]
           : []
       ),
+    watchSessions: listener => chats.chats.subscribe(() => listener()),
     failWithData: (request, code, message, data) =>
       outbox.with(request.id, code, data, () => request.fail(code, message))
   })

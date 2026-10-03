@@ -14,7 +14,16 @@ import type { PasskeyModel } from '../../core/passkey/model'
 /** The model methods a screen calls. */
 export type PasskeyActions = Pick<
   PasskeyModel,
-  'confirm' | 'decline' | 'dismiss' | 'dismissNotice' | 'refresh' | 'enrol' | 'mintInvite' | 'revoke'
+  | 'confirm'
+  | 'decline'
+  | 'dismiss'
+  | 'expire'
+  | 'dismissNotice'
+  | 'refresh'
+  | 'enrol'
+  | 'mintInvite'
+  | 'revoke'
+  | 'forgetPin'
 >
 
 export const PasskeyRuntimeContext = createContext<PasskeyActions | null>(null)

@@ -110,7 +110,12 @@
   letter-spacing: 0.04em;
 }
 
-.hm-passkeys__code {
+.hm-passkeys__code,
+.hm-passkeys__confirm {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 6px;
   margin: 0;
   overflow-wrap: anywhere;
 }

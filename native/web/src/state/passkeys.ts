@@ -67,6 +67,14 @@ export const isOpenPhase = (phase: ConfirmPhase): boolean =>
 export const isActionablePhase = (phase: ConfirmPhase): boolean =>
   phase.kind === 'waiting' || phase.kind === 'refused' || phase.kind === 'not_sent'
 
+/**
+ * The gateway's deadline for this confirmation has passed on this page's clock (`now` in unix
+ * seconds). A confirmation the gateway never told us was over (a socket that dropped while it
+ * timed out) must not stay actionable for ever, so the clock ends it too.
+ */
+export const isExpired = (confirmation: Pick<PasskeyConfirmation, 'expiresAt'>, now: number): boolean =>
+  confirmation.expiresAt !== null && confirmation.expiresAt <= now
+
 /** One `confirm` at level `passkey`, as the sheet shows it. */
 export interface PasskeyConfirmation {
   /** The server request's id. */
@@ -105,6 +113,8 @@ export type PasskeyNoticeKind =
   | { kind: 'no_credential' }
   /** A passkey request this build could not read (a field missing or malformed). */
   | { kind: 'malformed_request' }
+  /** The gateway lists no base URL that is this page's address: every answer would be refused. */
+  | { kind: 'base_url_not_listed' }
   /** A passkey was added to this account without this browser. */
   | { kind: 'credential_added'; name: string }
   /** A passkey was removed from this account without this browser. */
@@ -128,6 +138,8 @@ export type AdvertisingVerdict =
   | { kind: 'not_supported' }
   /** The gateway does not list this page's host as a web RP. */
   | { kind: 'rp_not_accepted' }
+  /** The gateway's base URLs (`GET /api/auth/passkeys`) do not include this page's address. */
+  | { kind: 'base_url_not_listed' }
   | { kind: 'gateway_id_mismatch' }
   | { kind: 'gateway_id_conflict' }
 
@@ -150,6 +162,8 @@ export interface PasskeysState {
   capability: PasskeyCapability | null
   /** This browser can run a ceremony at all (secure context, WebAuthn present, no path prefix). */
   supported: boolean
+  /** This browser holds a pin for this gateway's id (`device.passkey.pin@<base URL>`). */
+  pinned: boolean
   /** The RP this page's ceremonies use (its hostname). */
   rpId: string
   reset(): void
@@ -163,6 +177,7 @@ const INITIAL = {
   credentials: [] as readonly PasskeyCredentialInfo[],
   capability: null,
   supported: false,
+  pinned: false,
   rpId: ''
 }
 
