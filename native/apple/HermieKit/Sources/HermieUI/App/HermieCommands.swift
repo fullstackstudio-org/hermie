@@ -147,11 +147,11 @@ public struct HermieCommands: Commands {
             }
           )
         ) {
-          Text(MenuTitle.fitted(entry.name, typeSize: .large))
+          Text(MenuTitle.fitted(entry.displayLabel, typeSize: .large))
         }
         .modifier(GatewayShortcut(index: index))
         .disabled(router == nil)
-        .accessibilityLabel(entry.name == entry.address ? entry.name : "\(entry.name), \(entry.address)")
+        .accessibilityLabel(entry.displayLabel == entry.address ? entry.displayLabel : "\(entry.displayLabel), \(entry.address)")
       }
 
       if !entries.isEmpty {
