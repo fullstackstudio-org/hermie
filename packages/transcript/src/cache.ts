@@ -26,7 +26,35 @@ export interface CachedTranscript {
    */
   lastSeqSessionId?: string
   epoch?: string
+  /**
+   * The turn that was streaming when the snapshot was taken, written only for a
+   * turn the gateway named (`turn.id`). See `CachedTurn`.
+   */
+  turn?: CachedTurn
   updatedAt: number
+}
+
+/**
+ * Where a turn cut off by the snapshot was writing.
+ *
+ * A chat saved mid-stream holds a half-written bubble, and the frames that
+ * finish it are replayed when the chat opens again. Without these pointers the
+ * replay could not know that bubble was the one it was filling: it started a
+ * second one, and the half-written first stayed on screen beside the row the
+ * turn became (the owner's reopen, cut between two deltas, or right after a
+ * thought with no words yet). With them the replay carries on where the stream
+ * stopped, and the frame naming the row settles that bubble onto it.
+ *
+ * Only the pointers the reducer appends through. Nothing that would make a
+ * reopened chat claim a turn is running (`active`), or time one (`startedAt`).
+ */
+export interface CachedTurn {
+  /** The gateway's id for the turn. */
+  id: string
+  /** The bubble receiving deltas. */
+  assistantId?: string
+  /** The item holding the turn's thought. */
+  reasoningId?: string
 }
 
 export interface SessionIds {
@@ -56,6 +84,8 @@ export function snapshotForCache(state: ChatState, now: number = Date.now()): Ca
     undefined
   )
 
+  const turn = cachedTurnOf(state, items)
+
   return {
     format: CACHE_FORMAT,
     items,
@@ -64,7 +94,48 @@ export function snapshotForCache(state: ChatState, now: number = Date.now()): Ca
     lastSeq: state.lastSeq,
     ...(state.lastSeqSessionId ? { lastSeqSessionId: state.lastSeqSessionId } : {}),
     ...(state.epoch ? { epoch: state.epoch } : {}),
+    ...(turn ? { turn } : {}),
     updatedAt: now
+  }
+}
+
+/** The running turn's pointers, when the gateway named the turn and they point into what is cached. */
+function cachedTurnOf(state: ChatState, items: readonly TranscriptItem[]): CachedTurn | undefined {
+  const id = state.turn.id
+
+  if (!id) {
+    return undefined
+  }
+
+  const cached = new Set(items.map(item => item.id))
+  const assistantId = state.turn.assistantId && cached.has(state.turn.assistantId) ? state.turn.assistantId : undefined
+  const reasoningId = state.turn.reasoningId && cached.has(state.turn.reasoningId) ? state.turn.reasoningId : undefined
+
+  return { id, ...(assistantId ? { assistantId } : {}), ...(reasoningId ? { reasoningId } : {}) }
+}
+
+/**
+ * Put a cached turn's pointers back, each only while it still names what it
+ * named: a bubble that is there, an assistant one, and still open — a pointer
+ * at anything else would send the next delta somewhere it does not belong.
+ */
+function restoreTurn(state: ChatState, turn: CachedTurn | undefined): void {
+  if (!turn || typeof turn.id !== 'string' || !turn.id) {
+    return
+  }
+
+  state.turn.id = turn.id
+
+  const live = turn.assistantId ? state.items[turn.assistantId] : undefined
+
+  if (live?.kind === 'assistant' && !live.interim && live.rowId === undefined) {
+    state.turn.assistantId = live.id
+  }
+
+  const held = turn.reasoningId ? state.items[turn.reasoningId] : undefined
+
+  if (held?.kind === 'assistant') {
+    state.turn.reasoningId = held.id
   }
 }
 
@@ -130,6 +201,10 @@ export function stateFromCache(botName: string, ids: SessionIds, snapshot: Cache
     if (snapshot.epoch) {
       state.epoch = snapshot.epoch
     }
+
+    // Only beside a watermark: the turn is continued by the frames replayed
+    // after it, and a snapshot read as cold replays nothing.
+    restoreTurn(state, snapshot.turn)
   }
   // A snapshot from before the watermark carried its session id cannot say which
   // session it counted, so it is read as cold: one extra replay-free hydration

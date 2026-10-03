@@ -271,6 +271,56 @@ describe('opening a chat', () => {
     expect(chatOf().lastSeq).toBe(7)
     expect(JSON.stringify(chatOf().items)).not.toContain('replayed')
   })
+
+  it('lets go of a turn the cache restored when a restarted gateway replays nothing', async () => {
+    const cache = new MemoryChatCache()
+
+    await cache.write({
+      bot: 'researcher',
+      itemsJson: JSON.stringify({
+        format: 1,
+        items: [
+          { id: 'c1', kind: 'user', text: 'from the cache', seq: 0, version: 0, origin: 'history', rowId: 1 },
+          {
+            id: 'a:2000',
+            kind: 'assistant',
+            text: 'Hal',
+            streaming: false,
+            interim: false,
+            seq: 1000,
+            version: 1,
+            origin: 'live'
+          }
+        ],
+        subagents: [],
+        lastSeq: 3,
+        lastSeqSessionId: 'runtime-0',
+        epoch: 'e0',
+        turn: { id: 'turn-1', assistantId: 'a:2000', reasoningId: 'a:2000' },
+        updatedAt: 1
+      }),
+      lastRowId: 1,
+      lastSeq: 3,
+      epoch: 'e0',
+      updatedAt: 1
+    })
+
+    const { gateway, controller } = setup({ cache })
+    const restored: (string | undefined)[] = []
+
+    gateway.reply('session.history', () => {
+      restored.push(chatOf().turn.assistantId)
+
+      return { count: 0, messages: [] }
+    })
+
+    await controller.openChat(RESEARCHER)
+
+    // Painted from the cache with the bubble it was filling, then the replay
+    // came from another epoch: nothing will continue that bubble.
+    expect(restored).toEqual(['a:2000'])
+    expect(chatOf().turn).toMatchObject({ id: undefined, assistantId: undefined, reasoningId: undefined })
+  })
 })
 
 describe('routing live traffic', () => {

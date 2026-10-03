@@ -472,7 +472,7 @@ describe('a reasoning-only round between two notes', () => {
     expect(assistants(live).map(item => item.text)).toEqual([FIRST, '', SECOND, FINAL])
   })
 
-  it.each([0, 3, 5, 7, 10])('settles every note after it on a replay cut after frame %i', cut => {
+  it.each([0, 3, 5, 6, 7, 10])('settles every note after it on a replay cut after frame %i', cut => {
     const away = apply(fresh(), frames.slice(0, cut))
     const hydrated = reconcile(fromCache(away), rowsToItems(rows, 'rpc'))
     const state = apply(hydrated, frames.slice(cut), LATER)
@@ -543,6 +543,118 @@ describe('message.complete naming its row', () => {
       ['Checking.', 12, true],
       ['Checking. Done.', 16, false]
     ])
+  })
+})
+
+describe('a turn the cache cut mid-stream', () => {
+  const half = framesOf('turn-h', [
+    { type: 'message.start', seq: 1 },
+    { type: 'message.delta', seq: 2, payload: { text: 'Hello ' } },
+    { type: 'message.delta', seq: 3, payload: { text: 'world.' } },
+    { type: 'message.interim', seq: 4, payload: { text: 'Hello world.', already_streamed: true, row_id: 2 } },
+    { type: 'message.complete', seq: 5, payload: { text: 'Bye.', status: 'complete', row_id: 3 } }
+  ])
+  const halfRows: TranscriptRow[] = [
+    { role: 'user', row_id: 1, text: 'hi', display_metadata: { turn_id: 'turn-h' } },
+    { role: 'assistant', row_id: 2, text: 'Hello world.' },
+    { role: 'assistant', row_id: 3, text: 'Bye.' }
+  ]
+  const snapshotOf = (state: ChatState) => snapshotForCache({ ...state, lastSeqSessionId: 'runtime-1' }, NOW)
+  const ids = { storedSessionId: 'stored-1', resolvedSessionId: 'resolved-1' }
+
+  it('carries on the bubble it was filling, and settles it onto its row', () => {
+    const away = apply(fresh(), half.slice(0, 2))
+    const snapshot = snapshotOf(away)
+
+    expect(snapshot.turn).toEqual({ id: 'turn-h', assistantId: away.turn.assistantId })
+
+    const hydrated = reconcile(stateFromCache('boekhouder', ids, snapshot), rowsToItems(halfRows, 'rpc'))
+    const state = apply(hydrated, half.slice(2), LATER)
+
+    expect(list(state).map(item => `${item.kind}@${item.rowId}`)).toEqual(['user@1', 'assistant@2', 'assistant@3'])
+    expect(assistants(state).map(item => item.text)).toEqual(['Hello world.', 'Bye.'])
+  })
+
+  it('carries on a bubble that held only a thought when it was cut', () => {
+    const thinking = framesOf('turn-h', [
+      half[0]!,
+      { type: 'reasoning.delta', seq: 2, payload: { text: 'Greet first.' } },
+      ...half.slice(1).map(event => ({ ...event, seq: (event.seq ?? 0) + 1 }))
+    ])
+    const away = apply(fresh(), thinking.slice(0, 2))
+    const hydrated = reconcile(fromCache(away), rowsToItems(halfRows, 'rpc'))
+    const state = apply(hydrated, thinking.slice(2), LATER)
+
+    expect(list(state).map(item => `${item.kind}@${item.rowId}`)).toEqual(['user@1', 'assistant@2', 'assistant@3'])
+    expect(assistants(state)[0]).toMatchObject({ text: 'Hello world.', reasoning: 'Greet first.' })
+  })
+
+  it('reads a cache from before the turn was kept exactly as it always read', () => {
+    const away = apply(fresh(), half.slice(0, 2))
+    const { turn: _turn, ...old } = snapshotOf(away)
+    const state = stateFromCache('boekhouder', ids, old)
+
+    expect(state.turn).toEqual({ active: false, local: false, nextSeq: state.turn.nextSeq })
+  })
+
+  it('drops a restored pointer whose bubble is gone or already sealed', () => {
+    const away = apply(fresh(), half.slice(0, 4))
+    const sealedId = assistants(away)[0]!.id
+    const gone = stateFromCache('boekhouder', ids, {
+      ...snapshotOf(away),
+      turn: { id: 'turn-h', assistantId: 'a:missing', reasoningId: 'a:missing' }
+    })
+    const sealed = stateFromCache('boekhouder', ids, {
+      ...snapshotOf(away),
+      turn: { id: 'turn-h', assistantId: sealedId }
+    })
+
+    expect([gone.turn.id, gone.turn.assistantId, gone.turn.reasoningId]).toEqual(['turn-h', undefined, undefined])
+    expect([sealed.turn.id, sealed.turn.assistantId]).toEqual(['turn-h', undefined])
+  })
+
+  it('restores nothing from a snapshot read as cold, which replays nothing', () => {
+    const away = apply(fresh(), half.slice(0, 2))
+    const { lastSeqSessionId: _session, ...cold } = snapshotOf(away)
+
+    expect(stateFromCache('boekhouder', ids, cold).turn.assistantId).toBeUndefined()
+    expect(stateFromCache('boekhouder', ids, cold).turn.id).toBeUndefined()
+  })
+
+  it('lets the restored turn go when a different turn starts', () => {
+    const thinking = apply(fresh(), [
+      half[0]!,
+      { type: 'reasoning.delta', seq: 2, turn_id: 'turn-h', payload: { text: 'x' } }
+    ])
+    const restored = stateFromCache('boekhouder', ids, snapshotOf(thinking))
+    const next = applyEvent(restored, { type: 'message.start', seq: 3, turn_id: 'turn-n' }, LATER)
+
+    expect(restored.turn).toMatchObject({ id: 'turn-h', reasoningId: restored.turn.assistantId })
+    expect([next.turn.id, next.turn.assistantId, next.turn.reasoningId]).toEqual(['turn-n', undefined, undefined])
+  })
+
+  it('writes no turn for a gateway that names none', () => {
+    const away = apply(
+      fresh(),
+      half.slice(0, 2).map(({ turn_id: _turnId, ...event }) => event)
+    )
+
+    expect(snapshotOf(away).turn).toBeUndefined()
+  })
+})
+
+describe('our own prompt at message.start', () => {
+  it('takes the turn id when it is the one optimistic prompt standing', () => {
+    const state = applyEvent(sentTurn(), FRAMES[0]!, NOW)
+
+    expect(users(state).at(-1)).toMatchObject({ text: PROMPT, origin: 'optimistic', turnId: TURN })
+  })
+
+  it('stays unstamped when two prompts could be it', () => {
+    const two = beginLocalTurn(sentTurn(), 'and this', undefined, NOW)
+    const state = applyEvent(two, FRAMES[0]!, NOW)
+
+    expect(users(state).filter(item => item.turnId === TURN)).toHaveLength(0)
   })
 })
 
