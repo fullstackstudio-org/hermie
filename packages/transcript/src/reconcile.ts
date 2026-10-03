@@ -9,8 +9,8 @@
  *
  * Ported from `apps/desktop/src/lib/chat-messages/reconciliation.ts`.
  */
-import { isInjectedNotice } from './injected'
 import { isMatchable, itemMatchKey } from './rows-to-items'
+import { foldLiveCopies, opensTurn } from './turns'
 import {
   type AssistantItem,
   type BotDmOutItem,
@@ -160,11 +160,7 @@ function placeByTimestamp(list: readonly TranscriptItem[], floating: readonly Tr
  * already running and starts none of its own, so letting it fill a placeholder
  * would draw a mid-turn correction as the prompt of somebody else's turn.
  */
-const isAuthoredRow = (item: TranscriptItem): boolean =>
-  (item.kind === 'user' && item.displayKind !== 'steer') ||
-  item.kind === 'bot_dm_in' ||
-  item.kind === 'cron_delivery' ||
-  isInjectedNotice(item)
+const isAuthoredRow = opensTurn
 
 /** Merge live knowledge onto a hydrated row: history is thinner than the stream. */
 function mergeWithLive(fresh: TranscriptItem, current: TranscriptItem): TranscriptItem {
@@ -450,7 +446,12 @@ export function reconcile(state: ChatState, freshItems: readonly TranscriptItem[
     kept.push(item)
   })
 
-  const next = rebuild(state, placeByTimestamp([...merged, ...kept], settled))
+  /*
+    The live copies a replay stood up beside rows that were already on screen
+    are matched by nothing above: their rows took the row-id match. They are
+    folded into those rows here, one turn at a time (`foldLiveCopies`).
+  */
+  const next = rebuild(state, foldLiveCopies(placeByTimestamp([...merged, ...kept], settled), state.turn.assistantId))
 
   next.hydration = 'live'
 
@@ -665,7 +666,7 @@ export function reconcileTail(state: ChatState, tailItems: readonly TranscriptIt
     }
   }
 
-  const next = rebuild(state, inRowOrder(merged))
+  const next = rebuild(state, foldLiveCopies(inRowOrder(merged), state.turn.assistantId))
 
   next.turn = { ...next.turn, foreignReconcilePending: stillPending ? true : undefined }
 

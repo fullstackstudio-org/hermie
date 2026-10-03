@@ -22,6 +22,7 @@ import {
   type UserRowClass
 } from './rows-to-items'
 import { subagentIdOf, TERMINAL_SUBAGENT_STATUS, toSubagent } from './subagent-progress'
+import { opensTurn, sameWords, unshownTail } from './turns'
 import type { ErrorSurface, SessionLiveInfo, Usage } from '@hermes/shared/gateway-events'
 import {
   type ApprovalItem,
@@ -425,8 +426,165 @@ function sealAssistantForTool(next: ChatState): void {
 
   patchItem<AssistantItem>(next, id, draft => {
     draft.streaming = false
-    draft.interim = true
+    // A bubble a tail already paired with its row is a message, not a preview.
+    draft.interim = draft.rowId === undefined
   })
+}
+
+/** Tool-like items: the calls a turn's notes stand between. */
+const isCall = (item: TranscriptItem): boolean =>
+  item.kind === 'tool' || item.kind === 'bot_dm_out' || item.kind === 'subagent_group'
+
+/** The ids of the turn now running: everything after the newest item that opened one. */
+function currentTurnIds(next: ChatState): string[] {
+  const ids: string[] = []
+
+  for (let index = next.order.length - 1; index >= 0; index -= 1) {
+    const id = next.order[index]
+    const item = id ? next.items[id] : undefined
+
+    if (!id || !item) {
+      continue
+    }
+
+    if (opensTurn(item)) {
+      break
+    }
+
+    ids.push(id)
+  }
+
+  return ids.reverse()
+}
+
+/**
+ * The row this turn already holds for a note with these words, if the transcript
+ * is showing one.
+ *
+ * `message.interim` names no row, and the gateway writes the row BEFORE it sends
+ * the frame (`agent/turn_tool_round.py`). So the row can be on screen first: a
+ * chat opened from a cache saved mid-turn reads history and then replays the
+ * frames after its watermark, and a tail can land between the write and the
+ * frame. Pairing on the words is safe inside one turn and only there: the
+ * gateway never delivers one interim text twice in a turn
+ * (`_delivered_interim_texts`), while two turns may both say "On it.".
+ */
+function persistedNoteFor(next: ChatState, words: string, exclude: string | undefined): AssistantItem | undefined {
+  for (const id of currentTurnIds(next)) {
+    const item = next.items[id]
+
+    if (item?.kind === 'assistant' && item.rowId !== undefined && id !== exclude && sameWords(item.text, words)) {
+      return item
+    }
+  }
+
+  return undefined
+}
+
+/**
+ * The row this turn already holds for its REPLY, if the transcript is showing one.
+ *
+ * Narrower than a note on purpose: a reply is the turn's last assistant row, with
+ * no call after it. A note that happens to say the same words stands before a
+ * call, so it is never mistaken for the reply the turn is finishing with.
+ */
+function persistedReplyFor(next: ChatState, words: string, exclude: string | undefined): AssistantItem | undefined {
+  const turn = currentTurnIds(next).filter(id => id !== exclude)
+
+  for (let index = turn.length - 1; index >= 0; index -= 1) {
+    const item = next.items[turn[index] ?? '']
+
+    if (!item || item.kind === 'status') {
+      continue
+    }
+
+    if (item.kind !== 'assistant') {
+      if (isCall(item)) {
+        return undefined
+      }
+
+      continue
+    }
+
+    return item.rowId !== undefined && sameWords(item.text, words) ? item : undefined
+  }
+
+  return undefined
+}
+
+/**
+ * Fold a live bubble into the row that already describes it, keeping what only
+ * the stream knew: history carries no duration and no usage, and on older
+ * gateways no reasoning.
+ */
+function settleOntoRow(next: ChatState, liveId: string, rowItemId: string): void {
+  const live = next.items[liveId]
+
+  if (live?.kind !== 'assistant' || liveId === rowItemId) {
+    return
+  }
+
+  patchItem<AssistantItem>(next, rowItemId, draft => {
+    if (draft.reasoning === undefined && live.reasoning !== undefined) {
+      draft.reasoning = live.reasoning
+    }
+
+    if (draft.reasoningVerbose === undefined && live.reasoningVerbose !== undefined) {
+      draft.reasoningVerbose = live.reasoningVerbose
+    }
+
+    if (draft.durationS === undefined && live.durationS !== undefined) {
+      draft.durationS = live.durationS
+    }
+
+    if (draft.usage === undefined && live.usage !== undefined) {
+      draft.usage = live.usage
+    }
+  })
+  dropItem(next, liveId)
+
+  if (next.turn.assistantId === liveId) {
+    next.turn.assistantId = undefined
+  }
+
+  if (next.turn.reasoningId === liveId) {
+    next.turn.reasoningId = rowItemId
+  }
+}
+
+/**
+ * A `tool.start` for a call the transcript already holds.
+ *
+ * That is a replay: a chat opened from a cache saved mid-turn reads history, then
+ * gets every frame after its watermark again, and the call's row is already on
+ * screen. A second card for it would stand beside the first, and the words the
+ * replay streamed in front of it are the note history already put right above
+ * that call, so they settle onto it. Anything else in the bubble is sealed the
+ * ordinary way.
+ */
+function settleReplayedCall(next: ChatState, callId: string): void {
+  const id = next.turn.assistantId
+  const bubble = id ? next.items[id] : undefined
+
+  if (bubble?.kind === 'assistant' && bubble.rowId === undefined) {
+    for (let index = next.order.indexOf(callId) - 1; index >= 0; index -= 1) {
+      const item = next.items[next.order[index] ?? '']
+
+      if (!item || item.kind === 'status' || isCall(item)) {
+        continue
+      }
+
+      if (item.kind === 'assistant' && item.id !== bubble.id && sameWords(item.text, bubble.text)) {
+        settleOntoRow(next, bubble.id, item.id)
+
+        return
+      }
+
+      break
+    }
+  }
+
+  sealAssistantForTool(next)
 }
 
 function cancelOpenRequests(next: ChatState, reason: string): void {
@@ -635,15 +793,32 @@ export function applyEvent(state: ChatState, event: TranscriptEvent, now: number
     case 'message.interim': {
       const text = str(payload.text)
       const id = next.turn.assistantId
+      const live = id ? next.items[id] : undefined
+      const bubble = live?.kind === 'assistant' ? live : undefined
+      // The row this note was written as, when it is already on screen. The
+      // frame then describes that row a second time, so the bubble the stream
+      // built for it settles onto it rather than being sealed beside it.
+      const row = persistedNoteFor(next, text || (bubble?.text ?? ''), bubble?.id)
 
-      if (id && next.items[id]?.kind === 'assistant') {
-        patchItem<AssistantItem>(next, id, draft => {
+      if (row) {
+        if (bubble && bubble.rowId === undefined) {
+          settleOntoRow(next, bubble.id, row.id)
+        }
+
+        next.turn.assistantId = undefined
+
+        return next
+      }
+
+      if (bubble) {
+        patchItem<AssistantItem>(next, bubble.id, draft => {
           if (text) {
             draft.text = text
           }
 
           draft.streaming = false
-          draft.interim = true
+          // A bubble a tail already paired with its row is a message, not a preview.
+          draft.interim = draft.rowId === undefined
         })
         next.turn.assistantId = undefined
 
@@ -685,6 +860,15 @@ export function applyEvent(state: ChatState, event: TranscriptEvent, now: number
     }
 
     case 'tool.start': {
+      const known = str(payload.tool_id) ? next.byToolId[str(payload.tool_id)] : undefined
+
+      if (known && next.items[known]) {
+        settleReplayedCall(next, known)
+        next.turn.draftingTool = undefined
+
+        return next
+      }
+
       sealAssistantForTool(next)
       next.turn.draftingTool = undefined
 
@@ -947,15 +1131,24 @@ export function applyEvent(state: ChatState, event: TranscriptEvent, now: number
       // Without that flag, a tool call in the middle of the turn has the same
       // effect: it sealed the bubble, so this completion has nowhere to land.
       const continued = next.turn.assistantId ? undefined : interimContinuedBy(next, finalText)
-      const id =
-        next.turn.assistantId ??
-        previewed ??
-        continued ??
-        (finalText || failure ? currentAssistantId(next, now) : undefined)
+      const landing = next.turn.assistantId ?? previewed ?? continued
+      const target = landing ? next.items[landing] : undefined
+      // The reply already on screen as this turn's last row: the frame is a
+      // replay over a reload, so the bubble it streamed settles onto the row.
+      const replyRow =
+        target === undefined || (target.kind === 'assistant' && target.rowId === undefined)
+          ? persistedReplyFor(next, finalText || (target?.kind === 'assistant' ? target.text : ''), target?.id)
+          : undefined
+
+      if (replyRow && target) {
+        settleOntoRow(next, target.id, replyRow.id)
+      }
+
+      const id = replyRow?.id ?? landing ?? (finalText || failure ? currentAssistantId(next, now) : undefined)
 
       if (id) {
         patchItem<AssistantItem>(next, id, draft => {
-          if (finalText && payload.response_previewed !== true) {
+          if (finalText && payload.response_previewed !== true && !replyRow) {
             draft.text = finalText
           }
 
@@ -1769,14 +1962,25 @@ export function applyResumeSnapshot(state: ChatState, snapshot: ResumeSnapshot, 
   // `live` branch below covers the bubble a stream is still filling.
   if ((assistantText || failure) && !overlap.replyPersisted) {
     const live = liveAssistantOfCurrentTurn(next)
+    // `inflight.assistant` is the whole turn's deltas run together, so the notes
+    // this turn already sealed (and the gateway already wrote) open it. Those are
+    // on screen as their own items; only what follows them is this bubble's.
+    const earlier = currentTurnIds(next)
+      .map(id => next.items[id])
+      .filter((item): item is AssistantItem => item?.kind === 'assistant' && item.id !== live?.id)
+    const unshown = unshownTail(assistantText, earlier)
+    const replyText = unshown ?? assistantText
 
-    if (!live) {
+    // Every word of it already a note above: nothing is left to stand up.
+    const nothingNew = unshown !== undefined && !unshown.trim() && !failure
+
+    if (!live && !nothingNew) {
       const item = addItem<AssistantItem>(
         next,
         {
           id: `i:${next.turn.nextSeq}`,
           kind: 'assistant',
-          text: assistantText,
+          text: replyText,
           streaming: inflight.streaming === true,
           interim: false,
           ...(failure
@@ -1792,7 +1996,7 @@ export function applyResumeSnapshot(state: ChatState, snapshot: ResumeSnapshot, 
       if (inflight.streaming === true) {
         next.turn.assistantId = item.id
       }
-    } else {
+    } else if (live) {
       // `inflight.assistant` is this turn's reply flattened to one string, and
       // the bubble on screen is that same reply — so it settles onto it. A
       // bubble a tool call already SEALED holds one segment of that flat
@@ -1802,8 +2006,8 @@ export function applyResumeSnapshot(state: ChatState, snapshot: ResumeSnapshot, 
 
       patchItem<AssistantItem>(next, live.id, draft => {
         if (!sealed) {
-          if (assistantText.length > draft.text.length) {
-            draft.text = assistantText
+          if (replyText.length > draft.text.length) {
+            draft.text = replyText
           }
 
           draft.streaming = inflight.streaming === true

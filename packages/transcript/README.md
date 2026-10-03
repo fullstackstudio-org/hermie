@@ -66,6 +66,19 @@ left a file-only send with no candidate at all, which is how it came back as a
 second bubble. `duplicate-turns.test.ts` runs both a conversation of words and one
 whose prompt is only a file through every route a transcript can arrive on.
 
+### A mid-turn note is paired inside its turn
+
+A note the bot writes between tool calls has no id in common with its row
+either: the gateway streams it, writes the row, and only then sends
+`message.interim` with the words alone. A chat opened from a cache saved
+mid-turn reads history and then replays the frames after its watermark, so the
+same note arrives as a row AND as frames. `turns.ts` pairs the two on their
+words, but only inside one turn (the gateway never sends one interim text twice
+in a turn, while two turns may say the same thing), and only onto a row no live
+bubble has claimed yet. `duplicate-interims.test.ts` and the `interim-reopen`
+stream scenario pin it, including the two messages that really are the same
+words.
+
 Two rules the reducer never breaks:
 
 1. **It never filters.** Verbosity and the bot-to-bot toggle are read-time
@@ -194,6 +207,7 @@ desktop does: strip a leading `@`, strip an `@<connection>` suffix, keep the las
 | `reducer.ts`           | gateway events, server requests, resume snapshots, local turns |
 | `subagent-progress.ts` | `subagent.*` payload → `Subagent`                              |
 | `reconcile.ts`         | stable-id merge and tail reconcile                             |
+| `turns.ts`             | turn boundaries, and a note's second description inside one    |
 | `selectors.ts`         | verbosity, bot-to-bot, subagent views                          |
 | `cache.ts`             | the offline snapshot shape                                     |
 

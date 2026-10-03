@@ -432,7 +432,13 @@ export function rowsToItems(rows: readonly TranscriptRow[], shape: RowShape, opt
 
     if (role === 'tool') {
       const name = typeof row.name === 'string' ? row.name : 'tool'
-      const toolId = (typeof row.tool_id === 'string' && row.tool_id) || `row-${index}`
+      // The gateway's history projection names the call `tool_call_id`
+      // (`tui_gateway/session_history.py`), the same id `tool.start` carried as
+      // `tool_id`; without it a reloaded call never met its live card.
+      const toolId =
+        (typeof row.tool_id === 'string' && row.tool_id) ||
+        (typeof row.tool_call_id === 'string' && row.tool_call_id) ||
+        `row-${index}`
       const args = row.args ?? undefined
       const context = typeof row.context === 'string' && row.context ? row.context : undefined
 
