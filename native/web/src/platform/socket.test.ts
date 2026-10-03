@@ -1,6 +1,6 @@
 import { afterEach, describe, expect, it, vi } from 'vitest'
 
-import { createSocketFactory, ErrorDataOutbox, headerlessWebSocket, PlatformWebSocket } from './socket'
+import { createSocketFactory, ErrorDataOutbox, headerlessWebSocket, PlatformWebSocket, ReplayGapTap } from './socket'
 
 /** Records what a DOM-shaped constructor was called with. */
 class RecordingSocket extends EventTarget {
@@ -117,5 +117,113 @@ describe('the error data outbox', () => {
       })
     ).toThrow('gone')
     expect(outbox.rewrite(errorFrame('srq-3', 4040))).toBe(errorFrame('srq-3', 4040))
+  })
+})
+
+describe('the replay gap tap', () => {
+  class TappedSocket extends EventTarget {
+    static sent: unknown[] = []
+
+    send(data: unknown): void {
+      TappedSocket.sent.push(data)
+    }
+
+    /** A frame from the gateway, as the browser delivers it. */
+    deliver(data: unknown): void {
+      this.dispatchEvent(new MessageEvent('message', { data }))
+    }
+  }
+
+  afterEach(() => {
+    TappedSocket.sent = []
+  })
+
+  const ask = (id: string | number, sessionId: string): string =>
+    JSON.stringify({
+      jsonrpc: '2.0',
+      id,
+      method: 'session.events.since',
+      params: { session_id: sessionId, last_seen: 4 }
+    })
+  const answer = (id: string | number, truncated: boolean): string =>
+    JSON.stringify({ jsonrpc: '2.0', id, result: { events: [], latest_seq: 9, truncated, epoch: 'e1' } })
+
+  const tapped = (): { socket: TappedSocket; gaps: string[]; tap: ReplayGapTap } => {
+    const tap = new ReplayGapTap()
+    const gaps: string[] = []
+
+    tap.onGap(sessionId => gaps.push(sessionId))
+
+    const socket = new (headerlessWebSocket(TappedSocket as never, { replayGaps: tap }))(
+      'ws://gateway.example.com/api/ws'
+    ) as unknown as TappedSocket
+
+    return { socket, gaps, tap }
+  }
+
+  it('names the session whose replay answered truncated, before the connection reads the answer', () => {
+    const { socket, gaps } = tapped()
+    const seenByConnection: string[][] = []
+
+    socket.addEventListener('message', () => seenByConnection.push([...gaps]))
+    socket.send(ask('r-1', 'rt-a'))
+    socket.send(ask(2, 'rt-b'))
+    socket.deliver(answer(2, true))
+    socket.deliver(answer('r-1', false))
+
+    expect(gaps).toEqual(['rt-b'])
+    expect(seenByConnection).toEqual([['rt-b'], ['rt-b']])
+    // Every frame went out as it was.
+    expect(TappedSocket.sent).toEqual([ask('r-1', 'rt-a'), ask(2, 'rt-b')])
+  })
+
+  it('reads only the answers to replay calls, once each', () => {
+    const { socket, gaps } = tapped()
+
+    socket.send(
+      JSON.stringify({ jsonrpc: '2.0', id: 'r-3', method: 'session.history', params: { session_id: 'rt-a' } })
+    )
+    socket.deliver(JSON.stringify({ jsonrpc: '2.0', id: 'r-3', result: { truncated: true } }))
+    socket.send(ask('r-4', 'rt-a'))
+    socket.deliver(answer('r-4', true))
+    socket.deliver(answer('r-4', true))
+    socket.deliver('not json')
+    socket.deliver(new ArrayBuffer(2))
+
+    expect(gaps).toEqual(['rt-a'])
+  })
+
+  it('keeps going when a listener throws, and stops telling one that left', () => {
+    const tap = new ReplayGapTap()
+    const heard: string[] = []
+
+    tap.onGap(() => {
+      throw new Error('not mine')
+    })
+    const stop = tap.onGap(sessionId => heard.push(sessionId))
+
+    tap.outgoing(ask('r-5', 'rt-c'))
+    tap.incoming(answer('r-5', true))
+    stop()
+    tap.outgoing(ask('r-6', 'rt-c'))
+    tap.incoming(answer('r-6', true))
+
+    expect(heard).toEqual(['rt-c'])
+  })
+
+  it('forgets the oldest call once too many wait', () => {
+    const tap = new ReplayGapTap()
+    const heard: string[] = []
+
+    tap.onGap(sessionId => heard.push(sessionId))
+
+    for (let index = 0; index <= 256; index += 1) {
+      tap.outgoing(ask(`r-${index}`, `rt-${index}`))
+    }
+
+    tap.incoming(answer('r-0', true))
+    tap.incoming(answer('r-256', true))
+
+    expect(heard).toEqual(['rt-256'])
   })
 })
