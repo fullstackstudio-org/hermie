@@ -1,0 +1,54 @@
+/* Development only: the transcript item gallery (`item-gallery.tsx`). */
+
+.gallery {
+  box-sizing: border-box;
+  max-width: 56rem;
+  margin: 0 auto;
+  padding: 1.5rem 16px 4rem;
+  color: var(--hm-text);
+  font-family: var(--hm-font);
+}
+
+.gallery h2 {
+  margin: 2.5rem 0 0.5rem;
+  border-bottom: 1px solid var(--hm-line);
+}
+
+.gallery h3 {
+  margin: 1.5rem 0 0.25rem;
+  font-size: 1rem;
+}
+
+.gallery__case {
+  display: grid;
+  grid-template-columns: 9rem 1fr;
+  gap: 12px;
+  align-items: start;
+  padding: 8px 0;
+  border-top: 1px dashed var(--hm-line);
+}
+
+.gallery__label {
+  margin: 4px 0 0;
+  color: var(--hm-text-muted);
+  font-family: var(--hm-mono);
+  font-size: 0.75rem;
+  font-weight: 400;
+}
+
+.gallery__row {
+  min-width: 0;
+}
+
+.gallery__row:empty::after {
+  content: '(draws nothing)';
+  color: var(--hm-text-faint);
+  font-size: 0.8125rem;
+}
+
+@media (max-width: 40rem) {
+  .gallery__case {
+    grid-template-columns: 1fr;
+    gap: 4px;
+  }
+}

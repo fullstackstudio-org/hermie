@@ -1,0 +1,417 @@
+/*
+ * The item views that are not bubbles: a tool card's glyph, a reply's thought,
+ * a failed turn's retry, system lines, bot-to-bot asides and their roll-up, a
+ * cron delivery and a fan-out of agents. The shared row shapes (`.hm-chip`,
+ * `.hm-tool`, `.hm-notice`, `.hm-failure`) are in `../chat.css`; this file only
+ * adds what these views draw on top. Colours are the theme's tokens only, so
+ * `theme.contrast.test.ts` holds every pair.
+ */
+
+/* ── tool card ─────────────────────────────────────────────────────────────── */
+
+.hm-tool__glyph {
+  flex: none;
+  width: 1.5em;
+  color: var(--hm-text-muted);
+  font-family: var(--hm-mono);
+  font-size: 0.875rem;
+  text-align: center;
+}
+
+.hm-tool[data-failed='true'] .hm-tool__glyph {
+  color: var(--hm-danger-text);
+  font-weight: 700;
+}
+
+.hm-tool__diff {
+  margin-top: 8px;
+}
+
+.hm-chip__link {
+  color: inherit;
+  text-decoration: underline;
+}
+
+/* ── a reply's thought, and the asides that share its silhouette ──────────── */
+
+.hm-thought {
+  margin: 0 0 4px 12px;
+  max-width: min(46rem, 92%);
+}
+
+.hm-thought__line,
+.hm-dm__line,
+.hm-rollup__line {
+  appearance: none;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  min-height: 32px;
+  margin: 0;
+  padding: 2px 0;
+  border: 0;
+  background: transparent;
+  color: var(--hm-text-muted);
+  font: inherit;
+  font-size: 0.8125rem;
+  text-align: left;
+  cursor: pointer;
+}
+
+p.hm-thought__line {
+  cursor: default;
+}
+
+.hm-thought__line:hover,
+.hm-dm__line:hover,
+.hm-rollup__line:hover {
+  color: var(--hm-text);
+}
+
+.hm-thought__text {
+  margin: 2px 0 6px;
+  padding-left: 10px;
+  border-left: 2px solid var(--hm-line);
+  color: var(--hm-text-muted);
+  font-size: 0.875rem;
+  line-height: 1.45;
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+}
+
+/* ── bot-to-bot aside ──────────────────────────────────────────────────────── */
+
+.hm-dm,
+.hm-rollup {
+  box-sizing: border-box;
+  max-width: min(46rem, 92%);
+  padding-left: 10px;
+  border-left: 2px solid var(--hm-line);
+  color: var(--hm-text-muted);
+  overflow-wrap: anywhere;
+}
+
+.hm-dm__line {
+  display: flex;
+  width: 100%;
+  min-width: 0;
+}
+
+.hm-dm__arrow {
+  flex: none;
+  color: var(--hm-text-faint);
+}
+
+/* Its right margin takes what the preview leaves: the time and the marker stay on the right, open or closed. */
+.hm-dm__header {
+  flex: none;
+  max-width: 50%;
+  margin-right: auto;
+  overflow: hidden;
+  font-weight: 600;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/* The one part of the line that can afford to go: the open body shows all of it. */
+.hm-dm__preview {
+  flex: 1 100 auto;
+  min-width: 0;
+  overflow: hidden;
+  color: var(--hm-text-faint);
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.hm-dm__time {
+  flex: none;
+  color: var(--hm-text-faint);
+}
+
+/* After the preview, the marker is what may give way on a narrow column: never past the row's edge. */
+.hm-dm__marker {
+  display: inline-flex;
+  flex: 0 1 auto;
+  align-items: center;
+  gap: 4px;
+  min-width: 0;
+  color: var(--hm-text-faint);
+}
+
+.hm-dm__marker-label {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.hm-dm__dot,
+.hm-dm__line > .hm-icon {
+  flex: none;
+}
+
+.hm-dm__marker[data-tone='replied'],
+.hm-dm__marker[data-tone='answered'] {
+  color: var(--hm-tint-text);
+}
+
+.hm-dm__marker[data-tone='failed'] {
+  color: var(--hm-danger-text);
+}
+
+/* Waiting is a still, hollow dot: the shape the design gives to waiting, instead of motion. */
+.hm-dm__dot {
+  box-sizing: border-box;
+  width: 8px;
+  height: 8px;
+  border: 1.5px solid currentColor;
+  border-radius: 50%;
+}
+
+.hm-dm__body {
+  padding: 0 0 6px;
+  font-size: 0.875rem;
+}
+
+.hm-dm__body .md {
+  --md-link: var(--hm-link);
+}
+
+.hm-dm__status {
+  margin: 4px 0 0;
+  color: var(--hm-text-faint);
+  font-size: 0.8125rem;
+}
+
+.hm-dm__status[data-tone='danger'] {
+  color: var(--hm-danger-text);
+}
+
+.hm-dm__reply {
+  margin-top: 8px;
+}
+
+.hm-dm__reply-label {
+  margin: 0;
+  color: var(--hm-text-faint);
+  font-size: 0.75rem;
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+
+.hm-dm__open {
+  display: inline-block;
+  margin-top: 6px;
+  color: var(--hm-tint-text);
+  font-size: 0.8125rem;
+  font-weight: 600;
+}
+
+/* ── roll-up of asides ─────────────────────────────────────────────────────── */
+
+.hm-rollup__members {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+/* An aside inside a roll-up is already under the roll-up's rule. */
+.hm-rollup__members .hm-dm {
+  max-width: 100%;
+  padding-left: 0;
+  border-left: 0;
+}
+
+/* ── system line ───────────────────────────────────────────────────────────── */
+
+.hm-system-line {
+  box-sizing: border-box;
+  max-width: min(40rem, 100%);
+  margin: 4px auto;
+  padding: 0 24px;
+  color: var(--hm-text-muted);
+  font-size: 0.8125rem;
+  text-align: center;
+  overflow-wrap: anywhere;
+}
+
+/* ── failed turn ───────────────────────────────────────────────────────────── */
+
+.hm-failure__message {
+  margin-top: 2px;
+  white-space: pre-wrap;
+}
+
+.hm-failure__retry {
+  appearance: none;
+  min-height: 36px;
+  margin-top: 8px;
+  padding: 4px 14px;
+  border: 1px solid var(--hm-line);
+  border-radius: var(--hm-radius-pill);
+  background: var(--hm-surface);
+  color: var(--hm-text);
+  font: inherit;
+  font-size: 0.875rem;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.hm-failure__retry:hover {
+  background: var(--hm-surface-hover);
+}
+
+/* ── cron delivery ─────────────────────────────────────────────────────────── */
+
+.hm-cron,
+.hm-agents {
+  box-sizing: border-box;
+  max-width: min(46rem, 100%);
+  border: 1px solid var(--hm-line);
+  border-radius: var(--hm-radius);
+  background: var(--hm-surface);
+  color: var(--hm-text);
+  overflow-wrap: anywhere;
+}
+
+.hm-cron__line {
+  appearance: none;
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  width: 100%;
+  min-height: 44px;
+  padding: 8px 12px;
+  border: 0;
+  border-radius: inherit;
+  background: transparent;
+  color: inherit;
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+}
+
+.hm-cron__line:hover {
+  background: var(--hm-surface-hover);
+}
+
+.hm-cron__glyph {
+  flex: none;
+  width: 1.5em;
+  color: var(--hm-text-muted);
+  text-align: center;
+}
+
+.hm-cron__heading {
+  display: flex;
+  flex: 1 1 auto;
+  flex-direction: column;
+  min-width: 0;
+}
+
+.hm-cron__eyebrow {
+  color: var(--hm-text-muted);
+  font-size: 0.6875rem;
+  font-weight: 600;
+  letter-spacing: 0.06em;
+}
+
+.hm-cron__name {
+  font-weight: 600;
+}
+
+.hm-cron__meta {
+  color: var(--hm-text-muted);
+  font-size: 0.8125rem;
+}
+
+.hm-cron__body {
+  padding: 4px 12px 10px;
+  border-top: 1px solid var(--hm-line);
+}
+
+.hm-cron__body .md {
+  --md-link: var(--hm-link);
+}
+
+.hm-cron__empty {
+  margin: 6px 0 0;
+  color: var(--hm-text-muted);
+  font-size: 0.875rem;
+}
+
+/* ── fan-out of agents ─────────────────────────────────────────────────────── */
+
+.hm-agents {
+  padding: 8px 12px;
+}
+
+.hm-agents__header {
+  display: flex;
+  align-items: baseline;
+  gap: 8px;
+  margin: 0;
+}
+
+.hm-agents__title {
+  flex: 1 1 auto;
+  min-width: 0;
+  font-weight: 600;
+}
+
+.hm-agents__count,
+.hm-agents__duration {
+  flex: none;
+  color: var(--hm-text-muted);
+  font-size: 0.8125rem;
+}
+
+.hm-agents__goals {
+  margin: 6px 0 0;
+  padding: 0;
+  list-style: none;
+}
+
+.hm-agents__goal {
+  display: flex;
+  align-items: baseline;
+  gap: 8px;
+  margin: 2px 0;
+  font-size: 0.875rem;
+}
+
+.hm-agents__glyph {
+  flex: none;
+  width: 1em;
+  color: var(--hm-text-muted);
+  text-align: center;
+}
+
+.hm-agents__goal[data-status='completed'] .hm-agents__glyph,
+.hm-agents__goal[data-status='running'] .hm-agents__glyph {
+  color: var(--hm-tint-text);
+}
+
+.hm-agents__goal[data-status='failed'] .hm-agents__glyph {
+  color: var(--hm-danger-text);
+}
+
+.hm-agents__text {
+  flex: 1 1 auto;
+  min-width: 0;
+}
+
+/* Collapsed: a goal is one line; the verbose level writes every goal out. */
+.hm-agents[data-detailed='false'] .hm-agents__text {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.hm-agents__completion {
+  margin: 8px 0 0;
+  color: var(--hm-text-muted);
+  font-size: 0.875rem;
+  white-space: pre-wrap;
+}

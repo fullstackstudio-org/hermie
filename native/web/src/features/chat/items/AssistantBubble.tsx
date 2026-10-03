@@ -1,15 +1,19 @@
 /**
  * The bot's reply.
  *
+ * Its thought first, when the reader's view settings show thinking: one quiet
+ * line that opens (`ReasoningDisclosure`). A reply that so far holds only a
+ * thought is that line and nothing else.
+ *
  * One bubble from start to finish: while the turn has said nothing yet the
  * bubble holds three dots, and the words replace them in the same bubble (the
  * Expo app's rule, which exists because a bubble of dots under an empty box was
  * the bug it was written after). A reply with nothing to say and nothing wrong
  * is not drawn at all.
  *
- * A failed turn is a card under whatever words arrived. A partial reply is worth
- * keeping, so the words stay; "the gateway still holds the turn" says so instead
- * of offering a retry that would run it twice.
+ * A failed turn is a card under whatever words arrived (`ErrorCard`). A partial
+ * reply is worth keeping, so the words stay; "the gateway still holds the turn"
+ * says so instead of offering a retry that would run it twice.
  *
  * The footer says how long it took, what it cost and on what, only when the
  * gateway reported usage: a duration alone is a number with nothing to attach it
@@ -23,8 +27,10 @@ import { formatNumber } from '../../../i18n/format'
 import { useLocale } from '../../../i18n/use-locale'
 import { webStrings } from '../../../i18n/web-strings'
 import { clockOf, formatDuration, isoOf } from '../chat-format'
+import { ErrorCard } from './ErrorCard'
 import { useItemContext } from './item-context'
 import { MessageMarkdown } from './MessageMarkdown'
+import { ReasoningDisclosure } from './ReasoningDisclosure'
 import { type RowViewProps, sameRowView } from './row-view'
 
 /** Three dots. Decoration with a name: the reader of the page is told a reply is coming. */
@@ -75,9 +81,12 @@ function AssistantBubbleView({ item, presentation }: RowViewProps<AssistantItem>
   const waiting = item.streaming && !hasText
   const clock = clockOf(item.ts)
   const footer = item.interim ? [] : footerParts(item)
+  // The selectors take the thought away when the reader's settings hide thinking.
+  const thought = item.reasoning ?? ''
+  const hasThought = thought.trim() !== ''
 
-  // Nothing said, nothing wrong, nothing coming: a row of the transcript that is not a message.
-  if (!hasText && !waiting && !item.error) {
+  // Nothing said, nothing thought, nothing wrong, nothing coming: a row that is not a message.
+  if (!hasText && !waiting && !item.error && !hasThought) {
     return null
   }
 
@@ -93,6 +102,10 @@ function AssistantBubbleView({ item, presentation }: RowViewProps<AssistantItem>
       ) : null}
       {item.interim ? <p className="hm-msg__sender">{strings.chat.assistant.interim}</p> : null}
 
+      {hasThought ? (
+        <ReasoningDisclosure text={thought} durationS={item.durationS} streaming={item.streaming && !hasText} />
+      ) : null}
+
       {hasText || waiting ? (
         <div className="hm-bubble" data-kind="assistant" data-waiting={waiting ? 'true' : 'false'}>
           {hasText ? <MessageMarkdown text={item.text} /> : <TypingDots />}
@@ -105,13 +118,7 @@ function AssistantBubbleView({ item, presentation }: RowViewProps<AssistantItem>
         </div>
       ) : null}
 
-      {item.error ? (
-        <div className="hm-failure" data-recoverable={item.error.recoverable ? 'true' : 'false'}>
-          <p className="hm-failure__title">{strings.chat.assistant.errorTitle}</p>
-          <p className="hm-failure__message">{item.error.message}</p>
-          {item.error.recoverable ? <p className="hm-failure__note">{strings.chat.assistant.reconnecting}</p> : null}
-        </div>
-      ) : null}
+      {item.error ? <ErrorCard error={item.error} /> : null}
 
       {footer.length > 0 ? <p className="hm-msg__footer">{strings.chat.assistant.footer({ parts: footer })}</p> : null}
     </article>

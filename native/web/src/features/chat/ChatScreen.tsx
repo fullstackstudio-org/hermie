@@ -175,8 +175,8 @@ export function ChatScreen({ bot, session, view = DEFAULT_CHAT_VIEW }: ChatScree
   const rows = useMemo(() => transcriptRows(shown, { busy, turnActive }), [shown, busy, turnActive])
 
   const itemContext = useMemo<ItemContextValue>(
-    () => ({ botName: displayName, gatewayBaseUrl: runtime?.gatewayBaseUrl, ownAuthorId, groupChat }),
-    [displayName, runtime?.gatewayBaseUrl, ownAuthorId, groupChat]
+    () => ({ botName: displayName, gatewayBaseUrl: runtime?.gatewayBaseUrl, ownAuthorId, groupChat, chatKey: key }),
+    [displayName, runtime?.gatewayBaseUrl, ownAuthorId, groupChat, key]
   )
 
   /** Stable, so every row is memoised on its own `(id, version)` and not on this function. */

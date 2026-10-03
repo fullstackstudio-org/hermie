@@ -6,10 +6,14 @@
  */
 import {
   type AssistantItem,
+  type BotDmInItem,
+  type BotDmOutItem,
   type ChatState,
+  type CronDeliveryItem,
   createChatState,
   type NoticeItem,
   type StatusItem,
+  type SubagentGroupItem,
   type ToolItem,
   type TranscriptItem,
   type UserItem
@@ -70,6 +74,52 @@ export const statusItem = (text: string, over: Partial<StatusItem> = {}, id?: st
   kind: 'status',
   statusKind: 'lifecycle',
   text,
+  ...over
+})
+
+export const botDmInItem = (text: string, over: Partial<BotDmInItem> = {}, id?: string): BotDmInItem => ({
+  ...base('bot_dm_in', id, over.ts ?? LONG_AGO),
+  kind: 'bot_dm_in',
+  senderName: 'Writer',
+  senderHandle: 'writer',
+  text,
+  ...over
+})
+
+export const botDmOutItem = (message: string, over: Partial<BotDmOutItem> = {}, id?: string): BotDmOutItem => ({
+  ...base('bot_dm_out', id, over.ts ?? LONG_AGO),
+  kind: 'bot_dm_out',
+  toolId: `call-${counter}`,
+  target: '@writer',
+  targetHandle: 'writer',
+  message,
+  dispatch: { status: 'queued' },
+  ...over
+})
+
+export const cronDeliveryItem = (
+  body: string,
+  over: Partial<CronDeliveryItem> = {},
+  id?: string
+): CronDeliveryItem => ({
+  ...base('cron_delivery', id, over.ts ?? LONG_AGO),
+  kind: 'cron_delivery',
+  jobName: 'Source scan',
+  body,
+  shape: 'bot_chat',
+  ...over
+})
+
+export const subagentGroupItem = (
+  goals: string[],
+  over: Partial<SubagentGroupItem> = {},
+  id?: string
+): SubagentGroupItem => ({
+  ...base('subagent_group', id, over.ts ?? LONG_AGO),
+  kind: 'subagent_group',
+  goals,
+  rootIds: [],
+  status: 'running',
   ...over
 })
 
