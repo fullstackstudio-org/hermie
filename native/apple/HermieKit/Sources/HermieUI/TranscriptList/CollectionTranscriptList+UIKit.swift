@@ -145,6 +145,9 @@
     /// measured there would be applied after the anchor was restored, and move
     /// the content by exactly that row's change (46 pt on an iPad, before this).
     var inFlow = false
+    /// The layout is moving the offset itself (putting an anchor back after a height change): the
+    /// scroll callbacks that causes are not the reader's.
+    private(set) var adjustingOffset = false
     /// How far beyond the viewport rows are measured ahead of being shown.
     private let lookahead: CGFloat = 400
 
@@ -245,7 +248,9 @@
       let adjustment = measureRows(around: collectionView.bounds, topInset: collectionView.adjustedContentInset.top)
       invalidateLayout()
       if adjustment != 0 {
+        adjustingOffset = true
         collectionView.contentOffset.y += adjustment
+        adjustingOffset = false
       }
     }
 
@@ -285,12 +290,14 @@
       }
       guard changed else { return }
       invalidateLayout()
+      adjustingOffset = true
       if pinned {
         collectionView.contentOffset.y = max(-inset.top, model.contentHeight + inset.bottom - collectionView.bounds.height)
       } else if let anchor, let top = model.visibleTop(restoring: anchor) {
         collectionView.contentOffset.y = top - inset.top
       }
       collectionView.layoutIfNeeded()
+      adjustingOffset = false
     }
   }
 
@@ -328,8 +335,9 @@
     private var loaded = false
     /// Content moves we cause ourselves; scroll callbacks ignore them.
     private var applying = 0
-    /// The reader is at the bottom, as of their last scroll.
-    private var pinned = true
+    /// Whether the list follows the newest row, and whether it is animating the offset itself.
+    private var pinning = ListPinning()
+    private var pinned: Bool { pinning.pinned }
 
     init(state: TranscriptListState, row: @escaping (Item) -> Row) {
       self.state = state
@@ -386,6 +394,15 @@
         contrast: environment.colorSchemeContrast)
       if let appearance, appearance != new, loaded {
         self.appearance = new
+        if appearance.dynamicTypeSize != new.dynamicTypeSize || appearance.legibilityWeight != new.legibilityWeight {
+          // Every row's height depends on the text size: all are measured again before they are
+          // shown, the ones on screen now.
+          layout.model.invalidateAll()
+          withApplying {
+            layout.measureVisible()
+            if pinned { keepAtBottom() }
+          }
+        }
         reconfigure(collectionView.indexPathsForVisibleItems)
       }
       appearance = new
@@ -432,11 +449,16 @@
         return
       }
       if old.count == newItems.count && zip(old, newItems).allSatisfy({ $0.id == $1.id }) {
-        // A delta: the same rows, some changed. Reconfigure the ones on screen.
+        // A delta: the same rows, some changed. Reconfigure the ones on screen; the ones off screen
+        // are measured again before they are shown, their old height standing until then.
         var changed: [IndexPath] = []
         let visible = Set(collectionView.indexPathsForVisibleItems.map(\.item))
-        for position in visible where position < newItems.count && old[position] != newItems[position] {
-          changed.append(IndexPath(item: position, section: 0))
+        for position in newItems.indices where old[position] != newItems[position] {
+          if visible.contains(position) {
+            changed.append(IndexPath(item: position, section: 0))
+          } else {
+            layout.model.invalidate(newItems[position].id)
+          }
         }
         if !changed.isEmpty { reconfigure(changed) }
         return
@@ -501,31 +523,46 @@
               collectionView.insertItems(at: inserted)
             }
           }
-          // Rows that stayed but changed, on screen: reconfigure them.
+          // Rows that stayed but changed: reconfigure the ones on screen, and measure the others
+          // again before they are shown (a neighbour arriving changes a bubble's tail and time).
           let oldByID = Dictionary(old.map { ($0.id, $0) }, uniquingKeysWith: { first, _ in first })
-          let changed = collectionView.indexPathsForVisibleItems.filter { indexPath in
-            guard indexPath.item < newItems.count, let before = oldByID[newItems[indexPath.item].id] else { return false }
-            return before != newItems[indexPath.item]
+          let visible = Set(collectionView.indexPathsForVisibleItems.map(\.item))
+          var changed: [IndexPath] = []
+          for (position, item) in newItems.enumerated() {
+            guard let before = oldByID[item.id], before != item else { continue }
+            if visible.contains(position) {
+              changed.append(IndexPath(item: position, section: 0))
+            } else {
+              layout.model.invalidate(item.id)
+            }
           }
           reconfigure(changed)
         } else {
           collectionView.reloadData()
         }
-        if let anchor, let top = layout.model.visibleTop(restoring: anchor) {
-          collectionView.contentOffset.y = top - inset.top
+        if let anchor, let top = restoredOffset(anchor, previousIDs: oldIDs) {
+          collectionView.contentOffset.y = top
         }
         // Rows that come into view at the restored offset are measured before
         // they are shown; the anchor is then put back exactly.
         layout.measureVisible()
         if keepBottom {
           keepAtBottom()
-        } else if let anchor, let top = layout.model.visibleTop(restoring: anchor) {
-          collectionView.contentOffset.y = top - inset.top
+        } else if let anchor, let top = restoredOffset(anchor, previousIDs: oldIDs) {
+          collectionView.contentOffset.y = top
         }
         collectionView.layoutIfNeeded()
       }
       updateEdges()
       announceLayoutChange()
+    }
+
+    /// The content offset that puts `anchor` back where it was, or the nearest row still there in
+    /// its place when its row is gone, kept within the content.
+    private func restoredOffset(_ anchor: TranscriptListLayoutModel<Item.ID>.Anchor, previousIDs: [Item.ID]) -> CGFloat? {
+      guard let top = layout.model.visibleTop(restoring: anchor, previousIDs: previousIDs) else { return nil }
+      let inset = collectionView.adjustedContentInset
+      return min(max(top - inset.top, -inset.top), maxOffset())
     }
 
     #if DEBUG
@@ -652,7 +689,8 @@
       lastCommand = commandSerial
       switch state.take() {
       case .bottom(let animated):
-        pinned = true
+        let moves = abs(maxOffset() - collectionView.contentOffset.y) > 0.5
+        pinning.listScrollsToBottom(animated: animated && moves)
         publishAtBottom()
         scrollToBottom(animated: animated)
       case .item(let id, let anchor, let animated):
@@ -661,8 +699,9 @@
         let visible = collectionView.bounds.height - inset.top - inset.bottom
         var y = frame.minY - inset.top - anchor.y * max(0, visible - frame.height)
         y = min(max(y, -inset.top), maxOffset())
-        pinned = false
-        collectionView.setContentOffset(CGPoint(x: 0, y: y), animated: animated)
+        let moves = abs(y - collectionView.contentOffset.y) > 0.5
+        pinning.listScrollsToRow(animated: animated && moves)
+        collectionView.setContentOffset(CGPoint(x: 0, y: y), animated: animated && moves)
         updateEdges()
       case .pan(let delta):
         // A stand-in for the reader's own scrolling, so it decides `pinned` as
@@ -670,7 +709,7 @@
         let y = min(max(collectionView.contentOffset.y + delta, -collectionView.adjustedContentInset.top), maxOffset())
         collectionView.contentOffset.y = y
         updateEdges()
-        readerDecides()
+        readerDecides(touching: true)
       case nil:
         break
       }
@@ -683,7 +722,8 @@
 
     private func scrollToBottom(animated: Bool) {
       let target = CGPoint(x: 0, y: maxOffset())
-      if animated {
+      // An animated scroll that goes nowhere never ends, and would leave the list animating.
+      if animated && abs(target.y - collectionView.contentOffset.y) > 0.5 {
         collectionView.setContentOffset(target, animated: true)
       } else {
         collectionView.contentOffset = target
@@ -713,12 +753,9 @@
     private func rowContent(_ item: Item, reporting: Bool) -> some View {
       let id = item.id
       let layout = layout
+      let report: ((CGFloat) -> Void)? = reporting ? { [weak layout] height in layout?.rowReported(id, height: height) } : nil
       return RowEnvironmentBridge(captured: environment, content: TranscriptListRow(item: item, row: row).equatable())
-        .fixedSize(horizontal: false, vertical: true)
-        .onGeometryChange(for: CGFloat.self) { ceil($0.size.height) } action: { [weak layout] height in
-          if reporting { layout?.rowReported(id, height: height) }
-        }
-        .frame(maxHeight: .infinity, alignment: .top)
+        .modifier(TranscriptRowReporting(id: id, report: report))
     }
 
     /// Measures a row off screen, at the layout's width.
@@ -736,38 +773,47 @@
 
     // MARK: Scrolling
 
+    /// Every offset change outside the list's own updates (`applying`, and the layout putting its
+    /// anchor back) is the reader's: their finger, and the scrolls the system runs for them
+    /// (keyboard paging, VoiceOver's three-finger scroll, scrolling to a focused element, a tap on
+    /// the status bar). The list's own animated scroll is told apart by `ListPinning`.
     func scrollViewDidScroll(_ scrollView: UIScrollView) {
-      guard applying == 0 else { return }
+      guard applying == 0, !layout.adjustingOffset else { return }
       updateEdges()
-      if scrollView.isTracking || scrollView.isDecelerating || scrollView.isDragging {
-        readerDecides()
-      }
+      readerDecides(touching: scrollView.isTracking || scrollView.isDecelerating || scrollView.isDragging)
     }
 
     func scrollViewDidEndDragging(_ scrollView: UIScrollView, willDecelerate decelerate: Bool) {
-      if !decelerate { readerDecides() }
+      if !decelerate { readerDecides(touching: true) }
     }
 
     func scrollViewDidEndDecelerating(_ scrollView: UIScrollView) {
-      readerDecides()
+      readerDecides(touching: true)
     }
 
-    /// The reader's own scrolling decides whether the list follows: it does when they left it
-    /// within the threshold of the bottom.
-    private func readerDecides() {
-      pinned = geometricAtBottom
+    func scrollViewDidScrollToTop(_ scrollView: UIScrollView) {
+      updateEdges()
+      pinning.scrolledToTop(atBottom: geometricAtBottom)
+      publishAtBottom()
+    }
+
+    /// The reader moved the content: the list follows when they left it within the threshold of
+    /// the bottom.
+    private func readerDecides(touching: Bool) {
+      pinning.offsetMoved(touching: touching, atBottom: geometricAtBottom)
       publishAtBottom()
     }
 
     func scrollViewDidEndScrollingAnimation(_ scrollView: UIScrollView) {
-      // Only the list animates the offset itself: to the bottom (a send, the jump pill), which
-      // pins it, or to a row, which unpins it. Neither is the reader's say. Reading `isAtBottom`
-      // here unpinned a send whose bubble or reply had grown the content while the animation ran,
-      // and the reply then streamed below the composer.
-      if pinned {
-        withApplying { keepAtBottom() }
-      }
       updateEdges()
+      // The list's own scroll to the bottom (a send, the jump pill) puts the bottom back exactly:
+      // a bubble or a reply may have grown the content while it ran. Any other animated scroll is
+      // the reader's, and where it ended decides.
+      if pinning.scrollAnimationEnded(atBottom: geometricAtBottom) {
+        withApplying { keepAtBottom() }
+        updateEdges()
+      }
+      publishAtBottom()
     }
 
     /// The viewport is within the threshold of the newest row, as of the last `updateEdges`.

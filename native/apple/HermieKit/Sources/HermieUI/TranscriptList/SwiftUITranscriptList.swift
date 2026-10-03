@@ -65,7 +65,8 @@ struct SwiftUITranscriptList<Item: Identifiable & Equatable & Sendable, Row: Vie
       // Growth while following is kept by the size-change anchor, which reads `isAtBottom`; it is
       // not chased with a scroll command from here: one issued while the rows changed size (a
       // reply settling) left the lazy stack drawing an empty viewport.
-      _ = tracker.follow.geometryChanged(from: old, to: new, phase: tracker.phase, threshold: state.bottomThreshold)
+      tracker.geometry = new
+      tracker.follow.geometryChanged(from: old, to: new, phase: tracker.phase, threshold: state.bottomThreshold)
       publishFollowing()
     }
     .onScrollGeometryChange(for: Edges.self) { geometry in
@@ -88,7 +89,8 @@ struct SwiftUITranscriptList<Item: Identifiable & Equatable & Sendable, Row: Vie
     .modifier(OffsetTracking(state: state))
     .onScrollPhaseChange { _, phase in
       tracker.phase = Self.followPhase(phase)
-      tracker.follow.phaseChanged(to: tracker.phase)
+      tracker.follow.phaseChanged(
+        to: tracker.phase, atBottom: tracker.geometry?.isAtBottom(threshold: state.bottomThreshold) ?? true)
       publishFollowing()
       switch phase {
       case .interacting:
@@ -103,27 +105,8 @@ struct SwiftUITranscriptList<Item: Identifiable & Equatable & Sendable, Row: Vie
     .onChange(of: position.viewID(type: Item.ID.self)) { _, id in
       state.topVisibleID = id.map { AnyHashable($0) }
     }
-    .onChange(of: Structure(items)) { before, after in
-      // Rows removed or replaced (a reconcile that moved or renamed rows): the position the lazy
-      // stack keeps is the id of the row at the top of the viewport, and when that row is gone it
-      // drew an empty viewport there, with the scroller still showing content. Following, the
-      // list goes back to the bottom; scrolled up, to the nearest row that is still there.
-      let ids = items.map(\.id)
-      defer { tracker.lastIDs = ids }
-      if tracker.follow.following {
-        if after.count < before.count || after.first != before.first {
-          position.scrollTo(edge: .bottom)
-        }
-        return
-      }
-      guard let top = position.viewID(type: Item.ID.self) else { return }
-      let present = Set(ids)
-      guard !present.contains(top), let old = tracker.lastIDs.firstIndex(of: top) else { return }
-      let survivor =
-        tracker.lastIDs[old...].first(where: present.contains) ?? tracker.lastIDs[..<old].last(where: present.contains)
-      if let survivor {
-        position.scrollTo(id: survivor, anchor: .top)
-      }
+    .onChange(of: items.identity) {
+      keepAnchorRow()
     }
     .onChange(of: state.commandSerial) {
       perform(state.take())
@@ -154,6 +137,38 @@ struct SwiftUITranscriptList<Item: Identifiable & Equatable & Sendable, Row: Vie
     }
   }
 
+  /// A new snapshot of the rows. The position the lazy stack keeps is the id of the row at the
+  /// top of the viewport, and when that row is gone (a reconcile that moved or renamed rows) it
+  /// drew an empty viewport there, with the scroller still showing content: the blank page after
+  /// a send. So on every snapshot whose ids changed, the list checks that row is still there, and
+  /// when it is not goes back to the bottom while following, or to the nearest row that is still
+  /// there (`TranscriptFollow.survivor`). The check scans from the newest row, where the top row
+  /// usually is.
+  private func keepAnchorRow() {
+    let previous = tracker.items
+    tracker.items = items
+    guard let previous else { return }
+
+    guard let top = position.viewID(type: Item.ID.self) else {
+      // No row recorded yet (the list opened at the bottom and nobody scrolled): while following,
+      // a shrink or a new first row is the change that can leave it on a row that is gone.
+      if tracker.follow.following, items.count < previous.count || items.first?.id != previous.first?.id {
+        position.scrollTo(edge: .bottom)
+      }
+      return
+    }
+    guard items.lastIndex(where: { $0.id == top }) == nil else { return }
+
+    if tracker.follow.following {
+      position.scrollTo(edge: .bottom)
+      return
+    }
+    let present = Set(items.map(\.id))
+    if let survivor = TranscriptFollow.survivor(of: top, in: previous.map(\.id), isPresent: present.contains) {
+      position.scrollTo(id: survivor, anchor: .top)
+    }
+  }
+
   /// `isAtBottom` is what the pill, the unread count and the read marks see: the
   /// list follows the newest row.
   private func publishFollowing() {
@@ -171,25 +186,14 @@ struct SwiftUITranscriptList<Item: Identifiable & Equatable & Sendable, Row: Vie
     }
   }
 
-  /// The shape of the rows, cheap to compare: how many, and the first and last ids.
-  struct Structure: Equatable {
-    var count: Int
-    var first: Item.ID?
-    var last: Item.ID?
-
-    init(_ items: TranscriptListItems<Item>) {
-      count = items.count
-      first = items.first?.id
-      last = items.last?.id
-    }
-  }
-
   /// The follow state and what it is decided from, kept out of observation.
   @MainActor final class FollowTracker {
     var follow = TranscriptFollow()
     var phase = TranscriptFollow.Phase.idle
-    /// The row ids as of the last structural change, oldest first.
-    var lastIDs: [Item.ID] = []
+    /// The last geometry the list reported.
+    var geometry: TranscriptFollow.Geometry?
+    /// The rows as of the last snapshot.
+    var items: TranscriptListItems<Item>?
   }
 
   /// Keeps `state.contentOffset` current for the lab's pan, in debug builds

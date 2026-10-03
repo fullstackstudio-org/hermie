@@ -81,6 +81,25 @@ struct TranscriptListLayoutModel<ID: Hashable> {
     measured[id]?.width == width
   }
 
+  /// The width a stale measurement carries: never a real width, so the row counts as unmeasured
+  /// and is measured again before it is shown, while its old height stands as the estimate (the
+  /// rows around it keep their places until then).
+  private static var staleWidth: CGFloat { -1 }
+
+  /// The row changed while it was not on screen: measure it again before it is shown. A row's
+  /// height depends on its neighbours too (a bubble's tail and time, the date line, a tool group
+  /// taking in another call), so a row can change size without being the row that streamed.
+  mutating func invalidate(_ id: ID) {
+    measured[id]?.width = Self.staleWidth
+  }
+
+  /// Every row is measured again before it is shown (a text size change).
+  mutating func invalidateAll() {
+    for id in measured.keys {
+      measured[id]?.width = Self.staleWidth
+    }
+  }
+
   /// Whether a new measurement of a row is a change worth laying out: any
   /// first measurement at this width, and afterwards a change of more than
   /// `measurementTolerance`. A row on screen is measured again whenever the
@@ -176,6 +195,18 @@ struct TranscriptListLayoutModel<ID: Hashable> {
   /// row is gone.
   func visibleTop(restoring anchor: Anchor) -> CGFloat? {
     frame(of: anchor.id).map { $0.minY - anchor.offset }
+  }
+
+  /// As `visibleTop(restoring:)`, and when the anchor's row is gone (a change that renamed it, as
+  /// a tool group is when a page of history brings it an earlier call), the nearest row that is
+  /// still there takes its place on screen (`TranscriptFollow.survivor`). `previousIDs` is the
+  /// order the anchor was taken in.
+  func visibleTop(restoring anchor: Anchor, previousIDs: [ID]) -> CGFloat? {
+    if let top = visibleTop(restoring: anchor) { return top }
+    guard let survivor = TranscriptFollow.survivor(of: anchor.id, in: previousIDs, isPresent: { index[$0] != nil }),
+      let frame = frame(of: survivor)
+    else { return nil }
+    return frame.minY - anchor.offset
   }
 
   /// By how much the viewport must move when the row at `position` changes

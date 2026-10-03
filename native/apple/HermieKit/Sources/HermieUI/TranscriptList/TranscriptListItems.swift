@@ -30,6 +30,9 @@ public struct TranscriptListItems<Element: Sendable>: RandomAccessCollection, Se
   /// The rows, as an array.
   public var elements: [Element] { storage.elements }
 
+  /// Which snapshot this is: equal for the same snapshot, different for another. O(1).
+  var identity: ObjectIdentifier { ObjectIdentifier(storage) }
+
   public var startIndex: Int { 0 }
   public var endIndex: Int { storage.elements.count }
 
