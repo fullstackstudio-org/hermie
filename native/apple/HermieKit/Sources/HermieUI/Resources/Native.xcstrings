@@ -2516,6 +2516,30 @@
         }
       }
     },
+    "native.intents.botNotHere" : {
+      "comment" : "A Shortcut named a bot that is not on the gateway the app is connected to. The argument is the bot's name.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%@ ist nicht auf dem Gateway, mit dem Hermie verbunden ist, deshalb wurde nichts gesendet."
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%@ is not on the gateway Hermie is connected to, so nothing was sent."
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%@ staat niet op de gateway waarmee Hermie verbonden is, dus er is niets verstuurd."
+          }
+        }
+      }
+    },
     "native.intents.expired" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -2558,6 +2582,30 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "De gateway van die bot staat niet meer in Hermie, dus er is niets verstuurd."
+          }
+        }
+      }
+    },
+    "native.intents.stillWorking" : {
+      "comment" : "A Shortcut's “Ask” ran out of time while the bot was still answering. The argument is the bot's name.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%@ arbeitet noch. Die Nachricht wurde gesendet: Öffne Hermie, um die Antwort zu lesen, oder nutze „Senden an“ für Anfragen, die länger dauern."
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%@ is still working. The message was sent: open Hermie to read the reply, or use “Send to” for prompts that take a while."
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%@ is nog bezig. Het bericht is verstuurd: open Hermie om het antwoord te lezen, of gebruik “Stuur naar” voor vragen die even duren."
           }
         }
       }

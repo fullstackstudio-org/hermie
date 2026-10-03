@@ -107,6 +107,26 @@ public final class AppRouter {
     return id == gateways.activeId ? [] : [.activateGateway(id)]
   }
 
+  /**
+   A notification about the person's own account on a gateway (`PushRoute.security`): select that
+   gateway, as a chat link would, so Settings shows its account page. Presenting Settings is the
+   scene's (a sheet on iPhone and iPad, the Settings window on the Mac). False when the gateway is
+   not configured, and nothing changes.
+   */
+  public func showAccount(of gatewayId: String) -> (shown: Bool, effects: [RouterEffect]) {
+    guard let gateways, gateways.contains(gatewayId) else {
+      return (false, [])
+    }
+
+    if gatewayId != selectedGatewayId {
+      closeChat()
+    }
+
+    selectedGatewayId = gatewayId
+
+    return (true, gatewayId == gateways.activeId ? [] : [.activateGateway(gatewayId)])
+  }
+
   // MARK: Chats
 
   public func openChat(_ chat: ChatRef) {

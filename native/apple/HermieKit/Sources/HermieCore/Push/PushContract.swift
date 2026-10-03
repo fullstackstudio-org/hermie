@@ -25,6 +25,10 @@ public enum PushContract {
   /// the open-chat suppression say.
   public static let unfilteredTypes = ["security"]
 
+  /// The unfiltered type a change to the person's own account is sent as. A tap opens the
+  /// gateway's account settings (`PushRoute.security`).
+  public static let securityType = "security"
+
   /// The type spelled by senders older than the contract, still valid on the wire (`legacyTypes`).
   public static let legacyTypes = ["dm"]
 

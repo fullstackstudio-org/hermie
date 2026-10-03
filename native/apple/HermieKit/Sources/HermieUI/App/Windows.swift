@@ -13,6 +13,13 @@ public final class ShellRequests {
   public static let shared = ShellRequests()
 
   public var onboarding: OnboardingMode?
+  /// The Settings page to show next time Settings appears (a tap on a `security` notification).
+  public var settingsCategory: SettingsCategory?
+}
+
+extension EnvironmentValues {
+  /// What runs against the live session besides the screens (`LiveWiring`), from the app shell.
+  @Entry public var liveWiring: LiveWiring?
 }
 
 /// The id of the main window group, so another scene can bring one to the front.
@@ -87,6 +94,7 @@ public struct MainWindow: View {
     }
     .pushLifecycle(launch: launch, router: router)
     .syncLifecycle(launch: launch)
+    .surfaceLinks(router: router)
     .onChange(of: ShellRequests.shared.onboarding, initial: true) { _, mode in
       if let mode {
         ShellRequests.shared.onboarding = nil
@@ -141,6 +149,33 @@ public struct ChatWindow: View {
 
       await launch.start()
     }
+  }
+}
+
+/// A `hermie://share/…` or `hermie://intent/…` link: the share extension or a Shortcut left work in
+/// the App Group, and the live wiring drains it now (it waits while the surfaces are locked).
+private struct SurfaceLinks: ViewModifier {
+  let router: AppRouter
+
+  @Environment(\.liveWiring) private var wiring
+
+  func body(content: Content) -> some View {
+    content
+      .onChange(of: router.pendingShares.count + router.pendingIntents.count, initial: true) { _, count in
+        guard count > 0 else {
+          return
+        }
+
+        router.pendingShares.removeAll()
+        router.pendingIntents.removeAll()
+        wiring?.drainSoon()
+      }
+  }
+}
+
+extension View {
+  fileprivate func surfaceLinks(router: AppRouter) -> some View {
+    modifier(SurfaceLinks(router: router))
   }
 }
 

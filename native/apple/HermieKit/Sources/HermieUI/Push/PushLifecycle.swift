@@ -11,7 +11,8 @@ import SwiftUI
  would revoke the registration of every gateway as if it had been removed.
 
  With several windows, taps go to the one most recently in front; a closed window's router is let
- go, and with no window left taps wait for the next one.
+ go, and with no window left taps wait for the next one. The window in front also tells the live
+ wiring which chat is on screen (the `seen` heartbeat) and when the app comes and goes.
  */
 struct PushLifecycle: ViewModifier {
   let launch: AppLaunch
@@ -19,33 +20,17 @@ struct PushLifecycle: ViewModifier {
 
   @State private var handlerId = UUID()
   @Environment(\.scenePhase) private var scenePhase
+  @Environment(\.liveWiring) private var wiring
   #if os(macOS)
     @Environment(\.controlActiveState) private var controlActiveState
+    @Environment(\.openSettings) private var openSettings
   #endif
 
   func body(content: Content) -> some View {
     content
       .onAppear {
-        let router = router
-        let launch = launch
-
         launch.push.attachLinkHandler(handlerId) { route in
-          switch route {
-          case .chat(let link):
-            perform(router.handle(link), on: launch)
-          case .conversation(let link, _):
-            // Seam: the router has no conversation route yet. Until the conversation viewer lands,
-            // the bot's chat opens; the session id the notification named is dropped here.
-            perform(router.handle(link), on: launch)
-          case .request(let link, _):
-            // Seam: showing a request that is not an approval (a secure input, a confirmation, a
-            // passkey one) is a later task. Until it lands, the bot's chat opens, where the request
-            // is shown as it is today; `PushOpenRequest` is dropped here.
-            perform(router.handle(link), on: launch)
-          case .chatList:
-            router.closeChat()
-            router.section = .chats
-          }
+          follow(route)
         }
       }
       .onDisappear {
@@ -60,18 +45,66 @@ struct PushLifecycle: ViewModifier {
         await launch.push.start()
       }
       .onChange(of: scenePhase) { _, phase in
-        if phase == .active {
-          launch.push.activateLinkHandler(handlerId)
-          Task { await launch.push.becameActive() }
-        }
+        sceneChanged(phase)
+      }
+      .onChange(of: router.selectedChat, initial: true) { _, chat in
+        wiring?.setOpenChat(gatewayId: chat?.gatewayId, bot: chat?.bot)
       }
       #if os(macOS)
         .onChange(of: controlActiveState) { _, state in
           if state == .key {
             launch.push.activateLinkHandler(handlerId)
+            wiring?.setOpenChat(gatewayId: router.selectedChat?.gatewayId, bot: router.selectedChat?.bot)
           }
         }
       #endif
+  }
+
+  private func sceneChanged(_ phase: ScenePhase) {
+    wiring?.setForeground(phase != .background)
+
+    guard phase == .active else {
+      return
+    }
+
+    launch.push.activateLinkHandler(handlerId)
+    Task { await launch.push.becameActive() }
+  }
+
+  /**
+   Where a tap lands. A request that is not an approval opens the bot's chat: the request is shown
+   there as it is today (the confirmation, secure input and passkey sheets come with their own
+   task), and an approval's card is in that chat's transcript. A `security` notice opens the
+   gateway's account settings.
+   */
+  private func follow(_ route: PushRoute) {
+    switch route {
+    case .chat(let link), .conversation(let link, _), .request(let link, _):
+      // Seam: the router has no conversation route yet, so a named conversation opens the bot's chat.
+      perform(router.handle(link), on: launch)
+    case .security(let gatewayId):
+      showAccount(of: gatewayId)
+    case .chatList:
+      router.closeChat()
+      router.section = .chats
+    }
+  }
+
+  private func showAccount(of gatewayId: String) {
+    let (shown, effects) = router.showAccount(of: gatewayId)
+
+    guard shown else {
+      return
+    }
+
+    perform(effects, on: launch)
+    ShellRequests.shared.settingsCategory = .account
+
+    #if os(macOS)
+      openSettings()
+    #else
+      router.present(.settings)
+    #endif
   }
 }
 

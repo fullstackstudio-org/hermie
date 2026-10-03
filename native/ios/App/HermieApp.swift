@@ -7,7 +7,8 @@ import SwiftUI
 ///
 /// The launch runs here, in `init`, so the local store is open and the lock
 /// decided before the first frame. Push is attached here too, before the system
-/// can deliver a token or a notification response to the delegate.
+/// can deliver a token or a notification response to the delegate, and the
+/// wiring that runs against the live session is started.
 @main
 struct HermieApp: App {
   @UIApplicationDelegateAdaptor(PushAppDelegate.self) private var pushDelegate
@@ -16,14 +17,17 @@ struct HermieApp: App {
   @State private var accounts: GatewayAccounts
   /// The session of the active gateway, which the chat list and the chats read.
   @State private var live: LiveGateway
+  /// Push's session seams, the ui_meta bridge and the share sheet, widgets and Shortcuts.
+  @State private var wiring: LiveWiring
 
   init() {
     let launch = AppLaunch(environment: .live(), pushSystem: SystemPushBridge())
     _launch = State(initialValue: launch)
     let accounts = GatewayAccounts.app(launch)
     _accounts = State(initialValue: accounts)
-    _live = State(initialValue: LiveGateway(launch: launch, accounts: accounts))
-    PushInbox.shared.attach(launch.push)
+    let live = LiveGateway(launch: launch, accounts: accounts)
+    _live = State(initialValue: live)
+    _wiring = State(initialValue: LiveWiring.app(launch: launch, accounts: accounts, live: live))
 
     #if DEBUG
       // The transcript lab and the item gallery, under Settings → Advanced.
@@ -37,6 +41,7 @@ struct HermieApp: App {
         .environment(launch)
         .environment(accounts)
         .environment(live)
+        .environment(\.liveWiring, wiring)
         .environment(\.shellComponents, .gatewaySetup(accounts: accounts))
     }
     .commands {
@@ -49,6 +54,7 @@ struct HermieApp: App {
         .environment(launch)
         .environment(accounts)
         .environment(live)
+        .environment(\.liveWiring, wiring)
         .environment(\.shellComponents, .gatewaySetup(accounts: accounts))
     }
   }

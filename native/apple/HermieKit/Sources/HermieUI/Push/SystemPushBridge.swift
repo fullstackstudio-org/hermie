@@ -146,6 +146,12 @@ public final class PushNotificationDelegate: NSObject, UNUserNotificationCenterD
     let payload = PushPayload(userInfo: notification.request.content.userInfo)
     let presentation = await PushInbox.shared.presentation(for: payload)
 
+    // A clearing push that arrives as an alert (the relay carries no silent ones) is not shown, and
+    // takes away the notification it withdraws.
+    if payload?.isClear == true {
+      await PushInbox.shared.handleDelivery(payload)
+    }
+
     return SystemPushBridge.options(presentation)
   }
 
@@ -177,6 +183,13 @@ public final class PushNotificationDelegate: NSObject, UNUserNotificationCenterD
     public func application(_ application: NSApplication, didFailToRegisterForRemoteNotificationsWithError error: any Error) {
       PushInbox.shared.didFailToRegister(message: error.localizedDescription)
     }
+
+    /// A silent data message: only a clearing push means anything here.
+    public func application(_ application: NSApplication, didReceiveRemoteNotification userInfo: [String: Any]) {
+      let payload = PushPayload(userInfo: userInfo)
+
+      Task { await PushInbox.shared.handleDelivery(payload) }
+    }
   }
 #else
   /**
@@ -199,6 +212,17 @@ public final class PushNotificationDelegate: NSObject, UNUserNotificationCenterD
 
     public func application(_ application: UIApplication, didFailToRegisterForRemoteNotificationsWithError error: any Error) {
       PushInbox.shared.didFailToRegister(message: error.localizedDescription)
+    }
+
+    /// A silent data message: only a clearing push means anything here.
+    public func application(
+      _ application: UIApplication,
+      didReceiveRemoteNotification userInfo: [AnyHashable: Any]
+    ) async -> UIBackgroundFetchResult {
+      let payload = PushPayload(userInfo: userInfo)
+      let removed = await PushInbox.shared.handleDelivery(payload)
+
+      return (removed ?? 0) > 0 ? .newData : .noData
     }
   }
 #endif

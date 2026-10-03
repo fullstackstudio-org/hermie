@@ -1,0 +1,204 @@
+import Foundation
+import HermieProtocol
+import HermieStore
+
+/**
+ The ui_meta bridge of the live gateway (M2a): one `UIMetaSync` over the session's own link, with
+ this installation's push row (`PushRowWriter`) as its contributor.
+
+ One per live session, built by `LiveWiring` when the session starts and stopped when it ends, so
+ a sync only ever talks to the gateway it was built for (ADR-0024).
+
+ - **Who.** The app-wide key is `hermie-app:<user>`, so nothing is reconciled before the session
+   has read who this is (`GatewaySession.uiMetaUser`). A gateway that refused the read stays on
+   the local-only path rather than writing under a name it never agreed to.
+ - **When.** On every `ready` edge (a reconnect can be another gateway process), on every
+   `sessions.changed` sweep, and whenever the app comes to the front. Reconciles never overlap.
+ - **What.** The device's copy is kept per gateway in the key-value store; the push row is
+   written from the registrar's address for THIS gateway only, and is withdrawn from the gateway
+   before the session ends on a sign-out (`withdrawRow`), while the credentials still work.
+
+ What the gateway's copy carries that this build does not draw (another device's rows, the chat
+ layout, the mutes, the plugin advert) is carried as it came; nothing taken in from the gateway is
+ ever treated as this person's own choice or row.
+ */
+@MainActor
+public final class GatewayMetaBridge {
+  public let sync: UIMetaSync
+  public let writer: PushRowWriter
+  public let gatewayID: String
+
+  private weak var session: GatewaySession?
+  private var following: Task<Void, Never>?
+  private var reconciling: Task<Void, Never>?
+  private var again = false
+  private var user: String?
+
+  /// - Parameters:
+  ///   - gatewayKey: the gateway's link key, written into the push row.
+  ///   - installation: this installation's id (`PushInstallation`).
+  ///   - persistence: where the device's copy survives a relaunch; nil keeps it in memory.
+  ///   - debounce: how long edits wait before they are sent (`UIMetaSync.Options.debounce`).
+  public init(
+    session: GatewaySession,
+    gatewayKey: String,
+    installation: String,
+    push: PushController,
+    persistence: (any UIMetaPersistence)?,
+    debounce: Duration? = .milliseconds(600)
+  ) {
+    var options = UIMetaSync.Options()
+    options.gatewayID = session.gatewayID
+    options.debounce = debounce
+
+    let sync = UIMetaSync(gateway: .link(session.link), persistence: persistence, options: options)
+
+    self.sync = sync
+    self.gatewayID = session.gatewayID
+    self.session = session
+    self.writer = PushRowWriter(
+      sync: sync,
+      gatewayId: session.gatewayID,
+      gatewayKey: gatewayKey,
+      installation: installation,
+      push: push
+    )
+    sync.register(writer)
+  }
+
+  /// Whether this bridge is the one for `session` (a rebuilt session to the same gateway is not).
+  public func follows(_ session: GatewaySession) -> Bool {
+    self.session === session
+  }
+
+  /// Follow the session: reconcile on each `ready` edge once the user is known, and on every
+  /// `sessions.changed` sweep. Idempotent.
+  public func start() {
+    guard following == nil, let session else {
+      return
+    }
+
+    session.onSessionsChanged = { [weak self] in
+      self?.reconcileSoon()
+    }
+
+    let changes = Observations { [weak session] () -> ReadyUser in
+      ReadyUser(ready: session?.status.phase == .ready, user: session?.uiMetaUser)
+    }
+
+    following = Task { [weak self] in
+      for await next in changes {
+        guard let self else {
+          return
+        }
+
+        self.follow(next)
+      }
+    }
+  }
+
+  /// Stop following. The device's copy stays on disk for the next session.
+  public func stop() {
+    following?.cancel()
+    following = nil
+    writer.stop()
+
+    if let session, session.onSessionsChanged != nil {
+      session.onSessionsChanged = nil
+    }
+  }
+
+  /// The app came to the front or left it: the heartbeat follows, and coming back reconciles.
+  public func setForeground(_ foreground: Bool) {
+    writer.setForeground(foreground)
+
+    if foreground {
+      reconcileSoon()
+    }
+  }
+
+  /// Which chat of this gateway is on screen, for the `seen` heartbeat.
+  public func setOpenChat(_ bot: String?) {
+    writer.setOpenChat(bot)
+  }
+
+  /// `PushController.onAddressesChanged`: rewrite this gateway's row when it is among them.
+  public func addressesChanged(_ gatewayIds: Set<String>) async {
+    await writer.addressesChanged(gatewayIds)
+  }
+
+  /**
+   Sign-out or removal: take this installation's row out of the gateway's push section now, while
+   the session can still write, and wait (at most `limit`) for it to go out. A gateway that cannot
+   be reached keeps the row; the relay registration it names is revoked anyway.
+   */
+  public func withdrawRow(within limit: Duration = .seconds(3)) async {
+    stop()
+    sync.setPushRow(nil, installation: writer.installation)
+
+    guard user != nil else {
+      return
+    }
+
+    let sync = self.sync
+    let deadline = ContinuousClock.now + limit
+
+    // The send is not cancellable, so it is left to finish on its own and only waited for.
+    Task { await sync.flush() }
+
+    while sync.pending, ContinuousClock.now < deadline {
+      try? await Task.sleep(for: .milliseconds(20))
+    }
+  }
+
+  /// Reconcile now, or once more after the one running.
+  public func reconcileSoon() {
+    guard user != nil else {
+      return
+    }
+
+    guard reconciling == nil else {
+      again = true
+      return
+    }
+
+    reconciling = Task { [weak self] in
+      while let self {
+        self.again = false
+        await self.sync.reconcile()
+
+        guard self.again else {
+          self.reconciling = nil
+          return
+        }
+      }
+    }
+  }
+
+  /// Wait for every reconcile and send this bridge started. For tests.
+  public func settle() async {
+    while let running = reconciling {
+      await running.value
+    }
+
+    await sync.settle()
+  }
+
+  private func follow(_ next: ReadyUser) {
+    guard next.ready, let named = next.user, !named.isEmpty else {
+      return
+    }
+
+    if user != named {
+      user = named
+      sync.setUser(named)
+    }
+
+    reconcileSoon()
+  }
+
+  private struct ReadyUser: Sendable, Equatable {
+    var ready: Bool
+    var user: String?
+  }
+}

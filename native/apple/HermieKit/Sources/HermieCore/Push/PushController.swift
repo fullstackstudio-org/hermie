@@ -50,6 +50,11 @@ public enum PushRoute: Sendable, Equatable {
    rest. Re-read the request from the gateway by `requestId` before showing anything.
    */
   case request(DeepLink, PushOpenRequest)
+  /**
+   A `security` notice (a passkey added to or removed from the person's account on that gateway):
+   the gateway's account settings, where what changed is shown. Never a chat, and never acted on.
+   */
+  case security(gatewayId: String)
   /// The chat list: the notification could not be tied to a configured gateway or a usable bot.
   case chatList
 }
@@ -627,6 +632,12 @@ public final class PushController {
       let gateway = gateways.first(where: { $0.key == tap.gatewayKey })
     else {
       open(.chatList)
+      return
+    }
+
+    // A change to the person's own account lands on that gateway's account settings.
+    if tap.type == PushContract.securityType {
+      open(.security(gatewayId: gateway.id))
       return
     }
 

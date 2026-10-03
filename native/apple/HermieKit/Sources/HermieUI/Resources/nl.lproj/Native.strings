@@ -220,10 +220,14 @@
 	<string>iCloud-synchronisatie uitzetten?</string>
 	<key>native.identity.anonymous</key>
 	<string>Je bent anoniem op deze gateway: je berichten dragen geen naam.</string>
+	<key>native.intents.botNotHere</key>
+	<string>%@ staat niet op de gateway waarmee Hermie verbonden is, dus er is niets verstuurd.</string>
 	<key>native.intents.expired</key>
 	<string>Hermie deed er te lang over om te openen, dus er is niets verstuurd.</string>
 	<key>native.intents.gatewayGone</key>
 	<string>De gateway van die bot staat niet meer in Hermie, dus er is niets verstuurd.</string>
+	<key>native.intents.stillWorking</key>
+	<string>%@ is nog bezig. Het bericht is verstuurd: open Hermie om het antwoord te lezen, of gebruik “Stuur naar” voor vragen die even duren.</string>
 	<key>native.intents.unreadable</key>
 	<string>Hermie kon dat verzoek niet lezen. Misschien is het gemaakt door een nieuwere versie.</string>
 	<key>native.later</key>

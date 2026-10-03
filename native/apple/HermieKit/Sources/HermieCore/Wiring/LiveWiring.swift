@@ -1,0 +1,366 @@
+import Foundation
+import HermieShared
+import HermieStore
+import Synchronization
+
+/**
+ What runs against the live session besides the screens (PG-6): push's session seams, the ui_meta
+ bridge with this installation's push row, and the system surfaces (share sheet, widgets,
+ Spotlight, Shortcuts) behind `SystemSurfaceLock`.
+
+ Built by the app shell beside `LiveGateway`, and started once. It only follows: which gateway is
+ live is `LiveGateway`'s, who is signed in where is `GatewayAccounts`'s, and push's own state is
+ `PushController`'s.
+
+ - **Push.** `pendingApprovals` and `respond` go to the live session, and only for the gateway
+   it is (`PushController` already answers nothing elsewhere); a tap from a cold start waits for
+   the socket. `canonicalSessionIds` reads the live chat list. A changed relay address rewrites
+   the live gateway's row (`onAddressesChanged`); another gateway's row is written the next time
+   it is the live one.
+ - **Sign-out and removal.** Before the session ends (`GatewayAccounts.endSession`), the row is
+   withdrawn from that gateway's push section while the credentials still work, and the surfaces
+   purge what they hold for it. The relay registration is retired by `GatewayAccounts` itself.
+ - **The surface lock** opens only while the launch is ready, the app lock is open and the live
+   gateway has a signed-in session (`LiveGateway.phase == .live`), and closes again on a sign-out.
+   The drains run on every opening and every `ready` edge.
+ */
+@MainActor
+public final class LiveWiring {
+  public let launch: AppLaunch
+  public let live: LiveGateway
+  public let surfaces: SystemSurfaces?
+  /// The live gateway's ui_meta bridge, while it has a session.
+  public private(set) var meta: GatewayMetaBridge?
+
+  /// How long a notification action waits for the socket before it gives up and only opens.
+  var readyWait: Duration = .seconds(15)
+  /// Bridges built here wait this long before they send an edit.
+  var metaDebounce: Duration? = .milliseconds(600)
+
+  private weak var accounts: GatewayAccounts?
+  private var started = false
+  private var tasks: [Task<Void, Never>] = []
+  /// Follows the live session's chat list for the surfaces; one at a time.
+  private var surfaceTask: Task<Void, Never>?
+  private var foreground = true
+  private var openChat: ChatTarget?
+  private var installation: String?
+  private let gate = SurfaceGate()
+
+  private let installLock: (@escaping @Sendable () -> Bool) -> Void
+
+  /// - Parameter installLock: where the surfaces' lock state is installed; `SystemSurfaceLock` in
+  ///   the app. A test passes its own, so the process-wide lock other tests read stays untouched.
+  public init(
+    launch: AppLaunch,
+    accounts: GatewayAccounts?,
+    live: LiveGateway,
+    surfaces: SystemSurfaces?,
+    installLock: @escaping (@escaping @Sendable () -> Bool) -> Void = { SystemSurfaceLock.install($0) }
+  ) {
+    self.launch = launch
+    self.accounts = accounts
+    self.live = live
+    self.surfaces = surfaces
+    self.installLock = installLock
+  }
+
+  /// Install the seams and start following. Idempotent.
+  public func start() {
+    guard !started else {
+      return
+    }
+
+    started = true
+    installPushSeams()
+    installSignOutHook()
+    installSurfaceLock()
+    followSession()
+  }
+
+  // MARK: The app
+
+  /// The app came to the front or left it.
+  public func setForeground(_ foreground: Bool) {
+    self.foreground = foreground
+    meta?.setForeground(foreground)
+
+    if foreground {
+      drainSoon()
+    }
+  }
+
+  /// The chat on screen in the window in front, or nil: the `seen` heartbeat names it.
+  public func setOpenChat(gatewayId: String?, bot: String?) {
+    openChat = bot.map { ChatTarget(gatewayId: gatewayId ?? "", bot: $0) }
+    meta?.setOpenChat(openChat?.gatewayId == meta?.gatewayID ? openChat?.bot : nil)
+  }
+
+  /// A `hermie://share/…` or `hermie://intent/…` link arrived: drain now.
+  public func drainSoon() {
+    guard let session = live.session, let surfaces, isUnlocked else {
+      return
+    }
+
+    let scope = scope()
+
+    Task { await surfaces.drain(session: session, scope: scope) }
+  }
+
+  /// Whether the system surfaces may act now (what `SystemSurfaceLock` reads).
+  public var isUnlocked: Bool {
+    gate.isOpen
+  }
+
+  // MARK: Push
+
+  private func installPushSeams() {
+    let push = launch.push
+
+    push.pendingApprovals = { [weak self] scope in
+      guard let self, let session = self.session(for: scope.gatewayId) else {
+        throw PushSessionUnavailable()
+      }
+
+      try await session.waitUntilReady(within: self.readyWait)
+      return try await session.pushOpenApprovals(bot: scope.bot)
+    }
+
+    push.respond = { [weak self] answer in
+      guard let self, let session = self.session(for: answer.gatewayId) else {
+        throw PushSessionUnavailable()
+      }
+
+      try await session.pushRespond(answer)
+    }
+
+    push.canonicalSessionIds = { [weak self] gatewayId, bot in
+      self?.session(for: gatewayId)?.canonicalSessionIDs(bot: bot) ?? []
+    }
+
+    push.onAddressesChanged = { [weak self] ids in
+      guard let meta = self?.meta else {
+        return
+      }
+
+      Task { await meta.addressesChanged(ids) }
+    }
+  }
+
+  private func session(for gatewayId: String) -> GatewaySession? {
+    guard live.gatewayID == gatewayId, let session = live.session, session.gatewayID == gatewayId else {
+      return nil
+    }
+
+    return session
+  }
+
+  /// Before the session to a gateway ends because this device stops using its credentials: take
+  /// the row off it and purge the surfaces, then let the session end.
+  private func installSignOutHook() {
+    guard let accounts else {
+      return
+    }
+
+    let ending = accounts.endSession
+
+    accounts.endSession = { [weak self] id in
+      await self?.leaving(id)
+      await ending?(id)
+    }
+  }
+
+  func leaving(_ gatewayId: String) async {
+    if let meta, meta.gatewayID == gatewayId {
+      self.meta = nil
+      await meta.withdrawRow()
+    }
+
+    if let key = launch.gateways.entry(id: gatewayId)?.key {
+      surfaces?.purge(gatewayKey: key)
+    }
+
+    updateLock()
+  }
+
+  // MARK: The session
+
+  private func followSession() {
+    let live = self.live
+    let changes = Observations { () -> SessionMark in
+      SessionMark(session: live.session.map(ObjectIdentifier.init), gatewayId: live.gatewayID)
+    }
+
+    tasks.append(
+      Task { [weak self] in
+        for await _ in changes {
+          guard let self else {
+            return
+          }
+
+          await self.sessionChanged()
+        }
+      }
+    )
+  }
+
+  private func sessionChanged() async {
+    let session = live.session
+
+    // A session rebuilt for the same gateway (new credentials) gets a bridge of its own.
+    if let meta, session.map(meta.follows) != true {
+      meta.stop()
+      self.meta = nil
+      surfaceTask?.cancel()
+      surfaceTask = nil
+    }
+
+    guard let session, meta == nil, let entry = launch.gateways.entry(id: session.gatewayID) else {
+      return
+    }
+
+    guard let installation = await installationID(), live.session === session else {
+      return
+    }
+
+    let bridge = GatewayMetaBridge(
+      session: session,
+      gatewayKey: entry.key,
+      installation: installation,
+      push: launch.push,
+      persistence: KeyValueUIMetaPersistence(store: launch.keyValues, namespace: GatewayNamespace(session.gatewayID)),
+      debounce: metaDebounce
+    )
+
+    meta = bridge
+    bridge.setForeground(foreground)
+    bridge.setOpenChat(openChat?.gatewayId == session.gatewayID ? openChat?.bot : nil)
+    bridge.start()
+    followSurfaces(session, gatewayKey: entry.key)
+  }
+
+  private func installationID() async -> String? {
+    if let installation {
+      return installation
+    }
+
+    installation = try? await PushInstallation.id(in: launch.keyValues)
+    return installation
+  }
+
+  // MARK: The surfaces
+
+  private func installSurfaceLock() {
+    let gate = self.gate
+
+    installLock { !gate.isOpen }
+
+    let launch = self.launch
+    let live = self.live
+    let changes = Observations { () -> Bool in
+      launch.ready && launch.lock.ready && !launch.lock.machine.locked && live.phase == .live
+    }
+
+    tasks.append(
+      Task { [weak self] in
+        for await open in changes {
+          guard let self else {
+            return
+          }
+
+          self.setUnlocked(open)
+        }
+      }
+    )
+  }
+
+  private func updateLock() {
+    setUnlocked(launch.ready && launch.lock.ready && !launch.lock.machine.locked && live.phase == .live)
+  }
+
+  private func setUnlocked(_ open: Bool) {
+    let was = gate.set(open)
+
+    if open, !was {
+      drainSoon()
+    }
+  }
+
+  /// Write the snapshot when the chat list or the lock setting changes, and drain on `ready`.
+  private func followSurfaces(_ session: GatewaySession, gatewayKey: String) {
+    guard let surfaces else {
+      return
+    }
+
+    let lock = launch.lock
+    let changes = Observations { [weak session] () -> SurfaceMark in
+      SurfaceMark(
+        rows: session?.chatList.rows ?? [:],
+        ready: session?.status.phase == .ready,
+        hidePreviews: lock.machine.threshold != .off || lock.machine.locked
+      )
+    }
+
+    surfaceTask?.cancel()
+    surfaceTask = (
+      Task { [weak self, weak session] in
+        var wasReady = false
+
+        for await mark in changes {
+          guard !Task.isCancelled, let self, let session, self.live.session === session else {
+            return
+          }
+
+          surfaces.publish(session: session, gatewayKey: gatewayKey, hidePreviews: mark.hidePreviews)
+
+          if mark.ready, !wasReady {
+            self.drainSoon()
+          }
+
+          wasReady = mark.ready
+          // Streaming moves the rows every frame; what changes meanwhile is coalesced.
+          try? await Task.sleep(for: .milliseconds(500))
+        }
+      }
+    )
+  }
+
+  private func scope() -> GatewayScope {
+    let directory = launch.gateways
+
+    return GatewayScope(active: directory.active?.key, known: Set(directory.entries.map(\.key)))
+  }
+
+  private struct SessionMark: Sendable, Equatable {
+    var session: ObjectIdentifier?
+    var gatewayId: String?
+  }
+
+  private struct SurfaceMark: Sendable, Equatable {
+    var rows: [String: ChatListRow]
+    var ready: Bool
+    var hidePreviews: Bool
+  }
+
+  private struct ChatTarget: Sendable, Equatable {
+    var gatewayId: String
+    var bot: String
+  }
+}
+
+/// Whether the system surfaces may act, readable from any thread (`SystemSurfaceLock`).
+final class SurfaceGate: Sendable {
+  private let state = Mutex(false)
+
+  var isOpen: Bool {
+    state.withLock { $0 }
+  }
+
+  /// Set it, and answer what it was.
+  func set(_ open: Bool) -> Bool {
+    state.withLock { state in
+      defer { state = open }
+      return state
+    }
+  }
+}

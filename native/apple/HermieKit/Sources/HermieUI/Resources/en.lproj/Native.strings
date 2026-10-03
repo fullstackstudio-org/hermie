@@ -220,10 +220,14 @@
 	<string>Turn Off iCloud Sync?</string>
 	<key>native.identity.anonymous</key>
 	<string>You are anonymous on this gateway: your messages carry no name.</string>
+	<key>native.intents.botNotHere</key>
+	<string>%@ is not on the gateway Hermie is connected to, so nothing was sent.</string>
 	<key>native.intents.expired</key>
 	<string>Hermie took too long to open, so nothing was sent.</string>
 	<key>native.intents.gatewayGone</key>
 	<string>That bot's gateway is no longer in Hermie, so nothing was sent.</string>
+	<key>native.intents.stillWorking</key>
+	<string>%@ is still working. The message was sent: open Hermie to read the reply, or use “Send to” for prompts that take a while.</string>
 	<key>native.intents.unreadable</key>
 	<string>Hermie could not read that request. It may have been made by a newer version.</string>
 	<key>native.later</key>

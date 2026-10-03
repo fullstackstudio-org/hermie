@@ -92,6 +92,7 @@ public struct SettingsView: View {
     @State private var selection: SettingsCategory? = .gateways
   #else
     @Environment(\.dismiss) private var dismiss
+    @State private var path: [SettingsCategory] = []
   #endif
 
   /// - Parameter onAddGateway: open setup for another gateway (the shell's onboarding seam).
@@ -112,8 +113,14 @@ public struct SettingsView: View {
         }
       }
       .accessibilityIdentifier("hermie.settings")
+      .onChange(of: ShellRequests.shared.settingsCategory, initial: true) { _, requested in
+        if let requested {
+          ShellRequests.shared.settingsCategory = nil
+          selection = requested
+        }
+      }
     #else
-      NavigationStack {
+      NavigationStack(path: $path) {
         List {
           categoryRows
         }
@@ -130,6 +137,12 @@ public struct SettingsView: View {
         }
       }
       .accessibilityIdentifier("hermie.settings")
+      .onChange(of: ShellRequests.shared.settingsCategory, initial: true) { _, requested in
+        if let requested {
+          ShellRequests.shared.settingsCategory = nil
+          path = [requested]
+        }
+      }
     #endif
   }
 
