@@ -17,6 +17,7 @@ import { resetActiveLocale } from '../../i18n/active-locale'
 import { setLanguageChoice } from '../../i18n/locale'
 import { createHashRouter } from '../../platform/hash-router'
 import { applyTheme } from '../../platform/theme-target'
+import { chatViewStore } from '../../state/chat-view'
 import { chatsStore } from '../../state/chats'
 import { connectionStore } from '../../state/connection'
 import {
@@ -111,7 +112,11 @@ const mount = (hash = '#/chat/researcher') => {
 
 describe('the chat screen, through axe', () => {
   describe.each(['light', 'dark', 'system'] as const)('in the %s scheme', scheme => {
-    beforeEach(() => applyTheme({ scheme, tint: 'blue' }))
+    beforeEach(() => {
+      applyTheme({ scheme, tint: 'blue' })
+      // At `normal`, so every kind is on the screen: `quiet`, the default, folds the tools away.
+      chatViewStore.getState().setDefaults({ level: 'normal' })
+    })
 
     it('has no violation with a conversation of every kind on it', async () => {
       chatsStore.getState().hydrate('researcher', conversation())

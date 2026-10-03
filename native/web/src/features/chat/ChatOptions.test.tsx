@@ -90,7 +90,7 @@ describe('the chat options', () => {
         .getAllByRole('radio')
         .map(radio => (radio as HTMLInputElement).labels?.[0]?.textContent)
     ).toEqual(['Quiet', 'Normal', 'Verbose'])
-    expect((within(panel).getByRole('radio', { name: 'Normal' }) as HTMLInputElement).checked).toBe(true)
+    expect((within(panel).getByRole('radio', { name: 'Quiet' }) as HTMLInputElement).checked).toBe(true)
     expect((within(panel).getByRole('checkbox', { name: 'Show bot-to-bot' }) as HTMLInputElement).checked).toBe(true)
     expect((within(panel).getByRole('checkbox', { name: 'Show thinking' }) as HTMLInputElement).checked).toBe(false)
     expect(within(panel).getByText('Following the default set in Settings.')).toBeTruthy()
@@ -108,7 +108,7 @@ describe('the chat options', () => {
       showBotToBot: true,
       showThinking: true
     })
-    expect(chatViewFor(chatViewStore.getState(), 'writer').level).toBe('normal')
+    expect(chatViewFor(chatViewStore.getState(), 'writer').level).toBe('quiet')
     expect(screen.getByText('This conversation has its own view.')).toBeTruthy()
 
     const reset = screen.getByRole('button', { name: "Reset this conversation's view" })
@@ -118,7 +118,7 @@ describe('the chat options', () => {
 
     expect(chatViewStore.getState().perChat).toEqual({})
     // The button went with the override; focus is on the verbosity in force, not lost.
-    expect(document.activeElement).toBe(screen.getByRole('radio', { name: 'Normal' }))
+    expect(document.activeElement).toBe(screen.getByRole('radio', { name: 'Quiet' }))
   })
 
   it('closes on Escape back to its button, and on a press outside', async () => {
@@ -147,10 +147,14 @@ describe('the chat screen with the options', async () => {
     commit([userItem('look it up', {}, 'u'), toolItem('web_search', { summary: 'three results' }, 't1')])
     mountScreen()
 
-    expect(toolRows()).toBe(1)
+    // Quiet by default: no tool row.
+    expect(toolRows()).toBe(0)
 
     fireEvent.click(screen.getByRole('button', { name: 'Chat options' }))
-    fireEvent.click(await screen.findByRole('radio', { name: 'Quiet' }))
+    fireEvent.click(await screen.findByRole('radio', { name: 'Normal' }))
+    expect(toolRows()).toBe(1)
+
+    fireEvent.click(screen.getByRole('radio', { name: 'Quiet' }))
     expect(toolRows()).toBe(0)
 
     fireEvent.click(screen.getByRole('radio', { name: 'Verbose' }))

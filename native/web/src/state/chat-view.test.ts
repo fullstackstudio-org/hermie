@@ -7,7 +7,8 @@ import {
   chatViewFor,
   createChatViewStore,
   DEFAULT_CHAT_VIEW,
-  hasChatViewOverride
+  hasChatViewOverride,
+  RETIRED_DEFAULT_VIEW
 } from './chat-view'
 
 const NAMESPACE = '/test-chat-view'
@@ -75,6 +76,38 @@ describe('the chat view', () => {
     store.getState().hydrate(storage())
     expect(store.getState().defaults).toEqual(DEFAULT_CHAT_VIEW)
     expect(asViewPatch(['quiet'])).toEqual({})
+  })
+
+  it('starts quiet, without reasoning', () => {
+    expect(DEFAULT_CHAT_VIEW).toEqual({ level: 'quiet', showBotToBot: true, showThinking: false })
+    expect(createChatViewStore().getState().defaults).toEqual(DEFAULT_CHAT_VIEW)
+  })
+
+  it('stores only a chosen default, and reads the old built-in one as nothing chosen', () => {
+    // What every save wrote before the default became quiet, while nothing could change it.
+    storage().setSync(
+      CHAT_VIEW_KEY,
+      JSON.stringify({ defaults: RETIRED_DEFAULT_VIEW, perChat: { researcher: { showBotToBot: false } } })
+    )
+
+    const store = createChatViewStore()
+
+    store.getState().hydrate(storage())
+    expect(store.getState().defaults).toEqual(DEFAULT_CHAT_VIEW)
+    expect(chatViewFor(store.getState(), 'researcher')).toEqual({ ...DEFAULT_CHAT_VIEW, showBotToBot: false })
+
+    // A save keeps the override and leaves the built-in default out.
+    store.getState().setChatView('writer', { level: 'verbose' })
+    expect(JSON.parse(storage().getSync(CHAT_VIEW_KEY)!).defaults).toEqual({})
+
+    // A default somebody chose is kept as chosen, `normal` included.
+    store.getState().setDefaults({ level: 'normal' })
+    expect(JSON.parse(storage().getSync(CHAT_VIEW_KEY)!).defaults).toEqual({ level: 'normal' })
+
+    const next = createChatViewStore()
+
+    next.getState().hydrate(storage())
+    expect(next.getState().defaults).toEqual({ ...DEFAULT_CHAT_VIEW, level: 'normal' })
   })
 
   it('does not write anything for a reset of a chat that had no view of its own', () => {
