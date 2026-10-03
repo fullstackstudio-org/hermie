@@ -72,6 +72,15 @@ public final class GatewaySession {
   /// `gateway.capabilities`, read after every connect; `nil` until it answers,
   /// and on a gateway that does not have the method.
   public internal(set) var capabilities: GatewayCapabilitiesResult?
+  /// Whose app-wide `ui_meta` section this connection reads and writes (`hermie-app:<user>`):
+  /// `sessionTokenUser` on a session-token gateway, the user id (or email) `/api/auth/me` named
+  /// otherwise. `nil` until the first identity read answered, and after a sign-out.
+  public internal(set) var uiMetaUser: String?
+  /// Told after every `sessions.changed` sweep (debounced): the ui_meta bridge reconciles on it.
+  @ObservationIgnored public var onSessionsChanged: (@MainActor () -> Void)?
+  /// The person a session-token gateway's app section is kept under (`OWNER_USER_ID`).
+  public nonisolated static let sessionTokenUser = "owner"
+
   /// Told once per finished `/background` task, with the chat it ran in. The
   /// transcript shows the result as well; this is the seam for a local
   /// notification.

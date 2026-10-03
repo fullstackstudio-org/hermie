@@ -54,6 +54,18 @@ extension GatewaySession {
       identityFailure = nil
     }
 
+    // The person the app-wide ui_meta key is named after (`hermie-app:<user>`), as the reference
+    // reads it: the owner on a session-token gateway, the user id (or the email) the gateway
+    // answered otherwise, and nobody after a refusal (the local-only path). Not the author stamp.
+    switch probe {
+    case .sessionToken:
+      uiMetaUser = Self.sessionTokenUser
+    case .answered(let me):
+      uiMetaUser = me.userID.isEmpty ? me.email : me.userID
+    case .failed:
+      break
+    }
+
     await adopt(next)
   }
 
@@ -61,6 +73,7 @@ extension GatewaySession {
   public func forgetIdentity() async {
     identityReads += 1
     identityFailure = nil
+    uiMetaUser = nil
     await adopt(.unknownYet)
   }
 
@@ -157,6 +170,8 @@ extension GatewaySession {
       connectionRequests.forget(chat: chat)
       resumeProgress[chat] = nil
       models[chat]?.resumeProgress = nil
+    case .sessionsChanged:
+      onSessionsChanged?()
     }
   }
 

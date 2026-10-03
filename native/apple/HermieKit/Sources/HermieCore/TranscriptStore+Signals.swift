@@ -29,6 +29,8 @@ enum SessionSignal: Sendable {
   case backgroundTaskFinished(chat: String, SideAgentCompletePayload)
   /// The chat is gone (`forget`): whatever is kept for it goes too.
   case chatForgotten(chat: String)
+  /// A `sessions.changed` sweep ran (debounced): another client changed the roster or a session.
+  case sessionsChanged
 }
 
 extension TranscriptStore {

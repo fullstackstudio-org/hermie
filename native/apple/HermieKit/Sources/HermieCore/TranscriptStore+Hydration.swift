@@ -784,6 +784,8 @@ extension TranscriptStore {
   func sessionsChangedElapsed() {
     sessionsChangedTimer = nil
     spawn { await $0.sweep() }
+    // Told after the debounce, once per burst: the ui_meta bridge reconciles on it.
+    signalSink.yield(.sessionsChanged)
   }
 
   /// One `sessions.changed` sweep: refresh the roster, and tail-reconcile every
