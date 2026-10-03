@@ -10,8 +10,9 @@ the threat model that follows from it are in
 frame, finds its gateway from its own address, probes it, and reads who is signed in on the gateway's own
 session. Signed in, it shows the build it came from and who you are, with a way to sign out. The connection,
 the bot roster and the chats exist as React-free code with their tests ("Connection" and "Chats" below) but
-no screen uses them yet; there is no chat screen, and the plugin does not serve this build. Until that
-changes, the browser keeps running the Expo app's web export through Hermie Web
+no screen uses them yet; there is no chat screen, and the plugin does not serve this build. The transcript list
+the chat screen will stand on exists too, measured against its budgets on a harness page ("Transcript list"
+below), and no screen uses it yet either. Until that changes, the browser keeps running the Expo app's web export through Hermie Web
 ([docs/web.md](../../docs/web.md)); nothing here replaces it.
 
 ## Running it
@@ -36,10 +37,11 @@ styles, `ws:`, no Trusted Types). The production build never does; test against 
 | `npm run client:test`               | the client's unit and component tests (vitest, jsdom, Testing Library)                                      |
 | `npm run client:check-bundle`       | the gate on `dist/` (below); `-- --commit <sha>` also requires `build.json` to name that commit             |
 | `npm run client:check-reproducible` | builds twice from clean and compares every file; `-- --fresh-checkout` adds a build from `git archive HEAD` |
-| `npm run client:e2e`                | says there are no end-to-end suites yet; Playwright arrives with the first one                              |
+| `npm run client:e2e`                | the Playwright suites in Chromium, WebKit and Firefox (today: the transcript list's, below)                 |
 
 Types, lint and format run with the rest of the repository (`npm run typecheck`, `npm run lint`,
-`npm run format`); `client:test` and the bundle gate also run in CI as the `web-client` job.
+`npm run format`); `client:test`, the bundle gate and the transcript list's Playwright suite (Chromium only)
+also run in CI as the `web-client` job.
 
 ## The build
 
@@ -95,7 +97,9 @@ built from; the script warns, and such a build must not be imported.
 - `index.html` has no policy, allows `unsafe-inline` or `unsafe-eval`, or has inline script, a style element,
   a `style` attribute or an inline handler;
 - `build.json` is missing, malformed, not in canonical form, or does not match the files: a changed byte, a
-  missing file or an unlisted file.
+  missing file or an unlisted file;
+- a text file holds `hermie:development-only`, the stamp every development-only page (`src/dev`) puts on its
+  own document: one of them was imported by the client.
 
 It prints what it measured against each limit.
 
@@ -160,8 +164,9 @@ values are kept in memory, and the cache falls back to memory on its first failu
 ### Seams
 
 Nothing outside `src/platform/` and `src/boot/` touches `window`, `localStorage`, `sessionStorage`,
-`indexedDB`, `navigator`, `location` or `history` (lint). Each seam takes its browser object as an argument, so
-the tests hand in their own:
+`indexedDB`, `navigator`, `location` or `history` (lint; the development-only pages in `src/dev`, which never
+reach the bundle, are exempt). Each seam takes its browser object as an argument, so the tests hand in their
+own:
 
 | Seam                                                  | What                                                                        |
 | ----------------------------------------------------- | --------------------------------------------------------------------------- |
@@ -170,6 +175,7 @@ the tests hand in their own:
 | `platform/net-info.ts`                                | `networkWatcher`: `online` / `offline`                                      |
 | `platform/visibility.ts`                              | `visibilityWatcher`: `visibilitychange`, `pagehide`, `pageshow`             |
 | `platform/socket.ts`                                  | `createSocketFactory()`: the page's `WebSocket` for `GatewayConnection`     |
+| `platform/layout.ts`                                  | `layoutClock`: `requestAnimationFrame` and `ResizeObserver` for the lists   |
 | `platform/clipboard.ts`, `page-title.ts`, `random.ts` | copy, the tab's title, `crypto.getRandomValues`                             |
 
 ## Connection
@@ -279,23 +285,129 @@ The rules, each pinned by a test:
 (`markdown-fixtures.axe.test.tsx`): run `npm run client:dev` and open `/dev/markdown.html`. Nothing the build reaches
 imports `src/dev/` (a test checks it), so it is not in `dist/`.
 
+## Transcript list
+
+`features/chat/TranscriptList.tsx` is the list the chat screen will stand on (plan decision W8). No screen
+uses it yet. Its props are the whole boundary, so what is behind them can change without touching a caller:
+
+| Prop            | What                                                                                              |
+| --------------- | ------------------------------------------------------------------------------------------------- |
+| `rows`          | what `visibleItems` returned, oldest first                                                        |
+| `renderItem`    | draws one row; keep it stable (`useCallback`), rows are memoised on it                            |
+| `onReachTop`    | the reader is within 0.4 of a viewport of the oldest row: load older history (once per first row) |
+| `onStickChange` | the list started (`true`) or stopped (`false`) following the newest row; it starts following      |
+| `label`         | the accessible name of the `role="log"` region                                                    |
+
+How it works:
+
+- **Bottom-anchored, and the reader's place is never moved** (`scroll-anchor.ts`, ported from the Expo app's
+  transcript). Within 32 px of the bottom the list follows a growing reply and new rows. Anywhere else it holds
+  the row the reader is looking at: rows growing below move nothing, and anything that changes height above
+  (a page of older history, a row drawn for the first time) moves the scroll offset by the same amount. The
+  browser's own scroll anchoring is off (`overflow-anchor: none`) so Chromium, WebKit and Firefox all run
+  this one rule. It runs from a `ResizeObserver` (after layout, before paint) and on every scroll event.
+- **Every row is in the DOM; the browser skips what is far away.** Rows are grouped into stable chunks of up
+  to 50 (`row-chunks.ts`); each chunk is `content-visibility: auto` with an intrinsic height that is the sum
+  of its rows' per-kind estimates (`ROW_ESTIMATES`), and a chunk drawn once remembers its real height. On the
+  chunk rather than on each row because Chromium checks every such element against the viewport on every
+  frame that changed layout: per row, that check was most of the frame on a 5,000-row chat.
+- **A delta re-renders one row.** Chunks and rows are memoised on the rows' `(id, version, presentation)`
+  and on whether the selectors took a thought away.
+
+### The harness and the performance suite
+
+`src/dev/transcript-harness.html` is a development-only page: the list on a synthetic 5,000-item chat built
+by the engine (`rowsToItems`, `reconcile`), a reply streaming into it at 30 deltas per second
+(`applyEvent`, with the recorded scenarios' own delta texts), committed at most once per frame, and the
+recorded stream scenarios (`contract/transcript/streams/*.json`) replayed at the end of the long chat. It is
+built only by `npm run harness:build` (`vite build --mode harness`, into `dist-harness/`, production React,
+the client's own policy) and served by `npm run harness:serve` on `127.0.0.1:4180`; the bundle gate refuses
+its marker, so none of it can reach `dist/`.
+
+`e2e/perf/transcript-stream.spec.ts` drives it (Playwright starts and stops the server itself):
+
+| Check                                                                                                                        | Engines                   | Budget                          |
+| ---------------------------------------------------------------------------------------------------------------------------- | ------------------------- | ------------------------------- |
+| 60 s of streaming on 5,000 items at 4x CPU throttling: main-thread tasks over 50 ms (from a trace), dropped frames           | Chromium                  | 0 tasks, under 1 % of frames    |
+| the same run: pinned while at the bottom, then reading mid-list across new turns and a 200-row prepend; history rows redrawn | Chromium                  | 0 px gap, 0 px drift, 0 redraws |
+| pin, drift across a prepend, older history asked for at the top, unthrottled                                                 | Chromium, WebKit, Firefox | 0 px (half a pixel of slop)     |
+| a cached 200-row chat: IndexedDB read, engine, first painted frame                                                           | Chromium, WebKit, Firefox | 300 ms                          |
+| every recorded scenario's checkpoints, as rows on the page                                                                   | Chromium, WebKit, Firefox | exact                           |
+
+```sh
+npx playwright install chromium webkit firefox      # once
+npm run client:e2e                                  # all three engines
+npm run e2e:chromium --workspace @hermie/web-client # what CI runs
+TRANSCRIPT_PERF_SECONDS=15 npm run client:e2e       # a shorter throttled run while working on it
+```
+
+CI runs Chromium only, in the `web-client` job; WebKit and Firefox are run by hand before a change to the
+list is merged. Every measure is printed and attached to the test's results.
+
+### Measured
+
+The spike (plan W-8) kept `content-visibility` and did not need the pre-approved virtualiser. Measured on
+3 October 2026 on an M5 Max (18 cores, load average 5 to 12) with Playwright 1.63: Chromium 153 (headless
+shell) and WebKit 26.6, 1280 by 800, device pixel ratio 1.
+
+| Measure                                                                     | Chromium, 4x CPU                           | WebKit, unthrottled     |
+| --------------------------------------------------------------------------- | ------------------------------------------ | ----------------------- |
+| main-thread tasks over 50 ms in 60 s of streaming on 5,000 items            | 0 of 9,144 (longest 12 ms)                 | not run                 |
+| frames dropped in those 60 s                                                | 0 of 3,604 (0 ms/s hitch time)             | not run                 |
+| main thread busy                                                            | 28 %                                       |                         |
+| gap below the newest row while pinned                                       | 0 px                                       | 0 px                    |
+| drift of the row being read, across new turns and a 200-row prepend         | 0 px                                       | 0 px                    |
+| history rows drawn again during the run                                     | 0 of 5,000                                 |                         |
+| cached 200-row chat, open to first painted frame (worst of five)            | 18.5 ms (unthrottled)                      | 19 ms                   |
+| scrolling up through unseen history with the wheel for 10 s while streaming | 1 frame dropped of 722, longest task 37 ms | 0 dropped (unthrottled) |
+
+Throttling and task traces are Chromium's, so the throttled run is Chromium-only; WebKit's pin and drift
+figures come from the shorter unthrottled check (8 s pinned, then 8 s reading across a prepend). The scrolling
+row is a one-off measurement, not part of the suite.
+
+Firefox was not measured: the Playwright Firefox build (155) did not start on that machine ("Could not find
+profile folder", outside any sandbox as well). Its pin, drift, cached-open and scenario checks are in the
+suite and run wherever Playwright's Firefox does.
+
+What the spike changed on the way:
+
+- **`content-visibility` per row was the frame.** With 5,000 `content-visibility: auto` rows, Chromium spent
+  about half of the throttled run in its own viewport-proximity check (`IntersectionObserverController`), and
+  a 15 s run had 5 tasks over 50 ms and 14 % dropped frames. One per chunk of 50 rows took that check to under
+  1 % of the run.
+- **Settling after every commit forced a second layout per frame.** The resize observer already reports every
+  change before the paint; settling from it alone removed that layout.
+- **WebKit lays out a chunk entering the viewport during a scroll event's geometry read**, one frame before it
+  reports the resize. The anchor treats a scroll event that did not move the offset as the list's own and
+  settles instead of taking the shifted layout as the reader's new place (a test pins this down).
+- **A history page must go through `prependHistory`**, which keeps every existing item's version: through
+  `reconcile` every row was drawn again.
+
+The rest of each frame is the engine: `applyEvent` copies the chat's indices on every event (about 1.4 ms per
+event on 5,000 items unthrottled), roughly two thirds of the JavaScript time while streaming.
+
 ## Layout
 
 ```
 index.html                  the document: policy, one module script, empty #root
 vite.config.ts              base './', hashed assets, ASCII output, maps out of dist, dev server and proxy
 vitest.config.ts            jsdom, fixed stand-ins for the injected version and commit
-tsconfig.json               the client's code (DOM); tsconfig.node.json: the config files (Node)
+playwright.config.ts        the Playwright suites: three engines, the harness server
+tsconfig.json               the client's code (DOM); tsconfig.node.json: the config files (Node);
+                            tsconfig.e2e.json: the Playwright configuration and specs
+e2e/perf/                   the transcript list's performance suite and its trace reader
 scripts/
   write-build-manifest.mjs  dist/build.json
   source-commit.mjs         which commit this build is of (shared by the config and the manifest)
 src/
-  main.tsx                  the boot sequence and its screens (the only React outside features/)
+  main.tsx                  the boot sequence and its screens (with dev/, the only React outside features/)
   boot/                     frame guard, base path, auth mode and cookie session, sign-in bounce, boot
   core/                     the connection and its lifecycle, the roster controller, the advert, the chat
                             controller and the ingest (above)
   state/                    zustand vanilla stores: connection, bots, plugin, chats
   platform/                 the browser seams (above)
+  features/chat/            the transcript list, its scroll anchor and its chunks
+  dev/                      development-only pages: the transcript harness, its probes, a stream replayer
   test-support/             test doubles: an IndexedDB, a fetch, a fetch with a cookie jar, a chat
                             gateway, the page's visibility and network, and a copy of the Expo app's
                             reader's-own-chat directory for the sub-chats test
@@ -331,9 +443,11 @@ Every third-party package, and why it is here. Anything beyond this list needs a
 | `@testing-library/react` (16.3.3), `@testing-library/dom` (10.4.2)                   | dev     | component tests that query by role and text rather than by implementation; `@testing-library/dom` is a required peer of the React package                                                                                                                   |
 | `axe-core` (4.13.0)                                                                  | dev     | the accessibility checker the Markdown fixture page is tested with (`markdown-fixtures.axe.test.tsx`); MPL-2.0, test-only, not in the bundle                                                                                                                |
 | `@types/react`, `@types/react-dom`                                                   | dev     | type definitions for React                                                                                                                                                                                                                                  |
+| `@playwright/test` (1.63.0)                                                          | dev     | the end-to-end and performance suites in Chromium, WebKit and Firefox (plan, "Constraints"); today the transcript list's                                                                                                                                    |
 | `typescript`, `eslint`, `prettier`                                                   | dev     | from the repository root, shared with every workspace                                                                                                                                                                                                       |
 
-Not added yet, because nothing uses them: `@playwright/test` and `@axe-core/playwright` for the end-to-end
-and accessibility suites. `@hermie/markdown` brings `marked` (and `highlight.js`, which nothing here imports
+Not added yet, because nothing uses them: `@axe-core/playwright` for the accessibility suites, and the
+pre-approved `@tanstack/react-virtual` (the transcript list did not need it, see "Measured" above).
+`@hermie/markdown` brings `marked` (and `highlight.js`, which nothing here imports
 yet) into the bundle once a screen renders a message. The licence text of every
 runtime dependency is meant to ship in `dist/licenses.json` and be shown in About; that is not generated yet.
