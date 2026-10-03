@@ -19,6 +19,7 @@ const { values } = parseArgs({
     'no-turn-claim': { type: 'boolean', default: false },
     'no-push-relay': { type: 'boolean', default: false },
     'no-native-revoke': { type: 'boolean', default: false },
+    idp: { type: 'string', default: 'single' },
     'plugin-assets': { type: 'string' },
     'no-web-client': { type: 'boolean', default: false },
     'no-web-push-key': { type: 'boolean', default: false },
@@ -58,6 +59,10 @@ if (values.help) {
       '                          cannot deliver to a relay registration',
       '  --no-native-revoke      drop `native_revoke` from auth_flows and stop serving',
       '                          /auth/native/revoke, staging a gateway older than the route',
+      '  --idp single|staged     who signs a native sign-in in (default single: one approve',
+      '                          page). staged: the real chain, gateway PKCE cookie -> an',
+      '                          identity provider with a password form (tester / hunter2)',
+      '                          and a one-time code (246810) -> /auth/callback -> loopback',
       '  --plugin-assets <dir>   serve <dir> as the plugin’s dashboard files at',
       '                          /dashboard-plugins/hermie/<path> (so <dir>/app/index.html is a built',
       '                          web client), with the dashboard route’s own rules: a suffix',
@@ -168,6 +173,16 @@ const passkey: PasskeyOptions | false =
       }
     : false
 
+if (!['single', 'staged'].includes(values.idp ?? 'single')) {
+  console.error('--idp is single or staged.')
+  process.exit(1)
+}
+
+if (values.idp === 'staged' && auth !== 'native') {
+  console.error('--idp staged needs --auth native: it stages the native sign-in.')
+  process.exit(1)
+}
+
 if (passkey && !['cookie', 'native'].includes(auth)) {
   console.error('--passkey needs --auth cookie or native: with none or token nobody is signed in.')
   process.exit(1)
@@ -188,6 +203,7 @@ const gateway = await startFakeGateway({
   ...(values['no-turn-claim'] ? { turnClaim: false as const } : {}),
   ...(values['no-push-relay'] ? { pushRelay: false as const } : {}),
   ...(values['no-native-revoke'] ? { nativeRevoke: false as const } : {}),
+  ...(values.idp === 'staged' ? { idp: 'staged' as const } : {}),
   ...(values['plugin-assets'] ? { pluginAssets: values['plugin-assets'] } : {}),
   ...(values['no-web-client'] ? { webClient: false as const } : {}),
   ...(values['no-web-push-key'] ? { webPushKey: false as const } : {}),

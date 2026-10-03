@@ -4,8 +4,30 @@ An in-process stand-in for `hermes serve`, for tests and offline development. It
 endpoints, the authentication flows, WebSocket tickets and the JSON-RPC surface the clients call.
 See [the fake gateway in CONTRIBUTING.md](../../CONTRIBUTING.md#the-fake-gateway) for the general
 use, `npm run fake-gateway -- --help` for every flag and control endpoint, and `src/server.ts` for
-the behaviour of each method. This file documents the passkey level, which is new enough to need its
-own page.
+the behaviour of each method. This file documents the staged identity provider and the passkey
+level, which are new enough to need their own page.
+
+## The staged identity provider (`--idp staged`)
+
+With `--auth native --idp staged` (in-process: `idp: 'staged'`) a native sign-in runs the chain a
+real gateway runs, with an identity provider shaped like the FullStack Studio one behind it, all on
+the fake's own address:
+
+1. `GET /auth/native/authorize` keeps the client's challenge, redirect URI and state in a pending
+   broker, puts only the broker id in the `hermes_session_pkce` cookie and 302s to the provider.
+2. `GET /__idp/authorize` remembers where to go after signing in in an `idp_next` cookie, then sends
+   the browser to the consent page if it already has an `idp_session`, else to `/__idp/login`.
+3. `POST /__idp/login` (`tester` / `hunter2`, form-encoded) starts a challenge in an `idp_pending`
+   cookie (path `/__idp`, 5 minutes) and 303s to `/__idp/verify`.
+4. `POST /__idp/verify` with `code=246810` signs in and 303s to the `idp_next` page. The challenge is
+   burned on the first try: after a wrong code, the next try is told the sign-in expired and
+   `/__idp/verify` sends the browser back to the password form.
+5. `GET /__idp/consent` issues the provider's code and 303s to `/auth/callback`, which checks the
+   PKCE cookie and the state (`400 Missing PKCE state cookie` without it, as the gateway answers)
+   and 302s to the client's loopback redirect with the gateway's own code.
+
+Without `--idp staged` the authorize page approves in one step, as before. The native
+`NativeOIDCRoundTripTests` and `src/staged-idp.test.ts` drive this chain.
 
 ## The passkey level (`confirm` at level `passkey`)
 
