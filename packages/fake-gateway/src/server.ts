@@ -5,7 +5,29 @@ import { URL } from 'node:url'
 
 import { WebSocket, WebSocketServer } from 'ws'
 
+import {
+  AnswerRefused,
+  buildText,
+  ConfirmGate,
+  ConfirmParamsError,
+  type ConfirmHost,
+  type RaiseResult
+} from './passkey/confirm'
+import {
+  applySettings,
+  type Identity,
+  PasskeyGateway,
+  type PasskeyOptions,
+  SettingsError,
+  userKey
+} from './passkey/gateway'
+import { handlePasskeyRoute, PREFIX as PASSKEY_PREFIX } from './passkey/routes'
+
+import { b64u } from './passkey/encoding'
 import { LOGIN_PAGE, loginUrlFor, PLUGIN_ASSET_CACHE_CONTROL, readPluginAsset, tokenIndexHtml } from './plugin-assets'
+
+export type { Identity, PasskeyOptions } from './passkey/gateway'
+export type { ConfirmOutcome, RaiseResult } from './passkey/confirm'
 
 /**
  * A stand-in for `hermes serve` that speaks enough of the gateway contract to
@@ -298,6 +320,20 @@ export interface FakeGatewayOptions {
    * where the client's bubble is the only record there will ever be.
    */
   steerPersistsRow?: boolean
+  /**
+   * Whether this gateway knows the confirm level `passkey`, and how it is set up.
+   *
+   * Absent or `false`: it does not, as a gateway older than the level. `client.capabilities` carries no
+   * `confirm_passkey`, the `/api/auth/passkeys` routes are not served, and `confirm` keeps the permissive
+   * behaviour this fake always had (any level, any answer).
+   *
+   * `true` or an object: it does, with the real gateway's rules for `confirm` (gated levels, per-level
+   * method sets, 4033 / 4034, five refusals, no downgrade) and the six passkey routes. Needs a gated
+   * `auth` (`cookie` or `native`): in `none` and `token` mode nobody is signed in, and the level answers
+   * `no_identity`. The base URL defaults to the gateway's own address, which is private, so the operator's
+   * opt-in is on unless `baseUrls` is given. `POST /__fake/passkey/enable` does the same at run time.
+   */
+  passkey?: boolean | PasskeyOptions
 }
 
 export interface FakeSession {
@@ -747,7 +783,7 @@ export interface FakeGatewayState {
    * sent none. Recorded as sent, whatever the level is called, because the fake
    * is there to be told things the real gateway would filter.
    */
-  clientCapabilities: { server_requests: boolean; confirm: string[] }[]
+  clientCapabilities: { server_requests: boolean; confirm: string[]; confirm_passkey?: unknown }[]
   /** Every JSON-RPC method the server handled, in order. */
   methodLog: string[]
   /** Mark the next replay answer as truncated. */
@@ -839,7 +875,16 @@ export interface FakeGatewayState {
    * them cannot reproduce the window where an inherited approval arrives for a
    * session nothing has bound yet.
    */
-  openServerRequests: Map<string, { session_id: string; method: string; params: Record<string, unknown> }>
+  openServerRequests: Map<
+    string,
+    {
+      session_id: string
+      method: string
+      params: Record<string, unknown>
+      /** Who this request may be shown to; absent means every connection (a gated `confirm` sets it). */
+      viewer?: (socket: WebSocket) => boolean
+    }
+  >
   /**
    * Pictures `profiles.set_asset` has written, by `<profile>:<asset>`.
    *
@@ -1009,6 +1054,30 @@ export interface FakeGateway {
    * `approval.pending` lists.
    */
   raiseApprovalOn(options?: { profile?: string; command?: string; queueOnly?: boolean }): Promise<unknown>
+  /**
+   * The passkey level: its store, settings and limits, or `null` while this gateway does not know the
+   * level (`startFakeGateway({ passkey })`, `POST /__fake/passkey/enable`).
+   */
+  passkey(): PasskeyGateway | null
+  /** Make this gateway know the level, or change how it is set up. The same as `POST /__fake/passkey/enable`. */
+  enablePasskey(options?: PasskeyOptions): PasskeyGateway
+  /**
+   * Raise a `confirm` on a profile's chat through the gated path (the gateway must know the level).
+   * `unavailable` with the reason when nothing was sent; otherwise `done` resolves with the outcome the
+   * agent would learn: `{outcome, method, verified, reason}`.
+   */
+  raiseConfirm(options: {
+    profile?: string
+    title?: string
+    summary: string
+    detail?: string
+    level?: 'plain' | 'passkey'
+    /** `<provider>:<user id>` the request is for; `null` is nobody (a turn nobody signed in submitted). */
+    user?: string | null
+    /** Seconds before it times out (default 120). */
+    timeoutSeconds?: number
+    turnIsolation?: boolean
+  }): RaiseResult
   close(): Promise<void>
 }
 
@@ -1836,7 +1905,9 @@ function sniffImageMime(bytes: Buffer): string {
 export class RpcFault extends Error {
   constructor(
     readonly code: number,
-    message: string
+    message: string,
+    /** The error's `data`, when the contract gives it one (4034 names its `reason` there). */
+    readonly data?: Record<string, unknown>
   ) {
     super(message)
     this.name = 'RpcFault'
@@ -2622,7 +2693,7 @@ function initialState(options: FakeGatewayOptions): FakeGatewayState {
     runningSessions: new Set<string>(),
     sessionConfig: new Map<string, Record<string, string>>(),
     pendingApprovals: new Map<string, { session_id: string; payload: Record<string, unknown> }>(),
-    openServerRequests: new Map<string, { session_id: string; method: string; params: Record<string, unknown> }>(),
+    openServerRequests: new Map(),
     profileAssets: new Map<string, { mime: string; bytes: Buffer }>(),
     attachedImages: [],
     uploadedFiles: new Map(),
@@ -2796,7 +2867,7 @@ export async function startFakeGateway(options: FakeGatewayOptions = {}): Promis
   const steerPersistsRow = options.steerPersistsRow ?? true
   const version = options.version ?? '0.21.3-fake'
 
-  const tickets = new Map<string, { expiresAt: number; userId: string; provider: string }>()
+  const tickets = new Map<string, { expiresAt: number; userId: string; provider: string; identity?: Identity }>()
   const codes = new Map<string, { challenge: string; provider: string }>()
   const refreshTokens = new Map<string, { provider: string; userId: string }>()
   const sockets = new Set<WebSocket>()
@@ -2852,6 +2923,23 @@ export async function startFakeGateway(options: FakeGatewayOptions = {}): Promis
   }))
   /** Cookie value → the account it signs in. A Map, because who matters now. */
   const sessionCookies = new Map<string, ResolvedAccount>()
+  /** Access token → the user id it was issued to (native mode), so a bearer names someone. */
+  const accessTokenUsers = new Map<string, string>()
+  /** The identity each live socket was minted for (the ticket's), when the gateway is gated. */
+  const socketIdentities = new Map<WebSocket, Identity>()
+  /** The identity a ticket carried, handed from the upgrade check to the connection. */
+  const upgradeIdentities = new WeakMap<IncomingMessage, Identity>()
+  /** The passkey level, `null` while this gateway does not know it. */
+  let passkey: PasskeyGateway | null = null
+  let confirmGate: ConfirmGate<WebSocket> | null = null
+  /** The address the fake listens on, set once it does: the default base URL of the passkey level. */
+  let ownUrl = ''
+
+  const identityOfAccount = (account: ResolvedAccount): Identity => ({
+    provider: 'self-hosted',
+    userId: account.userId,
+    displayName: account.displayName
+  })
 
   /** Read one cookie out of a request's `Cookie` header. */
   function cookieOf(req: IncomingMessage, name: string): string {
@@ -2924,10 +3012,33 @@ export async function startFakeGateway(options: FakeGatewayOptions = {}): Promis
     return token.length > 0 && state.accessTokens.has(token)
   }
 
+  /**
+   * Who a request is signed in as, the way the gate names them: the account of the session cookie, or of
+   * the user an access token was issued to. `null` on a gateway with a session token or none, where the
+   * shared secret names nobody.
+   */
+  function identityOfRequest(req: IncomingMessage): Identity | null {
+    if (state.auth === 'cookie') {
+      const account = sessionCookies.get(cookieOf(req, SESSION_COOKIE))
+
+      return account ? identityOfAccount(account) : null
+    }
+
+    if (state.auth === 'native') {
+      const userId = accessTokenUsers.get(bearerOf(req))
+      const account = accounts.find(row => row.userId === userId) ?? accounts[0]
+
+      return userId !== undefined && account ? identityOfAccount(account) : null
+    }
+
+    return null
+  }
+
   function issueTokens(provider: string, userId: string) {
     const accessToken = `at-${randomUUID()}`
     const refreshToken = `rt-${randomUUID()}`
     state.accessTokens.add(accessToken)
+    accessTokenUsers.set(accessToken, userId)
     refreshTokens.set(refreshToken, { provider, userId })
 
     return {
@@ -3744,7 +3855,9 @@ export async function startFakeGateway(options: FakeGatewayOptions = {}): Promis
         serverRequestAnswers: state.serverRequestAnswers,
         // Stored ids of the sessions with a turn still streaming: how a client
         // that is away can tell the turn it missed has finished.
-        runningSessions: [...state.runningSessions]
+        runningSessions: [...state.runningSessions],
+        // The passkey level's public view; absent while this gateway does not know the level.
+        ...(passkey ? { passkey: passkeyView() } : {})
       })
 
       return
@@ -3789,6 +3902,7 @@ export async function startFakeGateway(options: FakeGatewayOptions = {}): Promis
         publish('request.cancel', request.session_id, { id, method: request.method, reason })
         pendingServerRequests.get(id)?.reject(new Error(`withdrawn: ${reason}`))
         pendingServerRequests.delete(id)
+        confirmGate?.withdrawn(id, reason)
       }
 
       json(res, 200, { withdrawn: withdrawn.length })
@@ -3835,6 +3949,154 @@ export async function startFakeGateway(options: FakeGatewayOptions = {}): Promis
       return
     }
 
+    /*
+      The passkey level's control surface. Never part of the gateway contract: it plays the operator (who
+      lists base URLs, mints a code with `hermes dashboard passkey invite`, revokes with the CLI) and the
+      clock (a request timing out, a window running out), which a client under test has no way to do.
+    */
+    if (path.startsWith('/__fake/passkey/') && method === 'POST') {
+      const body = await readBody(req)
+      const action = path.slice('/__fake/passkey/'.length)
+
+      if (action === 'enable') {
+        try {
+          const gateway = enablePasskey({
+            ...(typeof body.enabled === 'boolean' ? { enabled: body.enabled } : {}),
+            ...(body.base_urls === undefined ? {} : { baseUrls: body.base_urls as string[] }),
+            ...(body.rps === undefined ? {} : { nativeRps: body.rps as Record<string, string[]> }),
+            ...(typeof body.allow_private === 'boolean' ? { allowPrivateBaseUrls: body.allow_private } : {}),
+            ...(typeof body.user_invites === 'boolean' ? { userInvites: body.user_invites } : {})
+          })
+
+          json(res, 200, passkeyView() ?? { enabled: gateway.settings.enabled })
+        } catch (error) {
+          if (error instanceof SettingsError) {
+            json(res, 400, { detail: error.message })
+
+            return
+          }
+
+          throw error
+        }
+
+        return
+      }
+
+      if (!passkey || !confirmGate) {
+        json(res, 409, { detail: 'This gateway does not know the passkey level; POST /__fake/passkey/enable first' })
+
+        return
+      }
+
+      if (action === 'code') {
+        // `hermes dashboard passkey invite [--user ID] [--ttl]`: the operator's code, optionally bound.
+        const bound = 'user' in body ? resolveUser(body.user) : undefined
+
+        if (body.ttl !== undefined && (typeof body.ttl !== 'number' || body.ttl < 60 || body.ttl > 24 * 3600)) {
+          json(res, 400, { detail: 'ttl is a number of seconds from 60 to 86400' })
+
+          return
+        }
+
+        const invite = passkey.store.mintCode({
+          ...(bound ? { userId: bound } : {}),
+          ...(typeof body.ttl === 'number' ? { ttl: body.ttl } : {})
+        })
+
+        json(res, 200, { code: invite.code, expires_at: invite.expiresAt, user_id: invite.userId })
+
+        return
+      }
+
+      if (action === 'revoke') {
+        // `hermes dashboard passkey revoke <id prefix>` or `revoke --user ID --all`: the operator's CLI, a
+        // different process from the gateway, so nothing is announced unless `announce` asks for it.
+        const revoked = []
+        const user = 'user' in body ? resolveUser(body.user) : undefined
+
+        if (typeof body.credential_id === 'string' && body.credential_id) {
+          for (const found of passkey.store.find(body.credential_id)) {
+            const done = passkey.store.revoke(found.credentialId, { by: 'operator' })
+
+            if (done) {
+              revoked.push(done)
+            }
+          }
+        } else if (body.all === true && typeof user === 'string') {
+          revoked.push(...passkey.store.revokeUser(user, 'operator'))
+        } else {
+          json(res, 400, { detail: 'name a credential_id (or its prefix), or a user with all: true' })
+
+          return
+        }
+
+        if (body.announce === true) {
+          for (const credential of revoked) {
+            passkey.announce(credential.userId, 'revoked', credential)
+          }
+        }
+
+        json(res, 200, { revoked: revoked.map(c => ({ id: b64u(c.credentialId), user_id: c.userId })) })
+
+        return
+      }
+
+      if (action === 'expire') {
+        // Time passing. With no flag: every open `confirm` times out now (`request.cancel timeout`);
+        // `request_id` names one. `pending` ends the open registrations and step-ups, `codes` the
+        // enrolment codes, `window` the no-downgrade window and the per-conversation limits.
+        const flags = { pending: body.pending === true, codes: body.codes === true, window: body.window === true }
+        const any = flags.pending || flags.codes || flags.window
+        const answer: Record<string, number | boolean> = {}
+
+        if (typeof body.request_id === 'string' || !any) {
+          answer.requests = confirmGate.expire(typeof body.request_id === 'string' ? body.request_id : undefined)
+        }
+
+        if (flags.pending) {
+          answer.pending = passkey.store.expirePending()
+        }
+
+        if (flags.codes) {
+          answer.codes = passkey.store.expireCodes()
+        }
+
+        if (flags.window) {
+          confirmGate.resetWindows()
+          passkey.resetLimits()
+          answer.window = true
+        }
+
+        json(res, 200, answer)
+
+        return
+      }
+
+      if (action === 'changed') {
+        // A `passkey.changed` to a user's live connections without a change behind it.
+        const user = 'user' in body ? resolveUser(body.user) : undefined
+        const target = typeof user === 'string' ? user : accounts[0] ? userKey(identityOfAccount(accounts[0])) : ''
+        const credential = (body.credential ?? {}) as Record<string, unknown>
+        const delivered = passkey.announceRaw(target, {
+          change: body.change === 'revoked' ? 'revoked' : 'added',
+          credential: {
+            id: typeof credential.id === 'string' ? credential.id : b64u(Buffer.from('fake-credential')),
+            name: typeof credential.name === 'string' ? credential.name : 'Fake passkey',
+            rp_id: typeof credential.rp_id === 'string' ? credential.rp_id : 'confirm.hermie.dev'
+          },
+          at: passkey.store.now()
+        })
+
+        json(res, 200, { delivered, user_id: target })
+
+        return
+      }
+
+      json(res, 404, { detail: `Unknown passkey control action: ${action}` })
+
+      return
+    }
+
     if (path === '/__fake/request' && method === 'POST') {
       /*
         The same control surface for a server→client REQUEST, and it exists for
@@ -3862,6 +4124,63 @@ export async function startFakeGateway(options: FakeGatewayOptions = {}): Promis
 
       const requestMethod = String(body.method ?? 'clarify')
       const params = (body.params ?? {}) as Record<string, unknown>
+
+      /*
+        On a gateway that knows the level `passkey` a `confirm` takes the real gateway's gated path, and
+        the control call can say who the turn acts for. `user` (top level of the body) is
+        `<provider>:<id>`, an account's user id or username; absent it is the gateway's default account,
+        and `null` is a turn nobody signed in submitted. `timeout_seconds` shortens the 120 s, and
+        `turn_isolation: true` stages the agent running where it cannot see who advertised what.
+
+        It still does NOT await the answer: the outcome is in `GET /__fake/state` under
+        `passkey.outcomes`, and nothing sent is a 409 that says why.
+      */
+      if (requestMethod === 'confirm' && confirmGate) {
+        let text
+
+        try {
+          text = buildText({
+            title: params.title,
+            summary: params.summary ?? params.text,
+            detail: params.detail,
+            level: params.level
+          })
+        } catch (error) {
+          if (error instanceof ConfirmParamsError) {
+            json(res, 400, { detail: error.message })
+
+            return
+          }
+
+          throw error
+        }
+
+        const raised = confirmGate.raise({
+          sessionId: session.id,
+          conversation: session.storedId,
+          text,
+          ...('user' in body ? { user: resolveUser(body.user) ?? null } : {}),
+          ...(body.turn_isolation === true ? { turnIsolation: true } : {}),
+          ...(typeof body.timeout_seconds === 'number' ? { timeoutSeconds: body.timeout_seconds } : {})
+        })
+
+        if (raised.kind === 'unavailable') {
+          json(res, 409, {
+            detail:
+              raised.reason === 'no_capable_client'
+                ? `No connected client offered the "${text.level}" confirm level in client.capabilities; nothing was sent`
+                : `The confirm is unavailable (${raised.reason}); nothing was sent`,
+            outcome: 'unavailable',
+            reason: raised.reason
+          })
+
+          return
+        }
+
+        json(res, 200, { raised: 'confirm', session_id: session.id, request_id: raised.id, level: text.level })
+
+        return
+      }
 
       /*
         A `confirm` is gated on the level, as on the real gateway: it goes only to
@@ -3943,6 +4262,19 @@ export async function startFakeGateway(options: FakeGatewayOptions = {}): Promis
       return
     }
 
+    if (passkey && (path === PASSKEY_PREFIX || path.startsWith(`${PASSKEY_PREFIX}/`))) {
+      // Behind the gate, as every route here is: the answer names the caller's own passkeys only.
+      const handled = await handlePasskeyRoute(passkey, req, res, {
+        identity: identityOfRequest(req),
+        auth: bearerOf(req) ? 'bearer' : 'cookie',
+        ip: req.socket.remoteAddress ?? ''
+      })
+
+      if (handled) {
+        return
+      }
+    }
+
     if (path === '/api/auth/me') {
       /*
         The CALLER's identity, not a fixed one.
@@ -3982,10 +4314,13 @@ export async function startFakeGateway(options: FakeGatewayOptions = {}): Promis
       }
 
       const ticket = `tk-${randomUUID()}`
+      const ticketIdentity = identityOfRequest(req)
+
       tickets.set(ticket, {
         expiresAt: Date.now() + TICKET_TTL_SECONDS * 1000,
         userId: 'tester@example.invalid',
-        provider: gated() ? 'self-hosted' : 'none'
+        provider: gated() ? 'self-hosted' : 'none',
+        ...(ticketIdentity ? { identity: ticketIdentity } : {})
       })
       state.ticketsMinted += 1
       json(res, 200, { ticket, ttl_seconds: TICKET_TTL_SECONDS })
@@ -5334,9 +5669,17 @@ export async function startFakeGateway(options: FakeGatewayOptions = {}): Promis
     state.connections += 1
     sockets.add(socket)
 
+    const identity = upgradeIdentities.get(req)
+
+    if (identity) {
+      socketIdentities.set(socket, identity)
+    }
+
     socket.on('close', () => {
       sockets.delete(socket)
       confirmLevels.delete(socket)
+      socketIdentities.delete(socket)
+      confirmGate?.forgetPeer(socket)
     })
     socket.on('message', data => {
       for (const line of String(data).split('\n')) {
@@ -5394,6 +5737,10 @@ export async function startFakeGateway(options: FakeGatewayOptions = {}): Promis
 
     state.ticketsConsumed += 1
 
+    if (issued.identity) {
+      upgradeIdentities.set(req, issued.identity)
+    }
+
     return null
   }
 
@@ -5414,6 +5761,10 @@ export async function startFakeGateway(options: FakeGatewayOptions = {}): Promis
 
     if (typeof frame.method !== 'string') {
       // A response to one of our server→client requests.
+      if (confirmGate?.respond(socket, frame)) {
+        return
+      }
+
       const id = typeof frame.id === 'string' ? frame.id : ''
       const pending = pendingServerRequests.get(id)
 
@@ -5444,7 +5795,7 @@ export async function startFakeGateway(options: FakeGatewayOptions = {}): Promis
     }
 
     try {
-      const result = await dispatch(method, params)
+      const result = await dispatch(method, params, socket)
 
       if (frame.id !== undefined && frame.id !== null) {
         send(socket, { jsonrpc: '2.0', id: frame.id, result })
@@ -5459,14 +5810,15 @@ export async function startFakeGateway(options: FakeGatewayOptions = {}): Promis
           // tested against a server that flattens both to -32603.
           error: {
             code: error instanceof RpcFault ? error.code : -32603,
-            message: error instanceof Error ? error.message : String(error)
+            message: error instanceof Error ? error.message : String(error),
+            ...(error instanceof RpcFault && error.data !== undefined ? { data: error.data } : {})
           }
         })
       }
     }
   }
 
-  async function dispatch(method: string, params: Record<string, unknown>): Promise<unknown> {
+  async function dispatch(method: string, params: Record<string, unknown>, caller?: WebSocket): Promise<unknown> {
     if (state.hangMethods.has(method)) {
       // Never resolves: the caller's own timeout is what should fire.
       return new Promise<never>(() => undefined)
@@ -5474,6 +5826,38 @@ export async function startFakeGateway(options: FakeGatewayOptions = {}): Promis
 
     switch (method) {
       case 'client.capabilities': {
+        /*
+          A gateway that knows the level `passkey` answers as the real one does:
+          `confirm` is always among the request kinds, `confirm` lists the levels
+          it accepted from THIS connection (`passkey` only from a signed-in one
+          with an RP it accepts), and `confirm_passkey` says how the level looks
+          from here. Nothing else changes.
+        */
+        if (passkey && confirmGate && caller) {
+          const accepted = confirmGate.advertise(caller, params)
+
+          if (accepted.length) {
+            confirmLevels.set(caller, accepted)
+          } else {
+            confirmLevels.delete(caller)
+          }
+
+          return {
+            server_requests: [
+              'approval',
+              'clarify',
+              'secret',
+              'sudo',
+              'vault.code',
+              'vault.save_login',
+              'vault.unlock_prompt',
+              'confirm'
+            ],
+            confirm: accepted,
+            confirm_passkey: passkey.capability(socketIdentities.has(caller))
+          }
+        }
+
         /*
           Every kind of request this gateway can raise, plus `confirm` once a
           client has offered a level for it. A client that sent no `confirm` gets
@@ -6576,7 +6960,7 @@ export async function startFakeGateway(options: FakeGatewayOptions = {}): Promis
           messages: omit ? [] : session.messages,
           messages_omitted: omit,
           info: sessionInfo(session),
-          open_requests: openRequestsFor(session.id),
+          open_requests: openRequestsFor(session.id, caller),
           ...(pending ? { pending_approval: pending.payload } : {})
         }
       }
@@ -6629,7 +7013,7 @@ export async function startFakeGateway(options: FakeGatewayOptions = {}): Promis
           truncated,
           count: entries.length,
           epoch: state.replayEpoch,
-          open_requests: session ? openRequestsFor(session.id) : []
+          open_requests: session ? openRequestsFor(session.id, caller) : []
         }
       }
 
@@ -7141,6 +7525,24 @@ export async function startFakeGateway(options: FakeGatewayOptions = {}): Promis
 
         if (!result || typeof result !== 'object' || Array.isArray(result)) {
           throw new Error('id and an object result required')
+        }
+
+        // A gated `confirm` is answered under the real gateway's rules: 4033 when this
+        // connection may not answer it, 4034 for an answer that is not valid.
+        if (confirmGate && caller) {
+          try {
+            const settled = confirmGate.answer(caller, requestId, result)
+
+            if (settled) {
+              return settled
+            }
+          } catch (error) {
+            if (error instanceof AnswerRefused) {
+              throw new RpcFault(error.code, error.message, error.data)
+            }
+
+            throw error
+          }
         }
 
         const pending = pendingServerRequests.get(requestId)
@@ -8012,6 +8414,10 @@ export async function startFakeGateway(options: FakeGatewayOptions = {}): Promis
 
   /** Send one server→client request and resolve with the client's answer. */
   function sendServerRequest(method: string, sessionId: string, params: Record<string, unknown>): Promise<unknown> {
+    if (method === 'confirm' && confirmGate) {
+      return confirmThroughGate(sessionId, params)
+    }
+
     const id = `srq-${++serverRequestSequence}`
     const runtimeId = resolveRuntimeId(sessionId)
 
@@ -8055,7 +8461,11 @@ export async function startFakeGateway(options: FakeGatewayOptions = {}): Promis
   function recordClientCapabilities(socket: WebSocket, params: Record<string, unknown>): void {
     const levels = params.server_requests === true ? confirmLevelsOf(params) : []
 
-    state.clientCapabilities.push({ server_requests: params.server_requests === true, confirm: levels })
+    state.clientCapabilities.push({
+      server_requests: params.server_requests === true,
+      confirm: levels,
+      ...(params.confirm_passkey === undefined ? {} : { confirm_passkey: params.confirm_passkey })
+    })
 
     if (levels.length) {
       confirmLevels.set(socket, levels)
@@ -8082,13 +8492,220 @@ export async function startFakeGateway(options: FakeGatewayOptions = {}): Promis
     return sendServerRequest(method, sessionId, rest)
   }
 
+  // ---------------------------------------------------------- passkey level ---
+
+  /**
+   * The server a `confirm` gate lives in: its connections, who each is signed in as, how a frame is
+   * written and a cancel published, and where an open request is listed for `session.resume`.
+   */
+  const confirmHost: ConfirmHost<WebSocket> = {
+    peers: () => [...sockets],
+    identityOf: socket => socketIdentities.get(socket) ?? null,
+    // The account a request is for when the control call names none: a gateway with one account has one.
+    defaultUser: () => (gated() && accounts[0] ? identityOfAccount(accounts[0]) : null),
+    displayNameOf: user => accounts.find(account => userKey(identityOfAccount(account)) === user)?.displayName ?? user,
+    send: (socket, frame) => send(socket, frame),
+    publish: (type, sessionId, payload) => publish(type, sessionId, payload),
+    later: (fn, ms) => {
+      const timer = setTimeout(() => {
+        timers.delete(timer)
+        fn()
+      }, ms)
+
+      timers.add(timer)
+      timer.unref?.()
+
+      return () => {
+        clearTimeout(timer)
+        timers.delete(timer)
+      }
+    },
+    nextRequestId: () => `srq-${++serverRequestSequence}`,
+    now: () => Date.now(),
+    register: (id, entry) => {
+      state.openServerRequests.set(id, {
+        session_id: entry.sessionId,
+        method: 'confirm',
+        params: entry.params,
+        viewer: entry.viewer
+      })
+    },
+    forget: id => {
+      state.openServerRequests.delete(id)
+    },
+    recordAnswer: ({ id, result, error }) => {
+      state.serverRequestAnswers.push({ id, method: 'confirm', ...(error ? { error } : { result }) })
+    }
+  }
+
+  /**
+   * Make this gateway know the level `passkey`, or change how it is set up. The first call creates the
+   * store (a new gateway identity); later ones only change the operator's settings, which is what editing
+   * `confirm.passkey` in `config.yaml` is.
+   */
+  function enablePasskey(options: PasskeyOptions = {}): PasskeyGateway {
+    if (passkey) {
+      passkey.settings = applySettings(passkey.settings, options, () => ownUrl)
+
+      return passkey
+    }
+
+    const created = new PasskeyGateway(
+      applySettings(null, options, () => ownUrl),
+      () => ownUrl,
+      {
+        // `passkey.changed` goes to every live connection signed in as that user, and to nobody else.
+        announce: (userId, payload) => {
+          let delivered = 0
+
+          for (const socket of sockets) {
+            const identity = socketIdentities.get(socket)
+
+            if (identity && userKey(identity) === userId) {
+              send(socket, {
+                jsonrpc: '2.0',
+                method: 'event',
+                params: { type: 'passkey.changed', session_id: '', payload }
+              })
+              delivered += 1
+            }
+          }
+
+          return delivered
+        }
+      }
+    )
+
+    passkey = created
+    confirmGate = new ConfirmGate(created, confirmHost)
+
+    return created
+  }
+
+  /** The user an operator call names: `<provider>:<id>`, an account's user id, or its username. */
+  function resolveUser(value: unknown): string | null | undefined {
+    if (value === null) {
+      return null
+    }
+
+    if (typeof value !== 'string' || !value) {
+      return undefined
+    }
+
+    const account = accounts.find(row => row.userId === value || row.username === value)
+
+    return account ? userKey(identityOfAccount(account)) : value
+  }
+
+  /** `confirm` through the gate, for a caller that wants the outcome (the TypeScript handle, `requestServerSide`). */
+  function confirmThroughGate(sessionId: string, params: Record<string, unknown>): Promise<unknown> {
+    const session = resolveSession(sessionId)
+
+    if (!session || !confirmGate) {
+      return Promise.reject(new Error(`Unknown session: ${sessionId}`))
+    }
+
+    let text
+
+    try {
+      text = buildText({
+        title: params.title,
+        summary: params.summary ?? params.text,
+        detail: params.detail,
+        level: params.level
+      })
+    } catch (error) {
+      return Promise.reject(error)
+    }
+
+    const raised = confirmGate.raise({
+      sessionId: session.id,
+      conversation: session.storedId,
+      text,
+      ...('user' in params ? { user: resolveUser(params.user) ?? null } : {}),
+      ...(params.turn_isolation === true ? { turnIsolation: true } : {}),
+      ...(typeof params.timeout_seconds === 'number' ? { timeoutSeconds: params.timeout_seconds } : {})
+    })
+
+    return raised.kind === 'open'
+      ? raised.done
+      : Promise.resolve({ outcome: 'unavailable', method: null, verified: false, reason: raised.reason })
+  }
+
+  /** What `/__fake/state` says about the passkey level: public facts only, never a key, a code or a signature. */
+  function passkeyView(): Record<string, unknown> | undefined {
+    if (!passkey || !confirmGate) {
+      return undefined
+    }
+
+    const ctx = passkey.context()
+    const credentials = passkey.store.credentials(undefined, true)
+    const idOfRow = (row: number) => {
+      const found = credentials.find(c => c.row === row)
+
+      return found ? b64u(found.credentialId) : ''
+    }
+
+    return {
+      ...passkey.capability(true),
+      base_urls: [...passkey.settings.baseUrls],
+      accepted_base_urls: [...ctx.acceptedBaseUrls],
+      allow_private_base_urls: passkey.settings.allowPrivateBaseUrls,
+      native_rps: passkey.settings.nativeRps,
+      user_invites: passkey.settings.userInvites,
+      credentials: credentials.map(c => ({
+        id: b64u(c.credentialId),
+        user_id: c.userId,
+        rp_id: c.rpId,
+        name: c.name,
+        active: c.revokedAt === null,
+        sign_count: c.signCount,
+        backup_eligible: c.backupEligible,
+        backed_up: c.backedUp,
+        created_via: c.createdVia,
+        created_at: c.createdAt,
+        last_used_at: c.lastUsedAt,
+        revoked_at: c.revokedAt,
+        revoked_by: c.revokedBy
+      })),
+      open_codes: passkey.store.openCodes(),
+      receipts: passkey.store.receipts().map(r => ({
+        id: r.id,
+        at: r.at,
+        purpose: r.purpose,
+        user_id: r.userId,
+        credential_id: idOfRow(r.credentialRow),
+        rp_id: r.rpId,
+        base_url: r.baseUrl,
+        session_id: r.sessionId,
+        request_id: r.requestId,
+        text_digest: b64u(r.textDigest)
+      })),
+      refusals: passkey.refusals().map(note => ({
+        at: note.at,
+        surface: note.surface,
+        reason: note.reason,
+        user_id: note.userId,
+        request_id: note.requestId
+      })),
+      ...confirmGate.view()
+    }
+  }
+
   /** `server_requests.Request.snapshot()`: what a resume re-delivers. */
-  function openRequestsFor(sessionId: string): { id: string; method: string; params: Record<string, unknown> }[] {
+  function openRequestsFor(
+    sessionId: string,
+    caller?: WebSocket
+  ): { id: string; method: string; params: Record<string, unknown> }[] {
     const runtimeId = resolveRuntimeId(sessionId)
 
-    return [...state.openServerRequests.entries()]
-      .filter(([, entry]) => entry.session_id === runtimeId)
-      .map(([id, entry]) => ({ id, method: entry.method, params: { session_id: runtimeId, ...entry.params } }))
+    return (
+      [...state.openServerRequests.entries()]
+        .filter(([, entry]) => entry.session_id === runtimeId)
+        // A gated request is listed only to a connection that could answer it.
+        .filter(([, entry]) => !entry.viewer || (caller !== undefined && entry.viewer(caller)))
+        .map(([id, entry]) => ({ id, method: entry.method, params: { session_id: runtimeId, ...entry.params } }))
+    )
   }
 
   await new Promise<void>(resolve => {
@@ -8098,6 +8715,12 @@ export async function startFakeGateway(options: FakeGatewayOptions = {}): Promis
   const address = httpServer.address() as AddressInfo
   const host = options.host ?? '127.0.0.1'
   const url = `http://${host}:${address.port}`
+
+  ownUrl = url
+
+  if (options.passkey) {
+    enablePasskey(options.passkey === true ? {} : options.passkey)
+  }
 
   return {
     port: address.port,
@@ -8158,6 +8781,34 @@ export async function startFakeGateway(options: FakeGatewayOptions = {}): Promis
         user: `Message from 🤖 ${from} (@${handle}): ${dmOptions.body ?? 'the draft is ready.'}`,
         assistant: dmOptions.reply ?? 'Noted — I will fold that in.',
         stream: true
+      })
+    },
+    passkey: () => passkey,
+    enablePasskey,
+    raiseConfirm(confirmOptions) {
+      const profile = confirmOptions.profile ?? 'researcher'
+      const session = sessionForProfile(profile)
+
+      if (!session) {
+        throw new Error(`No Bot Chat for profile ${profile}`)
+      }
+
+      if (!confirmGate) {
+        throw new Error('This gateway does not know the passkey level: start it with `passkey` or enable it first.')
+      }
+
+      return confirmGate.raise({
+        sessionId: session.id,
+        conversation: session.storedId,
+        text: buildText({
+          title: confirmOptions.title,
+          summary: confirmOptions.summary,
+          detail: confirmOptions.detail,
+          level: confirmOptions.level
+        }),
+        ...('user' in confirmOptions ? { user: confirmOptions.user ?? null } : {}),
+        ...(confirmOptions.timeoutSeconds === undefined ? {} : { timeoutSeconds: confirmOptions.timeoutSeconds }),
+        ...(confirmOptions.turnIsolation ? { turnIsolation: true } : {})
       })
     },
     raiseApprovalOn(approvalOptions = {}) {

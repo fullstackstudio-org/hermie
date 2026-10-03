@@ -2,7 +2,7 @@
 import { readFileSync } from 'node:fs'
 import { parseArgs } from 'node:util'
 
-import { type FakeAuthMode, type Scenario, startFakeGateway } from './server'
+import { type FakeAuthMode, type PasskeyOptions, type Scenario, startFakeGateway } from './server'
 
 const { values } = parseArgs({
   options: {
@@ -22,6 +22,11 @@ const { values } = parseArgs({
     'plugin-assets': { type: 'string' },
     'no-web-client': { type: 'boolean', default: false },
     'no-web-push-key': { type: 'boolean', default: false },
+    passkey: { type: 'boolean', default: false },
+    'passkey-base-url': { type: 'string', multiple: true },
+    'passkey-rp': { type: 'string', multiple: true },
+    'passkey-allow-private': { type: 'boolean', default: false },
+    'no-passkey-invites': { type: 'boolean', default: false },
     host: { type: 'string', default: '127.0.0.1' },
     help: { type: 'boolean', default: false }
   }
@@ -62,6 +67,17 @@ if (values.help) {
       '                          plugin advert, staging a plugin older than the bundled client',
       '  --no-web-push-key       drop `push.webpush.key` and `webPush` from the advert, staging a',
       '                          plugin that keeps its Web Push key to itself',
+      '  --passkey               make the gateway know the confirm level `passkey`: the capability',
+      '                          block, the six /api/auth/passkeys routes and a gated `confirm`.',
+      '                          Needs --auth cookie or native: nobody is signed in otherwise. The',
+      '                          base URL is the fake’s own address, which is private, so the',
+      '                          operator’s opt-in is on',
+      '  --passkey-base-url <u>  list a base URL for the level (repeatable; implies --passkey). With',
+      '                          it the opt-in for private base URLs is off unless asked for',
+      '  --passkey-rp <id=o,..>  a native RP and the clientDataJSON origins allowed for it',
+      '                          (repeatable; default confirm.hermie.dev=https://confirm.hermie.dev)',
+      '  --passkey-allow-private accept private base URLs (http, loopback, LAN) for the level',
+      '  --no-passkey-invites    a person cannot mint their own enrolment code (user_invites off)',
       '',
       'Prompts steer the built-in scenario: "approve" raises an approval request,',
       '"delegate" fans out subagent events, anything else streams a reply with a tool call.',
@@ -88,7 +104,23 @@ if (values.help) {
       '  POST /__fake/reject-upgrades {count}  fail the next count upgrades with --close-code',
       '  POST /__fake/truncate-next-replay    the next session.events.since answers truncated: true',
       '  POST /__fake/expire-sessions         end every cookie session (--auth cookie): the next',
-      '                                       request with one of those cookies is an expired session'
+      '                                       request with one of those cookies is an expired session',
+      '',
+      'Passkey level (control, once the gateway knows it; see packages/fake-gateway/README.md):',
+      '  POST /__fake/request {method: "confirm", params: {level: "passkey"|"plain", title?, summary,',
+      '                        detail?}, user?, timeout_seconds?, turn_isolation?}  raise a gated',
+      '                        confirm; 409 {outcome, reason} when nothing was sent. `user` is',
+      '                        <provider>:<id>, an account’s user id or username, or null for a turn',
+      '                        nobody signed in submitted',
+      '  POST /__fake/passkey/enable {enabled?, base_urls?, rps?, allow_private?, user_invites?}',
+      '                                       know the level, or change its operator settings',
+      '  POST /__fake/passkey/code {user?, ttl?}    mint an operator enrolment code',
+      '  POST /__fake/passkey/revoke {credential_id | user + all, announce?}  the operator’s revoke',
+      '  POST /__fake/passkey/expire {request_id?, pending?, codes?, window?}  time passing: time a',
+      '                                       confirm out, end registrations / codes / the no-downgrade window',
+      '  POST /__fake/passkey/changed {user?, change?, credential?}  emit passkey.changed',
+      '  GET  /__fake/state                   gains `passkey`: credentials, receipts, refusals, open',
+      '                                       requests, outcomes and the no-downgrade windows'
     ].join('\n')
   )
   process.exit(0)
@@ -114,6 +146,33 @@ if (values.scenario) {
   scenario = JSON.parse(readFileSync(values.scenario, 'utf8')) as Scenario
 }
 
+const passkeyUrls = values['passkey-base-url'] ?? []
+const passkeyRps = values['passkey-rp'] ?? []
+const passkey: PasskeyOptions | false =
+  values.passkey || passkeyUrls.length || passkeyRps.length || values['passkey-allow-private']
+    ? {
+        ...(passkeyUrls.length ? { baseUrls: passkeyUrls } : {}),
+        ...(passkeyRps.length
+          ? {
+              nativeRps: Object.fromEntries(
+                passkeyRps.map(entry => {
+                  const [rpId = '', origins = ''] = entry.split('=')
+
+                  return [rpId, origins.split(',').filter(Boolean)]
+                })
+              )
+            }
+          : {}),
+        ...(values['passkey-allow-private'] ? { allowPrivateBaseUrls: true } : {}),
+        ...(values['no-passkey-invites'] ? { userInvites: false } : {})
+      }
+    : false
+
+if (passkey && !['cookie', 'native'].includes(auth)) {
+  console.error('--passkey needs --auth cookie or native: with none or token nobody is signed in.')
+  process.exit(1)
+}
+
 const gateway = await startFakeGateway({
   port: Number.parseInt(values.port ?? '9119', 10),
   host: values.host ?? '127.0.0.1',
@@ -131,7 +190,8 @@ const gateway = await startFakeGateway({
   ...(values['no-native-revoke'] ? { nativeRevoke: false as const } : {}),
   ...(values['plugin-assets'] ? { pluginAssets: values['plugin-assets'] } : {}),
   ...(values['no-web-client'] ? { webClient: false as const } : {}),
-  ...(values['no-web-push-key'] ? { webPushKey: false as const } : {})
+  ...(values['no-web-push-key'] ? { webPushKey: false as const } : {}),
+  ...(passkey ? { passkey } : {})
 })
 
 console.log(`fake gateway listening on ${gateway.url} (auth: ${auth})`)
@@ -139,6 +199,12 @@ console.log(`  status     ${gateway.url}/api/status`)
 console.log(`  websocket  ${gateway.wsUrl}`)
 if (values['plugin-assets']) {
   console.log(`  client     ${gateway.url}/dashboard-plugins/hermie/app/index.html`)
+}
+
+if (passkey) {
+  const view = gateway.passkey()
+
+  console.log(`  passkey    on; base URLs ${view?.settings.baseUrls.join(', ') || '(none)'}`)
 }
 
 console.log(`  inject     curl -XPOST ${gateway.url}/__fake/inject -d '{"profile":"researcher"}'`)
