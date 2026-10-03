@@ -92,7 +92,45 @@
 
     override func didMoveToWindow() {
       super.didMoveToWindow()
-      if window != nil { didMoveIntoWindow?() }
+      if window != nil {
+        offerAsContentScrollView()
+        didMoveIntoWindow?()
+      }
+    }
+
+    /// The scroll view the navigation bar's scroll-edge effect follows.
+    ///
+    /// The bar blurs and fades what scrolls under it, but only for the scroll view its view
+    /// controller names as its content: UIKit finds that on its own for a `UITableView` or a
+    /// `UICollectionView` that fills the controller's view, and not for one SwiftUI hosts in a
+    /// representable, so without this the transcript was drawn, unblurred, through the header and
+    /// the status bar.
+    private func offerAsContentScrollView() {
+      let controller = sequence(first: next, next: { $0?.next }).lazy.compactMap { $0 as? UIViewController }.first
+      controller?.setContentScrollView(self, for: .top)
+      // Soft: what passes under the header fades into it, with no line, and the header's own
+      // controls (the glass pills, the title) stay legible on any text.
+      topEdgeEffect.style = .soft
+      refreshTopEdgeEffect()
+    }
+
+    /// Makes the top edge effect read the scroll view's state again, soon after the view joined
+    /// its window and once more a little later.
+    ///
+    /// The bar takes the scroll view up some moments after `setContentScrollView`, and the effect
+    /// does not look at the offset again when it does. A chat opens at its end (the first rows go
+    /// in and the list scrolls to the bottom within those moments), so the effect stayed at zero
+    /// until the first drag and the text was drawn through the header. Hiding and showing the edge
+    /// makes it read the state, and by then the bar has the scroll view.
+    private func refreshTopEdgeEffect() {
+      Task { @MainActor [weak self] in
+        for pause in [Duration.milliseconds(100), .milliseconds(400)] {
+          try? await Task.sleep(for: pause)
+          guard let self, window != nil else { return }
+          topEdgeEffect.isHidden = true
+          topEdgeEffect.isHidden = false
+        }
+      }
     }
 
     override func layoutSubviews() {

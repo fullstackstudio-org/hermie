@@ -74,6 +74,17 @@ public struct MainWindow: View {
         if let link = launch.environment.testHooks?.openURL, let url = URL(string: link) {
           perform(router.handle(url: url), on: launch)
         }
+        if let link = launch.environment.testHooks?.openURLWhenReady, let url = URL(string: link) {
+          // A gateway that arrives after the launch (seeded through the fake iCloud Keychain) is
+          // not there yet: the link waits for the first one, so a chat link finds its gateway.
+          Task {
+            for _ in 0..<150 where launch.gateways.entries.isEmpty {
+              try? await Task.sleep(for: .milliseconds(200))
+            }
+            try? await Task.sleep(for: .milliseconds(1500))
+            perform(router.handle(url: url), on: launch)
+          }
+        }
       #endif
 
       await launch.start()

@@ -23,6 +23,8 @@
    - `-HermieOpenURL 'hermie://…'` handle a link as if the system had delivered it
    - `-HermieOpenChat 'bot'` open that bot's chat once the live gateway is known
    - `-HermieOpenBotSettings 'bot'` open that bot's settings page once the live gateway is known
+   - `-HermieOpenURLWhenReady 'hermie://…'` the same, once a gateway is configured (one a synced
+     seed delivers after the launch), for a link to a chat
    - `-HermieSync on|ask|off|unavailable` iCloud Sync as the launch finds it: on and answered (the
      default, so the disclosure stays out of the other tests' way), on and not yet answered (the
      disclosure is due), off, or a store this process cannot use. The synced store is always an
@@ -40,6 +42,7 @@
     public var openURL: String?
     public var openChat: String?
     public var openBotSettings: String?
+    public var openURLWhenReady: String?
     public var sync: SyncSeed
     public var iCloudSeeds: [(name: String, address: String, token: String?)]
     /// The fake iCloud Keychain this launch syncs with; the app's replica is `"local"`.
@@ -104,6 +107,7 @@
       openURL = values("-HermieOpenURL").last
       openChat = values("-HermieOpenChat").last
       openBotSettings = values("-HermieOpenBotSettings").last
+      openURLWhenReady = values("-HermieOpenURLWhenReady").last
       sync = values("-HermieSync").last.flatMap(SyncSeed.init(rawValue:)) ?? .on
       iCloudSeeds = values("-HermieSeedICloudGateway").compactMap { value in
         let parts = value.split(separator: "|", omittingEmptySubsequences: false).map(String.init)

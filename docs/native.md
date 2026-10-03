@@ -696,6 +696,17 @@ has a switch for it, and `TEST_RUNNER_HERMIE_LIST_IMPLEMENTATION` runs the UI te
   layout had placed the cells correctly. `TranscriptHostingCell` reports a zero safe area. This was
   the rows drawn over each other in the owner's screenshots, and the reader's row moving 154 pt in
   `testRotatingKeepsTheReadersPlace` (landscape has another top inset).
+- **The header blurs what passes under it.** The collection view is not a view controller's own
+  scroll view, so the navigation bar's scroll-edge effect ignored it and the transcript was drawn
+  through the status bar and the header pills. The view names itself the hosting controller's top
+  content scroll view (`setContentScrollView(_:for: .top)`) and sets a soft top edge. The effect
+  does not read the offset again when the bar takes the scroll view up, and a chat opens scrolled to
+  its end within those moments, so the edge is hidden and shown again a moment after the view joins
+  its window (`refreshTopEdgeEffect`); without that the effect stayed at zero until the first drag.
+  The SwiftUI list gets the same soft edge from `scrollEdgeEffectStyle`. To see it by hand:
+  `-HermieUITest YES -HermieSeedICloudGateway 'Name|url|token' -HermieOpenURLWhenReady
+'hermie://chat/<bot>'` (the link waits for the synced gateway; `-HermieOpenURL` runs at launch,
+  before it exists).
 - **Pinned means following** (`ListPinning`). A `.bottom` command (the reader's send, the jump pill)
   pins the list. Every offset change outside the list's own updates is the reader's and decides:
   their finger, and the scrolls the system runs for them (keyboard paging, VoiceOver's three-finger
