@@ -316,7 +316,7 @@ every change by diffing, sends it (debounced 600 ms) and dates it. The actions:
   `chatMuted`, `chatPinned`, `myChat`, `currentTargetOf`, `currentConversation`, `chatAccent`, `botLabel`,
   `archivedOf`, `foldersOf`, `botsInOrder` and `resolveSidebarCollapsed`.
 - `textSizeStore`: `setTextSize`; `textSizeScale(size)` is the factor for the transcript's type.
-- The bridge (`session.uiMeta.bridge`): `mode` (`synced`, or `local` when the gateway cannot be read or refuses
+- The bridge (`(await session.uiMeta)?.bridge`, a lazily loaded chunk): `mode` (`synced`, or `local` when the gateway cannot be read or refuses
   the write; the device's copy is then still correct), `pending`, `appKey`, `reconcileSoon()`, `flush()`.
 
 What a screen does not do: call the bridge to send, write `appStampStore` (only the bridge dates), or treat
@@ -331,19 +331,28 @@ What a screen does not do: call the bridge to send, write `appStampStore` (only 
 - A **choice** dates the app section; a **chore** (the roster folded in, lapsed mutes swept, a stale id
   forgotten: the layout store's `chores`) is sent undated. The newer date wins a reconcile, a tie goes to the
   gateway, undated on both sides keeps this page's copy, and a gateway without the section is seeded from it.
+  A change made only of chores never wins over a section the gateway holds: it is dropped and the roster folded
+  in again on top of what was taken.
+- A write cleans only what it carried: an edit made while a send is out stays pending and goes in a further round.
 - Taking a gateway's copy: its fields as they came, a field it no longer carries gone, except the fields a
   section can predate (`KEPT_WHEN_ABSENT`), which keep their held value. `updatedAt` is adopted as it arrived.
   The push rows come from where the notifier looks, never from this page.
 - Retired fields travel no further: `context` (HERM-119) and Hermie Web's availability stamp in `push`
   (`endpoint`, `vapidPublicKey`, `version`, `daemonVersion`, `capabilities`, `relayOrigins`, `at`) are dropped
   the next time the section is written.
-- A bot section left with nothing but `v` is sent as `null`, which removes it.
-- **One departure from the Swift app**: when this page's copy wins, a field it does not project is still taken
-  from the gateway's copy, since this build cannot have chosen anything about it. So a conflict never loses a
-  field another build added meanwhile (`core/ui-meta-bridge.integration.test.ts`).
-- The live roster is folded into the arrangement only after the first reconcile, and again after each one; a
-  reconcile runs on every rise to `ready`, on `sessions.changed` and when the page is shown, never two at once.
-- Bot edits the gateway has not taken survive a reload (`ui-meta.pending`); app edits survive by their date.
+- A bot section left with nothing at all but `v` is sent as `null`, which removes it. A pending bot section is
+  the gateway's section with this page's `archived` and `colour` written in, so one carrying fields this page
+  does not own is never removed.
+- **One departure from the Swift app**: when this page's copy wins, every field it does not project is the
+  gateway's (taken when it has one, gone when it does not), since this build cannot have chosen anything about
+  it; the same for a pending bot section beyond `archived` and `colour`. So a conflict never loses a field another
+  build added meanwhile (`core/ui-meta-bridge.integration.test.ts`).
+- The live roster is folded into the arrangement only while connected and after a reconcile that actually took the
+  gateway's copy since the connection came up, and again after each one; a reconcile runs on every rise to
+  `ready`, on `sessions.changed` and when the page is shown, never two at once.
+- Bot edits the gateway has not taken survive a reload with their sections raw (`ui-meta.pending`); app edits
+  survive by their date.
+- The bridge is a chunk of its own, loaded once the session has started (`session.uiMeta` is a promise of it).
 
 ## Chats
 
