@@ -344,20 +344,31 @@ of the gateway's checks are `contract/confirm-passkey/README.md`. What the app d
   enrolment-code canonicalisation). The challenge is computed from a `ConfirmDisplay`, the value the
   confirm sheet renders and nothing else: a signature over text T exists only if the app showed T.
   `PasskeyClient` calls the routes through the gateway's `HTTPClient` (a bearer sends no `Origin`)
-  and reads a refusal's `error` and `reason`. `ConfirmCapabilities.swift` is the two-step
-  `client.capabilities`: with `GatewayConnection.Options.confirm` set, the connection sends the
-  second call only when the first result allows it, advertises `passkey` only when the level is
+  and reads a refusal's `error` and `reason`; a 429 is `rateLimited` with the seconds of its
+  `Retry-After`, a 403 `origin_not_listed` is `originNotListed` (the gateway does not list the
+  address the app dialed, or a cookie caller's `Origin`). `ConfirmCapabilities.swift` is the
+  two-step `client.capabilities`: with `GatewayConnection.Options.confirm` set, the connection sends
+  the second call only when the first result allows it, advertises `passkey` only when the level is
   enabled, the build's RP is listed for its kind and a credential for that RP is known here,
-  and runs both calls again on `refreshCapabilities()`. Without a source it makes the one call it
-  always made and answers every `confirm` `-32601`.
+  and runs both calls again on `refreshCapabilities()`. Every call replaces the advertisement at the
+  gateway, so a refresh's first call repeats what the socket advertised and its second call
+  withdraws it when there is nothing left to offer. The gateway hides a gated request from a
+  connection that has not advertised its level, and the reconnect replay asks before the second
+  call has: once a socket gains `passkey`, the connection reads the open requests of every session
+  it resumed or replayed again (`session.events.since`, its events not dispatched). Without a
+  source it makes the one call it always made and answers every `confirm` `-32601`.
 - `HermieCore/Passkey`: `PasskeyAuthenticator` is the seam the system passkey sheet fills (one
   ceremony at a time, `allowCredentialIDs` never empty, a dismissed sheet is `cancelled` and sends
-  nothing); `SoftPasskeyAuthenticator` is the test double (CryptoKit, ES256, attestation `none`, a
-  counter for a device-bound passkey, knobs to tamper with). `PasskeyModel` (`session.passkeys`,
-  built when `GatewaySession.Options.passkey` is set) reads the frames, enrols with a one-time code,
-  mints an invite and revokes with a step-up, keeps the credential list and the advertising policy
-  current, and pins the gateway's `gateway_id` per stored gateway on the first successful enrolment
-  (`KeyValuePasskeyPins`, key `hermie.passkey.pins`, with the credential ids it has seen).
+  nothing). `SoftPasskeyAuthenticator` is the test double (CryptoKit, ES256, attestation `none`, a
+  counter for a device-bound passkey, knobs to tamper with); it lives in the `HermiePasskeyTesting`
+  target under `Tests/`, which no product lists and only test targets depend on, so no app links
+  it. `PasskeyModel` (`session.passkeys`, built when `GatewaySession.Options.passkey` is set) reads
+  the frames, enrols with a one-time code, mints an invite and revokes with a step-up, keeps the
+  credential list and the advertising policy current, and pins the gateway's `gateway_id` per
+  stored gateway on the first successful enrolment, with the credential ids it has seen
+  (`KeyValuePasskeyPins`, one key per stored gateway, `hermie.passkey.pins@<id>`, purged with the
+  gateway's namespace). A record that cannot be read is reported (`pinUnreadable`), never written
+  over, and keeps passkeys off for that gateway.
 
 The model's rules: every answer goes through `request.answer`, so a refusal comes back (4033, 4034
 with `data.reason`, which leaves the request open for another try until the fifth refusal). `ok` is
@@ -366,14 +377,36 @@ and says `request.cancel {reason: "verification_failed"}` when that fails, which
 that overrides a received answer. A decline is exactly `{decision: "declined", method: "tap"}`. When
 the ceremony cannot run here (no credential on this device, no RP in this build, the platform
 refuses), the frame gets error 4040 with `data.reason`. A frame without a credential for the
-build's RP, with an unknown `v`, or whose `gateway_id` differs from the pinned one (or is pinned for
-another stored gateway) is refused with 4040 and leaves a `PasskeyNotice`; so does a capability that
-breaks the pin, and a `passkey.changed` or a list read that shows a credential this device did not
-add. Nothing from a frame, an assertion or a code is logged.
+build's RP, with an unknown `v`, or whose `gateway_id` differs from the pinned one is refused with
+4040 and leaves a `PasskeyNotice`; so does a capability that breaks the pin, and a `passkey.changed`
+or a list read that shows a credential this device did not add. The allow list must share an id with
+the credentials this device has seen on the gateway, and ids pinned for another stored gateway are
+never offered (`no_credential` otherwise). The other gateways' pins are read again before every
+check, since another session may have pinned meanwhile. Nothing from a frame, an assertion or a code
+is logged.
+
+A `gateway_id` pinned for another STORED gateway is usually one gateway stored twice (a LAN address
+and a public one, both in `confirm.passkey.base_urls`), not an impersonation: the frame is refused
+until the person answers the notice `sameGatewayAs(storedGatewayID:name:)`, whose action "same
+gateway as <name>" is `PasskeyModel.linkPins(with:)` (this gateway takes that `gateway_id` and its
+credential ids, and records the link so neither side reads the other as a conflict again). A
+`gateway_id` pinned for no gateway in the list stays a refusal (`gatewayIDConflict`).
+
+A withdrawal during the ceremony ends the confirmation before the authenticator is cancelled, so a
+ceremony returning in that window sends nothing. A confirmation past its `expires_at` ends locally as
+timed out (`PasskeyConfirmation.isActionable(at:)` for the sheet's buttons). A `plain` request is
+declined `-32601` until the app has a sheet for it, whatever `PasskeyConfiguration.plain` says.
 
 The detail is shown as the gateway sent it, monospaced with every space and line break kept; the
-sheet renders `ConfirmDisplay` and nothing else. Black-box coverage is
+sheet renders `ConfirmDisplay` and nothing else. Its host includes the path prefix of a gateway
+served under one, and so does the name of a new passkey. Black-box coverage is
 `ConfirmPasskeyIntegrationTests` against the fake gateway's `--auth native --passkey`.
+
+For CP-10 (the sheet and settings): render the title, the summary and the detail with
+`Text(verbatim:)`, never through a `LocalizedStringKey`, which would read Markdown in text the
+gateway sent and show something else than the text the signature commits to.
+The sheet also owns the states the model now types for it: `sameGatewayAs` (its link action),
+`pinUnreadable`, `PasskeyRouteError.Kind.rateLimited` (with `retryAfter`) and `.originNotListed`.
 
 ### Known divergences
 
