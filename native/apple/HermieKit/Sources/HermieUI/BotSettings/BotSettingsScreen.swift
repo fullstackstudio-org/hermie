@@ -153,9 +153,10 @@ struct BotSettingsContent: View {
         Task { await model.reloadMcp(always: true) }
       }
       Button(Strings.Profiles.Capabilities.Reload.later, role: .cancel) {}
-    } message: { prompt in
-      // The gateway's own warning, as it wrote it, under what the two buttons do.
-      Text(verbatim: "\(Strings.Profiles.Capabilities.Reload.body)\n\n\(prompt.message)")
+    } message: { _ in
+      // In the app's words. The gateway's own warning is written for its command line ("Reply
+      // `/reload-mcp now`…") and is not shown.
+      Text(verbatim: "\(Strings.Profiles.Capabilities.Reload.body)\n\n\(Strings.Profiles.Capabilities.Reload.alwaysHint)")
     }
   }
 

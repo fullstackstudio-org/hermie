@@ -139,10 +139,9 @@ public struct BotModelChoice: Sendable, Hashable, Identifiable {
   /// The model id as the provider spells it.
   public var model: String
 
-  /// The value `profiles.configure` takes as `model`: `provider/model`.
-  public var qualified: String { "\(provider)/\(model)" }
-
-  public var id: String { qualified }
+  /// What tells two choices apart: the same model id can be offered by two providers. It is not what
+  /// is sent to the gateway (`BotSettingsParams.model`), which takes the bare id and the provider.
+  public var id: String { "\(provider)/\(model)" }
 
   public init(provider: String, providerName: String? = nil, model: String) {
     self.provider = provider

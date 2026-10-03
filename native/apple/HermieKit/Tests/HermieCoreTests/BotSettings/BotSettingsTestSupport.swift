@@ -32,15 +32,35 @@ final class ProfileGateway: Sendable {
     var unsupported: Set<String> = []
     /// The method whose next request is kept in flight until `release()`.
     var armed: String?
+    /// The same, but the answer is worked out first and kept back: a reply that is stale on arrival.
+    var armedAfter: String?
     var held: CheckedContinuation<Void, Never>?
+    /// `profiles.configure` requests between arriving and being answered, and the most there were at once.
+    var inFlight = 0
+    var maxInFlight = 0
   }
 
   let state = Mutex(State())
 
   var gateway: BotSettingsGateway {
     BotSettingsGateway { method, params in
+      let configure = method == "profiles.configure"
+
+      if configure {
+        self.state.withLock {
+          $0.inFlight += 1
+          $0.maxInFlight = max($0.maxInFlight, $0.inFlight)
+        }
+      }
+
+      defer {
+        if configure { self.state.withLock { $0.inFlight -= 1 } }
+      }
+
       await self.holdIfArmed(method)
-      return try self.handle(method, params)
+      let answer = try self.handle(method, params)
+      await self.holdAfterIfArmed(method)
+      return answer
     }
   }
 
@@ -49,6 +69,14 @@ final class ProfileGateway: Sendable {
   func hold(_ method: String) {
     state.withLock { $0.armed = method }
   }
+
+  /// Keep the next `method` answer back after the gateway has worked it out.
+  func holdAfter(_ method: String) {
+    state.withLock { $0.armedAfter = method }
+  }
+
+  var maxInFlight: Int { state.withLock { $0.maxInFlight } }
+  var inFlight: Int { state.withLock { $0.inFlight } }
 
   @MainActor
   func waitUntilHeld() async {
@@ -72,6 +100,19 @@ final class ProfileGateway: Sendable {
     await withCheckedContinuation { continuation in
       state.withLock { state in
         state.armed = nil
+        state.held = continuation
+      }
+    }
+  }
+
+  private func holdAfterIfArmed(_ method: String) async {
+    guard state.withLock({ $0.armedAfter == method }) else {
+      return
+    }
+
+    await withCheckedContinuation { continuation in
+      state.withLock { state in
+        state.armedAfter = nil
         state.held = continuation
       }
     }
@@ -152,7 +193,8 @@ final class ProfileGateway: Sendable {
             answer["confirm_message"] = .string("\(model) is an expensive model. Continue?")
           } else {
             state.provider = provider
-            state.model = model.hasPrefix("\(provider)/") ? String(model.dropFirst(provider.count + 1)) : model
+            // Stored as it arrived, as the gateway's fake is: a prefix is part of the model's name.
+            state.model = model
             applied["model"] = true
           }
         }

@@ -6750,9 +6750,11 @@ export async function startFakeGateway(options: FakeGatewayOptions = {}): Promis
           if (modelId.includes('expensive') && !confirmed) {
             confirm = { confirm_required: true, confirm_message: `${modelId} is an expensive model. Continue?` }
           } else {
-            // The normalised pair: a `provider/model` spelling is stored as the bare model id.
+            // Stored as it arrived. `normalize_model_for_provider` keeps a `provider/` prefix for
+            // openrouter, nous, ollama, lmstudio and user providers, so a client that adds one
+            // changes the model's name; stripping it here hid exactly that.
             profile.provider = providerId
-            profile.model = modelId.startsWith(`${providerId}/`) ? modelId.slice(providerId.length + 1) : modelId
+            profile.model = modelId
             applied.model = true
           }
         }

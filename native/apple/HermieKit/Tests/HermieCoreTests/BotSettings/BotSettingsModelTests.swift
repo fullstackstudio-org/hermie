@@ -352,11 +352,8 @@ struct BotSettingsModelTests {
 
     await model.chooseModel(choice)
 
-    #expect(
-      gateway.configures == [
-        ["name": "researcher", "model": "second-provider/reasoner-2", "provider": "second-provider"]
-      ])
-    // The gateway stores the bare id; that is what is shown, from a re-read.
+    #expect(gateway.configures == [["name": "researcher", "model": "reasoner-2", "provider": "second-provider"]])
+    // What the gateway stored is what is shown, from a re-read.
     #expect(model.details?.model == BotModelPin(provider: "second-provider", model: "reasoner-2"))
     #expect(model.modelConfirmation == nil)
     #expect(changes == 1)
@@ -369,7 +366,7 @@ struct BotSettingsModelTests {
     await model.chooseModel(choice)
 
     #expect(model.modelConfirmation == BotSettingsModel.ModelConfirmation(
-      choice: choice, message: "example-provider/expensive-model is an expensive model. Continue?"))
+      choice: choice, message: "expensive-model is an expensive model. Continue?"))
     #expect(model.details?.model.model == "example-model")
 
     model.cancelModelConfirmation()
@@ -382,6 +379,163 @@ struct BotSettingsModelTests {
     #expect(gateway.configures.last?["confirm_expensive_model"] == true)
     #expect(model.modelConfirmation == nil)
     #expect(model.details?.model.model == "expensive-model")
+  }
+
+  // MARK: One queue, and reads that were already stale
+
+  @Test func writesToDifferentSectionsTakeTurnsInTheOrderTheyWereAskedNeverTogether() async {
+    let (model, gateway) = await loaded()
+
+    gateway.hold("profiles.configure")
+    let skill = Task { await model.setSkill("pdf", enabled: false) }
+    await gateway.waitUntilHeld()
+
+    // A description, a personality and a model while the first is still on its way: all wait.
+    model.descriptionDraft = "Reads slowly."
+    model.soulDraft = "Be brief."
+    let description = Task { await model.saveDescription() }
+    let soul = Task { await model.saveSoul() }
+    let pin = Task { await model.chooseModel(BotModelChoice(provider: "second-provider", model: "reasoner-2")) }
+    await botSettingsEventually("the three to be waiting") {
+      model.busy.isSuperset(of: [.skills, .description, .soul, .model])
+    }
+
+    #expect(gateway.inFlight == 1)
+    #expect(gateway.configures.isEmpty)
+
+    gateway.release()
+    await skill.value
+    await description.value
+    await soul.value
+    await pin.value
+
+    // Never two at once, and each one's params were built when its turn came.
+    #expect(gateway.maxInFlight == 1)
+    #expect(gateway.configures.count == 4)
+    #expect(gateway.configures[0]["disabled_skills"] != nil)
+    #expect(gateway.configures[1]["description"] == "Reads slowly.")
+    #expect(gateway.configures[2]["soul"] == "Be brief.")
+    #expect(gateway.configures[3]["model"] == "reasoner-2")
+    #expect(model.failures.isEmpty)
+    #expect(model.busy.isEmpty)
+    #expect(model.details?.description == "Reads slowly.")
+    #expect(model.details?.soul == "Be brief.")
+    #expect(model.details?.model == BotModelPin(provider: "second-provider", model: "reasoner-2"))
+  }
+
+  @Test func aTapMadeWhileItsSectionWaitsInTheQueueIsPartOfTheWriteWhenItsTurnComes() async {
+    let (model, gateway) = await loaded()
+
+    gateway.hold("profiles.configure")
+    model.soulDraft = "Be brief."
+    let soul = Task { await model.saveSoul() }
+    await gateway.waitUntilHeld()
+
+    let first = Task { await model.setSkill("pdf", enabled: false) }
+    await botSettingsEventually("the skill write to wait") { model.busy.contains(.skills) }
+    await model.setSkill("web-search", enabled: false)
+
+    gateway.release()
+    await soul.value
+    await first.value
+
+    // One skills write, with both taps: the second needed none of its own.
+    let skillWrites = gateway.configures.filter { $0["disabled_skills"] != nil }
+    #expect(skillWrites == [["name": "researcher", "disabled_skills": ["pdf", "docx", "web-search"]]])
+  }
+
+  @Test func aDescribeThatWasSentBeforeAWriteAndAnswersAfterItDoesNotUndoIt() async {
+    let (model, gateway) = await loaded()
+
+    // The gateway works out its answer from the profile as it is now, and the reply is kept back.
+    gateway.holdAfter("profiles.describe")
+    let reload = Task { await model.load() }
+    await gateway.waitUntilHeld()
+
+    model.soulDraft = "Be brief."
+    await model.saveSoul()
+    #expect(model.details?.soul == "Be brief.")
+
+    gateway.release()
+    await reload.value
+
+    // The old soul came back in the late answer; it is not believed.
+    #expect(model.details?.soul == "Be brief.")
+    #expect(model.soulDraft == "Be brief.")
+    #expect(!model.soulIsDirty)
+  }
+
+  @Test func aStaleDescribeIsOnlyIgnoredForTheSectionThatWasWritten() async {
+    let (model, gateway) = await loaded()
+
+    gateway.holdAfter("profiles.describe")
+    let reload = Task { await model.load() }
+    await gateway.waitUntilHeld()
+
+    // The soul is written; the description changed on the gateway behind the app's back.
+    model.soulDraft = "Be brief."
+    await model.saveSoul()
+    gateway.state.withLock { $0.description = "Changed elsewhere." }
+
+    gateway.release()
+    await reload.value
+
+    #expect(model.details?.soul == "Be brief.")
+    // The description section was not written by this screen, and its read was sent after nothing
+    // newer: it is taken. (The held answer was worked out before the change, so it still has the old
+    // text; the next read takes the new one.)
+    await model.load()
+    #expect(model.details?.description == "Changed elsewhere.")
+    #expect(model.details?.soul == "Be brief.")
+  }
+
+  @Test func aDescribeThatAnswersWhileAWriteToThatSectionIsInFlightDoesNotUndoTheSwitch() async {
+    let (model, gateway) = await loaded()
+
+    gateway.hold("profiles.configure")
+    let write = Task { await model.setSkill("pdf", enabled: false) }
+    await gateway.waitUntilHeld()
+
+    // A read arrives while the write is held: the gateway still says the skill is on.
+    await model.load()
+    #expect(model.details?.skills.first { $0.name == "pdf" }?.enabled == false)
+
+    gateway.release()
+    await write.value
+    #expect(model.details?.skills.first { $0.name == "pdf" }?.enabled == false)
+    #expect(gateway.state.withLock { $0.disabledSkills.contains("pdf") })
+  }
+
+  // MARK: Back to the defaults
+
+  @Test func puttingTheToolsetsBackToTheDefaultsLocksTheirSwitchesUntilItIsReadBack() async {
+    let (model, gateway) = await loaded()
+
+    await model.setToolset("web", enabled: false)
+    #expect(model.details?.toolsetsPinned == true)
+
+    gateway.hold("profiles.configure")
+    let reset = Task { await model.useDefaultToolsets() }
+    await gateway.waitUntilHeld()
+
+    #expect(model.toolsetsLocked)
+    #expect(model.busy.contains(.toolsets))
+
+    // A switch tapped now is not written, and a read that answers meanwhile does not replace the pin.
+    await model.setToolset("web", enabled: true)
+    await model.load()
+    #expect(gateway.configures.count == 1)
+    #expect(model.details?.toolsetsPinned == true)
+    #expect(model.details?.toolsets.first { $0.name == "web" }?.enabled == false)
+
+    gateway.release()
+    await reset.value
+
+    #expect(!model.toolsetsLocked)
+    #expect(model.details?.toolsetsPinned == false)
+    #expect(model.details?.toolsets.first { $0.name == "web" }?.enabled == true)
+    #expect(gateway.state.withLock { $0.pinnedToolsets } == nil)
+    #expect(model.busy.isEmpty)
   }
 
   // MARK: Picture

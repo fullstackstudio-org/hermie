@@ -4,7 +4,7 @@
  *
  * The shapes are the gateway's own (`methods_profiles.py`): `profiles.describe` answers
  * `soul` and `model: {provider, default}`; `profiles.configure` writes `soul`, and pins a model
- * only when BOTH `model` and `provider` arrive. A guarded model writes nothing until
+ * only when BOTH `model` and `provider` arrive, and keeps the id exactly as it was sent. A guarded model writes nothing until
  * `confirm_expensive_model` is sent, and says so with `confirm_required` and its own words beside
  * the sections that did apply.
  */
@@ -81,11 +81,11 @@ describe('profiles.describe and profiles.configure: soul and model', () => {
     })
   })
 
-  it('pins a model when both halves arrive, and stores the bare model id', async () => {
+  it('pins a model when both halves arrive, and stores the id as it was sent', async () => {
     await withGateway(async call => {
       const answer = await call('profiles.configure', {
         name: 'researcher',
-        model: 'second-provider/reasoner-2',
+        model: 'reasoner-2',
         provider: 'second-provider'
       })
 
@@ -99,6 +99,21 @@ describe('profiles.describe and profiles.configure: soul and model', () => {
       expect(roster.profiles.find(row => row.name === 'researcher')).toMatchObject({
         model: 'reasoner-2',
         provider: 'second-provider'
+      })
+    })
+  })
+
+  it('does not strip a provider prefix: the id is the name of the model', async () => {
+    await withGateway(async call => {
+      await call('profiles.configure', {
+        name: 'researcher',
+        model: 'second-provider/reasoner-2',
+        provider: 'second-provider'
+      })
+
+      expect((await call('profiles.describe', { name: 'researcher' })).model).toEqual({
+        provider: 'second-provider',
+        default: 'second-provider/reasoner-2'
       })
     })
   })
@@ -119,7 +134,7 @@ describe('profiles.describe and profiles.configure: soul and model', () => {
       const asked = await call('profiles.configure', {
         name: 'researcher',
         description: 'Reads slowly.',
-        model: 'example-provider/expensive-model',
+        model: 'expensive-model',
         provider: 'example-provider'
       })
 
@@ -134,7 +149,7 @@ describe('profiles.describe and profiles.configure: soul and model', () => {
 
       const confirmed = await call('profiles.configure', {
         name: 'researcher',
-        model: 'example-provider/expensive-model',
+        model: 'expensive-model',
         provider: 'example-provider',
         confirm_expensive_model: true
       })

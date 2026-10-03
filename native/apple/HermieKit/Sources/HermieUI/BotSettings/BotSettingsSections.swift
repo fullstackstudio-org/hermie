@@ -424,7 +424,8 @@ struct BotToolsetsSection: View {
               .foregroundStyle(.secondary)
           }
         }
-        .disabled(!editable || (toolset.enabled && !model.canDisableToolset(toolset.name)))
+        .disabled(
+          !editable || model.toolsetsLocked || (toolset.enabled && !model.canDisableToolset(toolset.name)))
         .accessibilityIdentifier("hermie.botSettings.toolset.\(toolset.name)")
       }
 
@@ -432,7 +433,7 @@ struct BotToolsetsSection: View {
         Button(NativeStrings.BotSettings.followDefaults) {
           Task { await model.useDefaultToolsets() }
         }
-        .disabled(model.busy.contains(.toolsets))
+        .disabled(model.toolsetsLocked)
         .accessibilityIdentifier("hermie.botSettings.toolsets.defaults")
       }
 

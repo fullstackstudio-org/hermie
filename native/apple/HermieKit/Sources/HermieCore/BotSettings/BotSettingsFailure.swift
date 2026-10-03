@@ -19,7 +19,8 @@ import HermieProtocol
 
  The gateway has no profile-level permission code of its own yet (`profiles.configure` answers any
  caller), so `forbidden` is read from what a gateway in front of it, or a later build, would say:
- the access-denied range of codes (`4030` to `4033`, `4403`) and the plain words for it.
+ the access-denied range of codes (`4030` to `4033`, `4403`) and explicit words for it. An operating
+ system error (a read-only file system, a permission error on the file) is a refusal, never a denial.
  */
 public enum BotSettingsFailure: Error, Sendable, Equatable {
   case forbidden(String)
@@ -95,11 +96,16 @@ public enum BotSettingsFailure: Error, Sendable, Equatable {
     return .refused(String(describing: error))
   }
 
-  /// The plain words a refusal of this kind uses.
+  /// The explicit words an access denial uses. Deliberately not the bare words of an operating
+  /// system error that a write can also fail with: "Read-only file system", "Permission denied" and
+  /// "Operation not permitted" say the gateway's disk would not take the file, not that this account
+  /// may not edit the bot, and must not turn the screen read-only.
   static func looksForbidden(_ message: String) -> Bool {
     let text = message.lowercased()
 
-    return ["forbidden", "not permitted", "permission denied", "not allowed", "read-only", "access denied"]
-      .contains { text.contains($0) }
+    return [
+      "forbidden", "unauthorized", "not authorized", "access denied", "do not have permission",
+      "does not have permission", "insufficient permission"
+    ].contains { text.contains($0) }
   }
 }

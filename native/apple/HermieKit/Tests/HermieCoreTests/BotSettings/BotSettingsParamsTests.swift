@@ -82,7 +82,7 @@ struct BotSettingsParamsTests {
       ]))
     let choices = BotModelChoice.choices(options)
 
-    #expect(choices.map(\.qualified) == ["a/one", "a/two", "b/three"])
+    #expect(choices.map(\.id) == ["a/one", "a/two", "b/three"])
     #expect(choices[0].providerName == "Provider A")
     // A provider with no name is called by its slug.
     #expect(choices[2].providerName == "b")
@@ -125,18 +125,24 @@ struct BotSettingsParamsTests {
     #expect(BotSettingsParams.mcp("r", servers) == ["name": "r", "enabled_mcp_servers": ["github"]])
   }
 
-  @Test func aModelIsSentQualifiedWithItsProviderAndConfirmedOnlyWhenAsked() {
+  @Test func aModelIsSentBareWithItsProviderInItsOwnFieldAndConfirmedOnlyWhenAsked() {
     let choice = BotModelChoice(provider: "second-provider", model: "reasoner-2")
 
-    #expect(
-      BotSettingsParams.model("r", choice)
-        == ["name": "r", "model": "second-provider/reasoner-2", "provider": "second-provider"])
+    #expect(BotSettingsParams.model("r", choice) == ["name": "r", "model": "reasoner-2", "provider": "second-provider"])
     #expect(
       BotSettingsParams.model("r", choice, confirmExpensive: true)
         == [
-          "name": "r", "model": "second-provider/reasoner-2", "provider": "second-provider",
-          "confirm_expensive_model": true
+          "name": "r", "model": "reasoner-2", "provider": "second-provider", "confirm_expensive_model": true
         ])
+  }
+
+  @Test func aModelThatCarriesItsOwnVendorPrefixKeepsIt() {
+    // openrouter lists `vendor/model`: that is the model's name, and nothing is added or removed.
+    let choice = BotModelChoice(provider: "openrouter", model: "anthropic/claude-sonnet")
+
+    #expect(
+      BotSettingsParams.model("r", choice)
+        == ["name": "r", "model": "anthropic/claude-sonnet", "provider": "openrouter"])
   }
 
   @Test func pictureAndReloadParams() {
@@ -212,8 +218,23 @@ struct BotSettingsFailureTests {
 
   @Test func theGatewaysPlainWordsForItAreRecognisedToo() {
     #expect(BotSettingsFailure.classify(rejected(5064, "Forbidden: viewers cannot edit profiles")).isForbidden)
-    #expect(BotSettingsFailure.classify(rejected(nil, "permission denied")).isForbidden)
+    #expect(BotSettingsFailure.classify(rejected(nil, "You do not have permission to edit profiles")).isForbidden)
+    #expect(BotSettingsFailure.classify(rejected(nil, "Access denied")).isForbidden)
     #expect(!BotSettingsFailure.classify(rejected(5064, "disk full")).isForbidden)
+  }
+
+  @Test func anOperatingSystemErrorFromAWriteIsARefusalNotADenial() {
+    // The gateway's disk would not take the file: this account may still edit the bot.
+    for message in [
+      "[Errno 30] Read-only file system: '/profiles/r/assets/avatar.png.tmp'",
+      "[Errno 13] Permission denied: '/profiles/r/SOUL.md'",
+      "[Errno 1] Operation not permitted"
+    ] {
+      let failure = BotSettingsFailure.classify(rejected(4070, message))
+
+      #expect(!failure.isForbidden)
+      #expect(failure == .refused(message))
+    }
   }
 
   @Test func aMissingMethodHidesTheSectionInsteadOfBeingAnError() {

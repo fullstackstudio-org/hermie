@@ -39,6 +39,21 @@ public struct BotSettingsGateway: Sendable {
  state when it comes back, so two quick taps are two states in order and never two writes racing.
  A refusal puts the section back to what the gateway last confirmed and says so.
 
+ ## One write at a time
+
+ Every `profiles.configure` this model sends, whatever the section (description, personality, model,
+ toolsets, skills, MCP servers), goes through one serial queue: the gateway reads the profile's
+ config, changes it and writes it back without a lock, so two writes in flight at once can lose one
+ of the changes. A write waits its turn and builds its params when its turn comes, from the state
+ then on screen.
+
+ ## Reads that were already stale
+
+ `profiles.describe` is a read and is not queued, so its answer can describe the profile from before
+ a write that landed while it was on its way. Every section has a generation that moves when a write
+ to it is confirmed; a snapshot is only believed, section by section, if that generation has not
+ moved since the read was sent and no write to the section is under way.
+
  ## Permissions and support
 
  The gateway decides what this account may do, and says so only when a write is refused. A refusal
@@ -120,6 +135,8 @@ public final class BotSettingsModel {
   public private(set) var notice: Notice?
   /// A write was refused as not this account's to make: the screen is read-only from here on.
   public private(set) var refused = false
+  /// The toolsets are being put back to the gateway's defaults: their switches wait.
+  public private(set) var toolsetsLocked = false
 
   @ObservationIgnored private let gateway: BotSettingsGateway
   @ObservationIgnored private let runtimeSessionID: @MainActor () async -> String?
@@ -128,6 +145,11 @@ public final class BotSettingsModel {
   @ObservationIgnored private var confirmed: BotProfileDetails?
   @ObservationIgnored private var dirty: Set<BotCapabilitySection> = []
   @ObservationIgnored private var writing: Set<BotCapabilitySection> = []
+  /// Moves when a write to a section is confirmed (see "Reads that were already stale").
+  @ObservationIgnored private var generation: [Field: Int] = [:]
+  /// The serial queue every `profiles.configure` goes through: whether a write holds it, and who waits.
+  @ObservationIgnored private var queueHeld = false
+  @ObservationIgnored private var queueWaiters: [CheckedContinuation<Void, Never>] = []
 
   /// - Parameters:
   ///   - runtimeSessionID: the bot's live chat, for `reload.mcp`; nil when it has none.
@@ -157,6 +179,8 @@ public final class BotSettingsModel {
       phase = .loading
     }
 
+    let started = generation
+
     do {
       let reply = try await gateway.request(RPC.ProfilesDescribe.name, ["name": .string(profile)])
 
@@ -164,7 +188,7 @@ public final class BotSettingsModel {
         throw BotSettingsFailure.refused("")
       }
 
-      adopt(BotProfileDetails(described, fallbackName: profile))
+      adopt(BotProfileDetails(described, fallbackName: profile), requestedAt: started)
       phase = .loaded
     } catch {
       let failure = BotSettingsFailure.classify(error)
@@ -179,18 +203,42 @@ public final class BotSettingsModel {
     }
   }
 
-  private func adopt(_ fresh: BotProfileDetails) {
+  /// Take a snapshot in, section by section. A section the snapshot cannot be believed about (a write
+  /// to it was confirmed after the read was sent, or is under way now) keeps what is known; what is
+  /// on screen follows the gateway otherwise, except where the person is in the middle of something:
+  /// a section being written keeps its switches, a field being typed its draft.
+  private func adopt(_ snapshot: BotProfileDetails, requestedAt started: [Field: Int]) {
     let before = confirmed
+    var fresh = snapshot
+
+    func stale(_ field: Field) -> Bool {
+      busy.contains(field) || (generation[field] ?? 0) != (started[field] ?? 0)
+    }
+
+    if let before {
+      if stale(.description) { fresh.description = before.description }
+      if stale(.soul) { fresh.soul = before.soul }
+      if stale(.model) { fresh.model = before.model }
+      if stale(.toolsets) {
+        fresh.toolsets = before.toolsets
+        fresh.toolsetsPinned = before.toolsetsPinned
+      }
+      if stale(.skills) { fresh.skills = before.skills }
+      if stale(.mcp) { fresh.mcpServers = before.mcpServers }
+    }
+
     confirmed = fresh
 
-    // What is on screen follows the gateway, except where the person is in the middle of
-    // something: a section being written keeps its switches, a field being typed its draft.
     var next = fresh
 
-    if !writing.isEmpty, let current = details {
-      if writing.contains(.toolsets) { next.toolsets = current.toolsets; next.toolsetsPinned = current.toolsetsPinned }
-      if writing.contains(.skills) { next.skills = current.skills }
-      if writing.contains(.mcp) { next.mcpServers = current.mcpServers }
+    if let current = details {
+      if busy.contains(.toolsets) {
+        next.toolsets = current.toolsets
+        next.toolsetsPinned = current.toolsetsPinned
+      }
+
+      if busy.contains(.skills) { next.skills = current.skills }
+      if busy.contains(.mcp) { next.mcpServers = current.mcpServers }
     }
 
     details = next
@@ -209,6 +257,33 @@ public final class BotSettingsModel {
       descriptionDraft = fresh.description
       soulDraft = fresh.soul
     }
+  }
+
+  // MARK: - The write queue
+
+  /// Run `body` when no other write to this profile is running, and in the order writes asked.
+  /// Whoever finishes hands the queue straight to the next, so it is never free in between.
+  private func serialized<T>(_ body: () async -> T) async -> T {
+    if queueHeld {
+      await withCheckedContinuation { queueWaiters.append($0) }
+    } else {
+      queueHeld = true
+    }
+
+    defer {
+      if queueWaiters.isEmpty {
+        queueHeld = false
+      } else {
+        queueWaiters.removeFirst().resume()
+      }
+    }
+
+    return await body()
+  }
+
+  /// A write to `field` was confirmed: reads sent before this moment say nothing about it.
+  private func confirmedWrite(_ field: Field) {
+    generation[field, default: 0] += 1
   }
 
   // MARK: - What can be done
@@ -255,6 +330,7 @@ public final class BotSettingsModel {
     let text = descriptionDraft.trimmingCharacters(in: .whitespacesAndNewlines)
 
     await write(.description, section: "description", params: BotSettingsParams.description(profile, text)) {
+      self.confirmedWrite(.description)
       self.details?.description = text
       self.confirmed?.description = text
       self.descriptionDraft = text
@@ -268,6 +344,7 @@ public final class BotSettingsModel {
     let text = soulDraft
 
     await write(.soul, section: "soul", params: BotSettingsParams.soul(profile, text)) {
+      self.confirmedWrite(.soul)
       self.details?.soul = text
       self.confirmed?.soul = text
     }
@@ -281,12 +358,20 @@ public final class BotSettingsModel {
     failures[field] = nil
     defer { busy.remove(field) }
 
-    do {
-      let reply = try await gateway.request(RPC.ProfilesConfigure.name, params)
-      try BotSettingsParams.check(reply, applied: section)
-      applied()
-    } catch {
-      fail(field, error)
+    let gateway = self.gateway
+    let outcome: Result<Void, any Error> = await serialized {
+      do {
+        let reply = try await gateway.request(RPC.ProfilesConfigure.name, params)
+        try BotSettingsParams.check(reply, applied: section)
+        return .success(())
+      } catch {
+        return .failure(error)
+      }
+    }
+
+    switch outcome {
+    case .success: applied()
+    case .failure(let error): fail(field, error)
     }
   }
 
@@ -309,7 +394,7 @@ public final class BotSettingsModel {
   }
 
   public func setToolset(_ name: String, enabled: Bool) async {
-    guard let index = details?.toolsets.firstIndex(where: { $0.name == name }),
+    guard !toolsetsLocked, let index = details?.toolsets.firstIndex(where: { $0.name == name }),
       details?.toolsets[index].enabled != enabled
     else { return }
 
@@ -323,23 +408,44 @@ public final class BotSettingsModel {
   }
 
   /// Take the pin away so the bot follows the gateway's toolset defaults again, and show what those
-  /// are: they need not be every toolset.
+  /// are: they need not be every toolset. The toolsets count as being written, and their switches wait
+  /// (`toolsetsLocked`), until the gateway's answer has been read back.
   public func useDefaultToolsets() async {
-    guard details?.toolsetsPinned == true, !writing.contains(.toolsets), !busy.contains(.toolsets) else { return }
+    guard details?.toolsetsPinned == true, !toolsetsLocked, !writing.contains(.toolsets) else { return }
 
+    toolsetsLocked = true
+    writing.insert(.toolsets)
     busy.insert(.toolsets)
     failures[.toolsets] = nil
-    defer { busy.remove(.toolsets) }
 
-    do {
-      let reply = try await gateway.request(RPC.ProfilesConfigure.name, BotSettingsParams.toolsetDefaults(profile))
-      try BotSettingsParams.check(reply, applied: BotSettingsParams.appliedKey(.toolsets))
+    let gateway = self.gateway
+    let profile = self.profile
+    let outcome: Result<Void, any Error> = await serialized {
+      do {
+        let reply = try await gateway.request(RPC.ProfilesConfigure.name, BotSettingsParams.toolsetDefaults(profile))
+        try BotSettingsParams.check(reply, applied: BotSettingsParams.appliedKey(.toolsets))
+        return .success(())
+      } catch {
+        return .failure(error)
+      }
+    }
+
+    // Still counted as written while it is read back, so that nothing else's read replaces it.
+    switch outcome {
+    case .success:
+      confirmedWrite(.toolsets)
       confirmed?.toolsetsPinned = false
       details?.toolsetsPinned = false
+      writing.remove(.toolsets)
+      busy.remove(.toolsets)
       await reread()
-    } catch {
+    case .failure(let error):
       fail(.toolsets, error)
+      writing.remove(.toolsets)
+      busy.remove(.toolsets)
     }
+
+    toolsetsLocked = false
   }
 
   public func setSkill(_ name: String, enabled: Bool) async {
@@ -361,7 +467,7 @@ public final class BotSettingsModel {
   }
 
   /// Write a section from the state on screen. See the type's note on how overlapping toggles
-  /// coalesce.
+  /// coalesce, and on the queue every write waits in.
   private func commit(_ section: BotCapabilitySection) async {
     let field = Field(section)
 
@@ -381,13 +487,29 @@ public final class BotSettingsModel {
 
     var wrote = false
 
-    while dirty.remove(section) != nil, let snapshot = details {
-      do {
-        let reply = try await gateway.request(RPC.ProfilesConfigure.name, params(for: section, snapshot))
-        try BotSettingsParams.check(reply, applied: BotSettingsParams.appliedKey(section))
-        wrote = true
-        confirm(section, from: snapshot)
-      } catch {
+    while dirty.contains(section) {
+      // Built when the queue is ours, from what is on screen then: a tap made while this waited is
+      // part of it, and needs no write of its own.
+      let outcome: Result<Bool, any Error> = await serialized {
+        guard dirty.remove(section) != nil, let snapshot = details else {
+          return .success(false)
+        }
+
+        do {
+          let reply = try await gateway.request(RPC.ProfilesConfigure.name, params(for: section, snapshot))
+          try BotSettingsParams.check(reply, applied: BotSettingsParams.appliedKey(section))
+          confirmedWrite(field)
+          confirm(section, from: snapshot)
+          return .success(true)
+        } catch {
+          return .failure(error)
+        }
+      }
+
+      switch outcome {
+      case .success(let didWrite):
+        wrote = wrote || didWrite
+      case .failure(let error):
         dirty.remove(section)
         fail(field, error)
         restore(section)
@@ -538,31 +660,41 @@ public final class BotSettingsModel {
     failures[.model] = nil
     defer { busy.remove(.model) }
 
-    do {
-      let reply = try await gateway.request(
-        RPC.ProfilesConfigure.name, BotSettingsParams.model(profile, choice, confirmExpensive: confirmExpensive))
-
-      switch try BotSettingsParams.modelAnswer(reply) {
-      case .confirmationRequired(let message):
-        modelConfirmation = ModelConfirmation(choice: choice, message: message)
-      case .applied:
-        // What the gateway stored is what to show: it normalises the pair it was given.
-        phase = .loaded
-        await reread()
-        onChanged()
+    let gateway = self.gateway
+    let params = BotSettingsParams.model(profile, choice, confirmExpensive: confirmExpensive)
+    let outcome: Result<BotSettingsParams.ModelAnswer, any Error> = await serialized {
+      do {
+        let reply = try await gateway.request(RPC.ProfilesConfigure.name, params)
+        return .success(try BotSettingsParams.modelAnswer(reply))
+      } catch {
+        return .failure(error)
       }
-    } catch {
+    }
+
+    switch outcome {
+    case .success(.confirmationRequired(let message)):
+      modelConfirmation = ModelConfirmation(choice: choice, message: message)
+    case .success(.applied):
+      confirmedWrite(.model)
+      // What the gateway stored is what to show: it normalises the pair it was given.
+      phase = .loaded
+      busy.remove(.model)
+      await reread()
+      onChanged()
+    case .failure(let error):
       fail(.model, error)
     }
   }
 
   /// Read the snapshot again after a write whose result is the gateway's to say.
   private func reread() async {
+    let started = generation
+
     do {
       let reply = try await gateway.request(RPC.ProfilesDescribe.name, ["name": .string(profile)])
 
       if let described = ProfilesDescribeResult(jsonValue: reply) {
-        adopt(BotProfileDetails(described, fallbackName: profile))
+        adopt(BotProfileDetails(described, fallbackName: profile), requestedAt: started)
       }
     } catch {
       // The write landed; a failed re-read leaves the screen as it was until the next load.
