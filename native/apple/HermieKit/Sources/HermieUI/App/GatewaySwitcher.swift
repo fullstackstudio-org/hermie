@@ -1,6 +1,10 @@
 import HermieCore
 import SwiftUI
 
+#if os(iOS)
+  import UIKit
+#endif
+
 /// Carry out what a router transition asked for.
 @MainActor
 func perform(_ effects: [RouterEffect], on launch: AppLaunch) {
@@ -29,6 +33,8 @@ extension GatewayDirectory {
 struct GatewaySwitcherMenu: View {
   @Environment(AppLaunch.self) private var launch
   @Environment(AppRouter.self) private var router
+  /// Read so the menu is rebuilt, and its titles fitted again, when the text size changes.
+  @Environment(\.dynamicTypeSize) private var typeSize
 
   var body: some View {
     let directory = launch.gateways
@@ -44,21 +50,85 @@ struct GatewaySwitcherMenu: View {
               }
             )
           ) {
-            Text(entry.name)
+            // A gateway is usually named after its host: one line, cut in the middle, never
+            // hyphenated across two. The whole name (and the address) is what VoiceOver reads.
+            Text(MenuTitle.fitted(entry.name, typeSize: typeSize))
+              .lineLimit(1)
+              .truncationMode(.middle)
           }
+          .accessibilityLabel(entry.name == entry.address ? entry.name : "\(entry.name), \(entry.address)")
         }
       }
 
       Divider()
 
-      Button(Strings.App.Settings.Gateways.add, systemImage: "plus") {
+      // No icon: the toggles above reserve the checkmark column, and an icon beside it would take
+      // a second column from the words (the system menu is about 250 pt wide on a phone), which
+      // broke "Gateway toevoegen" over two lines.
+      Button(Strings.App.Settings.Gateways.add) {
         router.present(.onboarding(.additionalGateway))
       }
+      .accessibilityIdentifier("hermie.toolbar.gateways.add")
     } label: {
       Label(Strings.App.Settings.Gateways.title, systemImage: "server.rack")
     }
     .accessibilityValue(directory.entry(id: router.selectedGatewayId)?.name ?? "")
     .accessibilityIdentifier("hermie.toolbar.gateways")
+  }
+}
+
+/**
+ A title for one row of a system menu, cut in the middle to one line.
+
+ A phone's menu ignores `lineLimit` and `truncationMode`: it wraps a long title over two lines and
+ hyphenates it, which turns a host name into "hermes.fullstackstu-" over "dio.nl". So the title is
+ cut before it reaches the menu, measured in the menu's own font (the body style at the reader's
+ text size) against the room a row has beside the checkmark column. The menu stays about 250 pt
+ wide at every standard text size; measured on iOS 26, its words get about 155 pt, so 150 leaves a
+ margin. The Mac's menus grow to fit their titles and need none of this.
+ */
+enum MenuTitle {
+  static let width: CGFloat = 150
+
+  static func fitted(_ title: String, typeSize: DynamicTypeSize) -> String {
+    #if os(iOS)
+      let traits = UITraitCollection(preferredContentSizeCategory: UIContentSizeCategory(typeSize))
+      let font = UIFont.preferredFont(forTextStyle: .body, compatibleWith: traits)
+
+      return middleTruncated(title) { candidate in
+        (candidate as NSString).size(withAttributes: [.font: font]).width <= width
+      }
+    #else
+      return title
+    #endif
+  }
+
+  /// The longest `head…tail` of `title` that `fits`, keeping a little more of the head; the title
+  /// itself when it fits whole.
+  static func middleTruncated(_ title: String, fits: (String) -> Bool) -> String {
+    guard !fits(title) else {
+      return title
+    }
+
+    let characters = Array(title)
+    var low = 0
+    var high = characters.count - 1
+    var best = "…"
+
+    while low <= high {
+      let keep = (low + high) / 2
+      let head = (keep + 1) / 2
+      let candidate = String(characters.prefix(head)) + "…" + String(characters.suffix(keep - head))
+
+      if fits(candidate) {
+        best = candidate
+        low = keep + 1
+      } else {
+        high = keep - 1
+      }
+    }
+
+    return best
   }
 }
 
