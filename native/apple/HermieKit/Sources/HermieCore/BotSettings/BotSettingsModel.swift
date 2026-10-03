@@ -322,6 +322,26 @@ public final class BotSettingsModel {
     await commit(.toolsets)
   }
 
+  /// Take the pin away so the bot follows the gateway's toolset defaults again, and show what those
+  /// are: they need not be every toolset.
+  public func useDefaultToolsets() async {
+    guard details?.toolsetsPinned == true, !writing.contains(.toolsets), !busy.contains(.toolsets) else { return }
+
+    busy.insert(.toolsets)
+    failures[.toolsets] = nil
+    defer { busy.remove(.toolsets) }
+
+    do {
+      let reply = try await gateway.request(RPC.ProfilesConfigure.name, BotSettingsParams.toolsetDefaults(profile))
+      try BotSettingsParams.check(reply, applied: BotSettingsParams.appliedKey(.toolsets))
+      confirmed?.toolsetsPinned = false
+      details?.toolsetsPinned = false
+      await reread()
+    } catch {
+      fail(.toolsets, error)
+    }
+  }
+
   public func setSkill(_ name: String, enabled: Bool) async {
     guard let index = details?.skills.firstIndex(where: { $0.name == name }),
       details?.skills[index].enabled != enabled
@@ -391,13 +411,12 @@ public final class BotSettingsModel {
   private func confirm(_ section: BotCapabilitySection, from snapshot: BotProfileDetails) {
     switch section {
     case .toolsets:
-      // An empty list was sent when everything is on, and that takes the pin away.
-      let pinned = !snapshot.toolsets.allSatisfy(\.enabled)
+      // A list of names was sent, and any such list is a pin.
       confirmed?.toolsets = snapshot.toolsets
-      confirmed?.toolsetsPinned = pinned
+      confirmed?.toolsetsPinned = true
 
       if details?.toolsets == snapshot.toolsets {
-        details?.toolsetsPinned = pinned
+        details?.toolsetsPinned = true
       }
     case .skills:
       confirmed?.skills = snapshot.skills

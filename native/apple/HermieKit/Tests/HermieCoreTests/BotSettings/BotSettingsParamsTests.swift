@@ -107,10 +107,14 @@ struct BotSettingsParamsTests {
         == ["name": "r", "enabled_toolsets": ["files", "terminal"]])
   }
 
-  @Test func everythingOnIsAnEmptyListBecauseThatTakesThePinAway() {
+  @Test func everythingOnIsStillAPinOfNamesBecauseTheDefaultsNeedNotBeEverything() {
     let all = toolsets.map { BotToolset(name: $0.name, enabled: true) }
 
-    #expect(BotSettingsParams.toolsets("r", all) == ["name": "r", "enabled_toolsets": []])
+    #expect(BotSettingsParams.toolsets("r", all) == ["name": "r", "enabled_toolsets": ["files", "web", "terminal"]])
+  }
+
+  @Test func followingTheDefaultsIsItsOwnRequestAndIsAnEmptyList() {
+    #expect(BotSettingsParams.toolsetDefaults("r") == ["name": "r", "enabled_toolsets": []])
   }
 
   @Test func skillsAreSentAsTheDisabledSetAndMcpAsTheEnabledList() {
