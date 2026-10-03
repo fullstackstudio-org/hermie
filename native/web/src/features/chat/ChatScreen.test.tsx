@@ -329,8 +329,8 @@ describe('the transcript', () => {
     const { rerender } = mount({}, fakeController())
 
     expect(screen.getAllByRole('button', { expanded: false }).map(button => button.textContent)).toEqual([
-      'web_searchthree results',
-      'read_filenotes.md'
+      '\u2315web_searchthree results',
+      '\u25a4read_filenotes.md'
     ])
     expect(screen.getByText('compacting context')).toBeTruthy()
 
@@ -370,8 +370,11 @@ describe('the transcript', () => {
     fireEvent.click(line)
 
     expect(line.getAttribute('aria-expanded')).toBe('true')
-    expect(screen.getByText('<img src=x onerror=alert(1)> && ls')).toBeTruthy()
-    expect(screen.getByText('**not bold** <b>x</b>')).toBeTruthy()
+
+    const body = document.getElementById(line.getAttribute('aria-controls') ?? '') as HTMLElement
+
+    expect(within(body).getByText('<img src=x onerror=alert(1)> && ls')).toBeTruthy()
+    expect(within(body).getByText('**not bold** <b>x</b>')).toBeTruthy()
     expect(document.querySelector('img, b')).toBeNull()
   })
 

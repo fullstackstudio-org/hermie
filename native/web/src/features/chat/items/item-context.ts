@@ -20,6 +20,11 @@ export interface ItemContextValue {
    * `user` row is the reader's own (HERM-83, D6).
    */
   groupChat: boolean
+  /**
+   * The chat's key in the chat store, for the rows that read what changes
+   * without their item changing (a fan-out's children, `SubagentGroupCard`).
+   */
+  chatKey?: string | undefined
 }
 
 export const ItemContext = createContext<ItemContextValue>({

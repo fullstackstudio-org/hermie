@@ -137,14 +137,52 @@ describe('an assistant bubble', () => {
   })
 })
 
-describe('a tool row', () => {
-  it('is one collapsed line: the name, what it did, how long it took', () => {
+describe('a tool card', () => {
+  it('is one collapsed line: its family glyph, the name, what it did, how long it took', () => {
     draw(toolItem('web_search', { summary: 'three results', durationS: 1.234 }), 'collapsed')
 
     const line = screen.getByRole('button')
 
     expect(line.getAttribute('aria-expanded')).toBe('false')
-    expect(line.textContent).toBe('web_searchthree results1.2s')
+    expect(line.textContent).toBe('\u2315web_searchthree results1.2s')
+    // The glyph is decoration: the line is named by the tool first.
+    expect(line.querySelector('.hm-tool__glyph')?.getAttribute('aria-hidden')).toBe('true')
+    expect(screen.getByRole('button', { name: /^web_search/ })).toBe(line)
+  })
+
+  it('says what it did in the first words that apply: its summary, the call preview, the result in a line', () => {
+    const preview = draw(toolItem('shell', { context: 'ls -la /srv', resultKnown: false }), 'collapsed')
+
+    expect(screen.getByRole('button').textContent).toContain('ls -la /srv')
+    preview.unmount()
+
+    draw(toolItem('shell', { result: { output: 'total 0\n  drwx  .' } }), 'collapsed')
+    expect(screen.getByRole('button').querySelector('.hm-tool__summary')?.textContent).toBe('total 0 drwx .')
+  })
+
+  it('marks a failure in the glyph slot and a patch with the diff glyph', () => {
+    const failed = draw(toolItem('shell', { status: 'error', isError: true }), 'collapsed')
+
+    expect(failed.container.querySelector('.hm-tool__glyph')?.textContent).toBe('!')
+    failed.unmount()
+
+    const patch = draw(toolItem('patch', { inlineDiff: '-a\n+b' }), 'full')
+
+    expect(patch.container.querySelector('.hm-tool')?.getAttribute('data-family')).toBe('diff')
+    expect(patch.container.querySelector('.hm-tool__diff')?.textContent).toBe('-a\n+b')
+  })
+
+  it('is a chip holding its name, if it is ever handed over as one', () => {
+    const { container } = draw(toolItem('web_search', { summary: 'x' }), 'chip')
+
+    expect(container.querySelector('.hm-chip')?.textContent).toBe('web_search')
+    expect(container.querySelector('button')).toBeNull()
+  })
+
+  it('cleans the one line it shows of characters that could reorder the page', () => {
+    draw(toolItem('shell', { summary: 'evil\u202Etxt.exe' }), 'collapsed')
+
+    expect(screen.getByRole('button').querySelector('.hm-tool__summary')?.textContent).toBe('eviltxt.exe')
   })
 
   it('says it is running, and that it is still being prepared', () => {
@@ -164,15 +202,18 @@ describe('a tool row', () => {
     fireEvent.click(line)
 
     expect(line.getAttribute('aria-expanded')).toBe('true')
-    expect(document.getElementById(line.getAttribute('aria-controls') ?? '')).toBeTruthy()
-    expect(screen.getByText('path')).toBeTruthy()
-    expect(screen.getByText('notes.md')).toBeTruthy()
-    expect(screen.getByText('2')).toBeTruthy()
-    expect(screen.getByText('hello')).toBeTruthy()
+
+    const body = document.getElementById(line.getAttribute('aria-controls') ?? '') as HTMLElement
+
+    expect(body).toBeTruthy()
+    expect(within(body).getByText('path')).toBeTruthy()
+    expect(within(body).getByText('notes.md')).toBeTruthy()
+    expect(within(body).getByText('2')).toBeTruthy()
+    expect(within(body).getByText('hello')).toBeTruthy()
 
     fireEvent.click(line)
     expect(line.getAttribute('aria-expanded')).toBe('false')
-    expect(screen.queryByText('hello')).toBeNull()
+    expect(document.querySelector('.hm-tool__body')).toBeNull()
   })
 
   it('starts open at the verbose level, where the selectors hand it over as a full row', () => {
@@ -226,7 +267,7 @@ describe('a tool row', () => {
   })
 })
 
-describe('the helpers of a tool row', () => {
+describe('the helpers of a tool card', () => {
   it('names an MCP tool by its server, and cuts a long name', () => {
     expect(shortToolName('mcp__terminal__run_in_terminal')).toBe('terminal')
     expect(shortToolName('bash')).toBe('bash')
@@ -255,10 +296,10 @@ describe('the helpers of a tool row', () => {
 
 describe('a notice', () => {
   it('is a centred line, never a bubble, and a disclosure when it has something to open', () => {
-    const plain = draw(noticeItem('Switched model', { noticeKind: 'model_switch' }), 'collapsed')
+    const plain = draw(noticeItem('Roster refreshed', { noticeKind: 'internal_notification' }), 'collapsed')
 
     expect(plain.container.querySelector('.hm-msg')).toBeNull()
-    expect(plain.container.querySelector('.hm-note-line')?.textContent).toBe('Switched model')
+    expect(plain.container.querySelector('.hm-note-line')?.textContent).toBe('Roster refreshed')
     plain.unmount()
 
     draw(noticeItem('Job finished', { noticeKind: 'process_complete', body: 'exit 0' }), 'collapsed')
@@ -320,32 +361,12 @@ describe('the date separator', () => {
   })
 })
 
-describe('the kinds that have no view of their own yet', () => {
+describe('the records of a request', () => {
   const text = (item: TranscriptItem, presentation: Presentation = 'full') =>
     draw(item, presentation).container.textContent ?? ''
   const common = { id: 'x', seq: 1, origin: 'history' as const, version: 1 }
 
-  it('are a line of text saying what they are, so no row of a conversation is missing', () => {
-    expect(
-      text({ ...common, kind: 'bot_dm_in', senderName: 'Writer', senderHandle: 'writer', text: 'the draft is ready' })
-    ).toBe('From @writerthe draft is ready')
-    expect(
-      text({
-        ...common,
-        kind: 'bot_dm_out',
-        toolId: 't',
-        target: '@builder',
-        targetHandle: 'builder',
-        message: 'please build',
-        dispatch: { status: 'queued' }
-      })
-    ).toContain('To @builderplease build')
-    expect(
-      text({ ...common, kind: 'cron_delivery', jobName: 'Morning', body: 'all quiet', shape: 'header' as never })
-    ).toBe('CRON · Morningall quiet')
-    expect(
-      text({ ...common, kind: 'subagent_group', goals: ['look', 'read'], rootIds: [], status: 'running' })
-    ).toContain('look')
+  it('are a line of text saying what was asked, answered in the request layer and not here', () => {
     expect(
       text({
         ...common,
@@ -368,15 +389,5 @@ describe('the kinds that have no view of their own yet', () => {
         state: 'open'
       })
     ).toBe('The bot has a questionWhich one?')
-  })
-
-  it('shows what the bot said, as characters', () => {
-    const { container } = draw(
-      { ...common, kind: 'bot_dm_in', senderName: 'W', text: '<img src=x onerror=alert(1)>' },
-      'full'
-    )
-
-    expect(container.querySelector('img')).toBeNull()
-    expect(container.textContent).toContain('<img src=x onerror=alert(1)>')
   })
 })

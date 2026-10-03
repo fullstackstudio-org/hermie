@@ -129,9 +129,12 @@ test.describe('the chat list and opening a chat', () => {
     await expect(app.transcript).toHaveAccessibleName('Conversation with Researcher')
     await expect(app.transcript).toContainText('Introduce yourself in one line.')
     await expect(app.transcript).toContainText('I am researcher, at your service.')
-    // The reply with a table, a list, a code block and a quote: drawn as the structure it is.
-    await expect(app.transcript.getByRole('table')).toBeVisible()
-    await expect(app.transcript.getByRole('button', { name: 'Copy code' })).toBeVisible()
+    // The reply with a table, a list, a code block and a quote: drawn as the structure it is. In the reply's
+    // bubble: the cron report in the same chat is Markdown too, with a table of its own.
+    const replies = app.transcript.locator('.hm-bubble[data-kind="assistant"]')
+
+    await expect(replies.getByRole('table')).toBeVisible()
+    await expect(replies.getByRole('button', { name: 'Copy code' })).toBeVisible()
     await expect(app.field).toBeVisible()
 
     // Another chat, and back with the browser's own button.

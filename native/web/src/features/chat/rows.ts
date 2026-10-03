@@ -1,9 +1,12 @@
 /**
  * From what `visibleItems` returned to the rows the list draws.
  *
- * Three things the engine's selectors do not do, because they are about the
+ * Four things the engine's selectors do not do, because they are about the
  * screen and not about a transcript:
  *
+ *  - **Roll-ups.** More than three bot-to-bot asides in a row become one row
+ *    that opens in place (`dm-rollup.ts`), before anything else here looks at
+ *    the list: a roll-up opens a day like the aside it starts with.
  *  - **Date separators.** A day's first row gets a separator row in front of it.
  *    It is a row of its own (not a decoration on the item), because the list
  *    memoises a row on its item's id and version, and whether a row opens a day
@@ -25,6 +28,8 @@
  * them from the engine's own by that kind alone.
  */
 import type { StatusItem, TranscriptItem, VisibleItem } from '@hermie/transcript'
+
+import { rollupDmRuns } from './dm-rollup'
 
 /** The status kind of a date separator row. */
 export const DATE_ROW_KIND = 'web:date'
@@ -100,7 +105,7 @@ export function transcriptRows(visible: readonly VisibleItem[], options: RowOpti
   let lastDay = Number.NaN
   let lastDrawn: VisibleItem | undefined
 
-  for (const row of visible) {
+  for (const row of rollupDmRuns(visible)) {
     if (row.item.kind === 'status' && row.presentation === 'chip' && !options.busy) {
       continue
     }

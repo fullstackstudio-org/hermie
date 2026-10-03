@@ -15,6 +15,76 @@ const SILENT_TOOLS = new Set(['react_to_message', 'todo', 'todo_list'])
 
 export const isSilentTool = (name: string): boolean => SILENT_TOOLS.has(name)
 
+/** The family a tool's glyph is drawn from (the Expo app's `tool-render-class.ts`). */
+export type ToolFamily = 'terminal' | 'file-read' | 'file-write' | 'diff' | 'search' | 'browser' | 'mcp' | 'other'
+
+const FILE_EDIT_NAMES = new Set(['edit_file', 'patch', 'write_file'])
+const TERMINAL_NAMES = new Set(['bash', 'shell', 'run_command', 'terminal', 'exec', 'execute_command'])
+const FILE_READ_NAMES = new Set(['read_file', 'read', 'cat_file', 'list_files', 'glob', 'grep', 'search_files'])
+const SEARCH_NAMES = new Set(['web_search', 'search', 'web.search', 'fetch', 'http_fetch', 'http.fetch'])
+const BROWSER_NAMES = new Set(['browser', 'browse', 'computer_use', 'playwright', 'screenshot'])
+
+/**
+ * Which family a tool belongs to: a patch or a write is a diff, a read is a
+ * document, an MCP call keeps its own mark. An agent's tool list is long enough
+ * that the glyph is what the eye reads first.
+ */
+export function toolFamily(toolName: string): ToolFamily {
+  const name = toolName.toLowerCase()
+
+  if (name.includes('__') || name.startsWith('mcp')) {
+    return 'mcp'
+  }
+
+  if (FILE_EDIT_NAMES.has(name) || name.includes('patch') || name.includes('diff')) {
+    return 'diff'
+  }
+
+  if (TERMINAL_NAMES.has(name) || name.includes('command') || name.includes('shell')) {
+    return 'terminal'
+  }
+
+  if (FILE_READ_NAMES.has(name) || name.startsWith('read') || name.includes('file_read')) {
+    return 'file-read'
+  }
+
+  if (name.startsWith('write') || name.includes('file_write') || name.includes('create_file')) {
+    return 'file-write'
+  }
+
+  if (BROWSER_NAMES.has(name) || name.startsWith('browser')) {
+    return 'browser'
+  }
+
+  if (SEARCH_NAMES.has(name) || name.includes('search') || name.includes('fetch')) {
+    return 'search'
+  }
+
+  return 'other'
+}
+
+/** The glyph in a tool card's icon slot. Characters, so no icon font; decoration only. */
+export function toolGlyph(family: ToolFamily): string {
+  switch (family) {
+    case 'terminal':
+      return '\u203a_'
+    case 'file-read':
+      return '\u25a4'
+    case 'file-write':
+      return '\u270e'
+    case 'diff':
+      return '\u00b1'
+    case 'search':
+      return '\u2315'
+    case 'browser':
+      return '\u25a3'
+    case 'mcp':
+      return '\u29c9'
+    default:
+      return '\u2699'
+  }
+}
+
 /** Past this many characters a value is folded behind "Show more". */
 export const LONG_VALUE_CHARS = 600
 
@@ -114,7 +184,11 @@ export function argumentLines(args: ToolItem['args']): ArgumentLine[] {
   return args ? Object.entries(args).map(([name, value]) => ({ name, value: stringify(value) })) : []
 }
 
-/** The one line of the collapsed row: what the call did, or the state it is in. */
+/**
+ * The one line of the collapsed row: what the call did, in the first words that
+ * apply: the tool's own summary, the gateway's preview of the call, the result
+ * in a line. The state (running, failed, how long) has its own place in the row.
+ */
 export function toolSummary(item: ToolItem): string {
   if (item.summary?.trim()) {
     return clipLine(item.summary, SUMMARY_CHARS)
@@ -122,6 +196,14 @@ export function toolSummary(item: ToolItem): string {
 
   if (item.context?.trim()) {
     return clipLine(item.context, SUMMARY_CHARS)
+  }
+
+  const isRunning = item.status === 'running' || item.status === 'generating'
+
+  if (item.resultKnown && !isRunning && !item.isError && item.status !== 'error') {
+    const result = resultText(item)
+
+    return result.trim() ? clipLine(result, SUMMARY_CHARS) : ''
   }
 
   return ''
