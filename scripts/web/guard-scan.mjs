@@ -4,7 +4,7 @@
 // imported into (decision W3 of the web client plan).
 //
 //   node scripts/web/guard-scan.mjs [<dist directory>] [--pins <file>] [--workdir <dir>]
-//                                   [--scanner-root NAME=DIR]... [--python <executable>]
+//                                   [--scanner-root NAME=DIR]... [--only-roots] [--python <executable>]
 //
 // `GUARD_SCAN_PYTHON` names the interpreter (default `python3`; the scanner's own
 // annotations need 3.10 or newer). `GUARD_SCAN_RETRY_DELAY_MS` is the pause between
@@ -24,21 +24,32 @@
 //     build under `dashboard/app/`, which is where the plugin carries it, so the
 //     scanner sees the paths it sees on an install.
 //   - It calls `scan_plugin` and `should_allow_plugin_install` in a fresh
-//     `python -I -B` child per scanner (the two define the same package name),
-//     and passes only on a `safe` verdict the install would allow outright.
-//     `caution` fails too. There is no policy of its own and no threshold.
-//   - A gate that cannot run must not pass: a scanner that cannot be fetched or
-//     imported, that prints no result, a directory that is not a build, and a
-//     configuration with no scanner all exit non-zero.
+//     `python -I -B` child per scanner (the two define the same package name).
+//   - Each pin has a `gate` (W3, amended for HERM-192). A `blocking` scanner (the
+//     fork, which is what the gateways run at install and update) passes only on
+//     a `safe` verdict the install would allow outright; `caution` fails. An
+//     `informational` scanner (upstream) is run and its verdict and findings are
+//     printed and summarised, but only `dangerous` from it fails: an upstream
+//     `caution` means an install would ask to be confirmed, not that it is
+//     refused. A pin without a `gate` is blocking. There is no other policy and
+//     no threshold.
+//   - A gate that cannot run must not pass: a scanner of either kind that cannot
+//     be fetched or imported, or that prints no result (nobody can then say it
+//     would not have answered `dangerous`), a directory that is not a build, and
+//     a run in which no blocking scanner ran all exit non-zero.
 //   - The scanner's report quotes lines of the tree under test, so every line
 //     of it is made harmless before it reaches a CI log (`safeText`).
 //
 // `--scanner-root NAME=DIR` uses a checkout you already have (it must hold
-// `tools/plugin_guard.py`) instead of the pins, for a local run.
+// `tools/plugin_guard.py`): in place of the pin called NAME, keeping that pin's
+// gate, or as an extra blocking scanner when no pin has that name. The other pins
+// are still fetched, unless `--only-roots` says to run the given checkouts alone.
+// That is how a scanner change is tried before its commit is pinned:
+//   npm run client:guard-scan -- --scanner-root fork=../hermes-agent
 //
-// Exit status: 0 when every scanner says `safe`; 1 when any does not, or one
-// could not be fetched or run; 2 for a command line or a directory that makes
-// no sense.
+// Exit status: 0 when every blocking scanner says `safe` and no informational one
+// says `dangerous`; 1 when that is not so, or a scanner could not be fetched or
+// run; 2 for a command line, a pin file or a directory that makes no sense.
 
 import { spawnSync } from 'node:child_process'
 import {
@@ -65,6 +76,8 @@ export const RUNNER = join(here, 'guard-scan-run.py')
 export const DIST_DEFAULT = resolve(here, '../../native/web/dist')
 
 const SHA = /^[0-9a-f]{40}$/u
+/** What a scanner's verdict decides: `blocking` passes on `safe` only, `informational` fails on `dangerous` only. */
+export const GATES = Object.freeze(['blocking', 'informational'])
 const NAME = /^[a-z][a-z0-9-]*$/u
 /** What the scanner itself never reads (`tools/plugin_guard.py::EXCLUDED_DIRS`); used to count, never to decide. */
 const SCANNER_EXCLUDED_DIRS = new Set([
@@ -106,7 +119,7 @@ export class GuardError extends Error {
 // Getting the scanner
 // ---------------------------------------------------------------------------
 
-/** One `{ name, repo, ref }` per scanner in the pin file; every `ref` is a full lower-case commit. */
+/** One `{ name, repo, ref, gate }` per scanner in the pin file; every `ref` is a full lower-case commit. */
 export function loadPins(path) {
   let data
 
@@ -139,7 +152,13 @@ export function loadPins(path) {
       throw new GuardError(`scanner '${name}': 'commit' must be a full 40-character lower-case SHA`)
     }
 
-    return { name, repo: entry.repo, ref: entry.commit }
+    const gate = entry.gate ?? 'blocking'
+
+    if (!GATES.includes(gate)) {
+      throw new GuardError(`scanner '${name}': 'gate' must be one of ${GATES.join(', ')}`)
+    }
+
+    return { name, repo: entry.repo, ref: entry.commit, gate }
   })
 }
 
@@ -352,8 +371,16 @@ export function scanWith(source, tree, python = 'python3') {
   return { ...payload, report: report.join('\n').trimEnd(), exit: done.status }
 }
 
-/** The whole gate: Hermes says `safe`, allows it outright, and the child agrees. */
-export function passes(result) {
+/**
+ * The whole gate for one scanner. Blocking: Hermes says `safe`, allows it
+ * outright, and the child agrees. Informational: it ran and did not say
+ * `dangerous` (a verdict it does not know fails as well).
+ */
+export function passes(result, gate = 'blocking') {
+  if (gate === 'informational') {
+    return result.verdict === 'safe' || result.verdict === 'caution'
+  }
+
   return result.verdict === 'safe' && result.allowed === true && result.exit === 0
 }
 
@@ -406,10 +433,29 @@ function severityCounts(findings) {
   return parts.length > 0 ? parts.join(', ') : 'none'
 }
 
-function printResult(source, result, log) {
-  const where = source.commit ? `${source.repo} @ ${source.commit.slice(0, 12)}` : source.root
+const gateOf = source => source.gate ?? 'blocking'
 
-  log(`\n=== scanner: ${source.name} (${where}), ${result.scanner_version}  ->  ${passes(result) ? 'PASS' : 'FAIL'}`)
+/** PASS, NOTED (an informational scanner that did not pass `safe` but does not fail the gate) or FAIL. */
+function outcome(source, result) {
+  if (!passes(result, gateOf(source))) {
+    return 'FAIL'
+  }
+
+  return passes(result) ? 'PASS' : 'NOTED'
+}
+
+function describeSource(source) {
+  if (source.commit) {
+    return `${source.repo} @ ${source.commit.slice(0, 12)}`
+  }
+
+  return source.pinned ? `${source.root}, in place of the pinned ${source.pinned.slice(0, 12)}` : source.root
+}
+
+function printResult(source, result, log) {
+  log(
+    `\n=== scanner: ${source.name} [${gateOf(source)}] (${describeSource(source)}), ${result.scanner_version}  ->  ${outcome(source, result)}`
+  )
 
   const report = safeText(result.report).split('\n')
 
@@ -434,22 +480,23 @@ function writeSummary(rows, files, env) {
   const lines = [
     '### Plugin scanner, on the web client build',
     '',
-    `${files} file(s) in the build. Passes only on a verdict of \`safe\`.`,
+    `${files} file(s) in the build. A blocking scanner passes only on \`safe\`; an informational one fails only on \`dangerous\`.`,
     '',
-    '| Scanner | Commit | Version | Verdict | Findings |',
-    '|---|---|---|---|---|'
+    '| Scanner | Gate | Commit | Version | Verdict | Findings |',
+    '|---|---|---|---|---|---|'
   ]
 
   for (const { source, result, error } of rows) {
     const commit = source.commit ? `\`${source.commit.slice(0, 12)}\`` : 'local'
+    const gate = gateOf(source)
 
     if (result === null) {
-      lines.push(`| ${source.name} | ${commit} | - | could not run | ${oneLine(error)} |`)
+      lines.push(`| ${source.name} | ${gate} | ${commit} | - | could not run | ${oneLine(error)} |`)
     } else {
-      const verdict = result.verdict + (passes(result) ? '' : ' (fails)')
+      const verdict = result.verdict + { PASS: '', NOTED: ' (noted)', FAIL: ' (fails)' }[outcome(source, result)]
 
       lines.push(
-        `| ${source.name} | ${commit} | ${result.scanner_version} | ${verdict} | ${severityCounts(result.findings)} |`
+        `| ${source.name} | ${gate} | ${commit} | ${result.scanner_version} | ${verdict} | ${severityCounts(result.findings)} |`
       )
     }
   }
@@ -469,7 +516,7 @@ function parseArgs(argv, env) {
   const options = {
     dist: DIST_DEFAULT,
     pins: PINS_DEFAULT,
-    pinsGiven: false,
+    onlyRoots: false,
     workdir: '',
     python: env.GUARD_SCAN_PYTHON || 'python3',
     roots: []
@@ -490,7 +537,8 @@ function parseArgs(argv, env) {
 
     if (arg === '--pins') {
       options.pins = resolve(value())
-      options.pinsGiven = true
+    } else if (arg === '--only-roots') {
+      options.onlyRoots = true
     } else if (arg === '--workdir') {
       options.workdir = resolve(value())
     } else if (arg === '--python') {
@@ -529,18 +577,33 @@ export async function main(argv, { log = console.log, errorLog = console.error, 
     return 2
   }
 
-  // Pins are read unless every scanner was named on the command line (and no pin file was named too).
-  let pins = []
+  // The pin file is always read: it names the scanners and the gate of each. A
+  // local checkout stands in for the pin of its name and keeps that pin's gate.
+  let pins
 
   try {
-    if (sources.length === 0 || options.pinsGiven) {
-      pins = loadPins(options.pins)
-    }
+    pins = loadPins(options.pins)
   } catch (error) {
     errorLog(safeText(`guard-scan: ${error instanceof Error ? error.message : error}`))
 
     return 2
   }
+
+  const pinByName = new Map(pins.map(pin => [pin.name, pin]))
+
+  for (const source of sources) {
+    const pin = pinByName.get(source.name)
+
+    source.gate = pin?.gate ?? 'blocking'
+
+    if (pin) {
+      source.pinned = pin.ref
+    }
+  }
+
+  const given = new Set(sources.map(source => source.name))
+  const skipped = options.onlyRoots ? pins.filter(pin => !given.has(pin.name)) : []
+  const toFetch = options.onlyRoots ? [] : pins.filter(pin => !given.has(pin.name))
 
   const scratch = mkdtempSync(join(tmpdir(), 'guard-scan-'))
   const workdir = options.workdir || join(scratch, 'scanners')
@@ -562,15 +625,22 @@ export async function main(argv, { log = console.log, errorLog = console.error, 
 
     log(`scanning ${options.dist} as dashboard/app of a plugin tree (${files} file(s) the scanner will read)`)
 
-    for (const pin of pins) {
+    for (const pin of skipped) {
+      log(`\n=== scanner: ${pin.name} [${pin.gate}]  ->  not run (--only-roots)`)
+    }
+
+    for (const pin of toFetch) {
       try {
-        sources.push(await fetchScanner(pin, join(workdir, pin.name), { delayMs: retryDelayMs }))
+        sources.push({
+          ...(await fetchScanner(pin, join(workdir, pin.name), { delayMs: retryDelayMs })),
+          gate: pin.gate
+        })
       } catch (error) {
         const message = error instanceof Error ? error.message : String(error)
 
-        log(`\n=== scanner: ${pin.name}  ->  FAIL\n${safeText(`could not fetch it: ${message}`)}`)
+        log(`\n=== scanner: ${pin.name} [${pin.gate}]  ->  FAIL\n${safeText(`could not fetch it: ${message}`)}`)
         rows.push({
-          source: { name: pin.name, root: join(workdir, pin.name), repo: pin.repo },
+          source: { name: pin.name, root: join(workdir, pin.name), repo: pin.repo, gate: pin.gate },
           result: null,
           error: message
         })
@@ -584,11 +654,11 @@ export async function main(argv, { log = console.log, errorLog = console.error, 
 
         printResult(source, result, log)
         rows.push({ source, result, error: '' })
-        failed = failed || !passes(result)
+        failed = failed || !passes(result, gateOf(source))
       } catch (error) {
         const message = error instanceof Error ? error.message : String(error)
 
-        log(`\n=== scanner: ${source.name}  ->  FAIL\n${safeText(message)}`)
+        log(`\n=== scanner: ${source.name} [${gateOf(source)}]  ->  FAIL\n${safeText(message)}`)
         rows.push({ source, result: null, error: message })
         failed = true
       }
@@ -597,11 +667,22 @@ export async function main(argv, { log = console.log, errorLog = console.error, 
     if (rows.length === 0) {
       log('\nguard-scan: no scanner was configured, so nothing was checked')
       failed = true
+    } else if (!rows.some(row => gateOf(row.source) === 'blocking')) {
+      log('\nguard-scan: no blocking scanner ran, so nothing decided the gate')
+      failed = true
     }
+
+    const noted = rows
+      .filter(row => row.result !== null && outcome(row.source, row.result) === 'NOTED')
+      .map(row => `${row.source.name} says ${row.result.verdict} (${severityCounts(row.result.findings)})`)
 
     writeSummary(rows, files, env)
     log(
-      `\nguard-scan: ${failed ? 'FAILED: the plugin would not install or update as `safe`' : 'every scanner says safe'}`
+      `\nguard-scan: ${
+        failed
+          ? 'FAILED: the plugin would not install or update as `safe`'
+          : `every blocking scanner says safe${noted.length > 0 ? `; informational: ${noted.join('; ')}` : ''}`
+      }`
     )
   } finally {
     rmSync(scratch, { recursive: true, force: true })

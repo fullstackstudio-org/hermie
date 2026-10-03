@@ -117,6 +117,11 @@ Rejected:
   its `dist/` so a problem is found before an import. The build emits ASCII only (non-ASCII escaped),
   so the scanner's invisible-unicode check cannot fire on a legitimate string. A daily run against the
   newest scanners only reports.
+  _Amended 2026-10-03 (HERM-192):_ the fork scanner, which the gateways run at install and update, is the
+  blocking gate in both repositories; upstream is informational (its verdict and findings are listed in the
+  import pull request and the changelog, and only `dangerous` from it blocks). The protocol's secure prompt
+  is named `sudo`, an honest bundle carries that word, and only the fork judges it by its token rather than
+  by its minified line. See plan W3 and `native/web/README.md`.
 - A bundle import is a pull request in the plugin repository with a reviewer pass. For a bundle-only
   change the review is a checklist: only `dashboard/app/**`, the version and the changelog changed, and
   both CI jobs are green. Nothing auto-merges.

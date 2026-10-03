@@ -122,13 +122,15 @@ jobs:
       # job will run it over the tree the build is imported into (plan W3): the
       # fork the gateways run and upstream, each fetched at the commit pinned in
       # `scripts/web/scanner-pins.json`, with `dist/` laid under `dashboard/app`
-      # next to a manifest. Passes only on a `safe` verdict. The first finding
+      # next to a manifest. The fork blocks and passes only on `safe`; upstream
+      # is informational and fails only on `dangerous` (W3, amended for
+      # HERM-192); both verdicts land in the step summary. The first finding
       # this found was a real one: upstream read a regular expression of the
       # Markdown code as an inline shell snippet. The second step is the gate's
       # own test against the real scanners: the real build passes and a build with
       # a planted critical pattern does not. Both need the network (a sparse fetch
       # of `tools/`, a few megabytes) and the runner's Python.
-      - name: Plugin scanner (fork and upstream, pinned)
+      - name: Plugin scanner (fork blocks, upstream informational; pinned)
         run: npm run client:guard-scan
 
       - name: The scanner gate fails a planted pattern

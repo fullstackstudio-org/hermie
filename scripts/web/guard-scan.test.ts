@@ -2,8 +2,9 @@
  * `scripts/web/guard-scan.mjs`: the gate that runs Hermes's plugin scanner over a
  * build of the web client.
  *
- * It is a gate, so what is pinned here is the ways it must NOT pass: a verdict
- * that is anything but `safe`, a scanner that cannot be fetched or run, a
+ * It is a gate, so what is pinned here is the ways it must NOT pass: a blocking
+ * scanner's verdict that is anything but `safe`, an informational scanner's
+ * `dangerous`, a scanner that cannot be fetched or run, a
  * directory that is not a build, a scanner picked up from the wrong place, a
  * report that could start a workflow command. The scanner is replaced by a few
  * lines of Python that give the verdict a file in the tree asks for. The real
@@ -136,11 +137,16 @@ interface Run {
   err: string
 }
 
+/** Runs the gate on local scanners only (`--only-roots`), unless the test names a pin file of its own. */
 async function run(dist: string, roots: Record<string, string>, ...extra: string[]): Promise<Run> {
   const argv = [dist]
 
   for (const [name, root] of Object.entries(roots)) {
     argv.push('--scanner-root', `${name}=${root}`)
+  }
+
+  if (Object.keys(roots).length > 0 && !extra.includes('--pins')) {
+    argv.push('--only-roots')
   }
 
   const out: string[] = []
@@ -156,6 +162,10 @@ async function run(dist: string, roots: Record<string, string>, ...extra: string
 
 const verdictIs = (dist: string, wanted: string): void => writeFileSync(join(dist, 'VERDICT'), wanted)
 
+/** A fake scanner whose verdict, when the tree asks for none, is `verdict`. */
+const scannerSaying = (directory: string, verdict: string): string =>
+  makeScanner(directory, FAKE_SCANNER.replace('DEFAULT = "safe"', `DEFAULT = "${verdict}"`))
+
 describe('the gate', () => {
   it('passes a clean build with both scanners, and shows the scanner the tree it is given', async () => {
     const result = await run(makeDist(), scanners())
@@ -163,7 +173,7 @@ describe('the gate', () => {
     expect(result.code).toBe(0)
     expect(result.out).toContain('scanner: fork')
     expect(result.out).toContain('scanner: upstream')
-    expect(result.out).toContain('every scanner says safe')
+    expect(result.out).toContain('every blocking scanner says safe')
     // The build sits where the plugin carries it: `dashboard/app` beside a manifest.
     expect(result.out).toContain('layout: dashboard,plugin.yaml')
   })
@@ -191,7 +201,7 @@ describe('the gate', () => {
     const result = await run(makeDist(), roots)
 
     expect(result.code).toBe(1)
-    expect(result.out).toContain('scanner: upstream  ->  FAIL')
+    expect(result.out).toContain('scanner: upstream [informational]  ->  FAIL')
   })
 
   it('fails a scanner that prints no result', async () => {
@@ -250,6 +260,118 @@ describe('the gate', () => {
     expect(result.code).toBe(1)
     expect(result.out).toContain('could not fetch it')
   }, 60_000)
+})
+
+describe('blocking and informational scanners (W3, amended for HERM-192)', () => {
+  it('lets an upstream caution through, and says so', async () => {
+    const base = scratch()
+    const result = await run(makeDist(), {
+      fork: makeScanner(join(base, 'fork')),
+      upstream: scannerSaying(join(base, 'upstream'), 'caution')
+    })
+
+    expect(result.code).toBe(0)
+    expect(result.out).toContain('scanner: fork [blocking]')
+    expect(result.out).toMatch(/scanner: upstream \[informational\].*NOTED/u)
+    expect(result.out).toContain('verdict caution; findings: 1 high')
+    expect(result.out).toContain('every blocking scanner says safe; informational: upstream says caution (1 high)')
+  })
+
+  it.each(['dangerous', 'crash', 'no-such-verdict'])('fails on an upstream %s', async verdict => {
+    const base = scratch()
+    const result = await run(makeDist(), {
+      fork: makeScanner(join(base, 'fork')),
+      upstream: scannerSaying(join(base, 'upstream'), verdict)
+    })
+
+    expect(result.code).toBe(1)
+    expect(result.out).toContain('FAILED')
+  })
+
+  it('fails on a fork caution even when upstream says safe', async () => {
+    const base = scratch()
+    const result = await run(makeDist(), {
+      fork: scannerSaying(join(base, 'fork'), 'caution'),
+      upstream: makeScanner(join(base, 'upstream'))
+    })
+
+    expect(result.code).toBe(1)
+    expect(result.out).toMatch(/scanner: fork \[blocking\].*FAIL/u)
+  })
+
+  it('does not pass when only informational scanners ran', async () => {
+    const result = await run(makeDist(), { upstream: makeScanner(join(scratch(), 'upstream')) })
+
+    expect(result.code).toBe(1)
+    expect(result.out).toContain('no blocking scanner ran')
+    expect(result.out).toContain('scanner: fork [blocking]  ->  not run (--only-roots)')
+  })
+
+  it('uses a local checkout in place of one pin, keeps its gate, and still fetches the others', async () => {
+    const pins = join(scratch(), 'pins.json')
+
+    writeFileSync(
+      pins,
+      JSON.stringify({
+        scanners: {
+          fork: { repo: 'https://127.0.0.1:1/fork.git', commit: 'b'.repeat(40), gate: 'blocking' },
+          gone: { repo: 'https://127.0.0.1:1/none.git', commit: 'a'.repeat(40), gate: 'informational' }
+        }
+      })
+    )
+
+    const result = await run(
+      makeDist(),
+      { fork: makeScanner(join(scratch(), 'fork')) },
+      '--pins',
+      pins,
+      '--workdir',
+      join(scratch(), 'w')
+    )
+
+    expect(result.out).toContain(`in place of the pinned ${'b'.repeat(12)}`)
+    expect(result.out).toContain('scanner: fork [blocking]')
+    // An informational scanner that cannot be fetched cannot rule out `dangerous`: the gate fails.
+    expect(result.out).toContain('scanner: gone [informational]  ->  FAIL')
+    expect(result.out).toContain('could not fetch it')
+    expect(result.code).toBe(1)
+  }, 60_000)
+
+  it('names the gate of each scanner in the step summary', async () => {
+    const base = scratch()
+    const summary = join(base, 'summary.md')
+    const out: string[] = []
+    const code = await main(
+      [
+        makeDist(),
+        '--scanner-root',
+        `fork=${makeScanner(join(base, 'fork'))}`,
+        '--scanner-root',
+        `upstream=${scannerSaying(join(base, 'upstream'), 'caution')}`,
+        '--only-roots'
+      ],
+      {
+        log: line => out.push(line),
+        errorLog: () => {},
+        env: { GUARD_SCAN_PYTHON: process.env.GUARD_SCAN_PYTHON, GITHUB_STEP_SUMMARY: summary }
+      }
+    )
+
+    expect(code).toBe(0)
+    const text = readFileSync(summary, 'utf8')
+
+    expect(text).toContain('| fork | blocking | local | fake-v1 | safe | none |')
+    expect(text).toContain('| upstream | informational | local | fake-v1 | caution (noted) | 1 high |')
+  })
+
+  it('treats an informational verdict by what it can cost an install', () => {
+    const result = (verdict: string) => ({ verdict, allowed: verdict === 'safe' ? true : null, exit: 1 })
+
+    expect(passes(result('caution'), 'informational')).toBe(true)
+    expect(passes(result('safe'), 'informational')).toBe(true)
+    expect(passes(result('dangerous'), 'informational')).toBe(false)
+    expect(passes(result('caution'))).toBe(false)
+  })
 })
 
 describe('the tree being scanned', () => {
@@ -312,6 +434,7 @@ describe('the pins', () => {
     const pins = loadPins(PINS_DEFAULT)
 
     expect(pins.map(pin => pin.name)).toEqual(['fork', 'upstream'])
+    expect(pins.map(pin => pin.gate)).toEqual(['blocking', 'informational'])
     expect(pins.map(pin => pin.ref)).toEqual([
       '9cfa68a1aea8cedb521588a9c9ddef02676420d0',
       '5fe12f373ea65c1601db678c7841168d6394382b'
@@ -334,6 +457,16 @@ describe('the pins', () => {
 
     writeFileSync(pins, JSON.stringify({ scanners: { x: entry } }))
     expect(() => loadPins(pins)).toThrow()
+  })
+
+  it('are blocking unless they say otherwise, and know no third gate', () => {
+    const pins = join(scratch(), 'pins.json')
+    const entry = { repo: 'https://example.test/x.git', commit: 'a'.repeat(40) }
+
+    writeFileSync(pins, JSON.stringify({ scanners: { x: entry } }))
+    expect(loadPins(pins)[0]?.gate).toBe('blocking')
+    writeFileSync(pins, JSON.stringify({ scanners: { x: { ...entry, gate: 'advisory' } } }))
+    expect(() => loadPins(pins)).toThrow('gate')
   })
 
   it('must exist, parse and name a scanner', () => {
@@ -510,10 +643,10 @@ describe.skipIf(process.env.GUARD_SCAN_REAL !== '1')('the real scanners, at the 
     roots = Object.fromEntries(fetched.map(source => [source.name, source.root]))
   }, 180_000)
 
-  it('say safe about the build in native/web/dist', async () => {
+  it('say safe about the build in native/web/dist (the fork; upstream is informational)', async () => {
     const result = await run(DIST_DEFAULT, roots)
 
-    expect(result.out).toContain('every scanner says safe')
+    expect(result.out).toContain('every blocking scanner says safe')
     expect(result.code).toBe(0)
   }, 180_000)
 

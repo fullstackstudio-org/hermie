@@ -41,7 +41,7 @@ styles, `ws:`, no Trusted Types). The production build never does; test against 
 | `npm run client:test`               | the client's unit and component tests (vitest, jsdom, Testing Library; `scripts/run-vitest.mjs`, below)          |
 | `npm run client:check-bundle`       | the gate on `dist/` (below); `-- --commit <sha>` also requires `build.json` to name that commit                  |
 | `npm run client:check-reproducible` | builds twice from clean and compares every file; `-- --fresh-checkout` adds a build from `git archive HEAD`      |
-| `npm run client:guard-scan`         | the Hermes plugin scanner over `dist/`, fork and upstream at pinned commits (below)                              |
+| `npm run client:guard-scan`         | the Hermes plugin scanner over `dist/`: the fork blocks, upstream is informational (below)                       |
 | `npm run client:e2e`                | the black-box and accessibility suite on the built client, in Chromium, WebKit and Firefox ("The browser suite") |
 | `npm run client:e2e:perf`           | the transcript list's performance suite on the harness, in the same three engines ("The harness and the suite")  |
 
@@ -165,11 +165,31 @@ shows up here and not in a pull request of another repository after the import. 
   sees the paths it sees on an install, and calls `scan_plugin` and `should_allow_plugin_install` in a fresh
   `python -I -B` child per scanner (the two define the same package name; `guard-scan-run.py` refuses a `tools`
   that did not come from the checkout);
-- it passes only on a verdict of `safe` that the install would allow outright (`caution` fails), for both
-  scanners; there is no threshold of its own;
-- a gate that cannot run does not pass: a scanner that cannot be fetched or imported, one that prints no result,
-  a directory that is not a build (no `index.html` or `build.json`, almost no files) and a configuration with no
-  scanner all fail; a report line that could start a workflow command is made harmless before it reaches the log.
+- each pin has a `gate`. The fork is `blocking`: it passes only on a verdict of `safe` that the install would allow
+  outright (`caution` fails). Upstream is `informational`: it runs, its verdict and findings are printed and go into
+  the step summary, and only `dangerous` from it fails. There is no threshold of its own;
+- a gate that cannot run does not pass: a scanner of either kind that cannot be fetched or imported or that prints
+  no result (nobody can then say it would not have answered `dangerous`), a directory that is not a build (no
+  `index.html` or `build.json`, almost no files) and a run in which no blocking scanner ran all fail; a report line
+  that could start a workflow command is made harmless before it reaches the log.
+
+**Why the fork decides (plan W3, amended for HERM-192).** The gateway protocol's secure prompt is literally the
+server request `sudo` (`ServerRequestMap.sudo`), so a bundle that relays it carries `"sudo"` as an object key and in
+comparisons. Both scanners judged that line by line, and in minified JavaScript (lines kilobytes long, opening inside
+a template a previous line began) they read it as a HIGH `sudo_usage`, a `caution` verdict, whatever the code does
+with it. Spelling the word some other way to get past them is ruled out: the scanner exists to protect the people
+who install the plugin. The fork scanner, which is what the gateways run, lexes `.js` files whole instead and
+judges each `sudo` by its token: a key, a comparison or a plain property value that is handed to nothing, in a
+plugin whose JavaScript loads no process, eval or module sink, is a visible `low` finding. The same goes for a
+highlighter's `RegExp.prototype.exec("")` (`exec_string`). Anything that could run it stays HIGH. Upstream keeps
+the old reading, so its `caution` is expected; an upstream `caution` only means an install asks to be confirmed.
+
+To try a scanner change before its commit is pinned, point the pin at a checkout; the other pins are still fetched:
+
+```bash
+npm run client:guard-scan -- --scanner-root fork=../hermes-agent
+npm run client:guard-scan -- --scanner-root fork=../hermes-agent --only-roots   # that checkout alone, offline
+```
 
 The scanner needs Python 3.10 or newer (`GUARD_SCAN_PYTHON` names the interpreter; the runner's `python3` is
 3.12) and the network. `scripts/web/guard-scan.test.ts` tests the gate against a stand-in scanner (every verdict, a

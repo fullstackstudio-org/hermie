@@ -1036,10 +1036,12 @@ a required check that a path filter keeps from starting leaves a pull request th
 unmergeable.
 
 **The plugin scanner** (`npm run client:guard-scan`) runs the Hermes plugin scanner, fork and upstream at the commits
-pinned in `scripts/web/scanner-pins.json`, over `native/web/dist` laid into a synthetic plugin tree, and fails on
-anything but `safe`. It is the same scan the plugin repository runs before an import, run here first. It needs
-Python 3.10 or newer (`GUARD_SCAN_PYTHON`) and the network. When the plugin repository moves a scanner pin, move
-this one in the same change.
+pinned in `scripts/web/scanner-pins.json`, over `native/web/dist` laid into a synthetic plugin tree. The fork, which
+is what the gateways run at install and update, is the blocking gate and fails on anything but `safe`; upstream is
+informational: its verdict and findings are printed and summarised, and only `dangerous` from it fails (plan W3,
+amended for HERM-192; the details are in `native/web/README.md`). It is the same scan the plugin repository runs
+before an import, run here first. It needs Python 3.10 or newer (`GUARD_SCAN_PYTHON`) and the network. When the
+plugin repository moves a scanner pin, move this one in the same change.
 
 ## Extensions
 

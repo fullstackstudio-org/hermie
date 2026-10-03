@@ -1,13 +1,15 @@
 {
-  "comment": "Which copies of the Hermes plugin scanner scripts/web/guard-scan.mjs runs. Each is fetched at the commit named here, so a CI run is reproducible. The gateways run the fork; upstream is scanned as well because the fork tracks it. These are the same two commits the plugin repository pins in .github/scanner-pins.json: the plugin's own guard-scan job is the one that blocks an import, and this one has to say the same thing earlier. Move a pin here in a pull request of its own, at the same time as the plugin's.",
+  "comment": "Which copies of the Hermes plugin scanner scripts/web/guard-scan.mjs runs. Each is fetched at the commit named here, so a CI run is reproducible. The gate decides what a verdict means (plan W3, amended for HERM-192): the fork, which is what the gateways run at install and update, is blocking and passes only on safe; upstream, which the fork tracks, is informational: it runs, its verdict and findings are printed and summarised, and only dangerous from it fails. These are the same commits the plugin repository pins in .github/scanner-pins.json: the plugin's own guard-scan job is the one that blocks an import, and this one has to say the same thing earlier. Move a pin here in a pull request of its own, at the same time as the plugin's. To try a scanner change before it is pinned, pass --scanner-root fork=<checkout>.",
   "scanners": {
     "fork": {
       "repo": "https://github.com/fullstackstudio-org/hermes-agent.git",
-      "commit": "9cfa68a1aea8cedb521588a9c9ddef02676420d0"
+      "commit": "9cfa68a1aea8cedb521588a9c9ddef02676420d0",
+      "gate": "blocking"
     },
     "upstream": {
       "repo": "https://github.com/NousResearch/hermes-agent.git",
-      "commit": "5fe12f373ea65c1601db678c7841168d6394382b"
+      "commit": "5fe12f373ea65c1601db678c7841168d6394382b",
+      "gate": "informational"
     }
   }
 }
