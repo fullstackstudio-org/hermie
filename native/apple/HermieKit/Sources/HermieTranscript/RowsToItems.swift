@@ -455,6 +455,10 @@ private struct RowFacts {
   let rowID: Int?
   let ts: Double?
   let fallbackID: String
+  /// The turn a `role:user` row opened, kept on whatever the row becomes: a turn
+  /// the gateway started itself has no bubble of the owner's, and its placeholder
+  /// is settled by this id alone.
+  let turnID: String?
 }
 
 /// `rowsToItems`'s running state: the items so far, plus two indices that answer
@@ -477,7 +481,10 @@ private struct RowProjection {
 
   /// `push`'s `seq` / `version` / `origin`.
   func base(_ facts: RowFacts, id: String) -> ItemBase {
-    ItemBase(id: id, seq: items.count * seqStep, ts: facts.ts, rowID: facts.rowID, origin: origin, version: 0)
+    ItemBase(
+      id: id, seq: items.count * seqStep, ts: facts.ts, rowID: facts.rowID, origin: origin, version: 0,
+      turnID: facts.turnID
+    )
   }
 
   /// The index of the nearest still-unanswered dispatch to `handle` (any handle
@@ -509,7 +516,8 @@ private struct RowProjection {
       content: asText(rawContent),
       rowID: rowID,
       ts: asNumber(row["timestamp"]),
-      fallbackID: rowID.map { "r:\($0)" } ?? "\(role.isEmpty ? "x" : role):\(index)"
+      fallbackID: rowID.map { "r:\($0)" } ?? "\(role.isEmpty ? "x" : role):\(index)",
+      turnID: role == "user" ? turnIDOfMetadata(row["display_metadata"]) : nil
     )
 
     if role == "tool" {
@@ -531,9 +539,16 @@ private struct RowProjection {
 
   private mutating func projectTool(_ row: JSONObject, _ facts: RowFacts, index: Int) {
     let name = row["name"]?.stringValue ?? "tool"
-    // RPC history names the call `tool_call_id`, the stored row (REST) `tool_id`.
-    let toolID = nonEmptyString(row["tool_id"]) ?? nonEmptyString(row["tool_call_id"]) ?? "row-\(index)"
     let callKey = callKeyOf(row)
+    // RPC history names the call `tool_call_id`, the stored row (REST) `tool_id`.
+    // `tool_call_id` only counts on a row that carries the call identity: the
+    // provider's id (`call_0`) is reused turn after turn, so on an older gateway
+    // it must not name a card, or a later turn's `tool.complete` would overwrite
+    // the earlier turn's history card.
+    let toolID =
+      nonEmptyString(row["tool_id"])
+      ?? (callKey != nil ? nonEmptyString(row["tool_call_id"]) : nil)
+      ?? "row-\(index)"
     let args = coalesce(row["args"])
     let argsObject = args?.objectValue
     let context = nonEmptyString(row["context"])
@@ -842,7 +857,6 @@ private struct RowProjection {
     // row reaching here — an older gateway, a transport that dropped
     // `display_kind` — carries no author and must not be given one.
     let author = role == "user" ? authorFromMetadata(row["display_metadata"]) : nil
-    let turnID = role == "user" ? turnIDOfMetadata(row["display_metadata"]) : nil
 
     items.append(
       .user(
@@ -851,8 +865,7 @@ private struct RowProjection {
           text: stripped.text,
           attachments: stripped.attachments,
           displayKind: speechKind,
-          author: author,
-          turnID: turnID
+          author: author
         )
       )
     )

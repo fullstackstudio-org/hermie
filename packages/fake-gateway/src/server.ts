@@ -105,7 +105,15 @@ export interface ScenarioReply {
    * `npm run fake-gateway` exercises it.
    */
   toolGenerating?: boolean
-  tool?: { name: string; args?: Record<string, unknown>; summary?: string; result?: unknown }
+  /**
+   * `id` is the provider's own id for the call (`tool_call_id` on the stored row,
+   * `tool_id` on the frames). Absent, every call gets a fresh one. A real
+   * provider counts from `call_0` again in every turn, so a scenario that sets it
+   * is the only way to reproduce the ids a chat actually holds: the same id on two
+   * different calls, which only the call's identity (`call_row_id` +
+   * `call_index`) tells apart.
+   */
+  tool?: { id?: string; name: string; args?: Record<string, unknown>; summary?: string; result?: unknown }
   /**
    * How many deltas go out BEFORE the tool call, so the tool lands mid-reply.
    *
@@ -1717,6 +1725,44 @@ const DEFAULT_SCENARIO: Scenario = {
       ],
       deltas: ['Everything checks out ', 'and nothing was filed.'],
       text: 'Everything checks out and nothing was filed.'
+    },
+    {
+      // A provider that numbers its calls from `call_0` in every turn, as the real
+      // ones do: ask twice and two different calls carry one id, which only the
+      // call's row and position (`call_row_id` + `call_index`) tell apart. The
+      // second ask says different words, so no two bubbles read alike.
+      match: 'recount the entries again',
+      notes: [
+        {
+          text: 'Counting once more, this time the file itself.',
+          tool: {
+            id: 'call_0',
+            name: 'terminal',
+            args: { command: 'wc -l ledger.csv' },
+            summary: 'wc -l ledger.csv',
+            result: '12'
+          }
+        }
+      ],
+      deltas: ['Counted again: ', 'still twelve entries.'],
+      text: 'Counted again: still twelve entries.'
+    },
+    {
+      match: 'recount',
+      notes: [
+        {
+          text: 'Counting the entries in the ledger file.',
+          tool: {
+            id: 'call_0',
+            name: 'terminal',
+            args: { command: 'wc -l ledger.csv' },
+            summary: 'wc -l ledger.csv',
+            result: '12'
+          }
+        }
+      ],
+      deltas: ['Twelve ', 'entries.'],
+      text: 'Twelve entries.'
     },
     {
       // Thinking first, then words: the order a real turn arrives in, and the order
@@ -8734,8 +8780,8 @@ export async function startFakeGateway(options: FakeGatewayOptions = {}): Promis
     }
 
     for (const note of reply.notes ?? []) {
-      const toolId = `tool-${randomUUID().slice(0, 8)}`
       const tool = note.tool
+      const toolId = tool.id ?? `tool-${randomUUID().slice(0, 8)}`
       let call: { call_row_id: number; call_index: number } | undefined
 
       at += streamDelayMs
@@ -8819,7 +8865,7 @@ export async function startFakeGateway(options: FakeGatewayOptions = {}): Promis
     const toolCall: { row?: { id: number; text: string } } = {}
 
     if (reply.tool) {
-      const toolId = `tool-${randomUUID().slice(0, 8)}`
+      const toolId = reply.tool.id ?? `tool-${randomUUID().slice(0, 8)}`
       let call: { call_row_id: number; call_index: number } | undefined
 
       if (reply.toolGenerating) {
@@ -8894,12 +8940,15 @@ export async function startFakeGateway(options: FakeGatewayOptions = {}): Promis
       state.runningSessions.delete(sid)
 
       // A reply whose words all came BEFORE its one tool call has no text left for a row of its own:
-      // the row that holds the call is the row that holds the answer, and it is the one the
-      // completion names. Otherwise the turn would persist the same words twice, as two bubbles.
-      const closesOn = rowIdentity && toolCall.row?.text === text ? toolCall.row : undefined
-      const finalRowId = closesOn ? closesOn.id : session.messages.length + 1
+      // the row that holds the call is the row that holds the answer. The fork reports a final row
+      // only when it is one WITHOUT `tool_calls` (`_persisted_turn_receipt`), so the completion of
+      // such a turn names none: no `row_id`, no `final_assistant_row_id`. A client settles the
+      // reply onto the note the call sealed, as it does for a gateway that sends no ids, and the
+      // turn never persists the same words twice, as two bubbles.
+      const endsOnCall = rowIdentity && toolCall.row?.text === text
+      const finalRowId = endsOnCall ? undefined : session.messages.length + 1
 
-      if (!closesOn) {
+      if (finalRowId !== undefined) {
         session.messages.push({ role: 'assistant', text, row_id: finalRowId, timestamp: nowSeconds() })
       }
 
@@ -8909,14 +8958,14 @@ export async function startFakeGateway(options: FakeGatewayOptions = {}): Promis
         row_ids: tail.map(row => row.row_id).filter((id): id is number => typeof id === 'number'),
         complete: tail.filter(row => row.role === 'user').length === 1,
         user_row_id: userRowId,
-        final_assistant_row_id: finalRowId
+        ...(finalRowId === undefined ? {} : { final_assistant_row_id: finalRowId })
       }
 
       publish('message.complete', sid, {
         text,
         status: 'ok',
         usage: { input: 12, output: 34, total: 46 },
-        ...(rowIdentity ? { row_id: finalRowId, persisted_turn: receipt } : {})
+        ...(rowIdentity ? { ...(finalRowId === undefined ? {} : { row_id: finalRowId }), persisted_turn: receipt } : {})
       })
       // Cleared after the frame that ends the turn, so that frame is stamped too.
       if (turns.get(sid) === turn) {

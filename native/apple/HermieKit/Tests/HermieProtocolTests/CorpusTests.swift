@@ -59,7 +59,7 @@ struct CorpusTests {
     var problems: [String] = []
 
     let streams = try contractFiles().filter { $0.path.hasPrefix("transcript/streams/") }
-    #expect(streams.count == 8)
+    #expect(streams.count == 10)
 
     for stream in streams {
       let scenario = try JSONValue(parsing: Data(contentsOf: stream.url))

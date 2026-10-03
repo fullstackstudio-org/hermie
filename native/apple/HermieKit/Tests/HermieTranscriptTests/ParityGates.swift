@@ -29,10 +29,10 @@ import Testing
 
 @Suite struct ParityGates {
   /// The calls the golden corpus records, every one of them replayable.
-  static let corpusCalls = 4_475
+  static let corpusCalls = 4_544
 
   /// The stream scenarios the corpus records.
-  static let streamCount = 8
+  static let streamCount = 10
 
   /// Every operation the corpus records, from `golden-summary.json`.
   static let recordedOperations: [String] = ((try? GoldenCorpus.summary()) ?? [:]).keys.sorted()

@@ -14,6 +14,15 @@ public struct ItemBase: Sendable, Hashable {
   /// Bumped on every mutation; lets a UI memoize per item and per state cheaply.
   public var version: Int
   public var reactions: [ItemReaction]?
+  /// The gateway's id for the turn a `role:user` row started (`display_metadata.turn_id`
+  /// on the persisted row). The same id rides every live frame of that turn, so it
+  /// is how a turn's prompt is recognised without reading its words. It sits on the
+  /// item whatever that row became: the owner's bubble, but also the notice, cron
+  /// report or bot message a turn the gateway started on its own projects to,
+  /// because a placeholder that turn stood up is only ever settled by a row that
+  /// names it. Absent from a gateway that does not mint one, and from every item a
+  /// row did not start a turn with.
+  public var turnID: String?
 
   public init(
     id: String,
@@ -22,7 +31,8 @@ public struct ItemBase: Sendable, Hashable {
     rowID: Int? = nil,
     origin: ItemOrigin,
     version: Int,
-    reactions: [ItemReaction]? = nil
+    reactions: [ItemReaction]? = nil,
+    turnID: String? = nil
   ) {
     self.id = id
     self.seq = seq
@@ -31,6 +41,7 @@ public struct ItemBase: Sendable, Hashable {
     self.origin = origin
     self.version = version
     self.reactions = reactions
+    self.turnID = turnID
   }
 
   init(reading reader: inout ObjectReader) throws(TranscriptDecodingError) {
@@ -41,6 +52,7 @@ public struct ItemBase: Sendable, Hashable {
     origin = try reader.required("origin")
     version = try reader.required("version")
     reactions = reader.optional("reactions")
+    turnID = reader.optional("turnId")
   }
 
   func write(into writer: inout ObjectWriter) {
@@ -51,6 +63,7 @@ public struct ItemBase: Sendable, Hashable {
     writer.set("origin", origin)
     writer.set("version", version)
     writer.set("reactions", reactions)
+    writer.set("turnId", turnID)
   }
 }
 
@@ -124,6 +137,11 @@ extension TranscriptItemProtocol {
   public var reactions: [ItemReaction]? {
     get { base.reactions }
     set { base.reactions = newValue }
+  }
+
+  public var turnID: String? {
+    get { base.turnID }
+    set { base.turnID = newValue }
   }
 
   public var kind: TranscriptItemKind { Self.kind }

@@ -486,6 +486,7 @@
           },
           {
             "item": {
+              "durationS": 9,
               "id": "a:8000",
               "interim": false,
               "kind": "assistant",
@@ -648,6 +649,7 @@
           },
           {
             "item": {
+              "durationS": 9,
               "id": "a:8000",
               "interim": false,
               "kind": "assistant",
@@ -804,6 +806,7 @@
           },
           {
             "item": {
+              "durationS": 9,
               "id": "a:8000",
               "interim": false,
               "kind": "assistant",
@@ -994,6 +997,7 @@
           },
           {
             "item": {
+              "durationS": 9,
               "id": "a:8000",
               "interim": false,
               "kind": "assistant",
@@ -1194,6 +1198,7 @@
           },
           {
             "item": {
+              "durationS": 9,
               "id": "a:8000",
               "interim": false,
               "kind": "assistant",
@@ -1389,6 +1394,7 @@
           },
           {
             "item": {
+              "durationS": 9,
               "id": "a:8000",
               "interim": false,
               "kind": "assistant",
@@ -1554,6 +1560,7 @@
         "version": 8
       },
       "a:8000": {
+        "durationS": 9,
         "id": "a:8000",
         "interim": false,
         "kind": "assistant",
@@ -2172,7 +2179,6 @@
           "payload": {
             "persisted_turn": {
               "complete": true,
-              "final_assistant_row_id": 10,
               "row_ids": [
                 9,
                 10,
@@ -2180,7 +2186,6 @@
               ],
               "user_row_id": 9
             },
-            "row_id": 10,
             "status": "ok",
             "text": "Looking that up for you.",
             "usage": {
@@ -2970,7 +2975,6 @@
           "payload": {
             "persisted_turn": {
               "complete": true,
-              "final_assistant_row_id": 10,
               "row_ids": [
                 9,
                 10,
@@ -2978,7 +2982,6 @@
               ],
               "user_row_id": 9
             },
-            "row_id": 10,
             "status": "ok",
             "text": "Looking that up for you.",
             "usage": {

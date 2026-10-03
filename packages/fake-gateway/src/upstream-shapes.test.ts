@@ -20,7 +20,7 @@ import { createHash, randomBytes } from 'node:crypto'
 import { afterAll, afterEach, beforeAll, beforeEach, describe, expect, it } from 'vitest'
 import { WebSocket } from 'ws'
 
-import { PLUGIN_ADVERT, startFakeGateway, type FakeGateway } from './server'
+import { PLUGIN_ADVERT, type Scenario, startFakeGateway, type FakeGateway } from './server'
 
 const base64url = (value: Buffer): string =>
   value.toString('base64').replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, '')
@@ -3618,7 +3618,9 @@ describe('transcript row identity — test_transcript_row_identity_e2e.py', () =
 
   let rig: Rig | undefined
 
-  const open = async (options: { rowIdentity?: boolean; streamDelayMs?: number } = {}): Promise<Rig> => {
+  const open = async (
+    options: { rowIdentity?: boolean; streamDelayMs?: number; scenario?: Scenario } = {}
+  ): Promise<Rig> => {
     const live = await startFakeGateway({ port: 0, ...options })
     const socket = new WebSocket(live.wsUrl, ['hermes-gateway-v1'])
     const pending = new Map<number, (value: Record<string, unknown>) => void>()
@@ -3833,7 +3835,7 @@ describe('transcript row identity — test_transcript_row_identity_e2e.py', () =
     expect(tools.every(row => typeof row.call_row_id === 'number' && row.call_index === 0)).toBe(true)
   })
 
-  it('lets a tool reply whose words all came first persist them as the row that holds the call, and name no second row', async () => {
+  it('names no final row for a tool reply whose words all came first, as the fork reports none for a row that holds a call', async () => {
     const via = await open()
 
     await submit(via, 'whatever you like')
@@ -3853,12 +3855,83 @@ describe('transcript row identity — test_transcript_row_identity_e2e.py', () =
     expect(start && 'row_id' in start).toBe(false)
     expect([done?.call_row_id, done?.call_index, done?.row_id]).toEqual([call.row_id, 0, tool.row_id])
     expect([tool.call_row_id, tool.call_index, tool.tool_call_id]).toEqual([call.row_id, 0, start?.tool_id])
-    // Every word came before the call, so the row that holds the call is the answer.
+    // Every word came before the call, so the row that holds the call is the answer. The fork never names
+    // such a row as the turn's final one (it requires a row without `tool_calls`), so the completion names
+    // none, in the frame or in the receipt.
     expect(call.text).toBe(complete?.text)
-    expect(complete?.row_id).toBe(call.row_id)
+    expect(complete && 'row_id' in complete).toBe(false)
+    expect((complete?.persisted_turn as Row).user_row_id).toBe(user.row_id)
+    expect('final_assistant_row_id' in (complete?.persisted_turn as Row)).toBe(false)
     expect(new Set(of(frames, 'message.start', 'message.complete').map(event => event.turn_id))).toEqual(
       new Set([(user.display_metadata as { turn_id: string }).turn_id])
     )
+  })
+
+  it('closes a reply with words after its call on a final row of its own, never the row that holds the call', async () => {
+    const after = {
+      replies: [
+        {
+          match: 'afterwards',
+          deltas: ['Before. ', 'After.'],
+          text: 'Before. After.',
+          toolAfterDeltas: 1,
+          tool: { name: 'terminal', args: { command: 'true' }, summary: 'true', result: 'ok' }
+        }
+      ]
+    }
+    const via = await open({ scenario: after })
+
+    await submit(via, 'afterwards please')
+    await via.finish()
+
+    const rows = turnRows(await via.history())
+    const [, call, , final] = rows as [Row, Row, Row, Row]
+    const [complete] = payloads(
+      via.events.filter(event => event.session_id === via.runtime),
+      'message.complete'
+    )
+
+    expect(rows.map(row => row.role)).toEqual(['user', 'assistant', 'tool', 'assistant'])
+    expect(complete?.row_id).toBe(final.row_id)
+    expect(complete?.row_id).not.toBe(call.row_id)
+    expect((complete?.persisted_turn as Row).final_assistant_row_id).toBe(final.row_id)
+  })
+
+  it('names a call by its row and position when the provider reuses its id turn after turn', async () => {
+    const reuse = {
+      replies: [
+        {
+          match: 'recount',
+          deltas: ['Counting.'],
+          text: 'Counting.',
+          tool: { id: 'call_0', name: 'terminal', args: { command: 'wc -l' }, summary: 'wc -l', result: '12' }
+        }
+      ]
+    }
+    const via = await open({ scenario: reuse })
+
+    await submit(via, 'recount once')
+    await via.finish()
+    await submit(via, 'recount again')
+    await via.until(() => payloads(via.events, 'message.complete').length === 2)
+
+    const rows = await via.history()
+    const frames = via.events.filter(event => event.session_id === via.runtime)
+    const starts = payloads(frames, 'tool.start')
+    const tools = rows.filter(row => row.role === 'tool' && row.tool_call_id === 'call_0')
+    const completes = payloads(frames, 'message.complete')
+
+    expect(starts.map(start => start.tool_id)).toEqual(['call_0', 'call_0'])
+    expect(tools).toHaveLength(2)
+    // The same provider id twice, two different calls: only the call identity says which is which.
+    expect(new Set(starts.map(start => `${start.call_row_id}/${start.call_index}`)).size).toBe(2)
+    expect(new Set(tools.map(row => `${row.call_row_id}/${row.call_index}`)).size).toBe(2)
+    expect(tools.map(row => [row.call_row_id, row.call_index])).toEqual(
+      starts.map(start => [start.call_row_id, start.call_index])
+    )
+    // Neither turn names the row that holds its call as its final one.
+    expect(completes.map(complete => complete.row_id)).not.toContain(starts[0]?.call_row_id)
+    expect(completes.map(complete => complete.row_id)).not.toContain(starts[1]?.call_row_id)
   })
 
   it('says, mid-turn, which streamed text no sealed note shows yet, and which turn the prompt is', async () => {

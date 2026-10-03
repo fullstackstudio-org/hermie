@@ -2201,6 +2201,16 @@ export function applyResumeSnapshot(state: ChatState, snapshot: ResumeSnapshot, 
   // still asked the old way, because nothing else can answer it.
   const turnId = turnIdOfMetadata(inflight.display_metadata)
   const turnPrompt = turnId ? spokenPromptOfTurn(next, turnId) : undefined
+
+  // The pointers a cache restored (or a turn left behind) name the turn they were
+  // cut in. A resume that names another turn says that one is over, so no frame
+  // of it is coming to continue what they point at, and the next delta of the
+  // new turn must not land in the old turn's bubble.
+  if (turnId && next.turn.id !== undefined && next.turn.id !== turnId) {
+    next.turn.assistantId = undefined
+    next.turn.reasoningId = undefined
+  }
+
   const overlap = turnPrompt
     ? { promptShown: true, replyPersisted: settledReplyIs(next, assistantText) }
     : resumeOverlap(next, prompt, assistantText, turnStartedAt)

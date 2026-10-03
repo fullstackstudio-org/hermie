@@ -202,7 +202,10 @@ before changing the reducer.
   identities off a frame or a row) and `Reducer+Identity.swift` (settling a live item onto its row,
   finding a card by call key) mirror `identity.ts` and the identity branches of `reducer.ts`. The
   fields are optional on every type, and a frame without them takes the paths that existed before.
-  `contract/transcript/golden/row-identity.json` and the `interim-reopen*` streams record the
+  The one exception is `message.complete`, which falls back to the receipt's
+  `persisted_turn.final_assistant_row_id` (older fork gateways already send it) and so takes the
+  identity branch with none of the new fields on the wire (D5).
+  `contract/transcript/golden/row-identity.json` and the `interim-reopen*` and `reused-call-ids*` streams record the
   TypeScript behaviour, including a cache saved after every frame of a turn, so a change to the
   identity rules is a golden diff the Swift side has to follow, and `ParityGates.corpusCalls` and
   `streamCount` move with it.

@@ -68,11 +68,6 @@ public struct UserItem: TranscriptItemProtocol {
   public var unknownAuthor: Bool?
   /// Who the gateway says wrote this row. See `MessageAuthor` — absent, never guessed.
   public var author: MessageAuthor?
-  /// The gateway's id for the turn this prompt started (`display_metadata.turn_id`
-  /// on the persisted row). The same id rides every live frame of that turn, so it
-  /// is how a turn's prompt is recognised without reading its words. Absent from a
-  /// gateway that does not mint one.
-  public var turnID: String?
   public var extra: JSONObject
 
   public init(
@@ -93,8 +88,8 @@ public struct UserItem: TranscriptItemProtocol {
     self.displayKind = displayKind
     self.unknownAuthor = unknownAuthor
     self.author = author
-    self.turnID = turnID
     self.extra = extra
+    if let turnID { self.base.turnID = turnID }
   }
 
   public init(decoding json: JSONValue, at path: String) throws(TranscriptDecodingError) {
@@ -107,7 +102,6 @@ public struct UserItem: TranscriptItemProtocol {
     displayKind = reader.optional("displayKind")
     unknownAuthor = reader.optional("unknownAuthor")
     author = reader.optional("author")
-    turnID = reader.optional("turnId")
     extra = reader.residue
   }
 
@@ -119,7 +113,6 @@ public struct UserItem: TranscriptItemProtocol {
     writer.set("displayKind", displayKind)
     writer.set("unknownAuthor", unknownAuthor)
     writer.set("author", author)
-    writer.set("turnId", turnID)
     return writer.json
   }
 }

@@ -58,11 +58,12 @@ public func callKeyOf(_ record: JSONObject?) -> String? {
   return "\(JS.string(rowID))/\(JS.string(index))"
 }
 
-/// `rowIdOf`: `row_id` of a frame or a history row when it is a positive finite
-/// number. The model holds a row id as an integer (see `ItemBase`), so a
-/// fractional one reads as absent.
+/// `rowIdOf`: `row_id` of a frame or a history row when it is a positive integer
+/// a number can hold exactly (`Number.isSafeInteger`). A row id is `messages.id`:
+/// a fractional or enormous one is malformed, so it reads as absent, in both
+/// ports. The model holds a row id as an integer (see `ItemBase`).
 public func rowIDOf(_ record: JSONObject?) -> Int? {
-  guard let record, let rowID = positiveFinite(record["row_id"]) else { return nil }
+  guard let record, let rowID = positiveFinite(record["row_id"]), rowID <= 9_007_199_254_740_991 else { return nil }
   return Int(exactly: rowID)
 }
 

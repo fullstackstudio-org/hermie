@@ -199,7 +199,9 @@ class Client {
           item.kind === 'assistant' && item.text.trim()
             ? `assistant ${item.text}`
             : item.kind === 'tool'
-              ? `tool ${item.toolId}`
+              ? // A call is told apart by its identity where it has one: a provider reuses `call_0`, and
+                // two calls that share it are two cards.
+                `tool ${item.callKey ?? item.toolId}`
               : undefined
 
         if (key === undefined) {
@@ -720,13 +722,25 @@ interface Scenario {
  * roster nudge in the same tick it stops running), so which frames the replay
  * returns never depends on timing.
  */
-function reopenScenario(cut: { type: string; nth?: number }, options: { noDuplicates: boolean }): Scenario['run'] {
+function reopenScenario(
+  cut: { type: string; nth?: number },
+  options: { noDuplicates: boolean; earlier?: string[]; prompt?: string }
+): Scenario['run'] {
   return async (client, gateway) => {
     await client.hydrate()
     client.checkpoint('hydrated')
 
+    // Turns that finish with the app watching, before the one it goes away in.
+    for (const [turn, prompt] of (options.earlier ?? []).entries()) {
+      const before = client.count('message.complete')
+
+      await client.submit(prompt)
+      await client.settle(before)
+      client.checkpoint(`settled ${turn + 1}`)
+    }
+
     client.goAwayAfter(cut.type, cut.nth)
-    await client.submit('reconcile the ledger')
+    await client.submit(options.prompt ?? 'reconcile the ledger')
     await client.until(() => client.away, `the ${cut.type} the app goes away on`)
     client.checkpoint('away')
 
@@ -856,6 +870,34 @@ const SCENARIOS: Scenario[] = [
     profile: 'researcher',
     gateway: { rowIdentity: false },
     run: reopenScenario({ type: 'tool.start' }, { noDuplicates: false })
+  },
+  {
+    name: 'reused-call-ids',
+    description:
+      'Two turns on one chat whose tool call the provider names `call_0` both times. The first finishes with the ' +
+      'app watching; the app goes away right after the second turn’s note (`message.interim`), the turn finishes ' +
+      'without it, ' +
+      'and the chat is opened again from the cache: history brings both turns and session.events.since replays ' +
+      'the second one’s frames. The two cards share a provider id and differ only by their call identity, so each ' +
+      'must show once and keep its own result.',
+    profile: 'researcher',
+    run: reopenScenario(
+      { type: 'message.interim' },
+      { noDuplicates: true, earlier: ['recount the entries'], prompt: 'recount the entries again' }
+    )
+  },
+  {
+    name: 'reused-call-ids-legacy',
+    description:
+      'The same two turns against a gateway before row identity (`rowIdentity: false`): the frames carry no call ' +
+      'identity, so a card is named by the provider id alone. It records whatever the engine produces without ' +
+      'identity (the degrade), and asserts nothing about duplicates.',
+    profile: 'researcher',
+    gateway: { rowIdentity: false },
+    run: reopenScenario(
+      { type: 'tool.start' },
+      { noDuplicates: false, earlier: ['recount the entries'], prompt: 'recount the entries again' }
+    )
   },
   {
     name: 'reconnect-replay',

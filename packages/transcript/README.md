@@ -210,7 +210,9 @@ paired by the id even when its words disagree.
 | `session.resume` `inflight`                       | `assistant_unsealed`        | what the turn streamed after its last sealed note         |
 
 On items they become `rowId`, `callKey` (`"<call_row_id>/<call_index>"`, unique
-per session however a provider numbers its `tool_id`) and `UserItem.turnId`;
+per session however a provider numbers its `tool_id`) and `turnId`, which a `role:user`
+row leaves on whatever it projects to (the owner's bubble, but also the notice of a
+turn the gateway started itself, so that turn's placeholder is settled by its row);
 `ChatState.byCallKey` indexes the calls and `turn.id` holds the running turn's id.
 
 **The rule.** A frame naming a row already on screen settles the live bubble onto
@@ -236,6 +238,17 @@ replays nothing lets them go.
 that sends none (an older one, or one mid-upgrade) takes exactly the paths that
 existed before, which every other suite in this package pins; `row-identity.test.ts`
 replays the owner's reopen after every frame both ways.
+
+One exception, and it is the only one: `message.complete` falls back to
+`persisted_turn.final_assistant_row_id` when it has no `row_id` (decision D5), and
+older fork gateways already send that receipt. On such a gateway the completion
+takes the identity branch (it settles onto, or stamps, the final row) although none
+of the new fields is on the wire. Everything else a gateway without the fields sends
+is byte for byte what `main` does. Two smaller rules keep it that way: a history
+tool row is named by its provider's `tool_call_id` only when it also carries its
+call identity (a provider reuses `call_0` in every turn, so on an older gateway that
+id must not name a card), and a `row_id` that is not a positive integer reads as
+absent in both engines.
 
 ## Layout
 

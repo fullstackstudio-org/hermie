@@ -43,6 +43,18 @@ export interface ItemBase {
   /** Bumped on every mutation; lets a UI memoize per item and per state cheaply. */
   version: number
   reactions?: ItemReaction[]
+  /**
+   * The gateway's id for the turn a `role:user` row started
+   * (`display_metadata.turn_id` on the persisted row). The same id rides every
+   * live frame of that turn, so it is how a turn's prompt is recognised without
+   * reading its words. It sits on the item whatever that row became: the
+   * owner's bubble, but also the notice, cron report or bot message a turn the
+   * gateway started on its own (an auto-continue, a notification) projects to,
+   * because a placeholder that turn stood up is only ever settled by a row that
+   * names it. Absent from a gateway that does not mint one, and from every item
+   * a row did not start a turn with.
+   */
+  turnId?: string
 }
 
 /**
@@ -90,13 +102,6 @@ export interface UserItem extends ItemBase {
   unknownAuthor?: boolean
   /** Who the gateway says wrote this row. See `MessageAuthor` — absent, never guessed. */
   author?: MessageAuthor
-  /**
-   * The gateway's id for the turn this prompt started (`display_metadata.turn_id`
-   * on the persisted row). The same id rides every live frame of that turn, so it
-   * is how a turn's prompt is recognised without reading its words. Absent from a
-   * gateway that does not mint one.
-   */
-  turnId?: string
 }
 
 /** An inbound bot-to-bot message: a `role:user` row that is NOT the human speaking. */

@@ -462,6 +462,16 @@ public func applyResumeSnapshot(into next: inout ChatState, _ snapshot: SessionR
   // still asked the old way, because nothing else can answer it.
   let turnID = turnIDOfMetadata(inflight["display_metadata"])
   let turnPrompt = turnID.flatMap { R.spokenPromptOfTurn(next, $0) }
+
+  // The pointers a cache restored (or a turn left behind) name the turn they were
+  // cut in. A resume that names another turn says that one is over, so no frame
+  // of it is coming to continue what they point at, and the next delta of the
+  // new turn must not land in the old turn's bubble.
+  if let turnID, let held = next.turn.id, !JS.same(held, turnID) {
+    next.turn.assistantID = nil
+    next.turn.reasoningID = nil
+  }
+
   let overlap =
     turnPrompt != nil
     ? (promptShown: true, replyPersisted: R.settledReplyIs(next, assistantText))

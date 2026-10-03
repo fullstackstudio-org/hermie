@@ -160,6 +160,11 @@ public indirect enum TranscriptItem: TranscriptJSONCodable, Hashable {
     set { base.reactions = newValue }
   }
 
+  public var turnID: String? {
+    get { base.turnID }
+    set { base.turnID = newValue }
+  }
+
   /// `callKey` of a kind that can carry one (`tool`, `bot_dm_out`, `subagent_group`);
   /// `nil` for every other kind, and ignored when set on one.
   public var callKey: String? {

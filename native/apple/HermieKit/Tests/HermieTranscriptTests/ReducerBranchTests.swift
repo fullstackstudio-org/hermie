@@ -567,6 +567,18 @@ private let fixture = #"""
       ["prependHistory",[{"id":"r:40","kind":"user","origin":"history","rowId":40,"seq":0,"text":"older","version":0},{"id":"r:41","kind":"tool","origin":"history","rowId":41,"seq":1000,"toolId":"p","callKey":"49/0","name":"terminal","status":"complete","resultKnown":false,"version":0}]]
     ],
     "expected": {"botName":"bot","byApprovalId":{},"byCallKey":{"49/0":"r:50"},"byDelegationId":{},"byProcessId":{},"byRequestId":{},"byRowId":{"40":"r:40","50":"r:50"},"byToolId":{"p":"r:50"},"draft":"","hydration":"live","items":{"r:40":{"id":"r:40","kind":"user","origin":"history","rowId":40,"seq":0,"text":"older","version":0},"r:50":{"callKey":"49/0","id":"r:50","kind":"tool","name":"terminal","origin":"history","resultKnown":false,"rowId":50,"seq":1000,"status":"complete","toolId":"p","version":0}},"lastSeq":0,"order":["r:40","r:50"],"resolvedSessionId":"resolved","storedSessionId":"stored","subagents":{},"turn":{"active":false,"local":false,"nextSeq":2000},"unreadCount":0}
+  },
+  {
+    "name": "identity-fractional-row-id-reads-as-absent",
+    "covers": "a row_id that is not a positive integer (2.5, 7.5) names no row: the interim stamps none and the completion falls back to the receipt's final_assistant_row_id",
+    "steps": [
+      ["applyEvent",{"type":"message.start","turn_id":"T9","payload":{}},1790000001000],
+      ["applyEvent",{"type":"message.delta","turn_id":"T9","payload":{"text":"note"}},1790000002000],
+      ["applyEvent",{"type":"message.interim","turn_id":"T9","payload":{"text":"note","already_streamed":true,"row_id":2.5}},1790000003000],
+      ["applyEvent",{"type":"message.delta","turn_id":"T9","payload":{"text":"final"}},1790000004000],
+      ["applyEvent",{"type":"message.complete","turn_id":"T9","payload":{"text":"final","status":"complete","row_id":7.5,"persisted_turn":{"final_assistant_row_id":8}}},1790000005000]
+    ],
+    "expected": {"botName":"bot","byApprovalId":{},"byCallKey":{},"byDelegationId":{},"byProcessId":{},"byRequestId":{},"byRowId":{"8":"a:3000"},"byToolId":{},"compacting":false,"draft":"","hydration":"cold","items":{"a:2000":{"id":"a:2000","interim":true,"kind":"assistant","origin":"live","seq":2000,"streaming":false,"text":"note","ts":1790000002,"version":2},"a:3000":{"durationS":4,"id":"a:3000","interim":false,"kind":"assistant","origin":"live","rowId":8,"seq":3000,"status":"complete","streaming":false,"text":"final","ts":1790000004,"version":2},"f:1000":{"id":"f:1000","kind":"user","origin":"foreign","seq":1000,"text":"","ts":1790000001,"turnId":"T9","unknownAuthor":true,"version":0}},"lastSeq":0,"order":["f:1000","a:2000","a:3000"],"resolvedSessionId":"resolved","storedSessionId":"stored","subagents":{},"turn":{"active":false,"foreignReconcilePending":true,"interrupted":false,"local":false,"nextSeq":4000},"unreadCount":0}
   }
 ]
 """#

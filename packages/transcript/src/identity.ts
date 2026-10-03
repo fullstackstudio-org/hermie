@@ -54,9 +54,16 @@ export function callKeyOf(record: CallIdentity | null | undefined): string | und
   return rowId !== undefined && index !== undefined ? `${rowId}/${index}` : undefined
 }
 
-/** `row_id` of a frame or a history row when it is a positive finite number. */
+/**
+ * `row_id` of a frame or a history row when it is a positive integer a number
+ * can hold exactly. A row id is `messages.id`: a fractional or enormous one is
+ * malformed, so it reads as absent (and the Swift port, whose model holds an
+ * integer, says the same).
+ */
 export function rowIdOf(record: { row_id?: unknown } | null | undefined): number | undefined {
-  return record ? positiveFinite(record.row_id) : undefined
+  const rowId = record ? positiveFinite(record.row_id) : undefined
+
+  return rowId !== undefined && Number.isSafeInteger(rowId) ? rowId : undefined
 }
 
 /**

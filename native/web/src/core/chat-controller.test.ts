@@ -321,6 +321,121 @@ describe('opening a chat', () => {
     expect(restored).toEqual(['a:2000'])
     expect(chatOf().turn).toMatchObject({ id: undefined, assistantId: undefined, reasoningId: undefined })
   })
+
+  it('keeps a turn the cache restored when the resume says it still runs, though the replay is cold', async () => {
+    const cache = new MemoryChatCache()
+
+    await cache.write({
+      bot: 'researcher',
+      itemsJson: JSON.stringify({
+        format: 1,
+        items: [
+          { id: 'c1', kind: 'user', text: 'from the cache', seq: 0, version: 0, origin: 'history', rowId: 1 },
+          {
+            id: 'a:2000',
+            kind: 'assistant',
+            text: 'Hal',
+            streaming: true,
+            interim: false,
+            seq: 1000,
+            version: 1,
+            origin: 'live'
+          }
+        ],
+        subagents: [],
+        lastSeq: 3,
+        lastSeqSessionId: 'runtime-0',
+        epoch: 'e0',
+        turn: { id: 'turn-1', assistantId: 'a:2000' },
+        updatedAt: 1
+      }),
+      lastRowId: 1,
+      lastSeq: 3,
+      epoch: 'e0',
+      updatedAt: 1
+    })
+
+    const { gateway, controller } = setup({ cache })
+
+    // The gateway restarted (another epoch, so the replay is adopted, not applied),
+    // yet the resume names the very turn the cache was cut in and says it runs.
+    gateway.reply('session.resume', {
+      session_id: 'runtime-1',
+      stored_session_id: 'tip-researcher',
+      message_count: 2,
+      messages: [],
+      messages_omitted: true,
+      running: true,
+      inflight: {
+        user: 'from the cache',
+        display_metadata: { turn_id: 'turn-1' },
+        assistant: 'Hallo',
+        streaming: true
+      },
+      info: { desktop_contract: 7 },
+      open_requests: []
+    })
+
+    await controller.openChat(RESEARCHER)
+
+    // The replay was never applied, so the pointers are the live turn's own state: the
+    // next delta continues the bubble the cache was filling.
+    expect(chatOf().turn).toMatchObject({ id: 'turn-1', active: true, assistantId: 'a:2000' })
+    expect(chatOf().items['a:2000']).toMatchObject({ kind: 'assistant', text: 'Hallo' })
+  })
+
+  it('lets go of the restored pointers when the resume names another turn than the cached one', async () => {
+    const cache = new MemoryChatCache()
+
+    await cache.write({
+      bot: 'researcher',
+      itemsJson: JSON.stringify({
+        format: 1,
+        items: [
+          { id: 'c1', kind: 'user', text: 'from the cache', seq: 0, version: 0, origin: 'history', rowId: 1 },
+          {
+            id: 'a:2000',
+            kind: 'assistant',
+            text: 'Hal',
+            streaming: false,
+            interim: false,
+            seq: 1000,
+            version: 1,
+            origin: 'live'
+          }
+        ],
+        subagents: [],
+        lastSeq: 3,
+        lastSeqSessionId: 'runtime-0',
+        epoch: 'e0',
+        turn: { id: 'turn-1', assistantId: 'a:2000' },
+        updatedAt: 1
+      }),
+      lastRowId: 1,
+      lastSeq: 3,
+      epoch: 'e0',
+      updatedAt: 1
+    })
+
+    const { gateway, controller } = setup({ cache })
+
+    gateway.reply('session.resume', {
+      session_id: 'runtime-1',
+      stored_session_id: 'tip-researcher',
+      message_count: 2,
+      messages: [],
+      messages_omitted: true,
+      running: true,
+      inflight: { user: 'a later question', display_metadata: { turn_id: 'turn-2' }, assistant: '', streaming: false },
+      info: { desktop_contract: 7 },
+      open_requests: []
+    })
+
+    await controller.openChat(RESEARCHER)
+
+    expect(chatOf().turn).toMatchObject({ id: 'turn-2', active: true })
+    expect(chatOf().turn.assistantId).toBeUndefined()
+  })
 })
 
 describe('routing live traffic', () => {

@@ -433,12 +433,16 @@ export function rowsToItems(rows: readonly TranscriptRow[], shape: RowShape, opt
 
     if (role === 'tool') {
       const name = typeof row.name === 'string' ? row.name : 'tool'
+      const callKey = callKeyOf(row)
       // RPC history names the call `tool_call_id`, the stored row (REST) `tool_id`.
+      // `tool_call_id` only counts on a row that carries the call identity: the
+      // provider's id (`call_0`) is reused turn after turn, so on an older gateway
+      // it must not name a card, or a later turn's `tool.complete` would overwrite
+      // the earlier turn's history card.
       const toolId =
         (typeof row.tool_id === 'string' && row.tool_id) ||
-        (typeof row.tool_call_id === 'string' && row.tool_call_id) ||
+        (callKey && typeof row.tool_call_id === 'string' && row.tool_call_id) ||
         `row-${index}`
-      const callKey = callKeyOf(row)
       const args = row.args ?? undefined
       const context = typeof row.context === 'string' && row.context ? row.context : undefined
 
@@ -522,6 +526,12 @@ export function rowsToItems(rows: readonly TranscriptRow[], shape: RowShape, opt
       return
     }
 
+    // The turn this row opened, kept on whatever the row becomes below: a turn
+    // the gateway started itself has no bubble of the owner's, and its
+    // placeholder is settled by this id alone.
+    const turnId = role === 'user' ? turnIdOfMetadata(row.display_metadata) : undefined
+    const spoken = { ...base, ...(turnId ? { turnId } : {}) }
+
     /*
       Every notice this projection builds goes through here, and the body loses
       its `[System: …]` wrapper on the way.
@@ -544,7 +554,7 @@ export function rowsToItems(rows: readonly TranscriptRow[], shape: RowShape, opt
         noticeKind,
         title,
         ...(shown ? { body: shown } : {}),
-        ...base
+        ...spoken
       })
     }
 
@@ -679,7 +689,7 @@ export function rowsToItems(rows: readonly TranscriptRow[], shape: RowShape, opt
         ...(cron.nameRedacted ? { nameRedacted: true } : {}),
         body: cron.body,
         shape: cron.shape,
-        ...base
+        ...spoken
       })
 
       return
@@ -694,7 +704,7 @@ export function rowsToItems(rows: readonly TranscriptRow[], shape: RowShape, opt
         senderName: incoming.senderName,
         ...(incoming.senderHandle ? { senderHandle: incoming.senderHandle } : {}),
         text: incoming.body,
-        ...base
+        ...spoken
       })
 
       return
@@ -735,8 +745,6 @@ export function rowsToItems(rows: readonly TranscriptRow[], shape: RowShape, opt
     // `display_kind` — carries no author and must not be given one.
     const author = role === 'user' ? authorFromMetadata(row.display_metadata) : undefined
 
-    const turnId = role === 'user' ? turnIdOfMetadata(row.display_metadata) : undefined
-
     push<UserItem>({
       id: fallbackId,
       kind: 'user',
@@ -744,8 +752,7 @@ export function rowsToItems(rows: readonly TranscriptRow[], shape: RowShape, opt
       ...(stripped.attachments ? { attachments: stripped.attachments } : {}),
       ...(speechKind ? { displayKind: speechKind } : {}),
       ...(author ? { author } : {}),
-      ...(turnId ? { turnId } : {}),
-      ...base
+      ...spoken
     })
   })
 

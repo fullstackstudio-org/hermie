@@ -1173,8 +1173,11 @@ describe('a cache saved after every frame of a turn', () => {
       running.order.length
     ])
 
-    // Measured against the engine before any identity existed (f86766f1): the
-    // same counts, duplicates and all — a settled reopen holds 14 items.
+    // Measured against main before any identity existed (d8584f3b), by running this
+    // very scenario through that tree's engine: the same counts, duplicates and
+    // all — a settled reopen holds 14 items. A tool row without a call identity
+    // is named by its place in the history, as there, not by its provider's
+    // `call_0`, which every turn reuses.
     expect(counts).toEqual([
       [20, 15],
       [19, 14],
@@ -1186,10 +1189,235 @@ describe('a cache saved after every frame of a turn', () => {
       [18, 15],
       [17, 16],
       [16, 16],
+      [16, 16],
+      [16, 17],
       [15, 16],
-      [15, 16],
-      [15, 15],
       [14, 14]
     ])
+  })
+})
+
+// ── a gateway that does not send the identity, and reuses its call ids ───────
+
+describe('a tool row without a call identity', () => {
+  const history: TranscriptRow[] = [
+    { role: 'user', text: 'first', row_id: 1 },
+    { role: 'assistant', text: 'checking', row_id: 2 },
+    // The provider's own id, named `call_0` again in every later turn.
+    { role: 'tool', name: 'terminal', tool_call_id: 'call_0', context: 'ls old', timestamp: 1 },
+    { role: 'assistant', text: 'done', row_id: 4 }
+  ]
+
+  it('keeps the history card of an earlier turn when a later turn reuses its call id', () => {
+    const opened = reconcile(fresh(), rowsToItems(history, 'rpc'))
+    // A new turn whose `tool.start` was missed, so only its `tool.complete` arrives.
+    const state = apply(
+      opened,
+      [
+        { type: 'message.start', seq: 10 },
+        {
+          type: 'tool.complete',
+          seq: 11,
+          payload: { tool_id: 'call_0', name: 'terminal', result: 'NEW RESULT', summary: 'ls new' }
+        }
+      ],
+      LATER
+    )
+
+    const [old, added] = cards(state)
+
+    expect(cards(state)).toHaveLength(2)
+    // The earlier turn's card is the one history named, untouched.
+    expect(old).toMatchObject({ id: 't:row-2', context: 'ls old', resultKnown: false })
+    expect(added).toMatchObject({ id: 't:call_0', result: 'NEW RESULT' })
+  })
+
+  it('is named by its place in the history, as before the gateway sent identity', () => {
+    const [card] = cards(reconcile(fresh(), rowsToItems(history, 'rpc')))
+
+    expect(card).toMatchObject({ id: 't:row-2', toolId: 'row-2' })
+    expect(card?.callKey).toBeUndefined()
+  })
+
+  it('is named by the provider id once the row says which call it was', () => {
+    const rows = history.map(row => (row.role === 'tool' ? { ...row, call_row_id: 2, call_index: 0 } : row))
+    const [card] = cards(reconcile(fresh(), rowsToItems(rows, 'rpc')))
+
+    expect(card).toMatchObject({ id: 't:call_0', toolId: 'call_0', callKey: '2/0' })
+  })
+})
+
+// ── a turn the gateway started itself ────────────────────────────────────────
+//
+// An auto-continue or a notification starts a turn nobody typed. Its `message.start`
+// stands up a placeholder for the speaker, and the `role:user` row it persists
+// names the turn — but projects to a notice, not to a bubble of the owner's.
+
+describe('a placeholder for a turn the gateway started itself', () => {
+  const OWN = [
+    { role: 'user', row_id: 1, text: 'hi' },
+    { role: 'assistant', row_id: 2, text: 'hello' }
+  ] satisfies TranscriptRow[]
+  const continued = (turnId: string): TranscriptRow => ({
+    role: 'user',
+    row_id: 3,
+    text: 'continue',
+    display_kind: 'auto_continue',
+    display_metadata: { turn_id: turnId }
+  })
+  const turnOf = (turnId: string, from: number): TranscriptEvent[] => [
+    { type: 'message.start', seq: from, turn_id: turnId },
+    { type: 'message.delta', seq: from + 1, turn_id: turnId, payload: { text: 'resumed work' } },
+    {
+      type: 'message.complete',
+      seq: from + 2,
+      turn_id: turnId,
+      payload: { text: 'resumed work', status: 'complete' }
+    }
+  ]
+  const kinds = (state: ChatState) => list(state).map(item => item.kind)
+  const awayFrom = () => apply(reconcile(fresh(), rowsToItems(OWN, 'rpc')), turnOf('T1', 10))
+
+  it('is settled by the notice its turn row became, in its place', () => {
+    const away = awayFrom()
+
+    expect(users(away).filter(item => item.unknownAuthor)).toHaveLength(1)
+    expect(away.turn.foreignReconcilePending).toBe(true)
+
+    const state = reconcileTail(
+      away,
+      rowsToItems([continued('T1'), { role: 'assistant', row_id: 4, text: 'resumed work' }], 'rpc')
+    )
+
+    expect(kinds(state)).toEqual(['user', 'assistant', 'notice', 'assistant'])
+    expect(users(state).filter(item => item.unknownAuthor)).toHaveLength(0)
+    expect(list(state)[2]).toMatchObject({ kind: 'notice', noticeKind: 'auto_continue', rowId: 3, turnId: 'T1' })
+    expect(state.turn.foreignReconcilePending).toBeUndefined()
+  })
+
+  it('leaves the next sweep nothing to wait for, so the owner’s next prompt pairs plainly', () => {
+    const settled = reconcileTail(
+      awayFrom(),
+      rowsToItems([continued('T1'), { role: 'assistant', row_id: 4, text: 'resumed work' }], 'rpc')
+    )
+    const sent = confirmSubmit(beginLocalTurn(settled, 'next question', undefined, NOW), { status: 'streaming' }, NOW)
+    const answered = apply(sent, turnOf('T2', 20).slice(0, 1))
+    const state = reconcileTail(
+      apply(answered, [
+        { type: 'message.delta', seq: 21, turn_id: 'T2', payload: { text: 'answer' } },
+        { type: 'message.complete', seq: 22, turn_id: 'T2', payload: { text: 'answer', status: 'complete' } }
+      ]),
+      rowsToItems(
+        [
+          { role: 'user', row_id: 5, text: 'next question', display_metadata: { turn_id: 'T2' } },
+          { role: 'assistant', row_id: 6, text: 'answer' }
+        ],
+        'rpc'
+      )
+    )
+
+    expect(users(state).map(item => [item.text, item.rowId, item.unknownAuthor])).toEqual([
+      ['hi', 1, undefined],
+      ['next question', 5, undefined]
+    ])
+    expect(state.turn.foreignReconcilePending).toBeUndefined()
+  })
+
+  it('waits on while the tail only brings rows of another turn', () => {
+    const state = reconcileTail(
+      awayFrom(),
+      rowsToItems(
+        [
+          { ...continued('T0'), row_id: 3 },
+          { role: 'assistant', row_id: 4, text: 'older' }
+        ],
+        'rpc'
+      )
+    )
+
+    expect(users(state).filter(item => item.unknownAuthor)).toHaveLength(1)
+    expect(state.turn.foreignReconcilePending).toBe(true)
+  })
+
+  it('goes when the turn row only joins a dispatch and leaves nothing of its own to show', () => {
+    const dispatched = apply(reconcile(fresh(), rowsToItems(OWN, 'rpc')), [
+      { type: 'tool.start', seq: 5, payload: { tool_id: 'dm-1', name: 'message_agent', args: { target: 'sam' } } },
+      {
+        type: 'tool.complete',
+        seq: 6,
+        payload: {
+          tool_id: 'dm-1',
+          name: 'message_agent',
+          result: JSON.stringify({ status: 'queued', process_id: 'proc-1', to: 'sam' })
+        }
+      }
+    ])
+    const away = apply(dispatched, turnOf('T1', 10))
+    const report = [
+      '[IMPORTANT: Background process proc-1 completed with exit code 0.',
+      'Command: python bot_mode_dm.py --run-delivery d1',
+      'Output:',
+      'Sam says hi]'
+    ].join('\n')
+    const rows: TranscriptRow[] = [
+      {
+        role: 'user',
+        row_id: 6,
+        text: report,
+        display_kind: 'process_complete',
+        display_metadata: { turn_id: 'T1' }
+      }
+    ]
+
+    expect(users(away).filter(item => item.unknownAuthor)).toHaveLength(1)
+
+    const state = reconcileTail(away, rowsToItems(rows, 'rpc'))
+
+    expect(users(state).filter(item => item.unknownAuthor)).toHaveLength(0)
+    expect(list(state).find(item => item.kind === 'bot_dm_out')).toMatchObject({ reply: { text: 'Sam says hi' } })
+    expect(state.turn.foreignReconcilePending).toBeUndefined()
+  })
+})
+
+// ── a resume that names another turn than the cached one ─────────────────────
+
+describe('the turn pointers a cache restored, met by a resume', () => {
+  const midTurn = () =>
+    apply(reconcile(fresh(), rowsToItems([{ role: 'user', row_id: 1, text: 'hi' }], 'rpc')), [
+      { type: 'message.start', seq: 1, turn_id: 'T1' },
+      { type: 'message.delta', seq: 2, turn_id: 'T1', payload: { text: 'Hal' } }
+    ])
+  // Between two segments of the turn the gateway says it is not streaming, so
+  // nothing here re-points the turn at a bubble: what is left is what was restored.
+  const resumeOf = (turnId: string) =>
+    applyResumeSnapshot(
+      midTurn(),
+      {
+        running: true,
+        inflight: { user: 'hi', display_metadata: { turn_id: turnId }, assistant: 'Hal', streaming: false }
+      },
+      LATER
+    )
+
+  it('keeps them when the resume names the same turn', () => {
+    const state = resumeOf('T1')
+
+    expect(state.turn).toMatchObject({ id: 'T1', active: true })
+    expect(state.turn.assistantId).toBeDefined()
+    expect(state.turn.reasoningId).toBeUndefined()
+  })
+
+  it('drops them when the resume names another turn, which the cached one is over for', () => {
+    const before = midTurn()
+
+    expect(before.turn).toMatchObject({ id: 'T1' })
+    expect(before.turn.assistantId).toBeDefined()
+
+    const state = resumeOf('T2')
+
+    expect(state.turn).toMatchObject({ id: 'T2', active: true })
+    // The old turn's bubble is not where the next delta of the new turn goes.
+    expect(state.turn.assistantId).toBeUndefined()
+    expect(state.turn.reasoningId).toBeUndefined()
   })
 })

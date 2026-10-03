@@ -706,6 +706,38 @@ public func reconcileTail(_ state: ChatState, _ tailItems: [TranscriptItem]) -> 
       continue
     }
 
+    // A turn the gateway started itself (an auto-continue, a notification) has a
+    // `role:user` row that is no bubble of the owner's: it projects to a notice,
+    // a report or a bot message, and still names its turn. That row is what the
+    // turn's placeholder was standing in for, so it takes the placeholder's place
+    // — or, when it only joins a dispatch and leaves nothing to show, the
+    // placeholder goes. Either way the turn's row has arrived and nothing is
+    // left pending for it.
+    if fresh.asUser == nil, let noticeTurnID = JS.nonEmpty(fresh.turnID),
+      let noticeTurnMatchID = liveByTurnID[noticeTurnID], !noticeTurnMatchID.isEmpty,
+      !pairedLive.contains(noticeTurnMatchID),
+      let noticeTurnMatch = byID[noticeTurnMatchID], noticeTurnMatch.asUser?.unknownAuthor == true
+    {
+      pairedLive.insert(noticeTurnMatch.id)
+      filled.insert(noticeTurnMatch.id)
+
+      var standing: TranscriptItem? = fresh
+
+      if case .notice(let notice) = fresh, notice.noticeKind == .processComplete, !(notice.completions ?? []).isEmpty {
+        standing = joinDeliveries(state, &byID, notice).map { .notice($0) }
+      }
+
+      if var standing {
+        standing.id = noticeTurnMatch.id
+        standing.version = noticeTurnMatch.version &+ 1
+        byID[noticeTurnMatch.id] = standing
+      } else {
+        byID[noticeTurnMatch.id] = nil
+      }
+
+      continue
+    }
+
     // A call is one card: its key first, then the provider's tool id — and not
     // a tool id whose card names another call.
     if let callKey = callKeyOfItem(fresh), let callMatchID = JS.nonEmpty(state.byCallKey[callKey]),
