@@ -281,12 +281,27 @@ extension GatewayConnection {
     }
 
     let gained = accepted.contains(.passkey) && confirmAdvertised?.confirm?.contains(.passkey) != true
-    confirmAdvertised = accepted.isEmpty ? nil : params
+    confirmAdvertised = Self.advertisement(params, accepted: accepted)
     source.record(report)
 
     if gained {
       refetchOpenRequests()
     }
+  }
+
+  /// What the gateway holds for this socket after a call with `params`: the levels it accepted,
+  /// and the passkey block only with `passkey` among them; `nil` for none.
+  nonisolated static func advertisement(_ params: ClientCapabilitiesParams, accepted: [ConfirmLevel])
+    -> ClientCapabilitiesParams?
+  {
+    guard !accepted.isEmpty else {
+      return nil
+    }
+
+    var held = ClientCapabilitiesParams(serverRequests: true)
+    held.confirm = accepted
+    held.confirmPasskey = accepted.contains(.passkey) ? params.confirmPasskey : nil
+    return held
   }
 
   /// The gateway shows a request gated at `passkey` only to a connection that advertised the

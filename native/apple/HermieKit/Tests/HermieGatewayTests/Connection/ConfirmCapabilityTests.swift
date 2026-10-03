@@ -135,6 +135,19 @@ import Testing
     }
   }
 
+  @Test("a refresh repeats only the levels the gateway accepted, and the passkey block only with passkey")
+  func heldAdvertisement() throws {
+    let sent = try #require(ConfirmAdvertisement.secondCall(after: Self.first(), policy: Self.policy(plain: true)))
+    #expect(GatewayConnection.advertisement(sent, accepted: []) == nil)
+
+    let plainOnly = try #require(GatewayConnection.advertisement(sent, accepted: [.plain]))
+    #expect(plainOnly.confirm == [.plain])
+    #expect(plainOnly.confirmPasskey == nil)
+
+    let both = try #require(GatewayConnection.advertisement(sent, accepted: [.plain, .passkey]))
+    #expect(both.jsonValue == sent.jsonValue)
+  }
+
   @Test("once passkey is newly accepted on a socket, the open requests of the attached sessions are read again")
   func refetchOpenRequests() async throws {
     let source = ConfirmCapabilitySource(policy: Self.policy(hasCredential: false))
