@@ -115,6 +115,7 @@ import { type AccentName, asAccentName, readArrangement } from '../state/folders
 import { type ChatLayoutState, layoutStore } from '../state/layout'
 import { mutesOf } from '../state/mute'
 import { type TextSizeState, textSizeStore } from '../state/text-size'
+import { type UiMetaStatusState, uiMetaStatusStore } from '../state/ui-meta-status'
 import type { ChatGateway } from './link'
 
 /** How long the reader has to stop moving before their arrangement goes out. */
@@ -130,11 +131,18 @@ export const UI_META_DEBOUNCE_MS = 600
  */
 export const UI_META_PENDING_KEY = 'ui-meta.pending'
 
+/** The two fields of a bot section that are this page's to say. */
+export type BotField = 'archived' | 'colour'
+
 /** What `UI_META_PENDING_KEY` holds. */
 export interface StoredPending {
   v: 1
   bots: Record<string, JsonObject | null>
+  /** Which of the bot's own fields this page changed; a bot absent here changed both. */
+  fields?: Record<string, BotField[]>
 }
+
+const BOT_FIELDS: readonly BotField[] = ['archived', 'colour']
 
 /** A JSON object as it came off the wire. */
 export type JsonObject = Record<string, unknown>
@@ -459,6 +467,8 @@ export interface UiMetaBridgeOptions {
   debounceMs?: number
   /** Wall-clock SECONDS, for dating a choice. */
   now?: () => number
+  /** Told the mode after every reconcile and every send: what a screen says about syncing. */
+  onMode?: (mode: UiMetaMode) => void
   /** Re-sends of a conflicted section before it is left dirty (`UiMetaSync`). */
   retries?: number
 }
@@ -487,8 +497,23 @@ export class UiMetaBridge {
    * own fields (`apply`): the rest of the section is the gateway's.
    */
   private remoteBots: Record<string, JsonObject> = {}
+  /**
+   * Bots whose roster section this build cannot read (a newer build's `v`).
+   * A change this page holds for one is kept back, pending, rather than written
+   * over that section or sent as `null` (`UiMetaSyncOptions.holdBot`).
+   */
+  private unreadableBots = new Set<string>()
+  private readonly warnedHeld = new Set<string>()
+  /**
+   * Which of `archived` and `colour` this page changed, per pending bot. A field
+   * it did not change is the gateway's when the section goes out, so an archive
+   * made offline yesterday does not take back a colour picked today on another
+   * device. A pending bot with no entry here changed both.
+   */
+  private readonly dirtyFields = new Map<string, Set<BotField>>()
   /** How many gateway copies this bridge has taken; see `takes`. */
   private taken = 0
+  private readonly onMode: ((mode: UiMetaMode) => void) | undefined
   private reconciling: Promise<unknown> | null = null
   private again = false
   private pendingWrites: Promise<void> = Promise.resolve()
@@ -503,6 +528,7 @@ export class UiMetaBridge {
     this.storage = options.storage ?? null
     this.debounceMs = options.debounceMs ?? UI_META_DEBOUNCE_MS
     this.now = options.now ?? (() => Math.floor(Date.now() / 1000))
+    this.onMode = options.onMode
     const gateway = options.gateway
 
     this.sync = new UiMetaSync({
@@ -519,6 +545,7 @@ export class UiMetaBridge {
           return result
         }
       },
+      holdBot: name => this.holds(name),
       read: () => this.read(),
       apply: snapshot => this.apply(snapshot),
       ...(options.retries === undefined ? {} : { retries: options.retries })
@@ -632,6 +659,7 @@ export class UiMetaBridge {
     const result = await this.sync.reconcile()
 
     this.persistPending()
+    this.onMode?.(this.sync.mode)
 
     return result
   }
@@ -667,6 +695,7 @@ export class UiMetaBridge {
     this.timer = undefined
     await this.sync.flush()
     this.persistPending()
+    this.onMode?.(this.sync.mode)
   }
 
   /**
@@ -730,7 +759,23 @@ export class UiMetaBridge {
         sent as `null`.
       */
       for (const name of this.sync.pendingBots) {
-        const section = botSectionWith(this.remoteBots[name], ownedOf(bots[name]))
+        // Held (a section this build cannot read): not merged and not sent.
+        if (this.unreadableBots.has(name)) {
+          continue
+        }
+
+        const local = ownedOf(bots[name])
+        const remote = ownedOf(this.remoteBots[name])
+        const fields = this.dirtyFields.get(name)
+        const owned = fields
+          ? {
+              ...((fields.has('archived') ? local : remote).archived ? { archived: true as const } : {}),
+              ...((fields.has('colour') ? local : remote).colour
+                ? { colour: (fields.has('colour') ? local : remote).colour }
+                : {})
+            }
+          : local
+        const section = botSectionWith(this.remoteBots[name], owned)
 
         if (section) {
           bots[name] = section
@@ -749,6 +794,7 @@ export class UiMetaBridge {
   private noteRoster(result: unknown): void {
     const rows = isObject(result) && Array.isArray(result.profiles) ? result.profiles : []
     const remote: Record<string, JsonObject> = {}
+    const unreadable = new Set<string>()
 
     for (const row of rows) {
       const name = isObject(row) && typeof row.name === 'string' ? row.name : ''
@@ -756,15 +802,35 @@ export class UiMetaBridge {
 
       if (section) {
         remote[name] = copyOf(section) as unknown as JsonObject
+      } else if (name && isObject(row.ui_meta) && present(row.ui_meta[HERMIE_KEY])) {
+        unreadable.add(name)
       }
     }
 
     this.remoteBots = remote
+    this.unreadableBots = unreadable
+  }
+
+  /** Whether this bot's change must be kept back now; said once per bot in the console. */
+  private holds(name: string): boolean {
+    if (!this.unreadableBots.has(name)) {
+      return false
+    }
+
+    if (!this.warnedHeld.has(name)) {
+      this.warnedHeld.add(name)
+      console.warn(
+        `[hermie] the ui_meta section of ${name} was written by a newer build; this page's change to it is kept back.`
+      )
+    }
+
+    return true
   }
 
   /** Mark the stored pending bots again, from their stored raw sections. */
   private restorePending(stored: unknown): void {
     const bots = isObject(stored) && stored.v === 1 && isObject(stored.bots) ? stored.bots : {}
+    const fields = isObject(stored) && isObject(stored.fields) ? stored.fields : {}
 
     for (const [name, section] of Object.entries(bots)) {
       if (!name) {
@@ -777,6 +843,12 @@ export class UiMetaBridge {
         delete this.held.bots[name]
       } else {
         continue
+      }
+
+      const changed = fields[name]
+
+      if (Array.isArray(changed)) {
+        this.dirtyFields.set(name, new Set(BOT_FIELDS.filter(field => changed.includes(field))))
       }
 
       this.sync.markBot(name)
@@ -897,10 +969,22 @@ export class UiMetaBridge {
     // change too, and the one a diff over the new projection alone would miss.
     for (const name of new Set([...this.seenBots.keys(), ...Object.keys(bots)])) {
       const print = fingerprint(bots[name])
+      const seen = this.seenBots.get(name)
 
-      if (this.seenBots.get(name) === print) {
+      if (seen === print) {
         continue
       }
+
+      const before = (seen ? JSON.parse(seen) : null) as { archived?: true; colour?: string } | null
+      const changed = this.dirtyFields.get(name) ?? new Set<BotField>()
+
+      for (const field of BOT_FIELDS) {
+        if (before?.[field] !== bots[name]?.[field]) {
+          changed.add(field)
+        }
+      }
+
+      this.dirtyFields.set(name, changed)
 
       if (bots[name]) {
         this.seenBots.set(name, print)
@@ -943,17 +1027,32 @@ export class UiMetaBridge {
   private persistPending(): void {
     const storage = this.storage
 
+    const pending = this.sync.pendingBots
+    const bots: Record<string, JsonObject | null> = {}
+    const fields: Record<string, BotField[]> = {}
+
+    // A bot that reached the gateway forgets which of its fields changed.
+    for (const name of [...this.dirtyFields.keys()]) {
+      if (!pending.includes(name)) {
+        this.dirtyFields.delete(name)
+      }
+    }
+
+    for (const name of pending) {
+      bots[name] = this.held.bots[name] ? copyOf(this.held.bots[name]) : null
+
+      const changed = this.dirtyFields.get(name)
+
+      if (changed) {
+        fields[name] = [...changed]
+      }
+    }
+
+    const stored: StoredPending = { v: 1, bots, ...(Object.keys(fields).length ? { fields } : {}) }
+
     if (!storage) {
       return
     }
-
-    const bots: Record<string, JsonObject | null> = {}
-
-    for (const name of this.sync.pendingBots) {
-      bots[name] = this.held.bots[name] ? copyOf(this.held.bots[name]) : null
-    }
-
-    const stored: StoredPending = { v: 1, bots }
 
     this.pendingWrites = this.pendingWrites
       .then(() =>
@@ -986,6 +1085,8 @@ export interface ConnectUiMetaOptions {
   /** The page's own unless a test hands in its own. */
   stores?: Partial<UiMetaStores>
   visibility?: VisibilityWatcher
+  /** Where the mode is published for a screen (`state/ui-meta-status.ts`); the page's own unless told otherwise. */
+  status?: StoreApi<UiMetaStatusState>
   debounceMs?: number
   now?: () => number
 }
@@ -1031,6 +1132,7 @@ export function connectUiMeta(options: ConnectUiMetaOptions): UiMetaRuntime {
     stores,
     ready: () => hydrated,
     storage,
+    onMode: mode => (options.status ?? uiMetaStatusStore).getState().set(mode),
     ...(options.debounceMs === undefined ? {} : { debounceMs: options.debounceMs }),
     ...(options.now ? { now: options.now } : {})
   })
