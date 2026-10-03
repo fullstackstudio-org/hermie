@@ -36,7 +36,7 @@
     }
 
     /// The bubble's horizontal padding, both sides (`MessageBubble`).
-    private let padding: CGFloat = 26
+    private let padding: CGFloat = ChatSpacing.bubbleInsetH * 2
 
     @Test(arguments: [BubbleSide.outgoing, .incoming])
     func aOneLetterMessageIsASmallBubble(side: BubbleSide) {

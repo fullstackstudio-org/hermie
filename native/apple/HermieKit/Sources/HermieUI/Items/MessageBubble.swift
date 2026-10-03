@@ -146,8 +146,8 @@ struct MessageBubble<Content: View>: View {
 
   var body: some View {
     content
-      .padding(.horizontal, 13)
-      .padding(.vertical, 8)
+      .padding(.horizontal, ChatSpacing.bubbleInsetH)
+      .padding(.vertical, ChatSpacing.bubbleInsetV)
       .background(fill, in: BubbleShape(side: side, tail: tail))
       .contentShape(BubbleShape(side: side, tail: false))
   }

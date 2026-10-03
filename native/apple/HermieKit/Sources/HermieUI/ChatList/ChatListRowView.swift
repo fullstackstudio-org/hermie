@@ -26,11 +26,7 @@ struct ChatListRowView: View, Equatable {
     let stamp = ChatListFormat.stamp(row, presence: presence)
 
     HStack(alignment: large ? .top : .center, spacing: 12) {
-      ZStack(alignment: .bottomTrailing) {
-        BotAvatar(name: row.bot.displayName, avatar: row.avatar)
-        PresenceDot(state: presence.state)
-          .offset(x: 2, y: 2)
-      }
+      BotAvatar(name: row.bot.displayName, avatar: row.avatar, presence: presence.state)
 
       VStack(alignment: .leading, spacing: 2) {
         if large {

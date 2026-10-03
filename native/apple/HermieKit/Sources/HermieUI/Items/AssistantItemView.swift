@@ -41,7 +41,7 @@ struct AssistantItemView: View {
   }
 
   private var reply: some View {
-    VStack(alignment: .leading, spacing: 4) {
+    VStack(alignment: .leading, spacing: ChatSpacing.bubbleCaption) {
       if let ts = bubble?.timeHeader {
         BubbleTimeHeader(ts: ts)
       }
@@ -52,7 +52,7 @@ struct AssistantItemView: View {
         Text(meta)
           .font(.caption2)
           .foregroundStyle(.secondary)
-          .padding(.horizontal, 6)
+          .padding(.horizontal, ChatSpacing.captionInset)
       }
     }
     .frame(maxWidth: .infinity, alignment: .leading)

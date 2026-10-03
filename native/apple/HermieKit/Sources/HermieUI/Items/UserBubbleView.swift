@@ -54,7 +54,7 @@ struct UserBubbleView: View {
   }
 
   private var ownBubble: some View {
-    VStack(alignment: .trailing, spacing: 3) {
+    VStack(alignment: .trailing, spacing: ChatSpacing.bubbleCaption) {
       BubbleColumn(side: .outgoing, width: .text) {
         MessageBubble(side: .outgoing, tail: closesGroup, fill: BubblePalette.outgoing) {
           words(foreground: BubblePalette.outgoingText)
@@ -86,12 +86,12 @@ struct UserBubbleView: View {
         }
       }
       .accessibilityHidden(true)
-      VStack(alignment: .leading, spacing: 3) {
+      VStack(alignment: .leading, spacing: ChatSpacing.bubbleCaption) {
         if opensAuthorRun {
           Text(name)
             .font(.caption.weight(.semibold))
             .foregroundStyle(tint)
-            .padding(.leading, 13)
+            .padding(.leading, ChatSpacing.bubbleInsetH)
         }
         BubbleColumn(side: .incoming, width: .text) {
           MessageBubble(side: .incoming, tail: closesGroup, fill: BubblePalette.incoming) {
@@ -145,7 +145,7 @@ struct UserBubbleView: View {
       }
       .font(.caption2)
       .foregroundStyle(.secondary)
-      .padding(.horizontal, 6)
+      .padding(.horizontal, ChatSpacing.captionInset)
     }
   }
 

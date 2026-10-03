@@ -34,9 +34,9 @@ public struct TranscriptItemView: View, Equatable {
       #endif
   }
 
-  /// The room above a row that opens a group, on top of the list's spacing between rows (2 points
+  /// The room above a row that opens a group, on top of the list's spacing between rows (`ChatSpacing.withinGroup`
   /// in the chat, so the bubbles of one group sit as close as Messages draws them).
-  nonisolated static let groupGap: CGFloat = 8
+  nonisolated static let groupGap: CGFloat = ChatSpacing.groupGap
 
   /// The room above a row: none inside a group of bubbles, none for a row that draws nothing (a
   /// hidden placeholder, quiet's stand-in for the running tool), the group gap otherwise.
