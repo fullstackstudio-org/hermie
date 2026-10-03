@@ -1493,4 +1493,10 @@ pins a model behind the expensive-model guard (`confirm_required`), and refuses 
 
 A debug build launched with `-HermieUITest YES` also takes `-HermieOpenChat <bot>` and
 `-HermieOpenBotSettings <bot>`, which open that chat or its settings page once the live gateway is
-known.
+known. With `-HermieSelectModel <model id>` the settings page also opens the model picker and
+chooses that model after two seconds, as a tap on its row does (the way the Mac's picker crash was
+reproduced without driving the UI).
+
+The Mac's model picker keeps its search field on the page (`ModelSearchPlacement`), not in the
+window's toolbar: a `.searchable` on a page pushed beside the sidebar's own search makes AppKit raise
+while it inserts the second search item into the one `NSToolbar`, and that ended the app in 0.2.6.

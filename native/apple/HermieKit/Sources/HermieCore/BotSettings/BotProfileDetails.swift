@@ -150,9 +150,12 @@ public struct BotModelChoice: Sendable, Hashable, Identifiable {
   }
 
   /// The flattened inventory, in the gateway's order. A provider without a slug or a model without
-  /// a name is skipped.
+  /// a name is skipped, and so is a model a provider lists twice (a list's rows are told apart by
+  /// `id`, and two with one id would be one row to it).
   public static func choices(_ options: ModelOptionsResult) -> [BotModelChoice] {
-    (options.providers ?? []).flatMap { provider -> [BotModelChoice] in
+    var seen = Set<String>()
+
+    return (options.providers ?? []).flatMap { provider -> [BotModelChoice] in
       guard let slug = provider.slug, !slug.isEmpty else {
         return []
       }
@@ -161,5 +164,6 @@ public struct BotModelChoice: Sendable, Hashable, Identifiable {
         BotModelChoice(provider: slug, providerName: provider.name, model: $0)
       }
     }
+    .filter { seen.insert($0.id).inserted }
   }
 }

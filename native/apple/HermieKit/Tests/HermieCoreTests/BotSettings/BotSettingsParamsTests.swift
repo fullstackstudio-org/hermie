@@ -88,6 +88,19 @@ struct BotSettingsParamsTests {
     #expect(choices[2].providerName == "b")
   }
 
+  @Test func aModelListedTwiceByOneProviderIsOneChoice() throws {
+    // A long inventory (openrouter's) repeats ids; a list tells its rows apart by `id`.
+    let options = try #require(
+      ModelOptionsResult(jsonValue: [
+        "providers": [
+          ["slug": "a", "models": ["one", "two", "one"]],
+          ["slug": "b", "models": ["one", "one"]]
+        ]
+      ]))
+
+    #expect(BotModelChoice.choices(options).map(\.id) == ["a/one", "a/two", "b/one"])
+  }
+
   // MARK: Writing
 
   private let toolsets = [
