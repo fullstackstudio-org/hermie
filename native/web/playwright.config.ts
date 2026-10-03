@@ -6,10 +6,12 @@ import { defineConfig, devices } from '@playwright/test'
 /**
  * End-to-end and performance specs of the web client (`e2e/`).
  *
- * For now there is one suite, `e2e/perf`: the transcript list measured on the
- * development-only harness page, built with `vite build --mode harness` and
- * served by `vite preview --mode harness` on 127.0.0.1:4180. Production React,
- * minified, under the client's own document policy.
+ * Two suites. `e2e/perf`: the transcript list measured on the development-only
+ * harness page, built with `vite build --mode harness` and served by `vite preview
+ * --mode harness` on 127.0.0.1:4180 (production React, minified, under the
+ * client's own document policy). `e2e/chat`: the chat screen on the built client
+ * (the spec builds it, and starts the fake gateway that serves it, itself; the
+ * harness server below is not used by it).
  *
  * CI runs Chromium only (`--project=chromium`); WebKit and Firefox run locally
  * (`npm run client:e2e`, all three). One worker: measurements must not share the

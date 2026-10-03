@@ -124,10 +124,16 @@ jobs:
       # stream scenarios drawn as their checkpoints say. Chromium only here;
       # WebKit and Firefox run locally (`npm run client:e2e`). It runs on the
       # development-only harness build (`dist-harness/`), never on `dist/`.
+      #
+      # The same command runs the chat screen's suite (plan W-10b): the built
+      # client against the fake gateway with 2,000 rows of history, opened at
+      # the bottom without moving, pinned while a reply streams, "jump to
+      # latest" when scrolled up, and axe with contrast in light and dark. It
+      # builds the client itself, into a temporary directory.
       - name: Install Chromium for Playwright
         run: npx playwright install --with-deps chromium
 
-      - name: Transcript list performance (Chromium)
+      - name: Transcript list performance and chat screen (Chromium)
         run: npm run e2e:chromium --workspace @hermie/web-client
 
       - uses: actions/upload-artifact@v4
