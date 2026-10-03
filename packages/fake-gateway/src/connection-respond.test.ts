@@ -2,8 +2,11 @@
  * `connection.respond`, checked as strictly as the gateway's contract
  * (`tui_gateway/contracts/connectors_operation.py`, every params model
  * `extra="forbid"`): exactly `{profile, owner, op_id, result}`, the owner a
- * `ConnectorOwner`, a row `{name, status: approved|skipped, detail?, env?}`. An
- * accepted answer moves the open operation and is announced as `connection.update`.
+ * `ConnectorOwner`, a row `{name, status: approved|skipped, detail?, env?}`. A
+ * bad envelope is `4000 INVALID_PARAMS`, a bad answer `4002 INVALID_ANSWER`, an
+ * operation the owner does not hold `4004 UNKNOWN_OPERATION`, as
+ * `methods_connectors.py` answers them. An accepted answer moves the open
+ * operation and is announced as `connection.update`.
  */
 import { describe, expect, it } from 'vitest'
 import { WebSocket } from 'ws'
@@ -15,7 +18,7 @@ interface Frame {
   method?: string
   params?: { type?: string; payload?: Record<string, unknown> }
   result?: Record<string, unknown>
-  error?: { code?: number; message?: string }
+  error?: { code?: number; message?: string; data?: { reason?: string } }
 }
 
 function client(socket: WebSocket) {
@@ -120,20 +123,47 @@ describe('connection.respond', () => {
     await withGateway(async (gateway, socket) => {
       const { call } = client(socket)
 
+      // The envelope (`ConnectionOperationParams`): `4000 INVALID_PARAMS`.
       for (const params of [
         answer({ session_id: 'rt-1' }),
         answer({ owner: { type: 'session', session_id: 'rt-1', extra: 1 } }),
-        answer({ result: { targets: [], settled_by: 'continue', note: 'x' } }),
-        answer({ result: { targets: [{ name: 'github', status: 'skipped', state: 'skipped' }] } }),
-        answer({ result: { targets: [{ name: 'github', status: 'connected' }] } }),
         answer({ owner: { type: 'session' } }),
+        answer({ owner: { type: 'account', session_id: 'rt-1' } }),
         answer({ owner: undefined }),
-        answer({ op_id: '' }),
-        answer({ result: { settled_by: 'later' } })
+        answer({ op_id: undefined }),
+        answer({ profile: 3 })
       ]) {
         const frame = await call('connection.respond', JSON.parse(JSON.stringify(params)) as Record<string, unknown>)
 
         expect(frame.error?.code, JSON.stringify(params)).toBe(4000)
+        expect(frame.error?.data?.reason).toBe('INVALID_PARAMS')
+      }
+
+      // The answer (`ConnectionAnswer`), read after the envelope passed: `4002 INVALID_ANSWER`.
+      for (const params of [
+        answer({ result: { targets: [], settled_by: 'continue', note: 'x' } }),
+        answer({ result: { targets: [{ name: 'github', status: 'skipped', state: 'skipped' }] } }),
+        answer({ result: { targets: [{ name: 'github', status: 'connected' }] } }),
+        answer({ result: { settled_by: 'later' } }),
+        answer({ result: undefined })
+      ]) {
+        const frame = await call('connection.respond', JSON.parse(JSON.stringify(params)) as Record<string, unknown>)
+
+        expect(frame.error?.code, JSON.stringify(params)).toBe(4002)
+        expect(frame.error?.data?.reason).toBe('INVALID_ANSWER')
+      }
+
+      // A well-formed answer for an operation this owner does not hold: `4004 UNKNOWN_OPERATION`.
+      for (const params of [
+        answer({ op_id: '' }),
+        answer({ op_id: 'op-nope' }),
+        answer({ owner: { type: 'session', session_id: 'rt-other' } }),
+        answer({ owner: { type: 'account' } })
+      ]) {
+        const frame = await call('connection.respond', params)
+
+        expect(frame.error?.code, JSON.stringify(params)).toBe(4004)
+        expect(frame.error?.data?.reason).toBe('UNKNOWN_OPERATION')
       }
 
       expect(gateway.state.connectionResponses).toEqual([])
@@ -181,6 +211,42 @@ describe('connection.respond', () => {
 
       // A settled operation takes no more answers.
       expect((await call('connection.respond', answer())).error?.code).toBe(4004)
+    })
+  })
+
+  /**
+   * `POST /__fake/connection-request`: the card, for a client in another process
+   * (the native integration tests). It opens an operation on the profile's chat,
+   * announces it as `connection.request` naming the runtime session, and the
+   * answers it takes come back from `GET /__fake/state`.
+   */
+  it('opens a card from the control surface, and reads the accepted answers back', async () => {
+    await withGateway(async (gateway, socket) => {
+      const { call, events } = client(socket)
+      const opened = (await (
+        await fetch(`${gateway.url}/__fake/connection-request`, {
+          method: 'POST',
+          headers: { 'content-type': 'application/json' },
+          body: JSON.stringify({ profile: 'researcher', op_id: 'op-9', targets: ['github', 'linear'] })
+        })
+      ).json()) as { op_id: string; session_id: string }
+
+      expect(opened.op_id).toBe('op-9')
+      await expect.poll(() => events.filter(event => event?.type === 'connection.request').length).toBe(1)
+      expect(events.find(event => event?.type === 'connection.request')?.payload).toMatchObject({
+        op_id: 'op-9',
+        targets: [{ name: 'github' }, { name: 'linear' }]
+      })
+
+      const sent = answer({ op_id: 'op-9', owner: { type: 'session', session_id: opened.session_id } })
+
+      expect((await call('connection.respond', sent)).result).toEqual({ status: 'ok', settled: false })
+
+      const state = (await (await fetch(`${gateway.url}/__fake/state`)).json()) as {
+        connectionResponses: unknown[]
+      }
+
+      expect(state.connectionResponses).toEqual([sent])
     })
   })
 })

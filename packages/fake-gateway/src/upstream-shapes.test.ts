@@ -2965,16 +2965,19 @@ describe('skills.manage over the socket — methods_tools.py::_SKILLS_ACTIONS', 
  * `connectors.operation.wake` and `connection.respond`. Three things are worth
  * pinning and none of them is visible from a screen:
  *
- *  - every call is SESSION-scoped, and the id is only a lookup hint — authority
- *    is transport attachment, so there is no gateway-wide connector list;
+ *  - every call names its scope with `owner` (`ConnectorOwner`): a chat's
+ *    runtime session, whose id is only a lookup hint — authority is transport
+ *    attachment — or the account. Never a top-level `session_id`, which the
+ *    contract refuses although the generated TS contract still spells it so;
  *  - `available: false` is a SUCCESS that means the bot's `manage_connections`
  *    toolset is off, not an empty account;
  *  - the authorisation link rides at `targets[].connect_url` and nowhere else,
  *    surviving `connector_ui_payload` only because that key is exempted by name.
  *
  * `connectors.operation.wake` is pinned although the VENDORED contract has no
- * such method: upstream registers it and generates it, this repo's copy of the
- * contract predates that, and without a fixture nothing here would notice.
+ * such method: the gateway registers it (`ConnectionOperationParams`, like
+ * `status`), this repo's copy of the contract predates that, and without a
+ * fixture nothing here would notice.
  */
 /**
  * The Kanban plugin's router — `plugins/kanban/dashboard/plugin_api.py`.
@@ -3164,18 +3167,109 @@ describe('/api/plugins/kanban — plugin_api.py', () => {
 
 describe('connectors.* over the socket — methods_connectors.py', () => {
   const harness = socketHarness()
+  /** `SessionOwner` (`tui_gateway/contracts/common.py`): how every call names the chat it is about. */
+  const OWNER = { type: 'session', session_id: 'sess-1' }
 
   beforeAll(harness.open)
   afterAll(harness.close)
 
-  it('refuses a call that names no session, because the id is how it is scoped', async () => {
+  const errorOf = (frame: Record<string, unknown>) => frame.error as { code?: number; data?: { reason?: string } }
+
+  it('refuses a call that names no owner, because the owner is how it is scoped', async () => {
     const frame = await harness.call('connectors.list')
 
-    expect((frame.error as Record<string, unknown>)?.code).toBe(4000)
+    expect(errorOf(frame)?.code).toBe(4000)
+    expect(errorOf(frame)?.data?.reason).toBe('INVALID_PARAMS')
+  })
+
+  /**
+   * HERM-188. Every params model is `extra="forbid"`, and the generated TS
+   * contract still spells the session as a top-level `session_id`: the gateway
+   * refuses that spelling, so the fake does too, on every connector method.
+   */
+  it.each([
+    ['connectors.list', {}],
+    ['connectors.connect', { connectors: ['gmail'] }],
+    ['connectors.operation.status', { op_id: 'op-1' }],
+    ['connectors.operation.wake', { op_id: 'op-1' }]
+  ])('%s refuses the generated contract’s top-level session_id and any unknown key', async (method, rest) => {
+    for (const params of [
+      { session_id: 'sess-1', ...rest },
+      { owner: OWNER, session_id: 'sess-1', ...rest },
+      { owner: OWNER, surprise: true, ...rest },
+      { owner: { ...OWNER, extra: 1 }, ...rest },
+      { owner: { type: 'session' }, ...rest },
+      { owner: { type: 'session', session_id: '' }, ...rest },
+      { owner: { type: 'account', session_id: 'sess-1' }, ...rest },
+      { owner: { type: 'team' }, ...rest },
+      { owner: OWNER, profile: 7, ...rest }
+    ]) {
+      const frame = await harness.call(method, params)
+
+      expect(errorOf(frame)?.code, `${method} ${JSON.stringify(params)}`).toBe(4000)
+      expect(errorOf(frame)?.data?.reason).toBe('INVALID_PARAMS')
+    }
+  })
+
+  it('takes exactly the contract’s keys, profile included', async () => {
+    const listed = await harness.call('connectors.list', { profile: 'researcher', owner: OWNER })
+    const opened = await harness.call('connectors.connect', {
+      profile: null,
+      owner: OWNER,
+      connectors: ['gmail'],
+      reconnect: false
+    })
+    const opId = (opened.result as Record<string, unknown>).op_id
+    const status = await harness.call('connectors.operation.status', {
+      profile: 'researcher',
+      owner: OWNER,
+      op_id: opId
+    })
+    const wake = await harness.call('connectors.operation.wake', { profile: 'researcher', owner: OWNER, op_id: opId })
+
+    expect([listed.error, opened.error, status.error, wake.error]).toEqual([undefined, undefined, undefined, undefined])
+  })
+
+  it('refuses a reconnect that is not a boolean', async () => {
+    const frame = await harness.call('connectors.connect', { owner: OWNER, connectors: ['gmail'], reconnect: 'yes' })
+
+    expect(errorOf(frame)?.code).toBe(4000)
+  })
+
+  /** `live.get(session_key, op_id)`: an operation answers only to the owner that holds it. */
+  it('keeps one owner’s operation out of another’s reach', async () => {
+    const opened = (await harness.call('connectors.connect', { owner: OWNER, connectors: ['gmail'] })).result as Record<
+      string,
+      unknown
+    >
+    const elsewhere = await harness.call('connectors.operation.status', {
+      owner: { type: 'session', session_id: 'sess-other' },
+      op_id: opened.op_id
+    })
+    const account = await harness.call('connectors.operation.wake', { owner: { type: 'account' }, op_id: opened.op_id })
+
+    expect(errorOf(elsewhere)?.code).toBe(4004)
+    expect(errorOf(elsewhere)?.data?.reason).toBe('UNKNOWN_OPERATION')
+    expect(errorOf(account)?.code).toBe(4004)
+  })
+
+  it('opens an account-wide operation for the account owner, which a session cannot reach', async () => {
+    const listed = await harness.call('connectors.list', { owner: { type: 'account' } })
+    const opened = (await harness.call('connectors.connect', { owner: { type: 'account' }, connectors: ['notion'] }))
+      .result as Record<string, unknown>
+    const status = await harness.call('connectors.operation.status', {
+      owner: { type: 'account' },
+      op_id: opened.op_id
+    })
+    const fromChat = await harness.call('connectors.operation.status', { owner: OWNER, op_id: opened.op_id })
+
+    expect((listed.result as Record<string, unknown>).available).toBe(true)
+    expect(status.error).toBeUndefined()
+    expect(errorOf(fromChat)?.code).toBe(4004)
   })
 
   it('lists the catalogue with the vendor key set, statusReason included', async () => {
-    const result = (await harness.call('connectors.list', { session_id: 'sess-1' })).result as Record<string, unknown>
+    const result = (await harness.call('connectors.list', { owner: OWNER })).result as Record<string, unknown>
     const rows = result.connectors as Record<string, unknown>[]
 
     expect(result.available).toBe(true)
@@ -3192,14 +3286,14 @@ describe('connectors.* over the socket — methods_connectors.py', () => {
     harness.state().connectorsUnavailable = true
 
     try {
-      const frame = await harness.call('connectors.list', { session_id: 'sess-1' })
+      const frame = await harness.call('connectors.list', { owner: OWNER })
 
       expect(frame.error).toBeUndefined()
       expect(frame.result).toEqual({ available: false, connectors: [] })
 
       // And the connect half refuses OUTRIGHT in the same state, which is the
       // asymmetry: `list` degrades, `connect` raises `CONNECTORS_UNAVAILABLE`.
-      const refused = await harness.call('connectors.connect', { session_id: 'sess-1', connectors: ['gmail'] })
+      const refused = await harness.call('connectors.connect', { owner: OWNER, connectors: ['gmail'] })
 
       expect((refused.error as Record<string, unknown>)?.code).toBe(4031)
     } finally {
@@ -3208,7 +3302,7 @@ describe('connectors.* over the socket — methods_connectors.py', () => {
   })
 
   it('mints an operation whose link lives on the target, not at the top level', async () => {
-    const result = (await harness.call('connectors.connect', { session_id: 'sess-1', connectors: ['notion'] }))
+    const result = (await harness.call('connectors.connect', { owner: OWNER, connectors: ['notion'] }))
       .result as Record<string, unknown>
 
     expect(typeof result.op_id).toBe('string')
@@ -3223,14 +3317,14 @@ describe('connectors.* over the socket — methods_connectors.py', () => {
   })
 
   it('refuses a slug the catalogue does not carry', async () => {
-    const frame = await harness.call('connectors.connect', { session_id: 'sess-1', connectors: ['nope'] })
+    const frame = await harness.call('connectors.connect', { owner: OWNER, connectors: ['nope'] })
 
     expect((frame.error as Record<string, unknown>)?.code).toBe(4004)
   })
 
   it('refuses an empty or malformed slug list', async () => {
-    const empty = await harness.call('connectors.connect', { session_id: 'sess-1', connectors: [] })
-    const bad = await harness.call('connectors.connect', { session_id: 'sess-1', connectors: ['Not A Slug'] })
+    const empty = await harness.call('connectors.connect', { owner: OWNER, connectors: [] })
+    const bad = await harness.call('connectors.connect', { owner: OWNER, connectors: ['Not A Slug'] })
 
     expect((empty.error as Record<string, unknown>)?.code).toBe(4000)
     expect((bad.error as Record<string, unknown>)?.code).toBe(4000)
@@ -3242,11 +3336,13 @@ describe('connectors.* over the socket — methods_connectors.py', () => {
    * without it a client cannot tell a newer snapshot from an older one.
    */
   it('stamps every snapshot with a seq that only ever goes up', async () => {
-    const opened = (await harness.call('connectors.connect', { session_id: 'sess-1', connectors: ['gmail'] }))
+    const opened = (await harness.call('connectors.connect', { owner: OWNER, connectors: ['gmail'] })).result as Record<
+      string,
+      unknown
+    >
+    const first = (await harness.call('connectors.operation.status', { owner: OWNER, op_id: opened.op_id }))
       .result as Record<string, unknown>
-    const first = (await harness.call('connectors.operation.status', { session_id: 'sess-1', op_id: opened.op_id }))
-      .result as Record<string, unknown>
-    const second = (await harness.call('connectors.operation.status', { session_id: 'sess-1', op_id: opened.op_id }))
+    const second = (await harness.call('connectors.operation.status', { owner: OWNER, op_id: opened.op_id }))
       .result as Record<string, unknown>
 
     expect(Number(first.seq)).toBeGreaterThan(Number(opened.seq))
@@ -3254,12 +3350,14 @@ describe('connectors.* over the socket — methods_connectors.py', () => {
   })
 
   it('settles the operation once every target has stopped moving', async () => {
-    const opened = (await harness.call('connectors.connect', { session_id: 'sess-1', connectors: ['gmail'] }))
-      .result as Record<string, unknown>
+    const opened = (await harness.call('connectors.connect', { owner: OWNER, connectors: ['gmail'] })).result as Record<
+      string,
+      unknown
+    >
 
-    await harness.call('connectors.operation.status', { session_id: 'sess-1', op_id: opened.op_id })
+    await harness.call('connectors.operation.status', { owner: OWNER, op_id: opened.op_id })
 
-    const settled = (await harness.call('connectors.operation.status', { session_id: 'sess-1', op_id: opened.op_id }))
+    const settled = (await harness.call('connectors.operation.status', { owner: OWNER, op_id: opened.op_id }))
       .result as Record<string, unknown>
 
     expect(settled.settled).toBe(true)
@@ -3268,12 +3366,14 @@ describe('connectors.* over the socket — methods_connectors.py', () => {
   })
 
   it('reports a refused grant as a settled FAILED target, never as an error frame', async () => {
-    const opened = (await harness.call('connectors.connect', { session_id: 'sess-1', connectors: ['slack'] }))
-      .result as Record<string, unknown>
+    const opened = (await harness.call('connectors.connect', { owner: OWNER, connectors: ['slack'] })).result as Record<
+      string,
+      unknown
+    >
 
-    await harness.call('connectors.operation.wake', { session_id: 'sess-1', op_id: opened.op_id })
+    await harness.call('connectors.operation.wake', { owner: OWNER, op_id: opened.op_id })
 
-    const frame = await harness.call('connectors.operation.status', { session_id: 'sess-1', op_id: opened.op_id })
+    const frame = await harness.call('connectors.operation.status', { owner: OWNER, op_id: opened.op_id })
     const target = ((frame.result as Record<string, unknown>).targets as Record<string, unknown>[])[0]
 
     expect(frame.error).toBeUndefined()
@@ -3283,14 +3383,14 @@ describe('connectors.* over the socket — methods_connectors.py', () => {
 
   /** The method the vendored contract has not grown. It only shortens the wait. */
   it('wakes an operation so the account is read now rather than on the next tick', async () => {
-    const opened = (await harness.call('connectors.connect', { session_id: 'sess-1', connectors: ['notion'] }))
+    const opened = (await harness.call('connectors.connect', { owner: OWNER, connectors: ['notion'] }))
       .result as Record<string, unknown>
 
-    expect(
-      (await harness.call('connectors.operation.wake', { session_id: 'sess-1', op_id: opened.op_id })).result
-    ).toEqual({ status: 'ok' })
+    expect((await harness.call('connectors.operation.wake', { owner: OWNER, op_id: opened.op_id })).result).toEqual({
+      status: 'ok'
+    })
 
-    const woken = (await harness.call('connectors.operation.status', { session_id: 'sess-1', op_id: opened.op_id }))
+    const woken = (await harness.call('connectors.operation.status', { owner: OWNER, op_id: opened.op_id }))
       .result as Record<string, unknown>
 
     // One read, where an unwoken operation needs two.
@@ -3298,7 +3398,7 @@ describe('connectors.* over the socket — methods_connectors.py', () => {
   })
 
   it('refuses an op_id it does not hold', async () => {
-    const frame = await harness.call('connectors.operation.status', { session_id: 'sess-1', op_id: 'op-nope' })
+    const frame = await harness.call('connectors.operation.status', { owner: OWNER, op_id: 'op-nope' })
 
     expect((frame.error as Record<string, unknown>)?.code).toBe(4004)
   })

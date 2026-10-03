@@ -626,6 +626,9 @@ export interface FakeConnector {
   description?: string
 }
 
+/** `ConnectorOwner` (`tui_gateway/contracts/common.py`): whose connectors a call is about. */
+export type FakeConnectorOwner = { type: 'session'; session_id: string } | { type: 'account' }
+
 /**
  * A live connection operation, the way `tools/connectors/live.py` holds one.
  *
@@ -640,7 +643,14 @@ export interface FakeConnector {
  */
 export interface FakeConnectorOp {
   opId: string
+  /**
+   * The session that owns it (a stored or runtime id), or `''` for an
+   * account-wide operation. A call reaches the operation only through the
+   * owner that holds it (`live.get(session_key, op_id)` upstream).
+   */
   sessionId: string
+  /** Opened under `owner: {type: 'account'}` (the settings screen), not a chat's. */
+  account?: boolean
   seq: number
   deadlineAt: number
   settled: boolean
@@ -3324,41 +3334,105 @@ export async function startFakeGateway(options: FakeGatewayOptions = {}): Promis
   }
 
   /**
-   * The `session_id` every connector call is addressed by.
+   * The params every connector method takes, checked the way the gateway's
+   * contract checks them (`tui_gateway/contracts/common.py`, `connectors.py`,
+   * `connectors_operation.py`): a `ProfileParams` model, `extra="forbid"`, with
+   * `owner: ConnectorOwner` — `{type: 'session', session_id}` (a non-empty
+   * RUNTIME id) or `{type: 'account'}` — and whatever `keys` the method adds.
+   * Anything else, a top-level `session_id` included, is `4000 INVALID_PARAMS`
+   * before anything is looked at (`methods_connectors._parse_params`).
    *
-   * Upstream refuses a missing or blank one with `4000 INVALID_PARAMS` before
-   * it looks at anything else, because the id is only a lookup hint — authority
-   * is whether the calling transport is ATTACHED to that session. A fake that
-   * accepted a call without one would let a client ship a gateway-wide
-   * connector page that cannot exist.
+   * The generated `@hermes/shared` contract still spells these params with a
+   * top-level `session_id` and no `owner`; the gateway refuses that spelling, so
+   * this fake does too (HERM-188).
    */
-  function requireConnectorSession(params: Record<string, unknown>): string {
-    const sessionId = params.session_id
+  function checkConnectorParams(params: Record<string, unknown>, keys: readonly string[]): FakeConnectorOwner {
+    const invalid = (message: string): RpcFault => new RpcFault(4000, message, { reason: 'INVALID_PARAMS' })
+    const record = (value: unknown): value is Record<string, unknown> =>
+      typeof value === 'object' && value !== null && !Array.isArray(value)
+    const onlyKeys = (value: Record<string, unknown>, allowed: readonly string[], where: string): void => {
+      const extra = Object.keys(value).filter(key => !allowed.includes(key))
 
-    if (typeof sessionId !== 'string' || !sessionId.trim()) {
-      throw new RpcFault(4000, 'session_id required')
+      if (extra.length) {
+        throw invalid(`${where}: extra inputs are not permitted: ${extra.join(', ')}`)
+      }
     }
 
-    return sessionId
+    onlyKeys(params, ['profile', 'owner', ...keys], 'params')
+
+    if (params.profile !== undefined && params.profile !== null && typeof params.profile !== 'string') {
+      throw invalid('profile must be a string')
+    }
+
+    const owner = params.owner
+
+    if (!record(owner)) {
+      throw invalid('owner required')
+    }
+
+    if (owner.type === 'session') {
+      onlyKeys(owner, ['type', 'session_id'], 'owner')
+
+      if (typeof owner.session_id !== 'string' || !owner.session_id) {
+        throw invalid('owner.session_id required')
+      }
+
+      return { type: 'session', session_id: owner.session_id }
+    }
+
+    if (owner.type === 'account') {
+      onlyKeys(owner, ['type'], 'owner')
+
+      return { type: 'account' }
+    }
+
+    throw invalid('owner.type must be session or account')
   }
 
-  /** The open operation `op_id` names, or upstream's `4004 UNKNOWN_OPERATION`. */
-  function requireConnectorOp(params: Record<string, unknown>): FakeConnectorOp {
-    requireConnectorSession(params)
+  /**
+   * The open operation `op_id` names under this `owner`, or upstream's
+   * `4004 UNKNOWN_OPERATION`: a session reaches only its own operations
+   * (`live.get(session_key, op_id)`), the account only the account's
+   * (`live.get_by_op_id`). A session is matched by either of its ids, so an
+   * operation a test seeded under the stored id answers to the runtime id the
+   * client names.
+   */
+  function ownedConnectorOp(owner: FakeConnectorOwner, opId: string): FakeConnectorOp {
+    const op = state.connectorOps.get(opId)
+    const owns = (candidate: FakeConnectorOp): boolean => {
+      if (owner.type === 'account') {
+        return candidate.account === true
+      }
 
-    const opId = params.op_id
+      if (candidate.account) {
+        return false
+      }
 
-    if (typeof opId !== 'string' || !opId) {
-      throw new RpcFault(4000, 'op_id required')
+      if (candidate.sessionId === owner.session_id) {
+        return true
+      }
+
+      const held = resolveSession(candidate.sessionId)
+
+      return held !== undefined && held === resolveSession(owner.session_id)
     }
 
-    const op = state.connectorOps.get(opId)
-
-    if (!op) {
-      throw new RpcFault(4004, 'no open operation with that op_id in this session')
+    if (!op || op.settled || !owns(op)) {
+      throw new RpcFault(4004, 'No open operation with that op_id.', { reason: 'UNKNOWN_OPERATION' })
     }
 
     return op
+  }
+
+  /** `ConnectionOperationParams`: the owner and an `op_id` (a string; an empty one names nothing). */
+  function checkConnectorOpParams(params: Record<string, unknown>): { owner: FakeConnectorOwner; opId: string } {
+    const owner = checkConnectorParams(params, ['op_id'])
+
+    if (typeof params.op_id !== 'string') {
+      throw new RpcFault(4000, 'op_id required', { reason: 'INVALID_PARAMS' })
+    }
+
+    return { owner, opId: params.op_id }
   }
 
   /**
@@ -3389,61 +3463,40 @@ export async function startFakeGateway(options: FakeGatewayOptions = {}): Promis
   }
 
   /**
-   * `connection.respond`'s params, checked the way the gateway's contract checks them
-   * (`tui_gateway/contracts/connectors_operation.py`): `ConnectionRespondParams` on
-   * `ConnectionOperationParams` on `ProfileParams`, every one of them
-   * `extra="forbid"`, so a key the contract does not list is a `4000` and nothing
-   * is applied. The owner is the `ConnectorOwner` union; a row's `status` is
-   * `approved` or `skipped`.
+   * `connection.respond`'s params, checked in the gateway's order
+   * (`methods_connectors.py::connection.respond`, contracts in
+   * `tui_gateway/contracts/connectors_operation.py`):
+   *
+   *  1. everything but `result` is `ConnectionOperationParams` on `ProfileParams`
+   *     (`checkConnectorOpParams`), `extra="forbid"`: `4000 INVALID_PARAMS`;
+   *  2. `result` is a `ConnectionAnswer` — `{targets?, settled_by?}`, a row
+   *     `{name, status: approved|skipped, detail?, env?}`, again `extra="forbid"`:
+   *     anything else there is `4002 INVALID_ANSWER`.
+   *
+   * Nothing is applied when either fails.
    */
   function checkConnectionRespond(params: Record<string, unknown>): {
-    owner: { type: string; session_id?: string }
+    owner: FakeConnectorOwner
     opId: string
     targets: { name: string; status: string }[]
     settledBy: string | null
   } {
     const isRecord = (value: unknown): value is Record<string, unknown> =>
       typeof value === 'object' && value !== null && !Array.isArray(value)
+    const invalidAnswer = (message: string): RpcFault => new RpcFault(4002, message, { reason: 'INVALID_ANSWER' })
     const onlyKeys = (value: Record<string, unknown>, allowed: readonly string[], where: string): void => {
       const extra = Object.keys(value).filter(key => !allowed.includes(key))
 
       if (extra.length) {
-        throw new RpcFault(4000, `${where}: extra inputs are not permitted: ${extra.join(', ')}`)
+        throw invalidAnswer(`${where}: extra inputs are not permitted: ${extra.join(', ')}`)
       }
     }
 
-    onlyKeys(params, ['profile', 'owner', 'op_id', 'result'], 'params')
-
-    if (params.profile !== undefined && params.profile !== null && typeof params.profile !== 'string') {
-      throw new RpcFault(4000, 'profile must be a string')
-    }
-
-    const owner = params.owner
-
-    if (!isRecord(owner)) {
-      throw new RpcFault(4000, 'owner required')
-    }
-
-    if (owner.type === 'session') {
-      onlyKeys(owner, ['type', 'session_id'], 'owner')
-
-      if (typeof owner.session_id !== 'string' || !owner.session_id) {
-        throw new RpcFault(4000, 'owner.session_id required')
-      }
-    } else if (owner.type === 'account') {
-      onlyKeys(owner, ['type'], 'owner')
-    } else {
-      throw new RpcFault(4000, 'owner.type must be session or account')
-    }
-
-    if (typeof params.op_id !== 'string' || !params.op_id) {
-      throw new RpcFault(4000, 'op_id required')
-    }
-
-    const result = params.result
+    const { result, ...envelope } = params
+    const { owner, opId } = checkConnectorOpParams(envelope)
 
     if (!isRecord(result)) {
-      throw new RpcFault(4000, 'result required')
+      throw invalidAnswer('result required')
     }
 
     onlyKeys(result, ['targets', 'settled_by'], 'result')
@@ -3451,32 +3504,32 @@ export async function startFakeGateway(options: FakeGatewayOptions = {}): Promis
     const settledBy = result.settled_by ?? null
 
     if (settledBy !== null && !['all_resolved', 'continue', 'deadline', 'interrupt'].includes(String(settledBy))) {
-      throw new RpcFault(4000, `result.settled_by: not a settle reason: ${String(settledBy)}`)
+      throw invalidAnswer(`result.settled_by: not a settle reason: ${String(settledBy)}`)
     }
 
     const rows = result.targets ?? []
 
     if (!Array.isArray(rows)) {
-      throw new RpcFault(4000, 'result.targets must be a list')
+      throw invalidAnswer('result.targets must be a list')
     }
 
     const targets = rows.map((row, index) => {
       if (!isRecord(row)) {
-        throw new RpcFault(4000, `result.targets[${index}] must be an object`)
+        throw invalidAnswer(`result.targets[${index}] must be an object`)
       }
 
       onlyKeys(row, ['name', 'status', 'detail', 'env'], `result.targets[${index}]`)
 
-      if (typeof row.name !== 'string' || !row.name) {
-        throw new RpcFault(4000, `result.targets[${index}].name required`)
+      if (typeof row.name !== 'string') {
+        throw invalidAnswer(`result.targets[${index}].name required`)
       }
 
       if (row.status !== 'approved' && row.status !== 'skipped') {
-        throw new RpcFault(4000, `result.targets[${index}].status must be approved or skipped`)
+        throw invalidAnswer(`result.targets[${index}].status must be approved or skipped`)
       }
 
       if (row.detail !== undefined && row.detail !== null && typeof row.detail !== 'string') {
-        throw new RpcFault(4000, `result.targets[${index}].detail must be a string`)
+        throw invalidAnswer(`result.targets[${index}].detail must be a string`)
       }
 
       if (
@@ -3484,18 +3537,13 @@ export async function startFakeGateway(options: FakeGatewayOptions = {}): Promis
         row.env !== null &&
         (!isRecord(row.env) || Object.values(row.env).some(value => typeof value !== 'string'))
       ) {
-        throw new RpcFault(4000, `result.targets[${index}].env must map names to strings`)
+        throw invalidAnswer(`result.targets[${index}].env must map names to strings`)
       }
 
       return { name: row.name, status: row.status }
     })
 
-    return {
-      owner: owner as { type: string; session_id?: string },
-      opId: params.op_id,
-      targets,
-      settledBy: settledBy as string | null
-    }
+    return { owner, opId, targets, settledBy: settledBy as string | null }
   }
 
   /** `mcp.servers.list`'s projection of one config entry. */
@@ -4051,6 +4099,8 @@ export async function startFakeGateway(options: FakeGatewayOptions = {}): Promis
         clientCapabilities: state.clientCapabilities,
         openServerRequests: [...state.openServerRequests.keys()],
         serverRequestAnswers: state.serverRequestAnswers,
+        // Every `connection.respond` the strict contract accepted, as it was sent.
+        connectionResponses: state.connectionResponses,
         // Stored ids of the sessions with a turn still streaming: how a client
         // that is away can tell the turn it missed has finished.
         runningSessions: [...state.runningSessions],
@@ -4127,6 +4177,65 @@ export async function startFakeGateway(options: FakeGatewayOptions = {}): Promis
       */
       state.truncateNextReplay = true
       json(res, 200, { truncateNextReplay: true })
+
+      return
+    }
+
+    if (path === '/__fake/connection-request' && method === 'POST') {
+      /*
+        An agent's `manage_connections` card, for a client in another process:
+        an operation is opened on the profile's chat (or the `session_id` given,
+        stored or runtime) with one pending row per name in `targets`, and
+        announced as `connection.request`, the way the gateway opens one. The
+        client's answers go through the strict `connection.respond` and are read
+        back from `/__fake/state` under `connectionResponses`.
+      */
+      const body = await readBody(req)
+      const profile = String(body.profile ?? 'researcher')
+      const session =
+        typeof body.session_id === 'string' && body.session_id
+          ? resolveSession(body.session_id)
+          : [...state.sessions.values()].find(entry => entry.profile === profile)
+
+      if (!session) {
+        json(res, 404, { detail: `No session for ${String(body.session_id ?? profile)}` })
+
+        return
+      }
+
+      const names = Array.isArray(body.targets) ? body.targets.map(String) : ['github']
+      const opId = typeof body.op_id === 'string' && body.op_id ? body.op_id : `op-${state.connectorOps.size + 1}`
+      const deadlineAt = Math.floor(Date.now() / 1000) + 300
+
+      state.connectorSeq += 1
+      state.connectorOps.set(opId, {
+        opId,
+        sessionId: session.id,
+        seq: state.connectorSeq,
+        deadlineAt,
+        settled: false,
+        settledBy: null,
+        reads: 0,
+        woken: false,
+        targets: names.map(name => ({
+          name,
+          kind: 'connector' as const,
+          action: 'authorize',
+          state: 'pending',
+          connectUrl: null,
+          detail: null,
+          resolvesTo: 'connected'
+        }))
+      })
+      publish('connection.request', session.id, {
+        op_id: opId,
+        seq: state.connectorSeq,
+        tool_call_id: typeof body.tool_call_id === 'string' ? body.tool_call_id : `tc-${opId}`,
+        deadline_at: deadlineAt,
+        timeout_seconds: 300,
+        targets: names.map(name => ({ name, kind: 'connector', action: 'authorize', state: 'pending' }))
+      })
+      json(res, 200, { op_id: opId, session_id: session.id, stored_session_id: session.storedId })
 
       return
     }
@@ -6822,17 +6931,18 @@ export async function startFakeGateway(options: FakeGatewayOptions = {}): Promis
       }
 
       /**
-       * `connectors.list` — `methods_connectors.py::connectors.list`.
+       * `connectors.list` — `methods_connectors.py::connectors.list`,
+       * `ConnectorsListParams`: exactly `{profile?, owner}`.
        *
-       * Two things a client gets wrong here. It needs a `session_id` and
-       * upstream refuses without one (`4000 INVALID_PARAMS`), because authority
-       * is transport ATTACHMENT to that session and not the id itself. And when
-       * the session's `manage_connections` toolset is off it answers
+       * Two things a client gets wrong here. It names whose connectors it means
+       * with `owner` — a chat's runtime session, or the account — and NOT a
+       * top-level `session_id`, which the contract refuses (`4000`). And when the
+       * session's `manage_connections` toolset is off it answers
        * `{available: false, connectors: []}` as a SUCCESS — a client reading
        * only the array reports an empty account for a switch that is off.
        */
       case 'connectors.list': {
-        requireConnectorSession(params)
+        checkConnectorParams(params, [])
 
         if (state.connectorsUnavailable) {
           return { available: false, connectors: [] }
@@ -6853,43 +6963,59 @@ export async function startFakeGateway(options: FakeGatewayOptions = {}): Promis
       }
 
       /**
-       * `connectors.connect` — opens (or re-mints on) an operation.
+       * `connectors.connect` — `ConnectorsConnectParams`: exactly
+       * `{profile?, owner, connectors, reconnect?}`, `connectors` a non-empty
+       * list of slugs, `reconnect` a boolean.
        *
        * The authorisation link rides at `targets[].connect_url` and NOWHERE
        * else. `connector_ui_payload` redacts the whole payload but exempts that
        * one key by name, which is the only reason it survives the trip.
+       *
+       * Simplified: this fake opens an operation for either owner. Upstream
+       * opens one only for the account; for a session it re-mints on the
+       * operation the agent already holds open, and answers
+       * `4004 UNKNOWN_OPERATION` when there is none.
        */
       case 'connectors.connect': {
-        const sessionId = requireConnectorSession(params)
+        const owner = checkConnectorParams(params, ['connectors', 'reconnect'])
+        const slugs = params.connectors
+
+        if (
+          !Array.isArray(slugs) ||
+          !slugs.length ||
+          slugs.some(slug => typeof slug !== 'string' || !/^[a-z0-9][a-z0-9_-]*$/u.test(slug)) ||
+          (params.reconnect !== undefined && typeof params.reconnect !== 'boolean')
+        ) {
+          throw new RpcFault(4000, 'connectors must be nonempty slugs; reconnect must be boolean', {
+            reason: 'INVALID_PARAMS'
+          })
+        }
 
         if (state.connectorsUnavailable) {
-          throw new RpcFault(4031, 'Connectors are not available in this session.')
+          throw new RpcFault(4031, 'Connectors are not available in this session.', {
+            reason: 'CONNECTORS_UNAVAILABLE'
+          })
         }
 
-        const slugs = Array.isArray(params.connectors) ? (params.connectors as string[]) : []
-
-        if (!slugs.length || slugs.some(slug => !/^[a-z0-9][a-z0-9_-]*$/u.test(String(slug)))) {
-          throw new RpcFault(4000, 'connectors must be nonempty slugs; reconnect must be boolean')
-        }
-
-        const unknown = slugs.find(slug => !state.connectors.some(entry => entry.connector === slug))
+        const unknown = (slugs as string[]).find(slug => !state.connectors.some(entry => entry.connector === slug))
 
         if (unknown) {
-          throw new RpcFault(4004, `no such connector: ${unknown}`)
+          throw new RpcFault(4004, `no such connector: ${unknown}`, { reason: 'UNKNOWN_TARGET' })
         }
 
         state.connectorSeq += 1
 
         const op: FakeConnectorOp = {
           opId: `op-${state.connectorOps.size + 1}`,
-          sessionId,
+          sessionId: owner.type === 'session' ? owner.session_id : '',
+          ...(owner.type === 'account' ? { account: true } : {}),
           seq: state.connectorSeq,
           deadlineAt: Math.floor(Date.now() / 1000) + 300,
           settled: false,
           settledBy: null,
           reads: 0,
           woken: false,
-          targets: slugs.map(slug => ({
+          targets: (slugs as string[]).map(slug => ({
             name: slug,
             kind: 'connector' as const,
             action: params.reconnect === true ? 'reconnect' : 'connect',
@@ -6907,9 +7033,13 @@ export async function startFakeGateway(options: FakeGatewayOptions = {}): Promis
         return { ...connectorOpView(op), status: 'initiated', note: 'Show each connect_url to the user.' }
       }
 
-      /** `connectors.operation.status` — the snapshot, one `seq` newer each read. */
+      /**
+       * `connectors.operation.status` — `ConnectionOperationParams`: exactly
+       * `{profile?, owner, op_id}`. The snapshot, one `seq` newer each read.
+       */
       case 'connectors.operation.status': {
-        const op = requireConnectorOp(params)
+        const { owner, opId } = checkConnectorOpParams(params)
+        const op = ownedConnectorOp(owner, opId)
 
         op.reads += 1
 
@@ -6936,15 +7066,15 @@ export async function startFakeGateway(options: FakeGatewayOptions = {}): Promis
       }
 
       /**
-       * `connectors.operation.wake` — the browser leg came back.
+       * `connectors.operation.wake` — the browser leg came back. The same
+       * `ConnectionOperationParams` as `status`.
        *
        * A LATENCY shortcut and nothing else; upstream's docstring says the link
-       * "is not trusted for anything else". It is pinned here because it is
-       * MISSING from the vendored contract while upstream registers it, so
-       * without a fixture nothing in this repo would notice either way.
+       * "is not trusted for anything else".
        */
       case 'connectors.operation.wake': {
-        const op = requireConnectorOp(params)
+        const { owner, opId } = checkConnectorOpParams(params)
+        const op = ownedConnectorOp(owner, opId)
 
         op.woken = true
 
@@ -6955,14 +7085,15 @@ export async function startFakeGateway(options: FakeGatewayOptions = {}): Promis
        * `connection.respond` — the card's answer. Checked as strictly as the gateway's contract
        * (`checkConnectionRespond`), recorded, and applied to the open operation it names: a skipped
        * row moves to `skipped`, `settled_by: continue` (or every row resolved) settles it, and the
-       * change goes to the session as `connection.update`, as the gateway announces it.
+       * change goes out as `connection.update`, as the gateway announces it — to the session for a
+       * chat's operation, to every socket (without links) for the account's.
        */
       case 'connection.respond': {
         const answer = checkConnectionRespond(params)
-        const op = state.connectorOps.get(answer.opId)
+        const op = ownedConnectorOp(answer.owner, answer.opId)
 
-        if (!op || op.settled) {
-          throw new RpcFault(4004, 'no open operation with that op_id')
+        if (op.settled) {
+          throw new RpcFault(4004, 'No open operation with that op_id.', { reason: 'UNKNOWN_OPERATION' })
         }
 
         state.connectionResponses.push(structuredClone(params))
@@ -6985,10 +7116,21 @@ export async function startFakeGateway(options: FakeGatewayOptions = {}): Promis
 
         state.connectorSeq += 1
         op.seq = state.connectorSeq
-        publish('connection.update', op.sessionId, {
-          ...connectorOpView(op),
-          owner: { type: 'session', session_id: answer.owner.session_id ?? op.sessionId }
-        })
+
+        if (answer.owner.type === 'account') {
+          const view = connectorOpView(op)
+
+          publish('connection.update', undefined, {
+            ...view,
+            targets: (view.targets as Record<string, unknown>[]).map(({ connect_url: _link, ...target }) => target),
+            owner: { type: 'account' }
+          })
+        } else {
+          publish('connection.update', op.sessionId, {
+            ...connectorOpView(op),
+            owner: { type: 'session', session_id: answer.owner.session_id }
+          })
+        }
 
         return { status: 'ok', settled: op.settled }
       }
