@@ -128,7 +128,8 @@ derived="$apple_dir/DerivedData"
 # native-sign-in one (TEST_RUNNER_HERMIE_FAKE_GATEWAY_NONE, _TOKEN, _NATIVE), the browser sign-in test
 # one with the staged identity provider (_STAGED), and the chat screen's
 # test a token one with history whose replies stream slowly enough to watch and stop
-# (TEST_RUNNER_HERMIE_CHAT_GATEWAY, token ui-test-token). Each listens on a
+# (TEST_RUNNER_HERMIE_CHAT_GATEWAY, token ui-test-token), and the lab's passkey tests one that
+# verifies passkeys (TEST_RUNNER_HERMIE_PASSKEY_GATEWAY, --auth native --passkey). Each listens on a
 # port of its own (--port 0, read back from its listening line), and a watchdog takes it down
 # when this script's end of its stdin closes. Without node or the workspace the tests that need
 # one skip themselves.
@@ -274,6 +275,7 @@ if [[ "$ui" == true ]]; then
   start_fake_gateway HERMIE_CHAT_GATEWAY --auth token --token ui-test-token --stream-delay 500 --history-rows 40
   # Its own gateway: archiving writes the gateway's ui_meta, which the chat tests must not inherit.
   start_fake_gateway HERMIE_LIST_GATEWAY --auth token --token ui-test-token
+  start_fake_gateway HERMIE_PASSKEY_GATEWAY --auth native --passkey
 
   ui_devices+=("$(xcrun simctl create "Hermie UI tests iPhone $$" "$phone_type" "$ui_runtime")")
   ui_devices+=("$(xcrun simctl create "Hermie UI tests iPad $$" "$pad_type" "$ui_runtime")")
