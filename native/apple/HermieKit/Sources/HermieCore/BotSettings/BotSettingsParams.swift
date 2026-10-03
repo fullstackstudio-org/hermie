@@ -13,8 +13,11 @@ import HermieProtocol
  - **skills** are stored as the DISABLED set. Sending only the skill that changed would switch every
    other disabled skill back on.
  - **toolsets** are stored as an optional PIN of enabled names, and an EMPTY list removes the pin
-   rather than emptying it. So "everything on" is sent as `[]` (back to the gateway's defaults),
-   and a pin of nothing cannot be written at all.
+   rather than emptying it. So a switch always writes the names that are on, which is exactly what
+   is on screen; and "follow the gateway's defaults" is its own explicit request, an empty list
+   (`toolsetDefaults`). Sending an empty list for "everything on" would be wrong whenever a toolset
+   is off by default: the gateway would take the pin away and the toolset the person just switched
+   on would be off again. A pin of nothing cannot be written at all.
  - **MCP servers** are stored per server as off, so the wire carries the ENABLED list, the opposite
    of skills in the same call.
 
@@ -52,11 +55,15 @@ public enum BotSettingsParams {
     return params
   }
 
-  /// The toolset list, whole. Everything on is `[]`: the gateway's defaults, with no pin.
+  /// The toolsets that are on, whole: a pin of exactly what is on screen.
   public static func toolsets(_ profile: String, _ toolsets: [BotToolset]) -> JSONObject {
-    let names: [String] = toolsets.allSatisfy(\.enabled) ? [] : toolsets.filter(\.enabled).map(\.name)
+    ["name": .string(profile), "enabled_toolsets": .array(toolsets.filter(\.enabled).map { .string($0.name) })]
+  }
 
-    return ["name": .string(profile), "enabled_toolsets": .array(names.map(JSONValue.string))]
+  /// Take the pin away: the bot follows the gateway's own toolset defaults again. An empty list is
+  /// how the gateway is asked.
+  public static func toolsetDefaults(_ profile: String) -> JSONObject {
+    ["name": .string(profile), "enabled_toolsets": .array([])]
   }
 
   /// The skills that are OFF, whole.

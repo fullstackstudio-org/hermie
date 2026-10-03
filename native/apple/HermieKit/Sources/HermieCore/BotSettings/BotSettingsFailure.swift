@@ -15,6 +15,7 @@ import HermieProtocol
  - `lastToolset`: nothing was sent. The gateway stores the toolsets as a pin of the enabled ones and
    reads an EMPTY pin as "no pin, use the defaults", so a bot with every toolset off cannot be
    written; the last one stays on instead of the screen reporting a state the gateway would undo.
+   The way back to the defaults is its own request (`BotSettingsModel.useDefaultToolsets`).
 
  The gateway has no profile-level permission code of its own yet (`profiles.configure` answers any
  caller), so `forbidden` is read from what a gateway in front of it, or a later build, would say:

@@ -150,7 +150,7 @@ struct BotSettingsModelTests {
     #expect(gateway.state.withLock { $0.disabledSkills } == ["pdf"])
   }
 
-  @Test func theFirstToolsetSwitchPinsTheListAndTheLastOneBackUnpinsIt() async {
+  @Test func aToolsetSwitchPinsTheListToWhatIsOnAndOnlyAskingForTheDefaultsTakesThePinAway() async {
     let (model, gateway) = await loaded()
 
     #expect(model.details?.toolsetsPinned == false)
@@ -159,12 +159,28 @@ struct BotSettingsModelTests {
     #expect(gateway.state.withLock { $0.pinnedToolsets } == ["files", "terminal"])
     #expect(model.details?.toolsetsPinned == true)
 
+    // Back on is a pin of all three, which is what is on screen; the pin is not taken away behind
+    // the person's back.
     await model.setToolset("web", enabled: true)
+    #expect(gateway.configures.last == ["name": "researcher", "enabled_toolsets": ["files", "web", "terminal"]])
+    #expect(gateway.state.withLock { $0.pinnedToolsets } == ["files", "web", "terminal"])
+    #expect(model.details?.toolsetsPinned == true)
 
-    // Everything on is an empty list: the pin goes and the gateway's defaults apply again.
+    await model.useDefaultToolsets()
+
     #expect(gateway.configures.last == ["name": "researcher", "enabled_toolsets": []])
     #expect(gateway.state.withLock { $0.pinnedToolsets } == nil)
     #expect(model.details?.toolsetsPinned == false)
+    // And what the gateway says is on is what is shown.
+    #expect(gateway.methods.last == "profiles.describe")
+  }
+
+  @Test func askingForTheDefaultsWhenThereIsNoPinSendsNothing() async {
+    let (model, gateway) = await loaded()
+
+    await model.useDefaultToolsets()
+
+    #expect(gateway.configures.isEmpty)
   }
 
   @Test func aSwitchThatDoesNotChangeAnythingWritesNothing() async {
