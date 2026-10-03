@@ -132,6 +132,11 @@ struct Sidebar: View {
   var body: some View {
     @Bindable var router = router
     let directory = launch.gateways
+    #if os(iOS)
+      let hostsPicker = true
+    #else
+      let hostsPicker = false
+    #endif
 
     Group {
       switch router.section {
@@ -150,18 +155,17 @@ struct Sidebar: View {
         EmptyState(Strings.App.Tabs.routines, systemImage: "clock.arrow.circlepath", message: Text(NativeStrings.later))
       }
     }
-    .safeAreaInset(edge: .top, spacing: 0) {
-      Picker(Strings.App.Tabs.chats, selection: $router.section) {
-        Text(Strings.App.Tabs.chats).tag(SidebarSection.chats)
-        Text(Strings.App.Tabs.activity).tag(SidebarSection.activity)
-        Text(Strings.App.Tabs.routines).tag(SidebarSection.routines)
-      }
-      .pickerStyle(.segmented)
-      .labelsHidden()
-      .padding(.horizontal)
-      .padding(.vertical, 8)
-    }
-    .navigationTitle(directory.entry(id: router.selectedGatewayId)?.name ?? Strings.App.Tabs.chats)
+    // The picker is part of the chat list's own content on iPhone and iPad (below the large title,
+    // so a pull moves both); only the other sections' placeholders, which do not scroll, and the
+    // Mac's sidebar carry it as a pinned bar.
+    .environment(\.chatListHostsSectionPicker, hostsPicker)
+    .modifier(PinnedSectionPicker(isOn: !hostsPicker || router.section != .chats))
+    .navigationTitle(directory.chatListTitle(showing: router.selectedGatewayId) ?? "")
+    #if os(iOS)
+      // One gateway: no title at all (an inline, empty bar), the host name is no heading. Two or
+      // more: the gateway's label as the large title, as before.
+      .navigationBarTitleDisplayMode(directory.chatListTitle(showing: router.selectedGatewayId) == nil ? .inline : .large)
+    #endif
     #if os(macOS)
       .navigationSplitViewColumnWidth(min: 220, ideal: 280)
     #endif

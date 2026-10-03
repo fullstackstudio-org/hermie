@@ -13,6 +13,7 @@ struct SessionChatList: View {
   /// The row a swipe's Mute asked a duration for.
   @State private var muting: ChatListRow?
   @Environment(AppRouter.self) private var router: AppRouter?
+  @Environment(\.chatListHostsSectionPicker) private var hostsSectionPicker
   #if os(iOS)
     @Environment(\.horizontalSizeClass) private var sizeClass
   #endif
@@ -24,6 +25,10 @@ struct SessionChatList: View {
     let actions = ChatRowActions(session: session, openSettings: openSettings)
 
     List(selection: selection) {
+      if hostsSectionPicker, router != nil {
+        sectionPicker
+      }
+
       ForEach(rows.shown) { row in
         item(row, ready: ready, actions: actions)
           .modifier(StepActions(steps: steps(row.bot.name, in: rows)) { anchor in
@@ -81,6 +86,27 @@ struct SessionChatList: View {
     .onDisappear {
       Task { await session.unwatchRunning() }
     }
+  }
+
+  /// The Chats / Activity / Crons picker as the list's first row, under the large title: it scrolls
+  /// with the list and moves down with the title on a pull, never pinned over it. On the phone it
+  /// spans the width of the rows' card; elsewhere the list's own row insets apply.
+  @ViewBuilder private var sectionPicker: some View {
+    let section = Section {
+      SidebarSectionPicker()
+        .listRowBackground(Color.clear)
+        .listRowSeparator(.hidden)
+        .selectionDisabled()
+        #if os(iOS)
+          .listRowInsets(sizeClass == .compact ? EdgeInsets(top: 4, leading: 0, bottom: 4, trailing: 0) : nil)
+        #endif
+    }
+
+    #if os(iOS)
+      section.listSectionSpacing(.compact)
+    #else
+      section
+    #endif
   }
 
   /// The row menu's Bot settings: the chat is selected and the settings page pushed over it. Not
