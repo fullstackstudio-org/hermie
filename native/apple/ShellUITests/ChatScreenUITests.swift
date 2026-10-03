@@ -184,7 +184,11 @@ final class ChatScreenUITests: XCTestCase {
 
   /// The probe's state line, as `key=value` pairs.
   private func probeState(_ app: XCUIApplication) -> [String: String] {
-    let text = element(app, "hermie.chat.probe.state").value as? String ?? ""
+    // Not there yet (a chat still being pushed): no state. Reading the value of an element that
+    // does not exist fails the test at once instead of letting `waitFor` wait.
+    let probe = element(app, "hermie.chat.probe.state")
+    guard probe.exists else { return [:] }
+    let text = probe.value as? String ?? ""
 
     return Dictionary(
       text.split(separator: " ").compactMap { pair in
