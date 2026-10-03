@@ -348,6 +348,8 @@
 	<string>Value</string>
 	<key>native.secureInput.gateway</key>
 	<string>On gateway %@</string>
+	<key>native.secureInput.lapsed</key>
+	<string>The request ended while the connection was down. Nothing was sent.</string>
 	<key>native.secureInput.mayNotHaveArrived</key>
 	<string>The bot stopped waiting while your answer was on its way. It may not have arrived in time.</string>
 	<key>native.secureInput.receiver.login</key>

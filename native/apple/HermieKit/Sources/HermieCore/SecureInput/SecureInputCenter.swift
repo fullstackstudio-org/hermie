@@ -24,6 +24,10 @@ public enum SecureInputNotice: Sendable, Equatable {
   /// The gateway stopped waiting while the answer was on its way: it may not
   /// have arrived in time.
   case mayNotHaveArrived
+  /// The request ended while the connection was down (withdrawn, timed out, or
+  /// answered elsewhere): the reconnect found the gateway no longer waits for
+  /// it, so nothing was sent.
+  case lapsed
   /// The bot asked for something this app cannot show: `method`, cleaned and
   /// bounded for display.
   case unsupported(method: String)
@@ -74,6 +78,17 @@ public struct SecureInputNoticeEntry: Sendable, Equatable, Identifiable {
 /// One the gateway stopped waiting for is closed with a notice and never
 /// answered: its deadline or its `request.cancel`, whichever comes first. A
 /// value typed after that is never sent.
+///
+/// # What a reconnect tells it
+///
+/// The center hears the live socket only, so what the gateway said while the
+/// socket was down reaches it through the store (`SessionSignal`): a
+/// `request.cancel` a `session.events.since` replay carried closes its prompt as
+/// a live one would (`withdraw`), and the `open_requests` a resume or a replay
+/// answered with closes every prompt of that session the list no longer names,
+/// with a "lapsed" notice and nothing sent (`reconcile`). One first seen at or
+/// after the moment just before that call went out is kept: it may be newer
+/// than the list. Only a list the gateway sent is acted on.
 ///
 /// # An answer that did not arrive
 ///
@@ -127,6 +142,10 @@ public final class SecureInputCenter {
   /// or for a re-delivered copy its arrival plus the method's timeout, which
   /// is never earlier than the gateway's own.
   @ObservationIgnored private var expiries: [String: Duration] = [:]
+  /// When each open or waiting prompt was first taken in here (its newest
+  /// opening, for one opened again), on `clock`: `reconcile` keeps one first
+  /// seen at or after the call whose list it reads went out.
+  @ObservationIgnored private var firstSeen: [String: Duration] = [:]
   @ObservationIgnored private var pending: [String: Pending] = [:]
   @ObservationIgnored private var parked: [String: Parked] = [:]
   @ObservationIgnored private var parkedNotices: [String: Parked] = [:]
@@ -154,6 +173,7 @@ public final class SecureInputCenter {
   /// What a prompt waiting for its chat will be.
   private struct Pending {
     var kind: SecurePromptKind
+    var sessionID: String
     var deadline: Duration?
     var earlierAnswerLost: Bool
   }
@@ -496,11 +516,13 @@ public final class SecureInputCenter {
     }
 
     expiries[id] = expiry
+    firstSeen[id] = clock.now
     timers[id] = clock.schedule(after: max(expiry - clock.now, .zero)) { [weak self] in
       await self?.expire(id)
     }
 
-    pending[id] = Pending(kind: kind, deadline: shown, earlierAnswerLost: reopening?.reason == .answered)
+    pending[id] = Pending(
+      kind: kind, sessionID: sessionID, deadline: shown, earlierAnswerLost: reopening?.reason == .answered)
     await route(inbound, sessionID: sessionID)
   }
 
@@ -726,6 +748,45 @@ public final class SecureInputCenter {
     }
   }
 
+  /// A reconnect's `open_requests` for one runtime session (a `session.resume`'s
+  /// or a `session.events.since`'s): every request the gateway still waits for
+  /// there. A prompt of that session the list does not name ended while the
+  /// socket was down (withdrawn, timed out, answered elsewhere): an open one
+  /// closes with a "lapsed" notice ("may not have arrived" if its answer is on
+  /// its way), one waiting for its chat goes quietly, and nothing is sent; an
+  /// answer would be dropped. A copy the gateway re-delivers later is ignored.
+  ///
+  /// One first seen at or after `askedAt` (the shared clock's reading just
+  /// before the call went out) is kept: the gateway may have raised it after it
+  /// took the list.
+  func reconcile(session sessionID: String, open ids: [String], askedAt: Duration) {
+    guard !isShutDown, !sessionID.isEmpty else {
+      return
+    }
+
+    let listed = Set(ids)
+    let ended = { [firstSeen] (id: String, session: String) -> Bool in
+      guard session == sessionID, !listed.contains(id), let seen = firstSeen[id] else {
+        return false
+      }
+
+      return seen < askedAt
+    }
+
+    for prompt in prompts where ended(prompt.id, prompt.sessionID) {
+      let notice: SecureInputNotice = phases[prompt.id] == .sending ? .mayNotHaveArrived : .lapsed
+      finish(prompt.id, .cancelled)
+      show(notice, prompt.id, on: prompt.chatKey)
+    }
+
+    // One waiting for its chat is in `pending` (and in `parked` once parked).
+    let waiting = Set(pending.compactMap { id, entry in ended(id, entry.sessionID) ? id : nil })
+
+    for id in waiting {
+      finish(id, .cancelled)
+    }
+  }
+
   /// The deadline passed: close it, send nothing.
   func expire(_ id: String) {
     guard phases[id] != .sending else {
@@ -751,6 +812,7 @@ public final class SecureInputCenter {
     parked[id] = nil
     pending[id] = nil
     expiries[id] = nil
+    firstSeen[id] = nil
     timers.removeValue(forKey: id)?.cancel()
     parkTimers.removeValue(forKey: id)?.cancel()
     close(id, reason, deadline: deadline)

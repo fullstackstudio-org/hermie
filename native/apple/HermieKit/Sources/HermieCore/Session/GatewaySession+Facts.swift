@@ -174,6 +174,10 @@ extension GatewaySession {
       models[chat]?.resumeProgress = nil
     case .sessionsChanged:
       onSessionsChanged?()
+    case .requestCancelReplayed(let id, let reason):
+      secureInput.withdraw(id, reason: reason)
+    case .openRequests(let runtimeID, let ids, let askedAt):
+      secureInput.reconcile(session: runtimeID, open: ids, askedAt: askedAt)
     }
   }
 
