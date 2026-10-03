@@ -31,6 +31,22 @@ public final class GatewayDirectory {
       self.signedInUser = signedInUser
     }
 
+    /// The host (or the address, when it has none): what a gateway goes by until it is named.
+    public var host: String {
+      GatewayRegistry.defaultName(for: address)
+    }
+
+    /// The name this person gave the gateway, or nil while it still goes by its host.
+    public var customName: String? {
+      name == host ? nil : name
+    }
+
+    /// The one label every surface shows for this gateway (the title, the switcher, the lists): its
+    /// name when it has one, else its host.
+    public var displayLabel: String {
+      name
+    }
+
     init(_ record: GatewayRecord) {
       self.init(
         id: record.id,
@@ -82,6 +98,20 @@ public final class GatewayDirectory {
 
   public var isEmpty: Bool {
     entries.isEmpty
+  }
+
+  /**
+   The title over the chat list: nil with one gateway (the list needs no heading to say where the
+   chats come from, and a host name as a large title only gets cut off), the live gateway's
+   `displayLabel` once there are two or more to tell apart. `id` is the gateway the shell shows
+   (the router's selection), falling back to the active one.
+   */
+  public func chatListTitle(showing id: String?) -> String? {
+    guard entries.count > 1 else {
+      return nil
+    }
+
+    return (entry(id: id) ?? active)?.displayLabel
   }
 
   public func entry(id: String?) -> Entry? {

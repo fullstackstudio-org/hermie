@@ -45,6 +45,7 @@ struct GatewaysSettingsPage: View {
       Section {
         ForEach(launch.gateways.entries) { entry in
           gatewayRow(entry)
+          GatewayNameField(entry: entry) { name in rename(entry, to: name) }
         }
       } header: {
         SettingsNote(Strings.App.Settings.Gateways.header)
@@ -142,7 +143,7 @@ struct GatewaysSettingsPage: View {
   @ViewBuilder
   private func actions(for entry: GatewayDirectory.Entry) -> some View {
     Button(NativeStrings.Gateways.rename, systemImage: "pencil") {
-      draftName = entry.name
+      draftName = entry.displayLabel
       renaming = entry
     }
 
@@ -174,6 +175,59 @@ struct GatewaysSettingsPage: View {
     case .unknown?, nil:
       nil
     }
+  }
+}
+
+/**
+ The optional name of one gateway, under its row: empty means it goes by its host, which is also the
+ prompt. Saved when the field is submitted or left, and followed when it changes elsewhere (a
+ rename from the row's menu, or from another device through iCloud Sync) while it is not being typed in.
+ */
+private struct GatewayNameField: View {
+  let entry: GatewayDirectory.Entry
+  let save: (String) -> Void
+
+  @State private var draft: String
+  @FocusState private var focused: Bool
+
+  init(entry: GatewayDirectory.Entry, save: @escaping (String) -> Void) {
+    self.entry = entry
+    self.save = save
+    _draft = State(initialValue: entry.customName ?? "")
+  }
+
+  var body: some View {
+    LabeledContent(Strings.App.Settings.Gateways.name) {
+      TextField("", text: $draft, prompt: Text(verbatim: entry.host))
+        .multilineTextAlignment(.trailing)
+        .focused($focused)
+        .submitLabel(.done)
+        .onSubmit(commit)
+        .autocorrectionDisabled()
+        #if os(iOS)
+          .textInputAutocapitalization(.words)
+        #endif
+        .accessibilityLabel(Strings.App.Settings.Gateways.name)
+        .accessibilityHint(Strings.App.Settings.Gateways.nameHint)
+        .accessibilityIdentifier("hermie.settings.gateway.name")
+    }
+    .onChange(of: focused) { _, isFocused in
+      if !isFocused { commit() }
+    }
+    .onChange(of: entry.customName) { _, next in
+      if !focused { draft = next ?? "" }
+    }
+    .onDisappear(perform: commit)
+  }
+
+  private func commit() {
+    let cleaned = draft.trimmingCharacters(in: .whitespacesAndNewlines)
+
+    if cleaned != (entry.customName ?? "") {
+      save(cleaned)
+    }
+
+    draft = cleaned
   }
 }
 

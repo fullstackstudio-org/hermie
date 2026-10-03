@@ -105,6 +105,10 @@ public struct MainWindow: View {
         {
           router.showBotSettings(ChatRef(gatewayId: gateway, bot: bot))
         }
+        if launch.environment.testHooks?.openGatewaySettings == true, index != nil, router.sheet == nil {
+          ShellRequests.shared.settingsCategory = .gateways
+          router.present(.settings)
+        }
         if let bot = launch.environment.testHooks?.openChat, let gateway = router.selectedGatewayId,
           router.selectedChat == nil
         {

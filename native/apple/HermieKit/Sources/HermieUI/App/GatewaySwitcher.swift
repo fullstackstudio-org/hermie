@@ -52,11 +52,11 @@ struct GatewaySwitcherMenu: View {
           ) {
             // A gateway is usually named after its host: one line, cut in the middle, never
             // hyphenated across two. The whole name (and the address) is what VoiceOver reads.
-            Text(MenuTitle.fitted(entry.name, typeSize: typeSize))
+            Text(MenuTitle.fitted(entry.displayLabel, typeSize: typeSize))
               .lineLimit(1)
               .truncationMode(.middle)
           }
-          .accessibilityLabel(entry.name == entry.address ? entry.name : "\(entry.name), \(entry.address)")
+          .accessibilityLabel(entry.displayLabel == entry.address ? entry.displayLabel : "\(entry.displayLabel), \(entry.address)")
         }
       }
 
@@ -72,7 +72,7 @@ struct GatewaySwitcherMenu: View {
     } label: {
       Label(Strings.App.Settings.Gateways.title, systemImage: "server.rack")
     }
-    .accessibilityValue(directory.entry(id: router.selectedGatewayId)?.name ?? "")
+    .accessibilityValue(directory.entry(id: router.selectedGatewayId)?.displayLabel ?? "")
     .accessibilityIdentifier("hermie.toolbar.gateways")
   }
 }
@@ -170,7 +170,7 @@ struct GatewayRowLabel: View {
   var body: some View {
     HStack {
       VStack(alignment: .leading, spacing: 2) {
-        Text(entry.name)
+        Text(entry.displayLabel)
           .font(.body.weight(.semibold))
         Text(entry.address)
           .font(.footnote)

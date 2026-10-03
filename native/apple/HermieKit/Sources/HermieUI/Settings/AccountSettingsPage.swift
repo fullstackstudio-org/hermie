@@ -27,7 +27,7 @@ struct AccountSettingsPage: View {
     Form {
       if let active, let accounts {
         Section {
-          LabeledContent(Strings.App.Settings.gateway, value: active.name)
+          LabeledContent(Strings.App.Settings.gateway, value: active.displayLabel)
           LabeledContent(Strings.App.Settings.address) {
             Text(active.address)
               .textSelection(.enabled)

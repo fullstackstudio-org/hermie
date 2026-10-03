@@ -39,7 +39,7 @@ struct ICloudSyncDisclosure: View {
         if !gateways.isEmpty {
           Section {
             ForEach(gateways) { entry in
-              DisclosureGateway(name: entry.name, address: entry.address)
+              DisclosureGateway(name: entry.displayLabel, address: entry.address)
             }
           } header: {
             SettingsNote(NativeStrings.ICloud.Disclosure.gatewaysHeader)
