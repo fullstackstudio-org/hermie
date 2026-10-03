@@ -87,4 +87,15 @@ export function chatWith(botName: string, items: readonly TranscriptItem[], over
 }
 
 /** Seconds, one day apart from `LONG_AGO` by `days`. */
-export const daysAfter = (days: number, secondsIntoDay = 0): number => LONG_AGO + days * 86_400 + secondsIntoDay
+/**
+ * Local midnight of the day `LONG_AGO` falls on, in unix seconds. The date rows key on the local
+ * calendar, so a stamp a few hours into a day must stay on that day whatever the test runner's zone.
+ */
+const LONG_AGO_DAY_START = ((): number => {
+  const at = new Date(LONG_AGO * 1000)
+
+  return new Date(at.getFullYear(), at.getMonth(), at.getDate()).getTime() / 1000
+})()
+
+export const daysAfter = (days: number, secondsIntoDay = 0): number =>
+  LONG_AGO_DAY_START + days * 86_400 + secondsIntoDay
