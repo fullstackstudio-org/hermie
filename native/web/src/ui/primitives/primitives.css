@@ -1,0 +1,223 @@
+/*
+ * The primitives' styles. Class names are prefixed `hm-` and the colours are
+ * the theme's custom properties (`ui/theme.css`); nothing here names a colour of
+ * its own. The policy forbids inline styles, so every variation is a class or a
+ * data attribute.
+ */
+
+/* Present for assistive technology, absent for the eye. */
+.hm-sr {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  margin: -1px;
+  padding: 0;
+  overflow: hidden;
+  clip-path: inset(50%);
+  white-space: nowrap;
+  border: 0;
+}
+
+.hm-icon {
+  flex: none;
+  vertical-align: middle;
+}
+
+.hm-button {
+  appearance: none;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  min-height: 44px;
+  padding: 0 16px;
+  border: 1px solid transparent;
+  border-radius: var(--hm-radius);
+  background: var(--hm-tint);
+  color: var(--hm-on-tint);
+  font: inherit;
+  font-weight: 600;
+  line-height: 1.2;
+  text-align: center;
+  cursor: pointer;
+}
+
+.hm-button[data-variant='quiet'] {
+  background: transparent;
+  border-color: var(--hm-line);
+  color: var(--hm-tint-text);
+}
+
+.hm-button[data-variant='quiet']:hover:not(:disabled) {
+  background: var(--hm-surface-hover);
+}
+
+.hm-button:disabled {
+  opacity: 0.6;
+  cursor: default;
+}
+
+/* The avatar: a picture, or an initial on one of eight grounds. */
+.hm-avatar {
+  position: relative;
+  display: grid;
+  flex: none;
+  place-items: center;
+  width: var(--hm-avatar);
+  height: var(--hm-avatar);
+  border-radius: 50%;
+  background: var(--hm-avatar-0);
+  color: #ffffff;
+  font-size: 1.125rem;
+  font-weight: 600;
+  line-height: 1;
+  user-select: none;
+}
+
+.hm-avatar--0 {
+  background: var(--hm-avatar-0);
+}
+
+.hm-avatar--1 {
+  background: var(--hm-avatar-1);
+}
+
+.hm-avatar--2 {
+  background: var(--hm-avatar-2);
+}
+
+.hm-avatar--3 {
+  background: var(--hm-avatar-3);
+}
+
+.hm-avatar--4 {
+  background: var(--hm-avatar-4);
+}
+
+.hm-avatar--5 {
+  background: var(--hm-avatar-5);
+}
+
+.hm-avatar--6 {
+  background: var(--hm-avatar-6);
+}
+
+.hm-avatar--7 {
+  background: var(--hm-avatar-7);
+}
+
+.hm-avatar__picture {
+  width: 100%;
+  height: 100%;
+  border-radius: 50%;
+  object-fit: cover;
+}
+
+/*
+ * The presence bead: one dot, four states. Colour never carries the meaning
+ * alone: the SHAPE differs (filled; filled with a still inner dot; filled with
+ * a bar and a slow ring; hollow), and the row says the state in words for
+ * assistive technology. "Needs input" is the only thing that animates, because
+ * it is a request aimed at the reader; under reduced motion it is the static
+ * ring it pulses from.
+ */
+.hm-bead {
+  --hm-bead-size: 14px;
+  --hm-bead-ink: var(--hm-presence-online);
+
+  position: relative;
+  display: inline-block;
+  flex: none;
+  width: var(--hm-bead-size);
+  height: var(--hm-bead-size);
+  border-radius: 50%;
+  background: var(--hm-bead-ink);
+  box-shadow: 0 0 0 2px var(--hm-ring, var(--hm-surface));
+}
+
+.hm-bead[data-state='working'] {
+  --hm-bead-ink: var(--hm-presence-working);
+}
+
+.hm-bead[data-state='needsInput'] {
+  --hm-bead-ink: var(--hm-presence-needs-input);
+
+  animation: hm-bead-pulse 2.4s ease-out infinite;
+}
+
+.hm-bead[data-state='offline'] {
+  --hm-bead-ink: var(--hm-presence-offline);
+
+  background: transparent;
+  box-shadow:
+    0 0 0 2px var(--hm-ring, var(--hm-surface)),
+    inset 0 0 0 2px var(--hm-bead-ink);
+}
+
+.hm-bead[data-state='working']::after,
+.hm-bead[data-state='needsInput']::after {
+  content: '';
+  position: absolute;
+  background: var(--hm-ring, var(--hm-surface));
+}
+
+.hm-bead[data-state='working']::after {
+  inset: 38%;
+  border-radius: 25%;
+}
+
+.hm-bead[data-state='needsInput']::after {
+  left: 42%;
+  right: 42%;
+  top: 22%;
+  bottom: 22%;
+  border-radius: 1px;
+}
+
+.hm-bead[data-size='inline'] {
+  --hm-bead-size: 9px;
+
+  box-shadow: none;
+}
+
+.hm-bead[data-size='inline'][data-state='offline'] {
+  box-shadow: inset 0 0 0 2px var(--hm-bead-ink);
+}
+
+@keyframes hm-bead-pulse {
+  0% {
+    box-shadow:
+      0 0 0 2px var(--hm-ring, var(--hm-surface)),
+      0 0 0 2px var(--hm-bead-ink);
+  }
+
+  70%,
+  100% {
+    box-shadow:
+      0 0 0 2px var(--hm-ring, var(--hm-surface)),
+      0 0 0 8px transparent;
+  }
+}
+
+/* The unread marker: a count in a pill, or a dot when only "something new" is known. */
+.hm-badge {
+  display: inline-grid;
+  flex: none;
+  place-items: center;
+  min-width: 20px;
+  height: 20px;
+  padding: 0 6px;
+  border-radius: var(--hm-radius-pill);
+  background: var(--hm-tint);
+  color: var(--hm-on-tint);
+  font-size: 0.75rem;
+  font-weight: 700;
+  line-height: 1;
+}
+
+.hm-badge[data-dot='true'] {
+  min-width: 10px;
+  width: 10px;
+  height: 10px;
+  padding: 0;
+}
