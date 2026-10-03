@@ -48,7 +48,7 @@ struct HermieApp: App {
     }
     .defaultSize(width: 1000, height: 680)
     .commands {
-      HermieCommands()
+      HermieCommands(launch: launch)
     }
 
     // An extra window for one chat, opened by the New Chat Window command.

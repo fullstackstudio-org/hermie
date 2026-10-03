@@ -70,6 +70,14 @@ enum NativeStrings {
   }
 
   enum Commands {
+    /// Add Gateway…
+    static var addGateway: String { String(localized: "native.commands.addGateway", table: "Native", bundle: .module) }
+    /// Gateway
+    static var gatewayMenu: String { String(localized: "native.commands.gatewayMenu", table: "Native", bundle: .module) }
+    /// Gateway Settings…
+    static var gatewaySettings: String {
+      String(localized: "native.commands.gatewaySettings", table: "Native", bundle: .module)
+    }
     /// Chat
     static var chatMenu: String { String(localized: "native.commands.chatMenu", table: "Native", bundle: .module) }
     /// Find…

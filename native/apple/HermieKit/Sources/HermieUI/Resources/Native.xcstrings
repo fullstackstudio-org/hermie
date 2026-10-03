@@ -1013,6 +1013,30 @@
         }
       }
     },
+    "native.commands.addGateway" : {
+      "comment" : "The Gateway menu's command that opens setup for another gateway.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Gateway hinzufügen…"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Add Gateway…"
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Gateway toevoegen…"
+          }
+        }
+      }
+    },
     "native.commands.chatMenu" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -1055,6 +1079,54 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Zoek…"
+          }
+        }
+      }
+    },
+    "native.commands.gatewayMenu" : {
+      "comment" : "The Mac menu bar's menu that lists the configured gateways and switches between them.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Gateway"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Gateway"
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Gateway"
+          }
+        }
+      }
+    },
+    "native.commands.gatewaySettings" : {
+      "comment" : "The Gateway menu's command that opens Settings on the gateways page.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Gateway-Einstellungen…"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Gateway Settings…"
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Gateway-instellingen…"
           }
         }
       }

@@ -166,10 +166,11 @@ struct Sidebar: View {
       .navigationSplitViewColumnWidth(min: 220, ideal: 280)
     #endif
     .toolbar {
-      ToolbarItem {
-        GatewaySwitcherMenu()
-      }
+      // The Mac switches gateways from the menu bar (`GatewayMenu` in `HermieCommands`).
       #if os(iOS)
+        ToolbarItem {
+          GatewaySwitcherMenu()
+        }
         ToolbarItem {
           Button {
             router.present(.settings)

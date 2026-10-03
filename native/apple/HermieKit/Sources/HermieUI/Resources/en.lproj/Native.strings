@@ -90,10 +90,16 @@
 	<string>Now</string>
 	<key>native.chatList.signedOut</key>
 	<string>Sign in to this gateway to see its chats.</string>
+	<key>native.commands.addGateway</key>
+	<string>Add Gateway…</string>
 	<key>native.commands.chatMenu</key>
 	<string>Chat</string>
 	<key>native.commands.find</key>
 	<string>Find…</string>
+	<key>native.commands.gatewayMenu</key>
+	<string>Gateway</string>
+	<key>native.commands.gatewaySettings</key>
+	<string>Gateway Settings…</string>
 	<key>native.commands.newChatWindow</key>
 	<string>New Chat Window</string>
 	<key>native.commands.switchGateway</key>
