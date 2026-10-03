@@ -288,7 +288,7 @@ private func status(_ id: String, presentation: Presentation = .full) -> Visible
 /// The owner's "in a chat, when someone else sends something: put the name next to the time".
 @Suite struct ForeignSenderLineTests {
   @Test func someoneElsesBubbleShowsTheirNameBeforeTheTime() {
-    #expect(UserBubbleView.metaLine(sender: "Lloyd", clock: "21:42") == "\u{2068}Lloyd\u{2069} · 21:42")
+    #expect(UserBubbleView.metaLine(sender: "Sam", clock: "21:42") == "\u{2068}Sam\u{2069} · 21:42")
   }
 
   @Test func theOwnersBubbleKeepsTheTimeAlone() {
@@ -302,8 +302,8 @@ private func status(_ id: String, presentation: Presentation = .full) -> Visible
   }
 
   @Test func directionOverridesAndLineBreaksInTheNameAreDropped() {
-    let line = UserBubbleView.metaLine(sender: "Ll\u{202E}oyd\nvan Dam", clock: "21:42")
-    #expect(line == "\u{2068}Lloyd van Dam\u{2069} · 21:42")
+    let line = UserBubbleView.metaLine(sender: "S\u{202E}am\nde Vries", clock: "21:42")
+    #expect(line == "\u{2068}Sam de Vries\u{2069} · 21:42")
   }
 
   @Test func aLongNameIsCut() {

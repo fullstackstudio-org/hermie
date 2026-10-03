@@ -21,7 +21,7 @@ import Testing
   }
 
   @Test func aTurnWithoutTheMarkerIsAsItWas() {
-    #expect(UserBubbleView.metaLine(sender: "Lloyd", via: nil, clock: "21:42") == "\u{2068}Lloyd\u{2069} · 21:42")
+    #expect(UserBubbleView.metaLine(sender: "Sam", via: nil, clock: "21:42") == "\u{2068}Sam\u{2069} · 21:42")
     #expect(UserBubbleView.metaLine(sender: nil, via: nil, clock: "21:42") == "21:42")
   }
 

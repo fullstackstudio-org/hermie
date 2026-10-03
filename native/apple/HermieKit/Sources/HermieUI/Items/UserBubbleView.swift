@@ -9,7 +9,7 @@ import SwiftUI
 /// their picture (`PersonAvatar`: the gateway's, else their initial coloured by
 /// their author id, never by name, which two people can share) beside the
 /// group's last bubble, and their name next to the
-/// time under it: "Lloyd · 21:42" (`metaLine`). The owner's own bubbles keep
+/// time under it: "Sam · 21:42" (`metaLine`). The owner's own bubbles keep
 /// the time alone.
 ///
 /// A turn an agent sent on a person's behalf (`author.via`, `contract/gateway/mcp.md`) is never
@@ -161,7 +161,7 @@ struct UserBubbleView: View {
   static let viaClientLimit = 80
 
   /// The line under a group's last bubble: the time, after the sender's name when someone else
-  /// wrote it ("Lloyd · 21:42"), or after `<name> via <client>` when an agent sent it for them
+  /// wrote it ("Sam · 21:42"), or after `<name> via <client>` when an agent sent it for them
   /// ("Robin via Example Agent · 21:42"). Both names are the gateway's untrusted text, so each goes
   /// through `SecurePrompt.displayText` (no control or direction characters, one line, at most
   /// `senderLimit` or `viaClientLimit` characters) and is isolated with FIRST STRONG ISOLATE … POP

@@ -770,7 +770,7 @@ describe('two identical prompts from two authors (HERM-83, by id)', () => {
       role: 'user',
       row_id: 5,
       text: 'ok',
-      display_metadata: { turn_id: 'turn-colleague', author: { id: 'telegram:2', name: 'Lloyd' } }
+      display_metadata: { turn_id: 'turn-colleague', author: { id: 'telegram:2', name: 'Sam' } }
     },
     {
       role: 'user',

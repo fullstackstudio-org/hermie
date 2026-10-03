@@ -1064,7 +1064,7 @@ composer:)` takes another, handed a `ChatComposerContext`. The transcript answer
   all stand `ChatSpacing.edgeMargin` from the window's edges: 16 pt on iPhone and iPad, 28 pt on
   the Mac, whose windows are wide and round-cornered (at 20 the owner still saw the bubbles and the
   composer touch the edge). In a shared chat someone else's bubble carries their initial beside the
-  group's last bubble and their name next to the time under it, "Lloyd · 21:42"
+  group's last bubble and their name next to the time under it, "Sam · 21:42"
   (`UserBubbleView.metaLine`): the gateway's untrusted name through `SecurePrompt.displayText`
   (no control or direction characters, at most 40 characters) and bidi-isolated, so a
   right-to-left name cannot reorder the time. The owner's bubbles keep the time alone.
