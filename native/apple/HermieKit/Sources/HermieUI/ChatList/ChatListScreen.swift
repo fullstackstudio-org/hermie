@@ -58,6 +58,7 @@ public struct ChatListScreen: View {
             .buttonStyle(.borderedProminent)
             .accessibilityIdentifier("hermie.chatList.signIn")
         }
+        .hostedPinnedSectionPicker()
       case .failed(let message):
         EmptyState(
           Strings.App.Tabs.chats,
@@ -67,6 +68,7 @@ public struct ChatListScreen: View {
           Button(Strings.App.Common.retry) { Task { await live.reconnect() } }
             .buttonStyle(.bordered)
         }
+        .hostedPinnedSectionPicker()
       case .connecting, .none:
         loading
       }
@@ -84,6 +86,7 @@ public struct ChatListScreen: View {
     .frame(maxWidth: .infinity, maxHeight: .infinity)
     .accessibilityElement(children: .combine)
     .accessibilityIdentifier("hermie.chatList.loading")
+    .hostedPinnedSectionPicker()
   }
 
   private func signIn(_ gatewayId: String) {
