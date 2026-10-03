@@ -8,10 +8,48 @@ import SwiftUI
   import AppKit
 #endif
 
+/// The parts of `ASWebAuthenticationSession` the presenter drives, so a test can stand in for it.
+@MainActor
+protocol WebAuthenticationSessionDriving: AnyObject {
+  var prefersEphemeralWebBrowserSession: Bool { get set }
+  var presentationContextProvider: (any ASWebAuthenticationPresentationContextProviding)? { get set }
+  var canStart: Bool { get }
+  func start() -> Bool
+  func cancel()
+}
+
+extension ASWebAuthenticationSession: WebAuthenticationSessionDriving {}
+
+/// The handler the system calls when a session ends. `@Sendable`, so it is never isolated to the
+/// main actor: AuthenticationServices calls it on whatever queue it likes (on the Mac, a background
+/// XPC queue when the person picks "Open in browser" or when a cancelled session winds down), and a
+/// main-actor closure called there traps in Swift 6's isolation check (TestFlight 0.2.1, build 711).
+typealias WebAuthenticationCompletion = @Sendable (URL?, (any Error)?) -> Void
+
+/// Makes the session for a URL and a callback scheme, with the handler the system calls.
+typealias WebAuthenticationSessionFactory = @MainActor (
+  URL, String, @escaping WebAuthenticationCompletion
+) -> any WebAuthenticationSessionDriving
+
 /// The window a view is in, for whatever must be presented from it (the browser sign-in sheet).
 @MainActor
 final class PresentationAnchorBox {
   weak var window: ASPresentationAnchor?
+}
+
+/// The window the open session is shown from, found on the main thread before the session starts,
+/// so AuthenticationServices can ask for it from any thread without waiting on the main one.
+private final class PresentingWindow: @unchecked Sendable {
+  private let lock = NSLock()
+  private weak var stored: ASPresentationAnchor?
+
+  var window: ASPresentationAnchor? {
+    lock.withLock { stored }
+  }
+
+  func set(_ window: ASPresentationAnchor) {
+    lock.withLock { stored = window }
+  }
 }
 
 /**
@@ -27,6 +65,10 @@ final class PresentationAnchorBox {
  cannot take the browser with them: on iOS from a window of its own above the app (transparent, and
  passing every touch through), on the Mac as a sheet of the main window rather than of the setup
  sheet. The presenter itself is kept by `SetupSessions` for as long as the flow runs.
+
+ Everything AuthenticationServices calls back into is `nonisolated`: the completion handler and the
+ presentation anchor may come on any thread. Both only read what the main actor prepared, or hop to
+ it.
  */
 @MainActor
 final class WebAuthenticationPresenter: NSObject, BrowserSessionPresenting, ASWebAuthenticationPresentationContextProviding {
@@ -34,40 +76,42 @@ final class WebAuthenticationPresenter: NSObject, BrowserSessionPresenting, ASWe
   static let unusedCallbackScheme = "dev.hermie.signin-loopback"
 
   let anchor = PresentationAnchorBox()
-  private var session: ASWebAuthenticationSession?
+  private let makeSession: WebAuthenticationSessionFactory
+  private var session: (any WebAuthenticationSessionDriving)?
+  private var onEnd: (@MainActor (BrowserSessionEnd) -> Void)?
+  /// Counts `open` calls: the end of a session reports only while it is still the open one.
+  private var attempt = 0
+  private nonisolated let presenting = PresentingWindow()
   #if os(iOS)
     private var overlay: UIWindow?
     private var backgroundTask: UIBackgroundTaskIdentifier = .invalid
   #endif
 
+  init(makeSession: @escaping WebAuthenticationSessionFactory = WebAuthenticationPresenter.systemSession) {
+    self.makeSession = makeSession
+  }
+
+  /// The system's session. The handler goes to it as it is: wrapping it in a closure written here
+  /// would make that closure the main actor's again.
+  static let systemSession: WebAuthenticationSessionFactory = { url, scheme, completion in
+    ASWebAuthenticationSession(url: url, callback: .customScheme(scheme), completionHandler: completion)
+  }
+
   func open(_ url: URL, onEnd: @escaping @MainActor (BrowserSessionEnd) -> Void) -> Bool {
     close()
+    attempt += 1
 
-    var opened: ASWebAuthenticationSession?
-    let session = ASWebAuthenticationSession(url: url, callback: .customScheme(Self.unusedCallbackScheme)) {
-      [weak self] _, error in
-      let cancelled = (error as? ASWebAuthenticationSessionError)?.code == .canceledLogin
+    let session = makeSession(url, Self.unusedCallbackScheme, Self.completion(attempt: attempt, presenter: self))
 
-      Task { @MainActor [weak self] in
-        // Only the session still open speaks: a late answer from one already closed (or replaced)
-        // must neither end the next one nor report for it.
-        guard let self, let opened, self.session === opened else {
-          return
-        }
-
-        self.session = nil
-        self.hideOverlay()
-        onEnd(cancelled ? .closedByPerson : .failed)
-      }
-    }
-
-    opened = session
     session.prefersEphemeralWebBrowserSession = false
+    presenting.set(currentAnchor())
     session.presentationContextProvider = self
     self.session = session
+    self.onEnd = onEnd
 
     guard session.canStart, session.start() else {
       self.session = nil
+      self.onEnd = nil
       hideOverlay()
       return false
     }
@@ -79,12 +123,52 @@ final class WebAuthenticationPresenter: NSObject, BrowserSessionPresenting, ASWe
     let closing = session
 
     session = nil
+    onEnd = nil
     closing?.cancel()
     hideOverlay()
     endBackgroundTask()
   }
 
-  func presentationAnchor(for session: ASWebAuthenticationSession) -> ASPresentationAnchor {
+  /// The handler for the session of `attempt`. Built outside the main actor, so it is not isolated to
+  /// it; all it does on the calling thread is read the error, then it hops to the main actor.
+  nonisolated static func completion(attempt: Int, presenter: WebAuthenticationPresenter) -> WebAuthenticationCompletion {
+    { [weak presenter] _, error in
+      let cancelled = (error as? ASWebAuthenticationSessionError)?.code == .canceledLogin
+
+      Task { @MainActor [presenter] in
+        presenter?.sessionEnded(attempt: attempt, cancelled: cancelled)
+      }
+    }
+  }
+
+  /// Only the session still open speaks: a late answer from one already closed (or replaced) must
+  /// neither end the next one nor report for it.
+  private func sessionEnded(attempt ended: Int, cancelled: Bool) {
+    guard ended == attempt, session != nil, let onEnd else {
+      return
+    }
+
+    session = nil
+    self.onEnd = nil
+    hideOverlay()
+    onEnd(cancelled ? .closedByPerson : .failed)
+  }
+
+  nonisolated func presentationAnchor(for session: ASWebAuthenticationSession) -> ASPresentationAnchor {
+    if let window = presenting.window {
+      return window
+    }
+
+    // Asked before `open` set one, or after the window went: find it on the main thread.
+    if Thread.isMainThread {
+      return MainActor.assumeIsolated { currentAnchor() }
+    }
+
+    return DispatchQueue.main.sync { MainActor.assumeIsolated { currentAnchor() } }
+  }
+
+  /// The window to show the sheet from.
+  private func currentAnchor() -> ASPresentationAnchor {
     #if os(iOS)
       return overlayWindow()
     #else

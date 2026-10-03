@@ -71,7 +71,7 @@ final class ControllerPasskeyDriver: NSObject, PasskeyAuthorizationDriver {
   }
 
   /// The credential the sheet returned, copied into the app's types.
-  static func outcome(_ credential: any ASAuthorizationCredential) -> PasskeyAuthorizationOutcome {
+  nonisolated static func outcome(_ credential: any ASAuthorizationCredential) -> PasskeyAuthorizationOutcome {
     if let registration = credential as? any ASAuthorizationPublicKeyCredentialRegistration {
       guard let attestation = registration.rawAttestationObject else {
         return .refused("The new passkey came without an attestation object.")
@@ -105,33 +105,45 @@ final class ControllerPasskeyDriver: NSObject, PasskeyAuthorizationDriver {
   }
 
   /// The WebAuthn transports of a new passkey, from where it was made.
-  static func transports(_ attachment: ASAuthorizationPublicKeyCredentialAttachment) -> [String] {
+  nonisolated static func transports(_ attachment: ASAuthorizationPublicKeyCredentialAttachment) -> [String] {
     attachment == .platform ? ["internal"] : ["hybrid"]
   }
 }
 
+/// `nonisolated`, like everything the system calls back into: the protocol says the main actor, but
+/// a main-actor method called from another queue traps in Swift 6's isolation check, which is how
+/// `ASWebAuthenticationSession`'s handler took the Mac app down (TestFlight 0.2.1). The credential is
+/// copied into `Sendable` values where it arrives; only that crosses to the main actor.
 extension ControllerPasskeyDriver: ASAuthorizationControllerDelegate {
-  func authorizationController(controller: ASAuthorizationController, didCompleteWithAuthorization authorization: ASAuthorization) {
-    complete(Self.outcome(authorization.credential))
+  nonisolated func authorizationController(
+    controller: ASAuthorizationController,
+    didCompleteWithAuthorization authorization: ASAuthorization
+  ) {
+    let outcome = Self.outcome(authorization.credential)
+
+    MainActorHop.run { self.complete(outcome) }
   }
 
-  func authorizationController(controller: ASAuthorizationController, didCompleteWithError error: any Error) {
+  nonisolated func authorizationController(controller: ASAuthorizationController, didCompleteWithError error: any Error) {
     let error = error as NSError
+    let outcome = PasskeyAuthorizationOutcome.error(domain: error.domain, code: error.code)
 
-    complete(.error(domain: error.domain, code: error.code))
+    MainActorHop.run { self.complete(outcome) }
   }
 }
 
 /// The window one ceremony is shown over, found before the controller runs.
+/// The window is found on the main thread before the ceremony; the system may ask for it from any.
 @MainActor
 private final class Presentation: NSObject, ASAuthorizationControllerPresentationContextProviding {
+  /// Set once, before the controller runs, and only handed back to the system.
   let window: ASPresentationAnchor
 
   init(window: ASPresentationAnchor) {
     self.window = window
   }
 
-  func presentationAnchor(for controller: ASAuthorizationController) -> ASPresentationAnchor {
+  nonisolated func presentationAnchor(for controller: ASAuthorizationController) -> ASPresentationAnchor {
     window
   }
 }
