@@ -224,6 +224,49 @@ struct AccentPicker: View {
 
 // MARK: - Text
 
+/**
+ A long free-text field of the form: one full-width, multi-line editor under its section header,
+ left-aligned in the reading direction, with nothing beside or inside it but the text.
+
+ The section's header names the field for VoiceOver (it is the hidden label of the editor), and the
+ explanation of what to write sits in the section's footer, so the editor never carries a label of
+ its own: in a Mac form a labelled field is split into a label column and a right-aligned value, and
+ a prompt that doubles as the label reads as text in the box. The prompt is shown only while the
+ field is empty. It grows with its text from `lines.lowerBound` lines and scrolls past
+ `lines.upperBound`; with equal bounds it is that many lines tall whatever it holds.
+
+ Where this account may not write, the text is plain and selectable instead of a disabled field.
+ */
+struct BotLongTextField: View {
+  /// The name VoiceOver reads: the section header's words.
+  let label: String
+  /// Shown, as a prompt, while `text` is empty; read-only, in place of an empty text.
+  let placeholder: String
+  @Binding var text: String
+  let editable: Bool
+  let lines: ClosedRange<Int>
+  let identifier: String
+
+  var body: some View {
+    if editable {
+      TextField(label, text: $text, prompt: Text(verbatim: placeholder), axis: .vertical)
+        .labelsHidden()
+        .lineLimit(lines)
+        .multilineTextAlignment(.leading)
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .accessibilityIdentifier(identifier)
+    } else {
+      Text(verbatim: text.isEmpty ? placeholder : text)
+        .foregroundStyle(text.isEmpty ? .secondary : .primary)
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .textSelection(.enabled)
+        .accessibilityLabel(Text(verbatim: label))
+        .accessibilityValue(Text(verbatim: text))
+        .accessibilityIdentifier(identifier)
+    }
+  }
+}
+
 /// The description, with Save and Revert while it differs from the gateway's.
 struct BotDescriptionSection: View {
   let handle: String
@@ -232,12 +275,14 @@ struct BotDescriptionSection: View {
 
   var body: some View {
     Section {
-      TextField(
-        Strings.App.BotProfile.descriptionPlaceholder, text: $model.descriptionDraft, axis: .vertical
+      BotLongTextField(
+        label: NativeStrings.BotSettings.descriptionHeader,
+        placeholder: NativeStrings.BotSettings.descriptionEmpty,
+        text: $model.descriptionDraft,
+        editable: editable,
+        lines: 3...8,
+        identifier: "hermie.botSettings.description"
       )
-      .lineLimit(1...6)
-      .disabled(!editable)
-      .accessibilityIdentifier("hermie.botSettings.description")
 
       if model.descriptionIsDirty, editable {
         SaveRevertRow(
@@ -253,6 +298,8 @@ struct BotDescriptionSection: View {
       }
     } header: {
       Text(NativeStrings.BotSettings.descriptionHeader)
+    } footer: {
+      SettingsNote(Strings.App.BotProfile.descriptionPlaceholder)
     }
   }
 }
@@ -263,31 +310,23 @@ struct BotPersonalitySection: View {
   @Bindable var model: BotSettingsModel
   let editable: Bool
 
+  @Environment(\.horizontalSizeClass) private var sizeClass
+
+  /// The editor is this many lines tall, whatever is in it, and scrolls inside: a personality can run
+  /// to pages, and a page that grows with it pushes everything below out of reach. Taller on iPad
+  /// and the Mac, where there is the room.
+  var lines: Int { sizeClass == .compact ? 12 : 18 }
+
   var body: some View {
     Section {
-      if editable {
-        TextEditor(text: $model.soulDraft)
-          .font(.body)
-          .frame(minHeight: 160)
-          .scrollContentBackground(.hidden)
-          .overlay(alignment: .topLeading) {
-            if model.soulDraft.isEmpty {
-              Text(NativeStrings.BotSettings.personalityEmpty)
-                .foregroundStyle(.secondary)
-                .padding(.top, 8)
-                .padding(.leading, 5)
-                .allowsHitTesting(false)
-                .accessibilityHidden(true)
-            }
-          }
-          .accessibilityLabel(NativeStrings.BotSettings.personality)
-          .accessibilityIdentifier("hermie.botSettings.soul")
-      } else {
-        Text(verbatim: model.soulDraft.isEmpty ? NativeStrings.BotSettings.personalityEmpty : model.soulDraft)
-          .foregroundStyle(model.soulDraft.isEmpty ? .secondary : .primary)
-          .frame(maxWidth: .infinity, alignment: .leading)
-          .textSelection(.enabled)
-      }
+      BotLongTextField(
+        label: NativeStrings.BotSettings.personality,
+        placeholder: NativeStrings.BotSettings.personalityEmpty,
+        text: $model.soulDraft,
+        editable: editable,
+        lines: lines...lines,
+        identifier: "hermie.botSettings.soul"
+      )
 
       if model.soulIsDirty, editable {
         SaveRevertRow(

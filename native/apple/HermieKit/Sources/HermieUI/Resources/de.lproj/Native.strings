@@ -22,6 +22,8 @@
 	<string>Chatliste</string>
 	<key>native.botSettings.colourHint</key>
 	<string>Alle auf diesem Gateway sehen diese Farbe, und die anderen Hermie-Apps verwenden sie ebenfalls.</string>
+	<key>native.botSettings.descriptionEmpty</key>
+	<string>Es ist keine Beschreibung festgelegt.</string>
 	<key>native.botSettings.descriptionHeader</key>
 	<string>Beschreibung</string>
 	<key>native.botSettings.followDefaults</key>
@@ -72,6 +74,10 @@
 	<string>Diagnose kopieren</string>
 	<key>native.chat.diagnosticsCopied</key>
 	<string>Kopiert</string>
+	<key>native.chat.titleOpensSettings</key>
+	<string>%@, Bot-Einstellungen öffnen</string>
+	<key>native.chat.titleOpensSettingsHint</key>
+	<string>Öffnet die Einstellungen dieses Bots.</string>
 	<key>native.chatList.archivedTitle</key>
 	<string>Archiviert</string>
 	<key>native.chatList.muteTitle</key>

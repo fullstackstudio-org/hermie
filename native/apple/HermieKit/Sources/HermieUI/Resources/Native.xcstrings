@@ -231,6 +231,29 @@
         }
       }
     },
+    "native.botSettings.descriptionEmpty" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Es ist keine Beschreibung festgelegt."
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "No description is set."
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Er is geen beschrijving ingesteld."
+          }
+        }
+      }
+    },
     "native.botSettings.descriptionHeader" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -802,6 +825,52 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Gekopieerd"
+          }
+        }
+      }
+    },
+    "native.chat.titleOpensSettings" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%@, Bot-Einstellungen öffnen"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%@, open bot settings"
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%@, bot-instellingen openen"
+          }
+        }
+      }
+    },
+    "native.chat.titleOpensSettingsHint" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Öffnet die Einstellungen dieses Bots."
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Opens this bot's settings."
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Opent de instellingen van deze bot."
           }
         }
       }

@@ -38,6 +38,16 @@ enum NativeStrings {
     static var diagnosticsCopied: String {
       String(localized: "native.chat.diagnosticsCopied", table: "Native", bundle: .module)
     }
+    /// {name}, open bot settings (what VoiceOver says for the chat title, which is a button)
+    static func titleOpensSettings(name: String) -> String {
+      String(
+        localized: "native.chat.titleOpensSettings", defaultValue: "\(name), open bot settings", table: "Native",
+        bundle: .module)
+    }
+    /// Opens this bot's settings. (the hint of the chat title)
+    static var titleOpensSettingsHint: String {
+      String(localized: "native.chat.titleOpensSettingsHint", table: "Native", bundle: .module)
+    }
   }
 
   enum ChatList {
