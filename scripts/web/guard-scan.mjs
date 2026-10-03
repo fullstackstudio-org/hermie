@@ -46,6 +46,7 @@
 // are still fetched, unless `--only-roots` says to run the given checkouts alone.
 // That is how a scanner change is tried before its commit is pinned:
 //   npm run client:guard-scan -- --scanner-root fork=../hermes-agent
+// Both are refused when `GITHUB_ACTIONS` is set: in CI the pins decide.
 //
 // Exit status: 0 when every blocking scanner says `safe` and no informational one
 // says `dangerous`; 1 when that is not so, or a scanner could not be fetched or
@@ -553,6 +554,10 @@ function parseArgs(argv, env) {
       positional = true
       options.dist = resolve(arg)
     }
+  }
+
+  if ((options.roots.length > 0 || options.onlyRoots) && env.GITHUB_ACTIONS) {
+    throw new GuardError('--scanner-root and --only-roots are for a local run; in CI the pinned scanners decide')
   }
 
   return options

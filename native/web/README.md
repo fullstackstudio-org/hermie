@@ -179,10 +179,24 @@ comparisons. Both scanners judged that line by line, and in minified JavaScript 
 a template a previous line began) they read it as a HIGH `sudo_usage`, a `caution` verdict, whatever the code does
 with it. Spelling the word some other way to get past them is ruled out: the scanner exists to protect the people
 who install the plugin. The fork scanner, which is what the gateways run, lexes `.js` files whole instead and
-judges each `sudo` by its token: a key, a comparison or a plain property value that is handed to nothing, in a
-plugin whose JavaScript loads no process, eval or module sink, is a visible `low` finding. The same goes for a
-highlighter's `RegExp.prototype.exec("")` (`exec_string`). Anything that could run it stays HIGH. Upstream keeps
-the old reading, so its `caution` is expected; an upstream `caution` only means an install asks to be confirmed.
+judges each `sudo` by its token: a key, a comparison or a plain property value that is handed to nothing is a
+visible `low` finding, but only in a plugin whose JavaScript names no process, eval or module-loading route (and
+only when the lexer is sure of the file; any doubt keeps the line rules' severity). A highlighter's
+`.exec("")` (`exec_string`) is judged the same way, on a regex literal or any other receiver. Upstream keeps the old
+reading, so its `caution` is expected; an upstream `caution` only means an install asks to be confirmed.
+
+What the fork's rule does not claim (accepted limits, written down in `tools/plugin_guard_context.py`, rule 5b):
+
+- it reads JavaScript only: a Python or shell file of the plugin that hands JS data to a process is not counted
+  (those files are judged by their own rules);
+- directories the scanner never reads (`node_modules`, `.venv` and the rest of `EXCLUDED_DIRS`) are invisible to
+  it, as they are to the whole scan;
+- a route to a process built without any name the inventory knows, and a value reaching it through a variable,
+  cannot be seen; "stays HIGH" holds for the routes the inventory names (process and eval sinks, `require`,
+  dynamic and remote `import`, `getBuiltinModule`, `Module._load`, `vm`, `inspector`, `wasi`, `worker_threads`,
+  shell tags, a replaced `RegExp.prototype.exec` …);
+- it is not the only demotion: the scanner's per-line rule already lowered a whole `"sudo"` string on a line that
+  runs nothing to `medium`.
 
 To try a scanner change before its commit is pinned, point the pin at a checkout; the other pins are still fetched:
 
@@ -190,6 +204,8 @@ To try a scanner change before its commit is pinned, point the pin at a checkout
 npm run client:guard-scan -- --scanner-root fork=../hermes-agent
 npm run client:guard-scan -- --scanner-root fork=../hermes-agent --only-roots   # that checkout alone, offline
 ```
+
+Both options are refused when `GITHUB_ACTIONS` is set: in CI only the pinned scanners decide.
 
 The scanner needs Python 3.10 or newer (`GUARD_SCAN_PYTHON` names the interpreter; the runner's `python3` is
 3.12) and the network. `scripts/web/guard-scan.test.ts` tests the gate against a stand-in scanner (every verdict, a

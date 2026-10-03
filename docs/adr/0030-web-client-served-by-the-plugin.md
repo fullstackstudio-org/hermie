@@ -121,7 +121,11 @@ Rejected:
   blocking gate in both repositories; upstream is informational (its verdict and findings are listed in the
   import pull request and the changelog, and only `dangerous` from it blocks). The protocol's secure prompt
   is named `sudo`, an honest bundle carries that word, and only the fork judges it by its token rather than
-  by its minified line. See plan W3 and `native/web/README.md`.
+  by its minified line. That judgement lowers a key or comparison to a visible `low` only in a plugin whose
+  JavaScript names no route to a process, eval or module load, and it has stated limits: JavaScript only
+  (Python and shell consumers are judged by their own rules), nothing under the scanner's excluded
+  directories (`node_modules` …), and no route built without a name it knows. See plan W3 and
+  `native/web/README.md`.
 - A bundle import is a pull request in the plugin repository with a reviewer pass. For a bundle-only
   change the review is a checklist: only `dashboard/app/**`, the version and the changelog changed, and
   both CI jobs are green. Nothing auto-merges.

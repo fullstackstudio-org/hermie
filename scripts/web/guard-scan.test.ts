@@ -364,6 +364,18 @@ describe('blocking and informational scanners (W3, amended for HERM-192)', () =>
     expect(text).toContain('| upstream | informational | local | fake-v1 | caution (noted) | 1 high |')
   })
 
+  it('refuses a local scanner, or --only-roots, in CI', async () => {
+    const err: string[] = []
+    const root = makeScanner(join(scratch(), 'fork'))
+    const env = { GITHUB_ACTIONS: 'true', GUARD_SCAN_PYTHON: process.env.GUARD_SCAN_PYTHON }
+
+    expect(await main([makeDist(), '--scanner-root', `fork=${root}`], { errorLog: line => err.push(line), env })).toBe(
+      2
+    )
+    expect(await main([makeDist(), '--only-roots'], { errorLog: line => err.push(line), env })).toBe(2)
+    expect(err.join('\n')).toContain('in CI the pinned scanners decide')
+  })
+
   it('treats an informational verdict by what it can cost an install', () => {
     const result = (verdict: string) => ({ verdict, allowed: verdict === 'safe' ? true : null, exit: 1 })
 
