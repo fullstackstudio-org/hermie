@@ -45,6 +45,7 @@ struct PasskeyNoticeRow: View {
           .font(.callout)
           .frame(maxWidth: .infinity, alignment: .leading)
           .fixedSize(horizontal: false, vertical: true)
+          .accessibilityIdentifier("hermie.passkeys.notice.text")
 
         if case .sameGatewayAs(let storedID, _) = notice.kind, let action = PasskeysText.noticeAction(notice.kind) {
           Button(action) {

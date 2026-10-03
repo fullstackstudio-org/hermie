@@ -422,11 +422,64 @@ sheet renders `ConfirmDisplay` and nothing else. Its host includes the path pref
 served under one, and so does the name of a new passkey. Black-box coverage is
 `ConfirmPasskeyIntegrationTests` against the fake gateway's `--auth native --passkey`.
 
-For CP-10 (the sheet and settings): render the title, the summary and the detail with
-`Text(verbatim:)`, never through a `LocalizedStringKey`, which would read Markdown in text the
-gateway sent and show something else than the text the signature commits to.
-The sheet also owns the states the model now types for it: `sameGatewayAs` (its link action),
-`pinUnreadable`, `PasskeyRouteError.Kind.rateLimited` (with `retryAfter`) and `.originNotListed`.
+**The sheet** (`HermieUI/Requests/ConfirmSheet.swift`, CP-10) is the one place the person learns
+which gateway and what. It is drawn by the app, never by the agent, and it is the same request
+area as the approvals and questions: `RequestsModel` takes the passkey model's confirmations whose
+runtime session its chat holds (`routeConfirmations()` asks the store, again while a reconnect has
+not bound the session yet), the sheet shows one request at a time, the oldest first, and the app
+lock holds it (`LockGate` does not build the chat behind the plate, so the sheet comes up after the
+unlock, and then the system's passkey sheet: two prompts when the lock is on). Its frame is fixed:
+"<bot> asks you to confirm", the gateway's name and the address the passkey is made for (host and
+path prefix), one line saying the system sheet will name the app's RP (`confirm.hermie.dev`, the
+same for every gateway) and that this request is for the host, the countdown from `expires_at`, and
+two buttons with fixed words, "Confirm with passkey" and "Decline". What the request says is shown
+as sent with `Text(verbatim:)`: the title, the summary and the detail, which sits in a monospaced
+block that scrolls sideways and is never wrapped or cut, so a line break, a blank line and an
+indent stay where they are (it is one accessibility element whose label is the text). Nothing from
+the agent or the gateway reaches a button or a heading, and the gateway's `reason` words only pick
+one of the app's sentences (`ConfirmSheetText`).
+
+For 400 ms after it appears nothing can be pressed, Return is not Confirm, and Esc and a swipe do
+not close an open confirmation (`RequestsModel.dismissSheet()` refuses; the sheet is
+`interactiveDismissDisabled`). Confirm runs the ceremony; dismissing the system's sheet returns to
+this one, because the model puts the phase back. The states: waiting, signing ("Waiting for your
+passkey…"), sending, received (a check, "Answer received. The gateway is verifying it": never
+"confirmed", and the sheet closes by itself after 2.5 s), declined (closes the same way), refused
+(the reason in plain words, the same two buttons, so Confirm is the retry), not sent (the same),
+and the ended ones (timed out, answered elsewhere, too many refusals, verification failed, not
+allowed, this device cannot, withdrawn), each with its sentence and a Close. A verification the
+gateway could not commit after the sheet closed (`request.cancel verification_failed`) raises the
+sheet again once, saying that nothing was confirmed. The app is covered while it is not in front
+(the app switcher), except while the system's passkey sheet is up, where the person needs the text.
+VoiceOver starts on the heading, announces each state, and reads the confirm button's hint.
+
+The model's notices are rows under the chat's banners (`PasskeyNoticesView`) and at the top of the
+Passkeys page: a passkey added or removed without this device, the gateway no longer identifying
+itself as the one the passkeys were set up for, a pin that cannot be read, a version this app does
+not know, and the question whether two stored gateways are one, whose button "Same gateway as
+<name>" is `PasskeyModel.linkPins(with:)`.
+
+**The Passkeys page** (Settings → Gateways → Passkeys, `PasskeysSettingsPage`; the live gateway's,
+since only it has a session) says in one sentence where the gateway stands (`PasskeysPageState`:
+loading, no passkey support in this build, not offered, the address not listed by the gateway,
+rate limited, unreadable, off for a reason (`disabled`, `no_base_url`, `private_origin`,
+`no_identity`), the identity not accepted, not enrolled, enrolled), lists the passkeys of the
+account (name, added, last used), removes one after a confirmation (a step-up, so the system's sheet
+asks), enrols with a code ("Add with a code"), and, where the operator allows it, "Create a code for
+another device", which shows the code with a copy button (the pasteboard keeps it on this device and
+drops it when it expires) and when it expires, and forgets it when the page goes away. A dismissed
+system sheet is not an error; every other failure is said in words.
+
+**Testing the sheet.** The shipped apps have no software authenticator, so the sheet and the page
+are driven in the lab (`-HermieLabScreen passkeys -HermieLabGateway http://127.0.0.1:<port>`,
+`PasskeyLabView`) against a fake gateway started with `--auth native --passkey`
+(`TEST_RUNNER_HERMIE_PASSKEY_GATEWAY` in `scripts/test.sh --ui`; `PasskeyUITests`). The lab signs in
+the way the native page does, over an in-memory session, and runs `LabPasskeyPhone`: the software
+authenticator of `HermiePasskeyTesting`, whose source file only the `HermieLab` target compiles (no
+package product lists it, so no shipped app can link it). `-HermiePasskeyPhone <seed>` makes the
+phone's key and credential id a function of the seed, because the fake lets a person start five
+enrolments per ten minutes, and `-HermiePasskeyTamper once|always` flips a bit of the signature of
+the first (or every) assertion for the gateway to refuse.
 
 #### The system passkey sheet (CP-9)
 
