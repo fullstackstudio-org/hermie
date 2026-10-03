@@ -2,7 +2,7 @@
 import { readFileSync } from 'node:fs'
 import { parseArgs } from 'node:util'
 
-import { type FakeAuthMode, type PasskeyOptions, type Scenario, startFakeGateway } from './server'
+import { type FakeAuthMode, type McpOptions, type PasskeyOptions, type Scenario, startFakeGateway } from './server'
 
 const { values } = parseArgs({
   options: {
@@ -28,6 +28,8 @@ const { values } = parseArgs({
     'passkey-rp': { type: 'string', multiple: true },
     'passkey-allow-private': { type: 'boolean', default: false },
     'no-passkey-invites': { type: 'boolean', default: false },
+    mcp: { type: 'boolean', default: false },
+    'mcp-label': { type: 'string' },
     host: { type: 'string', default: '127.0.0.1' },
     help: { type: 'boolean', default: false }
   }
@@ -83,14 +85,21 @@ if (values.help) {
       '                          (repeatable; default confirm.hermie.dev=https://confirm.hermie.dev)',
       '  --passkey-allow-private accept private base URLs (http, loopback, LAN) for the level',
       '  --no-passkey-invites    a person cannot mint their own enrolment code (user_invites off)',
+      '  --mcp                   serve the MCP page of the app’s Settings: GET /api/auth/mcp and',
+      '                          POST /api/auth/mcp/grants/{id}/revoke (mcp.changed follows a revoke),',
+      '                          and advertise per_message_author_via. Needs --auth cookie or native.',
+      '                          Without it the routes are unknown (404). See contract/gateway/mcp.md',
+      '  --mcp-label <name>      the name in the `claude mcp add` command (default hermie-fake)',
       '',
       'Prompts steer the built-in scenario: "approve" raises an approval request,',
       '"delegate" fans out subagent events, anything else streams a reply with a tool call.',
       '',
       'Control endpoints (not part of the gateway contract):',
       '  POST /__fake/inject  {profile, user, assistant, author?, session_id?}  inject a turn',
-      '                       somebody else ran; author {id, name?} stages the HERM-83 gateway',
-      '                       stamp (display_metadata.author) for testing sender attribution;',
+      '                       somebody else ran; author {id, name?, via?: {kind, client}} stages',
+      '                       the HERM-83 gateway stamp (display_metadata.author; via = an agent',
+      '                       sent it for that person) for testing sender attribution;',
+      '                       replayed_by {id, name?, via?} stages the retry presser;',
       '                       session_id (stored or runtime id) targets one exact conversation',
       "                       instead of the profile's canonical Bot Chat — a sub-chat, once one exists",
       '  POST /__fake/request {profile, method, params}   raise a server→client request,',
@@ -125,7 +134,14 @@ if (values.help) {
       '                                       confirm out, end registrations / codes / the no-downgrade window',
       '  POST /__fake/passkey/changed {user?, change?, credential?}  emit passkey.changed',
       '  GET  /__fake/state                   gains `passkey`: credentials, receipts, refusals, open',
-      '                                       requests, outcomes and the no-downgrade windows'
+      '                                       requests, outcomes and the no-downgrade windows',
+      '',
+      'MCP page (control, with --mcp; see packages/fake-gateway/README.md):',
+      '  GET  /__fake/mcp/grants              every grant, revoked ones too, with user_id, revoked_at, revoked_by',
+      '  POST /__fake/mcp/grants {user?, client_name?, client_id?, scopes?, created_at?, created_ip?,',
+      '                          created_user_agent?, last_used_at?, last_used_ip?, expires_at?, announce?}',
+      '                                       seed a grant, as a consent would; mcp.changed (granted) follows',
+      '                                       unless announce is false. 409 without --mcp'
     ].join('\n')
   )
   process.exit(0)
@@ -188,6 +204,14 @@ if (passkey && !['cookie', 'native'].includes(auth)) {
   process.exit(1)
 }
 
+const mcp: McpOptions | false =
+  values.mcp || values['mcp-label'] ? { ...(values['mcp-label'] ? { label: values['mcp-label'] } : {}) } : false
+
+if (mcp && !['cookie', 'native'].includes(auth)) {
+  console.error('--mcp needs --auth cookie or native: with none or token nobody is signed in.')
+  process.exit(1)
+}
+
 const gateway = await startFakeGateway({
   port: Number.parseInt(values.port ?? '9119', 10),
   host: values.host ?? '127.0.0.1',
@@ -207,7 +231,8 @@ const gateway = await startFakeGateway({
   ...(values['plugin-assets'] ? { pluginAssets: values['plugin-assets'] } : {}),
   ...(values['no-web-client'] ? { webClient: false as const } : {}),
   ...(values['no-web-push-key'] ? { webPushKey: false as const } : {}),
-  ...(passkey ? { passkey } : {})
+  ...(passkey ? { passkey } : {}),
+  ...(mcp ? { mcp } : {})
 })
 
 console.log(`fake gateway listening on ${gateway.url} (auth: ${auth})`)
@@ -221,6 +246,10 @@ if (passkey) {
   const view = gateway.passkey()
 
   console.log(`  passkey    on; base URLs ${view?.settings.baseUrls.join(', ') || '(none)'}`)
+}
+
+if (mcp) {
+  console.log(`  mcp        on; ${gateway.mcp()?.settings.endpointUrl} (seed: POST ${gateway.url}/__fake/mcp/grants)`)
 }
 
 console.log(`  inject     curl -XPOST ${gateway.url}/__fake/inject -d '{"profile":"researcher"}'`)

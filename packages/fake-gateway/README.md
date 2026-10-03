@@ -4,8 +4,8 @@ An in-process stand-in for `hermes serve`, for tests and offline development. It
 endpoints, the authentication flows, WebSocket tickets and the JSON-RPC surface the clients call.
 See [the fake gateway in CONTRIBUTING.md](../../CONTRIBUTING.md#the-fake-gateway) for the general
 use, `npm run fake-gateway -- --help` for every flag and control endpoint, and `src/server.ts` for
-the behaviour of each method. This file documents the staged identity provider and the passkey
-level, which are new enough to need their own page.
+the behaviour of each method. This file documents the staged identity provider, the passkey
+level and the MCP page, which are new enough to need their own page.
 
 ## The staged identity provider (`--idp staged`)
 
@@ -234,3 +234,34 @@ ticket.
 The scenario dump for `contract/transcript/streams` (`scripts/dump-frames.ts`) has no `confirm-passkey`
 scenario: the transcript engine's `applyServerRequest` knows `approval` and `clarify` only, so a
 scripted `confirm` would record frames no engine step consumes. It needs engine support first.
+
+## The MCP page (`--mcp`)
+
+The fake can play a gateway that serves the fork's MCP endpoint, as far as the app is concerned: the
+page of Settings that shows the endpoint, the `claude mcp add` command, the JSON config and the
+connected clients, with Revoke. It speaks no OAuth and no MCP; no client under test does. The shapes
+are `contract/gateway/mcp.md`; this file says how to drive them.
+
+| How                                                                     | What it does                                                                                              |
+| ----------------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------- |
+| `npm run fake-gateway -- --auth cookie --mcp`                           | serves the two routes, advertises `per_message_author_via`; `--mcp-label <name>` renames the server       |
+| `startFakeGateway({ mcp: true \| { enabled?, endpointUrl?, label? } })` | the same in-process. `enabled: false` knows the feature and has it off: 404 for the GET, 405 for the POST |
+| `gateway.enableMcp(options)`                                            | the same at run time (`gateway.mcp()` is the store and settings, or `null`)                               |
+
+Without `--mcp` nothing changes: `/api/auth/mcp` is unknown (404) and the capability is not there. It
+needs `--auth cookie` or `native`; with `none` or `token` nobody is signed in and the routes answer
+`403 no_identity`.
+
+| Route or call                               | Behaviour                                                                                                                                                                                                                                                  |
+| ------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `GET /api/auth/mcp`                         | `{v, enabled, endpoint_url, issuer, label, claude_command, config_json, instructions, grants}`; the caller's own active grants, newest first. Endpoint defaults to `<own address>/mcp`                                                                     |
+| `POST /api/auth/mcp/grants/{id}/revoke`     | `{ok: true}` for the caller's own active grant, `404 not_found` for any other id (one body). A cookie write needs an `Origin` of the fake's own (or `--public-host`); a bearer needs none. Body: a JSON object, at most 16 KiB. Emits `mcp.changed`        |
+| `GET /__fake/mcp/grants`                    | every grant, revoked and expired ones too, with `user_id`, `revoked_at`, `revoked_by`                                                                                                                                                                      |
+| `POST /__fake/mcp/grants {…}`               | seed a grant (`user`, `client_name`, `scopes`, `created_at`, `created_ip`, `created_user_agent`, `last_used_at`, `last_used_ip`, `expires_at`, `id`, `client_id`, `announce`); emits `mcp.changed` `granted` unless `announce: false`. 409 without `--mcp` |
+| `POST /__fake/inject {author, replayed_by}` | `{id, name?, via?: {kind, client}}` stamps a row an agent sent for a person (`display_metadata.author.via`), and the retry presser (`replayed_by`), with or without `--mcp`                                                                                |
+
+`mcp.changed {change: "granted" | "revoked", grant: {id, client_name}, at}` goes to every live
+connection signed in as the grant's person and to nobody else, like `passkey.changed`.
+
+Tests: `src/mcp/routes.test.ts` (the routes, the frame, the control calls, the capability and the
+CLI) and `src/inject-author.test.ts` (the `via` stamp).

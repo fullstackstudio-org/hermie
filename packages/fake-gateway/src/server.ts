@@ -22,12 +22,15 @@ import {
   userKey
 } from './passkey/gateway'
 import { handlePasskeyRoute, PREFIX as PASSKEY_PREFIX } from './passkey/routes'
+import { grantView as mcpGrantView, handleMcpRoute, PREFIX as MCP_PREFIX } from './mcp/routes'
+import { McpGateway, type McpGrantInput, type McpOptions } from './mcp/store'
 
 import { b64u } from './passkey/encoding'
 import { LOGIN_PAGE, loginUrlFor, PLUGIN_ASSET_CACHE_CONTROL, readPluginAsset, tokenIndexHtml } from './plugin-assets'
 
 export type { Identity, PasskeyOptions } from './passkey/gateway'
 export type { ConfirmOutcome, RaiseResult } from './passkey/confirm'
+export type { McpOptions } from './mcp/store'
 
 /**
  * A stand-in for `hermes serve` that speaks enough of the gateway contract to
@@ -429,6 +432,23 @@ export interface FakeGatewayOptions {
    * opt-in is on unless `baseUrls` is given. `POST /__fake/passkey/enable` does the same at run time.
    */
   passkey?: boolean | PasskeyOptions
+  /**
+   * Whether this gateway serves the MCP page of the app's Settings: `GET /api/auth/mcp` and
+   * `POST /api/auth/mcp/grants/{id}/revoke`, with `mcp.changed` after a revoke. See
+   * `contract/gateway/mcp.md`.
+   *
+   * Absent or `false`: it does not, as a gateway without the fork's MCP endpoint (the routes are
+   * unknown, `gateway.capabilities` does not say `per_message_author_via`). `true` or an object: it
+   * does. The routes need a gated `auth` (`cookie` or `native`); with `none` and `token` nobody is
+   * signed in and they answer 403 `no_identity`. `GET|POST /__fake/mcp/grants` lists and seeds the
+   * grants a page would show. Nothing here speaks MCP or OAuth: no client under test does.
+   */
+  mcp?: boolean | McpOptions
+  /**
+   * Whether `gateway.capabilities` advertises `per_message_author_via`: the gateway may stamp
+   * `author.via` (an agent sent the row for the person). Default: on exactly when `mcp` is.
+   */
+  perMessageAuthorVia?: boolean
 }
 
 export interface FakeSession {
@@ -1187,6 +1207,10 @@ export interface FakeGateway {
   passkey(): PasskeyGateway | null
   /** Make this gateway know the level, or change how it is set up. The same as `POST /__fake/passkey/enable`. */
   enablePasskey(options?: PasskeyOptions): PasskeyGateway
+  /** The MCP feature: its grants and settings, or `null` while this gateway does not serve it (`startFakeGateway({ mcp })`). */
+  mcp(): McpGateway | null
+  /** Make this gateway serve MCP, or change how it is set up (`enabled: false` switches it off). */
+  enableMcp(options?: McpOptions): McpGateway
   /**
    * Raise a `confirm` on a profile's chat through the gated path (the gateway must know the level).
    * `unavailable` with the reason when nothing was sent; otherwise `done` resolves with the outcome the
@@ -1905,6 +1929,16 @@ async function readBody(req: IncomingMessage): Promise<Record<string, unknown>> 
   } catch {
     return {}
   }
+}
+
+/**
+ * A stamp as the fork writes it under `display_metadata.author` (and `replayed_by`): the person, and
+ * `via` when an agent sent the row on their behalf (`contract/gateway/mcp.md`).
+ */
+interface InjectedAuthor {
+  id: string
+  name?: string
+  via?: { kind: string; client: string }
 }
 
 function escapeHtml(value: string): string {
@@ -3285,6 +3319,8 @@ export async function startFakeGateway(options: FakeGatewayOptions = {}): Promis
   const upgradeIdentities = new WeakMap<IncomingMessage, Identity>()
   /** The passkey level, `null` while this gateway does not know it. */
   let passkey: PasskeyGateway | null = null
+  /** The MCP feature, `null` while this gateway does not serve it. */
+  let mcp: McpGateway | null = null
   let confirmGate: ConfirmGate<WebSocket> | null = null
   /** The address the fake listens on, set once it does: the default base URL of the passkey level. */
   let ownUrl = ''
@@ -4328,15 +4364,25 @@ export async function startFakeGateway(options: FakeGatewayOptions = {}): Promis
         return
       }
 
-      const author =
-        body.author && typeof body.author === 'object' && typeof (body.author as { id?: unknown }).id === 'string'
-          ? {
-              id: (body.author as { id: string }).id,
-              ...(typeof (body.author as { name?: unknown }).name === 'string'
-                ? { name: (body.author as { name: string }).name }
-                : {})
-            }
-          : undefined
+      // `{id, name?, via?: {kind, client}}`: the stamp the fork writes. `via` rides only when it is
+      // a well-formed marker, so a test cannot stage a half of one by accident.
+      const stampOf = (value: unknown): InjectedAuthor | undefined => {
+        if (!value || typeof value !== 'object' || typeof (value as { id?: unknown }).id !== 'string') {
+          return undefined
+        }
+
+        const stamp = value as { id: string; name?: unknown; via?: { kind?: unknown; client?: unknown } | null }
+
+        return {
+          id: stamp.id,
+          ...(typeof stamp.name === 'string' ? { name: stamp.name } : {}),
+          ...(stamp.via && typeof stamp.via.kind === 'string' && typeof stamp.via.client === 'string'
+            ? { via: { kind: stamp.via.kind, client: stamp.via.client } }
+            : {})
+        }
+      }
+      const author = stampOf(body.author)
+      const replayedBy = stampOf(body.replayed_by)
 
       injectForeignTurn(session, {
         user: String(body.user ?? 'Message from 🤖 Writer (@writer): the draft is ready.'),
@@ -4344,7 +4390,8 @@ export async function startFakeGateway(options: FakeGatewayOptions = {}): Promis
         stream: body.stream !== false,
         ...(typeof body.status === 'string' ? { status: body.status } : {}),
         ...(typeof body.error === 'string' ? { error: body.error } : {}),
-        ...(author ? { author } : {})
+        ...(author ? { author } : {}),
+        ...(replayedBy ? { replayedBy } : {})
       })
 
       json(res, 200, { injected: true, session_id: session.id, stored_session_id: session.storedId })
@@ -4551,6 +4598,85 @@ export async function startFakeGateway(options: FakeGatewayOptions = {}): Promis
       const expired = sessionCookies.size
       sessionCookies.clear()
       json(res, 200, { expired })
+
+      return
+    }
+
+    /*
+      The MCP grants, seeded and listed from outside: the consent (OAuth, in a browser, with a client) is
+      not something a test can do, and the operator's view includes what the app's page never shows.
+    */
+    if (path === '/__fake/mcp/grants' && (method === 'GET' || method === 'POST')) {
+      if (!mcp) {
+        json(res, 409, { detail: 'This gateway does not serve MCP; start it with --mcp or POST enableMcp first' })
+
+        return
+      }
+
+      if (method === 'GET') {
+        json(res, 200, {
+          enabled: mcp.settings.enabled,
+          grants: mcp.store.all().map(grant => ({
+            ...mcpGrantView(grant),
+            user_id: grant.userId,
+            revoked_at: grant.revokedAt,
+            revoked_by: grant.revokedBy
+          }))
+        })
+
+        return
+      }
+
+      const body = await readBody(req)
+      const text = (key: string): string | null | undefined =>
+        body[key] === null ? null : typeof body[key] === 'string' ? (body[key] as string) : undefined
+      const integer = (key: string): number | null | undefined =>
+        body[key] === null ? null : Number.isInteger(body[key]) ? (body[key] as number) : undefined
+      const user = 'user' in body ? resolveUser(body.user) : undefined
+      const userId = typeof user === 'string' ? user : accounts[0] ? userKey(identityOfAccount(accounts[0])) : ''
+      const clientName = text('client_name') ?? 'Claude Code'
+
+      if (!userId || !clientName.trim()) {
+        json(res, 400, { detail: 'user must name an account and client_name must say something' })
+
+        return
+      }
+
+      if (
+        body.scopes !== undefined &&
+        !(Array.isArray(body.scopes) && body.scopes.every(scope => typeof scope === 'string'))
+      ) {
+        json(res, 400, { detail: 'scopes must be a list of strings' })
+
+        return
+      }
+
+      const input: McpGrantInput = {
+        userId,
+        clientName,
+        ...(text('id') ? { id: text('id') as string } : {}),
+        ...(text('client_id') ? { clientId: text('client_id') as string } : {}),
+        ...(Array.isArray(body.scopes) ? { scopes: body.scopes as string[] } : {}),
+        ...(typeof integer('created_at') === 'number' ? { createdAt: integer('created_at') as number } : {}),
+        ...(text('created_ip') !== undefined ? { createdIp: text('created_ip') as string | null } : {}),
+        ...(text('created_user_agent') !== undefined
+          ? { createdUserAgent: text('created_user_agent') as string | null }
+          : {}),
+        ...(integer('last_used_at') !== undefined ? { lastUsedAt: integer('last_used_at') as number | null } : {}),
+        ...(text('last_used_ip') !== undefined ? { lastUsedIp: text('last_used_ip') as string | null } : {}),
+        ...(typeof integer('expires_at') === 'number' ? { expiresAt: integer('expires_at') as number } : {})
+      }
+
+      try {
+        const grant = mcp.store.seed(input)
+        // A consent is what a person's open Settings page should hear about; a test that has no page
+        // open, or wants none, says `announce: false`.
+        const delivered = body.announce === false ? 0 : mcp.announce('granted', grant)
+
+        json(res, 200, { grant: { ...mcpGrantView(grant), user_id: grant.userId }, delivered })
+      } catch (error) {
+        json(res, 400, { detail: error instanceof Error ? error.message : String(error) })
+      }
 
       return
     }
@@ -4871,6 +4997,19 @@ export async function startFakeGateway(options: FakeGatewayOptions = {}): Promis
     if (passkey && (path === PASSKEY_PREFIX || path.startsWith(`${PASSKEY_PREFIX}/`))) {
       // Behind the gate, as every route here is: the answer names the caller's own passkeys only.
       const handled = await handlePasskeyRoute(passkey, req, res, {
+        identity: identityOfRequest(req),
+        auth: bearerOf(req) ? 'bearer' : 'cookie',
+        ip: req.socket.remoteAddress ?? ''
+      })
+
+      if (handled) {
+        return
+      }
+    }
+
+    if (mcp && (path === MCP_PREFIX || path.startsWith(`${MCP_PREFIX}/`))) {
+      // Behind the gate, as every route here is: the answer names the caller's own grants only.
+      const handled = await handleMcpRoute(mcp, req, res, {
         identity: identityOfRequest(req),
         auth: bearerOf(req) ? 'bearer' : 'cookie',
         ip: req.socket.remoteAddress ?? ''
@@ -6750,7 +6889,8 @@ export async function startFakeGateway(options: FakeGatewayOptions = {}): Promis
         return {
           per_session_exclusive_submit: true,
           ...(rowIdentity ? { transcript_row_identity: true } : {}),
-          ...(options.perMessageAuthor ? { per_message_author: true } : {})
+          ...(options.perMessageAuthor ? { per_message_author: true } : {}),
+          ...((options.perMessageAuthorVia ?? mcp?.settings.enabled === true) ? { per_message_author_via: true } : {})
         }
 
       case 'gateway.ping':
@@ -9508,7 +9648,9 @@ export async function startFakeGateway(options: FakeGatewayOptions = {}): Promis
        * `display_metadata.author` — so a client can be checked against a row
        * attributed to somebody who is not the reader, without a second login.
        */
-      author?: { id: string; name?: string }
+      author?: InjectedAuthor
+      /** `display_metadata.replayed_by`: who pressed retry when it was not the author; `via` when an agent did. */
+      replayedBy?: InjectedAuthor
     }
   ): void {
     const sid = session.storedId
@@ -9518,7 +9660,14 @@ export async function startFakeGateway(options: FakeGatewayOptions = {}): Promis
       text: turn.user,
       row_id: session.messages.length + 1,
       timestamp: nowSeconds(),
-      ...(turn.author ? { display_metadata: { author: turn.author } } : {})
+      ...(turn.author || turn.replayedBy
+        ? {
+            display_metadata: {
+              ...(turn.author ? { author: turn.author } : {}),
+              ...(turn.replayedBy ? { replayed_by: turn.replayedBy } : {})
+            }
+          }
+        : {})
     })
 
     if (turn.stream) {
@@ -9770,6 +9919,47 @@ export async function startFakeGateway(options: FakeGatewayOptions = {}): Promis
     return created
   }
 
+  /**
+   * Make this gateway serve MCP, or change how it is set up. The first call creates the registry (empty);
+   * later ones only change the operator's settings, which is what editing `dashboard.mcp` is.
+   */
+  function enableMcp(mcpOptions: McpOptions = {}): McpGateway {
+    if (mcp) {
+      mcp.configure(mcpOptions)
+
+      return mcp
+    }
+
+    mcp = new McpGateway(mcpOptions, {
+      ownUrl: () => ownUrl,
+      acceptedOrigins: () => [
+        new URL(ownUrl).origin,
+        ...(publicHost ? [`http://${publicHost}`, `https://${publicHost}`] : [])
+      ],
+      // `mcp.changed` goes to every live connection signed in as that person, and to nobody else.
+      announce: (userId, payload) => {
+        let delivered = 0
+
+        for (const socket of sockets) {
+          const identity = socketIdentities.get(socket)
+
+          if (identity && userKey(identity) === userId) {
+            send(socket, {
+              jsonrpc: '2.0',
+              method: 'event',
+              params: { type: 'mcp.changed', session_id: '', payload }
+            })
+            delivered += 1
+          }
+        }
+
+        return delivered
+      }
+    })
+
+    return mcp
+  }
+
   /** The user an operator call names: `<provider>:<id>`, an account's user id, or its username. */
   function resolveUser(value: unknown): string | null | undefined {
     if (value === null) {
@@ -9910,6 +10100,10 @@ export async function startFakeGateway(options: FakeGatewayOptions = {}): Promis
     enablePasskey(options.passkey === true ? {} : options.passkey)
   }
 
+  if (options.mcp) {
+    enableMcp(options.mcp === true ? {} : options.mcp)
+  }
+
   return {
     port: address.port,
     url,
@@ -9973,6 +10167,8 @@ export async function startFakeGateway(options: FakeGatewayOptions = {}): Promis
     },
     passkey: () => passkey,
     enablePasskey,
+    mcp: () => mcp,
+    enableMcp,
     raiseConfirm(confirmOptions) {
       const profile = confirmOptions.profile ?? 'researcher'
       const session = sessionForProfile(profile)

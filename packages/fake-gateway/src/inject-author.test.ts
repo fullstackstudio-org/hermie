@@ -40,6 +40,64 @@ describe('POST /__fake/inject, author', () => {
     }
   })
 
+  /** Inject a turn with `body` and read the user row it left, the way a client reads history. */
+  async function injectedUserRow(body: Record<string, unknown>): Promise<Record<string, unknown> | undefined> {
+    const gateway = await startFakeGateway({ port: 0 })
+
+    try {
+      const injected = await fetch(`${gateway.url}/__fake/inject`, {
+        method: 'POST',
+        headers: { 'content-type': 'application/json' },
+        body: JSON.stringify({ profile: 'researcher', stream: false, ...body })
+      }).then(response => response.json() as Promise<{ stored_session_id: string }>)
+
+      const messages = await fetch(
+        `${gateway.url}/api/sessions/${injected.stored_session_id}/messages?order=latest&limit=2`
+      ).then(response => response.json() as Promise<{ messages: Record<string, unknown>[] }>)
+
+      return messages.messages.find(row => row.role === 'user')
+    } finally {
+      await gateway.close()
+    }
+  }
+
+  it('stamps the agent marker on the author when the author carries `via`', async () => {
+    const row = await injectedUserRow({
+      author: { id: 'authentik:writer-review', name: 'Robin', via: { kind: 'mcp', client: 'Claude Code' } }
+    })
+
+    expect(row?.display_metadata).toEqual({
+      author: { id: 'authentik:writer-review', name: 'Robin', via: { kind: 'mcp', client: 'Claude Code' } }
+    })
+  })
+
+  it('leaves a malformed `via` off rather than stamping half of one', async () => {
+    for (const via of ['mcp', { kind: 'mcp' }, { client: 'Claude Code' }, { kind: 7, client: 'Claude Code' }, null]) {
+      const row = await injectedUserRow({ author: { id: 'authentik:writer-review', name: 'Robin', via } })
+
+      expect(row?.display_metadata).toEqual({ author: { id: 'authentik:writer-review', name: 'Robin' } })
+    }
+  })
+
+  it('stamps `replayed_by` beside the author, with its own marker', async () => {
+    const row = await injectedUserRow({
+      author: { id: 'authentik:robin', name: 'Robin' },
+      replayed_by: { id: 'authentik:sam', name: 'Sam', via: { kind: 'mcp', client: 'Claude Code' } }
+    })
+
+    expect(row?.display_metadata).toEqual({
+      author: { id: 'authentik:robin', name: 'Robin' },
+      replayed_by: { id: 'authentik:sam', name: 'Sam', via: { kind: 'mcp', client: 'Claude Code' } }
+    })
+  })
+
+  it('stamps `replayed_by` alone when there is no author, and nothing when there is neither', async () => {
+    const alone = await injectedUserRow({ replayed_by: { id: 'authentik:sam' } })
+
+    expect(alone?.display_metadata).toEqual({ replayed_by: { id: 'authentik:sam' } })
+    expect((await injectedUserRow({ replayed_by: 'sam' }))?.display_metadata).toBeUndefined()
+  })
+
   it('targets one exact session by id rather than the profile’s canonical chat', async () => {
     const gateway = await startFakeGateway({ port: 0 })
 

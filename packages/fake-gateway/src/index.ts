@@ -9,6 +9,8 @@ export {
   type FakeRelayStatus
 } from './fake-relay'
 export { type ConfirmOutcome, type Identity, type PasskeyOptions, type RaiseResult } from './server'
+export { type McpOptions } from './server'
+export { McpGateway, McpStore, type McpGrant, type McpGrantInput } from './mcp/store'
 export { PasskeyGateway } from './passkey/gateway'
 export { PasskeyStore } from './passkey/store'
 export {

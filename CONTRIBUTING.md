@@ -164,7 +164,8 @@ gateway.closeSockets(4403) // or dropSockets() for an abrupt 1006
 
 `--passkey` (with `--auth cookie` or `native`) makes it play a gateway that verifies a `confirm` with a
 passkey; [packages/fake-gateway/README.md](packages/fake-gateway/README.md) has the routes, the control
-calls and the software authenticator the tests use.
+calls and the software authenticator the tests use. `--mcp` (same auth modes) makes it serve the page of
+Settings that lists and revokes MCP clients; the shapes are `contract/gateway/mcp.md`.
 
 From the app, Settings → **Connection test** is a developer screen that probes an address and opens
 a real connection to it in session-token mode. On an Android emulator the host machine is
