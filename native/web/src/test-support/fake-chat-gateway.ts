@@ -1,6 +1,8 @@
 /*
   Ported from the Expo app's `__tests__/support/fake-chat-gateway.ts`, unchanged
-  but for the import path, so the ported controller tests drive the same fake.
+  but for the import path and one overload on `reply`, so the ported controller
+  tests drive the same fake. The overload types a responder's `params` (the Expo
+  test project does not check for implicit `any`; this one does).
 */
 import type { ChatGateway } from '../core/link'
 
@@ -42,6 +44,8 @@ export class FakeChatGateway implements ChatGateway {
   private statusHandlers: ((status: never, error: never) => void)[] = []
 
   /** Answer `method` with `value`, or with whatever `value(params)` returns. */
+  reply(method: string, value: Responder): this
+  reply(method: string, value: unknown): this
   reply(method: string, value: unknown | Responder): this {
     this.responders.set(method, typeof value === 'function' ? (value as Responder) : () => value)
 
