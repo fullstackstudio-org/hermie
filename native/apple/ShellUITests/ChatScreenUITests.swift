@@ -481,8 +481,10 @@ final class ChatScreenUITests: XCTestCase {
         "\(moment): row \(later) \(below) overlaps row \(earlier) \(above)", file: file, line: line)
     }
 
-    guard let newest = order.last, let frame = frames[newest] else {
-      XCTFail("\(moment): the newest row \(order.last ?? "-") is not on screen", file: file, line: line)
+    // The newest row that draws something: a row that draws nothing (quiet's stand-in for a
+    // running tool) has no frame in the tree.
+    guard let newest = order.last(where: { frames[$0] != nil }), let frame = frames[newest] else {
+      XCTFail("\(moment): no row of \(order.count) is on screen", file: file, line: line)
       return
     }
 

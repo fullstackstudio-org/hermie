@@ -633,11 +633,23 @@ has a switch for it, and `TEST_RUNNER_HERMIE_LIST_IMPLEMENTATION` runs the UI te
   layout had placed the cells correctly. `TranscriptHostingCell` reports a zero safe area. This was
   the rows drawn over each other in the owner's screenshots, and the reader's row moving 154 pt in
   `testRotatingKeepsTheReadersPlace` (landscape has another top inset).
-- **Pinned means following.** A `.bottom` command (the reader's send, the jump pill) pins the list,
-  and only the reader's own dragging unpins it: the end of the list's own scroll animation no longer
-  reads `isAtBottom` (which a bubble arriving during the animation had made false, so the reply
-  streamed below the composer). `isAtBottom` is "pinned, or within the threshold", so the pill does
-  not flash between a row growing and the offset following it.
+- **Pinned means following** (`ListPinning`). A `.bottom` command (the reader's send, the jump pill)
+  pins the list. Every offset change outside the list's own updates is the reader's and decides:
+  their finger, and the scrolls the system runs for them (keyboard paging, VoiceOver's three-finger
+  scroll, scrolling to a focused element, a tap on the status bar). Only the list's own animated
+  scroll is told apart: its end puts the bottom back exactly instead of reading `isAtBottom` (which
+  a bubble arriving during the animation had made false, so the reply streamed below the composer).
+  `isAtBottom` is "pinned, or within the threshold", so the pill does not flash between a row growing
+  and the offset following it.
+- **Heights go stale, and are measured again.** A row that changes while off screen keeps its height
+  as an estimate and is measured again before it is shown (`invalidate`), in both the delta and the
+  structural path: a row's height depends on its neighbours (a bubble's tail and time, the date line,
+  a tool group taking in a call). A text size change forgets every height. A cell's row carries
+  `.id(item.id)` (`TranscriptRowReporting`), so a reused cell reports its new row's height even when
+  it equals the previous occupant's.
+- **An anchor whose row is gone** (a prepend that renames a tool group) is replaced by the nearest
+  row still there, kept within the content (`TranscriptFollow.survivor`, shared with the SwiftUI
+  list, which checks the row it is anchored to on every snapshot).
 - **Each cell keeps its own accessibility and display scale.** The rows get the list's environment,
   except `accessibilityEnabled` and `displayScale`, which come from the cell
   (`RowEnvironmentBridge`). With the list's stale values, the rows were missing from the
