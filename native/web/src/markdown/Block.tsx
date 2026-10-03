@@ -15,6 +15,7 @@ import { useLocale } from '../i18n/use-locale'
 import { webStrings } from '../i18n/web-strings'
 import { CodeBlock } from './CodeBlock'
 import { Inline } from './Inline'
+import { mathRenderer, useLazyModule } from './lazy'
 import { Table } from './Table'
 
 /** A fence in this language is a diagram (case-insensitive). */
@@ -50,6 +51,17 @@ function MessageHeading({ depth, tokens, baseUrl }: { depth: number; tokens: Tok
       <Inline baseUrl={baseUrl} tokens={tokens} />
     </Tag>
   )
+}
+
+/**
+ * `$$…$$`: drawn once the mathematics chunk is there, its source in a code block
+ * until then (which is also what the drawing falls back to for source it
+ * cannot draw).
+ */
+function MathBlock({ source }: { source: string }) {
+  const math = useLazyModule(mathRenderer)
+
+  return math ? <math.BlockMath source={source} /> : <CodeBlock code={source.trim()} kind="math" label="LaTeX" />
 }
 
 function ListItem({ item, baseUrl }: { item: Tokens.ListItem; baseUrl: string | undefined }) {
@@ -132,7 +144,7 @@ function renderBlock(token: Token, index: number, baseUrl: string | undefined, t
     }
 
     case MATH_BLOCK_TOKEN:
-      return <CodeBlock code={(token as unknown as MathToken).text.trim()} key={index} kind="math" label="LaTeX" />
+      return <MathBlock key={index} source={(token as unknown as MathToken).text} />
 
     case 'blockquote':
       return <blockquote key={index}>{renderBlocks((token as Tokens.Blockquote).tokens, baseUrl, false)}</blockquote>

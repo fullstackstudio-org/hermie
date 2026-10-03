@@ -262,6 +262,11 @@
   --md-muted: currentColor;
 }
 
+/* The highlighting palette is for the code surface on the page, not on the tint: code the reader sent stays white. */
+.hm-msg[data-side='own'] .md .md-hl {
+  color: inherit;
+}
+
 .hm-bubble .md {
   --md-link: var(--hm-link);
 }

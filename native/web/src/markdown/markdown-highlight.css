@@ -1,0 +1,288 @@
+/*
+ * Highlighted code: one custom property per highlight.js scope and scheme, and a
+ * class per scope that reads it (`Highlight.tsx`). In the main stylesheet, not in the
+ * chunk: see `Markdown.tsx`.
+ *
+ * The values are the package's `code-theme.ts` (`codeScopeColor`), which the
+ * Expo app draws with, so a listing is the same colours in both. Four light
+ * values are darker here: `addition` and `attr`/`attribute`/`property` measure
+ * 4.4:1 and 4.1:1 on the code block's surface (the text colour at 7% over the
+ * bubble), under the 4.5:1 that text needs. `markdown-highlight.test.ts` reads
+ * this file, holds every other value to the package's and every value to 4.5:1 on
+ * the surfaces a code block sits on, in both schemes.
+ *
+ * The scheme follows the page: the browser's preference when no scheme is
+ * chosen, `data-scheme` on the document element when one is (`ui/theme.css`).
+ */
+
+.md {
+  --md-hl-addition: #1e6e3e;
+  --md-hl-attr: #76601f;
+  --md-hl-attribute: #76601f;
+  --md-hl-built-in: #0b4f79;
+  --md-hl-bullet: #9b2393;
+  --md-hl-char: #c41a16;
+  --md-hl-class: #005a5b;
+  --md-hl-code: #3a3a44;
+  --md-hl-comment: #5a6673;
+  --md-hl-deletion: #b42332;
+  --md-hl-doctag: #5a6673;
+  --md-hl-emphasis: #3a3a44;
+  --md-hl-formula: #3a3a44;
+  --md-hl-function: #0f68a0;
+  --md-hl-keyword: #9b2393;
+  --md-hl-link: #0063cc;
+  --md-hl-literal: #1c00cf;
+  --md-hl-meta: #643820;
+  --md-hl-name: #9b2393;
+  --md-hl-number: #1c00cf;
+  --md-hl-operator: #5c5c65;
+  --md-hl-params: #3a3a44;
+  --md-hl-property: #76601f;
+  --md-hl-punctuation: #5c5c65;
+  --md-hl-quote: #5a6673;
+  --md-hl-regexp: #c41a16;
+  --md-hl-section: #0f68a0;
+  --md-hl-selector-tag: #9b2393;
+  --md-hl-strong: #17171b;
+  --md-hl-string: #c41a16;
+  --md-hl-subst: #3a3a44;
+  --md-hl-symbol: #643820;
+  --md-hl-tag: #9b2393;
+  --md-hl-title: #0f68a0;
+  --md-hl-type: #005a5b;
+  --md-hl-variable: #4a4a55;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root:not([data-scheme]) .md {
+    --md-hl-addition: #76d995;
+    --md-hl-attr: #d0bf69;
+    --md-hl-attribute: #d0bf69;
+    --md-hl-built-in: #9ee8f2;
+    --md-hl-bullet: #ff7ab2;
+    --md-hl-char: #ff8170;
+    --md-hl-class: #acf2e4;
+    --md-hl-code: #dcdce4;
+    --md-hl-comment: #8a93a0;
+    --md-hl-deletion: #ff9aa4;
+    --md-hl-doctag: #8a93a0;
+    --md-hl-emphasis: #dcdce4;
+    --md-hl-formula: #dcdce4;
+    --md-hl-function: #67b7ff;
+    --md-hl-keyword: #ff7ab2;
+    --md-hl-link: #62acff;
+    --md-hl-literal: #d9c97c;
+    --md-hl-meta: #c5a88f;
+    --md-hl-name: #ff7ab2;
+    --md-hl-number: #d9c97c;
+    --md-hl-operator: #b0b0ba;
+    --md-hl-params: #dcdce4;
+    --md-hl-property: #d0bf69;
+    --md-hl-punctuation: #b0b0ba;
+    --md-hl-quote: #8a93a0;
+    --md-hl-regexp: #ff8170;
+    --md-hl-section: #67b7ff;
+    --md-hl-selector-tag: #ff7ab2;
+    --md-hl-strong: #f5f5f7;
+    --md-hl-string: #ff8170;
+    --md-hl-subst: #dcdce4;
+    --md-hl-symbol: #c5a88f;
+    --md-hl-tag: #ff7ab2;
+    --md-hl-title: #67b7ff;
+    --md-hl-type: #acf2e4;
+    --md-hl-variable: #c7c7d1;
+  }
+}
+
+:root[data-scheme='dark'] .md {
+  --md-hl-addition: #76d995;
+  --md-hl-attr: #d0bf69;
+  --md-hl-attribute: #d0bf69;
+  --md-hl-built-in: #9ee8f2;
+  --md-hl-bullet: #ff7ab2;
+  --md-hl-char: #ff8170;
+  --md-hl-class: #acf2e4;
+  --md-hl-code: #dcdce4;
+  --md-hl-comment: #8a93a0;
+  --md-hl-deletion: #ff9aa4;
+  --md-hl-doctag: #8a93a0;
+  --md-hl-emphasis: #dcdce4;
+  --md-hl-formula: #dcdce4;
+  --md-hl-function: #67b7ff;
+  --md-hl-keyword: #ff7ab2;
+  --md-hl-link: #62acff;
+  --md-hl-literal: #d9c97c;
+  --md-hl-meta: #c5a88f;
+  --md-hl-name: #ff7ab2;
+  --md-hl-number: #d9c97c;
+  --md-hl-operator: #b0b0ba;
+  --md-hl-params: #dcdce4;
+  --md-hl-property: #d0bf69;
+  --md-hl-punctuation: #b0b0ba;
+  --md-hl-quote: #8a93a0;
+  --md-hl-regexp: #ff8170;
+  --md-hl-section: #67b7ff;
+  --md-hl-selector-tag: #ff7ab2;
+  --md-hl-strong: #f5f5f7;
+  --md-hl-string: #ff8170;
+  --md-hl-subst: #dcdce4;
+  --md-hl-symbol: #c5a88f;
+  --md-hl-tag: #ff7ab2;
+  --md-hl-title: #67b7ff;
+  --md-hl-type: #acf2e4;
+  --md-hl-variable: #c7c7d1;
+}
+
+.md .md-hl-addition {
+  color: var(--md-hl-addition);
+}
+
+.md .md-hl-attr {
+  color: var(--md-hl-attr);
+}
+
+.md .md-hl-attribute {
+  color: var(--md-hl-attribute);
+}
+
+.md .md-hl-built-in {
+  color: var(--md-hl-built-in);
+}
+
+.md .md-hl-bullet {
+  color: var(--md-hl-bullet);
+}
+
+.md .md-hl-char {
+  color: var(--md-hl-char);
+}
+
+.md .md-hl-class {
+  color: var(--md-hl-class);
+}
+
+.md .md-hl-code {
+  color: var(--md-hl-code);
+}
+
+.md .md-hl-comment {
+  color: var(--md-hl-comment);
+}
+
+.md .md-hl-deletion {
+  color: var(--md-hl-deletion);
+}
+
+.md .md-hl-doctag {
+  color: var(--md-hl-doctag);
+}
+
+.md .md-hl-emphasis {
+  color: var(--md-hl-emphasis);
+}
+
+.md .md-hl-formula {
+  color: var(--md-hl-formula);
+}
+
+.md .md-hl-function {
+  color: var(--md-hl-function);
+}
+
+.md .md-hl-keyword {
+  color: var(--md-hl-keyword);
+}
+
+.md .md-hl-link {
+  color: var(--md-hl-link);
+}
+
+.md .md-hl-literal {
+  color: var(--md-hl-literal);
+}
+
+.md .md-hl-meta {
+  color: var(--md-hl-meta);
+}
+
+.md .md-hl-name {
+  color: var(--md-hl-name);
+}
+
+.md .md-hl-number {
+  color: var(--md-hl-number);
+}
+
+.md .md-hl-operator {
+  color: var(--md-hl-operator);
+}
+
+.md .md-hl-params {
+  color: var(--md-hl-params);
+}
+
+.md .md-hl-property {
+  color: var(--md-hl-property);
+}
+
+.md .md-hl-punctuation {
+  color: var(--md-hl-punctuation);
+}
+
+.md .md-hl-quote {
+  color: var(--md-hl-quote);
+}
+
+.md .md-hl-regexp {
+  color: var(--md-hl-regexp);
+}
+
+.md .md-hl-section {
+  color: var(--md-hl-section);
+}
+
+.md .md-hl-selector-tag {
+  color: var(--md-hl-selector-tag);
+}
+
+.md .md-hl-strong {
+  color: var(--md-hl-strong);
+}
+
+.md .md-hl-string {
+  color: var(--md-hl-string);
+}
+
+.md .md-hl-subst {
+  color: var(--md-hl-subst);
+}
+
+.md .md-hl-symbol {
+  color: var(--md-hl-symbol);
+}
+
+.md .md-hl-tag {
+  color: var(--md-hl-tag);
+}
+
+.md .md-hl-title {
+  color: var(--md-hl-title);
+}
+
+.md .md-hl-type {
+  color: var(--md-hl-type);
+}
+
+.md .md-hl-variable {
+  color: var(--md-hl-variable);
+}
+
+/* The emphasis scopes keep their weight and slant as well as their colour. */
+.md .md-hl-strong {
+  font-weight: 700;
+}
+
+.md .md-hl-emphasis {
+  font-style: italic;
+}

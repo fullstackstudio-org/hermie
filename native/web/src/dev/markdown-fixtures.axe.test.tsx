@@ -11,6 +11,7 @@ import { render } from '@testing-library/react'
 import { afterEach, beforeEach, describe, expect, it } from 'vitest'
 
 import { resetActiveLocale, setActiveLocale, type Locale } from '../i18n/active-locale'
+import { highlightRenderer, mathRenderer } from '../markdown/lazy'
 
 import { FIXTURE_SECTIONS, MarkdownFixturesPage } from './markdown-fixtures'
 
@@ -86,6 +87,18 @@ describe('the Markdown fixture page', () => {
     document.documentElement.lang = locale
     render(<MarkdownFixturesPage />)
 
+    expect(await violations()).toEqual([])
+  })
+
+  it('has no accessibility violation with the drawings and the colours loaded', async () => {
+    await Promise.all([highlightRenderer.load(), mathRenderer.load()])
+
+    const { container } = render(<MarkdownFixturesPage />)
+
+    // The chunks drew what they draw: a formula, inline math, a coloured listing.
+    expect(container.querySelector('svg[role="img"][aria-label]')).not.toBeNull()
+    expect(container.querySelector('[role="math"][aria-label]')).not.toBeNull()
+    expect(container.querySelector('.md-hl')).not.toBeNull()
     expect(await violations()).toEqual([])
   })
 })

@@ -120,6 +120,8 @@
 
 .md a:focus-visible,
 .md .md-code-copy:focus-visible,
+.md .md-code-toggle:focus-visible,
+.md .md-drawing:focus-visible,
 .md .md-table-scroll:focus-visible,
 .md .md-code-body:focus-visible {
   outline: 2px solid var(--md-link);
@@ -220,6 +222,9 @@
   padding: 0.25em 0.5em 0.25em 0.75em;
   border-bottom: 1px solid var(--md-line);
   font-size: 0.8em;
+  /* On a narrow bubble the buttons go to a second line whole, never one word per line. */
+  flex-wrap: wrap;
+  white-space: nowrap;
 }
 
 .md .md-code-lang {
@@ -238,8 +243,42 @@
   cursor: pointer;
 }
 
-.md .md-code-copy:hover {
+.md .md-code-copy:hover,
+.md .md-code-toggle:hover {
   background: var(--md-code-surface);
+}
+
+/* A drawn formula or diagram: the toggle back to its source sits before the copy button. */
+.md .md-code-toggle {
+  margin-inline-start: auto;
+  padding: 0.2em 0.6em;
+  border: 1px solid var(--md-line);
+  border-radius: 6px;
+  background: transparent;
+  color: inherit;
+  font: inherit;
+  cursor: pointer;
+}
+
+.md .md-code-toggle[aria-pressed='true'] {
+  background: var(--md-code-surface);
+  border-color: currentColor;
+}
+
+.md .md-code-toggle + .md-code-copy {
+  margin-inline-start: 0;
+}
+
+/*
+ * The drawing: an `svg` that carries its own size. A wide one scrolls sideways
+ * in the box (mathematics), or is scaled down to fit it (a diagram, see
+ * `markdown-mermaid.css`).
+ */
+.md .md-drawing {
+  padding: 0.6em 0.75em;
+  overflow-x: auto;
+  overflow-wrap: normal;
+  line-height: normal;
 }
 
 .md .md-code-status {

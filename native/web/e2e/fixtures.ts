@@ -31,7 +31,10 @@
  *    test when it ends, with the message. The one thing a spec may say is
  *    `diagnostics.allow(/pattern/)` for an error it provokes on purpose (a 401
  *    the browser itself logs when a session is taken away), and it should say
- *    it at the point where it provokes it.
+ *    it at the point where it provokes it. `diagnostics.allowViolation(/pattern/)`
+ *    is the same for a policy violation, and has one use: Playwright's own
+ *    screenshot in WebKit appends an empty style element to sync animations,
+ *    which the page's policy refuses (`e2e/markdown.spec.ts`, its pictures).
  *
  * The suite is black box: it drives the page through roles and accessible
  * names (the way a reader and a screen reader meet it) and the gateway through
@@ -105,6 +108,8 @@ export interface Gateway {
 export interface Diagnostics {
   /** Console errors matching this are expected in this test. Say it where it is provoked. */
   allow(pattern: RegExp): void
+  /** Policy violations matching this are expected in this test: the test runner's own doing, never the page's. */
+  allowViolation(pattern: RegExp): void
   /** Every `securitypolicyviolation` the page reported so far. */
   readonly violations: readonly string[]
 }
@@ -295,8 +300,11 @@ export const test = base.extend<TestFixtures & Options, WorkerFixtures>({
         })
       })
 
+      const allowedViolations: RegExp[] = []
+
       await use({
         allow: pattern => allowed.push(pattern),
+        allowViolation: pattern => allowedViolations.push(pattern),
         violations
       })
 
@@ -306,7 +314,12 @@ export const test = base.extend<TestFixtures & Options, WorkerFixtures>({
           'the page logged console errors'
         )
         .toEqual([])
-      expect.soft(violations, 'the page reported content security policy violations').toEqual([])
+      expect
+        .soft(
+          violations.filter(text => !allowedViolations.some(pattern => pattern.test(text))),
+          'the page reported content security policy violations'
+        )
+        .toEqual([])
     },
     { auto: true }
   ],

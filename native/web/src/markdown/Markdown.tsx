@@ -15,6 +15,12 @@ import { memo, useMemo } from 'react'
 
 import { HeadingPlacementContext, MarkdownBlock } from './Block'
 import './markdown.css'
+// The styles of the lazy renderers (`lazy.ts`) are in the main stylesheet, not in their chunks: a
+// stylesheet that arrives late restyles the whole transcript at once, and WebKit then resizes rows
+// inside the list's resize callback ("ResizeObserver loop completed with undelivered notifications").
+// They are a few kilobytes of CSS, which is not first-screen JavaScript.
+import './markdown-highlight.css'
+import './markdown-math.css'
 
 export interface MarkdownProps {
   /** The Markdown source of the message, as the gateway sent it. */

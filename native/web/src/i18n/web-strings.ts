@@ -100,6 +100,15 @@ export const WEB_STRINGS_SOURCE = {
       en: 'Not done',
       nl: 'Niet klaar',
       de: 'Offen'
+    },
+    /**
+     * The toggle on a drawn formula or diagram: pressed, the box shows the
+     * source the drawing was made from instead of the drawing.
+     */
+    showSource: {
+      en: 'Show source',
+      nl: 'Bron tonen',
+      de: 'Quelltext anzeigen'
     }
   },
   shell: {

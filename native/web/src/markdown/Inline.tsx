@@ -10,6 +10,7 @@
 import { MATH_INLINE_TOKEN, type MathToken, type Token, type Tokens } from '@hermie/markdown'
 import { Fragment, useState, type ReactNode } from 'react'
 
+import { mathRenderer, useLazyModule } from './lazy'
 import { LINK_REL, LINK_TARGET, openableHref, resolveImage } from './links'
 
 export interface InlineProps {
@@ -59,6 +60,24 @@ function InlineImage({
   return alt ? <span className="md-image-alt">{alt}</span> : null
 }
 
+/**
+ * `$…$`: text in the sentence once the mathematics chunk is there (`Math.tsx`),
+ * its source in a code chip until then and whenever it cannot be set on a line.
+ */
+function InlineMathSlot({ source }: { source: string }) {
+  const math = useLazyModule(mathRenderer)
+
+  if (math) {
+    return <math.InlineMath source={source} />
+  }
+
+  return (
+    <code className="md-code-inline md-math" data-math="">
+      {source}
+    </code>
+  )
+}
+
 function renderToken(token: Token, index: number, baseUrl: string | undefined, inLink: boolean): ReactNode {
   const key = `${token.type}-${index}`
   const nested = (token as { tokens?: Token[] }).tokens
@@ -80,13 +99,8 @@ function renderToken(token: Token, index: number, baseUrl: string | undefined, i
         </code>
       )
 
-    // Drawn as its source until the math renderer arrives (W-21).
     case MATH_INLINE_TOKEN:
-      return (
-        <code className="md-code-inline md-math" data-math="" key={key}>
-          {(token as unknown as MathToken).text}
-        </code>
-      )
+      return <InlineMathSlot key={key} source={(token as unknown as MathToken).text} />
 
     case 'br':
       return <br key={key} />

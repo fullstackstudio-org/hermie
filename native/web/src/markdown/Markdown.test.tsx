@@ -163,23 +163,7 @@ describe('code blocks', () => {
     expect(container.querySelector('pre')?.textContent).toBe('**not bold** [x](https://example.com)')
   })
 
-  it('shows a mermaid fence and a math block as their source until they are drawn', () => {
-    const { container } = render(<Markdown text={'```Mermaid\nflowchart LR\n  A --> B\n```\n\n$$\nE = mc^2\n$$'} />)
-    const blocks = Array.from(container.querySelectorAll('.md-code'))
-
-    expect(blocks.map(block => block.getAttribute('data-kind'))).toEqual(['mermaid', 'math'])
-    expect(blocks.map(block => block.querySelector('pre')?.textContent)).toEqual([
-      'flowchart LR\n  A --> B',
-      'E = mc^2'
-    ])
-    expect(blocks.map(block => block.querySelector('.md-code-lang')?.textContent)).toEqual(['mermaid', 'LaTeX'])
-  })
-
-  it('shows inline math as its source in a code chip', () => {
-    const { container } = render(<Markdown text="where $a^2 + b^2$ holds" />)
-
-    expect(container.querySelector('code[data-math]')?.textContent).toBe('a^2 + b^2')
-  })
+  // Mathematics and Mermaid, before and after their chunks arrive: `Markdown.lazy.test.tsx`.
 
   describe('the copy button', () => {
     it('has an accessible name and copies the source', async () => {

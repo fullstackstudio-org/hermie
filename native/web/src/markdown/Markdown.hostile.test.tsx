@@ -6,12 +6,19 @@
  * list: only these elements, no `on*` attribute, no `style`, no script in the
  * document, an anchor only for `http(s)` and `mailto`, an `img` only on the
  * gateway. The raw text of the attack must be on the page as text.
+ *
+ * The highlighting and mathematics chunks are loaded first, so every input is
+ * drawn by the renderer that would draw it in a browser: a drawing is an `svg`
+ * of a closed set of shapes and attributes, named by its source, with no link,
+ * no reference, no foreign content and no animation in it.
  */
 import { resetBlockCache } from '@hermie/markdown'
 import { render } from '@testing-library/react'
-import { beforeEach, describe, expect, it } from 'vitest'
+import { beforeAll, beforeEach, describe, expect, it } from 'vitest'
 
+import { highlightRenderer, mathRenderer } from './lazy'
 import { Markdown } from './Markdown'
+import { MATH_FONT, MATH_MONO_FONT } from './Math'
 
 const GATEWAY = 'https://gw.example.test'
 
@@ -46,8 +53,53 @@ const ALLOWED_TAGS = new Set([
   'DEL',
   'BR',
   'A',
-  'IMG'
+  'IMG',
+  // A drawing (mathematics, a diagram). SVG elements keep their lower-case names.
+  'svg',
+  'g',
+  'text',
+  'tspan',
+  'rect',
+  'path',
+  'line',
+  'polygon',
+  'circle'
 ])
+
+/** The SVG elements: what they may carry, and the only values a colour attribute may have. */
+const SVG_TAGS = new Set(['svg', 'g', 'text', 'tspan', 'rect', 'path', 'line', 'polygon', 'circle'])
+const SVG_ATTRIBUTES = new Set([
+  'class',
+  'role',
+  'aria-label',
+  'viewBox',
+  'width',
+  'height',
+  'x',
+  'y',
+  'x1',
+  'y1',
+  'x2',
+  'y2',
+  'cx',
+  'cy',
+  'r',
+  'rx',
+  'd',
+  'points',
+  'fill',
+  'stroke',
+  'stroke-width',
+  'stroke-linecap',
+  'stroke-linejoin',
+  'stroke-dasharray',
+  'font-family',
+  'font-size',
+  'font-style',
+  'font-weight',
+  'text-anchor'
+])
+const NUMERIC_SVG_ATTRIBUTE = /^(x|y|x1|y1|x2|y2|cx|cy|r|rx|font-size|stroke-width)$/
 
 /** The attributes the renderer may set, per element, besides `class`. */
 const ALLOWED_ATTRIBUTES = new Set([
@@ -70,7 +122,9 @@ const ALLOWED_ATTRIBUTES = new Set([
   'start',
   'tabindex',
   'data-kind',
-  'data-math'
+  'data-math',
+  'data-drawn',
+  'aria-pressed'
 ])
 
 const HOSTILE: readonly [name: string, input: string][] = [
@@ -132,21 +186,86 @@ const HOSTILE: readonly [name: string, input: string][] = [
   ['markup in a mermaid fence', '```mermaid\n<img src=x onerror=alert(1)>\n```'],
   ['markup in a math block', '$$\n<img src=x onerror=alert(1)>\n$$'],
   ['markup in inline math', 'a $<img src=x onerror=alert(1)>$ b'],
+  ['markup in a text command of a formula', '$$\n\\text{<img src=x onerror=alert(1)>}\n$$'],
+  ['script in a text command of a formula', '$$\nx = \\text{<script>alert(1)</script>} + \\frac{1}{2}\n$$'],
+  ['a link command in a formula', '$$\n\\href{javascript:alert(1)}{x}\n$$'],
+  ['an html command in a formula', '$$\n\\htmlClass{x}{y} \\style{color:red}{z}\n$$'],
+  ['markup in a roman command of inline math', 'a $\\mathrm{<b onclick=alert(1)>}$ b'],
+  ['markup in a text command of inline math', 'a $x + \\text{<img src=x onerror=alert(1)>}$ b'],
+  ['a closing span in a highlighted listing', '```js\nconst a = "</span><img src=x onerror=alert(1)>"\n```'],
+  ['highlight markup in a listing', '```html\n<span class="hljs-keyword" onclick="alert(1)">x</span>\n```'],
+  ['entities in a highlighted listing', '```js\nconst a = "&lt;script&gt;" // &amp;\n```'],
   ['markup in a task item', '- [x] <img src=x onerror=alert(1)>'],
   ['unterminated tag', '<img src=x onerror=alert(1)'],
   ['unterminated fence with markup', '```html\n<script>alert(1)</script>'],
   ['reasoning block with markup', '<think><script>alert(1)</script></think>visible']
 ]
 
+beforeAll(async () => {
+  await Promise.all([highlightRenderer.load(), mathRenderer.load()])
+})
+
 beforeEach(() => {
   resetBlockCache()
 })
+
+/** An `svg` and everything in it: the closed vocabulary of a drawing. */
+function inspectDrawing(svg: Element): void {
+  expect(svg.getAttribute('role'), 'a drawing is an image').toBe('img')
+  expect(svg.getAttribute('aria-label') ?? '', 'a drawing is named by its source').not.toBe('')
+
+  for (const element of [svg, ...Array.from(svg.querySelectorAll('*'))]) {
+    const tag = element.tagName
+
+    expect(SVG_TAGS.has(tag), `<${tag}> in a drawing`).toBe(true)
+
+    for (const attribute of Array.from(element.attributes)) {
+      expect(SVG_ATTRIBUTES.has(attribute.name), `${attribute.name} on <${tag}> in a drawing`).toBe(true)
+
+      if (NUMERIC_SVG_ATTRIBUTE.test(attribute.name)) {
+        expect(attribute.value, `${attribute.name} on <${tag}>`).toMatch(/^-?\d+(\.\d+)?$/)
+      }
+    }
+
+    for (const name of ['fill', 'stroke']) {
+      const value = element.getAttribute(name)
+
+      if (value !== null) {
+        expect(value, `${name} on <${tag}>`).toMatch(/^(currentColor|none)$/)
+      }
+    }
+
+    const font = element.getAttribute('font-family')
+
+    if (font !== null) {
+      expect([MATH_FONT, MATH_MONO_FONT]).toContain(font)
+    }
+
+    for (const name of ['d', 'points', 'viewBox']) {
+      const value = element.getAttribute(name)
+
+      if (value !== null) {
+        expect(value, `${name} on <${tag}>`).toMatch(/^[MLQZ0-9., -]*$/)
+      }
+    }
+  }
+}
 
 function inspect(root: Element, base = GATEWAY): void {
   for (const element of [root, ...Array.from(root.querySelectorAll('*'))]) {
     const tag = element.tagName
 
     expect(ALLOWED_TAGS.has(tag), `<${tag.toLowerCase()}> is not an allowed element`).toBe(true)
+
+    // A drawing has its own, closed vocabulary (`inspectDrawing`); no handler and no style there either.
+    if (element.closest('svg')) {
+      for (const attribute of Array.from(element.attributes)) {
+        expect(attribute.name.startsWith('on'), `${attribute.name} on <${tag}>`).toBe(false)
+        expect(attribute.name, `<${tag}>`).not.toBe('style')
+      }
+
+      continue
+    }
 
     for (const attribute of Array.from(element.attributes)) {
       expect(attribute.name.startsWith('on'), `${attribute.name} on <${tag.toLowerCase()}>`).toBe(false)
@@ -187,9 +306,16 @@ function inspect(root: Element, base = GATEWAY): void {
     }
   }
 
-  // Nothing from the message became a script, a frame or a style sheet.
+  for (const svg of Array.from(root.querySelectorAll('svg'))) {
+    inspectDrawing(svg)
+  }
+
+  // Nothing from the message became a script, a frame, a style sheet, a link or reference inside a
+  // drawing, or foreign content in one.
   expect(
-    root.querySelector('script, iframe, object, embed, style, link, meta, base, form, svg, audio, video')
+    root.querySelector(
+      'script, iframe, object, embed, style, link, meta, base, form, audio, video, foreignObject, use, image, a svg, svg a, animate, set'
+    )
   ).toBeNull()
   expect(document.querySelector('script')).toBeNull()
 }
@@ -218,6 +344,17 @@ describe('hostile input', () => {
 
     expect(container.textContent).toContain('<script>alert(1)</script>')
     expect(container.textContent).toContain('<img src=x onerror=alert(1)>')
+  })
+
+  it('draws markup inside a formula as the characters that were typed, in the drawing', () => {
+    const { container } = render(
+      <Markdown gatewayBaseUrl={GATEWAY} text={'$$\nx = \\text{<img src=x onerror=alert(1)>} + \\frac{1}{2}\n$$'} />
+    )
+    const svg = container.querySelector('svg')
+
+    expect(svg, 'the formula is drawn').not.toBeNull()
+    expect(svg?.textContent).toContain('<img src=x onerror=alert(1)>')
+    expect(container.querySelector('img')).toBeNull()
   })
 
   it('keeps the words of a link it refuses and leaves the address out of the page', () => {

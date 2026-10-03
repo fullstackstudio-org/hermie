@@ -1,0 +1,41 @@
+/*
+ * Mathematics (`Math.tsx`). In the main stylesheet with `markdown.css`, not in the
+ * chunk: see `Markdown.tsx`.
+ *
+ * A drawing carries its own size (width and height in em of the text round
+ * it) and its own face (`font-family` on the `svg`, the string the layout
+ * measured with); it inherits only the colour. Inline math is text in the
+ * sentence, in the same faces.
+ */
+
+/* A formula is centred in its box; a wide one scrolls sideways, as a listing does. */
+.md .md-code[data-kind='math'] .md-drawing {
+  display: flex;
+  justify-content: safe center;
+}
+
+.md .md-math-drawing {
+  flex: none;
+  overflow: visible;
+}
+
+.md .md-math-inline {
+  font-family: 'STIX Two Math', 'STIX Two Text', 'Cambria Math', 'Latin Modern Math', 'Times New Roman', serif;
+  font-size: 1.08em;
+  /* An expression is one token: it moves to the next line whole when it fits there. */
+  overflow-wrap: normal;
+  word-break: normal;
+}
+
+.md .md-math-italic {
+  font-style: italic;
+}
+
+.md .md-math-bold {
+  font-weight: 700;
+}
+
+.md .md-math-mono {
+  font-family: var(--md-mono);
+  font-size: 0.85em;
+}

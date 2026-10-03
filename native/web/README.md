@@ -1055,15 +1055,18 @@ become elements; no HTML string is made anywhere, so there is nothing to sanitis
 Two optional props place a message's headings in the page it is drawn in (`headingOffset`, `headingMax`: a heading is
 the written level plus the offset, capped at the max; the transcript uses 2 and 3).
 
-| File                     | What                                                                                                 |
-| ------------------------ | ---------------------------------------------------------------------------------------------------- |
-| `markdown/Markdown.tsx`  | the component: one memoised child per top-level block, keyed by its index and a hash of its source   |
-| `markdown/Block.tsx`     | block tokens: paragraph, heading, list (nested, ordered, task), quote, rule, fence, raw HTML as text |
-| `markdown/Inline.tsx`    | inline tokens: strong, em, del, code, line breaks, links, images                                     |
-| `markdown/CodeBlock.tsx` | a fence: language label, copy button with a polite live announcement, a box that scrolls sideways    |
-| `markdown/Table.tsx`     | a table in its own focusable scroll container, `th scope="col"`                                      |
-| `markdown/links.ts`      | the two allow-lists: which links may be anchors, which images may load                               |
-| `markdown/markdown.css`  | the styles, on tokens that follow the reader's colour scheme                                         |
+| File                     | What                                                                                                                                                                       |
+| ------------------------ | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `markdown/Markdown.tsx`  | the component: one memoised child per top-level block, keyed by its index and a hash of its source                                                                         |
+| `markdown/Block.tsx`     | block tokens: paragraph, heading, list (nested, ordered, task), quote, rule, fence, raw HTML as text                                                                       |
+| `markdown/Inline.tsx`    | inline tokens: strong, em, del, code, line breaks, links, images                                                                                                           |
+| `markdown/CodeBlock.tsx` | a fence: language label, copy button with a polite live announcement, a box that scrolls sideways; a drawn formula or diagram in the same box, with a "Show source" toggle |
+| `markdown/lazy.ts`       | the heavy renderers as chunks of their own, held once loaded so a block draws them on its first render                                                                     |
+| `markdown/Highlight.tsx` | coloured code (lazy): the spans of `@hermie/markdown`'s `highlight.ts` as classes, colours in `markdown-highlight.css`                                                     |
+| `markdown/Math.tsx`      | mathematics (lazy): `$$…$$` as an SVG drawing laid out by `math-layout.ts`, `$…$` as text in the sentence                                                                  |
+| `markdown/Table.tsx`     | a table in its own focusable scroll container, `th scope="col"`                                                                                                            |
+| `markdown/links.ts`      | the two allow-lists: which links may be anchors, which images may load                                                                                                     |
+| `markdown/markdown.css`  | the styles, on tokens that follow the reader's colour scheme                                                                                                               |
 
 The rules, each pinned by a test:
 
@@ -1075,12 +1078,35 @@ The rules, each pinned by a test:
   `gatewayBaseUrl`, an address must have the same origin. Any other `http(s)` image is a link with the alt text;
   anything else, and any image when there is no `gatewayBaseUrl`, is its alt text. An image that fails to load
   falls back to its alt text.
-- `math` and `mermaid` blocks, and inline math, show their source until the renderers for them arrive (W-21).
+- Highlighting, mathematics and Mermaid are lazy chunks (`lazy.ts`). Until a chunk is there, and for source its
+  renderer cannot draw, a block shows its source: a listing uncoloured, a formula or a diagram in a code block,
+  inline math in a code chip. A chunk that fails to load leaves the source and is asked for again by the next block.
+- Code in one of the fifteen languages of `@hermie/markdown` is coloured from its scope spans; the text is the
+  source character for character. The palette is the package's `code-theme.ts`, as custom properties in both
+  schemes; `markdown-highlight.test.ts` holds it to the package and to 4.5:1 on the code surface (four light values
+  are darker than the package's, which measure under 4.5:1 there). Code the reader sent (on the tint) is not coloured.
+- `$$…$$` is drawn as an `svg` (`role="img"`, named by its LaTeX source) of `text`, `tspan`, `rect` and `path`,
+  from `parseMath` and `math-layout.ts`: the Expo app's construction and constants, with boxes lined up on the maths
+  axis and fences and radicals drawn to the height they enclose. Widths come from the browser's own text metrics
+  (an offscreen canvas, synchronous: the faces are system faces). "Show source" swaps the drawing for its source;
+  the copy button always copies the source. Source the parser declines is shown as source.
+- `$…$` is text in the sentence (`mathRuns`, Unicode scripts where Unicode has them, as in the Expo app), with
+  `role="math"` and the source as its name; an expression with rows in it is its source in a code chip.
 - While a reply streams, a block whose source did not change is not rendered again and keeps its DOM element.
 
 `markdown/*.structure.test.tsx` reads the rendered DOM back into the block model and compares it with every input of
 `contract/markdown/blocks.json` and `inline.json`; `*.streaming.test.tsx` replays `streaming.json`;
-`*.hostile.test.tsx` renders hostile input and checks the result against a closed list of elements and attributes.
+`*.hostile.test.tsx` renders hostile input, with the lazy chunks loaded, and checks the result against a closed list
+of elements and attributes (a drawing has its own closed list: shapes, numbers, `currentColor`, the source as its
+name). `math-layout.test.ts` reads the layout back as structure; `*.lazy.test.tsx` covers the source-then-drawing
+sequence; `e2e/markdown.spec.ts` checks the drawings in Chromium and WebKit under the real policy (text stays inside
+its drawing with the browser's own metrics, axe with contrast) and compares a picture of each kind in both schemes
+with one recorded on macOS (`--update-snapshots`; a platform with no recorded picture skips the comparison and says
+so in an annotation).
+
+The stylesheets of the lazy renderers are part of the main stylesheet, not of their chunks: a stylesheet that arrives
+late restyles the whole transcript at once, and WebKit then reports a `ResizeObserver` loop from the list's resize
+callback.
 
 `src/dev/markdown-fixtures.tsx` is a page with every kind of block, for the eye and for axe
 (`markdown-fixtures.axe.test.tsx`): run `npm run client:dev` and open `/dev/markdown.html`. Nothing the build reaches
@@ -1309,6 +1335,6 @@ Every third-party package, and why it is here. Anything beyond this list needs a
 | `typescript`, `eslint`, `prettier`                                                   | dev     | from the repository root, shared with every workspace                                                                                                                                                                                                       |
 
 Not added yet, because nothing uses it: the pre-approved `@tanstack/react-virtual` (the transcript list did not need it, see "Measured" above).
-`@hermie/markdown` brings `marked` (and `highlight.js`, which nothing here imports
-yet) into the bundle once a screen renders a message. The licence text of every
+`@hermie/markdown` brings `marked` into the bundle, and `highlight.js` (core and fifteen grammars) into the
+highlighting chunk, which loads the first time a message has a fence with a language. The licence text of every
 runtime dependency is meant to ship in `dist/licenses.json` and be shown in About; that is not generated yet.
