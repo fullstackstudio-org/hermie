@@ -15,11 +15,15 @@ struct CorpusTests {
   ///
   /// The reference's text orders index-like keys (`"12"`) first, the way a JavaScript object
   /// iterates, so that comparison uses `.ecmaScriptObject`; see `CanonicalKeyOrder`.
+  ///
+  /// `push/contract.json` is hand-written and `confirm-passkey/` is a byte-identical copy of the
+  /// fork's contract, written by its own generator with its own checksums: neither came out of
+  /// `prettyJson`, so both are held only to the fixed-point property below.
   @Test func canonicalTextEqualsTheReferenceForEveryGeneratedFile() throws {
     let files = try contractFiles()
     var compared = 0
     var mismatched: [String] = []
-    for file in files where file.path != "push/contract.json" {
+    for file in files where file.path != "push/contract.json" && !file.path.hasPrefix("confirm-passkey/") {
       let data = try Data(contentsOf: file.url)
       let reference = minifiedJSONText(data)
       let value = try JSONValue(parsing: data)
