@@ -645,6 +645,29 @@
         }
       }
     },
+    "native.botSettings.photoMenu" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Profilbild, ändern"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Profile picture, change"
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Profielfoto, wijzigen"
+          }
+        }
+      }
+    },
     "native.botSettings.readOnly" : {
       "extractionState" : "manual",
       "localizations" : {

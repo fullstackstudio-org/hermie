@@ -58,6 +58,8 @@
 	<string>Die Anweisungen, die diesem Bot seinen Charakter geben: die SOUL.md seines Profils auf dem Gateway. Wird als reiner Text angezeigt.</string>
 	<key>native.botSettings.photoLarge</key>
 	<string>Dieses Foto konnte nicht vorbereitet werden. Wähle ein anderes.</string>
+	<key>native.botSettings.photoMenu</key>
+	<string>Profilbild, ändern</string>
 	<key>native.botSettings.readOnly</key>
 	<string>Dein Konto kann diesen Bot ansehen, aber nicht ändern.</string>
 	<key>native.botSettings.revert</key>

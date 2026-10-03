@@ -58,6 +58,8 @@
 	<string>De instructies die deze bot zijn karakter geven: het SOUL.md-bestand van zijn profiel op de gateway. Wordt als gewone tekst getoond.</string>
 	<key>native.botSettings.photoLarge</key>
 	<string>Die foto kon niet worden voorbereid. Kies een andere.</string>
+	<key>native.botSettings.photoMenu</key>
+	<string>Profielfoto, wijzigen</string>
 	<key>native.botSettings.readOnly</key>
 	<string>Je account kan deze bot bekijken maar niet wijzigen.</string>
 	<key>native.botSettings.revert</key>

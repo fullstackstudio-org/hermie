@@ -9,7 +9,8 @@ import SwiftUI
 
 // MARK: - The picture and the name
 
-/// The bot's picture and name, with the buttons that change the picture.
+/// The bot's picture and name. Where this account may write, the picture itself is the control: a
+/// tap opens a menu with Change photo and, when a photo is set, Remove photo.
 struct BotHeaderSection: View {
   let chat: ChatRef
   let session: GatewaySession
@@ -18,6 +19,7 @@ struct BotHeaderSection: View {
   let editable: Bool
 
   @State private var photoItem: PhotosPickerItem?
+  @State private var photoPickerShown = false
   @State private var photoFailed = false
 
   var body: some View {
@@ -26,7 +28,7 @@ struct BotHeaderSection: View {
 
     Section {
       VStack(spacing: 12) {
-        BotAvatar(name: name, avatar: row?.avatar, size: 96, accent: session.arrangement.accent(chat.bot))
+        avatarControl(name: name, row: row)
 
         VStack(spacing: 2) {
           Text(verbatim: name)
@@ -38,25 +40,6 @@ struct BotHeaderSection: View {
         }
         .accessibilityElement(children: .combine)
         .accessibilityAddTraits(.isHeader)
-
-        if editable {
-          HStack(spacing: 12) {
-            PhotosPicker(selection: $photoItem, matching: .images) {
-              Text(row?.bot.hasAvatar == true ? Strings.App.BotProfile.photoReplace : Strings.App.BotProfile.photoChange)
-            }
-            .buttonStyle(.bordered)
-            .accessibilityIdentifier("hermie.botSettings.photo")
-
-            if row?.bot.hasAvatar == true {
-              Button(Strings.App.BotProfile.photoRemove, role: .destructive) {
-                Task { await model.clearAvatar() }
-              }
-              .buttonStyle(.bordered)
-              .accessibilityIdentifier("hermie.botSettings.photo.remove")
-            }
-          }
-          .disabled(model.busy.contains(.avatar))
-        }
 
         if model.busy.contains(.avatar) {
           ProgressView()
@@ -75,11 +58,57 @@ struct BotHeaderSection: View {
       .frame(maxWidth: .infinity)
     }
     .listRowBackground(Color.clear)
+    .photosPicker(isPresented: $photoPickerShown, selection: $photoItem, matching: .images)
     .onChange(of: photoItem) { _, item in
       guard let item else { return }
 
       photoItem = nil
       Task { await upload(item) }
+    }
+  }
+
+  /// The picture: a plain image where it cannot be changed, otherwise a menu button with a small
+  /// camera badge so it reads as tappable.
+  @ViewBuilder
+  private func avatarControl(name: String, row: ChatListRow?) -> some View {
+    let avatar = BotAvatar(name: name, avatar: row?.avatar, size: 96, accent: session.arrangement.accent(chat.bot))
+
+    if editable {
+      let hasPhoto = row?.bot.hasAvatar == true
+
+      Menu {
+        Button(hasPhoto ? Strings.App.BotProfile.photoReplace : Strings.App.BotProfile.photoChange, systemImage: "photo") {
+          photoPickerShown = true
+        }
+        .accessibilityIdentifier("hermie.botSettings.photo")
+
+        if hasPhoto {
+          Button(Strings.App.BotProfile.photoRemove, systemImage: "trash", role: .destructive) {
+            Task { await model.clearAvatar() }
+          }
+          .accessibilityIdentifier("hermie.botSettings.photo.remove")
+        }
+      } label: {
+        avatar
+          .overlay(alignment: .bottomTrailing) {
+            Image(systemName: "camera.fill")
+              .font(.footnote.weight(.semibold))
+              .foregroundStyle(.white)
+              .frame(width: 30, height: 30)
+              .background(Color.accentColor, in: .circle)
+              .overlay { Circle().strokeBorder(.background, lineWidth: 2) }
+              .accessibilityHidden(true)
+          }
+          .contentShape(.circle)
+      }
+      .menuStyle(.button)
+      .buttonStyle(.plain)
+      .menuIndicator(.hidden)
+      .disabled(model.busy.contains(.avatar))
+      .accessibilityLabel(NativeStrings.BotSettings.photoMenu)
+      .accessibilityIdentifier("hermie.botSettings.photo.menu")
+    } else {
+      avatar
     }
   }
 
