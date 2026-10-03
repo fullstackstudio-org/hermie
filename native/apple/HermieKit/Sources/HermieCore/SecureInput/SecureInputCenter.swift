@@ -402,7 +402,10 @@ public final class SecureInputCenter {
 
   private func deliver(_ id: String, _ result: ValueResult) async -> Bool {
     guard let handle = handles[id] else {
-      phases[id] = .failed
+      // Only an open prompt has a phase; a closed id keeps none.
+      if isOpen(id) {
+        phases[id] = .failed
+      }
       return false
     }
 
@@ -759,6 +762,11 @@ public final class SecureInputCenter {
   /// One first seen at or after `askedAt` (the shared clock's reading just
   /// before the call went out) is kept: the gateway may have raised it after it
   /// took the list.
+  ///
+  /// The same withdrawal may also reach `withdraw` first, as a `request.cancel`
+  /// the connection's own replay (`completeReplay`) hands the live event stream,
+  /// or one in the store's replay. Whichever comes first sets the notice
+  /// (`.expired` / `.withdrawn` or `.lapsed`); the other finds nothing open.
   func reconcile(session sessionID: String, open ids: [String], askedAt: Duration) {
     guard !isShutDown, !sessionID.isEmpty else {
       return
