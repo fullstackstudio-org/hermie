@@ -27,7 +27,7 @@ import { snapshotForCache, stateFromCache } from './cache'
 import { reconcile, reconcileTail } from './reconcile'
 import { applyEvent, applyResumeSnapshot, beginLocalTurn, confirmSubmit, type TranscriptEvent } from './reducer'
 import { rowsToItems, type TranscriptRow } from './rows-to-items'
-import { type AssistantItem, type ChatState, createChatState, type TranscriptItem } from './types'
+import { type AssistantItem, type ChatState, createChatState, type ToolItem, type TranscriptItem } from './types'
 
 const NOW = 1_790_000_000_000
 const LATER = NOW + 120_000
@@ -82,6 +82,18 @@ const ROWS: TranscriptRow[] = [
 
 const apply = (state: ChatState, events: readonly TranscriptEvent[], now = NOW) =>
   events.reduce((next, event) => applyEvent(next, event, now), state)
+
+/** What a chat opened again paints first: the transcript it cached, with the watermark it was taken at. */
+const fromCache = (state: ChatState) =>
+  stateFromCache(
+    'boekhouder',
+    { storedSessionId: 'stored-1', resolvedSessionId: 'resolved-1' },
+    snapshotForCache({ ...state, lastSeqSessionId: 'runtime-1' }, NOW)
+  )
+
+/** Opened again from what `away` cached: history first, then every frame after the cached watermark. */
+const reopen = (away: ChatState, rows: TranscriptRow[], replay: readonly TranscriptEvent[]) =>
+  apply(reconcile(fromCache(away), rowsToItems(rows, 'rpc')), replay, LATER)
 
 describe('a chat opened from the cache it saved mid-turn', () => {
   /**
@@ -160,17 +172,17 @@ describe('a history reload after the notes streamed live', () => {
 })
 
 describe('a replay that lands on rows a reload already brought', () => {
+  /** Away right after the turn started: nothing of it is cached but the watermark. */
+  const started = () => apply(sentTurn(), [{ type: 'message.start', seq: 1 }])
+
   it('settles a replayed note onto its row instead of beside it', () => {
-    const loaded = reconcile(sentTurn(), rowsToItems(ROWS.slice(0, 4), 'rpc'))
-    const replayed = apply(loaded, [{ type: 'message.start', seq: 1 }, ...round(2, FIRST, 'call_1')])
+    const replayed = reopen(started(), ROWS.slice(0, 4), round(2, FIRST, 'call_1'))
 
     expect(shown(replayed)).toEqual([FIRST, SECOND])
   })
 
   it('settles a note that arrives with no streamed words first', () => {
-    const loaded = reconcile(sentTurn(), rowsToItems(ROWS.slice(0, 2), 'rpc'))
-    const replayed = apply(loaded, [
-      { type: 'message.start', seq: 1 },
+    const replayed = reopen(started(), ROWS.slice(0, 2), [
       { type: 'message.interim', seq: 2, payload: { text: FIRST, already_streamed: false } }
     ])
 
@@ -178,15 +190,20 @@ describe('a replay that lands on rows a reload already brought', () => {
   })
 
   it('carries the thought the replay rebuilt onto the row that had none', () => {
-    const loaded = reconcile(sentTurn(), rowsToItems(ROWS.slice(0, 2), 'rpc'))
-    const replayed = apply(loaded, [
-      { type: 'message.start', seq: 1 },
+    const replayed = reopen(started(), ROWS.slice(0, 2), [
       { type: 'reasoning.delta', seq: 2, payload: { text: 'Check the ledger first.' } },
       ...round(3, FIRST, 'call_1')
     ])
 
     expect(assistants(replayed)).toHaveLength(1)
-    expect(assistants(replayed)[0]).toMatchObject({ rowId: 2, reasoning: 'Check the ledger first.' })
+    expect(assistants(replayed)[0]).toMatchObject({ rowId: 2, reasoning: 'Check the ledger first.', seenLive: true })
+  })
+
+  it('leaves the row its own duration rather than one timed off the replay', () => {
+    const replayed = reopen(apply(sentTurn(), []), ROWS, TURN)
+
+    expect(assistants(replayed).at(-1)).toMatchObject({ rowId: 6, status: 'complete' })
+    expect(assistants(replayed).at(-1)?.durationS).toBeUndefined()
   })
 })
 
@@ -380,5 +397,302 @@ describe('a resume while the turn has written its notes', () => {
     )
 
     expect(shown(resumed)).toEqual([FIRST, SECOND])
+  })
+})
+
+/**
+ * A tool call id is not unique in a transcript. The fork says so itself
+ * (`conversation_compression_reply_anchor.py`): llama.cpp emits one constant id,
+ * other providers reuse `call_0` every turn, and `deterministic_call_id` repeats
+ * whenever the same call does. A card for one call must never stand in for
+ * another call that happens to carry its id.
+ */
+describe('a tool call id used again', () => {
+  const call = (seq: number, toolId: string, result: string): TranscriptEvent[] => [
+    { type: 'tool.start', seq, payload: { tool_id: toolId, name: 'terminal', context: result } },
+    { type: 'tool.complete', seq: seq + 1, payload: { tool_id: toolId, name: 'terminal', result } }
+  ]
+  const cards = (state: ChatState) =>
+    list(state)
+      .filter((item): item is ToolItem => item.kind === 'tool')
+      .map(item => `${item.toolId}=${String(item.result)}`)
+
+  /** Turn one calls `call_0`, and so does turn two. */
+  function twoTurns(start: ChatState = fresh()): ChatState {
+    const first = apply(confirmSubmit(beginLocalTurn(start, 'one', undefined, NOW), { status: 'streaming' }, NOW), [
+      { type: 'message.start', seq: 1 },
+      ...call(2, 'call_0', 'first'),
+      { type: 'message.complete', seq: 4, payload: { text: 'One done.' } }
+    ])
+
+    return apply(confirmSubmit(beginLocalTurn(first, 'two', undefined, NOW), { status: 'streaming' }, NOW), [
+      { type: 'message.start', seq: 5 },
+      ...call(6, 'call_0', 'second'),
+      { type: 'message.complete', seq: 8, payload: { text: 'Two done.' } }
+    ])
+  }
+
+  it('gives a later turn its own card, and its result lands on that card', () => {
+    expect(cards(twoTurns())).toEqual(['call_0=first', 'call_0=second'])
+    expect(kinds(twoTurns())).toEqual(['user', 'tool:call_0', 'assistant', 'user', 'tool:call_0', 'assistant'])
+  })
+
+  it('does the same in a chat opened from its cache', () => {
+    const reopened = reconcile(
+      fromCache(fresh()),
+      rowsToItems(
+        [
+          { role: 'user', row_id: 1, text: 'zero' },
+          { role: 'assistant', row_id: 2, text: 'Zero.' }
+        ],
+        'rpc'
+      )
+    )
+
+    expect(cards(twoTurns(reopened))).toEqual(['call_0=first', 'call_0=second'])
+  })
+
+  it('gives a second call with the same id in one turn a card of its own', () => {
+    const state = apply(sentTurn('twice'), [
+      { type: 'message.start', seq: 1 },
+      ...call(2, 'call_0', 'first'),
+      ...call(4, 'call_0', 'second')
+    ])
+
+    expect(cards(state)).toEqual(['call_0=first', 'call_0=second'])
+  })
+
+  it('pairs each card with its own row on a reload, turn by turn', () => {
+    const live = twoTurns()
+    const rows: TranscriptRow[] = [
+      { role: 'user', row_id: 1, text: 'one' },
+      { role: 'tool', name: 'terminal', tool_call_id: 'call_0' },
+      { role: 'assistant', row_id: 3, text: 'One done.' },
+      { role: 'user', row_id: 4, text: 'two' },
+      { role: 'tool', name: 'terminal', tool_call_id: 'call_0' },
+      { role: 'assistant', row_id: 6, text: 'Two done.' }
+    ]
+    const reloaded = reconcile(live, rowsToItems(rows, 'rpc'))
+
+    expect(cards(reloaded)).toEqual(['call_0=first', 'call_0=second'])
+    expect(list(reloaded).map(item => item.id)).toEqual(list(live).map(item => item.id))
+  })
+
+  it('pairs a tail row with the card of its own turn', () => {
+    const live = twoTurns()
+    const tailed = reconcileTail(
+      live,
+      rowsToItems(
+        [
+          { role: 'user', id: 4, content: 'two' },
+          { role: 'tool', id: 5, name: 'terminal', tool_call_id: 'call_0' },
+          { role: 'assistant', id: 6, content: 'Two done.' }
+        ],
+        'rest'
+      )
+    )
+
+    expect(cards(tailed)).toEqual(['call_0=first', 'call_0=second'])
+    expect(list(tailed).filter(item => item.kind === 'tool')).toHaveLength(2)
+    expect(list(tailed).find(item => item.kind === 'tool' && item.rowId === 5)?.id).toBe(list(live)[4]?.id)
+  })
+
+  it('replays reused ids onto the cards history holds, one each, in order', () => {
+    const rows: TranscriptRow[] = [
+      { role: 'user', row_id: 1, text: PROMPT },
+      { role: 'assistant', row_id: 2, text: FIRST },
+      { role: 'tool', name: 'terminal', context: 'first', tool_call_id: 'call_0' },
+      { role: 'tool', name: 'terminal', context: 'second', tool_call_id: 'call_0' },
+      { role: 'assistant', row_id: 5, text: FINAL }
+    ]
+    const replayed = reopen(apply(sentTurn(), [{ type: 'message.start', seq: 1 }]), rows, [
+      { type: 'message.delta', seq: 2, payload: { text: FIRST } },
+      { type: 'message.interim', seq: 3, payload: { text: FIRST, already_streamed: true } },
+      ...call(4, 'call_0', 'first'),
+      ...call(6, 'call_0', 'second'),
+      { type: 'message.complete', seq: 8, payload: { text: FINAL } }
+    ])
+
+    expect(cards(replayed)).toEqual(['call_0=first', 'call_0=second'])
+    expect(shown(replayed)).toEqual([FIRST, FINAL])
+  })
+})
+
+describe('a reply that says what the last note said', () => {
+  const SAME = 'Ik controleer het nog één keer.'
+
+  it('keeps its own bubble live, after a tail made the note a row', () => {
+    const noted = apply(sentTurn(), [
+      { type: 'message.start', seq: 1 },
+      { type: 'message.delta', seq: 2, payload: { text: SAME } },
+      { type: 'message.interim', seq: 3, payload: { text: SAME, already_streamed: true } }
+    ])
+    const tailed = reconcileTail(
+      noted,
+      rowsToItems(
+        [
+          { role: 'user', id: 1, content: PROMPT },
+          { role: 'assistant', id: 2, content: SAME }
+        ],
+        'rest'
+      )
+    )
+    const done = apply(tailed, [
+      { type: 'message.delta', seq: 4, payload: { text: SAME } },
+      { type: 'message.complete', seq: 5, payload: { text: SAME } }
+    ])
+
+    expect(shown(done)).toEqual([SAME, SAME])
+  })
+
+  it('keeps its own bubble in a chat opened from its cache', () => {
+    const noted = reopen(
+      apply(sentTurn(), [{ type: 'message.start', seq: 1 }]),
+      [
+        { role: 'user', row_id: 1, text: PROMPT },
+        { role: 'assistant', row_id: 2, text: SAME }
+      ],
+      [
+        { type: 'message.delta', seq: 2, payload: { text: SAME } },
+        { type: 'message.interim', seq: 3, payload: { text: SAME, already_streamed: true } }
+      ]
+    )
+    const done = apply(noted, [
+      { type: 'message.delta', seq: 4, payload: { text: SAME } },
+      { type: 'message.complete', seq: 5, payload: { text: SAME } }
+    ])
+
+    expect(shown(done)).toEqual([SAME, SAME])
+    expect(assistants(done).map(item => item.rowId)).toEqual([2, undefined])
+  })
+
+  it('settles each onto its own row when both are history already', () => {
+    const replayed = reopen(
+      apply(sentTurn(), [{ type: 'message.start', seq: 1 }]),
+      [
+        { role: 'user', row_id: 1, text: PROMPT },
+        { role: 'assistant', row_id: 2, text: SAME },
+        { role: 'assistant', row_id: 3, text: SAME }
+      ],
+      [
+        { type: 'message.delta', seq: 2, payload: { text: SAME } },
+        { type: 'message.interim', seq: 3, payload: { text: SAME, already_streamed: true } },
+        { type: 'message.delta', seq: 4, payload: { text: SAME } },
+        { type: 'message.complete', seq: 5, payload: { text: SAME } }
+      ]
+    )
+
+    expect(assistants(replayed).map(item => item.rowId)).toEqual([2, 3])
+  })
+})
+
+describe('a replay that runs into the next turn', () => {
+  const NEXT = 'en nu de verkoopkant'
+
+  /**
+   * The app went away after the first note. While it was away the turn finished
+   * and another device sent the next prompt, whose turn writes a note with the
+   * very same words as this turn's second one. History holds both turns; the
+   * replay hands back the rest of this turn, the next `message.start`, and that
+   * turn's frames.
+   */
+  function spanning(): ChatState {
+    const rows: TranscriptRow[] = [
+      ...ROWS,
+      { role: 'user', row_id: 7, text: NEXT, timestamp: 1_790_000_006 },
+      { role: 'assistant', row_id: 8, text: SECOND, timestamp: 1_790_000_007 },
+      { role: 'tool', name: 'terminal', context: 'curl …', tool_call_id: 'call_2', timestamp: 1_790_000_008 },
+      { role: 'assistant', row_id: 10, text: 'Klaar.', timestamp: 1_790_000_009 }
+    ]
+
+    return reopen(apply(sentTurn(), TURN.slice(0, 5)), rows, [
+      ...TURN.slice(5),
+      { type: 'message.start', seq: 12 },
+      ...round(13, SECOND, 'call_2'),
+      { type: 'message.delta', seq: 17, payload: { text: 'Klaar.' } },
+      { type: 'message.complete', seq: 18, payload: { text: 'Klaar.' } }
+    ])
+  }
+
+  it('settles every frame onto a row of its own turn', () => {
+    const state = spanning()
+
+    expect(shown(state)).toEqual([FIRST, SECOND, FINAL, SECOND, 'Klaar.'])
+    expect(assistants(state).map(item => item.rowId)).toEqual([2, 4, 6, 8, 10])
+    expect(tools(state)).toHaveLength(3)
+  })
+
+  it('stands no placeholder in for a prompt history already holds', () => {
+    const users = list(spanning()).filter(item => item.kind === 'user')
+
+    expect(users.map(item => (item.kind === 'user' ? item.text : ''))).toEqual([PROMPT, NEXT])
+  })
+})
+
+describe('a turn /retry starts', () => {
+  it('puts its note under its own placeholder, not into the turn it repeats', () => {
+    const done = reopen(apply(sentTurn(), [{ type: 'message.start', seq: 1 }]), ROWS, TURN.slice(1))
+    // `/retry` runs the turn again with no local submit: a foreign start.
+    const retried = apply(done, [
+      { type: 'message.start', seq: 20 },
+      { type: 'message.delta', seq: 21, payload: { text: FIRST } },
+      { type: 'message.interim', seq: 22, payload: { text: FIRST, already_streamed: true } }
+    ])
+
+    expect(shown(retried)).toEqual([FIRST, SECOND, FINAL, FIRST])
+    expect(list(retried).filter(item => item.kind === 'user' && item.unknownAuthor)).toHaveLength(1)
+    expect(assistants(retried).at(-1)?.interim).toBe(true)
+    expect(assistants(retried).at(-1)?.rowId).toBeUndefined()
+  })
+})
+
+describe('a second note with the same words, after the first was settled', () => {
+  const CHECKING = 'Checking.'
+
+  /** The first note's row came with history and the replay settled onto it. */
+  function settled(): ChatState {
+    return reopen(
+      apply(sentTurn('check both'), [{ type: 'message.start', seq: 1 }]),
+      [
+        { role: 'user', row_id: 1, text: 'check both' },
+        { role: 'assistant', row_id: 2, text: CHECKING },
+        { role: 'tool', name: 'terminal', tool_call_id: 'call_a' }
+      ],
+      [
+        { type: 'message.delta', seq: 2, payload: { text: CHECKING } },
+        { type: 'message.interim', seq: 3, payload: { text: CHECKING, already_streamed: true } },
+        { type: 'tool.start', seq: 4, payload: { tool_id: 'call_a', name: 'terminal' } },
+        { type: 'tool.complete', seq: 5, payload: { tool_id: 'call_a', name: 'terminal' } },
+        // The second, sealed by its call; the gateway sends no interim for words it delivered.
+        { type: 'message.delta', seq: 6, payload: { text: CHECKING } },
+        { type: 'tool.start', seq: 7, payload: { tool_id: 'call_b', name: 'terminal' } }
+      ]
+    )
+  }
+
+  it('marks the settled row as described', () => {
+    expect(assistants(settled())[0]).toMatchObject({ id: 'r:2', seenLive: true })
+  })
+
+  it('is not folded into the settled row by a tail that has not reached its own', () => {
+    const tailed = reconcileTail(settled(), rowsToItems([{ role: 'assistant', id: 2, content: CHECKING }], 'rest'))
+
+    expect(shown(tailed)).toEqual([CHECKING, CHECKING])
+  })
+
+  it('is not folded into it by a reload that has not reached its own either', () => {
+    const reloaded = reconcile(
+      settled(),
+      rowsToItems(
+        [
+          { role: 'user', row_id: 1, text: 'check both' },
+          { role: 'assistant', row_id: 2, text: CHECKING },
+          { role: 'tool', name: 'terminal', tool_call_id: 'call_a' }
+        ],
+        'rpc'
+      )
+    )
+
+    expect(shown(reloaded)).toEqual([CHECKING, CHECKING])
   })
 })

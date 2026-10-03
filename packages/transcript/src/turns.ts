@@ -15,6 +15,11 @@
  * turn (`_delivered_interim_texts`, reset per user turn), while two turns are free
  * to say "On it." each. So everything here is scoped to the turn an item belongs
  * to, and nothing pairs across a prompt.
+ *
+ * One row is described by the stream at most once. `seenLive` marks a row the
+ * stream has described although nothing in its id says so (the reducer settled a
+ * replayed frame onto it, or a fold put a live copy into it); a row that took
+ * over a live item's id says it by the id (`isDescribed`).
  */
 import { isInjectedNotice } from './injected'
 import { isMatchable, normalizeMatchText } from './rows-to-items'
@@ -44,22 +49,54 @@ export function sameWords(a: string, b: string): boolean {
   return left !== '' && left === normalizeMatchText(b)
 }
 
-/**
- * Whether a persisted item came from a projection that had no live item for it.
- *
- * `reconcile` and `reconcileTail` keep the LIVE item's id when they pair it with
- * its row, so a persisted item whose id is still the projection's own `r:<row>`
- * was never anybody's live bubble. That is the one row a stray live copy may be
- * folded into: a row that already took over a live bubble was that bubble's
- * row, and a second live item with the same words beside it is a second message
- * (one whose row has not arrived yet), not a copy.
- */
-export const fromHistoryOnly = (item: TranscriptItem): boolean =>
-  item.rowId !== undefined && item.id === `r:${item.rowId}`
-
 /** Tool-like items: the calls a turn's notes stand between. */
-const isCall = (item: TranscriptItem): boolean =>
+export const isCall = (item: TranscriptItem): boolean =>
   item.kind === 'tool' || item.kind === 'bot_dm_out' || item.kind === 'subagent_group'
+
+/**
+ * Whether the live stream has described this item.
+ *
+ * - Anything the stream or the reader made and no row has replaced yet (`live`,
+ *   `optimistic`, `inflight`, `foreign`) has been.
+ * - A row marked `seenLive` has been: a replayed frame settled onto it, or a fold
+ *   put a live copy into it.
+ * - A message row whose id is not the projection's own `r:<row>` has been:
+ *   `reconcile` and `reconcileTail` keep the LIVE item's id when they pair it
+ *   with its row. Calls are named by their tool id either way, so a call says it
+ *   only through `seenLive`, which the reconcilers set when a live card meets its
+ *   row.
+ *
+ * A row that has been described is never described a second time: a second live
+ * item with the same words, or the same reused tool id, beside it is a second
+ * message whose row has not arrived yet.
+ */
+export function isDescribed(item: TranscriptItem): boolean {
+  if (item.seenLive) {
+    return true
+  }
+
+  if (item.rowId === undefined) {
+    return item.origin !== 'history'
+  }
+
+  return !isCall(item) && item.id !== `r:${item.rowId}`
+}
+
+/** A persisted row the stream has not described yet: the only kind a second description may settle onto. */
+export const isClaimableRow = (item: TranscriptItem): boolean => item.rowId !== undefined && !isDescribed(item)
+
+/**
+ * Whether an item can say where the live stream has got to.
+ *
+ * Status lines, questions and the client's own notices are written beside the
+ * conversation rather than by the turn, and a settled question is put back at
+ * the moment it was asked, so none of them is a place in the stream.
+ */
+export const marksStream = (item: TranscriptItem): boolean =>
+  item.kind !== 'status' &&
+  item.kind !== 'approval' &&
+  item.kind !== 'clarify' &&
+  (item.kind !== 'notice' || isInjectedNotice(item))
 
 /** Whether an item is settled transcript rather than something a stream is still building. */
 const isSettled = (item: TranscriptItem): boolean => item.rowId !== undefined || item.origin === 'history'
@@ -90,7 +127,7 @@ export const isLiveCopyCandidate = (item: TranscriptItem, activeId: string | und
  *
  * Conservative on purpose, because the same words can be two messages:
  *
- * - Only a row that came from history alone can take a copy (`fromHistoryOnly`).
+ * - Only a row the stream has not described can take a copy (`isClaimableRow`).
  *   A row that already absorbed a live bubble has its live description.
  * - A sealed note (`interim`) pairs with any such row of its turn: the gateway
  *   never sends one interim text twice in a turn.
@@ -108,7 +145,7 @@ export function foldLiveCopies(list: readonly TranscriptItem[], activeId: string
     for (let index = from; index < to; index += 1) {
       const item = list[index]
 
-      if (item?.kind === 'assistant' && fromHistoryOnly(item)) {
+      if (item?.kind === 'assistant' && isClaimableRow(item)) {
         rows.push(index)
       }
     }
@@ -129,7 +166,7 @@ export function foldLiveCopies(list: readonly TranscriptItem[], activeId: string
       }
 
       if (item.kind === 'assistant' && isSettled(item)) {
-        reply = fromHistoryOnly(item) ? index : undefined
+        reply = isClaimableRow(item) ? index : undefined
         break
       }
     }
@@ -175,7 +212,7 @@ export function foldLiveCopies(list: readonly TranscriptItem[], activeId: string
 
 /**
  * The row, with whatever only the live copy knew: history carries no duration,
- * no usage, and on older gateways no reasoning.
+ * no usage, and on older gateways no reasoning. It is marked as described.
  */
 export function carryLiveKnowledge(row: AssistantItem, live: AssistantItem): AssistantItem {
   const reasoning = row.reasoning ?? live.reasoning
@@ -189,6 +226,7 @@ export function carryLiveKnowledge(row: AssistantItem, live: AssistantItem): Ass
     ...(reasoningVerbose !== undefined ? { reasoningVerbose } : {}),
     ...(durationS !== undefined ? { durationS } : {}),
     ...(usage !== undefined ? { usage } : {}),
+    seenLive: true,
     version: row.version + 1
   }
 }

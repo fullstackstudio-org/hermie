@@ -72,12 +72,17 @@ A note the bot writes between tool calls has no id in common with its row
 either: the gateway streams it, writes the row, and only then sends
 `message.interim` with the words alone. A chat opened from a cache saved
 mid-turn reads history and then replays the frames after its watermark, so the
-same note arrives as a row AND as frames. `turns.ts` pairs the two on their
-words, but only inside one turn (the gateway never sends one interim text twice
-in a turn, while two turns may say the same thing), and only onto a row no live
-bubble has claimed yet. `duplicate-interims.test.ts` and the `interim-reopen`
-stream scenario pin it, including the two messages that really are the same
-words.
+same note arrives as a row AND as frames. The reducer settles such a frame onto
+its row only on a chat that has that kind of watermark (`lastSeenRowId`, which
+the cache restores), only onto a row newer than it, only inside the turn the
+stream is in (after the last thing it described, up to the next prompt;
+`message.start` moves it on), and only onto a row nothing has described yet
+(`isDescribed` in `turns.ts`, with `seenLive` marking a row whose id does not say
+so). A note pairs on its words (the gateway never sends one interim text twice
+in a turn), a call on its tool id inside that turn (ids are reused across and
+within turns). `duplicate-interims.test.ts` and the `interim-reopen` stream
+scenario pin it, including the messages that really are the same words and the
+calls that really share an id.
 
 Two rules the reducer never breaks:
 

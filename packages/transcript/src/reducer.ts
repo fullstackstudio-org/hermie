@@ -22,7 +22,7 @@ import {
   type UserRowClass
 } from './rows-to-items'
 import { subagentIdOf, TERMINAL_SUBAGENT_STATUS, toSubagent } from './subagent-progress'
-import { opensTurn, sameWords, unshownTail } from './turns'
+import { isCall, isClaimableRow, isDescribed, marksStream, opensTurn, sameWords, unshownTail } from './turns'
 import type { ErrorSurface, SessionLiveInfo, Usage } from '@hermes/shared/gateway-events'
 import {
   type ApprovalItem,
@@ -431,10 +431,6 @@ function sealAssistantForTool(next: ChatState): void {
   })
 }
 
-/** Tool-like items: the calls a turn's notes stand between. */
-const isCall = (item: TranscriptItem): boolean =>
-  item.kind === 'tool' || item.kind === 'bot_dm_out' || item.kind === 'subagent_group'
-
 /** The ids of the turn now running: everything after the newest item that opened one. */
 function currentTurnIds(next: ChatState): string[] {
   const ids: string[] = []
@@ -458,8 +454,113 @@ function currentTurnIds(next: ChatState): string[] {
 }
 
 /**
+ * Whether the stream's watermark already covers an item: the stream described
+ * it, or it is a row no newer than the newest one the chat held when its
+ * watermark was taken (`lastSeenRowId`, see `ChatState`). The frames a replay
+ * hands back all come after that watermark, so nothing they say is about such a
+ * row.
+ */
+function covered(next: ChatState, item: TranscriptItem): boolean {
+  return (
+    isDescribed(item) ||
+    (item.rowId !== undefined && next.lastSeenRowId !== undefined && item.rowId <= next.lastSeenRowId)
+  )
+}
+
+/**
+ * Where the live stream has got to: the index in `order` of the newest item its
+ * watermark covers, `-1` when it covers nothing on screen yet, or `undefined`
+ * when the chat has no watermark to place rows against.
+ *
+ * Only a chat opened from its cache has one (`lastSeenRowId`, which the cache
+ * restores and which a tail sweep moves on). That is the one way a frame can
+ * arrive after the row it describes: the cache's watermark is older than the
+ * history read in front of the replay. Without it no frame describes a row
+ * already on screen, and nothing is settled onto anything.
+ *
+ * The bubble the stream is filling is left out (and `exclude` with it): it is
+ * standing at the end of the list whatever it turns out to describe.
+ */
+function streamPosition(next: ChatState, exclude: string | undefined): number | undefined {
+  if (next.lastSeenRowId === undefined) {
+    return undefined
+  }
+
+  for (let index = next.order.length - 1; index >= 0; index -= 1) {
+    const id = next.order[index]
+    const item = id ? next.items[id] : undefined
+
+    if (!id || !item || id === next.turn.assistantId || id === exclude || !marksStream(item)) {
+      continue
+    }
+
+    if (covered(next, item)) {
+      return index
+    }
+  }
+
+  return -1
+}
+
+/**
+ * The rows a frame of the live stream can describe: those after the newest item
+ * the stream has described, up to the next prompt.
+ *
+ * A frame belongs to the turn the stream is in, not to whichever turn happens to
+ * be newest on screen. A chat opened from a cache saved mid-turn reads history
+ * first, and history may already hold the NEXT turn too (another device sent
+ * it), so the replayed frames of this turn must find this turn's rows and never
+ * that one's. Frames arrive in the order the rows were written, so each one
+ * describes a row after the last one described. `message.start` is what moves
+ * the stream on to the next prompt (`claimNextPrompt`).
+ *
+ * `undefined` when the chat has no watermark (`streamPosition`): then there is no
+ * turn to place a frame in, and nothing is settled onto anything.
+ */
+function streamSpan(next: ChatState, exclude: string | undefined): string[] | undefined {
+  const position = streamPosition(next, exclude)
+
+  if (position === undefined) {
+    return undefined
+  }
+
+  // Covering nothing yet, the stream is in the first turn on screen: its start
+  // came before the watermark, or `message.start` would have claimed it.
+  const at = position >= 0 ? position : firstPromptIndex(next)
+  const ids: string[] = []
+
+  for (let index = at + 1; index < next.order.length; index += 1) {
+    const id = next.order[index]
+    const item = id ? next.items[id] : undefined
+
+    if (!id || !item) {
+      continue
+    }
+
+    if (opensTurn(item)) {
+      break
+    }
+
+    if (id !== next.turn.assistantId && id !== exclude) {
+      ids.push(id)
+    }
+  }
+
+  return ids
+}
+
+/** The index of the first prompt in `order`, or `-1` when there is none. */
+function firstPromptIndex(next: ChatState): number {
+  return next.order.findIndex(id => {
+    const item = next.items[id]
+
+    return item !== undefined && opensTurn(item)
+  })
+}
+
+/**
  * The row this turn already holds for a note with these words, if the transcript
- * is showing one.
+ * is showing one the stream has not described yet.
  *
  * `message.interim` names no row, and the gateway writes the row BEFORE it sends
  * the frame (`agent/turn_tool_round.py`). So the row can be on screen first: a
@@ -467,13 +568,14 @@ function currentTurnIds(next: ChatState): string[] {
  * frames after its watermark, and a tail can land between the write and the
  * frame. Pairing on the words is safe inside one turn and only there: the
  * gateway never delivers one interim text twice in a turn
- * (`_delivered_interim_texts`), while two turns may both say "On it.".
+ * (`_delivered_interim_texts`), while two turns may both say "On it.". A row a
+ * live bubble already became is never a candidate (`isClaimableRow`).
  */
 function persistedNoteFor(next: ChatState, words: string, exclude: string | undefined): AssistantItem | undefined {
-  for (const id of currentTurnIds(next)) {
+  for (const id of streamSpan(next, exclude) ?? []) {
     const item = next.items[id]
 
-    if (item?.kind === 'assistant' && item.rowId !== undefined && id !== exclude && sameWords(item.text, words)) {
+    if (item?.kind === 'assistant' && isClaimableRow(item) && !covered(next, item) && sameWords(item.text, words)) {
       return item
     }
   }
@@ -482,19 +584,22 @@ function persistedNoteFor(next: ChatState, words: string, exclude: string | unde
 }
 
 /**
- * The row this turn already holds for its REPLY, if the transcript is showing one.
+ * The row this turn already holds for its REPLY, if the transcript is showing one
+ * the stream has not described yet.
  *
- * Narrower than a note on purpose: a reply is the turn's last assistant row, with
- * no call after it. A note that happens to say the same words stands before a
- * call, so it is never mistaken for the reply the turn is finishing with.
+ * Narrower than a note on purpose: a reply is the last assistant row of the
+ * stream's turn, with no call after it. A note that happens to say the same
+ * words stands before a call, and a note the stream already described is not a
+ * candidate at all: a reply that repeats the turn's last note (a stop-gate
+ * continuation does) is a message of its own and keeps its bubble.
  */
 function persistedReplyFor(next: ChatState, words: string, exclude: string | undefined): AssistantItem | undefined {
-  const turn = currentTurnIds(next).filter(id => id !== exclude)
+  const span = streamSpan(next, exclude) ?? []
 
-  for (let index = turn.length - 1; index >= 0; index -= 1) {
-    const item = next.items[turn[index] ?? '']
+  for (let index = span.length - 1; index >= 0; index -= 1) {
+    const item = next.items[span[index] ?? '']
 
-    if (!item || item.kind === 'status') {
+    if (!item || !marksStream(item)) {
       continue
     }
 
@@ -506,16 +611,27 @@ function persistedReplyFor(next: ChatState, words: string, exclude: string | und
       continue
     }
 
-    return item.rowId !== undefined && sameWords(item.text, words) ? item : undefined
+    return isClaimableRow(item) && !covered(next, item) && sameWords(item.text, words) ? item : undefined
   }
 
   return undefined
 }
 
+/** Mark a persisted item as described by the stream (`isDescribed`). */
+function markSeen(next: ChatState, id: string): void {
+  if (next.items[id]?.seenLive) {
+    return
+  }
+
+  patchItem(next, id, draft => {
+    draft.seenLive = true
+  })
+}
+
 /**
  * Fold a live bubble into the row that already describes it, keeping what only
  * the stream knew: history carries no duration and no usage, and on older
- * gateways no reasoning.
+ * gateways no reasoning. The row is marked as described.
  */
 function settleOntoRow(next: ChatState, liveId: string, rowItemId: string): void {
   const live = next.items[liveId]
@@ -540,6 +656,8 @@ function settleOntoRow(next: ChatState, liveId: string, rowItemId: string): void
     if (draft.usage === undefined && live.usage !== undefined) {
       draft.usage = live.usage
     }
+
+    draft.seenLive = true
   })
   dropItem(next, liveId)
 
@@ -552,32 +670,56 @@ function settleOntoRow(next: ChatState, liveId: string, rowItemId: string): void
   }
 }
 
+/** The tool id a call item is named by. */
+const callIdOf = (item: TranscriptItem): string | undefined =>
+  item.kind === 'tool' || item.kind === 'bot_dm_out' || item.kind === 'subagent_group' ? item.toolId : undefined
+
 /**
- * A `tool.start` for a call the transcript already holds.
+ * A `tool.start` for a call the stream's turn already holds as a row.
  *
  * That is a replay: a chat opened from a cache saved mid-turn reads history, then
  * gets every frame after its watermark again, and the call's row is already on
  * screen. A second card for it would stand beside the first, and the words the
  * replay streamed in front of it are the note history already put right above
- * that call, so they settle onto it. Anything else in the bubble is sealed the
- * ordinary way.
+ * that call, so they settle onto it.
+ *
+ * A tool id alone does not say that. It is not unique in a transcript: llama.cpp
+ * sends one constant id, other providers reuse `call_0` every turn, and a
+ * deterministic id repeats whenever the same call does. So the card must be in
+ * the stream's turn, after everything the stream has described, and not
+ * described itself — which a card this stream started already is. Anything else
+ * is a new call, and `false` sends it to a card of its own.
  */
-function settleReplayedCall(next: ChatState, callId: string): void {
+function claimReplayedCall(next: ChatState, toolId: string): boolean {
+  const span = streamSpan(next, undefined)
+  const cardId = span?.find(id => {
+    const item = next.items[id]
+
+    return item !== undefined && callIdOf(item) === toolId && !covered(next, item)
+  })
+
+  if (!span || !cardId) {
+    return false
+  }
+
   const id = next.turn.assistantId
   const bubble = id ? next.items[id] : undefined
 
   if (bubble?.kind === 'assistant' && bubble.rowId === undefined) {
-    for (let index = next.order.indexOf(callId) - 1; index >= 0; index -= 1) {
-      const item = next.items[next.order[index] ?? '']
+    for (let index = span.indexOf(cardId) - 1; index >= 0; index -= 1) {
+      const item = next.items[span[index] ?? '']
 
-      if (!item || item.kind === 'status' || isCall(item)) {
+      if (!item || !marksStream(item) || isCall(item)) {
         continue
       }
 
-      if (item.kind === 'assistant' && item.id !== bubble.id && sameWords(item.text, bubble.text)) {
+      if (
+        item.kind === 'assistant' &&
+        isClaimableRow(item) &&
+        !covered(next, item) &&
+        sameWords(item.text, bubble.text)
+      ) {
         settleOntoRow(next, bubble.id, item.id)
-
-        return
       }
 
       break
@@ -585,6 +727,38 @@ function settleReplayedCall(next: ChatState, callId: string): void {
   }
 
   sealAssistantForTool(next)
+  markSeen(next, cardId)
+  next.byToolId[toolId] = cardId
+
+  return true
+}
+
+/**
+ * The prompt a `message.start` opens, when history already holds it.
+ *
+ * The next prompt after where the stream has got to, if the stream has not
+ * described it: the turn of a chat reopened from its cache whose start the
+ * replay hands back, or a turn another device sent while this one was away.
+ * Standing a placeholder in for its author would draw an empty bubble under a
+ * prompt that is right there, and leave the turn's frames nothing to describe.
+ */
+function claimNextPrompt(next: ChatState): string | undefined {
+  const at = streamPosition(next, undefined)
+
+  if (at === undefined) {
+    return undefined
+  }
+
+  for (let index = at + 1; index < next.order.length; index += 1) {
+    const id = next.order[index]
+    const item = id ? next.items[id] : undefined
+
+    if (id && item && opensTurn(item)) {
+      return covered(next, item) ? undefined : id
+    }
+  }
+
+  return undefined
 }
 
 function cancelOpenRequests(next: ChatState, reason: string): void {
@@ -716,12 +890,17 @@ export function applyEvent(state: ChatState, event: TranscriptEvent, now: number
         // placeholder in front of the user's own message. A bubble still marked
         // `pending` is a prompt of ours waiting for exactly this frame.
         const parked = firstParkedPromptId(next)
+        const held = parked ? undefined : claimNextPrompt(next)
 
         if (parked) {
           patchItem<UserItem>(next, parked, draft => {
             draft.pending = false
           })
           next.turn.local = true
+        } else if (held) {
+          // The prompt is already on screen (history brought it before this
+          // frame came back): the turn is that one, and nobody needs standing in.
+          markSeen(next, held)
         } else {
           // Nobody local submitted, so this turn belongs to a teammate bot or
           // another surface. Stand a placeholder in for the author until a tail
@@ -860,10 +1039,7 @@ export function applyEvent(state: ChatState, event: TranscriptEvent, now: number
     }
 
     case 'tool.start': {
-      const known = str(payload.tool_id) ? next.byToolId[str(payload.tool_id)] : undefined
-
-      if (known && next.items[known]) {
-        settleReplayedCall(next, known)
+      if (str(payload.tool_id) && claimReplayedCall(next, str(payload.tool_id))) {
         next.turn.draftingTool = undefined
 
         return next
@@ -1164,7 +1340,9 @@ export function applyEvent(state: ChatState, event: TranscriptEvent, now: number
             draft.usage = asUsage(payload.usage)
           }
 
-          if (durationS !== undefined) {
+          // A row keeps its own duration: the clock this turn started on may be
+          // a cache's, or the replay's own, and either would date it wrongly.
+          if (durationS !== undefined && !replyRow) {
             draft.durationS = durationS
           }
         })
@@ -1968,7 +2146,9 @@ export function applyResumeSnapshot(state: ChatState, snapshot: ResumeSnapshot, 
     const earlier = currentTurnIds(next)
       .map(id => next.items[id])
       .filter((item): item is AssistantItem => item?.kind === 'assistant' && item.id !== live?.id)
-    const unshown = unshownTail(assistantText, earlier)
+    // Only for the turn the snapshot describes: without its prompt on screen the
+    // turn above is somebody else's, and its notes are not this reply's.
+    const unshown = overlap.promptShown ? unshownTail(assistantText, earlier) : undefined
     const replyText = unshown ?? assistantText
 
     // Every word of it already a note above: nothing is left to stand up.

@@ -130,6 +130,9 @@ export function stateFromCache(botName: string, ids: SessionIds, snapshot: Cache
 
   if (snapshot.lastRowId !== undefined) {
     state.lastSeenRowId = snapshot.lastRowId
+  } else if (snapshot.lastSeqSessionId) {
+    // A watermark over a chat that held no row yet: every row is newer than it.
+    state.lastSeenRowId = 0
   }
 
   return state

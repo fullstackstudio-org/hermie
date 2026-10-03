@@ -10,7 +10,7 @@
  * Ported from `apps/desktop/src/lib/chat-messages/reconciliation.ts`.
  */
 import { isMatchable, itemMatchKey } from './rows-to-items'
-import { foldLiveCopies, opensTurn } from './turns'
+import { foldLiveCopies, isCall, isDescribed, opensTurn } from './turns'
 import {
   type AssistantItem,
   type BotDmOutItem,
@@ -166,6 +166,15 @@ const isAuthoredRow = opensTurn
 function mergeWithLive(fresh: TranscriptItem, current: TranscriptItem): TranscriptItem {
   const merged = { ...fresh, id: current.id, version: current.version + 1 } as TranscriptItem
 
+  /*
+    A row the stream described stays described. A message row says so by the
+    live id it takes over; a call keeps its tool id either way, so it carries
+    the mark instead, and so does any row the reducer settled a frame onto.
+  */
+  if (current.seenLive || (isCall(current) && isDescribed(current))) {
+    merged.seenLive = true
+  }
+
   if (fresh.kind !== current.kind) {
     return merged
   }
@@ -274,6 +283,50 @@ function inRowOrder(list: readonly TranscriptItem[]): TranscriptItem[] {
   return keyed.sort((a, b) => a.key - b.key || a.index - b.index).map(entry => entry.item)
 }
 
+/**
+ * The turn each item of a list belongs to, numbered by the prompts that open them.
+ */
+function turnNumbers(list: readonly TranscriptItem[]): Map<string, number> {
+  const turns = new Map<string, number>()
+  let turn = 0
+
+  for (const item of list) {
+    if (opensTurn(item)) {
+      turn += 1
+    }
+
+    turns.set(item.id, turn)
+  }
+
+  return turns
+}
+
+/**
+ * The call a fresh row of the given tool id pairs with.
+ *
+ * A tool id is not unique in a transcript (llama.cpp sends one constant id,
+ * other providers reuse `call_0` every turn), so the candidates are every card
+ * with that id, taken in order and each at most once, and only from the turn
+ * the fresh row belongs to when that turn is known: the turn of the item the
+ * nearest fresh row before it paired with.
+ */
+function pickCall(
+  candidates: readonly string[] | undefined,
+  taken: ReadonlySet<string>,
+  turns: ReadonlyMap<string, number>,
+  turn: number | undefined,
+  usable: (id: string) => boolean = () => true
+): string | undefined {
+  return candidates?.find(id => !taken.has(id) && (turn === undefined || turns.get(id) === turn) && usable(id))
+}
+
+/**
+ * The newest row a chat holds, as the watermark `lastSeenRowId` counts it.
+ */
+function newestRowId(list: readonly TranscriptItem[], floor: number): number {
+  return list.reduce((newest, item) => (item.rowId !== undefined && item.rowId > newest ? item.rowId : newest), floor)
+}
+
 function rebuild(state: ChatState, list: readonly TranscriptItem[]): ChatState {
   const next: ChatState = {
     ...state,
@@ -364,8 +417,11 @@ function rebuild(state: ChatState, list: readonly TranscriptItem[]): ChatState {
  */
 export function reconcile(state: ChatState, freshItems: readonly TranscriptItem[]): ChatState {
   const byRowId = new Map<number, string>()
-  const byToolKey = new Map<string, string>()
+  const byToolKey = new Map<string, string[]>()
   const byMatchKey = new Map<string, string[]>()
+  const turns = turnNumbers(
+    state.order.map(id => state.items[id]).filter((item): item is TranscriptItem => Boolean(item))
+  )
 
   for (const id of state.order) {
     const item = state.items[id]
@@ -380,8 +436,8 @@ export function reconcile(state: ChatState, freshItems: readonly TranscriptItem[
 
     const toolKey = toolKeyOf(item)
 
-    if (toolKey && !byToolKey.has(toolKey)) {
-      byToolKey.set(toolKey, id)
+    if (toolKey) {
+      byToolKey.set(toolKey, [...(byToolKey.get(toolKey) ?? []), id])
     }
 
     if (isMatchable(item)) {
@@ -393,6 +449,8 @@ export function reconcile(state: ChatState, freshItems: readonly TranscriptItem[
 
   const used = new Set<string>()
   const merged: TranscriptItem[] = []
+  /** The turn the fresh rows are in, as far as the last one that paired says. */
+  let turn: number | undefined
 
   for (const fresh of freshItems) {
     let matchId = fresh.rowId !== undefined ? byRowId.get(fresh.rowId) : undefined
@@ -400,7 +458,7 @@ export function reconcile(state: ChatState, freshItems: readonly TranscriptItem[
     if (!matchId || used.has(matchId)) {
       const toolKey = toolKeyOf(fresh)
 
-      matchId = toolKey ? byToolKey.get(toolKey) : undefined
+      matchId = toolKey ? pickCall(byToolKey.get(toolKey), used, turns, turn) : undefined
     }
 
     if (!matchId || used.has(matchId)) {
@@ -414,8 +472,14 @@ export function reconcile(state: ChatState, freshItems: readonly TranscriptItem[
     if (current) {
       used.add(current.id)
       merged.push(mergeWithLive(fresh, current))
+      turn = turns.get(current.id)
 
       continue
+    }
+
+    if (opensTurn(fresh)) {
+      // A prompt nothing on screen stands for: a turn of its own, unknown here.
+      turn = undefined
     }
 
     merged.push(fresh)
@@ -452,6 +516,19 @@ export function reconcile(state: ChatState, freshItems: readonly TranscriptItem[
     folded into those rows here, one turn at a time (`foldLiveCopies`).
   */
   const next = rebuild(state, foldLiveCopies(placeByTimestamp([...merged, ...kept], settled), state.turn.assistantId))
+
+  /*
+    The watermark moves on to everything this read brought, except on the read a
+    chat opened from its cache makes before its replay: that replay hands back
+    the frames written after the cache, and the rows they describe are among the
+    ones this read just brought.
+  */
+  if (state.lastSeenRowId !== undefined && state.hydration !== 'cached' && state.hydration !== 'hydrating') {
+    next.lastSeenRowId = newestRowId(
+      next.order.map(id => next.items[id]!),
+      state.lastSeenRowId
+    )
+  }
 
   next.hydration = 'live'
 
@@ -526,6 +603,21 @@ export function reconcileTail(state: ChatState, tailItems: readonly TranscriptIt
   const byId = new Map(list.map(item => [item.id, item]))
   const appended: TranscriptItem[] = []
   let placeholderCursor = 0
+  const turns = turnNumbers(list)
+  /** Every card on screen, by tool id, in order (`pickCall`). */
+  const callsByToolKey = new Map<string, string[]>()
+
+  for (const item of list) {
+    const toolKey = toolKeyOf(item)
+
+    if (toolKey) {
+      callsByToolKey.set(toolKey, [...(callsByToolKey.get(toolKey) ?? []), item.id])
+    }
+  }
+
+  const pairedCalls = new Set<string>()
+  /** The turn the tail's rows are in, as far as the last one that paired says. */
+  let turn: number | undefined
 
   /**
    * The live tail, indexed by what each item says and carries.
@@ -570,17 +662,29 @@ export function reconcileTail(state: ChatState, tailItems: readonly TranscriptIt
 
       if (current) {
         byId.set(current.id, mergeWithLive(fresh, current))
+        turn = turns.get(current.id)
       }
 
       continue
     }
 
+    /*
+      A call is paired by its tool id, which is not unique (`pickCall`): a card
+      still waiting for its row first, in the turn the tail is in, then the card
+      the index names, as long as it is in that turn and this sweep has not
+      paired it already.
+    */
     const toolKey = toolKeyOf(fresh)
-    const toolMatchId = toolKey ? state.byToolId[toolKey] : undefined
+    const toolMatchId = toolKey
+      ? (pickCall(callsByToolKey.get(toolKey), pairedCalls, turns, turn, id => byId.get(id)?.rowId === undefined) ??
+        pickCall(state.byToolId[toolKey] ? [state.byToolId[toolKey]!] : undefined, pairedCalls, turns, turn))
+      : undefined
     const toolMatch = toolMatchId ? byId.get(toolMatchId) : undefined
 
     if (toolMatch) {
+      pairedCalls.add(toolMatch.id)
       byId.set(toolMatch.id, mergeWithLive(fresh, toolMatch))
+      turn = turns.get(toolMatch.id)
 
       continue
     }
@@ -593,6 +697,7 @@ export function reconcileTail(state: ChatState, tailItems: readonly TranscriptIt
     if (liveMatch) {
       pairedLive.add(liveMatch.id)
       byId.set(liveMatch.id, mergeWithLive(fresh, liveMatch))
+      turn = turns.get(liveMatch.id)
 
       if (isAuthoredRow(fresh)) {
         pairedAuthoredRow = true
@@ -620,9 +725,14 @@ export function reconcileTail(state: ChatState, tailItems: readonly TranscriptIt
 
       if (placeholderId && byId.has(placeholderId)) {
         byId.set(placeholderId, { ...fresh, id: placeholderId, version: (byId.get(placeholderId)?.version ?? 0) + 1 })
+        turn = turns.get(placeholderId)
 
         continue
       }
+    }
+
+    if (opensTurn(fresh)) {
+      turn = undefined
     }
 
     appended.push(fresh)
@@ -669,6 +779,15 @@ export function reconcileTail(state: ChatState, tailItems: readonly TranscriptIt
   const next = rebuild(state, foldLiveCopies(inRowOrder(merged), state.turn.assistantId))
 
   next.turn = { ...next.turn, foreignReconcilePending: stillPending ? true : undefined }
+
+  // A tail sweep is the stream catching up: whatever it brought, no replay is
+  // going to describe again (`lastSeenRowId`).
+  if (state.lastSeenRowId !== undefined) {
+    next.lastSeenRowId = newestRowId(
+      next.order.map(id => next.items[id]!),
+      state.lastSeenRowId
+    )
+  }
 
   return next
 }

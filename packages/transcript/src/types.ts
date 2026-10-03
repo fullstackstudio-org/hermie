@@ -43,6 +43,13 @@ export interface ItemBase {
   /** Bumped on every mutation; lets a UI memoize per item and per state cheaply. */
   version: number
   reactions?: ItemReaction[]
+  /**
+   * A persisted row the live stream has described although its id does not say
+   * so: a replayed frame was settled onto it, or a live copy folded into it, or
+   * (for a call, which keeps its tool id either way) a live card met it. Such a
+   * row is never described a second time — see `isDescribed` in `turns.ts`.
+   */
+  seenLive?: true
 }
 
 /**
@@ -469,6 +476,16 @@ export interface ChatState {
   epoch?: string
   hydration: HydrationState
   unreadCount: number
+  /**
+   * The newest row the chat held when its event watermark (`lastSeq`) was taken.
+   *
+   * Set when a chat is opened from its cache, which keeps both. The replay that
+   * follows hands back only frames written after that watermark, so they can
+   * describe rows newer than this one and never an older one. A tail sweep, and
+   * any history read but the one in front of that replay, moves it on to the
+   * newest row it brought. Absent means no frame can describe a row already on
+   * screen, and the reducer settles nothing onto one (`streamPosition`).
+   */
   lastSeenRowId?: number
   draft: string
   compacting?: boolean

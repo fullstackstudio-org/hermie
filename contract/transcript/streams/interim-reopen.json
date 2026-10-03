@@ -942,12 +942,13 @@
               "origin": "history",
               "result": "ok",
               "resultKnown": true,
+              "seenLive": true,
               "seq": 9000,
               "status": "complete",
               "summary": "ledger show 17201",
               "toolId": "tool-167f352a",
               "ts": 1790000000,
-              "version": 1
+              "version": 2
             },
             "presentation": "collapsed"
           },
@@ -958,6 +959,7 @@
               "kind": "assistant",
               "origin": "history",
               "rowId": 12,
+              "seenLive": true,
               "seq": 10000,
               "status": "complete",
               "streaming": false,
@@ -981,12 +983,13 @@
               "origin": "history",
               "result": "ok",
               "resultKnown": true,
+              "seenLive": true,
               "seq": 11000,
               "status": "complete",
               "summary": "payouts get 16-09",
               "toolId": "tool-a2fedc71",
               "ts": 1790000000,
-              "version": 1
+              "version": 2
             },
             "presentation": "collapsed"
           },
@@ -997,6 +1000,7 @@
               "kind": "assistant",
               "origin": "history",
               "rowId": 14,
+              "seenLive": true,
               "seq": 12000,
               "status": "complete",
               "streaming": false,
@@ -1149,6 +1153,7 @@
               "kind": "assistant",
               "origin": "history",
               "rowId": 12,
+              "seenLive": true,
               "seq": 10000,
               "status": "complete",
               "streaming": false,
@@ -1165,6 +1170,7 @@
               "kind": "assistant",
               "origin": "history",
               "rowId": 14,
+              "seenLive": true,
               "seq": 12000,
               "status": "complete",
               "streaming": false,
@@ -1343,12 +1349,13 @@
               "origin": "history",
               "result": "ok",
               "resultKnown": true,
+              "seenLive": true,
               "seq": 9000,
               "status": "complete",
               "summary": "ledger show 17201",
               "toolId": "tool-167f352a",
               "ts": 1790000000,
-              "version": 1
+              "version": 2
             },
             "presentation": "full"
           },
@@ -1359,6 +1366,7 @@
               "kind": "assistant",
               "origin": "history",
               "rowId": 12,
+              "seenLive": true,
               "seq": 10000,
               "status": "complete",
               "streaming": false,
@@ -1382,12 +1390,13 @@
               "origin": "history",
               "result": "ok",
               "resultKnown": true,
+              "seenLive": true,
               "seq": 11000,
               "status": "complete",
               "summary": "payouts get 16-09",
               "toolId": "tool-a2fedc71",
               "ts": 1790000000,
-              "version": 1
+              "version": 2
             },
             "presentation": "full"
           },
@@ -1398,6 +1407,7 @@
               "kind": "assistant",
               "origin": "history",
               "rowId": 14,
+              "seenLive": true,
               "seq": 12000,
               "status": "complete",
               "streaming": false,
@@ -1502,6 +1512,7 @@
         "kind": "assistant",
         "origin": "history",
         "rowId": 12,
+        "seenLive": true,
         "seq": 10000,
         "status": "complete",
         "streaming": false,
@@ -1515,6 +1526,7 @@
         "kind": "assistant",
         "origin": "history",
         "rowId": 14,
+        "seenLive": true,
         "seq": 12000,
         "status": "complete",
         "streaming": false,
@@ -1637,12 +1649,13 @@
         "origin": "history",
         "result": "ok",
         "resultKnown": true,
+        "seenLive": true,
         "seq": 9000,
         "status": "complete",
         "summary": "ledger show 17201",
         "toolId": "tool-167f352a",
         "ts": 1790000000,
-        "version": 1
+        "version": 2
       },
       "t:tool-a2fedc71": {
         "args": {
@@ -1657,12 +1670,13 @@
         "origin": "history",
         "result": "ok",
         "resultKnown": true,
+        "seenLive": true,
         "seq": 11000,
         "status": "complete",
         "summary": "payouts get 16-09",
         "toolId": "tool-a2fedc71",
         "ts": 1790000000,
-        "version": 1
+        "version": 2
       }
     },
     "lastSeenRowId": 6,
