@@ -129,6 +129,127 @@ import Testing
     #expect(follow.following)
   }
 
+  // MARK: Growth the scroll view did not keep
+
+  @Test func growthTheScrollViewDidNotKeepWhileFollowingPutsTheBottomBack() {
+    // The Mac: the reader scrolled once, so the scroll position holds the top row's id, and the
+    // scroll view keeps that row in place as the reply grows. The offset stays; the rows go on
+    // below the composer. The list still means to follow, so the bottom has to be put back.
+    var follow = TranscriptFollow()
+    let bottom = atBottom(content: 2000)
+    let grown = geometry(offset: bottom.offset, content: 2026)
+    #expect(follow.geometryChanged(from: bottom, to: grown, phase: .idle, threshold: threshold) == .restoreBottom)
+    #expect(follow.following)
+
+    // The list's own jump back to the bottom lands, and the next delta is kept by the anchor.
+    follow.commandedBottom()
+    let restored = atBottom(content: 2026)
+    #expect(follow.geometryChanged(from: grown, to: restored, phase: .idle, threshold: threshold) == .none)
+    let kept = atBottom(content: 2052)
+    #expect(follow.geometryChanged(from: restored, to: kept, phase: .idle, threshold: threshold) == .none)
+    #expect(follow.following)
+  }
+
+  @Test func growthTheAnchorKeptNeedsNothing() {
+    var follow = TranscriptFollow()
+    let bottom = atBottom(content: 2000)
+    #expect(follow.geometryChanged(from: bottom, to: atBottom(content: 2300), phase: .idle, threshold: threshold) == .none)
+  }
+
+  @Test func theBottomIsKeptBelowTheComposerToo() {
+    // At rest the visible rect runs past the content by the composer's height (the rows stop
+    // above it): that room is not growth.
+    var follow = TranscriptFollow()
+    let rest = Geometry(offset: 1400, contentHeight: 2000, containerHeight: 600, visibleMaxY: 2046)
+    let kept = Geometry(offset: 1426, contentHeight: 2026, containerHeight: 600, visibleMaxY: 2072)
+    #expect(follow.geometryChanged(from: rest, to: kept, phase: .idle, threshold: threshold) == .none)
+    let notKept = Geometry(offset: 1426, contentHeight: 2046, containerHeight: 600, visibleMaxY: 2072)
+    #expect(follow.geometryChanged(from: kept, to: notKept, phase: .idle, threshold: threshold) == .restoreBottom)
+  }
+
+  @Test func aReaderWhoScrolledUpIsNeverPutBack() {
+    var follow = TranscriptFollow()
+    let bottom = atBottom(content: 2000)
+    let up = geometry(offset: 900, content: 2000)
+    follow.geometryChanged(from: bottom, to: up, phase: .reader, threshold: threshold)
+    #expect(!follow.following)
+    let grown = geometry(offset: 900, content: 2600)
+    #expect(follow.geometryChanged(from: up, to: grown, phase: .idle, threshold: threshold) == .none)
+    #expect(!follow.following)
+  }
+
+  @Test func aReaderBackAtTheBottomIsFollowedAgainThoughTheRowStaysPinned() {
+    // Scrolled up with the trackpad and back down: the position now holds a row's id. The reply
+    // that grows next must still come into view.
+    var follow = TranscriptFollow()
+    let bottom = atBottom(content: 2000)
+    let up = geometry(offset: 900, content: 2000)
+    follow.phaseChanged(to: .reader, atBottom: true)
+    follow.geometryChanged(from: bottom, to: up, phase: .reader, threshold: threshold)
+    let back = atBottom(content: 2000)
+    follow.geometryChanged(from: up, to: back, phase: .reader, threshold: threshold)
+    follow.phaseChanged(to: .idle, atBottom: true)
+    #expect(follow.following)
+    let grown = geometry(offset: back.offset, content: 2040)
+    #expect(follow.geometryChanged(from: back, to: grown, phase: .idle, threshold: threshold) == .restoreBottom)
+  }
+
+  @Test func whileTheReaderScrollsNothingIsPutBack() {
+    var follow = TranscriptFollow()
+    let bottom = atBottom(content: 2000)
+    let grown = geometry(offset: bottom.offset - 10, content: 2030)
+    #expect(follow.geometryChanged(from: bottom, to: grown, phase: .reader, threshold: threshold) == .none)
+    #expect(follow.geometryChanged(from: bottom, to: grown, phase: .animating, threshold: threshold) == .none)
+  }
+
+  @Test func theWheelUpWhileARowGrowsIsTheReaders() {
+    // A notched wheel has no scroll phase; with the wheel monitor its step makes the update the
+    // reader's, so the rows growing in the same update cannot keep the list following.
+    var follow = TranscriptFollow()
+    var wheel = ReaderWheel()
+    wheel.received(.step, at: 10)
+    let phase: TranscriptFollow.Phase = wheel.isActive(at: 10.05) ? .reader : .idle
+    let bottom = atBottom(content: 2000)
+    let upAndGrown = geometry(offset: bottom.offset - 200, content: 2030)
+    follow.geometryChanged(from: bottom, to: upAndGrown, phase: phase, threshold: threshold)
+    #expect(!follow.following)
+  }
+
+  // MARK: The reader's wheel
+
+  @Test func aNotchedWheelCountsForAMomentAfterEachStep() {
+    var wheel = ReaderWheel()
+    #expect(!wheel.isActive(at: 0))
+    wheel.received(.step, at: 1)
+    #expect(wheel.isActive(at: 1.1))
+    #expect(!wheel.isActive(at: 1 + ReaderWheel.grace + 0.01))
+  }
+
+  @Test func aTrackpadGestureCountsUntilItsMomentumEnds() {
+    var wheel = ReaderWheel()
+    wheel.received(.moving, at: 1)
+    #expect(wheel.isActive(at: 5), "a finger resting mid-gesture is still the reader")
+    wheel.received(.ended, at: 5)
+    #expect(wheel.isActive(at: 5.1), "the gap before the momentum")
+    wheel.received(.moving, at: 5.15)
+    wheel.received(.ended, at: 6)
+    #expect(!wheel.isActive(at: 6 + ReaderWheel.grace + 0.01))
+  }
+
+  #if os(macOS)
+    @Test func wheelEventsMapByTheirPhases() {
+      #expect(ReaderWheelMonitor.input(phase: [], momentumPhase: []) == .step)
+      #expect(ReaderWheelMonitor.input(phase: .began, momentumPhase: []) == .moving)
+      #expect(ReaderWheelMonitor.input(phase: .changed, momentumPhase: []) == .moving)
+      #expect(ReaderWheelMonitor.input(phase: .mayBegin, momentumPhase: []) == .moving)
+      #expect(ReaderWheelMonitor.input(phase: .ended, momentumPhase: []) == .ended)
+      #expect(ReaderWheelMonitor.input(phase: .cancelled, momentumPhase: []) == .ended)
+      #expect(ReaderWheelMonitor.input(phase: [], momentumPhase: .began) == .moving)
+      #expect(ReaderWheelMonitor.input(phase: [], momentumPhase: .changed) == .moving)
+      #expect(ReaderWheelMonitor.input(phase: [], momentumPhase: .ended) == .ended)
+    }
+  #endif
+
   // MARK: The row to hold on to
 
   @Test func theNearestRowAfterAGoneAnchorTakesItsPlaceElseTheNearestBefore() {
