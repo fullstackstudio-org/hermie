@@ -7,7 +7,7 @@
  * storage, no request, no React. The modules imported above it only define
  * things; none of them has a side effect at import.
  */
-import { StrictMode, useState, type ReactNode } from 'react'
+import { StrictMode, type ReactNode } from 'react'
 import { createRoot, type Root } from 'react-dom/client'
 
 import { pageBasePath, type ResolvedBasePath } from './boot/base-path'
@@ -18,9 +18,13 @@ import { strings } from './generated/strings'
 import { initLocale } from './i18n/locale'
 import { useLocale } from './i18n/use-locale'
 import { webStrings } from './i18n/web-strings'
-import { Placeholder } from './Placeholder'
-import { chatCacheFor } from './platform/chat-cache'
-import { createKeyValueStore } from './platform/key-value-store'
+import { App } from './features/shell/App'
+import { startSession } from './features/shell/session'
+import { chatCacheFor, type ChatCache } from './platform/chat-cache'
+import { createKeyValueStore, type WebKeyValueStore } from './platform/key-value-store'
+import { bindTheme, settingsStore } from './state/settings'
+import { Button } from './ui/primitives'
+import './ui/theme.css'
 import './ui/base.css'
 
 function Screen({ title, children }: { title?: string; children: ReactNode }) {
@@ -54,32 +58,7 @@ function Probing() {
   )
 }
 
-function SignedIn({ state, onSignOut }: { state: Extract<BootState, { kind: 'signed_in' }>; onSignOut: () => void }) {
-  useLocale()
-  const [leaving, setLeaving] = useState(false)
-  const user = state.identity.displayName || state.identity.email || state.identity.userId
-
-  return (
-    <>
-      <Placeholder />
-      <section className="boot">
-        <p>{user ? strings.app.onboarding.signIn.signedInAs({ user }) : strings.app.onboarding.signIn.signedIn}</p>
-        <button
-          type="button"
-          disabled={leaving}
-          onClick={() => {
-            setLeaving(true)
-            onSignOut()
-          }}
-        >
-          {strings.app.onboarding.signIn.signOutOfSession}
-        </button>
-      </section>
-    </>
-  )
-}
-
-function BootView({ state, onRetry, onSignOut }: { state: BootState; onRetry: () => void; onSignOut: () => void }) {
+function BootView({ state, onRetry }: { state: Exclude<BootState, { kind: 'signed_in' }>; onRetry: () => void }) {
   useLocale()
   const host = new URL(state.basePath.baseUrl).host
 
@@ -88,9 +67,7 @@ function BootView({ state, onRetry, onSignOut }: { state: BootState; onRetry: ()
       return (
         <Screen>
           <p role="alert">{describeBootFailure(state.error, state.basePath.baseUrl)}</p>
-          <button type="button" onClick={onRetry}>
-            {strings.app.common.retry}
-          </button>
+          <Button onClick={onRetry}>{strings.app.common.retry}</Button>
         </Screen>
       )
     case 'token_mode':
@@ -103,13 +80,9 @@ function BootView({ state, onRetry, onSignOut }: { state: BootState; onRetry: ()
       return (
         <Screen title={strings.app.signedOut.title}>
           <p role="alert">{strings.app.signedOut.body({ host })}</p>
-          <button type="button" onClick={() => signIn(state.basePath)}>
-            {strings.app.onboarding.signIn.signOutAndRetry}
-          </button>
+          <Button onClick={() => signIn(state.basePath)}>{strings.app.onboarding.signIn.signOutAndRetry}</Button>
         </Screen>
       )
-    case 'signed_in':
-      return <SignedIn state={state} onSignOut={onSignOut} />
   }
 }
 
@@ -117,28 +90,40 @@ function render(root: Root, view: ReactNode): void {
   root.render(<StrictMode>{view}</StrictMode>)
 }
 
-async function run(root: Root, basePath: ResolvedBasePath): Promise<void> {
-  const store = createKeyValueStore({ namespace: basePath.namespace })
-  const cache = chatCacheFor(basePath.namespace)
-
+async function run(root: Root, basePath: ResolvedBasePath, store: WebKeyValueStore, cache: ChatCache): Promise<void> {
   render(root, <Probing />)
 
   const state = await boot(basePath)
 
-  if (state.kind === 'signed_in') {
-    // Before anything is painted from the cache: it must be this person's.
-    await claimForOwner({ cache, store }, state.author?.id)
+  if (state.kind !== 'signed_in') {
+    render(root, <BootView state={state} onRetry={() => void run(root, basePath, store, cache)} />)
+
+    return
   }
+
+  // Before anything is painted from the cache: it must be this person's.
+  await claimForOwner({ cache, store }, state.author?.id)
+
+  // The connection, the chats on it and the roster's running poll: started once,
+  // here, so no re-render can start a second one.
+  const session = startSession({
+    baseUrl: basePath.baseUrl,
+    credentials: state.session.credentials,
+    author: state.author,
+    storage: store,
+    cache
+  })
 
   render(
     root,
-    <BootView
-      state={state}
-      onRetry={() => void run(root, basePath)}
+    <App
+      user={state.identity.displayName || state.identity.email || state.identity.userId || ''}
+      onSignIn={() => signIn(basePath)}
       onSignOut={() => {
-        if (state.kind === 'signed_in') {
-          void signOut({ basePath, credentials: state.session.credentials, cache, store })
-        }
+        // The order matters: the chats and the socket stop before the gateway's
+        // session is ended, so nothing dials with a session that is going away.
+        session.stop()
+        void signOut({ basePath, credentials: state.session.credentials, cache, store })
       }}
     />
   )
@@ -166,8 +151,15 @@ async function start(): Promise<void> {
     return
   }
 
+  // The device's own choices (scheme, tint) are applied before the first
+  // screen, so a stored dark mode is dark from the first frame.
+  const store = createKeyValueStore({ namespace: basePath.namespace })
+
+  settingsStore.getState().hydrate(store)
+  bindTheme()
+
   restoreRoute(basePath)
-  await run(root, basePath)
+  await run(root, basePath, store, chatCacheFor(basePath.namespace))
 }
 
 void start()
