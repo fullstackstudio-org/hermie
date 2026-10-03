@@ -151,6 +151,39 @@ import Testing
     await roster.shutdown()
   }
 
+  @Test func anAvatarIsKeptOnDiskPaintedOnTheNextLaunchAndReplacedWhenItChanged() async throws {
+    let cache = MemoryChatCache()
+    let keyValues = try KeyValueStore(store: SQLiteStore(.inMemory))
+    let link = ScriptedLink()
+    link.respond(to: RPC.ProfilesList.name, with: ["profiles": [Self.row]])
+    link.respond(to: RPC.ProfilesGetAsset.name, with: ["found": true, "data": "data:image/png;base64,QUJD"])
+    let first = BotRoster(link: link, gatewayID: "g1", cache: cache, keyValues: keyValues)
+
+    _ = try await first.refresh()
+    try await eventually("the avatar on disk") {
+      (try? await keyValues.string(forKey: GatewayNamespace("g1").key("hermie.avatar.researcher"))) != nil
+    }
+    try await eventually("the roster write") { await !cache.readBots().isEmpty }
+    await first.shutdown()
+
+    // The next launch paints it from disk before the gateway has been asked.
+    let later = ScriptedLink()
+    later.respond(to: RPC.ProfilesList.name, with: ["profiles": [Self.row]])
+    later.respond(to: RPC.ProfilesGetAsset.name, with: ["found": true, "data": "data:image/png;base64,REVG"])
+    let second = BotRoster(link: later, gatewayID: "g1", cache: cache, keyValues: keyValues)
+    await second.paintFromCache()
+    #expect(await second.current.avatars["researcher"] == "data:image/png;base64,QUJD")
+    #expect(later.calls(RPC.ProfilesGetAsset.name).isEmpty)
+
+    // And asks once anyway: a changed picture replaces the stored one.
+    _ = try await second.refresh()
+    try await eventually("the new avatar") { await second.current.avatars["researcher"] == "data:image/png;base64,REVG" }
+    try await eventually("the new avatar on disk") {
+      (try? await keyValues.string(forKey: GatewayNamespace("g1").key("hermie.avatar.researcher"))) == "data:image/png;base64,REVG"
+    }
+    await second.shutdown()
+  }
+
   @Test func aBusySessionLightsUpOnlyTheBotThatOwnsIt() async throws {
     let link = ScriptedLink()
     link.respond(to: RPC.ProfilesList.name, with: [

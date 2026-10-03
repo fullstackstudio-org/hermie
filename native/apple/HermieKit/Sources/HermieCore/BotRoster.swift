@@ -9,7 +9,8 @@ import HermieStore
 /// A bot is a Hermes profile. The roster comes from `profiles.list`, is cached
 /// so the list paints on launch, and is re-read on demand, after a reconnect
 /// and on every `sessions.changed` sweep. Avatars are fetched once per
-/// `name + ui_meta revision`. Running state comes from ONE
+/// `name + ui_meta revision` (and so once per launch), kept on disk beside the
+/// roster, and painted from there until the gateway answers. Running state comes from ONE
 /// `session.active_list`, which answers for the whole gateway process, so a
 /// busy row is attributed to a bot only through the session ids this app holds
 /// for it. Ordering is left to the list.
@@ -17,7 +18,7 @@ public actor BotRoster {
   /// What the list draws from the roster, handed to the main actor whole.
   public struct Snapshot: Sendable, Equatable {
     public var bots: [Bot] = []
-    /// Name → the avatar's base64 data, as the gateway ships it.
+    /// Name → the avatar as the gateway ships it (a data URL; `AvatarData` reads it).
     public var avatars: [String: String] = [:]
     /// Bots the last `session.active_list` could place a busy session on.
     public var running: Set<String> = []
@@ -69,6 +70,10 @@ public actor BotRoster {
 
   private var snapshot = Snapshot()
   private var avatarsFetched: Set<String> = []
+
+  private var avatarDisk: AvatarDiskCache? {
+    keyValues.map { AvatarDiskCache(store: $0, namespace: namespace) }
+  }
   /// Canonical chats this app switched a bot onto, until the roster catches up (`canonicalPins`).
   private var pins: [String: CanonicalSession] = [:]
   private var refreshInFlight: Task<[Bot], any Error>?
@@ -173,6 +178,31 @@ public actor BotRoster {
     // Re-check after the suspension: the gateway may have answered meanwhile.
     if !bots.isEmpty, snapshot.bots.isEmpty {
       setBots(bots, fromCache: true)
+    }
+
+    await paintCachedAvatars(bots)
+  }
+
+  /// The avatars stored on disk, for the bots that have one, until the gateway is asked again.
+  /// One the gateway already answered for this launch is never replaced by the older copy.
+  func paintCachedAvatars(_ bots: [Bot]) async {
+    guard let disk = avatarDisk else {
+      return
+    }
+
+    var changed = false
+
+    for bot in bots where bot.hasAvatar && snapshot.avatars[bot.name] == nil {
+      if let data = await disk.read(bot.name), snapshot.avatars[bot.name] == nil,
+        !avatarsFetched.contains(where: { $0.hasPrefix("\(bot.name):") })
+      {
+        snapshot.avatars[bot.name] = data
+        changed = true
+      }
+    }
+
+    if changed {
+      publish()
     }
   }
 
@@ -304,13 +334,15 @@ public actor BotRoster {
 
       avatarsFetched.insert("\(bot.name):\(bot.uiMetaRevision)")
 
-      if reply.result["found"] == .bool(true), let data = reply.result["data"]?.stringValue {
+      let data: String? =
+        if reply.result["found"] == .bool(true), let data = reply.result["data"]?.stringValue { data } else { nil }
+
+      if snapshot.avatars[bot.name] != data {
         snapshot.avatars[bot.name] = data
-      } else {
-        snapshot.avatars[bot.name] = nil
+        publish()
       }
 
-      publish()
+      await avatarDisk?.write(bot.name, data)
     }
   }
 

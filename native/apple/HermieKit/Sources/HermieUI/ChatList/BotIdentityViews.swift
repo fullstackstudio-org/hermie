@@ -62,7 +62,7 @@ enum AvatarImages {
       return cached
     }
 
-    guard let data = Data(base64Encoded: base64, options: .ignoreUnknownCharacters) else {
+    guard let data = AvatarData.bytes(base64) else {
       return nil
     }
 
