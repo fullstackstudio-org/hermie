@@ -105,8 +105,11 @@ export interface Gateway {
     profile?: string
     user: string
     assistant: string
-    /** Who wrote the user message, as the fork stamps it (`display_metadata.author`). */
-    author?: { id: string; name?: string }
+    /**
+     * Who wrote the user message, as the fork stamps it (`display_metadata.author`); `via` marks a turn an agent
+     * sent for that person (`contract/gateway/mcp.md`).
+     */
+    author?: { id: string; name?: string; via?: { kind: string; client: string } }
   }): Promise<void>
 }
 

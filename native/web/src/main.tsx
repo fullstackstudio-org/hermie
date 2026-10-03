@@ -144,6 +144,7 @@ async function run(root: Root, basePath: ResolvedBasePath, store: WebKeyValueSto
         sessionSearch: session.client.http
       }}
       passkeys={session.passkeys}
+      mcp={session.mcp}
       secureInput={session.secureInput}
       signals={{ notices: session.notices, connections: session.connections, status: session.status }}
       onSignIn={() => signIn(basePath)}

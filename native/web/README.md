@@ -15,7 +15,7 @@ answer a bot's approval or question from it ("The composer" and "Requests" below
 a passkey that the gateway verifies itself ("Passkeys" below), and answer a bot's secret, sudo and password-manager
 prompts ("Secret prompts" below), and attach files and images by the picker, a paste or a drop ("Attachments" below). A bot's past conversations and branches have a page of their own, a new conversation can be started there, and the chats field searches names and every bot's messages ("Conversations and search" below).
 The chat list's arrangement, the mutes and the text size follow the person through the gateway's `ui_meta`
-("Settings that follow the person" below), with no screen to change them yet. It has no settings beyond the passkeys page yet, and the plugin does not serve this build. Until that
+("Settings that follow the person" below), with no screen to change them yet. It has no settings beyond the passkeys page and the MCP page ("MCP" below) yet, and the plugin does not serve this build. Until that
 changes, the browser keeps running the Expo app's web export through Hermie Web
 ([docs/web.md](../../docs/web.md)); nothing here replaces it.
 
@@ -143,8 +143,10 @@ draw is kept out of the entry instead. Four things do that today.
   module fetches it right after the session starts, long before a bot can ask anything; a request that arrives first
   is a dialog with nothing in it until the chunk is there, and a failed fetch is asked for again every few seconds
   while there is a request to show.
-- **The sheets' own words** (`src/i18n/sheet-strings.ts`, the same table as `web-strings.ts`) travel with them. Only
-  a module that is itself loaded on demand may import that file.
+- **The sheets' own words** (`src/i18n/sheet-strings.ts`, the same table as `web-strings.ts`) travel with them, and
+  the settings pages' words are in it too. Only a module that is itself loaded on demand may import that file.
+- **The settings pages** (`Passkeys`, `MCP`, each with its styles) are chunks of their own through `React.lazy`,
+  fetched when the page is opened or its link is pointed at or focused.
 - **What a chat opens on request** is a chunk of its own through `React.lazy`: the message menu
   (`MessageMenuPopup.tsx`, fetched the first time the reader points at a message or moves to one), the chat options'
   panel (`ChatOptionsPanel.tsx`, fetched when its button is pointed at or focused) and the image viewer
@@ -465,16 +467,17 @@ renders `<App>`; nothing under `features/` starts a connection or fetches, it re
 One URL and the route in the fragment (plan W4; `features/shell/router.ts`, over `platform/hash-router.ts`, the
 only code outside `boot/` that touches `location.hash`):
 
-| Route                        | Heading        | Main pane today                               |
-| ---------------------------- | -------------- | --------------------------------------------- |
-| `#/`                         | Hermie         | "Pick a conversation to start..."             |
-| `#/chat/<bot>`               | the bot's name | the chat (`ChatScreen`)                       |
-| `#/chat/<bot>/s/<session>`   | the bot's name | that conversation (`ChatScreen`)              |
-| `#/chat/<bot>/conversations` | Conversations  | the bot's conversations (`ConversationsPage`) |
-| `#/settings`                 | Settings       | placeholder (W-20b), a link to Passkeys       |
-| `#/settings/passkeys`        | Settings       | this gateway's passkeys ("Passkeys")          |
-| `#/settings/<section>`       | Settings       | placeholder (W-20b)                           |
-| anything else                | sent to `#/`   |                                               |
+| Route                        | Heading        | Main pane today                                |
+| ---------------------------- | -------------- | ---------------------------------------------- |
+| `#/`                         | Hermie         | "Pick a conversation to start..."              |
+| `#/chat/<bot>`               | the bot's name | the chat (`ChatScreen`)                        |
+| `#/chat/<bot>/s/<session>`   | the bot's name | that conversation (`ChatScreen`)               |
+| `#/chat/<bot>/conversations` | Conversations  | the bot's conversations (`ConversationsPage`)  |
+| `#/settings`                 | Settings       | placeholder (W-20b), links to Passkeys and MCP |
+| `#/settings/passkeys`        | Settings       | this gateway's passkeys ("Passkeys")           |
+| `#/settings/mcp`             | Settings       | this gateway's MCP access ("MCP")              |
+| `#/settings/<section>`       | Settings       | placeholder (W-20b)                            |
+| anything else                | sent to `#/`   |                                                |
 
 A bot name or session id is one percent-encoded segment; `parseRoute` and `formatRoute` are inverses. An unknown
 route is rewritten to `#/` in place (no history entry). A route change moves focus to the main heading (not on
@@ -1123,6 +1126,52 @@ browser sheet, a 4040 with its `data.reason` on the wire, the open requests read
 revoke, a `passkey.changed` notice and a broken pin. `ConfirmSheet.test.tsx` and `Passkeys.test.tsx` cover the views,
 with axe. `e2e/passkey.spec.ts` drives the built client in Chromium with a virtual authenticator ("The browser suite").
 
+## MCP
+
+The gateway fork can serve a remote MCP endpoint that an MCP client (a coding agent, say) connects to **as the
+signed-in person**. Hermie never speaks MCP and runs no server. It does three things, all from
+`contract/gateway/mcp.md`: it shows what the gateway says about its endpoint and the clients connected to it
+(`GET /api/auth/mcp`), it revokes a client (`POST /api/auth/mcp/grants/{id}/revoke`), and it draws a turn an agent
+sent on a person's behalf as `<name> via <client>`.
+
+| File                               | What it does                                                                                                                        |
+| ---------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------- |
+| `core/mcp/client.ts`               | the two routes on the cookie session; the answer read defensively (unknown keys ignored, a grant that is not a grant dropped)       |
+| `core/mcp/model.ts`                | `McpModel`: `watch` (the page is open), `refresh`, `revoke`; follows `mcp.changed` and the tab's return to the foreground           |
+| `state/mcp.ts`                     | the store the model writes: the last read, why a read failed, the last change somebody else made                                    |
+| `features/settings/MCP.tsx`        | `#/settings/mcp` (a chunk, with `mcp.css`): the state, the endpoint, the command, the config, the instructions, the clients, Revoke |
+| `features/settings/mcp-runtime.ts` | the model's actions as a context, like the passkey model's                                                                          |
+
+**The page.** It says MCP is on, shows the endpoint, the add command (`claude_command`) and the `.mcp.json` fragment the
+gateway gave (each with a Copy button, `platform/clipboard.ts`), the gateway's instructions, and the connected clients:
+name, when it was allowed and from which address, when it was last used (and from where), and when it ends. Every
+string from the gateway is drawn as plain text (a client's name and address are cleaned to one line first; the command
+and the config are shown and copied exactly as they came, and are never built from the endpoint or run). A 404 or 405
+is one sentence, "This gateway does not offer MCP", and nothing else; a 401 or 403 `no_identity` says to sign in; any
+other failure says what the gateway said, keeps the list that was read, and offers Try again.
+
+**Revoke** asks first (an inline question; Cancel has the focus and gets it back on the button), sends `{}`, treats 200
+and "no such grant" (404 `not_found`) alike by reading the list again, and says a 403 `origin_not_listed` in words (the
+browser sends the `Origin` the gateway checks). After a revoke the focus moves to the list's heading.
+
+**Fresh.** The model is idle until the page is open: it asks nothing, and a gateway without MCP is never asked. Once
+open it reads at once and reads again on `mcp.changed` (a client allowed or revoked elsewhere, announced as a line
+under the page, unless this page revoked it itself) and when the tab comes back to the foreground, since an operator's
+revoke may send no frame. Only the newest read is applied. The page and its styles are a chunk of their own, fetched
+when `#/settings/mcp` is opened or when a pointer or the focus reaches the link on the Settings page; its words are in
+`sheet-strings.ts`, the link's title in `web-strings.ts`.
+
+**The `via` label.** A row whose author carries `via` (`@hermie/transcript`, `authorLabel`) is captioned over its
+bubble with one label: `You via <client>` for the reader's own turn, `<name> via <client>` for a colleague's, in any
+chat, on the side the row would be on anyway. It is plain text, never Markdown, and it is not gated like a colleague's
+name: a turn an agent typed is never drawn as the person typing. (The chat list's preview takes the same label from the
+engine.) `replayed_by` is not drawn by this client at all today.
+
+**Tests.** `client.test.ts` (the shapes, what is dropped, every refusal, the body of a revoke), `model.test.ts`
+(idle until watched, a read per hint, the newest read wins, a revoke of its own is no news, each failure as a state),
+`MCP.test.tsx` (the page in every state, plain text, copying, the confirmation and its focus, axe), the `via` cases in
+`items.test.tsx`, and `e2e/settings-mcp.spec.ts` against the fake gateway's `--mcp` ("The browser suite").
+
 ## Markdown
 
 `src/markdown/` draws a message as React elements. The text goes through `@hermie/markdown` (`preprocessMarkdown`,
@@ -1337,15 +1386,16 @@ of frames in a row with the same answer).
   host name WebAuthn takes as an RP, without a certificate or a proxy; the session cookie is copied to that host on
   sign-in.
 
-| Spec                  | What it proves                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                          |
-| --------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `signin.spec.ts`      | an unauthenticated visit goes to the gateway's `/login` and signing in opens the client; a wrong password stays; a session lost before the first question ("Sign in again", the cookie deleted or ended by the gateway) restores the route after signing in; one lost while open is a signed-out line; a frame gets one sentence and makes no request to the API                                                                                                                                                                        |
-| `chat.spec.ts`        | the list (names, previews, unread, arrow keys, one pane on a phone), opening a chat, sending, Stop, the queue, drafts, a reply streamed in by the gateway, a socket dropped mid-reply (one bubble, the gateway's words once) and idle, and 2,000 rows of history (opens at the bottom without moving, pinned, reading above, older history)                                                                                                                                                                                             |
-| `requests.spec.ts`    | approval and clarify with the keyboard alone, deny, several at once, another bot's, one answer for several, smart-denied, a batch's Cancel all, withdrawn, restored on resume and after a reload, a modal page behind them, 320 px                                                                                                                                                                                                                                                                                                      |
-| `attachments.spec.ts` | attach by the picker and by a drop (a file and an image), send, the chip in the bubble and the agent's reply naming the file; Return twice sends once (HERM-126); cancel an upload in flight; axe with chips and the drop target                                                                                                                                                                                                                                                                                                        |
-| `a11y.spec.ts`        | axe, serious and critical, in light and dark: the chat list, a chat, the signed-out screen and every request sheet                                                                                                                                                                                                                                                                                                                                                                                                                      |
-| `sessions.spec.ts`    | a branch (made with `session.branch` on a socket of the test's own) reached from the chat's Conversations link and opened read-only with its own history and no composer, then renamed and deleted after a question; a new conversation that puts the Bot Chat away; a search hit that opens the chat scrolled to the row with the words, also 1,200 rows deep; axe in light and dark                                                                                                                                                   |
-| `passkey.spec.ts`     | Chromium only (a virtual authenticator over the DevTools `WebAuthn` domain): enrol with a code from `/__fake/passkey/code`; a confirmation raised with `/__fake/request`, confirmed, and read back as `verified: true` from `/__fake/state` `passkey.outcomes`; decline; a key the gateway cannot verify (`signature_invalid`, then `too_many_attempts`); a passkey revoked while open (`verification_failed`); a request still open after a reload; Escape; the detail's `white-space: pre` and sideways scroll; axe in light and dark |
+| Spec                   | What it proves                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                   |
+| ---------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `signin.spec.ts`       | an unauthenticated visit goes to the gateway's `/login` and signing in opens the client; a wrong password stays; a session lost before the first question ("Sign in again", the cookie deleted or ended by the gateway) restores the route after signing in; one lost while open is a signed-out line; a frame gets one sentence and makes no request to the API                                                                                                                                                                                                                                                                                                                                                 |
+| `chat.spec.ts`         | the list (names, previews, unread, arrow keys, one pane on a phone), opening a chat, sending, Stop, the queue, drafts, a reply streamed in by the gateway, a socket dropped mid-reply (one bubble, the gateway's words once) and idle, and 2,000 rows of history (opens at the bottom without moving, pinned, reading above, older history)                                                                                                                                                                                                                                                                                                                                                                      |
+| `requests.spec.ts`     | approval and clarify with the keyboard alone, deny, several at once, another bot's, one answer for several, smart-denied, a batch's Cancel all, withdrawn, restored on resume and after a reload, a modal page behind them, 320 px                                                                                                                                                                                                                                                                                                                                                                                                                                                                               |
+| `attachments.spec.ts`  | attach by the picker and by a drop (a file and an image), send, the chip in the bubble and the agent's reply naming the file; Return twice sends once (HERM-126); cancel an upload in flight; axe with chips and the drop target                                                                                                                                                                                                                                                                                                                                                                                                                                                                                 |
+| `a11y.spec.ts`         | axe, serious and critical, in light and dark: the chat list, a chat, the signed-out screen and every request sheet                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                               |
+| `sessions.spec.ts`     | a branch (made with `session.branch` on a socket of the test's own) reached from the chat's Conversations link and opened read-only with its own history and no composer, then renamed and deleted after a question; a new conversation that puts the Bot Chat away; a search hit that opens the chat scrolled to the row with the words, also 1,200 rows deep; axe in light and dark                                                                                                                                                                                                                                                                                                                            |
+| `passkey.spec.ts`      | Chromium only (a virtual authenticator over the DevTools `WebAuthn` domain): enrol with a code from `/__fake/passkey/code`; a confirmation raised with `/__fake/request`, confirmed, and read back as `verified: true` from `/__fake/state` `passkey.outcomes`; decline; a key the gateway cannot verify (`signature_invalid`, then `too_many_attempts`); a passkey revoked while open (`verification_failed`); a request still open after a reload; Escape; the detail's `white-space: pre` and sideways scroll; axe in light and dark                                                                                                                                                                          |
+| `settings-mcp.spec.ts` | the fake gateway's `--mcp`: the page lists the endpoint, command, config, instructions and clients as the gateway said them; each Copy button puts exactly that text on the clipboard (read back in Chromium); Revoke asks first, Cancel changes nothing, confirming ends the grant at the gateway (read back from `/__fake/mcp/grants`) and the row goes; an `mcp.changed` from a seeded grant and from a revoke in another tab reloads the open page; a gateway without MCP (routes unknown, or off) says so and shows nothing else; the page is a chunk fetched only when opened; axe in light and dark, with a confirmation open; a turn an agent sent is drawn `You via <client>` and `<name> via <client>` |
 
 ```sh
 npx playwright install chromium webkit firefox        # once
@@ -1379,14 +1429,14 @@ src/
   main.tsx                  the boot sequence and its screens (with dev/, the only React outside features/ and ui/)
   boot/                     frame guard, base path, auth mode and cookie session, sign-in bounce, boot
   core/                     the connection and its lifecycle, the roster controller, the advert, the chat
-                            controller and the ingest (above); core/passkey/, the passkey level
+                            controller and the ingest (above); core/passkey/, the passkey level; core/mcp/, the MCP page's routes and model
   state/                    zustand vanilla stores: connection, bots, plugin, chats, settings, requests, and the
                             ones `ui_meta` mirrors: layout (with folders and mute), text size, app stamp, device context
   platform/                 the browser seams (above)
   features/chat/            the chat screen, its item views, the transcript list, its scroll anchor and chunks, the composer
   features/requests/        the request layer: approval, clarify and the passkey confirmation, one at a time, in a
                             modal dialog; the passkey notices
-  features/settings/        the passkeys page (the rest of Settings is W-20b's)
+  features/settings/        the passkeys page and the MCP page (the rest of Settings is W-20b's)
   features/sessions/        a bot's Conversations page, the push-tap destination rule
   features/search/          the chats field's name filter and message search, finding a hit's row in its chat
   dev/                      development-only pages: the transcript harness, its probes, a stream replayer

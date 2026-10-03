@@ -1,0 +1,142 @@
+/*
+ * The MCP settings page. Colours, radii and gutters are the theme's (`ui/theme.css`); the policy
+ * forbids inline styles, so every variation is a class or a data attribute.
+ */
+
+.hm-mcp {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  max-width: 40rem;
+  padding-bottom: 24px;
+}
+
+.hm-mcp__title {
+  margin: 0;
+  font-size: 1.25rem;
+}
+
+.hm-mcp__heading {
+  margin: 12px 0 0;
+  font-size: 1.0625rem;
+}
+
+.hm-mcp__heading:focus {
+  outline: none;
+}
+
+.hm-mcp__heading:focus-visible {
+  outline: 2px solid var(--hm-tint-text);
+  outline-offset: 2px;
+}
+
+.hm-mcp__text,
+.hm-mcp__state,
+.hm-mcp__message {
+  margin: 0;
+  overflow-wrap: anywhere;
+}
+
+.hm-mcp__text {
+  color: var(--hm-text-muted);
+}
+
+/* The gateway's own prose keeps its line breaks. */
+.hm-mcp__instructions {
+  white-space: pre-line;
+}
+
+.hm-mcp__state {
+  font-weight: 600;
+}
+
+.hm-mcp__retry {
+  align-self: flex-start;
+}
+
+.hm-mcp__message:empty {
+  display: none;
+}
+
+.hm-mcp__message[data-tone='danger'] {
+  color: var(--hm-danger-text);
+}
+
+/* A value the gateway gave, with the button that copies it. The text wraps: nothing here scrolls. */
+.hm-mcp__copyable {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-start;
+  gap: 8px;
+}
+
+.hm-mcp__code {
+  box-sizing: border-box;
+  flex: 1 1 18rem;
+  min-width: 0;
+  margin: 0;
+  padding: 8px 12px;
+  border: 1px solid var(--hm-line);
+  border-radius: var(--hm-radius);
+  background: var(--hm-surface);
+  color: var(--hm-text);
+  font-family: var(--hm-mono);
+  font-size: 0.875rem;
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+}
+
+.hm-mcp__list {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.hm-mcp__item {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 12px;
+  padding: 10px 12px;
+  border: 1px solid var(--hm-line);
+  border-radius: var(--hm-radius);
+  background: var(--hm-surface);
+}
+
+.hm-mcp__item-text {
+  display: flex;
+  flex: 1 1 14rem;
+  flex-direction: column;
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+
+.hm-mcp__name {
+  font-weight: 600;
+}
+
+.hm-mcp__meta {
+  color: var(--hm-text-muted);
+  font-size: 0.875rem;
+}
+
+.hm-button.hm-mcp__revoke[data-tone='danger'] {
+  color: var(--hm-danger-text);
+}
+
+.hm-mcp__confirm {
+  display: flex;
+  flex: 1 1 100%;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 8px;
+}
+
+.hm-mcp__confirm-buttons {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}

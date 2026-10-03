@@ -160,6 +160,15 @@
   overflow-wrap: anywhere;
 }
 
+.hm-settings-links {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
 .hm-back {
   display: inline-flex;
   align-items: center;

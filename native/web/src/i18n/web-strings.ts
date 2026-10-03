@@ -555,6 +555,16 @@ export const WEB_STRINGS_SOURCE = {
       }
     }
   },
+  mcp: {
+    settings: {
+      /** The page's heading and the link to it: the protocol's own name. */
+      title: {
+        en: 'MCP',
+        nl: 'MCP',
+        de: 'MCP'
+      }
+    }
+  },
   secureInput: {
     /** On the chat: a prompt ran out of time before it was answered. */
     noticeExpired: {

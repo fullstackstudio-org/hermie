@@ -22,6 +22,8 @@ const SAME_AS_ENGLISH: Readonly<Record<string, readonly Locale[]>> = {
   // "Details" and "Passkeys" are the Dutch and German words too.
   'sheets.passkeys.detailLabel': ['nl', 'de'],
   'passkeys.settings.title': ['nl', 'de'],
+  // "MCP" is the protocol's name in every language.
+  'mcp.settings.title': ['nl', 'de'],
   // "Code" is the Dutch and German word too.
   'sheets.secureInput.fieldCode': ['nl', 'de'],
   // `{name}: {problem}` is the same two placeholders and a colon in every language.
@@ -82,7 +84,8 @@ const SAMPLE = {
   added: MARKER,
   removed: MARKER,
   lines: MARKER,
-  longest: MARKER
+  longest: MARKER,
+  address: MARKER
 }
 
 describe('the web-only strings', () => {

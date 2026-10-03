@@ -138,6 +138,32 @@ describe('the routes', () => {
     expect(screen.getByRole('heading', { level: 1 }).textContent).toBe('Settings')
   })
 
+  it('lists the settings pages it has on the settings home, MCP among them', () => {
+    router.navigate('#/settings')
+    renderApp()
+
+    expect(screen.getByRole('link', { name: 'Passkeys' }).getAttribute('href')).toBe('#/settings/passkeys')
+    expect(screen.getByRole('link', { name: 'MCP' }).getAttribute('href')).toBe('#/settings/mcp')
+  })
+
+  it('opens the MCP page in a chunk of its own, and hands it the model’s actions', async () => {
+    const watch = vi.fn(() => () => undefined)
+
+    router.navigate('#/settings/mcp')
+    renderApp({
+      mcp: {
+        host: 'gw.example.test',
+        watch,
+        refresh: vi.fn(async () => undefined),
+        revoke: vi.fn(async () => 'revoked' as const)
+      }
+    })
+
+    expect(await screen.findByRole('heading', { level: 2, name: 'MCP' })).toBeTruthy()
+    expect(screen.getByRole('heading', { level: 1 }).textContent).toBe('Settings')
+    expect(watch).toHaveBeenCalled()
+  })
+
   it('heads a bot’s conversations page, and keeps the bot selected in the list', () => {
     router.navigate('#/chat/writer/conversations')
     renderApp()

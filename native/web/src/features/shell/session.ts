@@ -15,6 +15,8 @@
  *     at level `passkey`, what the page advertises for it, and the passkeys of the
  *     signed-in person. The socket it rides attaches a 4040's `data.reason`
  *     (`platform/socket.ts`, `ErrorDataOutbox`).
+ *     The MCP model (`core/mcp/model.ts`) is beside it: idle until Settings › MCP is open, then it reads
+ *     `GET /api/auth/mcp` and follows `mcp.changed` and the tab's return to the foreground.
  *  4. The secure input model (`core/requests/secure-input.ts`) on the same
  *     connection: `secret`, `sudo` and the vault prompts, answered beside the
  *     engine so a typed value never reaches a store, and the requests only the
@@ -48,6 +50,8 @@ import { ownAuthorStore } from '../../core/chats/own-author'
 import { connectChats } from '../../core/chat-controller'
 import { connectGateway, type ConnectGatewayOptions, type GatewayClient } from '../../core/gateway-client'
 import { serialiseBaseUrl } from '../../core/passkey/challenge'
+import { createMcpClient } from '../../core/mcp/client'
+import { McpModel } from '../../core/mcp/model'
 import { createPasskeyClient } from '../../core/passkey/client'
 import { PasskeyModel } from '../../core/passkey/model'
 import { ConnectionsModel, respondThrough } from '../../core/connections'
@@ -104,6 +108,7 @@ export interface Session {
   readonly client: GatewayClient
   readonly chats: ChatRuntime
   readonly passkeys: PasskeyModel
+  readonly mcp: McpModel
   readonly secureInput: SecureInputModel
   readonly notices: NoticesModel
   readonly connections: ConnectionsModel
@@ -168,6 +173,15 @@ export function startSession(options: StartSessionOptions): Session {
   })
 
   passkeys.start()
+
+  const mcp = new McpModel({
+    gateway: client.gateway,
+    client: createMcpClient(options.baseUrl),
+    host: hostOf(options.baseUrl),
+    visibility
+  })
+
+  mcp.start()
 
   const secureInput = new SecureInputModel({
     gateway: client.gateway,
@@ -314,6 +328,7 @@ export function startSession(options: StartSessionOptions): Session {
     client,
     chats,
     passkeys,
+    mcp,
     secureInput,
     notices,
     connections,
@@ -339,6 +354,7 @@ export function startSession(options: StartSessionOptions): Session {
       notices.stop()
       connections.stop()
       status.stop()
+      mcp.stop()
       passkeys.stop()
       chats.stop()
       client.stop()

@@ -275,6 +275,31 @@ describe('startSession', () => {
     expect(refreshRunning).not.toHaveBeenCalled()
   })
 
+  it('starts the MCP model beside the passkeys: it asks nothing until the page is open, and is forgotten on stop', async () => {
+    const fetched = vi.fn(async (_url: string) => new Response('{}', { status: 404 }))
+
+    vi.stubGlobal('fetch', fetched)
+
+    try {
+      const session = startSession(options())
+
+      await session.uiMeta
+      expect(fetched).not.toHaveBeenCalled()
+
+      const release = session.mcp.watch()
+
+      await vi.waitFor(() => expect(fetched).toHaveBeenCalledTimes(1))
+      expect(fetched.mock.calls[0]?.[0]).toBe('https://gw.example/prefix/api/auth/mcp')
+      release()
+
+      session.stop()
+      await session.mcp.refresh()
+      expect(fetched).toHaveBeenCalledTimes(1)
+    } finally {
+      vi.unstubAllGlobals()
+    }
+  })
+
   it('keeps the request queue in step with the chats it started, and empties it on stop', () => {
     const session = startSession(options())
 

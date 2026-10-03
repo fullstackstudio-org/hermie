@@ -774,6 +774,210 @@ export const SHEET_STRINGS_SOURCE = {
         de: ({ status }: { status: string }) => `Status: ${status}`
       }
     }
+  },
+  mcp: {
+    settings: {
+      intro: {
+        en: 'MCP lets an AI agent, such as a coding assistant, work on this gateway as you. You allow each client once; it then acts with your access, and what it sends is marked as sent by an agent. Hermie only shows the endpoint and the clients here and lets you revoke them; the gateway runs the endpoint.',
+        nl: 'Met MCP kan een AI-agent, zoals een codeerassistent, als jij op deze gateway werken. Je geeft elke client één keer toestemming; daarna werkt hij met jouw toegang en wat hij verstuurt wordt gemarkeerd als verstuurd door een agent. Hermie toont hier alleen het endpoint en de clients en laat je ze intrekken; de gateway draait het endpoint zelf.',
+        de: 'Mit MCP kann ein KI-Agent, etwa ein Coding-Assistent, als du auf diesem Gateway arbeiten. Du erlaubst jeden Client einmal; danach handelt er mit deinem Zugriff, und was er sendet, wird als von einem Agenten gesendet markiert. Hermie zeigt hier nur den Endpunkt und die Clients und lässt dich sie widerrufen; das Gateway betreibt den Endpunkt selbst.'
+      },
+      loading: {
+        en: 'Reading MCP access…',
+        nl: 'MCP-toegang wordt gelezen…',
+        de: 'MCP-Zugriff wird gelesen…'
+      },
+      notOffered: {
+        en: 'This gateway does not offer MCP.',
+        nl: 'Deze gateway biedt geen MCP aan.',
+        de: 'Dieses Gateway bietet kein MCP an.'
+      },
+      signIn: {
+        en: 'MCP access is per person, and this gateway does not know who you are. Sign in with your account to see it.',
+        nl: 'MCP-toegang is per persoon en deze gateway weet niet wie je bent. Log in met je account om het te zien.',
+        de: 'Der MCP-Zugriff gilt pro Person, und dieses Gateway weiß nicht, wer du bist. Melde dich mit deinem Konto an, um ihn zu sehen.'
+      },
+      failed: {
+        en: ({ message }: { message: string }) => `MCP access could not be read: ${message}`,
+        nl: ({ message }: { message: string }) => `MCP-toegang kon niet gelezen worden: ${message}`,
+        de: ({ message }: { message: string }) => `Der MCP-Zugriff konnte nicht gelesen werden: ${message}`
+      },
+      retry: {
+        en: 'Try again',
+        nl: 'Opnieuw proberen',
+        de: 'Erneut versuchen'
+      },
+      on: {
+        en: 'MCP is on for this gateway.',
+        nl: 'MCP staat aan voor deze gateway.',
+        de: 'MCP ist für dieses Gateway eingeschaltet.'
+      },
+      endpointTitle: {
+        en: 'Endpoint address',
+        nl: 'Adres van het endpoint',
+        de: 'Adresse des Endpunkts'
+      },
+      commandTitle: {
+        en: 'Add it to a client',
+        nl: 'Aan een client toevoegen',
+        de: 'Zu einem Client hinzufügen'
+      },
+      commandHelp: {
+        en: 'Run this command in a terminal to add the endpoint to an MCP client that supports it. Hermie shows it and copies it; it never runs it.',
+        nl: 'Voer dit commando uit in een terminal om het endpoint toe te voegen aan een MCP-client die dat ondersteunt. Hermie toont en kopieert het alleen en voert het nooit uit.',
+        de: 'Führe diesen Befehl in einem Terminal aus, um den Endpunkt zu einem MCP-Client hinzuzufügen, der das unterstützt. Hermie zeigt und kopiert ihn nur und führt ihn nie aus.'
+      },
+      configTitle: {
+        en: 'Or use a config file',
+        nl: 'Of gebruik een configuratiebestand',
+        de: 'Oder eine Konfigurationsdatei verwenden'
+      },
+      configHelp: {
+        en: 'The same entry as JSON, for a client that reads its servers from a file.',
+        nl: 'Hetzelfde item als JSON, voor een client die zijn servers uit een bestand leest.',
+        de: 'Derselbe Eintrag als JSON, für einen Client, der seine Server aus einer Datei liest.'
+      },
+      instructionsTitle: {
+        en: 'From the gateway',
+        nl: 'Van de gateway',
+        de: 'Vom Gateway'
+      },
+      copy: {
+        en: 'Copy',
+        nl: 'Kopiëren',
+        de: 'Kopieren'
+      },
+      copyEndpoint: {
+        en: 'Copy the endpoint address',
+        nl: 'Het adres van het endpoint kopiëren',
+        de: 'Die Adresse des Endpunkts kopieren'
+      },
+      copyCommand: {
+        en: 'Copy the add command',
+        nl: 'Het toevoegcommando kopiëren',
+        de: 'Den Hinzufügen-Befehl kopieren'
+      },
+      copyConfig: {
+        en: 'Copy the JSON config',
+        nl: 'De JSON-configuratie kopiëren',
+        de: 'Die JSON-Konfiguration kopieren'
+      },
+      copied: {
+        en: 'Copied.',
+        nl: 'Gekopieerd.',
+        de: 'Kopiert.'
+      },
+      notCopied: {
+        en: 'This browser did not allow copying. Select the text and copy it yourself.',
+        nl: 'Deze browser stond kopiëren niet toe. Selecteer de tekst en kopieer hem zelf.',
+        de: 'Dieser Browser hat das Kopieren nicht erlaubt. Markiere den Text und kopiere ihn selbst.'
+      },
+      clientsTitle: {
+        en: 'Connected clients',
+        nl: 'Verbonden clients',
+        de: 'Verbundene Clients'
+      },
+      empty: {
+        en: 'No client is connected yet.',
+        nl: 'Er is nog geen client verbonden.',
+        de: 'Es ist noch kein Client verbunden.'
+      },
+      unnamed: {
+        en: 'Unnamed client',
+        nl: 'Client zonder naam',
+        de: 'Unbenannter Client'
+      },
+      allowed: {
+        en: ({ date }: { date: string }) => `Allowed ${date}`,
+        nl: ({ date }: { date: string }) => `Toegestaan ${date}`,
+        de: ({ date }: { date: string }) => `Erlaubt ${date}`
+      },
+      allowedFrom: {
+        en: ({ date, address }: { date: string; address: string }) => `Allowed ${date} from ${address}`,
+        nl: ({ date, address }: { date: string; address: string }) => `Toegestaan ${date} vanaf ${address}`,
+        de: ({ date, address }: { date: string; address: string }) => `Erlaubt ${date} von ${address}`
+      },
+      lastUsed: {
+        en: ({ date }: { date: string }) => `Last used ${date}`,
+        nl: ({ date }: { date: string }) => `Laatst gebruikt ${date}`,
+        de: ({ date }: { date: string }) => `Zuletzt verwendet ${date}`
+      },
+      lastUsedFrom: {
+        en: ({ date, address }: { date: string; address: string }) => `Last used ${date} from ${address}`,
+        nl: ({ date, address }: { date: string; address: string }) => `Laatst gebruikt ${date} vanaf ${address}`,
+        de: ({ date, address }: { date: string; address: string }) => `Zuletzt verwendet ${date} von ${address}`
+      },
+      neverUsed: {
+        en: 'Never used',
+        nl: 'Nog niet gebruikt',
+        de: 'Noch nie verwendet'
+      },
+      expires: {
+        en: ({ date }: { date: string }) => `Allowed until ${date}`,
+        nl: ({ date }: { date: string }) => `Toegestaan tot ${date}`,
+        de: ({ date }: { date: string }) => `Erlaubt bis ${date}`
+      },
+      revoke: {
+        en: 'Revoke',
+        nl: 'Intrekken',
+        de: 'Widerrufen'
+      },
+      /** The accessible name of a client's Revoke button, and of the confirming one. */
+      revokeNamed: {
+        en: ({ name }: { name: string }) => `Revoke ${name}`,
+        nl: ({ name }: { name: string }) => `${name} intrekken`,
+        de: ({ name }: { name: string }) => `${name} widerrufen`
+      },
+      revokeQuestion: {
+        en: ({ name }: { name: string }) =>
+          `Revoke ${name}? It stops working at once and has to ask for your permission again.`,
+        nl: ({ name }: { name: string }) =>
+          `${name} intrekken? Het werkt direct niet meer en moet opnieuw om je toestemming vragen.`,
+        de: ({ name }: { name: string }) =>
+          `${name} widerrufen? Er funktioniert sofort nicht mehr und muss erneut um deine Erlaubnis bitten.`
+      },
+      cancel: {
+        en: 'Cancel',
+        nl: 'Annuleren',
+        de: 'Abbrechen'
+      },
+      revoked: {
+        en: ({ name }: { name: string }) => `${name} was revoked.`,
+        nl: ({ name }: { name: string }) => `${name} is ingetrokken.`,
+        de: ({ name }: { name: string }) => `${name} wurde widerrufen.`
+      },
+      gone: {
+        en: 'That client was already gone. The list is up to date.',
+        nl: 'Die client was al weg. De lijst is bijgewerkt.',
+        de: 'Dieser Client war schon weg. Die Liste ist aktuell.'
+      },
+      revokeFailed: {
+        en: ({ message }: { message: string }) => `Could not revoke: ${message}`,
+        nl: ({ message }: { message: string }) => `Intrekken is niet gelukt: ${message}`,
+        de: ({ message }: { message: string }) => `Widerrufen hat nicht geklappt: ${message}`
+      },
+      /** A write the gateway refused (403 `origin_not_listed`): it does not list this page's address. */
+      originNotListed: {
+        en: ({ host }: { host: string }) =>
+          `The gateway refused this because it does not list ${host} as an address of this page. Ask whoever runs it to add this address.`,
+        nl: ({ host }: { host: string }) =>
+          `De gateway weigerde dit omdat hij ${host} niet als adres van deze pagina in zijn lijst heeft. Vraag wie hem beheert om dit adres toe te voegen.`,
+        de: ({ host }: { host: string }) =>
+          `Das Gateway hat das abgelehnt, weil es ${host} nicht als Adresse dieser Seite führt. Bitte die Person, die es betreibt, diese Adresse einzutragen.`
+      },
+      /** Another tab, the app or the operator allowed a client. */
+      changedGranted: {
+        en: ({ name }: { name: string }) => `${name} was allowed.`,
+        nl: ({ name }: { name: string }) => `${name} is toegestaan.`,
+        de: ({ name }: { name: string }) => `${name} wurde erlaubt.`
+      },
+      /** The gateway said something changed and this build has no word for it. */
+      changedOther: {
+        en: 'The list of clients changed.',
+        nl: 'De lijst met clients is gewijzigd.',
+        de: 'Die Liste der Clients hat sich geändert.'
+      }
+    }
   }
 } as const satisfies Branch
 
