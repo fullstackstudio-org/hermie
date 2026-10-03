@@ -96,8 +96,10 @@
         let credentials = try await signIn(address)
 
         var options = GatewaySession.Options()
+        // `-HermiePasskeyName` tells two phones of one account apart on the Passkeys page.
+        let name = UserDefaults.standard.string(forKey: "HermiePasskeyName") ?? "Lab phone"
         options.passkey = PasskeySetup(
-          configuration: PasskeyConfiguration(rpID: "confirm.hermie.dev", displayName: "Lab phone"),
+          configuration: PasskeyConfiguration(rpID: "confirm.hermie.dev", displayName: name),
           authenticator: authenticator
         )
         let record = GatewayRecord(id: "glab-passkeys", name: "Lab", address: address, authKind: .nativePKCE, addedAt: 0)
@@ -126,7 +128,7 @@
     private func signIn(_ address: String) async throws -> NativePKCECredentials {
       let transport = HTTPTransport()
       let probe = try await Probe.probeGateway(address, transport: transport)
-      let keys = try GatewaySecretKeys(gatewayID: "lab-passkeys")
+      let keys = try GatewaySecretKeys(gatewayID: "lab_passkeys")
       let coordinator = TokenCoordinator(
         store: SecretTokenStore(storage: InMemorySecretStorage(), keys: keys),
         refresh: { held in

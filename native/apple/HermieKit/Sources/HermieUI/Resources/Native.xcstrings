@@ -446,6 +446,30 @@
         }
       }
     },
+    "native.confirm.address" : {
+      "comment" : "Confirm sheet: VoiceOver label of the gateway's address line. The argument is the address (host and path).",
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Adresse %@"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Address %@"
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Adres %@"
+          }
+        }
+      }
+    },
     "native.confirm.answeredElsewhere" : {
       "comment" : "Confirm sheet: another device answered first.",
       "extractionState" : "manual",
