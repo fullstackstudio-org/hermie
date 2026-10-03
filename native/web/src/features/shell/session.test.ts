@@ -43,6 +43,8 @@ beforeEach(() => {
   connectGateway.mockImplementation(() => ({
     bots: { watchRunning, refreshRunning },
     stores: { connection },
+    // The passkey model's slice of the connection: never ready here, so it advertises nothing.
+    gateway: { request: vi.fn(), onAny: () => () => {}, onRequest: () => () => {}, onStatus: () => () => {} },
     stop: clientStop
   }))
   connectChats.mockImplementation(() => ({ stop: chatsStop, chats: chatStore }))
@@ -52,7 +54,7 @@ const options = (visibility = fakeVisibility('visible')) => ({
   baseUrl: 'https://gw.example/prefix',
   credentials: { signOut: async () => {} } as never,
   author: { id: 'authentik:1', name: 'Ann' },
-  storage: { tag: 'storage' } as never,
+  storage: { tag: 'storage', prefix: 'hermie:/prefix:', getSync: () => null, setSync: () => {} } as never,
   cache: { tag: 'cache' } as never,
   visibility
 })

@@ -17,7 +17,10 @@ const SAME_AS_ENGLISH: Readonly<Record<string, readonly Locale[]>> = {
   // "Version 0.2.0" is the German word too.
   'shell.version': ['de'],
   // `{name}, {time}` is the same two placeholders and a comma in every language.
-  'chat.messageFrom': ['nl', 'de']
+  'chat.messageFrom': ['nl', 'de'],
+  // "Details" and "Passkeys" are the Dutch and German words too.
+  'passkeys.detailLabel': ['nl', 'de'],
+  'passkeys.settings.title': ['nl', 'de']
 }
 
 type Source = Record<string, unknown>
@@ -55,7 +58,12 @@ const SAMPLE = {
   time: MARKER,
   message: MARKER,
   count: MARKER,
-  status: MARKER
+  status: MARKER,
+  host: MARKER,
+  rp: MARKER,
+  reason: MARKER,
+  date: MARKER,
+  code: MARKER
 }
 
 describe('the web-only strings', () => {

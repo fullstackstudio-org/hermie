@@ -115,6 +115,94 @@
   overflow-wrap: anywhere;
 }
 
+/* A confirmation's summary: the gateway's words as they came, line breaks kept. */
+.hm-requests__summary {
+  margin: 0;
+  font-size: 1.0625rem;
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+}
+
+.hm-requests__detail-box {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  min-width: 0;
+}
+
+/*
+ * A confirmation's detail, verbatim: every space and line break kept and never wrapped, so a line break
+ * is never hidden and a command reads as the one that runs. A long line scrolls sideways.
+ */
+.hm-requests__detail {
+  margin: 0;
+  max-height: 16rem;
+  padding: 12px 14px;
+  overflow: auto;
+  border: 1px solid var(--hm-line);
+  border-radius: var(--hm-radius);
+  background: var(--hm-surface);
+  color: var(--hm-text);
+  font-family: var(--hm-mono);
+  font-size: 0.9375rem;
+  line-height: 1.45;
+  white-space: pre;
+  overflow-wrap: normal;
+  tab-size: 4;
+}
+
+.hm-requests__detail:focus-visible {
+  outline: var(--hm-focus-width) solid var(--hm-focus);
+  outline-offset: 2px;
+}
+
+.hm-requests__phase {
+  margin: 0;
+  color: var(--hm-text-muted);
+  overflow-wrap: anywhere;
+}
+
+.hm-requests__phase:empty {
+  display: none;
+}
+
+.hm-requests__phase[data-tone='danger'] {
+  color: var(--hm-danger-text);
+}
+
+/* Something about passkeys the person must see, over the page and over a dialog alike. */
+.hm-requests__notices {
+  position: fixed;
+  inset-inline: var(--hm-gutter);
+  top: var(--hm-gutter);
+  z-index: 101;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  box-sizing: border-box;
+  width: min(34rem, calc(100% - 2 * var(--hm-gutter)));
+  margin: 0 auto;
+  padding: 0;
+  list-style: none;
+}
+
+.hm-requests__notice {
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+  padding: 12px 16px;
+  border: 1px solid var(--hm-danger-text);
+  border-radius: var(--hm-radius);
+  background: var(--hm-bg);
+  color: var(--hm-text);
+  overflow-wrap: anywhere;
+}
+
+.hm-requests__notice p {
+  flex: 1 1 auto;
+  margin: 0;
+}
+
 .hm-requests__actions {
   display: flex;
   flex-wrap: wrap;

@@ -29,8 +29,15 @@
  *    when the last request is gone focus returns to where it was.
  *
  * **Answering** goes through the controller (`respondApproval`,
- * `respondClarify`, `lockClarify`); this component calls nothing else. A failure
- * to deliver an answer is said in an alert over the page.
+ * `respondClarify`, `lockClarify`), and for a `confirm` at level `passkey`
+ * through the passkey model (`confirm`, `decline`, `dismiss`); this component
+ * calls nothing else. A failure to deliver an answer is said in an alert over
+ * the page; a confirmation says where it stands on its own sheet, and stays on
+ * screen once it is over until the person closes it, because "the gateway is
+ * checking it" and "nothing was confirmed" are things to read, not to miss.
+ *
+ * The passkey model's notices (`PasskeyNotices`) are drawn here too, beside the
+ * dialog, so they are seen whichever route is open.
  */
 import {
   type KeyboardEvent,
@@ -50,10 +57,14 @@ import { webStrings } from '../../i18n/web-strings'
 import { isolateModal } from '../../platform/modal-isolation'
 import { botsStore } from '../../state/bots'
 import { type ChatsState, chatsStore } from '../../state/chats'
-import { type RequestsState, requestsStore } from '../../state/requests'
+import { type PasskeyConfirmation, type PasskeysState, passkeysStore } from '../../state/passkeys'
+import { type OpenRequest, type RequestsState, requestsStore } from '../../state/requests'
 import { useChatRuntime } from '../chat/chat-runtime'
 import { ApprovalSheet } from './ApprovalSheet'
 import { ClarifySheet } from './ClarifySheet'
+import { ConfirmSheet } from './ConfirmSheet'
+import { usePasskeyRuntime } from './passkey-runtime'
+import { PasskeyNotices } from './PasskeyNotices'
 import './request-layer.css'
 
 /** How long a failure to deliver an answer stays on screen. */
@@ -67,6 +78,8 @@ export interface RequestLayerProps {
   store?: StoreApi<RequestsState>
   /** Where a withdrawn request's last state is read; the page's own unless a test hands in its own. */
   chats?: StoreApi<ChatsState>
+  /** Where a confirmation is read; the page's own unless a test hands in its own. */
+  passkeys?: StoreApi<PasskeysState>
   /** Milliseconds before a sheet's buttons accept a press. Tests pass 0. */
   tapGuardMs?: number
 }
@@ -77,19 +90,53 @@ const messageOf = (error: unknown): string => (error instanceof Error ? error.me
 const withdrawnAnnouncement = (name: string, reason: string | undefined): string =>
   reason === 'timeout' ? webStrings.requests.timedOut({ name }) : webStrings.requests.withdrawn({ name })
 
+/** What a reader is told when a confirmation left the screen without their answer, or nothing. */
+function confirmationAnnouncement(confirmation: PasskeyConfirmation | undefined, name: string): string {
+  if (confirmation?.phase.kind !== 'ended') {
+    return ''
+  }
+
+  switch (confirmation.phase.end.kind) {
+    case 'timed_out':
+      return webStrings.requests.timedOut({ name })
+    case 'answered_elsewhere':
+      return webStrings.passkeys.answeredElsewhere({ name })
+    case 'withdrawn':
+      return webStrings.requests.withdrawn({ name })
+    default:
+      return ''
+  }
+}
+
+/** Who a request is from: the bot's display name, or the gateway's host for a confirmation in no chat held here. */
+function senderName(entry: OpenRequest, confirmation: PasskeyConfirmation | undefined): string {
+  if (entry.bot !== undefined) {
+    return botsStore.getState().byName[entry.bot]?.displayName ?? entry.bot
+  }
+
+  return confirmation ? new URL(confirmation.baseUrl).host : ''
+}
+
 export function RequestLayer({
   store = requestsStore,
   chats = chatsStore,
+  passkeys = passkeysStore,
   tapGuardMs
 }: RequestLayerProps): ReactElement {
   useLocale()
 
   const runtime = useChatRuntime()
   const controller = runtime?.controller
+  const passkeyActions = usePasskeyRuntime()
   const queue = useStore(store, state => state.queue)
   const current = queue[0]
   const open = current !== undefined
   const bot = current?.bot
+  const confirmId = current?.kind === 'confirm' ? current.id : undefined
+  const confirmation = useStore(passkeys, state =>
+    confirmId === undefined ? undefined : state.confirmations.find(entry => entry.id === confirmId)
+  )
+  const rpId = useStore(passkeys, state => state.rpId)
   const displayName = useStore(botsStore, state => (bot === undefined ? '' : (state.byName[bot]?.displayName ?? bot)))
   const cwd = useStore(chats, state => {
     const info = bot === undefined ? undefined : state.chats[bot]?.info
@@ -177,20 +224,27 @@ export function RequestLayer({
     const previous = lastShown.current
 
     if (previous && !queue.some(entry => entry.key === previous.key)) {
-      const item = chats.getState().chats[previous.bot]?.items[previous.item.id]
+      if (previous.kind === 'confirm') {
+        const last = passkeys.getState().confirmations.find(entry => entry.id === previous.id)
+        const said = confirmationAnnouncement(last, senderName(previous, last))
 
-      if ((item?.kind === 'approval' || item?.kind === 'clarify') && item.state === 'cancelled') {
-        const name = botsStore.getState().byName[previous.bot]?.displayName ?? previous.bot
+        if (said) {
+          setAnnouncement(said)
+        }
+      } else {
+        const item = chats.getState().chats[previous.bot]?.items[previous.item.id]
 
-        setAnnouncement(withdrawnAnnouncement(name, item.cancelReason))
+        if ((item?.kind === 'approval' || item?.kind === 'clarify') && item.state === 'cancelled') {
+          setAnnouncement(withdrawnAnnouncement(senderName(previous, undefined), item.cancelReason))
+        }
       }
     }
 
     lastShown.current = queue[0]
-  }, [chats, queue])
+  }, [chats, passkeys, queue])
 
   // An approval is acknowledged to the gateway's queue the first time a person can see it.
-  const approvalId = current?.item.kind === 'approval' ? current.item.requestId : undefined
+  const approvalId = current?.kind === 'engine' && current.item.kind === 'approval' ? current.item.requestId : undefined
 
   useEffect(() => {
     if (controller && bot !== undefined && approvalId !== undefined) {
@@ -275,6 +329,8 @@ export function RequestLayer({
         </p>
       ) : null}
 
+      <PasskeyNotices store={passkeys} />
+
       {current ? (
         <div className="hm-requests__scrim" ref={overlay}>
           <section
@@ -287,9 +343,25 @@ export function RequestLayer({
             ref={dialog}
             onKeyDown={onKeyDown}
           >
-            <p className="hm-requests__from">{webStrings.requests.from({ name: displayName })}</p>
+            {current.kind === 'engine' || displayName ? (
+              <p className="hm-requests__from">{webStrings.requests.from({ name: displayName })}</p>
+            ) : null}
 
-            {current.item.kind === 'approval' ? (
+            {current.kind === 'confirm' ? (
+              confirmation ? (
+                <ConfirmSheet
+                  key={current.key}
+                  confirmation={confirmation}
+                  rpId={rpId}
+                  titleId={titleId}
+                  descriptionId={descriptionId}
+                  {...(tapGuardMs !== undefined ? { tapGuardMs } : {})}
+                  onConfirm={() => void passkeyActions?.confirm(confirmation.id)}
+                  onDecline={() => void passkeyActions?.decline(confirmation.id)}
+                  onClose={() => passkeyActions?.dismiss(confirmation.id)}
+                />
+              ) : null
+            ) : current.item.kind === 'approval' ? (
               <ApprovalSheet
                 key={current.key}
                 item={current.item}

@@ -1,0 +1,123 @@
+/*
+ * The passkeys settings page. Colours, radii and gutters are the theme's (`ui/theme.css`); the policy
+ * forbids inline styles, so every variation is a class or a data attribute.
+ */
+
+.hm-passkeys {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  max-width: 40rem;
+  padding-bottom: 24px;
+}
+
+.hm-passkeys__title {
+  margin: 0;
+  font-size: 1.25rem;
+}
+
+.hm-passkeys__heading {
+  margin: 12px 0 0;
+  font-size: 1.0625rem;
+}
+
+.hm-passkeys__text,
+.hm-passkeys__state,
+.hm-passkeys__message {
+  margin: 0;
+  overflow-wrap: anywhere;
+}
+
+.hm-passkeys__text {
+  color: var(--hm-text-muted);
+}
+
+.hm-passkeys__state {
+  font-weight: 600;
+}
+
+.hm-passkeys__message:empty {
+  display: none;
+}
+
+.hm-passkeys__message[data-tone='danger'] {
+  color: var(--hm-danger-text);
+}
+
+.hm-passkeys__list {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.hm-passkeys__item {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 10px 12px;
+  border: 1px solid var(--hm-line);
+  border-radius: var(--hm-radius);
+  background: var(--hm-surface);
+}
+
+.hm-passkeys__item-text {
+  display: flex;
+  flex: 1 1 auto;
+  flex-direction: column;
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+
+.hm-passkeys__name {
+  font-weight: 600;
+}
+
+.hm-passkeys__meta {
+  color: var(--hm-text-muted);
+  font-size: 0.875rem;
+}
+
+.hm-button.hm-passkeys__remove[data-tone='danger'] {
+  color: var(--hm-danger-text);
+}
+
+.hm-passkeys__form {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 8px;
+}
+
+.hm-passkeys__label {
+  color: var(--hm-text-muted);
+  font-size: 0.9375rem;
+}
+
+.hm-passkeys__field {
+  box-sizing: border-box;
+  width: min(100%, 24rem);
+  min-height: 44px;
+  padding: 8px 12px;
+  border: 1px solid var(--hm-line);
+  border-radius: var(--hm-radius);
+  background: var(--hm-bg);
+  color: var(--hm-text);
+  font-family: var(--hm-mono);
+  font-size: 1rem;
+  letter-spacing: 0.04em;
+}
+
+.hm-passkeys__code {
+  margin: 0;
+  overflow-wrap: anywhere;
+}
+
+.hm-passkeys__code code {
+  font-family: var(--hm-mono);
+  font-size: 1.125rem;
+  font-weight: 600;
+  letter-spacing: 0.06em;
+}

@@ -2,7 +2,8 @@ import { describe, expect, it } from 'vitest'
 
 import { chatWith } from '../test-support/chat-fixtures'
 import { createChatsStore } from './chats'
-import { bindRequests, createRequestsStore } from './requests'
+import { createPasskeysStore, type PasskeyConfirmation } from './passkeys'
+import { bindRequests, createRequestsStore, type EngineRequest } from './requests'
 
 /** A chat with a runtime session, which is what a question can be answered on. */
 function setup() {
@@ -19,7 +20,11 @@ function setup() {
   const clarify = (bot: string, id: string, params: Record<string, unknown> = { question: 'Which?' }): void =>
     chats.getState().dispatchServerRequest(bot, { id, method: 'clarify', params })
 
-  return { chats, requests, stop, approval, clarify, queue: () => requests.getState().queue }
+  // No passkey store is bound here, so every entry is the engine's (the confirm kind has tests of its own
+  // below); the list itself is handed back, because its identity is under test.
+  const queue = (): readonly EngineRequest[] => requests.getState().queue as readonly EngineRequest[]
+
+  return { chats, requests, stop, approval, clarify, queue }
 }
 
 describe('the open requests of every chat', () => {
@@ -137,6 +142,93 @@ describe('the open requests of every chat', () => {
     approval('researcher', 'srq-1')
     stop()
     approval('researcher', 'srq-2')
+
+    expect(queue()).toEqual([])
+  })
+})
+
+describe('confirmations beside the engine', () => {
+  const confirmation = (id: string, overrides: Partial<PasskeyConfirmation> = {}): PasskeyConfirmation => ({
+    id,
+    sessionId: 'rt-researcher',
+    title: 'Pay invoice',
+    summary: 'Pay 120.00 EUR.',
+    detail: null,
+    baseUrl: 'https://gw.example.test',
+    userName: 'Alex',
+    expiresAt: null,
+    phase: { kind: 'waiting' },
+    version: 1,
+    dismissed: false,
+    ...overrides
+  })
+
+  function setupBoth() {
+    const chats = createChatsStore()
+    const requests = createRequestsStore()
+    const passkeys = createPasskeysStore()
+    const stop = bindRequests(chats, requests, passkeys)
+
+    chats.getState().hydrate('researcher', chatWith('researcher', [], { runtimeSessionId: 'rt-researcher' }))
+    chats.getState().bindRuntime('researcher', 'rt-researcher')
+
+    return { chats, requests, passkeys, stop, queue: () => requests.getState().queue }
+  }
+
+  it('queues a confirmation the passkey model shows, under the bot whose session it is in, after what came first', () => {
+    const { chats, passkeys, queue } = setupBoth()
+
+    chats.getState().dispatchServerRequest('researcher', {
+      id: 'srq-1',
+      method: 'approval',
+      params: { command: 'ls', request_id: 'a-1' }
+    })
+    passkeys.setState({ confirmations: [confirmation('srq-2'), confirmation('srq-3', { sessionId: 'rt-elsewhere' })] })
+
+    expect(
+      queue().map(entry => [entry.kind, entry.bot, entry.kind === 'confirm' ? entry.id : entry.item.requestId])
+    ).toEqual([
+      ['engine', 'researcher', 'srq-1'],
+      ['confirm', 'researcher', 'srq-2'],
+      ['confirm', undefined, 'srq-3']
+    ])
+  })
+
+  it('follows a confirmation through its phases and takes it off once it is closed', () => {
+    const { passkeys, queue } = setupBoth()
+
+    passkeys.setState({ confirmations: [confirmation('srq-1')] })
+    passkeys.setState({ confirmations: [confirmation('srq-1', { phase: { kind: 'received' }, version: 2 })] })
+
+    expect(queue()).toEqual([
+      { kind: 'confirm', key: 'confirm\u0000srq-1', bot: 'researcher', id: 'srq-1', version: 2 }
+    ])
+
+    passkeys.setState({
+      confirmations: [confirmation('srq-1', { phase: { kind: 'received' }, version: 3, dismissed: true })]
+    })
+
+    expect(queue()).toEqual([])
+  })
+
+  it('names the bot once the chat on that session is bound, after the confirmation arrived', () => {
+    const { chats, passkeys, queue } = setupBoth()
+
+    passkeys.setState({ confirmations: [confirmation('srq-1', { sessionId: 'rt-writer' })] })
+    expect(queue()[0]?.bot).toBeUndefined()
+
+    chats.getState().hydrate('writer', chatWith('writer', [], { runtimeSessionId: 'rt-writer' }))
+    chats.getState().bindRuntime('writer', 'rt-writer')
+
+    expect(queue()[0]?.bot).toBe('writer')
+  })
+
+  it('lets go of the confirmations when it is stopped', () => {
+    const { passkeys, stop, queue } = setupBoth()
+
+    passkeys.setState({ confirmations: [confirmation('srq-1')] })
+    stop()
+    passkeys.setState({ confirmations: [confirmation('srq-2')] })
 
     expect(queue()).toEqual([])
   })

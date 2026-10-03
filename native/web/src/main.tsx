@@ -125,6 +125,7 @@ async function run(root: Root, basePath: ResolvedBasePath, store: WebKeyValueSto
         gatewayBaseUrl: basePath.baseUrl,
         drafts: createDraftStore(store)
       }}
+      passkeys={session.passkeys}
       onSignIn={() => signIn(basePath)}
       onSignOut={() => {
         // The order matters: the chats and the socket stop before the gateway's

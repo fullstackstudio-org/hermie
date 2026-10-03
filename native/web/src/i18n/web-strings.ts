@@ -248,6 +248,309 @@ export const WEB_STRINGS_SOURCE = {
       de: ({ message }: { message: string }) => `Die Antwort wurde nicht zugestellt: ${message}`
     }
   },
+  passkeys: {
+    /** Under the confirmation's title: who asks, in fixed words (never the agent's). */
+    sheetLead: {
+      en: ({ host }: { host: string }) => `${host} asks you to confirm this with your passkey.`,
+      nl: ({ host }: { host: string }) => `${host} vraagt je dit te bevestigen met je passkey.`,
+      de: ({ host }: { host: string }) => `${host} bittet dich, dies mit deinem Passkey zu bestätigen.`
+    },
+    /** The name of the box with the confirmation's detail, shown exactly as the gateway sent it. */
+    detailLabel: {
+      en: 'Details',
+      nl: 'Details',
+      de: 'Details'
+    },
+    /** Which passkey the browser will ask for: the page's own host is the passkey's site. */
+    rpLine: {
+      en: ({ rp }: { rp: string }) => `Your browser will ask for your passkey for ${rp}.`,
+      nl: ({ rp }: { rp: string }) => `Je browser vraagt om je passkey voor ${rp}.`,
+      de: ({ rp }: { rp: string }) => `Dein Browser fragt nach deinem Passkey für ${rp}.`
+    },
+    confirm: {
+      en: 'Confirm with passkey',
+      nl: 'Bevestigen met passkey',
+      de: 'Mit Passkey bestätigen'
+    },
+    decline: {
+      en: 'Decline',
+      nl: 'Weigeren',
+      de: 'Ablehnen'
+    },
+    close: {
+      en: 'Close',
+      nl: 'Sluiten',
+      de: 'Schließen'
+    },
+    /** The countdown to the gateway's deadline, `1:42`. */
+    expires: {
+      en: ({ time }: { time: string }) => `Expires in ${time}`,
+      nl: ({ time }: { time: string }) => `Verloopt over ${time}`,
+      de: ({ time }: { time: string }) => `Läuft ab in ${time}`
+    },
+    /** While the browser's passkey sheet is up. */
+    signing: {
+      en: 'Waiting for your passkey…',
+      nl: 'Wachten op je passkey…',
+      de: 'Warte auf deinen Passkey…'
+    },
+    sending: {
+      en: 'Sending…',
+      nl: 'Versturen…',
+      de: 'Wird gesendet…'
+    },
+    /** The gateway refused the assertion; the request is still open. `reason` is the contract's word. */
+    refused: {
+      en: ({ reason }: { reason: string }) => `The gateway did not accept this answer (${reason}). You can try again.`,
+      nl: ({ reason }: { reason: string }) =>
+        `De gateway nam dit antwoord niet aan (${reason}). Je kunt het opnieuw proberen.`,
+      de: ({ reason }: { reason: string }) =>
+        `Das Gateway hat diese Antwort nicht angenommen (${reason}). Du kannst es noch einmal versuchen.`
+    },
+    notSent: {
+      en: ({ message }: { message: string }) => `The answer was not sent: ${message}. You can try again.`,
+      nl: ({ message }: { message: string }) =>
+        `Het antwoord is niet verstuurd: ${message}. Je kunt het opnieuw proberen.`,
+      de: ({ message }: { message: string }) =>
+        `Die Antwort wurde nicht gesendet: ${message}. Du kannst es noch einmal versuchen.`
+    },
+    /** After `ok`: received and valid, NOT confirmed yet. */
+    received: {
+      en: 'Received. The gateway checks your passkey and carries on only if it holds.',
+      nl: 'Ontvangen. De gateway controleert je passkey en gaat alleen verder als die klopt.',
+      de: 'Empfangen. Das Gateway prüft deinen Passkey und macht nur weiter, wenn er stimmt.'
+    },
+    verificationFailed: {
+      en: 'This confirmation did not count: the gateway could not verify it. Nothing was confirmed.',
+      nl: 'Deze bevestiging telt niet: de gateway kon haar niet controleren. Er is niets bevestigd.',
+      de: 'Diese Bestätigung zählt nicht: Das Gateway konnte sie nicht prüfen. Es wurde nichts bestätigt.'
+    },
+    tooManyAttempts: {
+      en: 'Too many answers were refused. The request was closed and nothing was confirmed.',
+      nl: 'Te veel antwoorden zijn geweigerd. Het verzoek is gesloten en er is niets bevestigd.',
+      de: 'Zu viele Antworten wurden abgelehnt. Die Anfrage wurde geschlossen, es wurde nichts bestätigt.'
+    },
+    notAllowed: {
+      en: 'This browser may not answer this request. Nothing was confirmed.',
+      nl: 'Deze browser mag dit verzoek niet beantwoorden. Er is niets bevestigd.',
+      de: 'Dieser Browser darf diese Anfrage nicht beantworten. Es wurde nichts bestätigt.'
+    },
+    unavailable: {
+      en: ({ reason }: { reason: string }) =>
+        `This browser cannot use a passkey for this request (${reason}). Nothing was confirmed.`,
+      nl: ({ reason }: { reason: string }) =>
+        `Deze browser kan voor dit verzoek geen passkey gebruiken (${reason}). Er is niets bevestigd.`,
+      de: ({ reason }: { reason: string }) =>
+        `Dieser Browser kann für diese Anfrage keinen Passkey verwenden (${reason}). Es wurde nichts bestätigt.`
+    },
+    /** Said politely when another device answered the confirmation on screen. */
+    answeredElsewhere: {
+      en: ({ name }: { name: string }) => `The request from ${name} was answered on another device.`,
+      nl: ({ name }: { name: string }) => `Het verzoek van ${name} is op een ander apparaat beantwoord.`,
+      de: ({ name }: { name: string }) => `Die Anfrage von ${name} wurde auf einem anderen Gerät beantwortet.`
+    },
+    notice: {
+      gatewayIdMismatch: {
+        en: 'This gateway presents itself differently from when you added your passkey here. Its passkey requests are refused; ask whoever runs it.',
+        nl: 'Deze gateway presenteert zich anders dan toen je hier je passkey toevoegde. Passkey-verzoeken van deze gateway worden geweigerd; vraag het na bij wie hem beheert.',
+        de: 'Dieses Gateway gibt sich anders aus als beim Hinzufügen deines Passkeys. Seine Passkey-Anfragen werden abgelehnt; frag die Person, die es betreibt.'
+      },
+      gatewayIdConflict: {
+        en: 'This gateway presents the identity of another gateway you use in this browser. Its passkey requests are refused.',
+        nl: 'Deze gateway gebruikt de identiteit van een andere gateway die je in deze browser gebruikt. Passkey-verzoeken van deze gateway worden geweigerd.',
+        de: 'Dieses Gateway gibt sich als ein anderes Gateway aus, das du in diesem Browser nutzt. Seine Passkey-Anfragen werden abgelehnt.'
+      },
+      unsupportedVersion: {
+        en: 'A passkey request came in a form this version of Hermie does not know. It was refused.',
+        nl: 'Er kwam een passkey-verzoek in een vorm die deze versie van Hermie niet kent. Het is geweigerd.',
+        de: 'Eine Passkey-Anfrage kam in einer Form, die diese Version von Hermie nicht kennt. Sie wurde abgelehnt.'
+      },
+      noCredential: {
+        en: 'A passkey request named no passkey of this site. It was refused.',
+        nl: 'Een passkey-verzoek noemde geen passkey van deze site. Het is geweigerd.',
+        de: 'Eine Passkey-Anfrage nannte keinen Passkey dieser Seite. Sie wurde abgelehnt.'
+      },
+      malformedRequest: {
+        en: 'A passkey request could not be read. It was refused.',
+        nl: 'Een passkey-verzoek kon niet gelezen worden. Het is geweigerd.',
+        de: 'Eine Passkey-Anfrage konnte nicht gelesen werden. Sie wurde abgelehnt.'
+      },
+      credentialAdded: {
+        en: ({ name }: { name: string }) =>
+          `A passkey was added to your account without this browser: ${name}. If that was not you, remove it and tell whoever runs the gateway.`,
+        nl: ({ name }: { name: string }) =>
+          `Er is zonder deze browser een passkey aan je account toegevoegd: ${name}. Was jij dat niet, verwijder hem dan en laat het weten aan wie de gateway beheert.`,
+        de: ({ name }: { name: string }) =>
+          `Deinem Konto wurde ohne diesen Browser ein Passkey hinzugefügt: ${name}. Warst du das nicht, entferne ihn und sag der Person Bescheid, die das Gateway betreibt.`
+      },
+      credentialRevoked: {
+        en: ({ name }: { name: string }) => `A passkey was removed from your account without this browser: ${name}.`,
+        nl: ({ name }: { name: string }) => `Er is zonder deze browser een passkey van je account verwijderd: ${name}.`,
+        de: ({ name }: { name: string }) => `Von deinem Konto wurde ohne diesen Browser ein Passkey entfernt: ${name}.`
+      }
+    },
+    settings: {
+      title: {
+        en: 'Passkeys',
+        nl: 'Passkeys',
+        de: 'Passkeys'
+      },
+      intro: {
+        en: 'A passkey lets this gateway check that it is really you before an agent does something it asked you to confirm. It stays in your browser or password manager; the gateway keeps only its public key.',
+        nl: 'Met een passkey controleert deze gateway dat jij het echt bent voordat een agent iets doet wat je moest bevestigen. Hij blijft in je browser of wachtwoordbeheerder; de gateway bewaart alleen de publieke sleutel.',
+        de: 'Mit einem Passkey prüft dieses Gateway, dass du es wirklich bist, bevor ein Agent etwas tut, das du bestätigen solltest. Er bleibt in deinem Browser oder Passwortmanager; das Gateway speichert nur den öffentlichen Schlüssel.'
+      },
+      notSupported: {
+        en: 'Passkeys need this page open over HTTPS at the gateway’s own address, without a path in front, in a browser that supports them.',
+        nl: 'Voor passkeys moet deze pagina via HTTPS op het eigen adres van de gateway openstaan, zonder pad ervoor, in een browser die ze ondersteunt.',
+        de: 'Passkeys brauchen diese Seite über HTTPS unter der eigenen Adresse des Gateways, ohne vorangestellten Pfad, in einem Browser, der sie unterstützt.'
+      },
+      notOffered: {
+        en: 'This gateway does not offer passkey confirmations.',
+        nl: 'Deze gateway biedt geen bevestigingen met een passkey.',
+        de: 'Dieses Gateway bietet keine Bestätigungen mit Passkey an.'
+      },
+      off: {
+        en: ({ reason }: { reason: string }) => `Passkey confirmations are off on this gateway (${reason}).`,
+        nl: ({ reason }: { reason: string }) => `Bevestigingen met een passkey staan uit op deze gateway (${reason}).`,
+        de: ({ reason }: { reason: string }) => `Bestätigungen mit Passkey sind auf diesem Gateway aus (${reason}).`
+      },
+      rpNotAccepted: {
+        en: ({ host }: { host: string }) =>
+          `This gateway does not accept passkeys for ${host}. Ask whoever runs it to list this address.`,
+        nl: ({ host }: { host: string }) =>
+          `Deze gateway accepteert geen passkeys voor ${host}. Vraag wie hem beheert om dit adres toe te voegen.`,
+        de: ({ host }: { host: string }) =>
+          `Dieses Gateway akzeptiert keine Passkeys für ${host}. Bitte die Person, die es betreibt, diese Adresse einzutragen.`
+      },
+      ready: {
+        en: 'Passkey confirmations are on for this gateway.',
+        nl: 'Bevestigingen met een passkey staan aan voor deze gateway.',
+        de: 'Bestätigungen mit Passkey sind für dieses Gateway eingeschaltet.'
+      },
+      listTitle: {
+        en: 'Your passkeys',
+        nl: 'Je passkeys',
+        de: 'Deine Passkeys'
+      },
+      empty: {
+        en: 'You have no passkey on this gateway yet.',
+        nl: 'Je hebt nog geen passkey op deze gateway.',
+        de: 'Du hast noch keinen Passkey auf diesem Gateway.'
+      },
+      forSite: {
+        en: ({ rp }: { rp: string }) => `For ${rp}`,
+        nl: ({ rp }: { rp: string }) => `Voor ${rp}`,
+        de: ({ rp }: { rp: string }) => `Für ${rp}`
+      },
+      added: {
+        en: ({ date }: { date: string }) => `Added ${date}`,
+        nl: ({ date }: { date: string }) => `Toegevoegd ${date}`,
+        de: ({ date }: { date: string }) => `Hinzugefügt ${date}`
+      },
+      remove: {
+        en: 'Remove',
+        nl: 'Verwijderen',
+        de: 'Entfernen'
+      },
+      /** The accessible name of a passkey's Remove button. */
+      removeNamed: {
+        en: ({ name }: { name: string }) => `Remove ${name}`,
+        nl: ({ name }: { name: string }) => `${name} verwijderen`,
+        de: ({ name }: { name: string }) => `${name} entfernen`
+      },
+      removed: {
+        en: 'The passkey was removed.',
+        nl: 'De passkey is verwijderd.',
+        de: 'Der Passkey wurde entfernt.'
+      },
+      enrolTitle: {
+        en: 'Add a passkey from this browser',
+        nl: 'Een passkey van deze browser toevoegen',
+        de: 'Einen Passkey aus diesem Browser hinzufügen'
+      },
+      enrolHelp: {
+        en: 'You need a one-time code from whoever runs the gateway, or one you made with a passkey you already have.',
+        nl: 'Je hebt een eenmalige code nodig van wie de gateway beheert, of een die je met een bestaande passkey hebt gemaakt.',
+        de: 'Du brauchst einen Einmalcode von der Person, die das Gateway betreibt, oder einen, den du mit einem vorhandenen Passkey erstellt hast.'
+      },
+      codeLabel: {
+        en: 'Enrolment code',
+        nl: 'Koppelcode',
+        de: 'Registrierungscode'
+      },
+      enrol: {
+        en: 'Add a passkey',
+        nl: 'Passkey toevoegen',
+        de: 'Passkey hinzufügen'
+      },
+      enrolled: {
+        en: 'The passkey was added.',
+        nl: 'De passkey is toegevoegd.',
+        de: 'Der Passkey wurde hinzugefügt.'
+      },
+      inviteTitle: {
+        en: 'Add another device',
+        nl: 'Nog een apparaat toevoegen',
+        de: 'Ein weiteres Gerät hinzufügen'
+      },
+      inviteHelp: {
+        en: 'Make a one-time code with a passkey of this browser, and enter it on the other device.',
+        nl: 'Maak met een passkey van deze browser een eenmalige code en voer die in op het andere apparaat.',
+        de: 'Erstelle mit einem Passkey dieses Browsers einen Einmalcode und gib ihn auf dem anderen Gerät ein.'
+      },
+      invite: {
+        en: 'Make a code',
+        nl: 'Code maken',
+        de: 'Code erstellen'
+      },
+      inviteCode: {
+        en: ({ code }: { code: string }) => `Your code: ${code}`,
+        nl: ({ code }: { code: string }) => `Je code: ${code}`,
+        de: ({ code }: { code: string }) => `Dein Code: ${code}`
+      },
+      inviteExpires: {
+        en: ({ time }: { time: string }) => `It works once, until ${time}.`,
+        nl: ({ time }: { time: string }) => `Hij werkt één keer, tot ${time}.`,
+        de: ({ time }: { time: string }) => `Er funktioniert einmal, bis ${time}.`
+      },
+      invalidCode: {
+        en: 'That is not an enrolment code. It has 20 letters and digits, in groups of five.',
+        nl: 'Dat is geen koppelcode. Die heeft 20 letters en cijfers, in groepjes van vijf.',
+        de: 'Das ist kein Registrierungscode. Er hat 20 Buchstaben und Ziffern in Fünfergruppen.'
+      },
+      codeRefused: {
+        en: 'The gateway did not accept that code. It may have been used or expired, or be meant for someone else.',
+        nl: 'De gateway accepteerde die code niet. Misschien is hij al gebruikt of verlopen, of is hij voor iemand anders.',
+        de: 'Das Gateway hat diesen Code nicht angenommen. Vielleicht wurde er schon benutzt, ist abgelaufen oder für jemand anderen.'
+      },
+      exists: {
+        en: 'This browser already holds a passkey for this gateway.',
+        nl: 'Deze browser heeft al een passkey voor deze gateway.',
+        de: 'Dieser Browser hat schon einen Passkey für dieses Gateway.'
+      },
+      cancelled: {
+        en: 'The passkey prompt was closed. Nothing changed.',
+        nl: 'Het passkey-venster is gesloten. Er is niets veranderd.',
+        de: 'Das Passkey-Fenster wurde geschlossen. Es hat sich nichts geändert.'
+      },
+      notEnrolled: {
+        en: 'For that you need a passkey of this browser on this gateway.',
+        nl: 'Daarvoor heb je een passkey van deze browser op deze gateway nodig.',
+        de: 'Dafür brauchst du einen Passkey dieses Browsers auf diesem Gateway.'
+      },
+      rateLimited: {
+        en: 'Too many tries. Wait a few minutes and try again.',
+        nl: 'Te veel pogingen. Wacht een paar minuten en probeer het opnieuw.',
+        de: 'Zu viele Versuche. Warte ein paar Minuten und versuch es noch einmal.'
+      },
+      failed: {
+        en: ({ message }: { message: string }) => `That did not work: ${message}`,
+        nl: ({ message }: { message: string }) => `Dat is niet gelukt: ${message}`,
+        de: ({ message }: { message: string }) => `Das hat nicht geklappt: ${message}`
+      }
+    }
+  },
   language: {
     /** The first row of the language picker: a browser has a language list, not one device language. */
     followBrowser: {
