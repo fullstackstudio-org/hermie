@@ -278,6 +278,27 @@ export interface FakeGatewayOptions {
    */
   nativeRevoke?: boolean
   /**
+   * Who signs a native (RFC 8252) sign-in in.
+   *
+   * `single`, the default: the fake is its own identity provider, and its
+   * authorize page approves in one step (`auto=1`), which is all most tests need.
+   *
+   * `staged`: the chain a real gateway runs, with an identity provider shaped
+   * like the FullStack Studio one behind it, all on this one server. Authorize
+   * keeps a pending broker in the gateway's own PKCE cookie and 302s to
+   * `/__idp/authorize`; that remembers where to go after signing in in a cookie
+   * of its own and sends the browser to a password form, then to a one-time-code
+   * form (`stagedTotpCode`). A wrong code is burned, like the real provider burns
+   * its challenge, so a second try is sent back to the password form. Only then
+   * does the provider redirect to the gateway's `/auth/callback`, which checks
+   * the PKCE cookie and the state and 302s to the client's loopback redirect.
+   * A browser that drops a cookie anywhere along the way ends where the real
+   * one ends: at the password form again, or at a 400 from the callback.
+   */
+  idp?: 'single' | 'staged'
+  /** The one-time code the staged provider accepts. Default `246810`. */
+  stagedTotpCode?: string
+  /**
    * A directory served as the plugin's dashboard files, at
    * `GET /dashboard-plugins/hermie/<path>`.
    *
@@ -1688,6 +1709,50 @@ function escapeHtml(value: string): string {
   return value.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;')
 }
 
+/** A form body (`application/x-www-form-urlencoded`), as a browser posts one. */
+async function readForm(req: IncomingMessage): Promise<URLSearchParams> {
+  const chunks: Buffer[] = []
+
+  for await (const chunk of req) {
+    chunks.push(chunk as Buffer)
+  }
+
+  return new URLSearchParams(Buffer.concat(chunks).toString('utf8'))
+}
+
+/** One `Set-Cookie` value of the staged provider: HttpOnly and Lax, like the real ones. */
+function stagedCookie(name: string, value: string, { path, maxAge }: { path: string; maxAge: number }): string {
+  return `${name}=${encodeURIComponent(value)}; Path=${path}; Max-Age=${maxAge}; HttpOnly; SameSite=Lax`
+}
+
+function stagedPage(title: string, body: string): string {
+  return `<!doctype html>
+<html lang="en">
+  <head><meta charset="utf-8"><title>${escapeHtml(title)}</title></head>
+  <body style="font-family: system-ui; margin: 3rem auto; max-width: 30rem">
+    <h1>${escapeHtml(title)}</h1>
+    ${body}
+  </body>
+</html>`
+}
+
+function stagedLoginForm(error: string): string {
+  return `${error ? `<p role="alert">${escapeHtml(error)}</p>` : ''}
+    <form method="post" action="/__idp/login">
+      <input name="username" autocomplete="username">
+      <input name="password" type="password" autocomplete="current-password">
+      <button type="submit">Sign in</button>
+    </form>`
+}
+
+function stagedVerifyForm(error: string): string {
+  return `${error ? `<p role="alert">${escapeHtml(error)}</p>` : ''}
+    <form method="post" action="/__idp/verify">
+      <input name="code" inputmode="numeric" autocomplete="one-time-code">
+      <button type="submit">Verify</button>
+    </form>`
+}
+
 /**
  * The delivery command a `message_agent` hand-off spawns. The transcript engine
  * recognises bot-to-bot traffic from this string, so it is copied verbatim from
@@ -2872,6 +2937,20 @@ export async function startFakeGateway(options: FakeGatewayOptions = {}): Promis
 
   const tickets = new Map<string, { expiresAt: number; userId: string; provider: string; identity?: Identity }>()
   const codes = new Map<string, { challenge: string; provider: string }>()
+  const stagedIdp = options.idp === 'staged'
+  const stagedTotpCode = options.stagedTotpCode ?? '246810'
+  /** Staged provider: pending native sign-ins by broker id, as `native_flow.register_pending` keeps them. */
+  const brokers = new Map<
+    string,
+    { challenge: string; provider: string; redirectUri: string; clientState: string; idpState: string }
+  >()
+  /** Staged provider: authorization requests by id, each with the state and redirect it echoes. */
+  const idpRequests = new Map<string, { state: string; redirectUri: string }>()
+  /** Staged provider: password logins waiting for their code; burned on the first try. */
+  const idpChallenges = new Set<string>()
+  const idpSessions = new Set<string>()
+  /** Staged provider: issued codes, by the state they were issued for. */
+  const idpCodes = new Map<string, string>()
   const refreshTokens = new Map<string, { provider: string; userId: string }>()
   const sockets = new Set<WebSocket>()
   /** The `confirm` levels each live socket offered in `client.capabilities`. */
@@ -3717,6 +3796,12 @@ export async function startFakeGateway(options: FakeGatewayOptions = {}): Promis
 
     if (path === '/auth/native/authorize') {
       handleAuthorize(url, res)
+
+      return
+    }
+
+    if (stagedIdp && (path.startsWith('/__idp/') || path === '/auth/callback')) {
+      await handleStagedIdp(req, res, url, path, method)
 
       return
     }
@@ -4597,6 +4682,195 @@ export async function startFakeGateway(options: FakeGatewayOptions = {}): Promis
     json(res, 404, { detail: `No route for ${method} ${path}` })
   }
 
+  /**
+   * The staged identity provider and the gateway callback in front of it (see
+   * `FakeGatewayOptions.idp`). Cookies carry the whole round trip, as they do
+   * between a real gateway and a real provider: nothing here trusts a query
+   * parameter that a cookie should have carried.
+   */
+  async function handleStagedIdp(
+    req: IncomingMessage,
+    res: ServerResponse,
+    url: URL,
+    path: string,
+    method: string
+  ): Promise<void> {
+    const redirect = (location: string, cookies: string[] = [], status = 303) => {
+      res.writeHead(status, { location, ...(cookies.length > 0 ? { 'set-cookie': cookies } : {}) })
+      res.end()
+    }
+    const session = cookieOf(req, 'idp_session')
+    const signedIn = session !== '' && idpSessions.has(session)
+
+    // A fresh connection for every hop. A person takes longer over a form than Node keeps an idle
+    // connection, and a browser that posts the form on the connection Node just closed reports a
+    // lost connection (a POST is not retried) instead of the next page.
+    res.setHeader('connection', 'close')
+
+    if (path === '/__idp/authorize' && method === 'GET') {
+      const request = randomUUID()
+
+      idpRequests.set(request, {
+        state: url.searchParams.get('state') ?? '',
+        redirectUri: url.searchParams.get('redirect_uri') ?? ''
+      })
+
+      const consent = `/__idp/consent?request=${request}`
+
+      // Where to go once signed in: a cookie, not a query parameter.
+      redirect(signedIn ? consent : '/__idp/login', [stagedCookie('idp_next', consent, { path: '/', maxAge: 600 })])
+
+      return
+    }
+
+    if (path === '/__idp/login' && method === 'GET') {
+      html(res, 200, stagedPage('Sign in', stagedLoginForm('')))
+
+      return
+    }
+
+    if (path === '/__idp/login' && method === 'POST') {
+      const form = await readForm(req)
+
+      if (form.get('username') !== passwordAccount.username || form.get('password') !== passwordAccount.password) {
+        html(res, 200, stagedPage('Sign in', stagedLoginForm('Wrong username or password.')))
+
+        return
+      }
+
+      const challenge = randomUUID()
+
+      idpChallenges.add(challenge)
+      redirect('/__idp/verify', [stagedCookie('idp_pending', challenge, { path: '/__idp', maxAge: 300 })])
+
+      return
+    }
+
+    if (path === '/__idp/verify' && method === 'GET') {
+      if (!idpChallenges.has(cookieOf(req, 'idp_pending'))) {
+        redirect('/__idp/login')
+
+        return
+      }
+
+      html(res, 200, stagedPage('Verify', stagedVerifyForm('')))
+
+      return
+    }
+
+    if (path === '/__idp/verify' && method === 'POST') {
+      const form = await readForm(req)
+      const pending = cookieOf(req, 'idp_pending')
+      // Burned on the first try, right or wrong, like the real provider's challenge.
+      const live = pending !== '' && idpChallenges.delete(pending)
+      const cleared = stagedCookie('idp_pending', '', { path: '/__idp', maxAge: 0 })
+
+      if (!live) {
+        res.setHeader('set-cookie', cleared)
+        html(res, 200, stagedPage('Verify', stagedVerifyForm('This sign-in expired. Sign in again.')))
+
+        return
+      }
+
+      if (form.get('code') !== stagedTotpCode) {
+        res.setHeader('set-cookie', cleared)
+        html(res, 200, stagedPage('Verify', stagedVerifyForm('That code is not right.')))
+
+        return
+      }
+
+      const created = randomUUID()
+      const next = cookieOf(req, 'idp_next')
+
+      idpSessions.add(created)
+      redirect(next.startsWith('/__idp/') ? next : '/__idp/home', [
+        cleared,
+        stagedCookie('idp_session', created, { path: '/', maxAge: 14 * 24 * 3600 }),
+        stagedCookie('idp_next', '', { path: '/', maxAge: 0 })
+      ])
+
+      return
+    }
+
+    if (path === '/__idp/consent' && method === 'GET') {
+      if (!signedIn) {
+        redirect('/__idp/login')
+
+        return
+      }
+
+      const id = url.searchParams.get('request') ?? ''
+      const request = idpRequests.get(id)
+
+      if (!request) {
+        html(res, 200, stagedPage('Expired', '<p>This sign-in expired. Start again in the app.</p>'))
+
+        return
+      }
+
+      idpRequests.delete(id)
+
+      const code = `idp-${randomUUID()}`
+      const target = new URL(request.redirectUri, 'http://placeholder')
+
+      idpCodes.set(code, request.state)
+      target.searchParams.set('code', code)
+      target.searchParams.set('state', request.state)
+      redirect(`${target.pathname}${target.search}`)
+
+      return
+    }
+
+    if (path === '/__idp/home' && method === 'GET') {
+      html(res, 200, stagedPage('Signed in', '<p>Signed in at the provider.</p>'))
+
+      return
+    }
+
+    if (path === '/auth/callback' && method === 'GET') {
+      // `routes.py::auth_callback`, in its order.
+      const [broker = '', idpState = ''] = cookieOf(req, 'hermes_session_pkce').split('.')
+      const pending = brokers.get(broker)
+
+      if (!pending) {
+        json(res, 400, { detail: 'Missing PKCE state cookie' })
+
+        return
+      }
+
+      const state = url.searchParams.get('state') ?? ''
+
+      if (!state || state !== idpState || pending.idpState !== idpState) {
+        json(res, 400, { detail: 'OAuth state mismatch (CSRF check failed)' })
+
+        return
+      }
+
+      const code = url.searchParams.get('code') ?? ''
+
+      if (idpCodes.get(code) !== state) {
+        json(res, 400, { detail: 'Invalid code: unknown or used' })
+
+        return
+      }
+
+      idpCodes.delete(code)
+      brokers.delete(broker)
+
+      const gatewayCode = `code-${randomUUID()}`
+      const target = new URL(pending.redirectUri)
+
+      codes.set(gatewayCode, { challenge: pending.challenge, provider: pending.provider })
+      target.searchParams.set('code', gatewayCode)
+      target.searchParams.set('state', pending.clientState)
+      redirect(target.toString(), [stagedCookie('hermes_session_pkce', '', { path: '/', maxAge: 0 })], 302)
+
+      return
+    }
+
+    json(res, 404, { detail: `No route for ${method} ${path}` })
+  }
+
   function handleAuthorize(url: URL, res: ServerResponse): void {
     const challenge = url.searchParams.get('code_challenge') ?? ''
     const method = url.searchParams.get('code_challenge_method') ?? ''
@@ -4627,6 +4901,26 @@ export async function startFakeGateway(options: FakeGatewayOptions = {}): Promis
       target.searchParams.set('state', clientState)
       res.writeHead(302, { location: target.toString() })
       res.end()
+    }
+
+    if (stagedIdp) {
+      // `routes.py::auth_native_authorize`: the client's challenge and state stay
+      // here; only an opaque broker id rides in the gateway's own cookie.
+      const broker = randomUUID()
+      const idpState = randomUUID()
+
+      brokers.set(broker, { challenge, provider, redirectUri, clientState, idpState })
+
+      const target = new URL('/__idp/authorize', 'http://placeholder')
+      target.searchParams.set('state', idpState)
+      target.searchParams.set('redirect_uri', '/auth/callback')
+      res.writeHead(302, {
+        location: `${target.pathname}${target.search}`,
+        'set-cookie': stagedCookie('hermes_session_pkce', `${broker}.${idpState}`, { path: '/', maxAge: 600 })
+      })
+      res.end()
+
+      return
     }
 
     if (url.searchParams.get('auto') === '1') {
