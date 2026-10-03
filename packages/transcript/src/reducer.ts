@@ -713,6 +713,45 @@ function unpersistedNote(next: ChatState, id: string | undefined): string | unde
   return item?.kind === 'assistant' && item.rowId === undefined ? item.id : undefined
 }
 
+/**
+ * Give our own prompt the id of the turn it started.
+ *
+ * `message.start` names no author, so which prompt a turn belongs to is
+ * known only when there is exactly one candidate: a local, still-optimistic
+ * prompt that names no turn yet (a steer starts none). Two or more — an earlier
+ * send that never came back, say — and nothing is stamped; the prompt then pairs
+ * with its row the way it always did.
+ */
+function stampLocalPrompt(next: ChatState, turnId: string): void {
+  let candidate: string | undefined
+
+  for (const id of next.order) {
+    const item = next.items[id]
+
+    if (
+      item?.kind !== 'user' ||
+      item.origin !== 'optimistic' ||
+      item.turnId ||
+      item.rowId !== undefined ||
+      item.displayKind === 'steer'
+    ) {
+      continue
+    }
+
+    if (candidate) {
+      return
+    }
+
+    candidate = item.id
+  }
+
+  if (candidate && !userItemOfTurn(next, turnId)) {
+    patchItem<UserItem>(next, candidate, draft => {
+      draft.turnId = turnId
+    })
+  }
+}
+
 /** The user item that opened turn `turnId`, when one is on screen. */
 function userItemOfTurn(next: ChatState, turnId: string): UserItem | undefined {
   for (const id of next.order) {
@@ -897,6 +936,16 @@ export function applyEvent(state: ChatState, event: TranscriptEvent, now: number
         }
       }
 
+      if (turnId && next.turn.local) {
+        stampLocalPrompt(next, turnId)
+      }
+
+      // A different turn starts: the thought a cached turn was writing to is
+      // not this one's (the live bubble is let go below, as it always was).
+      if (next.turn.id !== undefined && next.turn.id !== turnId) {
+        next.turn.reasoningId = undefined
+      }
+
       if (turnId) {
         next.turn.id = turnId
       } else {
@@ -1014,7 +1063,15 @@ export function applyEvent(state: ChatState, event: TranscriptEvent, now: number
       const callKey = callKeyOf(payload)
 
       if (callKey) {
-        settleLiveOntoCallRow(next, num(payload.call_row_id)!)
+        // A bubble that already IS a row (a cached bubble history paired with
+        // its row by its words) is let go, not sealed: the row stays as written.
+        const live = next.turn.assistantId ? next.items[next.turn.assistantId] : undefined
+
+        if (live?.rowId !== undefined) {
+          next.turn.assistantId = undefined
+        } else {
+          settleLiveOntoCallRow(next, num(payload.call_row_id)!)
+        }
       }
 
       sealAssistantForTool(next)

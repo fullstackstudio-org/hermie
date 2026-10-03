@@ -1247,11 +1247,18 @@ export class ChatController {
 
     if (cold || result.truncated) {
       // Adopt the watermark without replaying: history already describes this.
+      // A turn the cache restored mid-stream (`CachedTurn`) is continued only
+      // by the frames a replay brings, so with none coming its pointers go, as
+      // they did before the cache kept them — unless a resume has just said the
+      // turn still runs, which is then the live turn's own state.
       this.chats.getState().update(botName, state => ({
         ...state,
         lastSeq: epochChanged ? result.latest_seq : Math.max(state.lastSeq, result.latest_seq),
         lastSeqSessionId: runtimeId,
-        epoch: result.epoch
+        epoch: result.epoch,
+        ...(state.turn.id !== undefined && !state.turn.active
+          ? { turn: { ...state.turn, id: undefined, assistantId: undefined, reasoningId: undefined } }
+          : {})
       }))
     } else {
       for (const raw of Array.isArray(result.events) ? result.events : []) {
