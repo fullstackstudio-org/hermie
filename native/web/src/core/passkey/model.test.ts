@@ -245,6 +245,18 @@ describe('reading a confirm frame', () => {
     { name: 'no user', params: frame({}, { user: {} }), reason: 'bad_request', notice: 'malformed_request' },
     { name: 'no summary', params: frame({ summary: 7 }), reason: 'bad_request', notice: 'malformed_request' },
     {
+      name: 'no expires_at',
+      params: frame({}, { expires_at: undefined }),
+      reason: 'bad_request',
+      notice: 'malformed_request'
+    },
+    {
+      name: 'an expires_at that is not a number',
+      params: frame({}, { expires_at: '1790000120' }),
+      reason: 'bad_request',
+      notice: 'malformed_request'
+    },
+    {
       name: 'no passkey of this site listed',
       params: frame({}, { credentials: [{ rp_id: 'confirm.hermie.dev', ids: ['bmF0aXZl'] }] }),
       reason: 'no_credential',
@@ -565,12 +577,14 @@ describe('the page’s clock ends a confirmation', () => {
     }
   })
 
-  it('ends it exactly at its deadline, and leaves a later one, an answered one and one without a deadline alone', () => {
+  it('ends it exactly at its deadline, and leaves a later one and an answered one alone', () => {
     const page = setUp()
 
     page.deliver('srq-1', frame())
-    page.deliver('srq-2', frame({}, { expires_at: undefined }))
     page.deliver('srq-3', frame())
+    // Arrived 10 s later: its deadline is NOW + 130.
+    page.clock.now = NOW + 10
+    page.deliver('srq-2', frame({}, { expires_at: NOW + 200 }))
     page.store.setState(state => ({
       confirmations: state.confirmations.map(entry =>
         entry.id === 'srq-3' ? { ...entry, phase: { kind: 'received' } } : entry
@@ -586,7 +600,39 @@ describe('the page’s clock ends a confirmation', () => {
     // An answer that went through is the gateway's to settle.
     expect(page.model.expire('srq-3')).toBe(false)
     expect(page.model.expire('missing')).toBe(false)
-    expect(page.store.getState().confirmations.map(entry => entry.phase.kind)).toEqual(['ended', 'waiting', 'received'])
+    expect(Object.fromEntries(page.store.getState().confirmations.map(entry => [entry.id, entry.phase.kind]))).toEqual({
+      'srq-1': 'ended',
+      'srq-2': 'waiting',
+      'srq-3': 'received'
+    })
+  })
+
+  it('keeps a confirmation open at most 120 seconds after it arrived, whatever expires_at says', () => {
+    const page = setUp()
+
+    page.deliver('srq-1', frame({}, { expires_at: NOW + 86_400 }))
+
+    expect(page.store.getState().confirmations[0]?.expiresAt).toBe(NOW + 120)
+    page.clock.now = NOW + 120
+    expect(page.model.expire('srq-1')).toBe(true)
+  })
+
+  it('ends a ceremony at its deadline before it cancels the browser’s sheet', () => {
+    const page = setUp()
+    const held = page.model as unknown as { options: { webauthn: { cancel: () => void } } }
+    const phases: string[] = []
+
+    vi.spyOn(held.options.webauthn, 'cancel').mockImplementation(() => {
+      phases.push(page.store.getState().confirmations[0]?.phase.kind ?? '')
+    })
+    page.deliver('srq-1', frame())
+    page.store.setState(state => ({
+      confirmations: state.confirmations.map(entry => ({ ...entry, phase: { kind: 'signing' } }))
+    }))
+
+    page.clock.now = NOW + 120
+    expect(page.model.expire('srq-1')).toBe(true)
+    expect(phases).toEqual(['ended'])
   })
 
   it('does not let a late 4033 end a request for good: the frame again brings it back', async () => {

@@ -107,6 +107,8 @@ export const CANNOT_RUN_CODE = 4040
 
 /** The exact decline (contract §8). */
 export const DECLINE = Object.freeze({ decision: 'declined', method: 'tap' })
+/** The longest a confirmation stays open on this page, whatever `expires_at` says (as in the native apps). */
+export const MAX_CONFIRM_SECONDS = 120
 
 /** At most this many finished confirmations are kept, for the sheet to show their end. */
 const FINISHED_KEPT = 20
@@ -621,7 +623,13 @@ export class PasskeyModel {
       throw new FrameProblem(pin.kind, pin)
     }
 
-    const expires = typeof passkey.expires_at === 'number' ? passkey.expires_at : null
+    // Required: without it nothing would ever end the confirmation on this page's clock. Capped, so a gateway
+    // clock that is far off cannot hold one open for long.
+    if (typeof passkey.expires_at !== 'number' || !Number.isFinite(passkey.expires_at)) {
+      throw new FrameProblem('bad_request', { kind: 'malformed_request' })
+    }
+
+    const expires = Math.min(passkey.expires_at, this.now + MAX_CONFIRM_SECONDS)
 
     return {
       confirmation: {
@@ -873,11 +881,13 @@ export class PasskeyModel {
       return
     }
 
+    // The phase moves first: a ceremony that returns while `cancel()` runs finds the request over and
+    // sends nothing.
+    this.setPhase(id, next)
+
     if (current.phase.kind === 'signing') {
       this.options.webauthn.cancel()
     }
-
-    this.setPhase(id, next)
 
     // What ended it without the person's doing is said by the layer as it goes; what the person
     // must read (it did not count, or it may have counted) stays on screen, even over a sheet they had
