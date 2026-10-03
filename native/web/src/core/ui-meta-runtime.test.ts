@@ -28,8 +28,9 @@ afterEach(async () => {
 const waitFor = <T>(check: () => T | Promise<T>): Promise<T> => vi.waitFor(check, { timeout: 2_000, interval: 5 })
 
 /** A page's connection, roster and stores around a gateway that remembers, with the reads counted. */
-function wired() {
+function wired(options: { failLists?: number } = {}) {
   const gateway = holdingGateway()
+  let failLists = options.failLists ?? 0
   const handlers = new Set<() => void>()
   let lists = 0
   const connection = createConnectionStore()
@@ -40,6 +41,12 @@ function wired() {
     gateway: {
       request: ((method: string, params?: Record<string, unknown>) => {
         lists += method === 'profiles.list' ? 1 : 0
+
+        if (method === 'profiles.list' && failLists > 0) {
+          failLists -= 1
+
+          return Promise.reject(new Error('gateway not connected'))
+        }
 
         return gateway.request(method, params)
       }) as never,
@@ -150,5 +157,67 @@ describe('connectUiMeta', () => {
     await settled()
 
     expect(page.lists()).toBe(0)
+  })
+})
+
+/**
+ * A fold on a copy that has not taken the gateway's would be sent as the
+ * person's arrangement: an undated flat list against an undated section kept
+ * the local copy by the offline rule, and replaced their folders.
+ */
+describe('folding only onto a copy that took the gateway’s', () => {
+  const FOLDERS = {
+    v: 1,
+    entries: [{ kind: 'folder', id: 'f1' }],
+    folders: [{ id: 'f1', name: 'Finance', bots: ['researcher', 'writer'] }]
+  }
+
+  it('does not fold after a first pull that failed while the roster read worked', async () => {
+    const page = wired({ failLists: 1 })
+
+    // The person's folders, undated, on the gateway.
+    await page.gateway.request('profiles.configure', { name: 'researcher', ui_meta: { [APP_KEY]: FOLDERS } })
+
+    page.bots.getState().setBots([aBot('researcher'), aBot('writer')])
+    page.connection.getState().setStatus('ready', null)
+    await waitFor(() => expect(page.lists()).toBe(1))
+    await settled()
+
+    expect(page.runtime.bridge.takes).toBe(0)
+    expect(page.layout.getState().entries).toEqual([])
+    expect(page.gateway.app()).toEqual(FOLDERS)
+
+    // The next reconcile takes the gateway's copy, and the fold lands on it.
+    page.emitChanged()
+    await waitFor(() => expect(page.layout.getState().folders.map(folder => folder.name)).toEqual(['Finance']))
+    await settled()
+
+    expect(page.layout.getState().entries).toEqual([{ kind: 'folder', id: 'f1' }])
+    expect(page.gateway.app()?.folders).toEqual(FOLDERS.folders)
+  })
+
+  it('does not fold a roster that arrives while the connection is down, or before the next take', async () => {
+    const page = wired()
+
+    page.bots.getState().setBots([aBot('researcher')])
+    page.connection.getState().setStatus('ready', null)
+    await waitFor(() => expect(page.layout.getState().entries).toHaveLength(1))
+
+    const before = page.layout.getState().entries
+
+    page.connection.getState().setStatus('reconnecting', null)
+    page.bots.getState().setBots([aBot('researcher'), aBot('writer')])
+    await settled()
+
+    expect(page.layout.getState().entries).toBe(before)
+
+    // Up again: the roster lands before the reconcile has taken anything.
+    page.connection.getState().setStatus('ready', null)
+    page.bots.getState().setBots([aBot('researcher'), aBot('writer'), aBot('postman')])
+
+    expect(page.layout.getState().entries).toBe(before)
+
+    // And once it has, the fold is made.
+    await waitFor(() => expect(page.layout.getState().entries).toHaveLength(3))
   })
 })

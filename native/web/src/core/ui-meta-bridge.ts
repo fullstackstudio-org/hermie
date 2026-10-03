@@ -23,14 +23,20 @@
  *  3. **Dates a choice, not a chore.** A change somebody made moves the app
  *     section's `updatedAt` (`state/app-stamp.ts`); the roster folded into the
  *     list and the sweep of lapsed mutes are the layout store's `chores` and are
- *     sent undated, so they never outrank a choice made on another device.
+ *     sent undated (`markApp('chore')`), so they never outrank a choice made on
+ *     another device, and never win over a section the gateway holds at all:
+ *     `UiMetaSync` drops an unsent change made only of chores when the gateway
+ *     has a section, and the roster is folded in again on top of what it took.
  *  4. **Waits.** A drag across a long list is many writes in a second, so the
  *     send is debounced (`UI_META_DEBOUNCE_MS`).
  *
  * **Taking a gateway's copy** (`takeApp`, the Swift app's `UIMetaDocuments.take`):
  *
  *  - The bot sections are the snapshot's, whole. A bot it has no section for has
- *    nothing archived and no colour.
+ *    nothing archived and no colour. A bot this page still holds a change for is
+ *    the gateway's section as the roster had it, with this page's `archived` and
+ *    `colour` written in (`apply`), so a section carrying fields this page does
+ *    not own is never sent as `null`.
  *  - The app section mirrors the arriving one: every field it carries is taken
  *    as it came (unknown ones included), and a field it no longer carries is
  *    gone, so any client can remove one. Only `KEPT_WHEN_ABSENT` keeps the held
@@ -49,13 +55,15 @@
  * **One departure from the Swift app, and why.** When this page's app section
  * wins (it holds a newer choice) the Swift app sends its own copy whole, so a
  * field another build added to the gateway's copy since this page last read it
- * is lost. Here a field this build does not project (`APP_FIELDS`) is taken from
- * the gateway's copy even then: this build cannot have chosen anything about a
- * field it does not know, so the gateway's value is the newest one there is. The
+ * is lost. Here every field this build does not project (`APP_FIELDS`) is the
+ * gateway's even then, taken when it has one and gone when it does not: this
+ * build cannot have chosen anything about a field it does not know, so the
+ * gateway's value is the newest one there is. The same holds for a bot section
+ * this page holds a change for: only `archived` and `colour` are its own. The
  * fields it does project follow last-writer-wins exactly as the Swift app and the
  * Expo app do; nothing about the dates, the conflict retry or the tombstones
- * (a bot section left with nothing but `v` is sent as `null`, which removes it)
- * differs.
+ * (a bot section left with nothing at all but `v` is sent as `null`, which
+ * removes it) differs.
  *
  * Ported from the Expo app's `src/store/ui-meta-bridge.ts`. Deliberate
  * differences:
@@ -72,9 +80,10 @@
  *    push row's platform, and this page writes no push row.
  *  - **Stores are injected** (`stores`), the page's own by default, so two pages'
  *    worth of stores can run against one gateway in a test.
- *  - **Pending bot edits survive a reload** (`UI_META_PENDING_KEY`), as in the
- *    Swift app: the dirty bit lives in `UiMetaSync` and does not outlive the
- *    page, and the app section's date covers only the app section.
+ *  - **Pending bot edits survive a reload** (`UI_META_PENDING_KEY`), with their
+ *    sections raw, as in the Swift app: the dirty bit lives in `UiMetaSync` and
+ *    does not outlive the page, and the app section's date covers only the app
+ *    section.
  *  - **`reconcileSoon`** coalesces reconciles (one running, at most one more), as
  *    the Swift app's `GatewayMetaBridge` does, for the `sessions.changed` sweeps.
  *  - **A change of person** drops the previous person's app section and their
@@ -85,12 +94,14 @@ import {
   APP_UPDATED_AT,
   appStampOf,
   HERMIE_APP_SECTION_VERSION,
+  HERMIE_KEY,
   HERMIE_SECTION_VERSION,
   type HermieAppSection,
   type HermieBotSection,
   type UiMetaGateway,
   type UiMetaMode,
   type UiMetaSnapshot,
+  readSection,
   UiMetaSync
 } from '@hermie/gateway-client/ui-meta'
 import type { StoreApi } from 'zustand/vanilla'
@@ -109,8 +120,21 @@ import type { ChatGateway } from './link'
 /** How long the reader has to stop moving before their arrangement goes out. */
 export const UI_META_DEBOUNCE_MS = 600
 
-/** Identity-bound: the bots whose sections had not reached the gateway when the page last wrote this. */
+/**
+ * Identity-bound: the bots whose sections had not reached the gateway when the
+ * page last wrote this, each with its section RAW (`null` for a section this
+ * page removed), as the Swift app's `UIMetaStoredCopy` keeps them. A reload
+ * marks them again from these bytes rather than rebuilding them from the
+ * stores, which hold neither the fields this build does not own nor a colour it
+ * cannot draw.
+ */
 export const UI_META_PENDING_KEY = 'ui-meta.pending'
+
+/** What `UI_META_PENDING_KEY` holds. */
+export interface StoredPending {
+  v: 1
+  bots: Record<string, JsonObject | null>
+}
 
 /** A JSON object as it came off the wire. */
 export type JsonObject = Record<string, unknown>
@@ -244,6 +268,16 @@ function botSectionWith(held: JsonObject | undefined, projected: { archived?: tr
   return Object.keys(section).length ? { ...section, v: HERMIE_SECTION_VERSION } : null
 }
 
+/** The two fields of a bot section that are this page's to say, read off a section. */
+function ownedOf(section: JsonObject | undefined): { archived?: true; colour?: string } {
+  const colour = section?.colour
+
+  return {
+    ...(section?.archived === true ? { archived: true as const } : {}),
+    ...(typeof colour === 'string' && colour && colour !== 'default' ? { colour } : {})
+  }
+}
+
 /** A push map without the retired availability stamp; see `RETIRED_PUSH_FIELDS`. */
 export function withoutRetiredStamp(push: unknown): unknown {
   if (!isObject(push) || !RETIRED_PUSH_FIELDS.some(field => field in push)) {
@@ -314,9 +348,17 @@ export function takeApp(held: JsonObject | null, snapshot: UiMetaSnapshot): Json
     }
   }
 
-  // The departure: this page's copy won, and a field it does not project is the
-  // gateway's, which is the newest value of it there is.
+  // The departure: this page's copy won, and every field it does not project is
+  // the gateway's, which is the newest value of it there is: taken when the
+  // gateway has it, and gone when the gateway no longer does (a field a section
+  // can predate excepted, as above, when the gateway is silent about it).
   if (gateway && gateway !== arriving) {
+    for (const key of Object.keys(merged)) {
+      if (!PROJECTED.has(key) && !KEPT_WHEN_ABSENT.has(key) && key !== 'v' && !present(gateway[key])) {
+        delete merged[key]
+      }
+    }
+
     for (const [key, value] of Object.entries(gateway)) {
       if (!PROJECTED.has(key) && key !== 'v' && key !== APP_UPDATED_AT && key !== PUSH_FIELD && present(value)) {
         merged[key] = copyOf(value)
@@ -439,8 +481,14 @@ export class UiMetaBridge {
   private timer: ReturnType<typeof setTimeout> | undefined
   private started: Promise<void> = Promise.resolve()
   private user = ''
-  /** Bots this page marked and has not seen reach the gateway; see `UI_META_PENDING_KEY`. */
-  private readonly pendingBots = new Set<string>()
+  /**
+   * Each bot's `hermie` section as the gateway's last roster had it, raw, or
+   * absent. A bot this page holds an unsent change for is sent as THIS plus its
+   * own fields (`apply`): the rest of the section is the gateway's.
+   */
+  private remoteBots: Record<string, JsonObject> = {}
+  /** How many gateway copies this bridge has taken; see `takes`. */
+  private taken = 0
   private reconciling: Promise<unknown> | null = null
   private again = false
   private pendingWrites: Promise<void> = Promise.resolve()
@@ -455,8 +503,22 @@ export class UiMetaBridge {
     this.storage = options.storage ?? null
     this.debounceMs = options.debounceMs ?? UI_META_DEBOUNCE_MS
     this.now = options.now ?? (() => Math.floor(Date.now() / 1000))
+    const gateway = options.gateway
+
     this.sync = new UiMetaSync({
-      gateway: options.gateway,
+      // The roster `UiMetaSync` reads is also where the gateway's own bot
+      // sections are learnt, raw, before it hands over its snapshot.
+      gateway: {
+        request: async (method, params) => {
+          const result = await gateway.request(method, params)
+
+          if (method === 'profiles.list') {
+            this.noteRoster(result)
+          }
+
+          return result
+        }
+      },
       read: () => this.read(),
       apply: snapshot => this.apply(snapshot),
       ...(options.retries === undefined ? {} : { retries: options.retries })
@@ -476,6 +538,16 @@ export class UiMetaBridge {
   /** This person's app-wide key, or `null` while nobody has been named. */
   get appKey(): string | null {
     return this.sync.appKey
+  }
+
+  /**
+   * How many gateway copies this page has taken: a roster that was actually
+   * read and applied (a pull that failed takes nothing). The roster is folded
+   * into the arrangement only after one, so a fold never lands on a copy that
+   * has not seen the gateway's.
+   */
+  get takes(): number {
+    return this.taken
   }
 
   /** A copy of the sections this page holds, raw. For diagnostics and tests. */
@@ -527,14 +599,8 @@ export class UiMetaBridge {
         return
       }
 
+      this.restorePending(stored)
       this.baseline()
-
-      for (const name of Array.isArray(stored) ? stored : []) {
-        if (typeof name === 'string' && name) {
-          this.markBot(name)
-        }
-      }
-
       this.watch()
     })()
 
@@ -612,7 +678,6 @@ export class UiMetaBridge {
     this.sync.reset()
     this.user = ''
     this.held.app = null
-    this.pendingBots.clear()
     this.persistPending()
   }
 
@@ -645,6 +710,7 @@ export class UiMetaBridge {
 
   /** Take a gateway's copy into the documents and the stores, deafly. */
   private apply(snapshot: UiMetaSnapshot): void {
+    this.taken += 1
     this.quietly(() => {
       const bots: Record<string, JsonObject> = {}
 
@@ -654,9 +720,67 @@ export class UiMetaBridge {
         }
       }
 
+      /*
+        A bot this page still holds a change for arrives as this page's own
+        section (`withPendingKept`). Only `archived` and `colour` are this page's
+        to say; everything else in it is the gateway's, as it is now. So the
+        section that goes out is the gateway's with those two written in: a field
+        another client added meanwhile survives, and a section this page would
+        have emptied but that carries fields it does not own is kept rather than
+        sent as `null`.
+      */
+      for (const name of this.sync.pendingBots) {
+        const section = botSectionWith(this.remoteBots[name], ownedOf(bots[name]))
+
+        if (section) {
+          bots[name] = section
+        } else {
+          delete bots[name]
+        }
+      }
+
       this.held = { app: takeApp(this.held.app, snapshot), bots }
-      applyToStores(snapshot, this.stores)
+      applyToStores({ ...snapshot, bots: bots as unknown as Record<string, HermieBotSection> }, this.stores)
     })
+    this.persistPending()
+  }
+
+  /** The gateway's own bot sections, off a roster `UiMetaSync` just read. */
+  private noteRoster(result: unknown): void {
+    const rows = isObject(result) && Array.isArray(result.profiles) ? result.profiles : []
+    const remote: Record<string, JsonObject> = {}
+
+    for (const row of rows) {
+      const name = isObject(row) && typeof row.name === 'string' ? row.name : ''
+      const section = name ? readSection<HermieBotSection>(row.ui_meta, HERMIE_KEY, HERMIE_SECTION_VERSION) : null
+
+      if (section) {
+        remote[name] = copyOf(section) as unknown as JsonObject
+      }
+    }
+
+    this.remoteBots = remote
+  }
+
+  /** Mark the stored pending bots again, from their stored raw sections. */
+  private restorePending(stored: unknown): void {
+    const bots = isObject(stored) && stored.v === 1 && isObject(stored.bots) ? stored.bots : {}
+
+    for (const [name, section] of Object.entries(bots)) {
+      if (!name) {
+        continue
+      }
+
+      if (isObject(section)) {
+        this.held.bots[name] = copyOf(section)
+      } else if (section === null) {
+        delete this.held.bots[name]
+      } else {
+        continue
+      }
+
+      this.sync.markBot(name)
+    }
   }
 
   // MARK: - Watching the stores
@@ -762,7 +886,8 @@ export class UiMetaBridge {
         this.stores.appStamp.getState().touch(this.now())
       }
 
-      this.sync.markApp()
+      // A chore is sent, but never wins over the gateway's copy (`UiMetaSync`).
+      this.sync.markApp(chore ? 'chore' : 'choice')
     }
 
     const bots = projectBots(layout)
@@ -811,26 +936,29 @@ export class UiMetaBridge {
   }
 
   private markBot(name: string): void {
-    this.pendingBots.add(name)
     this.sync.markBot(name)
   }
 
-  /** Remember which bots have not reached the gateway; nothing once nothing is pending. */
+  /** Remember which bots have not reached the gateway, with their raw sections; nothing once none is pending. */
   private persistPending(): void {
-    if (!this.sync.pending) {
-      this.pendingBots.clear()
-    }
-
     const storage = this.storage
 
     if (!storage) {
       return
     }
 
-    const list = [...this.pendingBots]
+    const bots: Record<string, JsonObject | null> = {}
+
+    for (const name of this.sync.pendingBots) {
+      bots[name] = this.held.bots[name] ? copyOf(this.held.bots[name]) : null
+    }
+
+    const stored: StoredPending = { v: 1, bots }
 
     this.pendingWrites = this.pendingWrites
-      .then(() => (list.length ? storage.setJson(UI_META_PENDING_KEY, list) : storage.delete(UI_META_PENDING_KEY)))
+      .then(() =>
+        Object.keys(bots).length ? storage.setJson(UI_META_PENDING_KEY, stored) : storage.delete(UI_META_PENDING_KEY)
+      )
       .catch(() => {
         // A lost list costs an offline archive its survival across a reload.
       })
@@ -880,10 +1008,12 @@ export interface UiMetaRuntime {
  *  - whenever the page is shown again,
  *
  * never two at once (`reconcileSoon`). The live roster is folded into the
- * arrangement (`layout.reconcile`, a chore) only once the first reconcile has
- * taken the gateway's copy, and again after every one: a fold made before it
- * would be folded into an arrangement this page had not read yet, and a fold
- * that lost with the section it rode in is simply made again.
+ * arrangement (`layout.reconcile`, a chore) only while the connection is usable
+ * and a reconcile has actually taken the gateway's copy since it came up
+ * (`UiMetaBridge.takes`; a pull that failed takes nothing), and again after
+ * every such take: a fold made before it would be folded into an arrangement
+ * this page had not read yet, and a fold that lost with the section it rode in
+ * is simply made again.
  */
 export function connectUiMeta(options: ConnectUiMetaOptions): UiMetaRuntime {
   const stores: UiMetaStores = {
@@ -910,7 +1040,8 @@ export function connectUiMeta(options: ConnectUiMetaOptions): UiMetaRuntime {
   bridge.start()
 
   let stopped = false
-  let reconciled = false
+  /** The bridge's take count when the connection last became usable: folds wait for a take after it. */
+  let takesAtReady = 0
 
   /** The live roster's names, or null while only the cached roster is painted. */
   const liveNames = (): string[] | null => {
@@ -922,7 +1053,11 @@ export function connectUiMeta(options: ConnectUiMetaOptions): UiMetaRuntime {
   const fold = (): void => {
     const names = liveNames()
 
-    if (reconciled && names && !stopped) {
+    // Only onto a copy that has taken the gateway's since the connection came
+    // up: a fold made on anything else (a first pull that failed, a reconnect
+    // whose roster arrived first) is folded into an arrangement this page has not
+    // read, and would be sent as one.
+    if (ready && bridge.takes > takesAtReady && names && !stopped) {
       stores.layout.getState().reconcile(names)
     }
   }
@@ -932,10 +1067,7 @@ export function connectUiMeta(options: ConnectUiMetaOptions): UiMetaRuntime {
       return
     }
 
-    void bridge.reconcileSoon().then(() => {
-      reconciled = true
-      fold()
-    })
+    void bridge.reconcileSoon().then(fold)
   }
 
   let ready = options.connection.getState().status === 'ready'
@@ -946,6 +1078,7 @@ export function connectUiMeta(options: ConnectUiMetaOptions): UiMetaRuntime {
     ready = now
 
     if (rose) {
+      takesAtReady = bridge.takes
       reconcile()
     }
   })
@@ -962,6 +1095,7 @@ export function connectUiMeta(options: ConnectUiMetaOptions): UiMetaRuntime {
   })
 
   if (ready) {
+    takesAtReady = bridge.takes
     reconcile()
   }
 

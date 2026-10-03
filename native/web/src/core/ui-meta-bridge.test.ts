@@ -509,7 +509,10 @@ describe('across a reload', () => {
     offline.stop()
     await offline.bridge.settled()
 
-    expect(disk.getSync(UI_META_PENDING_KEY)).toBe(JSON.stringify(['writer']))
+    expect(JSON.parse(disk.getSync(UI_META_PENDING_KEY) ?? 'null')).toEqual({
+      v: 1,
+      bots: { writer: { archived: true, v: 1 } }
+    })
 
     const back = page(gateway, { disk })
 
@@ -577,5 +580,251 @@ describe('the page’s own stores', () => {
     expect(bridge.appKey).toBeNull()
     bridge.setUser(OWNER)
     expect(bridge.appKey).toBe(APP_KEY)
+  })
+})
+
+/** The person's folders, undated: what a build before dates wrote. */
+const FOLDERS = {
+  v: 1,
+  entries: [{ kind: 'folder', id: 'f1' }],
+  folders: [{ id: 'f1', name: 'Finance', bots: ['researcher', 'writer'] }]
+}
+
+/** A gateway that can be taken away and given back. */
+function switchable(gateway: ReturnType<typeof holdingGateway>) {
+  const state = { down: false }
+
+  return {
+    state,
+    request: (method: string, params?: Record<string, unknown>) =>
+      state.down ? Promise.reject(new Error('gateway not connected')) : gateway.request(method, params)
+  }
+}
+
+describe('a chore against the gateway’s copy', () => {
+  it('never wins over an undated section, and is not sent', async () => {
+    const gateway = holdingGateway()
+
+    await gateway.request('profiles.configure', { name: 'researcher', ui_meta: { [APP_KEY]: FOLDERS } })
+
+    const one = page(gateway)
+
+    await one.watching
+    // The roster folded in before the gateway's copy was read: an undated flat list.
+    one.layout.getState().reconcile(['researcher', 'writer'])
+    await one.bridge.reconcile()
+    await settled()
+
+    expect(gateway.app()).toEqual(FOLDERS)
+    expect(one.layout.getState().folders.map(folder => folder.name)).toEqual(['Finance'])
+    expect(one.layout.getState().entries).toEqual(FOLDERS.entries)
+    expect(one.bridge.pending).toBe(false)
+  })
+})
+
+describe('an edit made while a send is out', () => {
+  /** The gateway, with the answer to one `profiles.configure` held back until `release`. */
+  function heldBack(gateway: ReturnType<typeof holdingGateway>) {
+    let release: () => void = () => undefined
+    const gate = new Promise<void>(resolve => (release = resolve))
+    let first = false
+
+    return {
+      /** Hold back the answer to the next write. */
+      arm: () => {
+        first = true
+      },
+      release: () => release(),
+      request: async (method: string, params?: Record<string, unknown>) => {
+        const answer = gateway.request(method, params)
+
+        if (method === 'profiles.configure' && first) {
+          first = false
+          await gate
+        }
+
+        return answer
+      }
+    }
+  }
+
+  it('is not lost for a bot', async () => {
+    const gateway = holdingGateway()
+    const slow = heldBack(gateway)
+    const one = page(slow)
+
+    await one.bridge.reconcile()
+    slow.arm()
+    one.layout.getState().setArchived('writer', true)
+    await settled()
+
+    // The archive is out; the colour is picked before it lands.
+    one.layout.getState().setAccent('writer', 'teal')
+    await settled()
+    slow.release()
+    await settled()
+    await settled()
+
+    expect(gateway.meta('writer').hermie).toEqual({ v: 1, archived: true, colour: 'teal' })
+    expect(one.bridge.pending).toBe(false)
+
+    await one.bridge.reconcile()
+    expect(one.layout.getState().accents).toEqual({ writer: 'teal' })
+  })
+
+  it('is not lost for the app section', async () => {
+    const gateway = holdingGateway()
+    const slow = heldBack(gateway)
+    const one = page(slow)
+
+    await one.bridge.reconcile()
+    slow.arm()
+    one.textSize.getState().setTextSize('large')
+    await settled()
+
+    one.layout.getState().setPinned('writer', true)
+    await settled()
+    slow.release()
+    await settled()
+    await settled()
+
+    expect(gateway.app()).toMatchObject({ textSize: 'large', pinned: ['writer'] })
+    expect(one.bridge.pending).toBe(false)
+
+    await one.bridge.reconcile()
+    expect(one.layout.getState().pinned).toEqual({ writer: true })
+  })
+})
+
+describe('pending bots across a reload', () => {
+  it('are sent from their stored raw sections, with what another client added meanwhile', async () => {
+    const gateway = holdingGateway()
+
+    await gateway.request('profiles.configure', {
+      name: 'writer',
+      ui_meta: { hermie: { v: 1, colour: 'tartan', futureBotField: 7 } }
+    })
+
+    const link = switchable(gateway)
+    const disk = newDisk()
+    const first = page(link, { disk })
+
+    await first.bridge.reconcile()
+    link.state.down = true
+    first.layout.getState().setArchived('writer', true)
+    await settled()
+    first.stop()
+    await first.bridge.settled()
+
+    // Stored raw: the colour this build cannot draw and the field it does not own.
+    expect(JSON.parse(disk.getSync(UI_META_PENDING_KEY) ?? 'null')).toEqual({
+      v: 1,
+      bots: { writer: { v: 1, colour: 'tartan', futureBotField: 7, archived: true } }
+    })
+
+    // Another client adds a field while this page is away.
+    await gateway.request('profiles.configure', {
+      name: 'writer',
+      ui_meta: { hermie: { v: 1, colour: 'tartan', futureBotField: 7, addedElsewhere: true } }
+    })
+
+    link.state.down = false
+
+    const back = page(link, { disk })
+
+    await back.bridge.reconcile()
+    await settled()
+
+    expect(gateway.meta('writer').hermie).toEqual({
+      v: 1,
+      colour: 'tartan',
+      futureBotField: 7,
+      addedElsewhere: true,
+      archived: true
+    })
+  })
+
+  it('never removes a section that carries fields this page does not own', async () => {
+    const gateway = holdingGateway()
+
+    await gateway.request('profiles.configure', {
+      name: 'writer',
+      ui_meta: { hermie: { v: 1, archived: true, futureBotField: 7 } }
+    })
+
+    // A page that never saw the gateway's copy archives and unarchives: what it
+    // holds for the bot is nothing at all.
+    const disk = newDisk()
+    const offline = page({ request: () => Promise.reject(new Error('gateway not connected')) }, { disk })
+
+    await offline.bridge.reconcile()
+    offline.layout.getState().setArchived('writer', true)
+    offline.layout.getState().setArchived('writer', false)
+    await settled()
+    offline.stop()
+    await offline.bridge.settled()
+
+    expect(JSON.parse(disk.getSync(UI_META_PENDING_KEY) ?? 'null')).toEqual({ v: 1, bots: { writer: null } })
+
+    const back = page(gateway, { disk })
+
+    await back.bridge.reconcile()
+    await settled()
+
+    // Unarchived, as chosen here; the field it does not own, still there.
+    expect(gateway.meta('writer').hermie).toEqual({ v: 1, futureBotField: 7 })
+    expect(gateway.writes.flatMap(write => Object.values(write.ui_meta))).not.toContain(null)
+  })
+})
+
+describe('inheriting the anonymous arrangement, end to end', () => {
+  const LEGACY = {
+    ...FOLDERS,
+    themeChoice: { kind: 'preset', name: 'graphite' },
+    context: { users: { someone: {} } },
+    push: {
+      registrations: { phone: { v: 1, transport: 'expo', token: 't' } },
+      endpoint: '/push/vapid-public-key',
+      vapidPublicKey: 'BK',
+      at: 9
+    }
+  }
+
+  it('gives the person’s key the arrangement, and leaves the bare key as it was but for the stamp', async () => {
+    // No `ui_meta.per_user`: the rows stay on the bare key, where the notifier reads.
+    const gateway = holdingGateway({ advert: null })
+
+    await gateway.request('profiles.configure', { name: 'researcher', ui_meta: { 'hermie-app': LEGACY } })
+
+    const one = page(gateway)
+
+    await one.watching
+    one.layout.getState().reconcile(['researcher', 'writer'])
+    await one.bridge.reconcile()
+    await settled()
+
+    const mine = gateway.app()
+    const bare = gateway.app('hermie-app')
+
+    expect(mine).toMatchObject({ entries: FOLDERS.entries, folders: FOLDERS.folders, themeChoice: LEGACY.themeChoice })
+    expect(mine).not.toHaveProperty('push')
+    expect(mine).not.toHaveProperty('context')
+    expect(bare).toEqual({ ...LEGACY, push: { registrations: LEGACY.push.registrations } })
+    expect(one.layout.getState().folders.map(folder => folder.name)).toEqual(['Finance'])
+  })
+
+  it('does not write the bare key at all where the notifier reads the person’s', async () => {
+    const gateway = holdingGateway()
+
+    await gateway.request('profiles.configure', { name: 'researcher', ui_meta: { 'hermie-app': LEGACY } })
+
+    const one = page(gateway)
+
+    await one.bridge.reconcile()
+    await settled()
+
+    expect(gateway.app()).toMatchObject({ folders: FOLDERS.folders })
+    expect(gateway.app()).not.toHaveProperty('push')
+    expect(gateway.app('hermie-app')).toEqual(LEGACY)
   })
 })
