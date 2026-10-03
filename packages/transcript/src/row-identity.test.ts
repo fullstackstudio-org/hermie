@@ -19,6 +19,7 @@
 import { describe, expect, it } from 'vitest'
 
 import { snapshotForCache, stateFromCache } from './cache'
+import * as unrecorded from './index'
 import { prependHistory, reconcile, reconcileTail } from './reconcile'
 import { applyEvent, applyResumeSnapshot, beginLocalTurn, confirmSubmit, type TranscriptEvent } from './reducer'
 import { rowsToItems, type TranscriptRow } from './rows-to-items'
@@ -972,13 +973,6 @@ const EVERY_FRAMES: TranscriptEvent[] = framesOf(EVERY_TURN, [
   { type: 'message.complete', seq: 33, payload: { text: NOTE_FINAL, status: 'complete', usage: USAGE, row_id: 16 } }
 ])
 
-/** The earlier history on screen and the owner's prompt sent, as the device held it. */
-function everyBase(earlier: readonly TranscriptRow[]): ChatState {
-  const hydrated = reconcile(fresh(), rowsToItems(earlier, 'rpc'))
-
-  return confirmSubmit(beginLocalTurn(hydrated, 'loop alles na', undefined, NOW), { status: 'streaming' }, NOW)
-}
-
 /** The resume the gateway would answer with `cut` frames of the turn behind it. */
 function inflightAt(frames: readonly TranscriptEvent[], cut: number, withIdentity: boolean): Record<string, unknown> {
   let assistant = ''
@@ -1022,36 +1016,105 @@ const stripRow = (row: TranscriptRow): TranscriptRow => {
   return row.role === 'tool' ? { ...rest, row_id: undefined } : rest
 }
 
-/** Every reopen of the turn, after each cut: [cut, finished-while-away, still-running]. */
-function everyReopen(withIdentity: boolean): [number, ChatState, ChatState][] {
+/**
+ * The engine calls part 3 makes, in two copies. The golden corpus records every
+ * engine call a test makes, and fourteen cuts reopened two ways, with and
+ * without identity, would put several megabytes of near-identical states into
+ * it on every regeneration. So the loop below runs every cut here, and only the
+ * cuts named below go through the recorded copy for the port to replay.
+ *
+ * The unrecorded copy is the engine itself, reached through `./index`: the
+ * recorder wraps a test's imports of the engine's public modules, never the
+ * modules those import in turn (`golden/plugin.ts`).
+ */
+const recordedEngine = {
+  applyEvent,
+  applyResumeSnapshot,
+  beginLocalTurn,
+  confirmSubmit,
+  reconcile,
+  rowsToItems,
+  snapshotForCache,
+  stateFromCache
+}
+type Engine = typeof recordedEngine
+const quietEngine: Engine = {
+  applyEvent: unrecorded.applyEvent,
+  applyResumeSnapshot: unrecorded.applyResumeSnapshot,
+  beginLocalTurn: unrecorded.beginLocalTurn,
+  confirmSubmit: unrecorded.confirmSubmit,
+  reconcile: unrecorded.reconcile,
+  rowsToItems: unrecorded.rowsToItems,
+  snapshotForCache: unrecorded.snapshotForCache,
+  stateFromCache: unrecorded.stateFromCache
+}
+
+/**
+ * The cuts the corpus records with identity: after the turn's start, after a
+ * thought with no words, between the two deltas of one note, after a tool's
+ * result, and inside the second note — the cuts each pairing rule is needed at.
+ * Before the turn and after its last frame are part 1's cases already.
+ */
+const GOLDEN_CUTS: ReadonlySet<number> = new Set([1, 2, 3, 6, 9])
+
+/** The cuts the corpus records without identity: inside each of the two notes. */
+const GOLDEN_LEGACY_CUTS: ReadonlySet<number> = new Set([3, 9])
+
+/**
+ * Every reopen of the turn, after each cut: [cut, finished-while-away, still-running].
+ * `recordRunning` says whether the still-running reopen of a recorded cut is
+ * recorded too, or only the finished one.
+ */
+function everyReopen(
+  withIdentity: boolean,
+  recordedCuts: ReadonlySet<number>,
+  recordRunning: boolean
+): [number, ChatState, ChatState][] {
   const earlier = withIdentity ? EVERY_EARLIER : EVERY_EARLIER.map(stripRow)
   const turnRows = EVERY_ROWS.map(([row, at]): [TranscriptRow, number] => [withIdentity ? row : stripRow(row), at])
   const frames = withIdentity ? EVERY_FRAMES : EVERY_FRAMES.map(stripFrame)
   const runs: [number, ChatState, ChatState][] = []
-  let live = everyBase(earlier)
+  const quiet = quietEngine
+  // The earlier history on screen and the owner's prompt sent, as the device held it.
+  let live = quiet.confirmSubmit(
+    quiet.beginLocalTurn(quiet.reconcile(fresh(), quiet.rowsToItems(earlier, 'rpc')), 'loop alles na', undefined, NOW),
+    { status: 'streaming' },
+    NOW
+  )
 
   for (let cut = 0; cut <= frames.length; cut += 1) {
     if (cut > 0) {
-      live = applyEvent(live, frames[cut - 1]!, NOW)
+      live = quiet.applyEvent(live, frames[cut - 1]!, NOW)
     }
 
-    const cached = fromCache(live)
+    const engine = recordedCuts.has(cut) ? recordedEngine : quietEngine
+    const runningEngine = recordRunning ? engine : quietEngine
     const rest = frames.slice(cut)
-    const finished = apply(
-      reconcile(cached, rowsToItems([...earlier, ...turnRows.map(([row]) => row)], 'rpc')),
-      rest,
-      LATER
+    const replay = (by: Engine, state: ChatState) =>
+      rest.reduce((next, event) => by.applyEvent(next, event, LATER), state)
+    const cachedBy = (by: Engine) =>
+      by.stateFromCache(
+        'boekhouder',
+        { storedSessionId: 'stored-1', resolvedSessionId: 'resolved-1' },
+        by.snapshotForCache({ ...live, lastSeqSessionId: 'runtime-1' }, NOW)
+      )
+    const finished = replay(
+      engine,
+      engine.reconcile(cachedBy(engine), engine.rowsToItems([...earlier, ...turnRows.map(([row]) => row)], 'rpc'))
     )
     const written = turnRows.filter(([, at]) => at < cut).map(([row]) => row)
-    const hydrated = reconcile(cached, rowsToItems([...earlier, ...written], 'rpc'))
+    const hydrated = runningEngine.reconcile(
+      cachedBy(runningEngine),
+      runningEngine.rowsToItems([...earlier, ...written], 'rpc')
+    )
     const running = cut < frames.length
-    const resumed = applyResumeSnapshot(
+    const resumed = runningEngine.applyResumeSnapshot(
       hydrated,
       running ? { running: true, inflight: inflightAt(frames, cut, withIdentity) } : { running: false },
       LATER
     )
 
-    runs.push([cut, finished, apply(resumed, rest, LATER)])
+    runs.push([cut, finished, replay(runningEngine, resumed)])
   }
 
   return runs
@@ -1084,7 +1147,7 @@ describe('a cache saved after every frame of a turn', () => {
   }
 
   it('reopens after every frame with every row once, whether the turn finished or still runs', () => {
-    for (const [cut, finished, running] of everyReopen(true)) {
+    for (const [cut, finished, running] of everyReopen(true, GOLDEN_CUTS, true)) {
       expect(settledShape(finished), `finished, cut after ${cut} frames`).toEqual(expected)
       expect(settledShape(running), `running, cut after ${cut} frames`).toEqual(expected)
       expect(
@@ -1103,8 +1166,12 @@ describe('a cache saved after every frame of a turn', () => {
   })
 
   it('reopens without identity as the engine always did', () => {
-    // Recorded so the port replays the old path too.
-    const counts = everyReopen(false).map(([, finished, running]) => [finished.order.length, running.order.length])
+    // Recorded (the finished reopens at the corpus cuts) so the port replays the
+    // old path too.
+    const counts = everyReopen(false, GOLDEN_LEGACY_CUTS, false).map(([, finished, running]) => [
+      finished.order.length,
+      running.order.length
+    ])
 
     // Measured against the engine before any identity existed (f86766f1): the
     // same counts, duplicates and all — a settled reopen holds 14 items.
