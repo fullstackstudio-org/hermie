@@ -41,6 +41,7 @@ extension PasskeyModel {
   private func adopt(_ next: PasskeyStatus) async {
     status = next
     credentials = next.credentials ?? []
+    await loadOthers()
 
     if let gatewayID = next.gatewayID, !gatewayID.isEmpty, let problem = pinProblem(gatewayID) {
       // Not this gateway's list as this device knows it: nothing of it is remembered.
@@ -260,9 +261,12 @@ extension PasskeyModel {
       throw .badAnswer
     }
 
+    // Another session may have pinned since: check against the pins as they are now.
+    await loadOthers()
+
     if let problem = pinProblem(gatewayIDText) {
       notify(problem)
-      throw problem == .gatewayIDMismatch ? .gatewayIDMismatch : .gatewayIDConflict
+      throw Self.actionError(for: problem)
     }
 
     return Account(
@@ -273,6 +277,14 @@ extension PasskeyModel {
       rpID: rpID,
       baseURL: baseURL
     )
+  }
+
+  private static func actionError(for problem: PasskeyNotice.Kind) -> PasskeyActionError {
+    switch problem {
+    case .gatewayIDMismatch: .gatewayIDMismatch
+    case .pinUnreadable: .pinUnreadable
+    default: .gatewayIDConflict
+    }
   }
 
   /// One route call through the client, its failures as `PasskeyActionError`.

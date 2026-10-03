@@ -53,7 +53,11 @@ public final class PasskeyModel {
   @ObservationIgnored var expectedAdditions: Set<String> = []
   @ObservationIgnored var expectedRevocations: Set<String> = []
   @ObservationIgnored var pin = PasskeyPinRecord()
-  @ObservationIgnored var foreignGatewayIDs: Set<String> = []
+  /// What is stored for this gateway is not a record: it is never written over.
+  @ObservationIgnored var pinUnreadable = false
+  /// The other stored gateways' pins, read again before every check (another session may have
+  /// pinned meanwhile).
+  @ObservationIgnored var others: [PasskeyOtherPin] = []
   @ObservationIgnored private var tasks: [Task<Void, Never>] = []
   @ObservationIgnored private var started = false
   @ObservationIgnored var isShutDown = false
@@ -189,12 +193,19 @@ public final class PasskeyModel {
 
   private func receive(_ report: ConfirmCapabilityReport) async {
     capability = report
+    await loadOthers()
+
+    // Another session pinned or linked since the policy this run decided from: run it again.
+    if applyPolicy() {
+      await link.refreshCapabilities()
+      return
+    }
 
     switch report.verdict {
     case .gatewayIDMismatch:
       notify(.gatewayIDMismatch)
-    case .gatewayIDConflict:
-      notify(.gatewayIDConflict)
+    case .gatewayIDConflict(let presented):
+      notify(pinProblem(presented) ?? .gatewayIDConflict)
     case .notEnrolled:
       // A passkey synced from another device, or enrolled in a browser: read the list.
       await refresh()
@@ -269,13 +280,85 @@ public final class PasskeyModel {
   // MARK: - Pins and policy
 
   func loadPins() async {
-    pin = await pins.record(for: storedGatewayID)
-    foreignGatewayIDs = await pins.foreignGatewayIDs(except: storedGatewayID)
+    switch await pins.read(storedGatewayID) {
+    case .record(let record):
+      pin = record
+      pinUnreadable = false
+    case .unreadable:
+      pin = PasskeyPinRecord()
+      pinUnreadable = true
+      notify(.pinUnreadable(storedGatewayID: storedGatewayID))
+    }
+
+    await loadOthers()
   }
 
+  /// Read the other gateways' pins again.
+  func loadOthers() async {
+    others = await pins.others(except: storedGatewayID)
+  }
+
+  /// Write this gateway's record, never over one that could not be read.
   func savePin() async {
+    guard !pinUnreadable else {
+      return
+    }
+
     pin.seenAt = now()
     await pins.save(pin, for: storedGatewayID)
+  }
+
+  /// The person said `other` is this same gateway: the two records describe one gateway.
+  func isLinked(_ other: PasskeyOtherPin) -> Bool {
+    pin.linkedGatewayIDs.contains(other.storedGatewayID)
+      || other.record?.linkedGatewayIDs.contains(storedGatewayID) == true
+  }
+
+  /// The `gateway_id`s pinned for every other stored gateway that is not this one.
+  var foreignGatewayIDs: Set<String> {
+    Set(others.filter { !isLinked($0) }.compactMap(\.record?.gatewayID))
+  }
+
+  /// The credential ids pinned for every other stored gateway that is not this one: never offered
+  /// to this gateway's sheet.
+  var foreignCredentialIDs: Set<String> {
+    Set(others.filter { !isLinked($0) }.flatMap { $0.record?.appCredentialIDs ?? [] })
+  }
+
+  /// "Same gateway as <name>": the person confirmed that the stored gateway `otherGatewayID`, whose
+  /// pinned `gateway_id` this gateway presents, is this gateway under another address. This
+  /// gateway's pins take that `gateway_id` and its credential ids, and record the link, so neither
+  /// side reads the other as a conflict again. `false` when there is nothing to link: no stored
+  /// gateway by that id, no pin there, or this gateway is pinned to another id already.
+  @discardableResult
+  public func linkPins(with otherGatewayID: String) async -> Bool {
+    await loadOthers()
+
+    guard !pinUnreadable, let other = others.first(where: { $0.storedGatewayID == otherGatewayID }),
+      other.name != nil, let record = other.record, let shared = record.gatewayID,
+      pin.gatewayID == nil || pin.gatewayID == shared
+    else {
+      return false
+    }
+
+    pin.gatewayID = shared
+    pin.knownCredentialIDs = Self.union(pin.knownCredentialIDs, record.knownCredentialIDs)
+    pin.appCredentialIDs = Self.union(pin.appCredentialIDs, record.appCredentialIDs)
+    pin.linkedGatewayIDs = Self.union(pin.linkedGatewayIDs, [otherGatewayID])
+    await savePin()
+
+    notices.removeAll { notice in
+      guard case .sameGatewayAs(let id, _) = notice.kind else { return false }
+      return id == otherGatewayID
+    }
+
+    await policyChanged()
+    await refresh()
+    return true
+  }
+
+  private static func union(_ first: [String], _ second: [String]) -> [String] {
+    first + second.filter { !first.contains($0) }
   }
 
   /// The advertising policy from what this device knows now. A build without an RP, or a gateway
@@ -321,12 +404,35 @@ public final class PasskeyModel {
     }
   }
 
-  /// A `gateway_id` presented by the gateway, checked against the pins (contract §10).
+  /// A `gateway_id` presented by the gateway, checked against the pins (contract §10). One pinned
+  /// for another stored gateway is a question ("same gateway as <name>"); one pinned for a gateway
+  /// no longer in the list is a conflict.
   func pinProblem(_ gatewayID: String) -> PasskeyNotice.Kind? {
+    if pinUnreadable {
+      return .pinUnreadable(storedGatewayID: storedGatewayID)
+    }
+
     if let pinned = pin.gatewayID, pinned != gatewayID {
       return .gatewayIDMismatch
     }
 
-    return foreignGatewayIDs.contains(gatewayID) ? .gatewayIDConflict : nil
+    guard let other = others.first(where: { !isLinked($0) && $0.record?.gatewayID == gatewayID }) else {
+      return nil
+    }
+
+    guard let name = other.name else {
+      return .gatewayIDConflict
+    }
+
+    return .sameGatewayAs(storedGatewayID: other.storedGatewayID, name: name)
+  }
+
+  /// The 4040 `data.reason` for a frame refused over the pins.
+  static func reason(for problem: PasskeyNotice.Kind) -> String {
+    switch problem {
+    case .gatewayIDMismatch: "gateway_id_mismatch"
+    case .pinUnreadable: "pin_unreadable"
+    default: "gateway_id_conflict"
+    }
   }
 }

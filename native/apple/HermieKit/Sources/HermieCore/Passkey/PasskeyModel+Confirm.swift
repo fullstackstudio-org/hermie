@@ -43,6 +43,9 @@ extension PasskeyModel {
       return
     }
 
+    // Another session may have pinned since: the frame is checked against the pins as they are.
+    await loadOthers()
+
     do {
       let (confirmation, context) = try read(id: id, params, inbound: inbound)
       contexts[id] = context
@@ -77,16 +80,12 @@ extension PasskeyModel {
     }
 
     let frame = try Self.fields(params, passkey)
-    let allow = (passkey.credentials ?? []).filter { $0.rpID == rpID }.flatMap { $0.ids ?? [] }.compactMap(Base64URL.decode)
-
-    guard !allow.isEmpty else {
-      throw PasskeyFrameProblem(reason: "no_credential", notice: .noCredentialForApp)
-    }
 
     if let problem = pinProblem(frame.gatewayIDText) {
-      throw PasskeyFrameProblem(reason: problem == .gatewayIDMismatch ? "gateway_id_mismatch" : "gateway_id_conflict", notice: problem)
+      throw PasskeyFrameProblem(reason: Self.reason(for: problem), notice: problem)
     }
 
+    let allow = try allowList(passkey, rpID: rpID)
     let display = ConfirmDisplay(title: frame.title, summary: frame.summary, detail: params.detail, baseURL: baseURL)
     let binding = PasskeyChallengeBinding(
       purpose: .confirm,
@@ -105,6 +104,24 @@ extension PasskeyModel {
     )
 
     return (confirmation, ConfirmContext(inbound: inbound, binding: binding, allowCredentialIDs: allow))
+  }
+
+  /// The credentials the system sheet may offer: the frame's ids for this build's RP, minus any
+  /// pinned for another stored gateway. Once this device has seen the account's credentials here,
+  /// the list must share one with them; a list of strangers is refused (`no_credential`).
+  private func allowList(_ passkey: ConfirmPasskeyParams, rpID: String) throws(PasskeyFrameProblem) -> [[UInt8]] {
+    let foreign = foreignCredentialIDs
+    let listed = (passkey.credentials ?? []).filter { $0.rpID == rpID }.flatMap { $0.ids ?? [] }
+    let usable = listed.filter { !foreign.contains($0) }
+    let known = pin.knownCredentialIDs
+    let familiar = known.isEmpty || usable.contains { known.contains($0) }
+    let allow = familiar ? usable.compactMap(Base64URL.decode) : []
+
+    guard !allow.isEmpty else {
+      throw PasskeyFrameProblem(reason: "no_credential", notice: .noCredentialForApp)
+    }
+
+    return allow
   }
 
   private struct FrameFields {

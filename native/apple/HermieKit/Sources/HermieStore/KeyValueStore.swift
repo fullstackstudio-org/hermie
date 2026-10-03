@@ -76,6 +76,8 @@ public enum StoreKeys {
   public static let botsLastOpened = "hermie.bots.last_opened"
   public static let ownAuthor = "hermie.chats.own_author"
   public static let appChosen = "hermie.app.chosen"
+  /// What this device pinned about the gateway's passkeys (`KeyValuePasskeyPins`).
+  public static let passkeyPins = "hermie.passkey.pins"
 }
 
 /// One write in an atomic batch.

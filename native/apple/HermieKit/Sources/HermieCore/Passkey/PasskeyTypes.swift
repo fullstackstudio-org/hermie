@@ -123,8 +123,17 @@ public struct PasskeyNotice: Sendable, Equatable, Identifiable {
   public enum Kind: Sendable, Equatable {
     /// The gateway presents another `gateway_id` than the one pinned on enrolment.
     case gatewayIDMismatch
-    /// The gateway presents a `gateway_id` pinned for another stored gateway.
+    /// The gateway presents a `gateway_id` pinned for no gateway in the list (a pin that outlived
+    /// its gateway): refused.
     case gatewayIDConflict
+    /// The gateway presents the `gateway_id` pinned for another STORED gateway: most likely one
+    /// gateway stored twice (a LAN address and a public one). A question, not a finding: the action
+    /// "same gateway as `name`" is `PasskeyModel.linkPins(with: storedGatewayID)`. Until the person
+    /// confirms, the gateway's passkey frames are refused.
+    case sameGatewayAs(storedGatewayID: String, name: String)
+    /// What this device pinned for the stored gateway `storedGatewayID` cannot be read. It is kept
+    /// as it is, never reset, and passkeys stay off for that gateway until it is removed.
+    case pinUnreadable(storedGatewayID: String)
     /// A passkey frame in a contract version this build does not speak.
     case unsupportedVersion
     /// A passkey frame listing no credential for this build's RP.
@@ -159,6 +168,8 @@ public enum PasskeyActionError: Error, Sendable, Equatable {
   case gatewayIDMismatch
   /// The gateway presents a `gateway_id` pinned for another stored gateway (a notice is up too).
   case gatewayIDConflict
+  /// This device's pins for the gateway cannot be read (a notice is up too).
+  case pinUnreadable
   /// The ceremony produced nothing.
   case ceremony(PasskeyCeremonyError)
   /// The route refused.
