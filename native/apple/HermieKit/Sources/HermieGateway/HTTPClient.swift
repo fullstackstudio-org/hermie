@@ -41,6 +41,19 @@ public struct WSTicket: Sendable, Equatable, CustomStringConvertible, CustomDebu
   public var customMirror: Mirror { Mirror(self, children: ["description": description]) }
 }
 
+/// A status and its JSON body (`nil` when empty or not JSON), for `HTTPClient.exchange`.
+public struct HTTPExchange: Sendable, Equatable {
+  public var status: Int
+  public var body: JSONValue?
+
+  public init(status: Int, body: JSONValue?) {
+    self.status = status
+    self.body = body
+  }
+
+  public var ok: Bool { (200...299).contains(status) }
+}
+
 /// What fetching an authenticated picture came back with (`PictureFetchOutcome`).
 public enum PictureFetchOutcome: Sendable, Equatable {
   case ready(dataURI: String)
@@ -153,6 +166,33 @@ public struct HTTPClient: Sendable {
     }
 
     return WSTicket(ticket: ticket, ttlSeconds: body["ttl_seconds"]?.doubleValue ?? 0)
+  }
+
+  /// A call whose refusals are part of its answer (the passkey routes answer `403 code_invalid`,
+  /// `422 assertion_invalid` with a `reason`, …): any status comes back with its JSON body instead
+  /// of being thrown. The 401 retry still applies, and a 401 after it throws `auth` as `send` does.
+  public func exchange(_ method: String, _ path: String, body: JSONValue? = nil, timeoutMs: Int? = nil) async throws
+    -> HTTPExchange
+  {
+    var attempt = try await self.attempt(method, path, body: body, timeoutMs: timeoutMs, auth: AuthHeaderOptions())
+
+    if attempt.response.status == 401 {
+      timeline?.record(AuthEvent(.restUnauthorized, status: 401, kind: .auth))
+
+      if try await credentials.onRejected(rejectedToken: attempt.usedToken) == .reauth {
+        throw GatewayError(.auth, "The gateway rejected the credentials for \(method) \(path). Sign in again.", status: 401)
+      }
+
+      attempt = try await self.attempt(method, path, body: body, timeoutMs: timeoutMs, auth: AuthHeaderOptions(forceRefresh: false))
+
+      if attempt.response.status == 401 {
+        throw GatewayError(.auth, "The gateway refused \(method) \(path) (HTTP 401).", status: 401)
+      }
+    }
+
+    let text = attempt.response.text
+    let parsed = JSText.trim(text).isEmpty ? nil : try? JSONValue(parsing: text)
+    return HTTPExchange(status: attempt.response.status, body: parsed)
   }
 
   // MARK: - The round trip
