@@ -29,6 +29,7 @@ struct PasskeysSettingsPage: View {
   @State private var failure: String?
   @State private var invite: PasskeyInvite?
   @State private var removing: PasskeyCredentialInfo?
+  @FocusState private var codeFocused: Bool
 
   var body: some View {
     let state = PasskeysPageState.of(model)
@@ -122,6 +123,7 @@ struct PasskeysSettingsPage: View {
       TextField(NativeStrings.Passkeys.codeField, text: $code)
         .autocorrectionDisabled()
         .privacySensitive()
+        .focused($codeFocused)
         #if os(iOS)
           .textInputAutocapitalization(.characters)
         #endif
@@ -164,10 +166,11 @@ struct PasskeysSettingsPage: View {
       Section {
         Label {
           Text(failure)
+            .foregroundStyle(Color.primary)
             .fixedSize(horizontal: false, vertical: true)
         } icon: {
           Image(systemName: "exclamationmark.triangle")
-            .foregroundStyle(.orange)
+            .foregroundStyle(Color.primary)
             .accessibilityHidden(true)
         }
         .accessibilityElement(children: .combine)
@@ -184,6 +187,8 @@ struct PasskeysSettingsPage: View {
 
   private func enrol() {
     let typed = code
+    // The keyboard goes, so that a failure said below the field is not read behind it.
+    codeFocused = false
 
     run {
       _ = try await model.enrol(code: typed)
@@ -192,6 +197,7 @@ struct PasskeysSettingsPage: View {
   }
 
   private func mintInvite() {
+    codeFocused = false
     run {
       invite = try await model.mintInvite()
     }
@@ -255,6 +261,7 @@ struct PasskeyCredentialRow: View {
         .frame(minWidth: 44, minHeight: 44)
         .contentShape(.rect)
         .disabled(busy)
+        .accessibilityLabel(Text(verbatim: "\(NativeStrings.Passkeys.removeAction): \(credential.name ?? "")"))
         .accessibilityIdentifier("hermie.passkeys.remove")
     }
     .accessibilityElement(children: .contain)

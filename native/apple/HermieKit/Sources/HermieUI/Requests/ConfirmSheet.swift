@@ -92,22 +92,6 @@ struct ConfirmSheetView: View {
       guard !Task.isCancelled else { return }
       passkeys.expireIfDue(confirmation.id)
     }
-    .task(id: confirmation.phase) {
-      await settle(confirmation.phase)
-    }
-  }
-
-  /// A state worth hearing is announced; the ones that are over close the sheet after a moment.
-  private func settle(_ phase: PasskeyConfirmPhase) async {
-    if let status = ConfirmSheetText.status(for: phase), phase != .signing {
-      AccessibilityNotification.Announcement(status.text).post()
-    }
-
-    guard ConfirmSheetText.closesByItself(phase) else { return }
-    try? await Task.sleep(for: .seconds(ConfirmSheetText.lingerSeconds))
-
-    guard !Task.isCancelled else { return }
-    requests.dismissSheet()
   }
 }
 
@@ -121,6 +105,7 @@ struct ConfirmChrome: View {
     VStack(alignment: .leading, spacing: 6) {
       Label {
         Text(NativeStrings.Confirm.title(requests.botName))
+          .accessibilityIdentifier("confirm.title")
       } icon: {
         Image(systemName: "lock.shield.fill")
           .foregroundStyle(.tint)
@@ -131,7 +116,6 @@ struct ConfirmChrome: View {
       .fixedSize(horizontal: false, vertical: true)
       .accessibilityAddTraits(.isHeader)
       .accessibilityFocused(titleFocused)
-      .accessibilityIdentifier("confirm.title")
 
       VStack(alignment: .leading, spacing: 2) {
         if !requests.gatewayName.isEmpty {
@@ -146,6 +130,7 @@ struct ConfirmChrome: View {
           .font(.subheadline.monospaced())
           .lineLimit(1)
           .truncationMode(.middle)
+          .accessibilityLabel(NativeStrings.Confirm.address(confirmation.display.host))
           .accessibilityIdentifier("confirm.host")
       }
       .foregroundStyle(.secondary)
@@ -229,10 +214,18 @@ struct ConfirmFooter: View {
       }
 
       if let status = ConfirmSheetText.status(for: confirmation.phase) {
-        ConfirmStatusLine(status: status)
+        // A line of its own per state: a state that follows another within a frame (a fast link
+        // answers at once) is a new view, so what it starts (the announcement) always runs. A task
+        // or an `onChange` watching the phase from inside the sheet missed such a state.
+        ConfirmStatusLine(status: status, announced: confirmation.phase != .signing)
+          .id(status.text)
       }
 
       ConfirmActions(requests: requests, passkeys: passkeys, confirmation: confirmation, armed: armed)
+
+      if ConfirmSheetText.closesByItself(confirmation.phase) {
+        ConfirmLinger(requests: requests, confirmationID: confirmation.id)
+      }
     }
   }
 }
@@ -258,6 +251,8 @@ struct ConfirmCountdown: View {
 /// One line about where the answer stands.
 struct ConfirmStatusLine: View {
   let status: ConfirmSheetText.Status
+  /// Say it aloud when it appears (the system's own sheet speaks for the signing state).
+  var announced = false
 
   var body: some View {
     HStack(alignment: .firstTextBaseline, spacing: 8) {
@@ -276,14 +271,36 @@ struct ConfirmStatusLine: View {
     }
     .accessibilityElement(children: .combine)
     .accessibilityIdentifier("confirm.status")
+    .task {
+      if announced {
+        AccessibilityNotification.Announcement(status.text).post()
+      }
+    }
   }
 
+  /// The label colour: the tints (green, orange, red) miss the contrast audit on a plain
+  /// background, and the symbol's shape says what the sentence says.
   private var symbolStyle: AnyShapeStyle {
-    switch status.tone {
-    case .good: AnyShapeStyle(.green)
-    case .problem: AnyShapeStyle(.orange)
-    case .progress, .neutral: AnyShapeStyle(.secondary)
-    }
+    AnyShapeStyle(Color.primary)
+  }
+}
+
+/// Puts the sheet away a moment after the answer is in or the person said no, so the outcome can
+/// be read (and heard). It is in the sheet only in those two states, so it starts when they begin.
+struct ConfirmLinger: View {
+  let requests: RequestsModel
+  let confirmationID: String
+
+  var body: some View {
+    Color.clear
+      .frame(height: 0)
+      .accessibilityHidden(true)
+      .task {
+        try? await Task.sleep(for: .seconds(ConfirmSheetText.lingerSeconds))
+
+        guard !Task.isCancelled, requests.presentedConfirmation?.id == confirmationID else { return }
+        requests.dismissSheet()
+      }
   }
 }
 
@@ -367,6 +384,10 @@ extension NativeStrings {
     static func title(_ bot: String) -> String {
       String(localized: "native.confirm.title", defaultValue: "\(bot) asks you to confirm", table: "Native", bundle: .module)
     }
+    /// Address {host}
+    static func address(_ host: String) -> String {
+      String(localized: "native.confirm.address", defaultValue: "Address \(host)", table: "Native", bundle: .module)
+    }
     /// Details
     static var detailLabel: String { string("native.confirm.detailLabel") }
     /// Your device will ask for your passkey for {rp}…
@@ -417,3 +438,4 @@ extension NativeStrings {
     static var withdrawn: String { string("native.confirm.withdrawn") }
   }
 }
+

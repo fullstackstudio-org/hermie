@@ -148,6 +148,8 @@
 	<string>Stoppen</string>
 	<key>native.composer.stopped</key>
 	<string>Antwoord gestopt</string>
+	<key>native.confirm.address</key>
+	<string>Adres %@</string>
 	<key>native.confirm.answeredElsewhere</key>
 	<string>Een ander apparaat heeft dit verzoek beantwoord.</string>
 	<key>native.confirm.cannotConfirm</key>

@@ -51,6 +51,10 @@ import Testing
       "a registry store built":
         "the store GatewayDirectory reads, activates and renames with; it removes through the engine"
     ],
+    "HermieUI/Debug/PasskeyLab.swift": [
+      "a token store built":
+        "the lab's own in-memory session (never a stored gateway), to drive the passkey page in UI tests"
+    ],
     "HermieCore/AppLaunch/LaunchTestHooks.swift": [
       "a registry store built": "DEBUG builds only: UI-test seeding before the launch reads the list",
       "the registry written": "DEBUG builds only: UI-test seeding before the launch reads the list"
