@@ -78,6 +78,75 @@ function asciiOnlyScripts(): Plugin {
   }
 }
 
+/** The node shapes this file reads from the parser: ESTree, whatever else a node carries. */
+interface SyntaxNode {
+  type: string
+  start: number
+  end: number
+  value?: unknown
+  regex?: unknown
+}
+
+/**
+ * Spells a backtick that follows `!`, inside a string or a regular expression, as
+ * `\x60`.
+ *
+ * The plugin scanner's `inline_shell_exec` pattern is `!` followed by a backtick,
+ * a character that is not a space, and a closing backtick on the same line (the
+ * inline-shell syntax of a Hermes skill). Minified Markdown code is full of
+ * pattern sources that say "not followed by a backtick", `(?!`)` and `(?<!`)`,
+ * and the scanner of the pinned upstream reads two of them as a command: a HIGH
+ * finding, a `caution` verdict, an import that needs a person to confirm it.
+ * `\x60` is the same character in a string, a template and a pattern (with or
+ * without the `u` flag), so nothing about the program changes. Only literals are
+ * touched: a backtick that opens a template, after a `!`, stays where it is.
+ */
+function backtickAfterBangEscaped(): Plugin {
+  const marker = '!`'
+
+  return {
+    name: 'hermie:backtick-after-bang-escaped',
+    apply: 'build',
+    generateBundle(_options, bundle) {
+      for (const file of Object.values(bundle)) {
+        if (file.type !== 'chunk' || !file.code.includes(marker)) {
+          continue
+        }
+
+        const literals: SyntaxNode[] = []
+        const visit = (node: unknown): void => {
+          if (Array.isArray(node)) {
+            node.forEach(visit)
+          } else if (typeof node === 'object' && node !== null && 'type' in node) {
+            const syntax = node as SyntaxNode
+
+            if (syntax.type === 'Literal' && (typeof syntax.value === 'string' || syntax.regex !== undefined)) {
+              literals.push(syntax)
+            }
+
+            Object.values(node).forEach(visit)
+          }
+        }
+
+        visit(this.parse(file.code))
+
+        // From the end, so an earlier replacement does not move a later offset.
+        let code = file.code
+
+        for (const literal of literals.sort((a, b) => b.start - a.start)) {
+          const source = code.slice(literal.start, literal.end)
+
+          if (source.includes(marker)) {
+            code = code.slice(0, literal.start) + source.replaceAll(marker, '!\\x60') + code.slice(literal.end)
+          }
+        }
+
+        file.code = code
+      }
+    }
+  }
+}
+
 /**
  * Moves `*.map` out of the output directory into `<outDir>-maps`. Vite can only
  * write maps beside the files they describe; the bundle that is imported into
@@ -191,7 +260,14 @@ export default defineConfig(({ command, mode }) => {
     base: './',
     plugins: harness
       ? [react()]
-      : [react(), asciiOnlyScripts(), mapsOutsideOutDir(), relaxPolicyInDevelopment(), serveAtGatewayPath()],
+      : [
+          react(),
+          asciiOnlyScripts(),
+          backtickAfterBangEscaped(),
+          mapsOutsideOutDir(),
+          relaxPolicyInDevelopment(),
+          serveAtGatewayPath()
+        ],
     define: {
       __HERMIE_VERSION__: JSON.stringify(packageJson.version),
       __HERMIE_COMMIT__: JSON.stringify(commit)
