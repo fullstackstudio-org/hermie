@@ -93,6 +93,8 @@ public struct LaunchEnvironment: Sendable {
           authenticator: hooks.authenticator
         )
 
+        environment.synced = hooks.synced
+
         environment.testHooks = hooks
 
         return environment
@@ -146,6 +148,8 @@ public final class AppLaunch {
   public let gateways: GatewayDirectory
   /// The one bridge to iCloud Keychain, and the only path that adds, moves or removes a gateway.
   public let sync: GatewaySyncEngine
+  /// Settings → iCloud Sync, the gateway badges and the one-time disclosure, over `sync`.
+  public let iCloudSync: ICloudSyncModel
   /// Push notifications: the switch, the permission and the relay registrations.
   public let push: PushController
   /// Told once each, in this order, until dismissed.
@@ -204,8 +208,10 @@ public final class AppLaunch {
     )
     let sync = GatewaySyncEngine(database: store, secrets: environment.secrets, synced: environment.synced)
     self.sync = sync
-    self.gateways = GatewayDirectory(
+    let directory = GatewayDirectory(
       store: GatewayRegistryStore(store: store), changes: KeyValueStore(store: store), remover: sync)
+    self.gateways = directory
+    self.iCloudSync = ICloudSyncModel(engine: sync, directory: directory)
     self.push = PushController(
       system: pushSystem ?? InertPushSystem(),
       registrar: PushRegistrar(
@@ -256,6 +262,8 @@ public final class AppLaunch {
     }
 
     await gateways.load()
+    // Before the launch's reconcile, so none of its notices is missed.
+    iCloudSync.start()
 
     // I11: sync at launch, once the gateway list is known (never on one that is unreadable or from
     // a newer build). Which gateways' credentials are bound to an origin they left is read first,

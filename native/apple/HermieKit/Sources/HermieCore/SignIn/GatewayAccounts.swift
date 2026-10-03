@@ -65,6 +65,8 @@ public final class GatewayAccounts {
   @ObservationIgnored public let store: SQLiteStore
   @ObservationIgnored public let push: PushController?
   @ObservationIgnored let share: ShareDeliveryPublisher?
+  /// Told when a sign-in finishes here, so a gateway taken from iCloud stops saying "Sign in needed".
+  @ObservationIgnored let iCloudSync: ICloudSyncModel
 
   /**
    Called when this device stops using a gateway's credentials (a sign-out, a removal), so the live
@@ -89,6 +91,7 @@ public final class GatewayAccounts {
     self.sync = launch.sync
     self.store = launch.store
     self.push = launch.push
+    self.iCloudSync = launch.iCloudSync
     self.services = services
     self.share = share
   }
@@ -272,9 +275,11 @@ public final class GatewayAccounts {
     }
   }
 
-  /// A finished sign-in: push resumes for the gateway, and when it is the live one the share sheet
+  /// A finished sign-in (every one lands here, from setup and from the sign-in sheet): iCloud Sync
+  /// stops asking for it, push resumes for the gateway, and when it is the live one the share sheet
   /// gets what it sends with.
   func signedIn(_ id: String) async {
+    iCloudSync.signedIn(id)
     await push?.resume(gatewayId: id)
 
     guard directory.activeId == id, let share, let access = try? await access(for: id) else {

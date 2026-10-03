@@ -21,6 +21,12 @@
    - `-HermieLaunchTrace YES` record what the lock gate drew, in order, for the first-frame test
    - `-HermieOpenSettings YES` open the Settings window at launch (Mac)
    - `-HermieOpenURL 'hermie://…'` handle a link as if the system had delivered it
+   - `-HermieSync on|ask|off|unavailable` iCloud Sync as the launch finds it: on and answered (the
+     default, so the disclosure stays out of the other tests' way), on and not yet answered (the
+     disclosure is due), off, or a store this process cannot use. The synced store is always an
+     in-memory `FakeCloud`, never iCloud Keychain.
+   - `-HermieSeedICloudGateway 'Name|https://host|token'` repeatable; a gateway another device put
+     in that fake iCloud Keychain (no token: an identity-provider gateway)
    */
   public struct LaunchTestHooks: Sendable {
     public var dataDirectory: URL
@@ -30,6 +36,17 @@
     public var traceLaunch: Bool
     public var openSettings: Bool
     public var openURL: String?
+    public var sync: SyncSeed
+    public var iCloudSeeds: [(name: String, address: String, token: String?)]
+    /// The fake iCloud Keychain this launch syncs with; the app's replica is `"local"`.
+    public let cloud = FakeCloud(delivery: .immediate)
+
+    public enum SyncSeed: String, Sendable {
+      case on
+      case ask
+      case off
+      case unavailable
+    }
 
     public init?(arguments: [String]) {
       func values(_ flag: String) -> [String] {
@@ -81,6 +98,24 @@
       traceLaunch = isOn("-HermieLaunchTrace")
       openSettings = isOn("-HermieOpenSettings")
       openURL = values("-HermieOpenURL").last
+      sync = values("-HermieSync").last.flatMap(SyncSeed.init(rawValue:)) ?? .on
+      iCloudSeeds = values("-HermieSeedICloudGateway").compactMap { value in
+        let parts = value.split(separator: "|", omittingEmptySubsequences: false).map(String.init)
+
+        guard parts.count >= 2 else { return nil }
+        return (parts[0], parts[1], parts.count > 2 && !parts[2].isEmpty ? parts[2] : nil)
+      }
+
+      // The replica exists before its availability is set (setting it on an unknown one does nothing).
+      _ = cloud.replica("local")
+      if sync == .unavailable {
+        cloud.setAvailability(.unavailable, on: "local")
+      }
+    }
+
+    /// The app's replica of the fake iCloud Keychain.
+    public var synced: InMemorySyncedItemStore {
+      cloud.replica("local")
     }
 
     /// Write the seeds, before the lock or the registry is read.
@@ -102,6 +137,36 @@
 
         _ = try? await registry.add(record)
       }
+
+      if sync != .ask, sync != .unavailable {
+        let state = SyncState(device: "", enabled: sync == .on, disclosed: sync == .on)
+        if let text = try? state.encoded() {
+          try? await keyValues.setString(text, forKey: SyncState.storageKey)
+        }
+      }
+
+      await seedICloud()
+    }
+
+    /// Another device, on the same fake iCloud Keychain, adds the seeded gateways and syncs them.
+    private func seedICloud() async {
+      guard !iCloudSeeds.isEmpty, let database = try? SQLiteStore(.inMemory) else { return }
+
+      let other = GatewaySyncEngine(
+        database: database, secrets: InMemorySecretStore(), synced: cloud.replica("other"),
+        timing: SyncTiming(localChangeDelay: .zero), logger: .none)
+
+      try? await other.disclose()
+
+      for seed in iCloudSeeds {
+        _ = try? await other.addGateway(
+          NewGateway(
+            name: seed.name, address: seed.address, authKind: seed.token == nil ? .nativePKCE : .sessionToken,
+            sessionToken: seed.token))
+      }
+
+      await other.reconcileNow(.manual)
+      await other.waitUntilIdle()
     }
   }
 #endif

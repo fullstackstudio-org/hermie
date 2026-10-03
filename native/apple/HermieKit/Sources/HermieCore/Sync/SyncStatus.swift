@@ -296,7 +296,8 @@ public final class SyncStatus {
     if unsupportedState != update.unsupportedState { unsupportedState = update.unsupportedState }
     if gateways != update.gateways { gateways = update.gateways }
     if let availability = update.availability, availability != self.availability { self.availability = availability }
-    if let outcome = update.outcome { lastOutcome = outcome }
+    // Only when it differs: an unchanged outcome must not redraw what reads it.
+    if let outcome = update.outcome, outcome != lastOutcome { lastOutcome = outcome }
     if let reconciledAt = update.reconciledAt { lastReconciledAt = reconciledAt }
     if let skew = update.clockSkew { clockSkew = skew }
     if !update.developerNotes.isEmpty {
