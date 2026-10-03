@@ -178,6 +178,40 @@ final class OnboardingUITests: XCTestCase {
     try finish(app, name: "Desk")
   }
 
+  // MARK: iCloud Sync
+
+  /// A fresh install set up by hand, with iCloud Sync not answered yet: once setup closes, the
+  /// one-time question about iCloud Keychain follows. Setup and the question are two sheets of the
+  /// main window; the second must come up as the first goes.
+  func testAManualFirstSetupIsFollowedByTheICloudQuestion() throws {
+    let address = try gateway("HERMIE_FAKE_GATEWAY_NONE")
+    let app = launch(["-HermieSync", "ask"])
+    let question = element(app, "hermie.icloud.disclosure")
+
+    try openSetup(app, address: address)
+    XCTAssertFalse(question.exists, "nothing to store yet, so nothing is asked during setup")
+
+    let field = element(app, "hermie.onboarding.address")
+
+    field.tap()
+    field.typeText("\n")
+
+    let token = app.secureTextFields["hermie.onboarding.token"]
+
+    XCTAssertTrue(token.waitForExistence(timeout: 10))
+    token.tap()
+    token.typeText("any-token\n")
+
+    try finish(app, name: "Desk")
+
+    XCTAssertTrue(question.waitForExistence(timeout: 10), "the question follows setup")
+    let named = question.descendants(matching: .any).matching(NSPredicate(format: "label CONTAINS 'Desk'"))
+    XCTAssertTrue(named.firstMatch.waitForExistence(timeout: 5), "and names the gateway it would store")
+    app.buttons["hermie.icloud.disclosure.decline"].tap()
+    XCTAssertTrue(question.waitForNonExistence(timeout: 5))
+    XCTAssertTrue(app.otherElements["hermie.root.split"].exists)
+  }
+
   // MARK: Token
 
   func testATokenGatewayRefusesAWrongTokenAndTakesTheRightOne() throws {

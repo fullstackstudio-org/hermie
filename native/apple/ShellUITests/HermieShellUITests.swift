@@ -436,6 +436,13 @@ final class HermieShellUITests: XCTestCase {
     let sheet = element(app, "hermie.icloud.disclosure")
 
     XCTAssertTrue(sheet.waitForExistence(timeout: 10))
+    // Before the answer the launch has not looked in iCloud Keychain: the question names this
+    // device's gateway only, and nothing from iCloud is offered or added.
+    func named(_ name: String) -> XCUIElement {
+      sheet.descendants(matching: .any).matching(NSPredicate(format: "label CONTAINS %@", name)).firstMatch
+    }
+    XCTAssertTrue(named("Home").waitForExistence(timeout: 5))
+    XCTAssertFalse(named("Office").exists, "iCloud Keychain was not read before the answer")
     app.buttons["hermie.icloud.disclosure.accept"].tap()
     XCTAssertTrue(sheet.waitForNonExistence(timeout: 5))
 
