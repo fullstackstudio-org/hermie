@@ -123,6 +123,29 @@ built from; the script warns, and such a build must not be imported.
 
 It prints what it measured against each limit.
 
+### What the first load carries
+
+The limit is not to be raised to make room: what the first screen (signing in, the chat list, an open chat) does not
+draw is kept out of the entry instead. Three things do that today.
+
+- **Only the strings the client reads.** `src/generated/locales/<tag>.json` holds every string of the Expo app, and
+  the client reads a small part of them. The build bundles only that part (`catalogueOnlyWhatIsRead` in
+  `vite.config.ts`, the rule in `scripts/catalogue-reads.mjs`, its tests in `scripts/web/catalogue-reads.test.ts`):
+  every read of `strings` under `src` is followed through its static property accesses, and the key or subtree it
+  reaches is kept. The rule only errs towards keeping: a read it cannot follow (the tree handed on, destructured,
+  read with a computed key at the root, re-exported, imported dynamically) keeps the whole catalogue, which the gate
+  would then show. The unit tests and the dev server read the files whole.
+- **The request sheets are a chunk of their own** (`features/requests/sheets.ts`, every sheet including the passkey
+  confirmation's). `React.lazy` would suspend on each sheet's first render even with the chunk in memory, so
+  `request-sheets.ts` holds the module once it has loaded and the layer draws from it in the same pass. The entry
+  module fetches it right after the session starts, long before a bot can ask anything; a request that arrives first
+  is a dialog with nothing in it until the chunk is there, and a failed fetch is asked for again every few seconds
+  while there is a request to show.
+- **The sheets' own words** (`src/i18n/sheet-strings.ts`, the same table as `web-strings.ts`) travel with them. Only
+  a module that is itself loaded on demand may import that file.
+
+To see what a chunk is made of, build and read the hidden source maps in `dist-maps/`.
+
 ### The plugin scanner
 
 `npm run client:guard-scan` (`scripts/web/guard-scan.mjs`) runs Hermes's own plugin scanner over `dist/`, the way
@@ -572,6 +595,7 @@ A bot's approval or question (`clarify`) is answered in `features/requests/`, a 
 | `RequestLayer.tsx`  | the dialog, focus, the inert page, the polite announcements; answers through the controller                |
 | `ApprovalSheet.tsx` | the command and Allow / Deny, the gateway's `choices` less what its flags rule out; one answer for several |
 | `ClarifySheet.tsx`  | one question or a stepper over a batch: choices, free text, multi-select, Lock, Skip, Cancel all           |
+| `sheets.ts`         | every sheet, as one chunk; `request-sheets.ts` fetches it when the session starts and holds it             |
 | `request-layer.css` | the scrim, the dialog and the sheets                                                                       |
 
 - **One source of truth.** The store holds no request of its own: it is a view over the chat store, which is where the
@@ -778,7 +802,7 @@ their own RP (`docs/native.md`, "Confirm at level passkey"); the phases, refusal
 | `platform/webauthn.ts`                   | the browser's ceremonies (`WebAuthnSeam`) and SHA-256                                                      |
 | `platform/passkey-pins.ts`               | the pins (see "Browser storage"), and forgetting this gateway's                                            |
 | `platform/socket.ts` (`ErrorDataOutbox`) | puts `data.reason` on a 4040 error frame, which the vendored channel's `fail(code, message)` cannot carry  |
-| `features/requests/ConfirmSheet.tsx`     | the sheet in the request layer (a chunk of its own, below)                                                 |
+| `features/requests/ConfirmSheet.tsx`     | the sheet in the request layer (in the request sheets' chunk, below)                                       |
 | `features/requests/PasskeyNotices.tsx`   | the notices, over the page                                                                                 |
 | `features/settings/Passkeys.tsx`         | `#/settings/passkeys`: the state, the list, add with a code, make a code, remove, forget the pin (a chunk) |
 
@@ -852,10 +876,12 @@ step-up assertion with a passkey of this site. A code is shown once, in the page
 wait the gateway asked for (`Retry-After`), and a 403 `origin_not_listed` is a state of its own: the gateway does not
 list this page's address.
 
-**Two chunks.** The sheet (`ConfirmSheet`) and the settings page (`Passkeys` and `passkeys.css`) are loaded with
-`React.lazy`, on the first `confirm` frame and when `#/settings/passkeys` is opened; the model, the pins, the client
+**Two chunks.** The sheet (`ConfirmSheet`) is in the request sheets' chunk ("What the first load carries", below),
+fetched when the session starts; the settings page (`Passkeys` and `passkeys.css`) is loaded with `React.lazy` when
+`#/settings/passkeys` is opened, or when a pointer or the focus reaches the link to it. The model, the pins, the client
 and the WebAuthn layer stay in the entry bundle, because a frame is read, and a 4040 answered, whether or not the
-sheet ever loads. While the sheet loads the dialog shows its heading and who asks, and nothing to press.
+sheet ever loads. Should a confirmation arrive before the chunk, the dialog shows its heading and who asks, and nothing
+to press.
 
 **Not the native app.** In a browser the page is the client: what it displayed is asserted by code the gateway served,
 so a script injection on the gateway's origin could show one text and ask for a signature over another (plan, Security
