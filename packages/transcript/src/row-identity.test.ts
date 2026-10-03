@@ -1636,3 +1636,153 @@ describe('a turn the gateway started itself, on every path its row can take', ()
     })
   })
 })
+
+// ── a delivery that joined a card is a row on screen, and a stale tail heals ──
+
+describe('a delivery row held only as the reply of a dispatch card', () => {
+  const unknown = (state: ChatState) => users(state).filter(item => item.unknownAuthor)
+  const DISPATCH: TranscriptRow = {
+    role: 'tool',
+    row_id: 2,
+    name: 'message_agent',
+    tool_call_id: 'dm-1',
+    args: { target: 'sam', message: 'ping' }
+  }
+  const REPORT = [
+    '[IMPORTANT: Background process proc-1 completed with exit code 0.',
+    'Command: python bot_mode_dm.py --run-delivery d1',
+    'Output:',
+    'Sam says hi]'
+  ].join('\n')
+  const delivery: TranscriptRow = {
+    role: 'user',
+    row_id: 4,
+    text: REPORT,
+    display_kind: 'process_complete',
+    display_metadata: { turn_id: 'T1' }
+  }
+  const PAGE: TranscriptRow[] = [
+    { role: 'user', row_id: 1, text: 'tell sam' },
+    DISPATCH,
+    { role: 'assistant', row_id: 3, text: 'sent' },
+    delivery,
+    { role: 'assistant', row_id: 5, text: 'Sam answered.' }
+  ]
+  const START = { type: 'message.start', seq: 20, turn_id: 'T1' } satisfies TranscriptEvent
+  const replies = (state: ChatState) =>
+    list(state).filter(item => item.kind === 'bot_dm_out' && item.reply?.text === 'Sam says hi')
+  const notices = (state: ChatState) => list(state).filter(item => item.kind === 'notice')
+
+  it('counts as the turn’s prompt on screen: a replayed message.start stands no placeholder up', () => {
+    const history = reconcile(fresh(), rowsToItems(PAGE, 'rpc'))
+    const state = apply(history, [START])
+
+    expect(unknown(state)).toHaveLength(0)
+    expect(state.turn.foreignReconcilePending).toBeUndefined()
+    expect(replies(state)).toHaveLength(1)
+    expect(notices(state)).toHaveLength(0)
+  })
+
+  it('counts as the prompt a resume finds shown, so it adds no bubble of the owner’s', () => {
+    const history = reconcile(fresh(), rowsToItems(PAGE, 'rpc'))
+    const state = applyResumeSnapshot(
+      history,
+      {
+        running: true,
+        inflight: {
+          user: 'Sam says hi',
+          display_metadata: { turn_id: 'T1' },
+          assistant: 'Sam answered.',
+          streaming: false
+        }
+      },
+      LATER
+    )
+
+    expect(users(state).map(item => item.text)).toEqual(['tell sam'])
+    expect(replies(state)).toHaveLength(1)
+  })
+
+  it('is held by a tail page without the dispatch, which adds no second copy as a notice', () => {
+    const history = reconcile(fresh(), rowsToItems(PAGE, 'rpc'))
+    const state = reconcileTail(
+      apply(history, [START]),
+      // The dispatch is further back than this page reaches.
+      rowsToItems([delivery, { role: 'assistant', row_id: 5, text: 'Sam answered.' }], 'rpc')
+    )
+
+    expect(replies(state)).toHaveLength(1)
+    expect(notices(state)).toHaveLength(0)
+    expect(unknown(state)).toHaveLength(0)
+  })
+
+  it('settles the placeholder a known delivery row names, when it stood up before the join', () => {
+    const standing = apply(reconcile(fresh(), rowsToItems(PAGE.slice(0, 3), 'rpc')), [START])
+    const card = list(standing).find(item => item.kind === 'bot_dm_out')!
+
+    expect(unknown(standing)).toHaveLength(1)
+
+    // The join is on screen already (an earlier sweep brought it), the placeholder still stands.
+    const held: ChatState = {
+      ...standing,
+      items: {
+        ...standing.items,
+        [card.id]: { ...card, reply: { text: 'Sam says hi', rowId: 4, turnId: 'T1' } } as TranscriptItem
+      }
+    }
+    const state = reconcileTail(held, rowsToItems([delivery], 'rpc'))
+
+    expect(unknown(state)).toHaveLength(0)
+    expect(replies(state)).toHaveLength(1)
+    expect(notices(state)).toHaveLength(0)
+    expect(state.turn.foreignReconcilePending).toBeUndefined()
+  })
+})
+
+describe('a stale tail that closes a placeholder', () => {
+  const OWN = [
+    { role: 'user', row_id: 1, text: 'hi' },
+    { role: 'assistant', row_id: 2, text: 'hello' }
+  ] satisfies TranscriptRow[]
+  const continued: TranscriptRow = {
+    role: 'user',
+    row_id: 3,
+    text: 'continue',
+    display_kind: 'auto_continue',
+    display_metadata: { turn_id: 'T1' }
+  }
+  const turn = [
+    { type: 'message.start', seq: 20, turn_id: 'T1' },
+    { type: 'message.delta', seq: 21, turn_id: 'T1', payload: { text: 'on it' } },
+    { type: 'message.complete', seq: 22, turn_id: 'T1', payload: { text: 'on it', status: 'complete' } }
+  ] satisfies TranscriptEvent[]
+  const unknown = (state: ChatState) => users(state).filter(item => item.unknownAuthor)
+
+  it('is healed by the next tail, which puts the notice above the reply by its row id', () => {
+    const away = apply(reconcile(fresh(), rowsToItems(OWN, 'rpc')), turn)
+
+    expect(unknown(away)).toHaveLength(1)
+
+    // Sent mid-turn, landing after `message.complete`: the reply's row is in it,
+    // the turn's own row is not.
+    const stale = reconcileTail(away, rowsToItems([{ role: 'assistant', row_id: 4, text: 'on it' }], 'rpc'))
+
+    expect(unknown(stale)).toHaveLength(0)
+    expect(stale.turn.foreignReconcilePending).toBeUndefined()
+    expect(list(stale).map(item => item.kind)).toEqual(['user', 'assistant', 'assistant'])
+
+    const healed = reconcileTail(
+      stale,
+      rowsToItems([continued, { role: 'assistant', row_id: 4, text: 'on it' }], 'rpc')
+    )
+
+    expect(list(healed).map(item => [item.kind, item.rowId])).toEqual([
+      ['user', 1],
+      ['assistant', 2],
+      ['notice', 3],
+      ['assistant', 4]
+    ])
+    expect(unknown(healed)).toHaveLength(0)
+    expect(healed.turn.foreignReconcilePending).toBeUndefined()
+  })
+})

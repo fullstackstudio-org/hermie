@@ -661,7 +661,10 @@ public func prependHistory(_ state: ChatState, _ olderItems: [TranscriptItem]) -
 public func reconcileTail(_ state: ChatState, _ tailItems: [TranscriptItem]) -> ChatState {
   let list = state.orderedItems
   let placeholders = list.compactMap { item in item.asUser?.unknownAuthor == true ? item.id : nil }
-  let knownRowIDs = Set(list.compactMap(\.rowID))
+  // Every row on screen, including a delivery row that joined a dispatch card and
+  // so is held only as the card's `reply`: a page without the dispatch must not
+  // add that row again as a notice.
+  let knownRowIDs = Set(list.flatMap { promptRowsOf($0).compactMap { $0.rowID } })
   var byID = Dictionary(list.map { ($0.id, $0) }, uniquingKeysWith: { _, later in later })
   var appended: [TranscriptItem] = []
   var placeholderCursor = 0
@@ -730,6 +733,15 @@ public func reconcileTail(_ state: ChatState, _ tailItems: [TranscriptItem]) -> 
     if let rowID = fresh.rowID, knownRowIDs.contains(rowID) {
       if let existingID = state.byRowID[String(rowID)], !existingID.isEmpty, let current = byID[existingID] {
         byID[current.id] = mergeWithLive(fresh, current)
+      }
+
+      // The row is on screen already, so whatever turn it opened has had it.
+      if let heldTurnID = turnOfOtherRow(fresh), let heldID = liveByTurnID[heldTurnID], !heldID.isEmpty,
+        !pairedLive.contains(heldID), isTurnPlaceholder(byID[heldID])
+      {
+        pairedLive.insert(heldID)
+        filled.insert(heldID)
+        byID[heldID] = nil
       }
 
       continue

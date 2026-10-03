@@ -300,8 +300,11 @@ extension TranscriptReducer {
     }
 
     return next.order.contains { id in
-      guard let item = next.items[id], let held = item.turnID, JS.same(held, turnID) else { return false }
-      return item.rowID != nil
+      guard let item = next.items[id] else { return false }
+      return promptRowsOf(item).contains { row in
+        guard let held = row.turnID else { return false }
+        return JS.same(held, turnID) && row.rowID != nil
+      }
     }
   }
 

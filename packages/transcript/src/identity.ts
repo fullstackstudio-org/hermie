@@ -13,6 +13,8 @@
  * the path it had before any of this existed. Nothing here guesses.
  */
 
+import type { TranscriptItem } from './types'
+
 const positiveFinite = (value: unknown): number | undefined =>
   typeof value === 'number' && Number.isFinite(value) && value > 0 ? value : undefined
 
@@ -74,4 +76,20 @@ export function turnIdOfMetadata(value: unknown): string | undefined {
   const turnId = objectOf(value)?.turn_id
 
   return typeof turnId === 'string' && turnId ? turnId : undefined
+}
+
+/**
+ * The turn a row opened and the row it was, for each way an item can stand for
+ * one: the item's own `turnId` and `rowId`, and, on a dispatch card that a
+ * delivery row joined, the `reply`'s. A joined delivery leaves no item of its
+ * own, so the card's reply is the only place that row is on screen.
+ */
+export function promptRowsOf(item: TranscriptItem): { turnId?: string; rowId?: number }[] {
+  const rows: { turnId?: string; rowId?: number }[] = [{ turnId: item.turnId, rowId: item.rowId }]
+
+  if (item.kind === 'bot_dm_out' && item.reply) {
+    rows.push({ turnId: item.reply.turnId, rowId: item.reply.rowId })
+  }
+
+  return rows
 }

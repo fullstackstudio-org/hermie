@@ -902,12 +902,11 @@
               "name": "read_file",
               "origin": "history",
               "resultKnown": false,
-              "rowId": 3,
               "seq": 2000,
               "status": "complete",
               "summary": "read_file(SOUL.md)",
               "toolId": "call_read_researcher",
-              "version": 1
+              "version": 0
             },
             "presentation": "collapsed"
           },
@@ -1299,12 +1298,11 @@
               "name": "read_file",
               "origin": "history",
               "resultKnown": false,
-              "rowId": 3,
               "seq": 2000,
               "status": "complete",
               "summary": "read_file(SOUL.md)",
               "toolId": "call_read_researcher",
-              "version": 1
+              "version": 0
             },
             "presentation": "full"
           },
@@ -1493,7 +1491,6 @@
     "byRowId": {
       "1": "r:1",
       "2": "r:2",
-      "3": "t:call_read_researcher",
       "4": "r:4",
       "5": "r:5",
       "6": "r:6",
@@ -1694,12 +1691,11 @@
         "name": "read_file",
         "origin": "history",
         "resultKnown": false,
-        "rowId": 3,
         "seq": 2000,
         "status": "complete",
         "summary": "read_file(SOUL.md)",
         "toolId": "call_read_researcher",
-        "version": 1
+        "version": 0
       },
       "t:tool-a2fedc71": {
         "args": {

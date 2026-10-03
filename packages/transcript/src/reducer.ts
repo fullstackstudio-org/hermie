@@ -12,7 +12,7 @@ import {
   replyFromDeliveryOutput
 } from './bot-dm'
 import type { ParsedCronDelivery } from './cron-delivery'
-import { callKeyOf, rowIdOf, turnIdOfMetadata } from './identity'
+import { callKeyOf, promptRowsOf, rowIdOf, turnIdOfMetadata } from './identity'
 import { type InjectedRow, isInjectedNotice } from './injected'
 import {
   attachmentsMatchKey,
@@ -779,7 +779,7 @@ function turnPromptOnScreen(next: ChatState, turnId: string): boolean {
     next.order.some(id => {
       const item = next.items[id]
 
-      return item?.turnId === turnId && item.rowId !== undefined
+      return item !== undefined && promptRowsOf(item).some(row => row.turnId === turnId && row.rowId !== undefined)
     })
   )
 }
@@ -2130,11 +2130,15 @@ function spokenPromptOfTurn(state: ChatState, turnId: string): TranscriptItem | 
   for (const id of state.order) {
     const item = state.items[id]
 
-    if (item?.turnId !== turnId) {
+    if (!item) {
       continue
     }
 
-    if (item.kind === 'user' ? !isForeignPlaceholder(item) : item.rowId !== undefined) {
+    if (item.kind === 'user') {
+      if (item.turnId === turnId && !isForeignPlaceholder(item)) {
+        return item
+      }
+    } else if (promptRowsOf(item).some(row => row.turnId === turnId && row.rowId !== undefined)) {
       return item
     }
   }
