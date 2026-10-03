@@ -201,7 +201,8 @@ public final class UIMetaSync: Sendable {
     core.owner = core.owner ?? (theirs ? nil : stored.owner)
 
     if stored.pendingApp, !theirs, core.documents.app != nil {
-      core.state.markApp()
+      // A copy stored before chores were told apart says nothing: it counts as a choice.
+      core.state.markApp(choice: stored.pendingAppChoice ?? true)
     }
 
     for name in stored.pendingBots {
@@ -274,7 +275,7 @@ public final class UIMetaSync: Sendable {
       core.documentsVersion += 1
 
       if edit != .baseline {
-        core.state.markApp()
+        core.state.markApp(choice: edit == .choice)
       }
 
       return true
@@ -322,7 +323,7 @@ public final class UIMetaSync: Sendable {
       }
 
       core.documentsVersion += 1
-      core.state.markApp()
+      core.state.markApp(choice: false)
       return true
     }
 
@@ -346,7 +347,7 @@ public final class UIMetaSync: Sendable {
       }
 
       core.documentsVersion += 1
-      core.state.markApp()
+      core.state.markApp(choice: false)
       return true
     }
 
@@ -392,6 +393,7 @@ public final class UIMetaSync: Sendable {
 
     let taken = core.withLock { core -> (UIMetaSnapshot, UIMetaDocuments, [any UIMetaContributor]) in
       core.state.noteNewerLocalApp(remote: remote, local: core.documents.snapshot)
+      core.state.dropLosingChores(remote: remote)
 
       let snapshot = core.state.withPendingKept(remote: remote, local: core.documents.snapshot)
 
@@ -541,6 +543,7 @@ public final class UIMetaSync: Sendable {
     }
 
     let taken = core.withLock { core -> (UIMetaSnapshot, UIMetaDocuments, [any UIMetaContributor]) in
+      core.state.dropLosingChores(remote: remote)
       let snapshot = core.state.withPendingKept(remote: remote, local: core.documents.snapshot)
       Self.take(snapshot, into: &core)
       return (snapshot, core.documents, core.live)
@@ -564,7 +567,7 @@ public final class UIMetaSync: Sendable {
       rows: core.pushRows,
       seen: core.pushSeen
     ) {
-      core.state.markApp()
+      core.state.markApp(choice: false)
     }
 
     let contributors = core.live
@@ -666,6 +669,7 @@ public final class UIMetaSync: Sendable {
           owner: core.owner,
           gateway: options.gatewayID,
           pendingApp: core.state.dirtyApp,
+          pendingAppChoice: core.state.appChoice,
           pendingBots: core.state.dirtyBots
         )
         return (copy, core.documentsVersion)

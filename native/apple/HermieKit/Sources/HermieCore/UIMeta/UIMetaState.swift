@@ -37,6 +37,13 @@ public struct UIMetaState: Sendable, Hashable {
   public private(set) var dirtyBots: [String] = []
   public private(set) var dirtyApp = false
 
+  /// Whether the app section's unsent change includes a CHOICE, or only chores (housekeeping
+  /// nobody decided: the roster folded into the order, a lapsed mute swept, a push row). A chore
+  /// never wins over a section the gateway holds (HERM-191): undated against undated would
+  /// otherwise keep the local copy, and a flat order folded on a fresh install would replace the
+  /// person's own arrangement.
+  public private(set) var appChoice = false
+
   public private(set) var mode = UIMetaMode.local
 
   /// Bumped by `reset()` and by a change of person. A write taken out under an
@@ -81,6 +88,7 @@ public struct UIMetaState: Sendable, Hashable {
 
     if !self.userID.isEmpty {
       dirtyApp = false
+      appChoice = false
     }
 
     self.userID = userID
@@ -96,10 +104,25 @@ public struct UIMetaState: Sendable, Hashable {
     }
   }
 
-  public mutating func markApp() {
+  /// Mark the app section changed: a `choice` (the default) or a chore, which is sent but never
+  /// wins over the gateway's copy.
+  public mutating func markApp(choice: Bool = true) {
     markCount += 1
     appMark = markCount
     dirtyApp = true
+
+    if choice {
+      appChoice = true
+    }
+  }
+
+  /// An unsent app change made only of chores loses to any section the gateway holds, and is
+  /// dropped rather than sent: it is housekeeping the app redoes on top of whatever it takes, and
+  /// nobody chose it (`dropLosingChores` in `packages/gateway-client/src/ui-meta.ts`).
+  public mutating func dropLosingChores(remote: UIMetaSnapshot) {
+    if dirtyApp, !appChoice, remote.app != nil {
+      dirtyApp = false
+    }
   }
 
   /// Forget the revisions, the app section's dirty mark and the person (a
@@ -242,7 +265,8 @@ public struct UIMetaState: Sendable, Hashable {
 
   /// Whose app section is newer (ADR-0016, "last writer wins needs a definition
   /// of last"): newer wins; a tie goes to the gateway; undated on both sides
-  /// keeps the local copy; a gateway with no section takes ours.
+  /// keeps the local copy; a gateway with no section takes ours; and a change
+  /// made only of chores never wins over a section the gateway holds (HERM-191).
   public func appLocalWins(local: JSONObject?, remote: JSONObject?) -> Bool {
     guard dirtyApp else {
       return false
@@ -252,7 +276,7 @@ public struct UIMetaState: Sendable, Hashable {
       return true
     }
 
-    guard let local else {
+    guard let local, appChoice else {
       return false
     }
 
@@ -440,6 +464,7 @@ public struct UIMetaState: Sendable, Hashable {
         }
       } else if appMark == write.appMark {
         dirtyApp = false
+        appChoice = false
       }
     }
 

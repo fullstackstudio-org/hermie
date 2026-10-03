@@ -70,6 +70,9 @@ public struct UIMetaStoredCopy: Sendable, Hashable, Codable {
   public var gateway: String?
   /// Sections changed here and not yet taken by the gateway.
   public var pendingApp: Bool
+  /// Whether that unsent app change includes a choice (`UIMetaState.appChoice`); `nil` in a copy
+  /// stored before chores were told apart.
+  public var pendingAppChoice: Bool?
   public var pendingBots: [String]
 
   public init(
@@ -77,12 +80,14 @@ public struct UIMetaStoredCopy: Sendable, Hashable, Codable {
     owner: String? = nil,
     gateway: String? = nil,
     pendingApp: Bool = false,
+    pendingAppChoice: Bool? = nil,
     pendingBots: [String] = []
   ) {
     self.documents = documents
     self.owner = owner
     self.gateway = gateway
     self.pendingApp = pendingApp
+    self.pendingAppChoice = pendingAppChoice
     self.pendingBots = pendingBots
   }
 }
