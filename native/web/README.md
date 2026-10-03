@@ -1064,6 +1064,7 @@ the written level plus the offset, capped at the max; the transcript uses 2 and 
 | `markdown/lazy.ts`       | the heavy renderers as chunks of their own, held once loaded so a block draws them on its first render                                                                     |
 | `markdown/Highlight.tsx` | coloured code (lazy): the spans of `@hermie/markdown`'s `highlight.ts` as classes, colours in `markdown-highlight.css`                                                     |
 | `markdown/Math.tsx`      | mathematics (lazy): `$$…$$` as an SVG drawing laid out by `math-layout.ts`, `$…$` as text in the sentence                                                                  |
+| `markdown/mermaid/*`     | Mermaid (lazy): `Mermaid.tsx` picks the kind, `Flowchart.tsx`, `SequenceDiagram.tsx` and `PieChart.tsx` draw the package's layouts as SVG                                  |
 | `markdown/Table.tsx`     | a table in its own focusable scroll container, `th scope="col"`                                                                                                            |
 | `markdown/links.ts`      | the two allow-lists: which links may be anchors, which images may load                                                                                                     |
 | `markdown/markdown.css`  | the styles, on tokens that follow the reader's colour scheme                                                                                                               |
@@ -1092,6 +1093,13 @@ The rules, each pinned by a test:
   the copy button always copies the source. Source the parser declines is shown as source.
 - `$…$` is text in the sentence (`mathRuns`, Unicode scripts where Unicode has them, as in the Expo app), with
   `role="math"` and the source as its name; an expression with rows in it is its source in a code chip.
+- A `mermaid` fence is drawn when one of the package's parsers reads it: a flowchart (`flowchart`, `graph`), a
+  sequence diagram or a pie, laid out by `layoutMermaid`, `layoutSequence` or `layoutPie` at a body size of 16 and
+  drawn as an `svg` (`role="img"`, named by its source) of shapes and `text`, with the Expo app's shapes, strokes and
+  arrow ends. It has its natural size in em and is scaled down, never reflowed, where the bubble is narrower. Colours
+  are classes on the Markdown tokens (`markdown-mermaid.css`); a pie's slices are the app's accent swatches in the
+  Expo app's order. No `mermaid` library: a label is characters in a `text`, with no link and no script. Any other
+  kind, a statement the parsers refuse (`subgraph`, `click`, `style`, ...) or a half-streamed fence is its source.
 - While a reply streams, a block whose source did not change is not rendered again and keeps its DOM element.
 
 `markdown/*.structure.test.tsx` reads the rendered DOM back into the block model and compares it with every input of

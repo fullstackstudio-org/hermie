@@ -260,6 +260,7 @@
 .hm-msg[data-side='own'] .md {
   --md-link: currentColor;
   --md-muted: currentColor;
+  --md-ground: var(--hm-tint);
 }
 
 /* The highlighting palette is for the code surface on the page, not on the tint: code the reader sent stays white. */
@@ -269,6 +270,8 @@
 
 .hm-bubble .md {
   --md-link: var(--hm-link);
+  /* What a diagram's opaque surfaces are mixed on (`markdown/markdown-mermaid.css`). */
+  --md-ground: var(--hm-surface);
 }
 
 .hm-bubble .md a {

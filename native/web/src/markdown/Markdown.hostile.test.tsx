@@ -7,7 +7,7 @@
  * document, an anchor only for `http(s)` and `mailto`, an `img` only on the
  * gateway. The raw text of the attack must be on the page as text.
  *
- * The highlighting and mathematics chunks are loaded first, so every input is
+ * The highlighting, mathematics and Mermaid chunks are loaded first, so every input is
  * drawn by the renderer that would draw it in a browser: a drawing is an `svg`
  * of a closed set of shapes and attributes, named by its source, with no link,
  * no reference, no foreign content and no animation in it.
@@ -16,7 +16,7 @@ import { resetBlockCache } from '@hermie/markdown'
 import { render } from '@testing-library/react'
 import { beforeAll, beforeEach, describe, expect, it } from 'vitest'
 
-import { highlightRenderer, mathRenderer } from './lazy'
+import { highlightRenderer, mathRenderer, mermaidRenderer } from './lazy'
 import { Markdown } from './Markdown'
 import { MATH_FONT, MATH_MONO_FONT } from './Math'
 
@@ -184,6 +184,32 @@ const HOSTILE: readonly [name: string, input: string][] = [
   ['markup in a fence language', '```"><img src=x onerror=alert(1)>\ncode\n```'],
   ['quote and angle in a fence language', '```js" onmouseover="alert(1)\ncode\n```'],
   ['markup in a mermaid fence', '```mermaid\n<img src=x onerror=alert(1)>\n```'],
+  [
+    'markup in a flowchart label',
+    '```mermaid\nflowchart LR\n  A["<img src=x onerror=alert(1)>"] --> B[<script>alert(1)</script>]\n```'
+  ],
+  [
+    'entities that spell markup in a flowchart label',
+    '```mermaid\nflowchart LR\n  A["&lt;script&gt;alert(1)&lt;/script&gt;"] --> B\n```'
+  ],
+  ['markup in a flowchart edge label', '```mermaid\nflowchart LR\n  A -->|<a href="javascript:alert(1)">x</a>| B\n```'],
+  ['a click directive in a flowchart', '```mermaid\nflowchart LR\n  A --> B\n  click A "javascript:alert(1)"\n```'],
+  [
+    'an init directive asking for a loose security level',
+    '```mermaid\n%%{init: {"securityLevel": "loose"}}%%\nflowchart LR\n  A --> B\n```'
+  ],
+  [
+    'markup in a sequence message',
+    '```mermaid\nsequenceDiagram\n  A->>B: <img src=x onerror=alert(1)>\n  Note over A: <script>alert(1)</script>\n```'
+  ],
+  [
+    'markup in a sequence participant',
+    '```mermaid\nsequenceDiagram\n  participant A as <svg onload=alert(1)>\n  A->>A: x\n```'
+  ],
+  [
+    'markup in a pie title and label',
+    '```mermaid\npie title <script>alert(1)</script>\n  "<img src=x onerror=alert(1)>" : 1\n  "b" : 2\n```'
+  ],
   ['markup in a math block', '$$\n<img src=x onerror=alert(1)>\n$$'],
   ['markup in inline math', 'a $<img src=x onerror=alert(1)>$ b'],
   ['markup in a text command of a formula', '$$\n\\text{<img src=x onerror=alert(1)>}\n$$'],
@@ -202,7 +228,7 @@ const HOSTILE: readonly [name: string, input: string][] = [
 ]
 
 beforeAll(async () => {
-  await Promise.all([highlightRenderer.load(), mathRenderer.load()])
+  await Promise.all([highlightRenderer.load(), mathRenderer.load(), mermaidRenderer.load()])
 })
 
 beforeEach(() => {
@@ -221,6 +247,12 @@ function inspectDrawing(svg: Element): void {
 
     for (const attribute of Array.from(element.attributes)) {
       expect(SVG_ATTRIBUTES.has(attribute.name), `${attribute.name} on <${tag}> in a drawing`).toBe(true)
+
+      if (attribute.name === 'class') {
+        for (const name of attribute.value.split(/\s+/u)) {
+          expect(name, `class on <${tag}>`).toMatch(/^md(-[a-z0-9]+)*$/)
+        }
+      }
 
       if (NUMERIC_SVG_ATTRIBUTE.test(attribute.name)) {
         expect(attribute.value, `${attribute.name} on <${tag}>`).toMatch(/^-?\d+(\.\d+)?$/)
@@ -245,7 +277,7 @@ function inspectDrawing(svg: Element): void {
       const value = element.getAttribute(name)
 
       if (value !== null) {
-        expect(value, `${name} on <${tag}>`).toMatch(/^[MLQZ0-9., -]*$/)
+        expect(value, `${name} on <${tag}>`).toMatch(/^[MLQAZ0-9., -]*$/)
       }
     }
   }
@@ -354,6 +386,20 @@ describe('hostile input', () => {
 
     expect(svg, 'the formula is drawn').not.toBeNull()
     expect(svg?.textContent).toContain('<img src=x onerror=alert(1)>')
+    expect(container.querySelector('img')).toBeNull()
+  })
+
+  it.each([
+    ['a flowchart', '```mermaid\nflowchart LR\n  A["<img src=x onerror=alert(1)>"] --> B\n```'],
+    ['a sequence diagram', '```mermaid\nsequenceDiagram\n  A->>B: <img src=x onerror=alert(1)>\n```'],
+    ['a pie', '```mermaid\npie\n  "<img src=x onerror=alert(1)>" : 1\n  "b" : 2\n```']
+  ])('draws markup in a label of %s as the characters that were typed, in the drawing', (_kind, input) => {
+    const { container } = render(<Markdown gatewayBaseUrl={GATEWAY} text={input} />)
+    const svg = container.querySelector('svg')
+
+    expect(svg, 'the diagram is drawn').not.toBeNull()
+    // A long label wraps into lines of their own, so the spaces are compared out.
+    expect(svg?.textContent?.replace(/\s/gu, '')).toContain('<imgsrc=xonerror=alert(1)>')
     expect(container.querySelector('img')).toBeNull()
   })
 

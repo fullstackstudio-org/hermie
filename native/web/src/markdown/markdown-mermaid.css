@@ -1,0 +1,139 @@
+/*
+ * Mermaid diagrams (`mermaid/*.tsx`). In the main stylesheet with `markdown.css`,
+ * not in the chunk: see `Markdown.tsx`.
+ *
+ * A diagram has no colour of its own: ink is the text colour, lines and the
+ * muted ink are the Markdown tokens, and the surfaces are the code block's own
+ * surface made opaque, so a chip over a lifeline hides the line under it. That
+ * needs the ground the block sits on, which a bubble sets (`--md-ground`,
+ * `features/chat/chat.css`); anywhere else it is the page's canvas.
+ */
+
+.md {
+  --md-ground: Canvas;
+  --md-dg-surface: color-mix(in srgb, currentColor 7%, var(--md-ground));
+}
+
+/*
+ * The natural size, no wider than the box: a wide diagram is drawn smaller, it
+ * does not reflow and it does not scroll.
+ */
+.md .md-diagram {
+  display: block;
+  max-width: 100%;
+  height: auto;
+  margin: 0 auto;
+  overflow: visible;
+}
+
+.md .md-dg-node {
+  fill: var(--md-dg-surface);
+  stroke: currentColor;
+}
+
+.md .md-dg-ink {
+  fill: none;
+  stroke: currentColor;
+}
+
+.md .md-dg-ink-fill {
+  fill: currentColor;
+}
+
+.md .md-dg-arrow {
+  fill: none;
+  stroke: currentColor;
+}
+
+.md .md-dg-edge {
+  fill: none;
+  stroke: var(--md-muted);
+}
+
+.md .md-dg-edge-head {
+  fill: var(--md-muted);
+}
+
+.md .md-dg-lifeline {
+  stroke: var(--md-muted);
+}
+
+.md .md-dg-hairline {
+  stroke: var(--md-line);
+}
+
+.md .md-dg-frame {
+  fill: none;
+  stroke: var(--md-line);
+}
+
+.md .md-dg-frame-tag {
+  fill: var(--md-dg-surface);
+  stroke: var(--md-line);
+}
+
+.md .md-dg-note {
+  fill: var(--md-dg-surface);
+  stroke: var(--md-muted);
+}
+
+.md .md-dg-chip,
+.md .md-dg-hole {
+  fill: var(--md-dg-surface);
+}
+
+.md .md-dg-text {
+  fill: currentColor;
+}
+
+.md .md-dg-text.md-dg-muted {
+  fill: var(--md-muted);
+}
+
+/*
+ * A pie's slices: the app's accent swatches (the Expo app's `ACCENTS[*].bubble`)
+ * in its fixed order, the same in both schemes, separated by the surface.
+ */
+.md .md-dg-slice {
+  stroke: var(--md-dg-surface);
+}
+
+.md .md-dg-slice-0 {
+  fill: #2a72dc;
+}
+
+.md .md-dg-slice-1 {
+  fill: #b8540c;
+}
+
+.md .md-dg-slice-2 {
+  fill: #14828c;
+}
+
+.md .md-dg-slice-3 {
+  fill: #c0368a;
+}
+
+.md .md-dg-slice-4 {
+  fill: #1a8043;
+}
+
+.md .md-dg-slice-5 {
+  fill: #8244ce;
+}
+
+.md .md-dg-slice-6 {
+  fill: #cf3b44;
+}
+
+.md .md-dg-slice-7 {
+  fill: #54607a;
+}
+
+.md .md-dg-slice-8 {
+  fill: #4a7f15;
+}
+
+.md .md-dg-slice-9 {
+  fill: #4f6b96;
+}

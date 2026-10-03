@@ -10,7 +10,8 @@
  *
  * No HTML is produced anywhere on the way: see `Inline.tsx` and `links.ts`.
  */
-import { preprocessMarkdown, splitBlocks } from '@hermie/markdown'
+import { splitBlocks } from '@hermie/markdown/blocks'
+import { preprocessMarkdown } from '@hermie/markdown/preprocess'
 import { memo, useMemo } from 'react'
 
 import { HeadingPlacementContext, MarkdownBlock } from './Block'
@@ -21,6 +22,7 @@ import './markdown.css'
 // They are a few kilobytes of CSS, which is not first-screen JavaScript.
 import './markdown-highlight.css'
 import './markdown-math.css'
+import './markdown-mermaid.css'
 
 export interface MarkdownProps {
   /** The Markdown source of the message, as the gateway sent it. */

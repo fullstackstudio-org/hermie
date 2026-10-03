@@ -7,7 +7,8 @@
  * nothing for a sanitiser to miss. Every string reaches the DOM as a React text
  * child or as an attribute value that went through `links.ts` first.
  */
-import { MATH_INLINE_TOKEN, type MathToken, type Token, type Tokens } from '@hermie/markdown'
+import type { Token, Tokens } from '@hermie/markdown/marked-compat'
+import { MATH_INLINE_TOKEN, type MathToken } from '@hermie/markdown/math/marked-math'
 import { Fragment, useState, type ReactNode } from 'react'
 
 import { mathRenderer, useLazyModule } from './lazy'

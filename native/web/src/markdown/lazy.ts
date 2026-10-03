@@ -79,3 +79,6 @@ export const highlightRenderer = lazyModule(() => import('./Highlight'))
 
 /** Typeset mathematics, block and inline. */
 export const mathRenderer = lazyModule(() => import('./Math'))
+
+/** Mermaid: a flowchart, a sequence diagram or a pie, from the package's parsers and layouts. */
+export const mermaidRenderer = lazyModule(() => import('./mermaid/Mermaid'))

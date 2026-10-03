@@ -8,14 +8,15 @@
  * Expo renderer's (`expo/hermie/src/markdown/Block.tsx`) and the block model in
  * `@hermie/markdown`, which `contract/markdown` records.
  */
-import { marked, MATH_BLOCK_TOKEN, type MathToken, type Token, type Tokens } from '@hermie/markdown'
+import { marked, type Token, type Tokens } from '@hermie/markdown/marked-compat'
+import { MATH_BLOCK_TOKEN, type MathToken } from '@hermie/markdown/math/marked-math'
 import { createContext, memo, useContext, useMemo, type ReactNode } from 'react'
 
 import { useLocale } from '../i18n/use-locale'
 import { webStrings } from '../i18n/web-strings'
 import { CodeBlock } from './CodeBlock'
 import { Inline } from './Inline'
-import { mathRenderer, useLazyModule } from './lazy'
+import { mathRenderer, mermaidRenderer, useLazyModule } from './lazy'
 import { Table } from './Table'
 
 /** A fence in this language is a diagram (case-insensitive). */
@@ -62,6 +63,17 @@ function MathBlock({ source }: { source: string }) {
   const math = useLazyModule(mathRenderer)
 
   return math ? <math.BlockMath source={source} /> : <CodeBlock code={source.trim()} kind="math" label="LaTeX" />
+}
+
+/** A ```mermaid fence: drawn once the Mermaid chunk is there, its source until then. */
+function MermaidBlock({ source }: { source: string }) {
+  const mermaid = useLazyModule(mermaidRenderer)
+
+  return mermaid ? (
+    <mermaid.MermaidDiagram source={source} />
+  ) : (
+    <CodeBlock code={source} kind="mermaid" label={MERMAID_LANGUAGE} />
+  )
 }
 
 function ListItem({ item, baseUrl }: { item: Tokens.ListItem; baseUrl: string | undefined }) {
@@ -137,7 +149,7 @@ function renderBlock(token: Token, index: number, baseUrl: string | undefined, t
       const language = code.lang?.split(/\s/)[0] || undefined
 
       if (language?.toLowerCase() === MERMAID_LANGUAGE) {
-        return <CodeBlock code={code.text} key={index} kind="mermaid" label={MERMAID_LANGUAGE} />
+        return <MermaidBlock key={index} source={code.text} />
       }
 
       return <CodeBlock code={code.text} key={index} {...(language ? { language } : {})} />

@@ -11,7 +11,7 @@ import { render } from '@testing-library/react'
 import { afterEach, beforeEach, describe, expect, it } from 'vitest'
 
 import { resetActiveLocale, setActiveLocale, type Locale } from '../i18n/active-locale'
-import { highlightRenderer, mathRenderer } from '../markdown/lazy'
+import { highlightRenderer, mathRenderer, mermaidRenderer } from '../markdown/lazy'
 
 import { FIXTURE_SECTIONS, MarkdownFixturesPage } from './markdown-fixtures'
 
@@ -91,12 +91,13 @@ describe('the Markdown fixture page', () => {
   })
 
   it('has no accessibility violation with the drawings and the colours loaded', async () => {
-    await Promise.all([highlightRenderer.load(), mathRenderer.load()])
+    await Promise.all([highlightRenderer.load(), mathRenderer.load(), mermaidRenderer.load()])
 
     const { container } = render(<MarkdownFixturesPage />)
 
-    // The chunks drew what they draw: a formula, inline math, a coloured listing.
-    expect(container.querySelector('svg[role="img"][aria-label]')).not.toBeNull()
+    // The chunks drew what they draw: a formula, the three diagrams, inline math, a coloured listing.
+    expect(container.querySelector('svg.md-math-drawing[role="img"][aria-label]')).not.toBeNull()
+    expect(container.querySelectorAll('svg.md-diagram[role="img"][aria-label]')).toHaveLength(3)
     expect(container.querySelector('[role="math"][aria-label]')).not.toBeNull()
     expect(container.querySelector('.md-hl')).not.toBeNull()
     expect(await violations()).toEqual([])

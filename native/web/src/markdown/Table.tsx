@@ -6,7 +6,7 @@
  * cells). The header cells carry `scope="col"`, so a screen reader announces
  * the column title with each cell.
  */
-import type { Token, Tokens } from '@hermie/markdown'
+import type { Token, Tokens } from '@hermie/markdown/marked-compat'
 
 import { Inline } from './Inline'
 

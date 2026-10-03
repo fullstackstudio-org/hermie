@@ -9,31 +9,50 @@ import { resetBlockCache } from '@hermie/markdown'
 import { act, render } from '@testing-library/react'
 import { beforeEach, describe, expect, it } from 'vitest'
 
-import { highlightRenderer, mathRenderer } from './lazy'
+import { highlightRenderer, mathRenderer, mermaidRenderer } from './lazy'
 import { Markdown } from './Markdown'
 
 beforeEach(() => {
   resetBlockCache()
 })
 
-const TEXT = ['```ts', 'const a = 1', '```', '', '$$', 'E = mc^2', '$$', '', 'where $a^2 + b^2$ holds'].join('\n')
+const TEXT = [
+  '```ts',
+  'const a = 1',
+  '```',
+  '',
+  '$$',
+  'E = mc^2',
+  '$$',
+  '',
+  'where $a^2 + b^2$ holds',
+  '',
+  '```Mermaid',
+  'flowchart LR',
+  '  A --> B',
+  '```'
+].join('\n')
 
 describe('before and after the chunks arrive', () => {
-  it('shows the source first, then the drawing, the colours and the typeset line', async () => {
+  it('shows the source first, then the drawings, the colours and the typeset line', async () => {
     const { container } = render(<Markdown text={TEXT} />)
     const math = (): Element | null => container.querySelector('.md-code[data-kind="math"]')
+    const diagram = (): Element | null => container.querySelector('.md-code[data-kind="mermaid"]')
 
     // Nothing has arrived: the listing is plain, the formula and the inline expression are their source.
     expect(highlightRenderer.current()).toBeUndefined()
     expect(mathRenderer.current()).toBeUndefined()
+    expect(mermaidRenderer.current()).toBeUndefined()
     expect(container.querySelector('.md-hl')).toBeNull()
     expect(math()?.querySelector('pre')?.textContent).toBe('E = mc^2')
     expect(math()?.querySelector('.md-code-lang')?.textContent).toBe('LaTeX')
     expect(container.querySelector('code[data-math]')?.textContent).toBe('a^2 + b^2')
+    expect(diagram()?.querySelector('pre')?.textContent).toBe('flowchart LR\n  A --> B')
+    expect(diagram()?.querySelector('.md-code-lang')?.textContent).toBe('mermaid')
     expect(container.querySelector('svg')).toBeNull()
 
     await act(async () => {
-      await Promise.all([highlightRenderer.load(), mathRenderer.load()])
+      await Promise.all([highlightRenderer.load(), mathRenderer.load(), mermaidRenderer.load()])
     })
 
     expect(container.querySelector('.md-hl-keyword')?.textContent).toBe('const')
@@ -42,6 +61,9 @@ describe('before and after the chunks arrive', () => {
     expect(container.querySelector('code[data-math]')).toBeNull()
     expect(container.querySelector('[role="math"]')?.getAttribute('aria-label')).toBe('a^2 + b^2')
     expect(container.querySelector('[role="math"]')?.textContent).toBe('a² + b²')
+    expect(diagram()?.querySelector('svg.md-diagram-flowchart')?.getAttribute('aria-label')).toBe(
+      'flowchart LR\n  A --> B'
+    )
   })
 
   it('draws a block rendered after the chunks arrived on its first render', () => {
