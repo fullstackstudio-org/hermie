@@ -541,7 +541,8 @@ A bot's approval or question (`clarify`) is answered in `features/requests/`, a 
   region beside the dialog ("The request from <name> was withdrawn."); a failure to deliver an answer is an alert.
 - **A `confirm` at level `passkey`** joins the same queue as an entry of its own kind (`ConfirmRequest`), held by the
   passkey model rather than the chat store; "Passkeys" below. **Secret, sudo and vault prompts** join it the same way
-  (`SecureRequest`), held by the secure input model: "Secret prompts" below. A `plain` confirm is W-15.
+  (`SecureRequest`), held by the secure input model: "Secret prompts" below. A connector authorisation joins it as
+  `ConnectionRequest`, held by the connections model: "Session gaps" below. A `plain` confirm is W-15.
 
 `features/requests/RequestLayer.test.tsx` and `state/requests.test.ts` cover the above in jsdom, `requests.axe.test.tsx`
 runs axe on the composer and the layer (both schemes, every language), and `e2e/chat.spec.ts` (sending and stopping)
@@ -626,6 +627,57 @@ browser"):
 `core/requests/secure-input.test.ts`, `features/requests/SecureSheet.test.tsx`, `state/requests.test.ts` and
 `features/shell/session.test.ts` cover it in jsdom; `e2e/secure-input.spec.ts` raises each method through
 `/__fake/request` against the built client and reads the answer the fake recorded.
+
+### Session gaps
+
+What the gateway says beside the transcript, and what makes a reconnect honest, as in the native apps (PG-2:
+`TranscriptStore+Refetch`, `TranscriptStore+Signals`, `GatewayNoticesModel`, `ConnectionRequestsModel`,
+`GatewaySession+Facts`). The transcript engine stays a parity port: the chat controller picks these events off the
+ingest path at their place among the chat's frames and hands them to three models through `onSessionSignal`
+(`SessionSignal`); none of them reaches the engine.
+
+- **A replay that cannot vouch for itself reads the chat again.** The connection replays every session it holds a
+  watermark for after a reconnect, but reads only the events: the socket notes every `session.events.since` call on
+  the way out and reads its answer on the way in (`platform/socket.ts`, `ReplayGapTap`), and an answer with
+  `truncated: true` names the session to `ChatController.noteReplayGap`. The controller's own replay in a recovery
+  counts as a gap when it is `truncated`, comes from another epoch, or finds a cold watermark on a session that has
+  numbered events since. Either way the chat is read again in full, after its resume (`refetch`: the history
+  reconciled onto what is there, ids kept, nothing doubled, the queue and the draft untouched, one read per chat at a
+  time, an empty answer applying nothing). A gap reported while the socket is down, or while the chat is recovering,
+  waits for that recovery; one for a chat being opened is its own history read.
+- **Who the reader is** comes from `/api/auth/me` and nowhere else: the boot reads it, and the session status model
+  (`core/session-status.ts`) reads it again after every reconnect, keeping a known identity when a read fails. A
+  gateway that names nobody (`anonymous`), or one that could not be asked with nothing known (`failed`), gets a line in
+  the sidebar (`features/notices/IdentityNote.tsx`) instead of a transcript that attributes nothing without a word.
+- **`gateway.capabilities`** is read once per connection. A row's author is the gateway's word only when it
+  advertises `per_message_author` (`rowAuthorsTrusted`, `features/chat/use-own-author.ts`); without it every row reads
+  as the reader's own, as in the native apps.
+- **Notices** (`notification.show` / `.clear`, `core/notices.ts`): keyed by `key` (else `id`), replaced in place,
+  withdrawn by a clear, a `ttl` notice gone after `ttl_ms` (8 s by default), at most eight, the text cleaned and bounded
+  (`displayText`, 400 characters) and drawn as plain text over the page and over a dialog
+  (`features/notices/GatewayNotices.tsx`), `warn` and `error` as alerts, each with Close; a notice about one chat names
+  its bot in `<bdi>`.
+- **Connector authorisations** (`connection.request` / `.update`, a resume's `pending_connection`,
+  `core/connections.ts`): one card per chat with the gateway's deadline, a sheet in the request layer
+  (`ConnectionSheet`) with a countdown. A newer `seq` moves a card, `settled` or the deadline on this page's clock
+  withdraws it, a resume that names no operation withdraws it, and an account-wide operation is not a chat's. A link is
+  opened only when the person presses it, in a new tab with `noopener,noreferrer` (`platform/open-link.ts`), and only
+  when it passed `authorisationLink`: `https`, a host, no user name or password before it, as the browser's own URL
+  parser reads it (so `javascript:`, `data:` and `http:` never pass); its host is in the button's name and beside it,
+  punycode for an international name. A refused link is said, not drawn. "Not now" and "Stop waiting" answer with
+  `connection.respond` (`status: skipped`, `settled_by: continue`), naming the runtime session both as `session_id`
+  and as `owner`.
+- **`session.status`**: `/status` on a gateway whose command catalogue does not list it asks for the session's report
+  directly and puts it in the chat as the command's answer; one that lists it runs it through `slash.exec` as before.
+- **`session.resume_progress`**: a resume that says the gateway is still loading the conversation (`hydrating`) puts a
+  line on the chat (`features/notices/ResumeProgressLine.tsx`); `complete` takes it away and reads the chat again,
+  `failed` shows the gateway's reason until closed.
+
+`core/chat-session-gaps.test.ts`, `core/notices.test.ts`, `core/connections.test.ts`, `core/session-status.test.ts`,
+`platform/socket.test.ts`, `features/requests/ConnectionSheet.test.tsx` and `features/shell/session.test.ts` cover it in
+jsdom; `e2e/session-gaps.spec.ts` drops the socket with `truncateNextReplay` set on the fake and checks the chat is read
+again with every turn once (and that a replay that vouches for itself reads nothing again), and drives the notices,
+a connection card and the progress line with the fake's `emit`.
 
 ## Passkeys
 
