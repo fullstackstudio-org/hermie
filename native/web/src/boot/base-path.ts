@@ -70,13 +70,15 @@ export function deriveBasePath(location: { origin: string; pathname: string }): 
     return { ok: false, expected: APP_DOCUMENT_PATH, pathname }
   }
 
-  const prefix = pathname.slice(0, pathname.length - suffix.length).replace(/\/+$/u, '')
-
-  // `//host/...` in a prefix would read as another host to anything that
-  // builds a URL from it; a gateway is never published like that.
-  if (prefix.startsWith('//')) {
+  // A path that starts with `//` reads as another host to anything that builds
+  // a URL from it (`appPath` goes back out as the sign-in `next`), and a gateway
+  // is never published like that. It is refused whole, not only when the prefix
+  // carries it: `//dashboard-plugins/hermie/app/index.html` has an empty prefix.
+  if (pathname.startsWith('//')) {
     return { ok: false, expected: APP_DOCUMENT_PATH, pathname }
   }
+
+  const prefix = pathname.slice(0, pathname.length - suffix.length).replace(/\/+$/u, '')
 
   return {
     ok: true,

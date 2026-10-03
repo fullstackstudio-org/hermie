@@ -51,7 +51,10 @@ describe('the base path', () => {
       '/dashboard-plugins/hermie/app/index.htm',
       '/dashboard-plugins/hermie/app/assets/index.html',
       '/notdashboard-plugins/hermie/app/index.html',
-      '//evil.example/dashboard-plugins/hermie/app/index.html'
+      '//evil.example/dashboard-plugins/hermie/app/index.html',
+      // No prefix at all, yet still a path that reads as another host.
+      '//dashboard-plugins/hermie/app/index.html',
+      '///dashboard-plugins/hermie/app/index.html'
     ]) {
       expect(deriveBasePath({ origin, pathname }), pathname).toEqual({
         ok: false,
