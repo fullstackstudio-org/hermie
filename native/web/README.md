@@ -8,8 +8,9 @@ the threat model that follows from it are in
 
 **Status: boot only.** What exists is the build, its checks, and the boot: the client refuses to run in a
 frame, finds its gateway from its own address, probes it, and reads who is signed in on the gateway's own
-session. Signed in, it shows the build it came from and who you are, with a way to sign out. There is no
-connection and no chat yet, and the plugin does not serve this build. Until that changes, the browser keeps
+session. Signed in, it shows the build it came from and who you are, with a way to sign out. The connection
+and the bot roster exist as React-free code with their tests ("Connection" below) but no screen uses them
+yet; there is no chat, and the plugin does not serve this build. Until that changes, the browser keeps
 running the Expo app's web export through Hermie Web ([docs/web.md](../../docs/web.md)); nothing here
 replaces it.
 
@@ -169,6 +170,32 @@ the tests hand in their own:
 | `platform/socket.ts`                                  | `createSocketFactory()`: the page's `WebSocket` for `GatewayConnection`     |
 | `platform/clipboard.ts`, `page-title.ts`, `random.ts` | copy, the tab's title, `crypto.getRandomValues`                             |
 
+## Connection
+
+`src/core/` and `src/state/` hold the session layer, ported from the Expo app by copy (plan W7): same names,
+same store shapes, and every deliberate difference noted at the top of the file it is in. None of it imports
+React; screens will read the stores through `useStore`.
+
+| File                                          | What                                                                                      |
+| --------------------------------------------- | ----------------------------------------------------------------------------------------- |
+| `core/gateway-client.ts`                      | the connection on the cookie session, its lifecycle, and `connectGateway` (below)         |
+| `core/bots-controller.ts`                     | the roster's round trips: `profiles.list`, avatars, running state, the canonical Bot Chat |
+| `core/link.ts`                                | `ChatGateway`, the slice of the connection the chat layer sees                            |
+| `core/advert.ts`                              | the plugin advert plus the web-only `web`, `webPush.publicKey` and `modules.web`          |
+| `core/rpc-failures.ts`                        | the ring of gateway refusals a screen absorbed                                            |
+| `state/connection.ts`, `bots.ts`, `plugin.ts` | zustand vanilla stores: status, roster and watermarks, advert                             |
+
+`connectGateway({ baseUrl, credentials, storage, cache })` takes the boot's `signed_in` session and keeps one
+`GatewayConnection` alive: it dials when the page is first visible, closes the socket after the page has been
+hidden for more than 60 seconds, and on return dials again with a fresh ticket, which replays every session it
+holds a watermark for. Network reports are advice: offline labels the status and takes a live socket down,
+online cuts the backoff short, and neither stops the dial ladder (the gateway may be on the same machine). A
+connection that stopped because the session lapsed (`needs_signin`) is left alone. The roster is painted from
+the cache, read again on every arrival at `ready`, and the plugin advert is taken off the same answer. `stop()`
+closes the socket and empties the stores; call it before signing out. The rules in full are at the top of
+`core/gateway-client.ts`; `core/gateway-client.integration.test.ts` runs them against the fake gateway in
+cookie mode, dropped sockets included.
+
 ## Layout
 
 ```
@@ -182,8 +209,11 @@ scripts/
 src/
   main.tsx                  the boot sequence and its screens (the only React outside features/)
   boot/                     frame guard, base path, auth mode and cookie session, sign-in bounce, boot
+  core/                     the connection and its lifecycle, the roster controller, the advert (above)
+  state/                    zustand vanilla stores: connection, bots, plugin
   platform/                 the browser seams (above)
-  test-support/             test doubles: an IndexedDB, a fetch, a fetch with a cookie jar
+  test-support/             test doubles: an IndexedDB, a fetch, a fetch with a cookie jar, a chat
+                            gateway, the page's visibility and network
   Placeholder.tsx           what a signed-in reader sees for now: heading and build label
   build-info.ts             version and commit injected by the build
   ui/base.css               page ground for both colour schemes (the policy forbids inline styles)
