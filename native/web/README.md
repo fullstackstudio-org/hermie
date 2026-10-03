@@ -6,14 +6,14 @@ served by the gateway itself through the `hermie` plugin, on the gateway's own o
 the threat model that follows from it are in
 [ADR-0030](../../docs/adr/0030-the-web-client-is-served-by-the-gateway-plugin.md).
 
-**Status: boot only.** What exists is the build, its checks, and the boot: the client refuses to run in a
-frame, finds its gateway from its own address, probes it, and reads who is signed in on the gateway's own
-session. Signed in, it shows the build it came from and who you are, with a way to sign out. The connection,
-the bot roster and the chats exist as React-free code with their tests ("Connection" and "Chats" below) but
-no screen uses them yet; there is no chat screen, and the plugin does not serve this build. The transcript list
-the chat screen will stand on exists too, measured against its budgets on a harness page ("Transcript list"
-below), and no screen uses it yet either. Until that changes, the browser keeps running the Expo app's web export through Hermie Web
-([docs/web.md](../../docs/web.md)); nothing here replaces it.
+**Status: the shell.** What exists is the build, its checks, the boot, and the frame of the app: the client
+refuses to run in a frame, finds its gateway from its own address, probes it, reads who is signed in on the
+gateway's own session, connects, and shows the chat list in a two-pane layout with a router and a theme
+("The shell" below). The main pane says which route it is on and nothing more: there is no chat screen yet, no
+composer, and the plugin does not serve this build. The transcript list the chat screen will stand on exists
+too, measured against its budgets on a harness page ("Transcript list" below), and no screen uses it yet
+either. Until that changes, the browser keeps running the Expo
+app's web export through Hermie Web ([docs/web.md](../../docs/web.md)); nothing here replaces it.
 
 ## Running it
 
@@ -244,6 +244,73 @@ interrupt, an approval and a clarify raised through `/__fake/request`, and a soc
 duplicate and no lost item. The ported Expo tests run the controller on `immediateFrames`, which commits every
 write at once as the Expo store did; the batching itself is `core/ingest.test.ts`'s.
 
+## The shell
+
+`src/features/` is what a person sees. `main.tsx` boots, starts the session once (`features/shell/session.ts`:
+the connection, the chats on it and the roster's running poll, stopped in the order a sign-out needs) and
+renders `<App>`; nothing under `features/` starts a connection or fetches, it reads the stores.
+
+### Routes
+
+One URL and the route in the fragment (plan W4; `features/shell/router.ts`, over `platform/hash-router.ts`, the
+only code outside `boot/` that touches `location.hash`):
+
+| Route                      | Heading        | Main pane today                   |
+| -------------------------- | -------------- | --------------------------------- |
+| `#/`                       | Hermie         | "Pick a conversation to start..." |
+| `#/chat/<bot>`             | the bot's name | placeholder (the chat: W-10b)     |
+| `#/chat/<bot>/s/<session>` | the bot's name | placeholder (W-10b)               |
+| `#/settings[/<section>]`   | Settings       | placeholder (W-20b)               |
+| anything else              | sent to `#/`   |                                   |
+
+A bot name or session id is one percent-encoded segment; `parseRoute` and `formatRoute` are inverses. An unknown
+route is rewritten to `#/` in place (no history entry). A route change moves focus to the main heading (not on
+the first load); where the main pane is not shown (one pane, list route) the sidebar's heading takes it.
+
+### Layout
+
+Two panes from 900 px (the chat list, 340 px, beside the main pane), one pane below it: the list on `#/`, the main
+pane with a back link on every other route. That is the stylesheet's doing (`data-pane` on the frame and a media
+query), not a script's, so no frame is drawn in the wrong layout and a hidden pane is out of the tab order. The
+landmarks are one `nav` (the chat list), one `main` and a `footer`; the first Tab stop is a skip link. At 320 px
+the page is one column and does not scroll sideways.
+
+The connection line sits above both panes and is silent while connected (and while the page is hidden):
+connecting, reconnecting and offline are polite status text; signed out (with a "Sign in" button for the
+gateway's own page) and a gateway too old for the client are alerts. A gateway with no Hermie plugin works and
+gets a hint under the list that notifications need it; an operator's `modules.web: off` replaces the app with
+one sentence.
+
+### The chat list
+
+`features/bots/`: a link per bot (`#/chat/<bot>`), in the roster's order, with the bot's picture (the data URL
+the roster read) or its initial, its name, the last real message of the chat (or the gateway's preview, or the
+description), the time of the last activity, an unread marker and a presence bead. The rules are the native
+apps': presence is one of four states by one precedence (`presence.ts`: offline, needs input, working, online),
+offline shows when the bot was last heard from instead of a stale line, unread is the roster's `last_active`
+against the per-bot watermark or the count of transcript messages past it, and a preview is
+`chatRowPreview` of `@hermie/transcript` with the markdown taken off. The list is one tab stop; the arrow keys,
+Home and End move between rows and Enter follows the link. A row subscribes to the stores with primitive
+selectors, so a streamed token re-renders its own row only.
+
+Nothing marks a chat read yet: that is the chat screen's job (`botsStore.markSeen`).
+
+### The theme
+
+`ui/theme.css` holds every colour, size and motion as custom properties: light, dark or follow the browser
+(`prefers-color-scheme`), plus one tint of nine. The choice is two attributes on `<html>` (`data-scheme`,
+`data-tint`; `platform/theme-target.ts`, because the policy forbids inline styles), stored per base path under
+`device.scheme` and `device.tint` (`state/settings.ts`, so a sign-out keeps them) and applied before the first
+screen. No screen changes them yet: Settings (W-20b) will. The focus ring is the tint's ink; reduced motion is
+honoured (the one animation, a bot asking for the reader, becomes a static ring); increased contrast
+strengthens the lines. `ui/theme.contrast.test.ts` reads the stylesheet, resolves the properties for every
+scheme and tint, and holds every text pair to 4.5:1 and every state shape to 3:1.
+
+Accessibility is tested in jsdom with axe (`features/shell/shell.axe.test.tsx`: both schemes, every language,
+every connection state, three routes); jsdom has no layout, so contrast is the test above and the one-pane
+layout is checked in a browser against the fake gateway: build, put `dist/` at `<dir>/app/` and run
+`npm run fake-gateway -- --auth cookie --plugin-assets <dir>`.
+
 ## Markdown
 
 `src/markdown/` draws a message as React elements. The text goes through `@hermie/markdown` (`preprocessMarkdown`,
@@ -400,11 +467,11 @@ scripts/
   write-build-manifest.mjs  dist/build.json
   source-commit.mjs         which commit this build is of (shared by the config and the manifest)
 src/
-  main.tsx                  the boot sequence and its screens (with dev/, the only React outside features/)
+  main.tsx                  the boot sequence and its screens (with dev/, the only React outside features/ and ui/)
   boot/                     frame guard, base path, auth mode and cookie session, sign-in bounce, boot
   core/                     the connection and its lifecycle, the roster controller, the advert, the chat
                             controller and the ingest (above)
-  state/                    zustand vanilla stores: connection, bots, plugin, chats
+  state/                    zustand vanilla stores: connection, bots, plugin, chats, settings
   platform/                 the browser seams (above)
   features/chat/            the transcript list, its scroll anchor and its chunks
   dev/                      development-only pages: the transcript harness, its probes, a stream replayer
@@ -413,9 +480,9 @@ src/
                             reader's-own-chat directory for the sub-chats test
   markdown/                 a message as React elements (above)
   dev/                      development-only pages, not reached by the build (dev/markdown.html serves one)
-  Placeholder.tsx           what a signed-in reader sees for now: heading and build label
+  features/                 what a person sees: shell/ (router, frame, connection line, session), bots/ (the list)
   build-info.ts             version and commit injected by the build
-  ui/base.css               page ground for both colour schemes (the policy forbids inline styles)
+  ui/                       theme.css (tokens), primitives/ and icons.tsx, base.css (the boot screens)
 ```
 
 The bundle gate and the reproducibility check live in the repository's `scripts/web/`, because they are
@@ -434,7 +501,7 @@ Every third-party package, and why it is here. Anything beyond this list needs a
 | Package                                                                              | Kind    | Why                                                                                                                                                                                                                                                         |
 | ------------------------------------------------------------------------------------ | ------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | `react`, `react-dom` (19.1.0)                                                        | runtime | the UI; the same version as the Expo app, so the ported logic runs on the React it was written against                                                                                                                                                      |
-| `zustand` (5.0.15)                                                                   | runtime | the stores the ported controllers already use; about 1 kB, no dependencies. Declared for the work that follows: the smoke page does not import it, so it is not in the bundle yet                                                                           |
+| `zustand` (5.0.15)                                                                   | runtime | the stores the ported controllers already use, read by the screens with `useStore`; about 1 kB, no dependencies                                                                                                                                             |
 | `@hermes/shared`, `@hermie/gateway-client`, `@hermie/transcript`, `@hermie/markdown` | runtime | this repository's own packages (wire contract, gateway connection, transcript engine, Markdown core); used as they are. `@noble/hashes` comes in through `@hermie/gateway-client`. The boot uses `@hermie/gateway-client` (probe, cookie session, identity) |
 | `@hermie/fake-gateway`                                                               | dev     | this repository's stand-in gateway; the boot's integration test runs it in process                                                                                                                                                                          |
 | `vite` (7.3.6)                                                                       | dev     | the bundler and dev server                                                                                                                                                                                                                                  |
