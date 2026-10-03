@@ -149,6 +149,34 @@
       return all.filter { $0.title.hasPrefix(prefix) }
     }
 
+    /// Tables with short and empty headers, a wide column, every alignment
+    /// and more columns than an iPhone fits.
+    static let tablesText = """
+      Only the VAT on these four purchases counts.
+
+      | Purchase | VAT | Source |
+      |---|---|---|
+      | MacBook Pro | € 876,27 | Coolblue 99681268 (entry 50) |
+      | iPhone 17 Pro Max | € 223,71 | Media Markt receipt 1890796, € 1.289,00 incl. / € 1.065,29 excl. |
+      | iPad | € 84,00 | Coolblue 579033108 (entry 81) |
+      | **Total** | **€ 1.227,19** | |
+
+      | | Now | Without these four |
+      |---|--:|--:|
+      | 5a, owed | € 1.011,96 | € 1.011,96 |
+      | 5b, deductible | € 2.104,33 | € 877,14 |
+
+      | Left | Centred | Right | Default |
+      |:---|:---:|---:|---|
+      | a | b | c | d |
+      | a longer cell | a longer cell | a longer cell | a longer cell |
+
+      | Registrar | Domain | Renews | Autorenew | Nameservers |
+      |:--|:-:|--:|---|---|
+      | Registrar One | docs.example.org | 2026-10-04 | off | ns1.example.net |
+      | Registrar Two | example.com | 2027-01-12 | on | ns2.example.net |
+      """
+
     static let all: [GallerySample] = {
       var g = SyntheticTranscript(seed: 7)
       var samples: [GallerySample] = []
@@ -179,6 +207,13 @@
         $0.status = .error
       }
       add("Assistant, failed", failed)
+      var tables = g.assistant(seq: 6)
+      tables.updateAssistant {
+        $0.text = GallerySample.tablesText
+        $0.reasoning = nil
+        $0.interim = false
+      }
+      add("Assistant, tables", tables)
       add("Tool, complete", g.tool(seq: 7))
       add("Tool, running", g.tool(seq: 8, status: .running))
       var patch = g.tool(seq: 9)
