@@ -9,6 +9,10 @@ import Foundation
  ignored. `lifetime` is comfortably longer than the extension's own deadline for a direct send
  (`ShareLease.attemptDeadline`), so a live attempt is never mistaken for a dead one.
 
+ The app takes the same lease before it sends an entry itself (`take(in:now:)` on both sides: the
+ file is created exclusively, so only one of them ever holds an entry), and gives it back when it
+ kept the entry.
+
  The claim (`ShareClaim`) is the other half: written just before the message itself is submitted,
  it means "handed over, answer not seen", and it is never taken as permission to send again.
  */
@@ -48,5 +52,82 @@ public struct ShareLease: Sendable, Equatable {
 
   public func encoded() -> Data {
     JSONText.object([("version", .number(Double(version))), ("at", .number(at))]).data
+  }
+
+  /// The largest lease file read when deciding whether one is fresh; anything bigger is not a lease.
+  static let maxFileBytes = 4096
+
+  /**
+   Take the lease on one outbox entry (`entry` is its directory): create `lease.json` only when
+   there is none, or when the one there is stale. Answers whether the caller holds the entry now.
+
+   Both sides take it this way, the extension before a direct send and the app before it sends an
+   entry itself, so whoever creates the file first holds the entry and the other one keeps off it.
+   The file is created exclusively, never replaced, so a lease written a moment ago by the other
+   process cannot be overwritten. A file there that cannot be read is somebody's lease taken now.
+   */
+  public static func take(in entry: URL, now: Date) -> Bool {
+    let url = entry.appendingPathComponent(SharedContainer.shareLeaseFile)
+    let data = ShareLease(at: now.timeIntervalSince1970).encoded()
+
+    // At most once round: a stale lease is removed and the creation tried again.
+    for _ in 0..<2 {
+      switch createExclusively(url, data) {
+      case .created:
+        return true
+      case .failed:
+        return false
+      case .exists:
+        guard let existing = readExisting(url, now: now), !existing.isFresh(now: now) else {
+          return false
+        }
+
+        try? FileManager.default.removeItem(at: url)
+      }
+    }
+
+    return false
+  }
+
+  private enum Creation {
+    case created
+    case exists
+    case failed
+  }
+
+  private static func createExclusively(_ url: URL, _ data: Data) -> Creation {
+    let descriptor = open(url.path, O_WRONLY | O_CREAT | O_EXCL | O_NOFOLLOW, 0o644)
+
+    guard descriptor >= 0 else {
+      return errno == EEXIST ? .exists : .failed
+    }
+
+    let written = data.withUnsafeBytes { bytes in
+      write(descriptor, bytes.baseAddress, bytes.count)
+    }
+
+    close(descriptor)
+
+    // Created but not written: taken away again rather than left as a lease nobody holds.
+    guard written == data.count else {
+      unlink(url.path)
+      return .failed
+    }
+
+    return .created
+  }
+
+  /// The lease already there, read as the app reads one (`parse`: unreadable is taken now); nil when
+  /// it is not a regular file of a lease's size (never followed through a link), which counts as held.
+  private static func readExisting(_ url: URL, now: Date) -> ShareLease? {
+    guard let attributes = try? FileManager.default.attributesOfItem(atPath: url.path),
+      attributes[.type] as? FileAttributeType == .typeRegular,
+      let size = attributes[.size] as? NSNumber, size.intValue <= maxFileBytes,
+      let data = try? Data(contentsOf: url)
+    else {
+      return nil
+    }
+
+    return parse(data, now: now)
   }
 }

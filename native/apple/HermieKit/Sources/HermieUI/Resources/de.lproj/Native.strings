@@ -226,10 +226,14 @@
 	<string>Hermie hat zu lange zum Öffnen gebraucht, deshalb wurde nichts gesendet.</string>
 	<key>native.intents.gatewayGone</key>
 	<string>Das Gateway dieses Bots ist nicht mehr in Hermie, deshalb wurde nichts gesendet.</string>
+	<key>native.intents.queued</key>
+	<string>%@ beantwortet noch eine frühere Nachricht. Deine steht in Hermie in der Warteschlange und geht raus, sobald diese Antwort fertig ist.</string>
 	<key>native.intents.stillWorking</key>
 	<string>%@ arbeitet noch. Die Nachricht wurde gesendet: Öffne Hermie, um die Antwort zu lesen, oder nutze „Senden an“ für Anfragen, die länger dauern.</string>
 	<key>native.intents.unreadable</key>
 	<string>Hermie konnte diese Anfrage nicht lesen. Vielleicht stammt sie von einer neueren Version.</string>
+	<key>native.intents.withdrawn</key>
+	<string>Die Nachricht wurde in Hermie aus der Warteschlange genommen, bevor sie rausging, deshalb wurde nichts gesendet.</string>
 	<key>native.later</key>
 	<string>Kommt in einem späteren Build.</string>
 	<key>native.lock.coverLabel</key>

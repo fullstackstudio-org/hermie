@@ -226,10 +226,14 @@
 	<string>Hermie took too long to open, so nothing was sent.</string>
 	<key>native.intents.gatewayGone</key>
 	<string>That bot's gateway is no longer in Hermie, so nothing was sent.</string>
+	<key>native.intents.queued</key>
+	<string>%@ is still answering an earlier message. Yours is queued in Hermie and goes out when that answer is done.</string>
 	<key>native.intents.stillWorking</key>
 	<string>%@ is still working. The message was sent: open Hermie to read the reply, or use “Send to” for prompts that take a while.</string>
 	<key>native.intents.unreadable</key>
 	<string>Hermie could not read that request. It may have been made by a newer version.</string>
+	<key>native.intents.withdrawn</key>
+	<string>The message was taken back out of the queue in Hermie before it went out, so nothing was sent.</string>
 	<key>native.later</key>
 	<string>Coming in a later build.</string>
 	<key>native.lock.coverLabel</key>

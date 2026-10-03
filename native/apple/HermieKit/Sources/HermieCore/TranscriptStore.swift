@@ -136,6 +136,8 @@ public actor TranscriptStore {
   var sawReady = false
   var foregrounded = true
   var queueSeq = 0
+  /// Parked prompts somebody follows (`sendFollowing`), by queue id: what became of each.
+  var followedPrompts: [String: FollowedPrompt] = [:]
 
   // MARK: The ingest path
 

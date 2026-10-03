@@ -75,6 +75,13 @@ public final class GatewayAccounts {
    */
   @ObservationIgnored public var endSession: (@MainActor (String) async -> Void)?
 
+  /**
+   Called with a gateway's key once this device stopped using it: after a sign-out, and after a
+   removal that went through (never before one that can still be refused). The system surfaces
+   purge what they hold for it. The session wiring sets it.
+   */
+  @ObservationIgnored public var purgeSurfaces: (@MainActor (String) -> Void)?
+
   /// Per gateway id. A gateway not read yet is `.unknown`.
   public private(set) var statuses: [String: Status] = [:]
   /// Per gateway id: bumped whenever its stored credentials changed (signed in, out, or removed).
@@ -232,6 +239,11 @@ public final class GatewayAccounts {
    */
   public func signOut(_ id: String) async {
     await endSession?(id)
+
+    if let key = directory.entry(id: id)?.key {
+      purgeSurfaces?(key)
+    }
+
     await revokeIfAdvertised(id)
     try? await sync.signOut(id: id, scope: .thisDevice)
     do {
@@ -256,9 +268,18 @@ public final class GatewayAccounts {
    */
   public func remove(_ id: String, scope: RemovalScope = .thisDevice) async throws {
     try await sync.checkRemoval(id: id, scope: scope)
+
+    // Read now: once the directory has removed it, its key is gone with it.
+    let key = directory.entry(id: id)?.key
+
     await endSession?(id)
     await revokeIfAdvertised(id)
     try await directory.remove(id: id, scope: scope)
+
+    // Only once the removal went through: a refused one leaves the gateway, and what is queued for it.
+    if let key {
+      purgeSurfaces?(key)
+    }
   }
 
   /// A gateway left the list (`GatewayDirectory.onRemoved`, whoever removed it): forget what this

@@ -188,6 +188,94 @@ struct AppGroupGuardTests {
     #expect(outbox.pending().first { $0.id == "fresh" }?.lease?.at == 1_769_999_990)
   }
 
+  @Test("a share written a moment ago is the extension's; the app leases one before sending and gives it back")
+  func appLease() async throws {
+    let group = try Group()
+    let now = Date(timeIntervalSince1970: 1_770_000_000)
+
+    // The extension has written the manifest and is about to lease it for its direct send.
+    try group.share("new", gateway: gatewayA, createdAt: 1_770_000_000)
+    try group.share("old", gateway: gatewayA, createdAt: 1_769_999_990)
+    try group.share("kept", gateway: gatewayA, createdAt: 1_769_999_980)
+
+    let outbox = AppGroupShareOutbox(container: group.container) { false }
+    let leasedWhileHandled = Mutex<[String: Bool]>([:])
+    let outcomes = await outbox.drain(gateways: twoGateways, now: now) { share in
+      leasedWhileHandled.withLock { $0[share.id] = group.exists("share-outbox/\(share.id)/lease.json") }
+      return share.id == "kept" ? .keep : .delivered
+    }
+
+    #expect(outcomes == ["new": .settling, "old": .handled(.delivered), "kept": .handled(.keep)])
+    #expect(group.exists("share-outbox/new/manifest.json"))
+    #expect(!group.exists("share-outbox/new/lease.json"), "left alone, for the extension to lease")
+    #expect(leasedWhileHandled.withLock { $0 } == ["old": true, "kept": true], "leased before the handler sends")
+    #expect(!group.exists("share-outbox/kept/lease.json"), "a kept entry's lease is given back")
+
+    // The extension leased the new one since: the app keeps off it once the grace is over.
+    try group.write(#"{"version":1,"at":1770000001}"#, to: "share-outbox/new/lease.json")
+    let later = await outbox.drain(gateways: twoGateways, now: now.addingTimeInterval(3)) { _ in .delivered }
+
+    #expect(later["new"] == .leased)
+    #expect(group.exists("share-outbox/new/manifest.json"))
+  }
+
+  @Test("a request that ran out of time while an earlier one was handled is not run")
+  func expiryPerRequest() async throws {
+    let group = try Group()
+    let now = Date()
+
+    // Oldest first: the first is handled slowly, and the second has a second of budget left when
+    // the drain starts.
+    let budget = Double(PendingIntent.budget.components.seconds)
+
+    try group.intent("first", gateway: gatewayA, now: now, secondsAgo: budget - 0.8)
+    try group.intent("second", gateway: gatewayA, now: now, secondsAgo: budget - 1)
+
+    let queue = AppGroupIntentQueue(container: group.container) { false }
+    let ran = Mutex<[String]>([])
+
+    await queue.drain(now: now, gateways: twoGateways, failures: failures) { intent in
+      ran.withLock { $0.append(intent.id) }
+
+      if intent.id == "first" {
+        try? await Task.sleep(for: .milliseconds(1500))
+      }
+
+      return .reply(id: intent.id, "")
+    }
+
+    #expect(ran.withLock { $0 } == ["first"])
+    #expect(group.text("intents/results/second.json") == #"{"version":1,"id":"second","ok":false,"error":"Expired"}"#)
+  }
+
+  @Test("a request answered later stays taken: no drain runs it again, and its answer still lands")
+  func startedRequest() async throws {
+    let group = try Group()
+    let now = Date()
+
+    try group.intent("ask", gateway: gatewayA, now: now)
+    try group.intent("wait", gateway: gatewayA, now: now)
+
+    let queue = AppGroupIntentQueue(container: group.container) { false }
+    let ran = Mutex<[String]>([])
+    let handle: (PendingIntent) async -> IntentHandling = { intent in
+      ran.withLock { $0.append(intent.id) }
+      return intent.id == "ask" ? .started : .later
+    }
+
+    await queue.drain(now: now, gateways: twoGateways, failures: failures, handle: handle)
+    await queue.drain(now: now, gateways: twoGateways, failures: failures, handle: handle)
+
+    #expect(ran.withLock { $0 } == ["ask", "wait", "wait"], "taken once, the one not ready given back")
+    #expect(group.exists("intents/pending/ask.taken"))
+    #expect(group.exists("intents/pending/wait.json"))
+    #expect(queue.pending().map(\.id) == ["wait"])
+
+    #expect(queue.complete(id: "ask", with: .reply(id: "ask", "Done")))
+    #expect(group.text("intents/results/ask.json") == #"{"version":1,"id":"ask","ok":true,"reply":"Done"}"#)
+    #expect(!group.exists("intents/pending/ask.taken"))
+  }
+
   // MARK: Two drains at once
 
   @Test("two drains at once hand each share and each request over once")

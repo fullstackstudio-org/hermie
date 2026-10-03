@@ -32,6 +32,18 @@ public struct IntentQueueFailures: Sendable, Equatable {
   }
 }
 
+/// What the handler did with one request (`IntentQueueDrainer.drain`).
+public enum IntentHandling: Sendable, Equatable {
+  /// Answered now: the answer is written and the request removed.
+  case answered(IntentResult)
+  /// Not runnable yet (no socket): left pending for the next drain.
+  case later
+  /// Started, and answered by the handler itself through `complete(id:with:)` once it is done (an
+  /// "Ask" waiting for its reply). The request stays taken meanwhile, so no drain runs it again, and
+  /// the drain goes on to the next one.
+  case started
+}
+
 /**
  The app's half of the Shortcuts queue: read what an App Intent asked for, and answer it.
 
@@ -45,7 +57,13 @@ public struct IntentQueueFailures: Sendable, Equatable {
  - The answer is written first and the request removed after it, so the polling intent never sees
    its request vanish with no answer beside it.
  - A request this build cannot read is answered, not dropped: the Shortcut is still waiting.
- - A request older than the budget is answered without being run.
+ - A request older than the budget is answered without being run. Each one is judged against the
+   clock when its turn comes, not when the drain started: a request that ran out of time while an
+   earlier one was being handled has already been given up on by its Shortcut.
+ - A request is taken (`<id>.taken`) before it is handed over, so it is run at most once: a handler
+   that answers later (`IntentHandling.started`) keeps it taken, one that cannot run it yet gives
+   it back. A taken request whose answer never came (the app was killed meanwhile) is swept with
+   the answers nobody collected.
  - A request for another configured gateway waits (and expires if that gateway does not become
    active in time); one whose gateway is gone is answered with `failures.gatewayGone`.
  - A request the handler cannot run yet (no socket) is left pending; the next drain picks it up.
@@ -55,19 +73,33 @@ public struct IntentQueueFailures: Sendable, Equatable {
 public protocol IntentQueueDrainer: Sendable {
   /// Every request waiting, readable or not, oldest first (the unreadable ones last).
   func pending() -> [IntentQueueEntry]
-  /// Write the answer, then remove the request. False when there was no such request.
+  /// Write the answer, then remove the request (pending or taken). False when there was no such request.
   @discardableResult func complete(id: String, with result: IntentResult) -> Bool
-  /// Answer what can be answered; see the type's documentation. `answer` returning nil leaves a request pending.
+  /// Answer what can be answered; see the type's documentation and `IntentHandling`.
   func drain(
     now: Date,
     gateways: GatewayScope,
     failures: IntentQueueFailures,
-    answer: (PendingIntent) async -> IntentResult?
+    handle: (PendingIntent) async -> IntentHandling
   ) async
   /// Remove every request recorded for `gatewayKey`.
   @discardableResult func purge(gatewayKey: String) -> Int
   /// Remove every request and every answer.
   @discardableResult func purgeAll() -> Int
+}
+
+extension IntentQueueDrainer {
+  /// A drain whose handler answers on the spot: nil leaves a request pending.
+  public func drain(
+    now: Date = Date(),
+    gateways: GatewayScope,
+    failures: IntentQueueFailures,
+    answer: (PendingIntent) async -> IntentResult?
+  ) async {
+    await drain(now: now, gateways: gateways, failures: failures) { intent -> IntentHandling in
+      await answer(intent).map(IntentHandling.answered) ?? .later
+    }
+  }
 }
 
 /// The queue in the App Group container.
@@ -120,8 +152,10 @@ public struct AppGroupIntentQueue: IntentQueueDrainer {
 
   @discardableResult
   public func complete(id: String, with result: IntentResult) -> Bool {
-    guard container.contents(of: container.intentsPendingURL).contains("\(id).json"),
-      let request = container.pendingIntentURL(id: id),
+    let names = container.contents(of: container.intentsPendingURL)
+
+    guard let pending = container.pendingIntentURL(id: id),
+      let request = [pending, Self.taken(pending)].first(where: { names.contains($0.lastPathComponent) }),
       let destination = container.intentResultURL(id: id),
       (try? container.write(result.encoded(), to: destination)) != nil else {
       return false
@@ -132,15 +166,42 @@ public struct AppGroupIntentQueue: IntentQueueDrainer {
     return true
   }
 
+  /// Where a request waits while it is being run: `<id>.taken`, which `pending()` does not list.
+  static func taken(_ pending: URL) -> URL {
+    pending.deletingPathExtension().appendingPathExtension("taken")
+  }
+
+  /// Take a request before it is run. False when it is gone (purged meanwhile) or cannot be moved.
+  private func take(_ id: String) -> Bool {
+    guard let pending = container.pendingIntentURL(id: id) else {
+      return false
+    }
+
+    return (try? FileManager.default.moveItem(at: pending, to: Self.taken(pending))) != nil
+  }
+
+  /// Give back a request that could not be run yet.
+  private func giveBack(_ id: String) {
+    guard let pending = container.pendingIntentURL(id: id) else {
+      return
+    }
+
+    try? FileManager.default.moveItem(at: Self.taken(pending), to: pending)
+  }
+
   public func drain(
     now: Date = Date(),
     gateways: GatewayScope,
     failures: IntentQueueFailures,
-    answer: (PendingIntent) async -> IntentResult?
+    handle: (PendingIntent) async -> IntentHandling
   ) async {
     guard !isLocked() else {
       return
     }
+
+    // `now` is the drain's start; a request is judged by how much later its turn comes.
+    let started = ContinuousClock.now
+    let current = { now.addingTimeInterval(Self.seconds(ContinuousClock.now - started)) }
 
     _ = await DrainGate.gate(for: container.intentsPendingURL).run {
       sweepResults(now: now)
@@ -157,7 +218,7 @@ public struct AppGroupIntentQueue: IntentQueueDrainer {
       }
 
       for intent in PendingIntent.sorted(requests) {
-        if intent.isExpired(now: now) {
+        if intent.isExpired(now: current()) {
           complete(id: intent.id, with: .failure(id: intent.id, failures.expired))
           continue
         }
@@ -181,11 +242,24 @@ public struct AppGroupIntentQueue: IntentQueueDrainer {
           break
         }
 
-        if let result = await answer(intent) {
+        guard take(intent.id) else {
+          continue
+        }
+
+        switch await handle(intent) {
+        case .answered(let result):
           complete(id: intent.id, with: result)
+        case .later:
+          giveBack(intent.id)
+        case .started:
+          break
         }
       }
     }
+  }
+
+  static func seconds(_ duration: Duration) -> TimeInterval {
+    Double(duration.components.seconds) + Double(duration.components.attoseconds) / 1e18
   }
 
   @discardableResult
@@ -213,12 +287,18 @@ public struct AppGroupIntentQueue: IntentQueueDrainer {
     return removed
   }
 
-  /// Answers nobody collected: older than twice the budget, the intent that waited for them is gone.
+  /// Answers nobody collected, and requests taken and never answered (the app was killed while it
+  /// ran them): older than twice the budget, the intent that waited for them is gone.
   private func sweepResults(now: Date) {
     let limit = Double(PendingIntent.budget.components.seconds) * 2
+    let results = container.contents(of: container.intentsResultsURL).map {
+      container.intentsResultsURL.appendingPathComponent($0)
+    }
+    let taken = container.contents(of: container.intentsPendingURL).filter { $0.hasSuffix(".taken") }.map {
+      container.intentsPendingURL.appendingPathComponent($0)
+    }
 
-    for name in container.contents(of: container.intentsResultsURL) {
-      let url = container.intentsResultsURL.appendingPathComponent(name)
+    for url in results + taken {
       let modified = (try? FileManager.default.attributesOfItem(atPath: url.path))?[.modificationDate] as? Date
 
       if let modified, now.timeIntervalSince(modified) > limit {

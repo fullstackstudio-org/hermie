@@ -17,9 +17,13 @@ import Synchronization
    the socket. `canonicalSessionIds` reads the live chat list. A changed relay address rewrites
    the live gateway's row (`onAddressesChanged`); another gateway's row is written the next time
    it is the live one.
- - **Sign-out and removal.** Before the session ends (`GatewayAccounts.endSession`), the row is
-   withdrawn from that gateway's push section while the credentials still work, and the surfaces
-   purge what they hold for it. The relay registration is retired by `GatewayAccounts` itself.
+ - **Sign-out and removal.** Before the session ends (`GatewayAccounts.endSession`), the surfaces
+   stop publishing for that gateway and, when it is the live one, the row is withdrawn from its
+   push section while the credentials still work (another gateway's row stays there: only the live
+   gateway has a socket to write it through). The surfaces purge what they hold for it once the
+   sign-out, or the removal, went through (`GatewayAccounts.purgeSurfaces`). The relay registration
+   is retired by `GatewayAccounts` itself.
+ - **Notification actions** answer only while the app lock is open; locked, they open the chat.
  - **The surface lock** opens only while the launch is ready, the app lock is open and the live
    gateway has a signed-in session (`LiveGateway.phase == .live`), and closes again on a sign-out.
    The drains run on every opening and every `ready` edge.
@@ -36,6 +40,8 @@ public final class LiveWiring {
   var readyWait: Duration = .seconds(15)
   /// Bridges built here wait this long before they send an edit.
   var metaDebounce: Duration? = .milliseconds(600)
+  /// Whether the app lock is open, in place of `launch.lock` (tests).
+  var appLockState: (@MainActor () -> Bool)?
 
   private weak var accounts: GatewayAccounts?
   private var started = false
@@ -43,6 +49,7 @@ public final class LiveWiring {
   /// Follows the live session's chat list for the surfaces; one at a time.
   private var surfaceTask: Task<Void, Never>?
   private var foreground = true
+  private var foregroundWindows: Set<UUID> = []
   private var openChat: ChatTarget?
   private var installation: String?
   private let gate = SurfaceGate()
@@ -80,6 +87,33 @@ public final class LiveWiring {
 
   // MARK: The app
 
+  /// One window came to the front or went to the background. The app is in front while ANY of its
+  /// windows is: a second window minimised on the Mac does not stop the `seen` heartbeat of the one
+  /// still in front.
+  public func setForeground(_ foreground: Bool, window: UUID) {
+    if foreground {
+      foregroundWindows.insert(window)
+    } else {
+      foregroundWindows.remove(window)
+    }
+
+    setForeground(!foregroundWindows.isEmpty)
+  }
+
+  /// A window closed: it no longer keeps the app in front.
+  public func windowClosed(_ window: UUID) {
+    guard foregroundWindows.contains(window) else {
+      return
+    }
+
+    setForeground(false, window: window)
+  }
+
+  /// Whether the app is in front, as the windows reported it.
+  var isForeground: Bool {
+    foreground
+  }
+
   /// The app came to the front or left it.
   public func setForeground(_ foreground: Bool) {
     self.foreground = foreground
@@ -96,15 +130,31 @@ public final class LiveWiring {
     meta?.setOpenChat(openChat?.gatewayId == meta?.gatewayID ? openChat?.bot : nil)
   }
 
-  /// A `hermie://share/…` or `hermie://intent/…` link arrived: drain now.
-  public func drainSoon() {
-    guard let session = live.session, let surfaces, isUnlocked else {
-      return
+  /**
+   A `hermie://share/…` or `hermie://intent/…` link arrived: drain now, through the live session
+   and for ITS gateway only. The directory's active gateway can already be the next one while the
+   live session is still the last one (the switch settles first); what is queued for the next one
+   waits for its own session.
+   */
+  @discardableResult
+  public func drainSoon() -> Task<Void, Never>? {
+    guard let session = live.session, let surfaces, isUnlocked,
+      let gatewayKey = launch.gateways.entry(id: session.gatewayID)?.key
+    else {
+      return nil
     }
 
-    let scope = scope()
+    let known = Set(launch.gateways.entries.map(\.key))
 
-    Task { await surfaces.drain(session: session, scope: scope) }
+    return Task { [weak self] in
+      guard await surfaces.drain(session: session, gatewayKey: gatewayKey, known: known) else {
+        return
+      }
+
+      // A share written a moment ago is the share extension's for now: look again after its grace.
+      try? await Task.sleep(for: .seconds(AppGroupShareOutbox.leaseGrace))
+      self?.drainSoon()
+    }
   }
 
   /// Whether the system surfaces may act now (what `SystemSurfaceLock` reads).
@@ -117,17 +167,23 @@ public final class LiveWiring {
   private func installPushSeams() {
     let push = launch.push
 
+    // An action answers only while the app lock is open: a banner's Allow on an unattended device
+    // whose Hermie is locked must not pass the lock. Locked, the tap only opens the chat, where the
+    // card waits behind the plate.
     push.pendingApprovals = { [weak self] scope in
       guard let self, let session = self.session(for: scope.gatewayId) else {
         throw PushSessionUnavailable()
       }
 
+      let deadline = ContinuousClock.now + self.readyWait
+
       try await session.waitUntilReady(within: self.readyWait)
+      try await self.waitUntilAppLockOpen(until: deadline)
       return try await session.pushOpenApprovals(bot: scope.bot)
     }
 
     push.respond = { [weak self] answer in
-      guard let self, let session = self.session(for: answer.gatewayId) else {
+      guard let self, self.appLockOpen, let session = self.session(for: answer.gatewayId) else {
         throw PushSessionUnavailable()
       }
 
@@ -147,6 +203,22 @@ public final class LiveWiring {
     }
   }
 
+  /// Whether the app lock is open: read, and open (a lock not read yet counts as closed).
+  var appLockOpen: Bool {
+    appLockState?() ?? (launch.lock.ready && !launch.lock.machine.locked)
+  }
+
+  /// Wait for the app lock to open, until `deadline`; throws `PushSessionUnavailable` when it does not.
+  private func waitUntilAppLockOpen(until deadline: ContinuousClock.Instant) async throws {
+    while !appLockOpen {
+      guard ContinuousClock.now < deadline else {
+        throw PushSessionUnavailable()
+      }
+
+      try await Task.sleep(for: .milliseconds(50))
+    }
+  }
+
   private func session(for gatewayId: String) -> GatewaySession? {
     guard live.gatewayID == gatewayId, let session = live.session, session.gatewayID == gatewayId else {
       return nil
@@ -155,8 +227,9 @@ public final class LiveWiring {
     return session
   }
 
-  /// Before the session to a gateway ends because this device stops using its credentials: take
-  /// the row off it and purge the surfaces, then let the session end.
+  /// Before the session to a gateway ends because this device stops using its credentials: stop
+  /// publishing for it and take the row off it, then let the session end. The surfaces are purged
+  /// once the sign-out or the removal went through (`GatewayAccounts.purgeSurfaces`).
   private func installSignOutHook() {
     guard let accounts else {
       return
@@ -168,16 +241,19 @@ public final class LiveWiring {
       await self?.leaving(id)
       await ending?(id)
     }
+
+    accounts.purgeSurfaces = { [weak self] key in
+      self?.surfaces?.purge(gatewayKey: key)
+    }
   }
 
   func leaving(_ gatewayId: String) async {
     if let meta, meta.gatewayID == gatewayId {
       self.meta = nil
+      // Nothing is written for this gateway any more: a purge after this stays purged.
+      surfaceTask?.cancel()
+      surfaceTask = nil
       await meta.withdrawRow()
-    }
-
-    if let key = launch.gateways.entry(id: gatewayId)?.key {
-      surfaces?.purge(gatewayKey: key)
     }
 
     updateLock()
@@ -323,12 +399,6 @@ public final class LiveWiring {
         }
       }
     )
-  }
-
-  private func scope() -> GatewayScope {
-    let directory = launch.gateways
-
-    return GatewayScope(active: directory.active?.key, known: Set(directory.entries.map(\.key)))
   }
 
   private struct SessionMark: Sendable, Equatable {

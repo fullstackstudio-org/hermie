@@ -56,7 +56,21 @@ extension SurfaceCopy {
           table: "Native",
           bundle: .module
         )
-      }
+      },
+      queued: { bot in
+        String(
+          localized: "native.intents.queued",
+          defaultValue: "\(bot) is still answering an earlier message. Yours is queued in Hermie and goes out when that answer is done.",
+          table: "Native",
+          bundle: .module
+        )
+      },
+      withdrawn: String(
+        localized: "native.intents.withdrawn",
+        defaultValue: "The message was taken back out of the queue in Hermie before it went out, so nothing was sent.",
+        table: "Native",
+        bundle: .module
+      )
     )
   }
 }

@@ -236,7 +236,7 @@ struct SystemSurfacesTests {
     ]
 
     for share in shares {
-      #expect(await surfaces.deliver(share, session: session) == .keep, "\(share.id)")
+      #expect(await surfaces.deliver(share, session: session, scope: onlyGateway) == .keep, "\(share.id)")
     }
   }
 
@@ -245,6 +245,8 @@ struct SystemSurfacesTests {
     intentFailures: IntentQueueFailures(unreadable: "u", expired: "e", gatewayGone: "g"),
     stillWorking: { "\($0) is still working" },
     botNotHere: { "\($0) is not here" },
-    notSent: { "not sent: \($0)" }
+    notSent: { "not sent: \($0)" },
+    queued: { "\($0) is busy; queued" },
+    withdrawn: "withdrawn"
   )
 }

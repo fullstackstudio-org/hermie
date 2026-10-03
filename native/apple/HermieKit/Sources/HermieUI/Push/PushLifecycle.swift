@@ -12,7 +12,8 @@ import SwiftUI
 
  With several windows, taps go to the one most recently in front; a closed window's router is let
  go, and with no window left taps wait for the next one. The window in front also tells the live
- wiring which chat is on screen (the `seen` heartbeat) and when the app comes and goes.
+ wiring which chat is on screen (the `seen` heartbeat), and every window tells it whether it is in
+ front: the app counts as in front while any of its windows is.
  */
 struct PushLifecycle: ViewModifier {
   let launch: AppLaunch
@@ -32,9 +33,11 @@ struct PushLifecycle: ViewModifier {
         launch.push.attachLinkHandler(handlerId) { route in
           follow(route)
         }
+        wiring?.setForeground(scenePhase != .background, window: handlerId)
       }
       .onDisappear {
         launch.push.detachLinkHandler(handlerId)
+        wiring?.windowClosed(handlerId)
       }
       .task(id: launch.gateways.pushGateways) {
         guard let gateways = launch.gateways.pushGateways else {
@@ -61,7 +64,8 @@ struct PushLifecycle: ViewModifier {
   }
 
   private func sceneChanged(_ phase: ScenePhase) {
-    wiring?.setForeground(phase != .background)
+    // Per window: the wiring keeps the app in front while any window is.
+    wiring?.setForeground(phase != .background, window: handlerId)
 
     guard phase == .active else {
       return

@@ -18,6 +18,9 @@ public enum ShareDrainOutcome: Sendable, Equatable {
   case handled(ShareDrainDecision)
   /// The share extension is delivering it right now (a fresh lease): left alone.
   case leased
+  /// Written less than `AppGroupShareOutbox.leaseGrace` ago with no lease yet: the extension is
+  /// about to lease it for its own send. Left for a drain after the grace.
+  case settling
   /// It belongs to another configured gateway: left for when that gateway is active.
   case otherGateway
   /// Its gateway no longer exists (or it predates gateway keys and more than one is configured): removed.
@@ -36,7 +39,11 @@ public enum ShareDrainOutcome: Sendable, Equatable {
 
  - A directory without a manifest is skipped: the extension may still be writing it. A manifest
    that is there and cannot be read is reported and removed, never skipped for ever.
- - An entry with a fresh lease is the extension's, mid-delivery: it is not handed over.
+ - An entry with a fresh lease is the extension's, mid-delivery: it is not handed over. One with no
+   lease that was written less than `leaseGrace` ago is not handed over either: the extension leases
+   it right after writing it. Before the handler runs, the app takes the lease itself
+   (`ShareLease.take`, created exclusively), so the extension never sends what the app is sending,
+   and gives it back when the handler keeps the entry.
  - An entry is handed over only for the active gateway (`GatewayScope`); another configured
    gateway's waits, and one whose gateway is gone is purged.
  - An entry is removed only after the handler says it was delivered or never will be.
@@ -77,6 +84,10 @@ public struct AppGroupShareOutbox: ShareOutboxDrainer {
     self.container = container
     self.isLocked = isLocked
   }
+
+  /// How long a share with no lease is left to the extension, in seconds (`createdAt` is whole
+  /// seconds, so this is at least one second of real time).
+  public static let leaseGrace: TimeInterval = 2
 
   /// The real container, or nil when the App Group entitlement is missing.
   public static func live() -> AppGroupShareOutbox? {
@@ -196,6 +207,13 @@ public struct AppGroupShareOutbox: ShareOutboxDrainer {
           continue
         }
 
+        // Written a moment ago and not leased yet: the extension is about to lease it for its own
+        // direct send. Left for the drain after the grace.
+        if share.lease == nil, abs(now.timeIntervalSince1970 - share.createdAt) < Self.leaseGrace {
+          outcomes[share.id] = .settling
+          continue
+        }
+
         // Known gateways only: before the app knows its gateways it must not purge anything.
         guard !gateways.known.isEmpty else {
           continue
@@ -218,12 +236,21 @@ public struct AppGroupShareOutbox: ShareOutboxDrainer {
           break
         }
 
+        // The app's own lease before the handler may send it, created exclusively: an extension
+        // that leased it since the scan holds it, and one that comes later keeps off it.
+        guard let entry = container.shareEntryURL(id: share.id), ShareLease.take(in: entry, now: now) else {
+          outcomes[share.id] = .leased
+          continue
+        }
+
         let decision = await handle(share)
 
         outcomes[share.id] = .handled(decision)
 
         if decision != .keep {
           remove(id: share.id)
+        } else {
+          container.remove(entry.appendingPathComponent(AppGroupContainer.shareLeaseFile))
         }
       }
     }

@@ -1209,8 +1209,13 @@ extension TranscriptStore {
   }
 
   public func forget(_ key: String) {
-    guard chats.removeValue(forKey: key) != nil else {
+    guard let record = chats.removeValue(forKey: key) else {
       return
+    }
+
+    // Its parked prompts go with it.
+    for queued in record.queue where followedPrompts[queued.id] != nil {
+      followedPrompts[queued.id] = .withdrawn
     }
 
     generations[key, default: 0] += 1

@@ -159,6 +159,26 @@ struct ShareOutboxTests {
     #expect(!outbox.lease(entry: "../\(id)"))
   }
 
+  @Test("a fresh lease the app took keeps the extension off the entry; a stale one does not")
+  func leaseIsExclusive() throws {
+    let scratch = try Scratch()
+    let outbox = scratch.outbox
+    let id = try #require(outbox.write(bot: "b", gatewayKey: gateway, note: "n", payloads: []))
+    let now = Date(timeIntervalSince1970: 1_770_000_000)
+    let entry = outbox.directory.appendingPathComponent(id)
+
+    // The app leased it a second ago and is sending it itself.
+    #expect(ShareLease.take(in: entry, now: now.addingTimeInterval(-1)))
+    #expect(!outbox.lease(entry: id, now: now))
+    #expect(try scratch.read(id)?.lease == ShareLease(at: 1_769_999_999), "the app's lease is not overwritten")
+
+    // A lease left by a process that was killed long ago is replaced.
+    let later = now.addingTimeInterval(ShareLease.lifetime + 1)
+
+    #expect(outbox.lease(entry: id, now: later))
+    #expect(try scratch.read(id)?.lease == ShareLease(at: later.timeIntervalSince1970))
+  }
+
   @Test("the lease outlives the extension's deadline")
   func leaseLifetime() {
     #expect(ShareLease.lifetime > Double(ShareLease.attemptDeadline.components.seconds) + 30)

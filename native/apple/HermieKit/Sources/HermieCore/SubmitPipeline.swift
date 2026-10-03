@@ -30,7 +30,7 @@ extension TranscriptStore {
   // MARK: - Sending
 
   enum SendStart: Sendable {
-    case queued
+    case queued(String)
     case painted(itemID: String?, runtimeID: String)
   }
 
@@ -38,6 +38,40 @@ extension TranscriptStore {
   /// when it was parked behind the running turn.
   @discardableResult
   public func send(_ key: String, text: String, attachments: [String]? = nil) async throws -> String? {
+    switch try await submit(key, text: text, attachments: attachments) {
+    case .submitted(let itemID): itemID
+    case .parked: nil
+    }
+  }
+
+  /**
+   `send` for a caller that has to know what became of the prompt (a Shortcut's "Send to" and
+   "Ask"): taken by the gateway, as the item it was painted as, or parked behind the running turn
+   under a queue id that `followedPrompt(_:)` then follows until `unfollow(_:)`.
+   */
+  public func sendFollowing(_ key: String, text: String) async throws -> SendReceipt {
+    try await submit(key, text: text, attachments: nil, follow: true)
+  }
+
+  /// What became of a parked prompt `sendFollowing` handed out, or nil when nobody follows it.
+  public func followedPrompt(_ queueID: String) -> FollowedPrompt? {
+    followedPrompts[queueID]
+  }
+
+  /// Stop following a parked prompt; what becomes of it is no longer recorded.
+  public func unfollow(_ queueID: String) {
+    followedPrompts[queueID] = nil
+  }
+
+  /// One send. `parkAs` parks it under an id it already had (a drained prompt that met a new turn);
+  /// `follow` records what becomes of it when it is parked, from the moment it is.
+  func submit(
+    _ key: String,
+    text: String,
+    attachments: [String]?,
+    parkAs: String? = nil,
+    follow: Bool = false
+  ) async throws -> SendReceipt {
     let author = options.ownAuthor()
     let ticket = generation(of: key)
 
@@ -57,8 +91,13 @@ extension TranscriptStore {
       }
 
       if state.turn.active {
-        self.enqueue(key, text: text, attachments: attachments)
-        return .queued
+        let id = self.enqueue(key, text: text, attachments: attachments, id: parkAs)
+
+        if follow {
+          self.followedPrompts[id] = .parked
+        }
+
+        return .queued(id)
       }
 
       let now = self.now()
@@ -68,8 +107,15 @@ extension TranscriptStore {
       return .painted(itemID: self.chats[key]?.state.order.last, runtimeID: runtimeID)
     }
 
-    guard case .painted(let painted, let runtimeID) = start else {
-      return nil
+    let painted: String?
+    let runtimeID: String
+
+    switch start {
+    case .queued(let id):
+      return .parked(queueID: id)
+    case .painted(let itemID, let runtime):
+      painted = itemID
+      runtimeID = runtime
     }
 
     let params: JSONValue = ["session_id": .string(runtimeID), "profile": .string(key), "text": .string(text)]
@@ -98,7 +144,7 @@ extension TranscriptStore {
         self.syncApprovalPoll()
       }
 
-      return painted
+      return .submitted(itemID: painted)
     } catch {
       // Only the conversation this was sent in counts it: a successor under the
       // key started its own count at zero.
@@ -152,11 +198,24 @@ extension TranscriptStore {
 
   // MARK: - The queue behind a running turn
 
-  /// `queue`: park a message and give the strip a row for it.
-  func enqueue(_ key: String, text: String, attachments: [String]?) {
-    queueSeq += 1
-    chats[key]?.queue.append(QueuedMessage(id: "q:\(queueSeq)", text: text, attachments: attachments))
+  /// `queue`: park a message and give the strip a row for it. Answers its queue id.
+  @discardableResult
+  func enqueue(_ key: String, text: String, attachments: [String]?, id: String? = nil) -> String {
+    let id = id ?? {
+      queueSeq += 1
+      return "q:\(queueSeq)"
+    }()
+
+    chats[key]?.queue.append(QueuedMessage(id: id, text: text, attachments: attachments))
     markDirty(key)
+    return id
+  }
+
+  /// A followed prompt came to something; nothing is recorded for one nobody follows any more.
+  func settleFollowed(_ id: String, _ fate: FollowedPrompt) {
+    if followedPrompts[id] != nil {
+      followedPrompts[id] = fate
+    }
   }
 
   func takeQueued(_ key: String, _ id: String) -> QueuedMessage? {
@@ -177,17 +236,33 @@ extension TranscriptStore {
     }
 
     // A failed send painted its own failure; putting the message back would
-    // start a loop against a gateway that is refusing it.
-    _ = try? await send(key, text: taken.text, attachments: taken.attachments)
+    // start a loop against a gateway that is refusing it. One that met a new
+    // turn is parked again under the id it had.
+    do {
+      let receipt = try await submit(key, text: taken.text, attachments: taken.attachments, parkAs: taken.id)
+
+      if case .submitted(let itemID) = receipt {
+        settleFollowed(taken.id, .submitted(itemID: itemID))
+      }
+    } catch {
+      settleFollowed(taken.id, .failed(ChatResolver.describe(error)))
+    }
   }
 
   /// `editQueued`: take a parked message back; answers the text for the composer.
   public func editQueued(_ key: String, _ id: String) -> String? {
-    takeQueued(key, id)?.text
+    guard let taken = takeQueued(key, id) else {
+      return nil
+    }
+
+    settleFollowed(id, .withdrawn)
+    return taken.text
   }
 
   public func deleteQueued(_ key: String, _ id: String) {
-    _ = takeQueued(key, id)
+    if takeQueued(key, id) != nil {
+      settleFollowed(id, .withdrawn)
+    }
   }
 
   /// `steerQueued`: hand a parked message to the running turn now.
@@ -221,9 +296,10 @@ extension TranscriptStore {
       }
     }
 
-    try await local(key, generation: ticket) {
+    let steer = try await local(key, generation: ticket) { () -> String? in
       let now = self.now()
       self.mutateState(key) { beginSteer(into: &$0, taken.text, taken.attachments, now) }
+      return self.chats[key]?.state.order.last
     }
 
     let params: JSONValue = ["session_id": .string(runtimeID), "profile": .string(key), "text": .string(taken.text)]
@@ -236,6 +312,8 @@ extension TranscriptStore {
 
         if status == .rejected {
           self.unwindSteer(key, taken)
+        } else {
+          self.settleFollowed(taken.id, .submitted(itemID: steer))
         }
 
         return status
@@ -759,6 +837,26 @@ extension TranscriptStore {
 
     return kept
   }
+}
+
+/// What became of one send (`TranscriptStore.sendFollowing`).
+public enum SendReceipt: Sendable, Equatable {
+  /// The gateway took it; the id of the item it was painted as.
+  case submitted(itemID: String?)
+  /// Parked behind the running turn, under this queue id: nothing reached the gateway yet.
+  case parked(queueID: String)
+}
+
+/// What became of a parked prompt somebody follows (`TranscriptStore.followedPrompt`).
+public enum FollowedPrompt: Sendable, Equatable {
+  /// Still waiting for the running turn to end.
+  case parked
+  /// The gateway took it (after the turn, or as a steer into it); the item it was painted as.
+  case submitted(itemID: String?)
+  /// Its submit was refused or dropped; the gateway's error, for a sentence.
+  case failed(String)
+  /// Taken back out of the queue (edited or deleted), or gone with its conversation.
+  case withdrawn
 }
 
 /// What `approval.pending` says about one approval card (`approvalStanding`).

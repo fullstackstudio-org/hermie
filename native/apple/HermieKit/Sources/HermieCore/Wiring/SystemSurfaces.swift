@@ -15,19 +15,28 @@ public struct SurfaceCopy: Sendable {
   public var botNotHere: @Sendable (String) -> String
   /// The prompt did not reach the gateway; the argument is the gateway's error.
   public var notSent: @Sendable (String) -> String
+  /// The bot was still busy with an earlier turn and the prompt is still queued in the app; it goes
+  /// out when that turn ends. The argument is the bot's name.
+  public var queued: @Sendable (String) -> String
+  /// The queued prompt was taken back out of the queue in the app before it went out.
+  public var withdrawn: String
 
   public init(
     shareTargets: ShareTargets.Copy,
     intentFailures: IntentQueueFailures,
     stillWorking: @escaping @Sendable (String) -> String,
     botNotHere: @escaping @Sendable (String) -> String,
-    notSent: @escaping @Sendable (String) -> String
+    notSent: @escaping @Sendable (String) -> String,
+    queued: @escaping @Sendable (String) -> String,
+    withdrawn: String
   ) {
     self.shareTargets = shareTargets
     self.intentFailures = intentFailures
     self.stillWorking = stillWorking
     self.botNotHere = botNotHere
     self.notSent = notSent
+    self.queued = queued
+    self.withdrawn = withdrawn
   }
 }
 
@@ -38,9 +47,10 @@ public struct SurfaceCopy: Sendable {
 
  - **Writing.** `publish` turns the live session's chat list into the widget snapshot, the share
    sheet's targets and the Spotlight rows, previews left out while the app lock is configured.
- - **Draining.** `drain` hands the share outbox and the Shortcuts queue to the live session. The
-   drainers themselves refuse to run while `SystemSurfaceLock` says locked, which `LiveWiring`
-   keeps locked until the app lock is open and the gateway's session is up.
+ - **Draining.** `drain` hands the share outbox and the Shortcuts queue to the live session, for
+   that session's own gateway only. The drainers themselves refuse to run while
+   `SystemSurfaceLock` says locked, which `LiveWiring` keeps locked until the app lock is open and
+   the gateway's session is up.
  - **Purging.** A gateway signed out of or removed takes its queued items, its snapshot, its
    targets and its Spotlight rows with it.
 
@@ -60,6 +70,10 @@ public final class SystemSurfaces {
 
   /// How long "Ask" polls for the reply between looks.
   var replyPoll: Duration = .milliseconds(200)
+  /// How long "Send to" waits for a prompt parked behind a running turn to go out, at most.
+  var parkedSendWait: Duration = .seconds(10)
+  /// An answer is written this long before the Shortcut's own budget runs out, so it is still read.
+  static let answerMargin: Duration = .milliseconds(1500)
 
   public init(
     container: AppGroupContainer,
@@ -159,22 +173,33 @@ public final class SystemSurfaces {
 
   // MARK: Draining
 
-  /// Hand the share outbox and the Shortcuts queue to the live session. Nothing happens while the
-  /// surfaces are locked; the drainers check that themselves.
-  public func drain(session: GatewaySession, scope: GatewayScope) async {
-    await outbox.drain(gateways: scope, now: Date()) { @Sendable share in
-      await self.deliver(share, session: session)
+  /**
+   Hand the share outbox and the Shortcuts queue to `session`, for its own gateway (`gatewayKey`)
+   only: what is queued for another configured gateway waits for that gateway's session. Nothing
+   happens while the surfaces are locked; the drainers check that themselves. Answers whether a
+   share was too new to take from the share extension yet, so another drain should follow once
+   `AppGroupShareOutbox.leaseGrace` is over.
+   */
+  @discardableResult
+  public func drain(session: GatewaySession, gatewayKey: String, known: Set<String>) async -> Bool {
+    let scope = GatewayScope(active: gatewayKey, known: known)
+
+    let outcomes = await outbox.drain(gateways: scope, now: Date()) { @Sendable share in
+      await self.deliver(share, session: session, scope: scope)
     }
 
     await intents.drain(now: Date(), gateways: scope, failures: copy.intentFailures) { @Sendable intent in
-      await self.answer(intent, session: session)
+      await self.answer(intent, session: session, scope: scope)
     }
+
+    return outcomes.values.contains(.settling)
   }
 
-  /// One share through the session: only one the app can send alone (see the type's notes).
-  func deliver(_ share: PendingShare, session: GatewaySession) async -> ShareDrainDecision {
-    guard share.claim == nil, let bot = share.bot, Identifiers.isBotName(bot),
-      share.items.allSatisfy(\.isWords), session.status.phase == .ready
+  /// One share through the session: only one the app can send alone (see the type's notes), and
+  /// only one recorded for the session's own gateway (`scope.active`).
+  func deliver(_ share: PendingShare, session: GatewaySession, scope: GatewayScope) async -> ShareDrainDecision {
+    guard scope.route(share.gatewayKey) == .deliver, share.claim == nil, let bot = share.bot,
+      Identifiers.isBotName(bot), share.items.allSatisfy(\.isWords), session.status.phase == .ready
     else {
       return .keep
     }
@@ -198,49 +223,119 @@ public final class SystemSurfaces {
   }
 
   /**
-   One Shortcut request through the session. Nil (left pending) while the socket is not up; the
-   intent keeps polling, and the drain after the next `ready` answers it. "Send to" answers once
-   the gateway took the prompt; "Ask" waits for the reply until the request's budget runs out.
+   One Shortcut request through the session, for the session's own gateway (`scope.active`) only.
+   Left pending (`later`) while the socket is not up; the intent keeps polling, and the drain after
+   the next `ready` answers it.
+
+   "Send to" answers once the gateway took the prompt. "Ask" waits for the reply to ITS prompt, and
+   a prompt parked behind a turn that was already running waits for that turn first; both waits run
+   outside the drain (`started`), so one Shortcut never holds up the next. A "Send to" whose prompt
+   is still parked when its wait is over says so instead of claiming it was sent.
    */
-  func answer(_ intent: PendingIntent, session: GatewaySession) async -> IntentResult? {
-    guard session.status.phase == .ready else {
-      return nil
+  func answer(_ intent: PendingIntent, session: GatewaySession, scope: GatewayScope) async -> IntentHandling {
+    guard scope.route(intent.gatewayKey) == .deliver, session.status.phase == .ready else {
+      return .later
     }
 
     guard Identifiers.isBotName(intent.bot), await session.roster.bot(named: intent.bot) != nil else {
-      return .failure(id: intent.id, copy.botNotHere(intent.bot))
+      return .answered(.failure(id: intent.id, copy.botNotHere(intent.bot)))
     }
 
     guard await attach(intent.bot, session: session) else {
-      return nil
+      return .later
     }
 
-    let anchor = await session.store.lastItemID(intent.bot)
-    let painted: String?
+    let receipt: SendReceipt
 
     do {
-      painted = try await session.store.send(intent.bot, text: intent.text)
+      receipt = try await session.store.sendFollowing(intent.bot, text: intent.text)
     } catch {
-      return .failure(id: intent.id, copy.notSent(ChatResolver.describe(error)))
+      return .answered(.failure(id: intent.id, copy.notSent(ChatResolver.describe(error))))
     }
 
-    guard intent.kind == .ask else {
-      return .reply(id: intent.id, "")
+    if intent.kind == .send, case .submitted = receipt {
+      return .answered(.reply(id: intent.id, ""))
     }
 
-    let budget = PendingIntent.budget - .milliseconds(Int64(max(0, Date().timeIntervalSince1970 * 1000 - intent.createdAt)))
-    let reply = await waitForReply(intent.bot, after: painted ?? anchor, session: session, within: budget)
+    let deadline = Self.deadline(of: intent)
+    let intents = self.intents
+
+    Task {
+      let result = await self.finish(intent, receipt, session: session, deadline: deadline)
+
+      intents.complete(id: intent.id, with: result)
+    }
+
+    return .started
+  }
+
+  /// When an answer to `intent` has to be written by: its budget from when it was asked, less the
+  /// margin that leaves the Shortcut time to read it.
+  static func deadline(of intent: PendingIntent, now: Date = Date()) -> ContinuousClock.Instant {
+    let asked = Date(timeIntervalSince1970: intent.createdAt / 1000)
+    let elapsed = Duration.milliseconds(Int64(max(0, now.timeIntervalSince(asked) * 1000)))
+
+    return ContinuousClock.now + PendingIntent.budget - elapsed - answerMargin
+  }
+
+  /// The answer to a request whose prompt was parked, or an "Ask" waiting for its reply.
+  func finish(_ intent: PendingIntent, _ receipt: SendReceipt, session: GatewaySession, deadline: ContinuousClock.Instant)
+    async -> IntentResult
+  {
+    var anchor: String?
+
+    switch receipt {
+    case .submitted(let itemID):
+      anchor = itemID
+    case .parked(let queueID):
+      let wait = intent.kind == .send ? min(deadline, ContinuousClock.now + parkedSendWait) : deadline
+      let fate = await waitUntilSubmitted(queueID, session: session, until: wait)
+
+      await session.store.unfollow(queueID)
+
+      switch fate {
+      case .submitted(let itemID):
+        guard intent.kind == .ask else {
+          return .reply(id: intent.id, "")
+        }
+
+        anchor = itemID
+      case .failed(let reason):
+        return .failure(id: intent.id, copy.notSent(reason))
+      case .withdrawn:
+        return .failure(id: intent.id, copy.withdrawn)
+      case .parked, nil:
+        return .failure(id: intent.id, copy.queued(intent.bot))
+      }
+    }
+
+    // The reply to OUR prompt: what came after the item it was painted as, never a turn that was
+    // already running when it was asked.
+    let reply = await waitForReply(intent.bot, after: anchor, session: session, until: deadline)
 
     return reply.map { .reply(id: intent.id, $0) } ?? .failure(id: intent.id, copy.stillWorking(intent.bot))
   }
 
-  /// The bot's reply after `anchor`, once its turn is over; nil when the budget runs out or the turn
-  /// ended without one (an interruption, a tool-only turn).
-  func waitForReply(_ bot: String, after anchor: String?, session: GatewaySession, within budget: Duration) async
-    -> String?
+  /// What became of a parked prompt, once it is no longer parked or `deadline` passed.
+  func waitUntilSubmitted(_ queueID: String, session: GatewaySession, until deadline: ContinuousClock.Instant) async
+    -> FollowedPrompt?
   {
-    let deadline = ContinuousClock.now + budget
+    while true {
+      let fate = await session.store.followedPrompt(queueID)
 
+      guard fate == .parked, ContinuousClock.now < deadline else {
+        return fate
+      }
+
+      try? await Task.sleep(for: replyPoll)
+    }
+  }
+
+  /// The bot's reply after `anchor`, once its turn is over; nil when `deadline` passes or the turn
+  /// ended without one (an interruption, a tool-only turn).
+  func waitForReply(_ bot: String, after anchor: String?, session: GatewaySession, until deadline: ContinuousClock.Instant)
+    async -> String?
+  {
     while ContinuousClock.now < deadline {
       let state = await session.store.replyState(bot, after: anchor)
 
@@ -289,11 +384,6 @@ extension PendingShare.Item {
 }
 
 extension TranscriptStore {
-  /// The newest item of a chat, or nil.
-  func lastItemID(_ key: String) -> String? {
-    chats[key]?.state.order.last
-  }
-
   /// Whether the chat's turn is still running, and the bot's last finished reply after `anchor`
   /// (anywhere when `anchor` is not in the transcript any more).
   func replyState(_ key: String, after anchor: String?) -> (reply: String?, turnActive: Bool) {

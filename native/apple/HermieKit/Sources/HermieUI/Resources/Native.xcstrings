@@ -2586,6 +2586,30 @@
         }
       }
     },
+    "native.intents.queued" : {
+      "comment" : "A Shortcut sent a message while the bot was still answering an earlier one; it is queued in the app and goes out when that answer ends. The argument is the bot's name.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%@ beantwortet noch eine frühere Nachricht. Deine steht in Hermie in der Warteschlange und geht raus, sobald diese Antwort fertig ist."
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%@ is still answering an earlier message. Yours is queued in Hermie and goes out when that answer is done."
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%@ is nog bezig met een eerder bericht. Het jouwe staat in Hermie in de wachtrij en gaat eruit zodra dat antwoord klaar is."
+          }
+        }
+      }
+    },
     "native.intents.stillWorking" : {
       "comment" : "A Shortcut's “Ask” ran out of time while the bot was still answering. The argument is the bot's name.",
       "extractionState" : "manual",
@@ -2629,6 +2653,30 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Hermie kon dat verzoek niet lezen. Misschien is het gemaakt door een nieuwere versie."
+          }
+        }
+      }
+    },
+    "native.intents.withdrawn" : {
+      "comment" : "A Shortcut's queued message was taken back out of the queue in the app (edited or deleted) before it went out.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Die Nachricht wurde in Hermie aus der Warteschlange genommen, bevor sie rausging, deshalb wurde nichts gesendet."
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "The message was taken back out of the queue in Hermie before it went out, so nothing was sent."
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Het bericht is in Hermie uit de wachtrij gehaald voordat het eruit ging, dus er is niets verstuurd."
           }
         }
       }

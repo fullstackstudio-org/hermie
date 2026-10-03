@@ -258,18 +258,16 @@ public struct ShareOutbox: Sendable {
 
   /**
    Mark the entry as being delivered by this process, before anything touches the network. False
-   when the entry is gone (the app has it) or the mark could not be written; either way the caller
-   does not attempt the delivery.
+   when the entry is gone (the app has it), when the app holds a fresh lease on it (it is sending
+   the entry itself), or when the mark could not be written; either way the caller does not attempt
+   the delivery. The lease is created, never replaced (`ShareLease.take`).
    */
   public func lease(entry: String, now: Date = Date()) -> Bool {
     guard exists(entry: entry), let directory = entryURL(entry) else {
       return false
     }
 
-    let data = ShareLease(at: now.timeIntervalSince1970).encoded()
-
-    return (try? data.write(to: directory.appendingPathComponent(SharedContainer.shareLeaseFile), options: .atomic))
-      != nil
+    return ShareLease.take(in: directory, now: now)
   }
 
   /// Take the mark away, so the app delivers the entry now rather than after the lease runs out.
