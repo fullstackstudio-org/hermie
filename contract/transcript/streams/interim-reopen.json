@@ -348,8 +348,8 @@
       }
     },
     {
-      "after": 18,
-      "label": "settled live",
+      "after": 11,
+      "label": "away",
       "visible": {
         "normal": [
           {
@@ -477,7 +477,7 @@
               "origin": "optimistic",
               "pending": false,
               "seq": 7000,
-              "text": "summarise the notes",
+              "text": "reconcile the ledger",
               "ts": 1790000006,
               "turnId": "167f352a430d4fc6830b15073f792bed",
               "version": 2
@@ -487,49 +487,17 @@
           {
             "item": {
               "id": "a:8000",
-              "interim": false,
+              "interim": true,
               "kind": "assistant",
               "origin": "live",
-              "reasoning": "Checked the README.",
               "rowId": 10,
               "seq": 8000,
-              "status": "complete",
               "streaming": false,
-              "text": "Looking that up for you.",
+              "text": "Entry 90 is marked paid. Now the cent on the payables account: first see how it is booked.",
               "ts": 1790000009,
-              "usage": {
-                "input": 12,
-                "output": 34,
-                "total": 46
-              },
-              "version": 8
-            },
-            "presentation": "full"
-          },
-          {
-            "item": {
-              "args": {
-                "path": "README.md"
-              },
-              "callKey": "10/0",
-              "context": "read README.md",
-              "durationS": 0.2,
-              "id": "t:tool-a2fedc71",
-              "isError": false,
-              "kind": "tool",
-              "name": "read_file",
-              "origin": "live",
-              "result": "# Hermie",
-              "resultKnown": true,
-              "rowId": 11,
-              "seq": 9000,
-              "status": "complete",
-              "summary": "read README.md",
-              "toolId": "tool-a2fedc71",
-              "ts": 1790000015,
               "version": 2
             },
-            "presentation": "collapsed"
+            "presentation": "full"
           }
         ],
         "quiet": [
@@ -639,7 +607,7 @@
               "origin": "optimistic",
               "pending": false,
               "seq": 7000,
-              "text": "summarise the notes",
+              "text": "reconcile the ledger",
               "ts": 1790000006,
               "turnId": "167f352a430d4fc6830b15073f792bed",
               "version": 2
@@ -649,22 +617,15 @@
           {
             "item": {
               "id": "a:8000",
-              "interim": false,
+              "interim": true,
               "kind": "assistant",
               "origin": "live",
-              "reasoning": "Checked the README.",
               "rowId": 10,
               "seq": 8000,
-              "status": "complete",
               "streaming": false,
-              "text": "Looking that up for you.",
+              "text": "Entry 90 is marked paid. Now the cent on the payables account: first see how it is booked.",
               "ts": 1790000009,
-              "usage": {
-                "input": 12,
-                "output": 34,
-                "total": 46
-              },
-              "version": 8
+              "version": 2
             },
             "presentation": "full"
           }
@@ -795,7 +756,7 @@
               "origin": "optimistic",
               "pending": false,
               "seq": 7000,
-              "text": "summarise the notes",
+              "text": "reconcile the ledger",
               "ts": 1790000006,
               "turnId": "167f352a430d4fc6830b15073f792bed",
               "version": 2
@@ -805,46 +766,14 @@
           {
             "item": {
               "id": "a:8000",
-              "interim": false,
+              "interim": true,
               "kind": "assistant",
               "origin": "live",
-              "reasoning": "Checked the README.",
               "rowId": 10,
               "seq": 8000,
-              "status": "complete",
               "streaming": false,
-              "text": "Looking that up for you.",
+              "text": "Entry 90 is marked paid. Now the cent on the payables account: first see how it is booked.",
               "ts": 1790000009,
-              "usage": {
-                "input": 12,
-                "output": 34,
-                "total": 46
-              },
-              "version": 8
-            },
-            "presentation": "full"
-          },
-          {
-            "item": {
-              "args": {
-                "path": "README.md"
-              },
-              "callKey": "10/0",
-              "context": "read README.md",
-              "durationS": 0.2,
-              "id": "t:tool-a2fedc71",
-              "isError": false,
-              "kind": "tool",
-              "name": "read_file",
-              "origin": "live",
-              "result": "# Hermie",
-              "resultKnown": true,
-              "rowId": 11,
-              "seq": 9000,
-              "status": "complete",
-              "summary": "read README.md",
-              "toolId": "tool-a2fedc71",
-              "ts": 1790000015,
               "version": 2
             },
             "presentation": "full"
@@ -853,8 +782,8 @@
       }
     },
     {
-      "after": 29,
-      "label": "recovered",
+      "after": 17,
+      "label": "reopened",
       "visible": {
         "normal": [
           {
@@ -899,7 +828,6 @@
               "name": "read_file",
               "origin": "history",
               "resultKnown": false,
-              "rowId": 3,
               "seq": 2000,
               "status": "complete",
               "summary": "read_file(SOUL.md)",
@@ -926,7 +854,7 @@
               "target": "@writer",
               "targetHandle": "writer",
               "toolId": "call_dm_1",
-              "version": 1
+              "version": 2
             },
             "presentation": "collapsed"
           },
@@ -942,7 +870,7 @@
               "streaming": false,
               "text": "Thanks — I will fold that in.",
               "ts": 1789999461,
-              "version": 2
+              "version": 1
             },
             "presentation": "full"
           },
@@ -979,16 +907,15 @@
           },
           {
             "item": {
-              "id": "o:7000",
+              "id": "r:9",
               "kind": "user",
               "origin": "history",
-              "pending": false,
               "rowId": 9,
               "seq": 7000,
-              "text": "summarise the notes",
+              "text": "reconcile the ledger",
               "ts": 1790000000,
               "turnId": "167f352a430d4fc6830b15073f792bed",
-              "version": 3
+              "version": 0
             },
             "presentation": "full"
           },
@@ -998,80 +925,89 @@
               "interim": false,
               "kind": "assistant",
               "origin": "history",
-              "reasoning": "Checked the README.",
               "rowId": 10,
               "seq": 8000,
               "status": "complete",
               "streaming": false,
-              "text": "Looking that up for you.",
+              "text": "Entry 90 is marked paid. Now the cent on the payables account: first see how it is booked.",
               "ts": 1790000000,
-              "usage": {
-                "input": 12,
-                "output": 34,
-                "total": 46
-              },
-              "version": 9
+              "version": 3
             },
             "presentation": "full"
           },
           {
             "item": {
               "args": {
-                "path": "README.md"
+                "command": "ledger show 17201"
               },
               "callKey": "10/0",
-              "context": "read README.md",
-              "durationS": 0.2,
+              "context": "ledger show 17201",
               "id": "t:tool-a2fedc71",
-              "isError": false,
               "kind": "tool",
-              "name": "read_file",
+              "name": "terminal",
               "origin": "history",
-              "result": "# Hermie",
-              "resultKnown": true,
+              "resultKnown": false,
               "rowId": 11,
               "seq": 9000,
               "status": "complete",
-              "summary": "read README.md",
+              "summary": "ledger show 17201",
               "toolId": "tool-a2fedc71",
               "ts": 1790000000,
-              "version": 3
+              "version": 0
             },
             "presentation": "collapsed"
           },
           {
             "item": {
-              "id": "f:10000",
-              "kind": "user",
+              "id": "r:12",
+              "interim": false,
+              "kind": "assistant",
               "origin": "history",
               "rowId": 12,
               "seq": 10000,
-              "text": "explain the math behind the retry budget",
+              "status": "complete",
+              "streaming": false,
+              "text": "Looking the transfer up through the API myself: the payout of 16-09.",
               "ts": 1790000000,
-              "turnId": "51682e94d1e94ee681680e6d83723f15",
-              "version": 1
+              "version": 0
             },
             "presentation": "full"
           },
           {
             "item": {
-              "durationS": 7,
-              "id": "a:11000",
-              "interim": false,
-              "kind": "assistant",
+              "args": {
+                "command": "payouts get 16-09"
+              },
+              "callKey": "12/0",
+              "context": "payouts get 16-09",
+              "id": "t:tool-51682e94",
+              "kind": "tool",
+              "name": "terminal",
               "origin": "history",
+              "resultKnown": false,
               "rowId": 13,
               "seq": 11000,
               "status": "complete",
-              "streaming": false,
-              "text": "The backoff is a geometric series, so the total wait has a closed form.\n\n$$\n\\sum_{k=0}^{n-1} b \\cdot r^k = b \\cdot \\frac{1 - r^n}{1 - r}\n$$\n\nWith $b = 250$ ms and $r = 2$, five attempts wait $3.75$ s in total.\n\nThat is the same ceiling the guide quotes, and the plan costs $12 a month either way.",
+              "summary": "payouts get 16-09",
+              "toolId": "tool-51682e94",
               "ts": 1790000000,
-              "usage": {
-                "input": 12,
-                "output": 34,
-                "total": 46
-              },
-              "version": 8
+              "version": 0
+            },
+            "presentation": "collapsed"
+          },
+          {
+            "item": {
+              "id": "r:14",
+              "interim": false,
+              "kind": "assistant",
+              "origin": "history",
+              "rowId": 14,
+              "seq": 12000,
+              "status": "complete",
+              "streaming": false,
+              "text": "Everything checks out and nothing was filed.",
+              "ts": 1790000000,
+              "version": 0
             },
             "presentation": "full"
           }
@@ -1126,7 +1062,7 @@
               "target": "@writer",
               "targetHandle": "writer",
               "toolId": "call_dm_1",
-              "version": 1
+              "version": 2
             },
             "presentation": "collapsed"
           },
@@ -1142,7 +1078,7 @@
               "streaming": false,
               "text": "Thanks — I will fold that in.",
               "ts": 1789999461,
-              "version": 2
+              "version": 1
             },
             "presentation": "full"
           },
@@ -1179,16 +1115,15 @@
           },
           {
             "item": {
-              "id": "o:7000",
+              "id": "r:9",
               "kind": "user",
               "origin": "history",
-              "pending": false,
               "rowId": 9,
               "seq": 7000,
-              "text": "summarise the notes",
+              "text": "reconcile the ledger",
               "ts": 1790000000,
               "turnId": "167f352a430d4fc6830b15073f792bed",
-              "version": 3
+              "version": 0
             },
             "presentation": "full"
           },
@@ -1198,55 +1133,45 @@
               "interim": false,
               "kind": "assistant",
               "origin": "history",
-              "reasoning": "Checked the README.",
               "rowId": 10,
               "seq": 8000,
               "status": "complete",
               "streaming": false,
-              "text": "Looking that up for you.",
+              "text": "Entry 90 is marked paid. Now the cent on the payables account: first see how it is booked.",
               "ts": 1790000000,
-              "usage": {
-                "input": 12,
-                "output": 34,
-                "total": 46
-              },
-              "version": 9
+              "version": 3
             },
             "presentation": "full"
           },
           {
             "item": {
-              "id": "f:10000",
-              "kind": "user",
-              "origin": "history",
-              "rowId": 12,
-              "seq": 10000,
-              "text": "explain the math behind the retry budget",
-              "ts": 1790000000,
-              "turnId": "51682e94d1e94ee681680e6d83723f15",
-              "version": 1
-            },
-            "presentation": "full"
-          },
-          {
-            "item": {
-              "durationS": 7,
-              "id": "a:11000",
+              "id": "r:12",
               "interim": false,
               "kind": "assistant",
               "origin": "history",
-              "rowId": 13,
-              "seq": 11000,
+              "rowId": 12,
+              "seq": 10000,
               "status": "complete",
               "streaming": false,
-              "text": "The backoff is a geometric series, so the total wait has a closed form.\n\n$$\n\\sum_{k=0}^{n-1} b \\cdot r^k = b \\cdot \\frac{1 - r^n}{1 - r}\n$$\n\nWith $b = 250$ ms and $r = 2$, five attempts wait $3.75$ s in total.\n\nThat is the same ceiling the guide quotes, and the plan costs $12 a month either way.",
+              "text": "Looking the transfer up through the API myself: the payout of 16-09.",
               "ts": 1790000000,
-              "usage": {
-                "input": 12,
-                "output": 34,
-                "total": 46
-              },
-              "version": 8
+              "version": 0
+            },
+            "presentation": "full"
+          },
+          {
+            "item": {
+              "id": "r:14",
+              "interim": false,
+              "kind": "assistant",
+              "origin": "history",
+              "rowId": 14,
+              "seq": 12000,
+              "status": "complete",
+              "streaming": false,
+              "text": "Everything checks out and nothing was filed.",
+              "ts": 1790000000,
+              "version": 0
             },
             "presentation": "full"
           }
@@ -1294,7 +1219,6 @@
               "name": "read_file",
               "origin": "history",
               "resultKnown": false,
-              "rowId": 3,
               "seq": 2000,
               "status": "complete",
               "summary": "read_file(SOUL.md)",
@@ -1321,7 +1245,7 @@
               "target": "@writer",
               "targetHandle": "writer",
               "toolId": "call_dm_1",
-              "version": 1
+              "version": 2
             },
             "presentation": "collapsed"
           },
@@ -1337,7 +1261,7 @@
               "streaming": false,
               "text": "Thanks — I will fold that in.",
               "ts": 1789999461,
-              "version": 2
+              "version": 1
             },
             "presentation": "full"
           },
@@ -1374,16 +1298,15 @@
           },
           {
             "item": {
-              "id": "o:7000",
+              "id": "r:9",
               "kind": "user",
               "origin": "history",
-              "pending": false,
               "rowId": 9,
               "seq": 7000,
-              "text": "summarise the notes",
+              "text": "reconcile the ledger",
               "ts": 1790000000,
               "turnId": "167f352a430d4fc6830b15073f792bed",
-              "version": 3
+              "version": 0
             },
             "presentation": "full"
           },
@@ -1393,42 +1316,11 @@
               "interim": false,
               "kind": "assistant",
               "origin": "history",
-              "reasoning": "Checked the README.",
               "rowId": 10,
               "seq": 8000,
               "status": "complete",
               "streaming": false,
-              "text": "Looking that up for you.",
-              "ts": 1790000000,
-              "usage": {
-                "input": 12,
-                "output": 34,
-                "total": 46
-              },
-              "version": 9
-            },
-            "presentation": "full"
-          },
-          {
-            "item": {
-              "args": {
-                "path": "README.md"
-              },
-              "callKey": "10/0",
-              "context": "read README.md",
-              "durationS": 0.2,
-              "id": "t:tool-a2fedc71",
-              "isError": false,
-              "kind": "tool",
-              "name": "read_file",
-              "origin": "history",
-              "result": "# Hermie",
-              "resultKnown": true,
-              "rowId": 11,
-              "seq": 9000,
-              "status": "complete",
-              "summary": "read README.md",
-              "toolId": "tool-a2fedc71",
+              "text": "Entry 90 is marked paid. Now the cent on the payables account: first see how it is booked.",
               "ts": 1790000000,
               "version": 3
             },
@@ -1436,37 +1328,728 @@
           },
           {
             "item": {
-              "id": "f:10000",
-              "kind": "user",
+              "args": {
+                "command": "ledger show 17201"
+              },
+              "callKey": "10/0",
+              "context": "ledger show 17201",
+              "id": "t:tool-a2fedc71",
+              "kind": "tool",
+              "name": "terminal",
+              "origin": "history",
+              "resultKnown": false,
+              "rowId": 11,
+              "seq": 9000,
+              "status": "complete",
+              "summary": "ledger show 17201",
+              "toolId": "tool-a2fedc71",
+              "ts": 1790000000,
+              "version": 0
+            },
+            "presentation": "full"
+          },
+          {
+            "item": {
+              "id": "r:12",
+              "interim": false,
+              "kind": "assistant",
               "origin": "history",
               "rowId": 12,
               "seq": 10000,
-              "text": "explain the math behind the retry budget",
+              "status": "complete",
+              "streaming": false,
+              "text": "Looking the transfer up through the API myself: the payout of 16-09.",
               "ts": 1790000000,
-              "turnId": "51682e94d1e94ee681680e6d83723f15",
+              "version": 0
+            },
+            "presentation": "full"
+          },
+          {
+            "item": {
+              "args": {
+                "command": "payouts get 16-09"
+              },
+              "callKey": "12/0",
+              "context": "payouts get 16-09",
+              "id": "t:tool-51682e94",
+              "kind": "tool",
+              "name": "terminal",
+              "origin": "history",
+              "resultKnown": false,
+              "rowId": 13,
+              "seq": 11000,
+              "status": "complete",
+              "summary": "payouts get 16-09",
+              "toolId": "tool-51682e94",
+              "ts": 1790000000,
+              "version": 0
+            },
+            "presentation": "full"
+          },
+          {
+            "item": {
+              "id": "r:14",
+              "interim": false,
+              "kind": "assistant",
+              "origin": "history",
+              "rowId": 14,
+              "seq": 12000,
+              "status": "complete",
+              "streaming": false,
+              "text": "Everything checks out and nothing was filed.",
+              "ts": 1790000000,
+              "version": 0
+            },
+            "presentation": "full"
+          }
+        ]
+      }
+    },
+    {
+      "after": 26,
+      "label": "settled",
+      "visible": {
+        "normal": [
+          {
+            "item": {
+              "id": "r:1",
+              "kind": "user",
+              "origin": "history",
+              "pending": false,
+              "rowId": 1,
+              "seq": 0,
+              "text": "Introduce yourself in one line.",
+              "ts": 1789999400,
               "version": 1
             },
             "presentation": "full"
           },
           {
             "item": {
-              "durationS": 7,
-              "id": "a:11000",
+              "id": "r:2",
               "interim": false,
               "kind": "assistant",
               "origin": "history",
+              "reasoning": "Keep it to one line.",
+              "rowId": 2,
+              "seq": 1000,
+              "status": "complete",
+              "streaming": false,
+              "text": "I am researcher, at your service.",
+              "ts": 1789999401,
+              "version": 1
+            },
+            "presentation": "full"
+          },
+          {
+            "item": {
+              "args": {
+                "path": "SOUL.md"
+              },
+              "context": "read_file(SOUL.md)",
+              "id": "t:call_read_researcher",
+              "kind": "tool",
+              "name": "read_file",
+              "origin": "history",
+              "resultKnown": false,
+              "seq": 2000,
+              "status": "complete",
+              "summary": "read_file(SOUL.md)",
+              "toolId": "call_read_researcher",
+              "version": 1
+            },
+            "presentation": "collapsed"
+          },
+          {
+            "item": {
+              "dispatch": {
+                "status": "queued"
+              },
+              "id": "t:call_dm_1",
+              "kind": "bot_dm_out",
+              "message": "Can you draft the announcement?",
+              "origin": "history",
+              "reply": {
+                "rowId": 3,
+                "text": "Draft is ready, I pushed it to the shared folder.",
+                "ts": 1789999460
+              },
+              "seq": 3000,
+              "target": "@writer",
+              "targetHandle": "writer",
+              "toolId": "call_dm_1",
+              "version": 2
+            },
+            "presentation": "collapsed"
+          },
+          {
+            "item": {
+              "id": "r:4",
+              "interim": false,
+              "kind": "assistant",
+              "origin": "history",
+              "rowId": 4,
+              "seq": 4000,
+              "status": "complete",
+              "streaming": false,
+              "text": "Thanks — I will fold that in.",
+              "ts": 1789999461,
+              "version": 1
+            },
+            "presentation": "full"
+          },
+          {
+            "item": {
+              "body": "### Source scan — 4 new items\n\n| Source | Item | Why it matters |\n| --- | --- | --- |\n| docs.example.com | Retry semantics rewritten | Contradicts our own guide |\n| status.example.org | Two incidents, both closed | No action |\n| blog.example.net | Long post on session resume | Worth reading in full |\n| docs.example.com | Changelog for 1.4 | Three flags renamed |\n\nThe first one needs a decision: our guide still documents the old behaviour.\n\nNothing else is urgent. Next scan in four hours.",
+              "id": "r:5",
+              "jobName": "Source scan",
+              "kind": "cron_delivery",
+              "origin": "history",
+              "rowId": 5,
+              "seq": 5000,
+              "shape": "bot_chat",
+              "ts": 1789999520,
+              "version": 1
+            },
+            "presentation": "full"
+          },
+          {
+            "item": {
+              "id": "r:6",
+              "interim": false,
+              "kind": "assistant",
+              "origin": "history",
+              "rowId": 6,
+              "seq": 6000,
+              "status": "complete",
+              "streaming": false,
+              "text": "## Retry semantics: what actually changed\n\nShort version: the backoff is now computed per attempt instead of per call, so a\nlong-running request no longer inherits the delay of the one before it.\n\n| Behaviour | Before | After |\n| --- | --- | --- |\n| First retry delay | 1s | 1s |\n| Second retry delay | 1s | 2s |\n| Ceiling | none | 30s |\n| Jitter | none | ±20% |\n| Budget | per call | per attempt |\n\nWhere this bites us:\n\n- The reconnect loop, which assumed a flat delay.\n  - It reads the delay once and caches it.\n  - Caching it is what makes the ceiling invisible.\n- The upload path, which retries on its own.\n  - Two retry budgets now overlap.\n    - Worst case is eight attempts where we documented three.\n- Nothing in the transcript path: it does not retry.\n\nThe shape we should move to:\n\n```ts\nexport function backoff(attempt: number): number {\n  const base = Math.min(2 ** attempt * 1000, 30_000)\n  // Jitter is not decoration: without it every client in a fleet retries\n  // on the same tick and the recovery looks like a second outage.\n  return base * (0.8 + Math.random() * 0.4)\n}\n\nexport async function withRetries<T>(run: () => Promise<T>, attempts = 3): Promise<T> {\n  for (let attempt = 0; ; attempt += 1) {\n    try {\n      return await run()\n    } catch (error) {\n      if (attempt >= attempts - 1) {\n        throw error\n      }\n\n      await new Promise(resolve => setTimeout(resolve, backoff(attempt)))\n    }\n  }\n}\n```\n\n> The ceiling matters more than the curve. A retry that waits four minutes is\n> indistinguishable from a hang.\n\nI would change the reconnect loop first — it is the one a user can see.",
+              "ts": 1789999540,
+              "version": 1
+            },
+            "presentation": "full"
+          },
+          {
+            "item": {
+              "id": "r:9",
+              "kind": "user",
+              "origin": "history",
+              "rowId": 9,
+              "seq": 7000,
+              "text": "reconcile the ledger",
+              "ts": 1790000000,
+              "turnId": "167f352a430d4fc6830b15073f792bed",
+              "version": 0
+            },
+            "presentation": "full"
+          },
+          {
+            "item": {
+              "id": "a:8000",
+              "interim": false,
+              "kind": "assistant",
+              "origin": "history",
+              "rowId": 10,
+              "seq": 8000,
+              "status": "complete",
+              "streaming": false,
+              "text": "Entry 90 is marked paid. Now the cent on the payables account: first see how it is booked.",
+              "ts": 1790000000,
+              "version": 3
+            },
+            "presentation": "full"
+          },
+          {
+            "item": {
+              "args": {
+                "command": "ledger show 17201"
+              },
+              "callKey": "10/0",
+              "context": "ledger show 17201",
+              "durationS": 0.2,
+              "id": "t:tool-a2fedc71",
+              "isError": false,
+              "kind": "tool",
+              "name": "terminal",
+              "origin": "history",
+              "result": "ok",
+              "resultKnown": true,
+              "rowId": 11,
+              "seq": 9000,
+              "status": "complete",
+              "summary": "ledger show 17201",
+              "toolId": "tool-a2fedc71",
+              "ts": 1790000000,
+              "version": 1
+            },
+            "presentation": "collapsed"
+          },
+          {
+            "item": {
+              "id": "r:12",
+              "interim": false,
+              "kind": "assistant",
+              "origin": "history",
+              "rowId": 12,
+              "seq": 10000,
+              "status": "complete",
+              "streaming": false,
+              "text": "Looking the transfer up through the API myself: the payout of 16-09.",
+              "ts": 1790000000,
+              "version": 0
+            },
+            "presentation": "full"
+          },
+          {
+            "item": {
+              "args": {
+                "command": "payouts get 16-09"
+              },
+              "callKey": "12/0",
+              "context": "payouts get 16-09",
+              "durationS": 0.2,
+              "id": "t:tool-51682e94",
+              "isError": false,
+              "kind": "tool",
+              "name": "terminal",
+              "origin": "history",
+              "result": "ok",
+              "resultKnown": true,
               "rowId": 13,
               "seq": 11000,
               "status": "complete",
+              "summary": "payouts get 16-09",
+              "toolId": "tool-51682e94",
+              "ts": 1790000000,
+              "version": 1
+            },
+            "presentation": "collapsed"
+          },
+          {
+            "item": {
+              "id": "r:14",
+              "interim": false,
+              "kind": "assistant",
+              "origin": "history",
+              "rowId": 14,
+              "seq": 12000,
+              "status": "complete",
               "streaming": false,
-              "text": "The backoff is a geometric series, so the total wait has a closed form.\n\n$$\n\\sum_{k=0}^{n-1} b \\cdot r^k = b \\cdot \\frac{1 - r^n}{1 - r}\n$$\n\nWith $b = 250$ ms and $r = 2$, five attempts wait $3.75$ s in total.\n\nThat is the same ceiling the guide quotes, and the plan costs $12 a month either way.",
+              "text": "Everything checks out and nothing was filed.",
               "ts": 1790000000,
               "usage": {
                 "input": 12,
                 "output": 34,
                 "total": 46
               },
-              "version": 8
+              "version": 1
+            },
+            "presentation": "full"
+          }
+        ],
+        "quiet": [
+          {
+            "item": {
+              "id": "r:1",
+              "kind": "user",
+              "origin": "history",
+              "pending": false,
+              "rowId": 1,
+              "seq": 0,
+              "text": "Introduce yourself in one line.",
+              "ts": 1789999400,
+              "version": 1
+            },
+            "presentation": "full"
+          },
+          {
+            "item": {
+              "id": "r:2",
+              "interim": false,
+              "kind": "assistant",
+              "origin": "history",
+              "reasoning": "Keep it to one line.",
+              "rowId": 2,
+              "seq": 1000,
+              "status": "complete",
+              "streaming": false,
+              "text": "I am researcher, at your service.",
+              "ts": 1789999401,
+              "version": 1
+            },
+            "presentation": "full"
+          },
+          {
+            "item": {
+              "dispatch": {
+                "status": "queued"
+              },
+              "id": "t:call_dm_1",
+              "kind": "bot_dm_out",
+              "message": "Can you draft the announcement?",
+              "origin": "history",
+              "reply": {
+                "rowId": 3,
+                "text": "Draft is ready, I pushed it to the shared folder.",
+                "ts": 1789999460
+              },
+              "seq": 3000,
+              "target": "@writer",
+              "targetHandle": "writer",
+              "toolId": "call_dm_1",
+              "version": 2
+            },
+            "presentation": "collapsed"
+          },
+          {
+            "item": {
+              "id": "r:4",
+              "interim": false,
+              "kind": "assistant",
+              "origin": "history",
+              "rowId": 4,
+              "seq": 4000,
+              "status": "complete",
+              "streaming": false,
+              "text": "Thanks — I will fold that in.",
+              "ts": 1789999461,
+              "version": 1
+            },
+            "presentation": "full"
+          },
+          {
+            "item": {
+              "body": "### Source scan — 4 new items\n\n| Source | Item | Why it matters |\n| --- | --- | --- |\n| docs.example.com | Retry semantics rewritten | Contradicts our own guide |\n| status.example.org | Two incidents, both closed | No action |\n| blog.example.net | Long post on session resume | Worth reading in full |\n| docs.example.com | Changelog for 1.4 | Three flags renamed |\n\nThe first one needs a decision: our guide still documents the old behaviour.\n\nNothing else is urgent. Next scan in four hours.",
+              "id": "r:5",
+              "jobName": "Source scan",
+              "kind": "cron_delivery",
+              "origin": "history",
+              "rowId": 5,
+              "seq": 5000,
+              "shape": "bot_chat",
+              "ts": 1789999520,
+              "version": 1
+            },
+            "presentation": "collapsed"
+          },
+          {
+            "item": {
+              "id": "r:6",
+              "interim": false,
+              "kind": "assistant",
+              "origin": "history",
+              "rowId": 6,
+              "seq": 6000,
+              "status": "complete",
+              "streaming": false,
+              "text": "## Retry semantics: what actually changed\n\nShort version: the backoff is now computed per attempt instead of per call, so a\nlong-running request no longer inherits the delay of the one before it.\n\n| Behaviour | Before | After |\n| --- | --- | --- |\n| First retry delay | 1s | 1s |\n| Second retry delay | 1s | 2s |\n| Ceiling | none | 30s |\n| Jitter | none | ±20% |\n| Budget | per call | per attempt |\n\nWhere this bites us:\n\n- The reconnect loop, which assumed a flat delay.\n  - It reads the delay once and caches it.\n  - Caching it is what makes the ceiling invisible.\n- The upload path, which retries on its own.\n  - Two retry budgets now overlap.\n    - Worst case is eight attempts where we documented three.\n- Nothing in the transcript path: it does not retry.\n\nThe shape we should move to:\n\n```ts\nexport function backoff(attempt: number): number {\n  const base = Math.min(2 ** attempt * 1000, 30_000)\n  // Jitter is not decoration: without it every client in a fleet retries\n  // on the same tick and the recovery looks like a second outage.\n  return base * (0.8 + Math.random() * 0.4)\n}\n\nexport async function withRetries<T>(run: () => Promise<T>, attempts = 3): Promise<T> {\n  for (let attempt = 0; ; attempt += 1) {\n    try {\n      return await run()\n    } catch (error) {\n      if (attempt >= attempts - 1) {\n        throw error\n      }\n\n      await new Promise(resolve => setTimeout(resolve, backoff(attempt)))\n    }\n  }\n}\n```\n\n> The ceiling matters more than the curve. A retry that waits four minutes is\n> indistinguishable from a hang.\n\nI would change the reconnect loop first — it is the one a user can see.",
+              "ts": 1789999540,
+              "version": 1
+            },
+            "presentation": "full"
+          },
+          {
+            "item": {
+              "id": "r:9",
+              "kind": "user",
+              "origin": "history",
+              "rowId": 9,
+              "seq": 7000,
+              "text": "reconcile the ledger",
+              "ts": 1790000000,
+              "turnId": "167f352a430d4fc6830b15073f792bed",
+              "version": 0
+            },
+            "presentation": "full"
+          },
+          {
+            "item": {
+              "id": "a:8000",
+              "interim": false,
+              "kind": "assistant",
+              "origin": "history",
+              "rowId": 10,
+              "seq": 8000,
+              "status": "complete",
+              "streaming": false,
+              "text": "Entry 90 is marked paid. Now the cent on the payables account: first see how it is booked.",
+              "ts": 1790000000,
+              "version": 3
+            },
+            "presentation": "full"
+          },
+          {
+            "item": {
+              "id": "r:12",
+              "interim": false,
+              "kind": "assistant",
+              "origin": "history",
+              "rowId": 12,
+              "seq": 10000,
+              "status": "complete",
+              "streaming": false,
+              "text": "Looking the transfer up through the API myself: the payout of 16-09.",
+              "ts": 1790000000,
+              "version": 0
+            },
+            "presentation": "full"
+          },
+          {
+            "item": {
+              "id": "r:14",
+              "interim": false,
+              "kind": "assistant",
+              "origin": "history",
+              "rowId": 14,
+              "seq": 12000,
+              "status": "complete",
+              "streaming": false,
+              "text": "Everything checks out and nothing was filed.",
+              "ts": 1790000000,
+              "usage": {
+                "input": 12,
+                "output": 34,
+                "total": 46
+              },
+              "version": 1
+            },
+            "presentation": "full"
+          }
+        ],
+        "verbose": [
+          {
+            "item": {
+              "id": "r:1",
+              "kind": "user",
+              "origin": "history",
+              "pending": false,
+              "rowId": 1,
+              "seq": 0,
+              "text": "Introduce yourself in one line.",
+              "ts": 1789999400,
+              "version": 1
+            },
+            "presentation": "full"
+          },
+          {
+            "item": {
+              "id": "r:2",
+              "interim": false,
+              "kind": "assistant",
+              "origin": "history",
+              "reasoning": "Keep it to one line.",
+              "rowId": 2,
+              "seq": 1000,
+              "status": "complete",
+              "streaming": false,
+              "text": "I am researcher, at your service.",
+              "ts": 1789999401,
+              "version": 1
+            },
+            "presentation": "full"
+          },
+          {
+            "item": {
+              "args": {
+                "path": "SOUL.md"
+              },
+              "context": "read_file(SOUL.md)",
+              "id": "t:call_read_researcher",
+              "kind": "tool",
+              "name": "read_file",
+              "origin": "history",
+              "resultKnown": false,
+              "seq": 2000,
+              "status": "complete",
+              "summary": "read_file(SOUL.md)",
+              "toolId": "call_read_researcher",
+              "version": 1
+            },
+            "presentation": "full"
+          },
+          {
+            "item": {
+              "dispatch": {
+                "status": "queued"
+              },
+              "id": "t:call_dm_1",
+              "kind": "bot_dm_out",
+              "message": "Can you draft the announcement?",
+              "origin": "history",
+              "reply": {
+                "rowId": 3,
+                "text": "Draft is ready, I pushed it to the shared folder.",
+                "ts": 1789999460
+              },
+              "seq": 3000,
+              "target": "@writer",
+              "targetHandle": "writer",
+              "toolId": "call_dm_1",
+              "version": 2
+            },
+            "presentation": "collapsed"
+          },
+          {
+            "item": {
+              "id": "r:4",
+              "interim": false,
+              "kind": "assistant",
+              "origin": "history",
+              "rowId": 4,
+              "seq": 4000,
+              "status": "complete",
+              "streaming": false,
+              "text": "Thanks — I will fold that in.",
+              "ts": 1789999461,
+              "version": 1
+            },
+            "presentation": "full"
+          },
+          {
+            "item": {
+              "body": "### Source scan — 4 new items\n\n| Source | Item | Why it matters |\n| --- | --- | --- |\n| docs.example.com | Retry semantics rewritten | Contradicts our own guide |\n| status.example.org | Two incidents, both closed | No action |\n| blog.example.net | Long post on session resume | Worth reading in full |\n| docs.example.com | Changelog for 1.4 | Three flags renamed |\n\nThe first one needs a decision: our guide still documents the old behaviour.\n\nNothing else is urgent. Next scan in four hours.",
+              "id": "r:5",
+              "jobName": "Source scan",
+              "kind": "cron_delivery",
+              "origin": "history",
+              "rowId": 5,
+              "seq": 5000,
+              "shape": "bot_chat",
+              "ts": 1789999520,
+              "version": 1
+            },
+            "presentation": "full"
+          },
+          {
+            "item": {
+              "id": "r:6",
+              "interim": false,
+              "kind": "assistant",
+              "origin": "history",
+              "rowId": 6,
+              "seq": 6000,
+              "status": "complete",
+              "streaming": false,
+              "text": "## Retry semantics: what actually changed\n\nShort version: the backoff is now computed per attempt instead of per call, so a\nlong-running request no longer inherits the delay of the one before it.\n\n| Behaviour | Before | After |\n| --- | --- | --- |\n| First retry delay | 1s | 1s |\n| Second retry delay | 1s | 2s |\n| Ceiling | none | 30s |\n| Jitter | none | ±20% |\n| Budget | per call | per attempt |\n\nWhere this bites us:\n\n- The reconnect loop, which assumed a flat delay.\n  - It reads the delay once and caches it.\n  - Caching it is what makes the ceiling invisible.\n- The upload path, which retries on its own.\n  - Two retry budgets now overlap.\n    - Worst case is eight attempts where we documented three.\n- Nothing in the transcript path: it does not retry.\n\nThe shape we should move to:\n\n```ts\nexport function backoff(attempt: number): number {\n  const base = Math.min(2 ** attempt * 1000, 30_000)\n  // Jitter is not decoration: without it every client in a fleet retries\n  // on the same tick and the recovery looks like a second outage.\n  return base * (0.8 + Math.random() * 0.4)\n}\n\nexport async function withRetries<T>(run: () => Promise<T>, attempts = 3): Promise<T> {\n  for (let attempt = 0; ; attempt += 1) {\n    try {\n      return await run()\n    } catch (error) {\n      if (attempt >= attempts - 1) {\n        throw error\n      }\n\n      await new Promise(resolve => setTimeout(resolve, backoff(attempt)))\n    }\n  }\n}\n```\n\n> The ceiling matters more than the curve. A retry that waits four minutes is\n> indistinguishable from a hang.\n\nI would change the reconnect loop first — it is the one a user can see.",
+              "ts": 1789999540,
+              "version": 1
+            },
+            "presentation": "full"
+          },
+          {
+            "item": {
+              "id": "r:9",
+              "kind": "user",
+              "origin": "history",
+              "rowId": 9,
+              "seq": 7000,
+              "text": "reconcile the ledger",
+              "ts": 1790000000,
+              "turnId": "167f352a430d4fc6830b15073f792bed",
+              "version": 0
+            },
+            "presentation": "full"
+          },
+          {
+            "item": {
+              "id": "a:8000",
+              "interim": false,
+              "kind": "assistant",
+              "origin": "history",
+              "rowId": 10,
+              "seq": 8000,
+              "status": "complete",
+              "streaming": false,
+              "text": "Entry 90 is marked paid. Now the cent on the payables account: first see how it is booked.",
+              "ts": 1790000000,
+              "version": 3
+            },
+            "presentation": "full"
+          },
+          {
+            "item": {
+              "args": {
+                "command": "ledger show 17201"
+              },
+              "callKey": "10/0",
+              "context": "ledger show 17201",
+              "durationS": 0.2,
+              "id": "t:tool-a2fedc71",
+              "isError": false,
+              "kind": "tool",
+              "name": "terminal",
+              "origin": "history",
+              "result": "ok",
+              "resultKnown": true,
+              "rowId": 11,
+              "seq": 9000,
+              "status": "complete",
+              "summary": "ledger show 17201",
+              "toolId": "tool-a2fedc71",
+              "ts": 1790000000,
+              "version": 1
+            },
+            "presentation": "full"
+          },
+          {
+            "item": {
+              "id": "r:12",
+              "interim": false,
+              "kind": "assistant",
+              "origin": "history",
+              "rowId": 12,
+              "seq": 10000,
+              "status": "complete",
+              "streaming": false,
+              "text": "Looking the transfer up through the API myself: the payout of 16-09.",
+              "ts": 1790000000,
+              "version": 0
+            },
+            "presentation": "full"
+          },
+          {
+            "item": {
+              "args": {
+                "command": "payouts get 16-09"
+              },
+              "callKey": "12/0",
+              "context": "payouts get 16-09",
+              "durationS": 0.2,
+              "id": "t:tool-51682e94",
+              "isError": false,
+              "kind": "tool",
+              "name": "terminal",
+              "origin": "history",
+              "result": "ok",
+              "resultKnown": true,
+              "rowId": 13,
+              "seq": 11000,
+              "status": "complete",
+              "summary": "payouts get 16-09",
+              "toolId": "tool-51682e94",
+              "ts": 1790000000,
+              "version": 1
+            },
+            "presentation": "full"
+          },
+          {
+            "item": {
+              "id": "r:14",
+              "interim": false,
+              "kind": "assistant",
+              "origin": "history",
+              "rowId": 14,
+              "seq": 12000,
+              "status": "complete",
+              "streaming": false,
+              "text": "Everything checks out and nothing was filed.",
+              "ts": 1790000000,
+              "usage": {
+                "input": 12,
+                "output": 34,
+                "total": 46
+              },
+              "version": 1
             },
             "presentation": "full"
           }
@@ -1474,12 +2057,13 @@
       }
     }
   ],
-  "description": "Stream a turn live, disconnect while idle, let a second device run a turn on the same session, then reconnect the way the controller recovers: re-resume, replay the missed events through session.events.since, and fold in the REST tail because the roster counts more rows than the chat holds.",
+  "description": "A turn with interim assistant messages on writes two notes, each with its tool call, before it answers. The app goes away right after the first note (`message.interim`), the turn finishes without it, and the chat is opened again from the cache: the cached transcript is painted, history brings every row of the turn, then session.events.since replays every frame after the cached watermark, describing rows that are already on screen. Each note, each tool card and the answer must show once, at every verbosity.",
   "final": {
     "botName": "researcher",
     "byApprovalId": {},
     "byCallKey": {
-      "10/0": "t:tool-a2fedc71"
+      "10/0": "t:tool-a2fedc71",
+      "12/0": "t:tool-51682e94"
     },
     "byDelegationId": {},
     "byProcessId": {},
@@ -1487,19 +2071,20 @@
     "byRowId": {
       "1": "r:1",
       "2": "r:2",
-      "3": "t:call_read_researcher",
       "4": "r:4",
       "5": "r:5",
       "6": "r:6",
-      "9": "o:7000",
+      "9": "r:9",
       "10": "a:8000",
       "11": "t:tool-a2fedc71",
-      "12": "f:10000",
-      "13": "a:11000"
+      "12": "r:12",
+      "13": "t:tool-51682e94",
+      "14": "r:14"
     },
     "byToolId": {
       "call_dm_1": "t:call_dm_1",
       "call_read_researcher": "t:call_read_researcher",
+      "tool-51682e94": "t:tool-51682e94",
       "tool-a2fedc71": "t:tool-a2fedc71"
     },
     "compacting": false,
@@ -1519,80 +2104,32 @@
       "stored_session_id": "stored-researcher-45a8698b",
       "title": "Bot Chat",
       "usage": {
-        "calls": 8,
+        "calls": 14,
         "context_estimated": false,
         "context_max": 200000,
-        "context_percent": 2.6,
+        "context_percent": 3.8,
         "context_source": "model catalog",
-        "context_used": 5160,
-        "input": 2080,
+        "context_used": 7680,
+        "input": 3640,
         "model": "example-provider/example-model",
-        "output": 1280,
-        "total": 3360
+        "output": 2240,
+        "total": 5880
       },
       "version": "0.21.3-fake",
       "yolo": false
     },
     "items": {
-      "a:11000": {
-        "durationS": 7,
-        "id": "a:11000",
-        "interim": false,
-        "kind": "assistant",
-        "origin": "history",
-        "rowId": 13,
-        "seq": 11000,
-        "status": "complete",
-        "streaming": false,
-        "text": "The backoff is a geometric series, so the total wait has a closed form.\n\n$$\n\\sum_{k=0}^{n-1} b \\cdot r^k = b \\cdot \\frac{1 - r^n}{1 - r}\n$$\n\nWith $b = 250$ ms and $r = 2$, five attempts wait $3.75$ s in total.\n\nThat is the same ceiling the guide quotes, and the plan costs $12 a month either way.",
-        "ts": 1790000000,
-        "usage": {
-          "input": 12,
-          "output": 34,
-          "total": 46
-        },
-        "version": 8
-      },
       "a:8000": {
         "id": "a:8000",
         "interim": false,
         "kind": "assistant",
         "origin": "history",
-        "reasoning": "Checked the README.",
         "rowId": 10,
         "seq": 8000,
         "status": "complete",
         "streaming": false,
-        "text": "Looking that up for you.",
+        "text": "Entry 90 is marked paid. Now the cent on the payables account: first see how it is booked.",
         "ts": 1790000000,
-        "usage": {
-          "input": 12,
-          "output": 34,
-          "total": 46
-        },
-        "version": 9
-      },
-      "f:10000": {
-        "id": "f:10000",
-        "kind": "user",
-        "origin": "history",
-        "rowId": 12,
-        "seq": 10000,
-        "text": "explain the math behind the retry budget",
-        "ts": 1790000000,
-        "turnId": "51682e94d1e94ee681680e6d83723f15",
-        "version": 1
-      },
-      "o:7000": {
-        "id": "o:7000",
-        "kind": "user",
-        "origin": "history",
-        "pending": false,
-        "rowId": 9,
-        "seq": 7000,
-        "text": "summarise the notes",
-        "ts": 1790000000,
-        "turnId": "167f352a430d4fc6830b15073f792bed",
         "version": 3
       },
       "r:1": {
@@ -1604,6 +2141,37 @@
         "seq": 0,
         "text": "Introduce yourself in one line.",
         "ts": 1789999400,
+        "version": 1
+      },
+      "r:12": {
+        "id": "r:12",
+        "interim": false,
+        "kind": "assistant",
+        "origin": "history",
+        "rowId": 12,
+        "seq": 10000,
+        "status": "complete",
+        "streaming": false,
+        "text": "Looking the transfer up through the API myself: the payout of 16-09.",
+        "ts": 1790000000,
+        "version": 0
+      },
+      "r:14": {
+        "id": "r:14",
+        "interim": false,
+        "kind": "assistant",
+        "origin": "history",
+        "rowId": 14,
+        "seq": 12000,
+        "status": "complete",
+        "streaming": false,
+        "text": "Everything checks out and nothing was filed.",
+        "ts": 1790000000,
+        "usage": {
+          "input": 12,
+          "output": 34,
+          "total": 46
+        },
         "version": 1
       },
       "r:2": {
@@ -1631,7 +2199,7 @@
         "streaming": false,
         "text": "Thanks — I will fold that in.",
         "ts": 1789999461,
-        "version": 2
+        "version": 1
       },
       "r:5": {
         "body": "### Source scan — 4 new items\n\n| Source | Item | Why it matters |\n| --- | --- | --- |\n| docs.example.com | Retry semantics rewritten | Contradicts our own guide |\n| status.example.org | Two incidents, both closed | No action |\n| blog.example.net | Long post on session resume | Worth reading in full |\n| docs.example.com | Changelog for 1.4 | Three flags renamed |\n\nThe first one needs a decision: our guide still documents the old behaviour.\n\nNothing else is urgent. Next scan in four hours.",
@@ -1658,6 +2226,17 @@
         "ts": 1789999540,
         "version": 1
       },
+      "r:9": {
+        "id": "r:9",
+        "kind": "user",
+        "origin": "history",
+        "rowId": 9,
+        "seq": 7000,
+        "text": "reconcile the ledger",
+        "ts": 1790000000,
+        "turnId": "167f352a430d4fc6830b15073f792bed",
+        "version": 0
+      },
       "t:call_dm_1": {
         "dispatch": {
           "status": "queued"
@@ -1675,7 +2254,7 @@
         "target": "@writer",
         "targetHandle": "writer",
         "toolId": "call_dm_1",
-        "version": 1
+        "version": 2
       },
       "t:call_read_researcher": {
         "args": {
@@ -1687,37 +2266,59 @@
         "name": "read_file",
         "origin": "history",
         "resultKnown": false,
-        "rowId": 3,
         "seq": 2000,
         "status": "complete",
         "summary": "read_file(SOUL.md)",
         "toolId": "call_read_researcher",
         "version": 1
       },
+      "t:tool-51682e94": {
+        "args": {
+          "command": "payouts get 16-09"
+        },
+        "callKey": "12/0",
+        "context": "payouts get 16-09",
+        "durationS": 0.2,
+        "id": "t:tool-51682e94",
+        "isError": false,
+        "kind": "tool",
+        "name": "terminal",
+        "origin": "history",
+        "result": "ok",
+        "resultKnown": true,
+        "rowId": 13,
+        "seq": 11000,
+        "status": "complete",
+        "summary": "payouts get 16-09",
+        "toolId": "tool-51682e94",
+        "ts": 1790000000,
+        "version": 1
+      },
       "t:tool-a2fedc71": {
         "args": {
-          "path": "README.md"
+          "command": "ledger show 17201"
         },
         "callKey": "10/0",
-        "context": "read README.md",
+        "context": "ledger show 17201",
         "durationS": 0.2,
         "id": "t:tool-a2fedc71",
         "isError": false,
         "kind": "tool",
-        "name": "read_file",
+        "name": "terminal",
         "origin": "history",
-        "result": "# Hermie",
+        "result": "ok",
         "resultKnown": true,
         "rowId": 11,
         "seq": 9000,
         "status": "complete",
-        "summary": "read README.md",
+        "summary": "ledger show 17201",
         "toolId": "tool-a2fedc71",
         "ts": 1790000000,
-        "version": 3
+        "version": 1
       }
     },
-    "lastSeq": 18,
+    "lastSeenRowId": 10,
+    "lastSeq": 12,
     "lastSeqSessionId": "runtime-4a31c816",
     "order": [
       "r:1",
@@ -1727,11 +2328,12 @@
       "r:4",
       "r:5",
       "r:6",
-      "o:7000",
+      "r:9",
       "a:8000",
       "t:tool-a2fedc71",
-      "f:10000",
-      "a:11000"
+      "r:12",
+      "t:tool-51682e94",
+      "r:14"
     ],
     "resolvedSessionId": "stored-researcher-45a8698b",
     "runtimeSessionId": "runtime-4a31c816",
@@ -1741,7 +2343,7 @@
       "active": false,
       "interrupted": false,
       "local": false,
-      "nextSeq": 12000
+      "nextSeq": 15000
     },
     "unreadCount": 0,
     "usage": {
@@ -2025,12 +2627,12 @@
         "method": "event",
         "params": {
           "payload": {
-            "text": "Checking the "
+            "text": "Entry 90 is marked paid. Now the cent on the payables account: first see how it is booked."
           },
           "seq": 2,
           "session_id": "runtime-4a31c816",
           "turn_id": "167f352a430d4fc6830b15073f792bed",
-          "type": "reasoning.delta"
+          "type": "message.delta"
         }
       }
     },
@@ -2041,169 +2643,14 @@
         "method": "event",
         "params": {
           "payload": {
-            "text": "README first."
+            "already_streamed": true,
+            "row_id": 10,
+            "text": "Entry 90 is marked paid. Now the cent on the payables account: first see how it is booked."
           },
           "seq": 3,
           "session_id": "runtime-4a31c816",
           "turn_id": "167f352a430d4fc6830b15073f792bed",
-          "type": "reasoning.delta"
-        }
-      }
-    },
-    {
-      "connection": 1,
-      "frame": {
-        "jsonrpc": "2.0",
-        "method": "event",
-        "params": {
-          "payload": {
-            "text": "Checked the README."
-          },
-          "seq": 4,
-          "session_id": "runtime-4a31c816",
-          "turn_id": "167f352a430d4fc6830b15073f792bed",
-          "type": "reasoning.available"
-        }
-      }
-    },
-    {
-      "connection": 1,
-      "frame": {
-        "jsonrpc": "2.0",
-        "method": "event",
-        "params": {
-          "payload": {
-            "text": "Looking that up"
-          },
-          "seq": 5,
-          "session_id": "runtime-4a31c816",
-          "turn_id": "167f352a430d4fc6830b15073f792bed",
-          "type": "message.delta"
-        }
-      }
-    },
-    {
-      "connection": 1,
-      "frame": {
-        "jsonrpc": "2.0",
-        "method": "event",
-        "params": {
-          "payload": {
-            "text": " for you."
-          },
-          "seq": 6,
-          "session_id": "runtime-4a31c816",
-          "turn_id": "167f352a430d4fc6830b15073f792bed",
-          "type": "message.delta"
-        }
-      }
-    },
-    {
-      "connection": 1,
-      "frame": {
-        "jsonrpc": "2.0",
-        "method": "event",
-        "params": {
-          "payload": {
-            "name": "read_file"
-          },
-          "seq": 7,
-          "session_id": "runtime-4a31c816",
-          "turn_id": "167f352a430d4fc6830b15073f792bed",
-          "type": "tool.generating"
-        }
-      }
-    },
-    {
-      "connection": 1,
-      "frame": {
-        "jsonrpc": "2.0",
-        "method": "event",
-        "params": {
-          "payload": {
-            "args": {
-              "path": "README.md"
-            },
-            "call_index": 0,
-            "call_row_id": 10,
-            "context": "read README.md",
-            "name": "read_file",
-            "tool_id": "tool-a2fedc71"
-          },
-          "seq": 8,
-          "session_id": "runtime-4a31c816",
-          "turn_id": "167f352a430d4fc6830b15073f792bed",
-          "type": "tool.start"
-        }
-      }
-    },
-    {
-      "connection": 1,
-      "frame": {
-        "jsonrpc": "2.0",
-        "method": "event",
-        "params": {
-          "payload": {
-            "args": {
-              "path": "README.md"
-            },
-            "call_index": 0,
-            "call_row_id": 10,
-            "duration_s": 0.2,
-            "name": "read_file",
-            "result": "# Hermie",
-            "row_id": 11,
-            "summary": "read README.md",
-            "tool_id": "tool-a2fedc71"
-          },
-          "seq": 9,
-          "session_id": "runtime-4a31c816",
-          "turn_id": "167f352a430d4fc6830b15073f792bed",
-          "type": "tool.complete"
-        }
-      }
-    },
-    {
-      "connection": 1,
-      "frame": {
-        "jsonrpc": "2.0",
-        "method": "event",
-        "params": {
-          "payload": {
-            "persisted_turn": {
-              "complete": true,
-              "final_assistant_row_id": 10,
-              "row_ids": [
-                9,
-                10,
-                11
-              ],
-              "user_row_id": 9
-            },
-            "row_id": 10,
-            "status": "ok",
-            "text": "Looking that up for you.",
-            "usage": {
-              "input": 12,
-              "output": 34,
-              "total": 46
-            }
-          },
-          "seq": 10,
-          "session_id": "runtime-4a31c816",
-          "turn_id": "167f352a430d4fc6830b15073f792bed",
-          "type": "message.complete"
-        }
-      }
-    },
-    {
-      "connection": 1,
-      "frame": {
-        "jsonrpc": "2.0",
-        "method": "event",
-        "params": {
-          "payload": {},
-          "type": "sessions.changed"
+          "type": "message.interim"
         }
       }
     },
@@ -2235,7 +2682,7 @@
               "canonical_session": {
                 "id": "stored-researcher-45a8698b",
                 "last_active": 1789999940,
-                "message_count": 13,
+                "message_count": 14,
                 "preview": "## Retry semantics: what actually changed\n\nShort version: the backoff is now computed per attempt instead of per call, so a\nlong-running request no longer inherits the delay of the one before it.\n\n| Behaviour | Before | After |\n| --- | --- | --- |\n| First retry delay | 1s | 1s |\n| Second retry delay | 1s | 2s |\n| Ceiling | none | 30s |\n| Jitter | none | ±20% |\n| Budget | per call | per attempt |\n\nWhere this bites us:\n\n- The reconnect loop, which assumed a flat delay.\n  - It reads the delay once and caches it.\n  - Caching it is what makes the ceiling invisible.\n- The upload path, which retries on its own.\n  - Two retry budgets now overlap.\n    - Worst case is eight attempts where we documented three.\n- Nothing in the transcript path: it does not retry.\n\nThe shape we should move to:\n\n```ts\nexport function backoff(attempt: number): number {\n  const base = Math.min(2 ** attempt * 1000, 30_000)\n  // Jitter is not decoration: without it every client in a fleet retries\n  // on the same tick and the recovery looks like a second outage.\n  return base * (0.8 + Math.random() * 0.4)\n}\n\nexport async function withRetries<T>(run: () => Promise<T>, attempts = 3): Promise<T> {\n  for (let attempt = 0; ; attempt += 1) {\n    try {\n      return await run()\n    } catch (error) {\n      if (attempt >= attempts - 1) {\n        throw error\n      }\n\n      await new Promise(resolve => setTimeout(resolve, backoff(attempt)))\n    }\n  }\n}\n```\n\n> The ceiling matters more than the curve. A retry that waits four minutes is\n> indistinguishable from a hang.\n\nI would change the reconnect loop first — it is the one a user can see.",
                 "resolved_id": "stored-researcher-45a8698b",
                 "title": "Bot Chat"
@@ -2341,21 +2788,21 @@
             "stored_session_id": "stored-researcher-45a8698b",
             "title": "Bot Chat",
             "usage": {
-              "calls": 13,
+              "calls": 14,
               "context_estimated": false,
               "context_max": 200000,
-              "context_percent": 3.6,
+              "context_percent": 3.8,
               "context_source": "model catalog",
-              "context_used": 7260,
-              "input": 3380,
+              "context_used": 7680,
+              "input": 3640,
               "model": "example-provider/example-model",
-              "output": 2080,
-              "total": 5460
+              "output": 2240,
+              "total": 5880
             },
             "version": "0.21.3-fake",
             "yolo": false
           },
-          "message_count": 13,
+          "message_count": 14,
           "messages": [],
           "messages_omitted": true,
           "session_id": "runtime-4a31c816",
@@ -2369,230 +2816,282 @@
         "id": "c-8",
         "jsonrpc": "2.0",
         "result": {
-          "count": 8,
+          "count": 14,
+          "messages": [
+            {
+              "role": "user",
+              "row_id": 1,
+              "text": "Introduce yourself in one line.",
+              "timestamp": 1789999400
+            },
+            {
+              "reasoning": "Keep it to one line.",
+              "role": "assistant",
+              "row_id": 2,
+              "text": "I am researcher, at your service.",
+              "timestamp": 1789999401
+            },
+            {
+              "args": {
+                "path": "SOUL.md"
+              },
+              "context": "read_file(SOUL.md)",
+              "name": "read_file",
+              "role": "tool",
+              "tool_id": "call_read_researcher"
+            },
+            {
+              "args": {
+                "message": "Can you draft the announcement?",
+                "target": "@writer"
+              },
+              "context": "message_agent(writer)",
+              "name": "message_agent",
+              "role": "tool",
+              "tool_id": "call_dm_1"
+            },
+            {
+              "display_kind": "process_complete",
+              "display_metadata": {
+                "display_text": "Background Process Finished: bot_mode_dm.py"
+              },
+              "role": "user",
+              "row_id": 3,
+              "text": "[IMPORTANT: Background process proc-2f9c completed (exit code 0).\nCommand: /usr/bin/python3 /opt/hermes/tools/bot_mode_dm.py --run-delivery query-file /root/.hermes/dm/2f9c.json hermes -p writer chat -c \"Bot Chat\" -Q -q @/root/.hermes/dm/2f9c.json\nOutput:\nMessage from 🤖 Writer (@writer): Draft is ready, I pushed it to the shared folder.]",
+              "timestamp": 1789999460
+            },
+            {
+              "role": "assistant",
+              "row_id": 4,
+              "text": "Thanks — I will fold that in.",
+              "timestamp": 1789999461
+            },
+            {
+              "role": "user",
+              "row_id": 5,
+              "text": "[Cronjob \"Source scan\" output — scheduled job, not the user. Review it, act on anything that needs action, and summarize for the chat.]\n\n### Source scan — 4 new items\n\n| Source | Item | Why it matters |\n| --- | --- | --- |\n| docs.example.com | Retry semantics rewritten | Contradicts our own guide |\n| status.example.org | Two incidents, both closed | No action |\n| blog.example.net | Long post on session resume | Worth reading in full |\n| docs.example.com | Changelog for 1.4 | Three flags renamed |\n\nThe first one needs a decision: our guide still documents the old behaviour.\n\nNothing else is urgent. Next scan in four hours.",
+              "timestamp": 1789999520
+            },
+            {
+              "role": "assistant",
+              "row_id": 6,
+              "text": "## Retry semantics: what actually changed\n\nShort version: the backoff is now computed per attempt instead of per call, so a\nlong-running request no longer inherits the delay of the one before it.\n\n| Behaviour | Before | After |\n| --- | --- | --- |\n| First retry delay | 1s | 1s |\n| Second retry delay | 1s | 2s |\n| Ceiling | none | 30s |\n| Jitter | none | ±20% |\n| Budget | per call | per attempt |\n\nWhere this bites us:\n\n- The reconnect loop, which assumed a flat delay.\n  - It reads the delay once and caches it.\n  - Caching it is what makes the ceiling invisible.\n- The upload path, which retries on its own.\n  - Two retry budgets now overlap.\n    - Worst case is eight attempts where we documented three.\n- Nothing in the transcript path: it does not retry.\n\nThe shape we should move to:\n\n```ts\nexport function backoff(attempt: number): number {\n  const base = Math.min(2 ** attempt * 1000, 30_000)\n  // Jitter is not decoration: without it every client in a fleet retries\n  // on the same tick and the recovery looks like a second outage.\n  return base * (0.8 + Math.random() * 0.4)\n}\n\nexport async function withRetries<T>(run: () => Promise<T>, attempts = 3): Promise<T> {\n  for (let attempt = 0; ; attempt += 1) {\n    try {\n      return await run()\n    } catch (error) {\n      if (attempt >= attempts - 1) {\n        throw error\n      }\n\n      await new Promise(resolve => setTimeout(resolve, backoff(attempt)))\n    }\n  }\n}\n```\n\n> The ceiling matters more than the curve. A retry that waits four minutes is\n> indistinguishable from a hang.\n\nI would change the reconnect loop first — it is the one a user can see.",
+              "timestamp": 1789999540
+            },
+            {
+              "display_metadata": {
+                "turn_id": "167f352a430d4fc6830b15073f792bed"
+              },
+              "role": "user",
+              "row_id": 9,
+              "text": "reconcile the ledger",
+              "timestamp": 1790000000
+            },
+            {
+              "role": "assistant",
+              "row_id": 10,
+              "text": "Entry 90 is marked paid. Now the cent on the payables account: first see how it is booked.",
+              "timestamp": 1790000000
+            },
+            {
+              "args": {
+                "command": "ledger show 17201"
+              },
+              "call_index": 0,
+              "call_row_id": 10,
+              "context": "ledger show 17201",
+              "name": "terminal",
+              "role": "tool",
+              "row_id": 11,
+              "timestamp": 1790000000,
+              "tool_call_id": "tool-a2fedc71"
+            },
+            {
+              "role": "assistant",
+              "row_id": 12,
+              "text": "Looking the transfer up through the API myself: the payout of 16-09.",
+              "timestamp": 1790000000
+            },
+            {
+              "args": {
+                "command": "payouts get 16-09"
+              },
+              "call_index": 0,
+              "call_row_id": 12,
+              "context": "payouts get 16-09",
+              "name": "terminal",
+              "role": "tool",
+              "row_id": 13,
+              "timestamp": 1790000000,
+              "tool_call_id": "tool-51682e94"
+            },
+            {
+              "role": "assistant",
+              "row_id": 14,
+              "text": "Everything checks out and nothing was filed.",
+              "timestamp": 1790000000
+            }
+          ]
+        }
+      }
+    },
+    {
+      "connection": 2,
+      "frame": {
+        "id": "c-9",
+        "jsonrpc": "2.0",
+        "result": {
+          "count": 9,
           "epoch": "715709ff-5bcb-42ea-855b-efde4961226d",
           "events": [
             {
-              "payload": {},
+              "payload": {
+                "args": {
+                  "command": "ledger show 17201"
+                },
+                "call_index": 0,
+                "call_row_id": 10,
+                "context": "ledger show 17201",
+                "name": "terminal",
+                "tool_id": "tool-a2fedc71"
+              },
+              "seq": 4,
+              "session_id": "runtime-4a31c816",
+              "turn_id": "167f352a430d4fc6830b15073f792bed",
+              "type": "tool.start"
+            },
+            {
+              "payload": {
+                "args": {
+                  "command": "ledger show 17201"
+                },
+                "call_index": 0,
+                "call_row_id": 10,
+                "duration_s": 0.2,
+                "name": "terminal",
+                "result": "ok",
+                "row_id": 11,
+                "summary": "ledger show 17201",
+                "tool_id": "tool-a2fedc71"
+              },
+              "seq": 5,
+              "session_id": "runtime-4a31c816",
+              "turn_id": "167f352a430d4fc6830b15073f792bed",
+              "type": "tool.complete"
+            },
+            {
+              "payload": {
+                "text": "Looking the transfer up through the API myself: the payout of 16-09."
+              },
+              "seq": 6,
+              "session_id": "runtime-4a31c816",
+              "turn_id": "167f352a430d4fc6830b15073f792bed",
+              "type": "message.delta"
+            },
+            {
+              "payload": {
+                "already_streamed": true,
+                "row_id": 12,
+                "text": "Looking the transfer up through the API myself: the payout of 16-09."
+              },
+              "seq": 7,
+              "session_id": "runtime-4a31c816",
+              "turn_id": "167f352a430d4fc6830b15073f792bed",
+              "type": "message.interim"
+            },
+            {
+              "payload": {
+                "args": {
+                  "command": "payouts get 16-09"
+                },
+                "call_index": 0,
+                "call_row_id": 12,
+                "context": "payouts get 16-09",
+                "name": "terminal",
+                "tool_id": "tool-51682e94"
+              },
+              "seq": 8,
+              "session_id": "runtime-4a31c816",
+              "turn_id": "167f352a430d4fc6830b15073f792bed",
+              "type": "tool.start"
+            },
+            {
+              "payload": {
+                "args": {
+                  "command": "payouts get 16-09"
+                },
+                "call_index": 0,
+                "call_row_id": 12,
+                "duration_s": 0.2,
+                "name": "terminal",
+                "result": "ok",
+                "row_id": 13,
+                "summary": "payouts get 16-09",
+                "tool_id": "tool-51682e94"
+              },
+              "seq": 9,
+              "session_id": "runtime-4a31c816",
+              "turn_id": "167f352a430d4fc6830b15073f792bed",
+              "type": "tool.complete"
+            },
+            {
+              "payload": {
+                "text": "Everything checks out "
+              },
+              "seq": 10,
+              "session_id": "runtime-4a31c816",
+              "turn_id": "167f352a430d4fc6830b15073f792bed",
+              "type": "message.delta"
+            },
+            {
+              "payload": {
+                "text": "and nothing was filed."
+              },
               "seq": 11,
               "session_id": "runtime-4a31c816",
-              "turn_id": "51682e94d1e94ee681680e6d83723f15",
-              "type": "message.start"
-            },
-            {
-              "payload": {
-                "text": "The backoff is a geometric series, so the total wait has a closed form.\n\n"
-              },
-              "seq": 12,
-              "session_id": "runtime-4a31c816",
-              "turn_id": "51682e94d1e94ee681680e6d83723f15",
-              "type": "message.delta"
-            },
-            {
-              "payload": {
-                "text": "$$\n"
-              },
-              "seq": 13,
-              "session_id": "runtime-4a31c816",
-              "turn_id": "51682e94d1e94ee681680e6d83723f15",
-              "type": "message.delta"
-            },
-            {
-              "payload": {
-                "text": "\\sum_{k=0}^{n-1} b \\cdot r^k = b \\cdot \\frac{1 - r^n}{1 - r}\n"
-              },
-              "seq": 14,
-              "session_id": "runtime-4a31c816",
-              "turn_id": "51682e94d1e94ee681680e6d83723f15",
-              "type": "message.delta"
-            },
-            {
-              "payload": {
-                "text": "$$\n\n"
-              },
-              "seq": 15,
-              "session_id": "runtime-4a31c816",
-              "turn_id": "51682e94d1e94ee681680e6d83723f15",
-              "type": "message.delta"
-            },
-            {
-              "payload": {
-                "text": "With $b = 250$ ms and $r = 2$, five attempts wait $3.75$ s in total.\n\n"
-              },
-              "seq": 16,
-              "session_id": "runtime-4a31c816",
-              "turn_id": "51682e94d1e94ee681680e6d83723f15",
-              "type": "message.delta"
-            },
-            {
-              "payload": {
-                "text": "That is the same ceiling the guide quotes, and the plan costs $12 a month either way."
-              },
-              "seq": 17,
-              "session_id": "runtime-4a31c816",
-              "turn_id": "51682e94d1e94ee681680e6d83723f15",
+              "turn_id": "167f352a430d4fc6830b15073f792bed",
               "type": "message.delta"
             },
             {
               "payload": {
                 "persisted_turn": {
                   "complete": true,
-                  "final_assistant_row_id": 13,
+                  "final_assistant_row_id": 14,
                   "row_ids": [
+                    9,
+                    10,
+                    11,
                     12,
-                    13
+                    13,
+                    14
                   ],
-                  "user_row_id": 12
+                  "user_row_id": 9
                 },
-                "row_id": 13,
+                "row_id": 14,
                 "status": "ok",
-                "text": "The backoff is a geometric series, so the total wait has a closed form.\n\n$$\n\\sum_{k=0}^{n-1} b \\cdot r^k = b \\cdot \\frac{1 - r^n}{1 - r}\n$$\n\nWith $b = 250$ ms and $r = 2$, five attempts wait $3.75$ s in total.\n\nThat is the same ceiling the guide quotes, and the plan costs $12 a month either way.",
+                "text": "Everything checks out and nothing was filed.",
                 "usage": {
                   "input": 12,
                   "output": 34,
                   "total": 46
                 }
               },
-              "seq": 18,
+              "seq": 12,
               "session_id": "runtime-4a31c816",
-              "turn_id": "51682e94d1e94ee681680e6d83723f15",
+              "turn_id": "167f352a430d4fc6830b15073f792bed",
               "type": "message.complete"
             }
           ],
-          "latest_seq": 18,
+          "latest_seq": 12,
           "open_requests": [],
           "truncated": false
         }
-      }
-    },
-    {
-      "connection": "rest",
-      "frame": {
-        "messages": [
-          {
-            "content": "Introduce yourself in one line.",
-            "id": 1,
-            "role": "user",
-            "timestamp": 1789999400
-          },
-          {
-            "content": "I am researcher, at your service.",
-            "id": 2,
-            "reasoning": "Keep it to one line.",
-            "role": "assistant",
-            "timestamp": 1789999401
-          },
-          {
-            "args": {
-              "path": "SOUL.md"
-            },
-            "content": "",
-            "context": "read_file(SOUL.md)",
-            "id": 3,
-            "name": "read_file",
-            "role": "tool",
-            "tool_id": "call_read_researcher"
-          },
-          {
-            "args": {
-              "message": "Can you draft the announcement?",
-              "target": "@writer"
-            },
-            "content": "",
-            "context": "message_agent(writer)",
-            "id": 4,
-            "name": "message_agent",
-            "role": "tool",
-            "tool_id": "call_dm_1"
-          },
-          {
-            "content": "[IMPORTANT: Background process proc-2f9c completed (exit code 0).\nCommand: /usr/bin/python3 /opt/hermes/tools/bot_mode_dm.py --run-delivery query-file /root/.hermes/dm/2f9c.json hermes -p writer chat -c \"Bot Chat\" -Q -q @/root/.hermes/dm/2f9c.json\nOutput:\nMessage from 🤖 Writer (@writer): Draft is ready, I pushed it to the shared folder.]",
-            "display_content": "[IMPORTANT: Background process proc-2f9c completed (exit code 0).\nCommand: /usr/bin/python3 /opt/hermes/tools/bot_mode_dm.py --run-delivery query-file /root/.hermes/dm/2f9c.json hermes -p writer chat -c \"Bot Chat\" -Q -q @/root/.hermes/dm/2f9c.json\nOutput:\nMessage from 🤖 Writer (@writer): Draft is ready, I pushed it to the shared folder.]",
-            "display_kind": "process_complete",
-            "display_metadata": {
-              "display_text": "Background Process Finished: bot_mode_dm.py"
-            },
-            "id": 3,
-            "role": "user",
-            "timestamp": 1789999460
-          },
-          {
-            "content": "Thanks — I will fold that in.",
-            "id": 4,
-            "role": "assistant",
-            "timestamp": 1789999461
-          },
-          {
-            "content": "[Cronjob \"Source scan\" output — scheduled job, not the user. Review it, act on anything that needs action, and summarize for the chat.]\n\n### Source scan — 4 new items\n\n| Source | Item | Why it matters |\n| --- | --- | --- |\n| docs.example.com | Retry semantics rewritten | Contradicts our own guide |\n| status.example.org | Two incidents, both closed | No action |\n| blog.example.net | Long post on session resume | Worth reading in full |\n| docs.example.com | Changelog for 1.4 | Three flags renamed |\n\nThe first one needs a decision: our guide still documents the old behaviour.\n\nNothing else is urgent. Next scan in four hours.",
-            "id": 5,
-            "role": "user",
-            "timestamp": 1789999520
-          },
-          {
-            "content": "## Retry semantics: what actually changed\n\nShort version: the backoff is now computed per attempt instead of per call, so a\nlong-running request no longer inherits the delay of the one before it.\n\n| Behaviour | Before | After |\n| --- | --- | --- |\n| First retry delay | 1s | 1s |\n| Second retry delay | 1s | 2s |\n| Ceiling | none | 30s |\n| Jitter | none | ±20% |\n| Budget | per call | per attempt |\n\nWhere this bites us:\n\n- The reconnect loop, which assumed a flat delay.\n  - It reads the delay once and caches it.\n  - Caching it is what makes the ceiling invisible.\n- The upload path, which retries on its own.\n  - Two retry budgets now overlap.\n    - Worst case is eight attempts where we documented three.\n- Nothing in the transcript path: it does not retry.\n\nThe shape we should move to:\n\n```ts\nexport function backoff(attempt: number): number {\n  const base = Math.min(2 ** attempt * 1000, 30_000)\n  // Jitter is not decoration: without it every client in a fleet retries\n  // on the same tick and the recovery looks like a second outage.\n  return base * (0.8 + Math.random() * 0.4)\n}\n\nexport async function withRetries<T>(run: () => Promise<T>, attempts = 3): Promise<T> {\n  for (let attempt = 0; ; attempt += 1) {\n    try {\n      return await run()\n    } catch (error) {\n      if (attempt >= attempts - 1) {\n        throw error\n      }\n\n      await new Promise(resolve => setTimeout(resolve, backoff(attempt)))\n    }\n  }\n}\n```\n\n> The ceiling matters more than the curve. A retry that waits four minutes is\n> indistinguishable from a hang.\n\nI would change the reconnect loop first — it is the one a user can see.",
-            "id": 6,
-            "role": "assistant",
-            "timestamp": 1789999540
-          },
-          {
-            "content": "summarise the notes",
-            "display_metadata": {
-              "turn_id": "167f352a430d4fc6830b15073f792bed"
-            },
-            "id": 9,
-            "role": "user",
-            "timestamp": 1790000000
-          },
-          {
-            "content": "Looking that up for you.",
-            "id": 10,
-            "role": "assistant",
-            "timestamp": 1790000000
-          },
-          {
-            "args": {
-              "path": "README.md"
-            },
-            "call_index": 0,
-            "call_row_id": 10,
-            "content": "",
-            "context": "read README.md",
-            "id": 11,
-            "name": "read_file",
-            "role": "tool",
-            "timestamp": 1790000000,
-            "tool_call_id": "tool-a2fedc71"
-          },
-          {
-            "content": "explain the math behind the retry budget",
-            "display_metadata": {
-              "turn_id": "51682e94d1e94ee681680e6d83723f15"
-            },
-            "id": 12,
-            "role": "user",
-            "timestamp": 1790000000
-          },
-          {
-            "content": "The backoff is a geometric series, so the total wait has a closed form.\n\n$$\n\\sum_{k=0}^{n-1} b \\cdot r^k = b \\cdot \\frac{1 - r^n}{1 - r}\n$$\n\nWith $b = 250$ ms and $r = 2$, five attempts wait $3.75$ s in total.\n\nThat is the same ceiling the guide quotes, and the plan costs $12 a month either way.",
-            "id": 13,
-            "role": "assistant",
-            "timestamp": 1790000000
-          }
-        ],
-        "pagination": {
-          "limit": 30,
-          "offset": 0,
-          "order": "latest",
-          "returned": 13
-        },
-        "profile": "researcher",
-        "session_id": "stored-researcher-45a8698b"
       }
     }
   ],
   "pinnedNow": 1790000000000,
   "profile": "researcher",
-  "scenario": "reconnect-replay",
+  "scenario": "interim-reopen",
   "stepMs": 1000,
   "steps": [
     {
@@ -2789,7 +3288,7 @@
     },
     {
       "args": [
-        "summarise the notes",
+        "reconcile the ledger",
         null,
         1790000006000
       ],
@@ -2823,12 +3322,12 @@
       "args": [
         {
           "payload": {
-            "text": "Checking the "
+            "text": "Entry 90 is marked paid. Now the cent on the payables account: first see how it is booked."
           },
           "seq": 2,
           "session_id": "runtime-4a31c816",
           "turn_id": "167f352a430d4fc6830b15073f792bed",
-          "type": "reasoning.delta"
+          "type": "message.delta"
         },
         1790000009000
       ],
@@ -2839,12 +3338,14 @@
       "args": [
         {
           "payload": {
-            "text": "README first."
+            "already_streamed": true,
+            "row_id": 10,
+            "text": "Entry 90 is marked paid. Now the cent on the payables account: first see how it is booked."
           },
           "seq": 3,
           "session_id": "runtime-4a31c816",
           "turn_id": "167f352a430d4fc6830b15073f792bed",
-          "type": "reasoning.delta"
+          "type": "message.interim"
         },
         1790000010000
       ],
@@ -2853,149 +3354,170 @@
     },
     {
       "args": [
-        {
-          "payload": {
-            "text": "Checked the README."
-          },
-          "seq": 4,
-          "session_id": "runtime-4a31c816",
-          "turn_id": "167f352a430d4fc6830b15073f792bed",
-          "type": "reasoning.available"
-        },
-        1790000011000
+        "researcher",
+        "stored-researcher-45a8698b",
+        "stored-researcher-45a8698b"
       ],
-      "frame": 9,
-      "op": "applyEvent"
+      "op": "createChatState"
     },
     {
       "args": [
         {
-          "payload": {
-            "text": "Looking that up"
+          "byApprovalId": {},
+          "byCallKey": {},
+          "byDelegationId": {},
+          "byProcessId": {},
+          "byRequestId": {},
+          "byRowId": {
+            "1": "r:1",
+            "2": "r:2",
+            "4": "r:4",
+            "5": "r:5",
+            "6": "r:6",
+            "10": "a:8000"
           },
-          "seq": 5,
-          "session_id": "runtime-4a31c816",
-          "turn_id": "167f352a430d4fc6830b15073f792bed",
-          "type": "message.delta"
-        },
-        1790000012000
-      ],
-      "frame": 10,
-      "op": "applyEvent"
-    },
-    {
-      "args": [
-        {
-          "payload": {
-            "text": " for you."
+          "byToolId": {
+            "call_dm_1": "t:call_dm_1",
+            "call_read_researcher": "t:call_read_researcher"
           },
-          "seq": 6,
-          "session_id": "runtime-4a31c816",
-          "turn_id": "167f352a430d4fc6830b15073f792bed",
-          "type": "message.delta"
-        },
-        1790000013000
-      ],
-      "frame": 11,
-      "op": "applyEvent"
-    },
-    {
-      "args": [
-        {
-          "payload": {
-            "name": "read_file"
-          },
-          "seq": 7,
-          "session_id": "runtime-4a31c816",
-          "turn_id": "167f352a430d4fc6830b15073f792bed",
-          "type": "tool.generating"
-        },
-        1790000014000
-      ],
-      "frame": 12,
-      "op": "applyEvent"
-    },
-    {
-      "args": [
-        {
-          "payload": {
-            "args": {
-              "path": "README.md"
+          "draft": "",
+          "epoch": "715709ff-5bcb-42ea-855b-efde4961226d",
+          "hydration": "cached",
+          "items": {
+            "a:8000": {
+              "id": "a:8000",
+              "interim": true,
+              "kind": "assistant",
+              "origin": "live",
+              "rowId": 10,
+              "seq": 7000,
+              "streaming": false,
+              "text": "Entry 90 is marked paid. Now the cent on the payables account: first see how it is booked.",
+              "ts": 1790000009,
+              "version": 2
             },
-            "call_index": 0,
-            "call_row_id": 10,
-            "context": "read README.md",
-            "name": "read_file",
-            "tool_id": "tool-a2fedc71"
-          },
-          "seq": 8,
-          "session_id": "runtime-4a31c816",
-          "turn_id": "167f352a430d4fc6830b15073f792bed",
-          "type": "tool.start"
-        },
-        1790000015000
-      ],
-      "frame": 13,
-      "op": "applyEvent"
-    },
-    {
-      "args": [
-        {
-          "payload": {
-            "args": {
-              "path": "README.md"
+            "r:1": {
+              "id": "r:1",
+              "kind": "user",
+              "origin": "history",
+              "rowId": 1,
+              "seq": 0,
+              "text": "Introduce yourself in one line.",
+              "ts": 1789999400,
+              "version": 0
             },
-            "call_index": 0,
-            "call_row_id": 10,
-            "duration_s": 0.2,
-            "name": "read_file",
-            "result": "# Hermie",
-            "row_id": 11,
-            "summary": "read README.md",
-            "tool_id": "tool-a2fedc71"
-          },
-          "seq": 9,
-          "session_id": "runtime-4a31c816",
-          "turn_id": "167f352a430d4fc6830b15073f792bed",
-          "type": "tool.complete"
-        },
-        1790000016000
-      ],
-      "frame": 14,
-      "op": "applyEvent"
-    },
-    {
-      "args": [
-        {
-          "payload": {
-            "persisted_turn": {
-              "complete": true,
-              "final_assistant_row_id": 10,
-              "row_ids": [
-                9,
-                10,
-                11
-              ],
-              "user_row_id": 9
+            "r:2": {
+              "id": "r:2",
+              "interim": false,
+              "kind": "assistant",
+              "origin": "history",
+              "reasoning": "Keep it to one line.",
+              "rowId": 2,
+              "seq": 1000,
+              "status": "complete",
+              "streaming": false,
+              "text": "I am researcher, at your service.",
+              "ts": 1789999401,
+              "version": 0
             },
-            "row_id": 10,
-            "status": "ok",
-            "text": "Looking that up for you.",
-            "usage": {
-              "input": 12,
-              "output": 34,
-              "total": 46
+            "r:4": {
+              "id": "r:4",
+              "interim": false,
+              "kind": "assistant",
+              "origin": "history",
+              "rowId": 4,
+              "seq": 4000,
+              "status": "complete",
+              "streaming": false,
+              "text": "Thanks — I will fold that in.",
+              "ts": 1789999461,
+              "version": 0
+            },
+            "r:5": {
+              "body": "### Source scan — 4 new items\n\n| Source | Item | Why it matters |\n| --- | --- | --- |\n| docs.example.com | Retry semantics rewritten | Contradicts our own guide |\n| status.example.org | Two incidents, both closed | No action |\n| blog.example.net | Long post on session resume | Worth reading in full |\n| docs.example.com | Changelog for 1.4 | Three flags renamed |\n\nThe first one needs a decision: our guide still documents the old behaviour.\n\nNothing else is urgent. Next scan in four hours.",
+              "id": "r:5",
+              "jobName": "Source scan",
+              "kind": "cron_delivery",
+              "origin": "history",
+              "rowId": 5,
+              "seq": 5000,
+              "shape": "bot_chat",
+              "ts": 1789999520,
+              "version": 0
+            },
+            "r:6": {
+              "id": "r:6",
+              "interim": false,
+              "kind": "assistant",
+              "origin": "history",
+              "rowId": 6,
+              "seq": 6000,
+              "status": "complete",
+              "streaming": false,
+              "text": "## Retry semantics: what actually changed\n\nShort version: the backoff is now computed per attempt instead of per call, so a\nlong-running request no longer inherits the delay of the one before it.\n\n| Behaviour | Before | After |\n| --- | --- | --- |\n| First retry delay | 1s | 1s |\n| Second retry delay | 1s | 2s |\n| Ceiling | none | 30s |\n| Jitter | none | ±20% |\n| Budget | per call | per attempt |\n\nWhere this bites us:\n\n- The reconnect loop, which assumed a flat delay.\n  - It reads the delay once and caches it.\n  - Caching it is what makes the ceiling invisible.\n- The upload path, which retries on its own.\n  - Two retry budgets now overlap.\n    - Worst case is eight attempts where we documented three.\n- Nothing in the transcript path: it does not retry.\n\nThe shape we should move to:\n\n```ts\nexport function backoff(attempt: number): number {\n  const base = Math.min(2 ** attempt * 1000, 30_000)\n  // Jitter is not decoration: without it every client in a fleet retries\n  // on the same tick and the recovery looks like a second outage.\n  return base * (0.8 + Math.random() * 0.4)\n}\n\nexport async function withRetries<T>(run: () => Promise<T>, attempts = 3): Promise<T> {\n  for (let attempt = 0; ; attempt += 1) {\n    try {\n      return await run()\n    } catch (error) {\n      if (attempt >= attempts - 1) {\n        throw error\n      }\n\n      await new Promise(resolve => setTimeout(resolve, backoff(attempt)))\n    }\n  }\n}\n```\n\n> The ceiling matters more than the curve. A retry that waits four minutes is\n> indistinguishable from a hang.\n\nI would change the reconnect loop first — it is the one a user can see.",
+              "ts": 1789999540,
+              "version": 0
+            },
+            "t:call_dm_1": {
+              "dispatch": {
+                "status": "queued"
+              },
+              "id": "t:call_dm_1",
+              "kind": "bot_dm_out",
+              "message": "Can you draft the announcement?",
+              "origin": "history",
+              "reply": {
+                "rowId": 3,
+                "text": "Draft is ready, I pushed it to the shared folder.",
+                "ts": 1789999460
+              },
+              "seq": 3000,
+              "target": "@writer",
+              "targetHandle": "writer",
+              "toolId": "call_dm_1",
+              "version": 1
+            },
+            "t:call_read_researcher": {
+              "args": {
+                "path": "SOUL.md"
+              },
+              "context": "read_file(SOUL.md)",
+              "id": "t:call_read_researcher",
+              "kind": "tool",
+              "name": "read_file",
+              "origin": "history",
+              "resultKnown": false,
+              "seq": 2000,
+              "status": "complete",
+              "summary": "read_file(SOUL.md)",
+              "toolId": "call_read_researcher",
+              "version": 0
             }
           },
-          "seq": 10,
-          "session_id": "runtime-4a31c816",
-          "turn_id": "167f352a430d4fc6830b15073f792bed",
-          "type": "message.complete"
-        },
-        1790000017000
+          "lastSeenRowId": 10,
+          "lastSeq": 3,
+          "lastSeqSessionId": "runtime-4a31c816",
+          "order": [
+            "r:1",
+            "r:2",
+            "t:call_read_researcher",
+            "t:call_dm_1",
+            "r:4",
+            "r:5",
+            "r:6",
+            "a:8000"
+          ],
+          "subagents": {},
+          "turn": {
+            "active": false,
+            "id": "167f352a430d4fc6830b15073f792bed",
+            "local": false,
+            "nextSeq": 8000
+          },
+          "unreadCount": 0
+        }
       ],
-      "frame": 15,
-      "op": "applyEvent"
+      "op": "patchState"
     },
     {
       "args": [
@@ -3003,165 +3525,45 @@
           "runtimeSessionId": "runtime-4a31c816"
         }
       ],
-      "frame": 19,
+      "frame": 11,
       "op": "patchState"
     },
     {
       "args": [
         {
-          "inflight": null,
-          "open_requests": null,
-          "pending_approval": null,
-          "queued": null,
-          "running": null,
-          "todo_state": null,
-          "turn_started_at": null
-        },
-        1790000019000
-      ],
-      "frame": 19,
-      "op": "applyResumeSnapshot"
-    },
-    {
-      "args": [
-        {
-          "payload": {},
-          "seq": 11,
-          "session_id": "runtime-4a31c816",
-          "turn_id": "51682e94d1e94ee681680e6d83723f15",
-          "type": "message.start"
-        },
-        1790000020000
-      ],
-      "frame": 20,
-      "op": "applyEvent"
-    },
-    {
-      "args": [
-        {
           "payload": {
-            "text": "The backoff is a geometric series, so the total wait has a closed form.\n\n"
-          },
-          "seq": 12,
-          "session_id": "runtime-4a31c816",
-          "turn_id": "51682e94d1e94ee681680e6d83723f15",
-          "type": "message.delta"
-        },
-        1790000021000
-      ],
-      "frame": 20,
-      "op": "applyEvent"
-    },
-    {
-      "args": [
-        {
-          "payload": {
-            "text": "$$\n"
-          },
-          "seq": 13,
-          "session_id": "runtime-4a31c816",
-          "turn_id": "51682e94d1e94ee681680e6d83723f15",
-          "type": "message.delta"
-        },
-        1790000022000
-      ],
-      "frame": 20,
-      "op": "applyEvent"
-    },
-    {
-      "args": [
-        {
-          "payload": {
-            "text": "\\sum_{k=0}^{n-1} b \\cdot r^k = b \\cdot \\frac{1 - r^n}{1 - r}\n"
-          },
-          "seq": 14,
-          "session_id": "runtime-4a31c816",
-          "turn_id": "51682e94d1e94ee681680e6d83723f15",
-          "type": "message.delta"
-        },
-        1790000023000
-      ],
-      "frame": 20,
-      "op": "applyEvent"
-    },
-    {
-      "args": [
-        {
-          "payload": {
-            "text": "$$\n\n"
-          },
-          "seq": 15,
-          "session_id": "runtime-4a31c816",
-          "turn_id": "51682e94d1e94ee681680e6d83723f15",
-          "type": "message.delta"
-        },
-        1790000024000
-      ],
-      "frame": 20,
-      "op": "applyEvent"
-    },
-    {
-      "args": [
-        {
-          "payload": {
-            "text": "With $b = 250$ ms and $r = 2$, five attempts wait $3.75$ s in total.\n\n"
-          },
-          "seq": 16,
-          "session_id": "runtime-4a31c816",
-          "turn_id": "51682e94d1e94ee681680e6d83723f15",
-          "type": "message.delta"
-        },
-        1790000025000
-      ],
-      "frame": 20,
-      "op": "applyEvent"
-    },
-    {
-      "args": [
-        {
-          "payload": {
-            "text": "That is the same ceiling the guide quotes, and the plan costs $12 a month either way."
-          },
-          "seq": 17,
-          "session_id": "runtime-4a31c816",
-          "turn_id": "51682e94d1e94ee681680e6d83723f15",
-          "type": "message.delta"
-        },
-        1790000026000
-      ],
-      "frame": 20,
-      "op": "applyEvent"
-    },
-    {
-      "args": [
-        {
-          "payload": {
-            "persisted_turn": {
-              "complete": true,
-              "final_assistant_row_id": 13,
-              "row_ids": [
-                12,
-                13
-              ],
-              "user_row_id": 12
-            },
-            "row_id": 13,
-            "status": "ok",
-            "text": "The backoff is a geometric series, so the total wait has a closed form.\n\n$$\n\\sum_{k=0}^{n-1} b \\cdot r^k = b \\cdot \\frac{1 - r^n}{1 - r}\n$$\n\nWith $b = 250$ ms and $r = 2$, five attempts wait $3.75$ s in total.\n\nThat is the same ceiling the guide quotes, and the plan costs $12 a month either way.",
+            "approval_mode": "ask",
+            "cwd": "/root/projects/researcher",
+            "desktop_contract": 7,
+            "fast": false,
+            "model": "example-provider/example-model",
+            "profile_name": "researcher",
+            "provider": "example-provider",
+            "reasoning_effort": "medium",
+            "running": false,
+            "stored_session_id": "stored-researcher-45a8698b",
+            "title": "Bot Chat",
             "usage": {
-              "input": 12,
-              "output": 34,
-              "total": 46
-            }
+              "calls": 14,
+              "context_estimated": false,
+              "context_max": 200000,
+              "context_percent": 3.8,
+              "context_source": "model catalog",
+              "context_used": 7680,
+              "input": 3640,
+              "model": "example-provider/example-model",
+              "output": 2240,
+              "total": 5880
+            },
+            "version": "0.21.3-fake",
+            "yolo": false
           },
-          "seq": 18,
           "session_id": "runtime-4a31c816",
-          "turn_id": "51682e94d1e94ee681680e6d83723f15",
-          "type": "message.complete"
+          "type": "session.info"
         },
-        1790000027000
+        1790000014000
       ],
-      "frame": 20,
+      "frame": 11,
       "op": "applyEvent"
     },
     {
@@ -3201,7 +3603,6 @@
             "name": "read_file",
             "origin": "history",
             "resultKnown": false,
-            "rowId": 3,
             "seq": 2000,
             "status": "complete",
             "summary": "read_file(SOUL.md)",
@@ -3221,7 +3622,6 @@
               "text": "Draft is ready, I pushed it to the shared folder.",
               "ts": 1789999460
             },
-            "rowId": 4,
             "seq": 3000,
             "target": "@writer",
             "targetHandle": "writer",
@@ -3272,7 +3672,7 @@
             "origin": "history",
             "rowId": 9,
             "seq": 7000,
-            "text": "summarise the notes",
+            "text": "reconcile the ledger",
             "ts": 1790000000,
             "turnId": "167f352a430d4fc6830b15073f792bed",
             "version": 0
@@ -3286,57 +3686,294 @@
             "seq": 8000,
             "status": "complete",
             "streaming": false,
-            "text": "Looking that up for you.",
+            "text": "Entry 90 is marked paid. Now the cent on the payables account: first see how it is booked.",
             "ts": 1790000000,
             "version": 0
           },
           {
             "args": {
-              "path": "README.md"
+              "command": "ledger show 17201"
             },
             "callKey": "10/0",
-            "context": "read README.md",
+            "context": "ledger show 17201",
             "id": "t:tool-a2fedc71",
             "kind": "tool",
-            "name": "read_file",
+            "name": "terminal",
             "origin": "history",
             "resultKnown": false,
             "rowId": 11,
             "seq": 9000,
             "status": "complete",
-            "summary": "read README.md",
+            "summary": "ledger show 17201",
             "toolId": "tool-a2fedc71",
             "ts": 1790000000,
             "version": 0
           },
           {
             "id": "r:12",
-            "kind": "user",
-            "origin": "history",
-            "rowId": 12,
-            "seq": 10000,
-            "text": "explain the math behind the retry budget",
-            "ts": 1790000000,
-            "turnId": "51682e94d1e94ee681680e6d83723f15",
-            "version": 0
-          },
-          {
-            "id": "r:13",
             "interim": false,
             "kind": "assistant",
             "origin": "history",
+            "rowId": 12,
+            "seq": 10000,
+            "status": "complete",
+            "streaming": false,
+            "text": "Looking the transfer up through the API myself: the payout of 16-09.",
+            "ts": 1790000000,
+            "version": 0
+          },
+          {
+            "args": {
+              "command": "payouts get 16-09"
+            },
+            "callKey": "12/0",
+            "context": "payouts get 16-09",
+            "id": "t:tool-51682e94",
+            "kind": "tool",
+            "name": "terminal",
+            "origin": "history",
+            "resultKnown": false,
             "rowId": 13,
             "seq": 11000,
             "status": "complete",
+            "summary": "payouts get 16-09",
+            "toolId": "tool-51682e94",
+            "ts": 1790000000,
+            "version": 0
+          },
+          {
+            "id": "r:14",
+            "interim": false,
+            "kind": "assistant",
+            "origin": "history",
+            "rowId": 14,
+            "seq": 12000,
+            "status": "complete",
             "streaming": false,
-            "text": "The backoff is a geometric series, so the total wait has a closed form.\n\n$$\n\\sum_{k=0}^{n-1} b \\cdot r^k = b \\cdot \\frac{1 - r^n}{1 - r}\n$$\n\nWith $b = 250$ ms and $r = 2$, five attempts wait $3.75$ s in total.\n\nThat is the same ceiling the guide quotes, and the plan costs $12 a month either way.",
+            "text": "Everything checks out and nothing was filed.",
             "ts": 1790000000,
             "version": 0
           }
         ]
       ],
-      "frame": 21,
-      "op": "reconcileTail"
+      "frame": 12,
+      "op": "reconcile"
+    },
+    {
+      "args": [
+        {
+          "inflight": null,
+          "open_requests": null,
+          "pending_approval": null,
+          "queued": null,
+          "running": null,
+          "todo_state": null,
+          "turn_started_at": null
+        },
+        1790000016000
+      ],
+      "frame": 11,
+      "op": "applyResumeSnapshot"
+    },
+    {
+      "args": [
+        {
+          "payload": {
+            "args": {
+              "command": "ledger show 17201"
+            },
+            "call_index": 0,
+            "call_row_id": 10,
+            "context": "ledger show 17201",
+            "name": "terminal",
+            "tool_id": "tool-a2fedc71"
+          },
+          "seq": 4,
+          "session_id": "runtime-4a31c816",
+          "turn_id": "167f352a430d4fc6830b15073f792bed",
+          "type": "tool.start"
+        },
+        1790000017000
+      ],
+      "frame": 13,
+      "op": "applyEvent"
+    },
+    {
+      "args": [
+        {
+          "payload": {
+            "args": {
+              "command": "ledger show 17201"
+            },
+            "call_index": 0,
+            "call_row_id": 10,
+            "duration_s": 0.2,
+            "name": "terminal",
+            "result": "ok",
+            "row_id": 11,
+            "summary": "ledger show 17201",
+            "tool_id": "tool-a2fedc71"
+          },
+          "seq": 5,
+          "session_id": "runtime-4a31c816",
+          "turn_id": "167f352a430d4fc6830b15073f792bed",
+          "type": "tool.complete"
+        },
+        1790000018000
+      ],
+      "frame": 13,
+      "op": "applyEvent"
+    },
+    {
+      "args": [
+        {
+          "payload": {
+            "text": "Looking the transfer up through the API myself: the payout of 16-09."
+          },
+          "seq": 6,
+          "session_id": "runtime-4a31c816",
+          "turn_id": "167f352a430d4fc6830b15073f792bed",
+          "type": "message.delta"
+        },
+        1790000019000
+      ],
+      "frame": 13,
+      "op": "applyEvent"
+    },
+    {
+      "args": [
+        {
+          "payload": {
+            "already_streamed": true,
+            "row_id": 12,
+            "text": "Looking the transfer up through the API myself: the payout of 16-09."
+          },
+          "seq": 7,
+          "session_id": "runtime-4a31c816",
+          "turn_id": "167f352a430d4fc6830b15073f792bed",
+          "type": "message.interim"
+        },
+        1790000020000
+      ],
+      "frame": 13,
+      "op": "applyEvent"
+    },
+    {
+      "args": [
+        {
+          "payload": {
+            "args": {
+              "command": "payouts get 16-09"
+            },
+            "call_index": 0,
+            "call_row_id": 12,
+            "context": "payouts get 16-09",
+            "name": "terminal",
+            "tool_id": "tool-51682e94"
+          },
+          "seq": 8,
+          "session_id": "runtime-4a31c816",
+          "turn_id": "167f352a430d4fc6830b15073f792bed",
+          "type": "tool.start"
+        },
+        1790000021000
+      ],
+      "frame": 13,
+      "op": "applyEvent"
+    },
+    {
+      "args": [
+        {
+          "payload": {
+            "args": {
+              "command": "payouts get 16-09"
+            },
+            "call_index": 0,
+            "call_row_id": 12,
+            "duration_s": 0.2,
+            "name": "terminal",
+            "result": "ok",
+            "row_id": 13,
+            "summary": "payouts get 16-09",
+            "tool_id": "tool-51682e94"
+          },
+          "seq": 9,
+          "session_id": "runtime-4a31c816",
+          "turn_id": "167f352a430d4fc6830b15073f792bed",
+          "type": "tool.complete"
+        },
+        1790000022000
+      ],
+      "frame": 13,
+      "op": "applyEvent"
+    },
+    {
+      "args": [
+        {
+          "payload": {
+            "text": "Everything checks out "
+          },
+          "seq": 10,
+          "session_id": "runtime-4a31c816",
+          "turn_id": "167f352a430d4fc6830b15073f792bed",
+          "type": "message.delta"
+        },
+        1790000023000
+      ],
+      "frame": 13,
+      "op": "applyEvent"
+    },
+    {
+      "args": [
+        {
+          "payload": {
+            "text": "and nothing was filed."
+          },
+          "seq": 11,
+          "session_id": "runtime-4a31c816",
+          "turn_id": "167f352a430d4fc6830b15073f792bed",
+          "type": "message.delta"
+        },
+        1790000024000
+      ],
+      "frame": 13,
+      "op": "applyEvent"
+    },
+    {
+      "args": [
+        {
+          "payload": {
+            "persisted_turn": {
+              "complete": true,
+              "final_assistant_row_id": 14,
+              "row_ids": [
+                9,
+                10,
+                11,
+                12,
+                13,
+                14
+              ],
+              "user_row_id": 9
+            },
+            "row_id": 14,
+            "status": "ok",
+            "text": "Everything checks out and nothing was filed.",
+            "usage": {
+              "input": 12,
+              "output": 34,
+              "total": 46
+            }
+          },
+          "seq": 12,
+          "session_id": "runtime-4a31c816",
+          "turn_id": "167f352a430d4fc6830b15073f792bed",
+          "type": "message.complete"
+        },
+        1790000025000
+      ],
+      "frame": 13,
+      "op": "applyEvent"
     }
   ]
 }

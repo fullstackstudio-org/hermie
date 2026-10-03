@@ -17,7 +17,9 @@
  * timestamps are the same on every run. Every engine call gets an explicit
  * `now`. Frame order comes from the gateway's own timers; the scenarios avoid
  * anything that would race them (the reconnect scenario disconnects while the
- * chat is idle and lets a second device run the turn it then replays).
+ * chat is idle and lets a second device run the turn it then replays; the
+ * reopen scenarios go away on a counted frame, `goAwayAfter`, and read nothing
+ * from that connection after it, however the frames were batched on the wire).
  *
  *   tsx packages/fake-gateway/scripts/dump-frames.ts --out <dir>
  */
@@ -31,6 +33,7 @@ import {
   applyResumeSnapshot,
   applyServerRequest,
   beginLocalTurn,
+  type CachedTranscript,
   type ChatState,
   confirmSubmit,
   createChatState,
@@ -38,6 +41,8 @@ import {
   reconcileTail,
   rowsToItems,
   type ServerRequest,
+  snapshotForCache,
+  stateFromCache,
   type TranscriptEvent,
   type TranscriptRow,
   type Verbosity,
@@ -112,6 +117,25 @@ interface Recording {
 
 const LEVELS: Verbosity[] = ['quiet', 'normal', 'verbose']
 
+/**
+ * The controller's `transcriptEventOf`: a frame reaches the engine as the same
+ * four envelope fields whether it came live or from the replay ring, with
+ * `turn_id` when the gateway sent one (an older gateway has none).
+ */
+function transcriptEventOf(raw: Json): TranscriptEvent | null {
+  if (typeof raw.type !== 'string') {
+    return null
+  }
+
+  return {
+    type: raw.type,
+    ...(typeof raw.session_id === 'string' ? { session_id: raw.session_id } : {}),
+    ...(typeof raw.seq === 'number' ? { seq: raw.seq } : {}),
+    ...(typeof raw.turn_id === 'string' && raw.turn_id ? { turn_id: raw.turn_id } : {}),
+    payload: raw.payload
+  } as TranscriptEvent
+}
+
 class Client {
   readonly recording: Recording = { frames: [], steps: [], checkpoints: [] }
   state: ChatState
@@ -125,6 +149,12 @@ class Client {
   private readonly pending = new Map<string, (frame: Json, index: number) => void>()
   private readonly waiters = new Set<() => void>()
   private readonly answers: { approval?: string; clarify?: Record<string, string> }
+  /** The frame after which the app goes away: its event type and how many of that type to let through. */
+  private awayAfter: { type: string; nth: number } | undefined
+  /** The connection the app stopped reading when it went away. */
+  private awayConnection = 0
+  /** What the app had cached at the moment it went away. */
+  cached: CachedTranscript | undefined
 
   constructor(
     private readonly gateway: FakeGateway,
@@ -153,6 +183,36 @@ class Client {
     }
 
     this.recording.checkpoints.push({ after: this.recording.steps.length, label, visible })
+  }
+
+  /**
+   * The owner's acceptance for a reopened chat, checked while recording: at every
+   * verbosity no assistant text and no tool card shows twice. A failure stops the
+   * recording, so a corpus that holds a duplicate cannot be committed by accident.
+   */
+  assertNoDuplicates(label: string): void {
+    for (const level of LEVELS) {
+      const seen = new Set<string>()
+
+      for (const { item } of visibleItems(this.state, { level, showBotToBot: true, showThinking: true })) {
+        const key =
+          item.kind === 'assistant' && item.text.trim()
+            ? `assistant ${item.text}`
+            : item.kind === 'tool'
+              ? `tool ${item.toolId}`
+              : undefined
+
+        if (key === undefined) {
+          continue
+        }
+
+        if (seen.has(key)) {
+          throw new Error(`${label} (${level}): ${key.slice(0, 80)} shows twice`)
+        }
+
+        seen.add(key)
+      }
+    }
   }
 
   async connect(): Promise<void> {
@@ -249,7 +309,27 @@ class Client {
     }).length
   }
 
+  /**
+   * Stop reading the socket right after the `nth` frame of `type`, and keep what
+   * the app would have cached at that moment: the app going to the background in
+   * the middle of a turn (the controller snapshots on background). Nothing after
+   * that frame on this connection is recorded or applied, so the recording does
+   * not depend on how many more frames the wire delivered before the socket was
+   * closed.
+   */
+  goAwayAfter(type: string, nth = 1): void {
+    this.awayAfter = { type, nth }
+  }
+
+  get away(): boolean {
+    return this.cached !== undefined
+  }
+
   private onFrame(connection: number, frame: Json): void {
+    if (connection === this.awayConnection) {
+      return
+    }
+
     const index = this.recording.frames.length
 
     this.recording.frames.push({ connection, frame })
@@ -261,13 +341,26 @@ class Client {
       this.pending.delete(id)
       settle?.(frame, index)
     } else if (frame.method === 'event') {
-      const event = frame.params as TranscriptEvent & Json
+      const raw = frame.params as Json
+      const event = transcriptEventOf(raw)
 
       // Exactly the controller's filter: only this chat's runtime session.
-      if (this.runtimeId && event.session_id === this.runtimeId) {
+      if (event && this.runtimeId && event.session_id === this.runtimeId) {
         const now = this.now()
 
         this.step('applyEvent', [event, now], state => applyEvent(state, event, now), index)
+
+        const away = this.awayAfter
+
+        if (away && away.type === event.type) {
+          away.nth -= 1
+
+          if (away.nth === 0) {
+            this.awayAfter = undefined
+            this.awayConnection = connection
+            this.cached = snapshotForCache(this.state, this.now())
+          }
+        }
       }
     } else if (frame.id !== undefined) {
       this.onServerRequest(frame, index)
@@ -421,17 +514,13 @@ class Client {
       )
     } else {
       for (const raw of since.events ?? []) {
-        if (typeof raw.type !== 'string') {
+        // The controller's `transcriptEventOf`, which the live frames go through too.
+        const event = transcriptEventOf(raw)
+
+        if (!event) {
           continue
         }
 
-        // The controller's `transcriptEventOf`.
-        const event = {
-          type: raw.type,
-          ...(typeof raw.session_id === 'string' ? { session_id: raw.session_id } : {}),
-          ...(typeof raw.seq === 'number' ? { seq: raw.seq } : {}),
-          payload: raw.payload
-        } as TranscriptEvent
         const now = this.now()
 
         this.step('applyEvent', [event, now], state => applyEvent(state, event, now), frame)
@@ -471,7 +560,46 @@ class Client {
     const resolvedId = this.resolvedId
 
     this.step('createChatState', [profile, storedId, resolvedId], () => createChatState(profile, storedId, resolvedId))
+    await this.load()
+  }
 
+  /**
+   * The controller's `hydrate` for a chat it has a cache of: the cached
+   * transcript is painted first (`stateFromCache`, written down as the state it
+   * produces), then the same resume, history, snapshot and replay as a cold
+   * open. The cache keeps its watermark, so the replay is warm: it hands back
+   * every frame after the moment the app went away, including frames for rows
+   * history already holds.
+   */
+  async reopen(beforeReplay?: () => void): Promise<void> {
+    if (!this.cached) {
+      throw new Error('reopen: the app never went away')
+    }
+
+    // The cache is stored as JSON, so what is painted is what survives that.
+    const cached = JSON.parse(JSON.stringify(this.cached)) as CachedTranscript
+    const canonical = await this.canonical()
+
+    this.storedId = String(canonical.id)
+    this.resolvedId = String(canonical.resolved_id || canonical.id)
+
+    const { storedId, profile } = this
+    const resolvedId = this.resolvedId
+    const painted = stateFromCache(profile, { storedSessionId: storedId, resolvedSessionId: resolvedId }, cached)
+    const { botName: _botName, storedSessionId: _stored, resolvedSessionId: _resolved, ...fields } = painted
+
+    this.step('createChatState', [profile, storedId, resolvedId], () => createChatState(profile, storedId, resolvedId))
+    this.patch(JSON.parse(JSON.stringify(fields)) as Json)
+    await this.load(beforeReplay)
+  }
+
+  /**
+   * `hydrate` from the resume on: resume, its `session.info`, history, snapshot,
+   * open requests, replay. `beforeReplay` runs when history, snapshot and open
+   * requests are in and the replay has not started: what the screen holds in
+   * between.
+   */
+  private async load(beforeReplay?: () => void): Promise<void> {
     const { resume, frame: resumeFrame } = await this.resume()
 
     if (resume.info) {
@@ -495,6 +623,7 @@ class Client {
 
     this.applySnapshot(resume, resumeFrame)
     this.registerOpenRequests(resume.open_requests, resumeFrame)
+    beforeReplay?.()
     await this.replaySince()
   }
 
@@ -574,7 +703,53 @@ interface Scenario {
   description: string
   profile: string
   answers?: { approval?: string; clarify?: Record<string, string> }
+  /** The fake gateway's own options for this scenario; the recorded default is the fork's row identity on. */
+  gateway?: { rowIdentity?: boolean }
   run: (client: Client, gateway: FakeGateway) => Promise<void>
+}
+
+/**
+ * The owner's case of 2026-10-03: a turn that writes notes before it answers,
+ * the app going away in the middle of it, and the chat opened again from the
+ * cache it saved then. History brings every row of the turn, and
+ * `session.events.since` replays every frame after the cached watermark,
+ * describing rows that are already on screen.
+ *
+ * The turn goes on without the app, and everything it does is over before the
+ * chat is opened again (the fake gateway sends `message.complete` and the
+ * roster nudge in the same tick it stops running), so which frames the replay
+ * returns never depends on timing.
+ */
+function reopenScenario(cut: { type: string; nth?: number }, options: { noDuplicates: boolean }): Scenario['run'] {
+  return async (client, gateway) => {
+    await client.hydrate()
+    client.checkpoint('hydrated')
+
+    client.goAwayAfter(cut.type, cut.nth)
+    await client.submit('reconcile the ledger')
+    await client.until(() => client.away, `the ${cut.type} the app goes away on`)
+    client.checkpoint('away')
+
+    // The turn goes on without the app.
+    for (let waited = 0; gateway.state.runningSessions.size > 0; waited += 5) {
+      if (waited > TIMEOUT_MS) {
+        throw new Error('Timed out waiting for the turn to finish')
+      }
+
+      await new Promise(resolve => setTimeout(resolve, 5))
+    }
+
+    await client.disconnect()
+    await client.connect()
+
+    // `reopened`: the cache painted, history in, nothing replayed yet. `settled`: the replay applied.
+    await client.reopen(() => client.checkpoint('reopened'))
+    client.checkpoint('settled')
+
+    if (options.noDuplicates) {
+      client.assertNoDuplicates('settled')
+    }
+  }
 }
 
 const SCENARIOS: Scenario[] = [
@@ -661,6 +836,28 @@ const SCENARIOS: Scenario[] = [
     }
   },
   {
+    name: 'interim-reopen',
+    description:
+      'A turn with interim assistant messages on writes two notes, each with its tool call, before it answers. ' +
+      'The app goes away right after the first note (`message.interim`), the turn finishes without it, and the ' +
+      'chat is opened again from the cache: the cached transcript is painted, history brings every row of the ' +
+      'turn, then session.events.since replays every frame after the cached watermark, describing rows that ' +
+      'are already on screen. Each note, each tool card and the answer must show once, at every verbosity.',
+    profile: 'researcher',
+    run: reopenScenario({ type: 'message.interim' }, { noDuplicates: true })
+  },
+  {
+    name: 'interim-reopen-legacy',
+    description:
+      'The same reopen against a gateway before row identity (`rowIdentity: false`): no turn_id, no row_id on the ' +
+      'frames, no call identity, and no message.interim at all, so the app goes away right after the first ' +
+      'tool.start instead. It records whatever the engine produces without identity (the degrade), and asserts ' +
+      'nothing about duplicates.',
+    profile: 'researcher',
+    gateway: { rowIdentity: false },
+    run: reopenScenario({ type: 'tool.start' }, { noDuplicates: false })
+  },
+  {
     name: 'reconnect-replay',
     description:
       'Stream a turn live, disconnect while idle, let a second device run a turn on the same session, then ' +
@@ -726,7 +923,8 @@ async function record(scenario: Scenario): Promise<unknown> {
     streamDelayMs: 4,
     subagentStepMs: 4,
     webClient: false,
-    webPushKey: false
+    webPushKey: false,
+    ...scenario.gateway
   })
 
   try {
