@@ -483,6 +483,11 @@ public final class GatewaySession {
       return
     }
 
+    // The chat list's order folds in this answer (new bots placed, gone ones dropped), as a chore.
+    if snapshot.error == nil {
+      arrangement.rosterRefreshed(snapshot.bots.map(\.name))
+    }
+
     let names = Set(snapshot.bots.map(\.name))
     secureInput.storeChanged()
 

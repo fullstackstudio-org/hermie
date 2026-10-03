@@ -307,8 +307,12 @@ import Testing
     let arrangement = ChatListArrangement(documents: UIMetaDocuments(app: app))
     // Repeats dropped, unknown kinds skipped, an unplaced folder's bots after the rest.
     #expect(arrangement.order == ["c", "d", "b", "a", "e"])
-    // A bot the arrangement does not place yet comes last, in roster order.
-    #expect(arrangement.ordered(["a", "new2", "b", "c", "new1", "d", "e"]) { $0 } == ["c", "d", "b", "a", "e", "new2", "new1"])
+    // A bot the arrangement does not place yet comes at the end of the loose run before the first
+    // folder, in roster order: where a move or the fold writes it.
+    #expect(arrangement.looseHead == 1)
+    #expect(arrangement.ordered(["a", "new2", "b", "c", "new1", "d", "e"]) { $0 } == ["c", "new2", "new1", "d", "b", "a", "e"])
+    #expect(arrangement.folderOf == ["d": "f1", "b": "f1", "e": "f2"])
+    #expect(arrangement.sameContainer("d", "b") && !arrangement.sameContainer("d", "c") && arrangement.sameContainer("c", "new1"))
     // Nobody ordered anything: the roster's order.
     #expect(ChatListArrangement().ordered(["z", "y"]) { $0 } == ["z", "y"])
   }
@@ -341,19 +345,64 @@ import Testing
     #expect(ChatListArrangement.move("y", to: .before("x"), roster: [], in: &app))
     #expect(app["folders"] == [["id": "f1", "name": "Work", "colour": "teal", "bots": ["y", "x"]]])
 
-    // A name the roster no longer has is dropped from wherever it was, as `reconcileBots` does.
-    app["entries"] = [["kind": "chat", "name": "gone"], ["kind": "chat", "name": "a"], ["kind": "chat", "name": "b"]]
-    app["folders"] = [["id": "f1", "name": "Work", "bots": ["x", "old"]]]
+    // A move never drops a name: with the roster painted from the cache, a bot made on the web and
+    // put in "Werk" is unknown here, and stays in its folder.
+    app["entries"] = [["kind": "chat", "name": "a"], ["kind": "chat", "name": "b"], ["kind": "folder", "id": "werk"]]
+    app["folders"] = [["id": "werk", "name": "Werk", "bots": ["x", "made-on-the-web"]]]
     #expect(ChatListArrangement.move("b", to: .before("a"), roster: ["a", "b", "x"], in: &app))
-    #expect(app["entries"] == [["kind": "chat", "name": "b"], ["kind": "chat", "name": "a"]])
-    #expect(app["folders"] == [["id": "f1", "name": "Work", "bots": ["x"]]])
-    // And a move that names one is not made.
-    #expect(!ChatListArrangement.move("gone", to: .before("a"), roster: ["a", "b", "x"], in: &app))
+    #expect(app["entries"] == [["kind": "chat", "name": "b"], ["kind": "chat", "name": "a"], ["kind": "folder", "id": "werk"]])
+    #expect(app["folders"] == [["id": "werk", "name": "Werk", "bots": ["x", "made-on-the-web"]]])
 
     // Out of a folder is not a step this build takes.
     let held = app
     #expect(!ChatListArrangement.move("x", to: .before("a"), roster: [], in: &app))
     #expect(app == held)
+  }
+
+  /// The fold (`reconcileBots`): only with a roster the gateway answered, and it drops what is
+  /// gone, keeps every folder's other fields, and places new bots before the first folder.
+  @Test func theFoldDropsWhatIsGoneAndPlacesWhatIsNew() {
+    var app: JSONObject = [
+      "v": 1,
+      "entries": [["kind": "chat", "name": "gone"], ["kind": "chat", "name": "a"], ["kind": "folder", "id": "werk"]],
+      "folders": [["id": "werk", "name": "Werk", "colour": "teal", "bots": ["x", "old"]]]
+    ]
+
+    #expect(ChatListArrangement.reconcile(roster: ["a", "x", "new"], in: &app))
+    #expect(app["entries"] == [["kind": "chat", "name": "a"], ["kind": "chat", "name": "new"], ["kind": "folder", "id": "werk"]])
+    #expect(app["folders"] == [["id": "werk", "name": "Werk", "colour": "teal", "bots": ["x"]]])
+
+    // Nothing to fold: nothing written. An empty roster folds nothing.
+    let held = app
+    #expect(!ChatListArrangement.reconcile(roster: ["a", "x", "new"], in: &app))
+    #expect(!ChatListArrangement.reconcile(roster: [], in: &app))
+    #expect(app == held)
+  }
+
+  /// The fold runs only on a roster the gateway answered, as a chore: against the gateway's own
+  /// (undated) arrangement it is not what lands, and it is redone on top of what was taken.
+  @MainActor
+  @Test func theFoldOfAFreshRosterIsAChoreOnTopOfTheGateway() async {
+    let gateway = HoldingGateway()
+    gateway.write("researcher", [ownerKey: [
+      "v": 1,
+      "entries": [["kind": "folder", "id": "werk"], ["kind": "chat", "name": "gone"]],
+      "folders": [["id": "werk", "name": "Werk", "bots": ["writer"]]]
+    ]])
+    let sync = UIMetaSync.device(gateway.gateway)
+    let model = ChatArrangementModel(now: { noon })
+    model.attach(sync)
+    try? await Task.sleep(for: .milliseconds(50))
+
+    model.rosterRefreshed(["researcher", "writer"])
+    #expect(sync.state.dirtyApp && !sync.state.appChoice)
+
+    await sync.reconcile()
+    await eventually("the fold on top of the gateway's copy") { model.arrangement.folderOf["writer"] == "werk" }
+    // The fold, redone on the copy taken in: gone dropped, researcher placed before the folder,
+    // writer left in Werk.
+    #expect(sync.app?["entries"] == [["kind": "chat", "name": "researcher"], ["kind": "folder", "id": "werk"]])
+    #expect(sync.app?["folders"] == [["id": "werk", "name": "Werk", "bots": ["writer"]]])
   }
 
   @Test func aDropIsAnAnchorWithinTheGroup() {

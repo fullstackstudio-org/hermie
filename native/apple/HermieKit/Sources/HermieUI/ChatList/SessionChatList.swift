@@ -102,8 +102,8 @@ struct SessionChatList: View {
       return (nil, nil)
     }
 
-    let pinned = session.arrangement.isPinned(name)
-    let group = rows.shown.map(\.bot.name).filter { session.arrangement.isPinned($0) == pinned }
+    let names = rows.shown.map(\.bot.name)
+    let group = Array(names[Self.group(of: name, in: names, arrangement: session.arrangement.arrangement)])
 
     guard let index = group.firstIndex(of: name) else {
       return (nil, nil)
@@ -115,8 +115,25 @@ struct SessionChatList: View {
     )
   }
 
+  /// The rows a chat can move among: the same pinned group and the same container (the top level,
+  /// or one folder), the moves `ChatListArrangement.move` makes. They are contiguous on screen:
+  /// pinned chats lead, and a folder's chats stand together in its place.
+  static func group(of name: String, in names: [String], arrangement: ChatListArrangement) -> Range<Int> {
+    let pinned = arrangement.isPinned(name)
+    let members = names.indices.filter {
+      arrangement.isPinned(names[$0]) == pinned && arrangement.sameContainer(names[$0], name)
+    }
+
+    guard let first = members.first, let last = members.last else {
+      return 0..<0
+    }
+
+    return first..<(last + 1)
+  }
+
   /// A drag ended: move the chat next to the row it was dropped by, within its own group (pinned
-  /// chats stay above the others, and a drag across the line lands at the group's edge).
+  /// chats stay above the others, a folder's chats among themselves, and a drag across the line
+  /// lands at the group's edge).
   private func move(_ rows: ChatListRows, from: IndexSet, to destination: Int) {
     guard let source = from.first, rows.shown.indices.contains(source) else {
       return
@@ -125,10 +142,7 @@ struct SessionChatList: View {
     let arrangement = session.arrangement
     let names = rows.shown.map(\.bot.name)
     let moving = names[source]
-    // The pinned chats are the list's head, the others its tail; the drop is clamped to the
-    // moving chat's own group.
-    let pinnedCount = names.prefix { arrangement.isPinned($0) }.count
-    let group = arrangement.isPinned(moving) ? 0..<pinnedCount : pinnedCount..<names.count
+    let group = Self.group(of: moving, in: names, arrangement: arrangement.arrangement)
     let target = min(max(destination, group.lowerBound), group.upperBound)
 
     guard let anchor = ChatListArrangement.Anchor.forDrop(names, group: group, at: target) else {

@@ -55,12 +55,22 @@ public struct ChatListArrangement: Sendable, Hashable {
   /// Every bot the arrangement places, in its order (`entries` and `folders`); empty while
   /// nobody has ordered the list, which then keeps the roster's order.
   public var order: [String]
+  /// How many of `order` come before the first folder: the loose top-level run, at whose end a
+  /// bot the arrangement does not place yet is shown, and written by the next move or fold.
+  public var looseHead: Int
+  /// Bot → the folder it is in. A bot not in here is loose (or not placed yet, which is loose too).
+  public var folderOf: [String: String]
 
-  public init(archived: Set<String> = [], pinned: [String] = [], mutes: [String: Double] = [:], order: [String] = []) {
+  public init(
+    archived: Set<String> = [], pinned: [String] = [], mutes: [String: Double] = [:], order: [String] = [],
+    looseHead: Int? = nil, folderOf: [String: String] = [:]
+  ) {
     self.archived = archived
     self.pinned = pinned
     self.mutes = mutes
     self.order = order
+    self.looseHead = looseHead ?? order.count
+    self.folderOf = folderOf
   }
 
   /// Read off the device's copy, defensively: another build wrote it. The archive is the person's
@@ -70,8 +80,16 @@ public struct ChatListArrangement: Sendable, Hashable {
       archived: Set(Self.archivedBots(documents.app) ?? Self.inheritedArchive(documents.bots)),
       pinned: Self.names(documents.app?[UIMetaField.pinned]),
       mutes: Self.mutes(documents.app?[UIMetaField.mutes]),
-      order: Self.botsInOrder(documents.app)
+      order: Self.botsInOrder(documents.app),
+      looseHead: Self.looseHead(documents.app),
+      folderOf: Self.folderOf(documents.app)
     )
+  }
+
+  /// Whether two bots are in the same container (the top level, or one folder): the only moves
+  /// `move` makes.
+  public func sameContainer(_ lhs: String, _ rhs: String) -> Bool {
+    folderOf[lhs] == folderOf[rhs]
   }
 
   public func isArchived(_ name: String) -> Bool {
@@ -275,6 +293,44 @@ public struct ChatListArrangement: Sendable, Hashable {
     return out
   }
 
+  /// The number of distinct loose chats before the first folder entry.
+  static func looseHead(_ app: JSONObject?) -> Int {
+    var seen = Set<String>()
+
+    for entry in app?[UIMetaField.entries]?.arrayValue ?? [] {
+      if entry["kind"]?.stringValue == "folder" {
+        break
+      }
+
+      if entry["kind"]?.stringValue == "chat", let name = entry["name"]?.stringValue, !name.isEmpty {
+        seen.insert(name)
+      }
+    }
+
+    return seen.count
+  }
+
+  /// Bot → folder id, the first folder that holds it, for the bots not loose at the top level.
+  static func folderOf(_ app: JSONObject?) -> [String: String] {
+    let loose = Set(
+      (app?[UIMetaField.entries]?.arrayValue ?? []).compactMap { entry in
+        entry["kind"]?.stringValue == "chat" ? entry["name"]?.stringValue : nil
+      })
+    var out: [String: String] = [:]
+
+    for folder in app?[UIMetaField.folders]?.arrayValue ?? [] {
+      guard let id = folder["id"]?.stringValue, !id.isEmpty else {
+        continue
+      }
+
+      for name in names(folder["bots"]) where !loose.contains(name) && out[name] == nil {
+        out[name] = id
+      }
+    }
+
+    return out
+  }
+
   /// Folder id → its bots, from the app section's `folders`.
   private static func folderBots(_ app: JSONObject?) -> [String: [String]] {
     var out: [String: [String]] = [:]
@@ -290,9 +346,10 @@ public struct ChatListArrangement: Sendable, Hashable {
     return out
   }
 
-  /// `rows` in the arrangement's order; a bot the arrangement does not place yet (new on the
-  /// gateway) comes after the ones it does, in the order it came, so a new bot never disturbs the
-  /// order somebody made.
+  /// `rows` in the arrangement's order. A bot the arrangement does not place yet (new on the
+  /// gateway) comes at the end of the loose top-level run, before the first folder, in the order
+  /// it came: where `move` and `reconcile` write it, so nothing jumps when they do, and a new bot
+  /// never disturbs the order somebody made.
   public func ordered<Row>(_ rows: [Row], name: (Row) -> String) -> [Row] {
     guard !order.isEmpty else {
       return rows
@@ -304,13 +361,68 @@ public struct ChatListArrangement: Sendable, Hashable {
       position[bot] = index
     }
 
-    return rows.enumerated()
-      .sorted { lhs, rhs in
-        let left = position[name(lhs.element)] ?? (order.count + lhs.offset)
-        let right = position[name(rhs.element)] ?? (order.count + rhs.offset)
-        return left < right
+    func key(_ offset: Int, _ bot: String) -> (Int, Int) {
+      guard let index = position[bot] else {
+        return (1, offset)
       }
+
+      return index < looseHead ? (0, index) : (2, index)
+    }
+
+    return rows.enumerated()
+      .sorted { key($0.offset, name($0.element)) < key($1.offset, name($1.element)) }
       .map(\.element)
+  }
+
+  /**
+   Fold the roster into the order (`reconcileBots` in the web client's `state/folders.ts`): a bot
+   the roster no longer has is dropped from wherever it was, and a bot not placed yet lands at the
+   end of the loose top-level run, before the first folder. Only with a roster the gateway has just
+   answered: a roster painted from the cache can lag behind a bot made elsewhere, and dropping it
+   would take it out of its folder. The caller writes it as a chore. Answers whether it changed
+   anything. An empty roster changes nothing.
+   */
+  @discardableResult
+  public static func reconcile(roster: [String], in app: inout JSONObject) -> Bool {
+    guard !roster.isEmpty else {
+      return false
+    }
+
+    let live = Set(roster)
+    let before = app
+    var entries = (app[UIMetaField.entries]?.arrayValue ?? []).filter {
+      $0["kind"]?.stringValue != "chat" || live.contains($0["name"]?.stringValue ?? "")
+    }
+    let folders = (app[UIMetaField.folders]?.arrayValue ?? []).map { folder -> JSONValue in
+      guard case .object(var object) = folder, case .array(let bots)? = object["bots"] else {
+        return folder
+      }
+
+      object["bots"] = .array(bots.filter { live.contains($0.stringValue ?? "") })
+      return .object(object)
+    }
+
+    insertUnplaced(roster, into: &entries, folders: folders)
+    app[UIMetaField.entries] = .array(entries)
+
+    if app[UIMetaField.folders] != nil {
+      app[UIMetaField.folders] = .array(folders)
+    }
+
+    return app != before
+  }
+
+  /// Put the roster's bots that `entries` and `folders` do not place at the end of the loose run.
+  private static func insertUnplaced(_ roster: [String], into entries: inout [JSONValue], folders: [JSONValue]) {
+    let placed = Set(botsInOrder(["entries": .array(entries), "folders": .array(folders)]))
+    let added = roster.filter { !placed.contains($0) }
+
+    guard !added.isEmpty else {
+      return
+    }
+
+    let firstFolder = entries.firstIndex { $0["kind"]?.stringValue == "folder" } ?? entries.count
+    entries.insert(contentsOf: added.map { ["kind": "chat", "name": .string($0)] }, at: firstFolder)
   }
 
   /**
@@ -319,10 +431,11 @@ public struct ChatListArrangement: Sendable, Hashable {
    (`{"kind": "chat", "name": …}`, folders by id), or the folder's `bots`. Every other field of the
    section, every folder and every entry this build does not know is carried.
 
-   First the roster is folded in (`reconcileBots`): a bot the roster no longer has is dropped from
-   wherever it was, and a bot the arrangement does not place yet lands at the end of the loose
-   top-level run, before the first folder, so the order written is the one on screen. An empty
-   roster (nothing read yet) folds nothing in and drops nothing.
+   A bot the arrangement does not place yet (in `roster`, the rows on screen) is written first, at
+   the end of the loose top-level run before the first folder, where `ordered` shows it, so the
+   order written is the one on screen. Nothing is ever dropped here: the roster may be the one
+   painted from the cache, and a bot made on another device would leave its folder. Dropping is
+   `reconcile`'s, with a roster the gateway answered, as a chore.
 
    A move between containers (out of a folder, say) is not made here: this build has no folders to
    drop into, and running off the end of one is not a step anybody asked for. Answers whether the
@@ -337,31 +450,7 @@ public struct ChatListArrangement: Sendable, Hashable {
     var entries = app[UIMetaField.entries]?.arrayValue ?? []
     var folders = app[UIMetaField.folders]?.arrayValue ?? []
 
-    if !roster.isEmpty {
-      let live = Set(roster)
-
-      guard live.contains(name), live.contains(anchor.name) else {
-        return false
-      }
-
-      entries.removeAll { $0["kind"]?.stringValue == "chat" && !live.contains($0["name"]?.stringValue ?? "") }
-      folders = folders.map { folder in
-        guard case .object(var object) = folder, case .array(let bots)? = object["bots"] else {
-          return folder
-        }
-
-        object["bots"] = .array(bots.filter { live.contains($0.stringValue ?? "") })
-        return .object(object)
-      }
-    }
-
-    let placed = Set(botsInOrder(["entries": .array(entries), "folders": .array(folders)]))
-    let added = roster.filter { !placed.contains($0) }
-
-    if !added.isEmpty {
-      let firstFolder = entries.firstIndex { $0["kind"]?.stringValue == "folder" } ?? entries.count
-      entries.insert(contentsOf: added.map { ["kind": "chat", "name": .string($0)] }, at: firstFolder)
-    }
+    insertUnplaced(roster, into: &entries, folders: folders)
 
     func folderIndex(of bot: String) -> Int? {
       folders.firstIndex { names($0["bots"]).contains(bot) }
@@ -459,6 +548,8 @@ public final class ChatArrangementModel {
   /// The sync's stored copy has been read: only then can the archive be seeded, or the seed would
   /// be merged over a person's own archive still on its way off the disk.
   @ObservationIgnored private var loaded = false
+  /// The roster as the gateway last answered it (never the one painted from the cache), for the fold.
+  @ObservationIgnored private var freshRoster: [String] = []
   @ObservationIgnored private let now: @Sendable () -> Double
 
   public init(now: @escaping @Sendable () -> Double = { Date().timeIntervalSince1970 }) {
@@ -504,6 +595,7 @@ public final class ChatArrangementModel {
     lapse = nil
     sync = nil
     loaded = false
+    freshRoster = []
     canEdit = false
   }
 
@@ -538,6 +630,18 @@ public final class ChatArrangementModel {
     refresh()
   }
 
+  /// The gateway answered the roster: fold it into the order (`ChatListArrangement.reconcile`) as a
+  /// chore, which never wins over the gateway's copy and is redone on top of every copy taken in.
+  /// Only for a roster the gateway answered, never one painted from the cache.
+  public func rosterRefreshed(_ names: [String]) {
+    guard names != freshRoster else {
+      return
+    }
+
+    freshRoster = names
+    refresh()
+  }
+
   /// `nil` unmutes.
   public func setMute(_ name: String, until: Double?) {
     sync?.updateApp(.choice) { ChatListArrangement.setMute(name, until: until, in: &$0) }
@@ -556,6 +660,11 @@ public final class ChatArrangementModel {
     if loaded, ChatListArrangement.archivedBots(sync.app) == nil {
       let bots = sync.documents.bots
       sync.updateApp(.chore) { ChatListArrangement.seedArchive(from: bots, in: &$0) }
+    }
+
+    if loaded, !freshRoster.isEmpty {
+      let roster = freshRoster
+      sync.updateApp(.chore) { ChatListArrangement.reconcile(roster: roster, in: &$0) }
     }
 
     let next = ChatListArrangement(documents: sync.documents)

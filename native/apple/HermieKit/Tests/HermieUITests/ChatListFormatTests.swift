@@ -173,6 +173,20 @@ struct ChatListFormatTests {
     #expect(try height("boekhouder-met-een-erg-lange-naam-die-niet-past") == height("bo"))
   }
 
+  /// Move up, move down and a drag are offered only among the rows `move` would move the chat
+  /// among: its pinned group and its container.
+  @Test("a chat moves within its pinned group and its folder only")
+  func moveGroups() {
+    let arrangement = ChatListArrangement(
+      pinned: ["p"], order: ["p", "a", "b", "x", "y"], looseHead: 3, folderOf: ["x": "werk", "y": "werk"])
+    let names = ["p", "a", "b", "x", "y"]
+
+    #expect(SessionChatList.group(of: "p", in: names, arrangement: arrangement) == 0..<1)
+    #expect(SessionChatList.group(of: "a", in: names, arrangement: arrangement) == 1..<3)
+    #expect(SessionChatList.group(of: "b", in: names, arrangement: arrangement) == 1..<3)
+    #expect(SessionChatList.group(of: "y", in: names, arrangement: arrangement) == 3..<5)
+  }
+
   @Test("the pipeline counts new replies below the newest row, never history prepended above")
   func arrivals() async {
     func item(_ id: String, _ text: String = "x") -> VisibleItem {
