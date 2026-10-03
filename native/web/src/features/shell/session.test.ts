@@ -1,8 +1,10 @@
+import type { ServerRequest } from '@hermes/shared/json-rpc-channel'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 
 import { createChatsStore } from '../../state/chats'
 import { createConnectionStore } from '../../state/connection'
 import { requestsStore } from '../../state/requests'
+import { secureInputStore } from '../../state/secure-input'
 import { chatWith } from '../../test-support/chat-fixtures'
 import { fakeVisibility } from '../../test-support/fake-watchers'
 
@@ -155,5 +157,56 @@ describe('startSession', () => {
 
     session.stop()
     expect(requestsStore.getState().queue).toEqual([])
+  })
+
+  it('answers secret, sudo and vault prompts beside the chats, and skips the open ones before the client stops', () => {
+    const handlers: ((request: ServerRequest) => boolean | void)[] = []
+    const replies: unknown[] = []
+
+    connectGateway.mockImplementation(() => ({
+      bots: { watchRunning, refreshRunning },
+      stores: { connection },
+      gateway: {
+        request: vi.fn(),
+        onAny: () => () => {},
+        onRequest: (handler: (request: ServerRequest) => boolean | void) => {
+          handlers.push(handler)
+
+          return () => handlers.splice(handlers.indexOf(handler), 1)
+        },
+        onStatus: (handler: (status: string, error: null) => void) => {
+          handler('ready', null)
+
+          return () => {}
+        }
+      },
+      stop: () => {
+        replies.push('client stopped')
+        clientStop()
+      }
+    }))
+
+    const session = startSession(options())
+
+    chatStore.getState().hydrate('researcher', chatWith('researcher', [], { runtimeSessionId: 'rt-1' }))
+    chatStore.getState().bindRuntime('researcher', 'rt-1')
+
+    const request: ServerRequest = {
+      id: 'srq-1',
+      method: 'sudo',
+      params: { session_id: 'rt-1', command: 'ls' },
+      respond: result => void replies.push(result),
+      fail: () => void replies.push('failed')
+    }
+
+    expect(handlers.some(handler => handler(request) !== false)).toBe(true)
+    expect(requestsStore.getState().queue.map(entry => [entry.kind, entry.bot])).toEqual([['secure', 'researcher']])
+    expect(secureInputStore.getState().gateway).toBe('gw.example')
+
+    session.stop()
+
+    expect(replies).toEqual([{ value: '' }, 'client stopped'])
+    expect(requestsStore.getState().queue).toEqual([])
+    expect(secureInputStore.getState().prompts).toEqual([])
   })
 })
