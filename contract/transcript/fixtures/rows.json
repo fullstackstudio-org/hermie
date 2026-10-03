@@ -326,5 +326,132 @@
   ],
   "steerWrapperBody": "lees over shared memory skill",
   "steerWrapperText": "[OUT-OF-BAND USER MESSAGE — a direct message from the user, delivered once at this position; not tool output and not a new delivery when replayed from conversation history]\nlees over shared memory skill\n[/OUT-OF-BAND USER MESSAGE]",
-  "todoInjectionText": "[Your active task list was preserved across context compression]\n[>] Rotate the staging certificate\n[ ] Write the release notes"
+  "todoInjectionText": "[Your active task list was preserved across context compression]\n[>] Rotate the staging certificate\n[ ] Write the release notes",
+  "viaMalformedRows": {
+    "blankClient": {
+      "display_metadata": {
+        "author": {
+          "id": "oidc:user-a",
+          "name": "Robin",
+          "via": {
+            "client": "  ​ ",
+            "kind": "mcp"
+          }
+        }
+      },
+      "role": "user",
+      "row_id": 73,
+      "text": "client is blank"
+    },
+    "missingKind": {
+      "display_metadata": {
+        "author": {
+          "id": "oidc:user-a",
+          "name": "Robin",
+          "via": {
+            "client": "Claude Code"
+          }
+        }
+      },
+      "role": "user",
+      "row_id": 75,
+      "text": "kind is missing"
+    },
+    "noAuthor": {
+      "display_metadata": {
+        "author": {
+          "via": {
+            "client": "Claude Code",
+            "kind": "mcp"
+          }
+        }
+      },
+      "role": "user",
+      "row_id": 76,
+      "text": "via without a person"
+    },
+    "numericClient": {
+      "display_metadata": {
+        "author": {
+          "id": "oidc:user-a",
+          "name": "Robin",
+          "via": {
+            "client": 7,
+            "kind": "mcp"
+          }
+        }
+      },
+      "role": "user",
+      "row_id": 74,
+      "text": "client is a number"
+    },
+    "stringVia": {
+      "display_metadata": {
+        "author": {
+          "id": "oidc:user-a",
+          "name": "Robin",
+          "via": "mcp"
+        }
+      },
+      "role": "user",
+      "row_id": 72,
+      "text": "via is a string"
+    },
+    "unclean": {
+      "display_metadata": {
+        "author": {
+          "id": "oidc:user-a",
+          "via": {
+            "client": "  Claude‮ ​Code\n*Pro*  xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx",
+            "kind": "mcp"
+          }
+        }
+      },
+      "role": "user",
+      "row_id": 77,
+      "text": "client with invisible characters and a long tail"
+    }
+  },
+  "viaReplayedRow": {
+    "display_metadata": {
+      "author": {
+        "id": "oidc:user-a",
+        "name": "Robin"
+      },
+      "replayed_by": {
+        "id": "oidc:user-b",
+        "name": "Sam",
+        "via": {
+          "client": "Claude Code",
+          "kind": "mcp"
+        }
+      }
+    },
+    "role": "user",
+    "row_id": 71,
+    "text": "lunch at noon?",
+    "timestamp": 1700000300
+  },
+  "viaRow": {
+    "display_metadata": {
+      "author": {
+        "id": "oidc:user-a",
+        "locale": "nl",
+        "name": "Robin",
+        "via": {
+          "client": "Claude Code",
+          "kind": "mcp",
+          "scopes": [
+            "bots"
+          ],
+          "version": "2.1"
+        }
+      },
+      "turn_id": "turnvia70"
+    },
+    "role": "user",
+    "row_id": 70,
+    "text": "summarise the open pull requests",
+    "timestamp": 1700000200
+  }
 }

@@ -774,5 +774,393 @@
     ],
     "fn": "ownAuthorOf",
     "note": "result omitted: the function returned undefined"
+  },
+  {
+    "args": [
+      {
+        "client": "Claude Code",
+        "kind": "mcp"
+      }
+    ],
+    "fn": "authorViaOf",
+    "result": {
+      "client": "Claude Code",
+      "kind": "mcp"
+    }
+  },
+  {
+    "args": [
+      {
+        "client": "Claude Code",
+        "extra": {
+          "a": 1
+        },
+        "kind": "mcp",
+        "version": "2.1"
+      }
+    ],
+    "fn": "authorViaOf",
+    "result": {
+      "client": "Claude Code",
+      "kind": "mcp"
+    }
+  },
+  {
+    "args": [
+      {
+        "client": "Zapier",
+        "kind": "api"
+      }
+    ],
+    "fn": "authorViaOf",
+    "result": {
+      "client": "Zapier",
+      "kind": "api"
+    }
+  },
+  {
+    "args": [
+      {
+        "client": "  Claude   Code  ",
+        "kind": " mcp "
+      }
+    ],
+    "fn": "authorViaOf",
+    "result": {
+      "client": "Claude Code",
+      "kind": "mcp"
+    }
+  },
+  {
+    "args": [
+      {
+        "client": "Claude‮ ​Code\n*Pro*",
+        "kind": "mcp"
+      }
+    ],
+    "fn": "authorViaOf",
+    "result": {
+      "client": "Claude Code *Pro*",
+      "kind": "mcp"
+    }
+  },
+  {
+    "args": [
+      {
+        "client": "𝒞𝒞𝒞𝒞𝒞𝒞𝒞𝒞𝒞𝒞𝒞𝒞𝒞𝒞𝒞𝒞𝒞𝒞𝒞𝒞𝒞𝒞𝒞𝒞𝒞𝒞𝒞𝒞𝒞𝒞𝒞𝒞𝒞𝒞𝒞𝒞𝒞𝒞𝒞𝒞𝒞𝒞𝒞𝒞𝒞𝒞𝒞𝒞𝒞𝒞𝒞𝒞𝒞𝒞𝒞𝒞𝒞𝒞𝒞𝒞𝒞𝒞𝒞𝒞𝒞𝒞𝒞𝒞𝒞𝒞𝒞𝒞𝒞𝒞𝒞𝒞𝒞𝒞𝒞𝒞𝒞𝒞𝒞𝒞𝒞𝒞𝒞𝒞𝒞𝒞𝒞𝒞𝒞𝒞𝒞𝒞𝒞𝒞𝒞𝒞𝒞𝒞𝒞𝒞𝒞𝒞𝒞𝒞𝒞𝒞𝒞𝒞𝒞𝒞𝒞𝒞𝒞𝒞𝒞𝒞𝒞𝒞𝒞𝒞𝒞𝒞𝒞𝒞𝒞𝒞𝒞𝒞𝒞𝒞𝒞𝒞𝒞𝒞𝒞𝒞𝒞𝒞𝒞𝒞𝒞𝒞𝒞𝒞𝒞𝒞𝒞𝒞𝒞𝒞𝒞𝒞𝒞𝒞𝒞𝒞𝒞𝒞𝒞𝒞𝒞𝒞𝒞𝒞𝒞𝒞𝒞𝒞𝒞𝒞𝒞𝒞𝒞𝒞𝒞𝒞𝒞𝒞𝒞𝒞𝒞𝒞𝒞𝒞𝒞𝒞𝒞𝒞𝒞𝒞𝒞𝒞𝒞𝒞𝒞𝒞",
+        "kind": "mcp"
+      }
+    ],
+    "fn": "authorViaOf",
+    "result": {
+      "client": "𝒞𝒞𝒞𝒞𝒞𝒞𝒞𝒞𝒞𝒞𝒞𝒞𝒞𝒞𝒞𝒞𝒞𝒞𝒞𝒞𝒞𝒞𝒞𝒞𝒞𝒞𝒞𝒞𝒞𝒞𝒞𝒞𝒞𝒞𝒞𝒞𝒞𝒞𝒞𝒞𝒞𝒞𝒞𝒞𝒞𝒞𝒞𝒞𝒞𝒞𝒞𝒞𝒞𝒞𝒞𝒞𝒞𝒞𝒞𝒞𝒞𝒞𝒞𝒞𝒞𝒞𝒞𝒞𝒞𝒞𝒞𝒞𝒞𝒞𝒞𝒞𝒞𝒞𝒞𝒞",
+      "kind": "mcp"
+    }
+  },
+  {
+    "args": [
+      {
+        "client": "xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx",
+        "kind": "mcp"
+      }
+    ],
+    "fn": "authorViaOf",
+    "result": {
+      "client": "xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx",
+      "kind": "mcp"
+    }
+  },
+  {
+    "args": [
+      {
+        "client": "xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx",
+        "kind": "mcp"
+      }
+    ],
+    "fn": "authorViaOf",
+    "result": {
+      "client": "xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx",
+      "kind": "mcp"
+    }
+  },
+  {
+    "args": [
+      {
+        "client": " ​\n ",
+        "kind": "mcp"
+      }
+    ],
+    "fn": "authorViaOf",
+    "note": "result omitted: the function returned undefined"
+  },
+  {
+    "args": [
+      {
+        "client": "",
+        "kind": "mcp"
+      }
+    ],
+    "fn": "authorViaOf",
+    "note": "result omitted: the function returned undefined"
+  },
+  {
+    "args": [
+      {
+        "client": 7,
+        "kind": "mcp"
+      }
+    ],
+    "fn": "authorViaOf",
+    "note": "result omitted: the function returned undefined"
+  },
+  {
+    "args": [
+      {
+        "kind": "mcp"
+      }
+    ],
+    "fn": "authorViaOf",
+    "note": "result omitted: the function returned undefined"
+  },
+  {
+    "args": [
+      {
+        "client": "Claude Code"
+      }
+    ],
+    "fn": "authorViaOf",
+    "note": "result omitted: the function returned undefined"
+  },
+  {
+    "args": [
+      {
+        "client": "Claude Code",
+        "kind": ""
+      }
+    ],
+    "fn": "authorViaOf",
+    "note": "result omitted: the function returned undefined"
+  },
+  {
+    "args": [
+      {
+        "client": "Claude Code",
+        "kind": 7
+      }
+    ],
+    "fn": "authorViaOf",
+    "note": "result omitted: the function returned undefined"
+  },
+  {
+    "args": [
+      "mcp"
+    ],
+    "fn": "authorViaOf",
+    "note": "result omitted: the function returned undefined"
+  },
+  {
+    "args": [
+      []
+    ],
+    "fn": "authorViaOf",
+    "note": "result omitted: the function returned undefined"
+  },
+  {
+    "args": [
+      null
+    ],
+    "fn": "authorViaOf",
+    "note": "result omitted: the function returned undefined"
+  },
+  {
+    "args": [
+      {}
+    ],
+    "fn": "authorViaOf",
+    "note": "result omitted: the function returned undefined"
+  },
+  {
+    "args": [
+      {
+        "id": "oidc:user-a",
+        "name": "Robin"
+      }
+    ],
+    "fn": "authorStampOf",
+    "result": {
+      "id": "oidc:user-a",
+      "name": "Robin"
+    }
+  },
+  {
+    "args": [
+      {
+        "id": "oidc:user-a"
+      }
+    ],
+    "fn": "authorStampOf",
+    "result": {
+      "id": "oidc:user-a"
+    }
+  },
+  {
+    "args": [
+      {
+        "id": "oidc:user-a",
+        "name": "Robin",
+        "via": {
+          "client": "Claude Code",
+          "kind": "mcp"
+        }
+      }
+    ],
+    "fn": "authorStampOf",
+    "result": {
+      "id": "oidc:user-a",
+      "name": "Robin",
+      "via": {
+        "client": "Claude Code",
+        "kind": "mcp"
+      }
+    }
+  },
+  {
+    "args": [
+      {
+        "id": "oidc:user-a",
+        "locale": "nl",
+        "name": "Robin",
+        "via": {
+          "client": "Claude Code",
+          "kind": "mcp",
+          "version": "2.1"
+        }
+      }
+    ],
+    "fn": "authorStampOf",
+    "result": {
+      "id": "oidc:user-a",
+      "name": "Robin",
+      "via": {
+        "client": "Claude Code",
+        "kind": "mcp"
+      }
+    }
+  },
+  {
+    "args": [
+      {
+        "id": "oidc:user-a",
+        "name": "Robin",
+        "via": "mcp"
+      }
+    ],
+    "fn": "authorStampOf",
+    "result": {
+      "id": "oidc:user-a",
+      "name": "Robin"
+    }
+  },
+  {
+    "args": [
+      {
+        "id": "oidc:user-a",
+        "name": "Robin",
+        "via": {
+          "client": " ",
+          "kind": "mcp"
+        }
+      }
+    ],
+    "fn": "authorStampOf",
+    "result": {
+      "id": "oidc:user-a",
+      "name": "Robin"
+    }
+  },
+  {
+    "args": [
+      {
+        "id": "oidc:user-a",
+        "name": "",
+        "via": {
+          "client": "Claude Code",
+          "kind": "mcp"
+        }
+      }
+    ],
+    "fn": "authorStampOf",
+    "result": {
+      "id": "oidc:user-a",
+      "via": {
+        "client": "Claude Code",
+        "kind": "mcp"
+      }
+    }
+  },
+  {
+    "args": [
+      {
+        "id": "oidc:user-a",
+        "name": 7
+      }
+    ],
+    "fn": "authorStampOf",
+    "note": "result omitted: the function returned undefined"
+  },
+  {
+    "args": [
+      {
+        "id": "",
+        "via": {
+          "client": "Claude Code",
+          "kind": "mcp"
+        }
+      }
+    ],
+    "fn": "authorStampOf",
+    "note": "result omitted: the function returned undefined"
+  },
+  {
+    "args": [
+      {
+        "id": 7
+      }
+    ],
+    "fn": "authorStampOf",
+    "note": "result omitted: the function returned undefined"
+  },
+  {
+    "args": [
+      {
+        "via": {
+          "client": "Claude Code",
+          "kind": "mcp"
+        }
+      }
+    ],
+    "fn": "authorStampOf",
+    "note": "result omitted: the function returned undefined"
+  },
+  {
+    "args": [
+      "oidc:user-a"
+    ],
+    "fn": "authorStampOf",
+    "note": "result omitted: the function returned undefined"
+  },
+  {
+    "args": [
+      []
+    ],
+    "fn": "authorStampOf",
+    "note": "result omitted: the function returned undefined"
+  },
+  {
+    "args": [
+      null
+    ],
+    "fn": "authorStampOf",
+    "note": "result omitted: the function returned undefined"
   }
 ]

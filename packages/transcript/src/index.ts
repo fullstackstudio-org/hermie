@@ -6,6 +6,7 @@
  */
 export * from './types'
 export * from './identity'
+export * from './author'
 export * from './bot-dm'
 export * from './cron-delivery'
 export * from './injected'

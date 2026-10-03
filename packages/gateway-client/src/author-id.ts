@@ -70,3 +70,76 @@ export function ownAuthorOf(identity: {
 
   return name ? { id, name } : { id }
 }
+
+/**
+ * The agent that sent a row on somebody's behalf: `display_metadata.author.via`
+ * (and `replayed_by.via`), the gateway's `{ kind, client }` marker.
+ */
+export interface AuthorVia {
+  kind: string
+  client: string
+}
+
+/** A stamped author, as a row carries it: the person, and `via` when an agent sent the row for them. */
+export interface AuthorStamp {
+  id: string
+  name?: string
+  via?: AuthorVia
+}
+
+/** The longest client name carried, in code points: the gateway cleans to the same cap. */
+export const AUTHOR_VIA_CLIENT_LIMIT = 80
+
+/** One line of plain text: format characters (bidi overrides, zero-width) gone, other controls a space. */
+function cleanClient(value: string): string {
+  const collapsed = value
+    .replace(/\p{Cf}/gu, '')
+    .replace(/[\p{Cc}\p{Zl}\p{Zp}]/gu, ' ')
+    .replace(/\s+/gu, ' ')
+    .trim()
+
+  return Array.from(collapsed).slice(0, AUTHOR_VIA_CLIENT_LIMIT).join('').trim()
+}
+
+/**
+ * `via` out of an author object: a non-empty string `kind` and a `client` that is a non-empty string
+ * once cleaned. Keys it does not know are ignored; any other shape is no `via` at all. This is the same
+ * rule `@hermie/transcript` applies to a history row (`authorViaOf`), so a client that reads a stamp
+ * from somewhere else than a row reads it the same way.
+ */
+export function authorViaOf(value: unknown): AuthorVia | undefined {
+  if (!value || typeof value !== 'object' || Array.isArray(value)) {
+    return undefined
+  }
+
+  const { kind, client } = value as Record<string, unknown>
+
+  if (typeof kind !== 'string' || !kind.trim() || typeof client !== 'string') {
+    return undefined
+  }
+
+  const cleaned = cleanClient(client)
+
+  return cleaned ? { kind: kind.trim(), client: cleaned } : undefined
+}
+
+/**
+ * A stamped author out of an untrusted value: a non-empty string `id`, a string `name` when there is
+ * one, and `via` when it is well formed. A value without a usable `id`, or with a `name` of another type,
+ * is no author (never half of one); an unusable `via` costs the marker only, and unknown keys are ignored.
+ */
+export function authorStampOf(value: unknown): AuthorStamp | undefined {
+  if (!value || typeof value !== 'object' || Array.isArray(value)) {
+    return undefined
+  }
+
+  const { id, name, via } = value as Record<string, unknown>
+
+  if (typeof id !== 'string' || !id || (name !== undefined && typeof name !== 'string')) {
+    return undefined
+  }
+
+  const marker = authorViaOf(via)
+
+  return { id, ...(name ? { name: name as string } : {}), ...(marker ? { via: marker } : {}) }
+}

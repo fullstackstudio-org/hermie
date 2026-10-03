@@ -32,6 +32,7 @@
  * saved on a phone should carry that phone's idea of a clock and this package
  * has no business knowing what it is.
  */
+import { authorLabel } from './author'
 import type { MessageAuthor, TranscriptItem } from './types'
 
 export interface TranscriptExportOptions {
@@ -164,7 +165,9 @@ function entryFor(item: TranscriptItem, options: TranscriptExportOptions): Entry
             body: [item.text.trim(), ...(item.attachments ?? []).map(reference => `[${reference}]`)]
               .filter(Boolean)
               .join('\n'),
-            who: foreignSenderWho(item.author, options) || self
+            // An agent's turn carries its marker everywhere: `<name> via <client>`, the name being the
+            // person's own label (`selfName`, or the resolved name of a colleague in the group chat).
+            who: authorLabel(item.author, foreignSenderWho(item.author, options) || self)
           }
         : null
 

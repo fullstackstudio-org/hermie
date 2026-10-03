@@ -20,6 +20,7 @@ import {
   replyFromDeliveryOutput
 } from './bot-dm'
 import { type ParsedCronDelivery, parseCronDelivery } from './cron-delivery'
+import { authorViaOf } from './author'
 import { callKeyOf, turnIdOfMetadata } from './identity'
 import { type InjectedRow, parseInjectedRow, stripSteerWrapper, unwrapSystemNote } from './injected'
 import {
@@ -327,9 +328,14 @@ function displayText(metadata: unknown): string | undefined {
  * `name` of the wrong type) drops the whole author rather than keeping half of
  * it. A partial author is worse than none: it would name someone by an id the
  * gateway never actually stamped this way.
+ *
+ * `via` is the one optional extra (an agent sent the row on this person's
+ * behalf, `authorViaOf`): a `via` that is not well formed is left out on its
+ * own, and keys this does not know are ignored. `replayed_by` has the same
+ * shape and is read the same way.
  */
-function authorFromMetadata(metadata: unknown): MessageAuthor | undefined {
-  const author = asObject(asObject(metadata)?.author)
+function authorFromMetadata(metadata: unknown, key: 'author' | 'replayed_by' = 'author'): MessageAuthor | undefined {
+  const author = asObject(asObject(metadata)?.[key])
 
   if (!author) {
     return undefined
@@ -347,7 +353,11 @@ function authorFromMetadata(metadata: unknown): MessageAuthor | undefined {
     return undefined
   }
 
-  return name ? { id, name } : { id }
+  // An agent marker rides beside the person. A malformed one is left out on its own: the person's
+  // identity stays, and only the optional marker is lost.
+  const via = authorViaOf(author.via)
+
+  return { id, ...(name ? { name } : {}), ...(via ? { via } : {}) }
 }
 
 function goalsFromArgs(args: Record<string, unknown> | null | undefined): string[] {
@@ -745,6 +755,7 @@ export function rowsToItems(rows: readonly TranscriptRow[], shape: RowShape, opt
     // row reaching here — an older gateway, a transport that dropped
     // `display_kind` — carries no author and must not be given one.
     const author = role === 'user' ? authorFromMetadata(row.display_metadata) : undefined
+    const replayedBy = role === 'user' ? authorFromMetadata(row.display_metadata, 'replayed_by') : undefined
 
     push<UserItem>({
       id: fallbackId,
@@ -753,6 +764,7 @@ export function rowsToItems(rows: readonly TranscriptRow[], shape: RowShape, opt
       ...(stripped.attachments ? { attachments: stripped.attachments } : {}),
       ...(speechKind ? { displayKind: speechKind } : {}),
       ...(author ? { author } : {}),
+      ...(replayedBy ? { replayedBy } : {}),
       ...spoken
     })
   })

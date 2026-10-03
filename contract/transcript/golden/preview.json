@@ -3273,5 +3273,756 @@
       }
     ],
     "test": "who a group-chat row’s preview leads with (HERM-83, Task 5) > leaves an absent options argument exactly as it behaved before `author` existed"
+  },
+  {
+    "calls": [
+      {
+        "args": [
+          "researcher",
+          "stored-1",
+          "resolved-1"
+        ],
+        "op": "createChatState",
+        "result": {
+          "botName": "researcher",
+          "byApprovalId": {},
+          "byCallKey": {},
+          "byDelegationId": {},
+          "byProcessId": {},
+          "byRequestId": {},
+          "byRowId": {},
+          "byToolId": {},
+          "draft": "",
+          "hydration": "cold",
+          "items": {},
+          "lastSeq": 0,
+          "order": [],
+          "resolvedSessionId": "resolved-1",
+          "storedSessionId": "stored-1",
+          "subagents": {},
+          "turn": {
+            "active": false,
+            "local": false,
+            "nextSeq": 1000
+          },
+          "unreadCount": 0
+        }
+      },
+      {
+        "args": [
+          [
+            {
+              "display_metadata": {
+                "author": {
+                  "id": "authentik:writer",
+                  "name": "Robin",
+                  "via": {
+                    "client": "Claude Code",
+                    "kind": "mcp"
+                  }
+                }
+              },
+              "role": "user",
+              "row_id": 1,
+              "text": "draft is ready"
+            }
+          ],
+          "rpc"
+        ],
+        "op": "rowsToItems",
+        "result": [
+          {
+            "author": {
+              "id": "authentik:writer",
+              "name": "Robin",
+              "via": {
+                "client": "Claude Code",
+                "kind": "mcp"
+              }
+            },
+            "id": "r:1",
+            "kind": "user",
+            "origin": "history",
+            "rowId": 1,
+            "seq": 0,
+            "text": "draft is ready",
+            "version": 0
+          }
+        ]
+      },
+      {
+        "args": [
+          {
+            "botName": "researcher",
+            "byApprovalId": {},
+            "byCallKey": {},
+            "byDelegationId": {},
+            "byProcessId": {},
+            "byRequestId": {},
+            "byRowId": {},
+            "byToolId": {},
+            "draft": "",
+            "hydration": "cold",
+            "items": {},
+            "lastSeq": 0,
+            "order": [],
+            "resolvedSessionId": "resolved-1",
+            "storedSessionId": "stored-1",
+            "subagents": {},
+            "turn": {
+              "active": false,
+              "local": false,
+              "nextSeq": 1000
+            },
+            "unreadCount": 0
+          },
+          [
+            {
+              "author": {
+                "id": "authentik:writer",
+                "name": "Robin",
+                "via": {
+                  "client": "Claude Code",
+                  "kind": "mcp"
+                }
+              },
+              "id": "r:1",
+              "kind": "user",
+              "origin": "history",
+              "rowId": 1,
+              "seq": 0,
+              "text": "draft is ready",
+              "version": 0
+            }
+          ]
+        ],
+        "op": "reconcile",
+        "result": {
+          "botName": "researcher",
+          "byApprovalId": {},
+          "byCallKey": {},
+          "byDelegationId": {},
+          "byProcessId": {},
+          "byRequestId": {},
+          "byRowId": {
+            "1": "r:1"
+          },
+          "byToolId": {},
+          "draft": "",
+          "hydration": "live",
+          "items": {
+            "r:1": {
+              "author": {
+                "id": "authentik:writer",
+                "name": "Robin",
+                "via": {
+                  "client": "Claude Code",
+                  "kind": "mcp"
+                }
+              },
+              "id": "r:1",
+              "kind": "user",
+              "origin": "history",
+              "rowId": 1,
+              "seq": 0,
+              "text": "draft is ready",
+              "version": 0
+            }
+          },
+          "lastSeq": 0,
+          "order": [
+            "r:1"
+          ],
+          "resolvedSessionId": "resolved-1",
+          "storedSessionId": "stored-1",
+          "subagents": {},
+          "turn": {
+            "active": false,
+            "local": false,
+            "nextSeq": 1000
+          },
+          "unreadCount": 0
+        }
+      }
+    ],
+    "test": "who a group-chat row’s preview leads with (HERM-83, Task 5) > a row an agent sent on somebody’s behalf > leads with `<name> via <client>` for a colleague’s row"
+  },
+  {
+    "calls": [
+      {
+        "args": [
+          "researcher",
+          "stored-1",
+          "resolved-1"
+        ],
+        "op": "createChatState",
+        "result": {
+          "botName": "researcher",
+          "byApprovalId": {},
+          "byCallKey": {},
+          "byDelegationId": {},
+          "byProcessId": {},
+          "byRequestId": {},
+          "byRowId": {},
+          "byToolId": {},
+          "draft": "",
+          "hydration": "cold",
+          "items": {},
+          "lastSeq": 0,
+          "order": [],
+          "resolvedSessionId": "resolved-1",
+          "storedSessionId": "stored-1",
+          "subagents": {},
+          "turn": {
+            "active": false,
+            "local": false,
+            "nextSeq": 1000
+          },
+          "unreadCount": 0
+        }
+      },
+      {
+        "args": [
+          [
+            {
+              "display_metadata": {
+                "author": {
+                  "id": "authentik:me",
+                  "name": "Me",
+                  "via": {
+                    "client": "Claude Code",
+                    "kind": "mcp"
+                  }
+                }
+              },
+              "role": "user",
+              "row_id": 1,
+              "text": "draft is ready"
+            }
+          ],
+          "rpc"
+        ],
+        "op": "rowsToItems",
+        "result": [
+          {
+            "author": {
+              "id": "authentik:me",
+              "name": "Me",
+              "via": {
+                "client": "Claude Code",
+                "kind": "mcp"
+              }
+            },
+            "id": "r:1",
+            "kind": "user",
+            "origin": "history",
+            "rowId": 1,
+            "seq": 0,
+            "text": "draft is ready",
+            "version": 0
+          }
+        ]
+      },
+      {
+        "args": [
+          {
+            "botName": "researcher",
+            "byApprovalId": {},
+            "byCallKey": {},
+            "byDelegationId": {},
+            "byProcessId": {},
+            "byRequestId": {},
+            "byRowId": {},
+            "byToolId": {},
+            "draft": "",
+            "hydration": "cold",
+            "items": {},
+            "lastSeq": 0,
+            "order": [],
+            "resolvedSessionId": "resolved-1",
+            "storedSessionId": "stored-1",
+            "subagents": {},
+            "turn": {
+              "active": false,
+              "local": false,
+              "nextSeq": 1000
+            },
+            "unreadCount": 0
+          },
+          [
+            {
+              "author": {
+                "id": "authentik:me",
+                "name": "Me",
+                "via": {
+                  "client": "Claude Code",
+                  "kind": "mcp"
+                }
+              },
+              "id": "r:1",
+              "kind": "user",
+              "origin": "history",
+              "rowId": 1,
+              "seq": 0,
+              "text": "draft is ready",
+              "version": 0
+            }
+          ]
+        ],
+        "op": "reconcile",
+        "result": {
+          "botName": "researcher",
+          "byApprovalId": {},
+          "byCallKey": {},
+          "byDelegationId": {},
+          "byProcessId": {},
+          "byRequestId": {},
+          "byRowId": {
+            "1": "r:1"
+          },
+          "byToolId": {},
+          "draft": "",
+          "hydration": "live",
+          "items": {
+            "r:1": {
+              "author": {
+                "id": "authentik:me",
+                "name": "Me",
+                "via": {
+                  "client": "Claude Code",
+                  "kind": "mcp"
+                }
+              },
+              "id": "r:1",
+              "kind": "user",
+              "origin": "history",
+              "rowId": 1,
+              "seq": 0,
+              "text": "draft is ready",
+              "version": 0
+            }
+          },
+          "lastSeq": 0,
+          "order": [
+            "r:1"
+          ],
+          "resolvedSessionId": "resolved-1",
+          "storedSessionId": "stored-1",
+          "subagents": {},
+          "turn": {
+            "active": false,
+            "local": false,
+            "nextSeq": 1000
+          },
+          "unreadCount": 0
+        }
+      }
+    ],
+    "test": "who a group-chat row’s preview leads with (HERM-83, Task 5) > a row an agent sent on somebody’s behalf > labels the reader’s own agent row too: it is never drawn as the reader typing"
+  },
+  {
+    "calls": [
+      {
+        "args": [
+          "researcher",
+          "stored-1",
+          "resolved-1"
+        ],
+        "op": "createChatState",
+        "result": {
+          "botName": "researcher",
+          "byApprovalId": {},
+          "byCallKey": {},
+          "byDelegationId": {},
+          "byProcessId": {},
+          "byRequestId": {},
+          "byRowId": {},
+          "byToolId": {},
+          "draft": "",
+          "hydration": "cold",
+          "items": {},
+          "lastSeq": 0,
+          "order": [],
+          "resolvedSessionId": "resolved-1",
+          "storedSessionId": "stored-1",
+          "subagents": {},
+          "turn": {
+            "active": false,
+            "local": false,
+            "nextSeq": 1000
+          },
+          "unreadCount": 0
+        }
+      },
+      {
+        "args": [
+          [
+            {
+              "display_metadata": {
+                "author": {
+                  "id": "authentik:me",
+                  "name": "Me",
+                  "via": {
+                    "client": "Claude Code",
+                    "kind": "mcp"
+                  }
+                }
+              },
+              "role": "user",
+              "row_id": 1,
+              "text": "draft is ready"
+            }
+          ],
+          "rpc"
+        ],
+        "op": "rowsToItems",
+        "result": [
+          {
+            "author": {
+              "id": "authentik:me",
+              "name": "Me",
+              "via": {
+                "client": "Claude Code",
+                "kind": "mcp"
+              }
+            },
+            "id": "r:1",
+            "kind": "user",
+            "origin": "history",
+            "rowId": 1,
+            "seq": 0,
+            "text": "draft is ready",
+            "version": 0
+          }
+        ]
+      },
+      {
+        "args": [
+          {
+            "botName": "researcher",
+            "byApprovalId": {},
+            "byCallKey": {},
+            "byDelegationId": {},
+            "byProcessId": {},
+            "byRequestId": {},
+            "byRowId": {},
+            "byToolId": {},
+            "draft": "",
+            "hydration": "cold",
+            "items": {},
+            "lastSeq": 0,
+            "order": [],
+            "resolvedSessionId": "resolved-1",
+            "storedSessionId": "stored-1",
+            "subagents": {},
+            "turn": {
+              "active": false,
+              "local": false,
+              "nextSeq": 1000
+            },
+            "unreadCount": 0
+          },
+          [
+            {
+              "author": {
+                "id": "authentik:me",
+                "name": "Me",
+                "via": {
+                  "client": "Claude Code",
+                  "kind": "mcp"
+                }
+              },
+              "id": "r:1",
+              "kind": "user",
+              "origin": "history",
+              "rowId": 1,
+              "seq": 0,
+              "text": "draft is ready",
+              "version": 0
+            }
+          ]
+        ],
+        "op": "reconcile",
+        "result": {
+          "botName": "researcher",
+          "byApprovalId": {},
+          "byCallKey": {},
+          "byDelegationId": {},
+          "byProcessId": {},
+          "byRequestId": {},
+          "byRowId": {
+            "1": "r:1"
+          },
+          "byToolId": {},
+          "draft": "",
+          "hydration": "live",
+          "items": {
+            "r:1": {
+              "author": {
+                "id": "authentik:me",
+                "name": "Me",
+                "via": {
+                  "client": "Claude Code",
+                  "kind": "mcp"
+                }
+              },
+              "id": "r:1",
+              "kind": "user",
+              "origin": "history",
+              "rowId": 1,
+              "seq": 0,
+              "text": "draft is ready",
+              "version": 0
+            }
+          },
+          "lastSeq": 0,
+          "order": [
+            "r:1"
+          ],
+          "resolvedSessionId": "resolved-1",
+          "storedSessionId": "stored-1",
+          "subagents": {},
+          "turn": {
+            "active": false,
+            "local": false,
+            "nextSeq": 1000
+          },
+          "unreadCount": 0
+        }
+      }
+    ],
+    "test": "who a group-chat row’s preview leads with (HERM-83, Task 5) > a row an agent sent on somebody’s behalf > labels it outside the group chat as well"
+  },
+  {
+    "calls": [
+      {
+        "args": [
+          "researcher",
+          "stored-1",
+          "resolved-1"
+        ],
+        "op": "createChatState",
+        "result": {
+          "botName": "researcher",
+          "byApprovalId": {},
+          "byCallKey": {},
+          "byDelegationId": {},
+          "byProcessId": {},
+          "byRequestId": {},
+          "byRowId": {},
+          "byToolId": {},
+          "draft": "",
+          "hydration": "cold",
+          "items": {},
+          "lastSeq": 0,
+          "order": [],
+          "resolvedSessionId": "resolved-1",
+          "storedSessionId": "stored-1",
+          "subagents": {},
+          "turn": {
+            "active": false,
+            "local": false,
+            "nextSeq": 1000
+          },
+          "unreadCount": 0
+        }
+      },
+      {
+        "args": [
+          [
+            {
+              "display_metadata": {
+                "author": {
+                  "id": "authentik:writer",
+                  "name": "Robin",
+                  "via": {
+                    "client": "Claude Code",
+                    "kind": "mcp"
+                  }
+                }
+              },
+              "role": "user",
+              "row_id": 1,
+              "text": "draft is ready"
+            }
+          ],
+          "rpc"
+        ],
+        "op": "rowsToItems",
+        "result": [
+          {
+            "author": {
+              "id": "authentik:writer",
+              "name": "Robin",
+              "via": {
+                "client": "Claude Code",
+                "kind": "mcp"
+              }
+            },
+            "id": "r:1",
+            "kind": "user",
+            "origin": "history",
+            "rowId": 1,
+            "seq": 0,
+            "text": "draft is ready",
+            "version": 0
+          }
+        ]
+      },
+      {
+        "args": [
+          {
+            "botName": "researcher",
+            "byApprovalId": {},
+            "byCallKey": {},
+            "byDelegationId": {},
+            "byProcessId": {},
+            "byRequestId": {},
+            "byRowId": {},
+            "byToolId": {},
+            "draft": "",
+            "hydration": "cold",
+            "items": {},
+            "lastSeq": 0,
+            "order": [],
+            "resolvedSessionId": "resolved-1",
+            "storedSessionId": "stored-1",
+            "subagents": {},
+            "turn": {
+              "active": false,
+              "local": false,
+              "nextSeq": 1000
+            },
+            "unreadCount": 0
+          },
+          [
+            {
+              "author": {
+                "id": "authentik:writer",
+                "name": "Robin",
+                "via": {
+                  "client": "Claude Code",
+                  "kind": "mcp"
+                }
+              },
+              "id": "r:1",
+              "kind": "user",
+              "origin": "history",
+              "rowId": 1,
+              "seq": 0,
+              "text": "draft is ready",
+              "version": 0
+            }
+          ]
+        ],
+        "op": "reconcile",
+        "result": {
+          "botName": "researcher",
+          "byApprovalId": {},
+          "byCallKey": {},
+          "byDelegationId": {},
+          "byProcessId": {},
+          "byRequestId": {},
+          "byRowId": {
+            "1": "r:1"
+          },
+          "byToolId": {},
+          "draft": "",
+          "hydration": "live",
+          "items": {
+            "r:1": {
+              "author": {
+                "id": "authentik:writer",
+                "name": "Robin",
+                "via": {
+                  "client": "Claude Code",
+                  "kind": "mcp"
+                }
+              },
+              "id": "r:1",
+              "kind": "user",
+              "origin": "history",
+              "rowId": 1,
+              "seq": 0,
+              "text": "draft is ready",
+              "version": 0
+            }
+          },
+          "lastSeq": 0,
+          "order": [
+            "r:1"
+          ],
+          "resolvedSessionId": "resolved-1",
+          "storedSessionId": "stored-1",
+          "subagents": {},
+          "turn": {
+            "active": false,
+            "local": false,
+            "nextSeq": 1000
+          },
+          "unreadCount": 0
+        }
+      },
+      {
+        "args": [
+          {
+            "botName": "researcher",
+            "byApprovalId": {},
+            "byCallKey": {},
+            "byDelegationId": {},
+            "byProcessId": {},
+            "byRequestId": {},
+            "byRowId": {
+              "1": "r:1"
+            },
+            "byToolId": {},
+            "draft": "",
+            "hydration": "live",
+            "items": {
+              "r:1": {
+                "author": {
+                  "id": "authentik:writer",
+                  "name": "Robin",
+                  "via": {
+                    "client": "Claude Code",
+                    "kind": "mcp"
+                  }
+                },
+                "id": "r:1",
+                "kind": "user",
+                "origin": "history",
+                "rowId": 1,
+                "seq": 0,
+                "text": "draft is ready",
+                "version": 0
+              }
+            },
+            "lastSeq": 0,
+            "order": [
+              "r:1"
+            ],
+            "resolvedSessionId": "resolved-1",
+            "storedSessionId": "stored-1",
+            "subagents": {},
+            "turn": {
+              "active": false,
+              "local": false,
+              "nextSeq": 1000
+            },
+            "unreadCount": 0
+          },
+          {
+            "groupChat": true,
+            "ownAuthorId": "authentik:me"
+          }
+        ],
+        "op": "previewFromChat",
+        "result": {
+          "system": false,
+          "text": "draft is ready"
+        }
+      }
+    ],
+    "test": "who a group-chat row’s preview leads with (HERM-83, Task 5) > a row an agent sent on somebody’s behalf > stays unattributed when the caller has no resolver to name the person with"
   }
 ]

@@ -28,6 +28,7 @@
  * thing in the chat is scaffolding. A chat whose last row is a model switch has
  * had something happen in it, and a blank line says less than the switch does.
  */
+import { authorLabel } from './author'
 import { parseInjectedRow } from './injected'
 import type { ChatState, MessageAuthor, TranscriptItem } from './types'
 
@@ -111,9 +112,20 @@ export function previewFromChat(state: ChatState | undefined, options: ChatPrevi
  *
  * `undefined` for every case D6/D3 already rule out elsewhere: not the group
  * chat, the reader's own identity not known, no author on the row, the row's
- * own author, or a caller with no resolver at all.
+ * own author, or a caller with no resolver at all. A row an agent sent on
+ * somebody's behalf (`author.via`) is the exception: it is labelled
+ * `<name> via <client>` whoever's it is, wherever it is.
  */
 function attributedSenderName(author: MessageAuthor | undefined, options: ChatPreviewOptions): string | undefined {
+  // An agent's turn is never drawn as the person's own, in a group chat or out of it, so the marker
+  // passes both gates: the line leads with `<name> via <client>`. It still needs a resolver for the
+  // name (this package cannot sanitise one), and without one the row stays unattributed.
+  if (author?.via) {
+    const name = options.resolveSenderName?.(author)
+
+    return name ? authorLabel(author, name) : undefined
+  }
+
   if (!options.groupChat || !options.ownAuthorId || !options.resolveSenderName || !author) {
     return undefined
   }

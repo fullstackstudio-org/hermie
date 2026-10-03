@@ -338,3 +338,81 @@ export const authorlessRows: Record<string, TranscriptRow> = {
     display_metadata: 'not an object'
   }
 }
+
+/**
+ * A turn an agent sent on a person's behalf (the gateway's MCP endpoint): the author is still the person,
+ * and `author.via` names the agent. The extra keys, in `via` and beside it, are ones a later gateway may
+ * add; a reader ignores them.
+ */
+export const viaRow: TranscriptRow = {
+  role: 'user',
+  row_id: 70,
+  text: 'summarise the open pull requests',
+  timestamp: 1_700_000_200,
+  display_metadata: {
+    author: {
+      id: 'oidc:user-a',
+      name: 'Robin',
+      via: { kind: 'mcp', client: 'Claude Code', version: '2.1', scopes: ['bots'] },
+      locale: 'nl'
+    },
+    turn_id: 'turnvia70'
+  }
+}
+
+/** A retry an agent pressed on somebody else's turn: `replayed_by` carries `via`, the author does not. */
+export const viaReplayedRow: TranscriptRow = {
+  role: 'user',
+  row_id: 71,
+  text: 'lunch at noon?',
+  timestamp: 1_700_000_300,
+  display_metadata: {
+    author: { id: 'oidc:user-a', name: 'Robin' },
+    replayed_by: { id: 'oidc:user-b', name: 'Sam', via: { kind: 'mcp', client: 'Claude Code' } }
+  }
+}
+
+/** A `via` that is not well formed is left out; the person's identity beside it is kept. */
+export const viaMalformedRows: Record<string, TranscriptRow> = {
+  stringVia: {
+    role: 'user',
+    row_id: 72,
+    text: 'via is a string',
+    display_metadata: { author: { id: 'oidc:user-a', name: 'Robin', via: 'mcp' } }
+  },
+  blankClient: {
+    role: 'user',
+    row_id: 73,
+    text: 'client is blank',
+    display_metadata: { author: { id: 'oidc:user-a', name: 'Robin', via: { kind: 'mcp', client: '  \u200b ' } } }
+  },
+  numericClient: {
+    role: 'user',
+    row_id: 74,
+    text: 'client is a number',
+    display_metadata: { author: { id: 'oidc:user-a', name: 'Robin', via: { kind: 'mcp', client: 7 } } }
+  },
+  missingKind: {
+    role: 'user',
+    row_id: 75,
+    text: 'kind is missing',
+    display_metadata: { author: { id: 'oidc:user-a', name: 'Robin', via: { client: 'Claude Code' } } }
+  },
+  noAuthor: {
+    role: 'user',
+    row_id: 76,
+    text: 'via without a person',
+    display_metadata: { author: { via: { kind: 'mcp', client: 'Claude Code' } } }
+  },
+  unclean: {
+    role: 'user',
+    row_id: 77,
+    text: 'client with invisible characters and a long tail',
+    display_metadata: {
+      author: {
+        id: 'oidc:user-a',
+        via: { kind: 'mcp', client: `  Claude\u202e \u200bCode\n*Pro*  ${'x'.repeat(120)}` }
+      }
+    }
+  }
+}

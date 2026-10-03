@@ -1,0 +1,747 @@
+[
+  {
+    "calls": [
+      {
+        "args": [
+          {
+            "client": "Claude Code",
+            "extra": {
+              "a": 1
+            },
+            "kind": "mcp",
+            "version": "2.1"
+          }
+        ],
+        "op": "authorViaOf",
+        "result": {
+          "client": "Claude Code",
+          "kind": "mcp"
+        }
+      }
+    ],
+    "test": "authorViaOf > reads kind and client, and ignores keys it does not know"
+  },
+  {
+    "calls": [
+      {
+        "args": [
+          {
+            "client": "Zapier",
+            "kind": "api"
+          }
+        ],
+        "op": "authorViaOf",
+        "result": {
+          "client": "Zapier",
+          "kind": "api"
+        }
+      }
+    ],
+    "test": "authorViaOf > accepts a kind other than mcp, because a later gateway may add one"
+  },
+  {
+    "calls": [
+      {
+        "args": [],
+        "op": "authorViaOf"
+      },
+      {
+        "args": [
+          null
+        ],
+        "op": "authorViaOf"
+      },
+      {
+        "args": [
+          "mcp"
+        ],
+        "op": "authorViaOf"
+      },
+      {
+        "args": [
+          7
+        ],
+        "op": "authorViaOf"
+      },
+      {
+        "args": [
+          []
+        ],
+        "op": "authorViaOf"
+      },
+      {
+        "args": [
+          {}
+        ],
+        "op": "authorViaOf"
+      },
+      {
+        "args": [
+          {
+            "kind": "mcp"
+          }
+        ],
+        "op": "authorViaOf"
+      },
+      {
+        "args": [
+          {
+            "client": "Claude Code"
+          }
+        ],
+        "op": "authorViaOf"
+      },
+      {
+        "args": [
+          {
+            "client": "Claude Code",
+            "kind": ""
+          }
+        ],
+        "op": "authorViaOf"
+      },
+      {
+        "args": [
+          {
+            "client": "Claude Code",
+            "kind": 7
+          }
+        ],
+        "op": "authorViaOf"
+      },
+      {
+        "args": [
+          {
+            "client": 7,
+            "kind": "mcp"
+          }
+        ],
+        "op": "authorViaOf"
+      },
+      {
+        "args": [
+          {
+            "client": "",
+            "kind": "mcp"
+          }
+        ],
+        "op": "authorViaOf"
+      },
+      {
+        "args": [
+          {
+            "client": " ​‮\n ",
+            "kind": "mcp"
+          }
+        ],
+        "op": "authorViaOf"
+      }
+    ],
+    "test": "authorViaOf > is absent for anything that is not an object with a string kind and a client that says something"
+  },
+  {
+    "calls": [
+      {
+        "args": [
+          {
+            "client": "  Claude‮ ​Code\n*Pro*  ",
+            "kind": "mcp"
+          }
+        ],
+        "op": "authorViaOf",
+        "result": {
+          "client": "Claude Code *Pro*",
+          "kind": "mcp"
+        }
+      },
+      {
+        "args": [
+          {
+            "client": "𝒞𝒞𝒞𝒞𝒞𝒞𝒞𝒞𝒞𝒞𝒞𝒞𝒞𝒞𝒞𝒞𝒞𝒞𝒞𝒞𝒞𝒞𝒞𝒞𝒞𝒞𝒞𝒞𝒞𝒞𝒞𝒞𝒞𝒞𝒞𝒞𝒞𝒞𝒞𝒞𝒞𝒞𝒞𝒞𝒞𝒞𝒞𝒞𝒞𝒞𝒞𝒞𝒞𝒞𝒞𝒞𝒞𝒞𝒞𝒞𝒞𝒞𝒞𝒞𝒞𝒞𝒞𝒞𝒞𝒞𝒞𝒞𝒞𝒞𝒞𝒞𝒞𝒞𝒞𝒞𝒞𝒞𝒞𝒞𝒞𝒞𝒞𝒞𝒞𝒞𝒞𝒞𝒞𝒞𝒞𝒞𝒞𝒞𝒞𝒞𝒞𝒞𝒞𝒞𝒞𝒞𝒞𝒞𝒞𝒞𝒞𝒞𝒞𝒞𝒞𝒞𝒞𝒞𝒞𝒞𝒞𝒞𝒞𝒞𝒞𝒞𝒞𝒞𝒞𝒞𝒞𝒞𝒞𝒞𝒞𝒞𝒞𝒞𝒞𝒞𝒞𝒞𝒞𝒞𝒞𝒞𝒞𝒞𝒞𝒞𝒞𝒞𝒞𝒞𝒞𝒞𝒞𝒞𝒞𝒞𝒞𝒞𝒞𝒞𝒞𝒞𝒞𝒞𝒞𝒞𝒞𝒞𝒞𝒞𝒞𝒞𝒞𝒞𝒞𝒞𝒞𝒞𝒞𝒞𝒞𝒞𝒞𝒞𝒞𝒞𝒞𝒞𝒞𝒞𝒞𝒞𝒞𝒞𝒞𝒞",
+            "kind": "mcp"
+          }
+        ],
+        "op": "authorViaOf",
+        "result": {
+          "client": "𝒞𝒞𝒞𝒞𝒞𝒞𝒞𝒞𝒞𝒞𝒞𝒞𝒞𝒞𝒞𝒞𝒞𝒞𝒞𝒞𝒞𝒞𝒞𝒞𝒞𝒞𝒞𝒞𝒞𝒞𝒞𝒞𝒞𝒞𝒞𝒞𝒞𝒞𝒞𝒞𝒞𝒞𝒞𝒞𝒞𝒞𝒞𝒞𝒞𝒞𝒞𝒞𝒞𝒞𝒞𝒞𝒞𝒞𝒞𝒞𝒞𝒞𝒞𝒞𝒞𝒞𝒞𝒞𝒞𝒞𝒞𝒞𝒞𝒞𝒞𝒞𝒞𝒞𝒞𝒞",
+          "kind": "mcp"
+        }
+      }
+    ],
+    "test": "authorViaOf > cleans the client to one plain line of at most 80 code points"
+  },
+  {
+    "calls": [
+      {
+        "args": [
+          {
+            "via": {
+              "client": "Claude Code",
+              "kind": "mcp"
+            }
+          },
+          "Robin"
+        ],
+        "op": "authorLabel",
+        "result": "Robin via Claude Code"
+      }
+    ],
+    "test": "authorLabel > is `<name> via <client>` for an author with a marker"
+  },
+  {
+    "calls": [
+      {
+        "args": [
+          {},
+          "Robin"
+        ],
+        "op": "authorLabel",
+        "result": "Robin"
+      },
+      {
+        "args": [
+          null,
+          "Robin"
+        ],
+        "op": "authorLabel",
+        "result": "Robin"
+      }
+    ],
+    "test": "authorLabel > is the name as it is for a person typing"
+  },
+  {
+    "calls": [
+      {
+        "args": [
+          {
+            "via": {
+              "client": "Claude Code",
+              "kind": "mcp"
+            }
+          },
+          "  "
+        ],
+        "op": "authorLabel",
+        "result": "via Claude Code"
+      }
+    ],
+    "test": "authorLabel > leaves `via <client>` when there is no name, so an agent is never labelled as nobody"
+  },
+  {
+    "calls": [
+      {
+        "args": [
+          {
+            "via": {
+              "client": "My *Agent*",
+              "kind": "mcp"
+            }
+          },
+          "_Robin_"
+        ],
+        "op": "authorLabel",
+        "result": "_Robin_ via My *Agent*"
+      }
+    ],
+    "test": "authorLabel > writes `via` as a plain word and the name and client as they are, with no Markdown of its own"
+  },
+  {
+    "calls": [
+      {
+        "args": [
+          [
+            {
+              "display_metadata": {
+                "author": {
+                  "id": "oidc:user-a",
+                  "locale": "nl",
+                  "name": "Robin",
+                  "via": {
+                    "client": "Claude Code",
+                    "kind": "mcp",
+                    "scopes": [
+                      "bots"
+                    ],
+                    "version": "2.1"
+                  }
+                },
+                "turn_id": "turnvia70"
+              },
+              "role": "user",
+              "row_id": 70,
+              "text": "summarise the open pull requests",
+              "timestamp": 1700000200
+            }
+          ],
+          "rpc"
+        ],
+        "op": "rowsToItems",
+        "result": [
+          {
+            "author": {
+              "id": "oidc:user-a",
+              "name": "Robin",
+              "via": {
+                "client": "Claude Code",
+                "kind": "mcp"
+              }
+            },
+            "id": "r:70",
+            "kind": "user",
+            "origin": "history",
+            "rowId": 70,
+            "seq": 0,
+            "text": "summarise the open pull requests",
+            "ts": 1700000200,
+            "turnId": "turnvia70",
+            "version": 0
+          }
+        ]
+      }
+    ],
+    "test": "display_metadata.author.via on a history row > projects the person with the marker, ignoring the keys it does not know"
+  },
+  {
+    "calls": [
+      {
+        "args": [
+          [
+            {
+              "content": "summarise the open pull requests",
+              "display_metadata": {
+                "author": {
+                  "id": "oidc:user-a",
+                  "locale": "nl",
+                  "name": "Robin",
+                  "via": {
+                    "client": "Claude Code",
+                    "kind": "mcp",
+                    "scopes": [
+                      "bots"
+                    ],
+                    "version": "2.1"
+                  }
+                },
+                "turn_id": "turnvia70"
+              },
+              "id": 70,
+              "role": "user"
+            }
+          ],
+          "rest"
+        ],
+        "op": "rowsToItems",
+        "result": [
+          {
+            "author": {
+              "id": "oidc:user-a",
+              "name": "Robin",
+              "via": {
+                "client": "Claude Code",
+                "kind": "mcp"
+              }
+            },
+            "id": "r:70",
+            "kind": "user",
+            "origin": "history",
+            "rowId": 70,
+            "seq": 0,
+            "text": "summarise the open pull requests",
+            "turnId": "turnvia70",
+            "version": 0
+          }
+        ]
+      }
+    ],
+    "test": "display_metadata.author.via on a history row > reads the same marker from the REST shape of the row"
+  },
+  {
+    "calls": [
+      {
+        "args": [
+          [
+            {
+              "display_metadata": "{\"author\":{\"id\":\"oidc:user-a\",\"name\":\"Robin\",\"via\":{\"kind\":\"mcp\",\"client\":\"Claude Code\",\"version\":\"2.1\",\"scopes\":[\"bots\"]},\"locale\":\"nl\"},\"turn_id\":\"turnvia70\"}",
+              "role": "user",
+              "row_id": 70,
+              "text": "summarise the open pull requests",
+              "timestamp": 1700000200
+            }
+          ],
+          "rpc"
+        ],
+        "op": "rowsToItems",
+        "result": [
+          {
+            "author": {
+              "id": "oidc:user-a",
+              "name": "Robin",
+              "via": {
+                "client": "Claude Code",
+                "kind": "mcp"
+              }
+            },
+            "id": "r:70",
+            "kind": "user",
+            "origin": "history",
+            "rowId": 70,
+            "seq": 0,
+            "text": "summarise the open pull requests",
+            "ts": 1700000200,
+            "turnId": "turnvia70",
+            "version": 0
+          }
+        ]
+      }
+    ],
+    "test": "display_metadata.author.via on a history row > reads the marker of a JSON-text display_metadata too"
+  },
+  {
+    "calls": [
+      {
+        "args": [
+          [
+            {
+              "display_metadata": {
+                "author": {
+                  "id": "oidc:user-a",
+                  "name": "Robin"
+                },
+                "replayed_by": {
+                  "id": "oidc:user-b",
+                  "name": "Sam",
+                  "via": {
+                    "client": "Claude Code",
+                    "kind": "mcp"
+                  }
+                }
+              },
+              "role": "user",
+              "row_id": 71,
+              "text": "lunch at noon?",
+              "timestamp": 1700000300
+            }
+          ],
+          "rpc"
+        ],
+        "op": "rowsToItems",
+        "result": [
+          {
+            "author": {
+              "id": "oidc:user-a",
+              "name": "Robin"
+            },
+            "id": "r:71",
+            "kind": "user",
+            "origin": "history",
+            "replayedBy": {
+              "id": "oidc:user-b",
+              "name": "Sam",
+              "via": {
+                "client": "Claude Code",
+                "kind": "mcp"
+              }
+            },
+            "rowId": 71,
+            "seq": 0,
+            "text": "lunch at noon?",
+            "ts": 1700000300,
+            "version": 0
+          }
+        ]
+      }
+    ],
+    "test": "display_metadata.author.via on a history row > reads `replayed_by` with its own marker and leaves the author the original one"
+  },
+  {
+    "calls": [
+      {
+        "args": [
+          [
+            {
+              "display_metadata": {
+                "author": {
+                  "id": "oidc:user-a",
+                  "locale": "nl",
+                  "name": "Robin",
+                  "via": {
+                    "client": "Claude Code",
+                    "kind": "mcp",
+                    "scopes": [
+                      "bots"
+                    ],
+                    "version": "2.1"
+                  }
+                },
+                "turn_id": "turnvia70"
+              },
+              "role": "user",
+              "row_id": 70,
+              "text": "summarise the open pull requests",
+              "timestamp": 1700000200
+            }
+          ],
+          "rpc"
+        ],
+        "op": "rowsToItems",
+        "result": [
+          {
+            "author": {
+              "id": "oidc:user-a",
+              "name": "Robin",
+              "via": {
+                "client": "Claude Code",
+                "kind": "mcp"
+              }
+            },
+            "id": "r:70",
+            "kind": "user",
+            "origin": "history",
+            "rowId": 70,
+            "seq": 0,
+            "text": "summarise the open pull requests",
+            "ts": 1700000200,
+            "turnId": "turnvia70",
+            "version": 0
+          }
+        ]
+      }
+    ],
+    "test": "display_metadata.author.via on a history row > has no `replayedBy` on a row that was not retried"
+  },
+  {
+    "calls": [
+      {
+        "args": [
+          [
+            {
+              "display_metadata": {
+                "author": {
+                  "id": "oidc:user-a",
+                  "name": "Robin",
+                  "via": "mcp"
+                }
+              },
+              "role": "user",
+              "row_id": 72,
+              "text": "via is a string"
+            }
+          ],
+          "rpc"
+        ],
+        "op": "rowsToItems",
+        "result": [
+          {
+            "author": {
+              "id": "oidc:user-a",
+              "name": "Robin"
+            },
+            "id": "r:72",
+            "kind": "user",
+            "origin": "history",
+            "rowId": 72,
+            "seq": 0,
+            "text": "via is a string",
+            "version": 0
+          }
+        ]
+      },
+      {
+        "args": [
+          [
+            {
+              "display_metadata": {
+                "author": {
+                  "id": "oidc:user-a",
+                  "name": "Robin",
+                  "via": {
+                    "client": "  ​ ",
+                    "kind": "mcp"
+                  }
+                }
+              },
+              "role": "user",
+              "row_id": 73,
+              "text": "client is blank"
+            }
+          ],
+          "rpc"
+        ],
+        "op": "rowsToItems",
+        "result": [
+          {
+            "author": {
+              "id": "oidc:user-a",
+              "name": "Robin"
+            },
+            "id": "r:73",
+            "kind": "user",
+            "origin": "history",
+            "rowId": 73,
+            "seq": 0,
+            "text": "client is blank",
+            "version": 0
+          }
+        ]
+      },
+      {
+        "args": [
+          [
+            {
+              "display_metadata": {
+                "author": {
+                  "id": "oidc:user-a",
+                  "name": "Robin",
+                  "via": {
+                    "client": 7,
+                    "kind": "mcp"
+                  }
+                }
+              },
+              "role": "user",
+              "row_id": 74,
+              "text": "client is a number"
+            }
+          ],
+          "rpc"
+        ],
+        "op": "rowsToItems",
+        "result": [
+          {
+            "author": {
+              "id": "oidc:user-a",
+              "name": "Robin"
+            },
+            "id": "r:74",
+            "kind": "user",
+            "origin": "history",
+            "rowId": 74,
+            "seq": 0,
+            "text": "client is a number",
+            "version": 0
+          }
+        ]
+      },
+      {
+        "args": [
+          [
+            {
+              "display_metadata": {
+                "author": {
+                  "id": "oidc:user-a",
+                  "name": "Robin",
+                  "via": {
+                    "client": "Claude Code"
+                  }
+                }
+              },
+              "role": "user",
+              "row_id": 75,
+              "text": "kind is missing"
+            }
+          ],
+          "rpc"
+        ],
+        "op": "rowsToItems",
+        "result": [
+          {
+            "author": {
+              "id": "oidc:user-a",
+              "name": "Robin"
+            },
+            "id": "r:75",
+            "kind": "user",
+            "origin": "history",
+            "rowId": 75,
+            "seq": 0,
+            "text": "kind is missing",
+            "version": 0
+          }
+        ]
+      }
+    ],
+    "test": "display_metadata.author.via on a history row > leaves a malformed `via` out and keeps the person beside it"
+  },
+  {
+    "calls": [
+      {
+        "args": [
+          [
+            {
+              "display_metadata": {
+                "author": {
+                  "via": {
+                    "client": "Claude Code",
+                    "kind": "mcp"
+                  }
+                }
+              },
+              "role": "user",
+              "row_id": 76,
+              "text": "via without a person"
+            }
+          ],
+          "rpc"
+        ],
+        "op": "rowsToItems",
+        "result": [
+          {
+            "id": "r:76",
+            "kind": "user",
+            "origin": "history",
+            "rowId": 76,
+            "seq": 0,
+            "text": "via without a person",
+            "version": 0
+          }
+        ]
+      }
+    ],
+    "test": "display_metadata.author.via on a history row > does not make an author out of a `via` alone"
+  },
+  {
+    "calls": [
+      {
+        "args": [
+          [
+            {
+              "display_metadata": {
+                "author": {
+                  "id": "oidc:user-a",
+                  "via": {
+                    "client": "  Claude‮ ​Code\n*Pro*  xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx",
+                    "kind": "mcp"
+                  }
+                }
+              },
+              "role": "user",
+              "row_id": 77,
+              "text": "client with invisible characters and a long tail"
+            }
+          ],
+          "rpc"
+        ],
+        "op": "rowsToItems",
+        "result": [
+          {
+            "author": {
+              "id": "oidc:user-a",
+              "via": {
+                "client": "Claude Code *Pro* xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx",
+                "kind": "mcp"
+              }
+            },
+            "id": "r:77",
+            "kind": "user",
+            "origin": "history",
+            "rowId": 77,
+            "seq": 0,
+            "text": "client with invisible characters and a long tail",
+            "version": 0
+          }
+        ]
+      }
+    ],
+    "test": "display_metadata.author.via on a history row > cleans a client name carrying invisible characters and a long tail"
+  }
+]

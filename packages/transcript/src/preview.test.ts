@@ -227,4 +227,36 @@ describe('who a group-chat row’s preview leads with (HERM-83, Task 5)', () => 
 
     expect(previewFromChat(chat)).toEqual({ text: 'draft is ready', system: false })
   })
+
+  describe('a row an agent sent on somebody’s behalf', () => {
+    const VIA = { kind: 'mcp', client: 'Claude Code' }
+    const viaRowOf = (author: MessageAuthor): TranscriptRow => ({
+      role: 'user',
+      row_id: 1,
+      text: 'draft is ready',
+      display_metadata: { author: { ...author, via: VIA } }
+    })
+
+    it('leads with `<name> via <client>` for a colleague’s row', () => {
+      expect(previewFromChat(chatOf([viaRowOf(WRITER)]), GROUP_OPTIONS)?.senderName).toBe('Robin via Claude Code')
+    })
+
+    it('labels the reader’s own agent row too: it is never drawn as the reader typing', () => {
+      expect(previewFromChat(chatOf([viaRowOf({ id: ME, name: 'Me' })]), GROUP_OPTIONS)?.senderName).toBe(
+        'Me via Claude Code'
+      )
+    })
+
+    it('labels it outside the group chat as well', () => {
+      expect(
+        previewFromChat(chatOf([viaRowOf({ id: ME, name: 'Me' })]), { resolveSenderName, ownAuthorId: ME })?.senderName
+      ).toBe('Me via Claude Code')
+    })
+
+    it('stays unattributed when the caller has no resolver to name the person with', () => {
+      expect(
+        previewFromChat(chatOf([viaRowOf(WRITER)]), { groupChat: true, ownAuthorId: ME })?.senderName
+      ).toBeUndefined()
+    })
+  })
 })

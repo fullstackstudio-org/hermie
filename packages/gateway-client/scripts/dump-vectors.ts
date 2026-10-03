@@ -61,7 +61,7 @@ import process from 'node:process'
 
 import { prettyJson, toJson } from '../../../scripts/golden/canonical-json'
 import { reconnectBackoffDelayMs } from '@hermes/shared/reconnect-backoff'
-import { authorIdOf, ownAuthorOf } from '../src/author-id'
+import { authorIdOf, authorStampOf, authorViaOf, ownAuthorOf } from '../src/author-id'
 import { bytesToBase64 } from '../src/base64'
 import {
   assertDesktopContract,
@@ -1820,6 +1820,57 @@ authorId.each(
     [{ provider: 'basic', userId: 'alice', displayName: null }],
     [{ provider: ' basic ', userId: ' alice ', displayName: ' Alice ' }],
     [{}]
+  ],
+  {}
+)
+
+// The agent marker (`author.via` / `replayed_by.via`; contract/gateway/mcp.md): the same cleaning rule
+// the transcript engine applies to a history row, for a stamp read from anywhere else.
+authorId.each(
+  'authorViaOf',
+  authorViaOf,
+  [
+    [{ kind: 'mcp', client: 'Claude Code' }],
+    [{ kind: 'mcp', client: 'Claude Code', version: '2.1', extra: { a: 1 } }],
+    [{ kind: 'api', client: 'Zapier' }],
+    [{ kind: ' mcp ', client: '  Claude   Code  ' }],
+    [{ kind: 'mcp', client: 'Claude\u202e \u200bCode\n*Pro*' }],
+    [{ kind: 'mcp', client: '𝒞'.repeat(200) }],
+    [{ kind: 'mcp', client: 'x'.repeat(80) }],
+    [{ kind: 'mcp', client: 'x'.repeat(81) }],
+    [{ kind: 'mcp', client: ' \u200b\n ' }],
+    [{ kind: 'mcp', client: '' }],
+    [{ kind: 'mcp', client: 7 }],
+    [{ kind: 'mcp' }],
+    [{ client: 'Claude Code' }],
+    [{ kind: '', client: 'Claude Code' }],
+    [{ kind: 7, client: 'Claude Code' }],
+    ['mcp'],
+    [[]],
+    [null],
+    [{}]
+  ],
+  {}
+)
+
+authorId.each(
+  'authorStampOf',
+  authorStampOf,
+  [
+    [{ id: 'oidc:user-a', name: 'Robin' }],
+    [{ id: 'oidc:user-a' }],
+    [{ id: 'oidc:user-a', name: 'Robin', via: { kind: 'mcp', client: 'Claude Code' } }],
+    [{ id: 'oidc:user-a', name: 'Robin', via: { kind: 'mcp', client: 'Claude Code', version: '2.1' }, locale: 'nl' }],
+    [{ id: 'oidc:user-a', name: 'Robin', via: 'mcp' }],
+    [{ id: 'oidc:user-a', name: 'Robin', via: { kind: 'mcp', client: ' ' } }],
+    [{ id: 'oidc:user-a', name: '', via: { kind: 'mcp', client: 'Claude Code' } }],
+    [{ id: 'oidc:user-a', name: 7 }],
+    [{ id: '', via: { kind: 'mcp', client: 'Claude Code' } }],
+    [{ id: 7 }],
+    [{ via: { kind: 'mcp', client: 'Claude Code' } }],
+    ['oidc:user-a'],
+    [[]],
+    [null]
   ],
   {}
 )

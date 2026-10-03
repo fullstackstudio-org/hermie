@@ -235,6 +235,58 @@ describe('who a `user` row is exported under (HERM-83, Task 5)', () => {
 
     expect(exportTranscript(items, OPTIONS).markdown).toContain('**You**')
   })
+
+  describe('a row an agent sent on somebody’s behalf', () => {
+    const VIA = { kind: 'mcp', client: 'Claude Code' }
+
+    it('carries the marker on the reader’s own row: `You via Claude Code`', () => {
+      const items: TranscriptItem[] = [
+        {
+          ...base(60),
+          author: { id: ME, name: 'Me', via: VIA },
+          kind: 'user',
+          text: 'summarise the open pull requests'
+        }
+      ]
+
+      const { markdown, text } = exportTranscript(items, GROUP_OPTIONS)
+
+      expect(markdown).toContain('**You via Claude Code**')
+      expect(text).toContain('You via Claude Code:')
+    })
+
+    it('carries the marker outside the group chat, where every row is the reader’s', () => {
+      const items: TranscriptItem[] = [
+        {
+          ...base(60),
+          author: { id: ME, name: 'Me', via: VIA },
+          kind: 'user',
+          text: 'summarise the open pull requests'
+        }
+      ]
+
+      expect(exportTranscript(items, OPTIONS).markdown).toContain('**You via Claude Code**')
+    })
+
+    it('names a colleague’s agent row `<name> via <client>` in the group chat', () => {
+      const items: TranscriptItem[] = [
+        { ...base(60), author: { ...WRITER, via: VIA }, kind: 'user', text: 'Draft the summary.' }
+      ]
+
+      expect(exportTranscript(items, GROUP_OPTIONS).markdown).toContain('**Robin via Claude Code**')
+    })
+
+    it('escapes the client like any other person’s text, and keeps `via` plain', () => {
+      const items: TranscriptItem[] = [
+        { ...base(60), author: { id: ME, via: { kind: 'mcp', client: 'My_*Agent*' } }, kind: 'user', text: 'hi' }
+      ]
+
+      const { markdown, text } = exportTranscript(items, GROUP_OPTIONS)
+
+      expect(markdown).toContain('**You via My\\_\\*Agent\\***')
+      expect(text).toContain('You via My_*Agent*:')
+    })
+  })
 })
 
 /*

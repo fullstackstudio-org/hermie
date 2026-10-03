@@ -13,17 +13,18 @@ changes and the port does not follow.
 
 ## Layout
 
-| Path                                     | What                                                                                                    | Made by                                           |
-| ---------------------------------------- | ------------------------------------------------------------------------------------------------------- | ------------------------------------------------- |
-| `transcript/golden/<suite>.json`         | every top-level call one transcript test file made into the engine, with its result                     | `packages/transcript/vitest.golden.config.ts`     |
-| `transcript/golden-summary.json`         | per operation: calls recorded, replayable, skipped (by reason), whether it read a clock                 | `scripts/golden/generate.ts`                      |
-| `transcript/fixtures/{events,rows}.json` | `packages/transcript/src/__fixtures__/{events,rows}.ts` as data                                         | `packages/transcript/golden/dump-fixtures.ts`     |
-| `transcript/streams/<scenario>.json`     | a fake-gateway conversation: the frames it sent, the engine steps, the resulting state                  | `packages/fake-gateway/scripts/dump-frames.ts`    |
-| `gateway/vectors/<module>.json`          | input/output vectors for the pure functions of `@hermie/gateway-client`                                 | `packages/gateway-client/scripts/dump-vectors.ts` |
-| `markdown/<group>.json`                  | the Expo app's Markdown block structure per input: blocks, preprocessing, inline, streaming prefixes    | `scripts/golden/dump-markdown.ts`                 |
-| `i18n/catalogue.json`                    | the Expo app's strings in en, nl and de, as text, lists or templates (`docs/i18n.md`)                   | `scripts/i18n/generate.ts`                        |
-| `push/contract.json`                     | the push contract (requests, clearing, data keys, types, channels, examples) — hand-written             | by hand                                           |
-| `confirm-passkey/`                       | the passkey confirm contract: challenge construction, base-URL serialisation, CBOR subset, test vectors | the fork (`contract/confirm-passkey/generate.py`) |
+| Path                                     | What                                                                                                     | Made by                                           |
+| ---------------------------------------- | -------------------------------------------------------------------------------------------------------- | ------------------------------------------------- |
+| `transcript/golden/<suite>.json`         | every top-level call one transcript test file made into the engine, with its result                      | `packages/transcript/vitest.golden.config.ts`     |
+| `transcript/golden-summary.json`         | per operation: calls recorded, replayable, skipped (by reason), whether it read a clock                  | `scripts/golden/generate.ts`                      |
+| `transcript/fixtures/{events,rows}.json` | `packages/transcript/src/__fixtures__/{events,rows}.ts` as data                                          | `packages/transcript/golden/dump-fixtures.ts`     |
+| `transcript/streams/<scenario>.json`     | a fake-gateway conversation: the frames it sent, the engine steps, the resulting state                   | `packages/fake-gateway/scripts/dump-frames.ts`    |
+| `gateway/vectors/<module>.json`          | input/output vectors for the pure functions of `@hermie/gateway-client`                                  | `packages/gateway-client/scripts/dump-vectors.ts` |
+| `markdown/<group>.json`                  | the Expo app's Markdown block structure per input: blocks, preprocessing, inline, streaming prefixes     | `scripts/golden/dump-markdown.ts`                 |
+| `i18n/catalogue.json`                    | the Expo app's strings in en, nl and de, as text, lists or templates (`docs/i18n.md`)                    | `scripts/i18n/generate.ts`                        |
+| `push/contract.json`                     | the push contract (requests, clearing, data keys, types, channels, examples) — hand-written              | by hand                                           |
+| `gateway/mcp.md`                         | the gateway MCP page's REST shapes (`/api/auth/mcp`), `mcp.changed`, and the `author.via` marker on rows | by hand                                           |
+| `confirm-passkey/`                       | the passkey confirm contract: challenge construction, base-URL serialisation, CBOR subset, test vectors  | the fork (`contract/confirm-passkey/generate.py`) |
 
 `i18n/` has a pipeline of its own: `npm run i18n` writes it (with the Apple String
 Catalog made from it) and `npm run i18n:check` guards it; `golden` leaves it alone.
@@ -329,15 +330,15 @@ and `shasum -a 256 -c SHA256SUMS` in that directory must pass. `golden` leaves i
 
 _Generated by `npm run golden`; do not edit by hand._
 
-- Transcript calls recorded: **4664**; replayable and in the corpus: **4638** (99.4 %); skipped: **26**.
-- Stream scenarios: **10**. Gateway vector files: **14** with **1920** vectors.
+- Transcript calls recorded: **4717**; replayable and in the corpus: **4684** (99.3 %); skipped: **33**.
+- Stream scenarios: **10**. Gateway vector files: **14** with **1953** vectors.
 - Markdown files: **4** with **271** cases (blocks 67, inline 45, preprocess 17, streaming 142).
 
 Skipped calls by reason:
 
 | reason                  | calls |
 | ----------------------- | ----- |
-| args: function          | 24    |
+| args: function          | 31    |
 | args: non-finite-number | 2     |
 
 Per operation (`clock` marks an operation that read the clock itself and therefore carries `now` on its calls):
@@ -353,6 +354,8 @@ Per operation (`clock` marks an operation that read the clock itself and therefo
 | `applySubagentSnapshot`       | 4        | 4          | —                          |       |
 | `attachmentRefName`           | 4        | 4          | —                          |       |
 | `attachmentsMatchKey`         | 8        | 8          | —                          |       |
+| `authorLabel`                 | 5        | 5          | —                          |       |
+| `authorViaOf`                 | 17       | 17         | —                          |       |
 | `beginLocalTurn`              | 208      | 208        | —                          |       |
 | `beginSteer`                  | 4        | 4          | —                          |       |
 | `chatContextUsage`            | 5        | 5          | —                          |       |
@@ -361,11 +364,11 @@ Per operation (`clock` marks an operation that read the clock itself and therefo
 | `confirmSubmit`               | 167      | 167        | —                          |       |
 | `contextUsageOf`              | 13       | 11         | args: non-finite-number: 2 |       |
 | `contextUsageOfInfo`          | 2        | 2          | —                          |       |
-| `createChatState`             | 600      | 600        | —                          |       |
+| `createChatState`             | 604      | 604        | —                          |       |
 | `deliveryTargetFromCommand`   | 3        | 3          | —                          |       |
 | `dispatchedTo`                | 5        | 5          | —                          |       |
 | `dropSteer`                   | 2        | 2          | —                          |       |
-| `exportTranscript`            | 19       | 1          | args: function: 18         |       |
+| `exportTranscript`            | 23       | 1          | args: function: 22         |       |
 | `findDmCounterpart`           | 5        | 5          | —                          |       |
 | `formatTranscriptDiagnostics` | 2        | 2          | —                          |       |
 | `isBotDmDeliveryCommand`      | 3        | 3          | —                          |       |
@@ -388,12 +391,12 @@ Per operation (`clock` marks an operation that read the clock itself and therefo
 | `parseProcessCompleteText`    | 4        | 4          | —                          |       |
 | `prependHistory`              | 1        | 1          | —                          |       |
 | `prettyModelName`             | 45       | 45         | —                          |       |
-| `previewFromChat`             | 14       | 9          | args: function: 5          |       |
+| `previewFromChat`             | 18       | 10         | args: function: 8          |       |
 | `previewFromGatewayText`      | 11       | 11         | —                          |       |
-| `reconcile`                   | 382      | 382        | —                          |       |
+| `reconcile`                   | 386      | 386        | —                          |       |
 | `reconcileTail`               | 280      | 280        | —                          |       |
 | `replyFromDeliveryOutput`     | 5        | 5          | —                          |       |
-| `rowsToItems`                 | 732      | 732        | —                          |       |
+| `rowsToItems`                 | 747      | 747        | —                          |       |
 | `runningSubagents`            | 2        | 2          | —                          |       |
 | `snapshotForCache`            | 67       | 67         | —                          |       |
 | `stateFromCache`              | 62       | 62         | —                          |       |

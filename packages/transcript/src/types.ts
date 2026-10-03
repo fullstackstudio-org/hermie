@@ -71,6 +71,19 @@ export interface MessageAuthor {
   id: string
   /** The gateway's own display name for them, when it sent one. Untrusted text. */
   name?: string
+  /**
+   * Present when an AGENT sent the row on this person's behalf (`display_metadata.author.via`):
+   * `id` and `name` are still the person's, and this says it was not the person typing. Absent for
+   * a person's own turn and from a gateway that does not stamp it. Clients draw `authorLabel`.
+   */
+  via?: AuthorVia
+}
+
+/** What sent a row on somebody's behalf. `kind` is `"mcp"` today; a reader treats any kind alike. */
+export interface AuthorVia {
+  kind: string
+  /** The agent's own name (`Claude Code`), cleaned to one line of at most 80 characters. Untrusted text. */
+  client: string
 }
 
 /** A human turn (or the bot's own steer / skill invocation projection). */
@@ -102,6 +115,11 @@ export interface UserItem extends ItemBase {
   unknownAuthor?: boolean
   /** Who the gateway says wrote this row. See `MessageAuthor` — absent, never guessed. */
   author?: MessageAuthor
+  /**
+   * Who pressed retry, when it was somebody other than the author (`display_metadata.replayed_by`),
+   * with `via` when that was an agent. The row stays its author's.
+   */
+  replayedBy?: MessageAuthor
 }
 
 /** An inbound bot-to-bot message: a `role:user` row that is NOT the human speaking. */

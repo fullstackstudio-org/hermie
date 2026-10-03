@@ -54,6 +54,18 @@
       "replayable": 8,
       "skipped": {}
     },
+    "authorLabel": {
+      "readsClock": false,
+      "recorded": 5,
+      "replayable": 5,
+      "skipped": {}
+    },
+    "authorViaOf": {
+      "readsClock": false,
+      "recorded": 17,
+      "replayable": 17,
+      "skipped": {}
+    },
     "beginLocalTurn": {
       "readsClock": false,
       "recorded": 208,
@@ -108,8 +120,8 @@
     },
     "createChatState": {
       "readsClock": false,
-      "recorded": 600,
-      "replayable": 600,
+      "recorded": 604,
+      "replayable": 604,
       "skipped": {}
     },
     "deliveryTargetFromCommand": {
@@ -132,10 +144,10 @@
     },
     "exportTranscript": {
       "readsClock": false,
-      "recorded": 19,
+      "recorded": 23,
       "replayable": 1,
       "skipped": {
-        "args: function": 18
+        "args: function": 22
       }
     },
     "findDmCounterpart": {
@@ -272,10 +284,10 @@
     },
     "previewFromChat": {
       "readsClock": false,
-      "recorded": 14,
-      "replayable": 9,
+      "recorded": 18,
+      "replayable": 10,
       "skipped": {
-        "args: function": 5
+        "args: function": 8
       }
     },
     "previewFromGatewayText": {
@@ -286,8 +298,8 @@
     },
     "reconcile": {
       "readsClock": false,
-      "recorded": 382,
-      "replayable": 382,
+      "recorded": 386,
+      "replayable": 386,
       "skipped": {}
     },
     "reconcileTail": {
@@ -304,8 +316,8 @@
     },
     "rowsToItems": {
       "readsClock": false,
-      "recorded": 732,
-      "replayable": 732,
+      "recorded": 747,
+      "replayable": 747,
       "skipped": {}
     },
     "runningSubagents": {
