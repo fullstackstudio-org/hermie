@@ -22,7 +22,9 @@ const SAME_AS_ENGLISH: Readonly<Record<string, readonly Locale[]>> = {
   'passkeys.detailLabel': ['nl', 'de'],
   'passkeys.settings.title': ['nl', 'de'],
   // "Code" is the Dutch and German word too.
-  'secureInput.fieldCode': ['nl', 'de']
+  'secureInput.fieldCode': ['nl', 'de'],
+  // `{name}: {problem}` is the same two placeholders and a colon in every language.
+  'attachments.problemAnnounced': ['nl', 'de']
 }
 
 type Source = Record<string, unknown>
@@ -68,7 +70,9 @@ const SAMPLE = {
   code: MARKER,
   method: MARKER,
   done: MARKER,
-  total: MARKER
+  total: MARKER,
+  detail: MARKER,
+  problem: MARKER
 }
 
 describe('the web-only strings', () => {

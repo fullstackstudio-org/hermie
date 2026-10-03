@@ -13,6 +13,7 @@ import { act, fireEvent, render, screen, waitFor, within } from '@testing-librar
 import axe from 'axe-core'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 
+import { FileUploadError, type UploadableFile } from '../../core/chats/file-upload'
 import { resetActiveLocale } from '../../i18n/active-locale'
 import { setLanguageChoice } from '../../i18n/locale'
 import { createHashRouter } from '../../platform/hash-router'
@@ -77,6 +78,16 @@ const runtime = (): ChatSessionRuntime => ({
     respondApproval: vi.fn(async (bot: string, id: string, choice: string) =>
       chatsStore.getState().answer(bot, id, choice)
     ),
+    uploadFile: vi.fn((_bot: string, file: UploadableFile) => {
+      if (file.name.startsWith('refused')) {
+        return Promise.reject(new FileUploadError('refused', 'refused', 400, 'Path must be absolute'))
+      }
+
+      // `slow…` never answers: a chip that is still uploading.
+      return file.name.startsWith('slow')
+        ? new Promise(() => undefined)
+        : Promise.resolve({ path: `/w/${file.name}`, reference: `@file:/w/${file.name}`, filename: file.name, size: 3 })
+    }),
     querySlash: vi.fn(async () => ({
       items: [
         { text: 'model', display: '/model', meta: 'Switch the model' },
@@ -121,6 +132,24 @@ describe('the composer and the request layer, through axe', () => {
       mount()
 
       expect(screen.getByRole('textbox', { name: 'Message Dr. Researcher' })).toBeTruthy()
+      expect(await violations()).toEqual([])
+    })
+
+    it('has no violation with attachments in every state and files dragged over the chat', async () => {
+      const { container } = mount()
+      const picker = container.querySelector<HTMLInputElement>('input[type="file"]')!
+      const files = ['ready.csv', 'slow.csv', 'refused.csv', 'shot.png'].map(
+        name => new File(['abc'], name, { type: name.endsWith('.png') ? 'image/png' : 'text/csv' })
+      )
+
+      Object.defineProperty(picker, 'files', { value: files, configurable: true })
+      fireEvent.change(picker)
+      await waitFor(() => expect(screen.getByText(/Path must be absolute/u)).toBeTruthy())
+      fireEvent.dragEnter(container.querySelector('.hm-chat')!, {
+        dataTransfer: { types: ['Files'], files: [] } as unknown as DataTransfer
+      })
+
+      expect(screen.getByText('Drop file to attach')).toBeTruthy()
       expect(await violations()).toEqual([])
     })
 
