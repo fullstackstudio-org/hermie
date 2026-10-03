@@ -55,6 +55,7 @@ import { botsStore } from '../../state/bots'
 import { chatsStore } from '../../state/chats'
 import { connectionStore } from '../../state/connection'
 import { Button } from '../../ui/primitives'
+import { SecureInputNotice } from '../notices/SecureInputNotice'
 import { clipLine } from './chat-format'
 import { ChatHeader } from './ChatHeader'
 import { Composer } from './Composer'
@@ -326,6 +327,8 @@ export function ChatScreen({ bot, session, view = DEFAULT_CHAT_VIEW }: ChatScree
           </Button>
         </div>
       ) : null}
+      {/* A secret, sudo or vault prompt that ended without an answer, or a request only the desktop app can answer. */}
+      <SecureInputNotice chatKey={key ?? bot} bot={bot} />
 
       <div className="hm-chat__stage" ref={stage}>
         {notOnGateway ? <p className="hm-chat__note">{webStrings.chat.notOnGateway}</p> : null}

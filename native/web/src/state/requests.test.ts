@@ -4,6 +4,7 @@ import { chatWith } from '../test-support/chat-fixtures'
 import { createChatsStore } from './chats'
 import { createPasskeysStore, type PasskeyConfirmation } from './passkeys'
 import { bindRequests, createRequestsStore, type EngineRequest } from './requests'
+import { createSecureInputStore, type SecurePrompt } from './secure-input'
 
 /** A chat with a runtime session, which is what a question can be answered on. */
 function setup() {
@@ -186,7 +187,7 @@ describe('confirmations beside the engine', () => {
     passkeys.setState({ confirmations: [confirmation('srq-2'), confirmation('srq-3', { sessionId: 'rt-elsewhere' })] })
 
     expect(
-      queue().map(entry => [entry.kind, entry.bot, entry.kind === 'confirm' ? entry.id : entry.item.requestId])
+      queue().map(entry => [entry.kind, entry.bot, entry.kind === 'engine' ? entry.item.requestId : entry.id])
     ).toEqual([
       ['engine', 'researcher', 'srq-1'],
       ['confirm', 'researcher', 'srq-2'],
@@ -229,6 +230,81 @@ describe('confirmations beside the engine', () => {
     passkeys.setState({ confirmations: [confirmation('srq-1')] })
     stop()
     passkeys.setState({ confirmations: [confirmation('srq-2')] })
+
+    expect(queue()).toEqual([])
+  })
+})
+
+describe('secure prompts beside the engine', () => {
+  const prompt = (id: string, bot: string, seq: number, method = 'sudo'): SecurePrompt => ({
+    id,
+    method,
+    ask: { kind: 'sudo', command: 'ls' },
+    bot,
+    sessionId: `rt-${bot}`,
+    deadline: null,
+    earlierAnswerLost: false,
+    seq
+  })
+
+  function setupSecure() {
+    const chats = createChatsStore()
+    const requests = createRequestsStore()
+    const passkeys = createPasskeysStore()
+    const secure = createSecureInputStore()
+    const stop = bindRequests(chats, requests, passkeys, secure)
+
+    chats.getState().hydrate('researcher', chatWith('researcher', [], { runtimeSessionId: 'rt-researcher' }))
+    chats.getState().bindRuntime('researcher', 'rt-researcher')
+
+    return { chats, requests, passkeys, secure, stop, queue: () => requests.getState().queue }
+  }
+
+  it('queues the prompts the secure input model holds, in its order, after what came first', () => {
+    const { chats, secure, queue } = setupSecure()
+
+    chats.getState().dispatchServerRequest('researcher', {
+      id: 'srq-1',
+      method: 'approval',
+      params: { command: 'ls', request_id: 'a-1' }
+    })
+    secure.setState({ prompts: [prompt('srq-3', 'writer', 2, 'vault.code'), prompt('srq-2', 'researcher', 1)] })
+
+    expect(
+      queue().map(entry => [entry.kind, entry.bot, entry.kind === 'engine' ? entry.item.requestId : entry.id])
+    ).toEqual([
+      ['engine', 'researcher', 'srq-1'],
+      ['secure', 'researcher', 'srq-2'],
+      ['secure', 'writer', 'srq-3']
+    ])
+    expect(queue()[2]).toEqual({
+      kind: 'secure',
+      key: 'secure\u0000srq-3',
+      bot: 'writer',
+      id: 'srq-3',
+      method: 'vault.code'
+    })
+  })
+
+  it('follows a prompt to another chat and takes it off once the model lets go of it', () => {
+    const { secure, queue } = setupSecure()
+
+    secure.setState({ prompts: [prompt('srq-1', 'researcher', 1)] })
+    secure.setState({ prompts: [prompt('srq-1', 'writer', 1)] })
+
+    expect(queue().map(entry => entry.bot)).toEqual(['writer'])
+
+    secure.setState({ prompts: [] })
+
+    expect(queue()).toEqual([])
+  })
+
+  it('lets go of the prompts when it is stopped, and listens no more', () => {
+    const { secure, stop, queue } = setupSecure()
+
+    secure.setState({ prompts: [prompt('srq-1', 'researcher', 1)] })
+    stop()
+    secure.setState({ prompts: [prompt('srq-2', 'researcher', 2)] })
 
     expect(queue()).toEqual([])
   })

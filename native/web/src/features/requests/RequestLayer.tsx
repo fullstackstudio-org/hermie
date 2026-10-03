@@ -38,6 +38,13 @@
  *
  * The passkey model's notices (`PasskeyNotices`) are drawn here too, beside the
  * dialog, so they are seen whichever route is open.
+ *
+ * **A secret, a sudo password, a vault prompt** (`SecureRequest`) is answered
+ * through the secure input model (`answer`, `skip`), in one of five sheets over
+ * one frame (`SecureSheet.tsx`). What is typed there is read from the field at the
+ * press and goes straight into the model's reply: nothing here holds it. A prompt
+ * that ends without the reader's answer closes, is said politely, and leaves a
+ * notice on its chat saying why (`features/notices/SecureInputNotice.tsx`).
  */
 import {
   lazy,
@@ -54,6 +61,7 @@ import {
 import { type StoreApi, useStore } from 'zustand'
 
 import { RequestWithdrawnError } from '../../core/request-withdrawn'
+import { displayText, NAME_LIMIT } from '../../core/requests/secure-input'
 import { useLocale } from '../../i18n/use-locale'
 import { webStrings } from '../../i18n/web-strings'
 import { isolateModal } from '../../platform/modal-isolation'
@@ -61,11 +69,19 @@ import { botsStore } from '../../state/bots'
 import { type ChatsState, chatsStore } from '../../state/chats'
 import { type PasskeyConfirmation, type PasskeysState, passkeysStore } from '../../state/passkeys'
 import { type OpenRequest, type RequestsState, requestsStore } from '../../state/requests'
+import { type SecureInputState, secureInputStore, type SecurePrompt } from '../../state/secure-input'
 import { useChatRuntime } from '../chat/chat-runtime'
 import { ApprovalSheet } from './ApprovalSheet'
 import { ClarifySheet } from './ClarifySheet'
 import { usePasskeyRuntime } from './passkey-runtime'
 import { PasskeyNotices } from './PasskeyNotices'
+import { SecretSheet } from './SecretSheet'
+import { useSecureInputRuntime } from './secure-input-runtime'
+import type { SecureSheetProps } from './SecureSheet'
+import { SudoSheet } from './SudoSheet'
+import { VaultCodeSheet } from './VaultCodeSheet'
+import { VaultSaveLoginSheet } from './VaultSaveLoginSheet'
+import { VaultUnlockSheet } from './VaultUnlockSheet'
 import './request-layer.css'
 
 /**
@@ -110,6 +126,8 @@ export interface RequestLayerProps {
   chats?: StoreApi<ChatsState>
   /** Where a confirmation is read; the page's own unless a test hands in its own. */
   passkeys?: StoreApi<PasskeysState>
+  /** Where a secret, sudo or vault prompt is read; the page's own unless a test hands in its own. */
+  secureInput?: StoreApi<SecureInputState>
   /** Milliseconds before a sheet's buttons accept a press. Tests pass 0. */
   tapGuardMs?: number
 }
@@ -138,6 +156,40 @@ function confirmationAnnouncement(confirmation: PasskeyConfirmation | undefined,
   }
 }
 
+/** What a reader is told when a secure prompt left the screen without their answer, or nothing (it was answered). */
+function secureAnnouncement(store: StoreApi<SecureInputState>, bot: string, id: string, name: string): string {
+  const notice = store.getState().notices[bot]
+
+  if (notice?.requestId !== id) {
+    return ''
+  }
+
+  switch (notice.notice.kind) {
+    case 'expired':
+      return webStrings.requests.timedOut({ name })
+    case 'withdrawn':
+      return webStrings.requests.withdrawn({ name })
+    default:
+      return ''
+  }
+}
+
+/** The sheet for a prompt's kind. */
+function SecureSheetFor(props: SecureSheetProps): ReactElement | null {
+  switch (props.prompt.ask.kind) {
+    case 'secret':
+      return <SecretSheet {...props} />
+    case 'sudo':
+      return <SudoSheet {...props} />
+    case 'vault_unlock':
+      return <VaultUnlockSheet {...props} />
+    case 'vault_code':
+      return <VaultCodeSheet {...props} />
+    case 'vault_save_login':
+      return <VaultSaveLoginSheet {...props} />
+  }
+}
+
 /** Who a request is from: the bot's display name, or the gateway's host for a confirmation in no chat held here. */
 function senderName(entry: OpenRequest, confirmation: PasskeyConfirmation | undefined): string {
   if (entry.bot !== undefined) {
@@ -151,6 +203,7 @@ export function RequestLayer({
   store = requestsStore,
   chats = chatsStore,
   passkeys = passkeysStore,
+  secureInput = secureInputStore,
   tapGuardMs
 }: RequestLayerProps): ReactElement {
   useLocale()
@@ -158,6 +211,7 @@ export function RequestLayer({
   const runtime = useChatRuntime()
   const controller = runtime?.controller
   const passkeyActions = usePasskeyRuntime()
+  const secureActions = useSecureInputRuntime()
   const queue = useStore(store, state => state.queue)
   const current = queue[0]
   const open = current !== undefined
@@ -167,6 +221,11 @@ export function RequestLayer({
     confirmId === undefined ? undefined : state.confirmations.find(entry => entry.id === confirmId)
   )
   const rpId = useStore(passkeys, state => state.rpId)
+  const secureId = current?.kind === 'secure' ? current.id : undefined
+  const prompt: SecurePrompt | undefined = useStore(secureInput, state =>
+    secureId === undefined ? undefined : state.prompts.find(entry => entry.id === secureId)
+  )
+  const gatewayHost = useStore(secureInput, state => state.gateway)
   const displayName = useStore(botsStore, state => (bot === undefined ? '' : (state.byName[bot]?.displayName ?? bot)))
   const cwd = useStore(chats, state => {
     const info = bot === undefined ? undefined : state.chats[bot]?.info
@@ -261,6 +320,12 @@ export function RequestLayer({
         if (said) {
           setAnnouncement(said)
         }
+      } else if (previous.kind === 'secure') {
+        const said = secureAnnouncement(secureInput, previous.bot, previous.id, senderName(previous, undefined))
+
+        if (said) {
+          setAnnouncement(said)
+        }
       } else {
         const item = chats.getState().chats[previous.bot]?.items[previous.item.id]
 
@@ -271,7 +336,7 @@ export function RequestLayer({
     }
 
     lastShown.current = queue[0]
-  }, [chats, passkeys, queue])
+  }, [chats, passkeys, queue, secureInput])
 
   // An approval is acknowledged to the gateway's queue the first time a person can see it.
   const approvalId = current?.kind === 'engine' && current.item.kind === 'approval' ? current.item.requestId : undefined
@@ -377,7 +442,21 @@ export function RequestLayer({
               <p className="hm-requests__from">{webStrings.requests.from({ name: displayName })}</p>
             ) : null}
 
-            {current.kind === 'confirm' ? (
+            {current.kind === 'secure' ? (
+              prompt ? (
+                <SecureSheetFor
+                  key={current.key}
+                  prompt={prompt}
+                  name={displayText(displayName, NAME_LIMIT)}
+                  gateway={gatewayHost}
+                  titleId={titleId}
+                  descriptionId={descriptionId}
+                  {...(tapGuardMs !== undefined ? { tapGuardMs } : {})}
+                  onAnswer={(value, identifier) => secureActions?.answer(prompt.id, value, identifier) ?? 'closed'}
+                  onSkip={() => secureActions?.skip(prompt.id) ?? 'closed'}
+                />
+              ) : null
+            ) : current.kind === 'confirm' ? (
               confirmation ? (
                 <Suspense
                   fallback={

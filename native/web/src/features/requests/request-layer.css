@@ -297,3 +297,73 @@
   color: var(--hm-danger-text);
   overflow-wrap: anywhere;
 }
+
+/*
+ * A secret, sudo or vault prompt. The request's own words sit in a quoted box, plain text with its line
+ * breaks, under a label that says whose they are; a long one scrolls inside the box.
+ */
+.hm-secure__quote {
+  margin: 0;
+  max-height: 12rem;
+  padding: 10px 14px;
+  overflow: auto;
+  border: 1px solid var(--hm-line);
+  border-inline-start-width: 4px;
+  border-radius: var(--hm-radius);
+  background: var(--hm-surface);
+  color: var(--hm-text);
+  line-height: 1.45;
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+}
+
+.hm-secure__quote[data-mono] {
+  font-family: var(--hm-mono);
+  font-size: 0.9375rem;
+}
+
+.hm-secure__quote:focus-visible {
+  outline: var(--hm-focus-width) solid var(--hm-focus);
+  outline-offset: 2px;
+}
+
+.hm-secure__fields {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.hm-secure__field {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.hm-secure__input {
+  box-sizing: border-box;
+  width: 100%;
+  min-height: 44px;
+  padding: 8px 12px;
+  border: 1px solid var(--hm-line);
+  border-radius: var(--hm-radius);
+  background: var(--hm-bg);
+  color: var(--hm-text);
+  font: inherit;
+}
+
+.hm-secure__input:focus-visible {
+  outline: var(--hm-focus-width) solid var(--hm-focus);
+  outline-offset: 1px;
+}
+
+/* Who receives the value is part of the decision: full contrast, right above the buttons. */
+.hm-secure__receiver {
+  margin: 0;
+  font-size: 0.875rem;
+  overflow-wrap: anywhere;
+}
+
+/* The last seconds of the countdown. */
+.hm-requests__meta[data-tone='danger'] {
+  color: var(--hm-danger-text);
+}

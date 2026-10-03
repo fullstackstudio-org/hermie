@@ -20,7 +20,9 @@ const SAME_AS_ENGLISH: Readonly<Record<string, readonly Locale[]>> = {
   'chat.messageFrom': ['nl', 'de'],
   // "Details" and "Passkeys" are the Dutch and German words too.
   'passkeys.detailLabel': ['nl', 'de'],
-  'passkeys.settings.title': ['nl', 'de']
+  'passkeys.settings.title': ['nl', 'de'],
+  // "Code" is the Dutch and German word too.
+  'secureInput.fieldCode': ['nl', 'de']
 }
 
 type Source = Record<string, unknown>
@@ -63,7 +65,8 @@ const SAMPLE = {
   rp: MARKER,
   reason: MARKER,
   date: MARKER,
-  code: MARKER
+  code: MARKER,
+  method: MARKER
 }
 
 describe('the web-only strings', () => {

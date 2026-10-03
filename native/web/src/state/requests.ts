@@ -26,8 +26,10 @@
  * this queue as entries of their own kind. A `confirm` at level `passkey` is the
  * first (`ConfirmRequest`): the passkey model holds it (`state/passkeys.ts`), and
  * it is on the queue while the model shows it (open, or finished and not closed
- * yet). A secret, a sudo password and a vault prompt (W-14, W-15) will follow the
- * same road.
+ * yet). A secret, a sudo password and a vault prompt are the second
+ * (`SecureRequest`): the secure input model holds them (`state/secure-input.ts`,
+ * which never holds an answer), and they are on the queue while they are open on
+ * a chat the page holds.
  *
  * A vanilla zustand store (`requestsStore`, `createRequestsStore` for tests),
  * fed by `bindRequests` once the chats exist (`features/shell/session.ts`).
@@ -37,6 +39,7 @@ import { createStore, type StoreApi } from 'zustand/vanilla'
 
 import type { ChatsState } from './chats'
 import { type PasskeysState, visibleConfirmations } from './passkeys'
+import type { SecureInputState } from './secure-input'
 
 /** The two kinds the transcript engine holds. */
 export type EngineRequestItem = ApprovalItem | ClarifyItem
@@ -64,8 +67,24 @@ export interface ConfirmRequest {
   version: number
 }
 
-/** Everything the layer can draw. W-14 adds more kinds that live beside the engine. */
-export type OpenRequest = EngineRequest | ConfirmRequest
+/**
+ * A one-string prompt (`secret`, `sudo`, `vault.*`): the secure input model holds what it asks; the layer
+ * reads it there by id. What is typed into its sheet is never held anywhere (`core/requests/secure-input.ts`).
+ */
+export interface SecureRequest {
+  kind: 'secure'
+  /** Unique across chats and kinds. */
+  key: string
+  /** The chat it is on: a prompt is on the queue only once a chat the page holds is on its session. */
+  bot: string
+  /** The server request's id (`SecurePrompt.id`). */
+  id: string
+  /** The prompt's method, so the layer picks its sheet without a second read. */
+  method: string
+}
+
+/** Everything the layer can draw. */
+export type OpenRequest = EngineRequest | ConfirmRequest | SecureRequest
 
 export interface RequestsState {
   /** Oldest first. The layer draws the first and says how many wait behind it. */
@@ -118,7 +137,13 @@ function openIn(chat: ChatState): EngineRequestItem[] {
 }
 
 const versionOf = (entry: OpenRequest | undefined): number | undefined =>
-  entry === undefined ? undefined : entry.kind === 'engine' ? entry.item.version : entry.version
+  entry === undefined
+    ? undefined
+    : entry.kind === 'engine'
+      ? entry.item.version
+      : entry.kind === 'confirm'
+        ? entry.version
+        : 0
 
 const sameQueue = (a: readonly OpenRequest[], b: readonly OpenRequest[]): boolean =>
   a.length === b.length &&
@@ -130,15 +155,19 @@ const sameQueue = (a: readonly OpenRequest[], b: readonly OpenRequest[]): boolea
 /** The key of a confirm entry. */
 export const confirmKey = (requestId: string): string => `confirm\u0000${requestId}`
 
+/** The key of a secure prompt's entry. */
+export const secureKey = (requestId: string): string => `secure\u0000${requestId}`
+
 /**
  * Keep `store` equal to the open requests of `chats` (and the confirmations
- * `passkeys` shows), now and on every commit. Returns the unsubscribe, which also
- * empties the queue.
+ * `passkeys` shows, and the prompts `secureInput` holds), now and on every commit.
+ * Returns the unsubscribe, which also empties the queue.
  */
 export function bindRequests(
   chats: Pick<StoreApi<ChatsState>, 'getState' | 'subscribe'>,
   store: StoreApi<RequestsState> = requestsStore,
-  passkeys?: Pick<StoreApi<PasskeysState>, 'getState' | 'subscribe'>
+  passkeys?: Pick<StoreApi<PasskeysState>, 'getState' | 'subscribe'>,
+  secureInput?: Pick<StoreApi<SecureInputState>, 'getState' | 'subscribe'>
 ): () => void {
   /** When each open request was first seen: its place in the queue. */
   const seen = new Map<string, number>()
@@ -146,19 +175,27 @@ export function bindRequests(
   let lastChats: ChatsState['chats'] | undefined
   let lastRuntime: ChatsState['runtimeToBot'] | undefined
   let lastConfirmations: PasskeysState['confirmations'] | undefined
+  let lastPrompts: SecureInputState['prompts'] | undefined
 
   const collect = (): void => {
     const state = chats.getState()
     const current = state.chats
     const confirmations = passkeys?.getState().confirmations
+    const prompts = secureInput?.getState().prompts
 
-    if (current === lastChats && confirmations === lastConfirmations && state.runtimeToBot === lastRuntime) {
+    if (
+      current === lastChats &&
+      confirmations === lastConfirmations &&
+      prompts === lastPrompts &&
+      state.runtimeToBot === lastRuntime
+    ) {
       return
     }
 
     lastChats = current
     lastRuntime = state.runtimeToBot
     lastConfirmations = confirmations
+    lastPrompts = prompts
 
     const engine: EngineRequest[] = []
 
@@ -178,15 +215,27 @@ export function bindRequests(
         }))
       : []
 
+    const secure: SecureRequest[] = [...(prompts ?? [])]
+      .sort((a, b) => a.seq - b.seq)
+      .map(prompt => ({
+        kind: 'secure',
+        key: secureKey(prompt.id),
+        bot: prompt.bot,
+        id: prompt.id,
+        method: prompt.method
+      }))
+
     // Newly seen ones take the next places: an engine request by the gateway's own stamp, then by its
-    // row; a confirmation in the order the passkey model received them, after those.
+    // row; a confirmation in the order the passkey model received them, after those; a prompt in the order
+    // the secure input model placed them, after those.
     const fresh: OpenRequest[] = [
       ...engine
         .filter(entry => !seen.has(entry.key))
         .sort((a, b) => (a.item.ts ?? 0) - (b.item.ts ?? 0) || a.item.seq - b.item.seq),
-      ...confirms.filter(entry => !seen.has(entry.key))
+      ...confirms.filter(entry => !seen.has(entry.key)),
+      ...secure.filter(entry => !seen.has(entry.key))
     ]
-    const open: OpenRequest[] = [...engine, ...confirms]
+    const open: OpenRequest[] = [...engine, ...confirms, ...secure]
 
     for (const entry of fresh) {
       counter += 1
@@ -212,10 +261,12 @@ export function bindRequests(
 
   const unsubscribe = chats.subscribe(collect)
   const unsubscribePasskeys = passkeys?.subscribe(collect)
+  const unsubscribeSecure = secureInput?.subscribe(collect)
 
   return () => {
     unsubscribe()
     unsubscribePasskeys?.()
+    unsubscribeSecure?.()
     seen.clear()
     store.getState().reset()
   }

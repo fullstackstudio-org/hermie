@@ -634,6 +634,215 @@ export const WEB_STRINGS_SOURCE = {
       }
     }
   },
+  secureInput: {
+    /** The sheet's heading for a `secret`: who asks, in fixed words (the native apps'). */
+    titleSecret: {
+      en: ({ name }: { name: string }) => `${name} asks for a secret`,
+      nl: ({ name }: { name: string }) => `${name} vraagt om een geheim`,
+      de: ({ name }: { name: string }) => `${name} fragt nach einem Geheimnis`
+    },
+    /** The sheet's heading for a `sudo`. */
+    titleSudo: {
+      en: ({ name }: { name: string }) => `${name} asks for an administrator password`,
+      nl: ({ name }: { name: string }) => `${name} vraagt om een beheerderswachtwoord`,
+      de: ({ name }: { name: string }) => `${name} fragt nach einem Administratorpasswort`
+    },
+    /** The sheet's heading for a `vault.unlock_prompt`. */
+    titleVaultUnlock: {
+      en: ({ name }: { name: string }) => `${name} asks to unlock a password manager`,
+      nl: ({ name }: { name: string }) => `${name} vraagt een wachtwoordmanager te ontgrendelen`,
+      de: ({ name }: { name: string }) => `${name} möchte einen Passwortmanager entsperren`
+    },
+    /** The sheet's heading for a `vault.code`. */
+    titleVaultCode: {
+      en: ({ name }: { name: string }) => `${name} asks for a one-time code`,
+      nl: ({ name }: { name: string }) => `${name} vraagt om een eenmalige code`,
+      de: ({ name }: { name: string }) => `${name} fragt nach einem Einmalcode`
+    },
+    /** The sheet's heading for a `vault.save_login`. */
+    titleVaultSaveLogin: {
+      en: ({ name }: { name: string }) => `${name} asks to save a login`,
+      nl: ({ name }: { name: string }) => `${name} vraagt een login te bewaren`,
+      de: ({ name }: { name: string }) => `${name} möchte eine Anmeldung speichern`
+    },
+    /** Under the heading: which gateway asks (its host). */
+    gateway: {
+      en: ({ host }: { host: string }) => `On gateway ${host}`,
+      nl: ({ host }: { host: string }) => `Op gateway ${host}`,
+      de: ({ host }: { host: string }) => `Auf Gateway ${host}`
+    },
+    /** The label over the request's own words, shown as plain text: they are the bot's, not the app's. */
+    quoteLabel: {
+      en: 'What the request says',
+      nl: 'Wat het verzoek zegt',
+      de: 'Was die Anfrage sagt'
+    },
+    /** The label over the variable a secret is stored under, as the request names it. */
+    quoteVariable: {
+      en: 'Stored under this name, as the request gives it',
+      nl: 'Opgeslagen onder deze naam, zoals het verzoek die geeft',
+      de: 'Unter diesem Namen gespeichert, wie die Anfrage ihn angibt'
+    },
+    /** The label over the password manager's name, as the request gives it. */
+    quoteManager: {
+      en: 'Password manager, as the request names it',
+      nl: 'Wachtwoordmanager, zoals het verzoek die noemt',
+      de: 'Passwortmanager, wie die Anfrage ihn nennt'
+    },
+    /** The label over the website's name, as the request gives it. */
+    quoteSite: {
+      en: 'Website, as the request names it',
+      nl: 'Website, zoals het verzoek die noemt',
+      de: 'Website, wie die Anfrage sie nennt'
+    },
+    /** The label over the website's address, as the request gives it. */
+    quoteOrigin: {
+      en: 'Address, as the request gives it',
+      nl: 'Adres, zoals het verzoek het geeft',
+      de: 'Adresse, wie die Anfrage sie angibt'
+    },
+    /** What a sudo prompt is for. */
+    sudoLead: {
+      en: 'The bot wants to run this command with administrator rights on the gateway’s computer.',
+      nl: 'De bot wil dit commando met beheerdersrechten uitvoeren op de computer van de gateway.',
+      de: 'Der Bot möchte diesen Befehl mit Administratorrechten auf dem Rechner des Gateways ausführen.'
+    },
+    /** A sudo prompt that names no command. */
+    sudoNoCommand: {
+      en: 'The gateway did not say which command.',
+      nl: 'De gateway zegt niet welk commando.',
+      de: 'Das Gateway nennt den Befehl nicht.'
+    },
+    /** What an unlock asks for, in fixed words: the manager's name is the request's and stands in its own box. */
+    vaultUnlockLead: {
+      en: 'Enter the master password of this password manager.',
+      nl: 'Voer het hoofdwachtwoord van deze wachtwoordmanager in.',
+      de: 'Gib das Master-Passwort dieses Passwortmanagers ein.'
+    },
+    /** What a code is for, in fixed words: the site is the request's and stands in its own box. */
+    vaultCodeLead: {
+      en: 'Enter the code the website asked for.',
+      nl: 'Voer de code in waar de website om vroeg.',
+      de: 'Gib den Code ein, nach dem die Website gefragt hat.'
+    },
+    /** What a login is for, in fixed words: the site is the request's and stands in its own box. */
+    vaultSaveLoginLead: {
+      en: 'Save a login for this website.',
+      nl: 'Bewaar een login voor deze website.',
+      de: 'Speichere eine Anmeldung für diese Website.'
+    },
+    /** The field of a secret. */
+    fieldValue: {
+      en: 'Value',
+      nl: 'Waarde',
+      de: 'Wert'
+    },
+    /** The field of a sudo prompt and of a login. */
+    fieldPassword: {
+      en: 'Password',
+      nl: 'Wachtwoord',
+      de: 'Passwort'
+    },
+    /** The field of an unlock. */
+    fieldMasterPassword: {
+      en: 'Master password',
+      nl: 'Hoofdwachtwoord',
+      de: 'Master-Passwort'
+    },
+    /** The field of a one-time code. */
+    fieldCode: {
+      en: 'Code',
+      nl: 'Code',
+      de: 'Code'
+    },
+    /** The first field of a login. */
+    fieldUsername: {
+      en: 'Username',
+      nl: 'Gebruikersnaam',
+      de: 'Benutzername'
+    },
+    /** Who receives a secret, and what becomes of it. */
+    receiverStored: {
+      en: 'Hermie sends this to the gateway, which stores it for this bot. The bot does not see it. Hermie does not keep it.',
+      nl: 'Hermie stuurt dit naar de gateway, die het voor deze bot bewaart. De bot ziet het niet. Hermie bewaart het niet.',
+      de: 'Hermie sendet dies an das Gateway, das es für diesen Bot speichert. Der Bot sieht es nicht. Hermie speichert es nicht.'
+    },
+    /** Who receives a password or a code, and what becomes of it. */
+    receiverUsed: {
+      en: 'Hermie sends this to the gateway, where the bot uses it. Hermie does not keep it.',
+      nl: 'Hermie stuurt dit naar de gateway, waar de bot het gebruikt. Hermie bewaart het niet.',
+      de: 'Hermie sendet dies an das Gateway, wo der Bot es nutzt. Hermie speichert es nicht.'
+    },
+    /** Who receives a login, and what becomes of it. */
+    receiverLogin: {
+      en: 'Hermie sends this to the gateway, which saves it in the bot’s password vault. Hermie does not keep it.',
+      nl: 'Hermie stuurt dit naar de gateway, die het in de wachtwoordkluis van de bot bewaart. Hermie bewaart het niet.',
+      de: 'Hermie sendet dies an das Gateway, das es im Passworttresor des Bots speichert. Hermie speichert es nicht.'
+    },
+    /** Answers a secret, a password or a code. */
+    send: {
+      en: 'Send',
+      nl: 'Versturen',
+      de: 'Senden'
+    },
+    /** Answers a login. */
+    save: {
+      en: 'Save',
+      nl: 'Bewaren',
+      de: 'Speichern'
+    },
+    /** Answers with nothing: the bot is told the person skipped it. */
+    skip: {
+      en: 'Skip',
+      nl: 'Overslaan',
+      de: 'Überspringen'
+    },
+    /** The countdown to the gateway's deadline. */
+    expiresIn: {
+      en: ({ time }: { time: string }) => `Expires in ${time}`,
+      nl: ({ time }: { time: string }) => `Verloopt over ${time}`,
+      de: ({ time }: { time: string }) => `Läuft ab in ${time}`
+    },
+    /** The gateway asks again because an earlier answer never reached it. */
+    earlierAnswerLost: {
+      en: 'Your earlier answer did not reach the gateway. Enter it again.',
+      nl: 'Je eerdere antwoord heeft de gateway niet bereikt. Voer het opnieuw in.',
+      de: 'Deine frühere Antwort hat das Gateway nicht erreicht. Gib sie erneut ein.'
+    },
+    /** Send or Skip was pressed while the connection was down: nothing went out, the field keeps what was typed. */
+    offline: {
+      en: 'Not connected to the gateway. Nothing was sent; try again once the connection is back.',
+      nl: 'Niet verbonden met de gateway. Er is niets verstuurd; probeer het opnieuw zodra de verbinding terug is.',
+      de: 'Nicht mit dem Gateway verbunden. Es wurde nichts gesendet; versuch es erneut, sobald die Verbindung wieder da ist.'
+    },
+    /** On the chat: a prompt ran out of time before it was answered. */
+    noticeExpired: {
+      en: ({ name }: { name: string }) => `The request from ${name} expired. Nothing was sent.`,
+      nl: ({ name }: { name: string }) => `Het verzoek van ${name} is verlopen. Er is niets verstuurd.`,
+      de: ({ name }: { name: string }) => `Die Anfrage von ${name} ist abgelaufen. Es wurde nichts gesendet.`
+    },
+    /** On the chat: the bot stopped asking before it was answered. */
+    noticeWithdrawn: {
+      en: ({ name }: { name: string }) => `${name} no longer asks for this. Nothing was sent.`,
+      nl: ({ name }: { name: string }) => `${name} vraagt hier niet meer om. Er is niets verstuurd.`,
+      de: ({ name }: { name: string }) => `${name} fragt nicht mehr danach. Es wurde nichts gesendet.`
+    },
+    /** On the chat: the bot asked for something only the desktop app can do, and the page said no. */
+    noticeUnsupported: {
+      en: ({ name, method }: { name: string; method: string }) =>
+        `${name} sent a request that needs the Hermes desktop app (${method}). It was declined here.`,
+      nl: ({ name, method }: { name: string; method: string }) =>
+        `${name} stuurde een verzoek dat de Hermes-desktop-app nodig heeft (${method}). Het is hier geweigerd.`,
+      de: ({ name, method }: { name: string; method: string }) =>
+        `${name} hat eine Anfrage gesendet, die die Hermes-Desktop-App braucht (${method}). Sie wurde hier abgelehnt.`
+    },
+    /** Takes a notice away. */
+    close: {
+      en: 'Close',
+      nl: 'Sluiten',
+      de: 'Schließen'
+    }
+  },
   language: {
     /** The first row of the language picker: a browser has a language list, not one device language. */
     followBrowser: {

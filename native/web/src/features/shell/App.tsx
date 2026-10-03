@@ -49,6 +49,7 @@ import { ChatScreen } from '../chat/ChatScreen'
 import { ChatRuntimeContext, type ChatSessionRuntime } from '../chat/chat-runtime'
 import { type PasskeyActions, PasskeyRuntimeContext } from '../requests/passkey-runtime'
 import { RequestLayer } from '../requests/RequestLayer'
+import { type SecureInputActions, SecureInputRuntimeContext } from '../requests/secure-input-runtime'
 import { ConnectionLine } from './ConnectionLine'
 import { Layout } from './Layout'
 import { formatRoute, type Route, useRoute } from './router'
@@ -73,12 +74,22 @@ export interface AppProps {
   chat?: ChatSessionRuntime
   /** The passkey model's actions; absent in a test of the frame. */
   passkeys?: PasskeyActions
+  /** The secure input model's actions (secret, sudo and vault prompts); absent in a test of the frame. */
+  secureInput?: SecureInputActions
 }
 
 /** The bot a route is on, if it is on one. */
 const botOf = (route: Route): string | undefined => (route.name === 'chat' ? route.bot : undefined)
 
-export function App({ user, onSignIn, onSignOut, router = pageHashRouter, chat, passkeys }: AppProps): ReactElement {
+export function App({
+  user,
+  onSignIn,
+  onSignOut,
+  router = pageHashRouter,
+  chat,
+  passkeys,
+  secureInput
+}: AppProps): ReactElement {
   useLocale()
 
   const route = useRoute(router)
@@ -109,40 +120,42 @@ export function App({ user, onSignIn, onSignOut, router = pageHashRouter, chat, 
   return (
     <ChatRuntimeContext.Provider value={chat ?? null}>
       <PasskeyRuntimeContext.Provider value={passkeys ?? null}>
-        <Layout
-          route={route}
-          heading={heading}
-          status={<ConnectionLine onSignIn={onSignIn} />}
-          sidebar={<ChatList selectedBot={bot} />}
-          footer={<SidebarFooter user={user} onSignOut={onSignOut} />}
-        >
-          {route.name === 'chat' ? (
-            <ChatScreen
-              key={formatRoute(route)}
-              bot={route.bot}
-              {...(route.session ? { session: route.session } : {})}
-            />
-          ) : route.name === 'settings' && route.section === 'passkeys' ? (
-            <Suspense fallback={<div className="hm-main__body" aria-busy="true" />}>
-              <Passkeys />
-            </Suspense>
-          ) : route.name === 'settings' ? (
-            <div className="hm-main__body">
-              <p>{webStrings.shell.settingsSoon}</p>
-              {route.section === undefined ? (
-                <p>
-                  <a href={formatRoute({ name: 'settings', section: 'passkeys' })}>
-                    {webStrings.passkeys.settings.title}
-                  </a>
-                </p>
-              ) : null}
-            </div>
-          ) : (
-            <p className="hm-main__body">{strings.app.chat.pickBot}</p>
-          )}
-        </Layout>
-        {/* Over the whole page, whichever route: a bot's question is never behind a screen. */}
-        <RequestLayer />
+        <SecureInputRuntimeContext.Provider value={secureInput ?? null}>
+          <Layout
+            route={route}
+            heading={heading}
+            status={<ConnectionLine onSignIn={onSignIn} />}
+            sidebar={<ChatList selectedBot={bot} />}
+            footer={<SidebarFooter user={user} onSignOut={onSignOut} />}
+          >
+            {route.name === 'chat' ? (
+              <ChatScreen
+                key={formatRoute(route)}
+                bot={route.bot}
+                {...(route.session ? { session: route.session } : {})}
+              />
+            ) : route.name === 'settings' && route.section === 'passkeys' ? (
+              <Suspense fallback={<div className="hm-main__body" aria-busy="true" />}>
+                <Passkeys />
+              </Suspense>
+            ) : route.name === 'settings' ? (
+              <div className="hm-main__body">
+                <p>{webStrings.shell.settingsSoon}</p>
+                {route.section === undefined ? (
+                  <p>
+                    <a href={formatRoute({ name: 'settings', section: 'passkeys' })}>
+                      {webStrings.passkeys.settings.title}
+                    </a>
+                  </p>
+                ) : null}
+              </div>
+            ) : (
+              <p className="hm-main__body">{strings.app.chat.pickBot}</p>
+            )}
+          </Layout>
+          {/* Over the whole page, whichever route: a bot's question is never behind a screen. */}
+          <RequestLayer />
+        </SecureInputRuntimeContext.Provider>
       </PasskeyRuntimeContext.Provider>
     </ChatRuntimeContext.Provider>
   )
