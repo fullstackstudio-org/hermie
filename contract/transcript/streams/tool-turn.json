@@ -479,18 +479,19 @@
               "seq": 7000,
               "text": "summarise the notes",
               "ts": 1790000006,
-              "version": 1
+              "turnId": "167f352a430d4fc6830b15073f792bed",
+              "version": 2
             },
             "presentation": "full"
           },
           {
             "item": {
-              "durationS": 9,
               "id": "a:8000",
               "interim": false,
               "kind": "assistant",
               "origin": "live",
               "reasoning": "Checked the README.",
+              "rowId": 10,
               "seq": 8000,
               "status": "complete",
               "streaming": false,
@@ -501,7 +502,7 @@
                 "output": 34,
                 "total": 46
               },
-              "version": 7
+              "version": 8
             },
             "presentation": "full"
           },
@@ -510,21 +511,23 @@
               "args": {
                 "path": "README.md"
               },
+              "callKey": "10/0",
               "context": "read README.md",
               "durationS": 0.2,
-              "id": "t:tool-167f352a",
+              "id": "t:tool-a2fedc71",
               "isError": false,
               "kind": "tool",
               "name": "read_file",
               "origin": "live",
               "result": "# Hermie",
               "resultKnown": true,
+              "rowId": 11,
               "seq": 9000,
               "status": "complete",
               "summary": "read README.md",
-              "toolId": "tool-167f352a",
+              "toolId": "tool-a2fedc71",
               "ts": 1790000015,
-              "version": 1
+              "version": 2
             },
             "presentation": "collapsed"
           }
@@ -638,18 +641,19 @@
               "seq": 7000,
               "text": "summarise the notes",
               "ts": 1790000006,
-              "version": 1
+              "turnId": "167f352a430d4fc6830b15073f792bed",
+              "version": 2
             },
             "presentation": "full"
           },
           {
             "item": {
-              "durationS": 9,
               "id": "a:8000",
               "interim": false,
               "kind": "assistant",
               "origin": "live",
               "reasoning": "Checked the README.",
+              "rowId": 10,
               "seq": 8000,
               "status": "complete",
               "streaming": false,
@@ -660,7 +664,7 @@
                 "output": 34,
                 "total": 46
               },
-              "version": 7
+              "version": 8
             },
             "presentation": "full"
           }
@@ -793,18 +797,19 @@
               "seq": 7000,
               "text": "summarise the notes",
               "ts": 1790000006,
-              "version": 1
+              "turnId": "167f352a430d4fc6830b15073f792bed",
+              "version": 2
             },
             "presentation": "full"
           },
           {
             "item": {
-              "durationS": 9,
               "id": "a:8000",
               "interim": false,
               "kind": "assistant",
               "origin": "live",
               "reasoning": "Checked the README.",
+              "rowId": 10,
               "seq": 8000,
               "status": "complete",
               "streaming": false,
@@ -815,7 +820,7 @@
                 "output": 34,
                 "total": 46
               },
-              "version": 7
+              "version": 8
             },
             "presentation": "full"
           },
@@ -824,21 +829,23 @@
               "args": {
                 "path": "README.md"
               },
+              "callKey": "10/0",
               "context": "read README.md",
               "durationS": 0.2,
-              "id": "t:tool-167f352a",
+              "id": "t:tool-a2fedc71",
               "isError": false,
               "kind": "tool",
               "name": "read_file",
               "origin": "live",
               "result": "# Hermie",
               "resultKnown": true,
+              "rowId": 11,
               "seq": 9000,
               "status": "complete",
               "summary": "read README.md",
-              "toolId": "tool-167f352a",
+              "toolId": "tool-a2fedc71",
               "ts": 1790000015,
-              "version": 1
+              "version": 2
             },
             "presentation": "full"
           }
@@ -850,7 +857,9 @@
   "final": {
     "botName": "researcher",
     "byApprovalId": {},
-    "byCallKey": {},
+    "byCallKey": {
+      "10/0": "t:tool-a2fedc71"
+    },
     "byDelegationId": {},
     "byProcessId": {},
     "byRequestId": {},
@@ -859,12 +868,14 @@
       "2": "r:2",
       "4": "r:4",
       "5": "r:5",
-      "6": "r:6"
+      "6": "r:6",
+      "10": "a:8000",
+      "11": "t:tool-a2fedc71"
     },
     "byToolId": {
       "call_dm_1": "t:call_dm_1",
       "call_read_researcher": "t:call_read_researcher",
-      "tool-167f352a": "t:tool-167f352a"
+      "tool-a2fedc71": "t:tool-a2fedc71"
     },
     "compacting": false,
     "draft": "",
@@ -899,12 +910,12 @@
     },
     "items": {
       "a:8000": {
-        "durationS": 9,
         "id": "a:8000",
         "interim": false,
         "kind": "assistant",
         "origin": "live",
         "reasoning": "Checked the README.",
+        "rowId": 10,
         "seq": 8000,
         "status": "complete",
         "streaming": false,
@@ -915,7 +926,7 @@
           "output": 34,
           "total": 46
         },
-        "version": 7
+        "version": 8
       },
       "o:7000": {
         "id": "o:7000",
@@ -925,7 +936,8 @@
         "seq": 7000,
         "text": "summarise the notes",
         "ts": 1790000006,
-        "version": 1
+        "turnId": "167f352a430d4fc6830b15073f792bed",
+        "version": 2
       },
       "r:1": {
         "id": "r:1",
@@ -1024,25 +1036,27 @@
         "toolId": "call_read_researcher",
         "version": 0
       },
-      "t:tool-167f352a": {
+      "t:tool-a2fedc71": {
         "args": {
           "path": "README.md"
         },
+        "callKey": "10/0",
         "context": "read README.md",
         "durationS": 0.2,
-        "id": "t:tool-167f352a",
+        "id": "t:tool-a2fedc71",
         "isError": false,
         "kind": "tool",
         "name": "read_file",
         "origin": "live",
         "result": "# Hermie",
         "resultKnown": true,
+        "rowId": 11,
         "seq": 9000,
         "status": "complete",
         "summary": "read README.md",
-        "toolId": "tool-167f352a",
+        "toolId": "tool-a2fedc71",
         "ts": 1790000015,
-        "version": 1
+        "version": 2
       }
     },
     "lastSeq": 10,
@@ -1057,7 +1071,7 @@
       "r:6",
       "o:7000",
       "a:8000",
-      "t:tool-167f352a"
+      "t:tool-a2fedc71"
     ],
     "resolvedSessionId": "stored-researcher-45a8698b",
     "runtimeSessionId": "runtime-4a31c816",
@@ -1339,6 +1353,7 @@
           "payload": {},
           "seq": 1,
           "session_id": "runtime-4a31c816",
+          "turn_id": "167f352a430d4fc6830b15073f792bed",
           "type": "message.start"
         }
       }
@@ -1354,6 +1369,7 @@
           },
           "seq": 2,
           "session_id": "runtime-4a31c816",
+          "turn_id": "167f352a430d4fc6830b15073f792bed",
           "type": "reasoning.delta"
         }
       }
@@ -1369,6 +1385,7 @@
           },
           "seq": 3,
           "session_id": "runtime-4a31c816",
+          "turn_id": "167f352a430d4fc6830b15073f792bed",
           "type": "reasoning.delta"
         }
       }
@@ -1384,6 +1401,7 @@
           },
           "seq": 4,
           "session_id": "runtime-4a31c816",
+          "turn_id": "167f352a430d4fc6830b15073f792bed",
           "type": "reasoning.available"
         }
       }
@@ -1399,6 +1417,7 @@
           },
           "seq": 5,
           "session_id": "runtime-4a31c816",
+          "turn_id": "167f352a430d4fc6830b15073f792bed",
           "type": "message.delta"
         }
       }
@@ -1414,6 +1433,7 @@
           },
           "seq": 6,
           "session_id": "runtime-4a31c816",
+          "turn_id": "167f352a430d4fc6830b15073f792bed",
           "type": "message.delta"
         }
       }
@@ -1429,6 +1449,7 @@
           },
           "seq": 7,
           "session_id": "runtime-4a31c816",
+          "turn_id": "167f352a430d4fc6830b15073f792bed",
           "type": "tool.generating"
         }
       }
@@ -1443,12 +1464,15 @@
             "args": {
               "path": "README.md"
             },
+            "call_index": 0,
+            "call_row_id": 10,
             "context": "read README.md",
             "name": "read_file",
-            "tool_id": "tool-167f352a"
+            "tool_id": "tool-a2fedc71"
           },
           "seq": 8,
           "session_id": "runtime-4a31c816",
+          "turn_id": "167f352a430d4fc6830b15073f792bed",
           "type": "tool.start"
         }
       }
@@ -1463,14 +1487,18 @@
             "args": {
               "path": "README.md"
             },
+            "call_index": 0,
+            "call_row_id": 10,
             "duration_s": 0.2,
             "name": "read_file",
             "result": "# Hermie",
+            "row_id": 11,
             "summary": "read README.md",
-            "tool_id": "tool-167f352a"
+            "tool_id": "tool-a2fedc71"
           },
           "seq": 9,
           "session_id": "runtime-4a31c816",
+          "turn_id": "167f352a430d4fc6830b15073f792bed",
           "type": "tool.complete"
         }
       }
@@ -1482,6 +1510,17 @@
         "method": "event",
         "params": {
           "payload": {
+            "persisted_turn": {
+              "complete": true,
+              "final_assistant_row_id": 10,
+              "row_ids": [
+                9,
+                10,
+                11
+              ],
+              "user_row_id": 9
+            },
+            "row_id": 10,
             "status": "ok",
             "text": "Looking that up for you.",
             "usage": {
@@ -1492,6 +1531,7 @@
           },
           "seq": 10,
           "session_id": "runtime-4a31c816",
+          "turn_id": "167f352a430d4fc6830b15073f792bed",
           "type": "message.complete"
         }
       }
@@ -1729,6 +1769,7 @@
           "payload": {},
           "seq": 1,
           "session_id": "runtime-4a31c816",
+          "turn_id": "167f352a430d4fc6830b15073f792bed",
           "type": "message.start"
         },
         1790000008000
@@ -1744,6 +1785,7 @@
           },
           "seq": 2,
           "session_id": "runtime-4a31c816",
+          "turn_id": "167f352a430d4fc6830b15073f792bed",
           "type": "reasoning.delta"
         },
         1790000009000
@@ -1759,6 +1801,7 @@
           },
           "seq": 3,
           "session_id": "runtime-4a31c816",
+          "turn_id": "167f352a430d4fc6830b15073f792bed",
           "type": "reasoning.delta"
         },
         1790000010000
@@ -1774,6 +1817,7 @@
           },
           "seq": 4,
           "session_id": "runtime-4a31c816",
+          "turn_id": "167f352a430d4fc6830b15073f792bed",
           "type": "reasoning.available"
         },
         1790000011000
@@ -1789,6 +1833,7 @@
           },
           "seq": 5,
           "session_id": "runtime-4a31c816",
+          "turn_id": "167f352a430d4fc6830b15073f792bed",
           "type": "message.delta"
         },
         1790000012000
@@ -1804,6 +1849,7 @@
           },
           "seq": 6,
           "session_id": "runtime-4a31c816",
+          "turn_id": "167f352a430d4fc6830b15073f792bed",
           "type": "message.delta"
         },
         1790000013000
@@ -1819,6 +1865,7 @@
           },
           "seq": 7,
           "session_id": "runtime-4a31c816",
+          "turn_id": "167f352a430d4fc6830b15073f792bed",
           "type": "tool.generating"
         },
         1790000014000
@@ -1833,12 +1880,15 @@
             "args": {
               "path": "README.md"
             },
+            "call_index": 0,
+            "call_row_id": 10,
             "context": "read README.md",
             "name": "read_file",
-            "tool_id": "tool-167f352a"
+            "tool_id": "tool-a2fedc71"
           },
           "seq": 8,
           "session_id": "runtime-4a31c816",
+          "turn_id": "167f352a430d4fc6830b15073f792bed",
           "type": "tool.start"
         },
         1790000015000
@@ -1853,14 +1903,18 @@
             "args": {
               "path": "README.md"
             },
+            "call_index": 0,
+            "call_row_id": 10,
             "duration_s": 0.2,
             "name": "read_file",
             "result": "# Hermie",
+            "row_id": 11,
             "summary": "read README.md",
-            "tool_id": "tool-167f352a"
+            "tool_id": "tool-a2fedc71"
           },
           "seq": 9,
           "session_id": "runtime-4a31c816",
+          "turn_id": "167f352a430d4fc6830b15073f792bed",
           "type": "tool.complete"
         },
         1790000016000
@@ -1872,6 +1926,17 @@
       "args": [
         {
           "payload": {
+            "persisted_turn": {
+              "complete": true,
+              "final_assistant_row_id": 10,
+              "row_ids": [
+                9,
+                10,
+                11
+              ],
+              "user_row_id": 9
+            },
+            "row_id": 10,
             "status": "ok",
             "text": "Looking that up for you.",
             "usage": {
@@ -1882,6 +1947,7 @@
           },
           "seq": 10,
           "session_id": "runtime-4a31c816",
+          "turn_id": "167f352a430d4fc6830b15073f792bed",
           "type": "message.complete"
         },
         1790000017000

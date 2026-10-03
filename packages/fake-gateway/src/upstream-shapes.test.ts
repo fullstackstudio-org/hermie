@@ -3561,3 +3561,384 @@ describe('reload.mcp over the socket — methods_tools.py::reload.mcp', () => {
     expect(((await harness.call('reload.mcp', {})).result as Record<string, unknown>).status).toBe('reloaded')
   })
 })
+
+/**
+ * What a client may rely on to tell which stored row a live frame becomes.
+ *
+ * Upstream: our fork's `tests/tui_gateway/test_transcript_row_identity_e2e.py` (branch
+ * `wip/row-identity`), which runs one real turn through `prompt.submit` and reads the frames, the
+ * replay ring, `session.resume` and `session.history` back the way a client does. The expectations
+ * below are that test's, written as literals, so the fake and the fork cannot drift apart without
+ * one of the two failing:
+ *
+ *  - a turn has ONE `turn_id`: on the envelope of every frame it streams and on its user row's
+ *    `display_metadata`; frames that are not part of the turn's stream carry none;
+ *  - `message.interim` and `message.complete` name their assistant row (`row_id`);
+ *  - `tool.start` names its call as `(call_row_id, call_index)` and carries NO `row_id`;
+ *    `tool.complete` names the call and the tool RESULT row (`row_id`); history tool rows carry the
+ *    same three numbers, and `tool_call_id` is the id `tool.start` sent as `tool_id`;
+ *  - the replay ring returns the same frames, ids included;
+ *  - a `session.resume` mid-turn says which streamed text no sealed note shows yet.
+ *
+ * With `rowIdentity: false` it is the gateway before any of that: no ids, no `message.interim`.
+ */
+describe('transcript row identity — test_transcript_row_identity_e2e.py', () => {
+  const NOTE_1 = 'Entry 90 is marked paid. Now the cent on the payables account: first see how it is booked.'
+  const NOTE_2 = 'Looking the transfer up through the API myself: the payout of 16-09.'
+  const FINAL = 'Everything checks out and nothing was filed.'
+  const TURN_STREAM = [
+    'message.start',
+    'message.delta',
+    'message.interim',
+    'message.complete',
+    'reasoning.delta',
+    'reasoning.available',
+    'thinking.delta',
+    'tool.generating',
+    'tool.start',
+    'tool.complete',
+    'tool.output_risk',
+    'error'
+  ]
+
+  type Params = Record<string, unknown> & { type: string; turn_id?: string; payload?: Record<string, unknown> }
+  type Row = Record<string, unknown>
+
+  interface Rig {
+    live: FakeGateway
+    events: Params[]
+    call: (method: string, params?: Record<string, unknown>) => Promise<Record<string, unknown>>
+    runtime: string
+    stored: string
+    until: (check: () => boolean) => Promise<void>
+    finish: () => Promise<void>
+    history: () => Promise<Row[]>
+    close: () => void
+  }
+
+  let rig: Rig | undefined
+
+  const open = async (options: { rowIdentity?: boolean; streamDelayMs?: number } = {}): Promise<Rig> => {
+    const live = await startFakeGateway({ port: 0, ...options })
+    const socket = new WebSocket(live.wsUrl, ['hermes-gateway-v1'])
+    const pending = new Map<number, (value: Record<string, unknown>) => void>()
+    const events: Params[] = []
+    let nextId = 0
+
+    socket.on('message', data => {
+      for (const line of String(data).split('\n')) {
+        if (!line.trim()) {
+          continue
+        }
+
+        const frame = JSON.parse(line) as Record<string, unknown>
+
+        if (frame.method === 'event') {
+          events.push(frame.params as Params)
+        } else if (typeof frame.id === 'number') {
+          pending.get(frame.id)?.(frame)
+          pending.delete(frame.id)
+        }
+      }
+    })
+
+    await new Promise<void>((resolve, reject) => {
+      socket.once('open', () => resolve())
+      socket.once('error', reject)
+    })
+
+    const call = (method: string, params: Record<string, unknown> = {}) =>
+      new Promise<Record<string, unknown>>(resolve => {
+        const id = ++nextId
+
+        pending.set(id, resolve)
+        socket.send(`${JSON.stringify({ jsonrpc: '2.0', id, method, params })}\n`)
+      })
+
+    const listed = await call('profiles.list', { include_sessions: true })
+    const roster = (listed.result as { profiles: { name: string; canonical_session?: { id: string } }[] }).profiles
+    const stored = roster.find(profile => profile.name === 'researcher')?.canonical_session?.id ?? ''
+    const resumed = await call('session.resume', { session_id: stored, omit_messages: true })
+    const runtime = String((resumed.result as { session_id: string }).session_id)
+
+    const until = async (check: () => boolean): Promise<void> => {
+      for (let waited = 0; waited < 5000; waited += 5) {
+        if (check()) {
+          return
+        }
+
+        await new Promise(resolve => setTimeout(resolve, 5))
+      }
+
+      throw new Error('timed out waiting for the gateway')
+    }
+
+    // The turn is over once its completion has been followed by the roster nudge.
+    const finish = () =>
+      until(() => {
+        const at = events.findLastIndex(event => event.type === 'message.complete')
+
+        return at >= 0 && events.slice(at).some(event => event.type === 'sessions.changed')
+      })
+
+    const history = async (): Promise<Row[]> =>
+      ((await call('session.history', { session_id: runtime })).result as { messages: Row[] }).messages
+
+    rig = { live, events, call, runtime, stored, until, finish, history, close: () => socket.close() }
+
+    return rig
+  }
+
+  afterEach(async () => {
+    const current = rig
+
+    rig = undefined
+    current?.close()
+    await current?.live.close()
+  })
+
+  const submit = async (via: Rig, text: string): Promise<void> => {
+    expect(((await via.call('prompt.submit', { session_id: via.runtime, text })).result as Row).status).toBe(
+      'streaming'
+    )
+  }
+
+  const of = (events: Params[], ...types: string[]): Params[] => events.filter(event => types.includes(event.type))
+  const payloads = (events: Params[], type: string): Row[] => of(events, type).map(event => event.payload ?? {})
+  const keys = (value: unknown): string[] => Object.keys(value as Row).sort()
+  /** The turn's own rows: from its user row on. */
+  const turnRows = (rows: Row[]): Row[] => rows.slice(rows.findLastIndex(row => row.role === 'user'))
+  const resumeOf = async (via: Rig): Promise<Row> =>
+    (await via.call('session.resume', { session_id: via.stored, omit_messages: true })).result as Row
+
+  it('names the turn on every frame and on the user row, the rows on the frames that persist them, and the calls on the tools', async () => {
+    const via = await open()
+
+    await submit(via, 'check the ledger')
+    await via.finish()
+
+    const rows = turnRows(await via.history())
+    const [user, note1, tool1, note2, tool2, final] = rows as [Row, Row, Row, Row, Row, Row]
+
+    expect(rows.map(row => row.role)).toEqual(['user', 'assistant', 'tool', 'assistant', 'tool', 'assistant'])
+
+    // One turn, one id: the user row and every frame of the turn name it.
+    const turnId = (user.display_metadata as { turn_id: string }).turn_id
+
+    expect(turnId).toMatch(/^[0-9a-f]{32}$/)
+
+    const frames = via.events.filter(event => event.session_id === via.runtime)
+    const stream = frames.filter(event => TURN_STREAM.includes(event.type))
+
+    expect(new Set(stream.map(event => event.type))).toEqual(
+      new Set(['message.start', 'message.delta', 'message.interim', 'tool.start', 'tool.complete', 'message.complete'])
+    )
+    expect(new Set(stream.map(event => event.turn_id))).toEqual(new Set([turnId]))
+    // What is not part of the turn's stream carries no turn.
+    expect(via.events.filter(event => !TURN_STREAM.includes(event.type) && 'turn_id' in event)).toEqual([])
+
+    // message.interim names the assistant row that holds the note, with the same text.
+    expect(payloads(frames, 'message.interim')).toEqual([
+      { text: NOTE_1, already_streamed: true, row_id: note1.row_id },
+      { text: NOTE_2, already_streamed: true, row_id: note2.row_id }
+    ])
+    expect([note1.text, note2.text]).toEqual([NOTE_1, NOTE_2])
+
+    // tool.start names the assistant row that listed the call (the interim's row), position 0, and no row of its own.
+    const starts = payloads(frames, 'tool.start')
+    const completes = payloads(frames, 'tool.complete')
+
+    expect(starts.map(start => [start.call_row_id, start.call_index])).toEqual([
+      [note1.row_id, 0],
+      [note2.row_id, 0]
+    ])
+    expect(starts.every(start => !('row_id' in start))).toBe(true)
+    expect(keys(starts[0])).toEqual(['args', 'call_index', 'call_row_id', 'context', 'name', 'tool_id'])
+
+    // tool.complete names its call and the tool RESULT row; the history tool row carries the same three numbers.
+    expect(keys(completes[0])).toEqual([
+      'args',
+      'call_index',
+      'call_row_id',
+      'duration_s',
+      'name',
+      'result',
+      'row_id',
+      'summary',
+      'tool_id'
+    ])
+    expect(completes.map(done => [done.call_row_id, done.call_index, done.row_id])).toEqual([
+      [note1.row_id, 0, tool1.row_id],
+      [note2.row_id, 0, tool2.row_id]
+    ])
+
+    for (const [index, tool] of [tool1, tool2].entries()) {
+      expect([tool.row_id, tool.call_row_id, tool.call_index]).toEqual([
+        completes[index]?.row_id,
+        completes[index]?.call_row_id,
+        completes[index]?.call_index
+      ])
+      expect(tool.tool_call_id).toBe(starts[index]?.tool_id)
+      expect(tool.tool_call_id).toBe(completes[index]?.tool_id)
+    }
+
+    // message.complete names the last assistant row, the one carrying the final answer.
+    const [complete] = payloads(frames, 'message.complete')
+
+    expect(final.text).toBe(FINAL)
+    expect(complete).toMatchObject({ text: FINAL, status: 'ok', row_id: final.row_id })
+    expect(keys(complete)).toEqual(['persisted_turn', 'row_id', 'status', 'text', 'usage'])
+    expect(complete?.persisted_turn).toEqual({
+      row_ids: rows.map(row => row.row_id),
+      complete: true,
+      user_row_id: user.row_id,
+      final_assistant_row_id: final.row_id
+    })
+
+    // The replay ring hands a reconnecting client the same frames, ids included.
+    const replay = (await via.call('session.events.since', { session_id: via.runtime, last_seen: 0 })).result as {
+      events: Params[]
+      truncated: boolean
+    }
+
+    expect(replay.truncated).toBe(false)
+    expect(replay.events).toEqual(frames.filter(event => typeof event.seq === 'number'))
+    expect(of(replay.events, 'message.start').map(event => event.turn_id)).toEqual([turnId])
+    expect(of(replay.events, 'message.interim', 'message.complete').map(event => event.payload?.row_id)).toEqual([
+      note1.row_id,
+      note2.row_id,
+      final.row_id
+    ])
+  })
+
+  it('carries the same identity on the REST route, which names a row `id`', async () => {
+    const via = await open()
+
+    await submit(via, 'check the ledger')
+    await via.finish()
+
+    const body = (await fetch(`${via.live.url}/api/sessions/${via.stored}/messages?order=latest&limit=50`).then(
+      response => response.json()
+    )) as { messages: Row[] }
+    const rows = turnRows(body.messages.slice().sort((a, b) => Number(a.id) - Number(b.id)))
+    const history = turnRows(await via.history())
+    const tools = rows.filter(row => row.role === 'tool')
+
+    expect((rows[0]?.display_metadata as Row).turn_id).toBe((history[0]?.display_metadata as Row).turn_id)
+    expect(tools.map(row => [row.id, row.call_row_id, row.call_index, row.tool_call_id])).toEqual(
+      history
+        .filter(row => row.role === 'tool')
+        .map(row => [row.row_id, row.call_row_id, row.call_index, row.tool_call_id])
+    )
+    expect(tools.every(row => typeof row.call_row_id === 'number' && row.call_index === 0)).toBe(true)
+  })
+
+  it('lets a tool reply whose words all came first persist them as the row that holds the call, and name no second row', async () => {
+    const via = await open()
+
+    await submit(via, 'whatever you like')
+    await via.finish()
+
+    const rows = turnRows(await via.history())
+    const [user, call, tool] = rows as [Row, Row, Row]
+    const frames = via.events.filter(event => event.session_id === via.runtime)
+    const [start] = payloads(frames, 'tool.start')
+    const [done] = payloads(frames, 'tool.complete')
+    const [complete] = payloads(frames, 'message.complete')
+
+    expect(rows.map(row => row.role)).toEqual(['user', 'assistant', 'tool'])
+    // No `message.interim`: this is a turn with interim notes off, and the call still names the assistant row.
+    expect(of(frames, 'message.interim')).toEqual([])
+    expect([start?.call_row_id, start?.call_index]).toEqual([call.row_id, 0])
+    expect(start && 'row_id' in start).toBe(false)
+    expect([done?.call_row_id, done?.call_index, done?.row_id]).toEqual([call.row_id, 0, tool.row_id])
+    expect([tool.call_row_id, tool.call_index, tool.tool_call_id]).toEqual([call.row_id, 0, start?.tool_id])
+    // Every word came before the call, so the row that holds the call is the answer.
+    expect(call.text).toBe(complete?.text)
+    expect(complete?.row_id).toBe(call.row_id)
+    expect(new Set(of(frames, 'message.start', 'message.complete').map(event => event.turn_id))).toEqual(
+      new Set([(user.display_metadata as { turn_id: string }).turn_id])
+    )
+  })
+
+  it('says, mid-turn, which streamed text no sealed note shows yet, and which turn the prompt is', async () => {
+    const via = await open({ streamDelayMs: 40 })
+
+    await submit(via, 'check the ledger')
+    await via.until(() => of(via.events, 'message.interim').length === 1)
+
+    const turnId = of(via.events, 'message.start')[0]?.turn_id
+
+    // `assistant` (what upstream's desktop reads) keeps the sealed note; `assistant_unsealed` leaves it out.
+    expect((await resumeOf(via)).inflight).toEqual({
+      assistant: NOTE_1,
+      assistant_unsealed: '',
+      streaming: true,
+      user: 'check the ledger',
+      display_metadata: { turn_id: turnId }
+    })
+
+    await via.until(() => of(via.events, 'message.interim').length === 2)
+
+    const second = (await resumeOf(via)).inflight as Row
+
+    expect(second.assistant).toBe(`${NOTE_1}${NOTE_2}`)
+    expect(second.assistant_unsealed).toBe('')
+
+    // Once the turn is over nothing is in flight.
+    await via.finish()
+    expect((await resumeOf(via)).inflight).toBeUndefined()
+  })
+
+  it('advertises it', async () => {
+    const via = await open()
+
+    expect((await via.call('gateway.capabilities')).result).toEqual({
+      per_session_exclusive_submit: true,
+      transcript_row_identity: true
+    })
+  })
+
+  describe('with rowIdentity off: the gateway as it was before', () => {
+    it('sends no identity on any frame, row or capability, and no message.interim', async () => {
+      const via = await open({ rowIdentity: false })
+
+      await submit(via, 'check the ledger')
+      await via.finish()
+
+      const rows = turnRows(await via.history())
+      const frames = via.events.filter(event => event.session_id === via.runtime)
+      const [user, , tool] = rows as [Row, Row, Row]
+
+      expect(rows.map(row => row.role)).toEqual(['user', 'assistant', 'tool', 'assistant', 'tool', 'assistant'])
+      expect(frames.filter(event => 'turn_id' in event)).toEqual([])
+      expect(of(frames, 'message.interim')).toEqual([])
+      expect(user.display_metadata).toBeUndefined()
+      expect(keys(payloads(frames, 'tool.start')[0])).toEqual(['args', 'context', 'name', 'tool_id'])
+      expect(keys(payloads(frames, 'tool.complete')[0])).toEqual([
+        'args',
+        'duration_s',
+        'name',
+        'result',
+        'summary',
+        'tool_id'
+      ])
+      expect(keys(payloads(frames, 'message.complete')[0])).toEqual(['status', 'text', 'usage'])
+      // The tool row is named by its call id alone, as `session_history.py` projected it.
+      expect(typeof tool.tool_call_id).toBe('string')
+      expect(['row_id', 'call_row_id', 'call_index'].filter(key => key in tool)).toEqual([])
+      expect((await via.call('gateway.capabilities')).result).toEqual({ per_session_exclusive_submit: true })
+    })
+
+    it('resumes mid-turn with the streamed text alone', async () => {
+      const via = await open({ rowIdentity: false, streamDelayMs: 40 })
+
+      await submit(via, 'check the ledger')
+      await via.until(() => of(via.events, 'message.delta').length === 1)
+
+      expect((await resumeOf(via)).inflight).toEqual({ assistant: NOTE_1, streaming: true, user: 'check the ledger' })
+
+      await via.finish()
+    })
+  })
+})

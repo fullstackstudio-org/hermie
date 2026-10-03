@@ -479,7 +479,8 @@
               "seq": 7000,
               "text": "explain the math behind the retry budget",
               "ts": 1790000006,
-              "version": 1
+              "turnId": "167f352a430d4fc6830b15073f792bed",
+              "version": 2
             },
             "presentation": "full"
           },
@@ -490,6 +491,7 @@
               "interim": false,
               "kind": "assistant",
               "origin": "live",
+              "rowId": 10,
               "seq": 8000,
               "status": "complete",
               "streaming": false,
@@ -614,7 +616,8 @@
               "seq": 7000,
               "text": "explain the math behind the retry budget",
               "ts": 1790000006,
-              "version": 1
+              "turnId": "167f352a430d4fc6830b15073f792bed",
+              "version": 2
             },
             "presentation": "full"
           },
@@ -625,6 +628,7 @@
               "interim": false,
               "kind": "assistant",
               "origin": "live",
+              "rowId": 10,
               "seq": 8000,
               "status": "complete",
               "streaming": false,
@@ -768,7 +772,8 @@
               "seq": 7000,
               "text": "explain the math behind the retry budget",
               "ts": 1790000006,
-              "version": 1
+              "turnId": "167f352a430d4fc6830b15073f792bed",
+              "version": 2
             },
             "presentation": "full"
           },
@@ -779,6 +784,7 @@
               "interim": false,
               "kind": "assistant",
               "origin": "live",
+              "rowId": 10,
               "seq": 8000,
               "status": "complete",
               "streaming": false,
@@ -810,7 +816,8 @@
       "2": "r:2",
       "4": "r:4",
       "5": "r:5",
-      "6": "r:6"
+      "6": "r:6",
+      "10": "a:8000"
     },
     "byToolId": {
       "call_dm_1": "t:call_dm_1",
@@ -854,6 +861,7 @@
         "interim": false,
         "kind": "assistant",
         "origin": "live",
+        "rowId": 10,
         "seq": 8000,
         "status": "complete",
         "streaming": false,
@@ -874,7 +882,8 @@
         "seq": 7000,
         "text": "explain the math behind the retry budget",
         "ts": 1790000006,
-        "version": 1
+        "turnId": "167f352a430d4fc6830b15073f792bed",
+        "version": 2
       },
       "r:1": {
         "id": "r:1",
@@ -1267,6 +1276,7 @@
           "payload": {},
           "seq": 1,
           "session_id": "runtime-4a31c816",
+          "turn_id": "167f352a430d4fc6830b15073f792bed",
           "type": "message.start"
         }
       }
@@ -1282,6 +1292,7 @@
           },
           "seq": 2,
           "session_id": "runtime-4a31c816",
+          "turn_id": "167f352a430d4fc6830b15073f792bed",
           "type": "message.delta"
         }
       }
@@ -1297,6 +1308,7 @@
           },
           "seq": 3,
           "session_id": "runtime-4a31c816",
+          "turn_id": "167f352a430d4fc6830b15073f792bed",
           "type": "message.delta"
         }
       }
@@ -1312,6 +1324,7 @@
           },
           "seq": 4,
           "session_id": "runtime-4a31c816",
+          "turn_id": "167f352a430d4fc6830b15073f792bed",
           "type": "message.delta"
         }
       }
@@ -1327,6 +1340,7 @@
           },
           "seq": 5,
           "session_id": "runtime-4a31c816",
+          "turn_id": "167f352a430d4fc6830b15073f792bed",
           "type": "message.delta"
         }
       }
@@ -1342,6 +1356,7 @@
           },
           "seq": 6,
           "session_id": "runtime-4a31c816",
+          "turn_id": "167f352a430d4fc6830b15073f792bed",
           "type": "message.delta"
         }
       }
@@ -1357,6 +1372,7 @@
           },
           "seq": 7,
           "session_id": "runtime-4a31c816",
+          "turn_id": "167f352a430d4fc6830b15073f792bed",
           "type": "message.delta"
         }
       }
@@ -1368,6 +1384,16 @@
         "method": "event",
         "params": {
           "payload": {
+            "persisted_turn": {
+              "complete": true,
+              "final_assistant_row_id": 10,
+              "row_ids": [
+                9,
+                10
+              ],
+              "user_row_id": 9
+            },
+            "row_id": 10,
             "status": "ok",
             "text": "The backoff is a geometric series, so the total wait has a closed form.\n\n$$\n\\sum_{k=0}^{n-1} b \\cdot r^k = b \\cdot \\frac{1 - r^n}{1 - r}\n$$\n\nWith $b = 250$ ms and $r = 2$, five attempts wait $3.75$ s in total.\n\nThat is the same ceiling the guide quotes, and the plan costs $12 a month either way.",
             "usage": {
@@ -1378,6 +1404,7 @@
           },
           "seq": 8,
           "session_id": "runtime-4a31c816",
+          "turn_id": "167f352a430d4fc6830b15073f792bed",
           "type": "message.complete"
         }
       }
@@ -1615,6 +1642,7 @@
           "payload": {},
           "seq": 1,
           "session_id": "runtime-4a31c816",
+          "turn_id": "167f352a430d4fc6830b15073f792bed",
           "type": "message.start"
         },
         1790000008000
@@ -1630,6 +1658,7 @@
           },
           "seq": 2,
           "session_id": "runtime-4a31c816",
+          "turn_id": "167f352a430d4fc6830b15073f792bed",
           "type": "message.delta"
         },
         1790000009000
@@ -1645,6 +1674,7 @@
           },
           "seq": 3,
           "session_id": "runtime-4a31c816",
+          "turn_id": "167f352a430d4fc6830b15073f792bed",
           "type": "message.delta"
         },
         1790000010000
@@ -1660,6 +1690,7 @@
           },
           "seq": 4,
           "session_id": "runtime-4a31c816",
+          "turn_id": "167f352a430d4fc6830b15073f792bed",
           "type": "message.delta"
         },
         1790000011000
@@ -1675,6 +1706,7 @@
           },
           "seq": 5,
           "session_id": "runtime-4a31c816",
+          "turn_id": "167f352a430d4fc6830b15073f792bed",
           "type": "message.delta"
         },
         1790000012000
@@ -1690,6 +1722,7 @@
           },
           "seq": 6,
           "session_id": "runtime-4a31c816",
+          "turn_id": "167f352a430d4fc6830b15073f792bed",
           "type": "message.delta"
         },
         1790000013000
@@ -1705,6 +1738,7 @@
           },
           "seq": 7,
           "session_id": "runtime-4a31c816",
+          "turn_id": "167f352a430d4fc6830b15073f792bed",
           "type": "message.delta"
         },
         1790000014000
@@ -1716,6 +1750,16 @@
       "args": [
         {
           "payload": {
+            "persisted_turn": {
+              "complete": true,
+              "final_assistant_row_id": 10,
+              "row_ids": [
+                9,
+                10
+              ],
+              "user_row_id": 9
+            },
+            "row_id": 10,
             "status": "ok",
             "text": "The backoff is a geometric series, so the total wait has a closed form.\n\n$$\n\\sum_{k=0}^{n-1} b \\cdot r^k = b \\cdot \\frac{1 - r^n}{1 - r}\n$$\n\nWith $b = 250$ ms and $r = 2$, five attempts wait $3.75$ s in total.\n\nThat is the same ceiling the guide quotes, and the plan costs $12 a month either way.",
             "usage": {
@@ -1726,6 +1770,7 @@
           },
           "seq": 8,
           "session_id": "runtime-4a31c816",
+          "turn_id": "167f352a430d4fc6830b15073f792bed",
           "type": "message.complete"
         },
         1790000015000
