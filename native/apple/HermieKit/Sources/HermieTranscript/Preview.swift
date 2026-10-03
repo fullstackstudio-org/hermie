@@ -119,8 +119,19 @@ public func previewFromChat(_ state: ChatState?, _ options: ChatPreviewOptions =
 ///
 /// `nil` for every case D6/D3 already rule out elsewhere: not the group chat,
 /// the reader's own identity not known, no author on the row, the row's own
-/// author, or a caller with no resolver at all.
+/// author, or a caller with no resolver at all. A row an agent sent on somebody's behalf
+/// (`author.via`) is the exception: it is labelled `<name> via <client>` whoever's it is,
+/// wherever it is.
 private func attributedSenderName(_ author: MessageAuthor?, _ options: ChatPreviewOptions) -> String? {
+  // An agent's turn is never drawn as the person's own, in a group chat or out of it, so the
+  // marker passes both gates: the line leads with `<name> via <client>`. It still needs a
+  // resolver for the name (this package cannot sanitise one), and without one the row stays
+  // unattributed.
+  if let author, author.via != nil {
+    let name = options.resolveSenderName?(author) ?? ""
+    return name.isEmpty ? nil : authorLabel(author, name)
+  }
+
   guard options.groupChat == true, let ownAuthorID = options.ownAuthorID, !ownAuthorID.isEmpty,
     let resolveSenderName = options.resolveSenderName, let author
   else {

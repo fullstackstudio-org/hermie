@@ -20,11 +20,16 @@ public struct MessageAuthor: TranscriptJSONCodable, Hashable {
   public var id: String
   /// The gateway's own display name for them, when it sent one. Untrusted text.
   public var name: String?
+  /// Present when an AGENT sent the row on this person's behalf (`display_metadata.author.via`):
+  /// `id` and `name` are still the person's, and this says it was not the person typing. Absent for
+  /// a person's own turn and from a gateway that does not stamp it. Clients draw `authorLabel`.
+  public var via: AuthorVia?
   public var extra: JSONObject
 
-  public init(id: String, name: String? = nil, extra: JSONObject = [:]) {
+  public init(id: String, name: String? = nil, via: AuthorVia? = nil, extra: JSONObject = [:]) {
     self.id = id
     self.name = name
+    self.via = via
     self.extra = extra
   }
 
@@ -32,6 +37,7 @@ public struct MessageAuthor: TranscriptJSONCodable, Hashable {
     var reader = try ObjectReader(json, at: path, type: "MessageAuthor")
     id = try reader.required("id")
     name = reader.optional("name")
+    via = reader.optional("via")
     extra = reader.residue
   }
 
@@ -39,6 +45,35 @@ public struct MessageAuthor: TranscriptJSONCodable, Hashable {
     var writer = ObjectWriter(extra: extra)
     writer.set("id", id)
     writer.set("name", name)
+    writer.set("via", via)
+    return writer.json
+  }
+}
+
+/// What sent a row on somebody's behalf. `kind` is `"mcp"` today; a reader treats any kind alike.
+public struct AuthorVia: TranscriptJSONCodable, Hashable {
+  public var kind: String
+  /// The agent's own name (`Claude Code`), cleaned to one line of at most 80 characters. Untrusted text.
+  public var client: String
+  public var extra: JSONObject
+
+  public init(kind: String, client: String, extra: JSONObject = [:]) {
+    self.kind = kind
+    self.client = client
+    self.extra = extra
+  }
+
+  public init(decoding json: JSONValue, at path: String) throws(TranscriptDecodingError) {
+    var reader = try ObjectReader(json, at: path, type: "AuthorVia")
+    kind = try reader.required("kind")
+    client = try reader.required("client")
+    extra = reader.residue
+  }
+
+  public var jsonValue: JSONValue {
+    var writer = ObjectWriter(extra: extra)
+    writer.set("kind", kind)
+    writer.set("client", client)
     return writer.json
   }
 }
@@ -68,6 +103,9 @@ public struct UserItem: TranscriptItemProtocol {
   public var unknownAuthor: Bool?
   /// Who the gateway says wrote this row. See `MessageAuthor` — absent, never guessed.
   public var author: MessageAuthor?
+  /// Who pressed retry, when it was somebody other than the author (`display_metadata.replayed_by`),
+  /// with `via` when that was an agent. The row stays its author's.
+  public var replayedBy: MessageAuthor?
   public var extra: JSONObject
 
   public init(
@@ -78,6 +116,7 @@ public struct UserItem: TranscriptItemProtocol {
     displayKind: UserDisplayKind? = nil,
     unknownAuthor: Bool? = nil,
     author: MessageAuthor? = nil,
+    replayedBy: MessageAuthor? = nil,
     turnID: String? = nil,
     extra: JSONObject = [:]
   ) {
@@ -88,6 +127,7 @@ public struct UserItem: TranscriptItemProtocol {
     self.displayKind = displayKind
     self.unknownAuthor = unknownAuthor
     self.author = author
+    self.replayedBy = replayedBy
     self.extra = extra
     if let turnID { self.base.turnID = turnID }
   }
@@ -102,6 +142,7 @@ public struct UserItem: TranscriptItemProtocol {
     displayKind = reader.optional("displayKind")
     unknownAuthor = reader.optional("unknownAuthor")
     author = reader.optional("author")
+    replayedBy = reader.optional("replayedBy")
     extra = reader.residue
   }
 
@@ -113,6 +154,7 @@ public struct UserItem: TranscriptItemProtocol {
     writer.set("displayKind", displayKind)
     writer.set("unknownAuthor", unknownAuthor)
     writer.set("author", author)
+    writer.set("replayedBy", replayedBy)
     return writer.json
   }
 }
@@ -1079,6 +1121,7 @@ extension ObjectReader {
 }
 
 extension MessageAuthor: JSONField {}
+extension AuthorVia: JSONField {}
 extension UserItem: JSONField {}
 extension BotDmInItem: JSONField {}
 extension AssistantFailure: JSONField {}

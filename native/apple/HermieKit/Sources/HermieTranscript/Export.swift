@@ -206,7 +206,10 @@ private func entryFor(_ item: TranscriptItem, _ options: TranscriptExportOptions
     let attachments = user.attachments ?? []
     guard !text.isEmpty || !attachments.isEmpty else { return nil }
     let body = ([text] + attachments.map { "[\($0)]" }).filter { !$0.isEmpty }.joined(separator: "\n")
-    return Entry(who: foreignSenderWho(user.author, options) ?? selfLabel, body: body, ts: ts, aside: false)
+    // An agent's turn carries its marker everywhere: `<name> via <client>`, the name being the
+    // person's own label (`selfName`, or the resolved name of a colleague in the group chat).
+    let who = authorLabel(user.author, foreignSenderWho(user.author, options) ?? selfLabel)
+    return Entry(who: who, body: body, ts: ts, aside: false)
 
   case .assistant(let assistant):
     // An empty reply is a turn that failed or was interrupted; the error line

@@ -391,8 +391,12 @@ private func displayText(_ metadata: JSONValue?) -> String? {
 /// `name` of the wrong type) drops the whole author rather than keeping half of
 /// it. A partial author is worse than none: it would name someone by an id the
 /// gateway never actually stamped this way.
-private func authorFromMetadata(_ metadata: JSONValue?) -> MessageAuthor? {
-  guard let author = asObject(asObject(metadata)?["author"]) else {
+///
+/// `via` is the one optional extra (an agent sent the row on this person's behalf,
+/// `authorViaOf`): a `via` that is not well formed is left out on its own, and keys this
+/// does not know are ignored. `replayed_by` has the same shape and is read the same way.
+private func authorFromMetadata(_ metadata: JSONValue?, key: String = "author") -> MessageAuthor? {
+  guard let author = asObject(asObject(metadata)?[key]) else {
     return nil
   }
 
@@ -407,7 +411,13 @@ private func authorFromMetadata(_ metadata: JSONValue?) -> MessageAuthor? {
     return nil
   }
 
-  return MessageAuthor(id: id, name: name?.stringValue.flatMap { $0.isEmpty ? nil : $0 })
+  // An agent marker rides beside the person. A malformed one is left out on its own: the
+  // person's identity stays, and only the optional marker is lost.
+  return MessageAuthor(
+    id: id,
+    name: name?.stringValue.flatMap { $0.isEmpty ? nil : $0 },
+    via: authorViaOf(author["via"])
+  )
 }
 
 private func goalsFromArgs(_ args: JSONObject?) -> [String] {
@@ -858,6 +868,7 @@ private struct RowProjection {
     // row reaching here — an older gateway, a transport that dropped
     // `display_kind` — carries no author and must not be given one.
     let author = role == "user" ? authorFromMetadata(row["display_metadata"]) : nil
+    let replayedBy = role == "user" ? authorFromMetadata(row["display_metadata"], key: "replayed_by") : nil
 
     items.append(
       .user(
@@ -866,7 +877,8 @@ private struct RowProjection {
           text: stripped.text,
           attachments: stripped.attachments,
           displayKind: speechKind,
-          author: author
+          author: author,
+          replayedBy: replayedBy
         )
       )
     )

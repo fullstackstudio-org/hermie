@@ -102,6 +102,22 @@ enum VectorDispatch {
     }
   }
 
+  private static func jsonValue(_ value: VectorValue) -> JSONValue {
+    switch value {
+    case .null: .null
+    case .bool(let flag): .bool(flag)
+    case .number(let number): .number(number)
+    case .string(let text): .string(text)
+    case .array(let values): .array(values.map(jsonValue))
+    case .object(let object): .object(object.mapValues(jsonValue))
+    }
+  }
+
+  private static func viaValue(_ via: AuthorStamp.Via?) -> VectorValue {
+    guard let via else { return .null }
+    return .object(["kind": .string(via.kind), "client": .string(via.client)])
+  }
+
   private static func verdictValue(_ verdict: ProbeVerdict) -> VectorValue {
     .object([
       "hint": .string(verdict.hint.rawValue),
@@ -311,6 +327,15 @@ enum VectorDispatch {
 
       var object: [String: VectorValue] = ["id": .string(author.id)]
       object["name"] = author.name.map(VectorValue.string)
+      return .object(object)
+
+    case ("author-id", "authorViaOf"):
+      return viaValue(AuthorStamp.via(of: jsonValue(arg(0))))
+    case ("author-id", "authorStampOf"):
+      guard let stamp = AuthorStamp.of(jsonValue(arg(0))) else { return .null }
+      var object: [String: VectorValue] = ["id": .string(stamp.id)]
+      object["name"] = stamp.name.map(VectorValue.string)
+      object["via"] = stamp.via.map { viaValue($0) }
       return .object(object)
 
     // base64.json

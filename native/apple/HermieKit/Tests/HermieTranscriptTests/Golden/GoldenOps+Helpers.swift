@@ -38,6 +38,14 @@ extension GoldenOps {
     "stripSteerWrapper": { args in GoldenResult.of(stripSteerWrapper(args.stringIfString(0))) },
     "unwrapSystemNote": { args in GoldenResult.of(unwrapSystemNote(args.stringIfString(0))) },
 
+    // author
+    "authorViaOf": { args in GoldenResult.of(authorViaOf(args.raw(0))) },
+    "authorLabel": { args in
+      // The TypeScript takes any `{ via?: AuthorVia }`, not only a whole author.
+      let via = args.raw(0)?.objectValue?["via"].flatMap { AuthorVia(jsonValue: $0) }
+      return .string(authorLabel(via: via, try args.string(1)))
+    },
+
     // model-name
     "prettyModelName": { args in .string(prettyModelName(try args.string(0))) },
     "parseModelId": { args in parseModelID(try args.string(0)).jsonValue },
