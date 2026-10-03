@@ -113,6 +113,21 @@ native/apple/scripts/generate.sh ios          # one of them
   commit a team id.
 - **Archiving** is `native/apple/scripts/archive.sh ios|macos <outdir> [--upload]`;
   [docs/release.md](release.md#native-apps) has its variables, the build number and the version rule.
+- **A Debug build is another app.** Every identifier comes from `HERMIE_BUNDLE_ID` in
+  `Shared.xcconfig`: `dev.hermie.app` in Release (the archive, TestFlight, the App Store, and the
+  Expo build's App IDs, App Group and keychain group), `dev.hermie.app.dev` in Debug (every run from
+  Xcode, `test.sh --apps`, the UI tests). The app, `.widgets` and `.share` bundle ids, the App Group
+  `group.<root>` and the keychain groups `<team>.<root>` and `<team>.<root>.share` all follow it, in
+  `base.yml`, the entitlements and the Info.plists (`HermieAppGroup`, `HermieKeychainGroup`,
+  `HermieShareKeychainGroup`), and the code reads the groups from the Info.plist
+  (`SharedContainer.appGroup`, `AppGroupContainer.identifier`, `ShareDeliveryPublisher.live`). So a
+  dev or test run has its own preferences, sandbox container, data directory, App Group, keychain
+  and iCloud Keychain items, and cannot touch an installed Hermie's. `archive.sh` archives Release
+  and refuses an archive whose app is not `dev.hermie.app`; `BundleIdentityTests` holds the specs,
+  the entitlements and the Info.plists to the rule. Two things stay shared: the `hermie://` link
+  scheme (whichever build the system picks opens it), and a signed Debug build on a device needs
+  its own App IDs, which automatic signing registers; its push topic is `dev.hermie.app.dev`, which
+  the relay does not serve.
 
 CI runs the same steps: `.github/workflows/native.yml` runs the package tests and builds both apps
 unsigned whenever `native/`, `contract/`, the `transcript`, `gateway-client` or `fake-gateway`
@@ -743,19 +758,23 @@ and `chat` seams. Both read the session from `LiveGateway` in the environment.
 
 - **The list's arrangement.** Pin, mute, archive and the order are `GatewaySession.arrangement`
   (`ChatArrangementModel`, `HermieCore/UIMeta/UIMetaChatList.swift`), read from and written through
-  the session's ui_meta sync, in the web client's wire format: `archived: true` in the bot's own
-  `hermie` section; `pinned` (names), `mutes` (name to the unix second it lapses, `0` for ever) and
-  the order (`entries` and `folders`) in the person's `hermie-app:<user id>`. So pins, mutes and
-  the order are per person; `archived`, on the bot's profile, is shared by everybody on the
-  gateway, as the web client and the Expo app have it. Pinned chats come first, each group in the
+  the session's ui_meta sync, all of it in the person's own `hermie-app:<user id>`, so two people
+  on one gateway never see or overwrite each other's: `archivedBots` (bot names, sorted, no
+  duplicates), `pinned` (names), `mutes` (name to the unix second it lapses, `0` for ever) and the
+  order (`entries` and `folders`, the web client's arrangement). The archive is seeded once, as a
+  chore, from the bots whose shared `hermie` section says `archived: true` (what the Expo app and
+  earlier builds wrote) while the person's section has no `archivedBots`; after that the list is
+  the only source. The shared flag is never written or cleared, since the frozen Expo app may
+  still read it. Pinned chats come first, each group in the
   arrangement's order; a bot the arrangement does not place yet comes last. This build draws no
-  folders: a folder's chats stand in its place, and a drag does not cross a folder's edge.
+  folders: a folder's chats stand in its place, and a drag does not cross a folder's edge. A move
+  drops the names the roster no longer has, as the web client's `reconcileBots` does.
 - **Where the actions are.** iOS: the trailing swipe archives (full swipe) and mutes (a duration
   sheet), the leading swipe marks read and pins, the context menu has all of them, Edit reorders
   on a phone and a long press drags on an iPad; VoiceOver reads the swipe actions and Move up /
   Move down. Mac: the context menu, the Chat menu (Pin, Mute, Archive with ⌃⌘A for the selected
   chat), drag in the sidebar, and the same VoiceOver actions. The archive is a row at the bottom
-  that opens a sheet on iPhone and iPad, and a disclosure group in the Mac's sidebar; while
+  that opens a sheet on iPhone and iPad, and a header with a disclosure arrow in the Mac's sidebar; while
   searching, archived matches are a section of their own.
 - **A new message in an archived chat** leaves it archived, as the Expo app does: archiving is how
   a chat stops asking for attention. The archive's entry carries no unread mark; inside the
@@ -766,7 +785,7 @@ and `chat` seams. Both read the session from `LiveGateway` in the environment.
   the live gateway's mutes are known on the device.
 - **Avatars** come from `profiles.get_asset` as a data URL (`AvatarData` reads it), are kept on disk
   per gateway in the key-value store and painted from there on launch, and are asked for again
-  once per launch and per `ui_meta` revision.
+  once per launch and per `ui_meta` revision; a bot that no longer has one loses the stored copy.
 
 - **Per delta, the main actor assigns two references.** The session publishes one `ChatSnapshot`
   per frame into `ChatModel`, whose `snapshot` is observed by hand so the `@Observable` setter does
