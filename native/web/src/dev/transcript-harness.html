@@ -1,0 +1,22 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <!--
+      Development only (src/dev/transcript-harness.tsx). The same policy as the
+      client's own document, so the list is measured under the rules it ships with.
+    -->
+    <meta
+      http-equiv="Content-Security-Policy"
+      content="default-src 'none'; script-src 'self'; style-src 'self'; img-src 'self' data: blob:; font-src 'self'; connect-src 'self'; worker-src 'self'; manifest-src 'self'; media-src 'self' blob:; base-uri 'none'; form-action 'none'; object-src 'none'; frame-src 'none'; require-trusted-types-for 'script'"
+    />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta name="color-scheme" content="light dark" />
+    <title>Transcript harness</title>
+    <link rel="icon" href="data:," />
+    <script type="module" src="./transcript-harness.tsx"></script>
+  </head>
+  <body>
+    <div id="root"></div>
+  </body>
+</html>

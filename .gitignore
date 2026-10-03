@@ -8,6 +8,11 @@ coverage/
 # declaration output of its type-check.
 dist-maps/
 native/web/.tsbuild/
+# The development-only harness build (`vite build --mode harness`) and what
+# Playwright leaves behind.
+native/web/dist-harness/
+native/web/test-results/
+native/web/playwright-report/
 *.tsbuildinfo
 
 # Expo / continuous native generation — regenerate with `npx expo prebuild`

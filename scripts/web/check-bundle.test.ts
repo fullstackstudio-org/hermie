@@ -6,7 +6,7 @@ import { dirname, join } from 'node:path'
 import { afterEach, describe, expect, it } from 'vitest'
 
 import { buildManifest, serialiseManifest } from '../../native/web/scripts/write-build-manifest.mjs'
-import { checkBundle, LIMITS } from './check-bundle.mjs'
+import { checkBundle, DEVELOPMENT_ONLY_MARKER, LIMITS } from './check-bundle.mjs'
 
 const COMMIT = '0123456789abcdef0123456789abcdef01234567'
 
@@ -170,6 +170,17 @@ describe('what the static route and the plugin tree allow', () => {
       expect.stringContaining('assets/index-AAAA.js: holds a non-ASCII byte'),
       expect.stringContaining('assets/index-CCCC.css: holds a non-ASCII byte'),
       expect.stringContaining('data.json: holds a non-ASCII byte')
+    ])
+  })
+
+  it('refuses development-only code', () => {
+    const dir = write({
+      ...goodFiles(),
+      'assets/lazy-DDDD.js': `document.body.dataset.build=${JSON.stringify(DEVELOPMENT_ONLY_MARKER)};`
+    })
+
+    expect(checkBundle(dir).problems).toEqual([
+      expect.stringContaining('assets/lazy-DDDD.js: holds development-only code')
     ])
   })
 })

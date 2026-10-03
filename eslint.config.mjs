@@ -16,6 +16,9 @@ export default config(
       '**/dist/**',
       '**/dist-maps/**',
       'native/web/.tsbuild/**',
+      'native/web/dist-harness/**',
+      'native/web/test-results/**',
+      'native/web/playwright-report/**',
       '**/coverage/**',
       '**/.expo/**',
       'expo/hermie/ios/**',
@@ -111,6 +114,10 @@ export default config(
     files: ['native/web/src/**/*.{ts,tsx}'],
     ignores: [
       'native/web/src/{platform,boot,test-support}/**',
+      // Development-only pages (the transcript harness): built only with
+      // `--mode harness`, never in the bundle (the bundle gate refuses their
+      // marker), and a page of their own.
+      'native/web/src/dev/**',
       'native/web/src/**/*.test.{ts,tsx}',
       'native/web/src/test-setup.ts'
     ],
@@ -159,6 +166,9 @@ export default config(
       'scripts/**/*.mjs',
       '{apps,expo}/*/scripts/**/*.mjs',
       'native/web/scripts/**/*.mjs',
+      // The web client's Playwright specs run in Node and report their
+      // measurements on the console.
+      'native/web/e2e/**/*.ts',
       '{apps,expo}/*/plugins/**/*.js',
       // A config plugin that lives inside the local module it installs, rather
       // than in expo/hermie/plugins/ with the three that only patch the app's

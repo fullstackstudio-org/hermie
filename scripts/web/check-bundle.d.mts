@@ -20,6 +20,7 @@ export const SOURCE_MAP_EXTENSION: string
 export const TEXT_EXTENSIONS: readonly string[]
 export const LIMITS: Readonly<BundleLimits>
 export const MANIFEST_NAME: string
+export const DEVELOPMENT_ONLY_MARKER: string
 
 export function checkBundle(
   dir: string,

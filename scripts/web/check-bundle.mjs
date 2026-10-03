@@ -18,7 +18,9 @@
 //   - `index.html` carries inline script or style, an inline handler, no policy,
 //     or a policy that allows `unsafe-inline` or `unsafe-eval`;
 //   - `build.json` is missing, malformed, not in canonical form, or does not
-//     match the files (a changed byte, a missing file, an unlisted file).
+//     match the files (a changed byte, a missing file, an unlisted file);
+//   - a text file carries the development-only marker: code from
+//     `native/web/src/dev` (the transcript harness) reached the bundle.
 //
 // Sizes are decimal (1 kB = 1000 bytes), which is the stricter reading of the
 // scanner's own 1 MB-per-file ceiling.
@@ -67,6 +69,13 @@ export const LIMITS = Object.freeze({
 })
 
 export const MANIFEST_NAME = 'build.json'
+
+/**
+ * Stamped by every development-only page (`native/web/src/dev`) into its own
+ * document. Those pages are built only in `--mode harness`; finding the stamp
+ * in a production build means one of them was imported by the client.
+ */
+export const DEVELOPMENT_ONLY_MARKER = 'hermie:development-only'
 
 const SHA256 = /^[0-9a-f]{64}$/
 const COMMIT = /^[0-9a-f]{40}$/
@@ -380,6 +389,9 @@ export function checkBundle(dir, { limits = {}, commit } = {}) {
     }
     if (TEXT_EXTENSIONS.includes(extension) && hasNonAscii(bytes)) {
       problems.push(`${name}: holds a non-ASCII byte; the build must escape non-ASCII text`)
+    }
+    if (TEXT_EXTENSIONS.includes(extension) && bytes.includes(DEVELOPMENT_ONLY_MARKER)) {
+      problems.push(`${name}: holds development-only code (native/web/src/dev); it must not be in the bundle`)
     }
   }
 

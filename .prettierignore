@@ -7,6 +7,9 @@ node_modules
 .*/worktrees/
 dist
 dist-maps
+native/web/dist-harness
+native/web/test-results
+native/web/playwright-report
 native/web/.tsbuild
 coverage
 .expo

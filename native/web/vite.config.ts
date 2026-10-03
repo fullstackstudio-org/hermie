@@ -157,14 +157,26 @@ function serveAtGatewayPath(): Plugin {
   }
 }
 
-export default defineConfig(({ command }) => {
-  // A build must name the commit it is made from. The dev server and the unit
-  // tests do not publish anything, so they may run from a tree with no git.
+/**
+ * `--mode harness`: the development-only pages under `src/dev` (the transcript
+ * harness), built into `dist-harness/` and served by `vite preview --mode
+ * harness` for the performance specs. Production React, minified, the same
+ * policy; nothing of it is in `dist/`, whose only entry is `index.html`.
+ */
+const HARNESS_MODE = 'harness'
+const HARNESS_PORT = 4180
+
+export default defineConfig(({ command, mode }) => {
+  const harness = mode === HARNESS_MODE
+
+  // A build must name the commit it is made from. The dev server, the unit
+  // tests and the harness do not publish anything, so they may run from a tree
+  // with no git.
   let commit: string
   try {
     commit = resolveSourceCommit()
   } catch (error) {
-    if (command === 'build') {
+    if (command === 'build' && !harness) {
       throw error
     }
     commit = '0'.repeat(40)
@@ -175,7 +187,9 @@ export default defineConfig(({ command }) => {
   return {
     root,
     base: './',
-    plugins: [react(), asciiOnlyScripts(), mapsOutsideOutDir(), relaxPolicyInDevelopment(), serveAtGatewayPath()],
+    plugins: harness
+      ? [react()]
+      : [react(), asciiOnlyScripts(), mapsOutsideOutDir(), relaxPolicyInDevelopment(), serveAtGatewayPath()],
     define: {
       __HERMIE_VERSION__: JSON.stringify(packageJson.version),
       __HERMIE_COMMIT__: JSON.stringify(commit)
@@ -184,11 +198,11 @@ export default defineConfig(({ command }) => {
     // the CSS minifier.
     esbuild: { charset: 'ascii' },
     build: {
-      outDir: 'dist',
+      outDir: harness ? 'dist-harness' : 'dist',
       emptyOutDir: true,
       assetsDir: 'assets',
       target: 'es2022',
-      sourcemap: 'hidden',
+      sourcemap: harness ? false : 'hidden',
       assetsInlineLimit: 0,
       // The static route serves no more than the policy and the scanner allow;
       // `scripts/web/check-bundle.mjs` is the gate, this only warns earlier.
@@ -197,6 +211,7 @@ export default defineConfig(({ command }) => {
       // The browsers this client supports preload modules natively.
       modulePreload: { polyfill: false },
       rollupOptions: {
+        ...(harness ? { input: join(root, 'src/dev/transcript-harness.html') } : {}),
         output: {
           entryFileNames: 'assets/[name]-[hash].js',
           chunkFileNames: 'assets/[name]-[hash].js',
@@ -205,6 +220,7 @@ export default defineConfig(({ command }) => {
         }
       }
     },
+    preview: { port: HARNESS_PORT, strictPort: true, host: '127.0.0.1' },
     server: {
       port: 5173,
       proxy: {

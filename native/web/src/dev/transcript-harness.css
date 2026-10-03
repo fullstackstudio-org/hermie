@@ -1,0 +1,59 @@
+/*
+ * The transcript harness (development only). The item views are placeholders:
+ * text boxes with the spacing and line height of the real ones, so rows have
+ * realistic heights. Line heights are whole pixels so row heights are too.
+ */
+html,
+body,
+#root {
+  height: 100%;
+}
+
+.harness {
+  box-sizing: border-box;
+  height: 100vh;
+  max-width: 48rem;
+  margin: 0 auto;
+}
+
+.placeholder-item {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 8px 16px;
+  font-size: 15px;
+  line-height: 22px;
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+}
+
+.placeholder-item p {
+  margin: 0;
+}
+
+.placeholder-item--user {
+  width: fit-content;
+  max-width: 80%;
+  margin: 8px 16px 8px auto;
+  border-radius: 18px;
+  background: color-mix(in srgb, var(--hermie-foreground) 10%, transparent);
+}
+
+.placeholder-item--assistant {
+  padding-block: 12px;
+}
+
+.placeholder-item__thought {
+  margin-bottom: 8px;
+  color: var(--hermie-secondary);
+}
+
+.placeholder-item--chip {
+  width: fit-content;
+  margin: 4px 16px;
+  padding: 4px 12px;
+  border-radius: 12px;
+  font-size: 13px;
+  line-height: 20px;
+  color: var(--hermie-secondary);
+  background: color-mix(in srgb, var(--hermie-foreground) 6%, transparent);
+}
