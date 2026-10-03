@@ -226,3 +226,48 @@ describe('the agent reads the file the prompt references', () => {
     expect(await completedText(sessionId)).toContain('my notes.txt')
   })
 })
+
+/*
+  `image.attach_bytes`, the socket road an image takes, with the refusals
+  `tui_gateway/methods_prompt.py` answers: a client that sends an image the
+  gateway would refuse has to see the refusal here too, or a test of it passes
+  against the fake and fails against the real thing.
+*/
+describe('image.attach_bytes', () => {
+  const PNG = Buffer.from([0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a, 0, 0, 0, 0]).toString('base64')
+
+  async function attach(params: Record<string, unknown>): Promise<string> {
+    const sessionId = await resumeChat('researcher')
+
+    try {
+      await call('image.attach_bytes', { session_id: sessionId, profile: 'researcher', ...params })
+
+      return 'attached'
+    } catch (error) {
+      return (error as Error).message
+    }
+  }
+
+  it('takes an image by its name, or by its bytes when it has none', async () => {
+    expect(await attach({ content_base64: PNG, filename: 'shot.png' })).toBe('attached')
+    expect(await attach({ content_base64: `data:image/png;base64,${PNG}` })).toBe('attached')
+    expect(gateway.state.attachedImages.map(image => image.bytes)).toEqual([12, 12])
+  })
+
+  it('refuses an extension the gateway does not take as an image', async () => {
+    expect(await attach({ content_base64: PNG, filename: 'IMG_0001.heic' })).toContain(
+      'unsupported image extension: .heic'
+    )
+  })
+
+  it('refuses a payload that is not base64, and an empty one', async () => {
+    expect(await attach({ content_base64: 'not base64!', filename: 'a.png' })).toContain('4017')
+    expect(await attach({ content_base64: '', filename: 'a.png' })).toContain('4015')
+  })
+
+  it('refuses an image over the 25 MB cap', async () => {
+    const huge = Buffer.alloc(25 * 1024 * 1024 + 1).toString('base64')
+
+    expect(await attach({ content_base64: huge, filename: 'huge.png' })).toContain('cap is 25 MB')
+  })
+})
