@@ -87,7 +87,8 @@ jobs:
   # this job owns what only a build can prove: that the bundle fits what the
   # gateway's static route and the plugin scanner accept, and that the same
   # commit always builds to the same bytes, because the plugin's own CI rebuilds
-  # the commit named in `build.json` somewhere else and compares every file.
+  # the commit named in `build.json` somewhere else and compares every file;
+  # and that the transcript list meets its performance budgets in Chromium.
   # A sibling job rather than steps of `check`, so a bundle problem is not
   # buried under the app's tests and the two run side by side.
   web-client:
@@ -115,6 +116,26 @@ jobs:
       # every file. `--commit` also requires it to name the commit under test.
       - name: Bundle gate
         run: npm run client:check-bundle -- --commit "$(git rev-parse HEAD)"
+
+      # The transcript list against its budgets (plan W-8): 60 s of a reply
+      # streaming into a 5,000-item chat at 4x CPU throttling (no task over
+      # 50 ms, under 1 % of frames dropped, no drift while reading, pinned at
+      # the bottom), a cached chat painted within 300 ms, and the recorded
+      # stream scenarios drawn as their checkpoints say. Chromium only here;
+      # WebKit and Firefox run locally (`npm run client:e2e`). It runs on the
+      # development-only harness build (`dist-harness/`), never on `dist/`.
+      - name: Install Chromium for Playwright
+        run: npx playwright install --with-deps chromium
+
+      - name: Transcript list performance (Chromium)
+        run: npm run e2e:chromium --workspace @hermie/web-client
+
+      - uses: actions/upload-artifact@v4
+        if: failure()
+        with:
+          name: hermie-web-client-e2e-results
+          path: native/web/test-results
+          if-no-files-found: ignore
 
       # Two clean builds with different time zones and locales, plus one from
       # `git archive HEAD` unpacked into another directory with its own `npm ci`.

@@ -1,0 +1,14 @@
+{
+  // The Playwright configuration and specs. They run in Node, and the functions
+  // they hand to `page.evaluate` run in the page, so both sets of types apply.
+  // The harness API they drive comes from the client's own project, by reference.
+  "extends": "../../tsconfig.base.json",
+  "compilerOptions": {
+    "lib": ["ES2023", "DOM", "DOM.Iterable"],
+    "types": ["node"],
+    "outDir": "./.tsbuild/e2e",
+    "rootDir": "."
+  },
+  "include": ["playwright.config.ts", "e2e/**/*.ts"],
+  "references": [{ "path": "./tsconfig.json" }]
+}

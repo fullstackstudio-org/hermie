@@ -10,6 +10,7 @@
     { "path": "./expo/hermie" },
     { "path": "./apps/desktop" },
     { "path": "./native/web" },
-    { "path": "./native/web/tsconfig.node.json" }
+    { "path": "./native/web/tsconfig.node.json" },
+    { "path": "./native/web/tsconfig.e2e.json" }
   ]
 }
