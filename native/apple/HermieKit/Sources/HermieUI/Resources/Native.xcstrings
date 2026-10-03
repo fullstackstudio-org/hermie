@@ -446,6 +446,510 @@
         }
       }
     },
+    "native.confirm.answeredElsewhere" : {
+      "comment" : "Confirm sheet: another device answered first.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Ein anderes Gerät hat diese Anfrage beantwortet."
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Another device answered this request."
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Een ander apparaat heeft dit verzoek beantwoord."
+          }
+        }
+      }
+    },
+    "native.confirm.cannotConfirm" : {
+      "comment" : "Confirm sheet: the device cannot run the passkey prompt.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Dieses Gerät kann gerade nicht mit einem Passkey bestätigen. Es wurde nichts bestätigt."
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "This device cannot confirm with a passkey right now. Nothing was confirmed."
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Dit apparaat kan nu niet met een passkey bevestigen. Er is niets bevestigd."
+          }
+        }
+      }
+    },
+    "native.confirm.confirm" : {
+      "comment" : "Confirm sheet: the button that opens the passkey prompt. Fixed wording.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Mit Passkey bestätigen"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Confirm with passkey"
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Bevestig met passkey"
+          }
+        }
+      }
+    },
+    "native.confirm.confirmHint" : {
+      "comment" : "VoiceOver hint of the confirm button.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Fragt dein Gerät nach deinem Passkey."
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Asks your device for your passkey."
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Vraagt je apparaat om je passkey."
+          }
+        }
+      }
+    },
+    "native.confirm.decline" : {
+      "comment" : "Confirm sheet: the button that says no. Fixed wording.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Ablehnen"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Decline"
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Weiger"
+          }
+        }
+      }
+    },
+    "native.confirm.declined" : {
+      "comment" : "Confirm sheet status after Decline went through.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Du hast diese Anfrage abgelehnt."
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "You declined this request."
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Je hebt dit verzoek geweigerd."
+          }
+        }
+      }
+    },
+    "native.confirm.detailLabel" : {
+      "comment" : "Confirm sheet: label over the monospaced details of the request (the exact command or text to be confirmed).",
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Details"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Details"
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Details"
+          }
+        }
+      }
+    },
+    "native.confirm.noCredential" : {
+      "comment" : "Confirm sheet: no passkey for the gateway on this device.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Auf diesem Gerät ist kein Passkey für dieses Gateway verfügbar. Es wurde nichts bestätigt."
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "No passkey for this gateway is available on this device. Nothing was confirmed."
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Er is geen passkey voor deze gateway beschikbaar op dit apparaat. Er is niets bevestigd."
+          }
+        }
+      }
+    },
+    "native.confirm.notAllowed" : {
+      "comment" : "Confirm sheet: the gateway says this device may not answer.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Dieses Gerät darf diese Anfrage nicht beantworten."
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "This device may not answer this request."
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Dit apparaat mag dit verzoek niet beantwoorden."
+          }
+        }
+      }
+    },
+    "native.confirm.notSent" : {
+      "comment" : "Confirm sheet: the answer did not get to the gateway.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Die Antwort hat das Gateway nicht erreicht. Du kannst es erneut versuchen."
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "The answer did not reach the gateway. You can try again."
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Het antwoord heeft de gateway niet bereikt. Je kunt het opnieuw proberen."
+          }
+        }
+      }
+    },
+    "native.confirm.passkeyNote" : {
+      "comment" : "Confirm sheet, above the buttons. The first argument is the passkey identity the system sheet names (the same for every gateway), the second the address of the gateway this request is for.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Dein Gerät fragt nach deinem Passkey für %1$@. Dieser Name ist für jedes Gateway derselbe; diese Anfrage gilt für %2$@."
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Your device will ask for your passkey for %1$@. That name is the same for every gateway; this request is for %2$@."
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Je apparaat vraagt om je passkey voor %1$@. Die naam is voor elke gateway hetzelfde; dit verzoek is voor %2$@."
+          }
+        }
+      }
+    },
+    "native.confirm.received" : {
+      "comment" : "Confirm sheet status once the gateway took the passkey answer; it still has to verify it, so this does not say confirmed.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Antwort erhalten. Das Gateway prüft sie."
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Answer received. The gateway is verifying it."
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Antwoord ontvangen. De gateway controleert het."
+          }
+        }
+      }
+    },
+    "native.confirm.refused.other" : {
+      "comment" : "Confirm sheet: the gateway refused the answer for any other reason.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Das Gateway hat die Passkey-Antwort nicht akzeptiert. Du kannst es erneut versuchen."
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "The gateway did not accept the passkey answer. You can try again."
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "De gateway heeft het passkey-antwoord niet geaccepteerd. Je kunt het opnieuw proberen."
+          }
+        }
+      }
+    },
+    "native.confirm.refused.unknownCredential" : {
+      "comment" : "Confirm sheet: the gateway refused the answer because it does not know the passkey.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Das Gateway kennt diesen Passkey nicht. Er wurde vielleicht entfernt. Du kannst es erneut versuchen."
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "The gateway does not know this passkey. It may have been removed. You can try again."
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "De gateway kent deze passkey niet. Hij is misschien verwijderd. Je kunt het opnieuw proberen."
+          }
+        }
+      }
+    },
+    "native.confirm.refused.userVerification" : {
+      "comment" : "Confirm sheet: the gateway refused the answer because the device did not verify the person.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Dein Gerät hat nicht bestätigt, dass du es bist. Du kannst es erneut versuchen."
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Your device did not confirm that it is you. You can try again."
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Je apparaat heeft niet bevestigd dat jij het bent. Je kunt het opnieuw proberen."
+          }
+        }
+      }
+    },
+    "native.confirm.signing" : {
+      "comment" : "Confirm sheet status while the system's passkey prompt is up.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Warte auf deinen Passkey…"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Waiting for your passkey…"
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Wachten op je passkey…"
+          }
+        }
+      }
+    },
+    "native.confirm.timedOut" : {
+      "comment" : "Confirm sheet: the request ran out of time.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Diese Anfrage ist abgelaufen. Es wurde nichts bestätigt."
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "This request timed out. Nothing was confirmed."
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Dit verzoek is verlopen. Er is niets bevestigd."
+          }
+        }
+      }
+    },
+    "native.confirm.title" : {
+      "comment" : "Confirm sheet heading, pinned at the top. The argument is the bot's name.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%@ bittet dich um Bestätigung"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%@ asks you to confirm"
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%@ vraagt je om te bevestigen"
+          }
+        }
+      }
+    },
+    "native.confirm.tooManyAttempts" : {
+      "comment" : "Confirm sheet: the fifth refused answer closed the request.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Zu viele Antworten wurden abgelehnt. Die Anfrage ist geschlossen und es wurde nichts bestätigt."
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Too many answers were refused. The request is closed and nothing was confirmed."
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Te veel antwoorden zijn geweigerd. Het verzoek is gesloten en er is niets bevestigd."
+          }
+        }
+      }
+    },
+    "native.confirm.verificationFailed" : {
+      "comment" : "Confirm sheet: the gateway could not complete the verification after receiving the answer.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Das Gateway konnte deine Antwort nicht prüfen. Es wurde nichts bestätigt."
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "The gateway could not verify your answer. Nothing was confirmed."
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "De gateway kon je antwoord niet controleren. Er is niets bevestigd."
+          }
+        }
+      }
+    },
+    "native.confirm.withdrawn" : {
+      "comment" : "Confirm sheet: the gateway withdrew the request.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Die Anfrage wurde zurückgezogen. Es wurde nichts bestätigt."
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "The request was withdrawn. Nothing was confirmed."
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Het verzoek is ingetrokken. Er is niets bevestigd."
+          }
+        }
+      }
+    },
     "native.connectionRequest.open" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -3206,6 +3710,1374 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "De gatewaylijst op dit apparaat is geschreven door een nieuwere versie van Hermie, dus er is niets gewijzigd. Werk Hermie bij en probeer het opnieuw."
+          }
+        }
+      }
+    },
+    "native.passkeys.add.action" : {
+      "comment" : "Settings → Passkeys: enrol button.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Passkey hinzufügen"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Add passkey"
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Passkey toevoegen"
+          }
+        }
+      }
+    },
+    "native.passkeys.add.field" : {
+      "comment" : "Settings → Passkeys: field for the one-time code.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Code vom Betreiber des Gateways"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Code from the gateway's operator"
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Code van de beheerder van de gateway"
+          }
+        }
+      }
+    },
+    "native.passkeys.add.footer" : {
+      "comment" : "Settings → Passkeys: under the code field.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Der Betreiber dieses Gateways gibt dir einen einmaligen Code. Dein Gerät erstellt damit einen Passkey und fragt nach deiner Zustimmung."
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "The operator of this gateway gives you a one-time code. Your device then makes a passkey for it and asks for your approval."
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "De beheerder van deze gateway geeft je een eenmalige code. Je apparaat maakt daarmee een passkey en vraagt om je toestemming."
+          }
+        }
+      }
+    },
+    "native.passkeys.add.header" : {
+      "comment" : "Settings → Passkeys: section for enrolling with a code.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Mit einem Code hinzufügen"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Add with a code"
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Toevoegen met een code"
+          }
+        }
+      }
+    },
+    "native.passkeys.added" : {
+      "comment" : "Settings → Passkeys, a passkey row. The argument is a date and time.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Hinzugefügt %@"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Added %@"
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Toegevoegd %@"
+          }
+        }
+      }
+    },
+    "native.passkeys.addedUnknown" : {
+      "comment" : "Settings → Passkeys, a passkey row without a date.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Zu einem unbekannten Zeitpunkt hinzugefügt"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Added at an unknown time"
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Toegevoegd op een onbekend moment"
+          }
+        }
+      }
+    },
+    "native.passkeys.credentials.header" : {
+      "comment" : "Settings → Passkeys: the list of passkeys.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Passkeys deines Kontos"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Passkeys of your account"
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Passkeys van je account"
+          }
+        }
+      }
+    },
+    "native.passkeys.failure.alreadyEnrolled" : {
+      "comment" : "Settings → Passkeys: duplicate.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Dieser Passkey ist bereits auf diesem Gateway."
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "This passkey is already on this gateway."
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Deze passkey staat al op deze gateway."
+          }
+        }
+      }
+    },
+    "native.passkeys.failure.badAnswer" : {
+      "comment" : "Settings → Passkeys: the gateway answered with something unexpected.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Die Antwort des Gateways war nicht, was Hermie erwartet hat."
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "The gateway's answer was not what Hermie expected."
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Het antwoord van de gateway was niet wat Hermie verwachtte."
+          }
+        }
+      }
+    },
+    "native.passkeys.failure.cannotUse" : {
+      "comment" : "Settings → Passkeys: the device cannot do passkeys.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Dieses Gerät kann gerade keine Passkeys verwenden. Prüfe, ob eine Bildschirmsperre und ein Passkey-Anbieter eingerichtet sind."
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "This device cannot use passkeys right now. Check that a screen lock and a passkey provider are set up."
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Dit apparaat kan nu geen passkeys gebruiken. Controleer of een schermvergrendeling en een passkey-aanbieder zijn ingesteld."
+          }
+        }
+      }
+    },
+    "native.passkeys.failure.codeNotValid" : {
+      "comment" : "Settings → Passkeys: the gateway refused the code.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Dieser Code ist ungültig, abgelaufen oder wurde schon verwendet."
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "That code is not valid, has expired or was already used."
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Die code is ongeldig, verlopen of al gebruikt."
+          }
+        }
+      }
+    },
+    "native.passkeys.failure.invalidCode" : {
+      "comment" : "Settings → Passkeys: the typed code is malformed.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Dieser Code sieht nicht richtig aus. Prüfe ihn und versuche es erneut."
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "That code does not look right. Check it and try again."
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Die code ziet er niet goed uit. Controleer hem en probeer het opnieuw."
+          }
+        }
+      }
+    },
+    "native.passkeys.failure.noPasskey" : {
+      "comment" : "Settings → Passkeys: no usable passkey here.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Auf diesem Gerät ist kein Passkey von dir für dieses Gateway verfügbar."
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "No passkey of yours for this gateway is available on this device."
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Er is geen passkey van jou voor deze gateway beschikbaar op dit apparaat."
+          }
+        }
+      }
+    },
+    "native.passkeys.failure.promptBusy" : {
+      "comment" : "Settings → Passkeys: a passkey prompt is already open.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Eine andere Passkey-Abfrage ist offen. Schließe sie zuerst ab."
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Another passkey prompt is open. Finish or close it first."
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Er is al een andere passkey-melding open. Rond die af of sluit hem eerst."
+          }
+        }
+      }
+    },
+    "native.passkeys.failure.promptFailed" : {
+      "comment" : "Settings → Passkeys: the passkey prompt ended with an error.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Die Passkey-Abfrage wurde nicht abgeschlossen. Versuche es erneut."
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "The passkey prompt did not finish. Try again."
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "De passkey-melding is niet afgerond. Probeer het opnieuw."
+          }
+        }
+      }
+    },
+    "native.passkeys.failure.refused" : {
+      "comment" : "Settings → Passkeys: the gateway refused.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Das Gateway hat dies abgelehnt."
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "The gateway refused this."
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "De gateway heeft dit geweigerd."
+          }
+        }
+      }
+    },
+    "native.passkeys.failure.seeNotice" : {
+      "comment" : "Settings → Passkeys: an identity notice is up.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Es wurde nichts geändert. Siehe den Hinweis oben."
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Nothing was changed. See the notice above."
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Er is niets gewijzigd. Zie de melding hierboven."
+          }
+        }
+      }
+    },
+    "native.passkeys.failure.tooSlow" : {
+      "comment" : "Settings → Passkeys: the step took too long.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Das hat zu lange gedauert. Beginne von vorn."
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "That took too long. Start again."
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Dat duurde te lang. Begin opnieuw."
+          }
+        }
+      }
+    },
+    "native.passkeys.invite.action" : {
+      "comment" : "Settings → Passkeys: button that makes a code.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Code erstellen"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Create a code"
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Code maken"
+          }
+        }
+      }
+    },
+    "native.passkeys.invite.copy" : {
+      "comment" : "Settings → Passkeys: copy the code.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Code kopieren"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Copy code"
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Kopieer code"
+          }
+        }
+      }
+    },
+    "native.passkeys.invite.expires" : {
+      "comment" : "Settings → Passkeys: when the code expires. The argument is a time.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Läuft um %@ ab"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Expires at %@"
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Verloopt om %@"
+          }
+        }
+      }
+    },
+    "native.passkeys.invite.footer" : {
+      "comment" : "Settings → Passkeys: under the create button.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Verwende den Code auf dem anderen Gerät oder in einem Browser, um dort einen Passkey hinzuzufügen. Er gilt einmal und läuft bald ab. Zum Erstellen wirst du nach einem Passkey gefragt."
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Use the code on the other device or in a browser to add a passkey there. It works once and expires soon. You will be asked for a passkey to create it."
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Gebruik de code op het andere apparaat of in een browser om daar een passkey toe te voegen. Hij werkt één keer en verloopt snel. Je wordt om een passkey gevraagd om hem te maken."
+          }
+        }
+      }
+    },
+    "native.passkeys.invite.header" : {
+      "comment" : "Settings → Passkeys: section for a code for another device.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Code für ein anderes Gerät erstellen"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Create a code for another device"
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Een code maken voor een ander apparaat"
+          }
+        }
+      }
+    },
+    "native.passkeys.invite.hide" : {
+      "comment" : "Settings → Passkeys: hide the code.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Code ausblenden"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Hide code"
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Verberg code"
+          }
+        }
+      }
+    },
+    "native.passkeys.invite.off" : {
+      "comment" : "Settings → Passkeys: the operator turned creating codes off.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Der Betreiber dieses Gateways hat das Erstellen von Codes hier ausgeschaltet."
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "The operator of this gateway has turned off creating codes here."
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "De beheerder van deze gateway heeft het maken van codes hier uitgezet."
+          }
+        }
+      }
+    },
+    "native.passkeys.lastUsed" : {
+      "comment" : "Settings → Passkeys, a passkey row. The argument is a date and time.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Zuletzt verwendet %@"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Last used %@"
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Laatst gebruikt %@"
+          }
+        }
+      }
+    },
+    "native.passkeys.neverUsed" : {
+      "comment" : "Settings → Passkeys, a passkey row.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Noch nie verwendet"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Never used"
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Nog nooit gebruikt"
+          }
+        }
+      }
+    },
+    "native.passkeys.notice.added" : {
+      "comment" : "Notice: a passkey was added elsewhere. The argument is its name.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Ein Passkey wurde deinem Konto auf diesem Gateway ohne dieses Gerät hinzugefügt: %@"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "A passkey was added to your account on this gateway without this device: %@"
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Er is een passkey toegevoegd aan je account op deze gateway zonder dit apparaat: %@"
+          }
+        }
+      }
+    },
+    "native.passkeys.notice.gatewayIDConflict" : {
+      "comment" : "Notice: the gateway presents an identity that belongs to another gateway.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Die Bestätigung mit Passkey ist für dieses Gateway aus: Es zeigt eine Identität, die zu einem anderen Gateway gehört."
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Passkey confirmations are off for this gateway: it presents an identity that belongs to another gateway."
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Bevestigen met een passkey staat uit voor deze gateway: hij toont een identiteit die bij een andere gateway hoort."
+          }
+        }
+      }
+    },
+    "native.passkeys.notice.gatewayIDMismatch" : {
+      "comment" : "Notice: the gateway no longer presents the identity its passkeys were set up with.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Die Bestätigung mit Passkey ist für dieses Gateway aus: Es meldet sich nicht mehr als das Gateway, für das du Passkeys eingerichtet hast. Wurde es absichtlich zurückgesetzt, entferne es und füge es erneut hinzu."
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Passkey confirmations are off for this gateway: it no longer identifies itself as the one you set passkeys up with. If it was reset on purpose, remove it and add it again."
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Bevestigen met een passkey staat uit voor deze gateway: hij meldt zich niet meer als de gateway waarvoor je passkeys hebt ingesteld. Is hij met opzet gereset, verwijder hem dan en voeg hem opnieuw toe."
+          }
+        }
+      }
+    },
+    "native.passkeys.notice.malformedRequest" : {
+      "comment" : "Notice: a confirmation this app could not read.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Es kam eine Passkey-Bestätigung an, die diese App nicht lesen konnte, daher wurde sie nicht beantwortet."
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "A passkey confirmation arrived that this app could not read, so it was not answered."
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Er kwam een passkey-bevestiging binnen die deze app niet kon lezen, dus er is niet op geantwoord."
+          }
+        }
+      }
+    },
+    "native.passkeys.notice.noCredentialForApp" : {
+      "comment" : "Notice: a confirmation arrived that this device has no passkey for.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Es kam eine Bestätigung an, für die dieses Gerät keinen Passkey hat. Füge einen unter Einstellungen, Gateways, Passkeys hinzu."
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "A confirmation arrived that this device has no passkey for. Add one under Settings, Gateways, Passkeys."
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Er kwam een bevestiging binnen waarvoor dit apparaat geen passkey heeft. Voeg er een toe via Instellingen, Gateways, Passkeys."
+          }
+        }
+      }
+    },
+    "native.passkeys.notice.pinUnreadable" : {
+      "comment" : "Notice: the passkey records kept for the gateway cannot be read.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Hermie konnte die Passkey-Daten, die es für dieses Gateway speichert, nicht lesen, daher ist die Bestätigung mit Passkey aus. Es wurde nichts geändert."
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Hermie could not read the passkey records it keeps for this gateway, so passkey confirmations are off for it. Nothing was changed."
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Hermie kon de passkey-gegevens die het voor deze gateway bewaart niet lezen, dus bevestigen met een passkey staat uit. Er is niets gewijzigd."
+          }
+        }
+      }
+    },
+    "native.passkeys.notice.revoked" : {
+      "comment" : "Notice: a passkey was removed elsewhere. The argument is its name.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Ein Passkey wurde von deinem Konto auf diesem Gateway ohne dieses Gerät entfernt: %@"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "A passkey was removed from your account on this gateway without this device: %@"
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Er is een passkey van je account op deze gateway verwijderd zonder dit apparaat: %@"
+          }
+        }
+      }
+    },
+    "native.passkeys.notice.sameGateway" : {
+      "comment" : "Notice asking whether two stored gateways are one. The argument is the other gateway's name.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Dieses Gateway zeigt dieselbe Passkey-Identität wie „%@“, das du bereits hinzugefügt hast. Ist es dasselbe Gateway unter einer anderen Adresse, verknüpfe sie. Bis dahin ist die Bestätigung mit Passkey aus."
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "This gateway presents the same passkey identity as “%@”, which you added already. If it is the same gateway under another address, link them. Until then its passkey confirmations are off."
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Deze gateway toont dezelfde passkey-identiteit als “%@”, die je al had toegevoegd. Is het dezelfde gateway onder een ander adres, koppel ze dan. Tot die tijd staat bevestigen met een passkey uit."
+          }
+        }
+      }
+    },
+    "native.passkeys.notice.sameGatewayAction" : {
+      "comment" : "Button on that notice. The argument is the other gateway's name.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Dasselbe Gateway wie %@"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Same gateway as %@"
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Zelfde gateway als %@"
+          }
+        }
+      }
+    },
+    "native.passkeys.notice.unsupportedVersion" : {
+      "comment" : "Notice: a confirmation in a version this app does not know.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Dieses Gateway hat eine Passkey-Bestätigung in einer Version angefragt, die diese App nicht kennt. Aktualisiere Hermie."
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "This gateway asked for a passkey confirmation in a version this app does not know. Update Hermie."
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Deze gateway vroeg om een passkey-bevestiging in een versie die deze app niet kent. Werk Hermie bij."
+          }
+        }
+      }
+    },
+    "native.passkeys.remove.action" : {
+      "comment" : "Settings → Passkeys: remove one passkey (button label and confirmation).",
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Passkey entfernen"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Remove passkey"
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Verwijder passkey"
+          }
+        }
+      }
+    },
+    "native.passkeys.remove.message" : {
+      "comment" : "Settings → Passkeys: what removing does.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Er kann danach nichts mehr auf diesem Gateway bestätigen. Du wirst dafür nach einem Passkey gefragt."
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "It can no longer confirm anything on this gateway. You will be asked for a passkey to allow this."
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Hij kan daarna niets meer bevestigen op deze gateway. Je wordt om een passkey gevraagd om dit toe te staan."
+          }
+        }
+      }
+    },
+    "native.passkeys.remove.title" : {
+      "comment" : "Settings → Passkeys: confirmation title.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Diesen Passkey entfernen?"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Remove this passkey?"
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Deze passkey verwijderen?"
+          }
+        }
+      }
+    },
+    "native.passkeys.state.disabled" : {
+      "comment" : "Settings → Passkeys state: the operator has the level off.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Passkeys sind auf diesem Gateway ausgeschaltet."
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Passkeys are turned off on this gateway."
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Passkeys staan uit op deze gateway."
+          }
+        }
+      }
+    },
+    "native.passkeys.state.enrolled" : {
+      "comment" : "Settings → Passkeys state: working.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Die Bestätigung mit Passkey ist für dieses Gateway aktiv."
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Passkey confirmation is on for this gateway."
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Bevestigen met een passkey staat aan voor deze gateway."
+          }
+        }
+      }
+    },
+    "native.passkeys.state.loading" : {
+      "comment" : "Settings → Passkeys state.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Dieses Gateway wird geprüft…"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Checking this gateway…"
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Deze gateway wordt gecontroleerd…"
+          }
+        }
+      }
+    },
+    "native.passkeys.state.noBaseURL" : {
+      "comment" : "Settings → Passkeys state: the operator listed no address.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Der Betreiber dieses Gateways hat keine Adresse für Passkeys festgelegt."
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "The operator of this gateway has not set an address for passkeys."
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "De beheerder van deze gateway heeft geen adres voor passkeys ingesteld."
+          }
+        }
+      }
+    },
+    "native.passkeys.state.noIdentity" : {
+      "comment" : "Settings → Passkeys state: nobody is signed in.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Für Passkeys musst du angemeldet sein. Melde dich zuerst an diesem Gateway an."
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Passkeys need a signed-in account. Sign in to this gateway first."
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Voor passkeys moet je zijn ingelogd. Log eerst in op deze gateway."
+          }
+        }
+      }
+    },
+    "native.passkeys.state.notConfigured" : {
+      "comment" : "Settings → Passkeys state: this build has no passkey identity.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Diese Version von Hermie unterstützt keine Passkeys, daher ist die Bestätigung mit Passkey nicht verfügbar."
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "This version of Hermie has no passkey support, so passkey confirmation is not available."
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Deze versie van Hermie heeft geen passkey-ondersteuning, dus bevestigen met een passkey is niet beschikbaar."
+          }
+        }
+      }
+    },
+    "native.passkeys.state.notEnrolled" : {
+      "comment" : "Settings → Passkeys state: nothing enrolled yet.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Noch kein Passkey für dieses Gateway. Füge einen mit einem Code vom Betreiber des Gateways hinzu."
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "No passkey for this gateway yet. Add one with a code from the gateway's operator."
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Nog geen passkey voor deze gateway. Voeg er een toe met een code van de beheerder van de gateway."
+          }
+        }
+      }
+    },
+    "native.passkeys.state.notOffered" : {
+      "comment" : "Settings → Passkeys state: the gateway has no passkey routes.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Dieses Gateway bietet keine Passkeys an."
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "This gateway does not offer passkeys."
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Deze gateway biedt geen passkeys aan."
+          }
+        }
+      }
+    },
+    "native.passkeys.state.originNotListed" : {
+      "comment" : "Settings → Passkeys state: the gateway does not list the address the app dials.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Dieses Gateway führt die Adresse nicht auf, unter der Hermie es erreicht. Der Betreiber muss diese Adresse in den Passkey-Einstellungen des Gateways ergänzen."
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "This gateway does not list the address Hermie uses to reach it. Its operator has to add that address to the gateway's passkey settings."
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Deze gateway vermeldt het adres niet waarmee Hermie hem bereikt. De beheerder moet dat adres toevoegen aan de passkey-instellingen van de gateway."
+          }
+        }
+      }
+    },
+    "native.passkeys.state.privateOrigin" : {
+      "comment" : "Settings → Passkeys state: the gateway is only on a private address.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Dieses Gateway ist nur unter einer privaten Adresse erreichbar, was Passkeys nur erlauben, wenn der Betreiber das freigibt."
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "This gateway is only reachable on a private address, which passkeys do not allow unless its operator opts in."
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Deze gateway is alleen op een privé-adres bereikbaar, en dat staan passkeys niet toe tenzij de beheerder dat inschakelt."
+          }
+        }
+      }
+    },
+    "native.passkeys.state.rateLimited" : {
+      "comment" : "Settings → Passkeys state: too many tries. The argument is the number of seconds to wait.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Zu viele Versuche. Versuche es in %lld Sekunden erneut."
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Too many attempts. Try again in %lld seconds."
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Te veel pogingen. Probeer het over %lld seconden opnieuw."
+          }
+        }
+      }
+    },
+    "native.passkeys.state.rateLimitedSoon" : {
+      "comment" : "Settings → Passkeys state: too many tries.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Zu viele Versuche. Versuche es gleich noch einmal."
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Too many attempts. Try again in a moment."
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Te veel pogingen. Probeer het zo meteen opnieuw."
+          }
+        }
+      }
+    },
+    "native.passkeys.state.rpNotAccepted" : {
+      "comment" : "Settings → Passkeys state: the gateway does not take this build's passkey identity.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Dieses Gateway akzeptiert die Passkey-Identität dieser Hermie-Version nicht."
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "This gateway does not accept the passkey identity this version of Hermie uses."
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Deze gateway accepteert de passkey-identiteit van deze versie van Hermie niet."
+          }
+        }
+      }
+    },
+    "native.passkeys.state.unreadable" : {
+      "comment" : "Settings → Passkeys state: the gateway could not be read.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Hermie konnte die Passkey-Einstellungen dieses Gateways nicht lesen."
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Hermie could not read the passkey settings from this gateway."
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Hermie kon de passkey-instellingen van deze gateway niet lezen."
+          }
+        }
+      }
+    },
+    "native.passkeys.stateFooter" : {
+      "comment" : "Settings → Passkeys, under the state.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Mit einem Passkey bestätigst du mit deinem Gerät, was ein Bot fragt, und das Gateway prüft die Bestätigung selbst."
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "A passkey lets you confirm what a bot asks with your device, and the gateway checks the confirmation itself."
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Met een passkey bevestig je wat een bot vraagt met je apparaat, en de gateway controleert die bevestiging zelf."
+          }
+        }
+      }
+    },
+    "native.passkeys.stateHeader" : {
+      "comment" : "Settings → Passkeys, header over the state. The argument is the gateway's name.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Passkeys auf %@"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Passkeys on %@"
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Passkeys op %@"
+          }
+        }
+      }
+    },
+    "native.passkeys.title" : {
+      "comment" : "Settings: the page and the row for a gateway's passkeys.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Passkeys"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Passkeys"
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Passkeys"
           }
         }
       }

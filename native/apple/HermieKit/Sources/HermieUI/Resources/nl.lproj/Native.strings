@@ -40,6 +40,48 @@
 	<string>Stoppen</string>
 	<key>native.composer.stopped</key>
 	<string>Antwoord gestopt</string>
+	<key>native.confirm.answeredElsewhere</key>
+	<string>Een ander apparaat heeft dit verzoek beantwoord.</string>
+	<key>native.confirm.cannotConfirm</key>
+	<string>Dit apparaat kan nu niet met een passkey bevestigen. Er is niets bevestigd.</string>
+	<key>native.confirm.confirm</key>
+	<string>Bevestig met passkey</string>
+	<key>native.confirm.confirmHint</key>
+	<string>Vraagt je apparaat om je passkey.</string>
+	<key>native.confirm.decline</key>
+	<string>Weiger</string>
+	<key>native.confirm.declined</key>
+	<string>Je hebt dit verzoek geweigerd.</string>
+	<key>native.confirm.detailLabel</key>
+	<string>Details</string>
+	<key>native.confirm.noCredential</key>
+	<string>Er is geen passkey voor deze gateway beschikbaar op dit apparaat. Er is niets bevestigd.</string>
+	<key>native.confirm.notAllowed</key>
+	<string>Dit apparaat mag dit verzoek niet beantwoorden.</string>
+	<key>native.confirm.notSent</key>
+	<string>Het antwoord heeft de gateway niet bereikt. Je kunt het opnieuw proberen.</string>
+	<key>native.confirm.passkeyNote</key>
+	<string>Je apparaat vraagt om je passkey voor %1$@. Die naam is voor elke gateway hetzelfde; dit verzoek is voor %2$@.</string>
+	<key>native.confirm.received</key>
+	<string>Antwoord ontvangen. De gateway controleert het.</string>
+	<key>native.confirm.refused.other</key>
+	<string>De gateway heeft het passkey-antwoord niet geaccepteerd. Je kunt het opnieuw proberen.</string>
+	<key>native.confirm.refused.unknownCredential</key>
+	<string>De gateway kent deze passkey niet. Hij is misschien verwijderd. Je kunt het opnieuw proberen.</string>
+	<key>native.confirm.refused.userVerification</key>
+	<string>Je apparaat heeft niet bevestigd dat jij het bent. Je kunt het opnieuw proberen.</string>
+	<key>native.confirm.signing</key>
+	<string>Wachten op je passkey…</string>
+	<key>native.confirm.timedOut</key>
+	<string>Dit verzoek is verlopen. Er is niets bevestigd.</string>
+	<key>native.confirm.title</key>
+	<string>%@ vraagt je om te bevestigen</string>
+	<key>native.confirm.tooManyAttempts</key>
+	<string>Te veel antwoorden zijn geweigerd. Het verzoek is gesloten en er is niets bevestigd.</string>
+	<key>native.confirm.verificationFailed</key>
+	<string>De gateway kon je antwoord niet controleren. Er is niets bevestigd.</string>
+	<key>native.confirm.withdrawn</key>
+	<string>Het verzoek is ingetrokken. Er is niets bevestigd.</string>
 	<key>native.connectionRequest.open</key>
 	<string>Openen</string>
 	<key>native.connectionRequest.skip</key>
@@ -280,6 +322,120 @@
 	<string>de lokale database weigerde de wijziging.</string>
 	<key>native.onboarding.save.unsupportedRegistry</key>
 	<string>De gatewaylijst op dit apparaat is geschreven door een nieuwere versie van Hermie, dus er is niets gewijzigd. Werk Hermie bij en probeer het opnieuw.</string>
+	<key>native.passkeys.add.action</key>
+	<string>Passkey toevoegen</string>
+	<key>native.passkeys.add.field</key>
+	<string>Code van de beheerder van de gateway</string>
+	<key>native.passkeys.add.footer</key>
+	<string>De beheerder van deze gateway geeft je een eenmalige code. Je apparaat maakt daarmee een passkey en vraagt om je toestemming.</string>
+	<key>native.passkeys.add.header</key>
+	<string>Toevoegen met een code</string>
+	<key>native.passkeys.added</key>
+	<string>Toegevoegd %@</string>
+	<key>native.passkeys.addedUnknown</key>
+	<string>Toegevoegd op een onbekend moment</string>
+	<key>native.passkeys.credentials.header</key>
+	<string>Passkeys van je account</string>
+	<key>native.passkeys.failure.alreadyEnrolled</key>
+	<string>Deze passkey staat al op deze gateway.</string>
+	<key>native.passkeys.failure.badAnswer</key>
+	<string>Het antwoord van de gateway was niet wat Hermie verwachtte.</string>
+	<key>native.passkeys.failure.cannotUse</key>
+	<string>Dit apparaat kan nu geen passkeys gebruiken. Controleer of een schermvergrendeling en een passkey-aanbieder zijn ingesteld.</string>
+	<key>native.passkeys.failure.codeNotValid</key>
+	<string>Die code is ongeldig, verlopen of al gebruikt.</string>
+	<key>native.passkeys.failure.invalidCode</key>
+	<string>Die code ziet er niet goed uit. Controleer hem en probeer het opnieuw.</string>
+	<key>native.passkeys.failure.noPasskey</key>
+	<string>Er is geen passkey van jou voor deze gateway beschikbaar op dit apparaat.</string>
+	<key>native.passkeys.failure.promptBusy</key>
+	<string>Er is al een andere passkey-melding open. Rond die af of sluit hem eerst.</string>
+	<key>native.passkeys.failure.promptFailed</key>
+	<string>De passkey-melding is niet afgerond. Probeer het opnieuw.</string>
+	<key>native.passkeys.failure.refused</key>
+	<string>De gateway heeft dit geweigerd.</string>
+	<key>native.passkeys.failure.seeNotice</key>
+	<string>Er is niets gewijzigd. Zie de melding hierboven.</string>
+	<key>native.passkeys.failure.tooSlow</key>
+	<string>Dat duurde te lang. Begin opnieuw.</string>
+	<key>native.passkeys.invite.action</key>
+	<string>Code maken</string>
+	<key>native.passkeys.invite.copy</key>
+	<string>Kopieer code</string>
+	<key>native.passkeys.invite.expires</key>
+	<string>Verloopt om %@</string>
+	<key>native.passkeys.invite.footer</key>
+	<string>Gebruik de code op het andere apparaat of in een browser om daar een passkey toe te voegen. Hij werkt één keer en verloopt snel. Je wordt om een passkey gevraagd om hem te maken.</string>
+	<key>native.passkeys.invite.header</key>
+	<string>Een code maken voor een ander apparaat</string>
+	<key>native.passkeys.invite.hide</key>
+	<string>Verberg code</string>
+	<key>native.passkeys.invite.off</key>
+	<string>De beheerder van deze gateway heeft het maken van codes hier uitgezet.</string>
+	<key>native.passkeys.lastUsed</key>
+	<string>Laatst gebruikt %@</string>
+	<key>native.passkeys.neverUsed</key>
+	<string>Nog nooit gebruikt</string>
+	<key>native.passkeys.notice.added</key>
+	<string>Er is een passkey toegevoegd aan je account op deze gateway zonder dit apparaat: %@</string>
+	<key>native.passkeys.notice.gatewayIDConflict</key>
+	<string>Bevestigen met een passkey staat uit voor deze gateway: hij toont een identiteit die bij een andere gateway hoort.</string>
+	<key>native.passkeys.notice.gatewayIDMismatch</key>
+	<string>Bevestigen met een passkey staat uit voor deze gateway: hij meldt zich niet meer als de gateway waarvoor je passkeys hebt ingesteld. Is hij met opzet gereset, verwijder hem dan en voeg hem opnieuw toe.</string>
+	<key>native.passkeys.notice.malformedRequest</key>
+	<string>Er kwam een passkey-bevestiging binnen die deze app niet kon lezen, dus er is niet op geantwoord.</string>
+	<key>native.passkeys.notice.noCredentialForApp</key>
+	<string>Er kwam een bevestiging binnen waarvoor dit apparaat geen passkey heeft. Voeg er een toe via Instellingen, Gateways, Passkeys.</string>
+	<key>native.passkeys.notice.pinUnreadable</key>
+	<string>Hermie kon de passkey-gegevens die het voor deze gateway bewaart niet lezen, dus bevestigen met een passkey staat uit. Er is niets gewijzigd.</string>
+	<key>native.passkeys.notice.revoked</key>
+	<string>Er is een passkey van je account op deze gateway verwijderd zonder dit apparaat: %@</string>
+	<key>native.passkeys.notice.sameGateway</key>
+	<string>Deze gateway toont dezelfde passkey-identiteit als “%@”, die je al had toegevoegd. Is het dezelfde gateway onder een ander adres, koppel ze dan. Tot die tijd staat bevestigen met een passkey uit.</string>
+	<key>native.passkeys.notice.sameGatewayAction</key>
+	<string>Zelfde gateway als %@</string>
+	<key>native.passkeys.notice.unsupportedVersion</key>
+	<string>Deze gateway vroeg om een passkey-bevestiging in een versie die deze app niet kent. Werk Hermie bij.</string>
+	<key>native.passkeys.remove.action</key>
+	<string>Verwijder passkey</string>
+	<key>native.passkeys.remove.message</key>
+	<string>Hij kan daarna niets meer bevestigen op deze gateway. Je wordt om een passkey gevraagd om dit toe te staan.</string>
+	<key>native.passkeys.remove.title</key>
+	<string>Deze passkey verwijderen?</string>
+	<key>native.passkeys.state.disabled</key>
+	<string>Passkeys staan uit op deze gateway.</string>
+	<key>native.passkeys.state.enrolled</key>
+	<string>Bevestigen met een passkey staat aan voor deze gateway.</string>
+	<key>native.passkeys.state.loading</key>
+	<string>Deze gateway wordt gecontroleerd…</string>
+	<key>native.passkeys.state.noBaseURL</key>
+	<string>De beheerder van deze gateway heeft geen adres voor passkeys ingesteld.</string>
+	<key>native.passkeys.state.noIdentity</key>
+	<string>Voor passkeys moet je zijn ingelogd. Log eerst in op deze gateway.</string>
+	<key>native.passkeys.state.notConfigured</key>
+	<string>Deze versie van Hermie heeft geen passkey-ondersteuning, dus bevestigen met een passkey is niet beschikbaar.</string>
+	<key>native.passkeys.state.notEnrolled</key>
+	<string>Nog geen passkey voor deze gateway. Voeg er een toe met een code van de beheerder van de gateway.</string>
+	<key>native.passkeys.state.notOffered</key>
+	<string>Deze gateway biedt geen passkeys aan.</string>
+	<key>native.passkeys.state.originNotListed</key>
+	<string>Deze gateway vermeldt het adres niet waarmee Hermie hem bereikt. De beheerder moet dat adres toevoegen aan de passkey-instellingen van de gateway.</string>
+	<key>native.passkeys.state.privateOrigin</key>
+	<string>Deze gateway is alleen op een privé-adres bereikbaar, en dat staan passkeys niet toe tenzij de beheerder dat inschakelt.</string>
+	<key>native.passkeys.state.rateLimited</key>
+	<string>Te veel pogingen. Probeer het over %lld seconden opnieuw.</string>
+	<key>native.passkeys.state.rateLimitedSoon</key>
+	<string>Te veel pogingen. Probeer het zo meteen opnieuw.</string>
+	<key>native.passkeys.state.rpNotAccepted</key>
+	<string>Deze gateway accepteert de passkey-identiteit van deze versie van Hermie niet.</string>
+	<key>native.passkeys.state.unreadable</key>
+	<string>Hermie kon de passkey-instellingen van deze gateway niet lezen.</string>
+	<key>native.passkeys.stateFooter</key>
+	<string>Met een passkey bevestig je wat een bot vraagt met je apparaat, en de gateway controleert die bevestiging zelf.</string>
+	<key>native.passkeys.stateHeader</key>
+	<string>Passkeys op %@</string>
+	<key>native.passkeys.title</key>
+	<string>Passkeys</string>
 	<key>native.push.cannotDeliverPlugin</key>
 	<string>Deze gateway kan nog niet bij dit apparaat afleveren: de Hermie-plugin is te oud. Werk de plugin op de gateway bij.</string>
 	<key>native.push.cannotDeliverRelay</key>
