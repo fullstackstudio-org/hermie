@@ -124,10 +124,13 @@ native/apple/scripts/generate.sh ios          # one of them
   dev or test run has its own preferences, sandbox container, data directory, App Group, keychain
   and iCloud Keychain items, and cannot touch an installed Hermie's. `archive.sh` archives Release
   and refuses an archive whose app is not `dev.hermie.app`; `BundleIdentityTests` holds the specs,
-  the entitlements and the Info.plists to the rule. Two things stay shared: the `hermie://` link
-  scheme (whichever build the system picks opens it), and a signed Debug build on a device needs
-  its own App IDs, which automatic signing registers; its push topic is `dev.hermie.app.dev`, which
-  the relay does not serve.
+  the entitlements and the Info.plists to the rule. The `hermie://` link scheme stays shared
+  (whichever build the system picks opens it). A signed Debug build on a device needs its own App
+  IDs, which automatic signing registers. It never registers with the push relay
+  (`HERMIE_PUSH = NO`, Info.plist `HermiePush`), which serves only the release topic, so it writes
+  no push row into the person's section. And passkeys do not work in it: its entitlements still
+  name `webcredentials:confirm.hermie.dev`, but that host's association file lists only
+  `<team>.dev.hermie.app`, not `.dev`.
 
 CI runs the same steps: `.github/workflows/native.yml` runs the package tests and builds both apps
 unsigned whenever `native/`, `contract/`, the `transcript`, `gateway-client` or `fake-gateway`
@@ -766,9 +769,13 @@ and `chat` seams. Both read the session from `LiveGateway` in the environment.
   earlier builds wrote) while the person's section has no `archivedBots`; after that the list is
   the only source. The shared flag is never written or cleared, since the frozen Expo app may
   still read it. Pinned chats come first, each group in the
-  arrangement's order; a bot the arrangement does not place yet comes last. This build draws no
-  folders: a folder's chats stand in its place, and a drag does not cross a folder's edge. A move
-  drops the names the roster no longer has, as the web client's `reconcileBots` does.
+  arrangement's order; a bot the arrangement does not place yet comes at the end of the loose
+  top-level run, before the first folder, which is where a move or the fold writes it. This build
+  draws no folders: a folder's chats stand in its place, and Move up, Move down and a drag stay
+  within the chat's pinned group and its container. A move never drops a name (at launch the
+  rows come from the cached roster, which can lack a bot made elsewhere and filed in a folder).
+  Dropping gone bots and placing new ones is the fold (the web client's `reconcileBots`), run as
+  a chore when the gateway has answered the roster and redone on top of every copy taken in.
 - **Where the actions are.** iOS: the trailing swipe archives (full swipe) and mutes (a duration
   sheet), the leading swipe marks read and pins, the context menu has all of them, Edit reorders
   on a phone and a long press drags on an iPad; VoiceOver reads the swipe actions and Move up /
@@ -781,8 +788,11 @@ and `chat` seams. Both read the session from `LiveGateway` in the environment.
   archive a row shows its own unread state.
 - **Mute** shows a bell on the row and a "Muted until …" line in the menu. The gateway's notifier
   reads `mutes` and holds a muted chat's notifications back; in front, `PushController.isMuted`
-  hides one that was already on its way (a `security` notice is shown whatever a mute says). Only
-  the live gateway's mutes are known on the device.
+  hides one that was already on its way. A mute silences plain messages only (`message`, the
+  legacy `dm`): an approval, a clarify, a secure prompt or a passkey confirmation (`request`) and
+  a `security` notice are shown whatever a mute says, since needs input is what must reach the
+  person (`PushContract.mutableTypes`, also in `PushFilter`). Only the live gateway's mutes are
+  known on the device.
 - **Avatars** come from `profiles.get_asset` as a data URL (`AvatarData` reads it), are kept on disk
   per gateway in the key-value store and painted from there on launch, and are asked for again
   once per launch and per `ui_meta` revision; a bot that no longer has one loses the stored copy.
