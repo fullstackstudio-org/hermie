@@ -77,6 +77,12 @@ final class ChatFeed: ChatScreenFeed {
   @ObservationIgnored private var readyEpoch = 0
   @ObservationIgnored private var failedEpoch = -1
   @ObservationIgnored private var historyExhausted = false
+  /// The typing row's debounce, and what it was last told: see `TypingIndicatorGate`.
+  @ObservationIgnored private var typingGate = TypingIndicatorGate()
+  @ObservationIgnored private var typingWanted = false
+  @ObservationIgnored private var typingTask: Task<Void, Never>?
+  /// Seconds on a clock that does not jump, for the typing row's debounce; the tests set their own.
+  @ObservationIgnored var uptime: () -> TimeInterval = { ProcessInfo.processInfo.systemUptime }
   @ObservationIgnored private var sceneActive = true
   /// Something stands over the screen (a page pushed on the chat, a sheet): the feed keeps running
   /// under it, but marks nothing read until it goes (`coverChanged`).
@@ -164,6 +170,8 @@ final class ChatFeed: ChatScreenFeed {
 
     tasks = []
     markTask?.cancel()
+    typingTask?.cancel()
+    typingTask = nil
     listState.onNearTop = nil
     composer.onSubmit = nil
     // Leaving the chat: every upload stops and what was staged goes with it.
@@ -223,6 +231,10 @@ final class ChatFeed: ChatScreenFeed {
       openIfNeeded()
     }
 
+    // Only a chat that is live says the bot is working: a cached copy's turn may be long over.
+    typingChanged(
+      wanted: snapshot.hydration == .live && TypingIndicator.wanted(activity: snapshot.activity, items: snapshot.items))
+
     await buildRows()
     markReadSoon()
   }
@@ -245,7 +257,8 @@ final class ChatFeed: ChatScreenFeed {
       }
 
       // The chat's first message gets its date line only once no earlier page can arrive.
-      let output = await pipeline.rows(for: snapshot.items, historyComplete: !snapshot.canLoadOlder)
+      let output = await pipeline.rows(
+        for: snapshot.items, historyComplete: !snapshot.canLoadOlder, typing: typingGate.visible)
 
       guard !stopped else {
         return
@@ -261,6 +274,46 @@ final class ChatFeed: ChatScreenFeed {
         loaded = true
       }
     } while rebuild
+  }
+
+  // MARK: Typing row
+
+  /// The bot's state, as the debounce wants it. The row's own appearance waits `showDelay` for the
+  /// bot to keep working with nothing on screen; its going comes with the snapshot that puts the
+  /// reply (or the end of the turn) on screen, so it is already in the rows being built.
+  private func typingChanged(wanted: Bool) {
+    typingWanted = wanted
+    typingGate.update(wanted: wanted, now: uptime())
+
+    // One timer per stretch of wanting, not one per streamed delta.
+    guard typingGate.showDeadline != nil else {
+      typingTask?.cancel()
+      typingTask = nil
+      return
+    }
+
+    guard typingTask == nil else {
+      return
+    }
+
+    typingTask = Task { [weak self] in
+      while let self, !Task.isCancelled, !self.stopped, let deadline = self.typingGate.showDeadline {
+        try? await Task.sleep(for: .seconds(max(0, deadline - self.uptime())))
+
+        guard !Task.isCancelled, !self.stopped else {
+          return
+        }
+
+        if self.typingGate.update(wanted: self.typingWanted, now: self.uptime()) {
+          await self.buildRows()
+        }
+      }
+
+      // Done (the row shows), not cancelled: a cancelled timer's slot may already be a new one's.
+      if !Task.isCancelled {
+        self?.typingTask = nil
+      }
+    }
   }
 
   // MARK: Opening
@@ -336,7 +389,9 @@ final class ChatFeed: ChatScreenFeed {
   // MARK: Read marks
 
   private func markReadSoon() {
-    guard sceneActive, !covered, listState.isAtBottom, hydration == .live, let last = rows.last else {
+    guard sceneActive, !covered, listState.isAtBottom, hydration == .live,
+      let last = rows.last(where: { !$0.isTypingIndicator })
+    else {
       return
     }
 

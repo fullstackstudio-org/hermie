@@ -993,6 +993,24 @@ history has negative row ids, and the engine's `inRowOrder` (whose "newest row a
 moves that history's tool rows, which carry no row id, to just after it at the first turn's end.
 That move is the fake's; a real gateway's row ids are positive.
 
+**The typing row.** While the bot works and nothing is writing words, the transcript's last row is
+Messages' typing bubble: the assistant's own bubble (fill, radius, tail, padding, the height of a
+one-line reply) with three dots that swell and brighten in turn, 1.2 s a wave. It is a row of the
+list (`TranscriptRow.Content.typingIndicator`, id `typing-indicator`), not an item of the
+transcript: `ChatFeed` asks `TypingIndicator.wanted` (working, thinking, a tool, a delegation; not
+typing, waiting or idle, and only on a live chat) and passes the answer through
+`TypingIndicatorGate` to `ChatRowPipeline`, which appends the row. Appearing is debounced by 150 ms
+so a thought, a tool and the first words following each other within frames never flash it;
+going is immediate, with the snapshot that puts the reply (or the end of the turn) on screen. As a
+row it is inserted and removed by the list's ordinary structural update, so a pinned reader stays
+pinned and a reader who scrolled up is not moved. The dots are a `TimelineView`, so only they are
+redrawn. Reduce Motion: no scaling, a slower, shallower fade along the dots. One accessibility
+element, "Typing…", the header's own string. An empty reply that is still being written is no
+bubble any more (`bubbleSender` wants words). To see it by hand against `npm run fake-gateway --
+--auth token --token demo --stream-delay 900`: launch with `-HermieUITest YES
+-HermieSeedICloudGateway 'Fake|http://127.0.0.1:<port>|demo' -HermieOpenURLWhenReady
+'hermie://chat/writer'` and run a turn from another client (`?token=demo` on the socket).
+
 ### The lab
 
 `TranscriptLabView` (`HermieUI/Debug`, debug builds only) is the spike as a screen. It shows the

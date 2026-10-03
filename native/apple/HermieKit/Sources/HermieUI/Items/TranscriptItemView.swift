@@ -71,6 +71,8 @@ public struct TranscriptItemView: View, Equatable {
       BotDmRollupView(id: row.id, members: members)
     case .toolGroup(let members):
       ToolGroupView(id: row.id, members: members)
+    case .typingIndicator:
+      TypingIndicatorRow()
     }
   }
 }
