@@ -22,9 +22,10 @@
  * here, as DIGESTS: a stolen state file should not hand over working tokens on
  * top of the key that could mint them.
  */
-import { chmod, mkdir, readFile, rename, writeFile } from 'node:fs/promises'
+import { readFile } from 'node:fs/promises'
 import path from 'node:path'
 
+import { jsonWritesSettled, writeJsonAtomic } from '../fs/atomic-json'
 import { prunedKeys, type StoredKey } from './keys'
 import { OIDC_ROLES, type OidcRole, type OidcUser, type PasswordHash } from './users'
 
@@ -278,16 +279,23 @@ export async function loadOidcState(stateDir: string): Promise<OidcState> {
   }
 }
 
-export async function saveOidcState(stateDir: string, state: OidcState): Promise<void> {
-  await mkdir(stateDir, { recursive: true, mode: 0o700 })
-  // `mkdir`'s mode only applies on create, so a directory that existed with
-  // wider permissions is narrowed here — the same thing `savePushState` does.
-  await chmod(stateDir, 0o700).catch(() => undefined)
+/**
+ * Write the whole state, after every write of the same file asked for before it.
+ *
+ * Joins the same per-file chain `admin.json` uses (`fs/atomic-json.ts`): writes
+ * land in call order, each through a temp file of its own and an atomic rename,
+ * so an older snapshot can never land last and undo a newer one (a refresh
+ * token just rotated, a key just added). The state is serialised at the call;
+ * the returned promise rejects if THIS write failed, and the chain carries on.
+ */
+export function saveOidcState(stateDir: string, state: OidcState): Promise<void> {
+  return writeJsonAtomic(oidcStatePath(stateDir), state)
+}
 
-  const target = oidcStatePath(stateDir)
-  const temporary = `${target}.${process.pid}.tmp`
-
-  await writeFile(temporary, `${JSON.stringify(state, null, 2)}\n`, { encoding: 'utf8', mode: 0o600 })
-  await chmod(temporary, 0o600).catch(() => undefined)
-  await rename(temporary, target)
+/**
+ * Resolves once every write of this state file asked for so far has finished,
+ * whether it succeeded or not.
+ */
+export function oidcStateSettled(stateDir: string): Promise<void> {
+  return jsonWritesSettled(oidcStatePath(stateDir))
 }

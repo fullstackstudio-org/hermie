@@ -22,10 +22,10 @@
  * every read failure answering an empty state rather than taking the service
  * down over a file it could ignore.
  */
-import { randomBytes } from 'node:crypto'
-import { chmod, mkdir, readFile, rename, unlink, writeFile } from 'node:fs/promises'
+import { readFile } from 'node:fs/promises'
 import path from 'node:path'
 
+import { jsonWritesSettled, writeJsonAtomic } from '../fs/atomic-json'
 import { PUSH_TYPES, type PushType } from '../push/registrations'
 
 export const ADMIN_STATE_VERSION = 1
@@ -264,61 +264,18 @@ export async function loadAdminState(stateDir: string): Promise<AdminState> {
 }
 
 /**
- * The write still in flight for each state file, by resolved path.
- *
- * Every write of `admin.json` joins one chain per file, so writes land on disk
- * in the order they were asked for. Without it two overlapping writes (a
- * `noteSeen` fired without an await and an `/admin` save right behind it, say)
- * could finish in either order, and the older snapshot landing last silently
- * undid an administrator just added or removed. The tail stored here never
- * rejects, so a write that failed does not stop the ones queued after it.
- */
-const pendingWrites = new Map<string, Promise<void>>()
-let writeSequence = 0
-
-async function writeAdminFile(stateDir: string, target: string, body: string): Promise<void> {
-  await mkdir(stateDir, { recursive: true, mode: 0o700 })
-  // `mkdir`'s mode only applies on create, so a directory that existed with
-  // wider permissions is narrowed here — the same thing `savePushState` does.
-  await chmod(stateDir, 0o700).catch(() => undefined)
-
-  // A name of its own per write, so no two writes ever share a temp file: not
-  // two in this process, and not this process and another one beside it.
-  writeSequence += 1
-  const temporary = `${target}.${process.pid}.${writeSequence}.${randomBytes(4).toString('hex')}.tmp`
-
-  try {
-    await writeFile(temporary, body, { encoding: 'utf8', mode: 0o600 })
-    await rename(temporary, target)
-  } catch (error) {
-    await unlink(temporary).catch(() => undefined)
-    throw error
-  }
-}
-
-/**
  * Write the whole state, after every write of the same file asked for before it.
  *
- * The state is serialised NOW, at the call, so what lands is what the caller
- * held when it asked, not whatever the object looks like by the time the chain
- * reaches it. The returned promise rejects if THIS write failed; the chain
- * carries on regardless.
+ * Every write of `admin.json` joins one chain (`fs/atomic-json.ts`), so writes
+ * land on disk in the order they were asked for. Without it two overlapping
+ * writes (a `noteSeen` fired without an await and an `/admin` save right behind
+ * it, say) could finish in either order, and the older snapshot landing last
+ * silently undid an administrator just added or removed. The state is
+ * serialised at the call; the returned promise rejects if THIS write failed,
+ * and the chain carries on regardless.
  */
-export async function saveAdminState(stateDir: string, state: AdminState): Promise<void> {
-  const target = path.resolve(adminStatePath(stateDir))
-  const body = `${JSON.stringify(state, null, 2)}\n`
-  const previous = pendingWrites.get(target) ?? Promise.resolve()
-  const write = previous.then(() => writeAdminFile(stateDir, target, body))
-  const tail = write.catch(() => undefined)
-
-  pendingWrites.set(target, tail)
-  void tail.then(() => {
-    if (pendingWrites.get(target) === tail) {
-      pendingWrites.delete(target)
-    }
-  })
-
-  return write
+export function saveAdminState(stateDir: string, state: AdminState): Promise<void> {
+  return writeJsonAtomic(adminStatePath(stateDir), state)
 }
 
 /**
@@ -327,7 +284,7 @@ export async function saveAdminState(stateDir: string, state: AdminState): Promi
  * it (`noteSeen`) and now needs the file to say what memory says.
  */
 export function adminStateSettled(stateDir: string): Promise<void> {
-  return pendingWrites.get(path.resolve(adminStatePath(stateDir))) ?? Promise.resolve()
+  return jsonWritesSettled(adminStatePath(stateDir))
 }
 
 /** This person's options, or the defaults for somebody nobody has decided about. */
