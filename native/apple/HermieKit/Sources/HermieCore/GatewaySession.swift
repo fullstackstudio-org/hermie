@@ -61,6 +61,8 @@ public final class GatewaySession {
   /// The one-string prompts (`secret`, `sudo`, `vault.*`): a consumer of the
   /// server requests of its own, so a typed secret never reaches the store.
   @ObservationIgnored public let secureInput: SecureInputCenter
+  /// The pictures of the people in the group chat and the reader's own, as the gateway serves them.
+  @ObservationIgnored public let people: PeoplePictures
   /// The gateway's out-of-band notices (`notification.show` / `.clear`).
   public let notices: GatewayNoticesModel
   /// The connector authorisation cards the chats' agents are waiting on.
@@ -200,6 +202,9 @@ public final class GatewaySession {
     self.reachability = reachability
     self.keyValues = keyValues
     self.defaultVisibility = options.defaultVisibility
+    self.people = PeoplePictures(gatewayID: gatewayID, keyValues: keyValues, clock: options.store.clock) { path in
+      await link.fetchPicture(path)
+    }
     self.roster = BotRoster(
       link: link,
       gatewayID: gatewayID,
@@ -646,6 +651,12 @@ public struct ConnectionLink: GatewayLink {
   /// Through this link's HTTP client, the one place its credentials are loaded (`IdentityProbe.read`).
   public func probeIdentity() async -> IdentityProbe {
     await IdentityProbe.read(http)
+  }
+
+  /// Through this link's HTTP client, so the picture goes out with the same credentials and the
+  /// same 401 handling as every other call, and only ever to this gateway.
+  public func fetchPicture(_ path: String) async -> PictureFetchOutcome {
+    (try? await http.fetchAuthenticatedPicture(path)) ?? .error
   }
 
   public func uploadFile(

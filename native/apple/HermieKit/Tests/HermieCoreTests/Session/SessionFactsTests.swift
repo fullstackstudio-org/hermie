@@ -74,6 +74,44 @@ private func me(provider: String, userID: String, name: String = "") -> AuthIden
     await session.shutdown()
   }
 
+  @Test func theReadersOwnPictureComesFromTheAddressMeNamedAndGoesOnSignOut() async throws {
+    let harness = SessionHarness()
+    let path = "/api/auth/picture?id=self-hosted%3Asam-sub"
+    harness.link.setPictures { $0 == path ? .ready(dataURI: "data:image/png;base64,AAAA") : .missing }
+    harness.link.setIdentity(
+      .answered(
+        AuthIdentity(
+          userID: "sam-sub", displayName: "Sam", provider: "self-hosted", pictureURL: path)))
+    harness.link.respond(to: RPC.GatewayCapabilities.name, with: ["per_message_author": true])
+    try await harness.start()
+
+    let session = harness.session
+    try await eventually("the own picture") {
+      await session.people.slot(for: "self-hosted:sam-sub").dataURI != nil
+    }
+
+    #expect(harness.link.pictureCalls == [path], "fetched from the address /api/auth/me named, through the link")
+
+    await session.forgetIdentity()
+
+    #expect(session.people.slot(for: "self-hosted:sam-sub").dataURI == nil, "a sign-out keeps no picture")
+    await session.shutdown()
+  }
+
+  @Test func aGatewayThatHoldsNoPictureOfTheReaderAsksForNone() async throws {
+    let harness = SessionHarness()
+    harness.link.setPictures { _ in .ready(dataURI: "data:image/png;base64,AAAA") }
+    harness.link.setIdentity(.answered(me(provider: "self-hosted", userID: "sam-sub", name: "Sam")))
+    harness.link.respond(to: RPC.GatewayCapabilities.name, with: ["per_message_author": true])
+    try await harness.start()
+    try await eventually("the identity") { await harness.session.identityState != .unknownYet }
+    try await Task.sleep(for: .milliseconds(50))
+
+    #expect(harness.link.pictureCalls.isEmpty, "an empty picture_url is no reason to ask")
+    #expect(harness.session.people.slot(for: "self-hosted:sam-sub").dataURI == nil)
+    await harness.session.shutdown()
+  }
+
   @Test func aGatewayThatDoesNotStampRowsIsNotTrustedWithAuthors() async throws {
     let harness = try await started(
       identity: .answered(me(provider: "self-hosted", userID: "sam-sub")),

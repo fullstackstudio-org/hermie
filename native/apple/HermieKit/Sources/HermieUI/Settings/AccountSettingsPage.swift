@@ -12,6 +12,8 @@ struct AccountSettingsPage: View {
   @Environment(\.shellComponents) private var components
 
   @State private var identity: Phase = .loading
+  /// The signed-in person's own picture as a `data:` URI, once the gateway has served it.
+  @State private var picture: String?
   @State private var confirmingSignOut = false
   @State private var signingIn: String?
 
@@ -105,8 +107,13 @@ struct AccountSettingsPage: View {
       let name = [me.displayName, me.email, me.userID].first { !$0.isEmpty }
 
       if let name {
-        LabeledContent(Strings.App.Settings.user, value: name)
-          .accessibilityIdentifier("hermie.settings.account.user")
+        HStack(spacing: 12) {
+          // Decoration: the name is the row's text.
+          AvatarCircle(name: name, tint: Self.tint(for: me), dataURI: picture, size: 40)
+            .accessibilityHidden(true)
+          LabeledContent(Strings.App.Settings.user, value: name)
+            .accessibilityIdentifier("hermie.settings.account.user")
+        }
       }
 
       if !me.email.isEmpty, me.email != name {
@@ -137,12 +144,29 @@ struct AccountSettingsPage: View {
     identity = .loading
 
     do {
-      identity = .loaded(try await accounts.identity(for: id))
+      let me = try await accounts.identity(for: id)
+
+      picture = nil
+      identity = .loaded(me)
+
+      // The gateway's own copy, through its authenticated route; never the identity provider's address.
+      if !me.pictureURL.isEmpty, case .ready(let dataURI) = await accounts.picture(for: id, path: me.pictureURL),
+        !Task.isCancelled
+      {
+        picture = dataURI
+      }
     } catch {
       if !Task.isCancelled {
         identity = .failed
       }
     }
+  }
+
+  /// The colour of the initial: the author id, as in the chat, so the same person has the same colour
+  /// there and here.
+  private static func tint(for me: AuthIdentity) -> Color {
+    let id = HermieGateway.OwnAuthor.authorID(provider: me.provider, userID: me.userID)
+    return ItemFormat.authorTint(id ?? me.userID)
   }
 
   private struct TaskKey: Equatable {

@@ -1,4 +1,5 @@
 #if DEBUG
+  import HermieCore
   import HermieTranscript
   import SwiftUI
 
@@ -13,6 +14,8 @@
   /// streaming at once.
   public struct TranscriptLabView: View {
     @State private var model = TranscriptLabModel()
+    /// Robin has a picture here, Sam none: both ways a person is drawn.
+    @State private var people = DebugPeoplePictures.make()
     @State private var expansion = TranscriptExpansion()
     /// Forces one list implementation; nil is the app's own choice.
     @State private var implementation: TranscriptListImplementation?
@@ -30,6 +33,7 @@
       }
       .environment(\.transcriptExpansion, expansion)
       .environment(\.transcriptOwnAuthorID, "telegram:1")
+      .environment(\.transcriptPeoplePictures, people)
       .environment(\.transcriptListImplementation, implementation)
       .id(implementation)
       .safeAreaInset(edge: .bottom, spacing: 0) {

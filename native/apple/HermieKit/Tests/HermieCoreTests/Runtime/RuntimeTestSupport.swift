@@ -226,6 +226,8 @@ final class ScriptedLink: GatewayLink, Sendable {
     var declines: [(id: String, code: Int, message: String)] = []
     var identity: IdentityProbe = .sessionToken
     var identityReads = 0
+    var pictureAnswer: @Sendable (String) -> PictureFetchOutcome = { _ in .missing }
+    var pictureCalls: [String] = []
     var declineData: [String: JSONValue] = [:]
   }
 
@@ -259,6 +261,21 @@ final class ScriptedLink: GatewayLink, Sendable {
   }
 
   var identityReads: Int { state.withLock { $0.identityReads } }
+
+  /// What `fetchPicture` answers from now on, by the path it was asked for.
+  func setPictures(_ answer: @escaping @Sendable (String) -> PictureFetchOutcome) {
+    state.withLock { $0.pictureAnswer = answer }
+  }
+
+  /// The paths `fetchPicture` was asked for, in order.
+  var pictureCalls: [String] { state.withLock { $0.pictureCalls } }
+
+  func fetchPicture(_ path: String) async -> PictureFetchOutcome {
+    state.withLock { state in
+      state.pictureCalls.append(path)
+      return state.pictureAnswer(path)
+    }
+  }
 
   func probeIdentity() async -> IdentityProbe {
     state.withLock { state in
