@@ -4,7 +4,8 @@ import Foundation
  The seam a passkey ceremony runs through.
 
  The app's implementation drives the system passkey sheet (`AuthenticationServices`, platform
- provider, user verification required, attestation `none`); tests use `SoftPasskeyAuthenticator`.
+ provider, user verification required, attestation `none`); tests use `SoftPasskeyAuthenticator`
+ from the `HermiePasskeyTesting` target, which no app links.
  The model computes every challenge itself (`PasskeyChallenge`) and hands over the 32 bytes, as the
  WebAuthn API takes them: an authenticator never sees the text it commits to, and never chooses
  what it signs.

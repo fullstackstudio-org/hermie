@@ -85,13 +85,22 @@ let package = Package(
       name: "HermieSharedTests", dependencies: ["HermieShared"], exclude: ["Fixtures"], swiftSettings: settings),
     .testTarget(name: "HermieShareKitTests", dependencies: ["HermieShareKit"], swiftSettings: settings),
     .testTarget(name: "HermieMarkdownTests", dependencies: ["HermieMarkdown"], swiftSettings: settings),
-    .testTarget(name: "HermieCoreTests", dependencies: ["HermieCore"], swiftSettings: settings),
+    // Test doubles that must never reach an app: the software passkey authenticator. No product
+    // lists it, and only test targets depend on it.
+    .target(
+      name: "HermiePasskeyTesting",
+      dependencies: ["HermieCore", "HermieGateway"],
+      path: "Tests/HermiePasskeyTesting",
+      swiftSettings: settings
+    ),
+    .testTarget(
+      name: "HermieCoreTests", dependencies: ["HermieCore", "HermiePasskeyTesting"], swiftSettings: settings),
     .testTarget(name: "HermieUITests", dependencies: ["HermieUI"], swiftSettings: settings),
     // Black-box tests against packages/fake-gateway, macOS only; skipped unless HERMIE_INTEGRATION=1.
     // HermieStore too, for onboarding end to end over in-memory stores.
     .testTarget(
       name: "HermieIntegrationTests",
-      dependencies: ["HermieGateway", "HermieProtocol", "HermieCore", "HermieStore"],
+      dependencies: ["HermieGateway", "HermieProtocol", "HermieCore", "HermieStore", "HermiePasskeyTesting"],
       swiftSettings: settings
     )
   ],

@@ -1,6 +1,7 @@
 #if os(macOS)
 import Foundation
 import HermieGateway
+import HermiePasskeyTesting
 import HermieProtocol
 import HermieStore
 import Testing

@@ -1,6 +1,7 @@
 import CryptoKit
 import Foundation
 import HermieGateway
+import HermiePasskeyTesting
 import HermieProtocol
 import Testing
 
@@ -26,25 +27,29 @@ import Testing
 
   static func fixture(
     rpID: String? = rpID,
+    plain: Bool = false,
+    storedID: String = "gw-1",
     pins: [String: PasskeyPinRecord] = [:],
-    authenticator: SoftPasskeyAuthenticator = SoftPasskeyAuthenticator(userHandle: Array(repeating: 9, count: 32))
+    store: (any PasskeyPinStore)? = nil,
+    authenticator: any PasskeyAuthenticator = SoftPasskeyAuthenticator(userHandle: Array(repeating: 9, count: 32))
   ) async -> Fixture {
     let link = ScriptedLink()
     let source = ConfirmCapabilitySource()
-    let store = InMemoryPasskeyPins(pins)
+    let memory = InMemoryPasskeyPins(pins)
     let model = PasskeyModel(
-      storedGatewayID: "gw-1",
+      storedGatewayID: storedID,
       address: address,
       link: link,
       client: nil,
       authenticator: authenticator,
-      configuration: PasskeyConfiguration(rpID: rpID),
-      pins: store,
+      configuration: PasskeyConfiguration(rpID: rpID, plain: plain),
+      pins: store ?? memory,
       source: source,
       now: { 1_790_000_000 }
     )
     await model.start()
-    return Fixture(link: link, model: model, phone: authenticator, source: source, pins: store)
+    let phone = authenticator as? SoftPasskeyAuthenticator ?? SoftPasskeyAuthenticator()
+    return Fixture(link: link, model: model, phone: phone, source: source, pins: memory)
   }
 
   /// The params of a `confirm` frame at level `passkey` listing `ids` for the native RP.
@@ -53,6 +58,7 @@ import Testing
     v: Int = 1,
     gatewayID: [UInt8] = gatewayID,
     rp: String = rpID,
+    expiresAt: Double = 1_790_000_120,
     detail: String? = "  rm -rf /tmp/build\n\tthen: done  "
   ) -> JSONObject {
     var params: JSONObject = [
@@ -65,7 +71,7 @@ import Testing
         "nonce": .string(Base64URL.encode(nonce)),
         "gateway_id": .string(Base64URL.encode(gatewayID)),
         "base_url": "https://gw.example.com",
-        "expires_at": 1_790_000_120,
+        "expires_at": .number(expiresAt),
         "user": ["id": .string(userID), "name": "Alex Example"],
         "credentials": [["rp_id": .string(rp), "ids": .array(ids.map(JSONValue.string))]]
       ]

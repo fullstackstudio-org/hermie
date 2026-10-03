@@ -1,5 +1,6 @@
 import CryptoKit
 import Foundation
+import HermieCore
 import HermieGateway
 import Synchronization
 
@@ -8,6 +9,9 @@ import Synchronization
  authenticator and its client return for a registration and an assertion, so the model, the fake
  gateway and the contract's verifier can be driven end to end without a device. The port of
  `packages/fake-gateway/src/testing/soft-authenticator.ts`.
+
+ It lives in the `HermiePasskeyTesting` target, which only test targets depend on: no app or
+ extension can link a software authenticator.
 
  A test double: one credential per instance, its private key generated in memory. A synced passkey
  sets BE and BS and keeps its counter at 0; a device-bound one counts up with every assertion. The
