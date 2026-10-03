@@ -500,7 +500,9 @@ request open); past it the confirmation ends locally as timed out (`PasskeyConfi
 for the sheet's buttons), and a frame that is already past it on arrival raises a notice instead of
 failing silently. The countdown never ends an answer in flight (`sending`): the reply may still say
 received, and that is what the person reads. During the ceremony it moves the phase first and then
-cancels the authenticator, so the system's passkey sheet goes away with it.
+cancels the authenticator, so the system's passkey sheet goes away with it. The web client keeps the
+same deadline (a frame without a numeric `expires_at` is refused with the malformed-request notice,
+and the deadline is capped at 120 seconds after arrival) and the same order on a withdrawal.
 
 An assertion whose `request.answer` failed without a reply may have been delivered. The confirmation
 remembers it (`answerMayHaveArrived`), the retry sentence says the answer may have reached the gateway,
@@ -531,13 +533,19 @@ block that is never wrapped or cut. Text that looks harmless can hide what runs 
 spaces, a second command; or 80 blank lines before one), so the block draws whitespace visibly
 (`ConfirmDetailMarkup`, the same rules as the web client's `markVerbatimDetail`): a run of 2 to 6
 spaces is that many `·`, a run of 7 or more is `[␣×N]`, a tab is `→`, and a run of 3 or more blank
-lines is one `⋯ N empty lines ⋯`. The block has a viewport of its own (about 220 pt, scaled with
+lines is one `⋯ N empty lines ⋯`. Every other character that draws nothing or moves text unseen is
+shown by its code point, `[U+200B]`, and a run of the same one `[U+00A0×300]`: control characters
+but tab and `\n` (so a lone `\r`, a form feed or a line separator stays on its line), format
+characters (zero-width ones, the byte order mark, direction overrides and isolates, the joiner of
+an emoji sequence too), space separators but the plain space, and the blank letters (Hangul fillers,
+the blank Braille pattern). The block has a viewport of its own (about 220 pt, scaled with
 the text size) that scrolls both ways with the bars always showing; when it overflows, a caption
 says "N lines · longest line M characters". Confirm stays off, with a line saying why, until every
 direction in which it overflows has been scrolled to its end (`ConfirmDetailReview`; once reached it
 stays reached); Decline is never held, and VoiceOver, which reads all of it, markers included as the
 element's label, is not held either. "Copy details" puts the exact original text on the
-pasteboard, local to this device and gone after two minutes on iOS. The gateway limits what it sends as well, but the client is safe on its own. Nothing from the agent or the gateway reaches a
+pasteboard, local to this device and gone after two minutes on iOS. The gateway refuses padded or
+hidden-text details as well, but the client is safe on its own. Nothing from the agent or the gateway reaches a
 button or a heading, and the gateway's `reason` words only pick one of the app's sentences
 (`ConfirmSheetText`). The names of passkeys the gateway holds go through `SecurePrompt.displayText`
 as one bounded line, in the notices and in the list.
