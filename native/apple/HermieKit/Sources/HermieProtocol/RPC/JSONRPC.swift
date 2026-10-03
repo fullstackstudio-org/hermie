@@ -169,15 +169,16 @@ public struct ServerRequest: JSONObjectBacked {
     id.map { JSONRPCResponse(id: .string($0), result: result) }
   }
 
-  /// The error answer to send back (the backend treats it as unanswered).
-  public func fail(code: Int, message: String) -> JSONRPCResponse? {
-    id.map { JSONRPCResponse(id: .string($0), error: JSONRPCError(code: code, message: message)) }
+  /// The error answer to send back (the backend treats it as unanswered). `data` rides along
+  /// when given (`confirm`'s 4040 carries `{reason}`).
+  public func fail(code: Int, message: String, data: JSONValue? = nil) -> JSONRPCResponse? {
+    id.map { JSONRPCResponse(id: .string($0), error: JSONRPCError(code: code, message: message, data: data)) }
   }
 }
 
-/// The typed reading of a server request. The client answers `approval`, `clarify` and the
-/// one-string prompts (`secret`, `sudo`, `vault.*`); everything else is `unknown`, answered
-/// `-32601` by the connection.
+/// The typed reading of a server request. The client answers `approval`, `clarify`, the
+/// one-string prompts (`secret`, `sudo`, `vault.*`) and, where a passkey model listens, `confirm`;
+/// everything else is `unknown`, answered `-32601` by the connection.
 public enum ServerRequestBody: Sendable, Hashable {
   case approval(ApprovalRequestParams)
   case clarify(ClarifyRequestParams)
@@ -186,6 +187,7 @@ public enum ServerRequestBody: Sendable, Hashable {
   case vaultUnlock(VaultUnlockRequestParams)
   case vaultCode(VaultCodeRequestParams)
   case vaultSaveLogin(VaultSaveLoginRequestParams)
+  case confirm(ConfirmRequestParams)
   case unknown(method: String, params: JSONObject)
 
   public enum Method {
@@ -196,9 +198,10 @@ public enum ServerRequestBody: Sendable, Hashable {
     public static let vaultUnlock = "vault.unlock_prompt"
     public static let vaultCode = "vault.code"
     public static let vaultSaveLogin = "vault.save_login"
+    public static let confirm = "confirm"
     /// Every server request the backend declares (`SERVER_REQUEST_METHODS`).
     public static let all = [
-      "approval", "clarify", "preview.act", "preview.read", "secret", "sudo", "terminal.read", "tour",
+      "approval", "clarify", "confirm", "preview.act", "preview.read", "secret", "sudo", "terminal.read", "tour",
       "vault.code", "vault.save_login", "vault.unlock_prompt", "window.read"
     ]
     /// The one-string prompts, answered with `ValueResult` (`''` skips).
@@ -214,6 +217,7 @@ public enum ServerRequestBody: Sendable, Hashable {
     case Method.vaultUnlock: self = .vaultUnlock(VaultUnlockRequestParams(json: params))
     case Method.vaultCode: self = .vaultCode(VaultCodeRequestParams(json: params))
     case Method.vaultSaveLogin: self = .vaultSaveLogin(VaultSaveLoginRequestParams(json: params))
+    case Method.confirm: self = .confirm(ConfirmRequestParams(json: params))
     default: self = .unknown(method: method, params: params)
     }
   }
@@ -227,6 +231,7 @@ public enum ServerRequestBody: Sendable, Hashable {
     case .vaultUnlock: Method.vaultUnlock
     case .vaultCode: Method.vaultCode
     case .vaultSaveLogin: Method.vaultSaveLogin
+    case .confirm: Method.confirm
     case .unknown(let method, _): method
     }
   }
@@ -240,6 +245,7 @@ public enum ServerRequestBody: Sendable, Hashable {
     case .vaultUnlock(let params): params.json
     case .vaultCode(let params): params.json
     case .vaultSaveLogin(let params): params.json
+    case .confirm(let params): params.json
     case .unknown(_, let params): params
     }
   }
@@ -248,7 +254,7 @@ public enum ServerRequestBody: Sendable, Hashable {
   public var isSecureInput: Bool {
     switch self {
     case .secret, .sudo, .vaultUnlock, .vaultCode, .vaultSaveLogin: true
-    case .approval, .clarify, .unknown: false
+    case .approval, .clarify, .confirm, .unknown: false
     }
   }
 }

@@ -50,8 +50,8 @@ public struct ServerRequestDelivery: Sendable {
   /// Answer with a JSON-RPC error; the backend treats the request as unanswered.
   /// Returns whether the answer went out, as `respond` does.
   @discardableResult
-  public func fail(code: Int, message: String) async -> Bool {
-    guard let frame = request.fail(code: code, message: message), let connection else {
+  public func fail(code: Int, message: String, data: JSONValue? = nil) async -> Bool {
+    guard let frame = request.fail(code: code, message: message, data: data), let connection else {
       return false
     }
 

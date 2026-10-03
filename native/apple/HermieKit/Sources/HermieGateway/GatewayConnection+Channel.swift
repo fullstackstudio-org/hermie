@@ -203,12 +203,69 @@ extension GatewayConnection {
   /// server→client requests. Without it a backend treats a WebSocket client as
   /// a build that predates them and fails every clarify and approval at once.
   /// An older backend answers `-32601`; that is ignored.
-  private func advertiseCapabilities() {
-    _ = try? channelCall(
-      RPC.ClientCapabilities.name,
-      params: ["server_requests": true],
-      timeout: options.requestTimeout
-    )
+  ///
+  /// With a `confirm` source the announcement is the contract's two calls: the
+  /// first result decides the second (`ConfirmAdvertisement.secondCall`), and
+  /// the source hears what came back.
+  func advertiseCapabilities() {
+    guard let source = options.confirm else {
+      _ = try? channelCall(
+        RPC.ClientCapabilities.name,
+        params: ["server_requests": true],
+        timeout: options.requestTimeout
+      )
+      return
+    }
+
+    guard let generation = attachedGeneration,
+      let (_, first) = try? channelCall(
+        RPC.ClientCapabilities.name,
+        params: ClientCapabilitiesParams(serverRequests: true).jsonValue,
+        timeout: options.requestTimeout
+      )
+    else {
+      return
+    }
+
+    spawn { await self.completeCapabilities(first, generation: generation, source: source) }
+  }
+
+  /// Run the two-step announcement again on the live socket: what the app can do
+  /// changed (a passkey was enrolled or removed). Nothing happens without a
+  /// `confirm` source or a ready socket; the next `gateway.ready` runs it anyway.
+  public func refreshCapabilities() {
+    guard options.confirm != nil, attachedGeneration != nil, currentPhase == .ready else {
+      return
+    }
+
+    advertiseCapabilities()
+  }
+
+  private func completeCapabilities(
+    _ first: Promise<RPCReply<JSONValue>>,
+    generation: UInt64,
+    source: ConfirmCapabilitySource
+  ) async {
+    let parsed = (try? await first.value().result).flatMap(ClientCapabilitiesResult.init(jsonValue:))
+    let policy = source.policy
+    let verdict = ConfirmAdvertisement.verdict(parsed?.confirmPasskey, policy: policy.passkey)
+
+    // Re-check after the suspension: the socket the first call went out on may be gone.
+    guard attachedGeneration == generation, let parsed,
+      let params = ConfirmAdvertisement.secondCall(after: parsed, policy: policy),
+      let (_, second) = try? channelCall(RPC.ClientCapabilities.name, params: params.jsonValue, timeout: options.requestTimeout)
+    else {
+      source.record(ConfirmCapabilityReport(first: parsed, verdict: verdict, accepted: []))
+      return
+    }
+
+    let answer = (try? await second.value().result).flatMap(ClientCapabilitiesResult.init(jsonValue:))
+    let wanted = Set(params.confirm ?? [])
+    let accepted = (answer?.confirm ?? []).filter { wanted.contains($0) }
+    // Advertised but refused: the gateway did not take it after all.
+    let outcome = verdict == .advertised && !accepted.contains(.passkey) ? .notOffered : verdict
+
+    source.record(ConfirmCapabilityReport(first: parsed, verdict: outcome, accepted: accepted))
   }
 
   // MARK: Server→client requests
@@ -249,6 +306,9 @@ extension GatewayConnection {
     switch request.body {
     case .approval, .clarify, .secret, .sudo, .vaultUnlock, .vaultCode, .vaultSaveLogin:
       supported = true
+    case .confirm:
+      // Only a connection that announced `confirm` has someone to answer it.
+      supported = options.confirm != nil
     case .unknown:
       supported = false
     }

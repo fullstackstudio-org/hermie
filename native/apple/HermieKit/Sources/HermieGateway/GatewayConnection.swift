@@ -69,6 +69,10 @@ public actor GatewayConnection {
     public var random: @Sendable () -> Double = { Double.random(in: 0..<1) }
     /// Fetch `session.events.since` after a reconnect.
     public var replay = true
+    /// The two-step `client.capabilities` for `confirm` (`ConfirmCapabilities.swift`), and the
+    /// `confirm` requests delivered to the app. `nil`: the single `{server_requests: true}` call,
+    /// and every `confirm` answered `-32601`.
+    public var confirm: ConfirmCapabilitySource?
 
     public init() {}
   }

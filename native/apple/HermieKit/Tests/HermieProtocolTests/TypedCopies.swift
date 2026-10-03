@@ -452,6 +452,16 @@ enum TypedCopy {
             $0.origin = p.origin
             $0.site = p.site
           })
+      case .confirm(let p):
+        .confirm(
+          with(ConfirmRequestParams()) {
+            $0.sessionID = p.sessionID
+            $0.title = p.title
+            $0.summary = p.summary
+            $0.detail = p.detail
+            $0.level = p.level
+            $0.passkey = p.passkey
+          })
       case .unknown: request.body
       }
     return ServerRequest(id: request.id ?? "", body)

@@ -89,6 +89,8 @@ struct HarnessOptions {
   var offlineGrace: Duration = .milliseconds(10)
   var backoff: (@Sendable (Int) -> Duration)?
   var extraHeaders: [String: String]?
+  /// The two-step `client.capabilities` for `confirm`.
+  var confirm: ConfirmCapabilitySource?
 }
 
 /// Build a harness, run `body`, and always stop the connection afterwards (the
@@ -109,6 +111,7 @@ func withHarness(
   connectionOptions.heartbeatInterval = options.heartbeatInterval ?? .zero
   connectionOptions.heartbeatDeadline = options.heartbeatInterval == nil ? .zero : .milliseconds(5000)
   connectionOptions.offlineGrace = options.offlineGrace
+  connectionOptions.confirm = options.confirm
 
   let connection = try GatewayConnection(
     baseURL: testBaseURL,
