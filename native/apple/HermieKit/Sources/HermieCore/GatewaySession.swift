@@ -37,8 +37,10 @@ public final class GatewaySession {
   public struct Options: Sendable {
     public var store = TranscriptStore.Options()
     public var connection = GatewayConnection.Options()
-    /// The visibility a chat screen starts at until the reader's settings arrive.
-    public var defaultVisibility = VisibilityOptions(level: .normal, showBotToBot: true, showThinking: true)
+    /// The visibility a chat screen starts at until the reader's settings arrive:
+    /// the one built-in default, `SyncedSettings.defaultChatView` (`quiet`, no
+    /// reasoning; the owner's call, 2026-10-03).
+    public var defaultVisibility = SyncedSettings.defaultChatView
     public var secureInput = SecureInputCenter.Options()
     /// Passkeys and the `confirm` level `passkey` (`PasskeyModel`). `nil`: the connection announces
     /// no `confirm` level and answers every `confirm` request `-32601`, as before.
