@@ -306,9 +306,12 @@ final class TranscriptListUITests: XCTestCase {
         let line = "page \(page): \(issue.compactDescription) on \(element)"
         // An element only partly inside the scroll view is measured against
         // the edge that clips it; it is audited whole on the next page.
-        let clipped =
-          (issue.auditType == .contrast || issue.auditType == .textClipped)
-          && issue.element.map { !visible.contains($0.frame) } == true
+        #if os(iOS)
+          let clippable = issue.auditType == .contrast || issue.auditType == .textClipped
+        #else
+          let clippable = issue.auditType == .contrast
+        #endif
+        let clipped = clippable && issue.element.map { !visible.contains($0.frame) } == true
         if clipped || Self.toleratedAuditIssue(issue) {
           self.record("audit (tolerated) \(line)")
         } else {

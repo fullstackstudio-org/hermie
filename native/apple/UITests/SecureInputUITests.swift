@@ -125,8 +125,13 @@ final class SecureInputUITests: XCTestCase {
         // on the other page; the Dynamic Type check reports every text on this
         // toolchain; "nearly passed" is the system's secondary colour.
         let clipped = issue.auditType == .contrast && issue.element.map { !visible.contains($0.frame) } == true
+        #if os(iOS)
+          let dynamicType = issue.auditType == .dynamicType
+        #else
+          let dynamicType = false
+        #endif
         let tolerated =
-          clipped || issue.auditType == .dynamicType
+          clipped || dynamicType
           || (issue.auditType == .contrast && issue.compactDescription.localizedCaseInsensitiveContains("nearly passed"))
         if tolerated {
           print("[secure-input-ui] audit (tolerated) \(line)")

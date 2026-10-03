@@ -101,6 +101,8 @@ final class ComposerUITests: XCTestCase {
 
   // MARK: The keyboard alone (iPad)
 
+  // The Mac's keys are `ComposerKeyTests` (HermieKit), on the text view itself.
+  #if os(iOS)
   func testAHardwareKeyboardSendsWithReturnAddsALineWithShiftReturnAndStopsWithEsc() throws {
     guard UIDevice.current.userInterfaceIdiom == .pad else {
       throw XCTSkip("Hardware-keyboard rules are tested on the iPad.")
@@ -153,6 +155,7 @@ final class ComposerUITests: XCTestCase {
     XCTAssertTrue(sheetOnce.waitForNonExistence(timeout: 10))
     XCTAssertTrue(app.buttons["approval.once"].firstMatch.waitForExistence(timeout: 10))
   }
+  #endif
 
   // MARK: Accessibility
 
@@ -228,8 +231,13 @@ final class ComposerUITests: XCTestCase {
       // As in the gallery audit (docs/native.md): the Dynamic Type check reports
       // every text on this toolchain, and "nearly passed" is the system's own
       // secondary label colour.
+      #if os(iOS)
+        let dynamicType = issue.auditType == .dynamicType
+      #else
+        let dynamicType = false
+      #endif
       let tolerated =
-        issue.auditType == .dynamicType
+        dynamicType
         || (issue.auditType == .contrast && issue.compactDescription.localizedCaseInsensitiveContains("nearly passed"))
       if tolerated {
         print("[composer-ui] audit (tolerated) \(line)")
