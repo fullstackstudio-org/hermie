@@ -36,7 +36,7 @@ struct PasskeyNoticeRow: View {
   var body: some View {
     HStack(alignment: .firstTextBaseline, spacing: 10) {
       Image(systemName: PasskeysText.noticeSymbol(notice.kind))
-        .foregroundStyle(.orange)
+        .foregroundStyle(Color.primary)
         .accessibilityHidden(true)
 
       VStack(alignment: .leading, spacing: 8) {

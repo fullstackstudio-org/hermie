@@ -166,6 +166,8 @@
 	<string>Stop</string>
 	<key>native.composer.stopped</key>
 	<string>Response stopped</string>
+	<key>native.confirm.address</key>
+	<string>Address %@</string>
 	<key>native.confirm.answeredElsewhere</key>
 	<string>Another device answered this request.</string>
 	<key>native.confirm.cannotConfirm</key>

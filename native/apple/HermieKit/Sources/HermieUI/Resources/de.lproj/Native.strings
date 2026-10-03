@@ -166,6 +166,8 @@
 	<string>Stoppen</string>
 	<key>native.composer.stopped</key>
 	<string>Antwort gestoppt</string>
+	<key>native.confirm.address</key>
+	<string>Adresse %@</string>
 	<key>native.confirm.answeredElsewhere</key>
 	<string>Ein anderes Gerät hat diese Anfrage beantwortet.</string>
 	<key>native.confirm.cannotConfirm</key>
