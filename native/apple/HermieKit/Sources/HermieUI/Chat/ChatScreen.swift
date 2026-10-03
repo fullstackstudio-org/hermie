@@ -170,6 +170,8 @@ struct ChatSessionView<Composer: View>: View {
   /// chat list in views of their own), so a delta re-evaluates `ChatTranscript` and nothing here.
   var body: some View {
     let feed = owner.feed
+    // A page pushed on the chat or a sheet over it: the feed runs on, but marks nothing read.
+    let covered = router?.covers(chat) ?? false
 
     ZStack {
       if let feed {
@@ -220,6 +222,7 @@ struct ChatSessionView<Composer: View>: View {
           return built
         }
         next.sceneChanged(active: active)
+        next.coverChanged(covered: covered)
         return next
       }
       ChatLifecycleLog.note("screen #\(owner.screen) appeared: \(chat.bot), feed f\(owner.feed?.tag ?? 0)")
@@ -230,6 +233,9 @@ struct ChatSessionView<Composer: View>: View {
     }
     .onChange(of: scenePhase) { _, phase in
       owner.feed?.sceneChanged(active: phase == .active)
+    }
+    .onChange(of: covered) { _, covered in
+      owner.feed?.coverChanged(covered: covered)
     }
     .onKeyPress(.escape) {
       // Back to the list where the chat was pushed over it (iPhone, a narrow iPad window).
@@ -410,6 +416,11 @@ struct ChatTitle: ViewModifier {
   let diagnostics: () -> String
 
   @State private var copied = 0
+  /// "Copied" stands in the subtitle's place for a moment after a copy.
+  @State private var confirming = false
+
+  /// How long the press lasts before it copies: long enough that nobody does it by accident.
+  static let pressDuration = 1.5
 
   func body(content: Content) -> some View {
     let title = session.chatList.rows[chat.bot]?.bot.displayName ?? chat.bot
@@ -422,10 +433,17 @@ struct ChatTitle: ViewModifier {
         // the back button and the app switcher.
         .toolbar {
           ToolbarItem(placement: .principal) {
-            ChatTitleView(title: title, subtitle: subtitle)
-              .onLongPressGesture(minimumDuration: 0.8) { copy() }
+            ChatTitleView(title: title, subtitle: confirming ? NativeStrings.Chat.diagnosticsCopied : subtitle)
+              .onLongPressGesture(minimumDuration: Self.pressDuration) { copy() }
               .accessibilityAction(named: NativeStrings.Chat.copyDiagnostics) { copy() }
               .sensoryFeedback(.success, trigger: copied)
+              .task(id: copied) {
+                guard copied > 0 else { return }
+                confirming = true
+                AccessibilityNotification.Announcement(NativeStrings.Chat.diagnosticsCopied).post()
+                try? await Task.sleep(for: .seconds(1.5))
+                confirming = false
+              }
               #if DEBUG
                 .onReceive(NotificationCenter.default.publisher(for: SwitchDrill.copyDiagnostics)) { _ in copy() }
               #endif
@@ -477,6 +495,8 @@ struct ChatTitle: ViewModifier {
       .lineLimit(1)
       // The bar's own title stops growing here too.
       .dynamicTypeSize(...DynamicTypeSize.xxxLarge)
+      // Capped as the bar's title is, so at the accessibility sizes a press shows it large.
+      .accessibilityShowsLargeContentViewer()
       .accessibilityElement(children: .combine)
       .accessibilityAddTraits(.isHeader)
       .accessibilityIdentifier("hermie.chat.title")

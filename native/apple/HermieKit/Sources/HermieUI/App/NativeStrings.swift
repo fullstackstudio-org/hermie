@@ -34,6 +34,10 @@ enum NativeStrings {
     static var copyDiagnostics: String {
       String(localized: "native.chat.copyDiagnostics", table: "Native", bundle: .module)
     }
+    /// Copied (in the title's subtitle place for a moment after the diagnostics were copied)
+    static var diagnosticsCopied: String {
+      String(localized: "native.chat.diagnosticsCopied", table: "Native", bundle: .module)
+    }
   }
 
   enum ChatList {

@@ -31,8 +31,10 @@ import Observation
 
  # Read marks
 
- The chat is marked read while its newest row is on screen and the window is in front, whenever
- the newest row changes, a moment after it settles; and once more when the screen goes away.
+ The chat is marked read while its newest row is on screen, the window is in front and nothing
+ covers the screen (a page pushed on the chat, a sheet), whenever the newest row changes, a moment
+ after it settles; when the cover goes, if the reader is at the bottom; and once more when the
+ screen goes away.
  */
 @MainActor
 @Observable
@@ -57,6 +59,8 @@ final class ChatFeed: ChatScreenFeed {
   private(set) var loadingOlder = false
   /// Why the last open failed, for the banner over the transcript.
   private(set) var openError: String?
+  /// What kind of failure that was, without its words (`ChatResolver.category`), for diagnostics.
+  @ObservationIgnored private(set) var openErrorKind: String?
 
   @ObservationIgnored let listState = TranscriptListState()
   @ObservationIgnored let expansion = TranscriptExpansion()
@@ -74,6 +78,13 @@ final class ChatFeed: ChatScreenFeed {
   @ObservationIgnored private var failedEpoch = -1
   @ObservationIgnored private var historyExhausted = false
   @ObservationIgnored private var sceneActive = true
+  /// Something stands over the screen (a page pushed on the chat, a sheet): the feed keeps running
+  /// under it, but marks nothing read until it goes (`coverChanged`).
+  @ObservationIgnored private(set) var covered = false
+  /// Read marks sent, for the tests and the diagnostics.
+  @ObservationIgnored private(set) var readMarks = 0
+  /// How long the newest row must stay on screen before it is marked read.
+  @ObservationIgnored var readMarkDelay: Duration = .milliseconds(600)
   @ObservationIgnored private var markTask: Task<Void, Never>?
   /// The newest row (id and version) last marked read.
   @ObservationIgnored private var markedKey: String?
@@ -171,6 +182,22 @@ final class ChatFeed: ChatScreenFeed {
   func sceneChanged(active: Bool) {
     sceneActive = active
     markReadSoon()
+  }
+
+  /// A page or a sheet came over the screen, or went. Uncovered, a reader at the bottom gets the
+  /// newest row marked read as usual.
+  func coverChanged(covered: Bool) {
+    guard self.covered != covered else {
+      return
+    }
+
+    self.covered = covered
+
+    if covered {
+      markTask?.cancel()
+    } else {
+      markReadSoon()
+    }
   }
 
   // MARK: Snapshots
@@ -273,11 +300,18 @@ final class ChatFeed: ChatScreenFeed {
       do {
         try await session.open(name)
         openError = nil
+        openErrorKind = nil
       } catch {
         failedEpoch = epoch
-        openError = ChatResolver.describe(error)
+        recordOpenFailure(error)
       }
     }
+  }
+
+  /// The open failed: its words for the banner, its kind for diagnostics.
+  func recordOpenFailure(_ error: any Error) {
+    openError = ChatResolver.describe(error)
+    openErrorKind = ChatResolver.category(error)
   }
 
   // MARK: History
@@ -302,7 +336,7 @@ final class ChatFeed: ChatScreenFeed {
   // MARK: Read marks
 
   private func markReadSoon() {
-    guard sceneActive, listState.isAtBottom, hydration == .live, let last = rows.last else {
+    guard sceneActive, !covered, listState.isAtBottom, hydration == .live, let last = rows.last else {
       return
     }
 
@@ -313,14 +347,16 @@ final class ChatFeed: ChatScreenFeed {
     }
 
     markTask?.cancel()
+    let delay = readMarkDelay
     markTask = Task { [weak self] in
-      try? await Task.sleep(for: .milliseconds(600))
+      try? await Task.sleep(for: delay)
 
-      guard let self, !Task.isCancelled, !self.stopped, self.sceneActive, self.listState.isAtBottom else {
+      guard let self, !Task.isCancelled, !self.stopped, self.sceneActive, !self.covered, self.listState.isAtBottom else {
         return
       }
 
       self.markedKey = key
+      self.readMarks += 1
       await self.session.markRead(self.name)
     }
   }

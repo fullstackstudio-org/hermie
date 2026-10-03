@@ -212,7 +212,14 @@ public final class ChatModel {
   public private(set) var visibility: VisibilityOptions
 
   /// The last thing an action could not do, for a banner.
-  public private(set) var lastError: String?
+  public private(set) var lastError: String? {
+    didSet {
+      if lastError == nil { lastErrorKind = nil }
+    }
+  }
+  /// What kind of failure `lastError` was, without its words (`ChatResolver.category`), for
+  /// diagnostics.
+  @ObservationIgnored public private(set) var lastErrorKind: String?
   /// A short word for a card whose answer did not go out, by request id: the
   /// socket that delivered the question is gone, and the card stays open until
   /// the gateway asks again after the reconnect. Gone once the card closes.
@@ -262,6 +269,12 @@ public final class ChatModel {
   /// The chat is bound to a runtime session and the socket is up.
   public var canSend: Bool { (snapshot?.attached ?? false) && connectionReady }
 
+  /// An action failed: its words for the banner, its kind for diagnostics.
+  func record(_ error: any Error) {
+    lastError = ChatResolver.describe(error)
+    lastErrorKind = ChatResolver.category(error)
+  }
+
   func apply(_ snapshot: ChatSnapshot) {
     withMutation(keyPath: \.snapshot) {
       storedSnapshot = snapshot
@@ -296,6 +309,7 @@ public final class ChatModel {
 
     guard canSend else {
       lastError = ChatRuntimeError.notAttached(key).message
+      lastErrorKind = "runtime.notAttached"
       return
     }
 
@@ -313,8 +327,9 @@ public final class ChatModel {
       }
 
       lastError = error.message
+      lastErrorKind = ChatResolver.category(error)
     } catch {
-      lastError = ChatResolver.describe(error)
+      record(error)
     }
   }
 
@@ -358,7 +373,7 @@ public final class ChatModel {
         cardNotices[requestID] = Self.unsentAnswerNotice
       }
     } catch {
-      lastError = ChatResolver.describe(error)
+      record(error)
     }
   }
 
@@ -384,7 +399,7 @@ public final class ChatModel {
       try await action(store, key)
       lastError = nil
     } catch {
-      lastError = ChatResolver.describe(error)
+      record(error)
     }
   }
 }

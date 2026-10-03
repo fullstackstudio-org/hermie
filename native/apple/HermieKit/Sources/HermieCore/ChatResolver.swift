@@ -199,4 +199,31 @@ public actor ChatResolver {
     default: String(describing: error)
     }
   }
+
+  /// What kind of failure `error` is, without its words: a kind and a status or JSON-RPC code at
+  /// most, never a message, an address or anything the gateway sent. For diagnostics a person may
+  /// paste anywhere (`describe` is for the screen).
+  public static func category(_ error: any Error) -> String {
+    switch error {
+    case let rpc as GatewayRPCError:
+      "rpc.\(rpc.kind)" + (rpc.code.map { " \($0)" } ?? "")
+    case let gateway as GatewayError:
+      "gateway.\(gateway.kind.rawValue)" + (gateway.status.map { " \($0)" } ?? "")
+    case is ResolutionError:
+      "resolution"
+    case let runtime as ChatRuntimeError:
+      runtime.isNotAttached ? "runtime.notAttached" : "runtime"
+    case let access as GatewayAccessError:
+      switch access {
+      case .unknownGateway: "access.unknownGateway"
+      case .keychain: "access.keychain"
+      case .signedOut: "access.signedOut"
+      }
+    case is CancellationError:
+      "cancelled"
+    default:
+      // The type's name only: an enum's payload or a struct's fields could carry text.
+      "other.\(String(describing: type(of: error)))"
+    }
+  }
 }

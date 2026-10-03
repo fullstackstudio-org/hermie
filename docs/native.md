@@ -905,19 +905,25 @@ and `chat` seams. Both read the session from `LiveGateway` in the environment.
   chat closed, another chat selected, the session replaced). Each feed holds a `ChatLease` of its own
   on the bot's `ChatModel` and gives back only that one, so an old screen's late teardown cannot
   take the model from the screen that holds it now.
-- **Diagnostics.** A long press on the chat's title (and the title's accessibility action) copies
-  what the screen knows about itself (`ChatDiagnostics`): the screen's appearances, its feed and the
-  chat's state in the store, the lease holders, the list's bounds and content size, and the last
-  lifecycle events of every chat screen (`ChatLifecycleLog`, also in the unified log as
-  `dev.hermie.app`, category `chat`). It works on a screen that draws nothing, and names bots, counts
-  and states only. On iOS the title and subtitle are a view of our own in the bar's principal
-  place, drawn as the bar draws them, so the press can reach them.
+- **Diagnostics.** A press of 1.5 s on the chat's title (and the title's accessibility action)
+  copies what the screen knows about itself (`ChatDiagnostics`): the screen's appearances, its feed
+  and the chat's state in the store, the lease holders, the read marks, the list's bounds and content
+  size, and the last lifecycle events of every chat screen (`ChatLifecycleLog`, also in the unified
+  log as `dev.hermie.app`, category `chat`); "Copied" stands in the subtitle's place for a moment,
+  with a haptic and a VoiceOver announcement. It works on a screen that draws nothing. It names
+  bots, counts and states, and a failure only by its kind and status code
+  (`ChatResolver.category`, `lastErrorKind`, `openErrorKind`, `failureKind`): no draft, message,
+  error text or address, since an error's words can carry the gateway's URL. On iOS the title and
+  subtitle are a view of our own in the bar's principal place, drawn as the bar draws them, so the
+  press can reach them; it keeps the large content viewer at the accessibility text sizes.
   `-HermieSwitchDrill` (debug builds, `Debug/SwitchDrill.swift`) switches between chats as a hand
   does and logs each step, to reproduce a switch without a UI test.
 - **History** loads through `TranscriptListState.onNearTop` and `ChatModel.loadOlder`, one page at a
   time, until the answer is not `grew`.
-- **Read marks** move while the newest row is on screen and the window is in front, and once more
-  when the screen goes away.
+- **Read marks** move while the newest row is on screen, the window is in front and nothing of the
+  router's covers the chat (a page pushed on it, a sheet: `AppRouter.covers`), and once more when
+  the screen goes away. The feed keeps running under a cover; when the cover goes, a reader at the
+  bottom gets the newest row marked read.
 - **The composer and the answers.** One `ComposerModel`, `RequestsModel` and `SecureInputModel` per
   open chat screen (`ChatFeed`). `ChatScreen(chat:)` places `StandardComposer` (`ComposerView` with
   the request and secure-prompt notices above it) with `safeAreaInset`; `ChatScreen(chat:actions:

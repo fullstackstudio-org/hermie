@@ -51,7 +51,14 @@ public final class LiveGateway {
   public private(set) var session: GatewaySession?
   /// The gateway `session` belongs to, or the one that could not be opened.
   public private(set) var gatewayID: String?
-  public private(set) var phase = LiveGatewayPhase.none
+  public private(set) var phase = LiveGatewayPhase.none {
+    didSet {
+      if case .failed = phase {} else { failureKind = nil }
+    }
+  }
+  /// What kind of failure `.failed` was, without its words (`ChatResolver.category`), for
+  /// diagnostics.
+  @ObservationIgnored public private(set) var failureKind: String?
 
   @ObservationIgnored public let directory: GatewayDirectory
   @ObservationIgnored private let connector: Connector
@@ -259,6 +266,7 @@ public final class LiveGateway {
     } catch GatewayAccessError.signedOut {
       phase = .signedOut
     } catch {
+      failureKind = ChatResolver.category(error)
       phase = .failed(ChatResolver.describe(error))
     }
   }

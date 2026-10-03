@@ -152,6 +152,12 @@ public final class AppRouter {
     }
   }
 
+  /// Something of this router's stands over `chat`'s screen: a page pushed on it, or a sheet. A
+  /// chat this router does not show (another window's) is never covered by it.
+  public func covers(_ chat: ChatRef) -> Bool {
+    selectedChat == chat && (!detailPath.isEmpty || sheet != nil)
+  }
+
   public func push(_ route: DetailRoute) {
     detailPath.append(route)
   }
