@@ -8,11 +8,11 @@ the threat model that follows from it are in
 
 **Status: boot only.** What exists is the build, its checks, and the boot: the client refuses to run in a
 frame, finds its gateway from its own address, probes it, and reads who is signed in on the gateway's own
-session. Signed in, it shows the build it came from and who you are, with a way to sign out. The connection
-and the bot roster exist as React-free code with their tests ("Connection" below) but no screen uses them
-yet; there is no chat, and the plugin does not serve this build. Until that changes, the browser keeps
-running the Expo app's web export through Hermie Web ([docs/web.md](../../docs/web.md)); nothing here
-replaces it.
+session. Signed in, it shows the build it came from and who you are, with a way to sign out. The connection,
+the bot roster and the chats exist as React-free code with their tests ("Connection" and "Chats" below) but
+no screen uses them yet; there is no chat screen, and the plugin does not serve this build. Until that
+changes, the browser keeps running the Expo app's web export through Hermie Web
+([docs/web.md](../../docs/web.md)); nothing here replaces it.
 
 ## Running it
 
@@ -196,6 +196,46 @@ closes the socket and empties the stores; call it before signing out. The rules 
 `core/gateway-client.ts`; `core/gateway-client.integration.test.ts` runs them against the fake gateway in
 cookie mode, dropped sockets included.
 
+## Chats
+
+The transcript life cycle (resume, history and paging, reconcile, replay, foreign turns, send, queue, steer,
+interrupt, approval and clarify answers, conversations) is the Expo app's chat controller, ported whole and
+running on `@hermie/transcript` unchanged.
+
+| File                      | What                                                                                 |
+| ------------------------- | ------------------------------------------------------------------------------------ |
+| `core/chat-controller.ts` | `ChatController`, and `connectChats`, which runs it on the page's connection (below) |
+| `core/ingest.ts`          | the one road into the chat store: wire order, one commit per frame                   |
+| `core/sessions/`          | conversation model and list: canonical chat, branches, the reader's own chats        |
+| `core/chats/`             | uploads, the turn claim, the own author, the read watermark, regenerate, bound chat  |
+| `state/chats.ts`          | zustand vanilla store: every open chat, the queues, runtime id to bot, the live set  |
+
+`connectChats({ client, cache, author })` takes the `GatewayClient` and the boot's `signed_in.author`, starts
+the controller, and follows the page: shown, the approval and subagent polls resume; hidden, they stop, what
+arrived is committed and every live chat is written to the cache. `stop()` empties the chat store; call it
+before `GatewayClient.stop`. The Expo app's share outbox and Shortcuts queue have no counterpart here; their
+call sites are `ChatRuntimeHooks`, which does nothing by default.
+
+The ingest, as rules (in full at the top of `core/ingest.ts`):
+
+- Gateway events join one queue in arrival order and are applied to the engine at the next animation frame.
+  A server request joins the same queue and is applied at once, behind every event that arrived before it,
+  because the channel needs its answer synchronously.
+- The store's actions are routed through the ingest, and the controller reads and writes a working copy:
+  every read or write drains the queue first, so an RPC answer the controller applies after an `await` lands
+  behind every event that arrived before the answer, and the controller reads exactly what the Expo store
+  would have handed it.
+- Applying is not committing: the working copy reaches the store in one `setState` per frame, and a screen
+  subscribed to the store sees one change per frame however many events it carried. While the page is hidden
+  the frame is a 100 ms timer, because `requestAnimationFrame` does not run there.
+- A drain is a synchronous loop and never spans an `await`; a handler that throws costs its own arrival only.
+
+`core/chat-controller.integration.test.ts` runs it against the fake gateway in cookie mode: a chat with 1000
+rows of back-history opened on the REST tail and paged back to its first row, a scripted turn, a send, an
+interrupt, an approval and a clarify raised through `/__fake/request`, and a socket dropped mid-turn with no
+duplicate and no lost item. The ported Expo tests run the controller on `immediateFrames`, which commits every
+write at once as the Expo store did; the batching itself is `core/ingest.test.ts`'s.
+
 ## Layout
 
 ```
@@ -209,11 +249,13 @@ scripts/
 src/
   main.tsx                  the boot sequence and its screens (the only React outside features/)
   boot/                     frame guard, base path, auth mode and cookie session, sign-in bounce, boot
-  core/                     the connection and its lifecycle, the roster controller, the advert (above)
-  state/                    zustand vanilla stores: connection, bots, plugin
+  core/                     the connection and its lifecycle, the roster controller, the advert, the chat
+                            controller and the ingest (above)
+  state/                    zustand vanilla stores: connection, bots, plugin, chats
   platform/                 the browser seams (above)
   test-support/             test doubles: an IndexedDB, a fetch, a fetch with a cookie jar, a chat
-                            gateway, the page's visibility and network
+                            gateway, the page's visibility and network, and a copy of the Expo app's
+                            reader's-own-chat directory for the sub-chats test
   Placeholder.tsx           what a signed-in reader sees for now: heading and build label
   build-info.ts             version and commit injected by the build
   ui/base.css               page ground for both colour schemes (the policy forbids inline styles)
