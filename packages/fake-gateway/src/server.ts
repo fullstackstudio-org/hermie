@@ -7543,6 +7543,9 @@ export async function startFakeGateway(options: FakeGatewayOptions = {}): Promis
         // carry it, and a client that never asked to receive server requests
         // has no other way to learn it is there.
         const pending = [...state.pendingApprovals.values()].find(entry => entry.session_id === session.storedId)
+        // As the gateway answers (`tui_gateway/server.py`, `if value:`): the key
+        // is left out when nothing is open. `session.events.since` always carries it.
+        const open = openRequestsFor(session.id, caller)
 
         return {
           session_id: session.id,
@@ -7551,7 +7554,7 @@ export async function startFakeGateway(options: FakeGatewayOptions = {}): Promis
           messages: omit ? [] : session.messages,
           messages_omitted: omit,
           info: sessionInfo(session),
-          open_requests: openRequestsFor(session.id, caller),
+          ...(open.length > 0 ? { open_requests: open } : {}),
           ...(pending ? { pending_approval: pending.payload } : {})
         }
       }

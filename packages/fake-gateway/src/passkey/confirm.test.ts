@@ -677,9 +677,10 @@ describe('who sees and answers it', () => {
     const refused = await submit(stranger, frame.id, answerWith(frame, phoneOfBob, bob, s.h))
 
     expect(refused.error?.code).toBe(4033)
+    // A resume leaves an empty list out, as the gateway does.
     expect(
       (await stranger.call('session.resume', { session_id: frame.params.session_id })).result?.open_requests
-    ).toEqual([])
+    ).toBeUndefined()
     expect(
       (await s.app.call('session.resume', { session_id: frame.params.session_id })).result?.open_requests
     ).toMatchObject([{ id: frame.id, method: 'confirm' }])
@@ -728,9 +729,10 @@ describe('who sees and answers it', () => {
     const again = await connect(s.h, s.alice.headers)
 
     // Before it advertises the level it cannot see the request or answer it.
-    expect((await again.call('session.resume', { session_id: frame.params.session_id })).result?.open_requests).toEqual(
-      []
-    )
+    // A resume leaves an empty list out, as the gateway does.
+    expect(
+      (await again.call('session.resume', { session_id: frame.params.session_id })).result?.open_requests
+    ).toBeUndefined()
     expect((await submit(again, frame.id, answerWith(frame, s.phone, s.alice, s.h))).error?.code).toBe(4033)
 
     await advertise(again)
@@ -1052,9 +1054,10 @@ describe('timing out', () => {
     await s.app.next(f => f.params?.payload?.reason === 'timeout', 'the cancel')
     expect(s.app.cancels()).toEqual([{ id: frame.id, method: 'confirm', reason: 'timeout' }])
     expect((await outcomes(s.h))[0]).toMatchObject({ outcome: 'timeout', reason: 'timeout', verified: false })
-    expect((await s.app.call('session.resume', { session_id: frame.params.session_id })).result?.open_requests).toEqual(
-      []
-    )
+    // A resume leaves an empty list out, as the gateway does.
+    expect(
+      (await s.app.call('session.resume', { session_id: frame.params.session_id })).result?.open_requests
+    ).toBeUndefined()
     expect((await submit(s.app, frame.id, DECLINE)).result).toEqual({ status: 'expired' })
   })
 
