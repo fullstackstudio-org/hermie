@@ -247,6 +247,7 @@ struct PasskeyCredentialRow: View {
       }
       .frame(maxWidth: .infinity, alignment: .leading)
       .accessibilityElement(children: .combine)
+      .accessibilityIdentifier("hermie.passkeys.credential")
 
       Button(NativeStrings.Passkeys.removeAction, systemImage: "trash", role: .destructive, action: remove)
         .labelStyle(.iconOnly)
@@ -257,7 +258,6 @@ struct PasskeyCredentialRow: View {
         .accessibilityIdentifier("hermie.passkeys.remove")
     }
     .accessibilityElement(children: .contain)
-    .accessibilityIdentifier("hermie.passkeys.credential")
   }
 
   static func added(_ at: Double?) -> String {
