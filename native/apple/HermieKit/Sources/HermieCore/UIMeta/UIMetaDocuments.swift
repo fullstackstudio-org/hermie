@@ -45,7 +45,7 @@ public struct UIMetaDocuments: Sendable, Hashable, Codable {
   /// moment an older device wrote.
   public static let keptWhenAbsent: Set<String> = [
     UIMetaField.entries, UIMetaField.folders, UIMetaField.pinned, UIMetaField.myChats, UIMetaField.current,
-    UIMetaField.labels, UIMetaField.mutes, UIMetaField.defaults, UIMetaField.botNameOrder, UIMetaField.textSize,
+    UIMetaField.labels, UIMetaField.mutes, UIMetaField.archivedBots, UIMetaField.defaults, UIMetaField.botNameOrder, UIMetaField.textSize,
     UIMetaField.themeChoice, UIMetaField.themes
   ]
 

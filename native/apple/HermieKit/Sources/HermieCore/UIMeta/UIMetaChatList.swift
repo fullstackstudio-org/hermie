@@ -25,12 +25,16 @@ public enum MuteDuration: String, Sendable, Hashable, CaseIterable {
 }
 
 /**
- The chat list's three per-chat choices as `ui_meta` holds them, read out of the device's copy
- (`UIMetaDocuments`), and the edits that write them back. The wire is the web client's and the
- Expo app's, byte for byte (`projectApp` / `projectBots` in `native/web/src/core/ui-meta-bridge.ts`):
+ The chat list's per-chat choices as `ui_meta` holds them, read out of the device's copy
+ (`UIMetaDocuments`), and the edits that write them back. The wire is the web client's
+ (`projectApp` in `native/web/src/core/ui-meta-bridge.ts`, plus `archivedBots`, which it adopts):
 
- - **archived** lives on the bot's own profile, in its `hermie` section: `{"v": 1, "archived": true}`.
-   Unarchiving removes the field, and a section left with nothing but its version is removed whole.
+ - **archivedBots** is the app section's archive: bot names, sorted, no duplicates. A chat is
+   archived for this person if and only if it is in the list; a bot gone from the roster stays in
+   it harmlessly. Until the person's section has the field, it is seeded once, as a chore (it never
+   wins over the gateway's copy), from the bots whose shared `hermie` section says
+   `archived: true`, the flag the Expo app and older builds wrote. That flag is never written here
+   and never changed: the frozen Expo app may still read it.
  - **pinned** is the app section's `pinned`: a list of bot names, in the order they were pinned.
  - **mutes** is the app section's `mutes`: bot name to the unix SECOND the mute lapses, `0` for
    never. A deadline in the past is not a mute, whether or not anybody swept it yet.
@@ -38,9 +42,8 @@ public enum MuteDuration: String, Sendable, Hashable, CaseIterable {
    `{"kind": "folder", "id"}`) and `folders` (`{"id", "name", "colour"?, "bots"}`), the web
    client's `Arrangement`. This build draws no folders; it shows a folder's chats in its place.
 
- The app section is the signed-in person's own (`hermie-app:<user id>`), so pins, mutes and the
- order are per person. `archived` is not: it lives on the bot's profile, shared by everybody on
- the gateway, as the web client and the Expo app write it.
+ The app section is the signed-in person's own (`hermie-app:<user id>`), so the archive, pins,
+ mutes and order are per person: two people on one gateway never see each other's.
 
  Every other field of either section is carried as it came.
  */
@@ -60,16 +63,11 @@ public struct ChatListArrangement: Sendable, Hashable {
     self.order = order
   }
 
-  /// Read off the device's copy, defensively: another build wrote it.
+  /// Read off the device's copy, defensively: another build wrote it. The archive is the person's
+  /// `archivedBots`, or, until that has been seeded, what it will be seeded with.
   public init(documents: UIMetaDocuments) {
-    var archived = Set<String>()
-
-    for (name, section) in documents.bots where section[UIMetaField.archived] == .bool(true) {
-      archived.insert(name)
-    }
-
     self.init(
-      archived: archived,
+      archived: Set(Self.archivedBots(documents.app) ?? Self.inheritedArchive(documents.bots)),
       pinned: Self.names(documents.app?[UIMetaField.pinned]),
       mutes: Self.mutes(documents.app?[UIMetaField.mutes]),
       order: Self.botsInOrder(documents.app)
@@ -146,15 +144,48 @@ public struct ChatListArrangement: Sendable, Hashable {
     return out
   }
 
+  /// The person's archive, or nil while their section has no `archivedBots` (not seeded yet).
+  static func archivedBots(_ app: JSONObject?) -> [String]? {
+    guard case .array? = app?[UIMetaField.archivedBots] else {
+      return nil
+    }
+
+    return names(app?[UIMetaField.archivedBots]).sorted()
+  }
+
+  /// The bots the shared `hermie` sections mark `archived: true`, sorted: what a person's archive
+  /// is seeded with the first time.
+  static func inheritedArchive(_ bots: [String: JSONObject]) -> [String] {
+    bots.filter { $0.value[UIMetaField.archived] == .bool(true) }.keys.sorted()
+  }
+
   // MARK: - Writing the wire
 
-  /// Archive or unarchive in one bot's `hermie` section.
-  public static func setArchived(_ archived: Bool, in section: inout JSONObject) {
+  /// Archive or unarchive in the person's app section: `archivedBots`, sorted and without
+  /// duplicates. `current` is the archive as read (`archived`), so an unseeded section writes the
+  /// inherited names along with the change. The bot sections are not touched.
+  public static func setArchived(_ name: String, _ archived: Bool, current: Set<String>, in app: inout JSONObject) {
+    var list = Set(archivedBots(app) ?? Array(current))
+
     if archived {
-      section[UIMetaField.archived] = .bool(true)
+      list.insert(name)
     } else {
-      section.removeValue(forKey: UIMetaField.archived)
+      list.remove(name)
     }
+
+    app[UIMetaField.archivedBots] = .array(list.sorted().map(JSONValue.string))
+  }
+
+  /// The one-time seed: `archivedBots` from the shared flags, when the section has no such field.
+  /// Answers whether it wrote. The caller writes it as a chore.
+  @discardableResult
+  public static func seedArchive(from bots: [String: JSONObject], in app: inout JSONObject) -> Bool {
+    guard archivedBots(app) == nil else {
+      return false
+    }
+
+    app[UIMetaField.archivedBots] = .array(inheritedArchive(bots).map(JSONValue.string))
+    return true
   }
 
   /// Pin or unpin in the app section. A new pin goes to the end (`setPinned`); the field is kept
@@ -288,10 +319,10 @@ public struct ChatListArrangement: Sendable, Hashable {
    (`{"kind": "chat", "name": …}`, folders by id), or the folder's `bots`. Every other field of the
    section, every folder and every entry this build does not know is carried.
 
-   First the roster is folded in (`reconcileBots`): a bot the arrangement does not place yet lands at
-   the end of the loose top-level run, before the first folder, so the order written is the one on
-   screen. Bots the arrangement holds and the roster does not are kept: a roster read from the cache
-   can lag, and losing a position is not this move's call.
+   First the roster is folded in (`reconcileBots`): a bot the roster no longer has is dropped from
+   wherever it was, and a bot the arrangement does not place yet lands at the end of the loose
+   top-level run, before the first folder, so the order written is the one on screen. An empty
+   roster (nothing read yet) folds nothing in and drops nothing.
 
    A move between containers (out of a folder, say) is not made here: this build has no folders to
    drop into, and running off the end of one is not a step anybody asked for. Answers whether the
@@ -305,7 +336,26 @@ public struct ChatListArrangement: Sendable, Hashable {
 
     var entries = app[UIMetaField.entries]?.arrayValue ?? []
     var folders = app[UIMetaField.folders]?.arrayValue ?? []
-    let placed = Set(botsInOrder(app))
+
+    if !roster.isEmpty {
+      let live = Set(roster)
+
+      guard live.contains(name), live.contains(anchor.name) else {
+        return false
+      }
+
+      entries.removeAll { $0["kind"]?.stringValue == "chat" && !live.contains($0["name"]?.stringValue ?? "") }
+      folders = folders.map { folder in
+        guard case .object(var object) = folder, case .array(let bots)? = object["bots"] else {
+          return folder
+        }
+
+        object["bots"] = .array(bots.filter { live.contains($0.stringValue ?? "") })
+        return .object(object)
+      }
+    }
+
+    let placed = Set(botsInOrder(["entries": .array(entries), "folders": .array(folders)]))
     let added = roster.filter { !placed.contains($0) }
 
     if !added.isEmpty {
@@ -388,7 +438,8 @@ public struct ChatListArrangement: Sendable, Hashable {
  its `UIMetaSync`; every edit goes through that sync as a choice (marked, debounced, sent to the
  gateway, and so to the other devices and the web client), and every copy the sync takes in from
  the gateway is read back here. Before a sync is attached (the first moments of a session) the
- actions are not offered (`canEdit`).
+ actions are not offered (`canEdit`). Once the sync's stored copy is read, a person whose section
+ has no `archivedBots` yet gets it seeded from the shared `archived` flags, as a chore.
 
  Expired mutes read as unmuted at once (`isMuted` compares against the clock); a timer moves
  `clock` when the soonest one lapses, so a row's bell goes without anybody touching it, and the
@@ -405,6 +456,9 @@ public final class ChatArrangementModel {
   @ObservationIgnored private var sync: UIMetaSync?
   @ObservationIgnored private var following: Task<Void, Never>?
   @ObservationIgnored private var lapse: Task<Void, Never>?
+  /// The sync's stored copy has been read: only then can the archive be seeded, or the seed would
+  /// be merged over a person's own archive still on its way off the disk.
+  @ObservationIgnored private var loaded = false
   @ObservationIgnored private let now: @Sendable () -> Double
 
   public init(now: @escaping @Sendable () -> Double = { Date().timeIntervalSince1970 }) {
@@ -423,6 +477,7 @@ public final class ChatArrangementModel {
     following = Task { [weak self] in
       // The stored copy may still be on its way off the disk; it is what an offline launch shows.
       await sync.load()
+      self?.loaded = true
       self?.refresh()
 
       for await _ in changes {
@@ -448,6 +503,7 @@ public final class ChatArrangementModel {
     lapse?.cancel()
     lapse = nil
     sync = nil
+    loaded = false
     canEdit = false
   }
 
@@ -461,7 +517,8 @@ public final class ChatArrangementModel {
   // MARK: Choices
 
   public func setArchived(_ name: String, _ archived: Bool) {
-    sync?.updateBot(name, .choice) { ChatListArrangement.setArchived(archived, in: &$0) }
+    let current = arrangement.archived
+    sync?.updateApp(.choice) { ChatListArrangement.setArchived(name, archived, current: current, in: &$0) }
     refresh()
   }
 
@@ -492,6 +549,13 @@ public final class ChatArrangementModel {
   private func refresh() {
     guard let sync else {
       return
+    }
+
+    // The person's archive, seeded once from the shared flags. A chore: it never wins over a
+    // section the gateway holds (HERM-191), and is redone on top of whatever is taken.
+    if loaded, ChatListArrangement.archivedBots(sync.app) == nil {
+      let bots = sync.documents.bots
+      sync.updateApp(.chore) { ChatListArrangement.seedArchive(from: bots, in: &$0) }
     }
 
     let next = ChatListArrangement(documents: sync.documents)

@@ -19,6 +19,9 @@ public enum UIMetaField {
   public static let current = "current"
   public static let labels = "labels"
   public static let mutes = "mutes"
+  /// The person's own archive: bot names, sorted, no duplicates. Replaces the bot section's
+  /// shared `archived` flag, which is only read once, to seed it.
+  public static let archivedBots = "archivedBots"
   // App section: settings.
   public static let defaults = "defaults"
   public static let botNameOrder = "botNameOrder"
@@ -28,7 +31,7 @@ public enum UIMetaField {
   // App section: the date and the push rows.
   public static let updatedAt = UIMeta.appUpdatedAt
   public static let push = UIMeta.pushField
-  // Bot section.
+  // Bot section. `archived` is no longer written: the archive is per person (`archivedBots`).
   public static let archived = "archived"
   public static let colour = "colour"
 }

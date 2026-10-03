@@ -11,10 +11,11 @@ import Testing
 @Suite(.timeLimit(.minutes(1))) struct UIMetaChatListTests {
   // MARK: Reading
 
-  @Test func readsTheThreeFieldsOffTheDevicesCopy() {
+  @Test func readsTheFieldsOffTheDevicesCopy() {
     let documents = UIMetaDocuments(
       app: [
         "v": 1,
+        "archivedBots": ["scout", "", 3, "scout", "gone"],
         "pinned": ["writer", "", 7, "writer", "researcher"],
         "mutes": ["writer": 1_789_953_600.9, "researcher": 0, "bad": "soon", "negative": -1, "": 5]
       ],
@@ -27,7 +28,8 @@ import Testing
 
     let arrangement = ChatListArrangement(documents: documents)
 
-    #expect(arrangement.archived == ["writer"])
+    // The person's list alone: the shared flag on writer says nothing once the list exists.
+    #expect(arrangement.archived == ["scout", "gone"])
     // Non-strings, empty names and repeats are not pins (the web's `names`).
     #expect(arrangement.pinned == ["writer", "researcher"])
     // Finite, non-negative, floored (`mutesOf`).
@@ -63,14 +65,36 @@ import Testing
 
   // MARK: Writing, field by field
 
-  @Test func archiveSetsTheFlagAndUnarchiveRemovesItKeepingTheRest() {
-    var section: JSONObject = ["v": 1, "colour": "teal", "future": ["x": 1]]
+  @Test func archiveWritesTheSortedListAndKeepsTheRest() {
+    var app: JSONObject = ["v": 1, "pinned": ["writer"], "archivedBots": ["writer"]]
 
-    ChatListArrangement.setArchived(true, in: &section)
-    #expect(section == ["v": 1, "colour": "teal", "future": ["x": 1], "archived": true])
+    ChatListArrangement.setArchived("alpha", true, current: [], in: &app)
+    ChatListArrangement.setArchived("writer", true, current: [], in: &app)
+    #expect(app == ["v": 1, "pinned": ["writer"], "archivedBots": ["alpha", "writer"]])
 
-    ChatListArrangement.setArchived(false, in: &section)
-    #expect(section == ["v": 1, "colour": "teal", "future": ["x": 1]])
+    ChatListArrangement.setArchived("writer", false, current: [], in: &app)
+    #expect(app["archivedBots"] == ["alpha"])
+
+    // An unseeded section writes what was read (the inherited names) along with the change.
+    var fresh: JSONObject = ["v": 1]
+    ChatListArrangement.setArchived("b", true, current: ["c", "a"], in: &fresh)
+    #expect(fresh["archivedBots"] == ["a", "b", "c"])
+  }
+
+  @Test func theSeedComesFromTheSharedFlagsOnlyWhileTheFieldIsMissing() {
+    let bots: [String: JSONObject] = ["writer": ["v": 1, "archived": true], "scout": ["v": 1, "archived": true],
+      "researcher": ["v": 1, "colour": "red"]]
+    var app: JSONObject = ["v": 1]
+
+    #expect(ChatListArrangement.seedArchive(from: bots, in: &app))
+    #expect(app["archivedBots"] == ["scout", "writer"])
+
+    // Once there, the list is the only source, empty included.
+    var emptied: JSONObject = ["v": 1, "archivedBots": []]
+    #expect(!ChatListArrangement.seedArchive(from: bots, in: &emptied))
+    #expect(ChatListArrangement(documents: UIMetaDocuments(app: emptied, bots: bots)).archived.isEmpty)
+    // Before the seed lands, what it will be is what is shown.
+    #expect(ChatListArrangement(documents: UIMetaDocuments(app: ["v": 1], bots: bots)).archived == ["scout", "writer"])
   }
 
   @Test func pinsAppendInTheOrderChosenAndUnpinRemoves() {
@@ -111,14 +135,16 @@ import Testing
 
   // MARK: The wire
 
-  /// What the web client's projection writes for the same choices: the bot section of an archived
-  /// chat, and the app section's `pinned` (names, in order) and `mutes` (name to second, 0 for never).
+  /// What the web client's projection writes for the same choices: the app section's
+  /// `archivedBots` (sorted names), `pinned` (names, in order) and `mutes` (name to second, 0 for
+  /// never), and nothing on any bot's profile.
   @Test func theWireIsTheWebClientsShape() async {
     let gateway = HoldingGateway()
     let sync = UIMetaSync.device(gateway.gateway)
 
-    sync.updateBot("writer", .choice) { ChatListArrangement.setArchived(true, in: &$0) }
     sync.updateApp(.choice) {
+      ChatListArrangement.setArchived("writer", true, current: [], in: &$0)
+      ChatListArrangement.setArchived("researcher", true, current: [], in: &$0)
       ChatListArrangement.setPinned("researcher", true, in: &$0)
       ChatListArrangement.setPinned("writer", true, in: &$0)
       ChatListArrangement.setMute("writer", until: MuteDuration.oneHour.until(now: noon), in: &$0)
@@ -126,51 +152,58 @@ import Testing
     }
     await sync.reconcile()
 
-    // `projectBots`: `{ archived: true }`, versioned.
-    #expect(gateway.meta("writer")[UIMeta.botKey] == ["v": 1, "archived": true])
+    // No bot section is written.
+    #expect(gateway.meta("writer")[UIMeta.botKey] == nil)
 
     // `projectApp`: `pinned` as `Object.keys(pinned)` (insertion order), `mutes` as the map.
     let app = gateway.meta("researcher")[ownerKey]?.objectValue
     #expect(app?["pinned"] == ["researcher", "writer"])
     #expect(app?["mutes"] == ["writer": .number(noon + 3600), "researcher": 0])
+    #expect(app?["archivedBots"] == ["researcher", "writer"])
     // A choice dates the section, so it wins over an older copy on another device.
     #expect(app?["updatedAt"] == .number(noon))
 
     // The request itself: one per profile, only the keys that changed.
     let writes = gateway.configures.map { ($0["name"]?.stringValue ?? "", Set(($0["ui_meta"]?.objectValue ?? [:]).keys)) }
-    #expect(writes.contains { $0.0 == "writer" && $0.1 == [UIMeta.botKey] })
+    #expect(!writes.contains { $0.1.contains(UIMeta.botKey) })
     #expect(writes.contains { $0.0 == "researcher" && $0.1.contains(ownerKey) })
   }
 
-  @Test func unarchivingRemovesTheSectionOnTheGateway() async {
+  /// The shared flag an older build or the Expo app wrote is left exactly as it was: archiving and
+  /// unarchiving here neither sets nor clears it.
+  @MainActor
+  @Test func archivingNeverTouchesTheSharedFlag() async {
     let gateway = HoldingGateway()
+    gateway.write("writer", [UIMeta.botKey: ["v": 1, "archived": true, "colour": "teal"]])
     let sync = UIMetaSync.device(gateway.gateway)
-
-    sync.updateBot("writer", .choice) { ChatListArrangement.setArchived(true, in: &$0) }
+    let model = ChatArrangementModel(now: { noon })
+    model.attach(sync)
     await sync.reconcile()
-    #expect(gateway.meta("writer")[UIMeta.botKey] != nil)
+    await eventually("the inherited archive") { model.isArchived("writer") }
 
-    sync.updateBot("writer", .choice) { ChatListArrangement.setArchived(false, in: &$0) }
-    await sync.flush()
+    model.setArchived("writer", false)
+    model.setArchived("researcher", true)
+    await sync.reconcile()
 
-    // Sent as `null`, which removes the key; the other tool's marker stays.
-    #expect(gateway.configures.last?["ui_meta"] == [UIMeta.botKey: .null])
-    #expect(gateway.meta("writer")[UIMeta.botKey] == nil)
-    #expect(gateway.meta("writer")[UIMeta.botMarkerKey] != nil)
+    #expect(gateway.meta("researcher")[ownerKey]?["archivedBots"] == ["researcher"])
+    #expect(gateway.meta("writer")[UIMeta.botKey] == ["v": 1, "archived": true, "colour": "teal"])
+    #expect(gateway.meta("researcher")[UIMeta.botKey] == nil)
+    #expect(!model.isArchived("writer"))
   }
 
   @Test func whatTheWebClientWroteIsReadBack() async {
-    // A section as the web client's `takeApp` / `projectBots` leave it.
+    // A section as the web client's `takeApp` leaves it, `archivedBots` included.
     let gateway = HoldingGateway()
     gateway.write("researcher", [ownerKey: [
       "v": 1,
       "updatedAt": .number(noon),
+      "archivedBots": ["writer"],
       "entries": [],
       "pinned": ["writer"],
       "mutes": ["researcher": .number(noon + 8 * hour)],
       "textSize": "large"
     ]])
-    gateway.write("writer", [UIMeta.botKey: ["v": 1, "archived": true, "colour": "teal"]])
+    gateway.write("writer", [UIMeta.botKey: ["v": 1, "colour": "teal"]])
 
     let sync = UIMetaSync.device(gateway.gateway)
     await sync.reconcile()
@@ -308,6 +341,15 @@ import Testing
     #expect(ChatListArrangement.move("y", to: .before("x"), roster: [], in: &app))
     #expect(app["folders"] == [["id": "f1", "name": "Work", "colour": "teal", "bots": ["y", "x"]]])
 
+    // A name the roster no longer has is dropped from wherever it was, as `reconcileBots` does.
+    app["entries"] = [["kind": "chat", "name": "gone"], ["kind": "chat", "name": "a"], ["kind": "chat", "name": "b"]]
+    app["folders"] = [["id": "f1", "name": "Work", "bots": ["x", "old"]]]
+    #expect(ChatListArrangement.move("b", to: .before("a"), roster: ["a", "b", "x"], in: &app))
+    #expect(app["entries"] == [["kind": "chat", "name": "b"], ["kind": "chat", "name": "a"]])
+    #expect(app["folders"] == [["id": "f1", "name": "Work", "bots": ["x"]]])
+    // And a move that names one is not made.
+    #expect(!ChatListArrangement.move("gone", to: .before("a"), roster: ["a", "b", "x"], in: &app))
+
     // Out of a folder is not a step this build takes.
     let held = app
     #expect(!ChatListArrangement.move("x", to: .before("a"), roster: [], in: &app))
@@ -381,6 +423,85 @@ import Testing
     #expect(bob.arrangement.pinned == ["researcher"])
     #expect(bob.arrangement.order.isEmpty)
     #expect(!bob.isMuted("researcher"))
+  }
+
+  /// Two people archive independently: each list is in their own section, and neither person's
+  /// archive hides a chat from the other.
+  @MainActor
+  @Test func twoPeopleOnOneGatewayHaveTheirOwnArchive() async {
+    let gateway = HoldingGateway()
+    let anneSync = UIMetaSync.device(gateway.gateway, user: "anne")
+    let bobSync = UIMetaSync.device(gateway.gateway, user: "bob@example.com")
+    let anne = ChatArrangementModel(now: { noon })
+    let bob = ChatArrangementModel(now: { noon })
+    anne.attach(anneSync)
+    bob.attach(bobSync)
+
+    anne.setArchived("writer", true)
+    await anneSync.reconcile()
+    bob.setArchived("researcher", true)
+    await bobSync.reconcile()
+    await anneSync.reconcile()
+    await bobSync.reconcile()
+
+    #expect(gateway.meta("researcher")[UIMeta.appKey(for: "anne")]?["archivedBots"] == ["writer"])
+    #expect(gateway.meta("researcher")[UIMeta.appKey(for: "bob@example.com")]?["archivedBots"] == ["researcher"])
+    #expect(gateway.meta("writer")[UIMeta.botKey] == nil)
+
+    #expect(anne.isArchived("writer") && !anne.isArchived("researcher"))
+    #expect(bob.isArchived("researcher") && !bob.isArchived("writer"))
+
+    // Anne unarchives; Bob's archive does not move.
+    anne.setArchived("writer", false)
+    await anneSync.reconcile()
+    await bobSync.reconcile()
+    #expect(gateway.meta("researcher")[UIMeta.appKey(for: "bob@example.com")]?["archivedBots"] == ["researcher"])
+    #expect(!anne.isArchived("writer"))
+  }
+
+  /// The one-time inheritance: a person whose section has no `archivedBots` starts from the shared
+  /// flags; once their list exists it is the only source, and a flag set later by somebody else
+  /// (the Expo app) does not reach it.
+  @MainActor
+  @Test func aPersonsArchiveIsSeededOnceFromTheSharedFlags() async {
+    let gateway = HoldingGateway()
+    gateway.write("writer", [UIMeta.botKey: ["v": 1, "archived": true]])
+    let sync = UIMetaSync.device(gateway.gateway, user: "anne")
+    let model = ChatArrangementModel(now: { noon })
+    model.attach(sync)
+
+    await sync.reconcile()
+    await eventually("the seed") { model.isArchived("writer") }
+    #expect(sync.app?["archivedBots"] == ["writer"])
+    // The gateway had no section for Anne: the seed is what it takes.
+    await sync.reconcile()
+    #expect(gateway.meta("researcher")[UIMeta.appKey(for: "anne")]?["archivedBots"] == ["writer"])
+
+    // Later the Expo app archives researcher with the shared flag: Anne's list does not follow.
+    gateway.write("researcher", [UIMeta.botKey: ["v": 1, "archived": true]])
+    await sync.reconcile()
+    try? await Task.sleep(for: .milliseconds(50))
+    #expect(!model.isArchived("researcher"))
+    #expect(sync.app?["archivedBots"] == ["writer"])
+  }
+
+  /// The seed is a chore: against a section the gateway already holds (another device's, dated),
+  /// it is not what lands, and the person's list there wins.
+  @MainActor
+  @Test func theSeedNeverBeatsTheGatewaysArchive() async {
+    let gateway = HoldingGateway()
+    gateway.write("writer", [UIMeta.botKey: ["v": 1, "archived": true]])
+    gateway.write("researcher", [UIMeta.appKey(for: "anne"): ["v": 1, "updatedAt": .number(noon), "archivedBots": []]])
+    let sync = UIMetaSync.device(gateway.gateway, user: "anne")
+    let model = ChatArrangementModel(now: { noon })
+    model.attach(sync)
+    try? await Task.sleep(for: .milliseconds(50))
+
+    await sync.reconcile()
+    await sync.reconcile()
+
+    #expect(gateway.meta("researcher")[UIMeta.appKey(for: "anne")]?["archivedBots"] == [])
+    await eventually("the gateway's empty archive") { !model.isArchived("writer") }
   }
 
   /// A person with no key of their own inherits the anonymous `hermie-app` once, and then writes
