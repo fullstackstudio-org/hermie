@@ -17,6 +17,11 @@
  * step and moves to the next, and on the last step it sends everything. A
  * question that was already locked keeps its answer.
  *
+ * **The buttons wake after `tapGuardMs`**, as the approval's do: a sheet that
+ * appears under a click already on its way (a Skip meant for the page behind it)
+ * must not answer a question the reader has not read. The field's own
+ * Command-Return is a keystroke the reader chose and is not held back.
+ *
  * The questions and their choices are an agent's words and are shown as
  * characters, never as Markdown.
  */
@@ -37,7 +42,12 @@ export interface ClarifySheetProps {
   onSubmit: (answers: Record<string, string>) => void
   /** Lock one answer of a batch on the gateway without answering the whole request. */
   onLock?: (qid: string, answer: string) => void
+  /** Milliseconds before a press is accepted. Tests pass 0. */
+  tapGuardMs?: number
 }
+
+/** Same as the approval's: long enough for a click already in flight, short enough not to be felt. */
+export const DEFAULT_CLARIFY_TAP_GUARD_MS = 400
 
 const MULTI_SEPARATOR = ', '
 
@@ -61,9 +71,12 @@ export function ClarifySheet({
   titleId,
   descriptionId,
   onSubmit,
-  onLock
+  onLock,
+  tapGuardMs = DEFAULT_CLARIFY_TAP_GUARD_MS
 }: ClarifySheetProps): ReactElement | null {
   useLocale()
+
+  const [armed, setArmed] = useState(tapGuardMs <= 0)
 
   const [index, setIndex] = useState(0)
   const [answers, setAnswers] = useState<Record<string, string>>(() => ({ ...item.answers }))
@@ -75,6 +88,20 @@ export function ClarifySheet({
   const fieldId = useId()
   const questionRef = useRef<HTMLParagraphElement>(null)
   const firstRender = useRef(true)
+
+  useEffect(() => {
+    if (tapGuardMs <= 0) {
+      setArmed(true)
+
+      return
+    }
+
+    setArmed(false)
+
+    const timer = setTimeout(() => setArmed(true), tapGuardMs)
+
+    return () => clearTimeout(timer)
+  }, [item.id, tapGuardMs])
 
   // A step changes what is on screen; the reader is told by moving to the question.
   useEffect(() => {
@@ -212,13 +239,14 @@ export function ClarifySheet({
       />
 
       <div className="hm-requests__actions">
-        <Button className="hm-requests__action" disabled={!canContinue} onClick={advance}>
+        <Button className="hm-requests__action" disabled={!armed || !canContinue} onClick={advance}>
           {batch && !last ? strings.chat.clarify.next : strings.chat.clarify.submit}
         </Button>
         {batch && index > 0 ? (
           <Button
             className="hm-requests__action"
             variant="quiet"
+            disabled={!armed}
             onClick={() => setIndex(current => Math.max(0, current - 1))}
           >
             {strings.chat.clarify.previous}
@@ -228,13 +256,13 @@ export function ClarifySheet({
           <Button
             className="hm-requests__action"
             variant="quiet"
-            disabled={value.trim() === ''}
+            disabled={!armed || value.trim() === ''}
             onClick={() => onLock(question.qid, value)}
           >
             {strings.chat.clarify.lock}
           </Button>
         ) : null}
-        <Button className="hm-requests__action" variant="quiet" onClick={skip}>
+        <Button className="hm-requests__action" variant="quiet" disabled={!armed} onClick={skip}>
           {webStrings.requests.skip}
         </Button>
       </div>

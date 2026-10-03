@@ -557,6 +557,43 @@ describe('a clarify', () => {
     expect(dialog().querySelector('i')).toBeNull()
   })
 
+  it('wakes its buttons only after the guard, so a click already on its way cannot land on Skip', () => {
+    vi.useFakeTimers()
+    mount({ tapGuardMs: 400 })
+    clarify('researcher', 'srq-1', single)
+
+    const skip = button('Skip') as HTMLButtonElement
+
+    expect(skip.disabled).toBe(true)
+    fireEvent.click(skip)
+    expect(controller.respondClarify).not.toHaveBeenCalled()
+
+    act(() => void vi.advanceTimersByTime(450))
+    expect((button('Skip') as HTMLButtonElement).disabled).toBe(false)
+    fireEvent.click(button('Skip'))
+    expect(controller.respondClarify).toHaveBeenCalledExactlyOnceWith('researcher', 'srq-1', { q1: '' })
+  })
+
+  it('holds the next step and the lock behind the same guard', () => {
+    vi.useFakeTimers()
+    mount({ tapGuardMs: 400 })
+    clarify('researcher', 'srq-1', {
+      request_id: 'q1',
+      questions: [
+        { qid: 'a', question: 'First?', choices: ['x'] },
+        { qid: 'b', question: 'Second?' }
+      ]
+    })
+    fireEvent.click(within(dialog()).getByLabelText('x'))
+
+    for (const name of ['Next', 'Skip']) {
+      expect((button(name) as HTMLButtonElement).disabled, name).toBe(true)
+    }
+
+    act(() => void vi.advanceTimersByTime(450))
+    expect((button('Next') as HTMLButtonElement).disabled).toBe(false)
+  })
+
   it('answers with the choice that was picked', async () => {
     mount()
     clarify('researcher', 'srq-1', single)

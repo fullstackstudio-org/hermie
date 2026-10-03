@@ -9,7 +9,7 @@
  * the layer open, in light and dark. What this checks is the structure: roles,
  * names, labels, the dialog's relations and the page behind it.
  */
-import { act, fireEvent, render, screen } from '@testing-library/react'
+import { act, fireEvent, render, screen, waitFor } from '@testing-library/react'
 import axe from 'axe-core'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 
@@ -175,6 +175,10 @@ describe('the composer and the request layer, through axe', () => {
       expect(await violations()).toEqual([])
 
       fireEvent.click(screen.getByLabelText('x'))
+      // The sheet's buttons wake after the tap guard.
+      await waitFor(() =>
+        expect((screen.getByRole('button', { name: 'Next' }) as HTMLButtonElement).disabled).toBe(false)
+      )
       fireEvent.click(screen.getByRole('button', { name: 'Next' }))
       expect(screen.getByText('Question 2 of 2')).toBeTruthy()
       expect(await violations()).toEqual([])

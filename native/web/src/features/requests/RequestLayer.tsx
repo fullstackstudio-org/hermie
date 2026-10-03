@@ -67,7 +67,7 @@ export interface RequestLayerProps {
   store?: StoreApi<RequestsState>
   /** Where a withdrawn request's last state is read; the page's own unless a test hands in its own. */
   chats?: StoreApi<ChatsState>
-  /** Milliseconds before an approval's buttons accept a press. Tests pass 0. */
+  /** Milliseconds before a sheet's buttons accept a press. Tests pass 0. */
   tapGuardMs?: number
 }
 
@@ -310,6 +310,7 @@ export function RequestLayer({
                 item={current.item}
                 titleId={titleId}
                 descriptionId={descriptionId}
+                {...(tapGuardMs !== undefined ? { tapGuardMs } : {})}
                 onSubmit={answers => {
                   void controller
                     ?.respondClarify(current.bot, current.item.requestId, answers)
