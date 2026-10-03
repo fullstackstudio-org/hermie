@@ -21,7 +21,7 @@ import { startHermieWeb, type HermieWebServer } from '../server'
 import { createAccount, enableProvider, removeAccount, setAccountRole } from '../oidc/accounts'
 import { emptyOidcState, type OidcState } from '../oidc/state'
 import { reconcileIssuerPeople } from './people'
-import { emptyAdminState, loadAdminState, saveAdminState, type AdminState } from './state'
+import { adminStateSettled, emptyAdminState, loadAdminState, saveAdminState, type AdminState } from './state'
 
 const GATEWAY_PUBLIC_URL = 'https://hermes.example.invalid'
 
@@ -309,14 +309,11 @@ describe('an account on the issuer is a person on the people list', () => {
     const sub = subFor('ada')
     const page = await open(await signIn(), '/admin/people')
     // The row is written to memory as the request is served and to the file
-    // just behind it, without being awaited — so wait for the file rather than
-    // assume the page took long enough.
-    let state = await loadAdminState(stateDir)
-
-    for (let tries = 0; tries < 100 && !state.users[ADA.userId]; tries++) {
-      await new Promise(resolve => setTimeout(resolve, 20))
-      state = await loadAdminState(stateDir)
-    }
+    // just behind it, without being awaited. That write is queued on the
+    // file's write chain by the time the response is out, so waiting for the
+    // chain is enough; no polling.
+    await adminStateSettled(stateDir)
+    const state = await loadAdminState(stateDir)
 
     expect(Object.keys(state.users)).toContain(ADA.userId)
     expect(Object.keys(state.users)).toContain(sub)

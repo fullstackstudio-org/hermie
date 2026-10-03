@@ -283,7 +283,9 @@ export async function startHermieWeb(input: StartOptions = {}): Promise<HermieWe
    * in HERE, and when. The page says which of the two it is showing.
    *
    * Best effort and never awaited. A row that could not be written costs a name
-   * missing from a list.
+   * missing from a list. The write still joins `saveAdminState`'s per-file
+   * chain, so it can never land after, and undo, an `/admin` save asked for
+   * after it.
    */
   function noteSeen(identity: GatewayIdentity | null): void {
     if (!identity?.userId) {
