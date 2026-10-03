@@ -348,6 +348,8 @@
 	<string>Waarde</string>
 	<key>native.secureInput.gateway</key>
 	<string>Op gateway %@</string>
+	<key>native.secureInput.lapsed</key>
+	<string>Het verzoek eindigde terwijl de verbinding weg was. Er is niets verstuurd.</string>
 	<key>native.secureInput.mayNotHaveArrived</key>
 	<string>De bot stopte met wachten terwijl je antwoord onderweg was. Het is misschien niet op tijd aangekomen.</string>
 	<key>native.secureInput.receiver.login</key>

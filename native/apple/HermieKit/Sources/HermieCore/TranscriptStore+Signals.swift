@@ -31,6 +31,15 @@ enum SessionSignal: Sendable {
   case chatForgotten(chat: String)
   /// A `sessions.changed` sweep ran (debounced): another client changed the roster or a session.
   case sessionsChanged
+  /// A `request.cancel` that a reconnect's `session.events.since` replay carried: the
+  /// live socket was down when the gateway sent it, so `SecureInputCenter`, which
+  /// hears the live socket only, never did.
+  case requestCancelReplayed(id: String, reason: String)
+  /// The `open_requests` a `session.resume` or a `session.events.since` answered with
+  /// for one runtime session: every request the gateway still waits for there.
+  /// `askedAt` is the store clock's reading just before the call went out; a request
+  /// first seen at or after it may be newer than the list.
+  case openRequests(runtimeSessionID: String, ids: [String], askedAt: Duration)
 }
 
 extension TranscriptStore {
@@ -109,6 +118,35 @@ extension TranscriptStore {
     default:
       break
     }
+  }
+
+  /// A `request.cancel` in a replay. Every one is passed on, whatever its `seq`:
+  /// withdrawing a request twice changes nothing.
+  func signalReplayedCancel(_ event: GatewayEvent) {
+    let payload = RequestCancelPayload(json: event.payload?.objectValue ?? [:])
+
+    guard let id = payload.id, !id.isEmpty else {
+      return
+    }
+
+    signalSink.yield(.requestCancelReplayed(id: id, reason: payload.reason ?? ""))
+  }
+
+  /// A resume's or a replay's `open_requests`, only when the gateway sent a list:
+  /// a missing one says nothing about what is still open.
+  func signalOpenRequests(runtimeID: String, _ entries: [JSONValue]?, askedAt: Duration) {
+    guard let entries, !runtimeID.isEmpty else {
+      return
+    }
+
+    let ids = entries.compactMap { entry -> String? in
+      guard let id = entry["id"]?.stringValue, !id.isEmpty else {
+        return nil
+      }
+
+      return id
+    }
+    signalSink.yield(.openRequests(runtimeSessionID: runtimeID, ids: ids, askedAt: askedAt))
   }
 
   /// A resume's `pending_connection`, at the resume's place in the chat's frames.

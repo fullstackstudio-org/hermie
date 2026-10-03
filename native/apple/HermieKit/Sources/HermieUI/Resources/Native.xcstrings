@@ -4009,6 +4009,30 @@
         }
       }
     },
+    "native.secureInput.lapsed" : {
+      "comment" : "The request ended (withdrawn, timed out or answered elsewhere) while the app had no connection to the gateway.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Die Anfrage endete, während die Verbindung unterbrochen war. Es wurde nichts gesendet."
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "The request ended while the connection was down. Nothing was sent."
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Het verzoek eindigde terwijl de verbinding weg was. Er is niets verstuurd."
+          }
+        }
+      }
+    },
     "native.secureInput.mayNotHaveArrived" : {
       "comment" : "The bot stopped waiting while the answer was being sent.",
       "extractionState" : "manual",

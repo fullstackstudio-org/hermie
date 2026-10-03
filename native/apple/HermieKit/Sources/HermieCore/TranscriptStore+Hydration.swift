@@ -119,6 +119,9 @@ extension TranscriptStore {
     async throws
   {
     let resume: ResumeOutcome
+    // Read before the call goes out: a server request first seen after it may
+    // be newer than the resume's `open_requests` (`signalOpenRequests`).
+    let askedAt = options.clock.now
 
     do {
       resume = try await ordered(key, binding: true, generation: ticket, resumeCall(key, storedID: canonical.id)) {
@@ -146,6 +149,7 @@ extension TranscriptStore {
     {
       try await local(key, generation: ticket) {
         self.applyHistory(key, rows, .rest, snapshot: snapshot, openRequests: openRequests)
+        self.signalOpenRequests(runtimeID: resume.runtimeID, openRequests, askedAt: askedAt)
       }
     } else {
       let params: JSONValue = ["session_id": .string(resume.runtimeID), "profile": .string(key)]
@@ -155,6 +159,7 @@ extension TranscriptStore {
       }) { reply in
         let rows = (reply.result["messages"]?.arrayValue ?? []).map { TranscriptRow(json: $0.objectValue ?? [:]) }
         self.applyHistory(key, rows, .rpc, snapshot: snapshot, openRequests: openRequests)
+        self.signalOpenRequests(runtimeID: resume.runtimeID, openRequests, askedAt: askedAt)
       }
     }
 
@@ -359,12 +364,16 @@ extension TranscriptStore {
     let knownEpoch = chat.epoch
     let lastSeq = chat.lastSeq
     let params: JSONValue = ["session_id": .string(runtimeID), "last_seen": .number(Double(lastSeq))]
+    let askedAt = options.clock.now
 
     return try? await ordered(key, generation: ticket, { [link] in
       try await link.requestReply(RPC.SessionEventsSince.name, params: params)
     }) {
       reply in
-      self.applyReplay(key, runtimeID: runtimeID, knownEpoch: knownEpoch, lastSeq: lastSeq, reply.result)
+      let continuity = self.applyReplay(
+        key, runtimeID: runtimeID, knownEpoch: knownEpoch, lastSeq: lastSeq, reply.result)
+      self.signalOpenRequests(runtimeID: runtimeID, reply.result["open_requests"]?.arrayValue, askedAt: askedAt)
+      return continuity
     }
   }
 
@@ -393,6 +402,10 @@ extension TranscriptStore {
 
         if Self.chatSignalTypes.contains(event.type) {
           signalChatEvent(event, in: key, fresh: isNew(event, in: key))
+        }
+
+        if event.type == GatewayEventType.requestCancel {
+          signalReplayedCancel(event)
         }
 
         let now = now()
@@ -715,6 +728,7 @@ extension TranscriptStore {
 
     let ticket = generation(of: key)
     let previousRuntime = chats[key]?.state.runtimeSessionID
+    let askedAt = options.clock.now
 
     do {
       let runtimeID = try await ordered(key, binding: true, generation: ticket, resumeCall(key, storedID: stored)) {
@@ -734,6 +748,7 @@ extension TranscriptStore {
         let snapshot = self.resumeSnapshot(of: result)
         self.mutateState(key) { applyResumeSnapshot(into: &$0, snapshot, now) }
         self.registerOpenRequests(key, reply.result["open_requests"]?.arrayValue)
+        self.signalOpenRequests(runtimeID: runtimeID, reply.result["open_requests"]?.arrayValue, askedAt: askedAt)
         self.signalConnectionSnapshot(key, runtimeID: runtimeID, reply.result)
         return runtimeID
       }

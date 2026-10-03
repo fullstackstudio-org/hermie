@@ -348,6 +348,8 @@
 	<string>Wert</string>
 	<key>native.secureInput.gateway</key>
 	<string>Auf Gateway %@</string>
+	<key>native.secureInput.lapsed</key>
+	<string>Die Anfrage endete, während die Verbindung unterbrochen war. Es wurde nichts gesendet.</string>
 	<key>native.secureInput.mayNotHaveArrived</key>
 	<string>Der Bot hat aufgehört zu warten, während deine Antwort unterwegs war. Sie ist vielleicht nicht rechtzeitig angekommen.</string>
 	<key>native.secureInput.receiver.login</key>

@@ -678,6 +678,7 @@ public struct SecureInputNoticeView: View {
     case .expired: "clock.badge.xmark"
     case .withdrawn: "xmark.circle"
     case .mayNotHaveArrived: "exclamationmark.triangle"
+    case .lapsed: "wifi.exclamationmark"
     case .unsupported: "exclamationmark.bubble"
     }
   }
@@ -695,6 +696,7 @@ public struct SecureInputNoticeView: View {
     switch notice {
     case .expired: NativeStrings.SecureInput.expired
     case .mayNotHaveArrived: NativeStrings.SecureInput.mayNotHaveArrived
+    case .lapsed: NativeStrings.SecureInput.lapsed
     case .withdrawn, .unsupported: NativeStrings.SecureInput.withdrawn
     }
   }
@@ -804,6 +806,8 @@ extension NativeStrings {
     static var withdrawn: String { string("native.secureInput.withdrawn") }
     /// The bot stopped waiting while your answer was on its way…
     static var mayNotHaveArrived: String { string("native.secureInput.mayNotHaveArrived") }
+    /// The request ended while the connection was down. Nothing was sent.
+    static var lapsed: String { string("native.secureInput.lapsed") }
     /// Your earlier answer did not reach the gateway. Enter it again.
     static var earlierAnswerLost: String { string("native.secureInput.earlierAnswerLost") }
     /// Show more
