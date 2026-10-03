@@ -1624,3 +1624,101 @@ reproduced without driving the UI).
 The Mac's model picker keeps its search field on the page (`ModelSearchPlacement`), not in the
 window's toolbar: a `.searchable` on a page pushed beside the sidebar's own search makes AppKit raise
 while it inserts the second search item into the one `NSToolbar`, and that ended the app in 0.2.6.
+
+## MCP settings and the agent label
+
+The gateway fork can serve a remote MCP endpoint that a coding agent (Claude Code, say) connects to as
+the signed-in person. Hermie never speaks MCP and runs no server. It does three things, and
+[contract/gateway/mcp.md](../contract/gateway/mcp.md) is the specification of all of them:
+
+- **Settings › MCP** shows what the gateway says about its endpoint and the clients connected to it.
+- **Revoke** ends one connected client.
+- **A row an agent sent for the person** is drawn as `<name> via <client>`, never as the person alone.
+
+### What exists, and where
+
+| Piece                              | Where                                                             |
+| ---------------------------------- | ----------------------------------------------------------------- |
+| The wire shapes, `mcp.changed`     | `HermieProtocol/REST/MCPRESTTypes.swift`                          |
+| The two routes, their refusals     | `HermieGateway/MCPClient.swift` (`MCPClient`, `MCPRouteError`)    |
+| The model                          | `HermieCore/MCP/MCPSettingsModel.swift`, `GatewaySession.mcp`     |
+| The page, its words, the category  | `HermieUI/Settings/MCPSettingsPage.swift`, `MCPText.swift`        |
+| The marker on a row's author       | `HermieTranscript/Author.swift`, `MessageAuthor.via`              |
+| The marker read from anything else | `HermieGateway/AuthorStamp.swift`                                 |
+| The line under a bubble            | `HermieUI/Items/UserBubbleView.swift` (`metaLine`, `senderLabel`) |
+
+Settings has an **MCP** category beside Gateways (the sidebar on the Mac, the list on iPhone and
+iPad). Only the live gateway has a session, so the page is the live gateway's, and says so when there
+is none.
+
+### The model
+
+`MCPSettingsModel` mirrors `PasskeyModel`: REST through the gateway's `HTTPClient`, one read at a time
+(a read asked for while another runs is made once more after it, and every caller waits for the last),
+and a subscription to the link's events for `mcp.changed`. Its `phase` is the one thing the page says
+about the gateway:
+
+| Phase        | When                                                                              | `settings`   |
+| ------------ | --------------------------------------------------------------------------------- | ------------ |
+| `loading`    | the first read has not answered                                                   | nothing      |
+| `ready`      | `200`                                                                             | the answer   |
+| `notOffered` | `404` (or a `200` that says `enabled: false`): "This gateway does not offer MCP." | cleared      |
+| `noIdentity` | `403 no_identity`: a session-token or ungated gateway has no person to answer for | cleared      |
+| `signedOut`  | `401`: this device is not signed in                                               | cleared      |
+| `unreadable` | no connection, another refusal, an answer that is not the page                    | kept, if any |
+
+A read that fails keeps what was shown before, with a line that it may be out of date; it never
+blanks a list the gateway has not contradicted.
+
+`revoke(grantID:)` sends `{}`, and treats `200` and `404 not_found` alike: the grant is gone, the
+row leaves the list at once and the list is read again. The gateway answers `404` for every grant that
+is not the caller's active one, so there is no error to show for it. A refusal that means the
+gateway has no MCP (or no person) is shown as that state; any other failure leaves the row and says
+the revoke did not go through. The page asks for a confirmation before it calls the model.
+
+`mcp.changed` is a hint to reload, not the state. The model reads again and leaves a notice naming the
+client ("Example Agent was revoked.") unless the revoke was this device's own. The page also reads
+when it opens and when the app comes back to the foreground, because a revoke the operator makes on
+the command line may send no frame.
+
+### Decisions
+
+- **Everything the gateway sent is plain text.** The page draws it with `Text(verbatim:)`: a client's
+  name and addresses are held to one bounded line without control or direction characters
+  (`SecurePrompt.displayText`), the gateway's instructions keep their line breaks and nothing else.
+  The command and the configuration are drawn with their whitespace and invisible characters made
+  visible (`ConfirmDetailMarkup`, the confirm sheet's marking), and **copied exactly as received**:
+  Hermie builds neither from the endpoint, and never runs the command.
+- **No network from the page except the gateway.** No link is opened from a client's name, and no
+  address is looked up.
+- **Nothing a grant carries is logged**, and a route error holds only the status, the route's
+  `error` code and its sentence.
+- **The agent marker is read by one rule**, ported exactly from `packages/transcript/src/author.ts`:
+  an object with a non-empty string `kind` and a `client` that is not empty once cleaned (format
+  characters removed, controls and line separators a space, whitespace collapsed, 80 code points).
+  A `via` of any other shape is absent, and the author keeps its `id` and `name`. Unknown keys are
+  ignored, and the engine never branches on `kind`. `UserItem.replayedBy` reads `replayed_by` the
+  same way.
+- **The label is plain text.** `authorLabel` words `<name> via <client>` (`via <client>` when the name
+  is blank) in English, the way the engine does; the name and the client are never translated. The
+  line under a bubble draws each part on its own line of text, isolated for direction, and an agent's
+  turn is a sender of its own in the bubble grouping, so it never joins the person's own bubbles and
+  loses the line that names the agent. Previews and exports label such a row in any chat.
+- **`per_message_author_via` is advisory.** `GatewayCapabilitiesResult.perMessageAuthorVia` exists for
+  a reader of a log; the engine reads `via` whether or not it was advertised.
+
+### Tests
+
+`MCPClientTests` (HermieGatewayTests) cover the two routes over a stubbed transport, and
+`MCPSettingsModelTests` (HermieCoreTests) the model over scripted routes and a scripted link.
+`MCPSettingsViewTests` (HermieUITests) pin the page's states, the lines of a client, the words and the
+line under a bubble, without driving the views. `MCPIntegrationTests` read, revoke and reload on the
+fake gateway started with `--mcp` over a real socket and a native sign-in:
+
+```sh
+native/apple/scripts/test.sh --integration --filter MCP
+```
+
+The golden corpus (`contract/transcript/golden/author.json`, `preview.json`) and the gateway vectors
+(`contract/gateway/vectors/author-id.json`) replay in full in `HermieTranscriptTests` and
+`HermieGatewayTests`; `ParityGates.corpusCalls` moved with them.
