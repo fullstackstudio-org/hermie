@@ -65,6 +65,20 @@ describe('marking a verbatim detail', () => {
       text: 'a[U+000B][U+000C][U+0085][U+2029]b'
     },
     { name: 'a line of only ideographic spaces', detail: 'a\n　　\n\n\nb', text: 'a\n[U+3000×2]\n\n\nb' },
+    // Default-ignorable code points that are not format characters: they draw nothing at all.
+    { name: 'a combining grapheme joiner', detail: 'a\u034Fb', text: 'a[U+034F]b' },
+    { name: 'a variation selector', detail: 'a\uFE0Fb', text: 'a[U+FE0F]b' },
+    { name: 'a Mongolian free variation selector', detail: 'a\u180Bb', text: 'a[U+180B]b' },
+    { name: 'a Khmer inherent vowel', detail: 'a\u17B4b', text: 'a[U+17B4]b' },
+    { name: 'a variation selector of the supplement', detail: 'a\u{E0100}b', text: 'a[U+E0100]b' },
+    { name: 'a tag character', detail: 'a\u{E0041}b', text: 'a[U+E0041]b' },
+    { name: 'a musical null notehead', detail: 'a\u{1D159}b', text: 'a[U+1D159]b' },
+    // Unassigned code points (and a noncharacter): nothing is drawn for them either.
+    { name: 'an unassigned code point', detail: 'a\u0378b', text: 'a[U+0378]b' },
+    { name: 'a run of unassigned code points', detail: 'a\u0378\u0378\u0378b', text: 'a[U+0378×3]b' },
+    { name: 'an unassigned code point in a far plane', detail: 'a\u{50000}b', text: 'a[U+50000]b' },
+    { name: 'a noncharacter', detail: 'a\uFFFFb', text: 'a[U+FFFF]b' },
+    { name: 'a line of only default-ignorable code points', detail: 'a\n\u034F\n\n\nb', text: 'a\n[U+034F]\n\n\nb' },
     { name: 'letters, accents and emoji', detail: 'café ✓ 😀 não', text: 'café ✓ 😀 não' }
   ]
 

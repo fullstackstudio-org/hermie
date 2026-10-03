@@ -22,8 +22,10 @@
  *    `[U+00A0×300]`: the control characters but tab and `\n` (a lone `\r`,
  *    escape, form feed), the format characters (zero-width ones, the byte
  *    order mark, the direction overrides and isolates), every space separator
- *    but U+0020, the line and paragraph separators, and the blank letters
- *    (Hangul fillers, the blank Braille pattern). A line break that is not
+ *    but U+0020, the line and paragraph separators, the blank letters
+ *    (Hangul fillers, the blank Braille pattern), every default-ignorable code
+ *    point (variation selectors, the combining grapheme joiner, the tag
+ *    characters), every unassigned one and U+1D159. A line break that is not
  *    `\n` stays on its line, and nothing reorders or hides text unseen. A line
  *    holding such a character is not blank.
  *
@@ -56,9 +58,14 @@ const isBlank = (line: string): boolean => /^[ \t]*$/u.test(line)
 
 /**
  * A character that draws nothing or moves text unseen, never tab, `\n` or U+0020; a run of the same one is
- * one match. The blank letters are listed: U+115F, U+1160, U+3164, U+FFA0 and the blank Braille U+2800.
+ * one match. By class: the control, format, unassigned (`Cn`, noncharacters included) and space-separator
+ * characters, the line and paragraph separators, and every Default_Ignorable_Code_Point (the variation
+ * selectors, the combining grapheme joiner, the Mongolian and Khmer invisibles, the tag characters). By
+ * code point, because no class has them: the blank letters U+115F, U+1160, U+3164 and U+FFA0, the blank
+ * Braille pattern U+2800 and the musical null notehead U+1D159. The native app's `isHidden` is the same rule.
  */
-const HIDDEN_RUN = /([\p{Cc}\p{Cf}\p{Zs}\p{Zl}\p{Zp}ᅟᅠㅤﾠ⠀])\1*/gu
+const HIDDEN_RUN =
+  /([\p{Cc}\p{Cf}\p{Cn}\p{Zs}\p{Zl}\p{Zp}\p{Default_Ignorable_Code_Point}\u115F\u1160\u3164\uFFA0\u2800\u{1D159}])\1*/gu
 
 /** `U+00A0`: at least four hex digits, upper case. */
 const codePoint = (char: string): string =>

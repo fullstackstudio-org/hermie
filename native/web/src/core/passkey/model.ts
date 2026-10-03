@@ -844,6 +844,11 @@ export class PasskeyModel {
     if (outcome.kind === 'declined') {
       this.patch(id, { dismissed: true })
     }
+
+    // The sheet's own timer fires once, and `expire` leaves an answer in flight to the gateway: a deadline
+    // that passed while this one was on its way ends a confirmation that is open again (not sent, refused)
+    // here. One that went through (`received`, `declined`) is not open, so this leaves it alone.
+    this.expire(id)
   }
 
   // ── withdrawals ───────────────────────────────────────────────────────────────────────────────

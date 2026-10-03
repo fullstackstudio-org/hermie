@@ -502,7 +502,10 @@ failing silently. The countdown never ends an answer in flight (`sending`): the 
 received, and that is what the person reads. During the ceremony it moves the phase first and then
 cancels the authenticator, so the system's passkey sheet goes away with it. The web client keeps the
 same deadline (a frame without a numeric `expires_at` is refused with the malformed-request notice,
-and the deadline is capped at 120 seconds after arrival) and the same order on a withdrawal.
+and the deadline is capped at 120 seconds after arrival) and the same order on a withdrawal. A
+deadline that passes while an answer is in flight is looked at again when the reply (or its absence)
+comes in: a confirmation that is open again by then (not sent, refused) ends as timed out, or as
+outcome unknown if an assertion may have arrived.
 
 An assertion whose `request.answer` failed without a reply may have been delivered. The confirmation
 remembers it (`answerMayHaveArrived`), the retry sentence says the answer may have reached the gateway,
@@ -537,12 +540,16 @@ lines is one `⋯ N empty lines ⋯`. Every other character that draws nothing o
 shown by its code point, `[U+200B]`, and a run of the same one `[U+00A0×300]`: control characters
 but tab and `\n` (so a lone `\r`, a form feed or a line separator stays on its line), format
 characters (zero-width ones, the byte order mark, direction overrides and isolates, the joiner of
-an emoji sequence too), space separators but the plain space, and the blank letters (Hangul fillers,
-the blank Braille pattern). The block has a viewport of its own (about 220 pt, scaled with
-the text size) that scrolls both ways with the bars always showing; when it overflows, a caption
-says "N lines · longest line M characters". Confirm stays off, with a line saying why, until every
-direction in which it overflows has been scrolled to its end (`ConfirmDetailReview`; once reached it
-stays reached); Decline is never held, and VoiceOver, which reads all of it, markers included as the
+an emoji sequence too), space separators but the plain space, the blank letters (Hangul fillers,
+the blank Braille pattern), every default-ignorable code point (variation selectors, the combining
+grapheme joiner, the tag characters), every unassigned one and U+1D159; the web client has the same
+rule over the same sample strings. The block has a viewport of its own (about 220 pt, scaled with
+the text size, and never taller than the sheet's scrolling text, so on a phone on its side or at
+large text it is shorter and still scrolls) that scrolls both ways with the bars always showing;
+when it overflows, a caption says "N lines · longest line M characters". Confirm stays off, with a
+line saying why, until the viewport has been wholly in view of the sheet's scrolling text and, while
+it was, every direction in which it overflows has been scrolled to its end (`ConfirmDetailReview`;
+once reached it stays reached; a short detail below the sheet's fold is not read either); Decline is never held, and VoiceOver, which reads all of it, markers included as the
 element's label, is not held either. "Copy details" puts the exact original text on the
 pasteboard, local to this device and gone after two minutes on iOS. The gateway refuses padded or
 hidden-text details as well, but the client is safe on its own. Nothing from the agent or the gateway reaches a

@@ -479,6 +479,20 @@ describe('an answer that may have arrived', () => {
     }
   })
 
+  it('ends outcome-unknown when the deadline passes while the assertion is in flight and gets no reply', async () => {
+    const page = setUp()
+
+    signs(page)
+    page.deliver('srq-1', frame())
+    page.answer.mockImplementationOnce(async () => {
+      page.clock.now = NOW + 121
+
+      throw new Error('gateway not connected')
+    })
+    await page.model.confirm('srq-1')
+    expect(entry(page)).toMatchObject({ phase: UNKNOWN, answerMayHaveArrived: true, dismissed: false })
+  })
+
   it('ends outcome-unknown when a Decline is answered “not found” or “expired”', async () => {
     const notFound = await lost()
 
@@ -606,6 +620,39 @@ describe('the page’s clock ends a confirmation', () => {
       'srq-2': 'waiting',
       'srq-3': 'received'
     })
+  })
+
+  it('ends a confirmation whose answer came back after the deadline, even when nothing was sent', async () => {
+    const page = setUp()
+
+    page.deliver('srq-1', frame())
+    // The deadline passes while the answer is in flight, and the socket gives no reply: the sheet's own
+    // timer fired during `sending` and ended nothing, so the end of the call has to look again.
+    page.answer.mockImplementationOnce(async () => {
+      page.clock.now = NOW + 121
+
+      throw new Error('gateway not connected')
+    })
+    await page.model.decline('srq-1')
+
+    expect(page.store.getState().confirmations[0]).toMatchObject({
+      phase: { kind: 'ended', end: { kind: 'timed_out' } },
+      dismissed: true
+    })
+  })
+
+  it('leaves an answer that went through alone when the deadline passed meanwhile', async () => {
+    const page = setUp()
+
+    page.deliver('srq-1', frame())
+    page.answer.mockImplementationOnce(async () => {
+      page.clock.now = NOW + 121
+
+      return { status: 'ok' }
+    })
+    await page.model.decline('srq-1')
+
+    expect(page.store.getState().confirmations[0]?.phase).toEqual({ kind: 'declined' })
   })
 
   it('keeps a confirmation open at most 120 seconds after it arrived, whatever expires_at says', () => {

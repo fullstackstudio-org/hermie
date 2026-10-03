@@ -44,7 +44,7 @@ struct ConfirmSheetView: View {
   @Environment(\.scenePhase) private var scenePhase
   @Environment(\.accessibilityVoiceOverEnabled) private var voiceOver
 
-  /// The detail does not fit and has not been read to its end: Confirm stays off. With VoiceOver on
+  /// The detail has not been wholly in view and read to its end: Confirm stays off. With VoiceOver on
   /// the whole text, markers included, is read out as the element's label, so nothing is gated.
   private var detailUnread: Bool {
     guard let detail = confirmation.display.detail, !detail.isEmpty, !voiceOver else { return false }
@@ -59,13 +59,7 @@ struct ConfirmSheetView: View {
         .padding(.bottom, 12)
         .dynamicTypeSize(...Self.pinnedTextSize)
       Divider()
-      ScrollView {
-        ConfirmText(display: confirmation.display, review: $review)
-          .padding(20)
-          .frame(maxWidth: .infinity, alignment: .leading)
-      }
-      // The request's words are read sharp to the edge, never faded under the pinned chrome.
-      .scrollEdgeEffectHidden(true, for: .vertical)
+      ConfirmTextArea(display: confirmation.display, review: $review)
       Divider()
       ConfirmFooter(
         requests: requests,
@@ -155,10 +149,62 @@ struct ConfirmChrome: View {
   }
 }
 
+/**
+ Where the detail's frame sits in the scrolling text, and which part of that text is in view. Held
+ outside the view state, because the window moves with every tick of the scroll: only when the frame
+ goes wholly in view or out of it does the review change.
+ */
+@MainActor
+final class ConfirmFrameTracker {
+  /// The scrolling text's coordinate space: its content's, which does not move as it scrolls.
+  nonisolated static let space = "confirm.text"
+
+  /// The detail's frame, and the part of the text in view, both in that space.
+  var frame = CGRect.zero
+  var window = CGRect.zero
+
+  /// Tell the review whether the frame is wholly in view, if that has changed.
+  func sync(_ review: Binding<ConfirmDetailReview>) {
+    let wholly = ConfirmDetailReview.isWhollyIn(frame: frame, window: window)
+
+    if review.wrappedValue.inView != wholly {
+      review.wrappedValue.place(inView: wholly)
+    }
+  }
+}
+
+/// The request's own words, the only part of the sheet that scrolls.
+struct ConfirmTextArea: View {
+  let display: ConfirmDisplay
+  @Binding var review: ConfirmDetailReview
+
+  @State private var tracker = ConfirmFrameTracker()
+  /// The height of the scrolling text's window: the detail's box is held to it.
+  @State private var window: CGFloat = 0
+
+  var body: some View {
+    ScrollView {
+      ConfirmText(display: display, review: $review, tracker: tracker, window: window)
+        .padding(20)
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .coordinateSpace(.named(ConfirmFrameTracker.space))
+    }
+    // The request's words are read sharp to the edge, never faded under the pinned chrome.
+    .scrollEdgeEffectHidden(true, for: .vertical)
+    .onGeometryChange(for: CGFloat.self, of: { $0.size.height }) { window = $0 }
+    .onScrollGeometryChange(for: CGRect.self, of: \.visibleRect) { _, visible in
+      tracker.window = visible
+      tracker.sync($review)
+    }
+  }
+}
+
 /// What the request says, exactly as the gateway sent it.
 struct ConfirmText: View {
   let display: ConfirmDisplay
   @Binding var review: ConfirmDetailReview
+  let tracker: ConfirmFrameTracker
+  let window: CGFloat
 
   var body: some View {
     VStack(alignment: .leading, spacing: 14) {
@@ -176,7 +222,7 @@ struct ConfirmText: View {
       }
 
       if let detail = display.detail, !detail.isEmpty {
-        ConfirmDetailBlock(detail: detail, review: $review)
+        ConfirmDetailBlock(detail: detail, review: $review, tracker: tracker, window: window)
       }
     }
   }
@@ -184,11 +230,16 @@ struct ConfirmText: View {
 
 /// The detail: monospaced, every line break kept, never wrapped and never cut, with its whitespace
 /// made visible (`ConfirmDetailMarkup`). It has a viewport of its own that scrolls both ways with the
-/// scroll bars always showing, and says how long it is when it does not fit. Copy puts the exact
-/// text on the pasteboard, not the marked one.
+/// scroll bars always showing, and says how long it is when it does not fit. The viewport is never
+/// taller than the sheet's scrolling text (`ConfirmDetailLayout`), so it can be wholly in view, which
+/// Confirm waits for (`ConfirmDetailReview`). Copy puts the exact text on the pasteboard, not the
+/// marked one.
 struct ConfirmDetailBlock: View {
   let detail: String
   @Binding var review: ConfirmDetailReview
+  let tracker: ConfirmFrameTracker
+  /// The height of the sheet's scrolling text: the viewport is never taller, so it can be wholly in view.
+  let window: CGFloat
 
   @ScaledMetric(relativeTo: .body) private var viewportHeight: CGFloat = 220
   @State private var copied = false
@@ -229,14 +280,16 @@ struct ConfirmDetailBlock: View {
             review.measure(content: size, viewport: viewport)
           }
       }
-      .frame(maxHeight: viewportHeight)
+      .frame(maxHeight: ConfirmDetailLayout.viewportHeight(preferred: viewportHeight, window: window))
       .scrollIndicators(.visible)
       .scrollIndicatorsFlash(onAppear: true)
       .background(.background.secondary, in: .rect(cornerRadius: 10))
       .clipShape(.rect(cornerRadius: 10))
-      .onGeometryChange(for: CGSize.self, of: \.size) { size in
-        viewport = size
-        review.measure(content: content, viewport: size)
+      .onGeometryChange(for: CGRect.self, of: { $0.frame(in: .named(ConfirmFrameTracker.space)) }) { frame in
+        viewport = frame.size
+        review.measure(content: content, viewport: frame.size)
+        tracker.frame = frame
+        tracker.sync($review)
       }
       .onScrollGeometryChange(for: CGRect.self, of: \.visibleRect) { _, visible in
         review.see(visible: visible, content: content)
@@ -282,7 +335,7 @@ struct ConfirmFooter: View {
   let passkeys: PasskeyModel
   let confirmation: PasskeyConfirmation
   let armed: Bool
-  /// The detail does not fit and has not been read to its end.
+  /// The detail has not been wholly in view and read to its end.
   let detailUnread: Bool
   let rpID: String
 
