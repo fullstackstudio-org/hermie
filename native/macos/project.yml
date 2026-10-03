@@ -55,9 +55,16 @@ targets:
     platform: macOS
     sources:
       - path: ../apple/Lab
+      # The software passkey authenticator, compiled into this host only: no package product lists
+      # it, so no shipped app can link it. The passkey lab's UI tests run on it.
+      - path: ../apple/HermieKit/Tests/HermiePasskeyTesting
     dependencies:
       - package: HermieKit
         product: HermieUI
+      - package: HermieKit
+        product: HermieCore
+      - package: HermieKit
+        product: HermieGateway
     settings:
       base:
         PRODUCT_NAME: HermieLab
