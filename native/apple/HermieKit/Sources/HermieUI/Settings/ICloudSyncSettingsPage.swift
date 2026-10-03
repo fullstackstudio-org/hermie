@@ -26,133 +26,140 @@ struct ICloudSyncSettingsPage: View {
   var body: some View {
     let model = launch.iCloudSync
 
+    return form(model)
+      .formStyle(.grouped)
+      .navigationTitle(NativeStrings.ICloud.title)
+      .accessibilityIdentifier("hermie.settings.icloud.page")
+      .navigationDestination(isPresented: $openingLock) {
+        LockThresholdPage()
+      }
+      .modifier(TurnOffDialog(isPresented: $confirmingTurnOff, model: model))
+      .modifier(DeleteEverythingDialog(isPresented: $confirmingDeleteEverything, model: model))
+      .sheet(item: signInSheet) { sheet in
+        components.signIn(SignInContext(gatewayId: sheet.id, finish: { signingIn = nil }))
+      }
+      .sheet(isPresented: disclosurePresented(model)) {
+        ICloudSyncDisclosure()
+      }
+  }
+
+  private func form(_ model: ICloudSyncModel) -> some View {
     Form {
-      if !model.notices.isEmpty {
-        Section {
-          ForEach(model.notices) { notice in
-            ICloudSyncNoticeRow(
-              notice: notice, model: model, onNeedsSignIn: onNeedsSignIn, lock: launch.lock,
-              openLock: { openingLock = true })
-          }
-        } header: {
-          SettingsNote(NativeStrings.ICloud.Notice.header)
-        }
-      }
+      noticesSection(model)
+      switchSection(model)
+      gatewaysSection(model)
+      deleteEverythingSection(model)
+    }
+  }
 
+  @ViewBuilder
+  private func noticesSection(_ model: ICloudSyncModel) -> some View {
+    if !model.notices.isEmpty {
       Section {
-        Toggle(NativeStrings.ICloud.switchLabel, isOn: switchBinding(model))
-          .disabled(!model.canChangeSwitch)
-          .accessibilityIdentifier("hermie.settings.icloud.switch")
-
-        LabeledContent(NativeStrings.ICloud.status) {
-          Text(ICloudSyncText.phaseTitle(model.phase))
+        ForEach(model.notices) { notice in
+          ICloudSyncNoticeRow(
+            notice: notice, model: model, onNeedsSignIn: onNeedsSignIn, lock: launch.lock,
+            openLock: { openingLock = true })
         }
-        .accessibilityElement(children: .combine)
-        .accessibilityIdentifier("hermie.settings.icloud.status")
+      } header: {
+        SettingsNote(NativeStrings.ICloud.Notice.header)
+      }
+    }
+  }
 
-        if let detail = ICloudSyncText.phaseDetail(model.phase) {
-          Text(detail)
-            .accessibilityIdentifier("hermie.settings.icloud.detail")
-        }
+  private func switchSection(_ model: ICloudSyncModel) -> some View {
+    Section {
+      Toggle(NativeStrings.ICloud.switchLabel, isOn: switchBinding(model))
+        .disabled(!model.canChangeSwitch)
+        .accessibilityIdentifier("hermie.settings.icloud.switch")
 
-        if let failure = model.actionFailure {
-          Text(verbatim: "\(NativeStrings.ICloud.actionFailed) \(ICloudSyncText.failureDetail(failure))")
-            .accessibilityIdentifier("hermie.settings.icloud.actionFailed")
-        }
+      LabeledContent(NativeStrings.ICloud.status) {
+        Text(ICloudSyncText.phaseTitle(model.phase))
+      }
+      .accessibilityElement(children: .combine)
+      .accessibilityIdentifier("hermie.settings.icloud.status")
 
-        if model.isActive, let last = model.lastSynced {
-          LabeledContent(NativeStrings.ICloud.lastSynced) {
-            Text(last, format: .relative(presentation: .named))
-          }
-          .accessibilityElement(children: .combine)
-        }
+      statusDetails(model)
 
-        if model.isActive {
-          Button(NativeStrings.ICloud.syncNow) {
-            Task { await model.syncNow() }
-          }
-          .disabled(model.busy)
-          .accessibilityIdentifier("hermie.settings.icloud.syncNow")
+      if model.isActive {
+        Button(NativeStrings.ICloud.syncNow) {
+          Task { await model.syncNow() }
         }
+        .disabled(model.busy)
+        .accessibilityIdentifier("hermie.settings.icloud.syncNow")
+      }
+    } footer: {
+      SettingsNote(NativeStrings.ICloud.footer)
+    }
+  }
+
+  @ViewBuilder
+  private func statusDetails(_ model: ICloudSyncModel) -> some View {
+    if let detail = ICloudSyncText.phaseDetail(model.phase) {
+      Text(detail)
+        .accessibilityIdentifier("hermie.settings.icloud.detail")
+    }
+
+    if let failure = model.actionFailure {
+      Text(verbatim: "\(NativeStrings.ICloud.actionFailed) \(ICloudSyncText.failureDetail(failure))")
+        .accessibilityIdentifier("hermie.settings.icloud.actionFailed")
+    }
+
+    if model.isActive, let last = model.lastSynced {
+      LabeledContent(NativeStrings.ICloud.lastSynced) {
+        Text(last, format: .relative(presentation: .named))
+      }
+      .accessibilityElement(children: .combine)
+    }
+  }
+
+  @ViewBuilder
+  private func gatewaysSection(_ model: ICloudSyncModel) -> some View {
+    if model.isActive, !model.rows.isEmpty {
+      Section {
+        ForEach(model.rows) { row in
+          ICloudSyncGatewayRow(row: row, model: model, onNeedsSignIn: onNeedsSignIn)
+        }
+      } header: {
+        SettingsNote(Strings.App.Settings.Gateways.header)
       } footer: {
-        SettingsNote(NativeStrings.ICloud.footer)
+        SettingsNote(NativeStrings.ICloud.Gateways.footer)
       }
+    }
+  }
 
-      if model.isActive, !model.rows.isEmpty {
-        Section {
-          ForEach(model.rows) { row in
-            ICloudSyncGatewayRow(row: row, model: model, onNeedsSignIn: onNeedsSignIn)
+  @ViewBuilder
+  private func deleteEverythingSection(_ model: ICloudSyncModel) -> some View {
+    if model.status.availability == .available, !model.status.unsupportedState {
+      Section {
+        // The label colour with a red symbol: red text misses the contrast audit, and the
+        // confirmation that follows is the destructive step.
+        Button {
+          confirmingDeleteEverything = true
+        } label: {
+          Label {
+            Text(NativeStrings.ICloud.DeleteEverything.action)
+              .foregroundStyle(Color.primary)
+          } icon: {
+            Image(systemName: "trash")
+              .foregroundStyle(.red)
+              .accessibilityHidden(true)
           }
-        } header: {
-          SettingsNote(Strings.App.Settings.Gateways.header)
-        } footer: {
-          SettingsNote(NativeStrings.ICloud.Gateways.footer)
         }
+        .disabled(model.busy)
+        .accessibilityIdentifier("hermie.settings.icloud.deleteEverything")
+      } footer: {
+        SettingsNote(NativeStrings.ICloud.DeleteEverything.footer)
       }
+    }
+  }
 
-      if model.status.availability == .available, !model.status.unsupportedState {
-        Section {
-          // The label colour with a red symbol: red text misses the contrast audit, and the
-          // confirmation that follows is the destructive step.
-          Button {
-            confirmingDeleteEverything = true
-          } label: {
-            Label {
-              Text(NativeStrings.ICloud.DeleteEverything.action)
-                .foregroundStyle(Color.primary)
-            } icon: {
-              Image(systemName: "trash")
-                .foregroundStyle(.red)
-                .accessibilityHidden(true)
-            }
-          }
-          .disabled(model.busy)
-          .accessibilityIdentifier("hermie.settings.icloud.deleteEverything")
-        } footer: {
-          SettingsNote(NativeStrings.ICloud.DeleteEverything.footer)
-        }
-      }
+  private var signInSheet: Binding<SheetID?> {
+    Binding(get: { signingIn.map(SheetID.init) }, set: { signingIn = $0?.id })
+  }
 
-    }
-    .formStyle(.grouped)
-    .navigationTitle(NativeStrings.ICloud.title)
-    .accessibilityIdentifier("hermie.settings.icloud.page")
-    .navigationDestination(isPresented: $openingLock) {
-      LockThresholdPage()
-    }
-    .confirmationDialog(
-      NativeStrings.ICloud.TurnOff.title, isPresented: $confirmingTurnOff, titleVisibility: .visible
-    ) {
-      Button(NativeStrings.ICloud.TurnOff.keep) {
-        Task { await model.turnOff(removingFromICloud: false) }
-      }
-      .accessibilityIdentifier("hermie.settings.icloud.turnOff.keep")
-      Button(NativeStrings.ICloud.TurnOff.remove, role: .destructive) {
-        Task { await model.turnOff(removingFromICloud: true) }
-      }
-      .accessibilityIdentifier("hermie.settings.icloud.turnOff.remove")
-      Button(Strings.App.Common.cancel, role: .cancel) {}
-    } message: {
-      Text(NativeStrings.ICloud.TurnOff.message)
-    }
-    .confirmationDialog(
-      NativeStrings.ICloud.DeleteEverything.title, isPresented: $confirmingDeleteEverything,
-      titleVisibility: .visible
-    ) {
-      Button(NativeStrings.ICloud.DeleteEverything.confirm, role: .destructive) {
-        Task { await model.deleteEverything() }
-      }
-      .accessibilityIdentifier("hermie.settings.icloud.deleteEverything.confirm")
-      Button(Strings.App.Common.cancel, role: .cancel) {}
-    } message: {
-      Text(NativeStrings.ICloud.DeleteEverything.message)
-    }
-    .sheet(item: Binding(get: { signingIn.map(SheetID.init) }, set: { signingIn = $0?.id })) { sheet in
-      components.signIn(SignInContext(gatewayId: sheet.id, finish: { signingIn = nil }))
-    }
-    .sheet(isPresented: Binding(get: { model.disclosureRequested && model.showsDisclosure }, set: { _ in })) {
-      ICloudSyncDisclosure()
-    }
+  private func disclosurePresented(_ model: ICloudSyncModel) -> Binding<Bool> {
+    Binding(get: { model.disclosureRequested && model.showsDisclosure }, set: { _ in })
   }
 
   /// On asks first when the disclosure is unanswered; off asks whether to remove from iCloud.
@@ -167,6 +174,51 @@ struct ICloudSyncSettingsPage: View {
         }
       }
     )
+  }
+}
+
+/// Turning sync off: keep what is in iCloud, or remove it.
+private struct TurnOffDialog: ViewModifier {
+  @Binding var isPresented: Bool
+  let model: ICloudSyncModel
+
+  func body(content: Content) -> some View {
+    content.confirmationDialog(
+      NativeStrings.ICloud.TurnOff.title, isPresented: $isPresented, titleVisibility: .visible
+    ) {
+      Button(NativeStrings.ICloud.TurnOff.keep) {
+        Task { await model.turnOff(removingFromICloud: false) }
+      }
+      .accessibilityIdentifier("hermie.settings.icloud.turnOff.keep")
+      Button(NativeStrings.ICloud.TurnOff.remove, role: .destructive) {
+        Task { await model.turnOff(removingFromICloud: true) }
+      }
+      .accessibilityIdentifier("hermie.settings.icloud.turnOff.remove")
+      Button(Strings.App.Common.cancel, role: .cancel) {}
+    } message: {
+      Text(NativeStrings.ICloud.TurnOff.message)
+    }
+  }
+}
+
+/// "Delete Everything from iCloud Keychain": the destructive confirmation.
+private struct DeleteEverythingDialog: ViewModifier {
+  @Binding var isPresented: Bool
+  let model: ICloudSyncModel
+
+  func body(content: Content) -> some View {
+    content.confirmationDialog(
+      NativeStrings.ICloud.DeleteEverything.title, isPresented: $isPresented,
+      titleVisibility: .visible
+    ) {
+      Button(NativeStrings.ICloud.DeleteEverything.confirm, role: .destructive) {
+        Task { await model.deleteEverything() }
+      }
+      .accessibilityIdentifier("hermie.settings.icloud.deleteEverything.confirm")
+      Button(Strings.App.Common.cancel, role: .cancel) {}
+    } message: {
+      Text(NativeStrings.ICloud.DeleteEverything.message)
+    }
   }
 }
 
