@@ -13,7 +13,7 @@ theme ("The shell" below), and opens a chat in the main pane and streams it ("Th
 with Markdown, tool calls, notices, date separators, older history, jump to latest. You can send, stop a reply and
 answer a bot's approval or question from it ("The composer" and "Requests" below), and confirm a sensitive action with
 a passkey that the gateway verifies itself ("Passkeys" below), and answer a bot's secret, sudo and password-manager
-prompts ("Secret prompts" below), and attach files and images by the picker, a paste or a drop ("Attachments" below). It has no settings beyond the passkeys page yet, and the plugin does not serve this build. Until that
+prompts ("Secret prompts" below), and attach files and images by the picker, a paste or a drop ("Attachments" below). A bot's past conversations and branches have a page of their own, a new conversation can be started there, and the chats field searches names and every bot's messages ("Conversations and search" below). It has no settings beyond the passkeys page yet, and the plugin does not serve this build. Until that
 changes, the browser keeps running the Expo app's web export through Hermie Web
 ([docs/web.md](../../docs/web.md)); nothing here replaces it.
 
@@ -331,15 +331,16 @@ renders `<App>`; nothing under `features/` starts a connection or fetches, it re
 One URL and the route in the fragment (plan W4; `features/shell/router.ts`, over `platform/hash-router.ts`, the
 only code outside `boot/` that touches `location.hash`):
 
-| Route                      | Heading        | Main pane today                         |
-| -------------------------- | -------------- | --------------------------------------- |
-| `#/`                       | Hermie         | "Pick a conversation to start..."       |
-| `#/chat/<bot>`             | the bot's name | the chat (`ChatScreen`)                 |
-| `#/chat/<bot>/s/<session>` | the bot's name | that conversation (`ChatScreen`)        |
-| `#/settings`               | Settings       | placeholder (W-20b), a link to Passkeys |
-| `#/settings/passkeys`      | Settings       | this gateway's passkeys ("Passkeys")    |
-| `#/settings/<section>`     | Settings       | placeholder (W-20b)                     |
-| anything else              | sent to `#/`   |                                         |
+| Route                        | Heading        | Main pane today                               |
+| ---------------------------- | -------------- | --------------------------------------------- |
+| `#/`                         | Hermie         | "Pick a conversation to start..."             |
+| `#/chat/<bot>`               | the bot's name | the chat (`ChatScreen`)                       |
+| `#/chat/<bot>/s/<session>`   | the bot's name | that conversation (`ChatScreen`)              |
+| `#/chat/<bot>/conversations` | Conversations  | the bot's conversations (`ConversationsPage`) |
+| `#/settings`                 | Settings       | placeholder (W-20b), a link to Passkeys       |
+| `#/settings/passkeys`        | Settings       | this gateway's passkeys ("Passkeys")          |
+| `#/settings/<section>`       | Settings       | placeholder (W-20b)                           |
+| anything else                | sent to `#/`   |                                               |
 
 A bot name or session id is one percent-encoded segment; `parseRoute` and `formatRoute` are inverses. An unknown
 route is rewritten to `#/` in place (no history entry). A route change moves focus to the main heading (not on
@@ -785,6 +786,66 @@ again with every turn once (and that a replay that vouches for itself reads noth
 a connection card (its "Not now" and "Stop waiting" through the fake's strict `connection.respond`) and the progress
 line with the fake's `emit`.
 
+## Conversations and search
+
+`features/sessions/` and `features/search/`: the Expo app's Conversations page and chats-field search, on this
+client's shell. The model underneath is the controller's and is unchanged (`core/sessions/`,
+`classifyConversations`, `conversationActions`).
+
+| File                             | What                                                                                             |
+| -------------------------------- | ------------------------------------------------------------------------------------------------ |
+| `sessions/ConversationsPage.tsx` | `#/chat/<bot>/conversations`: the groups, their actions, a new conversation (its own lazy chunk) |
+| `sessions/use-conversations.ts`  | the bot's groups, read when the connection is ready and again whenever the controller says so    |
+| `sessions/push-destination.ts`   | where a notification tap lands and whether it may answer (ADR-0017 amendment), for W-25          |
+| `search/name-filter.ts`          | the instant half of the chats field: names, on this device                                       |
+| `search/message-search.ts`       | `searchBotChats`: one `searchSessions` per bot, bounded, hits outside the bot's chat dropped     |
+| `search/use-message-search.ts`   | the debounced fan-out for the field; a superseded query is abandoned                             |
+| `search/MessageHits.tsx`         | the hits under the list: bot, time, the gateway's snippet with the match marked                  |
+| `search/find-request.ts`         | the words a hit hands the chat it opens (not in the address)                                     |
+| `search/use-find-in-chat.ts`     | the chat scrolls to the newest row with the words, paging back, bounded                          |
+
+**The Conversations page.** Reached from the link at the end of a chat's header line. Groups, in order: the
+current conversation (the Bot Chat, drawn with **no action at all**: the row's actions are
+`conversationActions(conversation)` and nothing else, which is empty for the canonical row), the reader's own chat
+where there is one (open only), branches and past conversations (open, rename, delete, make this the Bot Chat).
+Open goes to the read-only viewer at `#/chat/<bot>/s/<id>`. Rename is an inline field that commits on Return and
+leaves on Escape; Delete asks first, inline; "Make this the Bot Chat" is the controller's swap with its rollback
+and runs at once. "New conversation" asks first (the group chat is everybody's), then runs
+`startNewConversation`, which puts the Bot Chat away under Past conversations, and takes the reader to the chat. A
+swap and a new conversation open the chat first when it is not live, because both retire the session the bot's key
+is on. Every action says what happened (polite) or why it did not (an alert, the gateway's reason; a busy bot in
+words of its own) and reads the list again rather than patching it. Titles are cleaned and bounded by
+`displayText` and isolated in `<bdi>`.
+
+**The viewer.** A branch or a past conversation opens read-only (`openConversation`, under `bot#<id>`): a line says
+so, with links back to the chat and to the bot's conversations, there is no composer, and nothing is marked read.
+
+**Search.** The chats field narrows the list to the bots whose shown or profile name holds the words, at once, and
+Escape empties it. After 300 ms without typing, `GET /api/sessions/search` is asked once per bot (four at a time,
+8 s each; a bot whose search fails is one missing hit), and the hits go under the list in a section of their own
+with one polite status line (searching, nothing found, "only the best match per chat is shown"). The route
+answers one conversation per profile and never a message, so a hit that is not the bot's own chat (a cron run,
+a branch, a CLI session) is dropped, as in the Expo app. A hit is a link to the bot's chat that leaves a
+`FindRequest`: the chat scrolls to the newest row with the words (the same prefix and phrase rules as the gateway's
+FTS5, on the visible text), marks it, and says so. Where the row is not loaded yet, the list goes to its oldest row
+and loads the page before it, up to 200 pages; where the words are not in the visible text (a match in a tool's
+arguments), a line says so. The list goes to the oldest row before a page is put in because a page put in far above
+a reader at the bottom lands among chunks the browser has not laid out, and WebKit reports what they settle on as a
+resize loop.
+
+**Notifications** come in W-25. `pushRouteOf` is what they will call: a tap names a conversation by `sessionId` and
+`sessionKind`; `branch` and `other` open the viewer, `canonical`, no kind, or the canonical chat's own id open the
+chat, and an id with no kind that the roster cannot place opens the chat rather than guess. `answersInPlace` is
+false wherever the tap does not land in the bot's own chat: a tap into a non-canonical conversation opens it and
+answers nothing.
+
+**Tests.** `ConversationsPage.test.tsx` (the groups, the guard, every action and its refusal, the connection, a
+language switch), `MessageHits.test.tsx` (names, the debounce, dropped hits, a superseded query, the find request),
+`use-find-in-chat.test.tsx`, `push-destination.test.ts`, the ported `message-search` and `find-in-chat` tests, and
+`sessions.axe.test.tsx` (both schemes, three languages, every form of the page open). `e2e/sessions.spec.ts` in the
+browser: a branch made with `session.branch` opened from the page in the viewer, renamed and deleted; a new
+conversation; a search hit opening the chat at its row, also 1,200 rows deep; axe in light and dark.
+
 ## Passkeys
 
 A `confirm` request at level `passkey` is one the gateway verifies itself: the page answers with a WebAuthn assertion
@@ -1079,6 +1140,7 @@ of frames in a row with the same answer).
 | `requests.spec.ts`    | approval and clarify with the keyboard alone, deny, several at once, another bot's, one answer for several, smart-denied, a batch's Cancel all, withdrawn, restored on resume and after a reload, a modal page behind them, 320 px                                                                                                                                                                                                                                                                                                      |
 | `attachments.spec.ts` | attach by the picker and by a drop (a file and an image), send, the chip in the bubble and the agent's reply naming the file; Return twice sends once (HERM-126); cancel an upload in flight; axe with chips and the drop target                                                                                                                                                                                                                                                                                                        |
 | `a11y.spec.ts`        | axe, serious and critical, in light and dark: the chat list, a chat, the signed-out screen and every request sheet                                                                                                                                                                                                                                                                                                                                                                                                                      |
+| `sessions.spec.ts`    | a branch (made with `session.branch` on a socket of the test's own) reached from the chat's Conversations link and opened read-only with its own history and no composer, then renamed and deleted after a question; a new conversation that puts the Bot Chat away; a search hit that opens the chat scrolled to the row with the words, also 1,200 rows deep; axe in light and dark                                                                                                                                                   |
 | `passkey.spec.ts`     | Chromium only (a virtual authenticator over the DevTools `WebAuthn` domain): enrol with a code from `/__fake/passkey/code`; a confirmation raised with `/__fake/request`, confirmed, and read back as `verified: true` from `/__fake/state` `passkey.outcomes`; decline; a key the gateway cannot verify (`signature_invalid`, then `too_many_attempts`); a passkey revoked while open (`verification_failed`); a request still open after a reload; Escape; the detail's `white-space: pre` and sideways scroll; axe in light and dark |
 
 ```sh
@@ -1120,6 +1182,8 @@ src/
   features/requests/        the request layer: approval, clarify and the passkey confirmation, one at a time, in a
                             modal dialog; the passkey notices
   features/settings/        the passkeys page (the rest of Settings is W-20b's)
+  features/sessions/        a bot's Conversations page, the push-tap destination rule
+  features/search/          the chats field's name filter and message search, finding a hit's row in its chat
   dev/                      development-only pages: the transcript harness, its probes, a stream replayer
   test-support/             test doubles: an IndexedDB, a fetch, a fetch with a cookie jar, a chat
                             gateway, the page's visibility and network, and a copy of the Expo app's
