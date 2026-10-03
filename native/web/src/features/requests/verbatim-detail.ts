@@ -16,7 +16,16 @@
  *  - a blank line (empty, or whitespace only) stays an empty line in a run of 1
  *    or 2; 3 or more in a row are one marker line `⋯ N empty lines ⋯` (U+22EF on
  *    both sides);
- *  - `\r\n` is a line break: the `\r` goes before anything is marked.
+ *  - `\r\n` is a line break: the `\r` goes before anything is marked;
+ *  - every other character that draws nothing, or moves text unseen, is
+ *    shown by its code point, `[U+200B]`, and a run of the same one as
+ *    `[U+00A0×300]`: the control characters but tab and `\n` (a lone `\r`,
+ *    escape, form feed), the format characters (zero-width ones, the byte
+ *    order mark, the direction overrides and isolates), every space separator
+ *    but U+0020, the line and paragraph separators, and the blank letters
+ *    (Hangul fillers, the blank Braille pattern). A line break that is not
+ *    `\n` stays on its line, and nothing reorders or hides text unseen. A line
+ *    holding such a character is not blank.
  *
  * Only the drawing changes. What the browser signs, what is copied ("Copy
  * details") and the line counts in the caption are the verbatim text the frame
@@ -42,13 +51,40 @@ const COLLAPSED_BLANKS = 3
 /** The marker line for `count` blank lines; English unless the sheet hands in its language's words. */
 export const emptyLinesMarker = (count: number): string => `⋯ ${count} empty lines ⋯`
 
-const isBlank = (line: string): boolean => /^\s*$/u.test(line)
+/** Empty, or spaces and tabs only: anything else on the line is drawn. */
+const isBlank = (line: string): boolean => /^[ \t]*$/u.test(line)
 
-/** One non-blank line with its space runs and tabs made visible. */
+/**
+ * A character that draws nothing or moves text unseen, never tab, `\n` or U+0020; a run of the same one is
+ * one match. The blank letters are listed: U+115F, U+1160, U+3164, U+FFA0 and the blank Braille U+2800.
+ */
+const HIDDEN_RUN = /([\p{Cc}\p{Cf}\p{Zs}\p{Zl}\p{Zp}ᅟᅠㅤﾠ⠀])\1*/gu
+
+/** `U+00A0`: at least four hex digits, upper case. */
+const codePoint = (char: string): string =>
+  `U+${(char.codePointAt(0) ?? 0).toString(16).toUpperCase().padStart(4, '0')}`
+
+/** One non-blank line with its space runs, tabs and hidden characters made visible. */
 function markLine(line: string): string {
-  return line
-    .replace(/ {2,}/gu, run => (run.length < COUNTED_RUN ? '·'.repeat(run.length) : `[␣×${run.length}]`))
-    .replace(/\t/gu, '→')
+  return line.replace(/( +)|(\t)|([^ \t]+)/gu, (_match, spaces?: string, tab?: string, other?: string) => {
+    if (spaces !== undefined) {
+      if (spaces.length === 1) {
+        return ' '
+      }
+
+      return spaces.length < COUNTED_RUN ? '·'.repeat(spaces.length) : `[␣×${spaces.length}]`
+    }
+
+    if (tab !== undefined) {
+      return '→'
+    }
+
+    return (other ?? '').replace(HIDDEN_RUN, (run: string, char: string) => {
+      const count = Array.from(run).length
+
+      return count === 1 ? `[${codePoint(char)}]` : `[${codePoint(char)}×${count}]`
+    })
+  })
 }
 
 export function markVerbatimDetail(
@@ -87,6 +123,7 @@ export function markVerbatimDetail(
   return {
     text: out.join('\n'),
     lines: original.length,
-    longestLine: original.reduce((longest, line) => Math.max(longest, Array.from(line).length), 0)
+    // Without the `\r` of a `\r\n`, as the native app counts.
+    longestLine: source.reduce((longest, line) => Math.max(longest, Array.from(line).length), 0)
   }
 }

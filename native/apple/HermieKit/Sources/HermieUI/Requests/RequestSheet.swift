@@ -81,6 +81,9 @@ struct RequestSheetView: View {
   var body: some View {
     if let confirmation = requests.presentedConfirmation, let passkeys = requests.passkeys {
       ConfirmSheetView(requests: requests, passkeys: passkeys, confirmation: confirmation)
+        // A view of its own per confirmation: how far its detail was read, and the tap guard, never
+        // carry over to the next one.
+        .id(confirmation.id)
     } else {
       approvalsBody
     }

