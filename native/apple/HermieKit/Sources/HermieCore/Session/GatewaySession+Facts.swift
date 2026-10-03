@@ -56,14 +56,16 @@ extension GatewaySession {
 
     // The person the app-wide ui_meta key is named after (`hermie-app:<user>`), as the reference
     // reads it: the owner on a session-token gateway, the user id (or the email) the gateway
-    // answered otherwise, and nobody after a refusal (the local-only path). Not the author stamp.
+    // answered otherwise, and nobody after a read that failed, also when an earlier read named
+    // somebody (a bridge that has no person yet stays on the local-only path). Not the author stamp,
+    // which keeps the last answer (`GatewayIdentityState.after`).
     switch probe {
     case .sessionToken:
       uiMetaUser = Self.sessionTokenUser
     case .answered(let me):
       uiMetaUser = me.userID.isEmpty ? me.email : me.userID
     case .failed:
-      break
+      uiMetaUser = nil
     }
 
     await adopt(next)

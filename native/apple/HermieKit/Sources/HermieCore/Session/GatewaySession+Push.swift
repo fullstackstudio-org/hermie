@@ -130,17 +130,16 @@ extension TranscriptStore {
   }
 
   /// The request id of the chat's open approval card for this queue id, in this runtime session.
-  private func openApprovalCard(_ key: String, approvalID: String, runtimeSessionID: String) -> String? {
-    guard let state = chats[key]?.state, state.runtimeSessionID == runtimeSessionID else {
+  /// Looked up by the queue id alone (`byApprovalID`): a transport id that happens to equal it is
+  /// another namespace, and another card.
+  func openApprovalCard(_ key: String, approvalID: String, runtimeSessionID: String) -> String? {
+    guard let state = chats[key]?.state, state.runtimeSessionID == runtimeSessionID, !approvalID.isEmpty,
+      let itemID = state.byApprovalID[approvalID],
+      case .approval(let item)? = state.items[itemID], item.state == .open
+    else {
       return nil
     }
 
-    return state.byRequestID.first { requestID, itemID in
-      guard case .approval(let item)? = state.items[itemID], item.state == .open else {
-        return false
-      }
-
-      return item.approvalID == approvalID || requestID == approvalID
-    }?.key
+    return item.requestID
   }
 }

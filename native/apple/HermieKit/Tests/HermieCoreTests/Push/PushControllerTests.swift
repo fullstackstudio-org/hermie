@@ -457,6 +457,24 @@ struct PushControllerTests {
     #expect(opened == [Self.chat, Self.chat])
   }
 
+  @Test("an action opens the chat first and answers after, so a cold start is not a blank wait")
+  func opensBeforeAnswering() async throws {
+    let rig = try Rig()
+    var steps: [String] = []
+
+    rig.controller.attachLinkHandler(UUID()) { _ in steps.append("open") }
+    rig.controller.pendingApprovals = { _ in
+      steps.append("read")
+      return [Self.open()]
+    }
+    rig.controller.respond = { _ in steps.append("answer") }
+    await rig.controller.setGateways([G.one])
+
+    await rig.controller.handleResponse(actionIdentifier: "hermie.request.allow", payload: Self.approval)
+
+    #expect(steps == ["open", "read", "answer"])
+  }
+
   @Test("a notification naming another bot with that bot's request id answers nothing")
   func borrowedRequestId() async throws {
     let rig = try Rig()

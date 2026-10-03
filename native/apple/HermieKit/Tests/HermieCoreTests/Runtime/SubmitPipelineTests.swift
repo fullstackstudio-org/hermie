@@ -223,6 +223,29 @@ private func lastUser(_ state: ChatState) -> UserItem? {
     await harness.shutdown()
   }
 
+  @Test func aNotificationAnswersTheCardByItsQueueIdNeverByATransportIdThatMatches() async throws {
+    let harness = try await opened()
+    harness.link.respond(to: RPC.ApprovalRespond.name, with: ["resolved": true])
+    harness.link.raise(
+      id: "srq-1",
+      method: "approval",
+      params: ["session_id": .string(Fixture.runtime), "request_id": "appr-1", "command": "deploy"]
+    )
+    await harness.settle()
+
+    // A queue id that happens to be the card's transport id is another request: answered by queue id.
+    try await harness.store.answerApprovalFromPush(bot, approvalID: "srq-1", runtimeSessionID: Fixture.runtime, choice: "deny")
+    #expect(harness.link.answers.isEmpty, "the card's own reply is not used")
+    #expect(harness.link.calls(RPC.ApprovalRespond.name).map { $0.params["request_id"] } == ["srq-1"])
+    #expect(await harness.state().orderedItems.compactMap(\.asApproval).map(\.state) == [.open])
+
+    // The card's own queue id answers it on its live reply.
+    try await harness.store.answerApprovalFromPush(bot, approvalID: "appr-1", runtimeSessionID: Fixture.runtime, choice: "once")
+    #expect(harness.link.answers.map(\.id) == ["srq-1"])
+    #expect(await harness.state().orderedItems.compactMap(\.asApproval).map(\.state) == [.answered])
+    await harness.shutdown()
+  }
+
   @Test func aBatchClarifyAnswersByQuestionAndAPartialOneLocks() async throws {
     let harness = try await opened()
     let questions: JSONValue = [

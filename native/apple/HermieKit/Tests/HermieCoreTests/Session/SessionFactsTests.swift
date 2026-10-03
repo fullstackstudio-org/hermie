@@ -113,10 +113,13 @@ private func me(provider: String, userID: String, name: String = "") -> AuthIden
     let harness = try await started(identity: .answered(me(provider: "self-hosted", userID: "sam-sub")))
     let session = harness.session
 
+    #expect(session.uiMetaUser == "sam-sub")
+
     harness.link.setIdentity(.failed("The gateway answered HTTP 503."))
     await session.refreshIdentity()
     #expect(session.identity?.authorID == "self-hosted:sam-sub")
     #expect(session.identityFailure == "The gateway answered HTTP 503.")
+    #expect(session.uiMetaUser == nil, "nobody after a read that failed: the author stamp is kept, the ui_meta key is not")
 
     await session.forgetIdentity()
     #expect(session.identityState == .unknownYet)

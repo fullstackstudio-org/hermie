@@ -504,6 +504,13 @@ public enum PushTapRules {
    and the id of a request open in bot B's session answers nothing (anyone who can send to this
    device chooses what the payload says). A notification about a branch or another conversation
    answers nothing either, as in the Expo app: the reader lands there and answers it in place.
+
+   An assumption: the contract's `actions.$comment` asks for the open request to "still say what the
+   notification said", but a relay v1 payload carries no text about the request, so there is nothing
+   to compare beyond the request id, the bot and the session. That is safe only because an approval
+   queue id is never reused, also not across a gateway restart; a gateway that numbered its queue
+   from one again could have a stale notification answer a newer request with the same id. The
+   runtime session id narrows that (a restart gives the chat a new one) only when the payload names it.
    */
   public static func resolve(_ tap: PushTap, pending: [PushOpenApproval]) -> PushIntent {
     let open = PushIntent.openChat(bot: tap.bot)

@@ -74,7 +74,7 @@ public final class GatewaySession {
   public internal(set) var capabilities: GatewayCapabilitiesResult?
   /// Whose app-wide `ui_meta` section this connection reads and writes (`hermie-app:<user>`):
   /// `sessionTokenUser` on a session-token gateway, the user id (or email) `/api/auth/me` named
-  /// otherwise. `nil` until the first identity read answered, and after a sign-out.
+  /// otherwise. `nil` until an identity read answered, after a read that failed, and after a sign-out.
   public internal(set) var uiMetaUser: String?
   /// Told after every `sessions.changed` sweep (debounced): the ui_meta bridge reconciles on it.
   @ObservationIgnored public var onSessionsChanged: (@MainActor () -> Void)?

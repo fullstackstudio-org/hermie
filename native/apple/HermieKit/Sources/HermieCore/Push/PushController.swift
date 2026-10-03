@@ -153,8 +153,9 @@ extension GatewayDirectory {
  the bot's own chat (a branch or another conversation just opens); they re-read that bot's session
  through `pendingApprovals`, decide with `PushTapRules.resolve` (request id, bot and session must
  all match), answer through `respond`, once per request even if the tap arrives twice, and open the
- chat either way. Only an approval is ever answered from a notification: a clarify, a secure input
- and a confirmation (at level `passkey` it can only be done in the app) open as `PushRoute.request`,
+ chat either way (first, before the answer). The session layer answers only while the app lock is
+ open (`LiveWiring`); otherwise the chat is all that opens. Only an approval is ever answered from a
+ notification: a clarify, a secure input and a confirmation (at level `passkey` it can only be done in the app) open as `PushRoute.request`,
  and a request opens its conversation by its stored `sessionKey` (its `sessionId` is the runtime id).
 
  A clearing push (`PushPayload.isClear`) is never a tap and never shown (`presentation` is `hidden`):
@@ -670,6 +671,10 @@ public final class PushController {
 
     defer { answering.remove(flight) }
 
+    // Answered or not, the reader lands in the chat, where what is actually true is shown. First,
+    // so a tap from a cold start (which waits for the socket and the app lock) is not a blank wait.
+    open(chat)
+
     let scope = PushApprovalScope(gatewayId: gateway.id, bot: tap.bot, sessionId: tap.sessionId)
 
     if let pending = try? await pendingApprovals(scope),
@@ -679,9 +684,6 @@ public final class PushController {
         PushApprovalAnswer(gatewayId: gateway.id, bot: bot, sessionId: sessionId, requestId: requestId, choice: choice)
       )
     }
-
-    // Answered or not, the reader lands in the chat, where what is actually true is shown.
-    open(chat)
   }
 
   private func hold(_ action: String, _ payload: PushPayload) {
