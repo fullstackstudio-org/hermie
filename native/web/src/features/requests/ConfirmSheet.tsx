@@ -219,7 +219,7 @@ export function ConfirmSheet({
 
   // The countdown ticks while the confirmation is open; it is text, not a live region.
   useEffect(() => {
-    if (!open || confirmation.expiresAt === null) {
+    if (!open) {
       return
     }
 
@@ -237,7 +237,7 @@ export function ConfirmSheet({
   // At the deadline the confirmation ends, whether or not the gateway got to say so (a socket that dropped
   // while it timed out never hears it). A deadline already past fires at once.
   useEffect(() => {
-    if (!open || confirmation.expiresAt === null) {
+    if (!open) {
       return
     }
 
@@ -370,7 +370,7 @@ export function ConfirmSheet({
 
       <p className="hm-requests__meta">{sheetStrings.passkeys.rpLine({ rp: rpId })}</p>
 
-      {open && confirmation.expiresAt !== null ? (
+      {open ? (
         <p className="hm-requests__meta">
           {sheetStrings.passkeys.expires({ time: countdown(confirmation.expiresAt - clock) })}
         </p>

@@ -42,7 +42,7 @@ const confirmation = (overrides: Partial<PasskeyConfirmation> = {}): PasskeyConf
   detail: DETAIL,
   baseUrl: 'https://gw.example.test',
   userName: 'Alex',
-  expiresAt: null,
+  expiresAt: 4_102_444_800,
   phase: { kind: 'waiting' },
   answerMayHaveArrived: false,
   version: 1,

@@ -84,7 +84,7 @@ export const isActionablePhase = (phase: ConfirmPhase): boolean =>
  * timed out) must not stay actionable for ever, so the clock ends it too.
  */
 export const isExpired = (confirmation: Pick<PasskeyConfirmation, 'expiresAt'>, now: number): boolean =>
-  confirmation.expiresAt !== null && confirmation.expiresAt <= now
+  confirmation.expiresAt <= now
 
 /** One `confirm` at level `passkey`, as the sheet shows it. */
 export interface PasskeyConfirmation {
@@ -103,8 +103,11 @@ export interface PasskeyConfirmation {
   baseUrl: string
   /** The bound user's name, as the gateway gave it. */
   userName: string
-  /** Unix seconds when the gateway gives up on it (`passkey.expires_at`), for the countdown. */
-  expiresAt: number | null
+  /**
+   * Unix seconds when this page gives up on it, for the countdown: the frame's `passkey.expires_at` (required),
+   * and never more than `MAX_CONFIRM_SECONDS` after it arrived.
+   */
+  expiresAt: number
   phase: ConfirmPhase
   /**
    * A `request.answer` carrying this confirmation's assertion failed without a reply from the gateway
