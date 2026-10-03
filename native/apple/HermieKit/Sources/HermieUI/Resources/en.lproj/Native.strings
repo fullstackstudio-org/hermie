@@ -16,6 +16,10 @@
 	<string>Sign out of this gateway? Its address stays, and you can sign in again at any time.</string>
 	<key>native.account.userId</key>
 	<string>User ID</string>
+	<key>native.chat.copyDiagnostics</key>
+	<string>Copy diagnostics</string>
+	<key>native.chat.diagnosticsCopied</key>
+	<string>Copied</string>
 	<key>native.chatList.archivedTitle</key>
 	<string>Archived</string>
 	<key>native.chatList.muteTitle</key>

@@ -16,6 +16,10 @@
 	<string>Von diesem Gateway abmelden? Die Adresse bleibt erhalten, und du kannst dich jederzeit wieder anmelden.</string>
 	<key>native.account.userId</key>
 	<string>Benutzer-ID</string>
+	<key>native.chat.copyDiagnostics</key>
+	<string>Diagnose kopieren</string>
+	<key>native.chat.diagnosticsCopied</key>
+	<string>Kopiert</string>
 	<key>native.chatList.archivedTitle</key>
 	<string>Archiviert</string>
 	<key>native.chatList.muteTitle</key>

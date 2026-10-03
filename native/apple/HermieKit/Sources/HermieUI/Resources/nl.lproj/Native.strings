@@ -16,6 +16,10 @@
 	<string>Afmelden bij deze gateway? Het adres blijft bewaard en je kunt je altijd opnieuw aanmelden.</string>
 	<key>native.account.userId</key>
 	<string>Gebruikers-ID</string>
+	<key>native.chat.copyDiagnostics</key>
+	<string>Diagnose kopiëren</string>
+	<key>native.chat.diagnosticsCopied</key>
+	<string>Gekopieerd</string>
 	<key>native.chatList.archivedTitle</key>
 	<string>Gearchiveerd</string>
 	<key>native.chatList.muteTitle</key>
