@@ -448,7 +448,7 @@ describe('the pins', () => {
     expect(pins.map(pin => pin.name)).toEqual(['fork', 'upstream'])
     expect(pins.map(pin => pin.gate)).toEqual(['blocking', 'informational'])
     expect(pins.map(pin => pin.ref)).toEqual([
-      '9cfa68a1aea8cedb521588a9c9ddef02676420d0',
+      'ff419bb82a1ccd6e9ece5684c175c06ccf0be023',
       '5fe12f373ea65c1601db678c7841168d6394382b'
     ])
 
