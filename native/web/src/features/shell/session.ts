@@ -54,7 +54,7 @@ import { ConnectionsModel, respondThrough } from '../../core/connections'
 import { NoticesModel } from '../../core/notices'
 import { SecureInputModel } from '../../core/requests/secure-input'
 import { SessionStatusModel } from '../../core/session-status'
-import type { ConnectUiMetaOptions, UiMetaRuntime } from '../../core/ui-meta-bridge'
+import type { ConnectUiMetaOptions, connectUiMeta, UiMetaRuntime } from '../../core/ui-meta-bridge'
 import type { ChatCache } from '../../platform/chat-cache'
 import type { WebKeyValueStore } from '../../platform/key-value-store'
 import { createPasskeyPins } from '../../platform/passkey-pins'
@@ -63,6 +63,7 @@ import { type VisibilityWatcher, visibilityWatcher } from '../../platform/visibi
 import { createWebAuthn, type WebAuthnSeam } from '../../platform/webauthn'
 import { connectionsStore } from '../../state/connections'
 import { deviceContextStore, uiMetaUserIdOf } from '../../state/device-context'
+import { uiMetaStatusStore } from '../../state/ui-meta-status'
 import { passkeysStore } from '../../state/passkeys'
 import { bindRequests } from '../../state/requests'
 import { secureInputStore } from '../../state/secure-input'
@@ -90,7 +91,14 @@ export interface StartSessionOptions {
   /** The browser's passkey ceremonies; the page's own unless a test hands in its own. */
   webauthn?: WebAuthnSeam
   uiMeta?: Partial<Omit<ConnectUiMetaOptions, 'gateway' | 'connection' | 'bots' | 'storage' | 'userId'>>
+  /** How the `ui_meta` bridge's chunk is loaded; the dynamic import unless a test hands in its own. */
+  loadUiMeta?: () => Promise<{ connectUiMeta: typeof connectUiMeta }>
+  /** How long to wait before the one retry of a chunk that failed to load. */
+  uiMetaRetryMs?: number
 }
+
+/** The wait before a failed `ui_meta` chunk is asked for once more. */
+export const UI_META_RETRY_MS = 2_000
 
 export interface Session {
   readonly client: GatewayClient
@@ -207,15 +215,49 @@ export function startSession(options: StartSessionOptions): Session {
   /*
     The bridge is a chunk of its own: nothing on the first screen waits for it,
     and the stores it fills are filled the moment it lands (it reconciles at once
-    on a connection that is already usable).
+    on a connection that is already usable). A chunk that fails to load (a
+    deploy that replaced the build under an open page, a network blip) is asked
+    for once more; failing again, it is said in the console and published as
+    `unavailable` (`state/ui-meta-status.ts`), so a screen can say the settings
+    are not synced rather than the page failing quietly.
   */
+  const syncStatus = options.uiMeta?.status ?? uiMetaStatusStore
+  const load = options.loadUiMeta ?? (() => import('../../core/ui-meta-bridge'))
   let uiMetaRuntime: UiMetaRuntime | null = null
   let uiMetaStopped = false
-  const uiMeta: Promise<UiMetaRuntime | null> = import('../../core/ui-meta-bridge')
-    .then(({ connectUiMeta }) => {
-      if (uiMetaStopped) {
+
+  syncStatus.getState().set('starting')
+
+  const loadWithRetry = async (): Promise<Awaited<ReturnType<typeof load>> | null> => {
+    try {
+      return await load()
+    } catch (first) {
+      console.warn('[hermie] the settings sync did not load; trying once more.', first)
+    }
+
+    await new Promise(resolve => setTimeout(resolve, options.uiMetaRetryMs ?? UI_META_RETRY_MS))
+
+    if (uiMetaStopped) {
+      return null
+    }
+
+    try {
+      return await load()
+    } catch (second) {
+      console.error('[hermie] the settings sync could not be loaded; settings stay on this device.', second)
+      syncStatus.getState().set('unavailable')
+
+      return null
+    }
+  }
+
+  const uiMeta: Promise<UiMetaRuntime | null> = loadWithRetry()
+    .then(loaded => {
+      if (!loaded || uiMetaStopped) {
         return null
       }
+
+      const { connectUiMeta } = loaded
 
       uiMetaRuntime = connectUiMeta({
         gateway: client.gateway,
@@ -229,7 +271,12 @@ export function startSession(options: StartSessionOptions): Session {
 
       return uiMetaRuntime
     })
-    .catch(() => null)
+    .catch((error: unknown) => {
+      console.error('[hermie] the settings sync failed to start; settings stay on this device.', error)
+      syncStatus.getState().set('unavailable')
+
+      return null
+    })
 
   /** The request layer's queue is the open requests of the chats just started, the confirmations and the prompts. */
   const stopRequests = bindRequests(chats.chats, undefined, passkeysStore, secureInputStore, connectionsStore)
@@ -284,6 +331,7 @@ export function startSession(options: StartSessionOptions): Session {
       release = undefined
       uiMetaStopped = true
       uiMetaRuntime?.stop()
+      syncStatus.getState().reset()
       deviceContextStore.getState().retire()
       stopRequests()
       secureInput.stop()
