@@ -582,19 +582,44 @@ browser"):
   Everything the request supplies (the prompt, the command, the variable, the password manager, the site, its address,
   the hint) is plain text in its own labelled box, cleaned and bounded first (`displayText`: no control, format,
   bidirectional or private-use characters, folded blanks, at most four combining marks, a length limit), never
-  Markdown, never a link, and never woven into the app's own sentences.
-- **The fields.** Masked (a login's username is not a secret and is not), `autocomplete="off"`, with the opt-outs of the
+  Markdown, never a link, and never woven into the app's own sentences. The bot's display name in the heading, the
+  "From" line and a chat's notice is the roster's, which a bot with shell access can set: it is cleaned the same way,
+  cut at 64 characters and isolated in `<bdi>`, so its characters cannot reorder the sentence around it.
+- **The fields.** Masked (a login's username is not a secret and is not), `autocomplete="off"` (a one-time code is
+  `one-time-code`: no password to save, and the browser may offer a code it just received), with the opt-outs of the
   common password-manager extensions, no `name`, in no `<form>`; focus goes to the dialog, not the field; the fields
   and buttons wake 400 ms after the sheet appears, and whatever reached a field before then is dropped. Escape does not
   close the sheet.
+- **Known limit: the browser's own password manager.** Chromium and Safari ignore `autocomplete="off"` on a password
+  field. They may offer this origin's saved password (the gateway's sign-in) in a sheet's field, and offer to save what
+  was typed, a `vault.save_login` username and password above all, under the Hermie origin. The `data-*ignore` markers
+  reach extensions only. What the client does about it makes it less likely, not impossible: no form and no `name`, the
+  400 ms in which the fields take nothing (and are emptied when it ends), and a field emptied before it leaves the
+  document, so a browser looking at it as it disappears sees nothing. A text field masked with
+  `-webkit-text-security` would dodge the save offer, and was rejected: it is non-standard, a screen reader reads the
+  characters aloud, the system's secure text entry is lost, and mobile keyboards learn what is typed into a text field.
+  None of this is observable from the browser suite (the offer is browser chrome, not the page, and an automated
+  browser starts with an empty password store), so it is stated here rather than tested.
 - **Deadlines are the gateway's** (`tui_gateway/agent_callbacks.py`): 300 s for a secret (the gateway's default), 120 s
   for sudo and an unlock, 180 s for a code and a login, with a visible countdown. One first seen re-delivered (a reload,
   a resume) shows no countdown and is closed a whole timeout after it arrived, never before the gateway.
 - **Ending.** `request.cancel` closes the sheet with a notice on the chat ("expired" for the gateway's `timeout`,
   "withdrawn" otherwise), and so does the deadline; nothing is sent. A prompt whose session no chat holds any more is
-  answered `''`, and a sign-out answers every open one `''` before the socket closes.
+  answered `''`, and a sign-out answers every open one `''` before the socket closes. A cancel that arrives just after
+  an answer went out says the answer may not have arrived.
+- **Ended while the socket was down.** The model hears the live socket only, so the chat controller passes on what a
+  reconnect learns (`ReplaySignal`): a `request.cancel` in the `session.events.since` replay closes the prompt as a
+  live one would, and a prompt the resume's or replay's `open_requests` no longer lists for its session closes with a
+  notice saying it ended while the connection was down. An answer to it would only be dropped by the gateway. A
+  prompt first seen after that call went out is left alone: it may be newer than the list.
 - **Restored** from `open_requests`: a re-delivered copy of one already answered here means the answer never arrived,
-  and the sheet asks again and says so.
+  and the sheet asks again and says so (a lost Skip in its own words). The reply goes out on the newest copy, under
+  the session that copy names.
+- **Waiting for its chat.** A prompt for a session no chat on this page holds yet (a resume re-delivers open requests a
+  moment before it binds their session) waits, at most 16 at once, until a chat holds it or its deadline passes. The
+  native apps decline such a prompt with `-32601` after 15 s; this client does not, because the gateway reads that
+  error as "nobody can answer" and gives up on the request for every client, while another client of the same
+  gateway, or a chat the reader is about to open, could still answer it.
 - **What only the desktop app can do** (`preview.act`, `preview.read`, `terminal.read`, `window.read`, `tour`) is
   answered at once with the native apps' `-32601` and leaves one notice on its chat per request.
 
