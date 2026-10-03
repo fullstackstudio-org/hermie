@@ -128,7 +128,7 @@ It prints what it measured against each limit.
 ### What the first load carries
 
 The limit is not to be raised to make room: what the first screen (signing in, the chat list, an open chat) does not
-draw is kept out of the entry instead. Three things do that today.
+draw is kept out of the entry instead. Four things do that today.
 
 - **Only the strings the client reads.** `src/generated/locales/<tag>.json` holds every string of the Expo app, and
   the client reads a small part of them. The build bundles only that part (`catalogueOnlyWhatIsRead` in
@@ -145,6 +145,10 @@ draw is kept out of the entry instead. Three things do that today.
   while there is a request to show.
 - **The sheets' own words** (`src/i18n/sheet-strings.ts`, the same table as `web-strings.ts`) travel with them. Only
   a module that is itself loaded on demand may import that file.
+- **What a chat opens on request** is a chunk of its own through `React.lazy`: the message menu
+  (`MessageMenuPopup.tsx`, fetched the first time the reader points at a message or moves to one), the chat options'
+  panel (`ChatOptionsPanel.tsx`, fetched when its button is pointed at or focused) and the image viewer
+  (`ImageViewer.tsx`, fetched when a picture is opened).
 
 To see what a chunk is made of, build and read the hidden source maps in `dist-maps/`.
 
@@ -495,6 +499,9 @@ own chat: nothing in `App` does.
 | `rows.ts`            | from `visibleItems` to the list's rows: date separators, the status line while busy, the typing row, the tool being written |
 | `items/TodoList.tsx` | the bot's task list (`todo.updated`), a strip over the composer, folded to one line by default                              |
 | `JumpToLatest.tsx`   | the button over the bottom of the transcript, with how many messages arrived while the reader was above                     |
+| `MessageMenu.tsx`    | the transcript's one message menu and how it is reached (below); the menu itself is `MessageMenuPopup.tsx`, a lazy chunk    |
+| `ChatOptions.tsx`    | the chat's options: verbosity, bot-to-bot, thinking (the panel, `ChatOptionsPanel.tsx`, is a lazy chunk)                    |
+| `ImageViewer.tsx`    | one picture over the page, a modal dialog; a lazy chunk, fetched the first time a picture is opened                         |
 | `items/*.tsx`        | one view per item kind (below), each `React.memo` on `(id, version, presentation)`                                          |
 | `chat.css`           | the screen and its views, on the theme's tokens                                                                             |
 
@@ -514,16 +521,19 @@ it being told. Everything above the transcript (heading, header, notes) keeps it
 added or taken away at the top would move the anchor.
 
 **What is shown.** `visibleItems(chat, view)`, memoised on `(itemsVersion, turn.active, view)`. `turn.active` is in
-the key because the status line depends on it and ending a turn changes no item. Until the reader can change it
-(the verbosity, bot-to-bot and thinking toggles are W-18b's) the view is `DEFAULT_CHAT_VIEW`: level `normal` (tool
-calls as one collapsed line each), bot-to-bot shown, no reasoning. The Expo app's default is `quiet`; at `quiet`
-the selectors drop the tool rows this screen is meant to show.
+the key because the status line depends on it and ending a turn changes no item. The view is the reader's choice for
+this chat (`ChatOptions`, a disclosure at the end of the header: a radio group for the verbosity, checkboxes for
+bot-to-bot and thinking, and "Reset this conversation's view" once the chat has its own), kept in
+`state/chat-view.ts` under an identity-bound key: one default and an optional override per bot, as the Expo app keeps
+them. A switch is instant and loses nothing, mid-turn included. The default is `DEFAULT_CHAT_VIEW`: level `normal`
+(tool calls as one collapsed line each), bot-to-bot shown, no reasoning. The Expo app's default is `quiet`; Settings
+(W-20b) chooses it, and the `ui_meta` bridge carries the account's `defaults` raw until then.
 
 | Item                         | View                                                                                                                                                                                                                                                                                                                                                                                                                   |
 | ---------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `user`                       | a bubble on the right in the tint, Markdown, clock, "Sending..." until the gateway has it; somebody else's in the group chat is on the left with their name                                                                                                                                                                                                                                                            |
+| `user`                       | a bubble on the right in the tint, Markdown, clock, "Sending..." until the gateway has it; somebody else's in the group chat is on the left with their name; its attachments in a list (`AttachmentGallery`): a picture the reader sent from this page as a picture (`ImageCard`, the tray's own thumbnail, `sent-previews.ts`), every other one as a file chip (`FileChip`)                                           |
 | `assistant`                  | a bubble with Markdown; its thought, when thinking is shown, as one closed "Thought for 4s" line above it (`ReasoningDisclosure`); the typing dots in the same bubble until words arrive; usage and duration footer; a failure card under the words that arrived (`ErrorCard`: "Reconnecting..." when the gateway holds the turn, Retry only when the screen has something to retry with); interim and reply-to labels |
-| `tool`                       | one collapsed line (`ToolCard`: family glyph, name, what it did, how long or "Running..."); a click opens the untrusted-output warning, arguments, a patch's diff and the result as plain text; silent tools (`todo`) draw nothing until they fail                                                                                                                                                                     |
+| `tool`                       | one collapsed line (`ToolCard`: family glyph, name, what it did, how long or "Running..."); a click opens the untrusted-output warning, arguments, a patch's diff (`DiffView`: added and removed lines as `<ins>` and `<del>`, each read out as "Added:" or "Removed:", in a keyboard-reachable scroll area named by its counts) and the result as plain text; silent tools (`todo`) draw nothing until they fail      |
 | `bot_dm_in` / `bot_dm_out`   | an aside on the left, never a bubble (`BotDmAside`): one closed line (direction, `To @writer` / `From @writer`, a preview, the time, and on a dispatch the reply marker: waiting, replied or failed) that opens to the message as Markdown, how the dispatch went, the reply, and a link to the teammate's chat when this gateway has that bot; a chip when bot-to-bot is hidden                                       |
 | a run of more than three DMs | one line, `5 messages with @writer · 4 replies`, that opens in place to the asides (`BotDmRollup`; the run is found by `dm-rollup.ts` before the date separators)                                                                                                                                                                                                                                                      |
 | `cron_delivery`              | a card, never the owner's bubble (`CronDeliveryCard`): CRON, the job's name (or "Scheduled job" when it was redacted) and when it ran, open with the report as Markdown at `normal` and `verbose`, folded at `quiet`                                                                                                                                                                                                   |
@@ -537,8 +547,29 @@ the selectors drop the tool rows this screen is meant to show.
 Every name and one-line text an agent or the gateway wrote (a handle, a job name, a tool summary, an error) is
 cleaned and bounded by `displayText` and isolated in `<bdi>` (`WithName` for a sentence with a name in it); bodies
 go through the Markdown renderer, which makes no HTML. `npm run client:dev`, then `/dev/items.html`, shows every
-item kind in every presentation (`src/dev/item-gallery.tsx`, development only, checked by axe in
-`item-gallery.axe.test.tsx`).
+item kind in every presentation, and under them attachments as chips and pictures, a file chip in each of its states,
+diffs and the chat's options, with the message menu on every message and the viewer behind every picture
+(`src/dev/item-gallery.tsx`, development only, checked by axe in `item-gallery.axe.test.tsx`, closed and with the
+menu, the options and the viewer open).
+
+**A message's actions** (Copy text, Copy as Markdown where it differs, and Regenerate on the last reply: disabled
+while a turn runs, hidden after a colleague's turn in the group chat, `/retry` where the gateway has it and the
+reader's last prompt again where it does not, `core/chats/regenerate.ts`) are one menu for the whole transcript.
+No message holds a control of its own: a button in every message made WebKit lay out a two-thousand-row history
+three times slower. A message only carries `data-message-id` and `aria-keyshortcuts` (`messageTargetProps`), and
+`MessageMenuLayer` listens on the stage:
+
+| Way in       | What happens                                                                                                                                                                                                                                                                                                    |
+| ------------ | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| keyboard     | the transcript stays one tab stop; from it or a message the up and down arrows move focus between messages (roving, `tabindex="-1"`), Home and End go to the ends, Escape goes back to the transcript, Enter, Shift+F10 or the context-menu key opens the focused message's menu; the log's description says so |
+| hover or tap | one small "more" button on the corner of the hovered bubble, moved from message to message, out of the tab order                                                                                                                                                                                                |
+| right-click  | the menu at the pointer, except on a link or with words the reader had selected before the press, where the browser's own menu is the one asked for                                                                                                                                                             |
+| long press   | the same on a touch screen (half a second, cancelled by a finger that moves)                                                                                                                                                                                                                                    |
+
+The menu is the ARIA menu pattern: focused on its first line, the arrows, Home and End move, Escape and Tab close it
+and give focus back; it follows its message while the transcript scrolls and says what it did in a polite region.
+What the menu and the rows ask the screen for goes through one host object of stable identity (`items/item-host.ts`),
+so asking never re-renders a settled row.
 
 **The task list** is not a row: each `todo.updated` snapshot (or one a tool result or a resume carries) replaces the
 last in `ChatState.todo`, so it is a strip over the composer (`TodoList`): folded, how far it is and the task in
