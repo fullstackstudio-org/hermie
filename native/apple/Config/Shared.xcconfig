@@ -30,6 +30,22 @@ ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor
 CURRENT_PROJECT_VERSION = 1
 HERMIE_COMMIT = dev
 
+// Passkeys (docs/native.md, "Confirm at level passkey"). The relying party the
+// app's passkey ceremonies run under: it becomes the app's
+// `webcredentials:` associated domain and the Info.plist key
+// HermiePasskeyRPID, which the app reads at launch. The host must serve
+// /.well-known/apple-app-site-association naming this app's id. A fork with
+// its own bundle id sets its own host here; an empty value builds an app with
+// no associated domain that never offers passkeys.
+HERMIE_PASSKEY_RP_ID = confirm.hermie.dev
+
+// The entitlements file the apps sign with: Hermie.entitlements, or
+// Hermie-NoPasskey.entitlements (the same without the associated domain) when
+// HERMIE_PASSKEY_RP_ID is empty. A host never names a setting, so only the
+// empty value finds HERMIE_ENTITLEMENTS_SUFFIX_.
+HERMIE_ENTITLEMENTS_SUFFIX_ = -NoPasskey
+HERMIE_ENTITLEMENTS_SUFFIX = $(HERMIE_ENTITLEMENTS_SUFFIX_$(HERMIE_PASSKEY_RP_ID))
+
 // Signing. No team id is ever committed: it comes from HERMIE_TEAM_ID in the
 // environment (xcodebuild passes environment variables through as build
 // settings) or from a local Signing.xcconfig. With neither, a simulator or an

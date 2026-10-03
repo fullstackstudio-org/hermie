@@ -15,10 +15,11 @@ targets:
         excludes:
           - Info.plist
           - Hermie.entitlements
+          - Hermie-NoPasskey.entitlements
     settings:
       base:
         INFOPLIST_FILE: App/Info.plist
-        CODE_SIGN_ENTITLEMENTS: App/Hermie.entitlements
+        CODE_SIGN_ENTITLEMENTS: App/Hermie$(HERMIE_ENTITLEMENTS_SUFFIX).entitlements
         # iPhone and iPad.
         TARGETED_DEVICE_FAMILY: '1,2'
         SUPPORTS_MACCATALYST: NO

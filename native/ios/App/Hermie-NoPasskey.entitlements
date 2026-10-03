@@ -3,15 +3,10 @@
 <plist version="1.0">
 <dict>
 	<!--
-		Passkeys: the relying party the system passkey sheet runs under
-		(HERMIE_PASSKEY_RP_ID in Config/Shared.xcconfig). The app alone: no extension
-		declares it. A build with an empty RP signs with Hermie-NoPasskey.entitlements,
-		which is this file without this key.
+		Hermie.entitlements without the passkey associated domain: what a build with an empty
+		HERMIE_PASSKEY_RP_ID signs with. Keep the two files identical otherwise
+		(PasskeyBuildSettingsTests checks it).
 	-->
-	<key>com.apple.developer.associated-domains</key>
-	<array>
-		<string>webcredentials:$(HERMIE_PASSKEY_RP_ID)</string>
-	</array>
 	<!-- Push. Distribution signing replaces "development" with the profile's value. -->
 	<key>aps-environment</key>
 	<string>development</string>

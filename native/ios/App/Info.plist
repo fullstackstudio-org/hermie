@@ -30,6 +30,12 @@
 	<key>HermieCommit</key>
 	<string>$(HERMIE_COMMIT)</string>
 	<!--
+		The passkey relying party (HERMIE_PASSKEY_RP_ID in Config/Shared.xcconfig), read at launch.
+		Empty in a build without the associated domain, which never offers passkeys.
+	-->
+	<key>HermiePasskeyRPID</key>
+	<string>$(HERMIE_PASSKEY_RP_ID)</string>
+	<!--
 		The two keychain groups, team prefix included, for the share extension's delivery record:
 		written into the share group, and deleted from the app group where earlier builds wrote it.
 	-->

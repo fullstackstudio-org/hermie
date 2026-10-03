@@ -16,12 +16,13 @@ targets:
         excludes:
           - Info.plist
           - Hermie.entitlements
+          - Hermie-NoPasskey.entitlements
     settings:
       base:
         INFOPLIST_FILE: App/Info.plist
         # The sandbox and everything it is opened for are declared in the
         # entitlements file alone, so there is one place to audit them.
-        CODE_SIGN_ENTITLEMENTS: App/Hermie.entitlements
+        CODE_SIGN_ENTITLEMENTS: App/Hermie$(HERMIE_ENTITLEMENTS_SUFFIX).entitlements
         COMBINE_HIDPI_IMAGES: YES
 
   # Embedded in the app (see the HermieApp template in base.yml for the shared
