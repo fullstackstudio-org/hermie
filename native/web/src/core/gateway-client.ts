@@ -58,6 +58,12 @@
  *  - **One namespace.** No `GatewayNamespace`: the page's gateway is its own
  *    origin, and the stores it writes are already keyed by the base path.
  *  - **No share-extension credential.** There is no share extension.
+ *  - **The chat store reaches the roster.** The Expo app built its roster
+ *    controller inside the same provider that held the chat store, and gave it
+ *    the store so a busy session could be attributed to a bot by the ids the
+ *    open chats hold. Here `connectGateway` builds the controller, so it takes
+ *    the chat store as an option (`chats`, the page's own by default): without
+ *    it the running indicator could only see sessions it knew from the roster.
  *  - `connectGateway` is new: it is the React-free part of what the Expo app's
  *    `GatewayProvider` and `ChatRuntime` components did with a connection
  *    (status to the store, roster on `ready`, stores emptied on teardown).
@@ -81,10 +87,11 @@ import { type NetworkWatcher, networkWatcher } from '../platform/net-info'
 import { createSocketFactory } from '../platform/socket'
 import { type VisibilityWatcher, visibilityWatcher } from '../platform/visibility'
 import { type BotsState, botsStore } from '../state/bots'
+import { chatsStore } from '../state/chats'
 import { connectionStore, type ConnectionStoreState } from '../state/connection'
 import { pluginStore, type PluginState } from '../state/plugin'
 import { webPluginAdvert } from './advert'
-import { BotsController } from './bots-controller'
+import { BotsController, type ChatSessionIdSource } from './bots-controller'
 import { type ChatGateway, chatGatewayFor } from './link'
 
 /** How long a hidden page keeps its socket (rule 3 above). */
@@ -244,6 +251,12 @@ export interface ConnectGatewayOptions extends CreateConnectionOptions, Lifecycl
   storage: KeyValueStore
   /** This gateway's transcript cache: the roster paints from it before the socket is up. */
   cache?: ChatCache | null
+  /**
+   * The chat store, whose session ids attribute a busy session to a bot (the
+   * roster's running indicator). The page's own unless told otherwise: it is the
+   * store `connectChats` fills, so the two meet without being introduced.
+   */
+  chats?: ChatSessionIdSource
   stores?: Partial<GatewayStores>
 }
 
@@ -289,6 +302,7 @@ export function connectGateway(options: ConnectGatewayOptions): GatewayClient {
     gateway,
     store: stores.bots,
     cache: options.cache ?? null,
+    chats: options.chats ?? chatsStore,
     onRoster: result => stores.plugin.getState().apply(webPluginAdvert(result))
   })
 

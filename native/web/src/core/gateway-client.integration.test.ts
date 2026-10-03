@@ -28,6 +28,7 @@ import { createPluginStore } from '../state/plugin'
 import { browserFetch } from '../test-support/browser-fetch'
 import { fakeNetwork, fakeVisibility } from '../test-support/fake-watchers'
 import { bundledWebClient, webPushPublicKey } from './advert'
+import type { ChatSessionIdSource } from './bots-controller'
 import { connectGateway, type GatewayClient } from './gateway-client'
 
 interface FakeState {
@@ -63,7 +64,7 @@ const control = async (gateway: FakeGateway, path: string, body: unknown = {}): 
   })
 
 /** A signed-in page on a fresh cookie-mode fake, connected, with its own stores and hand-turned watchers. */
-async function connectedPage(options: { hiddenGraceMs?: number } = {}) {
+async function connectedPage(options: { hiddenGraceMs?: number; chats?: ChatSessionIdSource } = {}) {
   const gateway = await startFakeGateway({ port: 0, host: '127.0.0.1', auth: 'cookie' })
   gateways.push(gateway)
 
@@ -101,6 +102,7 @@ async function connectedPage(options: { hiddenGraceMs?: number } = {}) {
     visibility,
     network,
     stores,
+    ...(options.chats ? { chats: options.chats } : {}),
     // A short ladder, so a test waits on the gateway rather than on backoff.
     tuning: { backoffDelayMs: () => 50 },
     ...(options.hiddenGraceMs === undefined ? {} : { hiddenGraceMs: options.hiddenGraceMs })
@@ -137,6 +139,24 @@ describe('the connection against the fake gateway (cookie mode)', () => {
     expect(profilesListCalls(after)).toBe(1)
     // The REST half rides the same cookie session.
     await expect(client.http.authMe()).resolves.toMatchObject({ userId: 'tester@example.invalid' })
+  })
+
+  it('hands the chat store to the roster, which reads the open chats’ session ids to place a busy session on a bot', async () => {
+    let reads = 0
+    const chats: ChatSessionIdSource = {
+      getState: () => {
+        reads += 1
+
+        return { chats: { researcher: { runtimeSessionId: 'runtime-researcher' } } }
+      }
+    }
+    const { client, stores } = await connectedPage({ chats })
+
+    await waitFor(() => expect(stores.bots.getState().refreshedAt).not.toBeNull())
+    reads = 0
+    await client.bots.refreshRunning()
+
+    expect(reads).toBeGreaterThan(0)
   })
 
   it('survives the gateway dropping every socket, and comes back on a new ticket with a replay', async () => {
