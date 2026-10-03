@@ -258,6 +258,8 @@ test.describe('a question', () => {
     await page.getByRole('radio', { name: 'Red' }).focus()
     await page.keyboard.press('ArrowDown')
     await expect(page.getByRole('radio', { name: 'Blue' })).toBeChecked()
+    // The sheet's buttons wake after its tap guard: a button that is not awake cannot take focus.
+    await expect(page.getByRole('button', { name: 'Submit' })).toBeEnabled()
     await page.getByRole('button', { name: 'Submit' }).focus()
     await page.keyboard.press('Enter')
 
