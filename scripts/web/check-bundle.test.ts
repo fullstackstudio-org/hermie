@@ -167,10 +167,21 @@ describe('what the static route and the plugin tree allow', () => {
     const { problems } = checkBundle(dir)
 
     expect(problems).toEqual([
-      expect.stringContaining('assets/index-AAAA.js: holds a non-ASCII byte'),
-      expect.stringContaining('assets/index-CCCC.css: holds a non-ASCII byte'),
-      expect.stringContaining('data.json: holds a non-ASCII byte')
+      expect.stringContaining('assets/index-AAAA.js: holds a non-ASCII or control byte'),
+      expect.stringContaining('assets/index-CCCC.css: holds a non-ASCII or control byte'),
+      expect.stringContaining('data.json: holds a non-ASCII or control byte')
     ])
+  })
+
+  it('refuses a control character in a text file, and allows tab and newline', () => {
+    const dir = write({
+      ...goodFiles(),
+      'assets/index-AAAA.js': 'import{a as e}from"./react-BBBB.js";const s=["a","b"].join("\u001f");\n',
+      'assets/index-CCCC.css': 'a{\tcolor:red\n}\r\n'
+    })
+    const { problems } = checkBundle(dir)
+
+    expect(problems).toEqual([expect.stringContaining('assets/index-AAAA.js: holds a non-ASCII or control byte')])
   })
 
   it('refuses development-only code', () => {

@@ -12,7 +12,8 @@
 //   - a file is larger than 900 kB, or the bundle is larger than 3 MB or holds
 //     more than 80 files;
 //   - a `.js`, `.css`, `.html`, `.json`, `.mjs` or `.svg` file holds a non-ASCII
-//     byte (the scanner flags invisible Unicode; the build escapes instead);
+//     byte or a control character other than tab, newline and carriage return
+//     (the scanner flags invisible characters; the build escapes instead);
 //   - the code needed before the first screen (the entry and the chunks it
 //     imports statically) is larger than 700 kB, or 230 kB gzipped;
 //   - `index.html` carries inline script or style, an inline handler, no policy,
@@ -118,9 +119,12 @@ function extensionOf(name) {
   return dot <= 0 ? '' : base.slice(dot).toLowerCase()
 }
 
+/** Tab, newline and carriage return are the only control bytes a text file may hold. */
+const PLAIN_CONTROL = new Set([0x09, 0x0a, 0x0d])
+
 function hasNonAscii(bytes) {
   for (const byte of bytes) {
-    if (byte > 0x7f) {
+    if (byte > 0x7e || (byte < 0x20 && !PLAIN_CONTROL.has(byte))) {
       return true
     }
   }
@@ -388,7 +392,7 @@ export function checkBundle(dir, { limits = {}, commit } = {}) {
       problems.push(`${name}: ${bytes.length} bytes is over the ${max.maxFileBytes}-byte file limit`)
     }
     if (TEXT_EXTENSIONS.includes(extension) && hasNonAscii(bytes)) {
-      problems.push(`${name}: holds a non-ASCII byte; the build must escape non-ASCII text`)
+      problems.push(`${name}: holds a non-ASCII or control byte; the build must escape such text`)
     }
     if (TEXT_EXTENSIONS.includes(extension) && bytes.includes(DEVELOPMENT_ONLY_MARKER)) {
       problems.push(`${name}: holds development-only code (native/web/src/dev); it must not be in the bundle`)

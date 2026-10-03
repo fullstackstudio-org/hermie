@@ -15,7 +15,7 @@ import { resolveSourceCommit } from './scripts/source-commit.mjs'
  *  - `base: './'` and hashed names under `assets/`: the page lives at a fixed
  *    path under the gateway's origin but the gateway may sit behind a path
  *    prefix, so no URL in the output is absolute.
- *  - ASCII only (`esbuild.charset`): the scanner flags invisible Unicode, so
+ *  - ASCII only (`esbuild.charset`): the scanner flags invisible characters, so
  *    non-ASCII is escaped rather than left to be judged.
  *  - Nothing is inlined as a `data:` URI (`assetsInlineLimit: 0`): the policy
  *    in `index.html` allows `data:` for images only, not fonts or scripts.
@@ -55,8 +55,10 @@ function manualChunks(id: string): string | undefined {
  * this only ever sees text the minifier left unescaped.
  */
 function asciiOnlyScripts(): Plugin {
-  const anyNonAscii = /\P{ASCII}/u
-  const eachNonAscii = /\P{ASCII}/gu
+  // Non-ASCII, and the control characters a minified chunk can only hold inside
+  // a string, a template or a pattern (tab, newline and carriage return stay).
+  const anyNonAscii = /[^\t\n\r\x20-\x7e]/u
+  const eachNonAscii = /[^\t\n\r\x20-\x7e]/gu
 
   // One `\uXXXX` per UTF-16 unit: a character outside the BMP becomes the
   // surrogate pair, which a string, a template and a pattern all read as it.
