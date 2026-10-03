@@ -10,8 +10,9 @@ import HermieProtocol
  - **registered**: `pushRowFor` of the relay address — `v: 1`, `transport: "relay"`, the relay
    origin, the handle, the send secret (`secret`), the platform, the types, `preview`, the gateway
    key and `updatedAt` — plus `clears: true` (this build handles clearing pushes, so a sender may
-   send it one) and every key of this installation's existing row that this build does not write
-   (`enc` from a newer build, say), carried as it came. No row when no type is wanted, which is
+   send it one), `requestMethods: true` (it never shows Allow or Deny for a request that is not an
+   approval, so a sender may post those) and every key of this installation's existing row that this
+   build does not write (`enc` from a newer build, say), carried as it came. No row when no type is wanted, which is
    how every reader treats one.
  - **none**: the row is removed, and stays removed: the sync remembers it, so a gateway copy that
    still holds the row (one taken in before this launch said so) is written back without it.
@@ -183,6 +184,10 @@ public final class PushRowWriter: UIMetaContributor {
     // build that does not know the field would show one as a new request, buttons and all; this is
     // why the contract makes it an opt-in. `pushRowFor` stays the reference's own port.
     built[PushRows.clearsKey] = .bool(true)
+
+    // Hermie never offers Allow or Deny for a confirmation, a secure input or a clarify: the marker
+    // that lets a sender post those kinds to this row (`requests` in the contract).
+    built[PushRows.requestMethodsKey] = .bool(true)
 
     // A relay row never also names another transport's address (`pushAddressOf` refuses it).
     let written = Set(built.keys).union(["token", "endpoint", "keys"])

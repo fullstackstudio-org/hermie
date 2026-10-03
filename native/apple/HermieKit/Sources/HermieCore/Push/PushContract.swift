@@ -39,8 +39,12 @@ public enum PushContract {
   /// no channels; the list is here so a test holds both generations to the same names.
   public static var channelIds: [String] { types }
 
-  /// Channels of the unfiltered types (`android.alsoChannels`).
+  /// Channels of the unfiltered types (`android.alsoChannels`). A device creates the `security`
+  /// channel itself; iOS has no channels, so this is only the list a test holds to the contract.
   public static var alsoChannelIds: [String] { unfilteredTypes }
+
+  /// Every channel a device creates: one per type, then those of the unfiltered types.
+  public static var allChannelIds: [String] { channelIds + alsoChannelIds }
 
   /// Every `type` a payload may carry and the reader recognises, switch or not.
   public static func isKnownType(_ type: String) -> Bool {
@@ -165,7 +169,9 @@ public enum PushRequestMethod: String, Sendable, CaseIterable {
   case vaultSaveLogin = "vault.save_login"
   case confirm
 
-  /// Whether the sender always names the request id or only when it knows it.
+  /// Whether the sender always names the request id or only when it has it. An approval is
+  /// `whenKnown` too: the approval hook of a gateway may carry no request id, and such an approval is
+  /// posted without the category (`PushPayload.wantsActions`).
   public enum RequestIdRule: String, Sendable, Equatable {
     case required
     case whenKnown
@@ -180,7 +186,7 @@ public enum PushRequestMethod: String, Sendable, CaseIterable {
   /// Whether the notification is posted under `hermie.request`, with Allow and Deny.
   public var offersActions: Bool { self == PushContract.actionsMethod }
 
-  public var requestId: RequestIdRule { self == .clarify ? .whenKnown : .required }
+  public var requestId: RequestIdRule { self == .approval || self == .clarify ? .whenKnown : .required }
 
   /// Whether the data bag and the visible text may ever carry text about the request; `false` means
   /// never, whatever the registration's `preview` says.

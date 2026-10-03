@@ -89,12 +89,17 @@ public struct PushPayload: Sendable, Equatable {
   /**
    True when this payload is posted under `hermie.request`, with Allow and Deny: a `request` whose
    `method` is `approval`, and nothing else (`category.when`). Every other request method has no
-   actions, a request that names no method is not an approval, and a clearing push never carries a
-   category.
+   actions, a request that names no method is not an approval, a clearing push never carries a
+   category, and an approval that carries no request id is posted without one (the actions need an
+   id to answer).
    */
   public var wantsActions: Bool {
     PushContract.typesWithActions.contains(type) && !isClear && requestMethod?.offersActions == true
+      && !requestId.isEmpty
   }
+
+  /// `data.requestId`, or `""`.
+  public var requestId: String { string("requestId") }
 
   /// The category the notification is posted under, or nil for none.
   public var categoryIdentifier: String? {

@@ -216,7 +216,7 @@ struct PushContractTests {
     #expect(Self.object(category["when"])["type"] == "request")
   }
 
-  @Test("the requestId rule of the contract: `requiredWhen` and `alsoRequiredWhen` name every method that requires one")
+  @Test("the requestId rule of the contract: the field names the strict form, the table says whenKnown for an approval")
   func requiredRequestIds() throws {
     let field = try Self.field("requestId")
     var required: Set<String> = []
@@ -227,7 +227,13 @@ struct PushContractTests {
       }
     }
 
-    #expect(required == Set(PushRequestMethod.allCases.filter { $0.requestId == .required }.map(\.rawValue)))
+    // `requiredWhen` is the strict form (approval included: a sender that always has the id meets
+    // it); the table's `required` is the omit-rather-than-send-without rule, and an approval is
+    // `whenKnown` there.
+    let strict = Set(PushRequestMethod.allCases.filter { $0.requestId == .required }.map(\.rawValue))
+    #expect(required == strict.union([PushContract.actionsMethod.rawValue]))
+    #expect(PushRequestMethod.approval.requestId == .whenKnown)
+    #expect(PushRequestMethod.clarify.requestId == .whenKnown)
   }
 
   @Test("the channel ids and the unfiltered types' channels match the contract")
@@ -237,6 +243,8 @@ struct PushContractTests {
     let also = Self.array(android["alsoChannels"])
 
     #expect(channels.compactMap { $0["id"]?.stringValue } == PushContract.channelIds)
+    #expect((channels + also).compactMap { $0["id"]?.stringValue } == PushContract.allChannelIds)
+    #expect(PushContract.allChannelIds.contains("security"))
     #expect(channels.allSatisfy { $0["id"] == $0["type"] })
     #expect(also.compactMap { $0["id"]?.stringValue } == PushContract.alsoChannelIds)
     #expect(also.allSatisfy { $0["id"] == $0["type"] })
@@ -307,7 +315,7 @@ struct PushContractTests {
         continue
       }
 
-      if method.requestId == .required {
+      if method.requestId == .required, !payload.isClear {
         #expect(payload.string("requestId") != "", "\(example.name)")
       }
     }

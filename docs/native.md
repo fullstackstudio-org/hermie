@@ -841,7 +841,8 @@ contract lists: `type` (the seven switches, the unfiltered `security` and the le
 - **Request methods.** `PushRequestMethod` names `approval`, `clarify`, `secret`, `sudo`,
   `vault.unlock_prompt`, `vault.code`, `vault.save_login` and `confirm`. Only an approval is posted
   under `hermie.request` (`PushPayload.wantsActions`); every other method never gets Allow or Deny,
-  and a tap that says Allow or Deny on one is a plain open. A request with no `method` is not an
+  and a tap that says Allow or Deny on one is a plain open. An approval is posted with the category
+  only when it carries a request id (the id is `whenKnown` for an approval). A request with no `method` is not an
   approval for the category, but a tap still reads it as one (the senders before the contract only
   posted approvals with the actions).
 - **`sessionId` of a request is the runtime id.** The approval a tap answers is matched by request
@@ -862,7 +863,9 @@ contract lists: `type` (the seven switches, the unfiltered `security` and the le
 
 **Clearing.** The registration row carries `clears: true` (`PushRows.clearsKey`, written by
 `PushRowWriter`, not by the reference port `PushRows.rowFor`, which the contract vectors replay
-unchanged), which tells a sender this build can handle a clearing push. A clearing push is a
+unchanged), which tells a sender this build can handle a clearing push, and `requestMethods: true`
+(`PushRows.requestMethodsKey`): this build never shows Allow or Deny for a request that is not an
+approval, which is what lets a sender post a confirmation or a secure input to the row. A clearing push is a
 `type: request` bag with `clear: true`; it is silent (`PushPresentation.hidden`), never carries a
 category and is never a tap. It removes the delivered notification of the same bot with the same
 request id, or whose `eventId` is `replaces`, through `PushDeliveredNotifications`, a protocol over

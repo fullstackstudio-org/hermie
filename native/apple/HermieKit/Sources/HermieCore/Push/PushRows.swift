@@ -39,6 +39,11 @@ public enum PushRows {
   /// `true` when it does, absent when it does not. Not part of `pushRowFor`'s reference (the vectors
   /// replay that unchanged); `PushRowWriter` adds it.
   public static let clearsKey = "clears"
+  /// The row field that says this installation never shows Allow or Deny for a request that is not
+  /// an approval (`requests` in the contract): `true` when it does not, absent when it does. A Web
+  /// Push row gets a `confirm` or a secure input only with it. Written by `PushRowWriter` beside
+  /// `clears`.
+  public static let requestMethodsKey = "requestMethods"
   /// The plugin capability that says the notifier reads `{bot, at}` in `seen`.
   public static let perChatCapability = "push.seen.per_chat"
   /// The plugin capability that says the notifier can deliver to a relay row.

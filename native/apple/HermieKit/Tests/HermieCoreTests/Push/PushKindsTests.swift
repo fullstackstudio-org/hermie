@@ -51,6 +51,16 @@ struct PushKindsTests {
     }
   }
 
+  @Test("an approval that carries no request id is posted without the category, and a tap on it only opens")
+  func approvalWithoutRequestId() {
+    let bare = Self.request("approval", without: ["requestId"])
+
+    #expect(!bare.wantsActions)
+    #expect(bare.categoryIdentifier == nil)
+    #expect(PushTap(actionIdentifier: "hermie.request.allow", payload: bare)?.action == .open)
+    #expect(Self.request("approval").wantsActions)
+  }
+
   @Test("a request that names no method, an unknown method or a vault method this build does not know has no actions")
   func unknownMethods() {
     for method in ["", "future.thing", "vault.something_new"] {
@@ -351,8 +361,10 @@ struct PushKindsTests {
   @Test("the registration row says clears true, and every key it did before")
   func rowClearsKey() {
     #expect(PushRows.clearsKey == "clears")
+    #expect(PushRows.requestMethodsKey == "requestMethods")
     // The reference's own port is untouched: the vectors replay it, and the writer adds the key.
     #expect(PushRows.rowFor(["platform": "ios", "types": .object(PushRows.defaultTypes), "preview": false])["clears"] == nil)
+    #expect(PushRows.rowFor(["platform": "ios", "types": .object(PushRows.defaultTypes), "preview": false])["requestMethods"] == nil)
   }
 }
 

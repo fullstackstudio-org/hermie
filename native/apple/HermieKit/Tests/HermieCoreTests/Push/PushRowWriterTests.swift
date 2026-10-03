@@ -89,7 +89,9 @@ struct PushRowWriterTests {
           "gatewayKey": .string(Self.gatewayKey),
           "updatedAt": 1_790_001_453,
           // This build handles clearing pushes, and says so (`clear.optIn` in the contract).
-          "clears": true
+          "clears": true,
+          // It never shows Allow or Deny for a request that is not an approval (`requests`).
+          "requestMethods": true
         ]
     )
     #expect(
