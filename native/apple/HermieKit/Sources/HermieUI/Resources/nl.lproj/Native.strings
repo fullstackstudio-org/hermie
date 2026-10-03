@@ -434,6 +434,90 @@
 	<string>Hermie rondt de aanmelding af. Deze pagina mag dicht.</string>
 	<key>native.loopback.success.title</key>
 	<string>Je kunt teruggaan naar Hermie</string>
+	<key>native.mcp.blurb</key>
+	<string>Laat MCP-clients, zoals codeeragents, je bots gebruiken via deze gateway.</string>
+	<key>native.mcp.clients.empty</key>
+	<string>Er is nog geen client verbonden. Zodra je er een toestaat, verschijnt die hier.</string>
+	<key>native.mcp.clients.footer</key>
+	<string>Een client die je intrekt, werkt direct niet meer. Hij kan opnieuw om je toestemming vragen.</string>
+	<key>native.mcp.clients.header</key>
+	<string>Verbonden clients</string>
+	<key>native.mcp.command.copy</key>
+	<string>Opdracht kopiëren</string>
+	<key>native.mcp.command.footer</key>
+	<string>Voer dit uit in een terminal op de computer waar de client is geïnstalleerd. Hermie toont het alleen en voert het nooit zelf uit.</string>
+	<key>native.mcp.command.header</key>
+	<string>Opdrachtregel</string>
+	<key>native.mcp.config.copy</key>
+	<string>Configuratie kopiëren</string>
+	<key>native.mcp.config.footer</key>
+	<string>Of zet dit in het MCP-configuratiebestand van de client (.mcp.json).</string>
+	<key>native.mcp.config.header</key>
+	<string>Configuratiebestand</string>
+	<key>native.mcp.copied</key>
+	<string>Gekopieerd</string>
+	<key>native.mcp.dismiss</key>
+	<string>Sluiten</string>
+	<key>native.mcp.endpoint.copy</key>
+	<string>Eindpunt kopiëren</string>
+	<key>native.mcp.endpoint.header</key>
+	<string>Eindpunt</string>
+	<key>native.mcp.grant.allowed</key>
+	<string>Toegestaan op %@</string>
+	<key>native.mcp.grant.allowedFrom</key>
+	<string>Toegestaan op %1$@ vanaf %2$@</string>
+	<key>native.mcp.grant.allowedUnknown</key>
+	<string>Toegestaan op een onbekend moment</string>
+	<key>native.mcp.grant.expires</key>
+	<string>Verloopt op %@</string>
+	<key>native.mcp.grant.lastUsed</key>
+	<string>Laatst gebruikt op %@</string>
+	<key>native.mcp.grant.lastUsedFrom</key>
+	<string>Laatst gebruikt op %1$@ vanaf %2$@</string>
+	<key>native.mcp.grant.neverUsed</key>
+	<string>Nog nooit gebruikt</string>
+	<key>native.mcp.grant.revoke</key>
+	<string>Intrekken</string>
+	<key>native.mcp.grant.revokeFailed</key>
+	<string>Hermie kon die client niet intrekken. Probeer het opnieuw.</string>
+	<key>native.mcp.grant.revokeLabel</key>
+	<string>%@ intrekken</string>
+	<key>native.mcp.grant.revokeMessage</key>
+	<string>%@ werkt direct niet meer en moet opnieuw om je toestemming vragen.</string>
+	<key>native.mcp.grant.revokeTitle</key>
+	<string>Deze client intrekken?</string>
+	<key>native.mcp.grant.unnamed</key>
+	<string>Client zonder naam</string>
+	<key>native.mcp.instructions.header</key>
+	<string>Van de gateway</string>
+	<key>native.mcp.notice.changed</key>
+	<string>De lijst met clients is gewijzigd.</string>
+	<key>native.mcp.notice.granted</key>
+	<string>%@ mag nu verbinden.</string>
+	<key>native.mcp.notice.revoked</key>
+	<string>%@ is ingetrokken.</string>
+	<key>native.mcp.retry</key>
+	<string>Opnieuw proberen</string>
+	<key>native.mcp.state.loading</key>
+	<string>Deze gateway wordt gecontroleerd…</string>
+	<key>native.mcp.state.noGateway</key>
+	<string>Verbind met een gateway om de MCP-instellingen te zien.</string>
+	<key>native.mcp.state.noIdentity</key>
+	<string>MCP werkt alleen als je op deze gateway bent aangemeld als persoon. Meld je aan met een account en probeer het opnieuw.</string>
+	<key>native.mcp.state.notOffered</key>
+	<string>Deze gateway biedt geen MCP aan.</string>
+	<key>native.mcp.state.on</key>
+	<string>MCP staat aan voor deze gateway.</string>
+	<key>native.mcp.state.signedOut</key>
+	<string>Hermie is niet aangemeld bij deze gateway. Meld je opnieuw aan om de MCP-instellingen te zien.</string>
+	<key>native.mcp.state.stale</key>
+	<string>Deze instellingen zijn mogelijk verouderd: Hermie kon ze niet verversen.</string>
+	<key>native.mcp.state.unreadable</key>
+	<string>Hermie kon de MCP-instellingen van deze gateway niet lezen.</string>
+	<key>native.mcp.stateHeader</key>
+	<string>MCP op %@</string>
+	<key>native.mcp.title</key>
+	<string>MCP</string>
 	<key>native.notice.gatewayNotConfigured</key>
 	<string>Die link hoort bij een gateway die dit apparaat niet kent. Voeg de gateway eerst toe.</string>
 	<key>native.notice.lockSettingNotRestored</key>

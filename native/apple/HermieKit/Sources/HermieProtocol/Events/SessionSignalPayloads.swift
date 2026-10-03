@@ -369,6 +369,13 @@ public struct GatewayCapabilitiesResult: JSONObjectBacked {
     get { json[field: "per_message_author"] }
     set { json[field: "per_message_author"] = newValue }
   }
+  /// The gateway may stamp `via` on a row an agent sent for a person
+  /// (`display_metadata.author.via`). Advisory: a reader reads `via` whether or not this was
+  /// advertised (`contract/gateway/mcp.md`).
+  public var perMessageAuthorVia: Bool? {
+    get { json[field: "per_message_author_via"] }
+    set { json[field: "per_message_author_via"] = newValue }
+  }
   /// The gateway stamps row, call and turn identity on its frames and history (`row_id`,
   /// `call_row_id` / `call_index`, `turn_id`). Advisory: the transcript engine decides per frame on
   /// the fields themselves, so this is for a reader of a log, not a switch.

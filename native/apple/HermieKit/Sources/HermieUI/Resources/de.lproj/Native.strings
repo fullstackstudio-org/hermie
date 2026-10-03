@@ -434,6 +434,90 @@
 	<string>Hermie schließt die Anmeldung ab. Diese Seite kann geschlossen werden.</string>
 	<key>native.loopback.success.title</key>
 	<string>Du kannst zu Hermie zurückkehren</string>
+	<key>native.mcp.blurb</key>
+	<string>Lass MCP-Clients, etwa Coding-Agenten, deine Bots über dieses Gateway nutzen.</string>
+	<key>native.mcp.clients.empty</key>
+	<string>Noch kein Client verbunden. Sobald du einen zulässt, erscheint er hier.</string>
+	<key>native.mcp.clients.footer</key>
+	<string>Ein Client, dessen Zugriff du widerrufst, funktioniert sofort nicht mehr. Er kann erneut um deine Zustimmung bitten.</string>
+	<key>native.mcp.clients.header</key>
+	<string>Verbundene Clients</string>
+	<key>native.mcp.command.copy</key>
+	<string>Befehl kopieren</string>
+	<key>native.mcp.command.footer</key>
+	<string>Führe ihn in einem Terminal auf dem Rechner aus, auf dem der Client installiert ist. Hermie zeigt ihn nur an und führt ihn nie selbst aus.</string>
+	<key>native.mcp.command.header</key>
+	<string>Befehlszeile</string>
+	<key>native.mcp.config.copy</key>
+	<string>Konfiguration kopieren</string>
+	<key>native.mcp.config.footer</key>
+	<string>Oder trage dies in die MCP-Konfigurationsdatei des Clients ein (.mcp.json).</string>
+	<key>native.mcp.config.header</key>
+	<string>Konfigurationsdatei</string>
+	<key>native.mcp.copied</key>
+	<string>Kopiert</string>
+	<key>native.mcp.dismiss</key>
+	<string>Schließen</string>
+	<key>native.mcp.endpoint.copy</key>
+	<string>Endpunkt kopieren</string>
+	<key>native.mcp.endpoint.header</key>
+	<string>Endpunkt</string>
+	<key>native.mcp.grant.allowed</key>
+	<string>Zugelassen am %@</string>
+	<key>native.mcp.grant.allowedFrom</key>
+	<string>Zugelassen am %1$@ von %2$@</string>
+	<key>native.mcp.grant.allowedUnknown</key>
+	<string>Zu einem unbekannten Zeitpunkt zugelassen</string>
+	<key>native.mcp.grant.expires</key>
+	<string>Läuft am %@ ab</string>
+	<key>native.mcp.grant.lastUsed</key>
+	<string>Zuletzt verwendet am %@</string>
+	<key>native.mcp.grant.lastUsedFrom</key>
+	<string>Zuletzt verwendet am %1$@ von %2$@</string>
+	<key>native.mcp.grant.neverUsed</key>
+	<string>Noch nie verwendet</string>
+	<key>native.mcp.grant.revoke</key>
+	<string>Widerrufen</string>
+	<key>native.mcp.grant.revokeFailed</key>
+	<string>Hermie konnte diesen Client nicht widerrufen. Versuche es erneut.</string>
+	<key>native.mcp.grant.revokeLabel</key>
+	<string>%@ widerrufen</string>
+	<key>native.mcp.grant.revokeMessage</key>
+	<string>%@ funktioniert sofort nicht mehr und muss erneut um deine Zustimmung bitten.</string>
+	<key>native.mcp.grant.revokeTitle</key>
+	<string>Diesen Client widerrufen?</string>
+	<key>native.mcp.grant.unnamed</key>
+	<string>Unbenannter Client</string>
+	<key>native.mcp.instructions.header</key>
+	<string>Vom Gateway</string>
+	<key>native.mcp.notice.changed</key>
+	<string>Die Liste der Clients hat sich geändert.</string>
+	<key>native.mcp.notice.granted</key>
+	<string>%@ darf sich jetzt verbinden.</string>
+	<key>native.mcp.notice.revoked</key>
+	<string>%@ wurde widerrufen.</string>
+	<key>native.mcp.retry</key>
+	<string>Erneut versuchen</string>
+	<key>native.mcp.state.loading</key>
+	<string>Dieses Gateway wird geprüft …</string>
+	<key>native.mcp.state.noGateway</key>
+	<string>Verbinde dich mit einem Gateway, um dessen MCP-Einstellungen zu sehen.</string>
+	<key>native.mcp.state.noIdentity</key>
+	<string>MCP setzt voraus, dass du auf diesem Gateway als Person angemeldet bist. Melde dich mit einem Konto an und versuche es erneut.</string>
+	<key>native.mcp.state.notOffered</key>
+	<string>Dieses Gateway bietet kein MCP an.</string>
+	<key>native.mcp.state.on</key>
+	<string>MCP ist für dieses Gateway eingeschaltet.</string>
+	<key>native.mcp.state.signedOut</key>
+	<string>Hermie ist bei diesem Gateway nicht angemeldet. Melde dich erneut an, um die MCP-Einstellungen zu sehen.</string>
+	<key>native.mcp.state.stale</key>
+	<string>Diese Einstellungen sind möglicherweise veraltet: Hermie konnte sie nicht aktualisieren.</string>
+	<key>native.mcp.state.unreadable</key>
+	<string>Hermie konnte die MCP-Einstellungen dieses Gateways nicht lesen.</string>
+	<key>native.mcp.stateHeader</key>
+	<string>MCP auf %@</string>
+	<key>native.mcp.title</key>
+	<string>MCP</string>
 	<key>native.notice.gatewayNotConfigured</key>
 	<string>Dieser Link gehört zu einem Gateway, das dieses Gerät nicht kennt. Füge das Gateway zuerst hinzu.</string>
 	<key>native.notice.lockSettingNotRestored</key>

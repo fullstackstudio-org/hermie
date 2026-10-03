@@ -5036,6 +5036,1014 @@
         }
       }
     },
+    "native.mcp.blurb" : {
+      "comment" : "Settings: the one line under the MCP category.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Lass MCP-Clients, etwa Coding-Agenten, deine Bots über dieses Gateway nutzen."
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Let MCP clients, such as coding agents, use your bots through this gateway."
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Laat MCP-clients, zoals codeeragents, je bots gebruiken via deze gateway."
+          }
+        }
+      }
+    },
+    "native.mcp.clients.empty" : {
+      "comment" : "Settings → MCP, when no client has been allowed yet.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Noch kein Client verbunden. Sobald du einen zulässt, erscheint er hier."
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "No client is connected yet. When you allow one, it appears here."
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Er is nog geen client verbonden. Zodra je er een toestaat, verschijnt die hier."
+          }
+        }
+      }
+    },
+    "native.mcp.clients.footer" : {
+      "comment" : "Settings → MCP, under the connected clients.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Ein Client, dessen Zugriff du widerrufst, funktioniert sofort nicht mehr. Er kann erneut um deine Zustimmung bitten."
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "A client you revoke stops working at once. It can ask for your permission again."
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Een client die je intrekt, werkt direct niet meer. Hij kan opnieuw om je toestemming vragen."
+          }
+        }
+      }
+    },
+    "native.mcp.clients.header" : {
+      "comment" : "Settings → MCP, header over the connected clients.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Verbundene Clients"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Connected clients"
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Verbonden clients"
+          }
+        }
+      }
+    },
+    "native.mcp.command.copy" : {
+      "comment" : "Settings → MCP, the button that copies the command.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Befehl kopieren"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Copy command"
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Opdracht kopiëren"
+          }
+        }
+      }
+    },
+    "native.mcp.command.footer" : {
+      "comment" : "Settings → MCP, under the command.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Führe ihn in einem Terminal auf dem Rechner aus, auf dem der Client installiert ist. Hermie zeigt ihn nur an und führt ihn nie selbst aus."
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Run it in a terminal on the computer where the client is installed. Hermie only shows it; it never runs it."
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Voer dit uit in een terminal op de computer waar de client is geïnstalleerd. Hermie toont het alleen en voert het nooit zelf uit."
+          }
+        }
+      }
+    },
+    "native.mcp.command.header" : {
+      "comment" : "Settings → MCP, header over the command to copy.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Befehlszeile"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Command line"
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Opdrachtregel"
+          }
+        }
+      }
+    },
+    "native.mcp.config.copy" : {
+      "comment" : "Settings → MCP, the button that copies the configuration.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Konfiguration kopieren"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Copy configuration"
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Configuratie kopiëren"
+          }
+        }
+      }
+    },
+    "native.mcp.config.footer" : {
+      "comment" : "Settings → MCP, under the configuration.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Oder trage dies in die MCP-Konfigurationsdatei des Clients ein (.mcp.json)."
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Or put this in the client's MCP configuration file (.mcp.json)."
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Of zet dit in het MCP-configuratiebestand van de client (.mcp.json)."
+          }
+        }
+      }
+    },
+    "native.mcp.config.header" : {
+      "comment" : "Settings → MCP, header over the configuration to copy.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Konfigurationsdatei"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Configuration file"
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Configuratiebestand"
+          }
+        }
+      }
+    },
+    "native.mcp.copied" : {
+      "comment" : "Settings → MCP, a copy button for a moment after it copied.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Kopiert"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Copied"
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Gekopieerd"
+          }
+        }
+      }
+    },
+    "native.mcp.dismiss" : {
+      "comment" : "Settings → MCP, the button that closes a notice.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Schließen"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Dismiss"
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Sluiten"
+          }
+        }
+      }
+    },
+    "native.mcp.endpoint.copy" : {
+      "comment" : "Settings → MCP, the button that copies the endpoint.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Endpunkt kopieren"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Copy endpoint"
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Eindpunt kopiëren"
+          }
+        }
+      }
+    },
+    "native.mcp.endpoint.header" : {
+      "comment" : "Settings → MCP, header over the address clients connect to.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Endpunkt"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Endpoint"
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Eindpunt"
+          }
+        }
+      }
+    },
+    "native.mcp.grant.allowed" : {
+      "comment" : "Settings → MCP, a client's row. The argument is a date and time.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Zugelassen am %@"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Allowed %@"
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Toegestaan op %@"
+          }
+        }
+      }
+    },
+    "native.mcp.grant.allowedFrom" : {
+      "comment" : "Settings → MCP, a client's row. The arguments are a date and time, and the address it was allowed from.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Zugelassen am %1$@ von %2$@"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Allowed %1$@ from %2$@"
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Toegestaan op %1$@ vanaf %2$@"
+          }
+        }
+      }
+    },
+    "native.mcp.grant.allowedUnknown" : {
+      "comment" : "Settings → MCP, a client's row when the gateway did not say when it was allowed.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Zu einem unbekannten Zeitpunkt zugelassen"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Allowed at an unknown time"
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Toegestaan op een onbekend moment"
+          }
+        }
+      }
+    },
+    "native.mcp.grant.expires" : {
+      "comment" : "Settings → MCP, a client's row. The argument is a date and time.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Läuft am %@ ab"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Expires %@"
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Verloopt op %@"
+          }
+        }
+      }
+    },
+    "native.mcp.grant.lastUsed" : {
+      "comment" : "Settings → MCP, a client's row. The argument is a date and time.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Zuletzt verwendet am %@"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Last used %@"
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Laatst gebruikt op %@"
+          }
+        }
+      }
+    },
+    "native.mcp.grant.lastUsedFrom" : {
+      "comment" : "Settings → MCP, a client's row. The arguments are a date and time, and the address it last came from.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Zuletzt verwendet am %1$@ von %2$@"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Last used %1$@ from %2$@"
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Laatst gebruikt op %1$@ vanaf %2$@"
+          }
+        }
+      }
+    },
+    "native.mcp.grant.neverUsed" : {
+      "comment" : "Settings → MCP, a client's row when it never used its token.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Noch nie verwendet"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Never used"
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Nog nooit gebruikt"
+          }
+        }
+      }
+    },
+    "native.mcp.grant.revoke" : {
+      "comment" : "Settings → MCP, the button that revokes a client.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Widerrufen"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Revoke"
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Intrekken"
+          }
+        }
+      }
+    },
+    "native.mcp.grant.revokeFailed" : {
+      "comment" : "Settings → MCP, when a revoke did not go through.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Hermie konnte diesen Client nicht widerrufen. Versuche es erneut."
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Hermie could not revoke that client. Try again."
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Hermie kon die client niet intrekken. Probeer het opnieuw."
+          }
+        }
+      }
+    },
+    "native.mcp.grant.revokeLabel" : {
+      "comment" : "Settings → MCP, what VoiceOver says for a client's revoke button. The argument is the client's name.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%@ widerrufen"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Revoke %@"
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%@ intrekken"
+          }
+        }
+      }
+    },
+    "native.mcp.grant.revokeMessage" : {
+      "comment" : "Settings → MCP, under the question before a client is revoked. The argument is the client's name.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%@ funktioniert sofort nicht mehr und muss erneut um deine Zustimmung bitten."
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%@ stops working at once and has to ask for your permission again."
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%@ werkt direct niet meer en moet opnieuw om je toestemming vragen."
+          }
+        }
+      }
+    },
+    "native.mcp.grant.revokeTitle" : {
+      "comment" : "Settings → MCP, the question before a client is revoked.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Diesen Client widerrufen?"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Revoke this client?"
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Deze client intrekken?"
+          }
+        }
+      }
+    },
+    "native.mcp.grant.unnamed" : {
+      "comment" : "Settings → MCP, a client that registered without a name.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Unbenannter Client"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Unnamed client"
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Client zonder naam"
+          }
+        }
+      }
+    },
+    "native.mcp.instructions.header" : {
+      "comment" : "Settings → MCP, header over the gateway's own instructions.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Vom Gateway"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "From the gateway"
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Van de gateway"
+          }
+        }
+      }
+    },
+    "native.mcp.notice.changed" : {
+      "comment" : "Settings → MCP, a notice when the gateway said the clients changed.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Die Liste der Clients hat sich geändert."
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "The list of clients changed."
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "De lijst met clients is gewijzigd."
+          }
+        }
+      }
+    },
+    "native.mcp.notice.granted" : {
+      "comment" : "Settings → MCP, a notice when a client was allowed elsewhere. The argument is the client's name.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%@ darf sich jetzt verbinden."
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%@ was allowed to connect."
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%@ mag nu verbinden."
+          }
+        }
+      }
+    },
+    "native.mcp.notice.revoked" : {
+      "comment" : "Settings → MCP, a notice when a client was revoked elsewhere. The argument is the client's name.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%@ wurde widerrufen."
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%@ was revoked."
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%@ is ingetrokken."
+          }
+        }
+      }
+    },
+    "native.mcp.retry" : {
+      "comment" : "Settings → MCP, the button that reads the settings again.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Erneut versuchen"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Try again"
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Opnieuw proberen"
+          }
+        }
+      }
+    },
+    "native.mcp.state.loading" : {
+      "comment" : "Settings → MCP, while the first read has not answered.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Dieses Gateway wird geprüft …"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Checking this gateway…"
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Deze gateway wordt gecontroleerd…"
+          }
+        }
+      }
+    },
+    "native.mcp.state.noGateway" : {
+      "comment" : "Settings → MCP, when no gateway is connected.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Verbinde dich mit einem Gateway, um dessen MCP-Einstellungen zu sehen."
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Connect to a gateway to see its MCP settings."
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Verbind met een gateway om de MCP-instellingen te zien."
+          }
+        }
+      }
+    },
+    "native.mcp.state.noIdentity" : {
+      "comment" : "Settings → MCP, when the connection has no person behind it (a session token or an ungated gateway).",
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "MCP setzt voraus, dass du auf diesem Gateway als Person angemeldet bist. Melde dich mit einem Konto an und versuche es erneut."
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "MCP needs you to be signed in as a person on this gateway. Sign in with an account and try again."
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "MCP werkt alleen als je op deze gateway bent aangemeld als persoon. Meld je aan met een account en probeer het opnieuw."
+          }
+        }
+      }
+    },
+    "native.mcp.state.notOffered" : {
+      "comment" : "Settings → MCP, when the gateway has no MCP endpoint or has it switched off.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Dieses Gateway bietet kein MCP an."
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "This gateway does not offer MCP."
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Deze gateway biedt geen MCP aan."
+          }
+        }
+      }
+    },
+    "native.mcp.state.on" : {
+      "comment" : "Settings → MCP, when the gateway offers MCP.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "MCP ist für dieses Gateway eingeschaltet."
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "MCP is on for this gateway."
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "MCP staat aan voor deze gateway."
+          }
+        }
+      }
+    },
+    "native.mcp.state.signedOut" : {
+      "comment" : "Settings → MCP, when this device is not signed in to the gateway.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Hermie ist bei diesem Gateway nicht angemeldet. Melde dich erneut an, um die MCP-Einstellungen zu sehen."
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Hermie is not signed in to this gateway. Sign in again to see its MCP settings."
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Hermie is niet aangemeld bij deze gateway. Meld je opnieuw aan om de MCP-instellingen te zien."
+          }
+        }
+      }
+    },
+    "native.mcp.state.stale" : {
+      "comment" : "Settings → MCP, when the last refresh failed and an older answer is shown.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Diese Einstellungen sind möglicherweise veraltet: Hermie konnte sie nicht aktualisieren."
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "These settings may be out of date: Hermie could not refresh them."
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Deze instellingen zijn mogelijk verouderd: Hermie kon ze niet verversen."
+          }
+        }
+      }
+    },
+    "native.mcp.state.unreadable" : {
+      "comment" : "Settings → MCP, when the settings could not be read and nothing was read before.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Hermie konnte die MCP-Einstellungen dieses Gateways nicht lesen."
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Hermie could not read the MCP settings from this gateway."
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Hermie kon de MCP-instellingen van deze gateway niet lezen."
+          }
+        }
+      }
+    },
+    "native.mcp.stateHeader" : {
+      "comment" : "Settings → MCP, header over the state. The argument is the gateway's name.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "MCP auf %@"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "MCP on %@"
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "MCP op %@"
+          }
+        }
+      }
+    },
+    "native.mcp.title" : {
+      "comment" : "Settings: the MCP page and its row in the list of settings.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "MCP"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "MCP"
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "MCP"
+          }
+        }
+      }
+    },
     "native.notice.gatewayNotConfigured" : {
       "extractionState" : "manual",
       "localizations" : {

@@ -5,6 +5,7 @@ import SwiftUI
 public enum SettingsCategory: String, CaseIterable, Hashable, Sendable, Identifiable {
   case account
   case gateways
+  case mcp
   case chats
   case notifications
   case memory
@@ -19,7 +20,7 @@ public enum SettingsCategory: String, CaseIterable, Hashable, Sendable, Identifi
 
   /// Grouped the way the list draws them.
   public static let groups: [[SettingsCategory]] = [
-    [.account, .gateways],
+    [.account, .gateways, .mcp],
     [.chats, .notifications, .memory],
     [.appearance, .privacy, .voice],
     [.capabilities],
@@ -30,6 +31,7 @@ public enum SettingsCategory: String, CaseIterable, Hashable, Sendable, Identifi
     switch self {
     case .account: Strings.App.Settings.Categories.account
     case .gateways: Strings.App.Settings.Categories.gateways
+    case .mcp: NativeStrings.MCP.title
     case .chats: Strings.App.Settings.Categories.chats
     case .notifications: Strings.App.Settings.Categories.notifications
     case .memory: Strings.App.Settings.Categories.memory
@@ -46,6 +48,7 @@ public enum SettingsCategory: String, CaseIterable, Hashable, Sendable, Identifi
     switch self {
     case .account: Strings.App.Settings.Categories.Blurb.account
     case .gateways: Strings.App.Settings.Categories.Blurb.gateways
+    case .mcp: NativeStrings.MCP.blurb
     case .chats: Strings.App.Settings.Categories.Blurb.chats
     case .notifications: Strings.App.Settings.Categories.Blurb.notifications
     case .memory: Strings.App.Settings.Categories.Blurb.memory
@@ -62,6 +65,7 @@ public enum SettingsCategory: String, CaseIterable, Hashable, Sendable, Identifi
     switch self {
     case .account: "person.crop.circle"
     case .gateways: "server.rack"
+    case .mcp: "puzzlepiece.extension"
     case .chats: "bubble.left.and.bubble.right"
     case .notifications: "bell.badge"
     case .memory: "book"
@@ -79,7 +83,7 @@ public enum SettingsCategory: String, CaseIterable, Hashable, Sendable, Identifi
  Settings: the category list and one page per category. A sheet with a stack on iPhone and iPad,
  the `Settings` window with a sidebar on the Mac.
 
- Implemented: Account, Privacy (the app lock), Gateways, Notifications and About. Every other category is
+ Implemented: Account, Privacy (the app lock), Gateways, MCP, Notifications and About. Every other category is
  a placeholder
  page until its task lands.
  */
@@ -176,6 +180,8 @@ struct SettingsPage: View {
         PrivacySettingsPage()
       case .gateways:
         GatewaysSettingsPage(onAddGateway: onAddGateway)
+      case .mcp:
+        MCPSettingsEntry()
       case .notifications:
         NotificationsSettingsPage()
       case .about:

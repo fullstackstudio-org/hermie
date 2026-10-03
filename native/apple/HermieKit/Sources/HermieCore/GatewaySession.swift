@@ -70,6 +70,9 @@ public final class GatewaySession {
   /// The gateway's passkeys and its `confirm` requests at level `passkey`; `nil` unless
   /// `Options.passkey` was given.
   public let passkeys: PasskeyModel?
+  /// The gateway's MCP endpoint and the clients connected to it (Settings › MCP); `nil` for a link
+  /// with no REST side (a test's scripted one).
+  public let mcp: MCPSettingsModel?
   /// Who the gateway says this client is. Read after every connect and on
   /// `refreshIdentity()`; see `GatewayIdentityState`.
   public internal(set) var identityState = GatewayIdentityState.unknownYet
@@ -180,6 +183,7 @@ public final class GatewaySession {
       keyValues: keyValues,
       reachability: reachability,
       passkeys: passkeys,
+      mcp: MCPSettingsModel(link: link, client: MCPClient(http: link.http)),
       options: options
     )
   }
@@ -194,10 +198,12 @@ public final class GatewaySession {
     keyValues: KeyValueStore? = nil,
     reachability: (any Reachability)? = nil,
     passkeys: PasskeyModel? = nil,
+    mcp: MCPSettingsModel? = nil,
     options: Options = Options()
   ) {
     self.gatewayID = gatewayID
     self.passkeys = passkeys
+    self.mcp = mcp
     self.link = link
     self.reachability = reachability
     self.keyValues = keyValues
@@ -259,6 +265,7 @@ public final class GatewaySession {
     await store.attach()
     secureInput.attach()
     await passkeys?.start()
+    mcp?.start()
 
     let commands = self.commands
     tasks.append(
@@ -354,6 +361,7 @@ public final class GatewaySession {
     // Every prompt still open is answered `''` while the socket is still there.
     await secureInput.shutdown()
     await passkeys?.shutdown()
+    mcp?.shutdown()
     await store.persistAll()
     await link.shutdown()
 

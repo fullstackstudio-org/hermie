@@ -434,6 +434,90 @@
 	<string>Hermie finishes the sign-in. This page can be closed.</string>
 	<key>native.loopback.success.title</key>
 	<string>You can return to Hermie</string>
+	<key>native.mcp.blurb</key>
+	<string>Let MCP clients, such as coding agents, use your bots through this gateway.</string>
+	<key>native.mcp.clients.empty</key>
+	<string>No client is connected yet. When you allow one, it appears here.</string>
+	<key>native.mcp.clients.footer</key>
+	<string>A client you revoke stops working at once. It can ask for your permission again.</string>
+	<key>native.mcp.clients.header</key>
+	<string>Connected clients</string>
+	<key>native.mcp.command.copy</key>
+	<string>Copy command</string>
+	<key>native.mcp.command.footer</key>
+	<string>Run it in a terminal on the computer where the client is installed. Hermie only shows it; it never runs it.</string>
+	<key>native.mcp.command.header</key>
+	<string>Command line</string>
+	<key>native.mcp.config.copy</key>
+	<string>Copy configuration</string>
+	<key>native.mcp.config.footer</key>
+	<string>Or put this in the client's MCP configuration file (.mcp.json).</string>
+	<key>native.mcp.config.header</key>
+	<string>Configuration file</string>
+	<key>native.mcp.copied</key>
+	<string>Copied</string>
+	<key>native.mcp.dismiss</key>
+	<string>Dismiss</string>
+	<key>native.mcp.endpoint.copy</key>
+	<string>Copy endpoint</string>
+	<key>native.mcp.endpoint.header</key>
+	<string>Endpoint</string>
+	<key>native.mcp.grant.allowed</key>
+	<string>Allowed %@</string>
+	<key>native.mcp.grant.allowedFrom</key>
+	<string>Allowed %1$@ from %2$@</string>
+	<key>native.mcp.grant.allowedUnknown</key>
+	<string>Allowed at an unknown time</string>
+	<key>native.mcp.grant.expires</key>
+	<string>Expires %@</string>
+	<key>native.mcp.grant.lastUsed</key>
+	<string>Last used %@</string>
+	<key>native.mcp.grant.lastUsedFrom</key>
+	<string>Last used %1$@ from %2$@</string>
+	<key>native.mcp.grant.neverUsed</key>
+	<string>Never used</string>
+	<key>native.mcp.grant.revoke</key>
+	<string>Revoke</string>
+	<key>native.mcp.grant.revokeFailed</key>
+	<string>Hermie could not revoke that client. Try again.</string>
+	<key>native.mcp.grant.revokeLabel</key>
+	<string>Revoke %@</string>
+	<key>native.mcp.grant.revokeMessage</key>
+	<string>%@ stops working at once and has to ask for your permission again.</string>
+	<key>native.mcp.grant.revokeTitle</key>
+	<string>Revoke this client?</string>
+	<key>native.mcp.grant.unnamed</key>
+	<string>Unnamed client</string>
+	<key>native.mcp.instructions.header</key>
+	<string>From the gateway</string>
+	<key>native.mcp.notice.changed</key>
+	<string>The list of clients changed.</string>
+	<key>native.mcp.notice.granted</key>
+	<string>%@ was allowed to connect.</string>
+	<key>native.mcp.notice.revoked</key>
+	<string>%@ was revoked.</string>
+	<key>native.mcp.retry</key>
+	<string>Try again</string>
+	<key>native.mcp.state.loading</key>
+	<string>Checking this gateway…</string>
+	<key>native.mcp.state.noGateway</key>
+	<string>Connect to a gateway to see its MCP settings.</string>
+	<key>native.mcp.state.noIdentity</key>
+	<string>MCP needs you to be signed in as a person on this gateway. Sign in with an account and try again.</string>
+	<key>native.mcp.state.notOffered</key>
+	<string>This gateway does not offer MCP.</string>
+	<key>native.mcp.state.on</key>
+	<string>MCP is on for this gateway.</string>
+	<key>native.mcp.state.signedOut</key>
+	<string>Hermie is not signed in to this gateway. Sign in again to see its MCP settings.</string>
+	<key>native.mcp.state.stale</key>
+	<string>These settings may be out of date: Hermie could not refresh them.</string>
+	<key>native.mcp.state.unreadable</key>
+	<string>Hermie could not read the MCP settings from this gateway.</string>
+	<key>native.mcp.stateHeader</key>
+	<string>MCP on %@</string>
+	<key>native.mcp.title</key>
+	<string>MCP</string>
 	<key>native.notice.gatewayNotConfigured</key>
 	<string>That link is for a gateway this device does not know. Add the gateway first.</string>
 	<key>native.notice.lockSettingNotRestored</key>
