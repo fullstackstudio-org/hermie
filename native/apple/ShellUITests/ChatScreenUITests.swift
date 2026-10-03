@@ -586,6 +586,62 @@ final class ChatScreenUITests: XCTestCase {
     XCTAssertFalse(pill.exists, "at the bottom, no pill")
   }
 
+  /// The rows on screen are there and drawn: some, and together covering a good part of the space
+  /// between the header and the composer (an empty transcript with a scroller showing content was
+  /// the owner's blank page).
+  private func assertTranscriptDrawn(
+    _ app: XCUIApplication, _ moment: String, file: StaticString = #filePath, line: UInt = #line
+  ) throws {
+    RunLoop.current.run(until: Date().addingTimeInterval(0.8))
+    let frames = try rowFrames(app)
+    let top = app.navigationBars.firstMatch.exists ? app.navigationBars.firstMatch.frame.maxY : 0
+    let bottom = element(app, "composer").frame.minY
+    let space = max(1, bottom - top)
+    let covered = frames.values.reduce(CGFloat(0)) { sum, frame in
+      sum + max(0, min(frame.maxY, bottom) - max(frame.minY, top))
+    }
+    XCTAssertGreaterThan(frames.count, 1, "\(moment): rows on screen", file: file, line: line)
+    XCTAssertGreaterThan(covered / space, 0.3, "\(moment): rows cover \(Int(covered)) of \(Int(space)) pt", file: file, line: line)
+  }
+
+  /// Back to the chat list on a phone; on an iPad the list stands beside the chat.
+  private func showList(_ app: XCUIApplication) {
+    if UIDevice.current.userInterfaceIdiom == .phone {
+      app.navigationBars.buttons.element(boundBy: 0).tap()
+    }
+  }
+
+  /// Switching between two chats, again and again, always draws the chat that is opened. (The
+  /// owner's phone showed a black transcript after a few switches, until the app was relaunched.)
+  func testSwitchingBetweenChatsAlwaysDrawsTheTranscript() throws {
+    let app = try launch()
+    setUpGateway(app)
+    XCTAssertTrue(element(app, "hermie.chatList.row.\(Self.bot)").waitForExistence(timeout: 30))
+
+    for round in 0..<3 {
+      for bot in [Self.bot, "researcher"] {
+        let row = element(app, "hermie.chatList.row.\(bot)")
+        XCTAssertTrue(row.waitForExistence(timeout: 15), "round \(round): \(bot) in the list")
+        row.tap()
+        waitFor("round \(round): \(bot) live") {
+          let state = probeState(app)
+          return state["hydration"] == "live" && Int(state["rows"] ?? "") ?? 0 > 3
+        }
+        try assertTranscriptDrawn(app, "round \(round), \(bot)")
+        showList(app)
+      }
+    }
+
+    // And after a send in the last one opened.
+    element(app, "hermie.chatList.row.\(Self.bot)").tap()
+    waitFor("the chat live") { probeState(app)["hydration"] == "live" && probeState(app)["ready"] == "1" }
+    send(app, "Introduce yourself in one line.")
+    waitFor("the reply to start") { probeState(app)["activity"] == "busy" }
+    waitFor("the reply to finish", timeout: 60) { probeState(app)["activity"] == "idle" }
+    try assertTranscriptDrawn(app, "after a send")
+    try assertTranscriptLayout(app, "after a send")
+  }
+
   /// The list and the chat at the largest text size: they wrap instead of clipping, the search
   /// field narrows the list by name, and the audit passes on both.
   func testTheListAndTheChatPassTheAuditAtTheLargestTextSize() throws {

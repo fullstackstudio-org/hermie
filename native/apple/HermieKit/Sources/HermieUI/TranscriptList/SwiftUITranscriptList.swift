@@ -104,11 +104,25 @@ struct SwiftUITranscriptList<Item: Identifiable & Equatable & Sendable, Row: Vie
       state.topVisibleID = id.map { AnyHashable($0) }
     }
     .onChange(of: Structure(items)) { before, after in
-      // Rows removed or replaced (a reconcile that moved rows, a group that took in its
-      // neighbours) while following: the list goes back to the bottom. The position the lazy
-      // stack kept was the id of a row that may be gone, and it drew an empty viewport there.
-      if tracker.follow.following, after.count < before.count || after.first != before.first {
-        position.scrollTo(edge: .bottom)
+      // Rows removed or replaced (a reconcile that moved or renamed rows): the position the lazy
+      // stack keeps is the id of the row at the top of the viewport, and when that row is gone it
+      // drew an empty viewport there, with the scroller still showing content. Following, the
+      // list goes back to the bottom; scrolled up, to the nearest row that is still there.
+      let ids = items.map(\.id)
+      defer { tracker.lastIDs = ids }
+      if tracker.follow.following {
+        if after.count < before.count || after.first != before.first {
+          position.scrollTo(edge: .bottom)
+        }
+        return
+      }
+      guard let top = position.viewID(type: Item.ID.self) else { return }
+      let present = Set(ids)
+      guard !present.contains(top), let old = tracker.lastIDs.firstIndex(of: top) else { return }
+      let survivor =
+        tracker.lastIDs[old...].first(where: present.contains) ?? tracker.lastIDs[..<old].last(where: present.contains)
+      if let survivor {
+        position.scrollTo(id: survivor, anchor: .top)
       }
     }
     .onChange(of: state.commandSerial) {
@@ -174,6 +188,8 @@ struct SwiftUITranscriptList<Item: Identifiable & Equatable & Sendable, Row: Vie
   @MainActor final class FollowTracker {
     var follow = TranscriptFollow()
     var phase = TranscriptFollow.Phase.idle
+    /// The row ids as of the last structural change, oldest first.
+    var lastIDs: [Item.ID] = []
   }
 
   /// Keeps `state.contentOffset` current for the lab's pan, in debug builds
