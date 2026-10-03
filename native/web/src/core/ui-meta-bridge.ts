@@ -18,7 +18,7 @@
  *     with this page's changes in it, never a section rebuilt from the stores.
  *  2. **Notices.** Rather than marking every setter dirty by hand, it SUBSCRIBES
  *     to the stores and diffs a projection of each field it owns (`APP_FIELDS`,
- *     `archived` and `colour` per bot). A field whose projection moved is
+ *     the person's archive among them, and `colour` per bot). A field whose projection moved is
  *     written into the documents and its section marked, whoever changed it.
  *  3. **Dates a choice, not a chore.** A change somebody made moves the app
  *     section's `updatedAt` (`state/app-stamp.ts`); the roster folded into the
@@ -33,10 +33,12 @@
  * **Taking a gateway's copy** (`takeApp`, the Swift app's `UIMetaDocuments.take`):
  *
  *  - The bot sections are the snapshot's, whole. A bot it has no section for has
- *    nothing archived and no colour. A bot this page still holds a change for is
- *    the gateway's section as the roster had it, with this page's `archived` and
- *    `colour` written in (`apply`), so a section carrying fields this page does
- *    not own is never sent as `null`.
+ *    no colour. A bot this page still holds a change for is the gateway's
+ *    section as the roster had it, with this page's `colour` written in
+ *    (`apply`), so a section carrying fields this page does not own is never
+ *    sent as `null`. The shared `archived` flag is never written or cleared.
+ *  - Archive is per account (`ARCHIVED_BOTS`): a person's section without the
+ *    list is seeded once from the shared flags, as a chore.
  *  - The app section mirrors the arriving one: every field it carries is taken
  *    as it came (unknown ones included), and a field it no longer carries is
  *    gone, so any client can remove one. Only `KEPT_WHEN_ABSENT` keeps the held
@@ -59,7 +61,7 @@
  * gateway's even then, taken when it has one and gone when it does not: this
  * build cannot have chosen anything about a field it does not know, so the
  * gateway's value is the newest one there is. The same holds for a bot section
- * this page holds a change for: only `archived` and `colour` are its own. The
+ * this page holds a change for: only `colour` is its own. The
  * fields it does project follow last-writer-wins exactly as the Swift app and the
  * Expo app do; nothing about the dates, the conflict retry or the tombstones
  * (a bot section left with nothing at all but `v` is sent as `null`, which
@@ -132,7 +134,7 @@ export const UI_META_DEBOUNCE_MS = 600
 export const UI_META_PENDING_KEY = 'ui-meta.pending'
 
 /** The two fields of a bot section that are this page's to say. */
-export type BotField = 'archived' | 'colour'
+export type BotField = 'colour'
 
 /** What `UI_META_PENDING_KEY` holds. */
 export interface StoredPending {
@@ -142,7 +144,7 @@ export interface StoredPending {
   fields?: Record<string, BotField[]>
 }
 
-const BOT_FIELDS: readonly BotField[] = ['archived', 'colour']
+const BOT_FIELDS: readonly BotField[] = ['colour']
 
 /** A JSON object as it came off the wire. */
 export type JsonObject = Record<string, unknown>
@@ -156,7 +158,47 @@ export interface UiMetaDocuments {
 }
 
 /** The app-section fields this page projects from its stores, and nothing else. */
-export const APP_FIELDS = ['entries', 'folders', 'pinned', 'myChats', 'current', 'labels', 'mutes', 'textSize'] as const
+export const APP_FIELDS = [
+  'entries',
+  'folders',
+  'pinned',
+  'myChats',
+  'current',
+  'labels',
+  'mutes',
+  'textSize',
+  'archivedBots'
+] as const
+
+/**
+ * Which bots this person keeps in the archive: the app section's
+ * `archivedBots`, bot names sorted and without repeats.
+ *
+ * Archive is per account (the owner's decision, shared with the native client's
+ * wire format): one person archiving a bot does not take it out of anybody
+ * else's list. Until a person's section carries the field, their list is seeded
+ * once from the bots whose shared `hermie` section says `archived: true` (the
+ * flag the Expo app wrote), and that seed is a chore, so it never beats a
+ * section the gateway holds. After that the list is the only source; the
+ * shared flags are left exactly as they are, for the builds that still read
+ * them, and this client never writes them.
+ */
+export const ARCHIVED_BOTS = 'archivedBots'
+
+/** A list of bot names as `archivedBots` holds it: strings only, sorted, no repeats. */
+export function archivedBotsOf(value: unknown): string[] | undefined {
+  return Array.isArray(value)
+    ? [...new Set(value.filter((name): name is string => typeof name === 'string' && name.length > 0))].sort()
+    : undefined
+}
+
+/** The person's archive seeded from the shared `archived: true` flags, for a section that has no list yet. */
+function inheritedArchive(bots: Record<string, unknown>): string[] {
+  return Object.entries(bots)
+    .filter(([, section]) => isObject(section) && section.archived === true)
+    .map(([name]) => name)
+    .sort()
+}
 
 export type AppField = (typeof APP_FIELDS)[number]
 
@@ -227,20 +269,20 @@ export function projectApp(layout: ChatLayoutState, text: TextSizeState): Record
     current: layout.current,
     labels: layout.labels,
     mutes: layout.mutes,
-    textSize: text.textSize
+    textSize: text.textSize,
+    archivedBots: Object.keys(layout.archived).sort()
   }
 }
 
-/** What each bot's owned fields look like in the layout store right now. */
-export function projectBots(layout: ChatLayoutState): Record<string, { archived?: true; colour?: string }> {
-  const bots: Record<string, { archived?: true; colour?: string }> = {}
-
-  for (const name of Object.keys(layout.archived)) {
-    bots[name] = { archived: true }
-  }
+/**
+ * What each bot's owned field looks like in the layout store right now: its
+ * colour. The archive is the person's (`archivedBots`), not the bot's.
+ */
+export function projectBots(layout: ChatLayoutState): Record<string, { colour?: string }> {
+  const bots: Record<string, { colour?: string }> = {}
 
   for (const [name, accent] of Object.entries(layout.accents)) {
-    bots[name] = { ...bots[name], colour: accent }
+    bots[name] = { colour: accent }
   }
 
   return bots
@@ -252,20 +294,18 @@ export function projectBots(layout: ChatLayoutState): Record<string, { archived?
  * Everything else the section carries stays. A colour this build cannot draw
  * (a newer build's swatch) is kept while the reader has not picked one here,
  * because the store could not hold it and its absence there is not a choice.
- * `null` when nothing is left but the version: a bot that is not archived and
- * has no colour has nothing to say, and is removed rather than left empty.
+ * The shared `archived` flag is never written and never cleared: archive is the
+ * person's now (`ARCHIVED_BOTS`), and the flag stays as it was for the builds
+ * that still read it. `null` when nothing is left but the version: a bot with
+ * no colour and nothing else has nothing to say, and is removed rather than
+ * left empty.
  */
-function botSectionWith(held: JsonObject | undefined, projected: { archived?: true; colour?: string } | undefined) {
+function botSectionWith(held: JsonObject | undefined, projected: { colour?: string } | undefined) {
   const section: JsonObject = { ...held }
   const heldColour = section.colour
 
   delete section.v
-  delete section.archived
   delete section.colour
-
-  if (projected?.archived) {
-    section.archived = true
-  }
 
   if (projected?.colour) {
     section.colour = projected.colour
@@ -276,14 +316,11 @@ function botSectionWith(held: JsonObject | undefined, projected: { archived?: tr
   return Object.keys(section).length ? { ...section, v: HERMIE_SECTION_VERSION } : null
 }
 
-/** The two fields of a bot section that are this page's to say, read off a section. */
-function ownedOf(section: JsonObject | undefined): { archived?: true; colour?: string } {
+/** The field of a bot section that is this page's to say, read off a section. */
+function ownedOf(section: JsonObject | undefined): { colour?: string } {
   const colour = section?.colour
 
-  return {
-    ...(section?.archived === true ? { archived: true as const } : {}),
-    ...(typeof colour === 'string' && colour && colour !== 'default' ? { colour } : {})
-  }
+  return typeof colour === 'string' && colour && colour !== 'default' ? { colour } : {}
 }
 
 /** A push map without the retired availability stamp; see `RETIRED_PUSH_FIELDS`. */
@@ -398,14 +435,9 @@ export interface UiMetaStores {
  * while this runs).
  */
 export function applyToStores(snapshot: UiMetaSnapshot, stores: UiMetaStores): void {
-  const archived: string[] = []
   const accents: Record<string, AccentName> = {}
 
   for (const [name, section] of Object.entries(snapshot.bots)) {
-    if (section.archived === true) {
-      archived.push(name)
-    }
-
     const accent = asAccentName(section.colour)
 
     if (accent && accent !== 'default') {
@@ -420,6 +452,9 @@ export function applyToStores(snapshot: UiMetaSnapshot, stores: UiMetaStores): v
       : undefined
   const pinned = names(app?.pinned)
   const myChats = names(app?.myChats)
+  // The person's own list, or, while their section has none, the seed from the
+  // shared flags (`ARCHIVED_BOTS`).
+  const archived = archivedBotsOf(app?.[ARCHIVED_BOTS]) ?? inheritedArchive(snapshot.bots)
 
   stores.layout.getState().applyRemote({
     // An absent list is not an empty one: a gateway that has never been written
@@ -739,6 +774,8 @@ export class UiMetaBridge {
 
   /** Take a gateway's copy into the documents and the stores, deafly. */
   private apply(snapshot: UiMetaSnapshot): void {
+    let seeded = false
+
     this.taken += 1
     this.quietly(() => {
       const bots: Record<string, JsonObject> = {}
@@ -751,9 +788,10 @@ export class UiMetaBridge {
 
       /*
         A bot this page still holds a change for arrives as this page's own
-        section (`withPendingKept`). Only `archived` and `colour` are this page's
-        to say; everything else in it is the gateway's, as it is now. So the
-        section that goes out is the gateway's with those two written in: a field
+        section (`withPendingKept`). Only its `colour` is this page's to say;
+        everything else in it (the shared `archived` flag included) is the
+        gateway's, as it is now. So the section that goes out is the gateway's
+        with the colour written in: a field
         another client added meanwhile survives, and a section this page would
         have emptied but that carries fields it does not own is kept rather than
         sent as `null`.
@@ -767,14 +805,7 @@ export class UiMetaBridge {
         const local = ownedOf(bots[name])
         const remote = ownedOf(this.remoteBots[name])
         const fields = this.dirtyFields.get(name)
-        const owned = fields
-          ? {
-              ...((fields.has('archived') ? local : remote).archived ? { archived: true as const } : {}),
-              ...((fields.has('colour') ? local : remote).colour
-                ? { colour: (fields.has('colour') ? local : remote).colour }
-                : {})
-            }
-          : local
+        const owned = fields && !fields.has('colour') ? remote : local
         const section = botSectionWith(this.remoteBots[name], owned)
 
         if (section) {
@@ -784,9 +815,26 @@ export class UiMetaBridge {
         }
       }
 
-      this.held = { app: takeApp(this.held.app, snapshot), bots }
+      const app = takeApp(this.held.app, snapshot)
+
+      // A person whose section has no archive yet (or no section at all): seeded
+      // once from the shared flags, and sent as a chore, which never beats a
+      // section the gateway holds. Asked of what ARRIVED: a copy of this page's
+      // own that won carries its list, and the baseline's empty one is not a
+      // choice. `applyToStores` reads the same seed into the store.
+      if (app && !Array.isArray((snapshot.app as JsonObject | null)?.[ARCHIVED_BOTS])) {
+        app[ARCHIVED_BOTS] = inheritedArchive(bots)
+        seeded = true
+      }
+
+      this.held = { app, bots }
       applyToStores({ ...snapshot, bots: bots as unknown as Record<string, HermieBotSection> }, this.stores)
     })
+
+    if (seeded) {
+      this.sync.markApp('chore')
+    }
+
     this.persistPending()
   }
 
@@ -975,7 +1023,7 @@ export class UiMetaBridge {
         continue
       }
 
-      const before = (seen ? JSON.parse(seen) : null) as { archived?: true; colour?: string } | null
+      const before = (seen ? JSON.parse(seen) : null) as { colour?: string } | null
       const changed = this.dirtyFields.get(name) ?? new Set<BotField>()
 
       for (const field of BOT_FIELDS) {

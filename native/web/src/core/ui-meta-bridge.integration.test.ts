@@ -243,7 +243,7 @@ describe('two pages, one person, one conflict', () => {
     const app = homeMeta[b.appKey()] as Record<string, unknown>
 
     // B's choices, under B's date: the newer choice won the section.
-    expect(app).toMatchObject({ mutes: { [home]: 0 }, textSize: 'large', v: 1 })
+    expect(app).toMatchObject({ mutes: { [home]: 0 }, textSize: 'large', archivedBots: [bot], v: 1 })
     expect(app.updatedAt).toBeGreaterThanOrEqual(NOW + 100)
     // The newer build's fields, the one written before and the one written during.
     expect(app.futureFromNewerBuild).toEqual({ nested: [1, 2] })
@@ -252,8 +252,8 @@ describe('two pages, one person, one conflict', () => {
     expect(homeMeta['other-tool']).toEqual({ keep: true })
     expect(homeMeta).toHaveProperty('hermes-bots')
     expect(homeMeta).toHaveProperty('hermie-plugin')
-    // And the bot's section: B's archive, beside a field this build cannot read.
-    expect(botMeta.hermie).toEqual({ v: 1, colour: 'teal', futureBotField: 'kept', archived: true })
+    // And the bot's section, untouched: the archive is the person's now.
+    expect(botMeta.hermie).toEqual({ v: 1, colour: 'teal', futureBotField: 'kept' })
 
     // Page A follows on its next reconcile, and keeps every unknown key too.
     await a.uiMeta.bridge.reconcile()

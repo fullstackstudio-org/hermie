@@ -64,7 +64,7 @@ const freshStores = () => ({
 })
 
 describe('the projection', () => {
-  it('puts a bot’s own settings in the bot key and the rest in the app key', async () => {
+  it('puts a bot’s colour in the bot key, and the person’s archive and the rest in the app key', async () => {
     const gateway = holdingGateway()
     const one = page(gateway)
 
@@ -76,7 +76,8 @@ describe('the projection', () => {
 
     const { app, bots } = one.bridge.documents
 
-    expect(bots).toEqual({ writer: { v: 1, archived: true }, researcher: { v: 1, colour: 'lime' } })
+    expect(bots).toEqual({ researcher: { v: 1, colour: 'lime' } })
+    expect(app?.archivedBots).toEqual(['writer'])
     expect(app?.textSize).toBe('large')
     // The top level names a folder by id; the folder itself carries the name.
     expect((app?.entries as { kind: string }[]).some(entry => entry.kind === 'folder')).toBe(true)
@@ -287,11 +288,11 @@ describe('the bridge', () => {
 
     await one.watching
     await one.bridge.reconcile()
-    one.layout.getState().setArchived('writer', true)
+    one.layout.getState().setAccent('writer', 'teal')
     await settled()
     gateway.writes.length = 0
 
-    one.layout.getState().setArchived('writer', false)
+    one.layout.getState().setAccent('writer', 'default')
     await settled()
 
     expect(gateway.writes.at(-1)?.ui_meta).toEqual({ hermie: null })
@@ -422,18 +423,23 @@ describe('carrying what this build does not understand', () => {
     const one = page(gateway)
 
     await one.bridge.reconcile()
+    // Archiving is the person's now: the bot's section is not written for it.
     one.layout.getState().setArchived('writer', true)
     await settled()
 
-    expect(gateway.meta('writer').hermie).toEqual({ v: 1, colour: 'tartan', futureBotField: 7, archived: true })
+    expect(gateway.meta('writer').hermie).toEqual({ v: 1, colour: 'tartan', futureBotField: 7 })
 
-    // A colour picked here replaces it; unarchiving leaves the unknown field,
+    // A colour picked here replaces it; back to Default leaves the unknown field,
     // so the section stays rather than being removed.
     one.layout.getState().setAccent('writer', 'teal')
-    one.layout.getState().setArchived('writer', false)
     await settled()
 
     expect(gateway.meta('writer').hermie).toEqual({ v: 1, colour: 'teal', futureBotField: 7 })
+
+    one.layout.getState().setAccent('writer', 'default')
+    await settled()
+
+    expect(gateway.meta('writer').hermie).toEqual({ v: 1, futureBotField: 7 })
   })
 
   it('drops the retired availability stamp the next time the section is written', async () => {
@@ -448,7 +454,13 @@ describe('carrying what this build does not understand', () => {
 
     await gateway.request('profiles.configure', {
       name: 'researcher',
-      ui_meta: { [APP_KEY]: { v: 1, push: { registrations: { phone: { v: 1, transport: 'relay' } }, ...stamp } } }
+      ui_meta: {
+        [APP_KEY]: {
+          v: 1,
+          archivedBots: [],
+          push: { registrations: { phone: { v: 1, transport: 'relay' } }, ...stamp }
+        }
+      }
     })
 
     const one = page(gateway)
@@ -504,15 +516,15 @@ describe('across a reload', () => {
 
     await offline.bridge.reconcile()
     offline.layout.getState().reconcile(['researcher', 'writer'])
-    offline.layout.getState().setArchived('writer', true)
+    offline.layout.getState().setAccent('writer', 'teal')
     await settled()
     offline.stop()
     await offline.bridge.settled()
 
     expect(JSON.parse(disk.getSync(UI_META_PENDING_KEY) ?? 'null')).toEqual({
       v: 1,
-      bots: { writer: { archived: true, v: 1 } },
-      fields: { writer: ['archived'] }
+      bots: { writer: { colour: 'teal', v: 1 } },
+      fields: { writer: ['colour'] }
     })
 
     const back = page(gateway, { disk })
@@ -520,7 +532,7 @@ describe('across a reload', () => {
     await back.bridge.reconcile()
     await settled()
 
-    expect(gateway.meta('writer').hermie).toEqual({ v: 1, archived: true })
+    expect(gateway.meta('writer').hermie).toEqual({ v: 1, colour: 'teal' })
     await back.bridge.settled()
     expect(disk.getSync(UI_META_PENDING_KEY)).toBeNull()
   })
@@ -605,8 +617,9 @@ function switchable(gateway: ReturnType<typeof holdingGateway>) {
 describe('a chore against the gateway’s copy', () => {
   it('never wins over an undated section, and is not sent', async () => {
     const gateway = holdingGateway()
+    const section = { ...FOLDERS, archivedBots: [] }
 
-    await gateway.request('profiles.configure', { name: 'researcher', ui_meta: { [APP_KEY]: FOLDERS } })
+    await gateway.request('profiles.configure', { name: 'researcher', ui_meta: { [APP_KEY]: section } })
 
     const one = page(gateway)
 
@@ -616,7 +629,7 @@ describe('a chore against the gateway’s copy', () => {
     await one.bridge.reconcile()
     await settled()
 
-    expect(gateway.app()).toEqual(FOLDERS)
+    expect(gateway.app()).toEqual(section)
     expect(one.layout.getState().folders.map(folder => folder.name)).toEqual(['Finance'])
     expect(one.layout.getState().entries).toEqual(FOLDERS.entries)
     expect(one.bridge.pending).toBe(false)
@@ -656,17 +669,17 @@ describe('an edit made while a send is out', () => {
 
     await one.bridge.reconcile()
     slow.arm()
-    one.layout.getState().setArchived('writer', true)
+    one.layout.getState().setAccent('writer', 'lime')
     await settled()
 
-    // The archive is out; the colour is picked before it lands.
+    // Lime is out; teal is picked before it lands.
     one.layout.getState().setAccent('writer', 'teal')
     await settled()
     slow.release()
     await settled()
     await settled()
 
-    expect(gateway.meta('writer').hermie).toEqual({ v: 1, archived: true, colour: 'teal' })
+    expect(gateway.meta('writer').hermie).toEqual({ v: 1, colour: 'teal' })
     expect(one.bridge.pending).toBe(false)
 
     await one.bridge.reconcile()
@@ -712,16 +725,16 @@ describe('pending bots across a reload', () => {
 
     await first.bridge.reconcile()
     link.state.down = true
-    first.layout.getState().setArchived('writer', true)
+    first.layout.getState().setAccent('writer', 'teal')
     await settled()
     first.stop()
     await first.bridge.settled()
 
-    // Stored raw: the colour this build cannot draw and the field it does not own.
+    // Stored raw: the field this page does not own, beside its own colour.
     expect(JSON.parse(disk.getSync(UI_META_PENDING_KEY) ?? 'null')).toEqual({
       v: 1,
-      bots: { writer: { v: 1, colour: 'tartan', futureBotField: 7, archived: true } },
-      fields: { writer: ['archived'] }
+      bots: { writer: { v: 1, colour: 'teal', futureBotField: 7 } },
+      fields: { writer: ['colour'] }
     })
 
     // Another client adds a field while this page is away.
@@ -739,10 +752,9 @@ describe('pending bots across a reload', () => {
 
     expect(gateway.meta('writer').hermie).toEqual({
       v: 1,
-      colour: 'tartan',
+      colour: 'teal',
       futureBotField: 7,
-      addedElsewhere: true,
-      archived: true
+      addedElsewhere: true
     })
   })
 
@@ -754,14 +766,14 @@ describe('pending bots across a reload', () => {
       ui_meta: { hermie: { v: 1, archived: true, futureBotField: 7 } }
     })
 
-    // A page that never saw the gateway's copy archives and unarchives: what it
-    // holds for the bot is nothing at all.
+    // A page that never saw the gateway's copy colours the bot and takes the
+    // colour back: what it holds for the bot is nothing at all.
     const disk = newDisk()
     const offline = page({ request: () => Promise.reject(new Error('gateway not connected')) }, { disk })
 
     await offline.bridge.reconcile()
-    offline.layout.getState().setArchived('writer', true)
-    offline.layout.getState().setArchived('writer', false)
+    offline.layout.getState().setAccent('writer', 'teal')
+    offline.layout.getState().setAccent('writer', 'default')
     await settled()
     offline.stop()
     await offline.bridge.settled()
@@ -769,7 +781,7 @@ describe('pending bots across a reload', () => {
     expect(JSON.parse(disk.getSync(UI_META_PENDING_KEY) ?? 'null')).toEqual({
       v: 1,
       bots: { writer: null },
-      fields: { writer: ['archived'] }
+      fields: { writer: ['colour'] }
     })
 
     const back = page(gateway, { disk })
@@ -777,8 +789,9 @@ describe('pending bots across a reload', () => {
     await back.bridge.reconcile()
     await settled()
 
-    // Unarchived, as chosen here; the field it does not own, still there.
-    expect(gateway.meta('writer').hermie).toEqual({ v: 1, futureBotField: 7 })
+    // No colour, as chosen here; the fields it does not own (the shared archive
+    // flag an older build reads among them), still there.
+    expect(gateway.meta('writer').hermie).toEqual({ v: 1, archived: true, futureBotField: 7 })
     expect(gateway.writes.flatMap(write => Object.values(write.ui_meta))).not.toContain(null)
   })
 })
@@ -873,7 +886,7 @@ describe('a bot section written by a newer build', () => {
     const one = page(gateway)
 
     await one.bridge.reconcile()
-    one.layout.getState().setArchived('writer', true)
+    one.layout.getState().setAccent('writer', 'lime')
     one.layout.getState().setAccent('researcher', 'teal')
     await settled()
 
@@ -901,7 +914,7 @@ describe('a bot section written by a newer build', () => {
 
     await one.watching
     // Sent at once, under revision 0: refused, re-read, and then held.
-    one.layout.getState().setArchived('writer', true)
+    one.layout.getState().setAccent('writer', 'lime')
     await settled()
     await settled()
 
@@ -912,8 +925,8 @@ describe('a bot section written by a newer build', () => {
   })
 })
 
-describe('a pending bot’s own fields', () => {
-  it('send only what this page changed, so a colour picked elsewhere since survives an old archive', async () => {
+describe('an archive made offline', () => {
+  it('goes to the person’s list, so a colour picked elsewhere since is never touched', async () => {
     const gateway = holdingGateway()
 
     await gateway.request('profiles.configure', { name: 'writer', ui_meta: { hermie: { v: 1, colour: 'teal' } } })
@@ -938,8 +951,128 @@ describe('a pending bot’s own fields', () => {
     await today.bridge.reconcile()
     await settled()
 
-    expect(gateway.meta('writer').hermie).toEqual({ v: 1, colour: 'red', archived: true })
+    expect(gateway.meta('writer').hermie).toEqual({ v: 1, colour: 'red' })
+    expect(gateway.app()?.archivedBots).toEqual(['writer'])
     expect(today.layout.getState().accents).toEqual({ writer: 'red' })
     expect(today.layout.getState().archived).toEqual({ writer: true })
+  })
+})
+
+/**
+ * Archive is per account: the person's `archivedBots`, in their own app
+ * section. The shared `archived` flag on a bot's `hermie` section, which the
+ * Expo app wrote and still reads, is only ever read once, to seed a person's
+ * list, and never written or cleared.
+ */
+describe('the archive, per account', () => {
+  it('keeps two people on one gateway apart', async () => {
+    const gateway = holdingGateway()
+    const alice = page(gateway, { user: 'alice' })
+    const bob = page(gateway, { user: 'bob' })
+
+    await alice.bridge.reconcile()
+    await bob.bridge.reconcile()
+    alice.layout.getState().setArchived('writer', true)
+    bob.layout.getState().setArchived('researcher', true)
+    await settled()
+    await alice.bridge.reconcile()
+    await bob.bridge.reconcile()
+
+    expect(gateway.app('hermie-app:alice')?.archivedBots).toEqual(['writer'])
+    expect(gateway.app('hermie-app:bob')?.archivedBots).toEqual(['researcher'])
+    expect(alice.layout.getState().archived).toEqual({ writer: true })
+    expect(bob.layout.getState().archived).toEqual({ researcher: true })
+    // Neither bot's own section was written for it.
+    expect(gateway.meta('writer')).not.toHaveProperty('hermie')
+    expect(gateway.meta('researcher')).not.toHaveProperty('hermie')
+  })
+
+  it('writes the list sorted and without repeats', async () => {
+    const gateway = holdingGateway()
+    const one = page(gateway)
+
+    await one.bridge.reconcile()
+    one.layout.getState().setArchived('writer', true)
+    one.layout.getState().setArchived('bookkeeper', true)
+    one.layout.getState().setArchived('researcher', true)
+    await settled()
+
+    expect(gateway.app()?.archivedBots).toEqual(['bookkeeper', 'researcher', 'writer'])
+  })
+
+  it('is seeded once from the shared flags, as a chore, and is the only source after that', async () => {
+    const gateway = holdingGateway()
+
+    // An older build archived the writer for everybody, and the person's own
+    // section, written before the list existed, has their folders.
+    await gateway.request('profiles.configure', { name: 'writer', ui_meta: { hermie: { v: 1, archived: true } } })
+    await gateway.request('profiles.configure', { name: 'researcher', ui_meta: { [APP_KEY]: FOLDERS } })
+
+    const one = page(gateway)
+
+    await one.watching
+    // A fold before the gateway's copy was read: a chore that must not win either.
+    one.layout.getState().reconcile(['researcher', 'writer'])
+    await one.bridge.reconcile()
+    await settled()
+
+    expect(one.layout.getState().archived).toEqual({ writer: true })
+    // The seed rode in on the gateway's own section: the folders are untouched,
+    // and nothing was dated for it.
+    expect(gateway.app()).toMatchObject({ ...FOLDERS, archivedBots: ['writer'] })
+    expect(gateway.app()).not.toHaveProperty('updatedAt')
+    expect(one.appStamp.getState().updatedAt).toBe(0)
+
+    // An older build archives another bot for everybody: the person's list,
+    // which now exists, is the only source.
+    await gateway.request('profiles.configure', {
+      name: 'researcher',
+      ui_meta: { hermie: { v: 1, archived: true } }
+    })
+    await one.bridge.reconcile()
+
+    expect(one.layout.getState().archived).toEqual({ writer: true })
+  })
+
+  it('seeds a person who has no section at all', async () => {
+    const gateway = holdingGateway()
+
+    await gateway.request('profiles.configure', { name: 'writer', ui_meta: { hermie: { v: 1, archived: true } } })
+
+    const one = page(gateway)
+
+    await one.bridge.reconcile()
+    await settled()
+
+    expect(one.layout.getState().archived).toEqual({ writer: true })
+    expect(gateway.app()?.archivedBots).toEqual(['writer'])
+  })
+
+  it('never clears the shared flag an older build reads, whatever this page does', async () => {
+    const gateway = holdingGateway()
+
+    await gateway.request('profiles.configure', {
+      name: 'writer',
+      ui_meta: { hermie: { v: 1, archived: true, colour: 'teal' } }
+    })
+
+    const one = page(gateway)
+
+    await one.bridge.reconcile()
+    // Unarchived for this person, and recoloured: the bot's section is written
+    // for the colour, and its archive flag goes with it as it was.
+    one.layout.getState().setArchived('writer', false)
+    one.layout.getState().setAccent('writer', 'lime')
+    await settled()
+
+    expect(gateway.app()?.archivedBots).toEqual([])
+    expect(gateway.meta('writer').hermie).toEqual({ v: 1, archived: true, colour: 'lime' })
+
+    // And taking the colour away leaves the flag rather than removing the section.
+    one.layout.getState().setAccent('writer', 'default')
+    await settled()
+
+    expect(gateway.meta('writer').hermie).toEqual({ v: 1, archived: true })
+    expect(one.layout.getState().archived).toEqual({})
   })
 })

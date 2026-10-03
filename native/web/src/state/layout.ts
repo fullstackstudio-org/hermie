@@ -165,6 +165,15 @@ export interface ChatLayoutState {
   folders: Folder[]
   /** Folder ids closed on this device. Never synced; see `PersistedLayout`. */
   collapsed: Record<string, true>
+  /**
+   * Which bots THIS PERSON keeps in the archive.
+   *
+   * Per account, not per bot: it rides in the person's own app section as
+   * `archivedBots` (`core/ui-meta-bridge.ts`), so one person archiving a bot
+   * takes it out of nobody else's list. The shared `archived` flag an older
+   * build put on the bot's own section only seeds this list, once, for a person
+   * whose section has none, and is never written from here.
+   */
   archived: Record<string, true>
   /**
    * Which chats are held at the top of their container.
@@ -278,6 +287,7 @@ export interface ChatLayoutState {
   removeFolder: (id: string) => void
   /** Open or close a folder on this device. */
   setFolderOpen: (id: string, open: boolean) => void
+  /** Put a bot in this person's archive, or take it out (`archived`). */
   setArchived: (botName: string, archived: boolean) => void
   /** Hold this chat at the top of its container, or let it go. */
   setPinned: (botName: string, pinned: boolean) => void
@@ -1068,7 +1078,7 @@ export function createLayoutStore(): StoreApi<ChatLayoutState> {
 /** The page's store. */
 export const layoutStore: StoreApi<ChatLayoutState> = createLayoutStore()
 
-/** Archived bots, in the order they sit in the arrangement. */
+/** This person's archived bots, in the order they sit in the arrangement. */
 export function archivedOf(arrangement: Arrangement, archived: Record<string, true>): string[] {
   return botsInOrder(arrangement).filter(name => archived[name])
 }
