@@ -12,8 +12,8 @@ signed in on the gateway's own session, connects, shows the chat list in a two-p
 theme ("The shell" below), and opens a chat in the main pane and streams it ("The chat screen" below): bubbles
 with Markdown, tool calls, notices, date separators, older history, jump to latest. You can send, stop a reply and
 answer a bot's approval or question from it ("The composer" and "Requests" below), and confirm a sensitive action with
-a passkey that the gateway verifies itself ("Passkeys" below). It has no attachments, no secret prompts and no settings
-beyond the passkeys page yet, and the plugin does not serve this build. Until that
+a passkey that the gateway verifies itself ("Passkeys" below), and answer a bot's secret, sudo and password-manager
+prompts ("Secret prompts" below). It has no attachments and no settings beyond the passkeys page yet, and the plugin does not serve this build. Until that
 changes, the browser keeps running the Expo app's web export through Hermie Web
 ([docs/web.md](../../docs/web.md)); nothing here replaces it.
 
@@ -540,8 +540,8 @@ A bot's approval or question (`clarify`) is answered in `features/requests/`, a 
 - **Said aloud.** A request that left without the reader's answer (withdrawn, or timed out) is announced in a polite
   region beside the dialog ("The request from <name> was withdrawn."); a failure to deliver an answer is an alert.
 - **A `confirm` at level `passkey`** joins the same queue as an entry of its own kind (`ConfirmRequest`), held by the
-  passkey model rather than the chat store; "Passkeys" below. **Secret, sudo, vault and `plain` confirm prompts** are
-  W-14 and W-15, and nothing of them is handled here.
+  passkey model rather than the chat store; "Passkeys" below. **Secret, sudo and vault prompts** join it the same way
+  (`SecureRequest`), held by the secure input model: "Secret prompts" below. A `plain` confirm is W-15.
 
 `features/requests/RequestLayer.test.tsx` and `state/requests.test.ts` cover the above in jsdom, `requests.axe.test.tsx`
 runs axe on the composer and the layer (both schemes, every language), and `e2e/chat.spec.ts` (sending and stopping)
@@ -560,6 +560,47 @@ acted in the middle of):
 | clarify: a choice with the arrow keys, free text, a three-step batch with Skip, Skip on a single question                       | `{answer}` / `{answers}` / `''` |
 | the page behind the layer is inert; 320 px wide does not scroll sideways                                                        | inert; no overflow              |
 | a request still open when the page is reloaded is asked again; axe (`e2e/a11y.spec.ts`) on every sheet, light and dark          | asked once more; no violation   |
+
+### Secret prompts
+
+`secret`, `sudo`, `vault.unlock_prompt`, `vault.code` and `vault.save_login` are answered beside the transcript engine,
+as in the native apps (`core/requests/secure-input.ts`, the counterpart of `HermieCore/SecureInputCenter`): the chat
+controller declines them, and the secure input model takes them from the connection, keeps what was asked in
+`state/secure-input.ts` and answers on the request's own reply. The rules are the plan's ("Secret prompts in a
+browser"):
+
+- **The value is never state.** The fields are uncontrolled; Send reads the field at the press and hands the text to
+  the model, which builds `{value}` and sends it. It never enters a store, React state, the transcript, the cache, a log
+  or an error. The field is emptied when the answer went out, and in the commit that removes it when the prompt is
+  withdrawn or expires, before it leaves the document. A unit test serialises every store after each kind is answered
+  and searches for the value; the browser suite searches the markup, the address, both storages and every IndexedDB
+  store.
+- **Answers.** `{value}` as typed; a code without the spaces and dashes typed to read it in groups; a login as the JSON
+  string `{"identifier", "password"}` built in memory. **Skip is `''`.** Nothing goes out while the connection is not
+  ready: the sheet says so and keeps what was typed.
+- **Fixed words.** The heading, the gateway's host, the labels, who receives the value and the buttons are the app's.
+  Everything the request supplies (the prompt, the command, the variable, the password manager, the site, its address,
+  the hint) is plain text in its own labelled box, cleaned and bounded first (`displayText`: no control, format,
+  bidirectional or private-use characters, folded blanks, at most four combining marks, a length limit), never
+  Markdown, never a link, and never woven into the app's own sentences.
+- **The fields.** Masked (a login's username is not a secret and is not), `autocomplete="off"`, with the opt-outs of the
+  common password-manager extensions, no `name`, in no `<form>`; focus goes to the dialog, not the field; the fields
+  and buttons wake 400 ms after the sheet appears, and whatever reached a field before then is dropped. Escape does not
+  close the sheet.
+- **Deadlines are the gateway's** (`tui_gateway/agent_callbacks.py`): 300 s for a secret (the gateway's default), 120 s
+  for sudo and an unlock, 180 s for a code and a login, with a visible countdown. One first seen re-delivered (a reload,
+  a resume) shows no countdown and is closed a whole timeout after it arrived, never before the gateway.
+- **Ending.** `request.cancel` closes the sheet with a notice on the chat ("expired" for the gateway's `timeout`,
+  "withdrawn" otherwise), and so does the deadline; nothing is sent. A prompt whose session no chat holds any more is
+  answered `''`, and a sign-out answers every open one `''` before the socket closes.
+- **Restored** from `open_requests`: a re-delivered copy of one already answered here means the answer never arrived,
+  and the sheet asks again and says so.
+- **What only the desktop app can do** (`preview.act`, `preview.read`, `terminal.read`, `window.read`, `tour`) is
+  answered at once with the native apps' `-32601` and leaves one notice on its chat per request.
+
+`core/requests/secure-input.test.ts`, `features/requests/SecureSheet.test.tsx`, `state/requests.test.ts` and
+`features/shell/session.test.ts` cover it in jsdom; `e2e/secure-input.spec.ts` raises each method through
+`/__fake/request` against the built client and reads the answer the fake recorded.
 
 ## Passkeys
 
