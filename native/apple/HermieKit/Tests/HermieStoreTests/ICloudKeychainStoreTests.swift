@@ -475,11 +475,11 @@ final class RecordingKeychain: SyncedKeychain {
       guard let groups = plist?["keychain-access-groups"] as? [String] else { continue }
       if file.lastPathComponent.hasPrefix("HermieShare-") {
         shares += 1
-        #expect(groups == ["$(AppIdentifierPrefix)dev.hermie.app.share"], "\(file.path)")
+        #expect(groups == ["$(AppIdentifierPrefix)$(HERMIE_BUNDLE_ID).share"], "\(file.path)")
       } else {
         apps += 1
         #expect(
-          groups == ["$(AppIdentifierPrefix)dev.hermie.app", "$(AppIdentifierPrefix)dev.hermie.app.share"],
+          groups == ["$(AppIdentifierPrefix)$(HERMIE_BUNDLE_ID)", "$(AppIdentifierPrefix)$(HERMIE_BUNDLE_ID).share"],
           "\(file.path)")
       }
     }

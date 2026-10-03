@@ -209,7 +209,9 @@ import Testing
         == kSecAttrAccessibleAfterFirstUnlockThisDeviceOnly as String)
     #expect((attributes[kSecAttrSynchronizable as String] as? Bool ?? false) == false)
     let group = try #require(attributes[kSecAttrAccessGroup as String] as? String)
-    #expect(group.hasSuffix("dev.hermie.app"), "landed in \(group)")
+    // The app's own group: `<team>.dev.hermie.app` in a release build, `.dev.hermie.app.dev` in
+    // the Debug build these tests host in (HERMIE_BUNDLE_ID).
+    #expect(group.hasSuffix("." + (Bundle.main.bundleIdentifier ?? "dev.hermie.app")), "landed in \(group)")
   }
 
   // MARK: - removeAll(prefix:)

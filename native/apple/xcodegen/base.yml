@@ -30,7 +30,7 @@ targetTemplates:
         # XcodeGen's presets would otherwise derive these at the target level,
         # where they win over the xcconfig.
         PRODUCT_NAME: Hermie
-        PRODUCT_BUNDLE_IDENTIFIER: dev.hermie.app
+        PRODUCT_BUNDLE_IDENTIFIER: $(HERMIE_BUNDLE_ID)
         GENERATE_INFOPLIST_FILE: NO
     # The App Intents and the App Shortcuts live in the APP target, as they did in
     # the Expo build: an `AppShortcutsProvider` is only found in the app, and the
@@ -52,7 +52,8 @@ targetTemplates:
 
   # The widgets: one chat, three chats or one folder, and "N need input". They
   # read the snapshot the app writes into the App Group and nothing else.
-  # The bundle id is the Expo build's, so its App ID and profiles carry over.
+  # The bundle id is the Expo build's in Release, so its App ID and profiles carry
+  # over (HERMIE_BUNDLE_ID in Config/Shared.xcconfig).
   HermieWidgets:
     type: app-extension
     configFiles:
@@ -68,7 +69,7 @@ targetTemplates:
     settings:
       base:
         PRODUCT_NAME: HermieWidgetsExtension
-        PRODUCT_BUNDLE_IDENTIFIER: dev.hermie.app.widgets
+        PRODUCT_BUNDLE_IDENTIFIER: $(HERMIE_BUNDLE_ID).widgets
         INFOPLIST_FILE: $(SRCROOT)/../apple/Extensions/Widgets/Info.plist
         GENERATE_INFOPLIST_FILE: NO
         APPLICATION_EXTENSION_API_ONLY: YES
@@ -79,7 +80,7 @@ targetTemplates:
 
   # The share extension: pick a chat, add a note, and either send it directly
   # (ADR-0026) or leave it in the outbox for the app. Links HermieStore for the
-  # one keychain item it may read. The bundle id is the Expo build's.
+  # one keychain item it may read. The bundle id is the Expo build's in Release.
   HermieShare:
     type: app-extension
     configFiles:
@@ -97,7 +98,7 @@ targetTemplates:
     settings:
       base:
         PRODUCT_NAME: HermieShareExtension
-        PRODUCT_BUNDLE_IDENTIFIER: dev.hermie.app.share
+        PRODUCT_BUNDLE_IDENTIFIER: $(HERMIE_BUNDLE_ID).share
         INFOPLIST_FILE: $(SRCROOT)/../apple/Extensions/Share/Info.plist
         GENERATE_INFOPLIST_FILE: NO
         APPLICATION_EXTENSION_API_ONLY: YES

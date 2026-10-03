@@ -9,7 +9,7 @@
 	-->
 	<key>com.apple.security.application-groups</key>
 	<array>
-		<string>group.dev.hermie.app</string>
+		<string>group.$(HERMIE_BUNDLE_ID)</string>
 	</array>
 	<!--
 		The keychain group of the one delivery credential (ADR-0026), and ONLY that group. The app
@@ -19,7 +19,7 @@
 	-->
 	<key>keychain-access-groups</key>
 	<array>
-		<string>$(AppIdentifierPrefix)dev.hermie.app.share</string>
+		<string>$(AppIdentifierPrefix)$(HERMIE_BUNDLE_ID).share</string>
 	</array>
 </dict>
 </plist>

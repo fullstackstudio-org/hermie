@@ -216,10 +216,14 @@ import Testing
       let plist = try PropertyListSerialization.propertyList(from: data, format: nil) as? [String: Any]
       guard let groups = plist?["keychain-access-groups"] as? [String] else { continue }
       withGroups += 1
-      if file.path.contains("/native/") && file.lastPathComponent.hasPrefix("HermieShare-") {
-        #expect(groups == ["$(AppIdentifierPrefix)dev.hermie.app.share"], "\(file.path)")
-      } else {
+      // The native files build the group from HERMIE_BUNDLE_ID (`dev.hermie.app` in Release, the
+      // Expo build's group); the Expo file names it.
+      if !file.path.contains("/native/") {
         #expect(groups.first == "$(AppIdentifierPrefix)dev.hermie.app", "\(file.path)")
+      } else if file.lastPathComponent.hasPrefix("HermieShare-") {
+        #expect(groups == ["$(AppIdentifierPrefix)$(HERMIE_BUNDLE_ID).share"], "\(file.path)")
+      } else {
+        #expect(groups.first == "$(AppIdentifierPrefix)$(HERMIE_BUNDLE_ID)", "\(file.path)")
       }
     }
 

@@ -1,7 +1,7 @@
 import Foundation
 
 /**
- The shared container `group.dev.hermie.app`: where each file lives, and how to read and write one.
+ The shared container (`group.dev.hermie.app` in a release build): where each file lives, and how to read and write one.
 
  The app, the widgets, the share extension and the Shortcuts actions meet here, and nothing else
  does — a widget has no gateway, a share extension has three seconds. The names are the ones the
@@ -16,7 +16,17 @@ import Foundation
  here by another process.
  */
 public struct AppGroupContainer: Sendable {
-  public static let identifier = "group.dev.hermie.app"
+  /// This binary's App Group, from its Info.plist (`HermieAppGroup`), else the release group. The
+  /// same rule as `HermieShared.SharedContainer.appGroup`; a test holds the two equal.
+  public static let identifier: String = {
+    guard let value = Bundle.main.object(forInfoDictionaryKey: "HermieAppGroup") as? String,
+      value.hasPrefix("group."), !value.contains("$(")
+    else {
+      return "group.dev.hermie.app"
+    }
+
+    return value
+  }()
 
   /// `WIDGET_SNAPSHOT_FILE`.
   public static let widgetSnapshotFile = "widget-snapshot.json"

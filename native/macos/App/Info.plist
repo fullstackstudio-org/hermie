@@ -40,9 +40,12 @@
 		written into the share group, and deleted from the app group where earlier builds wrote it.
 	-->
 	<key>HermieKeychainGroup</key>
-	<string>$(AppIdentifierPrefix)dev.hermie.app</string>
+	<string>$(AppIdentifierPrefix)$(HERMIE_BUNDLE_ID)</string>
 	<key>HermieShareKeychainGroup</key>
-	<string>$(AppIdentifierPrefix)dev.hermie.app.share</string>
+	<string>$(AppIdentifierPrefix)$(HERMIE_BUNDLE_ID).share</string>
+	<!-- The App Group this build's entitlements name (`group.dev.hermie.app` in Release). -->
+	<key>HermieAppGroup</key>
+	<string>group.$(HERMIE_BUNDLE_ID)</string>
 	<key>CFBundleURLTypes</key>
 	<array>
 		<dict>

@@ -36,7 +36,7 @@
 	<!-- Shared with the widgets, the share extension and the intents. -->
 	<key>com.apple.security.application-groups</key>
 	<array>
-		<string>group.dev.hermie.app</string>
+		<string>group.$(HERMIE_BUNDLE_ID)</string>
 	</array>
 	<!--
 		The same group, and the same item shape, as on iPhone and iPad. Changing it
@@ -44,12 +44,12 @@
 	-->
 	<key>keychain-access-groups</key>
 	<array>
-		<string>$(AppIdentifierPrefix)dev.hermie.app</string>
+		<string>$(AppIdentifierPrefix)$(HERMIE_BUNDLE_ID)</string>
 		<!--
 			Second, so no write lands here by default: the share extension's delivery record only,
 			written by name (ShareDeliveryPublisher). The extension declares this group alone.
 		-->
-		<string>$(AppIdentifierPrefix)dev.hermie.app.share</string>
+		<string>$(AppIdentifierPrefix)$(HERMIE_BUNDLE_ID).share</string>
 	</array>
 </dict>
 </plist>

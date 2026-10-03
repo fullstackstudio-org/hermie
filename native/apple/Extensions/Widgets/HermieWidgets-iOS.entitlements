@@ -9,7 +9,7 @@
 	-->
 	<key>com.apple.security.application-groups</key>
 	<array>
-		<string>group.dev.hermie.app</string>
+		<string>group.$(HERMIE_BUNDLE_ID)</string>
 	</array>
 </dict>
 </plist>

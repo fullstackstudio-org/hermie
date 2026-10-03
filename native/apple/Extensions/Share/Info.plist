@@ -20,6 +20,9 @@
 	<string>$(EXECUTABLE_NAME)</string>
 	<key>CFBundleIdentifier</key>
 	<string>$(PRODUCT_BUNDLE_IDENTIFIER)</string>
+	<!-- The App Group this build's entitlements name (`group.dev.hermie.app` in Release). -->
+	<key>HermieAppGroup</key>
+	<string>group.$(HERMIE_BUNDLE_ID)</string>
 	<key>CFBundleInfoDictionaryVersion</key>
 	<string>6.0</string>
 	<key>CFBundleName</key>

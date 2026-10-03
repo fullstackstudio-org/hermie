@@ -9,8 +9,27 @@ import Foundation
  permanently empty rather than an error anybody sees.
  */
 public enum SharedContainer {
-  /// The App Group identifier, as every entitlements file names it.
-  public static let appGroup = "group.dev.hermie.app"
+  /// The App Group of a release build (`group.$(HERMIE_BUNDLE_ID)` with the release root).
+  public static let releaseAppGroup = "group.dev.hermie.app"
+
+  /// The Info.plist key every Hermie binary carries its App Group in.
+  public static let appGroupInfoKey = "HermieAppGroup"
+
+  /// The App Group identifier, as this binary's entitlements name it: read from its Info.plist,
+  /// so a Debug build (`group.dev.hermie.app.dev`) never opens a release build's container. The
+  /// release group when the key is missing (a test bundle, a tool).
+  public static let appGroup: String = appGroup(in: .main)
+
+  /// The App Group a bundle's Info.plist names, or the release group.
+  public static func appGroup(in bundle: Bundle) -> String {
+    guard let value = bundle.object(forInfoDictionaryKey: appGroupInfoKey) as? String,
+      value.hasPrefix("group."), !value.contains("$(")
+    else {
+      return releaseAppGroup
+    }
+
+    return value
+  }
 
   /// `WIDGET_SNAPSHOT_FILE`: the roster the widgets, the share sheet and the Shortcuts read.
   public static let widgetSnapshotFile = "widget-snapshot.json"

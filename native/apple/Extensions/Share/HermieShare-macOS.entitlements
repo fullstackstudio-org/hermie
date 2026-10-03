@@ -13,12 +13,12 @@
 	<!-- The same group as native/macos/App/Hermie.entitlements. Change both sides, or neither. -->
 	<key>com.apple.security.application-groups</key>
 	<array>
-		<string>group.dev.hermie.app</string>
+		<string>group.$(HERMIE_BUNDLE_ID)</string>
 	</array>
 	<!-- Only the delivery record's own keychain group; see HermieShare-iOS.entitlements. -->
 	<key>keychain-access-groups</key>
 	<array>
-		<string>$(AppIdentifierPrefix)dev.hermie.app.share</string>
+		<string>$(AppIdentifierPrefix)$(HERMIE_BUNDLE_ID).share</string>
 	</array>
 </dict>
 </plist>

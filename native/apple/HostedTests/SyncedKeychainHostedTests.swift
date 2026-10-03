@@ -85,7 +85,9 @@ import Testing
     #expect(
       attributes[kSecAttrAccessible as String] as? String == kSecAttrAccessibleAfterFirstUnlock as String)
     let group = try #require(attributes[kSecAttrAccessGroup as String] as? String)
-    #expect(group.hasSuffix("dev.hermie.app"), "landed in \(group)")
+    // The app's own group: `<team>.dev.hermie.app` in a release build, `.dev.hermie.app.dev` in
+    // the Debug build these tests host in (HERMIE_BUNDLE_ID).
+    #expect(group.hasSuffix("." + (Bundle.main.bundleIdentifier ?? "dev.hermie.app")), "landed in \(group)")
 
     // Replacing the value keeps every attribute.
     try store.put(SyncedItem(account: account, value: "record 2"))

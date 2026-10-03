@@ -9,8 +9,19 @@
 // Identity. The same bundle id on iPhone, iPad and the Mac: one App Store
 // Connect record, and the keychain items and App Group the Expo build already
 // writes.
+//
+// HERMIE_BUNDLE_ID is the root every identifier is built from: the app's bundle
+// id, the extensions' (`.widgets`, `.share`), the App Group (`group.<root>`) and
+// the keychain groups (`<team>.<root>`, `<team>.<root>.share`), in the specs, the
+// entitlements and the Info.plists alike. Release (the archive, TestFlight, the
+// App Store) is `dev.hermie.app`. A Debug build is `dev.hermie.app.dev`, so a dev
+// or test run is another app to the system: its own preferences, sandbox
+// container, App Group, keychain items and iCloud Keychain items, and it can
+// never read or write those of an installed Hermie.
+HERMIE_BUNDLE_ID = dev.hermie.app
+HERMIE_BUNDLE_ID[config=Debug] = dev.hermie.app.dev
 PRODUCT_NAME = Hermie
-PRODUCT_BUNDLE_IDENTIFIER = dev.hermie.app
+PRODUCT_BUNDLE_IDENTIFIER = $(HERMIE_BUNDLE_ID)
 
 // Toolchain floor: Xcode 26. Anything newer than the 26 SDK goes behind
 // `if #available`.

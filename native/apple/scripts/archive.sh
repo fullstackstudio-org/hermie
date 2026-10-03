@@ -143,6 +143,10 @@ case "$platform" in
     app_info="$app_bundle/Contents/Info.plist"
     ;;
 esac
+# The release identity: a Debug build is dev.hermie.app.dev (HERMIE_BUNDLE_ID in
+# Config/Shared.xcconfig), and an archive that carried it would be another app.
+app_id="$(/usr/libexec/PlistBuddy -c 'Print :CFBundleIdentifier' "$app_info")"
+[[ "$app_id" == "dev.hermie.app" ]] || fail "the archived app is $app_id, not dev.hermie.app."
 app_version="$(/usr/libexec/PlistBuddy -c 'Print :CFBundleShortVersionString' "$app_info")"
 app_build="$(/usr/libexec/PlistBuddy -c 'Print :CFBundleVersion' "$app_info")"
 for extension in HermieWidgetsExtension HermieShareExtension; do

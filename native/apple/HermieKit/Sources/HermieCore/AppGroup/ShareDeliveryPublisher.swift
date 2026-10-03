@@ -31,9 +31,9 @@ import HermieStore
  Nothing here throws. A keychain that refuses means the extension queues instead of sending.
  */
 public struct ShareDeliveryPublisher: Sendable {
-  /// The keychain group's name after the team prefix.
+  /// The keychain group's name after the team prefix, in a release build.
   public static let shareGroupSuffix = "dev.hermie.app.share"
-  /// The app's own group, after the team prefix.
+  /// The app's own group, after the team prefix, in a release build.
   public static let appGroupSuffix = "dev.hermie.app"
   /// The Info.plist keys the apps carry the two groups in, team prefix included (`$(AppIdentifierPrefix)…`).
   public static let shareGroupInfoKey = "HermieShareKeychainGroup"
@@ -58,8 +58,12 @@ public struct ShareDeliveryPublisher: Sendable {
    such a build has no share extension able to read it anyway.
    */
   public static func live(bundle: Bundle = .main) -> ShareDeliveryPublisher? {
-    guard let shareGroup = group(bundle.object(forInfoDictionaryKey: shareGroupInfoKey) as? String, suffix: shareGroupSuffix),
-      let appGroup = group(bundle.object(forInfoDictionaryKey: appGroupInfoKey) as? String, suffix: appGroupSuffix)
+    // The groups are named after the app's bundle id: `dev.hermie.app` in a release build,
+    // `dev.hermie.app.dev` in a Debug one (HERMIE_BUNDLE_ID).
+    let root = bundle.bundleIdentifier ?? appGroupSuffix
+
+    guard let shareGroup = group(bundle.object(forInfoDictionaryKey: shareGroupInfoKey) as? String, suffix: root + ".share"),
+      let appGroup = group(bundle.object(forInfoDictionaryKey: appGroupInfoKey) as? String, suffix: root)
     else {
       return nil
     }
