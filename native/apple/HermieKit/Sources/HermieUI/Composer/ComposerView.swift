@@ -46,21 +46,18 @@ public struct ComposerView: View {
         noticeRow(notice)
       }
 
-      HStack(alignment: .bottom, spacing: 8) {
-        field
-        actionButton
+      GlassEffectContainer(spacing: 8) {
+        HStack(alignment: .bottom, spacing: 8) {
+          field
+          actionButton
+        }
       }
-
-      #if os(macOS)
-        Text(Strings.Chat.Composer.keyHint)
-          .font(.caption2)
-          .foregroundStyle(.secondary)
-          .accessibilityHidden(true)
-      #endif
     }
+    // Floating glass over the transcript, as Messages' field: no bar behind it. The transcript
+    // scrolls under it and stops above it (the slot is a safe-area inset of the list).
     .padding(.horizontal, 12)
-    .padding(.vertical, 8)
-    .background(.bar)
+    .padding(.top, 6)
+    .padding(.bottom, 8)
     .background(escapeShortcut)
     .task { await model.loadDraft() }
     .onDisappear {
@@ -110,14 +107,15 @@ public struct ComposerView: View {
       }
     }
     .padding(.horizontal, 4)
-    .background(.background.secondary, in: .rect(cornerRadius: 18))
+    .padding(.vertical, 2)
+    .glassEffect(.regular, in: .rect(cornerRadius: 20))
   }
 
   /// Where the text view's first character sits, for the placeholder.
   #if os(macOS)
-    private static let placeholderInset = CGSize(width: 13, height: 6)
+    private static let placeholderInset = CGSize(width: 13, height: 8)
   #else
-    private static let placeholderInset = CGSize(width: 17, height: 8)
+    private static let placeholderInset = CGSize(width: 17, height: 10)
   #endif
 
   /// Six lines, then the field scrolls.
@@ -151,12 +149,10 @@ public struct ComposerView: View {
       }
     } label: {
       Image(systemName: stopping ? "stop.fill" : "arrow.up")
-        .font(.body.weight(.semibold))
+        .font(.body.weight(.bold))
         .frame(width: buttonSize, height: buttonSize)
     }
-    .buttonStyle(.borderedProminent)
-    .buttonBorderShape(.circle)
-    .tint(stopping ? Color.red : Color.accentColor)
+    .buttonStyle(SendButtonStyle(role: stopping ? .stop : .send))
     .disabled(stopping ? model.isStopping : !model.canSubmit)
     .accessibilityLabel(stopping ? Strings.Chat.Composer.stop : Strings.Chat.Composer.send)
     .accessibilityHint(model.turnActive && !stopping ? NativeStrings.Composer.queueHint : "")
@@ -247,6 +243,37 @@ public struct ComposerView: View {
     case .sent: NativeStrings.Composer.sent
     case .queued: NativeStrings.Composer.queued
     case .stopped: NativeStrings.Composer.stopped
+    }
+  }
+}
+
+/// The composer's round button: the accent blue with a white arrow when there
+/// is something to send, red to stop, and when there is nothing to send a
+/// quiet grey disc whose arrow is still plainly there (a disabled prominent
+/// button drew dark on the dark bar and all but vanished).
+struct SendButtonStyle: ButtonStyle {
+  enum Role {
+    case send, stop
+  }
+
+  let role: Role
+
+  @Environment(\.isEnabled) private var isEnabled
+
+  func makeBody(configuration: Configuration) -> some View {
+    configuration.label
+      .foregroundStyle(isEnabled ? AnyShapeStyle(Color.white) : AnyShapeStyle(.secondary))
+      .background(fill, in: .circle)
+      .glassEffect(.regular.interactive(isEnabled), in: .circle)
+      .opacity(configuration.isPressed ? 0.75 : 1)
+      .contentShape(.circle)
+  }
+
+  private var fill: AnyShapeStyle {
+    guard isEnabled else { return AnyShapeStyle(.fill.secondary) }
+    switch role {
+    case .send: return AnyShapeStyle(BubblePalette.outgoing)
+    case .stop: return AnyShapeStyle(Color.red)
     }
   }
 }

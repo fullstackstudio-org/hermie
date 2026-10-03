@@ -434,6 +434,28 @@
 	<string>Toch de browser gebruiken</string>
 	<key>native.signIn.waitingForBrowser</key>
 	<string>Wachten op de aanmelding in je browser…</string>
+	<key>native.tool.editedFile</key>
+	<string>Bestand bewerkt</string>
+	<key>native.tool.ranCode</key>
+	<string>Code uitgevoerd</string>
+	<key>native.tool.ranCommand</key>
+	<string>Opdracht uitgevoerd</string>
+	<key>native.tool.readFile</key>
+	<string>Bestand gelezen</string>
+	<key>native.tool.runningCode</key>
+	<string>Code wordt uitgevoerd</string>
+	<key>native.tool.runningCommand</key>
+	<string>Opdracht wordt uitgevoerd</string>
+	<key>native.tool.searched</key>
+	<string>Gezocht</string>
+	<key>native.tool.searchedWeb</key>
+	<string>Op het web gezocht</string>
+	<key>native.tool.usedBrowser</key>
+	<string>Browser gebruikt</string>
+	<key>native.tool.usedTool</key>
+	<string>Tool gebruikt</string>
+	<key>native.tool.wroteFile</key>
+	<string>Bestand geschreven</string>
 	<key>native.transcript.unsupportedItem</key>
 	<string>Dit bericht (%@) heeft een nieuwere versie van Hermie nodig.</string>
 </dict>

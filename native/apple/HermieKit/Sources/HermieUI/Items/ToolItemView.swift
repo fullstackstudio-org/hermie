@@ -22,7 +22,7 @@ struct ToolItemView: View {
     if presentation == .hiddenPlaceholder || (silentToolNames.contains(item.name) && !failed) {
       EmptyView()
     } else if presentation == .chip {
-      ItemChip(text: item.name, systemImage: ToolFamily(name: item.name).symbol, tone: failed ? .danger : .neutral)
+      ItemChip(text: ToolLabel.title(item), systemImage: ToolFamily(name: item.name).symbol, tone: failed ? .danger : .neutral)
     } else {
       ToolCard(
         item: item,
@@ -39,6 +39,8 @@ struct ToolCard: View {
   @Bindable var box: TranscriptExpansion.Box
   let failed: Bool
   let running: Bool
+  /// Inside a group, which draws the surface: no card of its own.
+  var nested = false
 
   @Environment(\.transcriptItemActions) private var actions
   @Environment(\.dynamicTypeSize) private var dynamicTypeSize
@@ -50,9 +52,9 @@ struct ToolCard: View {
         ToolDetails(item: item, failed: failed, running: running)
       }
     }
-    .padding(.horizontal, 12)
-    .padding(.vertical, 8)
-    .background(.fill.quaternary, in: .rect(cornerRadius: 12))
+    .padding(.horizontal, nested ? 0 : 12)
+    .padding(.vertical, nested ? 0 : 2)
+    .background(nested ? AnyShapeStyle(.clear) : AnyShapeStyle(.fill.quaternary), in: .rect(cornerRadius: 14))
     .accessibilityElement(children: .contain)
     .accessibilityLabel(accessibilityLabel)
     .accessibilityActions {
@@ -73,8 +75,8 @@ struct ToolCard: View {
         .frame(minWidth: 18)
         .accessibilityHidden(true)
       VStack(alignment: .leading, spacing: 1) {
-        Text(item.name)
-          .font(.subheadline.weight(.medium).monospaced())
+        Text(ToolLabel.title(item))
+          .font(.subheadline.weight(.medium))
           .lineLimit(oneLine)
           .truncationMode(.middle)
         if let summary = summaryLine {
@@ -102,15 +104,11 @@ struct ToolCard: View {
   /// The first that applies: the tool's own summary, running, preparing, its
   /// context, the result in a line.
   private var summaryLine: String? {
-    if let summary = item.summary, !summary.isEmpty { return ItemFormat.preview(summary, limit: 90) }
-    if item.status == .running { return Strings.Chat.Tool.running }
-    if item.status == .generating { return Strings.Chat.Tool.generating }
-    if let context = item.context, !context.isEmpty { return ItemFormat.preview(context, limit: 90) }
-    return ToolDetails.resultSummary(item).map { ItemFormat.preview($0, limit: 90) }
+    ToolLabel.subtitle(item)
   }
 
   private var accessibilityLabel: String {
-    var parts = [item.name]
+    var parts = [ToolLabel.title(item)]
     if let summaryLine { parts.append(summaryLine) }
     if failed { parts.append(Strings.Chat.Tool.failed) }
     let duration = ItemFormat.duration(item.durationS)
@@ -127,6 +125,17 @@ struct ToolDetails: View {
 
   var body: some View {
     VStack(alignment: .leading, spacing: 10) {
+      // The call as the gateway names it, and what it said about itself, for whoever wants the raw.
+      VStack(alignment: .leading, spacing: 2) {
+        Text(item.name)
+          .font(.caption.monospaced())
+          .foregroundStyle(.secondary)
+          .textSelection(.enabled)
+        if let summary = item.summary, !summary.isEmpty, summary != ToolLabel.title(item) {
+          FoldableText(text: summary, limit: 280, monospaced: true)
+            .foregroundStyle(.secondary)
+        }
+      }
       if let risk = item.outputRisk {
         VStack(alignment: .leading, spacing: 4) {
           Label("\(Strings.Chat.Tool.riskTitle) · \(risk.risk)", systemImage: "exclamationmark.shield")

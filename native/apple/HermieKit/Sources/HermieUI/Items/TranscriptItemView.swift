@@ -26,18 +26,26 @@ public struct TranscriptItemView: View, Equatable {
     #endif
     content
       .frame(maxWidth: .infinity, alignment: .leading)
+      // Bubbles of one group sit close; a new group, and every other row, gets room above it.
+      .padding(.top, row.bubble.map { $0.opensGroup ? Self.groupGap : 0 } ?? Self.groupGap)
       .accessibilityIdentifier("row.\(row.id)")
       #if DEBUG
         .onAppear { RenderCounter.appeared(row.id) }
       #endif
   }
 
+  /// The room above a row that opens a group, on top of the list's spacing between rows (2 points
+  /// in the chat, so the bubbles of one group sit as close as Messages draws them).
+  static let groupGap: CGFloat = 8
+
   @ViewBuilder private var content: some View {
     switch row.content {
     case .item(let visible):
-      ItemContentView(visible: visible, markdown: row.markdown, opensAuthorRun: row.opensAuthorRun)
+      ItemContentView(visible: visible, markdown: row.markdown, opensAuthorRun: row.opensAuthorRun, bubble: row.bubble)
     case .botDmRollup(let members):
       BotDmRollupView(id: row.id, members: members)
+    case .toolGroup(let members):
+      ToolGroupView(id: row.id, members: members)
     }
   }
 }
@@ -47,14 +55,16 @@ struct ItemContentView: View {
   let visible: VisibleItem
   let markdown: MarkdownDocument?
   let opensAuthorRun: Bool
+  var bubble: BubbleLayout?
 
   var body: some View {
     let presentation = visible.presentation
     switch visible.item {
     case .user(let item):
-      UserBubbleView(item: item, presentation: presentation, markdown: markdown, opensAuthorRun: opensAuthorRun)
+      UserBubbleView(
+        item: item, presentation: presentation, markdown: markdown, opensAuthorRun: opensAuthorRun, bubble: bubble)
     case .assistant(let item):
-      AssistantItemView(item: item, presentation: presentation, markdown: markdown)
+      AssistantItemView(item: item, presentation: presentation, markdown: markdown, bubble: bubble)
     case .tool(let item):
       ToolItemView(item: item, presentation: presentation)
     case .status(let item):

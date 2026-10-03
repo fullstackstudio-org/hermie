@@ -434,6 +434,28 @@
 	<string>Stattdessen den Browser verwenden</string>
 	<key>native.signIn.waitingForBrowser</key>
 	<string>Warte auf die Anmeldung im Browser…</string>
+	<key>native.tool.editedFile</key>
+	<string>Datei bearbeitet</string>
+	<key>native.tool.ranCode</key>
+	<string>Code ausgeführt</string>
+	<key>native.tool.ranCommand</key>
+	<string>Befehl ausgeführt</string>
+	<key>native.tool.readFile</key>
+	<string>Datei gelesen</string>
+	<key>native.tool.runningCode</key>
+	<string>Code wird ausgeführt</string>
+	<key>native.tool.runningCommand</key>
+	<string>Befehl wird ausgeführt</string>
+	<key>native.tool.searched</key>
+	<string>Gesucht</string>
+	<key>native.tool.searchedWeb</key>
+	<string>Im Web gesucht</string>
+	<key>native.tool.usedBrowser</key>
+	<string>Browser verwendet</string>
+	<key>native.tool.usedTool</key>
+	<string>Werkzeug verwendet</string>
+	<key>native.tool.wroteFile</key>
+	<string>Datei geschrieben</string>
 	<key>native.transcript.unsupportedItem</key>
 	<string>Diese Nachricht (%@) braucht eine neuere Version von Hermie.</string>
 </dict>

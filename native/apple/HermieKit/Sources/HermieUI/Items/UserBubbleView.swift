@@ -2,19 +2,23 @@ import HermieMarkdown
 import HermieTranscript
 import SwiftUI
 
-/// A person's turn. The owner's own turns sit on the trailing side in the app's
-/// tint; in a shared chat a turn by someone else sits on the leading side with
+/// A person's turn, as Messages draws it. The owner's own turns sit on the
+/// trailing side in a flat blue bubble with white text; in a shared chat a
+/// turn by someone else sits on the leading side in the grey bubble, with
 /// their name and initial, coloured by their author id (never by name, which
 /// two people can share).
 ///
 /// The chat is shared when the item carries an `author` that is not the owner;
 /// the builder tells the view whether this turn opens a run by its author, so
-/// the name shows once per run.
+/// the name shows once per run, and where the bubble sits in its group
+/// (`BubbleLayout`): only the last bubble of a group has the tail and the time
+/// under it.
 struct UserBubbleView: View {
   let item: UserItem
   let presentation: Presentation
   let markdown: MarkdownDocument?
   let opensAuthorRun: Bool
+  var bubble: BubbleLayout?
 
   @Environment(\.transcriptItemActions) private var actions
   @Environment(\.transcriptOwnAuthorID) private var ownAuthorID
@@ -26,6 +30,9 @@ struct UserBubbleView: View {
     return author
   }
 
+  /// The last bubble of its group (a row outside the chat's builder is a group of its own).
+  private var closesGroup: Bool { bubble?.closesGroup ?? true }
+
   var body: some View {
     switch presentation {
     case .hiddenPlaceholder:
@@ -33,23 +40,30 @@ struct UserBubbleView: View {
     case .chip:
       ItemChip(text: ItemFormat.preview(item.text, limit: 80), systemImage: "person")
     case .full, .collapsed:
-      if let author = foreignAuthor {
-        foreignBubble(author)
-      } else {
-        ownBubble
+      VStack(spacing: 0) {
+        if let ts = bubble?.timeHeader {
+          BubbleTimeHeader(ts: ts)
+        }
+        if let author = foreignAuthor {
+          foreignBubble(author)
+        } else {
+          ownBubble
+        }
       }
     }
   }
 
   private var ownBubble: some View {
-    VStack(alignment: .trailing, spacing: 4) {
-      // The tint, darkened a quarter: white body text on the plain system
-      // blue is about 4:1, under the 4.5:1 the accessibility audit asks for.
-      bubble(fill: AnyShapeStyle(Color.accentColor.mix(with: .black, by: 0.25)), foreground: .white)
+    VStack(alignment: .trailing, spacing: 3) {
+      BubbleColumn(side: .outgoing, width: .text) {
+        MessageBubble(side: .outgoing, tail: closesGroup, fill: BubblePalette.outgoing) {
+          words(foreground: BubblePalette.outgoingText)
+        }
+        .opacity(item.pending == true ? 0.7 : 1)
+      }
       meta
     }
     .frame(maxWidth: .infinity, alignment: .trailing)
-    .padding(.leading, 48)
     .accessibilityElement(children: .combine)
     .accessibilityLabel(accessibilityText(sender: nil))
     .accessibilityActions { copyAction }
@@ -58,9 +72,10 @@ struct UserBubbleView: View {
   private func foreignBubble(_ author: MessageAuthor) -> some View {
     let name = author.name ?? Self.strippedID(author.id)
     let tint = ItemFormat.authorTint(author.id)
-    return HStack(alignment: .top, spacing: 8) {
+    return HStack(alignment: .bottom, spacing: 8) {
       Group {
-        if opensAuthorRun {
+        // The avatar stands by the group's last bubble, as Messages puts it.
+        if closesGroup {
           Text(ItemFormat.initial(name))
             .font(.caption.weight(.semibold))
             .foregroundStyle(.white)
@@ -71,24 +86,30 @@ struct UserBubbleView: View {
         }
       }
       .accessibilityHidden(true)
-      VStack(alignment: .leading, spacing: 4) {
+      VStack(alignment: .leading, spacing: 3) {
         if opensAuthorRun {
           Text(name)
             .font(.caption.weight(.semibold))
             .foregroundStyle(tint)
+            .padding(.leading, 13)
         }
-        bubble(fill: AnyShapeStyle(.fill.secondary), foreground: .primary)
+        BubbleColumn(side: .incoming, width: .text) {
+          MessageBubble(side: .incoming, tail: closesGroup, fill: BubblePalette.incoming) {
+            words(foreground: .primary)
+          }
+          .opacity(item.pending == true ? 0.7 : 1)
+        }
         meta
       }
     }
     .frame(maxWidth: .infinity, alignment: .leading)
-    .padding(.trailing, 48)
     .accessibilityElement(children: .combine)
     .accessibilityLabel(accessibilityText(sender: name))
     .accessibilityActions { copyAction }
   }
 
-  private func bubble(fill: AnyShapeStyle, foreground: Color) -> some View {
+  /// The words and the attachments, in the bubble's text colour, as wide as they need.
+  private func words(foreground: Color) -> some View {
     VStack(alignment: .leading, spacing: 8) {
       if !item.text.isEmpty {
         if let markdown {
@@ -101,16 +122,15 @@ struct UserBubbleView: View {
         AttachmentSummary(references: attachments, onOpen: actions.openAttachment)
       }
     }
+    .environment(\.markdownFillsWidth, false)
     .foregroundStyle(foreground)
     .tint(foreground == .white ? .white : nil)
-    .padding(.horizontal, 12)
-    .padding(.vertical, 8)
-    .background(fill, in: .rect(cornerRadius: 18))
-    .opacity(item.pending == true ? 0.7 : 1)
   }
 
+  /// The time under the group's last bubble, on a line of its own (never on the words' last line);
+  /// "Sending…" and the steered marker under any bubble that has them.
   @ViewBuilder private var meta: some View {
-    let clock = ItemFormat.clock(item.ts)
+    let clock = closesGroup ? ItemFormat.clock(item.ts) : nil
     let steered = item.displayKind == .steer
     if clock != nil || steered || item.pending == true {
       HStack(spacing: 4) {
@@ -123,8 +143,9 @@ struct UserBubbleView: View {
           Text(clock)
         }
       }
-      .font(.caption)
+      .font(.caption2)
       .foregroundStyle(.secondary)
+      .padding(.horizontal, 6)
     }
   }
 

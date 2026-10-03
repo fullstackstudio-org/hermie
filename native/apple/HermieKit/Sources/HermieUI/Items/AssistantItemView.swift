@@ -3,21 +3,31 @@ import HermieProtocol
 import HermieTranscript
 import SwiftUI
 
-/// The bot's reply: its thought (closed until opened), the reply as Markdown,
-/// a streaming indicator while it is being written, an error card when it
-/// failed, and a footer with duration, tokens and model once it is done.
+/// The bot's reply, as Messages draws an incoming message: its words in the
+/// grey bubble on the leading side, Markdown rendered inside it, the tail and
+/// the time only on the last bubble of a group (`BubbleLayout`). Around the
+/// bubble, not in it: who it answers, its thought (closed until opened), an
+/// error card when it failed, and a footer with duration, tokens and model once
+/// it is done. While it is being written and has no words yet, the bubble holds
+/// typing dots.
 ///
-/// Drawn without a bubble, full width, as replies are on the system's own
-/// assistants: a long answer reads as a page, not a balloon.
+/// The bubble is no wider than three quarters of the column; a reply with a
+/// table or code in it gets nearly the whole column, so neither is squeezed.
+/// Tool calls, cron reports and the other routine rows keep their own cards
+/// and lines, so a bubble is only ever the bot's words.
 struct AssistantItemView: View {
   let item: AssistantItem
   let presentation: Presentation
   let markdown: MarkdownDocument?
+  var bubble: BubbleLayout?
 
   @Environment(\.transcriptItemActions) private var actions
   @Environment(\.transcriptExpansion) private var expansion
 
-  private var hasBody: Bool { !item.text.isEmpty }
+  private var hasBody: Bool { !item.text.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty }
+  /// Writing, with nothing to show yet: the typing bubble.
+  private var typing: Bool { item.streaming && !hasBody && item.error == nil }
+  private var closesGroup: Bool { bubble?.closesGroup ?? true }
 
   var body: some View {
     switch presentation {
@@ -31,26 +41,31 @@ struct AssistantItemView: View {
   }
 
   private var reply: some View {
-    VStack(alignment: .leading, spacing: 8) {
+    VStack(alignment: .leading, spacing: 4) {
+      if let ts = bubble?.timeHeader {
+        BubbleTimeHeader(ts: ts)
+      }
       content
       // Outside the container that carries Copy: a custom action makes a line interactive, and
       // a one-line caption is far under the hit area the accessibility audit asks of one.
-      if let footer = footerText {
-        Text(footer)
-          .font(.caption)
+      if let meta = metaText {
+        Text(meta)
+          .font(.caption2)
           .foregroundStyle(.secondary)
+          .padding(.horizontal, 6)
       }
     }
-    .padding(.trailing, 24)
+    .frame(maxWidth: .infinity, alignment: .leading)
   }
 
   private var content: some View {
-    VStack(alignment: .leading, spacing: 8) {
+    VStack(alignment: .leading, spacing: 6) {
       if let handle = item.replyToBotHandle {
         Text(Strings.Chat.Assistant.replyTo(handle: handle))
           .font(.caption.weight(.semibold))
           .foregroundStyle(.secondary)
           .textCase(.uppercase)
+          .padding(.leading, 6)
       }
       if let reasoning = item.reasoning, !reasoning.isEmpty {
         ReasoningDisclosure(
@@ -58,19 +73,18 @@ struct AssistantItemView: View {
           label: reasoningLabel,
           text: reasoning
         )
+        .padding(.leading, 6)
       }
-      if hasBody {
-        Group {
-          if let markdown {
-            MarkdownView(markdown)
-          } else {
-            MarkdownView(MarkdownDocument(item.text))
+      if hasBody || typing {
+        BubbleColumn(side: .incoming, width: Self.width(for: markdown)) {
+          MessageBubble(side: .incoming, tail: closesGroup, fill: BubblePalette.incoming) {
+            if hasBody {
+              words
+            } else {
+              TypingDots()
+            }
           }
         }
-        .foregroundStyle(item.interim ? .secondary : .primary)
-      }
-      if item.streaming {
-        StreamingIndicator()
       }
       if let error = item.error {
         AssistantErrorCard(error: error) { actions.retry(item) }
@@ -84,11 +98,50 @@ struct AssistantItemView: View {
     }
   }
 
+  /// The reply's words; an interim note (the reply so far) a level quieter.
+  private var words: some View {
+    Group {
+      if let markdown {
+        MarkdownView(markdown)
+      } else {
+        MarkdownView(MarkdownDocument(item.text))
+      }
+    }
+    .environment(\.markdownFillsWidth, false)
+    .foregroundStyle(item.interim ? .secondary : .primary)
+  }
+
+  /// Words get a bubble three quarters wide; a table, a listing, a formula or a diagram gets nearly
+  /// the whole column.
+  static func width(for document: MarkdownDocument?) -> BubbleWidth {
+    guard let document else { return .text }
+    let wide = document.blocks.contains { block in
+      switch block.kind {
+      case .table, .code, .math, .mermaid: true
+      default: false
+      }
+    }
+    return wide ? .wide : .text
+  }
+
   private var reasoningLabel: String {
     if item.streaming && !hasBody {
       return Strings.Chat.Assistant.thinking
     }
     return Strings.Chat.Assistant.thoughtFor(seconds: max(1, Int((item.durationS ?? 0).rounded())))
+  }
+
+  /// Under the bubble, on a line of its own: the time when the bubble closes its group, then the
+  /// footer.
+  private var metaText: String? {
+    var parts: [String] = []
+    if closesGroup, !item.streaming, hasBody, let clock = ItemFormat.clock(item.ts) {
+      parts.append(clock)
+    }
+    if let footer = footerText {
+      parts.append(footer)
+    }
+    return parts.isEmpty ? nil : parts.joined(separator: " · ")
   }
 
   /// `chat.assistant.footer`: duration · tokens · model, only for a finished,

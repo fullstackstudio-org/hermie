@@ -32,10 +32,18 @@ public struct JumpToLatestPill: View {
           } icon: {
             Image(systemName: "arrow.down")
           }
-          .font(.callout.weight(.medium))
-          .padding(.horizontal, 6)
+          .font(.callout.weight(.semibold))
+          .foregroundStyle(.primary)
+          .padding(.horizontal, 14)
+          .padding(.vertical, 8)
+          // A thick material, not clear glass: the text behind the pill must not read through
+          // its label.
+          .background(.thickMaterial, in: .capsule)
+          .overlay(Capsule().strokeBorder(.separator, lineWidth: 0.5))
+          .shadow(color: .black.opacity(0.18), radius: 8, y: 2)
+          .contentShape(.capsule)
         }
-        .buttonStyle(.glass)
+        .buttonStyle(.plain)
         .keyboardShortcut(.downArrow, modifiers: [.command])
         .accessibilityIdentifier("transcript.jumpToLatest")
         .padding(.bottom, 12)

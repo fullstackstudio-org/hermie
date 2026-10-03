@@ -78,7 +78,7 @@ public struct MarkdownBlockView: View, Equatable {
       Text(text)
         .font(.callout.monospaced())
         .foregroundStyle(.secondary)
-        .frame(maxWidth: .infinity, alignment: .leading)
+        .markdownLine()
     }
   }
 }
@@ -104,7 +104,7 @@ struct MarkdownParagraphView: View {
 
   var body: some View {
     Text(inline.attributedString(codeBackground: Color.secondary.opacity(0.14)))
-      .frame(maxWidth: .infinity, alignment: .leading)
+      .markdownLine()
       .fixedSize(horizontal: false, vertical: true)
   }
 }
@@ -136,7 +136,7 @@ struct MarkdownHeadingView: View {
   var body: some View {
     Text(inline.attributedString())
       .font(font)
-      .frame(maxWidth: .infinity, alignment: .leading)
+      .markdownLine()
       .fixedSize(horizontal: false, vertical: true)
       .padding(.top, level <= 2 ? 4 : 0)
       .accessibilityAddTraits(.isHeader)
@@ -159,7 +159,7 @@ struct MarkdownListView: View {
           marker(for: item, at: offset)
             .frame(minWidth: markerWidth, alignment: list.ordered ? .trailing : .center)
           MarkdownBlockStack(blocks: item.blocks)
-            .frame(maxWidth: .infinity, alignment: .leading)
+            .markdownLine()
         }
         // One element per simple item; an item that holds more (a nested
         // list, a second paragraph) keeps its children navigable.
@@ -198,7 +198,7 @@ struct MarkdownQuoteView: View {
     MarkdownBlockStack(blocks: blocks)
       .foregroundStyle(.secondary)
       .padding(.leading, inset)
-      .frame(maxWidth: .infinity, alignment: .leading)
+      .markdownLine()
       .overlay(alignment: .leading) {
         Capsule()
           .fill(.tint.opacity(0.6))
@@ -258,6 +258,28 @@ struct MarkdownCodeView: View {
     .frame(maxWidth: .infinity, alignment: .leading)
     .background(.quaternary.opacity(0.4), in: RoundedRectangle(cornerRadius: 10))
     .accessibilityElement(children: .contain)
+  }
+}
+
+extension EnvironmentValues {
+  /// Whether a reply's lines take the whole width they are offered (a page, the default) or only
+  /// what their words need (a message bubble that should be no wider than its text).
+  @Entry public var markdownFillsWidth = true
+}
+
+/// A line of a reply: as wide as the width offered, or as its words, per `markdownFillsWidth`;
+/// leading either way.
+struct MarkdownLineFrame: ViewModifier {
+  @Environment(\.markdownFillsWidth) private var fills
+
+  func body(content: Content) -> some View {
+    content.frame(maxWidth: fills ? .infinity : nil, alignment: .leading)
+  }
+}
+
+extension View {
+  func markdownLine() -> some View {
+    modifier(MarkdownLineFrame())
   }
 }
 
