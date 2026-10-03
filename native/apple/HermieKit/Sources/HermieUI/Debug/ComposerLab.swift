@@ -121,12 +121,50 @@
         }
 
         chat = session.chat(bot)
-        composer = ComposerModel(session: session, bot: bot)
+        let composer = ComposerModel(session: session, bot: bot)
+        composer.onSubmit = { [weak listState] in listState?.followOwnSend() }
+        self.composer = composer
         requests = RequestsModel(session: session, bot: bot)
         secureInput = SecureInputModel(session: session, bot: bot)
         try await session.open(bot)
+        await typeAndSend(composer)
       } catch {
         status = "Could not open \(bot): \(error)"
+      }
+    }
+
+    /// `-HermieLabDraft <text>` puts text in the field; with `-HermieLabSendAfter <seconds>` it is
+    /// sent that long after the chat opened, `-HermieLabSends <n>` times (default once), each after
+    /// the reply to the one before has finished. For looking at the field and at the list's
+    /// scrolling on a send without driving the keyboard.
+    private func typeAndSend(_ composer: ComposerModel) async {
+      guard let draft = UserDefaults.standard.string(forKey: "HermieLabDraft"), !draft.isEmpty else {
+        return
+      }
+
+      // After the composer's own draft load, which would put the stored (empty) draft back.
+      try? await Task.sleep(for: .milliseconds(500))
+      composer.draft = draft
+
+      let delay = UserDefaults.standard.double(forKey: "HermieLabSendAfter")
+      guard delay > 0 else {
+        return
+      }
+
+      let sends = max(1, UserDefaults.standard.integer(forKey: "HermieLabSends"))
+      // `-HermieLabScrollUp <points>`: the reader scrolls up that far before each send.
+      let scrollUp = UserDefaults.standard.double(forKey: "HermieLabScrollUp")
+      for index in 0..<sends {
+        if scrollUp > 0 {
+          try? await Task.sleep(for: .seconds(delay / 2))
+          listState.pan(by: -scrollUp)
+        }
+        try? await Task.sleep(for: .seconds(scrollUp > 0 ? delay / 2 : delay))
+        while composer.running {
+          try? await Task.sleep(for: .milliseconds(200))
+        }
+        composer.draft = sends > 1 ? "\(draft) (\(index + 1))" : draft
+        await composer.submit()
       }
     }
 

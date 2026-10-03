@@ -91,6 +91,11 @@ public final class ComposerModel {
   /// The last event, with a counter so the same event twice is announced twice.
   public private(set) var lastEvent: ComposerEventEntry?
 
+  /// Called once for every message the reader sends from this composer, the moment it is
+  /// accepted (before the gateway answers): the chat screen takes its transcript to the bottom on
+  /// it, wherever the reader had scrolled. Not called for a send that is refused.
+  @ObservationIgnored public var onSubmit: (@MainActor () -> Void)?
+
   @ObservationIgnored let session: GatewaySession?
   @ObservationIgnored let drafts: KeyValueStore?
   @ObservationIgnored let debounce: Duration
@@ -259,6 +264,7 @@ public final class ComposerModel {
     sendsInFlight += 1
     draft = ""
     attachments = []
+    onSubmit?()
 
     defer {
       sendsInFlight -= 1

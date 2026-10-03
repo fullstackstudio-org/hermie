@@ -23,6 +23,12 @@ import Observation
  that is `stale` is recovering on its own and is left alone. A failed open is tried again once per
  return of the connection, and by the reader's "Try again".
 
+ # Sending
+
+ The reader's own send takes the transcript to the bottom and keeps it following the new bubble
+ and the reply (`TranscriptListState.followOwnSend`), from wherever they had scrolled. A message
+ that arrives from elsewhere does not move a reader who scrolled up: the jump pill counts it.
+
  # Read marks
 
  The chat is marked read while its newest row is on screen and the window is in front, whenever
@@ -93,6 +99,9 @@ final class ChatFeed {
     let listState = self.listState
 
     listState.onNearTop = { [weak self] in self?.loadOlder() }
+    // The reader's own send takes the transcript to the bottom, wherever they had scrolled; a
+    // message from elsewhere leaves a reader who scrolled up where they are.
+    composer.onSubmit = { [weak listState] in listState?.followOwnSend() }
 
     let revisions = Observations { model.snapshot?.revision }
     let phases = Observations { session.status.phase }
@@ -136,6 +145,7 @@ final class ChatFeed {
     tasks = []
     markTask?.cancel()
     listState.onNearTop = nil
+    composer.onSubmit = nil
 
     let session = self.session
     let name = self.name

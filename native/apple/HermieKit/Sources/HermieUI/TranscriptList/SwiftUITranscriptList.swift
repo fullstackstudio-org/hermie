@@ -8,17 +8,21 @@ import SwiftUI
 /// - `scrollPosition` over a `scrollTargetLayout` keeps the row at the top of
 ///   the viewport in place when rows are inserted above it. That is what makes
 ///   a history prepend jump-free (0.0–0.3 pt in the spike).
-/// - `defaultScrollAnchor(_, for: .sizeChanges)` is `.bottom` while the reader
-///   is at the bottom, so a growing reply stays in view, and `nil` otherwise,
-///   so a reply growing below a reader who scrolled up does not move them.
+/// - `defaultScrollAnchor(_, for: .sizeChanges)` is `.bottom` while the list
+///   follows the newest row, so a growing reply stays in view, and `nil`
+///   otherwise, so a reply growing below a reader who scrolled up does not move
+///   them. Whether it follows is `TranscriptFollow`'s to decide: from what moved
+///   the content (the reader, the list, the rows growing), not from one
+///   geometry update, and growth the anchor did not keep is brought back to the
+///   bottom. The reader's own send (`followOwnSend`) always follows.
 /// - Commands go through the same `ScrollPosition`. One told `scrollTo(id:)`
 ///   keeps that target and resolves it again on every content change, and that
 ///   second resolution lands about 13 pt from the first (measured, whatever the
 ///   anchor). A prepend straight after a programmatic jump would show it, so
 ///   `onNearTop` is held back after a jump until the reader has scrolled: the
 ///   history then loads under a position the reader made, which holds.
-/// - `onScrollGeometryChange` reduces the geometry to two booleans (at the
-///   bottom, near the top), so scrolling re-renders nothing until one flips.
+/// - `onScrollGeometryChange` reduces the geometry to what the rules act on;
+///   scrolling re-renders nothing until the list stops or starts following.
 struct SwiftUITranscriptList<Item: Identifiable & Equatable & Sendable, Row: View>: View where Item.ID: Sendable {
   let items: TranscriptListItems<Item>
   let state: TranscriptListState
@@ -31,6 +35,10 @@ struct SwiftUITranscriptList<Item: Identifiable & Equatable & Sendable, Row: Vie
   /// The list came near the top while `commanded`; ask for history once the
   /// reader has scrolled.
   @State private var nearTopHeld = false
+  /// Following, the scroll phase and the last geometry. A reference, not
+  /// observed: the per-frame bookkeeping re-renders nothing; what views read
+  /// is mirrored into `state.isAtBottom`.
+  @State private var tracker = FollowTracker()
 
   var body: some View {
     ScrollView {
@@ -46,12 +54,23 @@ struct SwiftUITranscriptList<Item: Identifiable & Equatable & Sendable, Row: Vie
     .scrollPosition($position, anchor: .top)
     .defaultScrollAnchor(.bottom)
     .defaultScrollAnchor(state.isAtBottom ? .bottom : nil, for: .sizeChanges)
+    .onScrollGeometryChange(for: TranscriptFollow.Geometry.self) { geometry in
+      TranscriptFollow.Geometry(
+        offset: geometry.contentOffset.y,
+        contentHeight: geometry.contentSize.height,
+        containerHeight: geometry.containerSize.height,
+        visibleMaxY: geometry.visibleRect.maxY
+      )
+    } action: { old, new in
+      // Growth while following is kept by the size-change anchor, which reads `isAtBottom`; it is
+      // not chased with a scroll command from here: one issued while the rows changed size (a
+      // reply settling) left the lazy stack drawing an empty viewport.
+      _ = tracker.follow.geometryChanged(from: old, to: new, phase: tracker.phase, threshold: state.bottomThreshold)
+      publishFollowing()
+    }
     .onScrollGeometryChange(for: Edges.self) { geometry in
       Edges(geometry, bottomThreshold: state.bottomThreshold, topThreshold: state.nearTopThreshold)
     } action: { _, edges in
-      if state.isAtBottom != edges.atBottom {
-        state.isAtBottom = edges.atBottom
-      }
       if edges.nearTop {
         if state.nearTopArmed {
           state.nearTopArmed = false
@@ -68,6 +87,9 @@ struct SwiftUITranscriptList<Item: Identifiable & Equatable & Sendable, Row: Vie
     }
     .modifier(OffsetTracking(state: state))
     .onScrollPhaseChange { _, phase in
+      tracker.phase = Self.followPhase(phase)
+      tracker.follow.phaseChanged(to: tracker.phase)
+      publishFollowing()
       switch phase {
       case .interacting:
         commanded = false
@@ -81,6 +103,14 @@ struct SwiftUITranscriptList<Item: Identifiable & Equatable & Sendable, Row: Vie
     .onChange(of: position.viewID(type: Item.ID.self)) { _, id in
       state.topVisibleID = id.map { AnyHashable($0) }
     }
+    .onChange(of: Structure(items)) { before, after in
+      // Rows removed or replaced (a reconcile that moved rows, a group that took in its
+      // neighbours) while following: the list goes back to the bottom. The position the lazy
+      // stack kept was the id of a row that may be gone, and it drew an empty viewport there.
+      if tracker.follow.following, after.count < before.count || after.first != before.first {
+        position.scrollTo(edge: .bottom)
+      }
+    }
     .onChange(of: state.commandSerial) {
       perform(state.take())
     }
@@ -89,12 +119,16 @@ struct SwiftUITranscriptList<Item: Identifiable & Equatable & Sendable, Row: Vie
   private func perform(_ command: TranscriptListState.Command?) {
     switch command {
     case .bottom(let animated):
+      tracker.follow.commandedBottom()
+      publishFollowing()
       withAnimation(animated ? .default : nil) {
         position.scrollTo(edge: .bottom)
       }
     case .item(let id, let anchor, let animated):
       guard let id = id.base as? Item.ID else { return }
       commanded = true
+      tracker.follow.commandedItem()
+      publishFollowing()
       withAnimation(animated ? .default : nil) {
         position.scrollTo(id: id, anchor: anchor)
       }
@@ -104,6 +138,42 @@ struct SwiftUITranscriptList<Item: Identifiable & Equatable & Sendable, Row: Vie
     case nil:
       break
     }
+  }
+
+  /// `isAtBottom` is what the pill, the unread count and the read marks see: the
+  /// list follows the newest row.
+  private func publishFollowing() {
+    if state.isAtBottom != tracker.follow.following {
+      state.isAtBottom = tracker.follow.following
+    }
+  }
+
+  static func followPhase(_ phase: ScrollPhase) -> TranscriptFollow.Phase {
+    switch phase {
+    case .idle: .idle
+    case .tracking, .interacting, .decelerating: .reader
+    case .animating: .animating
+    @unknown default: .idle
+    }
+  }
+
+  /// The shape of the rows, cheap to compare: how many, and the first and last ids.
+  struct Structure: Equatable {
+    var count: Int
+    var first: Item.ID?
+    var last: Item.ID?
+
+    init(_ items: TranscriptListItems<Item>) {
+      count = items.count
+      first = items.first?.id
+      last = items.last?.id
+    }
+  }
+
+  /// The follow state and what it is decided from, kept out of observation.
+  @MainActor final class FollowTracker {
+    var follow = TranscriptFollow()
+    var phase = TranscriptFollow.Phase.idle
   }
 
   /// Keeps `state.contentOffset` current for the lab's pan, in debug builds
@@ -122,14 +192,12 @@ struct SwiftUITranscriptList<Item: Identifiable & Equatable & Sendable, Row: Vie
     }
   }
 
-  /// The geometry, reduced to what the list acts on.
+  /// The geometry, reduced to what the history paging acts on.
   struct Edges: Equatable {
-    var atBottom: Bool
     var nearTop: Bool
 
     init(_ geometry: ScrollGeometry, bottomThreshold: CGFloat, topThreshold: CGFloat) {
       let visible = geometry.visibleRect
-      atBottom = visible.maxY >= geometry.contentSize.height - bottomThreshold
       nearTop = geometry.contentSize.height > geometry.containerSize.height && visible.minY <= topThreshold
     }
   }

@@ -132,6 +132,37 @@ private struct ComposerHarness {
     await opened.shutdown()
   }
 
+  @Test func everyAcceptedSendIsReportedOnceAndARefusedOneIsNot() async throws {
+    let opened = try await ComposerHarness.opened()
+    let composer = opened.composer
+    var reported = 0
+    composer.onSubmit = { reported += 1 }
+
+    composer.draft = "   "
+    await composer.submit()
+    #expect(reported == 0, "nothing to send")
+
+    composer.draft = "first"
+    let sending = Task { await composer.submit() }
+    let call = try await opened.link.pendingCall(RPC.PromptSubmit.name)
+    #expect(reported == 1, "reported when accepted, before the gateway answers")
+    opened.link.answer(call, ["status": "streaming"])
+    await sending.value
+    #expect(reported == 1)
+    await opened.shutdown()
+
+    let harness = SessionHarness()
+    try await harness.start()
+    let unopened = ComposerModel(
+      chat: harness.session.chat(bot), gatewayID: "g1", session: harness.session, drafts: nil, debounce: .zero)
+    var refused = 0
+    unopened.onSubmit = { refused += 1 }
+    unopened.draft = "are you there?"
+    await unopened.submit()
+    #expect(refused == 0, "a send refused before anything was painted is not reported")
+    await harness.session.shutdown()
+  }
+
   @Test func aSendRefusedBeforeAnythingIsPaintedKeepsTheDraft() async throws {
     let harness = SessionHarness()
     try await harness.start()

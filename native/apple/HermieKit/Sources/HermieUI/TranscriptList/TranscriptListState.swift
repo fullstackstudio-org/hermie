@@ -66,6 +66,15 @@ public final class TranscriptListState {
     commandSerial &+= 1
   }
 
+  /// The reader sent a message: the list goes to the very bottom and follows
+  /// from there, the new bubble and the reply after it included, wherever the
+  /// reader had scrolled to. (A message that arrives from elsewhere never moves
+  /// a reader who scrolled up; only their own send does.) Animated only when it
+  /// is a jump from a place higher up.
+  public func followOwnSend() {
+    scrollToBottom(animated: !isAtBottom)
+  }
+
   /// Scrolls so the row with `id` sits at `anchor` of the viewport.
   public func scroll(to id: some Hashable & Sendable, anchor: UnitPoint = .top, animated: Bool = true) {
     command = .item(AnyHashable(id), anchor: anchor, animated: animated)
