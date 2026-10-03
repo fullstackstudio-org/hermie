@@ -97,7 +97,9 @@ public struct ComposerView: View {
     .overlay(alignment: .topLeading) {
       if model.draft.isEmpty {
         Text(Strings.Chat.Composer.placeholder)
-          .foregroundStyle(.secondary)
+          // A plain colour, not the hierarchical `.secondary`: inside glass that one turns
+          // vibrant and blends with what is behind the field, below the audit's contrast.
+          .foregroundStyle(Self.placeholderColor)
           .lineLimit(1)
           .fixedSize(horizontal: false, vertical: true)
           .padding(.horizontal, Self.placeholderInset.width)
@@ -108,8 +110,18 @@ public struct ComposerView: View {
     }
     .padding(.horizontal, 4)
     .padding(.vertical, 2)
-    .glassEffect(.regular, in: .rect(cornerRadius: 20))
+    // Tinted with the page's background, so the words in the field keep their contrast over a
+    // busy transcript as over an empty one.
+    .glassEffect(.regular.tint(Self.fieldTint), in: .rect(cornerRadius: 20))
   }
+
+  #if os(macOS)
+    private static let placeholderColor = Color(nsColor: .secondaryLabelColor)
+    private static let fieldTint = Color(nsColor: .textBackgroundColor).opacity(0.6)
+  #else
+    private static let placeholderColor = Color(uiColor: .secondaryLabel)
+    private static let fieldTint = Color(uiColor: .systemBackground).opacity(0.6)
+  #endif
 
   /// Where the text view's first character sits, for the placeholder.
   #if os(macOS)
@@ -264,7 +276,10 @@ struct SendButtonStyle: ButtonStyle {
     configuration.label
       .foregroundStyle(isEnabled ? AnyShapeStyle(Color.white) : AnyShapeStyle(.secondary))
       .background(fill, in: .circle)
-      .glassEffect(.regular.interactive(isEnabled), in: .circle)
+      // Glass only on the grey disc: glass over the solid blue or red lightened it under the
+      // white glyph until the accessibility audit failed its contrast (as Messages' own solid
+      // send disc, the coloured button is plain).
+      .glassEffect(isEnabled ? .identity : .regular, in: .circle)
       .opacity(configuration.isPressed ? 0.75 : 1)
       .contentShape(.circle)
   }
@@ -273,9 +288,12 @@ struct SendButtonStyle: ButtonStyle {
     guard isEnabled else { return AnyShapeStyle(.fill.secondary) }
     switch role {
     case .send: return AnyShapeStyle(BubblePalette.outgoing)
-    case .stop: return AnyShapeStyle(Color.red)
+    case .stop: return AnyShapeStyle(Self.stopRed)
     }
   }
+
+  /// A deeper red than the system's: white on it is 5.4:1 (on the system red, 3.6:1).
+  static let stopRed = Color(red: 0xD7 / 255, green: 0x00 / 255, blue: 0x15 / 255)
 }
 
 /// The messages parked behind the running turn: up to three, then a count.
