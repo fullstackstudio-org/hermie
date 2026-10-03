@@ -92,6 +92,53 @@ extension Integration {
       }
     }
 
+    /// HERM-188: the fake's `connection.respond` is as strict as the gateway's
+    /// contract (`extra="forbid"`, `owner: ConnectorOwner`), so an answer in any
+    /// other shape would be refused and the card would not move.
+    @Test("answers a connection card in exactly the shape the gateway's strict contract takes")
+    func connectionCardAnswers() async throws {
+      try await withGapsGateway(FakeGateway.Options()) { gateway in
+        let session = try makeSession(gateway, credentials: SessionTokenCredentials(token: ""))
+        let cards = session.connectionRequests
+        await session.start()
+        try await gapWait("the socket") { session.status.phase == .ready }
+        try await gapWait("the roster") { session.chatList.rows[researcher] != nil }
+        try await session.open(researcher)
+        try await gapWait("the chat to be live") { await session.store.state(of: researcher)?.hydration == .live }
+
+        let runtime = try await gateway.openConnectionRequest(opID: "op-9", targets: ["github", "linear"])
+        try await gapWait("the card") { cards.request(for: researcher) != nil }
+        #expect(cards.request(for: researcher)?.runtimeSessionID == runtime)
+
+        #expect(await cards.skip(chat: researcher, target: "github"))
+        #expect(cards.lastError == nil, "the strict contract took the skip")
+        try await gapWait("the skip to come back as connection.update") {
+          cards.request(for: researcher)?.targets.first { $0.name == "github" }?.state == .skipped
+        }
+
+        #expect(await cards.cancel(chat: researcher))
+        #expect(cards.lastError == nil, "the strict contract took the cancel")
+        try await gapWait("the card to go once the operation settles") { cards.request(for: researcher) == nil }
+
+        let owner: JSONValue = ["type": "session", "session_id": .string(runtime)]
+        let answers = try await gateway.state().connectionResponses
+        #expect(
+          answers == [
+            [
+              "profile": .string(researcher), "owner": owner, "op_id": "op-9",
+              "result": ["targets": [["name": "github", "status": "skipped"]]],
+            ],
+            ["profile": .string(researcher), "owner": owner, "op_id": "op-9", "result": ["settled_by": "continue"]],
+          ]
+        )
+        for answer in answers {
+          #expect(Set(answer.objectValue?.keys.map { $0 } ?? []) == ["profile", "owner", "op_id", "result"])
+          #expect(Set(answer["owner"]?.objectValue?.keys.map { $0 } ?? []) == ["type", "session_id"])
+        }
+        await session.shutdown()
+      }
+    }
+
     @Test("a session-token gateway treats the client as anonymous, and says so")
     func anonymousOnASessionToken() async throws {
       try await withGapsGateway(FakeGateway.Options()) { gateway in

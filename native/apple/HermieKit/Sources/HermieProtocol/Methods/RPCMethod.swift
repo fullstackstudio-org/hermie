@@ -349,18 +349,27 @@ public enum RPC {
     public typealias Result = JSONValue
   }
 
+  // The connector methods' params are `ProfileParams` with `owner: ConnectorOwner`
+  // (`tui_gateway/contracts/connectors.py`, `connectors_operation.py`), and
+  // `extra="forbid"`: name the chat with `owner: {type: "session", session_id}`
+  // (or `{type: "account"}`), never a top-level `session_id`, which the gateway
+  // refuses with 4000 although the generated TypeScript contract still spells it so.
+
+  /// `{profile?, owner}`.
   public enum ConnectorsList: RPCMethod {
     public static let name = "connectors.list"
     public typealias Params = JSONValue
     public typealias Result = JSONValue
   }
 
+  /// `{profile?, owner, connectors, reconnect?}`.
   public enum ConnectorsConnect: RPCMethod {
     public static let name = "connectors.connect"
     public typealias Params = JSONValue
     public typealias Result = JSONValue
   }
 
+  /// `ConnectionOperationParams`: `{profile?, owner, op_id}`.
   public enum ConnectorsOperationStatus: RPCMethod {
     public static let name = "connectors.operation.status"
     public typealias Params = JSONValue
@@ -374,7 +383,8 @@ public enum RPC {
     public typealias Result = ConnectionRespondResult
   }
 
-  /// Not in the vendored upstream contract; the fake gateway implements it.
+  /// `ConnectionOperationParams`, like `status`. In the gateway's contract; not in
+  /// the vendored TypeScript copy, which predates it.
   public enum ConnectorsOperationWake: RPCMethod {
     public static let name = "connectors.operation.wake"
     public typealias Params = JSONValue

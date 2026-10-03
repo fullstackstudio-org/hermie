@@ -257,6 +257,8 @@ struct FakeState: Sendable {
   var methodLog: [String] { json["methodLog"]?.arrayValue?.compactMap(\.stringValue) ?? [] }
   var eventsSinceCalls: [JSONValue] { json["eventsSinceCalls"]?.arrayValue ?? [] }
   var serverRequestAnswers: [JSONValue] { json["serverRequestAnswers"]?.arrayValue ?? [] }
+  /// Every `connection.respond` the fake's strict contract accepted, as it was sent.
+  var connectionResponses: [JSONValue] { json["connectionResponses"]?.arrayValue ?? [] }
   /// Stored ids of the sessions with a turn still streaming.
   var runningSessions: [String] { json["runningSessions"]?.arrayValue?.compactMap(\.stringValue) ?? [] }
 }
@@ -274,6 +276,18 @@ extension FakeGateway {
       body["reason"] = .string(reason)
     }
     try await control("POST", "/__fake/drop-sockets", body: .object(body))
+  }
+
+  /// `POST /__fake/connection-request`: an agent's connection card on the
+  /// profile's chat, one pending row per name, announced as `connection.request`.
+  /// Answers the runtime session id it went out on.
+  @discardableResult
+  func openConnectionRequest(profile: String = "researcher", opID: String, targets: [String]) async throws -> String {
+    let body: JSONValue = [
+      "profile": .string(profile), "op_id": .string(opID), "targets": .array(targets.map(JSONValue.string)),
+    ]
+    let reply = try await control("POST", "/__fake/connection-request", body: body)
+    return reply["session_id"]?.stringValue ?? ""
   }
 
   /// `POST /__fake/reject-upgrades`: the next `count` upgrades fail with `--close-code`.
