@@ -152,7 +152,11 @@ describe('who the reader is', () => {
 describe('what the gateway can do', () => {
   it('reads gateway.capabilities once per connection', async () => {
     const { status, request, store } = setup({
-      capabilities: () => ({ per_session_exclusive_submit: true, per_message_author: true })
+      capabilities: () => ({
+        per_session_exclusive_submit: true,
+        per_message_author: true,
+        transcript_row_identity: true
+      })
     })
 
     expect(store.getState().capabilities).toBeNull()
@@ -162,7 +166,11 @@ describe('what the gateway can do', () => {
     await flush()
 
     expect(request).toHaveBeenCalledTimes(1)
-    expect(store.getState().capabilities).toEqual({ perSessionExclusiveSubmit: true, perMessageAuthor: true })
+    expect(store.getState().capabilities).toEqual({
+      perSessionExclusiveSubmit: true,
+      perMessageAuthor: true,
+      transcriptRowIdentity: true
+    })
     expect(rowAuthorsTrusted(store.getState())).toBe(true)
 
     status('reconnecting')
@@ -178,7 +186,11 @@ describe('what the gateway can do', () => {
 
     status('ready')
     await flush()
-    expect(store.getState().capabilities).toEqual({ perSessionExclusiveSubmit: true, perMessageAuthor: false })
+    expect(store.getState().capabilities).toEqual({
+      perSessionExclusiveSubmit: true,
+      perMessageAuthor: false,
+      transcriptRowIdentity: false
+    })
     expect(rowAuthorsTrusted(store.getState())).toBe(false)
 
     answer = () => {
@@ -188,15 +200,20 @@ describe('what the gateway can do', () => {
     status('ready')
     await flush()
 
-    expect(store.getState().capabilities).toEqual({ perSessionExclusiveSubmit: true, perMessageAuthor: false })
+    expect(store.getState().capabilities).toEqual({
+      perSessionExclusiveSubmit: true,
+      perMessageAuthor: false,
+      transcriptRowIdentity: false
+    })
   })
 
   it('reads the answer defensively', () => {
     expect(capabilitiesOf(null)).toBeNull()
     expect(capabilitiesOf([])).toBeNull()
-    expect(capabilitiesOf({ per_message_author: 'yes' })).toEqual({
+    expect(capabilitiesOf({ per_message_author: 'yes', transcript_row_identity: 1 })).toEqual({
       perSessionExclusiveSubmit: false,
-      perMessageAuthor: false
+      perMessageAuthor: false,
+      transcriptRowIdentity: false
     })
   })
 })

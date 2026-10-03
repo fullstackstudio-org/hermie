@@ -34,6 +34,11 @@ export interface GatewayCapabilities {
   perSessionExclusiveSubmit: boolean
   /** The gateway stamps who submitted each turn on its user row (`display_metadata.author`). */
   perMessageAuthor: boolean
+  /**
+   * The gateway stamps row, call and turn identity on its frames and history (`transcript_row_identity`).
+   * Advisory: the engine decides per frame on the fields themselves; this is for a reader of a log.
+   */
+  transcriptRowIdentity: boolean
 }
 
 /** `session.resume_progress` for one chat, while there is something to say. */

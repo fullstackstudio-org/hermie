@@ -65,7 +65,8 @@ export function capabilitiesOf(result: unknown): GatewayCapabilities | null {
 
   return {
     perSessionExclusiveSubmit: record.per_session_exclusive_submit === true,
-    perMessageAuthor: record.per_message_author === true
+    perMessageAuthor: record.per_message_author === true,
+    transcriptRowIdentity: record.transcript_row_identity === true
   }
 }
 

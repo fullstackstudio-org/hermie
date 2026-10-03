@@ -446,6 +446,58 @@ test.describe('a dropped socket', () => {
   })
 })
 
+// ── reopening a turn that wrote notes ───────────────────────────────────────
+
+const NOTE_1 = 'Entry 90 is marked paid.'
+const NOTE_2 = 'Looking the transfer up through the API myself'
+const FINAL_REPLY = 'Everything checks out and nothing was filed.'
+
+test.describe('reopening a chat whose turn wrote notes between its tool calls', () => {
+  // The fake gateway names the rows, calls and turn the way the fork does, so each note the page streamed
+  // meets the row the reopened chat reads back by id, not by its words.
+  test.use({ gatewayOptions: { streamDelayMs: 40 } })
+
+  const bubbleWith = (app: App, text: string) =>
+    app.transcript.locator('.hm-bubble[data-kind="assistant"]', { hasText: text })
+
+  async function expectEachOnce(app: App): Promise<void> {
+    await expect(app.transcript.locator('.hm-bubble[data-kind="user"]', { hasText: 'check the ledger' })).toHaveCount(1)
+    await expect(bubbleWith(app, NOTE_1)).toHaveCount(1)
+    await expect(bubbleWith(app, NOTE_2)).toHaveCount(1)
+    await expect(bubbleWith(app, FINAL_REPLY)).toHaveCount(1)
+  }
+
+  test('shows each note once after the page is reloaded when the turn is over', async ({ app, page }) => {
+    await app.open()
+    await app.ready()
+    await app.send('check the ledger')
+    await expect(bubbleWith(app, FINAL_REPLY)).toBeVisible({ timeout: 20_000 })
+    await expect(app.transcript).not.toHaveAttribute('aria-busy', 'true', { timeout: 20_000 })
+    await expectEachOnce(app)
+
+    // Painted from what the browser kept, then replaced by what the gateway says: still one of each.
+    await page.reload()
+    await expect(app.transcript).toBeVisible()
+    await expect(bubbleWith(app, FINAL_REPLY)).toBeVisible()
+    await settled(page, () => rowCount(app), 20)
+    await expectEachOnce(app)
+  })
+
+  test('shows each note once after the page is reloaded in the middle of the turn', async ({ app, page }) => {
+    await app.open()
+    await app.ready()
+    await app.send('check the ledger')
+    await expect(bubbleWith(app, NOTE_1)).toBeVisible()
+
+    await page.reload()
+    await expect(app.transcript).toBeVisible()
+    await expect(bubbleWith(app, FINAL_REPLY)).toBeVisible({ timeout: 30_000 })
+    await expect(app.transcript).not.toHaveAttribute('aria-busy', 'true', { timeout: 20_000 })
+    await settled(page, () => rowCount(app), 20)
+    await expectEachOnce(app)
+  })
+})
+
 // ── a long history ──────────────────────────────────────────────────────────
 
 /** What the page measures of the transcript, frame by frame, from the moment `watch` is called. */

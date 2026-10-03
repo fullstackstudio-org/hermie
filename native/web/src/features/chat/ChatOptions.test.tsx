@@ -199,7 +199,9 @@ describe('the screen’s side of a message’s menu', async () => {
   it('does not offer it after a colleague’s turn in the group chat', async () => {
     act(() => {
       ownAuthorStore.getState().set({ id: 'self-hosted:me' })
-      sessionStatusStore.setState({ capabilities: { perMessageAuthor: true, perSessionExclusiveSubmit: true } })
+      sessionStatusStore.setState({
+        capabilities: { perMessageAuthor: true, perSessionExclusiveSubmit: true, transcriptRowIdentity: false }
+      })
     })
     commit([
       userItem('my question', { author: { id: 'self-hosted:me', name: 'Me' } }, 'u1'),
