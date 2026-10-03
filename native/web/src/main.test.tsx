@@ -102,8 +102,9 @@ describe('the entry module', () => {
     expect(screen.getByRole('main')).toBeTruthy()
     // The page's own address is the router's: the heading is the route's.
     expect(screen.getByRole('heading', { level: 1 }).textContent).toBe('researcher')
-    // The session was started: the connection is the page's, and says what it is doing.
-    expect(await screen.findByText(/Connecting…|Reconnecting…|Offline/)).toBeTruthy()
+    // The session was started: the connection is the page's, and says what it is doing, in
+    // the connection line above the panes and again in the chat's header.
+    expect((await screen.findAllByText(/Connecting…|Reconnecting…|Offline/)).length).toBeGreaterThan(0)
   })
 
   it('applies a stored colour scheme before the first screen', async () => {

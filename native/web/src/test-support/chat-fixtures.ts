@@ -1,0 +1,90 @@
+/**
+ * Transcript items and chats for a screen test, built literally: no engine, no
+ * gateway. A test that is about what a row draws says so with three fields; a
+ * test that is about the engine's own behaviour replays a recorded scenario
+ * instead (`dev/stream-replay.ts`).
+ */
+import {
+  type AssistantItem,
+  type ChatState,
+  createChatState,
+  type NoticeItem,
+  type StatusItem,
+  type ToolItem,
+  type TranscriptItem,
+  type UserItem
+} from '@hermie/transcript'
+
+import { LONG_AGO } from './shell-stores'
+
+let counter = 0
+
+const base = (kind: TranscriptItem['kind'], id: string | undefined, ts: number | undefined) => {
+  counter += 1
+
+  return {
+    id: id ?? `${kind}-${counter}`,
+    seq: counter * 1000,
+    origin: 'history' as const,
+    version: 1,
+    ...(ts === undefined ? {} : { ts })
+  }
+}
+
+export const userItem = (text: string, over: Partial<UserItem> = {}, id?: string): UserItem => ({
+  ...base('user', id, over.ts ?? LONG_AGO),
+  kind: 'user',
+  text,
+  ...over
+})
+
+export const assistantItem = (text: string, over: Partial<AssistantItem> = {}, id?: string): AssistantItem => ({
+  ...base('assistant', id, over.ts ?? LONG_AGO),
+  kind: 'assistant',
+  text,
+  streaming: false,
+  interim: false,
+  ...over
+})
+
+export const toolItem = (name: string, over: Partial<ToolItem> = {}, id?: string): ToolItem => ({
+  ...base('tool', id, over.ts ?? LONG_AGO),
+  kind: 'tool',
+  toolId: `call-${counter}`,
+  name,
+  status: 'complete',
+  resultKnown: true,
+  ...over
+})
+
+export const noticeItem = (title: string, over: Partial<NoticeItem> = {}, id?: string): NoticeItem => ({
+  ...base('notice', id, over.ts ?? LONG_AGO),
+  kind: 'notice',
+  noticeKind: 'notice',
+  title,
+  ...over
+})
+
+export const statusItem = (text: string, over: Partial<StatusItem> = {}, id?: string): StatusItem => ({
+  ...base('status', id, over.ts ?? LONG_AGO),
+  kind: 'status',
+  statusKind: 'lifecycle',
+  text,
+  ...over
+})
+
+/** A live chat holding exactly these items, in this order. */
+export function chatWith(botName: string, items: readonly TranscriptItem[], over: Partial<ChatState> = {}): ChatState {
+  const empty = createChatState(botName, `stored-${botName}`, `stored-${botName}`)
+
+  return {
+    ...empty,
+    items: Object.fromEntries(items.map(item => [item.id, item])),
+    order: items.map(item => item.id),
+    hydration: 'live',
+    ...over
+  }
+}
+
+/** Seconds, one day apart from `LONG_AGO` by `days`. */
+export const daysAfter = (days: number, secondsIntoDay = 0): number => LONG_AGO + days * 86_400 + secondsIntoDay
