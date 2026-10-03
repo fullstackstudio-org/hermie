@@ -303,7 +303,13 @@ with a "withdrawn" notice; every prompt still open at shutdown is answered `''`,
 waits up to 1 s for those frames to reach the socket. One the gateway stops waiting for (its
 deadline: 120 s for `sudo` and `vault.unlock_prompt`, 180 s for `vault.code` and
 `vault.save_login`, 300 s for `secret`, counted from the arrival; or its `request.cancel`) is
-closed with a notice and never answered. An answer is "sent" once its frame is queued, so a socket
+closed with a notice and never answered. The center hears the live socket only, so what the gateway said while
+the socket was down reaches it through the store's recovery (`SessionSignal`): a `request.cancel`
+in the `session.events.since` replay closes its prompt as a live one would, and a prompt its
+session's `open_requests` (from the resume or the replay) no longer lists closes with a notice that
+it ended while the connection was down, nothing sent. One first seen at or after the moment just
+before that call went out (on the session's monotonic clock) is kept, since it may be newer than
+the list, and an answer without the list changes nothing. An answer is "sent" once its frame is queued, so a socket
 that dies before the gateway read it loses it; the gateway's re-delivery of a request already
 closed here (for any reason but its `request.cancel`) is the proof, and the prompt opens again
 saying the earlier answer did not arrive. The typed value lives in the sheet's state as a
