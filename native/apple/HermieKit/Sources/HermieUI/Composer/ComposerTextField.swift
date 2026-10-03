@@ -34,6 +34,16 @@ struct ComposerTextField {
   @MainActor final class Coordinator: NSObject {
     var parent: ComposerTextField
     var lastFocusRequest: Int
+    /// The last measurement, by what it depends on: SwiftUI asks for the same size many times per
+    /// layout pass, and each answer lays the text out afresh.
+    var measured: (key: SizeKey, size: CGSize)?
+
+    struct SizeKey: Equatable {
+      var text: String
+      var width: CGFloat
+      var maxLines: Int
+      var pointSize: CGFloat
+    }
 
     init(_ parent: ComposerTextField) {
       self.parent = parent
@@ -236,7 +246,17 @@ struct ComposerTextField {
         return nil
       }
 
-      return Self.fittingSize(of: textView, width: proposal.width ?? 240, maxLines: maxLines)
+      let width = proposal.width ?? 240
+      let key = Coordinator.SizeKey(
+        text: textView.string, width: width, maxLines: maxLines, pointSize: textView.font?.pointSize ?? 0)
+      if let measured = context.coordinator.measured, measured.key == key {
+        return measured.size
+      }
+      let size = Self.fittingSize(of: textView, width: width, maxLines: maxLines)
+      if let size {
+        context.coordinator.measured = (key, size)
+      }
+      return size
     }
 
     /// The field's size at `width`: as tall as its text, up to `maxLines` lines.
