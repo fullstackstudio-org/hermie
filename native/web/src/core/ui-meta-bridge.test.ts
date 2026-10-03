@@ -20,7 +20,7 @@
  * pending edits are new, and follow the Swift app's `UIMetaDocuments`.
  */
 import type { UiMetaSnapshot } from '@hermie/gateway-client/ui-meta'
-import { afterEach, describe, expect, it } from 'vitest'
+import { afterEach, describe, expect, it, vi } from 'vitest'
 
 import { createAppStampStore } from '../state/app-stamp'
 import { createLayoutStore } from '../state/layout'
@@ -511,7 +511,8 @@ describe('across a reload', () => {
 
     expect(JSON.parse(disk.getSync(UI_META_PENDING_KEY) ?? 'null')).toEqual({
       v: 1,
-      bots: { writer: { archived: true, v: 1 } }
+      bots: { writer: { archived: true, v: 1 } },
+      fields: { writer: ['archived'] }
     })
 
     const back = page(gateway, { disk })
@@ -719,7 +720,8 @@ describe('pending bots across a reload', () => {
     // Stored raw: the colour this build cannot draw and the field it does not own.
     expect(JSON.parse(disk.getSync(UI_META_PENDING_KEY) ?? 'null')).toEqual({
       v: 1,
-      bots: { writer: { v: 1, colour: 'tartan', futureBotField: 7, archived: true } }
+      bots: { writer: { v: 1, colour: 'tartan', futureBotField: 7, archived: true } },
+      fields: { writer: ['archived'] }
     })
 
     // Another client adds a field while this page is away.
@@ -764,7 +766,11 @@ describe('pending bots across a reload', () => {
     offline.stop()
     await offline.bridge.settled()
 
-    expect(JSON.parse(disk.getSync(UI_META_PENDING_KEY) ?? 'null')).toEqual({ v: 1, bots: { writer: null } })
+    expect(JSON.parse(disk.getSync(UI_META_PENDING_KEY) ?? 'null')).toEqual({
+      v: 1,
+      bots: { writer: null },
+      fields: { writer: ['archived'] }
+    })
 
     const back = page(gateway, { disk })
 
@@ -826,5 +832,114 @@ describe('inheriting the anonymous arrangement, end to end', () => {
     expect(gateway.app()).toMatchObject({ folders: FOLDERS.folders })
     expect(gateway.app()).not.toHaveProperty('push')
     expect(gateway.app('hermie-app')).toEqual(LEGACY)
+  })
+})
+
+describe('when this page’s app section wins', () => {
+  it('drops a field the gateway no longer carries, and keeps one a section can predate', () => {
+    const local = {
+      v: 1,
+      textSize: 'large',
+      updatedAt: 20,
+      removedElsewhere: 'gone',
+      themeChoice: { kind: 'preset', name: 'lime' },
+      defaults: { level: 'verbose' }
+    }
+    const gateway = { v: 1, textSize: 'small', updatedAt: 10, defaults: { level: 'quiet' } }
+    const taken = takeApp(local, { app: local, bots: {}, remote: gateway })
+
+    // Another build removed it: the gateway's copy is the newest word on a field
+    // this build does not project.
+    expect(taken).not.toHaveProperty('removedElsewhere')
+    // Silent about a field a section can predate: the held value stays.
+    expect(taken?.themeChoice).toEqual({ kind: 'preset', name: 'lime' })
+    // Carried by the gateway: its value.
+    expect(taken?.defaults).toEqual({ level: 'quiet' })
+    // And what this page projects is this page's.
+    expect(taken).toMatchObject({ textSize: 'large', updatedAt: 20 })
+  })
+})
+
+describe('a bot section written by a newer build', () => {
+  const NEWER = { v: 2, shape: 'new', archived: 'by-policy' }
+
+  it('is never written over: the change is kept back, pending, and said in the console', async () => {
+    const warn = vi.spyOn(console, 'warn').mockImplementation(() => undefined)
+    const gateway = holdingGateway()
+
+    await gateway.request('profiles.configure', { name: 'writer', ui_meta: { hermie: NEWER } })
+    gateway.writes.length = 0
+
+    const one = page(gateway)
+
+    await one.bridge.reconcile()
+    one.layout.getState().setArchived('writer', true)
+    one.layout.getState().setAccent('researcher', 'teal')
+    await settled()
+
+    expect(gateway.meta('writer').hermie).toEqual(NEWER)
+    expect(gateway.writes.some(write => write.name === 'writer')).toBe(false)
+    // Every other section still goes out.
+    expect(gateway.meta('researcher').hermie).toEqual({ v: 1, colour: 'teal' })
+    expect(one.bridge.pending).toBe(true)
+    expect(warn).toHaveBeenCalledWith(expect.stringContaining('writer'))
+
+    // A further reconcile does not send it either.
+    await one.bridge.reconcile()
+    expect(gateway.meta('writer').hermie).toEqual(NEWER)
+
+    warn.mockRestore()
+  })
+
+  it('is not written over by a send made before this page read the roster', async () => {
+    const warn = vi.spyOn(console, 'warn').mockImplementation(() => undefined)
+    const gateway = holdingGateway()
+
+    await gateway.request('profiles.configure', { name: 'writer', ui_meta: { hermie: NEWER } })
+
+    const one = page(gateway)
+
+    await one.watching
+    // Sent at once, under revision 0: refused, re-read, and then held.
+    one.layout.getState().setArchived('writer', true)
+    await settled()
+    await settled()
+
+    expect(gateway.meta('writer').hermie).toEqual(NEWER)
+    expect(one.bridge.pending).toBe(true)
+
+    warn.mockRestore()
+  })
+})
+
+describe('a pending bot’s own fields', () => {
+  it('send only what this page changed, so a colour picked elsewhere since survives an old archive', async () => {
+    const gateway = holdingGateway()
+
+    await gateway.request('profiles.configure', { name: 'writer', ui_meta: { hermie: { v: 1, colour: 'teal' } } })
+
+    const link = switchable(gateway)
+    const disk = newDisk()
+    const yesterday = page(link, { disk })
+
+    await yesterday.bridge.reconcile()
+    link.state.down = true
+    yesterday.layout.getState().setArchived('writer', true)
+    await settled()
+    yesterday.stop()
+    await yesterday.bridge.settled()
+
+    // Today, on another device: a new colour.
+    await gateway.request('profiles.configure', { name: 'writer', ui_meta: { hermie: { v: 1, colour: 'red' } } })
+    link.state.down = false
+
+    const today = page(link, { disk })
+
+    await today.bridge.reconcile()
+    await settled()
+
+    expect(gateway.meta('writer').hermie).toEqual({ v: 1, colour: 'red', archived: true })
+    expect(today.layout.getState().accents).toEqual({ writer: 'red' })
+    expect(today.layout.getState().archived).toEqual({ writer: true })
   })
 })
