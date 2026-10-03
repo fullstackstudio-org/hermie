@@ -96,23 +96,119 @@ struct SecureInputReconnectTests {
     #expect(h.link.declines.isEmpty)
   }
 
+  @Test("a prompt whose answer is on its way when the list leaves it out says it may not have arrived, once")
+  func listWhileSending() async throws {
+    let h = SecureHarness()
+    try await h.open()
+    let gate = ReplyGate()
+    let inbound = InboundRequest(
+      request: ServerRequest(id: "slow", method: "secret", params: ["session_id": .string(Fixture.runtime)]),
+      replayed: false,
+      index: 1,
+      respond: { result in await gate.respond(result) },
+      fail: { _, _ in true }
+    )
+    await h.center.ingest(SecureInputCenter.read(inbound))
+    #expect(h.center.isOpen("slow"))
+    await h.clock.advance(by: .seconds(1))
+
+    let center = h.center
+    let sending = Task { @MainActor in await center.send("slow", value: SecretValue(typed)) }
+    try await eventually("the answer to be on its way") { await center.phases["slow"] == .sending }
+    center.reconcile(session: Fixture.runtime, open: [], askedAt: h.clock.now)
+    #expect(!center.isOpen("slow"))
+    #expect(center.notices[bot]?.notice == .mayNotHaveArrived)
+    gate.open()
+    _ = await sending.value
+
+    // The frame already handed to the socket is the only one: the re-check after
+    // the await neither records it as answered nor sends anything more.
+    #expect(gate.answers.count == 1)
+    #expect(center.lastAnswered == nil)
+    #expect(center.phases["slow"] == nil)
+    #expect(center.notices[bot]?.notice == .mayNotHaveArrived)
+    #expect(await center.send("slow", value: SecretValue(typed)) == false)
+    #expect(gate.answers.count == 1)
+
+    // Closed as the gateway's doing: a re-delivered copy is not opened again.
+    await center.ingest(SecureInputCenter.read(
+      InboundRequest(
+        request: ServerRequest(id: "slow", method: "secret", params: ["session_id": .string(Fixture.runtime)]),
+        replayed: true,
+        index: 2,
+        respond: { result in await gate.respond(result) },
+        fail: { _, _ in true }
+      )))
+    #expect(!center.isOpen("slow"))
+  }
+
   // MARK: Through the store
 
-  @Test("after a reconnect, a prompt the resume no longer lists closes with a lapsed notice, and nothing is sent")
-  func reconnectClosesALapsedPrompt() async throws {
+  @Test("after a reconnect, a prompt the replay's open_requests no longer lists closes as lapsed, nothing sent")
+  func replayListClosesALapsedPrompt() async throws {
     let h = SecureHarness()
     try await h.open()
     try await h.raiseOpen("srq-r", "sudo", params: ["command": "ls"])
     let model = SecureInputModel(session: h.session, bot: bot)
     model.present("srq-r")
 
-    // The socket drops; the gateway gives up on the request meanwhile.
-    try await reconnect(h, resume: Fixture.resume(), since: Fixture.since(latest: 0))
+    // The socket drops; the gateway gives up on the request meanwhile. As the
+    // gateway answers: the resume leaves an empty list out, the replay carries `[]`.
+    let resume = Fixture.resume()
+    #expect(resume["open_requests"] == nil)
+    try await reconnect(h, resume: resume, since: Fixture.since(latest: 0))
 
     let center = h.center
     try await eventually("srq-r to close") { await !center.isOpen("srq-r") }
     #expect(model.presentedOutcome == .lapsed)
     #expect(await model.send(SecretValue(typed)) == false)
+    #expect(h.link.answers.isEmpty)
+  }
+
+  @Test("a resume whose open_requests no longer lists the prompt closes it, without the replay's list")
+  func resumeListClosesALapsedPrompt() async throws {
+    let h = SecureHarness()
+    try await h.open()
+    try await h.raiseOpen("srq-gone")
+    let other: JSONValue = [
+      "id": "srq-other", "method": "secret", "params": ["session_id": .string(Fixture.runtime), "env_var": "K"]
+    ]
+
+    try await reconnect(
+      h,
+      resume: Fixture.resume(extra: ["open_requests": [other]]),
+      since: withoutList(Fixture.since(latest: 0))
+    )
+
+    let center = h.center
+    try await eventually("srq-gone to close") { await !center.isOpen("srq-gone") }
+    #expect(center.notices[bot]?.notice == .lapsed)
+    #expect(h.link.answers.isEmpty)
+  }
+
+  @Test("a replay that fails leaves the prompt open, to its deadline: no list, no verdict")
+  func failedReplayKeepsThePrompt() async throws {
+    let h = SecureHarness()
+    try await h.open()
+    try await h.raiseOpen("srq-f", "sudo", params: ["command": "ls"])
+
+    h.link.respond(to: RPC.ProfilesList.name, with: SessionHarness.roster)
+    h.link.status(.reconnecting)
+    await h.clock.advance(by: .seconds(1))
+    h.link.status(.ready)
+    try await h.link.answerNext(RPC.SessionResume.name, Fixture.resume())
+    let since = try await h.link.pendingCall(RPC.SessionEventsSince.name)
+    h.link.fail(since, GatewayRPCError(.timeout, "request timed out: session.events.since"))
+    try await h.harness.frame()
+    try await Task.sleep(for: .milliseconds(50))
+
+    #expect(h.center.isOpen("srq-f"))
+    #expect(h.center.notices.isEmpty)
+
+    // Its own deadline still closes it.
+    await h.clock.advance(by: .seconds(119))
+    #expect(!h.center.isOpen("srq-f"))
+    #expect(h.center.notices[bot]?.notice == .expired)
     #expect(h.link.answers.isEmpty)
   }
 

@@ -189,6 +189,9 @@ extension Integration {
         #expect(withdrawn["withdrawn"] == 1)
         #expect(model.presented?.id == id, "the client heard nothing: the sheet is still up")
 
+        // The resume leaves the now empty list out, as the gateway does, so it is
+        // the replay's `open_requests: []` that closes it ("lapsed", not the
+        // cancel's "expired").
         await session.retryNow()
         try await secureWait("the prompt to close") { model.presented == nil }
         #expect(model.presentedOutcome == .lapsed)

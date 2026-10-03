@@ -694,6 +694,8 @@ enum Fixture {
     }
   }
 
+  /// A resume as the gateway answers it: `open_requests` only when something is
+  /// open (`tui_gateway/server.py` leaves an empty list out), unlike the replay.
   static func resume(runtime: String = runtime, stored: String = stored, messageCount: Int = 2, extra: JSONObject = [:])
     -> JSONValue
   {
@@ -702,8 +704,7 @@ enum Fixture {
       "session_id": .string(runtime),
       "stored_session_id": .string(stored),
       "message_count": .number(Double(messageCount)),
-      "info": .object(info),
-      "open_requests": .array([])
+      "info": .object(info)
     ]
 
     for (key, value) in extra {
