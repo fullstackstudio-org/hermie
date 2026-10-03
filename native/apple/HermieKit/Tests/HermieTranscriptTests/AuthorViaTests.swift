@@ -21,12 +21,12 @@ struct AuthorViaTests {
 
   @Test func theMarkerRidesBesideThePerson() throws {
     let item = try firstUser([
-      userRow(author: ["id": "oidc:a", "name": "Robin", "via": ["kind": "mcp", "client": "Claude Code", "extra": 1]])
+      userRow(author: ["id": "oidc:a", "name": "Robin", "via": ["kind": "mcp", "client": "Example Agent", "extra": 1]])
     ])
 
     #expect(item.author?.id == "oidc:a")
     #expect(item.author?.name == "Robin")
-    #expect(item.author?.via == AuthorVia(kind: "mcp", client: "Claude Code"))
+    #expect(item.author?.via == AuthorVia(kind: "mcp", client: "Example Agent"))
     #expect(item.replayedBy == nil)
   }
 
@@ -42,31 +42,31 @@ struct AuthorViaTests {
     let item = try firstUser([
       userRow(
         author: ["id": "oidc:a", "name": "Robin"],
-        replayedBy: ["id": "oidc:b", "name": "Sam", "via": ["kind": "mcp", "client": "Claude Code"]]
+        replayedBy: ["id": "oidc:b", "name": "Sam", "via": ["kind": "mcp", "client": "Example Agent"]]
       )
     ])
 
     #expect(item.author?.via == nil)
     #expect(item.replayedBy?.id == "oidc:b")
-    #expect(item.replayedBy?.via?.client == "Claude Code")
+    #expect(item.replayedBy?.via?.client == "Example Agent")
   }
 
   @Test func theMarkerSurvivesTheCacheRoundTrip() throws {
     var item = try firstUser([
-      userRow(author: ["id": "oidc:a", "name": "Robin", "via": ["kind": "mcp", "client": "Claude Code"]])
+      userRow(author: ["id": "oidc:a", "name": "Robin", "via": ["kind": "mcp", "client": "Example Agent"]])
     ])
     item.replayedBy = MessageAuthor(id: "oidc:b", via: AuthorVia(kind: "mcp", client: "Other"))
 
     let decoded = try UserItem(decoding: item.jsonValue)
 
     #expect(decoded == item)
-    #expect(decoded.author?.via?.client == "Claude Code")
+    #expect(decoded.author?.via?.client == "Example Agent")
     #expect(decoded.replayedBy?.via?.client == "Other")
   }
 
   @Test func theClientIsOneCleanLine() {
-    let dirty: JSONValue = ["kind": "mcp", "client": "  Claude\u{202E} \u{200B}Code\n*Pro*\u{2028}x  "]
-    #expect(authorViaOf(dirty)?.client == "Claude Code *Pro* x")
+    let dirty: JSONValue = ["kind": "mcp", "client": "  Example\u{202E} \u{200B}Agent\n*Pro*\u{2028}x  "]
+    #expect(authorViaOf(dirty)?.client == "Example Agent *Pro* x")
 
     // 80 code points, never a cut through a pair.
     let long: JSONValue = ["kind": "mcp", "client": .string(String(repeating: "\u{1D49E}", count: 90))]
@@ -84,20 +84,20 @@ struct AuthorViaTests {
 
   @Test func aPreviewAndAnExportLabelAnAgentsTurnInAnyChat() throws {
     let viaRow = userRow(
-      author: ["id": "oidc:me", "name": "Robin", "via": ["kind": "mcp", "client": "Claude Code"]], text: "ship it")
+      author: ["id": "oidc:me", "name": "Robin", "via": ["kind": "mcp", "client": "Example Agent"]], text: "ship it")
     let items = rowsToItems([viaRow], .rest)
     var state = createChatState("bot", "s", "s")
     state = reconcile(state, items)
 
     // One-to-one chat, the reader's own row: still labelled.
     let options = ChatPreviewOptions(groupChat: false, ownAuthorID: "oidc:me", resolveSenderName: { $0.name ?? "" })
-    #expect(previewFromChat(state, options)?.senderName == "Robin via Claude Code")
+    #expect(previewFromChat(state, options)?.senderName == "Robin via Example Agent")
 
     // Without a resolver the row stays unattributed.
     #expect(previewFromChat(state, ChatPreviewOptions())?.senderName == nil)
 
     let exported = exportTranscript(items, TranscriptExportOptions(botName: "Bot", selfName: "You"))
-    #expect(exported.text.contains("You via Claude Code"))
-    #expect(exported.markdown.contains("**You via Claude Code**"))
+    #expect(exported.text.contains("You via Example Agent"))
+    #expect(exported.markdown.contains("**You via Example Agent**"))
   }
 }

@@ -53,7 +53,7 @@ public struct MessageAuthor: TranscriptJSONCodable, Hashable {
 /// What sent a row on somebody's behalf. `kind` is `"mcp"` today; a reader treats any kind alike.
 public struct AuthorVia: TranscriptJSONCodable, Hashable {
   public var kind: String
-  /// The agent's own name (`Claude Code`), cleaned to one line of at most 80 characters. Untrusted text.
+  /// The agent's own name (`Example Agent`), cleaned to one line of at most 80 characters. Untrusted text.
   public var client: String
   public var extra: JSONObject
 

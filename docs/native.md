@@ -1627,7 +1627,7 @@ while it inserts the second search item into the one `NSToolbar`, and that ended
 
 ## MCP settings and the agent label
 
-The gateway fork can serve a remote MCP endpoint that a coding agent (Claude Code, say) connects to as
+The gateway fork can serve a remote MCP endpoint that a coding agent connects to as
 the signed-in person. Hermie never speaks MCP and runs no server. It does three things, and
 [contract/gateway/mcp.md](../contract/gateway/mcp.md) is the specification of all of them:
 
