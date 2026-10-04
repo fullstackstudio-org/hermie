@@ -31,7 +31,7 @@ import { type DragEvent, type ReactElement, type ReactNode, useCallback, useEffe
 
 import { strings } from '../../generated/strings'
 import { useLocale } from '../../i18n/use-locale'
-import { dragCarriesFiles, filesOf, guardStrayFileDrops } from '../../platform/files'
+import { dragCarriesFiles, filesOf, guardStrayFileDrops, watchDragEnd } from '../../platform/files'
 
 /** How long a target stays up without a `dragover` from the page before it is taken to be over. */
 const STALE_DRAG_MS = 1000
@@ -71,22 +71,7 @@ export function DropZone({ onFiles, enabled, className, children }: DropZoneProp
       return undefined
     }
 
-    let timer = window.setTimeout(reset, STALE_DRAG_MS)
-    const rearm = (): void => {
-      window.clearTimeout(timer)
-      timer = window.setTimeout(reset, STALE_DRAG_MS)
-    }
-
-    window.addEventListener('dragover', rearm, true)
-    window.addEventListener('drop', reset, true)
-    window.addEventListener('dragend', reset, true)
-
-    return () => {
-      window.clearTimeout(timer)
-      window.removeEventListener('dragover', rearm, true)
-      window.removeEventListener('drop', reset, true)
-      window.removeEventListener('dragend', reset, true)
-    }
+    return watchDragEnd(reset, STALE_DRAG_MS)
   }, [over, reset])
 
   const onDragEnter = useCallback(

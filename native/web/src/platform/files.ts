@@ -97,3 +97,27 @@ export function saveBlob(blob: Blob, name: string, doc: Document = document): vo
     setTimeout(() => URL.revokeObjectURL(url), REVOKE_AFTER_MS)
   }
 }
+
+/**
+ * Call `onEnd` when a drag over the page ends in a way a drop zone may not hear: a drop or dragend anywhere on the
+ * page (caught on the way down, so a child that stops it still counts), or no dragover for `staleMs` (Esc, or the
+ * pointer left the window, where Safari sends no balancing dragleave). Returns the function that stops listening.
+ */
+export function watchDragEnd(onEnd: () => void, staleMs: number, target: Window = window): () => void {
+  let timer = target.setTimeout(onEnd, staleMs)
+  const rearm = (): void => {
+    target.clearTimeout(timer)
+    timer = target.setTimeout(onEnd, staleMs)
+  }
+
+  target.addEventListener('dragover', rearm, true)
+  target.addEventListener('drop', onEnd, true)
+  target.addEventListener('dragend', onEnd, true)
+
+  return () => {
+    target.clearTimeout(timer)
+    target.removeEventListener('dragover', rearm, true)
+    target.removeEventListener('drop', onEnd, true)
+    target.removeEventListener('dragend', onEnd, true)
+  }
+}
