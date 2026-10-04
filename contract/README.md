@@ -312,7 +312,7 @@ clearing push) and, for a Web Push row, **`requestMethods: true`** (its worker r
 `method`, so a `confirm` or a secure input is sent to it and shown without Allow or Deny; the worker
 that shipped with the Expo web build never writes it and so is never sent one).
 
-It is the target every sender and both app generations conform to; Hermie Web's and the Expo app's
+It is the target every sender and both app generations conform to; the Expo app's
 tests check their payloads and ids against it, and the gateway plugin keeps a copy at
 `tests/fixtures/push_contract.json` that its tests compare with this file. Additive changes (a new
 optional field, a request method, an unfiltered type) do not bump `version`.

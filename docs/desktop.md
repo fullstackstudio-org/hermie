@@ -5,6 +5,15 @@ the system webview (WKWebView, WebView2, WebKitGTK). It is a shell: one window, 
 pointed at a Hermie Web instance an operator already runs. Why that shape and not a bundled export
 that talks to a gateway directly is [ADR-0027](adr/0027-desktop-is-a-webview-over-hermie-web.md).
 
+> **The Hermie Web this shell was built against is removed.** The standalone Node server (0.1.x)
+> that served the page the shell loads is gone from this repository and from our gateways, and
+> [ADR-0030](adr/0030-web-client-served-by-the-plugin.md) amends ADR-0027: the page the shell loads is
+> now the gateway's own web client, `https://<gateway>/dashboard-plugins/hermie/app/index.html`, served
+> by the `hermie` plugin. The shell's code, its strings and the rest of this page still say "Hermie
+> Web" and describe the old server; re-pointing the shell at the new client, and what that does to
+> the bridge's origin rules, is open work. The manual test matrix at the bottom is a record of the
+> runs against the old server, not of the new client.
+
 This page is filled in task by task, alongside the code. A section with nothing under it yet says
 so rather than being left out — the same rule applies to
 the manual test matrix at the bottom.
@@ -24,9 +33,9 @@ the manual test matrix at the bottom.
 ## Running it locally
 
 ```sh
-npm run fake-gateway -- --auth token --token demo   # or your own gateway
-npm run web                                          # Hermie Web, defaults to 127.0.0.1:9120
-HERMIE_WEB_URL=http://127.0.0.1:9120 npm run desktop # opens the shell on that address
+npm run fake-gateway -- --auth cookie               # or your own gateway
+npm run client:dev                                   # the web client, on localhost:5173
+HERMIE_WEB_URL=http://localhost:5173/dashboard-plugins/hermie/app/ npm run desktop   # not yet re-tested against the new client
 ```
 
 `npm run desktop` is `tauri dev`; `npm run desktop:build` is `tauri build`. Without `HERMIE_WEB_URL`

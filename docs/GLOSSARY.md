@@ -19,16 +19,20 @@ not run it, which matters operationally — a machine that only runs `serve` wil
 jobs but never execute them. Hermie reads the `gateway_running` flag from the cron API and shows a
 banner when it is false.
 
-## Hermie Web
+## Web client
 
-The process started by `npx @hermie/web` (`packages/hermie-web`): one small Node server, next to the
-gateway and on its own port — 9120 by default — that serves Hermie's browser build and proxies
-**one** gateway onto its own origin. It is not a third kind of gateway and it authenticates nobody;
-it exists because the gateway's browser session is an `HttpOnly` cookie, a cookie belongs to an
-origin, and the gateway refuses a WebSocket whose `Origin` is not its own. Being same-origin is what
-lets a page use that session honestly. The gateway it points at is fixed when the process starts.
-[docs/web.md](web.md) is the design and [ADR-0015](adr/0015-web-variant-on-its-own-port.md) the
-decision.
+The browser client in `native/web`: React, Vite and TypeScript, no Expo, a pure client of the
+gateway. The `hermie` gateway plugin serves its files on the gateway's own origin, at
+`/dashboard-plugins/hermie/app/index.html`, which is what lets a page use the gateway's `HttpOnly`
+session cookie honestly: a cookie belongs to an origin, and the gateway refuses a WebSocket whose
+`Origin` is not its own. It has no server of its own and no setup step; its gateway is the one that
+served it. [native/web/README.md](../native/web/README.md) is how it works and
+[ADR-0030](adr/0030-web-client-served-by-the-plugin.md) the decision.
+
+**Hermie Web** was the name of the standalone Node server (`npx @hermie/web`, port 9120) that served
+the Expo app's browser export and proxied one gateway onto its own origin. It has been removed;
+[ADR-0015](adr/0015-web-variant-on-its-own-port.md) and [ADR-0025](adr/0025-hermie-web-is-a-service-layer.md)
+record what it was.
 
 ## Designed for iPad
 

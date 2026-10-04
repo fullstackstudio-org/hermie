@@ -4,9 +4,10 @@ import { defineConfig } from 'vite'
 /**
  * The shell's own two pages (`connect.html`, `offline.html`) — vanilla TS, no
  * React, no React Native Web. This is a separate Vite project from
- * `expo/hermie` on purpose: the app the shell loads is the browser build
- * `packages/hermie-web` already serves, unmodified; nothing here is bundled
- * into it, and nothing from it is bundled into this.
+ * `expo/hermie` on purpose: the app the shell loads is the browser client a
+ * gateway already serves (the removed `packages/hermie-web` served the Expo
+ * export; see docs/desktop.md), unmodified; nothing here is bundled into it,
+ * and nothing from it is bundled into this.
  *
  * `TAURI_DEV_HOST` lets `tauri dev` reach the Vite server from something
  * other than the machine it runs on (a mobile target, unused here, but the

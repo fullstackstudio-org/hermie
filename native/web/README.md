@@ -4,7 +4,7 @@
 Expo and no React Native Web. It is meant to be a pure client, exactly like the native apps, and to be
 served by the gateway itself through the `hermie` plugin, on the gateway's own origin. The decision and
 the threat model that follows from it are in
-[ADR-0030](../../docs/adr/0030-the-web-client-is-served-by-the-gateway-plugin.md).
+[ADR-0030](../../docs/adr/0030-web-client-served-by-the-plugin.md).
 
 **Status: a chat you can read.** What exists is the build, its checks, the boot, the frame of the app and the chat
 screen: the client refuses to run in a frame, finds its gateway from its own address, probes it, reads who is
@@ -17,9 +17,9 @@ prompts ("Secret prompts" below), and attach files and images by the picker, a p
 The chat list's arrangement, the mutes and the text size follow the person through the gateway's `ui_meta`
 ("Settings that follow the person" below), and Settings has a screen for each of them and for the rest of what a person
 sets here: the account, the gateway, passkeys, MCP, what a chat shows, the chat list, the look and the language, and
-the build ("Settings" below). The plugin does not serve this build yet. Until that
-changes, the browser keeps running the Expo app's web export through Hermie Web
-([docs/web.md](../../docs/web.md)); nothing here replaces it.
+the build ("Settings" below). The `hermie` gateway plugin serves this build
+([docs/web.md](../../docs/web.md)); the Expo app's web export, which the standalone Hermie Web server used to
+serve, is gone.
 
 ## Running it
 

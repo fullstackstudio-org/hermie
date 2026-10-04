@@ -17,13 +17,12 @@ that replace it have a Mac app of their own; see **Native apps** below.
 
 ## Version numbers
 
-One number, written down in seven places, plus the matching entries in
+One number, written down in six places, plus the matching entries in
 `package-lock.json` and the desktop crate's own entry in `Cargo.lock`:
 
 - the root `package.json`;
 - the app's `package.json`;
 - `version` in `expo/hermie/app.config.ts`;
-- Hermie Web's `package.json`, which `/hermie/update` and the container image report;
 - the desktop shell's `package.json`, `tauri.conf.json` and `Cargo.toml`.
 
 `Cargo.lock` matters more than it looks: CI runs `cargo test --locked`, and a
@@ -34,7 +33,7 @@ The native apps carry a second number, `MARKETING_VERSION` in
 `native/apple/Config/Version.xcconfig`, with its own rule; see **Native apps →
 Versions** below.
 
-Setting them by hand is how some of them end up stale; a test in `packages/hermie-web`
+Setting them by hand is how some of them end up stale; a test in `scripts/release`
 fails when they disagree. So:
 
 ```sh
@@ -85,7 +84,7 @@ same number.
 ## Cutting a release
 
 1. `main` is green: `npm run typecheck && npm run lint && npm run format && npm test && npm run test:app`,
-   and `npm run web:build` exports.
+   and `npm run client:build && npm run client:check-bundle` pass.
 2. Turn `## [Unreleased]` in `CHANGELOG.md` into `## [0.2.0] - YYYY-MM-DD`, and open a
    fresh empty `Unreleased` above it. Add the link definition at the foot of the
    file. Check what the release notes will say:
@@ -113,7 +112,6 @@ tab. It builds and uploads the artefact and skips the publish step.
 | `Hermie-android-debug.apk`   | A debug-signed APK, installable on any device with unknown sources allowed. |
 | `Hermie-android-release.apk` | Signed with the upload key — only when the signing secrets below are set.   |
 | `Hermie-android-release.aab` | The app bundle Play takes — only when the signing secrets below are set.    |
-| `hermie-web.zip`             | Hermie Web: the compiled server, the exported browser bundle and its bin.   |
 | `SHA256SUMS`                 | Digests of everything above, generated from what actually reached the job.  |
 
 The debug APK is built unconditionally, and it is a **debug** build on purpose:
@@ -122,13 +120,13 @@ something a person can put on a phone. The two release artefacts appear only whe
 the four secrets are there; without them the job builds the debug APK and nothing
 fails.
 
-`hermie-web.zip` is the whole web variant and needs no signing: it is a Node
-package with no runtime dependencies, which is why the zip carries no
-`node_modules` and the install instructions' `npm ci --omit=dev` is a no-op
-today. `SHA256SUMS` is not decoration — a running Hermie Web refuses to install a
-self-update the file does not list, and refuses bytes whose digest does not match
-(ADR-0015). It is generated from the artefact directory rather than written by
+`SHA256SUMS` is generated from the artefact directory rather than written by
 hand, so an artefact that failed to build cannot quietly pass unverified.
+
+There is no web artefact. The browser client (`native/web`) is not released from
+here: the `web-client` job in `ci.yml` builds and checks it, and the `hermie`
+gateway plugin imports a build and serves it (ADR-0030). The standalone Hermie Web
+server and its zip and container image (0.1.x) are gone.
 
 There is no iOS or Mac artefact here, and there cannot be a useful one: an iOS app
 that anybody can install has to be signed by a real Apple Developer team, which is
@@ -522,7 +520,7 @@ they coexist:
 - **The native line is never behind the Expo line.** Both upload to the same App
   Store Connect record, where a version cannot go backwards. `set-version` refuses
   a run that would break this before it writes anything, and the version-sync test
-  in `packages/hermie-web` fails a tree that does.
+  in `scripts/release` fails a tree that does.
 - `--check` lists the native line on a line of its own, `separate`, and the rule
   on another, `rule`.
 

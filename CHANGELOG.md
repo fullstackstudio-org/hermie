@@ -87,6 +87,24 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   at most three seconds; the tokens are deleted whatever it answers. The fake gateway serves the
   route (`--no-native-revoke` stages a gateway without it).
 
+### Removed
+
+- **The old Hermie Web is removed, and nothing is migrated from it.** The standalone Node server
+  (`packages/hermie-web`, version 0.1.x: the proxy, `/setup`, `/admin`, the built-in OpenID
+  provider, the push daemon, the self-update and the message cache) is gone from the repository,
+  together with its Docker image workflow and release zip, the run books and Kubernetes examples in
+  `deploy/`, the `npm run web` and `npm run web:build` scripts and the CI step that exported the
+  Expo browser build for it. The web client is now the one in `native/web`, which the `hermie`
+  gateway plugin serves from the gateway's own origin at `/dashboard-plugins/hermie/app/index.html`
+  ([ADR-0030](docs/adr/0030-web-client-served-by-the-plugin.md); [docs/web.md](docs/web.md) is the
+  short version). It starts with empty browser storage, a new installation id and a new push
+  subscription. Whoever still runs the old server should stop it, revoke the service login it stored
+  at the gateway and delete its state directory.
+- **The release workflow no longer builds `hermie-web.zip`.** A tagged release carries the Android
+  artefacts and `SHA256SUMS`; the web client is released by the plugin that serves it.
+- The Expo app's `*.web.ts(x)` files, which only existed to run the app in a browser behind that
+  server, are still in `expo/hermie` (frozen) but no longer have a build or a server.
+
 ### Fixed
 
 - **Swiping back out of a chat no longer crashes the native apps.** A queued layout pass kept the transcript

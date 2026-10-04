@@ -8,8 +8,11 @@
 - Amends: [0027](0027-desktop-is-a-webview-over-hermie-web.md)
 - See also: [0024](0024-a-list-of-gateways.md), [0029](0029-expo-native-and-the-contract-directory.md)
 
-0015 and 0025 stay in force until the cut-over in decision 18 is done; Hermie Web keeps running, and
-keeps being the supported web version, until then.
+0015 and 0025 stayed in force until the cut-over in decision 18 was done. Stage D is done as of
+2026-10-04: `packages/hermie-web`, `deploy/web`, `deploy/k8s` and the image workflow are deleted
+from the repository (the Expo app's `*.web.ts(x)` files are still there, see the CHANGELOG). The
+text below is the record as it was written, and speaks of Hermie Web in the present tense where it
+was still running.
 
 ## Context
 

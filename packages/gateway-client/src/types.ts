@@ -148,8 +148,7 @@ export interface DialPlan {
  * - `native_pkce`   RFC 8252 sign-in, `Authorization: Bearer` on REST.
  * - `session_token` an ungated gateway's shared secret.
  * - `cookie`        the gateway's own browser session. Only reachable from a
- *   page the gateway (or a proxy in front of it, which is what Hermie Web is)
- *   serves on the SAME origin: the credential is an HttpOnly cookie the app
+ *   page the gateway (or a proxy in front of it) serves on the SAME origin: the credential is an HttpOnly cookie the app
  *   can neither read nor attach by hand.
  */
 export type GatewayAuthMode = 'native_pkce' | 'session_token' | 'cookie'

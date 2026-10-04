@@ -292,7 +292,8 @@ export interface CookieSessionCredentialsOptions {
  *
  *  - **REST** carries no auth header at all. `credentials: 'include'` is what
  *    makes the browser attach the cookie, and it is only honoured because
- *    Hermie Web serves the app and proxies the gateway on ONE origin.
+ *    the page is served from the gateway's own origin (the web client the
+ *    `hermie` plugin serves; the removed Hermie Web proxied to the same end).
  *  - **The socket** uses the ticket subprotocol, minted by a cookie-authenticated
  *    POST immediately before the dial. This is exactly why the gateway grew
  *    tickets in the first place: `new WebSocket(url, protocols)` is all a

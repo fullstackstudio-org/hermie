@@ -51,8 +51,8 @@ export type { McpOptions } from './mcp/store'
  *
  * `cookie` is the browser flow: a sign-in page, a session cookie, and REST plus
  * the ticket mint gated on that cookie rather than on a bearer. It exists so
- * Hermie Web can be driven end to end without a real `hermes serve` — and,
- * with `publicHost`, so the Host/Origin guard the proxy has to satisfy is
+ * the browser client can be driven end to end without a real `hermes serve` —
+ * and, with `publicHost`, so the Host/Origin guard a page has to satisfy is
  * actually enforced rather than assumed.
  */
 export type FakeAuthMode = 'none' | 'token' | 'native' | 'cookie'
@@ -180,8 +180,9 @@ export interface FakeGatewayOptions {
    *
    * When set, the DNS-rebinding guard upstream runs is enforced here too: a
    * request whose `Host`, or whose `Origin`, names a different host is refused.
-   * That is the guard Hermie Web exists to satisfy, so a test that does not
-   * turn it on proves nothing about the proxy's header rewrite.
+   * That is the guard a browser page served by the gateway satisfies by being
+   * same-origin, so a test that does not turn it on proves nothing about the
+   * client's own origin handling.
    */
   publicHost?: string
   /** User name and password accepted by `/auth/password-login` in cookie mode. */
@@ -3977,7 +3978,7 @@ export async function startFakeGateway(options: FakeGatewayOptions = {}): Promis
    * The pages are the ones this fake serves: `/` and the plugin's files. The real
    * gate redirects every path that is not `/api`, but a path nothing here serves
    * keeps the plain JSON 401 it has always had, because a probe of a wrong
-   * address (the access-proxy check in Hermie Web's setup) tells "a gate answered
+   * address (an access-proxy check, as the old Hermie Web's setup made) tells "a gate answered
    * for it" from "a gateway answered" by exactly that.
    *
    * A cookie that is present and no longer good is the other reason, with its own

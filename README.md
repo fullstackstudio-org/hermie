@@ -30,12 +30,12 @@ It is for people who already run their own agents and would rather reach them
 the way they reach everyone else: from the phone in their pocket, on a train,
 without a terminal and without a tunnel to open first.
 
-One Expo and React Native codebase runs in **five places — iPhone, iPad, Android,
-the Mac and a browser**. The Mac is not a port: it is the iPad build, which Apple
-runs on Apple Silicon unmodified. The browser is not a hosted service: it is the
-same app, served by one small process you run next to your own gateway. The
-iPhone, iPad and Mac apps are being rebuilt natively; see
-[Native apps](#native-apps).
+One Expo and React Native codebase runs on **iPhone, iPad, Android and the Mac**.
+The Mac is not a port: it is the iPad build, which Apple runs on Apple Silicon
+unmodified. The iPhone, iPad and Mac apps are being rebuilt natively; see
+[Native apps](#native-apps). The fifth place, **a browser**, is a separate client
+in `native/web`: it is not a hosted service either, but a page your own gateway
+serves through the `hermie` plugin; see [Web](#web).
 
 What it is not: there is no Hermie server, no account to create, no analytics and
 no third-party network call. The only address Hermie knows is the one you typed.
@@ -282,10 +282,8 @@ no third-party network call. The only address Hermie knows is the one you typed.
   Dutch or German gets that language on first launch; anything else gets
   English. Numbers, dates, relative times and plurals follow the language you
   picked. A sentence nobody has translated yet appears in English rather than as
-  a blank row — English is the source, not a fallback of last resort. The setup,
-  admin and sign-in pages Hermie Web serves negotiate the same three languages
-  from your browser's `Accept-Language`. Adding a fourth is
-  [documented](docs/i18n.md), and the glossary that keeps `gateway`, `Crons`,
+  a blank row — English is the source, not a fallback of last resort. Adding a
+  fourth language is [documented](docs/i18n.md), and the glossary that keeps `gateway`, `Crons`,
   `Boards`, `Skills` and `MCP` untranslated is there too.
 
 ## What you need
@@ -389,11 +387,11 @@ Nothing has been published to a store yet. When it is:
 - **Mac** — the same TestFlight build, or the same App Store listing: Apple
   offers an iPhone/iPad app on Apple Silicon Macs unless it is opted out
 - **Android** — Play internal testing _(link to follow)_
-- **A browser** — `npx @hermie/web`, or the `hermie-web.zip` a tagged release
-  carries; see [Web](#web)
+- **A browser** — nothing to install: the `hermie` plugin on your gateway serves
+  the client at `/dashboard-plugins/hermie/app/index.html`; see [Web](#web)
 
 The Android half is the furthest along: the upload key exists, and a tagged build
-produces an APK and an app bundle signed with it alongside the web artefacts.
+produces an APK and an app bundle signed with it.
 What is left there is registering that key with Play, which happens once per app.
 [docs/release.md](docs/release.md) has what is automated and what is still done
 by hand.
@@ -413,7 +411,7 @@ Then pick a platform:
 npm run ios             # iOS simulator
 npm run android         # Android emulator or device
 HERMIE_APPLE_TEAM_ID=XXXXXXXXXX npm run mac    # this Mac
-npm run web:build       # the browser build and the server that serves it
+npm run client:build    # the browser client (native/web)
 ```
 
 The first three generate the native projects on first run; `ios/` and `android/`
@@ -422,11 +420,12 @@ destination and wraps it so macOS will launch it — it needs an Apple Developer
 team identifier, because a Mac build has to be signed. `--no-open` builds without
 launching, `--debug` builds against Metro.
 
-`npm run web:build` needs no native toolchain at all. Point the result at your
-own gateway:
+`npm run client:dev` needs no native toolchain at all. It serves the browser
+client with Vite and forwards its requests to a gateway of your choice
+(`HERMIE_DEV_GATEWAY`, by default `http://127.0.0.1:9119`):
 
 ```sh
-node packages/hermie-web/bin/hermie-web.js --gateway http://127.0.0.1:9119
+npm run client:dev      # then open http://localhost:5173/dashboard-plugins/hermie/app/index.html
 ```
 
 You do not need a real gateway to try it:
@@ -474,8 +473,8 @@ When the connection stops for a reason waiting cannot fix — an expired session
 a gateway that does not trust the address, a rejected certificate, a version
 that is too old — the app says so on a card that names the stored address and
 offers the ways out: re-check, change gateway, sign out, and a sign-in that
-happens where you are. In a browser, where Hermie Web fixes the gateway, it says
-that instead of offering setup.
+happens where you are. The browser client has no setup step at all: its gateway
+is the one that served the page.
 
 ## How it works
 
@@ -501,8 +500,8 @@ say stays between you and the machine you run them on.
 | iPadOS                                                   | The same build, with a sidebar layout on wide windows — and the sidebar hides                                                                                                                                                   |
 | Android 7.0+ (API 24)                                    | Builds and runs, driven end to end on an emulator; a hardware test on a phone and a tablet is scheduled (2026-09-22). The signed release path runs in CI — the upload key exists and CI builds an APK and an app bundle with it |
 | macOS, Apple Silicon                                     | The same build again, as "Designed for iPad" — a window with the sidebar layout                                                                                                                                                 |
-| A browser                                                | Served by Hermie Web, a small process next to the gateway — see **Web** below                                                                                                                                                   |
-| Desktop (macOS, Intel and Apple Silicon, Windows, Linux) | Coming soon — a native app built on Hermie Web, with real text selection                                                                                                                                                        |
+| A browser                                                | The `hermie` gateway plugin serves a separate client (`native/web`) — see **Web** below                                                                                                                                         |
+| Desktop (macOS, Intel and Apple Silicon, Windows, Linux) | Coming soon — a shell around the gateway's web client, with real text selection                                                                                                                                                 |
 
 **On a wide window the chat list is a sidebar, and the sidebar can be put away.**
 The chat header's round button hides it, ⌘⇧S brings it back, and the Mac's Chats
@@ -528,74 +527,71 @@ been verified on a Mac.
 
 ## Web
 
-The fifth place is the one that installs nothing on the device: run one small
-process next to `hermes serve` and open Hermie in a browser.
+The fifth place is the one that installs nothing on the device. The browser
+client lives in `native/web` — React, Vite and TypeScript, with no Expo and no
+React Native Web — and the `hermie` gateway plugin serves it from the gateway's
+own origin:
 
-```sh
-npx @hermie/web --gateway http://127.0.0.1:9119
-# → http://127.0.0.1:9120
+```
+https://<your gateway>/dashboard-plugins/hermie/app/index.html
 ```
 
-That process — **Hermie Web** — does two things. It serves the browser build of
-the app, and it proxies your gateway onto its own origin, so the page and the
-gateway share one address. That is not a convenience: the gateway's session is
-an `HttpOnly` cookie, a cookie belongs to an origin, and the gateway refuses a
-WebSocket whose `Origin` is not its own — a defence against a page on the
-internet pointing a name at your loopback interface and driving an agent that
-runs shell commands. Same-origin is what lets Hermie use that session honestly
-instead of asking the gateway to relax the guard.
+There is no process of its own to run next to `hermes serve`, no proxy and no
+state outside the gateway and the browser. That is not a convenience: the
+gateway's session is an `HttpOnly` cookie, a cookie belongs to an origin, and
+the gateway refuses a WebSocket whose `Origin` is not its own — a defence against
+a page on the internet pointing a name at your loopback interface and driving an
+agent that runs shell commands. A page served by the gateway itself is
+same-origin by construction, so Hermie can use that session honestly instead of
+asking the gateway to relax the guard.
 
-So the browser build signs in the way the gateway's own dashboard does: its
-sign-in page, its cookie, and a single-use ticket for each WebSocket dial. The
-wizard has no address step, because there is nothing to type — the gateway is
-whatever Hermie Web is in front of, and it tells you which one that is.
+So the client signs in the way the gateway's own dashboard does: its sign-in
+page, its cookie, and a single-use ticket for each WebSocket dial. It finds its
+gateway from its own address, which is why it has no setup step. It updates with
+the plugin (`hermes plugins update hermie`).
 
-It binds to `127.0.0.1` and authenticates nobody itself, so anything beyond the
-machine it runs on wants TLS in front of it. It can also replace itself: Settings
-→ **Hermie Web** shows the running version and offers an **Update** button where
-the install shape allows it, which downloads the release zip, checks it against
-the release's `SHA256SUMS` and exits for the supervisor to restart.
+The standalone Hermie Web server (0.1.x) that earlier versions of this app used
+for the browser has been removed, and nothing is migrated from it; the
+[changelog](CHANGELOG.md) has the entry and [ADR-0030](docs/adr/0030-web-client-served-by-the-plugin.md)
+the decision.
 
-Three pages, in the order you are likely to want them:
-[docs/web.md](docs/web.md) is how it works and why the gateway is reached
-_through_ it; [deploy/web/README.md](deploy/web/README.md) is the runbook — Caddy,
-nginx and Tailscale Serve configurations, a systemd unit, the Docker image and
-the two gateway settings it needs; [ADR-0015](docs/adr/0015-web-variant-on-its-own-port.md)
-is the decision and the options that were rejected.
-
-Two things a browser genuinely cannot do, and the app does not pretend
+Two things a browser genuinely cannot do, and the client does not pretend
 otherwise: there is no keychain (the session stays in the browser's cookie jar,
 and clearing site data signs you out), and a page cannot put extra request
 headers on a WebSocket — so a gateway behind Cloudflare Access wants the access
-proxy in front of Hermie Web rather than configured inside the app. The full
-list is the web section of [docs/platform-notes.md](docs/platform-notes.md).
+proxy in front of the gateway itself.
+
+[native/web/README.md](native/web/README.md) is how the client works,
+[docs/web.md](docs/web.md) is the short version, and
+[ADR-0030](docs/adr/0030-web-client-served-by-the-plugin.md) is the decision and
+its threat model.
 
 Building it from a checkout:
 
 ```sh
-npm run web:build   # compiles the server and exports the browser bundle
-npm run web         # both, in front of the fake gateway, at http://127.0.0.1:9120
+npm run client:build   # the production bundle, in native/web/dist
+npm run client:dev     # Vite on http://localhost:5173, against a gateway or the fake one
 ```
 
 ## Roadmap
 
-| Milestone                                                    | State       |
-| ------------------------------------------------------------ | ----------- |
-| Skeleton: one codebase on four platforms                     | Done        |
-| The protocol sources and the connection state machine        | Done        |
-| Setup and sign-in                                            | Done        |
-| Bot chats: streaming, tools, approvals, reconnection         | Done        |
-| Bot-to-bot messages, subagents and the Activity timeline     | Done        |
-| iPad and Mac layout, the transcript cache, image attachments | Done        |
-| Crons                                                        | Done        |
-| The interface redesign                                       | Done        |
-| The Mac, as the iPad build rather than a port                | Done        |
-| Android, built and driven on an emulator                     | Done        |
-| Hermie Web: the same app in a browser, same-origin           | Done        |
-| Release: TestFlight and Play                                 | In progress |
+| Milestone                                                      | State       |
+| -------------------------------------------------------------- | ----------- |
+| Skeleton: one codebase on four platforms                       | Done        |
+| The protocol sources and the connection state machine          | Done        |
+| Setup and sign-in                                              | Done        |
+| Bot chats: streaming, tools, approvals, reconnection           | Done        |
+| Bot-to-bot messages, subagents and the Activity timeline       | Done        |
+| iPad and Mac layout, the transcript cache, image attachments   | Done        |
+| Crons                                                          | Done        |
+| The interface redesign                                         | Done        |
+| The Mac, as the iPad build rather than a port                  | Done        |
+| Android, built and driven on an emulator                       | Done        |
+| The browser client (`native/web`), served by the hermie plugin | Done        |
+| Release: TestFlight and Play                                   | In progress |
 
 The automated half of a release is finished: a `v*` tag builds the Android
-artefacts and `hermie-web.zip`, signs the Android release with the upload key when
+artefacts, signs the Android release with the upload key when
 the signing secrets are set, and publishes them with `SHA256SUMS` beside them. The
 half that needs an account someone owns is not: nothing has gone to TestFlight or
 to Play internal testing yet, and registering the upload key with Play is a
@@ -616,8 +612,8 @@ today's app so that a native build arrives as an update. They are a skeleton
 for now. Until they reach parity and ship, the Expo app above is what runs on
 every platform, Apple's included.
 
-Android and the browser are not part of the rebuild. They keep building from
-`expo/hermie`, exactly as described above.
+Android is not part of the rebuild. It keeps building from `expo/hermie`,
+exactly as described above. The browser has its own client, `native/web`.
 
 - `native/` holds the native apps; [native/README.md](native/README.md) has the
   layout and the milestones.
@@ -645,14 +641,13 @@ The repository is an npm workspace, with the native apps beside it:
 expo/hermie              the Expo app, and the local Expo modules under modules/
 native/                  the native Apple apps, being rebuilt in SwiftUI; see docs/native.md
 contract/                generated data the TypeScript packages and the native port are both tested against
-apps/desktop             the desktop shell: a window onto a Hermie Web
+apps/desktop             the desktop shell: a window onto a gateway's web client
+native/web               the browser client (React + Vite), served by the hermie gateway plugin
 packages/hermes-shared   protocol sources vendored from Hermes Agent
 packages/gateway-client  connection state machine, credentials, PKCE — no React
 packages/transcript      the chat engine: item model, reducer, reconciliation, selectors
 packages/markdown        the Markdown core: lexer setup, block model, highlighting, math and Mermaid layout — no React
-packages/hermie-web      Hermie Web: the server that serves the browser build and proxies the gateway
 packages/fake-gateway    a gateway stand-in for tests and offline development
-deploy/web               how to run Hermie Web on your own server
 design/                  the interface reference and the icon source
 docs/                    architecture decisions, glossary, platform notes, runbooks
 ```
