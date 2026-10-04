@@ -14,8 +14,15 @@
  * answered on their own reply frames; and a socket dropped mid-turn costs
  * neither a duplicate nor a lost item.
  */
-import { type FakeGateway, startFakeGateway } from '@hermie/fake-gateway'
-import type { AssistantItem, ChatState, ClarifyItem, TranscriptItem, UserItem } from '@hermie/transcript'
+import { type FakeGateway, type Scenario, startFakeGateway } from '@hermie/fake-gateway'
+import {
+  type AssistantItem,
+  type ChatState,
+  type ClarifyItem,
+  rowsToItems,
+  type TranscriptItem,
+  type UserItem
+} from '@hermie/transcript'
 import { afterEach, describe, expect, it, vi } from 'vitest'
 
 import { APP_DOCUMENT_PATH, deriveBasePath, type ResolvedBasePath } from '../boot/base-path'
@@ -37,7 +44,7 @@ const HISTORY_ROWS = 1000
 /** A reply long enough to interrupt, or to drop the socket in the middle of. */
 const SLOW_DELTAS = Array.from({ length: 40 }, (_, index) => `Part ${index + 1}. `)
 
-const SCENARIO = {
+const SCENARIO: Scenario = {
   replies: [
     {
       match: 'scripted',
@@ -45,7 +52,17 @@ const SCENARIO = {
       toolAfterDeltas: 2,
       tool: { name: 'read_file', args: { path: 'notes.txt' }, summary: 'read notes.txt', result: 'hello' }
     },
-    { match: 'slowly', deltas: SLOW_DELTAS }
+    { match: 'slowly', deltas: SLOW_DELTAS },
+    {
+      // A reply that shares files (`contract/outbox/`): a picture, a PDF and a file that is only ever downloaded.
+      match: 'share files',
+      deltas: ['Here are the files.'],
+      attachments: [
+        { sample: 'image' },
+        { sample: 'pdf' },
+        { name: 'notes.txt', mime: 'text/plain', text: 'hello from the bot' }
+      ]
+    }
   ]
 }
 
@@ -376,6 +393,65 @@ describe('the chat controller against the fake gateway (cookie mode)', () => {
       ['assistant', full]
     ])
     expect(usersSaying(chat(), prompt)).toHaveLength(1)
+    expect(new Set(chat().order).size).toBe(chat().order.length)
+  })
+
+  it('shows the files a bot shares: on the reply, served by their address with the cookie, and again after a reload', async () => {
+    const { gateway, chats, chat, bot, browser } = await chatPage()
+
+    await chats.controller.send('researcher', 'Please share files.')
+    await waitFor(() => {
+      expect(chat().turn.active).toBe(false)
+      expect(assistants(chat()).some(item => item.outbox?.length)).toBe(true)
+    })
+
+    const reply = assistants(chat()).find(item => item.outbox?.length)!
+    const files = reply.outbox!
+
+    expect(reply.text).toBe('Here are the files.')
+    expect(files.map(file => [file.kind, file.name])).toEqual([
+      ['image', 'sunrise.png'],
+      ['pdf', 'Q3 report.pdf'],
+      ['file', 'notes.txt']
+    ])
+
+    // Each is served by the address the frame named, to the page's own cookie, for the chat's profile.
+    for (const file of files) {
+      const answer = await browser.fetch(`${gateway.url}${file.url}?profile=researcher`)
+
+      expect(answer.status).toBe(200)
+      expect(answer.headers.get('content-length')).toBe(String(file.size))
+      expect(answer.headers.get('content-security-policy')).toBe("default-src 'none'; sandbox")
+    }
+
+    const ranged = await browser.fetch(`${gateway.url}${files[0]!.url}?profile=researcher`, {
+      headers: { range: 'bytes=0-7' }
+    })
+
+    expect(ranged.status).toBe(206)
+    expect(ranged.headers.get('content-range')).toMatch(/^bytes 0-7\//u)
+    // Another person's profile does not get it.
+    expect((await browser.fetch(`${gateway.url}${files[0]!.url}?profile=default`)).status).toBe(404)
+
+    // The gateway's own record of the turn carries them on the row, and the REST projection reads them back.
+    const response = await browser.fetch(
+      `${gateway.url}/api/sessions/${encodeURIComponent(chat().resolvedSessionId)}/messages?limit=2&order=latest`
+    )
+    const body = (await response.json()) as { messages?: Parameters<typeof rowsToItems>[0] }
+    const fromHistory = rowsToItems(body.messages ?? [], 'rest').filter(
+      (item): item is AssistantItem => item.kind === 'assistant'
+    )
+
+    expect(fromHistory.at(-1)?.outbox).toEqual(files)
+
+    // Leaving the chat and coming back: the reply is there once, with its files.
+    await chats.controller.closeChat('researcher')
+    await chats.controller.openChat(bot)
+    await waitFor(() => {
+      expect(chat().hydration).toBe('live')
+      expect(assistants(chat()).filter(item => item.outbox?.length)).toHaveLength(1)
+    })
+    expect(assistants(chat()).find(item => item.outbox?.length)?.outbox).toEqual(files)
     expect(new Set(chat().order).size).toBe(chat().order.length)
   })
 })

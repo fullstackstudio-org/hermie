@@ -58,6 +58,86 @@ export const SHEET_STRINGS_SOURCE = {
       de: 'Quelltext anzeigen'
     }
   },
+  shared: {
+    /** On a PDF a bot shared: the button that opens it in a tab of its own. */
+    openPdf: {
+      en: 'Open PDF',
+      nl: 'PDF openen',
+      de: 'PDF öffnen'
+    },
+    /** The name of that button for assistive technology: which file. */
+    openPdfName: {
+      en: ({ name }: { name: string }) => `Open ${name} in a new tab`,
+      nl: ({ name }: { name: string }) => `${name} openen in een nieuw tabblad`,
+      de: ({ name }: { name: string }) => `${name} in einem neuen Tab öffnen`
+    },
+    /** On a file a bot shared: the link or button that saves it. */
+    download: {
+      en: 'Download',
+      nl: 'Downloaden',
+      de: 'Herunterladen'
+    },
+    /** The name of that link for assistive technology: which file. */
+    downloadName: {
+      en: ({ name }: { name: string }) => `Download ${name}`,
+      nl: ({ name }: { name: string }) => `${name} downloaden`,
+      de: ({ name }: { name: string }) => `${name} herunterladen`
+    },
+    /** On a video or a sound the page does not load until it is asked to (a gateway with a shared token): the size is what it costs. */
+    load: {
+      en: ({ size }: { size: string }) => (size ? `Load (${size})` : 'Load'),
+      nl: ({ size }: { size: string }) => (size ? `Laden (${size})` : 'Laden'),
+      de: ({ size }: { size: string }) => (size ? `Laden (${size})` : 'Laden')
+    },
+    /** While a file is on its way. */
+    loading: {
+      en: 'Loading…',
+      nl: 'Laden…',
+      de: 'Wird geladen…'
+    },
+    /** The name of a video a bot shared: the player says what it is. */
+    videoName: {
+      en: ({ name }: { name: string }) => `Video: ${name}`,
+      nl: ({ name }: { name: string }) => `Videobestand: ${name}`,
+      de: ({ name }: { name: string }) => `Videodatei: ${name}`
+    },
+    /** The name of a sound a bot shared. */
+    audioName: {
+      en: ({ name }: { name: string }) => `Audio: ${name}`,
+      nl: ({ name }: { name: string }) => `Audiobestand: ${name}`,
+      de: ({ name }: { name: string }) => `Audiodatei: ${name}`
+    },
+    /** Under a file's name when the gateway no longer has it (shared files are kept for a while, then removed). */
+    unavailable: {
+      en: 'This file is no longer available.',
+      nl: 'Dit bestand is er niet meer.',
+      de: 'Diese Datei ist nicht mehr verfügbar.'
+    },
+    /** Under a file's name when it could not be loaded for another reason. */
+    failed: {
+      en: 'The file could not be loaded.',
+      nl: 'Het bestand kon niet worden geladen.',
+      de: 'Die Datei konnte nicht geladen werden.'
+    },
+    /** Under a file's name when it is too big to hold in the page: the download is the way. */
+    tooLarge: {
+      en: 'This file is too large to show here. Download it instead.',
+      nl: 'Dit bestand is te groot om hier te tonen. Download het in plaats daarvan.',
+      de: 'Diese Datei ist zu groß, um sie hier anzuzeigen. Lade sie stattdessen herunter.'
+    },
+    /** Under a PDF's name when the browser would not open a tab. */
+    popupBlocked: {
+      en: 'The browser blocked the new tab. Allow it, or download the file.',
+      nl: 'De browser blokkeerde het nieuwe tabblad. Sta het toe, of download het bestand.',
+      de: 'Der Browser hat den neuen Tab blockiert. Erlaube ihn oder lade die Datei herunter.'
+    },
+    /** Under a PDF's name when the file turns out not to be one. */
+    notPdf: {
+      en: 'This file is not a PDF, so it was not opened.',
+      nl: 'Dit bestand is geen pdf, dus het is niet geopend.',
+      de: 'Diese Datei ist kein PDF und wurde deshalb nicht geöffnet.'
+    }
+  },
   search: {
     /** Announced when a chat opened from a search hit has scrolled to the row with the words in it. */
     found: {

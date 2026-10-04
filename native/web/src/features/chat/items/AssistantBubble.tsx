@@ -35,6 +35,7 @@ import { useItemContext } from './item-context'
 import { MessageMarkdown } from './MessageMarkdown'
 import { ReasoningDisclosure } from './ReasoningDisclosure'
 import { type RowViewProps, sameRowView } from './row-view'
+import { SharedFiles } from './SharedFiles'
 import { attachmentName } from './UserBubble'
 
 /** Three dots. Decoration with a name: the reader of the page is told a reply is coming. */
@@ -91,8 +92,11 @@ function AssistantBubbleView({ item, presentation }: RowViewProps<AssistantItem>
     })),
     ...(item.attachments ?? []).map(reference => ({ reference, name: attachmentName(reference) }))
   ]
+  // The files the bot shared with this reply (`contract/outbox/`): pictures, players, a PDF's card, downloads.
+  const shared = item.outbox ?? []
   const hasPictures = pictures.length > 0
-  const waiting = item.streaming && !hasText && !hasPictures
+  const hasShared = shared.length > 0
+  const waiting = item.streaming && !hasText && !hasPictures && !hasShared
   const clock = clockOf(item.ts)
   const footer = item.interim ? [] : footerParts(item)
   // The selectors take the thought away when the reader's settings hide thinking.
@@ -100,7 +104,7 @@ function AssistantBubbleView({ item, presentation }: RowViewProps<AssistantItem>
   const hasThought = thought.trim() !== ''
 
   // Nothing said, nothing thought, nothing wrong, nothing coming: a row that is not a message.
-  if (!hasText && !hasPictures && !waiting && !item.error && !hasThought) {
+  if (!hasText && !hasPictures && !hasShared && !waiting && !item.error && !hasThought) {
     return null
   }
 
@@ -121,13 +125,15 @@ function AssistantBubbleView({ item, presentation }: RowViewProps<AssistantItem>
         <ReasoningDisclosure text={thought} durationS={item.durationS} streaming={item.streaming && !hasText} />
       ) : null}
 
-      {hasText || hasPictures || waiting ? (
+      {hasText || hasPictures || hasShared || waiting ? (
         <div className="hm-bubble" data-kind="assistant" data-waiting={waiting ? 'true' : 'false'}>
-          {hasText ? <MessageMarkdown text={item.text} /> : hasPictures ? null : <TypingDots />}
+          {hasText ? <MessageMarkdown text={item.text} /> : hasPictures || hasShared ? null : <TypingDots />}
 
           {hasPictures ? <AttachmentGallery attachments={pictures} /> : null}
 
-          {(hasText || hasPictures) && clock ? (
+          {hasShared ? <SharedFiles files={shared} /> : null}
+
+          {(hasText || hasPictures || hasShared) && clock ? (
             <p className="hm-bubble__meta">
               <time dateTime={isoOf(item.ts)}>{clock}</time>
             </p>

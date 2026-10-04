@@ -21,7 +21,7 @@
  * `dist/` (`markdown-fixtures.excluded.test.ts` keeps it that way; the bundle
  * gate refuses the marker below if it ever did).
  */
-import type { Presentation, TranscriptItem, VisibleItem } from '@hermie/transcript'
+import type { OutboxAttachment, OutboxKind, Presentation, TranscriptItem, VisibleItem } from '@hermie/transcript'
 import { useMemo, useRef, useState } from 'react'
 
 import { ChatOptions } from '../features/chat/ChatOptions'
@@ -47,6 +47,22 @@ const AT = 1_759_500_000
 export const PRESENTATIONS: readonly Presentation[] = ['full', 'collapsed', 'chip', 'hidden-placeholder']
 
 let counter = 0
+
+/** A file a bot shared (`contract/outbox/`), written the way the gateway writes it. */
+const shared = (kind: OutboxKind, name: string, size: number, mime: string): OutboxAttachment => {
+  const id = `gallery${kind.padEnd(4, 'x')}${'Zz09_-'.repeat(5)}`.slice(0, 32)
+
+  return {
+    id,
+    name,
+    mime,
+    kind,
+    size,
+    sha256: 'a3f1c2e4b5d6978812ab34cd56ef7890a1b2c3d4e5f60718293a4b5c6d7e8f90',
+    createdAt: AT,
+    url: `/api/files/outbox/${id}/${encodeURIComponent(name)}`
+  }
+}
 
 const base = (kind: TranscriptItem['kind'], name: string) => {
   counter += 1
@@ -130,6 +146,23 @@ export const GALLERY_SECTIONS: readonly GallerySection[] = [
     id: 'assistant',
     title: 'Assistant',
     cases: [
+      {
+        name: 'a reply that shares files: a video, a sound, a PDF, and files that are only downloaded',
+        item: {
+          ...base('assistant', 'shared'),
+          kind: 'assistant',
+          text: 'Here are the files.\n\n(1 file could not be shared.)',
+          streaming: false,
+          interim: false,
+          outbox: [
+            shared('image', 'sunrise.png', 48_213, 'image/png'),
+            shared('video', 'test card.mp4', 4_966, 'video/mp4'),
+            shared('audio', 'tone.mp3', 4_400, 'audio/mpeg'),
+            shared('pdf', 'Q3 report.pdf', 120_000, 'application/pdf'),
+            shared('file', 'summary <draft>.html', 10_422, 'text/html')
+          ]
+        }
+      },
       {
         name: 'a reply with usage',
         item: {

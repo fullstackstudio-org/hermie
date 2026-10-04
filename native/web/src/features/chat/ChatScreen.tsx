@@ -81,6 +81,7 @@ import { boundConversation, type SettledGroupChat, settleGroupChat } from '../..
 import { countsAsRead, readWatermark } from '../../core/chats/read-watermark'
 import { branchChatAt } from '../../core/chats/branch-here'
 import { editResendTarget, editResendText } from '../../core/chats/edit-resend'
+import { createOutboxFiles } from '../../core/chats/outbox-files'
 import { regenerateLastTurn, regenerateTargetIsOwn } from '../../core/chats/regenerate'
 import { sentPreviewFor } from '../../core/chats/sent-previews'
 import { strings } from '../../generated/strings'
@@ -253,8 +254,15 @@ export function ChatScreen({ bot, session, view: pinned, router = pageHashRouter
   )
 
   const itemContext = useMemo<ItemContextValue>(
-    () => ({ botName: displayName, gatewayBaseUrl: runtime?.gatewayBaseUrl, ownAuthorId, groupChat, chatKey: key }),
-    [displayName, runtime?.gatewayBaseUrl, ownAuthorId, groupChat, key]
+    () => ({
+      botName: displayName,
+      gatewayBaseUrl: runtime?.gatewayBaseUrl,
+      profile: bot,
+      ownAuthorId,
+      groupChat,
+      chatKey: key
+    }),
+    [displayName, runtime?.gatewayBaseUrl, bot, ownAuthorId, groupChat, key]
   )
 
   /** Stable, so every row is memoised on its own `(id, version)` and not on this function. */
@@ -330,6 +338,11 @@ export function ChatScreen({ bot, session, view: pinned, router = pageHashRouter
   keyRef.current = key
 
   const fetchPicture = runtime?.fetchPicture
+  const outboxCredentials = runtime?.outbox
+  const outbox = useMemo(
+    () => (outboxCredentials ? createOutboxFiles(outboxCredentials) : undefined),
+    [outboxCredentials]
+  )
   const hasFiles = fetchPicture !== undefined
   // The chat's bot is its profile: it says which `images/` folder an attached picture's path may be asked for from.
   const loader = useMemo(
@@ -346,6 +359,8 @@ export function ChatScreen({ bot, session, view: pinned, router = pageHashRouter
       attachmentSrc: reference => sentPreviewFor(keyRef.current, attachmentName(reference)),
       // What an attachment names, through the gateway's files routes; a page with no gateway to ask leaves chips inert.
       ...(hasFiles ? { loadAttachment: reference => loaderRef.current?.(reference) ?? Promise.resolve(null) } : {}),
+      // The files the bot shared with a reply: fetched with the reader's credentials where an element cannot send them.
+      ...(outbox ? { outbox } : {}),
       itemById: id => {
         const current = keyRef.current
 
@@ -372,7 +387,7 @@ export function ChatScreen({ bot, session, view: pinned, router = pageHashRouter
       readingIds: () => menuLive.current.reading,
       toggleReadAloud: (id, markdown) => act.current.readAloud(id, markdown)
     }),
-    [hasFiles]
+    [hasFiles, outbox]
   )
 
   // The one reply that may be asked for again: the newest, in a chat that can be answered, after the reader's own turn.

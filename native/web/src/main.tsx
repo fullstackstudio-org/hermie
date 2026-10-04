@@ -389,6 +389,8 @@ async function startApp(page: Page, ready: Ready): Promise<void> {
         drafts: createDraftStore(store),
         sessionSearch: session.client.http,
         fetchPicture: path => session.client.http.fetchAuthenticatedPicture(path),
+        // The files a bot shares: loaded by their address with the cookie session, fetched with the token without.
+        outbox: { headers: () => session.client.http.requestHeaders(), gated: ready.gated },
         profiles: {
           gateway: session.client.gateway,
           refreshRoster: () => session.client.bots.refresh()

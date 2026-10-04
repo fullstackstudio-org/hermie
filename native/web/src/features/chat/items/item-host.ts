@@ -18,6 +18,7 @@ import type { TranscriptItem } from '@hermie/transcript'
 import { createContext, useContext } from 'react'
 
 import type { LoadedAttachment } from '../../../core/chats/attachment-fetch'
+import type { OutboxFiles } from '../../../core/chats/outbox-files'
 import { writeClipboard } from '../../../platform/clipboard'
 
 /** A picture the viewer shows: a source already checked against the gateway's origin, and its name. */
@@ -40,6 +41,12 @@ export interface ItemHost {
    * a gallery): a chip is then not a control.
    */
   loadAttachment?(reference: string): Promise<LoadedAttachment | null>
+  /**
+   * The files a bot shared with a reply (`contract/outbox/`): how the page fetches them with the reader's own
+   * credentials (`core/chats/outbox-files.ts`). Absent where the host has no gateway to ask (a test of one view,
+   * a gallery): a file is then drawn from its address as it is, which is right for the cookie session.
+   */
+  outbox?: OutboxFiles
   /** The item a message element (`data-message-id`) stands for, as it is now; `undefined` once it is gone. */
   itemById(id: string): TranscriptItem | undefined
   /** Show a picture full size; focus goes back to `opener` when it closes. */

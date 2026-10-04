@@ -18,7 +18,7 @@
  *    page cannot fetch, so a chip under a sent message is not a control unless
  *    the host can actually open it (`onOpen`).
  */
-import { memo, useId } from 'react'
+import { memo, type ReactNode, useId } from 'react'
 
 import { strings } from '../../../generated/strings'
 import { BOT_NAME_LIMIT, displayText, NAME_LIMIT } from '../../../core/requests/secure-input'
@@ -44,6 +44,8 @@ export interface FileChipProps {
   onOpen?: () => void
   /** Inside the reader's own bubble: the ink follows the bubble's. */
   onAccent?: boolean
+  /** What the chip offers beside its name: the way to save or open the file it names (`SharedFiles`). */
+  trailing?: ReactNode
 }
 
 /** How many characters of a name are shown before it is shortened in the middle. */
@@ -125,7 +127,17 @@ function Glyph({ family }: { family: FileFamily }) {
   )
 }
 
-function FileChipImpl({ name, size, status, progress, error, onRemove, onOpen, onAccent = false }: FileChipProps) {
+function FileChipImpl({
+  name,
+  size,
+  status,
+  progress,
+  error,
+  onRemove,
+  onOpen,
+  onAccent = false,
+  trailing
+}: FileChipProps) {
   useLocale()
 
   const nameId = useId()
@@ -182,6 +194,8 @@ function FileChipImpl({ name, size, status, progress, error, onRemove, onOpen, o
 
         {detail ? <span className="hm-file__detail">{detail}</span> : null}
       </span>
+
+      {trailing}
 
       {onRemove ? (
         <button

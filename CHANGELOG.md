@@ -40,6 +40,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- **The web client shows the files a bot shares.** A reply that carries files (`contract/outbox/`)
+  draws a picture as a thumbnail that opens the viewer (several are a grid), a video and a sound as
+  players that seek, a PDF as a card that opens in a tab of its own, and any other file as a chip with
+  its name, size and a download, never rendered in the page itself. The name is shown as text, the
+  files survive a reload of the history, and a file the gateway has removed says so. With the shared
+  token (no cookie) the page fetches the bytes with the header and plays what it fetched, a video or a
+  sound after a press. The fake gateway serves the route with byte ranges and shares sample files in
+  reply to "share files".
+
 - **An agent can ask for a signature, a code scan or a voice note, in the native Apple apps.** An
   `input.signature` request shows the statement in full above a pad; Sign makes a PNG and an SVG of the drawing,
   uploads both and answers with the hash of the statement that was shown. A `device.scan` request opens the camera

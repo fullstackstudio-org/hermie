@@ -17,6 +17,7 @@ import { createContext, useContext } from 'react'
 import type { PictureFetchOutcome, SessionSearchHttp } from '@hermie/gateway-client'
 
 import type { BotProfilesRuntime } from '../../core/bot-profile/runtime'
+import type { OutboxCredentials } from '../../core/chats/outbox-files'
 import type { ChatController } from '../../core/chat-controller'
 import type { PeoplePictures } from '../../core/people-pictures'
 import type { DraftStore } from './drafts'
@@ -101,6 +102,12 @@ export interface ChatSessionRuntime {
    * leaves a file chip under a message as a name, not a control.
    */
   fetchPicture?: (path: string) => Promise<PictureFetchOutcome>
+  /**
+   * How the page is signed in, which is what the files a bot shares are fetched with where an element cannot send the
+   * credential itself (`core/chats/outbox-files.ts`). Absent (a test of the screen, a gallery) draws them from their
+   * address as it is, which is right for the cookie session.
+   */
+  outbox?: OutboxCredentials
   /**
    * The people's pictures on this gateway (`core/people-pictures.ts`). Absent (a test of the screen,
    * a gallery) draws everybody as an initial.

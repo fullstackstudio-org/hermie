@@ -12,6 +12,8 @@ export interface ItemContextValue {
   botName: string
   /** The gateway's base URL: where a Markdown image resolves. */
   gatewayBaseUrl: string | undefined
+  /** The chat's bot, which is its profile: what a shared file's address names as `?profile=`. */
+  profile?: string | undefined
   /** The reader's own author id, when the gateway said who they are. */
   ownAuthorId: string | undefined
   /**
