@@ -4,6 +4,7 @@ import { join } from 'node:path'
 import { describe, expect, it } from 'vitest'
 
 import { catalogueRead, isRead, pathsReadIn, pathsReadUnder } from '../../native/web/scripts/catalogue-reads.mjs'
+import { lazyKeysByFile, lazyOnlyKeys, splitReads } from '../../native/web/scripts/catalogue-split.mjs'
 
 const IMPORT = "import { strings } from '../generated/strings'\n"
 const read = (body: string, name = 'a.tsx'): string[] | null => pathsReadIn(name, IMPORT + body)
@@ -105,11 +106,41 @@ describe('the web client', () => {
   const src = join(import.meta.dirname, '../../native/web/src')
   const english = JSON.parse(readFileSync(join(src, 'generated/locales/en.json'), 'utf8')) as Record<string, unknown>
 
-  it('reads the catalogue in a way the rule can follow, so the build bundles only part of it', () => {
+  /*
+    What the cut is for is the first load: English is inlined into the entry, and the build gives the entry only the
+    keys its own modules read; every other key a module reads is registered by that module, in its own chunk
+    (`catalogueOnlyWhatIsRead` in `vite.config.ts`). So the limit is on the entry's share, not on how much the client
+    reads in all: that grows with every page, and once held it under half the catalogue, which a new page's words
+    broke without one more key reaching the first load. And every key read anywhere has to be where its reader finds
+    it, in the entry's English or in what that reader registers, or a page would draw a missing string.
+  */
+  it('reads the catalogue in a way the rule can follow, so the first load carries only a small part of it', () => {
     const paths = pathsReadUnder(src)
+    const split = splitReads(src, 'main.tsx')
 
     expect(paths).not.toBeNull()
-    expect(Object.keys(catalogueRead(english, paths)).length).toBeLessThan(Object.keys(english).length / 2)
+
+    const read = Object.keys(catalogueRead(english, paths))
+    const lazy = new Set(lazyOnlyKeys(english, split))
+    const entry = read.filter(key => !lazy.has(key))
+
+    // 120 of 1418 keys when this was written; the entry's own modules read them (`catalogue-split.test.ts` names the
+    // sections it must not).
+    expect(entry.length).toBeLessThan(Object.keys(english).length / 10)
+    expect(entry.every(key => isRead(key, split.entry ?? []))).toBe(true)
+
+    const registered = lazyKeysByFile([...lazy], split)
+
+    for (const [file, own] of split.byFile) {
+      const missing = Object.keys(english).filter(
+        key =>
+          isRead(key, own ?? []) &&
+          !entry.includes(key) &&
+          (split.inEntry.has(file) || !(registered.get(file) ?? []).includes(key))
+      )
+
+      expect(missing, file).toEqual([])
+    }
   })
 
   it('reads no path that matches no key (a misspelt path would keep nothing)', () => {
