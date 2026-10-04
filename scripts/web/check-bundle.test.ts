@@ -135,13 +135,13 @@ describe('what the static route and the plugin tree allow', () => {
     expect(problems[0]).toContain('over the 1000-byte file limit')
   })
 
-  it('has the limits the plan names', () => {
+  it('has the limits the gate holds', () => {
     expect(LIMITS).toEqual({
       maxFileBytes: 900_000,
       maxTotalBytes: 3_000_000,
       maxFiles: 80,
-      maxInitialJsBytes: 700_000,
-      maxInitialJsGzipBytes: 230_000
+      maxInitialJsBytes: 600_000,
+      maxInitialJsGzipBytes: 190_000
     })
   })
 

@@ -15,7 +15,7 @@
 //     byte or a control character other than tab, newline and carriage return
 //     (the scanner flags invisible characters; the build escapes instead);
 //   - the code needed before the first screen (the entry and the chunks it
-//     imports statically) is larger than 700 kB, or 230 kB gzipped;
+//     imports statically) is larger than 600 kB, or 190 kB gzipped;
 //   - `index.html` carries inline script or style, an inline handler, no policy,
 //     a policy that is not exactly REFERENCE_POLICY (a missing or extra
 //     directive or source), or a script or link element before the policy;
@@ -66,8 +66,12 @@ export const LIMITS = Object.freeze({
   maxFileBytes: 900_000,
   maxTotalBytes: 3_000_000,
   maxFiles: 80,
-  maxInitialJsBytes: 700_000,
-  maxInitialJsGzipBytes: 230_000
+  // The plan's budget is 700 kB / 230 kB (ADR 0030). The gate is held a little over what the first load weighs, so that
+  // a change that puts a chunk's worth of code back into it fails at once instead of eating the plan's headroom
+  // (one import of `interactive-frame` from the request layer once added 79 kB and still fitted). A change that has a
+  // reason to weigh more raises this in the same commit, with the reason.
+  maxInitialJsBytes: 600_000,
+  maxInitialJsGzipBytes: 190_000
 })
 
 export const MANIFEST_NAME = 'build.json'

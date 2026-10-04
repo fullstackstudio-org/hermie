@@ -33,7 +33,8 @@ import { hasFinePointer } from '../../platform/input-kind'
 import { formatBytes } from '../chat/chat-format'
 import { DEFAULT_TAP_GUARD_MS } from './ApprovalSheet'
 import { acceptAttribute, isImage, matchesAccept, PrepareError, type PreparedFile, prepareFile } from './file-prepare'
-import { InteractiveFrame, RefusalAlert, SendStatus, useReportBusy, useSending, useTapGuard } from './interactive-frame'
+import { InteractiveFrame, RefusalAlert, SendStatus, useSending, useTapGuard } from './interactive-frame'
+import { useReportBusy } from './sheet-busy'
 
 /** How the sheet puts a file on the gateway: the layer binds it to the controller's upload. */
 export type FileUploader = (

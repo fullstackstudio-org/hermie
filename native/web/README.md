@@ -128,7 +128,9 @@ built from; the script warns, and such a build must not be imported.
 - a file is over 900 kB, the bundle is over 3 MB, or it holds more than 80 files (decimal units);
 - a `.js`, `.mjs`, `.css`, `.html`, `.json` or `.svg` file contains a non-ASCII byte;
 - the JavaScript needed before the first screen (the entry and every chunk it imports statically; a dynamic
-  `import()` does not count) is over 700 kB, or 230 kB gzipped;
+  `import()` does not count) is over 600 kB, or 190 kB gzipped (the plan's budget is 700 kB / 230 kB; the gate is
+  held just over the actual weight so that a regression fails at once, and `src/entry-graph.test.ts` fails, naming
+  the import chain, when the entry reaches a module that is loaded on demand);
 - `index.html` has no policy, a policy that is not exactly the reference set written in the gate (every directive
   and source of the plan's W6, plus `trusted-types 'none'`; one missing or extra fails), a `<script>` or `<link>`
   before the policy element, or inline script, a style element, a `style` attribute or an inline handler;

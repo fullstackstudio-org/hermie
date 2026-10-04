@@ -36,7 +36,8 @@ import { useLocale } from '../../i18n/use-locale'
 import type { InteractiveRequest } from '../../state/interactive'
 import { Button } from '../../ui/primitives'
 import { DEFAULT_TAP_GUARD_MS } from './ApprovalSheet'
-import { InteractiveFrame, RefusalAlert, SendStatus, useReportBusy, useSending, useTapGuard } from './interactive-frame'
+import { InteractiveFrame, RefusalAlert, SendStatus, useSending, useTapGuard } from './interactive-frame'
+import { useReportBusy } from './sheet-busy'
 import { countHiddenCharacters, markHiddenCharacters } from './verbatim-detail'
 
 export interface DraftSheetProps {

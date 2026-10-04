@@ -34,7 +34,8 @@ import { Button } from '../../ui/primitives'
 import { DEFAULT_TAP_GUARD_MS } from './ApprovalSheet'
 import { FormFieldView } from './FormFields'
 import { problemText } from './form-problems'
-import { InteractiveFrame, RefusalAlert, SendStatus, useReportBusy, useSending, useTapGuard } from './interactive-frame'
+import { InteractiveFrame, RefusalAlert, SendStatus, useSending, useTapGuard } from './interactive-frame'
+import { useReportBusy } from './sheet-busy'
 
 export interface FormSheetProps {
   request: InteractiveRequest & { ask: FormAsk }
