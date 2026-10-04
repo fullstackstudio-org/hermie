@@ -635,6 +635,12 @@ export const WEB_STRINGS_SOURCE = {
       nl: ({ count }: { count: number }) => (count === 1 ? '1 bijlage toegevoegd' : `${count} bijlagen toegevoegd`),
       de: ({ count }: { count: number }) => (count === 1 ? '1 Anhang hinzugefügt' : `${count} Anhänge hinzugefügt`)
     },
+    /** Under a message's file chip when the gateway would not hand the file over. */
+    openFailed: {
+      en: 'The gateway did not hand this file over.',
+      nl: 'De gateway gaf dit bestand niet vrij.',
+      de: 'Das Gateway hat diese Datei nicht herausgegeben.'
+    },
     /** On an image's chip while its bytes are read. */
     preparing: {
       en: 'Preparing…',

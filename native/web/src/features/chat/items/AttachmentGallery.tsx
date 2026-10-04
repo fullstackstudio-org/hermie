@@ -13,13 +13,20 @@
  *    a full row of its own: a name squeezed into a third of a bubble is a name
  *    nobody can read.
  *
+ *  - **A picture the message holds itself** (`src`, a raster `data:` URI the transcript lifted out of
+ *    the text) is drawn as it is. A picture the gateway holds on its disk (an attached image's handle) is
+ *    fetched through the host (`RemotePicture`) in a frame of its card's size; and any other chip is a
+ *    control that opens what it names (`OpenableChip`), where the host can fetch it.
+ *
  * It is a list named "Attachments", one item per attachment, in the order the
  * message holds them.
  */
 import { memo, useCallback } from 'react'
 
+import { namesAPicture } from '../../../core/chats/attachment-fetch'
 import { useLocale } from '../../../i18n/use-locale'
 import { webStrings } from '../../../i18n/web-strings'
+import { OpenableChip, RemotePicture } from './AttachmentEntries'
 import { FileChip } from './FileChip'
 import { gatewayImageSrc, ImageCard } from './ImageCard'
 import { useItemContext } from './item-context'
@@ -34,6 +41,8 @@ export interface GalleryAttachment {
   name: string
   /** Bytes, when known. */
   size?: number
+  /** A picture the message holds itself, as a raster `data:` URI: drawn as it is, never fetched. */
+  src?: string
 }
 
 export interface AttachmentGalleryProps {
@@ -65,26 +74,42 @@ function AttachmentGalleryImpl({ attachments, onAccent = false }: AttachmentGall
     return null
   }
 
-  const resolved = attachments.map(entry => ({
-    ...entry,
-    src: gatewayImageSrc(host.attachmentSrc(entry.reference), gatewayBaseUrl)
-  }))
-  const columns = gridColumns(resolved.filter(entry => entry.src !== null).length)
+  const canFetch = host.loadAttachment !== undefined
+  const resolved = attachments.map(entry => {
+    const src = gatewayImageSrc(entry.src ?? host.attachmentSrc(entry.reference), gatewayBaseUrl)
+    // A picture by what the reference says it is, fetched when the host can: otherwise it is the chip it always was.
+    const remote = src === null && canFetch && !entry.reference.startsWith('inline:') && namesAPicture(entry.reference)
+
+    return { ...entry, src, remote, held: entry.src !== undefined }
+  })
+  const columns = gridColumns(resolved.filter(entry => entry.src !== null || entry.remote).length)
+  const layout = columns > 1 ? 'cell' : 'solo'
 
   return (
     <ul className="hm-gallery" data-columns={columns} aria-label={webStrings.chat.attachments}>
       {resolved.map(entry => (
-        <li key={entry.reference} className="hm-gallery__entry" data-kind={entry.src ? 'image' : 'file'}>
+        <li
+          key={entry.reference}
+          className="hm-gallery__entry"
+          data-kind={entry.src || entry.remote ? 'image' : 'file'}
+        >
           {entry.src ? (
             <ImageCard
               src={entry.src}
               name={entry.name}
-              layout={columns > 1 ? 'cell' : 'solo'}
+              layout={layout}
               onAccent={onAccent}
+              reserve={entry.held}
               onOpen={open(entry.src, entry.name)}
             />
+          ) : entry.remote ? (
+            <RemotePicture reference={entry.reference} name={entry.name} layout={layout} onAccent={onAccent} />
+          ) : entry.reference.startsWith('inline:') ? (
+            // A picture the message held and the page cannot draw (a type the browser has no decoder for).
+            <FileChip name={entry.name} onAccent={onAccent} />
           ) : (
-            <FileChip
+            <OpenableChip
+              reference={entry.reference}
               name={entry.name}
               onAccent={onAccent}
               {...(entry.size !== undefined ? { size: entry.size } : {})}

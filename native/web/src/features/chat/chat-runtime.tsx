@@ -14,7 +14,7 @@
  */
 import { createContext, useContext } from 'react'
 
-import type { SessionSearchHttp } from '@hermie/gateway-client'
+import type { PictureFetchOutcome, SessionSearchHttp } from '@hermie/gateway-client'
 
 import type { BotProfilesRuntime } from '../../core/bot-profile/runtime'
 import type { ChatController } from '../../core/chat-controller'
@@ -86,6 +86,12 @@ export interface ChatSessionRuntime {
    * screen, a gallery) searches names only.
    */
   sessionSearch?: SessionSearchHttp
+  /**
+   * The gateway's authenticated file fetch (`GatewayHttp.fetchAuthenticatedPicture`), which brings back what a
+   * message's attachment names (`core/chats/attachment-fetch.ts`). Absent (a test of the screen, a gallery)
+   * leaves a file chip under a message as a name, not a control.
+   */
+  fetchPicture?: (path: string) => Promise<PictureFetchOutcome>
   /**
    * The people's pictures on this gateway (`core/people-pictures.ts`). Absent (a test of the screen,
    * a gallery) draws everybody as an initial.

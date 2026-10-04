@@ -60,18 +60,22 @@ function UserBubbleView({ item, presentation }: RowViewProps<UserItem>) {
   // The name over the bubble: somebody else's, or any agent's. The reader's own turn is not captioned.
   const caption = foreign || viaAgent
   const clock = clockOf(item.ts)
-  const attachments = item.attachments ?? []
+  // The pictures the message holds itself come first, then the files and handles it names.
+  const held = (item.inlineImages ?? []).map((picture, index) => ({
+    reference: `inline:${item.id}:${index}`,
+    name: picture.name,
+    src: `data:${picture.mime};base64,${picture.data}`
+  }))
+  const attachments = [
+    ...held,
+    ...(item.attachments ?? []).map(reference => ({ reference, name: attachmentName(reference) }))
+  ]
 
   const bubble = (
     <div className="hm-bubble" data-kind="user">
       {item.text.trim() ? <MessageMarkdown text={item.text} /> : null}
 
-      {attachments.length > 0 ? (
-        <AttachmentGallery
-          attachments={attachments.map(reference => ({ reference, name: attachmentName(reference) }))}
-          onAccent={!foreign}
-        />
-      ) : null}
+      {attachments.length > 0 ? <AttachmentGallery attachments={attachments} onAccent={!foreign} /> : null}
 
       <p className="hm-bubble__meta">
         {item.displayKind === 'steer' ? <span>{strings.chat.queue.steeredMarker}</span> : null}

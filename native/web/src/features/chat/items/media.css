@@ -243,6 +243,25 @@
   object-fit: contain;
 }
 
+/* A picture on its way (or held by the message): the frame it will have, so the row never changes height. */
+.hm-image[data-reserved='true'][data-layout='solo'] {
+  aspect-ratio: 4 / 3;
+  max-height: 260px;
+}
+
+.hm-image[data-reserved='true'][data-layout='solo'] .hm-image__img {
+  height: 100%;
+  max-height: none;
+}
+
+.hm-image[data-reserved='true'][data-layout='cell'] {
+  height: 110px;
+}
+
+.hm-image[data-state='waiting'] {
+  cursor: progress;
+}
+
 /* In a grid: a tile of one height, filled and cropped, so the grid reads as one. */
 .hm-image[data-layout='cell'] .hm-image__img {
   height: 108px;

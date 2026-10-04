@@ -79,11 +79,16 @@ export interface ImageCardProps {
   layout?: 'solo' | 'cell'
   /** Inside the reader's own bubble. */
   onAccent?: boolean
+  /**
+   * Keep the frame of a card a picture is still on its way to (`RemotePicture`): the lone picture is drawn in a
+   * frame of the card's own size and fitted, so the row is the same height before and after the bytes arrive.
+   */
+  reserve?: boolean
   /** Open the viewer; handed the card, so focus can go back to it. */
   onOpen?: (opener: HTMLElement) => void
 }
 
-function ImageCardImpl({ src, name, layout = 'solo', onAccent = false, onOpen }: ImageCardProps) {
+function ImageCardImpl({ src, name, layout = 'solo', onAccent = false, reserve = false, onOpen }: ImageCardProps) {
   const { gatewayBaseUrl } = useItemContext()
   const [broken, setBroken] = useState<string | null>(null)
   const allowed = gatewayImageSrc(src, gatewayBaseUrl)
@@ -107,7 +112,7 @@ function ImageCardImpl({ src, name, layout = 'solo', onAccent = false, onOpen }:
 
   if (!onOpen) {
     return (
-      <span className="hm-image" data-layout={layout} data-on-accent={onAccent}>
+      <span className="hm-image" data-layout={layout} data-reserved={reserve} data-on-accent={onAccent}>
         {picture}
       </span>
     )
@@ -118,6 +123,7 @@ function ImageCardImpl({ src, name, layout = 'solo', onAccent = false, onOpen }:
       type="button"
       className="hm-image"
       data-layout={layout}
+      data-reserved={reserve}
       data-on-accent={onAccent}
       onClick={event => onOpen(event.currentTarget)}
     >

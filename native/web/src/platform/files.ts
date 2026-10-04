@@ -67,3 +67,33 @@ export function guardStrayFileDrops(target: Document = document): () => void {
     target.removeEventListener('drop', refuse)
   }
 }
+
+/** How long the object URL of a saved file lives: long enough for every browser to have started the save. */
+const REVOKE_AFTER_MS = 30_000
+
+/** The name a download is offered under: the last segment, without what a file system would refuse. */
+function downloadNameOf(name: string): string {
+  const base = (name.split(/[/\\]/u).pop() ?? '').replace(/[<>:"|?*]/gu, '_').trim()
+
+  return base || 'file'
+}
+
+/** Hand a blob to the browser as a download, under `name`. Throws when the browser cannot make one. */
+export function saveBlob(blob: Blob, name: string, doc: Document = document): void {
+  const url = URL.createObjectURL(blob)
+  const link = doc.createElement('a')
+
+  link.href = url
+  link.download = downloadNameOf(name)
+  link.rel = 'noopener'
+  link.hidden = true
+  // In the document, because some browsers ignore a click on a link that is not.
+  doc.body.append(link)
+
+  try {
+    link.click()
+  } finally {
+    link.remove()
+    setTimeout(() => URL.revokeObjectURL(url), REVOKE_AFTER_MS)
+  }
+}

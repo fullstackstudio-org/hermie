@@ -101,6 +101,21 @@ export const GALLERY_SECTIONS: readonly GallerySection[] = [
         }
       },
       {
+        name: 'a picture the message holds itself (an attached image kept as a data blob)',
+        item: {
+          ...base('user', 'held-picture'),
+          kind: 'user',
+          text: 'What is in this picture?',
+          inlineImages: [
+            {
+              name: 'upload_20261004_160406_1.png',
+              mime: 'image/png',
+              data: 'iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mP8z8DwHwAFBQIAX8jx0gAAAABJRU5ErkJggg=='
+            }
+          ]
+        }
+      },
+      {
         name: 'three pictures and a file',
         item: {
           ...base('user', 'pictures'),

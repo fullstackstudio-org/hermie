@@ -17,6 +17,7 @@
 import type { TranscriptItem } from '@hermie/transcript'
 import { createContext, useContext } from 'react'
 
+import type { LoadedAttachment } from '../../../core/chats/attachment-fetch'
 import { writeClipboard } from '../../../platform/clipboard'
 
 /** A picture the viewer shows: a source already checked against the gateway's origin, and its name. */
@@ -32,6 +33,13 @@ export interface ItemHost {
    * and no route serves one back. The answer is checked again before it is used.
    */
   attachmentSrc(reference: string): string | undefined
+  /**
+   * Fetch what an attachment reference names through the gateway's own files routes
+   * (`core/chats/attachment-fetch.ts`): a picture the browser can draw, a file to save, or `null` when
+   * the gateway does not hand it over. Absent where the host has no gateway to ask (a test of one view,
+   * a gallery): a chip is then not a control.
+   */
+  loadAttachment?(reference: string): Promise<LoadedAttachment | null>
   /** The item a message element (`data-message-id`) stands for, as it is now; `undefined` once it is gone. */
   itemById(id: string): TranscriptItem | undefined
   /** Show a picture full size; focus goes back to `opener` when it closes. */

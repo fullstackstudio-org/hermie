@@ -29,11 +29,13 @@ import { useLocale } from '../../../i18n/use-locale'
 import { webStrings } from '../../../i18n/web-strings'
 import { clockOf, formatDuration, isoOf } from '../chat-format'
 import { messageTargetProps } from '../message-menu'
+import { AttachmentGallery } from './AttachmentGallery'
 import { ErrorCard } from './ErrorCard'
 import { useItemContext } from './item-context'
 import { MessageMarkdown } from './MessageMarkdown'
 import { ReasoningDisclosure } from './ReasoningDisclosure'
 import { type RowViewProps, sameRowView } from './row-view'
+import { attachmentName } from './UserBubble'
 
 /** Three dots. Decoration with a name: the reader of the page is told a reply is coming. */
 export function TypingDots() {
@@ -80,7 +82,17 @@ function AssistantBubbleView({ item, presentation }: RowViewProps<AssistantItem>
   }
 
   const hasText = item.text.trim() !== ''
-  const waiting = item.streaming && !hasText
+  // Pictures a persisted reply held (a `data:` blob in its text) or a handle it named: under its words.
+  const pictures = [
+    ...(item.inlineImages ?? []).map((picture, index) => ({
+      reference: `inline:${item.id}:${index}`,
+      name: picture.name,
+      src: `data:${picture.mime};base64,${picture.data}`
+    })),
+    ...(item.attachments ?? []).map(reference => ({ reference, name: attachmentName(reference) }))
+  ]
+  const hasPictures = pictures.length > 0
+  const waiting = item.streaming && !hasText && !hasPictures
   const clock = clockOf(item.ts)
   const footer = item.interim ? [] : footerParts(item)
   // The selectors take the thought away when the reader's settings hide thinking.
@@ -88,7 +100,7 @@ function AssistantBubbleView({ item, presentation }: RowViewProps<AssistantItem>
   const hasThought = thought.trim() !== ''
 
   // Nothing said, nothing thought, nothing wrong, nothing coming: a row that is not a message.
-  if (!hasText && !waiting && !item.error && !hasThought) {
+  if (!hasText && !hasPictures && !waiting && !item.error && !hasThought) {
     return null
   }
 
@@ -109,11 +121,13 @@ function AssistantBubbleView({ item, presentation }: RowViewProps<AssistantItem>
         <ReasoningDisclosure text={thought} durationS={item.durationS} streaming={item.streaming && !hasText} />
       ) : null}
 
-      {hasText || waiting ? (
+      {hasText || hasPictures || waiting ? (
         <div className="hm-bubble" data-kind="assistant" data-waiting={waiting ? 'true' : 'false'}>
-          {hasText ? <MessageMarkdown text={item.text} /> : <TypingDots />}
+          {hasText ? <MessageMarkdown text={item.text} /> : hasPictures ? null : <TypingDots />}
 
-          {hasText && clock ? (
+          {hasPictures ? <AttachmentGallery attachments={pictures} /> : null}
+
+          {(hasText || hasPictures) && clock ? (
             <p className="hm-bubble__meta">
               <time dateTime={isoOf(item.ts)}>{clock}</time>
             </p>

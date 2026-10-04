@@ -103,6 +103,7 @@ import { clipLine } from './chat-format'
 import { ChatHeader } from './ChatHeader'
 import { ChatOptions } from './ChatOptions'
 import { Composer, type ComposerPrefill } from './Composer'
+import { lazyAttachmentLoader } from '../../core/chats/lazy-attachment-loader'
 import { useChatRuntime } from './chat-runtime'
 import { DropZone } from './DropZone'
 import { ChatItem } from './items/ChatItem'
@@ -308,10 +309,19 @@ export function ChatScreen({ bot, session, view: pinned, router = pageHashRouter
   shownRef.current = shown
   keyRef.current = key
 
+  const fetchPicture = runtime?.fetchPicture
+  const hasFiles = fetchPicture !== undefined
+  const loader = useMemo(() => (fetchPicture ? lazyAttachmentLoader({ fetchPicture }) : undefined), [fetchPicture])
+  const loaderRef = useRef(loader)
+
+  loaderRef.current = loader
+
   const host = useMemo<ItemHost>(
     () => ({
       // The pictures the reader sent from this page (`sent-previews.ts`); everything else is a chip.
       attachmentSrc: reference => sentPreviewFor(keyRef.current, attachmentName(reference)),
+      // What an attachment names, through the gateway's files routes; a page with no gateway to ask leaves chips inert.
+      ...(hasFiles ? { loadAttachment: reference => loaderRef.current?.(reference) ?? Promise.resolve(null) } : {}),
       itemById: id => {
         const current = keyRef.current
 
@@ -334,7 +344,7 @@ export function ChatScreen({ bot, session, view: pinned, router = pageHashRouter
       editTarget: () => menuLive.current.edit,
       canBranch: () => menuLive.current.branch
     }),
-    []
+    [hasFiles]
   )
 
   // The one reply that may be asked for again: the newest, in a chat that can be answered, after the reader's own turn.

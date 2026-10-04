@@ -388,6 +388,7 @@ async function startApp(page: Page, ready: Ready): Promise<void> {
         gatewayBaseUrl: basePath.baseUrl,
         drafts: createDraftStore(store),
         sessionSearch: session.client.http,
+        fetchPicture: path => session.client.http.fetchAuthenticatedPicture(path),
         profiles: {
           gateway: session.client.gateway,
           refreshRoster: () => session.client.bots.refresh()
