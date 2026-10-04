@@ -264,6 +264,45 @@ was accepted.
 - The deadline is the request's own `expires_at`, on the page's clock. A request that arrives already past it is not
   shown, and none is answered after it.
 
+## Keyboard shortcuts
+
+The page has the keyboard shortcuts of the desktop apps, as far as a browser lets a page have them. The table is
+`native/web/src/platform/shortcuts.ts`, the listener `features/shell/use-shortcuts.ts`, and the list the reader can open
+(the question mark, or the button in the sidebar's foot) is drawn from the same table, so what it promises is what works.
+
+| Does                              | Familiar chord (Command on a Mac, Control elsewhere) | A chord beside it that no browser keeps |
+| --------------------------------- | ---------------------------------------------------- | --------------------------------------- |
+| Search the chats                  | Mod+K                                                |                                         |
+| New conversation in the open chat | Mod+N                                                | Mod+Alt+N                               |
+| Previous and next chat            | Mod+Up and Mod+Down, Control+(Shift+)Tab             | Alt+Up and Alt+Down                     |
+| A chat by its number, 1 to 9      | Mod+1 to Mod+9                                       |                                         |
+| The list of shortcuts             | ? outside a text field                               | Mod+/                                   |
+
+**What a browser lets a page have, and what was decided.** A browser keeps the commands that make or close a window or a
+tab and the ones that switch tabs (Chrome, Firefox and Safari: a new window, a new tab, close, Control+Tab). A page never
+sees those keys and cannot cancel them; everything else it gets first and may refuse. So the three chords a browser
+keeps (Mod+N, the Tab walk) each have one beside them that it leaves alone, and the table lists both. They stay in
+because a page opened as an installed app has no tabs and no new-window command, and the browser then lets them
+through. In a plain tab the one beside them is the one that works, and the list says so in a sentence. Mod+K and
+Mod+1 to 9 are not reserved in the browsers the client targets, so the page takes them; this was not measured in every
+browser on every system (the Playwright suite puts the key into the page itself, which no browser shortcut can take), and
+the list of what a browser keeps is the one written down here and in the code. A key the page does not act on is never
+cancelled: with no chat open, Mod+N is still a new window.
+
+**What a text field keeps.** Typing is not interrupted. The arrow chords and the question mark are left to a field that has
+the caret (Command+Up is "to the start" on a Mac); the chords with a letter or a number mean nothing to a field and work
+anywhere. Nothing acts while a modal layer (a bot's question, a picture, the list itself) is open, while a key is held, or
+while an input method is composing.
+
+**A new conversation asks first.** It puts the group chat away for everybody on the gateway, and the Conversations page asks
+before it does. The shortcut therefore goes to that page with the question already asked and the focus on Cancel; it never
+starts one by itself.
+
+**How a key is read.** A letter by what it types, a digit by its place on the keyboard (an AZERTY keyboard types punctuation
+on the unshifted digits), Option+letter on a Mac by its place too (Option+N types a dead key). Command is the Mac's key on a
+Mac, an iPhone or an iPad (by the platform string or by the client hints, whichever says so: a user-agent switcher changes
+the second and not the keyboard), and Control elsewhere.
+
 ## What it cannot do
 
 A browser genuinely cannot do some things, and the client does not pretend otherwise: there is no

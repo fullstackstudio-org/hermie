@@ -42,7 +42,16 @@
  * Titles are the gateway's and bots' text: cleaned and bounded (`displayText`),
  * isolated in `<bdi>`, drawn as characters.
  */
-import { type FormEvent, type ReactElement, type ReactNode, useCallback, useId, useState } from 'react'
+import {
+  type FormEvent,
+  type ReactElement,
+  type ReactNode,
+  useCallback,
+  useEffect,
+  useId,
+  useRef,
+  useState
+} from 'react'
 import { useStore } from 'zustand'
 
 import { ConversationBusyError } from '../../core/chat-controller'
@@ -61,6 +70,7 @@ import { ChatChoice } from '../chat/ChatChoice'
 import { useChatRuntime } from '../chat/chat-runtime'
 import { WithName } from '../requests/with-name'
 import { chatHref, conversationHref } from '../shell/router'
+import { takeNewConversationRequest, useNewConversationRequested } from './new-conversation-request'
 import { useConversations } from './use-conversations'
 import './conversations.css'
 
@@ -115,6 +125,10 @@ export function ConversationsPage({ bot, router = pageHashRouter }: Conversation
   const [mode, setMode] = useState<Mode>(null)
   const [notice, setNotice] = useState<Notice>(null)
   const [busy, setBusy] = useState(false)
+  // The keyboard shortcut for a new conversation lands here with the question already open (`new-conversation-request.ts`).
+  const requested = useNewConversationRequested(bot)
+  const cancelNew = useRef<HTMLButtonElement>(null)
+  const focusNew = useRef(false)
   const name = displayText(record?.displayName ?? bot, BOT_NAME_LIMIT) || bot
 
   /** The chat live under the bot's key, opened if it is not: a swap and a new conversation retire it. */
@@ -152,6 +166,22 @@ export function ConversationsPage({ bot, router = pageHashRouter }: Conversation
     },
     [busy, reload]
   )
+
+  useEffect(() => {
+    if (requested && controller && record) {
+      takeNewConversationRequest(bot)
+      focusNew.current = true
+      setMode({ kind: 'new' })
+    }
+  }, [requested, controller, record, bot])
+
+  // On Cancel, not on the button that does it: a key pressed in a hurry must not put the shared chat away.
+  useEffect(() => {
+    if (mode?.kind === 'new' && focusNew.current) {
+      focusNew.current = false
+      cancelNew.current?.focus()
+    }
+  }, [mode])
 
   const startNew = (): void => {
     void run(async () => {
@@ -229,7 +259,7 @@ export function ConversationsPage({ bot, router = pageHashRouter }: Conversation
                 <Button onClick={startNew} disabled={busy}>
                   {sheetStrings.sessions.newConfirm}
                 </Button>
-                <Button variant="quiet" onClick={() => setMode(null)} disabled={busy}>
+                <Button variant="quiet" ref={cancelNew} onClick={() => setMode(null)} disabled={busy}>
                   {strings.chat.sessions.cancel}
                 </Button>
               </div>

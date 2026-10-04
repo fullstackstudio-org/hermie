@@ -80,6 +80,24 @@ describe('SidebarFooter', () => {
   })
 })
 
+describe('the button for the keyboard shortcuts', () => {
+  it('is in the foot beside the pages, and hands the list the button that asked, to give the focus back to', () => {
+    const onShortcuts = vi.fn()
+    const view = render(<SidebarFooter user="Sam" onSignOut={() => undefined} onShortcuts={onShortcuts} />)
+    const button = view.getByRole('button', { name: 'Keyboard shortcuts' })
+
+    expect(button.closest('.hm-sidebar__links')).not.toBeNull()
+    fireEvent.click(button)
+    expect(onShortcuts).toHaveBeenCalledWith(button)
+  })
+
+  it('is not drawn where nothing can show the list', () => {
+    const view = render(<SidebarFooter user="Sam" onSignOut={() => undefined} />)
+
+    expect(view.queryByRole('button', { name: 'Keyboard shortcuts' })).toBeNull()
+  })
+})
+
 describe('ConnectionLine', () => {
   it('asks for a sign-in when a session lapsed, and on a gateway without sign-in reads the token again', () => {
     const onSignIn = vi.fn()

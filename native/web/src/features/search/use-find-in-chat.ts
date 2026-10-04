@@ -32,7 +32,7 @@ import type { VisibleItem } from '@hermie/transcript'
 import { type RefObject, useEffect, useRef, useState } from 'react'
 
 import { strings } from '../../generated/strings'
-import { webStrings } from '../../i18n/web-strings'
+import { sheetStrings } from '../../i18n/sheet-strings'
 import type { TranscriptListHandle } from '../chat/TranscriptList'
 import { findMatchingItem } from './find-in-chat'
 import { type FindRequest, findRequests, type FindRequests } from './find-request'
@@ -88,7 +88,7 @@ export function useFindInChat({
         id: request.id,
         status: missed
           ? strings.app.chat.findExhausted({ query: request.query })
-          : webStrings.search.found({ query: request.query }),
+          : sheetStrings.search.found({ query: request.query }),
         missed
       })
       requests.settle(request.id)

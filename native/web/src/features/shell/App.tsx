@@ -42,7 +42,7 @@
  * in the plugin's advert) gets one sentence instead of the app: a courtesy, not
  * a boundary (plan, "Plugin config additions").
  */
-import { lazy, type ReactElement, Suspense, useEffect, useMemo } from 'react'
+import { lazy, type ReactElement, Suspense, useEffect, useMemo, useState } from 'react'
 import { useStore } from 'zustand'
 
 import { webClientSwitchedOff } from '../../core/advert'
@@ -69,6 +69,7 @@ import { type InteractiveActions, InteractiveRuntimeContext } from '../requests/
 import { type SecureInputActions, SecureInputRuntimeContext } from '../requests/secure-input-runtime'
 import { type SessionSignalsActions, SessionSignalsRuntimeContext } from '../notices/signals-runtime'
 import { ConnectionLine } from './ConnectionLine'
+import { useShortcuts } from './use-shortcuts'
 import { Layout } from './Layout'
 import { formatRoute, profileHref, type Route, useRoute } from './router'
 import { SidebarFooter } from './SidebarFooter'
@@ -97,6 +98,9 @@ const NewBotPage = lazy(() => loadNewBotPage().then(module => ({ default: module
 const ConversationsPage = lazy(() =>
   import('../sessions/ConversationsPage').then(module => ({ default: module.ConversationsPage }))
 )
+
+/** The list of keyboard shortcuts is a chunk of its own, fetched the first time it is asked for. */
+const ShortcutsDialog = lazy(() => import('./ShortcutsDialog').then(module => ({ default: module.ShortcutsDialog })))
 
 /** The Crons pages and the Activity timeline are chunks of their own, fetched when their route is opened (`features/cron/load.ts`, `features/activity/load.ts`). */
 const CronsPage = lazy(() => loadCronsPage().then(module => ({ default: module.CronsPage })))
@@ -171,6 +175,14 @@ export function App({
   )
 
   const route = useRoute(router)
+  // The list of shortcuts, and what had the focus when it was asked for (it gets it back).
+  const [shortcuts, setShortcuts] = useState<{ opener: HTMLElement | null } | null>(null)
+  const showShortcuts = (opener?: HTMLElement | null): void =>
+    setShortcuts({
+      opener: opener ?? (document.activeElement instanceof HTMLElement ? document.activeElement : null)
+    })
+
+  useShortcuts({ router, route, onHelp: showShortcuts })
   const bot = botOf(route)
   // What the reader calls the bot beats what the bot calls itself (`state/layout.ts`, set on its profile page), and
   // which of its two names leads is the reader's setting (`features/bots/bot-names.ts`).
@@ -244,6 +256,7 @@ export function App({
                           onSignOut={onSignOut}
                           gated={gated}
                           current={route.name}
+                          onShortcuts={showShortcuts}
                         />
                       }
                     >
@@ -289,6 +302,11 @@ export function App({
                     </Layout>
                     {/* Over the whole page, whichever route: a bot's question is never behind a screen. */}
                     <RequestLayer />
+                    {shortcuts ? (
+                      <Suspense fallback={null}>
+                        <ShortcutsDialog opener={shortcuts.opener} onClose={() => setShortcuts(null)} />
+                      </Suspense>
+                    ) : null}
                   </SessionSignalsRuntimeContext.Provider>
                 </InteractiveRuntimeContext.Provider>
               </SecureInputRuntimeContext.Provider>

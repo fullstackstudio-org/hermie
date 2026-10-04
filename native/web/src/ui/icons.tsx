@@ -26,6 +26,7 @@ export type IconName =
   | 'activity'
   | 'clock'
   | 'plus'
+  | 'keyboard'
 
 /** Stroke paths on a 24 x 24 grid, drawn with a round 2px pen. */
 const PATHS: Record<IconName, readonly string[]> = {
@@ -53,7 +54,14 @@ const PATHS: Record<IconName, readonly string[]> = {
   pin: ['M12 16v5', 'M8 3h8l-1 6.5 3 4.5H6l3-4.5L8 3z'],
   activity: ['M3 12h4l3-8 4 16 3-8h4'],
   clock: ['M3 12a9 9 0 1 0 18 0 9 9 0 1 0-18 0', 'M12 7v5l3 2'],
-  plus: ['M12 5v14', 'M5 12h14']
+  plus: ['M12 5v14', 'M5 12h14'],
+  keyboard: [
+    'M4 7a1 1 0 0 1 1-1h14a1 1 0 0 1 1 1v10a1 1 0 0 1-1 1H5a1 1 0 0 1-1-1V7z',
+    'M8 10h.01',
+    'M12 10h.01',
+    'M16 10h.01',
+    'M8 14h8'
+  ]
 }
 
 export interface IconProps {

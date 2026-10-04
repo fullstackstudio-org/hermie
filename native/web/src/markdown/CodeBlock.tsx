@@ -21,7 +21,7 @@
 import { useEffect, useRef, useState, type ReactNode } from 'react'
 
 import { useLocale } from '../i18n/use-locale'
-import { webStrings } from '../i18n/web-strings'
+import { sheetStrings } from '../i18n/sheet-strings'
 import { writeClipboard } from '../platform/clipboard'
 import { highlightRenderer, useLazyModule } from './lazy'
 import { useNearViewport } from './near-viewport'
@@ -96,7 +96,7 @@ export function CodeBlock({ code, language, kind = 'code', label, drawing }: Cod
 
   const shown = label ?? language
   const message =
-    state === 'copied' ? webStrings.markdown.copied : state === 'failed' ? webStrings.markdown.copyFailed : ''
+    state === 'copied' ? sheetStrings.markdown.copied : state === 'failed' ? sheetStrings.markdown.copyFailed : ''
   const drawn = drawing !== undefined && !showSource
 
   return (
@@ -110,11 +110,11 @@ export function CodeBlock({ code, language, kind = 'code', label, drawing }: Cod
             onClick={() => setShowSource(value => !value)}
             type="button"
           >
-            {webStrings.markdown.showSource}
+            {sheetStrings.markdown.showSource}
           </button>
         ) : null}
         <button className="md-code-copy" onClick={copy} type="button">
-          {webStrings.markdown.copyCode}
+          {sheetStrings.markdown.copyCode}
         </button>
         <span aria-live="polite" className="md-code-status" role="status">
           {message}

@@ -593,6 +593,32 @@ A bot name or session id is one percent-encoded segment; `parseRoute` and `forma
 route is rewritten to `#/` in place (no history entry). A route change moves focus to the main heading (not on
 the first load); where the main pane is not shown (one pane, list route) the sidebar's heading takes it.
 
+### Keyboard shortcuts
+
+`platform/shortcuts.ts` (the table and the matcher, pure), `features/shell/use-shortcuts.ts` (the page's one `keydown`
+listener, installed by `App`), `features/shell/ShortcutsDialog.tsx` (the list, a chunk of its own: a modal dialog drawn from
+the same table, opened with `?` outside a field, Mod+/ or the button in the sidebar's foot) and
+`features/sessions/new-conversation-request.ts` (what the shortcut hands the Conversations page besides the route). The
+decisions, and what a browser lets a page have, are in [docs/web.md](../../docs/web.md#keyboard-shortcuts); in short:
+
+- **Mod+K** focuses the chats field (on a window where the list is not drawn it goes to the list first), **Mod+1 to 9** go to
+  the Nth chat of the list as it is drawn, **Mod+Up and Down**, **Alt+Up and Down** and **Control+(Shift+)Tab** walk it, round at
+  the ends, **Mod+N** and **Mod+Alt+N** open the open chat's Conversations page with its question asked (it asks first, the
+  focus on Cancel), **?** and **Mod+/** open the list. The two a browser keeps (a new window, the Tab walk) each have one beside
+  them that it leaves alone.
+- **Left to a text field**: the arrow chords and `?`, while a field has the caret. **Never while** a modal layer is open, a key is
+  held, an input method is composing or another handler used the key. A key the page does not act on is not cancelled.
+- "The list" is the rows of the sidebar as they are drawn (`.hm-chat-list a[data-bot]`): folders as the reader has them open, a
+  search narrowing them, the archive only while it is open.
+- **The platform** is a Mac, an iPhone or an iPad by the platform string or by the client hints (Command is the key there, and
+  the list draws the Mac's symbols); a user-agent switcher is not believed over the keyboard's own machine.
+
+`shortcuts.test.ts` (the matcher over every chord, both platforms, an AZERTY digit, Option+N's dead key, the platform
+detection), `use-shortcuts.test.tsx` (each action against a sidebar of rows, what it leaves alone), `ShortcutsDialog.test.tsx`
+(the table as the keyboard says it, a dialog's manners, three languages, axe), the Conversations page's and `App`'s tests, and
+`e2e/shortcuts.spec.ts` in Chromium and WebKit (it presses the keys in the page itself, so it cannot show that a browser
+hands a page a chord; that is written down, not measured).
+
 ### Layout
 
 Two panes from 900 px (the chat list, 340 px, beside the main pane), one pane below it: the list on `#/`, the main

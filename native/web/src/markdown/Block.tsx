@@ -13,7 +13,7 @@ import { MATH_BLOCK_TOKEN, type MathToken } from '@hermie/markdown/math/marked-m
 import { createContext, memo, useContext, useMemo, type ReactNode } from 'react'
 
 import { useLocale } from '../i18n/use-locale'
-import { webStrings } from '../i18n/web-strings'
+import { sheetStrings } from '../i18n/sheet-strings'
 import { CodeBlock } from './CodeBlock'
 import { Inline } from './Inline'
 import { mathRenderer, mermaidRenderer, useLazyModule } from './lazy'
@@ -83,7 +83,7 @@ function ListItem({ item, baseUrl }: { item: Tokens.ListItem; baseUrl: string | 
     <li className={item.task ? 'md-task' : undefined}>
       {item.task ? (
         <input
-          aria-label={item.checked ? webStrings.markdown.taskDone : webStrings.markdown.taskOpen}
+          aria-label={item.checked ? sheetStrings.markdown.taskDone : sheetStrings.markdown.taskOpen}
           checked={Boolean(item.checked)}
           disabled
           type="checkbox"

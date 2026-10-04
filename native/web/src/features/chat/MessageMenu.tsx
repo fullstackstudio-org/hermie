@@ -51,7 +51,7 @@ import {
 
 import { strings } from '../../generated/strings'
 import { useLocale } from '../../i18n/use-locale'
-import { webStrings } from '../../i18n/web-strings'
+import { sheetStrings } from '../../i18n/sheet-strings'
 import type { ItemHost } from './items/item-host'
 import {
   MESSAGE_ID_ATTRIBUTE,
@@ -289,7 +289,7 @@ export function MessageMenuLayer({ container, host }: MessageMenuLayerProps): Re
 
       void host
         .copy(action.kind === 'copyLink' ? action.href : action.text)
-        .then(copied => host.announce(copied ? webStrings.markdown.copied : webStrings.markdown.copyFailed))
+        .then(copied => host.announce(copied ? sheetStrings.markdown.copied : sheetStrings.markdown.copyFailed))
     },
     [host, onClose]
   )

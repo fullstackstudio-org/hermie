@@ -1,0 +1,113 @@
+/*
+ * The list of keyboard shortcuts (`ShortcutsDialog.tsx`): a dialog over the page, on the theme's tokens. It sits
+ * outside the app's root (a portal to the body), so nothing of the page's layout reaches it.
+ */
+
+.hm-shortcuts {
+  position: fixed;
+  inset: 0;
+  z-index: 60;
+  display: grid;
+  place-items: center;
+  padding: var(--hm-gutter);
+  background: color-mix(in srgb, #000000 55%, transparent);
+}
+
+.hm-shortcuts__dialog {
+  box-sizing: border-box;
+  width: min(36rem, 100%);
+  max-height: 100%;
+  padding: 16px 20px 20px;
+  overflow: auto;
+  border: 1px solid var(--hm-line);
+  border-radius: var(--hm-radius);
+  background: var(--hm-bg);
+  color: var(--hm-text);
+  box-shadow: 0 16px 48px color-mix(in srgb, #000000 35%, transparent);
+}
+
+.hm-shortcuts__bar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.hm-shortcuts__title {
+  margin: 0;
+  font-size: 1.25rem;
+}
+
+.hm-shortcuts__close {
+  appearance: none;
+  min-height: 44px;
+  padding: 0 14px;
+  border: 1px solid var(--hm-line);
+  border-radius: var(--hm-radius);
+  background: transparent;
+  color: var(--hm-tint-text);
+  font: inherit;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.hm-shortcuts__close:hover {
+  background: var(--hm-surface-hover);
+}
+
+.hm-shortcuts__lead,
+.hm-shortcuts__note {
+  margin: 8px 0 0;
+  color: var(--hm-text-muted);
+  font-size: 0.875rem;
+}
+
+.hm-shortcuts__table {
+  width: 100%;
+  margin-top: 12px;
+  border-collapse: collapse;
+}
+
+.hm-shortcuts__table th,
+.hm-shortcuts__table td {
+  padding: 8px 8px 8px 0;
+  border-top: 1px solid var(--hm-line);
+  text-align: start;
+  vertical-align: top;
+}
+
+.hm-shortcuts__table thead th {
+  border-top: 0;
+  color: var(--hm-text-muted);
+  font-size: 0.8125rem;
+  font-weight: 600;
+}
+
+.hm-shortcuts__table tbody th {
+  font-weight: 400;
+}
+
+.hm-shortcuts__chord {
+  display: inline-flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 6px;
+  margin-inline-end: 8px;
+}
+
+.hm-shortcuts__or {
+  color: var(--hm-text-faint);
+  font-size: 0.8125rem;
+}
+
+.hm-shortcuts kbd {
+  display: inline-block;
+  padding: 2px 8px;
+  border: 1px solid var(--hm-line);
+  border-radius: 6px;
+  background: var(--hm-surface);
+  color: var(--hm-text);
+  font-family: var(--hm-mono);
+  font-size: 0.8125rem;
+  white-space: nowrap;
+}

@@ -23,6 +23,7 @@ import { connectionStore } from '../../state/connection'
 import { aBot, resetShellStores, seedRoster } from '../../test-support/shell-stores'
 import { ChatRuntimeContext, type ChatScreenController } from '../chat/chat-runtime'
 import { ConversationsPage } from './ConversationsPage'
+import { askAboutNewConversation, takeNewConversationRequest } from './new-conversation-request'
 
 const conversation = (id: string, over: Partial<Conversation> = {}): Conversation => ({
   id,
@@ -261,6 +262,54 @@ describe('the Conversations page', () => {
     // The chat was live: nothing to open first.
     expect(controller.openChat).not.toHaveBeenCalled()
     expect(router.current()).toBe('#/chat/researcher')
+  })
+
+  describe('asked for by the keyboard shortcut', () => {
+    afterEach(() => void takeNewConversationRequest('researcher'))
+
+    it('opens with the question already open, and the focus on Cancel, not on the button that does it', async () => {
+      const controller = fakeController()
+
+      askAboutNewConversation('researcher')
+      mount(controller)
+
+      expect(await screen.findByText(/moves to Past conversations/u)).toBeTruthy()
+      expect(document.activeElement).toBe(screen.getByRole('button', { name: 'Cancel' }))
+      // Asking is not doing: nothing was started, and the request is used up.
+      expect(controller.startNewConversation).not.toHaveBeenCalled()
+      expect(takeNewConversationRequest('researcher')).toBe(false)
+    })
+
+    it('opens the question on a page that is already open, when the request comes later', async () => {
+      mount(fakeController())
+      await screen.findByRole('region', { name: 'Current conversation' })
+      expect(screen.queryByText(/moves to Past conversations/u)).toBeNull()
+
+      act(() => askAboutNewConversation('researcher'))
+
+      expect(await screen.findByText(/moves to Past conversations/u)).toBeTruthy()
+      expect(document.activeElement).toBe(screen.getByRole('button', { name: 'Cancel' }))
+    })
+
+    it('is for the bot it names: another bot’s request leaves this page alone', async () => {
+      askAboutNewConversation('writer')
+      mount(fakeController())
+      await screen.findByRole('region', { name: 'Current conversation' })
+
+      expect(screen.queryByText(/moves to Past conversations/u)).toBeNull()
+      expect(takeNewConversationRequest('writer')).toBe(true)
+    })
+
+    it('starts the conversation only when the reader says so', async () => {
+      const controller = fakeController()
+
+      askAboutNewConversation('researcher')
+      mount(controller)
+      await screen.findByText(/moves to Past conversations/u)
+
+      fireEvent.click(screen.getByRole('button', { name: 'Start a new conversation' }))
+      await vi.waitFor(() => expect(controller.startNewConversation).toHaveBeenCalledWith('researcher'))
+    })
   })
 
   it('cancels a new conversation without asking the gateway anything', async () => {

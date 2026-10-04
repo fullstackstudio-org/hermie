@@ -478,6 +478,44 @@ describe('signing out', () => {
   })
 })
 
+describe('the keyboard shortcuts', () => {
+  it('open their list on the question mark, from a button in the foot too, and close it with Escape, giving the focus back', async () => {
+    renderApp()
+
+    // From the keyboard: a chunk of its own, drawn once it has arrived.
+    fireEvent.keyDown(document.body, { key: '?', shiftKey: true })
+    expect(await screen.findByRole('dialog', { name: 'Keyboard shortcuts' })).toBeTruthy()
+
+    fireEvent.keyDown(screen.getByRole('dialog'), { key: 'Escape' })
+    expect(screen.queryByRole('dialog', { name: 'Keyboard shortcuts' })).toBeNull()
+
+    // From the button in the foot, which has the focus again when the list goes.
+    const button = screen.getByRole('button', { name: 'Keyboard shortcuts' })
+
+    button.focus()
+    fireEvent.click(button)
+    expect(await screen.findByRole('dialog', { name: 'Keyboard shortcuts' })).toBeTruthy()
+    expect(document.querySelector('.hm-app')?.closest('[inert]')).not.toBeNull()
+
+    fireEvent.click(screen.getByRole('button', { name: 'Done' }))
+    expect(screen.queryByRole('dialog')).toBeNull()
+    expect(document.activeElement).toBe(button)
+  })
+
+  it('walk the chats of the list, and not while the list of shortcuts is open', async () => {
+    renderApp()
+    act(() => router.navigate('#/chat/researcher'))
+
+    fireEvent.keyDown(document.body, { key: 'ArrowDown', altKey: true })
+    expect(router.current()).toBe('#/chat/writer')
+
+    fireEvent.keyDown(document.body, { key: '?', shiftKey: true })
+    await screen.findByRole('dialog', { name: 'Keyboard shortcuts' })
+    fireEvent.keyDown(document.body, { key: 'ArrowUp', altKey: true })
+    expect(router.current()).toBe('#/chat/writer')
+  })
+})
+
 describe('what the screen reads', () => {
   it('is the stores: a bot that appears is in the list', () => {
     renderApp()

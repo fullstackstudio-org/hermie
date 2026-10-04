@@ -126,47 +126,6 @@ export const WEB_STRINGS_SOURCE = {
       de: 'Token vergessen'
     }
   },
-  markdown: {
-    /** The code block's copy button: its label and its accessible name. */
-    copyCode: {
-      en: 'Copy code',
-      nl: 'Code kopiëren',
-      de: 'Code kopieren'
-    },
-    /** Announced, and shown beside the button, once the code is on the clipboard. */
-    copied: {
-      en: 'Copied',
-      nl: 'Gekopieerd',
-      de: 'Kopiert'
-    },
-    /** When the browser refuses the copy (no secure context, no permission). */
-    copyFailed: {
-      en: 'Could not copy',
-      nl: 'Kopiëren is niet gelukt',
-      de: 'Kopieren fehlgeschlagen'
-    },
-    /** The name of the checkbox on a finished task-list item. */
-    taskDone: {
-      en: 'Done',
-      nl: 'Klaar',
-      de: 'Erledigt'
-    },
-    /** The name of the checkbox on an open task-list item. */
-    taskOpen: {
-      en: 'Not done',
-      nl: 'Niet klaar',
-      de: 'Offen'
-    },
-    /**
-     * The toggle on a drawn formula or diagram: pressed, the box shows the
-     * source the drawing was made from instead of the drawing.
-     */
-    showSource: {
-      en: 'Show source',
-      nl: 'Bron tonen',
-      de: 'Quelltext anzeigen'
-    }
-  },
   shell: {
     /** The first link on the page: jumps past the chat list to the main pane. */
     skipToContent: {
@@ -179,6 +138,12 @@ export const WEB_STRINGS_SOURCE = {
       en: 'Back to chats',
       nl: 'Terug naar chats',
       de: 'Zurück zu den Chats'
+    },
+    /** The sidebar's button that opens the list of keyboard shortcuts (which is a chunk of its own). */
+    shortcuts: {
+      en: 'Keyboard shortcuts',
+      nl: 'Sneltoetsen',
+      de: 'Tastenkürzel'
     },
     /** A hint under the chat list when the gateway has no Hermie plugin; the client works without it. */
     noPlugin: {
@@ -501,14 +466,6 @@ export const WEB_STRINGS_SOURCE = {
         nl: 'Geannuleerd',
         de: 'Abgebrochen'
       }
-    }
-  },
-  search: {
-    /** Announced when a chat opened from a search hit has scrolled to the row with the words in it. */
-    found: {
-      en: ({ query }: { query: string }) => `Found “${query}” in this chat.`,
-      nl: ({ query }: { query: string }) => `“${query}” gevonden in deze chat.`,
-      de: ({ query }: { query: string }) => `„${query}“ in diesem Chat gefunden.`
     }
   },
   requests: {

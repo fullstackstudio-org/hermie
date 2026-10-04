@@ -39,6 +39,8 @@ export interface SidebarFooterProps {
   gated?: boolean
   /** The route on screen, so the link to its page can say it is the current one. */
   current?: Route['name']
+  /** Open the list of keyboard shortcuts; the button that asked is where the focus goes back to. */
+  onShortcuts?: (opener: HTMLElement) => void
 }
 
 export function SidebarFooter({
@@ -46,7 +48,8 @@ export function SidebarFooter({
   pictureUrl = '',
   onSignOut,
   gated = true,
-  current
+  current,
+  onShortcuts
 }: SidebarFooterProps): ReactElement {
   useLocale()
 
@@ -109,6 +112,12 @@ export function SidebarFooter({
           <Icon name="settings" size={18} />
           {strings.app.settings.title}
         </a>
+        {onShortcuts ? (
+          <button type="button" className="hm-sidebar__link" onClick={event => onShortcuts(event.currentTarget)}>
+            <Icon name="keyboard" size={18} />
+            {webStrings.shell.shortcuts}
+          </button>
+        ) : null}
       </div>
       <Button
         variant="quiet"

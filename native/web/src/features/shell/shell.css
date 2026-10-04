@@ -148,6 +148,17 @@
   text-decoration: none;
 }
 
+/* The one link that is a button (it opens a dialog): drawn as the others are. */
+button.hm-sidebar__link {
+  appearance: none;
+  padding: 0;
+  border: 0;
+  background: transparent;
+  font: inherit;
+  font-weight: 600;
+  cursor: pointer;
+}
+
 .hm-sidebar__link:hover,
 .hm-sidebar__link[aria-current='page'] {
   text-decoration: underline;

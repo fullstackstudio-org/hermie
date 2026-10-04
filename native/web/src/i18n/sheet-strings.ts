@@ -17,6 +17,55 @@ import { type Branch, localise, type Translated } from './web-strings'
 
 /** The strings, as written: every leaf in en, nl and de. */
 export const SHEET_STRINGS_SOURCE = {
+  markdown: {
+    /** The code block's copy button: its label and its accessible name. */
+    copyCode: {
+      en: 'Copy code',
+      nl: 'Code kopiëren',
+      de: 'Code kopieren'
+    },
+    /** Announced, and shown beside the button, once the code is on the clipboard. */
+    copied: {
+      en: 'Copied',
+      nl: 'Gekopieerd',
+      de: 'Kopiert'
+    },
+    /** When the browser refuses the copy (no secure context, no permission). */
+    copyFailed: {
+      en: 'Could not copy',
+      nl: 'Kopiëren is niet gelukt',
+      de: 'Kopieren fehlgeschlagen'
+    },
+    /** The name of the checkbox on a finished task-list item. */
+    taskDone: {
+      en: 'Done',
+      nl: 'Klaar',
+      de: 'Erledigt'
+    },
+    /** The name of the checkbox on an open task-list item. */
+    taskOpen: {
+      en: 'Not done',
+      nl: 'Niet klaar',
+      de: 'Offen'
+    },
+    /**
+     * The toggle on a drawn formula or diagram: pressed, the box shows the
+     * source the drawing was made from instead of the drawing.
+     */
+    showSource: {
+      en: 'Show source',
+      nl: 'Bron tonen',
+      de: 'Quelltext anzeigen'
+    }
+  },
+  search: {
+    /** Announced when a chat opened from a search hit has scrolled to the row with the words in it. */
+    found: {
+      en: ({ query }: { query: string }) => `Found “${query}” in this chat.`,
+      nl: ({ query }: { query: string }) => `“${query}” gevonden in deze chat.`,
+      de: ({ query }: { query: string }) => `„${query}“ in diesem Chat gefunden.`
+    }
+  },
   attachments: {
     /** The name of the strip of attachments staged for the next message. */
     trayLabel: {
@@ -872,6 +921,82 @@ export const SHEET_STRINGS_SOURCE = {
       en: ({ name }: { name: string }) => `${name} is made.`,
       nl: ({ name }: { name: string }) => `${name} is gemaakt.`,
       de: ({ name }: { name: string }) => `${name} ist angelegt.`
+    }
+  },
+  /**
+   * The list of keyboard shortcuts (`features/shell/ShortcutsDialog.tsx`, a chunk of its own, opened with the question
+   * mark or from the sidebar). The table of what each key does is `platform/shortcuts.ts`; what an action is called is
+   * said here.
+   */
+  shortcuts: {
+    title: {
+      en: 'Keyboard shortcuts',
+      nl: 'Sneltoetsen',
+      de: 'Tastenkürzel'
+    },
+    lead: {
+      en: 'Each line lists every way to do it. The shortcuts with a letter or a number also work while you are typing; the arrow keys and the question mark are left to the text.',
+      nl: 'Elke regel noemt alle manieren om het te doen. De sneltoetsen met een letter of een cijfer werken ook terwijl je typt; de pijltjestoetsen en het vraagteken blijven voor de tekst.',
+      de: 'Jede Zeile nennt alle Wege dazu. Die Tastenkürzel mit Buchstabe oder Zahl funktionieren auch beim Tippen; die Pfeiltasten und das Fragezeichen bleiben dem Text überlassen.'
+    },
+    actionColumn: {
+      en: 'What it does',
+      nl: 'Wat het doet',
+      de: 'Was es tut'
+    },
+    keysColumn: {
+      en: 'Keys',
+      nl: 'Toetsen',
+      de: 'Tasten'
+    },
+    or: {
+      en: 'or',
+      nl: 'of',
+      de: 'oder'
+    },
+    action: {
+      search: {
+        en: 'Search the chats',
+        nl: 'In de chats zoeken',
+        de: 'In den Chats suchen'
+      },
+      newConversation: {
+        en: 'New conversation in this chat',
+        nl: 'Nieuw gesprek in deze chat',
+        de: 'Neue Unterhaltung in diesem Chat'
+      },
+      previousChat: {
+        en: 'Previous chat',
+        nl: 'Vorige chat',
+        de: 'Vorheriger Chat'
+      },
+      nextChat: {
+        en: 'Next chat',
+        nl: 'Volgende chat',
+        de: 'Nächster Chat'
+      },
+      chat: {
+        en: 'Go to chat 1 to 9 of the list',
+        nl: 'Naar chat 1 tot 9 van de lijst',
+        de: 'Zu Chat 1 bis 9 der Liste'
+      },
+      help: {
+        en: 'Show this list',
+        nl: 'Deze lijst tonen',
+        de: 'Diese Liste anzeigen'
+      }
+    },
+    /** Under the table: what a new conversation does, and why it asks. */
+    newNote: {
+      en: 'A new conversation asks first, because it puts the shared Bot Chat away for everybody.',
+      nl: 'Een nieuw gesprek vraagt eerst, want het legt de gedeelde Bot Chat voor iedereen weg.',
+      de: 'Eine neue Unterhaltung fragt zuerst nach, weil sie den gemeinsamen Bot Chat für alle weglegt.'
+    },
+    /** Under the table: what a browser keeps for itself. */
+    browserNote: {
+      en: 'Your browser keeps some shortcuts for itself (a new window, switching tabs), and a page never sees them. Use the one beside it. Opened as an installed app, the page gets all of them.',
+      nl: 'Je browser houdt een aantal sneltoetsen voor zichzelf (een nieuw venster, van tabblad wisselen) en een pagina krijgt ze nooit te zien. Gebruik de toets ernaast. Als geïnstalleerde app krijgt de pagina ze allemaal.',
+      de: 'Dein Browser behält einige Tastenkürzel für sich (ein neues Fenster, Tabs wechseln), und eine Seite bekommt sie nie zu sehen. Nimm das daneben. Als installierte App bekommt die Seite alle.'
     }
   },
   /**
