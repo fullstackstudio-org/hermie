@@ -226,6 +226,8 @@ public final class ChatModel {
   public private(set) var cardNotices: [String: String] = [:]
   /// A Retry is on its way (`retryTurn`): a second press sends nothing.
   @ObservationIgnored var retrying = false
+  /// A Branch from here is on its way (`branch(from:)`): a second press asks nothing.
+  @ObservationIgnored var branching = false
 
   /// What a card says when its answer could not go out.
   public static let unsentAnswerNotice =

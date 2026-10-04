@@ -1061,6 +1061,30 @@
         }
       }
     },
+    "native.chat.menu.copyLinks" : {
+      "comment" : "In a message's menu (long press or right-click), the submenu that lists the several links the message holds, each a line that copies that link.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Links kopieren"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Copy links"
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Links kopiëren"
+          }
+        }
+      }
+    },
     "native.chat.titleOpensSettings" : {
       "extractionState" : "manual",
       "localizations" : {

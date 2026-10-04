@@ -73,6 +73,7 @@ struct UserBubbleView: View {
         MessageBubble(side: .outgoing, tail: closesGroup, fill: BubblePalette.outgoing) {
           words(foreground: BubblePalette.outgoingText)
         }
+        .messageMenu(for: .user(item))
         .opacity(item.pending == true ? 0.7 : 1)
       }
       meta(sender: ownViaName, via: item.author?.via)
@@ -80,7 +81,7 @@ struct UserBubbleView: View {
     .frame(maxWidth: .infinity, alignment: .trailing)
     .accessibilityElement(children: .combine)
     .accessibilityLabel(accessibilityText(sender: ownViaName, via: item.author?.via))
-    .accessibilityActions { copyAction }
+    .accessibilityActions { MessageMenuItems(item: .user(item), flattensLinks: true) }
   }
 
   private func foreignBubble(_ author: MessageAuthor) -> some View {
@@ -100,6 +101,7 @@ struct UserBubbleView: View {
           MessageBubble(side: .incoming, tail: closesGroup, fill: BubblePalette.incoming) {
             words(foreground: .primary)
           }
+          .messageMenu(for: .user(item))
           .opacity(item.pending == true ? 0.7 : 1)
         }
         meta(sender: name, via: author.via)
@@ -108,7 +110,7 @@ struct UserBubbleView: View {
     .frame(maxWidth: .infinity, alignment: .leading)
     .accessibilityElement(children: .combine)
     .accessibilityLabel(accessibilityText(sender: name, via: author.via))
-    .accessibilityActions { copyAction }
+    .accessibilityActions { MessageMenuItems(item: .user(item), flattensLinks: true) }
   }
 
   /// The words and the attachments, in the bubble's text colour, as wide as they need.
@@ -126,6 +128,10 @@ struct UserBubbleView: View {
       }
     }
     .environment(\.markdownFillsWidth, false)
+    #if os(iOS)
+      // A long press on the bubble is the message's menu, not the start of a selection.
+      .environment(\.markdownSelectable, false)
+    #endif
     .foregroundStyle(foreground)
     .tint(foreground == .white ? .white : nil)
   }
@@ -185,10 +191,6 @@ struct UserBubbleView: View {
     // A marker with no client left once cleaned says nothing: the sender is the name alone.
     guard let via, !client.isEmpty else { return who.isEmpty ? nil : who }
     return authorLabel(via: AuthorVia(kind: via.kind, client: client), who)
-  }
-
-  @ViewBuilder private var copyAction: some View {
-    Button(Strings.Chat.Menu.copyText) { actions.copy(item.text) }
   }
 
   private func accessibilityText(sender: String?, via: AuthorVia?) -> String {

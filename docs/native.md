@@ -470,6 +470,23 @@ reconnect, since Quick Look may be showing one), or a path on this device's disk
 dialled at a loopback address (`localhost`, `::1`, a real `127.x.x.x`). Anything else
 says it is on the gateway's disk.
 
+**A message's menu.** A long press on a bubble (iOS) or a right-click (Mac) opens the message's menu, and
+VoiceOver offers the same lines as the row's actions (`MessageMenu`, drawn by `MessageMenuItems`). A reply
+has Copy text (the words without Markdown), Copy as Markdown (only when the two differ), Regenerate,
+Branch from here, and Copy link or a Copy links submenu when it holds links; the reader's own turn has Copy,
+Edit and resend and Branch from here. What the menu offers is read when it opens
+(`TranscriptItemActions.messageMenu`), because rows are not redrawn when the newest reply moves on, and a line
+that starts something is worked out again when it is chosen (`ChatFeed.chooseMessageAction`).
+Regenerate is Retry's rule on the newest reply (`ChatModel.regenerate`: a prompt of the reader's own before
+it, none after, never a colleague's); Edit and resend puts the turn's words (and its files, not its pictures)
+in the composer after whatever is there and replaces nothing (`ComposerModel.editAndResend`), as the Expo app
+did; Branch from here asks `session.branch` for the runtime session with a count of the gateway's messages up
+to the row (distinct `rowID`s over the whole ordered transcript, `BranchPoint`), named `Branch · <first words>`,
+and opens the new conversation in the read-only viewer. While a turn runs Regenerate and Edit and resend are
+drawn disabled; while a request of the chat has the composer (HERM-251) they and Branch from here are, and
+only the copies work. On iOS a bubble's text is not selectable (`markdownSelectable`), because the long press
+is the menu; code blocks keep their own Copy.
+
 **Advertising.** The second `client.capabilities` call carries `requests` only after the first call's
 result lists at least one `input.*`, `review.*` or `device.*` method under `server_requests`
 (`RequestsAdvertisement.methods(after:device:)`): a gateway that does not know the key refuses it and the whole

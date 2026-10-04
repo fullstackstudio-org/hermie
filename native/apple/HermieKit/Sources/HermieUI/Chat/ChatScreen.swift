@@ -257,6 +257,11 @@ struct ChatSessionView<Composer: View>: View {
           }
           return built
         }
+        // Branch from here opens the new conversation, to be read, over the chat.
+        next.openConversation = { conversation in
+          router?.showConversation(
+            chat, id: conversation.id, resolvedID: conversation.resolvedID, title: conversation.title)
+        }
         next.sceneChanged(active: active)
         next.coverChanged(covered: covered)
         return next

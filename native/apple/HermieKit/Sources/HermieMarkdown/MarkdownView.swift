@@ -16,6 +16,7 @@ import SwiftUI
 public struct MarkdownView: View {
   private let blocks: [MarkdownBlock]
   @ScaledMetric(relativeTo: .body) private var spacing: CGFloat = 10
+  @Environment(\.markdownSelectable) private var selectable
 
   public init(_ document: MarkdownDocument) {
     self.blocks = document.blocks
@@ -31,7 +32,20 @@ public struct MarkdownView: View {
         MarkdownBlockView(block: block).equatable()
       }
     }
-    .textSelection(.enabled)
+    .modifier(MarkdownSelection(enabled: selectable))
+  }
+}
+
+/// Whether the reader can select the words with a touch or a drag.
+private struct MarkdownSelection: ViewModifier {
+  let enabled: Bool
+
+  func body(content: Content) -> some View {
+    if enabled {
+      content.textSelection(.enabled)
+    } else {
+      content.textSelection(.disabled)
+    }
   }
 }
 
@@ -265,6 +279,9 @@ extension EnvironmentValues {
   /// Whether a reply's lines take the whole width they are offered (a page, the default) or only
   /// what their words need (a message bubble that should be no wider than its text).
   @Entry public var markdownFillsWidth = true
+  /// Whether the words can be selected (the default). A message bubble on a touch screen turns it off,
+  /// because a long press there is the message's menu, not the start of a selection.
+  @Entry public var markdownSelectable = true
 }
 
 /// A line of a reply: as wide as the width offered, or as its words, per `markdownFillsWidth`;

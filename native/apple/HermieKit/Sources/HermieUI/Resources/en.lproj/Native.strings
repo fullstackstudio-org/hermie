@@ -94,6 +94,8 @@
 	<string>Copy diagnostics</string>
 	<key>native.chat.diagnosticsCopied</key>
 	<string>Copied</string>
+	<key>native.chat.menu.copyLinks</key>
+	<string>Copy links</string>
 	<key>native.chat.titleOpensSettings</key>
 	<string>%@, open bot settings</string>
 	<key>native.chat.titleOpensSettingsHint</key>

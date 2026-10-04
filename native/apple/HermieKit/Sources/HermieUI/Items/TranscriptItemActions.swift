@@ -1,3 +1,4 @@
+import HermieCore
 import HermieTranscript
 import SwiftUI
 
@@ -25,6 +26,12 @@ public struct TranscriptItemActions: Sendable {
   public var openAttachment: @MainActor @Sendable (_ reference: String) -> Void
   /// Copy text. Defaults to the system pasteboard.
   public var copy: @MainActor @Sendable (_ text: String) -> Void
+  /// The lines of a message's menu, as the chat stands when it is opened (not when the row was built:
+  /// rows are not redrawn when the newest reply moves on). Defaults to Copy and nothing else.
+  public var messageMenu: @MainActor @Sendable (_ item: TranscriptItem) -> MessageMenu
+  /// A turn-starting or forking line of that menu was chosen: Regenerate, Edit and resend, Branch from
+  /// here. The copies are the row's own (`copy`).
+  public var chooseMessageAction: @MainActor @Sendable (_ action: MessageMenu.Action, _ item: TranscriptItem) -> Void
 
   public init(
     answerApproval: @escaping @MainActor @Sendable (ApprovalItem, String) -> Void = { _, _ in },
@@ -32,7 +39,11 @@ public struct TranscriptItemActions: Sendable {
     openBotChat: @escaping @MainActor @Sendable (String) -> Void = { _ in },
     retry: @escaping @MainActor @Sendable (AssistantItem) -> Void = { _ in },
     openAttachment: @escaping @MainActor @Sendable (String) -> Void = { _ in },
-    copy: @escaping @MainActor @Sendable (String) -> Void = TranscriptItemActions.copyToPasteboard
+    copy: @escaping @MainActor @Sendable (String) -> Void = TranscriptItemActions.copyToPasteboard,
+    messageMenu: @escaping @MainActor @Sendable (TranscriptItem) -> MessageMenu = {
+      MessageMenu.menu(for: $0, context: .readOnly)
+    },
+    chooseMessageAction: @escaping @MainActor @Sendable (MessageMenu.Action, TranscriptItem) -> Void = { _, _ in }
   ) {
     self.answerApproval = answerApproval
     self.answerClarify = answerClarify
@@ -40,6 +51,8 @@ public struct TranscriptItemActions: Sendable {
     self.retry = retry
     self.openAttachment = openAttachment
     self.copy = copy
+    self.messageMenu = messageMenu
+    self.chooseMessageAction = chooseMessageAction
   }
 
   /// Does nothing but copy.

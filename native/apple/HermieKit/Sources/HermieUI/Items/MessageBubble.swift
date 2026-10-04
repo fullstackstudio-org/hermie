@@ -150,6 +150,10 @@ struct MessageBubble<Content: View>: View {
       .padding(.vertical, ChatSpacing.bubbleInsetV)
       .background(fill, in: BubbleShape(side: side, tail: tail))
       .contentShape(BubbleShape(side: side, tail: false))
+      #if os(iOS)
+        // The lift of the message's menu is the bubble, not the rectangle around it.
+        .contentShape(.contextMenuPreview, BubbleShape(side: side, tail: false))
+      #endif
   }
 }
 

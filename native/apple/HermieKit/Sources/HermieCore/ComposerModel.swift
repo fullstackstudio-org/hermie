@@ -233,6 +233,30 @@ public final class ComposerModel {
   /// for the next Return.
   public var held = false
 
+  /// Moves each time words are put back in the field from outside (`editAndResend`): the field takes focus,
+  /// so the reader can change them and send.
+  public private(set) var focusRequests = 0
+
+  /**
+   Edit and resend: the words of one of the reader's own turns come back in the field, after whatever
+   is already there (a draft is never thrown away for them). The turn in the chat is left where it is;
+   what is sent from here is a new one.
+
+   Refused, with nothing changed, while an interactive request has the composer (`held`: words typed
+   into the field then could leave as the answer to a secure prompt) or a turn runs, and for words
+   that are nothing but space. Returns whether the words were put back.
+   */
+  @discardableResult
+  public func editAndResend(_ words: String) -> Bool {
+    guard !held, !chat.turnActive, !words.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty else {
+      return false
+    }
+
+    putDraft(trimmedDraft.isEmpty ? words : draft + "\n" + words)
+    focusRequests += 1
+    return true
+  }
+
   /// What the person typed into the field. Refused while `held`: the field shows the draft again.
   public func type(_ text: String) {
     guard !held else {

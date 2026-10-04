@@ -118,6 +118,10 @@ public struct ComposerView: View {
         AccessibilityNotification.Announcement(Self.announcement(entry.event)).post()
       }
     }
+    // Words put back from a message's menu (Edit and resend): the caret goes to the field.
+    .onChange(of: model.focusRequests) { _, _ in
+      focusRequest += 1
+    }
     .accessibilityElement(children: .contain)
     .accessibilityIdentifier("composer")
   }

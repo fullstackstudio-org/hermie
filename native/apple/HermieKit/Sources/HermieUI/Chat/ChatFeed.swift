@@ -90,6 +90,11 @@ final class ChatFeed: ChatScreenFeed {
   private(set) var attachmentNotice: AttachmentOpenResult?
   /// What the last Retry did, for the tests and a line over the chat when it sent nothing.
   private(set) var lastRetry: RetryOutcome?
+  /// Why the last Branch from here did not go through, for a line over the chat.
+  private(set) var branchFailure: String?
+  /// Where the conversation Branch from here made is opened. The screen sets it (it owns the router);
+  /// with none the branch is made and nothing opens.
+  @ObservationIgnored var openConversation: (@MainActor (Conversation) -> Void)?
   /// This chat's session skips approval requests (`ChatModel.yolo`), set only when it changes: the
   /// title's capsule and the options menu's switch read it, and nothing else on the screen does.
   private(set) var yolo = false
@@ -171,6 +176,10 @@ final class ChatFeed: ChatScreenFeed {
 
     if standardActions {
       built.retry = { [weak self] item in self?.retry(item) }
+      built.messageMenu = { [weak self] item in
+        self?.messageMenu(for: item) ?? MessageMenu.menu(for: item, context: .readOnly)
+      }
+      built.chooseMessageAction = { [weak self] action, item in self?.chooseMessageAction(action, item) }
       built.openAttachment = { [weak self] reference in self?.openAttachment(reference) }
     }
 
@@ -188,6 +197,67 @@ final class ChatFeed: ChatScreenFeed {
 
     Task {
       lastRetry = await model.retryTurn(of: item.id, authors: authors)
+    }
+  }
+
+  // MARK: The message menu
+
+  /// What a message's menu offers now: read when the menu opens, because a row is not redrawn when the
+  /// newest reply moves on or a turn starts. Nothing that sends, types or forks while a request has
+  /// the composer (HERM-251).
+  func messageMenu(for item: TranscriptItem) -> MessageMenu {
+    MessageMenu.menu(
+      for: item,
+      context: model.menuContext(
+        authors: session.retryAuthors, blocked: requestUp || composer.held, canEdit: true, canBranch: true))
+  }
+
+  /// A line of the menu other than the copies was chosen. The menu is worked out again first: it was
+  /// built when it opened, and the chat can have moved on while it was up.
+  func chooseMessageAction(_ action: MessageMenu.Action, _ item: TranscriptItem) {
+    guard messageMenu(for: item).entry(action)?.enabled == true else {
+      return
+    }
+
+    switch action {
+    case .regenerate:
+      regenerate(item.id)
+    case .editResend:
+      if let words = MessageMenu.editResendDraft(of: item) {
+        composer.editAndResend(words)
+      }
+    case .branch:
+      branch(item.id)
+    case .copyText, .copyMarkdown:
+      break
+    }
+  }
+
+  /// Regenerate on the newest reply: its prompt goes out again, as Retry does on a failed one.
+  private func regenerate(_ itemID: String) {
+    let model = self.model
+    let authors = session.retryAuthors
+
+    Task {
+      lastRetry = await model.regenerate(itemID, authors: authors)
+    }
+  }
+
+  /// Branch from here: the conversation is forked at this message and the new one opens. A refusal is
+  /// a line over the chat.
+  private func branch(_ itemID: String) {
+    let model = self.model
+
+    Task {
+      switch await model.branch(from: itemID) {
+      case .branched(let conversation):
+        branchFailure = nil
+        openConversation?(conversation)
+      case .failed(let reason):
+        branchFailure = reason
+      case .nothing:
+        break
+      }
     }
   }
 
@@ -213,6 +283,7 @@ final class ChatFeed: ChatScreenFeed {
     attachmentNotice = nil
     lastRetry = nil
     yoloFailure = nil
+    branchFailure = nil
   }
 
   /// The reader asked for YOLO mode on or off. Turning it on asks first (`confirmingYolo`); turning

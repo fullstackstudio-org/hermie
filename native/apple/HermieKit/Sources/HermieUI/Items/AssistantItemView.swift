@@ -91,6 +91,7 @@ struct AssistantItemView: View {
           MessageBubble(side: .incoming, tail: closesGroup, fill: BubblePalette.incoming) {
             words
           }
+          .messageMenu(for: .assistant(item))
         }
       }
       if let error = item.error {
@@ -100,7 +101,7 @@ struct AssistantItemView: View {
     .accessibilityElement(children: .contain)
     .accessibilityActions {
       if hasBody {
-        Button(Strings.Chat.Menu.copyText) { actions.copy(item.text) }
+        MessageMenuItems(item: .assistant(item), flattensLinks: true)
       }
     }
   }
@@ -115,6 +116,10 @@ struct AssistantItemView: View {
       }
     }
     .environment(\.markdownFillsWidth, false)
+    #if os(iOS)
+      // A long press on the bubble is the message's menu, not the start of a selection.
+      .environment(\.markdownSelectable, false)
+    #endif
     .foregroundStyle(item.interim ? .secondary : .primary)
   }
 
