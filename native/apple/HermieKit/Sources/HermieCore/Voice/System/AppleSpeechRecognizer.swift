@@ -60,7 +60,7 @@ public final class AppleSpeechRecognizer: DictationEngine {
 
   /// The system's speech recognition prompt. Asked from a nonisolated function: the system answers on a
   /// queue of its own, and a closure formed on the main actor would be checked to run on it.
-  private nonisolated static func speechAuthorised() async -> Bool {
+  nonisolated static func speechAuthorised() async -> Bool {
     await withCheckedContinuation { (continuation: CheckedContinuation<Bool, Never>) in
       SFSpeechRecognizer.requestAuthorization { status in
         continuation.resume(returning: status == .authorized)

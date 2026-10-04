@@ -47,9 +47,12 @@ extension TranscriptStore {
     text: String,
     attachments: [String]? = nil,
     outgoing: [OutgoingAttachment] = [],
-    display: String? = nil
+    display: String? = nil,
+    extra: JSONObject = [:]
   ) async throws -> String? {
-    switch try await submit(key, text: text, attachments: attachments, outgoing: outgoing, display: display) {
+    switch try await submit(
+      key, text: text, attachments: attachments, outgoing: outgoing, display: display, extra: extra)
+    {
     case .submitted(let itemID): itemID
     case .parked: nil
     }
@@ -75,7 +78,8 @@ extension TranscriptStore {
   }
 
   /// One send. `parkAs` parks it under an id it already had (a drained prompt that met a new turn);
-  /// `follow` records what becomes of it when it is parked, from the moment it is.
+  /// `follow` records what becomes of it when it is parked, from the moment it is. `extra` goes on
+  /// `prompt.submit` beside the words (voice mode's `surface` and `voice_context`), parked or not.
   func submit(
     _ key: String,
     text: String,
@@ -83,7 +87,8 @@ extension TranscriptStore {
     parkAs: String? = nil,
     follow: Bool = false,
     outgoing: [OutgoingAttachment] = [],
-    display: String? = nil
+    display: String? = nil,
+    extra: JSONObject = [:]
   ) async throws -> SendReceipt {
     let author = options.ownAuthor()
     // What the bubble records: the references the gateway's own row will carry. A file is also named
@@ -118,6 +123,10 @@ extension TranscriptStore {
           self.queuedOutgoing[id] = outgoing
         }
 
+        if !extra.isEmpty {
+          self.queuedExtra[id] = extra
+        }
+
         if follow {
           self.followedPrompts[id] = .parked
         }
@@ -143,7 +152,11 @@ extension TranscriptStore {
       runtimeID = runtime
     }
 
-    let params: JSONValue = ["session_id": .string(runtimeID), "profile": .string(key), "text": .string(body)]
+    var fields = extra
+    fields["session_id"] = .string(runtimeID)
+    fields["profile"] = .string(key)
+    fields["text"] = .string(body)
+    let params = JSONValue.object(fields)
 
     do {
       // Images first: the gateway queues them onto the next turn, so the order matters.
@@ -271,13 +284,14 @@ extension TranscriptStore {
     }
 
     let outgoing = queuedOutgoing.removeValue(forKey: taken.id) ?? []
+    let extra = queuedExtra.removeValue(forKey: taken.id) ?? [:]
 
     // A failed send painted its own failure; putting the message back would
     // start a loop against a gateway that is refusing it. One that met a new
     // turn is parked again under the id it had.
     do {
       let receipt = try await submit(
-        key, text: taken.text, attachments: taken.attachments, parkAs: taken.id, outgoing: outgoing)
+        key, text: taken.text, attachments: taken.attachments, parkAs: taken.id, outgoing: outgoing, extra: extra)
 
       if case .submitted(let itemID) = receipt {
         settleFollowed(taken.id, .submitted(itemID: itemID))
@@ -294,6 +308,7 @@ extension TranscriptStore {
     }
 
     queuedOutgoing[id] = nil
+    queuedExtra[id] = nil
     settleFollowed(id, .withdrawn)
     return taken.text
   }
@@ -301,6 +316,7 @@ extension TranscriptStore {
   public func deleteQueued(_ key: String, _ id: String) {
     if takeQueued(key, id) != nil {
       queuedOutgoing[id] = nil
+      queuedExtra[id] = nil
       settleFollowed(id, .withdrawn)
     }
   }
@@ -329,6 +345,9 @@ extension TranscriptStore {
     guard queuedOutgoing[id] == nil, let taken = takeQueued(key, id) else {
       return .rejected
     }
+
+    // A steer joins the running turn, which was submitted with its own fields.
+    queuedExtra[id] = nil
 
     steering[key, default: 0] += 1
 

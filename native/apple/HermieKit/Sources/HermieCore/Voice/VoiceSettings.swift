@@ -25,6 +25,10 @@ public final class VoiceSettings {
   public static let defaultRate = 1.0
   /// "The device's own language", as the dictation language setting stores it.
   public static let automatic = "auto"
+  /// The stops on voice mode's pause control, in seconds.
+  public static let silenceSteps: [Double] = [0.8, 1.2, 2, 3]
+  public static let defaultSilence = 1.2
+  public static let defaultExpressivity = 0.5
 
   /// Speaking rate, 1 being the platform's own normal.
   public private(set) var rate = VoiceSettings.defaultRate
@@ -35,11 +39,24 @@ public final class VoiceSettings {
   /// The identifier of the voice replies are read in when it fits the reply's language; nil lets the
   /// system choose by the language of the reply.
   public private(set) var voiceIdentifier: String?
-  /// Show what voice mode heard for a moment before it sends it. Stored with the others so a voice
-  /// mode finds it; nothing in dictation reads it, because dictation never sends by itself.
+  /// Voice mode shows what it heard, with Send, Edit and Discard, before it sends it. Dictation does
+  /// not read it: dictation never sends by itself.
   public private(set) var confirmBeforeSending = true
   /// Stop reading when the app goes to the background.
   public private(set) var stopOnBackground = true
+  /// Voice mode: how long a pause ends what the reader is saying, in seconds (`silenceSteps`).
+  public private(set) var voiceModeSilence = VoiceSettings.defaultSilence
+  /// Voice mode: speaking while a reply is read cuts it off and listens (where the device can tell
+  /// the reader's voice from its own speaker's).
+  public private(set) var voiceModeBargeIn = true
+  /// Voice mode: the words being heard and said, small under the orb.
+  public private(set) var voiceModeCaptions = true
+  /// Voice mode: the orb the call screen draws.
+  public private(set) var voiceModeOrb = VoiceOrbStyle.clouds
+  /// Voice mode's setup screen has been through once (it comes first, the first time).
+  public private(set) var voiceModeSetUp = false
+  /// How much the voice's pitch moves, 0 (flat) to 1: the setup screen's Expressivity.
+  public private(set) var expressivity = VoiceSettings.defaultExpressivity
   /// The chats that read each finished reply without being asked: `<bot>@<gateway id>`.
   public private(set) var autoReadChats: Set<String> = []
   public private(set) var loaded = false
@@ -87,6 +104,12 @@ public final class VoiceSettings {
     voiceIdentifier = blob[Field.voice]?.stringValue.flatMap { $0.isEmpty ? nil : $0 }
     confirmBeforeSending = blob[Field.confirm]?.boolValue != false
     stopOnBackground = blob[Field.stopOnBackground]?.boolValue != false
+    voiceModeSilence = Self.clamped(silence: blob[Field.silence]?.doubleValue) ?? Self.defaultSilence
+    voiceModeBargeIn = blob[Field.bargeIn]?.boolValue != false
+    voiceModeCaptions = blob[Field.captions]?.boolValue != false
+    voiceModeOrb = blob[Field.orb]?.stringValue.flatMap(VoiceOrbStyle.init(rawValue:)) ?? .clouds
+    voiceModeSetUp = blob[Field.setUp]?.boolValue == true
+    expressivity = Self.clamped(expressivity: blob[Field.expressivity]?.doubleValue) ?? Self.defaultExpressivity
 
     let chats = (blob[Field.autoRead]?.objectValue ?? [:]).filter { $0.value.boolValue == true }
     autoReadChats = Set(chats.keys)
@@ -100,6 +123,24 @@ public final class VoiceSettings {
     }
 
     return min(rateSteps[rateSteps.count - 1], max(rateSteps[0], rate))
+  }
+
+  /// A pause between the shortest and the longest stop; nil for what is not a number.
+  public static func clamped(silence: Double?) -> Double? {
+    guard let silence, silence.isFinite else {
+      return nil
+    }
+
+    return min(silenceSteps[silenceSteps.count - 1], max(silenceSteps[0], silence))
+  }
+
+  /// Expressivity between 0 and 1; nil for what is not a number.
+  public static func clamped(expressivity: Double?) -> Double? {
+    guard let expressivity, expressivity.isFinite else {
+      return nil
+    }
+
+    return min(1, max(0, expressivity))
   }
 
   /// `automatic`, or something shaped like a BCP-47 tag (`nl`, `nl-NL`, `zh-Hans-CN`). Nil otherwise.
@@ -138,6 +179,30 @@ public final class VoiceSettings {
     change { $0.stopOnBackground = value }
   }
 
+  public func setVoiceModeSilence(_ value: Double) {
+    change { $0.voiceModeSilence = Self.clamped(silence: value) ?? Self.defaultSilence }
+  }
+
+  public func setVoiceModeBargeIn(_ value: Bool) {
+    change { $0.voiceModeBargeIn = value }
+  }
+
+  public func setVoiceModeCaptions(_ value: Bool) {
+    change { $0.voiceModeCaptions = value }
+  }
+
+  public func setVoiceModeOrb(_ value: VoiceOrbStyle) {
+    change { $0.voiceModeOrb = value }
+  }
+
+  public func setVoiceModeSetUp(_ value: Bool) {
+    change { $0.voiceModeSetUp = value }
+  }
+
+  public func setExpressivity(_ value: Double) {
+    change { $0.expressivity = Self.clamped(expressivity: value) ?? Self.defaultExpressivity }
+  }
+
   /// The key a chat is kept under in `autoReadChats`.
   public static func chatKey(bot: String, gatewayID: String) -> String {
     GatewayNamespace(gatewayID).key(bot)
@@ -169,6 +234,11 @@ public final class VoiceSettings {
       $0.voiceIdentifier = nil
       $0.confirmBeforeSending = true
       $0.stopOnBackground = true
+      $0.voiceModeSilence = Self.defaultSilence
+      $0.voiceModeBargeIn = true
+      $0.voiceModeCaptions = true
+      $0.voiceModeOrb = .clouds
+      $0.expressivity = Self.defaultExpressivity
       $0.autoReadChats = []
     }
   }
@@ -182,7 +252,16 @@ public final class VoiceSettings {
     static let confirm = "confirmBeforeSending"
     static let stopOnBackground = "stopOnBackground"
     static let autoRead = "autoReadChats"
-    static let all = [rate, dictationLanguage, voice, confirm, stopOnBackground, autoRead]
+    static let silence = "voiceModeSilence"
+    static let bargeIn = "voiceModeBargeIn"
+    static let captions = "voiceModeCaptions"
+    static let orb = "voiceModeOrb"
+    static let setUp = "voiceModeSetUp"
+    static let expressivity = "expressivity"
+    static let all = [
+      rate, dictationLanguage, voice, confirm, stopOnBackground, autoRead, silence, bargeIn, captions, orb, setUp,
+      expressivity
+    ]
   }
 
   private func change(_ edit: (VoiceSettings) -> Void) {
@@ -203,7 +282,9 @@ public final class VoiceSettings {
   private var fingerprint: [String] {
     [
       String(rate), dictationLanguage, voiceIdentifier ?? "", String(confirmBeforeSending),
-      String(stopOnBackground), autoReadChats.sorted().joined(separator: "\n")
+      String(stopOnBackground), autoReadChats.sorted().joined(separator: "\n"), String(voiceModeSilence),
+      String(voiceModeBargeIn), String(voiceModeCaptions), voiceModeOrb.rawValue, String(voiceModeSetUp),
+      String(expressivity)
     ]
   }
 
@@ -218,6 +299,12 @@ public final class VoiceSettings {
 
     blob[Field.confirm] = .bool(confirmBeforeSending)
     blob[Field.stopOnBackground] = .bool(stopOnBackground)
+    blob[Field.silence] = .number(voiceModeSilence)
+    blob[Field.bargeIn] = .bool(voiceModeBargeIn)
+    blob[Field.captions] = .bool(voiceModeCaptions)
+    blob[Field.orb] = .string(voiceModeOrb.rawValue)
+    blob[Field.setUp] = .bool(voiceModeSetUp)
+    blob[Field.expressivity] = .number(expressivity)
     blob[Field.autoRead] = .object(JSONObject(uniqueKeysWithValues: autoReadChats.map { ($0, JSONValue.bool(true)) }))
     return blob
   }
@@ -240,4 +327,11 @@ public final class VoiceSettings {
   public func settled() async {
     await writing?.value
   }
+}
+
+/// The orb voice mode's call screen draws: a sphere of drifting clouds, or a glowing core of light
+/// with rings around it. Both say the same things (listening, thinking, speaking, muted).
+public enum VoiceOrbStyle: String, Sendable, CaseIterable {
+  case clouds
+  case light
 }

@@ -32,6 +32,7 @@ public final class AppleSpeechSynthesizer: NSObject, SpeechSynthesizing, AVSpeec
     let utterance = AVSpeechUtterance(string: request.text)
     utterance.rate = Self.engineRate(forMultiplier: rate)
     utterance.voice = Self.voice(named: voice, language: request.language)
+    utterance.pitchMultiplier = Float(request.pitch)
 
     current = (ObjectIdentifier(utterance), onDone)
     SpeechAudioSession.beginPlayback()
@@ -46,8 +47,50 @@ public final class AppleSpeechSynthesizer: NSObject, SpeechSynthesizing, AVSpeec
   }
 
   public func voices() -> [SpeechVoice] {
+    Self.installedVoices()
+  }
+
+  public func personalVoiceAccess() -> PersonalVoiceAccess {
+    Self.personalVoiceAccess(AVSpeechSynthesizer.personalVoiceAuthorizationStatus)
+  }
+
+  public func requestPersonalVoiceAccess() async -> PersonalVoiceAccess {
+    Self.personalVoiceAccess(await Self.askPersonalVoice())
+  }
+
+  /// The system's Personal Voice prompt, answered on a queue of its own.
+  private nonisolated static func askPersonalVoice() async -> AVSpeechSynthesizer.PersonalVoiceAuthorizationStatus {
+    await withCheckedContinuation { (continuation: CheckedContinuation<AVSpeechSynthesizer.PersonalVoiceAuthorizationStatus, Never>) in
+      AVSpeechSynthesizer.requestPersonalVoiceAuthorization { status in
+        continuation.resume(returning: status)
+      }
+    }
+  }
+
+  static func personalVoiceAccess(_ status: AVSpeechSynthesizer.PersonalVoiceAuthorizationStatus) -> PersonalVoiceAccess {
+    switch status {
+    case .authorized: .granted
+    case .denied: .denied
+    case .notDetermined: .notAsked
+    case .unsupported: .unsupported
+    @unknown default: .unsupported
+    }
+  }
+
+  /// Every voice on this device, the reader's Personal Voice among them once it may be used.
+  nonisolated static func installedVoices() -> [SpeechVoice] {
     AVSpeechSynthesisVoice.speechVoices()
-      .map { SpeechVoice(id: $0.identifier, name: $0.name, language: $0.language) }
+      .map { voice in
+        let quality: SpeechVoice.Quality =
+          switch voice.quality {
+          case .premium: .premium
+          case .enhanced: .enhanced
+          default: .compact
+          }
+        return SpeechVoice(
+          id: voice.identifier, name: voice.name, language: voice.language, quality: quality,
+          personal: voice.voiceTraits.contains(.isPersonalVoice))
+      }
       .sorted { ($0.language, $0.name) < ($1.language, $1.name) }
   }
 
@@ -62,7 +105,7 @@ public final class AppleSpeechSynthesizer: NSObject, SpeechSynthesizing, AVSpeec
 
   /// The voice the reader named, when it can read this reply's language; else the best the system has
   /// for that language; else nil, which is the device's own.
-  private static func voice(named identifier: String?, language: String?) -> AVSpeechSynthesisVoice? {
+  nonisolated static func voice(named identifier: String?, language: String?) -> AVSpeechSynthesisVoice? {
     if let identifier, let chosen = AVSpeechSynthesisVoice(identifier: identifier),
       language == nil || sameLanguage(chosen.language, language ?? "")
     {

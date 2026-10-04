@@ -10,9 +10,18 @@ import Foundation
  does not dictate while a reply is read, and reading does not start while it listens), so a plain
  category switch on each start is enough.
  */
+@MainActor
 enum SpeechAudioSession {
+  /// Voice mode has the session for a call (`AppleVoiceModeEngine`): reading and dictation leave it
+  /// alone until the call hands it back.
+  static var heldByCall = false
+
   /// Before something is spoken.
   static func beginPlayback() {
+    guard !heldByCall else {
+      return
+    }
+
     #if os(iOS)
       let session = AVAudioSession.sharedInstance()
       try? session.setCategory(.playback, mode: .spokenAudio, options: [.duckOthers])
@@ -22,6 +31,10 @@ enum SpeechAudioSession {
 
   /// Before the microphone is opened. Throws where the session cannot be recorded on (a call is up).
   static func beginRecording() throws {
+    guard !heldByCall else {
+      return
+    }
+
     #if os(iOS)
       let session = AVAudioSession.sharedInstance()
       try session.setCategory(.record, mode: .measurement, options: [])
@@ -31,6 +44,10 @@ enum SpeechAudioSession {
 
   /// After either: the audio goes back to whatever was playing.
   static func end() {
+    guard !heldByCall else {
+      return
+    }
+
     #if os(iOS)
       try? AVAudioSession.sharedInstance().setActive(false, options: .notifyOthersOnDeactivation)
     #endif

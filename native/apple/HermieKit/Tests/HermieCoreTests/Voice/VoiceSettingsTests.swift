@@ -48,6 +48,42 @@ import Testing
     #expect(again.autoRead(bot: "hermes", gatewayID: "g1"))
   }
 
+  @Test func voiceModesChoicesSurviveARelaunchAndAreClamped() async throws {
+    let keyValues = try open()
+    let settings = VoiceSettings(keyValues: keyValues)
+    await settings.hydrate()
+
+    #expect(settings.voiceModeSilence == 1.2)
+    #expect(settings.voiceModeBargeIn)
+    #expect(settings.voiceModeCaptions)
+    #expect(settings.voiceModeOrb == .clouds)
+    #expect(!settings.voiceModeSetUp)
+    #expect(settings.expressivity == 0.5)
+
+    settings.setVoiceModeSilence(9)
+    settings.setVoiceModeBargeIn(false)
+    settings.setVoiceModeCaptions(false)
+    settings.setVoiceModeOrb(.light)
+    settings.setVoiceModeSetUp(true)
+    settings.setExpressivity(-1)
+    await settings.settled()
+
+    let again = VoiceSettings(keyValues: keyValues)
+    await again.hydrate()
+
+    #expect(again.voiceModeSilence == 3, "clamped to the longest stop")
+    #expect(!again.voiceModeBargeIn)
+    #expect(!again.voiceModeCaptions)
+    #expect(again.voiceModeOrb == .light)
+    #expect(again.voiceModeSetUp)
+    #expect(again.expressivity == 0)
+
+    again.reset()
+    #expect(again.voiceModeSilence == 1.2)
+    #expect(again.voiceModeOrb == .clouds)
+    #expect(again.voiceModeSetUp, "having been through the setup is not a choice to reset")
+  }
+
   @Test func theBlobKeepsWhatElseWasInIt() async throws {
     let keyValues = try open()
     try await keyValues.setString(#"{"rate":0.75,"somethingTheExpoAppKeeps":"yes"}"#, forKey: StoreKeys.voice)

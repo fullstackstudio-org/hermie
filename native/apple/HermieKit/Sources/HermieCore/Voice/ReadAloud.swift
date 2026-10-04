@@ -11,25 +11,42 @@ public struct ReadRequest: Sendable, Equatable {
   public var text: String
   /// A BCP-47 tag, or nil for the device's own voice.
   public var language: String?
+  /// The voice's pitch, 1 being its own (`VoiceProsody`).
+  public var pitch: Double
 
-  public init(id: String, text: String, language: String? = nil) {
+  public init(id: String, text: String, language: String? = nil, pitch: Double = 1) {
     self.id = id
     self.text = text
     self.language = language
+    self.pitch = pitch
   }
 }
 
 /// A voice the synthesiser can read in, for the settings picker.
 public struct SpeechVoice: Sendable, Equatable, Identifiable {
+  /// How good a voice sounds, as the system grades it: an enhanced or premium voice is a download.
+  public enum Quality: Int, Sendable, Comparable {
+    case compact = 0
+    case enhanced = 1
+    case premium = 2
+
+    public static func < (left: Quality, right: Quality) -> Bool { left.rawValue < right.rawValue }
+  }
+
   public var id: String
   public var name: String
   /// A BCP-47 tag.
   public var language: String
+  public var quality: Quality
+  /// The reader's own Personal Voice, made on this device and kept on it.
+  public var personal: Bool
 
-  public init(id: String, name: String, language: String) {
+  public init(id: String, name: String, language: String, quality: Quality = .compact, personal: Bool = false) {
     self.id = id
     self.name = name
     self.language = language
+    self.quality = quality
+    self.personal = personal
   }
 }
 
@@ -46,6 +63,10 @@ public protocol SpeechSynthesizing: AnyObject {
   func stop()
   /// The voices this device has, as BCP-47 tags.
   func voices() -> [SpeechVoice]
+  /// Whether the reader's Personal Voice may be read with.
+  func personalVoiceAccess() -> PersonalVoiceAccess
+  /// Ask the system for it (its prompt), and wait.
+  func requestPersonalVoiceAccess() async -> PersonalVoiceAccess
 }
 
 /// A reply the automatic read may offer: the visible, finished ones, as the transcript shows them.
@@ -117,6 +138,8 @@ public final class ReadAloudModel {
   @ObservationIgnored private var generation = 0
   /// Dictation has the microphone (and the audio session): nothing is read until it lets go.
   @ObservationIgnored public var blocked: @MainActor () -> Bool = { false }
+  /// The last thing in line has been said (not called for a `stop()`): voice mode listens again.
+  @ObservationIgnored public var onDrained: (@MainActor () -> Void)?
 
   // The automatic read's bookkeeping.
   @ObservationIgnored private var seeded = false
@@ -165,7 +188,9 @@ public final class ReadAloudModel {
   /// mid-conversation. Where the guess declines (most short replies) the device's own voice is right.
   func request(id: String, markdown: String) -> ReadRequest {
     let text = MarkdownSpeech.text(markdown, codeBlock: codeBlock)
-    return ReadRequest(id: id, text: text, language: MarkdownSpeech.guessLanguage(text))
+    return ReadRequest(
+      id: id, text: text, language: MarkdownSpeech.guessLanguage(text),
+      pitch: VoiceProsody.pitch(expressivity: settings.expressivity, sentence: 0))
   }
 
   /// "Read aloud" and "Stop reading" as one gesture: a reply in flight is taken back out, anything else
@@ -246,6 +271,10 @@ public final class ReadAloudModel {
 
     speakingID = nil
     advance()
+
+    if speakingID == nil {
+      onDrained?()
+    }
   }
 
   private func publish() {
@@ -302,4 +331,20 @@ public final class ReadAloudModel {
 
     return replies[start...].filter { !offered.contains($0.id) }
   }
+}
+
+/// Whether the reader's own Personal Voice may be used to read (iOS 17 and macOS 14 on): it is made
+/// on the device, kept on it, and the system asks before an app may speak with it.
+public enum PersonalVoiceAccess: Sendable, Equatable {
+  case notAsked
+  case granted
+  case denied
+  /// This device cannot have one.
+  case unsupported
+}
+
+extension SpeechSynthesizing {
+  /// Where the synthesiser knows nothing of Personal Voice (the tests' fake).
+  public func personalVoiceAccess() -> PersonalVoiceAccess { .unsupported }
+  public func requestPersonalVoiceAccess() async -> PersonalVoiceAccess { .unsupported }
 }

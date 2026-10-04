@@ -149,6 +149,9 @@ public actor TranscriptStore {
   /// What a parked prompt carries beyond its words (an image's bytes, a file's path), by queue id.
   /// The strip only ever draws names; these leave with the entry, whichever way it leaves.
   var queuedOutgoing: [String: [OutgoingAttachment]] = [:]
+  /// What a parked prompt carries on `prompt.submit` beside its words (voice mode's `surface`), by
+  /// queue id; it leaves with the entry, as `queuedOutgoing` does.
+  var queuedExtra: [String: JSONObject] = [:]
 
   // MARK: The ingest path
 

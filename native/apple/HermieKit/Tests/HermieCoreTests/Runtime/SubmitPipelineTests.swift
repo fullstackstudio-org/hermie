@@ -115,6 +115,41 @@ private func lastUser(_ state: ChatState) -> UserItem? {
     await harness.shutdown()
   }
 
+  @Test func aCallsPromptCarriesItsSurfaceAndContextBesideTheWords() async throws {
+    let harness = try await opened()
+    let fields = ComposerModel.voiceFields(VoiceSubmission(text: "what time is it", context: "User: hi\nAssistant: hello"))
+
+    let sending = Task { try await harness.store.send(bot, text: "what time is it", extra: fields) }
+    let call = try await harness.link.pendingCall(RPC.PromptSubmit.name)
+    #expect(call.params["surface"] == "voice-call")
+    #expect(call.params["voice_context"] == "User: hi\nAssistant: hello")
+    #expect(call.params["text"] == "what time is it")
+    #expect(call.params["session_id"] == .string(Fixture.runtime), "the extras never replace the submit's own fields")
+
+    harness.link.answer(call, ["status": "streaming"])
+    _ = try await sending.value
+    await harness.shutdown()
+  }
+
+  @Test func aParkedCallPromptKeepsItsSurfaceForWhenItGoesOut() async throws {
+    let harness = try await opened()
+    harness.link.emit("message.start", session: Fixture.runtime, seq: 1)
+    await harness.settle()
+
+    let fields = ComposerModel.voiceFields(VoiceSubmission(text: "and then?", context: nil))
+    #expect(fields["voice_context"] == nil, "no context, no field")
+    _ = try await harness.store.send(bot, text: "and then?", extra: fields)
+
+    harness.link.emit("message.complete", session: Fixture.runtime, seq: 2, payload: ["text": "done"])
+    harness.link.setREST { _, _ in [] }
+    let call = try await harness.link.pendingCall(RPC.PromptSubmit.name)
+    #expect(call.params["text"] == "and then?")
+    #expect(call.params["surface"] == "voice-call")
+    harness.link.answer(call, ["status": "streaming"])
+    await harness.settle()
+    await harness.shutdown()
+  }
+
   @Test func aSteeredMessageIsPaintedAndARefusedOneGoesBackInTheQueue() async throws {
     let harness = try await opened()
     harness.link.emit("message.start", session: Fixture.runtime, seq: 1)
