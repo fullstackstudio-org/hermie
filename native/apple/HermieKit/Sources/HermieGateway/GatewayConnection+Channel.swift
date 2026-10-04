@@ -364,6 +364,10 @@ extension GatewayConnection {
     case .confirm:
       // Only a connection that announced `confirm` has someone to answer it.
       supported = options.confirm != nil
+    case .inputForm, .inputFile, .reviewDraft:
+      // Typed in HermieProtocol; nothing advertises them yet, so a gateway sends none and a stray
+      // one is answered like any method nobody handles.
+      supported = false
     case .unknown:
       supported = false
     }

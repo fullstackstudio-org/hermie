@@ -178,6 +178,8 @@ public struct ServerRequest: JSONObjectBacked {
 
 /// The typed reading of a server request. The client answers `approval`, `clarify`, the
 /// one-string prompts (`secret`, `sudo`, `vault.*`) and, where a passkey model listens, `confirm`;
+/// the interactive requests (`input.form`, `input.file`, `review.draft`) are typed here and are
+/// answered only by a connection that advertised them;
 /// everything else is `unknown`, answered `-32601` by the connection.
 public enum ServerRequestBody: Sendable, Hashable {
   case approval(ApprovalRequestParams)
@@ -188,6 +190,9 @@ public enum ServerRequestBody: Sendable, Hashable {
   case vaultCode(VaultCodeRequestParams)
   case vaultSaveLogin(VaultSaveLoginRequestParams)
   case confirm(ConfirmRequestParams)
+  case inputForm(InputFormParams)
+  case inputFile(InputFileParams)
+  case reviewDraft(ReviewDraftParams)
   case unknown(method: String, params: JSONObject)
 
   public enum Method {
@@ -199,10 +204,16 @@ public enum ServerRequestBody: Sendable, Hashable {
     public static let vaultCode = "vault.code"
     public static let vaultSaveLogin = "vault.save_login"
     public static let confirm = "confirm"
+    public static let inputForm = "input.form"
+    public static let inputFile = "input.file"
+    public static let reviewDraft = "review.draft"
+    /// The interactive requests (`contract/requests/`), in the order a connection advertises them in
+    /// `client.capabilities`' `requests`.
+    public static let interactive = [inputForm, inputFile, reviewDraft]
     /// Every server request the backend declares (`SERVER_REQUEST_METHODS`).
     public static let all = [
-      "approval", "clarify", "confirm", "preview.act", "preview.read", "secret", "sudo", "terminal.read", "tour",
-      "vault.code", "vault.save_login", "vault.unlock_prompt", "window.read"
+      "approval", "clarify", "confirm", "input.file", "input.form", "preview.act", "preview.read", "review.draft",
+      "secret", "sudo", "terminal.read", "tour", "vault.code", "vault.save_login", "vault.unlock_prompt", "window.read"
     ]
     /// The one-string prompts, answered with `ValueResult` (`''` skips).
     public static let secureInput: Set<String> = [secret, sudo, vaultUnlock, vaultCode, vaultSaveLogin]
@@ -218,6 +229,9 @@ public enum ServerRequestBody: Sendable, Hashable {
     case Method.vaultCode: self = .vaultCode(VaultCodeRequestParams(json: params))
     case Method.vaultSaveLogin: self = .vaultSaveLogin(VaultSaveLoginRequestParams(json: params))
     case Method.confirm: self = .confirm(ConfirmRequestParams(json: params))
+    case Method.inputForm: self = .inputForm(InputFormParams(json: params))
+    case Method.inputFile: self = .inputFile(InputFileParams(json: params))
+    case Method.reviewDraft: self = .reviewDraft(ReviewDraftParams(json: params))
     default: self = .unknown(method: method, params: params)
     }
   }
@@ -232,6 +246,9 @@ public enum ServerRequestBody: Sendable, Hashable {
     case .vaultCode: Method.vaultCode
     case .vaultSaveLogin: Method.vaultSaveLogin
     case .confirm: Method.confirm
+    case .inputForm: Method.inputForm
+    case .inputFile: Method.inputFile
+    case .reviewDraft: Method.reviewDraft
     case .unknown(let method, _): method
     }
   }
@@ -246,6 +263,9 @@ public enum ServerRequestBody: Sendable, Hashable {
     case .vaultCode(let params): params.json
     case .vaultSaveLogin(let params): params.json
     case .confirm(let params): params.json
+    case .inputForm(let params): params.json
+    case .inputFile(let params): params.json
+    case .reviewDraft(let params): params.json
     case .unknown(_, let params): params
     }
   }
@@ -254,7 +274,15 @@ public enum ServerRequestBody: Sendable, Hashable {
   public var isSecureInput: Bool {
     switch self {
     case .secret, .sudo, .vaultUnlock, .vaultCode, .vaultSaveLogin: true
-    case .approval, .clarify, .confirm, .unknown: false
+    case .approval, .clarify, .confirm, .inputForm, .inputFile, .reviewDraft, .unknown: false
+    }
+  }
+
+  /// One of the interactive requests of `contract/requests/`.
+  public var isInteractive: Bool {
+    switch self {
+    case .inputForm, .inputFile, .reviewDraft: true
+    case .approval, .clarify, .secret, .sudo, .vaultUnlock, .vaultCode, .vaultSaveLogin, .confirm, .unknown: false
     }
   }
 }

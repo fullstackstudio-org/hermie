@@ -481,7 +481,8 @@ enum TypedCopy {
             $0.level = p.level
             $0.passkey = p.passkey
           })
-      case .unknown: request.body
+      // Typed copies of the interactive requests live in InteractiveContractTests.
+      case .inputForm, .inputFile, .reviewDraft, .unknown: request.body
       }
     return ServerRequest(id: request.id ?? "", body)
   }
