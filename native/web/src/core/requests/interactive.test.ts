@@ -23,7 +23,14 @@ import {
 } from '../../test-support/interactive-gateway'
 import { manualTimers, type ManualTimers } from '../../test-support/secure-input-gateway'
 import type { ReplaySignal } from '../chat-controller'
-import { CANNOT_SHOW_CODE, InteractiveModel, interactiveAdvert, REFUSED_CODE, showableMethods } from './interactive'
+import {
+  ADVERTISE_INTERACTIVE_REQUESTS,
+  CANNOT_SHOW_CODE,
+  InteractiveModel,
+  interactiveAdvert,
+  REFUSED_CODE,
+  showableMethods
+} from './interactive'
 import type { DraftAnswer, FileAnswer, FormAnswer } from './interactive-types'
 
 /** A value nobody would type by accident: if it shows up anywhere but the call, it leaked. */
@@ -415,28 +422,156 @@ describe('answering', () => {
     expect(requests()).toHaveLength(1)
   })
 
-  it('ends it when the gateway says it no longer waits (expired)', async () => {
+  it('ends it when the gateway says the request already ended, without claiming it expired', async () => {
     gw.deliver('srq-1', 'input.form', formParams())
     gw.onCall.handler = () => ({ status: 'expired' })
 
     await expect(model.answer('srq-1', FORM_ANSWER)).resolves.toEqual({ kind: 'ended' })
     expect(requests()).toEqual([])
-    expect(notice('researcher')).toEqual({ kind: 'expired' })
+    // `expired` is the gateway's word for every ending: before the deadline it was not the deadline.
+    expect(notice('researcher')).toEqual({ kind: 'withdrawn' })
+    expect(engine.calls.at(-1)).toEqual({ call: 'ended', bot: 'researcher', id: 'srq-1', reason: 'withdrawn' })
+
+    // The gateway's cancel, when it comes after the reply, says why.
+    gw.cancel('srq-1', 'resolved')
+    expect(notice('researcher')).toEqual({ kind: 'answered_elsewhere' })
   })
 
-  it('does not say it was sent when a withdrawal came in while the call was on its way', async () => {
-    let release: (value: unknown) => void = () => undefined
+  describe('an answer on its way is not overruled', () => {
+    let release: (value: unknown) => void
+    let reject: (error: unknown) => void
 
-    gw.onCall.handler = () => new Promise(resolve => (release = resolve))
-    gw.deliver('srq-1', 'input.form', formParams())
+    beforeEach(() => {
+      release = () => undefined
+      reject = () => undefined
+      gw.onCall.handler = () =>
+        new Promise((resolve, fail) => {
+          release = resolve
+          reject = fail
+        })
+      gw.deliver('srq-1', 'input.form', formParams())
+      engine.calls.length = 0
+    })
 
-    const pending = model.answer('srq-1', FORM_ANSWER)
+    it('by the resolved cancel the gateway sends once this very answer settled it', async () => {
+      const pending = model.answer('srq-1', FORM_ANSWER)
 
-    gw.cancel('srq-1', 'resolved')
-    release({ status: 'ok' })
+      gw.cancel('srq-1', 'resolved')
+      // Still open while the call is out: the cancel waits for its result.
+      expect(requests()).toHaveLength(1)
+      release({ status: 'ok' })
 
-    await expect(pending).resolves.toEqual({ kind: 'closed' })
-    expect(requests()).toEqual([])
+      await expect(pending).resolves.toEqual({ kind: 'sent' })
+      expect(requests()).toEqual([])
+      expect(store.getState().notices).toEqual({})
+      expect(engine.calls).toEqual([
+        { call: 'answered', bot: 'researcher', id: 'srq-1', summary: { status: 'answered' } }
+      ])
+    })
+
+    it('by the local deadline: an answer the gateway took is answered, one it did not ends then', async () => {
+      const pending = model.answer('srq-1', FORM_ANSWER)
+
+      timers.advance(301_000)
+      expect(requests()).toHaveLength(1)
+      release({ status: 'ok' })
+      await expect(pending).resolves.toEqual({ kind: 'sent' })
+      expect(store.getState().notices).toEqual({})
+
+      gw.deliver('srq-2', 'input.form', { ...formParams(), expires_at: Math.floor(timers.now() / 1000) + 300 })
+
+      const late = model.answer('srq-2', FORM_ANSWER)
+
+      timers.advance(301_000)
+      reject(new Error('socket closed'))
+      await expect(late).resolves.toEqual({ kind: 'ended' })
+      expect(notice('researcher')).toEqual({ kind: 'expired' })
+    })
+
+    it('lets a cancel that came while the call was out end it once the gateway says it did not take the answer', async () => {
+      const pending = model.answer('srq-1', FORM_ANSWER)
+
+      gw.cancel('srq-1', 'resolved')
+      release({ status: 'expired' })
+
+      await expect(pending).resolves.toEqual({ kind: 'ended' })
+      expect(requests()).toEqual([])
+      // Somebody else's answer settled it.
+      expect(notice('researcher')).toEqual({ kind: 'answered_elsewhere' })
+
+      gw.deliver('srq-2', 'input.form', formParams())
+
+      const timedOut = model.answer('srq-2', FORM_ANSWER)
+
+      gw.cancel('srq-2', 'timeout')
+      release({ status: 'expired' })
+      await expect(timedOut).resolves.toEqual({ kind: 'ended' })
+      expect(notice('researcher')).toEqual({ kind: 'expired' })
+    })
+
+    it('ends it as may-not-have-arrived when a resolved cancel crossed a call that failed without a word', async () => {
+      const pending = model.answer('srq-1', FORM_ANSWER)
+
+      gw.cancel('srq-1', 'resolved')
+      reject(new Error('socket closed'))
+
+      await expect(pending).resolves.toEqual({ kind: 'ended' })
+      expect(notice('researcher')).toEqual({ kind: 'may_not_have_arrived' })
+    })
+
+    it('lets a cancel that came with a refusal end it', async () => {
+      const pending = model.answer('srq-1', FORM_ANSWER)
+
+      gw.cancel('srq-1', 'timeout')
+      reject(new JsonRpcGatewayError('answer refused', { code: REFUSED_CODE, data: { reason: 'field:name:required' } }))
+
+      await expect(pending).resolves.toEqual({ kind: 'ended' })
+      expect(requests()).toEqual([])
+      expect(notice('researcher')).toEqual({ kind: 'expired' })
+    })
+  })
+
+  describe('after a call that failed without the gateway’s word', () => {
+    beforeEach(async () => {
+      gw.deliver('srq-1', 'input.form', formParams())
+      gw.onCall.handler = () => {
+        throw new Error('socket closed')
+      }
+      await model.answer('srq-1', FORM_ANSWER)
+    })
+
+    it('a later "no longer waiting" says the answer may not have arrived', async () => {
+      gw.onCall.handler = () => ({ status: 'expired' })
+
+      await expect(model.answer('srq-1', FORM_ANSWER)).resolves.toEqual({ kind: 'ended' })
+      expect(notice('researcher')).toEqual({ kind: 'may_not_have_arrived' })
+    })
+
+    it('so does a reconnect that no longer lists it', () => {
+      timers.advance(1)
+      model.reconcile('rt-1', [], timers.now())
+
+      expect(requests()).toEqual([])
+      expect(notice('researcher')).toEqual({ kind: 'may_not_have_arrived' })
+    })
+
+    it('and a resolved cancel: that answer may be what settled it', () => {
+      gw.cancel('srq-1', 'resolved')
+
+      expect(notice('researcher')).toEqual({ kind: 'may_not_have_arrived' })
+    })
+
+    it('a refusal of the next answer shows the earlier one did not end it', async () => {
+      gw.onCall.handler = () => {
+        throw new JsonRpcGatewayError('answer refused', { code: REFUSED_CODE, data: { reason: 'field:name:required' } })
+      }
+
+      await model.answer('srq-1', FORM_ANSWER)
+      gw.onCall.handler = () => ({ status: 'expired' })
+      await model.answer('srq-1', FORM_ANSWER)
+
+      expect(notice('researcher')).toEqual({ kind: 'withdrawn' })
+    })
   })
 
   it('tells the engine how it ended: keys and numbers, never a value', async () => {
@@ -504,6 +639,20 @@ describe('declined', () => {
     expect(engine.calls.at(-1)).toEqual({ call: 'ended', bot: 'researcher', id: 'srq-1', reason: 'cannot_show' })
     expect(model.cannotShow('srq-1', 'no_camera')).toBe('closed')
     expect(gw.replies).toHaveLength(1)
+  })
+
+  it('does not decline while an answer is on its way: its result decides first', async () => {
+    let release: (value: unknown) => void = () => undefined
+
+    gw.onCall.handler = () => new Promise(resolve => (release = resolve))
+    gw.deliver('srq-1', 'input.form', formParams())
+
+    const pending = model.answer('srq-1', FORM_ANSWER)
+
+    expect(model.cannotShow('srq-1', 'no_camera')).toBe('busy')
+    expect(gw.declined).toEqual([])
+    release({ status: 'ok' })
+    await expect(pending).resolves.toEqual({ kind: 'sent' })
   })
 
   it('sends only a machine reason: anything else is not_supported_on_device', () => {
@@ -681,6 +830,14 @@ describe('request.cancel', () => {
     expect(engine.calls.filter(call => call.call === 'ended')).toEqual([])
   })
 
+  it('says "answered elsewhere" when another device answered it (resolved)', () => {
+    gw.deliver('srq-1', 'input.form', formParams())
+    gw.cancel('srq-1', 'resolved')
+
+    expect(requests()).toEqual([])
+    expect(notice('researcher')).toEqual({ kind: 'answered_elsewhere' })
+  })
+
   it('says "expired" for the gateway’s own timeout', () => {
     gw.deliver('srq-1', 'input.file', fileParams())
     gw.cancel('srq-1', 'timeout')
@@ -856,6 +1013,7 @@ describe('a reconnect', () => {
     gw.deliver('srq-2', 'input.form', formParams())
     gw.deliver('srq-3', 'input.form', formParams())
     timers.advance(1)
+    model.advertSettled(true)
 
     hear({ kind: 'cancel', id: 'srq-1', reason: 'timeout' })
     hear({ kind: 'open_requests', sessionId: 'rt-1', ids: ['srq-3'], askedAt: timers.now() })
@@ -871,6 +1029,146 @@ describe('a reconnect', () => {
   })
 })
 
+describe('a reconnect before the new socket’s advert is settled', () => {
+  let hear: (signal: ReplaySignal) => void
+
+  /** A page whose form is open, whose socket just went away and came back (`ready`, advert not settled yet). */
+  function reconnected(): void {
+    model.stop()
+    gw = fakeInteractiveGateway()
+    engine = recordingEngine()
+    model = new InteractiveModel({
+      gateway: gw.gateway,
+      store,
+      chatFor: id => sessions[id],
+      watchReplays: listener => {
+        hear = listener
+
+        return () => undefined
+      },
+      engine: engine.engine,
+      failWithData: gw.failWithData,
+      now: () => timers.now(),
+      timers
+    })
+    model.start()
+    model.advertSettled(true)
+    gw.deliver('srq-1', 'input.form', formParams())
+    timers.advance(1)
+    gw.status('connecting')
+    timers.advance(1)
+    gw.status('ready')
+  }
+
+  beforeEach(reconnected)
+
+  it('holds the lists the controller hears before the advert, and drops them once it is accepted', async () => {
+    // The resume and the replay ran before the advert: the gateway hid the form from this socket.
+    hear({ kind: 'open_requests', sessionId: 'rt-1', ids: [], askedAt: timers.now() })
+    expect(requests().map(request => request.id)).toEqual(['srq-1'])
+
+    timers.advance(1)
+    interactiveAdvert(model, { enabled: true }).settled(true)
+    expect(requests().map(request => request.id)).toEqual(['srq-1'])
+
+    // The list read once the advert is accepted lists it, and its re-delivered copy is the same request.
+    interactiveAdvert(model, { enabled: true }).openRequests('rt-1', ['srq-1'], timers.now())
+    gw.deliver('srq-1', 'input.form', formParams(), true)
+    expect(requests().map(request => request.id)).toEqual(['srq-1'])
+    expect(store.getState().notices).toEqual({})
+
+    await expect(model.answer('srq-1', FORM_ANSWER)).resolves.toEqual({ kind: 'sent' })
+  })
+
+  it('ignores a list asked for before the advert was accepted that arrives after it', () => {
+    const askedBefore = timers.now()
+
+    timers.advance(1)
+    model.advertSettled(true)
+    hear({ kind: 'open_requests', sessionId: 'rt-1', ids: [], askedAt: askedBefore })
+
+    expect(requests().map(request => request.id)).toEqual(['srq-1'])
+
+    // One asked for after it counts.
+    timers.advance(1)
+    hear({ kind: 'open_requests', sessionId: 'rt-1', ids: [], askedAt: timers.now() })
+    expect(requests()).toEqual([])
+    expect(notice('researcher')).toEqual({ kind: 'lapsed' })
+  })
+
+  it('counts the held lists when the advert was not accepted: this socket cannot answer them', () => {
+    hear({ kind: 'open_requests', sessionId: 'rt-1', ids: [], askedAt: timers.now() })
+    expect(requests()).toHaveLength(1)
+
+    model.advertSettled(false)
+    expect(requests()).toEqual([])
+    expect(notice('researcher')).toEqual({ kind: 'lapsed' })
+  })
+
+  it('holds again on the next socket', () => {
+    model.advertSettled(true)
+    gw.status('connecting')
+    gw.status('ready')
+    timers.advance(1)
+    hear({ kind: 'open_requests', sessionId: 'rt-1', ids: [], askedAt: timers.now() })
+
+    expect(requests()).toHaveLength(1)
+  })
+})
+
+describe('a request that ended before a chat held its session', () => {
+  let holding: Set<string>
+
+  beforeEach(() => {
+    holding = new Set()
+    model.stop()
+    gw = fakeInteractiveGateway()
+    engine = recordingEngine()
+    model = new InteractiveModel({
+      gateway: gw.gateway,
+      store,
+      chatFor: id => sessions[id],
+      watchChats: listener => {
+        chatListeners.add(listener)
+
+        return () => chatListeners.delete(listener)
+      },
+      engine: { ...engine.engine, holds: (bot, id) => holding.has(`${bot}/${id}`) },
+      failWithData: gw.failWithData,
+      now: () => timers.now(),
+      timers
+    })
+    model.start()
+  })
+
+  it('is ended on the chat once the chat shows it (a resume snapshot put it there)', () => {
+    // Declined while no chat held rt-9, and past its time while no chat held rt-9.
+    gw.deliver('srq-1', 'input.form', { ...formParams(), session_id: 'rt-9', v: 2 })
+    gw.deliver('srq-2', 'input.form', { ...formParams(), session_id: 'rt-9', expires_at: NOW_SECONDS - 1 })
+    // Waiting for its chat, and its deadline passed.
+    gw.deliver('srq-3', 'input.form', { ...formParams(), session_id: 'rt-9', expires_at: NOW_SECONDS + 5 })
+    timers.advance(6_000)
+    expect(engine.calls).toEqual([])
+
+    // The chat binds the session before the snapshot's items are in: nothing yet.
+    moveSessions({ ...sessions, 'rt-9': 'scout' })
+    expect(engine.calls).toEqual([])
+
+    holding.add('scout/srq-1').add('scout/srq-2').add('scout/srq-3')
+    moveSessions({ ...sessions })
+
+    expect(engine.calls).toEqual([
+      { call: 'ended', bot: 'scout', id: 'srq-1', reason: 'cannot_show' },
+      { call: 'ended', bot: 'scout', id: 'srq-2', reason: 'timeout' },
+      { call: 'ended', bot: 'scout', id: 'srq-3', reason: 'timeout' }
+    ])
+
+    // Once.
+    moveSessions({ ...sessions })
+    expect(engine.calls).toHaveLength(3)
+  })
+})
+
 describe('an answer and a withdrawal that cross', () => {
   it('says the answer may not have arrived', async () => {
     gw.deliver('srq-1', 'input.form', formParams())
@@ -881,6 +1179,14 @@ describe('an answer and a withdrawal that cross', () => {
     // And the gateway stopped waiting: a re-delivered copy is not opened again.
     gw.deliver('srq-1', 'input.form', formParams(), true)
     expect(requests()).toEqual([])
+  })
+
+  it('says nothing for the resolved cancel that follows an answer the gateway took', async () => {
+    gw.deliver('srq-1', 'input.form', formParams())
+    await model.answer('srq-1', FORM_ANSWER)
+    gw.cancel('srq-1', 'resolved')
+
+    expect(store.getState().notices).toEqual({})
   })
 
   it('says nothing for a Skip that crossed', async () => {
@@ -1010,6 +1316,18 @@ describe('advertising', () => {
     expect(showableMethods(['input.file'], { file: true })).toEqual(['input.file'])
     // This runtime has File and FormData, like every browser.
     expect(showableMethods(['input.file'])).toEqual(['input.file'])
+  })
+
+  it('advertises nothing by default until the sheets exist, and the methods once it is turned on', () => {
+    const list = ['approval', 'input.form', 'input.file', 'review.draft']
+
+    expect(ADVERTISE_INTERACTIVE_REQUESTS).toBe(false)
+    expect(interactiveAdvert(model).methods(list)).toEqual([])
+    expect(interactiveAdvert(model, { enabled: true }).methods(list)).toEqual([
+      'input.form',
+      'input.file',
+      'review.draft'
+    ])
   })
 })
 

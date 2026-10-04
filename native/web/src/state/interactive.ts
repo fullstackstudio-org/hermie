@@ -61,9 +61,14 @@ export type InteractiveNoticeKind =
   | { kind: 'expired' }
   /** The bot stopped asking (`request.cancel`, too many refused answers, or the chat let go of the session). */
   | { kind: 'withdrawn' }
+  /** Another device answered it (`request.cancel {reason: resolved}` while no answer from here was on its way). */
+  | { kind: 'answered_elsewhere' }
   /** It ended while the connection was down (a reconnect's `open_requests` no longer lists it): nothing was sent. */
   | { kind: 'lapsed' }
-  /** An answer went out from here as the gateway stopped waiting: the two crossed, and it may not have arrived. */
+  /**
+   * An answer went out from here and the request ended without the gateway saying it took that answer: the two
+   * crossed, or the call failed without the gateway's word before it ended. It may not have arrived.
+   */
   | { kind: 'may_not_have_arrived' }
   /** This page declined it (`4041`): `reason` is the machine reason the gateway was told, `method` the request's. */
   | { kind: 'cannot_show'; method: string; reason: string }

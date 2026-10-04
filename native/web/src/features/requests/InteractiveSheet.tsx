@@ -27,7 +27,7 @@ export interface InteractiveSheetProps {
   descriptionId: string
   onSkip: () => Promise<AnswerOutcome>
   /** Tell the gateway this page cannot show the request. */
-  onDecline: () => 'sent' | 'closed' | 'offline'
+  onDecline: () => 'sent' | 'closed' | 'offline' | 'busy'
   tapGuardMs?: number
 }
 

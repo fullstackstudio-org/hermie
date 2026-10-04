@@ -255,6 +255,8 @@ export class PasskeyModel {
   /** Bumped per socket generation (every arrival at `ready`), so a late capability answer is dropped. */
   private generation = 0
   private acceptedOnSocket = false
+  /** How many sockets went away: an advert that started under an earlier count ran on a socket that is gone. */
+  private socketsGone = 0
   /** The sessions whose open requests were read on this socket, once the level was accepted on it. */
   private readonly sessionsRead = new Set<string>()
   private nextNoticeId = 0
@@ -319,6 +321,7 @@ export class PasskeyModel {
       gateway.onStatus(status => {
         if (status !== 'ready') {
           this.wasReady = false
+          this.socketsGone += 1
           this.acceptedOnSocket = false
           this.sessionsRead.clear()
 
@@ -356,6 +359,7 @@ export class PasskeyModel {
   /** Run the two `client.capabilities` calls for the current socket. Never throws. */
   async advertise(): Promise<void> {
     const generation = ++this.generation
+    const socket = this.socketsGone
     const { gateway, webauthn } = this.options
     let first: Record<string, unknown>
 
@@ -367,6 +371,7 @@ export class PasskeyModel {
     } catch {
       if (generation === this.generation) {
         this.store.setState({ capability: { verdict: { kind: 'not_offered' }, accepted: [] } })
+        this.requestsSettled(generation, socket, false)
       }
 
       return
@@ -434,6 +439,7 @@ export class PasskeyModel {
     }
 
     this.store.setState({ capability: { verdict, accepted } })
+    this.requestsSettled(generation, socket, requestsAccepted)
 
     // The gateway hides a gated request from a connection that has not advertised it, and a resume's replay runs
     // before the second call: once a level or a method is newly accepted on a socket, the open requests of the
@@ -447,6 +453,16 @@ export class PasskeyModel {
     // routes answer 404, and the settings page reads them itself when it is opened.)
     if (offer?.enabled === true && this.store.getState().status === null && verdict.kind !== 'advertised') {
       await this.refresh()
+    }
+  }
+
+  /**
+   * Tell the interactive model what the advert of this socket came to, unless the socket it ran on is gone (the
+   * next one's advert says it).
+   */
+  private requestsSettled(generation: number, socket: number, accepted: boolean): void {
+    if (generation === this.generation && socket === this.socketsGone && !this.stopped) {
+      this.options.requests?.settled(accepted)
     }
   }
 

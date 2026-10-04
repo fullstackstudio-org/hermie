@@ -61,7 +61,12 @@ import { createMcpClient } from '../../core/mcp/client'
 import { McpModel } from '../../core/mcp/model'
 import { createPasskeyClient } from '../../core/passkey/client'
 import { PasskeyModel } from '../../core/passkey/model'
-import { InteractiveModel, interactiveAdvert } from '../../core/requests/interactive'
+import {
+  ADVERTISE_INTERACTIVE_REQUESTS,
+  ADVERTISE_INTERACTIVE_REQUESTS_KEY,
+  InteractiveModel,
+  interactiveAdvert
+} from '../../core/requests/interactive'
 import { ConnectionsModel, respondThrough } from '../../core/connections'
 import { NoticesModel } from '../../core/notices'
 import { SecureInputModel } from '../../core/requests/secure-input'
@@ -212,7 +217,14 @@ export function startSession(options: StartSessionOptions): Session {
         }),
       answered: (bot, id, summary) => chats.chats.getState().answer(bot, id, summary),
       ended: (bot, id, reason) =>
-        chats.chats.getState().dispatchEvent(bot, { type: 'request.cancel', payload: { id, reason } })
+        chats.chats.getState().dispatchEvent(bot, { type: 'request.cancel', payload: { id, reason } }),
+      holds: (bot, id) => {
+        const chat = chats.chats.getState().chats[bot]
+        const itemId = chat?.byRequestId[id]
+        const item = itemId ? chat?.items[itemId] : undefined
+
+        return item?.kind === 'request' && item.state === 'open'
+      }
     },
     failWithData,
     gatewayName: hostOf(options.baseUrl)
@@ -237,7 +249,9 @@ export function startSession(options: StartSessionOptions): Session {
       ),
     watchSessions: listener => chats.chats.subscribe(() => listener()),
     failWithData,
-    requests: interactiveAdvert(interactive)
+    requests: interactiveAdvert(interactive, {
+      enabled: ADVERTISE_INTERACTIVE_REQUESTS || options.storage.getSync(ADVERTISE_INTERACTIVE_REQUESTS_KEY) === 'on'
+    })
   })
 
   passkeys.start()

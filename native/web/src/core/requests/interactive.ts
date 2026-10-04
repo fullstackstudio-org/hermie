@@ -26,7 +26,11 @@
  *  1. **Answers.** `request.answer {id, result}`; `ok` means the gateway took it. A refused
  *     answer (`4034`) leaves the request open and says why (`refusal`); the tenth, which the
  *     gateway answers `too_many_attempts` and withdraws, ends it. A call that failed without
- *     the gateway's word leaves it open for another try. Nothing is sent while the connection
+ *     the gateway's word leaves it open for another try, and uncertain: that answer may have
+ *     arrived, so a later "no longer waiting" (a non-`ok` reply, a reconnect that no longer lists
+ *     it, a `resolved` cancel) says the answer may not have arrived rather than that it expired.
+ *     Any other non-`ok` reply means the request already ended (`expired` is the gateway's word
+ *     for every ending), and the chat is told what is known. Nothing is sent while the connection
  *     is not `ready`. Skip is `{status: "skipped"}`, only when the request is `optional`.
  *  2. **Cannot show.** A request this page cannot show (a version it does not know, a frame
  *     that is not the contract's, a form field kind it does not know, no chat, too many
@@ -38,11 +42,16 @@
  *     page's clock, and no answer is sent after it (`request.cancel` is authoritative and still
  *     closes it). A request that arrives already past its time is not shown.
  *  4. **Ending.** The deadline passing closes a request with an "expired" notice and sends
- *     nothing; `request.cancel` closes it with "expired" (`timeout`) or "withdrawn", whether
- *     it arrived live or in a reconnect's replay (`replayedCancel`). After a reconnect, a request
- *     its session's `open_requests` no longer lists ended while the page was not listening and
- *     closes with a notice saying so (`reconcile`). A cancel that crosses an answer sent from
- *     here says the answer may not have arrived.
+ *     nothing; `request.cancel` closes it with "expired" (`timeout`), "answered elsewhere"
+ *     (`resolved`: another device answered) or "withdrawn", whether it arrived live or in a
+ *     reconnect's replay (`replayedCancel`). After a reconnect, a request its session's
+ *     `open_requests` no longer lists ended while the page was not listening and closes with a
+ *     notice saying so (`reconcile`). **An answer on its way is not overruled**: the gateway sends
+ *     `request.cancel {reason: resolved}` to every client once an answer settled the request, the
+ *     one that answered included, and it can arrive before the reply to that answer; so while an
+ *     answer is in flight a cancel and the local deadline wait for the call's result, which decides
+ *     (`ok` is answered; anything else lets the cancel, or the deadline, end it). A cancel other than
+ *     `resolved` after an answer the gateway took says the answer may not have arrived.
  *  5. **Routing.** A request belongs to the chat whose runtime session is the request's
  *     `session_id`. One for a session no chat holds yet waits (a resume re-delivers open requests
  *     before it binds their session), at most 16 at once, until a chat holds it or its deadline
@@ -55,7 +64,13 @@
  *     the same refusal) never opens.
  *  7. **Advertising.** The page lists the methods it can show in the second
  *     `client.capabilities` call (`interactiveAdvert`, run by the passkey model, which owns the
- *     two calls: the second replaces what the first said).
+ *     two calls: the second replaces what the first said), but only once the sheets exist
+ *     (`ADVERTISE_INTERACTIVE_REQUESTS`). The gateway lists a request in `open_requests` only to a
+ *     connection whose advert it accepted, and a reconnect's resume and replay run before the new
+ *     socket's advert: so on a new socket the controller's `open_requests` say nothing about these
+ *     requests until the advert is settled. Once it is accepted they are read again
+ *     (`RequestsAdvert.openRequests`), and only a list asked for after that counts; when it is not,
+ *     the page cannot answer them anyway and the lists it was given count as they are.
  *
  * Texts from the request are cleaned and bounded for display by `interactive-types.ts`
  * (`displayText`), so one text cannot pass for another or paint over the sheet's own words.
@@ -97,6 +112,8 @@ export const REFUSED_CODE = 4034
 const MAX_PARKED = 16
 /** How many finished ids are remembered (rule 6). */
 const CLOSED_LIMIT = 512
+/** How many requests that ended before a chat held their session wait to be ended on that chat. */
+const UNENDED_LIMIT = 64
 /** The longest a timer waits in one go (a browser fires one past 2^31 ms at once). */
 const MAX_TIMER_MS = 2_000_000_000
 /** The longest a refusal's reason is kept and shown. */
@@ -126,12 +143,36 @@ export interface InteractiveEngine {
   answered(bot: string, id: string, summary: RequestAnswerSummary): void
   /** It ended without an answer from here and without the gateway's own `request.cancel` (expired, lapsed, declined). */
   ended(bot: string, id: string, reason: string): void
+  /**
+   * The chat `bot` shows `id` as a question still open. A request that ended here before any chat held its session
+   * is ended on the chat once one does and shows it (a resume's snapshot puts it there); without this, as soon as
+   * a chat holds the session.
+   */
+  holds?(bot: string, id: string): boolean
 }
+
+/**
+ * Whether the page lists the interactive methods in its advert. OFF until the sheets for them exist (task W2 turns
+ * this on): the stand-in can only Skip or Decline, and a gateway that knows this page can show a form would send it
+ * here instead of answering the agent `no_capable_client`.
+ */
+export const ADVERTISE_INTERACTIVE_REQUESTS = false
+
+/**
+ * The device-local setting that turns the advert on before `ADVERTISE_INTERACTIVE_REQUESTS` does, for the end-to-end
+ * tests and a developer trying the stand-in (`'on'`). It goes when the flag does.
+ */
+export const ADVERTISE_INTERACTIVE_REQUESTS_KEY = 'device.dev.advertise-interactive-requests'
 
 /** What the passkey model, which owns the two `client.capabilities` calls, needs from this model. */
 export interface RequestsAdvert {
   /** The methods to list in `requests`, given the first result's `server_requests`; none lists nothing. */
   methods(serverRequests: readonly string[]): readonly string[]
+  /**
+   * What the advert of the current socket came to: `true` when the gateway accepted methods of this page, `false`
+   * when it did not or none were listed (or the call failed). Once per socket, before `openRequests` reads.
+   */
+  settled(accepted: boolean): void
   /** A session's open requests, read again once the list was accepted. */
   openRequests(sessionId: string, ids: readonly string[], askedAt: number): void
 }
@@ -148,9 +189,16 @@ export function showableMethods(
   return INTERACTIVE_METHODS.filter(method => serverRequests.includes(method) && (method !== 'input.file' || has.file))
 }
 
-/** What the passkey model is given to advertise with, wired to a model. */
-export const interactiveAdvert = (model: Pick<InteractiveModel, 'reconcile'>): RequestsAdvert => ({
-  methods: serverRequests => showableMethods(serverRequests),
+/**
+ * What the passkey model is given to advertise with, wired to a model. `enabled` (default
+ * `ADVERTISE_INTERACTIVE_REQUESTS`) off lists no method at all.
+ */
+export const interactiveAdvert = (
+  model: Pick<InteractiveModel, 'reconcile' | 'advertSettled'>,
+  { enabled = ADVERTISE_INTERACTIVE_REQUESTS }: { enabled?: boolean } = {}
+): RequestsAdvert => ({
+  methods: serverRequests => (enabled ? showableMethods(serverRequests) : []),
+  settled: accepted => model.advertSettled(accepted),
   openRequests: (sessionId, ids, askedAt) => model.reconcile(sessionId, ids, askedAt)
 })
 
@@ -223,6 +271,11 @@ interface Closed {
   bot?: string
   /** For `declined`: what every later copy is answered with. */
   decline?: string
+  /**
+   * For `cancelled`: it closed on a reply that said only that the gateway no longer waits, and the chat was told what
+   * the page knew then; a `request.cancel` that arrives afterwards says why, and the notice is put right.
+   */
+  unheard?: boolean
 }
 
 /** A request that is open or waiting for its chat: the newest delivery and what it asks. */
@@ -240,6 +293,10 @@ interface Entry {
   version: number
   /** An answer is on its way to the gateway. */
   sending: boolean
+  /** The reason of a `request.cancel` that arrived while an answer was on its way: the call's result decides. */
+  pendingCancel: string | null
+  /** An answer went out and the call failed without the gateway's word: it may have arrived. */
+  uncertain: boolean
 }
 
 const str = (value: unknown): string => (typeof value === 'string' ? value : '')
@@ -260,6 +317,16 @@ export class InteractiveModel {
   private readonly parked = new Set<string>()
   private readonly expiries = new Map<string, unknown>()
   private readonly closed = new Map<string, Closed>()
+  /** Requests that ended here before a chat held their session, for the engine of the chat that comes to hold it. */
+  private readonly unended = new Map<string, { sessionId: string; reason: string }>()
+  /**
+   * The advert of the current socket (rule 7): `pending` until the passkey model says what it came to, and the
+   * controller's lists of open requests asked for before then are held (`heldLists`) rather than reconciled with.
+   */
+  private advert: 'pending' | 'accepted' | 'refused' = 'pending'
+  /** When the advert of this socket was accepted, on this model's clock. */
+  private acceptedAt = 0
+  private readonly heldLists = new Map<string, { ids: readonly string[]; askedAt: number }>()
   private unsubscribes: (() => void)[] = []
   private ready = false
   private started = false
@@ -306,6 +373,12 @@ export class InteractiveModel {
       }),
       gateway.onStatus((status: ConnectionStatus) => {
         this.ready = status === 'ready'
+
+        // A socket that goes away takes its advert with it: the next one's is not settled yet.
+        if (status !== 'ready') {
+          this.advert = 'pending'
+          this.heldLists.clear()
+        }
       }),
       ...(this.options.watchChats ? [this.options.watchChats(() => this.chatsChanged())] : []),
       ...(this.options.watchReplays
@@ -313,7 +386,7 @@ export class InteractiveModel {
             this.options.watchReplays(signal =>
               signal.kind === 'cancel'
                 ? this.replayedCancel(signal.id, signal.reason)
-                : this.reconcile(signal.sessionId, signal.ids, signal.askedAt)
+                : this.replayedOpenRequests(signal.sessionId, signal.ids, signal.askedAt)
             )
           ]
         : [])
@@ -349,6 +422,8 @@ export class InteractiveModel {
     this.parked.clear()
     this.expiries.clear()
     this.closed.clear()
+    this.unended.clear()
+    this.heldLists.clear()
     this.store.getState().reset()
   }
 
@@ -380,6 +455,7 @@ export class InteractiveModel {
     const skipped = 'status' in result && result.status === 'skipped'
 
     entry.sending = true
+    entry.pendingCancel = null
 
     let reply: unknown
 
@@ -396,7 +472,7 @@ export class InteractiveModel {
 
     entry.sending = false
 
-    // A `request.cancel` (or a sign-out) came in while the call was on its way: that is what ended it.
+    // A sign-out, or the chat letting go of it, came in while the call was on its way: that is what ended it.
     if (this.entries.get(id) !== entry) {
       return { kind: 'closed' }
     }
@@ -404,7 +480,8 @@ export class InteractiveModel {
     const status = isRecord(reply) ? str(reply.status) : ''
 
     if (status === 'ok') {
-      const bot = request.bot
+      // The gateway took it; a `resolved` cancel that came first was this very answer settling it.
+      const bot = this.store.getState().requests.find(open => open.id === id)?.bot ?? request.bot
 
       this.finish(id, 'answered', { skipped, bot })
       this.options.engine?.answered(bot, id, summary)
@@ -412,8 +489,9 @@ export class InteractiveModel {
       return { kind: 'sent' }
     }
 
-    // Anything but `ok` is the gateway saying it no longer waits (`expired`): nothing was taken.
-    this.endHere(id, 'cancelled', { kind: 'expired' }, 'timeout')
+    // Anything but `ok` (`expired`) is the gateway saying the request already ended, whatever ended it: nothing
+    // was taken from this call.
+    this.endedUnderAnswer(id, entry)
 
     return { kind: 'ended' }
   }
@@ -437,14 +515,19 @@ export class InteractiveModel {
    * The sheet cannot show this request (no camera and no picker, a permission denied, an upload that failed): answer
    * the JSON-RPC error `4041 cannot_show {reason}` and leave one notice on its chat. `reason` is a short machine
    * string (`no_camera`, `permission_denied`, `upload_failed`, ...); anything else is sent as `not_supported_on_device`.
-   * Nothing is sent while the connection is not ready: the request stays open.
+   * Nothing is sent while the connection is not ready, or while an answer is on its way: the request stays open.
    */
-  cannotShow(id: string, reason: string): 'sent' | 'closed' | 'offline' {
+  cannotShow(id: string, reason: string): 'sent' | 'closed' | 'offline' | 'busy' {
     const request = this.openRequest(id)
     const entry = this.entries.get(id)
 
     if (!request || !entry) {
       return 'closed'
+    }
+
+    // An answer is on its way: its result decides first.
+    if (entry.sending) {
+      return 'busy'
     }
 
     if (!this.ready) {
@@ -475,8 +558,57 @@ export class InteractiveModel {
         continue
       }
 
-      this.endHere(id, 'cancelled', { kind: 'lapsed' }, 'lapsed')
+      // An answer that failed without the gateway's word may be what ended it.
+      this.endHere(id, 'cancelled', entry.uncertain ? { kind: 'may_not_have_arrived' } : { kind: 'lapsed' }, 'lapsed')
     }
+  }
+
+  /**
+   * What the passkey model's advert came to on this socket (rule 7). Accepted: the lists the controller was given
+   * before are dropped (they could not list these requests), and the passkey model reads them again. Not accepted:
+   * this socket cannot answer them, and the lists count as they are.
+   */
+  advertSettled(accepted: boolean): void {
+    if (this.stopped) {
+      return
+    }
+
+    const held = [...this.heldLists]
+
+    this.heldLists.clear()
+
+    if (accepted) {
+      this.advert = 'accepted'
+      this.acceptedAt = this.now()
+
+      return
+    }
+
+    this.advert = 'refused'
+
+    for (const [sessionId, list] of held) {
+      this.reconcile(sessionId, list.ids, list.askedAt)
+    }
+  }
+
+  /** A resume's or a replay's `open_requests`, through the controller: counted only as the advert allows (rule 7). */
+  private replayedOpenRequests(sessionId: string, ids: readonly string[], askedAt: number): void {
+    if (this.stopped || !sessionId) {
+      return
+    }
+
+    if (this.advert === 'pending') {
+      this.heldLists.set(sessionId, { ids, askedAt })
+
+      return
+    }
+
+    // Asked for before the gateway knew this socket shows these requests: it listed none of them.
+    if (this.advert === 'accepted' && askedAt < this.acceptedAt) {
+      return
+    }
+
+    this.reconcile(sessionId, ids, askedAt)
   }
 
   /** A `request.cancel` that reached this page in a replay (`session.events.since`) rather than live. */
@@ -533,14 +665,91 @@ export class InteractiveModel {
         return { kind: 'ended' }
       }
 
+      // The gateway read this answer while the request was open: an earlier one that failed did not end it.
+      entry.uncertain = false
+
+      // ... but it ended while the refusal was on its way back.
+      if (entry.pendingCancel !== null) {
+        this.endedUnderAnswer(id, entry)
+
+        return { kind: 'ended' }
+      }
+
       this.refuse(id, entry, reason === '' ? 'refused' : reason)
 
-      return { kind: 'refused', reason: reason === '' ? 'refused' : reason }
+      return this.expiredMeanwhile(id, entry) ?? { kind: 'refused', reason: reason === '' ? 'refused' : reason }
     }
 
     // No word from the gateway (no socket, a timeout) or a word that is not a verdict on the answer: it may or may
-    // not have arrived, and the request is still open for another try.
-    return { kind: 'failed', message: error instanceof Error ? error.message : String(error) }
+    // not have arrived. The request is still open for another try, unless the gateway stopped waiting meanwhile.
+    entry.uncertain = true
+
+    if (entry.pendingCancel !== null) {
+      this.endedUnderAnswer(id, entry)
+
+      return { kind: 'ended' }
+    }
+
+    return (
+      this.expiredMeanwhile(id, entry) ?? {
+        kind: 'failed',
+        message: error instanceof Error ? error.message : String(error)
+      }
+    )
+  }
+
+  /** The deadline passed while the call was on its way (the timer left it to the call): it ends now. */
+  private expiredMeanwhile(id: string, entry: Entry): AnswerOutcome | null {
+    if (this.entries.get(id) !== entry || this.now() < entry.deadline) {
+      return null
+    }
+
+    this.expire(id)
+
+    return { kind: 'ended' }
+  }
+
+  /**
+   * The answer from here did not settle the request, and the request ended all the same: a `request.cancel` that
+   * came in while the call was on its way says why, an earlier answer that failed may be what ended it, and a reply
+   * that only says the gateway no longer waits is told as what the page knows (rule 4).
+   */
+  private endedUnderAnswer(id: string, entry: Entry): void {
+    const bot = this.store.getState().requests.find(open => open.id === id)?.bot
+
+    if (entry.pendingCancel !== null) {
+      // The gateway's own cancel reached the engine through the controller.
+      this.closeCancelled(id, entry, entry.pendingCancel)
+
+      return
+    }
+
+    const expired = this.now() >= entry.deadline
+    const notice: InteractiveNoticeKind = entry.uncertain
+      ? { kind: 'may_not_have_arrived' }
+      : expired
+        ? { kind: 'expired' }
+        : { kind: 'withdrawn' }
+
+    this.finish(id, 'cancelled', { unheard: !entry.uncertain && !expired, ...(bot === undefined ? {} : { bot }) })
+
+    if (bot !== undefined) {
+      this.show(bot, id, notice)
+      this.options.engine?.ended(bot, id, expired ? 'timeout' : 'withdrawn')
+    } else {
+      this.remember(id, entry.sessionId, expired ? 'timeout' : 'withdrawn')
+    }
+  }
+
+  /** Close a request the gateway withdrew (`request.cancel {reason}`), with the notice its reason calls for. */
+  private closeCancelled(id: string, entry: Entry | undefined, reason: string): void {
+    const bot = this.store.getState().requests.find(open => open.id === id)?.bot
+
+    this.finish(id, 'cancelled')
+
+    if (bot !== undefined) {
+      this.show(bot, id, cancelNotice(reason, entry?.uncertain === true))
+    }
   }
 
   private refuse(id: string, entry: Entry, reason: string): void {
@@ -666,6 +875,8 @@ export class InteractiveModel {
       if (bot !== undefined) {
         this.show(bot, id, { kind: 'expired' })
         this.options.engine?.ended(bot, id, 'timeout')
+      } else {
+        this.remember(id, sessionId, 'timeout')
       }
 
       return
@@ -688,7 +899,9 @@ export class InteractiveModel {
       earlierLost: reopening?.reason === 'answered' ? (reopening.skipped ? 'skip' : 'answer') : null,
       refusal: null,
       version: 0,
-      sending: false
+      sending: false,
+      pendingCancel: null,
+      uncertain: false
     }
 
     this.entries.set(id, entry)
@@ -742,6 +955,8 @@ export class InteractiveModel {
       // A resume's snapshot may already have put the question in the engine (the controller hands it every open
       // request): its item ends here, or the chat would go on needing an answer nobody can give.
       this.options.engine?.ended(bot, request.id, 'cannot_show')
+    } else {
+      this.remember(request.id, sessionId, 'cannot_show')
     }
   }
 
@@ -761,7 +976,7 @@ export class InteractiveModel {
    * again: a call made from inside a pass only asks for one more.
    */
   private chatsChanged(): void {
-    if (this.stopped || this.entries.size === 0) {
+    if (this.stopped || (this.entries.size === 0 && this.unended.size === 0)) {
       return
     }
 
@@ -784,7 +999,17 @@ export class InteractiveModel {
   }
 
   private settle(): void {
-    const { chatFor } = this.options
+    const { chatFor, engine } = this.options
+
+    // What ended before its chat held its session ends on that chat, once the chat shows it.
+    for (const [id, { sessionId, reason }] of [...this.unended]) {
+      const bot = chatFor(sessionId)
+
+      if (bot !== undefined && (engine?.holds?.(bot, id) ?? true)) {
+        this.unended.delete(id)
+        engine?.ended(bot, id, reason)
+      }
+    }
 
     for (const id of [...this.parked]) {
       const entry = this.entries.get(id)
@@ -861,43 +1086,58 @@ export class InteractiveModel {
 
   // ── the gateway stopped waiting ───────────────────────────────────────────────────────────────
 
-  /** `request.cancel`: `timeout` reads as expired, any other reason as withdrawn. */
+  /**
+   * `request.cancel`: `timeout` reads as expired, `resolved` as answered on another device, any other reason as
+   * withdrawn. One that arrives while an answer from here is on its way waits for the call's result (rule 4).
+   */
   private withdraw(id: string, reason: string): void {
     if (!id) {
       return
     }
 
-    const request = this.store.getState().requests.find(entry => entry.id === id)
+    const entry = this.entries.get(id)
 
-    if (request) {
-      this.finish(id, 'cancelled')
-      this.show(request.bot, id, reason === 'timeout' ? { kind: 'expired' } : { kind: 'withdrawn' })
+    if (entry?.sending) {
+      entry.pendingCancel = reason
 
       return
     }
 
-    if (this.entries.has(id)) {
-      this.finish(id, 'cancelled')
+    if (entry) {
+      this.closeCancelled(id, entry, reason)
 
       return
     }
 
     const done = this.closed.get(id)
 
-    // Answered from here a moment ago, and the gateway stopped waiting all the same: the two crossed, and the
-    // answer may never have been taken. Said, not swallowed; a Skip that crossed changes nothing for the reader.
-    if (done?.reason === 'answered' && !done.skipped && done.bot !== undefined) {
+    // Answered from here a moment ago, and the gateway stopped waiting for another reason than that answer: the two
+    // crossed, and the answer may never have counted. Said, not swallowed; a Skip that crossed changes nothing for
+    // the reader. `resolved` is the gateway telling every client that an answer (this one) settled it.
+    if (done?.reason === 'answered' && !done.skipped && done.bot !== undefined && reason !== 'resolved') {
       this.show(done.bot, id, { kind: 'may_not_have_arrived' })
     }
 
+    // Closed on a reply that only said the gateway no longer waits: now it says why.
+    if (done?.reason === 'cancelled' && done.unheard && done.bot !== undefined) {
+      done.unheard = false
+      this.show(done.bot, id, cancelNotice(reason, false))
+
+      return
+    }
+
     // Not here (yet, or not one of ours, or done): whatever arrives with this id later is ignored.
-    if (done?.reason !== 'declined') {
+    if (done?.reason !== 'declined' && done?.reason !== 'cancelled') {
       this.close(id, 'cancelled')
     }
   }
 
-  /** The deadline passed: close it, send nothing. */
+  /** The deadline passed: close it, send nothing. An answer on its way is left to the call's result (rule 4). */
   private expire(id: string): void {
+    if (this.entries.get(id)?.sending) {
+      return
+    }
+
     this.endHere(id, 'expired', { kind: 'expired' }, 'timeout')
   }
 
@@ -908,12 +1148,36 @@ export class InteractiveModel {
   private endHere(id: string, reason: CloseReason, notice: InteractiveNoticeKind, engineReason: string): void {
     const request = this.store.getState().requests.find(entry => entry.id === id)
 
+    const entry = this.entries.get(id)
+
     if (request) {
       this.finish(id, reason)
       this.show(request.bot, id, notice)
       this.options.engine?.ended(request.bot, id, engineReason)
-    } else if (this.entries.has(id)) {
+    } else if (entry) {
       this.finish(id, reason)
+      this.remember(id, entry.sessionId, engineReason)
+    }
+  }
+
+  /**
+   * A request that ended here while it waited for its chat: a resume's snapshot may still put its question on the
+   * chat that comes to hold its session, and that item must end too (`settle`).
+   */
+  private remember(id: string, sessionId: string, reason: string): void {
+    if (!sessionId) {
+      return
+    }
+
+    this.unended.delete(id)
+    this.unended.set(id, { sessionId, reason })
+
+    if (this.unended.size > UNENDED_LIMIT) {
+      const oldest = this.unended.keys().next().value
+
+      if (oldest !== undefined) {
+        this.unended.delete(oldest)
+      }
     }
   }
 
@@ -926,6 +1190,7 @@ export class InteractiveModel {
       this.timers.setTimeout(() => {
         this.expiries.delete(id)
 
+        // An answer on its way when the time comes: `expire` leaves it to the call's result, which looks again.
         if (this.now() >= deadline) {
           this.expire(id)
         } else if (this.entries.has(id)) {
@@ -1000,5 +1265,20 @@ export class InteractiveModel {
   private show(bot: string, requestId: string, notice: InteractiveNoticeKind): void {
     this.serial += 1
     this.store.setState(state => ({ notices: { ...state.notices, [bot]: { id: this.serial, requestId, notice } } }))
+  }
+}
+
+/**
+ * The notice a `request.cancel` reason calls for. `uncertain`: an answer from here failed without the gateway's
+ * word, so a `resolved` may be that answer settling it, or another device's.
+ */
+function cancelNotice(reason: string, uncertain: boolean): InteractiveNoticeKind {
+  switch (reason) {
+    case 'timeout':
+      return { kind: 'expired' }
+    case 'resolved':
+      return uncertain ? { kind: 'may_not_have_arrived' } : { kind: 'answered_elsewhere' }
+    default:
+      return { kind: 'withdrawn' }
   }
 }

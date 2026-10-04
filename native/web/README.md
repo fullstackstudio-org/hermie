@@ -1030,22 +1030,35 @@ of the secure input model: what a person fills in, picks or edits never reaches 
   `capture: scan` is a preference the web ignores). The passkey model owns the two calls, because the second replaces
   what the first said, so it sends that call for the methods alone when the passkey level is not on offer, and reads
   the open requests of the held sessions again once the list is accepted: the gateway hid them from a connection that
-  had not advertised.
+  had not advertised. Until the sheets exist (task P1-W2) the page advertises none of them
+  (`ADVERTISE_INTERACTIVE_REQUESTS`); the device-local setting `ADVERTISE_INTERACTIVE_REQUESTS_KEY` (`'on'`) turns the
+  advert on for the end-to-end tests. On a new socket the controller's resume and replay run before the advert, when
+  the gateway still hides these requests: their `open_requests` are held until the passkey model says what the advert
+  came to (`RequestsAdvert.settled`), dropped when it was accepted (the lists read after it count), counted when not.
 - **Reading.** `core/requests/interactive-types.ts` holds hand-written types for the three params and their answers,
   and a reader per method held to `contract/requests/examples.json` (`interactive-types.test.ts`): every text goes
   through `displayText` with its own limit, a frame the gateway never sends (ids that repeat, a default outside its
-  range, `Z` in a datetime) is declined, and a field kind this build does not know makes the form an `unknown` field,
-  declined with `4041 not_supported_on_device`. A draft's text is the one text not cleaned: it is what will be sent.
+  range, `Z` in a datetime, an `upload.dir` that is not absolute or holds `..` or a control character) is declined, and
+  a field kind this build does not know makes the form an `unknown` field, declined with
+  `4041 not_supported_on_device`; a keyboard hint it does not know is `plain`. A draft's text and a multi-line field's
+  default are not cleaned: they are what will be sent. A draft whose text the gateway's verbatim rule would refuse (a
+  tab, a control, format, bidi, private-use or unassigned character, a line separator) is declined instead.
 - **Answering** is `request.answer {id, result}`, so a refusal (`4034 data.reason`: `field:<id>:<problem>`, ...) comes
   back and leaves the request open with its reason for the sheet to show; the tenth ends it. `skip` is
   `{status: "skipped"}` and only for an `optional` input; a review has none. `cannotShow(id, reason)` answers the
   JSON-RPC error `4041 cannot_show {reason}` (never a made-up skip) and leaves one notice on its chat; a sign-out fails
-  every open request with `shutting_down`.
+  every open request with `shutting_down`. While an answer is on its way nothing overrules it: the `resolved` cancel the
+  gateway sends every client once an answer settled the request, the one that answered included, can arrive before the
+  reply, so a cancel and the local deadline wait for the call's result. A call that failed without the gateway's word
+  leaves the request uncertain: a later ending says the answer may not have arrived. A `resolved` cancel otherwise
+  says another device answered it.
 - **Deadlines** are the request's own `expires_at`; a request past it by this clock is not shown or answered. A
   request waits for its chat as a secure prompt does (16 at most, never declined for waiting), a re-delivered copy of
   one answered from here means the answer was lost, and `open_requests` reconciles after a reconnect.
 - **The engine** hears that a question was asked (title, words, `optional`) and how it ended (a summary of `status` or
-  `decision`, with `count` or `edited`), never a value: the `request` item of `@hermie/transcript`.
+  `decision`, with `count` or `edited`), never a value: the `request` item of `@hermie/transcript`. A resume's
+  snapshot hands it the same three keys, cleaned, for an interactive request (the controller drops its fields and a
+  draft's text), and a request that ended here before a chat held its session is ended on that chat once it shows it.
 - Until the sheets exist (task P1-W2) `InteractiveSheet` stands in for all three: the bot's heading and words as plain
   text, Skip when the request is optional, and Decline.
 

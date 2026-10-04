@@ -5,6 +5,7 @@
  * each phase. The whole flow against a gateway that verifies is
  * `model.integration.test.ts`.
  */
+import type { ConnectionStatus } from '@hermie/gateway-client'
 import type { GatewayEvent } from '@hermes/shared/gateway-events'
 import { JsonRpcGatewayError, type ServerRequest, type ServerRequestHandler } from '@hermes/shared/json-rpc-channel'
 import { describe, expect, it, vi } from 'vitest'
@@ -50,6 +51,7 @@ function memoryStorage(): StorageLike {
 function handGateway() {
   const handlers: ServerRequestHandler[] = []
   const listeners: ((event: GatewayEvent) => void)[] = []
+  const statusHandlers: ((status: ConnectionStatus, error: null) => void)[] = []
   const answer = vi.fn(async (_method: string, _params: unknown): Promise<unknown> => ({ status: 'ok' }))
   const gateway: PasskeyGateway = {
     request: ((method: string, params: unknown) => answer(method, params)) as PasskeyGateway['request'],
@@ -63,8 +65,9 @@ function handGateway() {
 
       return () => undefined
     },
-    // Never `ready`: nothing here advertises.
+    // `connecting` until a test says otherwise: nothing here advertises on its own.
     onStatus: handler => {
+      statusHandlers.push(handler as (status: ConnectionStatus, error: null) => void)
       handler('connecting', null)
 
       return () => undefined
@@ -74,6 +77,12 @@ function handGateway() {
   return {
     gateway,
     answer,
+    /** The socket goes to `status` (`ready` advertises, anything else is a socket gone). */
+    status(status: ConnectionStatus) {
+      for (const handler of statusHandlers) {
+        handler(status, null)
+      }
+    },
     deliver(id: string, params: Record<string, unknown>): { accepted: boolean; failed: unknown[] } {
       const failed: unknown[] = []
       const request: ServerRequest = {
@@ -1016,6 +1025,7 @@ describe('advertising the interactive requests', () => {
   ) {
     const hooks = {
       methods: vi.fn((list: readonly string[]) => showableMethods(list, { file: true })),
+      settled: vi.fn(),
       openRequests: vi.fn()
     }
     const page = setUp({
@@ -1136,16 +1146,51 @@ describe('advertising the interactive requests', () => {
     await page.model.advertise()
 
     expect(callsTo(page, 'session.events.since')).toEqual([{ session_id: 'sess-1', last_seen: 0 }])
+    // Settled first, then read: the model knows the lists it gets now are the ones that count.
+    expect(page.hooks.settled).toHaveBeenCalledExactlyOnceWith(true)
+    expect(page.hooks.settled.mock.invocationCallOrder[0]).toBeLessThan(
+      page.hooks.openRequests.mock.invocationCallOrder[0] ?? 0
+    )
     expect(page.hooks.openRequests).toHaveBeenCalledWith('sess-1', ['srq-9'], before)
   })
 
-  it('reads nothing again when the gateway accepted none of them', async () => {
+  it('reads nothing again when the gateway accepted none of them, and says the advert was not accepted', async () => {
     const page = withRequests({ passkey: false, second: () => ({ confirm: [], requests: [] }) })
 
     await page.model.advertise()
 
     expect(callsTo(page, 'session.events.since')).toEqual([])
     expect(page.hooks.openRequests).not.toHaveBeenCalled()
+    expect(page.hooks.settled).toHaveBeenCalledExactlyOnceWith(false)
+  })
+
+  it('says the advert was not accepted when nothing was listed, and when the first call fails', async () => {
+    const none = withRequests({ passkey: false, listed: ['approval'] })
+
+    await none.model.advertise()
+    expect(none.hooks.settled).toHaveBeenCalledExactlyOnceWith(false)
+
+    const settled = vi.fn()
+    const failing = setUp({ requests: { methods: () => [], settled, openRequests: vi.fn() } })
+
+    failing.answer.mockImplementation(async () => {
+      throw new Error('socket closed')
+    })
+    await failing.model.advertise()
+    expect(settled).toHaveBeenCalledExactlyOnceWith(false)
+  })
+
+  it('says nothing for an advert whose socket went away before it was settled', async () => {
+    let release: (value: unknown) => void = () => undefined
+    const page = withRequests({ passkey: false, second: () => new Promise(resolve => (release = resolve)) })
+    const pending = page.model.advertise()
+
+    await vi.waitFor(() => expect(callsTo(page, 'client.capabilities')).toHaveLength(2))
+    page.status('connecting')
+    release({ confirm: [], requests: ['input.form'] })
+    await pending
+
+    expect(page.hooks.settled).not.toHaveBeenCalled()
   })
 
   it('carries on when the second call fails', async () => {
@@ -1158,5 +1203,6 @@ describe('advertising the interactive requests', () => {
 
     await expect(page.model.advertise()).resolves.toBeUndefined()
     expect(page.store.getState().capability).toEqual({ verdict: { kind: 'not_offered' }, accepted: [] })
+    expect(page.hooks.settled).toHaveBeenCalledExactlyOnceWith(false)
   })
 })

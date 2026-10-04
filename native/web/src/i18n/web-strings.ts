@@ -527,6 +527,14 @@ export const WEB_STRINGS_SOURCE = {
       nl: ({ name }: { name: string }) => `Het verzoek van ${name} is verlopen.`,
       de: ({ name }: { name: string }) => `Die Anfrage von ${name} ist abgelaufen.`
     },
+    /** Said when a request ended while it was not known whether the answer sent from here reached the gateway. */
+    answerMayNotHaveArrived: {
+      en: ({ name }: { name: string }) => `Your answer to ${name} may not have arrived before the request ended.`,
+      nl: ({ name }: { name: string }) =>
+        `Je antwoord aan ${name} is mogelijk niet aangekomen voordat het verzoek eindigde.`,
+      de: ({ name }: { name: string }) =>
+        `Deine Antwort an ${name} ist möglicherweise nicht angekommen, bevor die Anfrage endete.`
+    },
     /** Shown over the chat when an answer did not reach the gateway. */
     answerFailed: {
       en: ({ message }: { message: string }) => `The answer was not delivered: ${message}`,

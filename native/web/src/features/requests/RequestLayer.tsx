@@ -222,8 +222,12 @@ function interactiveAnnouncement(store: StoreApi<InteractiveState>, bot: string,
       return webStrings.requests.timedOut({ name })
     case 'withdrawn':
       return webStrings.requests.withdrawn({ name })
+    case 'answered_elsewhere':
+      return webStrings.passkeys.answeredElsewhere({ name })
     case 'lapsed':
       return webStrings.secureInput.noticeLapsed({ name })
+    case 'may_not_have_arrived':
+      return webStrings.requests.answerMayNotHaveArrived({ name })
     default:
       return ''
   }
