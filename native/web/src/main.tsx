@@ -286,21 +286,33 @@ async function startApp(page: Page, ready: Ready): Promise<void> {
   /*
     The way out. Signed in: sign out at the gateway, clear this person's state, go to `/login`. No
     sign-in: forget the token (the session that holds it is stopped and dropped, the same local state is
-    cleared) and ask for it. Either way the other tabs on this gateway are told first, so they stop
+    cleared) and ask for it. Either way this browser's push registration is taken off the gateway and
+    unsubscribed first (a few seconds at most), then the other tabs on this gateway are told, so they stop
     writing into the state about to be cleared ("in this browser" means every tab).
   */
+  let leaving = false
+
   const leave = (): void => {
-    if (!end()) {
+    if (ended || leaving) {
       return
     }
 
-    page.tabs.announceForget()
+    leaving = true
 
-    if (ready.gated) {
-      void signOut({ basePath, credentials: ready.credentials, cache, store })
-    } else {
-      void forgetToken({ basePath, cache, store }).then(() => askForToken(page, ready.probe, 'forgotten'))
-    }
+    // This browser's notifications go first, while the connection that removes its row is still there.
+    void session.retirePush().then(() => {
+      if (!end()) {
+        return
+      }
+
+      page.tabs.announceForget()
+
+      if (ready.gated) {
+        void signOut({ basePath, credentials: ready.credentials, cache, store })
+      } else {
+        void forgetToken({ basePath, cache, store }).then(() => askForToken(page, ready.probe, 'forgotten'))
+      }
+    })
   }
 
   /*

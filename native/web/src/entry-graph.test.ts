@@ -43,7 +43,14 @@ const ON_DEMAND = [
   'i18n/sheet-strings.ts',
   // The chat screen and the settings pages are chunks of their own.
   'features/chat/ChatScreen.tsx',
-  'features/settings/SettingsHost.tsx'
+  'features/settings/SettingsHost.tsx',
+  // Web Push is loaded once the session has started; only the launch click's reader is in the first load.
+  'features/push/push-runtime.ts',
+  'features/settings/Notifications.tsx',
+  'core/push/sync.ts',
+  'core/push/row.ts',
+  'platform/web-push.ts',
+  'state/push.ts'
 ].map(path => join(here, path))
 
 /** The file a relative specifier names, or undefined for a package, a stylesheet or an asset. */

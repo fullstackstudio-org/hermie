@@ -73,13 +73,20 @@
  *  - **Raw documents** (point 1) instead of a snapshot projected from the
  *    stores on every read: the plan asks for unknown fields to be carried
  *    forward, and the Swift app is the reference for how.
- *  - **No push, no plugin, no settings store.** This client has no push rows yet
- *    (W-25), so the push map is carried as it came (minus the retired stamp);
- *    the plugin advert is applied by the roster read (`core/gateway-client.ts`),
- *    not here; the verbosity defaults, the name order and the theme have no store
- *    on this client (W11: theming is a device-local scheme and tint), so they are
- *    carried raw like any unknown field. `Platform.OS` is not needed: it named the
- *    push row's platform, and this page writes no push row.
+ *  - **The push map is the gateway's, with this browser's part written in**
+ *    (W-25, `core/push/row.ts`): every other device's row and heartbeat as the
+ *    gateway holds them, this browser's row and heartbeat as the push store holds
+ *    them, and the person's per-chat overrides from the store, which takes them
+ *    from every gateway copy. A change to this browser's row or heartbeat is a
+ *    chore (nobody's choice about the arrangement; it is sent behind whichever
+ *    copy wins); a change to the per-chat overrides is a choice. After every
+ *    take, a row or heartbeat the gateway's copy does not carry as this browser
+ *    holds it is marked again, so the write behind the take puts it back.
+ *  - **No plugin, no settings store.** The plugin advert is applied by the roster
+ *    read (`core/gateway-client.ts`), not here (the bridge only notes whether the
+ *    plugin reads per-chat heartbeats); the verbosity defaults, the name order
+ *    and the theme have no store on this client (W11: theming is a device-local
+ *    scheme and tint), so they are carried raw like any unknown field.
  *  - **Stores are injected** (`stores`), the page's own by default, so two pages'
  *    worth of stores can run against one gateway in a test.
  *  - **Pending bot edits survive a reload** (`UI_META_PENDING_KEY`), with their
@@ -92,6 +99,7 @@
  *    arrangement (`layout.forgetPerson`), as the Swift app does, rather than
  *    carrying it under the new name.
  */
+import { hasPluginCapability, PLUGIN_CAPABILITIES } from '@hermie/gateway-client/plugin'
 import {
   APP_UPDATED_AT,
   appStampOf,
@@ -116,9 +124,11 @@ import type { ConnectionStoreState } from '../state/connection'
 import { type AccentName, asAccentName, readArrangement } from '../state/folders'
 import { type ChatLayoutState, layoutStore } from '../state/layout'
 import { mutesOf } from '../state/mute'
+import { type PushState, pushStore } from '../state/push'
 import { type TextSizeState, textSizeStore } from '../state/text-size'
 import { type UiMetaStatusState, uiMetaStatusStore } from '../state/ui-meta-status'
 import type { ChatGateway } from './link'
+import { gatewayRowOf, perBotOfPushMap, pushMapOf } from './push/row'
 
 /** How long the reader has to stop moving before their arrangement goes out. */
 export const UI_META_DEBOUNCE_MS = 600
@@ -226,7 +236,7 @@ export const KEPT_WHEN_ABSENT: ReadonlySet<string> = new Set([
 /** App fields no build writes any more: dropped from the copy, so the next write removes them. */
 export const RETIRED_APP_FIELDS: ReadonlySet<string> = new Set(['context'])
 
-/** The push map. Its rows are other devices'; this page only carries it. */
+/** The push map: every device's row and heartbeat, and the person's per-chat overrides (`projectPush`). */
 export const PUSH_FIELD = 'push'
 
 /**
@@ -425,6 +435,55 @@ export interface UiMetaStores {
   layout: StoreApi<ChatLayoutState>
   textSize: StoreApi<TextSizeState>
   appStamp: StoreApi<AppStampState>
+  push: StoreApi<PushState>
+}
+
+/** The push map a write would carry, and the person's per-chat overrides in it: what a diff compares. */
+interface PushPrint {
+  /** The whole map as it would go out: a chore when it moves. */
+  map: string
+  /** The person's per-chat overrides: a choice when they move. */
+  perBot: string
+}
+
+/**
+ * The push map a write of the app section carries: the gateway's (`held`, the
+ * map the last take left this page holding) with this browser's part written in
+ * (`core/push/row.ts`). `undefined` when there is nothing to say.
+ */
+export function projectPush(
+  held: unknown,
+  push: PushState,
+  options: { now: number; perChat: boolean }
+): Record<string, unknown> | undefined {
+  // Before Web Push has read this browser's state (its chunk loads after the session starts), the map
+  // goes back exactly as it came, unless the reader has changed a chat's types meanwhile.
+  if (!push.loaded && fingerprint(push.perBot) === fingerprint(perBotOfPushMap(held))) {
+    return isObject(held) ? copyOf(held) : undefined
+  }
+
+  const own =
+    push.loaded && push.enabled && push.address
+      ? {
+          installationId: push.installationId,
+          gatewayKey: push.gatewayKey,
+          address: push.address,
+          types: push.types,
+          preview: push.preview,
+          updatedAt: push.updatedAt
+        }
+      : null
+
+  return pushMapOf({
+    gateway: held,
+    installationId: push.loaded ? push.installationId : '',
+    own,
+    carryOwn: push.phase !== 'settled',
+    seen: push.seen,
+    perBot: push.perBot,
+    now: options.now,
+    perChat: options.perChat
+  })
 }
 
 /**
@@ -434,7 +493,10 @@ export interface UiMetaStores {
  * stores like any other change and never sent back out (the bridge is deaf
  * while this runs).
  */
-export function applyToStores(snapshot: UiMetaSnapshot, stores: UiMetaStores): void {
+export function applyToStores(
+  snapshot: UiMetaSnapshot,
+  stores: Pick<UiMetaStores, 'layout' | 'textSize' | 'appStamp'>
+): void {
   const accents: Record<string, AccentName> = {}
 
   for (const [name, section] of Object.entries(snapshot.bots)) {
@@ -517,6 +579,9 @@ export class UiMetaBridge {
   private readonly now: () => number
   private held: UiMetaDocuments = { app: null, bots: {} }
   private seenApp = new Map<string, string>()
+  private seenPush: PushPrint = { map: '', perBot: '' }
+  /** Whether the plugin reads `{bot, at}` heartbeats (`push.seen.per_chat`), from the last roster's advert. */
+  private perChat = false
   private seenBots = new Map<string, string>()
   private chores = 0
   private applying = false
@@ -557,7 +622,8 @@ export class UiMetaBridge {
     this.stores = {
       layout: options.stores?.layout ?? layoutStore,
       textSize: options.stores?.textSize ?? textSizeStore,
-      appStamp: options.stores?.appStamp ?? appStampStore
+      appStamp: options.stores?.appStamp ?? appStampStore,
+      push: options.stores?.push ?? pushStore
     }
     this.ready = options.ready
     this.storage = options.storage ?? null
@@ -760,6 +826,17 @@ export class UiMetaBridge {
     if (this.held.app) {
       app = { ...this.held.app, v: HERMIE_APP_SECTION_VERSION }
 
+      const push = projectPush(this.held.app[PUSH_FIELD], this.stores.push.getState(), {
+        now: this.now(),
+        perChat: this.perChat
+      })
+
+      if (push === undefined) {
+        delete app[PUSH_FIELD]
+      } else {
+        app[PUSH_FIELD] = push
+      }
+
       // Omitted while this page has never seen a choice: an absent date is
       // honest about that, and a zero would read as a date at the epoch.
       if (stamp > 0) {
@@ -777,6 +854,10 @@ export class UiMetaBridge {
     let seeded = false
 
     this.taken += 1
+
+    if (snapshot.plugin !== undefined) {
+      this.perChat = hasPluginCapability(snapshot.plugin, PLUGIN_CAPABILITIES.pushSeenPerChat)
+    }
     this.quietly(() => {
       const bots: Record<string, JsonObject> = {}
 
@@ -829,9 +910,11 @@ export class UiMetaBridge {
 
       this.held = { app, bots }
       applyToStores({ ...snapshot, bots: bots as unknown as Record<string, HermieBotSection> }, this.stores)
+      // The person's per-chat overrides are the gateway copy's: there is no local half to merge.
+      this.stores.push.getState().applyRemote(perBotOfPushMap(app?.[PUSH_FIELD]))
     })
 
-    if (seeded) {
+    if (seeded || this.pushBehind()) {
       this.sync.markApp('chore')
     }
 
@@ -956,7 +1039,11 @@ export class UiMetaBridge {
 
     const watch = (): void => this.onStoreChanged()
 
-    this.unsubscribe = [this.stores.layout.subscribe(watch), this.stores.textSize.subscribe(watch)]
+    this.unsubscribe = [
+      this.stores.layout.subscribe(watch),
+      this.stores.textSize.subscribe(watch),
+      this.stores.push.subscribe(() => this.onPushChanged())
+    ]
   }
 
   /** Fingerprint every owned field as the stores hold it now. */
@@ -965,6 +1052,7 @@ export class UiMetaBridge {
     const projected = projectApp(layout, this.stores.textSize.getState())
 
     this.chores = layout.chores
+    this.seenPush = this.pushPrint()
     this.seenApp = new Map(APP_FIELDS.map(field => [field, fingerprint(projected[field])]))
     this.seenBots = new Map(Object.entries(projectBots(layout)).map(([name, fields]) => [name, fingerprint(fields)]))
   }
@@ -1071,6 +1159,77 @@ export class UiMetaBridge {
     this.sync.markBot(name)
   }
 
+  /**
+   * Whether the gateway's copy (the push map just taken) carries this browser's
+   * row or heartbeat differently from how this page holds them: then the write
+   * behind the take has to carry them.
+   */
+  private pushBehind(): boolean {
+    const push = this.stores.push.getState()
+
+    if (!push.loaded || !push.installationId || !this.held.app) {
+      return false
+    }
+
+    const gateway = this.held.app[PUSH_FIELD]
+    const projected = projectPush(gateway, push, { now: this.now(), perChat: this.perChat })
+    const id = push.installationId
+    const seenOf = (map: unknown): unknown => (isObject(map) && isObject(map.seen) ? map.seen[id] : undefined)
+
+    if (
+      push.phase === 'settled' &&
+      fingerprint(gatewayRowOf(projected, id)) !== fingerprint(gatewayRowOf(gateway, id))
+    ) {
+      return true
+    }
+
+    return push.seen !== null && fingerprint(seenOf(projected)) !== fingerprint(seenOf(gateway))
+  }
+
+  /** The push map this page would write now, and the per-chat overrides in it. */
+  private pushPrint(): PushPrint {
+    const push = this.stores.push.getState()
+
+    return {
+      map: fingerprint(projectPush(this.held.app?.[PUSH_FIELD], push, { now: this.now(), perChat: this.perChat })),
+      perBot: fingerprint(push.perBot)
+    }
+  }
+
+  /**
+   * The push store moved. Only a change to what would be written is sent (a
+   * store that moved without changing the map, such as the launch check settling
+   * on a browser that is off, sends nothing): this browser's row and heartbeat
+   * as a chore, the person's per-chat overrides as a choice.
+   */
+  private onPushChanged(): void {
+    if (this.applying || !this.watching) {
+      return
+    }
+
+    const print = this.pushPrint()
+    const choice = print.perBot !== this.seenPush.perBot
+    const chore = print.map !== this.seenPush.map
+
+    this.seenPush = print
+
+    if (!choice && !chore) {
+      return
+    }
+
+    // A CHOICE is dated like any other (`AppStampState.touch`); a chore is not.
+    if (choice) {
+      this.stores.appStamp.getState().touch(this.now())
+    }
+
+    this.sync.markApp(choice ? 'choice' : 'chore')
+    clearTimeout(this.timer)
+    this.timer = setTimeout(() => {
+      this.timer = undefined
+      void this.flush().catch(() => undefined)
+    }, this.debounceMs)
+  }
+
   /** Remember which bots have not reached the gateway, with their raw sections; nothing once none is pending. */
   private persistPending(): void {
     const storage = this.storage
@@ -1168,7 +1327,8 @@ export function connectUiMeta(options: ConnectUiMetaOptions): UiMetaRuntime {
   const stores: UiMetaStores = {
     layout: options.stores?.layout ?? layoutStore,
     textSize: options.stores?.textSize ?? textSizeStore,
-    appStamp: options.stores?.appStamp ?? appStampStore
+    appStamp: options.stores?.appStamp ?? appStampStore,
+    push: options.stores?.push ?? pushStore
   }
   const storage = options.storage
   const hydrated = (async () => {

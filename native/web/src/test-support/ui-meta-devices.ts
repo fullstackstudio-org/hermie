@@ -12,6 +12,7 @@
 import { createKeyValueStore, type WebKeyValueStore } from '../platform/key-value-store'
 import { type AppStampState, createAppStampStore } from '../state/app-stamp'
 import { type ChatLayoutState, createLayoutStore } from '../state/layout'
+import { createPushStore, type PushState } from '../state/push'
 import { createTextSizeStore, type TextSizeState } from '../state/text-size'
 import type { StoreApi } from 'zustand/vanilla'
 
@@ -145,6 +146,7 @@ export interface Page {
   layout: StoreApi<ChatLayoutState>
   textSize: StoreApi<TextSizeState>
   appStamp: StoreApi<AppStampState>
+  push: StoreApi<PushState>
   disk: WebKeyValueStore
   stop: () => void
   /** Resolved once the stores' disk reads are in AND the bridge is watching. */
@@ -164,13 +166,14 @@ export function openPage(
   const layout = createLayoutStore()
   const textSize = createTextSizeStore()
   const appStamp = createAppStampStore()
+  const push = createPushStore()
   const read = (async () => {
     textSize.getState().hydrate(disk)
     await Promise.all([layout.getState().load(disk), appStamp.getState().hydrate(disk)])
   })()
   const bridge = new UiMetaBridge({
     gateway,
-    stores: { layout, textSize, appStamp },
+    stores: { layout, textSize, appStamp, push },
     ready: () => read,
     storage: disk,
     debounceMs: 0,
@@ -181,5 +184,5 @@ export function openPage(
 
   const stop = bridge.start()
 
-  return { bridge, layout, textSize, appStamp, disk, stop, watching: read.then(settled) }
+  return { bridge, layout, textSize, appStamp, push, disk, stop, watching: read.then(settled) }
 }

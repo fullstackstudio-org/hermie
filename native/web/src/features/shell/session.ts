@@ -44,6 +44,10 @@
  *     (`uiMetaUserIdOf`): the arrangement, the mutes and the text size follow the
  *     person, and the roster is folded into the arrangement. Loaded as a chunk of
  *     its own once the session has started (`uiMeta` is a promise of it).
+ *  9. Web Push (`features/push/push-runtime.ts`, W-25): this browser's registration kept true against
+ *     the advert's key, the heartbeat while a chat is on screen, and clicks on notifications, with the
+ *     click this page was opened for read out of the address at once. A chunk of its own as well
+ *     (`push`); `retirePush` is the sign-out's first step, while the connection is still there.
  *
  * `stop()` is the order the sign-out needs: the poll, the `ui_meta` bridge, then the secure prompts
  * (each open one answered `''` while the socket is still there; the interactive requests fail with `4041 shutting_down`), the notices, the
@@ -70,6 +74,8 @@ import type { ConnectUiMetaOptions, connectUiMeta, UiMetaRuntime } from '../../c
 import type { ChatCache } from '../../platform/chat-cache'
 import type { WebKeyValueStore } from '../../platform/key-value-store'
 import { createPasskeyPins } from '../../platform/passkey-pins'
+import { takePageLaunchResponse } from '../../platform/push-launch'
+import type { PushRuntime, StartPushOptions, startPush } from '../push/push-runtime'
 import { createSocketFactoryWithOutbox, ErrorDataOutbox, ReplayGapTap } from '../../platform/socket'
 import { type VisibilityWatcher, visibilityWatcher } from '../../platform/visibility'
 import { createWebAuthn, type WebAuthnSeam } from '../../platform/webauthn'
@@ -119,10 +125,17 @@ export interface StartSessionOptions {
   loadUiMeta?: () => Promise<{ connectUiMeta: typeof connectUiMeta }>
   /** How long to wait before the one retry of a chunk that failed to load. */
   uiMetaRetryMs?: number
+  /** Web Push, on top of what the session provides; the page's own unless a test hands in its own. */
+  push?: Partial<Omit<StartPushOptions, 'baseUrl' | 'storage' | 'chats' | 'bots' | 'plugin' | 'headers'>>
+  /** How Web Push's chunk is loaded; the dynamic import unless a test hands in its own. */
+  loadPush?: () => Promise<{ startPush: typeof startPush }>
 }
 
 /** The wait before a failed `ui_meta` chunk is asked for once more. */
 export const UI_META_RETRY_MS = 2_000
+
+/** The longest a sign-out waits for this browser's push row to leave the gateway before it goes anyway. */
+export const PUSH_RETIRE_TIMEOUT_MS = 3_000
 
 export interface Session {
   readonly client: GatewayClient
@@ -136,7 +149,15 @@ export interface Session {
   readonly status: SessionStatusModel
   /** The `ui_meta` bridge, once its chunk has loaded; `null` when the session stopped first or it failed to load. */
   readonly uiMeta: Promise<UiMetaRuntime | null>
-  /** Stop the poll, the `ui_meta` bridge, the models beside the engine, the passkeys and the chats, then the client, in that order. Idempotent. */
+  /** Web Push, once its chunk has loaded; `null` when the session stopped first or it failed to load. */
+  readonly push: Promise<PushRuntime | null>
+  /**
+   * For a sign-out, before `stop`: take this browser's push row out of the person's section (the write is
+   * sent and waited for while the connection is still there) and unsubscribe. Waits at most
+   * `PUSH_RETIRE_TIMEOUT_MS`; never rejects.
+   */
+  retirePush(): Promise<void>
+  /** Stop the poll, the `ui_meta` bridge, Web Push, the models beside the engine, the passkeys and the chats, then the client, in that order. Idempotent. */
   stop(): void
 }
 
@@ -371,6 +392,62 @@ export function startSession(options: StartSessionOptions): Session {
       return null
     })
 
+  /*
+    Web Push is a chunk of its own too, for the same reason. The click this page was opened for is read
+    out of the address now, before anything can move the page on, and handed to it when it lands. A
+    chunk that fails to load leaves the page without notifications for this load: said once in the
+    console, and Settings says it cannot reach them.
+  */
+  const launch = takePageLaunchResponse()
+  const loadPush = options.loadPush ?? (() => import('../push/push-runtime'))
+  let pushRuntime: PushRuntime | null = null
+  let pushStopped = false
+
+  const push: Promise<PushRuntime | null> = loadPush()
+    .then(({ startPush }) => {
+      if (pushStopped) {
+        return null
+      }
+
+      pushRuntime = startPush({
+        baseUrl: options.baseUrl,
+        storage: options.storage,
+        chats,
+        bots: client.stores.bots,
+        plugin: client.stores.plugin,
+        headers: () => client.http.requestHeaders(),
+        launch,
+        ...(options.visibility ? { visibility: options.visibility } : {}),
+        ...options.push
+      })
+
+      return pushRuntime
+    })
+    .catch((error: unknown) => {
+      console.warn('[hermie] notifications could not be loaded for this page.', error)
+
+      return null
+    })
+
+  const retirePush = async (): Promise<void> => {
+    const work = (async () => {
+      const runtime = await push
+
+      if (!runtime) {
+        return
+      }
+
+      const bridge = (await uiMeta)?.bridge
+
+      await runtime.signOut(() => bridge?.flush() ?? Promise.resolve())
+    })()
+
+    await Promise.race([
+      work.catch(() => undefined),
+      new Promise<void>(resolve => setTimeout(resolve, PUSH_RETIRE_TIMEOUT_MS))
+    ])
+  }
+
   /** The request layer's queue is the open requests of the chats just started, the confirmations and the prompts. */
   const stopRequests = bindRequests(
     chats.chats,
@@ -421,6 +498,8 @@ export function startSession(options: StartSessionOptions): Session {
     connections,
     status,
     uiMeta,
+    push,
+    retirePush,
     stop() {
       if (stopped) {
         return
@@ -433,6 +512,8 @@ export function startSession(options: StartSessionOptions): Session {
       release = undefined
       uiMetaStopped = true
       uiMetaRuntime?.stop()
+      pushStopped = true
+      pushRuntime?.stop()
       syncStatus.getState().reset()
       deviceContextStore.getState().retire()
       stopRequests()
