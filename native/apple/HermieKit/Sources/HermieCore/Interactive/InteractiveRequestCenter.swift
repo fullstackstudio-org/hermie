@@ -67,8 +67,8 @@ public enum InteractiveCapabilities {
 
   /// The list `GatewaySession.Options.requests` starts with: `deviceMethods()` while
   /// `advertisedByDefault`, none otherwise.
-  public static func defaultMethods() -> [String]? {
-    advertisedByDefault ? deviceMethods() : nil
+  public static func defaultMethods(availability: DeviceAvailability = .system) -> [String]? {
+    advertisedByDefault ? deviceMethods(availability: availability) : nil
   }
 }
 

@@ -924,7 +924,7 @@ struct InteractiveTests {
     #expect(InteractiveCapabilities.advertisedByDefault)
     #expect(GatewaySession.Options().requests == InteractiveCapabilities.deviceMethods())
     #expect(GatewaySession.Options().resolvedRequests == InteractiveCapabilities.deviceMethods())
-    #expect(InteractiveCapabilities.defaultMethods() == ServerRequestBody.Method.interactive)
+    #expect(InteractiveCapabilities.defaultMethods(availability: DeviceAvailability(signature: true, scan: true)) == ServerRequestBody.Method.interactive)
     #expect(InteractiveRequestCenter.Options().methods == Set(InteractiveCapabilities.deviceMethods()))
   }
 

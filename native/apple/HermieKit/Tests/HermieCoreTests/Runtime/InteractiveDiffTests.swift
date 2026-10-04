@@ -265,6 +265,11 @@ struct InteractiveDiffTests {
     #expect(
       InteractiveCapabilities.deviceMethods(availability: .none)
         == ["input.form", "input.file", "review.draft", "review.diff"])
+    // The signature pad and the code scan join with the device's own availability (a camera for the scan).
+    #expect(
+      InteractiveCapabilities.deviceMethods(availability: DeviceAvailability(signature: true, scan: false))
+        == ["input.form", "input.file", "review.draft", "review.diff", "input.signature"])
+    #expect(InteractiveCapabilities.deviceMethods(availability: DeviceAvailability(signature: true, scan: true)).last == "device.scan")
     #expect(InteractiveCapabilities.defaultMethods() == InteractiveCapabilities.deviceMethods())
   }
 }

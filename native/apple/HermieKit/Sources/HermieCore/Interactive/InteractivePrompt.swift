@@ -19,6 +19,11 @@ public enum InteractiveBody: Sendable, Equatable {
   case contact(DeviceContactRequest)
   /// `device.calendar`: one event or reminder, saved by the person.
   case calendar(DeviceCalendarRequest)
+  /// `input.signature`: a statement signed on a pad, as a PNG and an SVG. Read strictly
+  /// (`SignatureRequest.read`).
+  case signature(SignatureRequest)
+  /// `device.scan`: one code read with the camera.
+  case scan(ScanRequest)
 
   /// The wire method.
   public var method: String {
@@ -30,6 +35,8 @@ public enum InteractiveBody: Sendable, Equatable {
     case .location: ServerRequestBody.Method.deviceLocation
     case .contact: ServerRequestBody.Method.deviceContact
     case .calendar: ServerRequestBody.Method.deviceCalendar
+    case .signature: ServerRequestBody.Method.inputSignature
+    case .scan: ServerRequestBody.Method.deviceScan
     }
   }
 }
@@ -54,6 +61,11 @@ public enum InteractiveAnswer: Sendable, Equatable {
   /// `device.calendar`: the person saved the entry (in the system's edit sheet, or after Add where
   /// there is none).
   case calendarSaved
+  /// `input.signature`: the PNG and the SVG, already uploaded, and when the person signed (Unix seconds). The
+  /// statement's hash is not here: the request computes it from the statement it showed.
+  case signature(files: [UploadedFile], signedAt: Int)
+  /// `device.scan`: the code the person chose to send, and what kind of code it was.
+  case scan(value: String, symbology: ScanSymbology)
   /// `input.*` and `device.*` with `optional`: Skip.
   case skip
 }
@@ -156,6 +168,17 @@ public struct InteractivePrompt: Sendable, Equatable, Identifiable {
   public static let commentLimit = 1_000
   /// The contract's bound on an approved draft, in code points.
   public static let draftLimit = 20_000
+  /// The contract's bound on a voice note's transcript, in code points.
+  public static let transcriptLimit = 4_000
+
+  /// Whether `mime` is `audio/` and a subtype, without parameters (contract §5.1).
+  static func isAudioType(_ mime: String?) -> Bool {
+    guard let mime, mime.hasPrefix("audio/"), mime.count > "audio/".count else {
+      return false
+    }
+
+    return !mime.contains(where: { $0 == ";" || $0 == " " })
+  }
 
   /// `raw` as one line of display text: cleaned and bounded like every text of the request
   /// (`SecurePrompt.displayText`), line breaks becoming spaces.
@@ -200,6 +223,12 @@ public struct InteractivePrompt: Sendable, Equatable, Identifiable {
 
       // Without a place to upload to there is nothing the person's files could be sent to.
       guard let dir = params.upload?.dir, dir.hasPrefix("/") else {
+        return .cannotShow(reason: CannotShowReason.notSupportedOnDevice)
+      }
+
+      // `capture: audio` goes with `accept: audio` and only with it (§5.1): the gateway never builds a frame that
+      // asks for a recording of an image or a photo of a recording.
+      guard params.capturePairsWithAccept else {
         return .cannotShow(reason: CannotShowReason.notSupportedOnDevice)
       }
 
@@ -256,6 +285,28 @@ public struct InteractivePrompt: Sendable, Equatable, Identifiable {
       }
 
       return .content(content(.calendar(request), params))
+    case .inputSignature(let params):
+      guard params.v == 1 else {
+        return .cannotShow(reason: CannotShowReason.unsupportedVersion)
+      }
+
+      // A statement this build cannot show exactly as it is, or an upload target without room for the two files,
+      // is not shown.
+      guard let request = SignatureRequest.read(params) else {
+        return .cannotShow(reason: CannotShowReason.notSupportedOnDevice)
+      }
+
+      return .content(content(.signature(request), params))
+    case .deviceScan(let params):
+      guard params.v == 1 else {
+        return .cannotShow(reason: CannotShowReason.unsupportedVersion)
+      }
+
+      guard let request = ScanRequest.read(params) else {
+        return .cannotShow(reason: CannotShowReason.notSupportedOnDevice)
+      }
+
+      return .content(content(.scan(request), params))
     default:
       return .other
     }
@@ -281,7 +332,7 @@ public struct InteractivePrompt: Sendable, Equatable, Identifiable {
   /// checked by the gateway field by field; this keeps only what could never be a valid answer.
   func reply(to answer: InteractiveAnswer) -> InteractiveReply? {
     switch (body, answer) {
-    case (.form, .skip), (.file, .skip):
+    case (.form, .skip), (.file, .skip), (.signature, .skip), (.scan, .skip):
       guard offersSkip else {
         return nil
       }
@@ -309,9 +360,45 @@ public struct InteractivePrompt: Sendable, Equatable, Identifiable {
         return nil
       }
 
+      // A recording is `audio/` and a subtype, without parameters (§5.1); a transcript belongs to a recording and
+      // is at most 4,000 code points. The gateway refuses the rest, so it never goes out.
+      let recordings = files.filter { Self.isAudioType($0.mime) }
+      let transcript = text.flatMap { $0.isEmpty ? nil : $0 }
+
+      if params.accept == .audio, recordings.count != files.count {
+        return nil
+      }
+
+      if let transcript, recordings.isEmpty || transcript.unicodeScalars.count > Self.transcriptLimit {
+        return nil
+      }
+
+      var summary: JSONObject = ["status": .string("answered"), "count": .number(Double(files.count))]
+
+      // Which kind of thing was shared, never the thing: a voice note is told by its kind alone.
+      if params.accept == .audio {
+        summary["audio"] = .bool(true)
+      }
+
+      return InteractiveReply(result: InputFileResult.answered(files: files, text: transcript).json, summary: summary)
+    case (.signature(let request), .signature(let files, let signedAt)):
+      guard let result = request.answer(files: files, signedAt: signedAt) else {
+        return nil
+      }
+
+      return InteractiveReply(result: result.json, summary: ["status": .string("answered")])
+    case (.scan(let request), .scan(let value, let symbology)):
+      // What the person saw is what is sent: cleaned the way the gateway cleans it, once more here so a caller
+      // that did not clean it still sends nothing the gateway would change.
+      let cleaned = ScanValue.clean(value)
+
+      guard request.accepts(symbology), ScanValue.problem(in: cleaned) == nil else {
+        return nil
+      }
+
       return InteractiveReply(
-        result: InputFileResult.answered(files: files, text: text.flatMap { $0.isEmpty ? nil : $0 }).json,
-        summary: ["status": .string("answered"), "count": .number(Double(files.count))]
+        result: DeviceScanResult.answered(value: cleaned, symbology: symbology).json,
+        summary: ["status": .string("answered"), "symbology": .string(symbology.rawValue)]
       )
     case (.draft(let params), .approve(let text)):
       // Counted in code points, as the gateway counts.

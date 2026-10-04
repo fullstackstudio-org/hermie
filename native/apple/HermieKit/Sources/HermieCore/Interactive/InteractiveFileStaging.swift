@@ -29,8 +29,12 @@ public enum InteractiveFileStaging {
 
   public static func mimeType(forFileNamed name: String) -> String? {
     let ext = (name as NSString).pathExtension
-    return ext.isEmpty ? nil : UTType(filenameExtension: ext)?.preferredMIMEType
+    return ext.isEmpty ? nil : UTType(filenameExtension: ext)?.preferredMIMEType ?? fallbackTypes[ext.lowercased()]
   }
+
+  /// Audio the system knows by extension but names no MIME type for (a recording the person picks for a voice note
+  /// must still say it is audio: the contract's example is a `.caf`, `audio/x-caf`).
+  private static let fallbackTypes = ["caf": "audio/x-caf"]
 
   // MARK: Copies
 

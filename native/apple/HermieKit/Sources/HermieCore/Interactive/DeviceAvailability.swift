@@ -24,11 +24,21 @@ public struct DeviceAvailability: Sendable, Equatable {
   public var contact: Bool
   /// `device.calendar`.
   public var calendar: Bool
+  /// `input.signature`: the pad needs only a screen and a finger, a pen or a pointer.
+  public var signature: Bool
+  /// `device.scan`: a camera that can read codes (a capture device exists and no profile restricts it). The reader
+  /// works from any camera (VisionKit's scanner where the device has it, a plain capture session where not), so a
+  /// Mac with a camera offers it and one without does not.
+  public var scan: Bool
 
-  public init(location: Bool = false, contact: Bool = false, calendar: Bool = false) {
+  public init(
+    location: Bool = false, contact: Bool = false, calendar: Bool = false, signature: Bool = false, scan: Bool = false
+  ) {
     self.location = location
     self.contact = contact
     self.calendar = calendar
+    self.signature = signature
+    self.scan = scan
   }
 
   /// Nothing: the device announces none of the device requests (a test of the base list).
@@ -42,7 +52,9 @@ public struct DeviceAvailability: Sendable, Equatable {
   public static let system = DeviceAvailability(
     location: probeLocation(),
     contact: true,
-    calendar: probeCalendar()
+    calendar: probeCalendar(),
+    signature: true,
+    scan: CameraDevices.isAvailable
   )
 
   /// Whether `method` is one of the device requests this value covers; a method that is not a device
@@ -52,6 +64,8 @@ public struct DeviceAvailability: Sendable, Equatable {
     case ServerRequestBody.Method.deviceLocation: location
     case ServerRequestBody.Method.deviceContact: contact
     case ServerRequestBody.Method.deviceCalendar: calendar
+    case ServerRequestBody.Method.inputSignature: signature
+    case ServerRequestBody.Method.deviceScan: scan
     default: true
     }
   }
