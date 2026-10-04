@@ -375,7 +375,9 @@ test.describe('a passkey confirmation in the browser', () => {
 
     // The page dials again, advertises the level, reads its chat's open requests, and this one is not among them.
     await expect.poll(async () => (await gateway.state()).connections).toBeGreaterThan(before)
-    await expect(page.getByText('The request from Researcher timed out.')).toBeAttached()
+    await expect(
+      page.getByText('The gateway no longer lists the confirmation from Researcher. It comes back if it is still open.')
+    ).toBeAttached()
     await expect(app.dialog).toHaveCount(0)
 
     // What comes next is not hidden behind a request nobody can answer any more.
