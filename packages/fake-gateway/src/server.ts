@@ -51,6 +51,17 @@ import { DiffError, headOldPath, headPath, parseDiff } from './diff-hunks'
 import { ReviewRegister } from './review-register'
 import { grantView as mcpGrantView, handleMcpRoute, PREFIX as MCP_PREFIX } from './mcp/routes'
 import { McpGateway, type McpGrantInput, type McpOptions } from './mcp/store'
+import {
+  type AudioRequest,
+  elevenLabsVoicesBody,
+  type FakeAudioOptions,
+  pcmClip,
+  speakBody,
+  STREAM_CHUNK_FRAMES,
+  STREAM_CHUNKS,
+  STREAM_SAMPLE_RATE,
+  voiceConfigBody
+} from './audio'
 
 import { b64u } from './passkey/encoding'
 import { LOGIN_PAGE, loginUrlFor, PLUGIN_ASSET_CACHE_CONTROL, readPluginAsset, tokenIndexHtml } from './plugin-assets'
@@ -69,6 +80,7 @@ export type RaiseInteractiveResult =
   | { kind: 'no_session'; profile: string }
   | { kind: 'refused'; error: 'diff_refused' | 'item_refused'; detail: string }
 export type { McpOptions } from './mcp/store'
+export type { AudioRequest, FakeAudioOptions } from './audio'
 
 /**
  * A stand-in for `hermes serve` that speaks enough of the gateway contract to
@@ -263,6 +275,12 @@ export interface FakeGatewayOptions {
    * gateway that stamps nobody (and every turn is the reader's own).
    */
   perMessageAuthor?: boolean
+  /**
+   * The text-to-speech routes under `/api/audio/` (`voice-config`, `elevenlabs/voices`, `speak` and the
+   * `speak-stream` socket), as the fork serves them (see `audio.ts`). On by default with the provider
+   * `edge`; `false` is a gateway that has none of the routes (an older fork: they answer 404).
+   */
+  audio?: FakeAudioOptions | false
   version?: string
   /** How many events per session the replay ring keeps. */
   replayRingSize?: number
@@ -1012,6 +1030,10 @@ export interface FakeGatewayState {
   attachedImageRequests: { name: string; profile: string | null; status: number }[]
   /** Ticket mints answered with 503 because of `failNextTicketMints`. */
   ticketMintsFailed: number
+  /** What the audio routes were asked, oldest first (`speak` and `speak-stream`). */
+  audioRequests: AudioRequest[]
+  /** Streams the client ended before the gateway had sent `end`: a barge-in, or a client that gave up. */
+  audioStreamsCancelled: number
   /**
    * Refresh tokens this gateway has already rotated away.
    *
@@ -3047,6 +3069,8 @@ function initialState(options: FakeGatewayOptions): FakeGatewayState {
     pictureRequests: [],
     attachedImageRequests: [],
     ticketMintsFailed: 0,
+    audioRequests: [],
+    audioStreamsCancelled: 0,
     spentRefreshTokens: new Set<string>(),
     refreshReuseAttempts: 0,
     revokeCalls: [],
@@ -4714,6 +4738,9 @@ export async function startFakeGateway(options: FakeGatewayOptions = {}): Promis
         kanbanDispatches: state.kanbanDispatches,
         // What `GET /api/files/images/{name}` was asked for (name, profile) and answered (status).
         attachedImageRequests: state.attachedImageRequests,
+        // What the text-to-speech routes were asked, and the streams a client ended before `end`.
+        audioRequests: state.audioRequests,
+        audioStreamsCancelled: state.audioStreamsCancelled,
         // Stored ids of the sessions with a turn still streaming: how a client
         // that is away can tell the turn it missed has finished.
         runningSessions: [...state.runningSessions],
@@ -5699,6 +5726,10 @@ export async function startFakeGateway(options: FakeGatewayOptions = {}): Promis
     if (path.startsWith('/api/cron/jobs')) {
       await handleCron(req, res, path, method, url.searchParams)
 
+      return
+    }
+
+    if (path.startsWith('/api/audio/') && (await handleAudio(req, res, path, method, url.searchParams))) {
       return
     }
 
@@ -7309,9 +7340,28 @@ export async function startFakeGateway(options: FakeGatewayOptions = {}): Promis
     noServer: true,
     handleProtocols: protocols => (protocols.has(GATEWAY_WS_PROTOCOL) ? GATEWAY_WS_PROTOCOL : false)
   })
+  const audioWss = new WebSocketServer({ noServer: true })
+  const audioOptions: FakeAudioOptions | null = options.audio === false ? null : (options.audio ?? {})
 
   httpServer.on('upgrade', (req, socket, head) => {
     const url = new URL(req.url ?? '/', `http://${req.headers.host ?? 'localhost'}`)
+
+    if (url.pathname === '/api/audio/speak-stream' && audioOptions) {
+      const audioRejection = hostOriginRejection(req)
+
+      if (audioRejection !== null) {
+        state.rejectedUpgrades += 1
+        socket.end(`HTTP/1.1 403 Forbidden\r\nconnection: close\r\n\r\n${audioRejection}`)
+
+        return
+      }
+
+      audioWss.handleUpgrade(req, socket, head, ws => {
+        audioWss.emit('connection', ws, req)
+      })
+
+      return
+    }
 
     if (url.pathname !== WS_PATH) {
       socket.destroy()
@@ -7379,6 +7429,204 @@ export async function startFakeGateway(options: FakeGatewayOptions = {}): Promis
       }
     })
   })
+
+  /**
+   * The audio socket's credential: `?token=` on an ungated gateway, and on a gated one a single-use
+   * ticket, which `speak-stream` takes on the query (`?ticket=`) as well as in the subprotocol: the
+   * route answers the upgrade without selecting one, so a client that puts it on the query is the one
+   * that works against every server.
+   */
+  function authorizeAudioUpgrade(url: URL): number | null {
+    if (state.auth === 'none') {
+      return null
+    }
+
+    if (state.auth === 'token') {
+      return url.searchParams.get('token') === state.token ? null : state.closeCode
+    }
+
+    const ticket = url.searchParams.get('ticket') ?? ''
+    const issued = tickets.get(ticket)
+
+    // Single use, 30 s: consume on sight whether or not it was still valid.
+    tickets.delete(ticket)
+
+    if (!issued || issued.expiresAt < Date.now()) {
+      return state.closeCode
+    }
+
+    state.ticketsConsumed += 1
+
+    return null
+  }
+
+  audioWss.on('connection', (socket: WebSocket, req: IncomingMessage) => {
+    const url = new URL(req.url ?? '/', `http://${req.headers.host ?? 'localhost'}`)
+    const rejection = authorizeAudioUpgrade(url)
+
+    if (rejection !== null) {
+      state.rejectedUpgrades += 1
+      socket.close(rejection, 'unauthorized')
+
+      return
+    }
+
+    sockets.add(socket)
+    socket.on('close', () => sockets.delete(socket))
+    serveAudioStream(socket, url.searchParams.get('profile'))
+  })
+
+  /** One speech session: text in, PCM out as it is "made", then `end`. */
+  function serveAudioStream(socket: WebSocket, profile: string | null): void {
+    const audio = audioOptions ?? {}
+
+    if (audio.stream === false) {
+      socket.send(JSON.stringify({ type: 'fallback' }))
+      socket.close()
+
+      return
+    }
+
+    let text = ''
+    let voice: string | null = null
+    let started = false
+    let finished = false
+    let open = true
+
+    socket.on('close', () => {
+      open = false
+
+      if (started && !finished) {
+        state.audioStreamsCancelled += 1
+      }
+    })
+
+    const speak = async (): Promise<void> => {
+      started = true
+
+      if (!text.trim()) {
+        socket.send(JSON.stringify({ type: 'end' }))
+        finished = true
+        socket.close()
+
+        return
+      }
+
+      state.audioRequests.push({ kind: 'stream', text, voice, profile })
+
+      if (audio.delayMs) {
+        await new Promise(resolve => setTimeout(resolve, audio.delayMs))
+      }
+
+      for (let chunk = 0; chunk < STREAM_CHUNKS; chunk += 1) {
+        if (!open) {
+          return
+        }
+
+        if (chunk === 0) {
+          socket.send(JSON.stringify({ type: 'start', sample_rate: STREAM_SAMPLE_RATE, channels: 1 }))
+        }
+
+        socket.send(pcmClip(STREAM_CHUNK_FRAMES, STREAM_SAMPLE_RATE), { binary: true })
+        await new Promise(resolve => setTimeout(resolve, audio.chunkDelayMs ?? 5))
+      }
+
+      if (open) {
+        finished = true
+        socket.send(JSON.stringify({ type: 'end' }))
+        socket.close()
+      }
+    }
+
+    socket.on('message', data => {
+      let frame: { text?: unknown; voice?: unknown; done?: unknown; stop?: unknown }
+
+      try {
+        frame = JSON.parse(String(data))
+      } catch {
+        // An unparseable frame is barge-in, upstream.
+        socket.close()
+
+        return
+      }
+
+      if (typeof frame.text === 'string') {
+        text += frame.text
+      }
+
+      // The gateway as shipped takes no voice: the frame's field is ignored, as an unknown field is.
+      if (typeof frame.voice === 'string' && frame.voice && audioOptions?.voiceSelection === true) {
+        voice = frame.voice
+      }
+
+      if (frame.stop === true) {
+        socket.close()
+
+        return
+      }
+
+      if (frame.done === true && !started) {
+        void speak()
+      }
+    })
+  }
+
+  /** The audio routes. True when the path was one of them. */
+  async function handleAudio(
+    req: IncomingMessage,
+    res: ServerResponse,
+    path: string,
+    method: string,
+    query: URLSearchParams
+  ): Promise<boolean> {
+    if (!audioOptions) {
+      return false
+    }
+
+    if (path === '/api/audio/voice-config' && method === 'GET') {
+      json(res, 200, voiceConfigBody(audioOptions))
+
+      return true
+    }
+
+    if (path === '/api/audio/elevenlabs/voices' && method === 'GET') {
+      json(res, 200, elevenLabsVoicesBody(audioOptions))
+
+      return true
+    }
+
+    if (path === '/api/audio/speak' && method === 'POST') {
+      const body = await readBody(req)
+      const text = typeof body.text === 'string' ? body.text.trim() : ''
+
+      if (!text) {
+        json(res, 400, { detail: 'Text is required' })
+
+        return true
+      }
+
+      const voice =
+        audioOptions.voiceSelection === true && typeof body.voice === 'string' && body.voice ? body.voice : null
+
+      state.audioRequests.push({ kind: 'speak', text, voice, profile: query.get('profile') })
+
+      if (audioOptions.delayMs) {
+        await new Promise(resolve => setTimeout(resolve, audioOptions.delayMs))
+      }
+
+      if (audioOptions.speakStatus) {
+        json(res, audioOptions.speakStatus, { detail: 'Speech synthesis failed' })
+
+        return true
+      }
+
+      json(res, 200, speakBody(audioOptions))
+
+      return true
+    }
+
+    return false
+  }
 
   function authorizeUpgrade(url: URL, req: IncomingMessage): number | null {
     if (state.rejectNextUpgrades > 0) {
@@ -11424,6 +11672,7 @@ export async function startFakeGateway(options: FakeGatewayOptions = {}): Promis
       }
 
       sockets.clear()
+      await new Promise<void>(resolve => audioWss.close(() => resolve()))
       await new Promise<void>(resolve => wss.close(() => resolve()))
       await new Promise<void>(resolve => httpServer.close(() => resolve()))
     }

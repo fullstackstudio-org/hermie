@@ -495,3 +495,33 @@ an unknown one. It is behind the gate like every `/api/` route, by a header or t
 the address is not accepted. The paths a transcript names (`/root/.hermes/images/…`) never have to exist:
 `GET /__fake/state` reads back `attachedImageRequests` (`name`, `profile`, `status`, in order) to show what a
 client asked for. Tests: `src/attached-images.test.ts`.
+
+## Text-to-speech (`/api/audio/…`)
+
+`GET /api/audio/voice-config`, `GET /api/audio/elevenlabs/voices`, `POST /api/audio/speak` and the
+`/api/audio/speak-stream` WebSocket, as `hermes_cli/web_routers/audio.py` serves them. On by default
+(provider `edge`, a relayed one); `startFakeGateway({ audio: false })` is a gateway with none of them (404),
+`audio: {…}` shapes them (`src/audio.ts`).
+
+- `voice-config` is the desktop's client-direct config: a direct provider (`provider: "elevenlabs"` or
+  `"openai"`) is `{mode: "direct", provider, voice, base_url, api_key, …}` and **carries a made-up API key**,
+  so a client that keeps or shows it can be caught; any other provider is `{mode: "relay", reason: "provider
+'edge' has no client wire"}`.
+- The gateway as shipped takes **no voice with a request** (`TTSSpeakRequest` is `{text}`): the field is
+  ignored, and `voice-config` does not say `voice_selection`. `audio: { voiceSelection: true }` is a gateway
+  that does: it says `voice_selection: true` (and lists `edgeVoices` as `voices`), and `speak` and the stream
+  take and record a `voice`.
+- `speak` answers `{ok, data_url, mime_type, provider}` with a 0.1 s WAV; a blank text is 400; `speakStatus`
+  makes it fail; `delayMs` makes it slow.
+- `speak-stream` takes `{text}` frames and `{done: true}`, answers `{type: "start", sample_rate: 24000,
+channels: 1}`, three binary int16 PCM frames and `{type: "end"}`; `stream: false` answers `{type: "fallback"}`;
+  `{stop: true}` or a closed socket in the middle counts in `state.audioStreamsCancelled`. The credential is
+  `?token=` (ungated) or a ticket on the query (`?ticket=`, gated).
+- `state.audioRequests` (also in `GET /__fake/state`'s `FakeGatewayState`) lists what `speak` and the stream
+  were asked, oldest first: `{kind, text, voice, profile}`.
+
+From the command line: `--no-audio`, `--tts-provider edge|elevenlabs|openai`, `--tts-voice-selection`,
+`--no-tts-stream`, `--tts-delay <ms>` and `--tts-speak-status <n>`. `GET /__fake/state` reads back
+`audioRequests` and `audioStreamsCancelled`.
+
+Tests: `src/audio.test.ts`.

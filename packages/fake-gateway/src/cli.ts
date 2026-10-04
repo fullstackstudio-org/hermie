@@ -2,7 +2,14 @@
 import { readFileSync } from 'node:fs'
 import { parseArgs } from 'node:util'
 
-import { type FakeAuthMode, type McpOptions, type PasskeyOptions, type Scenario, startFakeGateway } from './server'
+import {
+  type FakeAudioOptions,
+  type FakeAuthMode,
+  type McpOptions,
+  type PasskeyOptions,
+  type Scenario,
+  startFakeGateway
+} from './server'
 
 const { values } = parseArgs({
   options: {
@@ -38,6 +45,12 @@ const { values } = parseArgs({
     'passkey-accept-missing-auth-time': { type: 'boolean', default: false },
     mcp: { type: 'boolean', default: false },
     'mcp-label': { type: 'string' },
+    'no-audio': { type: 'boolean', default: false },
+    'tts-provider': { type: 'string' },
+    'tts-voice-selection': { type: 'boolean', default: false },
+    'no-tts-stream': { type: 'boolean', default: false },
+    'tts-delay': { type: 'string' },
+    'tts-speak-status': { type: 'string' },
     host: { type: 'string', default: '127.0.0.1' },
     help: { type: 'boolean', default: false }
   }
@@ -111,6 +124,14 @@ if (values.help) {
       '                          and advertise per_message_author_via. Needs --auth cookie or native.',
       '                          Without it the routes are unknown (404). See contract/gateway/mcp.md',
       '  --mcp-label <name>      the name in the `claude mcp add` command (default hermie-fake)',
+      '  --no-audio              none of the /api/audio/ routes (voice-config, elevenlabs/voices, speak,',
+      '                          speak-stream): a gateway with no text-to-speech (packages/fake-gateway/README.md)',
+      '  --tts-provider <name>   edge (default, relayed), elevenlabs or openai (direct: voice-config carries a',
+      '                          made-up API key)',
+      '  --tts-voice-selection   a gateway that takes a voice with a request (voice_selection: true)',
+      '  --no-tts-stream         speak-stream answers {"type": "fallback"}: a provider with no chunked API',
+      '  --tts-delay <ms>        speak and the stream hold their answer, in ms',
+      '  --tts-speak-status <n>  speak answers this status instead of audio',
       '',
       'Prompts steer the built-in scenario: "approve" raises an approval request,',
       '"delegate" fans out subagent events, anything else streams a reply with a tool call.',
@@ -287,6 +308,23 @@ if (mcp && !['cookie', 'native'].includes(auth)) {
   process.exit(1)
 }
 
+const ttsProvider = values['tts-provider']
+
+if (ttsProvider && !['edge', 'elevenlabs', 'openai'].includes(ttsProvider)) {
+  console.error('--tts-provider is edge, elevenlabs or openai.')
+  process.exit(1)
+}
+
+const audio: FakeAudioOptions | false = values['no-audio']
+  ? false
+  : {
+      ...(ttsProvider ? { provider: ttsProvider as 'edge' | 'elevenlabs' | 'openai' } : {}),
+      ...(values['tts-voice-selection'] ? { voiceSelection: true } : {}),
+      ...(values['no-tts-stream'] ? { stream: false } : {}),
+      ...(values['tts-delay'] ? { delayMs: Number.parseInt(values['tts-delay'], 10) } : {}),
+      ...(values['tts-speak-status'] ? { speakStatus: Number.parseInt(values['tts-speak-status'], 10) } : {})
+    }
+
 const gateway = await startFakeGateway({
   port: Number.parseInt(values.port ?? '9119', 10),
   host: values.host ?? '127.0.0.1',
@@ -311,7 +349,8 @@ const gateway = await startFakeGateway({
   ...(values['no-web-client'] ? { webClient: false as const } : {}),
   ...(values['no-web-push-key'] ? { webPushKey: false as const } : {}),
   ...(passkey ? { passkey } : {}),
-  ...(mcp ? { mcp } : {})
+  ...(mcp ? { mcp } : {}),
+  audio
 })
 
 console.log(`fake gateway listening on ${gateway.url} (auth: ${auth})`)
