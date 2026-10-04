@@ -144,9 +144,8 @@ struct CorpusTests {
     #expect(problems.isEmpty, "\(problems)")
   }
 
-  /// Server requests of the contract that no typed body reads yet (P3-N1 adds them).
+  /// Server requests of the contract that no typed body reads yet (the rest of P3-N1 adds them).
   static let notYetTypedRequests: Set<String> = [
-    "input.signature", "device.scan",
   ]
 
   /// The stream files do not record the client's requests, so a result is matched to its

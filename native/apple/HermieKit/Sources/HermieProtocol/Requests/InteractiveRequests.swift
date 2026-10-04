@@ -104,6 +104,7 @@ extension JSONRPCError {
 /// machine string.
 public enum CannotShowReason {
   public static let noCamera = "no_camera"
+  public static let noMicrophone = "no_microphone"
   public static let notSupportedOnDevice = "not_supported_on_device"
   public static let permissionDenied = "permission_denied"
   public static let uploadFailed = "upload_failed"

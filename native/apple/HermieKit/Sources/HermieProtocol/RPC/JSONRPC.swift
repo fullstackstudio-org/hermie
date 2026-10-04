@@ -178,7 +178,7 @@ public struct ServerRequest: JSONObjectBacked {
 
 /// The typed reading of a server request. The client answers `approval`, `clarify`, the
 /// one-string prompts (`secret`, `sudo`, `vault.*`) and, where a passkey model listens, `confirm`;
-/// the interactive requests (`input.form`, `input.file`, `review.draft`, `review.diff`) are typed here and are
+/// the interactive requests (`input.form`, `input.file`, `review.draft`, `review.diff`, `input.signature`, `device.scan`) are typed here and are
 /// answered only by a connection that advertised them;
 /// everything else is `unknown`, answered `-32601` by the connection.
 public enum ServerRequestBody: Sendable, Hashable {
@@ -197,6 +197,8 @@ public enum ServerRequestBody: Sendable, Hashable {
   case deviceLocation(DeviceLocationParams)
   case deviceContact(DeviceContactParams)
   case deviceCalendar(DeviceCalendarParams)
+  case inputSignature(InputSignatureParams)
+  case deviceScan(DeviceScanParams)
   case unknown(method: String, params: JSONObject)
 
   public enum Method {
@@ -215,17 +217,19 @@ public enum ServerRequestBody: Sendable, Hashable {
     public static let deviceLocation = "device.location"
     public static let deviceContact = "device.contact"
     public static let deviceCalendar = "device.calendar"
-    /// The interactive requests (`contract/requests/`), in the order a connection advertises them in
-    /// `client.capabilities`' `requests`.
+    public static let inputSignature = "input.signature"
+    public static let deviceScan = "device.scan"
+    /// The interactive requests (`contract/requests/`), in the order the contract lists them, which is the order a
+    /// connection advertises them in `client.capabilities`' `requests`.
     public static let interactive = [
-      inputForm, inputFile, reviewDraft, reviewDiff,
-      deviceLocation, deviceContact, deviceCalendar
+      inputForm, inputFile, reviewDraft, reviewDiff, inputSignature,
+      deviceLocation, deviceContact, deviceCalendar, deviceScan
     ]
     /// Every server request the backend declares (`SERVER_REQUEST_METHODS`).
     public static let all = [
-      "approval", "clarify", "confirm", "device.calendar", "device.contact", "device.location", "input.file",
-      "input.form", "preview.act", "preview.read", "review.diff", "review.draft", "secret", "sudo", "terminal.read",
-      "tour", "vault.code", "vault.save_login", "vault.unlock_prompt", "window.read"
+      "approval", "clarify", "confirm", "device.calendar", "device.contact", "device.location", "device.scan",
+      "input.file", "input.form", "input.signature", "preview.act", "preview.read", "review.diff", "review.draft",
+      "secret", "sudo", "terminal.read", "tour", "vault.code", "vault.save_login", "vault.unlock_prompt", "window.read"
     ]
     /// The one-string prompts, answered with `ValueResult` (`''` skips).
     public static let secureInput: Set<String> = [secret, sudo, vaultUnlock, vaultCode, vaultSaveLogin]
@@ -248,6 +252,8 @@ public enum ServerRequestBody: Sendable, Hashable {
     case Method.deviceLocation: self = .deviceLocation(DeviceLocationParams(json: params))
     case Method.deviceContact: self = .deviceContact(DeviceContactParams(json: params))
     case Method.deviceCalendar: self = .deviceCalendar(DeviceCalendarParams(json: params))
+    case Method.inputSignature: self = .inputSignature(InputSignatureParams(json: params))
+    case Method.deviceScan: self = .deviceScan(DeviceScanParams(json: params))
     default: self = .unknown(method: method, params: params)
     }
   }
@@ -269,6 +275,8 @@ public enum ServerRequestBody: Sendable, Hashable {
     case .deviceLocation: Method.deviceLocation
     case .deviceContact: Method.deviceContact
     case .deviceCalendar: Method.deviceCalendar
+    case .inputSignature: Method.inputSignature
+    case .deviceScan: Method.deviceScan
     case .unknown(let method, _): method
     }
   }
@@ -290,6 +298,8 @@ public enum ServerRequestBody: Sendable, Hashable {
     case .deviceLocation(let params): params.json
     case .deviceContact(let params): params.json
     case .deviceCalendar(let params): params.json
+    case .inputSignature(let params): params.json
+    case .deviceScan(let params): params.json
     case .unknown(_, let params): params
     }
   }
@@ -298,15 +308,16 @@ public enum ServerRequestBody: Sendable, Hashable {
   public var isSecureInput: Bool {
     switch self {
     case .secret, .sudo, .vaultUnlock, .vaultCode, .vaultSaveLogin: true
-    case .approval, .clarify, .confirm, .inputForm, .inputFile, .reviewDraft, .reviewDiff, .unknown: false
-    case .deviceLocation, .deviceContact, .deviceCalendar: false
+    case .approval, .clarify, .confirm, .inputForm, .inputFile, .reviewDraft, .reviewDiff, .inputSignature, .deviceScan,
+      .deviceLocation, .deviceContact, .deviceCalendar, .unknown:
+      false
     }
   }
 
   /// One of the interactive requests of `contract/requests/`.
   public var isInteractive: Bool {
     switch self {
-    case .inputForm, .inputFile, .reviewDraft, .reviewDiff: true
+    case .inputForm, .inputFile, .reviewDraft, .reviewDiff, .inputSignature, .deviceScan: true
     case .deviceLocation, .deviceContact, .deviceCalendar: true
     case .approval, .clarify, .secret, .sudo, .vaultUnlock, .vaultCode, .vaultSaveLogin, .confirm, .unknown: false
     }

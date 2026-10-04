@@ -73,6 +73,13 @@ import Testing
         case .deviceCalendar(let params):
           #expect(try canonical(DeviceRequestsContractTests.copy(params)) == canonical(params), "\(place) loses keys when typed")
           #expect(params.offersSkip == (raw["params"]?["optional"]?.boolValue ?? true))
+        case .inputSignature(let params):
+          #expect(try canonical(Self.copy(params)) == canonical(params), "\(place) loses keys when typed")
+          #expect(params.statement == raw["params"]?["statement"]?.stringValue && params.statement != nil, "\(place)")
+          #expect(params.offersSkip == (raw["params"]?["optional"]?.boolValue ?? true))
+        case .deviceScan(let params):
+          #expect(try canonical(Self.copy(params)) == canonical(params), "\(place) loses keys when typed")
+          #expect(params.offersSkip == (raw["params"]?["optional"]?.boolValue ?? true))
         default:
           Issue.record("\(place): typed as \(body.method)")
         }
@@ -86,11 +93,13 @@ import Testing
         case .deviceLocation(let p): Self.expectEnvelope(p, envelope, place)
         case .deviceContact(let p): Self.expectEnvelope(p, envelope, place)
         case .deviceCalendar(let p): Self.expectEnvelope(p, envelope, place)
+        case .inputSignature(let p): Self.expectEnvelope(p, envelope, place)
+        case .deviceScan(let p): Self.expectEnvelope(p, envelope, place)
         default: break
         }
       }
     }
-    #expect(count == 25)
+    #expect(count == 30)
   }
 
   static func expectEnvelope<P: InteractiveRequestParams>(_ params: P, _ raw: JSONValue?, _ place: String) {
@@ -182,7 +191,7 @@ import Testing
         }
       }
     }
-    #expect(count == 88)
+    #expect(count == 99)
   }
 
   // MARK: Answers
@@ -390,6 +399,108 @@ import Testing
     #expect(HunkDecision.named("skipped") == .unknown("skipped"))
   }
 
+  // MARK: The signature, the code scan and the voice note
+
+  @Test("the signature frames read the statement apart from the rest, and an upload with room for two files")
+  func signatureFrames() throws {
+    guard case .inputSignature(let lease) = try Self.frame("input.signature", id: "req_sig_lease").body,
+      case .inputSignature(let note) = try Self.frame("input.signature", id: "req_sig_required").body
+    else {
+      Issue.record("not input.signature")
+      return
+    }
+
+    #expect(lease.statement == "I have read the rental agreement dated 3 October 2026 and agree to its terms.")
+    #expect(lease.signerName == "Ada Lovelace" && lease.offersSkip)
+    #expect(lease.upload?.maxFiles == 2 && lease.upload?.maxBytes == 1_048_576 && lease.upload?.maxTotalBytes == 2_097_152)
+    #expect(note.signerName == nil && !note.offersSkip)
+  }
+
+  @Test("every valid signature answer is what the typed constructor encodes, in either file order")
+  func signatureAnswers() throws {
+    let answers = try Self.section("input.signature", "answers")
+    #expect(!answers.isEmpty)
+
+    for answer in answers {
+      let name = answer["name"]?.stringValue ?? "?"
+      let result = try #require(answer["result"], "\(name)")
+      let request = try Self.frame("input.signature", id: try #require(answer["request"]?.stringValue))
+      guard case .inputSignature(let params) = request.body else { continue }
+
+      if result["status"]?.stringValue == "skipped" {
+        #expect(try canonical(InputSignatureResult.skipped) == canonical(result), "\(name)")
+        continue
+      }
+
+      let typed = try #require(InputSignatureResult(jsonValue: result), "\(name)")
+      let files = try #require(typed.files, "\(name)")
+      #expect(files.count == 2, "\(name)")
+      #expect(files.allSatisfy { params.upload?.contains(path: $0.path ?? "") == true }, "\(name): directly in upload.dir")
+      let built = InputSignatureResult.answered(
+        files: files, signedAt: try #require(typed.signedAt, "\(name)"),
+        statementSHA256: try #require(typed.statementSHA256, "\(name)"))
+      #expect(try canonical(built) == canonical(result), "\(name)")
+    }
+  }
+
+  @Test("the scan frames read the symbologies asked for, and every valid answer is what the constructor encodes")
+  func scanFramesAndAnswers() throws {
+    guard case .deviceScan(let any) = try Self.frame("device.scan", id: "req_scan_any").body,
+      case .deviceScan(let ean) = try Self.frame("device.scan", id: "req_scan_ean").body
+    else {
+      Issue.record("not device.scan")
+      return
+    }
+
+    #expect(any.formats == nil && ean.formats == [.ean13, .ean8])
+    #expect(ScanSymbology.knownCases.map(\.rawValue) == ["qr", "ean13", "ean8", "code128", "pdf417", "datamatrix", "aztec"])
+    #expect(ScanSymbology.named("upc") == .unknown("upc"))
+
+    for answer in try Self.section("device.scan", "answers") {
+      let name = answer["name"]?.stringValue ?? "?"
+      let result = try #require(answer["result"], "\(name)")
+      let typed = try #require(DeviceScanResult(jsonValue: result), "\(name)")
+      let built: DeviceScanResult =
+        typed.status == .skipped
+        ? .skipped
+        : .answered(value: try #require(typed.value, "\(name)"), symbology: try #require(typed.symbology, "\(name)"))
+      #expect(try canonical(built) == canonical(result), "\(name)")
+    }
+  }
+
+  @Test("a recording is asked for with accept audio and capture audio, and no other pairing is a frame the gateway builds")
+  func voiceFrames() throws {
+    var recordings = 0
+
+    for raw in try Self.section("input.file", "frames") {
+      guard let params = raw["params"]?.objectValue.map(InputFileParams.init(json:)) else { continue }
+      #expect(params.capturePairsWithAccept, "\(raw["id"]?.stringValue ?? "?")")
+      recordings += params.asksForRecording ? 1 : 0
+    }
+
+    // Two frames ask for a recording; a third accepts audio and offers no capture.
+    #expect(recordings == 2)
+
+    var refused = 0
+
+    for entry in try Self.section("input.file", "invalid_frames") {
+      guard entry["layer"]?.stringValue == "cross_field", let params = entry["params"]?.objectValue else { continue }
+      let typed = InputFileParams(json: params)
+
+      if typed.capture == .audio || typed.accept == .audio {
+        #expect(!typed.capturePairsWithAccept, "\(entry["name"]?.stringValue ?? "?")")
+        refused += 1
+      }
+    }
+
+    #expect(refused == 4)
+    #expect(InputFileParams(json: ["accept": "audio"]).capturePairsWithAccept)
+    #expect(InputFileParams(json: ["accept": "image", "capture": "photo"]).capturePairsWithAccept)
+    #expect(!InputFileParams(json: ["accept": "audio", "capture": "photo"]).capturePairsWithAccept)
+    #expect(!InputFileParams(json: ["accept": "any", "capture": "audio"]).capturePairsWithAccept)
+    #expect(!InputFileParams(json: ["capture": "audio"]).capturePairsWithAccept)
+  }
+
   // MARK: Field definitions
 
   @Test("every field definition reads as its kind, and every valid value is a form value that encodes unchanged")
@@ -489,7 +600,7 @@ import Testing
     #expect(throws: DecodingError.self) { try JSONDecoder().decode(FormField.self, from: Data("[1]".utf8)) }
   }
 
-  @Test("methods nobody handles are still unknown, and the interactive ones are declared")
+  @Test("methods nobody handles are still unknown, and the interactive ones this build reads are declared")
   func methodsAndUnknowns() {
     for method in ["input.other", "review.other", "input", "tour", ""] {
       let request = ServerRequest(id: "a", method: method, params: ["session_id": "s"])
@@ -498,7 +609,8 @@ import Testing
     }
     #expect(
       ServerRequestBody.Method.interactive == [
-        "input.form", "input.file", "review.draft", "review.diff", "device.location", "device.contact", "device.calendar"
+        "input.form", "input.file", "review.draft", "review.diff", "input.signature", "device.location", "device.contact",
+        "device.calendar", "device.scan"
       ])
     #expect(Set(ServerRequestBody.Method.interactive).isSubset(of: Set(ServerRequestBody.Method.all)))
     #expect(ServerRequestBody.Method.all == ServerRequestBody.Method.all.sorted())
@@ -563,9 +675,9 @@ import Testing
     let example = try #require(try Self.examples()["capabilities"]?[0]?["request"])
     var params = ClientCapabilitiesParams(serverRequests: true)
     params.confirm = [.plain]
-    // The contract's example lists nine methods; this build shows the four it types (`Method.interactive`) and
-    // reads the signature and the device requests as unknown until P3-N1 types them, so it advertises the four
-    // (and this test encodes the example's own list).
+    // The contract's example lists nine methods; this build types the ones in `Method.interactive` and reads the
+    // others (the location, the contact and the calendar) as unknown until their sheets land, so it advertises
+    // those (and this test encodes the example's own list).
     let advertised = try #require(example["params"]?["requests"]?.arrayValue)
     let listed = advertised.compactMap { $0.stringValue }
     #expect(listed.filter { ServerRequestBody.Method.interactive.contains($0) } == ServerRequestBody.Method.interactive)
@@ -617,6 +729,30 @@ import Testing
       $0.subject = params.subject
       $0.recipients = params.recipients
       $0.editable = params.editable
+    }
+  }
+
+  static func copy(_ params: InputSignatureParams) -> InputSignatureParams {
+    with(InputSignatureParams()) {
+      envelope(params, into: &$0)
+      $0.statement = params.statement
+      $0.signerName = params.signerName
+      $0.upload = params.upload.map { upload in
+        with(UploadTarget()) {
+          $0.dir = upload.dir
+          $0.maxBytes = upload.maxBytes
+          $0.maxTotalBytes = upload.maxTotalBytes
+          $0.maxFiles = upload.maxFiles
+          $0.stripMetadata = upload.stripMetadata
+        }
+      }
+    }
+  }
+
+  static func copy(_ params: DeviceScanParams) -> DeviceScanParams {
+    with(DeviceScanParams()) {
+      envelope(params, into: &$0)
+      $0.formats = params.formats
     }
   }
 

@@ -473,7 +473,7 @@ extension GatewayConnection {
     case .confirm:
       // Only a connection that announced `confirm` has someone to answer it.
       supported = options.confirm != nil
-    case .inputForm, .inputFile, .reviewDraft, .reviewDiff:
+    case .inputForm, .inputFile, .reviewDraft, .reviewDiff, .inputSignature, .deviceScan:
       // Only a socket that advertised the method (and had it accepted) has someone to answer it;
       // a stray one is answered like any method nobody handles.
       supported = requestsAdvertised.contains(method)
