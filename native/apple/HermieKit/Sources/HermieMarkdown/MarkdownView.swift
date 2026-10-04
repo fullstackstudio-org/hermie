@@ -78,9 +78,7 @@ public struct MarkdownBlockView: View, Equatable {
         label: code.language ?? "", accessibilityLabel: MarkdownStrings.code(language: code.language),
         copyLabel: MarkdownStrings.copyCode, source: code.text, language: code.language)
     case .math(let source):
-      MarkdownCodeView(
-        label: MarkdownStrings.mathematics, accessibilityLabel: MarkdownStrings.mathematics,
-        copyLabel: MarkdownStrings.copySource, source: source.trimmingCharacters(in: .whitespacesAndNewlines))
+      MarkdownMathBlock(source: source.trimmingCharacters(in: .whitespacesAndNewlines))
     case .mermaid(let source):
       MarkdownCodeView(
         label: MarkdownStrings.diagram, accessibilityLabel: MarkdownStrings.mermaidSource,
@@ -115,9 +113,10 @@ struct MarkdownBlockStack: View {
 
 struct MarkdownParagraphView: View {
   let inline: MarkdownInline
+  @ScaledMetric(relativeTo: .body) private var scriptOffset: CGFloat = 5
 
   var body: some View {
-    Text(inline.attributedString(codeBackground: Color.secondary.opacity(0.14)))
+    Text(inline.attributedString(codeBackground: Color.secondary.opacity(0.14), scriptOffset: scriptOffset))
       .markdownLine()
       .fixedSize(horizontal: false, vertical: true)
   }
@@ -232,6 +231,10 @@ struct MarkdownCodeView: View {
   let source: String
   /// The fence's language: when the highlighter knows it, the listing is coloured.
   var language: String?
+  /// Drawn in place of the listing (a formula, a diagram); `source` is still what Copy copies.
+  var rendered: AnyView?
+  /// What VoiceOver reads for the rendered content, in place of the source.
+  var spoken: String?
 
   @Environment(\.markdownCodeHighlighting) private var highlights
   @State private var copied = false
@@ -264,12 +267,11 @@ struct MarkdownCodeView: View {
       .padding(.top, padding * 0.6)
 
       ScrollView(.horizontal) {
-        listing
-          .font(.body.monospaced())
+        content
           .fixedSize(horizontal: true, vertical: false)
           .padding(padding)
           .accessibilityLabel(accessibilityLabel)
-          .accessibilityValue(source)
+          .accessibilityValue(spoken ?? source)
       }
     }
     .frame(maxWidth: .infinity, alignment: .leading)
@@ -281,6 +283,14 @@ struct MarkdownCodeView: View {
 extension MarkdownCodeView {
   /// The listing: coloured when it has a language the highlighter knows and the surface is one the
   /// colours were chosen for, the plain text otherwise.
+  @ViewBuilder fileprivate var content: some View {
+    if let rendered {
+      rendered
+    } else {
+      listing.font(.body.monospaced())
+    }
+  }
+
   @ViewBuilder fileprivate var listing: some View {
     if highlights, CodeLanguage.isKnown(language) {
       Text(CodeHighlighter.cachedTokens(source, language: language).attributedString())

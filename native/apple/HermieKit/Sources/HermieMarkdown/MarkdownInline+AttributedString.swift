@@ -13,9 +13,20 @@ extension MarkdownInline {
   /// italic and code against the font in the environment, which is what keeps
   /// Dynamic Type and a heading's size, and draws links in the environment's
   /// tint and opens them through its `OpenURLAction`.
-  public func attributedString(codeBackground: Color? = nil) -> AttributedString {
+  ///
+  /// A formula (`.math`) is typeset as a line (`MathLinear`): symbols, `x²`, `a/b`; `scriptOffset` is
+  /// how far a script with no Unicode glyph is raised. One this parser does not know stays its LaTeX
+  /// source, in code.
+  public func attributedString(codeBackground: Color? = nil, scriptOffset: CGFloat = 5) -> AttributedString {
     var out = AttributedString()
     for run in runs {
+      if run.traits.contains(.math), let spans = MathLinear.spans(of: run.text) {
+        var typeset = MathLinear.attributed(spans, scriptOffset: scriptOffset)
+        if run.traits.contains(.bold) { typeset.inlinePresentationIntent = .stronglyEmphasized }
+        if run.traits.contains(.strikethrough) { typeset.strikethroughStyle = .single }
+        out += typeset
+        continue
+      }
       var piece = AttributedString(run.text)
       var intent: InlinePresentationIntent = []
       if run.traits.contains(.bold) { intent.insert(.stronglyEmphasized) }
