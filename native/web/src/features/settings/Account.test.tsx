@@ -129,3 +129,35 @@ describe('signing out', () => {
     expect(within(group).getByRole('status').textContent).toBe('Signing out…')
   })
 })
+
+describe('on a gateway without sign-in', () => {
+  const tokenMode = () =>
+    aSettingsRuntime({ gated: false, user: '', identity: { displayName: '', email: '', userId: '', provider: '' } })
+
+  it('says nobody is signed in, where the token came from and that it is as open as the dashboard', () => {
+    mount(tokenMode())
+
+    expect(screen.getByText(/This gateway has no sign-in, so nobody is signed in here/u)).toBeTruthy()
+    expect(screen.getByText(/as open as that dashboard/u)).toBeTruthy()
+    expect(screen.queryByText('Signed in as', { selector: 'dt' })).toBeNull()
+    expect(fact('Host')).toBe('gw.example.test')
+  })
+
+  it('forgets the token, after asking, instead of signing out', () => {
+    const runtime = mount(tokenMode())
+
+    expect(screen.queryByRole('button', { name: 'Sign out' })).toBeNull()
+    expect(screen.getByText(/The gateway is not told/u)).toBeTruthy()
+
+    fireEvent.click(screen.getByRole('button', { name: 'Forget the token' }))
+
+    const group = screen.getByRole('group', { name: 'Forget the token' })
+
+    expect(within(group).getByText('Forget the session token in this browser?')).toBeTruthy()
+    expect(runtime.signOut).not.toHaveBeenCalled()
+
+    fireEvent.click(within(group).getByRole('button', { name: 'Forget the token' }))
+
+    expect(runtime.signOut).toHaveBeenCalledTimes(1)
+  })
+})

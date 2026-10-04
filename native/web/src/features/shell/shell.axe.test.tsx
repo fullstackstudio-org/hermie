@@ -10,7 +10,7 @@
  * the document as the app puts it.
  */
 import type { ConnectionStatus } from '@hermie/gateway-client'
-import { act, render } from '@testing-library/react'
+import { act, fireEvent, render } from '@testing-library/react'
 import axe from 'axe-core'
 import { afterEach, beforeEach, describe, expect, it } from 'vitest'
 
@@ -25,6 +25,7 @@ import { botsStore } from '../../state/bots'
 import { layoutStore } from '../../state/layout'
 import { aBot, LONG_AGO, resetShellStores, seedRoster } from '../../test-support/shell-stores'
 import { App } from './App'
+import { TokenPrompt } from './TokenPrompt'
 
 beforeEach(() => {
   resetShellStores()
@@ -179,6 +180,37 @@ describe('the shell, through axe', () => {
 
     expect(await violations()).toEqual([])
   })
+
+  it('has no violation on a gateway without sign-in, the token refused or not', async () => {
+    populate()
+    const { unmount } = render(
+      <App user="" gated={false} onSignIn={() => {}} onSignOut={() => {}} router={createHashRouter(null)} />
+    )
+
+    expect(await violations()).toEqual([])
+    act(() => connectionStore.getState().setStatus('needs_signin', null))
+    expect(await violations()).toEqual([])
+    unmount()
+  })
+
+  it.each(['absent', 'rejected', 'forgotten'] as const)(
+    'has no violation on the token prompt (%s), and after a wrong token',
+    async reason => {
+      const { getByLabelText, getByRole } = render(
+        <TokenPrompt reason={reason} submit={async () => ({ kind: 'wrong' })} onReadAgain={() => {}} />
+      )
+
+      expect(await violations()).toEqual([])
+
+      const field = getByLabelText('Session token', { selector: 'input' }) as HTMLInputElement
+
+      field.value = 'nope'
+      fireEvent.input(field)
+      await act(async () => fireEvent.click(getByRole('button', { name: 'Continue' })))
+
+      expect(await violations()).toEqual([])
+    }
+  )
 
   it.each(['nl', 'de'] as const)('has no violation in %s, with the page’s language set to match', async locale => {
     connectionStore.getState().setStatus('reconnecting', null)

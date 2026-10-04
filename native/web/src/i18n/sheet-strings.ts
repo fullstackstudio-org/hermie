@@ -218,6 +218,11 @@ export const SHEET_STRINGS_SOURCE = {
         nl: 'Voor passkeys moet deze pagina via HTTPS op het eigen adres van de gateway openstaan, zonder pad ervoor, in een browser die ze ondersteunt.',
         de: 'Passkeys brauchen diese Seite über HTTPS unter der eigenen Adresse des Gateways, ohne vorangestellten Pfad, in einem Browser, der sie unterstützt.'
       },
+      needsSignIn: {
+        en: 'Passkeys belong to a person signed in to the gateway. This gateway has no sign-in, so there is nobody to add one for. Turn on sign-in on the gateway to use passkeys.',
+        nl: 'Passkeys horen bij een persoon die op de gateway is ingelogd. Deze gateway heeft geen inlog, dus er is niemand om er een voor toe te voegen. Zet inloggen aan op de gateway om passkeys te gebruiken.',
+        de: 'Passkeys gehören zu einer Person, die am Gateway angemeldet ist. Dieses Gateway hat keine Anmeldung, also gibt es niemanden, für den einer hinzugefügt werden kann. Schalte die Anmeldung am Gateway ein, um Passkeys zu nutzen.'
+      },
       notOffered: {
         en: 'This gateway does not offer passkey confirmations.',
         nl: 'Deze gateway biedt geen bevestigingen met een passkey.',
@@ -1105,6 +1110,21 @@ export const SHEET_STRINGS_SOURCE = {
         nl: 'Uitloggen…',
         de: 'Abmelden…'
       },
+      tokenMode: {
+        en: 'This gateway has no sign-in, so nobody is signed in here. Hermie uses the session token from the gateway’s own dashboard page, which is as open as that dashboard: whoever can open it there can read the token. Hermie keeps it in this tab’s memory only.',
+        nl: 'Deze gateway heeft geen inlog, dus hier is niemand ingelogd. Hermie gebruikt het session token van de eigen dashboardpagina van de gateway, en dat is net zo open als dat dashboard: wie het daar kan openen, kan het token lezen. Hermie houdt het alleen in het geheugen van dit tabblad.',
+        de: 'Dieses Gateway hat keine Anmeldung, daher ist hier niemand angemeldet. Hermie verwendet das Session-Token von der eigenen Dashboard-Seite des Gateways, und das ist so offen wie dieses Dashboard: Wer es dort öffnen kann, kann das Token lesen. Hermie behält es nur im Speicher dieses Tabs.'
+      },
+      forgetQuestion: {
+        en: 'Forget the session token in this browser?',
+        nl: 'Het session token in deze browser vergeten?',
+        de: 'Das Session-Token in diesem Browser vergessen?'
+      },
+      forgetHint: {
+        en: 'This forgets the token and removes the transcripts, drafts and chat list arrangement kept in this browser. Your theme, accent colour, language and text size stay. The gateway is not told: its token keeps working until it restarts.',
+        nl: 'Dit vergeet het token en verwijdert de gesprekken, concepten en chatlijstindeling die in deze browser staan. Je thema, accentkleur, taal en tekstgrootte blijven staan. De gateway hoort er niets van: zijn token blijft werken tot hij opnieuw start.',
+        de: 'Das vergisst das Token und entfernt die Verläufe, Entwürfe und die Chatlisten-Anordnung in diesem Browser. Dein Design, deine Akzentfarbe, Sprache und Textgröße bleiben erhalten. Das Gateway erfährt davon nichts: Sein Token gilt weiter, bis es neu startet.'
+      },
       noGateway: {
         en: 'This page does not know which gateway it belongs to.',
         nl: 'Deze pagina weet niet bij welke gateway hij hoort.',
@@ -1154,6 +1174,11 @@ export const SHEET_STRINGS_SOURCE = {
         en: 'Reading MCP access…',
         nl: 'MCP-toegang wordt gelezen…',
         de: 'MCP-Zugriff wird gelesen…'
+      },
+      needsSignIn: {
+        en: 'MCP access is granted to a person signed in to the gateway. This gateway has no sign-in, so there is nobody to grant it to. Turn on sign-in on the gateway to use it.',
+        nl: 'MCP-toegang wordt gegeven aan een persoon die op de gateway is ingelogd. Deze gateway heeft geen inlog, dus er is niemand om het aan te geven. Zet inloggen aan op de gateway om het te gebruiken.',
+        de: 'MCP-Zugriff wird einer Person gewährt, die am Gateway angemeldet ist. Dieses Gateway hat keine Anmeldung, also gibt es niemanden, dem er gewährt werden kann. Schalte die Anmeldung am Gateway ein, um ihn zu nutzen.'
       },
       notOffered: {
         en: 'This gateway does not offer MCP.',

@@ -10,8 +10,9 @@
  *  - **It is static.** Nothing animates here; the only moving thing in the
  *    client is a bot asking for the reader.
  *  - **Signed out is the one state you can act on**, so it carries a button
- *    (`signIn`: the gateway's own sign-in page), and a gateway too old for the
- *    client says so in a sentence. Those two are alerts; the transient states
+ *    (`signIn`: the gateway's own sign-in page; on a gateway without sign-in,
+ *    whose token was refused, reading the token from its dashboard again), and a
+ *    gateway too old for the client says so in a sentence. Those two are alerts; the transient states
  *    (connecting, reconnecting, offline) are polite status text.
  *
  * It reads one store and fetches nothing.
@@ -22,18 +23,21 @@ import { useStore } from 'zustand'
 
 import { strings } from '../../generated/strings'
 import { useLocale } from '../../i18n/use-locale'
+import { webStrings } from '../../i18n/web-strings'
 import { connectionStore } from '../../state/connection'
 import { Icon } from '../../ui/icons'
 import { Button, PresenceBead } from '../../ui/primitives'
 
 export interface ConnectionLineProps {
-  /** Go to the gateway's own sign-in page (`signIn()` of the boot). */
+  /** Go to the gateway's own sign-in page (`signIn()` of the boot), or on a gateway without sign-in read its token again. */
   onSignIn: () => void
+  /** False on a gateway without sign-in (session-token mode): a refusal is the token's, not a session's. */
+  gated?: boolean
   /** Show this state instead of the live one (tests and the dev gallery). */
   status?: ConnectionStatus
 }
 
-export function ConnectionLine({ onSignIn, status: forced }: ConnectionLineProps): ReactElement | null {
+export function ConnectionLine({ onSignIn, gated = true, status: forced }: ConnectionLineProps): ReactElement | null {
   useLocale()
 
   const live = useStore(connectionStore, state => state.status)
@@ -49,9 +53,9 @@ export function ConnectionLine({ onSignIn, status: forced }: ConnectionLineProps
       return (
         <div className="hm-status" data-status={status} role="alert">
           <Icon name="alert" size={18} />
-          <span className="hm-status__text">{strings.app.signedOut.title}</span>
+          <span className="hm-status__text">{gated ? strings.app.signedOut.title : webStrings.tokenMode.rejected}</span>
           <Button variant="quiet" onClick={onSignIn}>
-            {strings.app.signedOut.signIn}
+            {gated ? strings.app.signedOut.signIn : webStrings.tokenMode.readAgain}
           </Button>
         </div>
       )

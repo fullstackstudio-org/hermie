@@ -18,6 +18,7 @@ export function aSettingsRuntime(
     identity: { displayName: 'Tess Tester', email: 'tess@example.test', userId: 'u-1', provider: 'password' },
     user: 'Tess Tester',
     pictureUrl: '',
+    gated: true,
     licencesUrl: 'https://gw.example.test/dashboard-plugins/hermie/app/licenses.json',
     ...over,
     clearTranscriptCache: vi.fn<() => Promise<void>>(async () => undefined),

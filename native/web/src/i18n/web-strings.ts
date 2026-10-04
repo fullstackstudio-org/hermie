@@ -70,6 +70,62 @@ export const WEB_STRINGS_SOURCE = {
         `Etwas zwischen dieser Seite und dem Gateway hat mit HTTP ${status} geantwortet statt des Gateways. Erneutes Anmelden hilft nicht: Bitte die Person, die Proxy oder Firewall betreibt, /api, /auth und /login durchzulassen.`
     }
   },
+  tokenMode: {
+    /** The token prompt's lead: what this gateway is, and where the token is kept. */
+    lead: {
+      en: 'This gateway has no sign-in: it lets in whoever has its session token. Hermie keeps the token in this tab’s memory only and never stores it.',
+      nl: 'Deze gateway heeft geen inlog: hij laat iedereen toe die zijn session token heeft. Hermie houdt het token alleen in het geheugen van dit tabblad en slaat het nooit op.',
+      de: 'Dieses Gateway hat keine Anmeldung: Es lässt jeden herein, der sein Session-Token hat. Hermie behält das Token nur im Speicher dieses Tabs und speichert es nie.'
+    },
+    /** Why the prompt is shown: the dashboard's page carried no token Hermie could read. */
+    absent: {
+      en: 'Hermie could not read the token from this gateway’s own dashboard page.',
+      nl: 'Hermie kon het token niet lezen van de eigen dashboardpagina van deze gateway.',
+      de: 'Hermie konnte das Token nicht von der eigenen Dashboard-Seite dieses Gateways lesen.'
+    },
+    /** Why the prompt is shown: the gateway refused the token its dashboard page carried. */
+    rejected: {
+      en: 'The gateway did not accept the token from its dashboard page. It may have restarted with a new one.',
+      nl: 'De gateway accepteerde het token van zijn dashboardpagina niet. Misschien is hij opnieuw gestart met een nieuw token.',
+      de: 'Das Gateway hat das Token von seiner Dashboard-Seite nicht angenommen. Vielleicht wurde es mit einem neuen Token neu gestartet.'
+    },
+    /** Why the prompt is shown: the reader asked Hermie to forget the token. */
+    forgotten: {
+      en: 'Hermie has forgotten the token, and the conversations this browser kept for this gateway.',
+      nl: 'Hermie is het token vergeten, en ook de gesprekken die deze browser voor deze gateway bewaarde.',
+      de: 'Hermie hat das Token vergessen, und auch die Verläufe, die dieser Browser für dieses Gateway gespeichert hatte.'
+    },
+    /** Under the field, when the gateway refused the token that was typed. */
+    wrong: {
+      en: 'The gateway did not accept this token. Check it and try again.',
+      nl: 'De gateway accepteerde dit token niet. Controleer het en probeer het opnieuw.',
+      de: 'Das Gateway hat dieses Token nicht angenommen. Prüfe es und versuche es erneut.'
+    },
+    /** While a typed token is being checked. */
+    checking: {
+      en: 'Checking the token…',
+      nl: 'Token controleren…',
+      de: 'Token wird geprüft…'
+    },
+    /** The button that reads the token from the dashboard's page again. */
+    readAgain: {
+      en: 'Read it from the dashboard again',
+      nl: 'Opnieuw van het dashboard lezen',
+      de: 'Erneut vom Dashboard lesen'
+    },
+    /** In the sidebar, where a gated gateway names who is signed in. */
+    noSignIn: {
+      en: 'No sign-in on this gateway',
+      nl: 'Geen inlog op deze gateway',
+      de: 'Keine Anmeldung auf diesem Gateway'
+    },
+    /** The way out on a gateway without sign-in: the sign-out's place in the sidebar and in Settings, Account. */
+    forget: {
+      en: 'Forget the token',
+      nl: 'Token vergeten',
+      de: 'Token vergessen'
+    }
+  },
   markdown: {
     /** The code block's copy button: its label and its accessible name. */
     copyCode: {

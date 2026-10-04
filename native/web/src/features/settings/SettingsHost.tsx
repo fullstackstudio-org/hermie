@@ -13,10 +13,15 @@
  *
  * The main pane's heading is "Settings" on every one of these routes (the layout's `h1`); a section's
  * own title is its `h2`.
+ *
+ * On a gateway without sign-in (`SettingsRuntime.gated` false) the sections that belong to a person,
+ * Passkeys and MCP, say in one sentence that they need sign-in, and their chunks are not fetched: there
+ * is nobody to read them for.
  */
 import { lazy, type ReactElement, Suspense, useEffect } from 'react'
 
 import { strings } from '../../generated/strings'
+import { sheetStrings } from '../../i18n/sheet-strings'
 import { useLocale } from '../../i18n/use-locale'
 import type { HashRouter } from '../../platform/hash-router'
 import { Icon } from '../../ui/icons'
@@ -30,6 +35,8 @@ import {
   sectionTitle
 } from './sections'
 import type { SettingsSection } from './sections'
+import { SettingsPage } from './controls'
+import { useSettingsRuntime } from './settings-runtime'
 import './settings.css'
 
 const Account = lazy(() => SECTION_LOADERS.account().then(module => ({ default: module.Account })))
@@ -71,7 +78,23 @@ function Home(): ReactElement {
   )
 }
 
-function Page({ section }: { section: SettingsSection }): ReactElement {
+/** A person's section on a gateway without sign-in: what it would need, and nothing to act on. */
+function NeedsSignIn({ section }: { section: 'passkeys' | 'mcp' }): ReactElement {
+  return (
+    <SettingsPage
+      title={sectionTitle(section)}
+      lead={section === 'passkeys' ? sheetStrings.passkeys.settings.needsSignIn : sheetStrings.mcp.settings.needsSignIn}
+    >
+      {null}
+    </SettingsPage>
+  )
+}
+
+function Page({ section, gated }: { section: SettingsSection; gated: boolean }): ReactElement {
+  if (!gated && (section === 'passkeys' || section === 'mcp')) {
+    return <NeedsSignIn section={section} />
+  }
+
   switch (section) {
     case 'account':
       return <Account />
@@ -101,6 +124,8 @@ export interface SettingsHostProps {
 export function SettingsHost({ section, router }: SettingsHostProps): ReactElement {
   useLocale()
 
+  // A shell rendered without a runtime (a test of the frame) is taken as gated: it draws what it can.
+  const gated = useSettingsRuntime()?.gated ?? true
   const known = isSettingsSection(section)
   const unknown = section !== undefined && !known
 
@@ -125,7 +150,7 @@ export function SettingsHost({ section, router }: SettingsHostProps): ReactEleme
         {strings.app.settings.licencesBack}
       </a>
       <Suspense fallback={<div className="hm-settings__loading" aria-busy="true" />}>
-        <Page section={section} />
+        <Page section={section} gated={gated} />
       </Suspense>
     </div>
   )

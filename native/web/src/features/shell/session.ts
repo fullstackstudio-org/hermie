@@ -6,7 +6,8 @@
  * and called once, by the entry module, so a component never starts a
  * connection and a re-render never starts a second one:
  *
- *  1. `connectGateway` on the boot's cookie session (`core/gateway-client.ts`);
+ *  1. `connectGateway` on the boot's session (`core/gateway-client.ts`): the
+ *     cookie session, or on a gateway without sign-in the session token (`gated: false`);
  *     it hands the chat store to the roster controller, so a busy session is
  *     placed on the bot whose chat holds its id.
  *  2. `connectChats` on that client (`core/chat-controller.ts`), with the boot's
@@ -45,6 +46,8 @@
  * connection cards, the session status, the passkeys and the chats, then the client (which closes the socket and empties its stores). It
  * is idempotent.
  */
+import type { AuthIdentity } from '@hermie/gateway-client'
+
 import type { ConnectChatsOptions, ChatRuntime, SessionSignal } from '../../core/chat-controller'
 import { ownAuthorStore } from '../../core/chats/own-author'
 import { connectChats } from '../../core/chat-controller'
@@ -66,7 +69,7 @@ import { createSocketFactoryWithOutbox, ErrorDataOutbox, ReplayGapTap } from '..
 import { type VisibilityWatcher, visibilityWatcher } from '../../platform/visibility'
 import { createWebAuthn, type WebAuthnSeam } from '../../platform/webauthn'
 import { connectionsStore } from '../../state/connections'
-import { deviceContextStore, uiMetaUserIdOf } from '../../state/device-context'
+import { deviceContextStore, OWNER_USER_ID, uiMetaUserIdOf } from '../../state/device-context'
 import { uiMetaStatusStore } from '../../state/ui-meta-status'
 import { passkeysStore } from '../../state/passkeys'
 import { bindRequests } from '../../state/requests'
@@ -75,15 +78,24 @@ import { secureInputStore } from '../../state/secure-input'
 export interface StartSessionOptions {
   /** The gateway's base URL (`ResolvedBasePath.baseUrl`). */
   baseUrl: string
-  /** The boot's `signed_in.session.credentials`. */
+  /** The boot's `signed_in.session.credentials`, or `token_ready.session.credentials`. */
   credentials: ConnectGatewayOptions['credentials']
-  /** The boot's `signed_in.author`. */
+  /** The boot's `signed_in.author`; undefined on a gateway without sign-in, which stamps nobody. */
   author: ConnectChatsOptions['author']
   /**
    * The boot's `signed_in.identity`: who `/api/auth/me` named. It picks the
-   * app-wide `ui_meta` key; absent or nameless is the local-only path.
+   * app-wide `ui_meta` key; absent or nameless is the local-only path. Not read
+   * when `gated` is false.
    */
   identity?: { userId?: string; email?: string; displayName?: string }
+  /**
+   * False on a gateway without sign-in (session-token mode, W-23). There is
+   * nobody to name there: `/api/auth/me` is never asked (the gateway answers it
+   * 401 whatever the token), the reader is "nobody named" in the sidebar, and
+   * the `ui_meta` key is the owner's (`OWNER_USER_ID`), as on the Expo app and
+   * the native apps. True unless told otherwise.
+   */
+  gated?: boolean
   /** This gateway's key-value store (watermarks are read from and written to it). */
   storage: WebKeyValueStore
   /** This gateway's transcript cache. */
@@ -128,8 +140,21 @@ function hostOf(baseUrl: string): string {
   }
 }
 
+/** What a gateway without sign-in says about who the reader is: nobody. */
+const NOBODY: AuthIdentity = {
+  userId: '',
+  email: '',
+  displayName: '',
+  orgId: '',
+  provider: '',
+  expiresAt: 0,
+  pictureUrl: ''
+}
+
 export function startSession(options: StartSessionOptions): Session {
   const visibility = options.visibility ?? visibilityWatcher
+  const gated = options.gated ?? true
+  const identity = gated ? options.identity : { userId: OWNER_USER_ID, email: '', displayName: '' }
   const outbox = new ErrorDataOutbox()
   const replayGaps = new ReplayGapTap()
 
@@ -204,7 +229,7 @@ export function startSession(options: StartSessionOptions): Session {
   })
   const status = new SessionStatusModel({
     gateway: client.gateway,
-    readIdentity: () => client.http.authMe(),
+    readIdentity: gated ? () => client.http.authMe() : () => Promise.resolve(NOBODY),
     initialAuthor: options.author,
     ownAuthor: options.chats?.ownAuthor ?? ownAuthorStore,
     watchSignals,
@@ -216,14 +241,14 @@ export function startSession(options: StartSessionOptions): Session {
   status.start()
 
   /*
-    Who the boot read, and their `ui_meta`: a gated gateway always, since this
-    client runs on the cookie session only.
+    Who the boot read, and their `ui_meta`: the person the cookie session names,
+    or on a gateway without sign-in the owner, which is all that gateway knows.
   */
   deviceContextStore.getState().setIdentity({
-    gated: true,
-    userId: options.identity?.userId ?? '',
-    displayName: options.identity?.displayName ?? '',
-    email: options.identity?.email ?? ''
+    gated,
+    userId: identity?.userId ?? '',
+    displayName: identity?.displayName ?? '',
+    email: identity?.email ?? ''
   })
 
   /*
@@ -278,7 +303,7 @@ export function startSession(options: StartSessionOptions): Session {
         connection: client.stores.connection,
         bots: client.stores.bots,
         storage: options.storage,
-        userId: uiMetaUserIdOf(options.identity),
+        userId: uiMetaUserIdOf(identity),
         ...(options.visibility ? { visibility: options.visibility } : {}),
         ...options.uiMeta
       })

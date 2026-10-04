@@ -35,8 +35,8 @@ import { createStore, type StoreApi } from 'zustand/vanilla'
  *
  * A session-token gateway has no identity to ask for. A fixed id is what makes
  * the `ui_meta` key a hit rather than a coin toss, and `owner` is what the
- * gateway's own documentation calls whoever runs it. This client runs on the
- * cookie session only, so it is used for the session-token mode W-23 adds.
+ * gateway's own documentation calls whoever runs it. It is the key on a gateway
+ * without sign-in (session-token mode, `features/shell/session.ts`).
  */
 export const OWNER_USER_ID = 'owner'
 

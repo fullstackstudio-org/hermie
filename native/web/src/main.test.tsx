@@ -71,10 +71,108 @@ describe('the entry module', () => {
     expect(gateway.calls).toEqual([])
   })
 
-  it('says a session-token gateway is for the native app', async () => {
-    await load(APP_PATH, ungatedRoutes)
+  describe('on a gateway without sign-in', () => {
+    const TOKEN = 'tok-Abc_123'
+    const dashboard =
+      (token: string | null): Route =>
+      () =>
+        new Response(
+          `<!doctype html><html><head><script>${token === null ? '' : `window.__HERMES_SESSION_TOKEN__="${token}";`}` +
+            'window.__HERMES_AUTH_REQUIRED__=false;</script></head><body></body></html>',
+          { status: 200, headers: { 'content-type': 'text/html; charset=utf-8' } }
+        )
+    const profiles: Route = call =>
+      call.headers['x-hermes-session-token'] === TOKEN
+        ? json(200, { profiles: [] })
+        : json(401, { detail: 'Unauthorized' })
 
-    expect(await screen.findByRole('heading', { name: 'This gateway cannot be used from a browser' })).toBeTruthy()
+    it('reads the token from the dashboard’s bootstrap and opens the app, naming nobody', async () => {
+      const gateway = await load(`${APP_PATH}#/chat/researcher`, {
+        ...ungatedRoutes,
+        'GET /': dashboard(TOKEN),
+        'GET /api/profiles': profiles
+      })
+
+      expect(await screen.findByText('No sign-in on this gateway')).toBeTruthy()
+      expect(screen.getByRole('button', { name: 'Forget the token' })).toBeTruthy()
+      expect(screen.queryByRole('button', { name: 'Sign out' })).toBeNull()
+
+      const paths = gateway.calls.map(call => `${call.method} ${new URL(call.url).pathname}`)
+
+      expect(paths.slice(0, 3)).toEqual(['GET /api/status', 'GET /', 'GET /api/profiles'])
+      expect(paths).not.toContain('GET /api/auth/me')
+      // The token is in no address the page asked for.
+      expect(gateway.calls.some(call => call.url.includes(TOKEN))).toBe(false)
+      // And in no storage of the page.
+      expect(JSON.stringify({ ...window.localStorage })).not.toContain(TOKEN)
+      expect(JSON.stringify({ ...window.sessionStorage })).not.toContain(TOKEN)
+    })
+
+    it('asks for the token when the bootstrap has none: a wrong one is said once, the right one opens the app', async () => {
+      await load(APP_PATH, { ...ungatedRoutes, 'GET /': dashboard(null), 'GET /api/profiles': profiles })
+
+      const field = (await screen.findByLabelText('Session token', { selector: 'input' })) as HTMLInputElement
+
+      expect(screen.getByText(/could not read the token from this gateway’s own dashboard page/u)).toBeTruthy()
+
+      field.value = 'wrong'
+      fireEvent.input(field)
+      fireEvent.click(screen.getByRole('button', { name: 'Continue' }))
+
+      await vi.waitFor(() =>
+        expect(screen.getByRole('alert').textContent).toBe(
+          'The gateway did not accept this token. Check it and try again.'
+        )
+      )
+
+      field.value = TOKEN
+      fireEvent.input(field)
+      fireEvent.click(screen.getByRole('button', { name: 'Continue' }))
+
+      expect(await screen.findByText('No sign-in on this gateway')).toBeTruthy()
+    })
+
+    it('forgets the token by stopping the session first, then asks for it again', async () => {
+      const order: string[] = []
+
+      vi.doMock('./features/shell/session', async importOriginal => {
+        const real = await importOriginal<typeof SessionModule>()
+
+        return {
+          ...real,
+          startSession: (options: Parameters<typeof real.startSession>[0]) => {
+            const session = real.startSession(options)
+            const stop = session.stop.bind(session)
+
+            return {
+              ...session,
+              stop: () => {
+                order.push('session stopped')
+                stop()
+              }
+            }
+          }
+        }
+      })
+      vi.doMock('./boot/login-bounce', async importOriginal => {
+        const real = await importOriginal<typeof LoginBounceModule>()
+
+        return {
+          ...real,
+          forgetToken: async (options: Parameters<typeof real.forgetToken>[0]) => {
+            await real.forgetToken(options)
+            order.push('forgotten')
+          }
+        }
+      })
+
+      await load(APP_PATH, { ...ungatedRoutes, 'GET /': dashboard(TOKEN), 'GET /api/profiles': profiles })
+      fireEvent.click(await screen.findByRole('button', { name: 'Forget the token' }))
+
+      expect(await screen.findByText(/Hermie has forgotten the token/u)).toBeTruthy()
+      expect(order).toEqual(['session stopped', 'forgotten'])
+      expect(screen.getByLabelText('Session token', { selector: 'input' })).toBeTruthy()
+    })
   })
 
   it('offers to sign in again when the session has lapsed', async () => {

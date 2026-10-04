@@ -157,6 +157,32 @@ describe('startSession', () => {
     expect(connectUiMeta).toHaveBeenCalledWith(expect.objectContaining({ userId: '' }))
   })
 
+  it('on a gateway without sign-in: the owner’s ui_meta, nobody named, and /api/auth/me never asked', async () => {
+    authMe.mockClear()
+
+    const session = startSession({
+      ...options(),
+      author: undefined,
+      // An identity handed in by mistake is not read: there is nobody to name.
+      identity: { userId: 'someone', email: '', displayName: 'Someone' },
+      gated: false
+    })
+
+    await session.uiMeta
+
+    expect(connectUiMeta).toHaveBeenCalledWith(expect.objectContaining({ userId: 'owner' }))
+    expect(deviceContextStore.getState()).toMatchObject({ gated: false, userId: 'owner', displayName: '' })
+    expect(sessionStatusStore.getState().identity).toEqual({ kind: 'anonymous' })
+
+    // A reconnect asks who the reader is again; here that is nobody, without a call the gateway would refuse.
+    await session.status.refreshIdentity()
+
+    expect(authMe).not.toHaveBeenCalled()
+    expect(sessionStatusStore.getState().identity).toEqual({ kind: 'anonymous' })
+
+    session.stop()
+  })
+
   describe('a ui_meta chunk that does not load', () => {
     const failing = (times: number) => {
       let left = times

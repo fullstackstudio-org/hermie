@@ -83,8 +83,13 @@ export interface AppProps {
   pictureUrl?: string
   /** Go to the gateway's own sign-in page. */
   onSignIn: () => void
-  /** Stop the session, end the gateway's session and leave. */
+  /** Stop the session, end the gateway's session and leave; on a gateway without sign-in, forget the token. */
   onSignOut: () => void
+  /**
+   * False on a gateway without sign-in (session-token mode, W-23): the sidebar names nobody and offers to
+   * forget the token, the connection line reads the token again, and Settings says what needs sign-in.
+   */
+  gated?: boolean
   /** The page's address, unless a test hands in its own. */
   router?: HashRouter
   /**
@@ -101,7 +106,7 @@ export interface AppProps {
    * was named, where the licence list is, and how to clear the transcript cache. Absent in a test of the
    * frame, where those pages draw what they can and act on nothing.
    */
-  settings?: Omit<SettingsRuntime, 'signOut' | 'user' | 'pictureUrl'>
+  settings?: Omit<SettingsRuntime, 'signOut' | 'user' | 'pictureUrl' | 'gated'>
   /** The secure input model's actions (secret, sudo and vault prompts); absent in a test of the frame. */
   secureInput?: SecureInputActions
   /** The actions of the models beside the engine (notices, connection cards, resume progress); absent in a test of the frame. */
@@ -117,6 +122,7 @@ export function App({
   pictureUrl,
   onSignIn,
   onSignOut,
+  gated = true,
   router = pageHashRouter,
   chat,
   passkeys,
@@ -128,8 +134,8 @@ export function App({
   useLocale()
 
   const settingsRuntime = useMemo<SettingsRuntime | null>(
-    () => (settings ? { ...settings, user, pictureUrl: pictureUrl ?? '', signOut: onSignOut } : null),
-    [settings, user, pictureUrl, onSignOut]
+    () => (settings ? { ...settings, gated, user, pictureUrl: pictureUrl ?? '', signOut: onSignOut } : null),
+    [settings, gated, user, pictureUrl, onSignOut]
   )
 
   const route = useRoute(router)
@@ -173,9 +179,16 @@ export function App({
                 <Layout
                   route={route}
                   heading={heading}
-                  status={<ConnectionLine onSignIn={onSignIn} />}
+                  status={<ConnectionLine onSignIn={onSignIn} gated={gated} />}
                   sidebar={<ChatList selectedBot={bot} />}
-                  footer={<SidebarFooter user={user} {...(pictureUrl ? { pictureUrl } : {})} onSignOut={onSignOut} />}
+                  footer={
+                    <SidebarFooter
+                      user={user}
+                      {...(pictureUrl ? { pictureUrl } : {})}
+                      onSignOut={onSignOut}
+                      gated={gated}
+                    />
+                  }
                 >
                   {route.name === 'chat' ? (
                     <ChatScreen

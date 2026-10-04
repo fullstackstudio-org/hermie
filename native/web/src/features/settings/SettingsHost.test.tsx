@@ -152,3 +152,30 @@ describe('a section', () => {
     }).not.toThrow()
   })
 })
+
+describe('on a gateway without sign-in', () => {
+  const mountUngated = (section: string) =>
+    render(
+      <SettingsRuntimeContext.Provider value={aSettingsRuntime({ gated: false })}>
+        <SettingsHost section={section} router={router} />
+      </SettingsRuntimeContext.Provider>
+    )
+
+  it.each([
+    ['passkeys', 'Passkeys', /Passkeys belong to a person signed in to the gateway\. This gateway has no sign-in/u],
+    ['mcp', 'MCP', /MCP access is granted to a person signed in to the gateway\. This gateway has no sign-in/u]
+  ])('%s says plainly that it needs sign-in, and offers nothing to act on', (section, title, sentence) => {
+    mountUngated(section)
+
+    const page = screen.getByRole('region', { name: title })
+
+    expect(page.textContent).toMatch(sentence)
+    expect(page.querySelector('button, input, form')).toBeNull()
+  })
+
+  it('opens the other sections as usual', async () => {
+    mountUngated('appearance')
+
+    expect(await screen.findByRole('heading', { level: 2, name: 'Appearance' })).toBeTruthy()
+  })
+})

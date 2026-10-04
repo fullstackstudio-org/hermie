@@ -1,6 +1,8 @@
 /**
  * The foot of the sidebar: who is signed in (and, when the gateway did not say,
- * that it did not: `IdentityNote`), the way to Settings, the way out, and which client this is. Signing out is the entry module's business (stop the chats, stop the
+ * that it did not: `IdentityNote`; on a gateway without sign-in, that there is
+ * none), the way to Settings, the way out (there: forgetting the session token),
+ * and which client this is. Signing out is the entry module's business (stop the chats, stop the
  * client, end the gateway's session, clear this person's stored state, go to
  * the sign-in page); this only asks for it, once.
  *
@@ -28,10 +30,13 @@ export interface SidebarFooterProps {
   user: string
   /** Where the gateway holds the reader's picture (`/api/auth/me`'s `picture_url`); empty when it holds none. */
   pictureUrl?: string
+  /** Sign out; on a gateway without sign-in, forget the session token instead. */
   onSignOut: () => void
+  /** False on a gateway without sign-in: nobody is named, and the way out forgets the token. */
+  gated?: boolean
 }
 
-export function SidebarFooter({ user, pictureUrl = '', onSignOut }: SidebarFooterProps): ReactElement {
+export function SidebarFooter({ user, pictureUrl = '', onSignOut, gated = true }: SidebarFooterProps): ReactElement {
   useLocale()
 
   const [leaving, setLeaving] = useState(false)
@@ -42,7 +47,11 @@ export function SidebarFooter({ user, pictureUrl = '', onSignOut }: SidebarFoote
       <div className="hm-sidebar__person">
         {ownId && user ? <PersonAvatar id={ownId} name={user} path={pictureUrl} skip={!pictureUrl} /> : null}
         <p className="hm-sidebar__who">
-          {user ? strings.app.onboarding.signIn.signedInAs({ user }) : strings.app.onboarding.signIn.signedIn}
+          {!gated
+            ? webStrings.tokenMode.noSignIn
+            : user
+              ? strings.app.onboarding.signIn.signedInAs({ user })
+              : strings.app.onboarding.signIn.signedIn}
         </p>
       </div>
       <IdentityNote />
@@ -65,7 +74,7 @@ export function SidebarFooter({ user, pictureUrl = '', onSignOut }: SidebarFoote
         }}
       >
         <Icon name="signOut" size={18} />
-        {strings.app.onboarding.signIn.signOutOfSession}
+        {gated ? strings.app.onboarding.signIn.signOutOfSession : webStrings.tokenMode.forget}
       </Button>
       <p className="hm-sidebar__version">{webStrings.shell.version({ version: buildLabel })}</p>
     </>

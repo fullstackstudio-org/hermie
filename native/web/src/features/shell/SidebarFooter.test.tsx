@@ -2,18 +2,20 @@
  * The reader's own picture in the sidebar's foot: the one the gateway named, fetched through the same
  * cache as everybody else's, and the initial when there is none.
  */
-import { act, render } from '@testing-library/react'
+import { act, cleanup, fireEvent, render } from '@testing-library/react'
 import { afterEach, describe, expect, it, vi } from 'vitest'
 
 import { ownAuthorStore } from '../../core/chats/own-author'
 import { createPeoplePictures } from '../../core/people-pictures'
 import { ChatRuntimeContext, type ChatSessionRuntime } from '../chat/chat-runtime'
+import { ConnectionLine } from './ConnectionLine'
 import { SidebarFooter } from './SidebarFooter'
 
 const PICTURE = 'data:image/png;base64,AAAA'
 const settle = () => act(() => new Promise<void>(resolve => setTimeout(resolve, 0)))
 
 afterEach(() => {
+  cleanup()
   ownAuthorStore.getState().reset()
 })
 
@@ -56,5 +58,33 @@ describe('SidebarFooter', () => {
     const { container } = render(<SidebarFooter user="" onSignOut={() => undefined} />)
 
     expect(container.querySelector('.hm-avatar')).toBeNull()
+  })
+
+  it('on a gateway without sign-in, says there is none and offers to forget the token', () => {
+    const onSignOut = vi.fn()
+    const { container, getByRole, queryByRole } = render(<SidebarFooter user="" gated={false} onSignOut={onSignOut} />)
+
+    expect(container.querySelector('.hm-sidebar__who')?.textContent).toBe('No sign-in on this gateway')
+    expect(queryByRole('button', { name: 'Sign out' })).toBeNull()
+
+    fireEvent.click(getByRole('button', { name: 'Forget the token' }))
+
+    expect(onSignOut).toHaveBeenCalledTimes(1)
+  })
+})
+
+describe('ConnectionLine', () => {
+  it('asks for a sign-in when a session lapsed, and on a gateway without sign-in reads the token again', () => {
+    const onSignIn = vi.fn()
+    const gated = render(<ConnectionLine status="needs_signin" onSignIn={onSignIn} />)
+
+    expect(gated.getByRole('alert').textContent).not.toMatch(/token/u)
+    gated.unmount()
+
+    const ungated = render(<ConnectionLine status="needs_signin" gated={false} onSignIn={onSignIn} />)
+
+    expect(ungated.getByRole('alert').textContent).toMatch(/did not accept the token from its dashboard page/u)
+    fireEvent.click(ungated.getByRole('button', { name: 'Read it from the dashboard again' }))
+    expect(onSignIn).toHaveBeenCalledTimes(1)
   })
 })

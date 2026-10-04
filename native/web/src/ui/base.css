@@ -21,3 +21,51 @@
 .boot button {
   margin-top: 0.5rem;
 }
+
+/* The session-token prompt of a gateway without sign-in (`features/shell/TokenPrompt.tsx`). */
+.boot__field {
+  display: grid;
+  gap: 0.375rem;
+  margin-top: 1.25rem;
+}
+
+.boot__field label {
+  font-weight: 600;
+}
+
+.boot__input {
+  box-sizing: border-box;
+  width: 100%;
+  min-height: 44px;
+  padding: 8px 12px;
+  border: 1px solid var(--hm-line);
+  border-radius: var(--hm-radius);
+  background: var(--hm-bg);
+  color: var(--hm-text);
+  font: inherit;
+}
+
+.boot__input:focus-visible {
+  outline: var(--hm-focus-width) solid var(--hm-focus);
+  outline-offset: 1px;
+}
+
+.boot .boot__help {
+  margin: 0;
+  font-size: 0.875rem;
+}
+
+.boot .boot__problem {
+  color: var(--hm-danger-text);
+}
+
+.boot .boot__problem:empty,
+.boot .boot__status:empty {
+  margin: 0;
+}
+
+.boot__actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+}

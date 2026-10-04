@@ -6,6 +6,10 @@
  * with the choice that leaves nothing behind named in the question and Cancel holding the focus, and
  * then hands over to the entry module's sign-out, which stops the chats and the socket, ends the
  * gateway's session, clears this person's stored state and goes to the gateway's own page.
+ *
+ * On a gateway without sign-in (`gated: false`, session-token mode) nobody is signed in, and the page
+ * says so: there is no identity to show, the token came from the gateway's own dashboard and is as open
+ * as that dashboard, and the way out is forgetting the token (the same local clearing, no gateway call).
  */
 import { type ReactElement, useRef, useState } from 'react'
 import { useStore } from 'zustand'
@@ -15,12 +19,13 @@ import { displayText, NAME_LIMIT } from '../../core/requests/secure-input'
 import { strings } from '../../generated/strings'
 import { sheetStrings } from '../../i18n/sheet-strings'
 import { useLocale } from '../../i18n/use-locale'
+import { webStrings } from '../../i18n/web-strings'
 import { Icon } from '../../ui/icons'
 import { Button } from '../../ui/primitives'
 import { PersonAvatar } from '../chat/PersonAvatar'
 import { IdentityNote } from '../notices/IdentityNote'
 import { Fact, SettingsPage } from './controls'
-import { useSettingsRuntime } from './settings-runtime'
+import { type SettingsRuntime, useSettingsRuntime } from './settings-runtime'
 
 /** An address or an id the gateway gave runs longer than a name. */
 const VALUE_LIMIT = 128
@@ -52,6 +57,8 @@ export function Account(): ReactElement {
     )
   }
 
+  const gated = runtime.gated
+  const leaveLabel = gated ? strings.app.settings.signOut : webStrings.tokenMode.forget
   const name = displayText(runtime.user, NAME_LIMIT)
   const email = displayText(runtime.identity.email, VALUE_LIMIT)
   const userId = displayText(runtime.identity.userId, VALUE_LIMIT)
@@ -59,26 +66,20 @@ export function Account(): ReactElement {
 
   return (
     <SettingsPage title={title}>
+      {gated ? null : <p className="hm-settings-page__lead">{words.tokenMode}</p>}
+
       <dl className="hm-facts">
-        <Fact label={strings.app.settings.user}>
-          <span className="hm-fact__person">
-            {ownId && name ? (
-              <PersonAvatar id={ownId} name={name} path={runtime.pictureUrl} skip={!runtime.pictureUrl} />
-            ) : null}
-            <span>{name || strings.app.onboarding.signIn.signedIn}</span>
-          </span>
-        </Fact>
-        {email && email !== name ? <Fact label={strings.app.settings.email}>{email}</Fact> : null}
-        {userId && userId !== name ? <Fact label={words.userId}>{userId}</Fact> : null}
-        {provider && provider !== 'none' ? <Fact label={strings.app.settings.provider}>{provider}</Fact> : null}
+        {gated ? (
+          <AccountFacts runtime={runtime} ownId={ownId} name={name} email={email} userId={userId} provider={provider} />
+        ) : null}
         <Fact label={strings.app.settings.host}>{hostOf(runtime.gatewayBaseUrl)}</Fact>
       </dl>
 
-      <IdentityNote />
+      {gated ? <IdentityNote /> : null}
 
       {confirming ? (
-        <div className="hm-settings-page__confirm" role="group" aria-label={strings.app.settings.signOut}>
-          <p className="hm-settings-page__text">{words.signOutQuestion}</p>
+        <div className="hm-settings-page__confirm" role="group" aria-label={leaveLabel}>
+          <p className="hm-settings-page__text">{gated ? words.signOutQuestion : words.forgetQuestion}</p>
           <div className="hm-settings-page__actions">
             <Button
               variant="quiet"
@@ -90,7 +91,7 @@ export function Account(): ReactElement {
               }}
             >
               <Icon name="signOut" size={18} />
-              {strings.app.settings.signOut}
+              {leaveLabel}
             </Button>
             {/* Cancel takes the focus: signing out is never one stray Enter away. */}
             <Button
@@ -106,7 +107,7 @@ export function Account(): ReactElement {
               {strings.app.common.cancel}
             </Button>
           </div>
-          {leaving ? (
+          {leaving && gated ? (
             <p className="hm-settings-page__text" role="status">
               {words.signingOut}
             </p>
@@ -116,12 +117,47 @@ export function Account(): ReactElement {
         <div className="hm-settings-page__actions">
           <Button variant="quiet" data-tone="danger" ref={signOutButton} onClick={() => setConfirming(true)}>
             <Icon name="signOut" size={18} />
-            {strings.app.settings.signOut}
+            {leaveLabel}
           </Button>
         </div>
       )}
 
-      <p className="hm-set__hint">{words.signOutHint}</p>
+      <p className="hm-set__hint">{gated ? words.signOutHint : words.forgetHint}</p>
     </SettingsPage>
+  )
+}
+
+/** Who the gateway named: a gated gateway's person, with their picture when it holds one. */
+function AccountFacts({
+  runtime,
+  ownId,
+  name,
+  email,
+  userId,
+  provider
+}: {
+  runtime: SettingsRuntime
+  ownId: string | undefined
+  name: string
+  email: string
+  userId: string
+  provider: string
+}): ReactElement {
+  const words = sheetStrings.settings.account
+
+  return (
+    <>
+      <Fact label={strings.app.settings.user}>
+        <span className="hm-fact__person">
+          {ownId && name ? (
+            <PersonAvatar id={ownId} name={name} path={runtime.pictureUrl} skip={!runtime.pictureUrl} />
+          ) : null}
+          <span>{name || strings.app.onboarding.signIn.signedIn}</span>
+        </span>
+      </Fact>
+      {email && email !== name ? <Fact label={strings.app.settings.email}>{email}</Fact> : null}
+      {userId && userId !== name ? <Fact label={words.userId}>{userId}</Fact> : null}
+      {provider && provider !== 'none' ? <Fact label={strings.app.settings.provider}>{provider}</Fact> : null}
+    </>
   )
 }

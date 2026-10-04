@@ -3,9 +3,11 @@
  *
  * Three layers, each usable on its own:
  *
- *  - `createGatewayConnection`: a `GatewayConnection` on the gateway's cookie
- *    session (`CookieSessionCredentials`, narrowed to `same-origin` by the boot)
- *    over the page's `WebSocket`. Every dial mints its own ticket.
+ *  - `createGatewayConnection`: a `GatewayConnection` on the boot's credentials
+ *    over the page's `WebSocket`: the gateway's cookie session
+ *    (`CookieSessionCredentials`, narrowed to `same-origin` by the boot), where
+ *    every dial mints its own ticket, or on a gateway without sign-in the session
+ *    token (`SessionTokenCredentials`), which every dial carries as `?token=`.
  *  - `attachLifecycle`: when the connection dials, closes and dials again, from
  *    the page's visibility and the browser's network reports (below).
  *  - `connectGateway`: the two together, plus the stores and the roster: the
@@ -39,12 +41,13 @@
  *
  * Ported from the Expo app's `src/gateway/client.ts`. Deliberate differences:
  *
- *  - **Cookie mode only.** The secret-store token store, the memory token
- *    store, the token coordinator, `NativePkceCredentials` and
- *    `SessionTokenCredentials` are gone: a page holds no credential (plan W5),
- *    and the session-token mode is W-23's. The credentials are the boot's
- *    (`signed_in.session.credentials`), handed in, so the connection and the
- *    boot share one cookie session.
+ *  - **The cookie session, or a session token in memory.** The secret-store
+ *    token store, the memory token store, the token coordinator and
+ *    `NativePkceCredentials` are gone: a page stores no credential (plan W5). A
+ *    gateway without sign-in is the one exception, and its token is held only by
+ *    the `SessionTokenCredentials` the boot made (W-23). The credentials are the
+ *    boot's (`signed_in.session.credentials` or `token_ready.session.credentials`),
+ *    handed in, so the connection and the boot share one session.
  *  - **No `endGatewaySession`.** Sign-out is `boot/login-bounce.ts::signOut`,
  *    which ends the cookie session the same way and then clears the page's
  *    storage; the caller stops the connection first (`GatewayClient.stop`).
@@ -112,7 +115,7 @@ export type ConnectionTuning = Pick<
 export interface CreateConnectionOptions {
   /** The gateway's base URL: the page's origin plus its prefix (`ResolvedBasePath.baseUrl`). */
   baseUrl: string
-  /** The boot's cookie session credentials, which mint one ticket per dial. */
+  /** The boot's credentials: the cookie session (a ticket per dial) or the session token (`?token=`). */
   credentials: CredentialProvider
   /** The page's `fetch` unless told otherwise, for the connection's REST half. */
   fetchImpl?: FetchLike
@@ -132,7 +135,7 @@ const pageFetch: FetchLike = (input, init) => globalThis.fetch(input, init)
 /** Build the page's connection. The caller owns `start()` / `stop()`, or hands it to `attachLifecycle`. */
 export function createGatewayConnection(options: CreateConnectionOptions): GatewayConnection {
   return new GatewayConnection({
-    config: { baseUrl: options.baseUrl, authMode: 'cookie' },
+    config: { baseUrl: options.baseUrl, authMode: options.credentials.mode },
     credentials: options.credentials,
     socketFactory: options.socketFactory ?? createSocketFactory(),
     fetchImpl: options.fetchImpl ?? pageFetch,
@@ -265,7 +268,7 @@ export interface GatewayClient {
   readonly connection: GatewayConnection
   /** The connection as the chat layer sees it. */
   readonly gateway: ChatGateway
-  /** The REST half, on the same cookie session. */
+  /** The REST half, on the same session. */
   readonly http: GatewayHttp
   readonly bots: BotsController
   readonly stores: GatewayStores

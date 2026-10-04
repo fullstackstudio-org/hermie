@@ -21,8 +21,14 @@ export interface SettingsRuntime {
   gatewayBaseUrl: string
   /** The Hermes version the gateway's status route reported at boot; empty when it said none. */
   hermesVersion: string
-  /** Who `/api/auth/me` named. */
+  /** Who `/api/auth/me` named; every field empty on a gateway without sign-in. */
   identity: AccountIdentity
+  /**
+   * False on a gateway without sign-in (session-token mode): nobody is signed in,
+   * so the pages that belong to a person (Account's identity, Passkeys, MCP) say
+   * they need sign-in, and the way out forgets the token instead of signing out.
+   */
+  gated: boolean
   /** Who is signed in, for a sentence: the display name, else the email, else the id; empty when nobody was named. */
   user: string
   /** Where the gateway holds the signed-in person's picture; empty when it holds none. */
@@ -31,7 +37,10 @@ export interface SettingsRuntime {
   licencesUrl: string
   /** Forget every transcript and the roster this browser stored. */
   clearTranscriptCache: () => Promise<void>
-  /** Stop the session, end the gateway's, clear this person's stored state and leave (the entry module's sign-out). */
+  /**
+   * Stop the session, end the gateway's, clear this person's stored state and leave (the entry module's
+   * sign-out); on a gateway without sign-in, stop the session, forget the token and clear the same state.
+   */
   signOut: () => void
 }
 

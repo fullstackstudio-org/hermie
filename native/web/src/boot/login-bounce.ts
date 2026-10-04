@@ -14,6 +14,10 @@
  *    session that lapses and is signed back into as somebody else never passes
  *    through `signOut`.
  *
+ * On a gateway without sign-in there is no `/login` to go to: `forgetToken` is
+ * the sign-out's local half, and the caller drops the token and shows the
+ * token prompt itself.
+ *
  * Nothing stored here is a credential: a route, and an author id
  * (`<provider>:<user id>`), which the gateway stamps on every message anyway.
  */
@@ -196,4 +200,21 @@ export async function signOut(options: SignOutOptions): Promise<void> {
   await clearIdentityBoundState(options)
   writeStash(environment, routeStashKey(options.basePath), null)
   environment.location.assign(loginUrl(options.basePath))
+}
+
+export interface ForgetTokenOptions extends IdentityBoundState {
+  basePath: ResolvedBasePath
+  environment?: BounceEnvironment
+}
+
+/**
+ * The sign-out of a gateway without sign-in (plan W-23): clear the cache, the
+ * identity-bound settings and the stashed route, as `signOut` does, and go
+ * nowhere. The token itself was never stored: the caller forgets it by dropping
+ * the session that holds it (stop the connection first). The gateway is not
+ * told, because it has nothing to end: its token stays valid until it restarts.
+ */
+export async function forgetToken(options: ForgetTokenOptions): Promise<void> {
+  await clearIdentityBoundState(options)
+  writeStash(options.environment ?? pageBounceEnvironment(), routeStashKey(options.basePath), null)
 }

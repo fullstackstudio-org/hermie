@@ -7,6 +7,7 @@ import { deriveBasePath, type ResolvedBasePath } from './base-path'
 import {
   type BounceEnvironment,
   claimForOwner,
+  forgetToken,
   isCarriableRoute,
   loginUrl,
   OWNER_KEY,
@@ -243,6 +244,23 @@ describe('signing out', () => {
     })
 
     expect(order).toEqual(['cleared then left'])
+  })
+})
+
+describe('forgetting the token of a gateway without sign-in', () => {
+  it('clears what signing out clears, and goes nowhere', async () => {
+    const { cache, store, storage } = await signedInBrowser()
+    const tab = page(ROOT.appPath, '#/chat/researcher')
+    tab.stash.set(routeStashKey(ROOT), '#/chat/researcher')
+
+    await forgetToken({ basePath: ROOT, cache, store, environment: tab.environment })
+
+    expect(await cache.read('researcher')).toBeNull()
+    expect(await cache.readBots()).toEqual([])
+    expect([...storage.map.keys()].sort()).toEqual(['hermie:/:device.installationId', 'hermie:/:device.language'])
+    expect(tab.stash.size).toBe(0)
+    // There is no gateway sign-in page to go to: the caller asks for the token.
+    expect(tab.assigned).toEqual([])
   })
 })
 
