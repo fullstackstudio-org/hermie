@@ -1080,6 +1080,34 @@
 	<string>%1$lld von %2$lld</string>
 	<key>native.media.unavailable</key>
 	<string>Nicht verfügbar</string>
+	<key>native.newBot.handleBuiltIn</key>
+	<string>'default' ist der eingebaute Bot und kann nicht noch einmal erstellt werden.</string>
+	<key>native.newBot.handleEmpty</key>
+	<string>Ein Bot braucht ein Handle.</string>
+	<key>native.newBot.handleReserved</key>
+	<string>'%@' ist reserviert: Es kollidiert mit Hermes selbst oder mit einem gängigen Systembefehl.</string>
+	<key>native.newBot.handleShape</key>
+	<string>Verwende Kleinbuchstaben, Ziffern, '-' oder '_', beginnend mit einem Buchstaben oder einer Ziffer, höchstens 64 Zeichen (zum Beispiel: %@).</string>
+	<key>native.newBot.handleTaken</key>
+	<string>'%@' gibt es bereits.</string>
+	<key>native.newBot.menuTitle</key>
+	<string>Neuer Bot …</string>
+	<key>native.newBot.notListed</key>
+	<string>Das Gateway hat %@ erstellt, listet ihn aber nicht auf. Versuche es gleich noch einmal.</string>
+	<key>native.newBot.offline</key>
+	<string>Zurzeit besteht keine Verbindung zum Gateway.</string>
+	<key>native.newBot.open</key>
+	<string>Erstellt einen neuen Bot auf diesem Gateway.</string>
+	<key>native.newBot.openChat</key>
+	<string>Chat öffnen</string>
+	<key>native.newBot.readOnly</key>
+	<string>Dieses Konto darf auf diesem Gateway keine Bots erstellen.</string>
+	<key>native.newBot.ready</key>
+	<string>%@ ist bereit.</string>
+	<key>native.newBot.subcommandWarning</key>
+	<string>Das ist auch ein hermes-Befehl, daher wird die Verknüpfung dafür in der Shell nicht angelegt. Der Bot selbst funktioniert trotzdem.</string>
+	<key>native.newBot.unsupported</key>
+	<string>Dieses Gateway kann von hier aus keine Bots erstellen.</string>
 	<key>native.notice.gatewayNotConfigured</key>
 	<string>Dieser Link gehört zu einem Gateway, das dieses Gerät nicht kennt. Füge das Gateway zuerst hinzu.</string>
 	<key>native.notice.lockSettingNotRestored</key>

@@ -33,6 +33,11 @@ public struct HermieCommands: Commands {
       }
       .keyboardShortcut("n", modifiers: [.command, .shift])
       .disabled(router?.selectedChat == nil)
+
+      Button(NativeStrings.NewBot.menuTitle) {
+        router?.present(.newBot)
+      }
+      .disabled(router == nil)
     }
 
     CommandGroup(after: .textEditing) {

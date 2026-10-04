@@ -1080,6 +1080,34 @@
 	<string>%1$lld of %2$lld</string>
 	<key>native.media.unavailable</key>
 	<string>Not available</string>
+	<key>native.newBot.handleBuiltIn</key>
+	<string>'default' is the built-in bot and cannot be created again.</string>
+	<key>native.newBot.handleEmpty</key>
+	<string>A bot needs a handle.</string>
+	<key>native.newBot.handleReserved</key>
+	<string>'%@' is reserved: it collides with Hermes itself or with a common system command.</string>
+	<key>native.newBot.handleShape</key>
+	<string>Use lowercase letters, numbers, '-' or '_', starting with a letter or number, up to 64 characters (for example: %@).</string>
+	<key>native.newBot.handleTaken</key>
+	<string>'%@' already exists.</string>
+	<key>native.newBot.menuTitle</key>
+	<string>New Bot…</string>
+	<key>native.newBot.notListed</key>
+	<string>The gateway made %@ but did not list it. Try again in a moment.</string>
+	<key>native.newBot.offline</key>
+	<string>There is no connection to the gateway right now.</string>
+	<key>native.newBot.open</key>
+	<string>Makes a new bot on this gateway.</string>
+	<key>native.newBot.openChat</key>
+	<string>Open chat</string>
+	<key>native.newBot.readOnly</key>
+	<string>This account may not make bots on this gateway.</string>
+	<key>native.newBot.ready</key>
+	<string>%@ is ready.</string>
+	<key>native.newBot.subcommandWarning</key>
+	<string>This is also a hermes command, so its shortcut in the shell will not be created. The bot itself is fine.</string>
+	<key>native.newBot.unsupported</key>
+	<string>This gateway cannot make bots from here.</string>
 	<key>native.notice.gatewayNotConfigured</key>
 	<string>That link is for a gateway this device does not know. Add the gateway first.</string>
 	<key>native.notice.lockSettingNotRestored</key>

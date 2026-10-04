@@ -1080,6 +1080,34 @@
 	<string>%1$lld van %2$lld</string>
 	<key>native.media.unavailable</key>
 	<string>Niet beschikbaar</string>
+	<key>native.newBot.handleBuiltIn</key>
+	<string>'default' is de ingebouwde bot en kan niet opnieuw worden gemaakt.</string>
+	<key>native.newBot.handleEmpty</key>
+	<string>Een bot heeft een handle nodig.</string>
+	<key>native.newBot.handleReserved</key>
+	<string>'%@' is gereserveerd: het botst met Hermes zelf of met een gangbaar systeemcommando.</string>
+	<key>native.newBot.handleShape</key>
+	<string>Gebruik kleine letters, cijfers, '-' of '_', beginnend met een letter of cijfer, maximaal 64 tekens (bijvoorbeeld: %@).</string>
+	<key>native.newBot.handleTaken</key>
+	<string>'%@' bestaat al.</string>
+	<key>native.newBot.menuTitle</key>
+	<string>Nieuwe bot…</string>
+	<key>native.newBot.notListed</key>
+	<string>De gateway heeft %@ gemaakt maar toont hem niet. Probeer het zo opnieuw.</string>
+	<key>native.newBot.offline</key>
+	<string>Er is nu geen verbinding met de gateway.</string>
+	<key>native.newBot.open</key>
+	<string>Maakt een nieuwe bot op deze gateway.</string>
+	<key>native.newBot.openChat</key>
+	<string>Chat openen</string>
+	<key>native.newBot.readOnly</key>
+	<string>Dit account mag geen bots maken op deze gateway.</string>
+	<key>native.newBot.ready</key>
+	<string>%@ is klaar.</string>
+	<key>native.newBot.subcommandWarning</key>
+	<string>Dit is ook een hermes-commando, dus de snelkoppeling ervoor in de shell wordt niet gemaakt. De bot zelf werkt gewoon.</string>
+	<key>native.newBot.unsupported</key>
+	<string>Deze gateway kan hier geen bots maken.</string>
 	<key>native.notice.gatewayNotConfigured</key>
 	<string>Die link hoort bij een gateway die dit apparaat niet kent. Voeg de gateway eerst toe.</string>
 	<key>native.notice.lockSettingNotRestored</key>

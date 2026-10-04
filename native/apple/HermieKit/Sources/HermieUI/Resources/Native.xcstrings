@@ -12939,6 +12939,331 @@
         }
       }
     },
+    "native.newBot.handleBuiltIn" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "'default' ist der eingebaute Bot und kann nicht noch einmal erstellt werden."
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "'default' is the built-in bot and cannot be created again."
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "'default' is de ingebouwde bot en kan niet opnieuw worden gemaakt."
+          }
+        }
+      }
+    },
+    "native.newBot.handleEmpty" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Ein Bot braucht ein Handle."
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "A bot needs a handle."
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Een bot heeft een handle nodig."
+          }
+        }
+      }
+    },
+    "native.newBot.handleReserved" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "'%@' ist reserviert: Es kollidiert mit Hermes selbst oder mit einem gängigen Systembefehl."
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "'%@' is reserved: it collides with Hermes itself or with a common system command."
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "'%@' is gereserveerd: het botst met Hermes zelf of met een gangbaar systeemcommando."
+          }
+        }
+      }
+    },
+    "native.newBot.handleShape" : {
+      "comment" : "{suggestion} is a legal handle made from what was typed.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Verwende Kleinbuchstaben, Ziffern, '-' oder '_', beginnend mit einem Buchstaben oder einer Ziffer, höchstens 64 Zeichen (zum Beispiel: %@)."
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Use lowercase letters, numbers, '-' or '_', starting with a letter or number, up to 64 characters (for example: %@)."
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Gebruik kleine letters, cijfers, '-' of '_', beginnend met een letter of cijfer, maximaal 64 tekens (bijvoorbeeld: %@)."
+          }
+        }
+      }
+    },
+    "native.newBot.handleTaken" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "'%@' gibt es bereits."
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "'%@' already exists."
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "'%@' bestaat al."
+          }
+        }
+      }
+    },
+    "native.newBot.menuTitle" : {
+      "comment" : "The File menu item that opens the New bot sheet.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Neuer Bot …"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "New Bot…"
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Nieuwe bot…"
+          }
+        }
+      }
+    },
+    "native.newBot.notListed" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Das Gateway hat %@ erstellt, listet ihn aber nicht auf. Versuche es gleich noch einmal."
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "The gateway made %@ but did not list it. Try again in a moment."
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "De gateway heeft %@ gemaakt maar toont hem niet. Probeer het zo opnieuw."
+          }
+        }
+      }
+    },
+    "native.newBot.offline" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Zurzeit besteht keine Verbindung zum Gateway."
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "There is no connection to the gateway right now."
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Er is nu geen verbinding met de gateway."
+          }
+        }
+      }
+    },
+    "native.newBot.open" : {
+      "comment" : "The hint of the chat list's New bot button.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Erstellt einen neuen Bot auf diesem Gateway."
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Makes a new bot on this gateway."
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Maakt een nieuwe bot op deze gateway."
+          }
+        }
+      }
+    },
+    "native.newBot.openChat" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Chat öffnen"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Open chat"
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Chat openen"
+          }
+        }
+      }
+    },
+    "native.newBot.readOnly" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Dieses Konto darf auf diesem Gateway keine Bots erstellen."
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "This account may not make bots on this gateway."
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Dit account mag geen bots maken op deze gateway."
+          }
+        }
+      }
+    },
+    "native.newBot.ready" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%@ ist bereit."
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%@ is ready."
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%@ is klaar."
+          }
+        }
+      }
+    },
+    "native.newBot.subcommandWarning" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Das ist auch ein hermes-Befehl, daher wird die Verknüpfung dafür in der Shell nicht angelegt. Der Bot selbst funktioniert trotzdem."
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "This is also a hermes command, so its shortcut in the shell will not be created. The bot itself is fine."
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Dit is ook een hermes-commando, dus de snelkoppeling ervoor in de shell wordt niet gemaakt. De bot zelf werkt gewoon."
+          }
+        }
+      }
+    },
+    "native.newBot.unsupported" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Dieses Gateway kann von hier aus keine Bots erstellen."
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "This gateway cannot make bots from here."
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Deze gateway kan hier geen bots maken."
+          }
+        }
+      }
+    },
     "native.notice.gatewayNotConfigured" : {
       "extractionState" : "manual",
       "localizations" : {

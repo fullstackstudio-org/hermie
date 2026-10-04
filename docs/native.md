@@ -2165,3 +2165,27 @@ gateway's voice RPCs are not used.** What follows is how the Apple apps keep to 
   `VoiceSettingsPageTests`: a fake recogniser and a fake synthesiser, no audio, no simulator. What no test proves is the
   Speech framework itself: that the prompts appear, that on-device recognition works for a language, and that the audio
   session hands the speaker back (hand-check on a device).
+
+## New bot
+
+`NewBotSheet` (`HermieUI/NewBot`, the `AppSheet.newBot` sheet) makes a bot: a handle, an optional name of the
+reader's own, a description, a model and a bot to copy the settings of. It opens from the chat list's toolbar
+button and File › New Bot…; when the bot is made its chat is opened. The model behind it is `NewBotModel`
+(`HermieCore/NewBot`), which `GatewaySession.newBot()` builds over the session's link and roster.
+
+- **Three steps, in this order** (`profiles-controller.ts` in the Expo app): `profiles.create`, then the roster
+  is read again (the gateway answers the name it STORED, the normalised handle, and the roster row carries what
+  it actually stored), then the bot's canonical chat is resolved the ordinary way (ADR-0007). A step that fails
+  after the profile exists leaves the bot made; pressing Create again carries on from the failed step instead of
+  asking for a name that is taken now.
+- **The handle is checked while it is typed** (`ProfileName`, a transcription of upstream's validator): empty,
+  `default` (the built-in), not `[a-z0-9][a-z0-9_-]{0,63}` (with a suggestion made from what was typed), reserved,
+  or already on the roster. A `hermes` subcommand is a warning, never a refusal. The gateway stays the authority.
+- **`profiles.create` params** (`NewBotDraft.params`): `model` and `provider` go together or not at all, `clone_from`
+  is left out rather than null, and `mirror_credentials` is never sent, so the gateway's default (the new bot gets
+  the launch profile's credentials) applies.
+- **The name of the reader's own** is their `ui_meta` label (`ChatArrangementModel.setLabel`), not something
+  `profiles.create` takes.
+- **A bot with no model** (nothing pinned, nothing inherited) is told so on a page of its own before its chat opens.
+- Tests: `ProfileNameTests` and `NewBotModelTests` (HermieCoreTests, against a scripted gateway),
+  `NewBotViewTests` (HermieUITests) and `NewBotIntegrationTests` (the fake gateway over a real socket).

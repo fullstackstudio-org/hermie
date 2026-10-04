@@ -75,6 +75,8 @@ public enum AppSheet: Hashable, Sendable, Identifiable {
   case onboarding(OnboardingMode)
   case signIn(gatewayId: String)
   case gatewayPicker
+  /// The New bot form (`NewBotSheet`): the one way a bot is made.
+  case newBot
 
   public var id: Self { self }
 }

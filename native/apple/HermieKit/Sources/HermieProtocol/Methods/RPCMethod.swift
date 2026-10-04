@@ -207,8 +207,8 @@ public enum RPC {
 
   public enum ProfilesCreate: RPCMethod {
     public static let name = "profiles.create"
-    public typealias Params = JSONValue
-    public typealias Result = JSONValue
+    public typealias Params = ProfilesCreateParams
+    public typealias Result = ProfilesCreateResult
   }
 
   public enum ProfilesDescribe: RPCMethod {

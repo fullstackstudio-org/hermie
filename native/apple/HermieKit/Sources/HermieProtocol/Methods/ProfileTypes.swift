@@ -204,3 +204,55 @@ public struct ProfilesConfigureResult: JSONObjectBacked {
   public var confirmRequired: Bool? { get { json[field: "confirm_required"] } set { json[field: "confirm_required"] = newValue } }
   public var confirmMessage: String? { get { json[field: "confirm_message"] } set { json[field: "confirm_message"] = newValue } }
 }
+
+/// `profiles.create` params. Only `name` is required. `model` and `provider` go together or not at all
+/// (the gateway pins a model only when it has both), `clone_from` is left out rather than null when
+/// there is nothing to clone, and `mirror_credentials` is left out so the gateway's default (copy the
+/// launch profile's credentials, so the new bot can reach a provider) applies.
+public struct ProfilesCreateParams: JSONObjectBacked {
+  public var json: JSONObject
+  public init(json: JSONObject) { self.json = json }
+
+  public init(name: String) {
+    self.init()
+    self.name = name
+  }
+
+  public var name: String? { get { json[field: "name"] } set { json[field: "name"] = newValue } }
+  /// The `description` field (`description` itself is the canonical text, as on every view).
+  public var profileDescription: String? {
+    get { json[field: "description"] }
+    set { json[field: "description"] = newValue }
+  }
+  public var cloneFrom: String? { get { json[field: "clone_from"] } set { json[field: "clone_from"] = newValue } }
+  public var model: String? { get { json[field: "model"] } set { json[field: "model"] = newValue } }
+  public var provider: String? { get { json[field: "provider"] } set { json[field: "provider"] = newValue } }
+}
+
+/// What a new profile was given from the launch profile.
+public struct ProfileMirrored: JSONObjectBacked {
+  public var json: JSONObject
+  public init(json: JSONObject) { self.json = json }
+
+  public var env: Bool? { get { json[field: "env"] } set { json[field: "env"] = newValue } }
+  public var auth: Bool? { get { json[field: "auth"] } set { json[field: "auth"] = newValue } }
+  public var modelInherited: Bool? {
+    get { json[field: "model_inherited"] }
+    set { json[field: "model_inherited"] = newValue }
+  }
+  public var voice: Bool? { get { json[field: "voice"] } set { json[field: "voice"] = newValue } }
+}
+
+/// `profiles.create` result: the name the gateway STORED, which is the normalised handle.
+public struct ProfilesCreateResult: JSONObjectBacked {
+  public var json: JSONObject
+  public init(json: JSONObject) { self.json = json }
+
+  public var ok: Bool? { get { json[field: "ok"] } set { json[field: "ok"] = newValue } }
+  public var name: String? { get { json[field: "name"] } set { json[field: "name"] = newValue } }
+  public var path: String? { get { json[field: "path"] } set { json[field: "path"] = newValue } }
+  public var soulWritten: Bool? { get { json[field: "soul_written"] } set { json[field: "soul_written"] = newValue } }
+  /// True when the request's `model` and `provider` were pinned.
+  public var modelSet: Bool? { get { json[field: "model_set"] } set { json[field: "model_set"] = newValue } }
+  public var mirrored: ProfileMirrored? { get { json[field: "mirrored"] } set { json[field: "mirrored"] = newValue } }
+}

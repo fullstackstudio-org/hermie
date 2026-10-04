@@ -85,6 +85,19 @@ struct SessionChatList: View {
     .folderNameAlert($naming) { request, name in
       commit(request, name: name)
     }
+    .toolbar {
+      ToolbarItem(placement: .primaryAction) {
+        Button {
+          router?.present(.newBot)
+        } label: {
+          Label(Strings.Profiles.New.title, systemImage: "person.crop.circle.badge.plus")
+        }
+        .disabled(!ready || router == nil)
+        .help(Strings.Profiles.New.title)
+        .accessibilityHint(NativeStrings.NewBot.open)
+        .accessibilityIdentifier("hermie.chatList.newBot")
+      }
+    }
     .muteDialog($muting, actions: actions)
     #if os(iOS)
       .toolbar {

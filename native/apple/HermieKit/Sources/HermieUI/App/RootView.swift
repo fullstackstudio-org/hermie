@@ -269,6 +269,8 @@ struct ShellSheet: View {
       components.signIn(SignInContext(gatewayId: gatewayId, finish: { router.dismissSheet(sheet) }))
     case .gatewayPicker:
       GatewayPickerSheet()
+    case .newBot:
+      NewBotSheet()
     }
   }
 }
