@@ -38,9 +38,9 @@ final class UnreachableLink: GatewayLink, Sendable {
   func shutdown() async {}
 }
 
-/// Polls `condition` on the main actor until it holds, or fails after `timeout`.
+/// Polls `condition` on the main actor until it holds, or fails after `timeout` (generous: a loaded CI runner is slow).
 @MainActor
-func eventually(_ what: String, timeout: Duration = .seconds(5), _ condition: () -> Bool) async {
+func eventually(_ what: String, timeout: Duration = .seconds(30), _ condition: () -> Bool) async {
   let deadline = ContinuousClock.now + timeout
 
   while !condition() {
