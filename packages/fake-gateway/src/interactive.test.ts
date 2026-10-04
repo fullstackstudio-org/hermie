@@ -682,7 +682,14 @@ describe('answers', () => {
     }
 
     await client.call('request.answer', { id, result: { decision: 'approved', text: 'Hi,  \nBye!' } })
-    expect((await report(gateway, id)).answer).toEqual({ decision: 'approved', text: 'Hi,\nBye!', edited: true })
+    expect((await report(gateway, id)).answer).toEqual({
+      decision: 'approved',
+      text: 'Hi,\nBye!',
+      edited: true,
+      // The gateway keeps the approved text under a `draft_id` (and its SHA-256) for a later `confirm`.
+      draft_id: expect.stringMatching(/^drf-[0-9a-f]{12}$/),
+      sha256: createHash('sha256').update('Hi,\nBye!').digest('hex')
+    })
   })
 
   it('withdraws the request at the tenth refusal and names the cap instead of the problem', async () => {

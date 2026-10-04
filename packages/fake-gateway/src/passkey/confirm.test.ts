@@ -156,8 +156,11 @@ describe('the capability handshake', () => {
       enabled: true,
       reason: '',
       gateway_id: expect.any(String),
-      rp: { native: ['confirm.hermie.dev'], web: [] }
+      rp: { native: ['confirm.hermie.dev'], web: [] },
+      // The `confirm_passkey.v` values it accepts in the second call: 2 also takes structured fields.
+      versions: [1, 2]
     })
+    expect(first.confirm_fields).toBe(false)
     expect(b64uDecode(first.confirm_passkey.gateway_id)).toHaveLength(16)
   })
 
@@ -178,7 +181,7 @@ describe('the capability handshake', () => {
     const h = await startPasskeyGateway()
     const app = await connect(h, (await signIn(h, ALICE)).headers)
 
-    for (const options of [{ rpId: 'evil.example' }, { kind: 'web' as const }, { v: 2 }]) {
+    for (const options of [{ rpId: 'evil.example' }, { kind: 'web' as const }, { v: 3 }, { v: 0 }]) {
       expect((await advertise(app, options)).second.confirm, JSON.stringify(options)).toEqual(['plain'])
     }
 

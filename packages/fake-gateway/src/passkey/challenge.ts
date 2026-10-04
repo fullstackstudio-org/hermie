@@ -11,6 +11,7 @@ import { LP, S } from './encoding'
 
 export const CHALLENGE_TAG = 'hermie-confirm-v1'
 export const TEXT_TAG = 'hermie-confirm-text-v1'
+export const TEXT_TAG_V2 = 'hermie-confirm-text-v2'
 export const USER_HANDLE_TAG = 'user-handle-v1'
 export const PURPOSES = ['confirm', 'register', 'invite', 'revoke'] as const
 
@@ -25,6 +26,46 @@ const sha256 = (data: Uint8Array): Buffer => createHash('sha256').update(data).d
 /** README §4. `detail` absent, `null` and `""` give the same digest. */
 export function textDigest(title: string, summary: string, detail?: string | null): Buffer {
   return sha256(Buffer.concat([S(TEXT_TAG), S(title), S(summary), S(detail ?? '')]))
+}
+
+/** One structured field of a `confirm` (README §4.1): the five strings the digest commits to. */
+export interface ConfirmField {
+  id: string
+  kind: string
+  label: string
+  value: string
+  currency?: string
+}
+
+/**
+ * README §4.1, text version 2: the version-1 text and then, for each field in the frame's order,
+ * `S(id) ‖ S(kind) ‖ S(label) ‖ S(value) ‖ S(currency or "")`. The order is part of the text.
+ */
+export function textDigestV2(
+  title: string,
+  summary: string,
+  detail: string | null | undefined,
+  fields: readonly ConfirmField[]
+): Buffer {
+  return sha256(
+    Buffer.concat([
+      S(TEXT_TAG_V2),
+      S(title),
+      S(summary),
+      S(detail ?? ''),
+      ...fields.flatMap(field => [S(field.id), S(field.kind), S(field.label), S(field.value), S(field.currency ?? '')])
+    ])
+  )
+}
+
+/** The digest of a request's text: version 2 when it carries fields, else version 1. */
+export function requestDigest(
+  title: string,
+  summary: string,
+  detail: string | null | undefined,
+  fields: readonly ConfirmField[] | undefined
+): Buffer {
+  return fields?.length ? textDigestV2(title, summary, detail, fields) : textDigest(title, summary, detail)
 }
 
 export interface ChallengeFields {

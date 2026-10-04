@@ -39,6 +39,9 @@ export interface SelfEnrolSettings {
   coolingOffS: number
 }
 
+/** The `confirm_passkey.v` values this gateway accepts from a client: 2 also computes `text_digest_v2` (§4.1). */
+export const PASSKEY_VERSIONS = [1, 2] as const
+
 /** The longest cooling-off the real gateway reads (seven days); anything else switches self-enrolment off there. */
 export const COOLING_OFF_MAX_S = 7 * 24 * 60 * 60
 
@@ -429,7 +432,13 @@ export class PasskeyGateway {
    * `identity`: whether the connection has a signed-in user.
    */
   capability(identity: boolean): Record<string, unknown> {
-    const off = { v: 1, enabled: false, gateway_id: '', rp: { native: [] as string[], web: [] as string[] } }
+    const off = {
+      v: 1,
+      enabled: false,
+      gateway_id: '',
+      rp: { native: [] as string[], web: [] as string[] },
+      versions: [...PASSKEY_VERSIONS]
+    }
 
     if (!this.settings.enabled) {
       return { ...off, reason: 'disabled' }
@@ -443,24 +452,29 @@ export class PasskeyGateway {
       enabled: reason === '',
       reason,
       gateway_id: b64u(ctx.gatewayId),
-      rp: { native: [...ctx.nativeRpIds].sort(), web: [...ctx.webRpIds].sort() }
+      rp: { native: [...ctx.nativeRpIds].sort(), web: [...ctx.webRpIds].sort() },
+      versions: [...PASSKEY_VERSIONS]
     }
   }
 
   /**
    * The detail recorded with `passkey` for a connection, or `null` when the level must not be accepted from
-   * it: the level is not enabled here, the connection has no signed-in user, or `{v: 1, kind, rp_id}`
-   * names an RP this gateway does not accept for that kind. Whether the user has a credential is decided
-   * per request.
+   * it: the level is not enabled here, the connection has no signed-in user, `v` is not one of the
+   * versions in `capability().versions`, or `{v, kind, rp_id}` names an RP this gateway does not accept for
+   * that kind. The detail keeps `v`: a version-2 frame goes only where it is 2. Whether the user has a
+   * credential is decided per request.
    */
-  acceptAdvertisement(identity: boolean, advertisement: unknown): { kind: 'native' | 'web'; rp_id: string } | null {
+  acceptAdvertisement(
+    identity: boolean,
+    advertisement: unknown
+  ): { kind: 'native' | 'web'; rp_id: string; v: 1 | 2 } | null {
     if (typeof advertisement !== 'object' || advertisement === null || Array.isArray(advertisement)) {
       return null
     }
 
     const { v, kind, rp_id: rpId } = advertisement as Record<string, unknown>
 
-    if (v !== 1 || (kind !== 'native' && kind !== 'web') || typeof rpId !== 'string' || !identity) {
+    if ((v !== 1 && v !== 2) || (kind !== 'native' && kind !== 'web') || typeof rpId !== 'string' || !identity) {
       return null
     }
 
@@ -474,6 +488,6 @@ export class PasskeyGateway {
       return null
     }
 
-    return (kind === 'native' ? ctx.nativeRpIds : ctx.webRpIds).has(rpId) ? { kind, rp_id: rpId } : null
+    return (kind === 'native' ? ctx.nativeRpIds : ctx.webRpIds).has(rpId) ? { kind, rp_id: rpId, v } : null
   }
 }

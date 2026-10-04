@@ -1,7 +1,9 @@
 import { randomBytes } from 'node:crypto'
 
+import { codePointLength, verbatimProblem } from '../verbatim'
 import { b64u } from './encoding'
-import { NONCE_BYTES } from './challenge'
+import { NONCE_BYTES, type ConfirmField } from './challenge'
+import type { ReviewRegister } from '../review-register'
 import { type PasskeyGateway, type Identity, userKey } from './gateway'
 import { CommitRefused, StoreError } from './store'
 import {
@@ -37,7 +39,14 @@ import {
  * - one open confirmation and at most 6 per 600 s per conversation;
  * - no downgrade: after a `passkey` request ends in a failure a third party can cause once a frame was
  *   sent (declined, timeout, verification_failed, an error response, withdrawn, no capable client), `plain`
- *   requests in that conversation are `unavailable (downgrade_refused)` for 600 s.
+ *   requests in that conversation are `unavailable (downgrade_refused)` for 600 s;
+ * - structured `fields` (contract §4.1): checked verbatim (refused, never rewritten); a request with fields
+ *   goes only to connections that advertised `confirm_fields: true` (at `passkey` also `confirm_passkey {v: 2}`)
+ *   and is `unavailable (no_capable_client)` with nothing sent when none is attached. At `passkey` such a
+ *   request is version 2: `passkey.v` is 2 and the challenge commits to `text_digest_v2`;
+ * - `draft_id`: the detail is the text the person approved in `review.draft`, taken verbatim from the review
+ *   register (whatever detail the caller passed is ignored); an unknown or expired id is refused before
+ *   anything is sent.
  */
 
 export const TIMEOUT_SECONDS = 120
@@ -112,7 +121,7 @@ export function cleanText(text: unknown, multiline: boolean): string {
 
     marks = 0
 
-    if (ch === '\n' || ch === ' ' || ch === ' ') {
+    if (ch === '\n' || ch === '\u2028' || ch === '\u2029') {
       out.push(multiline ? '\n' : ' ')
     } else if (ch === '\t') {
       out.push(' ')
@@ -149,6 +158,158 @@ export interface ConfirmText {
   summary: string
   detail: string | null
   level: ConfirmLevel
+  /** The structured fields, in display order; absent for a version-1 request. */
+  fields?: ConfirmField[]
+}
+
+// ── structured fields ─────────────────────────────────────────────────────────────────────────
+
+export const FIELDS_MAX = 8
+export const FIELD_LABEL_MAX = 40
+export const FIELD_VALUE_MAX = 200
+export const FIELD_CURRENCY_MAX = 16
+export const FIELD_KINDS = ['amount', 'text', 'recipient', 'domain', 'model', 'count', 'date'] as const
+const FIELD_KEYS = new Set(['id', 'kind', 'label', 'value', 'currency'])
+const FIELD_ID = /^[a-z][a-z0-9_]{0,31}$/
+
+/**
+ * One string of a structured field: ONE line, shown exactly as given. Spaces at either end are the only thing
+ * removed; a value that is not a string (no number is converted: the agent writes it as it should be shown),
+ * anything `verbatimProblem` refuses (an invisible, bidi or control character, padding) and a line break
+ * throw, never rewritten.
+ */
+function fieldText(index: number, key: string, raw: unknown, limit: number): string {
+  if (typeof raw !== 'string') {
+    throw new ConfirmParamsError(`fields[${index}].${key} must be a string, written exactly as it should be shown`)
+  }
+
+  const text = raw.replace(/^ +| +$/g, '')
+
+  if (!text) {
+    throw new ConfirmParamsError(`fields[${index}].${key} is empty`)
+  }
+
+  if (codePointLength(text) > limit) {
+    throw new ConfirmParamsError(
+      `fields[${index}].${key} is ${codePointLength(text)} characters; the limit is ${limit}.`
+    )
+  }
+
+  if (text.includes('\n')) {
+    throw new ConfirmParamsError(`fields[${index}].${key} must be one line`)
+  }
+
+  const problem = verbatimProblem(text)
+
+  if (problem) {
+    throw new ConfirmParamsError(`fields[${index}].${key} cannot be shown as it is: ${problem}`)
+  }
+
+  return text
+}
+
+/**
+ * The `fields` of a `confirm` (README §4.1), or `undefined` for none. Throws `ConfirmParamsError` for anything
+ * the person could not be shown exactly: more than 8, an unknown key or kind, an id that is not
+ * `[a-z][a-z0-9_]{0,31}` or not unique (a missing id becomes `field_<n>`), `currency` on anything but an
+ * `amount`, and every string `fieldText` refuses.
+ */
+export function buildFields(fields: unknown): ConfirmField[] | undefined {
+  if (fields === undefined || fields === null || (Array.isArray(fields) && fields.length === 0)) {
+    return undefined
+  }
+
+  if (!Array.isArray(fields)) {
+    throw new ConfirmParamsError('fields must be a list of {kind, label, value, currency?, id?} objects')
+  }
+
+  if (fields.length > FIELDS_MAX) {
+    throw new ConfirmParamsError(`${fields.length} fields; the limit is ${FIELDS_MAX}.`)
+  }
+
+  const built: ConfirmField[] = []
+
+  for (const [index, raw] of fields.entries()) {
+    if (typeof raw !== 'object' || raw === null || Array.isArray(raw)) {
+      throw new ConfirmParamsError(`fields[${index}] must be an object with kind, label and value`)
+    }
+
+    const entry = raw as Record<string, unknown>
+    const unknown = Object.keys(entry)
+      .filter(key => !FIELD_KEYS.has(key))
+      .sort()
+
+    if (unknown.length) {
+      throw new ConfirmParamsError(`fields[${index}] has unknown keys: ${unknown.join(', ')}`)
+    }
+
+    const kind = entry.kind
+
+    if (typeof kind !== 'string' || !(FIELD_KINDS as readonly string[]).includes(kind)) {
+      throw new ConfirmParamsError(`fields[${index}].kind must be one of: ${FIELD_KINDS.join(', ')}`)
+    }
+
+    const id = entry.id === undefined || entry.id === null ? `field_${index + 1}` : entry.id
+
+    if (typeof id !== 'string' || !FIELD_ID.test(id)) {
+      throw new ConfirmParamsError(
+        `fields[${index}].id must be a lower-case identifier ([a-z][a-z0-9_]*, at most 32 characters)`
+      )
+    }
+
+    if (built.some(field => field.id === id)) {
+      throw new ConfirmParamsError(`fields[${index}].id '${id}' is used twice`)
+    }
+
+    const field: ConfirmField = {
+      id,
+      kind,
+      label: fieldText(index, 'label', entry.label, FIELD_LABEL_MAX),
+      value: fieldText(index, 'value', entry.value, FIELD_VALUE_MAX)
+    }
+
+    if (entry.currency !== undefined && entry.currency !== null) {
+      if (kind !== 'amount') {
+        throw new ConfirmParamsError(`fields[${index}].currency is only for kind amount`)
+      }
+
+      field.currency = fieldText(index, 'currency', entry.currency, FIELD_CURRENCY_MAX)
+    }
+
+    built.push(field)
+  }
+
+  return built
+}
+
+/** A reviewed draft's text is shown (and signed) as the person approved it: at most this long. */
+export const DRAFT_DETAIL_MAX = DETAIL_MAX
+
+/**
+ * The text the person approved as draft `draftId` in conversation `conversation` (the review register), or
+ * `ConfirmParamsError` when this conversation has no such live draft (unknown, expired, or another
+ * conversation's): nothing is sent then.
+ */
+export function draftDetail(register: ReviewRegister, conversation: string, draftId: unknown, now: number): string {
+  if (typeof draftId !== 'string' || !draftId) {
+    throw new ConfirmParamsError('draft_id must be the draft_id a review_draft approval returned')
+  }
+
+  const draft = register.get(conversation, draftId, now)
+
+  if (!draft) {
+    throw new ConfirmParamsError(
+      `draft ${draftId} is unknown or expired in this conversation (drafts are kept 60 minutes): ask for a review_draft approval again; nothing was sent`
+    )
+  }
+
+  if (draft.text.length > DRAFT_DETAIL_MAX) {
+    throw new ConfirmParamsError(
+      `draft ${draftId} is ${draft.text.length} characters; a confirmation shows at most ${DRAFT_DETAIL_MAX}, so it cannot be confirmed with draft_id; nothing was sent`
+    )
+  }
+
+  return draft.text
 }
 
 /** The `confirm` params (without `session_id`), cleaned and bounded. Throws `ConfirmParamsError`. */
@@ -157,6 +318,10 @@ export function buildText(input: {
   summary?: unknown
   detail?: unknown
   level?: unknown
+  /** Structured facts shown apart from the text (see `buildFields`). */
+  fields?: unknown
+  /** The detail is a reviewed draft's approved text (`draftDetail`): shown verbatim, never cleaned. */
+  verbatimDetail?: boolean
 }): ConfirmText {
   const level = typeof input.level === 'string' && input.level.trim() ? input.level.trim() : 'plain'
 
@@ -174,7 +339,19 @@ export function buildText(input: {
     throw new ConfirmParamsError(`summary is ${summary.length} characters; the limit is ${SUMMARY_MAX}.`)
   }
 
-  const detail = input.detail === undefined || input.detail === null ? '' : cleanText(input.detail, true)
+  let detail: string
+
+  if (input.verbatimDetail && input.detail !== undefined && input.detail !== null) {
+    detail = String(input.detail)
+
+    const problem = verbatimProblem(detail)
+
+    if (problem) {
+      throw new ConfirmParamsError(`detail cannot be shown verbatim: ${problem}`)
+    }
+  } else {
+    detail = input.detail === undefined || input.detail === null ? '' : cleanText(input.detail, true)
+  }
 
   if (detail.length > DETAIL_MAX) {
     throw new ConfirmParamsError(`detail is ${detail.length} characters; the limit is ${DETAIL_MAX}.`)
@@ -186,7 +363,15 @@ export function buildText(input: {
     throw new ConfirmParamsError(`title is ${title.length} characters; the limit is ${TITLE_MAX}.`)
   }
 
-  return { title: title || DEFAULT_TITLE, summary, detail: detail || null, level: level as ConfirmLevel }
+  const fields = buildFields(input.fields)
+
+  return {
+    title: title || DEFAULT_TITLE,
+    summary,
+    detail: detail || null,
+    level: level as ConfirmLevel,
+    ...(fields ? { fields } : {})
+  }
 }
 
 // ── host ──────────────────────────────────────────────────────────────────────────────────────
@@ -221,7 +406,9 @@ export interface ConfirmHost<P extends object> {
 
 interface Advertisement {
   levels: Set<string>
-  passkey: { kind: 'native' | 'web'; rp_id: string } | null
+  passkey: { kind: 'native' | 'web'; rp_id: string; v: 1 | 2 } | null
+  /** `confirm_fields: true` was accepted (exactly `true`, and only with an accepted level). */
+  fields: boolean
 }
 
 interface Verification {
@@ -233,6 +420,8 @@ interface Verification {
   snapshot: StoredCredential[]
   enrolledRps: Set<string>
   validate: (answer: unknown) => AssertionOk | Refusal
+  /** 2 for a request with structured fields (`text_digest_v2`), else 1. */
+  version: 1 | 2
 }
 
 interface OpenRequest<P extends object> {
@@ -346,7 +535,12 @@ export class ConfirmGate<P extends object> {
     }
 
     if (levels.size) {
-      this.adverts.set(peer, { levels, passkey: levels.has('passkey') ? passkey : null })
+      this.adverts.set(peer, {
+        levels,
+        passkey: levels.has('passkey') ? passkey : null,
+        // A client that would drop the fields must not be asked to confirm less than the agent asked.
+        fields: params.confirm_fields === true
+      })
     } else {
       this.adverts.delete(peer)
     }
@@ -363,12 +557,22 @@ export class ConfirmGate<P extends object> {
     return [...(this.adverts.get(peer)?.levels ?? [])]
   }
 
+  /** Whether the connection advertised `confirm_fields: true` and it was accepted (what `client.capabilities` echoes). */
+  showsFields(peer: P): boolean {
+    return this.adverts.get(peer)?.fields === true
+  }
+
   // ── who may see and answer ───────────────────────────────────────────────────────────────────
 
   private qualifies(req: OpenRequest<P>, peer: P): boolean {
     const advert = this.adverts.get(peer)
 
     if (!advert?.levels.has(req.level)) {
+      return false
+    }
+
+    // A request with fields goes only to (and is answered only by) a connection that shows them.
+    if (Array.isArray(req.params.fields) && !advert.fields) {
       return false
     }
 
@@ -381,6 +585,11 @@ export class ConfirmGate<P extends object> {
     const identity = this.host.identityOf(peer)
 
     if (!identity || userKey(identity) !== v.userId || !advert.passkey) {
+      return false
+    }
+
+    // A version-2 request (fields, `text_digest_v2`) goes only to a client that computes it.
+    if (v.version >= 2 && advert.passkey.v !== 2) {
       return false
     }
 
@@ -443,6 +652,7 @@ export class ConfirmGate<P extends object> {
       summary: text.summary,
       ...(text.detail ? { detail: text.detail } : {}),
       level,
+      ...(text.fields?.length ? { fields: text.fields } : {}),
       ...(verification ? this.passkeyParams(verification) : {})
     }
     const req: OpenRequest<P> = {
@@ -555,8 +765,10 @@ export class ConfirmGate<P extends object> {
 
     const nonce = randomBytes(NONCE_BYTES)
     const text = input.text
+    const fields = text.fields ?? []
 
     return {
+      version: fields.length ? 2 : 1,
       userId,
       userName: this.host.displayNameOf(userId),
       nonce,
@@ -574,7 +786,8 @@ export class ConfirmGate<P extends object> {
           summary: text.summary,
           detail: text.detail,
           sessionId: input.sessionId,
-          purpose: 'confirm'
+          purpose: 'confirm',
+          ...(fields.length ? { fields } : {})
         },
         snapshot
       )
@@ -590,7 +803,7 @@ export class ConfirmGate<P extends object> {
 
     return {
       passkey: {
-        v: 1,
+        v: v.version,
         nonce: b64u(v.nonce),
         gateway_id: b64u(v.ctx.gatewayId),
         base_url: v.ctx.acceptedBaseUrls[0] ?? '',

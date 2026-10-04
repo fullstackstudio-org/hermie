@@ -1,7 +1,7 @@
 import { createHash, createPublicKey, verify as cryptoVerify, type KeyObject } from 'node:crypto'
 
 import { hasPathPrefix, hostOf, isPrivate, originOf } from './base-url'
-import { challenge, textDigest, userHandle, type Purpose } from './challenge'
+import { challenge, requestDigest, textDigest, userHandle, type ConfirmField, type Purpose } from './challenge'
 import { CborError, decode, decodeExactly, type CborValue } from './cbor'
 import { b64uDecode, safeEqual } from './encoding'
 
@@ -133,7 +133,15 @@ export interface AssertionRequest {
   detail: string | null
   sessionId: string
   purpose: Purpose
+  /**
+   * The frame's structured fields, in order (README §4.1). Present and non-empty makes this a version-2
+   * request: the challenge commits to `text_digest_v2` and the answer's `passkey.v` must be 2.
+   */
+  fields?: readonly ConfirmField[]
 }
+
+/** The `passkey.v` of a request: 2 for one with structured fields, else 1. */
+export const requestVersion = (request: { fields?: readonly ConfirmField[] }): 1 | 2 => (request.fields?.length ? 2 : 1)
 
 export interface PendingRegistration {
   registrationId: string
@@ -514,7 +522,8 @@ function doVerifyAssertion(
       throw new Refuse('bad_shape')
     }
 
-    if (p.v !== 1) {
+    // `v` repeats the request's own version: 1, or 2 for a request with fields (README §4.1, §9 step 1).
+    if (p.v !== requestVersion(request)) {
       throw new Refuse('bad_shape')
     }
 
@@ -557,7 +566,7 @@ function doVerifyAssertion(
   const cd = clientData(cdj, { type: 'webauthn.get', kind, rpId, baseUrl, ctx })
 
   // 7 challenge_mismatch
-  const digest = textDigest(request.title, request.summary, request.detail)
+  const digest = requestDigest(request.title, request.summary, request.detail, request.fields)
   const expected = challenge({
     purpose: request.purpose,
     baseUrl,

@@ -8,7 +8,7 @@ import {
 } from 'node:crypto'
 
 import { hostOf, originOf } from '../passkey/base-url'
-import { challenge, textDigest, userHandle, type Purpose } from '../passkey/challenge'
+import { challenge, requestDigest, textDigest, userHandle, type ConfirmField, type Purpose } from '../passkey/challenge'
 import { b64u } from '../passkey/encoding'
 
 /**
@@ -124,6 +124,11 @@ export interface AssertionInput {
   title: string
   summary: string
   detail?: string | null
+  /**
+   * The frame's structured fields, in the frame's order (README §4.1). Non-empty makes it a version-2
+   * assertion: the challenge commits to `text_digest_v2` and the answer says `v: 2`.
+   */
+  fields?: readonly ConfirmField[]
   purpose?: Purpose
   /** `GET /api/auth/passkeys`'s `user.handle`; sent as `user_handle` when given. */
   userHandle?: Uint8Array | string
@@ -131,7 +136,7 @@ export interface AssertionInput {
 
 /** The `passkey` object of an answer, and of a step-up's `assertion`. */
 export interface PasskeyAssertion {
-  v: 1
+  v: 1 | 2
   rp_id: string
   base_url: string
   credential_id: string
@@ -174,6 +179,10 @@ export interface Tampering {
   signWith?: SoftAuthenticator
   /** Leave `user_handle` out although a handle was given. */
   omitUserHandle?: boolean
+  /** Replace the `v` the answer repeats (the request's `passkey.v`). */
+  v?: number
+  /** Sign the version-1 text (without the fields) although the request has fields; `v` stays what it is. */
+  signWithoutFields?: boolean
 }
 
 export interface SoftAuthenticatorOptions {
@@ -332,7 +341,9 @@ export class SoftAuthenticator {
       sessionId: input.sessionId ?? '',
       requestId: input.requestId,
       nonce: input.nonce,
-      digest: textDigest(input.title, input.summary, input.detail)
+      digest: tamper.signWithoutFields
+        ? textDigest(input.title, input.summary, input.detail)
+        : requestDigest(input.title, input.summary, input.detail, input.fields)
     })
     const cdj = this.clientData(tamper.clientType ?? 'webauthn.get', chal, tamper.clientOrigin ?? this.clientOrigin)
     const counter = Buffer.alloc(4)
@@ -350,7 +361,7 @@ export class SoftAuthenticator {
       dsaEncoding: 'der'
     })
     const passkey: PasskeyAssertion = {
-      v: 1,
+      v: (tamper.v ?? (input.fields?.length ? 2 : 1)) as 1 | 2,
       rp_id: this.rpId,
       base_url: tamper.claimBaseUrl ?? input.baseUrl,
       credential_id: b64u(this.credentialId),
@@ -388,6 +399,7 @@ export class SoftAuthenticator {
         title: params.title,
         summary: params.summary,
         detail: params.detail ?? null,
+        ...(params.fields?.length ? { fields: params.fields } : {}),
         ...(options.userHandle === undefined ? {} : { userHandle: options.userHandle })
       },
       tamper
@@ -402,6 +414,8 @@ export interface ConfirmFrameParams {
   summary: string
   detail?: string | null
   level: string
+  /** A version-2 frame's structured fields, in order. */
+  fields?: ConfirmField[]
   passkey: {
     v: number
     nonce: string

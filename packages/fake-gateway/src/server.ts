@@ -9,7 +9,9 @@ import {
   AnswerRefused,
   buildText,
   ConfirmGate,
+  buildFields,
   ConfirmParamsError,
+  draftDetail,
   type ConfirmHost,
   type RaiseResult
 } from './passkey/confirm'
@@ -37,6 +39,8 @@ import { GRANT_FAILURES, type GrantFailure } from './passkey/store'
 import { InteractiveGate, type RaisedInteractive } from './interactive-gate'
 import { defaultParams, INTERACTIVE_METHODS, isInteractiveMethod, type InteractiveMethod } from './interactive'
 import { scheduleRefusal } from './cron-schedule'
+import { DiffError, headOldPath, headPath, parseDiff } from './diff-hunks'
+import { ReviewRegister } from './review-register'
 import { grantView as mcpGrantView, handleMcpRoute, PREFIX as MCP_PREFIX } from './mcp/routes'
 import { McpGateway, type McpGrantInput, type McpOptions } from './mcp/store'
 
@@ -46,6 +50,12 @@ import { LOGIN_PAGE, loginUrlFor, PLUGIN_ASSET_CACHE_CONTROL, readPluginAsset, t
 export type { Identity, PasskeyOptions } from './passkey/gateway'
 export type { ConfirmOutcome, RaiseResult } from './passkey/confirm'
 export type { InteractiveOutcome, InteractiveView, RaisedInteractive } from './interactive-gate'
+
+/** What `raiseInteractive` answers: raised, no session for the profile, or a `review.diff` the gateway refuses to build. */
+export type RaiseInteractiveResult =
+  | RaisedInteractive
+  | { kind: 'no_session'; profile: string }
+  | { kind: 'refused'; error: 'diff_refused'; detail: string }
 export type { McpOptions } from './mcp/store'
 
 /**
@@ -1251,6 +1261,13 @@ export interface FakeGateway {
     summary: string
     detail?: string
     level?: 'plain' | 'passkey'
+    /**
+     * Structured facts (`{kind, label, value, currency?, id?}`, at most 8): a request with fields goes only to
+     * connections that advertised `confirm_fields: true` (at `passkey` also `confirm_passkey {v: 2}`).
+     */
+    fields?: unknown
+    /** After a `review.draft` approval: the `draft_id`; the detail is that approved text, verbatim. */
+    draftId?: string
     /** `<provider>:<user id>` the request is for; `null` is nobody (a turn nobody signed in submitted). */
     user?: string | null
     /** Seconds before it times out (default 120). */
@@ -1258,17 +1275,23 @@ export interface FakeGateway {
     turnIsolation?: boolean
   }): RaiseResult
   /**
-   * Raise an interactive request (`input.form`, `input.file`, `review.draft`) on a profile's chat, as
-   * `POST /__fake/request` does: `params` laid over the contract's example, sent only to the connections
-   * that advertised the method. `unavailable` when none did; otherwise `settled` resolves with how it
-   * ended (`answered` with what the gateway took, `timeout`, `too_many_attempts`, `unavailable` after a
+   * Raise an interactive request (`input.form`, `input.file`, `review.draft`, `review.diff`) on a profile's
+   * chat, as `POST /__fake/request` does: `params` laid over the contract's example, sent only to the
+   * connections that advertised the method. `unavailable` when none did; otherwise `settled` resolves with how
+   * it ended (`answered` with what the gateway took, `timeout`, `too_many_attempts`, `unavailable` after a
    * client's error response, `withdrawn`).
+   *
+   * A `review.diff` may be raised from the agent's own unified diff: `params.diff` (one file; `params.path`
+   * names it when the diff has no `---`/`+++` lines) is read by the gateway's parser, which numbers the
+   * hunks, computes each `anchor` and reads `kind`/`path`/`old_path` from the header. A diff the gateway
+   * would refuse comes back as `{kind: 'refused', error: 'diff_refused', detail}` and nothing is sent. The
+   * approved answer then carries `approved_patch`, recomposed from the approved hunks.
    */
   raiseInteractive(options: {
     profile?: string
     method: InteractiveMethod
     params?: Record<string, unknown>
-  }): RaisedInteractive | { kind: 'no_session'; profile: string }
+  }): RaiseInteractiveResult
   close(): Promise<void>
 }
 
@@ -3285,6 +3308,11 @@ export async function startFakeGateway(options: FakeGatewayOptions = {}): Promis
   const sockets = new Set<WebSocket>()
   /** The `confirm` levels each live socket offered in `client.capabilities`. */
   const confirmLevels = new Map<WebSocket, string[]>()
+  /**
+   * The live sockets that showed `confirm_fields: true` with at least one level (exactly `true`: anything else
+   * does not count). The gated path keeps its own record (`ConfirmGate.showsFields`); this is the permissive one.
+   */
+  const confirmFields = new Set<WebSocket>()
   const pendingServerRequests = new Map<string, { resolve: (value: unknown) => void; reject: (error: Error) => void }>()
   const timers = new Set<ReturnType<typeof setTimeout>>()
   let serverRequestSequence = 0
@@ -4961,10 +4989,15 @@ export async function startFakeGateway(options: FakeGatewayOptions = {}): Promis
       const params = (body.params ?? {}) as Record<string, unknown>
 
       /*
-        An interactive request (`input.form`, `input.file`, `review.draft`): the params are the contract's
-        example for the method with whatever the caller gives laid over them, the frame goes only to the
-        connections that advertised the method (409 `no_capable_client` when there are none), and the
-        answer is the request's id. What became of it is `GET /__fake/request/<id>`.
+        An interactive request (`input.form`, `input.file`, `review.draft`, `review.diff`): the params are
+        the contract's example for the method with whatever the caller gives laid over them, the frame goes
+        only to the connections that advertised the method (409 `no_capable_client` when there are none), and
+        the answer is the request's id. What became of it is `GET /__fake/request/<id>`.
+
+        A `review.diff` may carry `params.diff` (and `params.path`, when the diff has no `---`/`+++` lines)
+        instead of hunks: the gateway's parser reads it, so `kind`, `path`, `old_path`, the numbered `hunks`
+        and each `anchor` are the gateway's, and a diff it refuses is a 400 `diff_refused` with the sentence
+        the agent would get, nothing sent.
       */
       if (isInteractiveMethod(requestMethod)) {
         const raised = raiseInteractive({
@@ -4972,6 +5005,13 @@ export async function startFakeGateway(options: FakeGatewayOptions = {}): Promis
           method: requestMethod,
           params: typeof body.params === 'object' && body.params !== null ? params : {}
         })
+
+        // A `review.diff` raised from a diff text the gateway would refuse to build: nothing is sent.
+        if (raised.kind === 'refused') {
+          json(res, 400, { error: raised.error, detail: raised.detail })
+
+          return
+        }
 
         if (raised.kind === 'unavailable') {
           json(res, 409, {
@@ -5010,12 +5050,7 @@ export async function startFakeGateway(options: FakeGatewayOptions = {}): Promis
         let text
 
         try {
-          text = buildText({
-            title: params.title,
-            summary: params.summary ?? params.text,
-            detail: params.detail,
-            level: params.level
-          })
+          text = buildText(confirmTextInput(session.storedId, params))
         } catch (error) {
           if (error instanceof ConfirmParamsError) {
             json(res, 400, { detail: error.message })
@@ -5039,7 +5074,9 @@ export async function startFakeGateway(options: FakeGatewayOptions = {}): Promis
           json(res, 409, {
             detail:
               raised.reason === 'no_capable_client'
-                ? `No connected client offered the "${text.level}" confirm level in client.capabilities; nothing was sent`
+                ? text.fields?.length
+                  ? `No connected client can show the fields of a "${text.level}" confirm (confirm_fields${text.level === 'passkey' ? ' and confirm_passkey v 2' : ''} in client.capabilities); nothing was sent`
+                  : `No connected client offered the "${text.level}" confirm level in client.capabilities; nothing was sent`
                 : `The confirm is unavailable (${raised.reason}); nothing was sent`,
             outcome: 'unavailable',
             reason: raised.reason
@@ -5059,12 +5096,43 @@ export async function startFakeGateway(options: FakeGatewayOptions = {}): Promis
         offered would leave a question open that no client was ever sent, so the
         control call says so instead — with nothing raised.
       */
-      if (requestMethod === 'confirm' && socketsOfferingConfirm(confirmLevelOf(params)).length === 0) {
-        json(res, 409, {
-          detail: `No connected client offered the "${confirmLevelOf(params)}" confirm level in client.capabilities; nothing was sent`
-        })
+      if (requestMethod === 'confirm') {
+        let built
 
-        return
+        try {
+          built = permissiveConfirmExtras(session.storedId, params)
+        } catch (error) {
+          if (error instanceof ConfirmParamsError) {
+            json(res, 400, { detail: error.message })
+
+            return
+          }
+
+          throw error
+        }
+
+        // A request with fields goes only to connections that show them: nobody is asked to confirm less than
+        // the agent asked.
+        if (socketsOfferingConfirm(confirmLevelOf(params), built.fields !== undefined).length === 0) {
+          json(
+            res,
+            409,
+            built.fields === undefined
+              ? {
+                  detail: `No connected client offered the "${confirmLevelOf(params)}" confirm level in client.capabilities; nothing was sent`
+                }
+              : {
+                  detail: `No connected client can show the fields of a "${confirmLevelOf(params)}" confirm (confirm_fields in client.capabilities); nothing was sent`,
+                  outcome: 'unavailable',
+                  reason: 'no_capable_client'
+                }
+          )
+
+          return
+        }
+
+        // What goes out is the cleaned text with the fields and the draft's detail, as the gate builds it.
+        Object.assign(params, built.params)
       }
 
       // An approval with a queue id is a queue entry, as the real gateway's
@@ -7026,6 +7094,7 @@ export async function startFakeGateway(options: FakeGatewayOptions = {}): Promis
     socket.on('close', () => {
       sockets.delete(socket)
       confirmLevels.delete(socket)
+      confirmFields.delete(socket)
       socketIdentities.delete(socket)
       confirmGate?.forgetPeer(socket)
     })
@@ -7215,6 +7284,8 @@ export async function startFakeGateway(options: FakeGatewayOptions = {}): Promis
             ],
             confirm: accepted,
             confirm_passkey: passkey.capability(socketIdentities.has(caller)),
+            // Always present once the gateway knows structured fields: true only once it accepted this connection's.
+            confirm_fields: confirmGate.showsFields(caller),
             ...requestsEcho
           }
         }
@@ -7241,6 +7312,7 @@ export async function startFakeGateway(options: FakeGatewayOptions = {}): Promis
             ...(levels.length ? ['confirm'] : [])
           ],
           ...(offered ? { confirm: levels } : {}),
+          confirm_fields: caller ? confirmFields.has(caller) : false,
           ...requestsEcho
         }
       }
@@ -10146,12 +10218,23 @@ export async function startFakeGateway(options: FakeGatewayOptions = {}): Promis
     const id = `srq-${++serverRequestSequence}`
     const runtimeId = resolveRuntimeId(sessionId)
 
-    state.openServerRequests.set(id, { session_id: runtimeId, method, params })
+    const withFields = method === 'confirm' && Array.isArray(params.fields) && params.fields.length > 0
+
+    state.openServerRequests.set(id, {
+      session_id: runtimeId,
+      method,
+      params,
+      // A request with fields is listed on resume only to a connection that shows them.
+      ...(withFields ? { viewer: (peer: WebSocket) => confirmFields.has(peer) } : {})
+    })
 
     return new Promise<unknown>((resolve, reject) => {
       // A gated request reaches only the connections that offered its level, and
       // a request nobody can answer is `unavailable` at once rather than open.
-      const targets = method === 'confirm' ? socketsOfferingConfirm(confirmLevelOf(params)) : [...sockets]
+      const targets =
+        method === 'confirm'
+          ? socketsOfferingConfirm(confirmLevelOf(params), Array.isArray(params.fields) && params.fields.length > 0)
+          : [...sockets]
 
       if (method === 'confirm' && targets.length === 0) {
         reject(new Error(`unavailable: no connected client offered the ${confirmLevelOf(params)} confirm level`))
@@ -10193,6 +10276,7 @@ export async function startFakeGateway(options: FakeGatewayOptions = {}): Promis
       server_requests: params.server_requests === true,
       confirm: levels,
       ...(params.confirm_passkey === undefined ? {} : { confirm_passkey: params.confirm_passkey }),
+      ...(params.confirm_fields === undefined ? {} : { confirm_fields: params.confirm_fields }),
       ...(Array.isArray(params.requests) ? { requests } : {})
     })
 
@@ -10201,11 +10285,23 @@ export async function startFakeGateway(options: FakeGatewayOptions = {}): Promis
     } else {
       confirmLevels.delete(socket)
     }
+
+    // Exactly `true`, and only together with a level: any other value never fails the call and never counts.
+    if (levels.length && params.confirm_fields === true) {
+      confirmFields.add(socket)
+    } else {
+      confirmFields.delete(socket)
+    }
   }
 
-  /** The live sockets that offered `level`: who a `confirm` of that level may reach. */
-  function socketsOfferingConfirm(level: string): WebSocket[] {
-    return [...sockets].filter(socket => confirmLevels.get(socket)?.includes(level))
+  /**
+   * The live sockets that offered `level`: who a `confirm` of that level may reach. A request with structured
+   * fields (`needsFields`) reaches only those that also advertised `confirm_fields: true`.
+   */
+  function socketsOfferingConfirm(level: string, needsFields = false): WebSocket[] {
+    return [...sockets].filter(
+      socket => confirmLevels.get(socket)?.includes(level) && (!needsFields || confirmFields.has(socket))
+    )
   }
 
   /** The level a `confirm` request names; the contract's default is `plain`. */
@@ -10271,7 +10367,50 @@ export async function startFakeGateway(options: FakeGatewayOptions = {}): Promis
    * The interactive requests (`input.form`, `input.file`, `review.draft`): who they go to, how an answer
    * is checked, when they end. Every gateway has it: a client that never advertises them never sees one.
    */
+  const reviewDrafts = new ReviewRegister()
+
+  /**
+   * The `buildText` input of a `confirm` raised by a control call: the text as given, the structured `fields`
+   * (checked verbatim) and, with a `draft_id`, the detail the person approved in `review.draft` taken verbatim
+   * from the review register (whatever detail the caller passed is ignored). Throws `ConfirmParamsError`.
+   */
+  function confirmTextInput(conversation: string, params: Record<string, unknown>): Parameters<typeof buildText>[0] {
+    const drafted = params.draft_id !== undefined && params.draft_id !== null
+
+    return {
+      title: params.title,
+      summary: params.summary ?? params.text,
+      detail: drafted ? draftDetail(reviewDrafts, conversation, params.draft_id, Date.now()) : params.detail,
+      level: params.level,
+      fields: params.fields,
+      verbatimDetail: drafted
+    }
+  }
+
+  /**
+   * What a `confirm` on a gateway without the passkey level adds when the caller names `fields` or a
+   * `draft_id`: the fields built and checked as the gate builds them, and the draft's text as the detail.
+   * Without either, nothing changes (that path forwards the params as given).
+   */
+  function permissiveConfirmExtras(
+    conversation: string,
+    params: Record<string, unknown>
+  ): { fields: ReturnType<typeof buildFields>; params: Record<string, unknown> } {
+    const fields = buildFields(params.fields)
+    const drafted = params.draft_id !== undefined && params.draft_id !== null
+    const detail = drafted ? draftDetail(reviewDrafts, conversation, params.draft_id, Date.now()) : undefined
+
+    return {
+      fields,
+      params: {
+        ...(fields ? { fields } : {}),
+        ...(detail === undefined ? {} : { detail })
+      }
+    }
+  }
+
   const interactive = new InteractiveGate<WebSocket>({
+    drafts: reviewDrafts,
     peers: () => [...sockets],
     send: (socket, frame) => send(socket, frame),
     publish: (type, sessionId, payload) => publish(type, sessionId, payload),
@@ -10307,12 +10446,16 @@ export async function startFakeGateway(options: FakeGatewayOptions = {}): Promis
     }
   })
 
-  /** Raise an interactive request on a profile's chat; the params default to the contract's example. */
+  /**
+   * Raise an interactive request on a profile's chat; the params default to the contract's example. A
+   * `review.diff` named by `params.diff` is read by the gateway's own parser (`parseDiff`): the hunks, their
+   * ids and anchors, `kind`, `path` and `old_path` are the parser's, and a diff it refuses is `refused`.
+   */
   function raiseInteractive(options: {
     profile?: string
     method: InteractiveMethod
     params?: Record<string, unknown>
-  }): RaisedInteractive | { kind: 'no_session'; profile: string } {
+  }): RaiseInteractiveResult {
     const profile = options.profile ?? 'researcher'
     const session = [...state.sessions.values()].find(entry => entry.profile === profile)
 
@@ -10320,10 +10463,48 @@ export async function startFakeGateway(options: FakeGatewayOptions = {}): Promis
       return { kind: 'no_session', profile }
     }
 
+    const defaults = defaultParams(options.method, Date.now())
+    const { diff, path, ...given } = options.params ?? {}
+
+    if (options.method === 'review.diff' && diff !== undefined) {
+      let parsed
+
+      try {
+        parsed = parseDiff(diff, typeof path === 'string' ? path : null)
+      } catch (error) {
+        if (error instanceof DiffError) {
+          return { kind: 'refused', error: 'diff_refused', detail: error.message }
+        }
+
+        throw error
+      }
+
+      const { old_path: _example, ...base } = defaults
+      const oldPath = headOldPath(parsed.head)
+
+      return interactive.raise({
+        sessionId: session.id,
+        conversation: session.storedId,
+        method: options.method,
+        head: parsed.head,
+        params: {
+          ...base,
+          title: 'Review changes',
+          summary: 'Review these changes hunk by hunk: only the hunks you approve are applied.',
+          ...given,
+          kind: parsed.head.kind,
+          path: headPath(parsed.head),
+          ...(oldPath === null ? {} : { old_path: oldPath }),
+          hunks: parsed.hunks
+        }
+      })
+    }
+
     return interactive.raise({
       sessionId: session.id,
+      conversation: session.storedId,
       method: options.method,
-      params: { ...defaultParams(options.method, Date.now()), ...options.params }
+      params: { ...defaults, ...options.params }
     })
   }
 
@@ -10519,12 +10700,7 @@ export async function startFakeGateway(options: FakeGatewayOptions = {}): Promis
     let text
 
     try {
-      text = buildText({
-        title: params.title,
-        summary: params.summary ?? params.text,
-        detail: params.detail,
-        level: params.level
-      })
+      text = buildText(confirmTextInput(session.storedId, params))
     } catch (error) {
       return Promise.reject(error)
     }
@@ -10740,12 +10916,16 @@ export async function startFakeGateway(options: FakeGatewayOptions = {}): Promis
       return confirmGate.raise({
         sessionId: session.id,
         conversation: session.storedId,
-        text: buildText({
-          title: confirmOptions.title,
-          summary: confirmOptions.summary,
-          detail: confirmOptions.detail,
-          level: confirmOptions.level
-        }),
+        text: buildText(
+          confirmTextInput(session.storedId, {
+            title: confirmOptions.title,
+            summary: confirmOptions.summary,
+            detail: confirmOptions.detail,
+            level: confirmOptions.level,
+            fields: confirmOptions.fields,
+            draft_id: confirmOptions.draftId
+          })
+        ),
         ...('user' in confirmOptions ? { user: confirmOptions.user ?? null } : {}),
         ...(confirmOptions.timeoutSeconds === undefined ? {} : { timeoutSeconds: confirmOptions.timeoutSeconds }),
         ...(confirmOptions.turnIsolation ? { turnIsolation: true } : {})

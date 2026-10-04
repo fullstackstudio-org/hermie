@@ -7,8 +7,8 @@
  * raise. A client that offered no `confirm` keeps getting the answer it always
  * got, with no `confirm` member.
  *
- * The same call carries `requests`, the interactive methods (`input.form`, `input.file`, `review.draft`)
- * the client can show: recorded and echoed as the gateway accepted them, and only together with
+ * The same call carries `requests`, the interactive methods (`input.form`, `input.file`, `review.draft`,
+ * `review.diff`) the client can show: recorded and echoed as the gateway accepted them, and only together with
  * `server_requests: true`.
  */
 import { afterEach, describe, expect, it } from 'vitest'
@@ -65,7 +65,7 @@ const connect = async (
   }
 }
 
-const INTERACTIVE = ['input.form', 'input.file', 'review.draft']
+const INTERACTIVE = ['input.form', 'input.file', 'review.draft', 'review.diff']
 const KINDS = [
   'approval',
   'clarify',
@@ -81,7 +81,10 @@ describe('client.capabilities', () => {
   it('lists every request kind the web client has to handle', async () => {
     const { call } = await connect()
 
-    expect(await call('client.capabilities', { server_requests: true })).toEqual({ server_requests: KINDS })
+    expect(await call('client.capabilities', { server_requests: true })).toEqual({
+      server_requests: KINDS,
+      confirm_fields: false
+    })
   })
 
   it('adds `confirm` once the client offers a level, and echoes the levels it took', async () => {
@@ -89,7 +92,8 @@ describe('client.capabilities', () => {
 
     expect(await call('client.capabilities', { server_requests: true, confirm: ['plain'] })).toEqual({
       server_requests: [...KINDS, 'confirm'],
-      confirm: ['plain']
+      confirm: ['plain'],
+      confirm_fields: false
     })
   })
 
@@ -98,7 +102,8 @@ describe('client.capabilities', () => {
 
     expect(await call('client.capabilities', { server_requests: true, confirm: [] })).toEqual({
       server_requests: KINDS,
-      confirm: []
+      confirm: [],
+      confirm_fields: false
     })
   })
 
@@ -142,7 +147,7 @@ describe('client.capabilities', () => {
     expect(await call('client.capabilities', { server_requests: true })).not.toHaveProperty('requests')
     expect(
       await call('client.capabilities', { server_requests: true, requests: ['review.draft', 'input.form', 'nope', 7] })
-    ).toEqual({ server_requests: KINDS, requests: ['input.form', 'review.draft'] })
+    ).toEqual({ server_requests: KINDS, confirm_fields: false, requests: ['input.form', 'review.draft'] })
     expect(gateway.state.clientCapabilities).toEqual([
       { server_requests: true, confirm: [] },
       { server_requests: true, confirm: [], requests: ['input.form', 'review.draft'] }
@@ -154,10 +159,12 @@ describe('client.capabilities', () => {
 
     expect(await call('client.capabilities', { requests: INTERACTIVE })).toEqual({
       server_requests: KINDS,
+      confirm_fields: false,
       requests: []
     })
     expect(await call('client.capabilities', { server_requests: true, requests: [] })).toEqual({
       server_requests: KINDS,
+      confirm_fields: false,
       requests: []
     })
     expect(gateway.state.clientCapabilities.map(entry => entry.requests)).toEqual([[], []])

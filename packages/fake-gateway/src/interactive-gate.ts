@@ -1,8 +1,17 @@
-import { INTERACTIVE_METHODS, type InteractiveMethod, acceptedDraft, refusalFor } from './interactive'
+import type { FileHead } from './diff-hunks'
+import {
+  INTERACTIVE_METHODS,
+  type InteractiveMethod,
+  acceptedDiff,
+  acceptedDraft,
+  headOfParams,
+  refusalFor
+} from './interactive'
 import { AnswerRefused } from './passkey/confirm'
+import type { ReviewRegister } from './review-register'
 
 /**
- * The life of an interactive request (`input.form`, `input.file`, `review.draft`) on the fake gateway,
+ * The life of an interactive request (`input.form`, `input.file`, `review.draft`, `review.diff`) on the fake gateway,
  * as `contract/requests/README.md` gives it:
  *
  * - the frame goes only to connections that advertised the method in their second `client.capabilities`
@@ -12,6 +21,9 @@ import { AnswerRefused } from './passkey/confirm'
  *   (`interactive.ts`). A refused one is `4034` with `data.reason` and the request STAYS OPEN; the tenth
  *   refusal withdraws it (`request.cancel too_many_attempts`) and says `too_many_attempts` instead of the
  *   problem;
+ * - an approved `review.draft` puts its final text in the review register under a `draft_id` (a later `confirm`
+ *   with that id shows exactly that text); an approved or rejected `review.diff` hands the agent each hunk's
+ *   decision and, for an approval, `approved_patch`, composed from the gateway's own copy of the hunks;
  * - an ERROR response (`4041 cannot_show`, ...) settles it: the agent is told it is unavailable;
  * - at `expires_at` the gateway withdraws it with `request.cancel {reason: timeout}`, and an answer after
  *   that is `expired`.
@@ -22,10 +34,16 @@ import { AnswerRefused } from './passkey/confirm'
 /** The tenth refused answer withdraws the request. */
 export const MAX_REFUSALS = 10
 
+/** The longest delay a timer takes (a larger one fires at once): an `expires_at` far away waits this long. */
+const MAX_TIMER_MS = 2_147_483_647
+
 /** How a request ended, for the agent's side of it. */
 export interface InteractiveOutcome {
   outcome: 'answered' | 'timeout' | 'withdrawn' | 'too_many_attempts' | 'unavailable'
-  /** What the gateway took: the result, with a draft's text as it will be used and whether it was edited. */
+  /**
+   * What the gateway took: the result, with a draft's text as it will be used, whether it was edited and its
+   * `draft_id`; a diff's decisions in the request's order and, for an approval, the `approved_patch`.
+   */
   answer?: Record<string, unknown>
   /** The client's JSON-RPC error, for `unavailable`. */
   error?: Record<string, unknown>
@@ -54,6 +72,8 @@ export interface InteractiveHost<Peer> {
   later: (fn: () => void, ms: number) => () => void
   nextRequestId: () => string
   now: () => number
+  /** Where an approved draft's text is kept for a later `confirm` with its `draft_id`. */
+  drafts: ReviewRegister
   /** List an open request where `session.resume` finds it, for the connections `viewer` accepts. */
   register: (
     id: string,
@@ -76,6 +96,10 @@ interface Entry {
   id: string
   method: InteractiveMethod
   sessionId: string
+  /** The conversation the request belongs to: what the review register keeps an approved draft under. */
+  conversation: string
+  /** A `review.diff`'s file head, as the gateway read it from the diff. */
+  head: FileHead | undefined
   params: Record<string, unknown>
   open: boolean
   refusals: string[]
@@ -117,7 +141,15 @@ export class InteractiveGate<Peer extends object> {
   }
 
   /** Raise a request to every connection that advertised its method; none is `no_capable_client`. */
-  raise(input: { sessionId: string; method: InteractiveMethod; params: Record<string, unknown> }): RaisedInteractive {
+  raise(input: {
+    sessionId: string
+    method: InteractiveMethod
+    params: Record<string, unknown>
+    /** The conversation key (the stored session id); an approved draft is kept under it. Defaults to `sessionId`. */
+    conversation?: string
+    /** A `review.diff`'s file head (from `parseDiff`); read from the params when absent. */
+    head?: FileHead
+  }): RaisedInteractive {
     const targets = this.capable(input.method)
 
     if (targets.length === 0) {
@@ -134,10 +166,15 @@ export class InteractiveGate<Peer extends object> {
       id,
       method: input.method,
       sessionId: input.sessionId,
+      conversation: input.conversation ?? input.sessionId,
+      head: input.method === 'review.diff' ? (input.head ?? headOfParams(input.params)) : undefined,
       params: input.params,
       open: true,
       refusals: [],
-      stop: this.host.later(() => this.expire(id), Math.max(0, expiresAt * 1000 - this.host.now())),
+      stop: this.host.later(
+        () => this.expire(id),
+        Math.min(MAX_TIMER_MS, Math.max(0, expiresAt * 1000 - this.host.now()))
+      ),
       settle
     }
 
@@ -280,13 +317,9 @@ export class InteractiveGate<Peer extends object> {
 
     if (reason === null) {
       const answer = result as Record<string, unknown>
-      const taken =
-        entry.method === 'review.draft' && answer.decision === 'approved'
-          ? { ...answer, ...acceptedDraft(entry.params, answer) }
-          : answer
 
       this.host.recordAnswer({ id: entry.id, method: entry.method, result })
-      this.close(entry, { outcome: 'answered', answer: taken })
+      this.close(entry, { outcome: 'answered', answer: this.taken(entry, answer) })
 
       return null
     }
@@ -306,6 +339,25 @@ export class InteractiveGate<Peer extends object> {
     }
 
     return reported
+  }
+
+  /** What the agent learns of a valid answer (see `InteractiveOutcome.answer`). */
+  private taken(entry: Entry, answer: Record<string, unknown>): Record<string, unknown> {
+    if (entry.method === 'review.draft' && answer.decision === 'approved') {
+      const accepted = acceptedDraft(entry.params, answer)
+      const draft = this.host.drafts.put(entry.conversation, accepted.text, {
+        edited: accepted.edited,
+        now: this.host.now()
+      })
+
+      return { ...answer, ...accepted, draft_id: draft.draftId, sha256: draft.sha256 }
+    }
+
+    if (entry.method === 'review.diff') {
+      return { ...answer, ...acceptedDiff(entry.params, answer, entry.head as FileHead) }
+    }
+
+    return answer
   }
 
   private close(entry: Entry, outcome: InteractiveOutcome): void {

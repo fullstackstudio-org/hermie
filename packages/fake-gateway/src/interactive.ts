@@ -1,22 +1,24 @@
 import { existsSync, readFileSync } from 'node:fs'
 import { dirname, join, resolve } from 'node:path'
 
+import { composePatch, type FileHead, type FileKind } from './diff-hunks'
+
 /**
- * The interactive server requests (`input.form`, `input.file`, `review.draft`), as
+ * The interactive server requests (`input.form`, `input.file`, `review.draft`, `review.diff`), as
  * `contract/requests` defines them.
  *
  * This file is the gateway's checking of an ANSWER: the shape (`schema.json`, through a small checker
  * that knows exactly the keywords that file uses) and then the rules the schema cannot say (`README.md`
- * sections 3 to 6): required fields, ranges, steps, ISO 4217 minor units, datetimes with their zone and
+ * sections 3 to 7): required fields, ranges, steps, ISO 4217 minor units, datetimes with their zone and
  * offset, choice membership and counts, where files may live and how big they may be, what a draft may
- * contain. It returns the reason the gateway would refuse with, and nothing else; the request's life
+ * contain, that every hunk of a diff is decided and the decision agrees with them. It returns the reason the gateway would refuse with, and nothing else; the request's life
  * (who is asked, the refusal cap, the clock) is `interactive-gate.ts`.
  *
  * No dependency: the checker is a page of code, and the contract files are read when first needed (the
  * fake is run from inside the repository, where they are).
  */
 
-export const INTERACTIVE_METHODS = ['input.form', 'input.file', 'review.draft'] as const
+export const INTERACTIVE_METHODS = ['input.form', 'input.file', 'review.draft', 'review.diff'] as const
 
 export type InteractiveMethod = (typeof INTERACTIVE_METHODS)[number]
 
@@ -79,7 +81,7 @@ const codePoints = (value: string): number => [...value].length
 /**
  * Does `value` satisfy `schema`? Draft 2020-12 as `schema.json` uses it: `$ref` into `$defs`, `oneOf`,
  * `anyOf`, `const`, `enum`, `type`, `pattern`, the length / size / range keywords, `properties`,
- * `required`, `additionalProperties`, `maxProperties` and `items`. A keyword it does not know is ignored
+ * `required`, `additionalProperties`, `minProperties`, `maxProperties` and `items`. A keyword it does not know is ignored
  * (`title`, `description`, `default`, `discriminator`: annotations here).
  */
 export function matches(root: Obj, schema: unknown, value: unknown): boolean {
@@ -197,6 +199,10 @@ function matchesObject(root: Obj, schema: Obj, value: Obj): boolean {
     return false
   }
 
+  if (typeof schema.minProperties === 'number' && keys.length < schema.minProperties) {
+    return false
+  }
+
   if (schema.propertyNames !== undefined && keys.some(key => !matches(root, schema.propertyNames, key))) {
     return false
   }
@@ -260,7 +266,7 @@ export function refusalFor(
 
   const answer = result as Obj
 
-  if (method !== 'review.draft' && answer.status === 'skipped') {
+  if (method.startsWith('input.') && answer.status === 'skipped') {
     return params.optional === false ? 'not_optional' : null
   }
 
@@ -270,6 +276,8 @@ export function refusalFor(
         return refuseForm(params, answer)
       case 'input.file':
         return refuseFiles(params, answer)
+      case 'review.diff':
+        return refuseDiff(params, answer)
       default:
         return refuseDraft(params, answer)
     }
@@ -285,6 +293,45 @@ export function acceptedDraft(params: Obj, result: Obj): { text: string; edited:
   const text = stripLineEnds(String(result.text))
 
   return { text, edited: text !== stripLineEnds(String(params.text ?? '')) }
+}
+
+/**
+ * What the agent is told for a `review.diff` the gateway took: each hunk's decision in the REQUEST's order and
+ * with the request's ids (what the client sent is only the decisions), and for an approval the patch of exactly
+ * the approved hunks, composed from the gateway's own copy of them, never from anything in the answer.
+ */
+export function acceptedDiff(params: Obj, result: Obj, head: FileHead): { hunks: Obj; approved_patch?: string } {
+  const sent = result.hunks as Obj
+  const hunks = (params.hunks as Obj[]).map(hunk => [String(hunk.id), sent[String(hunk.id)]] as const)
+
+  if (result.decision !== 'approved') {
+    return { hunks: Object.fromEntries(hunks) }
+  }
+
+  const approved = new Set(hunks.filter(([, decision]) => decision === 'approved').map(([id]) => id))
+
+  return {
+    hunks: Object.fromEntries(hunks),
+    approved_patch: composePatch(head, params.hunks as { id: string; header: string; lines: string[] }[], approved)
+  }
+}
+
+/** The file head of a request raised from params alone (no diff text): what the params say about the file. */
+export function headOfParams(params: Obj): FileHead {
+  const kind = String(params.kind ?? 'modify') as FileKind
+  const path = String(params.path ?? '')
+  const oldPath = typeof params.old_path === 'string' ? params.old_path : null
+
+  switch (kind) {
+    case 'new':
+      return { kind, old: null, new: path }
+    case 'delete':
+      return { kind, old: path, new: null }
+    case 'rename':
+      return { kind, old: oldPath, new: path }
+    default:
+      return { kind: 'modify', old: path, new: path }
+  }
 }
 
 // ── input.form ───────────────────────────────────────────────────────────────
@@ -738,4 +785,34 @@ function refuseDraft(params: Obj, answer: Obj): string | null {
   }
 
   return params.editable === false && text !== stripLineEnds(String(params.text ?? '')) ? 'text:edited' : null
+}
+
+// ── review.diff ──────────────────────────────────────────────────────────────
+
+/**
+ * Every hunk of the request decided exactly once, and a decision that agrees with them (README §7.2). The ids
+ * are the GATEWAY's (`params.hunks`); a key the result model let through is a well-formed id, so a reason never
+ * echoes text of the client's. First problem found: an id the request lacks (in the order of the answer), then
+ * a hunk of the request the answer left out (in the order of the request), then `decision:inconsistent`:
+ * `approved` with no hunk approved, or `rejected` with one approved.
+ */
+function refuseDiff(params: Obj, answer: Obj): string | null {
+  const ids = ((params.hunks as Obj[]) ?? []).map(hunk => String(hunk.id))
+  const decided = answer.hunks as Obj
+
+  for (const key of Object.keys(decided)) {
+    if (!ids.includes(key)) {
+      return `hunk:${key}:unknown`
+    }
+  }
+
+  for (const id of ids) {
+    if (!(id in decided)) {
+      return `hunk:${id}:missing`
+    }
+  }
+
+  const anyApproved = ids.some(id => decided[id] === 'approved')
+
+  return (answer.decision === 'approved') === anyApproved ? null : 'decision:inconsistent'
 }

@@ -17,7 +17,9 @@ import {
   enrolmentCodeCanonical,
   enrolmentCodeHash,
   textDigest,
-  userHandle
+  textDigestV2,
+  userHandle,
+  type ConfirmField
 } from './challenge'
 import { b64u, b64uDecode } from './encoding'
 import { GRANT_FAILURES, PasskeyStore, reauthSecretHash } from './store'
@@ -89,6 +91,21 @@ describe('text digest, challenge, user handle, enrolment codes (§4 to §7)', ()
     }
   })
 
+  it('computes every version-2 text digest (structured fields, §4.1), down to the preimage', () => {
+    const list = vectors.text_digest_v2_vectors as Json[]
+
+    expect(list.length).toBeGreaterThan(0)
+
+    for (const vector of list) {
+      const digest = textDigestV2(vector.title, vector.summary, vector.detail, vector.fields as ConfirmField[])
+
+      expect(b64u(digest), vector.name).toBe(vector.text_digest)
+      // The same text without the fields is the version-1 digest, and never equal.
+      expect(b64u(textDigest(vector.title, vector.summary, vector.detail)), vector.name).toBe(vector.text_digest_v1)
+      expect(vector.text_digest).not.toBe(vector.text_digest_v1)
+    }
+  })
+
   it('computes every challenge, down to the preimage', () => {
     for (const vector of vectors.challenge_vectors as Json[]) {
       const digest = textDigest(vector.title, vector.summary, vector.detail)
@@ -146,8 +163,28 @@ const assertionRequestOf = (vector: Json) => ({
   summary: vector.request.summary as string,
   detail: (vector.request.detail ?? null) as string | null,
   sessionId: vector.request.session_id as string,
-  purpose: 'confirm' as const
+  purpose: 'confirm' as const,
+  // A version-2 request carries its fields; the verifier then commits to `text_digest_v2` and expects `v: 2`.
+  ...(vector.request.fields ? { fields: vector.request.fields as ConfirmField[] } : {})
 })
+
+const checkAssertionVector = (vector: Json): void => {
+  const { ctx } = contextOf(vector.context)
+  const verdict = verifyAssertion(ctx, assertionRequestOf(vector), storedOf(vector.store), vector.answer)
+
+  if (vector.expect.ok) {
+    expect(verdict).toMatchObject({
+      ok: true,
+      signCount: vector.expect.sign_count,
+      backupEligible: vector.expect.backup_eligible,
+      backedUp: vector.expect.backed_up,
+      counterWarning: vector.expect.counter_warning
+    })
+  } else {
+    expect(vector.expect.code).toBe(4034)
+    expect(verdict).toEqual({ ok: false, reason: vector.expect.reason })
+  }
+}
 
 describe('assertion vectors (§9)', () => {
   it('lists the refusal reasons in the order the verifier checks them', () => {
@@ -156,24 +193,30 @@ describe('assertion vectors (§9)', () => {
   })
 
   for (const vector of vectors.assertion_vectors as Json[]) {
-    it(`${vector.context}: ${vector.name}`, () => {
-      const { ctx } = contextOf(vector.context)
-      const verdict = verifyAssertion(ctx, assertionRequestOf(vector), storedOf(vector.store), vector.answer)
-
-      if (vector.expect.ok) {
-        expect(verdict).toMatchObject({
-          ok: true,
-          signCount: vector.expect.sign_count,
-          backupEligible: vector.expect.backup_eligible,
-          backedUp: vector.expect.backed_up,
-          counterWarning: vector.expect.counter_warning
-        })
-      } else {
-        expect(vector.expect.code).toBe(4034)
-        expect(verdict).toEqual({ ok: false, reason: vector.expect.reason })
-      }
-    })
+    it(`${vector.context}: ${vector.name}`, () => checkAssertionVector(vector))
   }
+})
+
+describe('version-2 assertion vectors (§4.1, §9)', () => {
+  it('covers a request with fields, answered rightly and each way of answering it wrongly', () => {
+    const reasons = (vectors.assertion_vectors_v2 as Json[]).map(v => (v.expect.ok ? 'ok' : v.expect.reason))
+
+    expect(reasons).toEqual(expect.arrayContaining(['ok', 'challenge_mismatch', 'bad_shape']))
+  })
+
+  for (const vector of vectors.assertion_vectors_v2 as Json[]) {
+    it(`${vector.context}: ${vector.name}`, () => checkAssertionVector(vector))
+  }
+
+  it('reads `v` as the request’s own version: a version-1 request refuses `v: 2` and a version-2 request `v: 1`', () => {
+    for (const vector of (vectors.assertion_vectors_v2 as Json[]).filter(
+      v => !v.expect.ok && v.expect.reason === 'bad_shape'
+    )) {
+      const version = (vector.request.fields ? 2 : 1) as number
+
+      expect(vector.answer.passkey.v, vector.name).not.toBe(version)
+    }
+  })
 })
 
 describe('registration vectors (§11)', () => {
