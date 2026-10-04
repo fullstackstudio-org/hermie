@@ -13,9 +13,13 @@ import {
   clearAvatarParams,
   descriptionParams,
   mcpParams,
+  modelAnswer,
+  modelChoicesOf,
+  modelParams,
   reloadAnswer,
   reloadMcpParams,
   skillsParams,
+  soulParams,
   toolsetDefaultsParams,
   toolsetsParams
 } from './params'
@@ -182,5 +186,57 @@ describe('failures', () => {
     const failure = new BotProfileFailure('last_toolset')
 
     expect(classifyFailure(failure)).toBe(failure)
+  })
+})
+
+describe('the personality and the model', () => {
+  it('sends the soul exactly as typed, whitespace included, and an empty one as empty', () => {
+    expect(soulParams('writer', '  Be brief.\n')).toEqual({ name: 'writer', soul: '  Be brief.\n' })
+    expect(soulParams('writer', '')).toEqual({ name: 'writer', soul: '' })
+  })
+
+  it('sends the model id as the inventory spells it and the provider in its own field, never joined', () => {
+    expect(modelParams('writer', { provider: 'openrouter', model: 'anthropic/claude-x' })).toEqual({
+      name: 'writer',
+      model: 'anthropic/claude-x',
+      provider: 'openrouter'
+    })
+    expect(modelParams('writer', { provider: 'p', model: 'm' }, true)).toEqual({
+      name: 'writer',
+      model: 'm',
+      provider: 'p',
+      confirm_expensive_model: true
+    })
+  })
+
+  it('reads a model answer: a guarded model asks with the gateway’s words, an applied one is checked, and one not applied fails', () => {
+    expect(modelAnswer({ ok: true, applied: {}, confirm_required: true, confirm_message: 'x costs more.' })).toEqual({
+      kind: 'confirm',
+      message: 'x costs more.'
+    })
+    expect(modelAnswer({ confirm_required: true })).toEqual({ kind: 'confirm', message: '' })
+    expect(modelAnswer({ ok: true, applied: { model: true } })).toEqual({ kind: 'applied' })
+    expect(() => modelAnswer({ ok: true, applied: {} })).toThrow(BotProfileFailure)
+    // An answer with no `applied` at all reports nothing, and is taken at its word.
+    expect(modelAnswer({ ok: true })).toEqual({ kind: 'applied' })
+  })
+
+  it('flattens the inventory in the gateway’s order, skipping a provider with no slug, a model with no name and a repeat', () => {
+    expect(
+      modelChoicesOf({
+        providers: [
+          { slug: 'a', name: 'Provider A', models: ['m1', 'm1', '', 'm2'] },
+          { name: 'No slug', models: ['x'] },
+          { slug: 'b', models: ['m1'] },
+          null
+        ]
+      })
+    ).toEqual([
+      { provider: 'a', providerName: 'Provider A', model: 'm1', id: 'a/m1' },
+      { provider: 'a', providerName: 'Provider A', model: 'm2', id: 'a/m2' },
+      { provider: 'b', providerName: 'b', model: 'm1', id: 'b/m1' }
+    ])
+    expect(modelChoicesOf(null)).toEqual([])
+    expect(modelChoicesOf({})).toEqual([])
   })
 })

@@ -124,6 +124,15 @@
   resize: vertical;
 }
 
+/* The personality can run to pages: the editor is one height whatever is in it, and scrolls inside. */
+.hm-profile__field textarea.hm-profile__soul {
+  height: 16rem;
+  resize: none;
+  overflow: auto;
+  font-family: var(--hm-mono);
+  font-size: 0.9375rem;
+}
+
 .hm-profile__field textarea[readonly] {
   background: var(--hm-surface);
 }

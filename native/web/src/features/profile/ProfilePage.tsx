@@ -44,6 +44,7 @@ import { useChatRuntime } from '../chat/chat-runtime'
 import { Checkbox, Fact, RadioGroup } from '../settings/controls'
 import { useSettingsRuntime } from '../settings/settings-runtime'
 import { chatHref } from '../shell/router'
+import { ModelPicker } from './ModelPicker'
 import '../settings/settings.css'
 import './profile.css'
 
@@ -328,6 +329,62 @@ export function ProfilePage({ bot }: ProfilePageProps): ReactElement {
             bot={bot}
             onDismiss={() => model?.dismissFailure('description')}
           />
+        </section>
+      ) : null}
+
+      {/* Personality ---------------------------------------------------------------------------------------- */}
+      {supported && details ? (
+        <section className="hm-profile__section" aria-labelledby="hm-profile-personality">
+          <h2 className="hm-profile__heading" id="hm-profile-personality">
+            {words.personalityHeading}
+          </h2>
+          <p className="hm-profile__hint" id="hm-profile-personality-hint">
+            {words.personalityHint}
+          </p>
+          <label className="hm-profile__field">
+            <VisuallyHidden>{words.personalityHeading}</VisuallyHidden>
+            <textarea
+              className="hm-profile__soul"
+              value={state.soulDraft}
+              placeholder={words.personalityEmpty}
+              readOnly={!gatewayEditable}
+              spellCheck={false}
+              aria-describedby="hm-profile-personality-hint"
+              onChange={event => model?.setSoulDraft(event.currentTarget.value)}
+            />
+          </label>
+          {gatewayEditable && model?.soulIsDirty ? (
+            <div className="hm-profile__actions">
+              <Button variant="quiet" disabled={busy('soul')} onClick={() => model.revertSoul()}>
+                {words.revert}
+              </Button>
+              <Button
+                disabled={busy('soul')}
+                onClick={() =>
+                  void model.saveSoul().then(() => {
+                    if (!model.store.getState().failures.soul) {
+                      setSaid(words.personalitySaved)
+                    }
+                  })
+                }
+              >
+                {busy('soul') ? words.saving : words.save}
+              </Button>
+            </div>
+          ) : null}
+          <FailureLine failure={state.failures.soul} bot={bot} onDismiss={() => model?.dismissFailure('soul')} />
+        </section>
+      ) : null}
+
+      {/* Model ---------------------------------------------------------------------------------------------- */}
+      {supported && details ? (
+        <section className="hm-profile__section" aria-labelledby="hm-profile-model">
+          <h2 className="hm-profile__heading" id="hm-profile-model">
+            {words.modelHeading}
+          </h2>
+          <p className="hm-profile__hint">{words.modelLead}</p>
+          <ModelPicker model={model} state={state} editable={gatewayEditable} />
+          <FailureLine failure={state.failures.model} bot={bot} onDismiss={() => model?.dismissFailure('model')} />
         </section>
       ) : null}
 

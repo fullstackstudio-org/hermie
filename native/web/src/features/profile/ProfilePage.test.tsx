@@ -432,6 +432,240 @@ describe('without a working gateway', () => {
   })
 })
 
+const soul = (): HTMLTextAreaElement => screen.getByRole('textbox', { name: 'Personality' }) as HTMLTextAreaElement
+const modelSelect = (): HTMLSelectElement => screen.getByRole('combobox', { name: 'Model' }) as HTMLSelectElement
+
+describe('the personality', () => {
+  it('shows the profile’s SOUL.md as text in an editor of one height that scrolls inside', async () => {
+    await ready(gateway({ soul: 'You are terse.\n\nYou never apologise.' }))
+
+    expect(soul().value).toBe('You are terse.\n\nYou never apologise.')
+    expect(soul().className).toContain('hm-profile__soul')
+    expect(soul().readOnly).toBe(false)
+    expect(screen.getByText(/the SOUL\.md of its profile on the gateway/u)).toBeTruthy()
+  })
+
+  it('says none is set, as a placeholder, when the profile has none', async () => {
+    await ready()
+
+    expect(soul().value).toBe('')
+    expect(soul().placeholder).toBe('No personality is set.')
+  })
+
+  it('waits for Save: Save and Revert appear with an edit, and Save writes it exactly as typed', async () => {
+    const { fake } = await ready()
+
+    expect(screen.queryByRole('button', { name: 'Save' })).toBeNull()
+    fireEvent.change(soul(), { target: { value: '  Be brief.\n  ' } })
+    expect(fake.configures().filter(params => 'soul' in params)).toEqual([])
+
+    fireEvent.click(screen.getByRole('button', { name: 'Save' }))
+
+    await waitFor(() => expect(fake.configures()).toEqual([{ name: 'writer', soul: '  Be brief.\n  ' }]))
+    await waitFor(() => expect(screen.queryByRole('button', { name: 'Save' })).toBeNull())
+    expect(soul().value).toBe('  Be brief.\n  ')
+    expect(screen.getByText('Personality saved.')).toBeTruthy()
+  })
+
+  it('reverts an edit to what the gateway holds, and writes nothing', async () => {
+    const { fake } = await ready(gateway({ soul: 'Old.' }))
+
+    fireEvent.change(soul(), { target: { value: 'New.' } })
+    fireEvent.click(screen.getByRole('button', { name: 'Revert' }))
+
+    expect(soul().value).toBe('Old.')
+    expect(screen.queryByRole('button', { name: 'Save' })).toBeNull()
+    expect(fake.configures()).toEqual([])
+  })
+
+  it('says why a write was refused, in the gateway’s words, and keeps the draft', async () => {
+    const { fake } = await ready()
+
+    fireEvent.change(soul(), { target: { value: 'New.' } })
+    fake.fail('profiles.configure', new Error('disk is full'))
+    fireEvent.click(screen.getByRole('button', { name: 'Save' }))
+
+    expect((await screen.findByRole('alert')).textContent).toContain('disk is full')
+    expect(soul().value).toBe('New.')
+  })
+
+  it('is read only once the gateway has said this account may not write', async () => {
+    const { fake } = await ready()
+
+    fireEvent.change(soul(), { target: { value: 'New.' } })
+    fake.fail('profiles.configure', denied())
+    fireEvent.click(screen.getByRole('button', { name: 'Save' }))
+
+    await waitFor(() => expect(soul().readOnly).toBe(true))
+    expect(screen.queryByRole('button', { name: 'Save' })).toBeNull()
+  })
+
+  it('draws the personality as text, never as markup', async () => {
+    await ready(gateway({ soul: '<img src=x onerror=alert(1)> **bold**' }))
+
+    expect(soul().value).toBe('<img src=x onerror=alert(1)> **bold**')
+    expect(document.querySelector('img[src="x"]')).toBeNull()
+  })
+})
+
+describe('the model', () => {
+  it('offers the gateway’s models in a group per provider, with the bot’s own selected', async () => {
+    await ready()
+    await waitFor(() => expect(modelSelect().disabled).toBe(false))
+
+    expect(modelSelect().value).toBe('p/m')
+    expect(
+      within(modelSelect())
+        .getAllByRole('group')
+        .map(group => group.getAttribute('label'))
+    ).toEqual(['Provider P', 'Provider Q'])
+    expect(screen.getByText(/The model this bot starts its chats on/u)).toBeTruthy()
+  })
+
+  it('pins the bot to another model, as its id and its provider, and tells the list', async () => {
+    const { fake, refreshRoster } = await ready()
+
+    await waitFor(() => expect(modelSelect().disabled).toBe(false))
+    fireEvent.change(modelSelect(), { target: { value: 'q/q-1' } })
+
+    await waitFor(() => expect(fake.configures()).toContainEqual({ name: 'writer', model: 'q-1', provider: 'q' }))
+    await waitFor(() => expect(modelSelect().value).toBe('q/q-1'))
+    expect(refreshRoster).toHaveBeenCalled()
+  })
+
+  it('asks before an expensive model, with the gateway’s own words, and writes nothing until the answer is yes', async () => {
+    const { fake } = await ready()
+
+    await waitFor(() => expect(modelSelect().disabled).toBe(false))
+    fireEvent.change(modelSelect(), { target: { value: 'p/m-expensive' } })
+
+    const question = await screen.findByRole('group', { name: 'This model costs more' })
+
+    expect(within(question).getByText('m-expensive costs more.')).toBeTruthy()
+    expect(document.activeElement).toBe(within(question).getByRole('button', { name: 'Cancel' }))
+    expect(modelSelect().value).toBe('p/m')
+    expect(fake.configures().filter(params => params.confirm_expensive_model === true)).toEqual([])
+
+    fireEvent.click(within(question).getByRole('button', { name: 'Use it anyway' }))
+
+    await waitFor(() =>
+      expect(fake.configures()).toContainEqual({
+        name: 'writer',
+        model: 'm-expensive',
+        provider: 'p',
+        confirm_expensive_model: true
+      })
+    )
+    await waitFor(() => expect(modelSelect().value).toBe('p/m-expensive'))
+    expect(screen.queryByRole('group', { name: 'This model costs more' })).toBeNull()
+  })
+
+  it('withdraws the question on Cancel and on Escape, with the focus back on the picker', async () => {
+    const { fake } = await ready()
+
+    await waitFor(() => expect(modelSelect().disabled).toBe(false))
+    fireEvent.change(modelSelect(), { target: { value: 'p/m-expensive' } })
+
+    const question = await screen.findByRole('group', { name: 'This model costs more' })
+
+    fireEvent.click(within(question).getByRole('button', { name: 'Cancel' }))
+    expect(screen.queryByRole('group', { name: 'This model costs more' })).toBeNull()
+    expect(document.activeElement).toBe(modelSelect())
+
+    fireEvent.change(modelSelect(), { target: { value: 'p/m-expensive' } })
+    fireEvent.keyDown(await screen.findByRole('group', { name: 'This model costs more' }), { key: 'Escape' })
+    expect(screen.queryByRole('group', { name: 'This model costs more' })).toBeNull()
+    expect(fake.configures().filter(params => params.confirm_expensive_model === true)).toEqual([])
+  })
+
+  it('searches a long list, and keeps the bot’s own model in it', async () => {
+    await ready()
+    await waitFor(() => expect(modelSelect().disabled).toBe(false))
+
+    // Five models here: below the point where a search is worth its place.
+    expect(screen.queryByRole('searchbox', { name: 'Search models' })).toBeNull()
+  })
+
+  it('says the bot’s model is not in the gateway’s list when it is not, and keeps it selected', async () => {
+    const fake = gateway()
+
+    fake.profile.model = { provider: 'z', model: 'hand-set' }
+    await ready(fake)
+    await waitFor(() => expect(modelSelect().disabled).toBe(false))
+
+    expect(modelSelect().value).toBe('z/hand-set')
+    expect(within(modelSelect()).getByRole('option', { name: /Hand Set \(not in the gateway’s list\)/u })).toBeTruthy()
+  })
+
+  it('says why a pin failed, under the picker, and keeps the model the bot was on', async () => {
+    const { fake } = await ready()
+
+    await waitFor(() => expect(modelSelect().disabled).toBe(false))
+    fake.fail('profiles.configure', new Error('provider is not configured'))
+    fireEvent.change(modelSelect(), { target: { value: 'q/q-1' } })
+
+    expect((await screen.findByRole('alert')).textContent).toContain('provider is not configured')
+    expect(modelSelect().value).toBe('p/m')
+  })
+
+  it('says the model cannot be changed here when the gateway does not list its models', async () => {
+    await ready(gateway({ noModels: true }))
+
+    expect(
+      await screen.findByText('This gateway does not list the models it offers, so the model cannot be changed here.')
+    ).toBeTruthy()
+    expect(screen.queryByRole('combobox', { name: 'Model' })).toBeNull()
+  })
+
+  it('offers nothing to change while the account may not write', async () => {
+    const { fake } = await ready()
+
+    fake.fail('profiles.configure', denied())
+    fireEvent.change(soul(), { target: { value: 'x' } })
+    fireEvent.click(screen.getByRole('button', { name: 'Save' }))
+    await waitFor(() => expect(modelSelect().disabled).toBe(true))
+  })
+})
+
+describe('the model, with many models', () => {
+  it('offers a search from eight models, which filters by name and by provider but never takes the bot’s own away', async () => {
+    const fake = gateway()
+    const request = fake.request
+
+    fake.request = vi.fn(async (method: string, params: Record<string, unknown>) =>
+      method === 'model.options'
+        ? {
+            providers: [
+              { slug: 'p', name: 'Provider P', models: ['m', 'alpha-1', 'alpha-2', 'beta-1', 'beta-2'] },
+              { slug: 'q', name: 'Provider Q', models: ['gamma-1', 'gamma-2', 'delta-1'] }
+            ]
+          }
+        : request(method, params)
+    ) as never
+    mount(fake)
+    await screen.findByRole('checkbox', { name: 'pdf' })
+
+    const search = (await screen.findByRole('searchbox', { name: 'Search models' })) as HTMLInputElement
+
+    fireEvent.change(search, { target: { value: 'gamma' } })
+    await waitFor(() =>
+      expect(
+        within(modelSelect())
+          .getAllByRole('option')
+          .map(option => option.textContent)
+      ).toEqual(['M', 'Gamma 1', 'Gamma 2'])
+    )
+
+    fireEvent.change(search, { target: { value: 'nothing-like-this' } })
+    expect(await screen.findByText('No other model matches.')).toBeTruthy()
+    expect(
+      within(modelSelect())
+        .getAllByRole('option')
+        .map(option => option.textContent)
+    ).toEqual(['M'])
+  })
+})
+
 describe('in another language and for a screen reader', () => {
   it('has a heading for every section and passes axe, with the sections drawn', async () => {
     await ready()
@@ -440,6 +674,8 @@ describe('in another language and for a screen reader', () => {
       'Photo',
       'Name',
       'Description',
+      'Personality',
+      'Model',
       'Colour',
       'Capabilities',
       'About this bot'

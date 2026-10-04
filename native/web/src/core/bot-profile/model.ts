@@ -55,19 +55,38 @@ import {
   clearAvatarParams,
   descriptionParams,
   mcpParams,
+  type ModelChoice,
+  modelAnswer,
+  modelChoicesOf,
+  modelParams,
   reloadAnswer,
   reloadMcpParams,
   skillsParams,
+  soulParams,
   toolsetDefaultsParams,
   toolsetsParams
 } from './params'
 
 /** A thing the page can be busy writing, or have failed to write. */
-export type ProfileField = 'description' | 'avatar' | 'toolsets' | 'skills' | 'mcp'
+export type ProfileField = 'description' | 'soul' | 'model' | 'avatar' | 'toolsets' | 'skills' | 'mcp'
 
 type Section = 'toolsets' | 'skills' | 'mcp'
 
 const APPLIED: Record<Section, AppliedSection> = { toolsets: 'toolsets', skills: 'skills', mcp: 'mcp_servers' }
+
+/** The models the gateway offers, read when the picker is first opened. */
+export type ModelChoices =
+  | { kind: 'idle' }
+  | { kind: 'loading' }
+  | { kind: 'loaded'; choices: readonly ModelChoice[] }
+  /** The gateway would not list them: the picker is not offered. */
+  | { kind: 'unavailable' }
+
+/** A guarded model (an expensive one) that wrote nothing until the person says yes, with the gateway's words. */
+export interface ModelConfirmation {
+  choice: ModelChoice
+  message: string
+}
 
 export interface BotProfileState {
   phase: 'idle' | 'loading' | 'loaded' | 'failed'
@@ -76,6 +95,10 @@ export interface BotProfileState {
   /** The gateway's snapshot, with the switches as they are on screen. */
   details: BotProfileDetails | null
   descriptionDraft: string
+  /** The personality being edited: `SOUL.md` exactly as typed. */
+  soulDraft: string
+  modelChoices: ModelChoices
+  modelConfirmation: ModelConfirmation | null
   busy: Readonly<Partial<Record<ProfileField, true>>>
   failures: Readonly<Partial<Record<ProfileField, BotProfileFailure>>>
   /** A write was refused as not this account's to make: the page is read-only from here on. */
@@ -104,6 +127,9 @@ const INITIAL: BotProfileState = {
   loadFailure: null,
   details: null,
   descriptionDraft: '',
+  soulDraft: '',
+  modelChoices: { kind: 'idle' },
+  modelConfirmation: null,
   busy: {},
   failures: {},
   refused: false,
@@ -257,6 +283,14 @@ export class BotProfileModel {
         fresh.description = before.description
       }
 
+      if (stale('soul')) {
+        fresh.soul = before.soul
+      }
+
+      if (stale('model')) {
+        fresh.model = before.model
+      }
+
       if (stale('toolsets')) {
         fresh.toolsets = before.toolsets
         fresh.toolsetsPinned = before.toolsetsPinned
@@ -295,7 +329,14 @@ export class BotProfileModel {
     const draft = this.state.descriptionDraft
     const following = before ? draft.trim() === before.description : true
 
-    this.patch({ details: next, ...(following ? { descriptionDraft: fresh.description } : {}) })
+    // The personality's draft the same way, compared as typed: its whitespace is the author's.
+    const soulFollowing = before ? this.state.soulDraft === before.soul : true
+
+    this.patch({
+      details: next,
+      ...(following ? { descriptionDraft: fresh.description } : {}),
+      ...(soulFollowing ? { soulDraft: fresh.soul } : {})
+    })
   }
 
   // ── what can be done ───────────────────────────────────────────────────────
@@ -319,6 +360,22 @@ export class BotProfileModel {
   revertDescription(): void {
     this.patch({ descriptionDraft: this.state.details?.description ?? '' })
     this.setFailure('description', null)
+  }
+
+  get soulIsDirty(): boolean {
+    const { details, soulDraft } = this.state
+
+    return details !== null && soulDraft !== details.soul
+  }
+
+  setSoulDraft(text: string): void {
+    this.patch({ soulDraft: text })
+  }
+
+  /** Take the personality's draft back to what the gateway holds. */
+  revertSoul(): void {
+    this.patch({ soulDraft: this.state.details?.soul ?? '' })
+    this.setFailure('soul', null)
   }
 
   dismissFailure(field: ProfileField): void {
@@ -366,6 +423,117 @@ export class BotProfileModel {
     } finally {
       this.setBusy('description', false)
     }
+  }
+
+  /** Write the personality exactly as typed. */
+  async saveSoul(): Promise<void> {
+    if (!this.state.details || this.state.busy.soul) {
+      return
+    }
+
+    const text = this.state.soulDraft
+
+    this.setBusy('soul', true)
+    this.setFailure('soul', null)
+
+    try {
+      await this.serialized(async () => {
+        const reply = await this.gateway.request('profiles.configure', soulParams(this.profile, text))
+
+        checkApplied(reply, 'soul')
+      })
+
+      this.confirmedWrite('soul')
+
+      const details = this.state.details
+
+      if (details) {
+        this.patch({ details: { ...details, soul: text }, soulDraft: text })
+      }
+
+      if (this.confirmed) {
+        this.confirmed = { ...this.confirmed, soul: text }
+      }
+    } catch (error) {
+      this.fail('soul', error)
+    } finally {
+      this.setBusy('soul', false)
+    }
+  }
+
+  // ── model ──────────────────────────────────────────────────────────────────
+
+  /** The models the gateway offers this account, read once; a gateway that will not list them leaves the picker out. */
+  async loadModelChoices(): Promise<void> {
+    if (this.state.modelChoices.kind === 'loading' || this.state.modelChoices.kind === 'loaded') {
+      return
+    }
+
+    this.patch({ modelChoices: { kind: 'loading' } })
+
+    try {
+      const choices = modelChoicesOf(await this.gateway.request('model.options', { explicit_only: true }))
+
+      this.patch({ modelChoices: choices.length > 0 ? { kind: 'loaded', choices } : { kind: 'unavailable' } })
+    } catch {
+      this.patch({ modelChoices: { kind: 'unavailable' } })
+    }
+  }
+
+  /** Pin the bot to a model; a guarded one writes nothing and becomes `modelConfirmation`. */
+  chooseModel(choice: ModelChoice): Promise<void> {
+    return this.pin(choice, false)
+  }
+
+  /** The person confirmed the guarded model the gateway asked about. */
+  async confirmModel(): Promise<void> {
+    const pending = this.state.modelConfirmation
+
+    if (pending) {
+      this.patch({ modelConfirmation: null })
+      await this.pin(pending.choice, true)
+    }
+  }
+
+  cancelModelConfirmation(): void {
+    this.patch({ modelConfirmation: null })
+  }
+
+  private async pin(choice: ModelChoice, confirmExpensive: boolean): Promise<void> {
+    if (!this.state.details || this.state.busy.model) {
+      return
+    }
+
+    this.setBusy('model', true)
+    this.setFailure('model', null)
+
+    let answer: ReturnType<typeof modelAnswer>
+
+    try {
+      answer = await this.serialized(async () =>
+        modelAnswer(
+          await this.gateway.request('profiles.configure', modelParams(this.profile, choice, confirmExpensive))
+        )
+      )
+    } catch (error) {
+      this.fail('model', error)
+      this.setBusy('model', false)
+
+      return
+    }
+
+    if (answer.kind === 'confirm') {
+      this.patch({ modelConfirmation: { choice, message: answer.message } })
+      this.setBusy('model', false)
+
+      return
+    }
+
+    this.confirmedWrite('model')
+    this.setBusy('model', false)
+    // What the gateway stored is what to show: it normalises the pair it was given.
+    await this.reread()
+    this.onChanged()
   }
 
   /** Set the bot's picture to this base64 (PNG, JPEG or WebP, up to 2 MB). Resolves whether it worked. */

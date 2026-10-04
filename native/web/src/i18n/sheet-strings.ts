@@ -174,6 +174,59 @@ export const SHEET_STRINGS_SOURCE = {
     }
   },
   botProfile: {
+    /** The personality (`SOUL.md`): the instructions that give a bot its character. Words follow the native apps'. */
+    personalityHeading: {
+      en: 'Personality',
+      nl: 'Persoonlijkheid',
+      de: 'Persönlichkeit'
+    },
+    personalityHint: {
+      en: 'The instructions that give this bot its character: the SOUL.md of its profile on the gateway. Shown as plain text.',
+      nl: 'De instructies die deze bot zijn karakter geven: het SOUL.md-bestand van zijn profiel op de gateway. Wordt als gewone tekst getoond.',
+      de: 'Die Anweisungen, die diesem Bot seinen Charakter geben: die SOUL.md seines Profils auf dem Gateway. Wird als reiner Text angezeigt.'
+    },
+    personalityEmpty: {
+      en: 'No personality is set.',
+      nl: 'Er is geen persoonlijkheid ingesteld.',
+      de: 'Es ist keine Persönlichkeit festgelegt.'
+    },
+    personalitySaved: {
+      en: 'Personality saved.',
+      nl: 'Persoonlijkheid opgeslagen.',
+      de: 'Persönlichkeit gespeichert.'
+    },
+    /** The bot's own model: what its chats start on. */
+    modelHeading: {
+      en: 'Model',
+      nl: 'Model',
+      de: 'Modell'
+    },
+    modelLead: {
+      en: 'The model this bot starts its chats on. A single chat can still pick another one in its own options.',
+      nl: 'Het model waarmee deze bot zijn chats begint. Een los gesprek kan in zijn eigen opties nog een ander model kiezen.',
+      de: 'Das Modell, mit dem dieser Bot seine Chats beginnt. Ein einzelner Chat kann in seinen eigenen Optionen noch ein anderes wählen.'
+    },
+    modelFollows: {
+      en: 'Follows the gateway’s model',
+      nl: 'Volgt het model van de gateway',
+      de: 'Folgt dem Modell des Gateways'
+    },
+    modelUnavailable: {
+      en: 'This gateway does not list the models it offers, so the model cannot be changed here.',
+      nl: 'Deze gateway toont niet welke modellen hij aanbiedt, dus het model kan hier niet worden gewijzigd.',
+      de: 'Dieses Gateway listet seine Modelle nicht auf, daher lässt sich das Modell hier nicht ändern.'
+    },
+    modelChanged: {
+      en: 'Model changed.',
+      nl: 'Model gewijzigd.',
+      de: 'Modell geändert.'
+    },
+    /** A model the bot is on that the gateway does not list: still the one it is on. */
+    modelNotListed: {
+      en: ({ name }: { name: string }) => `${name} (not in the gateway’s list)`,
+      nl: ({ name }: { name: string }) => `${name} (niet in de lijst van de gateway)`,
+      de: ({ name }: { name: string }) => `${name} (nicht in der Liste des Gateways)`
+    },
     descriptionPlaceholder: {
       en: 'What this bot is for',
       nl: 'Waar deze bot voor is',

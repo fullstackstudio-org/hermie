@@ -36,7 +36,7 @@ export interface BotProfileDetails {
   /** The profile's handle. */
   name: string
   description: string
-  /** The profile's `SOUL.md`. Read for completeness only; this page does not edit it. */
+  /** The profile's `SOUL.md`, exactly as stored. Untrusted text, drawn as characters. */
   soul: string
   model: BotModelPin
   toolsets: BotToolset[]

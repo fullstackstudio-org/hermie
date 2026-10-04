@@ -33,6 +33,88 @@ export const descriptionParams = (profile: string, text: string): ProfilesConfig
   description: text.trim()
 })
 
+/**
+ * `soul`: the profile's `SOUL.md` exactly as typed. Its whitespace is the author's, so nothing is trimmed: a
+ * personality that ends in a line break or starts with an indented block means what it says.
+ */
+export const soulParams = (profile: string, text: string): ProfilesConfigureParams => ({
+  name: profile,
+  soul: text
+})
+
+/** One model the gateway offers a bot: the provider's slug and the model id as that provider spells it. */
+export interface ModelChoice {
+  /** The provider's slug: its own field on the wire. */
+  provider: string
+  /** What a reader calls the provider. */
+  providerName: string
+  /** The model id exactly as `model.options` lists it. Never prefixed with the provider. */
+  model: string
+  /** What tells two choices apart (the same model id can be offered by two providers); never sent. */
+  id: string
+}
+
+/**
+ * A model pin. `model` and `provider` go together or not at all (the gateway pins only when it has both), and
+ * `model` is the id exactly as `model.options` lists it, with the provider in its own field, as the gateway's
+ * desktop client sends it. Never `provider/model`: `normalize_model_for_provider` keeps a leading `provider/`
+ * for openrouter, nous, ollama, lmstudio and the user's own providers, so a prefix added here would be part of
+ * the model's name and break that bot. `confirmExpensive` answers a `confirm_required` the gateway gave.
+ */
+export const modelParams = (
+  profile: string,
+  choice: Pick<ModelChoice, 'provider' | 'model'>,
+  confirmExpensive = false
+): ProfilesConfigureParams => ({
+  name: profile,
+  model: choice.model,
+  provider: choice.provider,
+  ...(confirmExpensive ? { confirm_expensive_model: true } : {})
+})
+
+/** What a `profiles.configure` for a model said: written, or a guarded model that wrote nothing until confirmed. */
+export type ModelAnswer = { kind: 'applied' } | { kind: 'confirm'; message: string }
+
+export function modelAnswer(reply: unknown): ModelAnswer {
+  const answer = reply as { confirm_required?: unknown; confirm_message?: unknown } | null | undefined
+
+  if (answer?.confirm_required === true) {
+    return { kind: 'confirm', message: typeof answer.confirm_message === 'string' ? answer.confirm_message : '' }
+  }
+
+  checkApplied(reply, 'model')
+
+  return { kind: 'applied' }
+}
+
+/** The flattened inventory, in the gateway's order: a provider with no slug and a model with no name are skipped, as is a model listed twice. */
+export function modelChoicesOf(options: { providers?: readonly unknown[] } | null | undefined): ModelChoice[] {
+  const seen = new Set<string>()
+  const choices: ModelChoice[] = []
+
+  for (const entry of Array.isArray(options?.providers) ? options.providers : []) {
+    const provider = entry as { slug?: unknown; name?: unknown; models?: unknown } | null
+    const slug = typeof provider?.slug === 'string' ? provider.slug : ''
+
+    if (!slug) {
+      continue
+    }
+
+    const providerName = typeof provider?.name === 'string' && provider.name ? provider.name : slug
+
+    for (const model of Array.isArray(provider?.models) ? provider.models : []) {
+      const id = `${slug}/${String(model)}`
+
+      if (typeof model === 'string' && model !== '' && !seen.has(id)) {
+        seen.add(id)
+        choices.push({ provider: slug, providerName, model, id })
+      }
+    }
+  }
+
+  return choices
+}
+
 /** The toolsets that are on, whole: a pin of exactly what is on screen. */
 export const toolsetsParams = (profile: string, toolsets: readonly BotToolset[]): ProfilesConfigureParams => ({
   name: profile,
@@ -87,7 +169,7 @@ export function reloadMcpParams(
 }
 
 /** The section's name in `applied`: the gateway's word, which is not always the parameter's. */
-export type AppliedSection = 'description' | 'skills' | 'toolsets' | 'mcp_servers'
+export type AppliedSection = 'description' | 'skills' | 'toolsets' | 'mcp_servers' | 'soul' | 'model'
 
 /**
  * A `profiles.configure` answer for one section. A request the gateway accepted but did not apply is a

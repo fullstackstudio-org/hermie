@@ -434,3 +434,232 @@ describe('switches', () => {
     expect(model.store.getState().details?.skills[0]?.enabled).toBe(false)
   })
 })
+
+describe('the personality', () => {
+  it('reads the soul into a draft, and a draft that is the gateway’s text is not an edit', async () => {
+    const fake = gateway({ soul: '  You are terse.\n' })
+    const model = modelOn(fake)
+
+    await model.load()
+
+    expect(model.store.getState().soulDraft).toBe('  You are terse.\n')
+    expect(model.soulIsDirty).toBe(false)
+  })
+
+  it('writes the draft exactly as typed, whitespace and all, and checks it was applied', async () => {
+    const fake = gateway()
+    const model = modelOn(fake)
+
+    await model.load()
+    model.setSoulDraft('  Be brief.\n\n  Two spaces in.\n')
+    expect(model.soulIsDirty).toBe(true)
+    await model.saveSoul()
+
+    expect(fake.configures().at(-1)).toEqual({ name: 'writer', soul: '  Be brief.\n\n  Two spaces in.\n' })
+    expect(model.soulIsDirty).toBe(false)
+    expect(model.store.getState().details?.soul).toBe('  Be brief.\n\n  Two spaces in.\n')
+    expect(model.store.getState().failures.soul).toBeUndefined()
+  })
+
+  it('can write an empty personality, which clears it', async () => {
+    const fake = gateway({ soul: 'Old.' })
+    const model = modelOn(fake)
+
+    await model.load()
+    model.setSoulDraft('')
+    expect(model.soulIsDirty).toBe(true)
+    await model.saveSoul()
+
+    expect(fake.configures().at(-1)).toEqual({ name: 'writer', soul: '' })
+  })
+
+  it('puts the draft back on revert, and writes nothing', async () => {
+    const fake = gateway({ soul: 'Old.' })
+    const model = modelOn(fake)
+
+    await model.load()
+    model.setSoulDraft('Something else')
+    model.revertSoul()
+
+    expect(model.store.getState().soulDraft).toBe('Old.')
+    expect(fake.configures()).toEqual([])
+  })
+
+  it('keeps the draft and says why when the gateway refuses, and goes read-only on a denial', async () => {
+    const fake = gateway()
+    const model = modelOn(fake)
+
+    await model.load()
+    model.setSoulDraft('New')
+    fake.fail('profiles.configure', new Error('disk is full'))
+    await model.saveSoul()
+
+    expect(model.store.getState().soulDraft).toBe('New')
+    expect(model.store.getState().failures.soul).toMatchObject({ kind: 'refused', detail: 'disk is full' })
+    expect(model.soulIsDirty).toBe(true)
+
+    fake.fail('profiles.configure', denied())
+    await model.saveSoul()
+    expect(model.store.getState()).toMatchObject({ refused: true })
+  })
+
+  it('does not let a read overwrite a draft the person has started, and follows one they have not', async () => {
+    const fake = gateway({ soul: 'One.' })
+    const model = modelOn(fake)
+
+    await model.load()
+    fake.profile.soul = 'Two.'
+    await model.load()
+    expect(model.store.getState().soulDraft).toBe('Two.')
+
+    model.setSoulDraft('Mine')
+    fake.profile.soul = 'Three.'
+    await model.load()
+    expect(model.store.getState().soulDraft).toBe('Mine')
+    expect(model.store.getState().details?.soul).toBe('Three.')
+  })
+
+  it('writes one profile write at a time: a soul save waits for a switch in flight', async () => {
+    const fake = gateway()
+    const model = modelOn(fake)
+
+    await model.load()
+    fake.hold('profiles.configure')
+    model.setSoulDraft('X')
+
+    const writes = [model.setSkill('pdf', false), model.saveSoul()]
+
+    await flush()
+    expect(fake.configures()).toHaveLength(1)
+    fake.release('profiles.configure')
+    await Promise.all(writes)
+    expect(fake.configures()).toHaveLength(2)
+  })
+})
+
+const loadedChoices = (model: BotProfileModel) => {
+  const choices = model.store.getState().modelChoices
+
+  return choices.kind === 'loaded' ? [...choices.choices] : []
+}
+
+describe('the model', () => {
+  it('lists the gateway’s inventory once, a choice per provider and model, never prefixing the id', async () => {
+    const fake = gateway()
+    const model = modelOn(fake)
+
+    await model.load()
+    await model.loadModelChoices()
+    await model.loadModelChoices()
+
+    expect(model.store.getState().modelChoices.kind).toBe('loaded')
+    expect(loadedChoices(model).map(choice => [choice.provider, choice.model, choice.id])).toEqual([
+      ['p', 'm', 'p/m'],
+      ['p', 'm-mini', 'p/m-mini'],
+      ['p', 'm-expensive', 'p/m-expensive'],
+      ['q', 'm', 'q/m'],
+      ['q', 'q-1', 'q/q-1']
+    ])
+    expect(fake.calls.filter(call => call.method === 'model.options')).toHaveLength(1)
+    expect(fake.calls.find(call => call.method === 'model.options')?.params).toEqual({ explicit_only: true })
+  })
+
+  it('leaves the picker out when the gateway will not list models', async () => {
+    const model = modelOn(gateway({ noModels: true }))
+
+    await model.load()
+    await model.loadModelChoices()
+
+    expect(model.store.getState().modelChoices.kind).toBe('unavailable')
+  })
+
+  it('pins the model with its id and its provider in their own fields, then reads the profile back and tells the roster', async () => {
+    const fake = gateway()
+    const changed = vi.fn()
+    const model = modelOn(fake, { onChanged: changed })
+
+    await model.load()
+    await model.loadModelChoices()
+    await model.chooseModel(loadedChoices(model).find(entry => entry.id === 'q/m')!)
+
+    expect(fake.configures().at(-1)).toEqual({ name: 'writer', model: 'm', provider: 'q' })
+    expect(model.store.getState().details?.model).toEqual({ provider: 'q', model: 'm' })
+    expect(changed).toHaveBeenCalledTimes(1)
+  })
+
+  it('writes nothing for an expensive model until the person confirms, with the gateway’s own words', async () => {
+    const fake = gateway()
+    const model = modelOn(fake)
+
+    await model.load()
+    await model.loadModelChoices()
+    await model.chooseModel(loadedChoices(model).find(entry => entry.id === 'p/m-expensive')!)
+
+    expect(model.store.getState().modelConfirmation).toMatchObject({
+      message: 'm-expensive costs more.',
+      choice: { id: 'p/m-expensive' }
+    })
+    expect(model.store.getState().details?.model).toEqual({ provider: 'p', model: 'm' })
+
+    await model.confirmModel()
+    expect(fake.configures().at(-1)).toEqual({
+      name: 'writer',
+      model: 'm-expensive',
+      provider: 'p',
+      confirm_expensive_model: true
+    })
+    expect(model.store.getState().modelConfirmation).toBeNull()
+    expect(model.store.getState().details?.model).toEqual({ provider: 'p', model: 'm-expensive' })
+  })
+
+  it('drops the question without writing when it is cancelled', async () => {
+    const fake = gateway()
+    const model = modelOn(fake)
+
+    await model.load()
+    await model.loadModelChoices()
+    await model.chooseModel({ provider: 'p', providerName: 'P', model: 'm-expensive', id: 'p/m-expensive' })
+    model.cancelModelConfirmation()
+    await model.confirmModel()
+
+    expect(model.store.getState().modelConfirmation).toBeNull()
+    expect(fake.configures().filter(params => params.confirm_expensive_model === true)).toEqual([])
+    expect(model.store.getState().details?.model).toEqual({ provider: 'p', model: 'm' })
+  })
+
+  it('says why a pin failed, keeps the model it was on, and goes read-only on a denial', async () => {
+    const fake = gateway()
+    const model = modelOn(fake)
+
+    await model.load()
+    fake.fail('profiles.configure', new Error('provider is not configured'))
+    await model.chooseModel({ provider: 'q', providerName: 'Q', model: 'q-1', id: 'q/q-1' })
+
+    expect(model.store.getState().failures.model).toMatchObject({
+      kind: 'refused',
+      detail: 'provider is not configured'
+    })
+    expect(model.store.getState().details?.model).toEqual({ provider: 'p', model: 'm' })
+
+    fake.fail('profiles.configure', denied())
+    await model.chooseModel({ provider: 'q', providerName: 'Q', model: 'q-1', id: 'q/q-1' })
+    expect(model.store.getState().refused).toBe(true)
+  })
+
+  it('does not start a second pin while one is in flight', async () => {
+    const fake = gateway()
+    const model = modelOn(fake)
+
+    await model.load()
+    fake.hold('profiles.configure')
+
+    const first = model.chooseModel({ provider: 'q', providerName: 'Q', model: 'q-1', id: 'q/q-1' })
+    const second = model.chooseModel({ provider: 'q', providerName: 'Q', model: 'm', id: 'q/m' })
+
+    await flush()
+    fake.release('profiles.configure')
+    await Promise.all([first, second])
+
+    expect(fake.configures()).toHaveLength(1)
+  })
+})

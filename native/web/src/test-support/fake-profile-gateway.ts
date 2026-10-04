@@ -15,10 +15,20 @@ export interface Call {
 }
 
 /** A gateway holding one profile. `hold(method)` makes the next call of it wait until `release()`. */
-export function gateway(initial: { disabledSkills?: string[]; pinned?: string[] | null; enabledMcp?: string[] } = {}) {
+export function gateway(
+  initial: {
+    disabledSkills?: string[]
+    pinned?: string[] | null
+    enabledMcp?: string[]
+    soul?: string
+    noModels?: boolean
+  } = {}
+) {
   const calls: Call[] = []
   const profile = {
     description: 'Writes.',
+    soul: initial.soul ?? '',
+    model: { provider: 'p', model: 'm' },
     disabledSkills: new Set(initial.disabledSkills ?? []),
     pinned: initial.pinned === undefined ? null : initial.pinned,
     mcp: new Set(initial.enabledMcp ?? ['github', 'local'])
@@ -37,8 +47,8 @@ export function gateway(initial: { disabledSkills?: string[]; pinned?: string[] 
     return {
       name: 'writer',
       description: profile.description,
-      soul: '',
-      model: { provider: 'p', default: 'm' },
+      soul: profile.soul,
+      model: { provider: profile.model.provider, default: profile.model.model },
       skills: skills.map(name => ({ name, enabled: !profile.disabledSkills.has(name) })),
       toolsets: toolsets.map(name => ({ name, label: name.toUpperCase(), tool_count: 2, enabled: on.includes(name) })),
       toolsets_pinned: profile.pinned !== null,
@@ -76,6 +86,22 @@ export function gateway(initial: { disabledSkills?: string[]; pinned?: string[] 
           applied.description = true
         }
 
+        if (typeof params.soul === 'string') {
+          profile.soul = params.soul
+          applied.soul = true
+        }
+
+        let confirm: Record<string, unknown> = {}
+
+        if (typeof params.model === 'string' && typeof params.provider === 'string') {
+          if (params.model.includes('expensive') && params.confirm_expensive_model !== true) {
+            confirm = { confirm_required: true, confirm_message: `${params.model} costs more.` }
+          } else {
+            profile.model = { provider: params.provider, model: params.model }
+            applied.model = true
+          }
+        }
+
         if (Array.isArray(params.disabled_skills)) {
           profile.disabledSkills = new Set(params.disabled_skills as string[])
           applied.skills = true
@@ -91,8 +117,19 @@ export function gateway(initial: { disabledSkills?: string[]; pinned?: string[] 
           applied.mcp_servers = true
         }
 
-        return { ok: true, applied }
+        return { ok: true, applied, ...confirm }
       }
+      case 'model.options':
+        if (initial.noModels) {
+          throw new Error('unknown method model.options')
+        }
+
+        return {
+          providers: [
+            { slug: 'p', name: 'Provider P', models: ['m', 'm-mini', 'm-expensive'] },
+            { slug: 'q', name: 'Provider Q', models: ['m', 'q-1'] }
+          ]
+        }
       case 'profiles.set_asset':
         return { ok: true, asset: 'avatar' }
       case 'reload.mcp':
