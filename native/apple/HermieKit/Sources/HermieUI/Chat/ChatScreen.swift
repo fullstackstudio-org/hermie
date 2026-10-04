@@ -280,6 +280,8 @@ struct ChatSessionView<Composer: View>: View {
     )
     // The pictures of the messages, opened full screen from their thumbnails.
     .imageGalleryHost(owner.feed?.itemActions.images)
+    // The files the bot shared: a video full screen, a PDF, the share sheet.
+    .outboxHost(owner.feed?.itemActions.outbox)
     .modifier(ChatTitle(session: session, chat: chat, feed: feed, diagnostics: diagnostics))
     #if os(iOS)
       .navigationBarTitleDisplayMode(.inline)

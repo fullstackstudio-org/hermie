@@ -1446,6 +1446,48 @@
 	<string>die lokale Datenbank hat die Änderung verweigert.</string>
 	<key>native.onboarding.save.unsupportedRegistry</key>
 	<string>Die Gateway-Liste auf diesem Gerät stammt von einer neueren Hermie-Version, deshalb wurde nichts geändert. Aktualisiere Hermie und versuche es erneut.</string>
+	<key>native.outbox.audioLabel</key>
+	<string>Audio, %@</string>
+	<key>native.outbox.close</key>
+	<string>Schließen</string>
+	<key>native.outbox.downloading</key>
+	<string>Wird geladen</string>
+	<key>native.outbox.downloadingPercent</key>
+	<string>Wird geladen, %lld Prozent</string>
+	<key>native.outbox.failed</key>
+	<string>Laden fehlgeschlagen</string>
+	<key>native.outbox.fileLabel</key>
+	<string>Datei, %@</string>
+	<key>native.outbox.gone</key>
+	<string>Nicht mehr verfügbar</string>
+	<key>native.outbox.openPdfHint</key>
+	<string>Öffnet das Dokument</string>
+	<key>native.outbox.openVideoHint</key>
+	<string>Spielt das Video im Vollbild ab</string>
+	<key>native.outbox.pause</key>
+	<string>Pause</string>
+	<key>native.outbox.pdfLabel</key>
+	<string>PDF-Dokument, %@</string>
+	<key>native.outbox.play</key>
+	<string>Wiedergabe</string>
+	<key>native.outbox.position</key>
+	<string>Position</string>
+	<key>native.outbox.retry</key>
+	<string>Erneut versuchen</string>
+	<key>native.outbox.retryHint</key>
+	<string>Tippen, um es erneut zu versuchen</string>
+	<key>native.outbox.save</key>
+	<string>Sichern</string>
+	<key>native.outbox.saveFailed</key>
+	<string>Konnte nicht gesichert werden</string>
+	<key>native.outbox.saveHint</key>
+	<string>Sichert eine Kopie der Datei</string>
+	<key>native.outbox.share</key>
+	<string>Teilen</string>
+	<key>native.outbox.tooLarge</key>
+	<string>Zu groß, um es hier zu öffnen</string>
+	<key>native.outbox.videoLabel</key>
+	<string>Video, %@</string>
 	<key>native.ownChats.nameHint</key>
 	<string>Optional. Ohne Namen heißt der Chat nach dem Zeitpunkt, an dem er begann.</string>
 	<key>native.ownChats.start</key>

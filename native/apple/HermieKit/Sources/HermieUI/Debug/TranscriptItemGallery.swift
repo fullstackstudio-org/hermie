@@ -153,6 +153,26 @@
       return all.filter { $0.title.hasPrefix(prefix) }
     }
 
+    /// One file of each kind a bot can share (`contract/outbox/`), the name of the first with a right-to-left
+    /// override in it.
+    static let sharedFiles: [OutboxAttachment] = {
+      func file(_ token: String, _ name: String, _ kind: OutboxKind, _ size: Int) -> OutboxAttachment {
+        let id = String(repeating: token, count: 32)
+        return OutboxAttachment(
+          id: id, name: name, mime: "application/octet-stream", kind: kind, size: size,
+          sha256: String(repeating: "0", count: 64), createdAt: 1_791_148_287,
+          url: "/api/files/outbox/\(id)/\(OutboxAttachment.encodedName(name))")
+      }
+
+      return [
+        file("a", "photo.png", .image, 48_213),
+        file("b", "clip.mp4", .video, 2_411_000),
+        file("c", "tone.mp3", .audio, 48_213),
+        file("d", "Q3 report.pdf", .pdf, 120_400),
+        file("e", "backup\u{202E}fdp.zip", .file, 10_422),
+      ]
+    }()
+
     /// Tables with short and empty headers, a wide column, every alignment
     /// and more columns than an iPhone fits.
     static let tablesText = """
@@ -223,6 +243,14 @@
         $0.interim = false
       }
       add("Assistant, tables", tables)
+      var shared = g.assistant(seq: 6)
+      shared.updateAssistant {
+        $0.text = "Here is the recording, the notes and the report."
+        $0.reasoning = nil
+        $0.interim = false
+        $0.outbox = GallerySample.sharedFiles
+      }
+      add("Assistant, shared files", shared)
       add("Tool, complete", g.tool(seq: 7))
       add("Tool, running", g.tool(seq: 8, status: .running))
       var patch = g.tool(seq: 9)

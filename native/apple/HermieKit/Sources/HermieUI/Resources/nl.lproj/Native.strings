@@ -1446,6 +1446,48 @@
 	<string>de lokale database weigerde de wijziging.</string>
 	<key>native.onboarding.save.unsupportedRegistry</key>
 	<string>De gatewaylijst op dit apparaat is geschreven door een nieuwere versie van Hermie, dus er is niets gewijzigd. Werk Hermie bij en probeer het opnieuw.</string>
+	<key>native.outbox.audioLabel</key>
+	<string>Audio, %@</string>
+	<key>native.outbox.close</key>
+	<string>Sluit</string>
+	<key>native.outbox.downloading</key>
+	<string>Downloaden</string>
+	<key>native.outbox.downloadingPercent</key>
+	<string>Downloaden, %lld procent</string>
+	<key>native.outbox.failed</key>
+	<string>Laden mislukt</string>
+	<key>native.outbox.fileLabel</key>
+	<string>Bestand, %@</string>
+	<key>native.outbox.gone</key>
+	<string>Niet meer beschikbaar</string>
+	<key>native.outbox.openPdfHint</key>
+	<string>Opent het document</string>
+	<key>native.outbox.openVideoHint</key>
+	<string>Speelt de video schermvullend af</string>
+	<key>native.outbox.pause</key>
+	<string>Pauzeer</string>
+	<key>native.outbox.pdfLabel</key>
+	<string>PDF-document, %@</string>
+	<key>native.outbox.play</key>
+	<string>Afspelen</string>
+	<key>native.outbox.position</key>
+	<string>Positie</string>
+	<key>native.outbox.retry</key>
+	<string>Opnieuw proberen</string>
+	<key>native.outbox.retryHint</key>
+	<string>Tik om het opnieuw te proberen</string>
+	<key>native.outbox.save</key>
+	<string>Bewaar</string>
+	<key>native.outbox.saveFailed</key>
+	<string>Bewaren mislukt</string>
+	<key>native.outbox.saveHint</key>
+	<string>Bewaart een kopie van het bestand</string>
+	<key>native.outbox.share</key>
+	<string>Deel</string>
+	<key>native.outbox.tooLarge</key>
+	<string>Te groot om hier te openen</string>
+	<key>native.outbox.videoLabel</key>
+	<string>Video, %@</string>
 	<key>native.ownChats.nameHint</key>
 	<string>Optioneel. Zonder naam krijgt de chat de tijd waarop hij begon.</string>
 	<key>native.ownChats.start</key>

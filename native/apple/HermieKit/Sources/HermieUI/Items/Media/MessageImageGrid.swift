@@ -122,7 +122,8 @@ struct MessageImageCell: View {
     .buttonStyle(.plain)
     .accessibilityLabel(overflow.map { NativeStrings.Media.more(count: $0) } ?? image.label)
     .accessibilityAddTraits(.isImage)
-    .accessibilityHint(Strings.Chat.Viewer.openHint)
+    .accessibilityValue(failed ? failureLine : "")
+    .accessibilityHint(hint)
     .task(id: "\(image.reference)#\(attempt)") {
       if case .loaded = phase { return }
       phase = .loading
@@ -134,8 +135,32 @@ struct MessageImageCell: View {
     }
   }
 
+  private var failed: Bool {
+    if case .failed = phase { return true }
+    return false
+  }
+
+  private var hint: String {
+    guard failed, MessageImageStore.isOutbox(image.reference) else { return Strings.Chat.Viewer.openHint }
+    return store.isGone(image.reference) ? "" : NativeStrings.Outbox.retryHint
+  }
+
+  /// What the frame says under the name of a picture it could not show: a picture a bot shared says whether it is gone
+  /// for good or can be asked for again.
+  private var failureLine: String {
+    guard MessageImageStore.isOutbox(image.reference) else { return NativeStrings.Media.unavailable }
+    return store.isGone(image.reference) ? NativeStrings.Outbox.gone : NativeStrings.Outbox.failed
+  }
+
   private func tap() {
     if case .failed = phase {
+      if MessageImageStore.isOutbox(image.reference) {
+        // A picture a bot shared: the frame says why (gone for good, or another try), and a tap is that try.
+        guard !store.isGone(image.reference) else { return }
+        store.retry(image.reference)
+        attempt += 1
+        return
+      }
       // The same line over the chat as before pictures had frames (why it cannot be opened), and
       // another try at the thumbnail.
       actions.openAttachment(image.reference)
@@ -169,7 +194,7 @@ struct MessageImageCell: View {
               .lineLimit(2)
               .truncationMode(.middle)
             if !fills {
-              Text(NativeStrings.Media.unavailable)
+              Text(failureLine)
                 .font(.caption2)
                 .foregroundStyle(.secondary)
             }

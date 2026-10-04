@@ -1446,6 +1446,48 @@
 	<string>the local database refused the change.</string>
 	<key>native.onboarding.save.unsupportedRegistry</key>
 	<string>The gateway list on this device was written by a newer version of Hermie, so nothing was changed. Update Hermie and try again.</string>
+	<key>native.outbox.audioLabel</key>
+	<string>Audio, %@</string>
+	<key>native.outbox.close</key>
+	<string>Close</string>
+	<key>native.outbox.downloading</key>
+	<string>Downloading</string>
+	<key>native.outbox.downloadingPercent</key>
+	<string>Downloading, %lld percent</string>
+	<key>native.outbox.failed</key>
+	<string>Couldn't load</string>
+	<key>native.outbox.fileLabel</key>
+	<string>File, %@</string>
+	<key>native.outbox.gone</key>
+	<string>No longer available</string>
+	<key>native.outbox.openPdfHint</key>
+	<string>Opens the document</string>
+	<key>native.outbox.openVideoHint</key>
+	<string>Plays the video full screen</string>
+	<key>native.outbox.pause</key>
+	<string>Pause</string>
+	<key>native.outbox.pdfLabel</key>
+	<string>PDF document, %@</string>
+	<key>native.outbox.play</key>
+	<string>Play</string>
+	<key>native.outbox.position</key>
+	<string>Position</string>
+	<key>native.outbox.retry</key>
+	<string>Try again</string>
+	<key>native.outbox.retryHint</key>
+	<string>Tap to try again</string>
+	<key>native.outbox.save</key>
+	<string>Save</string>
+	<key>native.outbox.saveFailed</key>
+	<string>Couldn't save the file</string>
+	<key>native.outbox.saveHint</key>
+	<string>Saves a copy of the file</string>
+	<key>native.outbox.share</key>
+	<string>Share</string>
+	<key>native.outbox.tooLarge</key>
+	<string>Too large to open here</string>
+	<key>native.outbox.videoLabel</key>
+	<string>Video, %@</string>
 	<key>native.ownChats.nameHint</key>
 	<string>Optional. Without a name the chat is called after the time it was started.</string>
 	<key>native.ownChats.start</key>

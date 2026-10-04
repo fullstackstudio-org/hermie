@@ -224,12 +224,18 @@ final class ChatFeed: ChatScreenFeed {
       }
       built.chooseMessageAction = { [weak self] action, item in self?.chooseMessageAction(action, item) }
       built.openAttachment = { [weak self] reference in self?.openAttachment(reference) }
-      built.images = MessageImageStore { [session, bot = chat.bot] reference in
-        if case .preview(let url) = await session.prepareAttachment(reference, profile: bot) { url } else { nil }
-      }
+      // The files the bot shares: fetched and played through this session, in this chat's profile.
+      let files = session.outboxFiles(profile: chat.bot)
+      built.outbox = OutboxMedia(files: files)
+      built.images = MessageImageStore(
+        resolve: { [session, bot = chat.bot] reference in
+          if case .preview(let url) = await session.prepareAttachment(reference, profile: bot) { url } else { nil }
+        })
     }
 
     self.itemActions = built
+    // A voice call has the audio to itself: nothing a bot shared starts while one is on.
+    built.outbox?.blockPlayback { [weak self] in self?.voiceMode != nil }
     ChatLifecycleLog.note("feed f\(tag) made for \(chat.bot) (lease \(lease.id))")
   }
 
@@ -514,6 +520,8 @@ final class ChatFeed: ChatScreenFeed {
     composer.onSubmit = nil
     // Leaving the chat: nothing keeps reading, and the microphone closes.
     stopVoice()
+    // Leaving the chat: no sound or video a bot shared plays on, and no file is left on its way.
+    itemActions.outbox?.stop()
     // Leaving the chat: every upload stops and what was staged goes with it.
     composer.tray.clear()
 

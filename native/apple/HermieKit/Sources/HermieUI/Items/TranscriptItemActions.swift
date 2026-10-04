@@ -36,6 +36,10 @@ public struct TranscriptItemActions: Sendable {
   /// Set by the chat screen for its own session; a row outside a chat (a lab, a preview) has none and
   /// shows a picture as a chip.
   var images: MessageImageStore?
+  /// Where the files the chat's bot shared come from, how its sounds and videos play, and what is up over the
+  /// chat for them. Set by the chat screen for its own session; a row outside a chat has none and shows every
+  /// shared file as a plain chip.
+  var outbox: OutboxMedia?
 
   public init(
     answerApproval: @escaping @MainActor @Sendable (ApprovalItem, String) -> Void = { _, _ in },

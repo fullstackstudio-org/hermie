@@ -145,6 +145,8 @@ extension ChatFeed {
 
     readAloud?.stop()
     composer.dictation?.cancel()
+    // A call has the audio to itself: what a bot shared stops, and stays stopped until it ends.
+    itemActions.outbox?.playback.stopAll()
 
     let composer = self.composer
     let call = VoiceModeModel(

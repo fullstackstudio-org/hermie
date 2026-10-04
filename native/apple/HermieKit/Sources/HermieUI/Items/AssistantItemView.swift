@@ -30,6 +30,8 @@ struct AssistantItemView: View {
     !item.text.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty || !(item.inlineImages ?? []).isEmpty
       || !(item.attachments ?? []).isEmpty
   }
+  /// Files the bot shared with this reply (`contract/outbox/`): cards under its words, or the whole of the reply.
+  private var shared: [OutboxAttachment] { item.outbox ?? [] }
   private var closesGroup: Bool { bubble?.closesGroup ?? true }
 
   /// The failure card's Retry, or nil under an older turn's failure.
@@ -97,6 +99,11 @@ struct AssistantItemView: View {
           .messageMenu(for: .assistant(item))
         }
       }
+      if !shared.isEmpty {
+        BubbleColumn(side: .incoming, width: .text) {
+          SharedFilesView(attachments: shared, media: actions.outbox, images: actions.images)
+        }
+      }
       if let error = item.error {
         AssistantErrorCard(error: error, retry: retryAction)
       }
@@ -161,7 +168,7 @@ struct AssistantItemView: View {
   /// footer.
   private var metaText: String? {
     var parts: [String] = []
-    if closesGroup, !item.streaming, hasBody, let clock = ItemFormat.clock(item.ts) {
+    if closesGroup, !item.streaming, hasBody || !shared.isEmpty, let clock = ItemFormat.clock(item.ts) {
       parts.append(clock)
     }
     if let footer = footerText {

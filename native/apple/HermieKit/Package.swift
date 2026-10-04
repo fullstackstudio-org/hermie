@@ -100,7 +100,7 @@ let package = Package(
     // HermieStore too, for onboarding end to end over in-memory stores.
     .testTarget(
       name: "HermieIntegrationTests",
-      dependencies: ["HermieGateway", "HermieProtocol", "HermieCore", "HermieStore", "HermiePasskeyTesting"],
+      dependencies: ["HermieGateway", "HermieProtocol", "HermieCore", "HermieStore", "HermieUI", "HermiePasskeyTesting"],
       swiftSettings: settings
     )
   ],

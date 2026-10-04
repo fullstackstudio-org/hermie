@@ -50,6 +50,22 @@
 			<string>Alle %lld Minuten</string>
 		</dict>
 	</dict>
+	<key>native.outbox.pages</key>
+	<dict>
+		<key>NSStringLocalizedFormatKey</key>
+		<string>%#@value@</string>
+		<key>value</key>
+		<dict>
+			<key>NSStringFormatSpecTypeKey</key>
+			<string>NSStringPluralRuleType</string>
+			<key>NSStringFormatValueTypeKey</key>
+			<string>lld</string>
+			<key>one</key>
+			<string>%lld Seite</string>
+			<key>other</key>
+			<string>%lld Seiten</string>
+		</dict>
+	</dict>
 	<key>native.tool.steps</key>
 	<dict>
 		<key>NSStringLocalizedFormatKey</key>

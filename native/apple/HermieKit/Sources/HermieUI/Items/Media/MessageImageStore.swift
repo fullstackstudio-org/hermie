@@ -1,6 +1,7 @@
 import Foundation
 import HermieCore
 import HermieMarkdown
+import HermieTranscript
 import ImageIO
 import Observation
 
@@ -87,6 +88,8 @@ final class MessageImageStore {
   @ObservationIgnored private var failures: [String: Date] = [:]
   /// The pictures messages hold themselves, by their handle (`MessageImage.inlineReference`).
   @ObservationIgnored private var inlinePictures: [String: String] = [:]
+  /// The pictures a bot shared, by their handle (`reference(for:)`): fetched through their model.
+  @ObservationIgnored private var outboxModels: [String: OutboxFileModel] = [:]
   @ObservationIgnored private let cache: NSCache<NSString, Box> = {
     let cache = NSCache<NSString, Box>()
     // About 40 MB of decoded pictures, which is some three dozen thumbnails and a few full-size ones.
@@ -103,6 +106,38 @@ final class MessageImageStore {
 
   init(resolve: @escaping Resolver) {
     self.resolver = resolve
+  }
+
+  // MARK: Pictures a bot shared
+
+  /// What a shared picture is called to the store: `outbox:<token>`. A token is 32 characters of a fixed alphabet,
+  /// so the handle cannot be mistaken for a path, an `@image:` reference or a picture a message holds itself.
+  nonisolated static func reference(for attachment: OutboxAttachment) -> String {
+    "outbox:\(attachment.id)"
+  }
+
+  /// The picture a shared image is, for the grid and the gallery: named as the card shows it.
+  nonisolated static func image(for attachment: OutboxAttachment) -> MessageImage {
+    MessageImage(reference: reference(for: attachment), name: OutboxText.displayName(attachment.name))
+  }
+
+  nonisolated static func isOutbox(_ reference: String) -> Bool {
+    reference.hasPrefix("outbox:")
+  }
+
+  /// Makes the pictures a bot shared something `file` can answer for: fetched through `files`, under the
+  /// chat's own session, with the cap a picture has.
+  func register(outbox attachments: [OutboxAttachment], files: OutboxFiles?) {
+    guard let files else { return }
+    for attachment in attachments {
+      outboxModels[Self.reference(for: attachment)] = files.model(for: attachment)
+    }
+  }
+
+  /// Whether the gateway no longer has the picture `reference` names (a `404`): it is not asked for again, and the
+  /// frame says so rather than offering a retry.
+  func isGone(_ reference: String) -> Bool {
+    outboxModels[reference]?.state == .gone
   }
 
   // MARK: Opening the gallery
@@ -168,11 +203,20 @@ final class MessageImageStore {
 
     let resolver = self.resolver
     let inline = inlinePictures[reference]
+    let outbox = outboxModels[reference]
     let task = Task { [weak self] () -> URL? in
       guard let self else { return nil }
       await self.acquire()
       let url: URL?
-      if reference.hasPrefix("inline:") {
+      if Self.isOutbox(reference) {
+        // A picture a bot shared: fetched once through its model (the session's credentials, the cap a picture has,
+        // the SHA-256 checked), and the gallery shares what the thumbnail fetched.
+        if let model = outbox, case .ready(let file) = await model.ensure() {
+          url = file
+        } else {
+          url = nil
+        }
+      } else if reference.hasPrefix("inline:") {
         // A picture the message holds: its bytes go to a file once, off the main actor.
         url = await Task.detached(priority: .utility) { Self.writeInline(inline, reference: reference) }.value
       } else {
@@ -197,6 +241,8 @@ final class MessageImageStore {
   /// Forgets that `reference` failed, so the next ask tries again at once.
   func retry(_ reference: String) {
     failures[reference] = nil
+    // A picture a bot shared asks its model again (unless the gateway said it is gone for good).
+    if let model = outboxModels[reference], model.state != .gone { model.retry() }
   }
 
   // MARK: Inline pictures
