@@ -75,23 +75,33 @@ public final class AppleVoiceRecorder: NSObject, VoiceRecording, AVAudioRecorder
       AVEncoderAudioQualityKey: AVAudioQuality.high.rawValue
     ]
 
+    // A session the system will not hand over (a call is up) and a recorder that will not start are both "busy":
+    // the microphone exists, and the person can try again. Only a recorder that cannot be made is "none".
     do {
       try VoiceNoteAudioSession.beginRecording()
+    } catch {
+      VoiceNoteAudioSession.end()
+      throw .busy
+    }
 
-      let recorder = try AVAudioRecorder(url: url, settings: settings)
-      recorder.delegate = self
-      recorder.isMeteringEnabled = true
+    let recorder: AVAudioRecorder
 
-      guard recorder.prepareToRecord(), recorder.record() else {
-        VoiceNoteAudioSession.end()
-        throw VoiceRecorderError.cannotStart
-      }
-
-      self.recorder = recorder
+    do {
+      recorder = try AVAudioRecorder(url: url, settings: settings)
     } catch {
       VoiceNoteAudioSession.end()
       throw .cannotStart
     }
+
+    recorder.delegate = self
+    recorder.isMeteringEnabled = true
+
+    guard recorder.prepareToRecord(), recorder.record() else {
+      VoiceNoteAudioSession.end()
+      throw .busy
+    }
+
+    self.recorder = recorder
 
     let current = session
     meter = Task { [weak self] in

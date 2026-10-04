@@ -540,6 +540,8 @@
 	<string>The microphone turns on only when you press Record. You can listen to the recording before anything is sent.</string>
 	<key>native.deviceRequests.voice.level</key>
 	<string>Sound level</string>
+	<key>native.deviceRequests.voice.microphoneBusy</key>
+	<string>The microphone is busy right now (a call or another app is using it). Try again in a moment.</string>
 	<key>native.deviceRequests.voice.noMicrophone</key>
 	<string>This device has no microphone to record with.</string>
 	<key>native.deviceRequests.voice.noteLength</key>

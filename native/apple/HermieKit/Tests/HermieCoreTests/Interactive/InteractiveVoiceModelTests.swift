@@ -100,10 +100,23 @@ struct InteractiveVoiceModelTests {
     #expect(InteractiveVoiceModel.Unavailable.noMicrophone.reason == "no_microphone")
     #expect(none.authorization.snapshot.microphoneRequests == 0, "no prompt for a microphone that is not there")
 
-    let busy = try Rig(microphone: .granted)
-    busy.recorder.startFailure = .cannotStart
-    await busy.model.record()
-    #expect(busy.model.phase == .unavailable(.noMicrophone))
+    let unopenable = try Rig(microphone: .granted)
+    unopenable.recorder.startFailure = .cannotStart
+    await unopenable.model.record()
+    #expect(unopenable.model.phase == .unavailable(.noMicrophone))
+  }
+
+  @Test("a microphone that is busy right now (a call is up) is a temporary notice, not no_microphone, and Record works again")
+  func microphoneBusy() async throws {
+    let rig = try Rig(microphone: .granted)
+    rig.recorder.startFailure = .busy
+    await rig.model.record()
+    #expect(rig.model.phase == .ready && rig.model.notice == .microphoneBusy)
+    #expect(rig.model.phase != .unavailable(.noMicrophone), "the bot is not told there is no microphone")
+
+    rig.recorder.startFailure = nil
+    await rig.model.record()
+    #expect(rig.model.phase == .recording, "once the call is over it records")
   }
 
   // MARK: Recording

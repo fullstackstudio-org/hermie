@@ -540,6 +540,8 @@
 	<string>De microfoon gaat pas aan als je op Opnemen drukt. Je kunt de opname beluisteren voordat er iets wordt verstuurd.</string>
 	<key>native.deviceRequests.voice.level</key>
 	<string>Geluidsniveau</string>
+	<key>native.deviceRequests.voice.microphoneBusy</key>
+	<string>De microfoon is nu bezig (een gesprek of een andere app gebruikt hem). Probeer het zo meteen opnieuw.</string>
 	<key>native.deviceRequests.voice.noMicrophone</key>
 	<string>Dit apparaat heeft geen microfoon om mee op te nemen.</string>
 	<key>native.deviceRequests.voice.noteLength</key>

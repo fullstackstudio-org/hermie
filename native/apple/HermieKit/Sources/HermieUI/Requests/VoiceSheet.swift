@@ -431,6 +431,7 @@ struct VoiceSheetView: View {
     switch notice {
     case .tooShort: Words.tooShort
     case .recordingFailed: Words.recordingFailed
+    case .microphoneBusy: Words.microphoneBusy
     case .unreadable: Words.unreadable
     }
   }

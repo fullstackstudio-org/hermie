@@ -540,6 +540,8 @@
 	<string>Das Mikrofon schaltet sich erst ein, wenn du auf Aufnehmen tippst. Du kannst die Aufnahme anhören, bevor etwas gesendet wird.</string>
 	<key>native.deviceRequests.voice.level</key>
 	<string>Lautstärke</string>
+	<key>native.deviceRequests.voice.microphoneBusy</key>
+	<string>Das Mikrofon ist gerade belegt (ein Anruf oder eine andere App nutzt es). Versuche es gleich noch einmal.</string>
 	<key>native.deviceRequests.voice.noMicrophone</key>
 	<string>Dieses Gerät hat kein Mikrofon für Aufnahmen.</string>
 	<key>native.deviceRequests.voice.noteLength</key>

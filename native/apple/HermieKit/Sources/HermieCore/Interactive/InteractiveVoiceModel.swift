@@ -68,6 +68,9 @@ public final class InteractiveVoiceModel {
     case tooShort
     /// The recorder failed (a call took the microphone, the input went away).
     case recordingFailed
+    /// The microphone could not be started right now (a call is up, another app holds the audio): not "there is no
+    /// microphone", and nothing is told to the bot; Record can be pressed again.
+    case microphoneBusy
     /// The file could not be written.
     case unreadable
   }
@@ -247,6 +250,12 @@ public final class InteractiveVoiceModel {
 
       try recorder.start(into: url, maxSeconds: Self.maxSeconds, maxBytes: files.maxBytes)
       phase = .recording
+    } catch let error as VoiceRecorderError where error == .busy {
+      // Temporary: say so on the sheet and let the person try again, rather than telling the bot there is no
+      // microphone (`no_microphone` ends the request).
+      removeRaw()
+      phase = .ready
+      notice = .microphoneBusy
     } catch {
       removeRaw()
       phase = .unavailable(.noMicrophone)

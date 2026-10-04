@@ -6768,6 +6768,30 @@
         }
       }
     },
+    "native.deviceRequests.voice.microphoneBusy" : {
+      "comment" : "Said when the microphone could not be started right now (a call is up, another app holds the audio).",
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Das Mikrofon ist gerade belegt (ein Anruf oder eine andere App nutzt es). Versuche es gleich noch einmal."
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "The microphone is busy right now (a call or another app is using it). Try again in a moment."
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "De microfoon is nu bezig (een gesprek of een andere app gebruikt hem). Probeer het zo meteen opnieuw."
+          }
+        }
+      }
+    },
     "native.deviceRequests.voice.recordingFailed" : {
       "comment" : "Said when the recording was interrupted.",
       "extractionState" : "manual",

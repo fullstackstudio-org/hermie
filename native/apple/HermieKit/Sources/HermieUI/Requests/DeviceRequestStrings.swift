@@ -189,6 +189,8 @@ extension NativeStrings {
       static var tooShort: String { DeviceRequests.string("native.deviceRequests.voice.tooShort") }
       /// The recording was interrupted. Try again.
       static var recordingFailed: String { DeviceRequests.string("native.deviceRequests.voice.recordingFailed") }
+      /// The microphone is busy right now (a call or another app). Try again in a moment.
+      static var microphoneBusy: String { DeviceRequests.string("native.deviceRequests.voice.microphoneBusy") }
       /// The recording could not be saved. Try again.
       static var unreadable: String { DeviceRequests.string("native.deviceRequests.voice.unreadable") }
     }

@@ -18,8 +18,11 @@ public enum VoiceRecorderEvent: Sendable, Equatable {
 
 /// What a recorder cannot do.
 public enum VoiceRecorderError: Error, Sendable, Equatable {
-  /// There is no microphone, or the system would not open it (a call is up).
+  /// There is no microphone, or the recorder could not be made for it.
   case cannotStart
+  /// The microphone is there but the system would not give it now (a call is up, another app holds the audio
+  /// session): temporary, the person can try again.
+  case busy
 }
 
 /// Records one voice note to a file: AAC in an MP4 container (`audio/mp4`). At most one recording at a time.
