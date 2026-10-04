@@ -516,6 +516,21 @@ configured entirely through `docker run -e ...` or a Kubernetes `env`/`envFrom`,
 `ENTRYPOINT` left as `["hermie-web"]` and no `args` at all. The full table is
 [deploy/web/README.md#flags-and-environment](../deploy/web/README.md#flags-and-environment).
 
+## Forms, files and drafts the agent asks for
+
+The page can show the agent's interactive questions (`input.form`, `input.file`, `review.draft`; the contract is
+[contract/requests](../contract/requests/README.md)) and advertises them, so a gateway that knows them sends them here.
+Each is a sheet over the page; **Later** (or Escape) puts it away with what was typed so the page is usable, and the
+transcript's record of the request offers **Open**. **Don't share** on a form or a file request tells the agent the
+person chose not to (`4041 cannot_show`, reason `declined`).
+
+One thing to know about files: a file is uploaded to the request's `upload.dir` **before** the answer is sent, one
+after another, and the page cannot take an upload back. An upload that is never answered stays there: the person
+cancelled mid-way, gave up after a later file failed, put the sheet away and the request ran out, or the gateway
+withdrew the request. Nothing deletes those files; they are named `<16 hex>-<name>` and sit flat in the directory, so
+they can be cleared by age like any other upload. (With `strip_metadata` a picture is re-encoded in the page before it
+goes, so what is left behind carries no location data.)
+
 ## What it cannot do
 
 Three things, none of which a browser is going to grow:

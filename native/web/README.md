@@ -1068,7 +1068,12 @@ of the secure input model: what a person fills in, picks or edits never reaches 
   (the fields and buttons are off for a moment), Escape and the scrim do nothing, and Offline, busy, failed and an
   earlier answer that was lost are said. What is typed lives in the sheet's component state and in the one answer; no
   store, cache, draft or log holds it. A refusal does not rebuild a sheet (the layer keys it by the request, not by its
-  version).
+  version). **Later** (the button, and Escape) puts a sheet away without answering: the page is usable, the request still waits,
+  and the transcript's record offers **Open** (`state/request-later.ts`; the layer keeps the sheet mounted in a node of
+  its own that moves between the dialog and a parking place, so what was entered, picked or edited is still there, and
+  an upload goes on). **Don't share** on a form and a file request answers `cannotShow('declined')`: the person's choice,
+  never the default button; a draft has none (Reject is its refusal). Only the Send button sends a form: Return in a
+  one-line field does not.
   - **`FormSheet`** draws every field kind with the browser's own input (`FormFields.tsx`: `date`, `time`,
     `datetime-local`, `number`, `select`, radio and checkbox groups, a switch, `textarea`; an amount is a text input
     with its currency and decimals, a range two date inputs), with required marks and `aria-describedby` hints. The
@@ -1081,17 +1086,22 @@ of the secure input model: what a person fills in, picks or edits never reaches 
   - **`FileSheet`** filters the picker by `accept` and holds the files to it, offers a camera button next to it on a
     touch device when the bot prefers a photo or a recording (`capture`; never for `scan`), checks `max_bytes`,
     `max_total_bytes` and `max_files` when a file is picked and again on the prepared files, before any upload, previews
-    pictures, and with `strip_metadata` re-encodes a JPEG or PNG on a canvas (`file-prepare.ts`; any other picture is
-    refused, never uploaded with its metadata). It uploads one file after another DIRECTLY into `upload.dir` as
+    pictures, and with `strip_metadata` re-encodes a picture on a canvas (`file-prepare.ts`: a JPEG or PNG stays one, any
+    other picture the browser decodes becomes a JPEG; one it cannot decode is not sent, never uploaded with its metadata). It uploads one file after another DIRECTLY into `upload.dir` as
     `<16 hex>-<name>` (`flatUploadPath`, through the controller's `uploadFileTo`, the same route and credentials as an
     attachment) with progress and a cancel, quotes each file's size and SHA-256 (`crypto.subtle`, a plain
-    implementation where the page is not a secure context: `core/requests/sha256.ts`), and answers with references. A
+    implementation where the page is not a secure context, read a chunk at a time and handing the thread back between
+    them: `core/requests/sha256.ts`), and answers with references. A
     failed upload is said first: try again (what is already up is not uploaded twice) or give up, which is
     `4041 upload_failed`.
   - **`DraftSheet`** shows the text verbatim in a monospaced `white-space: pre` box (an editor when `editable`), apart
     from the subject and the recipients, never rendered as Markdown and never a link. What the eye cannot see (zero-width
     and direction characters, blank letters, a tab) is counted and shown by its code point in a preview, and Approve
-    waits until "Remove them" or an edit has taken them out, because the gateway refuses them. Approve, Approve with
+    waits until an edit has taken them out. The gateway's whole verbatim check is mirrored (`verbatimIssue`, contract §6.1 to
+    §6.4: stripping first, then the characters, then the layout limits of 16 spaces in a row, an indent of 32, 3 blank
+    lines and 2,000 characters a line), the rule and the line are named next to the editor, and the page never rewrites
+    the text (§6.5),
+    because the gateway refuses them. Approve, Approve with
     changes (once the text differs from the original, which stays on screen for comparison) and Reject with an optional
     comment of at most 1,000 characters; there is no Skip.
 

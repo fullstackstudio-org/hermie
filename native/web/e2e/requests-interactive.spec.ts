@@ -17,6 +17,10 @@
  *    upload is said, and giving up is `4041 upload_failed`.
  *  - **A draft** is approved as it is, with changes, or rejected with a comment; the text is plain text, and a
  *    hidden character is shown by its code point and holds the approval back.
+ *  - **Later and Don't share.** Escape (and Later) puts a sheet away with what was typed in it: the page is usable,
+ *    the transcript's record offers Open, and Open brings the same sheet back. Don't share on a form or a file request
+ *    is `4041 cannot_show {reason: declined}`, which the transcript and the chat say as the person's choice. Return in
+ *    a one-line field does not send a form.
  *  - **Axe**, contrast included, in both colour schemes, on each sheet.
  */
 import { createHash } from 'node:crypto'
@@ -243,6 +247,9 @@ test.describe('a form', () => {
 
     await dialog.getByRole('button', { name: 'Send answers' }).click()
 
+    // The answer really was changed on its way out, or this proves nothing.
+    expect(tampered).toBe(true)
+
     // The gateway's reason, as the contract gives it, and the sheet's words for it next to the field.
     await expect.poll(async () => (await viewOf(gateway, id)).refusals).toEqual(['field:budget:format'])
     await expect(dialog).toContainText('Enter an amount in EUR with a point and at most 2 decimals')
@@ -425,6 +432,64 @@ test.describe('a file request', () => {
     ])
   })
 
+  test('re-encodes a WebP as a JPEG when the metadata must go, and says so in the name', async ({
+    app,
+    gateway,
+    page
+  }) => {
+    await app.open()
+    await app.ready()
+
+    const base64 = await page.evaluate(async () => {
+      const canvas = document.createElement('canvas')
+
+      canvas.width = 32
+      canvas.height = 32
+
+      const context = canvas.getContext('2d') as CanvasRenderingContext2D
+
+      context.fillStyle = '#33aa66'
+      context.fillRect(0, 0, 32, 32)
+
+      const blob = await new Promise<Blob>(resolve => canvas.toBlob(result => resolve(result as Blob), 'image/webp'))
+      const bytes = new Uint8Array(await blob.arrayBuffer())
+
+      return btoa(Array.from(bytes, byte => String.fromCharCode(byte)).join(''))
+    })
+    const webp = Buffer.from(base64, 'base64')
+
+    expect(webp.subarray(8, 12).toString()).toBe('WEBP')
+
+    const sent: Buffer[] = []
+
+    await page.route('**/api/files/upload-stream', async route => {
+      sent.push(route.request().postDataBuffer() ?? Buffer.alloc(0))
+      await route.continue()
+    })
+
+    const id = await raise(gateway, 'input.file', {
+      accept: 'image',
+      multiple: false,
+      upload: { ...UPLOAD, strip_metadata: true }
+    })
+
+    await app.dialog
+      .locator('[data-file-picker]')
+      .setInputFiles({ name: 'photo.webp', mimeType: 'image/webp', buffer: webp })
+    await app.dialog.getByRole('button', { name: 'Upload and send' }).click()
+
+    await expect(app.dialog).toHaveCount(0)
+    await expect.poll(async () => (await viewOf(gateway, id)).outcome).toBe('answered')
+
+    const files = (await viewOf(gateway, id)).answer?.files as Upload[]
+
+    expect(files[0]).toMatchObject({ name: 'photo.jpg', mime: 'image/jpeg' })
+    expect(files[0]?.path).toMatch(/-photo\.jpg$/u)
+    // A JPEG on the wire, not the WebP that was picked.
+    expect(sent[0]?.includes(Buffer.from([0xff, 0xd8, 0xff]))).toBe(true)
+    expect(sent[0]?.includes('WEBP')).toBe(false)
+  })
+
   test('says a failed upload first, and giving up is 4041 upload_failed', async ({
     app,
     gateway,
@@ -565,8 +630,9 @@ test.describe('a draft to review', () => {
     await expect(dialog).toContainText('The text holds 1 character that you cannot see')
     await expect(dialog.getByText('Pay [U+202E]txt.exe now')).toBeVisible()
     await expect(dialog.getByRole('button', { name: 'Approve with changes' })).toBeDisabled()
-    await dialog.getByRole('button', { name: 'Remove them' }).click()
-    await expect(dialog.getByLabel('Draft')).toHaveValue('Pay txt.exe now')
+    // The page names the problem and never rewrites the text: the person takes it out.
+    await expect(dialog.getByRole('button', { name: 'Remove them' })).toHaveCount(0)
+    await dialog.getByLabel('Draft').fill('Pay txt.exe now')
     await dialog.getByRole('button', { name: 'Approve with changes' }).click()
 
     await expect
@@ -576,6 +642,98 @@ test.describe('a draft to review', () => {
         text: 'Pay txt.exe now',
         edited: true
       })
+  })
+})
+
+test.describe('Later and Don’t share', () => {
+  test('Escape puts the sheet away with what was typed, the page is usable, and Open brings it back', async ({
+    app,
+    gateway,
+    page
+  }) => {
+    await app.open()
+    await app.ready()
+
+    const id = await raise(gateway, 'input.form', { ...FORM, optional: false })
+    const dialog = app.dialog
+
+    await dialog.getByLabel('Name on the booking').fill('Ada Lovelace')
+    await page.keyboard.press('Escape')
+
+    await expect(dialog).toHaveCount(0)
+    // Still asked: the gateway waits, and nothing was said.
+    expect((await viewOf(gateway, id)).open).toBe(true)
+    // The page is usable: the composer takes a keystroke again.
+    await app.field.fill('while I wait')
+    await expect(app.field).toHaveValue('while I wait')
+    await app.field.fill('')
+
+    const record = app.transcript.locator('article[data-kind="request"]')
+
+    await expect(record).toContainText('Put away for later')
+    await record.getByRole('button', { name: /^Open/u }).click()
+
+    await expect(dialog).toHaveAccessibleName('A form to fill in')
+    await expect(dialog.getByLabel('Name on the booking')).toHaveValue('Ada Lovelace')
+    await expect(record.getByRole('button', { name: /^Open/u })).toHaveCount(0)
+
+    await dialog.getByRole('button', { name: 'Later' }).click()
+    await expect(dialog).toHaveCount(0)
+  })
+
+  test('Don’t share on a form is 4041 declined, and the transcript and the chat say it was the person’s choice', async ({
+    app,
+    gateway
+  }) => {
+    await app.open()
+    await app.ready()
+
+    const id = await raise(gateway, 'input.form', { ...FORM, optional: false })
+
+    await expect(app.dialog.getByRole('button', { name: 'Skip' })).toHaveCount(0)
+    await app.dialog.getByRole('button', { name: "Don't share" }).click()
+
+    await expect(app.dialog).toHaveCount(0)
+    await expect
+      .poll(async () => {
+        const view = await viewOf(gateway, id)
+
+        return [view.outcome, view.error?.code, view.error?.message, view.error?.data?.reason]
+      })
+      .toEqual(['unavailable', 4041, 'cannot_show', 'declined'])
+    await expect(app.transcript.locator('article[data-kind="request"]')).toContainText('Not shared')
+    await expect(app.page.locator('[data-interactive-notice]')).toContainText(
+      'You chose not to share what Researcher asked for'
+    )
+  })
+
+  test('Don’t share on a file request is declined too, and a draft has none', async ({ app, gateway }) => {
+    await app.open()
+    await app.ready()
+
+    const file = await raise(gateway, 'input.file', { upload: UPLOAD, optional: false })
+
+    await app.dialog.getByRole('button', { name: "Don't share" }).click()
+    await expect.poll(async () => (await viewOf(gateway, file)).error?.data?.reason).toBe('declined')
+
+    await raise(gateway, 'review.draft', DRAFT)
+    await expect(app.dialog).toHaveAccessibleName('A mail to review')
+    await expect(app.dialog.getByRole('button', { name: "Don't share" })).toHaveCount(0)
+  })
+
+  test('Return in a one-line field does not send the form', async ({ app, gateway }) => {
+    await app.open()
+    await app.ready()
+
+    const id = await raise(gateway, 'input.form', FORM)
+
+    await app.dialog.getByLabel('Name on the booking').fill('Ada Lovelace')
+    await app.dialog.getByLabel('Name on the booking').press('Enter')
+    await app.dialog.getByLabel('Guests').press('Enter')
+
+    await expect(app.dialog).toBeVisible()
+    expect((await viewOf(gateway, id)).answer).toBeUndefined()
+    expect((await viewOf(gateway, id)).refusals).toEqual([])
   })
 })
 
