@@ -242,11 +242,14 @@ private func entryFor(_ item: TranscriptItem, _ options: TranscriptExportOptions
     // under it is the whole of what happened, so the row is kept for that and
     // dropped when there is neither.
     let text = JS.trim(assistant.text)
-    if text.isEmpty && assistant.error == nil {
+    let shared = assistant.outbox ?? []
+    if text.isEmpty && assistant.error == nil && shared.isEmpty {
       return nil
     }
 
-    let body = text.isEmpty ? "(\(assistant.error!.message))" : text
+    // The files the bot shared are named, as an attachment of the reader's own is (`[reference]`).
+    let body = ([text.isEmpty ? assistant.error.map { "(\($0.message))" } ?? "" : text]
+      + shared.map { "[\(OutboxText.displayName($0.name))]" }).filter { !$0.isEmpty }.joined(separator: "\n")
     return Entry(who: bot, body: body, ts: ts, aside: false)
 
   case .botDmIn(let dm):

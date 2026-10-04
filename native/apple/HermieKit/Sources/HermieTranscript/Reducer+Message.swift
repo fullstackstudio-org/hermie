@@ -180,6 +180,8 @@ extension TranscriptReducer {
   /// `case 'message.complete'`.
   static func messageComplete(_ next: inout ChatState, _ payload: JSONObject, _ now: Double) {
     let finalText = JS.nonEmpty(str(payload["text"])) ?? str(payload["rendered"])
+    // The files this reply shares (`contract/outbox/`): absent or empty when it named none.
+    let shared = OutboxAttachment.parseAll(payload["attachments"])
     let wasInterrupted = next.turn.interrupted == true
     let rawStatus = str(payload["status"])
     let status: AssistantStatus =
@@ -236,6 +238,10 @@ extension TranscriptReducer {
         draft.interim = false
         draft.status = status
 
+        if !shared.isEmpty {
+          draft.outbox = shared
+        }
+
         if let failure {
           draft.error = failure
         }
@@ -258,7 +264,7 @@ extension TranscriptReducer {
           ?? unpersistedNote(next, continued)
         : next.turn.assistantID ?? previewed ?? continued
 
-      if id == nil && (!finalText.isEmpty || failure != nil) {
+      if id == nil && (!finalText.isEmpty || failure != nil || !shared.isEmpty) {
         id = currentAssistantID(&next, now)
       }
 
@@ -271,6 +277,10 @@ extension TranscriptReducer {
           draft.streaming = false
           draft.interim = false
           draft.status = status
+
+          if !shared.isEmpty {
+            draft.outbox = shared
+          }
 
           if let failure {
             draft.error = failure

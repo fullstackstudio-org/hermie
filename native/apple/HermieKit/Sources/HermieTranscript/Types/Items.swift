@@ -281,6 +281,9 @@ public struct AssistantItem: TranscriptItemProtocol {
   public var inlineImages: [InlineImage]?
   /// `@image:` references for handles in a persisted reply whose picture it does not hold.
   public var attachments: [String]?
+  /// The files the bot shared with this reply (`contract/outbox/`): validated by `OutboxAttachment.parseAll`,
+  /// absent when it shared none. Fetched from each one's `url`, never named by a path.
+  public var outbox: [OutboxAttachment]?
   public var extra: JSONObject
 
   public init(
@@ -297,12 +300,14 @@ public struct AssistantItem: TranscriptItemProtocol {
     replyToBotHandle: String? = nil,
     inlineImages: [InlineImage]? = nil,
     attachments: [String]? = nil,
+    outbox: [OutboxAttachment]? = nil,
     extra: JSONObject = [:]
   ) {
     self.base = base
     self.text = text
     self.inlineImages = inlineImages
     self.attachments = attachments
+    self.outbox = outbox
     self.reasoning = reasoning
     self.reasoningVerbose = reasoningVerbose
     self.streaming = streaming
@@ -331,6 +336,7 @@ public struct AssistantItem: TranscriptItemProtocol {
     replyToBotHandle = reader.optional("replyToBotHandle")
     inlineImages = reader.optional("inlineImages")
     attachments = reader.optional("attachments")
+    outbox = reader.optional("outbox")
     extra = reader.residue
   }
 
@@ -348,6 +354,7 @@ public struct AssistantItem: TranscriptItemProtocol {
     writer.set("replyToBotHandle", replyToBotHandle)
     writer.set("inlineImages", inlineImages)
     writer.set("attachments", attachments)
+    writer.set("outbox", outbox)
     return writer.json
   }
 }

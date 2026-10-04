@@ -644,8 +644,10 @@ private struct RowProjection {
       ?? nonEmptyString(row["reasoning_details"]) ?? ""
     let scan = scanInlineImages(facts.content.isEmpty ? codexMessageItemText(row["codex_message_items"]) : facts.content)
     let text = scan.text
+    // The files the bot shared with this reply (`contract/outbox/`), beside its text.
+    let shared = OutboxAttachment.parseAll(row["attachments"])
 
-    if text.isEmpty && reasoning.isEmpty && scan.images.isEmpty && scan.references.isEmpty {
+    if text.isEmpty && reasoning.isEmpty && scan.images.isEmpty && scan.references.isEmpty && shared.isEmpty {
       return
     }
 
@@ -659,7 +661,8 @@ private struct RowProjection {
           interim: false,
           status: .complete,
           inlineImages: scan.images.isEmpty ? nil : scan.images,
-          attachments: scan.references.isEmpty ? nil : scan.references
+          attachments: scan.references.isEmpty ? nil : scan.references,
+          outbox: shared.isEmpty ? nil : shared
         )
       )
     )

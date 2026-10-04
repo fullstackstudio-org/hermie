@@ -165,8 +165,12 @@ private func previewOfItem(_ item: TranscriptItem?, _ options: ChatPreviewOption
 
   case .assistant(let assistant):
     // An empty bubble is the turn in progress; there is nothing to preview
-    // until the first token lands.
-    return previewText(assistant.text)
+    // until the first token lands. A reply of nothing but a shared file previews as the file's name.
+    if let found = previewText(assistant.text) {
+      return found
+    }
+
+    return assistant.outbox?.first.flatMap { previewText(OutboxText.displayName($0.name)) }
 
   case .botDmIn(let dm):
     let body = JS.trim(dm.text)

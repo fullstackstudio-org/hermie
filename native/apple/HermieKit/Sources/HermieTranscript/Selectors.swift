@@ -205,7 +205,8 @@ public func visibleItems(_ state: ChatState, _ options: VisibilityOptions) -> [V
         stripped.extra["reasoningVerbose"] = nil
         shown = .assistant(stripped)
       }
-      let empty = JS.trimsToEmpty(assistant.text) && assistant.error == nil
+      // A reply that shares a file has something to show, whatever it says (`contract/outbox/`).
+      let empty = JS.trimsToEmpty(assistant.text) && assistant.error == nil && (assistant.outbox ?? []).isEmpty
 
       if empty && (!showThinking || JS.trimsToEmpty(assistant.reasoning ?? "") || quiet) {
         break

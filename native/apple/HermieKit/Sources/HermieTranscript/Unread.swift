@@ -59,7 +59,7 @@ func countsAsMessage(_ item: TranscriptItem) -> Bool {
   }
 
   // An empty or interim bubble is the turn in progress, not a message.
-  return !assistant.interim && !JS.trimsToEmpty(assistant.text)
+  return !assistant.interim && (!JS.trimsToEmpty(assistant.text) || !(assistant.outbox ?? []).isEmpty)
 }
 
 /// When the newest message in this chat arrived, in unix seconds, or 0.
