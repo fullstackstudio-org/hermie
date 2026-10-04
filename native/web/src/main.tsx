@@ -10,7 +10,7 @@
 import { StrictMode, type ReactNode } from 'react'
 import { createRoot, type Root } from 'react-dom/client'
 
-import { pageBasePath, type ResolvedBasePath, storageNamespace } from './boot/base-path'
+import { APP_DIRECTORY_PATH, pageBasePath, type ResolvedBasePath, storageNamespace } from './boot/base-path'
 import { boot, describeBootFailure, type BootState } from './boot/boot'
 import { refuseInFrame } from './boot/frame-guard'
 import { claimForOwner, restoreRoute, signIn, signOut } from './boot/login-bounce'
@@ -23,11 +23,12 @@ import { createDraftStore } from './features/chat/drafts'
 import { preloadRequestSheets } from './features/requests/request-sheets'
 import { App } from './features/shell/App'
 import { startSession } from './features/shell/session'
-import { chatCacheFor, type ChatCache } from './platform/chat-cache'
+import { chatCacheFor, type ChatCache, GatedChatCache } from './platform/chat-cache'
 import { createKeyValueStore, type WebKeyValueStore } from './platform/key-value-store'
 import { localeEnvironmentFor } from './platform/locale-environment'
 import { chatViewStore } from './state/chat-view'
 import { bindTheme, settingsStore } from './state/settings'
+import { bindTextSize, textSizeStore } from './state/text-size'
 import { Button } from './ui/primitives'
 import './ui/theme.css'
 import './ui/base.css'
@@ -145,6 +146,19 @@ async function run(root: Root, basePath: ResolvedBasePath, store: WebKeyValueSto
       }}
       passkeys={session.passkeys}
       mcp={session.mcp}
+      settings={{
+        gatewayBaseUrl: basePath.baseUrl,
+        hermesVersion: state.probe.version,
+        identity: {
+          displayName: state.identity.displayName,
+          email: state.identity.email,
+          userId: state.identity.userId,
+          provider: state.identity.provider
+        },
+        // Beside the page, where the build put it (`public/licenses.json`).
+        licencesUrl: `${basePath.baseUrl}${APP_DIRECTORY_PATH}licenses.json`,
+        clearTranscriptCache: () => cache.clear()
+      }}
       secureInput={session.secureInput}
       signals={{ notices: session.notices, connections: session.connections, status: session.status }}
       onSignIn={() => signIn(basePath)}
@@ -191,9 +205,18 @@ async function start(): Promise<void> {
   // screen, so a stored dark mode is dark from the first frame.
   settingsStore.getState().hydrate(store)
   bindTheme()
+  // The transcript's text size likewise (it is also kept on the gateway; this is the browser's own copy).
+  textSizeStore.getState().hydrate(store)
+  bindTextSize()
 
   restoreRoute(basePath)
-  await run(root, basePath, store, chatCacheFor(basePath.namespace))
+  // The reader can switch the transcript cache off (Settings, Chats); it is asked on every call.
+  await run(
+    root,
+    basePath,
+    store,
+    new GatedChatCache(chatCacheFor(basePath.namespace), () => settingsStore.getState().transcriptCache)
+  )
 }
 
 void start()

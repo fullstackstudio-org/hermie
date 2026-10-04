@@ -15,17 +15,19 @@
  * | `#/chat/<bot>`                | the bot's name       | the chat (`ChatScreen`)          |
  * | `#/chat/<bot>/s/<session>`    | the bot's name       | that conversation (`ChatScreen`) |
  * | `#/chat/<bot>/conversations`  | Conversations        | the bot's conversations (`ConversationsPage`) |
- * | `#/settings`                  | Settings             | placeholder (W-20b), a link to Passkeys |
- * | `#/settings/passkeys`         | Settings             | the passkeys of this gateway (`Passkeys`) |
- * | `#/settings/mcp`              | Settings             | MCP access to this gateway (`MCP`) |
- * | `#/settings/<other section>`  | Settings             | placeholder (W-20b)              |
+ * | `#/settings`                  | Settings             | the home of Settings (`SettingsHost`)  |
+ * | `#/settings/<section>`        | Settings             | that section, under a way back (`SettingsHost`): account, gateway, passkeys, mcp, chats, chat-list, appearance, about |
+ * | `#/settings/<anything else>`  | Settings             | the home; the address is rewritten to `#/settings` |
  * | anything else                 | sent to `#/`         |                                  |
  *
  * The request layer (a bot's approval or question, one at a time, over everything) is a
  * sibling of the frame, and so is in every route; it reads the requests of every chat and the
  * confirmations at level `passkey`. The passkey model's actions reach it and the settings page through
  * `PasskeyRuntimeContext` (the `passkeys` prop); the MCP model's reach the MCP page through
- * `McpRuntimeContext` (the `mcp` prop).
+ * `McpRuntimeContext` (the `mcp` prop); what the other Settings pages need of the page (the gateway's
+ * address and Hermes version, who `/api/auth/me` named, the licence list's address, clearing the
+ * transcript cache and signing out) reaches them through `SettingsRuntimeContext` (the `settings` prop,
+ * with `user`, `pictureUrl` and `onSignOut`).
  *
  * The chat screen opens its own chat (it is given the controller through
  * `ChatRuntimeContext`, which this provides from the `chat` prop); this component
@@ -36,7 +38,7 @@
  * in the plugin's advert) gets one sentence instead of the app: a courtesy, not
  * a boundary (plan, "Plugin config additions").
  */
-import { lazy, type ReactElement, Suspense, useEffect } from 'react'
+import { lazy, type ReactElement, Suspense, useEffect, useMemo } from 'react'
 import { useStore } from 'zustand'
 
 import { webClientSwitchedOff } from '../../core/advert'
@@ -50,7 +52,9 @@ import { pluginStore } from '../../state/plugin'
 import { ChatList } from '../bots/ChatList'
 import { ChatScreen } from '../chat/ChatScreen'
 import { ChatRuntimeContext, type ChatSessionRuntime } from '../chat/chat-runtime'
+import { loadSettingsHost } from '../settings/load'
 import { type McpActions, McpRuntimeContext } from '../settings/mcp-runtime'
+import { type SettingsRuntime, SettingsRuntimeContext } from '../settings/settings-runtime'
 import { type PasskeyActions, PasskeyRuntimeContext } from '../requests/passkey-runtime'
 import { RequestLayer } from '../requests/RequestLayer'
 import { type SecureInputActions, SecureInputRuntimeContext } from '../requests/secure-input-runtime'
@@ -61,17 +65,11 @@ import { formatRoute, type Route, useRoute } from './router'
 import { SidebarFooter } from './SidebarFooter'
 
 /**
- * The passkeys page (and its styles) is a chunk of its own, fetched when `#/settings/passkeys` is opened, or
- * earlier, when a pointer or the focus reaches the link to it.
+ * Settings is a chunk of its own (`features/settings/load.ts`), fetched when a settings route is opened,
+ * or earlier, when a pointer or the focus reaches the link to it in the sidebar. Its sections are chunks
+ * inside it.
  */
-const loadPasskeys = () => import('../settings/Passkeys')
-const Passkeys = lazy(() => loadPasskeys().then(module => ({ default: module.Passkeys })))
-const preloadPasskeys = (): void => void loadPasskeys().catch(() => undefined)
-
-/** The MCP page likewise: a chunk of its own, fetched when `#/settings/mcp` is opened or its link is reached. */
-const loadMcp = () => import('../settings/MCP')
-const Mcp = lazy(() => loadMcp().then(module => ({ default: module.Mcp })))
-const preloadMcp = (): void => void loadMcp().catch(() => undefined)
+const SettingsHost = lazy(() => loadSettingsHost().then(module => ({ default: module.SettingsHost })))
 
 /** So is a bot's Conversations page, fetched when `#/chat/<bot>/conversations` is opened. */
 const ConversationsPage = lazy(() =>
@@ -98,6 +96,12 @@ export interface AppProps {
   passkeys?: PasskeyActions
   /** The MCP model's actions (Settings › MCP); absent in a test of the frame. */
   mcp?: McpActions
+  /**
+   * What Settings needs of the page that no store holds: the gateway's address and Hermes version, who
+   * was named, where the licence list is, and how to clear the transcript cache. Absent in a test of the
+   * frame, where those pages draw what they can and act on nothing.
+   */
+  settings?: Omit<SettingsRuntime, 'signOut' | 'user' | 'pictureUrl'>
   /** The secure input model's actions (secret, sudo and vault prompts); absent in a test of the frame. */
   secureInput?: SecureInputActions
   /** The actions of the models beside the engine (notices, connection cards, resume progress); absent in a test of the frame. */
@@ -117,10 +121,16 @@ export function App({
   chat,
   passkeys,
   mcp,
+  settings,
   secureInput,
   signals
 }: AppProps): ReactElement {
   useLocale()
+
+  const settingsRuntime = useMemo<SettingsRuntime | null>(
+    () => (settings ? { ...settings, user, pictureUrl: pictureUrl ?? '', signOut: onSignOut } : null),
+    [settings, user, pictureUrl, onSignOut]
+  )
 
   const route = useRoute(router)
   const bot = botOf(route)
@@ -157,67 +167,42 @@ export function App({
     <ChatRuntimeContext.Provider value={chat ?? null}>
       <PasskeyRuntimeContext.Provider value={passkeys ?? null}>
         <McpRuntimeContext.Provider value={mcp ?? null}>
-          <SecureInputRuntimeContext.Provider value={secureInput ?? null}>
-            <SessionSignalsRuntimeContext.Provider value={signals ?? null}>
-              <Layout
-                route={route}
-                heading={heading}
-                status={<ConnectionLine onSignIn={onSignIn} />}
-                sidebar={<ChatList selectedBot={bot} />}
-                footer={<SidebarFooter user={user} {...(pictureUrl ? { pictureUrl } : {})} onSignOut={onSignOut} />}
-              >
-                {route.name === 'chat' ? (
-                  <ChatScreen
-                    key={formatRoute(route)}
-                    bot={route.bot}
-                    {...(route.session ? { session: route.session } : {})}
-                  />
-                ) : route.name === 'conversations' ? (
-                  <Suspense fallback={<div className="hm-main__body" aria-busy="true" />}>
-                    <ConversationsPage key={formatRoute(route)} bot={route.bot} router={router} />
-                  </Suspense>
-                ) : route.name === 'settings' && route.section === 'passkeys' ? (
-                  <Suspense fallback={<div className="hm-main__body" aria-busy="true" />}>
-                    <Passkeys />
-                  </Suspense>
-                ) : route.name === 'settings' && route.section === 'mcp' ? (
-                  <Suspense fallback={<div className="hm-main__body" aria-busy="true" />}>
-                    <Mcp />
-                  </Suspense>
-                ) : route.name === 'settings' ? (
-                  <div className="hm-main__body">
-                    <p>{webStrings.shell.settingsSoon}</p>
-                    {route.section === undefined ? (
-                      <ul className="hm-settings-links">
-                        <li>
-                          <a
-                            href={formatRoute({ name: 'settings', section: 'passkeys' })}
-                            onPointerEnter={preloadPasskeys}
-                            onFocus={preloadPasskeys}
-                          >
-                            {webStrings.passkeys.settings.title}
-                          </a>
-                        </li>
-                        <li>
-                          <a
-                            href={formatRoute({ name: 'settings', section: 'mcp' })}
-                            onPointerEnter={preloadMcp}
-                            onFocus={preloadMcp}
-                          >
-                            {webStrings.mcp.settings.title}
-                          </a>
-                        </li>
-                      </ul>
-                    ) : null}
-                  </div>
-                ) : (
-                  <p className="hm-main__body">{strings.app.chat.pickBot}</p>
-                )}
-              </Layout>
-              {/* Over the whole page, whichever route: a bot's question is never behind a screen. */}
-              <RequestLayer />
-            </SessionSignalsRuntimeContext.Provider>
-          </SecureInputRuntimeContext.Provider>
+          <SettingsRuntimeContext.Provider value={settingsRuntime}>
+            <SecureInputRuntimeContext.Provider value={secureInput ?? null}>
+              <SessionSignalsRuntimeContext.Provider value={signals ?? null}>
+                <Layout
+                  route={route}
+                  heading={heading}
+                  status={<ConnectionLine onSignIn={onSignIn} />}
+                  sidebar={<ChatList selectedBot={bot} />}
+                  footer={<SidebarFooter user={user} {...(pictureUrl ? { pictureUrl } : {})} onSignOut={onSignOut} />}
+                >
+                  {route.name === 'chat' ? (
+                    <ChatScreen
+                      key={formatRoute(route)}
+                      bot={route.bot}
+                      {...(route.session ? { session: route.session } : {})}
+                    />
+                  ) : route.name === 'conversations' ? (
+                    <Suspense fallback={<div className="hm-main__body" aria-busy="true" />}>
+                      <ConversationsPage key={formatRoute(route)} bot={route.bot} router={router} />
+                    </Suspense>
+                  ) : route.name === 'settings' ? (
+                    <Suspense fallback={<div className="hm-main__body" aria-busy="true" />}>
+                      <SettingsHost
+                        {...(route.section === undefined ? {} : { section: route.section })}
+                        router={router}
+                      />
+                    </Suspense>
+                  ) : (
+                    <p className="hm-main__body">{strings.app.chat.pickBot}</p>
+                  )}
+                </Layout>
+                {/* Over the whole page, whichever route: a bot's question is never behind a screen. */}
+                <RequestLayer />
+              </SessionSignalsRuntimeContext.Provider>
+            </SecureInputRuntimeContext.Provider>
+          </SettingsRuntimeContext.Provider>
         </McpRuntimeContext.Provider>
       </PasskeyRuntimeContext.Provider>
     </ChatRuntimeContext.Provider>

@@ -1,0 +1,371 @@
+/*
+ * Settings: the home, a section's page and the controls every section is made of. Colours, radii and
+ * gutters are the theme's (`ui/theme.css`); the policy forbids inline styles, so every variation is a
+ * class or a data attribute.
+ */
+
+.hm-settings {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  max-width: 40rem;
+  padding-bottom: 24px;
+}
+
+.hm-settings__back {
+  display: inline-flex;
+  align-items: center;
+  align-self: flex-start;
+  gap: 4px;
+  min-height: 44px;
+  margin: 0 -8px;
+  padding: 0 8px;
+  color: var(--hm-tint-text);
+  font-weight: 600;
+  text-decoration: none;
+}
+
+.hm-settings__back:hover {
+  text-decoration: underline;
+}
+
+.hm-settings__loading {
+  min-height: 8rem;
+}
+
+/* The home: one link to a section, and what is in it under it. */
+.hm-settings-home {
+  display: flex;
+  flex-direction: column;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.hm-settings-home__item {
+  border-bottom: 1px solid var(--hm-line);
+  padding: 4px 0 12px;
+}
+
+.hm-settings-home__link {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  min-height: 44px;
+  color: var(--hm-tint-text);
+  font-size: 1.0625rem;
+  font-weight: 600;
+  text-decoration: none;
+}
+
+.hm-settings-home__link:hover {
+  text-decoration: underline;
+}
+
+.hm-settings-home__blurb {
+  margin: 0;
+  color: var(--hm-text-muted);
+  font-size: 0.9375rem;
+  overflow-wrap: anywhere;
+}
+
+/* A section's page. */
+.hm-settings-page {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.hm-settings-page__title {
+  margin: 0;
+  font-size: 1.25rem;
+}
+
+.hm-settings-page__heading {
+  margin: 12px 0 0;
+  font-size: 1.0625rem;
+}
+
+.hm-settings-page__heading:focus {
+  outline: none;
+}
+
+.hm-settings-page__lead,
+.hm-settings-page__text,
+.hm-settings-page__message,
+.hm-settings-page__sync {
+  margin: 0;
+  overflow-wrap: anywhere;
+}
+
+.hm-settings-page__lead,
+.hm-settings-page__text {
+  color: var(--hm-text-muted);
+}
+
+.hm-settings-page__sync {
+  padding: 8px 12px;
+  border: 1px solid var(--hm-line);
+  border-radius: var(--hm-radius);
+  background: var(--hm-surface);
+  color: var(--hm-warn-text);
+}
+
+.hm-settings-page__message:empty {
+  display: none;
+}
+
+.hm-settings-page__message[data-tone='danger'] {
+  color: var(--hm-danger-text);
+}
+
+.hm-settings-page__actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.hm-settings-page__confirm {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 8px;
+}
+
+.hm-button[data-tone='danger'] {
+  color: var(--hm-danger-text);
+}
+
+/* A group of choices: a fieldset named by its legend. */
+.hm-set {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  min-width: 0;
+  margin: 0;
+  padding: 0;
+  border: 0;
+}
+
+.hm-set__legend {
+  padding: 0;
+  margin-bottom: 4px;
+  font-weight: 600;
+}
+
+.hm-set__options {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.hm-set__options[data-layout='wrap'] {
+  flex-flow: row wrap;
+  gap: 4px 20px;
+}
+
+.hm-set__hint {
+  margin: 0;
+  color: var(--hm-text-muted);
+  font-size: 0.875rem;
+  overflow-wrap: anywhere;
+}
+
+.hm-choice {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  min-height: 44px;
+  cursor: pointer;
+}
+
+.hm-choice input {
+  flex: none;
+  width: 20px;
+  height: 20px;
+  margin: 0;
+  accent-color: var(--hm-tint);
+}
+
+.hm-choice__mark {
+  display: inline-flex;
+}
+
+.hm-choice__label {
+  overflow-wrap: anywhere;
+}
+
+/* A colour: a disc the name beside it explains. */
+.hm-swatch {
+  flex: none;
+  width: 18px;
+  height: 18px;
+  border: 1px solid var(--hm-line);
+  border-radius: 50%;
+  background: var(--hm-tint);
+}
+
+.hm-swatch[data-tint='blue'] {
+  background: #2a72dc;
+}
+
+.hm-swatch[data-tint='indigo'],
+.hm-swatch[data-accent='indigo'] {
+  background: #4b4cc8;
+}
+
+.hm-swatch[data-tint='violet'],
+.hm-swatch[data-accent='violet'] {
+  background: #7b3fc4;
+}
+
+.hm-swatch[data-tint='magenta'],
+.hm-swatch[data-accent='magenta'] {
+  background: #b62f81;
+}
+
+.hm-swatch[data-tint='red'],
+.hm-swatch[data-accent='red'] {
+  background: #c5303a;
+}
+
+.hm-swatch[data-tint='orange'],
+.hm-swatch[data-accent='orange'] {
+  background: #b04c08;
+}
+
+.hm-swatch[data-tint='teal'],
+.hm-swatch[data-accent='teal'] {
+  background: #0e7a84;
+}
+
+.hm-swatch[data-tint='green'],
+.hm-swatch[data-accent='green'] {
+  background: #16783c;
+}
+
+.hm-swatch[data-tint='graphite'],
+.hm-swatch[data-accent='graphite'] {
+  background: #485468;
+}
+
+.hm-swatch[data-accent='slate'] {
+  background: #4f6b96;
+}
+
+.hm-swatch[data-accent='lime'] {
+  background: #c7ff4a;
+}
+
+.hm-swatch[data-accent='default'] {
+  background: var(--hm-tint);
+}
+
+/* Read-only facts: a name and its value. */
+.hm-facts {
+  display: flex;
+  flex-direction: column;
+  margin: 0;
+}
+
+.hm-fact {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 2px 16px;
+  padding: 10px 0;
+  border-bottom: 1px solid var(--hm-line);
+}
+
+.hm-fact__label {
+  flex: 0 0 11rem;
+  color: var(--hm-text-muted);
+}
+
+.hm-fact__value {
+  flex: 1 1 14rem;
+  min-width: 0;
+  margin: 0;
+  overflow-wrap: anywhere;
+}
+
+.hm-fact__value[data-mono='true'] {
+  font-family: var(--hm-mono);
+  font-size: 0.875rem;
+  user-select: all;
+}
+
+.hm-fact__person {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.hm-facts__list {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.hm-facts__name {
+  font-family: var(--hm-mono);
+  font-size: 0.875rem;
+}
+
+/* About: the licences, one disclosure per package. */
+.hm-licences {
+  display: flex;
+  flex-direction: column;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.hm-licences__item {
+  border-bottom: 1px solid var(--hm-line);
+}
+
+.hm-licences__summary {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 4px 16px;
+  min-height: 44px;
+  padding: 6px 0;
+  cursor: pointer;
+}
+
+.hm-licences__name {
+  font-weight: 600;
+  overflow-wrap: anywhere;
+}
+
+.hm-licences__id {
+  color: var(--hm-text-muted);
+  font-size: 0.875rem;
+}
+
+.hm-licences__source {
+  margin: 0 0 8px;
+  color: var(--hm-text-muted);
+  font-size: 0.875rem;
+  overflow-wrap: anywhere;
+}
+
+.hm-licences__text {
+  box-sizing: border-box;
+  max-width: 100%;
+  margin: 0 0 12px;
+  padding: 8px 12px;
+  border: 1px solid var(--hm-line);
+  border-radius: var(--hm-radius);
+  background: var(--hm-surface);
+  font-family: var(--hm-mono);
+  font-size: 0.8125rem;
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+}

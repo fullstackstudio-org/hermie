@@ -9,9 +9,12 @@ import { type Bot, botsStore } from '../state/bots'
 import { chatViewStore } from '../state/chat-view'
 import { chatsStore } from '../state/chats'
 import { connectionStore } from '../state/connection'
+import { layoutStore } from '../state/layout'
 import { pluginStore } from '../state/plugin'
 import { sessionStatusStore } from '../state/session-status'
 import { settingsStore } from '../state/settings'
+import { textSizeStore } from '../state/text-size'
+import { uiMetaStatusStore } from '../state/ui-meta-status'
 
 /** Unix seconds in the past, far enough that a row's stamp is a date, not "Now" or a clock. */
 export const LONG_AGO = 1_700_000_000
@@ -48,6 +51,9 @@ export function resetShellStores(): void {
   settingsStore.getState().reset()
   sessionStatusStore.getState().reset()
   chatViewStore.getState().reset()
+  layoutStore.getState().reset()
+  textSizeStore.getState().reset()
+  uiMetaStatusStore.getState().reset()
 }
 
 /** Put a roster in the store as a gateway answer would, and mark every bot read. */

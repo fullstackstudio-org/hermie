@@ -19,6 +19,8 @@ export type IconName =
   | 'alert'
   | 'paperclip'
   | 'file'
+  | 'settings'
+  | 'grip'
 
 /** Stroke paths on a 24 x 24 grid, drawn with a round 2px pen. */
 const PATHS: Record<IconName, readonly string[]> = {
@@ -33,7 +35,9 @@ const PATHS: Record<IconName, readonly string[]> = {
   paperclip: [
     'M20 11.5l-8.2 8.2a5 5 0 0 1-7.1-7.1l8.6-8.6a3.4 3.4 0 0 1 4.8 4.8l-8.5 8.5a1.7 1.7 0 0 1-2.4-2.4l7.8-7.8'
   ],
-  file: ['M14 3H7a1 1 0 0 0-1 1v16a1 1 0 0 0 1 1h10a1 1 0 0 0 1-1V7l-4-4z', 'M14 3v4h4']
+  file: ['M14 3H7a1 1 0 0 0-1 1v16a1 1 0 0 0 1 1h10a1 1 0 0 0 1-1V7l-4-4z', 'M14 3v4h4'],
+  settings: ['M4 7h9', 'M17 7h3', 'M15 5v4', 'M4 17h3', 'M11 17h9', 'M9 15v4'],
+  grip: ['M9 6h.01', 'M15 6h.01', 'M9 12h.01', 'M15 12h.01', 'M9 18h.01', 'M15 18h.01']
 }
 
 export interface IconProps {

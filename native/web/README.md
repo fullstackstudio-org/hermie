@@ -15,7 +15,9 @@ answer a bot's approval or question from it ("The composer" and "Requests" below
 a passkey that the gateway verifies itself ("Passkeys" below), and answer a bot's secret, sudo and password-manager
 prompts ("Secret prompts" below), and attach files and images by the picker, a paste or a drop ("Attachments" below). A bot's past conversations and branches have a page of their own, a new conversation can be started there, and the chats field searches names and every bot's messages ("Conversations and search" below).
 The chat list's arrangement, the mutes and the text size follow the person through the gateway's `ui_meta`
-("Settings that follow the person" below), with no screen to change them yet. It has no settings beyond the passkeys page and the MCP page ("MCP" below) yet, and the plugin does not serve this build. Until that
+("Settings that follow the person" below), and Settings has a screen for each of them and for the rest of what a person
+sets here: the account, the gateway, passkeys, MCP, what a chat shows, the chat list, the look and the language, and
+the build ("Settings" below). The plugin does not serve this build yet. Until that
 changes, the browser keeps running the Expo app's web export through Hermie Web
 ([docs/web.md](../../docs/web.md)); nothing here replaces it.
 
@@ -43,6 +45,7 @@ styles, `ws:`, no Trusted Types). The production build never does; test against 
 | `npm run client:check-reproducible` | builds twice from clean and compares every file; `-- --fresh-checkout` adds a build from `git archive HEAD`      |
 | `npm run client:guard-scan`         | the Hermes plugin scanner over `dist/`: the fork blocks, upstream is informational (below)                       |
 | `npm run client:e2e`                | the black-box and accessibility suite on the built client, in Chromium, WebKit and Firefox ("The browser suite") |
+| `npm run licences:web`              | writes `public/licenses.json` from the client's dependency tree; `licences:web:check` fails when it has drifted  |
 | `npm run client:e2e:perf`           | the transcript list's performance suite on the harness, in the same three engines ("The harness and the suite")  |
 
 **Node 25 and later.** Node ships its own Web Storage there, and its `localStorage` and `sessionStorage` globals
@@ -84,6 +87,17 @@ compress. The build is shaped around that:
 - **The policy travels with the document** (`index.html`): the route sets no security headers. No inline
   script, no inline style, nothing but this origin, Trusted Types required and no Trusted Types policy allowed. `frame-ancestors` cannot be set
   from a meta element, so refusing to render in a frame is the entry module's job (see "Boot").
+
+### `licenses.json`
+
+`public/licenses.json` is copied to `dist/` as it is (Vite's public directory) and is what Settings, About reads: every
+production dependency of the client, the licence each declares and the text it carries, identical texts stored once
+by hash. It is generated, not written: `npm run licences:web` walks the client's dependency tree in `package-lock.json`
+(`scripts/generate-third-party-licenses.mjs --web`, the Expo app's generator pointed at this workspace) and
+`npm run licences:web:check` fails when the file has drifted; `scripts/web/licences.test.ts` runs that check with the
+rest of the repository's tests. The bundle gate refuses a non-ASCII byte in a JSON file, so every character above U+007F
+is written as a `\uXXXX` escape (the same text once parsed). The repository's own packages are not in it: they are the
+code under its own licence.
 
 ### `build.json`
 
@@ -145,8 +159,13 @@ draw is kept out of the entry instead. Four things do that today.
   while there is a request to show.
 - **The sheets' own words** (`src/i18n/sheet-strings.ts`, the same table as `web-strings.ts`) travel with them, and
   the settings pages' words are in it too. Only a module that is itself loaded on demand may import that file.
-- **The settings pages** (`Passkeys`, `MCP`, each with its styles) are chunks of their own through `React.lazy`,
-  fetched when the page is opened or its link is pointed at or focused.
+- **Settings** is one chunk (`features/settings/SettingsHost.tsx`: the home, the way back, the section a route names),
+  fetched when a settings route is opened or when the sidebar's link to it is pointed at or focused
+  (`features/settings/load.ts`, the only part the entry imports), and each section is a chunk inside it (`Account`,
+  `Gateway`, `Passkeys`, `MCP`, `Chats`, `Arrangement`, `Appearance`, `About`, each with its styles), fetched when it is
+  opened or when its link on the home is reached. The pages' words are in `sheet-strings.ts` with the rest of what a
+  chunk says; the catalogue's words they read (the Expo app's titles for Account, Chats, Appearance and About, the
+  layout words of the chat list) are the entry's English and a chunk per other language, as every catalogue read is.
 - **What a chat opens on request** is a chunk of its own through `React.lazy`: the message menu
   (`MessageMenuPopup.tsx`, fetched the first time the reader points at a message or moves to one), the chat options'
   panel (`ChatOptionsPanel.tsx`, fetched when its button is pointed at or focused) and the image viewer
@@ -267,16 +286,16 @@ fake gateway in cookie mode.
 
 Nothing in it is a credential: the session is the gateway's `HttpOnly` cookie, which the client cannot read.
 
-| Where                                               | Key or name                                        | What                                                                  | On sign-out |
-| --------------------------------------------------- | -------------------------------------------------- | --------------------------------------------------------------------- | ----------- |
-| `localStorage` (`platform/key-value-store.ts`)      | `hermie:<base path>:device.*`                      | device settings (scheme, tint, text size, installation id)            | kept        |
-| `localStorage`                                      | `hermie:<base path>:<anything else>`               | identity-bound state (watermarks, the owner's author id)              | cleared     |
-| `localStorage`                                      | `chats.layout`, `app.chosen`, `ui-meta.pending`    | the arrangement, its date, unsent bot edits ("Settings that follow")  | cleared     |
-| `localStorage`                                      | `hermie:<base path>:draft.<chat>`                  | what was typed in a chat and not sent                                 | cleared     |
-| `localStorage`                                      | `hermie:<base path>:device.passkey.pin@<base URL>` | the gateway id pinned on the first passkey enrolment ("Passkeys")     | kept        |
-| `localStorage`                                      | `hermie:<base path>:passkey.seen@<base URL>`       | the signed-in person's passkey ids this browser has seen              | cleared     |
-| IndexedDB `hermie-cache` (`platform/chat-cache.ts`) | rows keyed `<base path>:<bot>`                     | transcript snapshots and the roster, in the Expo cache's record shape | cleared     |
-| `sessionStorage`                                    | `hermie:<base path>:route`                         | the route, across one sign-in                                         | cleared     |
+| Where                                               | Key or name                                        | What                                                                                    | On sign-out |
+| --------------------------------------------------- | -------------------------------------------------- | --------------------------------------------------------------------------------------- | ----------- |
+| `localStorage` (`platform/key-value-store.ts`)      | `hermie:<base path>:device.*`                      | device settings (language, scheme, tint, text size, `transcriptCache`, installation id) | kept        |
+| `localStorage`                                      | `hermie:<base path>:<anything else>`               | identity-bound state (watermarks, the owner's author id)                                | cleared     |
+| `localStorage`                                      | `chats.layout`, `app.chosen`, `ui-meta.pending`    | the arrangement, its date, unsent bot edits ("Settings that follow")                    | cleared     |
+| `localStorage`                                      | `hermie:<base path>:draft.<chat>`                  | what was typed in a chat and not sent                                                   | cleared     |
+| `localStorage`                                      | `hermie:<base path>:device.passkey.pin@<base URL>` | the gateway id pinned on the first passkey enrolment ("Passkeys")                       | kept        |
+| `localStorage`                                      | `hermie:<base path>:passkey.seen@<base URL>`       | the signed-in person's passkey ids this browser has seen                                | cleared     |
+| IndexedDB `hermie-cache` (`platform/chat-cache.ts`) | rows keyed `<base path>:<bot>`                     | transcript snapshots and the roster, in the Expo cache's record shape                   | cleared     |
+| `sessionStorage`                                    | `hermie:<base path>:route`                         | the route, across one sign-in                                                           | cleared     |
 
 `<base path>` is the prefix, or `/` at the root, so two gateways behind different prefixes on one host keep
 apart. A key is identity-bound unless it starts with `device.`, so a key nobody classified is cleared rather
@@ -354,7 +373,7 @@ another tool's `hermes-bots`.
 | `state/device-context.ts` | `deviceContextStore`: who the boot read; `uiMetaUserIdOf` builds the key's user id                      |
 | `core/ui-meta-bridge.ts`  | `UiMetaBridge` (the mirror) and `connectUiMeta` (its wiring, started by `features/shell/session.ts`)    |
 
-**For a screen (W-20b).** Change things through the stores' actions and nothing else; the bridge notices
+**For a screen (W-20b, built: Settings, Chat list and Appearance).** Change things through the stores' actions and nothing else; the bridge notices
 every change by diffing, sends it (debounced 600 ms) and dates it. The actions:
 
 - `layoutStore`: `moveBy`, `moveToFolder`, `dropBot`, `dropFolder`, `moveFolderBy`, `addFolder` (answers the
@@ -467,17 +486,23 @@ renders `<App>`; nothing under `features/` starts a connection or fetches, it re
 One URL and the route in the fragment (plan W4; `features/shell/router.ts`, over `platform/hash-router.ts`, the
 only code outside `boot/` that touches `location.hash`):
 
-| Route                        | Heading        | Main pane today                                |
-| ---------------------------- | -------------- | ---------------------------------------------- |
-| `#/`                         | Hermie         | "Pick a conversation to start..."              |
-| `#/chat/<bot>`               | the bot's name | the chat (`ChatScreen`)                        |
-| `#/chat/<bot>/s/<session>`   | the bot's name | that conversation (`ChatScreen`)               |
-| `#/chat/<bot>/conversations` | Conversations  | the bot's conversations (`ConversationsPage`)  |
-| `#/settings`                 | Settings       | placeholder (W-20b), links to Passkeys and MCP |
-| `#/settings/passkeys`        | Settings       | this gateway's passkeys ("Passkeys")           |
-| `#/settings/mcp`             | Settings       | this gateway's MCP access ("MCP")              |
-| `#/settings/<section>`       | Settings       | placeholder (W-20b)                            |
-| anything else                | sent to `#/`   |                                                |
+| Route                        | Heading        | Main pane today                               |
+| ---------------------------- | -------------- | --------------------------------------------- |
+| `#/`                         | Hermie         | "Pick a conversation to start..."             |
+| `#/chat/<bot>`               | the bot's name | the chat (`ChatScreen`)                       |
+| `#/chat/<bot>/s/<session>`   | the bot's name | that conversation (`ChatScreen`)              |
+| `#/chat/<bot>/conversations` | Conversations  | the bot's conversations (`ConversationsPage`) |
+| `#/settings`                 | Settings       | the home: a link to each section ("Settings") |
+| `#/settings/account`         | Settings       | who is signed in, Sign out                    |
+| `#/settings/gateway`         | Settings       | this gateway, read only                       |
+| `#/settings/passkeys`        | Settings       | this gateway's passkeys ("Passkeys")          |
+| `#/settings/mcp`             | Settings       | this gateway's MCP access ("MCP")             |
+| `#/settings/chats`           | Settings       | what a chat shows, the transcript cache       |
+| `#/settings/chat-list`       | Settings       | the arrangement of the chat list              |
+| `#/settings/appearance`      | Settings       | scheme, accent colour, language, text size    |
+| `#/settings/about`           | Settings       | the build, the licences                       |
+| `#/settings/<anything else>` | Settings       | the home; the address is rewritten in place   |
+| anything else                | sent to `#/`   |                                               |
 
 A bot name or session id is one percent-encoded segment; `parseRoute` and `formatRoute` are inverses. An unknown
 route is rewritten to `#/` in place (no history entry). A route change moves focus to the main heading (not on
@@ -518,7 +543,10 @@ like the others): light, dark or follow the browser
 (`prefers-color-scheme`), plus one tint of nine. The choice is two attributes on `<html>` (`data-scheme`,
 `data-tint`; `platform/theme-target.ts`, because the policy forbids inline styles), stored per base path under
 `device.scheme` and `device.tint` (`state/settings.ts`, so a sign-out keeps them) and applied before the first
-screen. No screen changes them yet: Settings (W-20b) will. The focus ring is the tint's ink; reduced motion is
+screen. Settings, Appearance changes them. The transcript's text size is a third attribute, `data-text-size`
+(`state/text-size.ts`, `bindTextSize`), which `ui/theme.css` turns into `--hm-chat-scale` (0.88, 1, 1.15, 1.3; a test
+reads the stylesheet against the store's numbers) and `chat.css` multiplies the words of a message by, so it sizes the
+conversation and nothing around it. The focus ring is the tint's ink; reduced motion is
 honoured (the one animation, a bot asking for the reader, becomes a static ring); increased contrast
 strengthens the lines. `ui/theme.contrast.test.ts` reads the stylesheet, resolves the properties for every
 scheme and tint, and holds every text pair to 4.5:1 and every state shape to 3:1.
@@ -573,7 +601,8 @@ them. A switch is instant and loses nothing, mid-turn included. The default is `
 tool lines, one "working" row while they run), bot-to-bot shown, no reasoning, as in the Expo app and the Swift app
 (the owner's call, 2026-10-03). Only a default the reader chose is stored; the whole `normal` default that earlier builds
 wrote on every save is read as nothing chosen. The account's synced `defaults` is not read yet: the `ui_meta` bridge
-carries it raw until a store here owns it (Settings, W-20b).
+carries it raw until a store here owns it. Settings, Chats changes this store's default (`setDefaults`), which is this
+browser's for this person, as the paragraph above says.
 
 | Item                         | View                                                                                                                                                                                                                                                                                                                                                                                                                   |
 | ---------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
@@ -1172,6 +1201,99 @@ engine.) `replayed_by` is not drawn by this client at all today.
 `MCP.test.tsx` (the page in every state, plain text, copying, the confirmation and its focus, axe), the `via` cases in
 `items.test.tsx`, and `e2e/settings-mcp.spec.ts` against the fake gateway's `--mcp` ("The browser suite").
 
+## Settings
+
+`features/settings/` is the main pane of `#/settings` and `#/settings/<section>`: a home that links to each section and says
+what is in it, and eight sections under a way back to the home. The sidebar's foot links to it (and asks for its chunk
+when the link is pointed at or focused). The native apps' Settings pages are the reference for what each one shows; the
+Dutch and German wording is the catalogue's wherever the Expo and Swift apps already have the word, and the web client's
+own (`sheet-strings.ts`) where they do not. **No operator settings** (which modules run, who may use the gateway: those are
+the plugin's configuration on the gateway), and **no notifications** (W-25).
+
+| File                                                         | What                                                                                                                                                                                 |
+| ------------------------------------------------------------ | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| `load.ts`                                                    | the way into the chunk: the only module the entry imports from here                                                                                                                  |
+| `SettingsHost.tsx`, `sections.ts`                            | the home, the way back, the section a route names (an unknown one is the home), each section's title, blurb and loader                                                               |
+| `settings-runtime.ts`                                        | `SettingsRuntimeContext`: what no store holds (the gateway's address and Hermes version, who was named, the licence list's address, clearing the cache, signing out), given by `App` |
+| `controls.tsx`, `settings.css`                               | the page, a radio group, a checkbox, the "not synced" line, a read-only fact: native controls throughout                                                                             |
+| `Account.tsx`                                                | who `/api/auth/me` named, the gateway's host, Sign out behind a question                                                                                                             |
+| `Gateway.tsx`, `gateway-facts.ts`                            | this gateway, read only: host, address, Hermes version, plugin and modules, this build and the plugin's, the update line                                                             |
+| `Chats.tsx`                                                  | the default view of a conversation, the transcript cache on or off and "Clear now"                                                                                                   |
+| `Arrangement.tsx`, `arrangement-model.ts`, `arrangement.css` | the chat list: reorder, folders, colour, mute, archive                                                                                                                               |
+| `Appearance.tsx`                                             | scheme, accent colour, language, text size                                                                                                                                           |
+| `About.tsx`, `core/licences.ts`                              | version and commit of this build, the licences from `licenses.json`                                                                                                                  |
+| `Passkeys.tsx`, `MCP.tsx`                                    | the pages of their own sections ("Passkeys", "MCP"), unchanged                                                                                                                       |
+
+**Every control is a native one and labelled**: a group of choices is a `fieldset` with a `legend` and native radios (the
+arrows move the choice), a switch is a checkbox, a menu is a `select`, and a hint is what the control is described by.
+A control that works while something is in flight is not disabled (a disabled button drops the focus the reader was
+using): "Clear now" says `aria-busy`, and a Move button at the end of a list says `aria-disabled`.
+
+**Appearance.** The scheme (System, Light, Dark) and the accent colour (nine tints) are the browser's: `settingsStore`, kept on
+sign-out, applied to the document by `bindTheme`. The language is `setLanguageChoice`: it loads the language and then makes it
+the one every screen reads, with nothing remounted, so a switch takes effect where the reader stands, with no reload
+(`e2e/settings.spec.ts` proves it with a marker on the window and a reload that keeps the language). "Follow browser" is
+a pick of its own, kept even when it resolves to the language already in use. The text size is `textSizeStore`
+(`setTextSize`), which the `ui_meta` bridge sends; it multiplies the words of a message (above) and says so when the gateway is
+not taking it (`SyncNote`, from `uiMetaStatusStore`).
+
+**Chats.** The verbosity, bot-to-bot and thinking a conversation shows until it has a view of its own are
+`chatViewStore.setDefaults` (this browser's, for this person; the chat's own options panel says "Following the default set in
+Settings"). **The transcript cache** (IndexedDB, "Browser storage") has a switch and a button. The switch is
+`settingsStore.transcriptCache` (`device.transcriptCache`, absent meaning on, kept on sign-out), honoured by `GatedChatCache`
+(`platform/chat-cache.ts`), which `main.tsx` puts around the page's cache: switched off, nothing is read from it and nothing
+is written to it (a chat opens from the gateway, as on a first visit), and `forget` and `clear` still reach the store. Switching
+it off also clears what is stored, in the same step, and says so: a switch that stopped new copies and left the old ones would
+not mean what it says. "Clear now" is `cache.clear()` (this base path's rows only) and says what it did, or that it could not.
+The e2e spec reads the IndexedDB back.
+
+**Chat list.** Everything goes through the layout store's actions (`moveBy`, `moveFolderBy`, `dropBot`, `dropFolder`,
+`moveToFolder`, `addFolder`, `renameFolder`, `setFolderColour`, `removeFolder`, `setAccent`, `setMute`, `setArchived`) and
+nothing else; the bridge sends it. The page lists the arrangement (and a bot the roster has and the arrangement has not
+placed yet, loose and unmovable), the archived chats apart. `arrangement-model.ts` is the arithmetic and is tested as
+functions: what is drawn, how far a step goes over archived chats it cannot see, where a drop lands (read without the moving
+row, as `moveBotTo` and `moveFolderTo` read theirs) and whether it changes anything, and where a row is afterwards.
+
+- **Reordering by keyboard and by pointer, two ways to one thing.** Each row has Move up and Move down buttons (named for
+  the row, "Move down Writer"), which are the keyboard's way; a row's handle is `draggable` (HTML drag and drop) and is hidden from
+  assistive technology, whose way is the buttons. A drop goes before or after the chat it is over by the half of the row
+  the pointer is in, to the end of a folder when it is on the folder's own row, and a folder moves among the top level the same
+  way; a drop that changes nothing draws no line and commits nothing. A move says where the row went in a polite status line ("Writer
+  is now at position 2 of 4", "Writer is now in Reading"), and the pressed button is focused again after the row has moved (the
+  browser drops the focus of an element that is re-inserted).
+- **What else a row offers** is behind one button per row, "Actions for Writer" (a disclosure with `aria-expanded`): its folder,
+  its colour (eleven, by name, `default` meaning none), its mute (for 1 hour, 8 hours, 1 week or until turned back on; a mute
+  that is running stays selected as its own line) and Archive. A folder's own has its name (committed on blur or Enter, one write
+  and not one per key), its colour and Delete (its chats come back where it stood). An archived chat offers colour, mute and
+  Unarchive, and the focus goes to the archive's heading (or the list's) when a chat has moved between them.
+- **The sidebar does not draw the arrangement yet.** The chat list (`features/bots`) still follows the roster; this page is where
+  the arrangement is changed, and the native apps and every other device that reads the same `ui_meta` draw it.
+
+**This gateway** is read only and says so. The host is the page's own (the gateway serves this client), the Hermes version is what
+`/api/status` said at boot (`probe.version`, handed to `App` by the entry module), the plugin, its version and its modules are the
+advert (`state/plugin.ts`; "Checking..." until a roster has been read, "Not installed" when it carries none), and every string the gateway
+wrote is cleaned and drawn as text. **The update line** compares this build with the one the advert's `web` block names
+(`gateway-facts.ts`): the commit settles it where the plugin gave one (the advert abbreviates it), the version number only where it did not,
+and a plugin that does not say which client it carries, or has it switched off, is "no update is known", never "up to date". When
+they differ it says so and to reload; it does not compare numbers by order (a plugin may carry an older build on purpose).
+
+**Account** is `/api/auth/me` as the boot read it (name, email, user id, provider, host; a field that repeats the name is not
+said twice, a provider of `none` is not said at all), and Sign out asks first, with Cancel holding the focus and getting it
+back, then runs the entry module's sign-out (stop the chats and the socket, end the gateway's session, clear this person's
+stored state, go to the gateway's page). The question says what goes (transcripts, drafts, the arrangement kept in this
+browser) and what stays (theme, accent colour, language, text size).
+
+**About** shows the build's version and commit (`build-info.ts`) and the licences: `licenses.json` ("The build") is fetched
+when the page opens (`core/licences.ts`, read defensively: a package with no name is dropped, a text is found by its hash) and
+drawn as one disclosure per package, the licence text as text. A build without the file, or one that cannot fetch it, says so with
+Try again, and nothing else on the page depends on it.
+
+**Tests.** One file per page (`Account`, `Appearance`, `Chats`, `Gateway`, `About`, `Arrangement`, `SettingsHost` `.test.tsx`), the
+arithmetic (`arrangement-model.test.ts`, `gateway-facts.test.ts`, `core/licences.test.ts`), the seams (`platform/chat-cache.test.ts`,
+`state/settings.test.ts`, `state/text-size.test.ts`), and `settings.axe.test.tsx`: axe on the home and every section in both
+schemes and in Dutch and German, with a row's panel, a folder's panel, an archived chat's panel, the sign-out question and an opened
+licence. `e2e/settings.spec.ts` runs the built client ("The browser suite").
+
 ## Markdown
 
 `src/markdown/` draws a message as React elements. The text goes through `@hermie/markdown` (`preprocessMarkdown`,
@@ -1386,16 +1508,17 @@ of frames in a row with the same answer).
   host name WebAuthn takes as an RP, without a certificate or a proxy; the session cookie is copied to that host on
   sign-in.
 
-| Spec                   | What it proves                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                   |
-| ---------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `signin.spec.ts`       | an unauthenticated visit goes to the gateway's `/login` and signing in opens the client; a wrong password stays; a session lost before the first question ("Sign in again", the cookie deleted or ended by the gateway) restores the route after signing in; one lost while open is a signed-out line; a frame gets one sentence and makes no request to the API                                                                                                                                                                                                                                                                                                                                                 |
-| `chat.spec.ts`         | the list (names, previews, unread, arrow keys, one pane on a phone), opening a chat, sending, Stop, the queue, drafts, a reply streamed in by the gateway, a socket dropped mid-reply (one bubble, the gateway's words once) and idle, and 2,000 rows of history (opens at the bottom without moving, pinned, reading above, older history)                                                                                                                                                                                                                                                                                                                                                                      |
-| `requests.spec.ts`     | approval and clarify with the keyboard alone, deny, several at once, another bot's, one answer for several, smart-denied, a batch's Cancel all, withdrawn, restored on resume and after a reload, a modal page behind them, 320 px                                                                                                                                                                                                                                                                                                                                                                                                                                                                               |
-| `attachments.spec.ts`  | attach by the picker and by a drop (a file and an image), send, the chip in the bubble and the agent's reply naming the file; Return twice sends once (HERM-126); cancel an upload in flight; axe with chips and the drop target                                                                                                                                                                                                                                                                                                                                                                                                                                                                                 |
-| `a11y.spec.ts`         | axe, serious and critical, in light and dark: the chat list, a chat, the signed-out screen and every request sheet                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                               |
-| `sessions.spec.ts`     | a branch (made with `session.branch` on a socket of the test's own) reached from the chat's Conversations link and opened read-only with its own history and no composer, then renamed and deleted after a question; a new conversation that puts the Bot Chat away; a search hit that opens the chat scrolled to the row with the words, also 1,200 rows deep; axe in light and dark                                                                                                                                                                                                                                                                                                                            |
-| `passkey.spec.ts`      | Chromium only (a virtual authenticator over the DevTools `WebAuthn` domain): enrol with a code from `/__fake/passkey/code`; a confirmation raised with `/__fake/request`, confirmed, and read back as `verified: true` from `/__fake/state` `passkey.outcomes`; decline; a key the gateway cannot verify (`signature_invalid`, then `too_many_attempts`); a passkey revoked while open (`verification_failed`); a request still open after a reload; Escape; the detail's `white-space: pre` and sideways scroll; axe in light and dark                                                                                                                                                                          |
-| `settings-mcp.spec.ts` | the fake gateway's `--mcp`: the page lists the endpoint, command, config, instructions and clients as the gateway said them; each Copy button puts exactly that text on the clipboard (read back in Chromium); Revoke asks first, Cancel changes nothing, confirming ends the grant at the gateway (read back from `/__fake/mcp/grants`) and the row goes; an `mcp.changed` from a seeded grant and from a revoke in another tab reloads the open page; a gateway without MCP (routes unknown, or off) says so and shows nothing else; the page is a chunk fetched only when opened; axe in light and dark, with a confirmation open; a turn an agent sent is drawn `You via <client>` and `<name> via <client>` |
+| Spec                   | What it proves                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                |
+| ---------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `signin.spec.ts`       | an unauthenticated visit goes to the gateway's `/login` and signing in opens the client; a wrong password stays; a session lost before the first question ("Sign in again", the cookie deleted or ended by the gateway) restores the route after signing in; one lost while open is a signed-out line; a frame gets one sentence and makes no request to the API                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                              |
+| `chat.spec.ts`         | the list (names, previews, unread, arrow keys, one pane on a phone), opening a chat, sending, Stop, the queue, drafts, a reply streamed in by the gateway, a socket dropped mid-reply (one bubble, the gateway's words once) and idle, and 2,000 rows of history (opens at the bottom without moving, pinned, reading above, older history)                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                   |
+| `requests.spec.ts`     | approval and clarify with the keyboard alone, deny, several at once, another bot's, one answer for several, smart-denied, a batch's Cancel all, withdrawn, restored on resume and after a reload, a modal page behind them, 320 px                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                            |
+| `attachments.spec.ts`  | attach by the picker and by a drop (a file and an image), send, the chip in the bubble and the agent's reply naming the file; Return twice sends once (HERM-126); cancel an upload in flight; axe with chips and the drop target                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                              |
+| `a11y.spec.ts`         | axe, serious and critical, in light and dark: the chat list, a chat, the signed-out screen and every request sheet                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                            |
+| `sessions.spec.ts`     | a branch (made with `session.branch` on a socket of the test's own) reached from the chat's Conversations link and opened read-only with its own history and no composer, then renamed and deleted after a question; a new conversation that puts the Bot Chat away; a search hit that opens the chat scrolled to the row with the words, also 1,200 rows deep; axe in light and dark                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                         |
+| `passkey.spec.ts`      | Chromium only (a virtual authenticator over the DevTools `WebAuthn` domain): enrol with a code from `/__fake/passkey/code`; a confirmation raised with `/__fake/request`, confirmed, and read back as `verified: true` from `/__fake/state` `passkey.outcomes`; decline; a key the gateway cannot verify (`signature_invalid`, then `too_many_attempts`); a passkey revoked while open (`verification_failed`); a request still open after a reload; Escape; the detail's `white-space: pre` and sideways scroll; axe in light and dark                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                       |
+| `settings-mcp.spec.ts` | the fake gateway's `--mcp`: the page lists the endpoint, command, config, instructions and clients as the gateway said them; each Copy button puts exactly that text on the clipboard (read back in Chromium); Revoke asks first, Cancel changes nothing, confirming ends the grant at the gateway (read back from `/__fake/mcp/grants`) and the row goes; an `mcp.changed` from a seeded grant and from a revoke in another tab reloads the open page; a gateway without MCP (routes unknown, or off) says so and shows nothing else; the page is a chunk fetched only when opened; axe in light and dark, with a confirmation open; a turn an agent sent is drawn `You via <client>` and `<name> via <client>`                                                                                                                                                                                                                                                                                                                                                                                                              |
+| `settings.spec.ts`     | the home from the sidebar's link (Settings a chunk fetched when reached, each section its own); a language switch with no reload (a marker on the window survives it) that stays through one; the scheme and tint on the document and kept through a reload, the text size on the words of a message and nothing around them; the chat list reordered with Enter and Space on the Move buttons alone, focus kept on the pressed button, the move reaching the gateway and surviving a reload; a chat's colour and archive read back from the gateway's `ui_meta` and kept through a reload; a folder made, a chat moved into it, a mute; the transcript cache read back from IndexedDB (a copy after leaving a chat, none after Clear now, none while switched off, off through a reload); the default view reaching a chat's options; this gateway's and About's facts; Sign out asking, Cancel changing nothing, confirming ending the session at the gateway (401 afterwards) and clearing this person's state and not the browser's; axe in light and dark on every page, a row's panel and the sign-out question; 320 px |
 
 ```sh
 npx playwright install chromium webkit firefox        # once
@@ -1414,6 +1537,7 @@ The Firefox build that Playwright ships does not start on every macOS; the CI jo
 
 ```
 index.html                  the document: policy, one module script, empty #root
+public/                     copied to dist as it is: licenses.json (generated: `npm run licences:web`)
 vite.config.ts              base './', hashed assets, ASCII output, maps out of dist, dev server and proxy
 vitest.config.ts            jsdom, fixed stand-ins for the injected version and commit
 playwright.config.ts        the browser suite: three engines, no web server (e2e/fixtures.ts starts a gateway per test)
@@ -1436,7 +1560,8 @@ src/
   features/chat/            the chat screen, its item views, the transcript list, its scroll anchor and chunks, the composer
   features/requests/        the request layer: approval, clarify and the passkey confirmation, one at a time, in a
                             modal dialog; the passkey notices
-  features/settings/        the passkeys page and the MCP page (the rest of Settings is W-20b's)
+  features/settings/        Settings: the home and its eight sections (account, gateway, passkeys, mcp, chats, chat list,
+                            appearance, about), each a chunk; the pages' arithmetic and tests
   features/sessions/        a bot's Conversations page, the push-tap destination rule
   features/search/          the chats field's name filter and message search, finding a hit's row in its chat
   dev/                      development-only pages: the transcript harness, its probes, a stream replayer
@@ -1483,4 +1608,4 @@ Every third-party package, and why it is here. Anything beyond this list needs a
 Not added yet, because nothing uses it: the pre-approved `@tanstack/react-virtual` (the transcript list did not need it, see "Measured" above).
 `@hermie/markdown` brings `marked` into the bundle, and `highlight.js` (core and fifteen grammars) into the
 highlighting chunk, which loads the first time a message has a fence with a language. The licence text of every
-runtime dependency is meant to ship in `dist/licenses.json` and be shown in About; that is not generated yet.
+runtime dependency ships in `dist/licenses.json` and is shown in About ("The build", `npm run licences:web`).

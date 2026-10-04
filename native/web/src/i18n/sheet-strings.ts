@@ -775,6 +775,374 @@ export const SHEET_STRINGS_SOURCE = {
       }
     }
   },
+  settings: {
+    /** Under a section's title on the Settings home: what is in it. Web wording; the native apps' differ. */
+    blurb: {
+      account: {
+        en: 'Who is signed in in this browser, and how to sign out.',
+        nl: 'Wie er in deze browser is ingelogd, en hoe je uitlogt.',
+        de: 'Wer in diesem Browser angemeldet ist, und wie du dich abmeldest.'
+      },
+      gateway: {
+        en: 'Which gateway this is, which plugin runs on it and which web client it carries. Read only.',
+        nl: 'Welke gateway dit is, welke plugin erop draait en welke webclient hij meelevert. Alleen lezen.',
+        de: 'Welches Gateway das ist, welches Plugin darauf läuft und welchen Webclient es mitliefert. Nur lesen.'
+      },
+      passkeys: {
+        en: 'The passkeys that confirm sensitive actions, for this site and for the apps.',
+        nl: 'De passkeys die gevoelige handelingen bevestigen, voor deze site en voor de apps.',
+        de: 'Die Passkeys, die sensible Aktionen bestätigen, für diese Seite und für die Apps.'
+      },
+      mcp: {
+        en: 'The agents allowed to work on this gateway as you.',
+        nl: 'De agents die als jij op deze gateway mogen werken.',
+        de: 'Die Agenten, die als du auf diesem Gateway arbeiten dürfen.'
+      },
+      chats: {
+        en: 'What a conversation shows by default, and whether this browser keeps transcripts.',
+        nl: 'Wat een gesprek standaard toont, en of deze browser gesprekken bewaart.',
+        de: 'Was ein Gespräch standardmäßig zeigt, und ob dieser Browser Verläufe speichert.'
+      },
+      chatList: {
+        en: 'The order of your chats, folders, colours, mutes and the archive.',
+        nl: 'De volgorde van je chats, mappen, kleuren, dempingen en het archief.',
+        de: 'Die Reihenfolge deiner Chats, Ordner, Farben, Stummschaltungen und das Archiv.'
+      },
+      appearance: {
+        en: 'Light or dark, the accent colour, the language and the text size.',
+        nl: 'Licht of donker, de accentkleur, de taal en de tekstgrootte.',
+        de: 'Hell oder dunkel, die Akzentfarbe, die Sprache und die Textgröße.'
+      },
+      about: {
+        en: 'Which build this is, and the licences it ships under.',
+        nl: 'Welke build dit is, en onder welke licenties hij wordt geleverd.',
+        de: 'Welcher Build das ist, und unter welchen Lizenzen er ausgeliefert wird.'
+      }
+    },
+    /** Section titles the catalogue has no word for. */
+    title: {
+      gateway: {
+        en: 'This gateway',
+        nl: 'Deze gateway',
+        de: 'Dieses Gateway'
+      },
+      chatList: {
+        en: 'Chat list',
+        nl: 'Chatlijst',
+        de: 'Chatliste'
+      }
+    },
+    /** A line over what follows the person through the gateway, when it is not reaching the gateway. */
+    notSynced: {
+      local: {
+        en: 'The gateway is not taking these settings right now, so they are kept in this browser only. They are sent again when it does.',
+        nl: 'De gateway neemt deze instellingen nu niet aan, dus ze worden alleen in deze browser bewaard. Ze worden opnieuw verstuurd zodra dat weer kan.',
+        de: 'Das Gateway nimmt diese Einstellungen gerade nicht an, deshalb bleiben sie nur in diesem Browser. Sie werden erneut gesendet, sobald es wieder geht.'
+      },
+      unavailable: {
+        en: 'These settings cannot be sent to the gateway from this page, so they are kept in this browser only. Reload the page to try again.',
+        nl: 'Deze instellingen kunnen vanaf deze pagina niet naar de gateway worden gestuurd, dus ze worden alleen in deze browser bewaard. Laad de pagina opnieuw om het nog eens te proberen.',
+        de: 'Diese Einstellungen lassen sich von dieser Seite nicht an das Gateway senden, deshalb bleiben sie nur in diesem Browser. Lade die Seite neu, um es erneut zu versuchen.'
+      }
+    },
+    appearance: {
+      /** The legend of the accent colour group. */
+      tint: {
+        en: 'Accent colour',
+        nl: 'Accentkleur',
+        de: 'Akzentfarbe'
+      },
+      tintHint: {
+        en: 'Used for your messages, buttons, links and the focus ring. It stays in this browser.',
+        nl: 'Gebruikt voor je berichten, knoppen, links en de focusrand. Blijft in deze browser.',
+        de: 'Wird für deine Nachrichten, Schaltflächen, Links und den Fokusrahmen verwendet. Bleibt in diesem Browser.'
+      },
+      /** Under the theme group: it belongs to the browser, as the language does. */
+      schemeNote: {
+        en: 'Light, dark and the language are choices of this browser. They stay when you sign out.',
+        nl: 'Licht, donker en de taal zijn keuzes van deze browser. Ze blijven staan als je uitlogt.',
+        de: 'Hell, dunkel und die Sprache sind Einstellungen dieses Browsers. Sie bleiben beim Abmelden erhalten.'
+      }
+    },
+    chats: {
+      /** The group of the default view: the heading over verbosity, bot-to-bot and thinking. */
+      defaultsHeading: {
+        en: 'What a new conversation shows',
+        nl: 'Wat een nieuw gesprek toont',
+        de: 'Was ein neues Gespräch zeigt'
+      },
+      /** Beside the defaults: where they are kept. */
+      defaultsNote: {
+        en: 'These are kept in this browser. A conversation with its own setting keeps it.',
+        nl: 'Deze worden in deze browser bewaard. Een gesprek met een eigen instelling houdt die.',
+        de: 'Diese bleiben in diesem Browser. Ein Gespräch mit eigener Einstellung behält sie.'
+      },
+      cacheHeading: {
+        en: 'Transcripts in this browser',
+        nl: 'Gesprekken in deze browser',
+        de: 'Verläufe in diesem Browser'
+      },
+      cacheKeep: {
+        en: 'Keep transcripts in this browser',
+        nl: 'Gesprekken in deze browser bewaren',
+        de: 'Verläufe in diesem Browser speichern'
+      },
+      cacheHint: {
+        en: 'Recent conversations and the list of bots are kept here, so they open at once, before the gateway has answered. Switched off, nothing is kept, and switching off clears what is stored. Signing out clears it too.',
+        nl: 'Recente gesprekken en de lijst met bots worden hier bewaard, zodat ze meteen openen, voordat de gateway heeft geantwoord. Uitgezet wordt er niets bewaard, en uitzetten wist wat is opgeslagen. Uitloggen wist het ook.',
+        de: 'Aktuelle Gespräche und die Botliste werden hier gespeichert, damit sie sofort öffnen, noch bevor das Gateway geantwortet hat. Ausgeschaltet wird nichts gespeichert, und das Ausschalten löscht das Gespeicherte. Auch das Abmelden löscht es.'
+      },
+      cacheClear: {
+        en: 'Clear now',
+        nl: 'Nu wissen',
+        de: 'Jetzt löschen'
+      },
+      cacheCleared: {
+        en: 'The stored transcripts were cleared.',
+        nl: 'De opgeslagen gesprekken zijn gewist.',
+        de: 'Die gespeicherten Verläufe wurden gelöscht.'
+      },
+      cacheOff: {
+        en: 'Transcripts are no longer kept in this browser, and what was stored is cleared.',
+        nl: 'Gesprekken worden niet meer in deze browser bewaard, en wat was opgeslagen is gewist.',
+        de: 'Verläufe werden nicht mehr in diesem Browser gespeichert, und das Gespeicherte wurde gelöscht.'
+      },
+      cacheOn: {
+        en: 'Transcripts are kept in this browser again.',
+        nl: 'Gesprekken worden weer in deze browser bewaard.',
+        de: 'Verläufe werden wieder in diesem Browser gespeichert.'
+      },
+      cacheFailed: {
+        en: 'The stored transcripts could not be cleared.',
+        nl: 'De opgeslagen gesprekken konden niet worden gewist.',
+        de: 'Die gespeicherten Verläufe konnten nicht gelöscht werden.'
+      }
+    },
+    chatList: {
+      intro: {
+        en: 'Put your chats in order, group them in folders, give them a colour, mute them or move them to the archive. It follows you to every device signed in as you.',
+        nl: 'Zet je chats op volgorde, groepeer ze in mappen, geef ze een kleur, demp ze of verplaats ze naar het archief. Het volgt je naar elk apparaat waarop je bent ingelogd.',
+        de: 'Bringe deine Chats in Reihenfolge, gruppiere sie in Ordnern, gib ihnen eine Farbe, schalte sie stumm oder verschiebe sie ins Archiv. Es folgt dir auf jedes Gerät, auf dem du angemeldet bist.'
+      },
+      dragHint: {
+        en: 'Drag a row by its handle to reorder it, or use its Move up and Move down buttons.',
+        nl: 'Sleep een rij aan het handvat om hem te verplaatsen, of gebruik de knoppen Omhoog en Omlaag.',
+        de: 'Ziehe eine Zeile am Griff, um sie zu verschieben, oder nutze die Schaltflächen Nach oben und Nach unten.'
+      },
+      empty: {
+        en: 'There are no chats to arrange yet.',
+        nl: 'Er zijn nog geen chats om te ordenen.',
+        de: 'Es gibt noch keine Chats zum Anordnen.'
+      },
+      chatsHeading: {
+        en: 'Chats and folders',
+        nl: 'Chats en mappen',
+        de: 'Chats und Ordner'
+      },
+      newFolderHeading: {
+        en: 'New folder',
+        nl: 'Nieuwe map',
+        de: 'Neuer Ordner'
+      },
+      folderCreated: {
+        en: ({ name }: { name: string }) => `Folder ${name} created.`,
+        nl: ({ name }: { name: string }) => `Map ${name} gemaakt.`,
+        de: ({ name }: { name: string }) => `Ordner ${name} angelegt.`
+      },
+      folderRemoved: {
+        en: ({ name }: { name: string }) => `Folder ${name} deleted. Its chats are back in the list.`,
+        nl: ({ name }: { name: string }) => `Map ${name} verwijderd. De chats staan weer in de lijst.`,
+        de: ({ name }: { name: string }) => `Ordner ${name} gelöscht. Die Chats stehen wieder in der Liste.`
+      },
+      /** Said politely after a move, so a keyboard reader knows where the row went. */
+      position: {
+        en: ({ name, index, count }: { name: string; index: number; count: number }) =>
+          `${name} is now at position ${index} of ${count}.`,
+        nl: ({ name, index, count }: { name: string; index: number; count: number }) =>
+          `${name} staat nu op positie ${index} van ${count}.`,
+        de: ({ name, index, count }: { name: string; index: number; count: number }) =>
+          `${name} steht jetzt an Position ${index} von ${count}.`
+      },
+      inFolder: {
+        en: ({ name, folder }: { name: string; folder: string }) => `${name} is now in ${folder}.`,
+        nl: ({ name, folder }: { name: string; folder: string }) => `${name} staat nu in ${folder}.`,
+        de: ({ name, folder }: { name: string; folder: string }) => `${name} ist jetzt in ${folder}.`
+      },
+      archivedNow: {
+        en: ({ name }: { name: string }) => `${name} is archived.`,
+        nl: ({ name }: { name: string }) => `${name} is gearchiveerd.`,
+        de: ({ name }: { name: string }) => `${name} ist archiviert.`
+      },
+      unarchivedNow: {
+        en: ({ name }: { name: string }) => `${name} is out of the archive.`,
+        nl: ({ name }: { name: string }) => `${name} is uit het archief gehaald.`,
+        de: ({ name }: { name: string }) => `${name} ist aus dem Archiv geholt.`
+      },
+      /** The mute select: the current state when the chat is muted, kept as the selected line. */
+      muteKeep: {
+        en: ({ until }: { until: string }) => `Muted until ${until}`,
+        nl: ({ until }: { until: string }) => `Gedempt tot ${until}`,
+        de: ({ until }: { until: string }) => `Stumm bis ${until}`
+      },
+      /** Name of the grip that starts a drag; the row it belongs to is named by the list. */
+      dragHandle: {
+        en: 'Drag to reorder',
+        nl: 'Slepen om te verplaatsen',
+        de: 'Ziehen zum Verschieben'
+      },
+      /** The row's own name when the bot has no name the gateway gave. */
+      unnamedChat: {
+        en: 'Unnamed chat',
+        nl: 'Naamloze chat',
+        de: 'Chat ohne Namen'
+      },
+      folderMembers: {
+        en: ({ name }: { name: string }) => `Chats in ${name}`,
+        nl: ({ name }: { name: string }) => `Chats in ${name}`,
+        de: ({ name }: { name: string }) => `Chats in ${name}`
+      }
+    },
+    gateway: {
+      address: {
+        en: 'Address',
+        nl: 'Adres',
+        de: 'Adresse'
+      },
+      hermesVersion: {
+        en: 'Hermes version',
+        nl: 'Hermes-versie',
+        de: 'Hermes-Version'
+      },
+      modules: {
+        en: 'Plugin modules',
+        nl: 'Pluginmodules',
+        de: 'Plugin-Module'
+      },
+      noModules: {
+        en: 'The plugin lists none.',
+        nl: 'De plugin noemt er geen.',
+        de: 'Das Plugin nennt keine.'
+      },
+      moduleState: {
+        on: {
+          en: 'on',
+          nl: 'aan',
+          de: 'an'
+        },
+        off: {
+          en: 'off',
+          nl: 'uit',
+          de: 'aus'
+        },
+        planned: {
+          en: 'planned',
+          nl: 'gepland',
+          de: 'geplant'
+        }
+      },
+      thisPage: {
+        en: 'This page',
+        nl: 'Deze pagina',
+        de: 'Diese Seite'
+      },
+      pluginWeb: {
+        en: 'Web client in the plugin',
+        nl: 'Webclient in de plugin',
+        de: 'Webclient im Plugin'
+      },
+      pluginWebNone: {
+        en: 'The plugin does not say which web client it carries.',
+        nl: 'De plugin zegt niet welke webclient hij meelevert.',
+        de: 'Das Plugin sagt nicht, welchen Webclient es mitliefert.'
+      },
+      update: {
+        en: 'Update',
+        nl: 'Update',
+        de: 'Update'
+      },
+      updateUnknown: {
+        en: 'No update is known: the plugin does not say which web client it carries.',
+        nl: 'Er is geen update bekend: de plugin zegt niet welke webclient hij meelevert.',
+        de: 'Kein Update bekannt: Das Plugin sagt nicht, welchen Webclient es mitliefert.'
+      },
+      updateCurrent: {
+        en: 'No update is known: this page is the web client the plugin carries.',
+        nl: 'Er is geen update bekend: deze pagina is de webclient die de plugin meelevert.',
+        de: 'Kein Update bekannt: Diese Seite ist der Webclient, den das Plugin mitliefert.'
+      },
+      updateDiffers: {
+        en: ({ carried }: { carried: string }) =>
+          `The plugin now carries another web client, ${carried}. Reload this page to use it.`,
+        nl: ({ carried }: { carried: string }) =>
+          `De plugin levert nu een andere webclient mee, ${carried}. Laad deze pagina opnieuw om hem te gebruiken.`,
+        de: ({ carried }: { carried: string }) =>
+          `Das Plugin liefert jetzt einen anderen Webclient mit, ${carried}. Lade diese Seite neu, um ihn zu verwenden.`
+      },
+      operatorNote: {
+        en: 'Nothing here can be changed. What the operator decides (which modules run, who may use the gateway) is the plugin’s configuration on the gateway itself.',
+        nl: 'Hier is niets te wijzigen. Wat de beheerder bepaalt (welke modules draaien, wie de gateway mag gebruiken) is de configuratie van de plugin op de gateway zelf.',
+        de: 'Hier lässt sich nichts ändern. Was die Betreiberin oder der Betreiber festlegt (welche Module laufen, wer das Gateway nutzen darf), ist die Konfiguration des Plugins auf dem Gateway selbst.'
+      }
+    },
+    account: {
+      userId: {
+        en: 'User ID',
+        nl: 'Gebruikers-ID',
+        de: 'Nutzer-ID'
+      },
+      signOutQuestion: {
+        en: 'Sign out of this gateway in this browser?',
+        nl: 'Uitloggen bij deze gateway in deze browser?',
+        de: 'In diesem Browser vom Gateway abmelden?'
+      },
+      signOutHint: {
+        en: 'This ends your session on the gateway and removes the transcripts, drafts and chat list arrangement kept in this browser. Your theme, accent colour, language and text size stay.',
+        nl: 'Dit beëindigt je sessie op de gateway en verwijdert de gesprekken, concepten en chatlijstindeling die in deze browser staan. Je thema, accentkleur, taal en tekstgrootte blijven staan.',
+        de: 'Das beendet deine Sitzung auf dem Gateway und entfernt die Verläufe, Entwürfe und die Chatlisten-Anordnung in diesem Browser. Dein Design, deine Akzentfarbe, Sprache und Textgröße bleiben erhalten.'
+      },
+      signingOut: {
+        en: 'Signing out…',
+        nl: 'Uitloggen…',
+        de: 'Abmelden…'
+      },
+      noGateway: {
+        en: 'This page does not know which gateway it belongs to.',
+        nl: 'Deze pagina weet niet bij welke gateway hij hoort.',
+        de: 'Diese Seite weiß nicht, zu welchem Gateway sie gehört.'
+      }
+    },
+    about: {
+      commit: {
+        en: 'Commit',
+        nl: 'Commit',
+        de: 'Commit'
+      },
+      licencesIntro: {
+        en: ({ count }: { count: number }) =>
+          count === 1
+            ? '1 package ships inside the web client. Open it to read its licence.'
+            : `${count} packages ship inside the web client. Open one to read its licence.`,
+        nl: ({ count }: { count: number }) =>
+          count === 1
+            ? 'Er zit 1 pakket in de webclient. Open het om de licentie te lezen.'
+            : `Er zitten ${count} pakketten in de webclient. Open er een om de licentie te lezen.`,
+        de: ({ count }: { count: number }) =>
+          count === 1
+            ? 'Im Webclient steckt 1 Paket. Öffne es, um die Lizenz zu lesen.'
+            : `Im Webclient stecken ${count} Pakete. Öffne eines, um die Lizenz zu lesen.`
+      },
+      licencesNone: {
+        en: 'This build lists no packages.',
+        nl: 'Deze build noemt geen pakketten.',
+        de: 'Dieser Build nennt keine Pakete.'
+      },
+      source: {
+        en: 'Source',
+        nl: 'Bron',
+        de: 'Quelle'
+      }
+    }
+  },
   mcp: {
     settings: {
       intro: {

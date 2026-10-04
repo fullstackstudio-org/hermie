@@ -1,0 +1,182 @@
+/*
+ * Settings, Chat list: the rows of the arrangement, their handles, buttons and the panel each opens.
+ * Colours, radii and gutters are the theme's (`ui/theme.css`).
+ */
+
+.hm-arr__new {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-end;
+  gap: 8px;
+}
+
+.hm-arr__field {
+  display: flex;
+  flex: 1 1 12rem;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+  font-size: 0.9375rem;
+}
+
+.hm-arr__field > span {
+  color: var(--hm-text-muted);
+  font-size: 0.875rem;
+}
+
+.hm-arr__field select,
+.hm-arr__field input {
+  box-sizing: border-box;
+  width: 100%;
+  min-height: 44px;
+  padding: 0 10px;
+  border: 1px solid var(--hm-line);
+  border-radius: var(--hm-radius);
+  background: var(--hm-bg);
+  color: var(--hm-text);
+  font: inherit;
+}
+
+.hm-arr__list {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+/* The chats of a folder sit inside it, set in from the folder's edge. */
+.hm-arr__folder > .hm-arr__list {
+  margin: 6px 0 0 20px;
+}
+
+.hm-arr__item {
+  min-width: 0;
+}
+
+.hm-arr__item[data-dragging='true'] {
+  opacity: 0.5;
+}
+
+.hm-arr__row {
+  position: relative;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  min-height: 52px;
+  padding: 4px 8px;
+  border: 1px solid var(--hm-line);
+  border-radius: var(--hm-radius);
+  background: var(--hm-surface);
+}
+
+.hm-arr__row--folder {
+  background: var(--hm-selected);
+}
+
+/* The drop line: where the dragged row would land. */
+.hm-arr__row[data-mark='before']::before,
+.hm-arr__row[data-mark='after']::after {
+  content: '';
+  position: absolute;
+  inset-inline: 0;
+  height: 3px;
+  border-radius: 2px;
+  background: var(--hm-tint-text);
+}
+
+.hm-arr__row[data-mark='before']::before {
+  top: -5px;
+}
+
+.hm-arr__row[data-mark='after']::after {
+  bottom: -5px;
+}
+
+.hm-arr__grip {
+  display: inline-flex;
+  flex: none;
+  align-items: center;
+  justify-content: center;
+  width: 28px;
+  height: 36px;
+  color: var(--hm-text-muted);
+  cursor: grab;
+}
+
+.hm-arr__text {
+  display: flex;
+  flex: 1 1 8rem;
+  flex-direction: column;
+  min-width: 0;
+}
+
+.hm-arr__name {
+  font-weight: 600;
+  overflow-wrap: anywhere;
+}
+
+.hm-arr__badge {
+  color: var(--hm-text-muted);
+  font-size: 0.8125rem;
+}
+
+.hm-arr__steps {
+  display: inline-flex;
+  flex: none;
+}
+
+.hm-arr__step,
+.hm-arr__toggle {
+  appearance: none;
+  display: inline-flex;
+  flex: none;
+  align-items: center;
+  justify-content: center;
+  width: 44px;
+  height: 44px;
+  padding: 0;
+  border: 0;
+  border-radius: var(--hm-radius);
+  background: transparent;
+  color: var(--hm-tint-text);
+  cursor: pointer;
+}
+
+.hm-arr__step:hover,
+.hm-arr__toggle:hover {
+  background: var(--hm-surface-hover);
+}
+
+.hm-arr__step[aria-disabled='true'] {
+  color: var(--hm-text-faint);
+  cursor: default;
+}
+
+.hm-arr__toggle[aria-expanded='true'] {
+  background: var(--hm-selected);
+}
+
+.hm-icon--up {
+  transform: rotate(180deg);
+}
+
+/* What a row offers, under it. */
+.hm-arr__panel {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-end;
+  gap: 10px;
+  margin: 6px 0 0 36px;
+  padding: 10px 12px;
+  border: 1px solid var(--hm-line);
+  border-radius: var(--hm-radius);
+  background: var(--hm-bg);
+}
+
+.hm-arr__empty {
+  margin: 6px 0 0 20px;
+  color: var(--hm-text-muted);
+  font-size: 0.875rem;
+}

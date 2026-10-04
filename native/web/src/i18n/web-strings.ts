@@ -130,12 +130,6 @@ export const WEB_STRINGS_SOURCE = {
       nl: 'Deze gateway heeft geen Hermie-plugin. Chats werken, maar voor meldingen is de plugin nodig.',
       de: 'Dieses Gateway hat kein Hermie-Plugin. Chats funktionieren, aber Benachrichtigungen brauchen es.'
     },
-    /** The main pane's body on a settings route until Settings exists. */
-    settingsSoon: {
-      en: 'Settings are still being built.',
-      nl: 'Instellingen komen er nog aan.',
-      de: 'Die Einstellungen folgen noch.'
-    },
     /** The stamp on a chat row whose last message is under a minute old. */
     now: {
       en: 'Now',

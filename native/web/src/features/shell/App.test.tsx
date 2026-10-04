@@ -138,12 +138,49 @@ describe('the routes', () => {
     expect(screen.getByRole('heading', { level: 1 }).textContent).toBe('Settings')
   })
 
-  it('lists the settings pages it has on the settings home, MCP among them', () => {
+  it('lists every settings section on the settings home, Passkeys and MCP among them', async () => {
     router.navigate('#/settings')
     renderApp()
 
-    expect(screen.getByRole('link', { name: 'Passkeys' }).getAttribute('href')).toBe('#/settings/passkeys')
-    expect(screen.getByRole('link', { name: 'MCP' }).getAttribute('href')).toBe('#/settings/mcp')
+    const links = await screen.findAllByRole('link', {
+      name: /^(Account|This gateway|Passkeys|MCP|Chats|Chat list|Appearance|About)/u
+    })
+
+    expect(links.map(link => link.getAttribute('href'))).toEqual([
+      '#/settings/account',
+      '#/settings/gateway',
+      '#/settings/passkeys',
+      '#/settings/mcp',
+      '#/settings/chats',
+      '#/settings/chat-list',
+      '#/settings/appearance',
+      '#/settings/about'
+    ])
+    expect(screen.getByRole('heading', { level: 1 }).textContent).toBe('Settings')
+  })
+
+  it('rewrites a settings section it does not have to the settings home', async () => {
+    router.navigate('#/settings/notifications')
+    renderApp()
+
+    await screen.findByRole('link', { name: 'Appearance' })
+    expect(router.current()).toBe('#/settings')
+  })
+
+  it('offers a way to Settings in the sidebar’s foot', () => {
+    renderApp()
+
+    const footer = screen.getByRole('contentinfo')
+
+    expect(within(footer).getByRole('link', { name: 'Settings' }).getAttribute('href')).toBe('#/settings')
+  })
+
+  it('opens a section in a chunk of its own, under a way back to the home', async () => {
+    router.navigate('#/settings/about')
+    renderApp()
+
+    expect(await screen.findByRole('heading', { level: 2, name: 'About' })).toBeTruthy()
+    expect(screen.getByRole('link', { name: 'Back to settings' }).getAttribute('href')).toBe('#/settings')
   })
 
   it('opens the MCP page in a chunk of its own, and hands it the model’s actions', async () => {

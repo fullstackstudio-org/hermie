@@ -1,6 +1,6 @@
 /**
  * The foot of the sidebar: who is signed in (and, when the gateway did not say,
- * that it did not: `IdentityNote`), the way out, and which client this is. Signing out is the entry module's business (stop the chats, stop the
+ * that it did not: `IdentityNote`), the way to Settings, the way out, and which client this is. Signing out is the entry module's business (stop the chats, stop the
  * client, end the gateway's session, clear this person's stored state, go to
  * the sign-in page); this only asks for it, once.
  *
@@ -20,6 +20,8 @@ import { Icon } from '../../ui/icons'
 import { Button } from '../../ui/primitives'
 import { PersonAvatar } from '../chat/PersonAvatar'
 import { IdentityNote } from '../notices/IdentityNote'
+import { preloadSettingsHost } from '../settings/load'
+import { formatRoute } from './router'
 
 export interface SidebarFooterProps {
   /** Who is signed in: the display name, else the email, else the id; empty when the gateway named nobody. */
@@ -44,6 +46,16 @@ export function SidebarFooter({ user, pictureUrl = '', onSignOut }: SidebarFoote
         </p>
       </div>
       <IdentityNote />
+      {/* The Settings chunk is asked for as soon as a pointer or the focus reaches the link. */}
+      <a
+        className="hm-sidebar__settings"
+        href={formatRoute({ name: 'settings' })}
+        onPointerEnter={preloadSettingsHost}
+        onFocus={preloadSettingsHost}
+      >
+        <Icon name="settings" size={18} />
+        {strings.app.settings.title}
+      </a>
       <Button
         variant="quiet"
         disabled={leaving}

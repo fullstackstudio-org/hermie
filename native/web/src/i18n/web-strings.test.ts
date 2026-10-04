@@ -27,7 +27,13 @@ const SAME_AS_ENGLISH: Readonly<Record<string, readonly Locale[]>> = {
   // "Code" is the Dutch and German word too.
   'sheets.secureInput.fieldCode': ['nl', 'de'],
   // `{name}: {problem}` is the same two placeholders and a colon in every language.
-  'attachments.problemAnnounced': ['nl', 'de']
+  'attachments.problemAnnounced': ['nl', 'de'],
+  // "Chats in {name}" is the Dutch and the German way too.
+  'sheets.settings.chatList.folderMembers': ['nl', 'de'],
+  // "Update", "Build"-like loan words and the same word in Dutch and German.
+  'sheets.settings.gateway.update': ['nl', 'de'],
+  // "Commit" is the word in every language.
+  'sheets.settings.about.commit': ['nl', 'de']
 }
 
 type Source = Record<string, unknown>
@@ -85,7 +91,11 @@ const SAMPLE = {
   removed: MARKER,
   lines: MARKER,
   longest: MARKER,
-  address: MARKER
+  address: MARKER,
+  until: MARKER,
+  index: MARKER,
+  folder: MARKER,
+  carried: MARKER
 }
 
 describe('the web-only strings', () => {
