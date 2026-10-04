@@ -40,6 +40,7 @@ struct ConfirmSheetView: View {
 
   @State private var armed = false
   @State private var review = ConfirmDetailReview()
+  @State private var fieldsReview = ConfirmFieldsReview()
   @AccessibilityFocusState private var titleFocused: Bool
   @Environment(\.scenePhase) private var scenePhase
   @Environment(\.accessibilityVoiceOverEnabled) private var voiceOver
@@ -47,8 +48,11 @@ struct ConfirmSheetView: View {
   /// The detail has not been wholly in view and read to its end: Confirm stays off. With VoiceOver on
   /// the whole text, markers included, is read out as the element's label, so nothing is gated.
   private var detailUnread: Bool {
-    guard let detail = confirmation.display.detail, !detail.isEmpty, !voiceOver else { return false }
-    return !review.complete
+    guard !voiceOver else { return false }
+    let detailPending = confirmation.display.detail.map { !$0.isEmpty && !review.complete } ?? false
+    // The structured fields are what is being confirmed: they have to have been in view too.
+    let fieldsPending = !confirmation.display.fields.isEmpty && !fieldsReview.complete
+    return detailPending || fieldsPending
   }
 
   var body: some View {
@@ -59,7 +63,7 @@ struct ConfirmSheetView: View {
         .padding(.bottom, 12)
         .dynamicTypeSize(...Self.pinnedTextSize)
       Divider()
-      ConfirmTextArea(display: confirmation.display, review: $review)
+      ConfirmTextArea(display: confirmation.display, review: $review, fieldsReview: $fieldsReview)
       Divider()
       ConfirmFooter(
         requests: requests,
@@ -162,6 +166,18 @@ final class ConfirmFrameTracker {
   /// The detail's frame, and the part of the text in view, both in that space.
   var frame = CGRect.zero
   var window = CGRect.zero
+  /// The structured fields' frame, in the same space.
+  var fieldsFrame = CGRect.zero
+
+  /// Tell the review whether the fields have been in view, if that has changed.
+  func syncFields(_ review: Binding<ConfirmFieldsReview>) {
+    var next = review.wrappedValue
+    next.see(frame: fieldsFrame, window: window)
+
+    if next != review.wrappedValue {
+      review.wrappedValue = next
+    }
+  }
 
   /// Tell the review whether the frame is wholly in view, if that has changed.
   func sync(_ review: Binding<ConfirmDetailReview>) {
@@ -177,6 +193,7 @@ final class ConfirmFrameTracker {
 struct ConfirmTextArea: View {
   let display: ConfirmDisplay
   @Binding var review: ConfirmDetailReview
+  @Binding var fieldsReview: ConfirmFieldsReview
 
   @State private var tracker = ConfirmFrameTracker()
   /// The height of the scrolling text's window: the detail's box is held to it.
@@ -184,7 +201,7 @@ struct ConfirmTextArea: View {
 
   var body: some View {
     ScrollView {
-      ConfirmText(display: display, review: $review, tracker: tracker, window: window)
+      ConfirmText(display: display, review: $review, tracker: tracker, window: window, fieldsReview: $fieldsReview)
         .padding(20)
         .frame(maxWidth: .infinity, alignment: .leading)
         .coordinateSpace(.named(ConfirmFrameTracker.space))
@@ -195,6 +212,7 @@ struct ConfirmTextArea: View {
     .onScrollGeometryChange(for: CGRect.self, of: \.visibleRect) { _, visible in
       tracker.window = visible
       tracker.sync($review)
+      tracker.syncFields($fieldsReview)
     }
   }
 }
@@ -205,6 +223,7 @@ struct ConfirmText: View {
   @Binding var review: ConfirmDetailReview
   let tracker: ConfirmFrameTracker
   let window: CGFloat
+  @Binding var fieldsReview: ConfirmFieldsReview
 
   var body: some View {
     VStack(alignment: .leading, spacing: 14) {
@@ -225,6 +244,10 @@ struct ConfirmText: View {
       // commits to them in that order): the ones the person is really confirming.
       if !display.fields.isEmpty {
         ConfirmFieldsView(fields: display.fields)
+          .onGeometryChange(for: CGRect.self, of: { $0.frame(in: .named(ConfirmFrameTracker.space)) }) { frame in
+            tracker.fieldsFrame = frame
+            tracker.syncFields($fieldsReview)
+          }
       }
 
       if let detail = display.detail, !detail.isEmpty {
@@ -295,7 +318,7 @@ struct ConfirmFieldRow: View {
   @ViewBuilder private var value: some View {
     switch Style.of(field.kind) {
     case .amount:
-      Text(Self.amount(field))
+      amountView()
     case .monospaced:
       Text(verbatim: field.value)
         .font(.body.monospaced())
@@ -305,19 +328,27 @@ struct ConfirmFieldRow: View {
     }
   }
 
-  /// An amount: the value large and bold, its currency beside it. Plain attributed text: no markdown
-  /// is read and nothing in it is a link.
-  static func amount(_ field: ConfirmField) -> AttributedString {
-    var value = AttributedString(field.value)
-    value.font = .title.bold()
+  /// An amount: the value large and bold, its currency beside it, each its own text view (its own
+  /// paragraph for the bidirectional algorithm: a right-to-left currency can never reorder the sign or
+  /// the digits of the value). Plain text: no markdown is read and nothing in it is a link.
+  static func amountParts(_ field: ConfirmField) -> (value: String, currency: String?) {
+    (field.value, field.currency)
+  }
 
-    guard let currency = field.currency else {
-      return value
+  private func amountView() -> some View {
+    let parts = Self.amountParts(field)
+
+    return HStack(alignment: .firstTextBaseline, spacing: 6) {
+      Text(verbatim: parts.value)
+        .font(.title.bold())
+        .fixedSize(horizontal: false, vertical: true)
+
+      if let currency = parts.currency {
+        Text(verbatim: currency)
+          .font(.title3.bold())
+          .fixedSize(horizontal: false, vertical: true)
+      }
     }
-
-    var unit = AttributedString(" " + currency)
-    unit.font = .title3.bold()
-    return value + unit
   }
 
   /// What VoiceOver reads as the value: the value, and an amount's currency after it.

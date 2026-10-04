@@ -425,9 +425,11 @@ public final class PasskeyModel {
   /// address that cannot be a base URL, advertises no passkey.
   var policy: ConfirmCapabilityPolicy {
     // This model draws a confirmation's structured fields and, at level `passkey`, commits to them
-    // (`text_digest_v2`): `fields` is on whatever else is.
+    // (`text_digest_v2`). Fields are advertised only beside a level this app actually renders: `plain`
+    // confirmations are declined here, so `confirm_fields` never rides next to them, and a passkey that
+    // is not advertised (no credential on this device yet) takes no request with fields either.
     guard let rpID = configuration.rpID, baseURL != nil else {
-      return ConfirmCapabilityPolicy(plain: configuration.plain, fields: true)
+      return ConfirmCapabilityPolicy(plain: configuration.plain)
     }
 
     return ConfirmCapabilityPolicy(
@@ -439,7 +441,7 @@ public final class PasskeyModel {
         pinnedGatewayID: pin.gatewayID,
         foreignGatewayIDs: foreignGatewayIDs
       ),
-      fields: true
+      fields: !pin.appCredentialIDs.isEmpty
     )
   }
 

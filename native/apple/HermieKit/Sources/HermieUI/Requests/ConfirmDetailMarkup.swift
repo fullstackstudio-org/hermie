@@ -239,6 +239,28 @@ struct ConfirmDetailReview: Equatable {
   }
 }
 
+/// Whether the structured fields of a confirmation have been in view of the sheet's scrolling text:
+/// the facts the person is confirming. Confirm waits for it as it waits for the detail. The fields' frame
+/// may be taller than the window (large text, a phone on its side), so it counts once its top edge and
+/// its bottom edge have each been in view; once seen it stays seen.
+struct ConfirmFieldsReview: Equatable {
+  private(set) var topSeen = false
+  private(set) var bottomSeen = false
+
+  /// Both ends have been in view.
+  var complete: Bool { topSeen && bottomSeen }
+
+  /// The fields' `frame` and the `window` of the scrolling text, in one coordinate space.
+  mutating func see(frame: CGRect, window: CGRect) {
+    guard !frame.isEmpty, !window.isEmpty else { return }
+    let slack = ConfirmDetailReview.slack
+    let within = { (y: CGFloat) in y >= window.minY - slack && y <= window.maxY + slack }
+
+    if within(frame.minY) { topSeen = true }
+    if within(frame.maxY) { bottomSeen = true }
+  }
+}
+
 /// How tall the detail's own box may be. The box scrolls inside the sheet's scrolling text, and Confirm
 /// waits for its whole frame to be in view of that text, so a box taller than the text's window could
 /// never be wholly in view (a phone on its side, large text): it is held to the window's height and

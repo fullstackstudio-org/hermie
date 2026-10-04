@@ -101,6 +101,7 @@ public struct ReviewDiff: Sendable, Equatable {
     case anchorFalse(String)
     case anchorNotOnLastHunk(String)
     case kindAndLinesDisagree(String)
+    case kindAndHeaderDisagree(String)
   }
 
   public let kind: Kind
@@ -192,10 +193,16 @@ public struct ReviewDiff: Sendable, Equatable {
     return ReviewDiff(kind: kind, path: path, oldPath: oldPath, hunks: hunks)
   }
 
-  /// One to 300 code points, one line.
-  private static func isPath(_ text: String) -> Bool {
+  /// One to 300 code points, one line, relative: never absolute, never a `..` or `.git` segment (§7).
+  static func isPath(_ text: String) -> Bool {
     let count = text.unicodeScalars.count
-    return count >= 1 && count <= DiffTextRules.maxPathChars && DiffTextRules.isOneLine(text)
+
+    guard count >= 1, count <= DiffTextRules.maxPathChars, DiffTextRules.isOneLine(text), !text.hasPrefix("/") else {
+      return false
+    }
+
+    return !text.split(separator: "/", omittingEmptySubsequences: false)
+      .contains { $0 == ".." || $0.lowercased() == ".git" }
   }
 
   /// `^h[1-9][0-9]{0,2}$`.
@@ -247,18 +254,42 @@ public struct ReviewDiff: Sendable, Equatable {
       throw Problem.countsDisagree(id)
     }
 
-    // git's no-newline note belongs to the changed line before it, and only the last hunk has one: after a
-    // context line, or in the middle of the file, it would glue two lines together when the patch is
-    // applied, invisibly.
-    for (index, line) in lines.enumerated() where line.mark == .noNewline {
-      guard last, index > 0, lines[index - 1].mark == .added || lines[index - 1].mark == .removed else {
+    // git's no-newline note (§7): only in the last hunk, only directly after the LAST removed line and/or
+    // the LAST added line, once per side; after a note no context line follows (and, being after the
+    // last line of its side, none of that side). Anywhere else it would glue a line to the next line of
+    // the file when the patch is applied, invisibly.
+    if lines.contains(where: { $0.mark == .noNewline }) {
+      guard last else {
+        throw Problem.noNewlineMisplaced(id)
+      }
+
+      let lastRemoved = lines.lastIndex { $0.mark == .removed }
+      let lastAdded = lines.lastIndex { $0.mark == .added }
+      var firstNote: Int?
+
+      for (index, line) in lines.enumerated() where line.mark == .noNewline {
+        firstNote = firstNote ?? index
+
+        guard index > 0, index - 1 == lastRemoved || index - 1 == lastAdded else {
+          throw Problem.noNewlineMisplaced(id)
+        }
+      }
+
+      if let firstNote, lines[firstNote...].contains(where: { $0.mark == .context }) {
         throw Problem.noNewlineMisplaced(id)
       }
     }
 
-    // A new file holds only added lines and a deleted one only removed lines.
+    // A new file holds only added lines and a deleted one only removed lines, and its header says so:
+    // `-0,0` for a new file, `+0,0` for a deleted one.
     if (kind == .new && (context > 0 || removed > 0)) || (kind == .delete && (context > 0 || added > 0)) {
       throw Problem.kindAndLinesDisagree(id)
+    }
+
+    if (kind == .new && parsed.old != Span(start: 0, count: 0))
+      || (kind == .delete && parsed.new != Span(start: 0, count: 0))
+    {
+      throw Problem.kindAndHeaderDisagree(id)
     }
 
     let declared: Anchor?

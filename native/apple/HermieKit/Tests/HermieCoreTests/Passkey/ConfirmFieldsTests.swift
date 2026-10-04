@@ -67,10 +67,10 @@ struct ConfirmFieldRulesTests {
     #expect(read[1].currency == nil && read[2].value == "claude-opus-5-5")
   }
 
-  @Test("no fields: an absent key or null is a request without any; an empty list is not")
+  @Test("no fields: an absent key is a request without any; null and an empty list are not")
   func absent() throws {
     #expect(try fields(nil).isEmpty)
-    #expect(try fields(.null).isEmpty)
+    #expect(problem(.null) == .notAList, "absent, or 1 to 8 objects: never null")
     #expect(problem([]) == .notAList, "never an empty list")
     #expect(problem("fields") == .notAList)
     #expect(problem(["a": 1]) == .notAList)
@@ -270,13 +270,15 @@ struct ConfirmFieldsModelTests {
     #expect(call.params["result"].flatMap(ConfirmResult.init(jsonValue:))?.passkey?.v == 1)
   }
 
-  @Test("a frame with fields null is a request without any")
+  @Test("a frame with fields null is refused with 4040, and nothing of it is shown")
   func nullFields() async throws {
     let f = await T.fixture()
     var params = T.params(ids: [f.phone.id])
     params["fields"] = .null
-    try await PasskeyModelTests().raise(f, params)
-    #expect(f.model.confirmation("srq-1")?.display.textVersion == 1)
+    f.link.raise(id: "srq-1", method: "confirm", params: params)
+    try await eventually("the refusal") { @MainActor in !f.link.declines.isEmpty }
+    #expect(f.link.declines.first?.code == 4040)
+    #expect(f.model.confirmation("srq-1") == nil)
   }
 
   @Test("fields that break the contract refuse the whole frame with 4040 and show none of it")
@@ -337,14 +339,26 @@ struct ConfirmFieldsModelTests {
     }
   }
 
-  @Test("the model advertises that it shows fields: confirm_fields and passkey v 2 follow from the policy")
+  @Test("confirm_fields is advertised only beside a level this app renders: a passkey with a credential here, never next to plain")
   func advertisesFields() async throws {
-    let f = await T.fixture()
-    #expect(f.model.policy.fields)
-    #expect(f.source.policy.fields, "the connection decides its second call from this")
+    // No credential of this account on this device: the passkey is not advertised, so no fields either.
+    let bare = await T.fixture()
+    #expect(!bare.model.policy.fields)
+    #expect(!bare.source.policy.fields)
 
-    // Without an RP there is no passkey, and the fields are still shown (a plain level uses them).
-    let noRP = await T.fixture(rpID: nil)
-    #expect(noRP.model.policy.passkey == nil && noRP.model.policy.fields)
+    // With one, the passkey is advertised and the fields with it.
+    let known = PasskeyPinRecord(
+      gatewayID: Base64URL.encode(T.gatewayID), knownCredentialIDs: ["AQID"], appCredentialIDs: ["AQID"], seenAt: 1)
+    let enrolled = await T.fixture(pins: ["gw-1": known])
+    #expect(enrolled.model.policy.fields)
+    #expect(enrolled.source.policy.fields, "the connection decides its second call from this")
+
+    // Plain is declined by this model, whatever the configuration says: fields never go with it.
+    let plain = await T.fixture(plain: true)
+    #expect(plain.model.policy.plain && !plain.model.policy.fields)
+
+    // Without an RP there is no passkey and nothing that renders fields.
+    let noRP = await T.fixture(rpID: nil, plain: true)
+    #expect(noRP.model.policy.passkey == nil && !noRP.model.policy.fields)
   }
 }

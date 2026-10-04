@@ -232,7 +232,7 @@ struct ReviewDiffReadingTests {
     #expect(try read(diff(hunks: [hunk(header: "@@ -10,3 +10,3 @@")])).hunks.count == 1)
 
     // The no-newline note is no line of either side.
-    let note = hunk(header: "@@ -10,3 +10,3 @@", lines: [" a", "-b", "\\ No newline at end of file", "+B", "\\ No newline at end of file", " c"])
+    let note = hunk(header: "@@ -10,3 +10,3 @@", lines: [" a", " c", "-b", "\\ No newline at end of file", "+B", "\\ No newline at end of file"])
     #expect(try read(diff(hunks: [note])).hunks[0].lines.count == 6)
   }
 
@@ -248,8 +248,31 @@ struct ReviewDiffReadingTests {
     let early = hunk("h1", header: "@@ -10,3 +10,3 @@", lines: [" a", "-b", note, "+B", " c"])
     #expect(problem(diff(hunks: [early, hunk("h2")])) == .noNewlineMisplaced("h1"), "not in the last hunk")
 
-    let fine = hunk(header: "@@ -10,2 +10,2 @@", lines: [" a", "-b", note, "+B", note])
-    #expect(problem(diff(hunks: [fine])) == nil)
+    // Directly after the LAST added line only: another added line follows the note.
+    let notLastAdded = hunk(header: "@@ -10,1 +10,3 @@", lines: [" a", "+b", note, "+c"])
+    #expect(problem(diff(hunks: [notLastAdded])) == .noNewlineMisplaced("h1"), "a line of the note's side follows")
+
+    // And no context line after a note.
+    let contextAfter = hunk(header: "@@ -10,3 +10,3 @@", lines: [" a", "-b", note, "+B", note, " c"])
+    #expect(problem(diff(hunks: [contextAfter])) == .noNewlineMisplaced("h1"), "a context line follows")
+
+    let twice = hunk(header: "@@ -10,2 +10,2 @@", lines: [" a", "-b", note, note, "+B"])
+    #expect(problem(diff(hunks: [twice])) == .noNewlineMisplaced("h1"), "a note after a note")
+
+    let afterRemovedNotLast = hunk(header: "@@ -10,3 +10,1 @@", lines: [" a", "-b", note, "-c"])
+    #expect(problem(diff(hunks: [afterRemovedNotLast])) == .noNewlineMisplaced("h1"), "not the last removed line")
+
+    // The allowed shapes: after the last removed line, the last added line, or both.
+    let both = hunk(header: "@@ -10,2 +10,2 @@", lines: [" a", "-b", note, "+B", note])
+    #expect(problem(diff(hunks: [both])) == nil)
+    let addedOnly = hunk(header: "@@ -10,1 +10,2 @@", lines: [" a", "+b", note])
+    #expect(problem(diff(hunks: [addedOnly])) == nil)
+    let removedOnly = hunk(header: "@@ -10,2 +10,1 @@", lines: [" a", "-b", note])
+    #expect(problem(diff(hunks: [removedOnly])) == nil)
+    let afterBothBlocks = hunk(header: "@@ -10,2 +10,2 @@", lines: [" a", "-b", "+B", note])
+    #expect(problem(diff(hunks: [afterBothBlocks])) == nil, "the note of the new side only")
+    let moreAddedAfterRemovedNote = hunk(header: "@@ -10,2 +10,3 @@", lines: [" a", "-b", note, "+c", "+d", note])
+    #expect(problem(diff(hunks: [moreAddedAfterRemovedNote])) == nil)
   }
 
   // MARK: Anchors
@@ -310,6 +333,14 @@ struct ReviewDiffReadingTests {
     #expect(try read(diff(kind: "new", hunks: [added])).kind == .new)
     #expect(problem(diff(kind: "new", hunks: [hunk()])) == .kindAndLinesDisagree("h1"))
 
+    // The header says it too: `-0,0` for a new file, `+0,0` for a deleted one.
+    let newWithOldLines = hunk(header: "@@ -1,2 +1,2 @@", lines: ["+a", "+b"])
+    #expect(problem(diff(kind: "new", hunks: [newWithOldLines])) == .countsDisagree("h1"))
+    let newAtLineOne = hunk(header: "@@ -1,0 +1,2 @@", lines: ["+a", "+b"])
+    #expect(problem(diff(kind: "new", hunks: [newAtLineOne])) == .kindAndHeaderDisagree("h1"))
+    let deleteAtZero = hunk(header: "@@ -1,2 +1,0 @@", lines: ["-a", "-b"])
+    #expect(problem(diff(kind: "delete", hunks: [deleteAtZero])) == .kindAndHeaderDisagree("h1"))
+
     let removed = hunk(header: "@@ -1,2 +0,0 @@", lines: ["-a", "-b"], anchor: "both")
     #expect(try read(diff(kind: "delete", hunks: [removed])).kind == .delete)
     #expect(problem(diff(kind: "delete", hunks: [added])) != nil)
@@ -324,6 +355,16 @@ struct ReviewDiffReadingTests {
     #expect(problem(diff(path: "a\u{2028}b", hunks: [hunk()])) == .pathInvalid)
     #expect(problem(diff(path: "a\rb", hunks: [hunk()])) == .pathInvalid)
     #expect(problem(diff(kind: "rename", path: "b", oldPath: "x\ny", hunks: [hunk()])) == .oldPathInvalid)
+
+    // Never absolute, never a `..` or `.git` segment (§7).
+    for bad in ["/etc/passwd", "../x", "a/../b", "a/..", "..", ".git/config", "a/.git/hooks", "a/.GIT", ".git"] {
+      #expect(problem(diff(path: bad, hunks: [hunk()])) == .pathInvalid, "\(bad)")
+      #expect(problem(diff(kind: "rename", path: "b", oldPath: bad, hunks: [hunk()])) == .oldPathInvalid, "\(bad)")
+    }
+
+    for good in ["a.txt", "a/b/c.go", ".gitignore", "a/.github/x.yml", "a..b", "dir/..hidden", "x/.gitkeep"] {
+      #expect(try read(diff(path: good, hunks: [hunk()])).path == good, "\(good)")
+    }
 
     // An odd character in a path is shown as a visible code, not refused.
     #expect(try read(diff(path: "a\u{202E}b", hunks: [hunk()])).path == "a\u{202E}b")

@@ -42,11 +42,12 @@ public enum ConfirmFieldRules {
     case currency
   }
 
-  /// The fields of a frame, in order: empty when it has none (an absent or `null` key), or why the frame
+  /// The fields of a frame, in order: empty when it has none (an absent key; `null` is refused, §4.1 says
+  /// "absent, or 1 to 8 objects"), or why the frame
   /// is refused.
   public static func read(_ raw: JSONValue?) -> Result<[ConfirmField], Problem> {
     switch raw {
-    case nil, .null?:
+    case nil:
       return .success([])
     case .array(let list)?:
       return read(list)

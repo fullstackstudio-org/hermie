@@ -124,20 +124,56 @@ struct DiffSheetTests {
     #expect(ConfirmFieldKind.allCases.count == 7, "a kind added to the contract needs a style decided")
 
     let cost = ConfirmField(id: "cost", kind: .amount, label: "Estimated cost", value: "4,20", currency: "€")
-    #expect(String(Row.amount(cost).characters) == "4,20 €", "the value is never parsed, rounded or localised")
+    #expect(Row.amountParts(cost).value == "4,20", "the value is never parsed, rounded or localised")
+    #expect(Row.amountParts(cost).currency == "€")
     #expect(Row.spoken(cost) == "4,20 €")
     let bare = ConfirmField(id: "x", kind: .amount, label: "L", value: "1.00")
-    #expect(String(Row.amount(bare).characters) == "1.00")
+    #expect(Row.amountParts(bare).value == "1.00" && Row.amountParts(bare).currency == nil)
     #expect(Row.spoken(bare) == "1.00")
     #expect(Row.spoken(ConfirmField(id: "t", kind: .text, label: "L", value: "v")) == "v")
   }
 
-  @Test("an amount is plain attributed text: no markdown is read and nothing in it links")
-  func amountIsPlain() {
-    let field = ConfirmField(id: "cost", kind: .amount, label: "L", value: "**4**[x](https://evil.example)", currency: "EUR")
-    let text = ConfirmFieldRow.amount(field)
-    #expect(String(text.characters) == "**4**[x](https://evil.example) EUR")
-    #expect(text.runs.allSatisfy { $0.link == nil })
+  @Test("an amount's value and currency are separate texts: a right-to-left currency cannot reorder the value")
+  func amountIsSeparate() {
+    let field = ConfirmField(id: "cost", kind: .amount, label: "L", value: "-4.20", currency: "\u{0631}.\u{0633}")
+    let parts = ConfirmFieldRow.amountParts(field)
+    #expect(parts.value == "-4.20", "the sign and the digits are a text of their own")
+    #expect(parts.currency == "\u{0631}.\u{0633}")
+    #expect(!parts.value.contains(parts.currency ?? "?"))
+
+    // As given, markdown and links included: nothing is read.
+    let markup = ConfirmField(id: "cost", kind: .amount, label: "L", value: "**4**[x](https://evil.example)", currency: "EUR")
+    #expect(ConfirmFieldRow.amountParts(markup).value == "**4**[x](https://evil.example)")
+  }
+
+  @Test("the fields count as seen once both their ends have been in view, and stay seen")
+  func fieldsReview() {
+    var review = ConfirmFieldsReview()
+    let frame = CGRect(x: 0, y: 100, width: 300, height: 400)
+    #expect(!review.complete)
+
+    // A window below the fields sees nothing; one that shows their top sees the top only.
+    review.see(frame: frame, window: CGRect(x: 0, y: 600, width: 300, height: 300))
+    #expect(!review.topSeen && !review.bottomSeen)
+    review.see(frame: frame, window: CGRect(x: 0, y: 0, width: 300, height: 300))
+    #expect(review.topSeen && !review.bottomSeen && !review.complete)
+
+    // Scrolled on until the bottom shows: complete, though the frame never fitted the window.
+    review.see(frame: frame, window: CGRect(x: 0, y: 300, width: 300, height: 300))
+    #expect(review.complete)
+    review.see(frame: frame, window: CGRect(x: 0, y: 900, width: 300, height: 300))
+    #expect(review.complete, "it stays")
+
+    // An unmeasured frame or window counts for nothing.
+    var fresh = ConfirmFieldsReview()
+    fresh.see(frame: .zero, window: CGRect(x: 0, y: 0, width: 300, height: 300))
+    fresh.see(frame: frame, window: .zero)
+    #expect(!fresh.topSeen && !fresh.bottomSeen)
+
+    // A short block that fits is complete at once.
+    var short = ConfirmFieldsReview()
+    short.see(frame: CGRect(x: 0, y: 10, width: 300, height: 80), window: CGRect(x: 0, y: 0, width: 300, height: 300))
+    #expect(short.complete)
   }
 
   // MARK: The views draw

@@ -301,7 +301,8 @@ struct DiffHunkPlace: View {
       }
 
       if let detail {
-        Text(verbatim: detail)
+        // The header's section text may hold tabs too (§7.1): drawn as in a line, never hidden.
+        Text(DiffLinesView.attributed(detail))
           .font(.caption.monospaced())
           .foregroundStyle(.secondary)
           .fixedSize(horizontal: false, vertical: true)
@@ -347,6 +348,8 @@ struct DiffLinesView: View {
   @State private var viewport: CGFloat = 0
   @State private var content: CGFloat = 0
   @State private var offset: CGFloat = 0
+  /// The height each row has come out at, by line index: the gutter's cells match them.
+  @State private var heights: [Int: CGFloat] = [:]
 
   /// Some row is wider than the view.
   private var overflows: Bool { content > viewport + 1 }
@@ -377,10 +380,10 @@ struct DiffLinesView: View {
   /// The markers, apart from the text and always in view.
   private var gutter: some View {
     VStack(spacing: 0) {
-      ForEach(Array(hunk.lines.enumerated()), id: \.offset) { _, line in
+      ForEach(Array(hunk.lines.enumerated()), id: \.offset) { index, line in
         Text(verbatim: Self.symbol(line.mark))
           .font(.callout.monospaced().weight(.bold))
-          .frame(width: gutterWidth, height: rowHeight)
+          .frame(width: gutterWidth, height: max(rowHeight, heights[index] ?? 0))
           .background(Self.tint(line.mark).opacity(0.28))
           .accessibilityHidden(true)
       }
@@ -391,9 +394,9 @@ struct DiffLinesView: View {
   private var scroller: some View {
     ScrollView(.horizontal) {
       Grid(alignment: .leading, horizontalSpacing: 0, verticalSpacing: 0) {
-        ForEach(Array(hunk.lines.enumerated()), id: \.offset) { _, line in
+        ForEach(Array(hunk.lines.enumerated()), id: \.offset) { index, line in
           GridRow {
-            row(line)
+            row(index, line)
           }
         }
       }
@@ -442,14 +445,22 @@ struct DiffLinesView: View {
     }
   }
 
-  private func row(_ line: ReviewDiff.Line) -> some View {
+  private func row(_ index: Int, _ line: ReviewDiff.Line) -> some View {
     Text(Self.attributed(line.text))
       .font(.callout.monospaced())
       .lineLimit(1)
       .fixedSize(horizontal: true, vertical: false)
       .padding(.horizontal, 8)
-      .frame(maxWidth: .infinity, minHeight: rowHeight, maxHeight: rowHeight, alignment: .leading)
+      // A row is at least `rowHeight` and grows with its text (a fallback font for a wide glyph, a large
+      // text size); the gutter cell of the same row takes the height measured here, so the two columns
+      // always line up.
+      .frame(maxWidth: .infinity, minHeight: rowHeight, alignment: .leading)
       .background(Self.tint(line.mark).opacity(0.14))
+      .onGeometryChange(for: CGFloat.self, of: { $0.size.height }) { height in
+        if heights[index] != height {
+          heights[index] = height
+        }
+      }
       .accessibilityLabel(Self.spoken(line))
   }
 
