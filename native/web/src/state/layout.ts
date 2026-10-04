@@ -322,6 +322,11 @@ export interface ChatLayoutState {
   /** Silence one chat until `until` seconds, `0` for forever, `null` to stop. */
   setMute: (botName: string, until: number | null) => void
   /**
+   * Silence several chats at once (a folder's mute): one change, so one write to the gateway and not one for every
+   * chat inside. The same deadline for each; `null` lets every one of them speak again.
+   */
+  setMutes: (botNames: readonly string[], until: number | null) => void
+  /**
    * Forget the mutes that have lapsed.
    *
    * An optimisation, never a correctness step: every reader already compares
@@ -979,6 +984,21 @@ export function createLayoutStore(): StoreApi<ChatLayoutState> {
           delete mutes[botName]
         } else {
           mutes[botName] = Math.floor(until)
+        }
+
+        set({ mutes })
+        save()
+      },
+
+      setMutes(botNames, until) {
+        const mutes = { ...get().mutes }
+
+        for (const botName of botNames) {
+          if (until === null) {
+            delete mutes[botName]
+          } else {
+            mutes[botName] = Math.floor(until)
+          }
         }
 
         set({ mutes })

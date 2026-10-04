@@ -359,6 +359,70 @@ test.describe('Chat list', () => {
     })
     await expect(page.locator('li[data-bot="writer"] .hm-arr__badge')).toHaveText('Muted')
   })
+
+  test('mutes every chat in a folder at once, shows the folder muted in the list and the sidebar, and unmutes them all', async ({
+    app,
+    page
+  }) => {
+    await app.open('#/settings/chat-list')
+    await page.getByRole('textbox', { name: 'Folder name' }).fill('Reading')
+    await page.keyboard.press('Enter')
+
+    for (const name of ['Writer', 'Researcher']) {
+      await page
+        .getByRole('main')
+        .getByRole('button', { name: `Actions for ${name}` })
+        .click()
+      await page
+        .getByRole('group', { name: `Actions for ${name}` })
+        .getByRole('combobox', { name: 'Move to folder' })
+        .selectOption({ label: 'Reading' })
+    }
+
+    await expect(page.getByRole('list', { name: 'Chats in Reading' }).locator('li[data-bot]')).toHaveCount(2)
+
+    await page.getByRole('button', { name: 'Actions for the Reading folder' }).click()
+
+    const mute = page.getByRole('group', { name: 'Actions for the Reading folder' }).getByRole('combobox', {
+      name: 'Mute folder'
+    })
+
+    await mute.selectOption({ label: 'Until I turn it back on' })
+
+    // The folder says it is muted, and so does every chat inside it, in the list and in the sidebar.
+    await expect(page.locator('li[data-folder] > .hm-arr__row .hm-arr__badge')).toHaveText('Muted')
+    await expect(page.locator('li[data-bot="writer"] .hm-arr__badge')).toHaveText('Muted')
+    await expect(page.locator('li[data-bot="researcher"] .hm-arr__badge')).toHaveText('Muted')
+    await expect(page.locator('.hm-chat-list a[data-bot="writer"]')).toHaveAttribute('data-muted', 'true')
+    await expect(page.locator('.hm-chat-list a[data-bot="researcher"]')).toHaveAttribute('data-muted', 'true')
+
+    // It survives a reload (the arrangement is the gateway's), and one chat set free makes the folder "not muted".
+    await page.reload()
+    await expect(page.locator('li[data-folder] > .hm-arr__row .hm-arr__badge')).toHaveText('Muted')
+    await page.getByRole('main').getByRole('button', { name: 'Actions for Writer' }).click()
+    await page.getByRole('group', { name: 'Actions for Writer' }).getByRole('combobox', { name: 'Mute' }).selectOption({
+      label: 'Off'
+    })
+    await expect(page.locator('li[data-folder] > .hm-arr__row .hm-arr__badge')).toHaveCount(0)
+
+    // And the folder's own control silences the one that was left out as well, then lets all of them speak again.
+    await page.getByRole('button', { name: 'Actions for the Reading folder' }).click()
+    await page
+      .getByRole('group', { name: 'Actions for the Reading folder' })
+      .getByRole('combobox', {
+        name: 'Mute folder'
+      })
+      .selectOption({ label: 'Until I turn it back on' })
+    await expect(page.locator('li[data-bot="writer"] .hm-arr__badge')).toHaveText('Muted')
+    await page
+      .getByRole('group', { name: 'Actions for the Reading folder' })
+      .getByRole('combobox', {
+        name: 'Mute folder'
+      })
+      .selectOption({ label: 'Off' })
+    await expect(page.locator('.hm-arr__badge')).toHaveCount(0)
+    await expect(page.locator('.hm-chat-list a[data-muted="true"]')).toHaveCount(0)
+  })
 })
 
 test.describe('Chats', () => {

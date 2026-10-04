@@ -13,7 +13,7 @@
  *
  * **What else a row offers** is behind one button per row (Actions for <name>), a disclosure with
  * native controls: the folder it is in, its colour, its mute, and archive. A folder's own has its name,
- * colour and delete. Archived chats are listed apart and offer colour, mute and Unarchive.
+ * colour, its mute (every chat inside at once: one write, and the folder is muted while every chat inside is) and delete. Archived chats are listed apart and offer colour, mute and Unarchive.
  *
  * The page lists what the arrangement holds and the roster has not placed yet (no connection to fold it
  * in), loose and unmovable, so no chat is missing from it. The sidebar's own list does not draw the
@@ -30,7 +30,7 @@ import { botsStore } from '../../state/bots'
 import { ACCENT_NAMES, type AccentName } from '../../state/folders'
 import { botLabel, layoutStore } from '../../state/layout'
 import { settingsStore } from '../../state/settings'
-import { formatMuteUntil, MUTE_DURATIONS, type MuteDuration, muteUntil } from '../../state/mute'
+import { folderMutedUntil, formatMuteUntil, MUTE_DURATIONS, type MuteDuration, muteUntil } from '../../state/mute'
 import { Icon } from '../../ui/icons'
 import { Button, VisuallyHidden } from '../../ui/primitives'
 import { botNames } from '../bots/bot-names'
@@ -355,6 +355,10 @@ function FolderRow({
   const actions = strings.app.layout.folderActions({ name: folder.name })
   const mark = common.mark?.key === key ? common.mark : null
   const over = (after: boolean): Over => ({ kind: 'folder', id: folder.id, after })
+  const words = sheetStrings.settings.chatList
+  // Muted when every chat inside is: the soonest of their deadlines, or for good. A folder with one chat left out is not.
+  const until = folderMutedUntil(entry.chats, common.mutes, common.now)
+  const choice: MuteChoice = until === null ? 'off' : until === 0 ? 'forever' : 'keep'
 
   return (
     <li
@@ -373,6 +377,15 @@ function FolderRow({
         <span className="hm-swatch" data-accent={colour} aria-hidden="true" />
         <span className="hm-arr__text">
           <span className="hm-arr__name">{label}</span>
+          {until === null ? null : (
+            <span className="hm-arr__badge">
+              {until === 0
+                ? strings.app.layout.muted
+                : strings.app.layout.mutedUntil({
+                    when: formatMuteUntil(until, common.now, strings.app.layout.muteWeekdays)
+                  })}
+            </span>
+          )}
         </span>
         <span className="hm-arr__steps">
           <StepButton
@@ -413,6 +426,36 @@ function FolderRow({
             value={colour}
             onChange={next => layoutStore.getState().setFolderColour(folder.id, next)}
           />
+
+          {/* The row's mute, applied to every chat inside at once (one write, not one for each). */}
+          <label className="hm-arr__field">
+            <span>{strings.app.layout.muteFolder}</span>
+            <select
+              value={choice}
+              disabled={entry.chats.length === 0}
+              onChange={event => {
+                const next = event.currentTarget.value as MuteChoice
+
+                if (next === 'keep') {
+                  return
+                }
+
+                layoutStore.getState().setMutes(entry.chats, next === 'off' ? null : muteUntil(next, common.now))
+              }}
+            >
+              <option value="off">{strings.chat.options.notMuted}</option>
+              {choice === 'keep' && until !== null ? (
+                <option value="keep">
+                  {words.muteKeep({ until: formatMuteUntil(until, common.now, strings.app.layout.muteWeekdays) })}
+                </option>
+              ) : null}
+              {MUTE_DURATIONS.map(duration => (
+                <option key={duration} value={duration}>
+                  {strings.app.layout.muteFor[duration]}
+                </option>
+              ))}
+            </select>
+          </label>
 
           <Button variant="quiet" data-tone="danger" onClick={() => common.removeFolder(folder.id, label)}>
             {strings.app.layout.deleteFolder}

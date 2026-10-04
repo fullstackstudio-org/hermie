@@ -65,6 +65,37 @@ export function mutedUntil(mutes: Mutes, botName: string, now: number): number |
 }
 
 /**
+ * When a whole folder is silent until, or `null` when any chat in it is not (or it holds none).
+ *
+ * A folder's menu asks one question: whether to offer Mute or Unmute. A folder that is half muted has to answer "not
+ * muted", because the useful action there is to silence the rest and not to un-silence the few. `MUTE_FOREVER` wins
+ * over a deadline for the same reason a deadline wins over nothing: the answer is the state the reader would still be
+ * in, so a folder with a chat that never lapses and one that lapses in an hour reads as the hour, and a folder whose
+ * every chat is muted for good reads as `MUTE_FOREVER`. The Expo app's `folderMuteState`.
+ */
+export function folderMutedUntil(botNames: readonly string[], mutes: Mutes, now: number): number | null {
+  if (botNames.length === 0) {
+    return null
+  }
+
+  let soonest: number | null = null
+
+  for (const botName of botNames) {
+    if (!isMuted(mutes, botName, now)) {
+      return null
+    }
+
+    const until = mutes[botName] as number
+
+    if (until !== MUTE_FOREVER) {
+      soonest = soonest === null || until < soonest ? until : soonest
+    }
+  }
+
+  return soonest ?? MUTE_FOREVER
+}
+
+/**
  * The same map without the mutes that have lapsed, or `null` when none had.
  *
  * `null` rather than an equal copy on purpose: the caller is a store whose every

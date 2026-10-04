@@ -13,7 +13,16 @@
 import { describe, expect, it } from 'vitest'
 
 import { strings } from '../generated/strings'
-import { formatMuteUntil, isMuted, MUTE_FOREVER, muteUntil, mutedUntil, mutesOf, withoutExpired } from './mute'
+import {
+  folderMutedUntil,
+  formatMuteUntil,
+  isMuted,
+  MUTE_FOREVER,
+  muteUntil,
+  mutedUntil,
+  mutesOf,
+  withoutExpired
+} from './mute'
 
 /** A Wednesday at 10:00 local time, so the day-boundary cases are readable. */
 
@@ -54,6 +63,30 @@ describe('a mute as a deadline', () => {
     expect(mutedUntil({ writer: NOON + HOUR }, 'writer', NOON)).toBe(NOON + HOUR)
     expect(mutedUntil({ writer: NOON + HOUR }, 'writer', NOON + 2 * HOUR)).toBeNull()
     expect(mutedUntil({ writer: MUTE_FOREVER }, 'writer', NOON)).toBe(MUTE_FOREVER)
+  })
+})
+
+describe('a whole folder', () => {
+  it('is not muted when it holds no chat, or when any chat inside is not muted', () => {
+    expect(folderMutedUntil([], { writer: MUTE_FOREVER }, NOON)).toBeNull()
+    expect(folderMutedUntil(['writer', 'ops'], { writer: MUTE_FOREVER }, NOON)).toBeNull()
+    expect(folderMutedUntil(['writer', 'ops'], { writer: NOON + HOUR, ops: NOON - HOUR }, NOON)).toBeNull()
+  })
+
+  it('is muted until the soonest deadline of the chats inside', () => {
+    expect(folderMutedUntil(['writer', 'ops'], { writer: NOON + 8 * HOUR, ops: NOON + HOUR }, NOON)).toBe(NOON + HOUR)
+  })
+
+  it('reads a chat that never lapses and one that does as the one that does', () => {
+    expect(folderMutedUntil(['writer', 'ops'], { writer: MUTE_FOREVER, ops: NOON + HOUR }, NOON)).toBe(NOON + HOUR)
+  })
+
+  it('is muted for good only when every chat inside is', () => {
+    expect(folderMutedUntil(['writer', 'ops'], { writer: MUTE_FOREVER, ops: MUTE_FOREVER }, NOON)).toBe(MUTE_FOREVER)
+  })
+
+  it('does not count a chat outside it', () => {
+    expect(folderMutedUntil(['writer'], { writer: MUTE_FOREVER, ops: NOON + HOUR }, NOON)).toBe(MUTE_FOREVER)
   })
 })
 

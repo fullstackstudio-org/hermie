@@ -679,6 +679,29 @@ describe('the conversation column, on this device only', () => {
   })
 })
 
+describe('muting several chats at once', () => {
+  it('gives each the same deadline in one change, and lets each speak again with null', () => {
+    store().setMute('keeps', 5)
+    store().setMutes(['writer', 'researcher'], 2_000.9)
+
+    expect(store().mutes).toEqual({ keeps: 5, writer: 2_000, researcher: 2_000 })
+
+    store().setMutes(['writer', 'researcher'], null)
+    expect(store().mutes).toEqual({ keeps: 5 })
+  })
+
+  it('stores forever as its deadline that never comes, and is one notification however many chats', () => {
+    let changes = 0
+    const stop = layout.subscribe(() => (changes += 1))
+
+    store().setMutes(['a', 'b', 'c'], 0)
+    stop()
+
+    expect(store().mutes).toEqual({ a: 0, b: 0, c: 0 })
+    expect(changes).toBe(1)
+  })
+})
+
 describe('the selectors a screen reads', () => {
   it('answer per chat, from the state they are handed', () => {
     store().setMute('writer', 2_000)

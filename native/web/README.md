@@ -1674,7 +1674,9 @@ row, as `moveBotTo` and `moveFolderTo` read theirs) and whether it changes anyth
 - **What else a row offers** is behind one button per row, "Actions for Writer" (a disclosure with `aria-expanded`): its folder,
   its colour (eleven, by name, `default` meaning none), its mute (for 1 hour, 8 hours, 1 week or until turned back on; a mute
   that is running stays selected as its own line) and Archive. A folder's own has its name (committed on blur or Enter, one write
-  and not one per key), its colour and Delete (its chats come back where it stood). An archived chat offers colour, mute and
+  and not one per key), its colour, its mute (the row's, applied to every chat inside in one write; the folder reads as muted
+  while every chat inside is, until the soonest of their deadlines, and as not muted while any is not, so the way on is to
+  silence the rest) and Delete (its chats come back where it stood). An archived chat offers colour, mute and
   Unarchive, and the focus goes to the archive's heading (or the list's) when a chat has moved between them.
 - **The sidebar draws it** (`features/bots`, "The chat list" above): this page is where the arrangement is changed, and the
   sidebar beside it follows from the same store at once, as the native apps and every other device that reads the same

@@ -432,6 +432,115 @@ describe('folders', () => {
   })
 })
 
+describe('muting a folder', () => {
+  const folderOf = (...bots: string[]): string => {
+    const id = layoutStore.getState().addFolder('Work')
+
+    for (const bot of bots) {
+      layoutStore.getState().moveToFolder(bot, id)
+    }
+
+    return id
+  }
+
+  // The folder's button opens its panel and closes it again: open it once, and read it as it is after that.
+  const folderMute = (): HTMLSelectElement =>
+    within(screen.queryByRole('group', { name: 'Actions for the Work folder' }) ?? openFolder('Work')).getByRole(
+      'combobox',
+      { name: 'Mute folder' }
+    ) as HTMLSelectElement
+
+  const folderBadge = (id: string): string | undefined =>
+    document.querySelector(`li[data-folder="${id}"] > .hm-arr__row .hm-arr__badge`)?.textContent ?? undefined
+
+  it('silences every chat inside at once, and says so on the folder', () => {
+    const id = folderOf('writer', 'ops')
+
+    render(<Arrangement />)
+    expect(folderBadge(id)).toBeUndefined()
+    expect(folderMute().value).toBe('off')
+
+    fireEvent.change(folderMute(), { target: { value: 'forever' } })
+
+    expect(layoutStore.getState().mutes).toEqual({ writer: 0, ops: 0 })
+    expect(folderBadge(id)).toBe('Muted')
+    expect(folderMute().value).toBe('forever')
+    // The chats outside the folder are not touched.
+    expect(layoutStore.getState().mutes.researcher).toBeUndefined()
+  })
+
+  it('mutes for a span, and lets every chat speak again with Off', () => {
+    const id = folderOf('writer', 'ops')
+
+    render(<Arrangement />)
+    fireEvent.change(folderMute(), { target: { value: '8h' } })
+
+    const { mutes } = layoutStore.getState()
+
+    expect(mutes.writer).toBe(mutes.ops)
+    expect(mutes.writer).toBeGreaterThan(Math.floor(Date.now() / 1000) + 7 * 3600)
+    expect(folderBadge(id)).toMatch(/^Muted until /u)
+    // The deadline that is running is its own line, which stays selected.
+    expect(folderMute().value).toBe('keep')
+    expect(within(folderMute()).getByRole('option', { name: /^Muted until / })).toBeTruthy()
+
+    fireEvent.change(folderMute(), { target: { value: 'off' } })
+    expect(layoutStore.getState().mutes).toEqual({})
+    expect(folderBadge(id)).toBeUndefined()
+  })
+
+  it('is not muted while any chat inside is not, so the way on is to silence the rest', () => {
+    const id = folderOf('writer', 'ops')
+
+    layoutStore.getState().setMute('writer', 0)
+    render(<Arrangement />)
+
+    expect(folderBadge(id)).toBeUndefined()
+    expect(folderMute().value).toBe('off')
+
+    fireEvent.change(folderMute(), { target: { value: '1h' } })
+    expect(layoutStore.getState().mutes.writer).toBe(layoutStore.getState().mutes.ops)
+    expect(folderBadge(id)).toMatch(/^Muted until /u)
+  })
+
+  it('reads the soonest deadline of the chats inside as the folder’s', () => {
+    const id = folderOf('writer', 'ops')
+    const soon = Math.floor(Date.now() / 1000) + 3_600
+
+    layoutStore.getState().setMute('writer', 0)
+    layoutStore.getState().setMute('ops', soon)
+    render(<Arrangement />)
+
+    expect(folderBadge(id)).toMatch(/^Muted until /u)
+    expect(folderMute().value).toBe('keep')
+  })
+
+  it('has nothing to silence in an empty folder', () => {
+    folderOf()
+    render(<Arrangement />)
+
+    expect(folderMute().disabled).toBe(true)
+  })
+
+  it('writes the change once, not once for every chat inside', () => {
+    folderOf('writer', 'ops', 'quiet')
+    render(<Arrangement />)
+
+    const select = folderMute()
+    let writes = 0
+    const stop = layoutStore.subscribe((state, previous) => {
+      if (state.mutes !== previous.mutes) {
+        writes += 1
+      }
+    })
+
+    fireEvent.change(select, { target: { value: 'forever' } })
+    stop()
+
+    expect(writes).toBe(1)
+  })
+})
+
 describe('dragging a handle', () => {
   /** Give a row a box, as jsdom has none: 100px tall, `top` from the top of the page. */
   const box = (element: Element, top: number) =>
