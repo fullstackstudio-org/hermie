@@ -47,15 +47,27 @@ final class GatewayFetch {
     self.events = events
     created = clock()
 
-    let task = Task {
-      await Self.run(
+    let task = Self.start(
+      transport: transport, text: text, profile: profile, voice: voice, support: support, clock: clock,
+      streamBackoff: streamBackoff, into: continuation)
+
+    self.task = task
+    continuation.onTermination = { _ in task.cancel() }
+  }
+
+  /// The fetch's task, made outside `init`: Swift 6.3's region checker cannot follow a `Task` closure
+  /// that captures the initialiser's parameters while `self` is still being set up.
+  private static func start(
+    transport: any GatewaySpeechTransport, text: String, profile: String?, voice: String?,
+    support: GatewayStreamSupport, clock: @escaping @Sendable () -> Double, streamBackoff: Double,
+    into continuation: AsyncStream<GatewayFetchEvent>.Continuation
+  ) -> Task<Void, Never> {
+    Task {
+      await run(
         transport: transport, text: text, profile: profile, voice: voice, support: support, clock: clock,
         streamBackoff: streamBackoff, into: continuation)
       continuation.finish()
     }
-
-    self.task = task
-    continuation.onTermination = { _ in task.cancel() }
   }
 
   func cancel() {
