@@ -29,7 +29,7 @@ const SAME_AS_ENGLISH: Readonly<Record<string, readonly Locale[]>> = {
   // "Code" is the Dutch and German word too.
   'sheets.secureInput.fieldCode': ['nl', 'de'],
   // `{name}: {problem}` is the same two placeholders and a colon in every language.
-  'attachments.problemAnnounced': ['nl', 'de'],
+  'sheets.attachments.problemAnnounced': ['nl', 'de'],
   // "Chats in {name}" is the Dutch and the German way too.
   'sheets.settings.chatList.folderMembers': ['nl', 'de'],
   // "Update", "Build"-like loan words and the same word in Dutch and German.

@@ -81,7 +81,6 @@ import { ownedElsewhereDetails } from '../../core/session-ownership'
 import { strings } from '../../generated/strings'
 import { sheetStrings } from '../../i18n/sheet-strings'
 import { useLocale } from '../../i18n/use-locale'
-import { webStrings } from '../../i18n/web-strings'
 import { hasFinePointer } from '../../platform/input-kind'
 import { chatsStore, type QueuedMessage } from '../../state/chats'
 import { connectionStore } from '../../state/connection'
@@ -414,7 +413,7 @@ export function Composer({ chatKey, botName, onSent, tray = null, prefill = null
       // Never sent again by itself: the way out is a new chat, which the reader asks for.
       setFailure(
         details === null
-          ? webStrings.composer.sendFailed({ message: messageOf(error) })
+          ? sheetStrings.composer.sendFailed({ message: messageOf(error) })
           : { kind: 'owned-elsewhere', details, words: body }
       )
     }
@@ -583,7 +582,7 @@ export function Composer({ chatKey, botName, onSent, tray = null, prefill = null
             setFailure(strings.chat.queue.steerRejected)
           }
         })
-        .catch((error: unknown) => setFailure(webStrings.composer.steerFailed({ message: messageOf(error) })))
+        .catch((error: unknown) => setFailure(sheetStrings.composer.steerFailed({ message: messageOf(error) })))
     },
     [chatKey, controller]
   )
@@ -641,7 +640,7 @@ export function Composer({ chatKey, botName, onSent, tray = null, prefill = null
       ) : null}
 
       {listOpen && completions ? (
-        <ul className="hm-composer__list" id={listId} role="listbox" aria-label={webStrings.composer.commandsLabel}>
+        <ul className="hm-composer__list" id={listId} role="listbox" aria-label={sheetStrings.composer.commandsLabel}>
           {completions.items.map((item, index) => (
             <li
               key={item.insert}

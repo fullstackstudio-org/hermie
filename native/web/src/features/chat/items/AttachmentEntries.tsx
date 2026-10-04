@@ -15,7 +15,7 @@
  */
 import { memo, useCallback, useEffect, useRef, useState } from 'react'
 
-import { webStrings } from '../../../i18n/web-strings'
+import { sheetStrings } from '../../../i18n/sheet-strings'
 import { saveBlob } from '../../../platform/files'
 import { FileChip } from './FileChip'
 import { ImageCard } from './ImageCard'
@@ -170,7 +170,7 @@ function OpenableChipImpl({ reference, name, size, onAccent, failed = false }: O
       {...(size !== undefined ? { size } : {})}
       {...(loadAttachment ? { onOpen: open } : {})}
       {...(state === 'opening' ? { status: 'uploading' as const } : {})}
-      {...(state === 'failed' ? { error: webStrings.attachments.openFailed } : {})}
+      {...(state === 'failed' ? { error: sheetStrings.attachments.openFailed } : {})}
     />
   )
 }

@@ -22,7 +22,7 @@ import { type ReactElement, useEffect, useRef, useState } from 'react'
 import type { AttachmentProblem, AttachmentTray, StagedAttachment } from '../../core/chats/attachments'
 import { strings } from '../../generated/strings'
 import { useLocale } from '../../i18n/use-locale'
-import { webStrings } from '../../i18n/web-strings'
+import { sheetStrings } from '../../i18n/sheet-strings'
 import { Icon } from '../../ui/icons'
 import { formatBytes, megabytesOf } from './chat-format'
 
@@ -41,17 +41,17 @@ export function problemText(problem: AttachmentProblem): string {
     case 'no-workspace':
       return strings.app.chat.attach.chipNoWorkspace
     case 'refused':
-      return webStrings.attachments.refused({ detail: problem.detail })
+      return sheetStrings.attachments.refused({ detail: problem.detail })
     case 'unreadable':
-      return webStrings.attachments.unreadable
+      return sheetStrings.attachments.unreadable
     default:
-      return webStrings.attachments.failed({ message: problem.message })
+      return sheetStrings.attachments.failed({ message: problem.message })
   }
 }
 
 function statusText(item: StagedAttachment): string {
   if (item.status === 'working') {
-    return item.kind === 'image' ? webStrings.attachments.preparing : webStrings.attachments.uploading
+    return item.kind === 'image' ? sheetStrings.attachments.preparing : sheetStrings.attachments.uploading
   }
 
   if (item.status === 'failed') {
@@ -67,12 +67,12 @@ function announcementFor(previous: ReadonlyMap<string, StagedAttachment>, next: 
   const added = next.filter(item => !previous.has(item.id)).length
 
   if (added > 0) {
-    said.push(webStrings.attachments.added({ count: added }))
+    said.push(sheetStrings.attachments.added({ count: added }))
   }
 
   for (const item of next) {
     if (item.status === 'failed' && item.problem && previous.get(item.id)?.status !== 'failed') {
-      said.push(webStrings.attachments.problemAnnounced({ name: item.name, problem: problemText(item.problem) }))
+      said.push(sheetStrings.attachments.problemAnnounced({ name: item.name, problem: problemText(item.problem) }))
     }
   }
 
@@ -100,7 +100,7 @@ export function AttachmentChips({ tray, attachments, waitingId }: AttachmentChip
   return (
     <div className="hm-attach">
       {attachments.length > 0 ? (
-        <ul className="hm-attach__list" aria-label={webStrings.attachments.trayLabel}>
+        <ul className="hm-attach__list" aria-label={sheetStrings.attachments.trayLabel}>
           {attachments.map(item => (
             <li className="hm-attach__chip" key={item.id} data-status={item.status} data-kind={item.kind}>
               {item.previewUrl ? (
@@ -121,7 +121,7 @@ export function AttachmentChips({ tray, attachments, waitingId }: AttachmentChip
                   <button
                     className="hm-attach__action"
                     type="button"
-                    aria-label={webStrings.attachments.cancelNamed({ name: item.name })}
+                    aria-label={sheetStrings.attachments.cancelNamed({ name: item.name })}
                     onClick={() => tray.remove(item.id)}
                   >
                     {strings.app.chat.attach.cancel}
@@ -131,17 +131,17 @@ export function AttachmentChips({ tray, attachments, waitingId }: AttachmentChip
                   <button
                     className="hm-attach__action"
                     type="button"
-                    aria-label={webStrings.attachments.retryNamed({ name: item.name })}
+                    aria-label={sheetStrings.attachments.retryNamed({ name: item.name })}
                     onClick={() => tray.retry(item.id)}
                   >
-                    {webStrings.attachments.retry}
+                    {sheetStrings.attachments.retry}
                   </button>
                 ) : null}
                 {item.status !== 'working' ? (
                   <button
                     className="hm-attach__action hm-attach__remove"
                     type="button"
-                    aria-label={webStrings.attachments.removeNamed({ name: item.name })}
+                    aria-label={sheetStrings.attachments.removeNamed({ name: item.name })}
                     title={strings.chat.composer.removeAttachment}
                     onClick={() => tray.remove(item.id)}
                   >
@@ -156,7 +156,7 @@ export function AttachmentChips({ tray, attachments, waitingId }: AttachmentChip
 
       {blocked ? (
         <p className="hm-attach__waiting" id={waitingId}>
-          {webStrings.attachments.waiting}
+          {sheetStrings.attachments.waiting}
         </p>
       ) : null}
 

@@ -30,7 +30,6 @@ import { displayText } from '../../core/requests/secure-input'
 import { strings } from '../../generated/strings'
 import { sheetStrings } from '../../i18n/sheet-strings'
 import { useLocale } from '../../i18n/use-locale'
-import { webStrings } from '../../i18n/web-strings'
 import { botsStore } from '../../state/bots'
 import { layoutStore } from '../../state/layout'
 import type { ChatScreenController } from './chat-runtime'
@@ -61,7 +60,7 @@ function failureText(error: unknown): string {
 
   const reason = error instanceof Error ? error.message : String(error)
 
-  return webStrings.sessions.actionFailed({
+  return sheetStrings.sessions.actionFailed({
     message: displayText(reason, REASON_CHARS) || strings.chat.sessions.switchFailed
   })
 }

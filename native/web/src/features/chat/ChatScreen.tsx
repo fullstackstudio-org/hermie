@@ -85,6 +85,7 @@ import { regenerateLastTurn, regenerateTargetIsOwn } from '../../core/chats/rege
 import { sentPreviewFor } from '../../core/chats/sent-previews'
 import { strings } from '../../generated/strings'
 import { useLocale } from '../../i18n/use-locale'
+import { sheetStrings } from '../../i18n/sheet-strings'
 import { webStrings } from '../../i18n/web-strings'
 import { writeClipboard } from '../../platform/clipboard'
 import { type HashRouter, pageHashRouter } from '../../platform/hash-router'
@@ -467,7 +468,7 @@ export function ChatScreen({ bot, session, view: pinned, router = pageHashRouter
           host.announce(strings.chat.menu.nothingToRegenerate)
         }
       })
-      .catch((error: unknown) => host.announce(webStrings.composer.sendFailed({ message: messageOf(error) })))
+      .catch((error: unknown) => host.announce(sheetStrings.composer.sendFailed({ message: messageOf(error) })))
   }
 
   act.current.editResend = (text, attachments) => {
@@ -661,7 +662,7 @@ export function ChatScreen({ bot, session, view: pinned, router = pageHashRouter
         <div className="hm-chat__banner">
           <p>{webStrings.chat.readOnly}</p>
           <p className="hm-chat__banner-links">
-            <a href={chatHref(bot)}>{webStrings.sessions.backToChat}</a>
+            <a href={chatHref(bot)}>{sheetStrings.sessions.backToChat}</a>
             <a href={conversationsHref(bot)}>{strings.chat.sessions.conversations}</a>
           </p>
         </div>
@@ -733,7 +734,7 @@ export function ChatScreen({ bot, session, view: pinned, router = pageHashRouter
           </ItemContext.Provider>
         ) : null}
         <p className="hm-sr" id={hintId}>
-          {webStrings.itemViews.keyboardHint}
+          {sheetStrings.itemViews.keyboardHint}
         </p>
         {rows.length > 0 ? <MessageMenuLayer container={stage} host={host} /> : null}
 

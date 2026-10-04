@@ -24,7 +24,7 @@
 import { memo, useId, useMemo } from 'react'
 
 import { useLocale } from '../../../i18n/use-locale'
-import { webStrings } from '../../../i18n/web-strings'
+import { sheetStrings } from '../../../i18n/sheet-strings'
 import { diffCounts, type DiffLine, parseUnifiedDiff } from './diff'
 import { VisuallyHidden } from '../../../ui/primitives'
 import './media.css'
@@ -58,7 +58,7 @@ function LineText({ line }: { line: DiffLine }) {
   if (line.kind === 'add') {
     return (
       <ins className="hm-diff__text">
-        <VisuallyHidden>{webStrings.itemViews.diff.added} </VisuallyHidden>
+        <VisuallyHidden>{sheetStrings.itemViews.diff.added} </VisuallyHidden>
         {text}
       </ins>
     )
@@ -67,7 +67,7 @@ function LineText({ line }: { line: DiffLine }) {
   if (line.kind === 'delete') {
     return (
       <del className="hm-diff__text">
-        <VisuallyHidden>{webStrings.itemViews.diff.removed} </VisuallyHidden>
+        <VisuallyHidden>{sheetStrings.itemViews.diff.removed} </VisuallyHidden>
         {text}
       </del>
     )
@@ -92,7 +92,7 @@ function DiffViewImpl({ diff, maxLines = DIFF_MAX_LINES }: DiffViewProps) {
   return (
     <figure className="hm-diff">
       <figcaption className="hm-diff__summary" id={summaryId}>
-        {webStrings.itemViews.diff.summary(counts)}
+        {sheetStrings.itemViews.diff.summary(counts)}
       </figcaption>
 
       <div className="hm-diff__scroll" tabIndex={0} role="group" aria-labelledby={summaryId}>
@@ -114,7 +114,7 @@ function DiffViewImpl({ diff, maxLines = DIFF_MAX_LINES }: DiffViewProps) {
         </div>
       </div>
 
-      {hidden > 0 ? <p className="hm-diff__more">{webStrings.itemViews.diff.more({ count: hidden })}</p> : null}
+      {hidden > 0 ? <p className="hm-diff__more">{sheetStrings.itemViews.diff.more({ count: hidden })}</p> : null}
     </figure>
   )
 }

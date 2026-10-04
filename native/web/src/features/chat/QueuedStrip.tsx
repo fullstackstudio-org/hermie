@@ -19,7 +19,7 @@ import type { ReactElement } from 'react'
 
 import { strings } from '../../generated/strings'
 import { useLocale } from '../../i18n/use-locale'
-import { webStrings } from '../../i18n/web-strings'
+import { sheetStrings } from '../../i18n/sheet-strings'
 import type { QueuedMessage } from '../../state/chats'
 import { clipLine } from './chat-format'
 
@@ -62,7 +62,7 @@ export function QueuedStrip({ queued, onSteer, onEdit, onDelete }: QueuedStripPr
   const hidden = queued.length - shown.length
 
   return (
-    <ul className="hm-queue" aria-label={webStrings.composer.queueLabel}>
+    <ul className="hm-queue" aria-label={sheetStrings.composer.queueLabel}>
       {shown.map(entry => {
         const line = [entry.text.trim(), ...(entry.attachments ?? []).map(attachmentName)].filter(Boolean).join(' · ')
         const name = clipLine(line, NAME_CHARS)

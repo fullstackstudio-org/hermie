@@ -50,6 +50,7 @@ import { BOT_NAME_LIMIT, displayText } from '../../core/requests/secure-input'
 import { type Conversation, type ConversationAction, conversationActions } from '../../core/sessions/session-model'
 import { strings } from '../../generated/strings'
 import { useLocale } from '../../i18n/use-locale'
+import { sheetStrings } from '../../i18n/sheet-strings'
 import { webStrings } from '../../i18n/web-strings'
 import { type HashRouter, pageHashRouter } from '../../platform/hash-router'
 import { botsStore } from '../../state/bots'
@@ -88,7 +89,7 @@ const messageOf = (error: unknown): string => (error instanceof Error ? error.me
 const failureOf = (error: unknown): string =>
   error instanceof ConversationBusyError
     ? strings.chat.sessions.busy
-    : webStrings.sessions.actionFailed({ message: messageOf(error) })
+    : sheetStrings.sessions.actionFailed({ message: messageOf(error) })
 
 /** Built on call, in the active language. */
 const actionLabel = (action: ConversationAction): string => {
@@ -178,20 +179,20 @@ export function ConversationsPage({ bot, router = pageHashRouter }: Conversation
       void run(async () => {
         await controller?.renameConversation(bot, conversation.id, title)
 
-        return webStrings.sessions.renamed
+        return sheetStrings.sessions.renamed
       }),
     onDelete: (conversation: Conversation) =>
       void run(async () => {
         await controller?.deleteConversation(bot, conversation.id)
 
-        return webStrings.sessions.deleted
+        return sheetStrings.sessions.deleted
       }),
     onAdopt: (conversation: Conversation) =>
       void run(async () => {
         await ensureOpen()
         await controller?.adoptAsCanonical(bot, conversation.id)
 
-        return webStrings.sessions.adopted
+        return sheetStrings.sessions.adopted
       })
   }
 
@@ -223,10 +224,10 @@ export function ConversationsPage({ bot, router = pageHashRouter }: Conversation
         <div className="hm-conversations__new">
           {mode?.kind === 'new' ? (
             <div className="hm-conversations__confirm">
-              <p>{webStrings.sessions.newConfirmBody}</p>
+              <p>{sheetStrings.sessions.newConfirmBody}</p>
               <div className="hm-conversations__buttons">
                 <Button onClick={startNew} disabled={busy}>
-                  {webStrings.sessions.newConfirm}
+                  {sheetStrings.sessions.newConfirm}
                 </Button>
                 <Button variant="quiet" onClick={() => setMode(null)} disabled={busy}>
                   {strings.chat.sessions.cancel}
@@ -235,7 +236,7 @@ export function ConversationsPage({ bot, router = pageHashRouter }: Conversation
             </div>
           ) : (
             <Button variant="quiet" onClick={() => setMode({ kind: 'new' })} disabled={busy}>
-              {webStrings.sessions.newConversation}
+              {sheetStrings.sessions.newConversation}
             </Button>
           )}
         </div>
@@ -407,7 +408,7 @@ function Row({ bot, conversation, mode, busy, setMode, onRename, onDelete, onAdo
         <div
           className="hm-conversation__actions"
           role="group"
-          aria-label={webStrings.sessions.actionsFor({ name: title })}
+          aria-label={sheetStrings.sessions.actionsFor({ name: title })}
         >
           {actions.map(action =>
             action === 'open' ? (
