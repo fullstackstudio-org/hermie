@@ -2218,13 +2218,55 @@ gateway's voice RPCs are not used.** What follows is how the Apple apps keep to 
   Dictating silences a reply being read, and nothing is read while the microphone is open.
 - **Settings › Voice**: the rate (five stops, 0.5 to 1.5 of the engine's normal), the voice (automatic, or one of the
   device's, used for replies in its own language), whether reading stops when the app goes to the background, and the
-  dictation language (the device's own, or one of the languages that have a model on this device). "Confirm before
-  sending" belongs to a hands-free voice mode that does not exist here, so it is stored and not offered.
+  dictation language (the device's own, or one of the languages that have a model on this device), and voice mode's
+  section (below).
 - **Tests.** `DictationTests`, `ComposerDictationTests`, `ReadAloudTests`, `VoiceSettingsTests`,
   `MessageMenuReadAloudTests` (`HermieCoreTests/Voice`), `MarkdownSpeechTests`, `ChatFeedVoiceTests` and
   `VoiceSettingsPageTests`: a fake recogniser and a fake synthesiser, no audio, no simulator. What no test proves is the
   Speech framework itself: that the prompts appear, that on-device recognition works for a language, and that the audio
   session hands the speaker back (hand-check on a device).
+
+### Voice mode
+
+A hands-free call with a bot (HERM-175): the waveform button in the chat's toolbar, or Voice mode in its options menu.
+The first time, the voice setup comes first (`VoiceSetupView`: the voice as numbered dots per language, Personal
+Voice where the reader allows it, Pace, Expressivity, the orb's look, and a Source row that has one source today).
+
+| Piece                     | Where                                                          | What                                                                                                        |
+| ------------------------- | -------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------- |
+| `VoiceModeModel`          | `HermieCore/Voice/VoiceMode.swift`                             | the loop: listen, confirm, send, read while it streams, listen; cut-in, pauses, fillers                     |
+| `SpokenReplyCutter` & co. | `HermieCore/Voice/VoiceModeParts.swift`, `VoiceLevel.swift`    | where a streaming reply may be cut, the "still working" lines, `voice_context`, the level meter, the pitch  |
+| `AppleVoiceModeEngine`    | `HermieCore/Voice/System/AppleVoiceModeEngine.swift`           | one `AVAudioEngine` that listens and speaks; `VoiceSpeechRenderer` is where speech comes from               |
+| `sendSpoken`              | `HermieCore/ComposerModel+Voice.swift`                         | `prompt.submit` with `surface: "voice-call"` and `voice_context`, the field untouched                       |
+| the views                 | `HermieUI/Voice`: `VoiceModeView`, `VoiceOrb`, `VoiceModeHost` | the black call screen with the orb (Clouds or Light), mute and end; drawn over the chat, a panel on the Mac |
+
+- **The loop.** The microphone opens; a pause of `voiceModeSilence` after the last word (or Send now, or a tap on the
+  orb) ends the utterance; nothing empty is sent. With "Confirm before sending" the words wait with Send, Edit and
+  Discard. The reply is read a sentence at a time while it streams, only what can no longer change: a finished line
+  outside a code fence, or a sentence end followed by a space with its emphasis and code spans closed. Code is read
+  as its shape. When it has all been said and the turn is over, the microphone opens again.
+- **The bot knows it is on a call.** Every prompt of a call carries `surface: "voice-call"` (parked prompts keep it,
+  `TranscriptStore.queuedExtra`) and the call's recent exchange as `voice_context`: plain text, newest last, at most
+  6000 characters, what was actually heard of each reply (a reply the reader cut off is recorded as far as it got).
+- **Cutting in.** Replies are rendered to buffers (`AVSpeechSynthesizer.write`) and played on the call's own engine,
+  whose input has voice processing on: the echo canceller then knows what the speaker says, and the recogniser can
+  stay open while a reply is read. Four letters heard over a reply stop it and become what the reader is saying.
+  Where voice processing cannot be turned on, nothing listens while the bot speaks and a tap on the orb cuts in.
+- **Never silent without a reason.** While the bot works and nothing has been said for 3 seconds, a short line that
+  fits its tool ("Let me look that up…" for a search) is said with a soft tone and a light haptic, at most every 12
+  seconds, never twice the same in a row, and not when the bot said a line of its own in that time.
+- **Requests are never answered by voice.** An approval, a question, a secure prompt, a form, or the voice setup
+  opened from the call pauses it; the call is drawn over the chat (not as a cover) so their sheets come up over it.
+  Leaving the front closes the microphone (a reply goes on being read only when "Stop when the app closes" is off);
+  an audio interruption pauses until the system, or the reader, resumes; a new route restarts the microphone.
+- **The orb** follows the microphone's level while listening and the speaker's while the bot speaks, from lock-free
+  meters on the engine's taps, smoothed per frame by elapsed time. Thinking and running tools swirl faster with a
+  glow running round the rim; muted dims it. One `TimelineView`, paused off screen and in the background; Reduce
+  Motion gets a gentle pulse.
+- **Tests.** `VoiceModeTests`, `VoiceModePartsTests` (HermieCoreTests, fake recogniser, speaker, audio session and a
+  hand-turned clock), `SubmitPipelineTests` (the fields on the wire), `ChatFeedVoiceModeTests` and `VoiceOrbTests`
+  (HermieUITests). What no test proves: echo cancellation and cut-in on real hardware, Bluetooth routes, the
+  interruption notifications, and how the orb looks.
 
 ## New bot
 
