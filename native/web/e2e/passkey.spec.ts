@@ -118,7 +118,10 @@ async function enrol(page: Page, gateway: Gateway, open: (hash: string) => Promi
 }
 
 /** Raise a passkey confirmation on the researcher's chat; its request id. */
-async function raise(gateway: Gateway, text: { title?: string; summary: string; detail?: string }): Promise<string> {
+async function raise(
+  gateway: Gateway,
+  text: { title?: string; summary: string; detail?: string; fields?: Record<string, unknown>[] }
+): Promise<string> {
   const raised = await post(gateway, '/__fake/request', { method: 'confirm', params: { level: 'passkey', ...text } })
 
   expect(raised.status, JSON.stringify(raised.body)).toBe(200)
@@ -149,6 +152,138 @@ test.describe('a passkey confirmation in the browser', () => {
       .toMatchObject({ outcome: 'confirmed', method: 'passkey', verified: true })
 
     await app.dialog.getByRole('button', { name: 'Close' }).click()
+    await expect(app.dialog).toHaveCount(0)
+  })
+
+  test('shows the structured fields apart from the text, and confirms them: version 2, verified by the gateway', async ({
+    app,
+    gateway,
+    page
+  }) => {
+    await virtualAuthenticator(page)
+    await enrol(page, gateway, hash => app.open(hash))
+
+    const longDomain = `${'a'.repeat(60)}.${'b'.repeat(60)}.${'c'.repeat(60)}.example.test`
+    const fields = [
+      { id: 'cost', kind: 'amount', label: 'Estimated cost', value: '4,20', currency: '€' },
+      { id: 'to', kind: 'recipient', label: 'Pay to', value: 'accounts@example.test' },
+      { id: 'site', kind: 'domain', label: 'Site', value: longDomain },
+      { id: 'tokens', kind: 'count', label: 'tokens', value: '1.200.000' },
+      { id: 'model', kind: 'model', label: 'Model', value: 'claude-opus-5-5' }
+    ]
+    const id = await raise(gateway, {
+      title: 'Run with a large model',
+      summary: 'Run the quarterly analysis with a large model.',
+      fields
+    })
+
+    const box = app.dialog.locator('[data-confirm-fields]')
+
+    await expect(box).toBeVisible()
+    await expect(app.dialog.getByText('Key facts from the bot')).toBeVisible()
+    await expect(box.locator('dt')).toHaveText(fields.map(field => field.label))
+
+    const shape = await box.evaluate(element => {
+      const style = (selector: string) => {
+        const target = element.querySelector(selector) as HTMLElement
+        const computed = getComputedStyle(target)
+
+        return {
+          size: parseFloat(computed.fontSize),
+          weight: Number(computed.fontWeight),
+          family: computed.fontFamily,
+          overflowWrap: computed.overflowWrap,
+          textOverflow: computed.textOverflow,
+          fits: target.scrollWidth <= target.clientWidth + 1
+        }
+      }
+
+      const base = parseFloat(getComputedStyle(element.querySelector('[data-kind="model"] dd') as HTMLElement).fontSize)
+
+      return {
+        base,
+        amount: style('.hm-confirm__amount'),
+        currency: style('.hm-confirm__currency'),
+        recipient: style('[data-kind="recipient"] .hm-confirm__mono'),
+        domain: style('[data-kind="domain"] .hm-confirm__mono'),
+        model: style('[data-kind="model"] dd'),
+        links: element.querySelectorAll('a').length,
+        // Nothing sticks out of the box: the long domain wrapped instead of being cut.
+        boxFits: element.scrollWidth <= element.clientWidth + 1
+      }
+    })
+
+    // The amount: large and bold, the currency beside it.
+    expect(shape.amount.size).toBeGreaterThan(shape.base * 1.5)
+    expect(shape.amount.weight).toBeGreaterThanOrEqual(700)
+    expect(shape.currency.weight).toBeGreaterThanOrEqual(700)
+    await expect(box.locator('.hm-confirm__amount')).toHaveText('4,20')
+    await expect(box.locator('.hm-confirm__currency')).toHaveText('€')
+    // A recipient and a domain are monospaced; the other kinds are not.
+    expect(shape.recipient.family).toMatch(/mono/iu)
+    expect(shape.domain.family).toMatch(/mono/iu)
+    expect(shape.model.family).not.toMatch(/mono/iu)
+    // Never a link; never cut: a long value wraps, whole.
+    expect(shape.links).toBe(0)
+    expect(shape.domain.overflowWrap).toBe('anywhere')
+    expect(shape.domain.textOverflow).toBe('clip')
+    expect(shape.domain.fits).toBe(true)
+    expect(shape.boxFits).toBe(true)
+    await expect(box.locator('[data-kind="domain"] dd')).toHaveText(longDomain)
+
+    await app.dialog.getByRole('button', { name: 'Confirm with passkey' }).click()
+    await expect(app.dialog.getByRole('status')).toHaveText(
+      'Received. The gateway checks your passkey and carries on only if it holds.'
+    )
+    // The gateway verified the assertion over the digest of the very fields the sheet showed, and the answer says 2.
+    await expect
+      .poll(() => outcomeOf(gateway, id))
+      .toMatchObject({ outcome: 'confirmed', method: 'passkey', verified: true })
+
+    const answer = (await gateway.answers()).find(entry => entry.id === id)
+
+    expect(answer?.result).toMatchObject({ decision: 'confirmed', method: 'passkey', passkey: { v: 2 } })
+  })
+
+  test('still confirms a request without fields as version 1', async ({ app, gateway, page }) => {
+    await virtualAuthenticator(page)
+    await enrol(page, gateway, hash => app.open(hash))
+
+    const id = await raise(gateway, { title: 'Delete backups', summary: 'Delete 3 old backups.' })
+
+    await expect(app.dialog.getByRole('heading', { name: 'Delete backups' })).toBeVisible()
+    await expect(app.dialog.locator('[data-confirm-fields]')).toHaveCount(0)
+    await app.dialog.getByRole('button', { name: 'Confirm with passkey' }).click()
+    await expect
+      .poll(() => outcomeOf(gateway, id))
+      .toMatchObject({ outcome: 'confirmed', method: 'passkey', verified: true })
+
+    const answer = (await gateway.answers()).find(entry => entry.id === id)
+
+    expect(answer?.result).toMatchObject({ passkey: { v: 1 } })
+  })
+
+  test('is never shown a confirmation with fields at the plain level: this page has no sheet for it', async ({
+    app,
+    gateway,
+    page
+  }) => {
+    await virtualAuthenticator(page)
+    await enrol(page, gateway, hash => app.open(hash))
+
+    // The page advertised the passkey level (and fields) only: a request that would be answered with a tap goes
+    // to nobody, instead of reaching a page that would show the text without asking for what it was meant to.
+    const raised = await post(gateway, '/__fake/request', {
+      method: 'confirm',
+      params: {
+        level: 'plain',
+        summary: 'Pay 120.00 EUR.',
+        fields: [{ id: 'cost', kind: 'amount', label: 'Cost', value: '120.00', currency: 'EUR' }]
+      }
+    })
+
+    expect(raised.status).toBe(409)
+    expect(raised.body).toMatchObject({ outcome: 'unavailable', reason: 'no_capable_client' })
     await expect(app.dialog).toHaveCount(0)
   })
 
@@ -450,6 +585,23 @@ test.describe('a passkey confirmation in the browser', () => {
       await expect(app.dialog.getByRole('button', { name: 'Confirm with passkey' })).toBeEnabled()
 
       expect(await seriousViolations(page, `confirm-sheet-${scheme}`)).toEqual([])
+
+      // The same sheet with structured fields (contract §4.1): the amount large and bold, the recipient monospaced.
+      await app.dialog.getByRole('button', { name: 'Decline' }).click()
+      await expect(app.dialog).toHaveCount(0)
+      await raise(gateway, {
+        title: 'Pay the invoice',
+        summary: 'Pay invoice 2026-114.',
+        fields: [
+          { id: 'cost', kind: 'amount', label: 'Amount', value: '120,00', currency: '€' },
+          { id: 'to', kind: 'recipient', label: 'Pay to', value: 'accounts@example.test' },
+          { id: 'site', kind: 'domain', label: 'Site', value: 'pay.example.test' }
+        ]
+      })
+      await expect(app.dialog.locator('[data-confirm-fields]')).toBeVisible()
+      await expect(app.dialog.getByRole('button', { name: 'Confirm with passkey' })).toBeEnabled()
+
+      expect(await seriousViolations(page, `confirm-fields-${scheme}`)).toEqual([])
     })
   }
 })

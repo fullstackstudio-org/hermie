@@ -14,6 +14,7 @@
  */
 import { createStore, type StoreApi } from 'zustand/vanilla'
 
+import type { ConfirmField } from '../core/passkey/challenge'
 import type { PasskeyCredentialInfo, PasskeyStatus } from '../core/passkey/client'
 
 /** Where one confirmation stands. */
@@ -105,6 +106,12 @@ export interface PasskeyConfirmation {
   title: string
   summary: string
   detail: string | null
+  /**
+   * The structured fields (contract §4.1), exactly as the frame carried them and in its order, or absent for a frame
+   * without any. Present means version 2 of the text digest and `passkey.v: 2` in the answer; the challenge is computed
+   * from this very list, the one the sheet draws.
+   */
+  fields?: readonly ConfirmField[]
   /** The base URL the challenge commits to (the page's own, contract §3). */
   baseUrl: string
   /** The bound user's name, as the gateway gave it. */

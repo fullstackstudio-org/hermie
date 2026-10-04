@@ -1,7 +1,8 @@
 /**
  * The confirm-passkey construction of `contract/confirm-passkey/README.md`, for
- * the browser: base64url (§2), the base URL (§3), the text digest (§4), the
- * challenge (§5) and the enrolment code's canonical form (§7).
+ * the browser: base64url (§2), the base URL (§3), the text digest (§4, and §4.1's
+ * version 2 for a text with structured fields), the challenge (§5) and the
+ * enrolment code's canonical form (§7).
  *
  * Every hash goes through a `Sha256` the caller hands in (the page's
  * `crypto.subtle`, through `platform/webauthn.ts`; Node's `webcrypto` in a
@@ -21,12 +22,33 @@ export type Sha256 = (data: Uint8Array) => Promise<Uint8Array>
 /** What a challenge is for (§5). */
 export type ChallengePurpose = 'confirm' | 'register' | 'invite' | 'revoke'
 
+/** The kinds of a structured field (§4.1); the kind decides how the sheet draws it. */
+export type ConfirmFieldKind = 'amount' | 'text' | 'recipient' | 'domain' | 'model' | 'count' | 'date'
+
+/**
+ * One structured field of a `confirm` (§4.1), exactly as the frame carried it: the digest commits to every string
+ * byte for byte, so none of them is cleaned, trimmed or localised on the way in.
+ */
+export interface ConfirmField {
+  readonly id: string
+  readonly kind: ConfirmFieldKind
+  readonly label: string
+  readonly value: string
+  /** Only with `kind: 'amount'`. */
+  readonly currency?: string
+}
+
 /** The text a challenge commits to: exactly what the sheet shows. */
 export interface ConfirmText {
   readonly title: string
   readonly summary: string
   /** Absent, `null` and `""` give the same digest (§4). */
   readonly detail?: string | null
+  /**
+   * The structured fields (§4.1), in the frame's order. Present means version 2 of the digest, absent version 1:
+   * the version follows from the fields, never from a second flag, so a sheet cannot show fields the digest left out.
+   */
+  readonly fields?: readonly ConfirmField[]
 }
 
 /** Everything else a challenge commits to (§5's table). */
@@ -47,6 +69,7 @@ export interface ChallengeBinding {
 }
 
 const TEXT_TAG = 'hermie-confirm-text-v1'
+const TEXT_TAG_V2 = 'hermie-confirm-text-v2'
 const CHALLENGE_TAG = 'hermie-confirm-v1'
 
 const utf8 = new TextEncoder()
@@ -158,9 +181,31 @@ function concat(parts: readonly Uint8Array[]): Uint8Array {
 
 // ── digest and challenge (§4, §5) ───────────────────────────────────────────────────────────────
 
-/** The bytes §4 hashes. */
+/** The version of the text digest `text` is hashed with (§4, §4.1): 2 when it carries fields, else 1. */
+export const textVersion = (fields: ConfirmText['fields']): 1 | 2 => (fields === undefined ? 1 : 2)
+
+/**
+ * The bytes §4 hashes, or §4.1's for a text with fields: `FIELDS` is, for each field in the frame's order,
+ * `S(id) ‖ S(kind) ‖ S(label) ‖ S(value) ‖ S(currency or "")`.
+ */
 export function textDigestPreimage(text: ConfirmText): Uint8Array {
-  return concat([S(TEXT_TAG), S(text.title), S(text.summary), S(text.detail ?? '')])
+  if (text.fields === undefined) {
+    return concat([S(TEXT_TAG), S(text.title), S(text.summary), S(text.detail ?? '')])
+  }
+
+  return concat([
+    S(TEXT_TAG_V2),
+    S(text.title),
+    S(text.summary),
+    S(text.detail ?? ''),
+    ...text.fields.flatMap(field => [
+      S(field.id),
+      S(field.kind),
+      S(field.label),
+      S(field.value),
+      S(field.currency ?? '')
+    ])
+  ])
 }
 
 export async function textDigest(sha256: Sha256, text: ConfirmText): Promise<Uint8Array> {

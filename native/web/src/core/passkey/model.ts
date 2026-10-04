@@ -32,7 +32,7 @@
  *    site listed), `gateway_id_mismatch`, `gateway_id_conflict`. The last five
  *    also leave a notice: never a silent failure.
  *  - **The challenge is computed from the confirmation the sheet renders**
- *    (`PasskeyConfirmation`: title, summary, detail as the frame carried them),
+ *    (`PasskeyConfirmation`: title, summary, detail and the structured fields as the frame carried them),
  *    and nothing else of its kind.
  *  - **Advertising.** After every arrival at `ready`, the two calls of contract
  *    §8: the first `client.capabilities` again (the channel's own call throws its
@@ -40,7 +40,8 @@
  *    enabled, lists this page's hostname under `rp.web`, the page is a secure
  *    context with WebAuthn, the base URL has no path prefix and the gateway id
  *    breaks no pin, the second call with `confirm: ["passkey"]` and
- *    `confirm_passkey {v: 1, kind: "web", rp_id}`. `plain` is not advertised:
+ *    `confirm_passkey {v: 1, kind: "web", rp_id}`, or `{v: 2, ...}` with `confirm_fields: true` when the first result
+ *    lists both (§4.1: a request with fields, shown and signed as version 2). `plain` is not advertised:
  *    this client has no sheet for it. The second call also carries `requests`,
  *    the interactive methods the page can show (`RequestsAdvert`), when the first
  *    result lists any of them, with or without the passkey level: the second
@@ -107,8 +108,10 @@ import {
   challenge,
   hasPathPrefix,
   serialiseBaseUrl,
-  subjectText
+  subjectText,
+  textVersion
 } from './challenge'
+import { readConfirmFields } from './confirm-fields'
 import {
   type PasskeyAssertion,
   type PasskeyClient,
@@ -495,12 +498,27 @@ export class PasskeyModel {
     /** The second call failed: whether the gateway took the methods is not known. */
     let requestsUnknown = false
 
+    // Structured fields (§4.1, §8): a gateway that knows them lists `confirm_fields` in every result, and `versions` lists
+    // the `confirm_passkey.v` it accepts. This page draws the fields and computes digest version 2 from them, so it says
+    // both; one that says neither (an older gateway) is never sent a request with fields, and a key it does not know would
+    // be refused with 4000 and the whole call with it.
+    const fieldsKnown = 'confirm_fields' in first
+    const versions =
+      isRecord(first.confirm_passkey) && Array.isArray(first.confirm_passkey.versions)
+        ? first.confirm_passkey.versions
+        : []
+    const v2 = fieldsKnown && versions.includes(2)
+
     if (verdict.kind === 'advertised' || requests.length > 0) {
       try {
         const second = (await gateway.request('client.capabilities', {
           server_requests: true,
           ...(verdict.kind === 'advertised'
-            ? { confirm: ['passkey'], confirm_passkey: { v: 1, kind: 'web', rp_id: webauthn.rpId } }
+            ? {
+                confirm: ['passkey'],
+                ...(fieldsKnown ? { confirm_fields: true } : {}),
+                confirm_passkey: { v: v2 ? 2 : 1, kind: 'web', rp_id: webauthn.rpId }
+              }
             : {}),
           ...(requests.length > 0 ? { requests: [...requests] } : {})
         } as { server_requests: boolean })) as unknown as Record<string, unknown>
@@ -717,7 +735,24 @@ export class PasskeyModel {
     const params = request.params
     const passkey = isRecord(params.passkey) ? params.passkey : null
 
-    if (!passkey || passkey.v !== 1) {
+    // Version 1 is a request without structured fields, version 2 one with them (§4.1, §8): any other `v`, a version 2
+    // without fields and a version 1 with them are frames this page does not run.
+    const version = passkey?.v
+
+    if (!passkey || (version !== 1 && version !== 2)) {
+      throw new FrameProblem('unsupported_version', { kind: 'unsupported_version' })
+    }
+
+    // A frame whose fields break §4.1 is refused whole: nothing of it is shown, and nothing of it is signed.
+    const fieldsRead = readConfirmFields(params.fields)
+
+    if (!fieldsRead.ok) {
+      throw new FrameProblem('bad_request', { kind: 'malformed_request' })
+    }
+
+    const { fields } = fieldsRead
+
+    if ((version === 2) !== (fields !== undefined)) {
       throw new FrameProblem('unsupported_version', { kind: 'unsupported_version' })
     }
 
@@ -775,6 +810,7 @@ export class PasskeyModel {
         title,
         summary,
         detail,
+        ...(fields === undefined ? {} : { fields }),
         baseUrl: this.baseUrl,
         userName: text(user.name) ?? '',
         expiresAt: expires,
@@ -850,7 +886,8 @@ export class PasskeyModel {
     }
 
     const assertion: PasskeyAssertion = {
-      v: 1,
+      // The request's own version, as the digest the challenge was computed over (§8, "v repeats the request's passkey.v").
+      v: textVersion(current.fields),
       rp_id: webauthn.rpId,
       base_url: current.baseUrl,
       credential_id: b64uEncode(response.credentialId),

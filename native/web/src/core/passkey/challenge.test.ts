@@ -22,7 +22,9 @@ import {
   originOfBaseUrl,
   serialiseBaseUrl,
   type Sha256,
-  textDigest
+  textDigest,
+  textDigestPreimage,
+  textVersion
 } from './challenge'
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any -- the vectors are JSON
@@ -144,4 +146,81 @@ describe('enrolment codes (§7)', () => {
     expect(displayEnrolmentCode('m67b1pk0qjbtjwrqssb2')).toBe('M67B1-PK0QJ-BTJWR-QSSB2')
     expect(displayEnrolmentCode('nonsense')).toBe('nonsense')
   })
+})
+
+describe('text digest, version 2 (§4.1)', () => {
+  for (const vector of vectors.text_digest_v2_vectors as Json[]) {
+    it(vector.name, async () => {
+      const text = { title: vector.title, summary: vector.summary, detail: vector.detail, fields: vector.fields }
+      const digest = await textDigest(sha256, text)
+
+      expect(hex(textDigestPreimage(text))).toBe(vector.preimage_hex)
+      expect(b64uEncode(digest)).toBe(vector.text_digest)
+      expect(textVersion(text.fields)).toBe(2)
+
+      // The same words without the fields are version 1, and never the same digest.
+      const bare = { title: vector.title, summary: vector.summary, detail: vector.detail }
+
+      expect(textVersion(undefined)).toBe(1)
+      expect(b64uEncode(await textDigest(sha256, bare))).toBe(vector.text_digest_v1)
+      expect(vector.text_digest).not.toBe(vector.text_digest_v1)
+    })
+  }
+
+  it('hashes the fields in the frame’s order, and a missing currency as an empty one', async () => {
+    const [first, second] = [
+      { id: 'a', kind: 'text' as const, label: 'A', value: '1' },
+      { id: 'b', kind: 'text' as const, label: 'B', value: '2' }
+    ]
+    const base = { title: 'T', summary: 'S', detail: null }
+    const one = await textDigest(sha256, { ...base, fields: [first, second] })
+    const other = await textDigest(sha256, { ...base, fields: [second, first] })
+
+    expect(b64uEncode(one)).not.toBe(b64uEncode(other))
+    expect(hex(textDigestPreimage({ ...base, fields: [{ ...first, currency: '' }] }))).toBe(
+      hex(textDigestPreimage({ ...base, fields: [first] }))
+    )
+  })
+})
+
+describe('assertion vectors, version 2 (§4.1, §9)', () => {
+  const context = (name: string): Json => (vectors.contexts as Json)[name] as Json
+
+  for (const vector of vectors.assertion_vectors_v2 as Json[]) {
+    it(vector.name, async () => {
+      const request = vector.request as Json
+      const passkey = vector.answer.passkey as Json
+      const signed = JSON.parse(new TextDecoder().decode(bytes(passkey.client_data_json))) as Json
+      // The browser derives the very challenge the gateway recomputes: from what the page dialed and what it shows.
+      const computed = await challenge(
+        sha256,
+        {
+          purpose: 'confirm',
+          baseUrl: passkey.base_url,
+          gatewayId: bytes(context(vector.context).gateway_id),
+          userId: request.user_id,
+          sessionId: request.session_id,
+          requestId: request.request_id,
+          nonce: bytes(request.nonce)
+        },
+        { title: request.title, summary: request.summary, detail: request.detail, fields: request.fields }
+      )
+
+      // The answer repeats the request's version: 2 for a request with fields, 1 for one without.
+      const version = textVersion(request.fields)
+
+      if (vector.expect.ok) {
+        expect(version).toBe(2)
+        expect(passkey.v).toBe(version)
+        expect(b64uEncode(computed)).toBe(signed.challenge)
+      } else if (vector.expect.reason === 'challenge_mismatch') {
+        // Signed over other text (without the fields, in another order, another value): not what this page computes.
+        expect(b64uEncode(computed)).not.toBe(signed.challenge)
+      } else {
+        // `bad_shape`: the answer's `v` against the request's version.
+        expect(vector.expect.reason).toBe('bad_shape')
+        expect(passkey.v).not.toBe(version)
+      }
+    })
+  }
 })

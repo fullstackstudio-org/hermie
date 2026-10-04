@@ -1,0 +1,67 @@
+/*
+ * A confirmation's structured fields (`ConfirmFields` in `ConfirmSheet.tsx`, contract §4.1): the key facts of the
+ * action, each a label and a value. NOTHING here may cut a label, a value or a currency short: no ellipsis, no
+ * `overflow: hidden`, no line clamp, no fixed height; what does not fit wraps onto more lines, even inside a word
+ * (`overflow-wrap: anywhere`). Loaded with the sheets' chunk, not with the first screen.
+ */
+.hm-confirm__fields {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  min-width: 0;
+  margin: 0;
+  padding: 10px 14px;
+  border: 1px solid var(--hm-line);
+  border-radius: var(--hm-radius);
+  background: var(--hm-surface);
+}
+
+.hm-confirm__field {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+}
+
+.hm-confirm__field-label {
+  color: var(--hm-text-muted);
+  font-size: 0.875rem;
+  overflow-wrap: anywhere;
+}
+
+.hm-confirm__field-value {
+  min-width: 0;
+  margin: 0;
+  color: var(--hm-text);
+  font-size: 1rem;
+  overflow-wrap: anywhere;
+  white-space: pre-wrap;
+}
+
+/* An amount: the value large and bold, the currency beside it. */
+.hm-confirm__field[data-kind='amount'] .hm-confirm__field-value {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 0 0.4em;
+}
+
+.hm-confirm__amount {
+  font-size: 1.75rem;
+  font-weight: 700;
+  line-height: 1.2;
+  overflow-wrap: anywhere;
+}
+
+.hm-confirm__currency {
+  font-size: 1.25rem;
+  font-weight: 700;
+  overflow-wrap: anywhere;
+}
+
+/* A recipient and a domain: monospaced, so a look-alike character or a stray dot shows, and never a link. */
+.hm-confirm__mono {
+  font-family: var(--hm-mono);
+  font-size: 0.9375rem;
+  overflow-wrap: anywhere;
+}

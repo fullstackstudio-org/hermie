@@ -265,7 +265,7 @@ async function enrol(page: Page): Promise<string> {
 
 async function raise(
   gateway: FakeGateway,
-  text: { title?: string; summary: string; detail?: string }
+  text: { title?: string; summary: string; detail?: string; fields?: Json[] }
 ): Promise<{ status: number; body: Json }> {
   return control(gateway, '/__fake/request', { method: 'confirm', params: { level: 'passkey', ...text } })
 }
@@ -284,7 +284,8 @@ describe('the passkey model against the fake gateway', () => {
     expect(state.clientCapabilities.at(-1)).toMatchObject({
       server_requests: true,
       confirm: ['passkey'],
-      confirm_passkey: { v: 1, kind: 'web', rp_id: 'gw.example.test' }
+      confirm_passkey: { v: 2, kind: 'web', rp_id: 'gw.example.test' },
+      confirm_fields: true
     })
     expect(page.store.getState().supported).toBe(true)
   })
@@ -360,6 +361,64 @@ describe('the passkey model against the fake gateway', () => {
       Buffer.from(reference.passkey.client_data_json, 'base64url').toString('utf8')
     ).challenge
 
+    expect(page.webauthn.challenges.at(-1)).toBe(referenceChallenge)
+  })
+
+  it('confirms a request with structured fields: version 2, verified over the very fields the sheet shows', async () => {
+    const page = await openPage(await passkeyGateway())
+
+    await enrol(page)
+
+    const fields = [
+      { id: 'cost', kind: 'amount', label: 'Geschätzte Kosten (€)', value: '4,20', currency: '€' },
+      { id: 'tokens', kind: 'count', label: 'tokens', value: '1.200.000' },
+      { id: 'model', kind: 'model', label: 'Model', value: 'claude-opus-5-5' }
+    ]
+    const raised = await raise(page.gateway, {
+      title: 'Run with a large model',
+      summary: 'Run the quarterly analysis with a large model.',
+      fields
+    })
+
+    expect(raised.status).toBe(200)
+
+    const id = raised.body.request_id as string
+
+    await waitFor(() => expect(confirmation(page, id)?.phase).toEqual({ kind: 'waiting' }))
+    // The page advertised fields and version 2, so the gateway sent it the request, and the sheet's text holds them.
+    expect((await fakeState(page.gateway)).clientCapabilities.at(-1)).toMatchObject({
+      confirm_fields: true,
+      confirm_passkey: { v: 2 }
+    })
+    expect(confirmation(page, id)?.fields).toEqual(fields)
+
+    await page.model.confirm(id)
+
+    expect(confirmation(page, id)?.phase).toEqual({ kind: 'received' })
+    await waitFor(async () =>
+      expect(await outcomeOf(page.gateway, id)).toMatchObject({ outcome: 'confirmed', verified: true })
+    )
+
+    // The answer repeats the request's version.
+    const answer = ((await fakeState(page.gateway)).serverRequestAnswers as Json[]).find(entry => entry.id === id)
+
+    expect(answer?.result).toMatchObject({
+      decision: 'confirmed',
+      method: 'passkey',
+      passkey: { v: 2, base_url: BASE }
+    })
+
+    // The TypeScript reference signs the same challenge for the same frame, fields included.
+    const frame = page.frames.find(request => request.id === id) as ServerRequest
+
+    expect((frame.params as Json).passkey.v).toBe(2)
+
+    const reference = SoftAuthenticator.web(BASE).answer({ id, params: frame.params as never }, { baseUrl: BASE })
+    const referenceChallenge = JSON.parse(
+      Buffer.from(reference.passkey.client_data_json, 'base64url').toString('utf8')
+    ).challenge
+
+    expect(reference.passkey.v).toBe(2)
     expect(page.webauthn.challenges.at(-1)).toBe(referenceChallenge)
   })
 

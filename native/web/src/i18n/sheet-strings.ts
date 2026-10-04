@@ -554,6 +554,12 @@ export const SHEET_STRINGS_SOURCE = {
       nl: 'Details',
       de: 'Details'
     },
+    /** The name of the box with the structured fields (an amount, a recipient, a model, ...) the bot sent. */
+    fieldsLabel: {
+      en: 'Key facts from the bot',
+      nl: 'Kerngegevens van de bot',
+      de: 'Eckdaten vom Bot'
+    },
     /** Copies the detail exactly as the gateway sent it (not the drawing with its whitespace markers). */
     copyDetail: {
       en: 'Copy details',

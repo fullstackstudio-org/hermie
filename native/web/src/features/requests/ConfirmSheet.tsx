@@ -34,9 +34,14 @@
  *     passkey answer got no reply (`answerMayHaveArrived`), the retry state says
  *     it may have reached the gateway, and an end without the gateway's verdict
  *     is `outcome_unknown`: check whether the action ran.
+ *  7. **Structured fields** (contract §4.1) are the key facts, drawn apart from the summary: label and value as plain
+ *     text, an amount large and bold with its currency, a recipient and a domain monospaced and never a link, nothing
+ *     truncated (it wraps). They are the very list the challenge commits to (`PasskeyConfirmation.fields`); a frame
+ *     whose fields break the contract never gets here (the model answers 4040 and shows none of it).
  */
 import { type ReactElement, useCallback, useEffect, useId, useLayoutEffect, useRef, useState } from 'react'
 
+import type { ConfirmField } from '../../core/passkey/challenge'
 import { sheetStrings } from '../../i18n/sheet-strings'
 import { useLocale } from '../../i18n/use-locale'
 import { webStrings } from '../../i18n/web-strings'
@@ -51,6 +56,7 @@ import { writeClipboard } from '../../platform/clipboard'
 import { layoutClock } from '../../platform/layout'
 import { Button } from '../../ui/primitives'
 import { DEFAULT_TAP_GUARD_MS } from './ApprovalSheet'
+import './confirm-fields.css'
 import { markVerbatimDetail } from './verbatim-detail'
 
 export interface ConfirmSheetProps {
@@ -169,6 +175,51 @@ async function copyVerbatim(text: string, host: HTMLElement | null): Promise<boo
   previous?.focus()
 
   return copied
+}
+
+/**
+ * The key facts of the action (contract §4.1), apart from the summary: each field's label and value as plain text, in the
+ * frame's order. The KIND decides the drawing and nothing else: an amount has its value large and bold with the currency
+ * beside it; a recipient and a domain are monospaced and never a link; every other kind is plain. A label, a value or a
+ * currency is NEVER truncated or ellipsized (a long one wraps onto more lines, even in the middle of a word), and none is
+ * parsed, rounded, localised or turned into a link: what is drawn is the very string the passkey challenge commits to.
+ */
+export function ConfirmFields({ fields }: { fields: readonly ConfirmField[] }): ReactElement {
+  const labelId = useId()
+
+  return (
+    <div className="hm-requests__detail-box">
+      <p className="hm-requests__label" id={labelId}>
+        {sheetStrings.passkeys.fieldsLabel}
+      </p>
+      <dl className="hm-confirm__fields" aria-labelledby={labelId} data-confirm-fields="">
+        {fields.map(field => (
+          <div className="hm-confirm__field" key={field.id} data-kind={field.kind}>
+            <dt className="hm-confirm__field-label" data-agent-text="">
+              {field.label}
+            </dt>
+            <dd className="hm-confirm__field-value" data-agent-text="">
+              {field.kind === 'amount' ? (
+                <>
+                  <span className="hm-confirm__amount">{field.value}</span>
+                  {field.currency === undefined ? null : (
+                    <>
+                      {' '}
+                      <span className="hm-confirm__currency">{field.currency}</span>
+                    </>
+                  )}
+                </>
+              ) : field.kind === 'recipient' || field.kind === 'domain' ? (
+                <span className="hm-confirm__mono">{field.value}</span>
+              ) : (
+                field.value
+              )}
+            </dd>
+          </div>
+        ))}
+      </dl>
+    </div>
+  )
 }
 
 export function ConfirmSheet({
@@ -328,6 +379,8 @@ export function ConfirmSheet({
       </p>
 
       <p className="hm-requests__summary">{confirmation.summary}</p>
+
+      {confirmation.fields ? <ConfirmFields fields={confirmation.fields} /> : null}
 
       {confirmation.detail && marked ? (
         <div className="hm-requests__detail-box" ref={detailBox}>

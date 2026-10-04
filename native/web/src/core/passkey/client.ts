@@ -84,7 +84,8 @@ export interface StepupBeginResult {
 
 /** The `passkey` object of a confirm answer, and a step-up's `assertion`. */
 export interface PasskeyAssertion {
-  v: 1
+  /** The request's own `passkey.v` (§8): 2 for a `confirm` with structured fields, 1 otherwise (and always for a step-up). */
+  v: 1 | 2
   rp_id: string
   base_url: string
   credential_id: string

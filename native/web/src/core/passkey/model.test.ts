@@ -231,6 +231,77 @@ describe('reading a confirm frame', () => {
     expect(page.store.getState().confirmations).toHaveLength(1)
   })
 
+  const FIELDS = [
+    { id: 'cost', kind: 'amount', label: 'Estimated cost', value: '4,20', currency: '€' },
+    { id: 'model', kind: 'model', label: 'Model', value: 'claude-opus-5-5' }
+  ]
+
+  it('takes a version 2 frame with its fields exactly as they came, in order', () => {
+    const page = setUp()
+    const { accepted, failed } = page.deliver('srq-2', frame({ fields: FIELDS }, { v: 2 }))
+
+    expect(accepted).toBe(true)
+    expect(failed).toEqual([])
+    expect(page.store.getState().confirmations).toEqual([
+      expect.objectContaining({ id: 'srq-2', fields: FIELDS, title: 'Pay invoice', phase: { kind: 'waiting' } })
+    ])
+  })
+
+  it('still takes a version 1 frame, which has no fields', () => {
+    const page = setUp()
+
+    page.deliver('srq-1', frame())
+
+    expect(page.store.getState().confirmations).toHaveLength(1)
+    expect(page.store.getState().confirmations[0]).not.toHaveProperty('fields')
+  })
+
+  const badFields: [string, unknown][] = [
+    ['an empty list', []],
+    ['nine fields', Array.from({ length: 9 }, (_, index) => ({ ...FIELDS[1], id: `f${index}` }))],
+    ['fields that are not a list', { id: 'cost' }],
+    ['a key the contract does not have', [{ ...FIELDS[1], href: 'https://evil.test' }]],
+    ['an id that repeats', [FIELDS[1], FIELDS[1]]],
+    ['an id of the wrong shape', [{ ...FIELDS[1], id: 'Model' }]],
+    ['a kind the contract does not name', [{ ...FIELDS[1], kind: 'link' }]],
+    ['an empty value', [{ ...FIELDS[1], value: '' }]],
+    ['a label of 41 characters', [{ ...FIELDS[1], label: 'x'.repeat(41) }]],
+    ['a value of 201 characters', [{ ...FIELDS[1], value: 'x'.repeat(201) }]],
+    ['a currency on something that is not an amount', [{ ...FIELDS[1], currency: 'EUR' }]],
+    ['a currency of 17 characters', [{ ...FIELDS[0], currency: 'x'.repeat(17) }]],
+    ['a line break in a value', [{ ...FIELDS[1], value: 'a\nb' }]],
+    ['a right-to-left override in a label', [{ ...FIELDS[1], label: 'Mod‮el' }]],
+    ['a zero-width character in a currency', [{ ...FIELDS[0], currency: '​€' }]],
+    ['a no-break space in a value', [{ ...FIELDS[1], value: 'a b' }]],
+    ['a space at the end of a value', [{ ...FIELDS[1], value: 'claude ' }]],
+    ['one bad field among good ones', [FIELDS[0], { ...FIELDS[1], value: 'bad\tvalue' }]]
+  ]
+
+  for (const [name, fields] of badFields) {
+    it(`refuses a frame with ${name}: 4040, and shows none of it`, () => {
+      const page = setUp()
+
+      expect(page.deliver('srq-9', frame({ fields }, { v: 2 })).accepted).toBe(true)
+      expect(page.failures).toEqual([{ id: 'srq-9', code: 4040, data: { reason: 'bad_request' } }])
+      expect(page.store.getState().confirmations).toEqual([])
+      expect(page.store.getState().notices.map(notice => notice.notice.kind)).toEqual(['malformed_request'])
+    })
+  }
+
+  it('refuses version 1 with fields and version 2 without them: the version follows from the fields', () => {
+    const v1 = setUp()
+
+    v1.deliver('srq-9', frame({ fields: FIELDS }, { v: 1 }))
+    expect(v1.failures).toEqual([{ id: 'srq-9', code: 4040, data: { reason: 'unsupported_version' } }])
+    expect(v1.store.getState().confirmations).toEqual([])
+
+    const v2 = setUp()
+
+    v2.deliver('srq-9', frame({}, { v: 2 }))
+    expect(v2.failures).toEqual([{ id: 'srq-9', code: 4040, data: { reason: 'unsupported_version' } }])
+    expect(v2.store.getState().confirmations).toEqual([])
+  })
+
   const refusals: {
     name: string
     setup?: Parameters<typeof setUp>[0]
@@ -749,6 +820,8 @@ function advertising(
     offerId?: string
     sessions?: OpenSession[]
     watch?: (listener: () => void) => () => void
+    /** What a gateway that knows structured fields adds (§8): the `confirm_fields` key and the accepted versions. */
+    fields?: { versions?: number[]; withKey?: boolean }
   } = {}
 ) {
   const sessions: OpenSession[] = options.sessions ?? [{ sessionId: 'sess-1', lastSeen: 0 }]
@@ -764,12 +837,14 @@ function advertising(
         ? { confirm: ['passkey'] }
         : {
             confirm: [],
+            ...(options.fields && options.fields.withKey !== false ? { confirm_fields: false } : {}),
             confirm_passkey: {
               v: 1,
               enabled: true,
               reason: '',
               gateway_id: options.offerId ?? GATEWAY_ID,
-              rp: { native: [], web: ['gw.example.test'] }
+              rp: { native: [], web: ['gw.example.test'] },
+              ...(options.fields?.versions ? { versions: options.fields.versions } : {})
             }
           }
     }
@@ -786,6 +861,58 @@ function advertising(
 
 const callsTo = (page: ReturnType<typeof setUp>, method: string): unknown[] =>
   page.answer.mock.calls.filter(([name]) => name === method).map(([, params]) => params)
+
+describe('structured fields in the second capabilities call (§8)', () => {
+  const secondCall = async (options: Parameters<typeof advertising>[0]): Promise<Record<string, unknown>> => {
+    const page = advertising(options)
+
+    await page.model.advertise()
+
+    return callsTo(page, 'client.capabilities')[1] as Record<string, unknown>
+  }
+
+  it('says it shows fields and computes version 2 when the gateway knows both', async () => {
+    expect(await secondCall({ fields: { versions: [1, 2] } })).toEqual({
+      server_requests: true,
+      confirm: ['passkey'],
+      confirm_fields: true,
+      confirm_passkey: { v: 2, kind: 'web', rp_id: 'gw.example.test' }
+    })
+  })
+
+  it('stays at version 1, and sends nothing a gateway without the key would refuse, when it knows neither', async () => {
+    expect(await secondCall({})).toEqual({
+      server_requests: true,
+      confirm: ['passkey'],
+      confirm_passkey: { v: 1, kind: 'web', rp_id: 'gw.example.test' }
+    })
+  })
+
+  it('does not send version 2 without confirm_fields, or without the gateway listing 2', async () => {
+    // Versions but no `confirm_fields` key: version 2 would be refused (a client sends 2 only with the fields).
+    expect(await secondCall({ fields: { versions: [1, 2], withKey: false } })).toEqual({
+      server_requests: true,
+      confirm: ['passkey'],
+      confirm_passkey: { v: 1, kind: 'web', rp_id: 'gw.example.test' }
+    })
+    // The key but only version 1 listed: the fields are shown, the digest stays at 1.
+    expect(await secondCall({ fields: { versions: [1] } })).toMatchObject({
+      confirm_fields: true,
+      confirm_passkey: { v: 1 }
+    })
+  })
+
+  it('does not offer fields where the level itself is not offered', async () => {
+    const page = advertising({
+      status: GATEWAY_STATUS({ base_urls: ['https://elsewhere.example.test'] }),
+      fields: { versions: [1, 2] }
+    })
+
+    await page.model.advertise()
+
+    expect(callsTo(page, 'client.capabilities')).toHaveLength(1)
+  })
+})
 
 describe('the base URL the gateway lists', () => {
   it('advertises when the gateway lists this page’s address', async () => {
