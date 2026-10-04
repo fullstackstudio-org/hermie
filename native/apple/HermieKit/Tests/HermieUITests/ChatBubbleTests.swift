@@ -43,6 +43,7 @@ private func status(_ id: String, presentation: Presentation = .full) -> Visible
 }
 
 /// Messages' grouping, the tool groups and their names, and the bubbles' colours.
+@MainActor
 @Suite struct ChatBubbleTests {
   // MARK: Grouping
 
@@ -271,7 +272,7 @@ private func status(_ id: String, presentation: Presentation = .full) -> Visible
     #expect(BubbleShape(side: .outgoing, tail: true).path(in: rect).contains(CGPoint(x: 202, y: 39)))
   }
 
-  static func ratio(_ a: (Int, Int, Int), _ b: (Int, Int, Int)) -> Double {
+  nonisolated static func ratio(_ a: (Int, Int, Int), _ b: (Int, Int, Int)) -> Double {
     func luminance(_ c: (Int, Int, Int)) -> Double {
       func channel(_ v: Int) -> Double {
         let s = Double(v) / 255

@@ -5,6 +5,7 @@ import Testing
 @testable import HermieUI
 
 /// The rhythm of the chat: the owner's "more room between messages", held as numbers.
+@MainActor
 @Suite struct ChatSpacingTests {
   @Test func aGapInsideAGroupIsPlainlySmallerThanTheGapBetweenGroups() {
     #expect(ChatSpacing.withinGroup < ChatSpacing.betweenGroups)

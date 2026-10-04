@@ -260,7 +260,7 @@ private func runningTool(_ id: String, presentation: Presentation = .hiddenPlace
 @Suite struct TypingIndicatorFeedTests {
   let session = GatewaySession(gatewayID: "typing-under-test", link: UnreachableLink())
 
-  private func feed(_ owner: ChatFeedOwner<ChatFeed>) -> ChatFeed? {
+  private func feedOf(_ owner: ChatFeedOwner<ChatFeed>) -> ChatFeed? {
     let session = self.session
     owner.appeared {
       ChatFeed(chat: ChatRef(gatewayId: "typing-under-test", bot: "writer"), session: session) { _ in .none }
@@ -279,7 +279,7 @@ private func runningTool(_ id: String, presentation: Presentation = .hiddenPlace
 
   @Test func theRowShowsAfterTheDelayAndGoesWithTheFirstWords() async throws {
     let owner = ChatFeedOwner<ChatFeed>()
-    let feed = try #require(feed(owner))
+    let feed = try #require(feedOf(owner))
 
     apply(feed.model, revision: 1, items: [user("u1")], activity: .working)
     await eventually("the reader's row") { feed.rows.count == 1 }
@@ -294,7 +294,7 @@ private func runningTool(_ id: String, presentation: Presentation = .hiddenPlace
 
   @Test func aTurnThatEndsBeforeTheDelayNeverShowsIt() async throws {
     let owner = ChatFeedOwner<ChatFeed>()
-    let feed = try #require(feed(owner))
+    let feed = try #require(feedOf(owner))
 
     apply(feed.model, revision: 1, items: [user("u1")], activity: .working)
     apply(feed.model, revision: 2, items: [user("u1"), reply("a1", "Quick one.")], activity: .idle)
@@ -305,7 +305,7 @@ private func runningTool(_ id: String, presentation: Presentation = .hiddenPlace
 
   @Test func aToolPhaseAtQuietShowsItAndTheSettledTurnTakesItAway() async throws {
     let owner = ChatFeedOwner<ChatFeed>()
-    let feed = try #require(feed(owner))
+    let feed = try #require(feedOf(owner))
     let items = [user("u1"), runningTool("t1")]
 
     apply(feed.model, revision: 1, items: items, activity: .tool("terminal"))
@@ -317,7 +317,7 @@ private func runningTool(_ id: String, presentation: Presentation = .hiddenPlace
 
   @Test func aCachedChatShowsNoDotsWhateverItsStoredTurnSays() async throws {
     let owner = ChatFeedOwner<ChatFeed>()
-    let feed = try #require(feed(owner))
+    let feed = try #require(feedOf(owner))
 
     apply(feed.model, revision: 1, items: [user("u1")], activity: .working, hydration: .cached)
     await eventually("the rows") { feed.rows.count == 1 }

@@ -59,7 +59,7 @@ func eventually(_ what: String, timeout: Duration = .seconds(5), _ condition: ()
 @Suite struct ChatFeedSessionTests {
   let session = GatewaySession(gatewayID: "gateway-under-test", link: UnreachableLink())
 
-  private func feed(_ bot: String, owner: ChatFeedOwner<ChatFeed>) -> ChatFeed? {
+  private func feedOf(_ bot: String, owner: ChatFeedOwner<ChatFeed>) -> ChatFeed? {
     let session = self.session
     owner.appeared {
       let feed = ChatFeed(chat: ChatRef(gatewayId: "gateway-under-test", bot: bot), session: session) { _ in .none }
@@ -83,7 +83,7 @@ func eventually(_ what: String, timeout: Duration = .seconds(5), _ condition: ()
 
   @Test func theDiagnosticsNameNoDraftNoMessageAndNoErrorText() async throws {
     let owner = ChatFeedOwner<ChatFeed>()
-    let feed = try #require(feed("writer", owner: owner))
+    let feed = try #require(feedOf("writer", owner: owner))
     let draft = "my unsent draft about the quarterly numbers"
     let message = "the reply with the secret plan in it"
 
@@ -134,7 +134,7 @@ func eventually(_ what: String, timeout: Duration = .seconds(5), _ condition: ()
 
   @Test func nothingIsMarkedReadWhileCoveredAndTheNewestRowIsOnceUncovered() async throws {
     let owner = ChatFeedOwner<ChatFeed>()
-    let feed = try #require(feed("writer", owner: owner))
+    let feed = try #require(feedOf("writer", owner: owner))
     feed.coverChanged(covered: true)
 
     live(feed.model, text: "a reply that came while a page stood over the chat")
@@ -177,8 +177,8 @@ func eventually(_ what: String, timeout: Duration = .seconds(5), _ condition: ()
   @Test func theLastScreensStopGivesItsLeaseBackAndReleasesTheModel() async throws {
     var first: ChatFeedOwner<ChatFeed>? = ChatFeedOwner<ChatFeed>()
     var second: ChatFeedOwner<ChatFeed>? = ChatFeedOwner<ChatFeed>()
-    _ = feed("writer", owner: first!)
-    _ = feed("writer", owner: second!)
+    _ = feedOf("writer", owner: first!)
+    _ = feedOf("writer", owner: second!)
     #expect(ChatLeases.holders(session, "writer") == 2)
     #expect(session.models["writer"] != nil)
 

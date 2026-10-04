@@ -5,6 +5,7 @@ import Testing
 
 /// The SwiftUI list's rules for following the newest row (`TranscriptFollow`): what the reader
 /// does decides, the rows growing does not, and their own send always follows.
+@MainActor
 @Suite struct TranscriptFollowTests {
   private typealias Geometry = TranscriptFollow.Geometry
   private let threshold: CGFloat = 32

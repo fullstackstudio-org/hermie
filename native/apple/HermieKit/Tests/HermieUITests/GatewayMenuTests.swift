@@ -4,6 +4,7 @@ import Testing
 @testable import HermieUI
 
 /// The gateway menus' titles, and the Mac menu bar's Gateway menu.
+@MainActor
 @Suite struct GatewayMenuTests {
   @Test func aTitleIsCutInTheMiddleKeepingItsStartAndItsEnd() {
     let title = "hermes.fullstackstudio.nl"

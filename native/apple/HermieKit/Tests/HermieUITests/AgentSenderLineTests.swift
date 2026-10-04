@@ -6,6 +6,7 @@ import Testing
 @testable import HermieUI
 
 /// A turn an agent sent for a person: the line under its bubble, and its place among the bubbles.
+@MainActor
 @Suite struct AgentSenderLineTests {
   private let agent = AuthorVia(kind: "mcp", client: "Example Agent")
 
