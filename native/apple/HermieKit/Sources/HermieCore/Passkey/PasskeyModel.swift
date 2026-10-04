@@ -51,6 +51,10 @@ public final class PasskeyModel {
   @ObservationIgnored let now: @Sendable () -> Double
   /// Signs in again for a self-enrolment grant; `nil`: this session cannot (no browser sign-in).
   @ObservationIgnored let reauthenticator: (any PasskeyReauthenticating)?
+  /// A self-enrolment step is running: another is `busy`.
+  @ObservationIgnored var selfEnrolmentRunning = false
+  /// Which start of a self-enrolment the sign-in result belongs to; moved by a start and a forget.
+  @ObservationIgnored var selfEnrolmentAttempt: UInt64 = 0
 
   /// What the challenge of each open confirmation commits to, and where to answer it.
   @ObservationIgnored var contexts: [String: ConfirmContext] = [:]
@@ -168,6 +172,9 @@ public final class PasskeyModel {
 
     tasks.removeAll()
     contexts.removeAll()
+    // A self-enrolment ends with the session: its sheet closes, and nothing of the grant is kept.
+    selfEnrolment = nil
+    await reauthenticator?.cancel()
     await authenticator.cancel()
   }
 

@@ -106,6 +106,9 @@ public protocol PasskeyReauthenticating: AnyObject {
   /// The app is in front again: listen again for the attempt in progress, if any (iOS may have
   /// reclaimed a suspended app's socket while the person was in another app).
   func appBecameActive() async
+  /// End the attempt in progress, if any: its sheet closes, its listener stops, and it answers
+  /// `cancelled`. Another attempt in the browser gate (a sign-in) is left alone.
+  func cancel() async
 }
 
 /**
@@ -121,6 +124,7 @@ public final class BrowserReauthenticator: PasskeyReauthenticating {
   private let credentials: NativePKCECredentials
   private let lock: AppLock?
   private var activeListener: (any LoopbackCallbackListening)?
+  private var activeTask: Task<Void, Never>?
   private var attempts = 0
 
   public init(services: GatewayServices, credentials: NativePKCECredentials, lock: AppLock?) {
@@ -167,6 +171,7 @@ public final class BrowserReauthenticator: PasskeyReauthenticating {
 
     gate.current = task
     activeListener = listener
+    activeTask = task
 
     await withTaskCancellationHandler {
       await task.value
@@ -176,6 +181,7 @@ public final class BrowserReauthenticator: PasskeyReauthenticating {
 
     if attempt == attempts {
       activeListener = nil
+      activeTask = nil
     }
 
     return outcome.value ?? .failure(.cancelled)
@@ -183,6 +189,17 @@ public final class BrowserReauthenticator: PasskeyReauthenticating {
 
   public func appBecameActive() async {
     await activeListener?.resume()
+  }
+
+  public func cancel() async {
+    guard let task = activeTask else {
+      return
+    }
+
+    // The attempt's own task: the sheet closes and the listener stops as for any cancellation, and
+    // the lock's guard, taken inside it, is given back there. Waits until it has.
+    task.cancel()
+    await task.value
   }
 }
 

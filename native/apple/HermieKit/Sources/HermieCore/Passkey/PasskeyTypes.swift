@@ -158,9 +158,11 @@ public enum PasskeyReauthReason: Sendable, Equatable {
   /// `reauth_invalid` `spent`: the grant was used for a passkey already.
   case spent
   /// The sign-in came back and did not count: `user_mismatch`, `provider_mismatch`,
-  /// `auth_time_missing`, `auth_not_fresh` (contract §7.2), or the grant could not be completed
-  /// (`not_open`, `client_mismatch`), as the gateway said it, or `""`.
+  /// `auth_time_missing`, `auth_not_fresh` (contract §7.2), as the gateway said it, or `""`.
   case failed(failure: String)
+  /// A step of this self-enrolment is already running (the sheet is up, or the passkey is being
+  /// created): nothing was started.
+  case busy
 }
 
 /// One `confirm` at level `passkey`, as the sheet shows it.

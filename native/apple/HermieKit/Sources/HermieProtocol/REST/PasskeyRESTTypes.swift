@@ -383,7 +383,8 @@ public struct PasskeyRouteErrorBody: JSONObjectBacked {
 // MARK: - Self-enrolment (contract §7.2, §8)
 
 /// `POST /api/auth/passkeys/reauth/begin` answer. A bearer caller (the app) gets no `login_path`.
-public struct PasskeyReauthBeginResult: JSONObjectBacked {
+/// Its description shows neither the grant nor the path that names it.
+public struct PasskeyReauthBeginResult: JSONObjectBacked, CustomDebugStringConvertible, CustomReflectable {
   public var json: JSONObject
   public init(json: JSONObject) { self.json = json }
 
@@ -395,6 +396,10 @@ public struct PasskeyReauthBeginResult: JSONObjectBacked {
   public var provider: String? { get { json[field: "provider"] } set { json[field: "provider"] = newValue } }
   /// Cookie callers only.
   public var loginPath: String? { get { json[field: "login_path"] } set { json[field: "login_path"] = newValue } }
+
+  public var description: String { "PasskeyReauthBeginResult(<redacted>)" }
+  public var debugDescription: String { description }
+  public var customMirror: Mirror { Mirror(self, children: [:], displayStyle: .struct) }
 }
 
 /// `POST /auth/native/token` answer for a re-authentication code: `{reauth: {…}}` and no tokens.

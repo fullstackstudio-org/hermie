@@ -61,7 +61,7 @@ enum PasskeysText {
   /// each come with the page (SE-7b).
   private static func reauthFailure(_ reason: PasskeyReauthReason) -> String? {
     switch reason {
-    case .signIn(.cancelled): nil
+    case .signIn(.cancelled), .busy: nil
     case .rateLimited(let seconds): rateLimited(seconds)
     case .notOffered: NativeStrings.Passkeys.notOffered
     case .disabled: NativeStrings.Passkeys.disabled

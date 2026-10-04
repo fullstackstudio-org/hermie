@@ -250,6 +250,7 @@ final class CountingTokenStore: TokenStore {
     let secret = "7LllY2NEkyiy8JkZ7NgZf_BQB8uqhIqVViH-KvJf2Qc"
     let completion = ReauthCompletion(grantID: Self.grant, state: .fresh(useSecret: secret), expiresAt: 1)
     let outcome = try #require(NativeReauthTokenAnswer(jsonValue: try JSONValue(parsing: try Self.example("native_token_reauth_fresh"))))
+    let opened = try #require(PasskeyReauthBeginResult(jsonValue: try JSONValue(parsing: try Self.example("reauth_begin_answer_web"))))
     let begin = PasskeyRegisterBeginParams(rpID: "r", baseURL: "https://gw", name: "n", grantID: Self.grant, useSecret: secret)
     let finish = PasskeyRegisterFinishParams(
       registrationID: "reg",
@@ -261,7 +262,8 @@ final class CountingTokenStore: TokenStore {
 
     for text in [
       "\(completion)", String(reflecting: completion), dumped(completion), "\(completion.state)",
-      "\(outcome)", "\(outcome.reauth!)", dumped(outcome), "\(begin)", dumped(begin), "\(finish)", dumped(finish)
+      "\(outcome)", "\(outcome.reauth!)", dumped(outcome), "\(begin)", dumped(begin), "\(finish)", dumped(finish),
+      "\(opened)", String(reflecting: opened), dumped(opened)
     ] {
       #expect(!text.contains(secret), "\(text)")
       #expect(!text.contains(Self.grant), "\(text)")

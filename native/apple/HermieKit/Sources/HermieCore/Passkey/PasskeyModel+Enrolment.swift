@@ -405,14 +405,34 @@ extension PasskeyModel {
 
    A sign-in that ended before it came back (the sheet closed, the app went away and the listener
    with it) leaves the grant open, and calling this again signs in for the same grant until it
-   expires, without opening another (`reauth/begin` allows five in ten minutes).
+   expires, without opening another (`reauth/begin` allows five in ten minutes). While a step runs,
+   another call is `busy`: it neither opens a grant nor touches the one running.
    */
   @discardableResult
   public func beginSelfEnrolment(presenter: any BrowserSessionPresenting) async throws(PasskeyActionError)
     -> PasskeySelfEnrolment
   {
+    guard !isShutDown else {
+      throw .notConfigured
+    }
+
     guard let reauthenticator else {
       throw .reauth(.notOffered)
+    }
+
+    guard !selfEnrolmentRunning else {
+      throw .reauth(.busy)
+    }
+
+    selfEnrolmentRunning = true
+    defer { selfEnrolmentRunning = false }
+    expireSelfEnrolmentIfDue()
+
+    // The status decides first, a reused grant included: the operator may have switched it off.
+    _ = try await account()
+
+    if let reason = Self.selfEnrolUnavailable(status?.selfEnrol) {
+      throw .reauth(reason)
     }
 
     var attempt: PasskeySelfEnrolment
@@ -420,12 +440,6 @@ extension PasskeyModel {
     if let held = selfEnrolment, case .signInEnded = held.phase, !held.isExpired(at: nowDate) {
       attempt = held
     } else {
-      _ = try await account()
-
-      if let reason = Self.selfEnrolUnavailable(status?.selfEnrol) {
-        throw .reauth(reason)
-      }
-
       let begin: PasskeyReauthBeginResult = try await route(grant: true) { try await $0.reauthBegin() }
 
       guard let grantID = begin.grantID, !grantID.isEmpty, let expiresAt = begin.expiresAt else {
@@ -440,17 +454,29 @@ extension PasskeyModel {
       )
     }
 
+    guard !isShutDown else {
+      throw .notConfigured
+    }
+
+    selfEnrolmentAttempt &+= 1
     attempt.phase = .signingIn
     selfEnrolment = attempt
 
+    let token = selfEnrolmentAttempt
     let result = await reauthenticator.reauthenticate(
       grantID: attempt.grantID,
       provider: attempt.provider,
       presenter: presenter
     )
 
-    // Forgotten, or replaced by another start, meanwhile: this result is nobody's any more.
-    guard let current = selfEnrolment, current.grantID == attempt.grantID, current.phase == .signingIn else {
+    guard !isShutDown else {
+      throw .notConfigured
+    }
+
+    // Forgotten, or replaced, meanwhile: this result is nobody's any more.
+    guard token == selfEnrolmentAttempt, let current = selfEnrolment, current.grantID == attempt.grantID,
+      current.phase == .signingIn
+    else {
       throw .reauth(.signIn(.cancelled))
     }
 
@@ -477,7 +503,7 @@ extension PasskeyModel {
           $0.phase = .ready
         }
       case .failed(let reason):
-        let why: PasskeyReauthReason = reason == "unknown" ? .expired : .failed(failure: reason)
+        let why = Self.tokenFailure(reason)
         update { $0.phase = .failed(why) }
         throw .reauth(why)
       }
@@ -494,19 +520,30 @@ extension PasskeyModel {
    */
   @discardableResult
   public func enrol(grantID: String) async throws(PasskeyActionError) -> PasskeyCredentialInfo {
+    guard !isShutDown else {
+      throw .notConfigured
+    }
+
+    guard !selfEnrolmentRunning else {
+      throw .reauth(.busy)
+    }
+
+    expireSelfEnrolmentIfDue()
+
     guard let held = selfEnrolment, held.grantID == grantID else {
       throw .reauth(.expired)
     }
 
     guard held.phase == .ready, let secret = held.useSecret else {
-      throw .reauth(held.phase == .done ? .spent : .notFresh)
+      switch held.phase {
+      case .done: throw .reauth(.spent)
+      case .failed(.expired): throw .reauth(.expired)
+      default: throw .reauth(.notFresh)
+      }
     }
 
-    guard !held.isExpired(at: nowDate) else {
-      update { $0.phase = .failed(.expired) }
-      throw .reauth(.expired)
-    }
-
+    selfEnrolmentRunning = true
+    defer { selfEnrolmentRunning = false }
     update { $0.phase = .enrolling }
 
     do {
@@ -532,15 +569,49 @@ extension PasskeyModel {
     }
   }
 
-  /// Forget the self-enrolment: the page closed, or the person starts over. The grant is left to
-  /// expire at the gateway.
+  /**
+   A grant past its `expires_at` is over: its phase becomes `failed(expired)` and its use secret is
+   dropped. The steps call this themselves; the page's countdown calls it when it reaches zero.
+   */
+  public func expireSelfEnrolmentIfDue() {
+    guard let held = selfEnrolment, held.isExpired(at: nowDate) else {
+      return
+    }
+
+    switch held.phase {
+    case .ready, .signInEnded:
+      update {
+        $0.phase = .failed(.expired)
+        $0.useSecret = nil
+      }
+    case .signingIn, .enrolling, .failed, .done:
+      update { $0.useSecret = nil }
+    }
+  }
+
+  /// Forget the self-enrolment: the page closed, or the person starts over. A sign-in sheet still
+  /// up closes; the grant is left to expire at the gateway.
   public func forgetSelfEnrolment() {
     selfEnrolment = nil
+    selfEnrolmentAttempt &+= 1
+
+    if let reauthenticator {
+      Task { await reauthenticator.cancel() }
+    }
   }
 
   /// The app is in front again: a sign-in in progress listens again (see `PasskeyReauthenticating`).
   public func appBecameActive() async {
     await reauthenticator?.appBecameActive()
+  }
+
+  /// The token route's `failed` reason: a failure of contract §7.2, or a grant that could not be
+  /// completed at all (`unknown`, `not_open`, `client_mismatch`), which is over as if it expired.
+  static func tokenFailure(_ reason: String) -> PasskeyReauthReason {
+    switch reason {
+    case "unknown", "not_open", "client_mismatch": .expired
+    default: .failed(failure: reason)
+    }
   }
 
   private var nowDate: Date {
@@ -589,7 +660,7 @@ extension PasskeyModel {
   /// A step-2 refusal after which the grant cannot be used again.
   static func endsGrant(_ reason: PasskeyReauthReason) -> Bool {
     switch reason {
-    case .rateLimited, .signIn:
+    case .rateLimited, .signIn, .busy:
       false
     case .notOffered, .disabled, .providerNoReauth, .expired, .notFresh, .spent, .failed:
       true

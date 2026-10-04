@@ -122,6 +122,7 @@ public struct MainWindow: View {
     }
     .pushLifecycle(launch: launch, router: router)
     .syncLifecycle(launch: launch)
+    .passkeyReauthLifecycle()
     .surfaceLinks(router: router)
     .onChange(of: ShellRequests.shared.onboarding, initial: true) { _, mode in
       if let mode {

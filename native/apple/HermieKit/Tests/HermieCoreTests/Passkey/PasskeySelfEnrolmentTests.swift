@@ -92,16 +92,39 @@ final class ScriptedReauthenticator: PasskeyReauthenticating {
     expiresAt: 1_790_000_600
   )
 
+  /// Keep the sheet "up" until `release` or `cancel`.
+  var hold = false
+  private var held: CheckedContinuation<Result<ReauthCompletion, SignInProblem>, Never>?
+  private(set) var cancels = 0
+
+  var isHolding: Bool { held != nil }
+
   func reauthenticate(grantID: String, provider: String?, presenter: any BrowserSessionPresenting) async
     -> Result<ReauthCompletion, SignInProblem>
   {
     asked.append((grantID, provider))
     phasesSeen.append(model?.selfEnrolment?.phase)
+
+    if hold {
+      return await withCheckedContinuation { held = $0 }
+    }
+
     return results.isEmpty ? .success(Self.fresh) : results.removeFirst()
+  }
+
+  func release(_ result: Result<ReauthCompletion, SignInProblem> = .success(fresh)) {
+    let continuation = held
+    held = nil
+    continuation?.resume(returning: result)
   }
 
   func appBecameActive() async {
     resumes += 1
+  }
+
+  func cancel() async {
+    cancels += 1
+    release(.failure(.cancelled))
   }
 }
 
@@ -292,7 +315,8 @@ struct PasskeySelfEnrolmentTests {
       ("auth_not_fresh", PasskeyReauthReason.failed(failure: "auth_not_fresh")),
       ("user_mismatch", .failed(failure: "user_mismatch")),
       ("unknown", .expired),
-      ("not_open", .failed(failure: "not_open"))
+      ("not_open", .expired),
+      ("client_mismatch", .expired)
     ]
   )
   func failedSignIn(_ reason: String, _ expected: PasskeyReauthReason) async throws {
@@ -305,7 +329,8 @@ struct PasskeySelfEnrolmentTests {
     #expect(f.model.selfEnrolment?.phase == .failed(expected))
 
     // Step 2 is not possible, and starting again opens a new grant.
-    await #expect(throws: PasskeyActionError.reauth(.notFresh)) { try await f.model.enrol(grantID: SelfEnrolWire.grant) }
+    let refusal: PasskeyReauthReason = expected == .expired ? .expired : .notFresh
+    await #expect(throws: PasskeyActionError.reauth(refusal)) { try await f.model.enrol(grantID: SelfEnrolWire.grant) }
     _ = try await f.model.beginSelfEnrolment(presenter: Self.presenter)
     #expect(f.gateway.requests("/api/auth/passkeys/reauth/begin").count == 2)
   }
@@ -468,6 +493,125 @@ struct PasskeySelfEnrolmentTests {
     #expect(f.model.selfEnrolment == nil)
     await #expect(throws: PasskeyActionError.reauth(.expired)) { try await f.model.enrol(grantID: ready.grantID) }
   }
+
+  // MARK: - While the sheet is up
+
+  /// Start step 1 with the sheet held up; answers once the model shows `signingIn`.
+  func startHeld(_ f: Fixture) async throws -> Task<PasskeySelfEnrolment, any Error> {
+    f.browser.hold = true
+    let model = f.model
+    let running = Task { @MainActor in try await model.beginSelfEnrolment(presenter: Self.presenter) }
+    let browser = f.browser
+    try await eventually("the sheet") { await MainActor.run { browser.isHolding } }
+    #expect(f.model.selfEnrolment?.phase == .signingIn)
+    return running
+  }
+
+  @Test("forgotten while the sheet is up: the sheet is closed and its late result is nobody's")
+  func forgottenWhileSigningIn() async throws {
+    let f = try Self.fixture()
+    let running = try await startHeld(f)
+
+    f.model.forgetSelfEnrolment()
+    #expect(f.model.selfEnrolment == nil)
+
+    let error = await #expect(throws: PasskeyActionError.self) { try await running.value }
+    #expect(error == .reauth(.signIn(.cancelled)))
+    #expect(f.browser.cancels == 1, "the sheet was asked to close")
+    #expect(f.model.selfEnrolment == nil, "the result did not bring it back")
+  }
+
+  @Test("a late fresh result for a forgotten attempt is dropped, not adopted")
+  func lateResultDropped() async throws {
+    let f = try Self.fixture()
+    let running = try await startHeld(f)
+
+    // Forget without the sheet answering the cancel (as when it had already called back), then the
+    // fresh result arrives.
+    f.model.selfEnrolment = nil
+    f.model.selfEnrolmentAttempt &+= 1
+    f.browser.release()
+
+    let error = await #expect(throws: PasskeyActionError.self) { try await running.value }
+    #expect(error == .reauth(.signIn(.cancelled)))
+    #expect(f.model.selfEnrolment == nil)
+  }
+
+  @Test("a second start while the sheet is up is busy: no second grant, the first goes on")
+  func busyWhileSigningIn() async throws {
+    let f = try Self.fixture()
+    let running = try await startHeld(f)
+
+    await #expect(throws: PasskeyActionError.reauth(.busy)) {
+      try await f.model.beginSelfEnrolment(presenter: Self.presenter)
+    }
+    await #expect(throws: PasskeyActionError.reauth(.busy)) { try await f.model.enrol(grantID: SelfEnrolWire.grant) }
+    #expect(f.gateway.requests("/api/auth/passkeys/reauth/begin").count == 1)
+    #expect(f.browser.asked.count == 1)
+
+    f.browser.release()
+    #expect(try await running.value.phase == .ready)
+  }
+
+  @Test("the session shutting down mid-sign-in closes the sheet, forgets the grant, and refuses both steps")
+  func shutdownWhileSigningIn() async throws {
+    let f = try Self.fixture()
+    let running = try await startHeld(f)
+
+    await f.model.shutdown()
+
+    #expect(f.browser.cancels == 1)
+    #expect(f.model.selfEnrolment == nil)
+    await #expect(throws: PasskeyActionError.notConfigured) { try await running.value }
+    await #expect(throws: PasskeyActionError.notConfigured) {
+      try await f.model.beginSelfEnrolment(presenter: Self.presenter)
+    }
+    await #expect(throws: PasskeyActionError.notConfigured) { try await f.model.enrol(grantID: SelfEnrolWire.grant) }
+    #expect(f.gateway.requests("/api/auth/passkeys/register/begin").isEmpty)
+  }
+
+  @Test("the session shutting down with a ready grant forgets it and its secret")
+  func shutdownWhenReady() async throws {
+    let f = try Self.fixture()
+    let ready = try await f.model.beginSelfEnrolment(presenter: Self.presenter)
+
+    await f.model.shutdown()
+
+    #expect(f.model.selfEnrolment == nil)
+    await #expect(throws: PasskeyActionError.notConfigured) { try await f.model.enrol(grantID: ready.grantID) }
+  }
+
+  // MARK: - Expiry and reuse
+
+  @Test("a ready grant past expires_at drops its secret and says so, unused")
+  func readyGrantExpires() async throws {
+    let f = try Self.fixture()
+    _ = try await f.model.beginSelfEnrolment(presenter: Self.presenter)
+    #expect(f.model.selfEnrolment?.useSecret != nil)
+
+    f.clock.set(1_790_000_601)
+    f.model.expireSelfEnrolmentIfDue()
+
+    #expect(f.model.selfEnrolment?.phase == .failed(.expired))
+    #expect(f.model.selfEnrolment?.useSecret == nil)
+  }
+
+  @Test("an open grant is not reused once the operator switched self-enrolment off")
+  func reuseRechecksStatus() async throws {
+    let f = try Self.fixture()
+    f.browser.results = [.failure(.cancelled)]
+    _ = try? await f.model.beginSelfEnrolment(presenter: Self.presenter)
+    #expect(f.model.selfEnrolment?.phase == .signInEnded(.cancelled))
+
+    var status = SelfEnrolWire.example("status_self_enrol").objectValue ?? [:]
+    status["self_enrol"] = SelfEnrolWire.example("self_enrol_disabled")
+    f.gateway.answer("/api/auth/passkeys", .json(SelfEnrolWire.text(.object(status))))
+
+    await #expect(throws: PasskeyActionError.reauth(.disabled)) {
+      try await f.model.beginSelfEnrolment(presenter: Self.presenter)
+    }
+    #expect(f.browser.asked.count == 1, "no second sign-in")
+  }
 }
 
 // MARK: - The browser half
@@ -592,6 +736,108 @@ struct BrowserReauthenticatorTests {
     #expect(await second.deliver(secondSheet.callbackURL(code: "code-2")))
     #expect(try await b.value.get().grantID == SelfEnrolWire.grant)
     #expect(f.lock.ceremonies == 0)
+  }
+
+  @Test("the caller cancelling ends the attempt: the sheet closes, the listener stops, the lock is given back")
+  func callerCancels() async throws {
+    let listener = FakeListener()
+    let presenter = FakePresenter()
+    let f = try await Self.fixture(listeners: ListenerQueue([listener]))
+    let attempt = Task { await f.reauth.reauthenticate(grantID: SelfEnrolWire.grant, provider: nil, presenter: presenter) }
+
+    await eventually { !presenter.opened.isEmpty }
+    #expect(f.lock.ceremonies == 1)
+    attempt.cancel()
+
+    #expect(await attempt.value == .failure(.cancelled))
+    #expect(presenter.closes >= 1)
+    #expect(await listener.stopped)
+    #expect(f.lock.ceremonies == 0)
+    #expect(f.server.requests.isEmpty)
+  }
+
+  @Test("cancel() ends the attempt in progress and waits until the lock is given back")
+  func cancelEnds() async throws {
+    let listener = FakeListener()
+    let presenter = FakePresenter()
+    let f = try await Self.fixture(listeners: ListenerQueue([listener]))
+    let attempt = Task { await f.reauth.reauthenticate(grantID: SelfEnrolWire.grant, provider: nil, presenter: presenter) }
+
+    await eventually { !presenter.opened.isEmpty }
+    await f.reauth.cancel()
+
+    #expect(f.lock.ceremonies == 0)
+    #expect(await listener.stopped)
+    #expect(await attempt.value == .failure(.cancelled))
+
+    // Nothing in progress: nothing to do.
+    await f.reauth.cancel()
+  }
+
+  @Test("the lock is given back when the attempt cannot start, cannot listen, or times out")
+  func lockBalancedOnEveryEnd() async throws {
+    // No grant: the authorize URL cannot be made.
+    let f1 = try await Self.fixture(listeners: ListenerQueue([FakeListener()]))
+    #expect(await f1.reauth.reauthenticate(grantID: "", provider: nil, presenter: FakePresenter()) == .failure(.couldNotStart))
+    #expect(f1.lock.ceremonies == 0)
+
+    let f2 = try await Self.fixture(listeners: ListenerQueue([FakeListener(.fail(.unavailable))]))
+    #expect(await f2.reauth.reauthenticate(grantID: SelfEnrolWire.grant, provider: nil, presenter: FakePresenter()) == .failure(.listenerUnavailable))
+    #expect(f2.lock.ceremonies == 0)
+
+    let timer = ManualTimer()
+    let presenter = FakePresenter()
+    let f3 = try await Self.fixture(listeners: ListenerQueue([FakeListener()]), timer: timer)
+    let attempt = Task { await f3.reauth.reauthenticate(grantID: SelfEnrolWire.grant, provider: nil, presenter: presenter) }
+    await eventually { !presenter.opened.isEmpty }
+    timer.fire()
+    #expect(await attempt.value == .failure(.timedOut))
+    #expect(f3.lock.ceremonies == 0)
+  }
+
+  @Test("an onboarding sign-in started during a re-authentication ends it, and the reverse")
+  func sharesTheGateWithOnboarding() async throws {
+    let reauthListener = FakeListener()
+    let signInListener = FakeListener()
+    let laterReauthListener = FakeListener()
+    let listeners = ListenerQueue([reauthListener, signInListener, laterReauthListener])
+    let harness = try OnboardingHarness(transport: GatewayStub.gated().transport(), listener: { listeners.next() })
+    let window = harness.model()
+    let fresh = SelfEnrolWire.text(SelfEnrolWire.example("native_token_reauth_fresh"))
+    let server = StubServer { _ in .json(fresh) }
+    let coordinator = TokenCoordinator(store: MemoryTokenStore(), refresh: { $0 }, nowSeconds: { 1_790_000_000 })
+    let credentials = NativePKCECredentials(baseURL: Self.base, coordinator: coordinator, transport: server.transport())
+    let lock = try await Self.lock()
+    let reauth = BrowserReauthenticator(services: harness.accounts.services, credentials: credentials, lock: lock)
+
+    window.address = "https://gw.example.test"
+    await eventually { window.resolved != nil }
+
+    // The re-authentication first; the sign-in from the window ends it.
+    let sheet = FakePresenter()
+    let first = Task { await reauth.reauthenticate(grantID: SelfEnrolWire.grant, provider: nil, presenter: sheet) }
+    await eventually { !sheet.opened.isEmpty }
+
+    let signInSheet = FakePresenter()
+    window.startBrowserSignIn(presenter: signInSheet)
+
+    #expect(await first.value == .failure(.cancelled))
+    #expect(await reauthListener.stopped)
+    #expect(lock.ceremonies == 0)
+    await signInListener.waitUntilStarted()
+    await eventually { !signInSheet.opened.isEmpty }
+    #expect(window.isWaitingForBrowser)
+
+    // Then a re-authentication ends the window's sign-in.
+    let laterSheet = FakePresenter()
+    let second = Task { await reauth.reauthenticate(grantID: SelfEnrolWire.grant, provider: nil, presenter: laterSheet) }
+
+    await eventually { window.signIn == .idle }
+    #expect(await signInListener.stopped)
+    await eventually { !laterSheet.opened.isEmpty }
+    #expect(await laterReauthListener.deliver(laterSheet.callbackURL(code: "code-r")))
+    #expect(try await second.value.get().grantID == SelfEnrolWire.grant)
+    #expect(lock.ceremonies == 0)
   }
 
   @Test("a sign-in in progress in the same gate is ended by a re-authentication")
