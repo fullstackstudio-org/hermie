@@ -5,8 +5,7 @@
  *
  *  - every scope the package colours has a class, a custom property in each
  *    scheme, and a place in `HIGHLIGHT_SCOPES`;
- *  - every value is the package's (`codeScopeColor`), except the few listed
- *    below, which are darker for the reason the stylesheet gives;
+ *  - every value is the package's (`codeScopeColor`);
  *  - every value reaches 4.5:1 on the code block's surface (the text colour at
  *    7% over the ground), on the bubble and on the page, in both schemes.
  */
@@ -22,14 +21,6 @@ import { HIGHLIGHT_SCOPES, scopeClass } from './Highlight'
 const here = dirname(fileURLToPath(import.meta.url))
 const css = readFileSync(join(here, 'markdown-highlight.css'), 'utf8').replace(/\/\*[\s\S]*?\*\//g, '')
 const theme = readFileSync(join(here, '../../../../packages/markdown/src/code-theme.ts'), 'utf8')
-
-/** Light values the web client draws darker than the package, and why: the stylesheet says. */
-const LIGHT_OVERRIDES: Record<string, string> = {
-  addition: '#1e6e3e',
-  attr: '#76601f',
-  attribute: '#76601f',
-  property: '#76601f'
-}
 
 /** The grounds a message sits on (`ui/theme.css`), and the text colour over them. */
 const GROUNDS = {
@@ -104,7 +95,7 @@ describe('the highlighting palette', () => {
 
   it.each(HIGHLIGHT_SCOPES)('%s: a class that reads its property, and the package colours in both schemes', scope => {
     expect(css).toContain(`.md .md-hl-${scope.replaceAll('_', '-')} {\n  color: var(${property(scope)});\n}`)
-    expect(LIGHT[property(scope)]).toBe(LIGHT_OVERRIDES[scope] ?? codeScopeColor(scope, 'light')?.toLowerCase())
+    expect(LIGHT[property(scope)]).toBe(codeScopeColor(scope, 'light')?.toLowerCase())
     expect(DARK_FOLLOWING[property(scope)]).toBe(codeScopeColor(scope, 'dark')?.toLowerCase())
     expect(DARK_CHOSEN[property(scope)]).toBe(codeScopeColor(scope, 'dark')?.toLowerCase())
   })

@@ -1528,8 +1528,7 @@ The rules, each pinned by a test:
   inline math in a code chip. A chunk that fails to load leaves the source and is asked for again by the next block.
 - Code in one of the fifteen languages of `@hermie/markdown` is coloured from its scope spans; the text is the
   source character for character. The palette is the package's `code-theme.ts`, as custom properties in both
-  schemes; `markdown-highlight.test.ts` holds it to the package and to 4.5:1 on the code surface (four light values
-  are darker than the package's, which measure under 4.5:1 there). Code the reader sent (on the tint) is not coloured.
+  schemes; `markdown-highlight.test.ts` holds it to the package and to 4.5:1 on the code surface. Code the reader sent (on the tint) is not coloured.
 - A listing is coloured only once it comes within a viewport's height of being seen (`near-viewport.ts`: one
   `IntersectionObserver` per scroll container, the transcript provided through `ScrollRootContext`; a listing already
   in view is coloured before its first paint). Far ones stay plain, one text node each: colouring every listing of a

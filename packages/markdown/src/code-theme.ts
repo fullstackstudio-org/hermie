@@ -8,9 +8,9 @@
 export type CodeScheme = 'light' | 'dark'
 
 const LIGHT: Record<string, string> = {
-  addition: '#217844',
-  attr: '#836C28',
-  attribute: '#836C28',
+  addition: '#1E6E3E',
+  attr: '#76601F',
+  attribute: '#76601F',
   built_in: '#0B4F79',
   bullet: '#9B2393',
   char: '#C41A16',
@@ -30,7 +30,7 @@ const LIGHT: Record<string, string> = {
   number: '#1C00CF',
   operator: '#5C5C65',
   params: '#3A3A44',
-  property: '#836C28',
+  property: '#76601F',
   punctuation: '#5C5C65',
   quote: '#5A6673',
   regexp: '#C41A16',
