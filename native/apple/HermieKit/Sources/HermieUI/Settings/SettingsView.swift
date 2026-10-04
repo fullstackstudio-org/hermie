@@ -5,6 +5,7 @@ import SwiftUI
 public enum SettingsCategory: String, CaseIterable, Hashable, Sendable, Identifiable {
   case account
   case gateways
+  case passkeys
   case mcp
   case chats
   case notifications
@@ -20,7 +21,7 @@ public enum SettingsCategory: String, CaseIterable, Hashable, Sendable, Identifi
 
   /// Grouped the way the list draws them.
   public static let groups: [[SettingsCategory]] = [
-    [.account, .gateways, .mcp],
+    [.account, .gateways, .passkeys, .mcp],
     [.chats, .notifications, .memory],
     [.appearance, .privacy, .voice],
     [.capabilities],
@@ -31,6 +32,7 @@ public enum SettingsCategory: String, CaseIterable, Hashable, Sendable, Identifi
     switch self {
     case .account: Strings.App.Settings.Categories.account
     case .gateways: Strings.App.Settings.Categories.gateways
+    case .passkeys: NativeStrings.Passkeys.title
     case .mcp: NativeStrings.MCP.title
     case .chats: Strings.App.Settings.Categories.chats
     case .notifications: Strings.App.Settings.Categories.notifications
@@ -48,6 +50,7 @@ public enum SettingsCategory: String, CaseIterable, Hashable, Sendable, Identifi
     switch self {
     case .account: Strings.App.Settings.Categories.Blurb.account
     case .gateways: Strings.App.Settings.Categories.Blurb.gateways
+    case .passkeys: NativeStrings.Passkeys.stateFooter
     case .mcp: NativeStrings.MCP.blurb
     case .chats: Strings.App.Settings.Categories.Blurb.chats
     case .notifications: Strings.App.Settings.Categories.Blurb.notifications
@@ -65,6 +68,7 @@ public enum SettingsCategory: String, CaseIterable, Hashable, Sendable, Identifi
     switch self {
     case .account: "person.crop.circle"
     case .gateways: "server.rack"
+    case .passkeys: "person.badge.key"
     case .mcp: "puzzlepiece.extension"
     case .chats: "bubble.left.and.bubble.right"
     case .notifications: "bell.badge"
@@ -224,6 +228,8 @@ struct SettingsPage: View {
         PrivacySettingsPage()
       case .gateways:
         GatewaysSettingsPage(onAddGateway: onAddGateway)
+      case .passkeys:
+        PasskeysSettingsEntry()
       case .mcp:
         MCPSettingsEntry()
       case .notifications:

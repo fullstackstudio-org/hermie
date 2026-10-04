@@ -53,8 +53,6 @@ struct GatewaysSettingsPage: View {
         SettingsNote(Strings.App.Settings.Gateways.hint)
       }
 
-      PasskeysGatewaySection()
-
       ICloudSyncAvailableSection()
     }
   }

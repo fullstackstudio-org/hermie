@@ -391,24 +391,25 @@ enum PasskeyCodeBoard {
   #endif
 }
 
-/// The row to the Passkeys page in Settings → Gateways: the live gateway's, when this build has
-/// passkeys. Only the live gateway has a session, so only its passkeys can be read and changed.
-struct PasskeysGatewaySection: View {
+/// The Passkeys category in Settings: the live gateway's passkeys, when this build has passkeys.
+/// Only the live gateway has a session, so only its passkeys can be read and changed.
+struct PasskeysSettingsEntry: View {
   @Environment(AppLaunch.self) private var launch
   @Environment(LiveGateway.self) private var live: LiveGateway?
 
   var body: some View {
     if let model = live?.session?.passkeys, let id = live?.gatewayID, let entry = launch.gateways.entry(id: id) {
-      Section {
-        NavigationLink {
-          PasskeysSettingsPage(model: model, gatewayName: entry.name)
-        } label: {
-          LabeledContent(NativeStrings.Passkeys.title) {
-            Text(verbatim: entry.name)
-          }
+      PasskeysSettingsPage(model: model, gatewayName: entry.name)
+    } else {
+      Form {
+        Section {
+          Text(NativeStrings.Passkeys.notOffered)
+        } footer: {
+          SettingsNote(NativeStrings.Passkeys.stateFooter)
         }
-        .accessibilityIdentifier("hermie.settings.passkeys")
       }
+      .formStyle(.grouped)
+      .accessibilityIdentifier("hermie.settings.passkeys.none")
     }
   }
 }
