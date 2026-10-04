@@ -80,9 +80,17 @@ import Testing
       }
     #else
       let host = UIHostingController(rootView: view)
-      let window = UIWindow(frame: CGRect(x: 0, y: 0, width: width, height: 2000))
-      window.rootViewController = host
-      window.isHidden = false
+      // Every UIWindow initialiser without a scene is deprecated in iOS 26: attach the view to a
+      // window of the process's window scene when it has one (a hosted run), and lay it out on its
+      // own frame when it has none.
+      host.view.frame = CGRect(x: 0, y: 0, width: width, height: 2000)
+      let window = UIApplication.shared.connectedScenes.compactMap { $0 as? UIWindowScene }.first.map { scene in
+        let window = UIWindow(windowScene: scene)
+        window.frame = host.view.frame
+        window.rootViewController = host
+        window.isHidden = false
+        return window
+      }
       for _ in 0..<5 {
         host.view.layoutIfNeeded()
         RunLoop.main.run(until: Date().addingTimeInterval(0.02))
