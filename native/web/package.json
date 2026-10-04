@@ -41,6 +41,7 @@
     "@vitejs/plugin-react": "5.1.4",
     "axe-core": "4.13.0",
     "jsdom": "26.1.0",
+    "typescript": "~5.9.2",
     "vite": "7.3.6",
     "vitest": "3.2.7"
   }
