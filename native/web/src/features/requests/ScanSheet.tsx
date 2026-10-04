@@ -93,6 +93,8 @@ export function ScanSheet({
   const env = environment ?? pageEnvironment()
   const video = useRef<HTMLVideoElement>(null)
   const stream = useRef<MediaStream | null>(null)
+  /** A camera that arrives after the person put the sheet away, or pressed Start again, is not used: it is stopped. */
+  const attempt = useRef(0)
   const [phase, setPhase] = useState<Phase>('idle')
   /** The symbologies asked for that this browser reads; `null` until the detector was asked. */
   const [reads, setReads] = useState<readonly Symbology[] | null>(null)
@@ -130,6 +132,8 @@ export function ScanSheet({
   // A sheet that is put away or hidden behind another stops looking, and goes back to the start.
   useEffect(() => {
     if (!shown && camera) {
+      // A camera still being asked for is for nobody now: when it arrives it is stopped.
+      attempt.current += 1
       stop(stream.current)
       stream.current = null
       setPhase('idle')
@@ -139,6 +143,7 @@ export function ScanSheet({
   // The camera is let go when the sheet goes, whatever it was doing.
   useEffect(
     () => () => {
+      attempt.current += 1
       stop(stream.current)
       stream.current = null
     },
@@ -208,6 +213,10 @@ export function ScanSheet({
       return
     }
 
+    attempt.current += 1
+
+    const mine = attempt.current
+
     setPhase('starting')
     setFound(null)
     sending.clearNotice()
@@ -215,16 +224,19 @@ export function ScanSheet({
     try {
       const media = await env.getUserMedia({ video: { facingMode: { ideal: 'environment' } }, audio: false })
 
-      if (!alive.current) {
+      // The sheet went, was put away, or Start was pressed again meanwhile: this camera is nobody's.
+      if (!alive.current || attempt.current !== mine) {
         stop(media)
 
         return
       }
 
+      // Never two cameras at once: whatever was held is let go before this one is kept.
+      stop(stream.current)
       stream.current = media
       setPhase('scanning')
     } catch (error) {
-      if (!alive.current) {
+      if (!alive.current || attempt.current !== mine) {
         return
       }
 

@@ -152,6 +152,8 @@ function Recorder({
   const env = environment ?? pageEnvironment()
   const stream = useRef<MediaStream | null>(null)
   const recorder = useRef<RecorderLike | null>(null)
+  /** A microphone that arrives after the sheet was put away, or went, or Record was pressed again, is stopped unused. */
+  const attempt = useRef(0)
   const cancel = useRef<AbortController | null>(null)
   /** What is already up for the take as it is now: reused when the person tries again. */
   const uploaded = useRef<UploadedFile | null>(null)
@@ -209,6 +211,7 @@ function Recorder({
 
   useEffect(
     () => () => {
+      attempt.current += 1
       cancel.current?.abort()
 
       if (recorder.current) {
@@ -245,6 +248,12 @@ function Recorder({
   useEffect(() => {
     if (!shown && recorder.current && phase.kind === 'recording') {
       stopRecorder()
+    }
+
+    // A microphone still being asked for is for nobody now: when it arrives it is stopped, and Record starts again.
+    if (!shown && phase.kind === 'starting') {
+      attempt.current += 1
+      setPhase({ kind: 'idle' })
     }
   }, [shown, phase.kind])
 
@@ -286,6 +295,10 @@ function Recorder({
     setOffline(false)
     setSeconds(0)
     sending.clearNotice()
+    attempt.current += 1
+
+    const mine = attempt.current
+
     setPhase({ kind: 'starting' })
 
     let media: MediaStream
@@ -293,7 +306,7 @@ function Recorder({
     try {
       media = await env.getUserMedia({ audio: true })
     } catch {
-      if (alive.current) {
+      if (alive.current && attempt.current === mine) {
         setMicFailed(true)
         setPhase({ kind: 'idle' })
       }
@@ -301,7 +314,8 @@ function Recorder({
       return
     }
 
-    if (!alive.current) {
+    // The sheet went, was put away, or Record was pressed again meanwhile: this microphone is nobody's.
+    if (!alive.current || attempt.current !== mine) {
       for (const track of media.getTracks()) {
         track.stop()
       }
@@ -309,6 +323,8 @@ function Recorder({
       return
     }
 
+    // Never two microphones at once: whatever was held is let go before this one is kept.
+    release()
     stream.current = media
     stopping.current = false
 

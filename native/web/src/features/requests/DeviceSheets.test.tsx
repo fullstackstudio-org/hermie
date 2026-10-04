@@ -10,6 +10,8 @@ import { act, fireEvent, screen, waitFor, within } from '@testing-library/react'
 import { afterEach, beforeAll, beforeEach, describe, expect, it, vi } from 'vitest'
 
 import { REFUSED_CODE } from '../../core/requests/interactive'
+import { requestLaterStore } from '../../state/request-later'
+import { interactiveKey } from '../../state/requests'
 import {
   button,
   contactFrame,
@@ -415,6 +417,30 @@ function camera() {
   return { stream, stop, getUserMedia: vi.fn(async (_constraints: unknown) => stream) }
 }
 
+/**
+ * A camera or microphone whose permission is answered by the test, when it likes: every call is a pending request for
+ * a stream of its own, and `arrive` is the person (or the browser) saying yes.
+ */
+function lateMedia() {
+  const asked: { stop: ReturnType<typeof vi.fn>; arrive: () => void }[] = []
+  const getUserMedia = vi.fn(
+    (_constraints: unknown) =>
+      new Promise<MediaStream>(resolve => {
+        const stop = vi.fn()
+        const stream = { getTracks: () => [{ stop }] } as unknown as MediaStream
+
+        asked.push({ stop, arrive: () => resolve(stream) })
+      })
+  )
+
+  return { asked, getUserMedia }
+}
+
+/** Bring a sheet that was put away (Later) back, as the transcript's Open does. */
+const bringBack = (id: string): void => {
+  act(() => requestLaterStore.getState().bringBack(interactiveKey(id)))
+}
+
 /** A detector class that reads the codes `read` returns, for the formats it supports. */
 function detectorClass(
   read: () => { rawValue: string; format: string }[],
@@ -586,7 +612,94 @@ describe('a code to scan', () => {
 
     expect(cam.stop).toHaveBeenCalledTimes(1)
 
+    // Back again, the camera runs once more; it is let go once more when the sheet goes.
+    bringBack('srq-1')
+    await press('Start the camera')
+
+    expect(cam.getUserMedia).toHaveBeenCalledTimes(2)
+    expect(cam.stop).toHaveBeenCalledTimes(1)
+
     view.unmount()
+
+    expect(cam.stop).toHaveBeenCalledTimes(2)
+  })
+
+  it('stops a camera that arrives after the sheet was put away and Start was pressed again, and keeps only the last', async () => {
+    const late = lateMedia()
+
+    playableVideo()
+    onNavigator({ mediaDevices: { getUserMedia: late.getUserMedia } })
+    vi.stubGlobal('BarcodeDetector', detectorClass(() => []).Detector)
+
+    const view = mount(harness)
+
+    raise(harness, 'srq-1', 'device.scan', scanFrame())
+    await sheetNamed('A code to scan')
+    await settle()
+    await press('Start the camera')
+    // Later while the camera is still starting, then open it again and press Start once more.
+    await press('Later')
+    bringBack('srq-1')
+    await press('Start the camera')
+
+    expect(late.asked).toHaveLength(2)
+
+    await act(async () => {
+      late.asked[0]?.arrive()
+      late.asked[1]?.arrive()
+    })
+    await settle()
+
+    // The first camera is nobody's: stopped as it arrived. The second is the one on screen.
+    expect(late.asked[0]?.stop).toHaveBeenCalledTimes(1)
+    expect(late.asked[1]?.stop).not.toHaveBeenCalled()
+    expect(dialog().querySelector('[data-scan-video]')).not.toBeNull()
+
+    view.unmount()
+
+    expect(late.asked[1]?.stop).toHaveBeenCalledTimes(1)
+  })
+
+  it('stops a camera the person allowed only after the sheet was put away', async () => {
+    const late = lateMedia()
+
+    onNavigator({ mediaDevices: { getUserMedia: late.getUserMedia } })
+    vi.stubGlobal('BarcodeDetector', detectorClass(() => []).Detector)
+    mount(harness)
+    raise(harness, 'srq-1', 'device.scan', scanFrame())
+    await sheetNamed('A code to scan')
+    await settle()
+    await press('Start the camera')
+    await press('Later')
+    await act(async () => late.asked[0]?.arrive())
+    await settle()
+
+    expect(late.asked[0]?.stop).toHaveBeenCalledTimes(1)
+
+    bringBack('srq-1')
+
+    // Nothing is looking: the sheet is back at its start, with no picture.
+    expect(dialog().querySelector('[data-scan-video]')).toBeNull()
+    expect(button('Start the camera')).toBeTruthy()
+  })
+
+  it('stops a camera the person allowed only after the sheet went', async () => {
+    const late = lateMedia()
+
+    onNavigator({ mediaDevices: { getUserMedia: late.getUserMedia } })
+    vi.stubGlobal('BarcodeDetector', detectorClass(() => []).Detector)
+
+    const view = mount(harness)
+
+    raise(harness, 'srq-1', 'device.scan', scanFrame())
+    await sheetNamed('A code to scan')
+    await settle()
+    await press('Start the camera')
+    view.unmount()
+    await act(async () => late.asked[0]?.arrive())
+    await settle()
+
+    expect(late.asked[0]?.stop).toHaveBeenCalledTimes(1)
   })
 })
 
@@ -802,6 +915,102 @@ describe('a voice note', () => {
 
     expect(recorder.made[0]?.stopped).toBe(1)
     expect(cam.stop).toHaveBeenCalled()
+  })
+
+  it('stops the recorder and lets go of the microphone when the sheet goes while it is recording', async () => {
+    const recorder = recorderClass()
+    const cam = recordable(recorder)
+
+    const view = mount(harness, { uploadFileTo: uploads().fn })
+
+    raise(harness, 'srq-1', 'input.file', voiceFrame())
+    await sheetNamed('A voice note to record')
+    await press('Record')
+
+    expect(recorder.made[0]?.started).toBe(1)
+    expect(recorder.made[0]?.stopped).toBe(0)
+    expect(cam.stop).not.toHaveBeenCalled()
+
+    view.unmount()
+
+    expect(recorder.made[0]?.stopped).toBe(1)
+    expect(cam.stop).toHaveBeenCalledTimes(1)
+  })
+
+  it('stops a microphone that arrives after the sheet was put away and Record was pressed again, and records with the last', async () => {
+    const recorder = recorderClass()
+    const late = lateMedia()
+
+    vi.stubGlobal('MediaRecorder', recorder.Recorder)
+    vi.stubGlobal(
+      'URL',
+      Object.assign(URL, { createObjectURL: () => 'blob:voice-0', revokeObjectURL: () => undefined })
+    )
+    onNavigator({ mediaDevices: { getUserMedia: late.getUserMedia } })
+
+    const view = mount(harness, { uploadFileTo: uploads().fn })
+
+    raise(harness, 'srq-1', 'input.file', voiceFrame())
+    await sheetNamed('A voice note to record')
+    await press('Record')
+    await press('Later')
+    bringBack('srq-1')
+    await press('Record')
+
+    expect(late.asked).toHaveLength(2)
+
+    await act(async () => {
+      late.asked[0]?.arrive()
+      late.asked[1]?.arrive()
+    })
+    await settle()
+
+    expect(late.asked[0]?.stop).toHaveBeenCalledTimes(1)
+    expect(late.asked[1]?.stop).not.toHaveBeenCalled()
+    // One recorder only, on the second microphone.
+    expect(recorder.made).toHaveLength(1)
+
+    view.unmount()
+
+    expect(late.asked[1]?.stop).toHaveBeenCalledTimes(1)
+  })
+
+  it('stops a microphone the person allowed only after the sheet was put away, and does not record', async () => {
+    const recorder = recorderClass()
+    const late = lateMedia()
+
+    vi.stubGlobal('MediaRecorder', recorder.Recorder)
+    onNavigator({ mediaDevices: { getUserMedia: late.getUserMedia } })
+    mount(harness, { uploadFileTo: uploads().fn })
+    raise(harness, 'srq-1', 'input.file', voiceFrame())
+    await sheetNamed('A voice note to record')
+    await press('Record')
+    await press('Later')
+    await act(async () => late.asked[0]?.arrive())
+    await settle()
+
+    expect(late.asked[0]?.stop).toHaveBeenCalledTimes(1)
+    expect(recorder.made).toEqual([])
+  })
+
+  it('stops a microphone the person allowed only after the sheet went, and does not record', async () => {
+    const recorder = recorderClass()
+    const late = lateMedia()
+
+    vi.stubGlobal('MediaRecorder', recorder.Recorder)
+    onNavigator({ mediaDevices: { getUserMedia: late.getUserMedia } })
+
+    const view = mount(harness, { uploadFileTo: uploads().fn })
+
+    raise(harness, 'srq-1', 'input.file', voiceFrame())
+    await sheetNamed('A voice note to record')
+    await press('Record')
+    view.unmount()
+    await act(async () => late.asked[0]?.arrive())
+    await settle()
+
+    expect(late.asked[0]?.stop).toHaveBeenCalledTimes(1)
+    expect(recorder.made).toEqual([])
   })
 })
 
