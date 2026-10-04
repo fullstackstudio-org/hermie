@@ -499,6 +499,11 @@
               "text": "Looking that up for you.",
               "ts": 1790000009,
               "usage": {
+                "context_estimated": false,
+                "context_max": 200000,
+                "context_percent": 3.2,
+                "context_source": "model catalog",
+                "context_used": 6420,
                 "input": 12,
                 "output": 34,
                 "total": 46
@@ -662,6 +667,11 @@
               "text": "Looking that up for you.",
               "ts": 1790000009,
               "usage": {
+                "context_estimated": false,
+                "context_max": 200000,
+                "context_percent": 3.2,
+                "context_source": "model catalog",
+                "context_used": 6420,
                 "input": 12,
                 "output": 34,
                 "total": 46
@@ -819,6 +829,11 @@
               "text": "Looking that up for you.",
               "ts": 1790000009,
               "usage": {
+                "context_estimated": false,
+                "context_max": 200000,
+                "context_percent": 3.2,
+                "context_source": "model catalog",
+                "context_used": 6420,
                 "input": 12,
                 "output": 34,
                 "total": 46
@@ -1009,6 +1024,11 @@
               "text": "Looking that up for you.",
               "ts": 1790000000,
               "usage": {
+                "context_estimated": false,
+                "context_max": 200000,
+                "context_percent": 3.2,
+                "context_source": "model catalog",
+                "context_used": 6420,
                 "input": 12,
                 "output": 34,
                 "total": 46
@@ -1070,6 +1090,11 @@
               "text": "The backoff is a geometric series, so the total wait has a closed form.\n\n$$\n\\sum_{k=0}^{n-1} b \\cdot r^k = b \\cdot \\frac{1 - r^n}{1 - r}\n$$\n\nWith $b = 250$ ms and $r = 2$, five attempts wait $3.75$ s in total.\n\nThat is the same ceiling the guide quotes, and the plan costs $12 a month either way.",
               "ts": 1790000000,
               "usage": {
+                "context_estimated": false,
+                "context_max": 200000,
+                "context_percent": 3.6,
+                "context_source": "model catalog",
+                "context_used": 7260,
                 "input": 12,
                 "output": 34,
                 "total": 46
@@ -1210,6 +1235,11 @@
               "text": "Looking that up for you.",
               "ts": 1790000000,
               "usage": {
+                "context_estimated": false,
+                "context_max": 200000,
+                "context_percent": 3.2,
+                "context_source": "model catalog",
+                "context_used": 6420,
                 "input": 12,
                 "output": 34,
                 "total": 46
@@ -1246,6 +1276,11 @@
               "text": "The backoff is a geometric series, so the total wait has a closed form.\n\n$$\n\\sum_{k=0}^{n-1} b \\cdot r^k = b \\cdot \\frac{1 - r^n}{1 - r}\n$$\n\nWith $b = 250$ ms and $r = 2$, five attempts wait $3.75$ s in total.\n\nThat is the same ceiling the guide quotes, and the plan costs $12 a month either way.",
               "ts": 1790000000,
               "usage": {
+                "context_estimated": false,
+                "context_max": 200000,
+                "context_percent": 3.6,
+                "context_source": "model catalog",
+                "context_used": 7260,
                 "input": 12,
                 "output": 34,
                 "total": 46
@@ -1405,6 +1440,11 @@
               "text": "Looking that up for you.",
               "ts": 1790000000,
               "usage": {
+                "context_estimated": false,
+                "context_max": 200000,
+                "context_percent": 3.2,
+                "context_source": "model catalog",
+                "context_used": 6420,
                 "input": 12,
                 "output": 34,
                 "total": 46
@@ -1466,6 +1506,11 @@
               "text": "The backoff is a geometric series, so the total wait has a closed form.\n\n$$\n\\sum_{k=0}^{n-1} b \\cdot r^k = b \\cdot \\frac{1 - r^n}{1 - r}\n$$\n\nWith $b = 250$ ms and $r = 2$, five attempts wait $3.75$ s in total.\n\nThat is the same ceiling the guide quotes, and the plan costs $12 a month either way.",
               "ts": 1790000000,
               "usage": {
+                "context_estimated": false,
+                "context_max": 200000,
+                "context_percent": 3.6,
+                "context_source": "model catalog",
+                "context_used": 7260,
                 "input": 12,
                 "output": 34,
                 "total": 46
@@ -1550,6 +1595,11 @@
         "text": "The backoff is a geometric series, so the total wait has a closed form.\n\n$$\n\\sum_{k=0}^{n-1} b \\cdot r^k = b \\cdot \\frac{1 - r^n}{1 - r}\n$$\n\nWith $b = 250$ ms and $r = 2$, five attempts wait $3.75$ s in total.\n\nThat is the same ceiling the guide quotes, and the plan costs $12 a month either way.",
         "ts": 1790000000,
         "usage": {
+          "context_estimated": false,
+          "context_max": 200000,
+          "context_percent": 3.6,
+          "context_source": "model catalog",
+          "context_used": 7260,
           "input": 12,
           "output": 34,
           "total": 46
@@ -1570,6 +1620,11 @@
         "text": "Looking that up for you.",
         "ts": 1790000000,
         "usage": {
+          "context_estimated": false,
+          "context_max": 200000,
+          "context_percent": 3.2,
+          "context_source": "model catalog",
+          "context_used": 6420,
           "input": 12,
           "output": 34,
           "total": 46
@@ -1748,6 +1803,11 @@
     },
     "unreadCount": 0,
     "usage": {
+      "context_estimated": false,
+      "context_max": 200000,
+      "context_percent": 3.6,
+      "context_source": "model catalog",
+      "context_used": 7260,
       "input": 12,
       "output": 34,
       "total": 46
@@ -2185,6 +2245,11 @@
             "status": "ok",
             "text": "Looking that up for you.",
             "usage": {
+              "context_estimated": false,
+              "context_max": 200000,
+              "context_percent": 3.2,
+              "context_source": "model catalog",
+              "context_used": 6420,
               "input": 12,
               "output": 34,
               "total": 46
@@ -2449,6 +2514,11 @@
                 "status": "ok",
                 "text": "The backoff is a geometric series, so the total wait has a closed form.\n\n$$\n\\sum_{k=0}^{n-1} b \\cdot r^k = b \\cdot \\frac{1 - r^n}{1 - r}\n$$\n\nWith $b = 250$ ms and $r = 2$, five attempts wait $3.75$ s in total.\n\nThat is the same ceiling the guide quotes, and the plan costs $12 a month either way.",
                 "usage": {
+                  "context_estimated": false,
+                  "context_max": 200000,
+                  "context_percent": 3.6,
+                  "context_source": "model catalog",
+                  "context_used": 7260,
                   "input": 12,
                   "output": 34,
                   "total": 46
@@ -2981,6 +3051,11 @@
             "status": "ok",
             "text": "Looking that up for you.",
             "usage": {
+              "context_estimated": false,
+              "context_max": 200000,
+              "context_percent": 3.2,
+              "context_source": "model catalog",
+              "context_used": 6420,
               "input": 12,
               "output": 34,
               "total": 46
@@ -3148,6 +3223,11 @@
             "status": "ok",
             "text": "The backoff is a geometric series, so the total wait has a closed form.\n\n$$\n\\sum_{k=0}^{n-1} b \\cdot r^k = b \\cdot \\frac{1 - r^n}{1 - r}\n$$\n\nWith $b = 250$ ms and $r = 2$, five attempts wait $3.75$ s in total.\n\nThat is the same ceiling the guide quotes, and the plan costs $12 a month either way.",
             "usage": {
+              "context_estimated": false,
+              "context_max": 200000,
+              "context_percent": 3.6,
+              "context_source": "model catalog",
+              "context_used": 7260,
               "input": 12,
               "output": 34,
               "total": 46

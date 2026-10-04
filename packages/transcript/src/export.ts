@@ -88,8 +88,17 @@ function requestLine(item: Extract<TranscriptItem, { kind: 'approval' | 'clarify
   if (item.kind === 'request') {
     // How it ended, never what was answered: the item holds no value to print.
     const summary = item.answerSummary
+    const hunks =
+      summary?.approvedHunks !== undefined && summary.rejectedHunks !== undefined
+        ? `${summary.approvedHunks} of ${summary.approvedHunks + summary.rejectedHunks} hunks`
+        : ''
     const ended = summary
-      ? [summary.status ?? summary.decision, summary.edited ? 'edited' : '', summary.count ? `${summary.count}` : '']
+      ? [
+          summary.status ?? summary.decision,
+          summary.edited ? 'edited' : '',
+          summary.count ? `${summary.count}` : '',
+          hunks
+        ]
           .filter(Boolean)
           .join(', ')
       : item.state

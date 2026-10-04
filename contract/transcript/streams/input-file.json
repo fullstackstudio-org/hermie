@@ -1597,6 +1597,7 @@
         "id": "c-5",
         "jsonrpc": "2.0",
         "result": {
+          "confirm_fields": false,
           "server_requests": [
             "approval",
             "clarify",
@@ -1607,7 +1608,8 @@
             "vault.unlock_prompt",
             "input.form",
             "input.file",
-            "review.draft"
+            "review.draft",
+            "review.diff"
           ]
         }
       }
@@ -1621,10 +1623,12 @@
           "confirm": [
             "plain"
           ],
+          "confirm_fields": false,
           "requests": [
             "input.form",
             "input.file",
-            "review.draft"
+            "review.draft",
+            "review.diff"
           ],
           "server_requests": [
             "approval",
@@ -1637,6 +1641,7 @@
             "input.form",
             "input.file",
             "review.draft",
+            "review.diff",
             "confirm"
           ]
         }

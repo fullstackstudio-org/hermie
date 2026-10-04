@@ -475,6 +475,43 @@
       "v": 1
     }
   },
+  "reviewDiffRequest": {
+    "id": "srq-12",
+    "method": "review.diff",
+    "params": {
+      "expires_at": 1791119400,
+      "hunks": [
+        {
+          "header": "@@ -3,4 +3,4 @@ class Settings:",
+          "id": "h1",
+          "lines": [
+            "     name = \"booking\"",
+            "-    currency = \"USD\"",
+            "+    currency = \"EUR\"",
+            "     locale = \"nl-NL\""
+          ]
+        },
+        {
+          "header": "@@ -20,3 +20,4 @@ def retry():",
+          "id": "h2",
+          "lines": [
+            "     attempts = 0",
+            "-    limit = 3",
+            "+    limit = 5",
+            "+    backoff = 2",
+            "     return attempts"
+          ]
+        }
+      ],
+      "kind": "modify",
+      "optional": false,
+      "path": "app/settings.py",
+      "session_id": "run-1a2b",
+      "summary": "I changed the default currency and the retry limit. Approve or reject each hunk.",
+      "title": "Changes to settings.py",
+      "v": 1
+    }
+  },
   "reviewDraftRequest": {
     "id": "srq-11",
     "method": "review.draft",

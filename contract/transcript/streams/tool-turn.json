@@ -499,6 +499,11 @@
               "text": "Looking that up for you.",
               "ts": 1790000009,
               "usage": {
+                "context_estimated": false,
+                "context_max": 200000,
+                "context_percent": 3.2,
+                "context_source": "model catalog",
+                "context_used": 6420,
                 "input": 12,
                 "output": 34,
                 "total": 46
@@ -662,6 +667,11 @@
               "text": "Looking that up for you.",
               "ts": 1790000009,
               "usage": {
+                "context_estimated": false,
+                "context_max": 200000,
+                "context_percent": 3.2,
+                "context_source": "model catalog",
+                "context_used": 6420,
                 "input": 12,
                 "output": 34,
                 "total": 46
@@ -819,6 +829,11 @@
               "text": "Looking that up for you.",
               "ts": 1790000009,
               "usage": {
+                "context_estimated": false,
+                "context_max": 200000,
+                "context_percent": 3.2,
+                "context_source": "model catalog",
+                "context_used": 6420,
                 "input": 12,
                 "output": 34,
                 "total": 46
@@ -926,6 +941,11 @@
         "text": "Looking that up for you.",
         "ts": 1790000009,
         "usage": {
+          "context_estimated": false,
+          "context_max": 200000,
+          "context_percent": 3.2,
+          "context_source": "model catalog",
+          "context_used": 6420,
           "input": 12,
           "output": 34,
           "total": 46
@@ -1089,6 +1109,11 @@
     },
     "unreadCount": 0,
     "usage": {
+      "context_estimated": false,
+      "context_max": 200000,
+      "context_percent": 3.2,
+      "context_source": "model catalog",
+      "context_used": 6420,
       "input": 12,
       "output": 34,
       "total": 46
@@ -1526,6 +1551,11 @@
             "status": "ok",
             "text": "Looking that up for you.",
             "usage": {
+              "context_estimated": false,
+              "context_max": 200000,
+              "context_percent": 3.2,
+              "context_source": "model catalog",
+              "context_used": 6420,
               "input": 12,
               "output": 34,
               "total": 46
@@ -1940,6 +1970,11 @@
             "status": "ok",
             "text": "Looking that up for you.",
             "usage": {
+              "context_estimated": false,
+              "context_max": 200000,
+              "context_percent": 3.2,
+              "context_source": "model catalog",
+              "context_used": 6420,
               "input": 12,
               "output": 34,
               "total": 46

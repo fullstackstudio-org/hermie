@@ -493,7 +493,13 @@ import Testing
     let example = try #require(try Self.examples()["capabilities"]?[0]?["request"])
     var params = ClientCapabilitiesParams(serverRequests: true)
     params.confirm = [.plain]
-    params.requests = ServerRequestBody.Method.interactive
+    // The contract's example lists review.diff after the three phase-1 methods. This build has no sheet for
+    // it yet, so it does not advertise it (only what the device can show); the example must be exactly the
+    // methods it does show, then that one. The line to change when the diff sheet lands is this one.
+    let advertised = try #require(example["params"]?["requests"]?.arrayValue)
+    let listed = advertised.compactMap { $0.stringValue }
+    #expect(listed == ServerRequestBody.Method.interactive + ["review.diff"])
+    params.requests = listed
     let request = JSONRPCRequest(id: .number(3), RPC.ClientCapabilities.self, params: params)
     #expect(try canonical(request) == canonical(example))
     #expect(ClientCapabilitiesParams(serverRequests: true).requests == nil)

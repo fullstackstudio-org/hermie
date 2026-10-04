@@ -569,6 +569,7 @@ enum TypedCopy {
       $0.serverRequests = p.serverRequests
       $0.confirm = p.confirm
       $0.confirmPasskey = p.confirmPasskey
+      $0.confirmFields = p.confirmFields
       $0.requests = p.requests
     }
   }

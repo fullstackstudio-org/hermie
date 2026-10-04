@@ -140,10 +140,15 @@ private func requestLine(_ request: RequestItem) -> String {
   // How it ended, never what was answered: the item holds no value to print.
   let ended: String
   if let summary = request.answerSummary {
+    var hunks = ""
+    if let approved = summary.approvedHunks, let rejected = summary.rejectedHunks {
+      hunks = "\(approved) of \(approved + rejected) hunks"
+    }
     ended = [
       summary.status ?? summary.decision ?? "",
       summary.edited == true ? "edited" : "",
       (summary.count ?? 0) != 0 ? String(summary.count ?? 0) : "",
+      hunks,
     ].filter { !$0.isEmpty }.joined(separator: ", ")
   } else {
     ended = request.state.rawValue

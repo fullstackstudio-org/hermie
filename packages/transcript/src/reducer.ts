@@ -1764,6 +1764,8 @@ const REQUEST_TITLE_MAX = 80
 const REQUEST_SUMMARY_MAX = 500
 const SUMMARY_KEY = /^[a-z][a-z0-9_]{0,23}$/
 const SUMMARY_COUNT_MAX = 9_999
+/** A diff review has at most this many hunks (`contract/requests`: 1 to 200). */
+const SUMMARY_HUNKS_MAX = 200
 
 /**
  * Narrow what the model passed for an answer to the keys and numbers a
@@ -1798,11 +1800,19 @@ function requestAnswerSummary(value: unknown): RequestAnswerSummary | undefined 
     out.edited = raw.edited
   }
 
+  for (const key of ['approvedHunks', 'rejectedHunks'] as const) {
+    const hunks = raw[key]
+
+    if (typeof hunks === 'number' && Number.isInteger(hunks) && hunks >= 0 && hunks <= SUMMARY_HUNKS_MAX) {
+      out[key] = hunks
+    }
+  }
+
   if (typeof raw.precision === 'string' && SUMMARY_KEY.test(raw.precision)) {
     out.precision = raw.precision
   }
 
-  // Without how it ended, `count` / `edited` / `precision` describe nothing.
+  // Without how it ended, `count` / `edited` / `precision` / the hunk counts describe nothing.
   return out.status || out.decision ? out : undefined
 }
 

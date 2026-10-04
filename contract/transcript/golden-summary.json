@@ -8,8 +8,8 @@
     },
     "answerRequest": {
       "readsClock": false,
-      "recorded": 46,
-      "replayable": 46,
+      "recorded": 56,
+      "replayable": 56,
       "skipped": {}
     },
     "applyEvent": {
@@ -32,8 +32,8 @@
     },
     "applyServerRequest": {
       "readsClock": false,
-      "recorded": 95,
-      "replayable": 95,
+      "recorded": 112,
+      "replayable": 112,
       "skipped": {}
     },
     "applySubagentSnapshot": {
@@ -120,8 +120,8 @@
     },
     "createChatState": {
       "readsClock": false,
-      "recorded": 673,
-      "replayable": 673,
+      "recorded": 690,
+      "replayable": 690,
       "skipped": {}
     },
     "deliveryTargetFromCommand": {
@@ -144,8 +144,8 @@
     },
     "exportTranscript": {
       "readsClock": false,
-      "recorded": 24,
-      "replayable": 2,
+      "recorded": 25,
+      "replayable": 3,
       "skipped": {
         "args: function": 22
       }

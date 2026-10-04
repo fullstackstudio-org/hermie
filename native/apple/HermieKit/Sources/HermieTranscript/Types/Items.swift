@@ -1096,6 +1096,10 @@ public struct RequestAnswerSummary: TranscriptJSONCodable, Hashable {
   public var decision: String?
   public var count: Int?
   public var edited: Bool?
+  /// `review.diff`: how many hunks the person approved.
+  public var approvedHunks: Int?
+  /// `review.diff`: how many hunks the person rejected.
+  public var rejectedHunks: Int?
   /// A coarse key such as `approximate`.
   public var precision: String?
   public var extra: JSONObject
@@ -1105,6 +1109,8 @@ public struct RequestAnswerSummary: TranscriptJSONCodable, Hashable {
     decision: String? = nil,
     count: Int? = nil,
     edited: Bool? = nil,
+    approvedHunks: Int? = nil,
+    rejectedHunks: Int? = nil,
     precision: String? = nil,
     extra: JSONObject = [:]
   ) {
@@ -1112,6 +1118,8 @@ public struct RequestAnswerSummary: TranscriptJSONCodable, Hashable {
     self.decision = decision
     self.count = count
     self.edited = edited
+    self.approvedHunks = approvedHunks
+    self.rejectedHunks = rejectedHunks
     self.precision = precision
     self.extra = extra
   }
@@ -1122,6 +1130,8 @@ public struct RequestAnswerSummary: TranscriptJSONCodable, Hashable {
     decision = reader.optional("decision")
     count = reader.optional("count")
     edited = reader.optional("edited")
+    approvedHunks = reader.optional("approvedHunks")
+    rejectedHunks = reader.optional("rejectedHunks")
     precision = reader.optional("precision")
     extra = reader.residue
   }
@@ -1132,12 +1142,14 @@ public struct RequestAnswerSummary: TranscriptJSONCodable, Hashable {
     writer.set("decision", decision)
     writer.set("count", count)
     writer.set("edited", edited)
+    writer.set("approvedHunks", approvedHunks)
+    writer.set("rejectedHunks", rejectedHunks)
     writer.set("precision", precision)
     return writer.json
   }
 }
 
-/// One interactive request (`input.form`, `input.file`, `review.draft`): that a
+/// One interactive request (`input.form`, `input.file`, `review.draft`, `review.diff`): that a
 /// question was asked and how it ended, never what was answered. `RequestItem`.
 /// There is no field that could hold a value.
 public struct RequestItem: TranscriptItemProtocol {

@@ -17,7 +17,13 @@ import { answerRequest, applyEvent, applyResumeSnapshot, applyServerRequest, beg
 import { rowsToItems, type TranscriptRow } from './rows-to-items'
 import { openRequests, visibleItems } from './selectors'
 import { turnActivity } from './turn-activity'
-import { inputFileRequest, inputFormRequest, reviewDraftRequest, SESSION } from './__fixtures__/events'
+import {
+  inputFileRequest,
+  inputFormRequest,
+  reviewDiffRequest,
+  reviewDraftRequest,
+  SESSION
+} from './__fixtures__/events'
 import { type ChatState, createChatState, type RequestItem, type TranscriptItem } from './types'
 
 const NOW = 1_790_000_000_000
@@ -62,22 +68,25 @@ describe('INTERACTIVE_METHODS', () => {
 })
 
 describe('applyServerRequest for an interactive method', () => {
-  it.each([inputFormRequest, inputFileRequest, reviewDraftRequest])('opens a request item for $method', request => {
-    const state = applyServerRequest(fresh(), request, NOW)
-    const [item] = requests(state)
+  it.each([inputFormRequest, inputFileRequest, reviewDraftRequest, reviewDiffRequest])(
+    'opens a request item for $method',
+    request => {
+      const state = applyServerRequest(fresh(), request, NOW)
+      const [item] = requests(state)
 
-    expect(item).toMatchObject({
-      kind: 'request',
-      requestId: request.id,
-      method: request.method,
-      title: request.params.title,
-      summary: request.params.summary,
-      optional: request.params.optional,
-      state: 'open',
-      ts: NOW / 1000
-    })
-    expect(state.byRequestId[request.id]).toBe(item!.id)
-  })
+      expect(item).toMatchObject({
+        kind: 'request',
+        requestId: request.id,
+        method: request.method,
+        title: request.params.title,
+        summary: request.params.summary,
+        optional: request.params.optional,
+        state: 'open',
+        ts: NOW / 1000
+      })
+      expect(state.byRequestId[request.id]).toBe(item!.id)
+    }
+  )
 
   it('keeps the item free of the sheet’s params: no value field, no field definitions, no draft text', () => {
     const [form] = requests(applyServerRequest(fresh(), inputFormRequest, NOW))
@@ -177,7 +186,10 @@ describe('answerRequest for an interactive request', () => {
     ['a location shared approximately', { status: 'answered', precision: 'approximate' }],
     ['review.draft approved, edited', { decision: 'approved', edited: true }],
     ['review.draft approved', { decision: 'approved', edited: false }],
-    ['review.draft rejected', { decision: 'rejected' }]
+    ['review.draft rejected', { decision: 'rejected' }],
+    ['review.diff approved, one hunk of two', { decision: 'approved', approvedHunks: 1, rejectedHunks: 1 }],
+    ['review.diff approved, every hunk', { decision: 'approved', approvedHunks: 2, rejectedHunks: 0 }],
+    ['review.diff rejected', { decision: 'rejected', approvedHunks: 0, rejectedHunks: 2 }]
   ] as const)('records %s as keys, never as text', (_name, summary) => {
     const state = answerRequest(open(), 'srq-9', summary)
 
@@ -198,6 +210,34 @@ describe('answerRequest for an interactive request', () => {
 
     expect(item.answerSummary).toEqual({ status: 'answered', count: 1 })
     expect(JSON.stringify(state)).not.toMatch(/Ada Lovelace|secret draft body|passport|Oudegracht/)
+  })
+
+  it('keeps a diff’s hunk counts only as whole numbers a diff can have, and never a hunk or its text', () => {
+    const state = answerRequest(open(), 'srq-9', {
+      decision: 'approved',
+      approvedHunks: 1,
+      rejectedHunks: 1,
+      hunks: { h1: 'approved', h2: 'rejected' },
+      approved_patch: '-    currency = "USD"\n+    currency = "EUR"'
+    } as never)
+
+    expect(requestsById(state, 'srq-9').answerSummary).toEqual({
+      decision: 'approved',
+      approvedHunks: 1,
+      rejectedHunks: 1
+    })
+    expect(JSON.stringify(state)).not.toMatch(/USD|EUR|approved_patch/)
+
+    for (const bad of [{ approvedHunks: 201 }, { approvedHunks: -1 }, { rejectedHunks: 1.5 }, { rejectedHunks: '2' }]) {
+      const dropped = answerRequest(open(), 'srq-9', { decision: 'approved', ...bad } as never)
+
+      expect(requestsById(dropped, 'srq-9').answerSummary, JSON.stringify(bad)).toEqual({ decision: 'approved' })
+    }
+
+    // Counts without how it ended describe nothing.
+    expect(
+      requestsById(answerRequest(open(), 'srq-9', { approvedHunks: 1 } as never), 'srq-9').answerSummary
+    ).toBeUndefined()
   })
 
   it('drops numbers that are not counts and anything that is not the closed enum', () => {
@@ -419,6 +459,18 @@ describe('the transcript around a request', () => {
 
     expect(exported.text).toContain('Request — Reply to Bram (approved, edited)')
     expect(exported.text).not.toContain('Kind regards')
+  })
+
+  it('says in an export how many hunks of a diff were approved, and not which lines', () => {
+    const state = answerRequest(applyServerRequest(fresh(), reviewDiffRequest, NOW), 'srq-12', {
+      decision: 'approved',
+      approvedHunks: 1,
+      rejectedHunks: 1
+    })
+    const exported = exportTranscript(list(state), { botName: 'Researcher', selfName: 'Me' })
+
+    expect(exported.text).toContain('Request — Changes to settings.py (approved, 1 of 2 hunks)')
+    expect(exported.text).not.toContain('currency')
   })
 
   it('does not trip the optimistic user turn that follows it', () => {

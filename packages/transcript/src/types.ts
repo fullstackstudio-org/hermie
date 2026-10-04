@@ -401,7 +401,7 @@ export interface ClarifyItem extends ItemBase {
 }
 
 /**
- * How an interactive request (`input.form`, `input.file`, `review.draft`, ...) ended,
+ * How an interactive request (`input.form`, `input.file`, `review.draft`, `review.diff`) ended,
  * as KEYS and numbers only.
  *
  * What the person answered (form values, file names, the edited draft, a location)
@@ -419,6 +419,10 @@ export interface RequestAnswerSummary {
   count?: number
   /** A reviewed draft was changed before it was approved. */
   edited?: boolean
+  /** `review.diff`: how many hunks the person approved. */
+  approvedHunks?: number
+  /** `review.diff`: how many hunks the person rejected. */
+  rejectedHunks?: number
   /** A coarse key such as `approximate`; never a value. */
   precision?: string
 }

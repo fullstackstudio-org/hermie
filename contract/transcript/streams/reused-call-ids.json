@@ -538,6 +538,11 @@
               "text": "Twelve entries.",
               "ts": 1790000013,
               "usage": {
+                "context_estimated": false,
+                "context_max": 200000,
+                "context_percent": 3.4,
+                "context_source": "model catalog",
+                "context_used": 6840,
                 "input": 12,
                 "output": 34,
                 "total": 46
@@ -690,6 +695,11 @@
               "text": "Twelve entries.",
               "ts": 1790000013,
               "usage": {
+                "context_estimated": false,
+                "context_max": 200000,
+                "context_percent": 3.4,
+                "context_source": "model catalog",
+                "context_used": 6840,
                 "input": 12,
                 "output": 34,
                 "total": 46
@@ -886,6 +896,11 @@
               "text": "Twelve entries.",
               "ts": 1790000013,
               "usage": {
+                "context_estimated": false,
+                "context_max": 200000,
+                "context_percent": 3.4,
+                "context_source": "model catalog",
+                "context_used": 6840,
                 "input": 12,
                 "output": 34,
                 "total": 46
@@ -1088,6 +1103,11 @@
               "text": "Twelve entries.",
               "ts": 1790000013,
               "usage": {
+                "context_estimated": false,
+                "context_max": 200000,
+                "context_percent": 3.4,
+                "context_source": "model catalog",
+                "context_used": 6840,
                 "input": 12,
                 "output": 34,
                 "total": 46
@@ -1269,6 +1289,11 @@
               "text": "Twelve entries.",
               "ts": 1790000013,
               "usage": {
+                "context_estimated": false,
+                "context_max": 200000,
+                "context_percent": 3.4,
+                "context_source": "model catalog",
+                "context_used": 6840,
                 "input": 12,
                 "output": 34,
                 "total": 46
@@ -1494,6 +1519,11 @@
               "text": "Twelve entries.",
               "ts": 1790000013,
               "usage": {
+                "context_estimated": false,
+                "context_max": 200000,
+                "context_percent": 3.4,
+                "context_source": "model catalog",
+                "context_used": 6840,
                 "input": 12,
                 "output": 34,
                 "total": 46
@@ -1727,6 +1757,11 @@
               "text": "Twelve entries.",
               "ts": 1790000000,
               "usage": {
+                "context_estimated": false,
+                "context_max": 200000,
+                "context_percent": 3.4,
+                "context_source": "model catalog",
+                "context_used": 6840,
                 "input": 12,
                 "output": 34,
                 "total": 46
@@ -1949,6 +1984,11 @@
               "text": "Twelve entries.",
               "ts": 1790000000,
               "usage": {
+                "context_estimated": false,
+                "context_max": 200000,
+                "context_percent": 3.4,
+                "context_source": "model catalog",
+                "context_used": 6840,
                 "input": 12,
                 "output": 34,
                 "total": 46
@@ -2193,6 +2233,11 @@
               "text": "Twelve entries.",
               "ts": 1790000000,
               "usage": {
+                "context_estimated": false,
+                "context_max": 200000,
+                "context_percent": 3.4,
+                "context_source": "model catalog",
+                "context_used": 6840,
                 "input": 12,
                 "output": 34,
                 "total": 46
@@ -2465,6 +2510,11 @@
               "text": "Twelve entries.",
               "ts": 1790000000,
               "usage": {
+                "context_estimated": false,
+                "context_max": 200000,
+                "context_percent": 3.4,
+                "context_source": "model catalog",
+                "context_used": 6840,
                 "input": 12,
                 "output": 34,
                 "total": 46
@@ -2541,6 +2591,11 @@
               "text": "Counted again: still twelve entries.",
               "ts": 1790000000,
               "usage": {
+                "context_estimated": false,
+                "context_max": 200000,
+                "context_percent": 4.3,
+                "context_source": "model catalog",
+                "context_used": 8520,
                 "input": 12,
                 "output": 34,
                 "total": 46
@@ -2695,6 +2750,11 @@
               "text": "Twelve entries.",
               "ts": 1790000000,
               "usage": {
+                "context_estimated": false,
+                "context_max": 200000,
+                "context_percent": 3.4,
+                "context_source": "model catalog",
+                "context_used": 6840,
                 "input": 12,
                 "output": 34,
                 "total": 46
@@ -2746,6 +2806,11 @@
               "text": "Counted again: still twelve entries.",
               "ts": 1790000000,
               "usage": {
+                "context_estimated": false,
+                "context_max": 200000,
+                "context_percent": 4.3,
+                "context_source": "model catalog",
+                "context_used": 8520,
                 "input": 12,
                 "output": 34,
                 "total": 46
@@ -2944,6 +3009,11 @@
               "text": "Twelve entries.",
               "ts": 1790000000,
               "usage": {
+                "context_estimated": false,
+                "context_max": 200000,
+                "context_percent": 3.4,
+                "context_source": "model catalog",
+                "context_used": 6840,
                 "input": 12,
                 "output": 34,
                 "total": 46
@@ -3020,6 +3090,11 @@
               "text": "Counted again: still twelve entries.",
               "ts": 1790000000,
               "usage": {
+                "context_estimated": false,
+                "context_max": 200000,
+                "context_percent": 4.3,
+                "context_source": "model catalog",
+                "context_used": 8520,
                 "input": 12,
                 "output": 34,
                 "total": 46
@@ -3108,6 +3183,11 @@
         "text": "Twelve entries.",
         "ts": 1790000000,
         "usage": {
+          "context_estimated": false,
+          "context_max": 200000,
+          "context_percent": 3.4,
+          "context_source": "model catalog",
+          "context_used": 6840,
           "input": 12,
           "output": 34,
           "total": 46
@@ -3174,6 +3254,11 @@
         "text": "Counted again: still twelve entries.",
         "ts": 1790000000,
         "usage": {
+          "context_estimated": false,
+          "context_max": 200000,
+          "context_percent": 4.3,
+          "context_source": "model catalog",
+          "context_used": 8520,
           "input": 12,
           "output": 34,
           "total": 46
@@ -3355,6 +3440,11 @@
     },
     "unreadCount": 0,
     "usage": {
+      "context_estimated": false,
+      "context_max": 200000,
+      "context_percent": 4.3,
+      "context_source": "model catalog",
+      "context_used": 8520,
       "input": 12,
       "output": 34,
       "total": 46
@@ -3765,6 +3855,11 @@
             "status": "ok",
             "text": "Twelve entries.",
             "usage": {
+              "context_estimated": false,
+              "context_max": 200000,
+              "context_percent": 3.4,
+              "context_source": "model catalog",
+              "context_used": 6840,
               "input": 12,
               "output": 34,
               "total": 46
@@ -4221,6 +4316,11 @@
                 "status": "ok",
                 "text": "Counted again: still twelve entries.",
                 "usage": {
+                  "context_estimated": false,
+                  "context_max": 200000,
+                  "context_percent": 4.3,
+                  "context_source": "model catalog",
+                  "context_used": 8520,
                   "input": 12,
                   "output": 34,
                   "total": 46
@@ -4602,6 +4702,11 @@
             "status": "ok",
             "text": "Twelve entries.",
             "usage": {
+              "context_estimated": false,
+              "context_max": 200000,
+              "context_percent": 3.4,
+              "context_source": "model catalog",
+              "context_used": 6840,
               "input": 12,
               "output": 34,
               "total": 46
@@ -4734,6 +4839,11 @@
               "text": "Twelve entries.",
               "ts": 1790000013,
               "usage": {
+                "context_estimated": false,
+                "context_max": 200000,
+                "context_percent": 3.4,
+                "context_source": "model catalog",
+                "context_used": 6840,
                 "input": 12,
                 "output": 34,
                 "total": 46
@@ -5292,6 +5402,11 @@
             "status": "ok",
             "text": "Counted again: still twelve entries.",
             "usage": {
+              "context_estimated": false,
+              "context_max": 200000,
+              "context_percent": 4.3,
+              "context_source": "model catalog",
+              "context_used": 8520,
               "input": 12,
               "output": 34,
               "total": 46

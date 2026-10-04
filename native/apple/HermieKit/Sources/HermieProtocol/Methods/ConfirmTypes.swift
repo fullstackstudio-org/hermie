@@ -238,6 +238,9 @@ public struct ConfirmPasskeyCapability: JSONObjectBacked {
   public var reason: String? { get { json[field: "reason"] } set { json[field: "reason"] = newValue } }
   public var gatewayID: String? { get { json[field: "gateway_id"] } set { json[field: "gateway_id"] = newValue } }
   public var rp: PasskeyRPLists? { get { json[field: "rp"] } set { json[field: "rp"] = newValue } }
+  /// The `confirm_passkey.v` values the gateway accepts in the second call (absent from a gateway that knows
+  /// version 1 only). 2 also computes `text_digest_v2` for a `confirm` with structured fields.
+  public var versions: [Int]? { get { json[field: "versions"] } set { json[field: "versions"] = newValue } }
 }
 
 /// `confirm_passkey` in the second `client.capabilities` call: which RP this client asserts under.
@@ -258,6 +261,9 @@ public struct ConfirmPasskeyAdvertisement: JSONObjectBacked {
 }
 
 extension ClientCapabilitiesParams {
+  /// `confirm_fields: true`: this connection shows a `confirm`'s structured `fields`. Sent in the second call
+  /// when the first result carried the key `confirm_fields`; only exactly `true` counts.
+  public var confirmFields: Bool? { get { json[field: "confirm_fields"] } set { json[field: "confirm_fields"] = newValue } }
   /// The `confirm` levels this connection can perform (second call only).
   public var confirm: [ConfirmLevel]? { get { json[field: "confirm"] } set { json[field: "confirm"] = newValue } }
   /// Sent only beside `confirm` listing `passkey`, and only to a gateway whose first result
@@ -269,6 +275,9 @@ extension ClientCapabilitiesParams {
 }
 
 extension ClientCapabilitiesResult {
+  /// Always present from a gateway that knows structured fields (contract/confirm-passkey §4.1, §8); `true`
+  /// once it accepted this connection's own `confirm_fields: true`. Absent from an older gateway.
+  public var confirmFields: Bool? { get { json[field: "confirm_fields"] } set { json[field: "confirm_fields"] = newValue } }
   /// The levels accepted from this connection, sorted.
   public var confirm: [ConfirmLevel]? { get { json[field: "confirm"] } set { json[field: "confirm"] = newValue } }
   /// Absent on a gateway that does not know the level.

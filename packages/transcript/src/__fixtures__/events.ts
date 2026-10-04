@@ -265,6 +265,34 @@ export const inputFileRequest = {
   }
 }
 
+/** A diff review, as the gateway frames it (`contract/requests/examples.json`, trimmed): two hunks of one file. */
+export const reviewDiffRequest = {
+  id: 'srq-12',
+  method: 'review.diff',
+  params: {
+    session_id: SESSION,
+    v: 1,
+    title: 'Changes to settings.py',
+    summary: 'I changed the default currency and the retry limit. Approve or reject each hunk.',
+    expires_at: 1_791_119_400,
+    optional: false,
+    kind: 'modify',
+    path: 'app/settings.py',
+    hunks: [
+      {
+        id: 'h1',
+        header: '@@ -3,4 +3,4 @@ class Settings:',
+        lines: ['     name = "booking"', '-    currency = "USD"', '+    currency = "EUR"', '     locale = "nl-NL"']
+      },
+      {
+        id: 'h2',
+        header: '@@ -20,3 +20,4 @@ def retry():',
+        lines: ['     attempts = 0', '-    limit = 3', '+    limit = 5', '+    backoff = 2', '     return attempts']
+      }
+    ]
+  }
+}
+
 export const reviewDraftRequest = {
   id: 'srq-11',
   method: 'review.draft',

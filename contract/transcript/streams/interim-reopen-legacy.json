@@ -1805,6 +1805,11 @@
               "text": "Everything checks out and nothing was filed.",
               "ts": 1790000021,
               "usage": {
+                "context_estimated": false,
+                "context_max": 200000,
+                "context_percent": 3.8,
+                "context_source": "model catalog",
+                "context_used": 7680,
                 "input": 12,
                 "output": 34,
                 "total": 46
@@ -2002,6 +2007,11 @@
               "text": "Everything checks out and nothing was filed.",
               "ts": 1790000021,
               "usage": {
+                "context_estimated": false,
+                "context_max": 200000,
+                "context_percent": 3.8,
+                "context_source": "model catalog",
+                "context_used": 7680,
                 "input": 12,
                 "output": 34,
                 "total": 46
@@ -2304,6 +2314,11 @@
               "text": "Everything checks out and nothing was filed.",
               "ts": 1790000021,
               "usage": {
+                "context_estimated": false,
+                "context_max": 200000,
+                "context_percent": 3.8,
+                "context_source": "model catalog",
+                "context_used": 7680,
                 "input": 12,
                 "output": 34,
                 "total": 46
@@ -2397,6 +2412,11 @@
         "text": "Everything checks out and nothing was filed.",
         "ts": 1790000021,
         "usage": {
+          "context_estimated": false,
+          "context_max": 200000,
+          "context_percent": 3.8,
+          "context_source": "model catalog",
+          "context_used": 7680,
           "input": 12,
           "output": 34,
           "total": 46
@@ -2659,6 +2679,11 @@
     },
     "unreadCount": 0,
     "usage": {
+      "context_estimated": false,
+      "context_max": 200000,
+      "context_percent": 3.8,
+      "context_source": "model catalog",
+      "context_used": 7680,
       "input": 12,
       "output": 34,
       "total": 46
@@ -3319,6 +3344,11 @@
                 "status": "ok",
                 "text": "Everything checks out and nothing was filed.",
                 "usage": {
+                  "context_estimated": false,
+                  "context_max": 200000,
+                  "context_percent": 3.8,
+                  "context_source": "model catalog",
+                  "context_used": 7680,
                   "input": 12,
                   "output": 34,
                   "total": 46
@@ -4149,6 +4179,11 @@
             "status": "ok",
             "text": "Everything checks out and nothing was filed.",
             "usage": {
+              "context_estimated": false,
+              "context_max": 200000,
+              "context_percent": 3.8,
+              "context_source": "model catalog",
+              "context_used": 7680,
               "input": 12,
               "output": 34,
               "total": 46

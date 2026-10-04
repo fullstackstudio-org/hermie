@@ -1009,6 +1009,836 @@
           },
           "unreadCount": 0
         }
+      },
+      {
+        "args": [
+          "researcher",
+          "stored-1",
+          "resolved-1"
+        ],
+        "op": "createChatState",
+        "result": {
+          "botName": "researcher",
+          "byApprovalId": {},
+          "byCallKey": {},
+          "byDelegationId": {},
+          "byProcessId": {},
+          "byRequestId": {},
+          "byRowId": {},
+          "byToolId": {},
+          "draft": "",
+          "hydration": "cold",
+          "items": {},
+          "lastSeq": 0,
+          "order": [],
+          "resolvedSessionId": "resolved-1",
+          "storedSessionId": "stored-1",
+          "subagents": {},
+          "turn": {
+            "active": false,
+            "local": false,
+            "nextSeq": 1000
+          },
+          "unreadCount": 0
+        }
+      },
+      {
+        "args": [
+          {
+            "botName": "researcher",
+            "byApprovalId": {},
+            "byCallKey": {},
+            "byDelegationId": {},
+            "byProcessId": {},
+            "byRequestId": {},
+            "byRowId": {},
+            "byToolId": {},
+            "draft": "",
+            "hydration": "cold",
+            "items": {},
+            "lastSeq": 0,
+            "order": [],
+            "resolvedSessionId": "resolved-1",
+            "storedSessionId": "stored-1",
+            "subagents": {},
+            "turn": {
+              "active": false,
+              "local": false,
+              "nextSeq": 1000
+            },
+            "unreadCount": 0
+          },
+          {
+            "id": "req_diff_settings",
+            "jsonrpc": "2.0",
+            "method": "review.diff",
+            "params": {
+              "acting_user": {
+                "id": "oidc:5b1e0c9a",
+                "name": "Ada"
+              },
+              "expires_at": 1791119400,
+              "hunks": [
+                {
+                  "header": "@@ -3,4 +3,4 @@ class Settings:",
+                  "id": "h1",
+                  "lines": [
+                    "     name = \"booking\"",
+                    "-    currency = \"USD\"",
+                    "+    currency = \"EUR\"",
+                    "     locale = \"nl-NL\"",
+                    "     debug = False"
+                  ]
+                },
+                {
+                  "header": "@@ -20,3 +20,4 @@ def retry():",
+                  "id": "h2",
+                  "lines": [
+                    "     attempts = 0",
+                    "-    limit = 3",
+                    "+    limit = 5",
+                    "+    backoff = 2",
+                    "     return attempts"
+                  ]
+                }
+              ],
+              "kind": "modify",
+              "optional": false,
+              "path": "app/settings.py",
+              "session_id": "s_9f2c41",
+              "summary": "I changed the default currency and the retry limit. Approve or reject each hunk; I apply only the approved ones.",
+              "title": "Changes to settings.py",
+              "v": 1
+            }
+          },
+          1790000000000
+        ],
+        "op": "applyServerRequest",
+        "result": {
+          "botName": "researcher",
+          "byApprovalId": {},
+          "byCallKey": {},
+          "byDelegationId": {},
+          "byProcessId": {},
+          "byRequestId": {
+            "req_diff_settings": "req:req_diff_settings"
+          },
+          "byRowId": {},
+          "byToolId": {},
+          "draft": "",
+          "hydration": "cold",
+          "items": {
+            "req:req_diff_settings": {
+              "id": "req:req_diff_settings",
+              "kind": "request",
+              "method": "review.diff",
+              "optional": false,
+              "origin": "live",
+              "requestId": "req_diff_settings",
+              "seq": 1000,
+              "state": "open",
+              "summary": "I changed the default currency and the retry limit. Approve or reject each hunk; I apply only the approved ones.",
+              "title": "Changes to settings.py",
+              "ts": 1790000000,
+              "version": 0
+            }
+          },
+          "lastSeq": 0,
+          "order": [
+            "req:req_diff_settings"
+          ],
+          "resolvedSessionId": "resolved-1",
+          "storedSessionId": "stored-1",
+          "subagents": {},
+          "turn": {
+            "active": false,
+            "local": false,
+            "nextSeq": 2000
+          },
+          "unreadCount": 0
+        }
+      },
+      {
+        "args": [
+          "researcher",
+          "stored-1",
+          "resolved-1"
+        ],
+        "op": "createChatState",
+        "result": {
+          "botName": "researcher",
+          "byApprovalId": {},
+          "byCallKey": {},
+          "byDelegationId": {},
+          "byProcessId": {},
+          "byRequestId": {},
+          "byRowId": {},
+          "byToolId": {},
+          "draft": "",
+          "hydration": "cold",
+          "items": {},
+          "lastSeq": 0,
+          "order": [],
+          "resolvedSessionId": "resolved-1",
+          "storedSessionId": "stored-1",
+          "subagents": {},
+          "turn": {
+            "active": false,
+            "local": false,
+            "nextSeq": 1000
+          },
+          "unreadCount": 0
+        }
+      },
+      {
+        "args": [
+          {
+            "botName": "researcher",
+            "byApprovalId": {},
+            "byCallKey": {},
+            "byDelegationId": {},
+            "byProcessId": {},
+            "byRequestId": {},
+            "byRowId": {},
+            "byToolId": {},
+            "draft": "",
+            "hydration": "cold",
+            "items": {},
+            "lastSeq": 0,
+            "order": [],
+            "resolvedSessionId": "resolved-1",
+            "storedSessionId": "stored-1",
+            "subagents": {},
+            "turn": {
+              "active": false,
+              "local": false,
+              "nextSeq": 1000
+            },
+            "unreadCount": 0
+          },
+          {
+            "id": "req_diff_new_file",
+            "jsonrpc": "2.0",
+            "method": "review.diff",
+            "params": {
+              "acting_user": {
+                "id": "oidc:5b1e0c9a",
+                "name": "Ada"
+              },
+              "expires_at": 1791119400,
+              "hunks": [
+                {
+                  "anchor": "both",
+                  "header": "@@ -0,0 +1,2 @@",
+                  "id": "h1",
+                  "lines": [
+                    "+First line",
+                    "+Second line",
+                    "\\ No newline at end of file"
+                  ]
+                }
+              ],
+              "kind": "new",
+              "optional": false,
+              "path": "docs/notes.txt",
+              "session_id": "s_9f2c41",
+              "summary": "I would add this file with two lines of notes.",
+              "title": "New file: docs/notes.txt",
+              "v": 1
+            }
+          },
+          1790000000000
+        ],
+        "op": "applyServerRequest",
+        "result": {
+          "botName": "researcher",
+          "byApprovalId": {},
+          "byCallKey": {},
+          "byDelegationId": {},
+          "byProcessId": {},
+          "byRequestId": {
+            "req_diff_new_file": "req:req_diff_new_file"
+          },
+          "byRowId": {},
+          "byToolId": {},
+          "draft": "",
+          "hydration": "cold",
+          "items": {
+            "req:req_diff_new_file": {
+              "id": "req:req_diff_new_file",
+              "kind": "request",
+              "method": "review.diff",
+              "optional": false,
+              "origin": "live",
+              "requestId": "req_diff_new_file",
+              "seq": 1000,
+              "state": "open",
+              "summary": "I would add this file with two lines of notes.",
+              "title": "New file: docs/notes.txt",
+              "ts": 1790000000,
+              "version": 0
+            }
+          },
+          "lastSeq": 0,
+          "order": [
+            "req:req_diff_new_file"
+          ],
+          "resolvedSessionId": "resolved-1",
+          "storedSessionId": "stored-1",
+          "subagents": {},
+          "turn": {
+            "active": false,
+            "local": false,
+            "nextSeq": 2000
+          },
+          "unreadCount": 0
+        }
+      },
+      {
+        "args": [
+          "researcher",
+          "stored-1",
+          "resolved-1"
+        ],
+        "op": "createChatState",
+        "result": {
+          "botName": "researcher",
+          "byApprovalId": {},
+          "byCallKey": {},
+          "byDelegationId": {},
+          "byProcessId": {},
+          "byRequestId": {},
+          "byRowId": {},
+          "byToolId": {},
+          "draft": "",
+          "hydration": "cold",
+          "items": {},
+          "lastSeq": 0,
+          "order": [],
+          "resolvedSessionId": "resolved-1",
+          "storedSessionId": "stored-1",
+          "subagents": {},
+          "turn": {
+            "active": false,
+            "local": false,
+            "nextSeq": 1000
+          },
+          "unreadCount": 0
+        }
+      },
+      {
+        "args": [
+          {
+            "botName": "researcher",
+            "byApprovalId": {},
+            "byCallKey": {},
+            "byDelegationId": {},
+            "byProcessId": {},
+            "byRequestId": {},
+            "byRowId": {},
+            "byToolId": {},
+            "draft": "",
+            "hydration": "cold",
+            "items": {},
+            "lastSeq": 0,
+            "order": [],
+            "resolvedSessionId": "resolved-1",
+            "storedSessionId": "stored-1",
+            "subagents": {},
+            "turn": {
+              "active": false,
+              "local": false,
+              "nextSeq": 1000
+            },
+            "unreadCount": 0
+          },
+          {
+            "id": "req_diff_go",
+            "jsonrpc": "2.0",
+            "method": "review.diff",
+            "params": {
+              "acting_user": {
+                "id": "oidc:5b1e0c9a",
+                "name": "Ada"
+              },
+              "expires_at": 1791119400,
+              "hunks": [
+                {
+                  "header": "@@ -5,4 +5,5 @@ func main() {",
+                  "id": "h1",
+                  "lines": [
+                    " func main() {",
+                    " \tfor i := 0; i < 3; i++ {",
+                    "-\t\tfmt.Println(i)",
+                    "+\t\tfmt.Println(i)",
+                    "+\t\tfmt.Println(i * 2)",
+                    " \t}"
+                  ]
+                }
+              ],
+              "kind": "modify",
+              "optional": false,
+              "path": "cmd/main.go",
+              "session_id": "s_9f2c41",
+              "summary": "I changed the loop bound and print the double of each value. The file is indented with tabs.",
+              "title": "Changes to main.go",
+              "v": 1
+            }
+          },
+          1790000000000
+        ],
+        "op": "applyServerRequest",
+        "result": {
+          "botName": "researcher",
+          "byApprovalId": {},
+          "byCallKey": {},
+          "byDelegationId": {},
+          "byProcessId": {},
+          "byRequestId": {
+            "req_diff_go": "req:req_diff_go"
+          },
+          "byRowId": {},
+          "byToolId": {},
+          "draft": "",
+          "hydration": "cold",
+          "items": {
+            "req:req_diff_go": {
+              "id": "req:req_diff_go",
+              "kind": "request",
+              "method": "review.diff",
+              "optional": false,
+              "origin": "live",
+              "requestId": "req_diff_go",
+              "seq": 1000,
+              "state": "open",
+              "summary": "I changed the loop bound and print the double of each value. The file is indented with tabs.",
+              "title": "Changes to main.go",
+              "ts": 1790000000,
+              "version": 0
+            }
+          },
+          "lastSeq": 0,
+          "order": [
+            "req:req_diff_go"
+          ],
+          "resolvedSessionId": "resolved-1",
+          "storedSessionId": "stored-1",
+          "subagents": {},
+          "turn": {
+            "active": false,
+            "local": false,
+            "nextSeq": 2000
+          },
+          "unreadCount": 0
+        }
+      },
+      {
+        "args": [
+          "researcher",
+          "stored-1",
+          "resolved-1"
+        ],
+        "op": "createChatState",
+        "result": {
+          "botName": "researcher",
+          "byApprovalId": {},
+          "byCallKey": {},
+          "byDelegationId": {},
+          "byProcessId": {},
+          "byRequestId": {},
+          "byRowId": {},
+          "byToolId": {},
+          "draft": "",
+          "hydration": "cold",
+          "items": {},
+          "lastSeq": 0,
+          "order": [],
+          "resolvedSessionId": "resolved-1",
+          "storedSessionId": "stored-1",
+          "subagents": {},
+          "turn": {
+            "active": false,
+            "local": false,
+            "nextSeq": 1000
+          },
+          "unreadCount": 0
+        }
+      },
+      {
+        "args": [
+          {
+            "botName": "researcher",
+            "byApprovalId": {},
+            "byCallKey": {},
+            "byDelegationId": {},
+            "byProcessId": {},
+            "byRequestId": {},
+            "byRowId": {},
+            "byToolId": {},
+            "draft": "",
+            "hydration": "cold",
+            "items": {},
+            "lastSeq": 0,
+            "order": [],
+            "resolvedSessionId": "resolved-1",
+            "storedSessionId": "stored-1",
+            "subagents": {},
+            "turn": {
+              "active": false,
+              "local": false,
+              "nextSeq": 1000
+            },
+            "unreadCount": 0
+          },
+          {
+            "id": "req_diff_rename",
+            "jsonrpc": "2.0",
+            "method": "review.diff",
+            "params": {
+              "acting_user": {
+                "id": "oidc:5b1e0c9a",
+                "name": "Ada"
+              },
+              "expires_at": 1791119400,
+              "hunks": [
+                {
+                  "anchor": "start",
+                  "header": "@@ -1,3 +1,3 @@",
+                  "id": "h1",
+                  "lines": [
+                    " import db",
+                    "-TABLE = \"users\"",
+                    "+TABLE = \"accounts\"",
+                    " "
+                  ]
+                }
+              ],
+              "kind": "rename",
+              "old_path": "app/users.py",
+              "optional": false,
+              "path": "app/accounts.py",
+              "session_id": "s_9f2c41",
+              "summary": "I move users.py to accounts.py and change one line in it.",
+              "title": "Rename and edit users.py",
+              "v": 1
+            }
+          },
+          1790000000000
+        ],
+        "op": "applyServerRequest",
+        "result": {
+          "botName": "researcher",
+          "byApprovalId": {},
+          "byCallKey": {},
+          "byDelegationId": {},
+          "byProcessId": {},
+          "byRequestId": {
+            "req_diff_rename": "req:req_diff_rename"
+          },
+          "byRowId": {},
+          "byToolId": {},
+          "draft": "",
+          "hydration": "cold",
+          "items": {
+            "req:req_diff_rename": {
+              "id": "req:req_diff_rename",
+              "kind": "request",
+              "method": "review.diff",
+              "optional": false,
+              "origin": "live",
+              "requestId": "req_diff_rename",
+              "seq": 1000,
+              "state": "open",
+              "summary": "I move users.py to accounts.py and change one line in it.",
+              "title": "Rename and edit users.py",
+              "ts": 1790000000,
+              "version": 0
+            }
+          },
+          "lastSeq": 0,
+          "order": [
+            "req:req_diff_rename"
+          ],
+          "resolvedSessionId": "resolved-1",
+          "storedSessionId": "stored-1",
+          "subagents": {},
+          "turn": {
+            "active": false,
+            "local": false,
+            "nextSeq": 2000
+          },
+          "unreadCount": 0
+        }
+      },
+      {
+        "args": [
+          "researcher",
+          "stored-1",
+          "resolved-1"
+        ],
+        "op": "createChatState",
+        "result": {
+          "botName": "researcher",
+          "byApprovalId": {},
+          "byCallKey": {},
+          "byDelegationId": {},
+          "byProcessId": {},
+          "byRequestId": {},
+          "byRowId": {},
+          "byToolId": {},
+          "draft": "",
+          "hydration": "cold",
+          "items": {},
+          "lastSeq": 0,
+          "order": [],
+          "resolvedSessionId": "resolved-1",
+          "storedSessionId": "stored-1",
+          "subagents": {},
+          "turn": {
+            "active": false,
+            "local": false,
+            "nextSeq": 1000
+          },
+          "unreadCount": 0
+        }
+      },
+      {
+        "args": [
+          {
+            "botName": "researcher",
+            "byApprovalId": {},
+            "byCallKey": {},
+            "byDelegationId": {},
+            "byProcessId": {},
+            "byRequestId": {},
+            "byRowId": {},
+            "byToolId": {},
+            "draft": "",
+            "hydration": "cold",
+            "items": {},
+            "lastSeq": 0,
+            "order": [],
+            "resolvedSessionId": "resolved-1",
+            "storedSessionId": "stored-1",
+            "subagents": {},
+            "turn": {
+              "active": false,
+              "local": false,
+              "nextSeq": 1000
+            },
+            "unreadCount": 0
+          },
+          {
+            "id": "req_diff_delete",
+            "jsonrpc": "2.0",
+            "method": "review.diff",
+            "params": {
+              "acting_user": {
+                "id": "oidc:5b1e0c9a",
+                "name": "Ada"
+              },
+              "expires_at": 1791119400,
+              "hunks": [
+                {
+                  "anchor": "both",
+                  "header": "@@ -1,2 +0,0 @@",
+                  "id": "h1",
+                  "lines": [
+                    "-First line",
+                    "-Second line"
+                  ]
+                }
+              ],
+              "kind": "delete",
+              "optional": false,
+              "path": "docs/old-notes.txt",
+              "session_id": "s_9f2c41",
+              "summary": "This file is no longer used.",
+              "title": "Delete the old notes",
+              "v": 1
+            }
+          },
+          1790000000000
+        ],
+        "op": "applyServerRequest",
+        "result": {
+          "botName": "researcher",
+          "byApprovalId": {},
+          "byCallKey": {},
+          "byDelegationId": {},
+          "byProcessId": {},
+          "byRequestId": {
+            "req_diff_delete": "req:req_diff_delete"
+          },
+          "byRowId": {},
+          "byToolId": {},
+          "draft": "",
+          "hydration": "cold",
+          "items": {
+            "req:req_diff_delete": {
+              "id": "req:req_diff_delete",
+              "kind": "request",
+              "method": "review.diff",
+              "optional": false,
+              "origin": "live",
+              "requestId": "req_diff_delete",
+              "seq": 1000,
+              "state": "open",
+              "summary": "This file is no longer used.",
+              "title": "Delete the old notes",
+              "ts": 1790000000,
+              "version": 0
+            }
+          },
+          "lastSeq": 0,
+          "order": [
+            "req:req_diff_delete"
+          ],
+          "resolvedSessionId": "resolved-1",
+          "storedSessionId": "stored-1",
+          "subagents": {},
+          "turn": {
+            "active": false,
+            "local": false,
+            "nextSeq": 2000
+          },
+          "unreadCount": 0
+        }
+      },
+      {
+        "args": [
+          "researcher",
+          "stored-1",
+          "resolved-1"
+        ],
+        "op": "createChatState",
+        "result": {
+          "botName": "researcher",
+          "byApprovalId": {},
+          "byCallKey": {},
+          "byDelegationId": {},
+          "byProcessId": {},
+          "byRequestId": {},
+          "byRowId": {},
+          "byToolId": {},
+          "draft": "",
+          "hydration": "cold",
+          "items": {},
+          "lastSeq": 0,
+          "order": [],
+          "resolvedSessionId": "resolved-1",
+          "storedSessionId": "stored-1",
+          "subagents": {},
+          "turn": {
+            "active": false,
+            "local": false,
+            "nextSeq": 1000
+          },
+          "unreadCount": 0
+        }
+      },
+      {
+        "args": [
+          {
+            "botName": "researcher",
+            "byApprovalId": {},
+            "byCallKey": {},
+            "byDelegationId": {},
+            "byProcessId": {},
+            "byRequestId": {},
+            "byRowId": {},
+            "byToolId": {},
+            "draft": "",
+            "hydration": "cold",
+            "items": {},
+            "lastSeq": 0,
+            "order": [],
+            "resolvedSessionId": "resolved-1",
+            "storedSessionId": "stored-1",
+            "subagents": {},
+            "turn": {
+              "active": false,
+              "local": false,
+              "nextSeq": 1000
+            },
+            "unreadCount": 0
+          },
+          {
+            "id": "req_diff_append",
+            "jsonrpc": "2.0",
+            "method": "review.diff",
+            "params": {
+              "acting_user": {
+                "id": "oidc:5b1e0c9a",
+                "name": "Ada"
+              },
+              "expires_at": 1791119400,
+              "hunks": [
+                {
+                  "anchor": "end",
+                  "header": "@@ -3,1 +3,2 @@",
+                  "id": "h1",
+                  "lines": [
+                    " Second line",
+                    "+Third line"
+                  ]
+                }
+              ],
+              "kind": "modify",
+              "optional": false,
+              "path": "docs/notes.txt",
+              "session_id": "s_9f2c41",
+              "summary": "I append one line at the end of the file.",
+              "title": "Add a line to the notes",
+              "v": 1
+            }
+          },
+          1790000000000
+        ],
+        "op": "applyServerRequest",
+        "result": {
+          "botName": "researcher",
+          "byApprovalId": {},
+          "byCallKey": {},
+          "byDelegationId": {},
+          "byProcessId": {},
+          "byRequestId": {
+            "req_diff_append": "req:req_diff_append"
+          },
+          "byRowId": {},
+          "byToolId": {},
+          "draft": "",
+          "hydration": "cold",
+          "items": {
+            "req:req_diff_append": {
+              "id": "req:req_diff_append",
+              "kind": "request",
+              "method": "review.diff",
+              "optional": false,
+              "origin": "live",
+              "requestId": "req_diff_append",
+              "seq": 1000,
+              "state": "open",
+              "summary": "I append one line at the end of the file.",
+              "title": "Add a line to the notes",
+              "ts": 1790000000,
+              "version": 0
+            }
+          },
+          "lastSeq": 0,
+          "order": [
+            "req:req_diff_append"
+          ],
+          "resolvedSessionId": "resolved-1",
+          "storedSessionId": "stored-1",
+          "subagents": {},
+          "turn": {
+            "active": false,
+            "local": false,
+            "nextSeq": 2000
+          },
+          "unreadCount": 0
+        }
       }
     ],
     "test": "INTERACTIVE_METHODS > makes an item of every frame the contract’s examples call valid"
@@ -1414,6 +2244,153 @@
       }
     ],
     "test": "applyServerRequest for an interactive method > opens a request item for 'review.draft'"
+  },
+  {
+    "calls": [
+      {
+        "args": [
+          "researcher",
+          "stored-1",
+          "resolved-1"
+        ],
+        "op": "createChatState",
+        "result": {
+          "botName": "researcher",
+          "byApprovalId": {},
+          "byCallKey": {},
+          "byDelegationId": {},
+          "byProcessId": {},
+          "byRequestId": {},
+          "byRowId": {},
+          "byToolId": {},
+          "draft": "",
+          "hydration": "cold",
+          "items": {},
+          "lastSeq": 0,
+          "order": [],
+          "resolvedSessionId": "resolved-1",
+          "storedSessionId": "stored-1",
+          "subagents": {},
+          "turn": {
+            "active": false,
+            "local": false,
+            "nextSeq": 1000
+          },
+          "unreadCount": 0
+        }
+      },
+      {
+        "args": [
+          {
+            "botName": "researcher",
+            "byApprovalId": {},
+            "byCallKey": {},
+            "byDelegationId": {},
+            "byProcessId": {},
+            "byRequestId": {},
+            "byRowId": {},
+            "byToolId": {},
+            "draft": "",
+            "hydration": "cold",
+            "items": {},
+            "lastSeq": 0,
+            "order": [],
+            "resolvedSessionId": "resolved-1",
+            "storedSessionId": "stored-1",
+            "subagents": {},
+            "turn": {
+              "active": false,
+              "local": false,
+              "nextSeq": 1000
+            },
+            "unreadCount": 0
+          },
+          {
+            "id": "srq-12",
+            "method": "review.diff",
+            "params": {
+              "expires_at": 1791119400,
+              "hunks": [
+                {
+                  "header": "@@ -3,4 +3,4 @@ class Settings:",
+                  "id": "h1",
+                  "lines": [
+                    "     name = \"booking\"",
+                    "-    currency = \"USD\"",
+                    "+    currency = \"EUR\"",
+                    "     locale = \"nl-NL\""
+                  ]
+                },
+                {
+                  "header": "@@ -20,3 +20,4 @@ def retry():",
+                  "id": "h2",
+                  "lines": [
+                    "     attempts = 0",
+                    "-    limit = 3",
+                    "+    limit = 5",
+                    "+    backoff = 2",
+                    "     return attempts"
+                  ]
+                }
+              ],
+              "kind": "modify",
+              "optional": false,
+              "path": "app/settings.py",
+              "session_id": "run-1a2b",
+              "summary": "I changed the default currency and the retry limit. Approve or reject each hunk.",
+              "title": "Changes to settings.py",
+              "v": 1
+            }
+          },
+          1790000000000
+        ],
+        "op": "applyServerRequest",
+        "result": {
+          "botName": "researcher",
+          "byApprovalId": {},
+          "byCallKey": {},
+          "byDelegationId": {},
+          "byProcessId": {},
+          "byRequestId": {
+            "srq-12": "req:srq-12"
+          },
+          "byRowId": {},
+          "byToolId": {},
+          "draft": "",
+          "hydration": "cold",
+          "items": {
+            "req:srq-12": {
+              "id": "req:srq-12",
+              "kind": "request",
+              "method": "review.diff",
+              "optional": false,
+              "origin": "live",
+              "requestId": "srq-12",
+              "seq": 1000,
+              "state": "open",
+              "summary": "I changed the default currency and the retry limit. Approve or reject each hunk.",
+              "title": "Changes to settings.py",
+              "ts": 1790000000,
+              "version": 0
+            }
+          },
+          "lastSeq": 0,
+          "order": [
+            "req:srq-12"
+          ],
+          "resolvedSessionId": "resolved-1",
+          "storedSessionId": "stored-1",
+          "subagents": {},
+          "turn": {
+            "active": false,
+            "local": false,
+            "nextSeq": 2000
+          },
+          "unreadCount": 0
+        }
+      }
+    ],
+    "test": "applyServerRequest for an interactive method > opens a request item for 'review.diff'"
   },
   {
     "calls": [
@@ -4993,6 +5970,735 @@
           },
           "srq-9",
           {
+            "approvedHunks": 1,
+            "decision": "approved",
+            "rejectedHunks": 1
+          }
+        ],
+        "op": "answerRequest",
+        "result": {
+          "botName": "researcher",
+          "byApprovalId": {},
+          "byCallKey": {},
+          "byDelegationId": {},
+          "byProcessId": {},
+          "byRequestId": {
+            "srq-9": "req:srq-9"
+          },
+          "byRowId": {},
+          "byToolId": {},
+          "draft": "",
+          "hydration": "cold",
+          "items": {
+            "req:srq-9": {
+              "answerSummary": {
+                "approvedHunks": 1,
+                "decision": "approved",
+                "rejectedHunks": 1
+              },
+              "id": "req:srq-9",
+              "kind": "request",
+              "method": "input.form",
+              "optional": true,
+              "origin": "live",
+              "requestId": "srq-9",
+              "seq": 1000,
+              "state": "answered",
+              "summary": "I found three hotels in Utrecht. Fill this in and I will book the best match.",
+              "title": "Hotel booking details",
+              "ts": 1790000000,
+              "version": 1
+            }
+          },
+          "lastSeq": 0,
+          "order": [
+            "req:srq-9"
+          ],
+          "resolvedSessionId": "resolved-1",
+          "storedSessionId": "stored-1",
+          "subagents": {},
+          "turn": {
+            "active": false,
+            "local": false,
+            "nextSeq": 2000
+          },
+          "unreadCount": 0
+        }
+      }
+    ],
+    "test": "answerRequest for an interactive request > records review.diff approved, one hunk of two as keys, never as text"
+  },
+  {
+    "calls": [
+      {
+        "args": [
+          "researcher",
+          "stored-1",
+          "resolved-1"
+        ],
+        "op": "createChatState",
+        "result": {
+          "botName": "researcher",
+          "byApprovalId": {},
+          "byCallKey": {},
+          "byDelegationId": {},
+          "byProcessId": {},
+          "byRequestId": {},
+          "byRowId": {},
+          "byToolId": {},
+          "draft": "",
+          "hydration": "cold",
+          "items": {},
+          "lastSeq": 0,
+          "order": [],
+          "resolvedSessionId": "resolved-1",
+          "storedSessionId": "stored-1",
+          "subagents": {},
+          "turn": {
+            "active": false,
+            "local": false,
+            "nextSeq": 1000
+          },
+          "unreadCount": 0
+        }
+      },
+      {
+        "args": [
+          {
+            "botName": "researcher",
+            "byApprovalId": {},
+            "byCallKey": {},
+            "byDelegationId": {},
+            "byProcessId": {},
+            "byRequestId": {},
+            "byRowId": {},
+            "byToolId": {},
+            "draft": "",
+            "hydration": "cold",
+            "items": {},
+            "lastSeq": 0,
+            "order": [],
+            "resolvedSessionId": "resolved-1",
+            "storedSessionId": "stored-1",
+            "subagents": {},
+            "turn": {
+              "active": false,
+              "local": false,
+              "nextSeq": 1000
+            },
+            "unreadCount": 0
+          },
+          {
+            "id": "srq-9",
+            "method": "input.form",
+            "params": {
+              "expires_at": 1791119400,
+              "fields": [
+                {
+                  "id": "name",
+                  "kind": "text",
+                  "label": "Name on the booking",
+                  "max_length": 20,
+                  "required": true
+                },
+                {
+                  "default": 2,
+                  "id": "guests",
+                  "integer": true,
+                  "kind": "number",
+                  "label": "Guests",
+                  "max": 12,
+                  "min": 1,
+                  "required": true
+                }
+              ],
+              "optional": true,
+              "session_id": "run-1a2b",
+              "summary": "I found three hotels in Utrecht. Fill this in and I will book the best match.",
+              "title": "Hotel booking details",
+              "v": 1
+            }
+          },
+          1790000000000
+        ],
+        "op": "applyServerRequest",
+        "result": {
+          "botName": "researcher",
+          "byApprovalId": {},
+          "byCallKey": {},
+          "byDelegationId": {},
+          "byProcessId": {},
+          "byRequestId": {
+            "srq-9": "req:srq-9"
+          },
+          "byRowId": {},
+          "byToolId": {},
+          "draft": "",
+          "hydration": "cold",
+          "items": {
+            "req:srq-9": {
+              "id": "req:srq-9",
+              "kind": "request",
+              "method": "input.form",
+              "optional": true,
+              "origin": "live",
+              "requestId": "srq-9",
+              "seq": 1000,
+              "state": "open",
+              "summary": "I found three hotels in Utrecht. Fill this in and I will book the best match.",
+              "title": "Hotel booking details",
+              "ts": 1790000000,
+              "version": 0
+            }
+          },
+          "lastSeq": 0,
+          "order": [
+            "req:srq-9"
+          ],
+          "resolvedSessionId": "resolved-1",
+          "storedSessionId": "stored-1",
+          "subagents": {},
+          "turn": {
+            "active": false,
+            "local": false,
+            "nextSeq": 2000
+          },
+          "unreadCount": 0
+        }
+      },
+      {
+        "args": [
+          {
+            "botName": "researcher",
+            "byApprovalId": {},
+            "byCallKey": {},
+            "byDelegationId": {},
+            "byProcessId": {},
+            "byRequestId": {
+              "srq-9": "req:srq-9"
+            },
+            "byRowId": {},
+            "byToolId": {},
+            "draft": "",
+            "hydration": "cold",
+            "items": {
+              "req:srq-9": {
+                "id": "req:srq-9",
+                "kind": "request",
+                "method": "input.form",
+                "optional": true,
+                "origin": "live",
+                "requestId": "srq-9",
+                "seq": 1000,
+                "state": "open",
+                "summary": "I found three hotels in Utrecht. Fill this in and I will book the best match.",
+                "title": "Hotel booking details",
+                "ts": 1790000000,
+                "version": 0
+              }
+            },
+            "lastSeq": 0,
+            "order": [
+              "req:srq-9"
+            ],
+            "resolvedSessionId": "resolved-1",
+            "storedSessionId": "stored-1",
+            "subagents": {},
+            "turn": {
+              "active": false,
+              "local": false,
+              "nextSeq": 2000
+            },
+            "unreadCount": 0
+          },
+          "srq-9",
+          {
+            "approvedHunks": 2,
+            "decision": "approved",
+            "rejectedHunks": 0
+          }
+        ],
+        "op": "answerRequest",
+        "result": {
+          "botName": "researcher",
+          "byApprovalId": {},
+          "byCallKey": {},
+          "byDelegationId": {},
+          "byProcessId": {},
+          "byRequestId": {
+            "srq-9": "req:srq-9"
+          },
+          "byRowId": {},
+          "byToolId": {},
+          "draft": "",
+          "hydration": "cold",
+          "items": {
+            "req:srq-9": {
+              "answerSummary": {
+                "approvedHunks": 2,
+                "decision": "approved",
+                "rejectedHunks": 0
+              },
+              "id": "req:srq-9",
+              "kind": "request",
+              "method": "input.form",
+              "optional": true,
+              "origin": "live",
+              "requestId": "srq-9",
+              "seq": 1000,
+              "state": "answered",
+              "summary": "I found three hotels in Utrecht. Fill this in and I will book the best match.",
+              "title": "Hotel booking details",
+              "ts": 1790000000,
+              "version": 1
+            }
+          },
+          "lastSeq": 0,
+          "order": [
+            "req:srq-9"
+          ],
+          "resolvedSessionId": "resolved-1",
+          "storedSessionId": "stored-1",
+          "subagents": {},
+          "turn": {
+            "active": false,
+            "local": false,
+            "nextSeq": 2000
+          },
+          "unreadCount": 0
+        }
+      }
+    ],
+    "test": "answerRequest for an interactive request > records review.diff approved, every hunk as keys, never as text"
+  },
+  {
+    "calls": [
+      {
+        "args": [
+          "researcher",
+          "stored-1",
+          "resolved-1"
+        ],
+        "op": "createChatState",
+        "result": {
+          "botName": "researcher",
+          "byApprovalId": {},
+          "byCallKey": {},
+          "byDelegationId": {},
+          "byProcessId": {},
+          "byRequestId": {},
+          "byRowId": {},
+          "byToolId": {},
+          "draft": "",
+          "hydration": "cold",
+          "items": {},
+          "lastSeq": 0,
+          "order": [],
+          "resolvedSessionId": "resolved-1",
+          "storedSessionId": "stored-1",
+          "subagents": {},
+          "turn": {
+            "active": false,
+            "local": false,
+            "nextSeq": 1000
+          },
+          "unreadCount": 0
+        }
+      },
+      {
+        "args": [
+          {
+            "botName": "researcher",
+            "byApprovalId": {},
+            "byCallKey": {},
+            "byDelegationId": {},
+            "byProcessId": {},
+            "byRequestId": {},
+            "byRowId": {},
+            "byToolId": {},
+            "draft": "",
+            "hydration": "cold",
+            "items": {},
+            "lastSeq": 0,
+            "order": [],
+            "resolvedSessionId": "resolved-1",
+            "storedSessionId": "stored-1",
+            "subagents": {},
+            "turn": {
+              "active": false,
+              "local": false,
+              "nextSeq": 1000
+            },
+            "unreadCount": 0
+          },
+          {
+            "id": "srq-9",
+            "method": "input.form",
+            "params": {
+              "expires_at": 1791119400,
+              "fields": [
+                {
+                  "id": "name",
+                  "kind": "text",
+                  "label": "Name on the booking",
+                  "max_length": 20,
+                  "required": true
+                },
+                {
+                  "default": 2,
+                  "id": "guests",
+                  "integer": true,
+                  "kind": "number",
+                  "label": "Guests",
+                  "max": 12,
+                  "min": 1,
+                  "required": true
+                }
+              ],
+              "optional": true,
+              "session_id": "run-1a2b",
+              "summary": "I found three hotels in Utrecht. Fill this in and I will book the best match.",
+              "title": "Hotel booking details",
+              "v": 1
+            }
+          },
+          1790000000000
+        ],
+        "op": "applyServerRequest",
+        "result": {
+          "botName": "researcher",
+          "byApprovalId": {},
+          "byCallKey": {},
+          "byDelegationId": {},
+          "byProcessId": {},
+          "byRequestId": {
+            "srq-9": "req:srq-9"
+          },
+          "byRowId": {},
+          "byToolId": {},
+          "draft": "",
+          "hydration": "cold",
+          "items": {
+            "req:srq-9": {
+              "id": "req:srq-9",
+              "kind": "request",
+              "method": "input.form",
+              "optional": true,
+              "origin": "live",
+              "requestId": "srq-9",
+              "seq": 1000,
+              "state": "open",
+              "summary": "I found three hotels in Utrecht. Fill this in and I will book the best match.",
+              "title": "Hotel booking details",
+              "ts": 1790000000,
+              "version": 0
+            }
+          },
+          "lastSeq": 0,
+          "order": [
+            "req:srq-9"
+          ],
+          "resolvedSessionId": "resolved-1",
+          "storedSessionId": "stored-1",
+          "subagents": {},
+          "turn": {
+            "active": false,
+            "local": false,
+            "nextSeq": 2000
+          },
+          "unreadCount": 0
+        }
+      },
+      {
+        "args": [
+          {
+            "botName": "researcher",
+            "byApprovalId": {},
+            "byCallKey": {},
+            "byDelegationId": {},
+            "byProcessId": {},
+            "byRequestId": {
+              "srq-9": "req:srq-9"
+            },
+            "byRowId": {},
+            "byToolId": {},
+            "draft": "",
+            "hydration": "cold",
+            "items": {
+              "req:srq-9": {
+                "id": "req:srq-9",
+                "kind": "request",
+                "method": "input.form",
+                "optional": true,
+                "origin": "live",
+                "requestId": "srq-9",
+                "seq": 1000,
+                "state": "open",
+                "summary": "I found three hotels in Utrecht. Fill this in and I will book the best match.",
+                "title": "Hotel booking details",
+                "ts": 1790000000,
+                "version": 0
+              }
+            },
+            "lastSeq": 0,
+            "order": [
+              "req:srq-9"
+            ],
+            "resolvedSessionId": "resolved-1",
+            "storedSessionId": "stored-1",
+            "subagents": {},
+            "turn": {
+              "active": false,
+              "local": false,
+              "nextSeq": 2000
+            },
+            "unreadCount": 0
+          },
+          "srq-9",
+          {
+            "approvedHunks": 0,
+            "decision": "rejected",
+            "rejectedHunks": 2
+          }
+        ],
+        "op": "answerRequest",
+        "result": {
+          "botName": "researcher",
+          "byApprovalId": {},
+          "byCallKey": {},
+          "byDelegationId": {},
+          "byProcessId": {},
+          "byRequestId": {
+            "srq-9": "req:srq-9"
+          },
+          "byRowId": {},
+          "byToolId": {},
+          "draft": "",
+          "hydration": "cold",
+          "items": {
+            "req:srq-9": {
+              "answerSummary": {
+                "approvedHunks": 0,
+                "decision": "rejected",
+                "rejectedHunks": 2
+              },
+              "id": "req:srq-9",
+              "kind": "request",
+              "method": "input.form",
+              "optional": true,
+              "origin": "live",
+              "requestId": "srq-9",
+              "seq": 1000,
+              "state": "answered",
+              "summary": "I found three hotels in Utrecht. Fill this in and I will book the best match.",
+              "title": "Hotel booking details",
+              "ts": 1790000000,
+              "version": 1
+            }
+          },
+          "lastSeq": 0,
+          "order": [
+            "req:srq-9"
+          ],
+          "resolvedSessionId": "resolved-1",
+          "storedSessionId": "stored-1",
+          "subagents": {},
+          "turn": {
+            "active": false,
+            "local": false,
+            "nextSeq": 2000
+          },
+          "unreadCount": 0
+        }
+      }
+    ],
+    "test": "answerRequest for an interactive request > records review.diff rejected as keys, never as text"
+  },
+  {
+    "calls": [
+      {
+        "args": [
+          "researcher",
+          "stored-1",
+          "resolved-1"
+        ],
+        "op": "createChatState",
+        "result": {
+          "botName": "researcher",
+          "byApprovalId": {},
+          "byCallKey": {},
+          "byDelegationId": {},
+          "byProcessId": {},
+          "byRequestId": {},
+          "byRowId": {},
+          "byToolId": {},
+          "draft": "",
+          "hydration": "cold",
+          "items": {},
+          "lastSeq": 0,
+          "order": [],
+          "resolvedSessionId": "resolved-1",
+          "storedSessionId": "stored-1",
+          "subagents": {},
+          "turn": {
+            "active": false,
+            "local": false,
+            "nextSeq": 1000
+          },
+          "unreadCount": 0
+        }
+      },
+      {
+        "args": [
+          {
+            "botName": "researcher",
+            "byApprovalId": {},
+            "byCallKey": {},
+            "byDelegationId": {},
+            "byProcessId": {},
+            "byRequestId": {},
+            "byRowId": {},
+            "byToolId": {},
+            "draft": "",
+            "hydration": "cold",
+            "items": {},
+            "lastSeq": 0,
+            "order": [],
+            "resolvedSessionId": "resolved-1",
+            "storedSessionId": "stored-1",
+            "subagents": {},
+            "turn": {
+              "active": false,
+              "local": false,
+              "nextSeq": 1000
+            },
+            "unreadCount": 0
+          },
+          {
+            "id": "srq-9",
+            "method": "input.form",
+            "params": {
+              "expires_at": 1791119400,
+              "fields": [
+                {
+                  "id": "name",
+                  "kind": "text",
+                  "label": "Name on the booking",
+                  "max_length": 20,
+                  "required": true
+                },
+                {
+                  "default": 2,
+                  "id": "guests",
+                  "integer": true,
+                  "kind": "number",
+                  "label": "Guests",
+                  "max": 12,
+                  "min": 1,
+                  "required": true
+                }
+              ],
+              "optional": true,
+              "session_id": "run-1a2b",
+              "summary": "I found three hotels in Utrecht. Fill this in and I will book the best match.",
+              "title": "Hotel booking details",
+              "v": 1
+            }
+          },
+          1790000000000
+        ],
+        "op": "applyServerRequest",
+        "result": {
+          "botName": "researcher",
+          "byApprovalId": {},
+          "byCallKey": {},
+          "byDelegationId": {},
+          "byProcessId": {},
+          "byRequestId": {
+            "srq-9": "req:srq-9"
+          },
+          "byRowId": {},
+          "byToolId": {},
+          "draft": "",
+          "hydration": "cold",
+          "items": {
+            "req:srq-9": {
+              "id": "req:srq-9",
+              "kind": "request",
+              "method": "input.form",
+              "optional": true,
+              "origin": "live",
+              "requestId": "srq-9",
+              "seq": 1000,
+              "state": "open",
+              "summary": "I found three hotels in Utrecht. Fill this in and I will book the best match.",
+              "title": "Hotel booking details",
+              "ts": 1790000000,
+              "version": 0
+            }
+          },
+          "lastSeq": 0,
+          "order": [
+            "req:srq-9"
+          ],
+          "resolvedSessionId": "resolved-1",
+          "storedSessionId": "stored-1",
+          "subagents": {},
+          "turn": {
+            "active": false,
+            "local": false,
+            "nextSeq": 2000
+          },
+          "unreadCount": 0
+        }
+      },
+      {
+        "args": [
+          {
+            "botName": "researcher",
+            "byApprovalId": {},
+            "byCallKey": {},
+            "byDelegationId": {},
+            "byProcessId": {},
+            "byRequestId": {
+              "srq-9": "req:srq-9"
+            },
+            "byRowId": {},
+            "byToolId": {},
+            "draft": "",
+            "hydration": "cold",
+            "items": {
+              "req:srq-9": {
+                "id": "req:srq-9",
+                "kind": "request",
+                "method": "input.form",
+                "optional": true,
+                "origin": "live",
+                "requestId": "srq-9",
+                "seq": 1000,
+                "state": "open",
+                "summary": "I found three hotels in Utrecht. Fill this in and I will book the best match.",
+                "title": "Hotel booking details",
+                "ts": 1790000000,
+                "version": 0
+              }
+            },
+            "lastSeq": 0,
+            "order": [
+              "req:srq-9"
+            ],
+            "resolvedSessionId": "resolved-1",
+            "storedSessionId": "stored-1",
+            "subagents": {},
+            "turn": {
+              "active": false,
+              "local": false,
+              "nextSeq": 2000
+            },
+            "unreadCount": 0
+          },
+          "srq-9",
+          {
             "count": 1,
             "files": [
               {
@@ -5058,6 +6764,1425 @@
       }
     ],
     "test": "answerRequest for an interactive request > keeps only the whitelisted keys, so values handed in by mistake have nowhere to land"
+  },
+  {
+    "calls": [
+      {
+        "args": [
+          "researcher",
+          "stored-1",
+          "resolved-1"
+        ],
+        "op": "createChatState",
+        "result": {
+          "botName": "researcher",
+          "byApprovalId": {},
+          "byCallKey": {},
+          "byDelegationId": {},
+          "byProcessId": {},
+          "byRequestId": {},
+          "byRowId": {},
+          "byToolId": {},
+          "draft": "",
+          "hydration": "cold",
+          "items": {},
+          "lastSeq": 0,
+          "order": [],
+          "resolvedSessionId": "resolved-1",
+          "storedSessionId": "stored-1",
+          "subagents": {},
+          "turn": {
+            "active": false,
+            "local": false,
+            "nextSeq": 1000
+          },
+          "unreadCount": 0
+        }
+      },
+      {
+        "args": [
+          {
+            "botName": "researcher",
+            "byApprovalId": {},
+            "byCallKey": {},
+            "byDelegationId": {},
+            "byProcessId": {},
+            "byRequestId": {},
+            "byRowId": {},
+            "byToolId": {},
+            "draft": "",
+            "hydration": "cold",
+            "items": {},
+            "lastSeq": 0,
+            "order": [],
+            "resolvedSessionId": "resolved-1",
+            "storedSessionId": "stored-1",
+            "subagents": {},
+            "turn": {
+              "active": false,
+              "local": false,
+              "nextSeq": 1000
+            },
+            "unreadCount": 0
+          },
+          {
+            "id": "srq-9",
+            "method": "input.form",
+            "params": {
+              "expires_at": 1791119400,
+              "fields": [
+                {
+                  "id": "name",
+                  "kind": "text",
+                  "label": "Name on the booking",
+                  "max_length": 20,
+                  "required": true
+                },
+                {
+                  "default": 2,
+                  "id": "guests",
+                  "integer": true,
+                  "kind": "number",
+                  "label": "Guests",
+                  "max": 12,
+                  "min": 1,
+                  "required": true
+                }
+              ],
+              "optional": true,
+              "session_id": "run-1a2b",
+              "summary": "I found three hotels in Utrecht. Fill this in and I will book the best match.",
+              "title": "Hotel booking details",
+              "v": 1
+            }
+          },
+          1790000000000
+        ],
+        "op": "applyServerRequest",
+        "result": {
+          "botName": "researcher",
+          "byApprovalId": {},
+          "byCallKey": {},
+          "byDelegationId": {},
+          "byProcessId": {},
+          "byRequestId": {
+            "srq-9": "req:srq-9"
+          },
+          "byRowId": {},
+          "byToolId": {},
+          "draft": "",
+          "hydration": "cold",
+          "items": {
+            "req:srq-9": {
+              "id": "req:srq-9",
+              "kind": "request",
+              "method": "input.form",
+              "optional": true,
+              "origin": "live",
+              "requestId": "srq-9",
+              "seq": 1000,
+              "state": "open",
+              "summary": "I found three hotels in Utrecht. Fill this in and I will book the best match.",
+              "title": "Hotel booking details",
+              "ts": 1790000000,
+              "version": 0
+            }
+          },
+          "lastSeq": 0,
+          "order": [
+            "req:srq-9"
+          ],
+          "resolvedSessionId": "resolved-1",
+          "storedSessionId": "stored-1",
+          "subagents": {},
+          "turn": {
+            "active": false,
+            "local": false,
+            "nextSeq": 2000
+          },
+          "unreadCount": 0
+        }
+      },
+      {
+        "args": [
+          {
+            "botName": "researcher",
+            "byApprovalId": {},
+            "byCallKey": {},
+            "byDelegationId": {},
+            "byProcessId": {},
+            "byRequestId": {
+              "srq-9": "req:srq-9"
+            },
+            "byRowId": {},
+            "byToolId": {},
+            "draft": "",
+            "hydration": "cold",
+            "items": {
+              "req:srq-9": {
+                "id": "req:srq-9",
+                "kind": "request",
+                "method": "input.form",
+                "optional": true,
+                "origin": "live",
+                "requestId": "srq-9",
+                "seq": 1000,
+                "state": "open",
+                "summary": "I found three hotels in Utrecht. Fill this in and I will book the best match.",
+                "title": "Hotel booking details",
+                "ts": 1790000000,
+                "version": 0
+              }
+            },
+            "lastSeq": 0,
+            "order": [
+              "req:srq-9"
+            ],
+            "resolvedSessionId": "resolved-1",
+            "storedSessionId": "stored-1",
+            "subagents": {},
+            "turn": {
+              "active": false,
+              "local": false,
+              "nextSeq": 2000
+            },
+            "unreadCount": 0
+          },
+          "srq-9",
+          {
+            "approvedHunks": 1,
+            "approved_patch": "-    currency = \"USD\"\n+    currency = \"EUR\"",
+            "decision": "approved",
+            "hunks": {
+              "h1": "approved",
+              "h2": "rejected"
+            },
+            "rejectedHunks": 1
+          }
+        ],
+        "op": "answerRequest",
+        "result": {
+          "botName": "researcher",
+          "byApprovalId": {},
+          "byCallKey": {},
+          "byDelegationId": {},
+          "byProcessId": {},
+          "byRequestId": {
+            "srq-9": "req:srq-9"
+          },
+          "byRowId": {},
+          "byToolId": {},
+          "draft": "",
+          "hydration": "cold",
+          "items": {
+            "req:srq-9": {
+              "answerSummary": {
+                "approvedHunks": 1,
+                "decision": "approved",
+                "rejectedHunks": 1
+              },
+              "id": "req:srq-9",
+              "kind": "request",
+              "method": "input.form",
+              "optional": true,
+              "origin": "live",
+              "requestId": "srq-9",
+              "seq": 1000,
+              "state": "answered",
+              "summary": "I found three hotels in Utrecht. Fill this in and I will book the best match.",
+              "title": "Hotel booking details",
+              "ts": 1790000000,
+              "version": 1
+            }
+          },
+          "lastSeq": 0,
+          "order": [
+            "req:srq-9"
+          ],
+          "resolvedSessionId": "resolved-1",
+          "storedSessionId": "stored-1",
+          "subagents": {},
+          "turn": {
+            "active": false,
+            "local": false,
+            "nextSeq": 2000
+          },
+          "unreadCount": 0
+        }
+      },
+      {
+        "args": [
+          "researcher",
+          "stored-1",
+          "resolved-1"
+        ],
+        "op": "createChatState",
+        "result": {
+          "botName": "researcher",
+          "byApprovalId": {},
+          "byCallKey": {},
+          "byDelegationId": {},
+          "byProcessId": {},
+          "byRequestId": {},
+          "byRowId": {},
+          "byToolId": {},
+          "draft": "",
+          "hydration": "cold",
+          "items": {},
+          "lastSeq": 0,
+          "order": [],
+          "resolvedSessionId": "resolved-1",
+          "storedSessionId": "stored-1",
+          "subagents": {},
+          "turn": {
+            "active": false,
+            "local": false,
+            "nextSeq": 1000
+          },
+          "unreadCount": 0
+        }
+      },
+      {
+        "args": [
+          {
+            "botName": "researcher",
+            "byApprovalId": {},
+            "byCallKey": {},
+            "byDelegationId": {},
+            "byProcessId": {},
+            "byRequestId": {},
+            "byRowId": {},
+            "byToolId": {},
+            "draft": "",
+            "hydration": "cold",
+            "items": {},
+            "lastSeq": 0,
+            "order": [],
+            "resolvedSessionId": "resolved-1",
+            "storedSessionId": "stored-1",
+            "subagents": {},
+            "turn": {
+              "active": false,
+              "local": false,
+              "nextSeq": 1000
+            },
+            "unreadCount": 0
+          },
+          {
+            "id": "srq-9",
+            "method": "input.form",
+            "params": {
+              "expires_at": 1791119400,
+              "fields": [
+                {
+                  "id": "name",
+                  "kind": "text",
+                  "label": "Name on the booking",
+                  "max_length": 20,
+                  "required": true
+                },
+                {
+                  "default": 2,
+                  "id": "guests",
+                  "integer": true,
+                  "kind": "number",
+                  "label": "Guests",
+                  "max": 12,
+                  "min": 1,
+                  "required": true
+                }
+              ],
+              "optional": true,
+              "session_id": "run-1a2b",
+              "summary": "I found three hotels in Utrecht. Fill this in and I will book the best match.",
+              "title": "Hotel booking details",
+              "v": 1
+            }
+          },
+          1790000000000
+        ],
+        "op": "applyServerRequest",
+        "result": {
+          "botName": "researcher",
+          "byApprovalId": {},
+          "byCallKey": {},
+          "byDelegationId": {},
+          "byProcessId": {},
+          "byRequestId": {
+            "srq-9": "req:srq-9"
+          },
+          "byRowId": {},
+          "byToolId": {},
+          "draft": "",
+          "hydration": "cold",
+          "items": {
+            "req:srq-9": {
+              "id": "req:srq-9",
+              "kind": "request",
+              "method": "input.form",
+              "optional": true,
+              "origin": "live",
+              "requestId": "srq-9",
+              "seq": 1000,
+              "state": "open",
+              "summary": "I found three hotels in Utrecht. Fill this in and I will book the best match.",
+              "title": "Hotel booking details",
+              "ts": 1790000000,
+              "version": 0
+            }
+          },
+          "lastSeq": 0,
+          "order": [
+            "req:srq-9"
+          ],
+          "resolvedSessionId": "resolved-1",
+          "storedSessionId": "stored-1",
+          "subagents": {},
+          "turn": {
+            "active": false,
+            "local": false,
+            "nextSeq": 2000
+          },
+          "unreadCount": 0
+        }
+      },
+      {
+        "args": [
+          {
+            "botName": "researcher",
+            "byApprovalId": {},
+            "byCallKey": {},
+            "byDelegationId": {},
+            "byProcessId": {},
+            "byRequestId": {
+              "srq-9": "req:srq-9"
+            },
+            "byRowId": {},
+            "byToolId": {},
+            "draft": "",
+            "hydration": "cold",
+            "items": {
+              "req:srq-9": {
+                "id": "req:srq-9",
+                "kind": "request",
+                "method": "input.form",
+                "optional": true,
+                "origin": "live",
+                "requestId": "srq-9",
+                "seq": 1000,
+                "state": "open",
+                "summary": "I found three hotels in Utrecht. Fill this in and I will book the best match.",
+                "title": "Hotel booking details",
+                "ts": 1790000000,
+                "version": 0
+              }
+            },
+            "lastSeq": 0,
+            "order": [
+              "req:srq-9"
+            ],
+            "resolvedSessionId": "resolved-1",
+            "storedSessionId": "stored-1",
+            "subagents": {},
+            "turn": {
+              "active": false,
+              "local": false,
+              "nextSeq": 2000
+            },
+            "unreadCount": 0
+          },
+          "srq-9",
+          {
+            "approvedHunks": 201,
+            "decision": "approved"
+          }
+        ],
+        "op": "answerRequest",
+        "result": {
+          "botName": "researcher",
+          "byApprovalId": {},
+          "byCallKey": {},
+          "byDelegationId": {},
+          "byProcessId": {},
+          "byRequestId": {
+            "srq-9": "req:srq-9"
+          },
+          "byRowId": {},
+          "byToolId": {},
+          "draft": "",
+          "hydration": "cold",
+          "items": {
+            "req:srq-9": {
+              "answerSummary": {
+                "decision": "approved"
+              },
+              "id": "req:srq-9",
+              "kind": "request",
+              "method": "input.form",
+              "optional": true,
+              "origin": "live",
+              "requestId": "srq-9",
+              "seq": 1000,
+              "state": "answered",
+              "summary": "I found three hotels in Utrecht. Fill this in and I will book the best match.",
+              "title": "Hotel booking details",
+              "ts": 1790000000,
+              "version": 1
+            }
+          },
+          "lastSeq": 0,
+          "order": [
+            "req:srq-9"
+          ],
+          "resolvedSessionId": "resolved-1",
+          "storedSessionId": "stored-1",
+          "subagents": {},
+          "turn": {
+            "active": false,
+            "local": false,
+            "nextSeq": 2000
+          },
+          "unreadCount": 0
+        }
+      },
+      {
+        "args": [
+          "researcher",
+          "stored-1",
+          "resolved-1"
+        ],
+        "op": "createChatState",
+        "result": {
+          "botName": "researcher",
+          "byApprovalId": {},
+          "byCallKey": {},
+          "byDelegationId": {},
+          "byProcessId": {},
+          "byRequestId": {},
+          "byRowId": {},
+          "byToolId": {},
+          "draft": "",
+          "hydration": "cold",
+          "items": {},
+          "lastSeq": 0,
+          "order": [],
+          "resolvedSessionId": "resolved-1",
+          "storedSessionId": "stored-1",
+          "subagents": {},
+          "turn": {
+            "active": false,
+            "local": false,
+            "nextSeq": 1000
+          },
+          "unreadCount": 0
+        }
+      },
+      {
+        "args": [
+          {
+            "botName": "researcher",
+            "byApprovalId": {},
+            "byCallKey": {},
+            "byDelegationId": {},
+            "byProcessId": {},
+            "byRequestId": {},
+            "byRowId": {},
+            "byToolId": {},
+            "draft": "",
+            "hydration": "cold",
+            "items": {},
+            "lastSeq": 0,
+            "order": [],
+            "resolvedSessionId": "resolved-1",
+            "storedSessionId": "stored-1",
+            "subagents": {},
+            "turn": {
+              "active": false,
+              "local": false,
+              "nextSeq": 1000
+            },
+            "unreadCount": 0
+          },
+          {
+            "id": "srq-9",
+            "method": "input.form",
+            "params": {
+              "expires_at": 1791119400,
+              "fields": [
+                {
+                  "id": "name",
+                  "kind": "text",
+                  "label": "Name on the booking",
+                  "max_length": 20,
+                  "required": true
+                },
+                {
+                  "default": 2,
+                  "id": "guests",
+                  "integer": true,
+                  "kind": "number",
+                  "label": "Guests",
+                  "max": 12,
+                  "min": 1,
+                  "required": true
+                }
+              ],
+              "optional": true,
+              "session_id": "run-1a2b",
+              "summary": "I found three hotels in Utrecht. Fill this in and I will book the best match.",
+              "title": "Hotel booking details",
+              "v": 1
+            }
+          },
+          1790000000000
+        ],
+        "op": "applyServerRequest",
+        "result": {
+          "botName": "researcher",
+          "byApprovalId": {},
+          "byCallKey": {},
+          "byDelegationId": {},
+          "byProcessId": {},
+          "byRequestId": {
+            "srq-9": "req:srq-9"
+          },
+          "byRowId": {},
+          "byToolId": {},
+          "draft": "",
+          "hydration": "cold",
+          "items": {
+            "req:srq-9": {
+              "id": "req:srq-9",
+              "kind": "request",
+              "method": "input.form",
+              "optional": true,
+              "origin": "live",
+              "requestId": "srq-9",
+              "seq": 1000,
+              "state": "open",
+              "summary": "I found three hotels in Utrecht. Fill this in and I will book the best match.",
+              "title": "Hotel booking details",
+              "ts": 1790000000,
+              "version": 0
+            }
+          },
+          "lastSeq": 0,
+          "order": [
+            "req:srq-9"
+          ],
+          "resolvedSessionId": "resolved-1",
+          "storedSessionId": "stored-1",
+          "subagents": {},
+          "turn": {
+            "active": false,
+            "local": false,
+            "nextSeq": 2000
+          },
+          "unreadCount": 0
+        }
+      },
+      {
+        "args": [
+          {
+            "botName": "researcher",
+            "byApprovalId": {},
+            "byCallKey": {},
+            "byDelegationId": {},
+            "byProcessId": {},
+            "byRequestId": {
+              "srq-9": "req:srq-9"
+            },
+            "byRowId": {},
+            "byToolId": {},
+            "draft": "",
+            "hydration": "cold",
+            "items": {
+              "req:srq-9": {
+                "id": "req:srq-9",
+                "kind": "request",
+                "method": "input.form",
+                "optional": true,
+                "origin": "live",
+                "requestId": "srq-9",
+                "seq": 1000,
+                "state": "open",
+                "summary": "I found three hotels in Utrecht. Fill this in and I will book the best match.",
+                "title": "Hotel booking details",
+                "ts": 1790000000,
+                "version": 0
+              }
+            },
+            "lastSeq": 0,
+            "order": [
+              "req:srq-9"
+            ],
+            "resolvedSessionId": "resolved-1",
+            "storedSessionId": "stored-1",
+            "subagents": {},
+            "turn": {
+              "active": false,
+              "local": false,
+              "nextSeq": 2000
+            },
+            "unreadCount": 0
+          },
+          "srq-9",
+          {
+            "approvedHunks": -1,
+            "decision": "approved"
+          }
+        ],
+        "op": "answerRequest",
+        "result": {
+          "botName": "researcher",
+          "byApprovalId": {},
+          "byCallKey": {},
+          "byDelegationId": {},
+          "byProcessId": {},
+          "byRequestId": {
+            "srq-9": "req:srq-9"
+          },
+          "byRowId": {},
+          "byToolId": {},
+          "draft": "",
+          "hydration": "cold",
+          "items": {
+            "req:srq-9": {
+              "answerSummary": {
+                "decision": "approved"
+              },
+              "id": "req:srq-9",
+              "kind": "request",
+              "method": "input.form",
+              "optional": true,
+              "origin": "live",
+              "requestId": "srq-9",
+              "seq": 1000,
+              "state": "answered",
+              "summary": "I found three hotels in Utrecht. Fill this in and I will book the best match.",
+              "title": "Hotel booking details",
+              "ts": 1790000000,
+              "version": 1
+            }
+          },
+          "lastSeq": 0,
+          "order": [
+            "req:srq-9"
+          ],
+          "resolvedSessionId": "resolved-1",
+          "storedSessionId": "stored-1",
+          "subagents": {},
+          "turn": {
+            "active": false,
+            "local": false,
+            "nextSeq": 2000
+          },
+          "unreadCount": 0
+        }
+      },
+      {
+        "args": [
+          "researcher",
+          "stored-1",
+          "resolved-1"
+        ],
+        "op": "createChatState",
+        "result": {
+          "botName": "researcher",
+          "byApprovalId": {},
+          "byCallKey": {},
+          "byDelegationId": {},
+          "byProcessId": {},
+          "byRequestId": {},
+          "byRowId": {},
+          "byToolId": {},
+          "draft": "",
+          "hydration": "cold",
+          "items": {},
+          "lastSeq": 0,
+          "order": [],
+          "resolvedSessionId": "resolved-1",
+          "storedSessionId": "stored-1",
+          "subagents": {},
+          "turn": {
+            "active": false,
+            "local": false,
+            "nextSeq": 1000
+          },
+          "unreadCount": 0
+        }
+      },
+      {
+        "args": [
+          {
+            "botName": "researcher",
+            "byApprovalId": {},
+            "byCallKey": {},
+            "byDelegationId": {},
+            "byProcessId": {},
+            "byRequestId": {},
+            "byRowId": {},
+            "byToolId": {},
+            "draft": "",
+            "hydration": "cold",
+            "items": {},
+            "lastSeq": 0,
+            "order": [],
+            "resolvedSessionId": "resolved-1",
+            "storedSessionId": "stored-1",
+            "subagents": {},
+            "turn": {
+              "active": false,
+              "local": false,
+              "nextSeq": 1000
+            },
+            "unreadCount": 0
+          },
+          {
+            "id": "srq-9",
+            "method": "input.form",
+            "params": {
+              "expires_at": 1791119400,
+              "fields": [
+                {
+                  "id": "name",
+                  "kind": "text",
+                  "label": "Name on the booking",
+                  "max_length": 20,
+                  "required": true
+                },
+                {
+                  "default": 2,
+                  "id": "guests",
+                  "integer": true,
+                  "kind": "number",
+                  "label": "Guests",
+                  "max": 12,
+                  "min": 1,
+                  "required": true
+                }
+              ],
+              "optional": true,
+              "session_id": "run-1a2b",
+              "summary": "I found three hotels in Utrecht. Fill this in and I will book the best match.",
+              "title": "Hotel booking details",
+              "v": 1
+            }
+          },
+          1790000000000
+        ],
+        "op": "applyServerRequest",
+        "result": {
+          "botName": "researcher",
+          "byApprovalId": {},
+          "byCallKey": {},
+          "byDelegationId": {},
+          "byProcessId": {},
+          "byRequestId": {
+            "srq-9": "req:srq-9"
+          },
+          "byRowId": {},
+          "byToolId": {},
+          "draft": "",
+          "hydration": "cold",
+          "items": {
+            "req:srq-9": {
+              "id": "req:srq-9",
+              "kind": "request",
+              "method": "input.form",
+              "optional": true,
+              "origin": "live",
+              "requestId": "srq-9",
+              "seq": 1000,
+              "state": "open",
+              "summary": "I found three hotels in Utrecht. Fill this in and I will book the best match.",
+              "title": "Hotel booking details",
+              "ts": 1790000000,
+              "version": 0
+            }
+          },
+          "lastSeq": 0,
+          "order": [
+            "req:srq-9"
+          ],
+          "resolvedSessionId": "resolved-1",
+          "storedSessionId": "stored-1",
+          "subagents": {},
+          "turn": {
+            "active": false,
+            "local": false,
+            "nextSeq": 2000
+          },
+          "unreadCount": 0
+        }
+      },
+      {
+        "args": [
+          {
+            "botName": "researcher",
+            "byApprovalId": {},
+            "byCallKey": {},
+            "byDelegationId": {},
+            "byProcessId": {},
+            "byRequestId": {
+              "srq-9": "req:srq-9"
+            },
+            "byRowId": {},
+            "byToolId": {},
+            "draft": "",
+            "hydration": "cold",
+            "items": {
+              "req:srq-9": {
+                "id": "req:srq-9",
+                "kind": "request",
+                "method": "input.form",
+                "optional": true,
+                "origin": "live",
+                "requestId": "srq-9",
+                "seq": 1000,
+                "state": "open",
+                "summary": "I found three hotels in Utrecht. Fill this in and I will book the best match.",
+                "title": "Hotel booking details",
+                "ts": 1790000000,
+                "version": 0
+              }
+            },
+            "lastSeq": 0,
+            "order": [
+              "req:srq-9"
+            ],
+            "resolvedSessionId": "resolved-1",
+            "storedSessionId": "stored-1",
+            "subagents": {},
+            "turn": {
+              "active": false,
+              "local": false,
+              "nextSeq": 2000
+            },
+            "unreadCount": 0
+          },
+          "srq-9",
+          {
+            "decision": "approved",
+            "rejectedHunks": 1.5
+          }
+        ],
+        "op": "answerRequest",
+        "result": {
+          "botName": "researcher",
+          "byApprovalId": {},
+          "byCallKey": {},
+          "byDelegationId": {},
+          "byProcessId": {},
+          "byRequestId": {
+            "srq-9": "req:srq-9"
+          },
+          "byRowId": {},
+          "byToolId": {},
+          "draft": "",
+          "hydration": "cold",
+          "items": {
+            "req:srq-9": {
+              "answerSummary": {
+                "decision": "approved"
+              },
+              "id": "req:srq-9",
+              "kind": "request",
+              "method": "input.form",
+              "optional": true,
+              "origin": "live",
+              "requestId": "srq-9",
+              "seq": 1000,
+              "state": "answered",
+              "summary": "I found three hotels in Utrecht. Fill this in and I will book the best match.",
+              "title": "Hotel booking details",
+              "ts": 1790000000,
+              "version": 1
+            }
+          },
+          "lastSeq": 0,
+          "order": [
+            "req:srq-9"
+          ],
+          "resolvedSessionId": "resolved-1",
+          "storedSessionId": "stored-1",
+          "subagents": {},
+          "turn": {
+            "active": false,
+            "local": false,
+            "nextSeq": 2000
+          },
+          "unreadCount": 0
+        }
+      },
+      {
+        "args": [
+          "researcher",
+          "stored-1",
+          "resolved-1"
+        ],
+        "op": "createChatState",
+        "result": {
+          "botName": "researcher",
+          "byApprovalId": {},
+          "byCallKey": {},
+          "byDelegationId": {},
+          "byProcessId": {},
+          "byRequestId": {},
+          "byRowId": {},
+          "byToolId": {},
+          "draft": "",
+          "hydration": "cold",
+          "items": {},
+          "lastSeq": 0,
+          "order": [],
+          "resolvedSessionId": "resolved-1",
+          "storedSessionId": "stored-1",
+          "subagents": {},
+          "turn": {
+            "active": false,
+            "local": false,
+            "nextSeq": 1000
+          },
+          "unreadCount": 0
+        }
+      },
+      {
+        "args": [
+          {
+            "botName": "researcher",
+            "byApprovalId": {},
+            "byCallKey": {},
+            "byDelegationId": {},
+            "byProcessId": {},
+            "byRequestId": {},
+            "byRowId": {},
+            "byToolId": {},
+            "draft": "",
+            "hydration": "cold",
+            "items": {},
+            "lastSeq": 0,
+            "order": [],
+            "resolvedSessionId": "resolved-1",
+            "storedSessionId": "stored-1",
+            "subagents": {},
+            "turn": {
+              "active": false,
+              "local": false,
+              "nextSeq": 1000
+            },
+            "unreadCount": 0
+          },
+          {
+            "id": "srq-9",
+            "method": "input.form",
+            "params": {
+              "expires_at": 1791119400,
+              "fields": [
+                {
+                  "id": "name",
+                  "kind": "text",
+                  "label": "Name on the booking",
+                  "max_length": 20,
+                  "required": true
+                },
+                {
+                  "default": 2,
+                  "id": "guests",
+                  "integer": true,
+                  "kind": "number",
+                  "label": "Guests",
+                  "max": 12,
+                  "min": 1,
+                  "required": true
+                }
+              ],
+              "optional": true,
+              "session_id": "run-1a2b",
+              "summary": "I found three hotels in Utrecht. Fill this in and I will book the best match.",
+              "title": "Hotel booking details",
+              "v": 1
+            }
+          },
+          1790000000000
+        ],
+        "op": "applyServerRequest",
+        "result": {
+          "botName": "researcher",
+          "byApprovalId": {},
+          "byCallKey": {},
+          "byDelegationId": {},
+          "byProcessId": {},
+          "byRequestId": {
+            "srq-9": "req:srq-9"
+          },
+          "byRowId": {},
+          "byToolId": {},
+          "draft": "",
+          "hydration": "cold",
+          "items": {
+            "req:srq-9": {
+              "id": "req:srq-9",
+              "kind": "request",
+              "method": "input.form",
+              "optional": true,
+              "origin": "live",
+              "requestId": "srq-9",
+              "seq": 1000,
+              "state": "open",
+              "summary": "I found three hotels in Utrecht. Fill this in and I will book the best match.",
+              "title": "Hotel booking details",
+              "ts": 1790000000,
+              "version": 0
+            }
+          },
+          "lastSeq": 0,
+          "order": [
+            "req:srq-9"
+          ],
+          "resolvedSessionId": "resolved-1",
+          "storedSessionId": "stored-1",
+          "subagents": {},
+          "turn": {
+            "active": false,
+            "local": false,
+            "nextSeq": 2000
+          },
+          "unreadCount": 0
+        }
+      },
+      {
+        "args": [
+          {
+            "botName": "researcher",
+            "byApprovalId": {},
+            "byCallKey": {},
+            "byDelegationId": {},
+            "byProcessId": {},
+            "byRequestId": {
+              "srq-9": "req:srq-9"
+            },
+            "byRowId": {},
+            "byToolId": {},
+            "draft": "",
+            "hydration": "cold",
+            "items": {
+              "req:srq-9": {
+                "id": "req:srq-9",
+                "kind": "request",
+                "method": "input.form",
+                "optional": true,
+                "origin": "live",
+                "requestId": "srq-9",
+                "seq": 1000,
+                "state": "open",
+                "summary": "I found three hotels in Utrecht. Fill this in and I will book the best match.",
+                "title": "Hotel booking details",
+                "ts": 1790000000,
+                "version": 0
+              }
+            },
+            "lastSeq": 0,
+            "order": [
+              "req:srq-9"
+            ],
+            "resolvedSessionId": "resolved-1",
+            "storedSessionId": "stored-1",
+            "subagents": {},
+            "turn": {
+              "active": false,
+              "local": false,
+              "nextSeq": 2000
+            },
+            "unreadCount": 0
+          },
+          "srq-9",
+          {
+            "decision": "approved",
+            "rejectedHunks": "2"
+          }
+        ],
+        "op": "answerRequest",
+        "result": {
+          "botName": "researcher",
+          "byApprovalId": {},
+          "byCallKey": {},
+          "byDelegationId": {},
+          "byProcessId": {},
+          "byRequestId": {
+            "srq-9": "req:srq-9"
+          },
+          "byRowId": {},
+          "byToolId": {},
+          "draft": "",
+          "hydration": "cold",
+          "items": {
+            "req:srq-9": {
+              "answerSummary": {
+                "decision": "approved"
+              },
+              "id": "req:srq-9",
+              "kind": "request",
+              "method": "input.form",
+              "optional": true,
+              "origin": "live",
+              "requestId": "srq-9",
+              "seq": 1000,
+              "state": "answered",
+              "summary": "I found three hotels in Utrecht. Fill this in and I will book the best match.",
+              "title": "Hotel booking details",
+              "ts": 1790000000,
+              "version": 1
+            }
+          },
+          "lastSeq": 0,
+          "order": [
+            "req:srq-9"
+          ],
+          "resolvedSessionId": "resolved-1",
+          "storedSessionId": "stored-1",
+          "subagents": {},
+          "turn": {
+            "active": false,
+            "local": false,
+            "nextSeq": 2000
+          },
+          "unreadCount": 0
+        }
+      },
+      {
+        "args": [
+          "researcher",
+          "stored-1",
+          "resolved-1"
+        ],
+        "op": "createChatState",
+        "result": {
+          "botName": "researcher",
+          "byApprovalId": {},
+          "byCallKey": {},
+          "byDelegationId": {},
+          "byProcessId": {},
+          "byRequestId": {},
+          "byRowId": {},
+          "byToolId": {},
+          "draft": "",
+          "hydration": "cold",
+          "items": {},
+          "lastSeq": 0,
+          "order": [],
+          "resolvedSessionId": "resolved-1",
+          "storedSessionId": "stored-1",
+          "subagents": {},
+          "turn": {
+            "active": false,
+            "local": false,
+            "nextSeq": 1000
+          },
+          "unreadCount": 0
+        }
+      },
+      {
+        "args": [
+          {
+            "botName": "researcher",
+            "byApprovalId": {},
+            "byCallKey": {},
+            "byDelegationId": {},
+            "byProcessId": {},
+            "byRequestId": {},
+            "byRowId": {},
+            "byToolId": {},
+            "draft": "",
+            "hydration": "cold",
+            "items": {},
+            "lastSeq": 0,
+            "order": [],
+            "resolvedSessionId": "resolved-1",
+            "storedSessionId": "stored-1",
+            "subagents": {},
+            "turn": {
+              "active": false,
+              "local": false,
+              "nextSeq": 1000
+            },
+            "unreadCount": 0
+          },
+          {
+            "id": "srq-9",
+            "method": "input.form",
+            "params": {
+              "expires_at": 1791119400,
+              "fields": [
+                {
+                  "id": "name",
+                  "kind": "text",
+                  "label": "Name on the booking",
+                  "max_length": 20,
+                  "required": true
+                },
+                {
+                  "default": 2,
+                  "id": "guests",
+                  "integer": true,
+                  "kind": "number",
+                  "label": "Guests",
+                  "max": 12,
+                  "min": 1,
+                  "required": true
+                }
+              ],
+              "optional": true,
+              "session_id": "run-1a2b",
+              "summary": "I found three hotels in Utrecht. Fill this in and I will book the best match.",
+              "title": "Hotel booking details",
+              "v": 1
+            }
+          },
+          1790000000000
+        ],
+        "op": "applyServerRequest",
+        "result": {
+          "botName": "researcher",
+          "byApprovalId": {},
+          "byCallKey": {},
+          "byDelegationId": {},
+          "byProcessId": {},
+          "byRequestId": {
+            "srq-9": "req:srq-9"
+          },
+          "byRowId": {},
+          "byToolId": {},
+          "draft": "",
+          "hydration": "cold",
+          "items": {
+            "req:srq-9": {
+              "id": "req:srq-9",
+              "kind": "request",
+              "method": "input.form",
+              "optional": true,
+              "origin": "live",
+              "requestId": "srq-9",
+              "seq": 1000,
+              "state": "open",
+              "summary": "I found three hotels in Utrecht. Fill this in and I will book the best match.",
+              "title": "Hotel booking details",
+              "ts": 1790000000,
+              "version": 0
+            }
+          },
+          "lastSeq": 0,
+          "order": [
+            "req:srq-9"
+          ],
+          "resolvedSessionId": "resolved-1",
+          "storedSessionId": "stored-1",
+          "subagents": {},
+          "turn": {
+            "active": false,
+            "local": false,
+            "nextSeq": 2000
+          },
+          "unreadCount": 0
+        }
+      },
+      {
+        "args": [
+          {
+            "botName": "researcher",
+            "byApprovalId": {},
+            "byCallKey": {},
+            "byDelegationId": {},
+            "byProcessId": {},
+            "byRequestId": {
+              "srq-9": "req:srq-9"
+            },
+            "byRowId": {},
+            "byToolId": {},
+            "draft": "",
+            "hydration": "cold",
+            "items": {
+              "req:srq-9": {
+                "id": "req:srq-9",
+                "kind": "request",
+                "method": "input.form",
+                "optional": true,
+                "origin": "live",
+                "requestId": "srq-9",
+                "seq": 1000,
+                "state": "open",
+                "summary": "I found three hotels in Utrecht. Fill this in and I will book the best match.",
+                "title": "Hotel booking details",
+                "ts": 1790000000,
+                "version": 0
+              }
+            },
+            "lastSeq": 0,
+            "order": [
+              "req:srq-9"
+            ],
+            "resolvedSessionId": "resolved-1",
+            "storedSessionId": "stored-1",
+            "subagents": {},
+            "turn": {
+              "active": false,
+              "local": false,
+              "nextSeq": 2000
+            },
+            "unreadCount": 0
+          },
+          "srq-9",
+          {
+            "approvedHunks": 1
+          }
+        ],
+        "op": "answerRequest",
+        "result": {
+          "botName": "researcher",
+          "byApprovalId": {},
+          "byCallKey": {},
+          "byDelegationId": {},
+          "byProcessId": {},
+          "byRequestId": {
+            "srq-9": "req:srq-9"
+          },
+          "byRowId": {},
+          "byToolId": {},
+          "draft": "",
+          "hydration": "cold",
+          "items": {
+            "req:srq-9": {
+              "id": "req:srq-9",
+              "kind": "request",
+              "method": "input.form",
+              "optional": true,
+              "origin": "live",
+              "requestId": "srq-9",
+              "seq": 1000,
+              "state": "answered",
+              "summary": "I found three hotels in Utrecht. Fill this in and I will book the best match.",
+              "title": "Hotel booking details",
+              "ts": 1790000000,
+              "version": 1
+            }
+          },
+          "lastSeq": 0,
+          "order": [
+            "req:srq-9"
+          ],
+          "resolvedSessionId": "resolved-1",
+          "storedSessionId": "stored-1",
+          "subagents": {},
+          "turn": {
+            "active": false,
+            "local": false,
+            "nextSeq": 2000
+          },
+          "unreadCount": 0
+        }
+      }
+    ],
+    "test": "answerRequest for an interactive request > keeps a diff’s hunk counts only as whole numbers a diff can have, and never a hunk or its text"
   },
   {
     "calls": [
@@ -17394,6 +20519,289 @@
       }
     ],
     "test": "the transcript around a request > stays a one-line record in an export, with how it ended and no values"
+  },
+  {
+    "calls": [
+      {
+        "args": [
+          "researcher",
+          "stored-1",
+          "resolved-1"
+        ],
+        "op": "createChatState",
+        "result": {
+          "botName": "researcher",
+          "byApprovalId": {},
+          "byCallKey": {},
+          "byDelegationId": {},
+          "byProcessId": {},
+          "byRequestId": {},
+          "byRowId": {},
+          "byToolId": {},
+          "draft": "",
+          "hydration": "cold",
+          "items": {},
+          "lastSeq": 0,
+          "order": [],
+          "resolvedSessionId": "resolved-1",
+          "storedSessionId": "stored-1",
+          "subagents": {},
+          "turn": {
+            "active": false,
+            "local": false,
+            "nextSeq": 1000
+          },
+          "unreadCount": 0
+        }
+      },
+      {
+        "args": [
+          {
+            "botName": "researcher",
+            "byApprovalId": {},
+            "byCallKey": {},
+            "byDelegationId": {},
+            "byProcessId": {},
+            "byRequestId": {},
+            "byRowId": {},
+            "byToolId": {},
+            "draft": "",
+            "hydration": "cold",
+            "items": {},
+            "lastSeq": 0,
+            "order": [],
+            "resolvedSessionId": "resolved-1",
+            "storedSessionId": "stored-1",
+            "subagents": {},
+            "turn": {
+              "active": false,
+              "local": false,
+              "nextSeq": 1000
+            },
+            "unreadCount": 0
+          },
+          {
+            "id": "srq-12",
+            "method": "review.diff",
+            "params": {
+              "expires_at": 1791119400,
+              "hunks": [
+                {
+                  "header": "@@ -3,4 +3,4 @@ class Settings:",
+                  "id": "h1",
+                  "lines": [
+                    "     name = \"booking\"",
+                    "-    currency = \"USD\"",
+                    "+    currency = \"EUR\"",
+                    "     locale = \"nl-NL\""
+                  ]
+                },
+                {
+                  "header": "@@ -20,3 +20,4 @@ def retry():",
+                  "id": "h2",
+                  "lines": [
+                    "     attempts = 0",
+                    "-    limit = 3",
+                    "+    limit = 5",
+                    "+    backoff = 2",
+                    "     return attempts"
+                  ]
+                }
+              ],
+              "kind": "modify",
+              "optional": false,
+              "path": "app/settings.py",
+              "session_id": "run-1a2b",
+              "summary": "I changed the default currency and the retry limit. Approve or reject each hunk.",
+              "title": "Changes to settings.py",
+              "v": 1
+            }
+          },
+          1790000000000
+        ],
+        "op": "applyServerRequest",
+        "result": {
+          "botName": "researcher",
+          "byApprovalId": {},
+          "byCallKey": {},
+          "byDelegationId": {},
+          "byProcessId": {},
+          "byRequestId": {
+            "srq-12": "req:srq-12"
+          },
+          "byRowId": {},
+          "byToolId": {},
+          "draft": "",
+          "hydration": "cold",
+          "items": {
+            "req:srq-12": {
+              "id": "req:srq-12",
+              "kind": "request",
+              "method": "review.diff",
+              "optional": false,
+              "origin": "live",
+              "requestId": "srq-12",
+              "seq": 1000,
+              "state": "open",
+              "summary": "I changed the default currency and the retry limit. Approve or reject each hunk.",
+              "title": "Changes to settings.py",
+              "ts": 1790000000,
+              "version": 0
+            }
+          },
+          "lastSeq": 0,
+          "order": [
+            "req:srq-12"
+          ],
+          "resolvedSessionId": "resolved-1",
+          "storedSessionId": "stored-1",
+          "subagents": {},
+          "turn": {
+            "active": false,
+            "local": false,
+            "nextSeq": 2000
+          },
+          "unreadCount": 0
+        }
+      },
+      {
+        "args": [
+          {
+            "botName": "researcher",
+            "byApprovalId": {},
+            "byCallKey": {},
+            "byDelegationId": {},
+            "byProcessId": {},
+            "byRequestId": {
+              "srq-12": "req:srq-12"
+            },
+            "byRowId": {},
+            "byToolId": {},
+            "draft": "",
+            "hydration": "cold",
+            "items": {
+              "req:srq-12": {
+                "id": "req:srq-12",
+                "kind": "request",
+                "method": "review.diff",
+                "optional": false,
+                "origin": "live",
+                "requestId": "srq-12",
+                "seq": 1000,
+                "state": "open",
+                "summary": "I changed the default currency and the retry limit. Approve or reject each hunk.",
+                "title": "Changes to settings.py",
+                "ts": 1790000000,
+                "version": 0
+              }
+            },
+            "lastSeq": 0,
+            "order": [
+              "req:srq-12"
+            ],
+            "resolvedSessionId": "resolved-1",
+            "storedSessionId": "stored-1",
+            "subagents": {},
+            "turn": {
+              "active": false,
+              "local": false,
+              "nextSeq": 2000
+            },
+            "unreadCount": 0
+          },
+          "srq-12",
+          {
+            "approvedHunks": 1,
+            "decision": "approved",
+            "rejectedHunks": 1
+          }
+        ],
+        "op": "answerRequest",
+        "result": {
+          "botName": "researcher",
+          "byApprovalId": {},
+          "byCallKey": {},
+          "byDelegationId": {},
+          "byProcessId": {},
+          "byRequestId": {
+            "srq-12": "req:srq-12"
+          },
+          "byRowId": {},
+          "byToolId": {},
+          "draft": "",
+          "hydration": "cold",
+          "items": {
+            "req:srq-12": {
+              "answerSummary": {
+                "approvedHunks": 1,
+                "decision": "approved",
+                "rejectedHunks": 1
+              },
+              "id": "req:srq-12",
+              "kind": "request",
+              "method": "review.diff",
+              "optional": false,
+              "origin": "live",
+              "requestId": "srq-12",
+              "seq": 1000,
+              "state": "answered",
+              "summary": "I changed the default currency and the retry limit. Approve or reject each hunk.",
+              "title": "Changes to settings.py",
+              "ts": 1790000000,
+              "version": 1
+            }
+          },
+          "lastSeq": 0,
+          "order": [
+            "req:srq-12"
+          ],
+          "resolvedSessionId": "resolved-1",
+          "storedSessionId": "stored-1",
+          "subagents": {},
+          "turn": {
+            "active": false,
+            "local": false,
+            "nextSeq": 2000
+          },
+          "unreadCount": 0
+        }
+      },
+      {
+        "args": [
+          [
+            {
+              "answerSummary": {
+                "approvedHunks": 1,
+                "decision": "approved",
+                "rejectedHunks": 1
+              },
+              "id": "req:srq-12",
+              "kind": "request",
+              "method": "review.diff",
+              "optional": false,
+              "origin": "live",
+              "requestId": "srq-12",
+              "seq": 1000,
+              "state": "answered",
+              "summary": "I changed the default currency and the retry limit. Approve or reject each hunk.",
+              "title": "Changes to settings.py",
+              "ts": 1790000000,
+              "version": 1
+            }
+          ],
+          {
+            "botName": "Researcher",
+            "selfName": "Me"
+          }
+        ],
+        "op": "exportTranscript",
+        "result": {
+          "markdown": "# Researcher\n\n> Request — Changes to settings.py (approved, 1 of 2 hunks)\n",
+          "text": "Researcher\n==========\n\n  · Request — Changes to settings.py (approved, 1 of 2 hunks)\n"
+        }
+      }
+    ],
+    "test": "the transcript around a request > says in an export how many hunks of a diff were approved, and not which lines"
   },
   {
     "calls": [

@@ -120,6 +120,8 @@ extension TranscriptReducer {
   static let requestTitleMax = 80
   static let requestSummaryMax = 500
   static let summaryCountMax = 9_999
+  /// A diff review has at most this many hunks (`contract/requests`: 1 to 200).
+  static let summaryHunksMax = 200
 
   /// `/^[a-z][a-z0-9_]{0,23}$/`.
   static func isSummaryKey(_ value: String) -> Bool {
@@ -152,6 +154,14 @@ extension TranscriptReducer {
 
     if case .bool(let edited)? = raw["edited"] {
       out.edited = edited
+    }
+
+    if case .number(let hunks)? = raw["approvedHunks"], hunks == hunks.rounded(), hunks >= 0, hunks <= Double(summaryHunksMax) {
+      out.approvedHunks = Int(hunks)
+    }
+
+    if case .number(let hunks)? = raw["rejectedHunks"], hunks == hunks.rounded(), hunks >= 0, hunks <= Double(summaryHunksMax) {
+      out.rejectedHunks = Int(hunks)
     }
 
     if case .string(let precision)? = raw["precision"], isSummaryKey(precision) {
