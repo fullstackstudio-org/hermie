@@ -8,10 +8,14 @@ import Testing
 /// They print their numbers; the bounds are loose enough for a loaded CI machine
 /// and tight enough to catch a quadratic regression or a pathological decoder.
 @Suite(.serialized) struct StateCopyBenchmarkTests {
+  /// CPU seconds the calling thread spends in `body`, not wall-clock seconds. The ratios these guards
+  /// compare (twice the work, twice the time) hold for the work itself; a wall clock also counts every
+  /// moment the thread was preempted, and on a machine busy with other builds and test runs that is the
+  /// whole of the noise. The body must run on the calling thread, which every caller's does.
   static func seconds(_ body: () throws -> Void) rethrows -> Double {
-    let start = ContinuousClock.now
+    let start = clock_gettime_nsec_np(CLOCK_THREAD_CPUTIME_ID)
     try body()
-    return GoldenRunner.seconds(since: start)
+    return Double(clock_gettime_nsec_np(CLOCK_THREAD_CPUTIME_ID) - start) / 1_000_000_000
   }
 
   /// A state holding `filler` settled items and one streaming assistant item.
@@ -84,7 +88,7 @@ import Testing
     var largeLength = 0
     for _ in 0..<5 {
       let (smallTime, smallBytes) = Self.appendInPlace(deltas: 10_000, filler: 500)
-      let (largeTime, largeBytes) = Self.appendInPlace(deltas: 20_000, filler: 500)
+      let (largeTime, largeBytes) = Self.appendInPlace(deltas: 40_000, filler: 500)
       small = min(small, smallTime)
       large = min(large, largeTime)
       smallLength = smallBytes
@@ -92,15 +96,17 @@ import Testing
     }
     print(
       String(
-        format: "in-place append: 10,000 deltas %.3f s, 20,000 deltas %.3f s (ratio %.2f), text %d → %d bytes",
+        format: "in-place append: 10,000 deltas %.3f s, 40,000 deltas %.3f s (ratio %.2f), text %d → %d bytes",
         small, large, large / small, smallLength, largeLength
       )
     )
 
     #expect(smallLength == 10_000 * "token · ".utf8.count)
     #expect(small < 2.0, "10,000 in-place deltas took \(small) s")
-    // Linear doubles; quadratic quadruples. Leave room for timer noise.
-    #expect(large / small < 3.0, "doubling the deltas multiplied the time by \(large / small)")
+    // Four times the deltas: linear is ×4, quadratic ×16, so 8 sits between them with a factor of two to
+    // spare on either side. (Twice the deltas left linear ×2 and quadratic ×4 with a bound of 3 between,
+    // which a few milliseconds of noise at these sizes could cross.)
+    #expect(large / small < 8.0, "4× the deltas multiplied the time by \(large / small)")
   }
 
   @Test func appendingDeltasThroughAPureFunctionIsMeasured() {
