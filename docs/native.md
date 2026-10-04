@@ -1850,7 +1850,7 @@ route in the last column. "Native" is what this build has.
 | Archive                                                       | row menu                              | list                     | yes                                                                   | `ui_meta` app section `archivedBots`                                                                     |
 | Folder, order                                                 | row menu, folder menu, drag           | list                     | yes (Chats: folders, and the folder of each chat)                     | `ui_meta` app section `entries`, `folders`                                                               |
 | Notifications for this chat                                   | chat options                          | no                       | not yet                                                               | `ui_meta` push rows (`push.perBot`)                                                                      |
-| Voice (read aloud)                                            | chat options                          | no                       | not yet                                                               | none: on the device                                                                                      |
+| Voice (read aloud)                                            | chat options                          | yes: chat options        | yes: chat options and Settings, Voice ("Voice", below)                | none: on the device                                                                                      |
 | Export the conversation                                       | chat options                          | no                       | not yet                                                               | none: from the transcript                                                                                |
 | Delete the bot                                                | none                                  | none                     | none                                                                  | no `profiles.delete` method; `DELETE /api/profiles/{name}` exists on the gateway and no client offers it |
 
@@ -2113,3 +2113,53 @@ reader changed.
   same. What the open conversations hold in memory is not touched.
 - **Language.** No picker: the page names the language the app is speaking and opens the system's
   per-app language setting (the app's page in Settings on iPhone and iPad, Language & Region on the Mac).
+
+## Voice
+
+Dictation in the composer, reading a reply aloud, and Settings › Voice (HERM-260, part B; the Expo app's
+`features/voice` is the reference, and the web client's `features/voice` is the same machines in TypeScript). The
+decision behind it is [ADR-0022](adr/0022-voice-on-the-device.md): **speech happens on the device, and the
+gateway's voice RPCs are not used.** What follows is how the Apple apps keep to that.
+
+| Piece                               | Where                                                                        | What                                                                                                                    |
+| ----------------------------------- | ---------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------- |
+| `VoiceSettings`                     | `HermieCore/Voice`, `AppLaunch.voice`                                        | rate, voice, dictation language, stop-on-background, per-chat auto-read; the `hermie.voice` blob, device-wide           |
+| `DictationModel`, `DictationAnchor` | `HermieCore/Voice/Dictation.swift`, `ComposerModel+Dictation.swift`          | the state machine behind the microphone, and where the words go                                                         |
+| `ReadAloudModel`                    | `HermieCore/Voice/ReadAloud.swift`                                           | the queue of replies being read, and the automatic read                                                                 |
+| `MarkdownSpeech`                    | `HermieMarkdown/MarkdownSpeech.swift`                                        | Markdown to the words worth saying (a port of the Expo and web `speechText`)                                            |
+| the two engines                     | `HermieCore/Voice/System`: `AppleSpeechRecognizer`, `AppleSpeechSynthesizer` | `SFSpeechRecognizer` with `AVAudioEngine`, and `AVSpeechSynthesizer`; behind `DictationEngine` and `SpeechSynthesizing` |
+| the views                           | `HermieUI`: `DictationButton`, `ChatVoiceOptionItems`, `VoiceSettingsPage`   | the microphone beside the field, the chat's options, the Settings page                                                  |
+
+- **Where the audio goes.** The recogniser is asked to run on the device (`requiresOnDeviceRecognition`) and a
+  language with no on-device model is **refused, not sent to Apple's speech service**: it is not offered in the
+  picker, the microphone is not drawn on a device that has no language at all, and a session started for one
+  ends with "Dictation is not available on this device." (`AppleSpeechRecognizer.processing(language:)`). Nothing is
+  recorded to a file. The usage strings in both `Info.plist`s say the same thing. Reading uses the device's own
+  voices and sends nothing. **In a browser the claim is narrower**: see `native/web/README.md`, "Voice".
+- **Tap to start, tap to stop; the words land in the field.** A session takes the draft as its anchor when it starts
+  and every result, partial or final, is the anchor plus the whole transcript so far, so a recogniser revising its
+  last guess replaces it instead of adding to it. Dictation appends to the end of the draft (the text view does not
+  report its caret to the model). **Anything that changes the draft from outside ends the session**: typing, a send,
+  a slash command, words put back after a failure; and a request over the composer (`held`) cancels it and refuses
+  what is still said, so what is dictated can never become the answer to a secure prompt. The app leaving the
+  front always closes the microphone.
+- **Permission** is asked when the mic is first pressed, never at launch: the speech recognition prompt, then the
+  microphone's. A refusal is "Hermie needs the microphone to take dictation." with "Open Settings" (the app's page
+  on iPhone and iPad, the Microphone pane of System Settings on the Mac). `NSMicrophoneUsageDescription` and
+  `NSSpeechRecognitionUsageDescription` are in both `Info.plist`s; the Mac's sandbox already has
+  `com.apple.security.device.audio-input`.
+- **Read aloud** is a line of a reply's menu (`MessageMenu.Action.readAloud` and `stopReading`: dropped, not
+  disabled, where the screen cannot speak; the reader's own turns have none), and "Read replies aloud" is a switch in
+  the chat's options, per chat and per gateway on this device. The first transcript the automatic read sees is a seed
+  and nothing else, older history paged in above the newest reply is never read, nothing is read while a turn runs,
+  and what arrives while the microphone is open is marked offered so its end does not read it all.
+  Dictating silences a reply being read, and nothing is read while the microphone is open.
+- **Settings › Voice**: the rate (five stops, 0.5 to 1.5 of the engine's normal), the voice (automatic, or one of the
+  device's, used for replies in its own language), whether reading stops when the app goes to the background, and the
+  dictation language (the device's own, or one of the languages that have a model on this device). "Confirm before
+  sending" belongs to a hands-free voice mode that does not exist here, so it is stored and not offered.
+- **Tests.** `DictationTests`, `ComposerDictationTests`, `ReadAloudTests`, `VoiceSettingsTests`,
+  `MessageMenuReadAloudTests` (`HermieCoreTests/Voice`), `MarkdownSpeechTests`, `ChatFeedVoiceTests` and
+  `VoiceSettingsPageTests`: a fake recogniser and a fake synthesiser, no audio, no simulator. What no test proves is the
+  Speech framework itself: that the prompts appear, that on-device recognition works for a language, and that the audio
+  session hands the speaker back (hand-check on a device).

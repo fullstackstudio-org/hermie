@@ -1,2 +1,6 @@
 /* The camera permission prompt: shown when the reader first takes a photo or scans a document, to attach to a message or to send when a bot asks for a file. */
 "NSCameraUsageDescription" = "Hermie gebruikt de camera zodat je een foto kunt maken of een document kunt scannen, om bij een bericht te voegen of te sturen wanneer een bot om een bestand vraagt.";
+/* The microphone permission prompt: shown when the reader first dictates a message. The audio is recognised on the device and goes nowhere. */
+"NSMicrophoneUsageDescription" = "Hermie gebruikt de microfoon zodat je een bericht kunt dicteren in plaats van typen. De audio wordt op dit apparaat omgezet in tekst en nergens heen gestuurd.";
+/* The speech recognition permission prompt: shown with the microphone's, the first time the reader dictates. Recognition runs on the device only. */
+"NSSpeechRecognitionUsageDescription" = "Hermie gebruikt spraakherkenning op het apparaat om wat je zegt om te zetten in de tekst van een bericht. Er wordt niets naar Apple of een andere dienst gestuurd.";
