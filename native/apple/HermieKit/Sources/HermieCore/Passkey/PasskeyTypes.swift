@@ -187,6 +187,11 @@ public struct PasskeyConfirmation: Sendable, Equatable, Identifiable {
   /// gateway may have taken it. From then on no state of this confirmation says "nothing was
   /// confirmed" (`PasskeyModel.setPhase` turns those endings into `.outcomeUnknown`).
   public internal(set) var answerMayHaveArrived = false
+  /// The system's passkey sheet was dismissed and this device holds no passkey it knows of for this
+  /// request, so the dismissal most likely was the system saying there is none here, not a person
+  /// declining. The sheet then explains (and offers to add a passkey here); a dismissal on a device
+  /// that has answered with one of these passkeys stays a plain dismissal. Cleared by the next try.
+  public internal(set) var passkeyMissingHere = false
 
   /// Still waiting for this device to answer (or answering).
   public var isOpen: Bool { phase.isOpen }
@@ -318,6 +323,10 @@ public enum PasskeyActionError: Error, Sendable, Equatable {
   case pinUnreadable
   /// The ceremony produced nothing.
   case ceremony(PasskeyCeremonyError)
+  /// The system's passkey sheet was dismissed and this device holds no passkey it knows of for the
+  /// account on this gateway: most likely there is none here yet (one made on another device shows up
+  /// once iCloud Keychain has synced it), and this is not a person declining.
+  case noPasskeyHere
   /// The route refused.
   case refused(PasskeyRouteError)
   /// The answer was not what the route promises.

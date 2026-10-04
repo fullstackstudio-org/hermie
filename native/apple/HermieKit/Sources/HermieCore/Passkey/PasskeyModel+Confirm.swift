@@ -199,6 +199,7 @@ extension PasskeyModel {
     }
 
     let before = current.phase
+    setPasskeyMissingHere(id, false)
     setPhase(id, .signing)
 
     let challenge = PasskeyChallenge.challenge(current.display, context.binding)
@@ -217,6 +218,9 @@ extension PasskeyModel {
     guard confirmation(id)?.phase == .signing else {
       return
     }
+
+    // This device answered with it: it holds that passkey, and a dismissal of its sheet is a dismissal.
+    await rememberHere(response.credentialID)
 
     // The answer repeats the request's own `passkey.v`: 2 for a request with fields, else 1.
     let assertion = Self.assertion(
@@ -272,6 +276,13 @@ extension PasskeyModel {
     guard let reason = error.refusalReason else {
       // Dismissed, busy or a platform hiccup: nothing goes out, the sheet stays.
       setPhase(id, error == .cancelled || error == .busy ? before : .notSent(Self.describe(error)))
+
+      // Dismissed on a device that holds none of the request's passkeys: the system's own "no passkey
+      // on this device" sheet ends the same way a person's Cancel does, so say what is most likely.
+      if error == .cancelled, let allowed = contexts[id]?.allowCredentialIDs, holdsNoneHere(allowed) {
+        setPasskeyMissingHere(id, true)
+      }
+
       return
     }
 

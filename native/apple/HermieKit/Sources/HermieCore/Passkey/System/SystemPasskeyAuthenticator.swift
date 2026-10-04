@@ -197,6 +197,13 @@ public final class SystemPasskeyAuthenticator: PasskeyAuthenticator {
    | `.deviceNotConfiguredForPasskeyCreation` | `unavailable(device_not_configured)` |
    | `.matchedExcludedCredential` | `failed`: this provider already holds a passkey for the account |
    | `.unknown`, `.invalidResponse`, `.notHandled`, `.failed`, any other | `failed(domain code)` |
+
+   The iOS 27 and macOS 27 SDKs have no code of their own for "no passkey on this device": the
+   system's sheet for it ("You don't have a saved passkey on this device") ends as `.canceled`, the
+   code of a person dismissing a sheet that offered a passkey, and nothing the app may read tells
+   the two apart. So both stay `cancelled` here, and the model reads it with what this device knows
+   (`PasskeyModel.holdsNoneHere`): a dismissal on a device that holds none of the request's passkeys
+   is explained; one on a device that has answered with one of them stays a plain dismissal.
    */
   nonisolated static func ceremonyError(domain: String, code: Int) -> PasskeyCeremonyError {
     guard domain == ASAuthorizationError.errorDomain else {

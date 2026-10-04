@@ -52,6 +52,7 @@ enum PasskeysText {
     case .notEnrolled: NativeStrings.Passkeys.noPasskeyHere
     case .gatewayIDMismatch, .gatewayIDConflict, .pinUnreadable: NativeStrings.Passkeys.seeNotice
     case .ceremony(let ceremony): ceremonyFailure(ceremony)
+    case .noPasskeyHere: NativeStrings.Confirm.passkeyNotHere
     case .refused(let route): refusal(route)
     case .badAnswer: NativeStrings.Passkeys.badAnswer
     case .transport: NativeStrings.Passkeys.unreadable

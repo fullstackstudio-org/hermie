@@ -292,6 +292,10 @@
 	<string>Stop</string>
 	<key>native.composer.stopped</key>
 	<string>Response stopped</string>
+	<key>native.confirm.addPasskeyHere</key>
+	<string>Add a passkey here</string>
+	<key>native.confirm.addPasskeyHereHint</key>
+	<string>Opens Settings. The request stays open and waits.</string>
 	<key>native.confirm.address</key>
 	<string>Address %@</string>
 	<key>native.confirm.answeredElsewhere</key>
@@ -328,6 +332,8 @@
 	<string>The answer may have reached the gateway. You can try again, or check whether the action ran.</string>
 	<key>native.confirm.outcomeUnknown</key>
 	<string>The answer may have reached the gateway. Check whether the action ran.</string>
+	<key>native.confirm.passkeyNotHere</key>
+	<string>Your passkey for this gateway isn't on this device yet. If you made it on another device, it appears here once iCloud Keychain has synced (this can take a few minutes). Or add a passkey on this device.</string>
 	<key>native.confirm.passkeyNote</key>
 	<string>Your device will ask for your passkey for %1$@. That name is the same for every gateway; this request is for %2$@.</string>
 	<key>native.confirm.received</key>

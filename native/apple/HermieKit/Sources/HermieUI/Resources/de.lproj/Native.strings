@@ -292,6 +292,10 @@
 	<string>Stoppen</string>
 	<key>native.composer.stopped</key>
 	<string>Antwort gestoppt</string>
+	<key>native.confirm.addPasskeyHere</key>
+	<string>Hier einen Passkey hinzufügen</string>
+	<key>native.confirm.addPasskeyHereHint</key>
+	<string>Öffnet die Einstellungen. Die Anfrage bleibt offen und wartet.</string>
 	<key>native.confirm.address</key>
 	<string>Adresse %@</string>
 	<key>native.confirm.answeredElsewhere</key>
@@ -328,6 +332,8 @@
 	<string>Die Antwort ist möglicherweise beim Gateway angekommen. Du kannst es erneut versuchen oder prüfen, ob die Aktion ausgeführt wurde.</string>
 	<key>native.confirm.outcomeUnknown</key>
 	<string>Die Antwort ist möglicherweise beim Gateway angekommen. Prüfe, ob die Aktion ausgeführt wurde.</string>
+	<key>native.confirm.passkeyNotHere</key>
+	<string>Dein Passkey für dieses Gateway ist noch nicht auf diesem Gerät. Falls du ihn auf einem anderen Gerät erstellt hast, erscheint er hier, sobald der iCloud-Schlüsselbund ihn synchronisiert hat (das kann ein paar Minuten dauern). Oder füge auf diesem Gerät einen Passkey hinzu.</string>
 	<key>native.confirm.passkeyNote</key>
 	<string>Dein Gerät fragt nach deinem Passkey für %1$@. Dieser Name ist für jedes Gateway derselbe; diese Anfrage gilt für %2$@.</string>
 	<key>native.confirm.received</key>

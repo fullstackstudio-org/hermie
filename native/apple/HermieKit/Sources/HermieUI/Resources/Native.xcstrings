@@ -3403,6 +3403,54 @@
         }
       }
     },
+    "native.confirm.addPasskeyHere" : {
+      "comment" : "Confirm sheet: button that opens Settings → Passkeys at adding a passkey on this device.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Hier einen Passkey hinzufügen"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Add a passkey here"
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Voeg hier een passkey toe"
+          }
+        }
+      }
+    },
+    "native.confirm.addPasskeyHereHint" : {
+      "comment" : "Confirm sheet: VoiceOver hint of the add-a-passkey button; the confirmation stays open.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Öffnet die Einstellungen. Die Anfrage bleibt offen und wartet."
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Opens Settings. The request stays open and waits."
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Opent de instellingen. Het verzoek blijft openstaan en wacht."
+          }
+        }
+      }
+    },
     "native.confirm.address" : {
       "comment" : "Confirm sheet: VoiceOver label of the gateway's address line. The argument is the address (host and path).",
       "extractionState" : "manual",
@@ -3831,6 +3879,30 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Het antwoord is mogelijk bij de gateway aangekomen. Controleer of de actie is uitgevoerd."
+          }
+        }
+      }
+    },
+    "native.confirm.passkeyNotHere" : {
+      "comment" : "Confirm sheet and Settings → Passkeys: the system's passkey sheet was dismissed on a device that holds no passkey for this gateway yet; most likely there is none here, not a person declining.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Dein Passkey für dieses Gateway ist noch nicht auf diesem Gerät. Falls du ihn auf einem anderen Gerät erstellt hast, erscheint er hier, sobald der iCloud-Schlüsselbund ihn synchronisiert hat (das kann ein paar Minuten dauern). Oder füge auf diesem Gerät einen Passkey hinzu."
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Your passkey for this gateway isn't on this device yet. If you made it on another device, it appears here once iCloud Keychain has synced (this can take a few minutes). Or add a passkey on this device."
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Je passkey voor deze gateway staat nog niet op dit apparaat. Als je hem op een ander apparaat hebt gemaakt, verschijnt hij hier zodra de iCloud-sleutelhanger hem heeft gesynchroniseerd (dat kan een paar minuten duren). Of voeg een passkey toe op dit apparaat."
           }
         }
       }

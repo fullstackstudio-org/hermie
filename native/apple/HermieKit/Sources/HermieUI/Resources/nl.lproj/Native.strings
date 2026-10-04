@@ -292,6 +292,10 @@
 	<string>Stoppen</string>
 	<key>native.composer.stopped</key>
 	<string>Antwoord gestopt</string>
+	<key>native.confirm.addPasskeyHere</key>
+	<string>Voeg hier een passkey toe</string>
+	<key>native.confirm.addPasskeyHereHint</key>
+	<string>Opent de instellingen. Het verzoek blijft openstaan en wacht.</string>
 	<key>native.confirm.address</key>
 	<string>Adres %@</string>
 	<key>native.confirm.answeredElsewhere</key>
@@ -328,6 +332,8 @@
 	<string>Het antwoord is mogelijk bij de gateway aangekomen. Je kunt het opnieuw proberen of controleren of de actie is uitgevoerd.</string>
 	<key>native.confirm.outcomeUnknown</key>
 	<string>Het antwoord is mogelijk bij de gateway aangekomen. Controleer of de actie is uitgevoerd.</string>
+	<key>native.confirm.passkeyNotHere</key>
+	<string>Je passkey voor deze gateway staat nog niet op dit apparaat. Als je hem op een ander apparaat hebt gemaakt, verschijnt hij hier zodra de iCloud-sleutelhanger hem heeft gesynchroniseerd (dat kan een paar minuten duren). Of voeg een passkey toe op dit apparaat.</string>
 	<key>native.confirm.passkeyNote</key>
 	<string>Je apparaat vraagt om je passkey voor %1$@. Die naam is voor elke gateway hetzelfde; dit verzoek is voor %2$@.</string>
 	<key>native.confirm.received</key>

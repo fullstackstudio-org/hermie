@@ -491,6 +491,12 @@ struct ConfirmFooter: View {
           .id(status.text)
       }
 
+      // The system's sheet was dismissed on a device that holds none of these passkeys: most likely it
+      // said there is none here. Explained, with the way to add one; a plain dismissal says nothing.
+      if confirmation.isOpen, confirmation.passkeyMissingHere {
+        ConfirmNoPasskeyNote(requests: requests)
+      }
+
       if detailUnread, confirmation.phase.isActionable {
         Label(NativeStrings.Confirm.scrollToConfirm, systemImage: "arrow.down.right")
           .font(.footnote)
@@ -505,6 +511,71 @@ struct ConfirmFooter: View {
         ConfirmLinger(requests: requests, confirmationID: confirmation.id)
       }
     }
+  }
+}
+
+/**
+ What the sheet says when the system's passkey sheet was dismissed on a device that holds no passkey
+ for this gateway (`PasskeyConfirmation.passkeyMissingHere`): the sentence, and "Add a passkey here",
+ which puts this sheet away (Later: the request stays open and waits) and opens Settings → Passkeys
+ at adding one. Confirm stays on, so trying again, once a synced passkey has arrived, needs no detour.
+ */
+struct ConfirmNoPasskeyNote: View {
+  let requests: RequestsModel
+
+  @Environment(AppRouter.self) private var router: AppRouter?
+  #if os(macOS)
+    @Environment(\.openSettings) private var openSettings
+  #endif
+
+  /// How long this sheet is given to go before Settings comes up over the chat, where a sheet cannot
+  /// be presented while another is leaving.
+  static let handover: Duration = .milliseconds(450)
+
+  var body: some View {
+    VStack(alignment: .leading, spacing: 8) {
+      Label {
+        Text(NativeStrings.Confirm.passkeyNotHere)
+          .font(.callout)
+          .fixedSize(horizontal: false, vertical: true)
+      } icon: {
+        Image(systemName: "key")
+          .foregroundStyle(Color.primary)
+          .accessibilityHidden(true)
+      }
+      .accessibilityIdentifier("confirm.noPasskey.text")
+
+      Button(NativeStrings.Confirm.addPasskeyHere) {
+        addPasskeyHere()
+      }
+      .buttonStyle(.bordered)
+      .tint(.primary)
+      .controlSize(.large)
+      .accessibilityHint(NativeStrings.Confirm.addPasskeyHereHint)
+      .accessibilityIdentifier("confirm.noPasskey.add")
+    }
+    .accessibilityElement(children: .contain)
+    .accessibilityIdentifier("confirm.noPasskey")
+    .task {
+      AccessibilityNotification.Announcement(NativeStrings.Confirm.passkeyNotHere).post()
+    }
+  }
+
+  private func addPasskeyHere() {
+    ShellRequests.shared.settingsCategory = .passkeys
+    ShellRequests.shared.passkeysAddFlow = true
+    requests.dismissSheet()
+
+    #if os(macOS)
+      openSettings()
+    #else
+      guard let router else { return }
+
+      Task { @MainActor in
+        try? await Task.sleep(for: Self.handover)
+        router.present(.settings)
+      }
+    #endif
   }
 }
 
@@ -685,6 +756,12 @@ extension NativeStrings {
     static func address(_ host: String) -> String {
       String(localized: "native.confirm.address", defaultValue: "Address \(host)", table: "Native", bundle: .module)
     }
+    /// Your passkey for this gateway isn't on this device yet…
+    static var passkeyNotHere: String { string("native.confirm.passkeyNotHere") }
+    /// Add a passkey here
+    static var addPasskeyHere: String { string("native.confirm.addPasskeyHere") }
+    /// Opens Settings. The request stays open and waits.
+    static var addPasskeyHereHint: String { string("native.confirm.addPasskeyHereHint") }
     /// The answer may have reached the gateway. You can try again, or check whether the action ran.
     static var notSentMaybeArrived: String { string("native.confirm.notSentMaybeArrived") }
     /// The answer may have reached the gateway. Check whether the action ran.

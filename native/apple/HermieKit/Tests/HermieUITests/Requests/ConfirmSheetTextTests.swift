@@ -160,6 +160,17 @@ struct PasskeysPageStateTests {
     #expect(PasskeysText.failure(.invalidCode) != nil)
   }
 
+  @Test("a dismissal on a device without the passkey is explained, in the sentence the confirm sheet uses")
+  func missingPasskeyIsExplained() throws {
+    let words = try #require(PasskeysText.failure(.noPasskeyHere))
+
+    #expect(words == NativeStrings.Confirm.passkeyNotHere)
+    #expect(!words.hasPrefix("native."), "the key resolves in the catalog")
+    #expect(words.contains("iCloud"))
+    #expect(!NativeStrings.Confirm.addPasskeyHere.hasPrefix("native."))
+    #expect(!NativeStrings.Confirm.addPasskeyHereHint.hasPrefix("native."))
+  }
+
   @Test("every notice has words, and only the link question has an action")
   func notices() {
     let kinds: [PasskeyNotice.Kind] = [

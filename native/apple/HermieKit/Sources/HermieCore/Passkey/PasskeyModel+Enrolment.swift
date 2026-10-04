@@ -62,6 +62,7 @@ extension PasskeyModel {
 
     pin.knownCredentialIDs = ids
     pin.appCredentialIDs = credentials.filter { $0.rpID == configuration.rpID }.compactMap(\.id)
+    pin.deviceCredentialIDs.removeAll { !ids.contains($0) }
     await savePin()
     await policyChanged()
   }
@@ -182,6 +183,10 @@ extension PasskeyModel {
     pin.gatewayID = pin.gatewayID ?? account.gatewayIDText
     pin.knownCredentialIDs.append(id)
     pin.appCredentialIDs.append(id)
+    // Made here: this device holds it.
+    if !pin.deviceCredentialIDs.contains(id) {
+      pin.deviceCredentialIDs.append(id)
+    }
     await savePin()
 
     // Shut down while it finished: the device remembers its passkey, and nothing more runs.
@@ -233,6 +238,7 @@ extension PasskeyModel {
 
     pin.knownCredentialIDs.removeAll { $0 == credentialID }
     pin.appCredentialIDs.removeAll { $0 == credentialID }
+    pin.deviceCredentialIDs.removeAll { $0 == credentialID }
     await savePin()
     await refresh()
     await policyChanged()
@@ -276,8 +282,12 @@ extension PasskeyModel {
         PasskeyAssertionRequest(rpID: account.rpID, challenge: challenge, allowCredentialIDs: allow)
       )
     } catch {
-      throw .ceremony(error)
+      // A dismissed sheet on a device that holds none of these passkeys: most likely the system said
+      // there is none here, not the person declining.
+      throw error == .cancelled && holdsNoneHere(allow) ? .noPasskeyHere : .ceremony(error)
     }
+
+    await rememberHere(response.credentialID)
 
     return (stepupID, Self.assertion(response, rpID: account.rpID, baseURL: account.baseURL), account)
   }

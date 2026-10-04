@@ -12,6 +12,11 @@ public struct PasskeyPinRecord: Codable, Sendable, Equatable {
   public var knownCredentialIDs: [String]
   /// The subset for this build's RP: whether `passkey` can be advertised before the list is read.
   public var appCredentialIDs: [String]
+  /// The subset this device is known to hold: passkeys it made, or signed with, here. A passkey that
+  /// iCloud Keychain synced from another device is not in it until it has answered on this one, so
+  /// the system's "no passkey on this device" sheet and a dismissal, which both come back as the
+  /// same cancellation, can be told apart by what this device knows (`PasskeyModel.holdsNoneHere`).
+  public var deviceCredentialIDs: [String]
   /// Unix seconds of the last change; 0 while the list was never read.
   public var seenAt: Double
   /// Other stored gateways the person said are this same gateway (one gateway stored twice, a LAN
@@ -22,12 +27,14 @@ public struct PasskeyPinRecord: Codable, Sendable, Equatable {
     gatewayID: String? = nil,
     knownCredentialIDs: [String] = [],
     appCredentialIDs: [String] = [],
+    deviceCredentialIDs: [String] = [],
     seenAt: Double = 0,
     linkedGatewayIDs: [String] = []
   ) {
     self.gatewayID = gatewayID
     self.knownCredentialIDs = knownCredentialIDs
     self.appCredentialIDs = appCredentialIDs
+    self.deviceCredentialIDs = deviceCredentialIDs
     self.seenAt = seenAt
     self.linkedGatewayIDs = linkedGatewayIDs
   }
@@ -36,6 +43,7 @@ public struct PasskeyPinRecord: Codable, Sendable, Equatable {
     case gatewayID = "gateway_id"
     case knownCredentialIDs = "known_credential_ids"
     case appCredentialIDs = "app_credential_ids"
+    case deviceCredentialIDs = "device_credential_ids"
     case seenAt = "seen_at"
     case linkedGatewayIDs = "linked_gateway_ids"
   }
@@ -45,6 +53,7 @@ public struct PasskeyPinRecord: Codable, Sendable, Equatable {
     gatewayID = try container.decodeIfPresent(String.self, forKey: .gatewayID)
     knownCredentialIDs = try container.decodeIfPresent([String].self, forKey: .knownCredentialIDs) ?? []
     appCredentialIDs = try container.decodeIfPresent([String].self, forKey: .appCredentialIDs) ?? []
+    deviceCredentialIDs = try container.decodeIfPresent([String].self, forKey: .deviceCredentialIDs) ?? []
     seenAt = try container.decodeIfPresent(Double.self, forKey: .seenAt) ?? 0
     linkedGatewayIDs = try container.decodeIfPresent([String].self, forKey: .linkedGatewayIDs) ?? []
   }

@@ -15,6 +15,10 @@ public final class ShellRequests {
   public var onboarding: OnboardingMode?
   /// The Settings page to show next time Settings appears (a tap on a `security` notification).
   public var settingsCategory: SettingsCategory?
+  /// Settings → Passkeys is opened to add a passkey on this device (the confirm sheet's "Add a passkey
+  /// here"): the page scrolls to the add flow, the one that signs in again where the gateway allows it,
+  /// else the one with a code.
+  public var passkeysAddFlow = false
 }
 
 extension EnvironmentValues {

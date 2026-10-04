@@ -38,10 +38,46 @@ struct PasskeysSettingsPage: View {
   @State private var presenter = WebAuthenticationPresenter()
   /// Moves once a second while a countdown or a waiting period is on screen.
   @State private var tick = 0
+  /// Opened from the confirm sheet's "Add a passkey here": scroll to the add flow once it is there.
+  @State private var wantsAddFlow = false
   @FocusState private var codeFocused: Bool
   @Environment(\.scenePhase) private var scenePhase
 
+  /// Where "Add a passkey here" lands: the sign-in-again flow where the gateway offers it, else the code.
+  private enum AddAnchor: Hashable {
+    case selfEnrol
+    case code
+  }
+
   var body: some View {
+    ScrollViewReader { proxy in
+      page
+        .onChange(of: ShellRequests.shared.passkeysAddFlow, initial: true) { _, requested in
+          if requested {
+            ShellRequests.shared.passkeysAddFlow = false
+            wantsAddFlow = true
+          }
+        }
+        .task(id: wantsAddFlow && PasskeysPageState.of(model).canEnrol) {
+          await scrollToAddFlow(proxy)
+        }
+    }
+  }
+
+  private func scrollToAddFlow(_ proxy: ScrollViewProxy) async {
+    guard wantsAddFlow, PasskeysPageState.of(model).canEnrol else { return }
+
+    // The sections are in place a moment after the state is.
+    try? await Task.sleep(for: .milliseconds(150))
+    guard !Task.isCancelled else { return }
+
+    let target: AddAnchor = PasskeysSelfEnrolState.of(model, now: Date()) == .hidden ? .code : .selfEnrol
+
+    withAnimation { proxy.scrollTo(target, anchor: .top) }
+    wantsAddFlow = false
+  }
+
+  @ViewBuilder private var page: some View {
     let state = PasskeysPageState.of(model)
     let _ = tick
     let now = Date()
@@ -66,6 +102,7 @@ struct PasskeysSettingsPage: View {
             create: createPasskey,
             another: addAnother
           )
+          .id(AddAnchor.selfEnrol)
         }
 
         addSection
@@ -163,6 +200,7 @@ struct PasskeysSettingsPage: View {
   private var addSection: some View {
     Section {
       TextField(NativeStrings.Passkeys.codeField, text: $code)
+        .id(AddAnchor.code)
         .autocorrectionDisabled()
         .privacySensitive()
         .focused($codeFocused)

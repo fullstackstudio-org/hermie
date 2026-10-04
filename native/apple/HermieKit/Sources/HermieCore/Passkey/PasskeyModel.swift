@@ -325,6 +325,16 @@ public final class PasskeyModel {
     confirmations[index].answerMayHaveArrived = true
   }
 
+  func setPasskeyMissingHere(_ id: String, _ missing: Bool) {
+    guard let index = confirmations.firstIndex(where: { $0.id == id }),
+      confirmations[index].passkeyMissingHere != missing
+    else {
+      return
+    }
+
+    confirmations[index].passkeyMissingHere = missing
+  }
+
   func setPhase(_ id: String, _ phase: PasskeyConfirmPhase) {
     guard let index = confirmations.firstIndex(where: { $0.id == id }) else {
       return
@@ -404,6 +414,7 @@ public final class PasskeyModel {
     pin.gatewayID = shared
     pin.knownCredentialIDs = Self.union(pin.knownCredentialIDs, record.knownCredentialIDs)
     pin.appCredentialIDs = Self.union(pin.appCredentialIDs, record.appCredentialIDs)
+    pin.deviceCredentialIDs = Self.union(pin.deviceCredentialIDs, record.deviceCredentialIDs)
     pin.linkedGatewayIDs = Self.union(pin.linkedGatewayIDs, [otherGatewayID])
     await savePin()
 
@@ -415,6 +426,28 @@ public final class PasskeyModel {
     await policyChanged()
     await refresh()
     return true
+  }
+
+  /// None of `allowed` is a passkey this device is known to hold (one it made, or signed with, here).
+  /// The system answers "no passkey on this device" and a dismissal with the same cancellation, so a
+  /// cancellation only reads as the first when this is so: a device that has answered with one of these
+  /// passkeys before is trusted to have offered it, and its dismissal stays a plain one.
+  func holdsNoneHere(_ allowed: [[UInt8]]) -> Bool {
+    let held = Set(pin.deviceCredentialIDs)
+
+    return !allowed.contains { held.contains(Base64URL.encode($0)) }
+  }
+
+  /// This device signed with `credentialID`: it holds that passkey.
+  func rememberHere(_ credentialID: [UInt8]) async {
+    let id = Base64URL.encode(credentialID)
+
+    guard !pin.deviceCredentialIDs.contains(id) else {
+      return
+    }
+
+    pin.deviceCredentialIDs.append(id)
+    await savePin()
   }
 
   private static func union(_ first: [String], _ second: [String]) -> [String] {
