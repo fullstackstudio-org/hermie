@@ -141,6 +141,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
+- **A long notice over a chat no longer pushes the Mac window out of view.** When a message was refused
+  because the chat was open in another Hermes window or terminal, the notice's long sentence made the chat
+  ask for a minimum height of thousands of points: the window's layout grew past the screen, the chat list
+  went blank and the composer ran off the bottom. The chat now fits its window whatever a notice says, and a
+  notice takes at most a few lines (the whole text is in its tooltip). That refusal now says plainly what
+  happened, shows who has the chat open on one small line, and offers "Start new chat", which starts a new
+  conversation here and puts the refused words back in the field without sending them.
 - **Dragging a file into a chat works on the Mac and iPad.** Only the composer took a drop, and over the
   message field the Mac's text view answered the drag itself. The whole chat is now the target, with a
   "Drop to attach" overlay; a folder, words or a link in the drop become a chip that says why it was not

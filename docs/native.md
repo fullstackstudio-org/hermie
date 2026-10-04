@@ -350,7 +350,15 @@ while a turn runs rather than parked in the queue strip). Anything the catalogue
 command typed before the list has arrived waits for it, so it is not sent as prose, and a second
 Return meanwhile does nothing. A command that fails puts its words back in the field and says so.
 A send refused before anything was painted keeps the draft; one that failed after
-the paint leaves the bubble, marked interrupted. The requests model answers approvals with a choice
+the paint leaves the bubble, marked interrupted. One refusal has a notice of its own: the gateway's
+`SESSION_NOT_OWNED` (code 4090, another live Hermes process has the chat open;
+`ComposerNotice.openElsewhere`, `SessionOwnership`). It shows the gateway's `Details:` line on one
+grey line cut in its middle and a "Start new chat" button (`ComposerModel.startNewConversation()`,
+the `/new` path), which puts the refused words back in an empty field and sends nothing. Taking the
+chat over is not offered: the gateway has no call for that. Nothing is retried by itself. Every
+notice over the chat takes at most `ComposerView.noticeLineLimit` lines, and the chat screen asks
+for no minimum size (`.frame(minWidth: 0, minHeight: 0)`): a wrapped notice measured at the
+narrowest width SwiftUI probes once made a Mac window's minimum height thousands of points. The requests model answers approvals with a choice
 the request offered and nothing else, asks `approval.pending` first (an approval the gateway no
 longer lists is closed with a notice instead of answered), answers through `ChatModel` (whose
 `cardNotices` records an answer that did not go out), and keeps an in-flight and a failed state per

@@ -225,6 +225,14 @@ struct ChatSessionView<Composer: View>: View {
         Color.clear
       }
     }
+    // The chat asks for no minimum size of its own. Its banners and the notices over the composer
+    // wrap their text (`fixedSize(vertical:)`), and SwiftUI also measures them at the narrowest
+    // width it probes for a window's minimum, a width at which every few letters take a line: a
+    // long notice (the gateway's "This chat is open in another Hermes window/terminal …") made the
+    // chat's minimum thousands of points tall. On the Mac that minimum is the window's, so the split
+    // view was laid out taller than the window and centred in it: the chat list ran off the top
+    // (blank) and the composer off the bottom. The transcript scrolls; the chat fits the window.
+    .frame(minWidth: 0, minHeight: 0)
     #if os(macOS)
       // The requests come up over this chat, not over the window: the sidebar stays usable while one
       // waits (`ChatSheetHost`; a sheet would block the whole window).
@@ -444,6 +452,8 @@ struct ChatBanners: View {
             .accessibilityHidden(true)
           Text(Strings.App.Chat.failed(message: error))
             .font(.callout)
+            .lineLimit(ComposerView.noticeLineLimit)
+            .help(Strings.App.Chat.failed(message: error))
             .frame(maxWidth: .infinity, alignment: .leading)
             .fixedSize(horizontal: false, vertical: true)
           Button(Strings.App.Chat.retry) { feed.openIfNeeded(force: true) }

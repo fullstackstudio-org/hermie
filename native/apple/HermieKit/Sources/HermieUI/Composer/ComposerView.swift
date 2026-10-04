@@ -355,12 +355,24 @@ public struct ComposerView: View {
     }
   }
 
+  /// The most lines a notice over the field takes: the gateway's words can be any length, and the
+  /// field stays in view under them. The whole text is in the tooltip and read out by VoiceOver.
+  static let noticeLineLimit = 6
+
   private func noticeRow(_ notice: ComposerNotice) -> some View {
     HStack(alignment: .firstTextBaseline, spacing: 8) {
-      Label(Self.text(notice), systemImage: "exclamationmark.circle")
-        .font(.footnote)
-        .foregroundStyle(.red)
-        .fixedSize(horizontal: false, vertical: true)
+      VStack(alignment: .leading, spacing: 6) {
+        Label(Self.text(notice), systemImage: "exclamationmark.circle")
+          .font(.footnote)
+          .foregroundStyle(.red)
+          .lineLimit(Self.noticeLineLimit)
+          .fixedSize(horizontal: false, vertical: true)
+          .help(Self.text(notice))
+
+        if case .openElsewhere(let details) = notice {
+          openElsewhereActions(details: details)
+        }
+      }
       Spacer(minLength: 0)
       Button {
         model.dismissNotice()
@@ -374,6 +386,32 @@ public struct ComposerView: View {
     .accessibilityIdentifier("composer.notice")
   }
 
+  /// Under the open-elsewhere notice: the gateway's line about who has the chat (one grey line, an
+  /// id cut in its middle), and the way out here. Nothing is sent again by itself. Taking the chat
+  /// over from the other window is not offered: the gateway has no such call for a client.
+  @ViewBuilder
+  private func openElsewhereActions(details: String) -> some View {
+    if !details.isEmpty {
+      Text(NativeStrings.Composer.openElsewhereDetails(details))
+        .font(.caption)
+        .foregroundStyle(.secondary)
+        .lineLimit(1)
+        .truncationMode(.middle)
+        .help(details)
+        .textSelection(.enabled)
+        .accessibilityIdentifier("composer.notice.details")
+    }
+
+    Button(NativeStrings.Composer.startNewChat) {
+      let model = self.model
+      Task { await model.startNewConversation() }
+    }
+    .buttonStyle(.bordered)
+    .controlSize(.small)
+    .disabled(model.isSending)
+    .accessibilityIdentifier("composer.notice.newChat")
+  }
+
   static func text(_ notice: ComposerNotice) -> String {
     switch notice {
     case .notSent: Strings.Chat.Composer.notSentYet
@@ -383,6 +421,7 @@ public struct ComposerView: View {
     case .stopFailed(let reason): NativeStrings.Composer.stopFailed(reason)
     case .other(let reason): reason
     case .commandFailed(let reason): NativeStrings.Composer.commandFailed(reason)
+    case .openElsewhere: NativeStrings.Composer.openElsewhere
     }
   }
 
@@ -607,6 +646,23 @@ extension NativeStrings {
       static var skill: String {
         String(localized: "native.composer.commands.skill", table: "Native", bundle: .module)
       }
+    }
+    /// This chat is open in another Hermes window or terminal, so the message did not go out. …
+    static var openElsewhere: String {
+      String(localized: "native.composer.openElsewhere", table: "Native", bundle: .module)
+    }
+    /// Details: {the gateway's line about who has the chat open}
+    static func openElsewhereDetails(_ details: String) -> String {
+      String(
+        localized: "native.composer.openElsewhere.details",
+        defaultValue: "Details: \(details)",
+        table: "Native",
+        bundle: .module
+      )
+    }
+    /// Start new chat
+    static var startNewChat: String {
+      String(localized: "native.composer.openElsewhere.newChat", table: "Native", bundle: .module)
     }
     /// Opening the chat…
     static var opening: String {

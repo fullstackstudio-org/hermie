@@ -12,10 +12,13 @@ struct ChatActionNotices: View {
       option: feed.optionNotice)
     {
       HStack(alignment: .firstTextBaseline, spacing: 8) {
+        // At most a few lines, however long the gateway's words are: the transcript stays in view.
         Label(text, systemImage: "info.circle")
           .font(.footnote)
+          .lineLimit(ComposerView.noticeLineLimit)
           .frame(maxWidth: .infinity, alignment: .leading)
           .fixedSize(horizontal: false, vertical: true)
+          .help(text)
         Button {
           feed.dismissActionNotices()
         } label: {

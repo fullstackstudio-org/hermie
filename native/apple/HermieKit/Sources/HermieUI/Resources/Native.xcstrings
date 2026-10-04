@@ -3163,6 +3163,78 @@
         }
       }
     },
+    "native.composer.openElsewhere" : {
+      "comment" : "Above the message field when the gateway refused a message because another Hermes window or terminal has this chat open. A button to start a new chat here follows it.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Dieser Chat ist in einem anderen Hermes-Fenster oder Terminal geöffnet, deshalb wurde die Nachricht nicht gesendet. Nutze ihn dort oder beginne hier einen neuen Chat."
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "This chat is open in another Hermes window or terminal, so the message did not go out. Use it there, or start a new chat here."
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Deze chat is open in een ander Hermes-venster of een terminal, dus het bericht is niet verstuurd. Gebruik hem daar, of begin hier een nieuwe chat."
+          }
+        }
+      }
+    },
+    "native.composer.openElsewhere.details" : {
+      "comment" : "The small grey line under that notice: the gateway's own words about who has the chat open (for example “session 20260923_143304_1025bb opened by cli 4m ago.”), in English.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Details: %@"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Details: %@"
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Details: %@"
+          }
+        }
+      }
+    },
+    "native.composer.openElsewhere.newChat" : {
+      "comment" : "The button in that notice: puts the bot's current conversation away and starts a new one here, as /new does. The refused message is not sent again; its words go back in the field.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Neuen Chat beginnen"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Start new chat"
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Nieuwe chat beginnen"
+          }
+        }
+      }
+    },
     "native.composer.opening" : {
       "comment" : "Under the message field while the chat is still being opened, before anything can be sent.",
       "extractionState" : "manual",

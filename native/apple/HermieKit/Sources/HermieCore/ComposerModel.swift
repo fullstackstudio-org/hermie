@@ -34,6 +34,43 @@ public enum ComposerNotice: Sendable, Equatable {
   case other(String)
   /// A slash command the gateway refused or could not run: the words are back in the field.
   case commandFailed(String)
+  /// The gateway refused the message because another Hermes window or terminal has this chat open
+  /// (`SessionOwnership`). `details` is the gateway's own line about who holds it (`session … opened by
+  /// cli 4m ago.`), empty when it sent none. The way out is a new chat here (`startNewConversation`).
+  case openElsewhere(details: String)
+}
+
+/// The gateway's refusal of a turn in a chat that another live Hermes process holds: JSON-RPC code
+/// 4090 with `data.reason == "SESSION_NOT_OWNED"`, and a message whose first line is the sentence for
+/// the reader and whose second is `Details: session … opened by …` (the fork's
+/// `session_already_owned_message`). The gateway offers a client no way to take such a chat over:
+/// only a detached runtime in the gateway's own process hands its lease on, and it does that by itself.
+public enum SessionOwnership {
+  public static let reason = "SESSION_NOT_OWNED"
+
+  /// The `Details:` line of the refusal without its label, empty when there is none; nil when
+  /// `error` is not this refusal.
+  public static func details(of error: any Error) -> String? {
+    guard let rpc = error as? GatewayRPCError, rpc.kind == .rejected,
+      rpc.data?.objectValue?["reason"]?.stringValue == reason
+    else {
+      return nil
+    }
+
+    return details(in: rpc.message)
+  }
+
+  /// The text after `Details:` in `message`, on one line, empty when it has none.
+  static func details(in message: String) -> String {
+    guard let label = message.range(of: "Details:") else {
+      return ""
+    }
+
+    return message[label.upperBound...]
+      .split(whereSeparator: \.isNewline)
+      .joined(separator: " ")
+      .trimmingCharacters(in: .whitespacesAndNewlines)
+  }
 }
 
 /// What the composer just did, for a VoiceOver announcement.
@@ -148,6 +185,9 @@ public final class ComposerModel {
   @ObservationIgnored private var draftWrite: Task<Void, Never>?
   @ObservationIgnored private var loaded = false
   @ObservationIgnored private var eventSerial = 0
+  /// The words of the message the gateway refused because the chat is open elsewhere
+  /// (`ComposerNotice.openElsewhere`): put back in the field once a new chat is started here.
+  @ObservationIgnored private var refusedWords: String?
   // The completion list's working state (`ComposerModel+Slash.swift`).
   @ObservationIgnored var settingProgrammatically = false
   @ObservationIgnored var commandCatalog: SlashCatalog?
@@ -350,6 +390,44 @@ public final class ComposerModel {
   /// Clear the last notice (the reader dismissed it, or typed on).
   public func dismissNotice() {
     notice = nil
+    refusedWords = nil
+  }
+
+  /// Start a new chat with this bot here, as `/new` does, without touching what is in the field:
+  /// the way out of `ComposerNotice.openElsewhere`. The refused message is not sent again; its
+  /// words go back in the field, when that is empty, once the new chat is open.
+  public func startNewConversation() async {
+    let words = refusedWords
+    refusedWords = nil
+
+    guard canSend else {
+      notice = .notSent(ChatRuntimeError.notAttached(bot).message)
+      return
+    }
+
+    notice = nil
+    sendsInFlight += 1
+
+    defer {
+      sendsInFlight -= 1
+    }
+
+    do {
+      try await chat.store.startNewConversation(bot)
+    } catch is ConversationBusyError {
+      notice = .busy
+      return
+    } catch let error as ChatRuntimeError where error.isNotAttached {
+      notice = .notSent(error.message)
+      return
+    } catch {
+      notice = .other(ChatResolver.describe(error))
+      return
+    }
+
+    if let words, !words.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty, draft.isEmpty {
+      putDraft(words)
+    }
   }
 
   /// Send what is in the field, or run the command it holds.
@@ -436,7 +514,13 @@ public final class ComposerModel {
         tray.release(taken)
       }
 
-      notice = .failed(ChatResolver.describe(error))
+      // Not tried again: the chat stays open elsewhere until the reader picks a way out.
+      if let details = SessionOwnership.details(of: error) {
+        refusedWords = body
+        notice = .openElsewhere(details: details)
+      } else {
+        notice = .failed(ChatResolver.describe(error))
+      }
     }
   }
 

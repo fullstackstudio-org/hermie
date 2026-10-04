@@ -236,6 +236,103 @@ private struct ComposerHarness {
     await opened.shutdown()
   }
 
+  // MARK: A chat open in another Hermes window or terminal
+
+  /// The gateway's refusal of a turn while another live Hermes process holds the chat, word for
+  /// word (the fork's `session_already_owned_message`, code 4090, `reason` SESSION_NOT_OWNED).
+  static let ownedElsewhere = GatewayRPCError(
+    .rejected,
+    "This chat is open in another Hermes window/terminal. Use it there, or start a new chat here.\n"
+      + "Details: session 20260923_143304_1025bb opened by cli 4m ago.",
+    code: 4090,
+    data: ["reason": "SESSION_NOT_OWNED"])
+
+  @Test func aChatOpenElsewhereIsItsOwnNoticeAndTheMessageIsNotTriedAgain() async throws {
+    let opened = try await ComposerHarness.opened()
+    let composer = opened.composer
+
+    composer.draft = "hello"
+    let sending = Task { await composer.submit() }
+    let call = try await opened.link.pendingCall(RPC.PromptSubmit.name)
+    opened.link.fail(call, Self.ownedElsewhere)
+    await sending.value
+
+    #expect(composer.notice == .openElsewhere(details: "session 20260923_143304_1025bb opened by cli 4m ago."))
+    try await Task.sleep(for: .milliseconds(100))
+    #expect(opened.link.calls(RPC.PromptSubmit.name).count == 1, "nothing is sent again by itself")
+    await opened.shutdown()
+  }
+
+  @Test func onlyThatRefusalIsTakenForIt() {
+    #expect(SessionOwnership.details(of: Self.ownedElsewhere) == "session 20260923_143304_1025bb opened by cli 4m ago.")
+    #expect(SessionOwnership.details(of: GatewayRPCError(.rejected, "busy", code: 4090)) == nil, "no reason")
+    #expect(
+      SessionOwnership.details(of: GatewayRPCError(.rejected, "full", code: 4090, data: ["reason": "MAX_CONCURRENT_SESSIONS"]))
+        == nil)
+    #expect(SessionOwnership.details(of: GatewayRPCError(.timeout, "late")) == nil)
+    #expect(
+      SessionOwnership.details(of: GatewayRPCError(.rejected, "Open elsewhere.", code: 4090, data: ["reason": "SESSION_NOT_OWNED"]))
+        == "", "no details line")
+  }
+
+  @Test func aNewChatFromTheRefusalPutsTheWordsBackAndSendsNothing() async throws {
+    let opened = try await ComposerHarness.opened()
+    let composer = opened.composer
+    let link = opened.link
+
+    composer.draft = "hello"
+    let sending = Task { await composer.submit() }
+    let call = try await link.pendingCall(RPC.PromptSubmit.name)
+    link.fail(call, Self.ownedElsewhere)
+    await sending.value
+
+    for method in [RPC.SessionSetHidden.name, RPC.SessionTitle.name, RPC.SessionClose.name] {
+      link.respond(to: method, with: [:])
+    }
+    link.respond(to: RPC.SessionCreate.name, with: ["session_id": "rt-new", "stored_session_id": "stored-new"])
+
+    let starting = Task { await composer.startNewConversation() }
+    try await link.answerNext(RPC.SessionResume.name, Fixture.resume(runtime: "rt-new", stored: "stored-new"))
+    try await link.answerNext(RPC.SessionHistory.name, ["count": 0, "messages": []])
+    try await link.answerNext(RPC.SessionEventsSince.name, Fixture.since(latest: 0))
+    await starting.value
+
+    #expect(composer.notice == nil)
+    #expect(link.calls(RPC.SessionCreate.name).count == 1, "a new chat, as /new starts one")
+    #expect(await opened.state()?.runtimeSessionID == "rt-new")
+    #expect(composer.draft == "hello", "the refused words are back in the field")
+    #expect(link.calls(RPC.PromptSubmit.name).count == 1, "and not sent")
+    await opened.shutdown()
+  }
+
+  @Test func aNewChatFromTheRefusalLeavesWhatWasTypedSince() async throws {
+    let opened = try await ComposerHarness.opened()
+    let composer = opened.composer
+    let link = opened.link
+
+    composer.draft = "hello"
+    let sending = Task { await composer.submit() }
+    link.fail(try await link.pendingCall(RPC.PromptSubmit.name), Self.ownedElsewhere)
+    await sending.value
+    composer.draft = "something else"
+
+    for method in [RPC.SessionSetHidden.name, RPC.SessionTitle.name, RPC.SessionClose.name] {
+      link.respond(to: method, with: [:])
+    }
+    link.respond(to: RPC.SessionCreate.name, with: ["session_id": "rt-new", "stored_session_id": "stored-new"])
+
+    let starting = Task { await composer.startNewConversation() }
+    try await link.answerNext(RPC.SessionResume.name, Fixture.resume(runtime: "rt-new", stored: "stored-new"))
+    try await link.answerNext(RPC.SessionHistory.name, ["count": 0, "messages": []])
+    try await link.answerNext(RPC.SessionEventsSince.name, Fixture.since(latest: 0))
+    await starting.value
+
+    #expect(await opened.state()?.runtimeSessionID == "rt-new")
+    #expect(composer.draft == "something else", "what was typed since stays")
+    #expect(link.calls(RPC.PromptSubmit.name).count == 1)
+    await opened.shutdown()
+  }
+
   @Test func availabilityFollowsTheSession() async throws {
     let opened = try await ComposerHarness.opened()
     let composer = opened.composer
