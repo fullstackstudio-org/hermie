@@ -350,7 +350,7 @@ function refuse(): never {
 }
 
 /** A real calendar date `YYYY-MM-DD`. */
-function isCalendarDate(value: unknown): value is string {
+export function isCalendarDate(value: unknown): value is string {
   if (!isStr(value)) {
     return false
   }
@@ -393,7 +393,7 @@ export function instantSeconds(value: unknown): number | null {
 }
 
 /** A decimal string as thousandths, so two of them compare exactly; `null` when it is not one. */
-function milli(value: unknown): bigint | null {
+export function milli(value: unknown): bigint | null {
   if (!isStr(value)) {
     return null
   }
@@ -412,7 +412,7 @@ function milli(value: unknown): bigint | null {
 }
 
 /** The decimals an ISO 4217 currency has (EUR 2, JPY 0, KWD 3); three when this runtime does not know it. */
-function minorUnits(currency: string): number {
+export function minorUnits(currency: string): number {
   try {
     return new Intl.NumberFormat('en', { style: 'currency', currency }).resolvedOptions().maximumFractionDigits ?? 3
   } catch {
@@ -421,7 +421,7 @@ function minorUnits(currency: string): number {
 }
 
 /** An IANA zone this runtime knows. */
-function isZone(value: string): boolean {
+export function isZone(value: string): boolean {
   try {
     new Intl.DateTimeFormat('en', { timeZone: value })
 
@@ -471,7 +471,7 @@ const byNumber = (a: number, b: number): number => a - b
 const byBig = (a: bigint, b: bigint): number => (a < b ? -1 : a > b ? 1 : 0)
 
 /** `value` as `min` plus a whole multiple of `step` (floating point tolerant). */
-function onStep(value: number, min: number | undefined, step: number | undefined): boolean {
+export function onStep(value: number, min: number | undefined, step: number | undefined): boolean {
   if (step === undefined) {
     return true
   }
