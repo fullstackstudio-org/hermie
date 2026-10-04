@@ -79,19 +79,20 @@ struct DiffSheetTests {
     #expect(shown?.contains("-2") == false && shown?.contains("+2") == false && shown?.contains("@@") == false)
   }
 
-  @Test("a rename draws the old path and the new one as separate left-to-right isolates, so right-to-left paths cannot swap sides")
-  func renamePathsAreIsolated() throws {
+  @Test("a rename draws the old path and the new one as separate left-to-right texts, with no direction mark in what is copied")
+  func renamePathsAreSeparateAndPlain() throws {
     let hebrew = "\u{05E9}\u{05DC}\u{05D5}\u{05DD}/\u{05E7}\u{05D5}\u{05D1}\u{05E5}.txt"
     let arabic = "\u{0645}\u{0644}\u{0641}/\u{0646}\u{0635}.txt"
-    let old = DiffFileHeader.isolated(DraftText.reveal(hebrew))
-    let new = DiffFileHeader.isolated(DraftText.reveal(arabic))
+    let old = DiffFileHeader.displayed(hebrew)
+    let new = DiffFileHeader.displayed(arabic)
 
-    for text in [old, new] {
-      #expect(text.hasPrefix("\u{2066}") && text.hasSuffix("\u{2069}"), "an LTR isolate")
-    }
-
-    #expect(old.dropFirst().dropLast() == hebrew[...] && new.dropFirst().dropLast() == arabic[...], "the path itself, unchanged")
+    // The selectable text is the path, whole and unchanged: a copied path carries no invisible character.
+    #expect(old == hebrew && new == arabic, "the path itself, unchanged")
     #expect(old != new)
+
+    for text in [old, new, DiffFileHeader.displayed("a\u{2066}b\u{2069}c")] {
+      #expect(!text.unicodeScalars.contains { $0 == "\u{2066}" || $0 == "\u{2069}" }, "no isolate mark in \(text)")
+    }
 
     // The header holds the two as two views: there is no single string with both paths.
     guard case .success(let diff) = ReviewDiff.read(

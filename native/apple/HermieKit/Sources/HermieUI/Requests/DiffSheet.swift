@@ -171,12 +171,14 @@ struct DiffFileHeader: View {
           .foregroundStyle(.secondary)
       }
 
-      // Each path is a text of its own (its own paragraph for the bidirectional algorithm) and is
-      // isolated left to right, so a right-to-left path can neither reorder itself against the other
-      // path nor swap sides with it.
-      Text(verbatim: Self.isolated(DraftText.reveal(path)))
+      // Each path is a text of its own (its own paragraph for the bidirectional algorithm) and is laid
+      // out left to right by the view's direction, not by marks inside the string: a right-to-left
+      // path can neither reorder itself against the other path nor swap sides with it, and what is
+      // selected and copied is the path, with no invisible character around it.
+      Text(verbatim: Self.displayed(path))
         .font(.callout.monospaced().weight(.semibold))
         .fixedSize(horizontal: false, vertical: true)
+        .environment(\.layoutDirection, .leftToRight)
         .textSelection(.enabled)
         .accessibilityLabel(path)
         .accessibilityIdentifier(identifier)
@@ -184,9 +186,10 @@ struct DiffFileHeader: View {
     .accessibilityElement(children: .combine)
   }
 
-  /// `path` as a left-to-right isolate (U+2066 … U+2069): drawn in this order whatever its letters are.
-  static func isolated(_ path: String) -> String {
-    "\u{2066}" + path + "\u{2069}"
+  /// The string `path` is drawn (and copied) as: itself, with characters that do not show as
+  /// themselves made visible. No direction marks: the direction is the view's.
+  static func displayed(_ path: String) -> String {
+    DraftText.reveal(path)
   }
 }
 
