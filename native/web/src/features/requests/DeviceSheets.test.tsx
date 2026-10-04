@@ -10,6 +10,7 @@ import { act, fireEvent, screen, waitFor, within } from '@testing-library/react'
 import { afterEach, beforeAll, beforeEach, describe, expect, it, vi } from 'vitest'
 
 import { REFUSED_CODE } from '../../core/requests/interactive'
+import { bytesOf } from '../../core/requests/sha256'
 import { requestLaterStore } from '../../state/request-later'
 import { interactiveKey } from '../../state/requests'
 import {
@@ -29,6 +30,7 @@ import {
   type UploadCall,
   voiceFrame
 } from '../../test-support/interactive-layer'
+import { pngChunkTypes, pngOf } from '../../test-support/png'
 import { preloadRequestSheets } from './request-sheets'
 import { statementSha256 } from './signature-export'
 
@@ -222,6 +224,60 @@ describe('a location', () => {
     await sheetNamed('Your location, once')
     await press('Share location')
     view.unmount()
+    deliver()
+    await settle()
+
+    expect(harness.gw.calls.filter(call => call.method === 'request.answer')).toEqual([])
+  })
+
+  it('does not use a fix that arrives after the sheet was put away, and Share looks again when it is back', async () => {
+    const deliveries: (() => void)[] = []
+    const place = geolocation(ok => {
+      deliveries.push(() => fix(1, 2, 3)(ok))
+    })
+
+    onNavigator({ geolocation: place })
+    mount(harness)
+    raise(harness, 'srq-1', 'device.location', locationFrame())
+    await sheetNamed('Your location, once')
+    await press('Share location')
+    await press('Later')
+    deliveries[0]?.()
+    await settle()
+
+    expect(harness.gw.calls.filter(call => call.method === 'request.answer')).toEqual([])
+
+    bringBack('srq-1')
+    await press('Share location')
+
+    expect(place.getCurrentPosition).toHaveBeenCalledTimes(2)
+
+    deliveries[1]?.()
+    await settle()
+
+    expect(lastAnswer(harness)).toMatchObject({ status: 'answered' })
+  })
+
+  it('keeps Don’t share on while the browser is looking, and ends the lookup: a fix that comes later is not sent', async () => {
+    let deliver: () => void = () => undefined
+    const place = geolocation(ok => {
+      deliver = () => fix(1, 2, 3)(ok)
+    })
+
+    onNavigator({ geolocation: place })
+    mount(harness)
+    raise(harness, 'srq-1', 'device.location', locationFrame())
+    await sheetNamed('Your location, once')
+    await press('Share location')
+
+    // Looking: Share is off, Don't share is not.
+    expect((button('Share location') as HTMLButtonElement).disabled).toBe(true)
+    expect((button("Don't share") as HTMLButtonElement).disabled).toBe(false)
+
+    await press("Don't share")
+
+    expect(declinedWith()).toEqual(['declined'])
+
     deliver()
     await settle()
 
@@ -1015,14 +1071,15 @@ describe('a voice note', () => {
 })
 
 /** A canvas a test can draw on: every call is a no-op, and a PNG is what it encodes. */
-function canvasThatEncodes(): void {
+function canvasThatEncodes(
+  chunks: readonly string[] = ['IHDR', 'sRGB', 'eXIf', 'tEXt', 'IDAT', 'IEND']
+): void {
   const context = new Proxy({}, { get: () => () => undefined, set: () => true })
 
   vi.spyOn(HTMLCanvasElement.prototype, 'getContext').mockImplementation((() => context) as never)
   HTMLCanvasElement.prototype.toBlob = function toBlob(callback: BlobCallback) {
-    callback(
-      new Blob([new Uint8Array([0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a, 1, 2, 3])], { type: 'image/png' })
-    )
+    // An encoder like WebKit's, which adds metadata of its own to the picture.
+    callback(new Blob([pngOf(chunks)], { type: 'image/png' }))
   }
   vi.stubGlobal('Path2D', class Path2DStub {})
 }
@@ -1102,12 +1159,54 @@ describe('a signature', () => {
     expect(result.statement_sha256).toBe(await statementSha256(STATEMENT))
     expect(Number.isInteger(result.signed_at)).toBe(true)
 
-    // The SVG that went up is what the gateway's allowlist takes.
+    // The PNG that went up is the picture and nothing else, though the encoder added metadata.
+    const png = new Uint8Array(await bytesOf(up.calls[0]?.file.body as Blob))
+
+    expect(pngChunkTypes(png)).toEqual(['IHDR', 'sRGB', 'IDAT', 'IEND'])
+
+    // The SVG that went up is what the gateway’s allowlist takes.
     const svg = await textOf(up.calls[1]?.file.body)
 
     expect(svg).toMatch(/^<svg xmlns="http:\/\/www\.w3\.org\/2000\/svg"/u)
     expect(svg).toContain('<path d="M')
     expect(refusalFor('input.signature', signatureFrame() as never, result)).toBeNull()
+  })
+
+  it('exports the drawing as it was when Sign was pressed: a pointer still down adds nothing to the files', async () => {
+    canvasThatEncodes()
+
+    const up = uploads()
+
+    mount(harness, { uploadFileTo: up.fn })
+    raise(harness, 'srq-1', 'input.signature', signatureFrame())
+    await sheetNamed('A signature to give')
+
+    const pad = dialog().querySelector('[data-signature-pad]') as HTMLCanvasElement
+
+    vi.spyOn(pad, 'getBoundingClientRect').mockReturnValue({ left: 0, top: 0, width: 600, height: 200 } as DOMRect)
+    pad.setPointerCapture = () => undefined
+    pointer(pad, 'pointerdown', 40, 150)
+
+    for (let step = 1; step <= 12; step += 1) {
+      pointer(pad, 'pointermove', 40 + step * 25, 150 - Math.sin(step) * 60)
+    }
+
+    // Sign is pressed with the finger still down, which goes on moving while the files are made.
+    act(() => {
+      fireEvent.click(button('Sign and send'))
+      pointer(pad, 'pointermove', 590, 10)
+    })
+    await settle()
+    act(() => {
+      pointer(pad, 'pointermove', 580, 20)
+    })
+    await settle()
+
+    const svg = await textOf(up.calls[1]?.file.body)
+
+    expect(up.calls.map(call => call.file.name)).toEqual(['signature.png', 'signature.svg'])
+    expect(svg).toMatch(/L340 /u)
+    expect(svg).not.toMatch(/\b5[89]0 /u)
   })
 
   it('clears the pad, and a cleared pad is not a signature', async () => {

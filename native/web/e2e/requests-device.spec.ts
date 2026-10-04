@@ -424,6 +424,22 @@ test.describe('a voice note', () => {
   })
 })
 
+/** The types of a PNG's chunks, in order: 4 ASCII letters after each chunk's length (the file's own framing). */
+function pngChunkTypes(png: Buffer): string[] {
+  const types: string[] = []
+  let at = 8
+
+  while (at + 8 <= png.length) {
+    types.push(png.toString('latin1', at + 4, at + 8))
+    // Length, type, data, CRC.
+    at += 12 + png.readUInt32BE(at)
+  }
+
+  expect(at).toBe(png.length)
+
+  return types
+}
+
 test.describe('a signature', () => {
   /** A stroke across the pad with the mouse: pointer events on the real canvas. */
   async function sign(page: Page): Promise<void> {
@@ -483,6 +499,18 @@ test.describe('a signature', () => {
     const svg = (await bytesOf(gateway, files.find(file => file.mime === 'image/svg+xml')?.path ?? '')).toString('utf8')
 
     expect([...png.subarray(0, 4)]).toEqual([0x89, 0x50, 0x4e, 0x47])
+
+    // Nothing but the picture goes up: no text and no EXIF, nothing a browser's encoder could add about the device or
+    // the person.
+    const chunks = pngChunkTypes(png)
+
+    expect(chunks[0]).toBe('IHDR')
+    expect(chunks.at(-1)).toBe('IEND')
+    expect(chunks).toContain('IDAT')
+
+    for (const metadata of ['tEXt', 'iTXt', 'zTXt', 'eXIf']) {
+      expect(chunks, metadata).not.toContain(metadata)
+    }
     expect(svg).toMatch(/^<svg xmlns="http:\/\/www\.w3\.org\/2000\/svg"/u)
     expect(svg).toContain('<path d="M')
 

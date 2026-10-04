@@ -8,6 +8,8 @@
  *    person lower it. A browser has no reduced-accuracy mode, so an approximate share asks the browser with
  *    `enableHighAccuracy: false` and the page rounds what comes back (two decimals, an accuracy of at least 1,000 m)
  *    before it leaves; the gateway rounds again and does not need this to.
+ *  - **Put away or declined, the lookup ends.** A fix that comes in after Later, or after Don't share, is not sent;
+ *    Don't share stays on while the browser is still looking.
  *  - **One fix, never watching.** `getCurrentPosition`, with no cached position (`maximumAge: 0`).
  *  - **Denied is an answer to the bot** (`4041 permission_denied`), not a made-up skip; a fix that could not be had is
  *    said, with Try again and a way to give up (`4041 location_unavailable`).
@@ -67,6 +69,14 @@ export function LocationSheet({
   }, [])
 
   const locating = phase === 'locating'
+
+  // A sheet put away (Later) stops waiting for a fix: one that comes in meanwhile is not sent, and Share starts again.
+  useEffect(() => {
+    if (!shown && locating) {
+      attempt.current += 1
+      setPhase('idle')
+    }
+  }, [shown, locating])
   // Locating and sending are not cut off by a question that arrives meanwhile (`sheet-order.ts`).
   useReportBusy(locating || sending.pending)
 
@@ -161,6 +171,14 @@ export function LocationSheet({
         <ShareActions
           optional={ask.optional}
           busy={busy}
+          // Don't share stays within reach while the browser is still looking, and ends the lookup.
+          dontShareBusy={locked}
+          onDeclined={result => {
+            if (result === 'sent' || result === 'closed') {
+              attempt.current += 1
+              setPhase('idle')
+            }
+          }}
           sending={sending}
           onLater={onLater}
           onSkip={onSkip}

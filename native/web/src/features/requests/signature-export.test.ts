@@ -20,9 +20,11 @@ import {
   type Point,
   signatureSvg,
   statementSha256,
+  stripPngMetadata,
   strokePath,
   type Stroke
 } from './signature-export'
+import { pngChunkTypes, pngOf } from '../../test-support/png'
 
 const bytes = (text: string): Uint8Array => new TextEncoder().encode(text)
 
@@ -287,5 +289,44 @@ describe('the statement’s fingerprint', () => {
 
   it('is lower case hex of 64 digits', async () => {
     expect(await statementSha256('x')).toMatch(/^[0-9a-f]{64}$/u)
+  })
+})
+
+describe('the PNG of a signature', () => {
+  const METADATA = ['tEXt', 'iTXt', 'zTXt', 'eXIf']
+
+  it('has no text, EXIF or other metadata chunk, whatever the encoder wrote', () => {
+    const written = pngOf(['IHDR', 'sRGB', 'tEXt', 'eXIf', 'iTXt', 'zTXt', 'tIME', 'iCCP', 'IDAT', 'IDAT', 'IEND'])
+    const clean = pngChunkTypes(stripPngMetadata(written))
+
+    expect(clean).toEqual(['IHDR', 'sRGB', 'IDAT', 'IDAT', 'IEND'])
+
+    for (const type of METADATA) {
+      expect(clean).not.toContain(type)
+    }
+  })
+
+  it('keeps the picture and how to show it byte for byte, and a PNG without metadata as it is', () => {
+    const plain = pngOf(['IHDR', 'PLTE', 'tRNS', 'gAMA', 'cHRM', 'pHYs', 'IDAT', 'IEND'])
+
+    expect(stripPngMetadata(plain)).toEqual(plain)
+    expect(stripPngMetadata(pngOf(['IHDR', 'eXIf', 'IDAT', 'IEND']))).toEqual(pngOf(['IHDR', 'IDAT', 'IEND']))
+  })
+
+  it('leaves out whatever follows IEND', () => {
+    const trailing = new Uint8Array([...pngOf(['IHDR', 'IDAT', 'IEND']), ...new TextEncoder().encode('secret')])
+
+    expect(stripPngMetadata(trailing)).toEqual(pngOf(['IHDR', 'IDAT', 'IEND']))
+  })
+
+  it('refuses what is not a whole PNG, so nothing goes up that could not be cleaned', () => {
+    const whole = pngOf(['IHDR', 'IDAT', 'IEND'])
+
+    expect(() => stripPngMetadata(new Uint8Array())).toThrow('no png')
+    expect(() => stripPngMetadata(bytes('not a png at all'))).toThrow('no png')
+    expect(() => stripPngMetadata(whole.subarray(0, whole.length - 5))).toThrow('no png')
+    expect(() => stripPngMetadata(pngOf(['IDAT', 'IEND']))).toThrow('no png')
+    expect(() => stripPngMetadata(pngOf(['IHDR', 'IEND']))).toThrow('no png')
+    expect(() => stripPngMetadata(pngOf(['IHDR', 'IDAT']))).toThrow('no png')
   })
 })

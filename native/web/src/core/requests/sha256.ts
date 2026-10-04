@@ -145,7 +145,7 @@ export const CHUNK_BYTES = 1_048_576
 const yieldToPage = (): Promise<void> => new Promise(resolve => setTimeout(resolve, 0))
 
 /** The bytes of one slice: `Blob.arrayBuffer` where there is one, a `FileReader` where there is not (an older browser). */
-function bytesOf(blob: Blob): Promise<ArrayBuffer> {
+export function bytesOf(blob: Blob): Promise<ArrayBuffer> {
   if (typeof blob.arrayBuffer === 'function') {
     return blob.arrayBuffer()
   }

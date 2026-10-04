@@ -12,7 +12,7 @@
  *
  * Pressure is ignored: a stroke is a line of one width. A single touch is a dot (a zero-length segment with a round cap).
  */
-import { sha256Hex } from '../../core/requests/sha256'
+import { bytesOf, sha256Hex } from '../../core/requests/sha256'
 
 /** The pad's own coordinate system, in CSS pixels; the canvas is drawn at `scale` times it. */
 export const PAD = Object.freeze({ width: 600, height: 200, ink: 2.5, scale: 2 })
@@ -144,7 +144,71 @@ export function drawSignature(context: CanvasRenderingContext2D, strokes: readon
   context.restore()
 }
 
-/** The signature as a PNG: the canvas the same path is drawn on, encoded. */
+const PNG_SIGNATURE = [0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a]
+
+/**
+ * The chunks of a PNG that are the picture, and the few that say how to show it: everything else (`tEXt`, `iTXt`,
+ * `zTXt`, `eXIf`, `tIME`, `iCCP`, a browser's own additions) is left out, so a file made by any encoder says nothing
+ * about the device or the person.
+ */
+const KEPT_CHUNKS = new Set(['IHDR', 'PLTE', 'tRNS', 'IDAT', 'IEND', 'sRGB', 'gAMA', 'cHRM', 'pHYs'])
+
+/**
+ * `png` with only its `KEPT_CHUNKS`, each copied whole (its checksum stays right), and nothing after `IEND`. A file
+ * that is not a whole PNG (no signature, a chunk that runs past the end, no `IHDR` first, no picture, no `IEND`) throws:
+ * nothing is sent that could not be cleaned.
+ */
+export function stripPngMetadata(png: Uint8Array): Uint8Array<ArrayBuffer> {
+  if (png.length < 8 || !PNG_SIGNATURE.every((byte, index) => png[index] === byte)) {
+    throw new Error('no png')
+  }
+
+  const view = new DataView(png.buffer, png.byteOffset, png.byteLength)
+  const kept: Uint8Array[] = [png.subarray(0, 8)]
+  let at = 8
+  let first = ''
+  let last = ''
+  let picture = false
+
+  while (at < png.length && last !== 'IEND') {
+    // Length, type, data, checksum.
+    if (at + 12 > png.length) {
+      throw new Error('no png')
+    }
+
+    const end = at + 12 + view.getUint32(at)
+
+    if (end > png.length) {
+      throw new Error('no png')
+    }
+
+    last = String.fromCharCode(...png.subarray(at + 4, at + 8))
+    first = first || last
+
+    if (KEPT_CHUNKS.has(last)) {
+      kept.push(png.subarray(at, end))
+      picture ||= last === 'IDAT'
+    }
+
+    at = end
+  }
+
+  if (first !== 'IHDR' || last !== 'IEND' || !picture) {
+    throw new Error('no png')
+  }
+
+  const out = new Uint8Array(kept.reduce((sum, part) => sum + part.length, 0))
+  let offset = 0
+
+  for (const part of kept) {
+    out.set(part, offset)
+    offset += part.length
+  }
+
+  return out
+}
+
+/** The signature as a PNG: the canvas the same path is drawn on, encoded, with nothing in it but the picture. */
 export async function signaturePng(strokes: readonly Stroke[]): Promise<Blob> {
   const canvas = document.createElement('canvas')
 
@@ -165,7 +229,8 @@ export async function signaturePng(strokes: readonly Stroke[]): Promise<Blob> {
     throw new Error('no png')
   }
 
-  return blob
+  // A browser's encoder may add what it likes (WebKit writes an `eXIf` chunk): the file that goes up is the picture.
+  return new Blob([stripPngMetadata(new Uint8Array(await bytesOf(blob)))], { type: 'image/png' })
 }
 
 /**

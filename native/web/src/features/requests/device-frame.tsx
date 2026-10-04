@@ -66,6 +66,10 @@ export interface ShareActionsProps {
   optional: boolean
   /** The controls are off: a press is not taken now. */
   busy: boolean
+  /** Don't share is off: by default it follows `busy`; a sheet that can be left mid-lookup keeps it on. */
+  dontShareBusy?: boolean
+  /** Called with what became of a Don't share (`cannotShow`), so the sheet can let go of what it was doing. */
+  onDeclined?: (result: 'sent' | 'closed' | 'offline' | 'busy') => void
   sending: Sending
   onLater: () => void
   onSkip: () => Promise<AnswerOutcome>
@@ -78,6 +82,8 @@ export interface ShareActionsProps {
 export function ShareActions({
   optional,
   busy,
+  dontShareBusy = busy,
+  onDeclined,
   sending,
   onLater,
   onSkip,
@@ -92,9 +98,14 @@ export function ShareActions({
       <Button
         className="hm-requests__action"
         variant="quiet"
-        disabled={busy}
+        disabled={dontShareBusy}
         data-interactive-dont-share=""
-        onClick={() => sending.declined(onCannotShow('declined'))}
+        onClick={() => {
+          const result = onCannotShow('declined')
+
+          sending.declined(result)
+          onDeclined?.(result)
+        }}
       >
         {sheetStrings.interactive.dontShare}
       </Button>

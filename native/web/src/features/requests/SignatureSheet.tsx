@@ -89,6 +89,8 @@ export function SignatureSheet({
   /** What is already up for the strokes as they are now: reused when the person tries again. */
   const uploaded = useRef<{ png: UploadedFile; svg: UploadedFile } | null>(null)
   const cancel = useRef<AbortController | null>(null)
+  /** The drawing is being exported: a pointer still down does not change it any more. */
+  const exporting = useRef(false)
   const clockNow = (): number => (now ? now() : Date.now())
   /** The time the sheet shows beside the signature: kept current, since the answer says when it was pressed. */
   const [clock, setClock] = useState(clockNow)
@@ -212,7 +214,7 @@ export function SignatureSheet({
   function move(event: ReactPointerEvent<HTMLCanvasElement>): void {
     const current = active.current
 
-    if (!current || current.id !== event.pointerId) {
+    if (!current || current.id !== event.pointerId || exporting.current) {
       return
     }
 
@@ -266,6 +268,11 @@ export function SignatureSheet({
     const control = new AbortController()
     let failing = 'signature.png'
 
+    // The drawing as it is now: the PNG and the SVG are both built from this copy (the strokes are never changed in
+    // place), and a pointer that is still down is ignored until the answer is on its way.
+    const drawn = strokes.current
+
+    exporting.current = true
     cancel.current = control
     setProblem(null)
     setOffline(false)
@@ -277,8 +284,8 @@ export function SignatureSheet({
       let files = uploaded.current
 
       if (!files) {
-        const png = await renderPng(strokes.current)
-        const svg = new Blob([signatureSvg(strokes.current)], { type: 'image/svg+xml' })
+        const png = await renderPng(drawn)
+        const svg = new Blob([signatureSvg(drawn)], { type: 'image/svg+xml' })
         const parts = [
           { name: 'signature.png', mime: 'image/png', blob: png },
           { name: 'signature.svg', mime: 'image/svg+xml', blob: svg }
@@ -347,6 +354,7 @@ export function SignatureSheet({
       }
     } finally {
       cancel.current = null
+      exporting.current = false
     }
   }
 
