@@ -232,6 +232,10 @@ final class ScriptedLink: GatewayLink, Sendable {
     var pictureCalls: [String] = []
     var fileAnswer: @Sendable (String) -> Data? = { _ in nil }
     var fileCalls: [String] = []
+    var downloads: [Download] = []
+    var downloadHandler: (@Sendable (Download, @Sendable (Double) -> Void) async throws -> Data)?
+    var mediaAnswer: @Sendable (String) throws -> MediaRequest = { _ in throw GatewayError(.config, "no media") }
+    var mediaCalls: [String] = []
     var declineData: [String: JSONValue] = [:]
     /// What every answer says it lists in full (`RPCReply.listedRequests`).
     var listed: Set<String> = Set(ServerRequestBody.Method.interactive)
@@ -317,6 +321,62 @@ final class ScriptedLink: GatewayLink, Sendable {
       state.fileCalls.append(path)
       return state.fileAnswer(path)
     }
+  }
+
+  /// One file the store (or a card) asked to have downloaded.
+  struct Download: Sendable, Equatable {
+    var path: String
+    var destination: URL
+    var maxBytes: Int
+    var expectedSize: Int?
+    var expectedSHA256: String?
+  }
+
+  /// Downloads asked for, oldest first.
+  var downloads: [Download] { state.withLock { $0.downloads } }
+
+  /// What the next downloads answer with: the bytes to write (reporting progress as it likes), or what it throws.
+  /// Without one, a download is a 404.
+  func onDownload(_ handler: @escaping @Sendable (Download, @Sendable (Double) -> Void) async throws -> Data) {
+    state.withLock { $0.downloadHandler = handler }
+  }
+
+  /// What `mediaRequest` answers from now on, by the path it was asked for.
+  func setMediaRequest(_ answer: @escaping @Sendable (String) throws -> MediaRequest) {
+    state.withLock { $0.mediaAnswer = answer }
+  }
+
+  /// The paths `mediaRequest` was asked for, in order.
+  var mediaCalls: [String] { state.withLock { $0.mediaCalls } }
+
+  func downloadFile(
+    _ path: String,
+    to destination: URL,
+    maxBytes: Int,
+    expectedSize: Int?,
+    expectedSHA256: String?,
+    onProgress: (@Sendable (Double) -> Void)?
+  ) async throws -> FileDownload {
+    let download = Download(
+      path: path, destination: destination, maxBytes: maxBytes, expectedSize: expectedSize, expectedSHA256: expectedSHA256)
+    let handler = state.withLock { state -> (@Sendable (Download, @Sendable (Double) -> Void) async throws -> Data)? in
+      state.downloads.append(download)
+      return state.downloadHandler
+    }
+
+    guard let handler else { throw FileDownloadError.notFound }
+    let data = try await handler(download) { onProgress?($0) }
+    try FileManager.default.createDirectory(at: destination.deletingLastPathComponent(), withIntermediateDirectories: true)
+    try data.write(to: destination)
+    return FileDownload(url: destination, bytes: data.count, sha256: expectedSHA256 ?? "")
+  }
+
+  func mediaRequest(_ path: String) async throws -> MediaRequest {
+    let answer = state.withLock { state -> @Sendable (String) throws -> MediaRequest in
+      state.mediaCalls.append(path)
+      return state.mediaAnswer
+    }
+    return try answer(path)
   }
 
   func probeIdentity() async -> IdentityProbe {

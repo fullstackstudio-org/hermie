@@ -775,6 +775,24 @@ public struct ConnectionLink: GatewayLink {
     (try? await http.fetchFile(path, maxBytes: AttachmentRules.maxFileBytes)) ?? nil
   }
 
+  public func downloadFile(
+    _ path: String,
+    to destination: URL,
+    maxBytes: Int,
+    expectedSize: Int?,
+    expectedSHA256: String?,
+    onProgress: (@Sendable (Double) -> Void)?
+  ) async throws -> FileDownload {
+    try await http.downloadFile(
+      path, to: destination, maxBytes: maxBytes, expectedSize: expectedSize, expectedSHA256: expectedSHA256,
+      onProgress: onProgress)
+  }
+
+  public func mediaRequest(_ path: String) async throws -> MediaRequest {
+    let request = try await http.mediaRequest(path)
+    return MediaRequest(url: request.url, headers: request.headers)
+  }
+
   public var gatewayAddress: String? { http.baseURL }
 
   public func uploadFile(

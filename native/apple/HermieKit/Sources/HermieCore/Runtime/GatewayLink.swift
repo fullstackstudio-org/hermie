@@ -94,6 +94,24 @@ public protocol GatewayLink: Sendable {
   /// (the default).
   func fetchFile(_ path: String) async -> Data?
 
+  /// A file the gateway serves, written to `destination` as it arrives (never held whole): through the link's
+  /// own credentials, no redirect followed, the cap enforced on the stream, the size and SHA-256 checked when
+  /// it is whole (`HTTPClient.downloadFile`). Throws `FileDownloadError`. A link without a REST side refuses
+  /// (the default).
+  func downloadFile(
+    _ path: String,
+    to destination: URL,
+    maxBytes: Int,
+    expectedSize: Int?,
+    expectedSHA256: String?,
+    onProgress: (@Sendable (Double) -> Void)?
+  ) async throws -> FileDownload
+
+  /// The address and the headers a media player reads a file of this gateway with (`AVURLAsset`): the
+  /// link's own credentials, so the player seeks by byte ranges without the file being fetched first. Throws
+  /// when the link has none (the default).
+  func mediaRequest(_ path: String) async throws -> MediaRequest
+
   /// The gateway's text-to-speech (`/api/audio/…`), through the link's own credentials, only ever this
   /// gateway's. A link without a REST side has none (the default).
   var speech: (any GatewaySpeechTransport)? { get }
@@ -299,6 +317,21 @@ extension GatewayLink {
 
   public func fetchFile(_ path: String) async -> Data? {
     nil
+  }
+
+  public func downloadFile(
+    _ path: String,
+    to destination: URL,
+    maxBytes: Int,
+    expectedSize: Int?,
+    expectedSHA256: String?,
+    onProgress: (@Sendable (Double) -> Void)?
+  ) async throws -> FileDownload {
+    throw FileDownloadError.unreachable
+  }
+
+  public func mediaRequest(_ path: String) async throws -> MediaRequest {
+    throw GatewayError(.config, "This connection cannot stream files.")
   }
 
   public var gatewayAddress: String? { nil }
