@@ -1071,9 +1071,7 @@ describe('a voice note', () => {
 })
 
 /** A canvas a test can draw on: every call is a no-op, and a PNG is what it encodes. */
-function canvasThatEncodes(
-  chunks: readonly string[] = ['IHDR', 'sRGB', 'eXIf', 'tEXt', 'IDAT', 'IEND']
-): void {
+function canvasThatEncodes(chunks: readonly string[] = ['IHDR', 'sRGB', 'eXIf', 'tEXt', 'IDAT', 'IEND']): void {
   const context = new Proxy({}, { get: () => () => undefined, set: () => true })
 
   vi.spyOn(HTMLCanvasElement.prototype, 'getContext').mockImplementation((() => context) as never)

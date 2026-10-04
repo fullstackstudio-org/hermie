@@ -4,6 +4,7 @@ import Testing
 
 @testable import HermieUI
 
+@MainActor
 @Suite("Licences")
 struct LicencesTests {
   /// The repository's root, from this file's place in it; nil when the tests run somewhere else.
@@ -73,6 +74,7 @@ struct LicencesTests {
   }
 }
 
+@MainActor
 @Suite("Gateway facts")
 struct GatewayFactsTests {
   @Test("a version nobody kept is unknown, one that was kept is shown as it is")
