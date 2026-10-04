@@ -4875,6 +4875,2550 @@
         }
       }
     },
+    "native.interactive.card.answered" : {
+      "comment" : "On the chat's card: the request was answered.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Beantwortet"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Answered"
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Beantwoord"
+          }
+        }
+      }
+    },
+    "native.interactive.card.answeredElsewhere" : {
+      "comment" : "On the chat's card: another device answered it.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Auf einem anderen Gerät beantwortet"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Answered on another device"
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Beantwoord op een ander apparaat"
+          }
+        }
+      }
+    },
+    "native.interactive.card.approved" : {
+      "comment" : "On the chat's card: a draft was approved.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Genehmigt"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Approved"
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Goedgekeurd"
+          }
+        }
+      }
+    },
+    "native.interactive.card.approvedEdited" : {
+      "comment" : "On the chat's card: a draft was approved after changes.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Mit Änderungen genehmigt"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Approved with changes"
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Goedgekeurd met wijzigingen"
+          }
+        }
+      }
+    },
+    "native.interactive.card.draft" : {
+      "comment" : "On the chat's card: the kind of request.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Entwurfsprüfung"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Draft review"
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Conceptbeoordeling"
+          }
+        }
+      }
+    },
+    "native.interactive.card.ended" : {
+      "comment" : "On the chat's card: the request ended without an answer.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Ohne Antwort beendet"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Ended without an answer"
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Beëindigd zonder antwoord"
+          }
+        }
+      }
+    },
+    "native.interactive.card.file" : {
+      "comment" : "On the chat's card: the kind of request.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Datei"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "File"
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Bestand"
+          }
+        }
+      }
+    },
+    "native.interactive.card.files" : {
+      "comment" : "On the chat's card: how many files were sent.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Dateien gesendet: %lld"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Files sent: %lld"
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Bestanden verstuurd: %lld"
+          }
+        }
+      }
+    },
+    "native.interactive.card.form" : {
+      "comment" : "On the chat's card: the kind of request.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Formular"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Form"
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Formulier"
+          }
+        }
+      }
+    },
+    "native.interactive.card.open" : {
+      "comment" : "On the chat's card: the request waits for the person's answer.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Wartet auf deine Antwort"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Waiting for your answer"
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Wacht op je antwoord"
+          }
+        }
+      }
+    },
+    "native.interactive.card.openAction" : {
+      "comment" : "Button on the chat's card that opens the request again.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Öffnen"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Open"
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Openen"
+          }
+        }
+      }
+    },
+    "native.interactive.card.rejected" : {
+      "comment" : "On the chat's card: a draft was rejected.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Abgelehnt"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Rejected"
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Afgewezen"
+          }
+        }
+      }
+    },
+    "native.interactive.card.skipped" : {
+      "comment" : "On the chat's card: the request was skipped.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Übersprungen"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Skipped"
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Overgeslagen"
+          }
+        }
+      }
+    },
+    "native.interactive.card.timedOut" : {
+      "comment" : "On the chat's card: the request ran out of time.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Abgelaufen"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Timed out"
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Verlopen"
+          }
+        }
+      }
+    },
+    "native.interactive.close" : {
+      "comment" : "Button that closes a request sheet after the request ended.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Schließen"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Close"
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Sluiten"
+          }
+        }
+      }
+    },
+    "native.interactive.draft.approve" : {
+      "comment" : "Button that approves a draft as it is.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Genehmigen"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Approve"
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Goedkeuren"
+          }
+        }
+      }
+    },
+    "native.interactive.draft.approveWithChanges" : {
+      "comment" : "Button that approves a draft after the person changed it.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Mit Änderungen genehmigen"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Approve with changes"
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Goedkeuren met wijzigingen"
+          }
+        }
+      }
+    },
+    "native.interactive.draft.back" : {
+      "comment" : "Button that goes back from rejecting a draft.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Zurück"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Back"
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Terug"
+          }
+        }
+      }
+    },
+    "native.interactive.draft.comment" : {
+      "comment" : "Label of the optional comment with a rejection. The argument is the bot's name.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Ein Wort an %@ (optional)"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "A word for %@ (optional)"
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Een toelichting voor %@ (optioneel)"
+          }
+        }
+      }
+    },
+    "native.interactive.draft.commentTooLong" : {
+      "comment" : "Warning when the comment is too long. The argument is the most characters allowed.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Die Anmerkung ist länger als %lld Zeichen."
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "The comment is longer than %lld characters."
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "De toelichting is langer dan %lld tekens."
+          }
+        }
+      }
+    },
+    "native.interactive.draft.edited" : {
+      "comment" : "Shown when the person changed a draft.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Geändert"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Edited"
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Aangepast"
+          }
+        }
+      }
+    },
+    "native.interactive.draft.hiddenLegend" : {
+      "comment" : "Explains the codes in brackets in a draft.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Unsichtbare Zeichen werden als Codes in Klammern angezeigt."
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Invisible characters are shown as codes in brackets."
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Onzichtbare tekens worden als codes tussen haken getoond."
+          }
+        }
+      }
+    },
+    "native.interactive.draft.hiddenWarning" : {
+      "comment" : "Warning above the list of characters in the text that cannot be sent as they are.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Der Text enthält Zeichen, die nicht so gesendet werden können:"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "The text holds characters that cannot be sent as they are:"
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "De tekst bevat tekens die niet zo verstuurd kunnen worden:"
+          }
+        }
+      }
+    },
+    "native.interactive.draft.kind.document" : {
+      "comment" : "The kind of a draft.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Dokument"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Document"
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Document"
+          }
+        }
+      }
+    },
+    "native.interactive.draft.kind.mail" : {
+      "comment" : "The kind of a draft.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "E-Mail"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Mail"
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "E-mail"
+          }
+        }
+      }
+    },
+    "native.interactive.draft.kind.message" : {
+      "comment" : "The kind of a draft.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Nachricht"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Message"
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Bericht"
+          }
+        }
+      }
+    },
+    "native.interactive.draft.kind.other" : {
+      "comment" : "The kind of a draft this app does not know.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Entwurf"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Draft"
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Concept"
+          }
+        }
+      }
+    },
+    "native.interactive.draft.kind.post" : {
+      "comment" : "The kind of a draft.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Beitrag"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Post"
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Post"
+          }
+        }
+      }
+    },
+    "native.interactive.draft.notEditable" : {
+      "comment" : "Shown under a draft that cannot be changed.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Dieser Entwurf kann nicht geändert werden. Du kannst ihn genehmigen oder ablehnen."
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "This draft cannot be changed. You can approve or reject it."
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Dit concept kan niet worden aangepast. Je kunt het goedkeuren of afwijzen."
+          }
+        }
+      }
+    },
+    "native.interactive.draft.recipients" : {
+      "comment" : "Label above a draft's recipients.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Empfänger"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Recipients"
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Ontvangers"
+          }
+        }
+      }
+    },
+    "native.interactive.draft.reject" : {
+      "comment" : "Button that starts rejecting a draft; a comment can follow.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Ablehnen …"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Reject…"
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Afwijzen…"
+          }
+        }
+      }
+    },
+    "native.interactive.draft.rejectConfirm" : {
+      "comment" : "Button that rejects a draft.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Entwurf ablehnen"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Reject draft"
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Concept afwijzen"
+          }
+        }
+      }
+    },
+    "native.interactive.draft.removeHidden" : {
+      "comment" : "Button that removes those characters.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Entfernen"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Remove them"
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Verwijder ze"
+          }
+        }
+      }
+    },
+    "native.interactive.draft.revert" : {
+      "comment" : "Button that puts a draft back as it came.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Meine Änderungen rückgängig machen"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Undo my changes"
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Mijn wijzigingen ongedaan maken"
+          }
+        }
+      }
+    },
+    "native.interactive.draft.subject" : {
+      "comment" : "Label above a draft's subject.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Betreff"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Subject"
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Onderwerp"
+          }
+        }
+      }
+    },
+    "native.interactive.draft.textLabel" : {
+      "comment" : "VoiceOver label of the draft's text.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Entwurfstext"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Draft text"
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Concepttekst"
+          }
+        }
+      }
+    },
+    "native.interactive.draft.tooLong" : {
+      "comment" : "Warning when a draft is too long. The argument is the most characters allowed.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Der Text ist länger als %lld Zeichen."
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "The text is longer than %lld characters."
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "De tekst is langer dan %lld tekens."
+          }
+        }
+      }
+    },
+    "native.interactive.earlierAnswerLost" : {
+      "comment" : "Shown when the gateway asks again because an answer sent earlier never reached it.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Deine frühere Antwort hat das Gateway nicht erreicht. Bitte antworte erneut."
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Your earlier answer did not reach the gateway. Please answer again."
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Je eerdere antwoord is niet bij de gateway aangekomen. Beantwoord het opnieuw."
+          }
+        }
+      }
+    },
+    "native.interactive.file.cancelUpload" : {
+      "comment" : "Button that stops an upload on its way.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Hochladen abbrechen"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Cancel upload"
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Upload annuleren"
+          }
+        }
+      }
+    },
+    "native.interactive.file.changeFiles" : {
+      "comment" : "Button that goes back to choosing files after they were uploaded.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Andere Dateien wählen"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Choose other files"
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Andere bestanden kiezen"
+          }
+        }
+      }
+    },
+    "native.interactive.file.giveUp" : {
+      "comment" : "Button that tells the bot a file could not be sent.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Aufgeben"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Give up"
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Opgeven"
+          }
+        }
+      }
+    },
+    "native.interactive.file.giveUpNote" : {
+      "comment" : "Explains what Give up does.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Aufgeben teilt dem Bot mit, dass die Datei nicht gesendet werden konnte."
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Giving up tells the bot that the file could not be sent."
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Opgeven laat de bot weten dat het bestand niet verstuurd kon worden."
+          }
+        }
+      }
+    },
+    "native.interactive.file.inTotal" : {
+      "comment" : "Limit line: the largest size of all files together. The argument is a size like 25 MB.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%@ insgesamt"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%@ in total"
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%@ in totaal"
+          }
+        }
+      }
+    },
+    "native.interactive.file.noFiles" : {
+      "comment" : "Shown in a file request before a file is chosen.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Noch keine Datei gewählt."
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "No file chosen yet."
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Nog geen bestand gekozen."
+          }
+        }
+      }
+    },
+    "native.interactive.file.oneFile" : {
+      "comment" : "Limit line of a file request that takes a single file.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Eine Datei"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "One file"
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Eén bestand"
+          }
+        }
+      }
+    },
+    "native.interactive.file.perFile" : {
+      "comment" : "Limit line: the largest size of one file. The argument is a size like 10 MB.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%@ pro Datei"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%@ per file"
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%@ per bestand"
+          }
+        }
+      }
+    },
+    "native.interactive.file.rejectTooLarge" : {
+      "comment" : "A file was not added: it is too large. The arguments are the file's name and the largest size allowed.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%1$@ ist größer als %2$@."
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%1$@ is larger than %2$@."
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%1$@ is groter dan %2$@."
+          }
+        }
+      }
+    },
+    "native.interactive.file.rejectTooMany" : {
+      "comment" : "A file was not added: too many files. The argument is the most allowed.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Du kannst höchstens %lld Dateien hinzufügen."
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "You can add at most %lld files."
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Je kunt maximaal %lld bestanden toevoegen."
+          }
+        }
+      }
+    },
+    "native.interactive.file.rejectTotal" : {
+      "comment" : "A file was not added: the files would be too large together. The argument is the largest total size.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Die Dateien dürfen zusammen nicht größer als %@ sein."
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "The files together may not be larger than %@."
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "De bestanden mogen samen niet groter zijn dan %@."
+          }
+        }
+      }
+    },
+    "native.interactive.file.rejectUnreadable" : {
+      "comment" : "A file was not added because it could not be read. The argument is its name.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%@ konnte nicht gelesen werden."
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%@ could not be read."
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%@ kon niet worden gelezen."
+          }
+        }
+      }
+    },
+    "native.interactive.file.scan" : {
+      "comment" : "Button that opens the document scanner.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Dokument scannen"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Scan a document"
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Document scannen"
+          }
+        }
+      }
+    },
+    "native.interactive.file.stripNote" : {
+      "comment" : "Said in a file request when photos lose their metadata before they are sent.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Kameradaten und Standort werden aus Fotos entfernt, bevor sie gesendet werden."
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Camera details and location are removed from photos before they are sent."
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Cameragegevens en locatie worden uit foto’s verwijderd voordat ze worden verstuurd."
+          }
+        }
+      }
+    },
+    "native.interactive.file.upToFiles" : {
+      "comment" : "Limit line: the most files allowed.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Bis zu %lld Dateien"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Up to %lld files"
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Maximaal %lld bestanden"
+          }
+        }
+      }
+    },
+    "native.interactive.file.uploadAndSend" : {
+      "comment" : "Button that uploads the chosen files and then sends the answer.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Hochladen und senden"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Upload and send"
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Uploaden en versturen"
+          }
+        }
+      }
+    },
+    "native.interactive.file.uploadFailed" : {
+      "comment" : "Heading when an upload did not work.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Das Hochladen hat nicht funktioniert."
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "The upload did not work."
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "De upload is niet gelukt."
+          }
+        }
+      }
+    },
+    "native.interactive.file.uploaded" : {
+      "comment" : "Shown when every file is on the gateway and only the answer is left.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Deine Dateien sind hochgeladen."
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Your files are uploaded."
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Je bestanden zijn geüpload."
+          }
+        }
+      }
+    },
+    "native.interactive.form.atLeast" : {
+      "comment" : "Under a number or amount field: its lowest value.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Mindestens %@"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "At least %@"
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Minimaal %@"
+          }
+        }
+      }
+    },
+    "native.interactive.form.atMost" : {
+      "comment" : "Under a number or amount field: its highest value.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Höchstens %@"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "At most %@"
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Maximaal %@"
+          }
+        }
+      }
+    },
+    "native.interactive.form.between" : {
+      "comment" : "Under a number or amount field: its lowest and highest value.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Zwischen %1$@ und %2$@"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Between %1$@ and %2$@"
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Tussen %1$@ en %2$@"
+          }
+        }
+      }
+    },
+    "native.interactive.form.characters" : {
+      "comment" : "Under a text field with a limit: how many characters are typed of how many allowed.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%1$lld von %2$lld Zeichen"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%1$lld of %2$lld characters"
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%1$lld van %2$lld tekens"
+          }
+        }
+      }
+    },
+    "native.interactive.form.choose" : {
+      "comment" : "First entry of a menu with nothing chosen yet, for a required choice.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Wählen …"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Choose…"
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Kies…"
+          }
+        }
+      }
+    },
+    "native.interactive.form.chooseDate" : {
+      "comment" : "Button that gives an empty date field a value.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Datum wählen"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Choose a date"
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Kies een datum"
+          }
+        }
+      }
+    },
+    "native.interactive.form.chooseDateTime" : {
+      "comment" : "Button that gives an empty date-and-time field a value.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Datum und Uhrzeit wählen"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Choose date and time"
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Kies datum en tijd"
+          }
+        }
+      }
+    },
+    "native.interactive.form.chooseRange" : {
+      "comment" : "Button that gives an empty date range field a value.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Daten wählen"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Choose dates"
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Kies datums"
+          }
+        }
+      }
+    },
+    "native.interactive.form.chooseTime" : {
+      "comment" : "Button that gives an empty time field a value.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Uhrzeit wählen"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Choose a time"
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Kies een tijd"
+          }
+        }
+      }
+    },
+    "native.interactive.form.clear" : {
+      "comment" : "Button that empties a date or time field again.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Löschen"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Clear"
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Wissen"
+          }
+        }
+      }
+    },
+    "native.interactive.form.decimals" : {
+      "comment" : "Under an amount field. The arguments are the currency code and how many decimals it allows.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%1$@, höchstens %2$lld Nachkommastellen"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%1$@, up to %2$lld decimals"
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%1$@, maximaal %2$lld decimalen"
+          }
+        }
+      }
+    },
+    "native.interactive.form.from" : {
+      "comment" : "Label of the first date of a date range.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Von"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "From"
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Van"
+          }
+        }
+      }
+    },
+    "native.interactive.form.inZone" : {
+      "comment" : "Under a date or time field: the time zone it is in. The argument is the zone's name.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "In der Zeitzone %@"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "In time zone %@"
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "In tijdzone %@"
+          }
+        }
+      }
+    },
+    "native.interactive.form.needAttention" : {
+      "comment" : "Above the Send button when some fields have a problem.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Einige Felder brauchen deine Aufmerksamkeit."
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Some fields need your attention."
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Een paar velden vragen je aandacht."
+          }
+        }
+      }
+    },
+    "native.interactive.form.none" : {
+      "comment" : "First entry of a menu for an optional choice: nothing chosen.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Keine"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "None"
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Geen"
+          }
+        }
+      }
+    },
+    "native.interactive.form.problem.aboveMax" : {
+      "comment" : "Problem with a number or amount above its highest value. The argument is that value.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Darf höchstens %@ sein."
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Must be at most %@."
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Mag maximaal %@ zijn."
+          }
+        }
+      }
+    },
+    "native.interactive.form.problem.after" : {
+      "comment" : "Problem with a date or time that is too late. The argument is the latest.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Muss am oder vor dem %@ liegen."
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Must be on or before %@."
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Moet op of voor %@ liggen."
+          }
+        }
+      }
+    },
+    "native.interactive.form.problem.before" : {
+      "comment" : "Problem with a date or time that is too early. The argument is the earliest.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Muss am oder nach dem %@ liegen."
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Must be on or after %@."
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Moet op of na %@ liggen."
+          }
+        }
+      }
+    },
+    "native.interactive.form.problem.belowMin" : {
+      "comment" : "Problem with a number or amount below its lowest value. The argument is that value.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Muss mindestens %@ sein."
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Must be at least %@."
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Moet minimaal %@ zijn."
+          }
+        }
+      }
+    },
+    "native.interactive.form.problem.format" : {
+      "comment" : "Problem with a field: the value is not in the right format.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Das hat nicht das richtige Format."
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "That is not in the right format."
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Dit heeft niet de juiste vorm."
+          }
+        }
+      }
+    },
+    "native.interactive.form.problem.missing" : {
+      "comment" : "Problem with a field: a required field has no value.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Das ist erforderlich."
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "This is required."
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Dit is verplicht."
+          }
+        }
+      }
+    },
+    "native.interactive.form.problem.notInteger" : {
+      "comment" : "Problem with a number that must be whole.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Gib eine ganze Zahl ein."
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Enter a whole number."
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Vul een heel getal in."
+          }
+        }
+      }
+    },
+    "native.interactive.form.problem.order" : {
+      "comment" : "Problem with a date range whose end is before its start.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Das Ende liegt vor dem Anfang."
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "The end is before the start."
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Het einde ligt voor het begin."
+          }
+        }
+      }
+    },
+    "native.interactive.form.problem.other" : {
+      "comment" : "Problem with a field that this app has no words for.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Das Gateway hat diesen Wert nicht akzeptiert."
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "The gateway did not accept this value."
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "De gateway accepteerde deze waarde niet."
+          }
+        }
+      }
+    },
+    "native.interactive.form.problem.step" : {
+      "comment" : "Problem with a number that is not on a step. The arguments are the step and where counting starts.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Muss in Schritten von %1$@ ab %2$@ liegen."
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Must go up in steps of %1$@ from %2$@."
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Moet in stappen van %1$@ vanaf %2$@ gaan."
+          }
+        }
+      }
+    },
+    "native.interactive.form.problem.tooFew" : {
+      "comment" : "Problem with a multiple choice with too few ticked. The argument is the fewest allowed.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Wähle mindestens %lld."
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Choose at least %lld."
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Kies er minimaal %lld."
+          }
+        }
+      }
+    },
+    "native.interactive.form.problem.tooLong" : {
+      "comment" : "Problem with a text field. The argument is the most characters allowed.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Zu lang: höchstens %lld Zeichen."
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Too long: at most %lld characters."
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Te lang: maximaal %lld tekens."
+          }
+        }
+      }
+    },
+    "native.interactive.form.problem.tooMany" : {
+      "comment" : "Problem with a multiple choice with too many ticked. The argument is the most allowed.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Wähle höchstens %lld."
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Choose at most %lld."
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Kies er maximaal %lld."
+          }
+        }
+      }
+    },
+    "native.interactive.form.required" : {
+      "comment" : "Spoken by VoiceOver after a field's label when the field must be filled in.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "erforderlich"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "required"
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "verplicht"
+          }
+        }
+      }
+    },
+    "native.interactive.form.to" : {
+      "comment" : "Label of the last date of a date range.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Bis"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "To"
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Tot"
+          }
+        }
+      }
+    },
+    "native.interactive.form.wholeAmounts" : {
+      "comment" : "Under an amount field for a currency without decimals. The argument is the currency code.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%@, ganze Beträge"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%@, whole amounts"
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%@, hele bedragen"
+          }
+        }
+      }
+    },
+    "native.interactive.later" : {
+      "comment" : "Button that puts a request sheet away without answering. The request stays open in the chat.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Später"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Later"
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Later"
+          }
+        }
+      }
+    },
+    "native.interactive.notice.answeredElsewhere" : {
+      "comment" : "A request ended because another device answered it.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Das wurde auf einem anderen Gerät beantwortet. Von hier wurde nichts gesendet."
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "This was answered on another device. Nothing was sent from here."
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Dit is op een ander apparaat beantwoord. Er is niets vanaf hier verstuurd."
+          }
+        }
+      }
+    },
+    "native.interactive.notice.cannotShow" : {
+      "comment" : "A line in the chat: the app could not show a request and told the bot so. The argument is the bot's name.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Hermie konnte eine Anfrage von %@ nicht anzeigen und hat das gemeldet."
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Hermie could not show a request from %@ and told it so."
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Hermie kon een verzoek van %@ niet tonen en heeft dat gemeld."
+          }
+        }
+      }
+    },
+    "native.interactive.notice.notAllowed" : {
+      "comment" : "The gateway does not let this device answer a request.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Dieses Gerät darf diese Anfrage nicht beantworten. Ein anderes Gerät muss das tun."
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "This device is not allowed to answer this request. Another device has to."
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Dit apparaat mag dit verzoek niet beantwoorden. Een ander apparaat moet dat doen."
+          }
+        }
+      }
+    },
+    "native.interactive.onBehalfOf" : {
+      "comment" : "Under a request: the person the bot's turn acts for. The argument is their name.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Im Auftrag von %@"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "On behalf of %@"
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Namens %@"
+          }
+        }
+      }
+    },
+    "native.interactive.refusal.edited" : {
+      "comment" : "The gateway refused an approved draft because the draft may not be changed.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Dieser Entwurf kann nicht geändert werden."
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "This draft cannot be changed."
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Dit concept kan niet worden aangepast."
+          }
+        }
+      }
+    },
+    "native.interactive.refusal.fileRefused" : {
+      "comment" : "The gateway refused one of the files of an answer.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Das Gateway hat eine der Dateien nicht akzeptiert."
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "The gateway did not accept one of the files."
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "De gateway accepteerde een van de bestanden niet."
+          }
+        }
+      }
+    },
+    "native.interactive.refusal.filesTooLarge" : {
+      "comment" : "The gateway refused an answer whose files together are too large.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Die Dateien sind zusammen zu groß."
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "The files are too large together."
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "De bestanden zijn samen te groot."
+          }
+        }
+      }
+    },
+    "native.interactive.refusal.notOptional" : {
+      "comment" : "The gateway refused a Skip because the request cannot be skipped.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Diese Anfrage kann nicht übersprungen werden."
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "This request cannot be skipped."
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Dit verzoek kan niet worden overgeslagen."
+          }
+        }
+      }
+    },
+    "native.interactive.refusal.notVerbatim" : {
+      "comment" : "The gateway refused an approved draft because it holds characters that cannot be shown as they are.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Der Text enthält Zeichen, die nicht so gesendet werden können."
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "The text holds characters that cannot be sent as they are."
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "De tekst bevat tekens die niet zo verstuurd kunnen worden."
+          }
+        }
+      }
+    },
+    "native.interactive.refusal.other" : {
+      "comment" : "The gateway refused an answer for a reason this app has no words for.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Das Gateway hat diese Antwort nicht akzeptiert."
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "The gateway did not accept this answer."
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "De gateway accepteerde dit antwoord niet."
+          }
+        }
+      }
+    },
+    "native.interactive.refusal.tooManyFiles" : {
+      "comment" : "The gateway refused an answer with more files than allowed.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Zu viele Dateien."
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Too many files."
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Te veel bestanden."
+          }
+        }
+      }
+    },
+    "native.interactive.says" : {
+      "comment" : "Small heading above what the bot wrote in a request sheet; marks the text as the bot's own words. The argument is the bot's name.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%@ sagt"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%@ says"
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%@ zegt"
+          }
+        }
+      }
+    },
+    "native.interactive.send" : {
+      "comment" : "Button that sends the answer to a request.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Senden"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Send"
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Versturen"
+          }
+        }
+      }
+    },
+    "native.interactive.skip" : {
+      "comment" : "Button that skips an optional request.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Überspringen"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Skip"
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Overslaan"
+          }
+        }
+      }
+    },
+    "native.interactive.title.draft" : {
+      "comment" : "Title of the sheet for a draft a bot asks the person to review. The argument is the bot's name.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%@ bittet dich, einen Entwurf zu prüfen"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%@ asks you to review a draft"
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%@ vraagt je een concept te beoordelen"
+          }
+        }
+      }
+    },
+    "native.interactive.title.file" : {
+      "comment" : "Title of the sheet for a file a bot asks for. The argument is the bot's name.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%@ bittet dich um eine Datei"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%@ asks you for a file"
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%@ vraagt je om een bestand"
+          }
+        }
+      }
+    },
+    "native.interactive.title.form" : {
+      "comment" : "Title of the sheet for a form a bot asks the person to fill in. The argument is the bot's name.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%@ bittet dich, ein Formular auszufüllen"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%@ asks you to fill in a form"
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%@ vraagt je een formulier in te vullen"
+          }
+        }
+      }
+    },
+    "native.interactive.tryAgain" : {
+      "comment" : "Button that sends an answer or an upload again after it failed.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Erneut versuchen"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Try again"
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Opnieuw proberen"
+          }
+        }
+      }
+    },
     "native.later" : {
       "extractionState" : "manual",
       "localizations" : {

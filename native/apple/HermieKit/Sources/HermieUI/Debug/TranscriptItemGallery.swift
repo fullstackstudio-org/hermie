@@ -248,6 +248,26 @@
       add("Approval, denied", g.approval(seq: 23, state: .answered, answer: "deny"))
       add("Clarify, open", g.clarify(seq: 24, state: .open))
       add("Clarify, answered", g.clarify(seq: 25, state: .answered))
+      func request(_ id: String, seq: Int, method: String, title: String, state: RequestState, summary: RequestAnswerSummary? = nil)
+        -> TranscriptItem
+      {
+        .request(
+          RequestItem(
+            base: ItemBase(id: id, seq: seq, origin: .live, version: 1), requestID: "srq-\(id)", method: method,
+            title: title, summary: "Fill this in and I will book the best match.", optional: true, state: state,
+            answerSummary: summary))
+      }
+      add("Request, form open", request("r1", seq: 27, method: "input.form", title: "Hotel booking", state: .open))
+      add(
+        "Request, files sent",
+        request(
+          "r2", seq: 28, method: "input.file", title: "Receipt", state: .answered,
+          summary: RequestAnswerSummary(status: "answered", count: 2)))
+      add(
+        "Request, draft approved with changes",
+        request(
+          "r3", seq: 29, method: "review.draft", title: "Reply to the landlord", state: .answered,
+          summary: RequestAnswerSummary(decision: "approved", edited: true)))
       add("Unknown kind", .unknown(UnknownItem(kindName: "poll", base: ItemBase(id: "x", seq: 26, origin: .live, version: 1))))
       return samples
     }()

@@ -78,7 +78,7 @@
 		<true/>
 	</dict>
 	<key>NSCameraUsageDescription</key>
-	<string>Hermie uses the camera so you can take a photo and attach it to a message.</string>
+	<string>Hermie uses the camera so you can take a photo or scan a document, to attach to a message or to send when a bot asks for a file.</string>
 	<key>NSFaceIDUsageDescription</key>
 	<string>Hermie uses Face ID to unlock the app.</string>
 	<key>NSLocalNetworkUsageDescription</key>

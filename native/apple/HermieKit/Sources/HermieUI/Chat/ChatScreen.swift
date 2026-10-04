@@ -32,7 +32,8 @@ public struct ChatComposerContext {
    and keeps its last row above it. The default is `StandardComposer` (`ComposerView` with the
    request and secure-prompt notices above it).
  - Approval and clarify answers go through the chat's `RequestsModel` (`answeringRequests`), and
-   secure prompts through its `SecureInputModel` (`secureInput`). `actions` builds the rest of the
+   secure prompts through its `SecureInputModel` (`secureInput`), and forms, file requests and draft
+   reviews through its `InteractiveModel` (`interactiveRequests`). `actions` builds the rest of the
    rows' actions once per opened chat; opening another bot's chat goes through the router.
 
  It reads the session from `LiveGateway` in the environment; a chat on a gateway that is not live,
@@ -180,6 +181,10 @@ struct ChatSessionView<Composer: View>: View {
           .modifier(OwnAuthor(session: session))
           .answeringRequests(with: feed.requests, actions: feed.itemActions)
           .secureInput(feed.secureInput)
+          // Never over another sheet of the chat: an approval, a passkey confirmation, a secure prompt.
+          .interactiveRequests(
+            feed.interactive,
+            blocked: feed.requests.presentedRequestID != nil || feed.secureInput.presentedID != nil)
           .safeAreaInset(edge: .top, spacing: 0) {
             ChatBanners(feed: feed)
           }

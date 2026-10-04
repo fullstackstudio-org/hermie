@@ -47,6 +47,9 @@ final class ChatFeed: ChatScreenFeed {
   let composer: ComposerModel
   let requests: RequestsModel
   let secureInput: SecureInputModel
+  /// The forms, file requests and draft reviews of this chat (`input.form`, `input.file`,
+  /// `review.draft`).
+  let interactive: InteractiveModel
 
   private(set) var rows = TranscriptListItems<TranscriptRow>()
   /// The first rows have arrived.
@@ -110,6 +113,7 @@ final class ChatFeed: ChatScreenFeed {
     self.composer = ComposerModel(session: session, bot: chat.bot)
     self.requests = RequestsModel(session: session, bot: chat.bot)
     self.secureInput = SecureInputModel(session: session, bot: chat.bot)
+    self.interactive = InteractiveModel(session: session, bot: chat.bot)
     self.itemActions = actions(model)
     ChatLifecycleLog.note("feed f\(tag) made for \(chat.bot) (lease \(lease.id))")
   }

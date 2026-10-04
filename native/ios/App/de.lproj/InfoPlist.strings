@@ -1,2 +1,2 @@
-/* The camera permission prompt: shown when the reader first takes a photo to attach to a message. */
-"NSCameraUsageDescription" = "Hermie verwendet die Kamera, damit du ein Foto aufnehmen und an eine Nachricht anhängen kannst.";
+/* The camera permission prompt: shown when the reader first takes a photo or scans a document, to attach to a message or to send when a bot asks for a file. */
+"NSCameraUsageDescription" = "Hermie verwendet die Kamera, damit du ein Foto aufnehmen oder ein Dokument scannen kannst, um es an eine Nachricht anzuhängen oder zu senden, wenn ein Bot nach einer Datei fragt.";

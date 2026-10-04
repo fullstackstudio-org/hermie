@@ -364,6 +364,32 @@ which still hands it to the center so the chat can say the bot asked for somethi
 show. The chat screen mounts it with `.secureInput(SecureInputModel(session:bot:))`; the chat list
 reads `session.secureInput.needsInput(bot)` for its marker.
 
+The interactive requests (`input.form`, `input.file`, `review.draft`; `contract/requests/README.md`)
+have their own center (`session.interactive`, `InteractiveRequestCenter`) and, per chat, an
+`InteractiveModel` that the chat screen mounts with `.interactiveRequests(_:blocked:)` (never while
+another sheet of the chat is up, never over the app lock). The session announces the device's own list
+(`InteractiveCapabilities.deviceMethods()`) in its second `client.capabilities` call. One sheet per
+method (`FormSheet`, `FileSheet`, `DraftSheet`), in the chrome of `InteractiveSheetFrame`: who asks, on
+which gateway and for what pinned at the top, what the agent says as plain text marked as its own
+words, the buttons pinned below, a 400 ms tap guard, a countdown, and Later, Esc or a swipe putting the
+sheet away without answering (`InteractiveModel.later()`; the request stays open and its transcript
+card, `InteractiveRequestCardView`, opens it again). What is typed lives in a model of the sheet's own
+(`InteractiveFormModel`, `InteractiveFileModel`, `InteractiveDraftModel`) and goes only into the answer,
+which goes through `InteractiveModel.answer`; the models are wiped when it went out or the sheet goes.
+The form runs the gateway's own checks (`FormRules`, in the order of the contract's table) before it
+sends and shows the gateway's refusal (`field:<id>:<problem>`) next to the field it names; a datetime is
+answered as an instant with its numeric offset plus the zone in brackets, an amount as a decimal string
+with at most the currency's minor unit. The file sheet offers the photo library, the camera and Files
+and, on a device that has it, the document scanner (`VNDocumentCameraViewController`; not on the Mac);
+it enforces `max_files`, `max_bytes` and `max_total_bytes` as files are added, removes EXIF and GPS data
+from images when the request says `strip_metadata`, assembles a scan into a PDF for `accept: document`,
+uploads each file through `GatewayLink.uploadFile` directly into `upload.dir` as
+`<16 hex>-<safe name>` with progress and a way to cancel, and answers with the path, name, type, size
+and SHA-256 of the bytes as uploaded. A failed upload is said in the sheet; Give up then answers `4041
+upload_failed`. The draft sheet shows the text verbatim in a monospaced block or editor, with every
+invisible or bidirectional character made visible as a code, and will not approve text the gateway
+would refuse (`text:not_verbatim`).
+
 `LiveGateway` (`HermieCore/LiveGateway.swift`) is the app's one live session (ADR-0024). The app
 shell builds it next to `GatewayAccounts`; it follows the registry's active gateway once
 `AppLaunch.start()` has finished (`AppLaunch.ready`), shuts the old session down before it builds

@@ -53,10 +53,10 @@ import Testing
     #expect(changed == [replyID])
   }
 
-  /// Approvals and clarifies are always drawn (the selectors never hide them).
+  /// Approvals, clarifies and requests are always drawn (the selectors never hide them).
   private static func drawsWhenHidden(_ item: TranscriptItem) -> Bool {
     switch item {
-    case .approval, .clarify, .cronDelivery: true
+    case .approval, .clarify, .cronDelivery, .request: true
     default: false
     }
   }

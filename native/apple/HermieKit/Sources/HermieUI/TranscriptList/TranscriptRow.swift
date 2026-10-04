@@ -340,8 +340,7 @@ public struct TranscriptRowBuilder: Sendable {
   static func drawsNothing(_ row: TranscriptRow) -> Bool {
     switch row.content {
     case .item(let visible):
-      // A `request` item has no card yet, so it takes no room either.
-      visible.presentation == .hiddenPlaceholder || visible.item.asRequest != nil
+      visible.presentation == .hiddenPlaceholder
     case .botDmRollup, .typingIndicator: false
     case .toolGroup(let members): drawnTools(members).isEmpty
     }

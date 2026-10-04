@@ -420,6 +420,218 @@
 	<string>Hermie kon dat verzoek niet lezen. Misschien is het gemaakt door een nieuwere versie.</string>
 	<key>native.intents.withdrawn</key>
 	<string>Het bericht is in Hermie uit de wachtrij gehaald voordat het eruit ging, dus er is niets verstuurd.</string>
+	<key>native.interactive.card.answered</key>
+	<string>Beantwoord</string>
+	<key>native.interactive.card.answeredElsewhere</key>
+	<string>Beantwoord op een ander apparaat</string>
+	<key>native.interactive.card.approved</key>
+	<string>Goedgekeurd</string>
+	<key>native.interactive.card.approvedEdited</key>
+	<string>Goedgekeurd met wijzigingen</string>
+	<key>native.interactive.card.draft</key>
+	<string>Conceptbeoordeling</string>
+	<key>native.interactive.card.ended</key>
+	<string>Beëindigd zonder antwoord</string>
+	<key>native.interactive.card.file</key>
+	<string>Bestand</string>
+	<key>native.interactive.card.files</key>
+	<string>Bestanden verstuurd: %lld</string>
+	<key>native.interactive.card.form</key>
+	<string>Formulier</string>
+	<key>native.interactive.card.open</key>
+	<string>Wacht op je antwoord</string>
+	<key>native.interactive.card.openAction</key>
+	<string>Openen</string>
+	<key>native.interactive.card.rejected</key>
+	<string>Afgewezen</string>
+	<key>native.interactive.card.skipped</key>
+	<string>Overgeslagen</string>
+	<key>native.interactive.card.timedOut</key>
+	<string>Verlopen</string>
+	<key>native.interactive.close</key>
+	<string>Sluiten</string>
+	<key>native.interactive.draft.approve</key>
+	<string>Goedkeuren</string>
+	<key>native.interactive.draft.approveWithChanges</key>
+	<string>Goedkeuren met wijzigingen</string>
+	<key>native.interactive.draft.back</key>
+	<string>Terug</string>
+	<key>native.interactive.draft.comment</key>
+	<string>Een toelichting voor %@ (optioneel)</string>
+	<key>native.interactive.draft.commentTooLong</key>
+	<string>De toelichting is langer dan %lld tekens.</string>
+	<key>native.interactive.draft.edited</key>
+	<string>Aangepast</string>
+	<key>native.interactive.draft.hiddenLegend</key>
+	<string>Onzichtbare tekens worden als codes tussen haken getoond.</string>
+	<key>native.interactive.draft.hiddenWarning</key>
+	<string>De tekst bevat tekens die niet zo verstuurd kunnen worden:</string>
+	<key>native.interactive.draft.kind.document</key>
+	<string>Document</string>
+	<key>native.interactive.draft.kind.mail</key>
+	<string>E-mail</string>
+	<key>native.interactive.draft.kind.message</key>
+	<string>Bericht</string>
+	<key>native.interactive.draft.kind.other</key>
+	<string>Concept</string>
+	<key>native.interactive.draft.kind.post</key>
+	<string>Post</string>
+	<key>native.interactive.draft.notEditable</key>
+	<string>Dit concept kan niet worden aangepast. Je kunt het goedkeuren of afwijzen.</string>
+	<key>native.interactive.draft.recipients</key>
+	<string>Ontvangers</string>
+	<key>native.interactive.draft.reject</key>
+	<string>Afwijzen…</string>
+	<key>native.interactive.draft.rejectConfirm</key>
+	<string>Concept afwijzen</string>
+	<key>native.interactive.draft.removeHidden</key>
+	<string>Verwijder ze</string>
+	<key>native.interactive.draft.revert</key>
+	<string>Mijn wijzigingen ongedaan maken</string>
+	<key>native.interactive.draft.subject</key>
+	<string>Onderwerp</string>
+	<key>native.interactive.draft.textLabel</key>
+	<string>Concepttekst</string>
+	<key>native.interactive.draft.tooLong</key>
+	<string>De tekst is langer dan %lld tekens.</string>
+	<key>native.interactive.earlierAnswerLost</key>
+	<string>Je eerdere antwoord is niet bij de gateway aangekomen. Beantwoord het opnieuw.</string>
+	<key>native.interactive.file.cancelUpload</key>
+	<string>Upload annuleren</string>
+	<key>native.interactive.file.changeFiles</key>
+	<string>Andere bestanden kiezen</string>
+	<key>native.interactive.file.giveUp</key>
+	<string>Opgeven</string>
+	<key>native.interactive.file.giveUpNote</key>
+	<string>Opgeven laat de bot weten dat het bestand niet verstuurd kon worden.</string>
+	<key>native.interactive.file.inTotal</key>
+	<string>%@ in totaal</string>
+	<key>native.interactive.file.noFiles</key>
+	<string>Nog geen bestand gekozen.</string>
+	<key>native.interactive.file.oneFile</key>
+	<string>Eén bestand</string>
+	<key>native.interactive.file.perFile</key>
+	<string>%@ per bestand</string>
+	<key>native.interactive.file.rejectTooLarge</key>
+	<string>%1$@ is groter dan %2$@.</string>
+	<key>native.interactive.file.rejectTooMany</key>
+	<string>Je kunt maximaal %lld bestanden toevoegen.</string>
+	<key>native.interactive.file.rejectTotal</key>
+	<string>De bestanden mogen samen niet groter zijn dan %@.</string>
+	<key>native.interactive.file.rejectUnreadable</key>
+	<string>%@ kon niet worden gelezen.</string>
+	<key>native.interactive.file.scan</key>
+	<string>Document scannen</string>
+	<key>native.interactive.file.stripNote</key>
+	<string>Cameragegevens en locatie worden uit foto’s verwijderd voordat ze worden verstuurd.</string>
+	<key>native.interactive.file.upToFiles</key>
+	<string>Maximaal %lld bestanden</string>
+	<key>native.interactive.file.uploadAndSend</key>
+	<string>Uploaden en versturen</string>
+	<key>native.interactive.file.uploadFailed</key>
+	<string>De upload is niet gelukt.</string>
+	<key>native.interactive.file.uploaded</key>
+	<string>Je bestanden zijn geüpload.</string>
+	<key>native.interactive.form.atLeast</key>
+	<string>Minimaal %@</string>
+	<key>native.interactive.form.atMost</key>
+	<string>Maximaal %@</string>
+	<key>native.interactive.form.between</key>
+	<string>Tussen %1$@ en %2$@</string>
+	<key>native.interactive.form.characters</key>
+	<string>%1$lld van %2$lld tekens</string>
+	<key>native.interactive.form.choose</key>
+	<string>Kies…</string>
+	<key>native.interactive.form.chooseDate</key>
+	<string>Kies een datum</string>
+	<key>native.interactive.form.chooseDateTime</key>
+	<string>Kies datum en tijd</string>
+	<key>native.interactive.form.chooseRange</key>
+	<string>Kies datums</string>
+	<key>native.interactive.form.chooseTime</key>
+	<string>Kies een tijd</string>
+	<key>native.interactive.form.clear</key>
+	<string>Wissen</string>
+	<key>native.interactive.form.decimals</key>
+	<string>%1$@, maximaal %2$lld decimalen</string>
+	<key>native.interactive.form.from</key>
+	<string>Van</string>
+	<key>native.interactive.form.inZone</key>
+	<string>In tijdzone %@</string>
+	<key>native.interactive.form.needAttention</key>
+	<string>Een paar velden vragen je aandacht.</string>
+	<key>native.interactive.form.none</key>
+	<string>Geen</string>
+	<key>native.interactive.form.problem.aboveMax</key>
+	<string>Mag maximaal %@ zijn.</string>
+	<key>native.interactive.form.problem.after</key>
+	<string>Moet op of voor %@ liggen.</string>
+	<key>native.interactive.form.problem.before</key>
+	<string>Moet op of na %@ liggen.</string>
+	<key>native.interactive.form.problem.belowMin</key>
+	<string>Moet minimaal %@ zijn.</string>
+	<key>native.interactive.form.problem.format</key>
+	<string>Dit heeft niet de juiste vorm.</string>
+	<key>native.interactive.form.problem.missing</key>
+	<string>Dit is verplicht.</string>
+	<key>native.interactive.form.problem.notInteger</key>
+	<string>Vul een heel getal in.</string>
+	<key>native.interactive.form.problem.order</key>
+	<string>Het einde ligt voor het begin.</string>
+	<key>native.interactive.form.problem.other</key>
+	<string>De gateway accepteerde deze waarde niet.</string>
+	<key>native.interactive.form.problem.step</key>
+	<string>Moet in stappen van %1$@ vanaf %2$@ gaan.</string>
+	<key>native.interactive.form.problem.tooFew</key>
+	<string>Kies er minimaal %lld.</string>
+	<key>native.interactive.form.problem.tooLong</key>
+	<string>Te lang: maximaal %lld tekens.</string>
+	<key>native.interactive.form.problem.tooMany</key>
+	<string>Kies er maximaal %lld.</string>
+	<key>native.interactive.form.required</key>
+	<string>verplicht</string>
+	<key>native.interactive.form.to</key>
+	<string>Tot</string>
+	<key>native.interactive.form.wholeAmounts</key>
+	<string>%@, hele bedragen</string>
+	<key>native.interactive.later</key>
+	<string>Later</string>
+	<key>native.interactive.notice.answeredElsewhere</key>
+	<string>Dit is op een ander apparaat beantwoord. Er is niets vanaf hier verstuurd.</string>
+	<key>native.interactive.notice.cannotShow</key>
+	<string>Hermie kon een verzoek van %@ niet tonen en heeft dat gemeld.</string>
+	<key>native.interactive.notice.notAllowed</key>
+	<string>Dit apparaat mag dit verzoek niet beantwoorden. Een ander apparaat moet dat doen.</string>
+	<key>native.interactive.onBehalfOf</key>
+	<string>Namens %@</string>
+	<key>native.interactive.refusal.edited</key>
+	<string>Dit concept kan niet worden aangepast.</string>
+	<key>native.interactive.refusal.fileRefused</key>
+	<string>De gateway accepteerde een van de bestanden niet.</string>
+	<key>native.interactive.refusal.filesTooLarge</key>
+	<string>De bestanden zijn samen te groot.</string>
+	<key>native.interactive.refusal.notOptional</key>
+	<string>Dit verzoek kan niet worden overgeslagen.</string>
+	<key>native.interactive.refusal.notVerbatim</key>
+	<string>De tekst bevat tekens die niet zo verstuurd kunnen worden.</string>
+	<key>native.interactive.refusal.other</key>
+	<string>De gateway accepteerde dit antwoord niet.</string>
+	<key>native.interactive.refusal.tooManyFiles</key>
+	<string>Te veel bestanden.</string>
+	<key>native.interactive.says</key>
+	<string>%@ zegt</string>
+	<key>native.interactive.send</key>
+	<string>Versturen</string>
+	<key>native.interactive.skip</key>
+	<string>Overslaan</string>
+	<key>native.interactive.title.draft</key>
+	<string>%@ vraagt je een concept te beoordelen</string>
+	<key>native.interactive.title.file</key>
+	<string>%@ vraagt je om een bestand</string>
+	<key>native.interactive.title.form</key>
+	<string>%@ vraagt je een formulier in te vullen</string>
+	<key>native.interactive.tryAgain</key>
+	<string>Opnieuw proberen</string>
 	<key>native.later</key>
 	<string>Komt in een latere build.</string>
 	<key>native.lock.coverLabel</key>

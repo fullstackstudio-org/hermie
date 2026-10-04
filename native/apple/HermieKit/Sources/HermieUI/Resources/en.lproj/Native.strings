@@ -420,6 +420,218 @@
 	<string>Hermie could not read that request. It may have been made by a newer version.</string>
 	<key>native.intents.withdrawn</key>
 	<string>The message was taken back out of the queue in Hermie before it went out, so nothing was sent.</string>
+	<key>native.interactive.card.answered</key>
+	<string>Answered</string>
+	<key>native.interactive.card.answeredElsewhere</key>
+	<string>Answered on another device</string>
+	<key>native.interactive.card.approved</key>
+	<string>Approved</string>
+	<key>native.interactive.card.approvedEdited</key>
+	<string>Approved with changes</string>
+	<key>native.interactive.card.draft</key>
+	<string>Draft review</string>
+	<key>native.interactive.card.ended</key>
+	<string>Ended without an answer</string>
+	<key>native.interactive.card.file</key>
+	<string>File</string>
+	<key>native.interactive.card.files</key>
+	<string>Files sent: %lld</string>
+	<key>native.interactive.card.form</key>
+	<string>Form</string>
+	<key>native.interactive.card.open</key>
+	<string>Waiting for your answer</string>
+	<key>native.interactive.card.openAction</key>
+	<string>Open</string>
+	<key>native.interactive.card.rejected</key>
+	<string>Rejected</string>
+	<key>native.interactive.card.skipped</key>
+	<string>Skipped</string>
+	<key>native.interactive.card.timedOut</key>
+	<string>Timed out</string>
+	<key>native.interactive.close</key>
+	<string>Close</string>
+	<key>native.interactive.draft.approve</key>
+	<string>Approve</string>
+	<key>native.interactive.draft.approveWithChanges</key>
+	<string>Approve with changes</string>
+	<key>native.interactive.draft.back</key>
+	<string>Back</string>
+	<key>native.interactive.draft.comment</key>
+	<string>A word for %@ (optional)</string>
+	<key>native.interactive.draft.commentTooLong</key>
+	<string>The comment is longer than %lld characters.</string>
+	<key>native.interactive.draft.edited</key>
+	<string>Edited</string>
+	<key>native.interactive.draft.hiddenLegend</key>
+	<string>Invisible characters are shown as codes in brackets.</string>
+	<key>native.interactive.draft.hiddenWarning</key>
+	<string>The text holds characters that cannot be sent as they are:</string>
+	<key>native.interactive.draft.kind.document</key>
+	<string>Document</string>
+	<key>native.interactive.draft.kind.mail</key>
+	<string>Mail</string>
+	<key>native.interactive.draft.kind.message</key>
+	<string>Message</string>
+	<key>native.interactive.draft.kind.other</key>
+	<string>Draft</string>
+	<key>native.interactive.draft.kind.post</key>
+	<string>Post</string>
+	<key>native.interactive.draft.notEditable</key>
+	<string>This draft cannot be changed. You can approve or reject it.</string>
+	<key>native.interactive.draft.recipients</key>
+	<string>Recipients</string>
+	<key>native.interactive.draft.reject</key>
+	<string>Reject…</string>
+	<key>native.interactive.draft.rejectConfirm</key>
+	<string>Reject draft</string>
+	<key>native.interactive.draft.removeHidden</key>
+	<string>Remove them</string>
+	<key>native.interactive.draft.revert</key>
+	<string>Undo my changes</string>
+	<key>native.interactive.draft.subject</key>
+	<string>Subject</string>
+	<key>native.interactive.draft.textLabel</key>
+	<string>Draft text</string>
+	<key>native.interactive.draft.tooLong</key>
+	<string>The text is longer than %lld characters.</string>
+	<key>native.interactive.earlierAnswerLost</key>
+	<string>Your earlier answer did not reach the gateway. Please answer again.</string>
+	<key>native.interactive.file.cancelUpload</key>
+	<string>Cancel upload</string>
+	<key>native.interactive.file.changeFiles</key>
+	<string>Choose other files</string>
+	<key>native.interactive.file.giveUp</key>
+	<string>Give up</string>
+	<key>native.interactive.file.giveUpNote</key>
+	<string>Giving up tells the bot that the file could not be sent.</string>
+	<key>native.interactive.file.inTotal</key>
+	<string>%@ in total</string>
+	<key>native.interactive.file.noFiles</key>
+	<string>No file chosen yet.</string>
+	<key>native.interactive.file.oneFile</key>
+	<string>One file</string>
+	<key>native.interactive.file.perFile</key>
+	<string>%@ per file</string>
+	<key>native.interactive.file.rejectTooLarge</key>
+	<string>%1$@ is larger than %2$@.</string>
+	<key>native.interactive.file.rejectTooMany</key>
+	<string>You can add at most %lld files.</string>
+	<key>native.interactive.file.rejectTotal</key>
+	<string>The files together may not be larger than %@.</string>
+	<key>native.interactive.file.rejectUnreadable</key>
+	<string>%@ could not be read.</string>
+	<key>native.interactive.file.scan</key>
+	<string>Scan a document</string>
+	<key>native.interactive.file.stripNote</key>
+	<string>Camera details and location are removed from photos before they are sent.</string>
+	<key>native.interactive.file.upToFiles</key>
+	<string>Up to %lld files</string>
+	<key>native.interactive.file.uploadAndSend</key>
+	<string>Upload and send</string>
+	<key>native.interactive.file.uploadFailed</key>
+	<string>The upload did not work.</string>
+	<key>native.interactive.file.uploaded</key>
+	<string>Your files are uploaded.</string>
+	<key>native.interactive.form.atLeast</key>
+	<string>At least %@</string>
+	<key>native.interactive.form.atMost</key>
+	<string>At most %@</string>
+	<key>native.interactive.form.between</key>
+	<string>Between %1$@ and %2$@</string>
+	<key>native.interactive.form.characters</key>
+	<string>%1$lld of %2$lld characters</string>
+	<key>native.interactive.form.choose</key>
+	<string>Choose…</string>
+	<key>native.interactive.form.chooseDate</key>
+	<string>Choose a date</string>
+	<key>native.interactive.form.chooseDateTime</key>
+	<string>Choose date and time</string>
+	<key>native.interactive.form.chooseRange</key>
+	<string>Choose dates</string>
+	<key>native.interactive.form.chooseTime</key>
+	<string>Choose a time</string>
+	<key>native.interactive.form.clear</key>
+	<string>Clear</string>
+	<key>native.interactive.form.decimals</key>
+	<string>%1$@, up to %2$lld decimals</string>
+	<key>native.interactive.form.from</key>
+	<string>From</string>
+	<key>native.interactive.form.inZone</key>
+	<string>In time zone %@</string>
+	<key>native.interactive.form.needAttention</key>
+	<string>Some fields need your attention.</string>
+	<key>native.interactive.form.none</key>
+	<string>None</string>
+	<key>native.interactive.form.problem.aboveMax</key>
+	<string>Must be at most %@.</string>
+	<key>native.interactive.form.problem.after</key>
+	<string>Must be on or before %@.</string>
+	<key>native.interactive.form.problem.before</key>
+	<string>Must be on or after %@.</string>
+	<key>native.interactive.form.problem.belowMin</key>
+	<string>Must be at least %@.</string>
+	<key>native.interactive.form.problem.format</key>
+	<string>That is not in the right format.</string>
+	<key>native.interactive.form.problem.missing</key>
+	<string>This is required.</string>
+	<key>native.interactive.form.problem.notInteger</key>
+	<string>Enter a whole number.</string>
+	<key>native.interactive.form.problem.order</key>
+	<string>The end is before the start.</string>
+	<key>native.interactive.form.problem.other</key>
+	<string>The gateway did not accept this value.</string>
+	<key>native.interactive.form.problem.step</key>
+	<string>Must go up in steps of %1$@ from %2$@.</string>
+	<key>native.interactive.form.problem.tooFew</key>
+	<string>Choose at least %lld.</string>
+	<key>native.interactive.form.problem.tooLong</key>
+	<string>Too long: at most %lld characters.</string>
+	<key>native.interactive.form.problem.tooMany</key>
+	<string>Choose at most %lld.</string>
+	<key>native.interactive.form.required</key>
+	<string>required</string>
+	<key>native.interactive.form.to</key>
+	<string>To</string>
+	<key>native.interactive.form.wholeAmounts</key>
+	<string>%@, whole amounts</string>
+	<key>native.interactive.later</key>
+	<string>Later</string>
+	<key>native.interactive.notice.answeredElsewhere</key>
+	<string>This was answered on another device. Nothing was sent from here.</string>
+	<key>native.interactive.notice.cannotShow</key>
+	<string>Hermie could not show a request from %@ and told it so.</string>
+	<key>native.interactive.notice.notAllowed</key>
+	<string>This device is not allowed to answer this request. Another device has to.</string>
+	<key>native.interactive.onBehalfOf</key>
+	<string>On behalf of %@</string>
+	<key>native.interactive.refusal.edited</key>
+	<string>This draft cannot be changed.</string>
+	<key>native.interactive.refusal.fileRefused</key>
+	<string>The gateway did not accept one of the files.</string>
+	<key>native.interactive.refusal.filesTooLarge</key>
+	<string>The files are too large together.</string>
+	<key>native.interactive.refusal.notOptional</key>
+	<string>This request cannot be skipped.</string>
+	<key>native.interactive.refusal.notVerbatim</key>
+	<string>The text holds characters that cannot be sent as they are.</string>
+	<key>native.interactive.refusal.other</key>
+	<string>The gateway did not accept this answer.</string>
+	<key>native.interactive.refusal.tooManyFiles</key>
+	<string>Too many files.</string>
+	<key>native.interactive.says</key>
+	<string>%@ says</string>
+	<key>native.interactive.send</key>
+	<string>Send</string>
+	<key>native.interactive.skip</key>
+	<string>Skip</string>
+	<key>native.interactive.title.draft</key>
+	<string>%@ asks you to review a draft</string>
+	<key>native.interactive.title.file</key>
+	<string>%@ asks you for a file</string>
+	<key>native.interactive.title.form</key>
+	<string>%@ asks you to fill in a form</string>
+	<key>native.interactive.tryAgain</key>
+	<string>Try again</string>
 	<key>native.later</key>
 	<string>Coming in a later build.</string>
 	<key>native.lock.coverLabel</key>

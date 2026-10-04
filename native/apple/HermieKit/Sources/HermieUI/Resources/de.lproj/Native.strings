@@ -420,6 +420,218 @@
 	<string>Hermie konnte diese Anfrage nicht lesen. Vielleicht stammt sie von einer neueren Version.</string>
 	<key>native.intents.withdrawn</key>
 	<string>Die Nachricht wurde in Hermie aus der Warteschlange genommen, bevor sie rausging, deshalb wurde nichts gesendet.</string>
+	<key>native.interactive.card.answered</key>
+	<string>Beantwortet</string>
+	<key>native.interactive.card.answeredElsewhere</key>
+	<string>Auf einem anderen Gerät beantwortet</string>
+	<key>native.interactive.card.approved</key>
+	<string>Genehmigt</string>
+	<key>native.interactive.card.approvedEdited</key>
+	<string>Mit Änderungen genehmigt</string>
+	<key>native.interactive.card.draft</key>
+	<string>Entwurfsprüfung</string>
+	<key>native.interactive.card.ended</key>
+	<string>Ohne Antwort beendet</string>
+	<key>native.interactive.card.file</key>
+	<string>Datei</string>
+	<key>native.interactive.card.files</key>
+	<string>Dateien gesendet: %lld</string>
+	<key>native.interactive.card.form</key>
+	<string>Formular</string>
+	<key>native.interactive.card.open</key>
+	<string>Wartet auf deine Antwort</string>
+	<key>native.interactive.card.openAction</key>
+	<string>Öffnen</string>
+	<key>native.interactive.card.rejected</key>
+	<string>Abgelehnt</string>
+	<key>native.interactive.card.skipped</key>
+	<string>Übersprungen</string>
+	<key>native.interactive.card.timedOut</key>
+	<string>Abgelaufen</string>
+	<key>native.interactive.close</key>
+	<string>Schließen</string>
+	<key>native.interactive.draft.approve</key>
+	<string>Genehmigen</string>
+	<key>native.interactive.draft.approveWithChanges</key>
+	<string>Mit Änderungen genehmigen</string>
+	<key>native.interactive.draft.back</key>
+	<string>Zurück</string>
+	<key>native.interactive.draft.comment</key>
+	<string>Ein Wort an %@ (optional)</string>
+	<key>native.interactive.draft.commentTooLong</key>
+	<string>Die Anmerkung ist länger als %lld Zeichen.</string>
+	<key>native.interactive.draft.edited</key>
+	<string>Geändert</string>
+	<key>native.interactive.draft.hiddenLegend</key>
+	<string>Unsichtbare Zeichen werden als Codes in Klammern angezeigt.</string>
+	<key>native.interactive.draft.hiddenWarning</key>
+	<string>Der Text enthält Zeichen, die nicht so gesendet werden können:</string>
+	<key>native.interactive.draft.kind.document</key>
+	<string>Dokument</string>
+	<key>native.interactive.draft.kind.mail</key>
+	<string>E-Mail</string>
+	<key>native.interactive.draft.kind.message</key>
+	<string>Nachricht</string>
+	<key>native.interactive.draft.kind.other</key>
+	<string>Entwurf</string>
+	<key>native.interactive.draft.kind.post</key>
+	<string>Beitrag</string>
+	<key>native.interactive.draft.notEditable</key>
+	<string>Dieser Entwurf kann nicht geändert werden. Du kannst ihn genehmigen oder ablehnen.</string>
+	<key>native.interactive.draft.recipients</key>
+	<string>Empfänger</string>
+	<key>native.interactive.draft.reject</key>
+	<string>Ablehnen …</string>
+	<key>native.interactive.draft.rejectConfirm</key>
+	<string>Entwurf ablehnen</string>
+	<key>native.interactive.draft.removeHidden</key>
+	<string>Entfernen</string>
+	<key>native.interactive.draft.revert</key>
+	<string>Meine Änderungen rückgängig machen</string>
+	<key>native.interactive.draft.subject</key>
+	<string>Betreff</string>
+	<key>native.interactive.draft.textLabel</key>
+	<string>Entwurfstext</string>
+	<key>native.interactive.draft.tooLong</key>
+	<string>Der Text ist länger als %lld Zeichen.</string>
+	<key>native.interactive.earlierAnswerLost</key>
+	<string>Deine frühere Antwort hat das Gateway nicht erreicht. Bitte antworte erneut.</string>
+	<key>native.interactive.file.cancelUpload</key>
+	<string>Hochladen abbrechen</string>
+	<key>native.interactive.file.changeFiles</key>
+	<string>Andere Dateien wählen</string>
+	<key>native.interactive.file.giveUp</key>
+	<string>Aufgeben</string>
+	<key>native.interactive.file.giveUpNote</key>
+	<string>Aufgeben teilt dem Bot mit, dass die Datei nicht gesendet werden konnte.</string>
+	<key>native.interactive.file.inTotal</key>
+	<string>%@ insgesamt</string>
+	<key>native.interactive.file.noFiles</key>
+	<string>Noch keine Datei gewählt.</string>
+	<key>native.interactive.file.oneFile</key>
+	<string>Eine Datei</string>
+	<key>native.interactive.file.perFile</key>
+	<string>%@ pro Datei</string>
+	<key>native.interactive.file.rejectTooLarge</key>
+	<string>%1$@ ist größer als %2$@.</string>
+	<key>native.interactive.file.rejectTooMany</key>
+	<string>Du kannst höchstens %lld Dateien hinzufügen.</string>
+	<key>native.interactive.file.rejectTotal</key>
+	<string>Die Dateien dürfen zusammen nicht größer als %@ sein.</string>
+	<key>native.interactive.file.rejectUnreadable</key>
+	<string>%@ konnte nicht gelesen werden.</string>
+	<key>native.interactive.file.scan</key>
+	<string>Dokument scannen</string>
+	<key>native.interactive.file.stripNote</key>
+	<string>Kameradaten und Standort werden aus Fotos entfernt, bevor sie gesendet werden.</string>
+	<key>native.interactive.file.upToFiles</key>
+	<string>Bis zu %lld Dateien</string>
+	<key>native.interactive.file.uploadAndSend</key>
+	<string>Hochladen und senden</string>
+	<key>native.interactive.file.uploadFailed</key>
+	<string>Das Hochladen hat nicht funktioniert.</string>
+	<key>native.interactive.file.uploaded</key>
+	<string>Deine Dateien sind hochgeladen.</string>
+	<key>native.interactive.form.atLeast</key>
+	<string>Mindestens %@</string>
+	<key>native.interactive.form.atMost</key>
+	<string>Höchstens %@</string>
+	<key>native.interactive.form.between</key>
+	<string>Zwischen %1$@ und %2$@</string>
+	<key>native.interactive.form.characters</key>
+	<string>%1$lld von %2$lld Zeichen</string>
+	<key>native.interactive.form.choose</key>
+	<string>Wählen …</string>
+	<key>native.interactive.form.chooseDate</key>
+	<string>Datum wählen</string>
+	<key>native.interactive.form.chooseDateTime</key>
+	<string>Datum und Uhrzeit wählen</string>
+	<key>native.interactive.form.chooseRange</key>
+	<string>Daten wählen</string>
+	<key>native.interactive.form.chooseTime</key>
+	<string>Uhrzeit wählen</string>
+	<key>native.interactive.form.clear</key>
+	<string>Löschen</string>
+	<key>native.interactive.form.decimals</key>
+	<string>%1$@, höchstens %2$lld Nachkommastellen</string>
+	<key>native.interactive.form.from</key>
+	<string>Von</string>
+	<key>native.interactive.form.inZone</key>
+	<string>In der Zeitzone %@</string>
+	<key>native.interactive.form.needAttention</key>
+	<string>Einige Felder brauchen deine Aufmerksamkeit.</string>
+	<key>native.interactive.form.none</key>
+	<string>Keine</string>
+	<key>native.interactive.form.problem.aboveMax</key>
+	<string>Darf höchstens %@ sein.</string>
+	<key>native.interactive.form.problem.after</key>
+	<string>Muss am oder vor dem %@ liegen.</string>
+	<key>native.interactive.form.problem.before</key>
+	<string>Muss am oder nach dem %@ liegen.</string>
+	<key>native.interactive.form.problem.belowMin</key>
+	<string>Muss mindestens %@ sein.</string>
+	<key>native.interactive.form.problem.format</key>
+	<string>Das hat nicht das richtige Format.</string>
+	<key>native.interactive.form.problem.missing</key>
+	<string>Das ist erforderlich.</string>
+	<key>native.interactive.form.problem.notInteger</key>
+	<string>Gib eine ganze Zahl ein.</string>
+	<key>native.interactive.form.problem.order</key>
+	<string>Das Ende liegt vor dem Anfang.</string>
+	<key>native.interactive.form.problem.other</key>
+	<string>Das Gateway hat diesen Wert nicht akzeptiert.</string>
+	<key>native.interactive.form.problem.step</key>
+	<string>Muss in Schritten von %1$@ ab %2$@ liegen.</string>
+	<key>native.interactive.form.problem.tooFew</key>
+	<string>Wähle mindestens %lld.</string>
+	<key>native.interactive.form.problem.tooLong</key>
+	<string>Zu lang: höchstens %lld Zeichen.</string>
+	<key>native.interactive.form.problem.tooMany</key>
+	<string>Wähle höchstens %lld.</string>
+	<key>native.interactive.form.required</key>
+	<string>erforderlich</string>
+	<key>native.interactive.form.to</key>
+	<string>Bis</string>
+	<key>native.interactive.form.wholeAmounts</key>
+	<string>%@, ganze Beträge</string>
+	<key>native.interactive.later</key>
+	<string>Später</string>
+	<key>native.interactive.notice.answeredElsewhere</key>
+	<string>Das wurde auf einem anderen Gerät beantwortet. Von hier wurde nichts gesendet.</string>
+	<key>native.interactive.notice.cannotShow</key>
+	<string>Hermie konnte eine Anfrage von %@ nicht anzeigen und hat das gemeldet.</string>
+	<key>native.interactive.notice.notAllowed</key>
+	<string>Dieses Gerät darf diese Anfrage nicht beantworten. Ein anderes Gerät muss das tun.</string>
+	<key>native.interactive.onBehalfOf</key>
+	<string>Im Auftrag von %@</string>
+	<key>native.interactive.refusal.edited</key>
+	<string>Dieser Entwurf kann nicht geändert werden.</string>
+	<key>native.interactive.refusal.fileRefused</key>
+	<string>Das Gateway hat eine der Dateien nicht akzeptiert.</string>
+	<key>native.interactive.refusal.filesTooLarge</key>
+	<string>Die Dateien sind zusammen zu groß.</string>
+	<key>native.interactive.refusal.notOptional</key>
+	<string>Diese Anfrage kann nicht übersprungen werden.</string>
+	<key>native.interactive.refusal.notVerbatim</key>
+	<string>Der Text enthält Zeichen, die nicht so gesendet werden können.</string>
+	<key>native.interactive.refusal.other</key>
+	<string>Das Gateway hat diese Antwort nicht akzeptiert.</string>
+	<key>native.interactive.refusal.tooManyFiles</key>
+	<string>Zu viele Dateien.</string>
+	<key>native.interactive.says</key>
+	<string>%@ sagt</string>
+	<key>native.interactive.send</key>
+	<string>Senden</string>
+	<key>native.interactive.skip</key>
+	<string>Überspringen</string>
+	<key>native.interactive.title.draft</key>
+	<string>%@ bittet dich, einen Entwurf zu prüfen</string>
+	<key>native.interactive.title.file</key>
+	<string>%@ bittet dich um eine Datei</string>
+	<key>native.interactive.title.form</key>
+	<string>%@ bittet dich, ein Formular auszufüllen</string>
+	<key>native.interactive.tryAgain</key>
+	<string>Erneut versuchen</string>
 	<key>native.later</key>
 	<string>Kommt in einem späteren Build.</string>
 	<key>native.lock.coverLabel</key>
