@@ -206,7 +206,18 @@ test.describe('Appearance', () => {
     await expect(page.getByRole('heading', { level: 2, name: 'Appearance' })).toHaveCSS('font-size', '20px')
 
     await goTo(page, `#/chat/${BOT}`)
-    await expect(page.locator('.hm-bubble').first()).toHaveCSS('font-size', '18.4px')
+    // 16px at 115%: Firefox reports 18.4063px where Chromium reports 18.4px, so the size is compared
+    // as a number, within 0.05px, not as the string each engine happens to print.
+    await expect
+      .poll(async () =>
+        Number.parseFloat(
+          await page
+            .locator('.hm-bubble')
+            .first()
+            .evaluate(el => getComputedStyle(el).fontSize)
+        )
+      )
+      .toBeCloseTo(18.4, 1)
     await expect(page.getByRole('textbox', { name: /^Message / })).toHaveCSS('font-size', '16px')
   })
 })
