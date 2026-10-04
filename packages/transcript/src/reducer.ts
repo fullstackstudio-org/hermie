@@ -426,6 +426,14 @@ function continuesNote(sealed: string, final: string): boolean {
 }
 
 /**
+ * The row already holds the whole reply: the completion's words, or more. A completion that goes
+ * on past the row's words has words no row holds, and landing it there would drop them.
+ */
+function holdsReply(rowText: string, final: string): boolean {
+  return Boolean(final) && (final === rowText || rowText.startsWith(final))
+}
+
+/**
  * The row a completion that names none still rests on: the turn's last assistant
  * row, when its words are the reply's.
  *
@@ -441,16 +449,20 @@ function continuesNote(sealed: string, final: string): boolean {
  *
  * The receipt bounds the search to this turn: rows are walked from the last one
  * back past the cards, to the first reply or the prompt. A row nothing on screen
- * stands for ends the search, since an earlier note is not the reply then.
+ * stands for ends the search, since an earlier note is not the reply then. The
+ * row must already hold the reply's words (`holdsReply`), and a receipt that says
+ * the turn is not `complete` is not trusted.
  */
 function replyHeldByCallRow(
   next: ChatState,
   payload: Record<string, unknown>,
   finalText: string
 ): AssistantItem | undefined {
-  const rowIds = rec(payload.persisted_turn).row_ids
+  const receipt = rec(payload.persisted_turn)
+  const rowIds = receipt.row_ids
 
-  if (!Array.isArray(rowIds)) {
+  // A receipt that says the turn did not persist whole says nothing about which row is its reply.
+  if (!Array.isArray(rowIds) || receipt.complete === false) {
     return undefined
   }
 
@@ -466,7 +478,7 @@ function replyHeldByCallRow(
       continue
     }
 
-    return !item.streaming && !item.error && continuesNote(item.text.trim(), finalText.trim()) ? item : undefined
+    return !item.streaming && !item.error && holdsReply(item.text.trim(), finalText.trim()) ? item : undefined
   }
 
   return undefined

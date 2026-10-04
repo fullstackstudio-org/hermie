@@ -481,6 +481,14 @@ extension TranscriptReducer {
       && (JS.same(final, sealed) || JS.hasPrefix(final, sealed) || JS.hasPrefix(sealed, final))
   }
 
+  /// The row already holds the whole reply: the completion's words, or more. A completion that goes
+  /// on past the row's words has words no row holds, and landing it there would drop them.
+  ///
+  /// `holdsReply`.
+  static func holdsReply(_ rowText: String, _ final: String) -> Bool {
+    !final.isEmpty && (JS.same(final, rowText) || JS.hasPrefix(rowText, final))
+  }
+
   /// The row a completion that names none still rests on: the turn's last assistant
   /// row, when its words are the reply's.
   ///
@@ -496,11 +504,16 @@ extension TranscriptReducer {
   ///
   /// The receipt bounds the search to this turn: rows are walked from the last one
   /// back past the cards, to the first reply or the prompt. A row nothing on screen
-  /// stands for ends the search, since an earlier note is not the reply then.
+  /// stands for ends the search, since an earlier note is not the reply then. The
+  /// row must already hold the reply's words (`holdsReply`), and a receipt that says
+  /// the turn is not `complete` is not trusted.
   ///
   /// `replyHeldByCallRow`.
   static func replyHeldByCallRow(_ next: ChatState, _ payload: JSONObject, _ finalText: String) -> AssistantItem? {
-    guard case .array(let rowIDs)? = rec(payload["persisted_turn"])["row_ids"] else { return nil }
+    let receipt = rec(payload["persisted_turn"])
+
+    // A receipt that says the turn did not persist whole says nothing about which row is its reply.
+    guard case .array(let rowIDs)? = receipt["row_ids"], receipt["complete"]?.boolValue != false else { return nil }
 
     for rowID in rowIDs.reversed() {
       guard let rowID = rowIDOf(["row_id": rowID]), let item = itemAtRow(next, rowID) else { return nil }
@@ -510,7 +523,7 @@ extension TranscriptReducer {
         return nil
       case .assistant(let assistant):
         return !assistant.streaming && assistant.error == nil
-          && continuesNote(JS.trim(assistant.text), JS.trim(finalText)) ? assistant : nil
+          && holdsReply(JS.trim(assistant.text), JS.trim(finalText)) ? assistant : nil
       default:
         continue
       }

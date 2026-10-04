@@ -625,6 +625,85 @@ describe('a reply that ends on its call', () => {
 
     expect(assistants(state).map(item => item.text)).toEqual([EARLIER_REPLY, REPLY, 'The README says hello.'])
   })
+
+  const COMPLETE_TAIL = (text: string, receipt: Record<string, unknown> = RECEIPT, extra: object = {}) => ({
+    type: 'message.complete',
+    seq: 5,
+    turn_id: TURN,
+    payload: { text, status: 'complete', persisted_turn: receipt, ...extra }
+  })
+
+  /** The socket came back after the call started: history holds `rows`, then the rest of the turn arrives. */
+  const afterDrop = (rows: TranscriptRow[], completion: TranscriptEvent) => {
+    const midTurn = apply(sentTurn(), frames('start'))
+    const swept = reconcileTail(midTurn, rowsToItems([...EARLIER_ROWS, ...rows], 'rpc'))
+
+    return apply(swept, [...frames('complete').slice(3, 4), completion])
+  }
+
+  it('paints its own bubble when the receipt ends on a row nothing on screen stands for', () => {
+    const state = afterDrop(ROWS, COMPLETE_TAIL(REPLY, { ...RECEIPT, row_ids: [11, 12, 13, 14] }))
+
+    expect(assistants(state).map(item => [item.text, item.rowId])).toEqual([
+      [EARLIER_REPLY, 2],
+      [REPLY, 12],
+      [REPLY, undefined]
+    ])
+  })
+
+  it('does not reach back to an earlier note when the turn’s last assistant row says something else', () => {
+    const rows: TranscriptRow[] = [
+      ...ROWS,
+      { role: 'tool', row_id: 13, name: 'read_file', tool_call_id: 'tool-1', call_row_id: 12, call_index: 0 },
+      { role: 'assistant', row_id: 14, text: 'Then I read it.', timestamp: 1_790_000_003 }
+    ]
+    const state = afterDrop(rows, COMPLETE_TAIL(REPLY, { ...RECEIPT, row_ids: [11, 12, 13, 14] }))
+
+    expect(assistants(state).map(item => [item.text, item.rowId])).toEqual([
+      [EARLIER_REPLY, 2],
+      [REPLY, 12],
+      ['Then I read it.', 14],
+      [REPLY, undefined]
+    ])
+  })
+
+  it('never drops words the row does not hold: a completion that goes on past the row is its own bubble', () => {
+    const longer = `${REPLY} The file says hello.`
+    const state = afterDrop(ROWS, COMPLETE_TAIL(longer))
+
+    expect(assistants(state).map(item => [item.text, item.rowId])).toEqual([
+      [EARLIER_REPLY, 2],
+      [REPLY, 12],
+      [longer, undefined]
+    ])
+  })
+
+  it('does not trust a receipt that says the turn did not persist whole', () => {
+    const state = afterDrop(ROWS, COMPLETE_TAIL(REPLY, { ...RECEIPT, complete: false }))
+
+    expect(assistants(state).map(item => item.rowId)).toEqual([2, 12, undefined])
+  })
+
+  it('stands no second bubble up for a reply previewed onto the row history already settled', () => {
+    const state = afterDrop(ROWS, COMPLETE_TAIL(REPLY, RECEIPT, { response_previewed: true }))
+
+    expect(assistants(state).map(item => [item.text, item.rowId])).toEqual([
+      [EARLIER_REPLY, 2],
+      [REPLY, 12]
+    ])
+  })
+
+  it('settles the same when history came before the call, and the call folded the live bubble onto the row', () => {
+    const start = apply(sentTurn(), frames('start').slice(0, 2))
+    const swept = reconcileTail(start, rowsToItems([...EARLIER_ROWS, ...ROWS], 'rpc'))
+    const state = apply(swept, frames('complete').slice(2))
+
+    expect(assistants(state).map(item => [item.text, item.rowId])).toEqual([
+      [EARLIER_REPLY, 2],
+      [REPLY, 12]
+    ])
+    expect(state.turn.active).toBe(false)
+  })
 })
 
 describe('a turn the cache cut mid-stream', () => {
