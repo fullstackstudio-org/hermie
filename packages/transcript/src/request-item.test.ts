@@ -16,6 +16,7 @@ import { reconcile } from './reconcile'
 import { answerRequest, applyEvent, applyResumeSnapshot, applyServerRequest, beginLocalTurn } from './reducer'
 import { rowsToItems, type TranscriptRow } from './rows-to-items'
 import { openRequests, visibleItems } from './selectors'
+import { turnActivity } from './turn-activity'
 import { inputFileRequest, inputFormRequest, reviewDraftRequest, SESSION } from './__fixtures__/events'
 import { type ChatState, createChatState, type RequestItem, type TranscriptItem } from './types'
 
@@ -308,6 +309,22 @@ describe('selectors', () => {
     )
 
     expect(shown.map(row => row.presentation)).toEqual(['full', 'full'])
+  })
+})
+
+describe('turnActivity', () => {
+  it('says the turn is waiting while an interactive request is open, even with no turn running', () => {
+    const open = applyServerRequest(fresh(), inputFormRequest, NOW)
+
+    expect(open.turn.active).toBe(false)
+    expect(turnActivity(open)).toEqual({ kind: 'waiting' })
+  })
+
+  it('stops waiting once the request is answered or withdrawn', () => {
+    const open = applyServerRequest(fresh(), inputFormRequest, NOW)
+
+    expect(turnActivity(answerRequest(open, 'srq-9', { status: 'skipped' }))).toEqual({ kind: 'idle' })
+    expect(turnActivity(cancel(open, 'srq-9', 'timeout'))).toEqual({ kind: 'idle' })
   })
 })
 

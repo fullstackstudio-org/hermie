@@ -10990,6 +10990,646 @@
       },
       {
         "args": [
+          {
+            "botName": "researcher",
+            "byApprovalId": {},
+            "byCallKey": {},
+            "byDelegationId": {},
+            "byProcessId": {},
+            "byRequestId": {},
+            "byRowId": {},
+            "byToolId": {},
+            "draft": "",
+            "hydration": "cold",
+            "items": {},
+            "lastSeq": 0,
+            "order": [],
+            "resolvedSessionId": "resolved-1",
+            "storedSessionId": "stored-1",
+            "subagents": {},
+            "turn": {
+              "active": false,
+              "local": false,
+              "nextSeq": 1000
+            },
+            "unreadCount": 0
+          },
+          {
+            "id": "srq-9",
+            "method": "input.form",
+            "params": {
+              "expires_at": 1791119400,
+              "fields": [
+                {
+                  "id": "name",
+                  "kind": "text",
+                  "label": "Name on the booking",
+                  "max_length": 20,
+                  "required": true
+                },
+                {
+                  "default": 2,
+                  "id": "guests",
+                  "integer": true,
+                  "kind": "number",
+                  "label": "Guests",
+                  "max": 12,
+                  "min": 1,
+                  "required": true
+                }
+              ],
+              "optional": true,
+              "session_id": "run-1a2b",
+              "summary": "I found three hotels in Utrecht. Fill this in and I will book the best match.",
+              "title": "Hotel booking details",
+              "v": 1
+            }
+          },
+          1790000000000
+        ],
+        "op": "applyServerRequest",
+        "result": {
+          "botName": "researcher",
+          "byApprovalId": {},
+          "byCallKey": {},
+          "byDelegationId": {},
+          "byProcessId": {},
+          "byRequestId": {
+            "srq-9": "req:srq-9"
+          },
+          "byRowId": {},
+          "byToolId": {},
+          "draft": "",
+          "hydration": "cold",
+          "items": {
+            "req:srq-9": {
+              "id": "req:srq-9",
+              "kind": "request",
+              "method": "input.form",
+              "optional": true,
+              "origin": "live",
+              "requestId": "srq-9",
+              "seq": 1000,
+              "state": "open",
+              "summary": "I found three hotels in Utrecht. Fill this in and I will book the best match.",
+              "title": "Hotel booking details",
+              "ts": 1790000000,
+              "version": 0
+            }
+          },
+          "lastSeq": 0,
+          "order": [
+            "req:srq-9"
+          ],
+          "resolvedSessionId": "resolved-1",
+          "storedSessionId": "stored-1",
+          "subagents": {},
+          "turn": {
+            "active": false,
+            "local": false,
+            "nextSeq": 2000
+          },
+          "unreadCount": 0
+        }
+      },
+      {
+        "args": [
+          {
+            "botName": "researcher",
+            "byApprovalId": {},
+            "byCallKey": {},
+            "byDelegationId": {},
+            "byProcessId": {},
+            "byRequestId": {
+              "srq-9": "req:srq-9"
+            },
+            "byRowId": {},
+            "byToolId": {},
+            "draft": "",
+            "hydration": "cold",
+            "items": {
+              "req:srq-9": {
+                "id": "req:srq-9",
+                "kind": "request",
+                "method": "input.form",
+                "optional": true,
+                "origin": "live",
+                "requestId": "srq-9",
+                "seq": 1000,
+                "state": "open",
+                "summary": "I found three hotels in Utrecht. Fill this in and I will book the best match.",
+                "title": "Hotel booking details",
+                "ts": 1790000000,
+                "version": 0
+              }
+            },
+            "lastSeq": 0,
+            "order": [
+              "req:srq-9"
+            ],
+            "resolvedSessionId": "resolved-1",
+            "storedSessionId": "stored-1",
+            "subagents": {},
+            "turn": {
+              "active": false,
+              "local": false,
+              "nextSeq": 2000
+            },
+            "unreadCount": 0
+          }
+        ],
+        "op": "turnActivity",
+        "result": {
+          "kind": "waiting"
+        }
+      }
+    ],
+    "test": "turnActivity > says the turn is waiting while an interactive request is open, even with no turn running"
+  },
+  {
+    "calls": [
+      {
+        "args": [
+          "researcher",
+          "stored-1",
+          "resolved-1"
+        ],
+        "op": "createChatState",
+        "result": {
+          "botName": "researcher",
+          "byApprovalId": {},
+          "byCallKey": {},
+          "byDelegationId": {},
+          "byProcessId": {},
+          "byRequestId": {},
+          "byRowId": {},
+          "byToolId": {},
+          "draft": "",
+          "hydration": "cold",
+          "items": {},
+          "lastSeq": 0,
+          "order": [],
+          "resolvedSessionId": "resolved-1",
+          "storedSessionId": "stored-1",
+          "subagents": {},
+          "turn": {
+            "active": false,
+            "local": false,
+            "nextSeq": 1000
+          },
+          "unreadCount": 0
+        }
+      },
+      {
+        "args": [
+          {
+            "botName": "researcher",
+            "byApprovalId": {},
+            "byCallKey": {},
+            "byDelegationId": {},
+            "byProcessId": {},
+            "byRequestId": {},
+            "byRowId": {},
+            "byToolId": {},
+            "draft": "",
+            "hydration": "cold",
+            "items": {},
+            "lastSeq": 0,
+            "order": [],
+            "resolvedSessionId": "resolved-1",
+            "storedSessionId": "stored-1",
+            "subagents": {},
+            "turn": {
+              "active": false,
+              "local": false,
+              "nextSeq": 1000
+            },
+            "unreadCount": 0
+          },
+          {
+            "id": "srq-9",
+            "method": "input.form",
+            "params": {
+              "expires_at": 1791119400,
+              "fields": [
+                {
+                  "id": "name",
+                  "kind": "text",
+                  "label": "Name on the booking",
+                  "max_length": 20,
+                  "required": true
+                },
+                {
+                  "default": 2,
+                  "id": "guests",
+                  "integer": true,
+                  "kind": "number",
+                  "label": "Guests",
+                  "max": 12,
+                  "min": 1,
+                  "required": true
+                }
+              ],
+              "optional": true,
+              "session_id": "run-1a2b",
+              "summary": "I found three hotels in Utrecht. Fill this in and I will book the best match.",
+              "title": "Hotel booking details",
+              "v": 1
+            }
+          },
+          1790000000000
+        ],
+        "op": "applyServerRequest",
+        "result": {
+          "botName": "researcher",
+          "byApprovalId": {},
+          "byCallKey": {},
+          "byDelegationId": {},
+          "byProcessId": {},
+          "byRequestId": {
+            "srq-9": "req:srq-9"
+          },
+          "byRowId": {},
+          "byToolId": {},
+          "draft": "",
+          "hydration": "cold",
+          "items": {
+            "req:srq-9": {
+              "id": "req:srq-9",
+              "kind": "request",
+              "method": "input.form",
+              "optional": true,
+              "origin": "live",
+              "requestId": "srq-9",
+              "seq": 1000,
+              "state": "open",
+              "summary": "I found three hotels in Utrecht. Fill this in and I will book the best match.",
+              "title": "Hotel booking details",
+              "ts": 1790000000,
+              "version": 0
+            }
+          },
+          "lastSeq": 0,
+          "order": [
+            "req:srq-9"
+          ],
+          "resolvedSessionId": "resolved-1",
+          "storedSessionId": "stored-1",
+          "subagents": {},
+          "turn": {
+            "active": false,
+            "local": false,
+            "nextSeq": 2000
+          },
+          "unreadCount": 0
+        }
+      },
+      {
+        "args": [
+          {
+            "botName": "researcher",
+            "byApprovalId": {},
+            "byCallKey": {},
+            "byDelegationId": {},
+            "byProcessId": {},
+            "byRequestId": {
+              "srq-9": "req:srq-9"
+            },
+            "byRowId": {},
+            "byToolId": {},
+            "draft": "",
+            "hydration": "cold",
+            "items": {
+              "req:srq-9": {
+                "id": "req:srq-9",
+                "kind": "request",
+                "method": "input.form",
+                "optional": true,
+                "origin": "live",
+                "requestId": "srq-9",
+                "seq": 1000,
+                "state": "open",
+                "summary": "I found three hotels in Utrecht. Fill this in and I will book the best match.",
+                "title": "Hotel booking details",
+                "ts": 1790000000,
+                "version": 0
+              }
+            },
+            "lastSeq": 0,
+            "order": [
+              "req:srq-9"
+            ],
+            "resolvedSessionId": "resolved-1",
+            "storedSessionId": "stored-1",
+            "subagents": {},
+            "turn": {
+              "active": false,
+              "local": false,
+              "nextSeq": 2000
+            },
+            "unreadCount": 0
+          },
+          "srq-9",
+          {
+            "status": "skipped"
+          }
+        ],
+        "op": "answerRequest",
+        "result": {
+          "botName": "researcher",
+          "byApprovalId": {},
+          "byCallKey": {},
+          "byDelegationId": {},
+          "byProcessId": {},
+          "byRequestId": {
+            "srq-9": "req:srq-9"
+          },
+          "byRowId": {},
+          "byToolId": {},
+          "draft": "",
+          "hydration": "cold",
+          "items": {
+            "req:srq-9": {
+              "answerSummary": {
+                "status": "skipped"
+              },
+              "id": "req:srq-9",
+              "kind": "request",
+              "method": "input.form",
+              "optional": true,
+              "origin": "live",
+              "requestId": "srq-9",
+              "seq": 1000,
+              "state": "answered",
+              "summary": "I found three hotels in Utrecht. Fill this in and I will book the best match.",
+              "title": "Hotel booking details",
+              "ts": 1790000000,
+              "version": 1
+            }
+          },
+          "lastSeq": 0,
+          "order": [
+            "req:srq-9"
+          ],
+          "resolvedSessionId": "resolved-1",
+          "storedSessionId": "stored-1",
+          "subagents": {},
+          "turn": {
+            "active": false,
+            "local": false,
+            "nextSeq": 2000
+          },
+          "unreadCount": 0
+        }
+      },
+      {
+        "args": [
+          {
+            "botName": "researcher",
+            "byApprovalId": {},
+            "byCallKey": {},
+            "byDelegationId": {},
+            "byProcessId": {},
+            "byRequestId": {
+              "srq-9": "req:srq-9"
+            },
+            "byRowId": {},
+            "byToolId": {},
+            "draft": "",
+            "hydration": "cold",
+            "items": {
+              "req:srq-9": {
+                "answerSummary": {
+                  "status": "skipped"
+                },
+                "id": "req:srq-9",
+                "kind": "request",
+                "method": "input.form",
+                "optional": true,
+                "origin": "live",
+                "requestId": "srq-9",
+                "seq": 1000,
+                "state": "answered",
+                "summary": "I found three hotels in Utrecht. Fill this in and I will book the best match.",
+                "title": "Hotel booking details",
+                "ts": 1790000000,
+                "version": 1
+              }
+            },
+            "lastSeq": 0,
+            "order": [
+              "req:srq-9"
+            ],
+            "resolvedSessionId": "resolved-1",
+            "storedSessionId": "stored-1",
+            "subagents": {},
+            "turn": {
+              "active": false,
+              "local": false,
+              "nextSeq": 2000
+            },
+            "unreadCount": 0
+          }
+        ],
+        "op": "turnActivity",
+        "result": {
+          "kind": "idle"
+        }
+      },
+      {
+        "args": [
+          {
+            "botName": "researcher",
+            "byApprovalId": {},
+            "byCallKey": {},
+            "byDelegationId": {},
+            "byProcessId": {},
+            "byRequestId": {
+              "srq-9": "req:srq-9"
+            },
+            "byRowId": {},
+            "byToolId": {},
+            "draft": "",
+            "hydration": "cold",
+            "items": {
+              "req:srq-9": {
+                "id": "req:srq-9",
+                "kind": "request",
+                "method": "input.form",
+                "optional": true,
+                "origin": "live",
+                "requestId": "srq-9",
+                "seq": 1000,
+                "state": "open",
+                "summary": "I found three hotels in Utrecht. Fill this in and I will book the best match.",
+                "title": "Hotel booking details",
+                "ts": 1790000000,
+                "version": 0
+              }
+            },
+            "lastSeq": 0,
+            "order": [
+              "req:srq-9"
+            ],
+            "resolvedSessionId": "resolved-1",
+            "storedSessionId": "stored-1",
+            "subagents": {},
+            "turn": {
+              "active": false,
+              "local": false,
+              "nextSeq": 2000
+            },
+            "unreadCount": 0
+          },
+          {
+            "payload": {
+              "id": "srq-9",
+              "method": "x",
+              "reason": "timeout"
+            },
+            "seq": 1,
+            "session_id": "run-1a2b",
+            "type": "request.cancel"
+          },
+          1790000000000
+        ],
+        "op": "applyEvent",
+        "result": {
+          "botName": "researcher",
+          "byApprovalId": {},
+          "byCallKey": {},
+          "byDelegationId": {},
+          "byProcessId": {},
+          "byRequestId": {
+            "srq-9": "req:srq-9"
+          },
+          "byRowId": {},
+          "byToolId": {},
+          "draft": "",
+          "hydration": "cold",
+          "items": {
+            "req:srq-9": {
+              "cancelReason": "timeout",
+              "id": "req:srq-9",
+              "kind": "request",
+              "method": "input.form",
+              "optional": true,
+              "origin": "live",
+              "requestId": "srq-9",
+              "seq": 1000,
+              "state": "cancelled",
+              "summary": "I found three hotels in Utrecht. Fill this in and I will book the best match.",
+              "title": "Hotel booking details",
+              "ts": 1790000000,
+              "version": 1
+            }
+          },
+          "lastSeq": 1,
+          "order": [
+            "req:srq-9"
+          ],
+          "resolvedSessionId": "resolved-1",
+          "storedSessionId": "stored-1",
+          "subagents": {},
+          "turn": {
+            "active": false,
+            "local": false,
+            "nextSeq": 2000
+          },
+          "unreadCount": 0
+        }
+      },
+      {
+        "args": [
+          {
+            "botName": "researcher",
+            "byApprovalId": {},
+            "byCallKey": {},
+            "byDelegationId": {},
+            "byProcessId": {},
+            "byRequestId": {
+              "srq-9": "req:srq-9"
+            },
+            "byRowId": {},
+            "byToolId": {},
+            "draft": "",
+            "hydration": "cold",
+            "items": {
+              "req:srq-9": {
+                "cancelReason": "timeout",
+                "id": "req:srq-9",
+                "kind": "request",
+                "method": "input.form",
+                "optional": true,
+                "origin": "live",
+                "requestId": "srq-9",
+                "seq": 1000,
+                "state": "cancelled",
+                "summary": "I found three hotels in Utrecht. Fill this in and I will book the best match.",
+                "title": "Hotel booking details",
+                "ts": 1790000000,
+                "version": 1
+              }
+            },
+            "lastSeq": 1,
+            "order": [
+              "req:srq-9"
+            ],
+            "resolvedSessionId": "resolved-1",
+            "storedSessionId": "stored-1",
+            "subagents": {},
+            "turn": {
+              "active": false,
+              "local": false,
+              "nextSeq": 2000
+            },
+            "unreadCount": 0
+          }
+        ],
+        "op": "turnActivity",
+        "result": {
+          "kind": "idle"
+        }
+      }
+    ],
+    "test": "turnActivity > stops waiting once the request is answered or withdrawn"
+  },
+  {
+    "calls": [
+      {
+        "args": [
+          "researcher",
+          "stored-1",
+          "resolved-1"
+        ],
+        "op": "createChatState",
+        "result": {
+          "botName": "researcher",
+          "byApprovalId": {},
+          "byCallKey": {},
+          "byDelegationId": {},
+          "byProcessId": {},
+          "byRequestId": {},
+          "byRowId": {},
+          "byToolId": {},
+          "draft": "",
+          "hydration": "cold",
+          "items": {},
+          "lastSeq": 0,
+          "order": [],
+          "resolvedSessionId": "resolved-1",
+          "storedSessionId": "stored-1",
+          "subagents": {},
+          "turn": {
+            "active": false,
+            "local": false,
+            "nextSeq": 1000
+          },
+          "unreadCount": 0
+        }
+      },
+      {
+        "args": [
           [
             {
               "role": "user",

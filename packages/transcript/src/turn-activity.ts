@@ -13,7 +13,7 @@
  * socket loses. Reading the state back means a chat that reconnects mid-turn
  * says the right thing without anything having to remember.
  */
-import type { ChatState } from './types'
+import { type ChatState, isRequestLikeItem } from './types'
 
 export type TurnActivity =
   /** Nothing running: the header falls back to the connection's own label. */
@@ -26,7 +26,7 @@ export type TurnActivity =
   | { kind: 'typing' }
   /** A tool call is running, or one has been announced by name. */
   | { kind: 'tool'; tool: string }
-  /** An approval or a clarify is open: the turn is blocked on a person. */
+  /** An approval, a clarify or an interactive request is open: the turn is blocked on a person. */
   | { kind: 'waiting' }
   /** A `delegate_task` fan-out has children still going. */
   | { kind: 'delegating' }
@@ -46,7 +46,7 @@ export function turnActivity(chat: ChatState): TurnActivity {
   for (const id of chat.order) {
     const item = chat.items[id]
 
-    if ((item?.kind === 'approval' || item?.kind === 'clarify') && item.state === 'open') {
+    if (isRequestLikeItem(item) && item.state === 'open') {
       return { kind: 'waiting' }
     }
   }

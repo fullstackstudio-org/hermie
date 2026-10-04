@@ -8,14 +8,14 @@
     },
     "answerRequest": {
       "readsClock": false,
-      "recorded": 38,
-      "replayable": 38,
+      "recorded": 39,
+      "replayable": 39,
       "skipped": {}
     },
     "applyEvent": {
       "readsClock": false,
-      "recorded": 1650,
-      "replayable": 1650,
+      "recorded": 1651,
+      "replayable": 1651,
       "skipped": {}
     },
     "applyProcessCompletion": {
@@ -32,8 +32,8 @@
     },
     "applyServerRequest": {
       "readsClock": false,
-      "recorded": 87,
-      "replayable": 87,
+      "recorded": 89,
+      "replayable": 89,
       "skipped": {}
     },
     "applySubagentSnapshot": {
@@ -120,8 +120,8 @@
     },
     "createChatState": {
       "readsClock": false,
-      "recorded": 665,
-      "replayable": 665,
+      "recorded": 667,
+      "replayable": 667,
       "skipped": {}
     },
     "deliveryTargetFromCommand": {
@@ -370,8 +370,8 @@
     },
     "turnActivity": {
       "readsClock": false,
-      "recorded": 12,
-      "replayable": 12,
+      "recorded": 15,
+      "replayable": 15,
       "skipped": {}
     },
     "unreadBadgeLabel": {
