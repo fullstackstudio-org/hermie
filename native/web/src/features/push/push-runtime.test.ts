@@ -194,10 +194,15 @@ describe('a click', () => {
 })
 
 describe('the heartbeat', () => {
-  it('beats while a bot’s chat is the route and the page is visible', async () => {
+  it('beats while a bot’s chat is the route and the page is visible, once a device of the person is registered', async () => {
     const { router, visibility, store } = setup()
 
     router.navigate('#/chat/scout')
+    // Nobody gets notifications: nothing to hold back, nothing written.
+    expect(store.getState().seen).toBeNull()
+
+    // The gateway's copy has another device's row.
+    store.getState().applyRemote({}, true)
     expect(store.getState().seen).toEqual({ bot: 'scout', at: 1_790_000_000 })
 
     store.getState().beat('marker', 1)
@@ -209,11 +214,13 @@ describe('the heartbeat', () => {
   it('does not beat for a conversation in the viewer, nor on a gateway without a notifier', () => {
     const viewer = setup()
 
+    viewer.store.getState().applyRemote({}, true)
     viewer.router.navigate('#/chat/scout/s/branch-1')
     expect(viewer.store.getState().seen).toBeNull()
 
     const bare = setup({ advert: false })
 
+    bare.store.getState().applyRemote({}, true)
     bare.router.navigate('#/chat/scout')
     expect(bare.store.getState().seen).toBeNull()
   })

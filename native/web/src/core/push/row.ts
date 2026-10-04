@@ -274,6 +274,10 @@ export function pushMapOf(input: PushMapInput): Record<string, unknown> | undefi
 export const perBotOfPushMap = (gateway: unknown): Record<string, PushTypeOverrides> =>
   pushPerBotOf({ push: isObject(gateway) ? gateway : {} })
 
+/** Whether a push map the gateway holds has a row some other installation wrote. */
+export const othersRegisteredIn = (gateway: unknown, installationId: string): boolean =>
+  Object.keys(foreignPushRows({ push: isObject(gateway) ? gateway : {} }, installationId)).length > 0
+
 /** The row the gateway holds for this browser, or `undefined`. */
 export function gatewayRowOf(gateway: unknown, installationId: string): unknown {
   const registrations = isObject(gateway) && isObject(gateway.registrations) ? gateway.registrations : {}

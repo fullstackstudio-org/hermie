@@ -99,6 +99,11 @@ export interface PushState {
   preview: boolean
   /** The person's per-chat overrides, as the gateway holds them. */
   perBot: Record<string, PushTypeOverrides>
+  /**
+   * Whether another of the person's devices is registered, as the gateway's copy says: the heartbeat
+   * only holds back notifications for a device that gets them, so with none it is not written.
+   */
+  othersRegistered: boolean
   /** The browser's subscription, read on this launch; `null` until then and while there is none. */
   address: WebPushAddress | null
   /** The key the subscription was made with, remembered for a browser that does not report it. */
@@ -123,8 +128,8 @@ export interface PushState {
   /** Override one type for one chat, or (`null`) let it follow the global types again. */
   setBotType: (bot: string, type: PushType, on: boolean | null) => void
   resetBotTypes: (bot: string) => void
-  /** The gateway's copy of the per-chat overrides. */
-  applyRemote: (perBot: Record<string, PushTypeOverrides>) => void
+  /** The gateway's copy: the per-chat overrides, and whether another device is registered. */
+  applyRemote: (perBot: Record<string, PushTypeOverrides>, othersRegistered: boolean) => void
   /** The subscription the browser holds, stamped `updatedAt`; `null` when it holds none. */
   setAddress: (address: WebPushAddress | null, updatedAt: number) => void
   beat: (bot: string, at: number) => void
@@ -191,6 +196,7 @@ export function createPushStore(): StoreApi<PushState> {
       types: noPushTypes(),
       preview: false,
       perBot: {},
+      othersRegistered: false,
       address: null,
       subscribedKey: '',
       updatedAt: 0,
@@ -286,8 +292,8 @@ export function createPushStore(): StoreApi<PushState> {
         set({ perBot })
       },
 
-      applyRemote(perBot) {
-        set({ perBot })
+      applyRemote(perBot, othersRegistered) {
+        set({ perBot, othersRegistered })
       },
 
       setAddress(address, updatedAt) {
@@ -332,6 +338,7 @@ export function createPushStore(): StoreApi<PushState> {
           types: noPushTypes(),
           preview: false,
           perBot: {},
+          othersRegistered: false,
           address: null,
           subscribedKey: '',
           updatedAt: 0,

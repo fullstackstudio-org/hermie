@@ -115,6 +115,7 @@ test.describe('the home', () => {
       'Passkeys',
       'MCP',
       'Chats & messages',
+      'Notifications',
       'Chat list',
       'Appearance',
       'About'

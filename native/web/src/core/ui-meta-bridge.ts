@@ -128,7 +128,7 @@ import { type PushState, pushStore } from '../state/push'
 import { type TextSizeState, textSizeStore } from '../state/text-size'
 import { type UiMetaStatusState, uiMetaStatusStore } from '../state/ui-meta-status'
 import type { ChatGateway } from './link'
-import { gatewayRowOf, perBotOfPushMap, pushMapOf } from './push/row'
+import { gatewayRowOf, othersRegisteredIn, perBotOfPushMap, pushMapOf } from './push/row'
 
 /** How long the reader has to stop moving before their arrangement goes out. */
 export const UI_META_DEBOUNCE_MS = 600
@@ -911,7 +911,12 @@ export class UiMetaBridge {
       this.held = { app, bots }
       applyToStores({ ...snapshot, bots: bots as unknown as Record<string, HermieBotSection> }, this.stores)
       // The person's per-chat overrides are the gateway copy's: there is no local half to merge.
-      this.stores.push.getState().applyRemote(perBotOfPushMap(app?.[PUSH_FIELD]))
+      this.stores.push
+        .getState()
+        .applyRemote(
+          perBotOfPushMap(app?.[PUSH_FIELD]),
+          othersRegisteredIn(app?.[PUSH_FIELD], this.stores.push.getState().installationId)
+        )
     })
 
     if (seeded || this.pushBehind()) {

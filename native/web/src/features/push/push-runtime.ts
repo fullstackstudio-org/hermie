@@ -14,7 +14,10 @@
  *    conversation the notifier called a branch or another one, in the read-only
  *    viewer.
  *  - **The heartbeat** runs while the route is a bot's chat (not a conversation
- *    in the viewer) and the page is visible (`core/push/seen.ts`).
+ *    in the viewer) and the page is visible (`core/push/seen.ts`), on a gateway
+ *    with a plugin, once this browser or another of the person's devices is
+ *    registered: it holds back notifications, and with no device to get one it
+ *    would be a write a minute that says nothing.
  *  - **What is already dealt with** goes: a chat coming on screen closes its
  *    notifications, a conversation in the viewer closes its own, and a request
  *    that leaves the queue (answered here or elsewhere, withdrawn) closes the
@@ -201,16 +204,24 @@ export function startPush(options: StartPushOptions): PushRuntime {
   let screen: OnScreen | null = null
 
   /*
-    The plugin is the only reader of the heartbeat: on a gateway without one, a
-    write a minute into the person's section would say something to nobody.
+    The heartbeat holds back the plugin's notifications to the person's devices, so it is written only
+    where there is a plugin and a device it would hold one back from (this browser, or another of the
+    person's): otherwise a write a minute into the person's section would say something to nobody.
   */
   const beatFor = (): void => {
     const notifier = options.plugin.getState().advert !== null
+    const push = store.getState()
+    const wanted = notifier && (push.enabled || push.othersRegistered)
 
-    heartbeat.setOpenChat(notifier && screen && !screen.conversation ? screen.bot : null)
+    heartbeat.setOpenChat(wanted && screen && !screen.conversation ? screen.bot : null)
   }
 
   const stopPlugin = options.plugin.subscribe(beatFor)
+  const stopPush = store.subscribe((state, previous) => {
+    if (state.enabled !== previous.enabled || state.othersRegistered !== previous.othersRegistered) {
+      beatFor()
+    }
+  })
 
   const follow = (hash: string): void => {
     const route = parseRoute(hash)
@@ -274,6 +285,7 @@ export function startPush(options: StartPushOptions): PushRuntime {
       clearInterval(refresh)
       stopRoute()
       stopPlugin()
+      stopPush()
       stopVisibility()
       stopRequests()
       heartbeat.stop()
