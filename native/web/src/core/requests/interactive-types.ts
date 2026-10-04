@@ -87,7 +87,10 @@ export interface InteractiveEnvelope {
 }
 
 interface FieldBase {
-  /** `^[a-z][a-z0-9_]{0,31}$`, unique within the form: the answer's key. */
+  /**
+   * `^[a-z][a-z0-9_]{0,31}$`, unique within the form: the answer's key. An identifier, never rendered: a sheet that
+   * needs words shows the label.
+   */
   id: string
   label: string
   hint?: string
@@ -99,7 +102,7 @@ export interface TextField extends FieldBase {
   multiline: boolean
   /** In code points; the contract's 4,000 when the frame names none. */
   maxLength: number
-  /** A keyboard hint, not a check. */
+  /** A keyboard hint, not a check: one this build does not know is `plain`. */
   input: 'plain' | 'email' | 'phone' | 'url'
   default?: string
 }
@@ -158,7 +161,10 @@ export interface DaterangeField extends FieldBase {
 }
 
 export interface ChoiceOption {
-  /** The identifier the answer gives back, as the gateway wrote it. */
+  /**
+   * The identifier the answer gives back, as the gateway wrote it: NOT cleaned, so it is never rendered (not as text,
+   * not as an accessible name); the sheet shows `label`.
+   */
   value: string
   label: string
 }
@@ -234,8 +240,9 @@ export interface DraftAsk extends InteractiveEnvelope {
   kind: DraftKind
   /**
    * The draft, VERBATIM: it is what will be sent, so it is not cleaned (cleaning would fold its blank lines and
-   * change what the person approves). The gateway only builds a draft from text it can show as it is; the
-   * sheet still marks what the eye cannot see.
+   * change what the person approves). The gateway only builds a draft from text it can show as it is, and the reader
+   * declines one that holds what the gateway's verbatim rule refuses (`verbatimProblem`), so what is shown is all there
+   * is; the sheet still marks what the eye cannot see.
    */
   text: string
   subject?: string
@@ -290,6 +297,46 @@ const TIME = /^([01]\d|2[0-3]):([0-5]\d)$/u
 const INSTANT = /^(\d{4})-(\d{2})-(\d{2})T([01]\d|2[0-3]):([0-5]\d)(?::([0-5]\d))?([+-])(0\d|1\d|2[0-3]):([0-5]\d)$/u
 /** A line break of any kind: a one-line text holds none. */
 const LINE_BREAK = /[\n\r\v\f\u0085\u2028\u2029]/u
+const CONTROL = /\p{Cc}/u
+/**
+ * What the gateway's verbatim rule refuses in a draft (`text:not_verbatim`, contract §6): a control character other
+ * than LF (a tab too), a format, surrogate or private-use character, a line or paragraph separator, a space other
+ * than U+0020, an unassigned code point.
+ */
+const NOT_VERBATIM = /[\p{Cc}\p{Cf}\p{Cs}\p{Co}\p{Zl}\p{Zp}\p{Cn}]|[^\P{Zs} ]/u
+/**
+ * The default-ignorable code points (rendered as nothing), as the gateway's table holds them (`request_text.py`
+ * `DEFAULT_IGNORABLE`), as inclusive ranges.
+ */
+const IGNORABLE: readonly (readonly [number, number])[] = [
+  [0x00ad, 0x00ad],
+  [0x034f, 0x034f],
+  [0x061c, 0x061c],
+  [0x115f, 0x1160],
+  [0x17b4, 0x17b5],
+  [0x180b, 0x180f],
+  [0x200b, 0x200f],
+  [0x202a, 0x202e],
+  [0x2060, 0x206f],
+  [0x3164, 0x3164],
+  [0xfe00, 0xfe0f],
+  [0xfeff, 0xfeff],
+  [0xffa0, 0xffa0],
+  [0xfff0, 0xfff8],
+  [0x1bca0, 0x1bca3],
+  [0x1d173, 0x1d17a],
+  [0xe0000, 0xe0fff]
+]
+/** Letters that render as blank space (the gateway's `_INVISIBLE_LETTERS`). */
+const INVISIBLE_LETTERS: ReadonlySet<number> = new Set([0x115f, 0x1160, 0x3164, 0xffa0, 0x2800, 0x1d159])
+/** What Python's `str.isspace()` is true for: the gateway strips it from the end of each line of an approved draft. */
+const PYTHON_SPACE: ReadonlySet<number> = new Set([
+  0x09, 0x0a, 0x0b, 0x0c, 0x0d, 0x1c, 0x1d, 0x1e, 0x1f, 0x20, 0x85, 0xa0, 0x1680, 0x2000, 0x2001, 0x2002, 0x2003,
+  0x2004, 0x2005, 0x2006, 0x2007, 0x2008, 0x2009, 0x200a, 0x2028, 0x2029, 0x202f, 0x205f, 0x3000
+])
+const COMBINING = /^[\p{Mn}\p{Me}]$/u
+/** At most this many combining marks on one character (the gateway's `MAX_COMBINING_MARKS`). */
+const MAX_COMBINING_MARKS = 4
 
 /** Raised inside the readers for a frame that cannot be shown; `readInteractiveParams` turns it into a reason. */
 class Refused extends Error {
@@ -513,12 +560,9 @@ function readText(raw: Rec): TextField {
   const base = readBase(raw)
   const maxLength = optInt(raw.max_length, 1, LIMITS.textMaxLength) ?? LIMITS.textMaxLength
   const multiline = optBool(raw.multiline, false)
-  const input = raw.input === undefined ? 'plain' : raw.input
+  // A hint, not a check: one a later contract added is no hint (an answer is never refused for it).
+  const input = raw.input === 'email' || raw.input === 'phone' || raw.input === 'url' ? raw.input : 'plain'
   let fallback: string | undefined
-
-  if (input !== 'plain' && input !== 'email' && input !== 'phone' && input !== 'url') {
-    refuse()
-  }
 
   if (raw.default !== undefined) {
     const text = raw.default
@@ -527,8 +571,10 @@ function readText(raw: Rec): TextField {
       refuse()
     }
 
-    // What the person is shown in the field: the same cleaning as every other text.
-    const shown = displayText(text, maxLength)
+    // The value the field starts with, and what goes back unless the person changes it. A multi-line field takes it
+    // as it came (cleaning would fold its blank lines and send something else); a one-line field shows it cleaned,
+    // like every other text.
+    const shown = multiline ? (text as string) : displayText(text, maxLength)
 
     fallback = shown === '' ? undefined : shown
   }
@@ -852,7 +898,15 @@ function readFile(params: Rec): FileAsk {
   const upload = isRec(params.upload) ? params.upload : (refuse() as never)
   const dir = upload.dir
 
-  if (!isStr(dir) || dir === '' || lengthOf(dir) > LIMITS.uploadDir) {
+  // Absolute, without `..` and without control characters: the directory the files go to and the answer's paths
+  // start with. Anything else is not a directory this page uploads to.
+  if (
+    !isStr(dir) ||
+    !dir.startsWith('/') ||
+    lengthOf(dir) > LIMITS.uploadDir ||
+    dir.split('/').includes('..') ||
+    CONTROL.test(dir)
+  ) {
     refuse()
   }
 
@@ -884,6 +938,45 @@ function readFile(params: Rec): FileAsk {
   }
 }
 
+/**
+ * Whether a draft's `text` holds something the gateway's verbatim rule refuses (contract §6): an approval of it
+ * unchanged could not be taken, and the sheet could not show it as it is. Line-end whitespace does not count (the
+ * gateway strips it from an approved text first), nor does spacing: the characters are this check's.
+ */
+export function verbatimProblem(text: string): boolean {
+  for (const line of text.split('\n')) {
+    const chars = Array.from(line)
+    let end = chars.length
+
+    // What the gateway strips before it looks.
+    while (end > 0 && PYTHON_SPACE.has(chars[end - 1]?.codePointAt(0) ?? 0)) {
+      end -= 1
+    }
+
+    let marks = 0
+
+    for (const char of chars.slice(0, end)) {
+      const code = char.codePointAt(0) ?? 0
+
+      if (
+        NOT_VERBATIM.test(char) ||
+        INVISIBLE_LETTERS.has(code) ||
+        IGNORABLE.some(([low, high]) => code >= low && code <= high)
+      ) {
+        return true
+      }
+
+      marks = COMBINING.test(char) ? marks + 1 : 0
+
+      if (marks > MAX_COMBINING_MARKS) {
+        return true
+      }
+    }
+  }
+
+  return false
+}
+
 function readDraft(params: Rec): DraftAsk {
   const envelope = readEnvelope(params, false)
   const { kind, text } = params
@@ -892,7 +985,7 @@ function readDraft(params: Rec): DraftAsk {
     refuse()
   }
 
-  if (!isStr(text) || text === '' || lengthOf(text) > LIMITS.draftText) {
+  if (!isStr(text) || text === '' || lengthOf(text) > LIMITS.draftText || verbatimProblem(text)) {
     refuse()
   }
 

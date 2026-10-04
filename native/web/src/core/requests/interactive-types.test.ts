@@ -18,7 +18,8 @@ import {
   isInteractiveMethod,
   LIMITS,
   readInteractiveParams,
-  unknownFields
+  unknownFields,
+  verbatimProblem
 } from './interactive-types'
 
 interface Frame {
@@ -348,6 +349,29 @@ describe('a form', () => {
     expect(read.fields[1]).toMatchObject({ options: [{ value: 'dbl_1', label: 'Double' }] })
   })
 
+  it('starts a multi-line field with its default as it came: that is what goes back unless it is changed', () => {
+    const text = 'Line one  \n\n\n\nLine five\twith a tab'
+    const read = ask(
+      form(formWith({ id: 'note', kind: 'text', label: 'Note', multiline: true, default: text }))
+    ) as FormAsk
+
+    expect(read.fields[0]).toMatchObject({ kind: 'text', multiline: true, default: text })
+  })
+
+  it('reads a keyboard hint it does not know as plain, instead of refusing the form', () => {
+    const read = ask(
+      form(
+        formWith(
+          { id: 'code', kind: 'text', label: 'Code', input: 'otp' },
+          { id: 'mail', kind: 'text', label: 'Mail', input: 'email' },
+          { id: 'odd', kind: 'text', label: 'Odd', input: 7 }
+        )
+      )
+    ) as FormAsk
+
+    expect(read.fields.map(field => (field.kind === 'text' ? field.input : null))).toEqual(['plain', 'email', 'plain'])
+  })
+
   it('reads amounts in thousandths, and refuses the decimals a currency does not have', () => {
     expect(form(formWith({ id: 'a', kind: 'amount', label: 'A', currency: 'EUR', max: '10.50' })).ok).toBe(true)
     expect(form(formWith({ id: 'a', kind: 'amount', label: 'A', currency: 'EUR', max: '10.505' })).ok).toBe(false)
@@ -423,6 +447,13 @@ describe('a file request', () => {
     })
 
     expect(readInteractiveParams('input.file', upload({ dir: '' })).ok).toBe(false)
+    expect(readInteractiveParams('input.file', upload({ dir: 'uploads/hermie' })).ok).toBe(false)
+    expect(readInteractiveParams('input.file', upload({ dir: '/home/ada/../root/uploads' })).ok).toBe(false)
+    expect(readInteractiveParams('input.file', upload({ dir: '/home/ada/..' })).ok).toBe(false)
+    expect(readInteractiveParams('input.file', upload({ dir: '/home/ada/up\u0000loads' })).ok).toBe(false)
+    expect(readInteractiveParams('input.file', upload({ dir: '/home/ada/up\nloads' })).ok).toBe(false)
+    // A name with dots in it is a name.
+    expect(readInteractiveParams('input.file', upload({ dir: '/home/ada/..uploads/x..y' })).ok).toBe(true)
     expect(readInteractiveParams('input.file', upload({ max_files: 11 })).ok).toBe(false)
     expect(readInteractiveParams('input.file', upload({ max_files: 0 })).ok).toBe(false)
     expect(readInteractiveParams('input.file', upload({ max_bytes: LIMITS.uploadBytes + 1 })).ok).toBe(false)
@@ -446,5 +477,39 @@ describe('a draft', () => {
     expect(readInteractiveParams('review.draft', { ...base(), text: 'x'.repeat(LIMITS.draftText + 1) }).ok).toBe(false)
     expect(readInteractiveParams('review.draft', { ...base(), kind: 'tweet' }).ok).toBe(false)
     expect(readInteractiveParams('review.draft', { ...base(), recipients: Array(11).fill('a@b.c') }).ok).toBe(false)
+  })
+
+  it('declines a text the gateway’s verbatim rule refuses: it could not be approved as it is', () => {
+    for (const bad of [
+      'Hello\tBram',
+      'Hello \u202EBram',
+      'Hello\u200BBram',
+      'Hello\u00A0Bram',
+      'Hello\u0000Bram',
+      'Hello\rBram',
+      'Hello\u2028Bram',
+      'Hello\uE000Bram',
+      'Hello\u{10FFFF}Bram',
+      'Hello\u2800Bram',
+      'Hello\uFE0FBram',
+      `e${'\u0301'.repeat(5)}`,
+      'lone \uD800 surrogate'
+    ]) {
+      expect(verbatimProblem(bad), JSON.stringify(bad)).toBe(true)
+      expect(readInteractiveParams('review.draft', { ...base(), text: bad })).toEqual({
+        ok: false,
+        reason: 'not_supported_on_device'
+      })
+    }
+
+    // Line-end whitespace is stripped by the gateway before it looks; four marks on one letter are allowed.
+    for (const good of [
+      'Hello Bram,  \n\nThanks.\t \n',
+      'One  \n\n\nTwo  \u00A0',
+      `e${'\u0301'.repeat(4)}`,
+      'Grüße 👋🏽'
+    ]) {
+      expect(verbatimProblem(good), JSON.stringify(good)).toBe(false)
+    }
   })
 })
