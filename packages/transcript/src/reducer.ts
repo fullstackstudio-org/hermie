@@ -1938,7 +1938,10 @@ export function answerRequest(
     return state
   }
 
-  if (item.kind === 'request' && item.state !== 'open') {
+  // Answers once. The one ending an answer may still overrule is the gateway's `resolved` cancel: it goes out from
+  // the agent's thread once an answer settled the request, and can reach a client before the reply to that same
+  // answer does, so the answer that resolved it is what the item records.
+  if (item.kind === 'request' && item.state !== 'open' && !answeredUnderCancel(item)) {
     return state
   }
 
@@ -1949,6 +1952,7 @@ export function answerRequest(
 
     patchItem<RequestItem>(next, id, draft => {
       draft.state = 'answered'
+      delete draft.cancelReason
 
       if (summary) {
         draft.answerSummary = summary
@@ -1996,6 +2000,10 @@ export function answerRequest(
 
   return next
 }
+
+/** A `request` item the gateway closed as `resolved`: an answer that arrives after it is the one that resolved it. */
+const answeredUnderCancel = (item: RequestItem): boolean =>
+  item.state === 'cancelled' && item.cancelReason === 'resolved'
 
 // ── resume + local turns ─────────────────────────────────────────────────────
 

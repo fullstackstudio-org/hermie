@@ -232,6 +232,27 @@ describe('answerRequest for an interactive request', () => {
     expect(requestsById(withdrawn, 'srq-9').answerSummary).toBeUndefined()
   })
 
+  it('lets the answer that resolved it upgrade a request the gateway closed as resolved first', () => {
+    const resolved = cancel(open(), 'srq-9', 'resolved')
+
+    expect(requestsById(resolved, 'srq-9')).toMatchObject({ state: 'cancelled', cancelReason: 'resolved' })
+
+    const answered = answerRequest(resolved, 'srq-9', { status: 'answered' })
+
+    expect(requestsById(answered, 'srq-9')).toMatchObject({ state: 'answered', answerSummary: { status: 'answered' } })
+    expect(requestsById(answered, 'srq-9').cancelReason).toBeUndefined()
+    // And only once: the item is answered now.
+    expect(answerRequest(answered, 'srq-9', { status: 'skipped' })).toBe(answered)
+  })
+
+  it('does not upgrade a request withdrawn for any other reason', () => {
+    for (const reason of ['timeout', 'too_many_attempts', 'turn_ended', 'lapsed', 'cannot_show']) {
+      const withdrawn = cancel(open(), 'srq-9', reason)
+
+      expect(answerRequest(withdrawn, 'srq-9', { status: 'answered' })).toBe(withdrawn)
+    }
+  })
+
   it('does nothing for a request it does not hold', () => {
     const state = open()
 

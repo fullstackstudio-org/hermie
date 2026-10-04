@@ -143,6 +143,28 @@ import Testing
     #expect(after == withdrawn)
   }
 
+  @Test func theAnswerThatResolvedItUpgradesAResolvedCancelOnly() throws {
+    let resolved = Self.cancel(Self.asked(), "srq-9", "resolved")
+    #expect(Self.requestItem(resolved)?.state == .cancelled && Self.requestItem(resolved)?.cancelReason == "resolved")
+
+    var answered = resolved
+    answerRequest(into: &answered, "srq-9", .object(["status": "answered"]))
+    #expect(Self.requestItem(answered)?.state == .answered)
+    #expect(Self.requestItem(answered)?.cancelReason == nil)
+    #expect(Self.requestItem(answered)?.answerSummary == RequestAnswerSummary(status: "answered"))
+
+    var again = answered
+    answerRequest(into: &again, "srq-9", .object(["status": "skipped"]))
+    #expect(again == answered)
+
+    for reason in ["timeout", "too_many_attempts", "turn_ended", "lapsed", "cannot_show"] {
+      let withdrawn = Self.cancel(Self.asked(), "srq-9", reason)
+      var after = withdrawn
+      answerRequest(into: &after, "srq-9", .object(["status": "answered"]))
+      #expect(after == withdrawn)
+    }
+  }
+
   @Test func theTurnEndingCancelsAnOpenRequest() throws {
     let ended = applyEvent(
       Self.asked(),

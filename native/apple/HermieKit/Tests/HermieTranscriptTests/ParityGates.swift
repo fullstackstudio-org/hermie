@@ -29,7 +29,7 @@ import Testing
 
 @Suite struct ParityGates {
   /// The calls the golden corpus records, every one of them replayable.
-  static let corpusCalls = 4_974
+  static let corpusCalls = 4_999
 
   /// The stream scenarios the corpus records.
   static let streamCount = 13

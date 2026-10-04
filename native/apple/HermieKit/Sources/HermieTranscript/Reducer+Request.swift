@@ -344,14 +344,19 @@ public func answerRequest(into next: inout ChatState, _ requestID: String, _ ans
 
   switch next.items[id] {
   case .request(let item)?:
-    // Answers once: a second answer, or one after a withdrawal, changes nothing.
-    guard item.state == .open else { return }
+    // Answers once: a second answer, or one after a withdrawal, changes nothing. The one ending an answer may
+    // still overrule is the gateway's `resolved` cancel: it goes out from the agent's thread once an answer
+    // settled the request and can reach a client before the reply to that same answer does, so the answer that
+    // resolved it is what the item records.
+    let answeredUnderCancel = item.state == .cancelled && item.cancelReason == "resolved"
+    guard item.state == .open || answeredUnderCancel else { return }
 
     // A string, or a map that is no summary, records that it was answered, nothing more.
     let summary = R.requestAnswerSummary(answer.asObject)
 
     R.patchRequestItem(&next, id) { draft in
       draft.state = .answered
+      draft.cancelReason = nil
 
       if let summary {
         draft.answerSummary = summary
