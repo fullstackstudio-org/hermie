@@ -655,6 +655,12 @@ export const WEB_STRINGS_SOURCE = {
       nl: ({ name }: { name: string }) => `Het verzoek van ${name} is verlopen.`,
       de: ({ name }: { name: string }) => `Die Anfrage von ${name} ist abgelaufen.`
     },
+    /** Said politely when a question took the dialog from a form, a file request or a draft that was open (not Later). */
+    madeWay: {
+      en: 'A question needs your answer first. What you were filling in is kept and comes back afterwards.',
+      nl: 'Er is eerst een vraag die je antwoord nodig heeft. Wat je aan het invullen was blijft bewaard en komt daarna terug.',
+      de: 'Zuerst braucht eine Frage deine Antwort. Was du gerade ausgefüllt hast, bleibt erhalten und kommt danach zurück.'
+    },
     /** Said when a request ended while it was not known whether the answer sent from here reached the gateway. */
     answerMayNotHaveArrived: {
       en: ({ name }: { name: string }) => `Your answer to ${name} may not have arrived before the request ended.`,

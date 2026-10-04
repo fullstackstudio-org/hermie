@@ -16,7 +16,17 @@
  *  4. **A countdown to the gateway's deadline.** The model ends the request at the deadline on its own clock.
  *  5. **Offline, busy and failed are said, never swallowed:** nothing was sent, and what was entered stays.
  */
-import { type ReactElement, type ReactNode, useCallback, useEffect, useRef, useState } from 'react'
+import {
+  createContext,
+  type ReactElement,
+  type ReactNode,
+  useCallback,
+  useContext,
+  useEffect,
+  useLayoutEffect,
+  useRef,
+  useState
+} from 'react'
 
 import type { AnswerOutcome } from '../../core/requests/interactive'
 import { sheetStrings } from '../../i18n/sheet-strings'
@@ -65,6 +75,29 @@ export function useTapGuard(tapGuardMs: number, key: unknown, shown = true): boo
 
   // Not shown is not armed, whatever the last effect left: the first render after it is shown must not take a press.
   return shown && armed
+}
+
+/**
+ * How a sheet tells the request layer that it is in the middle of something (an answer on its way, files being
+ * uploaded): then a question that arrives waits for it instead of taking the dialog (`sheet-order.ts`). The layer
+ * provides it around every sheet; a sheet drawn without a layer (a test of the sheet alone) has none, and says nothing.
+ */
+export const SheetBusyContext = createContext<((busy: boolean) => void) | null>(null)
+
+/** Say, for as long as it holds, that the sheet must not be cut off. Calls it makes are undone when the sheet goes. */
+export function useReportBusy(busy: boolean): void {
+  const report = useContext(SheetBusyContext)
+
+  // A layout effect: the layer must know before the next thing that arrives is placed, not after a paint.
+  useLayoutEffect(() => {
+    if (!report || !busy) {
+      return
+    }
+
+    report(true)
+
+    return () => report(false)
+  }, [report, busy])
 }
 
 /** What a failed try says, apart from the gateway's refusal (which the sheet reads from the request). */

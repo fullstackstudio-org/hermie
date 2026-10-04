@@ -36,7 +36,7 @@ import { useLocale } from '../../i18n/use-locale'
 import type { InteractiveRequest } from '../../state/interactive'
 import { Button } from '../../ui/primitives'
 import { DEFAULT_TAP_GUARD_MS } from './ApprovalSheet'
-import { InteractiveFrame, RefusalAlert, SendStatus, useSending, useTapGuard } from './interactive-frame'
+import { InteractiveFrame, RefusalAlert, SendStatus, useReportBusy, useSending, useTapGuard } from './interactive-frame'
 import { countHiddenCharacters, markHiddenCharacters } from './verbatim-detail'
 
 export interface DraftSheetProps {
@@ -102,6 +102,8 @@ export function DraftSheet({
   const ids = useId()
   const armed = useTapGuard(tapGuardMs, request.id, shown)
   const sending = useSending()
+  // An answer on its way is not cut off by a question that arrives meanwhile (`sheet-order.ts`).
+  useReportBusy(sending.pending)
   const editor = useRef<HTMLTextAreaElement>(null)
   const [text, setText] = useState(ask.text)
   const [comment, setComment] = useState('')

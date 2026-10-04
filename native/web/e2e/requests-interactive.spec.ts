@@ -681,6 +681,49 @@ test.describe('Later and Don’t share', () => {
     await expect(dialog).toHaveCount(0)
   })
 
+  test('an approval that arrives over an open form comes first, and the form returns by itself with its text', async ({
+    app,
+    gateway,
+    page
+  }) => {
+    await app.open()
+    await app.ready()
+
+    const id = await raise(gateway, 'input.form', { ...FORM, optional: false })
+    const dialog = app.dialog
+
+    await expect(dialog).toHaveAccessibleName('A form to fill in')
+    await dialog.getByLabel('Name on the booking').fill('Ada Lovelace')
+
+    const before = (await gateway.answers()).length
+
+    await gateway.raise('approval', { command: 'ls -la', choices: ['once', 'deny'], request_id: 'appr-over-form' })
+
+    // The approval has the dialog; the form waits behind it, still asked, not answered and not put away.
+    await expect(dialog).toHaveAccessibleName('Allow this command?')
+    await expect(dialog).toContainText('1 more waiting')
+    await expect(dialog).toBeFocused()
+    expect((await viewOf(gateway, id)).open).toBe(true)
+
+    // Its buttons wake a moment after it appears; a click on them then is the approval's own.
+    const allow = dialog.getByRole('button', { name: 'Allow once' })
+
+    await expect(allow).toBeEnabled()
+    await allow.click()
+    await expect.poll(async () => (await gateway.answers()).length).toBe(before + 1)
+    expect((await gateway.answers()).at(-1)?.result).toEqual({ choice: 'once' })
+
+    // The form is back by itself, with what was typed, and its buttons wake again before they take a press.
+    await expect(dialog).toHaveAccessibleName('A form to fill in')
+    await expect(dialog.getByLabel('Name on the booking')).toHaveValue('Ada Lovelace')
+    await expect(dialog).toBeFocused()
+    await expect(page.getByRole('dialog')).toHaveCount(1)
+    expect((await viewOf(gateway, id)).open).toBe(true)
+
+    await dialog.getByRole('button', { name: 'Later' }).click()
+    await expect(dialog).toHaveCount(0)
+  })
+
   test('Don’t share on a form is 4041 declined, and the transcript and the chat say it was the person’s choice', async ({
     app,
     gateway

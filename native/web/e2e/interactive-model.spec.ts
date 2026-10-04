@@ -179,9 +179,11 @@ test.describe('a request from the agent reaches the page', () => {
 
     await expect(app.dialog).toHaveAccessibleName('A form to fill in')
 
-    // A question every connection may see waits behind it, so the new socket's resume lists an open request:
-    // that one, not the form, which the gateway hides from a socket that has not advertised it yet.
+    // A question every connection may see comes first (the form steps aside, still asked), so the new socket's
+    // resume lists an open request: that one, not the form, which the gateway hides from a socket that has not
+    // advertised it yet.
     await gateway.raise('clarify', { question: 'Which colour?', choices: ['Red', 'Blue'], request_id: 'q-colour' })
+    await expect(app.dialog).toHaveAccessibleName('Before I continue')
 
     const state = async () =>
       (await gateway.state()) as unknown as {
@@ -215,14 +217,21 @@ test.describe('a request from the agent reaches the page', () => {
       })
       .toBe(true)
 
-    // Still the same request, still open, and nothing said it ended.
-    await expect(app.dialog).toHaveAccessibleName('A form to fill in')
+    // The question is on screen, and the form behind it is the same request, still open, and nothing said it ended.
+    await expect(app.dialog).toHaveAccessibleName('Before I continue')
     await expect(page.getByText('ended while the connection was down')).toHaveCount(0)
     expect((await viewOf(gateway, id)).open).toBe(true)
 
-    // Answered through the new socket; the question behind it is next.
+    // The question is answered, and the form comes back by itself.
+    await page.getByRole('radio', { name: 'Red' }).check()
+    await expect(page.getByRole('button', { name: 'Submit' })).toBeEnabled()
+    await page.getByRole('button', { name: 'Submit' }).click()
+    await expect(app.dialog).toHaveAccessibleName('A form to fill in')
+    expect((await viewOf(gateway, id)).open).toBe(true)
+
+    // Answered through the new socket.
     await app.dialog.getByRole('button', { name: 'Skip' }).click()
     await expect.poll(async () => (await viewOf(gateway, id)).answer).toEqual({ status: 'skipped' })
-    await expect(app.dialog).toContainText('Which colour?')
+    await expect(app.dialog).toHaveCount(0)
   })
 })

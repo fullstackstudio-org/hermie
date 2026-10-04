@@ -34,7 +34,7 @@ import { Button } from '../../ui/primitives'
 import { DEFAULT_TAP_GUARD_MS } from './ApprovalSheet'
 import { FormFieldView } from './FormFields'
 import { problemText } from './form-problems'
-import { InteractiveFrame, RefusalAlert, SendStatus, useSending, useTapGuard } from './interactive-frame'
+import { InteractiveFrame, RefusalAlert, SendStatus, useReportBusy, useSending, useTapGuard } from './interactive-frame'
 
 export interface FormSheetProps {
   request: InteractiveRequest & { ask: FormAsk }
@@ -78,6 +78,8 @@ export function FormSheet({
   const form = useRef<HTMLFormElement>(null)
   const armed = useTapGuard(tapGuardMs, request.id, shown)
   const sending = useSending()
+  // An answer on its way is not cut off by a question that arrives meanwhile (`sheet-order.ts`).
+  useReportBusy(sending.pending)
   const [raw, setRaw] = useState<Record<string, RawValue>>(() =>
     Object.fromEntries(fields.map(field => [field.id, initialRaw(field, device)]))
   )

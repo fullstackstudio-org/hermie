@@ -33,7 +33,7 @@ import { hasFinePointer } from '../../platform/input-kind'
 import { formatBytes } from '../chat/chat-format'
 import { DEFAULT_TAP_GUARD_MS } from './ApprovalSheet'
 import { acceptAttribute, isImage, matchesAccept, PrepareError, type PreparedFile, prepareFile } from './file-prepare'
-import { InteractiveFrame, RefusalAlert, SendStatus, useSending, useTapGuard } from './interactive-frame'
+import { InteractiveFrame, RefusalAlert, SendStatus, useReportBusy, useSending, useTapGuard } from './interactive-frame'
 
 /** How the sheet puts a file on the gateway: the layer binds it to the controller's upload. */
 export type FileUploader = (
@@ -139,6 +139,8 @@ export function FileSheet({
 
   const limit = ask.multiple ? upload.maxFiles : 1
   const working = phase.kind !== 'idle' && phase.kind !== 'failed'
+  // Preparing, uploading and sending are not cut off by a question that arrives meanwhile (`sheet-order.ts`).
+  useReportBusy(working || sending.pending)
   const locked = !armed || sending.pending || sending.finished
   const busy = locked || working
   const wantsCamera =

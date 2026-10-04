@@ -7,7 +7,8 @@
  * it names the bot, because that bot may be one the reader is not looking at.
  *
  * **What it shows** is the first of the store's queue (`state/requests.ts`: every
- * open request of every chat, oldest first), and how many wait behind it. An
+ * open request of every chat, oldest first) in the order of `sheet-order.ts`: the questions that stop a bot first,
+ * the form, file request and draft sheets after them, and how many wait behind it. An
  * answer takes the request off the queue and the next appears. A request the
  * gateway withdraws (`request.cancel`) or lets time out goes the same way, and
  * the reader is told in words, politely, because a dialog that vanishes while
@@ -55,6 +56,12 @@
  * own (`FormSheet`, `FileSheet`, `DraftSheet`). A file request also uploads, through the controller
  * (`uploadFileTo`): the sheet puts the files on the gateway and answers with their references.
  *
+ * **A question comes first.** An approval, a clarify, a confirmation, a secure prompt (and a connector authorisation)
+ * does not wait behind an interactive sheet that is open: that sheet steps aside, parked with what was typed, picked
+ * or edited in it (not Later: it comes back by itself when the questions are done), and the question has the dialog.
+ * Only a sheet that is sending an answer or uploading files is not stepped over: the question waits until that is
+ * over (`SheetBusyContext`, the same rule as the native apps'). A sheet put away with Later stays away until Open.
+ *
  * **A connector authorisation** (`ConnectionRequest`) is answered through the
  * connections model (`skip`, `cancel`) on its own sheet (`ConnectionSheet.tsx`),
  * with a countdown to the gateway's deadline; a link on it is opened only when the
@@ -65,7 +72,16 @@
  */
 import type { ApprovalItem } from '@hermie/transcript'
 import { createPortal } from 'react-dom'
-import { type ReactElement, useCallback, useEffect, useId, useLayoutEffect, useRef, useState } from 'react'
+import {
+  type ReactElement,
+  type ReactNode,
+  useCallback,
+  useEffect,
+  useId,
+  useLayoutEffect,
+  useRef,
+  useState
+} from 'react'
 import { type StoreApi, useStore } from 'zustand'
 
 import { CANCELLED_BY_READER, RequestWithdrawnError } from '../../core/request-withdrawn'
@@ -89,8 +105,10 @@ import { openAuthorisationLink, useSessionSignalsRuntime } from '../notices/sign
 import { usePasskeyRuntime } from './passkey-runtime'
 import { PasskeyNotices } from './PasskeyNotices'
 import { type RequestSheets, useRequestSheets } from './request-sheets'
+import { SheetBusyContext } from './interactive-frame'
 import { useInteractiveRuntime } from './interactive-runtime'
 import { useSecureInputRuntime } from './secure-input-runtime'
+import { orderSheets } from './sheet-order'
 import type { FileUploader } from './FileSheet'
 import type { SecureSheetProps } from './SecureSheet'
 import { WithName } from './with-name'
@@ -307,6 +325,21 @@ function InteractiveSheetFor({
   }
 }
 
+/** Hands the sheet inside the way to tell the layer that it is sending or uploading (`useReportBusy`). */
+function BusyScope({
+  entryKey,
+  onBusy,
+  children
+}: {
+  entryKey: string
+  onBusy: (key: string, busy: boolean) => void
+  children: ReactNode
+}): ReactElement {
+  const report = useCallback((busy: boolean) => onBusy(entryKey, busy), [entryKey, onBusy])
+
+  return <SheetBusyContext.Provider value={report}>{children}</SheetBusyContext.Provider>
+}
+
 /** Who a request is from: the bot's display name, or the gateway's host for a confirmation in no chat held here. */
 function senderName(entry: OpenRequest, confirmation: PasskeyConfirmation | undefined): string {
   if (entry.bot !== undefined) {
@@ -338,7 +371,14 @@ export function RequestLayer({
   const away = useStore(later, state => state.away)
   // A sheet put away (Later) is not shown and does not hold the page: it waits, with what was entered in it, until Open.
   const shown = queue.filter(entry => !(entry.kind === 'interactive' && away.includes(entry.key)))
-  const current = shown[0]
+  // The interactive sheets that are sending an answer or uploading: reported by the sheets themselves.
+  const [busy, setBusy] = useState<ReadonlySet<string>>(new Set())
+  // The one that has the dialog now, as of the last commit: a busy interactive sheet that has it keeps it.
+  const onScreen = useRef<string | undefined>(undefined)
+  const holding = onScreen.current !== undefined && busy.has(onScreen.current) ? onScreen.current : undefined
+  // Questions before sheets (`sheet-order.ts`); among themselves, the queue's order.
+  const ordered = orderSheets(shown, holding)
+  const current = ordered[0]
   const open = current !== undefined
   // Every sheet comes from one chunk, fetched when the session starts and held from then on.
   const sheets = useRequestSheets(open)
@@ -385,7 +425,28 @@ export function RequestLayer({
   const opener = useRef<Element | null>(null)
   const wasOpen = useRef(false)
   const [announcement, setAnnouncement] = useState('')
+  const reportBusy = useCallback((key: string, working: boolean): void => {
+    setBusy(held => {
+      if (held.has(key) === working) {
+        return held
+      }
+
+      const next = new Set(held)
+
+      if (working) {
+        next.add(key)
+      } else {
+        next.delete(key)
+      }
+
+      return next
+    })
+  }, [])
   const [failure, setFailure] = useState<string | null>(null)
+
+  useLayoutEffect(() => {
+    onScreen.current = current?.key
+  })
 
   // Where the reader was, taken before anything in the dialog moves focus (children's effects run after this).
   useLayoutEffect(() => {
@@ -510,9 +571,20 @@ export function RequestLayer({
       }
     }
 
+    // An interactive sheet that was on screen gave way to a question: said, so that the swap is not a surprise, and
+    // that what was entered in it is kept.
+    if (
+      previous?.kind === 'interactive' &&
+      current?.kind !== 'interactive' &&
+      queue.some(entry => entry.key === previous.key) &&
+      !later.getState().away.includes(previous.key)
+    ) {
+      setAnnouncement(webStrings.requests.madeWay)
+    }
+
     // The one on screen, not the first of the queue: a sheet put away (Later) is not the one a reader is looking at.
     lastShown.current = current
-  }, [chats, connections, current, interactive, passkeys, queue, secureInput])
+  }, [chats, connections, current, interactive, later, passkeys, queue, secureInput])
 
   // An approval is acknowledged to the gateway's queue the first time a person can see it.
   const approvalId = current?.kind === 'engine' && current.item.kind === 'approval' ? current.item.requestId : undefined
@@ -646,7 +718,7 @@ export function RequestLayer({
     later.getState().prune([...live])
   })
 
-  const waiting = shown.length - 1
+  const waiting = ordered.length - 1
 
   return (
     <div className="hm-requests">
@@ -688,27 +760,29 @@ export function RequestLayer({
 
             return [
               createPortal(
-                <InteractiveSheetFor
-                  sheets={sheets}
-                  request={asked}
-                  gateway={interactiveGateway}
-                  shown={isCurrent}
-                  // Only the sheet in the dialog is the dialog's heading and description.
-                  titleId={isCurrent ? titleId : `${ids}-away-${entry.id}-title`}
-                  descriptionId={isCurrent ? descriptionId : `${ids}-away-${entry.id}-description`}
-                  {...(tapGuardMs !== undefined ? { tapGuardMs } : {})}
-                  onAnswer={result =>
-                    interactiveActions?.answer(asked.id, result) ?? Promise.resolve({ kind: 'closed' })
-                  }
-                  onSkip={() => interactiveActions?.skip(asked.id) ?? Promise.resolve({ kind: 'closed' })}
-                  onCannotShow={reason => interactiveActions?.cannotShow(asked.id, reason) ?? 'closed'}
-                  onLater={() => later.getState().putAway(entry.key)}
-                  onUpload={
-                    controller?.uploadFileTo
-                      ? (path, file, options) => controller.uploadFileTo(path, file, options)
-                      : undefined
-                  }
-                />,
+                <BusyScope entryKey={entry.key} onBusy={reportBusy}>
+                  <InteractiveSheetFor
+                    sheets={sheets}
+                    request={asked}
+                    gateway={interactiveGateway}
+                    shown={isCurrent}
+                    // Only the sheet in the dialog is the dialog's heading and description.
+                    titleId={isCurrent ? titleId : `${ids}-away-${entry.id}-title`}
+                    descriptionId={isCurrent ? descriptionId : `${ids}-away-${entry.id}-description`}
+                    {...(tapGuardMs !== undefined ? { tapGuardMs } : {})}
+                    onAnswer={result =>
+                      interactiveActions?.answer(asked.id, result) ?? Promise.resolve({ kind: 'closed' })
+                    }
+                    onSkip={() => interactiveActions?.skip(asked.id) ?? Promise.resolve({ kind: 'closed' })}
+                    onCannotShow={reason => interactiveActions?.cannotShow(asked.id, reason) ?? 'closed'}
+                    onLater={() => later.getState().putAway(entry.key)}
+                    onUpload={
+                      controller?.uploadFileTo
+                        ? (path, file, options) => controller.uploadFileTo(path, file, options)
+                        : undefined
+                    }
+                  />
+                </BusyScope>,
                 holder,
                 entry.key
               )
