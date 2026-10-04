@@ -281,9 +281,16 @@ private func runningTool(_ id: String, presentation: Presentation = .hiddenPlace
     let owner = ChatFeedOwner<ChatFeed>()
     let feed = try #require(feedOf(owner))
 
+    let applied = ContinuousClock.now
     apply(feed.model, revision: 1, items: [user("u1")], activity: .working)
-    await eventually("the reader's row") { feed.rows.count == 1 }
-    #expect(feed.rows.last?.isTypingIndicator == false, "not yet: the delay")
+    // Not `count == 1`: the delay is 150 ms and the poll 10 ms, so a loaded runner can first look
+    // when the typing row is already there, and would then wait for a state that has gone by.
+    await eventually("the reader's row") { !feed.rows.isEmpty }
+
+    // Only a look inside the delay (with half of it to spare) says anything about "not yet".
+    if ContinuousClock.now - applied < .seconds(TypingIndicatorGate.showDelay / 2) {
+      #expect(feed.rows.last?.isTypingIndicator == false, "not yet: the delay")
+    }
 
     await eventually("the typing row") { feed.rows.last?.isTypingIndicator == true }
     #expect(feed.rows.map(\.id) == ["u1", TranscriptRow.typingIndicatorID])
