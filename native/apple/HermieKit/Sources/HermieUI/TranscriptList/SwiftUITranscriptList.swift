@@ -34,6 +34,7 @@ struct SwiftUITranscriptList<Item: Identifiable & Equatable & Sendable, Row: Vie
   let spacing: CGFloat
   let row: (Item) -> Row
 
+  @Environment(\.transcriptTailInset) private var tailInset
   @State private var position = ScrollPosition(idType: Item.ID.self)
   /// The position is one a command set, not one the reader scrolled to.
   @State private var commanded = false
@@ -54,6 +55,8 @@ struct SwiftUITranscriptList<Item: Identifiable & Equatable & Sendable, Row: Vie
         }
       }
       .scrollTargetLayout()
+      // The end of the content: the newest row stops this far above the composer.
+      .padding(.bottom, tailInset)
     }
     .accessibilityIdentifier("transcript.list")
     // What scrolls under the header fades into it (Messages does the same): the Mac's default

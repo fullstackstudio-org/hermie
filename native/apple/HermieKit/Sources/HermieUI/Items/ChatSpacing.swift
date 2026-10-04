@@ -20,6 +20,15 @@ enum ChatSpacing {
     static let edgeMargin: CGFloat = 16
   #endif
 
+  /// Room under the newest row, on top of what the composer's own padding leaves (about 9-10 pt from
+  /// the last meta line to the composer's edge, which read as touching it on the Mac, 0.2.7): the end
+  /// of the list's content, so a list at its bottom stays pinned with the gap in place.
+  #if os(macOS)
+    static let transcriptTail: CGFloat = 10
+  #else
+    static let transcriptTail: CGFloat = 6
+  #endif
+
   /// Between two bubbles of one group (same sender, no pause, nothing between them).
   static let withinGroup: CGFloat = 4
 

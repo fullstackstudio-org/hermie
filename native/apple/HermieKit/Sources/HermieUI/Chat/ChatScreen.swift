@@ -274,6 +274,7 @@ struct ChatTranscript: View {
     } overlay: { state in
       JumpToLatestPill(state: state, newCount: feed.newCount)
     }
+    .environment(\.transcriptTailInset, ChatSpacing.transcriptTail)
     .overlay {
       ChatEmptyOverlay(feed: feed)
     }

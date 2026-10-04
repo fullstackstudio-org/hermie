@@ -101,6 +101,11 @@ enum TranscriptListImplementation: String, CaseIterable, Sendable {
 extension EnvironmentValues {
   /// Forces one implementation of `TranscriptList`, for the lab's comparisons.
   @Entry var transcriptListImplementation: TranscriptListImplementation? = nil
+
+  /// Room under the newest row, over what the list's safe area already keeps clear (the composer):
+  /// the list scrolls to it, so a list at its bottom ends this far above the composer. The content's
+  /// own end, not a spacer row, so pinning to the bottom and the bottom threshold read it as content.
+  @Entry var transcriptTailInset: CGFloat = 0
 }
 
 /// Implementation B behind the boundary: measures the safe area the list is
@@ -119,16 +124,23 @@ struct CollectionTranscriptHost<Item: Identifiable & Equatable & Sendable, Row: 
   let row: (Item) -> Row
 
   @State private var insets = EdgeInsets()
+  @Environment(\.transcriptTailInset) private var tailInset
 
   var body: some View {
     Color.clear
       .onGeometryChange(for: EdgeInsets.self) { $0.safeAreaInsets } action: { insets = $0 }
       .overlay {
         CollectionTranscriptList(
-          items: items, state: state, spacing: spacing, insets: insets, commandSerial: state.commandSerial, row: row
+          items: items, state: state, spacing: spacing, insets: Self.insets(insets, tail: tailInset),
+          commandSerial: state.commandSerial, row: row
         )
         .ignoresSafeArea(edges: .vertical)
       }
+  }
+
+  /// The safe area, with the tail under the newest row added to its bottom.
+  static func insets(_ safeArea: EdgeInsets, tail: CGFloat) -> EdgeInsets {
+    EdgeInsets(top: safeArea.top, leading: safeArea.leading, bottom: safeArea.bottom + tail, trailing: safeArea.trailing)
   }
 }
 
