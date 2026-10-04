@@ -27,6 +27,9 @@ public enum VoiceAudioEvent: Sendable, Equatable {
   case routeChanged
   /// The audio could not be restarted.
   case failed
+  /// A sentence was meant for the gateway's voice and was spoken in the device's: the gateway did not
+  /// answer in time, or at all. Not a failure of the call.
+  case speechFellBack
 }
 
 /// The audio session of a call: one category for listening and speaking at once (on iOS

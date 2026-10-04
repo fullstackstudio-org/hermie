@@ -467,6 +467,38 @@ import Testing
     #expect(!call.audio.active)
   }
 
+  // MARK: The gateway's voice letting the call down
+
+  @Test func aSentenceSpokenByTheDeviceInsteadIsAPassingNoticeSaidOncePerCall() async {
+    let call = Harness()
+    await call.model.start()
+    #expect(call.model.notice == nil)
+
+    call.audio.post(.speechFellBack)
+
+    #expect(call.model.notice == .gatewayVoiceUnavailable)
+    #expect(call.model.phase == .listening, "it is not a failure of the call")
+
+    call.model.dismissNotice()
+    call.audio.post(.speechFellBack)
+
+    #expect(call.model.notice == nil, "said once, not every sentence")
+  }
+
+  @Test func aNewCallSaysItAgainAndAnEndedCallKeepsNothing() async {
+    let call = Harness()
+    await call.model.start()
+    call.audio.post(.speechFellBack)
+    call.model.end()
+
+    #expect(call.model.notice == nil)
+
+    await call.model.start()
+    call.audio.post(.speechFellBack)
+
+    #expect(call.model.notice == .gatewayVoiceUnavailable)
+  }
+
   // MARK: Failures
 
   @Test func aRefusedMicrophoneFailsBeforeAnythingOpens() async {

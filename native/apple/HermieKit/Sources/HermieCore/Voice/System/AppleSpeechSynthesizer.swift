@@ -78,7 +78,7 @@ public final class AppleSpeechSynthesizer: NSObject, SpeechSynthesizing, AVSpeec
   }
 
   /// Every voice on this device, the reader's Personal Voice among them once it may be used.
-  nonisolated static func installedVoices() -> [SpeechVoice] {
+  public nonisolated static func installedVoices() -> [SpeechVoice] {
     AVSpeechSynthesisVoice.speechVoices()
       .map { voice in
         let quality: SpeechVoice.Quality =

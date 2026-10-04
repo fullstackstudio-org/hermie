@@ -59,6 +59,14 @@ public final class VoiceSettings {
   public private(set) var expressivity = VoiceSettings.defaultExpressivity
   /// The chats that read each finished reply without being asked: `<bot>@<gateway id>`.
   public private(set) var autoReadChats: Set<String> = []
+  /// Where replies are spoken from: the device's voices, or the gateway's text-to-speech. The gateway's
+  /// is only used where the gateway offers it; everywhere else the device speaks.
+  public private(set) var speechSource = SpeechSource.apple
+  /// The gateway voice replies are spoken in when the source is the gateway; nil is the gateway's own.
+  public private(set) var gatewayVoice: String?
+  /// The bots that have a voice of their own: `<bot>@<gateway id>`. A bot without one follows the
+  /// choices above.
+  public private(set) var botVoices: [String: BotVoice] = [:]
   public private(set) var loaded = false
 
   @ObservationIgnored private let keyValues: KeyValueStore?
@@ -113,6 +121,9 @@ public final class VoiceSettings {
 
     let chats = (blob[Field.autoRead]?.objectValue ?? [:]).filter { $0.value.boolValue == true }
     autoReadChats = Set(chats.keys)
+    speechSource = blob[Field.speechSource]?.stringValue.flatMap(SpeechSource.init(rawValue:)) ?? .apple
+    gatewayVoice = blob[Field.gatewayVoice]?.stringValue.flatMap { $0.isEmpty ? nil : $0 }
+    botVoices = (blob[Field.botVoices]?.objectValue ?? [:]).compactMapValues(BotVoice.init(json:))
   }
 
   /// A rate between the slowest and the fastest stop. Clamped, not rejected: a value from an older
@@ -203,6 +214,49 @@ public final class VoiceSettings {
     change { $0.expressivity = Self.clamped(expressivity: value) ?? Self.defaultExpressivity }
   }
 
+  public func setSpeechSource(_ value: SpeechSource) {
+    change { $0.speechSource = value }
+  }
+
+  public func setGatewayVoice(_ value: String?) {
+    change { $0.gatewayVoice = (value?.isEmpty ?? true) ? nil : value }
+  }
+
+  /// The voice this bot was given of its own, or nil when it follows the Voice screen.
+  public func botVoice(bot: String, gatewayID: String) -> BotVoice? {
+    botVoices[Self.chatKey(bot: bot, gatewayID: gatewayID)]
+  }
+
+  /// Give a bot a voice of its own, or nil to have it follow the Voice screen again.
+  public func setBotVoice(_ voice: BotVoice?, bot: String, gatewayID: String) {
+    let key = Self.chatKey(bot: bot, gatewayID: gatewayID)
+
+    change {
+      if let voice {
+        $0.botVoices[key] = voice
+      } else {
+        $0.botVoices.removeValue(forKey: key)
+      }
+    }
+  }
+
+  /// What speaks when this bot does: its own voice if it has one, else the Voice screen's choice. The
+  /// device's voice stays named when the source is the gateway: it is what speaks if the gateway
+  /// cannot.
+  public func speech(bot: String, gatewayID: String) -> SpeechChoice {
+    if let own = botVoice(bot: bot, gatewayID: gatewayID) {
+      switch own.source {
+      case .apple:
+        return SpeechChoice(source: .apple, appleVoice: own.voice, gatewayVoice: nil)
+      case .gateway:
+        return SpeechChoice(source: .gateway, appleVoice: voiceIdentifier, gatewayVoice: own.voice)
+      }
+    }
+
+    return SpeechChoice(
+      source: speechSource, appleVoice: voiceIdentifier, gatewayVoice: speechSource == .gateway ? gatewayVoice : nil)
+  }
+
   /// The key a chat is kept under in `autoReadChats`.
   public static func chatKey(bot: String, gatewayID: String) -> String {
     GatewayNamespace(gatewayID).key(bot)
@@ -240,6 +294,9 @@ public final class VoiceSettings {
       $0.voiceModeOrb = .clouds
       $0.expressivity = Self.defaultExpressivity
       $0.autoReadChats = []
+      $0.speechSource = .apple
+      $0.gatewayVoice = nil
+      $0.botVoices = [:]
     }
   }
 
@@ -258,9 +315,12 @@ public final class VoiceSettings {
     static let orb = "voiceModeOrb"
     static let setUp = "voiceModeSetUp"
     static let expressivity = "expressivity"
+    static let speechSource = "speechSource"
+    static let gatewayVoice = "gatewayVoice"
+    static let botVoices = "botVoices"
     static let all = [
       rate, dictationLanguage, voice, confirm, stopOnBackground, autoRead, silence, bargeIn, captions, orb, setUp,
-      expressivity
+      expressivity, speechSource, gatewayVoice, botVoices
     ]
   }
 
@@ -284,7 +344,9 @@ public final class VoiceSettings {
       String(rate), dictationLanguage, voiceIdentifier ?? "", String(confirmBeforeSending),
       String(stopOnBackground), autoReadChats.sorted().joined(separator: "\n"), String(voiceModeSilence),
       String(voiceModeBargeIn), String(voiceModeCaptions), voiceModeOrb.rawValue, String(voiceModeSetUp),
-      String(expressivity)
+      String(expressivity), speechSource.rawValue, gatewayVoice ?? "",
+      botVoices.keys.sorted().map { "\($0)=\(botVoices[$0]?.source.rawValue ?? "")/\(botVoices[$0]?.voice ?? "")" }
+        .joined(separator: "\n")
     ]
   }
 
@@ -306,6 +368,13 @@ public final class VoiceSettings {
     blob[Field.setUp] = .bool(voiceModeSetUp)
     blob[Field.expressivity] = .number(expressivity)
     blob[Field.autoRead] = .object(JSONObject(uniqueKeysWithValues: autoReadChats.map { ($0, JSONValue.bool(true)) }))
+    blob[Field.speechSource] = .string(speechSource.rawValue)
+
+    if let gatewayVoice {
+      blob[Field.gatewayVoice] = .string(gatewayVoice)
+    }
+
+    blob[Field.botVoices] = .object(botVoices.mapValues(\.json))
     return blob
   }
 

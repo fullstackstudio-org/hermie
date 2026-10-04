@@ -138,6 +138,9 @@ public final class GatewaySession {
   /// What a chat without a view of its own of the reader's shows (`setDefaultVisibility`).
   @ObservationIgnored private(set) var defaultVisibility: VisibilityOptions
   @ObservationIgnored var models: [String: ChatModel] = [:]
+  /// The gateway's text-to-speech as each bot (profile) sees it, kept so one read of the gateway's
+  /// voice config serves the chat, the Voice screen and the bot's settings.
+  @ObservationIgnored var speechAccesses: [String: GatewaySpeechAccess] = [:]
   @ObservationIgnored private var tasks: [Task<Void, Never>] = []
   @ObservationIgnored private var started = false
   @ObservationIgnored var isShutDown = false
@@ -692,6 +695,7 @@ public struct ConnectionLink: GatewayLink {
   let credentials: any CredentialProvider
   let extraHeaders: [String: String]
   let clock: any ConnectionClock
+  let sockets: any WebSocketTransport
 
   public init(
     baseURL: String,
@@ -713,6 +717,13 @@ public struct ConnectionLink: GatewayLink {
     self.credentials = credentials
     self.extraHeaders = extraHeaders ?? [:]
     self.clock = clock
+    sockets = transport
+  }
+
+  /// The gateway's speech routes, through this link's own credentials and sockets.
+  public var speech: (any GatewaySpeechTransport)? {
+    LiveGatewaySpeech(
+      http: http, baseURL: http.baseURL, credentials: credentials, extraHeaders: extraHeaders, sockets: sockets)
   }
 
   public var events: AsyncStream<WireEvent> { connection.events }

@@ -36,6 +36,12 @@ public enum VoiceModePause: Sendable, Equatable {
   case interruption
 }
 
+/// A small, passing word about the call that is not a failure of it.
+public enum VoiceModeNotice: Sendable, Equatable {
+  /// The gateway's voice did not answer, so the device's speaks (this sentence, and for a while the next).
+  case gatewayVoiceUnavailable
+}
+
 public enum VoiceModeFailure: Sendable, Equatable {
   case recognition(RecognitionFailure)
   /// The audio could not be had, or restarted.
@@ -118,6 +124,9 @@ public final class VoiceModeModel {
   public private(set) var busy = false
   /// Bumped each time a "still working" line is said: the screen's haptic hangs on it.
   public private(set) var cues = 0
+  /// Something the reader should know that does not stop the call. Said once per call; the screen
+  /// shows it for a moment and clears it with `dismissNotice()`.
+  public private(set) var notice: VoiceModeNotice?
 
   @ObservationIgnored private let recogniser: any VoiceModeRecognising
   @ObservationIgnored private let speaker: any VoiceModeSpeaking
@@ -170,6 +179,8 @@ public final class VoiceModeModel {
   @ObservationIgnored private var fillers: VoiceFillerPolicy
   @ObservationIgnored private var fillerSerial = 0
   @ObservationIgnored private var log = VoiceContextLog()
+  /// The notice has been raised on this call.
+  @ObservationIgnored private var noticed = false
 
   /// Words heard while a reply is read count as the reader cutting in from this many letters on: a
   /// cough or a stray syllable does not.
@@ -250,6 +261,8 @@ public final class VoiceModeModel {
     muted = false
     quickEnds = 0
     log = VoiceContextLog()
+    notice = nil
+    noticed = false
 
     guard recogniser.isAvailable else {
       phase = .failed(.recognition(.unavailable))
@@ -309,6 +322,12 @@ public final class VoiceModeModel {
     editing = false
     reply = ""
     busy = false
+    notice = nil
+  }
+
+  /// The screen has shown the notice.
+  public func dismissNotice() {
+    notice = nil
   }
 
   /// Send what has been heard now rather than waiting for the pause; on the confirmation, Send.
@@ -504,6 +523,11 @@ public final class VoiceModeModel {
       }
     case .failed:
       fail(.audio)
+    case .speechFellBack:
+      if !noticed {
+        noticed = true
+        notice = .gatewayVoiceUnavailable
+      }
     }
   }
 

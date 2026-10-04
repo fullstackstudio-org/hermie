@@ -19,8 +19,22 @@ public protocol VoiceSpeechRenderer: AnyObject {
     _ request: ReadRequest, rate: Double, voice: String?, deliver: @escaping @Sendable (AVAudioPCMBuffer?) -> Void)
   /// Stop rendering what is in progress.
   func cancel()
+  /// `request` will be rendered next: a source that fetches its audio can start now, and `render` of
+  /// the same request then has it ready. Nothing to do for a source that renders at once (the default).
+  func prefetch(_ request: ReadRequest, rate: Double, voice: String?)
+  /// Forget what was fetched ahead and not used: the queue it was for is gone.
+  func discardPrefetched()
+  /// Called when a sentence meant for a source that is not the device's was spoken by the device's
+  /// voice instead. A source that never falls back has nothing to call (the default).
+  func setFallbackHandler(_ handler: (@MainActor @Sendable () -> Void)?)
   /// The voices this source can speak in.
   func voices() -> [SpeechVoice]
+}
+
+extension VoiceSpeechRenderer {
+  public func prefetch(_ request: ReadRequest, rate: Double, voice: String?) {}
+  public func discardPrefetched() {}
+  public func setFallbackHandler(_ handler: (@MainActor @Sendable () -> Void)?) {}
 }
 
 /// The device's own voices, rendered to buffers with `AVSpeechSynthesizer.write` instead of played by
@@ -129,7 +143,7 @@ public final class AppleVoiceModeEngine: VoiceModeSpeaking, VoiceModeAudio {
   /// What the device knows about recognition (languages, permission): dictation's own.
   private let support = AppleSpeechRecognizer()
   private let slot = RequestSlot()
-  private let playback: Playback
+  private let playback: RenderedPlayback
   private var running = false
   private var observers: [any NSObjectProtocol] = []
 
@@ -150,7 +164,8 @@ public final class AppleVoiceModeEngine: VoiceModeSpeaking, VoiceModeAudio {
 
   public init(renderer: any VoiceSpeechRenderer = AppleSpeechRenderer()) {
     self.renderer = renderer
-    playback = Playback(player: player, format: Self.playFormat)
+    playback = RenderedPlayback(player: player, format: Self.playFormat)
+    renderer.setFallbackHandler { [weak self] in self?.onEvent?(.speechFellBack) }
   }
 
   // MARK: VoiceModeAudio
@@ -226,6 +241,7 @@ public final class AppleVoiceModeEngine: VoiceModeSpeaking, VoiceModeAudio {
   private func teardown() {
     abortRecognition()
     stopSpeech()
+    renderer.discardPrefetched()
 
     for observer in observers {
       NotificationCenter.default.removeObserver(observer)
@@ -497,6 +513,15 @@ public final class AppleVoiceModeEngine: VoiceModeSpeaking, VoiceModeAudio {
 
   public func stop() {
     stopSpeech()
+    renderer.discardPrefetched()
+  }
+
+  public func prefetch(_ request: ReadRequest, rate: Double, voice: String?) {
+    guard running else {
+      return
+    }
+
+    renderer.prefetch(request, rate: rate, voice: voice)
   }
 
   private func stopSpeech() {
@@ -574,101 +599,6 @@ public final class AppleVoiceModeEngine: VoiceModeSpeaking, VoiceModeAudio {
 
     func append(_ buffer: AVAudioPCMBuffer) {
       lock.withLock { request?.append(buffer) }
-    }
-  }
-
-  /// The player's side of a reply: the renderer's buffers, converted to the player's format and
-  /// scheduled, and the end marked by a short silence whose playback is the completion. A token says
-  /// which reply is wanted; anything else is dropped.
-  private final class Playback: @unchecked Sendable {
-    private let player: AVAudioPlayerNode
-    private let format: AVAudioFormat
-    private let lock = NSLock()
-    private var token = -1
-    private var converter: AVAudioConverter?
-
-    init(player: AVAudioPlayerNode, format: AVAudioFormat) {
-      self.player = player
-      self.format = format
-    }
-
-    func begin(_ token: Int) {
-      lock.withLock {
-        self.token = token
-        converter?.reset()
-      }
-    }
-
-    func play(_ buffer: AVAudioPCMBuffer?, token: Int, finished: @escaping @Sendable () -> Void) {
-      lock.withLock {
-        guard token == self.token else {
-          return
-        }
-
-        guard let buffer else {
-          // The end: a moment of silence, and when it has been heard, the reply has.
-          if let tail = AVAudioPCMBuffer(pcmFormat: format, frameCapacity: 512) {
-            tail.frameLength = 512
-            player.scheduleBuffer(tail, completionCallbackType: .dataPlayedBack) { _ in finished() }
-          } else {
-            finished()
-          }
-          return
-        }
-
-        if let converted = convert(buffer) {
-          player.scheduleBuffer(converted, completionHandler: nil)
-        }
-      }
-    }
-
-    private func convert(_ buffer: AVAudioPCMBuffer) -> AVAudioPCMBuffer? {
-      if buffer.format == format {
-        return buffer
-      }
-
-      if converter == nil || converter?.inputFormat != buffer.format {
-        converter = AVAudioConverter(from: buffer.format, to: format)
-      }
-
-      guard let converter else {
-        return nil
-      }
-
-      let ratio = format.sampleRate / buffer.format.sampleRate
-      let capacity = AVAudioFrameCount(Double(buffer.frameLength) * ratio + 64)
-
-      guard let output = AVAudioPCMBuffer(pcmFormat: format, frameCapacity: capacity) else {
-        return nil
-      }
-
-      let source = SourceOnce(buffer)
-      var error: NSError?
-      converter.convert(to: output, error: &error) { _, status in
-        source.next(status)
-      }
-
-      return error == nil && output.frameLength > 0 ? output : nil
-    }
-
-    /// Hands a converter one buffer, then says there is nothing more for now.
-    private final class SourceOnce: @unchecked Sendable {
-      private var buffer: AVAudioPCMBuffer?
-
-      init(_ buffer: AVAudioPCMBuffer) {
-        self.buffer = buffer
-      }
-
-      func next(_ status: UnsafeMutablePointer<AVAudioConverterInputStatus>) -> AVAudioBuffer? {
-        guard let buffer else {
-          status.pointee = .noDataNow
-          return nil
-        }
-
-        self.buffer = nil
-        status.pointee = .haveData
-        return buffer
-      }
     }
   }
 

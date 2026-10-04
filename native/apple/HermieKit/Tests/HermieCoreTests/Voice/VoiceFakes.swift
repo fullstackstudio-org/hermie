@@ -78,6 +78,7 @@ final class FakeSynthesiser: SpeechSynthesizing {
   var installed: [SpeechVoice] = []
 
   private(set) var spoken: [Spoken] = []
+  private(set) var prefetched: [Spoken] = []
   private(set) var stops = 0
   private var finishers: [@MainActor @Sendable () -> Void] = []
 
@@ -88,6 +89,10 @@ final class FakeSynthesiser: SpeechSynthesizing {
 
   func stop() {
     stops += 1
+  }
+
+  func prefetch(_ request: ReadRequest, rate: Double, voice: String?) {
+    prefetched.append(Spoken(request: request, rate: rate, voice: voice))
   }
 
   func voices() -> [SpeechVoice] { installed }

@@ -13,12 +13,22 @@ public struct ReadRequest: Sendable, Equatable {
   public var language: String?
   /// The voice's pitch, 1 being its own (`VoiceProsody`).
   public var pitch: Double
+  /// Where it is spoken from. Set by the reader when it starts the request, from the settings, so a
+  /// request made anywhere is spoken the way its bot is set up to be.
+  public var source: SpeechSource
+  /// The gateway's voice for it, when `source` is the gateway and a voice is chosen.
+  public var gatewayVoice: String?
 
-  public init(id: String, text: String, language: String? = nil, pitch: Double = 1) {
+  public init(
+    id: String, text: String, language: String? = nil, pitch: Double = 1, source: SpeechSource = .apple,
+    gatewayVoice: String? = nil
+  ) {
     self.id = id
     self.text = text
     self.language = language
     self.pitch = pitch
+    self.source = source
+    self.gatewayVoice = gatewayVoice
   }
 }
 
@@ -61,6 +71,9 @@ public protocol SpeechSynthesizing: AnyObject {
   func speak(_ request: ReadRequest, rate: Double, voice: String?, onDone: @escaping @MainActor @Sendable () -> Void)
   /// Silence, now.
   func stop()
+  /// `request` is next in line: a source that has to fetch its audio may start now. The same arguments
+  /// `speak` will get. A synthesiser that has nothing to fetch does nothing (the default).
+  func prefetch(_ request: ReadRequest, rate: Double, voice: String?)
   /// The voices this device has, as BCP-47 tags.
   func voices() -> [SpeechVoice]
   /// Whether the reader's Personal Voice may be read with.
@@ -226,6 +239,10 @@ public final class ReadAloudModel {
       advance()
     } else {
       publish()
+
+      if queue.count == 1 {
+        prefetchNext()
+      }
     }
   }
 
@@ -252,15 +269,37 @@ public final class ReadAloudModel {
       return
     }
 
-    let next = queue.removeFirst()
+    let (next, voice) = spoken(queue.removeFirst())
     generation += 1
     let current = generation
     speakingID = next.id
     publish()
 
-    engine.speak(next, rate: settings.rate, voice: settings.voiceIdentifier) { [weak self] in
+    engine.speak(next, rate: settings.rate, voice: voice) { [weak self] in
       self?.finished(current)
     }
+
+    prefetchNext()
+  }
+
+  /// `request` as this bot speaks it: its source and voices from the settings, and the device voice
+  /// that goes with it.
+  private func spoken(_ request: ReadRequest) -> (ReadRequest, String?) {
+    let choice = settings.speech(bot: bot, gatewayID: gatewayID)
+    var resolved = request
+    resolved.source = choice.source
+    resolved.gatewayVoice = choice.gatewayVoice
+    return (resolved, choice.appleVoice)
+  }
+
+  /// What is next in line is fetched while the current one is spoken, so there is no gap between two.
+  private func prefetchNext() {
+    guard let upcoming = queue.first else {
+      return
+    }
+
+    let (request, voice) = spoken(upcoming)
+    engine.prefetch(request, rate: settings.rate, voice: voice)
   }
 
   private func finished(_ generation: Int) {
@@ -344,6 +383,8 @@ public enum PersonalVoiceAccess: Sendable, Equatable {
 }
 
 extension SpeechSynthesizing {
+  public func prefetch(_ request: ReadRequest, rate: Double, voice: String?) {}
+
   /// Where the synthesiser knows nothing of Personal Voice (the tests' fake).
   public func personalVoiceAccess() -> PersonalVoiceAccess { .unsupported }
   public func requestPersonalVoiceAccess() async -> PersonalVoiceAccess { .unsupported }

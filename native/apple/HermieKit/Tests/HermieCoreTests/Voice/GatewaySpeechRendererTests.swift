@@ -1,0 +1,392 @@
+import AVFoundation
+import Foundation
+import Testing
+
+@testable import HermieCore
+
+/// The gateway's voice as a source of a call's audio, over a transport that never opens a socket and a
+/// device renderer that never makes a sound.
+@Suite(.timeLimit(.minutes(1))) @MainActor struct GatewaySpeechRendererTests {
+  private let sentence = ReadRequest(id: "a#0", text: "Hello there.", language: "en", source: .gateway)
+
+  private func make(
+    _ transport: FakeGatewayTransport = FakeGatewayTransport(), firstAudio: Duration = .seconds(5),
+    cooldown: Double = 30, clock: SpeechTestClock = SpeechTestClock(), available: @escaping @MainActor () -> Bool = { true }
+  ) -> (renderer: GatewaySpeechRenderer, fallback: FakeFallbackRenderer, transport: FakeGatewayTransport) {
+    let fallback = FakeFallbackRenderer()
+    let renderer = GatewaySpeechRenderer(
+      transport: transport, profile: "researcher", fallback: fallback,
+      timing: .init(firstAudio: firstAudio, cooldown: cooldown, streamBackoff: 60), clock: clock.read,
+      available: available)
+    return (renderer, fallback, transport)
+  }
+
+  // MARK: The streamed route
+
+  @Test func streamedAudioIsDeliveredInOrderAsItArrivesAndThenEnds() async {
+    let transport = FakeGatewayTransport()
+    transport.stream = { _ in .pcm([240, 480, 120]) }
+    let (renderer, fallback, _) = make(transport)
+    let delivered = Delivered()
+
+    renderer.render(sentence, rate: 1, voice: "apple.voice", deliver: delivered.deliver)
+    await eventually { delivered.ended }
+
+    #expect(delivered.all == [.buffer(frames: 240, rate: 24_000), .buffer(frames: 480, rate: 24_000), .buffer(frames: 120, rate: 24_000), .end])
+    #expect(transport.streamCalls == [.init(kind: .stream, text: "Hello there.", profile: "researcher", voice: nil)])
+    #expect(transport.speakCalls.isEmpty, "the file route is for when there is no stream")
+    #expect(fallback.renders.isEmpty)
+  }
+
+  @Test func aFrameThatEndsBetweenTwoBytesOfASampleIsNotLost() async {
+    let transport = FakeGatewayTransport()
+    let bytes = AudioFixtures.pcm(frames: 4)
+    transport.stream = { _ in
+      .events([
+        .start(sampleRate: 24_000, channels: 1), .pcm(bytes.prefix(3)), .pcm(bytes.dropFirst(3)), .end,
+      ])
+    }
+    let (renderer, _, _) = make(transport)
+    let delivered = Delivered()
+
+    renderer.render(sentence, rate: 1, voice: nil, deliver: delivered.deliver)
+    await eventually { delivered.ended }
+
+    #expect(delivered.buffers.reduce(0, +) == 4, "all four samples came out, whole")
+  }
+
+  @Test func theChosenGatewayVoiceIsSentWithTheRequest() async {
+    let transport = FakeGatewayTransport()
+    transport.stream = { _ in .pcm([100]) }
+    let (renderer, _, _) = make(transport)
+    let delivered = Delivered()
+    var request = sentence
+    request.gatewayVoice = "voice-adam"
+
+    renderer.render(request, rate: 1, voice: nil, deliver: delivered.deliver)
+    await eventually { delivered.ended }
+
+    #expect(transport.streamCalls.first?.voice == "voice-adam")
+  }
+
+  @Test func aProviderWithNoStreamIsSpokenFromTheFileRouteAndTheStreamIsNotTriedAgain() async {
+    let transport = FakeGatewayTransport()
+    transport.stream = { _ in .events([.fallback]) }
+    transport.speak = { _ in AudioFixtures.clip(frames: 1_600) }
+    let (renderer, fallback, _) = make(transport)
+    let first = Delivered()
+    let second = Delivered()
+
+    renderer.render(sentence, rate: 1, voice: nil, deliver: first.deliver)
+    await eventually { first.ended }
+
+    var next = sentence
+    next.text = "Another one."
+    renderer.render(next, rate: 1, voice: nil, deliver: second.deliver)
+    await eventually { second.ended }
+
+    #expect(first.buffers.reduce(0, +) == 1_600)
+    #expect(second.buffers.reduce(0, +) == 1_600)
+    #expect(transport.streamCalls.count == 1, "the gateway said it has no stream: once is enough")
+    #expect(transport.speakCalls.map(\.text) == ["Hello there.", "Another one."])
+    #expect(fallback.renders.isEmpty)
+  }
+
+  @Test func aStreamThatDoesNotOpenIsSpokenFromTheFileRouteAndNotRetriedForAWhile() async {
+    let transport = FakeGatewayTransport()
+    let clock = SpeechTestClock()
+    transport.stream = { _ in .fail }
+    transport.speak = { _ in AudioFixtures.clip() }
+    let (renderer, _, _) = make(transport, clock: clock)
+    let first = Delivered()
+    let second = Delivered()
+    let third = Delivered()
+
+    renderer.render(sentence, rate: 1, voice: nil, deliver: first.deliver)
+    await eventually { first.ended }
+    renderer.render(sentence, rate: 1, voice: nil, deliver: second.deliver)
+    await eventually { second.ended }
+
+    #expect(transport.streamCalls.count == 1, "a failed stream is left alone for the backoff")
+
+    clock.advance(61)
+    renderer.render(sentence, rate: 1, voice: nil, deliver: third.deliver)
+    await eventually { third.ended }
+
+    #expect(transport.streamCalls.count == 2, "and tried again once it has passed")
+  }
+
+  @Test func aStreamThatBreaksPartWayEndsWhatWasHeardInsteadOfSpeakingItAgain() async {
+    let transport = FakeGatewayTransport()
+    transport.stream = { _ in .eventsThenFail([.start(sampleRate: 24_000, channels: 1), .pcm(AudioFixtures.pcm(frames: 300))]) }
+    let (renderer, fallback, _) = make(transport)
+    let delivered = Delivered()
+
+    renderer.render(sentence, rate: 1, voice: nil, deliver: delivered.deliver)
+    await eventually { delivered.ended }
+
+    #expect(delivered.buffers == [300])
+    #expect(fallback.renders.isEmpty, "half a sentence is not said twice")
+    #expect(transport.speakCalls.isEmpty)
+  }
+
+  // MARK: Falling back to the device's voice
+
+  @Test func aSentenceTheGatewayCannotSpeakIsSpokenByTheDeviceWithItsVoiceAndTheCallIsToldOnce() async {
+    let transport = FakeGatewayTransport()
+    let clock = SpeechTestClock()
+    let (renderer, fallback, _) = make(transport, cooldown: 30, clock: clock)
+    let told = Told()
+    renderer.setFallbackHandler { told.count += 1 }
+    let first = Delivered()
+    let second = Delivered()
+
+    renderer.render(sentence, rate: 1.25, voice: "apple.voice", deliver: first.deliver)
+    await eventually { !fallback.renders.isEmpty }
+
+    #expect(fallback.renders == [.init(request: sentence, voice: "apple.voice")])
+    #expect(told.count == 1)
+
+    // The next one, once the cooldown has passed, fails the same way: spoken by the device, not announced again.
+    clock.advance(31)
+    var next = sentence
+    next.text = "Second."
+    renderer.render(next, rate: 1, voice: "apple.voice", deliver: second.deliver)
+    await eventually { fallback.renders.count == 2 }
+
+    #expect(told.count == 1, "once per call")
+  }
+
+  @Test func afterAFallBackTheNextSentencesGoStraightToTheDeviceWithoutWaitingOnTheGateway() async {
+    let transport = FakeGatewayTransport()
+    let clock = SpeechTestClock()
+    let (renderer, fallback, _) = make(transport, cooldown: 30, clock: clock)
+    let delivered = Delivered()
+
+    renderer.render(sentence, rate: 1, voice: nil, deliver: delivered.deliver)
+    await eventually { fallback.renders.count == 1 }
+    let asked = transport.calls.count
+
+    for index in 0..<3 {
+      var next = sentence
+      next.text = "Sentence \(index)."
+      renderer.render(next, rate: 1, voice: nil, deliver: delivered.deliver)
+    }
+
+    #expect(fallback.renders.count == 4, "each went to the device at once")
+    #expect(transport.calls.count == asked, "and the gateway was not asked")
+
+    clock.advance(61)
+    transport.stream = { _ in .pcm([100]) }
+    let after = Delivered()
+    renderer.render(sentence, rate: 1, voice: nil, deliver: after.deliver)
+    await eventually { after.ended }
+
+    #expect(after.buffers == [100], "the gateway is tried again after the cooldown")
+  }
+
+  @Test func firstAudioThatIsTooSlowIsSpokenByTheDeviceAndTheGatewaysRequestIsDropped() async {
+    let transport = FakeGatewayTransport()
+    transport.stream = { _ in .hang }
+    let (renderer, fallback, _) = make(transport, firstAudio: .milliseconds(80))
+    let told = Told()
+    renderer.setFallbackHandler { told.count += 1 }
+    let delivered = Delivered()
+
+    renderer.render(sentence, rate: 1, voice: "apple.voice", deliver: delivered.deliver)
+    await eventually { !fallback.renders.isEmpty }
+    await eventually { transport.cancelled == 1 }
+
+    #expect(fallback.renders == [.init(request: sentence, voice: "apple.voice")])
+    #expect(told.count == 1)
+    #expect(delivered.all.isEmpty, "nothing came from the gateway")
+  }
+
+  @Test func aStreamThatDeliversInTimeIsNotInterruptedByTheTimeout() async {
+    let transport = FakeGatewayTransport()
+    transport.stream = { _ in .pcm([200]) }
+    let (renderer, fallback, _) = make(transport, firstAudio: .milliseconds(80))
+    let delivered = Delivered()
+
+    renderer.render(sentence, rate: 1, voice: nil, deliver: delivered.deliver)
+    await eventually { delivered.ended }
+    try? await Task.sleep(for: .milliseconds(150))
+
+    #expect(delivered.buffers == [200])
+    #expect(fallback.renders.isEmpty)
+  }
+
+  @Test func theFileRoutesFailureIsAFallBackToo() async {
+    let transport = FakeGatewayTransport()
+    transport.stream = { _ in .fail }
+    transport.speak = { _ in throw FakeGatewayTransport.GatewayFakeError.refused }
+    let (renderer, fallback, _) = make(transport)
+
+    renderer.render(sentence, rate: 1, voice: nil, deliver: Delivered().deliver)
+    await eventually { !fallback.renders.isEmpty }
+
+    #expect(fallback.renders.count == 1)
+  }
+
+  @Test func audioTheSystemCannotReadIsAFallBack() async {
+    let transport = FakeGatewayTransport()
+    transport.stream = { _ in .fail }
+    transport.speak = { _ in GatewayAudioClip(data: Data("not audio at all".utf8), mimeType: "audio/ogg") }
+    let (renderer, fallback, _) = make(transport)
+
+    renderer.render(sentence, rate: 1, voice: nil, deliver: Delivered().deliver)
+    await eventually { !fallback.renders.isEmpty }
+
+    #expect(fallback.renders.count == 1)
+  }
+
+  // MARK: Which source
+
+  @Test func aRequestForTheDeviceNeverTouchesTheGateway() {
+    let (renderer, fallback, transport) = make()
+    var request = sentence
+    request.source = .apple
+
+    renderer.render(request, rate: 1, voice: "apple.voice", deliver: Delivered().deliver)
+
+    #expect(fallback.renders == [.init(request: request, voice: "apple.voice")])
+    #expect(transport.calls.isEmpty)
+  }
+
+  @Test func aGatewayWithNoTextToSpeechIsLeftAloneAndNothingIsSaidAboutIt() {
+    let (renderer, fallback, transport) = make(available: { false })
+    let told = Told()
+    renderer.setFallbackHandler { told.count += 1 }
+
+    renderer.render(sentence, rate: 1, voice: nil, deliver: Delivered().deliver)
+
+    #expect(fallback.renders.count == 1)
+    #expect(transport.calls.isEmpty)
+    #expect(told.count == 0)
+  }
+
+  // MARK: Ending and cutting in
+
+  @Test func cuttingInStopsTheStreamAndDropsWhatIsStillComing() async {
+    let transport = FakeGatewayTransport()
+    transport.stream = { _ in .hang }
+    let (renderer, fallback, _) = make(transport)
+    let delivered = Delivered()
+
+    renderer.render(sentence, rate: 1, voice: nil, deliver: delivered.deliver)
+    await eventually { transport.streamCalls.count == 1 }
+    renderer.cancel()
+    await eventually { transport.cancelled == 1 }
+
+    #expect(fallback.cancels == 1, "the device's renderer is silenced as well")
+    #expect(fallback.renders.isEmpty, "and a cut-in is not a failure of the gateway")
+    #expect(delivered.all.isEmpty)
+  }
+
+  @Test func aNewSentenceReplacesTheOneBeforeIt() async {
+    let transport = FakeGatewayTransport()
+    transport.stream = { call in call.text == "first" ? FakeGatewayTransport.Stream.hang : .pcm([50]) }
+    let (renderer, _, _) = make(transport)
+    let first = Delivered()
+    let second = Delivered()
+    var one = sentence
+    one.text = "first"
+    var two = sentence
+    two.text = "second"
+
+    renderer.render(one, rate: 1, voice: nil, deliver: first.deliver)
+    renderer.render(two, rate: 1, voice: nil, deliver: second.deliver)
+    await eventually { second.ended }
+
+    #expect(first.all.isEmpty)
+    #expect(second.buffers == [50])
+    #expect(transport.cancelledTexts.contains("first"), "the first one's request was let go of")
+  }
+
+  // MARK: Prefetching
+
+  @Test func theNextSentenceIsRequestedBeforeItIsWantedAndUsedWithoutAskingAgain() async {
+    let transport = FakeGatewayTransport()
+    transport.stream = { _ in .pcm([160, 160]) }
+    let (renderer, _, _) = make(transport)
+    let delivered = Delivered()
+
+    renderer.prefetch(sentence, rate: 1, voice: nil)
+    await eventually { transport.streamCalls.count == 1 }
+    renderer.render(sentence, rate: 1, voice: nil, deliver: delivered.deliver)
+    await eventually { delivered.ended }
+
+    #expect(transport.streamCalls.count == 1, "asked once, ahead of time")
+    #expect(delivered.buffers == [160, 160])
+  }
+
+  @Test func prefetchingTheSameSentenceTwiceAsksOnce() async {
+    let transport = FakeGatewayTransport()
+    transport.stream = { _ in .hang }
+    let (renderer, _, _) = make(transport)
+
+    renderer.prefetch(sentence, rate: 1, voice: nil)
+    renderer.prefetch(sentence, rate: 1, voice: nil)
+    await eventually { transport.streamCalls.count == 1 }
+    try? await Task.sleep(for: .milliseconds(30))
+
+    #expect(transport.streamCalls.count == 1)
+  }
+
+  @Test func onlyAFewSentencesAreFetchedAhead() async {
+    let transport = FakeGatewayTransport()
+    transport.stream = { _ in .hang }
+    let (renderer, _, _) = make(transport)
+
+    for index in 0..<4 {
+      var request = sentence
+      request.text = "Sentence \(index)."
+      renderer.prefetch(request, rate: 1, voice: nil)
+    }
+
+    await eventually { transport.cancelled == 2 }
+
+    #expect(transport.streamCalls.count == 4)
+    #expect(transport.cancelled == 2, "the oldest two were let go of")
+  }
+
+  @Test func discardingWhatWasFetchedAheadLetsGoOfIt() async {
+    let transport = FakeGatewayTransport()
+    transport.stream = { _ in .hang }
+    let (renderer, _, _) = make(transport)
+
+    renderer.prefetch(sentence, rate: 1, voice: nil)
+    await eventually { transport.streamCalls.count == 1 }
+    renderer.discardPrefetched()
+    await eventually { transport.cancelled == 1 }
+
+    #expect(transport.cancelled == 1)
+  }
+
+  @Test func aSentenceForTheDeviceIsNotPrefetched() {
+    let (renderer, _, transport) = make()
+    var request = sentence
+    request.source = .apple
+
+    renderer.prefetch(request, rate: 1, voice: nil)
+
+    #expect(transport.calls.isEmpty)
+  }
+
+  @Test func aPrefetchedSentenceWithADifferentVoiceIsNotUsed() async {
+    let transport = FakeGatewayTransport()
+    transport.stream = { _ in .pcm([10]) }
+    let (renderer, _, _) = make(transport)
+    let delivered = Delivered()
+    var asked = sentence
+    asked.gatewayVoice = "voice-a"
+    var wanted = sentence
+    wanted.gatewayVoice = "voice-b"
+
+    renderer.prefetch(asked, rate: 1, voice: nil)
+    renderer.render(wanted, rate: 1, voice: nil, deliver: delivered.deliver)
+    await eventually { delivered.ended }
+
+    #expect(transport.streamCalls.map(\.voice) == ["voice-a", "voice-b"])
+  }
+}

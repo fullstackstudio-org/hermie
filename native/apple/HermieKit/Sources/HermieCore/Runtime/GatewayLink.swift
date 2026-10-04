@@ -94,6 +94,10 @@ public protocol GatewayLink: Sendable {
   /// (the default).
   func fetchFile(_ path: String) async -> Data?
 
+  /// The gateway's text-to-speech (`/api/audio/…`), through the link's own credentials, only ever this
+  /// gateway's. A link without a REST side has none (the default).
+  var speech: (any GatewaySpeechTransport)? { get }
+
   /// The gateway's address as this link dials it, when it has one: whether it is this device itself
   /// decides whether a path a message names may be opened from this device's disk.
   var gatewayAddress: String? { get }
@@ -298,6 +302,8 @@ extension GatewayLink {
   }
 
   public var gatewayAddress: String? { nil }
+
+  public var speech: (any GatewaySpeechTransport)? { nil }
 
   /// A link with no writer of its own has nothing to wait for.
   public func flushWrites(within limit: Duration) async {}
