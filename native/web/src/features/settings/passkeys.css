@@ -91,6 +91,12 @@
   gap: 8px;
 }
 
+.hm-passkeys__actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
 .hm-passkeys__label {
   color: var(--hm-text-muted);
   font-size: 0.9375rem;

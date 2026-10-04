@@ -300,9 +300,9 @@ export const SHEET_STRINGS_SOURCE = {
         de: 'Der Passkey wurde entfernt.'
       },
       enrolTitle: {
-        en: 'Add a passkey from this browser',
-        nl: 'Een passkey van deze browser toevoegen',
-        de: 'Einen Passkey aus diesem Browser hinzufügen'
+        en: 'Add a passkey with a code',
+        nl: 'Een passkey toevoegen met een code',
+        de: 'Einen Passkey mit einem Code hinzufügen'
       },
       enrolHelp: {
         en: 'You need a one-time code from whoever runs the gateway, or one you made with a passkey you already have.',
@@ -315,14 +315,154 @@ export const SHEET_STRINGS_SOURCE = {
         de: 'Registrierungscode'
       },
       enrol: {
-        en: 'Add a passkey',
-        nl: 'Passkey toevoegen',
-        de: 'Passkey hinzufügen'
+        en: 'Add with a code',
+        nl: 'Toevoegen met een code',
+        de: 'Mit Code hinzufügen'
       },
       enrolled: {
         en: 'The passkey was added.',
         nl: 'De passkey is toegevoegd.',
         de: 'Der Passkey wurde hinzugefügt.'
+      },
+      /** Adding a passkey by signing in again (contract §7.2): the section's heading. */
+      selfTitle: {
+        en: 'Add a passkey',
+        nl: 'Een passkey toevoegen',
+        de: 'Einen Passkey hinzufügen'
+      },
+      selfHelp: {
+        en: 'You will sign in again to prove it is you, then your browser creates the passkey.',
+        nl: 'Je logt opnieuw in om te laten zien dat jij het bent; daarna maakt je browser de passkey.',
+        de: 'Du meldest dich erneut an, um zu zeigen, dass du es bist; danach erstellt dein Browser den Passkey.'
+      },
+      selfStart: {
+        en: 'Add a passkey',
+        nl: 'Passkey toevoegen',
+        de: 'Passkey hinzufügen'
+      },
+      /** The same button after a sign-in that did not count: a new one starts. */
+      selfRetry: {
+        en: 'Sign in again',
+        nl: 'Opnieuw inloggen',
+        de: 'Erneut anmelden'
+      },
+      /** While the window leaves for the gateway's sign-in page. */
+      selfStarting: {
+        en: 'Taking you to sign in…',
+        nl: 'Je gaat naar het inloggen…',
+        de: 'Weiter zur Anmeldung …'
+      },
+      selfFinishTitle: {
+        en: 'Finish adding your passkey',
+        nl: 'Je passkey afmaken',
+        de: 'Deinen Passkey fertig hinzufügen'
+      },
+      selfFinishHelp: {
+        en: ({ time }: { time: string }) =>
+          `You signed in again. Your browser can now create the passkey; this stays possible until ${time}.`,
+        nl: ({ time }: { time: string }) =>
+          `Je bent opnieuw ingelogd. Je browser kan nu de passkey maken; dat kan tot ${time}.`,
+        de: ({ time }: { time: string }) =>
+          `Du hast dich erneut angemeldet. Dein Browser kann jetzt den Passkey erstellen; das ist bis ${time} möglich.`
+      },
+      selfFinish: {
+        en: 'Finish adding your passkey',
+        nl: 'Passkey afmaken',
+        de: 'Passkey fertig hinzufügen'
+      },
+      selfCancel: {
+        en: 'Cancel',
+        nl: 'Annuleren',
+        de: 'Abbrechen'
+      },
+      selfCancelled: {
+        en: 'Adding the passkey was cancelled.',
+        nl: 'Het toevoegen van de passkey is geannuleerd.',
+        de: 'Das Hinzufügen des Passkeys wurde abgebrochen.'
+      },
+      /** `reauth_invalid` unknown, or a grant that ran out here: expired, or not started in this browser. */
+      selfExpired: {
+        en: 'This set-up has expired or was not started in this browser. Sign in again to start over.',
+        nl: 'Deze koppeling is verlopen of is niet in deze browser gestart. Log opnieuw in om opnieuw te beginnen.',
+        de: 'Dieser Vorgang ist abgelaufen oder wurde nicht in diesem Browser gestartet. Melde dich erneut an, um neu zu beginnen.'
+      },
+      /** `reauth_invalid` spent. */
+      selfSpent: {
+        en: 'That sign-in was already used for a passkey. Sign in again to add another.',
+        nl: 'Die inlog is al voor een passkey gebruikt. Log opnieuw in om er nog een toe te voegen.',
+        de: 'Diese Anmeldung wurde schon für einen Passkey verwendet. Melde dich erneut an, um einen weiteren hinzuzufügen.'
+      },
+      /** `reauth_invalid` not_fresh: the sign-in never came back. */
+      selfNotFresh: {
+        en: 'The sign-in did not complete. Sign in again to add your passkey.',
+        nl: 'Het inloggen is niet voltooid. Log opnieuw in om je passkey toe te voegen.',
+        de: 'Die Anmeldung wurde nicht abgeschlossen. Melde dich erneut an, um deinen Passkey hinzuzufügen.'
+      },
+      /** `failed` / `auth_not_fresh`. */
+      selfAuthNotFresh: {
+        en: 'Your identity provider reused an earlier sign-in. Sign out there, then try again.',
+        nl: 'Je identiteitsprovider gebruikte een eerdere inlog opnieuw. Log daar uit en probeer het opnieuw.',
+        de: 'Dein Identitätsanbieter hat eine frühere Anmeldung wiederverwendet. Melde dich dort ab und versuche es erneut.'
+      },
+      /** `failed` / `auth_time_missing`. */
+      selfAuthTimeMissing: {
+        en: 'Your identity provider does not say when you signed in. Whoever runs the gateway can allow that.',
+        nl: 'Je identiteitsprovider geeft niet aan wanneer je inlogde. Wie de gateway beheert kan dat toestaan.',
+        de: 'Dein Identitätsanbieter gibt nicht an, wann du dich angemeldet hast. Wer das Gateway betreibt, kann das erlauben.'
+      },
+      /** `failed` / `user_mismatch`. */
+      selfUserMismatch: {
+        en: 'You signed in as someone else. Sign in again as yourself.',
+        nl: 'Je bent als iemand anders ingelogd. Log opnieuw in als jezelf.',
+        de: 'Du hast dich als jemand anderes angemeldet. Melde dich erneut als du selbst an.'
+      },
+      /** `failed` / `provider_mismatch`. */
+      selfProviderMismatch: {
+        en: 'You signed in with another sign-in method than the one that started this. Sign in again.',
+        nl: 'Je bent met een andere inlogmethode ingelogd dan waarmee dit begon. Log opnieuw in.',
+        de: 'Du hast dich mit einer anderen Anmeldemethode angemeldet als der, mit der das begann. Melde dich erneut an.'
+      },
+      /** `failed` for any other reason. */
+      selfFailed: {
+        en: 'That sign-in did not count. Sign in again to add your passkey.',
+        nl: 'Die inlog telde niet mee. Log opnieuw in om je passkey toe te voegen.',
+        de: 'Diese Anmeldung hat nicht gezählt. Melde dich erneut an, um deinen Passkey hinzuzufügen.'
+      },
+      /** 403 `self_enrol_disabled`. */
+      selfDisabled: {
+        en: 'Adding a passkey by signing in again is switched off on this gateway. You can still add one with a code.',
+        nl: 'Een passkey toevoegen door opnieuw in te loggen staat uit op deze gateway. Met een code kan het nog wel.',
+        de: 'Einen Passkey durch erneutes Anmelden hinzuzufügen ist auf diesem Gateway ausgeschaltet. Mit einem Code geht es weiterhin.'
+      },
+      /** 403 `provider_no_reauth`. */
+      selfNoReauth: {
+        en: 'Your sign-in provider cannot ask you to sign in again, so a passkey cannot be added this way. You can still add one with a code.',
+        nl: 'Je inlogprovider kan niet vragen om opnieuw in te loggen, dus zo kan er geen passkey worden toegevoegd. Met een code kan het nog wel.',
+        de: 'Dein Anmeldeanbieter kann dich nicht bitten, dich erneut anzumelden, daher lässt sich auf diesem Weg kein Passkey hinzufügen. Mit einem Code geht es weiterhin.'
+      },
+      /** The gateway has no `reauth/begin` route. */
+      selfNotOffered: {
+        en: 'This gateway cannot add a passkey by signing in again. You can add one with a code.',
+        nl: 'Deze gateway kan geen passkey toevoegen door opnieuw in te loggen. Met een code kan het wel.',
+        de: 'Dieses Gateway kann keinen Passkey durch erneutes Anmelden hinzufügen. Mit einem Code geht es.'
+      },
+      /** 403 `insecure_binding`. */
+      selfInsecure: {
+        en: 'Adding a passkey by signing in again needs this page on HTTPS. You can add one with a code.',
+        nl: 'Een passkey toevoegen door opnieuw in te loggen vraagt dat deze pagina via HTTPS openstaat. Met een code kan het wel.',
+        de: 'Einen Passkey durch erneutes Anmelden hinzuzufügen setzt voraus, dass diese Seite über HTTPS geöffnet ist. Mit einem Code geht es.'
+      },
+      /** `sessionStorage` would not keep the grant across the sign-in. */
+      selfStash: {
+        en: 'This browser would not keep what is needed to come back from signing in (private browsing can block that). You can add a passkey with a code.',
+        nl: 'Deze browser wil niet bewaren wat nodig is om na het inloggen terug te komen (privé browsen kan dat blokkeren). Met een code kan het wel.',
+        de: 'Dieser Browser will nicht speichern, was nötig ist, um nach der Anmeldung zurückzukehren (privates Surfen kann das blockieren). Mit einem Code geht es.'
+      },
+      /** On a credential that is listed but cannot answer a confirmation yet (the operator's cooling-off). */
+      coolingOff: {
+        en: ({ time }: { time: string }) => `Not usable yet: ready from ${time}`,
+        nl: ({ time }: { time: string }) => `Nog niet bruikbaar: klaar vanaf ${time}`,
+        de: ({ time }: { time: string }) => `Noch nicht nutzbar: bereit ab ${time}`
       },
       inviteTitle: {
         en: 'Add another device',

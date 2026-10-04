@@ -1,7 +1,8 @@
 /**
- * The six passkey routes of the gateway (plan "HTTP routes"; the fake gateway's
- * `src/passkey/routes.ts` for the shapes): the status read, registration with an
- * enrolment code, and the step-ups that mint an invite or revoke a credential.
+ * The seven passkey routes of the gateway (plan "HTTP routes"; the fake gateway's
+ * `src/passkey/routes.ts` for the shapes): the status read, the grant of a
+ * self-enrolment (`reauth/begin`), registration with an enrolment code or that
+ * grant, and the step-ups that mint an invite or revoke a credential.
  *
  * On the page's own origin with the cookie session (`credentials: 'same-origin'`),
  * so the browser sends the `Origin` the gateway checks on every cookie write
@@ -9,7 +10,9 @@
  * (`error`, `reason`) is what the page shows, and that class keeps only the
  * status.
  *
- * Nothing here logs a body: codes and assertions travel through it.
+ * Nothing here logs a body: codes and assertions travel through it. The binding
+ * cookie of a self-enrolment grant is HttpOnly: it rides on `credentials:
+ * 'same-origin'` and this code never sees it.
  */
 import { DEFAULT_RPC_TIMEOUT_MS, type FetchLike } from '@hermie/gateway-client'
 
@@ -23,6 +26,16 @@ export interface PasskeyCredentialInfo {
   last_used_at?: number | null
   backed_up?: boolean
   created_via?: string
+  /** Unix seconds: while cooling off after a self-enrolment, the credential is listed but cannot answer a confirmation yet. */
+  usable_from?: number
+}
+
+/** `GET /api/auth/passkeys` → `self_enrol`: whether this person can add a passkey by signing in again (contract §8). */
+export interface SelfEnrolStatus {
+  available: boolean
+  /** `""` when available; else `disabled` or `provider_no_reauth`. */
+  reason: string
+  cooling_off_s?: number
 }
 
 /** `GET /api/auth/passkeys`. */
@@ -35,6 +48,8 @@ export interface PasskeyStatus {
   rp: { native: string[]; web: string[] }
   base_urls?: string[]
   user_invites: boolean
+  /** Absent on a gateway older than self-enrolment: treated as not available. */
+  self_enrol?: SelfEnrolStatus
   credentials: PasskeyCredentialInfo[]
 }
 
@@ -44,6 +59,18 @@ export interface RegisterBeginResult {
   expires_at?: number
   user: { handle: string; name?: string; display_name?: string }
   exclude_credentials?: { type?: string; id: string }[]
+  /** Present when the registration was opened with a grant. */
+  grant?: { expires_at?: number }
+}
+
+/** `POST /api/auth/passkeys/reauth/begin` for a cookie caller (contract §8). The binding cookie travels in `Set-Cookie`. */
+export interface ReauthBeginResult {
+  grant_id: string
+  /** Unix seconds. */
+  expires_at: number
+  provider: string
+  /** The path (with prefix) of the gateway's sign-in page for this grant; the page appends `&next=`. */
+  login_path?: string
 }
 
 export interface StepupBeginResult {
@@ -67,10 +94,12 @@ export interface PasskeyAssertion {
   user_handle?: string
 }
 
+/** Exactly one of `code` and `grant_id` (contract §7). */
 export interface RegisterFinishBody {
   registration_id: string
   base_url: string
-  code: string
+  code?: string
+  grant_id?: string
   credential: { id: string; client_data_json: string; attestation_object: string; transports?: string[] }
 }
 
@@ -86,7 +115,9 @@ export class PasskeyRouteError extends Error {
     /** The contract's `reason`, when the route gave one. */
     readonly reason = '',
     /** Seconds the gateway asked the caller to wait (`Retry-After` on a 429), when it said. */
-    readonly retryAfter: number | null = null
+    readonly retryAfter: number | null = null,
+    /** The contract's `failure` (`auth_not_fresh`, ...), on a `reauth_invalid` whose `reason` is `failed`. */
+    readonly failure = ''
   ) {
     super(message)
     this.name = 'PasskeyRouteError'
@@ -95,7 +126,14 @@ export class PasskeyRouteError extends Error {
 
 export interface PasskeyClient {
   status(): Promise<PasskeyStatus>
-  registerBegin(body: { rp_id: string; base_url: string; name: string }): Promise<RegisterBeginResult>
+  /** Opens a grant for self-enrolment; the gateway sets the binding cookie. */
+  reauthBegin(): Promise<ReauthBeginResult>
+  registerBegin(body: {
+    rp_id: string
+    base_url: string
+    name: string
+    grant_id?: string
+  }): Promise<RegisterBeginResult>
   registerFinish(body: RegisterFinishBody): Promise<{ ok: true; credential?: PasskeyCredentialInfo }>
   stepupBegin(body: { purpose: 'invite' | 'revoke'; subject: string }): Promise<StepupBeginResult>
   invite(body: {
@@ -213,12 +251,14 @@ export function createPasskeyClient(
       response.status,
       text('error'),
       text('reason'),
-      response.status === 429 ? parseRetryAfter(response.headers?.get('retry-after')) : null
+      response.status === 429 ? parseRetryAfter(response.headers?.get('retry-after')) : null,
+      text('failure')
     )
   }
 
   return {
     status: () => call('GET', ''),
+    reauthBegin: () => call('POST', '/reauth/begin', {}),
     registerBegin: body => call('POST', '/register/begin', body),
     registerFinish: body => call('POST', '/register/finish', body),
     stepupBegin: body => call('POST', '/stepup/begin', body),

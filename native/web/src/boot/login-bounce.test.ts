@@ -7,10 +7,14 @@ import { deriveBasePath, type ResolvedBasePath } from './base-path'
 import {
   type BounceEnvironment,
   claimForOwner,
+  createEnrolStash,
+  enrolStashKey,
   forgetToken,
   isCarriableRoute,
   loginUrl,
   OWNER_KEY,
+  reauthLoginUrl,
+  reauthSignIn,
   restoreRoute,
   routeStashKey,
   signIn,
@@ -291,5 +295,157 @@ describe('the owner of the stored state', () => {
     expect(await cache.read('researcher')).toBeNull()
     expect(await claimForOwner({ cache, store }, undefined)).toBe(false)
     expect(await claimForOwner({ cache, store }, 'basic:tester')).toBe(true)
+  })
+})
+
+describe('the sign-in bounce of a self-enrolment', () => {
+  const GRANT = 'R3JhbnRJZDEyMzQ1Njc4OQ'
+  const LOGIN_PATH = `/auth/login?provider=self-hosted&reauth=${GRANT}`
+
+  it('goes to the gateway’s login_path with the page’s own path as next', () => {
+    expect(reauthLoginUrl(ROOT, LOGIN_PATH)).toBe(`${LOGIN_PATH}&next=%2Fdashboard-plugins%2Fhermie%2Fapp%2Findex.html`)
+  })
+
+  it('keeps a prefix the gateway put in the path, and replaces a next it did not ask for', () => {
+    expect(reauthLoginUrl(PREFIXED, `/hermes${LOGIN_PATH}&next=%2Fevil`)).toBe(
+      `/hermes${LOGIN_PATH}&next=%2Fhermes%2Fdashboard-plugins%2Fhermie%2Fapp%2Findex.html`
+    )
+  })
+
+  it.each([
+    ['another origin', `https://evil.example/auth/login?reauth=${GRANT}`],
+    ['a protocol-relative URL', `//evil.example/auth/login?reauth=${GRANT}`],
+    ['a backslash path', `/\\evil.example/auth/login?reauth=${GRANT}`],
+    ['a path that is not the sign-in page', `/api/auth/passkeys?reauth=${GRANT}`],
+    ['a relative path', `auth/login?reauth=${GRANT}`],
+    ['nothing', '']
+  ])('goes nowhere for %s', (_name, path) => {
+    const before = page(ROOT.appPath, '#/settings/passkeys')
+
+    expect(reauthLoginUrl(ROOT, path)).toBeNull()
+    expect(reauthSignIn(ROOT, path, before.environment)).toBe(false)
+    expect(before.assigned).toEqual([])
+    expect(before.stash.size).toBe(0)
+  })
+
+  it('carries the route across the sign-in the way signIn does, and leaves with the grant on the URL', () => {
+    const before = page(ROOT.appPath, '#/settings/passkeys')
+
+    expect(reauthSignIn(ROOT, LOGIN_PATH, before.environment)).toBe(true)
+    expect(before.assigned).toEqual([`${LOGIN_PATH}&next=${encodeURIComponent(ROOT.appPath)}`])
+    expect(before.stash.get(routeStashKey(ROOT))).toBe('#/settings/passkeys')
+
+    const after = afterSignIn(before, ROOT.appPath)
+
+    expect(restoreRoute(ROOT, after.environment)).toBe('#/settings/passkeys')
+  })
+})
+
+describe('the self-enrolment stash', () => {
+  const GRANT = 'R3JhbnRJZDEyMzQ1Njc4OQ'
+
+  it('keeps the grant id and its deadline in this tab, under its own key next to the route’s', () => {
+    const tab = page(ROOT.appPath)
+    const stash = createEnrolStash(ROOT, tab.environment)
+
+    expect(stash.read()).toBeNull()
+    expect(stash.write({ grantId: GRANT, expiresAt: 1_790_000_600 })).toBe(true)
+    expect(enrolStashKey(ROOT)).toBe(`hermie:${ROOT.namespace}:passkey-enrol`)
+    expect([...tab.stash.keys()]).toEqual([enrolStashKey(ROOT)])
+    // Nothing but the id and the deadline.
+    expect(JSON.parse(tab.stash.get(enrolStashKey(ROOT)) ?? '{}')).toEqual({
+      grant_id: GRANT,
+      expires_at: 1_790_000_600
+    })
+    expect(stash.read()).toEqual({ grantId: GRANT, expiresAt: 1_790_000_600 })
+
+    stash.clear()
+
+    expect(stash.read()).toBeNull()
+    expect(tab.stash.size).toBe(0)
+  })
+
+  it('survives the trip through the sign-in page (the same tab)', () => {
+    const before = page(ROOT.appPath, '#/settings/passkeys')
+
+    createEnrolStash(ROOT, before.environment).write({ grantId: GRANT, expiresAt: 1_790_000_600 })
+    reauthSignIn(ROOT, `/auth/login?provider=self-hosted&reauth=${GRANT}`, before.environment)
+
+    const after = afterSignIn(before, ROOT.appPath)
+
+    expect(createEnrolStash(ROOT, after.environment).read()).toEqual({ grantId: GRANT, expiresAt: 1_790_000_600 })
+  })
+
+  it('keeps two base paths’ stashes apart', () => {
+    const tab = page(ROOT.appPath)
+
+    createEnrolStash(ROOT, tab.environment).write({ grantId: GRANT, expiresAt: 1 })
+
+    expect(createEnrolStash(PREFIXED, tab.environment).read()).toBeNull()
+  })
+
+  it.each([
+    ['not JSON', 'nope'],
+    ['no deadline', JSON.stringify({ grant_id: GRANT })],
+    ['a deadline that is not a number', JSON.stringify({ grant_id: GRANT, expires_at: '9' })],
+    ['an id that is not one', JSON.stringify({ grant_id: 'a b', expires_at: 9 })],
+    ['an extra secret field is ignored but the rest is not an object', 'null']
+  ])('is not a stash when it holds %s, and is removed', (_name, raw) => {
+    const tab = page(ROOT.appPath)
+
+    tab.stash.set(enrolStashKey(ROOT), raw)
+
+    expect(createEnrolStash(ROOT, tab.environment).read()).toBeNull()
+    expect(tab.stash.has(enrolStashKey(ROOT))).toBe(false)
+  })
+
+  it('reports that nothing was kept when the browser refuses sessionStorage', () => {
+    const tab = page(ROOT.appPath)
+    const refusing: BounceEnvironment = {
+      ...tab.environment,
+      sessionStorage: {
+        getItem: () => {
+          throw new Error('denied')
+        },
+        setItem: () => {
+          throw new Error('denied')
+        },
+        removeItem: () => {
+          throw new Error('denied')
+        }
+      }
+    }
+    const stash = createEnrolStash(ROOT, refusing)
+
+    expect(stash.write({ grantId: GRANT, expiresAt: 9 })).toBe(false)
+    expect(stash.read()).toBeNull()
+    expect(() => stash.clear()).not.toThrow()
+
+    const none = createEnrolStash(ROOT, { ...tab.environment, sessionStorage: null })
+
+    expect(none.write({ grantId: GRANT, expiresAt: 9 })).toBe(false)
+  })
+
+  it('is cleared by signing out and by forgetting the token', async () => {
+    for (const leave of ['signOut', 'forgetToken'] as const) {
+      const { cache, store } = await signedInBrowser()
+      const tab = page(ROOT.appPath)
+
+      createEnrolStash(ROOT, tab.environment).write({ grantId: GRANT, expiresAt: 9 })
+
+      if (leave === 'signOut') {
+        await signOut({
+          basePath: ROOT,
+          credentials: { signOut: async () => undefined },
+          cache,
+          store,
+          environment: tab.environment
+        })
+      } else {
+        await forgetToken({ basePath: ROOT, cache, store, environment: tab.environment })
+      }
+
+      expect(tab.stash.size).toBe(0)
+    }
   })
 })

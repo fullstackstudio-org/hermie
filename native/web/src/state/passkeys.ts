@@ -175,6 +175,16 @@ export interface PasskeyCapability {
   accepted: readonly string[]
 }
 
+/**
+ * A self-enrolment that signed in again and waits for its second half (the stash of
+ * `boot/login-bounce.ts` found a grant that has not expired): the page offers "Finish adding your passkey".
+ * Only the deadline is here; the grant id stays with the model.
+ */
+export interface SelfEnrolment {
+  /** Unix seconds: when the gateway stops taking the grant. */
+  expiresAt: number
+}
+
 export interface PasskeysState {
   /** In arrival order; finished ones stay until the person closes them (the newest few are kept). */
   confirmations: readonly PasskeyConfirmation[]
@@ -192,6 +202,10 @@ export interface PasskeysState {
   pinned: boolean
   /** The RP this page's ceremonies use (its hostname). */
   rpId: string
+  /** This page can bounce through the gateway's sign-in and come back (a stash and a navigation were handed to the model). */
+  selfEnrolSupported: boolean
+  /** A self-enrolment waiting to be finished with a click; `null` when there is none (or it expired). */
+  selfEnrolment: SelfEnrolment | null
   reset(): void
 }
 
@@ -204,7 +218,9 @@ const INITIAL = {
   capability: null,
   supported: false,
   pinned: false,
-  rpId: ''
+  rpId: '',
+  selfEnrolSupported: false,
+  selfEnrolment: null as SelfEnrolment | null
 }
 
 export function createPasskeysStore(): StoreApi<PasskeysState> {

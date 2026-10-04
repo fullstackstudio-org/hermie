@@ -68,7 +68,15 @@
  *    enrolment; after that a frame, a capability or a status read with another id
  *    is refused and leaves a notice, and so is an id pinned for another gateway in
  *    this browser.
- *  - Nothing from a frame, an assertion or a code is logged.
+ *  - **Adding a passkey by signing in again** (contract §7.2). `startSelfEnrolment` opens a grant
+ *    (`reauth/begin`), keeps its id and deadline in the tab's `sessionStorage` (nothing else: the grant's secret is an
+ *    HttpOnly cookie the page never sees) and sends the whole window to the gateway's sign-in page. Back on the page,
+ *    `start` finds the stash and the store says so (`selfEnrolment`); the person finishes with a click
+ *    (`finishSelfEnrolment`: `register/begin` with the grant, the ceremony, `register/finish` with the grant), because
+ *    a browser's passkey sheet wants a user gesture. The stash goes on success, on any answer that ends the grant
+ *    (`reauth_invalid`, switched off, no re-authentication at the provider) and when it expires; a closed sheet, a lost
+ *    connection or a rate limit leave it for another try while the grant lives.
+ *  - Nothing from a frame, an assertion, a code or a grant's secret is logged.
  */
 import { JsonRpcGatewayError, type ServerRequest } from '@hermes/shared/json-rpc-channel'
 import type { StoreApi } from 'zustand/vanilla'
@@ -106,7 +114,8 @@ import {
   type PasskeyClient,
   type PasskeyCredentialInfo,
   PasskeyRouteError,
-  type PasskeyStatus
+  type PasskeyStatus,
+  type SelfEnrolStatus
 } from './client'
 
 /** The 4040 message (contract §8, `error_cannot_run_ceremony`). */
@@ -140,6 +149,21 @@ export interface OpenSession {
   lastSeen: number
 }
 
+/** What survives a self-enrolment's trip through the sign-in page (`boot/login-bounce.ts`, `createEnrolStash`). */
+export interface SelfEnrolStash {
+  read(): { grantId: string; expiresAt: number } | null
+  /** False when the browser kept nothing: the trip would lose the grant. */
+  write(entry: { grantId: string; expiresAt: number }): boolean
+  clear(): void
+}
+
+/** The page's half of adding a passkey by signing in again. Without it the model offers the code path only. */
+export interface SelfEnrolmentSeam {
+  stash: SelfEnrolStash
+  /** Leave for the gateway's sign-in page at `loginPath` (`reauth/begin`'s), and come back to this route. False: not a path to follow. */
+  bounce(loginPath: string): boolean
+}
+
 export interface PasskeyModelOptions {
   gateway: PasskeyGateway
   client: PasskeyClient
@@ -156,6 +180,8 @@ export interface PasskeyModelOptions {
   failWithData?: FailWithData
   /** The first half of a new passkey's name: `<displayName> — <host>`. */
   displayName?: string
+  /** Adding a passkey by signing in again; absent where the page cannot bounce (a test of the frame). */
+  selfEnrolment?: SelfEnrolmentSeam
   /**
    * The interactive requests the page can show (`core/requests/interactive.ts`). The second `client.capabilities`
    * call replaces what the connection said before, so the list rides in it, here, with the passkey level.
@@ -187,6 +213,16 @@ export type PasskeyActionProblem =
   | { kind: 'gateway_id_conflict' }
   /** The ceremony produced nothing. */
   | { kind: 'ceremony'; problem: CeremonyProblem }
+  /**
+   * Adding a passkey by signing in again is not on offer: `disabled` (the operator switched it off),
+   * `provider_no_reauth` (the sign-in provider cannot ask again), `not_offered` (an older gateway) or
+   * `not_supported` (this page has no way to come back from the sign-in).
+   */
+  | { kind: 'self_enrol_unavailable'; reason: 'disabled' | 'provider_no_reauth' | 'not_offered' | 'not_supported' }
+  /** The browser would not keep what the trip through the sign-in needs (`sessionStorage` is off). */
+  | { kind: 'self_enrol_stash' }
+  /** There is no grant to finish any more: it was never kept here, or it ran out. */
+  | { kind: 'self_enrol_expired' }
   /** The route refused (`error` and `reason` as it gave them). */
   | {
       kind: 'refused'
@@ -196,6 +232,8 @@ export type PasskeyActionProblem =
       message: string
       /** Seconds the gateway asked the caller to wait (a 429's `Retry-After`). */
       retryAfter: number | null
+      /** The contract's `failure` of a `reauth_invalid` whose `reason` is `failed`. */
+      failure?: string
     }
   /** The answer was not what the route promises. */
   | { kind: 'bad_answer' }
@@ -224,6 +262,8 @@ interface ConfirmContext {
 }
 
 interface Account {
+  /** What the status read this account came from says about self-enrolment. */
+  selfEnrol: SelfEnrolStatus | undefined
   gatewayId: Uint8Array
   gatewayIdText: string
   userId: string
@@ -308,7 +348,9 @@ export class PasskeyModel {
     this.store.setState({
       supported: this.supported,
       rpId: this.options.webauthn.rpId,
-      pinned: this.options.pins.gatewayId() !== null
+      pinned: this.options.pins.gatewayId() !== null,
+      selfEnrolSupported: this.options.selfEnrolment !== undefined,
+      selfEnrolment: this.keptSelfEnrolment()
     })
 
     const { gateway } = this.options
@@ -1119,11 +1161,24 @@ export class PasskeyModel {
       throw new PasskeyActionError({ kind: 'invalid_code' })
     }
 
+    return this.register({ code: canonical })
+  }
+
+  /**
+   * The registration ceremony, authorised by exactly one of a code or a fresh-authentication grant (contract §7):
+   * `register/begin`, the browser's `create()`, `register/finish`; then the pin and the list.
+   */
+  private async register(authority: { code: string } | { grantId: string }): Promise<PasskeyCredentialInfo> {
     const account = await this.account()
     const host = new URL(account.baseUrl).host
     const name = credentialName(this.options.displayName ?? 'Hermie', host)
     const begin = await this.route(client =>
-      client.registerBegin({ rp_id: account.rpId, base_url: account.baseUrl, name })
+      client.registerBegin({
+        rp_id: account.rpId,
+        base_url: account.baseUrl,
+        name,
+        ...('grantId' in authority ? { grant_id: authority.grantId } : {})
+      })
     )
     const nonce = typeof begin?.nonce === 'string' ? b64uDecode(begin.nonce, 32, 32) : null
 
@@ -1174,7 +1229,7 @@ export class PasskeyModel {
         client.registerFinish({
           registration_id: begin.registration_id,
           base_url: account.baseUrl,
-          code: canonical,
+          ...('code' in authority ? { code: authority.code } : { grant_id: authority.grantId }),
           credential: {
             id,
             client_data_json: b64uEncode(registration.clientDataJSON),
@@ -1198,6 +1253,129 @@ export class PasskeyModel {
     } finally {
       this.expectedAdditions.delete(id)
     }
+  }
+
+  // ── adding a passkey by signing in again (contract §7.2) ──────────────────────────────────────
+
+  /** The stash as the store shows it: a grant that has not run out, or nothing (an expired one is removed). */
+  private keptSelfEnrolment(): { expiresAt: number } | null {
+    const stash = this.options.selfEnrolment?.stash
+    const entry = stash?.read() ?? null
+
+    if (entry === null) {
+      return null
+    }
+
+    if (entry.expiresAt <= this.now) {
+      stash?.clear()
+
+      return null
+    }
+
+    return { expiresAt: entry.expiresAt }
+  }
+
+  /**
+   * First half: open a grant, keep its id and deadline across the trip, and send the window to the gateway's sign-in
+   * page (top level: an identity provider cannot be framed). Resolves only when the navigation was started; the page
+   * is gone a moment later. Throws before leaving when it cannot come back (`self_enrol_stash`) or the gateway says no.
+   */
+  async startSelfEnrolment(): Promise<void> {
+    const seam = this.options.selfEnrolment
+
+    if (!seam) {
+      throw new PasskeyActionError({ kind: 'self_enrol_unavailable', reason: 'not_supported' })
+    }
+
+    const account = await this.account()
+
+    if (account.selfEnrol?.available !== true) {
+      const reason = account.selfEnrol?.reason
+
+      throw new PasskeyActionError({
+        kind: 'self_enrol_unavailable',
+        reason: reason === 'disabled' || reason === 'provider_no_reauth' ? reason : 'not_offered'
+      })
+    }
+
+    const grant = await this.route(client => client.reauthBegin(), {
+      kind: 'self_enrol_unavailable',
+      reason: 'not_offered'
+    })
+
+    if (
+      typeof grant?.grant_id !== 'string' ||
+      !grant.grant_id ||
+      typeof grant.expires_at !== 'number' ||
+      !Number.isFinite(grant.expires_at) ||
+      typeof grant.login_path !== 'string'
+    ) {
+      throw new PasskeyActionError({ kind: 'bad_answer' })
+    }
+
+    if (!seam.stash.write({ grantId: grant.grant_id, expiresAt: grant.expires_at })) {
+      seam.stash.clear()
+
+      throw new PasskeyActionError({ kind: 'self_enrol_stash' })
+    }
+
+    if (!seam.bounce(grant.login_path)) {
+      seam.stash.clear()
+
+      throw new PasskeyActionError({ kind: 'bad_answer' })
+    }
+  }
+
+  /**
+   * Second half, run from a click: the passkey ceremony for the grant the sign-in completed. See the header for what
+   * keeps the stash and what removes it.
+   */
+  async finishSelfEnrolment(): Promise<PasskeyCredentialInfo> {
+    const seam = this.options.selfEnrolment
+    const entry = seam?.stash.read() ?? null
+
+    if (!seam || entry === null || entry.expiresAt <= this.now) {
+      this.forgetSelfEnrolment()
+
+      throw new PasskeyActionError({ kind: 'self_enrol_expired' })
+    }
+
+    try {
+      const credential = await this.register({ grantId: entry.grantId })
+
+      this.forgetSelfEnrolment()
+
+      return credential
+    } catch (error) {
+      if (endsGrant(error)) {
+        this.forgetSelfEnrolment()
+      }
+
+      throw error
+    }
+  }
+
+  /** The person gave up on a self-enrolment that signed in already: the stash goes (the grant runs out by itself). */
+  cancelSelfEnrolment(): void {
+    this.forgetSelfEnrolment()
+  }
+
+  /** The page's clock reached the grant's deadline: forget it. Returns whether it did. */
+  expireSelfEnrolment(): boolean {
+    const kept = this.store.getState().selfEnrolment
+
+    if (!kept || kept.expiresAt > this.now) {
+      return false
+    }
+
+    this.forgetSelfEnrolment()
+
+    return true
+  }
+
+  private forgetSelfEnrolment(): void {
+    this.options.selfEnrolment?.stash.clear()
+    this.store.setState({ selfEnrolment: null })
   }
 
   /** Mint an enrolment code with a passkey of this browser (`invite` step-up), for another device. */
@@ -1337,6 +1515,7 @@ export class PasskeyModel {
     }
 
     return {
+      selfEnrol: fresh.self_enrol,
       gatewayId,
       gatewayIdText: fresh.gateway_id,
       userId: fresh.user.id,
@@ -1347,13 +1526,17 @@ export class PasskeyModel {
   }
 
   /** One route call, its failures as `PasskeyActionError`. */
-  private async route<T>(call: (client: PasskeyClient) => Promise<T>): Promise<T> {
+  private async route<T>(
+    call: (client: PasskeyClient) => Promise<T>,
+    /** What a gateway without this route means for the caller; by default the level is off. */
+    notOffered: PasskeyActionProblem = { kind: 'unavailable', reason: 'disabled' }
+  ): Promise<T> {
     try {
       return await call(this.options.client)
     } catch (error) {
       if (error instanceof PasskeyRouteError) {
         if (error.kind === 'not_offered') {
-          throw new PasskeyActionError({ kind: 'unavailable', reason: 'disabled' })
+          throw new PasskeyActionError(notOffered)
         }
 
         if (error.kind === 'transport') {
@@ -1366,7 +1549,8 @@ export class PasskeyModel {
           error: error.error,
           reason: error.reason,
           message: error.message,
-          retryAfter: error.retryAfter
+          retryAfter: error.retryAfter,
+          failure: error.failure
         })
       }
 
@@ -1558,6 +1742,42 @@ export function phaseAfter(error: unknown): ConfirmPhase {
   return reason === 'too_many_attempts'
     ? { kind: 'ended', end: { kind: 'too_many_attempts' } }
     : { kind: 'refused', reason }
+}
+
+/**
+ * A failed `finishSelfEnrolment` after which the grant cannot be used however often the person tries: the gateway
+ * said it is over (`reauth_invalid`, switched off, a provider that cannot ask again), the level went away, or the
+ * browser already holds a passkey for this site (the retry would meet the same wall). A closed sheet, a lost
+ * connection or a rate limit are not: the grant may still be good.
+ */
+export function endsGrant(error: unknown): boolean {
+  const problem = error instanceof PasskeyActionError ? error.problem : null
+
+  switch (problem?.kind) {
+    case 'refused':
+      return (
+        problem.error === 'reauth_invalid' ||
+        problem.error === 'self_enrol_disabled' ||
+        problem.error === 'provider_no_reauth'
+      )
+    case 'unavailable':
+    case 'self_enrol_unavailable':
+      return true
+    case 'ceremony':
+      return problem.problem.kind === 'exists'
+    default:
+      return false
+  }
+}
+
+/** The failure is a sign-in that did not count (a new grant is the way on): "Sign in again" is what to offer. */
+export function isReauthFailure(error: unknown): boolean {
+  const problem = error instanceof PasskeyActionError ? error.problem : null
+
+  return (
+    problem?.kind === 'self_enrol_expired' ||
+    (problem?.kind === 'refused' && (problem.error === 'reauth_invalid' || problem.error === 'self_enrol_disabled'))
+  )
 }
 
 function ceremonyActionError(error: unknown): PasskeyActionError {

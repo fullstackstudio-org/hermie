@@ -55,6 +55,39 @@ Which sign-in providers a gateway offers is the gateway's configuration. The old
 provider is gone; a gateway whose `dashboard.oauth.self_hosted.issuer` pointed at it needs another
 provider.
 
+## Passkeys
+
+Settings › Passkeys lists the signed-in person's passkeys on the gateway (the contract is
+`contract/confirm-passkey/`). A passkey is the person's proof for a confirmation an agent asks for; the page
+runs the browser's own ceremony and the gateway keeps only the public key. The level is offered only on an
+HTTPS page at the gateway's own address, without a path in front of it, for a host the gateway lists.
+
+There are two ways to add a passkey from the page, and a third elsewhere:
+
+- **Add a passkey, by signing in again.** Shown when the gateway's status says `self_enrol.available` and the
+  page's host is accepted; the sentence under the button says "You will sign in again to prove it is you, then
+  your browser creates the passkey". The click asks the gateway for a grant (`POST
+/api/auth/passkeys/reauth/begin`, which also sets an HttpOnly binding cookie the page never sees), keeps the
+  grant's **id and deadline, and nothing else,** in this tab's `sessionStorage` (`hermie:<ns>:passkey-enrol`,
+  next to the stashed route), and sends the whole window to the gateway's own `/auth/login?…&reauth=<id>&next=…`
+  (top level: an identity provider cannot be framed). The gateway decides whether that sign-in was fresh. Back on
+  the page, on the route it left, the same section reads **Finish adding your passkey**: a button, because the
+  browser's passkey sheet wants a click. It runs `register/begin` with the grant, the browser's ceremony, and
+  `register/finish` with the grant, and the stash goes. A closed sheet, a lost connection or a rate limit leave
+  the grant for another try until it runs out (10 minutes); every answer that ends it (`reauth_invalid` and its
+  reasons, switched off, a provider that cannot ask again) clears the stash, says in a sentence what happened
+  and offers **Sign in again**, which starts a new grant. Signing out clears the stash too.
+- **Add with a code**, for the first passkey on a gateway where self-enrolment is off or unavailable, and for
+  another device: an operator's one-time code, or one made with a passkey this person already has.
+- **Make a code** (needs a passkey of this browser) mints a code for another device.
+
+An older gateway (no `self_enrol` in the status, or no `reauth/begin` route) shows only the code path. A
+passkey added by signing in again is listed with `usable_from` while the operator's cooling-off runs, and cannot
+answer a confirmation before it. What this adds to the risk is one sentence: whoever can pass a fresh sign-in as
+the person (their password and their identity provider's second factor) can add a passkey and then confirm,
+which is what signing in as them already allows; a stolen session alone cannot, because the sign-in has to be
+passed again and is bound to the browser that asked.
+
 ## Forms, files and drafts the agent asks for
 
 Beside the approval and the clarify question, an agent can ask the person for three more things: **a form**

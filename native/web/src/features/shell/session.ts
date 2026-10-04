@@ -60,7 +60,7 @@ import { serialiseBaseUrl } from '../../core/passkey/challenge'
 import { createMcpClient } from '../../core/mcp/client'
 import { McpModel } from '../../core/mcp/model'
 import { createPasskeyClient } from '../../core/passkey/client'
-import { PasskeyModel } from '../../core/passkey/model'
+import { PasskeyModel, type SelfEnrolmentSeam } from '../../core/passkey/model'
 import { ADVERTISE_INTERACTIVE_REQUESTS, InteractiveModel, interactiveAdvert } from '../../core/requests/interactive'
 import { ConnectionsModel, respondThrough } from '../../core/connections'
 import { NoticesModel } from '../../core/notices'
@@ -112,6 +112,8 @@ export interface StartSessionOptions {
   chats?: Partial<Omit<ConnectChatsOptions, 'client' | 'cache' | 'author'>>
   /** The browser's passkey ceremonies; the page's own unless a test hands in its own. */
   webauthn?: WebAuthnSeam
+  /** How the page leaves for the gateway's sign-in to add a passkey and comes back (`main.tsx`); absent: the code path only. */
+  selfEnrolment?: SelfEnrolmentSeam
   uiMeta?: Partial<Omit<ConnectUiMetaOptions, 'gateway' | 'connection' | 'bots' | 'storage' | 'userId'>>
   /** How the `ui_meta` bridge's chunk is loaded; the dynamic import unless a test hands in its own. */
   loadUiMeta?: () => Promise<{ connectUiMeta: typeof connectUiMeta }>
@@ -230,6 +232,7 @@ export function startSession(options: StartSessionOptions): Session {
     client: createPasskeyClient(options.baseUrl),
     webauthn: options.webauthn ?? createWebAuthn(),
     baseUrl: options.baseUrl,
+    ...(options.selfEnrolment ? { selfEnrolment: options.selfEnrolment } : {}),
     pins: createPasskeyPins({ store: options.storage, baseUrl: serialiseBaseUrl(options.baseUrl) ?? options.baseUrl }),
     openSessions: () =>
       Object.values(chats.chats.getState().chats).flatMap(chat =>

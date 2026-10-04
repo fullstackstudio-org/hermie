@@ -23,7 +23,15 @@ import { APP_DIRECTORY_PATH, pageBasePath, type ResolvedBasePath, storageNamespa
 import { boot, bootWithToken, describeBootFailure, type BootState } from './boot/boot'
 import { refuseInFrame } from './boot/frame-guard'
 import { rereadToken } from './boot/token-recovery'
-import { claimForOwner, forgetToken, restoreRoute, signIn, signOut } from './boot/login-bounce'
+import {
+  claimForOwner,
+  createEnrolStash,
+  forgetToken,
+  reauthSignIn,
+  restoreRoute,
+  signIn,
+  signOut
+} from './boot/login-bounce'
 import { createPeoplePictures } from './core/people-pictures'
 import { strings } from './generated/strings'
 import { configureLocale, initLocale } from './i18n/locale'
@@ -228,7 +236,11 @@ async function startApp(page: Page, ready: Ready): Promise<void> {
     ...(ready.identity ? { identity: ready.identity } : {}),
     gated: ready.gated,
     storage: store,
-    cache
+    cache,
+    // Adding a passkey by signing in again: the grant survives the trip in this tab's `sessionStorage`.
+    ...(ready.gated
+      ? { selfEnrolment: { stash: createEnrolStash(basePath), bounce: path => reauthSignIn(basePath, path) } }
+      : {})
   })
 
   // The people's pictures, through the gateway's authenticated route and this session's own credentials.

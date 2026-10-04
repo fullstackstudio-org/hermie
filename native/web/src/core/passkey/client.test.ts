@@ -126,3 +126,67 @@ describe('a gateway that does not answer', () => {
     await expect(answering(200, { v: 1 }).status()).resolves.toEqual({ v: 1 })
   })
 })
+
+describe('adding a passkey by signing in again', () => {
+  it('opens a grant with an empty body on the page’s own origin and reads what the gateway says', async () => {
+    const calls: { url: string; init: RequestInit }[] = []
+    const client = createPasskeyClient(BASE, async (input, init) => {
+      calls.push({ url: String(input), init: init ?? {} })
+
+      return new Response(
+        JSON.stringify({
+          grant_id: 'R3JhbnRJZDEyMzQ1Njc4OQ',
+          expires_at: 1_790_000_600,
+          provider: 'self-hosted',
+          login_path: '/auth/login?provider=self-hosted&reauth=R3JhbnRJZDEyMzQ1Njc4OQ'
+        }),
+        { status: 200 }
+      )
+    })
+
+    await expect(client.reauthBegin()).resolves.toMatchObject({
+      grant_id: 'R3JhbnRJZDEyMzQ1Njc4OQ',
+      login_path: expect.stringContaining('/auth/login?')
+    })
+    expect(calls).toHaveLength(1)
+    expect(calls[0]?.url).toBe(`${BASE}/api/auth/passkeys/reauth/begin`)
+    expect(calls[0]?.init).toMatchObject({ method: 'POST', credentials: 'same-origin', body: '{}' })
+  })
+
+  it('carries the reason and the failure of a grant that is not usable', async () => {
+    const error = await refusal(
+      answering(403, { error: 'reauth_invalid', reason: 'failed', failure: 'auth_not_fresh' }).registerBegin({
+        rp_id: 'gw.example.test',
+        base_url: BASE,
+        name: 'x',
+        grant_id: 'g'
+      })
+    )
+
+    expect(error).toMatchObject({
+      kind: 'refused',
+      status: 403,
+      error: 'reauth_invalid',
+      reason: 'failed',
+      failure: 'auth_not_fresh'
+    })
+  })
+
+  it('has no failure on a refusal that names none', async () => {
+    const error = await refusal(answering(403, { error: 'code_invalid' }).reauthBegin())
+
+    expect(error.failure).toBe('')
+  })
+
+  it.each([404, 405])('is not offered where the gateway has no such route (%i)', async status => {
+    const error = await refusal(answering(status, { detail: 'Not found' }).reauthBegin())
+
+    expect(error).toMatchObject({ kind: 'not_offered', status })
+  })
+
+  it('carries the wait of a 429 at reauth/begin', async () => {
+    const error = await refusal(answering(429, { error: 'rate_limited' }, { 'retry-after': '600' }).reauthBegin())
+
+    expect(error).toMatchObject({ kind: 'refused', status: 429, retryAfter: 600 })
+  })
+})

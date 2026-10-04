@@ -48,7 +48,11 @@ beforeEach(() => {
     enrol: vi.fn(async () => THIS_SITE),
     mintInvite: vi.fn(async () => ({ code: 'm67b1pk0qjbtjwrqssb2', expiresAt: 1_790_000_900 })),
     revoke: vi.fn(async () => undefined),
-    forgetPin: vi.fn()
+    forgetPin: vi.fn(),
+    startSelfEnrolment: vi.fn(async () => undefined),
+    finishSelfEnrolment: vi.fn(async () => THIS_SITE),
+    cancelSelfEnrolment: vi.fn(),
+    expireSelfEnrolment: vi.fn(() => false)
   }
 })
 
@@ -90,14 +94,14 @@ describe('the passkeys page', () => {
     mount()
 
     expect(screen.getByText(new RegExp(text.replace(/[()]/gu, '\\$&'), 'u'))).toBeTruthy()
-    expect(screen.getByRole('button', { name: 'Add a passkey' })).toHaveProperty('disabled', true)
+    expect(screen.getByRole('button', { name: 'Add with a code' })).toHaveProperty('disabled', true)
   })
 
   it('enrols with a code', async () => {
     mount()
 
     fireEvent.change(screen.getByLabelText('Enrolment code'), { target: { value: 'M67B1-PK0QJ-BTJWR-QSSB2' } })
-    fireEvent.click(screen.getByRole('button', { name: 'Add a passkey' }))
+    fireEvent.click(screen.getByRole('button', { name: 'Add with a code' }))
 
     await waitFor(() => expect(screen.getByRole('status').textContent).toBe('The passkey was added.'))
     expect(actions.enrol).toHaveBeenCalledWith('M67B1-PK0QJ-BTJWR-QSSB2')
@@ -135,7 +139,7 @@ describe('the passkeys page', () => {
     mount()
 
     fireEvent.change(screen.getByLabelText('Enrolment code'), { target: { value: 'nope' } })
-    fireEvent.click(screen.getByRole('button', { name: 'Add a passkey' }))
+    fireEvent.click(screen.getByRole('button', { name: 'Add with a code' }))
 
     await waitFor(() => expect(screen.getByRole('status').textContent).toContain(text))
   })
@@ -216,7 +220,7 @@ describe('the passkeys page', () => {
     mount()
 
     fireEvent.change(screen.getByLabelText('Enrolment code'), { target: { value: 'nope' } })
-    fireEvent.click(screen.getByRole('button', { name: 'Add a passkey' }))
+    fireEvent.click(screen.getByRole('button', { name: 'Add with a code' }))
 
     await waitFor(() => expect(screen.getByRole('status').textContent).toBe('Too many tries. Try again in 10 minutes.'))
   })
@@ -235,7 +239,7 @@ describe('the passkeys page', () => {
     mount()
 
     fireEvent.change(screen.getByLabelText('Enrolment code'), { target: { value: 'nope' } })
-    fireEvent.click(screen.getByRole('button', { name: 'Add a passkey' }))
+    fireEvent.click(screen.getByRole('button', { name: 'Add with a code' }))
 
     await waitFor(() =>
       expect(screen.getByRole('status').textContent).toBe(
@@ -249,7 +253,7 @@ describe('the passkeys page', () => {
     mount()
 
     expect(screen.getByText(/does not list gw\.example\.test as an address for passkeys/u)).toBeTruthy()
-    expect(screen.getByRole('button', { name: 'Add a passkey' })).toHaveProperty('disabled', true)
+    expect(screen.getByRole('button', { name: 'Add with a code' })).toHaveProperty('disabled', true)
   })
 
   it('forgets the gateway’s pin only after a confirmation, and only when there is one', () => {
@@ -281,5 +285,214 @@ describe('the passkeys page', () => {
     const result = await axe.run(document.documentElement, { rules: { 'color-contrast': { enabled: false } } })
 
     expect(result.violations.map(violation => violation.id)).toEqual([])
+  })
+})
+
+const refused = (error: string, reason = '', failure = '', status = 403, retryAfter: number | null = null) =>
+  new PasskeyActionError({ kind: 'refused', status, error, reason, message: 'no', retryAfter, failure })
+
+const selfStatus = (overrides: Partial<PasskeyStatus> = {}): PasskeyStatus =>
+  status({ self_enrol: { available: true, reason: '', cooling_off_s: 0 }, ...overrides })
+
+describe('adding a passkey by signing in again', () => {
+  beforeEach(() => {
+    store.setState({ selfEnrolSupported: true, status: selfStatus() })
+  })
+
+  it('offers it next to the code, with the sentence that says what happens', () => {
+    mount()
+
+    expect(screen.getByRole('heading', { name: 'Add a passkey' })).toBeTruthy()
+    expect(
+      screen.getByText('You will sign in again to prove it is you, then your browser creates the passkey.')
+    ).toBeTruthy()
+    expect(screen.getByRole('button', { name: 'Add a passkey' })).toHaveProperty('disabled', false)
+    expect(screen.getByRole('button', { name: 'Add with a code' })).toBeTruthy()
+    expect(screen.queryByRole('button', { name: 'Finish adding your passkey' })).toBeNull()
+  })
+
+  it('leaves for the sign-in from the click, and says so', async () => {
+    mount()
+
+    fireEvent.click(screen.getByRole('button', { name: 'Add a passkey' }))
+
+    await waitFor(() => expect(screen.getByRole('status').textContent).toBe('Taking you to sign in…'))
+    expect(actions.startSelfEnrolment).toHaveBeenCalledTimes(1)
+    expect(actions.enrol).not.toHaveBeenCalled()
+  })
+
+  it.each([
+    ['an older gateway (the status says nothing of it)', { self_enrol: undefined }],
+    ['the operator switched it off', { self_enrol: { available: false, reason: 'disabled' } }],
+    ['the provider cannot ask again', { self_enrol: { available: false, reason: 'provider_no_reauth' } }]
+  ])('shows only the code path when %s', (_name, overrides) => {
+    store.setState({ status: status(overrides as Partial<PasskeyStatus>) })
+    mount()
+
+    expect(screen.queryByRole('heading', { name: 'Add a passkey' })).toBeNull()
+    expect(screen.queryByRole('button', { name: 'Add a passkey' })).toBeNull()
+    expect(screen.getByRole('button', { name: 'Add with a code' })).toBeTruthy()
+    expect(screen.getByLabelText('Enrolment code')).toBeTruthy()
+  })
+
+  it('shows only the code path when the page cannot come back from a sign-in', () => {
+    store.setState({ selfEnrolSupported: false })
+    mount()
+
+    expect(screen.queryByRole('button', { name: 'Add a passkey' })).toBeNull()
+    expect(screen.getByRole('button', { name: 'Add with a code' })).toBeTruthy()
+  })
+
+  it('does not offer it for a site the gateway does not accept', () => {
+    store.setState({ status: selfStatus({ rp: { native: [], web: ['other.example.test'] } }) })
+    mount()
+
+    expect(screen.queryByRole('button', { name: 'Add a passkey' })).toBeNull()
+  })
+
+  it('offers to finish a grant that is waiting, instead of starting another, from a click', async () => {
+    store.setState({ selfEnrolment: { expiresAt: 1_790_000_600 } })
+    mount()
+
+    expect(screen.getByRole('heading', { name: 'Finish adding your passkey' })).toBeTruthy()
+    expect(screen.getByText(/You signed in again\. Your browser can now create the passkey/u)).toBeTruthy()
+    expect(screen.queryByRole('button', { name: 'Add a passkey' })).toBeNull()
+    // Not on its own: the ceremony runs from the click.
+    expect(actions.finishSelfEnrolment).not.toHaveBeenCalled()
+
+    fireEvent.click(screen.getByRole('button', { name: 'Finish adding your passkey' }))
+
+    await waitFor(() => expect(screen.getByRole('status').textContent).toBe('The passkey was added.'))
+    expect(actions.finishSelfEnrolment).toHaveBeenCalledTimes(1)
+  })
+
+  it('lets go of a waiting grant on Cancel', () => {
+    store.setState({ selfEnrolment: { expiresAt: 1_790_000_600 } })
+    mount()
+
+    fireEvent.click(screen.getByRole('button', { name: 'Cancel' }))
+
+    expect(actions.cancelSelfEnrolment).toHaveBeenCalledTimes(1)
+    expect(screen.getByRole('status').textContent).toBe('Adding the passkey was cancelled.')
+  })
+
+  it('asks the model to drop a waiting grant when its deadline passes, and says so', async () => {
+    vi.useFakeTimers()
+    vi.setSystemTime(1_790_000_000_000)
+    actions.expireSelfEnrolment.mockReturnValueOnce(true)
+    store.setState({ selfEnrolment: { expiresAt: 1_790_000_010 } })
+    mount()
+
+    await act(async () => {
+      await vi.advanceTimersByTimeAsync(10_100)
+    })
+
+    expect(actions.expireSelfEnrolment).toHaveBeenCalledTimes(1)
+    expect(screen.getByRole('status').textContent).toContain('expired')
+    vi.useRealTimers()
+  })
+
+  // What each reason of `reauth_invalid` says, and that a sign-in that did not count offers "Sign in again".
+  it.each([
+    [refused('reauth_invalid', 'unknown'), 'expired or was not started in this browser'],
+    [refused('reauth_invalid', 'spent'), 'already used for a passkey'],
+    [refused('reauth_invalid', 'not_fresh'), 'The sign-in did not complete.'],
+    [refused('reauth_invalid', 'failed', 'auth_not_fresh'), 'identity provider reused an earlier sign-in'],
+    [refused('reauth_invalid', 'failed', 'auth_time_missing'), 'does not say when you signed in'],
+    [refused('reauth_invalid', 'failed', 'user_mismatch'), 'You signed in as someone else.'],
+    [refused('reauth_invalid', 'failed', 'provider_mismatch'), 'another sign-in method'],
+    [refused('reauth_invalid', 'failed'), 'That sign-in did not count.'],
+    [new PasskeyActionError({ kind: 'self_enrol_expired' }), 'expired or was not started in this browser']
+  ])('says what went wrong with the sign-in: %#', async (error, text) => {
+    actions.finishSelfEnrolment.mockRejectedValueOnce(error)
+    store.setState({ selfEnrolment: { expiresAt: 1_790_000_600 } })
+    mount()
+
+    fireEvent.click(screen.getByRole('button', { name: 'Finish adding your passkey' }))
+
+    await waitFor(() => expect(screen.getByRole('status').textContent).toContain(text))
+    // The model forgot the grant; the way on is a new sign-in.
+    act(() => store.setState({ selfEnrolment: null }))
+    expect(screen.getByRole('button', { name: 'Sign in again' })).toBeTruthy()
+    expect(screen.queryByRole('button', { name: 'Add a passkey' })).toBeNull()
+  })
+
+  it('names the gateway’s refusals to start: switched off, provider cannot, https, rate limit, no route', async () => {
+    const cases: [PasskeyActionError, string][] = [
+      [refused('self_enrol_disabled'), 'is switched off on this gateway. You can still add one with a code.'],
+      [refused('provider_no_reauth'), 'provider cannot ask you to sign in again'],
+      [refused('insecure_binding'), 'needs this page on HTTPS'],
+      [refused('rate_limited', '', '', 429, 600), 'Too many tries. Try again in 10 minutes.'],
+      [refused('rate_limited', '', '', 429, null), 'Too many tries. Wait a few minutes and try again.'],
+      [
+        new PasskeyActionError({ kind: 'self_enrol_unavailable', reason: 'not_offered' }),
+        'cannot add a passkey by signing in again'
+      ],
+      [new PasskeyActionError({ kind: 'self_enrol_stash' }), 'would not keep what is needed to come back']
+    ]
+
+    for (const [error, text] of cases) {
+      cleanup()
+      actions.startSelfEnrolment.mockRejectedValueOnce(error)
+      mount()
+
+      fireEvent.click(screen.getByRole('button', { name: 'Add a passkey' }))
+
+      await waitFor(() => expect(screen.getByRole('status').textContent).toContain(text))
+    }
+  })
+
+  it('keeps Finish for another try after a closed browser sheet', async () => {
+    actions.finishSelfEnrolment.mockRejectedValueOnce(
+      new PasskeyActionError({ kind: 'ceremony', problem: { kind: 'cancelled' } })
+    )
+    store.setState({ selfEnrolment: { expiresAt: 1_790_000_600 } })
+    mount()
+
+    fireEvent.click(screen.getByRole('button', { name: 'Finish adding your passkey' }))
+
+    await waitFor(() => expect(screen.getByRole('status').textContent).toContain('The passkey prompt was closed.'))
+    expect(screen.getByRole('button', { name: 'Finish adding your passkey' })).toHaveProperty('disabled', false)
+    expect(screen.queryByRole('button', { name: 'Sign in again' })).toBeNull()
+  })
+
+  it('shows when a passkey that is still cooling off becomes usable, and does not count it as one to sign with', () => {
+    const future = Date.now() / 1000 + 600
+
+    store.setState({ credentials: [{ ...THIS_SITE, created_via: 'self', usable_from: future }] })
+    mount()
+
+    expect(screen.getByText(/^Not usable yet: ready from /u)).toBeTruthy()
+    expect(screen.queryByRole('button', { name: 'Make a code' })).toBeNull()
+    expect(screen.getByRole('button', { name: 'Remove Hermie — gw.example.test' })).toHaveProperty('disabled', true)
+  })
+
+  it('says nothing of cooling-off once the time has passed or for a passkey without it', () => {
+    store.setState({
+      credentials: [{ ...THIS_SITE, usable_from: Date.now() / 1000 - 5 }, { ...THE_APPS }]
+    })
+    mount()
+
+    expect(screen.queryByText(/Not usable yet/u)).toBeNull()
+    expect(screen.getByRole('button', { name: 'Make a code' })).toBeTruthy()
+  })
+
+  it('passes axe, waiting and not', async () => {
+    store.setState({ credentials: [THIS_SITE] })
+    mount()
+    await act(async () => undefined)
+
+    expect(
+      (await axe.run(document.documentElement, { rules: { 'color-contrast': { enabled: false } } })).violations
+    ).toEqual([])
+    cleanup()
+
+    store.setState({ selfEnrolment: { expiresAt: 1_790_000_600 } })
+    mount()
+    await act(async () => undefined)
+
+    expect(
+      (await axe.run(document.documentElement, { rules: { 'color-contrast': { enabled: false } } })).violations
+    ).toEqual([])
   })
 })

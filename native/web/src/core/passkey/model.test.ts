@@ -1,3 +1,4 @@
+// @vitest-environment node
 /**
  * The passkey model on its own, with a hand-driven connection: how a frame is
  * read (every 4040 reason and the notice it leaves), what `request.answer`'s
@@ -16,16 +17,20 @@ import { createPasskeysStore } from '../../state/passkeys'
 import { softWebAuthn } from '../../test-support/soft-webauthn'
 import { type RequestsAdvert, showableMethods } from '../requests/interactive'
 import { NAME_LIMIT } from '../requests/secure-input'
-import { createPasskeyClient, type PasskeyClient, type PasskeyStatus } from './client'
+import { createPasskeyClient, PasskeyRouteError, type PasskeyClient, type PasskeyStatus } from './client'
 import {
   credentialName,
   CREDENTIAL_NAME_LIMIT,
   DECLINE,
+  endsGrant,
+  isReauthFailure,
   type OpenSession,
+  PasskeyActionError,
   type PasskeyGateway,
   isTransportFailure,
   PasskeyModel,
-  phaseAfter
+  phaseAfter,
+  type SelfEnrolmentSeam
 } from './model'
 
 const BASE = 'https://gw.example.test'
@@ -143,6 +148,7 @@ function setUp(
     watch?: (listener: () => void) => () => void
     requests?: RequestsAdvert
     monotonic?: () => number
+    selfEnrolment?: SelfEnrolmentSeam
   } = {}
 ) {
   const hand = handGateway()
@@ -165,10 +171,11 @@ function setUp(
   const store = createPasskeysStore()
   const clock = { now: NOW }
   const failures: { id: string; code: number; data: Record<string, unknown> }[] = []
+  const webauthn = softWebAuthn(BASE, { available: options.available ?? true })
   const model = new PasskeyModel({
     gateway: hand.gateway,
     client: (options.client ?? {}) as PasskeyClient,
-    webauthn: softWebAuthn(BASE, { available: options.available ?? true }),
+    webauthn,
     baseUrl: options.baseUrl ?? BASE,
     pins,
     store,
@@ -177,12 +184,13 @@ function setUp(
     ...(options.watch ? { watchSessions: options.watch } : {}),
     ...(options.requests ? { requests: options.requests } : {}),
     ...(options.monotonic ? { monotonic: options.monotonic } : {}),
+    ...(options.selfEnrolment ? { selfEnrolment: options.selfEnrolment } : {}),
     failWithData: (request, code, _message, data) => void failures.push({ id: request.id, code, data })
   })
 
   model.start()
 
-  return { ...hand, model, store, failures, clock, pins, storage }
+  return { ...hand, model, store, failures, clock, pins, storage, webauthn }
 }
 
 describe('reading a confirm frame', () => {
@@ -1375,5 +1383,403 @@ describe('advertising the interactive requests', () => {
     await expect(page.model.advertise()).resolves.toBeUndefined()
     expect(page.store.getState().capability).toEqual({ verdict: { kind: 'not_offered' }, accepted: [] })
     expect(page.hooks.settled).toHaveBeenCalledExactlyOnceWith('unknown')
+  })
+})
+
+/** The tab's `sessionStorage` stash and the trip to the sign-in page, as the model sees them. */
+function seam(
+  options: { refuseWrite?: boolean; refuseBounce?: boolean; kept?: { grantId: string; expiresAt: number } } = {}
+) {
+  let kept: { grantId: string; expiresAt: number } | null = options.kept ?? null
+  const bounced: string[] = []
+  const stash: SelfEnrolmentSeam['stash'] = {
+    read: () => kept,
+    write: entry => {
+      if (options.refuseWrite) {
+        return false
+      }
+
+      kept = entry
+
+      return true
+    },
+    clear: () => {
+      kept = null
+    }
+  }
+
+  return {
+    seam: {
+      stash,
+      bounce: (loginPath: string) => {
+        bounced.push(loginPath)
+
+        return options.refuseBounce !== true
+      }
+    } satisfies SelfEnrolmentSeam,
+    bounced,
+    get kept() {
+      return kept
+    }
+  }
+}
+
+const GRANT = 'R3JhbnRJZDEyMzQ1Njc4OQ'
+const LOGIN = `/auth/login?provider=self-hosted&reauth=${GRANT}`
+
+const WITH_SELF = (overrides: Partial<PasskeyStatus> = {}): PasskeyStatus =>
+  GATEWAY_STATUS({ self_enrol: { available: true, reason: '', cooling_off_s: 0 }, ...overrides })
+
+const refusedRoute = (error: string, status = 403, reason = '', failure = '', retryAfter: number | null = null) =>
+  new PasskeyRouteError('refused', error, status, error, reason, retryAfter, failure)
+
+/** A client for the second half: begin, finish, status. */
+function grantClient(overrides: Partial<PasskeyClient> = {}) {
+  const registerBegin = vi.fn(async (_body: { rp_id: string; base_url: string; name: string; grant_id?: string }) => ({
+    registration_id: 'reg-1',
+    nonce: NONCE,
+    user: { handle: 'aGFuZGxl' },
+    grant: { expires_at: NOW + 500 }
+  }))
+  const registerFinish = vi.fn(async (_body: object) => ({ ok: true as const }))
+  const client = {
+    status: vi.fn(async () => WITH_SELF()),
+    reauthBegin: vi.fn(async () => ({
+      grant_id: GRANT,
+      expires_at: NOW + 600,
+      provider: 'self-hosted',
+      login_path: LOGIN
+    })),
+    registerBegin,
+    registerFinish,
+    ...overrides
+  } as unknown as PasskeyClient
+
+  return { client, registerBegin, registerFinish }
+}
+
+describe('adding a passkey by signing in again: the first half', () => {
+  it('opens a grant, keeps its id and deadline and nothing else, and leaves for the sign-in page', async () => {
+    const trip = seam()
+    const { client } = grantClient()
+    const page = setUp({ client, selfEnrolment: trip.seam })
+
+    await page.model.startSelfEnrolment()
+
+    expect(trip.bounced).toEqual([LOGIN])
+    expect(trip.kept).toEqual({ grantId: GRANT, expiresAt: NOW + 600 })
+    expect(Object.keys(trip.kept ?? {}).sort()).toEqual(['expiresAt', 'grantId'])
+  })
+
+  it.each([
+    ['disabled', { kind: 'self_enrol_unavailable', reason: 'disabled' }],
+    ['provider_no_reauth', { kind: 'self_enrol_unavailable', reason: 'provider_no_reauth' }]
+  ])('does not open a grant when the status says %s', async (reason, problem) => {
+    const trip = seam()
+    const { client } = grantClient({
+      status: vi.fn(async () => WITH_SELF({ self_enrol: { available: false, reason } })) as PasskeyClient['status']
+    })
+    const page = setUp({ client, selfEnrolment: trip.seam })
+
+    await expect(page.model.startSelfEnrolment()).rejects.toMatchObject({ problem })
+    expect(client.reauthBegin).not.toHaveBeenCalled()
+    expect(trip.bounced).toEqual([])
+  })
+
+  it('treats a status without self_enrol (an older gateway) as not offered', async () => {
+    const trip = seam()
+    const { client } = grantClient({ status: vi.fn(async () => GATEWAY_STATUS()) as PasskeyClient['status'] })
+    const page = setUp({ client, selfEnrolment: trip.seam })
+
+    await expect(page.model.startSelfEnrolment()).rejects.toMatchObject({
+      problem: { kind: 'self_enrol_unavailable', reason: 'not_offered' }
+    })
+    expect(client.reauthBegin).not.toHaveBeenCalled()
+  })
+
+  it('treats a gateway without the route as not offered', async () => {
+    const trip = seam()
+    const { client } = grantClient({
+      reauthBegin: vi.fn(async () => {
+        throw new PasskeyRouteError('not_offered', 'nope', 404)
+      }) as PasskeyClient['reauthBegin']
+    })
+    const page = setUp({ client, selfEnrolment: trip.seam })
+
+    await expect(page.model.startSelfEnrolment()).rejects.toMatchObject({
+      problem: { kind: 'self_enrol_unavailable', reason: 'not_offered' }
+    })
+    expect(trip.kept).toBeNull()
+  })
+
+  it('has no way out of a page that was handed no seam', async () => {
+    const page = setUp({ client: grantClient().client })
+
+    expect(page.store.getState().selfEnrolSupported).toBe(false)
+    await expect(page.model.startSelfEnrolment()).rejects.toMatchObject({
+      problem: { kind: 'self_enrol_unavailable', reason: 'not_supported' }
+    })
+  })
+
+  it('carries what the gateway refused with: the limit and its wait, and the https rule', async () => {
+    const limited = grantClient({
+      reauthBegin: vi.fn(async () => {
+        throw refusedRoute('rate_limited', 429, '', '', 600)
+      }) as PasskeyClient['reauthBegin']
+    })
+    const insecure = grantClient({
+      reauthBegin: vi.fn(async () => {
+        throw refusedRoute('insecure_binding')
+      }) as PasskeyClient['reauthBegin']
+    })
+
+    await expect(
+      setUp({ client: limited.client, selfEnrolment: seam().seam }).model.startSelfEnrolment()
+    ).rejects.toMatchObject({ problem: { kind: 'refused', status: 429, retryAfter: 600 } })
+    await expect(
+      setUp({ client: insecure.client, selfEnrolment: seam().seam }).model.startSelfEnrolment()
+    ).rejects.toMatchObject({ problem: { kind: 'refused', error: 'insecure_binding' } })
+  })
+
+  it('does not leave when the browser would keep nothing of the trip', async () => {
+    const trip = seam({ refuseWrite: true })
+    const page = setUp({ client: grantClient().client, selfEnrolment: trip.seam })
+
+    await expect(page.model.startSelfEnrolment()).rejects.toMatchObject({ problem: { kind: 'self_enrol_stash' } })
+    expect(trip.bounced).toEqual([])
+  })
+
+  it('does not leave for a path it was not given to follow, and forgets the grant', async () => {
+    const trip = seam({ refuseBounce: true })
+    const page = setUp({ client: grantClient().client, selfEnrolment: trip.seam })
+
+    await expect(page.model.startSelfEnrolment()).rejects.toMatchObject({ problem: { kind: 'bad_answer' } })
+    expect(trip.kept).toBeNull()
+  })
+
+  it('refuses an answer that is not a grant', async () => {
+    const trip = seam()
+    const { client } = grantClient({
+      reauthBegin: vi.fn(async () => ({ grant_id: GRANT, expires_at: NOW + 600, provider: 'p' })) as never
+    })
+    const page = setUp({ client, selfEnrolment: trip.seam })
+
+    await expect(page.model.startSelfEnrolment()).rejects.toMatchObject({ problem: { kind: 'bad_answer' } })
+    expect(trip.kept).toBeNull()
+  })
+})
+
+describe('adding a passkey by signing in again: coming back', () => {
+  it('shows a stashed grant that has not run out, once the page is back', () => {
+    const trip = seam({ kept: { grantId: GRANT, expiresAt: NOW + 300 } })
+    const page = setUp({ client: grantClient().client, selfEnrolment: trip.seam })
+
+    expect(page.store.getState().selfEnrolSupported).toBe(true)
+    expect(page.store.getState().selfEnrolment).toEqual({ expiresAt: NOW + 300 })
+  })
+
+  it('drops a stash that ran out while the person was away', () => {
+    const trip = seam({ kept: { grantId: GRANT, expiresAt: NOW - 1 } })
+    const page = setUp({ client: grantClient().client, selfEnrolment: trip.seam })
+
+    expect(page.store.getState().selfEnrolment).toBeNull()
+    expect(trip.kept).toBeNull()
+  })
+
+  it('shows nothing without a stash', () => {
+    const page = setUp({ client: grantClient().client, selfEnrolment: seam().seam })
+
+    expect(page.store.getState().selfEnrolment).toBeNull()
+  })
+
+  it('lets go of the grant when the clock reaches its deadline, and not before', () => {
+    const trip = seam({ kept: { grantId: GRANT, expiresAt: NOW + 300 } })
+    const page = setUp({ client: grantClient().client, selfEnrolment: trip.seam })
+
+    expect(page.model.expireSelfEnrolment()).toBe(false)
+    expect(trip.kept).not.toBeNull()
+
+    page.clock.now = NOW + 300
+
+    expect(page.model.expireSelfEnrolment()).toBe(true)
+    expect(page.store.getState().selfEnrolment).toBeNull()
+    expect(trip.kept).toBeNull()
+  })
+
+  it('forgets a grant the person gave up on', () => {
+    const trip = seam({ kept: { grantId: GRANT, expiresAt: NOW + 300 } })
+    const page = setUp({ client: grantClient().client, selfEnrolment: trip.seam })
+
+    page.model.cancelSelfEnrolment()
+
+    expect(page.store.getState().selfEnrolment).toBeNull()
+    expect(trip.kept).toBeNull()
+  })
+
+  it('creates the passkey with the grant, never with a code, and forgets the grant', async () => {
+    const trip = seam({ kept: { grantId: GRANT, expiresAt: NOW + 300 } })
+    const { client, registerBegin, registerFinish } = grantClient()
+    const page = setUp({ client, selfEnrolment: trip.seam })
+
+    const credential = await page.model.finishSelfEnrolment()
+
+    expect(credential).toMatchObject({ rp_id: 'gw.example.test', name: 'Hermie — gw.example.test' })
+    expect(registerBegin).toHaveBeenCalledWith(
+      expect.objectContaining({ rp_id: 'gw.example.test', base_url: BASE, grant_id: GRANT })
+    )
+    expect(registerFinish).toHaveBeenCalledTimes(1)
+
+    const finish = registerFinish.mock.calls[0]?.[0] as Record<string, unknown>
+
+    expect(finish).toMatchObject({ registration_id: 'reg-1', base_url: BASE, grant_id: GRANT })
+    expect(finish).not.toHaveProperty('code')
+    expect(page.store.getState().selfEnrolment).toBeNull()
+    expect(trip.kept).toBeNull()
+    expect(page.pins.gatewayId()).toBe(GATEWAY_ID)
+  })
+
+  it('does not put a grant on a code enrolment', async () => {
+    const { client, registerBegin, registerFinish } = grantClient()
+    const page = setUp({ client, selfEnrolment: seam().seam })
+
+    await page.model.enrol('M67B1-PK0QJ-BTJWR-QSSB2')
+
+    expect(registerBegin.mock.calls[0]?.[0]).not.toHaveProperty('grant_id')
+    expect(registerFinish.mock.calls[0]?.[0]).toMatchObject({ code: 'M67B1PK0QJBTJWRQSSB2' })
+    expect(registerFinish.mock.calls[0]?.[0]).not.toHaveProperty('grant_id')
+  })
+
+  it('says so when there is no grant to finish', async () => {
+    const page = setUp({ client: grantClient().client, selfEnrolment: seam().seam })
+
+    await expect(page.model.finishSelfEnrolment()).rejects.toMatchObject({ problem: { kind: 'self_enrol_expired' } })
+  })
+
+  it('says so, and forgets it, when the grant ran out between the page opening and the click', async () => {
+    const trip = seam({ kept: { grantId: GRANT, expiresAt: NOW + 300 } })
+    const { client, registerBegin } = grantClient()
+    const page = setUp({ client, selfEnrolment: trip.seam })
+
+    page.clock.now = NOW + 301
+
+    await expect(page.model.finishSelfEnrolment()).rejects.toMatchObject({ problem: { kind: 'self_enrol_expired' } })
+    expect(registerBegin).not.toHaveBeenCalled()
+    expect(trip.kept).toBeNull()
+    expect(page.store.getState().selfEnrolment).toBeNull()
+  })
+
+  // Every `reauth_invalid` reason of the contract (§8), at `register/begin`: the grant is over, so it goes.
+  it.each([
+    ['unknown', ''],
+    ['not_fresh', ''],
+    ['spent', ''],
+    ['failed', 'user_mismatch'],
+    ['failed', 'provider_mismatch'],
+    ['failed', 'auth_time_missing'],
+    ['failed', 'auth_not_fresh']
+  ])('ends the grant on reauth_invalid %s %s at register/begin', async (reason, failure) => {
+    const trip = seam({ kept: { grantId: GRANT, expiresAt: NOW + 300 } })
+    const { client } = grantClient({
+      registerBegin: vi.fn(async () => {
+        throw refusedRoute('reauth_invalid', 403, reason, failure)
+      }) as PasskeyClient['registerBegin']
+    })
+    const page = setUp({ client, selfEnrolment: trip.seam })
+    const failed = await page.model.finishSelfEnrolment().catch((error: unknown) => error)
+
+    expect(failed).toBeInstanceOf(PasskeyActionError)
+    expect((failed as PasskeyActionError).problem).toMatchObject({
+      kind: 'refused',
+      status: 403,
+      error: 'reauth_invalid',
+      reason,
+      ...(failure ? { failure } : {})
+    })
+    expect(endsGrant(failed)).toBe(true)
+    expect(isReauthFailure(failed)).toBe(true)
+    expect(trip.kept).toBeNull()
+    expect(page.store.getState().selfEnrolment).toBeNull()
+  })
+
+  it('ends the grant on reauth_invalid at register/finish too (it was spent or ran out meanwhile)', async () => {
+    const trip = seam({ kept: { grantId: GRANT, expiresAt: NOW + 300 } })
+    const { client } = grantClient({
+      registerFinish: vi.fn(async () => {
+        throw refusedRoute('reauth_invalid', 403, 'unknown')
+      }) as PasskeyClient['registerFinish']
+    })
+    const page = setUp({ client, selfEnrolment: trip.seam })
+
+    await expect(page.model.finishSelfEnrolment()).rejects.toMatchObject({
+      problem: { kind: 'refused', error: 'reauth_invalid', reason: 'unknown' }
+    })
+    expect(trip.kept).toBeNull()
+  })
+
+  it.each(['self_enrol_disabled', 'provider_no_reauth'])('ends the grant on %s', async error => {
+    const trip = seam({ kept: { grantId: GRANT, expiresAt: NOW + 300 } })
+    const { client } = grantClient({
+      registerBegin: vi.fn(async () => {
+        throw refusedRoute(error)
+      }) as PasskeyClient['registerBegin']
+    })
+    const page = setUp({ client, selfEnrolment: trip.seam })
+    const failed = await page.model.finishSelfEnrolment().catch((caught: unknown) => caught)
+
+    expect(endsGrant(failed)).toBe(true)
+    expect(trip.kept).toBeNull()
+  })
+
+  it('keeps the grant for another try when the person closes the browser’s sheet', async () => {
+    const trip = seam({ kept: { grantId: GRANT, expiresAt: NOW + 300 } })
+    const { client, registerBegin } = grantClient()
+    const page = setUp({ client, selfEnrolment: trip.seam })
+
+    page.webauthn.next = { kind: 'cancelled' }
+
+    const failed = await page.model.finishSelfEnrolment().catch((error: unknown) => error)
+
+    expect((failed as PasskeyActionError).problem).toEqual({ kind: 'ceremony', problem: { kind: 'cancelled' } })
+    expect(endsGrant(failed)).toBe(false)
+    expect(trip.kept).toEqual({ grantId: GRANT, expiresAt: NOW + 300 })
+    expect(page.store.getState().selfEnrolment).toEqual({ expiresAt: NOW + 300 })
+
+    // The same grant opens another registration while it is unspent.
+    await page.model.finishSelfEnrolment()
+    expect(registerBegin).toHaveBeenCalledTimes(2)
+    expect(registerBegin.mock.calls.map(call => call[0].grant_id)).toEqual([GRANT, GRANT])
+    expect(trip.kept).toBeNull()
+  })
+
+  it('keeps the grant through a rate limit and a lost connection', async () => {
+    const trip = seam({ kept: { grantId: GRANT, expiresAt: NOW + 300 } })
+    const limited = grantClient({
+      registerFinish: vi.fn(async () => {
+        throw refusedRoute('rate_limited', 429, '', '', 600)
+      }) as PasskeyClient['registerFinish']
+    })
+    const page = setUp({ client: limited.client, selfEnrolment: trip.seam })
+    const failed = await page.model.finishSelfEnrolment().catch((error: unknown) => error)
+
+    expect((failed as PasskeyActionError).problem).toMatchObject({ kind: 'refused', status: 429, retryAfter: 600 })
+    expect(endsGrant(failed)).toBe(false)
+    expect(isReauthFailure(failed)).toBe(false)
+    expect(trip.kept).not.toBeNull()
+
+    const offline = grantClient({
+      registerBegin: vi.fn(async () => {
+        throw new PasskeyRouteError('transport', 'offline')
+      }) as PasskeyClient['registerBegin']
+    })
+    const second = setUp({ client: offline.client, selfEnrolment: trip.seam })
+
+    await expect(second.model.finishSelfEnrolment()).rejects.toMatchObject({ problem: { kind: 'transport' } })
+    expect(trip.kept).not.toBeNull()
+  })
+
+  it('does not call a lost connection a sign-in that failed', () => {
+    expect(isReauthFailure(new PasskeyActionError({ kind: 'transport', message: 'x' }))).toBe(false)
+    expect(isReauthFailure(new Error('x'))).toBe(false)
+    expect(isReauthFailure(new PasskeyActionError({ kind: 'self_enrol_expired' }))).toBe(true)
   })
 })

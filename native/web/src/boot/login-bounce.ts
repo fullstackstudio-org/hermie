@@ -19,8 +19,16 @@
  * token prompt itself. It is also what a tab does when another tab on the same
  * gateway signed out or forgot the token (`platform/tab-channel.ts`).
  *
- * Nothing stored here is a credential: a route, and an author id
- * (`<provider>:<user id>`), which the gateway stamps on every message anyway.
+ * A third trip is the same bounce with a purpose: adding a passkey by signing in
+ * again (`reauthSignIn`, contract §7.2). The grant the gateway opened for it
+ * survives the trip in `sessionStorage` (`createEnrolStash`: its id and its
+ * deadline, nothing else), and the passkey model finishes the enrolment when the
+ * page is back.
+ *
+ * Nothing stored here is a credential: a route, an author id
+ * (`<provider>:<user id>`), which the gateway stamps on every message anyway, and
+ * a grant's id and deadline (the grant's secret is an HttpOnly cookie this code
+ * never sees; the id alone authorises nothing).
  */
 import type { CredentialProvider } from '@hermie/gateway-client'
 
@@ -57,6 +65,10 @@ export const pageBounceEnvironment = (): BounceEnvironment => ({
 export const routeStashKey = (basePath: Pick<ResolvedBasePath, 'namespace'>): string =>
   `hermie:${basePath.namespace}:route`
 
+/** Where the open self-enrolment grant lives in `sessionStorage`, next to the route stash. */
+export const enrolStashKey = (basePath: Pick<ResolvedBasePath, 'namespace'>): string =>
+  `hermie:${basePath.namespace}:passkey-enrol`
+
 /** The identity-bound key that names whose state this browser holds. */
 export const OWNER_KEY = 'session.owner'
 
@@ -80,6 +92,133 @@ function writeStash(environment: BounceEnvironment, key: string, value: string |
     }
   } catch {
     // A refused stash costs the route, not the sign-in.
+  }
+}
+
+/**
+ * The sign-in page of a self-enrolment: the gateway's own `login_path` (it carries the grant) plus `next`, the page's
+ * path. `null` when `loginPath` is not a path on this origin that ends in `/auth/login`: whatever the gateway
+ * answers, this page navigates nowhere else.
+ */
+export function reauthLoginUrl(basePath: Pick<ResolvedBasePath, 'appPath'>, loginPath: string): string | null {
+  if (!loginPath.startsWith('/') || loginPath.startsWith('//') || loginPath.includes('\\')) {
+    return null
+  }
+
+  let parsed: URL
+
+  try {
+    parsed = new URL(loginPath, 'https://placeholder.invalid')
+  } catch {
+    return null
+  }
+
+  if (parsed.origin !== 'https://placeholder.invalid' || !parsed.pathname.endsWith('/auth/login')) {
+    return null
+  }
+
+  parsed.searchParams.set('next', basePath.appPath)
+
+  return `${parsed.pathname}${parsed.search}`
+}
+
+/**
+ * Keep the route, then go to the gateway's sign-in page for a self-enrolment (`loginPath` from `reauth/begin`).
+ * Returns false, and goes nowhere, when `loginPath` is not acceptable.
+ */
+export function reauthSignIn(
+  basePath: ResolvedBasePath,
+  loginPath: string,
+  environment: BounceEnvironment = pageBounceEnvironment()
+): boolean {
+  const url = reauthLoginUrl(basePath, loginPath)
+
+  if (url === null) {
+    return false
+  }
+
+  const hash = environment.location.hash
+
+  writeStash(environment, routeStashKey(basePath), isCarriableRoute(hash) ? hash : null)
+  environment.location.assign(url)
+
+  return true
+}
+
+/** What survives the sign-in of a self-enrolment: the grant and when the gateway stops taking it. */
+export interface EnrolStashEntry {
+  grantId: string
+  /** Unix seconds. */
+  expiresAt: number
+}
+
+/** The stash the passkey model reads and writes (`core/passkey/model.ts`, `selfEnrolment`). */
+export interface EnrolStash {
+  read(): EnrolStashEntry | null
+  /** False when the browser refused to keep it (nothing could be read back): the trip would lose the grant. */
+  write(entry: EnrolStashEntry): boolean
+  clear(): void
+}
+
+/** A grant id as the gateway mints it (16 random bytes, base64url), with room for a longer one. */
+const GRANT_ID = /^[A-Za-z0-9_-]{16,64}$/u
+
+/**
+ * The self-enrolment stash of this tab: `{"grant_id", "expires_at"}` under `hermie:<ns>:passkey-enrol`, gone with
+ * the tab. A value that is not exactly that is not a stash and is removed.
+ */
+export function createEnrolStash(
+  basePath: Pick<ResolvedBasePath, 'namespace'>,
+  environment: BounceEnvironment = pageBounceEnvironment()
+): EnrolStash {
+  const key = enrolStashKey(basePath)
+
+  const read = (): EnrolStashEntry | null => {
+    let raw: string | null = null
+
+    try {
+      raw = environment.sessionStorage?.getItem(key) ?? null
+    } catch {
+      return null
+    }
+
+    if (raw === null) {
+      return null
+    }
+
+    try {
+      const parsed = JSON.parse(raw) as { grant_id?: unknown; expires_at?: unknown } | null
+
+      if (
+        parsed &&
+        typeof parsed.grant_id === 'string' &&
+        GRANT_ID.test(parsed.grant_id) &&
+        typeof parsed.expires_at === 'number' &&
+        Number.isFinite(parsed.expires_at)
+      ) {
+        return { grantId: parsed.grant_id, expiresAt: parsed.expires_at }
+      }
+    } catch {
+      // Falls through: not ours.
+    }
+
+    writeStash(environment, key, null)
+
+    return null
+  }
+
+  return {
+    read,
+    write(entry) {
+      writeStash(environment, key, JSON.stringify({ grant_id: entry.grantId, expires_at: entry.expiresAt }))
+
+      const back = read()
+
+      return back !== null && back.grantId === entry.grantId
+    },
+    clear() {
+      writeStash(environment, key, null)
+    }
   }
 }
 
@@ -200,6 +339,7 @@ export async function signOut(options: SignOutOptions): Promise<void> {
 
   await clearIdentityBoundState(options)
   writeStash(environment, routeStashKey(options.basePath), null)
+  writeStash(environment, enrolStashKey(options.basePath), null)
   environment.location.assign(loginUrl(options.basePath))
 }
 
@@ -216,6 +356,9 @@ export interface ForgetTokenOptions extends IdentityBoundState {
  * told, because it has nothing to end: its token stays valid until it restarts.
  */
 export async function forgetToken(options: ForgetTokenOptions): Promise<void> {
+  const environment = options.environment ?? pageBounceEnvironment()
+
   await clearIdentityBoundState(options)
-  writeStash(options.environment ?? pageBounceEnvironment(), routeStashKey(options.basePath), null)
+  writeStash(environment, routeStashKey(options.basePath), null)
+  writeStash(environment, enrolStashKey(options.basePath), null)
 }

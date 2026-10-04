@@ -87,7 +87,11 @@ beforeEach(() => {
     enrol: vi.fn(),
     mintInvite: vi.fn(),
     revoke: vi.fn(),
-    forgetPin: vi.fn()
+    forgetPin: vi.fn(),
+    startSelfEnrolment: vi.fn(),
+    finishSelfEnrolment: vi.fn(),
+    cancelSelfEnrolment: vi.fn(),
+    expireSelfEnrolment: vi.fn()
   }
 })
 

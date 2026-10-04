@@ -214,10 +214,27 @@ async function routeSecureOrigin(context: BrowserContext, origin: string, target
     url => url.origin === origin,
     async route => {
       const request = route.request()
+      // A redirect is not followed here (that would show its target under the address that redirected, and drop the
+      // cookies it set): it is passed on as a page that goes on to the target by itself, with the redirect's own
+      // headers (its cookies included). The target is a request of its own, which this routing carries as well.
       const response = await route.fetch({
         url: target + request.url().slice(origin.length),
-        headers: await request.allHeaders()
+        headers: await request.allHeaders(),
+        maxRedirects: 0
       })
+      const location = response.headers().location
+
+      if (response.status() >= 300 && response.status() < 400 && location) {
+        const { location: _location, 'content-length': _length, ...headers } = response.headers()
+
+        await route.fulfill({
+          status: 200,
+          headers: { ...headers, 'content-type': 'text/html; charset=utf-8', 'cache-control': 'no-store' },
+          body: `<!doctype html><meta http-equiv="refresh" content="0;url=${location.replace(/"/gu, '&quot;')}">`
+        })
+
+        return
+      }
 
       await route.fulfill({ response })
     }

@@ -24,6 +24,10 @@ export type PasskeyActions = Pick<
   | 'mintInvite'
   | 'revoke'
   | 'forgetPin'
+  | 'startSelfEnrolment'
+  | 'finishSelfEnrolment'
+  | 'cancelSelfEnrolment'
+  | 'expireSelfEnrolment'
 >
 
 export const PasskeyRuntimeContext = createContext<PasskeyActions | null>(null)

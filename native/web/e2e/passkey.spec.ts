@@ -112,7 +112,7 @@ async function enrol(page: Page, gateway: Gateway, open: (hash: string) => Promi
   const { body } = await post(gateway, '/__fake/passkey/code', {})
 
   await page.getByLabel('Enrolment code').fill(String(body.code))
-  await page.getByRole('button', { name: 'Add a passkey' }).click()
+  await page.getByRole('button', { name: 'Add with a code' }).click()
   await expect(page.getByRole('status').filter({ hasText: 'The passkey was added.' })).toBeVisible()
   await expect(page.getByRole('listitem').filter({ hasText: 'Hermie — gw.example.test' })).toBeVisible()
 }
