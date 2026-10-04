@@ -888,12 +888,16 @@ describe('a bot section written by a newer build', () => {
     await one.bridge.reconcile()
     one.layout.getState().setAccent('writer', 'lime')
     one.layout.getState().setAccent('researcher', 'teal')
-    await settled()
 
+    // Every other section still goes out. Waited for rather than given a fixed 5 ms: on a loaded CI
+    // runner that was once not enough, and what is held back is only worth checking once the send that
+    // would have carried it has landed.
+    await vi.waitFor(() => expect(gateway.meta('researcher').hermie).toEqual({ v: 1, colour: 'teal' }), {
+      timeout: 2_000,
+      interval: 5
+    })
     expect(gateway.meta('writer').hermie).toEqual(NEWER)
     expect(gateway.writes.some(write => write.name === 'writer')).toBe(false)
-    // Every other section still goes out.
-    expect(gateway.meta('researcher').hermie).toEqual({ v: 1, colour: 'teal' })
     expect(one.bridge.pending).toBe(true)
     expect(warn).toHaveBeenCalledWith(expect.stringContaining('writer'))
 
