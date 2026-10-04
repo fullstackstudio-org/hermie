@@ -393,6 +393,9 @@ export default defineConfig(({ command, mode }) => {
             chunk.name === SERVICE_WORKER_ENTRY && !harness ? 'sw.js' : 'assets/[name]-[hash].js',
           chunkFileNames: 'assets/[name]-[hash].js',
           assetFileNames: 'assets/[name]-[hash][extname]',
+          // Rollup folds a chunk this small into one that is always fetched with it, so a few hundred bytes of shared
+          // code are not a file (and a request) of their own; the plugin importer accepts 80 files.
+          experimentalMinChunkSize: 1_500,
           manualChunks
         }
       }

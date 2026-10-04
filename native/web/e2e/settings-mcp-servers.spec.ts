@@ -9,7 +9,7 @@
  *  - **Removing** asks first and is read back from the gateway; **adding** takes a catalogue preset or a server of
  *    the reader's own, and says why a name was refused.
  *  - **Reloading** asks first with the gateway's own warning.
- *  - **The page is a chunk of its own**, and has no serious accessibility violation in either scheme.
+ *  - **The page is fetched on demand**, in the chunk the management pages share, and has no serious accessibility violation in either scheme.
  */
 import { expect, type Page, seriousViolations, test } from './fixtures'
 
@@ -171,11 +171,11 @@ test.describe('Settings › MCP servers', () => {
     await expect(page.getByRole('status').filter({ hasText: 'The servers were reloaded.' })).toBeVisible()
   })
 
-  test('is a chunk of its own, fetched when the page is opened and not before', async ({ app, page }) => {
+  test('is fetched when the page is opened and not before, in the management pages’ chunk', async ({ app, page }) => {
     const fetched: string[] = []
 
     page.on('request', request => {
-      if (/\/assets\/McpServers-[\w-]+\.(?:js|css)$/u.test(new URL(request.url()).pathname)) {
+      if (/\/assets\/manage-pages-[\w-]+\.(?:js|css)$/u.test(new URL(request.url()).pathname)) {
         fetched.push(new URL(request.url()).pathname)
       }
     })

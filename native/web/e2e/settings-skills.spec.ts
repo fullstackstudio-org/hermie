@@ -7,7 +7,7 @@
  *  - **The hub** is browsed and searched; a row opens its details, with the hub's own instructions in a box that
  *    scrolls and can be reached by keyboard.
  *  - **Install** puts the skill into the picked bot's list, and the hub then marks it instead of offering it.
- *  - **The page is a chunk of its own**, fetched when it is opened and not before.
+ *  - **The page is fetched on demand**, in the chunk the management pages share, fetched when it is opened and not before.
  *  - **Accessibility** with axe in the light and the dark scheme, with a row's details open.
  */
 import { expect, type Page, seriousViolations, test } from './fixtures'
@@ -95,11 +95,11 @@ test.describe('Settings › Skills', () => {
     await expect(page.getByRole('button', { name: 'Install xlsx' })).toBeVisible()
   })
 
-  test('is a chunk of its own, fetched when the page is opened and not before', async ({ app, page }) => {
+  test('is fetched when the page is opened and not before, in the management pages’ chunk', async ({ app, page }) => {
     const fetched: string[] = []
 
     page.on('request', request => {
-      if (/\/assets\/Skills-[\w-]+\.(?:js|css)$/u.test(new URL(request.url()).pathname)) {
+      if (/\/assets\/manage-pages-[\w-]+\.(?:js|css)$/u.test(new URL(request.url()).pathname)) {
         fetched.push(new URL(request.url()).pathname)
       }
     })

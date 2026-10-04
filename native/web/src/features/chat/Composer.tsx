@@ -100,9 +100,7 @@ import { usePageVisible } from './use-page-visible'
 import './composer.css'
 
 /** The microphone: a chunk of its own, fetched only where the browser can dictate. */
-const DictationButton = lazy(() =>
-  import('../voice/DictationButton').then(module => ({ default: module.DictationButton }))
-)
+const DictationButton = lazy(() => import('../voice/voice-chunk').then(module => ({ default: module.DictationButton })))
 
 /** How long after the last keystroke the draft is written down. */
 const DRAFT_WRITE_MS = 300

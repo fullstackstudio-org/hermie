@@ -51,6 +51,7 @@ const ON_DEMAND = [
   'features/activity/ActivityPage.tsx',
   'i18n/cron-strings.ts',
   // The gateway-management pages (Memory, Skills, MCP servers, Connectors, Boards), what they share, and their words.
+  'features/settings/manage-pages.ts',
   'features/settings/Memory.tsx',
   'features/settings/Skills.tsx',
   'features/settings/McpServers.tsx',
@@ -74,6 +75,7 @@ const ON_DEMAND = [
   'state/push.ts',
   // Voice: the microphone, the reader and their engines are fetched only where a browser can use them and a reader
   // does; the Settings section and the voice choices come with the pages that read them.
+  'features/voice/voice-chunk.ts',
   'features/voice/DictationButton.tsx',
   'features/voice/dictation.ts',
   'features/voice/read-aloud.ts',

@@ -7,7 +7,7 @@
  *  - **Connecting** shows the vendor's address as a link to open in another tab and follows the operation until the
  *    connector settles: connected (and the list says so), or failed in the vendor's words.
  *  - **Reconnect** is how another account is chosen; there is no Disconnect, and the page says whose decision that is.
- *  - **The page is a chunk of its own**, and has no serious accessibility violation in either scheme.
+ *  - **The page is fetched on demand**, in the chunk the management pages share, and has no serious accessibility violation in either scheme.
  */
 import { expect, type Page, seriousViolations, test } from './fixtures'
 
@@ -97,11 +97,11 @@ test.describe('Settings › Connectors', () => {
     await expect(page.getByRole('list', { name: 'Connectors' })).toHaveCount(0)
   })
 
-  test('is a chunk of its own, fetched when the page is opened and not before', async ({ app, page }) => {
+  test('is fetched when the page is opened and not before, in the management pages’ chunk', async ({ app, page }) => {
     const fetched: string[] = []
 
     page.on('request', request => {
-      if (/\/assets\/Connectors-[\w-]+\.(?:js|css)$/u.test(new URL(request.url()).pathname)) {
+      if (/\/assets\/manage-pages-[\w-]+\.(?:js|css)$/u.test(new URL(request.url()).pathname)) {
         fetched.push(new URL(request.url()).pathname)
       }
     })

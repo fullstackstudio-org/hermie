@@ -68,7 +68,7 @@ export function useReadAloud({ bot, items, live, turnRunning }: UseReadAloudOpti
       return Promise.resolve(runtime.current)
     }
 
-    loading.current ??= import('./read-aloud')
+    loading.current ??= import('./voice-chunk')
       .then(module => {
         const made = module.createReadAloud({ blocked: () => voiceActivityStore.getState().dictating })
 

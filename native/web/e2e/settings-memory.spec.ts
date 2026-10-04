@@ -8,7 +8,7 @@
  *  - **Adding** and **removing**: a new entry appears under its file; a removal asks first and is read back.
  *  - **The store's refusal** (an entry that would not fit) is shown as the store said it.
  *  - **The search** is the plugin's: it matches across both files.
- *  - **A gateway without the memory browser** gets what to install, and the page is a chunk of its own.
+ *  - **A gateway without the memory browser** gets what to install, and the page is fetched on demand, in the chunk the management pages share.
  *  - **Accessibility** with axe in the light and the dark scheme, with an editor and a question open.
  */
 import { PLUGIN_ADVERT } from '@hermie/fake-gateway'
@@ -187,11 +187,11 @@ test.describe('Settings › Memory', () => {
     })
   })
 
-  test('is a chunk of its own, fetched when the page is opened and not before', async ({ app, page }) => {
+  test('is fetched when the page is opened and not before, in the management pages’ chunk', async ({ app, page }) => {
     const fetched: string[] = []
 
     page.on('request', request => {
-      if (/\/assets\/Memory-[\w-]+\.(?:js|css)$/u.test(new URL(request.url()).pathname)) {
+      if (/\/assets\/manage-pages-[\w-]+\.(?:js|css)$/u.test(new URL(request.url()).pathname)) {
         fetched.push(new URL(request.url()).pathname)
       }
     })

@@ -397,6 +397,7 @@ export const test = base.extend<TestFixtures & Options, WorkerFixtures>({
 })
 
 export { expect }
+export type { Page }
 
 /** A reply of `count` frames, each of which says whose it is: "Alpha part 1. ", "Alpha part 2. ", ... */
 export const parts = (name: string, count = 24): string[] =>

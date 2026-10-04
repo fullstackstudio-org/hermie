@@ -8,7 +8,7 @@
  *  - **A card** opens in place, is edited with a draft that is saved or put back, takes a comment, and is archived
  *    (not deleted) after a question; a new card lands in the column that was picked.
  *  - **A gateway without the plugin** gets what to install, not an empty board.
- *  - **The page is a chunk of its own**, and has no serious accessibility violation in either scheme.
+ *  - **The page is fetched on demand**, in the chunk the management pages share, and has no serious accessibility violation in either scheme.
  */
 import { expect, type Page, seriousViolations, test } from './fixtures'
 
@@ -177,11 +177,11 @@ test.describe('Settings › Boards', () => {
     })
   })
 
-  test('is a chunk of its own, fetched when the page is opened and not before', async ({ app, page }) => {
+  test('is fetched when the page is opened and not before, in the management pages’ chunk', async ({ app, page }) => {
     const fetched: string[] = []
 
     page.on('request', request => {
-      if (/\/assets\/Boards-[\w-]+\.(?:js|css)$/u.test(new URL(request.url()).pathname)) {
+      if (/\/assets\/manage-pages-[\w-]+\.(?:js|css)$/u.test(new URL(request.url()).pathname)) {
         fetched.push(new URL(request.url()).pathname)
       }
     })
