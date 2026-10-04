@@ -115,13 +115,29 @@ told not to ask again at once. On a draft the refusal is Reject.
 ### Taps, order and several at once
 
 For 400 ms after a sheet is shown its controls are off, so a click or a keystroke meant for what was under it never
-answers. The guard starts when the sheet is **shown**, not when it is built: a sheet queued behind another, or opened
-again after Later, starts over.
+answers. The guard starts when the sheet is **shown**, not when it is built: a sheet queued behind another, a form that
+comes back after a question, or one opened again after Later, starts over, and so does the question that took the
+screen from a form. A double click on a question's button therefore cannot answer the form that appears behind it.
 
-One sheet is on screen at a time, from one queue, oldest first, in the order the page first saw each request. Requests
-that arrive in the same moment (a resume that restores several) are ordered approvals and clarify questions first,
-then confirmations, secure prompts and these. The page does not take the screen away from a sheet that is open: a
-request that arrives meanwhile waits behind it, and a sheet put away with Later no longer holds the queue.
+One sheet is on screen at a time, from one queue, in the order the page first saw each request, with one rule on top
+of that: **a question comes before a sheet** (the same rule as the native apps' `ChatSheetOrder`). An approval, a
+clarify question, a passkey confirmation, a secret, sudo or vault prompt and a connector authorisation stop a bot, so
+they are shown before a form, a file request or a draft, whatever the order they arrived in; among themselves, and among
+the sheets, the order stays first seen, first shown. Requests that arrive in the same moment (a resume that restores
+several) are ordered approvals and clarify questions first, then confirmations, secure prompts and these.
+
+A form, file request or draft that is on screen when such a question arrives **steps aside**: it is not answered, not
+put away with Later and not closed, so what was typed, picked or edited in it is kept (the page keeps its sheet alive
+while it is out of sight), the dialog shows the question, and a polite announcement says that a question came first.
+When the questions are done the sheet **comes back by itself**. This differs from the native apps only in that a sheet
+there is gone with what was entered in it when it steps aside.
+
+The one exception is a sheet that is in the middle of something: while it is **sending an answer**, or **preparing or
+uploading files**, the question waits until that is over (an answer that did not get through leaves the sheet open, and
+the question then goes first), so an upload is never cut off by a question. The same is true the other way round: a
+sheet put away with **Later** is the person's own choice and stays away, through any number of questions, until they
+press **Open**; Open while a question is waiting queues the sheet behind it. A sheet put away with Later no longer holds
+the queue.
 
 ### Uploads
 

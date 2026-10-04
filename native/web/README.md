@@ -891,7 +891,11 @@ A bot's approval or question (`clarify`) is answered in `features/requests/`, a 
   `answered` first) takes it off in the same breath. `session.ts` binds it to the chats it starts.
 - **One at a time, oldest first,** in the order requests were first seen (not the rows' order: they are in different
   chats), with "N more waiting" under the one on screen. A request for a chat that is not on screen raises the layer
-  too, and the dialog names the bot ("From <name>").
+  too, and the dialog names the bot ("From <name>"). **A question comes before a sheet** (`features/requests/sheet-order.ts`):
+  an approval, clarify, confirmation, secure prompt or connector card is shown before a form, file request or draft
+  whatever the arrival order. An interactive sheet on screen steps aside (parked with what was entered, not Later, and
+  back by itself afterwards; a polite announcement says so), unless it is sending or uploading, which it reports through
+  `SheetBusyContext` (`useReportBusy`): then the question waits. A sheet put away with Later stays away until Open.
 - **A modal dialog.** `role="dialog"`, `aria-modal`, named by its heading, described by what is asked. The rest of the
   page is `inert` while it is open (`platform/modal-isolation.ts`: every sibling of the layer and of its ancestors),
   Tab is also kept inside by hand, and a focus that lands outside is brought back. **Escape does not dismiss, and

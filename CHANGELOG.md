@@ -52,7 +52,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   is typed or picked is never kept: not in the transcript, a cache, a draft or a log. **Later** puts a sheet
   away without answering (the transcript's card opens it again), **Don't share** tells the agent the person
   chose not to provide it, and a request survives a reconnect or is closed with a notice saying why. In the
-  native apps an approval or a passkey confirmation steps in front of a form that is open. A push notification
+  native apps and in the web client an approval, a passkey confirmation or a secure prompt steps in front of a
+  form that is open (in the web client the form is kept as it was and comes back by itself; in the native apps
+  what was typed is gone), except while the form is sending or uploading. A push notification
   says that an agent has a form, a file request or a draft for you, and carries none of its text (`docs/web.md`,
   `docs/native.md`, `contract/requests`).
 - **The MCP page in Settings and the agent label.** Settings has an MCP page with the gateway's endpoint and the
