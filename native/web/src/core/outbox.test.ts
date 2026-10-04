@@ -31,6 +31,7 @@ interface Examples {
 const examples = JSON.parse(examplesSource) as Examples
 const [audio, html] = examples.attachments.valid as [Record<string, unknown>, Record<string, unknown>]
 const NOW = 1_790_000_000_000
+const ROUTE = `/api/files/outbox/${audio.id as string}`
 
 /** A valid attachment with one field changed. */
 const mutate = (over: Record<string, unknown>): Record<string, unknown> => ({ ...audio, ...over })
@@ -117,7 +118,21 @@ describe('parseOutboxAttachment, by the contract’s examples', () => {
     [
       'a url that is another route',
       mutate({ url: '/api/files/download/q3Wm0B2v7yXk4Lr9TzPa1sDf6GhJ8cNe/tts_20261004_225730_989324.mp3' })
-    ]
+    ],
+    ['a name that is a dot segment written %2e%2e', mutate({ name: '..', url: `${ROUTE}/%2e%2e` })],
+    ['a name that is %2e%2e as a decoding the name does not have', mutate({ name: 'x.mp3', url: `${ROUTE}/%2e%2e` })],
+    ['a name with a slash written %2F', mutate({ name: 'a/b.mp3', url: `${ROUTE}/a%2Fb.mp3` })],
+    ['a url whose %2F is not what the name says', mutate({ name: 'a%2Fb.mp3', url: `${ROUTE}/a%2Fb.mp3` })],
+    ['a name with a backslash written %5C', mutate({ name: 'a\\b.mp3', url: `${ROUTE}/a%5Cb.mp3` })],
+    ['a url whose %5C is not what the name says', mutate({ name: 'a%5Cb.mp3', url: `${ROUTE}/a%5Cb.mp3` })],
+    ['a url that is protocol-relative', mutate({ url: `//evil.test${audio.url as string}` })],
+    ['a url with a fragment', mutate({ url: `${audio.url as string}#frag` })],
+    [
+      'a url with a raw .. segment before the id',
+      mutate({ url: `/api/files/outbox/../${audio.id as string}/${audio.name as string}` })
+    ],
+    ['a url with a raw .. segment as the name', mutate({ name: 'x.mp3', url: `${ROUTE}/..` })],
+    ['a url with a . segment between id and name', mutate({ url: `${ROUTE}/./${audio.name as string}` })]
   ])('drops an attachment with %s', (_what, value) => {
     expect(parseOutboxAttachment(value)).toBeNull()
   })
@@ -131,6 +146,12 @@ describe('parseOutboxAttachment, by the contract’s examples', () => {
 
     expect(parsed?.name).toBe(name)
     expect(parsed?.url).toContain('%3Cimg')
+  })
+
+  it('reads a name that has a literal percent sign by what its url decodes to', () => {
+    const parsed = parseOutboxAttachment(mutate({ name: 'a%2Fb.mp3', url: `${ROUTE}/a%252Fb.mp3` }))
+
+    expect(parsed?.name).toBe('a%2Fb.mp3')
   })
 
   it('counts a name by characters, not by UTF-16 units: 180 emoji are 180', () => {
