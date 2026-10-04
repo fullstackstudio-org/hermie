@@ -370,6 +370,18 @@ struct ReviewDiffReadingTests {
       #expect(try read(diff(path: good, hunks: [hunk()])).path == good, "\(good)")
     }
 
+    // At most four combining marks in a row, as the gateway holds a verbatim line to; five are refused,
+    // in a path and in an old path, and a base letter in between starts the count again.
+    let marks = String(repeating: "\u{0301}", count: 4)
+    #expect(try read(diff(path: "a" + marks + ".txt", hunks: [hunk()])).path == "a" + marks + ".txt")
+    #expect(try read(diff(path: "a" + marks + "b" + marks, hunks: [hunk()])).path == "a" + marks + "b" + marks)
+
+    for bad in ["a" + marks + "\u{0301}", "dir/a" + marks + "\u{20DD}.txt"] {
+      #expect(problem(diff(path: bad, hunks: [hunk()])) == .pathInvalid, "\(bad)")
+      #expect(problem(diff(kind: "rename", path: "b", oldPath: bad, hunks: [hunk()])) == .oldPathInvalid, "\(bad)")
+      #expect(ReviewDiff.isPath(bad) == false)
+    }
+
     // Inner spaces and dots are fine.
     #expect(try read(diff(path: "my docs/a.b.txt", hunks: [hunk()])).path == "my docs/a.b.txt")
   }

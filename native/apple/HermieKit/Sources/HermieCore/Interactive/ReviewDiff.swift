@@ -194,7 +194,8 @@ public struct ReviewDiff: Sendable, Equatable {
   }
 
   /// A path as the gateway's builder holds it (§7): 1 to 300 code points of one line of verbatim text
-  /// (no control, format or hidden character), relative (no leading `/`, no backslash), and no segment
+  /// (no control, format or hidden character, no more than `DiffTextRules.maxCombiningMarks` combining
+  /// marks in a row), relative (no leading `/`, no backslash), and no segment
   /// that is empty, `.`, `..`, `.git` in any case, starts or ends with a space, or ends with a dot.
   static func isPath(_ text: String) -> Bool {
     let count = text.unicodeScalars.count
@@ -203,6 +204,23 @@ public struct ReviewDiff: Sendable, Equatable {
       !text.unicodeScalars.contains(where: { $0 == "\n" || DraftText.isNotVerbatim($0) })
     else {
       return false
+    }
+
+    // The gateway's `verbatimProblem` counts combining marks in a row, as `ConfirmFieldRules.isLine` does.
+    var marks = 0
+
+    for scalar in text.unicodeScalars {
+      let category = scalar.properties.generalCategory
+
+      if category == .nonspacingMark || category == .enclosingMark {
+        marks += 1
+
+        if marks > DiffTextRules.maxCombiningMarks {
+          return false
+        }
+      } else {
+        marks = 0
+      }
     }
 
     return !text.split(separator: "/", omittingEmptySubsequences: false).contains { segment in
