@@ -68,6 +68,15 @@ final class ChatFeed: ChatScreenFeed {
   var readAloud: ReadAloudModel?
   /// The device's voice settings the chat's options read and write (the automatic read, per chat).
   var voiceSettings: VoiceSettings?
+  /// The voice mode call on this chat, while there is one (`ChatFeed+Voice.swift`): its screen is up
+  /// for as long as this is set.
+  var voiceMode: VoiceModeModel?
+  /// The voice setup screen is up, before a first call or from the call's settings glyph.
+  var showingVoiceSetup = false
+  /// The setup was opened by the Voice mode button: the call starts when it is done.
+  @ObservationIgnored var pendingCallAfterSetup = false
+  /// Where a call gets its engines; the tests give their own.
+  @ObservationIgnored var voiceEngines = VoiceEngines.live
 
   private(set) var rows = TranscriptListItems<TranscriptRow>()
   /// The first rows have arrived.

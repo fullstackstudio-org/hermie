@@ -216,10 +216,11 @@ public final class AppleVoiceModeEngine: VoiceModeSpeaking, VoiceModeAudio {
     input.installTap(onBus: 0, bufferSize: 1024, format: format, block: Self.inputTap(slot: slot, meter: meters.input))
     let mixer = engine.mainMixerNode
     mixer.installTap(onBus: 0, bufferSize: 1024, format: mixer.outputFormat(forBus: 0), block: Self.outputTap(meter: meters.output))
+    // From here the teardown has taps and a player to take away, whether or not the start succeeds.
+    running = true
 
     engine.prepare()
     try engine.start()
-    running = true
   }
 
   private func teardown() {
@@ -238,8 +239,12 @@ public final class AppleVoiceModeEngine: VoiceModeSpeaking, VoiceModeAudio {
       engine.stop()
       engine.disconnectNodeOutput(player)
       engine.detach(player)
-      try? engine.inputNode.setVoiceProcessingEnabled(false)
       running = false
+    }
+
+    if cancelsEcho {
+      try? engine.inputNode.setVoiceProcessingEnabled(false)
+      cancelsEcho = false
     }
 
     meters.input.reset()

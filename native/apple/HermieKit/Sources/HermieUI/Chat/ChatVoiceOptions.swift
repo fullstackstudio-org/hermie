@@ -11,6 +11,17 @@ struct ChatVoiceOptionItems: View {
     if let reader = feed.readAloud, reader.isAvailable {
       Divider()
 
+      // A call with the bot: listen, send, read the reply, listen again.
+      if feed.offersVoiceMode {
+        Button {
+          feed.openVoiceMode()
+        } label: {
+          Label(Strings.Chat.Voice.modeStart, systemImage: "waveform")
+        }
+        .disabled(feed.voiceMode != nil)
+        .accessibilityIdentifier("hermie.chat.options.voiceMode")
+      }
+
       Toggle(isOn: Binding(get: { feed.autoRead }, set: { feed.autoRead = $0 })) {
         Label(Strings.Chat.Voice.autoRead, systemImage: "speaker.wave.2")
       }

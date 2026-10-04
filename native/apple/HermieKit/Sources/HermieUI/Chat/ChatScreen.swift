@@ -200,7 +200,21 @@ struct ChatSessionView<Composer: View>: View {
           // Files and pictures dropped anywhere on the chat (the transcript, the empty state, the
           // composer) go to the composer's tray; not while a request has the composer (HERM-251).
           .attachmentDropTarget(tray: feed.composer.tray) { feed.requestUp || feed.composer.held }
+          // A voice mode call, over the chat (its sheets come up over it), and the voice setup.
+          .modifier(VoiceModeHost(feed: feed, botName: chat.bot))
           .toolbar {
+            // Voice mode: a call with the bot, where the device can listen and speak.
+            if feed.offersVoiceMode, feed.voiceMode == nil {
+              ToolbarItem(placement: .primaryAction) {
+                Button {
+                  feed.openVoiceMode()
+                } label: {
+                  Label(Strings.Chat.Voice.modeStart, systemImage: "waveform")
+                }
+                .accessibilityIdentifier("hermie.chat.voiceMode")
+              }
+            }
+
             // While YOLO mode is on, a capsule says so for as long as it is: the chat never asks.
             if feed.yolo {
               ToolbarItem(placement: .primaryAction) {

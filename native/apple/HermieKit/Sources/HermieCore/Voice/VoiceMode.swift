@@ -427,6 +427,13 @@ public final class VoiceModeModel {
     }
   }
 
+  /// A request came up or went without a new snapshot (a secure prompt, a form, the voice setup).
+  public func requestChanged(up: Bool) {
+    var state = latest ?? VoiceChatState(items: [], turnActive: false, activity: .idle, requestUp: up)
+    state.requestUp = up
+    chatChanged(state)
+  }
+
   /// The app came to the front or left it.
   public func sceneChanged(active: Bool) {
     guard phase != .off else {
