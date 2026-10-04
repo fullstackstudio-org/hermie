@@ -47,6 +47,16 @@ import {
 } from './interactive'
 import { scheduleRefusal } from './cron-schedule'
 import { type AttachedImageSource, readAttachedImage } from './attached-images'
+import {
+  answerOutbox,
+  type OutboxFile,
+  type OutboxRequest,
+  sampleOf,
+  type ScenarioAttachment,
+  storeFile,
+  type WireAttachment,
+  wireOf
+} from './outbox'
 import { DiffError, headOldPath, headPath, parseDiff } from './diff-hunks'
 import { ReviewRegister } from './review-register'
 import { grantView as mcpGrantView, handleMcpRoute, PREFIX as MCP_PREFIX } from './mcp/routes'
@@ -212,6 +222,13 @@ export interface ScenarioReply {
    * before the identity existed.
    */
   notes?: { text: string; tool: NonNullable<ScenarioReply['tool']> }[]
+  /**
+   * Files the bot shares with this reply (`contract/outbox/`): a sample (`{ sample: 'image' }`, see
+   * `outbox-samples.ts`) or a name with its bytes. They are kept under a fresh token for the session's profile,
+   * sent as `attachments` on `message.complete`, written on the reply's row (`session.history`, `session.resume`
+   * and the REST transcript show them there) and served by `GET /api/files/outbox/{id}/{name}`.
+   */
+  attachments?: ScenarioAttachment[]
 }
 
 export interface Scenario {
@@ -586,6 +603,8 @@ export interface TranscriptRow {
   timestamp?: number
   display_kind?: string | null
   display_metadata?: Record<string, unknown> | null
+  /** The files an assistant row shared (`contract/outbox/`), beside its text. */
+  attachments?: WireAttachment[]
   name?: string | null
   tool_id?: string | null
   /** What `session_history.py` names a tool row's call by: the id `tool.start` sent as `tool_id`. */
@@ -761,6 +780,7 @@ function restMessageRow(row: TranscriptRow, index: number): Record<string, unkno
     content: row.text ?? '',
     ...(row.display_kind ? { display_content: row.text ?? '', display_kind: row.display_kind } : {}),
     ...(row.display_metadata ? { display_metadata: row.display_metadata } : {}),
+    ...(row.attachments ? { attachments: row.attachments } : {}),
     ...(row.timestamp === undefined ? {} : { timestamp: row.timestamp }),
     ...(row.name === undefined || row.name === null ? {} : { name: row.name }),
     ...(row.tool_id === undefined || row.tool_id === null ? {} : { tool_id: row.tool_id }),
@@ -1031,6 +1051,10 @@ export interface FakeGatewayState {
   pictureRequests: string[]
   /** What `GET /api/files/images/{name}` was asked for and answered, in order. */
   attachedImageRequests: { name: string; profile: string | null; status: number }[]
+  /** The files a bot shared, by token (`outbox.ts`). */
+  outboxFiles: Map<string, OutboxFile>
+  /** What `GET /api/files/outbox/{id}/{name}` was asked for and answered, in order. */
+  outboxRequests: OutboxRequest[]
   /** Ticket mints answered with 503 because of `failNextTicketMints`. */
   ticketMintsFailed: number
   /** What the audio routes were asked, oldest first (`speak` and `speak-stream`). */
@@ -1947,6 +1971,22 @@ const TURN_STREAM_EVENTS: ReadonlySet<string> = new Set([
 
 const DEFAULT_SCENARIO: Scenario = {
   replies: [
+    {
+      // Files a bot shares with its reply (`contract/outbox/`): two pictures, a clip, a sound, a PDF and two files
+      // that are only ever downloaded. The note is what the gateway adds when a file could not be shared.
+      match: 'share files',
+      deltas: ['Here are the files. ', '(1 file could not be shared.)'],
+      text: 'Here are the files. (1 file could not be shared.)',
+      attachments: [
+        { sample: 'image' },
+        { sample: 'image2' },
+        { sample: 'video' },
+        { sample: 'audio' },
+        { sample: 'pdf' },
+        { sample: 'html' },
+        { sample: 'zip' }
+      ]
+    },
     {
       match: 'mermaid',
       deltas: MERMAID_REPLY_DELTAS,
@@ -3071,6 +3111,8 @@ function initialState(options: FakeGatewayOptions): FakeGatewayState {
     failNextTicketMints: 0,
     pictureRequests: [],
     attachedImageRequests: [],
+    outboxFiles: new Map(),
+    outboxRequests: [],
     ticketMintsFailed: 0,
     audioRequests: [],
     audioStreamsCancelled: 0,
@@ -4123,6 +4165,65 @@ export async function startFakeGateway(options: FakeGatewayOptions = {}): Promis
   // ---------------------------------------------------------------- HTTP ---
 
   /**
+   * `GET /api/files/outbox/{id}/{name}?profile=<profile>` (and `HEAD`): the files a bot shared (`outbox.ts`).
+   *
+   * Behind the gate like every `/api/` route: a header or the session cookie, never `?token=`.
+   */
+  function serveOutbox(req: IncomingMessage, res: ServerResponse, url: URL): void {
+    const method = req.method ?? 'GET'
+
+    if (method !== 'GET' && method !== 'HEAD') {
+      res.writeHead(405, { 'content-type': 'application/json', allow: 'GET, HEAD' })
+      res.end(JSON.stringify({ detail: 'Method Not Allowed' }))
+
+      return
+    }
+
+    const parts = url.pathname.slice('/api/files/outbox/'.length).split('/')
+    let id = ''
+    let name = ''
+
+    // `{id}/{name}`: exactly two segments; a slash in the name (encoded or not) leaves the route.
+    try {
+      id = decodeURIComponent(parts[0] ?? '')
+      name = parts.length === 2 ? decodeURIComponent(parts[1] ?? '') : ''
+    } catch {
+      name = ''
+    }
+
+    const header = (key: string): string | undefined => {
+      const value = req.headers[key]
+
+      return Array.isArray(value) ? value[0] : value
+    }
+    const answer =
+      name === '' || name.includes('/')
+        ? answerOutbox(new Map(), { method, id, name, profile: null, defaultProfile: LAUNCH_PROFILE })
+        : answerOutbox(state.outboxFiles, {
+            method,
+            id,
+            name,
+            profile: url.searchParams.get('profile'),
+            defaultProfile: LAUNCH_PROFILE,
+            ...(header('range') === undefined ? {} : { range: header('range') as string }),
+            ...(header('if-range') === undefined ? {} : { ifRange: header('if-range') as string }),
+            ...(header('if-none-match') === undefined ? {} : { ifNoneMatch: header('if-none-match') as string }),
+            ...(header('sec-fetch-dest') === undefined ? {} : { secFetchDest: header('sec-fetch-dest') as string })
+          })
+
+    state.outboxRequests.push({
+      id,
+      name,
+      profile: url.searchParams.get('profile'),
+      method,
+      range: header('range') ?? null,
+      status: answer.status
+    })
+    res.writeHead(answer.status, answer.headers)
+    res.end(answer.body)
+  }
+
+  /**
    * `GET /api/files/images/{name}?profile=<profile>`, from `options.profileHomes` (`attached-images.ts`).
    *
    * Behind the gate like every `/api/` route, and only by what the gate accepts: a header or the session
@@ -4741,6 +4842,9 @@ export async function startFakeGateway(options: FakeGatewayOptions = {}): Promis
         kanbanDispatches: state.kanbanDispatches,
         // What `GET /api/files/images/{name}` was asked for (name, profile) and answered (status).
         attachedImageRequests: state.attachedImageRequests,
+        // What `GET /api/files/outbox/{id}/{name}` was asked for and answered, and the files a bot shared.
+        outboxRequests: state.outboxRequests,
+        outboxFiles: [...state.outboxFiles.values()].map(file => ({ ...wireOf(file), profile: file.profile })),
         // What the text-to-speech routes were asked, and the streams a client ended before `end`.
         audioRequests: state.audioRequests,
         audioStreamsCancelled: state.audioStreamsCancelled,
@@ -5688,6 +5792,12 @@ export async function startFakeGateway(options: FakeGatewayOptions = {}): Promis
 
     if (path.startsWith('/api/files/images/')) {
       serveAttachedImage(req, res, url)
+
+      return
+    }
+
+    if (path.startsWith('/api/files/outbox/')) {
+      serveOutbox(req, res, url)
 
       return
     }
@@ -10453,9 +10563,19 @@ export async function startFakeGateway(options: FakeGatewayOptions = {}): Promis
       // turn never persists the same words twice, as two bubbles.
       const endsOnCall = rowIdentity && toolCall.row?.text === text
       const finalRowId = endsOnCall ? undefined : session.messages.length + 1
+      // The files this reply shares are copied at the end of the turn, and the final row carries them.
+      const shared: WireAttachment[] = (reply.attachments ?? []).map(entry =>
+        wireOf(storeFile(state.outboxFiles, session.profile, sampleOf(entry), nowSeconds()))
+      )
 
       if (finalRowId !== undefined) {
-        session.messages.push({ role: 'assistant', text, row_id: finalRowId, timestamp: nowSeconds() })
+        session.messages.push({
+          role: 'assistant',
+          text,
+          row_id: finalRowId,
+          timestamp: nowSeconds(),
+          ...(reply.attachments ? { attachments: shared } : {})
+        })
       }
 
       // The turn's rows, from its user row on, the way `_persisted_turn_receipt` reports them.
@@ -10470,6 +10590,7 @@ export async function startFakeGateway(options: FakeGatewayOptions = {}): Promis
       publish('message.complete', sid, {
         text,
         status: 'ok',
+        ...(reply.attachments ? { attachments: shared } : {}),
         // The context fields too, as `_get_usage` writes them: a client that takes the finished turn's usage as the
         // session's reading would otherwise lose the window it was showing, and show a stale one until it asked again.
         usage: { input: 12, output: 34, total: 46, ...contextFieldsOf(sessionUsage(session)) },
