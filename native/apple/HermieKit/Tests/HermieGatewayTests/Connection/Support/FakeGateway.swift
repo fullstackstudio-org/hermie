@@ -71,6 +71,10 @@ final class FakeGateway: WebSocketTransport {
     var methodLog: [String] = []
     var eventsSinceCalls: [(sessionID: String, lastSeen: Double)] = []
     var hangMethods: Set<String> = []
+    /// Per method: the 0-based number of the first call that is held (not answered) until
+    /// `releaseHeld`. `["client.capabilities": 1]` holds a connection's second call.
+    var holdFrom: [String: Int] = [:]
+    var held: [(socket: FakeSocket, id: JSONValue, method: String)] = []
     /// Results to answer a method with instead of the built-in ones.
     var scriptedResults: [String: JSONValue] = [:]
 
@@ -94,6 +98,23 @@ final class FakeGateway: WebSocketTransport {
   }
 
   var connections: Int { with { $0.connections } }
+
+  /// How many calls to `method` are held (`State.holdFrom`).
+  func heldCount(_ method: String) -> Int { with { $0.held.filter { $0.method == method }.count } }
+
+  /// Answer every held call to `method` with `result`, and stop holding it.
+  func releaseHeld(_ method: String, result: JSONValue) {
+    let held = with { state in
+      state.holdFrom[method] = nil
+      let taken = state.held.filter { $0.method == method }
+      state.held.removeAll { $0.method == method }
+      return taken
+    }
+
+    for call in held {
+      call.socket.respond(call.id, result: result)
+    }
+  }
   var methodLog: [String] { with { $0.methodLog } }
   var replayEpoch: String { with { $0.replayEpoch } }
   var token: String { with { $0.token } }
@@ -349,7 +370,14 @@ final class FakeGateway: WebSocketTransport {
     let id = object["id"] ?? .null
     let params = object["params"] ?? [:]
     let (hang, scripted) = with { state in
+      let number = state.methodLog.filter { $0 == method }.count
       state.methodLog.append(method)
+
+      if let from = state.holdFrom[method], number >= from {
+        state.held.append((socket, id, method))
+        return (true, nil as JSONValue?)
+      }
+
       return (state.hangMethods.contains(method), state.scriptedResults[method])
     }
 

@@ -261,4 +261,92 @@ import Testing
       #expect(call["params"]?["session_id"] == "s1")
     }
   }
+  // MARK: Which lists are complete
+
+  @Test("a list read before the gateway accepted the methods says nothing about them; one read after lists them in full")
+  func listedOnlyAfterAcceptance() async throws {
+    var options = HarnessOptions()
+    options.requests = Self.all
+
+    try await withHarness(options) { h in
+      // The second call is held: the gateway has not accepted anything from this socket yet.
+      h.gateway.with {
+        $0.scriptedResults["client.capabilities"] = Self.listed(accepts: Self.all)
+        $0.holdFrom["client.capabilities"] = 1
+      }
+      await h.connection.start()
+      try await h.waitFor(.ready)
+      try await eventually("the second call") { h.gateway.heldCount("client.capabilities") == 1 }
+
+      // A reconnect's resume that raced the second call.
+      let early = Task { try await h.connection.requestReply("session.resume", params: ["session_id": "s1"]) }
+      try await eventually("the early resume") { h.gateway.methodLog.contains("session.resume") }
+
+      h.gateway.releaseHeld("client.capabilities", result: Self.listed(accepts: ["input.form", "review.draft"]))
+      #expect(try await early.value.listedRequests.isEmpty, "sent before the methods were accepted")
+
+      try await eventually("a list read after the acceptance") {
+        let reply = try? await h.connection.requestReply("session.resume", params: ["session_id": "s1"])
+        return reply?.listedRequests == ["input.form", "review.draft"]
+      }
+    }
+  }
+
+  @Test("a second call that gets no answer leaves every list incomplete, and a request then is declined -32601, marked declined")
+  func secondCallTimesOut() async throws {
+    var options = HarnessOptions()
+    options.requests = Self.all
+
+    try await withHarness(options) { h in
+      h.gateway.with {
+        $0.scriptedResults["client.capabilities"] = Self.listed(accepts: Self.all)
+        $0.holdFrom["client.capabilities"] = 1
+      }
+      let requests = Recorder(h.connection.serverRequests)
+      defer { requests.cancel() }
+      await h.connection.start()
+      try await h.waitFor(.ready)
+      try await eventually("the second call") { h.gateway.heldCount("client.capabilities") == 1 }
+
+      // The call times out (the gateway may well have taken the methods).
+      await h.clock.advance(by: .seconds(120))
+      try await Task.sleep(for: .milliseconds(30))
+
+      let reply = try await h.connection.requestReply("session.resume", params: ["session_id": "s1"])
+      #expect(reply.listedRequests.isEmpty)
+
+      await #expect {
+        try await h.gateway.requestServerSide(method: "input.form", params: ["session_id": "s1"])
+      } throws: { error in
+        String(describing: error).contains("-32601")
+      }
+      try await eventually("the declined delivery") { requests.values.count == 1 }
+      let delivery = try #require(requests.values.first)
+      #expect(delivery.declined, "already answered: nobody may show it")
+      #expect(await delivery.respond(["status": "skipped"]) == false)
+    }
+  }
+
+  @Test("a delivery the connection hands on to be answered is not marked declined")
+  func acceptedIsNotDeclined() async throws {
+    var options = HarnessOptions()
+    options.requests = Self.all
+
+    try await withHarness(options) { h in
+      h.gateway.with { $0.scriptedResults["client.capabilities"] = Self.listed(accepts: Self.all) }
+      let requests = Recorder(h.connection.serverRequests)
+      defer { requests.cancel() }
+      await h.connection.start()
+      try await h.waitFor(.ready)
+      let socket = try #require(h.gateway.lastSocket)
+      try await eventually("both calls") { socket.sent.filter { $0["method"] == "client.capabilities" }.count == 2 }
+
+      let asked = Task { try await h.gateway.requestServerSide(method: "input.form", params: ["session_id": "s1"]) }
+      try await eventually("the request") { requests.values.count == 1 }
+      let delivery = try #require(requests.values.first)
+      #expect(!delivery.declined)
+      #expect(await delivery.respond(["status": "skipped"]))
+      #expect(try await asked.value == ["status": "skipped"])
+    }
+  }
 }

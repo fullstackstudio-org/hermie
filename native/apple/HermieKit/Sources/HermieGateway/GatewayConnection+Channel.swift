@@ -17,6 +17,8 @@ enum OutgoingFrame: Sendable {
 struct PendingCall {
   let promise: Promise<RPCReply<JSONValue>>
   var timer: TimerSlot?
+  /// Its place among the calls (`GatewayConnection.requestsListedSince`).
+  var serial: UInt64 = 0
 }
 
 extension GatewayConnection {
@@ -31,6 +33,7 @@ extension GatewayConnection {
     // A new socket starts without an advertisement at the gateway.
     confirmAdvertised = nil
     requestsAdvertised = []
+    requestsListedSince = [:]
   }
 
   /// `detach`: drop the generation and fail every call in flight with `error`.
@@ -104,7 +107,8 @@ extension GatewayConnection {
     }
 
     let promise = Promise<RPCReply<JSONValue>>()
-    var call = PendingCall(promise: promise)
+    var call = PendingCall(promise: promise, serial: nextCallSerial)
+    nextCallSerial += 1
 
     if timeout > .zero {
       call.timer = schedule(after: timeout) { connection, _ in
@@ -185,7 +189,7 @@ extension GatewayConnection {
         // are re-delivered before the caller sees the result, over the socket
         // that owns them.
         deliverOpenRequests(in: result, index: index)
-        call.promise.resolve(RPCReply(index: index, result: result))
+        call.promise.resolve(RPCReply(index: index, result: result, listedRequests: listedRequests(for: call)))
       }
 
     case .event(let notification):
@@ -281,6 +285,7 @@ extension GatewayConnection {
     else {
       if attachedGeneration == generation {
         requestsAdvertised = []
+        requestsListedSince = [:]
       }
 
       source?.record(ConfirmCapabilityReport(first: parsed, verdict: verdict, accepted: []))
@@ -310,12 +315,33 @@ extension GatewayConnection {
       (accepted.contains(.passkey) && confirmAdvertised?.confirm?.contains(.passkey) != true)
       || (!acceptedRequests.isEmpty && Set(confirmAdvertised?.requests ?? []) != Set(acceptedRequests))
     requestsAdvertised = Set(acceptedRequests)
+    noteListed(acceptedRequests)
     confirmAdvertised = Self.advertisement(params, accepted: accepted, requests: acceptedRequests)
     source?.record(report)
 
     if gained {
       refetchOpenRequests()
     }
+  }
+
+  /// The gateway's answer accepting `methods` is in: a call made from now on reads complete lists
+  /// of their open requests. A method accepted before keeps the serial it had (the first call of a
+  /// refresh repeated it, so it was never withdrawn); one no longer accepted has none.
+  private func noteListed(_ methods: [String]) {
+    var since: [String: UInt64] = [:]
+
+    for method in methods {
+      since[method] = requestsListedSince[method] ?? nextCallSerial
+    }
+
+    requestsListedSince = since
+  }
+
+  /// The interactive methods whose open requests the answer to `call` lists in full: the ones the
+  /// socket had accepted before the call went out. A call made earlier (a reconnect's resume that
+  /// raced the second `client.capabilities` call) may lack them.
+  func listedRequests(for call: PendingCall) -> Set<String> {
+    Set(requestsListedSince.compactMap { method, since in call.serial >= since ? method : nil })
   }
 
   /// What the gateway holds for this socket after a call with `params`: the levels it accepted,
@@ -423,7 +449,8 @@ extension GatewayConnection {
         nextDeliveryToken += 1
         requestHub.publish(
           ServerRequestDelivery(
-            request: request, replayed: replayed, index: index, token: nextDeliveryToken, connection: self)
+            request: request, replayed: replayed, index: index, token: nextDeliveryToken, connection: self,
+            declined: true)
         )
       }
       return

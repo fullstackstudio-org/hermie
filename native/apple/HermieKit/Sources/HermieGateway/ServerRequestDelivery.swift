@@ -29,9 +29,29 @@ public struct ServerRequestDelivery: Sendable {
   /// The wire index of the frame that brought it: its own, or for a request
   /// re-delivered from `open_requests`, the result's (`WireOrder.swift`).
   public let index: UInt64
+  /// True when the connection already answered it `-32601` (a method this client cannot show, or
+  /// an interactive one this socket did not have accepted): it is passed on only so the app can
+  /// say why the bot stalled, and must not be shown as a question.
+  public let declined: Bool
 
   let token: UInt64
   weak let connection: GatewayConnection?
+
+  init(
+    request: ServerRequest,
+    replayed: Bool,
+    index: UInt64,
+    token: UInt64,
+    connection: GatewayConnection?,
+    declined: Bool = false
+  ) {
+    self.request = request
+    self.replayed = replayed
+    self.index = index
+    self.declined = declined
+    self.token = token
+    self.connection = connection
+  }
 
   /// The typed reading.
   public var body: ServerRequestBody { request.body }

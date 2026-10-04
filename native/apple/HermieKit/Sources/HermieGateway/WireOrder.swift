@@ -43,10 +43,17 @@ public struct WireEvent: Sendable, Equatable {
 public struct RPCReply<Result: Sendable>: Sendable {
   public let index: UInt64
   public let result: Result
+  /// The interactive request methods (`input.form`, ...) whose open requests this answer's
+  /// `open_requests` lists in full: the ones the gateway had accepted from this socket before the
+  /// call went out (its answer to the second `client.capabilities` call was in). The gateway lists
+  /// an interactive request only to a socket that advertised its method, so a list read before then
+  /// says nothing about them. Empty for none.
+  public let listedRequests: Set<String>
 
-  public init(index: UInt64, result: Result) {
+  public init(index: UInt64, result: Result, listedRequests: Set<String> = []) {
     self.index = index
     self.result = result
+    self.listedRequests = listedRequests
   }
 }
 

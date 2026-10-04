@@ -155,6 +155,13 @@ public actor GatewayConnection {
   /// answer), narrowed to what the gateway accepted once the answer came. Empty while nothing was
   /// advertised.
   var requestsAdvertised: Set<String> = []
+  /// Per interactive method the attached socket had accepted: the serial of the first call made
+  /// after the gateway's answer accepting it came in. A call with that serial or a later one reads
+  /// a complete list of that method's open requests (`RPCReply.listedRequests`). Emptied with the
+  /// advertisement.
+  var requestsListedSince: [String: UInt64] = [:]
+  /// The serial the next call gets (`requestsListedSince`).
+  var nextCallSerial: UInt64 = 0
   /// Runtime session ids this connection resumed or created, in first-seen order: the sessions
   /// whose open requests are read again once a socket gains the `passkey` level.
   var attachedSessions: [String] = []
@@ -474,7 +481,7 @@ public actor GatewayConnection {
       throw GatewayRPCError(.unexpectedResult, "The gateway answered \(M.name) with a result of another shape.")
     }
 
-    return RPCReply(index: reply.index, result: result)
+    return RPCReply(index: reply.index, result: result, listedRequests: reply.listedRequests)
   }
 
   /// `request` by method name, with the wire index of the answer.
