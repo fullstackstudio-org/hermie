@@ -16,6 +16,11 @@ import HermieProtocol
 ///    hands the tokens to the coordinator.
 ///
 /// `cancelSignIn()` drops an attempt the person walked away from.
+///
+/// A re-authentication (passkey self-enrolment, contract §7.2) is the same three
+/// steps with `beginReauth(grantID:)` and `completeReauth(redirectURL:)`: the
+/// authorize URL names the grant, and the code redeems to the grant's new state,
+/// never to tokens. The token set and the auth epoch stay as they are.
 public actor NativePKCECredentials: CredentialProvider {
   public nonisolated let mode = GatewayAuthMode.nativePKCE
   public nonisolated let baseURL: String
@@ -25,9 +30,10 @@ public actor NativePKCECredentials: CredentialProvider {
   private let timeline: (any AuthEventRecorder)?
   private let randomBytes: @Sendable (Int) -> [UInt8]
   private let canRevoke: Bool
-  /// The attempt in progress: its verifier never leaves this actor, and the
-  /// loopback address it asked the gateway to send the browser back to.
-  private var pending: (pkce: PKCE, redirectURI: String)?
+  /// The attempt in progress: its verifier never leaves this actor, the
+  /// loopback address it asked the gateway to send the browser back to, and,
+  /// for a re-authentication, the grant it completes.
+  private var pending: (pkce: PKCE, redirectURI: String, reauth: String?)?
 
   /// The `auth_flows` entry that says `POST /auth/native/revoke` exists.
   public static let nativeRevokeFlow = "native_revoke"
@@ -138,7 +144,36 @@ public actor NativePKCECredentials: CredentialProvider {
       params: AuthorizeParams(provider: provider, challenge: pkce.challenge, state: pkce.state, redirectURI: redirectURI)
     )
 
-    pending = (pkce, redirectURI)
+    pending = (pkce, redirectURI, nil)
+    return SignInStart(authorizeURL: url)
+  }
+
+  /// Start a re-authentication for the fresh-authentication grant `grantID`
+  /// (`POST /api/auth/passkeys/reauth/begin`): exactly `beginSignIn`, plus
+  /// `reauth=<grantID>` at the end of the query. It replaces any attempt still
+  /// pending, a sign-in included: there is one browser attempt at a time.
+  ///
+  /// - Parameter provider: the grant's provider, as `reauth/begin` named it.
+  public func beginReauth(grantID: String, provider: String? = nil, redirectURI: String = PKCE.redirectURI)
+    throws(GatewayError) -> SignInStart
+  {
+    guard !grantID.isEmpty else {
+      throw GatewayError(.config, "There is no grant to sign in again for.")
+    }
+
+    let pkce = PKCE.create(randomBytes: randomBytes)
+    let url = try PKCE.authorizeURL(
+      baseURL: baseURL,
+      params: AuthorizeParams(
+        provider: provider,
+        challenge: pkce.challenge,
+        state: pkce.state,
+        redirectURI: redirectURI,
+        reauth: grantID
+      )
+    )
+
+    pending = (pkce, redirectURI, grantID)
     return SignInStart(authorizeURL: url)
   }
 
@@ -172,13 +207,61 @@ public actor NativePKCECredentials: CredentialProvider {
   /// `GatewayError` from the exchange, or the token store's own error.
   @discardableResult
   public func completeSignIn(redirectURL: String) async throws -> TokenSet {
+    let taken = try takeCallback(redirectURL, reauth: false)
+
+    let tokens = try await NativeAuth.exchangeCode(
+      baseURL: baseURL,
+      code: taken.code,
+      verifier: taken.verifier,
+      options: NativeAuth.Options(transport: transport, extraHeaders: extraHeaders, timeline: timeline)
+    )
+
+    try await coordinator.save(tokens)
+    return tokens
+  }
+
+  /// Finish a re-authentication with the callback it ended on: check the
+  /// state, redeem the code, and answer what the sign-in did to the grant.
+  /// Nothing is saved and nothing is cleared: the token set and the auth epoch
+  /// are the coordinator's, and a re-authentication touches neither. The
+  /// attempt is over whatever happens.
+  ///
+  /// Throws `SignInFailure` for the redirect itself, and a `GatewayError` from
+  /// the exchange: `protocol` when the answer is not a re-authentication answer
+  /// for this grant (one carrying tokens, above all).
+  public func completeReauth(redirectURL: String) async throws -> ReauthCompletion {
+    let taken = try takeCallback(redirectURL, reauth: true)
+
+    let completion = try await NativeAuth.exchangeReauthCode(
+      baseURL: baseURL,
+      code: taken.code,
+      verifier: taken.verifier,
+      options: NativeAuth.Options(transport: transport, extraHeaders: extraHeaders, timeline: timeline)
+    )
+
+    guard completion.grantID == taken.grantID else {
+      throw GatewayError(.protocol, "The gateway answered the re-authentication for another grant.")
+    }
+
+    return completion
+  }
+
+  /// End the attempt in progress and read its callback: the code to redeem,
+  /// the verifier to redeem it with and the grant, if it is a
+  /// re-authentication. An attempt of the other kind is over too, unredeemed:
+  /// a sign-in's code never redeems as a re-authentication, nor the reverse.
+  private func takeCallback(_ redirectURL: String, reauth: Bool) throws(SignInFailure)
+    -> (code: String, verifier: String, grantID: String)
+  {
     guard let attempt = pending else {
-      throw SignInFailure.noSignInPending
+      throw .noSignInPending
     }
 
     pending = nil
 
-    let code: String
+    guard (attempt.reauth != nil) == reauth else {
+      throw .noSignInPending
+    }
 
     switch SignInNavigation.inspect(
       redirectURL,
@@ -186,23 +269,13 @@ public actor NativePKCECredentials: CredentialProvider {
       gatewayBaseURL: baseURL,
       redirectURI: attempt.redirectURI
     ) {
-    case .callback(let found):
-      code = found
+    case .callback(let code):
+      return (code, attempt.pkce.verifier, attempt.reauth ?? "")
     case .fail(let failure):
       throw failure
     case .allow:
-      throw SignInFailure.notACallback
+      throw .notACallback
     }
-
-    let tokens = try await NativeAuth.exchangeCode(
-      baseURL: baseURL,
-      code: code,
-      verifier: attempt.pkce.verifier,
-      options: NativeAuth.Options(transport: transport, extraHeaders: extraHeaders, timeline: timeline)
-    )
-
-    try await coordinator.save(tokens)
-    return tokens
   }
 }
 
@@ -217,6 +290,47 @@ extension ProbeResult {
 public struct SignInStart: Sendable, Equatable {
   /// `<base>/auth/native/authorize?…`
   public var authorizeURL: String
+}
+
+/// What a re-authentication sign-in did to its fresh-authentication grant (`POST /auth/native/token`
+/// with a re-authentication code, contract §8). Its description shows neither the grant nor its
+/// use secret.
+public struct ReauthCompletion: Sendable, Equatable {
+  public enum State: Sendable, Equatable {
+    /// The sign-in counted. `useSecret` is the grant's one-time binding for `register/begin` and
+    /// `register/finish`.
+    case fresh(useSecret: String)
+    /// It did not: a failure of contract §7.2 (`user_mismatch`, `provider_mismatch`,
+    /// `auth_time_missing`, `auth_not_fresh`), or `unknown`, `not_open`, `client_mismatch` when the
+    /// grant could not be completed at all. `""` when the gateway gave none.
+    case failed(reason: String)
+  }
+
+  public var grantID: String
+  public var state: State
+  /// Unix seconds: when the grant runs out.
+  public var expiresAt: Double
+
+  public init(grantID: String, state: State, expiresAt: Double) {
+    self.grantID = grantID
+    self.state = state
+    self.expiresAt = expiresAt
+  }
+}
+
+extension ReauthCompletion: RedactedDescription {
+  public var description: String {
+    "ReauthCompletion(grantID: \(Redacted.presence(grantID)), state: \(state), expiresAt: \(JSText.numberString(expiresAt)))"
+  }
+}
+
+extension ReauthCompletion.State: RedactedDescription {
+  public var description: String {
+    switch self {
+    case .fresh(let secret): "fresh(useSecret: \(Redacted.presence(secret)))"
+    case .failed(let reason): "failed(reason: \(reason))"
+    }
+  }
 }
 
 /// Why a sign-in attempt ended without tokens. The app owns the sentences.

@@ -35,16 +35,132 @@ public struct PasskeySetup: Sendable {
   public var authenticator: any PasskeyAuthenticator
   /// `nil`: the launch's key-value store, else memory.
   public var pins: (any PasskeyPinStore)?
+  /// What adding a passkey by signing in again runs on. `nil`: no self-enrolment from this app.
+  public var reauth: PasskeyReauthSetup?
 
   public init(
     configuration: PasskeyConfiguration,
     authenticator: any PasskeyAuthenticator,
-    pins: (any PasskeyPinStore)? = nil
+    pins: (any PasskeyPinStore)? = nil,
+    reauth: PasskeyReauthSetup? = nil
   ) {
     self.configuration = configuration
     self.authenticator = authenticator
     self.pins = pins
+    self.reauth = reauth
   }
+}
+
+/// The app's sign-in machinery, for self-enrolment's sign-in again: one services value per launch
+/// (one browser gate, one callback port) and the app lock, which reads the sheet as a system prompt.
+public struct PasskeyReauthSetup: Sendable {
+  public var services: GatewayServices
+  public var lock: AppLock?
+
+  public init(services: GatewayServices, lock: AppLock?) {
+    self.services = services
+    self.lock = lock
+  }
+
+  /// The re-authentication of a session over `credentials`; `nil` for credentials that cannot sign
+  /// in through the browser (a session token has no person behind it).
+  @MainActor
+  func reauthenticator(for credentials: any CredentialProvider) -> (any PasskeyReauthenticating)? {
+    guard let native = credentials as? NativePKCECredentials else {
+      return nil
+    }
+
+    return BrowserReauthenticator(services: services, credentials: native, lock: lock)
+  }
+}
+
+/// A self-enrolment in progress (plan "Flows — Native app"): step 1 signs in again for a
+/// fresh-authentication grant, step 2 creates the passkey with it. Its description shows neither the
+/// grant nor its use secret.
+public struct PasskeySelfEnrolment: Sendable, Equatable {
+  public enum Phase: Sendable, Equatable {
+    /// Step 1: the sign-in sheet is up.
+    case signingIn
+    /// Step 1 ended before the sign-in came back (the sheet was closed, the app could not listen,
+    /// the attempt was replaced). The grant is still open: signing in again reuses it until it
+    /// expires.
+    case signInEnded(SignInProblem)
+    /// The sign-in counted: step 2 may run, and run again after a cancelled passkey sheet, until
+    /// the grant expires.
+    case ready
+    /// Step 2: the passkey is being created.
+    case enrolling
+    /// The grant cannot be used any more; start again (`reason`).
+    case failed(PasskeyReauthReason)
+    /// The passkey was added.
+    case done
+  }
+
+  /// When the grant runs out, for the countdown: the gateway's `expires_at`.
+  public internal(set) var expiresAt: Date
+  public internal(set) var phase: Phase
+  /// The grant, for `PasskeyModel.enrol(grantID:)`. Useless without its binding, which never leaves
+  /// the model; never shown or logged.
+  public let grantID: String
+  let provider: String?
+  /// The grant's one-time binding, once the sign-in counted.
+  var useSecret: String?
+
+  init(grantID: String, provider: String?, expiresAt: Date, phase: Phase) {
+    self.grantID = grantID
+    self.provider = provider
+    self.expiresAt = expiresAt
+    self.phase = phase
+  }
+
+  /// Past `expires_at`: the gateway has forgotten the grant.
+  public func isExpired(at now: Date) -> Bool {
+    expiresAt <= now
+  }
+
+  /// Whole seconds left at `now`, never below 0.
+  public func secondsLeft(at now: Date) -> Int {
+    max(0, Int(expiresAt.timeIntervalSince(now).rounded(.up)))
+  }
+
+  /// "Create the passkey" may be pressed at `now`.
+  public func canEnrol(at now: Date) -> Bool {
+    phase == .ready && !isExpired(at: now)
+  }
+}
+
+extension PasskeySelfEnrolment: CustomStringConvertible, CustomDebugStringConvertible, CustomReflectable {
+  public var description: String { "PasskeySelfEnrolment(phase: \(phase), expiresAt: \(expiresAt))" }
+  public var debugDescription: String { description }
+  public var customMirror: Mirror {
+    Mirror(self, children: ["phase": phase, "expiresAt": expiresAt], displayStyle: .struct)
+  }
+}
+
+/// Why adding a passkey by signing in again did not go ahead (`PasskeyActionError.reauth`).
+public enum PasskeyReauthReason: Sendable, Equatable {
+  /// The gateway does not offer it: an older gateway (no `self_enrol` in the status, no route), or a
+  /// session that cannot sign in through the browser. Codes still work.
+  case notOffered
+  /// 403 `self_enrol_disabled`, or the status says `disabled`: the operator switched it off.
+  case disabled
+  /// 403 `provider_no_reauth`: the sign-in provider cannot ask the person to authenticate again.
+  case providerNoReauth
+  /// 429 `rate_limited`; `retryAfter` is the answer's `Retry-After` in seconds, when it gave one.
+  case rateLimited(retryAfter: Int?)
+  /// The sign-in sheet ended before the sign-in came back.
+  case signIn(SignInProblem)
+  /// The grant ran out (here or at the gateway: `reauth_invalid` `unknown`, or the token answer's
+  /// `unknown`, `not_open`, `client_mismatch`).
+  case expired
+  /// `reauth_invalid` `not_fresh`: the sign-in did not come back to the gateway.
+  case notFresh
+  /// `reauth_invalid` `spent`: the grant was used for a passkey already.
+  case spent
+  /// The sign-in came back and did not count: `user_mismatch`, `provider_mismatch`,
+  /// `auth_time_missing`, `auth_not_fresh` (contract §7.2), or the grant could not be completed
+  /// (`not_open`, `client_mismatch`), as the gateway said it, or `""`.
+  case failed(failure: String)
 }
 
 /// One `confirm` at level `passkey`, as the sheet shows it.
@@ -206,6 +322,8 @@ public enum PasskeyActionError: Error, Sendable, Equatable {
   case badAnswer
   /// The call did not get through; the text is for the developer detail.
   case transport(String)
+  /// Adding a passkey by signing in again did not go ahead (contract §7.2, §8).
+  case reauth(PasskeyReauthReason)
 }
 
 /// A fresh enrolment code minted with a passkey, for another device or a browser. Its description

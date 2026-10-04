@@ -54,19 +54,22 @@ extension PasskeySetup {
    The app's passkey setup: this build's configuration, the given authenticator wrapped so the app
    lock treats its sheet like its own prompt (plan P10), and the pins in the launch's database (one
    key per stored gateway). Built once per launch, so one authenticator, and one ceremony at a
-   time, serves every gateway.
+   time, serves every gateway. With `services` (the launch's one value, so its one browser gate),
+   a signed-in person can add a passkey by signing in again, behind the same lock.
    */
   @MainActor
   public static func live(
     configuration: PasskeyConfiguration,
     authenticator: any PasskeyAuthenticator,
     lock: AppLock,
-    keyValues: KeyValueStore
+    keyValues: KeyValueStore,
+    services: GatewayServices? = nil
   ) -> PasskeySetup {
     PasskeySetup(
       configuration: configuration,
       authenticator: LockGuardedPasskeyAuthenticator(authenticator, lock: lock),
-      pins: KeyValuePasskeyPins(store: keyValues)
+      pins: KeyValuePasskeyPins(store: keyValues),
+      reauth: services.map { PasskeyReauthSetup(services: $0, lock: lock) }
     )
   }
 }

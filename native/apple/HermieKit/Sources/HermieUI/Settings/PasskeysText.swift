@@ -53,6 +53,20 @@ enum PasskeysText {
     case .refused(let route): refusal(route)
     case .badAnswer: NativeStrings.Passkeys.badAnswer
     case .transport: NativeStrings.Passkeys.unreadable
+    case .reauth(let reason): reauthFailure(reason)
+    }
+  }
+
+  /// Self-enrolment's failures, in the words the page already has; the page's own sentences for
+  /// each come with the page (SE-7b).
+  private static func reauthFailure(_ reason: PasskeyReauthReason) -> String? {
+    switch reason {
+    case .signIn(.cancelled): nil
+    case .rateLimited(let seconds): rateLimited(seconds)
+    case .notOffered: NativeStrings.Passkeys.notOffered
+    case .disabled: NativeStrings.Passkeys.disabled
+    case .expired, .notFresh, .spent: NativeStrings.Passkeys.tooSlow
+    case .providerNoReauth, .signIn, .failed: NativeStrings.Passkeys.refused
     }
   }
 

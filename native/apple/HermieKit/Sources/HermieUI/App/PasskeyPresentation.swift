@@ -24,14 +24,16 @@ enum PasskeyPresentation {
 }
 
 extension PasskeySetup {
-  /// The app's: the RP from this build's Info.plist and the system passkey sheet, behind the app lock.
+  /// The app's: the RP from this build's Info.plist and the system passkey sheet, behind the app
+  /// lock, and self-enrolment's sign-in again through the accounts' services.
   @MainActor
-  static func app(launch: AppLaunch) -> PasskeySetup {
+  static func app(launch: AppLaunch, services: GatewayServices? = nil) -> PasskeySetup {
     .live(
       configuration: .live(),
       authenticator: SystemPasskeyAuthenticator(anchor: PasskeyPresentation.anchor),
       lock: launch.lock,
-      keyValues: launch.keyValues
+      keyValues: launch.keyValues,
+      services: services
     )
   }
 }

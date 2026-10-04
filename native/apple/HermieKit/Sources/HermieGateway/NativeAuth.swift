@@ -125,6 +125,63 @@ public enum NativeAuth {
     verifier: String,
     options: Options = Options()
   ) async throws(GatewayError) -> TokenSet {
+    let (body, url) = try await redeem(baseURL: baseURL, code: code, verifier: verifier, options: options)
+    let tokens = try tokenSet(body, url: url)
+
+    if tokens.refreshToken.isEmpty {
+      // The sign-in worked and has an end date nobody was told about: a scope
+      // missing from the provider's client registration, not anything here.
+      options.timeline?.record(AuthEvent(.signinNoRefresh, kind: .auth))
+    }
+
+    return tokens
+  }
+
+  /// Redeem a re-authentication's loopback code (`POST /auth/native/token`,
+  /// contract §8): the answer is `{reauth: {grant_id, state, reason?,
+  /// expires_at, use_secret?}}` and never tokens. Same failures as
+  /// `exchangeCode`; a body that carries a token, or that is not that object,
+  /// is a `protocol` error, and nothing of it is kept.
+  public static func exchangeReauthCode(
+    baseURL: String,
+    code: String,
+    verifier: String,
+    options: Options = Options()
+  ) async throws(GatewayError) -> ReauthCompletion {
+    let (body, url) = try await redeem(baseURL: baseURL, code: code, verifier: verifier, options: options)
+
+    guard body["access_token"] == nil, body["refresh_token"] == nil else {
+      throw GatewayError(.protocol, "\(url) answered a re-authentication with tokens.")
+    }
+
+    guard let outcome = NativeReauthTokenAnswer(json: body).reauth, let grantID = outcome.grantID, !grantID.isEmpty,
+      let expiresAt = outcome.expiresAt
+    else {
+      throw GatewayError(.protocol, "\(url) answered a re-authentication without its grant.")
+    }
+
+    switch outcome.state {
+    case "fresh":
+      guard let secret = outcome.useSecret, !secret.isEmpty else {
+        throw GatewayError(.protocol, "\(url) answered a fresh re-authentication without its use secret.")
+      }
+
+      return ReauthCompletion(grantID: grantID, state: .fresh(useSecret: secret), expiresAt: expiresAt)
+    case "failed":
+      return ReauthCompletion(grantID: grantID, state: .failed(reason: outcome.reason ?? ""), expiresAt: expiresAt)
+    default:
+      throw GatewayError(.protocol, "\(url) answered a re-authentication in a state this app does not know.")
+    }
+  }
+
+  /// `POST /auth/native/token` with the code and verifier, its failures read
+  /// the same for a sign-in and a re-authentication.
+  private static func redeem(
+    baseURL: String,
+    code: String,
+    verifier: String,
+    options: Options
+  ) async throws(GatewayError) -> (JSONObject, String) {
     let url = try GatewayAddress.apiURL(baseURL, path: RESTPath.nativeToken)
     let response = try await options.transport.requestText(
       url,
@@ -152,15 +209,7 @@ public enum NativeAuth {
       throw GatewayError(.auth, "The code exchange failed with HTTP \(response.status).", status: response.status)
     }
 
-    let tokens = try tokenSet(FetchJSON.parseJSONObject(response.text, url: url, kind: .protocol), url: url)
-
-    if tokens.refreshToken.isEmpty {
-      // The sign-in worked and has an end date nobody was told about: a scope
-      // missing from the provider's client registration, not anything here.
-      options.timeline?.record(AuthEvent(.signinNoRefresh, kind: .auth))
-    }
-
-    return tokens
+    return (try FetchJSON.parseJSONObject(response.text, url: url, kind: .protocol), url)
   }
 
   /// Rotate a refresh token (`POST /auth/native/refresh`). 400/401/403 mean

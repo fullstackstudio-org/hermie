@@ -28,6 +28,8 @@ public struct PasskeyRouteError: Error, Sendable, Equatable {
   public var detail: String
   /// `rateLimited`: the seconds of the answer's `Retry-After`, when it gave a number of them.
   public var retryAfter: Int?
+  /// `reauth_invalid` with `reason: failed`: why the sign-in did not count (contract §7.2).
+  public var failure: String
 
   public init(
     _ kind: Kind,
@@ -35,7 +37,8 @@ public struct PasskeyRouteError: Error, Sendable, Equatable {
     error: String = "",
     reason: String = "",
     detail: String = "",
-    retryAfter: Int? = nil
+    retryAfter: Int? = nil,
+    failure: String = ""
   ) {
     self.kind = kind
     self.status = status
@@ -43,10 +46,11 @@ public struct PasskeyRouteError: Error, Sendable, Equatable {
     self.reason = reason
     self.detail = detail
     self.retryAfter = retryAfter
+    self.failure = failure
   }
 }
 
-/// The six passkey routes, through a gateway's `HTTPClient` (its credentials, its front-door
+/// The seven passkey routes, through a gateway's `HTTPClient` (its credentials, its front-door
 /// headers, its one 401 retry). A bearer sends no `Origin`, which these routes require only of a
 /// cookie caller.
 public struct PasskeyClient: Sendable {
@@ -86,6 +90,11 @@ public struct PasskeyClient: Sendable {
     try await call("POST", RESTPath.passkeyRevoke, body: params.jsonValue)
   }
 
+  /// `POST /api/auth/passkeys/reauth/begin` with `{}`: open a fresh-authentication grant.
+  public func reauthBegin() async throws -> PasskeyReauthBeginResult {
+    try await call("POST", RESTPath.passkeyReauthBegin, body: .object([:]))
+  }
+
   private func call<T: JSONObjectBacked>(_ method: String, _ path: String, body: JSONValue?) async throws -> T {
     let exchange = try await http.exchange(method, path, body: body)
 
@@ -112,7 +121,8 @@ public struct PasskeyClient: Sendable {
       error: error,
       reason: body?.reason ?? "",
       detail: body?.detail ?? "",
-      retryAfter: kind == .rateLimited ? seconds(exchange.retryAfter) : nil
+      retryAfter: kind == .rateLimited ? seconds(exchange.retryAfter) : nil,
+      failure: body?.failure ?? ""
     )
   }
 

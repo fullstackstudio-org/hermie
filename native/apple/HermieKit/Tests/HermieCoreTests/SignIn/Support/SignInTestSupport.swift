@@ -25,11 +25,11 @@ struct StubRequest: Sendable {
 }
 
 enum StubReply: Sendable {
-  case respond(status: Int, body: Data)
+  case respond(status: Int, body: Data, headers: [String: String] = [:])
   case fail(URLError.Code)
 
-  static func json(_ text: String, status: Int = 200) -> StubReply {
-    .respond(status: status, body: Data(text.utf8))
+  static func json(_ text: String, status: Int = 200, headers: [String: String] = [:]) -> StubReply {
+    .respond(status: status, body: Data(text.utf8), headers: headers)
   }
 }
 
@@ -106,8 +106,8 @@ final class StubURLProtocol: URLProtocol {
     )
 
     switch server.answer(seen) {
-    case .respond(let status, let body):
-      let response = HTTPURLResponse(url: url, statusCode: status, httpVersion: "HTTP/1.1", headerFields: [:])!
+    case .respond(let status, let body, let headers):
+      let response = HTTPURLResponse(url: url, statusCode: status, httpVersion: "HTTP/1.1", headerFields: headers)!
       client?.urlProtocol(self, didReceive: response, cacheStoragePolicy: .notAllowed)
       client?.urlProtocol(self, didLoad: body)
       client?.urlProtocolDidFinishLoading(self)

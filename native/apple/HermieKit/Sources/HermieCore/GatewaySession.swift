@@ -199,7 +199,8 @@ public final class GatewaySession {
         authenticator: setup.authenticator,
         configuration: setup.configuration,
         pins: setup.pins ?? keyValues.map { KeyValuePasskeyPins(store: $0) } ?? InMemoryPasskeyPins(),
-        source: source
+        source: source,
+        reauthenticator: setup.reauth?.reauthenticator(for: credentials)
       )
     }
 

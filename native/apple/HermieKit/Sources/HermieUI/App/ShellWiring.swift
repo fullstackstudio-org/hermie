@@ -11,7 +11,7 @@ extension LiveWiring {
    */
   @MainActor
   public static func app(launch: AppLaunch, accounts: GatewayAccounts, live: LiveGateway) -> LiveWiring {
-    launch.passkey = launch.passkey ?? .app(launch: launch)
+    launch.passkey = launch.passkey ?? .app(launch: launch, services: accounts.services)
     launch.push.deliveredNotifications = SystemDeliveredNotifications()
     PushInbox.shared.attach(launch.push)
 

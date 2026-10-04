@@ -58,6 +58,8 @@ public actor TokenCoordinator {
   private let timeline: (any AuthEventRecorder)?
 
   private var authEpoch = 0
+  /// The epoch as it is, for a test to see that something did not move it.
+  var currentAuthEpoch: Int { authEpoch }
   private var cached = Cache.unknown
   /// A rotated set that is being served but did not reach the store.
   private var unsaved: TokenSet?

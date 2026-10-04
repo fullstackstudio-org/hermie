@@ -76,10 +76,38 @@ extension PasskeyModel {
       throw .invalidCode
     }
 
+    return try await enrol(authority: .code(canonical))
+  }
+
+  /// What authorises one enrolment (contract §7): a canonical code, or a fresh grant with its
+  /// use secret.
+  enum EnrolmentAuthority {
+    case code(String)
+    case grant(id: String, useSecret: String)
+  }
+
+  /// The enrolment itself, the same for both authorities: open the registration, run the system
+  /// sheet, finish, then pin and read the list again.
+  private func enrol(authority: EnrolmentAuthority) async throws(PasskeyActionError) -> PasskeyCredentialInfo {
     let account = try await account()
     let name = configuration.credentialName(host: ConfirmDisplay.subject("", baseURL: account.baseURL).host)
-    let begin: PasskeyRegisterBeginResult = try await route {
-      try await $0.registerBegin(PasskeyRegisterBeginParams(rpID: account.rpID, baseURL: account.baseURL, name: name))
+    let beginParams: PasskeyRegisterBeginParams
+
+    switch authority {
+    case .code:
+      beginParams = PasskeyRegisterBeginParams(rpID: account.rpID, baseURL: account.baseURL, name: name)
+    case .grant(let id, let secret):
+      beginParams = PasskeyRegisterBeginParams(
+        rpID: account.rpID,
+        baseURL: account.baseURL,
+        name: name,
+        grantID: id,
+        useSecret: secret
+      )
+    }
+
+    let begin: PasskeyRegisterBeginResult = try await route(grant: authority.isGrant) {
+      try await $0.registerBegin(beginParams)
     }
 
     guard let registrationID = begin.registrationID, let nonce = begin.nonce.flatMap(Base64URL.decode), nonce.count == 32
@@ -119,19 +147,32 @@ extension PasskeyModel {
       attestationObject: Base64URL.encode(registration.attestationObject),
       transports: registration.transports
     )
-    let finishParams = PasskeyRegisterFinishParams(
-      registrationID: registrationID,
-      baseURL: account.baseURL,
-      code: canonical,
-      credential: credential
-    )
+    let finishParams: PasskeyRegisterFinishParams
+
+    switch authority {
+    case .code(let canonical):
+      finishParams = PasskeyRegisterFinishParams(
+        registrationID: registrationID,
+        baseURL: account.baseURL,
+        code: canonical,
+        credential: credential
+      )
+    case .grant(let grantID, let secret):
+      finishParams = PasskeyRegisterFinishParams(
+        registrationID: registrationID,
+        baseURL: account.baseURL,
+        grantID: grantID,
+        useSecret: secret,
+        credential: credential
+      )
+    }
 
     expectedAdditions.insert(id)
 
     let finish: PasskeyRegisterFinishResult
 
     do {
-      finish = try await route { try await $0.registerFinish(finishParams) }
+      finish = try await route(grant: authority.isGrant) { try await $0.registerFinish(finishParams) }
     } catch {
       expectedAdditions.remove(id)
       throw error
@@ -287,8 +328,11 @@ extension PasskeyModel {
     }
   }
 
-  /// One route call through the client, its failures as `PasskeyActionError`.
-  private func route<T: Sendable>(_ call: (PasskeyClient) async throws -> T) async throws(PasskeyActionError) -> T {
+  /// One route call through the client, its failures as `PasskeyActionError`. With `grant`, a call
+  /// of self-enrolment: the refusals that concern the grant (and a 429) are `.reauth`.
+  private func route<T: Sendable>(grant: Bool = false, _ call: (PasskeyClient) async throws -> T)
+    async throws(PasskeyActionError) -> T
+  {
     guard let client else {
       throw .notConfigured
     }
@@ -296,11 +340,265 @@ extension PasskeyModel {
     do {
       return try await call(client)
     } catch let error as PasskeyRouteError {
+      if grant, let reason = Self.reauthReason(error) {
+        throw .reauth(reason)
+      }
+
       throw error.kind == .notOffered ? .unavailable(reason: "disabled") : .refused(error)
     } catch let error as GatewayError {
       throw .transport(error.message)
     } catch {
       throw .transport("The gateway could not be reached.")
     }
+  }
+
+  /// A refusal of `reauth/begin`, or of `register/begin|finish` with a grant, that is about the
+  /// grant (contract §8): `nil` for the rest (an attestation refused, a credential that exists).
+  static func reauthReason(_ error: PasskeyRouteError) -> PasskeyReauthReason? {
+    switch error.kind {
+    case .notOffered:
+      return .notOffered
+    case .rateLimited:
+      return .rateLimited(retryAfter: error.retryAfter)
+    case .originNotListed, .unexpectedAnswer:
+      return nil
+    case .refused:
+      break
+    }
+
+    switch error.error {
+    case "self_enrol_disabled":
+      return .disabled
+    case "provider_no_reauth":
+      return .providerNoReauth
+    case "reauth_invalid":
+      switch error.reason {
+      case "not_fresh": return .notFresh
+      case "spent": return .spent
+      case "failed": return .failed(failure: error.failure)
+      default: return .expired
+      }
+    default:
+      return nil
+    }
+  }
+
+  // MARK: - Self-enrolment (contract §7.2; plan "Flows — Native app")
+
+  /// "Add a passkey" by signing in again may be offered: the gateway says the person can and accepts
+  /// this build's RP, and this session can sign in through the browser. A gateway without
+  /// `self_enrol` cannot.
+  public var canSelfEnrol: Bool {
+    guard reauthenticator != nil, let status, status.enabled == true, status.selfEnrol?.available == true,
+      let rpID = configuration.rpID
+    else {
+      return false
+    }
+
+    return status.rp?.ids(for: configuration.kind).contains(rpID) == true
+  }
+
+  /**
+   Step 1, "Sign in again": open a fresh-authentication grant (`reauth/begin`) and sign in again
+   through the system browser for it. Answers the self-enrolment, `ready` when the sign-in counted;
+   throws `.reauth` with why not (and `selfEnrolment` says it too).
+
+   A sign-in that ended before it came back (the sheet closed, the app went away and the listener
+   with it) leaves the grant open, and calling this again signs in for the same grant until it
+   expires, without opening another (`reauth/begin` allows five in ten minutes).
+   */
+  @discardableResult
+  public func beginSelfEnrolment(presenter: any BrowserSessionPresenting) async throws(PasskeyActionError)
+    -> PasskeySelfEnrolment
+  {
+    guard let reauthenticator else {
+      throw .reauth(.notOffered)
+    }
+
+    var attempt: PasskeySelfEnrolment
+
+    if let held = selfEnrolment, case .signInEnded = held.phase, !held.isExpired(at: nowDate) {
+      attempt = held
+    } else {
+      _ = try await account()
+
+      if let reason = Self.selfEnrolUnavailable(status?.selfEnrol) {
+        throw .reauth(reason)
+      }
+
+      let begin: PasskeyReauthBeginResult = try await route(grant: true) { try await $0.reauthBegin() }
+
+      guard let grantID = begin.grantID, !grantID.isEmpty, let expiresAt = begin.expiresAt else {
+        throw .badAnswer
+      }
+
+      attempt = PasskeySelfEnrolment(
+        grantID: grantID,
+        provider: begin.provider.flatMap { $0.isEmpty ? nil : $0 },
+        expiresAt: Date(timeIntervalSince1970: expiresAt),
+        phase: .signingIn
+      )
+    }
+
+    attempt.phase = .signingIn
+    selfEnrolment = attempt
+
+    let result = await reauthenticator.reauthenticate(
+      grantID: attempt.grantID,
+      provider: attempt.provider,
+      presenter: presenter
+    )
+
+    // Forgotten, or replaced by another start, meanwhile: this result is nobody's any more.
+    guard let current = selfEnrolment, current.grantID == attempt.grantID, current.phase == .signingIn else {
+      throw .reauth(.signIn(.cancelled))
+    }
+
+    switch result {
+    case .failure(let problem):
+      if Self.leavesGrantOpen(problem) {
+        update { $0.phase = .signInEnded(problem) }
+        throw .reauth(.signIn(problem))
+      }
+
+      update { $0.phase = .failed(.signIn(problem)) }
+
+      if case .exchange(.protocol, _) = problem {
+        throw .badAnswer
+      }
+
+      throw .reauth(.signIn(problem))
+    case .success(let completion):
+      switch completion.state {
+      case .fresh(let secret):
+        update {
+          $0.useSecret = secret
+          $0.expiresAt = Date(timeIntervalSince1970: completion.expiresAt)
+          $0.phase = .ready
+        }
+      case .failed(let reason):
+        let why: PasskeyReauthReason = reason == "unknown" ? .expired : .failed(failure: reason)
+        update { $0.phase = .failed(why) }
+        throw .reauth(why)
+      }
+    }
+
+    return selfEnrolment ?? attempt
+  }
+
+  /**
+   Step 2, "Create the passkey": `enrol(code:)` with the grant `beginSelfEnrolment` completed
+   instead of a code, the same pin and list read afterwards. A cancelled system sheet, a refused
+   attestation or a 429 leaves the grant ready to try again until it expires; a refusal of the grant
+   itself ends it (`selfEnrolment.phase` is `failed`).
+   */
+  @discardableResult
+  public func enrol(grantID: String) async throws(PasskeyActionError) -> PasskeyCredentialInfo {
+    guard let held = selfEnrolment, held.grantID == grantID else {
+      throw .reauth(.expired)
+    }
+
+    guard held.phase == .ready, let secret = held.useSecret else {
+      throw .reauth(held.phase == .done ? .spent : .notFresh)
+    }
+
+    guard !held.isExpired(at: nowDate) else {
+      update { $0.phase = .failed(.expired) }
+      throw .reauth(.expired)
+    }
+
+    update { $0.phase = .enrolling }
+
+    do {
+      let credential = try await enrol(authority: .grant(id: grantID, useSecret: secret))
+
+      update(grantID) {
+        $0.phase = .done
+        $0.useSecret = nil
+      }
+
+      return credential
+    } catch {
+      update(grantID) { held in
+        if case .reauth(let reason) = error, Self.endsGrant(reason) {
+          held.phase = .failed(reason)
+          held.useSecret = nil
+        } else {
+          held.phase = .ready
+        }
+      }
+
+      throw error
+    }
+  }
+
+  /// Forget the self-enrolment: the page closed, or the person starts over. The grant is left to
+  /// expire at the gateway.
+  public func forgetSelfEnrolment() {
+    selfEnrolment = nil
+  }
+
+  /// The app is in front again: a sign-in in progress listens again (see `PasskeyReauthenticating`).
+  public func appBecameActive() async {
+    await reauthenticator?.appBecameActive()
+  }
+
+  private var nowDate: Date {
+    Date(timeIntervalSince1970: now())
+  }
+
+  /// Change the self-enrolment in place, if it is still the one for `grantID` (any, when `nil`).
+  private func update(_ grantID: String? = nil, _ change: (inout PasskeySelfEnrolment) -> Void) {
+    guard var held = selfEnrolment, grantID == nil || held.grantID == grantID else {
+      return
+    }
+
+    change(&held)
+    selfEnrolment = held
+  }
+
+  /// Why the status says self-enrolment is not available, `nil` when it is.
+  static func selfEnrolUnavailable(_ selfEnrol: PasskeySelfEnrolStatus?) -> PasskeyReauthReason? {
+    guard let selfEnrol else {
+      return .notOffered
+    }
+
+    if selfEnrol.available == true {
+      return nil
+    }
+
+    switch selfEnrol.reason {
+    case "disabled": return .disabled
+    case "provider_no_reauth": return .providerNoReauth
+    default: return .notOffered
+    }
+  }
+
+  /// The sign-in ended before its code was redeemed, so the grant is still open. Once a code was
+  /// redeemed (`exchange`), whether the grant was completed is not known here: start again.
+  static func leavesGrantOpen(_ problem: SignInProblem) -> Bool {
+    switch problem {
+    case .exchange, .rejected, .check:
+      false
+    case .portInUse, .listenerUnavailable, .browserUnavailable, .cancelled, .timedOut, .couldNotStart, .stateMismatch,
+      .noCode, .blockedNavigation, .provider, .pageLoad:
+      true
+    }
+  }
+
+  /// A step-2 refusal after which the grant cannot be used again.
+  static func endsGrant(_ reason: PasskeyReauthReason) -> Bool {
+    switch reason {
+    case .rateLimited, .signIn:
+      false
+    case .notOffered, .disabled, .providerNoReauth, .expired, .notFresh, .spent, .failed:
+      true
+    }
+  }
+}
+
+extension PasskeyModel.EnrolmentAuthority {
+  var isGrant: Bool {
+    if case .grant = self { true } else { false }
   }
 }

@@ -35,6 +35,9 @@ public final class PasskeyModel {
   public private(set) var notices: [PasskeyNotice] = []
   /// The last `client.capabilities` run on this connection.
   public private(set) var capability: ConfirmCapabilityReport?
+  /// Adding a passkey by signing in again, while it runs and after it ended (`nil` when none was
+  /// started, or after `forgetSelfEnrolment()`).
+  public internal(set) var selfEnrolment: PasskeySelfEnrolment?
 
   @ObservationIgnored public let configuration: PasskeyConfiguration
   /// The serialised base URL of the stored gateway, `nil` when its address cannot be one.
@@ -46,6 +49,8 @@ public final class PasskeyModel {
   @ObservationIgnored let pins: any PasskeyPinStore
   @ObservationIgnored let source: ConfirmCapabilitySource?
   @ObservationIgnored let now: @Sendable () -> Double
+  /// Signs in again for a self-enrolment grant; `nil`: this session cannot (no browser sign-in).
+  @ObservationIgnored let reauthenticator: (any PasskeyReauthenticating)?
 
   /// What the challenge of each open confirmation commits to, and where to answer it.
   @ObservationIgnored var contexts: [String: ConfirmContext] = [:]
@@ -77,6 +82,7 @@ public final class PasskeyModel {
   ///   - address: the stored gateway address; the challenge commits to its base URL (contract §3).
   ///   - client: the REST routes; `nil` for a link without them (a test of the confirm path only).
   ///   - source: what the connection advertises from; the model keeps its policy current.
+  ///   - reauthenticator: the browser sign-in that completes a self-enrolment grant.
   public init(
     storedGatewayID: String,
     address: String,
@@ -86,6 +92,7 @@ public final class PasskeyModel {
     configuration: PasskeyConfiguration,
     pins: any PasskeyPinStore,
     source: ConfirmCapabilitySource?,
+    reauthenticator: (any PasskeyReauthenticating)? = nil,
     now: @escaping @Sendable () -> Double = { Date().timeIntervalSince1970 }
   ) {
     self.storedGatewayID = storedGatewayID
@@ -96,6 +103,7 @@ public final class PasskeyModel {
     self.configuration = configuration
     self.pins = pins
     self.source = source
+    self.reauthenticator = reauthenticator
     self.now = now
   }
 

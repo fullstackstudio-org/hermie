@@ -48,12 +48,22 @@ public struct AuthorizeParams: Sendable, Equatable {
   public var challenge: String
   public var state: String
   public var redirectURI: String?
+  /// The fresh-authentication grant this sign-in completes instead of signing in (contract §7.2,
+  /// passkey self-enrolment). `nil` (or empty) for an ordinary sign-in.
+  public var reauth: String?
 
-  public init(provider: String? = nil, challenge: String, state: String, redirectURI: String? = nil) {
+  public init(
+    provider: String? = nil,
+    challenge: String,
+    state: String,
+    redirectURI: String? = nil,
+    reauth: String? = nil
+  ) {
     self.provider = provider
     self.challenge = challenge
     self.state = state
     self.redirectURI = redirectURI
+    self.reauth = reauth
   }
 }
 
@@ -67,7 +77,8 @@ extension PKCE {
   /// The URL the sign-in web view opens: `<base>/auth/native/authorize?…`.
   ///
   /// Query order is provider (only when non-empty), `code_challenge`,
-  /// `code_challenge_method=S256`, `redirect_uri`, `state`, serialised as
+  /// `code_challenge_method=S256`, `redirect_uri`, `state`, then `reauth` (only
+  /// when non-empty: a re-authentication for a grant), serialised as
   /// `URLSearchParams` does it — space as `+`, only `A-Z a-z 0-9 * - . _`
   /// unescaped. Foundation's `URLQueryItem` encoding leaves `/ : ? ~ ! ' ( )`
   /// alone and writes a space as `%20`, so the serialiser is written out.
@@ -90,6 +101,10 @@ extension PKCE {
     pairs.append(("code_challenge_method", "S256"))
     pairs.append(("redirect_uri", params.redirectURI ?? redirectURI))
     pairs.append(("state", params.state))
+
+    if let reauth = params.reauth, !reauth.isEmpty {
+      pairs.append(("reauth", reauth))
+    }
 
     return "\(url.protocolString)//\(url.hostWithPort)\(url.pathname)?\(JSText.formSerialize(pairs))"
   }

@@ -94,6 +94,105 @@ public struct GatewayServices: Sendable {
 }
 
 /**
+ The browser half of a passkey self-enrolment (plan `confirm-passkey.md`, "Flows — Native app" step
+ 2): a sign-in through the system browser that completes a fresh-authentication grant instead of
+ signing in. `PasskeyModel.beginSelfEnrolment` calls it; tests replace it.
+ */
+@MainActor
+public protocol PasskeyReauthenticating: AnyObject {
+  /// Sign in again for `grantID` through `presenter`. The token set is not touched.
+  func reauthenticate(grantID: String, provider: String?, presenter: any BrowserSessionPresenting) async
+    -> Result<ReauthCompletion, SignInProblem>
+  /// The app is in front again: listen again for the attempt in progress, if any (iOS may have
+  /// reclaimed a suspended app's socket while the person was in another app).
+  func appBecameActive() async
+}
+
+/**
+ The app's re-authentication for one gateway: the sign-in's own machinery, reused. The same one
+ browser attempt at a time (`GatewayServices.browserGate`: it ends a sign-in in progress, and a
+ sign-in started meanwhile ends it), the same listener, timeout and sheet as `BrowserSignIn.run`,
+ and the app lock reads the sheet as it reads the system passkey sheet (`AppLock.ceremonyBegan`):
+ the resign the sheet causes does not lock the app under it, while a real departure still counts.
+ */
+@MainActor
+public final class BrowserReauthenticator: PasskeyReauthenticating {
+  private let services: GatewayServices
+  private let credentials: NativePKCECredentials
+  private let lock: AppLock?
+  private var activeListener: (any LoopbackCallbackListening)?
+  private var attempts = 0
+
+  public init(services: GatewayServices, credentials: NativePKCECredentials, lock: AppLock?) {
+    self.services = services
+    self.credentials = credentials
+    self.lock = lock
+  }
+
+  public func reauthenticate(grantID: String, provider: String?, presenter: any BrowserSessionPresenting) async
+    -> Result<ReauthCompletion, SignInProblem>
+  {
+    let gate = services.browserGate
+    let previous = gate.current
+    let listener = services.makeListener()
+    let services = services
+    let credentials = credentials
+    let lock = lock
+    let outcome = ReauthOutcome()
+
+    previous?.cancel()
+    attempts += 1
+
+    let attempt = attempts
+    let task = Task { @MainActor in
+      await previous?.value
+
+      guard !Task.isCancelled else {
+        outcome.value = .failure(.cancelled)
+        return
+      }
+
+      lock?.ceremonyBegan()
+      outcome.value = await BrowserSignIn.reauthenticate(
+        credentials: credentials,
+        grantID: grantID,
+        provider: provider,
+        listener: listener,
+        presenter: presenter,
+        timeout: services.signInTimeout,
+        sleep: services.sleep
+      )
+      lock?.ceremonyEnded()
+    }
+
+    gate.current = task
+    activeListener = listener
+
+    await withTaskCancellationHandler {
+      await task.value
+    } onCancel: {
+      task.cancel()
+    }
+
+    if attempt == attempts {
+      activeListener = nil
+    }
+
+    return outcome.value ?? .failure(.cancelled)
+  }
+
+  public func appBecameActive() async {
+    await activeListener?.resume()
+  }
+}
+
+/// Where the attempt's task leaves its result.
+@MainActor
+private final class ReauthOutcome {
+  var value: Result<ReauthCompletion, SignInProblem>?
+}
+
+/**
  The browser sign-in in progress, so there is one at a time: the callback port is one per device. A
  new attempt, from any window, cancels the one before and waits until it has let go of the port.
  */

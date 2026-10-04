@@ -116,6 +116,57 @@ public enum BrowserSignIn {
     timeout: Duration,
     sleep: @escaping @Sendable (Duration) async throws -> Void
   ) async -> Result<TokenSet, SignInProblem> {
+    await drive(
+      credentials: credentials,
+      listener: listener,
+      presenter: presenter,
+      timeout: timeout,
+      sleep: sleep,
+      begin: { redirectURI in try await credentials.beginSignIn(provider: provider, redirectURI: redirectURI) },
+      complete: { redirect in try await credentials.completeSignIn(redirectURL: redirect) }
+    )
+  }
+
+  /**
+   A re-authentication for the fresh-authentication grant `grantID` (passkey self-enrolment,
+   contract §7.2): the same sheet, listener, timeout and endings as `run`, with `reauth=<grantID>`
+   on the authorize URL. The callback's code redeems to what the sign-in did to the grant; the
+   token set is not touched.
+   */
+  @MainActor
+  public static func reauthenticate(
+    credentials: NativePKCECredentials,
+    grantID: String,
+    provider: String?,
+    listener: any LoopbackCallbackListening,
+    presenter: any BrowserSessionPresenting,
+    timeout: Duration,
+    sleep: @escaping @Sendable (Duration) async throws -> Void
+  ) async -> Result<ReauthCompletion, SignInProblem> {
+    await drive(
+      credentials: credentials,
+      listener: listener,
+      presenter: presenter,
+      timeout: timeout,
+      sleep: sleep,
+      begin: { redirectURI in
+        try await credentials.beginReauth(grantID: grantID, provider: provider, redirectURI: redirectURI)
+      },
+      complete: { redirect in try await credentials.completeReauth(redirectURL: redirect) }
+    )
+  }
+
+  /// Both: `begin` starts the attempt for the listener's redirect URI, `complete` redeems its callback.
+  @MainActor
+  private static func drive<Value: Sendable>(
+    credentials: NativePKCECredentials,
+    listener: any LoopbackCallbackListening,
+    presenter: any BrowserSessionPresenting,
+    timeout: Duration,
+    sleep: @escaping @Sendable (Duration) async throws -> Void,
+    begin: @Sendable (String) async throws -> SignInStart,
+    complete: @Sendable (String) async throws -> Value
+  ) async -> Result<Value, SignInProblem> {
     let baseURL = credentials.baseURL
     // The listener comes first: its port is in the redirect URI the attempt is begun with. Until
     // then, the expected state is empty and nothing is taken.
@@ -147,7 +198,7 @@ public enum BrowserSignIn {
     let start: SignInStart
 
     do {
-      start = try await credentials.beginSignIn(provider: provider, redirectURI: redirectURI)
+      start = try await begin(redirectURI)
     } catch {
       await listener.stop()
       return .failure(.couldNotStart)
@@ -204,7 +255,7 @@ public enum BrowserSignIn {
     switch first {
     case .callback(let redirect):
       do {
-        return .success(try await credentials.completeSignIn(redirectURL: redirect))
+        return .success(try await complete(redirect))
       } catch {
         return .failure(SignInProblem(error))
       }
