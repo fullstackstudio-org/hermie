@@ -116,6 +116,7 @@ if (values.help) {
       '                                       refusals, outcome?}; POST .../expire ends it now',
       '                                       (request.cancel timeout)',
       '  GET  /__fake/files                   what the upload route received: path, size, sha256',
+      '  GET  /__fake/files/content?path=<p>  the raw bytes received at that path (404 when none)',
       '  POST /__fake/withdraw-requests {reason?}  withdraw every open server→client request',
       '                                       (request.cancel to the sockets)',
       '  GET  /__fake/state                   counters and logs: connections, open sockets,',

@@ -901,6 +901,25 @@ describe('the upload route', () => {
       sha256: createHash('sha256').update('ÿ\u0000x').digest('hex')
     })
   })
+
+  it('hands back the exact bytes it received, and 404s for a path nothing was uploaded to', async () => {
+    const gateway = await start()
+    // Every byte value, so a text round-trip (UTF-8 decoding, trimmed CRLF) would show.
+    const bytes = Buffer.from(Array.from({ length: 256 }, (_, index) => index))
+    const form = new FormData()
+
+    form.append('path', '/work/up/5b1e9c3a7d2f4086-all-bytes.bin')
+    form.append('file', new Blob([bytes], { type: 'application/octet-stream' }), 'all-bytes.bin')
+    expect((await fetch(`${gateway.url}/api/files/upload-stream`, { method: 'POST', body: form })).status).toBe(200)
+
+    const content = (path: string) => fetch(`${gateway.url}/__fake/files/content?path=${encodeURIComponent(path)}`)
+    const found = await content('/work/up/5b1e9c3a7d2f4086-all-bytes.bin')
+
+    expect(found.status).toBe(200)
+    expect(Buffer.from(await found.arrayBuffer()).equals(bytes)).toBe(true)
+    expect((await content('/work/up/nothing-here.bin')).status).toBe(404)
+    expect((await fetch(`${gateway.url}/__fake/files/content`)).status).toBe(404)
+  })
 })
 
 /** Poll until `done` holds; the answer frame travels on its own and nothing resolves when it lands. */

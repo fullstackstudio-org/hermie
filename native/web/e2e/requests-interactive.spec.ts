@@ -48,6 +48,19 @@ interface Upload {
 const viewOf = async (gateway: Gateway, id: string): Promise<View> =>
   (await (await fetch(`${gateway.url}/__fake/request/${id}`)).json()) as View
 
+/**
+ * The bytes the gateway received at `path`. Read from the fake, not off the intercepted request: WebKit
+ * does not expose a Blob/FormData body to `route.request().postDataBuffer()`, so a check on that would
+ * pass on nothing.
+ */
+const bytesOf = async (gateway: Gateway, path: string): Promise<Buffer> => {
+  const response = await fetch(`${gateway.url}/__fake/files/content?path=${encodeURIComponent(path)}`)
+
+  expect(response.status).toBe(200)
+
+  return Buffer.from(await response.arrayBuffer())
+}
+
 const filesOf = async (gateway: Gateway): Promise<Upload[]> =>
   ((await (await fetch(`${gateway.url}/__fake/files`)).json()) as { files: Upload[] }).files
 
@@ -381,6 +394,9 @@ test.describe('a file request', () => {
       return btoa(Array.from(bytes, byte => String.fromCharCode(byte)).join(''))
     })
     const plain = Buffer.from(base64, 'base64')
+    // Some canvas encoders write an Exif segment of their own (WebKit on macOS: pixel size and colour space,
+    // no location). Then 'Exif' on its own says nothing about OUR segment, and the check narrows to its payload.
+    const encoderWritesExif = plain.includes('Exif')
     const payload = Buffer.from('Exif\0\0GPSLatitude=52.3702 GPSLongitude=4.8952 GPSMARKER-0451')
     const segment = Buffer.concat([
       Buffer.from([0xff, 0xe1, (payload.length + 2) >> 8, (payload.length + 2) & 0xff]),
@@ -389,13 +405,6 @@ test.describe('a file request', () => {
     const photo = Buffer.concat([plain.subarray(0, 2), segment, plain.subarray(2)])
 
     expect(photo.includes('GPSMARKER-0451')).toBe(true)
-
-    const sent: Buffer[] = []
-
-    await page.route('**/api/files/upload-stream', async route => {
-      sent.push(route.request().postDataBuffer() ?? Buffer.alloc(0))
-      await route.continue()
-    })
 
     const id = await raise(gateway, 'input.file', {
       accept: 'image',
@@ -415,14 +424,26 @@ test.describe('a file request', () => {
     await expect(dialog).toHaveCount(0)
     await expect.poll(async () => (await viewOf(gateway, id)).outcome).toBe('answered')
 
-    const [upload] = await filesOf(gateway)
+    const uploads = await filesOf(gateway)
 
-    expect(sent).toHaveLength(1)
-    // What went over the wire is a JPEG without the segment, and what the answer quotes is that.
-    expect(sent[0]?.includes('GPSMARKER-0451')).toBe(false)
-    expect(sent[0]?.includes('Exif')).toBe(false)
+    expect(uploads).toHaveLength(1)
+
+    const [upload] = uploads
+    const received = await bytesOf(gateway, upload?.path as string)
+
+    // The bytes the gateway got are the ones it hashed, and they are a JPEG without the segment.
+    expect(sha(received)).toBe(upload?.sha256)
+    expect(received.length).toBe(upload?.bytes)
+    expect(received.includes('GPSMARKER-0451')).toBe(false)
+    expect(received.includes('GPSLatitude')).toBe(false)
+    expect(received.includes('GPSLongitude')).toBe(false)
+
+    if (!encoderWritesExif) {
+      expect(received.includes('Exif')).toBe(false)
+    }
+
     // A JPEG still: it starts with its marker and is not the file that was picked.
-    expect(sent[0]?.includes(Buffer.from([0xff, 0xd8, 0xff]))).toBe(true)
+    expect(received.subarray(0, 3).equals(Buffer.from([0xff, 0xd8, 0xff]))).toBe(true)
     expect(upload?.sha256).not.toBe(sha(photo))
 
     const files = (await viewOf(gateway, id)).answer?.files as Upload[]
@@ -440,7 +461,7 @@ test.describe('a file request', () => {
     await app.open()
     await app.ready()
 
-    const base64 = await page.evaluate(async () => {
+    const { base64, type } = await page.evaluate(async () => {
       const canvas = document.createElement('canvas')
 
       canvas.width = 32
@@ -454,18 +475,15 @@ test.describe('a file request', () => {
       const blob = await new Promise<Blob>(resolve => canvas.toBlob(result => resolve(result as Blob), 'image/webp'))
       const bytes = new Uint8Array(await blob.arrayBuffer())
 
-      return btoa(Array.from(bytes, byte => String.fromCharCode(byte)).join(''))
+      return { base64: btoa(Array.from(bytes, byte => String.fromCharCode(byte)).join('')), type: blob.type }
     })
+
+    // WebKit on macOS cannot encode a WebP (it hands back a PNG): there is no WebP to pick on that engine.
+    test.skip(type !== 'image/webp', `this engine's canvas cannot encode a WebP (it gave ${type})`)
+
     const webp = Buffer.from(base64, 'base64')
 
     expect(webp.subarray(8, 12).toString()).toBe('WEBP')
-
-    const sent: Buffer[] = []
-
-    await page.route('**/api/files/upload-stream', async route => {
-      sent.push(route.request().postDataBuffer() ?? Buffer.alloc(0))
-      await route.continue()
-    })
 
     const id = await raise(gateway, 'input.file', {
       accept: 'image',
@@ -485,9 +503,16 @@ test.describe('a file request', () => {
 
     expect(files[0]).toMatchObject({ name: 'photo.jpg', mime: 'image/jpeg' })
     expect(files[0]?.path).toMatch(/-photo\.jpg$/u)
-    // A JPEG on the wire, not the WebP that was picked.
-    expect(sent[0]?.includes(Buffer.from([0xff, 0xd8, 0xff]))).toBe(true)
-    expect(sent[0]?.includes('WEBP')).toBe(false)
+
+    const [upload] = await filesOf(gateway)
+    const received = await bytesOf(gateway, files[0]?.path as string)
+
+    // A JPEG at the gateway, not the WebP that was picked.
+    expect(upload?.path).toBe(files[0]?.path)
+    expect(sha(received)).toBe(files[0]?.sha256)
+    expect(received.subarray(0, 3).equals(Buffer.from([0xff, 0xd8, 0xff]))).toBe(true)
+    expect(received.includes('WEBP')).toBe(false)
+    expect(sha(received)).not.toBe(sha(webp))
   })
 
   test('says a failed upload first, and giving up is 4041 upload_failed', async ({

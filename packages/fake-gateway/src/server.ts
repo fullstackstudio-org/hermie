@@ -1055,10 +1055,16 @@ export interface FakeGatewayState {
    * Files accepted through `POST /api/files/upload-stream`, by resolved path.
    *
    * Held in memory rather than written anywhere: a test wants to know that the
-   * bytes arrived, how many there were, and at which path — never to read them
-   * back off a disk the test then has to clean up.
+   * bytes arrived, how many there were, and at which path — and to read them back
+   * (`GET /__fake/files/content`) without a disk it then has to clean up. Reading
+   * what the gateway received, not what the browser says it sent, is what lets a
+   * check on an upload body run on an engine that hides Blob and FormData bodies
+   * from request interception (WebKit).
    */
-  uploadedFiles: Map<string, { path: string; filename: string; bytes: number; contentType: string; sha256: string }>
+  uploadedFiles: Map<
+    string,
+    { path: string; filename: string; bytes: number; contentType: string; sha256: string; content: Buffer }
+  >
   /**
    * Children a delegation has spawned and not yet finished, by subagent id.
    *
@@ -2446,16 +2452,14 @@ function sniffImageExtension(bytes: Buffer, filename: string): string {
 
 interface MultipartForm {
   fields: Record<string, string>
-  file: { filename: string; contentType: string; bytes: number; sha256: string } | null
+  file: { filename: string; contentType: string; bytes: number; sha256: string; content: Buffer } | null
 }
 
 /**
  * Enough of RFC 7578 to read what the upload route declares: a few small text
- * fields and one file part, of which only the SIZE is kept.
+ * fields and one file part: its size, its SHA-256 and its bytes.
  *
- * Deliberately not a general parser and deliberately not a dependency. The file
- * part is measured and its bytes are dropped, which is what lets the size cap be
- * exercised without holding a second copy of the payload.
+ * Deliberately not a general parser and deliberately not a dependency.
  */
 async function readMultipart(req: IncomingMessage): Promise<MultipartForm> {
   const boundary = /boundary=(?:"([^"]+)"|([^;]+))/i.exec(req.headers['content-type'] ?? '')
@@ -2505,7 +2509,8 @@ async function readMultipart(req: IncomingMessage): Promise<MultipartForm> {
       filename,
       contentType: /content-type:\s*([^\r\n;]+)/i.exec(headers)?.[1]?.trim() || 'application/octet-stream',
       bytes: raw.length,
-      sha256: createHash('sha256').update(raw, 'binary').digest('hex')
+      sha256: createHash('sha256').update(raw, 'binary').digest('hex'),
+      content: Buffer.from(raw, 'binary')
     }
   }
 
@@ -5066,6 +5071,22 @@ export async function startFakeGateway(options: FakeGatewayOptions = {}): Promis
       return
     }
 
+    if (path === '/__fake/files/content' && method === 'GET') {
+      // The bytes the upload route received at `?path=`, raw; 404 when nothing was uploaded there.
+      const file = state.uploadedFiles.get(url.searchParams.get('path') ?? '')
+
+      if (!file) {
+        json(res, 404, { detail: 'No uploaded file at that path' })
+
+        return
+      }
+
+      res.writeHead(200, { 'content-type': 'application/octet-stream', 'content-length': file.content.length })
+      res.end(file.content)
+
+      return
+    }
+
     /*
       The dashboard's static route for a plugin. On a gated gateway it sits behind
       the same gate as everything that is not public (the next block); on a
@@ -6597,7 +6618,8 @@ export async function startFakeGateway(options: FakeGatewayOptions = {}): Promis
       filename: form.file.filename,
       bytes: form.file.bytes,
       contentType: form.file.contentType,
-      sha256: form.file.sha256
+      sha256: form.file.sha256,
+      content: form.file.content
     }
 
     if (options.uploadDelayMs) {
