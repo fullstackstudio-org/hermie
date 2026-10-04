@@ -140,7 +140,7 @@ import Testing
           defer: false)
         window.isReleasedWhenClosed = false
         window.contentView = host
-        window.orderFrontRegardless()
+        window.orderInForTest()
         defer { window.close() }
 
         await settle(window, at: size)

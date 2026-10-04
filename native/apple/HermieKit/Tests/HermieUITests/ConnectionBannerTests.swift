@@ -34,7 +34,7 @@
       let window = NSWindow(contentRect: view.frame, styleMask: [.titled], backing: .buffered, defer: false)
       window.isReleasedWhenClosed = false
       window.contentView = view
-      window.orderFrontRegardless()
+      window.orderInForTest()
       return (view, window)
     }
 
