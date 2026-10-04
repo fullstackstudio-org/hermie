@@ -16,6 +16,31 @@ import { type Branch, localise, type Translated } from './web-strings'
 /** The strings, as written: every leaf in en, nl and de. */
 export const SHEET_STRINGS_SOURCE = {
   /**
+   * The composer's refusal for a chat another Hermes window or terminal has open (`features/chat/Composer`,
+   * in the chat screen's chunk): the gateway's code 4090 `SESSION_NOT_OWNED`, said in a sentence of our own
+   * with the gateway's details line under it and the way out.
+   */
+  composer: {
+    ownedElsewhere: {
+      sentence: {
+        en: 'This chat is open in another Hermes window or terminal, so the message did not go out. Use it there, or start a new chat here.',
+        nl: 'Deze chat is open in een ander Hermes-venster of een terminal, dus het bericht is niet verstuurd. Gebruik hem daar, of begin hier een nieuwe chat.',
+        de: 'Dieser Chat ist in einem anderen Hermes-Fenster oder Terminal geöffnet, deshalb wurde die Nachricht nicht gesendet. Nutze ihn dort oder beginne hier einen neuen Chat.'
+      },
+      /** The gateway's own line about who has the chat open, as it sent it. */
+      details: {
+        en: ({ detail }: { detail: string }) => `Details: ${detail}`,
+        nl: ({ detail }: { detail: string }) => `Details: ${detail}`,
+        de: ({ detail }: { detail: string }) => `Details: ${detail}`
+      },
+      startNewChat: {
+        en: 'Start new chat',
+        nl: 'Nieuwe chat beginnen',
+        de: 'Neuen Chat beginnen'
+      }
+    }
+  },
+  /**
    * The options of a chat's own session beyond YOLO: reasoning effort and the model
    * (`features/chat/ConversationOptions`, in the options panel's chunk). Their names and hints, and the
    * export's, come from the shared catalogue.

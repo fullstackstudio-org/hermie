@@ -69,7 +69,9 @@ import { useStore } from 'zustand'
 
 import type { AttachmentTray } from '../../core/chats/attachments'
 import { mergeIntoDraft } from '../../core/chats/edit-resend'
+import { ownedElsewhereDetails } from '../../core/session-ownership'
 import { strings } from '../../generated/strings'
+import { sheetStrings } from '../../i18n/sheet-strings'
 import { useLocale } from '../../i18n/use-locale'
 import { webStrings } from '../../i18n/web-strings'
 import { hasFinePointer } from '../../platform/input-kind'
@@ -135,6 +137,17 @@ interface CompletionState {
   failure: string | null
 }
 
+/**
+ * The gateway refused the message because another Hermes window or terminal has this chat open
+ * (`SESSION_NOT_OWNED`, 4090). `details` is its own line about who holds it, empty when it sent none;
+ * `words` are the refused words, which "Start new chat" puts in the empty field of the new chat.
+ */
+interface OwnedElsewhere {
+  kind: 'owned-elsewhere'
+  details: string
+  words: string
+}
+
 const messageOf = (error: unknown): string => (error instanceof Error ? error.message : String(error))
 
 export function Composer({ chatKey, botName, onSent, tray = null, prefill = null }: ComposerProps): ReactElement {
@@ -157,7 +170,8 @@ export function Composer({ chatKey, botName, onSent, tray = null, prefill = null
   const canAttach = tray !== null && attached
 
   const [text, setText] = useState(() => drafts?.read(chatKey) ?? '')
-  const [failure, setFailure] = useState<string | null>(null)
+  const [failure, setFailure] = useState<string | OwnedElsewhere | null>(null)
+  const [startingNew, setStartingNew] = useState(false)
   const field = useRef<HTMLTextAreaElement>(null)
   const textRef = useRef(text)
 
@@ -304,7 +318,9 @@ export function Composer({ chatKey, botName, onSent, tray = null, prefill = null
 
       textRef.current = next
       setText(next)
-      setFailure(null)
+      // What went wrong with a send goes with the next change to the words. A chat that is open in another
+      // window stays: it is about the chat, not the words, and "Start new chat" is still the way out.
+      setFailure(current => (typeof current === 'object' ? current : null))
       keepDraft()
       setDismissed(false)
 
@@ -377,7 +393,14 @@ export function Composer({ chatKey, botName, onSent, tray = null, prefill = null
         tray?.restore(taken)
       }
 
-      setFailure(webStrings.composer.sendFailed({ message: messageOf(error) }))
+      const details = ownedElsewhereDetails(error)
+
+      // Never sent again by itself: the way out is a new chat, which the reader asks for.
+      setFailure(
+        details === null
+          ? webStrings.composer.sendFailed({ message: messageOf(error) })
+          : { kind: 'owned-elsewhere', details, words: body }
+      )
     }
 
     try {
@@ -407,6 +430,36 @@ export function Composer({ chatKey, botName, onSent, tray = null, prefill = null
       restore(error)
     }
   }, [canSend, chatKey, closeCompletions, controller, flushDraft, onSent, put, tray])
+
+  // ── a chat that is open elsewhere ───────────────────────────────────────────
+  /**
+   * The way out of the gateway's "this chat is open in another window" refusal: a new conversation, as `/new`
+   * starts one, and the refused words in its empty field. Nothing is sent: that is the reader's to do.
+   */
+  const startNewChat = useCallback(async () => {
+    if (!controller || startingNew || failure === null || typeof failure === 'string') {
+      return
+    }
+
+    const { words } = failure
+
+    setStartingNew(true)
+    setFailure(null)
+
+    try {
+      await controller.startNewConversation(chatKey)
+
+      if (words.trim() !== '' && textRef.current.trim() === '') {
+        caretAtEnd.current = true
+        put(words)
+        flushDraft()
+      }
+    } catch (error) {
+      setFailure(messageOf(error))
+    } finally {
+      setStartingNew(false)
+    }
+  }, [chatKey, controller, failure, flushDraft, put, startingNew])
 
   // ── attaching ───────────────────────────────────────────────────────────────
   const attach = useCallback(
@@ -546,10 +599,29 @@ export function Composer({ chatKey, botName, onSent, tray = null, prefill = null
     <div className="hm-composer">
       <QueuedStrip queued={queued} onSteer={steer} onEdit={edit} onDelete={remove} />
 
-      {failure ? (
-        <p className="hm-composer__failure" role="alert">
+      {typeof failure === 'string' && failure !== '' ? (
+        // Scrolls when long (the gateway's words can be any length), so it is a stop for the keyboard too.
+        <p className="hm-composer__failure" role="alert" tabIndex={0}>
           {failure}
         </p>
+      ) : null}
+
+      {failure !== null && typeof failure === 'object' ? (
+        <div className="hm-composer__owned">
+          <p className="hm-composer__failure" role="alert">
+            {sheetStrings.composer.ownedElsewhere.sentence}
+          </p>
+          {failure.details !== '' ? (
+            <p className="hm-composer__failure-details" title={failure.details}>
+              {sheetStrings.composer.ownedElsewhere.details({ detail: failure.details })}
+            </p>
+          ) : null}
+          <div>
+            <Button variant="quiet" disabled={startingNew} onClick={() => void startNewChat()}>
+              {sheetStrings.composer.ownedElsewhere.startNewChat}
+            </Button>
+          </div>
+        </div>
       ) : null}
 
       {listOpen && completions ? (

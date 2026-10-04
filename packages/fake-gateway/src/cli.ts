@@ -135,6 +135,7 @@ if (values.help) {
       '                                       abruptly (the client sees 1006)',
       '  POST /__fake/reject-upgrades {count}  fail the next count upgrades with --close-code',
       '  POST /__fake/truncate-next-replay    the next session.events.since answers truncated: true',
+      '  POST /__fake/session-owned           {profile?, session_id?, details?, owned?} a chat another window has open: prompt.submit answers 4090 SESSION_NOT_OWNED',
       '  POST /__fake/expire-sessions         end every cookie session (--auth cookie): the next',
       '                                       request with one of those cookies is an expired session',
       '',

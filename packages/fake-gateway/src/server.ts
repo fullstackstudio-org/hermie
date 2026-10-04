@@ -958,6 +958,15 @@ export interface FakeGatewayState {
   methodLog: string[]
   /** Mark the next replay answer as truncated. */
   truncateNextReplay: boolean
+  /**
+   * Chats another Hermes window or terminal has open: stored session id → the gateway's own line about who
+   * holds it (`session … opened by cli 4m ago.`). A `prompt.submit` on one is refused with 4090 and
+   * `data.reason: "SESSION_NOT_OWNED"` (the fork's `SessionOwnership`), the way a real gateway refuses it.
+   * A new conversation is another session, so it goes through.
+   */
+  ownedElsewhere: Map<string, string>
+  /** While set, every `prompt.submit` fails with 5000 and this message (any length: a client must bound what it draws). */
+  promptFailure: string | null
   /** Methods the server accepts and never answers, so a caller's timeout fires. */
   hangMethods: Set<string>
   sessions: Map<string, FakeSession>
@@ -2931,6 +2940,8 @@ function initialState(options: FakeGatewayOptions): FakeGatewayState {
     clientCapabilities: [],
     methodLog: [],
     truncateNextReplay: false,
+    ownedElsewhere: new Map<string, string>(),
+    promptFailure: null,
     hangMethods: new Set<string>(),
     sessions,
     profiles: [profileRow(researcher, 'Finds things out.'), profileRow(writer, 'Writes things down.')],
@@ -4624,6 +4635,38 @@ export async function startFakeGateway(options: FakeGatewayOptions = {}): Promis
       */
       state.truncateNextReplay = true
       json(res, 200, { truncateNextReplay: true })
+
+      return
+    }
+
+    if (path === '/__fake/session-owned' && method === 'POST') {
+      /*
+        Another Hermes window or terminal has a chat open: its `prompt.submit` is refused with 4090
+        `SESSION_NOT_OWNED` until `owned: false`. `{profile?, session_id?, details?, owned?}`: the
+        profile's first chat unless `session_id` (a stored or runtime id) names one.
+      */
+      const body = await readBody(req)
+      const session =
+        typeof body.session_id === 'string' && body.session_id
+          ? resolveSession(body.session_id)
+          : [...state.sessions.values()].find(entry => entry.profile === String(body.profile ?? 'researcher'))
+
+      if (!session) {
+        json(res, 404, { detail: 'No such session' })
+
+        return
+      }
+
+      if (body.owned === false) {
+        state.ownedElsewhere.delete(session.storedId)
+      } else {
+        state.ownedElsewhere.set(
+          session.storedId,
+          typeof body.details === 'string' ? body.details : `session ${session.storedId} opened by cli 4m ago.`
+        )
+      }
+
+      json(res, 200, { session_id: session.storedId, owned: state.ownedElsewhere.has(session.storedId) })
 
       return
     }
@@ -8576,6 +8619,21 @@ export async function startFakeGateway(options: FakeGatewayOptions = {}): Promis
 
         if (!session) {
           throw new Error(`Unknown session: ${String(params.session_id)}`)
+        }
+
+        if (state.promptFailure !== null) {
+          throw new RpcFault(5000, state.promptFailure)
+        }
+
+        const holder = state.ownedElsewhere.get(session.storedId)
+
+        if (holder !== undefined) {
+          // The fork's `session_already_owned_message`: the sentence for the reader, then the details.
+          throw new RpcFault(
+            4090,
+            `This chat is open in another Hermes window/terminal. Use it there, or start a new chat here.\nDetails: ${holder}`,
+            { reason: 'SESSION_NOT_OWNED' }
+          )
         }
 
         streamReply(session, typeof params.text === 'string' ? params.text : '')

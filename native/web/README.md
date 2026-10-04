@@ -836,7 +836,12 @@ everything that talks to the gateway is a controller method, reached through `Ch
   which the document's policy allows (it forbids a `style` attribute in markup, not `element.style`).
 - **Draft.** Kept per chat in the key-value store under `draft.<chat>` (identity-bound, so a sign-out clears it), written
   300 ms after the last key and at once on leaving the screen or hiding the tab. A send empties it; a send that is
-  refused puts the words back (ahead of anything typed meanwhile) with the reason under the field.
+  refused puts the words back (ahead of anything typed meanwhile) with the reason under the field, in a paragraph of
+  at most six lines that scrolls (the gateway's words can be any length). The gateway's `SESSION_NOT_OWNED` refusal (code
+  4090: another Hermes window or terminal has the chat open, `core/session-ownership.ts`) is said in a sentence of our own
+  (`sheetStrings.composer.ownedElsewhere`, in the chat screen's chunk) with the gateway's `Details:` line on one grey line
+  and a "Start new chat" button: it runs the `/new` path (`startNewConversation`) and puts the refused words in the
+  field if it is empty. Nothing is sent again by itself.
 - **Not connected.** The field stays live (a reconnect is a good moment to write the next message); Send is off until the
   connection is `ready` and the chat has a session on the gateway. Stop is never switched off.
 - **Slash commands.** A line that begins with a slash runs as a command only if `slashRouteFor` (the gateway's catalogue)

@@ -73,6 +73,31 @@
   color: var(--hm-danger-text);
   font-size: 0.9375rem;
   overflow-wrap: anywhere;
+  /* The gateway's words can be any length: six lines at most, then the paragraph scrolls. */
+  max-height: calc(1.4em * 6);
+  overflow-y: auto;
+  line-height: 1.4;
+}
+
+/* A chat open in another window: the sentence, the gateway's line about who has it, the way out. */
+.hm-composer__owned {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 6px;
+}
+
+.hm-composer__failure-details {
+  min-width: 0;
+  max-width: 100%;
+  margin: 0;
+  color: var(--hm-text-faint);
+  font-size: 0.8125rem;
+  /* One line; the whole of it is in the title. */
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  user-select: text;
 }
 
 /* ── completions ─────────────────────────────────────────────────────────── */

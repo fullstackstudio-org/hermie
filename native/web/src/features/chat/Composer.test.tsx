@@ -4,6 +4,7 @@
  * that answer like a healthy gateway; the chat store and the connection are the
  * page's own, set to the state a test is about.
  */
+import { JsonRpcGatewayError } from '@hermes/shared/json-rpc-channel'
 import { act, fireEvent, render, screen, within } from '@testing-library/react'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 
@@ -17,7 +18,15 @@ import { Composer } from './Composer'
 import { createDraftStore, type DraftStore } from './drafts'
 
 type Mocks = Record<
-  'send' | 'stopTurn' | 'editQueued' | 'deleteQueued' | 'steerQueued' | 'querySlash' | 'runSlash' | 'slashRouteFor',
+  | 'send'
+  | 'stopTurn'
+  | 'editQueued'
+  | 'deleteQueued'
+  | 'steerQueued'
+  | 'querySlash'
+  | 'runSlash'
+  | 'slashRouteFor'
+  | 'startNewConversation',
   ReturnType<typeof vi.fn>
 >
 
@@ -31,6 +40,7 @@ function fakeController(over: Partial<Mocks> = {}) {
     querySlash: vi.fn(async () => ({ items: [] })),
     runSlash: vi.fn(async () => ({})),
     slashRouteFor: vi.fn((): string | null => null),
+    startNewConversation: vi.fn(async () => undefined),
     ...over
   }
 
@@ -303,6 +313,124 @@ describe('slash commands', () => {
 
     expect(field.value).toBe('/model gpt')
     expect(screen.getByRole('alert').textContent).toContain('not now')
+  })
+})
+
+describe('a long failure', () => {
+  it('is one paragraph that scrolls, and a stop for the keyboard, so the composer cannot grow with it', async () => {
+    const long = 'x'.repeat(5000)
+    const controller = fakeController({ send: vi.fn(async () => Promise.reject(new Error(long))) })
+    const { field } = mount(controller)
+
+    type(field, 'words')
+    press(field, {})
+    await settle()
+
+    const alert = screen.getByRole('alert')
+
+    expect(alert.textContent).toContain(long)
+    expect(alert.className).toBe('hm-composer__failure')
+    expect(alert.tabIndex).toBe(0)
+  })
+})
+
+describe('a chat that is open in another window', () => {
+  const SENTENCE = 'This chat is open in another Hermes window/terminal. Use it there, or start a new chat here.'
+  const DETAILS = 'session 20260923_143304_1025bb opened by cli 4m ago.'
+  const refusal = () =>
+    new JsonRpcGatewayError(`${SENTENCE}\nDetails: ${DETAILS}`, { code: 4090, data: { reason: 'SESSION_NOT_OWNED' } })
+
+  async function refused(controller = fakeController({ send: vi.fn(async () => Promise.reject(refusal())) })) {
+    const view = mount(controller)
+
+    type(view.field, 'precious words')
+    press(view.field, {})
+    await settle()
+
+    return view
+  }
+
+  it('says so in our own sentence, with the gateway’s details on one line and a way out, and keeps the words', async () => {
+    const { controller, field } = await refused()
+
+    // Our sentence in the reader's language, not the gateway's two lines.
+    expect(screen.getByRole('alert').textContent).toMatch(/open in another Hermes window or terminal/u)
+    expect(screen.getByRole('alert').textContent).not.toContain('Details:')
+    expect(screen.getByText(`Details: ${DETAILS}`).getAttribute('title')).toBe(DETAILS)
+    expect(screen.getByRole('button', { name: 'Start new chat' })).toBeTruthy()
+    expect(field.value).toBe('precious words')
+
+    // Nothing was sent again by itself.
+    expect(controller.send).toHaveBeenCalledTimes(1)
+    expect(controller.startNewConversation).not.toHaveBeenCalled()
+  })
+
+  it('starts a new chat on request, never sends the words again, and puts them in the empty field', async () => {
+    const { controller, field } = await refused()
+
+    // The reader cleared the field meanwhile.
+    type(field, '')
+    fireEvent.click(screen.getByRole('button', { name: 'Start new chat' }))
+    await settle()
+
+    expect(controller.startNewConversation).toHaveBeenCalledExactlyOnceWith('researcher')
+    expect(field.value).toBe('precious words')
+    expect(controller.send).toHaveBeenCalledTimes(1)
+    expect(screen.queryByRole('alert')).toBeNull()
+    expect(screen.queryByRole('button', { name: 'Start new chat' })).toBeNull()
+  })
+
+  it('leaves what the reader typed in the new chat alone', async () => {
+    const { field } = await refused()
+
+    type(field, 'something else')
+    fireEvent.click(screen.getByRole('button', { name: 'Start new chat' }))
+    await settle()
+
+    expect(field.value).toBe('something else')
+  })
+
+  it('says why when the new chat could not be started, and keeps the words', async () => {
+    const controller = fakeController({
+      send: vi.fn(async () => Promise.reject(refusal())),
+      startNewConversation: vi.fn(async () => Promise.reject(new Error('the gateway would not')))
+    })
+    const { field } = await refused(controller)
+
+    fireEvent.click(screen.getByRole('button', { name: 'Start new chat' }))
+    await settle()
+
+    expect(screen.getByRole('alert').textContent).toContain('the gateway would not')
+    expect(field.value).toBe('precious words')
+  })
+
+  it('shows no details line when the gateway sent none, and is gone with the next send', async () => {
+    const controller = fakeController({
+      send: vi
+        .fn()
+        .mockRejectedValueOnce(new JsonRpcGatewayError(SENTENCE, { code: 4090, data: { reason: 'SESSION_NOT_OWNED' } }))
+        .mockResolvedValue(undefined)
+    })
+    const { field } = await refused(controller)
+
+    expect(screen.queryByText(/^Details:/u)).toBeNull()
+    expect(screen.getByRole('button', { name: 'Start new chat' })).toBeTruthy()
+
+    press(field, {})
+    await settle()
+
+    expect(screen.queryByRole('button', { name: 'Start new chat' })).toBeNull()
+  })
+
+  it('is not drawn for any other refusal', async () => {
+    const controller = fakeController({
+      send: vi.fn(async () => Promise.reject(new JsonRpcGatewayError('nope', { code: 4002, data: { reason: 'X' } })))
+    })
+
+    await refused(controller)
+
+    expect(screen.getByRole('alert').textContent).toContain('nope')
+    expect(screen.queryByRole('button', { name: 'Start new chat' })).toBeNull()
   })
 })
 

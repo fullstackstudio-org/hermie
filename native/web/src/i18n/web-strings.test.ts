@@ -55,6 +55,8 @@ const SAME_AS_ENGLISH: Readonly<Record<string, readonly Locale[]>> = {
   'sheets.botProfile.unknown': ['nl', 'de'],
   'sheets.botProfile.model': ['nl'],
   'sheets.botProfile.session': ['de'],
+  // `Details: {details}` is the same word in Dutch and German.
+  'sheets.composer.ownedElsewhere.details': ['nl', 'de'],
   // "{count} tools" is Dutch too.
   'sheets.botProfile.toolCount': ['nl']
 }

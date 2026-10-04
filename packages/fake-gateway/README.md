@@ -419,3 +419,12 @@ connection signed in as the grant's person and to nobody else, like `passkey.cha
 
 Tests: `src/mcp/routes.test.ts` (the routes, the frame, the control calls, the capability and the
 CLI) and `src/inject-author.test.ts` (the `via` stamp).
+
+## A chat another window has open, and a prompt that fails
+
+The fork refuses a turn in a chat that another live Hermes window or terminal holds (`SessionOwnership`):
+code **4090**, `data.reason` `SESSION_NOT_OWNED`, and a message of the sentence for the reader and a
+`Details: session … opened by cli 4m ago.` line. `POST /__fake/session-owned {profile?, session_id?, details?, owned?}`
+(or `gateway.state.ownedElsewhere`, stored session id to details line) stages it for a chat until `owned: false`;
+a new conversation is another session and goes through. `gateway.state.promptFailure` (a string) makes every
+`prompt.submit` fail with 5000 and that message, of any length. Tests: `src/session-owned.test.ts`.
