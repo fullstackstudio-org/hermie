@@ -504,12 +504,14 @@ struct ChatListRows {
     let list = session.chatList
     let arrangement = session.arrangement.arrangement
     // A secure prompt waiting (a password, a sudo, a vault) counts as needing input too.
-    // The name this person gave a bot leads the row, and the search finds it by that name.
+    // The name this person gave a bot leads the row (unless they asked for the handle first), the
+    // other name is drawn beside it (or not at all, with "Hide profile name"), and the search finds
+    // a bot by either.
     let named = list.rows.mapValues { row -> ChatListRow in
-      guard let label = arrangement.label(row.bot.name) else { return row }
-
+      let names = session.botNames(row.bot.name)
       var named = row
-      named.bot.displayName = label
+      named.bot.displayName = names.primary
+      named.secondaryName = names.secondary
       return named
     }
     let rows = ChatListFormat.filtered(list.names, rows: named, query: query)

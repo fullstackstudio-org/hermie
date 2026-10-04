@@ -60,6 +60,10 @@ public struct ChatListRow: Sendable, Equatable, Identifiable {
   public var attached: Bool
   public var hydration: HydrationState
   public var lastMessageAt: Double
+  /// The other name the row is drawn with, beside `bot.displayName` (which then is the name that
+  /// leads): `BotNames.secondary`. nil where nothing has chosen the names yet, which reads as the
+  /// handle when the name is another word.
+  public var secondaryName: String?
 
   public var id: String { bot.name }
 
@@ -73,7 +77,8 @@ public struct ChatListRow: Sendable, Equatable, Identifiable {
     working: Bool = false,
     attached: Bool = false,
     hydration: HydrationState = .cold,
-    lastMessageAt: Double = 0
+    lastMessageAt: Double = 0,
+    secondaryName: String? = nil
   ) {
     self.bot = bot
     self.avatar = avatar
@@ -85,6 +90,13 @@ public struct ChatListRow: Sendable, Equatable, Identifiable {
     self.attached = attached
     self.hydration = hydration
     self.lastMessageAt = lastMessageAt
+    self.secondaryName = secondaryName
+  }
+
+  /// The name shown beside the leading one: what the reader's order and switch left (`secondaryName`),
+  /// else the handle when the name is another word.
+  public var companionName: String {
+    secondaryName ?? (bot.displayName == bot.name ? "" : bot.name)
   }
 
   /// The bead, given whether the gateway socket is up.

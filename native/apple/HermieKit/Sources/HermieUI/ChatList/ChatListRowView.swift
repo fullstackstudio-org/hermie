@@ -69,12 +69,28 @@ struct ChatListRowView: View, Equatable {
   /// One line, cut at the end, never hyphenated over two: the full name is in the row's label. It
   /// gets the room before the time does.
   private var name: some View {
-    Text(row.bot.displayName)
-      .font(.headline)
-      .fontWeight(row.unread || row.unreadCount > 0 ? .bold : .semibold)
-      .lineLimit(1)
-      .truncationMode(.tail)
-      .layoutPriority(1)
+    let companion = row.companionName
+
+    // The other name (the handle, or the name when the handle leads) follows in a quieter voice, so a
+    // bot can be told apart from another with the same name and gives way first when the row is
+    // narrow; "Hide profile name" leaves it out.
+    return HStack(alignment: .firstTextBaseline, spacing: 6) {
+      Text(row.bot.displayName)
+        .font(.headline)
+        .fontWeight(row.unread || row.unreadCount > 0 ? .bold : .semibold)
+        .lineLimit(1)
+        .truncationMode(.tail)
+        .layoutPriority(1)
+
+      if !companion.isEmpty {
+        Text(companion)
+          .font(.subheadline)
+          .foregroundStyle(.secondary)
+          .lineLimit(1)
+          .truncationMode(.tail)
+      }
+    }
+    .layoutPriority(1)
   }
 
   private func time(_ stamp: String) -> some View {

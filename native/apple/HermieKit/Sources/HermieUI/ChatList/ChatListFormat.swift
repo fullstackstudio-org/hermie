@@ -100,8 +100,8 @@ enum ChatListFormat {
   static func accessibilityLabel(_ row: ChatListRow, presence: Presence, pinned: Bool = false, muted: Bool = false) -> String {
     var parts = [row.bot.displayName]
 
-    if row.bot.displayName != row.bot.name {
-      parts.append(row.bot.name)
+    if !row.companionName.isEmpty {
+      parts.append(row.companionName)
     }
 
     if pinned {

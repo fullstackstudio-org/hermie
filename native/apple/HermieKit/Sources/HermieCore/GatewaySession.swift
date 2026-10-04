@@ -110,6 +110,9 @@ public final class GatewaySession {
   /// identity read answered, after one that failed, and after a sign-out: with nobody named there is
   /// no own chat and nothing to switch to.
   public internal(set) var ownChatIdentity: OwnChatIdentity?
+  /// Which name of a bot leads and whether its handle is shown (Settings › Chats): the account's order
+  /// and this device's switch, handed over by the settings bridge (`setBotNamePolicy`).
+  public private(set) var botNamePolicy = BotNamePolicy.standard
   /// Told after every `sessions.changed` sweep (debounced): the ui_meta bridge reconciles on it.
   @ObservationIgnored public var onSessionsChanged: (@MainActor () -> Void)?
   /// How many `sessions.changed` sweeps this session has heard (debounced, once per burst). A view
@@ -484,6 +487,13 @@ public final class GatewaySession {
 
     for model in models.values {
       model.followDefault(options)
+    }
+  }
+
+  /// The reader changed how bots are named. Every surface that asks `botNames(_:)` redraws.
+  public func setBotNamePolicy(_ policy: BotNamePolicy) {
+    if policy != botNamePolicy {
+      botNamePolicy = policy
     }
   }
 

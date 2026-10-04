@@ -143,6 +143,9 @@ struct ChatsSettingsPage: View {
         SettingsNote("\(Strings.App.Settings.defaultVerbosityHint) \(NativeStrings.Chats.defaultsFooter)")
       }
 
+      // Which name of a bot leads, and whether its handle is shown at all.
+      BotNameSettingsSections(settings: settings)
+
       Section {
         Toggle(
           NativeStrings.Chats.cacheKeep,

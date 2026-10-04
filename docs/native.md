@@ -2102,6 +2102,8 @@ Settings › Chats and Settings › Appearance (`HermieUI/Settings/ChatsSettings
 | Transcript cache on or off                          | `hermie.transcript.cache` (`"false"` only when off)                  | the device  |
 | Default chat view (verbosity, bot-to-bot, thinking) | the ui_meta app section's `defaults`                                 | the account |
 | Chat text size                                      | the app section's `textSize`                                         | the account |
+| Bot names (which name leads)                        | the app section's `botNameOrder`                                     | the account |
+| Hide profile name                                   | `hermie.appearance` blob, `hideHandleWhenNamed`                      | the device  |
 | Accent colour (the theme: Blue, Graphite, Lime)     | the app section's `themeChoice` (and `themes`, carried whole)        | the account |
 | Language                                            | the system's per-app language (D20), shown, not stored               | the system  |
 
@@ -2117,6 +2119,13 @@ reader changed.
   the transcript stays on top of the device's own size and the list measures its rows again). The
   default chat view reaches the open conversations through `GatewaySession.setDefaultVisibility`:
   a chat follows it until the reader gives it a view of its own (`ChatModel.hasOwnVisibility`).
+- **Bot names.** A bot has two names, its handle and a name somebody typed (the reader's own name for it, in `labels`,
+  wins over the gateway's). `BotNames.of` decides the two lines (`BotNamePolicy`: the order, and the device's switch): the
+  name leads and the handle is beside it, or the handle leads, or, with "Hide profile name", a bot that has a name is
+  shown by it alone and the order stops mattering (its picker is disabled meanwhile). A bot with one name has one line.
+  The session holds the policy (`GatewaySession.botNamePolicy`, handed over by the settings bridge) and every surface that
+  asks `botNames(_:)` or `chatName(_:)` follows it: the chat list (the other name beside the first, and read by VoiceOver
+  in that order, never a hidden handle) and the chat's title.
 - **Accent.** A preset maps to one tint (D19): Blue is the app's own accent, Graphite and Lime are the
   Expo app's bubble colours for them. A theme of the reader's own (made in the Expo app) is listed too,
   and tints with the accent it chose per face. The native app has no editor for them.

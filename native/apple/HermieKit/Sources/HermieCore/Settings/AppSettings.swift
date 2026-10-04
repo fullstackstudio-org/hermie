@@ -40,6 +40,9 @@ public final class AppSettings: SettingsStore {
   public private(set) var scheme = AppearanceChoice.system
   /// Whether this device keeps the transcripts it has read. On unless the reader switched it off.
   public private(set) var transcriptCache = true
+  /// "Hide profile name": a bot that has a name of its own is shown by it alone, never with its
+  /// handle beside it. Device-wide, kept in the Expo app's `hermie.appearance` blob beside the scheme.
+  public private(set) var hideHandleWhenNamed = false
   /// The settings that follow the account.
   public private(set) var synced = SyncedSettings()
   /// `hydrate()` has finished.
@@ -53,12 +56,18 @@ public final class AppSettings: SettingsStore {
   /// The rest of the `hermie.appearance` blob (the Expo app keeps its own fields in it): written
   /// back as it was found.
   @ObservationIgnored private var appearanceRest: JSONObject = [:]
+  /// The blob holds a `hideHandleWhenNamed` (it was there, or the reader chose): only then is it
+  /// written, so a device that never touched it leaves the blob as it was.
+  @ObservationIgnored private var hideHandleStored = false
   /// What was chosen before `hydrate()` finished, so the read does not overwrite it.
   @ObservationIgnored private var chosenBeforeLoad: Set<String> = []
   /// The last write, so the next one starts after it.
   @ObservationIgnored private var writing: Task<Void, Never>?
 
   private static let appearanceField = "appearance"
+  private static let hideHandleField = "hideHandleWhenNamed"
+  /// The blob's own fields, for `chosenBeforeLoad`.
+  private static let hideHandleChoice = "hermie.appearance.hideHandleWhenNamed"
 
   /// - Parameters:
   ///   - keyValues: where the choices are kept; nil keeps them in memory (tests, previews).
@@ -83,10 +92,16 @@ public final class AppSettings: SettingsStore {
 
       if var appearance {
         let stored = appearance.removeValue(forKey: Self.appearanceField)?.stringValue
+        let hide = appearance.removeValue(forKey: Self.hideHandleField)
         appearanceRest = appearance
 
         if !chosenBeforeLoad.contains(StoreKeys.appearance) {
           scheme = stored.flatMap(AppearanceChoice.init(rawValue:)) ?? .system
+        }
+
+        if !chosenBeforeLoad.contains(Self.hideHandleChoice) {
+          hideHandleWhenNamed = hide == .bool(true)
+          hideHandleStored = hide != nil
         }
       }
 
@@ -113,12 +128,39 @@ public final class AppSettings: SettingsStore {
 
     scheme = choice
     chosenBeforeLoad.insert(StoreKeys.appearance)
+    persistAppearance()
+  }
 
+  /// Hide the handle of a bot that has a name of its own (Settings › Chats, "Hide profile name").
+  public func setHideHandleWhenNamed(_ hide: Bool) {
+    guard hide != hideHandleWhenNamed else {
+      return
+    }
+
+    hideHandleWhenNamed = hide
+    hideHandleStored = true
+    chosenBeforeLoad.insert(Self.hideHandleChoice)
+    persistAppearance()
+  }
+
+  /// The `hermie.appearance` blob as the Expo app writes it: its own fields kept as they were found,
+  /// the scheme and the handle switch set (`persistAppearance` in `store/settings.ts`).
+  private func persistAppearance() {
     var blob = appearanceRest
-    blob[Self.appearanceField] = .string(choice.rawValue)
+    blob[Self.appearanceField] = .string(scheme.rawValue)
+
+    if hideHandleStored {
+      blob[Self.hideHandleField] = .bool(hideHandleWhenNamed)
+    }
 
     let written = blob
     persist { try await $0.set(written, forKey: StoreKeys.appearance) }
+  }
+
+  /// Which name of a bot leads and whether its handle is shown: the account's order and this
+  /// device's switch.
+  public var botNamePolicy: BotNamePolicy {
+    BotNamePolicy(order: synced.botNameOrder, hideHandle: hideHandleWhenNamed)
   }
 
   /// Switch the transcript cache on or off. Switching it off does not clear what is stored: that is

@@ -227,6 +227,7 @@ public final class GatewayMetaBridge {
 
     let changes = Observations { settings.synced }
     let defaults = Observations { settings.synced.defaults }
+    let names = Observations { settings.botNamePolicy }
 
     settingsTasks = [
       Task {
@@ -247,6 +248,15 @@ public final class GatewayMetaBridge {
           }
 
           session?.setDefaultVisibility(options)
+        }
+      },
+      Task { [weak session] in
+        for await policy in names {
+          guard !Task.isCancelled else {
+            return
+          }
+
+          session?.setBotNamePolicy(policy)
         }
       }
     ]
