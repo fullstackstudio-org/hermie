@@ -90,6 +90,13 @@ final class ChatFeed: ChatScreenFeed {
   private(set) var attachmentNotice: AttachmentOpenResult?
   /// What the last Retry did, for the tests and a line over the chat when it sent nothing.
   private(set) var lastRetry: RetryOutcome?
+  /// This chat's session skips approval requests (`ChatModel.yolo`), set only when it changes: the
+  /// title's capsule and the options menu's switch read it, and nothing else on the screen does.
+  private(set) var yolo = false
+  /// The alert that asks before YOLO mode goes on is up.
+  var confirmingYolo = false
+  /// Why the last switch of YOLO mode did not go through, for a line over the chat.
+  private(set) var yoloFailure: String?
 
   @ObservationIgnored private let pipeline = ChatRowPipeline()
   @ObservationIgnored private var tasks: [Task<Void, Never>] = []
@@ -205,6 +212,38 @@ final class ChatFeed: ChatScreenFeed {
   func dismissActionNotices() {
     attachmentNotice = nil
     lastRetry = nil
+    yoloFailure = nil
+  }
+
+  /// The reader asked for YOLO mode on or off. Turning it on asks first (`confirmingYolo`); turning
+  /// it off is always safe, and goes at once.
+  func requestYolo(_ enabled: Bool) {
+    guard enabled != yolo else {
+      return
+    }
+
+    if enabled {
+      confirmingYolo = true
+    } else {
+      switchYolo(false)
+    }
+  }
+
+  /// The alert was confirmed.
+  func confirmYolo() {
+    confirmingYolo = false
+    switchYolo(true)
+  }
+
+  private func switchYolo(_ enabled: Bool) {
+    let model = self.model
+
+    Task {
+      switch await model.setYolo(enabled) {
+      case .switched: yoloFailure = nil
+      case .failed(let reason): yoloFailure = reason
+      }
+    }
   }
 
   var name: String { chat.bot }
@@ -363,6 +402,10 @@ final class ChatFeed: ChatScreenFeed {
 
     if canLoadOlder != snapshot.canLoadOlder {
       canLoadOlder = snapshot.canLoadOlder
+    }
+
+    if yolo != snapshot.yolo {
+      yolo = snapshot.yolo
     }
 
     if snapshot.hydration == .error {

@@ -48,6 +48,39 @@ enum NativeStrings {
     static var titleOpensSettingsHint: String {
       String(localized: "native.chat.titleOpensSettingsHint", table: "Native", bundle: .module)
     }
+
+    enum Yolo {
+      /// YOLO (the small capsule in the chat's title while YOLO mode is on)
+      static var badge: String { String(localized: "native.chat.yolo.badge", table: "Native", bundle: .module) }
+      /// Opens a menu to turn it off. (the hint of that capsule)
+      static var badgeHint: String {
+        String(localized: "native.chat.yolo.badgeHint", table: "Native", bundle: .module)
+      }
+      /// YOLO mode is on (what VoiceOver says for the capsule)
+      static var badgeLabel: String {
+        String(localized: "native.chat.yolo.badgeLabel", table: "Native", bundle: .module)
+      }
+      /// Turn On (the confirming button of the alert that asks before YOLO mode goes on)
+      static var confirmAction: String {
+        String(localized: "native.chat.yolo.confirmAction", table: "Native", bundle: .module)
+      }
+      /// Approval requests are skipped in this chat until you turn it off. (the alert's message)
+      static var confirmMessage: String {
+        String(localized: "native.chat.yolo.confirmMessage", table: "Native", bundle: .module)
+      }
+      /// Turn on YOLO mode? (the alert's title)
+      static var confirmTitle: String {
+        String(localized: "native.chat.yolo.confirmTitle", table: "Native", bundle: .module)
+      }
+      /// YOLO mode could not be changed: {reason} (the line over the chat when the gateway refused)
+      static func failed(_ reason: String) -> String {
+        String(
+          localized: "native.chat.yolo.failed", defaultValue: "YOLO mode could not be changed: \(reason)",
+          table: "Native", bundle: .module)
+      }
+      /// Turn Off YOLO Mode (the capsule's menu item)
+      static var turnOff: String { String(localized: "native.chat.yolo.turnOff", table: "Native", bundle: .module) }
+    }
   }
 
   enum ChatList {

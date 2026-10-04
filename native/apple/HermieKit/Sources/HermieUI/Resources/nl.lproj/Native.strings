@@ -98,6 +98,22 @@
 	<string>%@, bot-instellingen openen</string>
 	<key>native.chat.titleOpensSettingsHint</key>
 	<string>Opent de instellingen van deze bot.</string>
+	<key>native.chat.yolo.badge</key>
+	<string>YOLO</string>
+	<key>native.chat.yolo.badgeHint</key>
+	<string>Opent een menu om de modus uit te zetten.</string>
+	<key>native.chat.yolo.badgeLabel</key>
+	<string>YOLO-modus staat aan</string>
+	<key>native.chat.yolo.confirmAction</key>
+	<string>Inschakelen</string>
+	<key>native.chat.yolo.confirmMessage</key>
+	<string>Toestemmingsverzoeken worden in deze chat overgeslagen totdat je de modus weer uitzet.</string>
+	<key>native.chat.yolo.confirmTitle</key>
+	<string>YOLO-modus inschakelen?</string>
+	<key>native.chat.yolo.failed</key>
+	<string>YOLO-modus kon niet worden gewijzigd: %@</string>
+	<key>native.chat.yolo.turnOff</key>
+	<string>YOLO-modus uitschakelen</string>
 	<key>native.chatList.archivedTitle</key>
 	<string>Gearchiveerd</string>
 	<key>native.chatList.muteTitle</key>

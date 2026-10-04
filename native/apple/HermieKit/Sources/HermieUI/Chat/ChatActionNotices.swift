@@ -7,7 +7,7 @@ struct ChatActionNotices: View {
   let feed: ChatFeed
 
   var body: some View {
-    if let text = Self.text(attachment: feed.attachmentNotice, retry: feed.lastRetry) {
+    if let text = Self.text(attachment: feed.attachmentNotice, retry: feed.lastRetry, yolo: feed.yoloFailure) {
       HStack(alignment: .firstTextBaseline, spacing: 8) {
         Label(text, systemImage: "info.circle")
           .font(.footnote)
@@ -31,7 +31,11 @@ struct ChatActionNotices: View {
     }
   }
 
-  static func text(attachment: AttachmentOpenResult?, retry: RetryOutcome?) -> String? {
+  static func text(attachment: AttachmentOpenResult?, retry: RetryOutcome?, yolo: String? = nil) -> String? {
+    if let yolo {
+      return NativeStrings.Chat.Yolo.failed(yolo)
+    }
+
     switch attachment {
     case .unavailable(let name)?:
       return NativeStrings.ChatActions.attachmentUnavailable(SecurePrompt.displayText(name, limit: SecurePrompt.nameLimit))

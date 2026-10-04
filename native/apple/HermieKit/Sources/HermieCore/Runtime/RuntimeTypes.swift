@@ -238,6 +238,8 @@ public struct ChatSnapshot: Sendable, Equatable {
   public var canLoadOlder: Bool
   /// Bumped on every publish of this chat.
   public var revision: Int
+  /// The session skips approval requests (`session.info.yolo`).
+  public var yolo: Bool = false
 }
 
 /// One chat-list row's worth of a chat, recomputed only for chats that changed.

@@ -1125,7 +1125,8 @@ public actor TranscriptStore {
       queue: record.queue,
       attached: !(state.runtimeSessionID ?? "").isEmpty,
       canLoadOlder: !(record.window?.reachedStart ?? false),
-      revision: revision
+      revision: revision,
+      yolo: state.info?.yolo ?? false
     )
   }
 }

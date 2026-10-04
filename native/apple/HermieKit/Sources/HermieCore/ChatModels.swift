@@ -412,6 +412,31 @@ public final class ChatModel {
     await perform { try await $0.startNewConversation($1, argument: argument, command: command) }
   }
 
+  /// This chat's session skips approval requests, as the gateway last said (`session.info.yolo`).
+  /// A chat the gateway has not described yet is off.
+  public var yolo: Bool { snapshot?.yolo ?? false }
+
+  /// Switch YOLO mode on or off for this chat's session only (`config.set`, scope session). A
+  /// failure is kept for the banner (`lastError`) and handed back for the line over the chat; the
+  /// state stays what it was.
+  @discardableResult
+  public func setYolo(_ enabled: Bool) async -> YoloOutcome {
+    guard canSend else {
+      let error = ChatRuntimeError.notAttached(key)
+      record(error)
+      return .failed(error.message)
+    }
+
+    do {
+      try await store.setYolo(key, enabled: enabled)
+      lastError = nil
+      return .switched(enabled)
+    } catch {
+      record(error)
+      return .failed(ChatResolver.describe(error))
+    }
+  }
+
   private func perform(_ action: @Sendable (TranscriptStore, String) async throws -> Void) async {
     do {
       try await action(store, key)

@@ -195,8 +195,15 @@ struct ChatSessionView<Composer: View>: View {
             ComposerSlot(chat: chat, session: session, feed: feed, composer: composer)
           }
           .toolbar {
+            // While YOLO mode is on, a capsule says so for as long as it is: the chat never asks.
+            if feed.yolo {
+              ToolbarItem(placement: .primaryAction) {
+                YoloBadge(feed: feed)
+              }
+            }
+
             ToolbarItem(placement: .primaryAction) {
-              VerbosityMenu(model: feed.model, chat: chat)
+              VerbosityMenu(feed: feed, chat: chat)
             }
           }
           #if DEBUG
@@ -213,6 +220,18 @@ struct ChatSessionView<Composer: View>: View {
       // waits (`ChatSheetHost`; a sheet would block the whole window).
       .chatSheetHost(covered: feed?.requestUp ?? false)
     #endif
+    // Turning YOLO mode on asks first; turning it off does not.
+    .alert(
+      NativeStrings.Chat.Yolo.confirmTitle,
+      isPresented: Binding(
+        get: { owner.feed?.confirmingYolo ?? false }, set: { owner.feed?.confirmingYolo = $0 })
+    ) {
+      Button(NativeStrings.Chat.Yolo.confirmAction) { owner.feed?.confirmYolo() }
+        .accessibilityIdentifier("hermie.chat.yolo.confirm")
+      Button(Strings.App.Common.cancel, role: .cancel) {}
+    } message: {
+      Text(NativeStrings.Chat.Yolo.confirmMessage)
+    }
     // An attachment a message names, opened from its chip.
     .quickLookPreview(
       Binding(get: { owner.feed?.attachmentPreview }, set: { owner.feed?.attachmentPreview = $0 })
@@ -648,11 +667,41 @@ struct ChatTitleView: View {
   }
 }
 
+/// The small capsule that says this chat skips approval requests. A tap opens a menu with the one way
+/// out: turning it off, which needs no confirmation.
+struct YoloBadge: View {
+  let feed: ChatFeed
+
+  var body: some View {
+    Menu {
+      Button {
+        feed.requestYolo(false)
+      } label: {
+        Label(NativeStrings.Chat.Yolo.turnOff, systemImage: "bolt.slash")
+      }
+      .accessibilityIdentifier("hermie.chat.yolo.turnOff")
+    } label: {
+      Text(NativeStrings.Chat.Yolo.badge)
+        .font(.caption2.weight(.heavy))
+        .foregroundStyle(.white)
+        .padding(.horizontal, 8)
+        .padding(.vertical, 3)
+        .background(.orange, in: .capsule)
+    }
+    .menuIndicator(.hidden)
+    .accessibilityLabel(NativeStrings.Chat.Yolo.badgeLabel)
+    .accessibilityHint(NativeStrings.Chat.Yolo.badgeHint)
+    .accessibilityIdentifier("hermie.chat.yolo")
+  }
+}
+
 /// The chat's options menu: the bot's conversations, and verbosity and the two switches per chat
-/// screen (`setVisibility`).
+/// screen (`setVisibility`), and YOLO mode.
 struct VerbosityMenu: View {
-  let model: ChatModel
+  let feed: ChatFeed
   let chat: ChatRef
+
+  private var model: ChatModel { feed.model }
 
   @Environment(AppRouter.self) private var router: AppRouter?
 
@@ -689,6 +738,15 @@ struct VerbosityMenu: View {
         get: { options.showBotToBot },
         set: { model.setVisibility(VisibilityOptions(level: options.level, showBotToBot: $0, showThinking: options.showThinking)) }
       ))
+
+      Divider()
+
+      // This session only. Turning it on asks first (`ChatFeed.requestYolo`).
+      Toggle(isOn: Binding(get: { feed.yolo }, set: { feed.requestYolo($0) })) {
+        Label(Strings.Chat.Options.yolo, systemImage: "bolt.fill")
+      }
+      .accessibilityHint(Strings.Chat.Options.yoloHint)
+      .accessibilityIdentifier("hermie.chat.options.yolo")
     } label: {
       Label(Strings.Chat.Options.title, systemImage: "slider.horizontal.3")
     }

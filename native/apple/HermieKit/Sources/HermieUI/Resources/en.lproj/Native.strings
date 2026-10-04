@@ -98,6 +98,22 @@
 	<string>%@, open bot settings</string>
 	<key>native.chat.titleOpensSettingsHint</key>
 	<string>Opens this bot's settings.</string>
+	<key>native.chat.yolo.badge</key>
+	<string>YOLO</string>
+	<key>native.chat.yolo.badgeHint</key>
+	<string>Opens a menu to turn it off.</string>
+	<key>native.chat.yolo.badgeLabel</key>
+	<string>YOLO mode is on</string>
+	<key>native.chat.yolo.confirmAction</key>
+	<string>Turn On</string>
+	<key>native.chat.yolo.confirmMessage</key>
+	<string>Approval requests are skipped in this chat until you turn it off.</string>
+	<key>native.chat.yolo.confirmTitle</key>
+	<string>Turn on YOLO mode?</string>
+	<key>native.chat.yolo.failed</key>
+	<string>YOLO mode could not be changed: %@</string>
+	<key>native.chat.yolo.turnOff</key>
+	<string>Turn Off YOLO Mode</string>
 	<key>native.chatList.archivedTitle</key>
 	<string>Archived</string>
 	<key>native.chatList.muteTitle</key>
