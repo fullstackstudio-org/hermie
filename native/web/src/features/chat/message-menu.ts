@@ -210,8 +210,17 @@ export function messageMenuAction(id: MessageMenuId, item: TranscriptItem): Mess
     case 'copyLinks':
       return null
     default: {
-      // `copyLink:<n>`: the n-th link of the message as it is now.
-      const href = id.startsWith('copyLink:') ? messageLinks(text)[Number(id.slice('copyLink:'.length))] : undefined
+      // `copyLink:<n>`: the n-th link of the message as it is now. Read with `at` and not as
+      // `messageLinks(text)[n]`: the Hermes plugin scanner takes a call's result indexed by a
+      // computed key (`f(x)[k]`) for a way to reach `constructor`, and one such shape anywhere in
+      // the bundle makes every "sudo" of the wire protocol a HIGH finding (guard-scan). The
+      // minifier folds a named copy back into that shape, so a name alone does not do.
+      if (!id.startsWith('copyLink:')) {
+        return null
+      }
+
+      const index = Number(id.slice('copyLink:'.length))
+      const href = Number.isSafeInteger(index) && index >= 0 ? messageLinks(text).at(index) : undefined
 
       return href ? { kind: 'copyLink', href } : null
     }
