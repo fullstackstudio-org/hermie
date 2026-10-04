@@ -382,12 +382,15 @@ private struct ComposerHarness {
 
     // Let `/new` fail its way back to where it started.
     link.fail(hide, GatewayRPCError(.rejected, "no"))
+    // The put-back hides the chat again the moment the last title is refused, on the store's own
+    // thread. Its answer is in place before anything can refuse that title, not after: a call made
+    // with no one to answer it waits out the whole call timeout.
+    link.respond(to: RPC.SessionSetHidden.name, with: [:])
     let title = try await link.pendingCall(RPC.SessionTitle.name)
     link.fail(title, GatewayRPCError(.rejected, "no"))
     // The stamp's name is tried once more with the seconds in it (a name worn in the same minute).
     let again = try await link.pendingCall(RPC.SessionTitle.name) { $0.id != title.id }
     link.fail(again, GatewayRPCError(.rejected, "no"))
-    link.respond(to: RPC.SessionSetHidden.name, with: [:])
     await starting.value
     await opened.shutdown()
   }

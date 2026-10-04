@@ -834,12 +834,14 @@ private struct SlashHarness {
 
     // Let it fail its way back to where it started.
     opened.link.fail(hide, GatewayRPCError(.rejected, "no"))
+    // Answered before the last title is refused: the put-back hides the chat again at once, on the
+    // store's own thread, and a call made with no one to answer it waits out the call timeout.
+    opened.link.respond(to: RPC.SessionSetHidden.name, with: [:])
     let title = try await opened.link.pendingCall(RPC.SessionTitle.name)
     opened.link.fail(title, GatewayRPCError(.rejected, "no"))
     // The stamp's name is tried once more with the seconds in it (a name worn in the same minute).
     let again = try await opened.link.pendingCall(RPC.SessionTitle.name) { $0.id != title.id }
     opened.link.fail(again, GatewayRPCError(.rejected, "no"))
-    opened.link.respond(to: RPC.SessionSetHidden.name, with: [:])
     await running.value
     await opened.shutdown()
   }
