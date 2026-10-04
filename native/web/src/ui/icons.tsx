@@ -21,6 +21,8 @@ export type IconName =
   | 'file'
   | 'settings'
   | 'grip'
+  | 'bellOff'
+  | 'pin'
 
 /** Stroke paths on a 24 x 24 grid, drawn with a round 2px pen. */
 const PATHS: Record<IconName, readonly string[]> = {
@@ -37,7 +39,15 @@ const PATHS: Record<IconName, readonly string[]> = {
   ],
   file: ['M14 3H7a1 1 0 0 0-1 1v16a1 1 0 0 0 1 1h10a1 1 0 0 0 1-1V7l-4-4z', 'M14 3v4h4'],
   settings: ['M4 7h9', 'M17 7h3', 'M15 5v4', 'M4 17h3', 'M11 17h9', 'M9 15v4'],
-  grip: ['M9 6h.01', 'M15 6h.01', 'M9 12h.01', 'M15 12h.01', 'M9 18h.01', 'M15 18h.01']
+  grip: ['M9 6h.01', 'M15 6h.01', 'M9 12h.01', 'M15 12h.01', 'M9 18h.01', 'M15 18h.01'],
+  bellOff: [
+    'M13.7 21a2 2 0 0 1-3.4 0',
+    'M18.6 13A18 18 0 0 1 18 8',
+    'M6.3 6.3A5.9 5.9 0 0 0 6 8c0 7-3 9-3 9h14',
+    'M18 8a6 6 0 0 0-9.3-5',
+    'M2 2l20 20'
+  ],
+  pin: ['M12 16v5', 'M8 3h8l-1 6.5 3 4.5H6l3-4.5L8 3z']
 }
 
 export interface IconProps {

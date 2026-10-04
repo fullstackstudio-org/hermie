@@ -22,6 +22,7 @@ import { chatsStore } from '../../state/chats'
 import { connectionStore } from '../../state/connection'
 import { pluginStore } from '../../state/plugin'
 import { botsStore } from '../../state/bots'
+import { layoutStore } from '../../state/layout'
 import { aBot, LONG_AGO, resetShellStores, seedRoster } from '../../test-support/shell-stores'
 import { App } from './App'
 
@@ -48,7 +49,10 @@ async function violations(): Promise<string[]> {
   )
 }
 
-/** A roster with one of everything a row can be: unread, working, needing input, offline, a picture, an unnamed bot. */
+/**
+ * A roster with one of everything a row can be: unread, working, needing input, offline, a picture, an
+ * unnamed bot; arranged with a folder, a colour, a pin, a mute and an archived chat.
+ */
 function populate(): void {
   seedRoster(
     [
@@ -68,6 +72,15 @@ function populate(): void {
     method: 'approval',
     params: { request_id: 'a1', command: 'ls', choices: ['once', 'deny'] }
   })
+
+  const layout = layoutStore.getState()
+
+  layout.reconcile(['researcher', 'writer', 'ops', 'quiet'])
+  layout.moveToFolder('writer', layout.addFolder('Reading'))
+  layout.setAccent('researcher', 'teal')
+  layout.setPinned('ops', true)
+  layout.setMute('ops', 0)
+  layout.setArchived('quiet', true)
 }
 
 const mount = (hash = '#/') => {

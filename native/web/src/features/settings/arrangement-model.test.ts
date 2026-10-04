@@ -52,6 +52,12 @@ describe('viewOf', () => {
     expect(names(view.entries)).toEqual(['a', 'z'])
   })
 
+  it('puts it where the native apps do, at the end of the loose run before the first folder', () => {
+    const view = viewOf(arrangement, {}, ['a', 'b', 'c', 'd', 'e', 'f', 'g', 'y', 'z'])
+
+    expect(names(view.entries)).toEqual(['a', 'y', 'z', '[work]', 'e', '[play]', 'g'])
+  })
+
   it('lists nothing for an empty arrangement and an empty roster', () => {
     expect(viewOf({ entries: [], folders: [] }, {}, [])).toEqual({ entries: [], archived: [] })
   })

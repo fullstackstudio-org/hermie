@@ -22,7 +22,8 @@ export interface ArrangementView {
 
 /**
  * The page's list: the arrangement as it is, the roster's bots the arrangement has not placed yet
- * (there is no connection to fold them in) after the loose chats, and the archived ones set apart.
+ * (there is no connection to fold them in) where the native apps and the sidebar put them, at the end
+ * of the loose top-level run before the first folder, and the archived ones set apart.
  */
 export function viewOf(
   arrangement: Arrangement,
@@ -55,7 +56,16 @@ export function viewOf(
     }
   }
 
-  for (const entry of arrangement.entries) {
+  const top: Arrangement['entries'] = [...arrangement.entries]
+  const firstFolder = top.findIndex(entry => entry.kind === 'folder')
+
+  top.splice(
+    firstFolder === -1 ? top.length : firstFolder,
+    0,
+    ...unplaced.map(name => ({ kind: 'chat', name }) as const)
+  )
+
+  for (const entry of top) {
     if (entry.kind === 'chat') {
       loose(entry.name)
       continue
@@ -78,11 +88,6 @@ export function viewOf(
     }
 
     entries.push({ kind: 'folder', id: folder.id, folder, chats })
-  }
-
-  // Not yet in the arrangement: shown, loose, after what is. They cannot be moved until the roster is folded in.
-  for (const name of unplaced) {
-    loose(name)
   }
 
   return { entries, archived: archivedNames }

@@ -1,0 +1,122 @@
+/* What the arrangement adds to the chat list: a chat's colour and marks, folders and the archive as groups. */
+
+/* The colours, by the name `ui_meta` carries (the native apps' swatches, as Settings draws them). */
+[data-accent='indigo'] {
+  --hm-accent: #4b4cc8;
+}
+
+[data-accent='violet'] {
+  --hm-accent: #7b3fc4;
+}
+
+[data-accent='magenta'] {
+  --hm-accent: #b62f81;
+}
+
+[data-accent='red'] {
+  --hm-accent: #c5303a;
+}
+
+[data-accent='orange'] {
+  --hm-accent: #b04c08;
+}
+
+[data-accent='teal'] {
+  --hm-accent: #0e7a84;
+}
+
+[data-accent='green'] {
+  --hm-accent: #16783c;
+}
+
+[data-accent='graphite'] {
+  --hm-accent: #485468;
+}
+
+[data-accent='slate'] {
+  --hm-accent: #4f6b96;
+}
+
+[data-accent='lime'] {
+  --hm-accent: #c7ff4a;
+}
+
+/* A coloured chat: a stripe on the row's own edge, inside it, so the pane never cuts it. */
+.hm-row[data-accent] {
+  box-shadow: inset 4px 0 0 var(--hm-accent);
+}
+
+/* Marks after the name: pinned, muted. Shapes beside words, never the only thing a row says. */
+.hm-row__marks {
+  display: inline-flex;
+  flex: none;
+  align-items: center;
+  gap: 4px;
+  color: var(--hm-text-faint);
+}
+
+/* A group of rows under a header: a folder, or the archive. */
+.hm-groups {
+  min-width: 0;
+}
+
+.hm-group__head {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  width: 100%;
+  min-height: 36px;
+  padding: 6px var(--hm-gutter);
+  border: 0;
+  background: transparent;
+  color: var(--hm-text-muted);
+  font: inherit;
+  font-size: 0.8125rem;
+  font-weight: 600;
+  letter-spacing: 0.02em;
+  text-align: start;
+}
+
+button.hm-group__head {
+  cursor: pointer;
+}
+
+button.hm-group__head:hover {
+  background: var(--hm-surface-hover);
+}
+
+button.hm-group__head:focus-visible {
+  outline-offset: -3px;
+}
+
+.hm-group__title {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.hm-group__count {
+  flex: none;
+  margin-inline-start: auto;
+  color: var(--hm-text-faint);
+  font-weight: 400;
+}
+
+.hm-group__dot {
+  flex: none;
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  background: var(--hm-accent, var(--hm-tint));
+}
+
+/* The archive sits apart at the bottom, under a rule. */
+.hm-group[data-group='archived'] {
+  border-top: 1px solid var(--hm-line);
+}
+
+/* A folder's chats are set in a little from the header's edge, so they read as inside it. */
+.hm-group[data-group='folder'] .hm-row {
+  padding-inline-start: calc(var(--hm-gutter) + 8px);
+}
