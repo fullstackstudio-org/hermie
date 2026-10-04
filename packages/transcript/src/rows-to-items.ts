@@ -22,6 +22,7 @@ import {
 import { type ParsedCronDelivery, parseCronDelivery } from './cron-delivery'
 import { authorViaOf } from './author'
 import { callKeyOf, turnIdOfMetadata } from './identity'
+import { type InlineImage, scanInlineImages } from './inline-images'
 import { type InjectedRow, parseInjectedRow, stripSteerWrapper, unwrapSystemNote } from './injected'
 import {
   type AssistantItem,
@@ -169,6 +170,8 @@ function codexMessageItemText(value: unknown): string {
 export interface StrippedUserText {
   text: string
   attachments?: string[]
+  /** Pictures the text held as `data:image/…;base64,…` blobs; see `scanInlineImages`. */
+  inlineImages?: InlineImage[]
 }
 
 /**
@@ -197,21 +200,29 @@ export function stripUserText(raw: string): StrippedUserText {
 
   const attachments = [...new Set(Array.from(visible.matchAll(ATTACHMENT_REF_RE)).map(match => match[0]))]
 
-  if (!attachments.length) {
-    return { text: visible }
+  const cleaned = attachments.length
+    ? visible
+        .replace(ATTACHMENT_REF_RE, '')
+        .split('\n')
+        .map(line => line.replace(/[ \t]{2,}/gu, ' ').trim())
+        // A directive line that held nothing but refs leaves a hole; collapse runs
+        // of blank lines rather than opening a gap in the bubble.
+        .filter((line, index, lines) => line || lines[index - 1]?.trim())
+        .join('\n')
+        .trim()
+    : visible
+
+  // The gateway's `[Image attached at: <path>]` handles, and the pictures older sessions kept
+  // as `data:` blobs beside them. A handle is one more attachment; a blob that decodes is
+  // drawn from the bytes the row already holds.
+  const scan = scanInlineImages(cleaned)
+  const references = [...new Set([...attachments, ...scan.references])]
+
+  return {
+    text: scan.text,
+    ...(references.length ? { attachments: references } : {}),
+    ...(scan.images.length ? { inlineImages: scan.images } : {})
   }
-
-  const cleaned = visible
-    .replace(ATTACHMENT_REF_RE, '')
-    .split('\n')
-    .map(line => line.replace(/[ \t]{2,}/gu, ' ').trim())
-    // A directive line that held nothing but refs leaves a hole; collapse runs
-    // of blank lines rather than opening a gap in the bubble.
-    .filter((line, index, lines) => line || lines[index - 1]?.trim())
-    .join('\n')
-    .trim()
-
-  return { text: cleaned, attachments }
 }
 
 /**
@@ -227,7 +238,7 @@ export type UserRowClass =
   | { kind: 'bot_dm_in'; incoming: IncomingBotMessage }
   | { kind: 'bot_dm_reply' }
   | { kind: 'notice'; injected: InjectedRow }
-  | { kind: 'user'; text: string; attachments?: string[]; steered: boolean }
+  | { kind: 'user'; text: string; attachments?: string[]; inlineImages?: InlineImage[]; steered: boolean }
 
 export interface ClassifyUserRowOptions {
   /**
@@ -300,6 +311,7 @@ export function classifyUserRow(text: string, options: ClassifyUserRowOptions = 
     kind: 'user',
     text: stripped.text,
     ...(stripped.attachments ? { attachments: stripped.attachments } : {}),
+    ...(stripped.inlineImages ? { inlineImages: stripped.inlineImages } : {}),
     steered: unwrapped !== null
   }
 }
@@ -512,9 +524,10 @@ export function rowsToItems(rows: readonly TranscriptRow[], shape: RowShape, opt
         (typeof row.reasoning_content === 'string' && row.reasoning_content) ||
         (typeof row.reasoning_details === 'string' && row.reasoning_details) ||
         ''
-      const text = content || codexMessageItemText(row.codex_message_items)
+      const scan = scanInlineImages(content || codexMessageItemText(row.codex_message_items))
+      const text = scan.text
 
-      if (!text && !reasoning) {
+      if (!text && !reasoning && !scan.images.length && !scan.references.length) {
         return
       }
 
@@ -522,6 +535,8 @@ export function rowsToItems(rows: readonly TranscriptRow[], shape: RowShape, opt
         id: fallbackId,
         kind: 'assistant',
         text,
+        ...(scan.images.length ? { inlineImages: scan.images } : {}),
+        ...(scan.references.length ? { attachments: scan.references } : {}),
         ...(reasoning ? { reasoning } : {}),
         streaming: false,
         interim: false,
@@ -744,7 +759,7 @@ export function rowsToItems(rows: readonly TranscriptRow[], shape: RowShape, opt
 
     const stripped = classified ?? stripUserText(content)
 
-    if (!stripped.text && !stripped.attachments?.length) {
+    if (!stripped.text && !stripped.attachments?.length && !stripped.inlineImages?.length) {
       return
     }
 
@@ -762,6 +777,7 @@ export function rowsToItems(rows: readonly TranscriptRow[], shape: RowShape, opt
       kind: 'user',
       text: stripped.text,
       ...(stripped.attachments ? { attachments: stripped.attachments } : {}),
+      ...(stripped.inlineImages ? { inlineImages: stripped.inlineImages } : {}),
       ...(speechKind ? { displayKind: speechKind } : {}),
       ...(author ? { author } : {}),
       ...(replayedBy ? { replayedBy } : {}),

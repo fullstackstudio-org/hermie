@@ -10,6 +10,7 @@
  * (`selectors.ts`); the reducer always keeps the full truth.
  */
 import type { CronDeliveryShape } from './cron-delivery'
+import type { InlineImage } from './inline-images'
 import type { ErrorSurface, SessionLiveInfo, Usage } from '@hermes/shared/gateway-events'
 
 /** Client-side verbosity filter. Purely a read-time concern. */
@@ -108,6 +109,13 @@ export interface UserItem extends ItemBase {
    * with no text came back as a second bubble.
    */
   attachments?: string[]
+  /**
+   * Pictures the turn held in its own text (a `data:image/…;base64,…` blob the gateway kept
+   * beside its `[Image attached at: …]` handle), lifted out by `stripUserText` so the text
+   * never shows them. Only blobs that decode (type, size, first bytes) are here; a handle
+   * or a blob that cannot be shown is an `attachments` reference instead.
+   */
+  inlineImages?: InlineImage[]
   /** Submitted locally, not yet acknowledged by the gateway. */
   pending?: boolean
   displayKind?: 'skill_invocation' | 'steer'
@@ -155,6 +163,10 @@ export interface AssistantItem extends ItemBase {
   durationS?: number
   /** Set when this reply answers an inbound DM rather than the human. */
   replyToBotHandle?: string
+  /** Pictures a persisted reply held as `data:` blobs in its text (see `UserItem.inlineImages`). */
+  inlineImages?: InlineImage[]
+  /** `@image:` references for handles in a persisted reply whose picture it does not hold. */
+  attachments?: string[]
 }
 
 export type ToolStatus = 'generating' | 'running' | 'complete' | 'error' | 'unknown'

@@ -1,0 +1,658 @@
+[
+  {
+    "calls": [
+      {
+        "args": [
+          "[Image attached at: /root/.hermes/profiles/marketing/images/upload_20261004_160406_1.png]"
+        ],
+        "op": "scanInlineImages",
+        "result": {
+          "images": [],
+          "references": [
+            "@image:/root/.hermes/profiles/marketing/images/upload_20261004_160406_1.png"
+          ],
+          "text": ""
+        }
+      }
+    ],
+    "test": "scanInlineImages: the shared vectors > 'marker only'"
+  },
+  {
+    "calls": [
+      {
+        "args": [
+          "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNkYPhfDwAChwGA60e6kgAAAABJRU5ErkJggg=="
+        ],
+        "op": "scanInlineImages",
+        "result": {
+          "images": [
+            {
+              "data": "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNkYPhfDwAChwGA60e6kgAAAABJRU5ErkJggg==",
+              "mime": "image/png",
+              "name": "Image"
+            }
+          ],
+          "references": [],
+          "text": ""
+        }
+      }
+    ],
+    "test": "scanInlineImages: the shared vectors > 'data url only'"
+  },
+  {
+    "calls": [
+      {
+        "args": [
+          "[Image attached at: /root/.hermes/profiles/marketing/images/upload_20261004_160406_1.png]\ndata:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNkYPhfDwAChwGA60e6kgAAAABJRU5ErkJggg=="
+        ],
+        "op": "scanInlineImages",
+        "result": {
+          "images": [
+            {
+              "data": "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNkYPhfDwAChwGA60e6kgAAAABJRU5ErkJggg==",
+              "mime": "image/png",
+              "name": "upload_20261004_160406_1.png"
+            }
+          ],
+          "references": [],
+          "text": ""
+        }
+      }
+    ],
+    "test": "scanInlineImages: the shared vectors > 'marker and data url'"
+  },
+  {
+    "calls": [
+      {
+        "args": [
+          "[Image attached at: /x/a.png]\ndata:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNkYPhfDwAChwGA60e6kgAAAABJRU5ErkJggg==\n[Image attached at: /x/b.jpg]\ndata:image/jpeg;base64,/9j/4AAQSkZJRgABAQEASABIAAD/2wBDAAMCAgMCAgMDAwMEAwMEBQgFBQQEBQoHBwYIDAoMDAsKCwsNDhIQDQ4RDgsLEBYQERMUFRUVDA8XGBYUGBIUFRT/"
+        ],
+        "op": "scanInlineImages",
+        "result": {
+          "images": [
+            {
+              "data": "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNkYPhfDwAChwGA60e6kgAAAABJRU5ErkJggg==",
+              "mime": "image/png",
+              "name": "a.png"
+            },
+            {
+              "data": "/9j/4AAQSkZJRgABAQEASABIAAD/2wBDAAMCAgMCAgMDAwMEAwMEBQgFBQQEBQoHBwYIDAoMDAsKCwsNDhIQDQ4RDgsLEBYQERMUFRUVDA8XGBYUGBIUFRT/",
+              "mime": "image/jpeg",
+              "name": "b.jpg"
+            }
+          ],
+          "references": [],
+          "text": ""
+        }
+      }
+    ],
+    "test": "scanInlineImages: the shared vectors > 'two pictures'"
+  },
+  {
+    "calls": [
+      {
+        "args": [
+          "look at this\n\n[Image attached at: /x/a.png]\ndata:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNkYPhfDwAChwGA60e6kgAAAABJRU5ErkJggg==\n\nand tell me what you see"
+        ],
+        "op": "scanInlineImages",
+        "result": {
+          "images": [
+            {
+              "data": "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNkYPhfDwAChwGA60e6kgAAAABJRU5ErkJggg==",
+              "mime": "image/png",
+              "name": "a.png"
+            }
+          ],
+          "references": [],
+          "text": "look at this\n\nand tell me what you see"
+        }
+      }
+    ],
+    "test": "scanInlineImages: the shared vectors > 'text before and after'"
+  },
+  {
+    "calls": [
+      {
+        "args": [
+          "[Image attached at: /x/my shot.png]"
+        ],
+        "op": "scanInlineImages",
+        "result": {
+          "images": [],
+          "references": [
+            "@image:\"/x/my shot.png\""
+          ],
+          "text": ""
+        }
+      }
+    ],
+    "test": "scanInlineImages: the shared vectors > 'handle with a space in its path'"
+  },
+  {
+    "calls": [
+      {
+        "args": [
+          "[Image attached: https://example.com/a.png?x=1]"
+        ],
+        "op": "scanInlineImages",
+        "result": {
+          "images": [],
+          "references": [
+            "@image:https://example.com/a.png?x=1"
+          ],
+          "text": ""
+        }
+      }
+    ],
+    "test": "scanInlineImages: the shared vectors > 'handle with an address'"
+  },
+  {
+    "calls": [
+      {
+        "args": [
+          "[Image attached at: /x/a.png]\ndata:image/png;base64,AAAAA"
+        ],
+        "op": "scanInlineImages",
+        "result": {
+          "images": [],
+          "references": [
+            "@image:/x/a.png"
+          ],
+          "text": ""
+        }
+      }
+    ],
+    "test": "scanInlineImages: the shared vectors > 'handle and a blob that cannot decode'"
+  },
+  {
+    "calls": [
+      {
+        "args": [
+          "data:image/png;base64,AAAAA"
+        ],
+        "op": "scanInlineImages",
+        "result": {
+          "images": [],
+          "references": [
+            "@image:Image"
+          ],
+          "text": ""
+        }
+      }
+    ],
+    "test": "scanInlineImages: the shared vectors > 'blob that cannot decode, no handle'"
+  },
+  {
+    "calls": [
+      {
+        "args": [
+          "caption\ndata:image/svg+xml;base64,PHN2Zz48L3N2Zz4="
+        ],
+        "op": "scanInlineImages",
+        "result": {
+          "images": [],
+          "references": [
+            "@image:Image"
+          ],
+          "text": "caption"
+        }
+      }
+    ],
+    "test": "scanInlineImages: the shared vectors > 'type outside the list'"
+  },
+  {
+    "calls": [
+      {
+        "args": [
+          "data:image/png;base64,aGVsbG8gd29ybGQgaGVsbG8gd29ybGQ="
+        ],
+        "op": "scanInlineImages",
+        "result": {
+          "images": [],
+          "references": [
+            "@image:Image"
+          ],
+          "text": ""
+        }
+      }
+    ],
+    "test": "scanInlineImages: the shared vectors > 'bytes that are not a picture'"
+  },
+  {
+    "calls": [
+      {
+        "args": [
+          "data:image/png;base64,/9j/4AAQSkZJRgABAQEASABIAAD/2wBDAAMCAgMCAgMDAwMEAwMEBQgFBQQEBQoHBwYIDAoMDAsKCwsNDhIQDQ4RDgsLEBYQERMUFRUVDA8XGBYUGBIUFRT/"
+        ],
+        "op": "scanInlineImages",
+        "result": {
+          "images": [
+            {
+              "data": "/9j/4AAQSkZJRgABAQEASABIAAD/2wBDAAMCAgMCAgMDAwMEAwMEBQgFBQQEBQoHBwYIDAoMDAsKCwsNDhIQDQ4RDgsLEBYQERMUFRUVDA8XGBYUGBIUFRT/",
+              "mime": "image/jpeg",
+              "name": "Image"
+            }
+          ],
+          "references": [],
+          "text": ""
+        }
+      }
+    ],
+    "test": "scanInlineImages: the shared vectors > 'declared type wrong, bytes decide'"
+  },
+  {
+    "calls": [
+      {
+        "args": [
+          "see\n![shot](data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNkYPhfDwAChwGA60e6kgAAAABJRU5ErkJggg==)\nok"
+        ],
+        "op": "scanInlineImages",
+        "result": {
+          "images": [
+            {
+              "data": "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNkYPhfDwAChwGA60e6kgAAAABJRU5ErkJggg==",
+              "mime": "image/png",
+              "name": "Image"
+            }
+          ],
+          "references": [],
+          "text": "see\nok"
+        }
+      }
+    ],
+    "test": "scanInlineImages: the shared vectors > 'markdown image around a blob'"
+  },
+  {
+    "calls": [
+      {
+        "args": [
+          "data:text/plain;base64,SGVsbG8="
+        ],
+        "op": "scanInlineImages",
+        "result": {
+          "images": [],
+          "references": [],
+          "text": "data:text/plain;base64,SGVsbG8="
+        }
+      }
+    ],
+    "test": "scanInlineImages: the shared vectors > 'other data urls stay'"
+  },
+  {
+    "calls": [
+      {
+        "args": [
+          "hello [Image attached] there"
+        ],
+        "op": "scanInlineImages",
+        "result": {
+          "images": [],
+          "references": [],
+          "text": "hello [Image attached] there"
+        }
+      }
+    ],
+    "test": "scanInlineImages: the shared vectors > 'no handle at all'"
+  },
+  {
+    "calls": [
+      {
+        "args": [
+          "[Image attached at: /x/a.png]\n[Image attached at: /x/a.png]"
+        ],
+        "op": "scanInlineImages",
+        "result": {
+          "images": [],
+          "references": [
+            "@image:/x/a.png"
+          ],
+          "text": ""
+        }
+      }
+    ],
+    "test": "scanInlineImages: the shared vectors > 'same handle twice'"
+  },
+  {
+    "calls": [
+      {
+        "args": [
+          "  plain words  \n\n\nwith gaps  "
+        ],
+        "op": "scanInlineImages",
+        "result": {
+          "images": [],
+          "references": [],
+          "text": "  plain words  \n\n\nwith gaps  "
+        }
+      }
+    ],
+    "test": "scanInlineImages: small limits > leaves a text with neither a handle nor a blob as it was"
+  },
+  {
+    "calls": [
+      {
+        "args": [
+          "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNkYPhfDwAChwGA60e6kgAAAABJRU5ErkJggg== thanks\nLater"
+        ],
+        "op": "scanInlineImages",
+        "result": {
+          "images": [
+            {
+              "data": "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNkYPhfDwAChwGA60e6kgAAAABJRU5ErkJggg==",
+              "mime": "image/png",
+              "name": "Image"
+            }
+          ],
+          "references": [],
+          "text": "thanks\nLater"
+        }
+      }
+    ],
+    "test": "scanInlineImages: small limits > does not treat the base64 alphabet as a way to eat the words after a blob"
+  },
+  {
+    "calls": [
+      {
+        "args": [
+          [
+            137,
+            80,
+            78,
+            71,
+            13,
+            10,
+            26,
+            10
+          ]
+        ],
+        "op": "sniffImageType",
+        "result": "image/png"
+      },
+      {
+        "args": [
+          [
+            255,
+            216,
+            255,
+            224
+          ]
+        ],
+        "op": "sniffImageType",
+        "result": "image/jpeg"
+      },
+      {
+        "args": [
+          [
+            71,
+            73,
+            70,
+            56,
+            57,
+            97
+          ]
+        ],
+        "op": "sniffImageType",
+        "result": "image/gif"
+      },
+      {
+        "args": [
+          [
+            82,
+            73,
+            70,
+            70,
+            0,
+            0,
+            0,
+            0,
+            87,
+            69,
+            66,
+            80
+          ]
+        ],
+        "op": "sniffImageType",
+        "result": "image/webp"
+      },
+      {
+        "args": [
+          [
+            0,
+            0,
+            0,
+            24,
+            102,
+            116,
+            121,
+            112,
+            104,
+            101,
+            105,
+            99
+          ]
+        ],
+        "op": "sniffImageType",
+        "result": "image/heic"
+      }
+    ],
+    "test": "sniffImageType > knows the five by their first bytes"
+  },
+  {
+    "calls": [
+      {
+        "args": [
+          [
+            60,
+            115,
+            118,
+            103,
+            32,
+            120,
+            109,
+            108,
+            110,
+            115
+          ]
+        ],
+        "op": "sniffImageType",
+        "result": null
+      },
+      {
+        "args": [
+          []
+        ],
+        "op": "sniffImageType",
+        "result": null
+      }
+    ],
+    "test": "sniffImageType > knows nothing else"
+  },
+  {
+    "calls": [
+      {
+        "args": [
+          "what is this?\n\n[Image attached at: /root/.hermes/images/upload_1.png]\ndata:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNkYPhfDwAChwGA60e6kgAAAABJRU5ErkJggg=="
+        ],
+        "op": "stripUserText",
+        "result": {
+          "inlineImages": [
+            {
+              "data": "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNkYPhfDwAChwGA60e6kgAAAABJRU5ErkJggg==",
+              "mime": "image/png",
+              "name": "upload_1.png"
+            }
+          ],
+          "text": "what is this?"
+        }
+      }
+    ],
+    "test": "the transcript uses it > stripUserText lifts the pictures out of a user turn"
+  },
+  {
+    "calls": [
+      {
+        "args": [
+          "look @file:/x/report.pdf\n[Image attached at: /x/shot.png]"
+        ],
+        "op": "stripUserText",
+        "result": {
+          "attachments": [
+            "@file:/x/report.pdf",
+            "@image:/x/shot.png"
+          ],
+          "text": "look"
+        }
+      }
+    ],
+    "test": "the transcript uses it > a handle alone becomes an attachment reference next to the other references"
+  },
+  {
+    "calls": [
+      {
+        "args": [
+          "[Image attached at: /x/a.png]\ndata:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNkYPhfDwAChwGA60e6kgAAAABJRU5ErkJggg=="
+        ],
+        "op": "stripUserText",
+        "result": {
+          "inlineImages": [
+            {
+              "data": "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNkYPhfDwAChwGA60e6kgAAAABJRU5ErkJggg==",
+              "mime": "image/png",
+              "name": "a.png"
+            }
+          ],
+          "text": ""
+        }
+      }
+    ],
+    "test": "the transcript uses it > a turn that was nothing but a picture still has a body to show"
+  },
+  {
+    "calls": [
+      {
+        "args": [
+          "what is this?\n\n[Image attached at: /root/.hermes/images/upload_1.png]\ndata:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNkYPhfDwAChwGA60e6kgAAAABJRU5ErkJggg=="
+        ],
+        "op": "classifyUserRow",
+        "result": {
+          "inlineImages": [
+            {
+              "data": "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNkYPhfDwAChwGA60e6kgAAAABJRU5ErkJggg==",
+              "mime": "image/png",
+              "name": "upload_1.png"
+            }
+          ],
+          "kind": "user",
+          "steered": false,
+          "text": "what is this?"
+        }
+      }
+    ],
+    "test": "the transcript uses it > classifyUserRow carries them"
+  },
+  {
+    "calls": [
+      {
+        "args": [
+          [
+            {
+              "content": "what is this?\n\n[Image attached at: /root/.hermes/images/upload_1.png]\ndata:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNkYPhfDwAChwGA60e6kgAAAABJRU5ErkJggg==",
+              "role": "user"
+            }
+          ],
+          "rest"
+        ],
+        "op": "rowsToItems",
+        "result": [
+          {
+            "id": "user:0",
+            "inlineImages": [
+              {
+                "data": "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNkYPhfDwAChwGA60e6kgAAAABJRU5ErkJggg==",
+                "mime": "image/png",
+                "name": "upload_1.png"
+              }
+            ],
+            "kind": "user",
+            "origin": "history",
+            "seq": 0,
+            "text": "what is this?",
+            "version": 0
+          }
+        ]
+      }
+    ],
+    "test": "the transcript uses it > a history row becomes a user item with its pictures and no marker in the text"
+  },
+  {
+    "calls": [
+      {
+        "args": [
+          [
+            {
+              "content": "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNkYPhfDwAChwGA60e6kgAAAABJRU5ErkJggg==",
+              "role": "user"
+            }
+          ],
+          "rest"
+        ],
+        "op": "rowsToItems",
+        "result": [
+          {
+            "id": "user:0",
+            "inlineImages": [
+              {
+                "data": "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNkYPhfDwAChwGA60e6kgAAAABJRU5ErkJggg==",
+                "mime": "image/png",
+                "name": "Image"
+              }
+            ],
+            "kind": "user",
+            "origin": "history",
+            "seq": 0,
+            "text": "",
+            "version": 0
+          }
+        ]
+      }
+    ],
+    "test": "the transcript uses it > a row of nothing but a picture is kept"
+  },
+  {
+    "calls": [
+      {
+        "args": [
+          [
+            {
+              "content": "Here you go\n\n![chart](data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNkYPhfDwAChwGA60e6kgAAAABJRU5ErkJggg==)",
+              "role": "assistant"
+            }
+          ],
+          "rest"
+        ],
+        "op": "rowsToItems",
+        "result": [
+          {
+            "id": "assistant:0",
+            "inlineImages": [
+              {
+                "data": "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNkYPhfDwAChwGA60e6kgAAAABJRU5ErkJggg==",
+                "mime": "image/png",
+                "name": "Image"
+              }
+            ],
+            "interim": false,
+            "kind": "assistant",
+            "origin": "history",
+            "seq": 0,
+            "status": "complete",
+            "streaming": false,
+            "text": "Here you go",
+            "version": 0
+          }
+        ]
+      }
+    ],
+    "test": "the transcript uses it > a reply gets the same treatment"
+  }
+]

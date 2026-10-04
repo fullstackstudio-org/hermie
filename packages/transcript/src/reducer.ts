@@ -14,6 +14,7 @@ import {
 import type { ParsedCronDelivery } from './cron-delivery'
 import { callKeyOf, promptRowsOf, rowIdOf, turnIdOfMetadata } from './identity'
 import { type InjectedRow, isInjectedNotice } from './injected'
+import type { InlineImage } from './inline-images'
 import {
   attachmentsMatchKey,
   classifyUserRow,
@@ -2166,6 +2167,8 @@ type InflightPrompt = {
   carried: string
   /** Those references themselves, for the item this prompt projects to. */
   refs?: string[]
+  /** The pictures the prompt held as `data:` blobs. */
+  inlineImages?: InlineImage[]
   /** The words a bubble would show: the prompt with every wrapper taken off. */
   speech?: string
   kind: UserRowClass['kind']
@@ -2233,6 +2236,7 @@ function readInflightPrompt(userText: string): InflightPrompt {
         key: normalizeMatchText(classified.text),
         carried: attachmentsMatchKey(classified.attachments),
         ...(classified.attachments ? { refs: classified.attachments } : {}),
+        ...(classified.inlineImages ? { inlineImages: classified.inlineImages } : {}),
         speech: classified.text,
         kind: 'user'
       }
@@ -2510,6 +2514,7 @@ export function applyResumeSnapshot(state: ChatState, snapshot: ResumeSnapshot, 
                 // file resumes as an empty bubble, and the row that lands for it has
                 // nothing to pair with and becomes a second one.
                 ...(prompt.refs ? { attachments: prompt.refs } : {}),
+                ...(prompt.inlineImages ? { inlineImages: prompt.inlineImages } : {}),
                 ...(turnId ? { turnId } : {}),
                 ts: now / 1000
               }

@@ -30,6 +30,15 @@ extension GoldenOps {
       return classifyUserRow(try args.string(0), labelled: labelled).jsonValue
     },
     "stripUserText": { args in stripUserText(try args.string(0)).jsonValue },
+    "scanInlineImages": { args in scanInlineImages(try args.string(0)).jsonValue },
+    "sniffImageType": { args in
+      guard case .array(let values)? = args.raw(0) else { throw GoldenHarnessError("argument 0 is not an array") }
+      let bytes = try values.map { value -> UInt8 in
+        guard let number = value.doubleValue, number >= 0, number <= 255 else { throw GoldenHarnessError("argument 0 holds a non-byte") }
+        return UInt8(number)
+      }
+      return sniffImageType(bytes).map(JSONValue.string) ?? .null
+    },
     "normalizeMatchText": { args in .string(normalizeMatchText(try args.string(0))) },
     "attachmentRefName": { args in .string(attachmentRefName(try args.string(0))) },
     "attachmentsMatchKey": { args in

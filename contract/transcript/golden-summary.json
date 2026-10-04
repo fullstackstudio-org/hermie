@@ -94,8 +94,8 @@
     },
     "classifyUserRow": {
       "readsClock": false,
-      "recorded": 9,
-      "replayable": 9,
+      "recorded": 10,
+      "replayable": 10,
       "skipped": {}
     },
     "confirmSubmit": {
@@ -316,8 +316,8 @@
     },
     "rowsToItems": {
       "readsClock": false,
-      "recorded": 772,
-      "replayable": 772,
+      "recorded": 775,
+      "replayable": 775,
       "skipped": {}
     },
     "runningSubagents": {
@@ -326,10 +326,22 @@
       "replayable": 2,
       "skipped": {}
     },
+    "scanInlineImages": {
+      "readsClock": false,
+      "recorded": 18,
+      "replayable": 18,
+      "skipped": {}
+    },
     "snapshotForCache": {
       "readsClock": false,
       "recorded": 69,
       "replayable": 69,
+      "skipped": {}
+    },
+    "sniffImageType": {
+      "readsClock": false,
+      "recorded": 7,
+      "replayable": 7,
       "skipped": {}
     },
     "stateFromCache": {
@@ -346,8 +358,8 @@
     },
     "stripUserText": {
       "readsClock": false,
-      "recorded": 3,
-      "replayable": 3,
+      "recorded": 6,
+      "replayable": 6,
       "skipped": {}
     },
     "subagentTree": {

@@ -149,7 +149,7 @@ extension TranscriptReducer {
       case notice(InjectedRow)
       /// The words a bubble would show (the prompt with every wrapper taken off),
       /// and the references the prompt itself names.
-      case user(speech: String, refs: [String]?)
+      case user(speech: String, refs: [String]?, inlineImages: [InlineImage]?)
     }
 
     var raw: String
@@ -216,12 +216,12 @@ extension TranscriptReducer {
         kind: .notice(injected)
       )
 
-    case .user(let text, let attachments, _):
+    case .user(let text, let attachments, let inlineImages, _):
       return InflightPrompt(
         raw: userText,
         key: normalizeMatchText(text),
         carried: attachmentsMatchKey(attachments),
-        kind: .user(speech: text, refs: attachments)
+        kind: .user(speech: text, refs: attachments, inlineImages: inlineImages)
       )
     }
   }
@@ -410,12 +410,12 @@ extension TranscriptReducer {
     case .notice(let injected):
       return .notice(NoticeItem(base: base, noticeKind: injected.noticeKind, title: injected.title, body: injected.body))
 
-    case .user(let speech, let refs):
+    case .user(let speech, let refs, let inlineImages):
       // The references too, for the same reason the projection lifts them out of
       // the text: without them a prompt that was nothing but a file resumes as an
       // empty bubble, and the row that lands for it has nothing to pair with and
       // becomes a second one.
-      return .user(UserItem(base: base, text: speech, attachments: refs, turnID: turnID))
+      return .user(UserItem(base: base, text: speech, attachments: refs, inlineImages: inlineImages, turnID: turnID))
 
     case .botDmReply:
       // Never projected (see `projectable`); the TypeScript's draft would fall

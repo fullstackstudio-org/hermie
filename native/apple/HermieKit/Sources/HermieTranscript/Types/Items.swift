@@ -96,6 +96,11 @@ public struct UserItem: TranscriptItemProtocol {
   /// name (`attachmentName` in the chat kit) and the reconciliation key
   /// (`attachmentsMatchKey`) both read the name off the reference.
   public var attachments: [String]?
+  /// Pictures the turn held in its own text (a `data:image/…;base64,…` blob the gateway kept beside its
+  /// `[Image attached at: …]` handle), lifted out by `stripUserText` so the text never shows them. Only
+  /// blobs that decode (type, size, first bytes) are here; a handle or a blob that cannot be shown is an
+  /// `attachments` reference instead.
+  public var inlineImages: [InlineImage]?
   /// Submitted locally, not yet acknowledged by the gateway.
   public var pending: Bool?
   public var displayKind: UserDisplayKind?
@@ -112,6 +117,7 @@ public struct UserItem: TranscriptItemProtocol {
     base: ItemBase,
     text: String,
     attachments: [String]? = nil,
+    inlineImages: [InlineImage]? = nil,
     pending: Bool? = nil,
     displayKind: UserDisplayKind? = nil,
     unknownAuthor: Bool? = nil,
@@ -123,6 +129,7 @@ public struct UserItem: TranscriptItemProtocol {
     self.base = base
     self.text = text
     self.attachments = attachments
+    self.inlineImages = inlineImages
     self.pending = pending
     self.displayKind = displayKind
     self.unknownAuthor = unknownAuthor
@@ -138,6 +145,7 @@ public struct UserItem: TranscriptItemProtocol {
     base = try ItemBase(reading: &reader)
     text = try reader.required("text")
     attachments = reader.optional("attachments")
+    inlineImages = reader.optional("inlineImages")
     pending = reader.optional("pending")
     displayKind = reader.optional("displayKind")
     unknownAuthor = reader.optional("unknownAuthor")
@@ -150,6 +158,7 @@ public struct UserItem: TranscriptItemProtocol {
     var writer = ObjectWriter.item(Self.kind, base, extra: extra)
     writer.set("text", text)
     writer.set("attachments", attachments)
+    writer.set("inlineImages", inlineImages)
     writer.set("pending", pending)
     writer.set("displayKind", displayKind)
     writer.set("unknownAuthor", unknownAuthor)
@@ -268,6 +277,10 @@ public struct AssistantItem: TranscriptItemProtocol {
   public var durationS: Double?
   /// Set when this reply answers an inbound DM rather than the human.
   public var replyToBotHandle: String?
+  /// Pictures a persisted reply held as `data:` blobs in its text (see `UserItem.inlineImages`).
+  public var inlineImages: [InlineImage]?
+  /// `@image:` references for handles in a persisted reply whose picture it does not hold.
+  public var attachments: [String]?
   public var extra: JSONObject
 
   public init(
@@ -282,10 +295,14 @@ public struct AssistantItem: TranscriptItemProtocol {
     usage: Usage? = nil,
     durationS: Double? = nil,
     replyToBotHandle: String? = nil,
+    inlineImages: [InlineImage]? = nil,
+    attachments: [String]? = nil,
     extra: JSONObject = [:]
   ) {
     self.base = base
     self.text = text
+    self.inlineImages = inlineImages
+    self.attachments = attachments
     self.reasoning = reasoning
     self.reasoningVerbose = reasoningVerbose
     self.streaming = streaming
@@ -312,6 +329,8 @@ public struct AssistantItem: TranscriptItemProtocol {
     usage = reader.optional("usage")
     durationS = reader.optional("durationS")
     replyToBotHandle = reader.optional("replyToBotHandle")
+    inlineImages = reader.optional("inlineImages")
+    attachments = reader.optional("attachments")
     extra = reader.residue
   }
 
@@ -327,6 +346,8 @@ public struct AssistantItem: TranscriptItemProtocol {
     writer.set("usage", usage)
     writer.set("durationS", durationS)
     writer.set("replyToBotHandle", replyToBotHandle)
+    writer.set("inlineImages", inlineImages)
+    writer.set("attachments", attachments)
     return writer.json
   }
 }

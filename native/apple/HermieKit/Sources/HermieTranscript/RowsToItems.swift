@@ -182,22 +182,27 @@ private func codexMessageItemText(_ value: JSONValue?) -> String {
 public struct StrippedUserText: TranscriptJSONCodable, Hashable {
   public var text: String
   public var attachments: [String]?
+  /// Pictures the text held as `data:image/…;base64,…` blobs (`scanInlineImages`).
+  public var inlineImages: [InlineImage]?
 
-  public init(text: String, attachments: [String]? = nil) {
+  public init(text: String, attachments: [String]? = nil, inlineImages: [InlineImage]? = nil) {
     self.text = text
     self.attachments = attachments
+    self.inlineImages = inlineImages
   }
 
   public init(decoding json: JSONValue, at path: String) throws(TranscriptDecodingError) {
     var reader = try ObjectReader(json, at: path, type: "StrippedUserText")
     text = try reader.required("text")
     attachments = reader.optional("attachments")
+    inlineImages = reader.optional("inlineImages")
   }
 
   public var jsonValue: JSONValue {
     var writer = ObjectWriter(extra: [:])
     writer.set("text", text)
     writer.set("attachments", attachments)
+    writer.set("inlineImages", inlineImages)
     return writer.json
   }
 }
@@ -232,23 +237,32 @@ public func stripUserText(_ raw: String) -> StrippedUserText {
   }
 
   let attachments = JS.unique(RowPatterns.attachmentRef.allMatches(in: visible))
+  var cleaned = visible
 
-  if attachments.isEmpty {
-    return StrippedUserText(text: visible)
+  if !attachments.isEmpty {
+    let lines = JS.split(RowPatterns.attachmentRef.replaceAll(in: visible, with: ""), "\n")
+      .map { JS.trim(RowPatterns.blankRun.replaceAll(in: $0, with: " ")) }
+    cleaned = JS.trim(
+      lines.enumerated()
+        // A directive line that held nothing but refs leaves a hole; collapse runs
+        // of blank lines rather than opening a gap in the bubble.
+        .filter { index, line in !line.isEmpty || (index > 0 && !JS.trim(lines[index - 1]).isEmpty) }
+        .map(\.element)
+        .joined(separator: "\n")
+    )
   }
 
-  let lines = JS.split(RowPatterns.attachmentRef.replaceAll(in: visible, with: ""), "\n")
-    .map { JS.trim(RowPatterns.blankRun.replaceAll(in: $0, with: " ")) }
-  let cleaned = JS.trim(
-    lines.enumerated()
-      // A directive line that held nothing but refs leaves a hole; collapse runs
-      // of blank lines rather than opening a gap in the bubble.
-      .filter { index, line in !line.isEmpty || (index > 0 && !JS.trim(lines[index - 1]).isEmpty) }
-      .map(\.element)
-      .joined(separator: "\n")
-  )
+  // The gateway's `[Image attached at: <path>]` handles, and the pictures older sessions kept as
+  // `data:` blobs beside them. A handle is one more attachment; a blob that decodes is drawn from
+  // the bytes the row already holds.
+  let scan = scanInlineImages(cleaned)
+  let references = JS.unique(attachments + scan.references)
 
-  return StrippedUserText(text: cleaned, attachments: attachments)
+  return StrippedUserText(
+    text: scan.text,
+    attachments: references.isEmpty ? nil : references,
+    inlineImages: scan.images.isEmpty ? nil : scan.images
+  )
 }
 
 // MARK: - classifyUserRow
@@ -264,7 +278,7 @@ public enum UserRowClass: TranscriptJSONCodable, Hashable {
   case botDmIn(IncomingBotMessage)
   case botDmReply
   case notice(InjectedRow)
-  case user(text: String, attachments: [String]?, steered: Bool)
+  case user(text: String, attachments: [String]?, inlineImages: [InlineImage]?, steered: Bool)
 
   // Spelled out: the synthesised `Codable` of an enum with payloads is not this shape.
   public init(from decoder: any Decoder) throws { self = try Self.decoded(from: decoder) }
@@ -282,6 +296,7 @@ public enum UserRowClass: TranscriptJSONCodable, Hashable {
       self = .user(
         text: try reader.required("text"),
         attachments: reader.optional("attachments"),
+        inlineImages: reader.optional("inlineImages"),
         steered: try reader.required("steered")
       )
     default:
@@ -303,10 +318,11 @@ public enum UserRowClass: TranscriptJSONCodable, Hashable {
     case .notice(let injected):
       writer.set("kind", "notice")
       writer.set("injected", injected)
-    case .user(let text, let attachments, let steered):
+    case .user(let text, let attachments, let inlineImages, let steered):
       writer.set("kind", "user")
       writer.set("text", text)
       writer.set("attachments", attachments)
+      writer.set("inlineImages", inlineImages)
       writer.set("steered", steered)
     }
     return writer.json
@@ -361,7 +377,9 @@ public func classifyUserRow(_ text: String, labelled: Bool = false) -> UserRowCl
   let unwrapped = stripSteerWrapper(text)
   let stripped = stripUserText(unwrapped ?? text)
 
-  return .user(text: stripped.text, attachments: stripped.attachments, steered: unwrapped != nil)
+  return .user(
+    text: stripped.text, attachments: stripped.attachments, inlineImages: stripped.inlineImages,
+    steered: unwrapped != nil)
 }
 
 // MARK: - rowsToItems
@@ -624,9 +642,10 @@ private struct RowProjection {
     let reasoning =
       nonEmptyString(row["reasoning"]) ?? nonEmptyString(row["reasoning_content"])
       ?? nonEmptyString(row["reasoning_details"]) ?? ""
-    let text = facts.content.isEmpty ? codexMessageItemText(row["codex_message_items"]) : facts.content
+    let scan = scanInlineImages(facts.content.isEmpty ? codexMessageItemText(row["codex_message_items"]) : facts.content)
+    let text = scan.text
 
-    if text.isEmpty && reasoning.isEmpty {
+    if text.isEmpty && reasoning.isEmpty && scan.images.isEmpty && scan.references.isEmpty {
       return
     }
 
@@ -638,7 +657,9 @@ private struct RowProjection {
           reasoning: reasoning.isEmpty ? nil : reasoning,
           streaming: false,
           interim: false,
-          status: .complete
+          status: .complete,
+          inlineImages: scan.images.isEmpty ? nil : scan.images,
+          attachments: scan.references.isEmpty ? nil : scan.references
         )
       )
     )
@@ -849,15 +870,15 @@ private struct RowProjection {
 
       return
 
-    case .user(let text, let attachments, let wasSteered):
-      stripped = StrippedUserText(text: text, attachments: attachments)
+    case .user(let text, let attachments, let inlineImages, let wasSteered):
+      stripped = StrippedUserText(text: text, attachments: attachments, inlineImages: inlineImages)
       steered = wasSteered
 
     case nil:
       stripped = stripUserText(content)
     }
 
-    if stripped.text.isEmpty && (stripped.attachments ?? []).isEmpty {
+    if stripped.text.isEmpty && (stripped.attachments ?? []).isEmpty && (stripped.inlineImages ?? []).isEmpty {
       return
     }
 
@@ -876,6 +897,7 @@ private struct RowProjection {
           base: base(facts, id: facts.fallbackID),
           text: stripped.text,
           attachments: stripped.attachments,
+          inlineImages: stripped.inlineImages,
           displayKind: speechKind,
           author: author,
           replayedBy: replayedBy
