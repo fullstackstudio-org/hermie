@@ -142,7 +142,7 @@ It prints what it measured against each limit.
 ### What the first load carries
 
 The limit is not to be raised to make room: what the first screen (signing in, the chat list, an open chat) does not
-draw is kept out of the entry instead. Four things do that today.
+draw is kept out of the entry instead. These do that today.
 
 - **Only the strings the client reads.** `src/generated/locales/<tag>.json` holds every string of the Expo app, and
   the client reads a small part of them. The build bundles only that part (`catalogueOnlyWhatIsRead` in
@@ -166,6 +166,16 @@ draw is kept out of the entry instead. Four things do that today.
   opened or when its link on the home is reached. The pages' words are in `sheet-strings.ts` with the rest of what a
   chunk says; the catalogue's words they read (the Expo app's titles for Account, Chats, Appearance and About, the
   layout words of the chat list) are the entry's English and a chunk per other language, as every catalogue read is.
+- **The chat screen** is a chunk of its own (`features/chat/ChatScreen.tsx` and everything only it draws: the
+  transcript list, the item views, the Markdown renderer and `marked`, the composer, the message menu's layer, the
+  attachment tray, find in chat, and the styles of those; `features/chat/load.ts` is the only part the entry imports).
+  `App` draws the frame and the list without it, asks for the chunk once it has drawn (`preloadChatScreen`), and shows an
+  empty, `aria-busy` main pane under a `Suspense` boundary for a chat route that is opened before it has arrived (`Layout`
+  moves focus to the main heading on a route change, and does not wait for the screen). The frame's own rules for a
+  chat route (`.hm-main[data-screen='chat']`, in `features/shell/shell.css`) stay in the first load. The chat controller,
+  the transcript reducer and the models beside it are not part of this: they start with the session. Keep the entry
+  free of imports from `features/chat/` other than `load.ts`, `chat-runtime.tsx`, `drafts.ts`, `use-own-author.ts` and
+  `PersonAvatar.tsx`.
 - **What a chat opens on request** is a chunk of its own through `React.lazy`: the message menu
   (`MessageMenuPopup.tsx`, fetched the first time the reader points at a message or moves to one), the chat options'
   panel (`ChatOptionsPanel.tsx`, fetched when its button is pointed at or focused) and the image viewer

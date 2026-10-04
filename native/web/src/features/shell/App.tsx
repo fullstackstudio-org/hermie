@@ -50,7 +50,7 @@ import { setPageTitle } from '../../platform/page-title'
 import { botsStore } from '../../state/bots'
 import { pluginStore } from '../../state/plugin'
 import { ChatList } from '../bots/ChatList'
-import { ChatScreen } from '../chat/ChatScreen'
+import { loadChatScreen, preloadChatScreen } from '../chat/load'
 import { ChatRuntimeContext, type ChatSessionRuntime } from '../chat/chat-runtime'
 import { loadSettingsHost } from '../settings/load'
 import { type McpActions, McpRuntimeContext } from '../settings/mcp-runtime'
@@ -70,6 +70,13 @@ import { SidebarFooter } from './SidebarFooter'
  * inside it.
  */
 const SettingsHost = lazy(() => loadSettingsHost().then(module => ({ default: module.SettingsHost })))
+
+/**
+ * The chat screen is one too (`features/chat/load.ts`): the transcript, the Markdown renderer, the
+ * composer and the message menu are drawn only once a chat is opened, and the app asks for the chunk
+ * as soon as it has drawn once, so an open chat rarely waits for it.
+ */
+const ChatScreen = lazy(() => loadChatScreen().then(module => ({ default: module.ChatScreen })))
 
 /** So is a bot's Conversations page, fetched when `#/chat/<bot>/conversations` is opened. */
 const ConversationsPage = lazy(() =>
@@ -155,6 +162,11 @@ export function App({
           ? strings.app.settings.title
           : appName
 
+  // Once the frame has been drawn, fetch the chat screen's chunk if no route has asked for it yet.
+  useEffect(() => {
+    preloadChatScreen()
+  }, [])
+
   // The tab says where you are; the app's own name stands alone on the home route.
   useEffect(() => {
     setPageTitle(route.name === 'home' ? undefined : heading)
@@ -191,11 +203,13 @@ export function App({
                   }
                 >
                   {route.name === 'chat' ? (
-                    <ChatScreen
-                      key={formatRoute(route)}
-                      bot={route.bot}
-                      {...(route.session ? { session: route.session } : {})}
-                    />
+                    <Suspense fallback={<div className="hm-main__body" aria-busy="true" />}>
+                      <ChatScreen
+                        key={formatRoute(route)}
+                        bot={route.bot}
+                        {...(route.session ? { session: route.session } : {})}
+                      />
+                    </Suspense>
                   ) : route.name === 'conversations' ? (
                     <Suspense fallback={<div className="hm-main__body" aria-busy="true" />}>
                       <ConversationsPage key={formatRoute(route)} bot={route.bot} router={router} />

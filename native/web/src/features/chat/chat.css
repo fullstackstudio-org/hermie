@@ -16,30 +16,6 @@
  * they hold still for a reader who asked for less motion.
  */
 
-.hm-main[data-screen='chat'] {
-  overflow: hidden;
-  padding: 0;
-}
-
-/* Everything above the transcript keeps the pane's gutter. */
-.hm-main[data-screen='chat'] > .hm-main__title,
-.hm-main[data-screen='chat'] .hm-chat-header,
-.hm-main[data-screen='chat'] .hm-chat__banner {
-  padding-inline: var(--hm-gutter);
-}
-
-.hm-main[data-screen='chat'] > .hm-back {
-  margin-inline: calc(var(--hm-gutter) - 8px);
-}
-
-@media (min-width: 900px) {
-  .hm-main[data-screen='chat'] > .hm-main__title,
-  .hm-main[data-screen='chat'] .hm-chat-header,
-  .hm-main[data-screen='chat'] .hm-chat__banner {
-    padding-inline: 32px;
-  }
-}
-
 .hm-chat {
   display: flex;
   flex: 1 1 auto;

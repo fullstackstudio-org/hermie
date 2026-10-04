@@ -27,6 +27,7 @@ import { sessionStatusStore } from '../../state/session-status'
 import { assistantItem, chatWith, userItem } from '../../test-support/chat-fixtures'
 import { aBot, resetShellStores, seedRoster } from '../../test-support/shell-stores'
 import type { ChatSessionRuntime } from '../chat/chat-runtime'
+import { loadChatScreen } from '../chat/load'
 import { App } from '../shell/App'
 import { preloadRequestSheets } from './request-sheets'
 
@@ -104,12 +105,19 @@ const runtime = (): ChatSessionRuntime => ({
   } as unknown as ChatSessionRuntime['controller']
 })
 
-const mount = (hash = '#/chat/researcher') => {
+/** The chat screen is a chunk of its own: draw the app, then wait for the screen to arrive. */
+const mount = async (hash = '#/chat/researcher') => {
   const router = createHashRouter(null)
 
   router.navigate(hash)
 
-  return render(<App user="Tester" onSignIn={() => {}} onSignOut={() => {}} router={router} chat={runtime()} />)
+  const view = render(<App user="Tester" onSignIn={() => {}} onSignOut={() => {}} router={router} chat={runtime()} />)
+
+  await act(async () => {
+    await loadChatScreen()
+  })
+
+  return view
 }
 
 const approval = (): void =>
@@ -135,14 +143,14 @@ describe('the composer and the request layer, through axe', () => {
     beforeEach(() => applyTheme({ scheme, tint: 'blue' }))
 
     it('has no violation with the composer on a conversation', async () => {
-      mount()
+      await mount()
 
       expect(screen.getByRole('textbox', { name: 'Message Dr. Researcher' })).toBeTruthy()
       expect(await violations()).toEqual([])
     })
 
     it('has no violation with attachments in every state and files dragged over the chat', async () => {
-      const { container } = mount()
+      const { container } = await mount()
       const picker = container.querySelector<HTMLInputElement>('input[type="file"]')!
       const files = ['ready.csv', 'slow.csv', 'refused.csv', 'shot.png'].map(
         name => new File(['abc'], name, { type: name.endsWith('.png') ? 'image/png' : 'text/csv' })
@@ -160,7 +168,7 @@ describe('the composer and the request layer, through axe', () => {
     })
 
     it('has no violation with a queue, a failure and the completions open', async () => {
-      mount()
+      await mount()
       act(() => {
         chatsStore.getState().enqueue('researcher', { id: 'q:1', text: 'first waiting message' })
         chatsStore.getState().enqueue('researcher', { id: 'q:2', text: 'second', attachments: ['@file:/srv/a.pdf'] })
@@ -183,14 +191,14 @@ describe('the composer and the request layer, through axe', () => {
           turn: { active: true } as never
         })
       )
-      mount()
+      await mount()
 
       expect(screen.getByRole('button', { name: 'Stop' })).toBeTruthy()
       expect(await violations()).toEqual([])
     })
 
     it('has no violation with an approval open over the chat', async () => {
-      mount()
+      await mount()
       approval()
 
       expect(screen.getByRole('dialog')).toBeTruthy()
@@ -198,7 +206,7 @@ describe('the composer and the request layer, through axe', () => {
     })
 
     it('has no violation with a smart-denied approval, and with one answer for several ticked', async () => {
-      mount()
+      await mount()
       approval()
       act(() =>
         chatsStore.getState().dispatchServerRequest('researcher', {
@@ -232,14 +240,14 @@ describe('the composer and the request layer, through axe', () => {
     })
 
     it('has no violation with a clarify open over another bot’s chat', async () => {
-      mount()
+      await mount()
       clarify({ question: 'Which of these?', choices: ['Alpha', 'Beta'], request_id: 'q1' })
 
       expect(await violations()).toEqual([])
     })
 
     it('has no violation with a multi-select, and with a step of a batch', async () => {
-      mount()
+      await mount()
       clarify({
         request_id: 'b1',
         questions: [
@@ -263,7 +271,7 @@ describe('the composer and the request layer, through axe', () => {
 
   it.each(['nl', 'de'] as const)('has no violation in %s, with an approval open', async locale => {
     await setLanguageChoice(locale)
-    mount()
+    await mount()
     approval()
 
     expect(document.documentElement.lang).toBe(locale)
@@ -286,7 +294,7 @@ describe('the composer and the request layer, through axe', () => {
           ]
         })
       })
-      mount()
+      await mount()
       act(() =>
         connectionsStore.setState({
           cards: {

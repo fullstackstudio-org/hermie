@@ -31,6 +31,7 @@ import {
 } from '../../test-support/chat-fixtures'
 import { aBot, resetShellStores, seedRoster } from '../../test-support/shell-stores'
 import { App } from '../shell/App'
+import { loadChatScreen } from './load'
 import type { ChatSessionRuntime } from './chat-runtime'
 
 beforeEach(() => {
@@ -102,12 +103,19 @@ const runtime = (): ChatSessionRuntime => ({
   } as unknown as ChatSessionRuntime['controller']
 })
 
-const mount = (hash = '#/chat/researcher') => {
+/** The chat screen is a chunk of its own: draw the app, then wait for the screen to arrive. */
+const mount = async (hash = '#/chat/researcher') => {
   const router = createHashRouter(null)
 
   router.navigate(hash)
 
-  return render(<App user="Tester" onSignIn={() => {}} onSignOut={() => {}} router={router} chat={runtime()} />)
+  const view = render(<App user="Tester" onSignIn={() => {}} onSignOut={() => {}} router={router} chat={runtime()} />)
+
+  await act(async () => {
+    await loadChatScreen()
+  })
+
+  return view
 }
 
 describe('the chat screen, through axe', () => {
@@ -120,7 +128,7 @@ describe('the chat screen, through axe', () => {
 
     it('has no violation with a conversation of every kind on it', async () => {
       chatsStore.getState().hydrate('researcher', conversation())
-      mount()
+      await mount()
 
       expect(document.querySelectorAll('[data-row-key]').length).toBeGreaterThan(10)
       expect(await violations()).toEqual([])
@@ -128,7 +136,7 @@ describe('the chat screen, through axe', () => {
 
     it('has no violation with a tool opened and a reader scrolled away from the bottom', async () => {
       chatsStore.getState().hydrate('researcher', conversation())
-      const { container } = mount()
+      const { container } = await mount()
 
       container.querySelector<HTMLButtonElement>('.hm-tool__line')?.click()
       expect(await violations()).toEqual([])
@@ -148,7 +156,7 @@ describe('the chat screen, through axe', () => {
           ]
         }
       })
-      const { container } = mount()
+      const { container } = await mount()
 
       expect(container.querySelector('[data-generating]')).toBeTruthy()
       container.querySelector<HTMLButtonElement>('.hm-todo__head')?.click()
@@ -158,18 +166,18 @@ describe('the chat screen, through axe', () => {
     })
 
     it('has no violation while the chat is empty, loading or has failed to open', async () => {
-      const first = mount()
+      const first = await mount()
 
       expect(await violations()).toEqual([])
       first.unmount()
 
       chatsStore.getState().hydrate('researcher', chatWith('researcher', []))
-      const second = mount()
+      const second = await mount()
 
       expect(await violations()).toEqual([])
       second.unmount()
 
-      mount('#/chat/ghost')
+      await mount('#/chat/ghost')
       expect(await violations()).toEqual([])
     })
   })
@@ -177,7 +185,7 @@ describe('the chat screen, through axe', () => {
   it.each(['nl', 'de'] as const)('has no violation in %s', async locale => {
     chatsStore.getState().hydrate('researcher', conversation())
     await setLanguageChoice(locale)
-    mount()
+    await mount()
 
     expect(document.documentElement.lang).toBe(locale)
     expect(await violations()).toEqual([])
@@ -185,7 +193,7 @@ describe('the chat screen, through axe', () => {
 
   it('has no violation on a past conversation, read-only', async () => {
     chatsStore.getState().hydrate('researcher#old', conversation())
-    mount('#/chat/researcher/s/old')
+    await mount('#/chat/researcher/s/old')
 
     expect(await violations()).toEqual([])
   })
