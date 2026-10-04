@@ -55,6 +55,36 @@ Which sign-in providers a gateway offers is the gateway's configuration. The old
 provider is gone; a gateway whose `dashboard.oauth.self_hosted.issuer` pointed at it needs another
 provider.
 
+## Managing the gateway
+
+Settings holds five pages that manage what a bot can do on the gateway, and the bot's profile page two more
+controls. All of them are chunks of their own, fetched when the page is opened, and every string in an answer is
+the gateway's and drawn as characters.
+
+- **Memory** reads the Hermie plugin's memory routes (`/api/plugins/hermie/memory`, `memory.browse`, and
+  `memory.edit` for the controls) for the bot that is picked: MEMORY.md and USER.md with their usage, an entry
+  edited with a draft or removed after a question, a new one added, the plugin's own search, and the raw documents.
+- **Skills** joins `skills.manage {list}` (what is installed) with `profiles.describe` (what is on); a switch writes
+  the whole disabled set through `profiles.configure`, one write after another. The hub is browsed (`browse`),
+  searched (`search`), opened (`inspect`) and installed from (`install`). The gateway has no action that
+  uninstalls.
+- **MCP servers** are the servers a bot reaches tools through (`mcp.servers.*`, not Settings › MCP, which is the
+  gateway's own endpoint for agents). The config and the cached state are shown side by side and nothing is tested
+  until the reader asks; a probe says whether a server works. An authorisation walks the PKCE flow: the sign-in
+  address is shown as a link, not opened by the page. A server is added from `mcp.catalog` or from an address or a
+  command, and removed after a question.
+- **Connectors** call `connectors.*` as the account (`owner: {type: "account"}`), never with a chat's session id.
+  The vendor's sign-in address is a link; the page follows the operation, and wakes it when the reader comes
+  back to the tab. There is no Disconnect: the gateway offers none.
+- **Boards** read the Kanban plugin's router (`/api/plugins/kanban`); a gateway without it gets what to install. A
+  card is moved through a menu that never lists the dispatcher's columns.
+- **Profile page.** The personality is `profiles.configure {soul}`, written exactly as typed, and the model is
+  `profiles.configure {model, provider}` with the id as `model.options` spells it; an expensive model answers
+  `confirm_required` and is written only after the reader confirms.
+
+Every link a gateway hands over to sign in to something else is held to one rule (`authorisationLink`): plain
+`https`, a host, no credentials before it.
+
 ## Passkeys
 
 Settings › Passkeys lists the signed-in person's passkeys on the gateway (the contract is

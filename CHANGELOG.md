@@ -40,19 +40,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
-- **Dictation, read aloud and a Voice page, in the native Apple apps and the web client.** The composer gets a
-  microphone: a tap starts dictation, a tap again stops it, and what is heard goes into the field as it is heard (at
-  the caret in a browser, after what is there on iPhone, iPad and Mac), a draft like any other that nothing sends
-  until you do. A reply's menu has **Read aloud** (and **Stop reading** while it is read), a chat can read each
-  finished reply on its own from its options (never one that is still being written, and never the history it
-  already had), and **Settings > Voice** sets the speaking rate, the voice and the dictation language, and whether
-  reading stops when the app goes to the background. Reading uses the device's own voices and sends nothing
-  anywhere. **Where the audio goes when you dictate:** on iPhone, iPad and Mac the Speech framework is asked to
-  recognise on the device only, and a language with no model on the device is not offered rather than handed to
-  Apple's servers; in a browser the speech recognition is the browser's own, and Chrome sends the audio to Google
-  and Safari to Apple (Firefox has none, and shows no microphone). A browser that cannot do a half of it does not
-  draw its controls. Code is loaded only where used: the web client's first load is unchanged
-  (`docs/native.md`, `native/web/README.md`).
+- **The web client manages the gateway as the old Expo app did.** Settings gets Memory (both files of a bot's
+  memory, edited in place, searched, with the raw documents and the providers that cannot be listed), Skills (a
+  bot's switches, the hub browsed and searched, a skill's details, install), MCP servers (the servers a bot
+  reaches its tools through: test, authorise, add, remove, reload), Connectors (a bot's apps, connected as the
+  account) and Boards (the Kanban plugin's boards and cards). The bot profile page edits the bot's personality
+  (`SOUL.md`) and picks its default model, an expensive one only after a question, and a chat row's Move to folder
+  menu ends in New folder…. Sign-in addresses the gateway hands over are opened only as plain `https` links the
+  reader presses, and a destructive step asks first. A skill cannot be uninstalled and a connector cannot be
+  disconnected from here: the gateway has no call for either.
+
 - **A confirmation can show its key facts, and an agent can ask for the changes to a file hunk by hunk, in the
   native Apple apps.** A `confirm` can carry up to eight key facts (an amount, a recipient, a domain, a model, a
   count, a date, some text) that the app shows apart from the summary, an amount large and bold with its
