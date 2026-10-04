@@ -401,7 +401,7 @@ which still hands it to the center so the chat can say the bot asked for somethi
 show. The chat screen mounts it with `.secureInput(SecureInputModel(session:bot:))`; the chat list
 reads `session.secureInput.needsInput(bot)` for its marker.
 
-The interactive requests (`input.form`, `input.file`, `review.draft`, `review.diff`; `contract/requests/README.md`)
+The interactive requests (`input.form`, `input.file`, `review.draft`, `review.diff` and the device requests below; `contract/requests/README.md`)
 have their own center (`session.interactive`, `InteractiveRequestCenter`) and, per chat, an
 `InteractiveModel` that the chat screen mounts with `.interactiveRequests(_:blocked:)` (never while
 another sheet of the chat is up, never over the app lock). The session announces the device's own list
@@ -452,6 +452,31 @@ indicator for a row wider than the view (an edge fade, a chevron and a note). Ev
 "Approve all" and "Reject all" set them all, and Send is on only once every hunk is decided
 (`InteractiveDiffModel`); the answer is `{decision, hunks}` with an entry for every hunk (`approved` when some
 hunk is, `rejected` when none is), and the transcript's card keeps only how many hunks were approved and rejected.
+
+The device requests (`device.location`, `device.contact`, `device.calendar`; contract §9 to §11) have a sheet each
+(`LocationSheet`, `ContactSheet`, `CalendarSheet`) and a model of their own in `HermieCore/Interactive`, and the system
+services behind them are seams (`DeviceLocationProvider`, `DeviceCalendarStore`; the contact picker hands the model a
+`ContactSnapshot`), so the rules are tested without CoreLocation, EventKit or Contacts. A session announces a device
+request only where the device offers it (`DeviceAvailability`: `CLLocationManager.locationServicesEnabled`, the system
+contact picker, EventKit not restricted); one it announced and cannot serve (a permission refused, no fix) is answered
+`4041 permission_denied` or `location_unavailable` from its sheet, with a notice on the chat
+(`InteractiveModel.cannotShow(reason:notify:)`), never as a skip. Every frame is read strictly (`DeviceLocationRequest`,
+`DeviceContactRequest`, `DeviceCalendarRequest`): a bound, a date that does not exist, an `end` before `start`, a URL that
+is not a plain `http(s)` address or an item key the build does not have is `4041 not_supported_on_device`, and none of it
+is shown. What goes out is cut to what the person chose: **location** shows the precision and Share is the person's yes;
+only then the system's prompt (`requestWhenInUseAuthorization`) and one fix (`requestLocation`, never monitoring), with
+`kCLLocationAccuracyReduced` for approximate; a reduced-accuracy authorization is reported as approximate whatever was
+chosen; an approximate answer is cut to two decimals with an accuracy of at least 1,000 m, a precise one to six, and the
+client never sends `precise` for an `approximate` request. **Contact** uses `CNContactPickerViewController` (iOS) and
+`CNContactPicker` (macOS), which run in their own process and return the one contact chosen, so no Contacts permission is
+asked; the contact lives only in the sheet's model (wiped when the sheet goes), the boxes are limited to the requested
+fields, the preview is the answer itself (`InteractiveContactModel.shared`), and a value is cleaned and bounded as the
+contract says (a phone number or address too long for its bound is left out, never cut). **Calendar** on iPhone and iPad
+opens `EKEventEditViewController` prefilled: the answer is `done` only when the person saved there and `skipped` when
+they cancelled (or the sheet is back with Add when the request offers no skip); where there is no system sheet (the Mac,
+and a reminder anywhere) Add saves through `EKEventStore` after `requestWriteOnlyAccessToEvents` or
+`requestFullAccessToReminders`, which the sheet says before it asks. The usage strings are in `Info.plist` and the iOS
+`InfoPlist.strings` (en, nl, de); the Mac app's sandbox has the location and calendars entitlements.
 
 One sheet is up at a time on a chat (`ChatSheetOrder`). An approval, a passkey confirmation or a secure
 prompt is time-critical and goes first: a form, file request or draft review on screen steps aside the

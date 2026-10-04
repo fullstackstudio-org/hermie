@@ -60,6 +60,18 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   of the file, end of the file or the whole file), every line verbatim with its marker and tabs, and Approve or
   Reject for each hunk before anything is sent; the agent receives exactly the approved hunks (`contract/requests`,
   `contract/confirm-passkey`, `docs/native.md`).
+- **An agent can ask for your location, one contact or a calendar entry, in the native Apple apps.** A
+  `device.location` request says what would be shared and how precisely: you can share less than was asked
+  (precise down to approximate), never more, and the system's permission question comes only after you chose to
+  share, then one reading (approximate asks the system for reduced accuracy, and nothing finer than about a
+  kilometre leaves the device). A `device.contact` request opens the system's own contact picker (the app asks
+  for no access to your address book), lists the requested fields as boxes you can untick and shows exactly what
+  would be sent; only ticked fields go. A `device.calendar` request shows the event or reminder as plain text
+  (an address is never a link) and adds it only when you say so: an event on iPhone and iPad opens the system's
+  own edit sheet, and counts as added only when you save there; on the Mac, and for a reminder, Add is the save,
+  after the system's access question (write only for events). A refused permission or a missing position is told
+  to the agent and left as a note on the chat; the transcript keeps only the precision, the names of the shared
+  fields, or that an entry was added (`contract/requests`, `docs/native.md`).
 - **The web client reviews changes to a file hunk by hunk, and shows the key facts of a passkey confirmation.**
   An agent's `review.diff` opens as a sheet with the file, every hunk monospaced (the marker in a gutter, a tab a
   stop of 8 columns, never a link) and **Approve** or **Reject** on each, plus **Approve all** and **Reject all**;
