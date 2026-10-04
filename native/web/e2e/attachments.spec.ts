@@ -12,7 +12,8 @@
  *  - **By a drop.** Files dragged over the chat light up a visible target with
  *    the words "Drop file to attach"; dropped, a file and an image are staged;
  *    sent with no words, the file is uploaded and the image goes over the
- *    socket (`image.attach_bytes`), and the bubble carries both.
+ *    socket (`image.attach_bytes`), and the bubble carries both. The drop is
+ *    taken wherever in the chat it lands (the transcript, the field).
  *  - **Once (HERM-126).** Return pressed twice while the first send is still in
  *    flight sends one message and one upload, not two.
  *  - **Cancel.** A file still uploading can be cancelled; the gateway keeps
@@ -22,7 +23,7 @@
  * Nothing waits for time to pass: the page through what it shows, the gateway
  * through its state.
  */
-import type { Page } from '@playwright/test'
+import type { Locator, Page } from '@playwright/test'
 
 import { type App, expect, type Gateway, seriousViolations, test } from './fixtures'
 
@@ -40,8 +41,17 @@ async function pick(page: Page, files: { name: string; mimeType: string; buffer:
   await (await chooser).setFiles(files)
 }
 
-/** Drag files over the chat and let go, as the operating system's drag would. */
-async function drop(page: Page, files: { name: string; type: string; text: string }[]): Promise<void> {
+/**
+ * Drag files over the chat and let go, as the operating system's drag would. `over` is where in the
+ * chat the pointer is: the chat itself by default, or any part of it (the transcript, the field).
+ */
+async function drop(
+  page: Page,
+  files: { name: string; type: string; text: string }[],
+  over: Locator | string = '.hm-chat'
+): Promise<void> {
+  const target = typeof over === 'string' ? page.locator(over) : over
+
   const data = await page.evaluateHandle(list => {
     const transfer = new DataTransfer()
 
@@ -52,10 +62,10 @@ async function drop(page: Page, files: { name: string; type: string; text: strin
     return transfer
   }, files)
 
-  await page.dispatchEvent('.hm-chat', 'dragenter', { dataTransfer: data })
-  await page.dispatchEvent('.hm-chat', 'dragover', { dataTransfer: data })
+  await target.dispatchEvent('dragenter', { dataTransfer: data })
+  await target.dispatchEvent('dragover', { dataTransfer: data })
   await expect(page.getByText('Drop file to attach')).toBeVisible()
-  await page.dispatchEvent('.hm-chat', 'drop', { dataTransfer: data })
+  await target.dispatchEvent('drop', { dataTransfer: data })
   await expect(page.getByText('Drop file to attach')).toHaveCount(0)
 }
 
@@ -116,6 +126,19 @@ test.describe('attachments in the composer', () => {
     await expect(files).toContainText('shot.png')
     await expect(app.transcript).toContainText('I received notes.txt (17 bytes)')
     expect(gateway.fake.state.attachedImages.map(image => image.filename)).toEqual(['shot.png'])
+  })
+
+  test('takes a drop wherever in the chat it lands: on the transcript and on the field', async ({ app, page }) => {
+    await app.open()
+    await app.ready()
+
+    await drop(page, [{ name: 'over-transcript.txt', type: 'text/plain', text: 'a' }], app.transcript)
+    await expect(tray(page).getByRole('listitem')).toHaveCount(1)
+
+    await drop(page, [{ name: 'over-field.txt', type: 'text/plain', text: 'b' }], app.field)
+    await expect(tray(page).getByRole('listitem')).toHaveCount(2)
+    await expect(tray(page)).toContainText('over-transcript.txt')
+    await expect(tray(page)).toContainText('over-field.txt')
   })
 
   test('sends once when Return is pressed twice while the first send is in flight (HERM-126)', async ({

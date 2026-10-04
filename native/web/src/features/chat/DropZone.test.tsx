@@ -100,7 +100,7 @@ describe('DropZone', () => {
     expect(onFiles).not.toHaveBeenCalled()
   })
 
-  it('keeps a file dropped elsewhere on the page from replacing the app, only while it is enabled', () => {
+  it('keeps a file dropped elsewhere on the page from replacing the app, while the chat is on screen', () => {
     const view = mount()
     const stray = (): Event => {
       const event = createEvent.drop(document.body, { dataTransfer: transfer([report]) })
@@ -115,5 +115,30 @@ describe('DropZone', () => {
     act(() => view.unmount())
 
     expect(stray().defaultPrevented).toBe(false)
+  })
+
+  it('does not let a file replace the app in a chat that takes no attachments either, and says no with the pointer', () => {
+    const { zone, onFiles } = mount(false)
+    const data = transfer([report])
+    const over = createEvent.dragOver(zone, { dataTransfer: data })
+    const drop = createEvent.drop(zone, { dataTransfer: data })
+
+    fireEvent(zone, over)
+    fireEvent(zone, drop)
+
+    expect(over.defaultPrevented).toBe(true)
+    expect(data.dropEffect).toBe('none')
+    expect(drop.defaultPrevented).toBe(true)
+    expect(onFiles).not.toHaveBeenCalled()
+  })
+
+  it('takes a drop on the transcript and a drop on the composer alike, wherever in the chat it lands', () => {
+    const { onFiles } = mount()
+
+    fireEvent.drop(screen.getByText('transcript'), { dataTransfer: transfer([report]) })
+    fireEvent.drop(screen.getByText('composer'), { dataTransfer: transfer([shot]) })
+
+    expect(onFiles).toHaveBeenNthCalledWith(1, [report])
+    expect(onFiles).toHaveBeenNthCalledWith(2, [shot])
   })
 })

@@ -13,9 +13,11 @@
  * zone counts them rather than trusting the last one; a drop, a `dragend` or the
  * count reaching zero turns the target off.
  *
- * While the zone is on screen and enabled, a file dropped anywhere else on the
+ * While the zone is on screen, enabled or not, a file dropped anywhere else on the
  * page is ignored instead of being opened by the browser in place of the app
- * (`guardStrayFileDrops`).
+ * (`guardStrayFileDrops`): a chat that takes no attachments (a past conversation,
+ * one not attached to a session yet) must not lose the app to a file either, and
+ * the pointer shows that nothing will be taken.
  *
  * The drop is the mouse's way in. The keyboard's is the composer's attach
  * button, which offers the same files through the browser's dialog.
@@ -41,7 +43,7 @@ export function DropZone({ onFiles, enabled, className, children }: DropZoneProp
   const [over, setOver] = useState(false)
   const depth = useRef(0)
 
-  useEffect(() => (enabled ? guardStrayFileDrops() : undefined), [enabled])
+  useEffect(() => guardStrayFileDrops(), [])
 
   useEffect(() => {
     if (!enabled) {
