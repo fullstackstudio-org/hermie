@@ -40,7 +40,7 @@ public enum MuteDuration: String, Sendable, Hashable, CaseIterable {
    never. A deadline in the past is not a mute, whether or not anybody swept it yet.
  - **the order** is the app section's `entries` (the top level: `{"kind": "chat", "name"}` and
    `{"kind": "folder", "id"}`) and `folders` (`{"id", "name", "colour"?, "bots"}`), the web
-   client's `Arrangement`. This build draws no folders; it shows a folder's chats in its place.
+   client's `Arrangement`, which `ChatLayout` reads and edits and `ChatListSections` draws.
 
  The app section is the signed-in person's own (`hermie-app:<user id>`), so the archive, pins,
  mutes and order are per person: two people on one gateway never see each other's.
@@ -64,11 +64,14 @@ public struct ChatListArrangement: Sendable, Hashable {
   public var labels: [String: String]
   /// Bot → the colour its chat was given; a bot not in here has the default one.
   public var accents: [String: BotAccent]
+  /// The top level and the folders, as the person's section holds them (`ChatLayout`): what the
+  /// list draws its folders from.
+  public var layout: ChatLayout
 
   public init(
     archived: Set<String> = [], pinned: [String] = [], mutes: [String: Double] = [:], order: [String] = [],
     looseHead: Int? = nil, folderOf: [String: String] = [:], labels: [String: String] = [:],
-    accents: [String: BotAccent] = [:]
+    accents: [String: BotAccent] = [:], layout: ChatLayout = ChatLayout()
   ) {
     self.archived = archived
     self.pinned = pinned
@@ -78,6 +81,7 @@ public struct ChatListArrangement: Sendable, Hashable {
     self.folderOf = folderOf
     self.labels = labels
     self.accents = accents
+    self.layout = layout
   }
 
   /// Read off the device's copy, defensively: another build wrote it. The archive is the person's
@@ -91,7 +95,8 @@ public struct ChatListArrangement: Sendable, Hashable {
       looseHead: Self.looseHead(documents.app),
       folderOf: Self.folderOf(documents.app),
       labels: BotIdentity.labels(documents.app?[UIMetaField.labels]),
-      accents: documents.bots.compactMapValues { BotIdentity.accent($0) }
+      accents: documents.bots.compactMapValues { BotIdentity.accent($0) },
+      layout: ChatLayout(app: documents.app)
     )
   }
 
@@ -660,6 +665,66 @@ public final class ChatArrangementModel {
   /// before the move, every bot the gateway has.
   public func move(_ name: String, to anchor: ChatListArrangement.Anchor, roster: [String]) {
     sync?.updateApp(.choice) { ChatListArrangement.move(name, to: anchor, roster: roster, in: &$0) }
+    refresh()
+  }
+
+  // MARK: Folders
+
+  /// Make a folder named `name` at the end of the list, and put `chat` in it when given. Answers the
+  /// new folder's id, or nil when the name is empty or the order cannot be written yet.
+  @discardableResult
+  public func newFolder(_ name: String, containing chat: String? = nil, roster: [String]) -> String? {
+    let name = ChatFolder.cleaned(name)
+
+    guard sync != nil, !name.isEmpty else {
+      return nil
+    }
+
+    let id = ChatFolderID.make(now: Date(timeIntervalSince1970: now()))
+    sync?.updateApp(.choice) { ChatListArrangement.addFolder(id: id, name: name, containing: chat, roster: roster, in: &$0) }
+    refresh()
+    return id
+  }
+
+  /// An empty name is allowed: the list calls such a folder untitled.
+  public func renameFolder(_ id: String, to name: String) {
+    let name = ChatFolder.cleaned(name)
+    sync?.updateApp(.choice) { ChatListArrangement.renameFolder(id, to: name, in: &$0) }
+    refresh()
+  }
+
+  public func setFolderColour(_ id: String, to colour: BotAccent) {
+    sync?.updateApp(.choice) { ChatListArrangement.setFolderColour(id, to: colour, in: &$0) }
+    refresh()
+  }
+
+  /// Delete a folder; its chats stay, where the folder was.
+  public func removeFolder(_ id: String) {
+    sync?.updateApp(.choice) { ChatListArrangement.removeFolder(id, in: &$0) }
+    refresh()
+  }
+
+  /// Put a chat in a folder, or out of any (`nil`). `roster` is every bot the gateway has.
+  public func move(_ name: String, toFolder id: String?, roster: [String]) {
+    sync?.updateApp(.choice) { ChatListArrangement.move(name, toFolder: id, roster: roster, in: &$0) }
+    refresh()
+  }
+
+  /// Put a chat next to another, in the other's container: what a drop between two containers does.
+  public func place(_ name: String, at anchor: ChatListArrangement.Anchor, roster: [String]) {
+    sync?.updateApp(.choice) { ChatListArrangement.place(name, at: anchor, roster: roster, in: &$0) }
+    refresh()
+  }
+
+  /// Move a folder to a place among the folders (see `ChatLayout.moveFolder`).
+  public func moveFolder(_ id: String, toIndex index: Int) {
+    sync?.updateApp(.choice) { ChatListArrangement.moveFolder(id, toIndex: index, in: &$0) }
+    refresh()
+  }
+
+  /// One folder up (`-1`) or down (`1`) among the folders.
+  public func stepFolder(_ id: String, by delta: Int) {
+    sync?.updateApp(.choice) { ChatListArrangement.stepFolder(id, by: delta, in: &$0) }
     refresh()
   }
 
