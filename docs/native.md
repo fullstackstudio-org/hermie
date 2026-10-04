@@ -1791,6 +1791,26 @@ the bridge's `PushRowWriter` when the bridge is built and when they change); a d
 anywhere, and the page says so. A change moves only once it is stored, one at a time, so two quick taps never undo
 each other.
 
+**Local notifications for requests.** While the app is not in front, a request that arrives (an approval, a
+question, a secure prompt, a passkey confirmation, a form, a file, a draft, a diff, a signature, a device request)
+is also posted as a local notification (`RequestAlerts`, `HermieCore/Push`), so the gap before a relay push is
+covered. `LiveWiring` hands the live session's open requests to it (`GatewaySession.openRequestSample()`: the
+transcript's approvals, questions and cards through the chat summaries' `asks`, which cover a chat no screen
+observes, plus the secure prompts, the interactive requests and the passkey confirmations), and it compares them
+with what it knew: a new one is decided once (`LocalAlertPolicy`: the system's permission, the reader's switch and
+the `request` kind, and not "the app is active and that chat is on screen in a key window", which the windows report
+through `AppPresence`), one that is gone has its notification taken away. A mute does not silence it
+(`PushContract.alwaysShownTypes`), and nothing here asks for permission: the onboarding does. The content carries the
+same data bag as a relay push (`RequestAlertContent`), so a tap, Allow and Deny (an approval only) and a clearing
+push act on it through the code they use for a remote one. With previews off the body is "Needs your attention";
+with them on it is the contract's words for the kind, and only an approval or a clarify adds its own short line
+(never a command, a field, a diff or a detail). The identifier is `hermie.request.<gateway>.<request id>`, the
+thread is the chat's, the level is `active` (there is no time-sensitive entitlement: `RequestAlerts.timeSensitiveEntitled`),
+the badge is the number posted and not taken away (zero again when the app comes to the front, as before), and a
+confirmation bounces the Dock icon once on the Mac. A remote push for the same request is not suppressed: the app
+has no code that runs when one is delivered to a background app, and a relay collapse id is the plugin's `eventId`,
+which a client cannot derive.
+
 **Still held.** Showing a request opened from `PushRoute.request` in its own sheet; a named
 conversation (`PushRoute.conversation`) opens the bot's chat until the conversation viewer lands;
 the row of a gateway that is not the live one is written the next time it is (only the live
