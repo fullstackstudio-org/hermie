@@ -134,6 +134,24 @@ export const SHEET_STRINGS_SOURCE = {
       nl: 'Profiel bewerken',
       de: 'Profil bearbeiten'
     },
+    /** The last line of the row menu's Move to folder list: it opens a small form that names the folder. */
+    newFolderItem: {
+      en: 'New folder…',
+      nl: 'Nieuwe map…',
+      de: 'Neuer Ordner…'
+    },
+    /** The form's button. */
+    createFolder: {
+      en: 'Create',
+      nl: 'Maken',
+      de: 'Erstellen'
+    },
+    /** Said politely once the folder has been made around the chat. */
+    folderCreated: {
+      en: ({ name, folder }: { name: string; folder: string }) => `${name} is now in the new folder ${folder}.`,
+      nl: ({ name, folder }: { name: string; folder: string }) => `${name} staat nu in de nieuwe map ${folder}.`,
+      de: ({ name, folder }: { name: string; folder: string }) => `${name} ist jetzt im neuen Ordner ${folder}.`
+    },
     /** In the row menu's Mute, Colour and Move to folder lists: the way back to the first list. */
     back: {
       en: 'Back',

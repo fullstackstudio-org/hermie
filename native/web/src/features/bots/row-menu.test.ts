@@ -6,7 +6,7 @@
 import { afterEach, describe, expect, it, vi } from 'vitest'
 
 import { resetActiveLocale, setActiveLocale } from '../../i18n/active-locale'
-import { type RowMenuModel, rowMenuItems, runRowAction } from './row-menu'
+import { createFolderAround, type RowMenuModel, rowMenuItems, runRowAction } from './row-menu'
 
 afterEach(() => {
   resetActiveLocale()
@@ -30,12 +30,58 @@ const model = (over: Partial<RowMenuModel> = {}): RowMenuModel => ({
 const labels = (view: Parameters<typeof rowMenuItems>[0], over: Partial<RowMenuModel> = {}): string[] =>
   rowMenuItems(view, model(over)).map(item => item.label)
 
-describe('the first list', () => {
-  it('is Mark as read, Edit profile, Pin, Mute, Colour and Archive, in that order', () => {
-    expect(labels('root')).toEqual(['Mark as read', 'Edit profile', 'Pin', 'Mute', 'Colour', 'Archive'])
+describe('createFolderAround', () => {
+  it('makes the folder around the chat as Settings makes one, trimmed, and says where the chat went', () => {
+    const layout = { addFolderAround: vi.fn(() => 'id') }
+
+    expect(createFolderAround('writer', 'Writer', '  Reading ', layout)).toBe(
+      'Writer is now in the new folder Reading.'
+    )
+    expect(layout.addFolderAround).toHaveBeenCalledWith('writer', 'Reading')
   })
 
-  it('offers Move to folder only where there are folders, between Mute and Colour', () => {
+  it('takes a blank name for the unnamed folder, which is drawn as Untitled folder', () => {
+    const layout = { addFolderAround: vi.fn(() => 'id') }
+
+    expect(createFolderAround('writer', 'Writer', '   ', layout)).toBe(
+      'Writer is now in the new folder Untitled folder.'
+    )
+    expect(layout.addFolderAround).toHaveBeenCalledWith('writer', '')
+  })
+
+  it('is not a choice that does anything by itself: the line only opens the form', () => {
+    expect(
+      runRowAction({ kind: 'newFolder' }, 'writer', 'Writer', {
+        layout: {
+          setPinned: vi.fn(),
+          setMute: vi.fn(),
+          moveToFolder: vi.fn(),
+          setAccent: vi.fn(),
+          setArchived: vi.fn()
+        },
+        markRead: vi.fn(),
+        editProfile: vi.fn(),
+        now: NOW,
+        folders: []
+      })
+    ).toBe('')
+  })
+})
+
+describe('the first list', () => {
+  it('is Mark as read, Edit profile, Pin, Mute, Move to folder, Colour and Archive, in that order, with no folder yet too', () => {
+    expect(labels('root')).toEqual([
+      'Mark as read',
+      'Edit profile',
+      'Pin',
+      'Mute',
+      'Move to folder',
+      'Colour',
+      'Archive'
+    ])
+  })
+
+  it('offers Move to folder between Mute and Colour', () => {
     expect(labels('root', { folders: [{ id: 'f1', name: 'Reading' }] })).toEqual([
       'Mark as read',
       'Edit profile',
@@ -126,10 +172,15 @@ describe('the lists', () => {
       })
     )
 
-    expect(items.map(item => item.label)).toEqual(['Back', 'No folder', 'Reading', 'Untitled folder'])
+    expect(items.map(item => item.label)).toEqual(['Back', 'No folder', 'Reading', 'Untitled folder', 'New folder…'])
     expect(items.filter(item => item.checked).map(item => item.label)).toEqual(['Untitled folder'])
+    expect(items.at(-1)).toMatchObject({ id: 'folder:new', kind: 'action', action: { kind: 'newFolder' } })
     expect(items[1]?.action).toEqual({ kind: 'folder', folderId: null })
     expect(items[2]?.action).toEqual({ kind: 'folder', folderId: 'f1' })
+  })
+
+  it('with no folder yet, Move to folder is No folder and New folder…, which is how a first one is made from a row', () => {
+    expect(labels('folder')).toEqual(['Back', 'No folder', 'New folder…'])
   })
 
   it('says Terug in Dutch, from the same lines', () => {

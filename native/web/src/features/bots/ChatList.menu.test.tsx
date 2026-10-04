@@ -82,7 +82,7 @@ describe('opening it', () => {
       within(screen.getByRole('menu'))
         .getAllByRole('menuitem')
         .map(line => line.textContent)
-    ).toEqual(['Mark as read', 'Edit profile', 'Pin', 'Mute', 'Colour', 'Archive'])
+    ).toEqual(['Mark as read', 'Edit profile', 'Pin', 'Mute', 'Move to folder', 'Colour', 'Archive'])
   })
 
   it('opens on a right click, where the pointer is, and not the browser’s own menu', async () => {
@@ -308,11 +308,153 @@ describe('what the lines do, through the layout store', () => {
     expect(layout().folders.find(folder => folder.id === id)?.bots).toEqual([])
   })
 
-  it('has no folder line while there are no folders', async () => {
+  it('has a folder line with no folders yet, which offers only No folder and New folder…', async () => {
     await mount()
     await open('writer')
+    fireEvent.click(item('Move to folder'))
 
-    expect(within(screen.getByRole('menu')).queryByRole('menuitem', { name: 'Move to folder' })).toBeNull()
+    expect(
+      Array.from(screen.getByRole('menu').querySelectorAll('[role="menuitem"], [role="menuitemradio"]')).map(
+        line => line.textContent
+      )
+    ).toEqual(['Back', 'No folder', 'New folder…'])
+  })
+
+  describe('New folder…', () => {
+    const openForm = async (name = 'writer'): Promise<HTMLInputElement> => {
+      await open(name)
+      fireEvent.click(item('Move to folder'))
+      fireEvent.click(item('New folder…'))
+
+      return (await screen.findByRole('textbox', { name: 'Folder name' })) as HTMLInputElement
+    }
+
+    it('opens a small form in the menu’s own box, with the focus in the name field, and no list of lines', async () => {
+      await mount()
+
+      const field = await openForm()
+
+      expect(screen.getByRole('dialog', { name: 'New folder' })).toBeTruthy()
+      expect(screen.queryByRole('menu')).toBeNull()
+      expect(document.activeElement).toBe(field)
+      expect(field.maxLength).toBe(64)
+      expect(screen.getByRole('button', { name: 'Create' })).toBeTruthy()
+      expect(screen.getByRole('button', { name: 'Cancel' })).toBeTruthy()
+    })
+
+    it('makes a folder holding this chat on Return, says so, and closes', async () => {
+      await mount()
+
+      const field = await openForm()
+
+      fireEvent.change(field, { target: { value: '  Reading  ' } })
+      fireEvent.keyDown(field, { key: 'Enter' })
+
+      const made = layout().folders.find(folder => folder.name === 'Reading')
+
+      expect(made?.bots).toEqual(['writer'])
+      expect(screen.queryByRole('dialog')).toBeNull()
+      expect(screen.getByRole('status').textContent).toBe('Writer is now in the new folder Reading.')
+      // Where every other chat was, it still is.
+      expect(layout().folders).toHaveLength(1)
+    })
+
+    it('makes it from the Create button too, and an empty name is the unnamed folder, as it is in Settings', async () => {
+      await mount()
+      await openForm()
+      fireEvent.click(screen.getByRole('button', { name: 'Create' }))
+
+      expect(layout().folders).toHaveLength(1)
+      expect(layout().folders[0]).toMatchObject({ name: '', bots: ['writer'] })
+      expect(screen.getByRole('status').textContent).toBe('Writer is now in the new folder Untitled folder.')
+    })
+
+    it('goes back to the folder list on Cancel and on Escape, with the focus on the line that opened it, and makes nothing', async () => {
+      await mount()
+
+      const field = await openForm()
+
+      fireEvent.change(field, { target: { value: 'Draft' } })
+      fireEvent.click(screen.getByRole('button', { name: 'Cancel' }))
+      expect(screen.queryByRole('dialog')).toBeNull()
+      expect(document.activeElement).toBe(item('New folder…'))
+      expect(layout().folders).toEqual([])
+
+      fireEvent.click(item('New folder…'))
+      fireEvent.keyDown(await screen.findByRole('dialog'), { key: 'Escape' })
+      expect(screen.getByRole('menu')).toBeTruthy()
+      expect(document.activeElement).toBe(item('New folder…'))
+      expect(layout().folders).toEqual([])
+    })
+
+    it('starts empty each time it is opened, not with the last name typed', async () => {
+      await mount()
+
+      const field = await openForm()
+
+      fireEvent.change(field, { target: { value: 'Typed' } })
+      fireEvent.click(screen.getByRole('button', { name: 'Cancel' }))
+      fireEvent.click(item('New folder…'))
+
+      expect(((await screen.findByRole('textbox', { name: 'Folder name' })) as HTMLInputElement).value).toBe('')
+    })
+
+    it('closes with a press elsewhere, making nothing', async () => {
+      await mount()
+      await openForm()
+
+      fireEvent.pointerDown(document.body)
+
+      expect(screen.queryByRole('dialog')).toBeNull()
+      expect(layout().folders).toEqual([])
+    })
+
+    it('keeps the folders that were there, and puts the chat in the new one at the end', async () => {
+      layout().addFolder('Work')
+      await mount()
+
+      const field = await openForm('ops')
+
+      fireEvent.change(field, { target: { value: 'Later' } })
+      fireEvent.keyDown(field, { key: 'Enter' })
+
+      expect(layout().folders.map(folder => [folder.name, folder.bots])).toEqual([
+        ['Work', []],
+        ['Later', ['ops']]
+      ])
+    })
+
+    it('says its words in Dutch', async () => {
+      await setLanguageChoice('nl')
+      await mount()
+      fireEvent.click(screen.getByRole('button', { name: 'Acties voor Writer' }))
+      await screen.findByRole('menu')
+      fireEvent.click(item('Verplaats naar map'))
+      fireEvent.click(item('Nieuwe map…'))
+
+      expect(await screen.findByRole('dialog', { name: 'Nieuwe map' })).toBeTruthy()
+      expect(screen.getByRole('button', { name: 'Maken' })).toBeTruthy()
+    })
+
+    it('passes axe with the form open', async () => {
+      await mount()
+      await openForm()
+
+      const result = await axe.run(document.documentElement, {
+        rules: {
+          'color-contrast': { enabled: false },
+          'document-title': { enabled: false },
+          'html-has-lang': { enabled: false },
+          region: { enabled: false },
+          'landmark-one-main': { enabled: false },
+          'page-has-heading-one': { enabled: false }
+        }
+      })
+
+      expect(
+        result.violations.map(violation => `${violation.id}: ${violation.nodes.map(node => node.html.slice(0, 100))}`)
+      ).toEqual([])
+    })
   })
 
   it('archives, and the focus goes to the list’s own stop when the row has left it', async () => {
@@ -384,7 +526,15 @@ describe('in another language and for a screen reader', () => {
       within(screen.getByRole('menu'))
         .getAllByRole('menuitem')
         .map(line => line.textContent)
-    ).toEqual(['Markeren als gelezen', 'Profiel bewerken', 'Vastzetten', 'Dempen', 'Kleur', 'Archiveren'])
+    ).toEqual([
+      'Markeren als gelezen',
+      'Profiel bewerken',
+      'Vastzetten',
+      'Dempen',
+      'Verplaats naar map',
+      'Kleur',
+      'Archiveren'
+    ])
   })
 
   it('passes axe with the menu open, in a list and a view of choices', async () => {

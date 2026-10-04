@@ -107,6 +107,7 @@ test.describe('The row menu', () => {
       'Edit profile',
       'Pin',
       'Mute',
+      'Move to folder',
       'Colour',
       'Archive'
     ])

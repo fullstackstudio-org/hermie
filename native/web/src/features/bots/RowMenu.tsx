@@ -31,6 +31,7 @@ import { useStore } from 'zustand'
 
 import { readWatermark } from '../../core/chats/read-watermark'
 import { strings } from '../../generated/strings'
+import { sheetStrings } from '../../i18n/sheet-strings'
 import { useLocale } from '../../i18n/use-locale'
 import { botsStore } from '../../state/bots'
 import { chatsStore } from '../../state/chats'
@@ -39,7 +40,14 @@ import { layoutStore } from '../../state/layout'
 import { mutedUntil } from '../../state/mute'
 import { Icon } from '../../ui/icons'
 import { botLabel } from './bot-label'
-import { type RowMenuItem, type RowMenuModel, type RowMenuView, rowMenuItems, runRowAction } from './row-menu'
+import {
+  createFolderAround,
+  type RowMenuItem,
+  type RowMenuModel,
+  type RowMenuView,
+  rowMenuItems,
+  runRowAction
+} from './row-menu'
 import './row-menu.css'
 
 export interface RowMenuProps {
@@ -113,6 +121,10 @@ export function RowMenu({
 
   const model = useRowModel(bot)
   const [view, setView] = useState<RowMenuView>('root')
+  /** The form that names a new folder is showing, in place of the lines. */
+  const [naming, setNaming] = useState(false)
+  const [folderName, setFolderName] = useState('')
+  const nameField = useRef<HTMLInputElement>(null)
   /** The line of the first view that opened the list now showing, so Back returns focus to it. */
   const cameFrom = useRef<string | null>(null)
   const element = useRef<HTMLDivElement>(null)
@@ -168,6 +180,21 @@ export function RowMenu({
     // Only when the view changes: the lines do not steal focus back as the model re-renders.
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [view])
+
+  // The name field takes the focus when the form opens; when it closes, the line that opened it does.
+  const wasNaming = useRef(false)
+
+  useLayoutEffect(() => {
+    if (naming) {
+      nameField.current?.focus()
+    } else if (wasNaming.current) {
+      lines()
+        .find(line => line.dataset.item === 'folder:new')
+        ?.focus()
+    }
+
+    wasNaming.current = naming
+  }, [naming])
 
   useEffect(() => {
     place()
@@ -250,6 +277,13 @@ export function RowMenu({
       return
     }
 
+    if (item.action.kind === 'newFolder') {
+      setFolderName('')
+      setNaming(true)
+
+      return
+    }
+
     const said = runRowAction(item.action, bot, model.name, {
       layout: layoutStore.getState(),
       markRead,
@@ -326,7 +360,64 @@ export function RowMenu({
     }
   }
 
+  const createFolder = (): void => {
+    const said = createFolderAround(bot, model.name, folderName, layoutStore.getState())
+
+    // The chat went into the folder: its row may have moved, so focus goes where the layer can find it.
+    onClose(true)
+    onAnnounce(said)
+  }
+
   const title = strings.app.layout.rowActions({ name: model.name })
+
+  if (naming) {
+    return (
+      <div
+        className="hm-row-menu hm-row-menu--form"
+        id={menuId}
+        role="dialog"
+        aria-label={strings.app.layout.newFolder}
+        ref={element}
+        onKeyDown={event => {
+          // The list's own keys are not this form's.
+          event.stopPropagation()
+
+          if (event.key === 'Escape') {
+            event.preventDefault()
+            setNaming(false)
+          }
+        }}
+        onContextMenu={event => event.preventDefault()}
+      >
+        <label className="hm-row-menu__field">
+          <span>{strings.app.layout.folderName}</span>
+          <input
+            ref={nameField}
+            type="text"
+            value={folderName}
+            maxLength={64}
+            autoComplete="off"
+            spellCheck={false}
+            onChange={event => setFolderName(event.currentTarget.value)}
+            onKeyDown={event => {
+              if (event.key === 'Enter') {
+                event.preventDefault()
+                createFolder()
+              }
+            }}
+          />
+        </label>
+        <div className="hm-row-menu__actions">
+          <button type="button" className="hm-row-menu__button" data-primary="true" onClick={createFolder}>
+            {sheetStrings.rowMenu.createFolder}
+          </button>
+          <button type="button" className="hm-row-menu__button" onClick={() => setNaming(false)}>
+            {strings.app.common.cancel}
+          </button>
+        </div>
+      </div>
+    )
+  }
 
   return (
     <div

@@ -48,6 +48,8 @@ export type RowAction =
   | { kind: 'mute'; duration: MuteDuration }
   | { kind: 'unmute' }
   | { kind: 'folder'; folderId: string | null }
+  /** Opens the form that names a new folder around this chat; the folder is made by `createFolderAround`. */
+  | { kind: 'newFolder' }
   | { kind: 'accent'; accent: AccentName }
   | { kind: 'archive'; archived: boolean }
 
@@ -139,7 +141,8 @@ export function rowMenuItems(view: RowMenuView, model: RowMenuModel): RowMenuIte
           label: folderTitle(folder.name),
           checked: folder.id === model.folderId,
           action: { kind: 'folder', folderId: folder.id }
-        }))
+        })),
+        { id: 'folder:new', kind: 'action', label: sheetStrings.rowMenu.newFolderItem, action: { kind: 'newFolder' } }
       ]
 
     case 'root':
@@ -159,8 +162,9 @@ export function rowMenuItems(view: RowMenuView, model: RowMenuModel): RowMenuIte
           action: { kind: 'pin', pinned: !model.pinned }
         },
         ...muteItems(model),
-        // The archive has no folders: an archived chat is filed where it was, and Unarchive returns it there.
-        ...(model.folders.length > 0 && !model.archived
+        // The archive has no folders: an archived chat is filed where it was, and Unarchive returns it there. With no
+        // folder yet the list is only "No folder" and "New folder…", which is how a first one is made from a row.
+        ...(!model.archived
           ? [{ id: 'folder', kind: 'submenu', label: strings.app.layout.moveToFolderMenu, view: 'folder' } as const]
           : []),
         { id: 'colour', kind: 'submenu', label: strings.app.layout.colour, view: 'colour' },
@@ -231,6 +235,10 @@ export function runRowAction(action: RowAction, bot: string, name: string, conte
       return sheetStrings.settings.chatList.inFolder({ name, folder })
     }
 
+    case 'newFolder':
+      // Named by the form first (`createFolderAround`): a choice with no name makes nothing.
+      return ''
+
     case 'accent':
       context.layout.setAccent(bot, action.accent)
 
@@ -243,4 +251,21 @@ export function runRowAction(action: RowAction, bot: string, name: string, conte
         ? sheetStrings.settings.chatList.archivedNow({ name })
         : sheetStrings.settings.chatList.unarchivedNow({ name })
   }
+}
+
+/**
+ * Make a folder named `name` around this chat, as Settings, Chat list's "New folder" does, but holding the chat the
+ * menu was opened from. A blank name is the unnamed folder, as it is there. Says, in a sentence, what happened.
+ */
+export function createFolderAround(
+  bot: string,
+  chatName: string,
+  folderName: string,
+  layout: Pick<ChatLayoutState, 'addFolderAround'>
+): string {
+  const name = folderName.trim()
+
+  layout.addFolderAround(bot, name)
+
+  return sheetStrings.rowMenu.folderCreated({ name: chatName, folder: folderTitle(name) })
 }
