@@ -69,10 +69,22 @@ private struct OpenChat {
   }
 
   /// Answers to server requests, as the fake logged them (`result` as JSON text).
-  static func answers(_ gateway: FakeGateway) async throws -> [String] {
-    let state = try await gateway.control("GET", "/__fake/state")
-    return (state["serverRequestAnswers"]?.arrayValue ?? []).compactMap { answer in
-      answer["result"].map { String(decoding: (try? $0.canonicalData()) ?? Data(), as: UTF8.self) }
+  /// A reply frame has no acknowledgement to wait for, so a caller that knows how many answers it
+  /// sent passes `atLeast`: the read polls (up to 10 s) until the fake has logged that many.
+  static func answers(_ gateway: FakeGateway, atLeast count: Int = 0) async throws -> [String] {
+    let deadline = ContinuousClock.now + .seconds(10)
+
+    while true {
+      let state = try await gateway.control("GET", "/__fake/state")
+      let answers = (state["serverRequestAnswers"]?.arrayValue ?? []).compactMap { answer in
+        answer["result"].map { String(decoding: (try? $0.canonicalData()) ?? Data(), as: UTF8.self) }
+      }
+
+      if answers.count >= count || ContinuousClock.now >= deadline {
+        return answers
+      }
+
+      try await Task.sleep(for: .milliseconds(20))
     }
   }
 }
@@ -127,7 +139,7 @@ extension Integration {
         let chat = try await OpenChat.open(gateway)
         let requests = chat.requests
 
-        for (queueID, choice) in [("appr-int-allow", "once"), ("appr-int-deny", "deny")] {
+        for (index, (queueID, choice)) in [("appr-int-allow", "once"), ("appr-int-deny", "deny")].enumerated() {
           try await gateway.raiseRequest(
             "approval",
             params: ["request_id": .string(queueID), "command": "rm -rf ./build", "choices": ["once", "deny"]]
@@ -141,10 +153,10 @@ extension Integration {
           #expect(requests.phase(of: card.requestID) == nil)
           #expect(requests.notice == nil, "re-validated: approval.pending lists it")
           try await composerWait("the card to close") { requests.openRequests.isEmpty }
-          #expect(try await OpenChat.answers(gateway).last == "{\"choice\":\"\(choice)\"}")
+          #expect(try await OpenChat.answers(gateway, atLeast: index + 1).last == "{\"choice\":\"\(choice)\"}")
         }
 
-        #expect(try await OpenChat.answers(gateway).count == 2)
+        #expect(try await OpenChat.answers(gateway, atLeast: 2).count == 2)
         await chat.session.shutdown()
       }
     }
@@ -181,7 +193,7 @@ extension Integration {
         let chat = try await OpenChat.open(gateway)
         let requests = chat.requests
 
-        for (question, answer) in [("Which branch?", "main"), ("What should it be called?", "Spring cleaning")] {
+        for (index, (question, answer)) in [("Which branch?", "main"), ("What should it be called?", "Spring cleaning")].enumerated() {
           let params: JSONObject =
             answer == "main" ? ["question": .string(question), "choices": ["main", "next"]] : ["question": .string(question)]
           try await gateway.raiseRequest("clarify", params: params)
@@ -191,7 +203,7 @@ extension Integration {
 
           await requests.answerClarify(card.requestID, answers: [qid: answer])
           try await composerWait("the card to close") { requests.openRequests.isEmpty }
-          #expect(try await OpenChat.answers(gateway).last == "{\"answer\":\"\(answer)\"}")
+          #expect(try await OpenChat.answers(gateway, atLeast: index + 1).last == "{\"answer\":\"\(answer)\"}")
         }
         await chat.session.shutdown()
       }

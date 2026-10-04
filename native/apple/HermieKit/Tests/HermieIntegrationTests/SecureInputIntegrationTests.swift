@@ -76,6 +76,26 @@ private struct SecureChat {
       return (id, String(decoding: (try? result.canonicalData()) ?? Data(), as: UTF8.self))
     }
   }
+
+  /// What the fake logged as the answer to request `id`, waiting for it: a secret goes out as the
+  /// reply frame of the server's own request, which has no acknowledgement to wait for, so
+  /// `send` returning says only that the frame left, not that the fake has read it. `nil` when
+  /// none came within `timeout` (a loaded runner needs seconds, not milliseconds).
+  static func answer(_ gateway: FakeGateway, id: String, timeout: Duration = .seconds(10)) async throws -> String? {
+    let deadline = ContinuousClock.now + timeout
+
+    while true {
+      if let answer = try await answers(gateway).first(where: { $0.id == id })?.result {
+        return answer
+      }
+
+      guard ContinuousClock.now < deadline else {
+        return nil
+      }
+
+      try await Task.sleep(for: .milliseconds(20))
+    }
+  }
 }
 
 extension Integration {
@@ -92,9 +112,8 @@ extension Integration {
         #expect(chat.model.presented?.kind == .secret(envVar: "EXAMPLE_API_KEY", prompt: "Paste the key"))
         #expect(await chat.model.send(SecretValue(value)))
 
-        let answers = try await SecureChat.answers(gateway)
         let expected = String(decoding: try JSONValue.object(["value": .string(value)]).canonicalData(), as: UTF8.self)
-        #expect(answers.first { $0.id == id }?.result == expected)
+        #expect(try await SecureChat.answer(gateway, id: id) == expected)
 
         // `client.capabilities {server_requests: true}` went out before the first request.
         let state = try await gateway.control("GET", "/__fake/state")
@@ -111,7 +130,7 @@ extension Integration {
 
         let id = try await chat.raise(gateway, "secret", ["env_var": "K", "prompt": "p"])
         #expect(await chat.model.skip())
-        #expect(try await SecureChat.answers(gateway).first { $0.id == id }?.result == #"{"value":""}"#)
+        #expect(try await SecureChat.answer(gateway, id: id) == #"{"value":""}"#)
         await chat.session.shutdown()
       }
     }
@@ -125,11 +144,11 @@ extension Integration {
         #expect(chat.model.presented?.kind == .sudo(command: "apt-get install example"))
         #expect(chat.model.secondsLeft.map { $0 > 100 && $0 <= 120 } == true)
         #expect(await chat.model.send(SecretValue("pa55 word")))
-        #expect(try await SecureChat.answers(gateway).first { $0.id == first }?.result == #"{"value":"pa55 word"}"#)
+        #expect(try await SecureChat.answer(gateway, id: first) == #"{"value":"pa55 word"}"#)
 
         let second = try await chat.raise(gateway, "sudo", ["command": "ls"])
         #expect(await chat.model.skip())
-        #expect(try await SecureChat.answers(gateway).first { $0.id == second }?.result == #"{"value":""}"#)
+        #expect(try await SecureChat.answer(gateway, id: second) == #"{"value":""}"#)
         await chat.session.shutdown()
       }
     }
@@ -142,14 +161,8 @@ extension Integration {
         let id = try await chat.raise(gateway, "secret", ["env_var": "K", "prompt": "p"])
         await chat.session.shutdown()
 
-        // The fake logs what it read; give its socket a moment to drain.
-        let deadline = ContinuousClock.now + .seconds(5)
-        var answer: String?
-        while answer == nil, ContinuousClock.now < deadline {
-          answer = try await SecureChat.answers(gateway).first { $0.id == id }?.result
-          try await Task.sleep(for: .milliseconds(20))
-        }
-        #expect(answer == #"{"value":""}"#)
+        // The fake logs what it read; give its socket time to drain.
+        #expect(try await SecureChat.answer(gateway, id: id) == #"{"value":""}"#)
       }
     }
 
