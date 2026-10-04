@@ -22,7 +22,7 @@ import { sha256Hex } from '../../core/requests/sha256'
 import { deviceStrings } from '../../i18n/device-strings'
 import { sheetStrings } from '../../i18n/sheet-strings'
 import { useLocale } from '../../i18n/use-locale'
-import { pageGlobal, pageNavigator } from '../../platform/device-apis'
+import { pageMediaRecorder, pageNavigator } from '../../platform/device-apis'
 import { Button } from '../../ui/primitives'
 import { formatBytes } from '../chat/chat-format'
 import { DEFAULT_TAP_GUARD_MS } from './ApprovalSheet'
@@ -58,7 +58,7 @@ export interface VoiceSheetProps extends DeviceSheetProps<FileAsk> {
 }
 
 const pageEnvironment = (): VoiceEnvironment => ({
-  Recorder: pageGlobal<RecorderClass>('MediaRecorder'),
+  Recorder: pageMediaRecorder<RecorderClass>(),
   getUserMedia:
     pageNavigator()?.mediaDevices?.getUserMedia === undefined
       ? undefined

@@ -3,7 +3,7 @@
  * fake gateway serving the built client. What this proves is the model under the sheets (their own answers are in
  * `requests-interactive.spec.ts`):
  *
- *  - **The advert.** The page lists the four methods in the second `client.capabilities` call. The gateway sends one
+ *  - **The advert.** The page lists the methods it can show in the second `client.capabilities` call. The gateway sends one
  *    of these only to a connection that did: nothing is raised before the page has attached (409
  *    `no_capable_client`), and the same raise reaches the page once it has.
  *  - **It is shown, in the app's words,** with the bot's heading and words as plain text; the person can Skip when the
@@ -81,10 +81,13 @@ test.describe('a request from the agent reaches the page', () => {
 
     const calls = (await gateway.state()) as unknown as { clientCapabilities: Record<string, unknown>[] }
 
-    expect(calls.clientCapabilities.at(-1)).toMatchObject({
-      server_requests: true,
-      requests: ['input.form', 'input.file', 'review.draft', 'review.diff']
-    })
+    // The four every browser can show, then the signature and device requests this browser can do (which ones is
+    // the browser's: `e2e/requests-device.spec.ts` holds that); never the calendar, which no browser can write to.
+    const advertised = calls.clientCapabilities.at(-1)?.requests as string[]
+
+    expect(calls.clientCapabilities.at(-1)).toMatchObject({ server_requests: true })
+    expect(advertised.slice(0, 4)).toEqual(['input.form', 'input.file', 'review.draft', 'review.diff'])
+    expect(advertised).not.toContain('device.calendar')
   })
 
   test('shows the bot’s words as plain text, and Skip answers {status: skipped}', async ({ app, gateway }) => {

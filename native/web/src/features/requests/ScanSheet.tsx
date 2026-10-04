@@ -18,7 +18,7 @@ import { type ScanAsk, SYMBOLOGIES, type Symbology } from '../../core/requests/i
 import { listOf, recordStrings } from '../../i18n/record-strings'
 import { deviceStrings } from '../../i18n/device-strings'
 import { useLocale } from '../../i18n/use-locale'
-import { pageGlobal, pageNavigator } from '../../platform/device-apis'
+import { pageBarcodeDetector, pageNavigator } from '../../platform/device-apis'
 import { Button } from '../../ui/primitives'
 import { DEFAULT_TAP_GUARD_MS } from './ApprovalSheet'
 import { DETECTOR_FORMATS, scanAnswer } from './device-answers'
@@ -50,7 +50,7 @@ export interface ScanSheetProps extends DeviceSheetProps<ScanAsk> {
 }
 
 const pageEnvironment = (): ScanEnvironment => ({
-  Detector: pageGlobal<CodeDetectorClass>('BarcodeDetector'),
+  Detector: pageBarcodeDetector<CodeDetectorClass>(),
   getUserMedia:
     pageNavigator()?.mediaDevices?.getUserMedia === undefined
       ? undefined
