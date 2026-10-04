@@ -212,11 +212,12 @@ test.describe('Settings › MCP', () => {
     await expect(page.getByRole('status').filter({ hasText: 'Second Agent was revoked.' })).toBeVisible()
   })
 
-  test('is a chunk of its own, fetched when the page is opened and not before', async ({ app, page }) => {
+  test('comes in a chunk fetched when the page is opened and not before', async ({ app, page }) => {
     const fetched: string[] = []
 
     page.on('request', request => {
-      if (/\/assets\/MCP-[\w-]+\.(?:js|css)$/u.test(new URL(request.url()).pathname)) {
+      // The small Settings pages, MCP among them, are one chunk (`features/settings/settings-pages.ts`).
+      if (/\/assets\/settings-pages-[\w-]+\.(?:js|css)$/u.test(new URL(request.url()).pathname)) {
         fetched.push(new URL(request.url()).pathname)
       }
     })

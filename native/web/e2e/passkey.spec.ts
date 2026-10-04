@@ -535,7 +535,7 @@ test.describe('a passkey confirmation in the browser', () => {
     const fetched: string[] = []
 
     page.on('request', request => {
-      const chunk = /\/assets\/(sheets|Passkeys)-[\w-]+\.(?:js|css)$/u.exec(new URL(request.url()).pathname)
+      const chunk = /\/assets\/(sheets|settings-pages)-[\w-]+\.(?:js|css)$/u.exec(new URL(request.url()).pathname)
 
       if (chunk?.[1]) {
         fetched.push(chunk[1])
@@ -549,14 +549,14 @@ test.describe('a passkey confirmation in the browser', () => {
     // (the interactive sheets' stylesheet is part of the chunk), and nothing else.
     await expect.poll(() => [...new Set(fetched)]).toEqual(['sheets'])
 
-    // The settings page: its own chunk (and styles).
+    // The settings page: the small Settings pages' chunk (and styles), `features/settings/settings-pages.ts`.
     await enrol(page, gateway, hash => app.open(hash))
-    expect(new Set(fetched)).toEqual(new Set(['sheets', 'Passkeys']))
+    expect(new Set(fetched)).toEqual(new Set(['sheets', 'settings-pages']))
 
     // The first confirm frame needs nothing more.
     await raise(gateway, { summary: 'Restart the service.' })
     await expect(app.dialog.getByRole('button', { name: 'Confirm with passkey' })).toBeEnabled()
-    expect(new Set(fetched)).toEqual(new Set(['sheets', 'Passkeys']))
+    expect(new Set(fetched)).toEqual(new Set(['sheets', 'settings-pages']))
   })
 
   test('Escape does not dismiss the sheet', async ({ app, gateway, page }) => {

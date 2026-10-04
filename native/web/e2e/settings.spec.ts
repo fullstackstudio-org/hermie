@@ -136,7 +136,8 @@ test.describe('the home', () => {
     await page.getByRole('main').getByRole('link', { name: 'Chat list' }).click()
     await expect(page.getByRole('heading', { level: 2, name: 'Chat list' })).toBeVisible()
     expect(fetched.some(name => name.startsWith('Arrangement-'))).toBe(true)
-    expect(fetched.some(name => name.startsWith('Appearance-'))).toBe(false)
+    // The small pages are one chunk of their own (`settings-pages.ts`), not fetched for the chat list.
+    expect(fetched.some(name => name.startsWith('settings-pages-'))).toBe(false)
   })
 
   test('sends a section it does not have back to the home', async ({ app, page }) => {
