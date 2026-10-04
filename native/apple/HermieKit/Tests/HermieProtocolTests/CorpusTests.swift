@@ -5,6 +5,9 @@ import Testing
 
 @Suite("Contract corpus")
 struct CorpusTests {
+  /// Byte-identical copies of the fork's contracts, written by its own generator.
+  static let forkCopies = ["confirm-passkey/", "requests/"]
+
   // MARK: canonicalString() against the reference
 
   /// Every generated file under `contract/` was written by `prettyJson` in
@@ -16,14 +19,14 @@ struct CorpusTests {
   /// The reference's text orders index-like keys (`"12"`) first, the way a JavaScript object
   /// iterates, so that comparison uses `.ecmaScriptObject`; see `CanonicalKeyOrder`.
   ///
-  /// `push/contract.json` is hand-written and `confirm-passkey/` is a byte-identical copy of the
-  /// fork's contract, written by its own generator with its own checksums: neither came out of
-  /// `prettyJson`, so both are held only to the fixed-point property below.
+  /// `push/contract.json` is hand-written, and `confirm-passkey/` and `requests/` are byte-identical
+  /// copies of the fork's contracts, written by its own generator with their own checksums: none came
+  /// out of `prettyJson`, so they are held only to the fixed-point property below.
   @Test func canonicalTextEqualsTheReferenceForEveryGeneratedFile() throws {
     let files = try contractFiles()
     var compared = 0
     var mismatched: [String] = []
-    for file in files where file.path != "push/contract.json" && !file.path.hasPrefix("confirm-passkey/") {
+    for file in files where file.path != "push/contract.json" && !Self.forkCopies.contains(where: file.path.hasPrefix) {
       let data = try Data(contentsOf: file.url)
       let reference = minifiedJSONText(data)
       let value = try JSONValue(parsing: data)
