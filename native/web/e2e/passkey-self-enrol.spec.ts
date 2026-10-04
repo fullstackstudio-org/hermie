@@ -9,7 +9,7 @@
  * reports).
  *
  * The cases that need the authenticator are Chromium's (WebKit and Firefox have no virtual one Playwright can
- * drive); the older-gateway case needs none.
+ * drive); the older-gateway cases need none, only WebAuthn itself, which Playwright's WebKit on Linux lacks.
  */
 import type { CDPSession, Page } from '@playwright/test'
 
@@ -61,6 +61,20 @@ const credentialsOf = async (gateway: Gateway): Promise<FakeCredential[]> =>
 /** The keys of the tab's `sessionStorage`: what the page kept across the trip. */
 const stashKeys = (page: Page): Promise<string[]> =>
   page.evaluate(() => Object.keys(sessionStorage).filter(key => key.includes('passkey-enrol')))
+
+/**
+ * Skips the rest of a test in a browser that has no WebAuthn at all. Playwright's WebKit on Linux is built
+ * without it (`window.PublicKeyCredential` is undefined there, while macOS WebKit, Firefox and Chromium have
+ * it), and the page then rightly offers no way to add a passkey, the code path included. The page has to be a
+ * secure context first, so a front that stopped being https fails here instead of being skipped.
+ */
+async function skipWithoutWebAuthn(page: Page): Promise<void> {
+  expect(await page.evaluate(() => window.isSecureContext)).toBe(true)
+  test.skip(
+    !(await page.evaluate(() => typeof window.PublicKeyCredential === 'function')),
+    'this browser has no WebAuthn (PublicKeyCredential is undefined), so the page offers no passkey path'
+  )
+}
 
 test.describe('adding a passkey by signing in again', () => {
   test.skip(({ browserName }) => browserName !== 'chromium', 'the virtual authenticator is a Chromium DevTools domain')
@@ -173,6 +187,7 @@ test.describe('an older gateway', () => {
     })
 
     await app.open('#/settings/passkeys')
+    await skipWithoutWebAuthn(page)
 
     await expect(page.getByText('Passkey confirmations are on for this gateway.')).toBeVisible()
     await expect(page.getByRole('button', { name: 'Add with a code' })).toBeVisible()
@@ -192,6 +207,7 @@ test.describe('an older gateway', () => {
       route.fulfill({ status: 404, json: { detail: 'Not Found' } })
     )
     await app.open('#/settings/passkeys')
+    await skipWithoutWebAuthn(page)
     await expect(page.getByText(START)).toBeVisible()
 
     await page.getByRole('button', { name: 'Add a passkey' }).click()
