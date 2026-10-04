@@ -195,6 +195,55 @@ func pollMain(_ what: String, _ condition: @MainActor () -> Bool) async throws {
     #expect(chat.loadCalls == 1)
   }
 
+  @Test func aStepBeforeTheRebuildThatDrawsThePageDoesNotPageOnPastIt() async throws {
+    let chat = FindHarness(items: recent)
+    chat.drawsWithTheLoad = false
+    // The match is in the first page; a second one exists and must not be asked for.
+    chat.pages = [(rows: old, answer: .grew), (rows: [], answer: .start)]
+    let walk = chat.walk(query: "invoices")
+
+    walk.step()
+    try await pollMain("the load") { chat.loadCalls == 1 }
+    for _ in 0..<20 { await Task.yield() }
+
+    // Steps with the rows from before the page (a poll, the rebuild of something else): no new page, no verdict.
+    for _ in 0..<5 {
+      walk.step()
+      await Task.yield()
+    }
+
+    #expect(chat.loadCalls == 1)
+    #expect(chat.settled.isEmpty)
+
+    chat.rebuild(old + recent)
+    walk.step()
+
+    #expect(chat.settled == [.found(itemID: "u0")])
+    #expect(chat.revealed == ["u0"])
+    #expect(chat.loadCalls == 1)
+  }
+
+  @Test func theEndOfTheHistoryLooksAtRowsDrawnWhileTheLoadWasOutBeforeSayingNotFound() async throws {
+    let chat = FindHarness(items: recent)
+    chat.holdLoads = true
+    chat.pages = [(rows: [], answer: .start)]
+    let walk = chat.walk(query: "invoices")
+
+    walk.step()
+    try await pollMain("the load to start") { chat.heldLoad }
+
+    // The last page is drawn while the load is out; the walk is busy and does not look.
+    chat.rebuild(old + recent)
+    walk.step()
+    #expect(chat.settled.isEmpty)
+
+    chat.release()
+
+    try await pollMain("the walk to end") { !chat.settled.isEmpty }
+    #expect(chat.settled == [.found(itemID: "u0")])
+    #expect(chat.revealed == ["u0"])
+  }
+
   @Test func aPageDrawnWhileTheWalkWasWaitingIsLookedAtWhenTheLoadReturns() async throws {
     let chat = FindHarness(items: recent)
     chat.holdLoads = true

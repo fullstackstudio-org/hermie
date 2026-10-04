@@ -23,6 +23,12 @@ import HermieTranscript
 /// It is driven, not running: `step()` looks at the rows as they are now and does the next thing. The
 /// owner calls it when the request arrives and after every rebuild of the rows, which is what keeps a
 /// page that lands after the load returned from being missed.
+///
+/// A page that has landed in the store is not yet a page in the rows: the rebuild that draws it comes a
+/// frame later. A step in between (any rebuild of something else, a poll) sees the rows without it, and
+/// a miss against them is not a miss, so the walk neither asks for another page nor settles until the
+/// rows have been rebuilt since the page returned. Paging on regardless would walk past the match and
+/// end on a "not found" the history does not support.
 @MainActor
 public final class ChatFindWalk {
   public enum Outcome: Sendable, Equatable {
@@ -69,6 +75,9 @@ public final class ChatFindWalk {
 
   private let settle: @MainActor (Outcome) -> Void
   private var loading = false
+  /// The rows' revision when the last page returned grown and was not yet drawn: until it moves, the
+  /// rows are the ones from before that page.
+  private var undrawn: Int?
   private var cancelled = false
   private var task: Task<Void, Never>?
 
@@ -90,11 +99,13 @@ public final class ChatFindWalk {
       return
     }
 
-    if let found = FindInChat.newestMatch(in: hooks.items(), query: query) {
-      if hooks.reveal(found) {
-        finish(.found(itemID: found))
-      }
+    if let undrawn, hooks.revision() == undrawn {
+      return
+    }
 
+    undrawn = nil
+
+    if lookAtTheRows() {
       return
     }
 
@@ -125,13 +136,33 @@ public final class ChatFindWalk {
       }
 
       if result != .grew {
-        self.finish(.notFound)
+        // The end of the history. Rows drawn while this waited were not looked at (the walk was busy),
+        // so look once more before saying it is not there.
+        if !self.lookAtTheRows() {
+          self.finish(.notFound)
+        }
       } else if self.hooks.revision() != before {
         // The page was drawn while this waited, and that rebuild found the walk busy: look now.
         self.step()
+      } else {
+        // The page is drawn after this, and that rebuild looks again.
+        self.undrawn = before
       }
-      // Otherwise the page is drawn after this, and that rebuild looks again.
     }
+  }
+
+  /// The newest match in the rows as they are: revealed and done when the list has its row, or kept for
+  /// the next step when it does not. False when there is none.
+  private func lookAtTheRows() -> Bool {
+    guard let found = FindInChat.newestMatch(in: hooks.items(), query: query) else {
+      return false
+    }
+
+    if hooks.reveal(found) {
+      finish(.found(itemID: found))
+    }
+
+    return true
   }
 
   /// The chat screen is going or the request was replaced: no more steps, and nothing is reported.
