@@ -2848,6 +2848,12 @@ export const SHEET_STRINGS_SOURCE = {
         nl: 'Deze worden in deze browser bewaard. Een gesprek met een eigen instelling houdt die.',
         de: 'Diese bleiben in diesem Browser. Ein Gespräch mit eigener Einstellung behält sie.'
       },
+      /** The group of the two names a bot can wear: which leads, and whether the handle shows at all. */
+      namesHeading: {
+        en: 'How a bot is named',
+        nl: 'Hoe een bot heet',
+        de: 'Wie ein Bot heißt'
+      },
       cacheHeading: {
         en: 'Transcripts in this browser',
         nl: 'Gesprekken in deze browser',

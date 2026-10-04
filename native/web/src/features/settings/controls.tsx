@@ -55,7 +55,8 @@ export function RadioGroup<V extends string>({
   options,
   onChange,
   hint,
-  layout = 'column'
+  layout = 'column',
+  disabled = false
 }: {
   legend: string
   value: V
@@ -63,12 +64,14 @@ export function RadioGroup<V extends string>({
   onChange: (value: V) => void
   hint?: string
   layout?: 'column' | 'wrap'
+  /** Not in force right now (another setting overrides it); the hint says which. */
+  disabled?: boolean
 }): ReactElement {
   const name = useId()
   const hintId = useId()
 
   return (
-    <fieldset className="hm-set" {...(hint ? { 'aria-describedby': hintId } : {})}>
+    <fieldset className="hm-set" disabled={disabled} {...(hint ? { 'aria-describedby': hintId } : {})}>
       <legend className="hm-set__legend">{legend}</legend>
       <div className="hm-set__options" data-layout={layout}>
         {options.map(option => (

@@ -22,7 +22,7 @@ import { strings } from '../../generated/strings'
 import { sheetStrings } from '../../i18n/sheet-strings'
 import { useLocale } from '../../i18n/use-locale'
 import { chatViewStore, VERBOSITIES } from '../../state/chat-view'
-import { settingsStore } from '../../state/settings'
+import { type NameOrder, settingsStore } from '../../state/settings'
 import { Button } from '../../ui/primitives'
 import { Checkbox, RadioGroup, type RadioOption, SettingsPage } from './controls'
 import { useSettingsRuntime } from './settings-runtime'
@@ -41,6 +41,8 @@ export function Chats(): ReactElement {
     useShallow(state => state.defaults)
   )
   const cacheOn = useStore(settingsStore, state => state.transcriptCache)
+  const nameOrder = useStore(settingsStore, state => state.botNameOrder)
+  const hideHandle = useStore(settingsStore, state => state.hideHandleWhenNamed)
   const [message, setMessage] = useState<Message | null>(null)
   const [clearing, setClearing] = useState(false)
   /** The newest clear: an older one that settles after it must not say its piece. */
@@ -52,6 +54,11 @@ export function Chats(): ReactElement {
     value,
     label: strings.chat.options.verbosityOptions[value]
   }))
+
+  const nameOptions: RadioOption<NameOrder>[] = [
+    { value: 'profile', label: strings.app.settings.botNameOptions.profile },
+    { value: 'display', label: strings.app.settings.botNameOptions.display }
+  ]
 
   const clear = async (done: string): Promise<void> => {
     const mine = ++run.current
@@ -114,6 +121,26 @@ export function Chats(): ReactElement {
       />
 
       <p className="hm-set__hint">{words.defaultsNote}</p>
+
+      <h3 className="hm-settings-page__heading">{words.namesHeading}</h3>
+
+      {/* Which of a bot's two names is the large one; it has nothing to say while the handle is hidden. */}
+      <RadioGroup
+        legend={strings.app.settings.botNames}
+        value={nameOrder}
+        options={nameOptions}
+        onChange={order => settingsStore.getState().setBotNameOrder(order)}
+        hint={strings.app.settings.botNamesHint}
+        layout="wrap"
+        disabled={hideHandle}
+      />
+
+      <Checkbox
+        label={strings.app.settings.hideHandle}
+        checked={hideHandle}
+        onChange={hide => settingsStore.getState().setHideHandleWhenNamed(hide)}
+        hint={strings.app.settings.hideHandleHint}
+      />
 
       <h3 className="hm-settings-page__heading">{words.cacheHeading}</h3>
 

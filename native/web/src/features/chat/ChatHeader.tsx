@@ -26,9 +26,8 @@ import { useLocale } from '../../i18n/use-locale'
 import { botsStore } from '../../state/bots'
 import { chatsStore } from '../../state/chats'
 import { connectionStore } from '../../state/connection'
-import { layoutStore } from '../../state/layout'
 import { Avatar, PresenceBead } from '../../ui/primitives'
-import { botLabel } from '../bots/bot-label'
+import { useBotNames } from '../bots/bot-names'
 import { presenceOf } from '../bots/presence'
 import { conversationsHref, profileHref } from '../shell/router'
 import { shortToolName } from './items/tool-text'
@@ -80,7 +79,7 @@ export function ChatHeader({ bot, chatKey }: ChatHeaderProps): ReactElement {
 
   const record = useStore(botsStore, state => state.byName[bot])
   const avatar = useStore(botsStore, state => state.avatars[bot])
-  const given = useStore(layoutStore, state => state.labels[bot])
+  const { primary, secondary } = useBotNames(bot, record?.displayName)
   const running = useStore(botsStore, state => state.running[bot] === true)
   const status = useStore(connectionStore, state => state.status)
   const live = useStore(
@@ -114,10 +113,16 @@ export function ChatHeader({ bot, chatKey }: ChatHeaderProps): ReactElement {
   return (
     <p className="hm-chat-header">
       <span className="hm-chat-header__avatar" aria-hidden="true">
-        <Avatar name={botLabel(given || record?.displayName, bot)} uri={avatar} />
+        <Avatar name={primary} uri={avatar} />
       </span>
       <PresenceBead state={presence.state} size="inline" />
       <span className="hm-chat-header__status">{subtitleOf(ready, status, activity)}</span>
+      {/* The bot's other name, where the reader's setting asks for both: the handle an @mention names it by. */}
+      {secondary ? (
+        <span className="hm-chat-header__alt">
+          <bdi>{secondary}</bdi>
+        </span>
+      ) : null}
       <span className="hm-chat-header__links">
         <a className="hm-chat-header__link" href={profileHref(bot)}>
           {sheetStrings.botProfile.profileLink}

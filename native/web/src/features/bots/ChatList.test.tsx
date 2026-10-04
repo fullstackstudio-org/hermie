@@ -7,6 +7,7 @@ import { botsStore } from '../../state/bots'
 import { chatsStore } from '../../state/chats'
 import { connectionStore } from '../../state/connection'
 import { pluginStore } from '../../state/plugin'
+import { settingsStore } from '../../state/settings'
 import { aBot, LONG_AGO, resetShellStores, seedRoster } from '../../test-support/shell-stores'
 import { ChatList } from './ChatList'
 
@@ -51,6 +52,45 @@ describe('the chat list', () => {
 
     expect(row('writer').getAttribute('aria-current')).toBe('page')
     expect(row('researcher').hasAttribute('aria-current')).toBe(false)
+  })
+
+  describe('the two names of a bot', () => {
+    afterEach(() => settingsStore.getState().reset())
+
+    const names = (bot: string): { name: string | undefined; alt: string | undefined } => ({
+      name: row(bot).querySelector('.hm-row__name')?.textContent ?? undefined,
+      alt: row(bot).querySelector('.hm-row__alt')?.textContent ?? undefined
+    })
+
+    it('shows a named bot by its name alone by default, as before there was a setting', () => {
+      seedRoster([aBot('lance-vance', { displayName: 'Netwerkbeheerder' }), aBot('scout')])
+      render(<ChatList selectedBot={undefined} />)
+
+      expect(names('lance-vance')).toEqual({ name: 'Netwerkbeheerder', alt: undefined })
+      expect(names('scout')).toEqual({ name: 'Scout', alt: undefined })
+    })
+
+    it('draws the other name under it when the profile name is not hidden, and swaps them with the order', () => {
+      seedRoster([aBot('lance-vance', { displayName: 'Netwerkbeheerder' }), aBot('scout')])
+      settingsStore.getState().setHideHandleWhenNamed(false)
+      render(<ChatList selectedBot={undefined} />)
+
+      expect(names('lance-vance')).toEqual({ name: 'Netwerkbeheerder', alt: 'lance-vance' })
+      // A bot with one name has one line, whatever is set.
+      expect(names('scout')).toEqual({ name: 'Scout', alt: undefined })
+
+      act(() => settingsStore.getState().setBotNameOrder('profile'))
+      expect(names('lance-vance')).toEqual({ name: 'lance-vance', alt: 'Netwerkbeheerder' })
+    })
+
+    it('says both names to a screen reader, as the row’s own words', () => {
+      seedRoster([aBot('lance-vance', { displayName: 'Netwerkbeheerder' })])
+      settingsStore.getState().setHideHandleWhenNamed(false)
+      render(<ChatList selectedBot={undefined} />)
+
+      expect(row('lance-vance').textContent).toContain('Netwerkbeheerder')
+      expect(row('lance-vance').textContent).toContain('lance-vance')
+    })
   })
 
   describe('what a row says', () => {

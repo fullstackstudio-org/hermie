@@ -1,5 +1,5 @@
 import { act, render, screen } from '@testing-library/react'
-import { beforeEach, describe, expect, it } from 'vitest'
+import { afterEach, beforeEach, describe, expect, it } from 'vitest'
 
 import { resetActiveLocale } from '../../i18n/active-locale'
 import { setLanguageChoice } from '../../i18n/locale'
@@ -7,6 +7,7 @@ import { botsStore } from '../../state/bots'
 import { chatsStore } from '../../state/chats'
 import { connectionStore } from '../../state/connection'
 import { layoutStore } from '../../state/layout'
+import { settingsStore } from '../../state/settings'
 import { assistantItem, chatWith, toolItem, userItem } from '../../test-support/chat-fixtures'
 import { aBot, resetShellStores, seedRoster } from '../../test-support/shell-stores'
 import { ChatHeader } from './ChatHeader'
@@ -21,6 +22,28 @@ beforeEach(() => {
 const state = () => document.querySelector('.hm-chat-header__status')?.textContent
 const bead = () => document.querySelector('.hm-bead')?.getAttribute('data-state')
 const active = { turn: { active: true, local: true, nextSeq: 9000 } }
+
+describe('the bot’s other name', () => {
+  afterEach(() => settingsStore.getState().reset())
+
+  const other = () => document.querySelector('.hm-chat-header__alt')?.textContent
+
+  it('is not drawn by default: a named bot has its name alone', () => {
+    render(<ChatHeader bot="researcher" chatKey="researcher" />)
+
+    expect(other()).toBeUndefined()
+  })
+
+  it('is the handle beside the status once the profile name is not hidden, and the display name in the other order', () => {
+    settingsStore.getState().setHideHandleWhenNamed(false)
+    render(<ChatHeader bot="researcher" chatKey="researcher" />)
+
+    expect(other()).toBe('researcher')
+
+    act(() => settingsStore.getState().setBotNameOrder('profile'))
+    expect(other()).toBe('Dr. Researcher')
+  })
+})
 
 describe('the line under the bot’s name', () => {
   it('says Online for a bot that is connected and idle, with the bead to match', () => {

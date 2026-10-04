@@ -40,6 +40,7 @@ import { ACCENT_NAMES, type AccentName } from '../../state/folders'
 import { BOT_LABEL_MAX, layoutStore } from '../../state/layout'
 import { Avatar, Button, VisuallyHidden } from '../../ui/primitives'
 import { botLabel } from '../bots/bot-label'
+import { useBotNames } from '../bots/bot-names'
 import { useChatRuntime } from '../chat/chat-runtime'
 import { Checkbox, Fact, RadioGroup } from '../settings/controls'
 import { useSettingsRuntime } from '../settings/settings-runtime'
@@ -111,7 +112,7 @@ export function ProfilePage({ bot }: ProfilePageProps): ReactElement {
   const given = useStore(layoutStore, state => state.labels[bot] ?? '')
   const accent = useStore(layoutStore, state => state.accents[bot] ?? 'default')
   const ready = useStore(connectionStore, state => state.status === 'ready')
-  const name = botLabel(given || record?.displayName, bot)
+  const name = useBotNames(bot, record?.displayName).primary
 
   const model = useMemo(
     () =>

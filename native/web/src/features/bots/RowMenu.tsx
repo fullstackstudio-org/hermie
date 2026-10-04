@@ -39,7 +39,7 @@ import { folderOf } from '../../state/folders'
 import { layoutStore } from '../../state/layout'
 import { mutedUntil } from '../../state/mute'
 import { Icon } from '../../ui/icons'
-import { botLabel } from './bot-label'
+import { useBotNames } from './bot-names'
 import {
   createFolderAround,
   type RowMenuItem,
@@ -82,8 +82,7 @@ function useRowModel(bot: string): RowMenuModel {
       entries: state.entries
     }))
   )
-  const displayName = useStore(botsStore, state => state.byName[bot]?.displayName)
-  const label = useStore(layoutStore, state => state.labels[bot])
+  const { primary: name } = useBotNames(bot)
   const lastActive = useStore(botsStore, state => state.byName[bot]?.canonical?.lastActive ?? 0)
   const lastSeen = useStore(botsStore, state => state.lastSeen[bot] ?? 0)
   const unreadMessages = useStore(chatsStore, state => {
@@ -95,7 +94,7 @@ function useRowModel(bot: string): RowMenuModel {
   const muted = layout.until === undefined ? null : mutedUntil({ [bot]: layout.until }, bot, now)
 
   return {
-    name: botLabel(label || displayName, bot),
+    name,
     accent: layout.accent,
     archived: layout.archived,
     pinned: layout.pinned,

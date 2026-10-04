@@ -48,6 +48,13 @@
   overflow-wrap: anywhere;
 }
 
+/* The bot's other name, beside the status, where the reader's setting asks for both (`features/bots/bot-names.ts`). */
+.hm-chat-header__alt {
+  min-width: 0;
+  overflow-wrap: anywhere;
+  color: var(--hm-text-faint);
+}
+
 /* The ways on from the chat (its profile, its other conversations), at the end of the line. */
 .hm-chat-header__links {
   display: inline-flex;

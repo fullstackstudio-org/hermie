@@ -4,10 +4,13 @@ import { createKeyValueStore } from '../platform/key-value-store'
 import {
   asSchemeChoice,
   asTint,
+  BOT_NAME_ORDER_KEY,
   bindTheme,
   createSettingsStore,
+  DEFAULT_NAME_ORDER,
   DEFAULT_SCHEME,
   DEFAULT_TINT,
+  HIDE_HANDLE_KEY,
   SCHEME_KEY,
   TRANSCRIPT_CACHE_KEY,
   TINT_KEY,
@@ -136,6 +139,71 @@ describe('the transcript cache choice', () => {
     store.getState().setTranscriptCache(true)
 
     expect(notified).toBe(0)
+  })
+})
+
+describe('how a bot’s two names are drawn', () => {
+  it('leads with the display name and hides a named bot’s handle until the reader says otherwise', () => {
+    const state = createSettingsStore().getState()
+
+    expect([state.botNameOrder, state.hideHandleWhenNamed]).toEqual([DEFAULT_NAME_ORDER, true])
+    expect(DEFAULT_NAME_ORDER).toBe('display')
+  })
+
+  it('stores only the departure from each default, on this browser, and keeps it on sign-out', () => {
+    const { data, storage } = memoryStorage()
+    const kv = createKeyValueStore({ namespace: '/', storage })
+    const store = createSettingsStore()
+
+    store.getState().hydrate(kv)
+    store.getState().setBotNameOrder('profile')
+    store.getState().setHideHandleWhenNamed(false)
+    expect(data.get(`hermie:/:${BOT_NAME_ORDER_KEY}`)).toBe('profile')
+    expect(data.get(`hermie:/:${HIDE_HANDLE_KEY}`)).toBe('off')
+    expect(kv.clearIdentityBound()).toEqual([])
+
+    const later = createSettingsStore()
+
+    later.getState().hydrate(createKeyValueStore({ namespace: '/', storage }))
+    expect([later.getState().botNameOrder, later.getState().hideHandleWhenNamed]).toEqual(['profile', false])
+
+    later.getState().setBotNameOrder('display')
+    later.getState().setHideHandleWhenNamed(true)
+    expect(data.has(`hermie:/:${BOT_NAME_ORDER_KEY}`)).toBe(false)
+    expect(data.has(`hermie:/:${HIDE_HANDLE_KEY}`)).toBe(false)
+  })
+
+  it('reads anything it does not know as the default', () => {
+    const { data, storage } = memoryStorage()
+    const kv = createKeyValueStore({ namespace: '/', storage })
+    const store = createSettingsStore()
+
+    data.set(`hermie:/:${BOT_NAME_ORDER_KEY}`, 'sideways')
+    data.set(`hermie:/:${HIDE_HANDLE_KEY}`, 'maybe')
+    store.getState().hydrate(kv)
+
+    expect([store.getState().botNameOrder, store.getState().hideHandleWhenNamed]).toEqual(['display', true])
+  })
+
+  it('does not notify for the choice it already has', () => {
+    const store = createSettingsStore()
+    let notified = 0
+
+    store.subscribe(() => (notified += 1))
+    store.getState().setBotNameOrder('display')
+    store.getState().setHideHandleWhenNamed(true)
+
+    expect(notified).toBe(0)
+  })
+
+  it('goes back to the defaults on reset', () => {
+    const store = createSettingsStore()
+
+    store.getState().setBotNameOrder('profile')
+    store.getState().setHideHandleWhenNamed(false)
+    store.getState().reset()
+
+    expect([store.getState().botNameOrder, store.getState().hideHandleWhenNamed]).toEqual(['display', true])
   })
 })
 

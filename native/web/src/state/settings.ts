@@ -21,6 +21,11 @@
  * to a gateway). Absent means on: only an explicit `off` is stored. The cache honours it
  * through `GatedChatCache`; this store only holds the choice.
  *
+ * **How a bot's two names are drawn** (`features/bots/bot-names.ts`) is a statement about this reader's eyes and is
+ * stored the same way: which of a bot's profile name (its handle) and display name is the large one
+ * (`device.botNameOrder`), and whether a named bot's handle is hidden altogether (`device.hideHandle`, on by default).
+ * Only a departure from the default is stored.
+ *
  * A vanilla zustand store (`settingsStore`, and `createSettingsStore` for
  * tests), read by `features/` through `useStore`.
  */
@@ -43,6 +48,14 @@ export const DEFAULT_TINT: Tint = 'blue'
 export const SCHEME_KEY = 'device.scheme'
 export const TINT_KEY = 'device.tint'
 export const TRANSCRIPT_CACHE_KEY = 'device.transcriptCache'
+export const BOT_NAME_ORDER_KEY = 'device.botNameOrder'
+export const HIDE_HANDLE_KEY = 'device.hideHandle'
+
+/** Which of a bot's two names is the large one: its profile name (handle), or the display name. */
+export type NameOrder = 'profile' | 'display'
+
+export const NAME_ORDERS: readonly NameOrder[] = ['profile', 'display']
+export const DEFAULT_NAME_ORDER: NameOrder = 'display'
 
 const SCHEMES: readonly SchemeChoice[] = ['system', 'light', 'dark']
 
@@ -61,6 +74,10 @@ export interface SettingsState {
   tint: Tint
   /** Whether this browser keeps the transcripts it has read. On unless the reader switched it off. */
   transcriptCache: boolean
+  /** Which of a bot's two names leads. Only used while `hideHandleWhenNamed` is off. */
+  botNameOrder: NameOrder
+  /** A bot that has a display name shows only that: its handle drops off the second line. On unless switched off. */
+  hideHandleWhenNamed: boolean
   /** Where the choices are written; null before the page's store is known (nothing is persisted then). */
   storage: WebKeyValueStore | null
 
@@ -69,6 +86,8 @@ export interface SettingsState {
   setScheme: (scheme: SchemeChoice) => void
   setTint: (tint: Tint) => void
   setTranscriptCache: (enabled: boolean) => void
+  setBotNameOrder: (order: NameOrder) => void
+  setHideHandleWhenNamed: (hide: boolean) => void
   /** Back to the defaults, and forget the store (tests). A stored choice stays stored. */
   reset: () => void
 }
@@ -78,6 +97,8 @@ export function createSettingsStore(): StoreApi<SettingsState> {
     scheme: DEFAULT_SCHEME,
     tint: DEFAULT_TINT,
     transcriptCache: true,
+    botNameOrder: DEFAULT_NAME_ORDER,
+    hideHandleWhenNamed: true,
     storage: null,
 
     hydrate(storage) {
@@ -85,7 +106,9 @@ export function createSettingsStore(): StoreApi<SettingsState> {
         storage,
         scheme: asSchemeChoice(storage.getSync(SCHEME_KEY)),
         tint: asTint(storage.getSync(TINT_KEY)),
-        transcriptCache: storage.getSync(TRANSCRIPT_CACHE_KEY) !== 'off'
+        transcriptCache: storage.getSync(TRANSCRIPT_CACHE_KEY) !== 'off',
+        botNameOrder: storage.getSync(BOT_NAME_ORDER_KEY) === 'profile' ? 'profile' : DEFAULT_NAME_ORDER,
+        hideHandleWhenNamed: storage.getSync(HIDE_HANDLE_KEY) !== 'off'
       })
     },
 
@@ -122,8 +145,43 @@ export function createSettingsStore(): StoreApi<SettingsState> {
       }
     },
 
+    setBotNameOrder(order) {
+      if (order === get().botNameOrder) {
+        return
+      }
+
+      set({ botNameOrder: order })
+
+      if (order === DEFAULT_NAME_ORDER) {
+        get().storage?.deleteSync(BOT_NAME_ORDER_KEY)
+      } else {
+        get().storage?.setSync(BOT_NAME_ORDER_KEY, order)
+      }
+    },
+
+    setHideHandleWhenNamed(hide) {
+      if (hide === get().hideHandleWhenNamed) {
+        return
+      }
+
+      set({ hideHandleWhenNamed: hide })
+
+      if (hide) {
+        get().storage?.deleteSync(HIDE_HANDLE_KEY)
+      } else {
+        get().storage?.setSync(HIDE_HANDLE_KEY, 'off')
+      }
+    },
+
     reset() {
-      set({ scheme: DEFAULT_SCHEME, tint: DEFAULT_TINT, transcriptCache: true, storage: null })
+      set({
+        scheme: DEFAULT_SCHEME,
+        tint: DEFAULT_TINT,
+        transcriptCache: true,
+        botNameOrder: DEFAULT_NAME_ORDER,
+        hideHandleWhenNamed: true,
+        storage: null
+      })
     }
   }))
 }

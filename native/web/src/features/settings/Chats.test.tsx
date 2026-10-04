@@ -79,6 +79,56 @@ describe('the Chats page: the defaults', () => {
   })
 })
 
+describe('the Chats page: how a bot is named', () => {
+  afterEach(() => settingsStore.getState().reset())
+
+  const order = (): HTMLElement => screen.getByRole('group', { name: 'Bot names' })
+  const hide = (): HTMLInputElement => screen.getByRole('checkbox', { name: 'Hide profile name' }) as HTMLInputElement
+
+  it('hides a named bot’s profile name by default, and the order has nothing to say while it does', () => {
+    mount()
+
+    expect(hide().checked).toBe(true)
+    expect(order().hasAttribute('disabled')).toBe(true)
+    expect((within(order()).getByRole('radio', { name: 'Display name' }) as HTMLInputElement).checked).toBe(true)
+    expect(
+      within(order())
+        .getAllByRole('radio')
+        .map(input => input.closest('label')?.textContent)
+    ).toEqual(['Profile name', 'Display name'])
+    expect(document.getElementById(hide().getAttribute('aria-describedby') ?? '')?.textContent).toMatch(
+      /^When a bot has a display name, show only that/u
+    )
+  })
+
+  it('shows both names once the profile name is not hidden, and then takes the order', () => {
+    mount()
+
+    fireEvent.click(hide())
+    expect(settingsStore.getState().hideHandleWhenNamed).toBe(false)
+    expect(order().hasAttribute('disabled')).toBe(false)
+
+    fireEvent.click(within(order()).getByRole('radio', { name: 'Profile name' }))
+    expect(settingsStore.getState().botNameOrder).toBe('profile')
+    expect((within(order()).getByRole('radio', { name: 'Profile name' }) as HTMLInputElement).checked).toBe(true)
+
+    fireEvent.click(within(order()).getByRole('radio', { name: 'Display name' }))
+    expect(settingsStore.getState().botNameOrder).toBe('display')
+  })
+
+  it('reads what the browser stored, and describes the order', () => {
+    settingsStore.getState().setHideHandleWhenNamed(false)
+    settingsStore.getState().setBotNameOrder('profile')
+    mount()
+
+    expect(hide().checked).toBe(false)
+    expect((within(order()).getByRole('radio', { name: 'Profile name' }) as HTMLInputElement).checked).toBe(true)
+    expect(document.getElementById(order().getAttribute('aria-describedby') ?? '')?.textContent).toMatch(
+      /^Which name is the large one/u
+    )
+  })
+})
+
 describe('the Chats page: the transcript cache', () => {
   it('is on by default, and describes what it does', () => {
     mount()

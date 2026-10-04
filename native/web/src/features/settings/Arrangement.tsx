@@ -29,9 +29,11 @@ import { useLocale } from '../../i18n/use-locale'
 import { botsStore } from '../../state/bots'
 import { ACCENT_NAMES, type AccentName } from '../../state/folders'
 import { botLabel, layoutStore } from '../../state/layout'
+import { settingsStore } from '../../state/settings'
 import { formatMuteUntil, MUTE_DURATIONS, type MuteDuration, muteUntil } from '../../state/mute'
 import { Icon } from '../../ui/icons'
 import { Button, VisuallyHidden } from '../../ui/primitives'
+import { botNames } from '../bots/bot-names'
 import {
   type Dragged,
   dropOf,
@@ -447,6 +449,8 @@ export function Arrangement(): ReactElement {
     }))
   )
   const bots = useStore(botsStore, state => state.bots)
+  const nameOrder = useStore(settingsStore, state => state.botNameOrder)
+  const hideHandle = useStore(settingsStore, state => state.hideHandleWhenNamed)
 
   const [openKey, setOpenKey] = useState<string | null>(null)
   const [message, setMessage] = useState('')
@@ -475,8 +479,10 @@ export function Arrangement(): ReactElement {
   const now = Math.floor(Date.now() / 1000)
   const displayNames = new Map(bots.map(bot => [bot.name, bot.displayName]))
 
-  /** What a row is called here: the reader's own name for the bot, else the gateway's display name, else its handle. */
-  const nameOf = (bot: string): string => botLabel(layout, bot) || displayNames.get(bot) || bot || words.unnamedChat
+  /** What a row is called here: the reader's own name for the bot, else the gateway's display name, else its handle (`bot-names.ts`). */
+  const nameOf = (bot: string): string =>
+    botNames({ name: bot, displayName: displayNames.get(bot), label: botLabel(layout, bot) }, nameOrder, hideHandle)
+      .primary || words.unnamedChat
 
   const hidden = (name: string): boolean => Boolean(layout.archived[name])
 

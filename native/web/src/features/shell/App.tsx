@@ -51,10 +51,8 @@ import { useLocale } from '../../i18n/use-locale'
 import { webStrings } from '../../i18n/web-strings'
 import { type HashRouter, pageHashRouter } from '../../platform/hash-router'
 import { setPageTitle } from '../../platform/page-title'
-import { botsStore } from '../../state/bots'
-import { layoutStore } from '../../state/layout'
 import { pluginStore } from '../../state/plugin'
-import { botLabel } from '../bots/bot-label'
+import { useBotNames } from '../bots/bot-names'
 import { ChatList } from '../bots/ChatList'
 import { loadActivityPage } from '../activity/load'
 import { loadChatScreen, preloadChatScreen } from '../chat/load'
@@ -174,22 +172,20 @@ export function App({
 
   const route = useRoute(router)
   const bot = botOf(route)
-  const botName = useStore(botsStore, state =>
-    bot === undefined ? undefined : (state.byName[bot]?.displayName ?? bot)
-  )
-  // What the reader calls the bot beats what the bot calls itself (`state/layout.ts`, set on its profile page).
-  const given = useStore(layoutStore, state => (bot === undefined ? undefined : state.labels[bot]))
+  // What the reader calls the bot beats what the bot calls itself (`state/layout.ts`, set on its profile page), and
+  // which of its two names leads is the reader's setting (`features/bots/bot-names.ts`).
+  const botName = useBotNames(bot).primary
   const switchedOff = useStore(pluginStore, state => webClientSwitchedOff(state.advert))
 
   const appName = strings.app.app.name
   const heading =
     route.name === 'chat'
       ? // The bot's own words: cleaned and bounded like a request's, and isolated where the heading draws it.
-        botLabel(given || botName, route.bot) || appName
+        botName || appName
       : route.name === 'conversations'
         ? strings.chat.sessions.conversations
         : route.name === 'profile'
-          ? strings.app.botProfile.open({ name: botLabel(given || botName, route.bot) || appName })
+          ? strings.app.botProfile.open({ name: botName || appName })
           : route.name === 'settings'
             ? strings.app.settings.title
             : route.name === 'crons'

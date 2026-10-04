@@ -1613,7 +1613,7 @@ the plugin's configuration on the gateway).
 | `controls.tsx`, `settings.css`                               | the page, a radio group, a checkbox, the "not synced" line, a read-only fact: native controls throughout                                                                             |
 | `Account.tsx`                                                | who `/api/auth/me` named, the gateway's host, Sign out behind a question                                                                                                             |
 | `Gateway.tsx`, `gateway-facts.ts`                            | this gateway, read only: host, address, Hermes version, plugin and modules, this build and the plugin's, the update line                                                             |
-| `Chats.tsx`                                                  | the default view of a conversation, the transcript cache on or off and "Clear now"                                                                                                   |
+| `Chats.tsx`                                                  | the default view of a conversation, how a bot is named (the order and hiding the handle), the transcript cache on or off and "Clear now"                                             |
 | `Notifications.tsx`                                          | Web Push for this browser: what is missing, the switch, the types, the preview, "Register again", the test ("Web Push")                                                              |
 | `Arrangement.tsx`, `arrangement-model.ts`, `arrangement.css` | the chat list: reorder, folders, colour, mute, archive                                                                                                                               |
 | `Appearance.tsx`                                             | scheme, accent colour, language, text size                                                                                                                                           |
@@ -1643,6 +1643,19 @@ is written to it (a chat opens from the gateway, as on a first visit), and `forg
 it off also clears what is stored, in the same step, and says so: a switch that stopped new copies and left the old ones would
 not mean what it says. "Clear now" is `cache.clear()` (this base path's rows only) and says what it did, or that it could not.
 The e2e spec reads the IndexedDB back.
+
+**How a bot is named** (`Chats.tsx`, `features/bots/bot-names.ts`, the Expo app's "Bot names" and "Hide profile name"). A bot has
+two names: its handle (the profile's name, which `@`-addressing and a cron use) and its display name, and the reader may
+have a third of their own (the arrangement's `labels`, set on its profile page), which wins over the display name. Two
+settings of this browser (`state/settings.ts`, `device.botNameOrder` and `device.hideHandle`, only a departure from the
+default stored, kept on sign-out, never sent to a gateway) say how they are drawn: **Hide profile name** (on by default)
+shows a named bot by its name alone, which is what the list always showed, and **Bot names** (display name first by default,
+only in force while the handle is shown) says which of the two leads when both are drawn. `botNames` is the rule and is pure:
+a bot with one name (or whose name is its handle in another case) has one line however it is set, written as the name is
+written (the Expo app writes the handle there; this client kept what it always drew); a name with nothing visible falls back
+to the next. The other name is a smaller line under the name on a chat's row and beside the status in a chat's header, and
+the one line is the heading, the tab's title, the row menu's and the composer's. The request sheets deliberately keep saying
+the name the gateway gave the bot. Each is cleaned and bounded like any text a bot wrote (`botLabel`), isolated in a `<bdi>`.
 
 **Chat list.** Everything goes through the layout store's actions (`moveBy`, `moveFolderBy`, `dropBot`, `dropFolder`,
 `moveToFolder`, `addFolder`, `renameFolder`, `setFolderColour`, `removeFolder`, `setAccent`, `setMute`, `setArchived`) and

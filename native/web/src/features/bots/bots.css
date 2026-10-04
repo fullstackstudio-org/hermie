@@ -90,6 +90,18 @@
   white-space: nowrap;
 }
 
+/* The bot's other name, under the first, where the reader's setting asks for both (`bot-names.ts`). */
+.hm-row__alt {
+  display: block;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  color: var(--hm-text-faint);
+  font-size: 0.8125rem;
+  line-height: 1.3;
+}
+
 .hm-row__preview {
   display: block;
   min-width: 0;

@@ -397,6 +397,49 @@ test.describe('Chats', () => {
     await expect(page.getByRole('checkbox', { name: 'Keep transcripts in this browser' })).not.toBeChecked()
   })
 
+  test('shows a named bot’s other name when the profile name is not hidden, in the order chosen, and keeps both choices', async ({
+    app,
+    page
+  }) => {
+    // The reader's own name for the bot: it differs from the handle, so the bot has two.
+    await app.open(`#/chat/${BOT}/profile`)
+    await page.getByRole('textbox', { name: 'Display name' }).fill('Rex')
+    await page.getByRole('textbox', { name: 'Display name' }).press('Enter')
+    await goTo(page, '#/settings/chats')
+
+    const row = page.locator(`a[data-bot="${BOT}"]`)
+    const hide = page.getByRole('checkbox', { name: 'Hide profile name' })
+    const order = page.getByRole('group', { name: 'Bot names' })
+
+    // The default is what the list always showed: the name, alone.
+    await expect(hide).toBeChecked()
+    await expect(order.getByRole('radio', { name: 'Profile name' })).toBeDisabled()
+    await expect(row.locator('.hm-row__name')).toHaveText('Rex')
+    await expect(row.locator('.hm-row__alt')).toHaveCount(0)
+
+    await hide.uncheck()
+    await expect(order.getByRole('radio', { name: 'Profile name' })).toBeEnabled()
+    await expect(row.locator('.hm-row__name')).toHaveText('Rex')
+    await expect(row.locator('.hm-row__alt')).toHaveText(BOT)
+
+    await order.getByRole('radio', { name: 'Profile name' }).check()
+    await expect(row.locator('.hm-row__name')).toHaveText(BOT)
+    await expect(row.locator('.hm-row__alt')).toHaveText('Rex')
+
+    // The chat's own header says the other name beside its status.
+    await goTo(page, `#/chat/${BOT}`)
+    await expect(page.locator('.hm-chat-header__alt')).toHaveText('Rex')
+
+    // Both choices are this browser's: they are there after a reload.
+    await page.reload()
+    await expect(page.locator(`a[data-bot="${BOT}"] .hm-row__name`)).toHaveText(BOT)
+    await goTo(page, '#/settings/chats')
+    await expect(page.getByRole('checkbox', { name: 'Hide profile name' })).not.toBeChecked()
+    await expect(
+      page.getByRole('group', { name: 'Bot names' }).getByRole('radio', { name: 'Profile name' })
+    ).toBeChecked()
+  })
+
   test('changes what a new conversation shows, and the chat’s own options say it follows the default', async ({
     app,
     page
