@@ -136,6 +136,22 @@ private func requestLine(_ clarify: ClarifyItem) -> String {
   return "Question — \(JS.nonEmpty(questions.joined(separator: "; ")) ?? clarify.state.rawValue)"
 }
 
+private func requestLine(_ request: RequestItem) -> String {
+  // How it ended, never what was answered: the item holds no value to print.
+  let ended: String
+  if let summary = request.answerSummary {
+    ended = [
+      summary.status ?? summary.decision ?? "",
+      summary.edited == true ? "edited" : "",
+      (summary.count ?? 0) != 0 ? String(summary.count ?? 0) : "",
+    ].filter { !$0.isEmpty }.joined(separator: ", ")
+  } else {
+    ended = request.state.rawValue
+  }
+
+  return "Request — \(JS.nonEmpty(request.title) ?? request.method) (\(JS.nonEmpty(ended) ?? request.state.rawValue))"
+}
+
 /// The name a `user` row is exported under, when it is somebody else's
 /// (HERM-83, D3/D6) — the same gate `attributedSenderName` in `Preview.swift`
 /// applies, restated here because an export walks a plain item list rather
@@ -256,6 +272,9 @@ private func entryFor(_ item: TranscriptItem, _ options: TranscriptExportOptions
 
   case .clarify(let clarify):
     return Entry(who: "", body: requestLine(clarify), ts: ts, aside: true)
+
+  case .request(let request):
+    return Entry(who: "", body: requestLine(request), ts: ts, aside: true)
 
   case .status:
     // Transient by definition — "Compacting…", "Thinking…" — and gone from the

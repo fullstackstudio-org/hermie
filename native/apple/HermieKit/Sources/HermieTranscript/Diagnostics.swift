@@ -115,7 +115,7 @@ public struct TranscriptDiagnostics: Sendable, Hashable {
 /// Items the backend never persists, so an absent row id means nothing for them.
 private func isEphemeral(_ item: TranscriptItem) -> Bool {
   switch item {
-  case .approval, .clarify, .status: true
+  case .approval, .clarify, .request, .status: true
   default: false
   }
 }

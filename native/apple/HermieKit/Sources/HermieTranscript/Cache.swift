@@ -183,6 +183,7 @@ private func isCacheable(_ item: TranscriptItem) -> Bool {
   switch item {
   case .approval(let approval): return approval.state != .open
   case .clarify(let clarify): return clarify.state != .open
+  case .request(let request): return request.state != .open
   default: return true
   }
 }
@@ -297,6 +298,8 @@ public func stateFromCache(_ botName: String, _ ids: SessionIDs, _ snapshot: Cac
       state.byRequestID[approval.requestID] = id
     case .clarify(let clarify):
       state.byRequestID[clarify.requestID] = id
+    case .request(let request):
+      state.byRequestID[request.requestID] = id
     default:
       break
     }

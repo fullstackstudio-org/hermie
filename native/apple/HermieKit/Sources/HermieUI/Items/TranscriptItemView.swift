@@ -106,6 +106,10 @@ struct ItemContentView: View {
       ApprovalCardView(item: item, presentation: presentation)
     case .clarify(let item):
       ClarifyCardView(item: item, presentation: presentation)
+    case .request:
+      // The card for an interactive request ("Form answered") is a later task; until
+      // then the row draws nothing (`TranscriptRowBuilder.drawsNothing`).
+      EmptyView()
     case .subagentGroup(let item):
       SubagentGroupView(item: item, presentation: presentation)
     case .unknown(let item):

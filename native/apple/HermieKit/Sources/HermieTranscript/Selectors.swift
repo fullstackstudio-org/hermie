@@ -127,7 +127,7 @@ public func visibleItems(_ state: ChatState, _ options: VisibilityOptions) -> [V
     guard let item = state.items[id] else { continue }
 
     switch item {
-    case .approval, .clarify:
+    case .approval, .clarify, .request:
       // A question for the user is never filtered away.
       out.append(VisibleItem(item: item, presentation: .full))
 
@@ -297,6 +297,7 @@ private func isOpenRequest(_ item: TranscriptItem) -> Bool {
   switch item {
   case .approval(let approval): approval.state == .open
   case .clarify(let clarify): clarify.state == .open
+  case .request(let request): request.state == .open
   default: false
   }
 }

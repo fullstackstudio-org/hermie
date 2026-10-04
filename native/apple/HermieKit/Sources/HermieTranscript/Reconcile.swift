@@ -124,7 +124,7 @@ private func isEphemeralNotice(_ item: TranscriptItem) -> Bool {
 /// Items the backend never persists, so a re-hydration can never re-supply them.
 private func isEphemeral(_ item: TranscriptItem) -> Bool {
   switch item {
-  case .approval, .clarify: true
+  case .approval, .clarify, .request: true
   default: isEphemeralNotice(item)
   }
 }
@@ -153,6 +153,7 @@ private func isSettledRequest(_ item: TranscriptItem) -> Bool {
   switch item {
   case .approval(let approval): approval.state != .open
   case .clarify(let clarify): clarify.state != .open
+  case .request(let request): request.state != .open
   default: isEphemeralNotice(item)
   }
 }
@@ -390,6 +391,8 @@ private func rebuild(_ state: ChatState, _ list: [TranscriptItem]) -> ChatState 
       }
     case .clarify(let clarify):
       next.byRequestID[clarify.requestID] = id
+    case .request(let request):
+      next.byRequestID[request.requestID] = id
     default:
       break
     }

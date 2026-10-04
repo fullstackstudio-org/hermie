@@ -3,12 +3,16 @@ import HermieProtocol
 // Server→client requests: `applyServerRequest`, `answerRequest`, and the
 // `request.cancel` event.
 
-/// What the user answered: one string, or answers keyed by question id
-/// (`string | Record<string, string>`), the record in JavaScript key order —
-/// `Object.values(answer)[0]` and `Object.assign` both walk it.
+/// What the user answered: one string, answers keyed by question id
+/// (`string | Record<string, string>`, the record in JavaScript key order —
+/// `Object.values(answer)[0]` and `Object.assign` both walk it), or the summary
+/// object an interactive request is settled with (`RequestAnswerSummary`: it carries
+/// numbers and booleans, so it is not all strings).
 public enum RequestAnswer: TranscriptJSONCodable, Hashable {
   case text(String)
   case byQuestion(JSRecord<String>)
+  /// An object with at least one value that is not a string.
+  case object(JSONObject)
 
   public init(from decoder: any Decoder) throws { self = try Self.decoded(from: decoder) }
   public func encode(to encoder: any Encoder) throws { try jsonValue.encode(to: encoder) }
@@ -18,10 +22,13 @@ public enum RequestAnswer: TranscriptJSONCodable, Hashable {
     case .string(let text):
       self = .text(text)
     case .object:
-      guard let record = JSRecord<String>.read(json, at: path) else {
-        throw TranscriptDecodingError(path: path, message: "expected answers keyed by question id, all strings")
+      if let record = JSRecord<String>.read(json, at: path) {
+        self = .byQuestion(record)
+      } else if case .object(let object) = json {
+        self = .object(object)
+      } else {
+        throw TranscriptDecodingError(path: path, message: "expected an answer string or an object of answers")
       }
-      self = .byQuestion(record)
     default:
       throw TranscriptDecodingError(path: path, message: "expected an answer string or an object of answers")
     }
@@ -31,6 +38,31 @@ public enum RequestAnswer: TranscriptJSONCodable, Hashable {
     switch self {
     case .text(let text): .string(text)
     case .byQuestion(let record): record.json
+    case .object(let object): .object(object)
+    }
+  }
+
+  /// The answer as an object, when it is one.
+  var asObject: JSONObject? {
+    switch self {
+    case .text: nil
+    case .byQuestion(let record): record.json.objectValue
+    case .object(let object): object
+    }
+  }
+
+  /// The strings of an answer that is an object, in JavaScript key order: what an
+  /// approval or a clarify card takes out of whatever it is handed.
+  var strings: JSRecord<String> {
+    switch self {
+    case .text: JSRecord()
+    case .byQuestion(let record): record
+    case .object(let object):
+      JSRecord(
+        object.keys.sorted(by: { $0.utf16.lexicographicallyPrecedes($1.utf16) }).compactMap { key in
+          object[key]?.stringValue.map { (key, $0) }
+        }
+      )
     }
   }
 }
@@ -80,8 +112,53 @@ extension TranscriptReducer {
     switch itemAt(state, id) {
     case .approval(let item)?: return item.state == .open ? id : nil
     case .clarify(let item)?: return item.state == .open ? id : nil
+    case .request(let item)?: return item.state == .open ? id : nil
     default: return nil
     }
+  }
+
+  static let requestTitleMax = 80
+  static let requestSummaryMax = 500
+  static let summaryCountMax = 9_999
+
+  /// `/^[a-z][a-z0-9_]{0,23}$/`.
+  static func isSummaryKey(_ value: String) -> Bool {
+    let units = Array(value.utf8)
+    guard let first = units.first, units.count <= 24, first >= 0x61, first <= 0x7A else { return false }
+
+    return units.dropFirst().allSatisfy { ($0 >= 0x61 && $0 <= 0x7A) || ($0 >= 0x30 && $0 <= 0x39) || $0 == 0x5F }
+  }
+
+  /// `requestAnswerSummary`: narrow what the model passed for an answer to the keys
+  /// and numbers a `RequestItem` may carry. A whitelist, field by field; anything
+  /// else (a value the person typed, handed in by mistake) is dropped. Without how
+  /// it ended, `count` / `edited` / `precision` describe nothing, so there is none.
+  static func requestAnswerSummary(_ raw: JSONObject?) -> RequestAnswerSummary? {
+    guard let raw else { return nil }
+
+    var out = RequestAnswerSummary()
+
+    if case .string(let status)? = raw["status"], status == "answered" || status == "skipped" {
+      out.status = status
+    }
+
+    if case .string(let decision)? = raw["decision"], decision == "approved" || decision == "rejected" {
+      out.decision = decision
+    }
+
+    if case .number(let count)? = raw["count"], count == count.rounded(), count >= 0, count <= Double(summaryCountMax) {
+      out.count = Int(count)
+    }
+
+    if case .bool(let edited)? = raw["edited"] {
+      out.edited = edited
+    }
+
+    if case .string(let precision)? = raw["precision"], isSummaryKey(precision) {
+      out.precision = precision
+    }
+
+    return out.status != nil || out.decision != nil ? out : nil
   }
 
   /// `request.id`: typed `string`; a number the transport might carry is spelled
@@ -102,6 +179,12 @@ extension TranscriptReducer {
     let cancelID = str(payload["id"])
 
     if let id = JS.nonEmpty(next.byRequestID[cancelID] ?? next.byApprovalID[cancelID]) {
+      // A request that was already answered stays what it was: its summary is the
+      // record, and a late withdrawal must not rewrite it into a cancellation.
+      if case .request(let item)? = next.items[id], item.state != .open {
+        return
+      }
+
       patchRequest(&next, id, state: .cancelled, cancelReason: str(payload["reason"]))
     }
   }
@@ -114,7 +197,7 @@ extension TranscriptReducer {
   }
 }
 
-/// Turn an `approval` / `clarify` server request into a transcript item.
+/// Turn an `approval` / `clarify` / interactive server request into a transcript item.
 ///
 /// `applyServerRequest`. The store's form is `applyServerRequest(into:_:_:)`.
 public func applyServerRequest(_ state: ChatState, _ request: ServerRequest, _ now: Double) -> ChatState {
@@ -220,6 +303,27 @@ public func applyServerRequest(into next: inout ChatState, _ request: ServerRequ
         )
       )
     }
+
+    return
+  }
+
+  if let method, isInteractiveMethod(method) {
+    // One code path for every interactive method: the item says that a question was
+    // asked and how it ended, never what was answered, so nothing here depends on the
+    // method's own params beyond the three envelope keys below.
+    R.addItem(&next, id: "req:\(requestID)", ts: now / 1000) { base in
+      .request(
+        RequestItem(
+          base: base,
+          requestID: requestID,
+          method: method,
+          title: JS.slice(R.str(params["title"]), 0, R.requestTitleMax),
+          summary: JS.slice(R.str(params["summary"]), 0, R.requestSummaryMax),
+          optional: R.isTrue(params["optional"]),
+          state: .open
+        )
+      )
+    }
   }
 }
 
@@ -239,11 +343,26 @@ public func answerRequest(into next: inout ChatState, _ requestID: String, _ ans
   guard let id = JS.nonEmpty(next.byRequestID[requestID]) else { return }
 
   switch next.items[id] {
+  case .request(let item)?:
+    // Answers once: a second answer, or one after a withdrawal, changes nothing.
+    guard item.state == .open else { return }
+
+    // A string, or a map that is no summary, records that it was answered, nothing more.
+    let summary = R.requestAnswerSummary(answer.asObject)
+
+    R.patchRequestItem(&next, id) { draft in
+      draft.state = .answered
+
+      if let summary {
+        draft.answerSummary = summary
+      }
+    }
+
   case .approval?:
     R.patchApproval(&next, id) { draft in
       switch answer {
       case .text(let text): draft.answer = text
-      case .byQuestion(let record): draft.answer = record.values.first ?? ""
+      default: draft.answer = answer.strings.values.first ?? ""
       }
       draft.state = .answered
     }
@@ -257,9 +376,9 @@ public func answerRequest(into next: inout ChatState, _ requestID: String, _ ans
         if let open = draft.questions.first(where: { merged[$0.qid] == nil }) {
           merged[open.qid] = text
         }
-      case .byQuestion(let record):
+      default:
         // `Object.assign(merged, answer)`: a key already there keeps its place.
-        for (qid, value) in record.entries {
+        for (qid, value) in answer.strings.entries {
           merged[qid] = value
         }
       }

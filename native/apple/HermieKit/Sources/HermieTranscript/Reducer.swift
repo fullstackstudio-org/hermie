@@ -152,6 +152,9 @@ extension TranscriptReducer {
     case .clarify(let clarify):
       next.byRequestID[clarify.requestID] = clarify.id
 
+    case .request(let request):
+      next.byRequestID[request.requestID] = request.id
+
     default:
       break
     }
@@ -244,8 +247,12 @@ extension TranscriptReducer {
     patchItem(&next, id, body)
   }
 
-  /// `patchItem` writing `state` and `cancelReason`, the two fields an approval and
-  /// a clarify share (`(draft as ApprovalItem | ClarifyItem).state = …`).
+  static func patchRequestItem(_ next: inout ChatState, _ id: String, _ body: (inout RequestItem) -> Void) {
+    patchItem(&next, id, body)
+  }
+
+  /// `patchItem` writing `state` and `cancelReason`, the two fields an approval, a
+  /// clarify and a request share (`(draft as RequestLikeItem).state = …`).
   static func patchRequest(_ next: inout ChatState, _ id: String, state: RequestState, cancelReason: String) {
     guard let item = next.items[id] else { return }
 
@@ -257,6 +264,11 @@ extension TranscriptReducer {
       }
     case .clarify:
       patchClarify(&next, id) { draft in
+        draft.state = state
+        draft.cancelReason = cancelReason
+      }
+    case .request:
+      patchRequestItem(&next, id) { draft in
         draft.state = state
         draft.cancelReason = cancelReason
       }
@@ -566,6 +578,8 @@ extension TranscriptReducer {
         patchRequest(&next, id, state: .cancelled, cancelReason: reason)
       case .clarify(let item)? where item.state == .open:
         patchRequest(&next, id, state: .cancelled, cancelReason: reason)
+      case .request(let item)? where item.state == .open:
+        patchRequest(&next, id, state: .cancelled, cancelReason: reason)
       default:
         break
       }
@@ -657,6 +671,12 @@ extension StatusItem: ReducerPatchable {
 extension ApprovalItem: ReducerPatchable {
   static func update(_ item: inout TranscriptItem, _ body: (inout ApprovalItem) -> Void) -> Bool {
     item.updateApproval(body) != nil
+  }
+}
+
+extension RequestItem: ReducerPatchable {
+  static func update(_ item: inout TranscriptItem, _ body: (inout RequestItem) -> Void) -> Bool {
+    item.updateRequest(body) != nil
   }
 }
 

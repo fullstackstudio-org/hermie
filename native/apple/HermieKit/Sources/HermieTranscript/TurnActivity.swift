@@ -25,7 +25,7 @@ public enum TurnActivity: TranscriptJSONCodable, Hashable {
   case typing
   /// A tool call is running, or one has been announced by name.
   case tool(String)
-  /// An approval or a clarify is open: the turn is blocked on a person.
+  /// An approval, a clarify or an interactive request is open: the turn is blocked on a person.
   case waiting
   /// A `delegate_task` fan-out has children still going.
   case delegating
@@ -75,6 +75,7 @@ public func turnActivity(_ chat: ChatState) -> TurnActivity {
     switch chat.items[id] {
     case .approval(let item)? where item.state == .open: return .waiting
     case .clarify(let item)? where item.state == .open: return .waiting
+    case .request(let item)? where item.state == .open: return .waiting
     default: continue
     }
   }

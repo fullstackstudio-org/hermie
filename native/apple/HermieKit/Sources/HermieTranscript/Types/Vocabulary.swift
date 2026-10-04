@@ -269,7 +269,7 @@ public enum CronDeliveryShape: OpenVocabulary {
   }
 }
 
-/// `RequestState`, of an approval or a clarify.
+/// `RequestState`, of an approval, a clarify or a request.
 public enum RequestState: OpenVocabulary {
   case open, answered, cancelled
   case other(String)
@@ -314,15 +314,16 @@ public enum HydrationState: OpenVocabulary {
 
 /// `TranscriptItemKind`: the `kind` every item carries.
 public enum TranscriptItemKind: OpenVocabulary {
-  case approval, assistant, botDmIn, botDmOut, clarify, cronDelivery, notice, status, subagentGroup, tool, user
+  case approval, assistant, botDmIn, botDmOut, clarify, cronDelivery, notice, request, status, subagentGroup, tool
+  case user
   case other(String)
 
   public init(from decoder: any Decoder) throws { self = try Self.decoded(from: decoder) }
   public func encode(to encoder: any Encoder) throws { try jsonValue.encode(to: encoder) }
 
   public static let knownCases: [TranscriptItemKind] = [
-    .approval, .assistant, .botDmIn, .botDmOut, .clarify, .cronDelivery, .notice, .status, .subagentGroup, .tool,
-    .user
+    .approval, .assistant, .botDmIn, .botDmOut, .clarify, .cronDelivery, .notice, .request, .status, .subagentGroup,
+    .tool, .user
   ]
 
   public var rawValue: String {
@@ -334,6 +335,7 @@ public enum TranscriptItemKind: OpenVocabulary {
     case .clarify: "clarify"
     case .cronDelivery: "cron_delivery"
     case .notice: "notice"
+    case .request: "request"
     case .status: "status"
     case .subagentGroup: "subagent_group"
     case .tool: "tool"

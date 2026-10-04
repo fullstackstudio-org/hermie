@@ -128,7 +128,9 @@ import Testing
     #expect(record.jsonValue == ["b": "2", "a": "1", "10": "x", "2": "y"])
     #expect(RequestAnswer(jsonValue: RequestAnswer.text("no").jsonValue) == .text("no"))
     #expect(throws: TranscriptDecodingError.self) { try RequestAnswer(decoding: 3) }
-    #expect(throws: TranscriptDecodingError.self) { try RequestAnswer(decoding: ["a": 1]) }
+    // An object with a value that is no string is a summary for an interactive request.
+    #expect(try RequestAnswer(decoding: ["a": 1]) == .object(["a": 1]))
+    #expect(RequestAnswer.object(["a": 1, "b": "x"]).strings.keys == ["b"])
 
     let encoded = try JSONEncoder().encode(record)
     #expect(try JSONDecoder().decode(RequestAnswer.self, from: encoded) == record)

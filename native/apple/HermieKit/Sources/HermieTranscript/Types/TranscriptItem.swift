@@ -21,6 +21,7 @@ public indirect enum TranscriptItem: TranscriptJSONCodable, Hashable {
   case clarify(ClarifyItem)
   case cronDelivery(CronDeliveryItem)
   case notice(NoticeItem)
+  case request(RequestItem)
   case status(StatusItem)
   case subagentGroup(SubagentGroupItem)
   case tool(ToolItem)
@@ -46,6 +47,7 @@ public indirect enum TranscriptItem: TranscriptJSONCodable, Hashable {
     case .clarify: self = .clarify(try ClarifyItem(decoding: json, at: path))
     case .cronDelivery: self = .cronDelivery(try CronDeliveryItem(decoding: json, at: path))
     case .notice: self = .notice(try NoticeItem(decoding: json, at: path))
+    case .request: self = .request(try RequestItem(decoding: json, at: path))
     case .status: self = .status(try StatusItem(decoding: json, at: path))
     case .subagentGroup: self = .subagentGroup(try SubagentGroupItem(decoding: json, at: path))
     case .tool: self = .tool(try ToolItem(decoding: json, at: path))
@@ -63,6 +65,7 @@ public indirect enum TranscriptItem: TranscriptJSONCodable, Hashable {
     case .clarify(let item): item.jsonValue
     case .cronDelivery(let item): item.jsonValue
     case .notice(let item): item.jsonValue
+    case .request(let item): item.jsonValue
     case .status(let item): item.jsonValue
     case .subagentGroup(let item): item.jsonValue
     case .tool(let item): item.jsonValue
@@ -81,6 +84,7 @@ public indirect enum TranscriptItem: TranscriptJSONCodable, Hashable {
     case .clarify: .clarify
     case .cronDelivery: .cronDelivery
     case .notice: .notice
+    case .request: .request
     case .status: .status
     case .subagentGroup: .subagentGroup
     case .tool: .tool
@@ -100,6 +104,7 @@ public indirect enum TranscriptItem: TranscriptJSONCodable, Hashable {
       case .clarify(let item): item.base
       case .cronDelivery(let item): item.base
       case .notice(let item): item.base
+      case .request(let item): item.base
       case .status(let item): item.base
       case .subagentGroup(let item): item.base
       case .tool(let item): item.base
@@ -116,6 +121,7 @@ public indirect enum TranscriptItem: TranscriptJSONCodable, Hashable {
       case .clarify(var item): item.base = newValue; self = .clarify(item)
       case .cronDelivery(var item): item.base = newValue; self = .cronDelivery(item)
       case .notice(var item): item.base = newValue; self = .notice(item)
+      case .request(var item): item.base = newValue; self = .request(item)
       case .status(var item): item.base = newValue; self = .status(item)
       case .subagentGroup(var item): item.base = newValue; self = .subagentGroup(item)
       case .tool(var item): item.base = newValue; self = .tool(item)
@@ -195,6 +201,7 @@ public indirect enum TranscriptItem: TranscriptJSONCodable, Hashable {
   public var asClarify: ClarifyItem? { if case .clarify(let item) = self { item } else { nil } }
   public var asCronDelivery: CronDeliveryItem? { if case .cronDelivery(let item) = self { item } else { nil } }
   public var asNotice: NoticeItem? { if case .notice(let item) = self { item } else { nil } }
+  public var asRequest: RequestItem? { if case .request(let item) = self { item } else { nil } }
   public var asStatus: StatusItem? { if case .status(let item) = self { item } else { nil } }
   public var asSubagentGroup: SubagentGroupItem? { if case .subagentGroup(let item) = self { item } else { nil } }
   public var asTool: ToolItem? { if case .tool(let item) = self { item } else { nil } }
@@ -286,6 +293,14 @@ public indirect enum TranscriptItem: TranscriptJSONCodable, Hashable {
     guard case .approval(var item) = self else { return nil }
     self = Self.placeholder
     defer { self = .approval(item) }
+    return try body(&item)
+  }
+
+  @discardableResult
+  public mutating func updateRequest<R>(_ body: (inout RequestItem) throws -> R) rethrows -> R? {
+    guard case .request(var item) = self else { return nil }
+    self = Self.placeholder
+    defer { self = .request(item) }
     return try body(&item)
   }
 

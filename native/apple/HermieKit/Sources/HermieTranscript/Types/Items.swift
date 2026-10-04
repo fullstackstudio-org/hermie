@@ -1084,6 +1084,132 @@ public struct ClarifyItem: TranscriptItemProtocol {
   }
 }
 
+// MARK: - request (an interactive server request)
+
+/// How an interactive request ended, as KEYS and numbers only: never what was answered.
+/// `RequestAnswerSummary`. `status` / `decision` / `precision` are the contract's strings,
+/// kept as strings so an unknown one survives; the reducer admits only the closed ones.
+public struct RequestAnswerSummary: TranscriptJSONCodable, Hashable {
+  /// `answered` | `skipped` (`input.*`).
+  public var status: String?
+  /// `approved` | `rejected` (`review.*`).
+  public var decision: String?
+  public var count: Int?
+  public var edited: Bool?
+  /// A coarse key such as `approximate`.
+  public var precision: String?
+  public var extra: JSONObject
+
+  public init(
+    status: String? = nil,
+    decision: String? = nil,
+    count: Int? = nil,
+    edited: Bool? = nil,
+    precision: String? = nil,
+    extra: JSONObject = [:]
+  ) {
+    self.status = status
+    self.decision = decision
+    self.count = count
+    self.edited = edited
+    self.precision = precision
+    self.extra = extra
+  }
+
+  public init(decoding json: JSONValue, at path: String) throws(TranscriptDecodingError) {
+    var reader = try ObjectReader(json, at: path, type: "RequestAnswerSummary")
+    status = reader.optional("status")
+    decision = reader.optional("decision")
+    count = reader.optional("count")
+    edited = reader.optional("edited")
+    precision = reader.optional("precision")
+    extra = reader.residue
+  }
+
+  public var jsonValue: JSONValue {
+    var writer = ObjectWriter(extra: extra)
+    writer.set("status", status)
+    writer.set("decision", decision)
+    writer.set("count", count)
+    writer.set("edited", edited)
+    writer.set("precision", precision)
+    return writer.json
+  }
+}
+
+/// One interactive request (`input.form`, `input.file`, `review.draft`): that a
+/// question was asked and how it ended, never what was answered. `RequestItem`.
+/// There is no field that could hold a value.
+public struct RequestItem: TranscriptItemProtocol {
+  public static let kind = TranscriptItemKind.request
+  public var base: ItemBase
+  public var requestID: String
+  /// The wire method, e.g. `input.form`.
+  public var method: String
+  /// The agent's heading (at most 80 UTF-16 units).
+  public var title: String
+  /// The agent's words (at most 500 UTF-16 units).
+  public var summary: String
+  /// Skip is offered.
+  public var optional: Bool
+  public var state: RequestState
+  public var answerSummary: RequestAnswerSummary?
+  public var cancelReason: String?
+  public var extra: JSONObject
+
+  public init(
+    base: ItemBase,
+    requestID: String,
+    method: String,
+    title: String,
+    summary: String,
+    optional: Bool,
+    state: RequestState,
+    answerSummary: RequestAnswerSummary? = nil,
+    cancelReason: String? = nil,
+    extra: JSONObject = [:]
+  ) {
+    self.base = base
+    self.requestID = requestID
+    self.method = method
+    self.title = title
+    self.summary = summary
+    self.optional = optional
+    self.state = state
+    self.answerSummary = answerSummary
+    self.cancelReason = cancelReason
+    self.extra = extra
+  }
+
+  public init(decoding json: JSONValue, at path: String) throws(TranscriptDecodingError) {
+    var reader = try ObjectReader(json, at: path, type: "RequestItem")
+    try reader.expectKind(Self.kind)
+    base = try ItemBase(reading: &reader)
+    requestID = try reader.required("requestId")
+    method = try reader.required("method")
+    title = try reader.required("title")
+    summary = try reader.required("summary")
+    optional = try reader.required("optional")
+    state = try reader.required("state")
+    answerSummary = reader.optional("answerSummary")
+    cancelReason = reader.optional("cancelReason")
+    extra = reader.residue
+  }
+
+  public var jsonValue: JSONValue {
+    var writer = ObjectWriter.item(Self.kind, base, extra: extra)
+    writer.set("requestId", requestID)
+    writer.set("method", method)
+    writer.set("title", title)
+    writer.set("summary", summary)
+    writer.set("optional", optional)
+    writer.set("state", state)
+    writer.set("answerSummary", answerSummary)
+    writer.set("cancelReason", cancelReason)
+    return writer.json
+  }
+}
+
 // MARK: - a kind this build does not know
 
 /// An item whose `kind` is none of the above (written by a newer engine). Its shared
@@ -1139,3 +1265,5 @@ extension CronDeliveryItem: JSONField {}
 extension ApprovalItem: JSONField {}
 extension ClarifyQuestionItem: JSONField {}
 extension ClarifyItem: JSONField {}
+extension RequestAnswerSummary: JSONField {}
+extension RequestItem: JSONField {}
