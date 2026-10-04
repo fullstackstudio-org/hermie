@@ -77,6 +77,9 @@ final class ChatFeed: ChatScreenFeed {
   @ObservationIgnored var pendingCallAfterSetup = false
   /// Where a call gets its engines; the tests give their own.
   @ObservationIgnored var voiceEngines = VoiceEngines.live
+  /// What this chat's gateway offers to speak with (its text-to-speech, as this bot sees it); nil for a
+  /// connection with no REST side. Read once the voice is attached.
+  @ObservationIgnored var gatewaySpeech: GatewaySpeechAccess?
 
   private(set) var rows = TranscriptListItems<TranscriptRow>()
   /// The first rows have arrived.

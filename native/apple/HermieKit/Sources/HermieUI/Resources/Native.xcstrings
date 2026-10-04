@@ -1087,6 +1087,102 @@
         }
       }
     },
+    "native.botSettings.voice" : {
+      "comment" : "Header and row of the bot's voice.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Stimme"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Voice"
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Stem"
+          }
+        }
+      }
+    },
+    "native.botSettings.voiceDefault" : {
+      "comment" : "The bot has no voice of its own: it speaks in the voice chosen in the Voice settings.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Standard"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Default"
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Standaard"
+          }
+        }
+      }
+    },
+    "native.botSettings.voiceDefaultDetail" : {
+      "comment" : "Under the Default choice: it follows the Voice settings.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Folgt den Stimm-Einstellungen"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Follows the Voice settings"
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Volgt de stem-instellingen"
+          }
+        }
+      }
+    },
+    "native.botSettings.voiceFooter" : {
+      "comment" : "Footer of the bot's voice: where it applies, and where it is kept.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Die Stimme, mit der dieser Bot spricht, wenn seine Antworten vorgelesen werden und in Anrufen. Auf diesem Gerät gespeichert."
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "The voice this bot speaks in when its replies are read aloud and on calls. Kept on this device."
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "De stem waarmee deze bot spreekt als zijn antwoorden worden voorgelezen en op gesprekken. Bewaard op dit apparaat."
+          }
+        }
+      }
+    },
     "native.capability.bot" : {
       "comment" : "The label of the picker that says which bot a capability page is reading about.",
       "extractionState" : "manual",
@@ -23438,6 +23534,30 @@
         }
       }
     },
+    "native.voiceMode.gatewayFellBack" : {
+      "comment" : "Said once on a call when the gateway's voice did not answer and the Apple voice spoke instead.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Die Stimme deines Gateways hat nicht geantwortet, deshalb spricht die Apple-Stimme."
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Your gateway's voice didn't answer, so the Apple voice is speaking."
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "De stem van je gateway antwoordde niet, dus de Apple-stem spreekt."
+          }
+        }
+      }
+    },
     "native.voiceMode.mute" : {
       "comment" : "Voice mode: the button that mutes the microphone.",
       "extractionState" : "manual",
@@ -23866,6 +23986,222 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Expressiviteit"
+          }
+        }
+      }
+    },
+    "native.voiceSetup.gatewayDefaultVoice" : {
+      "comment" : "The row that chooses no particular gateway voice: the one the gateway is set up with.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Gateway-Standard"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Gateway default"
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Standaard van de gateway"
+          }
+        }
+      }
+    },
+    "native.voiceSetup.gatewayNoChoice" : {
+      "comment" : "Said where a voice cannot be chosen because the gateway takes no voice with a request.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Dein Gateway spricht mit der Stimme, auf die es eingestellt ist. Eine andere Stimme lässt sich hier erst mit einem neueren Gateway wählen."
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Your gateway speaks in the voice it is set up with. Choosing another voice here needs a newer gateway."
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Je gateway spreekt met de stem waarmee hij is ingesteld. Een andere stem kiezen kan hier pas met een nieuwere gateway."
+          }
+        }
+      }
+    },
+    "native.voiceSetup.gatewayPaceNote" : {
+      "comment" : "Said under the pace and expressivity sliders when the voice is the gateway's.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Tempo und Ausdruck ändern die Apple-Stimme, nicht die des Gateways."
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Pace and expressivity change the Apple voice, not the gateway's."
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Tempo en expressiviteit veranderen de Apple-stem, niet die van de gateway."
+          }
+        }
+      }
+    },
+    "native.voiceSetup.gatewayProvider" : {
+      "comment" : "Which provider the gateway speaks with; %@ is its name (ElevenLabs, OpenAI, Edge, …).",
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Gesprochen von %@ über dein Gateway."
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Spoken by %@ through your gateway."
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Uitgesproken door %@ via je gateway."
+          }
+        }
+      }
+    },
+    "native.voiceSetup.gatewayProviderUnknown" : {
+      "comment" : "The gateway does not say which provider it speaks with.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Gesprochen mit der Stimme, auf die dein Gateway eingestellt ist."
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Spoken in the voice your gateway is set up with."
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Uitgesproken met de stem waarmee je gateway is ingesteld."
+          }
+        }
+      }
+    },
+    "native.voiceSetup.gatewaySample" : {
+      "comment" : "The button that plays a sample sentence in the gateway's voice.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Hörprobe abspielen"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Play a sample"
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Speel een voorbeeld af"
+          }
+        }
+      }
+    },
+    "native.voiceSetup.gatewayStopSample" : {
+      "comment" : "The same button while the sample plays.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Hörprobe stoppen"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Stop the sample"
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Stop het voorbeeld"
+          }
+        }
+      }
+    },
+    "native.voiceSetup.gatewayVoicesLoading" : {
+      "comment" : "Shown while the list of the gateway's voices is read.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Stimmen werden geladen …"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Loading voices…"
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Stemmen laden…"
+          }
+        }
+      }
+    },
+    "native.voiceSetup.gatewayVoicesNone" : {
+      "comment" : "Shown when the gateway lists no voices to choose from.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Dein Gateway nennt keine Stimmen."
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Your gateway lists no voices."
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Je gateway geeft geen stemmen op."
           }
         }
       }
@@ -24350,6 +24686,30 @@
         }
       }
     },
+    "native.voiceSetup.sourceGateway" : {
+      "comment" : "The voice source that is the gateway's own text-to-speech.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Dein Gateway"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Your gateway"
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Je gateway"
+          }
+        }
+      }
+    },
     "native.voiceSetup.subtitle" : {
       "comment" : "Grey line under the title: bots speak in this voice on calls, and it all happens on the device.",
       "extractionState" : "manual",
@@ -24370,6 +24730,30 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Bots praten in gesprekken met deze stem. Alles wordt op dit apparaat uitgesproken."
+          }
+        }
+      }
+    },
+    "native.voiceSetup.subtitleGateway" : {
+      "comment" : "The line under the title when the voice comes from the gateway: what is said leaves the device.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Bots sprechen in Anrufen mit dieser Stimme. Ihre Worte werden zum Sprechen an dein Gateway geschickt."
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Bots will speak in this voice on calls. Their words are sent to your gateway to be spoken."
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Bots spreken op gesprekken met deze stem. Hun woorden worden naar je gateway gestuurd om uitgesproken te worden."
           }
         }
       }

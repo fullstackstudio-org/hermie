@@ -119,7 +119,7 @@ struct VoiceSettingsPage: View {
       if probe.canSpeak, probe.canDictate {
         Section {
           NavigationLink {
-            VoiceSetupPage(settings: settings, speaker: probe.synthesiser)
+            VoiceSetupPage(settings: settings)
           } label: {
             LabeledContent(NativeStrings.Voice.voiceAndOrb) {
               Text(Self.voiceName(settings.voiceIdentifier, in: probe.synthesiser.voices()))
@@ -321,15 +321,31 @@ struct VoicePickerPage: View {
   }
 }
 
-/// The voice setup, pushed from Settings › Voice: Done goes back.
+/// The voice setup, pushed from Settings › Voice: Done goes back. It has a synthesiser of its own for the
+/// samples, one that can speak the gateway's voice where the gateway offers it (the connected gateway's,
+/// as its default profile sees it).
 private struct VoiceSetupPage: View {
   let settings: VoiceSettings
-  let speaker: any SpeechSynthesizing
 
   @Environment(\.dismiss) private var dismiss
+  @Environment(LiveGateway.self) private var live: LiveGateway?
+  @State private var speaker: (any SpeechSynthesizing)?
 
   var body: some View {
-    VoiceSetupView(settings: settings, speaker: speaker, firstRun: false, onDone: { dismiss() })
+    let gateway = live?.session?.speechAccess(profile: nil)
+
+    Group {
+      if let speaker {
+        VoiceSetupView(settings: settings, speaker: speaker, gateway: gateway, firstRun: false, onDone: { dismiss() })
+      } else {
+        Color.black
+      }
+    }
+    .onAppear {
+      if speaker == nil {
+        speaker = VoiceEngines.live.speech(gateway: gateway)
+      }
+    }
   }
 }
 

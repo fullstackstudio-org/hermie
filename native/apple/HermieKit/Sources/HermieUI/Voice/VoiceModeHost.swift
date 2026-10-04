@@ -45,8 +45,8 @@ struct VoiceModeHost: ViewModifier {
       ) {
         if let settings = feed.voiceSettings {
           VoiceSetupSheet(
-            settings: settings, engines: feed.voiceEngines, firstRun: !settings.voiceModeSetUp,
-            onDone: { feed.voiceSetupClosed() })
+            settings: settings, engines: feed.voiceEngines, gateway: feed.gatewaySpeech,
+            firstRun: !settings.voiceModeSetUp, onDone: { feed.voiceSetupClosed() })
         }
       }
   }
@@ -77,6 +77,7 @@ struct VoiceModeHost: ViewModifier {
 private struct VoiceSetupSheet: View {
   let settings: VoiceSettings
   let engines: VoiceEngines
+  let gateway: GatewaySpeechAccess?
   let firstRun: Bool
   let onDone: () -> Void
 
@@ -85,14 +86,14 @@ private struct VoiceSetupSheet: View {
   var body: some View {
     Group {
       if let speaker {
-        VoiceSetupView(settings: settings, speaker: speaker, firstRun: firstRun, onDone: onDone)
+        VoiceSetupView(settings: settings, speaker: speaker, gateway: gateway, firstRun: firstRun, onDone: onDone)
       } else {
         Color.black
       }
     }
     .onAppear {
       if speaker == nil {
-        speaker = engines.speech()
+        speaker = engines.speech(gateway: gateway)
       }
     }
     #if os(macOS)

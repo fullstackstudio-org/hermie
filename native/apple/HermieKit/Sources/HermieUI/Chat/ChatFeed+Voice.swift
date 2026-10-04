@@ -20,8 +20,9 @@ extension ChatFeed {
       return
     }
 
+    let access = session.speechAccess(profile: chat.bot)
     let reader = ReadAloudModel(
-      engine: engines.speech(), settings: settings, bot: chat.bot, gatewayID: chat.gatewayId,
+      engine: engines.speech(gateway: access), settings: settings, bot: chat.bot, gatewayID: chat.gatewayId,
       codeBlock: { Strings.Chat.Voice.codeBlock(lines: $0) })
     let dictation = composer.enableDictation(engine: engines.dictation(), settings: settings)
 
@@ -31,6 +32,12 @@ extension ChatFeed {
     readAloud = reader
     voiceSettings = settings
     voiceEngines = engines
+    gatewaySpeech = access
+
+    // Whether the gateway can speak is known by the time a reply is read or a call is started.
+    if let access {
+      Task { await access.loadConfig() }
+    }
   }
 
   /// "Read aloud" appears where the device can speak and the microphone is not open.
@@ -141,7 +148,8 @@ extension ChatFeed {
 
     let composer = self.composer
     let call = VoiceModeModel(
-      engines: voiceEngines.call(), settings: settings, bot: chat.bot, gatewayID: chat.gatewayId,
+      engines: voiceEngines.call(gateway: gatewaySpeech), settings: settings, bot: chat.bot,
+      gatewayID: chat.gatewayId,
       language: { settings.dictationLanguage }, clock: SystemVoiceModeClock(),
       codeBlock: { Strings.Chat.Voice.codeBlock(lines: $0) },
       fillers: VoiceFillerLines.counts, fillerText: { VoiceFillerLines.text($0) },

@@ -71,6 +71,29 @@ struct VoiceModeView: View {
             .accessibilityIdentifier("hermie.voiceMode.caption")
         }
 
+        if let passing = call.notice {
+          Text(VoiceModeView.text(for: passing))
+            .font(.footnote)
+            .foregroundStyle(.white.opacity(0.75))
+            .multilineTextAlignment(.center)
+            .padding(.horizontal, 14)
+            .padding(.vertical, 8)
+            .background(.white.opacity(0.1), in: .capsule)
+            .padding(.horizontal, 24)
+            .padding(.top, 14)
+            .frame(maxWidth: 520)
+            .transition(.opacity)
+            .accessibilityIdentifier("hermie.voiceMode.notice")
+            .task(id: passing) {
+              // Passing: seen for a few seconds, and gone.
+              try? await Task.sleep(for: .seconds(6))
+
+              if !Task.isCancelled {
+                call.dismissNotice()
+              }
+            }
+        }
+
         Spacer(minLength: 12)
 
         notice
@@ -89,6 +112,12 @@ struct VoiceModeView: View {
     .onChange(of: call.phase) { _, phase in
       AccessibilityNotification.Announcement(VoiceModeView.status(phase)).post()
     }
+    .onChange(of: call.notice) { _, notice in
+      if let notice {
+        AccessibilityNotification.Announcement(VoiceModeView.text(for: notice)).post()
+      }
+    }
+    .animation(.easeInOut(duration: 0.2), value: call.notice)
     .sensoryFeedback(.impact(weight: .light, intensity: 0.5), trigger: call.cues)
     .onKeyPress(.escape) {
       onEnd()
@@ -284,6 +313,12 @@ struct VoiceModeView: View {
     case .speaking: Strings.Chat.Voice.modeInterrupt
     case .listening: NativeStrings.VoiceMode.sendNow
     default: ""
+    }
+  }
+
+  static func text(for notice: VoiceModeNotice) -> String {
+    switch notice {
+    case .gatewayVoiceUnavailable: NativeStrings.VoiceMode.gatewayFellBack
     }
   }
 

@@ -2,16 +2,29 @@ import HermieCore
 import Observation
 import SwiftUI
 
-/// Where the voice comes from. One today (the device's own synthesiser); a gateway's voices are added
-/// here as another case, and the row's menu, its title and the model's source-specific parts follow.
+/// Where the voice comes from: the device's own synthesiser, or the gateway's text-to-speech (offered
+/// only where the gateway says it has one).
 enum VoiceSourceChoice: CaseIterable, Identifiable, Hashable {
   case device
+  case gateway
 
   var id: Self { self }
+
+  init(_ source: SpeechSource) {
+    self = source == .gateway ? .gateway : .device
+  }
+
+  var speechSource: SpeechSource {
+    switch self {
+    case .device: .apple
+    case .gateway: .gateway
+    }
+  }
 
   var title: String {
     switch self {
     case .device: NativeStrings.VoiceSetup.sourceDevice
+    case .gateway: NativeStrings.VoiceSetup.sourceGateway
     }
   }
 }
@@ -169,7 +182,9 @@ final class VoiceSetupModel {
   /// The language tag whose voices are shown.
   private(set) var language: String?
   private(set) var previewing = false
-  var source: VoiceSourceChoice = .device
+  /// The gateway's text-to-speech as this screen's bot (or the default profile) sees it; nil where the
+  /// screen has no gateway to ask.
+  let gateway: GatewaySpeechAccess?
 
   @ObservationIgnored private let deviceTag: String
   @ObservationIgnored private let sample: String
@@ -177,14 +192,80 @@ final class VoiceSetupModel {
   @ObservationIgnored private var loaded = false
 
   init(
-    settings: VoiceSettings, speaker: any SpeechSynthesizing,
+    settings: VoiceSettings, speaker: any SpeechSynthesizing, gateway: GatewaySpeechAccess? = nil,
     deviceTag: String = Locale.preferredLanguages.first ?? Locale.current.identifier,
     sample: String = NativeStrings.VoiceSetup.sample
   ) {
     self.settings = settings
     self.speaker = speaker
+    self.gateway = gateway
     self.deviceTag = deviceTag
     self.sample = sample
+  }
+
+  // MARK: The gateway's voice
+
+  /// Read what the gateway offers: whether it speaks, with whom, and the voices to choose from.
+  func loadGateway() async {
+    guard let gateway else {
+      return
+    }
+
+    await gateway.loadConfig()
+    await gateway.loadVoices()
+  }
+
+  /// The Source row is drawn: the gateway says its text-to-speech is there.
+  var offersGateway: Bool { gateway?.isAvailable == true }
+
+  /// Where the voice is from now: the gateway's only where the gateway can speak.
+  var source: VoiceSourceChoice {
+    get { offersGateway ? VoiceSourceChoice(settings.speechSource) : .device }
+    set {
+      settings.setSpeechSource(newValue.speechSource)
+      preview()
+    }
+  }
+
+  /// The line under the title: what is said stays on the device only for the device's voice.
+  var subtitle: String {
+    source == .gateway ? NativeStrings.VoiceSetup.subtitleGateway : NativeStrings.VoiceSetup.subtitle
+  }
+
+  /// Which provider the gateway speaks with, in a sentence.
+  var gatewayProviderLine: String {
+    gateway?.providerName.map { NativeStrings.VoiceSetup.gatewayProvider($0) }
+      ?? NativeStrings.VoiceSetup.gatewayProviderUnknown
+  }
+
+  /// A voice can be chosen for the gateway (it takes one with a request, and has a list).
+  var canChooseGatewayVoice: Bool { gateway?.canChooseVoice == true }
+
+  /// The voices to choose from. A provider that lists its voices by language (Edge) shows those of the
+  /// device's language, or all of them where none is, and always the one chosen; ElevenLabs' are not
+  /// tied to a language and all show.
+  var gatewayVoices: [GatewayVoice] {
+    let all = gateway?.selectableVoices ?? []
+
+    guard gateway?.config?.isElevenLabs != true, all.contains(where: { $0.language != nil }) else {
+      return all
+    }
+
+    let code = VoiceSetupLogic.languageCode(deviceTag)
+    let chosen = settings.gatewayVoice
+    let same = all.filter { voice in
+      voice.id == chosen || voice.language.map(VoiceSetupLogic.languageCode) == code
+    }
+
+    return same.contains(where: { $0.id != chosen }) ? same : all
+  }
+
+  var loadingGatewayVoices: Bool { gateway?.loadingVoices == true || (gateway?.voicesLoaded == false && gatewayVoices.isEmpty && gateway?.config?.isElevenLabs == true) }
+
+  /// Choose a gateway voice (nil is the gateway's own), and say the sample in it.
+  func selectGatewayVoice(_ id: String?) {
+    settings.setGatewayVoice(id)
+    preview()
   }
 
   /// Read the device's voices (once opens the screen on a language; again after Personal Voice changed).
@@ -250,9 +331,11 @@ final class VoiceSetupModel {
     }
 
     let current = generation
+    let spoken = source
     let request = ReadRequest(
       id: "preview", text: sample, language: selectedVoice?.language ?? language,
-      pitch: VoiceProsody.pitch(expressivity: settings.expressivity, sentence: 0))
+      pitch: VoiceProsody.pitch(expressivity: settings.expressivity, sentence: 0),
+      source: spoken.speechSource, gatewayVoice: spoken == .gateway ? settings.gatewayVoice : nil)
 
     previewing = true
     speaker.speak(request, rate: settings.rate, voice: settings.voiceIdentifier) { [weak self] in
@@ -295,11 +378,14 @@ struct VoiceSetupView: View {
 
   @ScaledMetric(relativeTo: .body) private var dotSize: CGFloat = 44
 
-  init(settings: VoiceSettings, speaker: any SpeechSynthesizing, firstRun: Bool, onDone: @escaping () -> Void) {
+  init(
+    settings: VoiceSettings, speaker: any SpeechSynthesizing, gateway: GatewaySpeechAccess? = nil, firstRun: Bool,
+    onDone: @escaping () -> Void
+  ) {
     self.settings = settings
     self.firstRun = firstRun
     self.onDone = onDone
-    _model = State(initialValue: VoiceSetupModel(settings: settings, speaker: speaker))
+    _model = State(initialValue: VoiceSetupModel(settings: settings, speaker: speaker, gateway: gateway))
   }
 
   private static let accent = Color(red: 0.04, green: 0.52, blue: 1.0)
@@ -317,22 +403,29 @@ struct VoiceSetupView: View {
             .multilineTextAlignment(.center)
             .accessibilityAddTraits(.isHeader)
             .accessibilityIdentifier("hermie.voiceSetup.title")
-          Text(NativeStrings.VoiceSetup.subtitle)
+          Text(model.subtitle)
             .font(.subheadline)
             .foregroundStyle(Self.secondary)
             .multilineTextAlignment(.center)
             .accessibilityIdentifier("hermie.voiceSetup.subtitle")
         }
 
-        voiceCard
+        if model.offersGateway {
+          sourceCard
+        }
 
-        if model.access != .unsupported {
-          personalCard
+        if model.source == .gateway {
+          gatewayCard
+        } else {
+          voiceCard
+
+          if model.access != .unsupported {
+            personalCard
+          }
         }
 
         paceCard
         orbCard
-        sourceCard
         doneButton
       }
       .padding(.horizontal, 20)
@@ -345,6 +438,7 @@ struct VoiceSetupView: View {
     // Dark here only: a preference would turn the whole window dark while the page is pushed in Settings.
     .environment(\.colorScheme, .dark)
     .onAppear { model.load() }
+    .task { await model.loadGateway() }
     .onDisappear { model.stop() }
     .accessibilityIdentifier("hermie.voiceSetup")
   }
@@ -596,6 +690,14 @@ struct VoiceSetupView: View {
           expressivityDraft = nil
           model.preview()
         })
+
+      if model.source == .gateway {
+        Text(NativeStrings.VoiceSetup.gatewayPaceNote)
+          .font(.footnote)
+          .foregroundStyle(Self.secondary)
+          .fixedSize(horizontal: false, vertical: true)
+          .accessibilityIdentifier("hermie.voiceSetup.paceNote")
+      }
     }
   }
 
@@ -687,9 +789,109 @@ struct VoiceSetupView: View {
         .pickerStyle(.menu)
         .labelsHidden()
         .fixedSize()
+        .accessibilityLabel(NativeStrings.VoiceSetup.source)
+        .accessibilityValue(model.source.title)
         .accessibilityIdentifier("hermie.voiceSetup.source")
       }
     }
+  }
+
+  // MARK: The gateway's voice
+
+  private var gatewayCard: some View {
+    card {
+      Text(model.gatewayProviderLine)
+        .font(.footnote)
+        .foregroundStyle(Self.secondary)
+        .fixedSize(horizontal: false, vertical: true)
+        .accessibilityIdentifier("hermie.voiceSetup.gatewayProvider")
+
+      if model.canChooseGatewayVoice {
+        VStack(alignment: .leading, spacing: 0) {
+          gatewayRow(title: NativeStrings.VoiceSetup.gatewayDefaultVoice, id: nil)
+
+          if model.loadingGatewayVoices {
+            HStack(spacing: 10) {
+              ProgressView()
+              Text(NativeStrings.VoiceSetup.gatewayVoicesLoading)
+                .font(.footnote)
+                .foregroundStyle(Self.secondary)
+            }
+            .padding(.vertical, 10)
+            .accessibilityElement(children: .combine)
+          } else if model.gatewayVoices.isEmpty {
+            Text(NativeStrings.VoiceSetup.gatewayVoicesNone)
+              .font(.footnote)
+              .foregroundStyle(Self.secondary)
+              .padding(.vertical, 10)
+              .accessibilityIdentifier("hermie.voiceSetup.gatewayNone")
+          }
+
+          LazyVStack(alignment: .leading, spacing: 0) {
+            ForEach(model.gatewayVoices) { voice in
+              gatewayRow(title: voice.label, id: voice.id)
+            }
+          }
+        }
+      } else {
+        Text(NativeStrings.VoiceSetup.gatewayNoChoice)
+          .font(.footnote)
+          .foregroundStyle(Self.secondary)
+          .fixedSize(horizontal: false, vertical: true)
+          .accessibilityIdentifier("hermie.voiceSetup.gatewayNoChoice")
+      }
+
+      sampleButton
+    }
+  }
+
+  private func gatewayRow(title: String, id: String?) -> some View {
+    let selected = settings.gatewayVoice == id
+
+    return Button {
+      model.selectGatewayVoice(id)
+    } label: {
+      HStack(spacing: 10) {
+        Text(title)
+          .font(.body)
+          .multilineTextAlignment(.leading)
+          .frame(maxWidth: .infinity, alignment: .leading)
+
+        if selected {
+          Image(systemName: "checkmark")
+            .font(.body.weight(.semibold))
+            .accessibilityHidden(true)
+        }
+      }
+      .padding(.vertical, 10)
+      .contentShape(.rect)
+    }
+    .buttonStyle(.plain)
+    .accessibilityLabel(selected ? "\(title), \(NativeStrings.VoiceSetup.selected)" : title)
+    .accessibilityAddTraits(selected ? [.isButton, .isSelected] : .isButton)
+    .accessibilityIdentifier("hermie.voiceSetup.gatewayVoice.\(id ?? "default")")
+  }
+
+  private var sampleButton: some View {
+    Button {
+      if model.previewing {
+        model.stop()
+      } else {
+        model.preview()
+      }
+    } label: {
+      Label(
+        model.previewing ? NativeStrings.VoiceSetup.gatewayStopSample : NativeStrings.VoiceSetup.gatewaySample,
+        systemImage: model.previewing ? "stop.fill" : "play.fill"
+      )
+      .font(.subheadline.weight(.semibold))
+      .padding(.horizontal, 14)
+      .padding(.vertical, 8)
+      .background(Capsule().fill(Self.accent))
+      .foregroundStyle(.white)
+    }
+    .buttonStyle(.plain)
+    .accessibilityIdentifier("hermie.voiceSetup.gatewaySample")
   }
 
   // MARK: Done
@@ -929,6 +1131,62 @@ extension NativeStrings {
       String(
         localized: "native.voiceSetup.sourceDevice", defaultValue: "On this device (Apple)", table: "Native",
         bundle: .module)
+    }
+    /// Your gateway (the source that is the gateway's text-to-speech)
+    static var sourceGateway: String {
+      String(
+        localized: "native.voiceSetup.sourceGateway", defaultValue: "Your gateway", table: "Native", bundle: .module)
+    }
+    /// The line under the title when the voice is the gateway's
+    static var subtitleGateway: String {
+      String(
+        localized: "native.voiceSetup.subtitleGateway", defaultValue: "Bots will speak in this voice on calls. Their words are sent to your gateway to be spoken.", table: "Native", bundle: .module)
+    }
+    /// Which provider the gateway speaks with
+    static func gatewayProvider(_ provider: String) -> String {
+      String(
+        localized: "native.voiceSetup.gatewayProvider",
+        defaultValue: "Spoken by \(provider) through your gateway.", table: "Native", bundle: .module)
+    }
+    /// The gateway does not name its provider
+    static var gatewayProviderUnknown: String {
+      String(
+        localized: "native.voiceSetup.gatewayProviderUnknown", defaultValue: "Spoken in the voice your gateway is set up with.", table: "Native", bundle: .module)
+    }
+    /// The gateway's own voice
+    static var gatewayDefaultVoice: String {
+      String(
+        localized: "native.voiceSetup.gatewayDefaultVoice", defaultValue: "Gateway default", table: "Native", bundle: .module)
+    }
+    /// While the gateway's voices are read
+    static var gatewayVoicesLoading: String {
+      String(
+        localized: "native.voiceSetup.gatewayVoicesLoading", defaultValue: "Loading voices…", table: "Native", bundle: .module)
+    }
+    /// The gateway lists no voices
+    static var gatewayVoicesNone: String {
+      String(
+        localized: "native.voiceSetup.gatewayVoicesNone", defaultValue: "Your gateway lists no voices.", table: "Native", bundle: .module)
+    }
+    /// A voice cannot be chosen: the gateway takes none with a request
+    static var gatewayNoChoice: String {
+      String(
+        localized: "native.voiceSetup.gatewayNoChoice", defaultValue: "Your gateway speaks in the voice it is set up with. Choosing another voice here needs a newer gateway.", table: "Native", bundle: .module)
+    }
+    /// Under the sliders when the voice is the gateway's
+    static var gatewayPaceNote: String {
+      String(
+        localized: "native.voiceSetup.gatewayPaceNote", defaultValue: "Pace and expressivity change the Apple voice, not the gateway's.", table: "Native", bundle: .module)
+    }
+    /// Plays a sample in the gateway's voice
+    static var gatewaySample: String {
+      String(
+        localized: "native.voiceSetup.gatewaySample", defaultValue: "Play a sample", table: "Native", bundle: .module)
+    }
+    /// The same button while the sample plays
+    static var gatewayStopSample: String {
+      String(
+        localized: "native.voiceSetup.gatewayStopSample", defaultValue: "Stop the sample", table: "Native", bundle: .module)
     }
     /// Continue (the button on first run)
     static var continueLabel: String {

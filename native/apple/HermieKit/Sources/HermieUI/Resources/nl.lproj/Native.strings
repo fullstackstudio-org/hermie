@@ -96,6 +96,14 @@
 	<string>Deze schakelaars bepalen wat de bot kan gebruiken in chats in Hermie. Dezelfde bot via een berichtenapp, en zijn geplande taken, houden hun eigen lijsten op de gateway.</string>
 	<key>native.botSettings.unsupported</key>
 	<string>Deze gateway biedt deze instellingen niet aan.</string>
+	<key>native.botSettings.voice</key>
+	<string>Stem</string>
+	<key>native.botSettings.voiceDefault</key>
+	<string>Standaard</string>
+	<key>native.botSettings.voiceDefaultDetail</key>
+	<string>Volgt de stem-instellingen</string>
+	<key>native.botSettings.voiceFooter</key>
+	<string>De stem waarmee deze bot spreekt als zijn antwoorden worden voorgelezen en op gesprekken. Bewaard op dit apparaat.</string>
 	<key>native.capability.bot</key>
 	<string>Bot</string>
 	<key>native.capability.noGateway</key>
@@ -1956,6 +1964,8 @@
 	<string>Ik ben ermee bezig…</string>
 	<key>native.voiceMode.filler.working2</key>
 	<string>Nog even bezig…</string>
+	<key>native.voiceMode.gatewayFellBack</key>
+	<string>De stem van je gateway antwoordde niet, dus de Apple-stem spreekt.</string>
 	<key>native.voiceMode.mute</key>
 	<string>Dempen</string>
 	<key>native.voiceMode.muted</key>
@@ -1992,6 +2002,24 @@
 	<string>Klaar</string>
 	<key>native.voiceSetup.expressivity</key>
 	<string>Expressiviteit</string>
+	<key>native.voiceSetup.gatewayDefaultVoice</key>
+	<string>Standaard van de gateway</string>
+	<key>native.voiceSetup.gatewayNoChoice</key>
+	<string>Je gateway spreekt met de stem waarmee hij is ingesteld. Een andere stem kiezen kan hier pas met een nieuwere gateway.</string>
+	<key>native.voiceSetup.gatewayPaceNote</key>
+	<string>Tempo en expressiviteit veranderen de Apple-stem, niet die van de gateway.</string>
+	<key>native.voiceSetup.gatewayProvider</key>
+	<string>Uitgesproken door %@ via je gateway.</string>
+	<key>native.voiceSetup.gatewayProviderUnknown</key>
+	<string>Uitgesproken met de stem waarmee je gateway is ingesteld.</string>
+	<key>native.voiceSetup.gatewaySample</key>
+	<string>Speel een voorbeeld af</string>
+	<key>native.voiceSetup.gatewayStopSample</key>
+	<string>Stop het voorbeeld</string>
+	<key>native.voiceSetup.gatewayVoicesLoading</key>
+	<string>Stemmen laden…</string>
+	<key>native.voiceSetup.gatewayVoicesNone</key>
+	<string>Je gateway geeft geen stemmen op.</string>
 	<key>native.voiceSetup.language</key>
 	<string>Taal</string>
 	<key>native.voiceSetup.noVoices</key>
@@ -2032,8 +2060,12 @@
 	<string>Bron</string>
 	<key>native.voiceSetup.sourceDevice</key>
 	<string>Op dit apparaat (Apple)</string>
+	<key>native.voiceSetup.sourceGateway</key>
+	<string>Je gateway</string>
 	<key>native.voiceSetup.subtitle</key>
 	<string>Bots praten in gesprekken met deze stem. Alles wordt op dit apparaat uitgesproken.</string>
+	<key>native.voiceSetup.subtitleGateway</key>
+	<string>Bots spreken op gesprekken met deze stem. Hun woorden worden naar je gateway gestuurd om uitgesproken te worden.</string>
 	<key>native.voiceSetup.title</key>
 	<string>Kies een stem</string>
 	<key>native.voiceSetup.voice</key>

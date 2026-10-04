@@ -96,6 +96,14 @@
 	<string>These switches decide what the bot can use in chats in Hermie. The same bot reached through a messaging app, and its scheduled jobs, keep their own lists on the gateway.</string>
 	<key>native.botSettings.unsupported</key>
 	<string>This gateway does not offer these settings.</string>
+	<key>native.botSettings.voice</key>
+	<string>Voice</string>
+	<key>native.botSettings.voiceDefault</key>
+	<string>Default</string>
+	<key>native.botSettings.voiceDefaultDetail</key>
+	<string>Follows the Voice settings</string>
+	<key>native.botSettings.voiceFooter</key>
+	<string>The voice this bot speaks in when its replies are read aloud and on calls. Kept on this device.</string>
 	<key>native.capability.bot</key>
 	<string>Bot</string>
 	<key>native.capability.noGateway</key>
@@ -1956,6 +1964,8 @@
 	<string>Working on it…</string>
 	<key>native.voiceMode.filler.working2</key>
 	<string>Still working…</string>
+	<key>native.voiceMode.gatewayFellBack</key>
+	<string>Your gateway's voice didn't answer, so the Apple voice is speaking.</string>
 	<key>native.voiceMode.mute</key>
 	<string>Mute</string>
 	<key>native.voiceMode.muted</key>
@@ -1992,6 +2002,24 @@
 	<string>Done</string>
 	<key>native.voiceSetup.expressivity</key>
 	<string>Expressivity</string>
+	<key>native.voiceSetup.gatewayDefaultVoice</key>
+	<string>Gateway default</string>
+	<key>native.voiceSetup.gatewayNoChoice</key>
+	<string>Your gateway speaks in the voice it is set up with. Choosing another voice here needs a newer gateway.</string>
+	<key>native.voiceSetup.gatewayPaceNote</key>
+	<string>Pace and expressivity change the Apple voice, not the gateway's.</string>
+	<key>native.voiceSetup.gatewayProvider</key>
+	<string>Spoken by %@ through your gateway.</string>
+	<key>native.voiceSetup.gatewayProviderUnknown</key>
+	<string>Spoken in the voice your gateway is set up with.</string>
+	<key>native.voiceSetup.gatewaySample</key>
+	<string>Play a sample</string>
+	<key>native.voiceSetup.gatewayStopSample</key>
+	<string>Stop the sample</string>
+	<key>native.voiceSetup.gatewayVoicesLoading</key>
+	<string>Loading voices…</string>
+	<key>native.voiceSetup.gatewayVoicesNone</key>
+	<string>Your gateway lists no voices.</string>
 	<key>native.voiceSetup.language</key>
 	<string>Language</string>
 	<key>native.voiceSetup.noVoices</key>
@@ -2032,8 +2060,12 @@
 	<string>Source</string>
 	<key>native.voiceSetup.sourceDevice</key>
 	<string>On this device (Apple)</string>
+	<key>native.voiceSetup.sourceGateway</key>
+	<string>Your gateway</string>
 	<key>native.voiceSetup.subtitle</key>
 	<string>Bots will speak in this voice on calls. Everything is spoken on this device.</string>
+	<key>native.voiceSetup.subtitleGateway</key>
+	<string>Bots will speak in this voice on calls. Their words are sent to your gateway to be spoken.</string>
 	<key>native.voiceSetup.title</key>
 	<string>Choose a voice</string>
 	<key>native.voiceSetup.voice</key>

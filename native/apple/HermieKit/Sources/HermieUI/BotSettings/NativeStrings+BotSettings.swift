@@ -5,6 +5,22 @@ import Foundation
 /// capability hints) is read from the shared catalogue through `Strings` instead.
 extension NativeStrings {
   enum BotSettings {
+    /// Voice (the bot's voice: header and row)
+    static var voice: String {
+      String(localized: "native.botSettings.voice", table: "Native", bundle: .module)
+    }
+    /// Default (the bot has no voice of its own)
+    static var voiceDefault: String {
+      String(localized: "native.botSettings.voiceDefault", table: "Native", bundle: .module)
+    }
+    /// Follows the Voice settings
+    static var voiceDefaultDetail: String {
+      String(localized: "native.botSettings.voiceDefaultDetail", table: "Native", bundle: .module)
+    }
+    /// Where the bot's voice applies, and where it is kept.
+    static var voiceFooter: String {
+      String(localized: "native.botSettings.voiceFooter", table: "Native", bundle: .module)
+    }
     /// Bot settings
     static var title: String {
       String(localized: "native.botSettings.title", table: "Native", bundle: .module)

@@ -4,6 +4,10 @@ import HermieCore
 extension NativeStrings {
   /// Voice mode's call screen.
   enum VoiceMode {
+    /// Your gateway's voice didn't answer, so the Apple voice is speaking (a passing notice, once per call)
+    static var gatewayFellBack: String {
+      String(localized: "native.voiceMode.gatewayFellBack", table: "Native", bundle: .module)
+    }
     /// Mute (the microphone button)
     static var mute: String { String(localized: "native.voiceMode.mute", table: "Native", bundle: .module) }
     /// Unmute

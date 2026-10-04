@@ -96,6 +96,14 @@
 	<string>Diese Schalter bestimmen, was der Bot in Chats in Hermie nutzen kann. Derselbe Bot über eine Messaging-App und seine geplanten Aufgaben behalten ihre eigenen Listen auf dem Gateway.</string>
 	<key>native.botSettings.unsupported</key>
 	<string>Dieses Gateway bietet diese Einstellungen nicht an.</string>
+	<key>native.botSettings.voice</key>
+	<string>Stimme</string>
+	<key>native.botSettings.voiceDefault</key>
+	<string>Standard</string>
+	<key>native.botSettings.voiceDefaultDetail</key>
+	<string>Folgt den Stimm-Einstellungen</string>
+	<key>native.botSettings.voiceFooter</key>
+	<string>Die Stimme, mit der dieser Bot spricht, wenn seine Antworten vorgelesen werden und in Anrufen. Auf diesem Gerät gespeichert.</string>
 	<key>native.capability.bot</key>
 	<string>Bot</string>
 	<key>native.capability.noGateway</key>
@@ -1956,6 +1964,8 @@
 	<string>Ich bin dran…</string>
 	<key>native.voiceMode.filler.working2</key>
 	<string>Noch einen Moment…</string>
+	<key>native.voiceMode.gatewayFellBack</key>
+	<string>Die Stimme deines Gateways hat nicht geantwortet, deshalb spricht die Apple-Stimme.</string>
 	<key>native.voiceMode.mute</key>
 	<string>Stummschalten</string>
 	<key>native.voiceMode.muted</key>
@@ -1992,6 +2002,24 @@
 	<string>Fertig</string>
 	<key>native.voiceSetup.expressivity</key>
 	<string>Ausdruckskraft</string>
+	<key>native.voiceSetup.gatewayDefaultVoice</key>
+	<string>Gateway-Standard</string>
+	<key>native.voiceSetup.gatewayNoChoice</key>
+	<string>Dein Gateway spricht mit der Stimme, auf die es eingestellt ist. Eine andere Stimme lässt sich hier erst mit einem neueren Gateway wählen.</string>
+	<key>native.voiceSetup.gatewayPaceNote</key>
+	<string>Tempo und Ausdruck ändern die Apple-Stimme, nicht die des Gateways.</string>
+	<key>native.voiceSetup.gatewayProvider</key>
+	<string>Gesprochen von %@ über dein Gateway.</string>
+	<key>native.voiceSetup.gatewayProviderUnknown</key>
+	<string>Gesprochen mit der Stimme, auf die dein Gateway eingestellt ist.</string>
+	<key>native.voiceSetup.gatewaySample</key>
+	<string>Hörprobe abspielen</string>
+	<key>native.voiceSetup.gatewayStopSample</key>
+	<string>Hörprobe stoppen</string>
+	<key>native.voiceSetup.gatewayVoicesLoading</key>
+	<string>Stimmen werden geladen …</string>
+	<key>native.voiceSetup.gatewayVoicesNone</key>
+	<string>Dein Gateway nennt keine Stimmen.</string>
 	<key>native.voiceSetup.language</key>
 	<string>Sprache</string>
 	<key>native.voiceSetup.noVoices</key>
@@ -2032,8 +2060,12 @@
 	<string>Quelle</string>
 	<key>native.voiceSetup.sourceDevice</key>
 	<string>Auf diesem Gerät (Apple)</string>
+	<key>native.voiceSetup.sourceGateway</key>
+	<string>Dein Gateway</string>
 	<key>native.voiceSetup.subtitle</key>
 	<string>Bots sprechen in Anrufen mit dieser Stimme. Alles wird auf diesem Gerät gesprochen.</string>
+	<key>native.voiceSetup.subtitleGateway</key>
+	<string>Bots sprechen in Anrufen mit dieser Stimme. Ihre Worte werden zum Sprechen an dein Gateway geschickt.</string>
 	<key>native.voiceSetup.title</key>
 	<string>Wähle eine Stimme</string>
 	<key>native.voiceSetup.voice</key>
