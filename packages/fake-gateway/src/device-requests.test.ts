@@ -20,12 +20,10 @@ import {
 } from './device-requests'
 import { calendarItemOf, CalendarItemRefused } from './interactive'
 import { pngOrSvgProblem } from './signature-svg'
+import { SVG_ACCEPTED, SVG_ATTRIBUTE_VECTORS, SVG_REFUSED } from './signature-svg-vectors'
 
 const bytes = (text: string): Uint8Array => new TextEncoder().encode(text)
 const NS = 'xmlns="http://www.w3.org/2000/svg"'
-const SVG_BYTES = `<?xml version="1.0"?>\n<svg ${NS}><path d="M0 0L1 1"/></svg>`
-const PLAIN = `<svg ${NS}><path d='M0 0'/></svg>`
-const svg = (inner = '', attrs = ''): string => `<svg ${NS}${attrs ? ` ${attrs}` : ''}>${inner}</svg>`
 const isSvg = (text: string | Uint8Array): boolean =>
   pngOrSvgProblem('image/svg+xml', typeof text === 'string' ? bytes(text) : text) === null
 
@@ -213,104 +211,8 @@ describe('the two files of a signature', () => {
     expect(pngOrSvgProblem('image/jpeg', Uint8Array.from([0xff, 0xd8, 0xff]))).toBe('type')
   })
 
-  const accepted: [string, string | Uint8Array][] = [
-    ['what a pad draws', SVG_BYTES],
-    ['a bare root', `<svg ${NS}/>`],
-    ['a byte order mark', Uint8Array.from([0xef, 0xbb, 0xbf, ...bytes(SVG_BYTES)])],
-    ['a comment, empty title and desc', `<!-- c -->${svg('<title/><desc></desc>')}`],
-    [
-      'every drawing element and attribute',
-      svg(
-        '<g transform="scale(2)"><path d="M0 0L1 1" fill="none" stroke="#000" stroke-width="2" stroke-linecap="round"/>' +
-          '<polyline points="0,0 1,1"/><polygon points="0,0 1,1 2,0"/><line x1="0" y1="0" x2="1" y2="1"/>' +
-          '<circle cx="1" cy="1" r="1"/><ellipse cx="1" cy="1" rx="2" ry="1"/><rect x="0" y="0" width="1" height="1"/></g>',
-        'viewBox="0 0 10 10" width="10" height="10" version="1.1"'
-      )
-    ],
-    ['a UTF-8 declaration', `<?xml version="1.0" encoding="UTF-8"?>${PLAIN}`],
-    ['a declaration with standalone', `<?xml version="1.0" encoding="utf-8" standalone="no"?>\n${PLAIN}`],
-    ['a comment after the root', `${SVG_BYTES}<!-- after -->`],
-    ['an empty title with whitespace around', svg('<title></title>\n  <desc/>\n')],
-    ['thirty levels', svg(`${'<g>'.repeat(30)}${'</g>'.repeat(30)}`)],
-    ['whitespace after the root', `${PLAIN}\t\r\n`]
-  ]
-  const refused: [string, string | Uint8Array][] = [
-    ['text in a title', svg('<title>Sign</title>')],
-    ['text in a desc', svg('<desc>x</desc>')],
-    ['two byte order marks', Uint8Array.from([0xef, 0xbb, 0xbf, 0xef, 0xbb, 0xbf, ...bytes(SVG_BYTES)])],
-    ['nothing', ''],
-    ['a PNG as an SVG', Uint8Array.from([0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a])],
-    ['a wrapper element', '<html><svg></svg></html>'],
-    ['a longer element name', '<svgx/>'],
-    ['an unfinished tag', `<svg ${NS}><path</svg>`],
-    ['an unfinished comment', '<!-- never closed <svg>'],
-    ['bytes that are not UTF-8', Uint8Array.from([...bytes(`<svg ${NS}>`), 0xff, 0xfe, ...bytes('</svg>')])],
-    [
-      'UTF-16 with a byte order mark',
-      Uint8Array.from([0xff, 0xfe, ...[...bytes(SVG_BYTES)].flatMap(byte => [byte, 0])])
-    ],
-    ['another encoding named', `<?xml version="1.0" encoding="ISO-8859-1"?>${PLAIN}`],
-    ['UTF-16 named', `<?xml version="1.0" encoding="UTF-16"?>${PLAIN}`],
-    ['a script after the root', `<svg ${NS}/><script>x</script>`],
-    ['two documents', SVG_BYTES + SVG_BYTES],
-    ['a stylesheet instruction', `<?xml-stylesheet href='x.css'?>${PLAIN}`],
-    ['a space before the declaration', ` <?xml version='1.0'?>${PLAIN}`],
-    ['a doctype after the declaration', `<?xml version='1.0'?><!DOCTYPE svg PUBLIC 'x' 'y'>${PLAIN}`],
-    ['an entity declaration', `<!DOCTYPE svg [<!ENTITY a 'b'>]>${svg('&a;')}`],
-    ['a doctype', `<!DOCTYPE svg>${PLAIN}`],
-    ['an instruction after the root', `${SVG_BYTES}<?php x ?>`],
-    ['no namespace', "<svg><path d='M0 0'/></svg>"],
-    ['another namespace', '<svg xmlns="http://www.w3.org/1999/xhtml"><path d="M0 0"/></svg>'],
-    ['the namespace again below the root', svg('<g xmlns="http://www.w3.org/2000/svg"/>')],
-    ['a foreign namespace below the root', svg('<path xmlns="http://www.w3.org/1999/xhtml"/>')],
-    ['script', svg('<script>alert(1)</script>')],
-    ['SCRIPT', svg('<SCRIPT src=x></SCRIPT>')],
-    ['a prefixed script', `<svg ${NS} xmlns:s="http://www.w3.org/2000/svg"><s:script>alert(1)</s:script></svg>`],
-    ['a prefixed path', `<svg ${NS} xmlns:s="http://www.w3.org/2000/svg"><s:path d="M0 0"/></svg>`],
-    ['an event handler without quotes', svg('<path/>', 'onload=alert(1)')],
-    ['an event handler', svg("<path onclick = 'x'/>")],
-    ['an event handler after a tab', `<svg ${NS}\tonload='x'></svg>`],
-    ['foreignObject', svg('<foreignObject/>')],
-    ['an image', svg("<image href='x'/>")],
-    ['a link', svg("<a href='javascript:x'><path/></a>")],
-    ['an animation', svg("<animate attributeName='x' to='1'/>")],
-    ['a style element', svg('<style>path{fill:url(https://example.invalid/a.svg#g)}</style>')],
-    ['an import', svg("<style>@import 'x.css';</style>")],
-    ['a style attribute', svg('<path style="fill:red"/>')],
-    ['a class attribute', svg('<path class="a"/>')],
-    ['a url paint', svg('<path fill="url(#g)"/>')],
-    ['a URL paint', svg('<path fill="URL(#g)"/>')],
-    ['an xlink href', svg('<path d="M0 0" xlink:href="#a"/>')],
-    ['xml:space', svg('<path d="M0 0" xml:space="preserve"/>')],
-    ['an entity in text', svg('<title>a &amp; b</title>')],
-    ['a character reference in text', svg('<title>&#65;</title>')],
-    ['a character reference in a value', svg('<path d="M0 0" fill="&#x23;000"/>')],
-    ['CDATA', svg('<![CDATA[x]]>')],
-    ['CDATA in a title', svg('<title><![CDATA[x]]></title>')],
-    ['text in the root', svg('hello')],
-    ['text in a group', svg('<g>hello</g>')],
-    ['forty levels', svg(`${'<g>'.repeat(40)}${'</g>'.repeat(40)}`)],
-    ['a CSS escape spelling url(', svg('<path fill="\\75rl(https://example.invalid/x#a)"/>')],
-    ['a CSS escape with a space', svg('<path fill="\\75 rl(https://example.invalid/x#a)"/>')],
-    ['a stray escape', svg('<path stroke="u\\rl(https://example.invalid/x#a)"/>')],
-    ['a long escape', svg('<path fill="\\000075rl(x)"/>')],
-    ['a backslash in a path', svg('<path d="M0 0\\"/>')],
-    ['src()', svg('<path fill="src(https://example.invalid/x)"/>')],
-    ['image-set()', svg('<path fill="image-set(\'https://example.invalid/x\' 1x)"/>')],
-    ['var()', svg('<path fill="var(--x)"/>')],
-    ['attr()', svg('<path fill="attr(d)"/>')],
-    ['calc()', svg('<path fill="calc(1 + 2)"/>')],
-    ['two colours', svg('<path fill="red blue"/>')],
-    ['calc() as a length', svg('<rect width="calc(1px + 2px)"/>')],
-    ['an exponent without digits', svg('<rect width="1e"/>')],
-    ['a duplicate attribute', svg('<path d="M0 0" d="M1 1"/>')],
-    ['mismatched tags', svg('<g></path>')],
-    ['a NUL in a comment', svg('<!-- \u0000 -->')],
-    ['an ESC in a comment', svg('<!-- \u001b -->')],
-    ['a bidi override in a comment', svg('<!-- \u202e -->')],
-    ['a zero-width space in a comment', svg('<!-- \u200b -->')],
-    ['a double hyphen in a comment', svg('<!-- a -- b -->')]
-  ]
+  const accepted = SVG_ACCEPTED
+  const refused = SVG_REFUSED
 
   it.each(accepted)('takes %s', (_name, text) => {
     expect(isSvg(text)).toBe(true)
@@ -321,119 +223,7 @@ describe('the two files of a signature', () => {
   })
 
   // Every attribute value must match its grammar: a value is accepted by what it IS, never by what it lacks.
-  it.each([
-    // paints
-    ['fill', 'none', true],
-    ['fill', 'currentcolor', true],
-    ['fill', 'red', true],
-    ['fill', 'rebeccapurple', true],
-    ['stroke', '#000', true],
-    ['stroke', '#0008', true],
-    ['stroke', '#a1b2c3', true],
-    ['stroke', '#a1b2c3d4', true],
-    ['stroke', 'rgb(0,0,0)', true],
-    ['stroke', 'rgba(0, 0, 0, 0.5)', true],
-    ['stroke', 'rgb(10%, 20%, 30%)', true],
-    ['fill', '#12', false],
-    ['fill', '#12345', false],
-    ['fill', '#1234567', false],
-    ['fill', '#ggg', false],
-    ['fill', 'notacolour', false],
-    ['fill', 'currentColor', false],
-    ['fill', 'RED', false],
-    ['fill', 'rgb(0,0)', false],
-    ['fill', 'rgb(0,0,0,0,0)', false],
-    ['fill', 'rgb(var(--a),0,0)', false],
-    ['fill', 'rgb(0 0 0)', false],
-    ['fill', '', false],
-    ['fill', ' red', false],
-    // numbers and lengths
-    ['stroke-width', '2', true],
-    ['stroke-width', '2.5px', true],
-    ['stroke-width', '.5', true],
-    ['stroke-width', '-1e-3', true],
-    ['opacity', '0.5', true],
-    ['opacity', '50%', true],
-    ['width', '10', true],
-    ['width', ' 10 ', false],
-    ['width', '10\u00a0', false],
-    ['width', '10\u3000', false],
-    ['x', '1.', true],
-    ['cx', '+3', true],
-    ['stroke-dashoffset', '4', true],
-    ['stroke-width', 'two', false],
-    ['stroke-width', '1 2', false],
-    ['stroke-width', '1px2', false],
-    ['stroke-width', '2PX', false],
-    ['opacity', 'var(--o)', false],
-    ['width', 'auto', false],
-    ['r', '1e', false],
-    ['r', '--1', false],
-    ['r', '1;2', false],
-    ['r', '1 \n', false],
-    ['r', '\t1', false],
-    ['r', '1'.repeat(33), false],
-    ['r', '1'.repeat(32), true],
-    // lists
-    ['stroke-dasharray', 'none', true],
-    ['stroke-dasharray', '4', true],
-    ['stroke-dasharray', '4, 2 1', true],
-    ['stroke-dasharray', '4, x', false],
-    ['points', '0,0 1,1', true],
-    ['points', '0 0 1 1', true],
-    ['points', '', true],
-    ['points', '0,0 a', false],
-    ['points', '0,0;1,1', false],
-    ['viewBox', '0 0 10 10', true],
-    ['viewBox', '0,0,10,10', true],
-    ['viewBox', ' 0 0 10.5 -10 ', false],
-    ['viewBox', '0 0 10.5 -10', true],
-    ['viewBox', '0 0 10', false],
-    ['viewBox', '0 0 10 10 10', false],
-    ['viewBox', '0 0 a b', false],
-    // paths
-    ['d', 'M0 0L1 1', true],
-    ['d', 'M0,0 c1.5-2 3 4 5 6z', true],
-    ['d', 'M1e3 2E-3Z', true],
-    ['d', '', true],
-    ['d', 'M0 0 X', false],
-    ['d', 'M0 0 url', false],
-    ['d', 'M0 0;', false],
-    ['d', "M0 0'", false],
-    ['d', `M${'1'.repeat(33)} 0`, false],
-    // transforms
-    ['transform', 'scale(2)', true],
-    ['transform', 'translate(1 1)', true],
-    ['transform', 'translate(1,1) rotate(45)', true],
-    ['transform', 'matrix(1 0 0 1 0 0)', true],
-    ['transform', 'skewX(10) skewY(-5)', true],
-    ['transform', 'scale(2),translate(1)', true],
-    ['transform', 'rotate(45 10 10)', true],
-    ['transform', 'scale()', false],
-    ['transform', 'scale(a)', false],
-    ['transform', 'scale(1', false],
-    ['transform', 'perspective(1)', false],
-    ['transform', 'scale(1) junk', false],
-    ['transform', '', false],
-    ['transform', 'url(#a)', false],
-    ['transform', 'scale(var(--a))', false],
-    ['transform', 'SCALE(2)', false],
-    ['transform', 'skewx(10)', false],
-    // words
-    ['fill-rule', 'evenodd', true],
-    ['fill-rule', 'inherit', false],
-    ['stroke-linecap', 'round', true],
-    ['stroke-linecap', 'arrow', false],
-    ['stroke-linejoin', 'bevel', true],
-    ['stroke-linejoin', 'arcs', false],
-    ['preserveAspectRatio', 'xMidYMid meet', true],
-    ['preserveAspectRatio', 'none', true],
-    ['preserveAspectRatio', 'xMidYMid  slice', false],
-    ['preserveAspectRatio', 'xMidYMid url', false],
-    ['version', '1.1', true],
-    ['version', '1.0', true],
-    ['version', '2.0', false]
-  ])('reads %s="%s" as %s', (attr, value, ok) => {
+  it.each(SVG_ATTRIBUTE_VECTORS)('reads %s="%s" as %s', (attr, value, ok) => {
     expect(isSvg(`<svg ${NS}><path ${attr}="${value}"/></svg>`)).toBe(ok)
   })
 
