@@ -572,8 +572,13 @@ function readText(raw: Rec): TextField {
     }
 
     // The value the field starts with, and what goes back unless the person changes it. A multi-line field takes it
-    // as it came (cleaning would fold its blank lines and send something else); a one-line field shows it cleaned,
-    // like every other text.
+    // as it came (cleaning would fold its blank lines and send something else), so it must be text that shows as it
+    // is: one with a control, format, bidi or invisible character the field would hide is not shown at all (a tab is
+    // a tab in a field). A one-line field shows it cleaned, like every other text.
+    if (multiline && verbatimProblem(text as string, { tab: true })) {
+      refuse()
+    }
+
     const shown = multiline ? (text as string) : displayText(text, maxLength)
 
     fallback = shown === '' ? undefined : shown
@@ -941,9 +946,10 @@ function readFile(params: Rec): FileAsk {
 /**
  * Whether a draft's `text` holds something the gateway's verbatim rule refuses (contract §6): an approval of it
  * unchanged could not be taken, and the sheet could not show it as it is. Line-end whitespace does not count (the
- * gateway strips it from an approved text first), nor does spacing: the characters are this check's.
+ * gateway strips it from an approved text first), nor does spacing: the characters are this check's. `allow.tab`
+ * lets a tab through, for a field's default (a tab shows as one there).
  */
-export function verbatimProblem(text: string): boolean {
+export function verbatimProblem(text: string, allow: { tab?: boolean } = {}): boolean {
   for (const line of text.split('\n')) {
     const chars = Array.from(line)
     let end = chars.length
@@ -959,7 +965,7 @@ export function verbatimProblem(text: string): boolean {
       const code = char.codePointAt(0) ?? 0
 
       if (
-        NOT_VERBATIM.test(char) ||
+        (NOT_VERBATIM.test(char) && !(allow.tab === true && char === '\t')) ||
         INVISIBLE_LETTERS.has(code) ||
         IGNORABLE.some(([low, high]) => code >= low && code <= high)
       ) {

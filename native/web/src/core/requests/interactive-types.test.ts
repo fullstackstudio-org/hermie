@@ -358,6 +358,20 @@ describe('a form', () => {
     expect(read.fields[0]).toMatchObject({ kind: 'text', multiline: true, default: text })
   })
 
+  it('declines a multi-line default that would put a control, bidi or invisible character in the field', () => {
+    for (const bad of ['Pay \u202Eexe.txt', 'a\u0000b', 'a\u200Bb', 'a\rb', 'a\u2028b', 'a\uE000b']) {
+      expect(
+        form(formWith({ id: 'note', kind: 'text', label: 'Note', multiline: true, default: bad })),
+        JSON.stringify(bad)
+      ).toEqual({ ok: false, reason: 'not_supported_on_device' })
+    }
+
+    // A one-line default is cleaned for display instead, as before.
+    expect(ask(form(formWith({ id: 'name', kind: 'text', label: 'Name', default: 'Ada\u202E' })))).toMatchObject({
+      fields: [{ default: 'Ada' }]
+    })
+  })
+
   it('reads a keyboard hint it does not know as plain, instead of refusing the form', () => {
     const read = ask(
       form(
