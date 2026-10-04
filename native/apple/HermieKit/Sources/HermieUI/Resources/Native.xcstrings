@@ -10392,25 +10392,25 @@
       }
     },
     "native.passkeys.add.action" : {
-      "comment" : "Settings → Passkeys: enrol button.",
+      "comment" : "Settings → Passkeys: button that enrols with the typed code.",
       "extractionState" : "manual",
       "localizations" : {
         "de" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Passkey hinzufügen"
+            "value" : "Mit Code hinzufügen"
           }
         },
         "en" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Add passkey"
+            "value" : "Add with a code"
           }
         },
         "nl" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Passkey toevoegen"
+            "value" : "Toevoegen met een code"
           }
         }
       }
@@ -10464,25 +10464,25 @@
       }
     },
     "native.passkeys.add.header" : {
-      "comment" : "Settings → Passkeys: section for enrolling with a code.",
+      "comment" : "Settings → Passkeys: section heading for enrolling with a code.",
       "extractionState" : "manual",
       "localizations" : {
         "de" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Mit einem Code hinzufügen"
+            "value" : "Einen Passkey mit einem Code hinzufügen"
           }
         },
         "en" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Add with a code"
+            "value" : "Add a passkey with a code"
           }
         },
         "nl" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Toevoegen met een code"
+            "value" : "Een passkey toevoegen met een code"
           }
         }
       }
@@ -11371,6 +11371,798 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Deze passkey verwijderen?"
+          }
+        }
+      }
+    },
+    "native.passkeys.self.another.action" : {
+      "comment" : "Settings → Passkeys: button shown after a passkey was added, to add one more.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Einen weiteren Passkey hinzufügen"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Add another passkey"
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Nog een passkey toevoegen"
+          }
+        }
+      }
+    },
+    "native.passkeys.self.coolingOff.notice" : {
+      "comment" : "Settings → Passkeys: the operator's waiting period for a passkey added by signing in again. The argument is a duration like 24 hours.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Ein auf diese Weise hinzugefügter Passkey kann erst %@ nach dem Hinzufügen etwas bestätigen."
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "A passkey added this way cannot confirm anything until %@ after it was added."
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Een passkey die je zo toevoegt, kan pas %@ na het toevoegen iets bevestigen."
+          }
+        }
+      }
+    },
+    "native.passkeys.self.create.action" : {
+      "comment" : "Settings → Passkeys: button that creates the passkey (step 2).",
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Den Passkey erstellen"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Create the passkey"
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "De passkey maken"
+          }
+        }
+      }
+    },
+    "native.passkeys.self.credential.coolingOff" : {
+      "comment" : "Settings → Passkeys, a passkey row that cannot answer yet. The argument is a date and time.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Noch nicht nutzbar: bereit ab %@"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Not usable yet: ready from %@"
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Nog niet bruikbaar: klaar vanaf %@"
+          }
+        }
+      }
+    },
+    "native.passkeys.self.footer" : {
+      "comment" : "Settings → Passkeys: what adding a passkey by signing in again does.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Du meldest dich erneut an, um zu zeigen, dass du es bist; danach erstellt dein Gerät den Passkey."
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "You will sign in again to prove it is you, then your device creates the passkey."
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Je logt opnieuw in om te laten zien dat jij het bent; daarna maakt je apparaat de passkey."
+          }
+        }
+      }
+    },
+    "native.passkeys.self.header" : {
+      "comment" : "Settings → Passkeys: heading of adding a passkey by signing in again.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Einen Passkey hinzufügen"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Add a passkey"
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Een passkey toevoegen"
+          }
+        }
+      }
+    },
+    "native.passkeys.self.reason.authNotFresh" : {
+      "comment" : "Settings → Passkeys: the identity provider reused an earlier sign-in.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Dein Identitätsanbieter hat eine frühere Anmeldung wiederverwendet. Melde dich dort ab und versuche es erneut."
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Your identity provider reused an earlier sign-in. Sign out there, then try again."
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Je identiteitsprovider gebruikte een eerdere inlog opnieuw. Log daar uit en probeer het opnieuw."
+          }
+        }
+      }
+    },
+    "native.passkeys.self.reason.authTimeMissing" : {
+      "comment" : "Settings → Passkeys: the identity provider does not say when the person signed in.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Dein Identitätsanbieter gibt nicht an, wann du dich angemeldet hast. Wer das Gateway betreibt, kann das erlauben."
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Your identity provider does not say when you signed in. Whoever runs the gateway can allow that."
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Je identiteitsprovider geeft niet aan wanneer je inlogde. Wie de gateway beheert kan dat toestaan."
+          }
+        }
+      }
+    },
+    "native.passkeys.self.reason.busy" : {
+      "comment" : "Settings → Passkeys: a step of adding a passkey is already running.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Ein Schritt beim Hinzufügen des Passkeys läuft noch. Warte, bis er fertig ist."
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Another step of adding the passkey is still running. Wait until it has finished."
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Er loopt nog een stap van het toevoegen van de passkey. Wacht tot die klaar is."
+          }
+        }
+      }
+    },
+    "native.passkeys.self.reason.disabled" : {
+      "comment" : "Settings → Passkeys: the operator switched adding a passkey by signing in again off.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Einen Passkey durch erneutes Anmelden hinzuzufügen ist auf diesem Gateway ausgeschaltet. Mit einem Code geht es weiterhin."
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Adding a passkey by signing in again is switched off on this gateway. You can still add one with a code."
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Een passkey toevoegen door opnieuw in te loggen staat uit op deze gateway. Met een code kan het nog wel."
+          }
+        }
+      }
+    },
+    "native.passkeys.self.reason.expired" : {
+      "comment" : "Settings → Passkeys: the sign-in ran out of time.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Dieser Vorgang ist abgelaufen. Melde dich erneut an, um neu zu beginnen."
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "This set-up has expired. Sign in again to start over."
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Deze koppeling is verlopen. Log opnieuw in om opnieuw te beginnen."
+          }
+        }
+      }
+    },
+    "native.passkeys.self.reason.failed" : {
+      "comment" : "Settings → Passkeys: the sign-in did not count, for any other reason.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Diese Anmeldung hat nicht gezählt. Melde dich erneut an, um deinen Passkey hinzuzufügen."
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "That sign-in did not count. Sign in again to add your passkey."
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Die inlog telde niet mee. Log opnieuw in om je passkey toe te voegen."
+          }
+        }
+      }
+    },
+    "native.passkeys.self.reason.noReauth" : {
+      "comment" : "Settings → Passkeys: the sign-in provider cannot ask for a fresh sign-in.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Dein Anmeldeanbieter kann dich nicht bitten, dich erneut anzumelden, daher lässt sich auf diesem Weg kein Passkey hinzufügen. Mit einem Code geht es weiterhin."
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Your sign-in provider cannot ask you to sign in again, so a passkey cannot be added this way. You can still add one with a code."
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Je inlogprovider kan niet vragen om opnieuw in te loggen, dus zo kan er geen passkey worden toegevoegd. Met een code kan het nog wel."
+          }
+        }
+      }
+    },
+    "native.passkeys.self.reason.notFresh" : {
+      "comment" : "Settings → Passkeys: the sign-in never came back to the gateway.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Die Anmeldung wurde nicht abgeschlossen. Melde dich erneut an, um deinen Passkey hinzuzufügen."
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "The sign-in did not complete. Sign in again to add your passkey."
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Het inloggen is niet voltooid. Log opnieuw in om je passkey toe te voegen."
+          }
+        }
+      }
+    },
+    "native.passkeys.self.reason.notOffered" : {
+      "comment" : "Settings → Passkeys: this gateway or session cannot add a passkey by signing in again.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Dieses Gateway kann keinen Passkey durch erneutes Anmelden hinzufügen. Mit einem Code geht es."
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "This gateway cannot add a passkey by signing in again. You can add one with a code."
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Deze gateway kan geen passkey toevoegen door opnieuw in te loggen. Met een code kan het wel."
+          }
+        }
+      }
+    },
+    "native.passkeys.self.reason.providerMismatch" : {
+      "comment" : "Settings → Passkeys: the person signed in with another sign-in method.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Du hast dich mit einer anderen Anmeldemethode angemeldet als der, mit der das begann. Melde dich erneut an."
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "You signed in with another sign-in method than the one that started this. Sign in again."
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Je bent met een andere inlogmethode ingelogd dan waarmee dit begon. Log opnieuw in."
+          }
+        }
+      }
+    },
+    "native.passkeys.self.reason.signInClosed" : {
+      "comment" : "Settings → Passkeys: the sign-in sheet was closed before it finished.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Die Anmeldung wurde geschlossen, bevor sie abgeschlossen war. Melde dich erneut an, um deinen Passkey hinzuzufügen."
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "The sign-in was closed before it finished. Sign in again to add your passkey."
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Het inloggen is gesloten voordat het klaar was. Log opnieuw in om je passkey toe te voegen."
+          }
+        }
+      }
+    },
+    "native.passkeys.self.reason.spent" : {
+      "comment" : "Settings → Passkeys: the sign-in was already used for a passkey.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Diese Anmeldung wurde schon für einen Passkey verwendet. Melde dich erneut an, um einen weiteren hinzuzufügen."
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "That sign-in was already used for a passkey. Sign in again to add another."
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Die inlog is al voor een passkey gebruikt. Log opnieuw in om er nog een toe te voegen."
+          }
+        }
+      }
+    },
+    "native.passkeys.self.reason.userMismatch" : {
+      "comment" : "Settings → Passkeys: the person signed in as someone else.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Du hast dich als jemand anderes angemeldet. Melde dich erneut als du selbst an."
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "You signed in as someone else. Sign in again as yourself."
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Je bent als iemand anders ingelogd. Log opnieuw in als jezelf."
+          }
+        }
+      }
+    },
+    "native.passkeys.self.signIn.action" : {
+      "comment" : "Settings → Passkeys: button that starts the sign-in again (step 1).",
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Erneut anmelden"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Sign in again"
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Opnieuw inloggen"
+          }
+        }
+      }
+    },
+    "native.passkeys.self.step.label" : {
+      "comment" : "VoiceOver label of a step of adding a passkey. The first argument is the step number (1 or 2), the second its title.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Schritt %lld von 2: %@"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Step %lld of 2: %@"
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Stap %lld van 2: %@"
+          }
+        }
+      }
+    },
+    "native.passkeys.self.step1.done" : {
+      "comment" : "Settings → Passkeys, step 1 once the sign-in counted.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Du hast dich erneut angemeldet."
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "You signed in again."
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Je bent opnieuw ingelogd."
+          }
+        }
+      }
+    },
+    "native.passkeys.self.step1.idle" : {
+      "comment" : "Settings → Passkeys, step 1 before it starts.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Ein Anmeldefenster für dieses Gateway öffnet sich."
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "A sign-in sheet for this gateway opens."
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Er opent een inlogvenster voor deze gateway."
+          }
+        }
+      }
+    },
+    "native.passkeys.self.step1.title" : {
+      "comment" : "Settings → Passkeys, step 1 of adding a passkey: signing in again.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Erneut anmelden"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Sign in again"
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Opnieuw inloggen"
+          }
+        }
+      }
+    },
+    "native.passkeys.self.step1.waiting" : {
+      "comment" : "Settings → Passkeys, step 1 while the sign-in sheet is open.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Warte auf die Anmeldung …"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Waiting for the sign-in…"
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Wachten op het inloggen…"
+          }
+        }
+      }
+    },
+    "native.passkeys.self.step2.done" : {
+      "comment" : "Settings → Passkeys, step 2 once the passkey was added.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Der Passkey wurde hinzugefügt."
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "The passkey was added."
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "De passkey is toegevoegd."
+          }
+        }
+      }
+    },
+    "native.passkeys.self.step2.locked" : {
+      "comment" : "Settings → Passkeys, step 2 before the sign-in counted.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Verfügbar, sobald du dich erneut angemeldet hast."
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Available once you have signed in again."
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Beschikbaar nadat je opnieuw bent ingelogd."
+          }
+        }
+      }
+    },
+    "native.passkeys.self.step2.ready" : {
+      "comment" : "Settings → Passkeys, step 2 when the passkey can be created.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Dein Gerät kann jetzt den Passkey erstellen."
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Your device can now create the passkey."
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Je apparaat kan nu de passkey maken."
+          }
+        }
+      }
+    },
+    "native.passkeys.self.step2.title" : {
+      "comment" : "Settings → Passkeys, step 2 of adding a passkey: creating it.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Den Passkey erstellen"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Create the passkey"
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "De passkey maken"
+          }
+        }
+      }
+    },
+    "native.passkeys.self.step2.waiting" : {
+      "comment" : "Settings → Passkeys, step 2 while the system passkey sheet is up.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Warte auf deinen Passkey …"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Waiting for your passkey…"
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Wachten op je passkey…"
+          }
+        }
+      }
+    },
+    "native.passkeys.self.timeLeft" : {
+      "comment" : "Settings → Passkeys: countdown until the sign-in runs out. The argument is minutes and seconds, like 9:41.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Verbleibende Zeit: %@"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Time left: %@"
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Resterende tijd: %@"
+          }
+        }
+      }
+    },
+    "native.passkeys.self.timeLeft.label" : {
+      "comment" : "VoiceOver label of the countdown; its value is the time left.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Verbleibende Zeit"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Time left"
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Resterende tijd"
+          }
+        }
+      }
+    },
+    "native.passkeys.self.timeLeft.lessThanMinute" : {
+      "comment" : "VoiceOver value of the countdown in the last minute.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Weniger als eine Minute"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Less than a minute"
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Minder dan een minuut"
           }
         }
       }

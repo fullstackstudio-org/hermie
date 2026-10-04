@@ -885,13 +885,13 @@
 	<key>native.onboarding.save.unsupportedRegistry</key>
 	<string>De gatewaylijst op dit apparaat is geschreven door een nieuwere versie van Hermie, dus er is niets gewijzigd. Werk Hermie bij en probeer het opnieuw.</string>
 	<key>native.passkeys.add.action</key>
-	<string>Passkey toevoegen</string>
+	<string>Toevoegen met een code</string>
 	<key>native.passkeys.add.field</key>
 	<string>Code van de beheerder van de gateway</string>
 	<key>native.passkeys.add.footer</key>
 	<string>De beheerder van deze gateway geeft je een eenmalige code. Je apparaat maakt daarmee een passkey en vraagt om je toestemming.</string>
 	<key>native.passkeys.add.header</key>
-	<string>Toevoegen met een code</string>
+	<string>Een passkey toevoegen met een code</string>
 	<key>native.passkeys.added</key>
 	<string>Toegevoegd %@</string>
 	<key>native.passkeys.addedUnknown</key>
@@ -966,6 +966,72 @@
 	<string>Hij kan daarna niets meer bevestigen op deze gateway. Je wordt om een passkey gevraagd om dit toe te staan.</string>
 	<key>native.passkeys.remove.title</key>
 	<string>Deze passkey verwijderen?</string>
+	<key>native.passkeys.self.another.action</key>
+	<string>Nog een passkey toevoegen</string>
+	<key>native.passkeys.self.coolingOff.notice</key>
+	<string>Een passkey die je zo toevoegt, kan pas %@ na het toevoegen iets bevestigen.</string>
+	<key>native.passkeys.self.create.action</key>
+	<string>De passkey maken</string>
+	<key>native.passkeys.self.credential.coolingOff</key>
+	<string>Nog niet bruikbaar: klaar vanaf %@</string>
+	<key>native.passkeys.self.footer</key>
+	<string>Je logt opnieuw in om te laten zien dat jij het bent; daarna maakt je apparaat de passkey.</string>
+	<key>native.passkeys.self.header</key>
+	<string>Een passkey toevoegen</string>
+	<key>native.passkeys.self.reason.authNotFresh</key>
+	<string>Je identiteitsprovider gebruikte een eerdere inlog opnieuw. Log daar uit en probeer het opnieuw.</string>
+	<key>native.passkeys.self.reason.authTimeMissing</key>
+	<string>Je identiteitsprovider geeft niet aan wanneer je inlogde. Wie de gateway beheert kan dat toestaan.</string>
+	<key>native.passkeys.self.reason.busy</key>
+	<string>Er loopt nog een stap van het toevoegen van de passkey. Wacht tot die klaar is.</string>
+	<key>native.passkeys.self.reason.disabled</key>
+	<string>Een passkey toevoegen door opnieuw in te loggen staat uit op deze gateway. Met een code kan het nog wel.</string>
+	<key>native.passkeys.self.reason.expired</key>
+	<string>Deze koppeling is verlopen. Log opnieuw in om opnieuw te beginnen.</string>
+	<key>native.passkeys.self.reason.failed</key>
+	<string>Die inlog telde niet mee. Log opnieuw in om je passkey toe te voegen.</string>
+	<key>native.passkeys.self.reason.noReauth</key>
+	<string>Je inlogprovider kan niet vragen om opnieuw in te loggen, dus zo kan er geen passkey worden toegevoegd. Met een code kan het nog wel.</string>
+	<key>native.passkeys.self.reason.notFresh</key>
+	<string>Het inloggen is niet voltooid. Log opnieuw in om je passkey toe te voegen.</string>
+	<key>native.passkeys.self.reason.notOffered</key>
+	<string>Deze gateway kan geen passkey toevoegen door opnieuw in te loggen. Met een code kan het wel.</string>
+	<key>native.passkeys.self.reason.providerMismatch</key>
+	<string>Je bent met een andere inlogmethode ingelogd dan waarmee dit begon. Log opnieuw in.</string>
+	<key>native.passkeys.self.reason.signInClosed</key>
+	<string>Het inloggen is gesloten voordat het klaar was. Log opnieuw in om je passkey toe te voegen.</string>
+	<key>native.passkeys.self.reason.spent</key>
+	<string>Die inlog is al voor een passkey gebruikt. Log opnieuw in om er nog een toe te voegen.</string>
+	<key>native.passkeys.self.reason.userMismatch</key>
+	<string>Je bent als iemand anders ingelogd. Log opnieuw in als jezelf.</string>
+	<key>native.passkeys.self.signIn.action</key>
+	<string>Opnieuw inloggen</string>
+	<key>native.passkeys.self.step.label</key>
+	<string>Stap %lld van 2: %@</string>
+	<key>native.passkeys.self.step1.done</key>
+	<string>Je bent opnieuw ingelogd.</string>
+	<key>native.passkeys.self.step1.idle</key>
+	<string>Er opent een inlogvenster voor deze gateway.</string>
+	<key>native.passkeys.self.step1.title</key>
+	<string>Opnieuw inloggen</string>
+	<key>native.passkeys.self.step1.waiting</key>
+	<string>Wachten op het inloggen…</string>
+	<key>native.passkeys.self.step2.done</key>
+	<string>De passkey is toegevoegd.</string>
+	<key>native.passkeys.self.step2.locked</key>
+	<string>Beschikbaar nadat je opnieuw bent ingelogd.</string>
+	<key>native.passkeys.self.step2.ready</key>
+	<string>Je apparaat kan nu de passkey maken.</string>
+	<key>native.passkeys.self.step2.title</key>
+	<string>De passkey maken</string>
+	<key>native.passkeys.self.step2.waiting</key>
+	<string>Wachten op je passkey…</string>
+	<key>native.passkeys.self.timeLeft</key>
+	<string>Resterende tijd: %@</string>
+	<key>native.passkeys.self.timeLeft.label</key>
+	<string>Resterende tijd</string>
+	<key>native.passkeys.self.timeLeft.lessThanMinute</key>
+	<string>Minder dan een minuut</string>
 	<key>native.passkeys.state.disabled</key>
 	<string>Passkeys staan uit op deze gateway.</string>
 	<key>native.passkeys.state.enrolled</key>

@@ -736,6 +736,37 @@ local-only pasteboard (Universal Clipboard is not prevented), and a value stays 
 if the app is quit before the code expires. A dismissed
 system sheet is not an error; every other failure is said in words.
 
+**Add a passkey by signing in again** (`PasskeySelfEnrolSection`, state in `PasskeysSelfEnrolState`;
+the model's half is `PasskeyModel.beginSelfEnrolment(presenter:)` and `enrol(grantID:)`, contract
+7.2). It is the section "Add a passkey" above "Add with a code" (heading "Add a passkey with a code"),
+shown when `canSelfEnrol` holds: the gateway's `self_enrol.available`, this build's RP accepted and a
+session that can sign in through the browser (a session token cannot). Two visible steps, "Sign in
+again" (the browser sheet, `WebAuthenticationPresenter`, the same one the sign-in uses) and "Create the
+passkey" (the system's passkey sheet), a countdown from the grant's `expires_at`, and one line saying
+what happens: "You will sign in again to prove it is you, then your device creates the passkey." The
+page's countdown calls `PasskeyModel.expireSelfEnrolmentIfDue()` every second, so a grant that runs out
+is ended by the model (and its use secret dropped), not by the page. The page's state is one case chosen
+from what the model holds and the clock: available, signing in, sign-in
+ended (the grant is still open, so "Sign in again" reuses it), ready, creating, expired, failed, done.
+It is derived, not kept: a page the lock took down and brought back shows the same state. A dismissed
+passkey sheet leaves step 2 ready to press again until the countdown ends; a 429 or a refused
+attestation does too, and says why. A refusal that ends the grant (`expired`, `not_fresh`, `spent`, a
+sign-in that did not count) is said once, by the state, and offers "Sign in again" for a new grant.
+When the gateway switches it off (`disabled`) or the sign-in provider cannot ask again
+(`provider_no_reauth`) the page says so in one sentence and keeps only the code path; an older gateway
+shows nothing extra.
+
+Each reason has its own fixed sentence (`PasskeysText.reauthSentence`); the gateway's `failure`
+(`auth_not_fresh`, `auth_time_missing`, `user_mismatch`, `provider_mismatch`) and the identity
+provider's text only choose one and are never shown. The page forgets a finished attempt (added, or
+ended in a reason) when it goes away, and keeps one in progress or ready, since the sign-in sheet makes
+the app resign active and the lock may take the page down meanwhile. A passkey the operator makes wait
+(`usable_from`, the status's `self_enrol.cooling_off_s`) is listed with "Not usable yet: ready from
+<date>", and the section says how long the wait is. VoiceOver reads each step as "Step 1 of 2: Sign in
+again" with its line, and the countdown by whole minutes, so that it does not speak every second.
+`PasskeysSelfEnrolStateTests` pins each state (available, off, no re-auth, step 1 ended or failed,
+step 2 cancelled and retried, done, cooling off, the countdown running out) as values, with no UI test.
+
 **Testing the sheet.** The shipped apps have no software authenticator, so the sheet and the page
 are driven in the lab (`-HermieLabScreen passkeys -HermieLabGateway http://127.0.0.1:<port>`,
 `PasskeyLabView`) against a fake gateway started with `--auth native --passkey`

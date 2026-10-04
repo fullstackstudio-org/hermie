@@ -885,13 +885,13 @@
 	<key>native.onboarding.save.unsupportedRegistry</key>
 	<string>The gateway list on this device was written by a newer version of Hermie, so nothing was changed. Update Hermie and try again.</string>
 	<key>native.passkeys.add.action</key>
-	<string>Add passkey</string>
+	<string>Add with a code</string>
 	<key>native.passkeys.add.field</key>
 	<string>Code from the gateway's operator</string>
 	<key>native.passkeys.add.footer</key>
 	<string>The operator of this gateway gives you a one-time code. Your device then makes a passkey for it and asks for your approval.</string>
 	<key>native.passkeys.add.header</key>
-	<string>Add with a code</string>
+	<string>Add a passkey with a code</string>
 	<key>native.passkeys.added</key>
 	<string>Added %@</string>
 	<key>native.passkeys.addedUnknown</key>
@@ -966,6 +966,72 @@
 	<string>It can no longer confirm anything on this gateway. You will be asked for a passkey to allow this.</string>
 	<key>native.passkeys.remove.title</key>
 	<string>Remove this passkey?</string>
+	<key>native.passkeys.self.another.action</key>
+	<string>Add another passkey</string>
+	<key>native.passkeys.self.coolingOff.notice</key>
+	<string>A passkey added this way cannot confirm anything until %@ after it was added.</string>
+	<key>native.passkeys.self.create.action</key>
+	<string>Create the passkey</string>
+	<key>native.passkeys.self.credential.coolingOff</key>
+	<string>Not usable yet: ready from %@</string>
+	<key>native.passkeys.self.footer</key>
+	<string>You will sign in again to prove it is you, then your device creates the passkey.</string>
+	<key>native.passkeys.self.header</key>
+	<string>Add a passkey</string>
+	<key>native.passkeys.self.reason.authNotFresh</key>
+	<string>Your identity provider reused an earlier sign-in. Sign out there, then try again.</string>
+	<key>native.passkeys.self.reason.authTimeMissing</key>
+	<string>Your identity provider does not say when you signed in. Whoever runs the gateway can allow that.</string>
+	<key>native.passkeys.self.reason.busy</key>
+	<string>Another step of adding the passkey is still running. Wait until it has finished.</string>
+	<key>native.passkeys.self.reason.disabled</key>
+	<string>Adding a passkey by signing in again is switched off on this gateway. You can still add one with a code.</string>
+	<key>native.passkeys.self.reason.expired</key>
+	<string>This set-up has expired. Sign in again to start over.</string>
+	<key>native.passkeys.self.reason.failed</key>
+	<string>That sign-in did not count. Sign in again to add your passkey.</string>
+	<key>native.passkeys.self.reason.noReauth</key>
+	<string>Your sign-in provider cannot ask you to sign in again, so a passkey cannot be added this way. You can still add one with a code.</string>
+	<key>native.passkeys.self.reason.notFresh</key>
+	<string>The sign-in did not complete. Sign in again to add your passkey.</string>
+	<key>native.passkeys.self.reason.notOffered</key>
+	<string>This gateway cannot add a passkey by signing in again. You can add one with a code.</string>
+	<key>native.passkeys.self.reason.providerMismatch</key>
+	<string>You signed in with another sign-in method than the one that started this. Sign in again.</string>
+	<key>native.passkeys.self.reason.signInClosed</key>
+	<string>The sign-in was closed before it finished. Sign in again to add your passkey.</string>
+	<key>native.passkeys.self.reason.spent</key>
+	<string>That sign-in was already used for a passkey. Sign in again to add another.</string>
+	<key>native.passkeys.self.reason.userMismatch</key>
+	<string>You signed in as someone else. Sign in again as yourself.</string>
+	<key>native.passkeys.self.signIn.action</key>
+	<string>Sign in again</string>
+	<key>native.passkeys.self.step.label</key>
+	<string>Step %lld of 2: %@</string>
+	<key>native.passkeys.self.step1.done</key>
+	<string>You signed in again.</string>
+	<key>native.passkeys.self.step1.idle</key>
+	<string>A sign-in sheet for this gateway opens.</string>
+	<key>native.passkeys.self.step1.title</key>
+	<string>Sign in again</string>
+	<key>native.passkeys.self.step1.waiting</key>
+	<string>Waiting for the sign-in…</string>
+	<key>native.passkeys.self.step2.done</key>
+	<string>The passkey was added.</string>
+	<key>native.passkeys.self.step2.locked</key>
+	<string>Available once you have signed in again.</string>
+	<key>native.passkeys.self.step2.ready</key>
+	<string>Your device can now create the passkey.</string>
+	<key>native.passkeys.self.step2.title</key>
+	<string>Create the passkey</string>
+	<key>native.passkeys.self.step2.waiting</key>
+	<string>Waiting for your passkey…</string>
+	<key>native.passkeys.self.timeLeft</key>
+	<string>Time left: %@</string>
+	<key>native.passkeys.self.timeLeft.label</key>
+	<string>Time left</string>
+	<key>native.passkeys.self.timeLeft.lessThanMinute</key>
+	<string>Less than a minute</string>
 	<key>native.passkeys.state.disabled</key>
 	<string>Passkeys are turned off on this gateway.</string>
 	<key>native.passkeys.state.enrolled</key>

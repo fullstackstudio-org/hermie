@@ -19,6 +19,11 @@ import SwiftUI
  Everything it shows and does is `PasskeyModel`'s: the page only reads the model and calls its
  actions. Adding, creating a code and removing each open the system's passkey sheet, and the page
  tells what happened in plain words; the person dismissing that sheet is not an error.
+
+ "Add a passkey" (`PasskeySelfEnrolSection`) is above "Add with a code" when the gateway lets this
+ person add a passkey by signing in again and this session can sign in through the browser
+ (`PasskeyModel.canSelfEnrol`); the flow and its state are the model's (`selfEnrolment`), and the
+ page keeps nothing of them that a rebuilt page could not read back.
  */
 struct PasskeysSettingsPage: View {
   let model: PasskeyModel
@@ -29,10 +34,18 @@ struct PasskeysSettingsPage: View {
   @State private var failure: String?
   @State private var invite: PasskeyInvite?
   @State private var removing: PasskeyCredentialInfo?
+  /// The browser sheet of step 1 of "Add a passkey".
+  @State private var presenter = WebAuthenticationPresenter()
+  /// Moves once a second while a countdown or a waiting period is on screen.
+  @State private var tick = 0
   @FocusState private var codeFocused: Bool
+  @Environment(\.scenePhase) private var scenePhase
 
   var body: some View {
     let state = PasskeysPageState.of(model)
+    let _ = tick
+    let now = Date()
+    let selfState = PasskeysSelfEnrolState.of(model, now: now)
 
     Form {
       noticesSection
@@ -43,6 +56,18 @@ struct PasskeysSettingsPage: View {
       }
 
       if state.canEnrol {
+        if selfState != .hidden {
+          PasskeySelfEnrolSection(
+            state: selfState,
+            gatewayName: gatewayName,
+            coolingOff: PasskeysText.coolingOffNotice(seconds: model.status?.selfEnrol?.coolingOffS),
+            busy: working,
+            signIn: signInAgain,
+            create: createPasskey,
+            another: addAnother
+          )
+        }
+
         addSection
       }
 
@@ -56,7 +81,24 @@ struct PasskeysSettingsPage: View {
     .navigationTitle(NativeStrings.Passkeys.title)
     .accessibilityIdentifier("hermie.passkeys.page")
     .task { await model.refresh() }
-    .onDisappear { invite = nil }
+    .task(id: ticking(now: now)) {
+      guard ticking(now: Date()) else { return }
+
+      while !Task.isCancelled {
+        try? await Task.sleep(for: .seconds(1))
+        // A grant past its time is over: the model says so (and drops its secret) rather than the page.
+        model.expireSelfEnrolmentIfDue()
+        tick &+= 1
+      }
+    }
+    .background(PresentationAnchorReader(box: presenter.anchor))
+    .onChange(of: scenePhase) { _, phase in
+      sceneChanged(phase)
+    }
+    .onDisappear {
+      invite = nil
+      forgetFinishedSelfEnrolment()
+    }
     .confirmationDialog(
       NativeStrings.Passkeys.removeTitle,
       isPresented: removalPresented,
@@ -196,6 +238,66 @@ struct PasskeysSettingsPage: View {
     }
   }
 
+  /// Step 1: sign in again through the system browser for a fresh grant.
+  private func signInAgain() {
+    codeFocused = false
+    run {
+      _ = try await model.beginSelfEnrolment(presenter: presenter)
+    }
+  }
+
+  /// Step 2: the system's passkey sheet, with what step 1 got.
+  private func createPasskey() {
+    guard let grantID = model.selfEnrolment?.grantID else { return }
+
+    run {
+      _ = try await model.enrol(grantID: grantID)
+    }
+  }
+
+  private func addAnother() {
+    failure = nil
+    model.forgetSelfEnrolment()
+  }
+
+  /// A countdown, or a passkey cooling off, is on screen: the page redraws once a second.
+  private func ticking(now: Date) -> Bool {
+    if let phase = model.selfEnrolment?.phase {
+      switch phase {
+      case .signingIn, .signInEnded, .ready, .enrolling: return true
+      case .failed, .done: break
+      }
+    }
+
+    return model.credentials.contains { PasskeysText.coolingOff($0, now: now) != nil }
+  }
+
+  /// The sign-in browser sheet makes the app resign active, and the lock may take this page down
+  /// meanwhile: an attempt in progress (and a grant ready to use) stays with the model. A finished
+  /// one (added, or ended in a reason) goes when the page does.
+  private func forgetFinishedSelfEnrolment() {
+    guard let phase = model.selfEnrolment?.phase else { return }
+
+    switch phase {
+    case .done, .failed: model.forgetSelfEnrolment()
+    case .signingIn, .signInEnded, .ready, .enrolling: break
+    }
+  }
+
+  /// The sign-in sheet stays up while the person goes elsewhere (to a password manager, say): on iOS
+  /// the presenter asks for the few seconds the system grants. The listener listening again on
+  /// return is `PasskeyModel.appBecameActive()`, which the app's wiring calls, not this page.
+  private func sceneChanged(_ phase: ScenePhase) {
+    switch phase {
+    case .background where model.selfEnrolment?.phase == .signingIn:
+      presenter.appWentToBackground()
+    case .active:
+      presenter.appBecameActive()
+    default:
+      break
+    }
+  }
+
   private func mintInvite() {
     codeFocused = false
     run {
@@ -222,7 +324,11 @@ struct PasskeysSettingsPage: View {
       do {
         try await action()
       } catch let error as PasskeyActionError {
-        failure = PasskeysText.failure(error)
+        failure = PasskeysSelfEnrolState.failureLine(
+          for: error,
+          state: PasskeysSelfEnrolState.of(model, now: Date()),
+          host: gatewayName
+        )
       } catch {
         failure = NativeStrings.Passkeys.unreadable
       }
@@ -250,6 +356,17 @@ struct PasskeyCredentialRow: View {
           .font(.footnote)
         Text(Self.lastUsed(credential.lastUsedAt))
           .font(.footnote)
+
+        if let coolingOff = PasskeysText.coolingOff(credential, now: Date()) {
+          Label {
+            Text(coolingOff)
+              .font(.footnote)
+          } icon: {
+            Image(systemName: "clock")
+              .accessibilityHidden(true)
+          }
+          .accessibilityIdentifier("hermie.passkeys.credential.coolingOff")
+        }
       }
       .frame(maxWidth: .infinity, alignment: .leading)
       .accessibilityElement(children: .combine)
@@ -526,6 +643,96 @@ extension NativeStrings {
     static var tooSlow: String { string("native.passkeys.failure.tooSlow") }
     /// The gateway refused…
     static var refused: String { string("native.passkeys.failure.refused") }
+
+    /// Adding a passkey by signing in again, and the sentence for each reason it may not go ahead.
+    enum SelfEnrol {
+      private static func string(_ key: String.LocalizationValue) -> String {
+        String(localized: key, table: "Native", bundle: .module)
+      }
+
+      /// Add a passkey
+      static var header: String { string("native.passkeys.self.header") }
+      /// You will sign in again to prove it is you, then your device creates the passkey.
+      static var footer: String { string("native.passkeys.self.footer") }
+      /// Step {n} of 2: {title}
+      static func stepLabel(_ number: Int, _ title: String) -> String {
+        String(
+          localized: "native.passkeys.self.step.label", defaultValue: "Step \(number) of 2: \(title)", table: "Native",
+          bundle: .module)
+      }
+      /// Sign in again
+      static var step1Title: String { string("native.passkeys.self.step1.title") }
+      /// A sign-in sheet for this gateway opens.
+      static var step1Idle: String { string("native.passkeys.self.step1.idle") }
+      /// Waiting for the sign-in…
+      static var step1Waiting: String { string("native.passkeys.self.step1.waiting") }
+      /// You signed in again.
+      static var step1Done: String { string("native.passkeys.self.step1.done") }
+      /// Create the passkey
+      static var step2Title: String { string("native.passkeys.self.step2.title") }
+      /// Available once you have signed in again.
+      static var step2Locked: String { string("native.passkeys.self.step2.locked") }
+      /// Your device can now create the passkey.
+      static var step2Ready: String { string("native.passkeys.self.step2.ready") }
+      /// Waiting for your passkey…
+      static var step2Waiting: String { string("native.passkeys.self.step2.waiting") }
+      /// The passkey was added.
+      static var step2Done: String { string("native.passkeys.self.step2.done") }
+      /// Sign in again
+      static var signInAction: String { string("native.passkeys.self.signIn.action") }
+      /// Create the passkey
+      static var createAction: String { string("native.passkeys.self.create.action") }
+      /// Add another passkey
+      static var anotherAction: String { string("native.passkeys.self.another.action") }
+      /// Time left: {m:ss}
+      static func timeLeft(_ time: String) -> String {
+        String(
+          localized: "native.passkeys.self.timeLeft", defaultValue: "Time left: \(time)", table: "Native", bundle: .module)
+      }
+      /// Time left
+      static var timeLeftLabel: String { string("native.passkeys.self.timeLeft.label") }
+      /// Less than a minute
+      static var lessThanMinute: String { string("native.passkeys.self.timeLeft.lessThanMinute") }
+      /// A passkey added this way cannot confirm anything until {duration} after it was added.
+      static func coolingOffNotice(_ duration: String) -> String {
+        String(
+          localized: "native.passkeys.self.coolingOff.notice",
+          defaultValue: "A passkey added this way cannot confirm anything until \(duration) after it was added.",
+          table: "Native", bundle: .module)
+      }
+      /// Not usable yet: ready from {date}
+      static func credentialCoolingOff(_ date: String) -> String {
+        String(
+          localized: "native.passkeys.self.credential.coolingOff", defaultValue: "Not usable yet: ready from \(date)",
+          table: "Native", bundle: .module)
+      }
+      /// The sign-in was closed before it finished…
+      static var signInClosed: String { string("native.passkeys.self.reason.signInClosed") }
+      /// This set-up has expired…
+      static var expired: String { string("native.passkeys.self.reason.expired") }
+      /// That sign-in was already used for a passkey…
+      static var spent: String { string("native.passkeys.self.reason.spent") }
+      /// The sign-in did not complete…
+      static var notFresh: String { string("native.passkeys.self.reason.notFresh") }
+      /// Your identity provider reused an earlier sign-in…
+      static var authNotFresh: String { string("native.passkeys.self.reason.authNotFresh") }
+      /// Your identity provider does not say when you signed in…
+      static var authTimeMissing: String { string("native.passkeys.self.reason.authTimeMissing") }
+      /// You signed in as someone else…
+      static var userMismatch: String { string("native.passkeys.self.reason.userMismatch") }
+      /// You signed in with another sign-in method…
+      static var providerMismatch: String { string("native.passkeys.self.reason.providerMismatch") }
+      /// That sign-in did not count…
+      static var failed: String { string("native.passkeys.self.reason.failed") }
+      /// Adding a passkey by signing in again is switched off on this gateway…
+      static var disabled: String { string("native.passkeys.self.reason.disabled") }
+      /// Your sign-in provider cannot ask you to sign in again…
+      static var noReauth: String { string("native.passkeys.self.reason.noReauth") }
+      /// Another step of adding the passkey is still running…
+      static var busy: String { string("native.passkeys.self.reason.busy") }
+      /// This gateway cannot add a passkey by signing in again…
+      static var notOffered: String { string("native.passkeys.self.reason.notOffered") }
+    }
 
     enum Notice {
       /// Passkey confirmations are off: this gateway no longer identifies itself…

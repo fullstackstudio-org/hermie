@@ -5,6 +5,7 @@ import Testing
 
 @testable import HermieUI
 
+@MainActor
 @Suite("Confirm sheet words")
 struct ConfirmSheetTextTests {
   @Test("after a possible delivery no sentence says that nothing was confirmed")
@@ -75,6 +76,7 @@ struct ConfirmSheetTextTests {
   }
 }
 
+@MainActor
 @Suite("Passkeys page state")
 struct PasskeysPageStateTests {
   private let configuration = PasskeyConfiguration(rpID: "confirm.hermie.dev")
