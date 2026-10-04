@@ -1,0 +1,26 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+	<!--
+		Hermie does not track: no advertising, no analytics, no third-party SDK, and nothing it
+		collects is used to follow a person across other companies' apps or sites.
+	-->
+	<key>NSPrivacyTracking</key>
+	<false/>
+	<key>NSPrivacyTrackingDomains</key>
+	<array/>
+	<!--
+		Nothing. The widgets only draw the snapshot the app wrote into the App Group (chat names and
+		state): no network, no sensor, nothing collected and nothing sent.
+	-->
+	<key>NSPrivacyCollectedDataTypes</key>
+	<array/>
+	<!--
+		None. The widgets read one file from the App Group container and no timestamps, and use no
+		UserDefaults and no system uptime or boot time.
+	-->
+	<key>NSPrivacyAccessedAPITypes</key>
+	<array/>
+</dict>
+</plist>
