@@ -86,6 +86,17 @@ struct ConversationsContent: View {
         }
         .disabled(!canAct)
         .accessibilityIdentifier("hermie.conversations.new")
+
+        // Another chat of the reader's own, beside the shared one: only where the gateway named them.
+        if session.ownChatsAvailable {
+          Button {
+            router?.present(.newOwnChat(chat))
+          } label: {
+            Label(Strings.Chat.Conversations.newChat, systemImage: "person.crop.circle.badge.plus")
+          }
+          .disabled(!canAct)
+          .accessibilityIdentifier("hermie.conversations.newOwnChat")
+        }
       }
 
       switch model.phase {
@@ -126,6 +137,10 @@ struct ConversationsContent: View {
     }
     .onChange(of: model.startedNew) {
       // The new conversation starts in the chat.
+      router?.showChat()
+    }
+    .onChange(of: model.switched) {
+      // The chat of the reader's own that was picked is the chat now.
       router?.showChat()
     }
     .onChange(of: model.notice) { _, notice in
@@ -191,6 +206,17 @@ struct ConversationsContent: View {
       }
     }
 
+    if session.ownChatsAvailable {
+      Section(Strings.Chat.Conversations.yourChats) {
+        if groups.mine.isEmpty {
+          Text(Strings.Chat.Conversations.yoursEmpty)
+            .foregroundStyle(.secondary)
+        } else {
+          ForEach(groups.mine) { row($0, canAct: canAct) }
+        }
+      }
+    }
+
     if !groups.branches.isEmpty {
       Section(Strings.Chat.Sessions.branches) {
         ForEach(groups.branches) { row($0, canAct: canAct) }
@@ -212,6 +238,7 @@ struct ConversationsContent: View {
       conversation: conversation,
       model: model,
       canAct: canAct,
+      isCurrent: isCurrent(conversation),
       open: {
         if conversation.kind == .canonical {
           router?.showChat()
@@ -224,6 +251,17 @@ struct ConversationsContent: View {
   }
 }
 
+extension ConversationsContent {
+  /// The conversation the bot's chat is on: the Bot Chat, or the own chat the reader's memory names.
+  func isCurrent(_ conversation: Conversation) -> Bool {
+    switch session.chatTarget(chat.bot) {
+    case .shared: conversation.kind == .canonical
+    case .chat(let id): conversation.kind == .mine && (conversation.id == id || conversation.resolvedID == id)
+    case .legacy: conversation.kind == .mine && conversation.title == session.ownChatLead
+    }
+  }
+}
+
 /// One conversation, and whatever it is allowed to do.
 ///
 /// The actions are `conversation.actions` and nothing else: there is no `kind == .canonical` test in
@@ -233,6 +271,8 @@ struct ConversationRow: View {
   let conversation: Conversation
   let model: ConversationsModel
   let canAct: Bool
+  /// The chat the bot is on now: marked, and with no menu of its own.
+  var isCurrent = false
   let open: () -> Void
 
   var body: some View {
@@ -249,11 +289,13 @@ struct ConversationRow: View {
         .accessibilityElement(children: .combine)
         .accessibilityIdentifier("hermie.conversations.row.\(conversation.id)")
 
-        if conversation.kind == .canonical {
+        if conversation.kind == .canonical || isCurrent {
           Image(systemName: "checkmark.circle.fill")
             .foregroundStyle(.tint)
             .accessibilityHidden(true)
-        } else if !conversation.actions.isEmpty {
+        }
+
+        if conversation.kind != .canonical, !conversation.actions.isEmpty {
           Menu {
             actions
           } label: {
@@ -286,6 +328,16 @@ struct ConversationRow: View {
         }
       }
       .swipeActions(edge: .leading, allowsFullSwipe: false) {
+        if conversation.allows(.useHere), !isCurrent {
+          Button {
+            Task { await model.useHere(conversation) }
+          } label: {
+            Label(NativeStrings.Conversations.useHere, systemImage: "bubble.left.and.text.bubble.right")
+          }
+          .tint(.accentColor)
+          .disabled(!canAct)
+        }
+
         if conversation.allows(.adopt) {
           Button {
             Task { await model.adopt(conversation) }
@@ -311,6 +363,13 @@ struct ConversationRow: View {
     if conversation.allows(.rename) {
       Button(Strings.Chat.Sessions.rename, systemImage: "pencil") {
         model.beginRename(conversation)
+      }
+      .disabled(!canAct)
+    }
+
+    if conversation.allows(.useHere), !isCurrent {
+      Button(NativeStrings.Conversations.useHere, systemImage: "bubble.left.and.text.bubble.right") {
+        Task { await model.useHere(conversation) }
       }
       .disabled(!canAct)
     }
@@ -400,6 +459,7 @@ enum ConversationsText {
     case .renamed: NativeStrings.Conversations.renamed
     case .deleted: NativeStrings.Conversations.deleted
     case .adopted: NativeStrings.Conversations.adopted
+    case .usingHere: NativeStrings.Conversations.usingHere
     case .failed(let message, let busy):
       busy ? Strings.Chat.Sessions.busy : NativeStrings.Conversations.actionFailed(message: message)
     }

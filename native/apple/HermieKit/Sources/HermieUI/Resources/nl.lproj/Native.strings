@@ -396,6 +396,10 @@
 	<string>Je leest een eerder gesprek. Daar kun je niet meer op antwoorden.</string>
 	<key>native.conversations.renamed</key>
 	<string>Het gesprek heeft een nieuwe naam.</string>
+	<key>native.conversations.useHere</key>
+	<string>Verder in deze chat</string>
+	<key>native.conversations.usingHere</key>
+	<string>Je zit nu in die chat.</string>
 	<key>native.cron.field.dayOfMonth</key>
 	<string>dag van de maand</string>
 	<key>native.cron.field.dayOfWeek</key>
@@ -1140,6 +1144,10 @@
 	<string>de lokale database weigerde de wijziging.</string>
 	<key>native.onboarding.save.unsupportedRegistry</key>
 	<string>De gatewaylijst op dit apparaat is geschreven door een nieuwere versie van Hermie, dus er is niets gewijzigd. Werk Hermie bij en probeer het opnieuw.</string>
+	<key>native.ownChats.nameHint</key>
+	<string>Optioneel. Zonder naam krijgt de chat de tijd waarop hij begon.</string>
+	<key>native.ownChats.start</key>
+	<string>Chat starten</string>
 	<key>native.passkeys.add.action</key>
 	<string>Toevoegen met een code</string>
 	<key>native.passkeys.add.field</key>

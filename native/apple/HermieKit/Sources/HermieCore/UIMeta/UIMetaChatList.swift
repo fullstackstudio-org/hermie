@@ -67,11 +67,18 @@ public struct ChatListArrangement: Sendable, Hashable {
   /// The top level and the folders, as the person's section holds them (`ChatLayout`): what the
   /// list draws its folders from.
   public var layout: ChatLayout
+  /// Bot -> the stored id of the person's own chat it is on (`current`); a bot not in here is on the
+  /// shared Bot Chat, or on a chat an older build chose without an id (`myChats`).
+  public var current: [String: String]
+  /// The bots the person chose their own chat for (`myChats`): every bot in `current`, and the
+  /// legacy entries older builds wrote without an id.
+  public var myChats: Set<String>
 
   public init(
     archived: Set<String> = [], pinned: [String] = [], mutes: [String: Double] = [:], order: [String] = [],
     looseHead: Int? = nil, folderOf: [String: String] = [:], labels: [String: String] = [:],
-    accents: [String: BotAccent] = [:], layout: ChatLayout = ChatLayout()
+    accents: [String: BotAccent] = [:], layout: ChatLayout = ChatLayout(), current: [String: String] = [:],
+    myChats: Set<String> = []
   ) {
     self.archived = archived
     self.pinned = pinned
@@ -82,6 +89,8 @@ public struct ChatListArrangement: Sendable, Hashable {
     self.labels = labels
     self.accents = accents
     self.layout = layout
+    self.current = current
+    self.myChats = myChats
   }
 
   /// Read off the device's copy, defensively: another build wrote it. The archive is the person's
@@ -96,8 +105,28 @@ public struct ChatListArrangement: Sendable, Hashable {
       folderOf: Self.folderOf(documents.app),
       labels: BotIdentity.labels(documents.app?[UIMetaField.labels]),
       accents: documents.bots.compactMapValues { BotIdentity.accent($0) },
-      layout: ChatLayout(app: documents.app)
+      layout: ChatLayout(app: documents.app),
+      current: Self.current(documents.app?[UIMetaField.current]),
+      myChats: Set(Self.names(documents.app?[UIMetaField.myChats]))
     )
+  }
+
+  /// Where the person's memory puts this bot (`currentTargetOf`).
+  public enum Target: Sendable, Equatable {
+    /// The shared Bot Chat: no choice on record.
+    case shared
+    /// Their own chat, by the stored id a device remembered for it.
+    case chat(String)
+    /// Their own chat, chosen by a build that kept no id: the bare-lead chat, found by its title.
+    case legacy
+  }
+
+  public func target(of name: String) -> Target {
+    if let id = current[name] {
+      return .chat(id)
+    }
+
+    return myChats.contains(name) ? .legacy : .shared
   }
 
   /// Whether two bots are in the same container (the top level, or one folder): the only moves
@@ -166,6 +195,23 @@ public struct ChatListArrangement: Sendable, Hashable {
 
       return name
     }
+  }
+
+  /// `currentOf`: the bots whose own chat is a non-empty stored id.
+  static func current(_ value: JSONValue?) -> [String: String] {
+    guard case .object(let object)? = value else {
+      return [:]
+    }
+
+    var out: [String: String] = [:]
+
+    for (name, id) in object {
+      if !name.isEmpty, case .string(let stored) = id, !stored.isEmpty {
+        out[name] = stored
+      }
+    }
+
+    return out
   }
 
   /// `mutesOf`: finite, non-negative deadlines only, floored to whole seconds.
@@ -242,6 +288,29 @@ public struct ChatListArrangement: Sendable, Hashable {
     }
 
     app[UIMetaField.pinned] = .array(list.map(JSONValue.string))
+  }
+
+  /// Put a bot on one of the person's own chats (`setCurrent`), or back on the shared Bot Chat with
+  /// nil. The shared chat is the absence of a choice, not a choice of its own, so it is stored as
+  /// nothing (and it clears a legacy entry too: the person has said where this bot is). `myChats` is
+  /// kept beside `current` as the projection builds that predate it read.
+  public static func setCurrent(_ name: String, storedID: String?, in app: inout JSONObject) {
+    var current = app[UIMetaField.current]?.objectValue ?? [:]
+    var mine = names(app[UIMetaField.myChats])
+
+    if let storedID, !storedID.isEmpty {
+      current[name] = .string(storedID)
+
+      if !mine.contains(name) {
+        mine.append(name)
+      }
+    } else {
+      current.removeValue(forKey: name)
+      mine.removeAll { $0 == name }
+    }
+
+    app[UIMetaField.current] = .object(current)
+    app[UIMetaField.myChats] = .array(mine.map(JSONValue.string))
   }
 
   /// Mute until a deadline (`0` for never), or unmute with nil (`setMute`).
@@ -652,6 +721,27 @@ public final class ChatArrangementModel {
   /// Name a bot in the person's own list (`BotIdentity.setLabel`); empty takes the name back.
   public func setLabel(_ name: String, _ label: String) {
     sync?.updateApp(.choice) { BotIdentity.setLabel(name, label, in: &$0) }
+    refresh()
+  }
+
+  /// Where this bot's chat is: the shared Bot Chat, or one of the person's own.
+  public func target(of name: String) -> ChatListArrangement.Target { arrangement.target(of: name) }
+
+  /// Put a bot on one of the person's own chats (a stored id) or back on the shared Bot Chat (nil).
+  /// The same answer is no change: re-picking the chat a bot is on must not re-date the section, or a
+  /// device that merely re-opened a chat would outrank a choice made since on another one. Nothing
+  /// is written while no sync is attached.
+  ///
+  /// `chore` is for a memory that is forgotten or completed, nobody having chosen anything (a chat that
+  /// is gone, a legacy entry given its id): sent, never dated.
+  public func setCurrent(_ name: String, _ storedID: String?, chore: Bool = false) {
+    switch (storedID, arrangement.target(of: name)) {
+    case (nil, .shared): return
+    case (let id?, .chat(let held)) where id == held: return
+    default: break
+    }
+
+    sync?.updateApp(chore ? .chore : .choice) { ChatListArrangement.setCurrent(name, storedID: storedID, in: &$0) }
     refresh()
   }
 

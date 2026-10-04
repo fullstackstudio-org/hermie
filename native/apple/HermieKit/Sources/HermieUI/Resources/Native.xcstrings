@@ -4648,6 +4648,53 @@
         }
       }
     },
+    "native.conversations.useHere" : {
+      "comment" : "The row action that opens one of the reader's own chats as the bot's chat.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "In diesem Chat weitermachen"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Continue in this chat"
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Verder in deze chat"
+          }
+        }
+      }
+    },
+    "native.conversations.usingHere" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Du bist jetzt in diesem Chat."
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "You are in that chat now."
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Je zit nu in die chat."
+          }
+        }
+      }
+    },
     "native.cron.field.dayOfMonth" : {
       "comment" : "The day-of-month field of a cron expression.",
       "extractionState" : "manual",
@@ -13628,6 +13675,54 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "De gatewaylijst op dit apparaat is geschreven door een nieuwere versie van Hermie, dus er is niets gewijzigd. Werk Hermie bij en probeer het opnieuw."
+          }
+        }
+      }
+    },
+    "native.ownChats.nameHint" : {
+      "comment" : "Under the name field of a new chat of the reader's own.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Optional. Ohne Namen heißt der Chat nach dem Zeitpunkt, an dem er begann."
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Optional. Without a name the chat is called after the time it was started."
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Optioneel. Zonder naam krijgt de chat de tijd waarop hij begon."
+          }
+        }
+      }
+    },
+    "native.ownChats.start" : {
+      "comment" : "The button of the sheet that starts a chat of the reader's own.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Chat starten"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Start chat"
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Chat starten"
           }
         }
       }

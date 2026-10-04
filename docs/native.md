@@ -1971,7 +1971,7 @@ also read when the connection returns and when a `sessions.changed` sweep is hea
   older pages on request, else `session.history`) and projects it onto the chat's items; nothing is live, no
   read mark moves and the chat is not touched.
 
-There is no "my chat" group: the web client's own chats per reader are not in the native app.
+The reader's own chats are a fourth group, "Your chats" (see [Own chats](#own-chats)).
 
 Tests: `ConversationClassifierTests`, `ConversationsModelTests`, `ConversationViewerModelTests` and
 `ConversationServiceTests` (HermieCoreTests, over a stub backend and a scripted link),
@@ -2214,3 +2214,44 @@ indented by depth), what each child is doing, and its actions. The children are 
   a scripted link for the three calls), `SubagentViewTests` (HermieUITests). The fake gateway fans subagent
   events out for a "delegate" prompt but has no `subagent.steer`, `.interrupt`, `.tail` or `.list` methods, so there
   is no integration test for the calls themselves.
+
+## Own chats
+
+A bot has the shared Bot Chat everybody who can reach it types into (ADR-0007), and, since the amendment of
+2026-09-22, the reader may have chats of their own beside it that nobody else reads and the bot keeps a separate
+memory of. As in the Expo app: **the switch** ("This conversation: Shared Bot Chat / My chat") and **a new chat of
+my own** are in the chat's options menu (`OwnChatMenuItems`, `NewOwnChatSheet`), and the Conversations page lists the
+reader's chats as "Your chats" (`ConversationKind.mine`), where one is opened as the bot's chat ("Continue in this chat") or
+deleted. There is a switch only where the gateway has said who the reader is (`GatewaySession.ownChatsAvailable`: the
+user id or email `/api/auth/me` named with the display name, or `owner` on a session-token gateway); with nobody
+named there is no title to write and nothing changes.
+
+- **The title is the identity** (`OwnChatTitle`, the port of `userChatTitle` and the own-chat helpers): `Chat · <display
+name, else user id>` is the lead, `Chat · <name> · <label>` one of the chats. The Expo app and the web client write
+  the same titles, so one person's chats are found by all three. The first chat the switch makes carries the bare lead
+  (the one title another device finds it by); a chat made on request always carries a label (the time it was started,
+  until the reader names it), and a title clash is retried once (`OwnChatService`).
+- **Found, found again, made.** The lookup is an exact title (`session.list {profile, title, include_hidden}`) and FAILS
+  CLOSED: a listing that errored is not a reader without a chat, and minting on it forks the conversation. A remembered
+  id is looked up in one profile listing and counts only while the row still wears the reader's title family; a listing
+  that fails keeps the memory (a gateway that is restarting has deleted nobody's chat), a row that is gone forgets it.
+  Chats are created visible (never hidden: `hidden` marks the one canonical row), under the Bot Chat, following the
+  profile's configuration, and a chat whose title cannot be written is closed again.
+- **The memory** is the person's `ui_meta` app section: `current` (bot to the stored id of the own chat it is on) with
+  `myChats` beside it as the projection older builds read; the shared chat is the absence of a choice, and a legacy
+  entry (`myChats` without an id) is found by the bare lead and given its id as housekeeping. It follows the reader to
+  their other devices and to the other Hermie apps (`ChatArrangementModel.setCurrent`, the same answer is no change, so
+  re-opening a chat does not re-date the section). A chat screen follows a change of it (`OwnChatFollow`).
+- **The store.** `TranscriptStore.showChat` opens the bot on an own chat or back on the shared one through the ordinary
+  open path, without repointing the roster (unlike a swap or a `/new`, which repoint it), so the Bot Chat keeps what the
+  list says about the bot. It is refused while a reply streams or messages wait (`ConversationBusyError`), and a switch
+  that did not happen is not remembered. The transcript cache is keyed by bot and has no idea which conversation it
+  holds, so it holds the shared chat only: an own chat is never read from it or written to it (`ownKeys`).
+- **`/new` in an own chat** starts another own chat beside it and never retires it as if it were the Bot Chat; the page's
+  New conversation and "Make this the Bot Chat" are about the SHARED chat, so they take the reader back to it first.
+- Not done: the unread badge of the Bot Chat is the roster's and a read mark still moves with the chat that is open (the
+  Expo app keeps one per chat), an own chat cannot be renamed on the page, and the chat list's preview and unread count
+  are those of the chat that is open.
+- Tests: `OwnChatTitleTests`, `OwnChatMemoryTests`, `OwnChatClassifierTests`, `OwnChatServiceTests`, `OwnChatStoreTests`,
+  `OwnChatSessionTests` and `OwnChatConversationsTests` (HermieCoreTests, a scripted link), `OwnChatViewTests`
+  (HermieUITests) and `OwnChatsIntegrationTests` (the fake gateway over a real socket).

@@ -125,6 +125,14 @@ public actor TranscriptStore {
   /// Chats with a `/new` in progress: nothing is sent or steered into them
   /// until the successor is open.
   var retiring: Set<String> = []
+  /// Bots whose chat under the key is one of the reader's OWN chats, not the shared Bot Chat
+  /// (`showChat`). The transcript cache is keyed by bot and holds the shared chat only: it is never
+  /// painted from or written to while the key is on an own chat, or one conversation would be shown
+  /// as the other.
+  var ownKeys: Set<String> = []
+  /// What `/new` does in an own chat: start another own chat beside it, never retire it as if it were
+  /// the shared Bot Chat (`GatewaySession.startOwnChat`). Arguments: the bot, the name, the command.
+  var ownChatStarter: (@Sendable (String, String, String) async throws -> Void)?
   /// Steers whose `session.steer` has not answered yet, per chat.
   var steering: [String: Int] = [:]
   /// Told after every desktop contract check of a resume, numbered so a late

@@ -127,6 +127,11 @@ extension TranscriptStore {
       throw ConversationBusyError(botName: key)
     }
 
+    // The swap puts the conversation under the key away as the Bot Chat; an own chat is not it.
+    guard !ownKeys.contains(key) else {
+      throw ChatRuntimeError(message: "Go back to the shared Bot Chat first: making a conversation the Bot Chat changes it.")
+    }
+
     guard let state = chats[key]?.state, let runtimeID = state.runtimeSessionID, !runtimeID.isEmpty,
       !state.storedSessionID.isEmpty, let bot = await roster.bot(named: key)
     else {

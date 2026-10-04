@@ -189,6 +189,7 @@ struct ChatSessionView<Composer: View>: View {
         ChatTranscript(feed: feed)
           .environment(\.transcriptExpansion, feed.expansion)
           .modifier(OwnAuthor(session: session))
+          .modifier(OwnChatFollow(session: session, bot: chat.bot))
           .modifier(ChatRequestSheets(feed: feed))
           .safeAreaInset(edge: .top, spacing: 0) {
             ChatBanners(feed: feed)
@@ -758,8 +759,11 @@ struct VerbosityMenu: View {
         }
         .accessibilityIdentifier("hermie.chat.conversations")
 
+        // Shared Bot Chat or my chat, and a new chat of my own: only where the gateway named the reader.
         Divider()
       }
+
+      OwnChatMenuItems(feed: feed)
 
       Picker(Strings.Chat.Options.verbosity, selection: Binding(
         get: { options.level },

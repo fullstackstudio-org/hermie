@@ -714,6 +714,13 @@ extension TranscriptStore {
       throw ConversationBusyError(botName: key)
     }
 
+    // In one of the reader's own chats `/new` means another own chat beside it: this path retires the
+    // conversation under the key as the shared Bot Chat, which an own chat is not.
+    if ownKeys.contains(key), let starter = ownChatStarter {
+      try await starter(key, argument, command)
+      return
+    }
+
     guard let state = chats[key]?.state, let runtimeID = state.runtimeSessionID, !runtimeID.isEmpty,
       !state.storedSessionID.isEmpty, let bot = await roster.bot(named: key)
     else {

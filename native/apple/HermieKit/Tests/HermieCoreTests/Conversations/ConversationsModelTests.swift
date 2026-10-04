@@ -191,6 +191,50 @@ private func loaded(_ backend: StubConversations = StubConversations()) async ->
     #expect(busy)
   }
 
+  // MARK: One of the reader's own chats
+
+  @Test func anOwnChatIsOpenedAsTheBotsChatAtOnceAndTheScreenGoesBackToIt() async throws {
+    let (model, backend) = await loaded()
+    backend.set(
+      ConversationGroups(
+        canonical: ConversationFixture.groups.canonical,
+        mine: [ConversationFixture.conversation("m1", "Chat · Ada · Trip", kind: .mine)]))
+    await model.load()
+
+    await model.useHere(try #require(model.groups?.conversation(id: "m1")))
+
+    #expect(backend.calls.suffix(3) == ["list", "useHere m1", "list"])
+    #expect(model.notice == .usingHere)
+    #expect(model.switched == 1)
+  }
+
+  @Test func onlyAnOwnChatCanBeOpenedThisWay() async throws {
+    let (model, backend) = await loaded()
+
+    await model.useHere(try #require(model.groups?.conversation(id: "p1")))
+    await model.useHere(try #require(model.groups?.conversation(id: "cur")))
+
+    #expect(backend.calls == ["list"])
+    #expect(model.switched == 0)
+  }
+
+  @Test func aRefusedSwitchIsSaidAndNothingIsCounted() async throws {
+    let (model, backend) = await loaded()
+    backend.set(ConversationGroups(mine: [ConversationFixture.conversation("m1", "Chat · Ada", kind: .mine)]))
+    await model.load()
+    backend.fail("useHere", ConversationBusyError(botName: "researcher"))
+
+    await model.useHere(try #require(model.groups?.conversation(id: "m1")))
+
+    guard case .failed(_, let busy)? = model.notice else {
+      Issue.record("expected a refusal, got \(String(describing: model.notice))")
+      return
+    }
+
+    #expect(busy)
+    #expect(model.switched == 0)
+  }
+
   // MARK: New conversation
 
   @Test func aNewConversationAsksFirstAndThenSendsTheScreenBackToTheChat() async {

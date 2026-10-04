@@ -271,6 +271,8 @@ struct ShellSheet: View {
       GatewayPickerSheet()
     case .newBot:
       NewBotSheet()
+    case .newOwnChat(let chat):
+      NewOwnChatSheet(chat: chat)
     }
   }
 }

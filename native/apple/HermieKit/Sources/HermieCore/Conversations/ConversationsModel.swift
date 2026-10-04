@@ -52,6 +52,8 @@ public final class ConversationsModel {
     case renamed
     case deleted
     case adopted
+    /// The reader is in that chat of their own now.
+    case usingHere
     /// A refusal, in the gateway's words (plain text); `busy` is the reply-in-flight refusal.
     case failed(message: String, busy: Bool)
   }
@@ -65,6 +67,8 @@ public final class ConversationsModel {
   public private(set) var busy = false
   /// Counts the new conversations this page started: the screen goes back to the chat on a change.
   public private(set) var startedNew = 0
+  /// Counts the own chats this page opened: the screen goes back to the chat, which is that one now.
+  public private(set) var switched = 0
 
   @ObservationIgnored private let backend: any ConversationsBackend
   /// Only the newest read may write: an answer that arrives after a newer read started is stale.
@@ -204,6 +208,19 @@ public final class ConversationsModel {
     await run {
       try await self.backend.adopt(bot: self.bot, conversation: conversation)
       return .adopted
+    }
+  }
+
+  /// Open one of the reader's own chats as the bot's chat, at once.
+  public func useHere(_ conversation: Conversation) async {
+    guard conversation.allows(.useHere) else {
+      return
+    }
+
+    await run {
+      try await self.backend.useHere(bot: self.bot, conversation: conversation)
+      self.switched += 1
+      return .usingHere
     }
   }
 

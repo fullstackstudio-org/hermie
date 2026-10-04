@@ -92,8 +92,16 @@ extension TranscriptStore {
 
   /// `hydrate`: cache, resume, history, the in-flight tail, the replay.
   func hydrate(_ bot: Bot) async throws {
-    let canonical = try await roster.resolveCanonical(bot)
     let key = bot.name
+    let canonical: CanonicalSession
+
+    // One of the reader's own chats is the row's `canonical` as `showChat` made it; the roster only
+    // knows the shared Bot Chat.
+    if ownKeys.contains(key), let own = bot.canonical {
+      canonical = own
+    } else {
+      canonical = try await roster.resolveCanonical(bot)
+    }
 
     ensure(key, stored: canonical.id, resolved: canonical.resolvedID)
 
@@ -323,7 +331,7 @@ extension TranscriptStore {
   func paintFromCache(_ key: String, _ canonical: CanonicalSession, generation ticket: UInt64? = nil) async {
     let ticket = ticket ?? generation(of: key)
 
-    guard let cache, chats[key]?.state.order.isEmpty == true else {
+    guard let cache, !ownKeys.contains(key), chats[key]?.state.order.isEmpty == true else {
       return
     }
 
@@ -1206,7 +1214,7 @@ extension TranscriptStore {
 
   /// `persist`: one chat's snapshot, the last `cacheItemLimit` settled items.
   func persist(_ key: String) async {
-    guard let cache, let state = chats[key]?.state, state.hydration != .cold else {
+    guard let cache, !ownKeys.contains(key), let state = chats[key]?.state, state.hydration != .cold else {
       return
     }
 

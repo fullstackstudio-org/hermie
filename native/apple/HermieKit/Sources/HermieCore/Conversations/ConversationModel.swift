@@ -9,6 +9,8 @@ public enum ConversationKind: Sendable, Equatable, Hashable {
   case branch
   /// Any other session of the profile: one `/new` put away, or one somebody named themselves.
   case past
+  /// One of the reader's OWN chats with the bot (`Chat · <name> …`): nobody else reads it.
+  case mine
 }
 
 /// What a person may do with one conversation (`Conversation.actions`).
@@ -18,6 +20,8 @@ public enum ConversationAction: Sendable, Equatable, Hashable {
   case delete
   /// Make it the Bot Chat.
   case adopt
+  /// Open it as the bot's chat: the reader's own chat they continue in.
+  case useHere
 }
 
 /**
@@ -88,6 +92,9 @@ public struct Conversation: Sendable, Equatable, Hashable, Identifiable {
     switch kind {
     case .canonical: []
     case .branch, .past: [.open, .rename, .delete, .adopt]
+    // An own chat is never the Bot Chat (adopting it would retitle it `Bot Chat` and hide it from
+    // its reader), and its title is the lead that finds it on every device: not renamed here.
+    case .mine: [.open, .delete, .useHere]
     }
   }
 
@@ -102,16 +109,22 @@ public struct ConversationGroups: Sendable, Equatable {
   public var canonical: Conversation?
   public var branches: [Conversation]
   public var past: [Conversation]
+  /// The reader's own chats, newest first. Empty on a gateway that has not said who they are.
+  public var mine: [Conversation]
 
-  public init(canonical: Conversation? = nil, branches: [Conversation] = [], past: [Conversation] = []) {
+  public init(
+    canonical: Conversation? = nil, branches: [Conversation] = [], past: [Conversation] = [],
+    mine: [Conversation] = []
+  ) {
     self.canonical = canonical
     self.branches = branches
     self.past = past
+    self.mine = mine
   }
 
-  /// Every conversation of the three groups.
+  /// Every conversation of the groups.
   public var all: [Conversation] {
-    (canonical.map { [$0] } ?? []) + branches + past
+    (canonical.map { [$0] } ?? []) + mine + branches + past
   }
 
   public func conversation(id: String) -> Conversation? {
@@ -160,12 +173,14 @@ public enum ConversationClassifier {
   public static func classify(
     rows: [SessionListRow],
     canonicalID: String? = nil,
-    canonicalResolvedID: String? = nil
+    canonicalResolvedID: String? = nil,
+    ownLead: String = ""
   ) -> ConversationGroups {
     let canonicalIDs = Set([canonicalID, canonicalResolvedID].compactMap { $0 }.filter { !$0.isEmpty })
     var canonical: Conversation?
     var branches: [Conversation] = []
     var past: [Conversation] = []
+    var mine: [Conversation] = []
 
     for row in rows {
       guard let id = row.id, !id.isEmpty else {
@@ -178,7 +193,12 @@ public enum ConversationClassifier {
         canonicalIDs.isEmpty
         ? title == ChatResolver.canonicalTitle
         : canonicalIDs.contains(id) || canonicalIDs.contains(resolved)
-      let kind: ConversationKind = isCanonical ? .canonical : isBranchTitle(title) ? .branch : .past
+      // The canonical row is never an own chat, whatever its title; an own chat is found by the
+      // reader's lead, which a branch's or a retired conversation's title cannot be.
+      let kind: ConversationKind =
+        isCanonical
+        ? .canonical
+        : OwnChatTitle.isOwn(title, lead: ownLead) ? .mine : isBranchTitle(title) ? .branch : .past
       let conversation = Conversation(
         id: id,
         resolvedID: resolved,
@@ -199,10 +219,13 @@ public enum ConversationClassifier {
         branches.append(conversation)
       case .past:
         past.append(conversation)
+      case .mine:
+        mine.append(conversation)
       }
     }
 
-    return ConversationGroups(canonical: canonical, branches: sorted(branches), past: sorted(past))
+    return ConversationGroups(
+      canonical: canonical, branches: sorted(branches), past: sorted(past), mine: sorted(mine))
   }
 
   /// Newest first, with the title as a tie-break so the order is total.

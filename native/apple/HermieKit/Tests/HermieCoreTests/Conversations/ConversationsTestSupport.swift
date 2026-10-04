@@ -98,6 +98,10 @@ final class StubConversations: ConversationsBackend, Sendable {
     try await record("startNew")
   }
 
+  func useHere(bot: String, conversation: Conversation) async throws {
+    try await record("useHere \(conversation.id)")
+  }
+
   func transcript(bot: String, conversation: Conversation, window: MessageWindow) async throws
     -> ConversationTranscriptPage
   {

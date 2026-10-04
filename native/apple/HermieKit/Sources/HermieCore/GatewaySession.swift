@@ -105,6 +105,11 @@ public final class GatewaySession {
   /// `sessionTokenUser` on a session-token gateway, the user id (or email) `/api/auth/me` named
   /// otherwise. `nil` until an identity read answered, after a read that failed, and after a sign-out.
   public internal(set) var uiMetaUser: String?
+  /// Who the title of the reader's own chats names (`OwnChatTitle.lead`): the same person as
+  /// `uiMetaUser`, with the name `/api/auth/me` gave (none on a session-token gateway). `nil` until an
+  /// identity read answered, after one that failed, and after a sign-out: with nobody named there is
+  /// no own chat and nothing to switch to.
+  public internal(set) var ownChatIdentity: OwnChatIdentity?
   /// Told after every `sessions.changed` sweep (debounced): the ui_meta bridge reconciles on it.
   @ObservationIgnored public var onSessionsChanged: (@MainActor () -> Void)?
   /// How many `sessions.changed` sweeps this session has heard (debounced, once per burst). A view
@@ -306,6 +311,10 @@ public final class GatewaySession {
     // cycle (store → roster → this closure → store) that leaks every gateway.
     await roster.setSessionIDSource { [weak store] in await store?.sessionIDs() ?? [:] }
     await store.setContractSink { [weak self] number, error in self?.contractChecked(number, error) }
+    // `/new` in one of the reader's own chats starts another own chat, and never retires it.
+    await store.setOwnChatStarter { [weak self] key, argument, command in
+      try await self?.startOwnChat(fromCommand: command, bot: key, label: argument)
+    }
     await store.attach()
     secureInput.attach()
     interactive.attach()
@@ -496,7 +505,7 @@ public final class GatewaySession {
     }
 
     do {
-      try await store.open(bot)
+      try await openRemembered(bot)
     } catch let error as GatewayError where error.kind == .incompatible {
       incompatibility = error
       status = ConnectionStatus(.incompatible, error: error)

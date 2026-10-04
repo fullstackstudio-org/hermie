@@ -77,6 +77,8 @@ public enum AppSheet: Hashable, Sendable, Identifiable {
   case gatewayPicker
   /// The New bot form (`NewBotSheet`): the one way a bot is made.
   case newBot
+  /// Another chat of the reader's own on this bot (`NewOwnChatSheet`).
+  case newOwnChat(ChatRef)
 
   public var id: Self { self }
 }

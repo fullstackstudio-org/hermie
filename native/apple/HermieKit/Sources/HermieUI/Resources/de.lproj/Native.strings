@@ -396,6 +396,10 @@
 	<string>Du liest eine frühere Unterhaltung. Darauf lässt sich nicht mehr antworten.</string>
 	<key>native.conversations.renamed</key>
 	<string>Die Unterhaltung hat einen neuen Namen.</string>
+	<key>native.conversations.useHere</key>
+	<string>In diesem Chat weitermachen</string>
+	<key>native.conversations.usingHere</key>
+	<string>Du bist jetzt in diesem Chat.</string>
 	<key>native.cron.field.dayOfMonth</key>
 	<string>Tag des Monats</string>
 	<key>native.cron.field.dayOfWeek</key>
@@ -1140,6 +1144,10 @@
 	<string>die lokale Datenbank hat die Änderung verweigert.</string>
 	<key>native.onboarding.save.unsupportedRegistry</key>
 	<string>Die Gateway-Liste auf diesem Gerät stammt von einer neueren Hermie-Version, deshalb wurde nichts geändert. Aktualisiere Hermie und versuche es erneut.</string>
+	<key>native.ownChats.nameHint</key>
+	<string>Optional. Ohne Namen heißt der Chat nach dem Zeitpunkt, an dem er begann.</string>
+	<key>native.ownChats.start</key>
+	<string>Chat starten</string>
 	<key>native.passkeys.add.action</key>
 	<string>Mit Code hinzufügen</string>
 	<key>native.passkeys.add.field</key>

@@ -396,6 +396,10 @@
 	<string>You are reading an earlier conversation. It cannot be answered.</string>
 	<key>native.conversations.renamed</key>
 	<string>The conversation has a new name.</string>
+	<key>native.conversations.useHere</key>
+	<string>Continue in this chat</string>
+	<key>native.conversations.usingHere</key>
+	<string>You are in that chat now.</string>
 	<key>native.cron.field.dayOfMonth</key>
 	<string>day of month</string>
 	<key>native.cron.field.dayOfWeek</key>
@@ -1140,6 +1144,10 @@
 	<string>the local database refused the change.</string>
 	<key>native.onboarding.save.unsupportedRegistry</key>
 	<string>The gateway list on this device was written by a newer version of Hermie, so nothing was changed. Update Hermie and try again.</string>
+	<key>native.ownChats.nameHint</key>
+	<string>Optional. Without a name the chat is called after the time it was started.</string>
+	<key>native.ownChats.start</key>
+	<string>Start chat</string>
 	<key>native.passkeys.add.action</key>
 	<string>Add with a code</string>
 	<key>native.passkeys.add.field</key>

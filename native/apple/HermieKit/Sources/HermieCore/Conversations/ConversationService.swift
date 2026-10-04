@@ -31,9 +31,18 @@ public protocol ConversationsBackend: Sendable {
   func adopt(bot: String, conversation: Conversation) async throws
   /// Put the current conversation away and start the next one.
   func startNew(bot: String) async throws
+  /// Open one of the reader's own chats as the bot's chat.
+  func useHere(bot: String, conversation: Conversation) async throws
   /// A page of one conversation's transcript, for reading.
   func transcript(bot: String, conversation: Conversation, window: MessageWindow) async throws
     -> ConversationTranscriptPage
+}
+
+extension ConversationsBackend {
+  /// A backend with no own chats cannot open one.
+  public func useHere(bot: String, conversation: Conversation) async throws {
+    throw ChatRuntimeError(message: "This gateway has no chats of your own to open.")
+  }
 }
 
 /**
@@ -49,11 +58,25 @@ public struct ConversationService: ConversationsBackend {
   let link: any GatewayLink
   let store: TranscriptStore
   let roster: BotRoster
+  /// The title the reader's own chats start with, empty where nobody is named: what tells them apart
+  /// in a listing (`OwnChatTitle`).
+  let ownLead: String
+  /// Open one of the reader's own chats as the bot's chat (`GatewaySession.useOwnChat`).
+  let selectOwn: (@Sendable (_ bot: String, _ chat: CanonicalSession) async throws -> Void)?
+  /// Take a bot back to the shared Bot Chat and remember it (`GatewaySession.chooseChat`).
+  let selectShared: (@Sendable (_ bot: String) async throws -> Void)?
 
-  public init(link: any GatewayLink, store: TranscriptStore, roster: BotRoster) {
+  public init(
+    link: any GatewayLink, store: TranscriptStore, roster: BotRoster, ownLead: String = "",
+    selectOwn: (@Sendable (_ bot: String, _ chat: CanonicalSession) async throws -> Void)? = nil,
+    selectShared: (@Sendable (_ bot: String) async throws -> Void)? = nil
+  ) {
     self.link = link
     self.store = store
     self.roster = roster
+    self.ownLead = ownLead
+    self.selectOwn = selectOwn
+    self.selectShared = selectShared
   }
 
   /**
@@ -79,7 +102,7 @@ public struct ConversationService: ConversationsBackend {
     let canonical = await roster.bot(named: bot)?.canonical
 
     return ConversationClassifier.classify(
-      rows: rows, canonicalID: canonical?.id, canonicalResolvedID: canonical?.resolvedID)
+      rows: rows, canonicalID: canonical?.id, canonicalResolvedID: canonical?.resolvedID, ownLead: ownLead)
   }
 
   /**
@@ -116,6 +139,8 @@ public struct ConversationService: ConversationsBackend {
   }
 
   public func adopt(bot: String, conversation: Conversation) async throws {
+    // The swap is about the shared chat: from one of the reader's own they go back to it first.
+    try await ensureShared(bot)
     try await ensureOpen(bot)
     try await store.adoptAsCanonical(
       bot,
@@ -130,8 +155,42 @@ public struct ConversationService: ConversationsBackend {
   }
 
   public func startNew(bot: String) async throws {
+    // A new conversation here puts the SHARED chat away, whichever chat the reader is in.
+    try await ensureShared(bot)
     try await ensureOpen(bot)
     try await store.startNewConversation(bot)
+  }
+
+  public func useHere(bot: String, conversation: Conversation) async throws {
+    guard let selectOwn else {
+      throw ChatRuntimeError(message: "This gateway has no chats of your own to open.")
+    }
+
+    try await selectOwn(
+      bot,
+      CanonicalSession(
+        id: conversation.id, resolvedID: conversation.resolvedID, preview: conversation.preview,
+        lastActive: conversation.lastActive, messageCount: conversation.messageCount))
+  }
+
+  /// The shared Bot Chat under the bot's key: a bot on one of the reader's own chats is taken back to
+  /// it, and the choice is remembered (the swap and a new conversation change the shared chat, and
+  /// the reader is left in it).
+  func ensureShared(_ bot: String) async throws {
+    guard await store.isOwnChat(bot) else {
+      return
+    }
+
+    if let selectShared {
+      try await selectShared(bot)
+      return
+    }
+
+    guard let record = await roster.bot(named: bot) else {
+      throw ChatRuntimeError(message: "\(bot) is not on this gateway.")
+    }
+
+    try await store.showChat(bot, bot: record, own: nil)
   }
 
   /// The REST transcript first (`GET /api/sessions/{id}/messages`, paged from the newest row), and

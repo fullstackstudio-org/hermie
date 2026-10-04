@@ -67,10 +67,13 @@ extension GatewaySession {
     switch probe {
     case .sessionToken:
       uiMetaUser = Self.sessionTokenUser
+      ownChatIdentity = OwnChatIdentity(userID: Self.sessionTokenUser)
     case .answered(let me):
       uiMetaUser = me.userID.isEmpty ? me.email : me.userID
+      ownChatIdentity = uiMetaUser.map { OwnChatIdentity(userID: $0, displayName: me.displayName) }
     case .failed:
       uiMetaUser = nil
+      ownChatIdentity = nil
     }
 
     await adopt(next)
@@ -103,6 +106,7 @@ extension GatewaySession {
     identityReads += 1
     identityFailure = nil
     uiMetaUser = nil
+    ownChatIdentity = nil
     await adopt(.unknownYet)
     await people.clear()
   }
