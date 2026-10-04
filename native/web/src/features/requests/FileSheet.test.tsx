@@ -27,6 +27,7 @@ import {
   type UploadCall
 } from '../../test-support/interactive-layer'
 import { FileSheet } from './FileSheet'
+import { interactiveStore } from '../../state/interactive'
 import { preloadRequestSheets } from './request-sheets'
 
 beforeAll(async () => {
@@ -230,15 +231,12 @@ describe('picking', () => {
     expect(listed()).toEqual(['a.txt'])
   })
 
-  it('does not add a picture it cannot strip the location from, when the request wants it stripped', () => {
+  it('adds any picture when the request wants the metadata stripped: the browser decides at upload whether it can', () => {
     mount(harness)
     raise(harness, 'srq-1', 'input.file', fileFrame({ accept: 'image', upload: upload({ strip_metadata: true }) }))
     pick([new File(['heic'], 'IMG_1.heic', { type: 'image/heic' })])
 
-    expect(within(dialog()).getByRole('alert').textContent).toContain(
-      'Location data cannot be removed from IMG_1.heic here'
-    )
-    expect(within(dialog()).queryByRole('list', { name: 'Files to upload' })).toBeNull()
+    expect(listed()).toEqual(['IMG_1.heic'])
     expect(dialog().textContent).toContain('Location and camera details are removed from pictures before they go.')
   })
 
@@ -427,6 +425,7 @@ describe('uploading', () => {
         onAnswer={onAnswer}
         onSkip={async () => ({ kind: 'sent' })}
         onCannotShow={() => 'sent'}
+        onLater={() => undefined}
         onUpload={onUpload}
         prepare={async file => ({
           blob: file,
@@ -512,17 +511,45 @@ describe('a failure', () => {
     expect(harness.gw.calls).toEqual([])
   })
 
-  it('is a failure when a file cannot be prepared (here: no canvas to strip a picture with)', async () => {
+  it('does not send a picture the browser cannot clean (here: no canvas), says so, and leaves the choice to remove it', async () => {
     const up = uploads()
 
     mount(harness, { uploadFileTo: up.fn })
     raise(harness, 'srq-1', 'input.file', fileFrame({ accept: 'image', upload: upload({ strip_metadata: true }) }))
-    pick([new File(['jpeg'], 'shot.jpg', { type: 'image/jpeg' })])
+    pick([new File(['heic'], 'IMG_1.heic', { type: 'image/heic' })])
     await press('Upload and send')
 
-    expect(within(dialog()).getByRole('alert').textContent).toContain('shot.jpg could not be prepared for upload.')
+    expect(within(dialog()).getByRole('alert').textContent).toContain(
+      'IMG_1.heic is a picture this browser cannot clean of location data, so it is not sent.'
+    )
     expect(up.calls).toEqual([])
     expect(harness.gw.calls).toEqual([])
+    // Not a failure to try again: the file is still listed, to remove.
+    expect(queryButton('Try again')).toBeNull()
+    expect(button('Remove IMG_1.heic')).toBeTruthy()
+  })
+
+  it('is a failure when a file cannot be prepared for another reason', async () => {
+    const up = uploads()
+    const original = globalThis.crypto
+
+    // The digest fails: the file cannot be prepared, which is said like a failed upload.
+    Object.defineProperty(globalThis, 'crypto', {
+      value: { subtle: { digest: () => Promise.reject(new Error('no')) } },
+      configurable: true
+    })
+
+    try {
+      mount(harness, { uploadFileTo: up.fn })
+      raise(harness, 'srq-1', 'input.file', fileFrame({ upload: upload() }))
+      pick([text('a.txt')])
+      await press('Upload and send')
+
+      expect(within(dialog()).getByRole('alert').textContent).toContain('a.txt could not be prepared for upload.')
+      expect(up.calls).toEqual([])
+    } finally {
+      Object.defineProperty(globalThis, 'crypto', { value: original, configurable: true })
+    }
   })
 })
 
@@ -628,12 +655,14 @@ describe('Skip, the guard and the end', () => {
     expect((button('Choose a file') as HTMLButtonElement).disabled).toBe(false)
   })
 
-  it('does not close on Escape', () => {
+  it('puts the sheet away on Escape, without answering: the request waits', () => {
     mount(harness)
     raise(harness, 'srq-1', 'input.file', fileFrame({ upload: upload() }))
     fireEvent.keyDown(dialog(), { key: 'Escape' })
 
-    expect(screen.getByRole('dialog')).toBe(dialog())
+    expect(screen.queryByRole('dialog')).toBeNull()
+    expect(harness.gw.calls).toEqual([])
+    expect(interactiveStore.getState().requests).toHaveLength(1)
   })
 
   it('goes when its time runs out, and the reader is told so', () => {

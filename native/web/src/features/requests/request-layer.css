@@ -5,6 +5,19 @@
  * is a class or a data attribute.
  */
 
+/*
+ * The sheets of the interactive requests are built in nodes of their own and moved into the dialog (the slot) or out of
+ * sight (the parking place): neither box takes room, the sheet's parts lay out as the dialog's own.
+ */
+.hm-requests__holder,
+.hm-requests__slot {
+  display: contents;
+}
+
+.hm-requests__parking[hidden] {
+  display: none;
+}
+
 /* The layer's own box takes no room; only the scrim and the failure line are drawn, over the page. */
 .hm-requests {
   display: contents;

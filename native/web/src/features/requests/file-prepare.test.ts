@@ -118,7 +118,45 @@ describe('preparing a file', () => {
     expect(prepared.sha256).toBe(createHash('sha256').update('exif and pixels').digest('hex'))
   })
 
-  it('refuses a picture it cannot clean rather than send it with its metadata', async () => {
+  it('re-encodes any other picture the browser decodes as a JPEG, named .jpg', async () => {
+    const kinds: string[] = []
+    const strip = async (_source: Blob, kind: 'jpeg' | 'png'): Promise<Blob> => {
+      kinds.push(kind)
+
+      return new Blob(['jpeg bytes'], { type: 'image/jpeg' })
+    }
+
+    for (const [name, type] of [
+      ['IMG_1.heic', 'image/heic'],
+      ['pic.webp', 'image/webp'],
+      ['anim.gif', 'image/gif'],
+      ['noext', 'image/avif']
+    ]) {
+      const prepared = await prepareFile(file(name as string, type as string), true, { strip })
+
+      expect(prepared.mime).toBe('image/jpeg')
+      expect(prepared.name).toBe(`${(name as string).replace(/\.[^.]*$/u, '')}.jpg`)
+      expect(prepared.bytes).toBe(10)
+    }
+
+    expect(kinds).toEqual(['jpeg', 'jpeg', 'jpeg', 'jpeg'])
+  })
+
+  it('keeps a JPEG’s and a PNG’s own name and type', async () => {
+    const strip = async (_source: Blob, kind: 'jpeg' | 'png'): Promise<Blob> =>
+      new Blob(['x'], { type: kind === 'jpeg' ? 'image/jpeg' : 'image/png' })
+
+    expect(await prepareFile(file('shot.JPEG', 'image/jpeg'), true, { strip })).toMatchObject({
+      name: 'shot.JPEG',
+      mime: 'image/jpeg'
+    })
+    expect(await prepareFile(file('shot.png', 'image/png'), true, { strip })).toMatchObject({
+      name: 'shot.png',
+      mime: 'image/png'
+    })
+  })
+
+  it('refuses a picture the browser cannot decode rather than send it with its metadata', async () => {
     await expect(prepareFile(file('shot.heic', 'image/heic'), true)).rejects.toMatchObject({
       reason: 'strip_unsupported'
     })

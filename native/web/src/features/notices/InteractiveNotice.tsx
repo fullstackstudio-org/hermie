@@ -36,15 +36,17 @@ export function interactiveNoticeText(notice: InteractiveNoticeKind, name: strin
     case 'cannot_show': {
       const words = webStrings.chat.request
 
-      return words.noticeCannotShow({
-        name,
-        what:
-          notice.method === 'input.file'
-            ? words.whatFile
-            : notice.method === 'review.draft'
-              ? words.whatDraft
-              : words.whatForm
-      })
+      const what =
+        notice.method === 'input.file'
+          ? words.whatFile
+          : notice.method === 'review.draft'
+            ? words.whatDraft
+            : words.whatForm
+
+      // The person's own choice (`4041 declined`) is said as theirs, not as the page's failure.
+      return notice.reason === 'declined'
+        ? words.noticeDeclined({ name, what })
+        : words.noticeCannotShow({ name, what })
     }
   }
 }

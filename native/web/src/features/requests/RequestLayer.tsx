@@ -61,16 +61,8 @@
  * The gateway's own notices (`GatewayNotices`) are drawn beside the dialog too.
  */
 import type { ApprovalItem } from '@hermie/transcript'
-import {
-  type KeyboardEvent,
-  type ReactElement,
-  useCallback,
-  useEffect,
-  useId,
-  useLayoutEffect,
-  useRef,
-  useState
-} from 'react'
+import { createPortal } from 'react-dom'
+import { type ReactElement, useCallback, useEffect, useId, useLayoutEffect, useRef, useState } from 'react'
 import { type StoreApi, useStore } from 'zustand'
 
 import { CANCELLED_BY_READER, RequestWithdrawnError } from '../../core/request-withdrawn'
@@ -86,6 +78,7 @@ import { type ConnectionsState, connectionsStore } from '../../state/connections
 import { type PasskeyConfirmation, type PasskeysState, passkeysStore } from '../../state/passkeys'
 import { type EngineRequest, type OpenRequest, type RequestsState, requestsStore } from '../../state/requests'
 import { type InteractiveRequest, type InteractiveState, interactiveStore } from '../../state/interactive'
+import { type RequestLaterState, requestLaterStore } from '../../state/request-later'
 import { type SecureInputState, secureInputStore, type SecurePrompt } from '../../state/secure-input'
 import { useChatRuntime } from '../chat/chat-runtime'
 import { GatewayNotices } from '../notices/GatewayNotices'
@@ -143,6 +136,8 @@ export interface RequestLayerProps {
   secureInput?: StoreApi<SecureInputState>
   /** Where a form, a file request or a draft to review is read; the page's own unless a test hands in its own. */
   interactive?: StoreApi<InteractiveState>
+  /** Which interactive requests were put away (Later); the page's own unless a test hands in its own. */
+  later?: StoreApi<RequestLaterState>
   /** Where a connector authorisation is read; the page's own unless a test hands in its own. */
   connections?: StoreApi<ConnectionsState>
   /** Opens an authorisation link the person pressed; a new tab with no opener unless a test hands in its own. */
@@ -274,6 +269,7 @@ interface InteractiveSheetForProps {
   onAnswer: (result: InteractiveAnswer) => Promise<AnswerOutcome>
   onSkip: () => Promise<AnswerOutcome>
   onCannotShow: (reason: string) => 'sent' | 'closed' | 'offline' | 'busy'
+  onLater: () => void
   onUpload: FileUploader | undefined
 }
 
@@ -290,7 +286,7 @@ function InteractiveSheetFor({
 
   switch (ask.method) {
     case 'input.form':
-      return <sheets.FormSheet request={{ ...request, ask }} onSkip={onSkip} {...rest} />
+      return <sheets.FormSheet request={{ ...request, ask }} onSkip={onSkip} onCannotShow={onCannotShow} {...rest} />
     case 'input.file':
       return (
         <sheets.FileSheet
@@ -322,6 +318,7 @@ export function RequestLayer({
   secureInput = secureInputStore,
   interactive = interactiveStore,
   connections = connectionsStore,
+  later = requestLaterStore,
   openLink = openAuthorisationLink,
   tapGuardMs
 }: RequestLayerProps): ReactElement {
@@ -333,7 +330,10 @@ export function RequestLayer({
   const secureActions = useSecureInputRuntime()
   const interactiveActions = useInteractiveRuntime()
   const queue = useStore(store, state => state.queue)
-  const current = queue[0]
+  const away = useStore(later, state => state.away)
+  // A sheet put away (Later) is not shown and does not hold the page: it waits, with what was entered in it, until Open.
+  const shown = queue.filter(entry => !(entry.kind === 'interactive' && away.includes(entry.key)))
+  const current = shown[0]
   const open = current !== undefined
   // Every sheet comes from one chunk, fetched when the session starts and held from then on.
   const sheets = useRequestSheets(open)
@@ -349,10 +349,7 @@ export function RequestLayer({
   )
   const gatewayHost = useStore(secureInput, state => state.gateway)
   const interactiveGateway = useStore(interactive, state => state.gateway)
-  const interactiveId = current?.kind === 'interactive' ? current.id : undefined
-  const asked: InteractiveRequest | undefined = useStore(interactive, state =>
-    interactiveId === undefined ? undefined : state.requests.find(entry => entry.id === interactiveId)
-  )
+  const interactiveRequests = useStore(interactive, state => state.requests)
   const signals = useSessionSignalsRuntime()
   const connectionOp = current?.kind === 'connection' ? current.opId : undefined
   const card = useStore(connections, state => {
@@ -373,6 +370,12 @@ export function RequestLayer({
   const titleId = `${ids}-title`
   const descriptionId = `${ids}-description`
   const overlay = useRef<HTMLDivElement>(null)
+  // The sheets of the interactive requests live in nodes of their own (`holders`) that are moved between the dialog's
+  // slot and a parking place, so that a sheet put away keeps what was entered in it: the same React tree, another place.
+  const holders = useRef(new Map<string, HTMLDivElement>())
+  const parking = useRef<HTMLDivElement>(null)
+  const slot = useRef<HTMLDivElement>(null)
+  const interactiveEntries = queue.flatMap(entry => (entry.kind === 'interactive' ? [entry] : []))
   const dialog = useRef<HTMLElement>(null)
   const opener = useRef<Element | null>(null)
   const wasOpen = useRef(false)
@@ -545,44 +548,94 @@ export function RequestLayer({
     setFailure(webStrings.requests.answerFailed({ message: messageOf(error) }))
   }, [])
 
-  const onKeyDown = useCallback((event: KeyboardEvent<HTMLElement>) => {
-    // Not an answer, so not a way out. Nothing behind the dialog hears it either.
-    if (event.key === 'Escape') {
-      event.preventDefault()
-      event.stopPropagation()
+  // Native, not React's: a sheet of an interactive request is in the dialog's DOM through a portal, and React sends
+  // its events up its own tree, which does not pass through the dialog.
+  const currentRef = useRef(current)
 
+  currentRef.current = current
+
+  useEffect(() => {
+    const node = dialog.current
+
+    if (!node) {
       return
     }
 
-    if (event.key !== 'Tab' || !dialog.current) {
-      return
+    const onKeyDown = (event: globalThis.KeyboardEvent): void => {
+      if (event.key === 'Escape') {
+        // Not an answer. For a form, a file request or a draft it is Later: the sheet goes away with what was entered,
+        // the page is usable, and the transcript's record offers Open. For anything else it is no way out: a question
+        // that is dismissed is a question the bot goes on waiting for. Nothing behind the dialog hears it either.
+        event.preventDefault()
+        event.stopPropagation()
+
+        const now = currentRef.current
+
+        if (now?.kind === 'interactive') {
+          later.getState().putAway(now.key)
+        }
+
+        return
+      }
+
+      if (event.key !== 'Tab') {
+        return
+      }
+
+      // What takes focus now: not a control a disabled fieldset switched off, nor a file input kept hidden behind a button.
+      const focusable = Array.from(node.querySelectorAll<HTMLElement>(FOCUSABLE)).filter(
+        element => !element.hidden && !element.matches(':disabled')
+      )
+      const first = focusable[0]
+      const lastOne = focusable.at(-1)
+      const active = node.ownerDocument.activeElement
+
+      if (!first || !lastOne) {
+        event.preventDefault()
+        node.focus()
+
+        return
+      }
+
+      if (event.shiftKey && (active === first || active === node)) {
+        event.preventDefault()
+        lastOne.focus()
+      } else if (!event.shiftKey && active === lastOne) {
+        event.preventDefault()
+        first.focus()
+      }
     }
 
-    // What takes focus now: not a control a disabled fieldset switched off, nor a file input kept hidden behind a button.
-    const focusable = Array.from(dialog.current.querySelectorAll<HTMLElement>(FOCUSABLE)).filter(
-      element => !element.hidden && !element.matches(':disabled')
-    )
-    const first = focusable[0]
-    const lastOne = focusable.at(-1)
-    const active = dialog.current.ownerDocument.activeElement
+    node.addEventListener('keydown', onKeyDown)
 
-    if (!first || !lastOne) {
-      event.preventDefault()
-      dialog.current.focus()
+    return () => node.removeEventListener('keydown', onKeyDown)
+  }, [currentKey, later])
 
-      return
+  // Every sheet in its place: the current one in the dialog's slot, the ones put away in the parking place, and a
+  // request that ended gone altogether (its put-away mark with it).
+  useLayoutEffect(() => {
+    const live = new Set(interactiveEntries.map(entry => entry.key))
+
+    for (const entry of interactiveEntries) {
+      const holder = holders.current.get(entry.key)
+      const target = current?.key === entry.key ? slot.current : parking.current
+
+      if (holder && target && holder.parentNode !== target) {
+        target.appendChild(holder)
+      }
     }
 
-    if (event.shiftKey && (active === first || active === dialog.current)) {
-      event.preventDefault()
-      lastOne.focus()
-    } else if (!event.shiftKey && active === lastOne) {
-      event.preventDefault()
-      first.focus()
+    for (const [key, holder] of holders.current) {
+      if (!live.has(key)) {
+        holder.remove()
+        holders.current.delete(key)
+      }
     }
-  }, [])
 
-  const waiting = queue.length - 1
+    later.getState().prune([...live])
+  })
+
+  const waiting = shown.length - 1
 
   return (
     <div className="hm-requests">
@@ -602,6 +655,55 @@ export function RequestLayer({
         <GatewayNotices />
       </aside>
 
+      <div className="hm-requests__parking" ref={parking} hidden />
+
+      {sheets
+        ? interactiveEntries.flatMap(entry => {
+            const asked = interactiveRequests.find(request => request.id === entry.id)
+
+            if (!asked) {
+              return []
+            }
+
+            let holder = holders.current.get(entry.key)
+
+            if (!holder) {
+              holder = document.createElement('div')
+              holder.className = 'hm-requests__holder'
+              holders.current.set(entry.key, holder)
+            }
+
+            const isCurrent = current?.key === entry.key
+
+            return [
+              createPortal(
+                <InteractiveSheetFor
+                  sheets={sheets}
+                  request={asked}
+                  gateway={interactiveGateway}
+                  // Only the sheet in the dialog is the dialog's heading and description.
+                  titleId={isCurrent ? titleId : `${ids}-away-${entry.id}-title`}
+                  descriptionId={isCurrent ? descriptionId : `${ids}-away-${entry.id}-description`}
+                  {...(tapGuardMs !== undefined ? { tapGuardMs } : {})}
+                  onAnswer={result =>
+                    interactiveActions?.answer(asked.id, result) ?? Promise.resolve({ kind: 'closed' })
+                  }
+                  onSkip={() => interactiveActions?.skip(asked.id) ?? Promise.resolve({ kind: 'closed' })}
+                  onCannotShow={reason => interactiveActions?.cannotShow(asked.id, reason) ?? 'closed'}
+                  onLater={() => later.getState().putAway(entry.key)}
+                  onUpload={
+                    controller?.uploadFileTo
+                      ? (path, file, options) => controller.uploadFileTo(path, file, options)
+                      : undefined
+                  }
+                />,
+                holder,
+                entry.key
+              )
+            ]
+          })
+        : null}
+
       {current ? (
         <div className="hm-requests__scrim" ref={overlay}>
           <section
@@ -612,7 +714,6 @@ export function RequestLayer({
             aria-describedby={descriptionId}
             tabIndex={-1}
             ref={dialog}
-            onKeyDown={onKeyDown}
           >
             {current.kind === 'engine' || displayName ? (
               <p className="hm-requests__from">
@@ -658,27 +759,8 @@ export function RequestLayer({
                 />
               ) : null
             ) : current.kind === 'interactive' ? (
-              asked ? (
-                <InteractiveSheetFor
-                  sheets={sheets}
-                  key={current.key}
-                  request={asked}
-                  gateway={interactiveGateway}
-                  titleId={titleId}
-                  descriptionId={descriptionId}
-                  {...(tapGuardMs !== undefined ? { tapGuardMs } : {})}
-                  onAnswer={result =>
-                    interactiveActions?.answer(asked.id, result) ?? Promise.resolve({ kind: 'closed' })
-                  }
-                  onSkip={() => interactiveActions?.skip(asked.id) ?? Promise.resolve({ kind: 'closed' })}
-                  onCannotShow={reason => interactiveActions?.cannotShow(asked.id, reason) ?? 'closed'}
-                  onUpload={
-                    controller?.uploadFileTo
-                      ? (path, file, options) => controller.uploadFileTo(path, file, options)
-                      : undefined
-                  }
-                />
-              ) : null
+              // The sheet itself is in `holders`, moved here (see above).
+              <div className="hm-requests__slot" ref={slot} />
             ) : current.kind === 'connection' ? (
               card ? (
                 <sheets.ConnectionSheet

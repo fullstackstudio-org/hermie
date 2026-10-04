@@ -32,7 +32,7 @@ import { Button } from '../../ui/primitives'
 import { hasFinePointer } from '../../platform/input-kind'
 import { formatBytes } from '../chat/chat-format'
 import { DEFAULT_TAP_GUARD_MS } from './ApprovalSheet'
-import { acceptAttribute, imageKind, isImage, matchesAccept, type PreparedFile, prepareFile } from './file-prepare'
+import { acceptAttribute, isImage, matchesAccept, PrepareError, type PreparedFile, prepareFile } from './file-prepare'
 import { InteractiveFrame, RefusalAlert, SendStatus, useSending, useTapGuard } from './interactive-frame'
 
 /** How the sheet puts a file on the gateway: the layer binds it to the controller's upload. */
@@ -50,7 +50,9 @@ export interface FileSheetProps {
   descriptionId: string
   onAnswer: (result: InteractiveAnswer) => Promise<AnswerOutcome>
   onSkip: () => Promise<AnswerOutcome>
-  /** Tell the gateway the page cannot show the request (`4041`); the sheet gives `upload_failed`. */
+  /** Put the sheet away without answering (what was picked, and what is uploading, stays while it is away). */
+  onLater: () => void
+  /** Tell the gateway the page cannot show the request, or the person will not share it (`4041`): `upload_failed`, `declined`. */
   onCannotShow: (reason: string) => 'sent' | 'closed' | 'offline' | 'busy'
   /** Put a file on the gateway; absent, an upload fails. */
   onUpload?: FileUploader | undefined
@@ -104,6 +106,7 @@ export function FileSheet({
   descriptionId,
   onAnswer,
   onSkip,
+  onLater,
   onCannotShow,
   onUpload,
   prepare = prepareFile,
@@ -189,8 +192,6 @@ export function FileSheet({
         said.push(sheetStrings.interactive.file.problemWrongKind({ name }))
       } else if (file.size > upload.maxBytes) {
         said.push(sheetStrings.interactive.file.problemTooLarge({ name, max: formatBytes(upload.maxBytes) }))
-      } else if (upload.stripMetadata && isImage(file) && imageKind(file) === 'other') {
-        said.push(sheetStrings.interactive.file.problemStrip({ name }))
       } else if (next.length >= limit) {
         said.push(sheetStrings.interactive.file.problemTooMany({ max: limit }))
       } else if (running + file.size > upload.maxTotalBytes) {
@@ -344,6 +345,11 @@ export function FileSheet({
       if (error instanceof FileUploadError && error.reason === 'cancelled') {
         setCancelled(true)
         setPhase({ kind: 'idle' })
+      } else if (error instanceof PrepareError && error.reason === 'strip_unsupported') {
+        // A picture this browser cannot decode cannot be cleaned of its location data, so it is not sent: the person
+        // removes it or picks another. (Trying again would change nothing.)
+        setProblems([sheetStrings.interactive.file.problemStrip({ name: displayText(failing, 120) || 'file' })])
+        setPhase({ kind: 'idle' })
       } else {
         // A file that could not be prepared is a file the page cannot send: said, and the person chooses.
         setPhase({ kind: 'failed', name: failing, why: error instanceof FileUploadError ? 'upload' : 'prepare' })
@@ -408,6 +414,11 @@ export function FileSheet({
     any: sheetStrings.interactive.file.acceptAny
   }[ask.accept]
   const notesId = `${ids}-notes`
+  const later = (
+    <Button className="hm-requests__action" variant="quiet" onClick={onLater}>
+      {sheetStrings.interactive.later}
+    </Button>
+  )
   const hasImages = ask.accept === 'image' || ask.accept === 'any'
 
   return (
@@ -453,11 +464,15 @@ export function FileSheet({
       }
       actions={
         working && phase.kind !== 'sending' ? (
-          <Button className="hm-requests__action" variant="quiet" onClick={() => cancel.current?.abort()}>
-            {sheetStrings.interactive.file.cancel}
-          </Button>
+          <>
+            {later}
+            <Button className="hm-requests__action" variant="quiet" onClick={() => cancel.current?.abort()}>
+              {sheetStrings.interactive.file.cancel}
+            </Button>
+          </>
         ) : phase.kind === 'failed' ? (
           <>
+            {later}
             <Button
               className="hm-requests__action"
               variant="quiet"
@@ -472,6 +487,16 @@ export function FileSheet({
           </>
         ) : (
           <>
+            {later}
+            <Button
+              className="hm-requests__action"
+              variant="quiet"
+              disabled={busy}
+              data-interactive-dont-share=""
+              onClick={() => sending.declined(onCannotShow('declined'))}
+            >
+              {sheetStrings.interactive.dontShare}
+            </Button>
             {ask.optional ? (
               <Button
                 className="hm-requests__action"

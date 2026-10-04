@@ -269,6 +269,39 @@ export const WEB_STRINGS_SOURCE = {
         nl: 'Ingetrokken',
         de: 'Zurückgezogen'
       },
+      /** The person chose not to share (`4041 declined`). */
+      notShared: {
+        en: 'Not shared',
+        nl: 'Niet gedeeld',
+        de: 'Nicht geteilt'
+      },
+      /** The sheet was put away (Later) and the request still waits. */
+      later: {
+        en: 'Put away for later',
+        nl: 'Voor later opzij gezet',
+        de: 'Für später beiseitegelegt'
+      },
+      /** Brings the sheet back; on the transcript's record of a request that was put away. */
+      openAction: {
+        en: 'Open',
+        nl: 'Openen',
+        de: 'Öffnen'
+      },
+      /** The accessible name of that button: which request it opens. */
+      openNamed: {
+        en: ({ title }: { title: string }) => `Open ${title}`,
+        nl: ({ title }: { title: string }) => `${title} openen`,
+        de: ({ title }: { title: string }) => `${title} öffnen`
+      },
+      /** The chat's line when the person chose not to share what a bot asked for: the bot was told. */
+      noticeDeclined: {
+        en: ({ name, what }: { name: string; what: string }) =>
+          `You chose not to share what ${name} asked for (${what}). ${name} was told.`,
+        nl: ({ name, what }: { name: string; what: string }) =>
+          `Je koos ervoor niet te delen wat ${name} vroeg (${what}). ${name} is op de hoogte gebracht.`,
+        de: ({ name, what }: { name: string; what: string }) =>
+          `Du hast dich entschieden, nicht zu teilen, worum ${name} gebeten hat (${what}). ${name} wurde informiert.`
+      },
       /** This page told the gateway it could not show the request (`4041`). */
       cannotShow: {
         en: 'Could not be shown here',

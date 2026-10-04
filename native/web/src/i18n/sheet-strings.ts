@@ -660,6 +660,18 @@ export const SHEET_STRINGS_SOURCE = {
       nl: 'Niet verbonden met de gateway. Er is niets verstuurd; probeer het opnieuw zodra de verbinding terug is.',
       de: 'Nicht mit dem Gateway verbunden. Es wurde nichts gesendet; versuch es erneut, sobald die Verbindung wieder da ist.'
     },
+    /** Puts the sheet away without answering: the page is usable, and the transcript's record offers Open. */
+    later: {
+      en: 'Later',
+      nl: 'Later',
+      de: 'Später'
+    },
+    /** Tells the bot the person chooses not to share (`4041 declined`): not an answer, and never the default button. */
+    dontShare: {
+      en: "Don't share",
+      nl: 'Niet delen',
+      de: 'Nicht teilen'
+    },
     /** A press while an earlier answer is still on its way. */
     busy: {
       en: 'An earlier answer is still on its way. Try again in a moment.',
@@ -1086,11 +1098,11 @@ export const SHEET_STRINGS_SOURCE = {
       },
       problemStrip: {
         en: ({ name }: { name: string }) =>
-          `Location data cannot be removed from ${name} here, so it was not added. Choose a JPEG or a PNG.`,
+          `${name} is a picture this browser cannot clean of location data, so it is not sent. Remove it, or choose a JPEG or a PNG.`,
         nl: ({ name }: { name: string }) =>
-          `Locatiegegevens kunnen hier niet uit ${name} worden gehaald, dus het is niet toegevoegd. Kies een JPEG of PNG.`,
+          `${name} is een afbeelding waar deze browser de locatiegegevens niet uit kan halen, dus hij wordt niet verstuurd. Verwijder hem, of kies een JPEG of PNG.`,
         de: ({ name }: { name: string }) =>
-          `Standortdaten lassen sich hier nicht aus ${name} entfernen, daher wurde die Datei nicht hinzugefügt. Wähle eine JPEG- oder PNG-Datei.`
+          `${name} ist ein Bild, aus dem dieser Browser die Standortdaten nicht entfernen kann, daher wird es nicht gesendet. Entferne es oder wähle eine JPEG- oder PNG-Datei.`
       },
       problemPrepare: {
         en: ({ name }: { name: string }) => `${name} could not be prepared for upload.`,
@@ -1292,11 +1304,6 @@ export const SHEET_STRINGS_SOURCE = {
             ? 'Der Text enthält 1 Zeichen, das du nicht siehst oder das die Textrichtung ändert. Das Gateway nimmt es nicht an.'
             : `Der Text enthält ${count} Zeichen, die du nicht siehst oder die die Textrichtung ändern. Das Gateway nimmt sie nicht an.`
       },
-      hiddenRemove: {
-        en: 'Remove them',
-        nl: 'Verwijder ze',
-        de: 'Entfernen'
-      },
       hiddenPreview: {
         en: 'The text with those characters shown',
         nl: 'De tekst met die tekens zichtbaar gemaakt',
@@ -1307,6 +1314,44 @@ export const SHEET_STRINGS_SOURCE = {
         en: 'The text holds characters that cannot be sent as they are (a tab, or one you cannot see). Remove them and try again.',
         nl: 'De tekst bevat tekens die niet zo verstuurd kunnen worden (een tab, of een teken dat je niet ziet). Verwijder ze en probeer het opnieuw.',
         de: 'Der Text enthält Zeichen, die sich nicht so senden lassen (ein Tabulator oder ein unsichtbares Zeichen). Entferne sie und versuch es erneut.'
+      },
+      /** The gateway's layout rule: spacing that could push part of a text out of view. */
+      ruleSpaceRun: {
+        en: ({ line, size, max }: { line: number; size: number; max: number }) =>
+          `Line ${line} has ${size} spaces in a row (at most ${max}), which can push part of the text out of view.`,
+        nl: ({ line, size, max }: { line: number; size: number; max: number }) =>
+          `Regel ${line} heeft ${size} spaties achter elkaar (maximaal ${max}), wat een deel van de tekst uit beeld kan duwen.`,
+        de: ({ line, size, max }: { line: number; size: number; max: number }) =>
+          `Zeile ${line} hat ${size} Leerzeichen hintereinander (höchstens ${max}), was einen Teil des Textes aus dem Blick schieben kann.`
+      },
+      ruleIndent: {
+        en: ({ line, size, max }: { line: number; size: number; max: number }) =>
+          `Line ${line} is indented ${size} spaces (at most ${max}), which can push part of the text out of view.`,
+        nl: ({ line, size, max }: { line: number; size: number; max: number }) =>
+          `Regel ${line} is ${size} spaties ingesprongen (maximaal ${max}), wat een deel van de tekst uit beeld kan duwen.`,
+        de: ({ line, size, max }: { line: number; size: number; max: number }) =>
+          `Zeile ${line} ist um ${size} Leerzeichen eingerückt (höchstens ${max}), was einen Teil des Textes aus dem Blick schieben kann.`
+      },
+      ruleBlankLines: {
+        en: ({ line, max }: { line: number; max: number }) =>
+          `More than ${max} blank lines in a row start at line ${line}, which can push part of the text out of view.`,
+        nl: ({ line, max }: { line: number; max: number }) =>
+          `Vanaf regel ${line} volgen meer dan ${max} lege regels achter elkaar, wat een deel van de tekst uit beeld kan duwen.`,
+        de: ({ line, max }: { line: number; max: number }) =>
+          `Ab Zeile ${line} folgen mehr als ${max} Leerzeilen hintereinander, was einen Teil des Textes aus dem Blick schieben kann.`
+      },
+      ruleLineLength: {
+        en: ({ line, size, max }: { line: number; size: number; max: number }) =>
+          `Line ${line} is ${size} characters long (at most ${max}), which can push part of the text out of view.`,
+        nl: ({ line, size, max }: { line: number; size: number; max: number }) =>
+          `Regel ${line} is ${size} tekens lang (maximaal ${max}), wat een deel van de tekst uit beeld kan duwen.`,
+        de: ({ line, size, max }: { line: number; size: number; max: number }) =>
+          `Zeile ${line} ist ${size} Zeichen lang (höchstens ${max}), was einen Teil des Textes aus dem Blick schieben kann.`
+      },
+      ruleMarks: {
+        en: 'A character carries too many combining marks, which can hide what is under it.',
+        nl: 'Een teken draagt te veel combinerende tekens, wat kan verbergen wat eronder staat.',
+        de: 'Ein Zeichen trägt zu viele kombinierende Zeichen, was verbergen kann, was darunter steht.'
       },
       emptyText: {
         en: 'The draft cannot be empty.',

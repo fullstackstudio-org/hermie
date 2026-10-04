@@ -13,6 +13,7 @@ import { RequestLayer } from '../features/requests/RequestLayer'
 import { chatsStore } from '../state/chats'
 import { connectionStore } from '../state/connection'
 import { interactiveStore } from '../state/interactive'
+import { requestLaterStore } from '../state/request-later'
 import { bindRequests, requestsStore } from '../state/requests'
 import { chatWith } from './chat-fixtures'
 import { type FakeInteractiveGateway, fakeInteractiveGateway } from './interactive-gateway'
@@ -35,6 +36,7 @@ export function setup(): Harness {
   resetShellStores()
   requestsStore.getState().reset()
   interactiveStore.getState().reset()
+  requestLaterStore.getState().reset()
   resetActiveLocale()
   document.documentElement.lang = 'en'
   document.title = 'Hermie'

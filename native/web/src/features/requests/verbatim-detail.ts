@@ -178,10 +178,3 @@ export function markHiddenCharacters(text: string, options: HiddenOptions = {}):
     return count === 1 ? `[${codePoint(char)}]` : `[${codePoint(char)}×${count}]`
   })
 }
-
-/** `text` without its hidden characters (what "Remove them" leaves). */
-export function withoutHiddenCharacters(text: string, options: HiddenOptions = {}): string {
-  return Array.from(text)
-    .filter(char => !isHiddenChar(char, options))
-    .join('')
-}

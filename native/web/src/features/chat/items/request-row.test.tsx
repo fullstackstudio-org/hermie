@@ -3,13 +3,18 @@
  * ended, in words, never what was answered.
  */
 import type { RequestItem } from '@hermie/transcript'
-import { cleanup, render } from '@testing-library/react'
+import { act, cleanup, fireEvent, render, screen } from '@testing-library/react'
 import { afterEach, beforeEach, describe, expect, it } from 'vitest'
 
 import { resetActiveLocale, setActiveLocale } from '../../../i18n/active-locale'
+import { requestLaterStore } from '../../../state/request-later'
+import { interactiveKey } from '../../../state/requests'
 import { ChatItem } from './ChatItem'
 
-beforeEach(() => resetActiveLocale())
+beforeEach(() => {
+  resetActiveLocale()
+  requestLaterStore.getState().reset()
+})
 
 afterEach(() => {
   cleanup()
@@ -64,6 +69,7 @@ describe('a request in the transcript', () => {
     [{ state: 'answered' }, 'Answered'],
     [{ state: 'cancelled', cancelReason: 'timeout' }, 'Timed out'],
     [{ state: 'cancelled', cancelReason: 'cannot_show' }, 'Could not be shown here'],
+    [{ state: 'cancelled', cancelReason: 'declined' }, 'Not shared'],
     [{ state: 'cancelled', cancelReason: 'withdrawn' }, 'Withdrawn'],
     [{ state: 'cancelled' }, 'Withdrawn']
   ])('says how it ended: %j', (extra, line) => {
@@ -77,5 +83,26 @@ describe('a request in the transcript', () => {
 
     expect(article.querySelector('.hm-aside__eyebrow')?.textContent).toBe('Formulier')
     expect(article.querySelector('.hm-aside__text')?.textContent).toContain('Overgeslagen')
+  })
+
+  it('offers Open on a request whose sheet was put away, and brings the sheet back', () => {
+    const article = draw(item())
+
+    expect(article.querySelector('button')).toBeNull()
+
+    act(() => requestLaterStore.getState().putAway(interactiveKey('srq-1')))
+
+    expect(article.querySelector('.hm-aside__text')?.textContent).toBe('Hotel **booking**\nPut away for later')
+
+    fireEvent.click(screen.getByRole('button', { name: 'Open Hotel **booking**' }))
+
+    expect(requestLaterStore.getState().away).toEqual([])
+    expect(article.querySelector('button')).toBeNull()
+  })
+
+  it('offers no Open on a request that ended while its sheet was away', () => {
+    requestLaterStore.getState().putAway(interactiveKey('srq-1'))
+
+    expect(draw(item({ state: 'cancelled', cancelReason: 'timeout' })).querySelector('button')).toBeNull()
   })
 })

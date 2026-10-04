@@ -112,6 +112,17 @@ describe('the chat’s line about an interactive request', () => {
     expect(banner()?.textContent).toContain('Dr. Researcher was told.')
   })
 
+  it('says the person chose not to share, as theirs and not as the page’s failure', () => {
+    mountWithNotice()
+    raise(harness, 'srq-1', 'input.form', formFrame([{ id: 'a', kind: 'text', label: 'A' }]))
+    act(() => {
+      harness.model.cannotShow('srq-1', 'declined')
+    })
+
+    expect(banner()?.textContent).toContain('You chose not to share what Dr. Researcher asked for (a form).')
+    expect(banner()?.textContent).not.toContain('could not show')
+  })
+
   it('says it in the reader’s language', () => {
     setActiveLocale('nl')
     mountWithNotice()

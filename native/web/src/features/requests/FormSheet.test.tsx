@@ -491,13 +491,14 @@ describe('Skip, the guard and the connection', () => {
     expect(control(/^Name/u).matches(':disabled')).toBe(false)
   })
 
-  it('does not close on Escape: only an answer closes a question', () => {
+  it('puts the sheet away on Escape, without answering: the request waits', () => {
     mount(harness)
     raise(harness, 'srq-1', 'input.form', formFrame([{ id: 'name', kind: 'text', label: 'Name' }]))
     fireEvent.keyDown(dialog(), { key: 'Escape' })
 
-    expect(screen.getByRole('dialog')).toBe(dialog())
+    expect(screen.queryByRole('dialog')).toBeNull()
     expect(harness.gw.calls).toEqual([])
+    expect(interactiveStore.getState().requests).toHaveLength(1)
   })
 
   it('says so, sends nothing and keeps what was typed when Send is pressed while the connection is down', async () => {

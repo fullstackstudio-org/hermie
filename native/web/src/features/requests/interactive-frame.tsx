@@ -66,6 +66,8 @@ export interface Sending {
   /** Run one answer or Skip; a second press while one is on its way (or after it was taken) does nothing. */
   run(send: () => Promise<AnswerOutcome>): Promise<AnswerOutcome | null>
   clearNotice(): void
+  /** Say what became of a Don't share (`cannotShow`): nothing went out while offline or while an answer is on its way. */
+  declined(result: 'sent' | 'closed' | 'offline' | 'busy'): void
 }
 
 /**
@@ -128,7 +130,11 @@ export function useSending(): Sending {
     return outcome
   }, [])
 
-  return { pending, finished, notice, run, clearNotice: () => setNotice(null) }
+  const declined = useCallback((result: 'sent' | 'closed' | 'offline' | 'busy'): void => {
+    setNotice(result === 'offline' ? 'offline' : result === 'busy' ? 'busy' : null)
+  }, [])
+
+  return { pending, finished, notice, run, clearNotice: () => setNotice(null), declined }
 }
 
 /** The line under the sheet that says a try did not get through. */

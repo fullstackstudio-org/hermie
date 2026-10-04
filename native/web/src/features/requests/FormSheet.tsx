@@ -44,6 +44,10 @@ export interface FormSheetProps {
   descriptionId: string
   onAnswer: (result: InteractiveAnswer) => Promise<AnswerOutcome>
   onSkip: () => Promise<AnswerOutcome>
+  /** Tell the gateway the person chooses not to share (`4041 declined`). */
+  onCannotShow: (reason: string) => 'sent' | 'closed' | 'offline' | 'busy'
+  /** Put the sheet away without answering (what was entered stays while it is away). */
+  onLater: () => void
   /** Milliseconds before a field or button takes anything. Tests pass 0. */
   tapGuardMs?: number
   /** Epoch milliseconds, for the countdown; the clock unless a test hands in its own. */
@@ -57,6 +61,8 @@ export function FormSheet({
   descriptionId,
   onAnswer,
   onSkip,
+  onCannotShow,
+  onLater,
   tapGuardMs = DEFAULT_TAP_GUARD_MS,
   now
 }: FormSheetProps): ReactElement {
@@ -188,6 +194,12 @@ export function FormSheet({
         event.preventDefault()
         submit()
       }}
+      onKeyDown={event => {
+        // Only the Send button sends: Return in a one-line field is not a send (a textarea keeps its line break).
+        if (event.key === 'Enter' && event.target instanceof HTMLInputElement) {
+          event.preventDefault()
+        }
+      }}
     >
       <InteractiveFrame
         request={request}
@@ -210,6 +222,18 @@ export function FormSheet({
         }
         actions={
           <>
+            <Button className="hm-requests__action" variant="quiet" onClick={onLater}>
+              {sheetStrings.interactive.later}
+            </Button>
+            <Button
+              className="hm-requests__action"
+              variant="quiet"
+              disabled={locked}
+              data-interactive-dont-share=""
+              onClick={() => sending.declined(onCannotShow('declined'))}
+            >
+              {sheetStrings.interactive.dontShare}
+            </Button>
             {ask.optional ? (
               <Button
                 className="hm-requests__action"

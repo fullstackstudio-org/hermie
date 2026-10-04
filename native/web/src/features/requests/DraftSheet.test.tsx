@@ -21,6 +21,7 @@ import {
   setup,
   teardown
 } from '../../test-support/interactive-layer'
+import { interactiveStore } from '../../state/interactive'
 import { preloadRequestSheets } from './request-sheets'
 
 beforeAll(async () => {
@@ -188,7 +189,7 @@ describe('approving', () => {
 })
 
 describe('what the eye cannot see', () => {
-  it('is counted and shown by its code point, the approval waits, and one press removes it', async () => {
+  it('is counted and shown by its code point, and the approval waits until the person has taken it out', async () => {
     mount(harness)
     raise(harness, 'srq-1', 'review.draft', draftFrame())
     edit(`Pay ${RLO}txt.exe${ZWSP} now`)
@@ -199,10 +200,12 @@ describe('what the eye cannot see', () => {
     const preview = within(dialog()).getByText('The text with those characters shown').id
 
     expect(document.getElementById(preview)?.nextElementSibling?.textContent).toBe('Pay [U+202E]txt.exe[U+200B] now')
+    // The page names the problem; it never rewrites the text (contract §6.5).
+    expect(queryButton('Remove them')).toBeNull()
+    expect(editor().value).toBe(`Pay ${RLO}txt.exe${ZWSP} now`)
 
-    fireEvent.click(button('Remove them'))
+    edit('Pay txt.exe now')
 
-    expect(editor().value).toBe('Pay txt.exe now')
     expect(within(dialog()).queryByText(/characters that you cannot see/u)).toBeNull()
 
     await press('Approve with changes')
@@ -220,6 +223,19 @@ describe('what the eye cannot see', () => {
     expect((button('Approve with changes') as HTMLButtonElement).disabled).toBe(true)
   })
 
+  it('strips first: a tab or spaces at the end of a line are no problem, a tab anywhere else is', async () => {
+    mount(harness)
+    raise(harness, 'srq-1', 'review.draft', draftFrame())
+    edit('Hi Bram,\t\nThursday works.   \n\n')
+
+    expect(within(dialog()).queryByText(/cannot see/u)).toBeNull()
+    expect((button('Approve with changes') as HTMLButtonElement).disabled).toBe(false)
+
+    edit('Hi\tBram')
+
+    expect((button('Approve with changes') as HTMLButtonElement).disabled).toBe(true)
+  })
+
   it('does not stop a rejection', async () => {
     mount(harness)
     raise(harness, 'srq-1', 'review.draft', draftFrame())
@@ -227,6 +243,51 @@ describe('what the eye cannot see', () => {
     await press('Reject')
 
     expect(lastAnswer(harness)).toEqual({ decision: 'rejected' })
+  })
+})
+
+describe('the gateway’s layout rules (contract §6.3), with the rule and the line named', () => {
+  const sp = (count: number): string => ' '.repeat(count)
+
+  it.each([
+    ['a run of more than 16 spaces', `a\nx${sp(17)}y`, 'Line 2 has 17 spaces in a row (at most 16)'],
+    ['an indent of more than 32 spaces', `a\n${sp(33)}x`, 'Line 2 is indented 33 spaces (at most 32)'],
+    ['a fourth blank line in a row', 'a\n\n\n\n\nb', 'More than 3 blank lines in a row start at line 2'],
+    ['blank lines at the very start', '\n\n\n\nx', 'More than 3 blank lines in a row start at line 1'],
+    ['a line of more than 2,000 characters', `a\n${'x'.repeat(2001)}`, 'Line 2 is 2001 characters long (at most 2000)']
+  ])('refuses %s, says which rule, and does not rewrite it', (_name, text, message) => {
+    mount(harness)
+    raise(harness, 'srq-1', 'review.draft', draftFrame())
+    edit(text)
+
+    expect(within(dialog()).getByText(new RegExp(message.replace(/[()]/gu, '\\$&'), 'u'))).toBeTruthy()
+    expect((button('Approve with changes') as HTMLButtonElement).disabled).toBe(true)
+    expect(editor().value).toBe(text)
+  })
+
+  it.each([
+    ['32 spaces of indent', `${sp(32)}x`],
+    ['16 spaces in a row after the first word', `x${sp(16)}y`],
+    ['an indent of 32 and a run of 16 on the same line', `${sp(32)}x${sp(16)}y`],
+    ['three blank lines in a row', 'a\n\n\n\nb'],
+    ['a line of exactly 2,000 characters', 'x'.repeat(2000)],
+    ['blank lines at the end, which are stripped', 'a\n\n\n\n\n\n']
+  ])('takes %s', (_name, text) => {
+    mount(harness)
+    raise(harness, 'srq-1', 'review.draft', draftFrame())
+    edit(text)
+
+    expect(dialog().querySelector('.hm-form__error')).toBeNull()
+    expect((button('Approve with changes') as HTMLButtonElement).disabled).toBe(false)
+  })
+
+  it('will not approve a text that is only whitespace: it is empty once stripped', () => {
+    mount(harness)
+    raise(harness, 'srq-1', 'review.draft', draftFrame())
+    edit('  \n \n')
+
+    expect(within(dialog()).getByText('The draft cannot be empty.')).toBeTruthy()
+    expect((button('Approve with changes') as HTMLButtonElement).disabled).toBe(true)
   })
 })
 
@@ -337,12 +398,14 @@ describe('the guard and the connection', () => {
     expect(editor().value).toBe('an edit')
   })
 
-  it('does not close on Escape', () => {
+  it('puts the sheet away on Escape, without answering: the request waits', () => {
     mount(harness)
     raise(harness, 'srq-1', 'review.draft', draftFrame())
     fireEvent.keyDown(dialog(), { key: 'Escape' })
 
-    expect(screen.getByRole('dialog')).toBe(dialog())
+    expect(screen.queryByRole('dialog')).toBeNull()
+    expect(harness.gw.calls).toEqual([])
+    expect(interactiveStore.getState().requests).toHaveLength(1)
   })
 
   it('answers once however often Approve is pressed, and keeps its buttons off while the answer is on its way', async () => {

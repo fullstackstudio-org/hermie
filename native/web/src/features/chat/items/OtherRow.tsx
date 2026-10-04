@@ -9,10 +9,14 @@
  */
 import type { RequestItem, TranscriptItem } from '@hermie/transcript'
 import { memo } from 'react'
+import { useStore } from 'zustand'
 
 import { strings } from '../../../generated/strings'
 import { useLocale } from '../../../i18n/use-locale'
 import { webStrings } from '../../../i18n/web-strings'
+import { requestLaterStore } from '../../../state/request-later'
+import { interactiveKey } from '../../../state/requests'
+import { Button } from '../../../ui/primitives'
 import { clipLine } from '../chat-format'
 import { type RowViewProps, sameRowView } from './row-view'
 
@@ -26,19 +30,21 @@ interface Plain {
 const BODY_CHARS = 1_200
 
 /** How a form, a file request or a draft stands, in words: waiting, answered (how), or ended without an answer. */
-function requestState(item: RequestItem): string {
+function requestState(item: RequestItem, away: boolean): string {
   const words = webStrings.chat.request
 
   if (item.state === 'open') {
-    return words.open
+    return away ? words.later : words.open
   }
 
   if (item.state === 'cancelled') {
     return item.cancelReason === 'timeout'
       ? words.timedOut
-      : item.cancelReason === 'cannot_show'
-        ? words.cannotShow
-        : words.withdrawn
+      : item.cancelReason === 'declined'
+        ? words.notShared
+        : item.cancelReason === 'cannot_show'
+          ? words.cannotShow
+          : words.withdrawn
   }
 
   const summary = item.answerSummary
@@ -58,7 +64,7 @@ function requestState(item: RequestItem): string {
   return summary?.count !== undefined && summary.count > 0 ? words.files({ count: summary.count }) : words.answered
 }
 
-function plainOf(item: TranscriptItem): Plain | null {
+function plainOf(item: TranscriptItem, away: boolean): Plain | null {
   switch (item.kind) {
     case 'approval':
       return {
@@ -83,7 +89,7 @@ function plainOf(item: TranscriptItem): Plain | null {
             : item.method === 'review.draft'
               ? webStrings.chat.request.kindDraft
               : webStrings.chat.request.kindForm,
-        text: `${item.title}\n${requestState(item)}`
+        text: `${item.title}\n${requestState(item, away)}`
       }
 
     default:
@@ -94,7 +100,10 @@ function plainOf(item: TranscriptItem): Plain | null {
 function OtherRowView({ item, presentation }: RowViewProps<TranscriptItem>) {
   useLocale()
 
-  const plain = plainOf(item)
+  // A form, a file request or a draft whose sheet was put away (Later): the record offers to bring it back.
+  const requestKey = item.kind === 'request' ? interactiveKey(item.requestId) : ''
+  const away = useStore(requestLaterStore, state => requestKey !== '' && state.away.includes(requestKey))
+  const plain = plainOf(item, away)
 
   if (!plain || presentation === 'hidden-placeholder') {
     return null
@@ -112,6 +121,15 @@ function OtherRowView({ item, presentation }: RowViewProps<TranscriptItem>) {
     <article className="hm-aside" data-kind={item.kind}>
       <p className="hm-aside__eyebrow">{plain.eyebrow}</p>
       {plain.text ? <p className="hm-aside__text">{plain.text.slice(0, BODY_CHARS)}</p> : null}
+      {away && item.kind === 'request' && item.state === 'open' ? (
+        <Button
+          variant="quiet"
+          aria-label={webStrings.chat.request.openNamed({ title: item.title })}
+          onClick={() => requestLaterStore.getState().bringBack(requestKey)}
+        >
+          {webStrings.chat.request.openAction}
+        </Button>
+      ) : null}
     </article>
   )
 }

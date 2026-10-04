@@ -33,7 +33,9 @@ const SAME_AS_ENGLISH: Readonly<Record<string, readonly Locale[]>> = {
   // "Update", "Build"-like loan words and the same word in Dutch and German.
   'sheets.settings.gateway.update': ['nl', 'de'],
   // "Commit" is the word in every language.
-  'sheets.settings.about.commit': ['nl', 'de']
+  'sheets.settings.about.commit': ['nl', 'de'],
+  // "Later" is the Dutch word too.
+  'sheets.interactive.later': ['nl']
 }
 
 type Source = Record<string, unknown>
@@ -108,7 +110,9 @@ const SAMPLE = {
   max: MARKER,
   min: MARKER,
   current: MARKER,
-  what: MARKER
+  what: MARKER,
+  line: MARKER,
+  title: MARKER
 }
 
 describe('the web-only strings', () => {

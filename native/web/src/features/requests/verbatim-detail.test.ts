@@ -4,13 +4,7 @@
  */
 import { describe, expect, it } from 'vitest'
 
-import {
-  countHiddenCharacters,
-  emptyLinesMarker,
-  markHiddenCharacters,
-  markVerbatimDetail,
-  withoutHiddenCharacters
-} from './verbatim-detail'
+import { countHiddenCharacters, emptyLinesMarker, markHiddenCharacters, markVerbatimDetail } from './verbatim-detail'
 
 describe('marking a verbatim detail', () => {
   const cases: { name: string; detail: string; text: string }[] = [
@@ -137,12 +131,11 @@ describe('marking what a draft hides', () => {
     expect(countHiddenCharacters('a\tb', { tabs: true })).toBe(1)
   })
 
-  it('counts them, and removes them on request', () => {
+  it('counts them', () => {
     const text = `a${zwsp}b${rlo}c\td`
 
     expect(countHiddenCharacters(text)).toBe(2)
-    expect(withoutHiddenCharacters(text)).toBe('abc\td')
-    expect(withoutHiddenCharacters(text, { tabs: true })).toBe('abcd')
+    expect(countHiddenCharacters(text, { tabs: true })).toBe(3)
     expect(countHiddenCharacters('plain text\nwith lines')).toBe(0)
   })
 })
