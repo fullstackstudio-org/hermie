@@ -537,11 +537,19 @@ struct ChatTitleView: View {
       .frame(maxWidth: .infinity)
     }
   #else
+    /// The glass capsule the Mac's toolbar draws round the item: room left and right of the content,
+    /// and a width it does not shrink below, so a short name does not make a cramped pill.
     private var layout: some View {
       HStack(spacing: Layout.spacing) {
         BotAvatar(name: title, avatar: avatar, size: Self.avatarSide, presence: presence, accent: accent)
         textColumn(alignment: .leading)
       }
+      .padding(.leading, Layout.pillLeadingPadding)
+      .padding(.trailing, Layout.pillTrailingPadding)
+      .frame(
+        minWidth: Layout.pillMinWidth, idealWidth: Layout.pillIdealWidth, maxWidth: Layout.pillMaxWidth,
+        alignment: .leading
+      )
     }
   #endif
 
@@ -570,6 +578,14 @@ struct ChatTitleView: View {
   /// The numbers the title's layout is built from.
   enum Layout {
     static let spacing: CGFloat = 8
+    /// The Mac's pill: the space between the capsule's edge and the picture, and between the text and
+    /// the capsule's other edge (the text is what touched it).
+    static let pillLeadingPadding: CGFloat = 10
+    static let pillTrailingPadding: CGFloat = 20
+    /// The pill is at least this wide, is this wide when the text allows, and is never wider than this.
+    static let pillMinWidth: CGFloat = 220
+    static let pillIdealWidth: CGFloat = 260
+    static let pillMaxWidth: CGFloat = 420
   }
 }
 

@@ -19,4 +19,13 @@ struct ChatTitleTests {
     #expect(text.contains("Terminal"))
     #expect(!text.contains("mcp__"))
   }
+
+  @Test func theMacsPillHasRoomOnBothSidesAndAWidthItKeeps() {
+    typealias Layout = ChatTitleView.Layout
+    #expect(Layout.pillLeadingPadding >= 8)
+    #expect(Layout.pillTrailingPadding >= 16, "the name touched the capsule's right edge")
+    #expect(Layout.pillMinWidth >= 200)
+    #expect(Layout.pillMinWidth <= Layout.pillIdealWidth)
+    #expect(Layout.pillIdealWidth <= Layout.pillMaxWidth)
+  }
 }
