@@ -886,6 +886,12 @@
 	<string>MCP on %@</string>
 	<key>native.mcp.title</key>
 	<string>MCP</string>
+	<key>native.media.more</key>
+	<string>%lld more pictures</string>
+	<key>native.media.position</key>
+	<string>%1$lld of %2$lld</string>
+	<key>native.media.unavailable</key>
+	<string>Not available</string>
 	<key>native.notice.gatewayNotConfigured</key>
 	<string>That link is for a gateway this device does not know. Add the gateway first.</string>
 	<key>native.notice.lockSettingNotRestored</key>

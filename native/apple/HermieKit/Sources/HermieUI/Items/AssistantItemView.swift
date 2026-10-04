@@ -108,11 +108,13 @@ struct AssistantItemView: View {
 
   /// The reply's words; an interim note (the reply so far) a level quieter.
   private var words: some View {
-    Group {
-      if let markdown {
-        MarkdownView(markdown)
-      } else {
-        MarkdownView(MarkdownDocument(item.text))
+    let document = markdown ?? MarkdownDocument(item.text)
+
+    return VStack(alignment: .leading, spacing: 8) {
+      MarkdownView(document)
+      // The pictures the reply names (`![…](/api/files/…)`, a `MEDIA:` delivery), under its words.
+      if let store = actions.images, !document.images.isEmpty {
+        MessageImageGrid(images: document.images, store: store)
       }
     }
     .environment(\.markdownFillsWidth, false)

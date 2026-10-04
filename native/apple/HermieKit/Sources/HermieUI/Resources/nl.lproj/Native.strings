@@ -886,6 +886,12 @@
 	<string>MCP op %@</string>
 	<key>native.mcp.title</key>
 	<string>MCP</string>
+	<key>native.media.more</key>
+	<string>%lld meer afbeeldingen</string>
+	<key>native.media.position</key>
+	<string>%1$lld van %2$lld</string>
+	<key>native.media.unavailable</key>
+	<string>Niet beschikbaar</string>
 	<key>native.notice.gatewayNotConfigured</key>
 	<string>Die link hoort bij een gateway die dit apparaat niet kent. Voeg de gateway eerst toe.</string>
 	<key>native.notice.lockSettingNotRestored</key>

@@ -24,6 +24,8 @@ public struct MarkdownDocument: Sendable {
   public private(set) var blocks: [MarkdownBlock]
   /// How many slices the parser has been asked to parse so far.
   public private(set) var parseCount = 0
+  /// The pictures the text names (`MessageImages`), for the thumbnails under it.
+  public private(set) var images: [MessageImage] = []
 
   private struct Entry: Sendable {
     var slice: MarkdownSlice
@@ -111,6 +113,7 @@ public struct MarkdownDocument: Sendable {
     entries = Array(entries[..<keep]) + built.compactMap { $0 }
     source = newSource
     blocks = entries.flatMap(\.blocks)
+    images = MessageImages.extract(preprocessed: newSource)
   }
 
   private mutating func parse(_ slice: MarkdownSlice, id: Int) -> [MarkdownBlock] {

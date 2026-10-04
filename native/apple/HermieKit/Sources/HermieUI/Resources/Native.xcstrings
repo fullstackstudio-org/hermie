@@ -10611,6 +10611,78 @@
         }
       }
     },
+    "native.media.more" : {
+      "comment" : "What VoiceOver says for the last frame of a message with more pictures than frames. The argument is how many pictures it stands for.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%lld weitere Bilder"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%lld more pictures"
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%lld meer afbeeldingen"
+          }
+        }
+      }
+    },
+    "native.media.position" : {
+      "comment" : "The gallery's title: which picture of how many. The arguments are the number of the picture and how many there are.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%1$lld von %2$lld"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%1$lld of %2$lld"
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%1$lld van %2$lld"
+          }
+        }
+      }
+    },
+    "native.media.unavailable" : {
+      "comment" : "Under the name of a picture in a message that could not be shown (it is not on this device, or the gateway refused it).",
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Nicht verfügbar"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Not available"
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Niet beschikbaar"
+          }
+        }
+      }
+    },
     "native.notice.gatewayNotConfigured" : {
       "extractionState" : "manual",
       "localizations" : {

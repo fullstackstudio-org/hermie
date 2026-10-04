@@ -32,6 +32,10 @@ public struct TranscriptItemActions: Sendable {
   /// A turn-starting or forking line of that menu was chosen: Regenerate, Edit and resend, Branch from
   /// here. The copies are the row's own (`copy`).
   public var chooseMessageAction: @MainActor @Sendable (_ action: MessageMenu.Action, _ item: TranscriptItem) -> Void
+  /// Where the pictures of the chat's messages come from: their thumbnails, and the gallery they open.
+  /// Set by the chat screen for its own session; a row outside a chat (a lab, a preview) has none and
+  /// shows a picture as a chip.
+  var images: MessageImageStore?
 
   public init(
     answerApproval: @escaping @MainActor @Sendable (ApprovalItem, String) -> Void = { _, _ in },

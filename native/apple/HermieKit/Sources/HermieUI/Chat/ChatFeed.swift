@@ -181,6 +181,9 @@ final class ChatFeed: ChatScreenFeed {
       }
       built.chooseMessageAction = { [weak self] action, item in self?.chooseMessageAction(action, item) }
       built.openAttachment = { [weak self] reference in self?.openAttachment(reference) }
+      built.images = MessageImageStore { [session] reference in
+        if case .preview(let url) = await session.prepareAttachment(reference) { url } else { nil }
+      }
     }
 
     self.itemActions = built

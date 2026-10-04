@@ -115,16 +115,22 @@ struct UserBubbleView: View {
 
   /// The words and the attachments, in the bubble's text colour, as wide as they need.
   private func words(foreground: Color) -> some View {
-    VStack(alignment: .leading, spacing: 8) {
-      if !item.text.isEmpty {
-        if let markdown {
-          MarkdownView(markdown)
-        } else {
-          MarkdownView(MarkdownDocument(item.text))
-        }
+    let document = item.text.isEmpty ? nil : (markdown ?? MarkdownDocument(item.text))
+    let split = MessageImages.split(attachments: item.attachments ?? [])
+    // With a store (a chat screen) the pictures are thumbnails and only the other files are chips;
+    // without one, as before, every attachment is a chip.
+    let thumbnails = actions.images == nil ? [] : MessageImages.unique(split.images + (document?.images ?? []))
+    let chips = actions.images == nil ? (item.attachments ?? []) : split.others
+
+    return VStack(alignment: .leading, spacing: 8) {
+      if let document {
+        MarkdownView(document)
       }
-      if let attachments = item.attachments, !attachments.isEmpty {
-        AttachmentSummary(references: attachments, onOpen: actions.openAttachment)
+      if let store = actions.images, !thumbnails.isEmpty {
+        MessageImageGrid(images: thumbnails, store: store)
+      }
+      if !chips.isEmpty {
+        AttachmentSummary(references: chips, onOpen: actions.openAttachment)
       }
     }
     .environment(\.markdownFillsWidth, false)
@@ -132,6 +138,8 @@ struct UserBubbleView: View {
       // A long press on the bubble is the message's menu, not the start of a selection.
       .environment(\.markdownSelectable, false)
     #endif
+    // The owner's blue is a fill the code colours were not chosen for.
+    .environment(\.markdownCodeHighlighting, foreground != BubblePalette.outgoingText)
     .foregroundStyle(foreground)
     .tint(foreground == .white ? .white : nil)
   }

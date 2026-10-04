@@ -236,6 +236,8 @@ struct ChatSessionView<Composer: View>: View {
     .quickLookPreview(
       Binding(get: { owner.feed?.attachmentPreview }, set: { owner.feed?.attachmentPreview = $0 })
     )
+    // The pictures of the messages, opened full screen from their thumbnails.
+    .imageGalleryHost(owner.feed?.itemActions.images)
     .modifier(ChatTitle(session: session, chat: chat, feed: feed, diagnostics: diagnostics))
     #if os(iOS)
       .navigationBarTitleDisplayMode(.inline)
