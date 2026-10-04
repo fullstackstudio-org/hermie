@@ -485,7 +485,7 @@ struct ChatTitle: ViewModifier {
     case .working: Strings.App.Chat.Subtitle.working
     case .thinking: Strings.App.Chat.Subtitle.thinking
     case .typing: Strings.App.Chat.Subtitle.typing
-    case .tool(let name): Strings.App.Chat.Subtitle.running(tool: name)
+    case .tool(let name): Strings.App.Chat.Subtitle.running(tool: ToolLabel.activityName(name))
     case .waiting: Strings.App.Chat.Subtitle.waiting
     case .delegating: Strings.App.Chat.Subtitle.delegating
     case .idle: ChatListFormat.presenceLabel(presence)
@@ -505,21 +505,7 @@ struct ChatTitleView: View {
   var opensSettings = true
 
   var body: some View {
-    HStack(spacing: 8) {
-      BotAvatar(name: title, avatar: avatar, size: Self.avatarSide, presence: presence, accent: accent)
-
-      VStack(alignment: .leading, spacing: 0) {
-        Text(title)
-          #if os(iOS)
-            .font(.subheadline.weight(.semibold))
-          #else
-            .font(.headline)
-          #endif
-        Text(subtitle)
-          .font(.caption)
-          .foregroundStyle(.secondary)
-      }
-    }
+    layout
     .lineLimit(1)
     // The bar's own title stops growing here too.
     .dynamicTypeSize(...DynamicTypeSize.xxxLarge)
@@ -537,8 +523,54 @@ struct ChatTitleView: View {
     .accessibilityIdentifier("hermie.chat.title")
   }
 
+  #if os(iOS)
+    /// Centred between the back button and the trailing buttons: the item takes the whole slot the bar
+    /// gives it, the name and the status are centred in a column of their own, and a blank the
+    /// picture's size on the other side keeps that column's middle on the slot's middle. A longer
+    /// status truncates inside the column; it never moves the name.
+    private var layout: some View {
+      HStack(spacing: Layout.spacing) {
+        BotAvatar(name: title, avatar: avatar, size: Self.avatarSide, presence: presence, accent: accent)
+        textColumn(alignment: .center)
+        Color.clear.frame(width: Self.avatarSide, height: 1)
+      }
+      .frame(maxWidth: .infinity)
+    }
+  #else
+    private var layout: some View {
+      HStack(spacing: Layout.spacing) {
+        BotAvatar(name: title, avatar: avatar, size: Self.avatarSide, presence: presence, accent: accent)
+        textColumn(alignment: .leading)
+      }
+    }
+  #endif
+
+  private func textColumn(alignment: HorizontalAlignment) -> some View {
+    VStack(alignment: alignment, spacing: 0) {
+      Text(title)
+        #if os(iOS)
+          .font(.subheadline.weight(.semibold))
+        #else
+          .font(.headline)
+        #endif
+        .lineLimit(1)
+        .truncationMode(.tail)
+      Text(subtitle)
+        .font(.caption)
+        .foregroundStyle(.secondary)
+        .lineLimit(1)
+        .truncationMode(.tail)
+    }
+    .multilineTextAlignment(alignment == .center ? .center : .leading)
+  }
+
   /// The picture's side: the bar is about this tall at its smallest.
   static let avatarSide: CGFloat = 30
+
+  /// The numbers the title's layout is built from.
+  enum Layout {
+    static let spacing: CGFloat = 8
+  }
 }
 
 /// Verbosity and the two switches, per chat screen (`setVisibility`).

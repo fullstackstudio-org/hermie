@@ -163,14 +163,7 @@ enum ToolLabel {
       }
       return NativeStrings.Tool.usedTool
     }
-    if lower.hasPrefix("mcp__") {
-      let parts = name.dropFirst(5).components(separatedBy: "__").filter { !$0.isEmpty }
-      if let server = parts.first {
-        let call = parts.dropFirst().joined(separator: " ")
-        let serverName = server.prefix(1).uppercased() + server.dropFirst()
-        return call.isEmpty ? serverName : "\(serverName) · \(humanized(call).lowercased())"
-      }
-    }
+    if let mcp = mcpTitle(name) { return mcp }
     if codeRunners.contains(lower) {
       return busy ? NativeStrings.Tool.runningCode : NativeStrings.Tool.ranCode
     }
@@ -226,6 +219,24 @@ enum ToolLabel {
     let tool = argument(["tool", "tool_name", "name"])
     let parts = [server, tool].compactMap { $0 }
     return parts.isEmpty ? item.name : parts.joined(separator: " · ")
+  }
+
+  /// `mcp__server__call` as "Server · call"; nil for a name that is not an MCP tool's.
+  static func mcpTitle(_ name: String) -> String? {
+    guard name.lowercased().hasPrefix("mcp__") else { return nil }
+    let parts = name.dropFirst(5).components(separatedBy: "__").filter { !$0.isEmpty }
+    guard let server = parts.first else { return nil }
+    let call = parts.dropFirst().joined(separator: " ")
+    let serverName = server.prefix(1).uppercased() + server.dropFirst()
+    return call.isEmpty ? serverName : "\(serverName) · \(humanized(call).lowercased())"
+  }
+
+  /// A tool's name as the chat title's subtitle says it while the tool runs ("Voert Terminal uit…"):
+  /// the MCP prefix is gone, as in the transcript's rows, and an identifier reads as words.
+  static func activityName(_ raw: String) -> String {
+    let name = raw.trimmingCharacters(in: .whitespacesAndNewlines)
+    if let mcp = mcpTitle(name) { return mcp }
+    return humanized(name)
   }
 
   /// `send_message` → "Send message".
