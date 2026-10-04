@@ -43,9 +43,16 @@ const ON_DEMAND = [
   'features/requests/interactive-frame.tsx',
   'features/requests/FormFields.tsx',
   'i18n/sheet-strings.ts',
-  // The chat screen and the settings pages are chunks of their own.
+  // The chat screen and the settings pages are chunks of their own, the small pages one together.
   'features/chat/ChatScreen.tsx',
   'features/settings/SettingsHost.tsx',
+  'features/settings/settings-pages.ts',
+  // What the chat controller does only when a page asks (`ChatController` hands those calls over): the chat screen's
+  // chunk brings it.
+  'core/chat-controller-on-demand.ts',
+  // What the passkey model does only for the Passkeys page (enrolment, the step-ups): the Settings pages' chunk
+  // brings it.
+  'core/passkey/model-on-demand.ts',
   // The Crons pages and the Activity timeline, and the words only they say.
   'features/cron/CronsPage.tsx',
   'features/activity/ActivityPage.tsx',

@@ -34,6 +34,9 @@ import { Button } from '../../ui/primitives'
 import { noticeText } from '../requests/PasskeyNotices'
 import { usePasskeyRuntime } from '../requests/passkey-runtime'
 import './passkeys.css'
+// What the model does only for this page (enrolment, the step-ups: `core/passkey/model-on-demand.ts`) comes with this
+// chunk, so it is there before the page can ask.
+import '../../core/passkey/model-on-demand'
 
 type Busy = null | 'enrol' | 'self' | 'finish' | 'invite' | { revoke: string }
 

@@ -178,11 +178,14 @@ draw is kept out of the entry instead. These do that today.
   Only a module that is itself loaded on demand may import that file.
 - **Settings** is one chunk (`features/settings/SettingsHost.tsx`: the home, the way back, the section a route names),
   fetched when a settings route is opened or when the sidebar's link to it is pointed at or focused
-  (`features/settings/load.ts`, the only part the entry imports), and each section is a chunk inside it (`Account`,
-  `Gateway`, `Passkeys`, `MCP`, `Chats`, `Arrangement`, `Appearance`, `Voice`, `About`, each with its styles), fetched when it is
-  opened or when its link on the home is reached. The pages' words are in `sheet-strings.ts` with the rest of what a
-  chunk says; the catalogue's words they read (the Expo app's titles for Account, Chats, Appearance and About, the
-  layout words of the chat list) are the entry's English and a chunk per other language, as every catalogue read is.
+  (`features/settings/load.ts`, the only part the entry imports), and the sections are chunks inside it, fetched when
+  one is opened or when its link on the home is reached: the small pages together (`settings-pages.ts`: `Account`,
+  `Gateway`, `Passkeys`, `MCP`, `Chats`, `Notifications`, `Appearance`, `Voice`, `About`, with their styles), the
+  gateway-management pages together (`manage-pages.ts`), and `Arrangement` alone. The Passkeys page brings what the
+  passkey model does only for it (enrolment and the step-ups, `core/passkey/model-on-demand.ts`). The pages' words are
+  in `sheet-strings.ts` with the rest of what a chunk says; the catalogue's words they read (the Expo app's titles for
+  Account, Chats, Appearance and About, the layout words of the chat list) are the entry's English and a chunk per
+  other language, as every catalogue read is.
 - **The chat screen** is a chunk of its own (`features/chat/ChatScreen.tsx` and everything only it draws: the
   transcript list, the item views, the Markdown renderer and `marked`, the composer, the message menu's layer, the
   attachment tray, find in chat, and the styles of those; `features/chat/load.ts` is the only part the entry imports).
@@ -190,7 +193,11 @@ draw is kept out of the entry instead. These do that today.
   empty, `aria-busy` main pane under a `Suspense` boundary for a chat route that is opened before it has arrived (`Layout`
   moves focus to the main heading on a route change, and does not wait for the screen). The frame's own rules for a
   chat route (`.hm-main[data-screen='chat']`, in `features/shell/shell.css`) stay in the first load. The chat controller,
-  the transcript reducer and the models beside it are not part of this: they start with the session. Keep the entry
+  the transcript reducer and the models beside it are not part of this: they start with the session. What the
+  controller does only when a page asks (uploads, slash commands, a bot's conversations, the chat's options, the Agents
+  bar and the Activity loads: `core/chat-controller-on-demand.ts`) is a chunk the chat screen's brings; the
+  controller's methods of the same name hand their calls to it (`core/on-demand.ts`), at once when it is there and
+  after fetching it when a page asks first. Keep the entry
   free of imports from `features/chat/` other than `load.ts`, `chat-runtime.tsx`, `drafts.ts`, `use-own-author.ts` and
   `PersonAvatar.tsx`.
 - **What a chat opens on request** is a chunk of its own through `React.lazy`: the message menu

@@ -129,6 +129,9 @@ import type { ExportFormat } from './chat-export'
 import { useYolo } from './use-yolo'
 import { YoloBadge } from './YoloBadge'
 import './chat.css'
+// The controller's part that only the chat screen and the pages ask for (`core/chat-controller-on-demand.ts`) comes
+// with this chunk, so it is there before the screen can call it.
+import '../../core/chat-controller-on-demand'
 
 /** What a chat shows until the reader changes it (`state/chat-view.ts`). */
 export { DEFAULT_CHAT_VIEW }

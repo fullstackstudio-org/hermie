@@ -98,28 +98,39 @@ import {
   passkeysStore
 } from '../../state/passkeys'
 import type { ChatGateway } from '../link'
+import { onDemandPart } from '../on-demand'
 import type { RequestsAdvert, RequestsAdvertOutcome } from '../requests/interactive'
 import { displayText, NAME_LIMIT } from '../requests/secure-input'
 import {
   b64uDecode,
   b64uEncode,
-  canonicalEnrolmentCode,
   type ChallengeBinding,
   challenge,
   hasPathPrefix,
   serialiseBaseUrl,
-  subjectText,
   textVersion
 } from './challenge'
 import { readConfirmFields } from './confirm-fields'
+import type { PasskeyModelOnDemand } from './model-on-demand'
 import {
   type PasskeyAssertion,
   type PasskeyClient,
   type PasskeyCredentialInfo,
   PasskeyRouteError,
-  type PasskeyStatus,
-  type SelfEnrolStatus
+  type PasskeyStatus
 } from './client'
+
+/**
+ * What the model does only when the Passkeys settings page asks (`model-on-demand.ts`: enrolment, adding a passkey by
+ * signing in again, the invite and revoke step-ups): a chunk of its own, which the Settings pages' chunk brings with
+ * it. Each public function there has a method of the same name on `PasskeyModel` that hands the call over; the
+ * members that part reads are therefore not `private`, though they are the model's own and no screen is given them
+ * (`PasskeyActions`).
+ */
+const onDemand = onDemandPart<PasskeyModelOnDemand>(() => import('./model-on-demand'))
+
+/** Called by `model-on-demand.ts` when it is evaluated. */
+export const providePasskeyModelOnDemand = (part: PasskeyModelOnDemand): void => onDemand.provide(part)
 
 /** The 4040 message (contract §8, `error_cannot_run_ceremony`). */
 export const CANNOT_RUN_MESSAGE = 'passkey ceremony unavailable'
@@ -267,17 +278,6 @@ interface ConfirmContext {
   allowCredentialIds: Uint8Array[]
 }
 
-interface Account {
-  /** What the status read this account came from says about self-enrolment. */
-  selfEnrol: SelfEnrolStatus | undefined
-  gatewayId: Uint8Array
-  gatewayIdText: string
-  userId: string
-  handle: Uint8Array
-  baseUrl: string
-  rpId: string
-}
-
 /** A `gateway_id` that breaks a pin (contract §10). */
 type PinProblem = { kind: 'gateway_id_mismatch' } | { kind: 'gateway_id_conflict' }
 
@@ -300,11 +300,11 @@ export class PasskeyModel {
   /** The serialised base URL every challenge commits to; `null` where the browser path is not offered. */
   readonly baseUrl: string | null
 
-  private readonly options: PasskeyModelOptions
+  readonly options: PasskeyModelOptions
   private readonly contexts = new Map<string, ConfirmContext>()
   /** Credential ids this page is adding or revoking: their `passkey.changed` is no news. */
-  private readonly expectedAdditions = new Set<string>()
-  private readonly expectedRevocations = new Set<string>()
+  readonly expectedAdditions = new Set<string>()
+  readonly expectedRevocations = new Set<string>()
   private unsubscribes: (() => void)[] = []
   private started = false
   private stopped = false
@@ -668,7 +668,7 @@ export class PasskeyModel {
   }
 
   /** A `gateway_id` checked against the pins (contract §10). */
-  private pinProblem(gatewayId: string): PinProblem | null {
+  pinProblem(gatewayId: string): PinProblem | null {
     const pinned = this.options.pins.gatewayId()
 
     if (pinned !== null && pinned !== gatewayId) {
@@ -1190,111 +1190,9 @@ export class PasskeyModel {
     return null
   }
 
-  // ── enrolment and step-ups ────────────────────────────────────────────────────────────────────
-
-  /**
-   * Enrol a passkey of this browser for this gateway, with a one-time code from the operator (or
-   * minted with one's own passkey elsewhere). Pins the gateway's id on the first success.
-   */
-  async enrol(code: string): Promise<PasskeyCredentialInfo> {
-    const canonical = canonicalEnrolmentCode(code)
-
-    if (!canonical) {
-      throw new PasskeyActionError({ kind: 'invalid_code' })
-    }
-
-    return this.register({ code: canonical })
-  }
-
-  /**
-   * The registration ceremony, authorised by exactly one of a code or a fresh-authentication grant (contract §7):
-   * `register/begin`, the browser's `create()`, `register/finish`; then the pin and the list.
-   */
-  private async register(authority: { code: string } | { grantId: string }): Promise<PasskeyCredentialInfo> {
-    const account = await this.account()
-    const host = new URL(account.baseUrl).host
-    const name = credentialName(this.options.displayName ?? 'Hermie', host)
-    const begin = await this.route(client =>
-      client.registerBegin({
-        rp_id: account.rpId,
-        base_url: account.baseUrl,
-        name,
-        ...('grantId' in authority ? { grant_id: authority.grantId } : {})
-      })
-    )
-    const nonce = typeof begin?.nonce === 'string' ? b64uDecode(begin.nonce, 32, 32) : null
-
-    if (typeof begin?.registration_id !== 'string' || !begin.registration_id || !nonce) {
-      throw new PasskeyActionError({ kind: 'bad_answer' })
-    }
-
-    const { webauthn } = this.options
-    const signed = await challenge(
-      webauthn.sha256,
-      {
-        purpose: 'register',
-        baseUrl: account.baseUrl,
-        gatewayId: account.gatewayId,
-        userId: account.userId,
-        sessionId: '',
-        requestId: begin.registration_id,
-        nonce
-      },
-      subjectText(name)
-    )
-    const handle =
-      (typeof begin.user?.handle === 'string' ? b64uDecode(begin.user.handle, 1, 64) : null) ?? account.handle
-    const excluded = (Array.isArray(begin.exclude_credentials) ? begin.exclude_credentials : [])
-      .map(entry => (typeof entry?.id === 'string' ? b64uDecode(entry.id, 1, 1023) : null))
-      .filter((id): id is Uint8Array => id !== null)
-
-    let registration
-
-    try {
-      registration = await webauthn.create({
-        rpId: account.rpId,
-        challenge: signed,
-        userHandle: handle,
-        name,
-        excludeCredentialIds: excluded
-      })
-    } catch (error) {
-      throw ceremonyActionError(error)
-    }
-
-    const id = b64uEncode(registration.credentialId)
-
-    this.expectedAdditions.add(id)
-
-    try {
-      const finish = await this.route(client =>
-        client.registerFinish({
-          registration_id: begin.registration_id,
-          base_url: account.baseUrl,
-          ...('code' in authority ? { code: authority.code } : { grant_id: authority.grantId }),
-          credential: {
-            id,
-            client_data_json: b64uEncode(registration.clientDataJSON),
-            attestation_object: b64uEncode(registration.attestationObject),
-            transports: registration.transports
-          }
-        })
-      )
-
-      // The first successful enrolment pins the id; a later one keeps the pin there is.
-      if (this.options.pins.gatewayId() === null) {
-        this.options.pins.pin(account.gatewayIdText)
-      }
-
-      this.store.setState({ pinned: true })
-
-      this.options.pins.remember([...this.options.pins.seen().ids, id])
-      await this.refresh()
-
-      return finish?.credential ?? { id, name, rp_id: account.rpId }
-    } finally {
-      this.expectedAdditions.delete(id)
-    }
+  /** Enrol a passkey of this browser for this gateway, with a one-time code. In `model-on-demand.ts`. */
+  enrol(code: string): Promise<PasskeyCredentialInfo> {
+    return onDemand.use(part => part.enrol(this, code))
   }
 
   // ── adding a passkey by signing in again (contract §7.2) ──────────────────────────────────────
@@ -1322,85 +1220,14 @@ export class PasskeyModel {
     return { expiresAt: entry.expiresAt }
   }
 
-  /**
-   * First half: open a grant, keep its id and deadline across the trip, and send the window to the gateway's sign-in
-   * page (top level: an identity provider cannot be framed). Resolves only when the navigation was started; the page
-   * is gone a moment later. Throws before leaving when it cannot come back (`self_enrol_stash`) or the gateway says no.
-   */
-  async startSelfEnrolment(): Promise<void> {
-    const seam = this.options.selfEnrolment
-
-    if (!seam) {
-      throw new PasskeyActionError({ kind: 'self_enrol_unavailable', reason: 'not_supported' })
-    }
-
-    const account = await this.account()
-
-    if (account.selfEnrol?.available !== true) {
-      const reason = account.selfEnrol?.reason
-
-      throw new PasskeyActionError({
-        kind: 'self_enrol_unavailable',
-        reason: reason === 'disabled' || reason === 'provider_no_reauth' ? reason : 'not_offered'
-      })
-    }
-
-    const grant = await this.route(client => client.reauthBegin(), {
-      kind: 'self_enrol_unavailable',
-      reason: 'not_offered'
-    })
-
-    if (
-      typeof grant?.grant_id !== 'string' ||
-      !grant.grant_id ||
-      typeof grant.expires_at !== 'number' ||
-      !Number.isFinite(grant.expires_at) ||
-      typeof grant.login_path !== 'string'
-    ) {
-      throw new PasskeyActionError({ kind: 'bad_answer' })
-    }
-
-    if (!seam.stash.write({ grantId: grant.grant_id, expiresAt: grant.expires_at })) {
-      seam.stash.clear()
-
-      throw new PasskeyActionError({ kind: 'self_enrol_stash' })
-    }
-
-    if (!seam.bounce(grant.login_path)) {
-      seam.stash.clear()
-
-      throw new PasskeyActionError({ kind: 'bad_answer' })
-    }
+  /** Adding a passkey by signing in again, first half: open a grant and go to the gateway's sign-in. In `model-on-demand.ts`. */
+  startSelfEnrolment(): Promise<void> {
+    return onDemand.use(part => part.startSelfEnrolment(this))
   }
 
-  /**
-   * Second half, run from a click: the passkey ceremony for the grant the sign-in completed. See the header for what
-   * keeps the stash and what removes it.
-   */
-  async finishSelfEnrolment(): Promise<PasskeyCredentialInfo> {
-    const seam = this.options.selfEnrolment
-    const entry = seam?.stash.read() ?? null
-
-    // The local deadline is not asked: the gateway says whether the grant still lives (`reauth_invalid`, which ends it).
-    if (!seam || entry === null) {
-      this.forgetSelfEnrolment()
-
-      throw new PasskeyActionError({ kind: 'self_enrol_expired' })
-    }
-
-    try {
-      const credential = await this.register({ grantId: entry.grantId })
-
-      this.forgetSelfEnrolment()
-
-      return credential
-    } catch (error) {
-      if (endsGrant(error)) {
-        this.forgetSelfEnrolment()
-      }
-
-      throw error
-    }
+  /** Adding a passkey by signing in again, second half: the ceremony for the grant the sign-in completed. In `model-on-demand.ts`. */
+  finishSelfEnrolment(): Promise<PasskeyCredentialInfo> {
+    return onDemand.use(part => part.finishSelfEnrolment(this))
   }
 
   /** The person gave up on a self-enrolment that signed in already: the stash goes (the grant runs out by itself). */
@@ -1408,192 +1235,19 @@ export class PasskeyModel {
     this.forgetSelfEnrolment()
   }
 
-  private forgetSelfEnrolment(): void {
+  forgetSelfEnrolment(): void {
     this.options.selfEnrolment?.stash.clear()
     this.store.setState({ selfEnrolment: null })
   }
 
-  /** Mint an enrolment code with a passkey of this browser (`invite` step-up), for another device. */
-  async mintInvite(): Promise<PasskeyInvite> {
-    const { stepupId, assertion, account } = await this.stepUp('invite', 'invite')
-    const result = await this.route(client =>
-      client.invite({ stepup_id: stepupId, base_url: account.baseUrl, assertion })
-    )
-
-    if (typeof result?.code !== 'string' || !result.code) {
-      throw new PasskeyActionError({ kind: 'bad_answer' })
-    }
-
-    return { code: result.code, expiresAt: typeof result.expires_at === 'number' ? result.expires_at : null }
+  /** Mint an enrolment code with a passkey of this browser (`invite` step-up), for another device. In `model-on-demand.ts`. */
+  mintInvite(): Promise<PasskeyInvite> {
+    return onDemand.use(part => part.mintInvite(this))
   }
 
-  /** Remove one of this account's passkeys, with a passkey of this browser (`revoke` step-up). */
-  async revoke(credentialId: string): Promise<void> {
-    this.expectedRevocations.add(credentialId)
-
-    try {
-      const { stepupId, assertion, account } = await this.stepUp('revoke', credentialId)
-
-      await this.route(client =>
-        client.revoke({ credential_id: credentialId, stepup_id: stepupId, base_url: account.baseUrl, assertion })
-      )
-
-      this.options.pins.remember(this.options.pins.seen().ids.filter(id => id !== credentialId))
-      await this.refresh()
-    } finally {
-      this.expectedRevocations.delete(credentialId)
-    }
-  }
-
-  /** Open a step-up and sign it: `subject` is `"invite"` or the credential id (contract §5). */
-  private async stepUp(
-    purpose: 'invite' | 'revoke',
-    subject: string
-  ): Promise<{ stepupId: string; assertion: PasskeyAssertion; account: Account }> {
-    const account = await this.account()
-    const begin = await this.route(client => client.stepupBegin({ purpose, subject }))
-    const nonce = typeof begin?.nonce === 'string' ? b64uDecode(begin.nonce, 32, 32) : null
-
-    if (typeof begin?.stepup_id !== 'string' || !begin.stepup_id || !nonce || (begin.subject ?? subject) !== subject) {
-      throw new PasskeyActionError({ kind: 'bad_answer' })
-    }
-
-    const allow = (Array.isArray(begin.credentials) ? begin.credentials : [])
-      .filter(entry => entry?.rp_id === account.rpId)
-      .flatMap(entry => (Array.isArray(entry.ids) ? entry.ids : []))
-      .map(id => (typeof id === 'string' ? b64uDecode(id, 1, 1023) : null))
-      .filter((id): id is Uint8Array => id !== null)
-
-    if (allow.length === 0) {
-      throw new PasskeyActionError({ kind: 'not_enrolled' })
-    }
-
-    const { webauthn } = this.options
-    const signed = await challenge(
-      webauthn.sha256,
-      {
-        purpose,
-        baseUrl: account.baseUrl,
-        gatewayId: account.gatewayId,
-        userId: account.userId,
-        sessionId: '',
-        requestId: begin.stepup_id,
-        nonce
-      },
-      subjectText(subject)
-    )
-
-    let response
-
-    try {
-      response = await webauthn.get({ rpId: account.rpId, challenge: signed, allowCredentialIds: allow })
-    } catch (error) {
-      throw ceremonyActionError(error)
-    }
-
-    return {
-      stepupId: begin.stepup_id,
-      account,
-      assertion: {
-        v: 1,
-        rp_id: account.rpId,
-        base_url: account.baseUrl,
-        credential_id: b64uEncode(response.credentialId),
-        authenticator_data: b64uEncode(response.authenticatorData),
-        client_data_json: b64uEncode(response.clientDataJSON),
-        signature: b64uEncode(response.signature),
-        ...(response.userHandle && response.userHandle.length > 0
-          ? { user_handle: b64uEncode(response.userHandle) }
-          : {})
-      }
-    }
-  }
-
-  /** A fresh status read, decoded and checked against the pins and this page's RP. */
-  private async account(): Promise<Account> {
-    if (!this.supported || this.baseUrl === null) {
-      throw new PasskeyActionError({ kind: 'not_supported' })
-    }
-
-    const fresh = await this.route(client => client.status())
-    const broken = typeof fresh?.gateway_id === 'string' ? this.pinProblem(fresh.gateway_id) : null
-
-    if (broken) {
-      // Another gateway's list: not shown, not kept.
-      this.store.setState({ status: null, credentials: [] })
-      this.notify(broken)
-
-      throw new PasskeyActionError(broken)
-    }
-
-    this.store.setState({
-      status: fresh,
-      credentials: Array.isArray(fresh?.credentials) ? fresh.credentials : [],
-      statusError: null
-    })
-
-    if (fresh?.enabled !== true) {
-      throw new PasskeyActionError({ kind: 'unavailable', reason: text(fresh?.reason) ?? '' })
-    }
-
-    const rpId = this.options.webauthn.rpId
-
-    if (!Array.isArray(fresh.rp?.web) || !fresh.rp.web.includes(rpId)) {
-      throw new PasskeyActionError({ kind: 'rp_not_accepted' })
-    }
-
-    const gatewayId = typeof fresh.gateway_id === 'string' ? b64uDecode(fresh.gateway_id, 16, 16) : null
-    const handle = typeof fresh.user?.handle === 'string' ? b64uDecode(fresh.user.handle, 1, 64) : null
-
-    if (!gatewayId || !handle || typeof fresh.user?.id !== 'string' || !fresh.user.id) {
-      throw new PasskeyActionError({ kind: 'bad_answer' })
-    }
-
-    return {
-      selfEnrol: fresh.self_enrol,
-      gatewayId,
-      gatewayIdText: fresh.gateway_id,
-      userId: fresh.user.id,
-      handle,
-      baseUrl: this.baseUrl,
-      rpId
-    }
-  }
-
-  /** One route call, its failures as `PasskeyActionError`. */
-  private async route<T>(
-    call: (client: PasskeyClient) => Promise<T>,
-    /** What a gateway without this route means for the caller; by default the level is off. */
-    notOffered: PasskeyActionProblem = { kind: 'unavailable', reason: 'disabled' }
-  ): Promise<T> {
-    try {
-      return await call(this.options.client)
-    } catch (error) {
-      if (error instanceof PasskeyRouteError) {
-        if (error.kind === 'not_offered') {
-          throw new PasskeyActionError(notOffered)
-        }
-
-        if (error.kind === 'transport') {
-          throw new PasskeyActionError({ kind: 'transport', message: error.message })
-        }
-
-        throw new PasskeyActionError({
-          kind: 'refused',
-          status: error.status,
-          error: error.error,
-          reason: error.reason,
-          message: error.message,
-          retryAfter: error.retryAfter,
-          failure: error.failure
-        })
-      }
-
-      throw new PasskeyActionError({
-        kind: 'transport',
-        message: error instanceof Error ? error.message : String(error)
-      })
-    }
+  /** Remove one of this account's passkeys, with a passkey of this browser (`revoke` step-up). In `model-on-demand.ts`. */
+  revoke(credentialId: string): Promise<void> {
+    return onDemand.use(part => part.revoke(this, credentialId))
   }
 
   // ── the pin ───────────────────────────────────────────────────────────────────────────────────
@@ -1623,7 +1277,7 @@ export class PasskeyModel {
     this.store.setState(state => ({ notices: state.notices.filter(notice => notice.id !== id) }))
   }
 
-  private notify(unchecked: PasskeyNoticeKind): void {
+  notify(unchecked: PasskeyNoticeKind): void {
     // The name of a passkey is the gateway's: one bounded line without control or direction characters, as in
     // the native apps (`PasskeyModel.displayName`).
     const notice =
@@ -1813,14 +1467,4 @@ export function isReauthFailure(error: unknown): boolean {
   const problem = error instanceof PasskeyActionError ? error.problem : null
 
   return problem?.kind === 'self_enrol_expired' || (problem?.kind === 'refused' && problem.error === 'reauth_invalid')
-}
-
-function ceremonyActionError(error: unknown): PasskeyActionError {
-  return new PasskeyActionError({
-    kind: 'ceremony',
-    problem:
-      error instanceof CeremonyError
-        ? error.problem
-        : { kind: 'failed', message: error instanceof Error ? error.message : String(error) }
-  })
 }
