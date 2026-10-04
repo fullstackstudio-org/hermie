@@ -15,7 +15,10 @@ const ROWS = [
 ]
 
 function setup(
-  over: { http?: Partial<CronTransport['http']>; request?: (method: string, params: unknown) => unknown } = {}
+  over: {
+    http?: Partial<Record<'get' | 'post' | 'put' | 'delete', ReturnType<typeof vi.fn>>>
+    request?: (method: string, params: unknown) => unknown
+  } = {}
 ) {
   const listeners: (() => void)[] = []
   const request = vi.fn(async (method: string, params: unknown) => {

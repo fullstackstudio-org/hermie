@@ -553,23 +553,29 @@ renders `<App>`; nothing under `features/` starts a connection or fetches, it re
 One URL and the route in the fragment (plan W4; `features/shell/router.ts`, over `platform/hash-router.ts`, the
 only code outside `boot/` that touches `location.hash`):
 
-| Route                        | Heading        | Main pane today                               |
-| ---------------------------- | -------------- | --------------------------------------------- |
-| `#/`                         | Hermie         | "Pick a conversation to start..."             |
-| `#/chat/<bot>`               | the bot's name | the chat (`ChatScreen`)                       |
-| `#/chat/<bot>/s/<session>`   | the bot's name | that conversation (`ChatScreen`)              |
-| `#/chat/<bot>/conversations` | Conversations  | the bot's conversations (`ConversationsPage`) |
-| `#/settings`                 | Settings       | the home: a link to each section ("Settings") |
-| `#/settings/account`         | Settings       | who is signed in, Sign out                    |
-| `#/settings/gateway`         | Settings       | this gateway, read only                       |
-| `#/settings/passkeys`        | Settings       | this gateway's passkeys ("Passkeys")          |
-| `#/settings/mcp`             | Settings       | this gateway's MCP access ("MCP")             |
-| `#/settings/chats`           | Settings       | what a chat shows, the transcript cache       |
-| `#/settings/chat-list`       | Settings       | the arrangement of the chat list              |
-| `#/settings/appearance`      | Settings       | scheme, accent colour, language, text size    |
-| `#/settings/about`           | Settings       | the build, the licences                       |
-| `#/settings/<anything else>` | Settings       | the home; the address is rewritten in place   |
-| anything else                | sent to `#/`   |                                               |
+| Route                        | Heading        | Main pane today                                   |
+| ---------------------------- | -------------- | ------------------------------------------------- |
+| `#/`                         | Hermie         | "Pick a conversation to start..."                 |
+| `#/chat/<bot>`               | the bot's name | the chat (`ChatScreen`)                           |
+| `#/chat/<bot>/s/<session>`   | the bot's name | that conversation (`ChatScreen`)                  |
+| `#/chat/<bot>/conversations` | Conversations  | the bot's conversations (`ConversationsPage`)     |
+| `#/settings`                 | Settings       | the home: a link to each section ("Settings")     |
+| `#/settings/account`         | Settings       | who is signed in, Sign out                        |
+| `#/settings/gateway`         | Settings       | this gateway, read only                           |
+| `#/settings/passkeys`        | Settings       | this gateway's passkeys ("Passkeys")              |
+| `#/settings/mcp`             | Settings       | this gateway's MCP access ("MCP")                 |
+| `#/settings/chats`           | Settings       | what a chat shows, the transcript cache           |
+| `#/settings/chat-list`       | Settings       | the arrangement of the chat list                  |
+| `#/settings/appearance`      | Settings       | scheme, accent colour, language, text size        |
+| `#/settings/about`           | Settings       | the build, the licences                           |
+| `#/settings/<anything else>` | Settings       | the home; the address is rewritten in place       |
+| `#/crons`                    | Crons          | every cron of every profile (`CronsPage`)         |
+| `#/crons/new`                | Crons          | the editor of a new cron                          |
+| `#/crons/<job>`              | Crons          | one cron: prompt, delivery, run history           |
+| `#/crons/<job>/edit`         | Crons          | that cron's editor                                |
+| `#/crons/<job>/runs/<run>`   | Crons          | one run, read-only (`RunView`)                    |
+| `#/activity`                 | Activity       | what the bots said to each other (`ActivityPage`) |
+| anything else                | sent to `#/`   |                                                   |
 
 A bot name or session id is one percent-encoded segment; `parseRoute` and `formatRoute` are inverses. An unknown
 route is rewritten to `#/` in place (no history entry). A route change moves focus to the main heading (not on
