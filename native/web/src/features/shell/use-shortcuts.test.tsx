@@ -8,7 +8,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 
 import { createHashRouter } from '../../platform/hash-router'
 import { takeNewConversationRequest } from '../sessions/new-conversation-request'
-import type { Route } from './router'
+import { formatRoute, type Route } from './router'
 import { useShortcuts } from './use-shortcuts'
 
 const BOTS = ['researcher', 'writer', 'ops', 'quiet']
@@ -52,13 +52,17 @@ function emptySidebar(): void {
 
 function setup(route: Route = { name: 'chat', bot: 'writer' }) {
   const router = createHashRouter(null)
-  const navigate = vi.spyOn(router, 'navigate')
   const onHelp = vi.fn()
-  const hook = renderHook(({ current }) => useShortcuts({ router, route: current, onHelp }), {
-    initialProps: { current: route }
-  })
 
-  return { router, navigate, onHelp, rerender: (next: Route) => hook.rerender({ current: next }) }
+  // The page is on `route`, as its address says; what the shortcuts do is counted from here.
+  router.navigate(formatRoute(route))
+
+  const navigate = vi.spyOn(router, 'navigate')
+
+  renderHook(() => useShortcuts({ router, onHelp }))
+
+  // Another route, as a click on a link or the browser's Back would have made it.
+  return { router, navigate, onHelp, rerender: (next: Route) => router.navigate(formatRoute(next)) }
 }
 
 /** Press a key on a target; answers whether the page cancelled the browser's own meaning of it. */
@@ -133,6 +137,9 @@ describe('walking the chats', () => {
 
     expect(inCtrl({ key: 'ArrowDown' })).toBe(true)
     expect(navigate).toHaveBeenLastCalledWith('#/chat/ops')
+    // The next key walks from the chat that was just opened: the address says where the page is.
+    expect(inCtrl({ key: 'ArrowUp' })).toBe(true)
+    expect(navigate).toHaveBeenLastCalledWith('#/chat/writer')
     expect(inCtrl({ key: 'ArrowUp' })).toBe(true)
     expect(navigate).toHaveBeenLastCalledWith('#/chat/researcher')
   })
@@ -181,9 +188,18 @@ describe('walking the chats', () => {
     expect(press({ key: 'ArrowDown', altKey: true })).toBe(true)
     expect(navigate).toHaveBeenLastCalledWith('#/chat/ops')
     expect(inCtrl({ key: 'Tab' })).toBe(true)
-    expect(navigate).toHaveBeenLastCalledWith('#/chat/ops')
+    expect(navigate).toHaveBeenLastCalledWith('#/chat/quiet')
     expect(inCtrl({ key: 'Tab', shiftKey: true })).toBe(true)
-    expect(navigate).toHaveBeenLastCalledWith('#/chat/researcher')
+    expect(navigate).toHaveBeenLastCalledWith('#/chat/ops')
+  })
+
+  it('walks from the chat that was opened a moment ago, not from the one before it', () => {
+    const { navigate, rerender } = setup({ name: 'chat', bot: 'researcher' })
+
+    // A key pressed before the page has drawn the route it just changed to still reads the address.
+    rerender({ name: 'chat', bot: 'ops' })
+    inCtrl({ key: 'ArrowUp' })
+    expect(navigate).toHaveBeenLastCalledWith('#/chat/writer')
   })
 
   it('leaves the arrows to a field while it has the caret, and cancels nothing', () => {

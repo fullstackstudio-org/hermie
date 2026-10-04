@@ -21,13 +21,15 @@ import { useEffect, useRef } from 'react'
 import type { HashRouter } from '../../platform/hash-router'
 import { isApplePlatform, isTextTarget, matchShortcut, type ShortcutHit } from '../../platform/shortcuts'
 import { askAboutNewConversation } from '../sessions/new-conversation-request'
-import { chatHref, conversationsHref, HOME_HASH, type Route } from './router'
+import { chatHref, conversationsHref, HOME_HASH, parseRoute, type Route } from './router'
 
 export interface ShortcutOptions {
-  /** The page's address, to go to a chat. */
+  /**
+   * The page's address: where a chat is walked to, and where the page is now. The address is read when the key is
+   * pressed and not from what was last drawn, so a key pressed a moment after a route change walks from the chat that
+   * was just opened and not from the one before it.
+   */
   router: HashRouter
-  /** Where the page is now: a chat's bot is "this chat". */
-  route: Route
   /** Open the list of shortcuts. */
   onHelp: () => void
 }
@@ -79,8 +81,8 @@ function focusSearch(router: HashRouter): boolean {
 
 /** Act on a shortcut. `true` when it did something, which is what lets the key's own meaning be cancelled. */
 function act(hit: ShortcutHit, options: ShortcutOptions): boolean {
-  const { router, route, onHelp } = options
-  const bot = botOf(route)
+  const { router, onHelp } = options
+  const bot = botOf(parseRoute(router.current()) ?? { name: 'home' })
   const chats = visibleChats()
   const open = (name: string | undefined): boolean => {
     if (name === undefined) {

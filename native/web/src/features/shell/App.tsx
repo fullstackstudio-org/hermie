@@ -182,7 +182,7 @@ export function App({
       opener: opener ?? (document.activeElement instanceof HTMLElement ? document.activeElement : null)
     })
 
-  useShortcuts({ router, route, onHelp: showShortcuts })
+  useShortcuts({ router, onHelp: showShortcuts })
   const bot = botOf(route)
   // What the reader calls the bot beats what the bot calls itself (`state/layout.ts`, set on its profile page), and
   // which of its two names leads is the reader's setting (`features/bots/bot-names.ts`).
