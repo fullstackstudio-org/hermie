@@ -128,7 +128,8 @@ struct ScanSheetView: View {
           .font(.caption.weight(.semibold))
           .foregroundStyle(.secondary)
         // What the code says: plain text, monospaced where whitespace matters, never a link.
-        RequestTextBox(text: found.preview, identifier: "scan.value", monospaced: true)
+        RequestTextBox(
+          text: found.preview, identifier: "scan.value", monospaced: true, startsExpanded: found.isSendable)
       }
 
       if let problem = found.problem {

@@ -127,11 +127,40 @@ struct InteractiveScanModelTests {
     model.rescan()
     model.detected(String(repeating: "x", count: 5_000), as: .qr)
     #expect(model.found?.problem == .tooLong(count: 5_000) && model.answer == nil)
-    #expect((model.found?.preview.unicodeScalars.count ?? 0) <= 1_001, "a long value is shown cut, and never sent")
+    #expect((model.found?.preview.unicodeScalars.count ?? 0) <= 1_001, "a value that cannot be sent is shown cut")
 
     model.rescan()
     model.detected(String(repeating: "x", count: 4_096), as: .qr)
     #expect(model.answer != nil)
+  }
+
+  @Test("whatever can be sent is shown whole: the preview is the value, the answer carries nothing unseen")
+  func previewIsTheSentValue() async throws {
+    let model = InteractiveScanModel(request: try request(), authorization: FakeCaptureAuthorization(camera: .granted))
+    await model.start()
+
+    for raw in [
+      "x", String(repeating: "x", count: 999), String(repeating: "x", count: 1_000), String(repeating: "x", count: 1_001),
+      String(repeating: "x", count: 2_500), String(repeating: "é", count: 4_096), "line one\nline two \u{200B}hidden"
+    ] {
+      model.rescan()
+      model.detected(raw, as: .qr)
+      let found = try #require(model.found)
+      #expect(found.isSendable)
+      #expect(found.preview == found.value, "\(raw.unicodeScalars.count) code points")
+
+      guard case .scan(let value, _)? = model.answer else {
+        Issue.record("no answer")
+        return
+      }
+
+      #expect(value == found.preview)
+    }
+
+    model.rescan()
+    model.detected(String(repeating: "x", count: 4_097), as: .qr)
+    let tooLong = try #require(model.found)
+    #expect(!tooLong.isSendable && tooLong.preview.unicodeScalars.count == 1_001 && tooLong.preview.hasSuffix("…"))
   }
 
   @Test("the camera goes off when the app leaves the front, and an empty read is no code")

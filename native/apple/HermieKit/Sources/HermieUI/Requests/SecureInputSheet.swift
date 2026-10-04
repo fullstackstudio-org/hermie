@@ -629,7 +629,15 @@ struct RequestTextBox: View {
   /// Lines shown before Show more.
   static let collapsedLines = 6
 
-  @State private var expanded = false
+  @State private var expanded: Bool
+
+  /// `startsExpanded`: the whole text is on screen from the start (what is about to be sent should be seen).
+  init(text: String, identifier: String, monospaced: Bool = false, startsExpanded: Bool = false) {
+    self.text = text
+    self.identifier = identifier
+    self.monospaced = monospaced
+    _expanded = State(initialValue: startsExpanded)
+  }
 
   var body: some View {
     VStack(alignment: .leading, spacing: 8) {

@@ -37,7 +37,8 @@ public final class InteractiveScanModel {
     public var wasCleaned: Bool
     /// Why it cannot be sent, when it cannot: nothing visible left, or too long.
     public var problem: ScanValue.Problem?
-    /// What the sheet shows: `value`, cut when it is very long (the cut is never sent: such a value cannot be).
+    /// What the sheet shows: always the whole `value` when it can be sent (what goes out is what was
+    /// seen), and cut only for a value that cannot be sent (`problem == .tooLong`).
     public var preview: String
 
     /// It can be sent.
@@ -65,8 +66,8 @@ public final class InteractiveScanModel {
   public private(set) var phase = Phase.ready
 
   @ObservationIgnored private let authorization: any CaptureAuthorizing
-  /// The longest value shown in full.
-  private static let previewScalars = 1_000
+  /// The longest value shown of one that is too long to send (a value that can be sent is shown whole).
+  static let previewScalars = 1_000
 
   public init(request: ScanRequest, authorization: any CaptureAuthorizing = SystemCaptureAuthorization()) {
     self.request = request
@@ -118,8 +119,11 @@ public final class InteractiveScanModel {
 
     let cleaned = ScanValue.clean(raw)
     let problem = ScanValue.problem(in: cleaned)
-    let scalars = cleaned.unicodeScalars
-    let preview = scalars.count > Self.previewScalars ? ScanValue.prefix(cleaned, scalars: Self.previewScalars) + "…" : cleaned
+    var preview = cleaned
+
+    if case .tooLong? = problem {
+      preview = ScanValue.prefix(cleaned, scalars: Self.previewScalars) + "…"
+    }
 
     phase = .found(
       Found(value: cleaned, symbology: symbology, wasCleaned: cleaned != raw, problem: problem, preview: preview))
