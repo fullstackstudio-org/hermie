@@ -13,7 +13,7 @@ import Testing
 private let researcher = "researcher"
 
 @MainActor
-private func interactiveWait(_ what: String, _ condition: @MainActor () async throws -> Bool) async throws {
+func interactiveWait(_ what: String, _ condition: @MainActor () async throws -> Bool) async throws {
   let deadline = ContinuousClock.now + .seconds(40)
 
   while !(try await condition()) {
@@ -27,14 +27,14 @@ private func interactiveWait(_ what: String, _ condition: @MainActor () async th
 }
 
 /// `FakeGateway.with`, with a body on the main actor, where the models live.
-private func withInteractiveGateway(_ body: @escaping @MainActor @Sendable (FakeGateway) async throws -> Void) async throws {
+func withInteractiveGateway(_ body: @escaping @MainActor @Sendable (FakeGateway) async throws -> Void) async throws {
   try await FakeGateway.with(FakeGateway.Options()) { gateway in try await body(gateway) }
 }
 
 /// A session on the fake gateway with the researcher's chat open, and the interactive model its
 /// screen would hold.
 @MainActor
-private struct InteractiveChat {
+struct InteractiveChat {
   let session: GatewaySession
   let model: InteractiveModel
 
@@ -113,7 +113,9 @@ extension Integration {
         let state = try await gateway.control("GET", "/__fake/state")
         let last = try #require(state["clientCapabilities"]?.arrayValue?.last)
         #expect(last["server_requests"] == true)
-        #expect(last["requests"] == ["input.form", "input.file", "review.draft", "review.diff"])
+        #expect(
+          last["requests"]?.arrayValue?.compactMap(\.stringValue) == InteractiveCapabilities.deviceMethods(),
+          "the device's own list: the four, and the device requests it offers")
 
         let presented = try #require(chat.model.presented)
         #expect(presented.id == id)
