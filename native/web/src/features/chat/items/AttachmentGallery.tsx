@@ -8,6 +8,8 @@
  *    (`ItemHost.attachmentSrc`), never by its file name: a `.png` the gateway
  *    holds on its own disk is a name and nothing more, and an `<img>` pointed at
  *    a path draws a broken frame where a chip would have said something true.
+ *  - **An image the gateway named no file for** (the `[image]` line of its history, `@image:Image`) has nothing to
+ *    fetch and nothing to open: it is a plain chip with its name and no control.
  *  - **The grid counts pictures, not attachments.** One fills the width, two and
  *    four go two across, three or more go three across. A file beside them takes
  *    a full row of its own: a name squeezed into a third of a bubble is a name
@@ -21,6 +23,7 @@
  * It is a list named "Attachments", one item per attachment, in the order the
  * message holds them.
  */
+import { isImagePlaceholder } from '@hermie/transcript'
 import { memo, useCallback } from 'react'
 
 import { namesAPicture } from '../../../core/chats/attachment-fetch'
@@ -78,9 +81,15 @@ function AttachmentGalleryImpl({ attachments, onAccent = false }: AttachmentGall
   const resolved = attachments.map(entry => {
     const src = gatewayImageSrc(entry.src ?? host.attachmentSrc(entry.reference), gatewayBaseUrl)
     // A picture by what the reference says it is, fetched when the host can: otherwise it is the chip it always was.
-    const remote = src === null && canFetch && !entry.reference.startsWith('inline:') && namesAPicture(entry.reference)
+    const placeholder = src === null && isImagePlaceholder(entry.reference)
+    const remote =
+      src === null &&
+      canFetch &&
+      !placeholder &&
+      !entry.reference.startsWith('inline:') &&
+      namesAPicture(entry.reference)
 
-    return { ...entry, src, remote, held: entry.src !== undefined }
+    return { ...entry, src, remote, placeholder, held: entry.src !== undefined }
   })
   const columns = gridColumns(resolved.filter(entry => entry.src !== null || entry.remote).length)
   const layout = columns > 1 ? 'cell' : 'solo'
@@ -104,8 +113,9 @@ function AttachmentGalleryImpl({ attachments, onAccent = false }: AttachmentGall
             />
           ) : entry.remote ? (
             <RemotePicture reference={entry.reference} name={entry.name} layout={layout} onAccent={onAccent} />
-          ) : entry.reference.startsWith('inline:') ? (
-            // A picture the message held and the page cannot draw (a type the browser has no decoder for).
+          ) : entry.placeholder || entry.reference.startsWith('inline:') ? (
+            // A picture the message held and the page cannot draw (a type the browser has no decoder for), or an
+            // image the gateway named no file for: a name, not a control.
             <FileChip name={entry.name} onAccent={onAccent} />
           ) : (
             <OpenableChip

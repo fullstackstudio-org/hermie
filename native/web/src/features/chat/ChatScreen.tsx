@@ -311,7 +311,11 @@ export function ChatScreen({ bot, session, view: pinned, router = pageHashRouter
 
   const fetchPicture = runtime?.fetchPicture
   const hasFiles = fetchPicture !== undefined
-  const loader = useMemo(() => (fetchPicture ? lazyAttachmentLoader({ fetchPicture }) : undefined), [fetchPicture])
+  // The chat's bot is its profile: it says which `images/` folder an attached picture's path may be asked for from.
+  const loader = useMemo(
+    () => (fetchPicture ? lazyAttachmentLoader({ fetchPicture }, bot) : undefined),
+    [fetchPicture, bot]
+  )
   const loaderRef = useRef(loader)
 
   loaderRef.current = loader

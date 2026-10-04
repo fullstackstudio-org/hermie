@@ -10,7 +10,13 @@
  *  - `GET /api/media?path=<absolute path>`: a picture under its images, screenshots and cache folders,
  *    answered as JSON with a `data_url`.
  *
- * Both are asked with the page's own credentials (`GatewayHttp.fetchAuthenticatedPicture`), never from
+ * A picture an image attached to a chat names by the gateway's own `images/` folder has a third, narrower
+ * route that works where the managed-files root is locked: `GET /api/files/images/<name>?profile=<profile>`
+ * (`attachedImageRoute`). It is asked FIRST, and only for a path whose folder is that profile's `images/`
+ * folder (never the file name of some other path: a file of that name there would be a different picture);
+ * the two routes above are what is left for every other path, and for a gateway that does not have it.
+ *
+ * All are asked with the page's own credentials (`GatewayHttp.fetchAuthenticatedPicture`), never from
  * the reference's own address: a web address is never fetched (the sender is untrusted, and a request is
  * a way to say "this person read it"), and a path that climbs is not asked for at all.
  *
@@ -88,6 +94,66 @@ export function attachmentRoute(reference: string): { primary: string; media: st
   }
 }
 
+/** What `get_attached_image` takes as a name: one component, no `..`, an image suffix of the six it serves. */
+const ATTACHED_NAME = /^[A-Za-z0-9][A-Za-z0-9._-]{0,254}$/u
+const ATTACHED_SUFFIX = /\.(?:png|jpe?g|gif|webp|bmp)$/iu
+const PROFILE_NAME = /^[a-z0-9][a-z0-9_-]{0,63}$/u
+
+/**
+ * The gateway's attached-image route for a reference, or `null` when its path is not one of `profile`'s own
+ * attached images.
+ *
+ * An attached image is written to `<profile home>/images/<file>`, and the home is `<HERMES_HOME>` for the
+ * default profile (`default`) or `<HERMES_HOME>/profiles/<name>` for any other. The client cannot see the
+ * disk, so it reads the shape and refuses anything it cannot be sure of:
+ *
+ *  - the path is absolute, whole (no `.`/`..`, no empty or backslash part) and ends `images/<file>`, the file
+ *    being a name the route serves (one component, an image suffix);
+ *  - for `default`, no part of the folder above `images` is `profiles` (that is another profile's), and it is
+ *    not itself called `images` (`<home>/images/images/<file>` is not `<home>/images/<file>`);
+ *  - for any other profile, the folder above `images` is `profiles/<that profile>`, so a path in the default
+ *    profile's folder, or in another profile's, is refused: the route would serve a different file of that
+ *    name, or none.
+ */
+export function attachedImageRoute(reference: string, profile: string): string | null {
+  const value = unwrapReference(reference)
+
+  // `/api/files/…` is what the gateway itself serves (asked as it is), never a place on its disk.
+  if (
+    !PROFILE_NAME.test(profile) ||
+    !value.startsWith('/') ||
+    value.startsWith('//') ||
+    value.startsWith('/api/files/') ||
+    /[\\\0?#%]/u.test(value)
+  ) {
+    return null
+  }
+
+  const parts = value.slice(1).split('/')
+
+  if (parts.some(part => part === '' || part === '.' || part === '..')) {
+    return null
+  }
+
+  const file = parts.at(-1) ?? ''
+  const home = parts.slice(0, -2)
+
+  if (parts.length < 3 || parts.at(-2) !== 'images' || !ATTACHED_NAME.test(file) || file.includes('..')) {
+    return null
+  }
+
+  if (!ATTACHED_SUFFIX.test(file)) {
+    return null
+  }
+
+  const own =
+    profile === 'default'
+      ? !home.includes('profiles') && home.at(-1) !== 'images'
+      : home.length >= 2 && home.at(-2) === 'profiles' && home.at(-1) === profile
+
+  return own ? `/api/files/images/${file}?profile=${encodeURIComponent(profile)}` : null
+}
+
 function splitDataUri(uri: string): { type: string; base64: string } | null {
   const comma = uri.indexOf(',')
 
@@ -160,12 +226,30 @@ function mediaPicture(uri: string): string | null {
   }
 }
 
-/** One fetch of a reference: the files route, then the picture route for a picture. `null`: it cannot be had. */
-export async function fetchAttachment(fetcher: AttachmentFetcher, reference: string): Promise<LoadedAttachment | null> {
+/**
+ * One fetch of a reference: the attached-image route for a picture in the chat's profile's own `images/`
+ * folder (`profile` known), then the files route, then the picture route for a picture. `null`: it cannot
+ * be had.
+ */
+export async function fetchAttachment(
+  fetcher: AttachmentFetcher,
+  reference: string,
+  profile?: string
+): Promise<LoadedAttachment | null> {
   const route = attachmentRoute(reference)
 
   if (!route) {
     return null
+  }
+
+  const attached = profile === undefined ? null : attachedImageRoute(reference, profile)
+
+  if (attached) {
+    const own = await fetcher.fetchPicture(attached)
+
+    if (own.kind === 'ready') {
+      return judge(own.dataUri, route.name)
+    }
   }
 
   const first = await fetcher.fetchPicture(route.primary)
@@ -190,7 +274,8 @@ export async function fetchAttachment(fetcher: AttachmentFetcher, reference: str
  * once. A refusal is not kept, so the next tap asks again.
  */
 export function createAttachmentLoader(
-  fetcher: AttachmentFetcher
+  fetcher: AttachmentFetcher,
+  profile?: string
 ): (reference: string) => Promise<LoadedAttachment | null> {
   const held = new Map<string, Promise<LoadedAttachment | null>>()
   const waiting: (() => void)[] = []
@@ -226,7 +311,7 @@ export function createAttachmentLoader(
       await acquire()
 
       try {
-        return await fetchAttachment(fetcher, reference)
+        return await fetchAttachment(fetcher, reference, profile)
       } catch {
         return null
       } finally {

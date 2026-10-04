@@ -8,7 +8,11 @@ import { rowsToItems, type TranscriptItem } from '@hermie/transcript'
 import type { ReactNode } from 'react'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 
-import type { LoadedAttachment } from '../../../core/chats/attachment-fetch'
+import {
+  type AttachmentFetcher,
+  createAttachmentLoader,
+  type LoadedAttachment
+} from '../../../core/chats/attachment-fetch'
 import { resetActiveLocale } from '../../../i18n/active-locale'
 import { ChatItem } from './ChatItem'
 import { ItemContext } from './item-context'
@@ -190,5 +194,86 @@ describe('a file chip under a message', () => {
 
     await waitFor(() => expect(screen.getByText('The gateway did not hand this file over.')).toBeTruthy())
     expect(saved).not.toHaveBeenCalled()
+  })
+})
+
+describe('an image attached to a chat, by the gateway’s own route', () => {
+  const home = '/root/.hermes'
+
+  /** A host whose attachments are fetched as the page fetches them, for `profile`, from `answers`. */
+  function hostFor(profile: string, answers: Record<string, string>) {
+    const asked: string[] = []
+    const fetcher: AttachmentFetcher = {
+      fetchPicture: async path => {
+        asked.push(path)
+
+        return answers[path] ? { kind: 'ready', dataUri: answers[path] } : { kind: 'missing' }
+      }
+    }
+
+    return { asked, host: hostWith({ loadAttachment: createAttachmentLoader(fetcher, profile) }) }
+  }
+
+  it('is a thumbnail from the route, for the default profile’s folder', async () => {
+    const { asked, host } = hostFor('default', {
+      '/api/files/images/upload_1.png?profile=default': PNG_URI
+    })
+    const [item] = itemsOf('user', `what is this?\n@image:${home}/images/upload_1.png`)
+    const { container } = draw(item as TranscriptItem, host)
+
+    await waitFor(() => expect((container.querySelector('img') as HTMLImageElement | null)?.src).toBe(PNG_URI))
+
+    expect(asked).toEqual(['/api/files/images/upload_1.png?profile=default'])
+    expect(container.textContent).not.toContain('@image')
+  })
+
+  it('is a thumbnail from the route, for a named profile’s own folder', async () => {
+    const { asked, host } = hostFor('marketing', {
+      '/api/files/images/upload_20261004_160406_1.png?profile=marketing': PNG_URI
+    })
+    const [item] = itemsOf('user', `what is this?\n\n[Image attached at: ${PATH}]`)
+    const { container } = draw(item as TranscriptItem, host)
+
+    await waitFor(() => expect(container.querySelector('img')).not.toBeNull())
+
+    expect(asked).toEqual(['/api/files/images/upload_20261004_160406_1.png?profile=marketing'])
+  })
+
+  it('is the notice that it could not be fetched when the gateway has no such image (404)', async () => {
+    const { host } = hostFor('default', {})
+    const [item] = itemsOf('user', `@image:${home}/images/gone.png`)
+    const { container } = draw(item as TranscriptItem, host)
+
+    await waitFor(() => expect(screen.getByText('The gateway did not hand this file over.')).toBeTruthy())
+
+    expect(container.querySelector('img')).toBeNull()
+    expect(screen.getByText('gone.png')).toBeTruthy()
+  })
+
+  it('does not ask the route for another profile’s image', async () => {
+    const { asked, host } = hostFor('researcher', {
+      '/api/files/images/upload_1.png?profile=researcher': PNG_URI
+    })
+    const [item] = itemsOf('user', `@image:${home}/images/upload_1.png`)
+
+    draw(item as TranscriptItem, host)
+    await waitFor(() => expect(screen.getByText('The gateway did not hand this file over.')).toBeTruthy())
+
+    expect(asked.some(path => path.startsWith('/api/files/images/'))).toBe(false)
+  })
+
+  it('is a compact, plain Image chip when the gateway named no file: nothing to open, nothing fetched', () => {
+    const { asked, host } = hostFor('default', {})
+    const [item] = itemsOf('user', 'what is this?\n[image]')
+    const { container } = draw(item as TranscriptItem, host)
+
+    expect(screen.getByText('Image')).toBeTruthy()
+    expect(container.querySelector('.hm-file')).not.toBeNull()
+    expect(container.querySelector('.hm-file__open')).toBeNull()
+    expect(screen.queryByRole('button')).toBeNull()
+    expect(container.querySelector('img')).toBeNull()
+    expect(container.textContent).not.toContain('[image]')
+    expect(container.textContent).not.toContain('@image')
+    expect(asked).toEqual([])
   })
 })
