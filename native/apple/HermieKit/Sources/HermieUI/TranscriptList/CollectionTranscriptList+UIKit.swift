@@ -382,8 +382,12 @@
       self.row = row
       collectionView = TranscriptCollectionView(frame: .zero, collectionViewLayout: layout)
       super.init()
-      layout.isPinnedToBottom = { [unowned self] in pinned }
-      layout.measure = { [unowned self] position in measureRow(at: position) }
+      // The layout and the collection view can outlive the coordinator (a queued
+      // `applyReports` keeps the layout alive while the chat screen is torn down), so
+      // none of these hooks may hold the coordinator unowned: a gone coordinator
+      // answers "not pinned", "not measurable", and the rest do nothing.
+      layout.isPinnedToBottom = { [weak self] in self?.pinned ?? false }
+      layout.measure = { [weak self] position in self?.measureRow(at: position) }
       collectionView.backgroundColor = .clear
       collectionView.contentInsetAdjustmentBehavior = .never
       collectionView.alwaysBounceVertical = true
@@ -402,11 +406,12 @@
       collectionView.register(TranscriptHostingCell.self, forCellWithReuseIdentifier: TranscriptHostingCell.reuseIdentifier)
       collectionView.dataSource = self
       collectionView.delegate = self
-      collectionView.willResize = { [unowned self] in noteReaderPlace() }
-      collectionView.resizeDropped = { [unowned self] in placeBeforeResize = nil }
-      collectionView.resize = { [unowned self] old, new in resize(from: old, to: new) }
-      collectionView.didLayoutResize = { [unowned self] in restoreResizeAnchor() }
-      collectionView.didMoveIntoWindow = { [unowned self] in
+      collectionView.willResize = { [weak self] in self?.noteReaderPlace() }
+      collectionView.resizeDropped = { [weak self] in self?.placeBeforeResize = nil }
+      collectionView.resize = { [weak self] old, new in self?.resize(from: old, to: new) }
+      collectionView.didLayoutResize = { [weak self] in self?.restoreResizeAnchor() }
+      collectionView.didMoveIntoWindow = { [weak self] in
+        guard let self else { return }
         if !loaded && !items.isEmpty && collectionView.bounds.width > 0 { load() }
       }
       state.geometry = { [weak self] in self?.geometry ?? "list gone" }

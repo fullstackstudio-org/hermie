@@ -144,9 +144,11 @@
       NotificationCenter.default.addObserver(
         self, selector: #selector(clipViewBoundsChanged), name: NSView.boundsDidChangeNotification,
         object: scrollView.contentView)
-      scrollView.willResize = { [unowned self] old, new in willResize(from: old, to: new) }
-      scrollView.didResize = { [unowned self] old, new in didResize(from: old, to: new) }
-      scrollView.didScrollByReader = { [unowned self] in
+      // The scroll view can outlive the coordinator while its view is torn down: the hooks hold it weak.
+      scrollView.willResize = { [weak self] old, new in self?.willResize(from: old, to: new) }
+      scrollView.didResize = { [weak self] old, new in self?.didResize(from: old, to: new) }
+      scrollView.didScrollByReader = { [weak self] in
+        guard let self else { return }
         updateEdges()
         pinned = state.isAtBottom
       }
