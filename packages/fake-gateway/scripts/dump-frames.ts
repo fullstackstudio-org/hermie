@@ -37,8 +37,11 @@ import {
   type ChatState,
   confirmSubmit,
   createChatState,
+  INTERACTIVE_METHODS,
+  type InteractiveMethod,
   reconcile,
   reconcileTail,
+  type RequestAnswerSummary,
   rowsToItems,
   type ServerRequest,
   snapshotForCache,
@@ -52,6 +55,7 @@ import { WebSocket } from 'ws'
 
 import { prettyJson } from '../../../scripts/golden/canonical-json'
 import type { FakeGateway } from '../src/index'
+import { loadContract } from '../src/interactive'
 
 /** The same instant the transcript corpus is pinned to: 2026-09-21T14:13:20Z. */
 const PINNED_NOW = 1_790_000_000_000
@@ -378,7 +382,11 @@ class Client {
     const method = String(frame.method)
     const id = String(frame.id)
 
-    if ((method !== 'approval' && method !== 'clarify') || params.session_id !== this.runtimeId) {
+    // An interactive request is applied here and answered by the scenario (`answerInteractive`).
+    const known =
+      method === 'approval' || method === 'clarify' || (INTERACTIVE_METHODS as readonly string[]).includes(method)
+
+    if (!known || params.session_id !== this.runtimeId) {
       return
     }
 
@@ -404,6 +412,28 @@ class Client {
       return
     }
 
+    this.socket?.send(`${JSON.stringify({ jsonrpc: '2.0', id, result })}\n`)
+  }
+
+  /**
+   * The two `client.capabilities` calls of a client that can show every interactive request: the first
+   * learns which methods the gateway raises, the second advertises them (`contract/requests` section 1).
+   */
+  async advertise(): Promise<void> {
+    await this.request('client.capabilities', { server_requests: true })
+    await this.request('client.capabilities', {
+      server_requests: true,
+      confirm: ['plain'],
+      requests: [...INTERACTIVE_METHODS]
+    })
+  }
+
+  /**
+   * The person answers an interactive request: the engine records HOW it ended (keys and counts, never the
+   * values), and the answer itself goes back on the request's own reply frame.
+   */
+  answerInteractive(id: string, summary: RequestAnswerSummary, result: Json): void {
+    this.step('answerRequest', [id, summary], state => answerRequest(state, id, summary))
     this.socket?.send(`${JSON.stringify({ jsonrpc: '2.0', id, result })}\n`)
   }
 
@@ -766,6 +796,62 @@ function reopenScenario(
   }
 }
 
+/**
+ * One interactive request on an idle chat: advertised, raised (the contract's example frame for the
+ * method), seen, answered with one of the contract's valid answers. The checkpoints are the open card and
+ * the settled one.
+ */
+function interactiveScenario(
+  method: InteractiveMethod,
+  name: string,
+  description: string,
+  answer: string,
+  summary: RequestAnswerSummary
+): Scenario {
+  return {
+    name,
+    description,
+    profile: 'researcher',
+    async run(client, gateway) {
+      await client.hydrate()
+      client.checkpoint('hydrated')
+      await client.advertise()
+
+      const raised = gateway.raiseInteractive({ method })
+
+      if (raised.kind !== 'raised') {
+        throw new Error(`${method}: not raised (${raised.kind})`)
+      }
+
+      await client.until(
+        () =>
+          client.recording.frames.some(
+            entry => (entry.frame as Json).id === raised.id && (entry.frame as Json).method === method
+          ),
+        `the ${method} frame`
+      )
+      client.checkpoint('asked')
+
+      const examples = (loadContract().examples.methods as Record<string, { answers: Json[] }>)[method]
+      const result = examples?.answers.find(entry => entry.name === answer)?.result
+
+      if (!result) {
+        throw new Error(`${method}: the contract has no valid answer named ${answer}`)
+      }
+
+      client.answerInteractive(raised.id, summary, result as Json)
+
+      const ended = await raised.settled
+
+      if (ended.outcome !== 'answered') {
+        throw new Error(`${method}: the gateway did not take the answer (${ended.outcome})`)
+      }
+
+      client.checkpoint('answered')
+    }
+  }
+}
+
 const SCENARIOS: Scenario[] = [
   {
     name: 'plain-turn',
@@ -834,6 +920,31 @@ const SCENARIOS: Scenario[] = [
       client.checkpoint('answered')
     }
   },
+  interactiveScenario(
+    'input.form',
+    'input-form',
+    'An idle chat that advertised the interactive requests receives an input.form (the contract’s hotel ' +
+      'booking: eleven fields of every kind); the person fills it in, the engine records that it was answered ' +
+      'and nothing of what was typed.',
+    'answered_everything',
+    { status: 'answered' }
+  ),
+  interactiveScenario(
+    'input.file',
+    'input-file',
+    'The same chat receives an input.file (a photo of a receipt, uploaded and answered by reference); the ' +
+      'engine records that one file was sent and nothing about it.',
+    'photo',
+    { status: 'answered', count: 1 }
+  ),
+  interactiveScenario(
+    'review.draft',
+    'review-draft',
+    'The same chat receives a review.draft (a mail to approve or edit); the person edits it and approves, ' +
+      'and the engine records that it was approved, edited, and not what it now says.',
+    'approved_edited',
+    { decision: 'approved', edited: true }
+  ),
   {
     name: 'subagents',
     description: 'A delegate_task fan-out of three subagents, the third of which fails, inside one turn.',

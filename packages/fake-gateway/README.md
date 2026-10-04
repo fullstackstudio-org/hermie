@@ -5,7 +5,7 @@ endpoints, the authentication flows, WebSocket tickets and the JSON-RPC surface 
 See [the fake gateway in CONTRIBUTING.md](../../CONTRIBUTING.md#the-fake-gateway) for the general
 use, `npm run fake-gateway -- --help` for every flag and control endpoint, and `src/server.ts` for
 the behaviour of each method. This file documents the staged identity provider, the passkey
-level and the MCP page, which are new enough to need their own page.
+level, the interactive requests and the MCP page, which are new enough to need their own page.
 
 ## The staged identity provider (`--idp staged`)
 
@@ -234,6 +234,61 @@ ticket.
 The scenario dump for `contract/transcript/streams` (`scripts/dump-frames.ts`) has no `confirm-passkey`
 scenario: the transcript engine's `applyServerRequest` knows `approval` and `clarify` only, so a
 scripted `confirm` would record frames no engine step consumes. It needs engine support first.
+
+## Interactive requests (`input.form`, `input.file`, `review.draft`)
+
+The fake raises the three interactive server requests of [`contract/requests`](../../contract/requests/README.md)
+and holds an answer to that contract. Every gateway has them; a client that never advertises them never
+sees one, so nothing else changes. No dependency: `src/interactive.ts` checks answers against
+`schema.json` with a page-long checker of the keywords that file uses, then applies the rules the schema
+cannot say (`README.md` sections 3 to 6): required values, ranges and steps, ISO 4217 minor units,
+datetimes with their zone and offset, choice membership and counts, where files may live and how big they
+may be, what a draft may contain. The contract files are read from `contract/requests/` when first needed.
+`src/interactive-gate.ts` is the request's life.
+
+### The handshake
+
+`client.capabilities` records and echoes `requests`: the methods it accepted, which are the ones that are
+interactive methods, only together with `server_requests: true` (otherwise `[]`). The first call's
+`server_requests` lists the three methods, as the contract has a client wait for. The result carries
+`requests` only when the call did; `GET /__fake/state` → `clientCapabilities` records the accepted list
+the same way. A later call replaces what the connection advertised before.
+
+### Control calls
+
+| Call                                                    | What it does                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                 |
+| ------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `POST /__fake/request {method, params?, profile?}`      | raise an interactive request on a profile's chat (default `researcher`). `params` are laid over the contract's example for the method (the first frame of `examples.json`, with an `expires_at` 300 s ahead), so `{}` and a bare `{method}` both work; the params are NOT validated, so a frame the gateway would never send (the `invalid_frames`) can be raised on purpose. Answers `{id, raised, session_id, expires_at}`, or 409 `{error: "no_capable_client", outcome: "unavailable"}` when no connection advertised the method (nothing is sent). Any other method is raised as before |
+| `GET /__fake/request/<id>`                              | `{id, method, open, answer?, refusals, outcome?, error?, reason?}`. `answer` is what the gateway took (a draft with its trailing whitespace removed and `edited`); `refusals` the reason of every refused answer as the client was told it; `outcome` is `answered`, `timeout`, `withdrawn`, `too_many_attempts` or `unavailable` (the client answered with an error: `error` is its frame, `reason` its `data.reason`)                                                                                                                                                                      |
+| `POST /__fake/request/<id>/expire`                      | the gateway stops waiting now (`request.cancel timeout`) instead of at `expires_at`. Answers the same view                                                                                                                                                                                                                                                                                                                                                                                                                                                                                   |
+| `GET /__fake/files`                                     | `{files: [{path, name, mime, bytes, sha256}]}`: what `POST /api/files/upload-stream` received, in order. The SHA-256 is the one an `input.file` answer has to quote                                                                                                                                                                                                                                                                                                                                                                                                                          |
+| `GET /__fake/state`                                     | gains `interactiveRequests`: the same view for every request raised                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                          |
+| `gateway.raiseInteractive({method, params?, profile?})` | the same raise for a test holding the gateway object: `{kind: "unavailable"}` or `{kind: "raised", id, settled}`, where `settled` resolves with how it ended                                                                                                                                                                                                                                                                                                                                                                                                                                 |
+
+### What it does
+
+- **Who is sent it.** Only the connections that advertised the method. `session.resume` and
+  `session.events.since` list an open request (`open_requests`) to those connections only. Any connection
+  may answer with `request.answer {id, result}`.
+- **A valid answer** on the request's own reply frame or as `request.answer` settles it: `request.answer`
+  says `ok`, and an answer after that says `expired`.
+- **A refused answer** is `request.answer` error `4034` `{reason}` (on a reply frame, a `4034` error
+  frame to the same connection), the reason exactly as the contract gives it, including
+  `field:<id>:<problem>`. The request stays open. The tenth refusal reports `too_many_attempts`, publishes
+  `request.cancel {reason: "too_many_attempts"}` and settles the request.
+- **An error response** (`4041 cannot_show`, ...) settles it as `unavailable`.
+- **The clock.** At `expires_at` the fake publishes `request.cancel {reason: "timeout"}`; a request raised
+  with an `expires_at` that has passed ends on the next tick. `POST /__fake/withdraw-requests` withdraws
+  them with every other open request.
+
+### Tests
+
+`src/interactive.test.ts`: every example of `examples.json` through the validators (valid answers taken,
+invalid ones refused with exactly their `reason`, every form field kind), the rules the schema cannot say,
+and the request's life over a WebSocket (gate, validation, refusal cap, resume listing, cancel on expiry,
+error response, upload listing). `src/client-capabilities.test.ts` covers the handshake. `scripts/dump-frames.ts`
+records a stream scenario per method (`input-form`, `input-file`, `review-draft`) into
+`contract/transcript/streams/`.
 
 ## The MCP page (`--mcp`)
 

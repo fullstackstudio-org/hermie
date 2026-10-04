@@ -6,6 +6,10 @@
  * `confirm` levels included — and answers with every kind of request it can
  * raise. A client that offered no `confirm` keeps getting the answer it always
  * got, with no `confirm` member.
+ *
+ * The same call carries `requests`, the interactive methods (`input.form`, `input.file`, `review.draft`)
+ * the client can show: recorded and echoed as the gateway accepted them, and only together with
+ * `server_requests: true`.
  */
 import { afterEach, describe, expect, it } from 'vitest'
 import { WebSocket } from 'ws'
@@ -25,11 +29,13 @@ afterEach(async () => {
   }
 })
 
-const connect = async (): Promise<{
+const connect = async (
+  options: Parameters<typeof startFakeGateway>[0] = {}
+): Promise<{
   gateway: FakeGateway
   call: (method: string, params?: object) => Promise<Record<string, unknown>>
 }> => {
-  const gateway = await startFakeGateway({ port: 0 })
+  const gateway = await startFakeGateway({ port: 0, ...options })
   gateways.push(gateway)
 
   const socket = new WebSocket(gateway.wsUrl, ['hermes-gateway-v1'])
@@ -59,7 +65,17 @@ const connect = async (): Promise<{
   }
 }
 
-const KINDS = ['approval', 'clarify', 'secret', 'sudo', 'vault.code', 'vault.save_login', 'vault.unlock_prompt']
+const INTERACTIVE = ['input.form', 'input.file', 'review.draft']
+const KINDS = [
+  'approval',
+  'clarify',
+  'secret',
+  'sudo',
+  'vault.code',
+  'vault.save_login',
+  'vault.unlock_prompt',
+  ...INTERACTIVE
+]
 
 describe('client.capabilities', () => {
   it('lists every request kind the web client has to handle', async () => {
@@ -118,6 +134,46 @@ describe('client.capabilities', () => {
     await call('client.capabilities', { confirm: ['plain'] })
 
     expect(gateway.state.clientCapabilities).toEqual([{ server_requests: false, confirm: [] }])
+  })
+
+  it('echoes the interactive methods it accepted, and nothing when the call carried no `requests`', async () => {
+    const { gateway, call } = await connect()
+
+    expect(await call('client.capabilities', { server_requests: true })).not.toHaveProperty('requests')
+    expect(
+      await call('client.capabilities', { server_requests: true, requests: ['review.draft', 'input.form', 'nope', 7] })
+    ).toEqual({ server_requests: KINDS, requests: ['input.form', 'review.draft'] })
+    expect(gateway.state.clientCapabilities).toEqual([
+      { server_requests: true, confirm: [] },
+      { server_requests: true, confirm: [], requests: ['input.form', 'review.draft'] }
+    ])
+  })
+
+  it('echoes `[]` for `requests` without `server_requests: true`, and for an empty list', async () => {
+    const { gateway, call } = await connect()
+
+    expect(await call('client.capabilities', { requests: INTERACTIVE })).toEqual({
+      server_requests: KINDS,
+      requests: []
+    })
+    expect(await call('client.capabilities', { server_requests: true, requests: [] })).toEqual({
+      server_requests: KINDS,
+      requests: []
+    })
+    expect(gateway.state.clientCapabilities.map(entry => entry.requests)).toEqual([[], []])
+  })
+
+  it('carries `requests` next to `confirm` in one call, on a gateway that knows the passkey level too', async () => {
+    const { call } = await connect({ passkey: true })
+
+    const answer = await call('client.capabilities', {
+      server_requests: true,
+      confirm: ['plain'],
+      requests: INTERACTIVE
+    })
+
+    expect(answer).toMatchObject({ confirm: ['plain'], requests: INTERACTIVE })
+    expect(answer.server_requests).toEqual(expect.arrayContaining([...INTERACTIVE, 'confirm']))
   })
 
   it('stays in the method log like every other call', async () => {

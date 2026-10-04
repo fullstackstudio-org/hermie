@@ -22,6 +22,8 @@ import {
   userKey
 } from './passkey/gateway'
 import { handlePasskeyRoute, PREFIX as PASSKEY_PREFIX } from './passkey/routes'
+import { InteractiveGate, type RaisedInteractive } from './interactive-gate'
+import { defaultParams, INTERACTIVE_METHODS, isInteractiveMethod, type InteractiveMethod } from './interactive'
 import { grantView as mcpGrantView, handleMcpRoute, PREFIX as MCP_PREFIX } from './mcp/routes'
 import { McpGateway, type McpGrantInput, type McpOptions } from './mcp/store'
 
@@ -30,6 +32,7 @@ import { LOGIN_PAGE, loginUrlFor, PLUGIN_ASSET_CACHE_CONTROL, readPluginAsset, t
 
 export type { Identity, PasskeyOptions } from './passkey/gateway'
 export type { ConfirmOutcome, RaiseResult } from './passkey/confirm'
+export type { InteractiveOutcome, InteractiveView, RaisedInteractive } from './interactive-gate'
 export type { McpOptions } from './mcp/store'
 
 /**
@@ -920,7 +923,13 @@ export interface FakeGatewayState {
    * sent none. Recorded as sent, whatever the level is called, because the fake
    * is there to be told things the real gateway would filter.
    */
-  clientCapabilities: { server_requests: boolean; confirm: string[]; confirm_passkey?: unknown }[]
+  clientCapabilities: {
+    server_requests: boolean
+    confirm: string[]
+    confirm_passkey?: unknown
+    /** The interactive methods (`input.form`, ...) the gateway accepted; present only when the call carried `requests`. */
+    requests?: string[]
+  }[]
   /** Every JSON-RPC method the server handled, in order. */
   methodLog: string[]
   /** Mark the next replay answer as truncated. */
@@ -1048,7 +1057,7 @@ export interface FakeGatewayState {
    * bytes arrived, how many there were, and at which path — never to read them
    * back off a disk the test then has to clean up.
    */
-  uploadedFiles: Map<string, { path: string; filename: string; bytes: number; contentType: string }>
+  uploadedFiles: Map<string, { path: string; filename: string; bytes: number; contentType: string; sha256: string }>
   /**
    * Children a delegation has spawned and not yet finished, by subagent id.
    *
@@ -1228,6 +1237,18 @@ export interface FakeGateway {
     timeoutSeconds?: number
     turnIsolation?: boolean
   }): RaiseResult
+  /**
+   * Raise an interactive request (`input.form`, `input.file`, `review.draft`) on a profile's chat, as
+   * `POST /__fake/request` does: `params` laid over the contract's example, sent only to the connections
+   * that advertised the method. `unavailable` when none did; otherwise `settled` resolves with how it
+   * ended (`answered` with what the gateway took, `timeout`, `too_many_attempts`, `unavailable` after a
+   * client's error response, `withdrawn`).
+   */
+  raiseInteractive(options: {
+    profile?: string
+    method: InteractiveMethod
+    params?: Record<string, unknown>
+  }): RaisedInteractive | { kind: 'no_session'; profile: string }
   close(): Promise<void>
 }
 
@@ -2424,7 +2445,7 @@ function sniffImageExtension(bytes: Buffer, filename: string): string {
 
 interface MultipartForm {
   fields: Record<string, string>
-  file: { filename: string; contentType: string; bytes: number } | null
+  file: { filename: string; contentType: string; bytes: number; sha256: string } | null
 }
 
 /**
@@ -2482,7 +2503,8 @@ async function readMultipart(req: IncomingMessage): Promise<MultipartForm> {
     form.file = {
       filename,
       contentType: /content-type:\s*([^\r\n;]+)/i.exec(headers)?.[1]?.trim() || 'application/octet-stream',
-      bytes: raw.length
+      bytes: raw.length,
+      sha256: createHash('sha256').update(raw, 'binary').digest('hex')
     }
   }
 
@@ -4419,6 +4441,8 @@ export async function startFakeGateway(options: FakeGatewayOptions = {}): Promis
         clientCapabilities: state.clientCapabilities,
         openServerRequests: [...state.openServerRequests.keys()],
         serverRequestAnswers: state.serverRequestAnswers,
+        // Every interactive request raised, and how it stands.
+        interactiveRequests: interactive.list(),
         // Every `connection.respond` the strict contract accepted, as it was sent.
         connectionResponses: state.connectionResponses,
         // Stored ids of the sessions with a turn still streaming: how a client
@@ -4471,6 +4495,7 @@ export async function startFakeGateway(options: FakeGatewayOptions = {}): Promis
         pendingServerRequests.get(id)?.reject(new Error(`withdrawn: ${reason}`))
         pendingServerRequests.delete(id)
         confirmGate?.withdrawn(id, reason)
+        interactive.withdrawn(id, reason)
       }
 
       json(res, 200, { withdrawn: withdrawn.length })
@@ -4858,6 +4883,42 @@ export async function startFakeGateway(options: FakeGatewayOptions = {}): Promis
       const params = (body.params ?? {}) as Record<string, unknown>
 
       /*
+        An interactive request (`input.form`, `input.file`, `review.draft`): the params are the contract's
+        example for the method with whatever the caller gives laid over them, the frame goes only to the
+        connections that advertised the method (409 `no_capable_client` when there are none), and the
+        answer is the request's id. What became of it is `GET /__fake/request/<id>`.
+      */
+      if (isInteractiveMethod(requestMethod)) {
+        const raised = raiseInteractive({
+          profile,
+          method: requestMethod,
+          params: typeof body.params === 'object' && body.params !== null ? params : {}
+        })
+
+        if (raised.kind === 'unavailable') {
+          json(res, 409, {
+            error: raised.reason,
+            detail: `No connected client advertised "${requestMethod}" in client.capabilities; nothing was sent`,
+            outcome: 'unavailable'
+          })
+
+          return
+        }
+
+        // `no_session` was ruled out above: the profile has one.
+        if (raised.kind === 'raised') {
+          json(res, 200, {
+            id: raised.id,
+            raised: requestMethod,
+            session_id: session.id,
+            expires_at: raised.expiresAt
+          })
+        }
+
+        return
+      }
+
+      /*
         On a gateway that knows the level `passkey` a `confirm` takes the real gateway's gated path, and
         the control call can say who the turn acts for. `user` (top level of the body) is
         `<provider>:<id>`, an account's user id or username; absent it is the gateway's default account,
@@ -4949,6 +5010,57 @@ export async function startFakeGateway(options: FakeGatewayOptions = {}): Promis
         })
 
       json(res, 200, { raised: requestMethod, session_id: session.id })
+
+      return
+    }
+
+    const interactiveRoute = /^\/__fake\/request\/([^/]+)(\/expire)?$/.exec(path)
+
+    if (interactiveRoute) {
+      /*
+        What became of an interactive request: `{id, method, open, answer?, refusals}` (and the outcome,
+        the client's error or the reason, once it ended). `POST .../expire` is the gateway stopping to
+        wait right now (`request.cancel timeout`) rather than at `expires_at`.
+      */
+      const id = decodeURIComponent(interactiveRoute[1] as string)
+      const view = interactive.view(id)
+
+      if (!view) {
+        json(res, 404, { error: 'unknown_request', detail: `No interactive request ${id}` })
+
+        return
+      }
+
+      if (interactiveRoute[2] && method === 'POST') {
+        interactive.expire(id)
+        json(res, 200, interactive.view(id))
+
+        return
+      }
+
+      if (!interactiveRoute[2] && method === 'GET') {
+        json(res, 200, view)
+
+        return
+      }
+
+      json(res, 405, { detail: `Method ${method} not allowed on ${path}` })
+
+      return
+    }
+
+    if (path === '/__fake/files' && method === 'GET') {
+      // What the upload route received, in the order it arrived: where it landed, how big, and its SHA-256,
+      // which is what an `input.file` answer has to quote.
+      json(res, 200, {
+        files: [...state.uploadedFiles.values()].map(file => ({
+          path: file.path,
+          name: file.filename,
+          mime: file.contentType,
+          bytes: file.bytes,
+          sha256: file.sha256
+        }))
+      })
 
       return
     }
@@ -6483,7 +6595,8 @@ export async function startFakeGateway(options: FakeGatewayOptions = {}): Promis
       path: requested,
       filename: form.file.filename,
       bytes: form.file.bytes,
-      contentType: form.file.contentType
+      contentType: form.file.contentType,
+      sha256: form.file.sha256
     }
 
     if (options.uploadDelayMs) {
@@ -6758,7 +6871,7 @@ export async function startFakeGateway(options: FakeGatewayOptions = {}): Promis
 
     if (typeof frame.method !== 'string') {
       // A response to one of our server→client requests.
-      if (confirmGate?.respond(socket, frame)) {
+      if (confirmGate?.respond(socket, frame) || interactive.respond(socket, frame)) {
         return
       }
 
@@ -6836,6 +6949,11 @@ export async function startFakeGateway(options: FakeGatewayOptions = {}): Promis
           with an RP it accepts), and `confirm_passkey` says how the level looks
           from here. Nothing else changes.
         */
+        // `requests` echoes what the gateway accepted, `[]` when none, and only when the call carried the key.
+        const requestsEcho = Array.isArray(params.requests)
+          ? { requests: caller ? interactive.advertise(caller, params) : [] }
+          : {}
+
         if (passkey && confirmGate && caller) {
           const accepted = confirmGate.advertise(caller, params)
 
@@ -6854,10 +6972,12 @@ export async function startFakeGateway(options: FakeGatewayOptions = {}): Promis
               'vault.code',
               'vault.save_login',
               'vault.unlock_prompt',
+              ...INTERACTIVE_METHODS,
               'confirm'
             ],
             confirm: accepted,
-            confirm_passkey: passkey.capability(socketIdentities.has(caller))
+            confirm_passkey: passkey.capability(socketIdentities.has(caller)),
+            ...requestsEcho
           }
         }
 
@@ -6879,9 +6999,11 @@ export async function startFakeGateway(options: FakeGatewayOptions = {}): Promis
             'vault.code',
             'vault.save_login',
             'vault.unlock_prompt',
+            ...INTERACTIVE_METHODS,
             ...(levels.length ? ['confirm'] : [])
           ],
-          ...(offered ? { confirm: levels } : {})
+          ...(offered ? { confirm: levels } : {}),
+          ...requestsEcho
         }
       }
 
@@ -8701,6 +8823,21 @@ export async function startFakeGateway(options: FakeGatewayOptions = {}): Promis
           }
         }
 
+        // An interactive request is answered under the contract's rules: 4034 with the reason, and open still.
+        try {
+          const settled = interactive.answer(requestId, result)
+
+          if (settled) {
+            return settled
+          }
+        } catch (error) {
+          if (error instanceof AnswerRefused) {
+            throw new RpcFault(error.code, error.message, error.data)
+          }
+
+          throw error
+        }
+
         const pending = pendingServerRequests.get(requestId)
 
         if (!pending) {
@@ -9798,10 +9935,14 @@ export async function startFakeGateway(options: FakeGatewayOptions = {}): Promis
   function recordClientCapabilities(socket: WebSocket, params: Record<string, unknown>): void {
     const levels = params.server_requests === true ? confirmLevelsOf(params) : []
 
+    // The methods this connection can show; what it said before is replaced, as for the confirm levels.
+    const requests = interactive.advertise(socket, params)
+
     state.clientCapabilities.push({
       server_requests: params.server_requests === true,
       confirm: levels,
-      ...(params.confirm_passkey === undefined ? {} : { confirm_passkey: params.confirm_passkey })
+      ...(params.confirm_passkey === undefined ? {} : { confirm_passkey: params.confirm_passkey }),
+      ...(Array.isArray(params.requests) ? { requests } : {})
     })
 
     if (levels.length) {
@@ -9873,6 +10014,66 @@ export async function startFakeGateway(options: FakeGatewayOptions = {}): Promis
     recordAnswer: ({ id, result, error }) => {
       state.serverRequestAnswers.push({ id, method: 'confirm', ...(error ? { error } : { result }) })
     }
+  }
+
+  /**
+   * The interactive requests (`input.form`, `input.file`, `review.draft`): who they go to, how an answer
+   * is checked, when they end. Every gateway has it: a client that never advertises them never sees one.
+   */
+  const interactive = new InteractiveGate<WebSocket>({
+    peers: () => [...sockets],
+    send: (socket, frame) => send(socket, frame),
+    publish: (type, sessionId, payload) => publish(type, sessionId, payload),
+    later: (fn, ms) => {
+      const timer = setTimeout(() => {
+        timers.delete(timer)
+        fn()
+      }, ms)
+
+      timers.add(timer)
+      timer.unref?.()
+
+      return () => {
+        clearTimeout(timer)
+        timers.delete(timer)
+      }
+    },
+    nextRequestId: () => `srq-${++serverRequestSequence}`,
+    now: () => Date.now(),
+    register: (id, entry) => {
+      state.openServerRequests.set(id, {
+        session_id: entry.sessionId,
+        method: entry.method,
+        params: entry.params,
+        viewer: entry.viewer
+      })
+    },
+    forget: id => {
+      state.openServerRequests.delete(id)
+    },
+    recordAnswer: ({ id, method, result, error }) => {
+      state.serverRequestAnswers.push({ id, method, ...(error ? { error } : { result }) })
+    }
+  })
+
+  /** Raise an interactive request on a profile's chat; the params default to the contract's example. */
+  function raiseInteractive(options: {
+    profile?: string
+    method: InteractiveMethod
+    params?: Record<string, unknown>
+  }): RaisedInteractive | { kind: 'no_session'; profile: string } {
+    const profile = options.profile ?? 'researcher'
+    const session = [...state.sessions.values()].find(entry => entry.profile === profile)
+
+    if (!session) {
+      return { kind: 'no_session', profile }
+    }
+
+    return interactive.raise({
+      sessionId: session.id,
+      method: options.method,
+      params: { ...defaultParams(options.method, Date.now()), ...options.params }
+    })
   }
 
   /**
@@ -10195,6 +10396,7 @@ export async function startFakeGateway(options: FakeGatewayOptions = {}): Promis
         ...(confirmOptions.turnIsolation ? { turnIsolation: true } : {})
       })
     },
+    raiseInteractive,
     raiseApprovalOn(approvalOptions = {}) {
       const profile = approvalOptions.profile ?? 'researcher'
       const session = sessionForProfile(profile)
