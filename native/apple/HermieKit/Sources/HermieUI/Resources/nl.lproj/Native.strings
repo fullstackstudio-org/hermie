@@ -106,6 +106,38 @@
 	<string>Gekopieerd</string>
 	<key>native.chat.menu.copyLinks</key>
 	<string>Links kopiëren</string>
+	<key>native.chat.options.contextBadge</key>
+	<string>Het contextvenster is bijna vol</string>
+	<key>native.chat.options.expensiveFallback</key>
+	<string>Dit model kost meer om te draaien. Toch gebruiken?</string>
+	<key>native.chat.options.exportMarkdown</key>
+	<string>Markdown (.md)</string>
+	<key>native.chat.options.exportText</key>
+	<string>Platte tekst (.txt)</string>
+	<key>native.chat.options.failed</key>
+	<string>De instelling kon niet worden gewijzigd: %@</string>
+	<key>native.chat.options.modelsEmpty</key>
+	<string>De gateway biedt geen modellen om uit te kiezen.</string>
+	<key>native.chat.options.modelsEmptySearch</key>
+	<string>Geen enkel model past.</string>
+	<key>native.chat.options.modelsFailed</key>
+	<string>De modellen konden niet worden geladen: %@</string>
+	<key>native.chat.reasoning.high</key>
+	<string>Hoog</string>
+	<key>native.chat.reasoning.low</key>
+	<string>Laag</string>
+	<key>native.chat.reasoning.max</key>
+	<string>Max</string>
+	<key>native.chat.reasoning.medium</key>
+	<string>Gemiddeld</string>
+	<key>native.chat.reasoning.minimal</key>
+	<string>Minimaal</string>
+	<key>native.chat.reasoning.none</key>
+	<string>Uit</string>
+	<key>native.chat.reasoning.ultra</key>
+	<string>Ultra</string>
+	<key>native.chat.reasoning.xhigh</key>
+	<string>Extra hoog</string>
 	<key>native.chat.titleOpensSettings</key>
 	<string>%@, bot-instellingen openen</string>
 	<key>native.chat.titleOpensSettingsHint</key>

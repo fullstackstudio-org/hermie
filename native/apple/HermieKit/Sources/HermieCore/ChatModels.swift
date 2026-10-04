@@ -439,6 +439,64 @@ public final class ChatModel {
     }
   }
 
+  /// Fast mode, reasoning effort, model and context usage, as the gateway last said. A chat the
+  /// gateway has not described yet has the defaults.
+  public var options: ChatSessionOptions { snapshot?.options ?? ChatSessionOptions() }
+
+  /// Switch fast mode on or off for this chat's session (`config.set`, `fast`: `fast` or `normal`).
+  @discardableResult
+  public func setFast(_ enabled: Bool) async -> ChatOptionOutcome {
+    await setOption(.fast, value: enabled ? "fast" : "normal")
+  }
+
+  /// Set the reasoning effort for this chat's session (`config.set`, `reasoning`, scope session).
+  @discardableResult
+  public func setReasoningEffort(_ effort: String) async -> ChatOptionOutcome {
+    await setOption(.reasoning, value: effort)
+  }
+
+  /// Switch this chat's session to another model. A model the gateway calls expensive answers
+  /// `.needsConfirmation` and writes nothing; only an explicit second call with `confirmExpensive`
+  /// (the reader said yes) goes through.
+  @discardableResult
+  public func setModel(_ choice: BotModelChoice, confirmExpensive: Bool = false) async -> ChatOptionOutcome {
+    await setOption(.model, value: choice.sessionValue, confirmExpensive: confirmExpensive)
+  }
+
+  /// The models the gateway offers, or why it would not say. Read once per connection.
+  public func modelChoices() async -> Result<[BotModelChoice], ChatOptionFailure> {
+    do {
+      return .success(try await store.modelChoices())
+    } catch {
+      return .failure(ChatOptionFailure(message: ChatResolver.describe(error)))
+    }
+  }
+
+  /// Ask the gateway for the context usage of a chat that has none yet. Quiet on failure: a gateway
+  /// without `session.usage` simply leaves the meter out.
+  public func refreshUsage() async {
+    await store.refreshUsage(key)
+  }
+
+  private func setOption(
+    _ option: ChatSessionOption, value: String, confirmExpensive: Bool = false
+  ) async -> ChatOptionOutcome {
+    guard canSend else {
+      let error = ChatRuntimeError.notAttached(key)
+      record(error)
+      return .failed(error.message)
+    }
+
+    do {
+      let outcome = try await store.setOption(key, option: option, value: value, confirmExpensive: confirmExpensive)
+      lastError = nil
+      return outcome
+    } catch {
+      record(error)
+      return .failed(ChatResolver.describe(error))
+    }
+  }
+
   private func perform(_ action: @Sendable (TranscriptStore, String) async throws -> Void) async {
     do {
       try await action(store, key)

@@ -8,7 +8,8 @@ struct ChatActionNotices: View {
 
   var body: some View {
     if let text = Self.text(
-      attachment: feed.attachmentNotice, retry: feed.lastRetry, yolo: feed.yoloFailure, branch: feed.branchFailure)
+      attachment: feed.attachmentNotice, retry: feed.lastRetry, yolo: feed.yoloFailure, branch: feed.branchFailure,
+      option: feed.optionNotice)
     {
       HStack(alignment: .firstTextBaseline, spacing: 8) {
         Label(text, systemImage: "info.circle")
@@ -34,7 +35,8 @@ struct ChatActionNotices: View {
   }
 
   static func text(
-    attachment: AttachmentOpenResult?, retry: RetryOutcome?, yolo: String? = nil, branch: String? = nil
+    attachment: AttachmentOpenResult?, retry: RetryOutcome?, yolo: String? = nil, branch: String? = nil,
+    option: ChatOptionNotice? = nil
   ) -> String? {
     if let yolo {
       return NativeStrings.Chat.Yolo.failed(yolo)
@@ -42,6 +44,13 @@ struct ChatActionNotices: View {
 
     if let branch {
       return "\(Strings.Chat.Sessions.branchFailed) \(SecurePrompt.displayText(branch, limit: 160))"
+    }
+
+    switch option {
+    case .failed(let reason)?: return NativeStrings.Chat.Options.failed(reason)
+    case .warning(let warning)?: return warning
+    case .exportFailed?: return Strings.Chat.Export.failed
+    case nil: break
     }
 
     switch attachment {

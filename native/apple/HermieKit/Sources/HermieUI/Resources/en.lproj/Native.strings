@@ -106,6 +106,38 @@
 	<string>Copied</string>
 	<key>native.chat.menu.copyLinks</key>
 	<string>Copy links</string>
+	<key>native.chat.options.contextBadge</key>
+	<string>Context window is almost full</string>
+	<key>native.chat.options.expensiveFallback</key>
+	<string>This model costs more to run. Use it anyway?</string>
+	<key>native.chat.options.exportMarkdown</key>
+	<string>Markdown (.md)</string>
+	<key>native.chat.options.exportText</key>
+	<string>Plain text (.txt)</string>
+	<key>native.chat.options.failed</key>
+	<string>The setting could not be changed: %@</string>
+	<key>native.chat.options.modelsEmpty</key>
+	<string>The gateway offers no models to choose from.</string>
+	<key>native.chat.options.modelsEmptySearch</key>
+	<string>No model matches.</string>
+	<key>native.chat.options.modelsFailed</key>
+	<string>The models could not be loaded: %@</string>
+	<key>native.chat.reasoning.high</key>
+	<string>High</string>
+	<key>native.chat.reasoning.low</key>
+	<string>Low</string>
+	<key>native.chat.reasoning.max</key>
+	<string>Max</string>
+	<key>native.chat.reasoning.medium</key>
+	<string>Medium</string>
+	<key>native.chat.reasoning.minimal</key>
+	<string>Minimal</string>
+	<key>native.chat.reasoning.none</key>
+	<string>Off</string>
+	<key>native.chat.reasoning.ultra</key>
+	<string>Ultra</string>
+	<key>native.chat.reasoning.xhigh</key>
+	<string>Extra high</string>
 	<key>native.chat.titleOpensSettings</key>
 	<string>%@, open bot settings</string>
 	<key>native.chat.titleOpensSettingsHint</key>

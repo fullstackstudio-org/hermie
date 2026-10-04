@@ -240,6 +240,8 @@ public struct ChatSnapshot: Sendable, Equatable {
   public var revision: Int
   /// The session skips approval requests (`session.info.yolo`).
   public var yolo: Bool = false
+  /// Fast mode, reasoning effort, model and context usage, as the gateway last said.
+  public var options = ChatSessionOptions()
 }
 
 /// One chat-list row's worth of a chat, recomputed only for chats that changed.

@@ -102,6 +102,25 @@ final class ChatFeed: ChatScreenFeed {
   var confirmingYolo = false
   /// Why the last switch of YOLO mode did not go through, for a line over the chat.
   private(set) var yoloFailure: String?
+  /// Fast mode, reasoning effort, model and context usage (`ChatModel.options`), set only when they
+  /// change: the options menu and the toolbar's ring read them, and nothing else on the screen does.
+  /// The methods are in `ChatFeed+Options.swift`.
+  var sessionOptions = ChatSessionOptions()
+  /// The chat is bound to a runtime session, so the options menu offers what needs one.
+  var optionsAvailable = false
+  /// The model list is up.
+  var showingModelPicker = false
+  /// The gateway's models, read when the list is first opened.
+  var modelList = ModelListState.idle
+  /// A model the gateway calls expensive, waiting for the reader's yes (the alert is up while set).
+  var pendingModel: PendingModelSwitch?
+  /// Why the last option switch or export did not go through, or what the gateway warned about.
+  var optionNotice: ChatOptionNotice?
+  /// The file the exporter is saving, while it is up.
+  var exportFile: TranscriptFile?
+  var exporting = false
+  /// `session.usage` was asked for on this attach (once, for a chat resumed with no usage).
+  @ObservationIgnored var usageAsked = false
 
   @ObservationIgnored private let pipeline = ChatRowPipeline()
   @ObservationIgnored private var tasks: [Task<Void, Never>] = []
@@ -287,6 +306,7 @@ final class ChatFeed: ChatScreenFeed {
     lastRetry = nil
     yoloFailure = nil
     branchFailure = nil
+    optionNotice = nil
   }
 
   /// The reader asked for YOLO mode on or off. Turning it on asks first (`confirmingYolo`); turning
@@ -481,6 +501,8 @@ final class ChatFeed: ChatScreenFeed {
     if yolo != snapshot.yolo {
       yolo = snapshot.yolo
     }
+
+    applyOptions(snapshot)
 
     if snapshot.hydration == .error {
       openIfNeeded()

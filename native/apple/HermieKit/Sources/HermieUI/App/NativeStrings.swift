@@ -49,6 +49,62 @@ enum NativeStrings {
       String(localized: "native.chat.titleOpensSettingsHint", table: "Native", bundle: .module)
     }
 
+    /// The reasoning effort levels of the chat options menu, keyed by what the gateway calls them.
+    enum Reasoning {
+      static func label(_ effort: String) -> String? {
+        switch effort.lowercased() {
+        case "none": String(localized: "native.chat.reasoning.none", table: "Native", bundle: .module)
+        case "minimal": String(localized: "native.chat.reasoning.minimal", table: "Native", bundle: .module)
+        case "low": String(localized: "native.chat.reasoning.low", table: "Native", bundle: .module)
+        case "medium": String(localized: "native.chat.reasoning.medium", table: "Native", bundle: .module)
+        case "high": String(localized: "native.chat.reasoning.high", table: "Native", bundle: .module)
+        case "xhigh": String(localized: "native.chat.reasoning.xhigh", table: "Native", bundle: .module)
+        case "max": String(localized: "native.chat.reasoning.max", table: "Native", bundle: .module)
+        case "ultra": String(localized: "native.chat.reasoning.ultra", table: "Native", bundle: .module)
+        default: nil
+        }
+      }
+    }
+
+    enum Options {
+      /// The setting could not be changed: {reason} (the line over the chat when the gateway refused)
+      static func failed(_ reason: String) -> String {
+        String(
+          localized: "native.chat.options.failed", defaultValue: "The setting could not be changed: \(reason)",
+          table: "Native", bundle: .module)
+      }
+      /// The models could not be loaded: {reason} (in the model list)
+      static func modelsFailed(_ reason: String) -> String {
+        String(
+          localized: "native.chat.options.modelsFailed", defaultValue: "The models could not be loaded: \(reason)",
+          table: "Native", bundle: .module)
+      }
+      /// The gateway offers no models to choose from. (in the model list)
+      static var modelsEmpty: String {
+        String(localized: "native.chat.options.modelsEmpty", table: "Native", bundle: .module)
+      }
+      /// No model matches. (in the model list, when the search finds nothing)
+      static var modelsEmptySearch: String {
+        String(localized: "native.chat.options.modelsEmptySearch", table: "Native", bundle: .module)
+      }
+      /// This model costs more to run. Use it anyway? (the alert's message when the gateway sent none)
+      static var expensiveFallback: String {
+        String(localized: "native.chat.options.expensiveFallback", table: "Native", bundle: .module)
+      }
+      /// Markdown (.md) (an item of the Export submenu)
+      static var exportMarkdown: String {
+        String(localized: "native.chat.options.exportMarkdown", table: "Native", bundle: .module)
+      }
+      /// Plain text (.txt) (an item of the Export submenu)
+      static var exportText: String {
+        String(localized: "native.chat.options.exportText", table: "Native", bundle: .module)
+      }
+      /// Context window is almost full (what VoiceOver says for the toolbar's ring)
+      static var contextBadge: String {
+        String(localized: "native.chat.options.contextBadge", table: "Native", bundle: .module)
+      }
+    }
+
     enum Yolo {
       /// YOLO (the small capsule in the chat's title while YOLO mode is on)
       static var badge: String { String(localized: "native.chat.yolo.badge", table: "Native", bundle: .module) }

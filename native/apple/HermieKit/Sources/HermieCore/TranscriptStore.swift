@@ -228,6 +228,10 @@ public actor TranscriptStore {
   var tasks: [UInt64: Task<Void, Never>] = [:]
   var nextTaskID: UInt64 = 0
   var isShutDown = false
+  /// The gateway's model inventory, read once (`modelChoices`).
+  var modelChoiceCache: [BotModelChoice]?
+  /// `session.usage` is worth calling on this connection until the gateway refuses it once.
+  var usageSupported = true
 
   public init(link: any GatewayLink, roster: BotRoster, cache: (any ChatCaching)? = nil, options: Options = Options()) {
     self.link = link
@@ -1126,7 +1130,8 @@ public actor TranscriptStore {
       attached: !(state.runtimeSessionID ?? "").isEmpty,
       canLoadOlder: !(record.window?.reachedStart ?? false),
       revision: revision,
-      yolo: state.info?.yolo ?? false
+      yolo: state.info?.yolo ?? false,
+      options: ChatSessionOptions(state: state)
     )
   }
 }

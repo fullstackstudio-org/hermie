@@ -202,6 +202,13 @@ struct ChatSessionView<Composer: View>: View {
               }
             }
 
+            // The context window is nearly full: a small ring, until there is room again.
+            if ContextRing.shows(feed.sessionOptions.contextUsage), let usage = feed.sessionOptions.contextUsage {
+              ToolbarItem(placement: .primaryAction) {
+                ContextRing(usage: usage)
+              }
+            }
+
             ToolbarItem(placement: .primaryAction) {
               VerbosityMenu(feed: feed, chat: chat)
             }
@@ -232,6 +239,8 @@ struct ChatSessionView<Composer: View>: View {
     } message: {
       Text(NativeStrings.Chat.Yolo.confirmMessage)
     }
+    // The model list, the alert about an expensive model, and the save sheet of an export.
+    .modifier(ChatOptionsPresentations(owner: owner))
     // An attachment a message names, opened from its chip.
     .quickLookPreview(
       Binding(get: { owner.feed?.attachmentPreview }, set: { owner.feed?.attachmentPreview = $0 })
@@ -703,7 +712,8 @@ struct YoloBadge: View {
 }
 
 /// The chat's options menu: the bot's conversations, and verbosity and the two switches per chat
-/// screen (`setVisibility`), and YOLO mode.
+/// screen (`setVisibility`), and, while the chat is attached, YOLO mode, fast mode, reasoning effort,
+/// the model, the context meter and the export.
 struct VerbosityMenu: View {
   let feed: ChatFeed
   let chat: ChatRef
@@ -746,14 +756,20 @@ struct VerbosityMenu: View {
         set: { model.setVisibility(VisibilityOptions(level: options.level, showBotToBot: $0, showThinking: options.showThinking)) }
       ))
 
-      Divider()
+      // What needs a session to ask: these are not offered while the chat is not attached.
+      if feed.optionsAvailable {
+        Divider()
 
-      // This session only. Turning it on asks first (`ChatFeed.requestYolo`).
-      Toggle(isOn: Binding(get: { feed.yolo }, set: { feed.requestYolo($0) })) {
-        Label(Strings.Chat.Options.yolo, systemImage: "bolt.fill")
+        // This session only. Turning it on asks first (`ChatFeed.requestYolo`).
+        Toggle(isOn: Binding(get: { feed.yolo }, set: { feed.requestYolo($0) })) {
+          Label(Strings.Chat.Options.yolo, systemImage: "bolt.fill")
+        }
+        .accessibilityHint(Strings.Chat.Options.yoloHint)
+        .accessibilityIdentifier("hermie.chat.options.yolo")
+
+        // Fast mode, reasoning effort and the model for this session, the context meter, the export.
+        ChatSessionOptionItems(feed: feed)
       }
-      .accessibilityHint(Strings.Chat.Options.yoloHint)
-      .accessibilityIdentifier("hermie.chat.options.yolo")
     } label: {
       Label(Strings.Chat.Options.title, systemImage: "slider.horizontal.3")
     }

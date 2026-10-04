@@ -1205,6 +1205,390 @@
         }
       }
     },
+    "native.chat.options.contextBadge" : {
+      "comment" : "What VoiceOver says, with the percentage, for the small ring in the chat's toolbar that appears when the context window is nearly full.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Das Kontextfenster ist fast voll"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Context window is almost full"
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Het contextvenster is bijna vol"
+          }
+        }
+      }
+    },
+    "native.chat.options.expensiveFallback" : {
+      "comment" : "The message of the alert that asks before an expensive model is used, when the gateway sent no words of its own.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Dieses Modell kostet im Betrieb mehr. Trotzdem verwenden?"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "This model costs more to run. Use it anyway?"
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Dit model kost meer om te draaien. Toch gebruiken?"
+          }
+        }
+      }
+    },
+    "native.chat.options.exportMarkdown" : {
+      "comment" : "An item of the Export submenu of the chat options: the conversation as a Markdown file.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Markdown (.md)"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Markdown (.md)"
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Markdown (.md)"
+          }
+        }
+      }
+    },
+    "native.chat.options.exportText" : {
+      "comment" : "An item of the Export submenu of the chat options: the conversation as a plain text file.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Reiner Text (.txt)"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Plain text (.txt)"
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Platte tekst (.txt)"
+          }
+        }
+      }
+    },
+    "native.chat.options.failed" : {
+      "comment" : "Above a chat, when the gateway refused to change fast mode, the reasoning effort or the model. The argument is the gateway's reason.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Die Einstellung konnte nicht geändert werden: %@"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "The setting could not be changed: %@"
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "De instelling kon niet worden gewijzigd: %@"
+          }
+        }
+      }
+    },
+    "native.chat.options.modelsEmpty" : {
+      "comment" : "In the model list of a chat, when the gateway listed no models at all.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Das Gateway bietet keine Modelle zur Auswahl an."
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "The gateway offers no models to choose from."
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "De gateway biedt geen modellen om uit te kiezen."
+          }
+        }
+      }
+    },
+    "native.chat.options.modelsEmptySearch" : {
+      "comment" : "In the model list of a chat, when the search matches nothing.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Kein Modell passt."
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "No model matches."
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Geen enkel model past."
+          }
+        }
+      }
+    },
+    "native.chat.options.modelsFailed" : {
+      "comment" : "In the model list of a chat, when the gateway would not list its models. The argument is the reason.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Die Modelle konnten nicht geladen werden: %@"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "The models could not be loaded: %@"
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "De modellen konden niet worden geladen: %@"
+          }
+        }
+      }
+    },
+    "native.chat.reasoning.high" : {
+      "comment" : "A reasoning effort level, in the chat options menu's submenu and in the row that names the current one.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Hoch"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "High"
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Hoog"
+          }
+        }
+      }
+    },
+    "native.chat.reasoning.low" : {
+      "comment" : "A reasoning effort level, in the chat options menu's submenu and in the row that names the current one.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Niedrig"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Low"
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Laag"
+          }
+        }
+      }
+    },
+    "native.chat.reasoning.max" : {
+      "comment" : "A reasoning effort level, in the chat options menu's submenu and in the row that names the current one.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Maximal"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Max"
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Max"
+          }
+        }
+      }
+    },
+    "native.chat.reasoning.medium" : {
+      "comment" : "A reasoning effort level, in the chat options menu's submenu and in the row that names the current one.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Mittel"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Medium"
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Gemiddeld"
+          }
+        }
+      }
+    },
+    "native.chat.reasoning.minimal" : {
+      "comment" : "A reasoning effort level, in the chat options menu's submenu and in the row that names the current one.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Minimal"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Minimal"
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Minimaal"
+          }
+        }
+      }
+    },
+    "native.chat.reasoning.none" : {
+      "comment" : "A reasoning effort level, in the chat options menu's submenu and in the row that names the current one.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Aus"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Off"
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Uit"
+          }
+        }
+      }
+    },
+    "native.chat.reasoning.ultra" : {
+      "comment" : "A reasoning effort level, in the chat options menu's submenu and in the row that names the current one.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Ultra"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Ultra"
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Ultra"
+          }
+        }
+      }
+    },
+    "native.chat.reasoning.xhigh" : {
+      "comment" : "A reasoning effort level, in the chat options menu's submenu and in the row that names the current one.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Sehr hoch"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Extra high"
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Extra hoog"
+          }
+        }
+      }
+    },
     "native.chat.titleOpensSettings" : {
       "extractionState" : "manual",
       "localizations" : {
