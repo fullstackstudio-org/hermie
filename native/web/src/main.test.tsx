@@ -3,13 +3,18 @@
  * whatever window it finds. Each case gets a fresh module graph and a fresh
  * `#root`, and the gateway is a fake `fetch`.
  */
-import { fireEvent, screen } from '@testing-library/react'
+import { configure, fireEvent, screen } from '@testing-library/react'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 
 import { fakeFetch, gatedRoutes, json, meRoute, ungatedRoutes, type Route } from './test-support/fake-fetch'
 import { WEB_STRINGS_SOURCE } from './i18n/web-strings'
 import type * as LoginBounceModule from './boot/login-bounce'
 import type * as SessionModule from './features/shell/session'
+
+// The entry module boots the whole app; on a loaded CI runner that takes longer than the one-second
+// default of the async helpers.
+configure({ asyncUtilTimeout: 5000 })
+const waitLong = <T,>(check: () => T | Promise<T>): Promise<T> => vi.waitFor(check, { timeout: 5000 })
 
 const APP_PATH = '/dashboard-plugins/hermie/app/index.html'
 
@@ -119,7 +124,7 @@ describe('the entry module', () => {
       fireEvent.input(field)
       fireEvent.click(screen.getByRole('button', { name: 'Continue' }))
 
-      await vi.waitFor(() =>
+      await waitLong(() =>
         expect(screen.getByRole('alert').textContent).toBe(
           'The gateway did not accept this token. Check it and try again.'
         )
@@ -184,7 +189,7 @@ describe('the entry module', () => {
         await load(APP_PATH, { ...ungatedRoutes, 'GET /': dashboard(TOKEN), 'GET /api/profiles': profiles })
         fireEvent.click(await screen.findByRole('button', { name: 'Forget the token' }))
 
-        await vi.waitFor(() => expect(heard).toEqual([{ type: 'forget' }]))
+        await waitLong(() => expect(heard).toEqual([{ type: 'forget' }]))
       } finally {
         otherTab.close()
       }
@@ -235,7 +240,7 @@ describe('the entry module', () => {
         current.token = 'tok-after-restart'
         await refuse()
 
-        await vi.waitFor(() =>
+        await waitLong(() =>
           expect(
             gateway.calls.some(
               call =>
@@ -255,7 +260,7 @@ describe('the entry module', () => {
         await refuse()
 
         expect(await screen.findByRole('button', { name: 'Read it from the dashboard again' })).toBeTruthy()
-        await vi.waitFor(() => expect(gateway.calls.filter(call => new URL(call.url).pathname === '/')).toHaveLength(2))
+        await waitLong(() => expect(gateway.calls.filter(call => new URL(call.url).pathname === '/')).toHaveLength(2))
         // The same token is not checked again, and the app was not restarted.
         expect(gateway.calls.filter(call => new URL(call.url).pathname === '/api/profiles')).toHaveLength(1)
       })
@@ -289,7 +294,7 @@ describe('the entry module', () => {
       fireEvent.input(field)
       fireEvent.click(screen.getByRole('button', { name: 'Continue' }))
 
-      await vi.waitFor(() => expect(screen.getByRole('alert').textContent).toBe('Something went wrong.'))
+      await waitLong(() => expect(screen.getByRole('alert').textContent).toBe('Something went wrong.'))
       expect(screen.getByRole('status').textContent).toBe('')
     })
   })
@@ -391,7 +396,7 @@ describe('the entry module', () => {
     await load(APP_PATH, { ...gatedRoutes, 'GET /api/auth/me': meRoute })
     fireEvent.click(await screen.findByRole('button', { name: 'Sign out' }))
 
-    await vi.waitFor(() => expect(order).toEqual(['session stopped', 'signed out']))
+    await waitLong(() => expect(order).toEqual(['session stopped', 'signed out']))
     expect((screen.getByRole('button', { name: 'Sign out' }) as HTMLButtonElement).disabled).toBe(true)
   })
 
