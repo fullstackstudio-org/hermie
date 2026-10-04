@@ -192,26 +192,19 @@ export function Passkeys({ store = passkeysStore }: { store?: StoreApi<PasskeysS
     void runtime?.refresh()
   }, [runtime])
 
-  // The grant of a self-enrolment waiting to be finished runs out: the section goes when the gateway stops taking it.
-  const resumeUntil = selfEnrolment?.expiresAt ?? null
-
+  // Coming back to this page from the browser's back-forward cache (after leaving for the sign-in) is not a page that
+  // is still on its way out.
   useEffect(() => {
-    if (resumeUntil === null || !runtime) {
-      return undefined
+    const back = (event: PageTransitionEvent): void => {
+      if (event.persisted) {
+        setBusy(null)
+      }
     }
 
-    const timer = setTimeout(
-      () => {
-        if (runtime.expireSelfEnrolment()) {
-          setMessage({ tone: 'danger', text: words.selfExpired })
-          setSignInFailed(true)
-        }
-      },
-      Math.max(0, resumeUntil * 1000 - Date.now()) + 50
-    )
+    globalThis.addEventListener('pageshow', back)
 
-    return () => clearTimeout(timer)
-  }, [resumeUntil, runtime, words.selfExpired])
+    return () => globalThis.removeEventListener('pageshow', back)
+  }, [])
 
   const accepted =
     status?.enabled === true && Array.isArray(status.rp?.web) && status.rp.web.includes(rpId) && !unlisted
@@ -278,12 +271,18 @@ export function Passkeys({ store = passkeysStore }: { store?: StoreApi<PasskeysS
     }
 
     setSignInFailed(false)
-    // The window leaves for the sign-in page; what the live region says meanwhile is the only sign of life.
-    void run('self', async () => {
-      await runtime.startSelfEnrolment()
+    setBusy('self')
+    setMessage(null)
 
-      return words.selfStarting
-    })
+    // The window leaves for the sign-in page: once the navigation has begun the page stays busy (no second grant from
+    // a second click) and what the live region says is the only sign of life.
+    runtime.startSelfEnrolment().then(
+      () => setMessage({ tone: 'ok', text: words.selfStarting }),
+      (error: unknown) => {
+        setMessage({ tone: 'danger', text: actionFailure(error, rpId) })
+        setBusy(null)
+      }
+    )
   }
 
   const finishSelf = (): void => {

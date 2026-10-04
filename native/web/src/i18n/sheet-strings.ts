@@ -359,11 +359,11 @@ export const SHEET_STRINGS_SOURCE = {
       },
       selfFinishHelp: {
         en: ({ time }: { time: string }) =>
-          `You signed in again. Your browser can now create the passkey; this stays possible until ${time}.`,
+          `If you finished signing in again, add your passkey now. This works until ${time}.`,
         nl: ({ time }: { time: string }) =>
-          `Je bent opnieuw ingelogd. Je browser kan nu de passkey maken; dat kan tot ${time}.`,
+          `Als je klaar bent met opnieuw inloggen, voeg dan nu je passkey toe. Dit kan tot ${time}.`,
         de: ({ time }: { time: string }) =>
-          `Du hast dich erneut angemeldet. Dein Browser kann jetzt den Passkey erstellen; das ist bis ${time} möglich.`
+          `Wenn du die erneute Anmeldung abgeschlossen hast, füge jetzt deinen Passkey hinzu. Das ist bis ${time} möglich.`
       },
       selfFinish: {
         en: 'Finish adding your passkey',
@@ -383,7 +383,7 @@ export const SHEET_STRINGS_SOURCE = {
       /** `reauth_invalid` unknown, or a grant that ran out here: expired, or not started in this browser. */
       selfExpired: {
         en: 'This set-up has expired or was not started in this browser. Sign in again to start over.',
-        nl: 'Deze koppeling is verlopen of is niet in deze browser gestart. Log opnieuw in om opnieuw te beginnen.',
+        nl: 'Deze aanvraag is verlopen of is niet in deze browser gestart. Log opnieuw in om opnieuw te beginnen.',
         de: 'Dieser Vorgang ist abgelaufen oder wurde nicht in diesem Browser gestartet. Melde dich erneut an, um neu zu beginnen.'
       },
       /** `reauth_invalid` spent. */

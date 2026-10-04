@@ -224,7 +224,7 @@ async function routeSecureOrigin(context: BrowserContext, origin: string, target
       })
       const location = response.headers().location
 
-      if (response.status() >= 300 && response.status() < 400 && location) {
+      if (request.isNavigationRequest() && response.status() >= 300 && response.status() < 400 && location) {
         const { location: _location, 'content-length': _length, ...headers } = response.headers()
 
         await route.fulfill({

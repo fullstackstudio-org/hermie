@@ -68,15 +68,21 @@ There are two ways to add a passkey from the page, and a third elsewhere:
   page's host is accepted; the sentence under the button says "You will sign in again to prove it is you, then
   your browser creates the passkey". The click asks the gateway for a grant (`POST
 /api/auth/passkeys/reauth/begin`, which also sets an HttpOnly binding cookie the page never sees), keeps the
-  grant's **id and deadline, and nothing else,** in this tab's `sessionStorage` (`hermie:<ns>:passkey-enrol`,
-  next to the stashed route), and sends the whole window to the gateway's own `/auth/login?…&reauth=<id>&next=…`
+  grant's **id and deadline, and whose it is (the author id), and nothing else,** in this tab's `sessionStorage`
+  (`hermie:<ns>:passkey-enrol`, next to the stashed route; somebody else signed in when the page is back does not
+  find it), and sends the whole window to the gateway's own `/auth/login?…&reauth=<id>&next=…`, a path the page
+  rebuilds itself (exactly `<prefix>/auth/login` on its own origin, with only the grant and `next`)
   (top level: an identity provider cannot be framed). The gateway decides whether that sign-in was fresh. Back on
   the page, on the route it left, the same section reads **Finish adding your passkey**: a button, because the
   browser's passkey sheet wants a click. It runs `register/begin` with the grant, the browser's ceremony, and
-  `register/finish` with the grant, and the stash goes. A closed sheet, a lost connection or a rate limit leave
-  the grant for another try until it runs out (10 minutes); every answer that ends it (`reauth_invalid` and its
-  reasons, switched off, a provider that cannot ask again) clears the stash, says in a sentence what happened
-  and offers **Sign in again**, which starts a new grant. Signing out clears the stash too.
+  `register/finish` with the grant, and the stash goes. The page cannot know that the sign-in finished, so the
+  section says "If you finished signing in again, add your passkey now" and the gateway decides; the deadline it
+  shows is for display, and a clock that is a few minutes off does not drop a grant the gateway still takes. A
+  closed sheet, a lost connection or a rate limit leave the grant for another try until it runs out (10 minutes);
+  every answer that ends it (`reauth_invalid` and its reasons, switched off, a provider that cannot ask again)
+  clears the stash and says in a sentence what happened. A sign-in that did not count or a grant that is gone
+  (`reauth_invalid`) offers **Sign in again**, which starts a new grant; "switched off" and "provider cannot ask
+  again" leave only the code path. Signing out clears the stash too.
 - **Add with a code**, for the first passkey on a gateway where self-enrolment is off or unavailable, and for
   another device: an operator's one-time code, or one made with a passkey this person already has.
 - **Make a code** (needs a passkey of this browser) mints a code for another device.

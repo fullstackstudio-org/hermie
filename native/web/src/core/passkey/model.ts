@@ -129,6 +129,9 @@ export const DECLINE = Object.freeze({ decision: 'declined', method: 'tap' })
 /** The longest a confirmation stays open on this page, whatever `expires_at` says (as in the native apps). */
 export const MAX_CONFIRM_SECONDS = 120
 
+/** A stashed self-enrolment grant this far past its deadline is stale whatever the clock says (seconds). */
+const STALE_GRANT_SECONDS = 3600
+
 /** At most this many finished confirmations are kept, for the sheet to show their end. */
 const FINISHED_KEPT = 20
 
@@ -1257,7 +1260,12 @@ export class PasskeyModel {
 
   // ── adding a passkey by signing in again (contract §7.2) ──────────────────────────────────────
 
-  /** The stash as the store shows it: a grant that has not run out, or nothing (an expired one is removed). */
+  /**
+   * The stash as the store shows it. The deadline is the gateway's, read on this page's clock: it is for display, and
+   * a grant that looks over is still asked about (`finishSelfEnrolment`), because a clock that is a few minutes off
+   * must not throw away a grant the gateway still takes. Only one more than an hour past, which no skew explains, is
+   * removed.
+   */
   private keptSelfEnrolment(): { expiresAt: number } | null {
     const stash = this.options.selfEnrolment?.stash
     const entry = stash?.read() ?? null
@@ -1266,7 +1274,7 @@ export class PasskeyModel {
       return null
     }
 
-    if (entry.expiresAt <= this.now) {
+    if (entry.expiresAt <= this.now - STALE_GRANT_SECONDS) {
       stash?.clear()
 
       return null
@@ -1334,7 +1342,8 @@ export class PasskeyModel {
     const seam = this.options.selfEnrolment
     const entry = seam?.stash.read() ?? null
 
-    if (!seam || entry === null || entry.expiresAt <= this.now) {
+    // The local deadline is not asked: the gateway says whether the grant still lives (`reauth_invalid`, which ends it).
+    if (!seam || entry === null) {
       this.forgetSelfEnrolment()
 
       throw new PasskeyActionError({ kind: 'self_enrol_expired' })
@@ -1358,19 +1367,6 @@ export class PasskeyModel {
   /** The person gave up on a self-enrolment that signed in already: the stash goes (the grant runs out by itself). */
   cancelSelfEnrolment(): void {
     this.forgetSelfEnrolment()
-  }
-
-  /** The page's clock reached the grant's deadline: forget it. Returns whether it did. */
-  expireSelfEnrolment(): boolean {
-    const kept = this.store.getState().selfEnrolment
-
-    if (!kept || kept.expiresAt > this.now) {
-      return false
-    }
-
-    this.forgetSelfEnrolment()
-
-    return true
   }
 
   private forgetSelfEnrolment(): void {
@@ -1770,14 +1766,14 @@ export function endsGrant(error: unknown): boolean {
   }
 }
 
-/** The failure is a sign-in that did not count (a new grant is the way on): "Sign in again" is what to offer. */
+/**
+ * The failure is a sign-in that did not count or a grant that is gone (a new grant is the way on): "Sign in again" is
+ * what to offer. Not a gateway that switched self-enrolment off, nor a provider that cannot ask again.
+ */
 export function isReauthFailure(error: unknown): boolean {
   const problem = error instanceof PasskeyActionError ? error.problem : null
 
-  return (
-    problem?.kind === 'self_enrol_expired' ||
-    (problem?.kind === 'refused' && (problem.error === 'reauth_invalid' || problem.error === 'self_enrol_disabled'))
-  )
+  return problem?.kind === 'self_enrol_expired' || (problem?.kind === 'refused' && problem.error === 'reauth_invalid')
 }
 
 function ceremonyActionError(error: unknown): PasskeyActionError {

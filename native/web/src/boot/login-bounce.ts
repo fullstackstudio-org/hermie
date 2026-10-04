@@ -96,30 +96,42 @@ function writeStash(environment: BounceEnvironment, key: string, value: string |
 }
 
 /**
- * The sign-in page of a self-enrolment: the gateway's own `login_path` (it carries the grant) plus `next`, the page's
- * path. `null` when `loginPath` is not a path on this origin that ends in `/auth/login`: whatever the gateway
- * answers, this page navigates nowhere else.
+ * The sign-in page of a self-enrolment, built here from what the gateway's `login_path` says and nothing more: it is
+ * parsed first (so dot-segments, encoded dots and doubled slashes are resolved before anything is judged), must land
+ * on this origin at exactly `<prefix>/auth/login`, and only its `provider` and `reauth` are taken; `next` is the
+ * page's own path. `null` for anything else: whatever the gateway answers, this page navigates nowhere else.
+ * Returns a path on this origin.
  */
-export function reauthLoginUrl(basePath: Pick<ResolvedBasePath, 'appPath'>, loginPath: string): string | null {
-  if (!loginPath.startsWith('/') || loginPath.startsWith('//') || loginPath.includes('\\')) {
-    return null
-  }
-
+export function reauthLoginUrl(
+  basePath: Pick<ResolvedBasePath, 'appPath' | 'baseUrl' | 'prefix'>,
+  loginPath: string
+): string | null {
+  const origin = new URL(basePath.baseUrl).origin
   let parsed: URL
 
   try {
-    parsed = new URL(loginPath, 'https://placeholder.invalid')
+    parsed = new URL(loginPath, origin)
   } catch {
     return null
   }
 
-  if (parsed.origin !== 'https://placeholder.invalid' || !parsed.pathname.endsWith('/auth/login')) {
+  const reauth = parsed.searchParams.get('reauth')
+
+  if (parsed.origin !== origin || parsed.pathname !== `${basePath.prefix}/auth/login` || !reauth) {
     return null
   }
 
-  parsed.searchParams.set('next', basePath.appPath)
+  const query = new URLSearchParams()
+  const provider = parsed.searchParams.get('provider')
 
-  return `${parsed.pathname}${parsed.search}`
+  if (provider) {
+    query.set('provider', provider)
+  }
+
+  query.set('reauth', reauth)
+  query.set('next', basePath.appPath)
+
+  return `${parsed.pathname}?${query}`
 }
 
 /**
@@ -164,11 +176,14 @@ export interface EnrolStash {
 const GRANT_ID = /^[A-Za-z0-9_-]{16,64}$/u
 
 /**
- * The self-enrolment stash of this tab: `{"grant_id", "expires_at"}` under `hermie:<ns>:passkey-enrol`, gone with
- * the tab. A value that is not exactly that is not a stash and is removed.
+ * The self-enrolment stash of this tab: `{"grant_id", "expires_at", "owner"}` under `hermie:<ns>:passkey-enrol`, gone
+ * with the tab. `owner` is the author id of the person who started it (the same id the gateway stamps on every
+ * message): somebody else signed in when the page is back does not find it, and it is removed. A value that is not
+ * exactly that is not a stash and is removed.
  */
 export function createEnrolStash(
   basePath: Pick<ResolvedBasePath, 'namespace'>,
+  owner: string,
   environment: BounceEnvironment = pageBounceEnvironment()
 ): EnrolStash {
   const key = enrolStashKey(basePath)
@@ -187,10 +202,11 @@ export function createEnrolStash(
     }
 
     try {
-      const parsed = JSON.parse(raw) as { grant_id?: unknown; expires_at?: unknown } | null
+      const parsed = JSON.parse(raw) as { grant_id?: unknown; expires_at?: unknown; owner?: unknown } | null
 
       if (
         parsed &&
+        parsed.owner === owner &&
         typeof parsed.grant_id === 'string' &&
         GRANT_ID.test(parsed.grant_id) &&
         typeof parsed.expires_at === 'number' &&
@@ -210,7 +226,7 @@ export function createEnrolStash(
   return {
     read,
     write(entry) {
-      writeStash(environment, key, JSON.stringify({ grant_id: entry.grantId, expires_at: entry.expiresAt }))
+      writeStash(environment, key, JSON.stringify({ grant_id: entry.grantId, expires_at: entry.expiresAt, owner }))
 
       const back = read()
 

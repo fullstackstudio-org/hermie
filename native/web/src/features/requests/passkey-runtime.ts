@@ -27,7 +27,6 @@ export type PasskeyActions = Pick<
   | 'startSelfEnrolment'
   | 'finishSelfEnrolment'
   | 'cancelSelfEnrolment'
-  | 'expireSelfEnrolment'
 >
 
 export const PasskeyRuntimeContext = createContext<PasskeyActions | null>(null)

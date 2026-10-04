@@ -1578,32 +1578,22 @@ describe('adding a passkey by signing in again: coming back', () => {
     expect(page.store.getState().selfEnrolment).toEqual({ expiresAt: NOW + 300 })
   })
 
-  it('drops a stash that ran out while the person was away', () => {
-    const trip = seam({ kept: { grantId: GRANT, expiresAt: NOW - 1 } })
-    const page = setUp({ client: grantClient().client, selfEnrolment: trip.seam })
+  it('still shows a grant whose deadline looks past by this page’s clock (the gateway decides), and drops a long-stale one', () => {
+    const late = seam({ kept: { grantId: GRANT, expiresAt: NOW - 120 } })
+    const stale = seam({ kept: { grantId: GRANT, expiresAt: NOW - 3601 } })
 
-    expect(page.store.getState().selfEnrolment).toBeNull()
-    expect(trip.kept).toBeNull()
+    expect(setUp({ client: grantClient().client, selfEnrolment: late.seam }).store.getState().selfEnrolment).toEqual({
+      expiresAt: NOW - 120
+    })
+    expect(late.kept).not.toBeNull()
+    expect(setUp({ client: grantClient().client, selfEnrolment: stale.seam }).store.getState().selfEnrolment).toBeNull()
+    expect(stale.kept).toBeNull()
   })
 
   it('shows nothing without a stash', () => {
     const page = setUp({ client: grantClient().client, selfEnrolment: seam().seam })
 
     expect(page.store.getState().selfEnrolment).toBeNull()
-  })
-
-  it('lets go of the grant when the clock reaches its deadline, and not before', () => {
-    const trip = seam({ kept: { grantId: GRANT, expiresAt: NOW + 300 } })
-    const page = setUp({ client: grantClient().client, selfEnrolment: trip.seam })
-
-    expect(page.model.expireSelfEnrolment()).toBe(false)
-    expect(trip.kept).not.toBeNull()
-
-    page.clock.now = NOW + 300
-
-    expect(page.model.expireSelfEnrolment()).toBe(true)
-    expect(page.store.getState().selfEnrolment).toBeNull()
-    expect(trip.kept).toBeNull()
   })
 
   it('forgets a grant the person gave up on', () => {
@@ -1655,15 +1645,32 @@ describe('adding a passkey by signing in again: coming back', () => {
     await expect(page.model.finishSelfEnrolment()).rejects.toMatchObject({ problem: { kind: 'self_enrol_expired' } })
   })
 
-  it('says so, and forgets it, when the grant ran out between the page opening and the click', async () => {
+  it('asks the gateway even when the local deadline looks past (a clock that is off must not drop a live grant)', async () => {
     const trip = seam({ kept: { grantId: GRANT, expiresAt: NOW + 300 } })
     const { client, registerBegin } = grantClient()
     const page = setUp({ client, selfEnrolment: trip.seam })
 
     page.clock.now = NOW + 301
 
-    await expect(page.model.finishSelfEnrolment()).rejects.toMatchObject({ problem: { kind: 'self_enrol_expired' } })
-    expect(registerBegin).not.toHaveBeenCalled()
+    await expect(page.model.finishSelfEnrolment()).resolves.toMatchObject({ rp_id: 'gw.example.test' })
+    expect(registerBegin).toHaveBeenCalledTimes(1)
+    expect(trip.kept).toBeNull()
+  })
+
+  it('forgets the grant when the gateway says it ran out', async () => {
+    const trip = seam({ kept: { grantId: GRANT, expiresAt: NOW + 300 } })
+    const { client } = grantClient({
+      registerBegin: vi.fn(async () => {
+        throw refusedRoute('reauth_invalid', 403, 'unknown')
+      }) as PasskeyClient['registerBegin']
+    })
+    const page = setUp({ client, selfEnrolment: trip.seam })
+
+    page.clock.now = NOW + 301
+
+    await expect(page.model.finishSelfEnrolment()).rejects.toMatchObject({
+      problem: { kind: 'refused', reason: 'unknown' }
+    })
     expect(trip.kept).toBeNull()
     expect(page.store.getState().selfEnrolment).toBeNull()
   })
@@ -1727,6 +1734,8 @@ describe('adding a passkey by signing in again: coming back', () => {
     const failed = await page.model.finishSelfEnrolment().catch((caught: unknown) => caught)
 
     expect(endsGrant(failed)).toBe(true)
+    // Nothing to sign in again for: the gateway does not take a grant at all, or this provider cannot give one.
+    expect(isReauthFailure(failed)).toBe(false)
     expect(trip.kept).toBeNull()
   })
 

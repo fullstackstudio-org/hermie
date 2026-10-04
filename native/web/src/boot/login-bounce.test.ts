@@ -317,7 +317,12 @@ describe('the sign-in bounce of a self-enrolment', () => {
     ['a protocol-relative URL', `//evil.example/auth/login?reauth=${GRANT}`],
     ['a backslash path', `/\\evil.example/auth/login?reauth=${GRANT}`],
     ['a path that is not the sign-in page', `/api/auth/passkeys?reauth=${GRANT}`],
-    ['a relative path', `auth/login?reauth=${GRANT}`],
+    ['dot-segments that end on another host', `/.//evil.example/auth/login?reauth=${GRANT}`],
+    ['dot-dot segments that end on another host', `/a/..//evil.example/auth/login?reauth=${GRANT}`],
+    ['an encoded dot that ends on another host', `/%2e//evil.example/auth/login?reauth=${GRANT}`],
+    ['another application’s sign-in page', `/other-app/auth/login?reauth=${GRANT}`],
+    ['another prefix', `/hermes/auth/login?reauth=${GRANT}`],
+    ['no grant', '/auth/login?provider=self-hosted'],
     ['nothing', '']
   ])('goes nowhere for %s', (_name, path) => {
     const before = page(ROOT.appPath, '#/settings/passkeys')
@@ -343,19 +348,39 @@ describe('the sign-in bounce of a self-enrolment', () => {
 
 describe('the self-enrolment stash', () => {
   const GRANT = 'R3JhbnRJZDEyMzQ1Njc4OQ'
+  const OWNER = 'basic:tester'
+
+  it('is not found by somebody else signed in when the page is back, and is removed', () => {
+    const tab = page(ROOT.appPath)
+
+    createEnrolStash(ROOT, OWNER, tab.environment).write({ grantId: GRANT, expiresAt: 1_790_000_600 })
+
+    expect(createEnrolStash(ROOT, 'basic:someone-else', tab.environment).read()).toBeNull()
+    expect(tab.stash.has(enrolStashKey(ROOT))).toBe(false)
+    expect(createEnrolStash(ROOT, OWNER, tab.environment).read()).toBeNull()
+  })
+
+  it('is not found without an owner on it (a stash of an earlier build)', () => {
+    const tab = page(ROOT.appPath)
+
+    tab.stash.set(enrolStashKey(ROOT), JSON.stringify({ grant_id: GRANT, expires_at: 9 }))
+
+    expect(createEnrolStash(ROOT, OWNER, tab.environment).read()).toBeNull()
+  })
 
   it('keeps the grant id and its deadline in this tab, under its own key next to the route’s', () => {
     const tab = page(ROOT.appPath)
-    const stash = createEnrolStash(ROOT, tab.environment)
+    const stash = createEnrolStash(ROOT, OWNER, tab.environment)
 
     expect(stash.read()).toBeNull()
     expect(stash.write({ grantId: GRANT, expiresAt: 1_790_000_600 })).toBe(true)
     expect(enrolStashKey(ROOT)).toBe(`hermie:${ROOT.namespace}:passkey-enrol`)
     expect([...tab.stash.keys()]).toEqual([enrolStashKey(ROOT)])
-    // Nothing but the id and the deadline.
+    // Nothing but the id, the deadline and whose it is.
     expect(JSON.parse(tab.stash.get(enrolStashKey(ROOT)) ?? '{}')).toEqual({
       grant_id: GRANT,
-      expires_at: 1_790_000_600
+      expires_at: 1_790_000_600,
+      owner: OWNER
     })
     expect(stash.read()).toEqual({ grantId: GRANT, expiresAt: 1_790_000_600 })
 
@@ -368,34 +393,37 @@ describe('the self-enrolment stash', () => {
   it('survives the trip through the sign-in page (the same tab)', () => {
     const before = page(ROOT.appPath, '#/settings/passkeys')
 
-    createEnrolStash(ROOT, before.environment).write({ grantId: GRANT, expiresAt: 1_790_000_600 })
+    createEnrolStash(ROOT, OWNER, before.environment).write({ grantId: GRANT, expiresAt: 1_790_000_600 })
     reauthSignIn(ROOT, `/auth/login?provider=self-hosted&reauth=${GRANT}`, before.environment)
 
     const after = afterSignIn(before, ROOT.appPath)
 
-    expect(createEnrolStash(ROOT, after.environment).read()).toEqual({ grantId: GRANT, expiresAt: 1_790_000_600 })
+    expect(createEnrolStash(ROOT, OWNER, after.environment).read()).toEqual({
+      grantId: GRANT,
+      expiresAt: 1_790_000_600
+    })
   })
 
   it('keeps two base paths’ stashes apart', () => {
     const tab = page(ROOT.appPath)
 
-    createEnrolStash(ROOT, tab.environment).write({ grantId: GRANT, expiresAt: 1 })
+    createEnrolStash(ROOT, OWNER, tab.environment).write({ grantId: GRANT, expiresAt: 1 })
 
-    expect(createEnrolStash(PREFIXED, tab.environment).read()).toBeNull()
+    expect(createEnrolStash(PREFIXED, OWNER, tab.environment).read()).toBeNull()
   })
 
   it.each([
     ['not JSON', 'nope'],
-    ['no deadline', JSON.stringify({ grant_id: GRANT })],
-    ['a deadline that is not a number', JSON.stringify({ grant_id: GRANT, expires_at: '9' })],
-    ['an id that is not one', JSON.stringify({ grant_id: 'a b', expires_at: 9 })],
-    ['an extra secret field is ignored but the rest is not an object', 'null']
+    ['no deadline', JSON.stringify({ grant_id: GRANT, owner: OWNER })],
+    ['a deadline that is not a number', JSON.stringify({ grant_id: GRANT, expires_at: '9', owner: OWNER })],
+    ['an id that is not one', JSON.stringify({ grant_id: 'a b', expires_at: 9, owner: OWNER })],
+    ['null, which is not an object', 'null']
   ])('is not a stash when it holds %s, and is removed', (_name, raw) => {
     const tab = page(ROOT.appPath)
 
     tab.stash.set(enrolStashKey(ROOT), raw)
 
-    expect(createEnrolStash(ROOT, tab.environment).read()).toBeNull()
+    expect(createEnrolStash(ROOT, OWNER, tab.environment).read()).toBeNull()
     expect(tab.stash.has(enrolStashKey(ROOT))).toBe(false)
   })
 
@@ -415,13 +443,13 @@ describe('the self-enrolment stash', () => {
         }
       }
     }
-    const stash = createEnrolStash(ROOT, refusing)
+    const stash = createEnrolStash(ROOT, OWNER, refusing)
 
     expect(stash.write({ grantId: GRANT, expiresAt: 9 })).toBe(false)
     expect(stash.read()).toBeNull()
     expect(() => stash.clear()).not.toThrow()
 
-    const none = createEnrolStash(ROOT, { ...tab.environment, sessionStorage: null })
+    const none = createEnrolStash(ROOT, OWNER, { ...tab.environment, sessionStorage: null })
 
     expect(none.write({ grantId: GRANT, expiresAt: 9 })).toBe(false)
   })
@@ -431,7 +459,7 @@ describe('the self-enrolment stash', () => {
       const { cache, store } = await signedInBrowser()
       const tab = page(ROOT.appPath)
 
-      createEnrolStash(ROOT, tab.environment).write({ grantId: GRANT, expiresAt: 9 })
+      createEnrolStash(ROOT, OWNER, tab.environment).write({ grantId: GRANT, expiresAt: 9 })
 
       if (leave === 'signOut') {
         await signOut({

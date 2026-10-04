@@ -239,7 +239,12 @@ async function startApp(page: Page, ready: Ready): Promise<void> {
     cache,
     // Adding a passkey by signing in again: the grant survives the trip in this tab's `sessionStorage`.
     ...(ready.gated
-      ? { selfEnrolment: { stash: createEnrolStash(basePath), bounce: path => reauthSignIn(basePath, path) } }
+      ? {
+          selfEnrolment: {
+            stash: createEnrolStash(basePath, ready.author?.id ?? ''),
+            bounce: path => reauthSignIn(basePath, path)
+          }
+        }
       : {})
   })
 

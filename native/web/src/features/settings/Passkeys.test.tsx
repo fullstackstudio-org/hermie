@@ -51,8 +51,7 @@ beforeEach(() => {
     forgetPin: vi.fn(),
     startSelfEnrolment: vi.fn(async () => undefined),
     finishSelfEnrolment: vi.fn(async () => THIS_SITE),
-    cancelSelfEnrolment: vi.fn(),
-    expireSelfEnrolment: vi.fn(() => false)
+    cancelSelfEnrolment: vi.fn()
   }
 })
 
@@ -355,7 +354,7 @@ describe('adding a passkey by signing in again', () => {
     mount()
 
     expect(screen.getByRole('heading', { name: 'Finish adding your passkey' })).toBeTruthy()
-    expect(screen.getByText(/You signed in again\. Your browser can now create the passkey/u)).toBeTruthy()
+    expect(screen.getByText(/If you finished signing in again, add your passkey now\. This works until /u)).toBeTruthy()
     expect(screen.queryByRole('button', { name: 'Add a passkey' })).toBeNull()
     // Not on its own: the ceremony runs from the click.
     expect(actions.finishSelfEnrolment).not.toHaveBeenCalled()
@@ -376,20 +375,26 @@ describe('adding a passkey by signing in again', () => {
     expect(screen.getByRole('status').textContent).toBe('Adding the passkey was cancelled.')
   })
 
-  it('asks the model to drop a waiting grant when its deadline passes, and says so', async () => {
-    vi.useFakeTimers()
-    vi.setSystemTime(1_790_000_000_000)
-    actions.expireSelfEnrolment.mockReturnValueOnce(true)
-    store.setState({ selfEnrolment: { expiresAt: 1_790_000_010 } })
+  it('stays busy once the sign-in has been started: the window is on its way out, and a second click opens no second grant', async () => {
     mount()
 
-    await act(async () => {
-      await vi.advanceTimersByTimeAsync(10_100)
+    fireEvent.click(screen.getByRole('button', { name: 'Add a passkey' }))
+
+    await waitFor(() => expect(screen.getByRole('status').textContent).toBe('Taking you to sign in…'))
+    expect(screen.getByRole('button', { name: 'Taking you to sign in…' })).toHaveProperty('disabled', true)
+    expect(actions.startSelfEnrolment).toHaveBeenCalledTimes(1)
+  })
+
+  it('is not busy any more when the page comes back from the back-forward cache', async () => {
+    mount()
+    fireEvent.click(screen.getByRole('button', { name: 'Add a passkey' }))
+    await waitFor(() => expect(screen.getByRole('status').textContent).toBe('Taking you to sign in…'))
+
+    act(() => {
+      window.dispatchEvent(Object.assign(new Event('pageshow'), { persisted: true }))
     })
 
-    expect(actions.expireSelfEnrolment).toHaveBeenCalledTimes(1)
-    expect(screen.getByRole('status').textContent).toContain('expired')
-    vi.useRealTimers()
+    expect(screen.getByRole('button', { name: 'Add a passkey' })).toHaveProperty('disabled', false)
   })
 
   // What each reason of `reauth_invalid` says, and that a sign-in that did not count offers "Sign in again".
