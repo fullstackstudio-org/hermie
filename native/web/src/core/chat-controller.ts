@@ -114,6 +114,8 @@ import type { GatewayClient } from './gateway-client'
 import { createIngest, type FrameSource, type Ingest } from './ingest'
 import type { ChatGateway } from './link'
 import { CANCELLED_BY_READER, closedRequest } from './request-withdrawn'
+import { isInteractiveMethod, LIMITS as INTERACTIVE_LIMITS } from './requests/interactive-types'
+import { displayText } from './requests/secure-input'
 import { describeRpcFailure, type RpcFailure } from './rpc-failures'
 import {
   buildConversationList,
@@ -1422,9 +1424,7 @@ export class ChatController {
       }
 
       this.chats.getState().dispatchServerRequest(botName, {
-        id: entry.id,
-        method: entry.method,
-        params: entry.params && typeof entry.params === 'object' ? entry.params : {},
+        ...forEngine(entry),
         replayed: true
       })
     }
@@ -4990,7 +4990,31 @@ function resumeSnapshotOf(result: SessionResumeResult): ResumeSnapshot {
     queued: asRecord(result.queued),
     pending_approval: asRecord(result.pending_approval),
     todo_state: asRecord(result.todo_state),
-    open_requests: result.open_requests ?? null
+    open_requests: Array.isArray(result.open_requests) ? result.open_requests.map(forEngine) : null
+  }
+}
+
+/**
+ * An open request as the engine is handed it. An interactive one (`input.form`, `input.file`, `review.draft`) carries
+ * its three envelope keys and nothing else, cleaned as the interactive model hands them (`InteractiveEngine.asked`):
+ * its fields, its files' directory and a draft's text stay beside the engine, and its heading cannot carry a
+ * control or bidi character into the transcript. Every other request is passed on as it came.
+ */
+function forEngine(entry: OpenRequestEntry): OpenRequestEntry {
+  const params: Record<string, unknown> = entry?.params && typeof entry.params === 'object' ? entry.params : {}
+
+  if (typeof entry?.method !== 'string' || !isInteractiveMethod(entry.method)) {
+    return { ...entry, params }
+  }
+
+  return {
+    id: entry.id,
+    method: entry.method,
+    params: {
+      title: displayText(params.title, INTERACTIVE_LIMITS.title),
+      summary: displayText(params.summary, INTERACTIVE_LIMITS.summary),
+      optional: params.optional === true
+    }
   }
 }
 

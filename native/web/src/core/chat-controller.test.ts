@@ -2504,4 +2504,75 @@ describe('what a reconnect tells the requests answered beside the engine', () =>
 
     expect(signals).toContainEqual({ kind: 'cancel', id: 'srq-3', reason: 'timeout' })
   })
+  it('hands the engine an interactive request’s three envelope keys, cleaned, and nothing of its fields or draft', async () => {
+    const { gateway, controller } = setup()
+    const form = {
+      id: 'srq-8',
+      method: 'input.form',
+      params: {
+        session_id: 'runtime-1',
+        v: 1,
+        title: 'Hotel \u202Ebooking',
+        summary: 'Fill\u0000 this in.',
+        optional: true,
+        expires_at: 4_000_000_000,
+        fields: [{ id: 'name', kind: 'text', label: 'Name', default: 'FIELD-DEFAULT-MARKER' }]
+      }
+    }
+    const draft = {
+      id: 'srq-9',
+      method: 'review.draft',
+      params: { session_id: 'runtime-1', v: 1, title: 'Reply', summary: 'Approve it.', text: 'DRAFT-TEXT-MARKER' }
+    }
+    const handed: unknown[] = []
+    const dispatch = chatsStore.getState().dispatchServerRequest
+    const apply = chatsStore.getState().applySnapshot
+
+    chatsStore.setState({
+      dispatchServerRequest: (bot, request) => {
+        handed.push(request)
+        dispatch(bot, request)
+      },
+      applySnapshot: (bot, snapshot) => {
+        handed.push(...(snapshot.open_requests ?? []))
+        apply(bot, snapshot)
+      }
+    })
+    gateway.reply('session.resume', {
+      session_id: 'runtime-1',
+      stored_session_id: 'tip-researcher',
+      message_count: 2,
+      messages: [],
+      info: { desktop_contract: 7 },
+      open_requests: [form, draft]
+    })
+    gateway.reply('session.events.since', {
+      events: [],
+      latest_seq: 7,
+      truncated: false,
+      count: 0,
+      epoch: 'e1',
+      open_requests: [form, draft]
+    })
+    controller.start()
+    await controller.openChat(RESEARCHER)
+
+    expect(handed.length).toBeGreaterThanOrEqual(2)
+    expect(JSON.stringify(handed)).not.toContain('MARKER')
+    expect(handed).toContainEqual(
+      expect.objectContaining({
+        id: 'srq-8',
+        method: 'input.form',
+        params: { title: 'Hotel booking', summary: 'Fill this in.', optional: true }
+      })
+    )
+    expect(handed).toContainEqual(
+      expect.objectContaining({
+        id: 'srq-9',
+        method: 'review.draft',
+        params: { title: 'Reply', summary: 'Approve it.', optional: false }
+      })
+    )
+    expect(JSON.stringify(chatOf())).not.toContain('MARKER')
+  })
 })
