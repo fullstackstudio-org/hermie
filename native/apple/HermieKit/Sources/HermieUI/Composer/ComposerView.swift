@@ -66,6 +66,10 @@ public struct ComposerView: View {
         noticeRow(notice)
       }
 
+      if let dictation = model.dictation, dictation.isAvailable {
+        DictationNoticeRow(dictation: dictation)
+      }
+
       if !model.tray.items.isEmpty {
         AttachmentStrip(tray: model.tray)
       }
@@ -78,6 +82,10 @@ public struct ComposerView: View {
         HStack(alignment: .bottom, spacing: 8) {
           attachButton
           field
+          // Only where the device can dictate: a microphone that cannot work is not drawn.
+          if let dictation = model.dictation, dictation.isAvailable {
+            DictationButton(dictation: dictation, controlHeight: controlHeight)
+          }
           actionButton
         }
       }

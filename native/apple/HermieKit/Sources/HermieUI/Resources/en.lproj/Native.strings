@@ -1400,5 +1400,25 @@
 	<string>Wrote a file</string>
 	<key>native.transcript.unsupportedItem</key>
 	<string>This message (%@) needs a newer version of Hermie.</string>
+	<key>native.voice.automatic</key>
+	<string>Automatic</string>
+	<key>native.voice.dictation</key>
+	<string>Dictation</string>
+	<key>native.voice.dictationNote</key>
+	<string>Dictated words go into the message field for you to check; nothing is sent until you send it.</string>
+	<key>native.voice.processing.onDevice</key>
+	<string>Dictation in %@ runs on this device. What you say does not leave it.</string>
+	<key>native.voice.processing.unavailable</key>
+	<string>Dictation is not available in %@ on this device.</string>
+	<key>native.voice.reading</key>
+	<string>Reading aloud</string>
+	<key>native.voice.readingFooter</key>
+	<string>The voice and the speed apply to every chat. Replies are read by this device's own voices; nothing is sent anywhere.</string>
+	<key>native.voice.unavailable</key>
+	<string>Voice is not available on this device.</string>
+	<key>native.voice.voice</key>
+	<string>Voice</string>
+	<key>native.voice.voiceFooter</key>
+	<string>A voice you choose reads replies in its own language. A reply in another language is read by the system's voice for that language.</string>
 </dict>
 </plist>

@@ -1400,5 +1400,25 @@
 	<string>Bestand geschreven</string>
 	<key>native.transcript.unsupportedItem</key>
 	<string>Dit bericht (%@) heeft een nieuwere versie van Hermie nodig.</string>
+	<key>native.voice.automatic</key>
+	<string>Automatisch</string>
+	<key>native.voice.dictation</key>
+	<string>Dicteren</string>
+	<key>native.voice.dictationNote</key>
+	<string>Gedicteerde woorden komen in het berichtveld zodat je ze kunt nakijken; er wordt niets verstuurd tot jij het verstuurt.</string>
+	<key>native.voice.processing.onDevice</key>
+	<string>Dicteren in %@ gebeurt op dit apparaat. Wat je zegt verlaat het niet.</string>
+	<key>native.voice.processing.unavailable</key>
+	<string>Dicteren is in %@ niet beschikbaar op dit apparaat.</string>
+	<key>native.voice.reading</key>
+	<string>Voorlezen</string>
+	<key>native.voice.readingFooter</key>
+	<string>De stem en de snelheid gelden voor elke chat. Antwoorden worden voorgelezen door de eigen stemmen van dit apparaat; er wordt niets verstuurd.</string>
+	<key>native.voice.unavailable</key>
+	<string>Spraak is niet beschikbaar op dit apparaat.</string>
+	<key>native.voice.voice</key>
+	<string>Stem</string>
+	<key>native.voice.voiceFooter</key>
+	<string>Een stem die je kiest leest antwoorden in zijn eigen taal voor. Een antwoord in een andere taal wordt voorgelezen door de stem van het systeem voor die taal.</string>
 </dict>
 </plist>

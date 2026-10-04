@@ -62,6 +62,12 @@ final class ChatFeed: ChatScreenFeed {
   let interactive: InteractiveModel
   /// Which of those sheets has the screen: approvals and secure prompts first.
   let sheets: ChatSheetOrder
+  /// Reading replies aloud, once the screen has given the feed the device's voice settings
+  /// (`attachVoice`, in `ChatFeed+Voice.swift`). Nil in a preview or a test that has none: the chat
+  /// then has no Read aloud, and its composer no microphone.
+  var readAloud: ReadAloudModel?
+  /// The device's voice settings the chat's options read and write (the automatic read, per chat).
+  var voiceSettings: VoiceSettings?
 
   private(set) var rows = TranscriptListItems<TranscriptRow>()
   /// The first rows have arrived.
@@ -232,7 +238,8 @@ final class ChatFeed: ChatScreenFeed {
     MessageMenu.menu(
       for: item,
       context: model.menuContext(
-        authors: session.retryAuthors, blocked: requestUp || composer.held, canEdit: true, canBranch: true))
+        authors: session.retryAuthors, blocked: requestUp || composer.held, canEdit: true, canBranch: true,
+        canReadAloud: canReadAloud, reading: readAloud?.readingIDs ?? []))
   }
 
   /// A line of the menu other than the copies was chosen. The menu is worked out again first: it was
@@ -251,6 +258,8 @@ final class ChatFeed: ChatScreenFeed {
       }
     case .branch:
       branch(item.id)
+    case .readAloud, .stopReading:
+      toggleReadAloud(item)
     case .copyText, .copyMarkdown:
       break
     }
@@ -472,6 +481,8 @@ final class ChatFeed: ChatScreenFeed {
     noticeTask?.cancel()
     listState.onNearTop = nil
     composer.onSubmit = nil
+    // Leaving the chat: nothing keeps reading, and the microphone closes.
+    stopVoice()
     // Leaving the chat: every upload stops and what was staged goes with it.
     composer.tray.clear()
 
@@ -487,6 +498,7 @@ final class ChatFeed: ChatScreenFeed {
 
   func sceneChanged(active: Bool) {
     sceneActive = active
+    voiceSceneChanged(active: active)
     markReadSoon()
   }
 
@@ -530,6 +542,12 @@ final class ChatFeed: ChatScreenFeed {
     }
 
     applyOptions(snapshot)
+
+    // A live chat's finished replies are offered to the automatic read (a cached copy is not a
+    // conversation: what it holds is history).
+    if snapshot.hydration == .live {
+      autoReadChanged(snapshot)
+    }
 
     if snapshot.hydration == .error {
       openIfNeeded()

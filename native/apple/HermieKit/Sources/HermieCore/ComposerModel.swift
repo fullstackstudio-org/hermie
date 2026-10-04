@@ -123,6 +123,12 @@ public final class ComposerModel {
         return
       }
 
+      // A change dictation did not make (typing, a send, a command) leaves its anchor describing a
+      // field that is gone: the session ends, and what it already wrote stays.
+      if !dictationWriting {
+        dictation?.fieldChangedElsewhere()
+      }
+
       scheduleDraftWrite()
 
       // Typing opens the list; a field set from somewhere else (a stored draft, a prefill, words put
@@ -160,6 +166,10 @@ public final class ComposerModel {
 
   /// The gateway's command list for this chat, as last fetched (nil until the first slash).
   public var commands: SlashCatalog? { commandCatalog }
+
+  /// The microphone: dictation into the field. Nil until the chat screen gives the composer one
+  /// (`enableDictation`), and where the device cannot dictate it says so (`DictationModel.isAvailable`).
+  public internal(set) var dictation: DictationModel?
 
   /// What is staged to go with the next message: images read, files uploaded, each a chip.
   /// A send waits for it (`canSubmit`) and takes it out in the same step that clears the draft.
@@ -200,6 +210,8 @@ public final class ComposerModel {
   @ObservationIgnored var suggestionSerial = 0
   /// A send waiting for the command list, so a second Return does not send the line twice.
   @ObservationIgnored var resolvingCommand = false
+  /// Dictation is writing the field (`ComposerModel+Dictation.swift`): not a change from outside.
+  @ObservationIgnored var dictationWriting = false
 
   /// The composer for `bot` on `session`, its draft kept in the session's
   /// key-value store.
@@ -271,7 +283,14 @@ public final class ComposerModel {
   /// Typing is refused as well (`type(_:)`), and nothing that reached the draft meanwhile is written
   /// to the drafts store: a value typed for a secure prompt must not wait in the field, or on disk,
   /// for the next Return.
-  public var held = false
+  public var held = false {
+    didSet {
+      if held {
+        // What is said now must not land in a field a secure prompt may be reading.
+        dictation?.cancel()
+      }
+    }
+  }
 
   /// Moves each time words are put back in the field from outside (`editAndResend`): the field takes focus,
   /// so the reader can change them and send.

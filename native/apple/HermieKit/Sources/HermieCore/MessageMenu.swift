@@ -18,6 +18,10 @@ import HermieTranscript
  - **Edit and resend** puts the reader's own words back in the composer; it replaces nothing, the turn
    in the chat stays where it is, and what is sent is a new one.
  - **Branch from here** forks the conversation at this message into a conversation of its own.
+ - **Read aloud is the bot's words only**, directly under the copies ("I want these words", one step
+   further: a copy takes them elsewhere, this one says them here). It is dropped, not disabled, where
+   the screen cannot speak (`MessageMenuContext.canReadAloud`): there is no later in which it becomes
+   available. A reply that is being read, or waits its turn, shows "Stop reading" instead.
  - **Turn-starting lines are drawn disabled, not removed, while a turn runs**: "not now" and "not here"
    are different answers. While an interactive request has the composer (an approval, a secure
    prompt, a form) nothing that sends or types is offered at all (HERM-251): the line is disabled
@@ -38,6 +42,10 @@ public struct MessageMenu: Sendable, Equatable {
     case regenerate
     /// Fork the conversation here.
     case branch
+    /// Say a reply aloud.
+    case readAloud
+    /// Silence a reply that is being read, or take it out of the line of replies waiting to be.
+    case stopReading
   }
 
   /// One line: what it does, and whether it can be chosen now.
@@ -96,6 +104,10 @@ public struct MessageMenu: Sendable, Equatable {
       if MarkdownPlainText.differs(reply.text) {
         entries.append(Entry(.copyMarkdown))
       }
+
+      if context.canReadAloud, !reply.streaming {
+        entries.append(Entry(context.reading.contains(reply.id) ? .stopReading : .readAloud))
+      }
     }
 
     if context.regenerateTarget == reply.id {
@@ -152,6 +164,16 @@ public struct MessageMenu: Sendable, Equatable {
     return reply.text
   }
 
+  /// The Markdown `Read aloud` hands the speech engine (which flattens it for the ear), or nil where
+  /// there is nothing to say. The bot's own words only.
+  public static func readAloudText(of item: TranscriptItem) -> String? {
+    guard case .assistant(let reply) = item, !reply.text.isBlank else {
+      return nil
+    }
+
+    return reply.text
+  }
+
   /**
    What the composer holds after `Edit and resend` on `item`: the turn's words, and the files it
    carried by their `@file:` reference, which is what the gateway understands. A picture does not come
@@ -195,6 +217,10 @@ public struct MessageMenuContext: Sendable, Equatable {
   public var canEdit: Bool
   /// This screen can fork the conversation.
   public var canBranch: Bool
+  /// This screen can speak: a synthesiser is there and nothing else has the audio (the microphone).
+  public var canReadAloud: Bool
+  /// The replies being read now or waiting to be (`ReadAloudModel.has`).
+  public var reading: Set<String>
 
   public init(
     regenerateTarget: String? = nil,
@@ -202,7 +228,9 @@ public struct MessageMenuContext: Sendable, Equatable {
     turnActive: Bool = false,
     blocked: Bool = false,
     canEdit: Bool = false,
-    canBranch: Bool = false
+    canBranch: Bool = false,
+    canReadAloud: Bool = false,
+    reading: Set<String> = []
   ) {
     self.regenerateTarget = regenerateTarget
     self.authors = authors
@@ -210,6 +238,8 @@ public struct MessageMenuContext: Sendable, Equatable {
     self.blocked = blocked
     self.canEdit = canEdit
     self.canBranch = canBranch
+    self.canReadAloud = canReadAloud
+    self.reading = reading
   }
 
   /// A transcript that only reads (a gallery, a viewer of another conversation): copying is all

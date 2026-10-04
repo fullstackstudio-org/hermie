@@ -1400,5 +1400,25 @@
 	<string>Datei geschrieben</string>
 	<key>native.transcript.unsupportedItem</key>
 	<string>Diese Nachricht (%@) braucht eine neuere Version von Hermie.</string>
+	<key>native.voice.automatic</key>
+	<string>Automatisch</string>
+	<key>native.voice.dictation</key>
+	<string>Diktieren</string>
+	<key>native.voice.dictationNote</key>
+	<string>Diktierte Wörter landen im Nachrichtenfeld, damit du sie prüfen kannst; gesendet wird erst, wenn du es sendest.</string>
+	<key>native.voice.processing.onDevice</key>
+	<string>Das Diktieren in %@ läuft auf diesem Gerät. Was du sagst, verlässt es nicht.</string>
+	<key>native.voice.processing.unavailable</key>
+	<string>Das Diktieren in %@ ist auf diesem Gerät nicht verfügbar.</string>
+	<key>native.voice.reading</key>
+	<string>Vorlesen</string>
+	<key>native.voice.readingFooter</key>
+	<string>Stimme und Tempo gelten für jeden Chat. Antworten werden von den eigenen Stimmen dieses Geräts vorgelesen; es wird nichts gesendet.</string>
+	<key>native.voice.unavailable</key>
+	<string>Sprache ist auf diesem Gerät nicht verfügbar.</string>
+	<key>native.voice.voice</key>
+	<string>Stimme</string>
+	<key>native.voice.voiceFooter</key>
+	<string>Eine Stimme, die du wählst, liest Antworten in ihrer eigenen Sprache vor. Eine Antwort in einer anderen Sprache liest die Systemstimme für diese Sprache vor.</string>
 </dict>
 </plist>

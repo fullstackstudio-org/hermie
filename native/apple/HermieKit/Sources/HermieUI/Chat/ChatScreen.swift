@@ -171,6 +171,8 @@ struct ChatSessionView<Composer: View>: View {
   @Environment(\.scenePhase) private var scenePhase
   @Environment(AppRouter.self) private var router: AppRouter?
   @Environment(LiveGateway.self) private var live: LiveGateway?
+  /// Where the device's voice settings are; none in a preview.
+  @Environment(AppLaunch.self) private var launch: AppLaunch?
   #if os(iOS)
     @Environment(\.horizontalSizeClass) private var sizeClass
   #endif
@@ -269,6 +271,7 @@ struct ChatSessionView<Composer: View>: View {
       let chat = self.chat
       let session = self.session
       let active = scenePhase == .active
+      let voice = launch?.voice
 
       owner.appeared {
         let next = ChatFeed(chat: chat, session: session, standardActions: base == nil) { model in
@@ -283,6 +286,9 @@ struct ChatSessionView<Composer: View>: View {
         next.openConversation = { conversation in
           router?.showConversation(
             chat, id: conversation.id, resolvedID: conversation.resolvedID, title: conversation.title)
+        }
+        if let voice {
+          next.attachVoice(settings: voice)
         }
         next.sceneChanged(active: active)
         next.coverChanged(covered: covered)
@@ -768,6 +774,9 @@ struct VerbosityMenu: View {
         get: { options.showBotToBot },
         set: { model.setVisibility(VisibilityOptions(level: options.level, showBotToBot: $0, showThinking: options.showThinking)) }
       ))
+
+      // Whether this chat reads its replies aloud, and a way to stop a read that is going.
+      ChatVoiceOptionItems(feed: feed)
 
       // What needs a session to ask: these are not offered while the chat is not attached.
       if feed.optionsAvailable {

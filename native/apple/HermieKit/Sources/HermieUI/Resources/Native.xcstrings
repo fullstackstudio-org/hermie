@@ -16788,6 +16788,246 @@
           }
         }
       }
+    },
+    "native.voice.automatic" : {
+      "comment" : "The voice row's value when the system chooses the voice by the reply's language.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Automatisch"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Automatic"
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Automatisch"
+          }
+        }
+      }
+    },
+    "native.voice.dictation" : {
+      "comment" : "The header of the dictation half of Settings > Voice.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Diktieren"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Dictation"
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Dicteren"
+          }
+        }
+      }
+    },
+    "native.voice.dictationNote" : {
+      "comment" : "The last sentence of the dictation footer.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Diktierte Wörter landen im Nachrichtenfeld, damit du sie prüfen kannst; gesendet wird erst, wenn du es sendest."
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Dictated words go into the message field for you to check; nothing is sent until you send it."
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Gedicteerde woorden komen in het berichtveld zodat je ze kunt nakijken; er wordt niets verstuurd tot jij het verstuurt."
+          }
+        }
+      }
+    },
+    "native.voice.processing.onDevice" : {
+      "comment" : "The dictation footer when the language is recognised on the device. The argument is the language's name.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Das Diktieren in %@ läuft auf diesem Gerät. Was du sagst, verlässt es nicht."
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Dictation in %@ runs on this device. What you say does not leave it."
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Dicteren in %@ gebeurt op dit apparaat. Wat je zegt verlaat het niet."
+          }
+        }
+      }
+    },
+    "native.voice.processing.unavailable" : {
+      "comment" : "The dictation footer when the language cannot be recognised here. The argument is the language's name.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Das Diktieren in %@ ist auf diesem Gerät nicht verfügbar."
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Dictation is not available in %@ on this device."
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Dicteren is in %@ niet beschikbaar op dit apparaat."
+          }
+        }
+      }
+    },
+    "native.voice.reading" : {
+      "comment" : "The header of the reading half of Settings > Voice.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Vorlesen"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Reading aloud"
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Voorlezen"
+          }
+        }
+      }
+    },
+    "native.voice.readingFooter" : {
+      "comment" : "Under the reading rows of Settings > Voice.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Stimme und Tempo gelten für jeden Chat. Antworten werden von den eigenen Stimmen dieses Geräts vorgelesen; es wird nichts gesendet."
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "The voice and the speed apply to every chat. Replies are read by this device's own voices; nothing is sent anywhere."
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "De stem en de snelheid gelden voor elke chat. Antwoorden worden voorgelezen door de eigen stemmen van dit apparaat; er wordt niets verstuurd."
+          }
+        }
+      }
+    },
+    "native.voice.unavailable" : {
+      "comment" : "Settings > Voice on a device with neither a speech recogniser nor a synthesiser.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Sprache ist auf diesem Gerät nicht verfügbar."
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Voice is not available on this device."
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Spraak is niet beschikbaar op dit apparaat."
+          }
+        }
+      }
+    },
+    "native.voice.voice" : {
+      "comment" : "The voice replies are read in: a row of Settings > Voice and the title of its list.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Stimme"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Voice"
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Stem"
+          }
+        }
+      }
+    },
+    "native.voice.voiceFooter" : {
+      "comment" : "Under the Automatic row of the voice list.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Eine Stimme, die du wählst, liest Antworten in ihrer eigenen Sprache vor. Eine Antwort in einer anderen Sprache liest die Systemstimme für diese Sprache vor."
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "A voice you choose reads replies in its own language. A reply in another language is read by the system's voice for that language."
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Een stem die je kiest leest antwoorden in zijn eigen taal voor. Een antwoord in een andere taal wordt voorgelezen door de stem van het systeem voor die taal."
+          }
+        }
+      }
     }
   },
   "version" : "1.0"
