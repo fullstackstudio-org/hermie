@@ -84,7 +84,7 @@ import {
   passkeysStore
 } from '../../state/passkeys'
 import type { ChatGateway } from '../link'
-import type { RequestsAdvert } from '../requests/interactive'
+import type { RequestsAdvert, RequestsAdvertOutcome } from '../requests/interactive'
 import { displayText, NAME_LIMIT } from '../requests/secure-input'
 import {
   b64uDecode,
@@ -257,6 +257,8 @@ export class PasskeyModel {
   private acceptedOnSocket = false
   /** How many sockets went away: an advert that started under an earlier count ran on a socket that is gone. */
   private socketsGone = 0
+  /** The socket (its `socketsGone` count) whose advert the interactive model was last told about: once per socket. */
+  private settledSocket = -1
   /** The sessions whose open requests were read on this socket, once the level was accepted on it. */
   private readonly sessionsRead = new Set<string>()
   private nextNoticeId = 0
@@ -356,10 +358,26 @@ export class PasskeyModel {
 
   // ── advertising (contract §8) ─────────────────────────────────────────────────────────────────
 
-  /** Run the two `client.capabilities` calls for the current socket. Never throws. */
+  /**
+   * Run the two `client.capabilities` calls for the current socket. Never throws. The interactive model hears what the
+   * advert came to once per socket, whatever happens on the way (`requestsSettled`).
+   */
   async advertise(): Promise<void> {
     const generation = ++this.generation
     const socket = this.socketsGone
+
+    try {
+      await this.advertiseOn(generation, socket)
+    } finally {
+      // Ended without a word on the methods (a newer run on this socket says it, or nothing will): an unknown outcome
+      // still releases what the interactive model holds for this socket.
+      if (generation === this.generation) {
+        this.requestsSettled(socket, 'unknown')
+      }
+    }
+  }
+
+  private async advertiseOn(generation: number, socket: number): Promise<void> {
     const { gateway, webauthn } = this.options
     let first: Record<string, unknown>
 
@@ -371,7 +389,8 @@ export class PasskeyModel {
     } catch {
       if (generation === this.generation) {
         this.store.setState({ capability: { verdict: { kind: 'not_offered' }, accepted: [] } })
-        this.requestsSettled(generation, socket, false)
+        // No second call went out on this socket: the gateway accepted no method of this page on it.
+        this.requestsSettled(socket, 'refused')
       }
 
       return
@@ -414,6 +433,8 @@ export class PasskeyModel {
     const requests = this.options.requests?.methods(serverRequests) ?? []
     let accepted: string[] = []
     let requestsAccepted = false
+    /** The second call failed: whether the gateway took the methods is not known. */
+    let requestsUnknown = false
 
     if (verdict.kind === 'advertised' || requests.length > 0) {
       try {
@@ -431,6 +452,7 @@ export class PasskeyModel {
         requestsAccepted = Array.isArray(second.requests) && second.requests.some(method => typeof method === 'string')
       } catch {
         accepted = []
+        requestsUnknown = requests.length > 0
       }
     }
 
@@ -439,7 +461,7 @@ export class PasskeyModel {
     }
 
     this.store.setState({ capability: { verdict, accepted } })
-    this.requestsSettled(generation, socket, requestsAccepted)
+    this.requestsSettled(socket, requestsAccepted ? 'accepted' : requestsUnknown ? 'unknown' : 'refused')
 
     // The gateway hides a gated request from a connection that has not advertised it, and a resume's replay runs
     // before the second call: once a level or a method is newly accepted on a socket, the open requests of the
@@ -457,13 +479,16 @@ export class PasskeyModel {
   }
 
   /**
-   * Tell the interactive model what the advert of this socket came to, unless the socket it ran on is gone (the
-   * next one's advert says it).
+   * Tell the interactive model what the advert of this socket came to: once per socket (a later advert on the same
+   * socket, after `forgetPin`, does not move it), and never for a socket that is gone (the next one's advert says it).
    */
-  private requestsSettled(generation: number, socket: number, accepted: boolean): void {
-    if (generation === this.generation && socket === this.socketsGone && !this.stopped) {
-      this.options.requests?.settled(accepted)
+  private requestsSettled(socket: number, outcome: RequestsAdvertOutcome): void {
+    if (socket !== this.socketsGone || socket === this.settledSocket || this.stopped) {
+      return
     }
+
+    this.settledSocket = socket
+    this.options.requests?.settled(outcome)
   }
 
   /** The gateway lists this page's address among its base URLs; true too when it does not say (an older gateway). */

@@ -9,7 +9,7 @@
  * `open_requests`, a reconnect, an answer and a withdrawal that cross, declined, stopping.
  */
 import { JsonRpcGatewayError } from '@hermes/shared/json-rpc-channel'
-import { afterEach, beforeEach, describe, expect, it } from 'vitest'
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import type { StoreApi } from 'zustand/vanilla'
 
 import { createInteractiveStore, type InteractiveState } from '../../state/interactive'
@@ -1013,7 +1013,7 @@ describe('a reconnect', () => {
     gw.deliver('srq-2', 'input.form', formParams())
     gw.deliver('srq-3', 'input.form', formParams())
     timers.advance(1)
-    model.advertSettled(true)
+    model.advertSettled('accepted')
 
     hear({ kind: 'cancel', id: 'srq-1', reason: 'timeout' })
     hear({ kind: 'open_requests', sessionId: 'rt-1', ids: ['srq-3'], askedAt: timers.now() })
@@ -1052,7 +1052,7 @@ describe('a reconnect before the new socket’s advert is settled', () => {
       timers
     })
     model.start()
-    model.advertSettled(true)
+    model.advertSettled('accepted')
     gw.deliver('srq-1', 'input.form', formParams())
     timers.advance(1)
     gw.status('connecting')
@@ -1068,7 +1068,7 @@ describe('a reconnect before the new socket’s advert is settled', () => {
     expect(requests().map(request => request.id)).toEqual(['srq-1'])
 
     timers.advance(1)
-    interactiveAdvert(model, { enabled: true }).settled(true)
+    interactiveAdvert(model, { enabled: true }).settled('accepted')
     expect(requests().map(request => request.id)).toEqual(['srq-1'])
 
     // The list read once the advert is accepted lists it, and its re-delivered copy is the same request.
@@ -1084,7 +1084,7 @@ describe('a reconnect before the new socket’s advert is settled', () => {
     const askedBefore = timers.now()
 
     timers.advance(1)
-    model.advertSettled(true)
+    model.advertSettled('accepted')
     hear({ kind: 'open_requests', sessionId: 'rt-1', ids: [], askedAt: askedBefore })
 
     expect(requests().map(request => request.id)).toEqual(['srq-1'])
@@ -1100,13 +1100,39 @@ describe('a reconnect before the new socket’s advert is settled', () => {
     hear({ kind: 'open_requests', sessionId: 'rt-1', ids: [], askedAt: timers.now() })
     expect(requests()).toHaveLength(1)
 
-    model.advertSettled(false)
+    model.advertSettled('refused')
     expect(requests()).toEqual([])
     expect(notice('researcher')).toEqual({ kind: 'lapsed' })
   })
 
+  it('takes the first word per socket: a second advert on the same socket changes nothing', () => {
+    hear({ kind: 'open_requests', sessionId: 'rt-1', ids: [], askedAt: timers.now() })
+    model.advertSettled('accepted')
+    // A re-advert (forgetPin) whose call failed, or said otherwise: the held list is gone, the acceptance stands.
+    model.advertSettled('refused')
+    model.advertSettled('unknown')
+
+    expect(requests().map(request => request.id)).toEqual(['srq-1'])
+    timers.advance(1)
+    hear({ kind: 'open_requests', sessionId: 'rt-1', ids: ['srq-1'], askedAt: timers.now() })
+    expect(requests().map(request => request.id)).toEqual(['srq-1'])
+  })
+
+  it('believes no list of a socket whose advert nobody knows the outcome of', () => {
+    hear({ kind: 'open_requests', sessionId: 'rt-1', ids: [], askedAt: timers.now() })
+    model.advertSettled('unknown')
+    timers.advance(1)
+    hear({ kind: 'open_requests', sessionId: 'rt-1', ids: [], askedAt: timers.now() })
+
+    expect(requests().map(request => request.id)).toEqual(['srq-1'])
+
+    // The gateway's own cancel still ends it.
+    gw.cancel('srq-1', 'timeout')
+    expect(requests()).toEqual([])
+  })
+
   it('holds again on the next socket', () => {
-    model.advertSettled(true)
+    model.advertSettled('accepted')
     gw.status('connecting')
     gw.status('ready')
     timers.advance(1)
@@ -1166,6 +1192,42 @@ describe('a request that ended before a chat held its session', () => {
     // Once.
     moveSessions({ ...sessions })
     expect(engine.calls).toHaveLength(3)
+  })
+
+  it('forgets one no snapshot can list any more, and stops looking on every chat update', () => {
+    const asked = vi.fn((bot: string, id: string) => holding.has(`${bot}/${id}`))
+
+    model.stop()
+    model = new InteractiveModel({
+      gateway: gw.gateway,
+      store,
+      chatFor: id => sessions[id],
+      watchChats: listener => {
+        chatListeners.add(listener)
+
+        return () => chatListeners.delete(listener)
+      },
+      engine: { ...engine.engine, holds: asked },
+      failWithData: gw.failWithData,
+      now: () => timers.now(),
+      timers
+    })
+    model.start()
+    gw.deliver('srq-1', 'input.form', { ...formParams(), session_id: 'rt-9', v: 2 })
+    moveSessions({ ...sessions, 'rt-9': 'scout' })
+    expect(asked).toHaveBeenCalled()
+
+    // Its deadline (300 s) and the grace after it pass without the item ever showing.
+    timers.advance(361_000)
+    asked.mockClear()
+    holding.add('scout/srq-1')
+
+    for (let update = 0; update < 50; update += 1) {
+      moveSessions({ ...sessions })
+    }
+
+    expect(asked).not.toHaveBeenCalled()
+    expect(engine.calls).toEqual([])
   })
 })
 

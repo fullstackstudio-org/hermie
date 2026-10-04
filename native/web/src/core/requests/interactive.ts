@@ -114,6 +114,11 @@ const MAX_PARKED = 16
 const CLOSED_LIMIT = 512
 /** How many requests that ended before a chat held their session wait to be ended on that chat. */
 const UNENDED_LIMIT = 64
+/**
+ * How long past its deadline (or past when it ended, if later) such a request waits for its chat: the snapshot that
+ * puts it there comes with the resume that binds the session, moments after. Nothing lists it once it is over.
+ */
+const UNENDED_GRACE_MS = 60_000
 /** The longest a timer waits in one go (a browser fires one past 2^31 ms at once). */
 const MAX_TIMER_MS = 2_000_000_000
 /** The longest a refusal's reason is kept and shown. */
@@ -164,15 +169,18 @@ export const ADVERTISE_INTERACTIVE_REQUESTS = false
  */
 export const ADVERTISE_INTERACTIVE_REQUESTS_KEY = 'device.dev.advertise-interactive-requests'
 
+/**
+ * What the advert of a socket came to: the gateway took methods of this page (`accepted`), it did not or none were
+ * listed (`refused`), or the call that listed them failed and nobody knows (`unknown`).
+ */
+export type RequestsAdvertOutcome = 'accepted' | 'refused' | 'unknown'
+
 /** What the passkey model, which owns the two `client.capabilities` calls, needs from this model. */
 export interface RequestsAdvert {
   /** The methods to list in `requests`, given the first result's `server_requests`; none lists nothing. */
   methods(serverRequests: readonly string[]): readonly string[]
-  /**
-   * What the advert of the current socket came to: `true` when the gateway accepted methods of this page, `false`
-   * when it did not or none were listed (or the call failed). Once per socket, before `openRequests` reads.
-   */
-  settled(accepted: boolean): void
+  /** What the advert of the current socket came to: once per socket, before `openRequests` reads. */
+  settled(outcome: RequestsAdvertOutcome): void
   /** A session's open requests, read again once the list was accepted. */
   openRequests(sessionId: string, ids: readonly string[], askedAt: number): void
 }
@@ -198,7 +206,7 @@ export const interactiveAdvert = (
   { enabled = ADVERTISE_INTERACTIVE_REQUESTS }: { enabled?: boolean } = {}
 ): RequestsAdvert => ({
   methods: serverRequests => (enabled ? showableMethods(serverRequests) : []),
-  settled: accepted => model.advertSettled(accepted),
+  settled: outcome => model.advertSettled(outcome),
   openRequests: (sessionId, ids, askedAt) => model.reconcile(sessionId, ids, askedAt)
 })
 
@@ -318,12 +326,12 @@ export class InteractiveModel {
   private readonly expiries = new Map<string, unknown>()
   private readonly closed = new Map<string, Closed>()
   /** Requests that ended here before a chat held their session, for the engine of the chat that comes to hold it. */
-  private readonly unended = new Map<string, { sessionId: string; reason: string }>()
+  private readonly unended = new Map<string, { sessionId: string; reason: string; until: number }>()
   /**
    * The advert of the current socket (rule 7): `pending` until the passkey model says what it came to, and the
    * controller's lists of open requests asked for before then are held (`heldLists`) rather than reconciled with.
    */
-  private advert: 'pending' | 'accepted' | 'refused' = 'pending'
+  private advert: 'pending' | RequestsAdvertOutcome = 'pending'
   /** When the advert of this socket was accepted, on this model's clock. */
   private acceptedAt = 0
   private readonly heldLists = new Map<string, { ids: readonly string[]; askedAt: number }>()
@@ -564,30 +572,28 @@ export class InteractiveModel {
   }
 
   /**
-   * What the passkey model's advert came to on this socket (rule 7). Accepted: the lists the controller was given
-   * before are dropped (they could not list these requests), and the passkey model reads them again. Not accepted:
-   * this socket cannot answer them, and the lists count as they are.
+   * What the passkey model's advert came to on this socket (rule 7); the first word per socket counts, a later one
+   * changes nothing. Accepted: the lists the controller was given before are dropped (they could not list these
+   * requests), and the passkey model reads them again. Refused: this socket cannot answer them, and the lists count
+   * as they are. Unknown (the call failed): no list of this socket counts, the held ones included; the gateway's
+   * `request.cancel` and the deadlines still end what ends.
    */
-  advertSettled(accepted: boolean): void {
-    if (this.stopped) {
+  advertSettled(outcome: RequestsAdvertOutcome): void {
+    if (this.stopped || this.advert !== 'pending') {
       return
     }
 
     const held = [...this.heldLists]
 
     this.heldLists.clear()
+    this.advert = outcome
 
-    if (accepted) {
-      this.advert = 'accepted'
+    if (outcome === 'accepted') {
       this.acceptedAt = this.now()
-
-      return
-    }
-
-    this.advert = 'refused'
-
-    for (const [sessionId, list] of held) {
-      this.reconcile(sessionId, list.ids, list.askedAt)
+    } else if (outcome === 'refused') {
+      for (const [sessionId, list] of held) {
+        this.reconcile(sessionId, list.ids, list.askedAt)
+      }
     }
   }
 
@@ -603,8 +609,9 @@ export class InteractiveModel {
       return
     }
 
-    // Asked for before the gateway knew this socket shows these requests: it listed none of them.
-    if (this.advert === 'accepted' && askedAt < this.acceptedAt) {
+    // Asked for before the gateway knew this socket shows these requests: it listed none of them. After an advert
+    // nobody knows the outcome of, no list says anything about them.
+    if ((this.advert === 'accepted' && askedAt < this.acceptedAt) || this.advert === 'unknown') {
       return
     }
 
@@ -737,7 +744,7 @@ export class InteractiveModel {
       this.show(bot, id, notice)
       this.options.engine?.ended(bot, id, expired ? 'timeout' : 'withdrawn')
     } else {
-      this.remember(id, entry.sessionId, expired ? 'timeout' : 'withdrawn')
+      this.remember(id, entry.sessionId, expired ? 'timeout' : 'withdrawn', entry.deadline)
     }
   }
 
@@ -876,7 +883,7 @@ export class InteractiveModel {
         this.show(bot, id, { kind: 'expired' })
         this.options.engine?.ended(bot, id, 'timeout')
       } else {
-        this.remember(id, sessionId, 'timeout')
+        this.remember(id, sessionId, 'timeout', deadline)
       }
 
       return
@@ -956,7 +963,15 @@ export class InteractiveModel {
       // request): its item ends here, or the chat would go on needing an answer nobody can give.
       this.options.engine?.ended(bot, request.id, 'cannot_show')
     } else {
-      this.remember(request.id, sessionId, 'cannot_show')
+      // The deadline the frame names, when it names one; a frame that cannot be read waits from now.
+      const expiresAt = request.params.expires_at
+
+      this.remember(
+        request.id,
+        sessionId,
+        'cannot_show',
+        typeof expiresAt === 'number' && Number.isFinite(expiresAt) ? expiresAt * 1000 : 0
+      )
     }
   }
 
@@ -976,7 +991,19 @@ export class InteractiveModel {
    * again: a call made from inside a pass only asks for one more.
    */
   private chatsChanged(): void {
-    if (this.stopped || (this.entries.size === 0 && this.unended.size === 0)) {
+    if (this.stopped) {
+      return
+    }
+
+    this.pruneUnended()
+
+    if (this.entries.size === 0) {
+      // Nothing open or waiting: only what ended before its chat held it can still match, and a chat-store update
+      // (every streamed delta) costs a lookup per such request, of which there are few and none for long.
+      if (this.unended.size > 0 && !this.settling) {
+        this.endUnended()
+      }
+
       return
     }
 
@@ -998,18 +1025,40 @@ export class InteractiveModel {
     }
   }
 
-  private settle(): void {
+  /** What ended before its chat held its session ends on that chat, once the chat shows it. */
+  private endUnended(): void {
     const { chatFor, engine } = this.options
 
-    // What ended before its chat held its session ends on that chat, once the chat shows it.
     for (const [id, { sessionId, reason }] of [...this.unended]) {
       const bot = chatFor(sessionId)
 
-      if (bot !== undefined && (engine?.holds?.(bot, id) ?? true)) {
+      // `ended` changes the chats, which may have ended this one already from inside the call.
+      if (this.unended.has(id) && bot !== undefined && (engine?.holds?.(bot, id) ?? true)) {
         this.unended.delete(id)
         engine?.ended(bot, id, reason)
       }
     }
+  }
+
+  /** Forget what ended before its chat held it once no snapshot can list it any more (`UNENDED_GRACE_MS`). */
+  private pruneUnended(): void {
+    if (this.unended.size === 0) {
+      return
+    }
+
+    const now = this.now()
+
+    for (const [id, { until }] of [...this.unended]) {
+      if (now > until) {
+        this.unended.delete(id)
+      }
+    }
+  }
+
+  private settle(): void {
+    const { chatFor } = this.options
+
+    this.endUnended()
 
     for (const id of [...this.parked]) {
       const entry = this.entries.get(id)
@@ -1156,7 +1205,7 @@ export class InteractiveModel {
       this.options.engine?.ended(request.bot, id, engineReason)
     } else if (entry) {
       this.finish(id, reason)
-      this.remember(id, entry.sessionId, engineReason)
+      this.remember(id, entry.sessionId, engineReason, entry.deadline)
     }
   }
 
@@ -1164,13 +1213,13 @@ export class InteractiveModel {
    * A request that ended here while it waited for its chat: a resume's snapshot may still put its question on the
    * chat that comes to hold its session, and that item must end too (`settle`).
    */
-  private remember(id: string, sessionId: string, reason: string): void {
+  private remember(id: string, sessionId: string, reason: string, deadline: number): void {
     if (!sessionId) {
       return
     }
 
     this.unended.delete(id)
-    this.unended.set(id, { sessionId, reason })
+    this.unended.set(id, { sessionId, reason, until: Math.max(deadline, this.now()) + UNENDED_GRACE_MS })
 
     if (this.unended.size > UNENDED_LIMIT) {
       const oldest = this.unended.keys().next().value

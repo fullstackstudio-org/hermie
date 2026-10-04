@@ -11,7 +11,7 @@
  *
  * Nothing here logs a body: codes and assertions travel through it.
  */
-import type { FetchLike } from '@hermie/gateway-client'
+import { DEFAULT_RPC_TIMEOUT_MS, type FetchLike } from '@hermie/gateway-client'
 
 /** One credential of the signed-in user, as the routes describe it. */
 export interface PasskeyCredentialInfo {
@@ -113,6 +113,12 @@ export interface PasskeyClient {
 
 const PREFIX = '/api/auth/passkeys'
 
+/**
+ * How long a route call may take, body included, before it fails as `transport`: the RPC calls' own bound. A gateway
+ * that never answers the status read must not hold up what waits on it (the advert of a socket).
+ */
+export const PASSKEY_ROUTE_TIMEOUT_MS = DEFAULT_RPC_TIMEOUT_MS
+
 /** `Retry-After` as whole seconds: delta-seconds, or an HTTP date taken against `now` (ms). `null` when absent or unreadable. */
 export function parseRetryAfter(value: string | null | undefined, now: number = Date.now()): number | null {
   const raw = value?.trim()
@@ -135,32 +141,55 @@ const pageFetch: FetchLike = (input, init) => globalThis.fetch(input, init)
 
 /**
  * The routes on the gateway at `baseUrl` (origin plus prefix). `fetchImpl` is
- * the page's own unless a test hands in its own.
+ * the page's own unless a test hands in its own; every call is aborted after
+ * `timeoutMs` (`PASSKEY_ROUTE_TIMEOUT_MS`) and fails as `transport`.
  */
-export function createPasskeyClient(baseUrl: string, fetchImpl: FetchLike = pageFetch): PasskeyClient {
+export function createPasskeyClient(
+  baseUrl: string,
+  fetchImpl: FetchLike = pageFetch,
+  timeoutMs: number = PASSKEY_ROUTE_TIMEOUT_MS
+): PasskeyClient {
   async function call<T>(method: 'GET' | 'POST', path: string, body?: unknown): Promise<T> {
+    const abort = new AbortController()
+    let timedOut = false
+    const timer = setTimeout(() => {
+      timedOut = true
+      abort.abort()
+    }, timeoutMs)
     let response: Response
-
-    try {
-      response = await fetchImpl(`${baseUrl}${PREFIX}${path}`, {
-        method,
-        headers: body === undefined ? { accept: 'application/json' } : { 'content-type': 'application/json' },
-        ...(body === undefined ? {} : { body: JSON.stringify(body) }),
-        credentials: 'same-origin',
-        cache: 'no-store',
-        // A redirect is somebody else answering; the session is not followed anywhere.
-        redirect: 'manual'
-      })
-    } catch (error) {
-      throw new PasskeyRouteError('transport', error instanceof Error ? error.message : String(error))
-    }
-
     let parsed: unknown = null
 
     try {
-      parsed = await response.json()
-    } catch {
-      parsed = null
+      try {
+        response = await fetchImpl(`${baseUrl}${PREFIX}${path}`, {
+          method,
+          headers: body === undefined ? { accept: 'application/json' } : { 'content-type': 'application/json' },
+          ...(body === undefined ? {} : { body: JSON.stringify(body) }),
+          credentials: 'same-origin',
+          cache: 'no-store',
+          // A redirect is somebody else answering; the session is not followed anywhere.
+          redirect: 'manual',
+          signal: abort.signal
+        })
+      } catch (error) {
+        throw new PasskeyRouteError(
+          'transport',
+          timedOut ? 'The gateway did not answer in time.' : error instanceof Error ? error.message : String(error)
+        )
+      }
+
+      try {
+        parsed = await response.json()
+      } catch {
+        parsed = null
+      }
+
+      // A body that stalled until the timeout is no answer either.
+      if (timedOut) {
+        throw new PasskeyRouteError('transport', 'The gateway did not answer in time.')
+      }
+    } finally {
+      clearTimeout(timer)
     }
 
     const record = (parsed && typeof parsed === 'object' ? parsed : {}) as Record<string, unknown>

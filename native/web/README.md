@@ -1034,7 +1034,10 @@ of the secure input model: what a person fills in, picks or edits never reaches 
   (`ADVERTISE_INTERACTIVE_REQUESTS`); the device-local setting `ADVERTISE_INTERACTIVE_REQUESTS_KEY` (`'on'`) turns the
   advert on for the end-to-end tests. On a new socket the controller's resume and replay run before the advert, when
   the gateway still hides these requests: their `open_requests` are held until the passkey model says what the advert
-  came to (`RequestsAdvert.settled`), dropped when it was accepted (the lists read after it count), counted when not.
+  came to (`RequestsAdvert.settled`, once per socket: a re-advert after `forgetPin` does not move it), dropped when it
+  was accepted (the lists read after it count), counted when refused, and dropped with every later list of that socket
+  when the call failed and the outcome is unknown. The passkey routes time out like an RPC
+  (`PASSKEY_ROUTE_TIMEOUT_MS`), so a status read that never answers cannot keep the advert from settling.
 - **Reading.** `core/requests/interactive-types.ts` holds hand-written types for the three params and their answers,
   and a reader per method held to `contract/requests/examples.json` (`interactive-types.test.ts`): every text goes
   through `displayText` with its own limit, a frame the gateway never sends (ids that repeat, a default outside its

@@ -16,7 +16,7 @@ import { createPasskeysStore } from '../../state/passkeys'
 import { softWebAuthn } from '../../test-support/soft-webauthn'
 import { type RequestsAdvert, showableMethods } from '../requests/interactive'
 import { NAME_LIMIT } from '../requests/secure-input'
-import type { PasskeyClient, PasskeyStatus } from './client'
+import { createPasskeyClient, type PasskeyClient, type PasskeyStatus } from './client'
 import {
   credentialName,
   CREDENTIAL_NAME_LIMIT,
@@ -125,6 +125,9 @@ const frame = (overrides: Record<string, unknown> = {}, passkey: Record<string, 
   },
   ...overrides
 })
+
+/** Let every promise that is already settled run its callbacks. */
+const flushPromises = (): Promise<void> => new Promise(resolve => setTimeout(resolve, 0))
 
 /** The frame's `expires_at` is 120 s after this. */
 const NOW = 1_790_000_000
@@ -1147,7 +1150,7 @@ describe('advertising the interactive requests', () => {
 
     expect(callsTo(page, 'session.events.since')).toEqual([{ session_id: 'sess-1', last_seen: 0 }])
     // Settled first, then read: the model knows the lists it gets now are the ones that count.
-    expect(page.hooks.settled).toHaveBeenCalledExactlyOnceWith(true)
+    expect(page.hooks.settled).toHaveBeenCalledExactlyOnceWith('accepted')
     expect(page.hooks.settled.mock.invocationCallOrder[0]).toBeLessThan(
       page.hooks.openRequests.mock.invocationCallOrder[0] ?? 0
     )
@@ -1161,14 +1164,14 @@ describe('advertising the interactive requests', () => {
 
     expect(callsTo(page, 'session.events.since')).toEqual([])
     expect(page.hooks.openRequests).not.toHaveBeenCalled()
-    expect(page.hooks.settled).toHaveBeenCalledExactlyOnceWith(false)
+    expect(page.hooks.settled).toHaveBeenCalledExactlyOnceWith('refused')
   })
 
   it('says the advert was not accepted when nothing was listed, and when the first call fails', async () => {
     const none = withRequests({ passkey: false, listed: ['approval'] })
 
     await none.model.advertise()
-    expect(none.hooks.settled).toHaveBeenCalledExactlyOnceWith(false)
+    expect(none.hooks.settled).toHaveBeenCalledExactlyOnceWith('refused')
 
     const settled = vi.fn()
     const failing = setUp({ requests: { methods: () => [], settled, openRequests: vi.fn() } })
@@ -1177,7 +1180,73 @@ describe('advertising the interactive requests', () => {
       throw new Error('socket closed')
     })
     await failing.model.advertise()
-    expect(settled).toHaveBeenCalledExactlyOnceWith(false)
+    expect(settled).toHaveBeenCalledExactlyOnceWith('refused')
+  })
+
+  it('says it once per socket: an advert again on the same socket (forgetPin) does not move it', async () => {
+    let second: () => unknown = () => ({ confirm: [], requests: ['input.form'] })
+    const page = withRequests({ passkey: false, second: () => second() })
+
+    page.status('ready')
+    await vi.waitFor(() => expect(page.hooks.settled).toHaveBeenCalledTimes(1))
+    expect(page.hooks.settled).toHaveBeenLastCalledWith('accepted')
+
+    // The second advert on this socket fails: it says nothing, and the first word stands.
+    second = () => {
+      throw new Error('timed out')
+    }
+    page.model.forgetPin()
+    await vi.waitFor(() => expect(callsTo(page, 'client.capabilities')).toHaveLength(4))
+    await flushPromises()
+    expect(page.hooks.settled).toHaveBeenCalledTimes(1)
+
+    // A new socket is told again.
+    second = () => ({ confirm: [], requests: [] })
+    page.status('reconnecting')
+    page.status('ready')
+    await vi.waitFor(() => expect(page.hooks.settled).toHaveBeenCalledTimes(2))
+    expect(page.hooks.settled).toHaveBeenLastCalledWith('refused')
+  })
+
+  it('says it even when the status read never answers: the route call times out', async () => {
+    const settled = vi.fn()
+    const page = setUp({
+      requests: { methods: list => showableMethods(list, { file: true }), settled, openRequests: vi.fn() },
+      client: createPasskeyClient(
+        'https://gw.example.test',
+        ((_input: RequestInfo | URL, init?: RequestInit) =>
+          new Promise<Response>((_resolve, reject) =>
+            init?.signal?.addEventListener('abort', () => reject(new DOMException('aborted', 'AbortError')))
+          )) as typeof fetch,
+        20
+      )
+    })
+
+    page.answer.mockImplementation(async (method: string, params: unknown) => {
+      if (method !== 'client.capabilities') {
+        return { open_requests: [] }
+      }
+
+      const sent = params as { requests?: string[] }
+
+      return sent.requests
+        ? { confirm: ['passkey'], requests: sent.requests }
+        : {
+            server_requests: ['input.form', 'confirm'],
+            confirm: [],
+            confirm_passkey: {
+              v: 1,
+              enabled: true,
+              reason: '',
+              gateway_id: GATEWAY_ID,
+              rp: { native: [], web: ['gw.example.test'] }
+            }
+          }
+    })
+
+    await page.model.advertise()
+
+    expect(settled).toHaveBeenCalledExactlyOnceWith('accepted')
   })
 
   it('says nothing for an advert whose socket went away before it was settled', async () => {
@@ -1203,6 +1272,6 @@ describe('advertising the interactive requests', () => {
 
     await expect(page.model.advertise()).resolves.toBeUndefined()
     expect(page.store.getState().capability).toEqual({ verdict: { kind: 'not_offered' }, accepted: [] })
-    expect(page.hooks.settled).toHaveBeenCalledExactlyOnceWith(false)
+    expect(page.hooks.settled).toHaveBeenCalledExactlyOnceWith('unknown')
   })
 })
