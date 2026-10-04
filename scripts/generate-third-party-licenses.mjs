@@ -5,6 +5,15 @@
  *
  *   node scripts/generate-third-party-licenses.mjs
  *   node scripts/generate-third-party-licenses.mjs --check    # fail if stale
+ *   node scripts/generate-third-party-licenses.mjs --web      # the browser client's licenses.json
+ *   node scripts/generate-third-party-licenses.mjs --web --check
+ *
+ * `--web` does the same walk for the `@hermie/web-client` workspace and writes
+ * only `native/web/public/licenses.json`, which the build carries to `dist/` and
+ * Settings, About shows. Only that one file: the Markdown list is the app's.
+ * The browser bundle's gate refuses a non-ASCII byte in a JSON file, so the
+ * file is written with every character above U+007F as a `\uXXXX` escape
+ * (the same text once parsed).
  *
  * Why the lockfile and not `npm ls`: the lockfile already knows which entry is
  * dev-only (`dev` / `devOptional`) and which version won every conflict, so a
@@ -27,13 +36,16 @@ import { fileURLToPath } from 'node:url'
 const here = dirname(fileURLToPath(import.meta.url))
 const repoRoot = resolve(here, '..')
 
+const checkOnly = process.argv.includes('--check')
+const webClient = process.argv.includes('--web')
+
 /** The workspace whose production tree ships to users. */
-const APP_WORKSPACE = 'expo/hermie'
+const APP_WORKSPACE = webClient ? 'native/web' : 'expo/hermie'
 
 const markdownPath = resolve(repoRoot, 'THIRD_PARTY_LICENSES.md')
-const jsonPath = resolve(repoRoot, 'expo/hermie/src/generated/third-party-licences.json')
-
-const checkOnly = process.argv.includes('--check')
+const jsonPath = webClient
+  ? resolve(repoRoot, 'native/web/public/licenses.json')
+  : resolve(repoRoot, 'expo/hermie/src/generated/third-party-licences.json')
 
 // ---------------------------------------------------------------------------
 // The lockfile walk
@@ -543,7 +555,9 @@ function renderMarkdown({ entries, groups, workspaces }) {
  */
 function renderJson({ entries, groups, workspaces }) {
   const data = {
-    generatedBy: 'scripts/generate-third-party-licenses.mjs',
+    generatedBy: webClient
+      ? 'scripts/generate-third-party-licenses.mjs --web'
+      : 'scripts/generate-third-party-licenses.mjs',
     scope: `production dependencies of ${APP_WORKSPACE}`,
     excludesWorkspacePackages: workspaces,
     packages: entries.map(entry => ({
@@ -556,7 +570,12 @@ function renderJson({ entries, groups, workspaces }) {
     texts: Object.fromEntries(groups.map(group => [group.hash, group.text]))
   }
 
-  return `${JSON.stringify(data, null, 2)}\n`
+  const text = `${JSON.stringify(data, null, 2)}\n`
+
+  // A browser build has no non-ASCII byte in a JSON file (`scripts/web/check-bundle.mjs`); the escape parses back to the same text.
+  return webClient
+    ? text.replace(/[\u0080-\uffff]/gu, char => `\\u${char.charCodeAt(0).toString(16).padStart(4, '0')}`)
+    : text
 }
 
 // ---------------------------------------------------------------------------
@@ -592,10 +611,12 @@ function readIfPresent(path) {
 
 const collected = collect()
 
-const outputs = [
-  { path: markdownPath, source: renderMarkdown(collected) },
-  { path: jsonPath, source: renderJson(collected) }
-]
+const outputs = webClient
+  ? [{ path: jsonPath, source: renderJson(collected) }]
+  : [
+      { path: markdownPath, source: renderMarkdown(collected) },
+      { path: jsonPath, source: renderJson(collected) }
+    ]
 
 const stale = []
 

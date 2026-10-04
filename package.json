@@ -37,6 +37,8 @@
     "i18n:check": "tsx scripts/i18n/generate.ts --check",
     "licences": "node scripts/generate-third-party-licenses.mjs",
     "licences:check": "node scripts/generate-third-party-licenses.mjs --check",
+    "licences:web": "node scripts/generate-third-party-licenses.mjs --web",
+    "licences:web:check": "node scripts/generate-third-party-licenses.mjs --web --check",
     "set-version": "node scripts/set-version.mjs",
     "fake-gateway": "tsx packages/fake-gateway/src/cli.ts",
     "client:dev": "npm run dev --workspace @hermie/web-client",
