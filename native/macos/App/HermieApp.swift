@@ -49,6 +49,8 @@ struct HermieApp: App {
     .defaultSize(width: 1000, height: 680)
     .commands {
       HermieCommands(launch: launch)
+      // View > Show/Hide Sidebar (Control-Command-S): the Settings sidebar has no toggle button of its own.
+      SidebarCommands()
     }
 
     // An extra window for one chat, opened by the New Chat Window command.
