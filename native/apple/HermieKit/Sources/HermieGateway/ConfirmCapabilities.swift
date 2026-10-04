@@ -137,11 +137,20 @@ public struct ConfirmCapabilityReport: Sendable, Equatable {
   public var verdict: PasskeyAdvertisingVerdict
   /// The levels the second result accepted; empty without a second call or when it failed.
   public var accepted: [ConfirmLevel]
+  /// The interactive methods the second result accepted (`requests`); empty without a second call,
+  /// when it failed, or when none was announced.
+  public var acceptedRequests: [String]
 
-  public init(first: ClientCapabilitiesResult?, verdict: PasskeyAdvertisingVerdict, accepted: [ConfirmLevel]) {
+  public init(
+    first: ClientCapabilitiesResult?,
+    verdict: PasskeyAdvertisingVerdict,
+    accepted: [ConfirmLevel],
+    acceptedRequests: [String] = []
+  ) {
     self.first = first
     self.verdict = verdict
     self.accepted = accepted
+    self.acceptedRequests = acceptedRequests
   }
 
   /// `passkey` was accepted on this connection.

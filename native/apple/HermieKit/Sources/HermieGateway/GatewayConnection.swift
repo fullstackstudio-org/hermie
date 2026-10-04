@@ -73,6 +73,12 @@ public actor GatewayConnection {
     /// `confirm` requests delivered to the app. `nil`: the single `{server_requests: true}` call,
     /// and every `confirm` answered `-32601`.
     public var confirm: ConfirmCapabilitySource?
+    /// The interactive request methods (`input.form`, `input.file`, `review.draft`, ...) this device
+    /// can SHOW, announced in the second `client.capabilities` call as `requests`
+    /// (`contract/requests/README.md` §1) when the first result lists at least one of them.
+    /// `nil`, or an empty list: nothing is announced, and every interactive request is answered
+    /// `-32601`, as before. A method the gateway did not accept is answered `-32601` too.
+    public var requests: [String]?
 
     public init() {}
   }
@@ -140,9 +146,15 @@ public actor GatewayConnection {
   var heartbeatTimer: TimerSlot?
   var openDeliveries: Set<UInt64> = []
   var nextDeliveryToken: UInt64 = 0
-  /// What the attached socket advertised for `confirm` and got accepted, `nil` while nothing was.
-  /// A refresh's first call repeats it, so the gateway never sees this client without its levels.
+  /// What the attached socket advertised (the `confirm` levels and the interactive `requests`) and
+  /// got accepted, `nil` while nothing was. A refresh's first call repeats it, so the gateway never
+  /// sees this client without them.
   var confirmAdvertised: ClientCapabilitiesParams?
+  /// The interactive methods the attached socket may be sent: the list the second call carried
+  /// from the moment it went out (a request waiting for a capable device can arrive before the
+  /// answer), narrowed to what the gateway accepted once the answer came. Empty while nothing was
+  /// advertised.
+  var requestsAdvertised: Set<String> = []
   /// Runtime session ids this connection resumed or created, in first-seen order: the sessions
   /// whose open requests are read again once a socket gains the `passkey` level.
   var attachedSessions: [String] = []

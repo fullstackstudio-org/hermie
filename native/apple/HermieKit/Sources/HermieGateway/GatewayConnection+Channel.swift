@@ -30,6 +30,7 @@ extension GatewayConnection {
     heartbeat.lastLivenessAt = clock.now
     // A new socket starts without an advertisement at the gateway.
     confirmAdvertised = nil
+    requestsAdvertised = []
   }
 
   /// `detach`: drop the generation and fail every call in flight with `error`.
@@ -206,14 +207,15 @@ extension GatewayConnection {
   /// a build that predates them and fails every clarify and approval at once.
   /// An older backend answers `-32601`; that is ignored.
   ///
-  /// With a `confirm` source the announcement is the contract's two calls: the
-  /// first result decides the second (`ConfirmAdvertisement.secondCall`), and
-  /// the source hears what came back. Every call replaces the advertisement at
-  /// the gateway, so on a socket that already advertised levels the first call
-  /// repeats them: a request raised between the two calls still finds this
-  /// client. When the second call would advertise nothing, it withdraws them.
+  /// With a `confirm` source or `Options.requests` the announcement is the contract's
+  /// two calls: the first result decides the second (`ConfirmAdvertisement.secondCall`
+  /// and `RequestsAdvertisement.methods`), and the source hears what came back. Every
+  /// call replaces the advertisement at the gateway, so on a socket that already
+  /// advertised levels or methods the first call repeats them: a request raised
+  /// between the two calls still finds this client. When the second call would
+  /// advertise nothing, it withdraws them.
   func advertiseCapabilities() {
-    guard let source = options.confirm else {
+    guard options.confirm != nil || options.requests?.isEmpty == false else {
       _ = try? channelCall(
         RPC.ClientCapabilities.name,
         params: ["server_requests": true],
@@ -231,14 +233,19 @@ extension GatewayConnection {
       return
     }
 
-    spawn { await self.completeCapabilities(first, generation: generation, source: source, carried: carried != nil) }
+    // The methods the first call repeats stay deliverable until the second call replaces them.
+    requestsAdvertised = Set(params.requests ?? [])
+    spawn { await self.completeCapabilities(first, generation: generation, carried: carried != nil) }
   }
 
   /// Run the two-step announcement again on the live socket: what the app can do
   /// changed (a passkey was enrolled or removed). Nothing happens without a
-  /// `confirm` source or a ready socket; the next `gateway.ready` runs it anyway.
+  /// `confirm` source or `Options.requests`, or a ready socket; the next `gateway.ready`
+  /// runs it anyway.
   public func refreshCapabilities() {
-    guard options.confirm != nil, attachedGeneration != nil, currentPhase == .ready else {
+    guard options.confirm != nil || options.requests?.isEmpty == false, attachedGeneration != nil,
+      currentPhase == .ready
+    else {
       return
     }
 
@@ -248,41 +255,63 @@ extension GatewayConnection {
   private func completeCapabilities(
     _ first: Promise<RPCReply<JSONValue>>,
     generation: UInt64,
-    source: ConfirmCapabilitySource,
     carried: Bool
   ) async {
+    let source = options.confirm
     let parsed = (try? await first.value().result).flatMap(ClientCapabilitiesResult.init(jsonValue:))
-    let policy = source.policy
+    // Without a source this client shows no `confirm` and has no passkey: `secondCall` decides nothing.
+    let policy = source?.policy ?? ConfirmCapabilityPolicy()
     let verdict = ConfirmAdvertisement.verdict(parsed?.confirmPasskey, policy: policy.passkey)
-    let decided = parsed.flatMap { ConfirmAdvertisement.secondCall(after: $0, policy: policy) }
-    // The first call repeated levels this client may no longer offer: without a second call of
-    // its own, the second call takes them back.
+    var decided = parsed.flatMap { ConfirmAdvertisement.secondCall(after: $0, policy: policy) }
+    let methods = parsed.map { RequestsAdvertisement.methods(after: $0, device: options.requests) } ?? []
+
+    if !methods.isEmpty {
+      var withRequests = decided ?? ClientCapabilitiesParams(serverRequests: true)
+      withRequests.requests = methods
+      decided = withRequests
+    }
+
+    // The first call repeated levels or methods this client may no longer offer: without a second
+    // call of its own, the second call takes them back.
     let withdrawal = carried ? ClientCapabilitiesParams(serverRequests: true) : nil
 
     // Re-check after the suspension: the socket the first call went out on may be gone.
     guard attachedGeneration == generation, parsed != nil, let params = decided ?? withdrawal,
       let (_, second) = try? channelCall(RPC.ClientCapabilities.name, params: params.jsonValue, timeout: options.requestTimeout)
     else {
-      source.record(ConfirmCapabilityReport(first: parsed, verdict: verdict, accepted: []))
+      if attachedGeneration == generation {
+        requestsAdvertised = []
+      }
+
+      source?.record(ConfirmCapabilityReport(first: parsed, verdict: verdict, accepted: []))
       return
     }
+
+    // A request can arrive before the answer: it is deliverable from the moment the call is sent.
+    requestsAdvertised = Set(params.requests ?? [])
 
     let answer = (try? await second.value().result).flatMap(ClientCapabilitiesResult.init(jsonValue:))
     let wanted = Set(params.confirm ?? [])
     let accepted = (answer?.confirm ?? []).filter { wanted.contains($0) }
+    let wantedRequests = Set(params.requests ?? [])
+    let acceptedRequests = (answer?.requests ?? []).filter { wantedRequests.contains($0) }
     // Advertised but refused: the gateway did not take it after all.
     let outcome = verdict == .advertised && !accepted.contains(.passkey) ? .notOffered : verdict
-    let report = ConfirmCapabilityReport(first: parsed, verdict: outcome, accepted: accepted)
+    let report = ConfirmCapabilityReport(
+      first: parsed, verdict: outcome, accepted: accepted, acceptedRequests: acceptedRequests)
 
     // Re-check after the suspension: only the socket the calls went out on is described.
     guard attachedGeneration == generation else {
-      source.record(report)
+      source?.record(report)
       return
     }
 
-    let gained = accepted.contains(.passkey) && confirmAdvertised?.confirm?.contains(.passkey) != true
-    confirmAdvertised = Self.advertisement(params, accepted: accepted)
-    source.record(report)
+    let gained =
+      (accepted.contains(.passkey) && confirmAdvertised?.confirm?.contains(.passkey) != true)
+      || (!acceptedRequests.isEmpty && Set(confirmAdvertised?.requests ?? []) != Set(acceptedRequests))
+    requestsAdvertised = Set(acceptedRequests)
+    confirmAdvertised = Self.advertisement(params, accepted: accepted, requests: acceptedRequests)
+    source?.record(report)
 
     if gained {
       refetchOpenRequests()
@@ -290,23 +319,35 @@ extension GatewayConnection {
   }
 
   /// What the gateway holds for this socket after a call with `params`: the levels it accepted,
-  /// and the passkey block only with `passkey` among them; `nil` for none.
-  nonisolated static func advertisement(_ params: ClientCapabilitiesParams, accepted: [ConfirmLevel])
-    -> ClientCapabilitiesParams?
-  {
-    guard !accepted.isEmpty else {
+  /// the passkey block only with `passkey` among them, and the interactive methods it accepted;
+  /// `nil` for none.
+  nonisolated static func advertisement(
+    _ params: ClientCapabilitiesParams,
+    accepted: [ConfirmLevel],
+    requests: [String] = []
+  ) -> ClientCapabilitiesParams? {
+    guard !accepted.isEmpty || !requests.isEmpty else {
       return nil
     }
 
     var held = ClientCapabilitiesParams(serverRequests: true)
-    held.confirm = accepted
-    held.confirmPasskey = accepted.contains(.passkey) ? params.confirmPasskey : nil
+
+    if !accepted.isEmpty {
+      held.confirm = accepted
+      held.confirmPasskey = accepted.contains(.passkey) ? params.confirmPasskey : nil
+    }
+
+    if !requests.isEmpty {
+      held.requests = requests
+    }
+
     return held
   }
 
-  /// The gateway shows a request gated at `passkey` only to a connection that advertised the
-  /// level, and the reconnect replay asks before the second call has. Once a socket gains the
-  /// level, the open requests of every session this connection knows are read again: their
+  /// The gateway shows a request gated at `passkey`, or one of the interactive methods, only to a
+  /// connection that advertised it, and the reconnect replay asks before the second call has.
+  /// Once a socket gains the level or the methods, the open requests of every session this
+  /// connection knows are read again: their
   /// answers re-deliver what is still open (`deliverOpenRequests`). Their events are not
   /// dispatched; the socket has delivered those live since it opened, and the replay the rest.
   func refetchOpenRequests() {
@@ -345,10 +386,11 @@ extension GatewayConnection {
     }
   }
 
-  /// Hand an `approval`, a `clarify` or a one-string prompt (`secret`, `sudo`,
-  /// `vault.*`) to the app; answer everything else, and these when nobody is
-  /// listening, `-32601` so the backend never waits out its deadline against a
-  /// client that cannot answer.
+  /// Hand an `approval`, a `clarify`, a one-string prompt (`secret`, `sudo`,
+  /// `vault.*`), a `confirm` this client announced, or an interactive request
+  /// (`input.form`, ...) it advertised and had accepted to the app; answer
+  /// everything else, and these when nobody is listening, `-32601` so the
+  /// backend never waits out its deadline against a client that cannot answer.
   ///
   /// A method the app cannot show still reaches a listener, already answered
   /// (answering it again sends nothing), so the app can tell the person why
@@ -365,9 +407,9 @@ extension GatewayConnection {
       // Only a connection that announced `confirm` has someone to answer it.
       supported = options.confirm != nil
     case .inputForm, .inputFile, .reviewDraft:
-      // Typed in HermieProtocol; nothing advertises them yet, so a gateway sends none and a stray
-      // one is answered like any method nobody handles.
-      supported = false
+      // Only a socket that advertised the method (and had it accepted) has someone to answer it;
+      // a stray one is answered like any method nobody handles.
+      supported = requestsAdvertised.contains(method)
     case .unknown:
       supported = false
     }

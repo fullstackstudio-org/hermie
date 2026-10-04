@@ -1,0 +1,264 @@
+import Foundation
+import HermieProtocol
+import Testing
+
+@testable import HermieGateway
+
+/// The `requests` key of the second `client.capabilities` call (`contract/requests/README.md` §1):
+/// the decision (`RequestsAdvertisement`) and the calls the connection makes with it, and what it
+/// does with an interactive request it was not told to take.
+@Suite struct RequestsCapabilityTests {
+  static let all = ["input.form", "input.file", "review.draft"]
+
+  /// A first result as a gateway that knows the interactive methods answers it, and, since the
+  /// scripted result answers both calls, the second result's echo.
+  static func listed(accepts echo: [String]? = nil) -> JSONValue {
+    var result: JSONObject = ["server_requests": ["approval", "clarify", "input.form", "input.file", "review.draft"]]
+
+    if let echo {
+      result["requests"] = .array(echo.map(JSONValue.string))
+    }
+
+    return .object(result)
+  }
+
+  @Test("the second call lists the device's methods only when the first result lists an interactive method")
+  func decision() {
+    let known = ClientCapabilitiesResult(json: ["server_requests": ["approval", "clarify", "input.form"]])
+    let old = ClientCapabilitiesResult(json: ["server_requests": ["approval", "clarify", "confirm"]])
+    let device = ["input.form", "input.file", "input.form", "review.draft"]
+
+    #expect(RequestsAdvertisement.methods(after: known, device: device) == Self.all, "distinct, in order")
+    #expect(RequestsAdvertisement.methods(after: old, device: device).isEmpty, "an older gateway 4000s the key")
+    #expect(RequestsAdvertisement.methods(after: known, device: []).isEmpty)
+    #expect(RequestsAdvertisement.methods(after: known, device: nil).isEmpty)
+    #expect(RequestsAdvertisement.methods(after: ClientCapabilitiesResult(json: [:]), device: device).isEmpty)
+
+    let device32 = (0..<40).map { "device.method\($0)" }
+    #expect(RequestsAdvertisement.methods(after: known, device: device32).count == 32, "the contract's bound")
+    #expect(RequestsAdvertisement.isInteractive("device.scan") && RequestsAdvertisement.isInteractive("review.draft"))
+    #expect(!RequestsAdvertisement.isInteractive("confirm") && !RequestsAdvertisement.isInteractive("approval"))
+  }
+
+  @Test("a refresh repeats what the gateway accepted, with the interactive methods")
+  func heldAdvertisement() throws {
+    let sent = try #require(ConfirmAdvertisement.secondCall(after: ConfirmCapabilityTests.first(), policy: ConfirmCapabilityTests.policy(plain: true)))
+    #expect(GatewayConnection.advertisement(sent, accepted: [], requests: []) == nil)
+
+    let onlyRequests = try #require(GatewayConnection.advertisement(sent, accepted: [], requests: ["input.form"]))
+    #expect(onlyRequests.jsonValue == ["server_requests": true, "requests": ["input.form"]])
+
+    let both = try #require(GatewayConnection.advertisement(sent, accepted: [.plain], requests: Self.all))
+    #expect(both.confirm == [.plain])
+    #expect(both.requests == Self.all)
+    #expect(both.confirmPasskey == nil)
+  }
+
+  @Test("with methods to show the connection makes both calls, the second carrying requests")
+  func twoCalls() async throws {
+    var options = HarnessOptions()
+    options.requests = Self.all
+
+    try await withHarness(options) { h in
+      h.gateway.with { $0.scriptedResults["client.capabilities"] = Self.listed(accepts: Self.all) }
+      await h.connection.start()
+      try await h.waitFor(.ready)
+
+      let socket = try #require(h.gateway.lastSocket)
+      try await eventually("both calls") { socket.sent.filter { $0["method"] == "client.capabilities" }.count == 2 }
+      let calls = socket.sent.filter { $0["method"] == "client.capabilities" }
+      #expect(calls.first?["params"] == ["server_requests": true])
+      #expect(calls.last?["params"] == ["server_requests": true, "requests": ["input.form", "input.file", "review.draft"]])
+    }
+  }
+
+  @Test("a gateway that lists no interactive method hears only the first call, and answers a stray one -32601")
+  func olderGateway() async throws {
+    var options = HarnessOptions()
+    options.requests = Self.all
+
+    try await withHarness(options) { h in
+      h.gateway.with { $0.scriptedResults["client.capabilities"] = ["server_requests": ["approval", "clarify"]] }
+      await h.connection.start()
+      try await h.waitFor(.ready)
+      try await Task.sleep(for: .milliseconds(50))
+
+      let socket = try #require(h.gateway.lastSocket)
+      #expect(socket.sent.filter { $0["method"] == "client.capabilities" }.count == 1)
+
+      let requests = h.connection.serverRequests
+      let listening = Task { for await _ in requests {} }
+      defer { listening.cancel() }
+
+      await #expect(throws: (any Error).self) {
+        try await h.gateway.requestServerSide(method: "input.form", params: ["session_id": "s1"])
+      }
+      #expect(socket.sent.contains { $0["error"]?["code"] == -32601 })
+    }
+  }
+
+  @Test("without methods to show nothing is announced, and every interactive request is answered -32601")
+  func unadvertisedIsDeclined() async throws {
+    try await withHarness { h in
+      h.gateway.with { $0.scriptedResults["client.capabilities"] = Self.listed(accepts: Self.all) }
+      await h.connection.start()
+      try await h.waitFor(.ready)
+      try await Task.sleep(for: .milliseconds(50))
+
+      let socket = try #require(h.gateway.lastSocket)
+      #expect(socket.sent.filter { $0["method"] == "client.capabilities" }.count == 1)
+
+      // Listener or not: nobody answers an interactive request on a connection that never said it could.
+      let requests = h.connection.serverRequests
+      let listening = Task { for await delivery in requests { _ = await delivery.respond(["status": "skipped"]) } }
+      defer { listening.cancel() }
+
+      for method in Self.all {
+        await #expect {
+          try await h.gateway.requestServerSide(method: method, params: ["session_id": "s1"])
+        } throws: { error in
+          String(describing: error).contains("-32601")
+        }
+      }
+    }
+  }
+
+  @Test("a method the gateway did not accept is answered -32601; one it did is delivered and answered")
+  func onlyWhatWasAccepted() async throws {
+    var options = HarnessOptions()
+    options.requests = Self.all
+
+    try await withHarness(options) { h in
+      h.gateway.with { $0.scriptedResults["client.capabilities"] = Self.listed(accepts: ["input.form"]) }
+      await h.connection.start()
+      try await h.waitFor(.ready)
+      let socket = try #require(h.gateway.lastSocket)
+      try await eventually("both calls") { socket.sent.filter { $0["method"] == "client.capabilities" }.count == 2 }
+      try await Task.sleep(for: .milliseconds(50))
+
+      let requests = h.connection.serverRequests
+      let answering = Task {
+        for await delivery in requests where delivery.body.isInteractive {
+          _ = await delivery.respond(["status": "skipped"])
+        }
+      }
+      defer { answering.cancel() }
+
+      let form = try await h.gateway.requestServerSide(method: "input.form", params: ["session_id": "s1"])
+      #expect(form == ["status": "skipped"])
+
+      for method in ["input.file", "review.draft"] {
+        await #expect {
+          try await h.gateway.requestServerSide(method: method, params: ["session_id": "s1"])
+        } throws: { error in
+          String(describing: error).contains("-32601")
+        }
+      }
+    }
+  }
+
+  @Test("a request that arrives before the answer to the second call is delivered")
+  func deliverableFromTheMomentTheCallIsSent() async throws {
+    var options = HarnessOptions()
+    options.requests = Self.all
+
+    try await withHarness(options) { h in
+      h.gateway.with { $0.scriptedResults["client.capabilities"] = Self.listed(accepts: Self.all) }
+      let requests = Recorder(h.connection.serverRequests)
+      defer { requests.cancel() }
+      await h.connection.start()
+      try await h.waitFor(.ready)
+      let socket = try #require(h.gateway.lastSocket)
+      try await eventually("both calls") { socket.sent.filter { $0["method"] == "client.capabilities" }.count == 2 }
+
+      let asked = Task { try await h.gateway.requestServerSide(method: "review.draft", params: ["session_id": "s1"]) }
+      try await eventually("the request") { requests.values.count == 1 }
+      let delivery = try #require(requests.values.first)
+      #expect(delivery.body.isInteractive)
+      #expect(await delivery.respond(["decision": "rejected"]))
+      #expect(try await asked.value == ["decision": "rejected"])
+    }
+  }
+
+  @Test("with a confirm source too, one second call carries both keys")
+  func withConfirm() async throws {
+    let source = ConfirmCapabilitySource(policy: ConfirmCapabilityPolicy(plain: true))
+    var options = HarnessOptions()
+    options.confirm = source
+    options.requests = Self.all
+
+    try await withHarness(options) { h in
+      h.gateway.with {
+        $0.scriptedResults["client.capabilities"] = [
+          "server_requests": ["approval", "clarify", "confirm", "input.form", "input.file", "review.draft"],
+          "confirm": ["plain"],
+          "requests": ["input.form", "input.file", "review.draft"]
+        ]
+      }
+      await h.connection.start()
+      try await h.waitFor(.ready)
+      try await eventually("the report") { source.latest != nil }
+
+      let socket = try #require(h.gateway.lastSocket)
+      let calls = socket.sent.filter { $0["method"] == "client.capabilities" }
+      #expect(calls.count == 2)
+      #expect(
+        calls.last?["params"]
+          == ["server_requests": true, "confirm": ["plain"], "requests": ["input.form", "input.file", "review.draft"]]
+      )
+      #expect(source.latest?.accepted == [.plain])
+      #expect(source.latest?.acceptedRequests == Self.all)
+    }
+  }
+
+  @Test("a refresh repeats the methods, and a device that can show none any more takes them back")
+  func refresh() async throws {
+    var options = HarnessOptions()
+    options.requests = Self.all
+
+    try await withHarness(options) { h in
+      h.gateway.with { $0.scriptedResults["client.capabilities"] = Self.listed(accepts: Self.all) }
+      await h.connection.start()
+      try await h.waitFor(.ready)
+      let socket = try #require(h.gateway.lastSocket)
+      try await eventually("both calls") { socket.sent.filter { $0["method"] == "client.capabilities" }.count == 2 }
+      try await Task.sleep(for: .milliseconds(50))
+
+      await h.connection.refreshCapabilities()
+      try await eventually("the refresh") { socket.sent.filter { $0["method"] == "client.capabilities" }.count == 4 }
+      let again = socket.sent.filter { $0["method"] == "client.capabilities" }.dropFirst(2)
+      #expect(
+        again.first?["params"] == ["server_requests": true, "requests": ["input.form", "input.file", "review.draft"]],
+        "the first call of a refresh keeps the advertisement")
+      #expect(again.last?["params"] == again.first?["params"])
+    }
+  }
+
+  @Test("once the methods are newly accepted, the open requests of the attached sessions are read again")
+  func refetchOpenRequests() async throws {
+    var options = HarnessOptions()
+    options.requests = Self.all
+
+    try await withHarness(options) { h in
+      // The gateway takes none at first: it hid its interactive requests from this socket.
+      h.gateway.with { $0.scriptedResults["client.capabilities"] = Self.listed(accepts: []) }
+      await h.connection.start()
+      try await h.waitFor(.ready)
+      let socket = try #require(h.gateway.lastSocket)
+      try await eventually("both calls") { socket.sent.filter { $0["method"] == "client.capabilities" }.count == 2 }
+
+      // A chat is attached on this socket.
+      _ = try await h.connection.request("session.resume", params: ["session_id": "s1"])
+      let asked = { socket.sent.filter { $0["method"] == "session.events.since" }.count }
+      let before = asked()
+
+      // Now it takes them: what is open on the attached sessions is read again.
+      h.gateway.with { $0.scriptedResults["client.capabilities"] = Self.listed(accepts: Self.all) }
+      await h.connection.refreshCapabilities()
+      try await eventually("the open requests read again") { asked() > before }
+
+      let call = try #require(socket.sent.last { $0["method"] == "session.events.since" })
+      #expect(call["params"]?["session_id"] == "s1")
+    }
+  }
+}

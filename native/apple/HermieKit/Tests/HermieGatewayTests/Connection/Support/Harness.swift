@@ -91,6 +91,8 @@ struct HarnessOptions {
   var extraHeaders: [String: String]?
   /// The two-step `client.capabilities` for `confirm`.
   var confirm: ConfirmCapabilitySource?
+  /// The interactive methods this device can show (`requests` of the second call).
+  var requests: [String]?
 }
 
 /// Build a harness, run `body`, and always stop the connection afterwards (the
@@ -112,6 +114,7 @@ func withHarness(
   connectionOptions.heartbeatDeadline = options.heartbeatInterval == nil ? .zero : .milliseconds(5000)
   connectionOptions.offlineGrace = options.offlineGrace
   connectionOptions.confirm = options.confirm
+  connectionOptions.requests = options.requests
 
   let connection = try GatewayConnection(
     baseURL: testBaseURL,
