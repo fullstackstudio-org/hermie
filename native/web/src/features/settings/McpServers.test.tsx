@@ -364,7 +364,7 @@ describe('adding', () => {
     })
     fireEvent.click(within(details).getByRole('button', { name: 'Add the server' }))
 
-    expect(await within(details).findByText("Could not add it: server 'files' is already configured")).toBeTruthy()
+    expect(await within(details).findByText("Could not add it: server 'files' already exists")).toBeTruthy()
     expect((within(details).getByLabelText('Name') as HTMLInputElement).value).toBe('files')
   })
 

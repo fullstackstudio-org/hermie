@@ -246,6 +246,27 @@ describe('mcp.catalog and mcp.servers.add / set_api_key / remove', () => {
 
     close()
   })
+
+  it('keeps one configuration behind every view: an added server is in list, status, test and catalog, a removed one in none', async () => {
+    const live = await start()
+    const { call, close } = await connect(live)
+    const names = async (method: string): Promise<string[]> =>
+      (((await call(method)).result as { servers: { name: string }[] }).servers ?? []).map(row => row.name)
+
+    await call('mcp.servers.add', { name: 'fetch', preset: 'fetch' })
+
+    expect(await names('mcp.servers.list')).toContain('fetch')
+    expect(await names('mcp.servers.status')).toContain('fetch')
+    expect((await call('mcp.servers.test', { name: 'fetch' })).result).toMatchObject({ ok: true })
+
+    await call('mcp.servers.remove', { name: 'fetch' })
+
+    expect(await names('mcp.servers.list')).not.toContain('fetch')
+    expect(await names('mcp.servers.status')).not.toContain('fetch')
+    expect((await call('mcp.servers.test', { name: 'fetch' })).error?.code).toBe(4064)
+
+    close()
+  })
 })
 
 describe('connectors.* for the account', () => {

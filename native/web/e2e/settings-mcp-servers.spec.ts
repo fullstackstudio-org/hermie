@@ -145,13 +145,13 @@ test.describe('Settings › MCP servers', () => {
     await page.getByLabel('Start from').selectOption('github')
     await expect(page.getByText('Needs GITHUB_TOKEN in the bot’s environment.')).toBeVisible()
     await page.getByRole('button', { name: 'Add the server' }).click()
-    await expect(server(page, 'github')).toContainText('https://github.example.test/mcp')
+    await expect(server(page, 'github')).toContainText('npx -y @modelcontextprotocol/server-github')
 
     // A name that is taken is refused by the gateway, in its words, and what was typed stays.
     await page.getByLabel('Name', { exact: true }).fill('notes')
     await page.getByLabel('Command (for a server that is started here)').fill('npx')
     await page.getByRole('button', { name: 'Add the server' }).click()
-    await expect(page.getByRole('alert')).toContainText("server 'notes' is already configured")
+    await expect(page.getByRole('alert')).toContainText("server 'notes' already exists")
     await expect(page.getByLabel('Name', { exact: true })).toHaveValue('notes')
   })
 

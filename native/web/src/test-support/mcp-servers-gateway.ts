@@ -209,7 +209,7 @@ export function anMcpServersGateway(
         const name = String(params.name)
 
         if (servers.some(server => server.name === name)) {
-          throw Object.assign(new Error(`server '${name}' is already configured`), { code: 4001 })
+          throw Object.assign(new Error(`server '${name}' already exists`), { code: 4090 })
         }
 
         const config = (params.config ?? {}) as { url?: string; command?: string; args?: string[] }
@@ -231,11 +231,13 @@ export function anMcpServersGateway(
 
         const index = servers.findIndex(server => server.name === params.name)
 
-        if (index >= 0) {
-          servers.splice(index, 1)
+        if (index < 0) {
+          throw Object.assign(new Error(`server '${String(params.name)}' not found`), { code: 4064 })
         }
 
-        return { ok: true, removed: index >= 0 }
+        servers.splice(index, 1)
+
+        return { ok: true, removed: true }
       },
       'reload.mcp': params => {
         guard('reload.mcp')
