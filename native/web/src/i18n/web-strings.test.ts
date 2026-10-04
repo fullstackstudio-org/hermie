@@ -82,6 +82,8 @@ const SAMPLE = {
   text: MARKER,
   time: MARKER,
   message: MARKER,
+  outcome: MARKER,
+  seconds: MARKER,
   count: MARKER,
   status: MARKER,
   host: MARKER,

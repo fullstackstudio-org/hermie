@@ -37,19 +37,21 @@ const mount = (section?: string) =>
   )
 
 describe('the sections', () => {
-  it('are the eight this client has, in the order the home lists them, and nothing else', () => {
+  it('are the nine this client has, in the order the home lists them, and nothing else', () => {
     expect(SETTINGS_SECTIONS).toEqual([
       'account',
       'gateway',
       'passkeys',
       'mcp',
       'chats',
+      'notifications',
       'chat-list',
       'appearance',
       'about'
     ])
     expect(isSettingsSection('about')).toBe(true)
-    expect(isSettingsSection('notifications')).toBe(false)
+    expect(isSettingsSection('notifications')).toBe(true)
+    expect(isSettingsSection('operator')).toBe(false)
     expect(isSettingsSection(undefined)).toBe(false)
   })
 
@@ -77,6 +79,7 @@ describe('the home', () => {
       'Passkeys',
       'MCP',
       'Chats & messages',
+      'Notifications',
       'Chat list',
       'Appearance',
       'About'
@@ -93,10 +96,9 @@ describe('the home', () => {
     }
   })
 
-  it('has no operator settings and no notifications (those are the plugin’s, and W-25’s)', () => {
+  it('has no operator settings (those are the plugin’s configuration)', () => {
     mount()
 
-    expect(screen.queryByRole('link', { name: /notification/iu })).toBeNull()
     expect(screen.queryByRole('link', { name: /operator|admin/iu })).toBeNull()
   })
 

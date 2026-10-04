@@ -1,6 +1,7 @@
 /**
  * The panel of the chat's options (`ChatOptions`): the verbosity as a radio
- * group, bot-to-bot and thinking as checkboxes, and the way back to the default.
+ * group, bot-to-bot and thinking as checkboxes, and the way back to the default;
+ * then, where the gateway has a notifier, what this chat may notify about.
  *
  * Its own module so it loads when the reader first opens the options, not with
  * the first screen: the button is on every chat, the panel is opened now and
@@ -8,6 +9,7 @@
  * it works everywhere; a change is written to the chat's view at once
  * (`state/chat-view.ts`) and the transcript follows it in the same frame.
  */
+import { PUSH_TYPES } from '@hermie/gateway-client/push'
 import { type KeyboardEvent, type ReactElement, type RefObject, useEffect, useId, useRef, useState } from 'react'
 import { flushSync } from 'react-dom'
 import { useStore } from 'zustand'
@@ -21,6 +23,9 @@ import type { ExportFormat } from './chat-export'
 import { ExportOptions, SessionOptions } from './ConversationOptions'
 import type { ChatSessionRuntime } from './chat-runtime'
 import { useSessionOptions } from './use-session-options'
+import { pluginStore } from '../../state/plugin'
+import { botPushTypes, pushStore } from '../../state/push'
+import { pushTypeLabel } from '../push/type-labels'
 import type { YoloControl } from './use-yolo'
 
 export interface ChatOptionsPanelProps {
@@ -251,6 +256,79 @@ export function ChatOptionsPanel({
           {exportChat ? <ExportOptions onExport={exportChat} /> : null}
         </div>
       ) : null}
+
+      <ChatNotifications bot={bot} panelRef={panelRef} />
     </div>
+  )
+}
+
+/**
+ * What this chat may notify the reader about: the global types (Settings ›
+ * Notifications) with this chat's own overrides folded in. A box set back to what
+ * the global type says stops overriding it, so the chat follows the global switch
+ * again as it moves. The overrides belong to the person and follow them to every
+ * device (`state/push.ts`). Shown only where a plugin can send notifications at all.
+ */
+function ChatNotifications({
+  bot,
+  panelRef
+}: {
+  bot: string
+  panelRef: RefObject<HTMLDivElement | null>
+}): ReactElement | null {
+  const hintId = useId()
+  const notifier = useStore(pluginStore, state => state.advert !== null)
+  const global = useStore(
+    pushStore,
+    useShallow(state => state.types)
+  )
+  const effective = useStore(
+    pushStore,
+    useShallow(state => botPushTypes(state, bot))
+  )
+  const overridden = useStore(pushStore, state => state.perBot[bot] !== undefined)
+
+  if (!notifier) {
+    return null
+  }
+
+  const words = strings.chat.notifications
+
+  return (
+    <>
+      <fieldset className="hm-chat-options__set" aria-describedby={hintId} data-push-types="">
+        <legend>{words.label}</legend>
+        {PUSH_TYPES.map(type => (
+          <label className="hm-chat-options__choice" key={type}>
+            <input
+              type="checkbox"
+              checked={effective[type]}
+              onChange={event => {
+                const on = event.currentTarget.checked
+
+                pushStore.getState().setBotType(bot, type, on === global[type] ? null : on)
+              }}
+            />
+            <span>{pushTypeLabel(type)}</span>
+          </label>
+        ))}
+      </fieldset>
+      <p className="hm-chat-options__hint" id={hintId}>
+        {overridden ? words.overridden : words.following} {words.hint}
+      </p>
+      {overridden ? (
+        <button
+          type="button"
+          className="hm-chat-options__reset"
+          onClick={() => {
+            flushSync(() => pushStore.getState().resetBotTypes(bot))
+            // This button goes with the overrides; focus stays in the panel, on the first type.
+            panelRef.current?.querySelector<HTMLInputElement>('[data-push-types] input[type="checkbox"]')?.focus()
+          }}
+        >
+          {words.useDefault}
+        </button>
+      ) : null}
+    </>
   )
 }

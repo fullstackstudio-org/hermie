@@ -85,7 +85,8 @@ compress. The build is shaped around that:
   with the parser, so a template that follows a `!` is not touched).
 - **Nothing inlined as a `data:` URI**; the document's policy allows `data:` for images only.
 - **The policy travels with the document** (`index.html`): the route sets no security headers. No inline
-  script, no inline style, nothing but this origin, Trusted Types required and no Trusted Types policy allowed. `frame-ancestors` cannot be set
+  script, no inline style, nothing but this origin, Trusted Types required and one Trusted Types policy allowed
+  (`hermie-service-worker`, which turns nothing into a script URL but `./sw.js`; see "Web Push"). `frame-ancestors` cannot be set
   from a meta element, so refusing to render in a frame is the entry module's job (see "Boot").
 
 ### `licenses.json`
@@ -132,7 +133,8 @@ built from; the script warns, and such a build must not be imported.
   held just over the actual weight so that a regression fails at once, and `src/entry-graph.test.ts` fails, naming
   the import chain, when the entry reaches a module that is loaded on demand);
 - `index.html` has no policy, a policy that is not exactly the reference set written in the gate (every directive
-  and source of the plan's W6, plus `trusted-types 'none'`; one missing or extra fails), a `<script>` or `<link>`
+  and source of the plan's W6, plus `trusted-types hermie-service-worker`, the one policy name the client creates,
+  for its service worker's address; one missing or extra fails), a `<script>` or `<link>`
   before the policy element, or inline script, a style element, a `style` attribute or an inline handler;
 - `build.json` is missing, malformed, not in canonical form, or does not match the files: a changed byte, a
   missing file or an unlisted file;
@@ -471,7 +473,8 @@ What a screen does not do: call the bridge to send, write `appStampStore` (only 
 - A write cleans only what it carried: an edit made while a send is out stays pending and goes in a further round.
 - Taking a gateway's copy: its fields as they came, a field it no longer carries gone, except the fields a
   section can predate (`KEPT_WHEN_ABSENT`), which keep their held value. `updatedAt` is adopted as it arrived.
-  The push rows come from where the notifier looks, never from this page.
+  The push rows come from where the notifier looks; this page writes only its own row and heartbeat into them
+  ("Web Push").
 - Retired fields travel no further: `context` (HERM-119) and Hermie Web's availability stamp in `push`
   (`endpoint`, `vapidPublicKey`, `version`, `daemonVersion`, `capabilities`, `relayOrigins`, `at`) are dropped
   the next time the section is written.
@@ -1232,7 +1235,8 @@ arguments), a line says so. The list goes to the oldest row before a page is put
 a reader at the bottom lands among chunks the browser has not laid out, and WebKit reports what they settle on as a
 resize loop.
 
-**Notifications** come in W-25. `pushRouteOf` is what they will call: a tap names a conversation by `sessionId` and
+**Notifications** (W-25, "Web Push") call `pushRouteOf`: a tap names a conversation by `sessionId` (a request by
+its `sessionKey`) and
 `sessionKind`; `branch` and `other` open the viewer, `canonical`, no kind, or the canonical chat's own id open the
 chat, and an id with no kind that the roster cannot place opens the chat rather than guess. `answersInPlace` is
 false wherever the tap does not land in the bot's own chat: a tap into a non-canonical conversation opens it and
@@ -1407,14 +1411,69 @@ engine.) `replayed_by` is not drawn by this client at all today.
 `MCP.test.tsx` (the page in every state, plain text, copying, the confirmation and its focus, axe), the `via` cases in
 `items.test.tsx`, and `e2e/settings-mcp.spec.ts` against the fake gateway's `--mcp` ("The browser suite").
 
+## Web Push
+
+The plugin sends notifications (plan W13, ADR-0017); this client registers the browser for them and acts on clicks.
+It is offered only in a secure context, in a browser with service workers, `PushManager` and notifications (on an
+iPhone or iPad: a web app added to the Home Screen), on a gateway whose advert claims `push.webpush` and
+`push.webpush.key` with `webPush.publicKey`. Otherwise Settings › Notifications says which of these is missing.
+
+| File                                  | What it does                                                                                                                                                              |
+| ------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `src/sw/sw.ts`, `worker.ts`           | the service worker, built to `dist/sw.js` (a second entry, a plain script that imports nothing): `push` and `notificationclick`, no `fetch` handler                       |
+| `src/sw/notification.ts`              | a payload as a notification: the plugin's title and body exactly, `data` kept whole, one tag per conversation, Allow and Deny on an approval only, a clearing push closes |
+| `core/push/platform.ts`               | what has to be true (`pushSupport`), and the browser seam's shape                                                                                                         |
+| `platform/web-push.ts`                | the seam: registers `./sw.js` (scope: the app directory) through the one Trusted Types policy, the permission, the subscription, the worker's messages                    |
+| `platform/push-launch.ts`             | the click a cold start carries (`?hermiePush=`), read once and removed from the address; the only part in the first load                                                  |
+| `core/push/row.ts`                    | the row (`pushRowFor` plus `applicationServerKey`, `clears: true`, `requestMethods: true`), the key rule (`subscriptionStep`), the push map a write carries               |
+| `core/push/sync.ts`                   | `PushSync`: on, off, Register again, the launch check, sign-out, the test notification (`push.test`), clicks                                                              |
+| `core/push/actions.ts`                | what a click may do: open the conversation; Allow or Deny only for an approval `approval.pending` still lists in that session, with `once` or `deny`                      |
+| `core/push/seen.ts`                   | the heartbeat (`{bot, at}` once a minute while a chat is on screen) and closing notifications that are dealt with                                                         |
+| `core/push/clock.ts`                  | the gateway's clock from the `Date` header of `/api/status`, for `updatedAt` and the heartbeat                                                                            |
+| `state/push.ts`                       | the switch, the types, the preview and the key under the person; the installation id per browser; the per-chat overrides from the gateway                                 |
+| `features/push/push-runtime.ts`       | the controller wired to the router, the chats and the request queue; a chunk loaded once the session has started                                                          |
+| `features/settings/Notifications.tsx` | `#/settings/notifications`; the per-chat types are in the chat's options                                                                                                  |
+
+**The key.** The browser is subscribed with the advert's key, and the row names it (`applicationServerKey`, base64url
+without padding). On every launch, once the advert is read, a subscription made with another key (or one whose key
+cannot be told and was not remembered) is unsubscribed and made again, and the row is written again with a fresh
+`updatedAt`, which is also what lifts a row the plugin retired after a 403 or a 404/410. The same happens when the
+advert's key changes while the page is open, when the page comes back into view more than six hours after the last
+write, and on "Register again". `updatedAt` and the heartbeat are on the gateway's clock when its `Date` header gives
+one; if it does not, the page's own clock is used, and a page whose clock is behind the gateway's may write a row the
+plugin still holds retired until it is written again.
+
+**The row** is written by the `ui_meta` bridge into the person's app section, beside every other device's row and
+heartbeat as the gateway holds them; until this page has checked its own subscription, the row the gateway holds for it
+is carried as it is. Switching off, and signing out, take it out (a sign-out sends that write and waits for it, at most
+three seconds, before the connection goes) and unsubscribe.
+
+**Clicks.** The worker posts a click to an open window of the client (never to another page of the gateway's origin)
+or opens `index.html?hermiePush=<click>`. The conversation the notification names opens (`push-destination.ts`). An
+Allow or a Deny answers only when it was posted by the worker, the notification is an approval of the bot's own chat,
+the chat is attached to its session, and `approval.pending`, asked then, lists the same request id in that session with
+`once` (or `deny`) on offer. A click carried in the address only opens: anyone who can make the browser follow a link
+can write that address.
+
+**Policy.** `navigator.serviceWorker.register` takes a `TrustedScriptURL` under `require-trusted-types-for 'script'`, so
+the document allows one policy, `hermie-service-worker`, created once by `platform/web-push.ts` and refusing any URL but
+`./sw.js`. The dev server does not build the worker: `npm run client:dev` has no Web Push.
+
+**Tests.** `src/sw/*.test.ts` (every example payload of `contract/push/contract.json`, the worker's events, its module
+graph), `core/push/*.test.ts` (the key and row rules, the support rules, the click table, the controller against a fake
+browser), `ui-meta-bridge.push.test.ts` (the push map in the section), `push-runtime.test.ts`, `Notifications.test.tsx`,
+and `e2e/push.spec.ts` in Chromium (full Chromium, not the headless shell, which refuses notifications): the real worker
+and policy, with `PushManager` replaced because a push service is not reachable from CI; the push event is delivered to
+the worker through the DevTools protocol. A real notification from the plugin is checked by hand on the test gateway.
+
 ## Settings
 
 `features/settings/` is the main pane of `#/settings` and `#/settings/<section>`: a home that links to each section and says
-what is in it, and eight sections under a way back to the home. The sidebar's foot links to it (and asks for its chunk
+what is in it, and nine sections under a way back to the home. The sidebar's foot links to it (and asks for its chunk
 when the link is pointed at or focused). The native apps' Settings pages are the reference for what each one shows; the
 Dutch and German wording is the catalogue's wherever the Expo and Swift apps already have the word, and the web client's
 own (`sheet-strings.ts`) where they do not. **No operator settings** (which modules run, who may use the gateway: those are
-the plugin's configuration on the gateway), and **no notifications** (W-25).
+the plugin's configuration on the gateway).
 
 | File                                                         | What                                                                                                                                                                                 |
 | ------------------------------------------------------------ | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
@@ -1425,6 +1484,7 @@ the plugin's configuration on the gateway), and **no notifications** (W-25).
 | `Account.tsx`                                                | who `/api/auth/me` named, the gateway's host, Sign out behind a question                                                                                                             |
 | `Gateway.tsx`, `gateway-facts.ts`                            | this gateway, read only: host, address, Hermes version, plugin and modules, this build and the plugin's, the update line                                                             |
 | `Chats.tsx`                                                  | the default view of a conversation, the transcript cache on or off and "Clear now"                                                                                                   |
+| `Notifications.tsx`                                          | Web Push for this browser: what is missing, the switch, the types, the preview, "Register again", the test ("Web Push")                                                              |
 | `Arrangement.tsx`, `arrangement-model.ts`, `arrangement.css` | the chat list: reorder, folders, colour, mute, archive                                                                                                                               |
 | `Appearance.tsx`                                             | scheme, accent colour, language, text size                                                                                                                                           |
 | `About.tsx`, `core/licences.ts`                              | version and commit of this build, the licences from `licenses.json`                                                                                                                  |
@@ -1761,15 +1821,18 @@ src/
   main.tsx                  the boot sequence and its screens (with dev/, the only React outside features/ and ui/)
   boot/                     frame guard, base path, auth mode and cookie session, sign-in bounce, boot
   core/                     the connection and its lifecycle, the roster controller, the advert, the chat
-                            controller and the ingest (above); core/passkey/, the passkey level; core/mcp/, the MCP page's routes and model
+                            controller and the ingest (above); core/passkey/, the passkey level; core/mcp/, the MCP page's routes and model;
+                            core/push/, Web Push ("Web Push")
   state/                    zustand vanilla stores: connection, bots, plugin, chats, settings, requests, and the
                             ones `ui_meta` mirrors: layout (with folders and mute), text size, app stamp, device context
   platform/                 the browser seams (above)
   features/chat/            the chat screen, its item views, the transcript list, its scroll anchor and chunks, the composer
   features/requests/        the request layer: approval, clarify and the passkey confirmation, one at a time, in a
                             modal dialog; the passkey notices
-  features/settings/        Settings: the home and its eight sections (account, gateway, passkeys, mcp, chats, chat list,
-                            appearance, about), each a chunk; the pages' arithmetic and tests
+  features/settings/        Settings: the home and its nine sections (account, gateway, passkeys, mcp, chats, notifications,
+                            chat list, appearance, about), each a chunk; the pages' arithmetic and tests
+  features/push/            Web Push wired to the page, and the push types' labels
+  sw/                       the service worker, built to dist/sw.js
   features/sessions/        a bot's Conversations page, the push-tap destination rule
   features/search/          the chats field's name filter and message search, finding a hit's row in its chat
   dev/                      development-only pages: the transcript harness, its probes, a stream replayer

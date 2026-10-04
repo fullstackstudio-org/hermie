@@ -44,6 +44,7 @@ const Gateway = lazy(() => SECTION_LOADERS.gateway().then(module => ({ default: 
 const Passkeys = lazy(() => SECTION_LOADERS.passkeys().then(module => ({ default: module.Passkeys })))
 const Mcp = lazy(() => SECTION_LOADERS.mcp().then(module => ({ default: module.Mcp })))
 const Chats = lazy(() => SECTION_LOADERS.chats().then(module => ({ default: module.Chats })))
+const Notifications = lazy(() => SECTION_LOADERS.notifications().then(module => ({ default: module.Notifications })))
 const Arrangement = lazy(() => SECTION_LOADERS['chat-list']().then(module => ({ default: module.Arrangement })))
 const Appearance = lazy(() => SECTION_LOADERS.appearance().then(module => ({ default: module.Appearance })))
 const About = lazy(() => SECTION_LOADERS.about().then(module => ({ default: module.About })))
@@ -106,6 +107,8 @@ function Page({ section, gated }: { section: SettingsSection; gated: boolean }):
       return <Mcp />
     case 'chats':
       return <Chats />
+    case 'notifications':
+      return <Notifications />
     case 'chat-list':
       return <Arrangement />
     case 'appearance':

@@ -150,7 +150,7 @@ describe('the routes', () => {
 
     expect(screen.getByRole('heading', { level: 1 }).textContent).toBe('Writer')
     unmount()
-    router.navigate('#/settings/notifications')
+    router.navigate('#/settings/operator')
     renderApp()
 
     expect(screen.getByRole('heading', { level: 1 }).textContent).toBe('Settings')
@@ -178,7 +178,7 @@ describe('the routes', () => {
   })
 
   it('rewrites a settings section it does not have to the settings home', async () => {
-    router.navigate('#/settings/notifications')
+    router.navigate('#/settings/operator')
     renderApp()
 
     await screen.findByRole('link', { name: 'Appearance' })

@@ -6,8 +6,8 @@
  * Appearance, About), so a switch of language moves them with everything else; the rest are the web
  * client's own (`sheet-strings.ts`). Everything is read when called, in the language in use.
  *
- * Not here: notifications (W-25) and the operator's settings, which are the plugin's configuration on
- * the gateway and never this client's to change.
+ * Not here: the operator's settings, which are the plugin's configuration on the gateway and never this
+ * client's to change.
  */
 import { strings } from '../../generated/strings'
 import { sheetStrings } from '../../i18n/sheet-strings'
@@ -20,6 +20,7 @@ export const SETTINGS_SECTIONS = [
   'passkeys',
   'mcp',
   'chats',
+  'notifications',
   'chat-list',
   'appearance',
   'about'
@@ -42,6 +43,8 @@ export function sectionTitle(section: SettingsSection): string {
       return webStrings.mcp.settings.title
     case 'chats':
       return strings.app.settings.categories.chats
+    case 'notifications':
+      return strings.app.settings.categories.notifications
     case 'chat-list':
       return sheetStrings.settings.title.chatList
     case 'appearance':
@@ -65,6 +68,8 @@ export function sectionBlurb(section: SettingsSection): string {
       return blurb.mcp
     case 'chats':
       return blurb.chats
+    case 'notifications':
+      return blurb.notifications
     case 'chat-list':
       return blurb.chatList
     case 'appearance':
@@ -84,6 +89,7 @@ export const SECTION_LOADERS = {
   passkeys: () => import('./Passkeys'),
   mcp: () => import('./MCP'),
   chats: () => import('./Chats'),
+  notifications: () => import('./Notifications'),
   'chat-list': () => import('./Arrangement'),
   appearance: () => import('./Appearance'),
   about: () => import('./About')

@@ -1747,6 +1747,11 @@ export const SHEET_STRINGS_SOURCE = {
         nl: 'De agents die als jij op deze gateway mogen werken.',
         de: 'Die Agenten, die als du auf diesem Gateway arbeiten dürfen.'
       },
+      notifications: {
+        en: 'Whether this browser is notified when a bot has news, and what a notification says.',
+        nl: 'Of deze browser een melding krijgt als een bot nieuws heeft, en wat een melding zegt.',
+        de: 'Ob dieser Browser benachrichtigt wird, wenn ein Bot Neuigkeiten hat, und was eine Benachrichtigung sagt.'
+      },
       chats: {
         en: 'What a conversation shows by default, and whether this browser keeps transcripts.',
         nl: 'Wat een gesprek standaard toont, en of deze browser gesprekken bewaart.',
@@ -2313,6 +2318,134 @@ export const SHEET_STRINGS_SOURCE = {
         en: 'The list of clients changed.',
         nl: 'De lijst met clients is gewijzigd.',
         de: 'Die Liste der Clients hat sich geändert.'
+      }
+    }
+  },
+  /** Settings › Notifications (`features/settings/Notifications.tsx`) and the chat options' notification types. */
+  push: {
+    intro: {
+      en: 'The Hermie plugin on your gateway sends a notification to this browser when a bot answers, asks for something or finishes a long task. It travels through your browser’s push service, encrypted so that only this browser can read it.',
+      nl: 'De Hermie-plugin op je gateway stuurt deze browser een melding als een bot antwoordt, iets vraagt of een lange taak afrondt. Die gaat via de pushdienst van je browser, versleuteld zodat alleen deze browser hem kan lezen.',
+      de: 'Das Hermie-Plugin auf deinem Gateway schickt diesem Browser eine Benachrichtigung, wenn ein Bot antwortet, etwas fragt oder eine lange Aufgabe abschließt. Sie läuft über den Push-Dienst deines Browsers, so verschlüsselt, dass nur dieser Browser sie lesen kann.'
+    },
+    /** The switch. */
+    enable: {
+      en: 'Notify this browser',
+      nl: 'Meldingen in deze browser',
+      de: 'Diesen Browser benachrichtigen'
+    },
+    /** Why notifications cannot be offered here (`core/push/platform.ts`, `PushUnavailable`). */
+    unavailable: {
+      insecure: {
+        en: 'Browsers only offer notifications to a page served over https. Open this gateway at an https address to turn them on.',
+        nl: 'Browsers bieden meldingen alleen aan een pagina die via https wordt geserveerd. Open deze gateway op een https-adres om ze aan te zetten.',
+        de: 'Browser bieten Benachrichtigungen nur Seiten an, die über https ausgeliefert werden. Öffne dieses Gateway unter einer https-Adresse, um sie einzuschalten.'
+      },
+      iosHomeScreen: {
+        en: 'On an iPhone or iPad, only a web app on the Home Screen can be notified. In Safari, tap Share, then Add to Home Screen, and open Hermie from there.',
+        nl: 'Op een iPhone of iPad kan alleen een webapp op het beginscherm meldingen krijgen. Tik in Safari op Deel, dan op Zet op beginscherm, en open Hermie vanaf daar.',
+        de: 'Auf einem iPhone oder iPad kann nur eine Web-App auf dem Home-Bildschirm benachrichtigt werden. Tippe in Safari auf Teilen, dann auf Zum Home-Bildschirm, und öffne Hermie von dort.'
+      },
+      browser: {
+        en: 'This browser does not offer push notifications to web pages.',
+        nl: 'Deze browser biedt webpagina’s geen pushmeldingen aan.',
+        de: 'Dieser Browser bietet Webseiten keine Push-Benachrichtigungen an.'
+      },
+      unknown: {
+        en: 'Checking what this gateway offers…',
+        nl: 'Nagaan wat deze gateway aanbiedt…',
+        de: 'Prüfe, was dieses Gateway anbietet…'
+      },
+      noPlugin: {
+        en: 'This gateway has no Hermie plugin, so nothing on it can send a notification.',
+        nl: 'Deze gateway heeft geen Hermie-plugin, dus niets op de gateway kan een melding sturen.',
+        de: 'Dieses Gateway hat kein Hermie-Plugin, also kann dort nichts eine Benachrichtigung senden.'
+      },
+      webpushOff: {
+        en: 'The Hermie plugin on this gateway does not send browser notifications: its push module is off, or it cannot sign them.',
+        nl: 'De Hermie-plugin op deze gateway stuurt geen browsermeldingen: zijn pushmodule staat uit, of hij kan ze niet ondertekenen.',
+        de: 'Das Hermie-Plugin auf diesem Gateway sendet keine Browser-Benachrichtigungen: Sein Push-Modul ist aus, oder es kann sie nicht signieren.'
+      },
+      pluginTooOld: {
+        en: 'The Hermie plugin on this gateway is too old to notify this browser: it does not publish the key it signs with. Update the plugin.',
+        nl: 'De Hermie-plugin op deze gateway is te oud om deze browser te melden: hij publiceert de sleutel niet waarmee hij ondertekent. Werk de plugin bij.',
+        de: 'Das Hermie-Plugin auf diesem Gateway ist zu alt, um diesen Browser zu benachrichtigen: Es veröffentlicht den Schlüssel nicht, mit dem es signiert. Aktualisiere das Plugin.'
+      }
+    },
+    /** What the registration is doing. */
+    status: {
+      off: {
+        en: 'Off. This browser is not registered.',
+        nl: 'Uit. Deze browser is niet aangemeld.',
+        de: 'Aus. Dieser Browser ist nicht registriert.'
+      },
+      checking: {
+        en: 'Checking this browser’s registration…',
+        nl: 'De aanmelding van deze browser wordt gecontroleerd…',
+        de: 'Die Registrierung dieses Browsers wird geprüft…'
+      },
+      registered: {
+        en: 'On. This browser is registered with the gateway.',
+        nl: 'Aan. Deze browser is aangemeld bij de gateway.',
+        de: 'An. Dieser Browser ist beim Gateway registriert.'
+      },
+      denied: {
+        en: 'Notifications are blocked for this site in your browser. Allow them in the site’s settings (next to the address), then turn this on again.',
+        nl: 'Meldingen zijn in je browser geblokkeerd voor deze site. Sta ze toe in de instellingen van de site (naast het adres) en zet dit daarna opnieuw aan.',
+        de: 'Benachrichtigungen sind in deinem Browser für diese Seite blockiert. Erlaube sie in den Einstellungen der Seite (neben der Adresse) und schalte das dann wieder ein.'
+      },
+      failed: {
+        en: ({ message }: { message: string }) => `Registering this browser failed: ${message}`,
+        nl: ({ message }: { message: string }) => `Deze browser aanmelden is mislukt: ${message}`,
+        de: ({ message }: { message: string }) => `Die Registrierung dieses Browsers ist fehlgeschlagen: ${message}`
+      }
+    },
+    reregister: {
+      en: 'Register again',
+      nl: 'Opnieuw aanmelden',
+      de: 'Erneut registrieren'
+    },
+    reregisterHint: {
+      en: 'Subscribes this browser again with the gateway’s key and writes a fresh registration. Use it when notifications stopped arriving.',
+      nl: 'Meldt deze browser opnieuw aan met de sleutel van de gateway en schrijft een nieuwe aanmelding. Gebruik dit als er geen meldingen meer binnenkomen.',
+      de: 'Abonniert diesen Browser erneut mit dem Schlüssel des Gateways und schreibt eine neue Registrierung. Nutze das, wenn keine Benachrichtigungen mehr ankommen.'
+    },
+    test: {
+      en: 'Send a test notification',
+      nl: 'Stuur een testmelding',
+      de: 'Testbenachrichtigung senden'
+    },
+    /** What the plugin's test route answered. */
+    testResult: {
+      sent: {
+        en: 'Sent. It should appear in a moment.',
+        nl: 'Verstuurd. Hij zou zo moeten verschijnen.',
+        de: 'Gesendet. Sie sollte gleich erscheinen.'
+      },
+      refused: {
+        en: ({ outcome }: { outcome: string }) => `The push service did not take it (${outcome}).`,
+        nl: ({ outcome }: { outcome: string }) => `De pushdienst heeft hem niet aangenomen (${outcome}).`,
+        de: ({ outcome }: { outcome: string }) => `Der Push-Dienst hat sie nicht angenommen (${outcome}).`
+      },
+      notRegistered: {
+        en: 'The gateway has no registration for this browser yet. Wait a moment and try again.',
+        nl: 'De gateway heeft nog geen aanmelding van deze browser. Wacht even en probeer het opnieuw.',
+        de: 'Das Gateway hat noch keine Registrierung dieses Browsers. Warte kurz und versuche es erneut.'
+      },
+      busy: {
+        en: ({ seconds }: { seconds: number }) => `Wait ${seconds} seconds before sending another.`,
+        nl: ({ seconds }: { seconds: number }) => `Wacht ${seconds} seconden voordat je er nog een stuurt.`,
+        de: ({ seconds }: { seconds: number }) => `Warte ${seconds} Sekunden, bevor du eine weitere sendest.`
+      },
+      failed: {
+        en: ({ status }: { status: number }) => `The gateway could not send it (HTTP ${status}).`,
+        nl: ({ status }: { status: number }) => `De gateway kon hem niet versturen (HTTP ${status}).`,
+        de: ({ status }: { status: number }) => `Das Gateway konnte sie nicht senden (HTTP ${status}).`
+      },
+      unreachable: {
+        en: 'The gateway could not be reached.',
+        nl: 'De gateway was niet bereikbaar.',
+        de: 'Das Gateway war nicht erreichbar.'
       }
     }
   }
