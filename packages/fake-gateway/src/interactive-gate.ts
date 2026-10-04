@@ -2,17 +2,24 @@ import type { FileHead } from './diff-hunks'
 import {
   INTERACTIVE_METHODS,
   type InteractiveMethod,
+  acceptedDevice,
   acceptedDiff,
   acceptedDraft,
+  acceptedFiles,
+  agentReasonOfError,
   headOfParams,
-  refusalFor
+  isDeviceMethod,
+  isStrictActingUserMethod,
+  refusalFor,
+  signatureFilesProblem
 } from './interactive'
 import { AnswerRefused } from './passkey/confirm'
+import { FamilyLimits, type RequestLimiter } from './request-limits'
 import type { ReviewRegister } from './review-register'
 
 /**
- * The life of an interactive request (`input.form`, `input.file`, `review.draft`, `review.diff`) on the fake gateway,
- * as `contract/requests/README.md` gives it:
+ * The life of an interactive request (`input.form`, `input.file`, `review.draft`, `review.diff`, `input.signature` and
+ * the `device.*` requests) on the fake gateway, as `contract/requests/README.md` gives it:
  *
  * - the frame goes only to connections that advertised the method in their second `client.capabilities`
  *   call (`requests`, accepted only together with `server_requests: true`), and `session.resume` lists
@@ -24,7 +31,14 @@ import type { ReviewRegister } from './review-register'
  * - an approved `review.draft` puts its final text in the review register under a `draft_id` (a later `confirm`
  *   with that id shows exactly that text); an approved or rejected `review.diff` hands the agent each hunk's
  *   decision and, for an approval, `approved_patch`, composed from the gateway's own copy of the hunks;
- * - an ERROR response (`4041 cannot_show`, ...) settles it: the agent is told it is unavailable;
+ * - a valid `input.signature` or `device.*` answer reaches the agent only as the gateway reads it (a location rounded, a
+ *   contact cut to the keys asked for, a scan cleaned); a signature's files, when the fake holds them, must be a PNG
+ *   and a plain SVG (`unavailable (bad_upload)` for the agent otherwise);
+ * - an ERROR response (`4041 cannot_show`, ...) settles it: the agent is told it is unavailable (`cannot_show:<reason>`
+ *   for a reason the contract lists);
+ * - one request is open per conversation (`already_pending`), twelve per ten minutes, six for `device.*`
+ *   (`rate_limited`); `review.*`, `input.signature` and `device.*` are never put to anyone when the turn names nobody
+ *   (`no_acting_user`);
  * - at `expires_at` the gateway withdraws it with `request.cancel {reason: timeout}`, and an answer after
  *   that is `expired`.
  *
@@ -48,6 +62,10 @@ export interface InteractiveOutcome {
   /** The client's JSON-RPC error, for `unavailable`. */
   error?: Record<string, unknown>
   reason?: string
+  /** For `unavailable`: the word the agent is told (`cannot_show:no_camera`, `error_response`, `bad_upload`, ...). */
+  agentReason?: string
+  /** For `unavailable (bad_upload)`: which file and why, as `file:<n>:<problem>`. */
+  problem?: string
 }
 
 /** What `GET /__fake/request/<id>` reports. */
@@ -61,6 +79,8 @@ export interface InteractiveView {
   outcome?: InteractiveOutcome['outcome']
   error?: Record<string, unknown>
   reason?: string
+  agentReason?: string
+  problem?: string
 }
 
 /** The server an interactive request lives in. */
@@ -74,6 +94,8 @@ export interface InteractiveHost<Peer> {
   now: () => number
   /** Where an approved draft's text is kept for a later `confirm` with its `draft_id`. */
   drafts: ReviewRegister
+  /** A file the upload route received at `path` (the signature's files are judged on it), when there is one. */
+  uploaded: (path: string) => { content: Buffer; sha256: string } | undefined
   /** List an open request where `session.resume` finds it, for the connections `viewer` accepts. */
   register: (
     id: string,
@@ -90,7 +112,10 @@ export interface InteractiveHost<Peer> {
 
 export type RaisedInteractive =
   | { kind: 'raised'; id: string; method: InteractiveMethod; expiresAt: number; settled: Promise<InteractiveOutcome> }
-  | { kind: 'unavailable'; reason: 'no_capable_client' }
+  | {
+      kind: 'unavailable'
+      reason: 'no_capable_client' | 'no_acting_user' | 'already_pending' | 'rate_limited'
+    }
 
 interface Entry {
   id: string
@@ -104,6 +129,8 @@ interface Entry {
   open: boolean
   refusals: string[]
   result?: InteractiveOutcome
+  /** The limiter slot this request holds, and when it went out (it is charged to the window on release). */
+  slot: { limiter: RequestLimiter; key: string; sentAt: number } | undefined
   stop: () => void
   settle: (outcome: InteractiveOutcome) => void
 }
@@ -114,6 +141,10 @@ const isObject = (value: unknown): value is Record<string, unknown> =>
 export class InteractiveGate<Peer extends object> {
   private readonly advertised = new WeakMap<Peer, Set<InteractiveMethod>>()
   private readonly entries = new Map<string, Entry>()
+  /** The two families' limiters (`request-limits.ts`); `limits.reset()` or `enabled = false` for a test that raises many. */
+  readonly limits = new FamilyLimits()
+  /** Whether the one-open-request and the windows are enforced (the gateway's own behaviour); off unless the server turns it on. */
+  limited = false
 
   constructor(private readonly host: InteractiveHost<Peer>) {}
 
@@ -149,11 +180,38 @@ export class InteractiveGate<Peer extends object> {
     conversation?: string
     /** A `review.diff`'s file head (from `parseDiff`); read from the params when absent. */
     head?: FileHead
+    /** The turn acts for nobody and the conversation is shared: `review.*`, `input.signature` and `device.*` go to no one. */
+    noActingUser?: boolean
   }): RaisedInteractive {
+    const conversation = input.conversation ?? input.sessionId
+    const nowSeconds = this.host.now() / 1000
+    let slot: Entry['slot']
+
+    if (this.limited) {
+      const reserved = this.limits.reserve(isDeviceMethod(input.method), conversation, nowSeconds)
+
+      if (reserved.refused) {
+        return { kind: 'unavailable', reason: reserved.refused as 'already_pending' | 'rate_limited' }
+      }
+
+      slot = { limiter: reserved.limiter, key: conversation, sentAt: nowSeconds }
+    }
+
+    // Nothing reached a person: the slot goes back and the window is not charged.
+    const giveBack = (reason: 'no_capable_client' | 'no_acting_user'): RaisedInteractive => {
+      slot?.limiter.release(slot.key, undefined)
+
+      return { kind: 'unavailable', reason }
+    }
+
+    if (input.noActingUser && isStrictActingUserMethod(input.method)) {
+      return giveBack('no_acting_user')
+    }
+
     const targets = this.capable(input.method)
 
     if (targets.length === 0) {
-      return { kind: 'unavailable', reason: 'no_capable_client' }
+      return giveBack('no_capable_client')
     }
 
     const id = this.host.nextRequestId()
@@ -171,6 +229,7 @@ export class InteractiveGate<Peer extends object> {
       params: input.params,
       open: true,
       refusals: [],
+      slot,
       stop: this.host.later(
         () => this.expire(id),
         Math.min(MAX_TIMER_MS, Math.max(0, expiresAt * 1000 - this.host.now()))
@@ -221,7 +280,8 @@ export class InteractiveGate<Peer extends object> {
       this.close(entry, {
         outcome: 'unavailable',
         error,
-        ...(typeof data?.reason === 'string' ? { reason: data.reason } : {})
+        ...(typeof data?.reason === 'string' ? { reason: data.reason } : {}),
+        agentReason: agentReasonOfError(typeof data?.reason === 'string' ? data.reason : undefined)
       })
 
       return true
@@ -302,7 +362,9 @@ export class InteractiveGate<Peer extends object> {
       refusals: [...entry.refusals],
       ...(result ? { outcome: result.outcome } : {}),
       ...(result?.error ? { error: result.error } : {}),
-      ...(result?.reason ? { reason: result.reason } : {})
+      ...(result?.reason ? { reason: result.reason } : {}),
+      ...(result?.agentReason ? { agentReason: result.agentReason } : {}),
+      ...(result?.problem ? { problem: result.problem } : {})
     }
   }
 
@@ -319,7 +381,7 @@ export class InteractiveGate<Peer extends object> {
       const answer = result as Record<string, unknown>
 
       this.host.recordAnswer({ id: entry.id, method: entry.method, result })
-      this.close(entry, { outcome: 'answered', answer: this.taken(entry, answer) })
+      this.close(entry, this.taken(entry, answer))
 
       return null
     }
@@ -341,8 +403,8 @@ export class InteractiveGate<Peer extends object> {
     return reported
   }
 
-  /** What the agent learns of a valid answer (see `InteractiveOutcome.answer`). */
-  private taken(entry: Entry, answer: Record<string, unknown>): Record<string, unknown> {
+  /** What the agent learns of a valid answer (see `InteractiveOutcome.answer`): how the request ended for it. */
+  private taken(entry: Entry, answer: Record<string, unknown>): InteractiveOutcome {
     if (entry.method === 'review.draft' && answer.decision === 'approved') {
       const accepted = acceptedDraft(entry.params, answer)
       const draft = this.host.drafts.put(entry.conversation, accepted.text, {
@@ -350,20 +412,44 @@ export class InteractiveGate<Peer extends object> {
         now: this.host.now()
       })
 
-      return { ...answer, ...accepted, draft_id: draft.draftId, sha256: draft.sha256 }
+      return {
+        outcome: 'answered',
+        answer: { ...answer, ...accepted, draft_id: draft.draftId, sha256: draft.sha256 }
+      }
     }
 
     if (entry.method === 'review.diff') {
-      return { ...answer, ...acceptedDiff(entry.params, answer, entry.head as FileHead) }
+      return {
+        outcome: 'answered',
+        answer: { ...answer, ...acceptedDiff(entry.params, answer, entry.head as FileHead) }
+      }
     }
 
-    return answer
+    if (entry.method === 'input.file') {
+      return { outcome: 'answered', answer: acceptedFiles(answer) }
+    }
+
+    if (entry.method === 'input.signature' && answer.status === 'answered') {
+      const problem = signatureFilesProblem(answer, path => this.host.uploaded(path))
+
+      if (problem) {
+        return { outcome: 'unavailable', reason: 'bad_upload', agentReason: 'bad_upload', problem }
+      }
+    }
+
+    if (entry.method === 'input.signature' || isDeviceMethod(entry.method)) {
+      return { outcome: 'answered', answer: acceptedDevice(entry.method, entry.params, answer, this.host.now()) }
+    }
+
+    return { outcome: 'answered', answer }
   }
 
   private close(entry: Entry, outcome: InteractiveOutcome): void {
     entry.open = false
     entry.result = outcome
     entry.stop()
+    entry.slot?.limiter.release(entry.slot.key, entry.slot.sentAt)
+    entry.slot = undefined
     this.host.forget(entry.id)
     entry.settle(outcome)
   }

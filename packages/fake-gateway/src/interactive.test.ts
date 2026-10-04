@@ -15,6 +15,7 @@ import { WebSocket } from 'ws'
 import { type FakeGateway, startFakeGateway } from './server'
 import {
   defaultParams,
+  frameProblem,
   INTERACTIVE_METHODS,
   isDirectlyIn,
   loadContract,
@@ -31,6 +32,20 @@ import { MAX_REFUSALS } from './interactive-gate'
 type Obj = Record<string, unknown>
 
 const contract = loadContract()
+
+/**
+ * `examples.json` spells a number past 2^53 (`9007199254740993`) that a JavaScript JSON reader can only hold as 2^53
+ * itself, which the schema allows. The example's name says it is the one past the bound: use the next double.
+ */
+function pastSafeIntegers(answer: Obj): unknown {
+  if (!String(answer.name).endsWith('beyond_2_53')) {
+    return answer.result
+  }
+
+  return Object.fromEntries(
+    Object.entries(answer.result as Obj).map(([key, value]) => [key, value === 2 ** 53 ? 2 ** 53 + 2 : value])
+  )
+}
 const methods = contract.examples.methods as Record<InteractiveMethod, Obj>
 
 /** Every example frame's params by request id: what its answers are checked against. */
@@ -111,10 +126,26 @@ describe('the contract examples', () => {
       it('refuses every invalid answer with exactly its reason', () => {
         for (const answer of entry.invalid_answers as Obj[]) {
           const params = paramsById.get(String(answer.request)) as Obj
+          const result = pastSafeIntegers(answer)
 
-          expect(refusalFor(method, params, answer.result), String(answer.name)).toBe(answer.reason)
+          expect(refusalFor(method, params, result), String(answer.name)).toBe(answer.reason)
           // The layer says where it is caught: `model` fails the schema, `validator` passes it.
-          expect(matchesResult(method, answer.result), String(answer.name)).toBe(answer.layer !== 'model')
+          expect(matchesResult(method, result), String(answer.name)).toBe(answer.layer !== 'model')
+        }
+      })
+
+      it('refuses every invalid frame exactly when the gateway would not build it', () => {
+        // The form's and the diff's own cross-field rules (a repeated field id, a repeated hunk id) are the builders'
+        // and are not ported: nothing of the fake raises a form or a diff from params it checks that way.
+        const ruled = !['input.form', 'review.draft', 'review.diff'].includes(method)
+
+        for (const invalid of ruled ? (entry.invalid_frames as Obj[]) : []) {
+          // `model` ones fail the schema; `cross_field` ones pass it and fail the rules it cannot say.
+          expect(frameProblem(method, invalid.params), String(invalid.name)).not.toBeNull()
+        }
+
+        for (const frame of entry.frames as Obj[]) {
+          expect(frameProblem(method, frame.params), String(frame.id)).toBeNull()
         }
       })
     })
@@ -572,7 +603,7 @@ describe('who is sent a request', () => {
     expect(frame.params?.fields).toBeDefined()
   })
 
-  it('stays permissive for a method it does not know as interactive', async () => {
+  it('raises params it is not asked to check, so a frame the gateway would never send can be tried on purpose', async () => {
     const gateway = await start()
     const client = await open(gateway)
 

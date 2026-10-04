@@ -1,15 +1,31 @@
 import { existsSync, readFileSync } from 'node:fs'
 import { dirname, join, resolve } from 'node:path'
 
+import {
+  birthdayProblem,
+  buildCalendarItem,
+  calendarItemProblem,
+  cleanScanValue,
+  pngOrSvgProblem,
+  precisionProblem,
+  presentContact,
+  roundLocation,
+  statementSha256,
+  unrequestedKey
+} from './device-requests'
 import { composePatch, type FileHead, type FileKind } from './diff-hunks'
+import { cleanText } from './passkey/confirm'
+import { verbatimProblem } from './verbatim'
+
+export { CalendarItemRefused } from './device-requests'
 
 /**
- * The interactive server requests (`input.form`, `input.file`, `review.draft`, `review.diff`), as
- * `contract/requests` defines them.
+ * The interactive server requests (`input.form`, `input.file`, `review.draft`, `review.diff`, `input.signature`,
+ * `device.location`, `device.contact`, `device.calendar`, `device.scan`), as `contract/requests` defines them.
  *
  * This file is the gateway's checking of an ANSWER: the shape (`schema.json`, through a small checker
  * that knows exactly the keywords that file uses) and then the rules the schema cannot say (`README.md`
- * sections 3 to 7): required fields, ranges, steps, ISO 4217 minor units, datetimes with their zone and
+ * sections 3 to 12): required fields, ranges, steps, ISO 4217 minor units, datetimes with their zone and
  * offset, choice membership and counts, where files may live and how big they may be, what a draft may
  * contain, that every hunk of a diff is decided and the decision agrees with them. It returns the reason the gateway would refuse with, and nothing else; the request's life
  * (who is asked, the refusal cap, the clock) is `interactive-gate.ts`.
@@ -18,12 +34,49 @@ import { composePatch, type FileHead, type FileKind } from './diff-hunks'
  * fake is run from inside the repository, where they are).
  */
 
-export const INTERACTIVE_METHODS = ['input.form', 'input.file', 'review.draft', 'review.diff'] as const
+export const INTERACTIVE_METHODS = [
+  'input.form',
+  'input.file',
+  'review.draft',
+  'review.diff',
+  'input.signature',
+  'device.location',
+  'device.contact',
+  'device.calendar',
+  'device.scan'
+] as const
 
 export type InteractiveMethod = (typeof INTERACTIVE_METHODS)[number]
 
 export const isInteractiveMethod = (method: unknown): method is InteractiveMethod =>
   typeof method === 'string' && (INTERACTIVE_METHODS as readonly string[]).includes(method)
+
+/** The device requests: they ask for something personal, so they have a window and a limiter of their own. */
+export const isDeviceMethod = (method: string): boolean => method.startsWith('device.')
+
+/**
+ * The methods that need a NAMED acting person when a shared conversation's turn names nobody: approving a draft or a
+ * diff, a signature and every device request (`README.md` section 3, "Who is asked").
+ */
+export const isStrictActingUserMethod = (method: string): boolean =>
+  method.startsWith('review.') || method.startsWith('device.') || method === 'input.signature'
+
+/** The `4041 cannot_show` reasons the contract lists; any other reason reaches the agent as `error_response`. */
+export const CANNOT_SHOW_REASONS: ReadonlySet<string> = new Set([
+  'no_camera',
+  'no_microphone',
+  'not_supported_on_device',
+  'permission_denied',
+  'location_unavailable',
+  'upload_failed',
+  'unsupported_version',
+  'shutting_down',
+  'declined'
+])
+
+/** What the agent is told of a client's `4041`: `cannot_show:<reason>` for a listed reason, else `error_response`. */
+export const agentReasonOfError = (reason: string | undefined): string =>
+  reason !== undefined && CANNOT_SHOW_REASONS.has(reason) ? `cannot_show:${reason}` : 'error_response'
 
 type Obj = Record<string, unknown>
 
@@ -266,7 +319,7 @@ export function refusalFor(
 
   const answer = result as Obj
 
-  if (method.startsWith('input.') && answer.status === 'skipped') {
+  if ((method.startsWith('input.') || isDeviceMethod(method)) && answer.status === 'skipped') {
     return params.optional === false ? 'not_optional' : null
   }
 
@@ -278,6 +331,17 @@ export function refusalFor(
         return refuseFiles(params, answer)
       case 'review.diff':
         return refuseDiff(params, answer)
+      case 'input.signature':
+        return refuseSignature(params, answer)
+      case 'device.location':
+        return precisionProblem(String(params.precision), String(answer.precision))
+      case 'device.contact':
+        return refuseContact(params, answer.contact as Obj)
+      case 'device.scan':
+        return refuseScan(params, answer)
+      // `device.calendar`: `done` says all there is.
+      case 'device.calendar':
+        return null
       default:
         return refuseDraft(params, answer)
     }
@@ -331,6 +395,185 @@ export function headOfParams(params: Obj): FileHead {
       return { kind, old: oldPath, new: path }
     default:
       return { kind: 'modify', old: path, new: path }
+  }
+}
+
+/**
+ * What the agent is told of a valid `input.signature` or `device.*` answer: only what the person chose to share, in
+ * the gateway's own form, never the client's claim as it was. A skip is the skip.
+ *
+ * - `device.location`: rounded (`roundLocation`), with `lowered: true` when the person shared less than was asked;
+ * - `device.contact`: the requested keys only, cleaned;
+ * - `device.calendar`: `{saved: true, kind}`;
+ * - `device.scan`: the value cleaned and whether cleaning changed it;
+ * - `input.signature`: the statement hash, the client's `signed_at` and the gateway's own `received_at`, and both files.
+ */
+export function acceptedDevice(method: InteractiveMethod, params: Obj, answer: Obj, nowMs: number): Obj {
+  if (answer.status === 'skipped') {
+    return answer
+  }
+
+  switch (method) {
+    case 'device.location': {
+      const shared = roundLocation(answer, String(params.precision))
+
+      return { status: 'answered', ...shared, ...(shared.precision === params.precision ? {} : { lowered: true }) }
+    }
+
+    case 'device.contact':
+      return {
+        status: 'answered',
+        contact: presentContact(answer.contact as Obj, (params.fields ?? []) as unknown[])
+      }
+
+    case 'device.calendar':
+      return { status: 'done', saved: true, kind: params.kind }
+
+    case 'device.scan': {
+      const value = cleanScanValue(answer.value)
+
+      return { status: 'answered', value, symbology: answer.symbology, cleaned: value !== answer.value }
+    }
+
+    default:
+      return {
+        status: 'answered',
+        signed: true,
+        statement_sha256: answer.statement_sha256,
+        signed_at: answer.signed_at,
+        received_at: Math.floor(nowMs / 1000),
+        files: (answer.files as Obj[]).map(file => ({
+          path: file.path,
+          name: cleanText(file.name, false).slice(0, 120) || String(file.path).split('/').pop(),
+          mime: file.mime,
+          bytes: file.bytes,
+          sha256: file.sha256
+        })),
+        ...(typeof params.signer_name === 'string' && params.signer_name ? { signer_name: params.signer_name } : {})
+      }
+  }
+}
+
+/** What the agent receives of an `input.file` answer: the transcript of a voice note, cleaned (an empty one is none). */
+export function acceptedFiles(answer: Obj): Obj {
+  if (answer.status !== 'answered' || answer.text === undefined || answer.text === null) {
+    return answer
+  }
+
+  const { text: _sent, ...rest } = answer
+  const text = cleanText(answer.text, true)
+
+  return text ? { ...rest, text } : rest
+}
+
+/**
+ * Why a signature's files, read after the request settled, are not what they say (`file:<n>:<word>`), or `null`. `read`
+ * is the fake's upload store: a file it holds must be the declared size and hash and the type its `mime` names (the
+ * gateway reads the whole file); one it does not hold was never uploaded to the fake and is not judged, as for
+ * `input.file`.
+ */
+export function signatureFilesProblem(
+  answer: Obj,
+  read: (path: string) => { content: Buffer; sha256: string } | undefined
+): string | null {
+  for (const [index, file] of (answer.files as Obj[]).entries()) {
+    const held = read(String(file.path))
+
+    if (!held) {
+      continue
+    }
+
+    if (held.content.length !== Number(file.bytes)) {
+      return `file:${index}:size`
+    }
+
+    if (held.sha256 !== file.sha256) {
+      return `file:${index}:hash`
+    }
+
+    if (pngOrSvgProblem(String(file.mime), held.content)) {
+      return `file:${index}:type`
+    }
+  }
+
+  return null
+}
+
+// ── calendar items and frames the gateway would not build ───────────────────
+
+/**
+ * The `item` of a `device.calendar` request from what the agent passed: cleaned, bounded, checked against the
+ * contract's `CalendarItem`. Throws `CalendarItemRefused` with what to fix.
+ */
+export function calendarItemOf(raw: unknown, contract = loadContract()): Obj {
+  const model = (contract.schema.$defs as Obj).CalendarItem as Obj
+
+  return buildCalendarItem(raw, {
+    matches: (schema, value) => matches(contract.schema, schema, value),
+    properties: model.properties as Obj,
+    helpers: { isCalendarDate, instantMs: text => instantMs(text)?.ms ?? null }
+  })
+}
+
+const hasRepeats = (list: unknown): boolean => Array.isArray(list) && new Set(list).size !== list.length
+
+/**
+ * Why the gateway would never BUILD these params, or `null` (for the methods of phases 1 to 3 that have such rules:
+ * `input.file`, `input.signature` and `device.*`; a form's and a diff's own are the builders' and are not ported): the shape (`schema.json`) and the rules the schema cannot
+ * say (the `cross_field` invalid frames of `examples.json`): an upload's total below one file; a recording asked for
+ * an image or a photo asked for a recording; a signature with room for fewer than two files, or a statement that cannot
+ * be shown as it is; a repeated contact field or scan format; a calendar item that contradicts itself, a reminder with
+ * an end. The control route does not refuse such params (a client's reading of one can be tried on purpose); an agent
+ * could never send them.
+ */
+export function frameProblem(method: InteractiveMethod, params: unknown, contract = loadContract()): string | null {
+  if (!matchesParams(method, params, contract)) {
+    return 'bad_shape'
+  }
+
+  const frame = params as Obj
+  const upload = isObject(frame.upload) ? frame.upload : undefined
+
+  if (upload && Number(upload.max_total_bytes) < Number(upload.max_bytes)) {
+    return 'upload:total_below_file'
+  }
+
+  switch (method) {
+    case 'input.file':
+      return frame.capture !== undefined &&
+        frame.capture !== null &&
+        (frame.capture === 'audio') !== (frame.accept === 'audio')
+        ? 'capture:audio_mismatch'
+        : null
+    case 'input.signature':
+      if (Number(upload?.max_files) < 2) {
+        return 'upload:max_files'
+      }
+
+      return verbatimProblem(String(frame.statement)) ? 'statement:not_verbatim' : null
+    case 'device.contact':
+      return hasRepeats(frame.fields) ? 'fields:repeated' : null
+    case 'device.scan':
+      return hasRepeats(frame.formats) ? 'formats:repeated' : null
+    case 'device.calendar': {
+      if (
+        frame.kind === 'reminder' &&
+        isObject(frame.item) &&
+        frame.item.end !== undefined &&
+        frame.item.end !== null
+      ) {
+        return 'item:reminder_has_end'
+      }
+
+      const problem = isObject(frame.item)
+        ? calendarItemProblem(frame.item, { isCalendarDate, instantMs: text => instantMs(text)?.ms ?? null })
+        : null
+
+      return problem ? `item:${problem}` : null
+    }
+
+    default:
+      return null
   }
 }
 
@@ -492,7 +735,7 @@ function refuseAmount(field: Obj, value: unknown): string | null {
 }
 
 /** A real calendar date `YYYY-MM-DD`. */
-function isCalendarDate(text: string): boolean {
+export function isCalendarDate(text: string): boolean {
   const parsed = /^(\d{4})-(\d{2})-(\d{2})$/.exec(text)
 
   if (!parsed) {
@@ -535,7 +778,7 @@ function refuseTime(field: Obj, value: unknown): string | null {
 const INSTANT = /^(\d{4}-\d{2}-\d{2})T(\d{2}):(\d{2})(?::(\d{2}))?([+-])(\d{2}):(\d{2})$/
 
 /** An instant with a numeric offset as epoch milliseconds, or `null` when it is not one. */
-function instantMs(text: string): { ms: number; offsetMinutes: number } | null {
+export function instantMs(text: string): { ms: number; offsetMinutes: number } | null {
   const parsed = INSTANT.exec(text)
 
   if (!parsed || !isCalendarDate(parsed[1] as string)) {
@@ -725,6 +968,9 @@ export function isDirectlyIn(dir: string, path: string): boolean {
   return parent === base && name !== '' && name !== '.' && name !== '..'
 }
 
+/** The MIME type of a recording: `audio/` and a subtype, no parameters (`audio/mp4`, not `audio/webm;codecs=opus`). */
+const AUDIO_MIME = /^audio\/[A-Za-z0-9][A-Za-z0-9!#$&^_.+-]{0,63}$/
+
 function refuseFiles(params: Obj, answer: Obj): string | null {
   const upload = (isObject(params.upload) ? params.upload : {}) as Obj
   const files = answer.files as Obj[]
@@ -745,10 +991,108 @@ function refuseFiles(params: Obj, answer: Obj): string | null {
       return `file:${index}:too_large`
     }
 
+    if (params.accept === 'audio' && !AUDIO_MIME.test(String(file.mime))) {
+      return `file:${index}:not_audio`
+    }
+
     total += Number(file.bytes)
   }
 
-  return typeof upload.max_total_bytes === 'number' && total > upload.max_total_bytes ? 'files:too_large' : null
+  if (typeof upload.max_total_bytes === 'number' && total > upload.max_total_bytes) {
+    return 'files:too_large'
+  }
+
+  return refuseTranscript(params, answer, files)
+}
+
+/**
+ * A transcript belongs to a recording: an `audio` request has one to give, an `any` request only when an `audio/*`
+ * file came with it, an image or a document request never (`text:not_audio`).
+ */
+function refuseTranscript(params: Obj, answer: Obj, files: Obj[]): string | null {
+  if (answer.text === undefined || answer.text === null || params.accept === 'audio') {
+    return null
+  }
+
+  return params.accept === 'any' && files.some(file => String(file.mime).startsWith('audio/')) ? null : 'text:not_audio'
+}
+
+// ── input.signature, device.* ────────────────────────────────────────────────
+
+/** The two files (as for `input.file`), their types and names, then the statement hash. */
+function refuseSignature(params: Obj, answer: Obj): string | null {
+  const upload = (isObject(params.upload) ? params.upload : {}) as Obj
+  const files = answer.files as Obj[]
+  let total = 0
+
+  for (const [index, file] of files.entries()) {
+    if (typeof upload.dir === 'string' && !isDirectlyIn(upload.dir, String(file.path))) {
+      return `file:${index}:outside_dir`
+    }
+
+    if (typeof upload.max_bytes === 'number' && Number(file.bytes) > upload.max_bytes) {
+      return `file:${index}:too_large`
+    }
+
+    total += Number(file.bytes)
+  }
+
+  if (typeof upload.max_total_bytes === 'number' && total > upload.max_total_bytes) {
+    return 'files:too_large'
+  }
+
+  if (
+    files
+      .map(file => String(file.mime))
+      .sort()
+      .join(' ') !== 'image/png image/svg+xml'
+  ) {
+    return 'files:not_png_and_svg'
+  }
+
+  for (const [index, file] of files.entries()) {
+    // The name the file is saved under says what it is: `.png` for the PNG, `.svg` for the SVG.
+    if (
+      !String(file.path)
+        .toLowerCase()
+        .endsWith(file.mime === 'image/png' ? '.png' : '.svg')
+    ) {
+      return `file:${index}:extension`
+    }
+  }
+
+  return answer.statement_sha256 === statementSha256(String(params.statement)) ? null : 'statement:mismatch'
+}
+
+/** A key the request did not ask for, a birthday that is no day, then a contact with nothing usable in it. */
+function refuseContact(params: Obj, contact: Obj): string | null {
+  const requested = (Array.isArray(params.fields) ? params.fields : []) as unknown[]
+  const key = unrequestedKey(contact, requested)
+
+  if (key) {
+    return `contact:${key}:not_requested`
+  }
+
+  if (typeof contact.birthday === 'string') {
+    const problem = birthdayProblem(contact.birthday)
+
+    if (problem) {
+      return problem
+    }
+  }
+
+  return Object.keys(presentContact(contact, requested)).length ? null : 'contact:empty'
+}
+
+/** A symbology the request did not list, then a value with nothing visible left once cleaned. */
+function refuseScan(params: Obj, answer: Obj): string | null {
+  const formats = Array.isArray(params.formats) ? params.formats : []
+
+  if (formats.length && !formats.includes(answer.symbology)) {
+    return 'symbology:not_requested'
+  }
+
+  return cleanScanValue(answer.value).trim() ? null : 'scan:empty'
 }
 
 // ── review.draft ─────────────────────────────────────────────────────────────

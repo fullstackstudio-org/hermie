@@ -806,7 +806,9 @@ function interactiveScenario(
   name: string,
   description: string,
   answer: string,
-  summary: RequestAnswerSummary
+  summary: RequestAnswerSummary,
+  /** The id of the contract's example frame to raise (default: the method's first one). */
+  frameId?: string
 ): Scenario {
   return {
     name,
@@ -817,7 +819,16 @@ function interactiveScenario(
       client.checkpoint('hydrated')
       await client.advertise()
 
-      const raised = gateway.raiseInteractive({ method })
+      const frames = (loadContract().examples.methods as Record<string, { frames: Json[] }>)[method]?.frames ?? []
+      const frame = frameId === undefined ? undefined : frames.find(entry => entry.id === frameId)
+
+      if (frameId !== undefined && !frame) {
+        throw new Error(`${method}: the contract has no example frame ${frameId}`)
+      }
+
+      // The example's own params (its session and expiry are the fake's to set).
+      const { session_id: _session, expires_at: _expires, ...params } = (frame?.params ?? {}) as Json
+      const raised = gateway.raiseInteractive({ method, ...(frame ? { params } : {}) })
 
       if (raised.kind !== 'raised') {
         throw new Error(`${method}: not raised (${raised.kind})`)
@@ -953,6 +964,56 @@ const SCENARIOS: Scenario[] = [
       'were approved and rejected, and not a line of the diff.',
     'approved_one_hunk',
     { decision: 'approved', approvedHunks: 1, rejectedHunks: 1 }
+  ),
+  interactiveScenario(
+    'input.file',
+    'input-voice',
+    'The same chat receives an input.file asking for a voice note (accept and capture audio); the person records ' +
+      'one, sends it with the transcript the device made, and the engine records that one recording was sent and ' +
+      'that it was a voice note, not what it said.',
+    'audio_with_transcript',
+    { status: 'answered', count: 1, audio: true },
+    'req_file_voice'
+  ),
+  interactiveScenario(
+    'input.signature',
+    'input-signature',
+    'The same chat receives an input.signature (the contract’s rental agreement); the person signs, and the engine ' +
+      'records that it was signed and nothing of the statement or the drawing.',
+    'signed',
+    { status: 'answered' }
+  ),
+  interactiveScenario(
+    'device.location',
+    'device-location',
+    'The same chat receives a device.location asking for an approximate position; the person shares it, and the ' +
+      'engine records that an approximate location was shared and no coordinate.',
+    'approximate',
+    { status: 'answered', precision: 'approximate' }
+  ),
+  interactiveScenario(
+    'device.contact',
+    'device-contact',
+    'The same chat receives a device.contact asking for a name and phone numbers; the person picks a contact and ' +
+      'shares both, and the engine records which fields were shared and none of their values.',
+    'name_and_phones',
+    { status: 'answered', fields: ['name', 'phones'] }
+  ),
+  interactiveScenario(
+    'device.calendar',
+    'device-calendar',
+    'The same chat receives a device.calendar with an event; the person saves it in the system sheet, and the ' +
+      'engine records that it was saved and nothing of the event.',
+    'event_saved',
+    { status: 'answered' }
+  ),
+  interactiveScenario(
+    'device.scan',
+    'device-scan',
+    'The same chat receives a device.scan; the person scans a QR code and sends what it says, and the engine ' +
+      'records the kind of code and not its text.',
+    'qr',
+    { status: 'answered', symbology: 'qr' }
   ),
   {
     name: 'subagents',

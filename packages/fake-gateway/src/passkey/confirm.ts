@@ -1,6 +1,6 @@
 import { randomBytes } from 'node:crypto'
 
-import { codePointLength, verbatimProblem } from '../verbatim'
+import { codePointLength, INVISIBLE_LETTERS, verbatimProblem } from '../verbatim'
 import { b64u } from './encoding'
 import { NONCE_BYTES, type ConfirmField } from './challenge'
 import type { ReviewRegister } from '../review-register'
@@ -95,7 +95,6 @@ export class AnswerRefused extends Error {
 
 // ── text ──────────────────────────────────────────────────────────────────────────────────────
 
-const INVISIBLE_LETTERS = new Set(['ᅟ', 'ᅠ', 'ㅤ', 'ﾠ', '⠀'])
 const MAX_COMBINING_MARKS = 4
 
 /**
@@ -109,6 +108,13 @@ export function cleanText(text: unknown, multiline: boolean): string {
   let marks = 0
 
   for (const ch of raw) {
+    // First: some invisible letters are combining marks (U+16FE4) and would be kept as such.
+    if (INVISIBLE_LETTERS.has(ch)) {
+      marks = 0
+
+      continue
+    }
+
     if (/[\p{Mn}\p{Me}]/u.test(ch)) {
       marks += 1
 

@@ -37,7 +37,14 @@ import {
 import { clearedReauthCookie, cookieValue, handlePasskeyRoute, PREFIX as PASSKEY_PREFIX } from './passkey/routes'
 import { GRANT_FAILURES, type GrantFailure } from './passkey/store'
 import { InteractiveGate, type RaisedInteractive } from './interactive-gate'
-import { defaultParams, INTERACTIVE_METHODS, isInteractiveMethod, type InteractiveMethod } from './interactive'
+import {
+  calendarItemOf,
+  CalendarItemRefused,
+  defaultParams,
+  INTERACTIVE_METHODS,
+  isInteractiveMethod,
+  type InteractiveMethod
+} from './interactive'
 import { scheduleRefusal } from './cron-schedule'
 import { type AttachedImageSource, readAttachedImage } from './attached-images'
 import { DiffError, headOldPath, headPath, parseDiff } from './diff-hunks'
@@ -52,11 +59,15 @@ export type { Identity, PasskeyOptions } from './passkey/gateway'
 export type { ConfirmOutcome, RaiseResult } from './passkey/confirm'
 export type { InteractiveOutcome, InteractiveView, RaisedInteractive } from './interactive-gate'
 
-/** What `raiseInteractive` answers: raised, no session for the profile, or a `review.diff` the gateway refuses to build. */
+/**
+ * What `raiseInteractive` answers: raised, no session for the profile, or params the gateway refuses to build: a
+ * `review.diff` whose diff it will not read (`diff_refused`) or a `device.calendar` whose item it will not take
+ * (`item_refused`).
+ */
 export type RaiseInteractiveResult =
   | RaisedInteractive
   | { kind: 'no_session'; profile: string }
-  | { kind: 'refused'; error: 'diff_refused'; detail: string }
+  | { kind: 'refused'; error: 'diff_refused' | 'item_refused'; detail: string }
 export type { McpOptions } from './mcp/store'
 
 /**
@@ -263,6 +274,13 @@ export interface FakeGatewayOptions {
    * still in flight; a real gateway is slow here for the size of the file.
    */
   uploadDelayMs?: number
+  /**
+   * Whether the interactive requests are limited as the gateway limits them (default false): one open per
+   * conversation, twelve per ten minutes and six `device.*` per ten minutes (`already_pending`, `rate_limited`).
+   * Off, a test raises as many as it likes at once (the gateway never would); `true` is the gateway's behaviour, and
+   * `POST /__fake/request-limits {enabled, reset}` changes it while running.
+   */
+  interactiveLimits?: boolean
   /**
    * Extra history to put in front of every Bot Chat, in ROWS.
    *
@@ -1366,8 +1384,8 @@ export interface FakeGateway {
     turnIsolation?: boolean
   }): RaiseResult
   /**
-   * Raise an interactive request (`input.form`, `input.file`, `review.draft`, `review.diff`) on a profile's
-   * chat, as `POST /__fake/request` does: `params` laid over the contract's example, sent only to the
+   * Raise an interactive request (`input.form`, `input.file`, `review.draft`, `review.diff`, `input.signature`,
+   * `device.location`, `device.contact`, `device.calendar`, `device.scan`) on a profile's chat, as `POST /__fake/request` does: `params` laid over the contract's example, sent only to the
    * connections that advertised the method. `unavailable` when none did; otherwise `settled` resolves with how
    * it ended (`answered` with what the gateway took, `timeout`, `too_many_attempts`, `unavailable` after a
    * client's error response, `withdrawn`).
@@ -1382,7 +1400,14 @@ export interface FakeGateway {
     profile?: string
     method: InteractiveMethod
     params?: Record<string, unknown>
+    /** `null`: the turn acts for nobody (a shared conversation); `review.*`, `input.signature` and `device.*` go to no one. */
+    user?: string | null
   }): RaiseInteractiveResult
+  /**
+   * Turn the interactive limits on or off, and/or forget what they have counted
+   * (`POST /__fake/request-limits {enabled?, reset?}`).
+   */
+  interactiveLimits(options: { enabled?: boolean; reset?: boolean }): { enabled: boolean }
   close(): Promise<void>
 }
 
@@ -5189,10 +5214,21 @@ export async function startFakeGateway(options: FakeGatewayOptions = {}): Promis
       const params = (body.params ?? {}) as Record<string, unknown>
 
       /*
-        An interactive request (`input.form`, `input.file`, `review.draft`, `review.diff`): the params are
-        the contract's example for the method with whatever the caller gives laid over them, the frame goes
-        only to the connections that advertised the method (409 `no_capable_client` when there are none), and
-        the answer is the request's id. What became of it is `GET /__fake/request/<id>`.
+        An interactive request (`input.form`, `input.file`, `review.draft`, `review.diff`, `input.signature`,
+        `device.location`, `device.contact`, `device.calendar`, `device.scan`): the params are the contract's
+        example for the method with whatever the caller gives laid over them, the frame goes only to the
+        connections that advertised the method (409 `no_capable_client` when there are none), and the answer is
+        the request's id. What became of it is `GET /__fake/request/<id>`.
+
+        The gateway's own refusals are 409 too, with nothing sent: `already_pending` (one request is open per
+        conversation, whichever method), `rate_limited` (twelve per ten minutes, `device.*` six) and, with
+        `"user": null` (the turn acts for nobody in a shared conversation), `no_acting_user` for `review.*`,
+        `input.signature` and `device.*`. `POST /__fake/request-limits` turns the limits off or resets them.
+
+        A `device.calendar` raised with `params.item` has the item built by the gateway's builder: its text is
+        cleaned, anything over a bound or inconsistent is a 400 `item_refused` with the sentence the agent
+        would get, nothing sent. Every other param is NOT validated: a frame the gateway would never send (the
+        `invalid_frames`) can be raised on purpose.
 
         A `review.diff` may carry `params.diff` (and `params.path`, when the diff has no `---`/`+++` lines)
         instead of hunks: the gateway's parser reads it, so `kind`, `path`, `old_path`, the numbered `hunks`
@@ -5203,10 +5239,11 @@ export async function startFakeGateway(options: FakeGatewayOptions = {}): Promis
         const raised = raiseInteractive({
           profile,
           method: requestMethod,
-          params: typeof body.params === 'object' && body.params !== null ? params : {}
+          params: typeof body.params === 'object' && body.params !== null ? params : {},
+          ...('user' in body ? { user: resolveUser(body.user) ?? null } : {})
         })
 
-        // A `review.diff` raised from a diff text the gateway would refuse to build: nothing is sent.
+        // Params the gateway would refuse to build (a diff, a calendar item): nothing is sent.
         if (raised.kind === 'refused') {
           json(res, 400, { error: raised.error, detail: raised.detail })
 
@@ -5216,7 +5253,12 @@ export async function startFakeGateway(options: FakeGatewayOptions = {}): Promis
         if (raised.kind === 'unavailable') {
           json(res, 409, {
             error: raised.reason,
-            detail: `No connected client advertised "${requestMethod}" in client.capabilities; nothing was sent`,
+            detail: {
+              no_capable_client: `No connected client advertised "${requestMethod}" in client.capabilities; nothing was sent`,
+              no_acting_user: `The turn acts for nobody in a shared conversation, so "${requestMethod}" is put to no one; nothing was sent`,
+              already_pending: 'An interactive request is already open in this conversation; nothing was sent',
+              rate_limited: `Too many ${requestMethod.startsWith('device.') ? 'device ' : ''}requests in the last ten minutes; nothing was sent`
+            }[raised.reason],
             outcome: 'unavailable'
           })
 
@@ -5356,6 +5398,22 @@ export async function startFakeGateway(options: FakeGatewayOptions = {}): Promis
         })
 
       json(res, 200, { raised: requestMethod, session_id: session.id })
+
+      return
+    }
+
+    if (path === '/__fake/request-limits' && method === 'POST') {
+      // The gateway's own limits on interactive requests: `{enabled?: boolean, reset?: boolean}`.
+      const body = await readBody(req)
+
+      json(
+        res,
+        200,
+        interactiveLimits({
+          ...(typeof body.enabled === 'boolean' ? { enabled: body.enabled } : {}),
+          ...(body.reset === true ? { reset: true } : {})
+        })
+      )
 
       return
     }
@@ -10788,6 +10846,7 @@ export async function startFakeGateway(options: FakeGatewayOptions = {}): Promis
 
   const interactive = new InteractiveGate<WebSocket>({
     drafts: reviewDrafts,
+    uploaded: path => state.uploadedFiles.get(path),
     peers: () => [...sockets],
     send: (socket, frame) => send(socket, frame),
     publish: (type, sessionId, payload) => publish(type, sessionId, payload),
@@ -10832,6 +10891,7 @@ export async function startFakeGateway(options: FakeGatewayOptions = {}): Promis
     profile?: string
     method: InteractiveMethod
     params?: Record<string, unknown>
+    user?: string | null
   }): RaiseInteractiveResult {
     const profile = options.profile ?? 'researcher'
     const session = [...state.sessions.values()].find(entry => entry.profile === profile)
@@ -10873,17 +10933,49 @@ export async function startFakeGateway(options: FakeGatewayOptions = {}): Promis
           path: headPath(parsed.head),
           ...(oldPath === null ? {} : { old_path: oldPath }),
           hunks: parsed.hunks
-        }
+        },
+        ...(options.user === null ? { noActingUser: true } : {})
       })
+    }
+
+    const params: Record<string, unknown> = { ...defaults, ...options.params }
+
+    // A calendar item is what the gateway's builder makes of what the agent passed: cleaned, bounded, consistent.
+    if (options.method === 'device.calendar' && options.params && 'item' in options.params) {
+      try {
+        params.item = calendarItemOf(options.params.item)
+      } catch (error) {
+        if (error instanceof CalendarItemRefused) {
+          return { kind: 'refused', error: 'item_refused', detail: error.message }
+        }
+
+        throw error
+      }
     }
 
     return interactive.raise({
       sessionId: session.id,
       conversation: session.storedId,
       method: options.method,
-      params: { ...defaults, ...options.params }
+      params,
+      ...(options.user === null ? { noActingUser: true } : {})
     })
   }
+
+  /** `POST /__fake/request-limits`, and the handle's `interactiveLimits`. */
+  function interactiveLimits(change: { enabled?: boolean; reset?: boolean }): { enabled: boolean } {
+    if (change.enabled !== undefined) {
+      interactive.limited = change.enabled
+    }
+
+    if (change.reset) {
+      interactive.limits.reset()
+    }
+
+    return { enabled: interactive.limited }
+  }
+
+  interactive.limited = options.interactiveLimits === true
 
   /**
    * Make this gateway know the level `passkey`, or change how it is set up. The first call creates the
@@ -11309,6 +11401,7 @@ export async function startFakeGateway(options: FakeGatewayOptions = {}): Promis
       })
     },
     raiseInteractive,
+    interactiveLimits,
     raiseApprovalOn(approvalOptions = {}) {
       const profile = approvalOptions.profile ?? 'researcher'
       const session = sessionForProfile(profile)

@@ -325,13 +325,13 @@ The scenario dump for `contract/transcript/streams` (`scripts/dump-frames.ts`) h
 scenario: the transcript engine's `applyServerRequest` knows `approval` and `clarify` only, so a
 scripted `confirm` would record frames no engine step consumes. It needs engine support first.
 
-## Interactive requests (`input.form`, `input.file`, `review.draft`, `review.diff`)
+## Interactive requests (`input.form`, `input.file`, `review.draft`, `review.diff`, `input.signature`, `device.*`)
 
-The fake raises the four interactive server requests of [`contract/requests`](../../contract/requests/README.md)
+The fake raises the nine interactive server requests of [`contract/requests`](../../contract/requests/README.md)
 and holds an answer to that contract. Every gateway has them; a client that never advertises them never
 sees one, so nothing else changes. No dependency: `src/interactive.ts` checks answers against
 `schema.json` with a page-long checker of the keywords that file uses, then applies the rules the schema
-cannot say (`README.md` sections 3 to 7): required values, ranges and steps, ISO 4217 minor units,
+cannot say (`README.md` sections 3 to 12): required values, ranges and steps, ISO 4217 minor units,
 datetimes with their zone and offset, choice membership and counts, where files may live and how big they
 may be, what a draft may contain, that every hunk of a diff is decided and the decision agrees with them. The contract files are read from `contract/requests/` when first needed.
 `src/interactive-gate.ts` is the request's life.
@@ -340,7 +340,7 @@ may be, what a draft may contain, that every hunk of a diff is decided and the d
 
 `client.capabilities` records and echoes `requests`: the methods it accepted, which are the ones that are
 interactive methods, only together with `server_requests: true` (otherwise `[]`). The first call's
-`server_requests` lists the four methods, as the contract has a client wait for. The result carries
+`server_requests` lists the nine methods, as the contract has a client wait for. The result carries
 `requests` only when the call did; `GET /__fake/state` → `clientCapabilities` records the accepted list
 the same way. A later call replaces what the connection advertised before.
 
@@ -376,6 +376,54 @@ the same way. A later call replaces what the connection advertised before.
   with an `expires_at` that has passed ends on the next tick. `POST /__fake/withdraw-requests` withdraws
   them with every other open request.
 
+### Signature, voice notes and the device requests
+
+`input.signature`, `device.location`, `device.contact`, `device.calendar`, `device.scan` and the audio rules of
+`input.file` (`contract/requests` sections 3, 5.1 and 8 to 12) are raised and answered like the others, with the
+gateway's own checks and post-processing (a port of the fork's `interactive_device.py`, in `src/device-requests.ts`
+and `src/signature-svg.ts`):
+
+- **Answers checked.** `precision:too_precise`, `contact:<key>:not_requested`, `contact:birthday:invalid`,
+  `contact:empty`, `symbology:not_requested`, `scan:empty`, `statement:mismatch`, `files:not_png_and_svg`,
+  `file:<n>:extension`, `file:<n>:not_audio`, `text:not_audio`, on top of `bad_shape` and `not_optional`. Every valid
+  and invalid frame and answer of `examples.json` behaves as its `layer` and `reason` say (`src/interactive.test.ts`).
+- **What the agent is told** (`GET /__fake/request/<id>` → `answer`) is the gateway's reading, never the client's
+  claim: a location rounded (`approximate`: two decimals, accuracy at least 1,000 m; `precise`: six decimals; `lowered`
+  when the person shared less), a contact cut to the keys asked for and cleaned, `{status: "done", saved, kind}` for a
+  calendar entry, a scanned value cleaned with `cleaned: true` when cleaning changed it, a signature as `{signed,
+statement_sha256, signed_at, received_at, files}`, a voice note's transcript cleaned.
+- **A signature's files.** When the upload route holds a file the answer names, it must be the declared size and
+  hash and what its `mime` says: a PNG begins with the PNG signature, an SVG passes the allowlist (UTF-8, no entity,
+  doctype, CDATA, instruction or prefix, only `svg g path polyline polygon line circle ellipse rect title desc`, each
+  attribute value matching its grammar: ASCII whitespace only, lowercase keywords, numbers of at most 32 characters,
+  no `url(` and no backslash). If not, the client's answer is taken (it was valid) and the agent is told
+  `unavailable (bad_upload)`: `outcome: "unavailable"`, `reason: "bad_upload"`, `problem: "file:<n>:type"`. A file the
+  fake never received is not judged (as for `input.file`).
+- **`4041 cannot_show`.** The view's `reason` is the client's own; `agentReason` is what the agent is told:
+  `cannot_show:<reason>` for the contract's list (`no_camera`, `no_microphone`, `not_supported_on_device`,
+  `permission_denied`, `location_unavailable`, `upload_failed`, `unsupported_version`, `shutting_down`, `declined`),
+  else `error_response`.
+- **`device.calendar` items.** Raised with `params.item`, the item is built by the gateway's builder
+  (`calendarItemOf`): text cleaned, anything over a bound or inconsistent is a 400 `{error: "item_refused", detail}`
+  with the sentence the agent would get, and nothing is sent.
+- **Who is asked, how often.** `POST /__fake/request {method, params, user: null}` is a turn that acts for nobody in a
+  shared conversation: `review.*`, `input.signature` and `device.*` are 409 `no_acting_user` with nothing sent
+  (`input.form` and `input.file` still go out). With the limits on (`startFakeGateway({interactiveLimits: true})`, or
+  `POST /__fake/request-limits {enabled: true}`; off by default so a test can raise several at once) one request is
+  open per conversation, whichever method (409 `already_pending`), at most 12 per ten minutes and 6 `device.*`
+  (409 `rate_limited`); a request nobody could be asked does not count. `POST /__fake/request-limits {enabled?,
+reset?}` answers `{enabled}`.
+
+| Control call                                                                               | Raises / does                                                                              |
+| ------------------------------------------------------------------------------------------ | ------------------------------------------------------------------------------------------ |
+| `POST /__fake/request {method: "input.signature"}`                                         | the contract's rental agreement (`params.statement`, `signer_name`, `upload` laid over it) |
+| `POST /__fake/request {method: "device.location"}`                                         | `params.precision` `approximate` (default) or `precise`                                    |
+| `POST /__fake/request {method: "device.contact"}`                                          | `params.fields` (`name`, `phones`, `emails`, `postal`, `birthday`, `organization`)         |
+| `POST /__fake/request {method: "device.calendar"}`                                         | `params.kind` and `params.item` (built by the gateway; 400 `item_refused`)                 |
+| `POST /__fake/request {method: "device.scan"}`                                             | `params.formats` (default: every symbology)                                                |
+| `POST /__fake/request {method: "input.file", params: {accept: "audio", capture: "audio"}}` | a voice note                                                                               |
+| `POST /__fake/request-limits {enabled?, reset?}`                                           | turn the one-open and the windows on or off, forget what they counted                      |
+
 ### Tests
 
 `src/diff-hunks.test.ts` (the gateway's parser: real `git` diffs round-tripped through `git apply`, every
@@ -384,8 +432,8 @@ from a diff over a WebSocket, the answer and the `approved_patch`), `src/passkey
 (structured confirm). `src/interactive.test.ts`: every example of `examples.json` through the validators (valid answers taken,
 invalid ones refused with exactly their `reason`, every form field kind), the rules the schema cannot say,
 and the request's life over a WebSocket (gate, validation, refusal cap, resume listing, cancel on expiry,
-error response, upload listing). `src/client-capabilities.test.ts` covers the handshake. `scripts/dump-frames.ts`
-records a stream scenario per method (`input-form`, `input-file`, `review-draft`, `review-diff`) into
+error response, upload listing). `src/client-capabilities.test.ts` covers the handshake. `src/device-requests.test.ts` is the pure half of the signature and device requests (rounding, contact, scan, the SVG allowlist and its value grammars, calendar items), `src/interactive-device.test.ts` their life over a WebSocket (what the agent is told, `bad_upload`, `cannot_show` reasons, `no_acting_user`, the limits). `scripts/dump-frames.ts`
+records a stream scenario per method (`input-form`, `input-file`, `input-voice`, `review-draft`, `review-diff`, `input-signature`, `device-location`, `device-contact`, `device-calendar`, `device-scan`) into
 `contract/transcript/streams/`; the native corpus test needs every server request in a stream to decode typed,
 which `review.diff` does since the native diff sheet.
 

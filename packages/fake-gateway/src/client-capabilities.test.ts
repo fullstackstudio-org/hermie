@@ -8,7 +8,7 @@
  * got, with no `confirm` member.
  *
  * The same call carries `requests`, the interactive methods (`input.form`, `input.file`, `review.draft`,
- * `review.diff`) the client can show: recorded and echoed as the gateway accepted them, and only together with
+ * `review.diff`, `input.signature`, `device.*`) the client can show: recorded and echoed as the gateway accepted them, and only together with
  * `server_requests: true`.
  */
 import { afterEach, describe, expect, it } from 'vitest'
@@ -65,7 +65,17 @@ const connect = async (
   }
 }
 
-const INTERACTIVE = ['input.form', 'input.file', 'review.draft', 'review.diff']
+const INTERACTIVE = [
+  'input.form',
+  'input.file',
+  'review.draft',
+  'review.diff',
+  'input.signature',
+  'device.location',
+  'device.contact',
+  'device.calendar',
+  'device.scan'
+]
 const KINDS = [
   'approval',
   'clarify',

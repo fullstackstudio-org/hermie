@@ -9,7 +9,7 @@
  */
 
 /** Hangul fillers, the blank Braille pattern, the musical null notehead and the Khitan filler (§6.2 item 4). */
-const INVISIBLE_LETTERS = new Set(['ᅟ', 'ᅠ', 'ㅤ', 'ﾠ', '⠀', '\u{1d159}', '\u{16fe4}'])
+export const INVISIBLE_LETTERS = new Set(['ᅟ', 'ᅠ', 'ㅤ', 'ﾠ', '⠀', '\u{1d159}', '\u{16fe4}'])
 
 /** `Default_Ignorable_Code_Point` as the contract lists it (§6.2 item 5), inclusive ranges. */
 export const DEFAULT_IGNORABLE: readonly (readonly [number, number])[] = [
