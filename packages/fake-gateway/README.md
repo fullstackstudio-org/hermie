@@ -517,11 +517,21 @@ client asked for. Tests: `src/attached-images.test.ts`.
 channels: 1}`, three binary int16 PCM frames and `{type: "end"}`; `stream: false` answers `{type: "fallback"}`;
   `{stop: true}` or a closed socket in the middle counts in `state.audioStreamsCancelled`. The credential is
   `?token=` (ungated) or a ticket on the query (`?ticket=`, gated).
-- `state.audioRequests` (also in `GET /__fake/state`'s `FakeGatewayState`) lists what `speak` and the stream
-  were asked, oldest first: `{kind, text, voice, profile}`.
+- Hearing a voice first: `voicePreview: "sample"` makes `voice-config` say `voice_preview: "sample"` and
+  serves `GET /api/audio/elevenlabs/voices/{voice_id}/preview` as a real 792-byte `audio/mpeg` file (404 for an
+  unknown voice, one listed with `preview: false`, or a gateway with no key); `"speak"` is Edge's free kind
+  (through `speak`); absent is a paid provider. Each voice of `elevenlabs/voices` carries `preview: bool`.
+  `prosody: true`, `voicesError: "unavailable" | "loading"` (with `voices: []`; `voicesLoadingAnswers: n` is
+  loading for `n` answers and then listed) are `voice-config` fields too.
+- `streamError: {code}` makes `speak-stream` answer `{type: "error", code, message}` and close;
+  `speakError: {code}` makes `speak` answer 400 `{detail: {code, message}}`.
+- `state.audioRequests` (also in `GET /__fake/state`'s `FakeGatewayState`) lists what `speak`, the stream and
+  the preview route were asked, oldest first: `{kind, text, voice, profile}`.
 
 From the command line: `--no-audio`, `--tts-provider edge|elevenlabs|openai`, `--tts-voice-selection`,
-`--no-tts-stream`, `--tts-delay <ms>` and `--tts-speak-status <n>`. `GET /__fake/state` reads back
+`--no-tts-stream`, `--tts-delay <ms>`, `--tts-speak-status <n>`, `--tts-voice-preview sample|speak`, `--tts-prosody`,
+`--tts-voices-error unavailable|loading`, `--tts-voices-loading-answers <n>`, `--tts-stream-error <code>` and
+`--tts-speak-error <code>`. `GET /__fake/state` reads back
 `audioRequests` and `audioStreamsCancelled`.
 
 Tests: `src/audio.test.ts`.

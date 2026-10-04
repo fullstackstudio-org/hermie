@@ -117,6 +117,83 @@ describe('voice-config', () => {
   it('is a 404 on a gateway with no audio routes', async () => {
     expect((await get(await start({ audio: false }), '/api/audio/voice-config')).status).toBe(404)
   })
+
+  it('says how a voice may be heard first, only where that is free, and prosody', async () => {
+    const paid = (await get(await start({ audio: { provider: 'openai' } }), '/api/audio/voice-config')).body.tts
+    const eleven = (
+      await get(
+        await start({ audio: { provider: 'elevenlabs', voicePreview: 'sample', prosody: true } }),
+        '/api/audio/voice-config'
+      )
+    ).body.tts
+    const edge = (await get(await start({ audio: { voicePreview: 'speak' } }), '/api/audio/voice-config')).body.tts
+
+    expect(paid).not.toHaveProperty('voice_preview')
+    expect(paid).not.toHaveProperty('prosody')
+    expect(eleven.voice_preview).toBe('sample')
+    expect(eleven.prosody).toBe(true)
+    expect(edge.voice_preview).toBe('speak')
+  })
+
+  it('says voices_error with no voices, and a cold cache is loading for a few answers and then listed', async () => {
+    const edgeVoices = [{ id: 'nl-NL-ColetteNeural', name: 'Colette', language: 'nl-NL' }]
+    const failed = (
+      await get(
+        await start({ audio: { voiceSelection: true, edgeVoices, voicesError: 'unavailable' } }),
+        '/api/audio/voice-config'
+      )
+    ).body.tts
+    const cold = await start({
+      audio: { voiceSelection: true, edgeVoices, voicesError: 'loading', voicesLoadingAnswers: 2 }
+    })
+    const answers = [
+      (await get(cold, '/api/audio/voice-config')).body.tts,
+      (await get(cold, '/api/audio/voice-config')).body.tts,
+      (await get(cold, '/api/audio/voice-config')).body.tts
+    ]
+
+    expect(failed.voices_error).toBe('unavailable')
+    expect(failed.voices).toEqual([])
+    expect(answers.map(tts => tts.voices_error)).toEqual(['loading', 'loading', undefined])
+    expect(answers.map(tts => tts.voices.length)).toEqual([0, 0, 1])
+  })
+})
+
+describe('elevenlabs/voices/{id}/preview', () => {
+  it('answers a tiny real MP3 as audio/mpeg and records the request', async () => {
+    const gateway = await start({ audio: { voicePreview: 'sample' } })
+    const response = await fetch(`${gateway.url}/api/audio/elevenlabs/voices/voice-rachel/preview?profile=writer`)
+    const bytes = Buffer.from(await response.arrayBuffer())
+
+    expect(response.status).toBe(200)
+    expect(response.headers.get('content-type')).toBe('audio/mpeg')
+    expect(bytes.length).toBeGreaterThan(100)
+    expect(bytes.length).toBeLessThan(4096)
+    // An MPEG audio frame: 11 sync bits.
+    expect(bytes[0]).toBe(0xff)
+    expect((bytes[1] as number) & 0xe0).toBe(0xe0)
+    expect(gateway.state.audioRequests).toEqual([
+      { kind: 'preview', text: '', voice: 'voice-rachel', profile: 'writer' }
+    ])
+  })
+
+  it('is a 404 for a voice with no sample, an unknown voice, and a gateway with no key', async () => {
+    const voices = [{ voice_id: 'quiet', name: 'Quiet', preview: false }]
+    const quiet = await start({ audio: { voices } })
+
+    expect((await get(quiet, '/api/audio/elevenlabs/voices/quiet/preview')).status).toBe(404)
+    expect((await get(quiet, '/api/audio/elevenlabs/voices/nobody/preview')).status).toBe(404)
+    expect(
+      (await get(await start({ audio: { elevenLabsKey: false } }), '/api/audio/elevenlabs/voices/voice-rachel/preview'))
+        .status
+    ).toBe(404)
+  })
+
+  it('reads a percent-encoded voice id', async () => {
+    const gateway = await start({ audio: { voices: [{ voice_id: 'a b/c', name: 'Odd' }] } })
+
+    expect((await fetch(`${gateway.url}/api/audio/elevenlabs/voices/a%20b%2Fc/preview`)).status).toBe(200)
+  })
 })
 
 describe('elevenlabs/voices', () => {
@@ -129,7 +206,33 @@ describe('elevenlabs/voices', () => {
       'My own voice (cloned)',
       'Rachel (premade)'
     ])
-    expect(body.voices[1]).toEqual({ voice_id: 'voice-clone-1', name: 'My own voice', label: 'My own voice (cloned)' })
+    expect(body.voices[1]).toEqual({
+      voice_id: 'voice-clone-1',
+      name: 'My own voice',
+      label: 'My own voice (cloned)',
+      preview: true
+    })
+  })
+
+  it('says per voice whether the gateway has a sample of it', async () => {
+    const { body } = await get(
+      await start({
+        audio: {
+          voices: [
+            { voice_id: 'with', name: 'With' },
+            { voice_id: 'without', name: 'Without', preview: false }
+          ]
+        }
+      }),
+      '/api/audio/elevenlabs/voices'
+    )
+
+    expect(body.voices.map((voice: { voice_id: string; preview: boolean }) => [voice.voice_id, voice.preview])).toEqual(
+      [
+        ['with', true],
+        ['without', false]
+      ]
+    )
   })
 
   it('says unavailable with no key', async () => {
@@ -178,6 +281,16 @@ describe('speak', () => {
     expect(gateway.state.audioRequests[0]?.voice).toBe('voice-adam')
   })
 
+  it('can refuse a voice with a 400 whose detail is {code, message}', async () => {
+    const gateway = await start({
+      audio: { voiceSelection: true, speakError: { code: 'unknown_voice', message: 'No such voice' } }
+    })
+    const { status, body } = await post(gateway, '/api/audio/speak', { text: 'Hi.', voice: 'nope' })
+
+    expect(status).toBe(400)
+    expect(body.detail).toEqual({ code: 'unknown_voice', message: 'No such voice' })
+  })
+
   it('can fail like a provider that failed', async () => {
     expect((await post(await start({ audio: { speakStatus: 500 } }), '/api/audio/speak', { text: 'Hi.' })).status).toBe(
       500
@@ -206,6 +319,17 @@ describe('speak-stream', () => {
     const { events } = await session(await start({ audio: { stream: false } }), [{ text: 'Hi.', done: true }])
 
     expect(events).toEqual([{ type: 'fallback' }])
+  })
+
+  it('can refuse the voice with an error frame and close, with no audio', async () => {
+    const gateway = await start({
+      audio: { voiceSelection: true, streamError: { code: 'unknown_voice', message: 'No such voice' } }
+    })
+    const { events, closeCode } = await session(gateway, [{ text: 'Hi.', voice: 'nope', done: true }])
+
+    expect(events).toEqual([{ type: 'error', code: 'unknown_voice', message: 'No such voice' }])
+    expect(closeCode).toBe(1005)
+    expect(gateway.state.audioRequests).toEqual([{ kind: 'stream', text: 'Hi.', voice: 'nope', profile: null }])
   })
 
   it('counts a stop in the middle as a barge-in', async () => {

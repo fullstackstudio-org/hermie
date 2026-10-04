@@ -19,6 +19,14 @@
  * - `elevenlabs/voices` answers `{available, voices: [{voice_id, name, label}]}` sorted by label, and
  *   `{available: false, voices: []}` with no key.
  *
+ * - `voice-config` may also say `voice_preview` (`"sample"`: ElevenLabs, a recording per voice at
+ *   `GET /api/audio/elevenlabs/voices/{voice_id}/preview`; `"speak"`: Edge, free, a voice says a sentence
+ *   through `POST /api/audio/speak`; absent: a paid provider, no preview), `prosody`, and a
+ *   `voices_error` (`"unavailable"`, or `"loading"` while the gateway fetches Edge's list in the
+ *   background, with `voices: []`). Each ElevenLabs voice says whether it has a sample (`preview`).
+ * - `speak-stream` may answer a text frame `{"type": "error", "code", "message"}` and close; `POST /speak`
+ *   may answer 400 with `{"detail": {"code", "message"}}`.
+ *
  * What the gateway as shipped does NOT do, and so the fake does not unless asked
  * (`FakeAudioOptions.voiceSelection`): take a voice with a request. `TTSSpeakRequest` is `{text}`.
  */
@@ -29,6 +37,14 @@ export interface FakeAudioVoice {
   voice_id: string
   name: string
   category?: string
+  /** Whether the gateway has a recorded sample of the voice (default true). */
+  preview?: boolean
+}
+
+/** A text frame of `speak-stream` that refuses the request, and the 400 `POST /speak` answers the same way. */
+export interface FakeAudioError {
+  code: 'invalid_voice' | 'unknown_voice' | 'voice_unsupported' | 'voice_failed' | 'invalid_prosody' | (string & {})
+  message?: string
 }
 
 export interface FakeAudioOptions {
@@ -53,11 +69,26 @@ export interface FakeAudioOptions {
   chunkDelayMs?: number
   /** Answer `speak` with this status instead of audio (a provider that failed). */
   speakStatus?: number
+  /**
+   * `voice-config`'s `tts.voice_preview`: `sample` (a recording per voice), `speak` (the voice says a
+   * sentence, for free). Default absent: a paid provider, which offers no preview.
+   */
+  voicePreview?: 'sample' | 'speak'
+  /** `voice-config`'s `tts.prosody: true`. */
+  prosody?: boolean
+  /** `voice-config`'s `tts.voices_error`, with an empty `voices`. */
+  voicesError?: 'unavailable' | 'loading'
+  /** With `voicesError: 'loading'`: how many `voice-config` answers say so before the list is there (default: always). */
+  voicesLoadingAnswers?: number
+  /** `speak-stream` refuses the request with an `error` frame, and closes. */
+  streamError?: FakeAudioError
+  /** `POST /speak` answers 400 with `{detail: {code, message}}`. */
+  speakError?: FakeAudioError
 }
 
 /** What a client asked of the audio routes, oldest first. */
 export interface AudioRequest {
-  kind: 'speak' | 'stream'
+  kind: 'speak' | 'stream' | 'preview'
   text: string
   voice: string | null
   profile: string | null
@@ -74,9 +105,18 @@ const FAKE_API_KEY = 'xi-fake-key-do-not-keep'
 /** `_elevenlabs_voice_label`. */
 const labelOf = (voice: FakeAudioVoice): string => (voice.category ? `${voice.name} (${voice.category})` : voice.name)
 
-export const voiceConfigBody = (options: FakeAudioOptions): Record<string, unknown> => {
+/** The fields every provider's `tts` may carry beside its own (`voice_preview`, `prosody`, `voices_error`). */
+const ttsExtras = (options: FakeAudioOptions, listed: boolean): Record<string, unknown> => ({
+  ...(options.voicePreview ? { voice_preview: options.voicePreview } : {}),
+  ...(options.prosody ? { prosody: true } : {}),
+  ...(options.voicesError && !listed ? { voices_error: options.voicesError } : {})
+})
+
+/** `listed`: the gateway has fetched its list by now, so a `loading` verdict no longer applies. */
+export const voiceConfigBody = (options: FakeAudioOptions, listed = false): Record<string, unknown> => {
   const provider = options.provider ?? 'edge'
   const selection = options.voiceSelection === true
+  const extras = ttsExtras(options, listed)
   const stt = { mode: 'relay', reason: 'local provider' }
 
   if (provider === 'elevenlabs') {
@@ -93,7 +133,8 @@ export const voiceConfigBody = (options: FakeAudioOptions): Record<string, unkno
         voice: 'voice-rachel',
         speed: null,
         min_len: 20,
-        ...(selection ? { voice_selection: true } : {})
+        ...(selection ? { voice_selection: true } : {}),
+        ...extras
       }
     }
   }
@@ -111,7 +152,8 @@ export const voiceConfigBody = (options: FakeAudioOptions): Record<string, unkno
         model: 'gpt-4o-mini-tts',
         voice: 'alloy',
         speed: 1,
-        min_len: 20
+        min_len: 20,
+        ...extras
       }
     }
   }
@@ -122,7 +164,13 @@ export const voiceConfigBody = (options: FakeAudioOptions): Record<string, unkno
     tts: {
       mode: 'relay',
       reason: "provider 'edge' has no client wire",
-      ...(selection ? { voice_selection: true, voices: options.edgeVoices ?? [] } : {})
+      ...(selection
+        ? {
+            voice_selection: true,
+            voices: options.voicesError && !listed ? [] : (options.edgeVoices ?? [])
+          }
+        : {}),
+      ...extras
     }
   }
 }
@@ -135,7 +183,8 @@ export const elevenLabsVoicesBody = (options: FakeAudioOptions): Record<string, 
   const voices = (options.voices ?? DEFAULT_ELEVENLABS_VOICES).map(voice => ({
     voice_id: voice.voice_id,
     name: voice.name,
-    label: labelOf(voice)
+    label: labelOf(voice),
+    preview: voice.preview !== false
   }))
 
   voices.sort((left, right) => left.label.toLowerCase().localeCompare(right.label.toLowerCase()))
@@ -178,6 +227,30 @@ export const pcmClip = (frames: number, sampleRate: number, frequency = 440): Bu
   }
 
   return data
+}
+
+/**
+ * A 0.3 s sine as a real MP3 (16 kHz mono, 16 kbit/s, 792 bytes): what
+ * `GET /api/audio/elevenlabs/voices/{id}/preview` answers as `audio/mpeg`, a file the system's reader opens.
+ */
+export const MP3_SAMPLE = Buffer.from(
+  '//MoxAAM8ALRv0EYAqkAZLh//+AD4Pg+D58EInB85dLg+D4P8EOD7//D/AjsoD+sHDmIAf1gQ5kAf4EOcP9Hv6F0mHf/+icy//MoxAcN6LKQAZt4AB+C/jJgQ6bAkBYgNkOQqEHJhYD2HKTkJKl9APCq7ErldB////evbWhfBUJA1+JToNKAXbQD///1lTbv//MoxAoPIGpQH90IADWhCAQsCRgQDZiAZ5xYUR8ybxkiTRi0IJhkOo6E4cBLu0FrIn/+j//k//+3b/Tb/6v+uv///VK7y7S///MoxAgL+G4wAOe2gaFQIDAmYDFxhY3mWbcZNXlBqgjzGCMC6Y6CHDWZlZqCkZEVp0Vnr1P///zlD9vawkRAQwCGzCg6Mcoc//MoxBMP8HIsAOf4gNKZ4w0FCUMb0CMjAzwLUzOaTU0AMckQDE9Axp78S+kqH3/+n//p////////qfg4MU7WkgOIgyLEcFIg//MoxA4QcHokABc8KNEgk6IIjbpDWPrAFoxdwgzBjCzMB4i4GhcEAEJKAAwl6o/UsX+fX9H+79K//t+//u/b/63sAAAUXWWC//MoxAcNuF5qXg46RgELzhFTSmJOinsCPmL8dmdQYo/P6CQKYBAtoN/bf9R396bk3Iv/7ifV/9v//727VAEIBJBIB/TrTcAN//MoxAsMaF5kfg9wSi0EAJC8xYrszZEcwEARFQyrXa8lszb+xV//r0dT2f7v////s+9vXQGLQJbQB////+FecrwG96chgAXG//MoxBQM8GJwf1wAAqwgnMx+AhejuYBC6Bbr28HXfL6MW//7P+hdn2f1Wf+twsYMI8wAAfx/IZcn/nHbUxWl/l1ztnmpAQb///MoxBsT0QqYVZqYAIB+g1WMmQ4XMLm5FCcNExjRZIrUmvTfkWIsYl0u//Mi8XkS6Xf1A0JQl6bkg0JQkDX7k3JVTEFNRTQu//MoxAYAAANIAcAAADBVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVV',
+  'base64'
+)
+
+/** The id in `/api/audio/elevenlabs/voices/{id}/preview`, or null for any other path. */
+export const previewVoiceId = (path: string): string | null => {
+  const match = /^\/api\/audio\/elevenlabs\/voices\/([^/]+)\/preview$/.exec(path)
+
+  if (!match) {
+    return null
+  }
+
+  try {
+    return decodeURIComponent(match[1] as string)
+  } catch {
+    return null
+  }
 }
 
 /** `POST /api/audio/speak`'s answer. */

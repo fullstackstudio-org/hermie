@@ -51,6 +51,12 @@ const { values } = parseArgs({
     'no-tts-stream': { type: 'boolean', default: false },
     'tts-delay': { type: 'string' },
     'tts-speak-status': { type: 'string' },
+    'tts-voice-preview': { type: 'string' },
+    'tts-prosody': { type: 'boolean', default: false },
+    'tts-voices-error': { type: 'string' },
+    'tts-voices-loading-answers': { type: 'string' },
+    'tts-stream-error': { type: 'string' },
+    'tts-speak-error': { type: 'string' },
     host: { type: 'string', default: '127.0.0.1' },
     help: { type: 'boolean', default: false }
   }
@@ -132,6 +138,14 @@ if (values.help) {
       '  --no-tts-stream         speak-stream answers {"type": "fallback"}: a provider with no chunked API',
       '  --tts-delay <ms>        speak and the stream hold their answer, in ms',
       '  --tts-speak-status <n>  speak answers this status instead of audio',
+      '  --tts-voice-preview <m> voice-config says voice_preview: sample (ElevenLabs: a recording per voice at',
+      '                          /api/audio/elevenlabs/voices/{id}/preview) or speak (Edge: free, through speak)',
+      '  --tts-prosody           voice-config says prosody: true',
+      '  --tts-voices-error <e>  voice-config says voices_error: unavailable, or loading (with voices: [])',
+      '  --tts-voices-loading-answers <n>  with loading: how many voice-config answers say so before the list is there',
+      '  --tts-stream-error <c>  speak-stream answers an error frame with this code (invalid_voice, unknown_voice,',
+      '                          voice_unsupported, voice_failed, invalid_prosody) and closes',
+      '  --tts-speak-error <c>   speak answers 400 {detail: {code, message}} with this code',
       '',
       'Prompts steer the built-in scenario: "approve" raises an approval request,',
       '"delegate" fans out subagent events, anything else streams a reply with a tool call.',
@@ -315,6 +329,19 @@ if (ttsProvider && !['edge', 'elevenlabs', 'openai'].includes(ttsProvider)) {
   process.exit(1)
 }
 
+const ttsVoicePreview = values['tts-voice-preview']
+const ttsVoicesError = values['tts-voices-error']
+
+if (ttsVoicePreview && !['sample', 'speak'].includes(ttsVoicePreview)) {
+  console.error('--tts-voice-preview is sample or speak.')
+  process.exit(1)
+}
+
+if (ttsVoicesError && !['unavailable', 'loading'].includes(ttsVoicesError)) {
+  console.error('--tts-voices-error is unavailable or loading.')
+  process.exit(1)
+}
+
 const audio: FakeAudioOptions | false = values['no-audio']
   ? false
   : {
@@ -322,7 +349,15 @@ const audio: FakeAudioOptions | false = values['no-audio']
       ...(values['tts-voice-selection'] ? { voiceSelection: true } : {}),
       ...(values['no-tts-stream'] ? { stream: false } : {}),
       ...(values['tts-delay'] ? { delayMs: Number.parseInt(values['tts-delay'], 10) } : {}),
-      ...(values['tts-speak-status'] ? { speakStatus: Number.parseInt(values['tts-speak-status'], 10) } : {})
+      ...(values['tts-speak-status'] ? { speakStatus: Number.parseInt(values['tts-speak-status'], 10) } : {}),
+      ...(ttsVoicePreview ? { voicePreview: ttsVoicePreview as 'sample' | 'speak' } : {}),
+      ...(values['tts-prosody'] ? { prosody: true } : {}),
+      ...(ttsVoicesError ? { voicesError: ttsVoicesError as 'unavailable' | 'loading' } : {}),
+      ...(values['tts-voices-loading-answers']
+        ? { voicesLoadingAnswers: Number.parseInt(values['tts-voices-loading-answers'], 10) }
+        : {}),
+      ...(values['tts-stream-error'] ? { streamError: { code: values['tts-stream-error'] } } : {}),
+      ...(values['tts-speak-error'] ? { speakError: { code: values['tts-speak-error'] } } : {})
     }
 
 const gateway = await startFakeGateway({

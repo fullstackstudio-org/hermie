@@ -54,8 +54,11 @@ import { McpGateway, type McpGrantInput, type McpOptions } from './mcp/store'
 import {
   type AudioRequest,
   elevenLabsVoicesBody,
+  DEFAULT_ELEVENLABS_VOICES,
   type FakeAudioOptions,
+  MP3_SAMPLE,
   pcmClip,
+  previewVoiceId,
   speakBody,
   STREAM_CHUNK_FRAMES,
   STREAM_CHUNKS,
@@ -7342,6 +7345,8 @@ export async function startFakeGateway(options: FakeGatewayOptions = {}): Promis
   })
   const audioWss = new WebSocketServer({ noServer: true })
   const audioOptions: FakeAudioOptions | null = options.audio === false ? null : (options.audio ?? {})
+  /** How many `voice-config` answers said `voices_error: "loading"`. */
+  let loadingAnswers = 0
 
   httpServer.on('upgrade', (req, socket, head) => {
     const url = new URL(req.url ?? '/', `http://${req.headers.host ?? 'localhost'}`)
@@ -7514,6 +7519,20 @@ export async function startFakeGateway(options: FakeGatewayOptions = {}): Promis
 
       state.audioRequests.push({ kind: 'stream', text, voice, profile })
 
+      if (audio.streamError) {
+        finished = true
+        socket.send(
+          JSON.stringify({
+            type: 'error',
+            code: audio.streamError.code,
+            message: audio.streamError.message ?? 'The voice was refused'
+          })
+        )
+        socket.close()
+
+        return
+      }
+
       if (audio.delayMs) {
         await new Promise(resolve => setTimeout(resolve, audio.delayMs))
       }
@@ -7584,7 +7603,33 @@ export async function startFakeGateway(options: FakeGatewayOptions = {}): Promis
     }
 
     if (path === '/api/audio/voice-config' && method === 'GET') {
-      json(res, 200, voiceConfigBody(audioOptions))
+      // A cold cache: `loading` for the first answers, then the list the background fetch brought.
+      const coldFor = audioOptions.voicesLoadingAnswers ?? Number.POSITIVE_INFINITY
+      const loading = audioOptions.voicesError === 'loading' && loadingAnswers < coldFor
+
+      if (loading) {
+        loadingAnswers += 1
+      }
+
+      json(res, 200, voiceConfigBody(audioOptions, audioOptions.voicesError === 'loading' && !loading))
+
+      return true
+    }
+
+    const previewVoice = previewVoiceId(path)
+
+    if (previewVoice !== null && method === 'GET') {
+      const voice = (audioOptions.voices ?? DEFAULT_ELEVENLABS_VOICES).find(entry => entry.voice_id === previewVoice)
+
+      if (audioOptions.elevenLabsKey === false || !voice || voice.preview === false) {
+        json(res, 404, { detail: 'No sample for this voice' })
+
+        return true
+      }
+
+      state.audioRequests.push({ kind: 'preview', text: '', voice: previewVoice, profile: query.get('profile') })
+      res.writeHead(200, { 'content-type': 'audio/mpeg', 'content-length': MP3_SAMPLE.length })
+      res.end(MP3_SAMPLE)
 
       return true
     }
@@ -7616,6 +7661,17 @@ export async function startFakeGateway(options: FakeGatewayOptions = {}): Promis
 
       if (audioOptions.speakStatus) {
         json(res, audioOptions.speakStatus, { detail: 'Speech synthesis failed' })
+
+        return true
+      }
+
+      if (audioOptions.speakError) {
+        json(res, 400, {
+          detail: {
+            code: audioOptions.speakError.code,
+            message: audioOptions.speakError.message ?? 'The voice was refused'
+          }
+        })
 
         return true
       }
