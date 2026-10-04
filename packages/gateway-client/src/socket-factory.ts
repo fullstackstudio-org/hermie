@@ -1,6 +1,13 @@
 import { type DialPlan, GatewayError } from './types'
 
 /**
+ * A dial URL as an error may say it: without the query or the fragment. On a
+ * session-token gateway the token rides in `?token=`, and an error text ends up
+ * in logs, notices and diagnostics where a credential must never be.
+ */
+export const withoutQuery = (url: string): string => url.split(/[?#]/u, 1)[0] ?? ''
+
+/**
  * The 3-argument WebSocket constructor React Native ships (and the `ws` package
  * mirrors): `new WebSocket(url, protocols, { headers })`. Typed here rather than
  * imported so this package stays free of React Native.
@@ -75,7 +82,7 @@ export class DialPlanSocketFactory {
     if (plan.url !== url) {
       throw new GatewayError(
         'protocol',
-        `The gateway socket factory was armed for ${plan.url} but asked to dial ${url}.`
+        `The gateway socket factory was armed for ${withoutQuery(plan.url)} but asked to dial ${withoutQuery(url)}.`
       )
     }
 

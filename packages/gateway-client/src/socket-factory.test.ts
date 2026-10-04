@@ -1,6 +1,23 @@
+import { JsonRpcGatewayClient } from '@hermes/shared/json-rpc-gateway'
 import { describe, expect, it, vi } from 'vitest'
 
-import { DialPlanSocketFactory, type WebSocketConstructorLike } from './socket-factory'
+import { DialPlanSocketFactory, type WebSocketConstructorLike, withoutQuery } from './socket-factory'
+
+describe('a dial URL in an error text', () => {
+  it('loses its query and fragment, where a session token rides', () => {
+    expect(withoutQuery('wss://gw.example/api/ws?token=secret#x')).toBe('wss://gw.example/api/ws')
+    expect(withoutQuery('wss://gw.example/api/ws')).toBe('wss://gw.example/api/ws')
+  })
+
+  it('is named without its query by the vendored client too (the sync script’s rewrite)', async () => {
+    const client = new JsonRpcGatewayClient()
+
+    await expect(client.connect('https://gw.example/api/ws?token=secret')).rejects.toThrow(
+      'got "https://gw.example/api/ws"'
+    )
+    await expect(client.connect('https://gw.example/api/ws?token=secret')).rejects.not.toThrow(/secret/u)
+  })
+})
 
 class RecordingSocket extends EventTarget {
   static built: RecordingSocket[] = []
@@ -29,6 +46,22 @@ describe('DialPlanSocketFactory', () => {
     factory.arm({ url: 'ws://a/api/ws' })
 
     expect(() => factory.create('ws://b/api/ws')).toThrow(/armed for ws:\/\/a/)
+  })
+
+  it('never names the query of either URL in that refusal: a session token rides there', () => {
+    const factory = new DialPlanSocketFactory(Impl)
+    factory.arm({ url: 'ws://a/api/ws?token=secret-one' })
+
+    let message = ''
+
+    try {
+      factory.create('ws://b/api/ws?token=secret-two')
+    } catch (error) {
+      message = (error as Error).message
+    }
+
+    expect(message).toContain('armed for ws://a/api/ws but asked to dial ws://b/api/ws.')
+    expect(message).not.toMatch(/secret|token=/u)
   })
 
   it('passes protocols and headers through to the constructor', () => {

@@ -180,7 +180,9 @@ export class JsonRpcGatewayClient {
     // Refuse garbage; WebSocket coerces non-strings into
     // `ws://<origin>/[object%20Object]` (#68250 stale-emit boot loop).
     const invalidUrl = () => {
-      const got = typeof wsUrl === 'string' ? JSON.stringify(wsUrl) : `type "${typeof wsUrl}"`
+      // Hermie rewrite (scripts/sync-hermes-shared.mjs): the URL is named without its query, where a
+      // session-token gateway carries the token (`?token=`); an error text must never hold a credential.
+      const got = typeof wsUrl === 'string' ? JSON.stringify(wsUrl.split(/[?#]/u, 1)[0]) : `type "${typeof wsUrl}"`
 
       return new Error(`gateway connect() requires a ws:// or wss:// URL string, got ${got}`)
     }

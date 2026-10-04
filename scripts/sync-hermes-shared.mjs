@@ -75,9 +75,26 @@ const guardWindowLocation = required('readWindowLocation guard', source => {
   return { source: source.replace(UPSTREAM_READ_WINDOW_LOCATION, HERMIE_READ_WINDOW_LOCATION), matched: true }
 })
 
+const UPSTREAM_INVALID_URL_TEXT =
+  'const got = typeof wsUrl === \'string\' ? JSON.stringify(wsUrl) : `type "${typeof wsUrl}"`'
+
+const HERMIE_INVALID_URL_TEXT =
+  '// Hermie rewrite (scripts/sync-hermes-shared.mjs): the URL is named without its query, where a\n' +
+  '      // session-token gateway carries the token (`?token=`); an error text must never hold a credential.\n' +
+  '      const got = typeof wsUrl === \'string\' ? JSON.stringify(wsUrl.split(/[?#]/u, 1)[0]) : `type "${typeof wsUrl}"`'
+
+const invalidUrlWithoutQuery = required('connect() error without the URL query', source => {
+  if (!source.includes(UPSTREAM_INVALID_URL_TEXT)) {
+    return { source, matched: false }
+  }
+
+  return { source: source.replace(UPSTREAM_INVALID_URL_TEXT, HERMIE_INVALID_URL_TEXT), matched: true }
+})
+
 /** file name -> rewrites applied on top of the ones every file gets. */
 const PER_FILE_REWRITES = {
-  'websocket-url.ts': [guardWindowLocation]
+  'websocket-url.ts': [guardWindowLocation],
+  'json-rpc-gateway.ts': [invalidUrlWithoutQuery]
 }
 
 const COMMON_REWRITES = [dropRelativeJsExtensions]
